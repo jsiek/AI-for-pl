@@ -1,27 +1,28 @@
 module strong-rep-store.notes.ColorPreservationProbe where
 
 -- COLOR PRESERVATION ON ONE RUN (2026-09-21) — the statement layer of
--- strong-rep-store.Residual exercised on a concrete program, before the
--- theorem is proved.  In the renderer's names (`scripts/render_term.sh
--- 'showTmIn 0 Ex' 'open import
+-- strong-rep-store.Residual exercised by a Peel at the ambient context
+-- `underΛ empty`.  In the renderer's names (`scripts/render_term.sh
+-- 'showTmIn 1 Ex' 'open import
 -- strong-rep-store.notes.ColorPreservationProbe'`) the program and its
 -- three states are
 --
---   Ex   ΛX. ((ΛY. λx:(X⇒X). x) [X]) · (λx:X. x)       : ∀X. X ⇒ X
---   Ex₁  ΛX. ((λx:(X⇒X). x)
+--   Ex   ((ΛY. λx:(X⇒X). x) [X]) · (λx:X. x)           : X ⇒ X
+--   Ex₁  ((λx:(X⇒X). x)
 --          ⟪ ↑β:=α , ↥Y , (id X ↦ id X) ↦ (id X ↦ id X) ⟫)
 --          · (λx:X. x)                                   TyBeta
---   Ex₂  ΛX. ((λx:(X⇒X). x) · ((λx:X. x) ⟪ ↓Y , id X ↦ id X ⟫))
+--   Ex₂  ((λx:(X⇒X). x) · ((λx:X. x) ⟪ ↓Y , id X ↦ id X ⟫))
 --          ⟪ ↑β:=α , ↥Y , id X ↦ id X ⟫                  Peel
---   Ex₃  ΛX. ((λx:X. x) ⟪ ↓Y , id X ↦ id X ⟫)
+--   Ex₃  ((λx:X. x) ⟪ ↓Y , id X ↦ id X ⟫)
 --          ⟪ ↑β:=α , ↥Y , id X ↦ id X ⟫                  Beta
 --
--- The position followed is the argument `λx:X. x`.  It is born under ΛX
--- with scope map {X ↦ α}.  TyBeta mints the boundary scope `↑β:=α , ↥Y`
--- (bind β := α, unlock the name Y for it); Peel sends the argument into
--- that scope's DUAL `↓Y`, past the bind — so in de Bruijn the
--- representation index of α, which was 0, is now 1, β's binder being 0 —
--- and Beta puts the wrapped copy in the function variable's place.
+-- The position followed is the argument `λx:X. x`.  It is born at the
+-- ambient context `underΛ empty` with scope map {X ↦ α}.  TyBeta mints
+-- the boundary scope `↑β:=α , ↥Y` (bind β := α, unlock the name Y for
+-- it); Peel sends the argument into that scope's DUAL `↓Y`, past the bind
+-- — so in de Bruijn the representation index of α, which was 0, is now
+-- 1, β's binder being 0 — and Beta puts the wrapped copy in the function
+-- variable's place.
 -- Three steps, one move (the Peel's `wkN 1`), and the scope map at the
 -- end is the initial one under that move:
 -- `names Δ₃ ≡ 1 ∷ [] ≡ map ρ★ (names Δ₀)`.  In named terms the color is
@@ -48,11 +49,13 @@ open import strong-rep-store.TypeCheck
 open import strong-rep-store.Eval
 open import strong-rep-store.Residual
 open import strong-rep-store.ColorPreservation
-open import strong-rep-store.proof.Ctx using (wf-empty)
 
 ------------------------------------------------------------------------
 -- The program and its three states
 ------------------------------------------------------------------------
+
+Δ₀ : Ctxᵗ                      -- the ambient left by an enclosing ΛX
+Δ₀ = underΛ empty
 
 -- the ∀-body annotation of the inner type application, and the argument
 Bod : Ty
@@ -65,13 +68,10 @@ F : Term                       -- λf:(Y⇒Y). f, under ΛY ΛX
 F = ƛ (` 1 ⇒ ` 1) ∙ ` 0
 
 Ex : Term
-Ex = Λ (((Λ F) ·[ Bod , ` 0 ]) · W)
+Ex = ((Λ F) ·[ Bod , ` 0 ]) · W
 
-Ex-⊢ : empty ∣ [] ⊢ Ex ⦂ `∀ (` 0 ⇒ ` 0)
+Ex-⊢ : Δ₀ ∣ [] ⊢ Ex ⦂ ` 0 ⇒ ` 0
 Ex-⊢ = tc
-
-Δ₀ : Ctxᵗ                      -- under ΛY
-Δ₀ = underΛ empty
 
 Θ₀ : Boundary                  -- X := Y, minted by TyBeta
 Θ₀ = instantiate (` 0) (boundary [] [])
@@ -81,7 +81,7 @@ s = id (` 1) ↦ id (` 1)
 t = id (` 1) ↦ id (` 1)
 
 Ex₁ : Term
-Ex₁ = Λ ((F ⟪ Θ₀ , s ↦ t ⟫) · W)
+Ex₁ = (F ⟪ Θ₀ , s ↦ t ⟫) · W
 
 -- Peel's premises, decided by the evaluator's own procedure
 cross : CrossPremises Δ₀ Θ₀ s
@@ -108,18 +108,18 @@ W′ : Term                      -- the argument, moved: wrapped in the dual
 W′ = renᴹ² (moveᴿ (wkN (numBinds Θ₀))) W ⟪ dualBoundary Θ₀ , s′ ⟫
 
 Ex₂ : Term
-Ex₂ = Λ ((F · W′) ⟪ Θ₀ , t ⟫)
+Ex₂ = (F · W′) ⟪ Θ₀ , t ⟫
 
 Ex₃ : Term
-Ex₃ = Λ (W′ ⟪ Θ₀ , t ⟫)
+Ex₃ = W′ ⟪ Θ₀ , t ⟫
 
 pA : Δ₀ ⊢ᶜ ` 0 ~ ` 0
 pA = same-var here
 
-run : empty ⊢ Ex -→* Ex₃
-run = ξ-Λ (ξ-·-l (TyBeta V-ƛ pA))
-      then ξ-Λ (Peel V-ƛ V-ƛ rc ri rd sc)
-      then ξ-Λ (ξ-⟪⟫ ri (Beta (V-⟪⟫ V-ƛ I-fun)))
+run : Δ₀ ⊢ Ex -→* Ex₃
+run = ξ-·-l (TyBeta V-ƛ pA)
+      then Peel V-ƛ V-ƛ rc ri rd sc
+      then ξ-⟪⟫ ri (Beta (V-⟪⟫ V-ƛ I-fun))
       then done
 
 ------------------------------------------------------------------------
@@ -127,28 +127,28 @@ run = ξ-Λ (ξ-·-l (TyBeta V-ƛ pA))
 ------------------------------------------------------------------------
 
 C₀ : TermCtx                   -- the argument of the outer application
-C₀ = ΛC (((Λ F) ·[ Bod , ` 0 ]) ·R □)
+C₀ = ((Λ F) ·[ Bod , ` 0 ]) ·R □
 
 C₁ : TermCtx
-C₁ = ΛC ((F ⟪ Θ₀ , s ↦ t ⟫) ·R □)
+C₁ = (F ⟪ Θ₀ , s ↦ t ⟫) ·R □
 
 C₂ : TermCtx                   -- inside the dual, inside X:=Y
-C₂ = ΛC ((F ·R (□ ⟪C dualBoundary Θ₀ , s′ ⟫)) ⟪C Θ₀ , t ⟫)
+C₂ = (F ·R (□ ⟪C dualBoundary Θ₀ , s′ ⟫)) ⟪C Θ₀ , t ⟫
 
 C₃ : TermCtx                   -- Beta put the wrapped copy in f's place
-C₃ = ΛC ((□ ⟪C dualBoundary Θ₀ , s′ ⟫) ⟪C Θ₀ , t ⟫)
+C₃ = (□ ⟪C dualBoundary Θ₀ , s′ ⟫) ⟪C Θ₀ , t ⟫
 
 ρ★ : Renameᵗ                   -- one move, the Peel's `wkN 1`
 ρ★ = ((idᵗ ∘ idᵗ) ∘ holeᴿ (wkN (numBinds Θ₀)) □) ∘ idᵗ
 
 res : Residuals run C₀ W ρ★ C₃ W
 res = residuals-step
-        (residual-ξ-Λ (residual-ξ-·-l-sib (TyBeta V-ƛ pA)))
+        (residual-ξ-·-l-sib (TyBeta V-ƛ pA))
       (residuals-step
-        (residual-ξ-Λ (residual-Peel-arg V-ƛ V-ƛ rc ri rd sc))
+        (residual-Peel-arg V-ƛ V-ƛ rc ri rd sc)
       (residuals-step
-        (residual-ξ-Λ (residual-ξ-⟪⟫ ri
-          (residual-Beta-arg (V-⟪⟫ V-ƛ I-fun) (copy-var image-here))))
+        (residual-ξ-⟪⟫ ri
+          (residual-Beta-arg (V-⟪⟫ V-ƛ I-fun) (copy-var image-here)))
         residuals-done))
 
 ------------------------------------------------------------------------
@@ -162,11 +162,11 @@ ri-dual = proj₂ (force (interior? Δᵢ (dualBoundary Θ₀)) tt)
 Δ₃ : Ctxᵗ
 Δ₃ = proj₁ (force (interior? Δᵢ (dualBoundary Θ₀)) tt)
 
-before : empty ⊢C C₀ ⊣ Δ₀
-before = frame-Λ (frame-·R frame-□)
+before : Δ₀ ⊢C C₀ ⊣ Δ₀
+before = frame-·R frame-□
 
-after : empty ⊢C C₃ ⊣ Δ₃
-after = frame-Λ (frame-⟪⟫ ri (frame-⟪⟫ ri-dual frame-□))
+after : Δ₀ ⊢C C₃ ⊣ Δ₃
+after = frame-⟪⟫ ri (frame-⟪⟫ ri-dual frame-□)
 
 -- Y ↦ α₀ at the start; Y ↦ α₁ at the end, α₀ being X:=Y's binder now.
 scope-before : names Δ₀ ≡ 0 ∷ []
@@ -189,7 +189,9 @@ reps-after = refl
 -- proved: the scope map moves by ρ★, so the COLOR — how many type
 -- variables are live — is unchanged.
 scope-map-thm : names Δ₃ ≡ map ρ★ (names Δ₀)
-scope-map-thm = scope-map-preservation wf-empty Ex-⊢ res before after
+scope-map-thm =
+  scope-map-preservation (force (wfCtx? Δ₀) tt) Ex-⊢ res before after
 
 color-preserved-thm : length (names Δ₃) ≡ length (names Δ₀)
-color-preserved-thm = color-preservation wf-empty Ex-⊢ res before after
+color-preserved-thm =
+  color-preservation (force (wfCtx? Δ₀) tt) Ex-⊢ res before after

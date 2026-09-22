@@ -17,6 +17,10 @@ module strong-rep-store.Examples where
 --     `Reaches`; a second statement about the same program evaluates it
 --     a second time, so the cost of this file stays linear in the number
 --     of runs only as long as that discipline holds.
+--   * TYPE ABSTRACTION IS VALUE-RESTRICTED: every `Λ` body is a value and
+--     no reduction happens beneath it.  The programs in §2, §3, §5,
+--     §7c and §10 use a dummy `λ_:ℕ` and a matching application to `0`
+--     to route computations out from under their affected `Λ`s.
 --
 -- THE MAP.
 --
@@ -26,9 +30,11 @@ module strong-rep-store.Examples where
 --        constant), `F` (the identity at 𝔹, for `Drop-false`) and `U`
 --        (an argument still reducing, for `ξ-·-r`).
 --   §2   THE VACUOUS-Λ FAMILY — four programs whose runs are born with
---        an IDENTITY LAYER and therefore land on `IdPush`: `Q` (once),
---        `D` (twice), `L` (the "wall" context), `R` (a chained
---        representation).
+--        an IDENTITY LAYER and therefore land on `IdPush`: `Q` (one
+--        vacuous layer), `D` (two), `L` (the "wall" context), and `R`
+--        (a chained representation).  The dummy detours make `IdPush`
+--        fire twice for `Q` and `L`, four times for `D`, and six times
+--        for `R`.
 --   §3   TYPEELR FROM CLOSED PLAIN SOURCE — `G`, whose second inner
 --        instantiation is a `TyPeelR` redex over a one-bind frame, and
 --        the machine-checked table of which rule can mint a frame with
@@ -69,24 +75,24 @@ module strong-rep-store.Examples where
 --   §1c  J    11 steps   3      : ℕ    a polymorphic constant
 --   §1d  F     6 steps   false  : 𝔹    the identity at 𝔹
 --   §1e  U     7 steps   5      : ℕ    an argument still reducing
---   §2   Q    11 steps   7      : ℕ    one identity layer
---   §2a  D    16 steps   7      : ℕ    two identity layers
---   §2b  L    11 steps   7      : ℕ    the wall context
---   §2c  R    21 steps   7      : ℕ    a chained representation
---   §3   G    14 steps   7      : ℕ    a two-bind frame
+--   §2   Q    14 steps   7      : ℕ    two IdPush steps
+--   §2a  D    22 steps   7      : ℕ    four IdPush steps
+--   §2b  L    14 steps   7      : ℕ    the wall context
+--   §2c  R    24 steps   7      : ℕ    a chained representation
+--   §3   G    17 steps   7      : ℕ    a two-bind frame
 --   §4   H    11 steps   7      : ℕ    the reveal mirror
---   §5a  E    25 steps   true   : 𝔹    one later binder
---   §5b  V    37 steps   true   : 𝔹    two later binders
+--   §5a  E    28 steps   true   : 𝔹    one later binder
+--   §5b  V    40 steps   true   : 𝔹    two later binders
 --   §6a  I    17 steps   true   : 𝔹    impredicative identity
 --   §6b  N    23 steps   7      : ℕ    ∀-payload over a free var
 --   §7a  A    11 steps   7      : ℕ    a function crosses
 --   §7b  B    21 steps   7      : ℕ    a function crosses twice
---   §7c  C    38 steps   7      : ℕ    a function through the tower
+--   §7c  C    41 steps   7      : ℕ    a function through the tower
 --   §8   S    19 steps   7      : ℕ    the CancelR shift witness
 --   §9a  T     3 steps   7      : ℕ    the cancel pair
 --   §9b  Tid   5 steps   7      : ℕ    one transparent layer
 --   §9c  Tid₂  7 steps   7      : ℕ    a stack of layers
---   §10  Bg    2 steps   Λ 7    : ∀ℕ   the base-typed wrapper
+--   §10  Bg    7 steps   7      : ℕ    the base-typed wrapper
 --
 -- WHAT A RUN HERE ASSERTS.  One `Reaches k n ⊢M V` says that with fuel
 -- `k` the evaluator reaches `V` in exactly `n` steps, that `V` is a
@@ -106,12 +112,11 @@ module strong-rep-store.Examples where
 -- strictly less than an exact transcript.  The states of any other run
 -- are one `evalTerms` away whenever a reader wants to look at one.
 --
--- COVERAGE.  All fifteen reduction rules fire somewhere in §§1–8.  §1d,
--- §1e and §5b are here for the four that the rest of §1 and §5a reached
--- once or not at all: `Drop-false` and `ξ-·-r` fired nowhere, and
--- `TyPeelR-⟪⟫` and `IdPush` fired only in §5a — `TyPeelR-⟪⟫` exactly
--- once.  Counting across §§1–8, `TyPeelR-⟪⟫` fires three times and
--- `IdPush` twenty-one.
+-- COVERAGE.  All fourteen live reduction rules fire somewhere in §§1–8.
+-- §1d, §1e and §5b retain cases that the smaller baseline and tower runs
+-- do not reach: `Drop-false`, `ξ-·-r`, and the second
+-- `TyPeelR-⟪⟫`.  Each dummy route is the four-step sequence `TyBeta`,
+-- `Peel`, `Drop$`, `Beta`; it introduces no new rule shape.
 --
 -- WHAT IS STILL THIN.  Depth.  The deepest seal tower any run builds is
 -- four (§5b), and unwinding is quadratic in that depth, so a defect that
@@ -295,24 +300,24 @@ U-run = reaches-run U-eval
 -- The smallest source with that shape is a VACUOUS type abstraction: a
 -- `Λ` whose body mentions a variable bound further out.
 --
---   Q = ((ΛY. λx:Y. ((ΛZ. x) [ℕ])) [ℕ]) · 7
+--   Q = ((ΛY. λx:Y. ((ΛZ. λ_:ℕ. x) [ℕ]) · 0) [ℕ]) · 7
 --
--- Under Z the outer Y is ordinary slot 1, so `ΛZ. x` has type `∀ (` 1)`
--- and the inner `TyBeta` mints the identity layer around x's value,
--- sitting inside the OUTER package's revealing wrapper.  That two-wrapper
--- stack IS the `IdPush` redex, and this is the smallest closed program
--- that reaches it.
+-- Under Z the outer Y is ordinary slot 1, so `ΛZ. λ_:ℕ. x` has type
+-- `∀ (ℕ ⇒ ` 1)`.  The inner `TyBeta` mints an identity layer around x's
+-- value, inside the OUTER package's revealing wrapper.  That stack
+-- contains the original `IdPush` redex; the dummy route contributes a
+-- second identity layer, so the new run fires `IdPush` twice.
 
 Qvac Qbody Qfun Q₀ : Term
-Qvac  = Λ (` 0)                          -- ΛZ. x
-Qbody = Qvac ·[ ` 1 , `ℕ ]               -- (ΛZ. x) [ℕ]
-Qfun  = Λ (ƛ ` 0 ∙ Qbody)                -- ΛY. λx:Y. (ΛZ. x) [ℕ]
+Qvac  = Λ (ƛ `ℕ ∙ ` 1)                   -- ΛZ. λ_:ℕ. x
+Qbody = (Qvac ·[ `ℕ ⇒ ` 1 , `ℕ ]) · $ 0
+Qfun  = Λ (ƛ ` 0 ∙ Qbody)
 Q₀    = (Qfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 
 Q₀-⊢ : empty ∣ [] ⊢ Q₀ ⦂ `ℕ
 Q₀-⊢ = tc
 
-Q-eval : Reaches 11 11 Q₀-⊢ ($ 7)
+Q-eval : Reaches 14 14 Q₀-⊢ ($ 7)
 Q-eval = reaches refl V-$
 
 Q-run : empty ⊢ Q₀ -→* $ 7
@@ -324,26 +329,31 @@ Q-⦂ : empty ∣ [] ⊢ $ 7 ⦂ `ℕ
 Q-⦂ = reaches-⦂ Q-eval
 
 ------------------------------------------------------------------------
--- §2a  TWO LAYERS — `IdPush` firing twice in one run
+-- §2a  TWO VACUOUS LAYERS — `IdPush` firing four times in one run
 ------------------------------------------------------------------------
 
---   D = ((ΛY. λx:Y. ((ΛZ. ((ΛW. x) [ℕ])) [ℕ])) [ℕ]) · 7
+--   D = ((ΛY. λx:Y.
+--          ((ΛZ. λ_:ℕ. ((ΛW. λ_:ℕ. x) [ℕ]) · 0) [ℕ]) · 0)
+--        [ℕ]) · 7
 --
--- Each vacuous `Λ` contributes one `TyBeta` whose body type is an outer
--- ordinary variable, hence one identity layer.  NOTE THE ORDER: the inner
--- `TyBeta` fires FIRST, under `ξ-Λ`, because `TyBeta`'s `Value N` premise
--- refuses to fire on a `Λ` whose body is still a redex.
+-- Each vacuous `Λ` contributes one `TyBeta` whose body type ends in an
+-- outer ordinary variable, hence one identity layer.  The inner package
+-- is instantiated and applied only after the outer package's dummy
+-- lambda has itself been instantiated and applied; no step occurs under
+-- either `Λ`.  Each dummy route contributes another layer, so the two
+-- `IdPush` steps of the old run are now four.
 
 Dinner Dbody Dfun D₀ : Term
-Dinner = Λ (Qvac ·[ ` 2 , `ℕ ])          -- ΛZ. ((ΛW. x) [ℕ])
-Dbody  = Dinner ·[ ` 1 , `ℕ ]
+Dinner =
+  Λ (ƛ `ℕ ∙ ((Λ (ƛ `ℕ ∙ ` 2)) ·[ `ℕ ⇒ ` 2 , `ℕ ]) · $ 0)
+Dbody  = (Dinner ·[ `ℕ ⇒ ` 1 , `ℕ ]) · $ 0
 Dfun   = Λ (ƛ ` 0 ∙ Dbody)
 D₀     = (Dfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 
 D₀-⊢ : empty ∣ [] ⊢ D₀ ⦂ `ℕ
 D₀-⊢ = tc
 
-D-eval : Reaches 16 16 D₀-⊢ ($ 7)
+D-eval : Reaches 22 22 D₀-⊢ ($ 7)
 D-eval = reaches refl V-$
 
 D-run : empty ⊢ D₀ -→* $ 7
@@ -356,7 +366,7 @@ D-run = reaches-run D-eval
 -- `L` is `Q` with ONE character changed: the vacuous `ΛZ` is instantiated
 -- at the OUTER ordinary variable `Y` instead of at `ℕ`.
 --
---   L = ((ΛY. λx:Y. ((ΛZ. x) [Y])) [ℕ]) · 7
+--   L = ((ΛY. λx:Y. ((ΛZ. λ_:ℕ. x) [Y]) · 0) [ℕ]) · 7
 --
 -- After the inner `TyBeta` the new binder's representation is the CHAINED
 -- one — it is the representation the outer binder named — and the
@@ -369,14 +379,14 @@ D-run = reaches-run D-eval
 -- run is lock-free.  The run reaches a value, and no state loses its type.
 
 Lbody Lfun L₀ : Term
-Lbody = Qvac ·[ ` 1 , ` 0 ]              -- (ΛZ. x) [Y]
+Lbody = (Qvac ·[ `ℕ ⇒ ` 1 , ` 0 ]) · $ 0
 Lfun  = Λ (ƛ ` 0 ∙ Lbody)
 L₀    = (Lfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 
 L₀-⊢ : empty ∣ [] ⊢ L₀ ⦂ `ℕ
 L₀-⊢ = tc
 
-L-eval : Reaches 11 11 L₀-⊢ ($ 7)
+L-eval : Reaches 14 14 L₀-⊢ ($ 7)
 L-eval = reaches refl V-$
 
 L-run : empty ⊢ L₀ -→* $ 7
@@ -391,7 +401,9 @@ L-run = reaches-run L-eval
 -- by running `Q`'s own program inside one more package, at the outer
 -- package's ordinary type variable:
 --
---   R = ((ΛX. λy:X. ((ΛY. λx:Y. ((ΛZ. x) [ℕ])) [X]) · y) [ℕ]) · 7
+--   R = ((ΛX. λy:X.
+--          ((ΛY. λx:Y. ((ΛZ. λ_:ℕ. x) [ℕ]) · 0) [X]) · y)
+--        [ℕ]) · 7
 --
 -- The inner instantiation `[X]` mints a binder whose representation is the
 -- one `X` names, so at the `IdPush` redex the looked-up representation is
@@ -405,7 +417,7 @@ R₀    = (Rfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 R₀-⊢ : empty ∣ [] ⊢ R₀ ⦂ `ℕ
 R₀-⊢ = tc
 
-R-eval : Reaches 21 21 R₀-⊢ ($ 7)
+R-eval : Reaches 24 24 R₀-⊢ ($ 7)
 R-eval = reaches refl V-$
 
 R-run : empty ⊢ R₀ -→* $ 7
@@ -415,7 +427,7 @@ R-run = reaches-run R-eval
 -- §3  TYPEELR FROM CLOSED PLAIN SOURCE, AND THE MULTI-BIND FRAME
 ------------------------------------------------------------------------
 
---   G = ((ΛX. λx:X. ((ΛY. ΛZ. x) [ℕ]) [ℕ]) [ℕ]) · 7
+--   G = ((ΛX. λx:X. ((ΛY. ΛZ. λ_:ℕ. x) [ℕ]) [ℕ] · 0) [ℕ]) · 7
 --
 -- `ΛY. ΛZ. x` has type `∀Y. ∀Z. X`, so the FIRST inner instantiation mints
 -- an INERT `∀` conversion on a one-bind frame, and the SECOND
@@ -424,15 +436,16 @@ R-run = reaches-run R-eval
 -- frame with two binds is reached at all, by the table below.
 
 Gpoly Gbody Gfun G₀ : Term
-Gpoly = Λ (Λ (` 0))                      -- ΛY. ΛZ. x
-Gbody = (Gpoly ·[ `∀ (` 2) , `ℕ ]) ·[ ` 1 , `ℕ ]
+Gpoly = Λ (Λ (ƛ `ℕ ∙ ` 1))
+Gbody = ((Gpoly ·[ `∀ (`ℕ ⇒ ` 2) , `ℕ ])
+           ·[ `ℕ ⇒ ` 1 , `ℕ ]) · $ 0
 Gfun  = Λ (ƛ ` 0 ∙ Gbody)
 G₀    = (Gfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 
 G₀-⊢ : empty ∣ [] ⊢ G₀ ⦂ `ℕ
 G₀-⊢ = tc
 
-G-eval : Reaches 14 14 G₀-⊢ ($ 7)
+G-eval : Reaches 17 17 G₀-⊢ ($ 7)
 G-eval = reaches refl V-$
 
 G-run : empty ⊢ G₀ -→* $ 7
@@ -506,8 +519,8 @@ H-run = reaches-run H-eval
 -- defect recorded in notes/ReUnlockWall.agda.
 
 ------------------------------------------------------------------------
--- §5a  ( ΛX. λf:(∀Z. Z⇒Z). ΛY. f [Y] ) [ℕ] · (ΛZ. λz:Z. z),
---      at [𝔹] · true
+-- §5a  ( ΛX. λf:(∀Z. Z⇒Z). ΛY. λ_:ℕ. f [Y] ) [ℕ]
+--      · (ΛZ. λz:Z. z), at [𝔹] · 0 · true
 --
 -- The argument is instantiated beneath the LATER binder `ΛY`, so `f [Y]`
 -- crosses `Y`'s boundary as well as `X`'s and the identity that finally
@@ -520,54 +533,56 @@ H-run = reaches-run H-eval
 
 EID EBod : Ty
 EID = `∀ (` 0 ⇒ ` 0)
-EBod = EID ⇒ EID
+EBod = EID ⇒ `∀ (`ℕ ⇒ (` 0 ⇒ ` 0))
 
 Earg Ebody Efun E₀ E₀ᴮ : Term
 Earg = Λ (ƛ ` 0 ∙ ` 0)
-Ebody = Λ ((` 0) ·[ ` 0 ⇒ ` 0 , ` 0 ])
+Ebody = Λ (ƛ `ℕ ∙ ((` 1) ·[ ` 0 ⇒ ` 0 , ` 0 ]))
 Efun = Λ (ƛ EID ∙ Ebody)
 E₀ = (Efun ·[ EBod , `ℕ ]) · Earg
-E₀ᴮ = (E₀ ·[ ` 0 ⇒ ` 0 , `𝔹 ]) · `true
+E₀ᴮ = ((E₀ ·[ `ℕ ⇒ (` 0 ⇒ ` 0) , `𝔹 ]) · $ 0) · `true
 
 -- Uncontinued, the program is already a run: it reaches a VALUE at
--- `∀Y. Y ⇒ Y`, which is where the design was first parked.
-E₀-⊢ : empty ∣ [] ⊢ E₀ ⦂ EID
+-- `∀Y. ℕ ⇒ Y ⇒ Y`, which is where the value-restricted design parks it.
+E₀-⊢ : empty ∣ [] ⊢ E₀ ⦂ `∀ (`ℕ ⇒ (` 0 ⇒ ` 0))
 E₀-⊢ = tc
 
 E₀ᴮ-⊢ : empty ∣ [] ⊢ E₀ᴮ ⦂ `𝔹
 E₀ᴮ-⊢ = tc
 
-E-eval : Reaches 25 25 E₀ᴮ-⊢ `true
+E-eval : Reaches 28 28 E₀ᴮ-⊢ `true
 E-eval = reaches refl V-true
 
 E-run : empty ⊢ E₀ᴮ -→* `true
 E-run = reaches-run E-eval
 
 ------------------------------------------------------------------------
--- §5b  ( ΛX. λf:(∀Z. Z⇒Z). ΛY. ΛW. f [W] ) [ℕ] · (ΛZ. λz:Z. z),
---      at [𝔹] [𝔹] · true
+-- §5b  ( ΛX. λf:(∀Z. Z⇒Z). ΛY. ΛW. λ_:ℕ. f [W] ) [ℕ]
+--      · (ΛZ. λz:Z. z), at [𝔹] [𝔹] · 0 · true
 --
 -- §5a with one more later binder, which is what puts weight on the two
 -- rules §5a barely touches.  The argument now crosses THREE boundaries
 -- before it is instantiated, so the `∀`-value the type application meets
 -- is two boundaries deep and `TyPeelR-⟪⟫` fires twice rather than once;
 -- the seal tower it leaves is four deep, and unwinding it is quadratic,
--- so `IdPush` fires fifteen times rather than six.
+-- so `IdPush` still fires repeatedly.  The dummy route changes the exact
+-- total from fifteen to twelve, while §5a still fires it six times.
 ------------------------------------------------------------------------
 
 VBod : Ty
-VBod = EID ⇒ `∀ (`∀ (` 0 ⇒ ` 0))
+VBod = EID ⇒ `∀ (`∀ (`ℕ ⇒ (` 0 ⇒ ` 0)))
 
 Vbody Vfun V₀ : Term
-Vbody = Λ (Λ ((` 0) ·[ ` 0 ⇒ ` 0 , ` 0 ]))
+Vbody = Λ (Λ (ƛ `ℕ ∙ ((` 1) ·[ ` 0 ⇒ ` 0 , ` 0 ])))
 Vfun = Λ (ƛ EID ∙ Vbody)
-V₀ = (((Vfun ·[ VBod , `ℕ ]) · Earg) ·[ `∀ (` 0 ⇒ ` 0) , `𝔹 ])
-       ·[ ` 0 ⇒ ` 0 , `𝔹 ] · `true
+V₀ = (((((Vfun ·[ VBod , `ℕ ]) · Earg)
+           ·[ `∀ (`ℕ ⇒ (` 0 ⇒ ` 0)) , `𝔹 ])
+          ·[ `ℕ ⇒ (` 0 ⇒ ` 0) , `𝔹 ]) · $ 0) · `true
 
 V₀-⊢ : empty ∣ [] ⊢ V₀ ⦂ `𝔹
 V₀-⊢ = tc
 
-V-eval : Reaches 37 37 V₀-⊢ `true
+V-eval : Reaches 40 40 V₀-⊢ `true
 V-eval = reaches refl V-true
 
 V-run : empty ⊢ V₀ -→* `true
@@ -691,15 +706,18 @@ B-run = reaches-run B-eval
 -- composites are not structurally guaranteed to be safe; this run is the
 -- evidence that they are safe in practice, which is testing and not
 -- proof.
+--
+--   C = (((E [ℕ⇒ℕ]) · 0) · (λn:ℕ. n)) · 7
 ------------------------------------------------------------------------
 
 C₀ : Term
-C₀ = ((E₀ ·[ ` 0 ⇒ ` 0 , `ℕ ⇒ `ℕ ]) · (ƛ `ℕ ∙ ` 0)) · $ 7
+C₀ = (((E₀ ·[ `ℕ ⇒ (` 0 ⇒ ` 0) , `ℕ ⇒ `ℕ ]) · $ 0)
+        · (ƛ `ℕ ∙ ` 0)) · $ 7
 
 C₀-⊢ : empty ∣ [] ⊢ C₀ ⦂ `ℕ
 C₀-⊢ = tc
 
-C-eval : Reaches 38 38 C₀-⊢ ($ 7)
+C-eval : Reaches 41 41 C₀-⊢ ($ 7)
 C-eval = reaches refl V-$
 
 C-run : empty ⊢ C₀ -→* $ 7
@@ -918,21 +936,29 @@ _ = tc
 -- the whole price of frame-exactness at a base-typed argument, and
 -- progress is not disturbed by it: a closed value at `ℕ` is a numeral, a
 -- Boolean literal being the other base case, so a drop always applies.
+--
+--   Bg = ((λx:ℕ. ΛZ. λ_:ℕ. x) · 7) [ℕ] · 0
+--
+-- Its first `Beta` reaches
+-- `ΛZ. λ_:ℕ. 7 ⟪ boundary [] (lock 0 0 ∷ []) , id ℕ ⟫`.
+-- Instantiating that value and applying its dummy exposes the wrapper;
+-- the sixth step is the `Drop$` that removes it.
 
 Bg : Term
-Bg = (ƛ `ℕ ∙ (Λ (` 0))) · ($ 7)
+Bg = (((ƛ `ℕ ∙ (Λ (ƛ `ℕ ∙ ` 1))) · ($ 7))
+        ·[ `ℕ ⇒ `ℕ , `ℕ ]) · $ 0
 
-Bg-⊢ : empty ∣ [] ⊢ Bg ⦂ `∀ `ℕ
+Bg-⊢ : empty ∣ [] ⊢ Bg ⦂ `ℕ
 Bg-⊢ = tc
 
 _ : (Λ (` 0)) [ $ 7 ∶ `ℕ ]ᵐ
       ≡ Λ (($ 7) ⟪ boundary [] (lock 0 0 ∷ []) , id `ℕ ⟫)
 _ = refl
 
-Bg-eval : Reaches 2 2 Bg-⊢ (Λ ($ 7))
-Bg-eval = reaches refl (V-Λ V-$)
+Bg-eval : Reaches 7 7 Bg-⊢ ($ 7)
+Bg-eval = reaches refl V-$
 
-Bg-run : empty ⊢ Bg -→* Λ ($ 7)
+Bg-run : empty ⊢ Bg -→* $ 7
 Bg-run = reaches-run Bg-eval
 
 -- the wrapper itself is not a value: its conversion is the ACTIVE `id ℕ`
@@ -945,28 +971,32 @@ Bg-run = reaches-run Bg-eval
 
 -- THE CHECKER REFUSES AN UNBOUND TYPE ARGUMENT.  `(ΛZ. z) [Z]` writes an
 -- ordinary type variable that no name map has, so neither the argument's
--- well-formedness nor its representation reading exists.  A `just` here
--- would be a soundness bug in `strong-rep-store.TypeCheck`; the run of §2b is
--- the
--- positive companion, where the argument IS a live name.
+-- well-formedness nor its representation reading exists.  Its `Λ` body is
+-- also not a value, so the value restriction independently rejects it.  A
+-- `just` here would be a soundness bug in `strong-rep-store.TypeCheck`; the
+-- run of §2b is the positive companion, where the argument IS a live name.
 _ : infer empty [] ((Λ (` 0)) ·[ ` 0 , ` 0 ]) ≡ nothing
 _ = refl
 
+-- A `Λ` OVER A NON-VALUE IS REJECTED EVEN IN WELL-SCOPED CONTEXTS.
+_ : infer (underΛ empty) ((` 0) ∷ []) (Λ (` 0)) ≡ nothing
+_ = refl
+
 -- A WRONG ENDPOINT IS REJECTED.
-no-wrong-endpoint : ¬ Reaches 11 11 Q₀-⊢ ($ 8)
+no-wrong-endpoint : ¬ Reaches 14 14 Q₀-⊢ ($ 8)
 no-wrong-endpoint r with ran r
-... | ()
+no-wrong-endpoint r | ()
 
 -- A WRONG STEP COUNT IS REJECTED.
-no-wrong-count : ¬ Reaches 11 10 Q₀-⊢ ($ 7)
+no-wrong-count : ¬ Reaches 14 13 Q₀-⊢ ($ 7)
 no-wrong-count r with ran r
-... | ()
+no-wrong-count r | ()
 
 -- TOO LITTLE FUEL IS REJECTED: with five steps of fuel the run has not
 -- reached a value, so `report` returns the state it stopped at.
-no-short-fuel : ¬ Reaches 5 11 Q₀-⊢ ($ 7)
+no-short-fuel : ¬ Reaches 5 14 Q₀-⊢ ($ 7)
 no-short-fuel r with ran r
-... | ()
+no-short-fuel r | ()
 
 -- AND A VALUE DOES NOT STEP, so a run cannot be padded at the end.
 no-step-past-value : ∀ {M} → ¬ (Δ₆ ⊢ $ 7 -→ M)

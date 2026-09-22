@@ -62,7 +62,7 @@ module strong-rep-store.Eval where
 -- no longer a reduction premise and is not decided here.
 
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; _++_)
 open import Data.Maybe using (Maybe; just; nothing; map)
 open import Data.Unit using (⊤; tt)
 open import Data.Bool using (Bool; true; false)
@@ -136,8 +136,8 @@ BdyPremises Δ Θ Θ′ s′ R Bᵢ Δᶜ =
       ((Δ ⊢ⁱ Θ ⇒ Δᵢ)
         × (underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ)
         × (Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ)
-        × (allocate R Δ ⊢ⁱ instantiate Θ ⇒ Δᵢ⁺)
-        × (Δᵢ⁺ ⊢ᶜ addLock0 (renᴮᴿ suc Θ′) ⇒ Δ″ᶜ)
+        × (allocate R Δ ⊢ⁱ inst Θ ⇒ Δᵢ⁺)
+        × (Δᵢ⁺ ⊢ᶜ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) ⇒ Δ″ᶜ)
         × SameConv (underΛ Δ″ᶜ) s″
             (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′)
 
@@ -154,12 +154,12 @@ bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   | just (Bᵢ′ , sm) | nothing = nothing
 bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′)
-  with interior? (allocate R Δ) (instantiate Θ)
+  with interior? (allocate R Δ) (inst Θ)
 bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | nothing = nothing
 bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
-  with conversion? Δᵢ⁺ (addLock0 (renᴮᴿ suc Θ′))
+  with conversion? Δᵢ⁺ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ []))
 bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
   | nothing = nothing
@@ -184,7 +184,7 @@ PushPremises : Ctxᵗ → Boundary → Boundary → ℕ → Set
 PushPremises Δ Θ₁ Θ₂ X =
   Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ Δ⋉ᶜ ∈ Ctxᵗ ] Σ[ X′ ∈ ℕ ]
     ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
-      × (Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
+      × (Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ)
       × (Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ))
 
 pushPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : Boundary) (X : ℕ)
@@ -194,7 +194,7 @@ pushPremises? Δ Θ₁ Θ₂ X | nothing = nothing
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) with conversion? Δᵢ Θ₁
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | nothing = nothing
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  with conversion? Δ (Θ₁ ⋉ Θ₂)
+  with conversion? Δ (Θ₁ ++ Θ₂)
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | nothing = nothing
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
@@ -225,7 +225,7 @@ MergedPremises Δ Θ₁ Θ₂ X =
     Σ[ Δ⋉ᶜ ∈ Ctxᵗ ] Σ[ A′ ∈ Ty ]
       ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
         × (Δ₁ᶜ ∋ X := Aᵢ)
-        × (Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
+        × (Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ)
         × (Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ))
 
 mergedPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : Boundary) (X : ℕ)
@@ -241,7 +241,7 @@ mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | nothing = nothing
 mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | just (Aᵢ , d₁)
-  with conversion? Δ (Θ₁ ⋉ Θ₂)
+  with conversion? Δ (Θ₁ ++ Θ₂)
 mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | just (Aᵢ , d₁) | nothing = nothing
 mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
@@ -261,7 +261,7 @@ mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
 CrossPremises : Ctxᵗ → Boundary → Conv → Set
 CrossPremises Δ Θ s =
   Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δᵈ ∈ Ctxᵗ ] Σ[ s′ ∈ Conv ]
-    ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (Δ ⊢ⁱ Θ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ dualBoundary Θ ⇒ Δᵈ)
+    ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (Δ ⊢ⁱ Θ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ)
       × SameConv Δᵈ s′ Δᶜ s)
 
 crossPremises? : (Δ : Ctxᵗ) (Θ : Boundary) (s : Conv)
@@ -271,7 +271,7 @@ crossPremises? Δ Θ s | nothing = nothing
 crossPremises? Δ Θ s | just (Δᶜ , rc) with interior? Δ Θ
 crossPremises? Δ Θ s | just (Δᶜ , rc) | nothing = nothing
 crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri)
-  with conversion? Δᵢ (dualBoundary Θ)
+  with conversion? Δᵢ (dual Θ)
 crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri)
   | nothing = nothing
 crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)

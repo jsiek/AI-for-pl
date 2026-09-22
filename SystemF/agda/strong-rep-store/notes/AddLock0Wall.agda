@@ -56,7 +56,7 @@ module strong-rep-store.notes.AddLock0Wall where
 -- `renᶜ (extᵗ suc) s′` — which is `renᶜ suc` on the whole `` `∀ ``
 -- conversion — assumes it landed at position ZERO.
 --
--- ONE UNLOCK IS ENOUGH, and `TyBeta` mints one: `instantiate Θ` appends
+-- ONE UNLOCK IS ENOUGH, and `TyBeta` mints one: `inst Θ` appends
 -- `unlock 0 0`.  In the run below the moved boundary's conversion context
 -- goes
 --
@@ -83,7 +83,7 @@ module strong-rep-store.notes.AddLock0Wall where
 -- THE REPAIR, AS INSTALLED (2026-09-20).  The rule NAMES the moved
 -- spelling `s″` and carries, besides the two readings it already had, the
 -- old boundary's conversion reading `Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ`, the instantiated
--- outer interior `Δ ⊢ⁱ instantiate R Θ ⇒ Δᵢ⁺`, the moved boundary's own
+-- outer interior `Δ ⊢ⁱ inst R Θ ⇒ Δᵢ⁺`, the moved boundary's own
 -- reading `Δᵢ⁺ ⊢ᶜ addLock0 (renᴮ² (ren² idᵗ suc) Θ′) ⇒ Δ″ᶜ`, and
 --
 --     SameConv (underΛ Δ″ᶜ) s″
@@ -100,7 +100,8 @@ module strong-rep-store.notes.AddLock0Wall where
 -- WHAT SURVIVED OF THE DECOMPOSITION, and still does: the representation
 -- half is fine and is proved elsewhere — the mover is `renᴹᴿ suc`, and
 -- the head insertion is `repwk-cons₀` (strong-rep-store.proof.Ctx §3).
--- The interior reading of `addLock0 Θ′` is the interior reading of Θ′,
+-- The interior reading of `Θ′ ++ (lock 0 0 ∷ [])` is the interior
+-- reading of Θ′,
 -- because the appended lock deletes the new name first.  It was the
 -- CONVERSION reading, and only it, that the rule got wrong.
 --
@@ -110,9 +111,10 @@ module strong-rep-store.notes.AddLock0Wall where
 -- the conversion reading is a name-map fact.  A boundary no longer
 -- carries a bind block, so `numBinds Θ′` is gone and the three movers
 -- collapse to one: the interior term moves by `renᴹᴿ suc`, the scope by
--- `renᴮᴿ suc`, and `addLock0` appends `lock 0 0` rather than
--- `lock 0 (numBinds Θ′)`.  The run is the SAME eight steps to the same
--- shape, the displaced name is displaced by the same one `unlock`, and
+-- `renᴮᴿ suc`, and the frame is the snoc `Θ′ ++ (lock 0 0 ∷ [])` rather
+-- than an `addLock0` appending `lock 0 (numBinds Θ′)`.  The run is the
+-- SAME eight steps to the same shape, the displaced name is displaced by
+-- the same one `unlock`, and
 -- the repaired leaf is still `seal 1 ↦ unseal 1` where the fixed
 -- renaming wrote `seal 2 ↦ unseal 2`.  What moved is only WHERE the two
 -- cells live: in the ambient store, so every scope below carries a
@@ -121,7 +123,7 @@ module strong-rep-store.notes.AddLock0Wall where
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Bool using (Bool; true; false)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; _++_)
 open import Data.Product using (_,_; proj₁; proj₂)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
@@ -179,8 +181,8 @@ Src-⊢ = tc
 -- spelled once per state (experiment 2: the allocation shifts every
 -- sibling's representation indices by one).
 Outer₇ Outer₈ : Boundary
-Outer₇ = boundary (unlock 0 1 ∷ [])
-Outer₈ = boundary (unlock 0 2 ∷ [])
+Outer₇ = (unlock 0 1 ∷ [])
+Outer₈ = (unlock 0 2 ∷ [])
 
 -- THE RUN, BEFORE (2026-09-20, the wall): `TyBeta`, then `Beta`, then
 -- `TyPeelR-⟪⟫` — and the evaluator's own per-state check REJECTED the
@@ -198,9 +200,9 @@ Outer₈ = boundary (unlock 0 2 ∷ [])
 Dst : Term
 Dst =
   (((ƛ (` 1) ∙ ` 0)
-        ⟪ boundary (unlock 1 3 ∷ lock 1 1 ∷ unlock 0 0 ∷ [])
+        ⟪ (unlock 1 3 ∷ lock 1 1 ∷ unlock 0 0 ∷ [])
         , seal 1 ↦ unseal 1 ⟫)
-      ⟪ boundary (lock 1 2 ∷ unlock 0 1 ∷ []) , id `ℕ ↦ id `ℕ ⟫)
+      ⟪ (lock 1 2 ∷ unlock 0 1 ∷ []) , id `ℕ ↦ id `ℕ ⟫)
     ⟪ Outer₈ , id `ℕ ↦ id `ℕ ⟫
 
 Src-eval : Reaches 8 8 Src-⊢ Dst
@@ -219,7 +221,7 @@ run-keeps-the-type = refl
 Θ′ : Boundary
 Θ′ = renᴮᴿ suc TyBetaBoundary
 
-Θ′-explicit : Θ′ ≡ boundary (unlock 0 1 ∷ [])
+Θ′-explicit : Θ′ ≡ (unlock 0 1 ∷ [])
 Θ′-explicit = refl
 
 inner : Term
@@ -228,7 +230,7 @@ inner = Vfun ⟪ Θ′ , `∀ (seal 1 ↦ unseal 1) ⟫
 -- its exterior, and the context it is moved to.  The store holds the two
 -- cells the run has allocated by then; the move ALLOCATES a third — the
 -- type argument's representation `` `𝔹 `` — at address 0, and
--- `instantiate` gives it the new ordinary name.
+-- `inst` gives it the new ordinary name.
 Δᵢ Δ⁺ : Ctxᵗ
 Δᵢ = (bindR `ℕ ∷ bindR `ℕ ∷ []) ∣ []
 Δ⁺ = (bindR `𝔹 ∷ bindR `ℕ ∷ bindR `ℕ ∷ []) ∣ (0 ∷ [])
@@ -258,9 +260,9 @@ conv-before : Δᵢ ⊢ᶜ Θ′ ⇒ Δᶜ′
 conv-before = proj₂ (conv! Δᵢ Θ′)
 
 AL : Boundary
-AL = addLock0 (renᴮᴿ suc Θ′)
+AL = (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ []))
 
-AL-explicit : AL ≡ boundary (unlock 0 2 ∷ lock 0 0 ∷ [])
+AL-explicit : AL ≡ (unlock 0 2 ∷ lock 0 0 ∷ [])
 AL-explicit = refl
 
 conv-after : Δ⁺ ⊢ᶜ AL ⇒ Δᶜ⁺
@@ -273,7 +275,7 @@ conv-after = proj₂ (conv! Δ⁺ AL)
 moved bad : Term
 moved = Vfun ⟪ AL , `∀ (seal 2 ↦ unseal 2) ⟫
 bad = (moved ·[ `ℕ ⇒ `ℕ , ` 0 ])
-        ⟪ boundary (lock 1 1 ∷ unlock 0 0 ∷ []) , id `ℕ ↦ id `ℕ ⟫
+        ⟪ (lock 1 1 ∷ unlock 0 0 ∷ []) , id `ℕ ↦ id `ℕ ⟫
 
 ------------------------------------------------------------------------
 -- §3  That state has no typing derivation
@@ -310,8 +312,8 @@ no-moved (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | refl | refl , refl
 Δ₆ : Ctxᵗ
 Δ₆ = (bindR `ℕ ∷ bindR `ℕ ∷ []) ∣ (0 ∷ [])
 
-int⁺ : allocate `𝔹 Δ₆ ⊢ⁱ boundary (lock 1 1 ∷ unlock 0 0 ∷ []) ⇒ Δ⁺
-int⁺ = proj₂ (int! (allocate `𝔹 Δ₆) (boundary (lock 1 1 ∷ unlock 0 0 ∷ [])))
+int⁺ : allocate `𝔹 Δ₆ ⊢ⁱ (lock 1 1 ∷ unlock 0 0 ∷ []) ⇒ Δ⁺
+int⁺ = proj₂ (int! (allocate `𝔹 Δ₆) ((lock 1 1 ∷ unlock 0 0 ∷ [])))
 
 no-bad : ¬ (allocate `𝔹 Δ₆ ∣ [] ⊢ bad ⦂ `ℕ ⇒ `ℕ)
 no-bad (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE)
@@ -348,7 +350,7 @@ AddLock0Typing° = ∀ {Δ W Θ s A P}
   → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
       ∣ [] ⊢
         (renᴹᴿ suc W
-          ⟪ addLock0 (renᴮᴿ suc Θ)
+          ⟪ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ []))
           , `∀ (renᶜ (extᵗ suc) s) ⟫)
         ⦂ `∀ (renameᵗ (extᵗ suc) A)
 
@@ -376,7 +378,7 @@ no-addLock0° al =
 moved-repaired good : Term
 moved-repaired = Vfun ⟪ AL , `∀ (seal 1 ↦ unseal 1) ⟫
 good = (moved-repaired ·[ `ℕ ⇒ `ℕ , ` 0 ])
-         ⟪ boundary (lock 1 1 ∷ unlock 0 0 ∷ []) , id `ℕ ↦ id `ℕ ⟫
+         ⟪ (lock 1 1 ∷ unlock 0 0 ∷ []) , id `ℕ ↦ id `ℕ ⟫
 
 -- THE SEVENTH STATE OF THE RUN, MEASURED (the third, in strong-rep-var).
 -- This is the state §3 refutes, with that one leaf repaired, sitting in

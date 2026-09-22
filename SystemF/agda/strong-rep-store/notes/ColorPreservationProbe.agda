@@ -85,7 +85,7 @@ Ex-⊢ = tc
 Δ₁ = allocate (` 0) Δ₀
 
 Θ₀ : Boundary                  -- unlock X for the fresh cell, by TyBeta
-Θ₀ = instantiate (boundary [])
+Θ₀ = inst []
 
 s t : Conv                     -- TyBeta's reveal, split at its arrow
 s = id (` 1) ↦ id (` 1)
@@ -111,14 +111,14 @@ rc : Δ₁ ⊢ᶜ Θ₀ ⇒ Δᶜ
 rc = proj₁ (proj₂ (proj₂ (proj₂ (proj₂ cross))))
 ri : Δ₁ ⊢ⁱ Θ₀ ⇒ Δᵢ
 ri = proj₁ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ cross)))))
-rd : Δᵢ ⊢ᶜ dualBoundary Θ₀ ⇒ Δᵈ
+rd : Δᵢ ⊢ᶜ dual Θ₀ ⇒ Δᵈ
 rd = proj₁ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ cross))))))
 sc : SameConv Δᵈ s′ Δᶜ s
 sc = proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ cross))))))
 
 W′ : Term                      -- the argument, moved: wrapped in the
                                -- dual, and moved VERBATIM
-W′ = W ⟪ dualBoundary Θ₀ , s′ ⟫
+W′ = W ⟪ dual Θ₀ , s′ ⟫
 
 Ex₂ : Term
 Ex₂ = (F · W′) ⟪ Θ₀ , t ⟫
@@ -146,10 +146,10 @@ C₁ : TermCtx
 C₁ = (F ⟪ Θ₀ , s ↦ t ⟫) ·R □
 
 C₂ : TermCtx                   -- inside the dual, inside X:=Y
-C₂ = (F ·R (□ ⟪C dualBoundary Θ₀ , s′ ⟫)) ⟪C Θ₀ , t ⟫
+C₂ = (F ·R (□ ⟪C dual Θ₀ , s′ ⟫)) ⟪C Θ₀ , t ⟫
 
 C₃ : TermCtx                   -- Beta put the wrapped copy in f's place
-C₃ = (□ ⟪C dualBoundary Θ₀ , s′ ⟫) ⟪C Θ₀ , t ⟫
+C₃ = (□ ⟪C dual Θ₀ , s′ ⟫) ⟪C Θ₀ , t ⟫
 
 ρ★ : Renameᵗ                   -- one move, the allocation's `suc`,
                                -- delivered to the sibling by ξ-·-l
@@ -169,12 +169,12 @@ res = residuals-step
 -- The scope maps at the two ends, and the equation the theorem states
 ------------------------------------------------------------------------
 
-ri-dual : Δᵢ ⊢ⁱ dualBoundary Θ₀
-  ⇒ proj₁ (force (interior? Δᵢ (dualBoundary Θ₀)) tt)
-ri-dual = proj₂ (force (interior? Δᵢ (dualBoundary Θ₀)) tt)
+ri-dual : Δᵢ ⊢ⁱ dual Θ₀
+  ⇒ proj₁ (force (interior? Δᵢ (dual Θ₀)) tt)
+ri-dual = proj₂ (force (interior? Δᵢ (dual Θ₀)) tt)
 
 Δ₃ : Ctxᵗ
-Δ₃ = proj₁ (force (interior? Δᵢ (dualBoundary Θ₀)) tt)
+Δ₃ = proj₁ (force (interior? Δᵢ (dual Θ₀)) tt)
 
 before : Δ₀ ⊢C C₀ ⊣ Δ₀
 before = frame-·R frame-□

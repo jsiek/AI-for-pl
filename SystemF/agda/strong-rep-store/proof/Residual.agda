@@ -7,7 +7,7 @@ module strong-rep-store.proof.Residual where
 -- proof/ColorPreservation, after Jeremy's review of the statement.
 
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; _++_)
 open import Data.Product using (_×_; _,_; proj₂)
 open import Function.Base using (_∘_)
 open import Relation.Binary.PropositionalEquality
@@ -19,6 +19,7 @@ open import strong-rep-store.Conversion
 open import strong-rep-store.Terms
 open import strong-rep-store.Boundary
 open import strong-rep-store.TermSubst
+open import strong-rep-store.proof.TermSubst
 open import strong-rep-store.Reduction
 open import strong-rep-store.Residual
 
@@ -96,7 +97,7 @@ image-sound image-here = refl
 -- `crossΛᴹ` is written with the paired renaming, whose ordinary half is
 -- the identity; `renᴹ²-ord-id` is what identifies it with `renᴹᴿ suc`.
 image-sound (image-Λ {A = A} {D = D} {N = N} r) =
-  cong (_⟪ boundary (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+  cong (_⟪ (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
     (trans (trans (plug-renCtxᴿ suc D N)
                   (cong (renᴹᴿ suc) (image-sound r)))
            (sym (renᴹ²-ord-id (λ X → refl) _)))
@@ -143,9 +144,9 @@ residual-sound (residual-TyPeelR-Λ vN rc ⊢s pA) = refl
 residual-sound
   (residual-TyPeelR-⟪⟫ {Θ = Θ} {C = C} {M = M} {Θ′ = Θ′} {s″ = s″}
     {s = s} {Bᵢ′ = Bᵢ′} vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA) =
-  cong (λ z → ((z ⟪ addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
+  cong (λ z → ((z ⟪ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
                   ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
-                ⟪ instantiate Θ , instReveal 0 s ⟫)
+                ⟪ inst Θ , instReveal 0 s ⟫)
     (plug-renCtxᴿ suc C M)
 residual-sound
   (residual-CancelR vV ri rc₁ lX rc⋉ sm rc₂ lY) = refl

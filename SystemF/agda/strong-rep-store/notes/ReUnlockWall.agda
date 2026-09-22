@@ -2,7 +2,7 @@ module strong-rep-store.notes.ReUnlockWall where
 
 -- File Charter:
 --   * The machine-checked record of ONE defect in the reduction rules and
---     of its repair: `rewind Θ` and `Θ₁ ⋉ Θ₂` had no conversion context
+--     of its repair: `rewind Θ` and `Θ₁ ++ Θ₂` had no conversion context
 --     whenever Θ locks, so `CancelR`'s and `IdPush`'s contracta were
 --     untypeable.
 --   * It holds the obstruction (`no-old-rewind-conv`, stated against a
@@ -16,8 +16,8 @@ module strong-rep-store.notes.ReUnlockWall where
 -- HOW THIS WAS FOUND.  By finishing the tower example
 -- (strong-rep-store.Examples §5a).  The eleventh step of that
 -- run is `CancelR`, whose contractum wraps the cancelled value in
--- `rewind Θ₂` and in `Θ₁ ⋉ Θ₂`, where Θ₁ is the argument's
--- `dualBoundary Θ₂` from the `Peel` that sent it across.  Every state up to
+-- `rewind Θ₂` and in `Θ₁ ++ Θ₂`, where Θ₁ is the argument's
+-- `dual Θ₂` from the `Peel` that sent it across.  Every state up to
 -- and including the redex is well typed, so this is a defect in the rules
 -- and not in the example.
 --
@@ -26,7 +26,7 @@ module strong-rep-store.notes.ReUnlockWall where
 -- run passes through are no longer written down, and the only evidence
 -- for it is that the run completes at all.
 
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; _++_)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (proj₂)
 open import Data.Empty using (⊥)
@@ -41,20 +41,20 @@ open import strong-rep-store.TypeCheck using (conv!)
 -- 1. The locking frame, and the contexts it runs in
 ------------------------------------------------------------------------
 
--- Θ₂ LOCKS: it is `TyPeelR-Λ`'s `instantiate` over a frame that had
+-- Θ₂ LOCKS: it is `TyPeelR-Λ`'s `inst` over a frame that had
 -- already crossed two `Λ`s.
 Θlock : Boundary
-Θlock = instantiate (boundary (lock 0 2 ∷ lock 0 0 ∷ []))
+Θlock = inst ((lock 0 2 ∷ lock 0 0 ∷ []))
 
 Θlock-explicit :
-  Θlock ≡ boundary (lock 1 3 ∷ lock 1 1 ∷ unlock 0 0 ∷ [])
+  Θlock ≡ (lock 1 3 ∷ lock 1 1 ∷ unlock 0 0 ∷ [])
 Θlock-explicit = refl
 
 repsW : RepCtx
 repsW = bindR (` 0) ∷ bindR (` 0) ∷ bindR `𝔹 ∷ bindR `ℕ ∷ []
 
 -- The exterior the step runs in.  WITH THE STORE (experiment 2,
--- 2026-09-22) the cell `` ` 0 `` that `instantiate` mints is ALLOCATED
+-- 2026-09-22) the cell `` ` 0 `` that `inst` mints is ALLOCATED
 -- on the ambient context rather than carried on the frame, so the
 -- exterior already holds it and the crossing argument's context is the
 -- same one: the bind block that used to separate `Δ-out` from `Δ-arg`
@@ -102,7 +102,7 @@ data _∣_⊢χᶜ°_⇒_ (Ξ : RepCtx)
 -- `rewind Θlock` has NO conversion context, so `env` cannot type
 -- `CancelR`'s contractum and the run stops dead.
 no-old-rewind-conv : ∀ {Δᶜ}
-  → repsW ∣ (1 ∷ 3 ∷ []) ⊢χᶜ° changes (rewind Θlock) ⇒ Δᶜ → ⊥
+  → repsW ∣ (1 ∷ 3 ∷ []) ⊢χᶜ° (rewind Θlock) ⇒ Δᶜ → ⊥
 no-old-rewind-conv
   (conv°-lock _
     (conv°-unlock _
@@ -122,9 +122,9 @@ no-old-rewind-conv
 rewind-conv-repaired : Δ-out ⊢ᶜ rewind Θlock ⇒ Δ-conv
 rewind-conv-repaired = proj₂ (conv! Δ-out (rewind Θlock))
 
--- The same wall stands in front of `CancelR`'s OTHER frame, `Θ₁ ⋉ Θ₂`,
+-- The same wall stands in front of `CancelR`'s OTHER frame, `Θ₁ ++ Θ₂`,
 -- whenever the crossing argument acquired Θ₂'s dual at a `Peel`.
 cancel-inner-conv-repaired :
-  Δ-arg ⊢ᶜ dualBoundary Θlock ⋉ Θlock ⇒ Δ-conv
+  Δ-arg ⊢ᶜ dual Θlock ++ Θlock ⇒ Δ-conv
 cancel-inner-conv-repaired =
-  proj₂ (conv! Δ-arg (dualBoundary Θlock ⋉ Θlock))
+  proj₂ (conv! Δ-arg (dual Θlock ++ Θlock))

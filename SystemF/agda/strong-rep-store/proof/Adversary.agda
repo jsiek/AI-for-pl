@@ -81,7 +81,7 @@ seal-cites-representation (conv-seal d) = d
 -- its conversion cites.  A conversion context SKIPS a lock, so the lock
 -- buys nothing — the seal is still read where the slot is abstract.
 Θadv : Boundary
-Θadv = boundary (lock 0 zero ∷ [])
+Θadv = (lock 0 zero ∷ [])
 
 conv-Θadv : ∀ {Δᶜ} → Δadv ⊢ᶜ Θadv ⇒ Δᶜ → Δᶜ ≡ Δadv
 conv-Θadv (conversion (conv-lock valid conv[])) = refl

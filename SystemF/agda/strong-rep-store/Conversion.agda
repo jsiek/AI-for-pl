@@ -251,7 +251,7 @@ readable (conv-all a) | r₁ , a′ = `∀ r₁ , sameᶜ-all a′
 premise-exists : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
   → Γ ⊢ᶜ Θ ⇒ Γᶜ
-  → Γᵢ ⊢ᶜ dualBoundary Θ ⇒ Γᵈ
+  → Γᵢ ⊢ᶜ dual Θ ⇒ Γᵈ
   → Γᶜ ⊢ s ∶ A ⇝ B
   → ∃[ s′ ] SameConv Γᵈ s′ Γᶜ s
 premise-exists int conv dconv ⊢s with readable ⊢s
@@ -266,7 +266,7 @@ peel-premises : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : Boundary}
   → Γ ⊢ᶜ Θ ⇒ Γᶜ
   → Γᶜ ⊢ s ∶ A ⇝ B
   → ∃[ Γᵈ ] ∃[ s′ ]
-      ((Γᵢ ⊢ᶜ dualBoundary Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
+      ((Γᵢ ⊢ᶜ dual Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
 peel-premises uq int conv ⊢s with dual-conversion-exists uq int
 peel-premises uq int conv ⊢s | Γᵈ , dconv
   with premise-exists int conv dconv ⊢s
@@ -277,7 +277,7 @@ peel-premises-env : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : Boundary}
   → BoundaryWf Γ Θ Γᵢ Γᶜ
   → Γᶜ ⊢ s ∶ A ⇝ B
   → ∃[ Γᵈ ] ∃[ s′ ]
-      ((Γᵢ ⊢ᶜ dualBoundary Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
+      ((Γᵢ ⊢ᶜ dual Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
 peel-premises-env mwΘ ⊢s =
   peel-premises (name-fn (bw-exterior mwΘ)) (bw-interior mwΘ)
                 (bw-conversion mwΘ) ⊢s

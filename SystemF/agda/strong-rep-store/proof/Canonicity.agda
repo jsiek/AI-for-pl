@@ -63,6 +63,7 @@ open import strong-rep-store.Conversion
 open import strong-rep-store.Terms
 open import strong-rep-store.Boundary
 open import strong-rep-store.TermSubst
+open import strong-rep-store.proof.TermSubst
 open import strong-rep-store.Reduction
 
 private

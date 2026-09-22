@@ -56,7 +56,8 @@ open import strong-rep-store.Ctx
 open import strong-rep-store.Conversion
 open import strong-rep-store.Boundary
 open import strong-rep-store.Terms
-open import strong-rep-store.TermSubst using (renᴹᴿ; wkN)
+open import strong-rep-store.TermSubst using (renᴹᴿ)
+open import strong-rep-store.proof.TermSubst using (wkN)
 
 ------------------------------------------------------------------------
 -- 0. Local copies of the retired bind-block machinery
@@ -97,7 +98,7 @@ openPayload = ` 1 ∷ []
 -- boundary's own one-wide bind block, so `extᵗ (wkN 1) 0 ≡ 0`.  With the
 -- store the change names an AMBIENT cell, and the weakening moves it.
 renamed-frame : renᴹᴿ (wkN 1) β-seven
-  ≡ ($ 7) ⟪ boundary (unlock 0 1 ∷ []) , id `ℕ ⟫
+  ≡ ($ 7) ⟪ (unlock 0 1 ∷ []) , id `ℕ ⟫
 renamed-frame = refl
 
 no-rep-weaken : ¬ RepWeakenTyping₀

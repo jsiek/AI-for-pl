@@ -25,10 +25,10 @@ module strong-rep-store.Terms where
 --     (strong-rep-store.Boundary) and the two contexts are its outputs — the
 --     retired `interior`/`convCtx` functions are gone.  (2) The three
 --     sides can spell the same semantic type differently, so `env`
---     compares them by the REPRESENTATION each denotes:
---     `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` at equal representation depth, and
---     `SameTyExt (numBinds Θ) Δ Bₑ Δᶜ Cₑ`, which additionally crosses
---     the boundary scope's own bind prefix (strong-rep-store.Ctx §5).  A
+--     compares them by the REPRESENTATION each denotes, by one and the
+--     same relation on both sides: `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` inside and
+--     `Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ` outside (strong-rep-store.Ctx §5; the bind-prefix
+--     crossing `SameTyExt` went with the bind block).  A
 --     boundary's interior is TERM-CLOSED — `Δᵢ ∣ [] ⊢ M ⦂ Bᵢ` — which is what
 --     lets strong-rep-store.TermSubst leave wrappers alone.  (3) Classification
 --     in §3 is by the CONVERSION CONSTRUCTOR alone: no source or target type
@@ -42,10 +42,11 @@ module strong-rep-store.Terms where
 --
 -- A boundary is  M ⟪ Θ , c ⟫  with ONE frame change:
 --
---   Θ : Boundary   a parallel block of representation-variable binders and
---                  a sequential list of ordinary-variable binders and
---                  anti-binders. `BoundaryWf Δ Θ Δᵢ Δᶜ` produces the
---                  interior context Δᵢ and conversion context Δᶜ.
+--   Θ : Boundary   a sequential list of ordinary-variable binders and
+--                  anti-binders — `Boundary = List Change`, nothing else
+--                  since the representation binders moved to the ambient
+--                  store. `BoundaryWf Δ Θ Δᵢ Δᶜ` produces the interior
+--                  context Δᵢ and conversion context Δᶜ.
 --
 --   c : Conv       the conversion checked on Δᶜ. Its source is related to
 --                  the interior term's type through `_⊢_≈_⊣_`; its

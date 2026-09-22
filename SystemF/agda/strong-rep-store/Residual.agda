@@ -49,7 +49,7 @@ module strong-rep-store.Residual where
 --     theorem is strong-rep-store.proof.ColorPreservation.
 
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; _++_)
 open import Function.Base using (_∘_)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
@@ -220,7 +220,7 @@ data ImageResidual : ℕ → Img → TermCtx → Term → Renameᵗ → TermCtx
   image-Λ : ∀ {k V C M D N}
     → ImageResidual k (ival V A) C M ρ D N
     → ImageResidual (suc k) (⇑ᴵ (ival V A)) C M (holeᴿ suc D ∘ ρ)
-        (renCtxᴿ suc D ⟪C boundary (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+        (renCtxᴿ suc D ⟪C (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
         (renᴹᴿ (holeᴿ suc D) N)
 
 -- Positions inside a copy of the argument, followed through the body
@@ -262,13 +262,13 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
 
   -- TyBeta: the body stays where it is; its `Λ` slot BECOMES the
   -- allocated cell (refinement `abstR → bindR R`, no move), and the
-  -- scope `instantiate (boundary [])` re-unlocks the body's own name for
+  -- scope `inst []` re-unlocks the body's own name for
   -- it — so the body's indices are already right and ρ is `idᵗ`.
   residual-TyBeta : ∀ {R C M}
     (vN : Value (plug C M)) (pA : Δ ⊢ᶜ A ~ R)
     → Residual (TyBeta {Δ = Δ} {B = B} {A = A} {N = plug C M} vN pA)
         ((ΛC C) ·C[ B , A ]) M idᵗ
-        (C ⟪C instantiate (boundary []) , reveal 0 B ⟫) M
+        (C ⟪C inst [] , reveal 0 B ⟫) M
 
   -- Beta, the body: a node the substitution does not replace.
   residual-Beta-body : ∀ {C M}
@@ -290,10 +290,10 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
   residual-Peel-fun : ∀ {Δᶜ Δᵈ C M s s′ t}
     (vV : Value (plug C M)) (vW : Value W)
     (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ)
-    (rd : Δᵢ ⊢ᶜ dualBoundary Θ ⇒ Δᵈ) (sc : SameConv Δᵈ s′ Δᶜ s)
+    (rd : Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ) (sc : SameConv Δᵈ s′ Δᶜ s)
     → Residual (Peel {V = plug C M} {W = W} {t = t} vV vW rc ri rd sc)
         ((C ⟪C Θ , s ↦ t ⟫) ·L W) M idᵗ
-        ((C ·L (W ⟪ dualBoundary Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
+        ((C ·L (W ⟪ dual Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
 
   -- Peel, the argument: it crosses into the dual VERBATIM.  There is no
   -- bind block to cross any more, and `dual-interior` lands the dual's
@@ -301,10 +301,10 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
   residual-Peel-arg : ∀ {Δᶜ Δᵈ V C M s s′ t}
     (vV : Value V) (vW : Value (plug C M))
     (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ)
-    (rd : Δᵢ ⊢ᶜ dualBoundary Θ ⇒ Δᵈ) (sc : SameConv Δᵈ s′ Δᶜ s)
+    (rd : Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ) (sc : SameConv Δᵈ s′ Δᶜ s)
     → Residual (Peel {V = V} {W = plug C M} {t = t} vV vW rc ri rd sc)
         ((V ⟪ Θ , s ↦ t ⟫) ·R C) M idᵗ
-        ((V ·R (C ⟪C dualBoundary Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
+        ((V ·R (C ⟪C dual Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
 
   -- TyPeelR-Λ: as TyBeta, one boundary in — the body's `Λ` slot becomes
   -- the allocated cell the instantiated scope unlocks.
@@ -314,7 +314,7 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
     (pA : Δ ⊢ᶜ A ~ R)
     → Residual (TyPeelR-Λ {N = plug C M} {B = B} vN rc ⊢s pA)
         (((ΛC C) ⟪C Θ , `∀ s ⟫) ·C[ B , A ]) M idᵗ
-        (C ⟪C instantiate Θ , instReveal 0 s ⟫) M
+        (C ⟪C inst Θ , instReveal 0 s ⟫) M
 
   -- TyPeelR-⟪⟫: the inner boundary is a SIBLING of the `Λ` slot the
   -- allocation consumes, so its interior gets exactly the sibling shift
@@ -323,8 +323,8 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
     (vW : Value (plug C M))
     (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ) (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ)
     (rc′ : Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ)
-    (ri⁺ : allocate R Δ ⊢ⁱ instantiate Θ ⇒ Δᵢ⁺)
-    (rc″ : Δᵢ⁺ ⊢ᶜ addLock0 (renᴮᴿ suc Θ′) ⇒ Δ″ᶜ)
+    (ri⁺ : allocate R Δ ⊢ⁱ inst Θ ⇒ Δᵢ⁺)
+    (rc″ : Δᵢ⁺ ⊢ᶜ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) ⇒ Δ″ᶜ)
     (sc : SameConv (underΛ Δ″ᶜ) s″
             (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′)
     (⊢s : underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ)
@@ -334,9 +334,9 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
                  vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA)
         (((C ⟪C Θ′ , `∀ s′ ⟫) ⟪C Θ , `∀ s ⟫) ·C[ B , A ]) M
         (holeᴿ suc C)
-        (((renCtxᴿ suc C ⟪C addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
+        (((renCtxᴿ suc C ⟪C (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
             ·C[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
-           ⟪C instantiate Θ , instReveal 0 s ⟫)
+           ⟪C inst Θ , instReveal 0 s ⟫)
         (renᴹᴿ (holeᴿ suc C) M)
 
   -- CancelR and IdPush: the value keeps its frame under both the merged
@@ -345,22 +345,22 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
     (vV : Value (plug C M))
     (ri : Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) (rc₁ : Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
     (lX : Δ₁ᶜ ∋ X := Aᵢ)
-    (rc⋉ : Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
+    (rc⋉ : Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ)
     (sm : Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ)
     (rc₂ : Δ ⊢ᶜ Θ₂ ⇒ Δᶜ) (lY : Δᶜ ∋ Y := A)
     → Residual (CancelR {V = plug C M} vV ri rc₁ lX rc⋉ sm rc₂ lY)
         ((C ⟪C Θ₁ , seal X ⟫) ⟪C Θ₂ , unseal Y ⟫) M idᵗ
-        ((C ⟪C Θ₁ ⋉ Θ₂ , mkId A′ ⟫) ⟪C rewind Θ₂ , mkId A ⟫) M
+        ((C ⟪C Θ₁ ++ Θ₂ , mkId A′ ⟫) ⟪C rewind Θ₂ , mkId A ⟫) M
 
   residual-IdPush : ∀ {Δ₁ᶜ Δ⋉ᶜ Δᶜ C M Θ₁ Θ₂ X X′ Y}
     (vV : Value (plug C M))
     (ri : Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) (rc₁ : Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
-    (rc⋉ : Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
+    (rc⋉ : Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ)
     (sm : Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ)
     (rc₂ : Δ ⊢ᶜ Θ₂ ⇒ Δᶜ) (lY : Δᶜ ∋ Y := A)
     → Residual (IdPush {V = plug C M} vV ri rc₁ rc⋉ sm rc₂ lY)
         ((C ⟪C Θ₁ , id (` X) ⟫) ⟪C Θ₂ , unseal Y ⟫) M idᵗ
-        ((C ⟪C Θ₁ ⋉ Θ₂ , unseal X′ ⟫) ⟪C rewind Θ₂ , mkId A ⟫) M
+        ((C ⟪C Θ₁ ++ Θ₂ , unseal X′ ⟫) ⟪C rewind Θ₂ , mkId A ⟫) M
 
   -- (Drop$, Drop-true, Drop-false: no residual — the literal is consumed
   -- with its boundary.)

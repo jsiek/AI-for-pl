@@ -5,7 +5,7 @@ module strong-rep-store.proof.AddLock0 where
 -- and the 2026-09-22 store experiment simplified.
 --
 -- `TyPeelR-⟪⟫` moves the inner boundary out across ONE freshly allocated
--- cell (the type argument's representation, minted by `instantiate`) and
+-- cell (the type argument's representation, minted by `inst`) and
 -- ONE fresh ordinary name for it, and appends `lock 0 0` to the scope.
 -- The move is the plain SIBLING SHIFT on the TERM — `renᴹᴿ suc` — because
 -- the appended lock acts FIRST in the interior reading and deletes the
@@ -19,7 +19,7 @@ module strong-rep-store.proof.AddLock0 where
 -- So the `env` premises transport in two different ways:
 --
 --   bw-exterior    the statement's own `WfCtx` premise
---   bw-interior    `addLock0-interior-ren` — the lock deletes the fresh
+--   bw-interior    `snoc-lock0-interior-ren` — the lock deletes the fresh
 --                  name, leaving `interior-ren` at `suc`
 --   bw-conversion  the rule's own premise
 --   the interior   `strong-rep-store.proof.RepWeaken.⊢renᴿ` at
@@ -42,12 +42,12 @@ module strong-rep-store.proof.AddLock0 where
 --                  exterior comparison is `≈` at equal depth.
 --
 -- The retention `respell-⊢` consumes is NOT a new assumption: it is the
--- `keep` component of `strong-rep-store.Boundary.addLock0-conversion-ren`,
+-- `keep` component of `strong-rep-store.Boundary.snoc-lock0-conversion-ren`,
 -- transported onto the rule's own `Δ⁺ᶜ` by `conversion-functional`.
 -- Nothing is postulated.
 
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.List using (List; []; _∷_; map; length)
+open import Data.List using (List; []; _∷_; _++_; map; length)
 open import Data.Product
   using (Σ; Σ-syntax; _×_; _,_; proj₁; proj₂; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
@@ -89,10 +89,10 @@ moved-keep : ∀ {Δ Δᶜ Δ⁺ᶜ : Ctxᵗ} {Θ : Boundary} {P : Ty}
   → WfRepCtx (bindR P ∷ reps Δ)
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
   → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
-      ⊢ᶜ addLock0 (renᴮᴿ suc Θ) ⇒ Δ⁺ᶜ
+      ⊢ᶜ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) ⇒ Δ⁺ᶜ
   → (map suc (names Δᶜ)) ⊆ᵃ (names Δ⁺ᶜ)
 moved-keep wfΔ wr rc r⁺
-  with addLock0-conversion-ren (repwk-cons₀ _ (λ _ → wr)) (_ , here)
+  with snoc-lock0-conversion-ren (repwk-cons₀ _ (λ _ → wr)) (_ , here)
          (name-fn wfΔ) rc
 moved-keep wfΔ wr rc r⁺ | Δ″ , r″ , keep
   with conversion-functional r″ r⁺
@@ -127,7 +127,7 @@ moved-conv′ : ∀ {Δ Δᶜ Δ⁺ᶜ : Ctxᵗ} {Θ : Boundary} {s s′ : Conv}
   → WfRepCtx (bindR P ∷ reps Δ)
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
   → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
-      ⊢ᶜ addLock0 (renᴮᴿ suc Θ) ⇒ Δ⁺ᶜ
+      ⊢ᶜ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) ⇒ Δ⁺ᶜ
   → SameConv (underΛ Δ⁺ᶜ) s′
       (underΛ (renNameCtx suc Δ⁺ᶜ Δᶜ)) s
   → underΛ Δᶜ ⊢ s ∶ Cᵢ ⇝ Cₑ
@@ -199,11 +199,11 @@ moved-env : ∀ {Δ Δᵢ Δᶜ Δ⁺ᶜ : Ctxᵗ} {W : Term} {Θ : Boundary}
   → Δ ⊢ᵗ `∀ A
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
   → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
-      ⊢ᶜ addLock0 (renᴮᴿ suc Θ) ⇒ Δ⁺ᶜ
+      ⊢ᶜ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) ⇒ Δ⁺ᶜ
   → SameConv (underΛ Δ⁺ᶜ) s′
       (underΛ (renNameCtx suc Δ⁺ᶜ Δᶜ)) s
   → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ))) ∣ [] ⊢
-      (renᴹᴿ suc W ⟪ addLock0 (renᴮᴿ suc Θ) , `∀ s′ ⟫)
+      (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) , `∀ s′ ⟫)
       ⦂ `∀ (renameᵗ (extᵗ suc) A)
 moved-env wf⁺ mwΘ ⊢W ⊢s sameᵢ sameₑ wE rc r⁺ sc
   with moved-conv′ (bw-exterior mwΘ) (wf-reps wf⁺) rc r⁺ sc ⊢s
@@ -226,9 +226,9 @@ moved-env {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δ⁺ᶜ = Δ⁺ᶜ} {W = W
   wᵢ = subst (λ Ξ → RepWk suc Ξ (bindR P ∷ reps Δ))
              (sym (interior-reps (bw-interior mwΘ))) w₀
 
-  mw⁺ : BoundaryWf Δ⁺ (addLock0 (renᴮᴿ suc Θ)) Δᵢ⁺ Δ⁺ᶜ
+  mw⁺ : BoundaryWf Δ⁺ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) Δᵢ⁺ Δ⁺ᶜ
   mw⁺ = bw wf⁺
-           (addLock0-interior-ren w₀ (_ , here) (bw-interior mwΘ))
+           (snoc-lock0-interior-ren w₀ (_ , here) (bw-interior mwΘ))
            r⁺
 
   ⊢W⁺ : Δᵢ⁺ ∣ [] ⊢ renᴹᴿ suc W ⦂ Bᵢ

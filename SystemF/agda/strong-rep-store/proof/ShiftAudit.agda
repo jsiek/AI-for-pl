@@ -80,6 +80,7 @@ open import strong-rep-store.Conversion
 open import strong-rep-store.Terms
 open import strong-rep-store.Boundary
 open import strong-rep-store.TermSubst
+open import strong-rep-store.proof.TermSubst
 open import strong-rep-store.Reduction
 open import strong-rep-store.proof.Canonical using (canon-∀)
 
@@ -100,14 +101,14 @@ private
 --
 --   RULES that move a subterm
 --     Peel        `W`, verbatim, inside the frame
---                 `⟪ dualBoundary Θ , s′ ⟫`                  §2  EXACT
---     TyPeelR-Λ   `N ⟪ instantiate Θ , instReveal 0 s ⟫`     §3  EXACT
+--                 `⟪ dual Θ , s′ ⟫`                  §2  EXACT
+--     TyPeelR-Λ   `N ⟪ inst Θ , instReveal 0 s ⟫`     §3  EXACT
 --     TyPeelR-⟪⟫  `renᴹᴿ suc` on the moved boundary, plus
---                 `addLock0` on its own change list          §3  EXACT
---     TyBeta      `N ⟪ instantiate (boundary []) , reveal 0 B ⟫`
+--                 `++ (lock 0 0 ∷ [])` on its change list    §3  EXACT
+--     TyBeta      `N ⟪ inst [] , reveal 0 B ⟫`
 --                                                            §3  refinement
 --     Beta        `N [ W ∶ A ]ᵐ`, i.e. `substᵐ`/`crossΛᴹ`     §5  EXACT
---     CancelR     `V ⟪ Θ₁ ⋉ Θ₂ , … ⟫ ⟪ rewind Θ₂ , … ⟫`       §6  EXACT
+--     CancelR     `V ⟪ Θ₁ ++ Θ₂ , … ⟫ ⟪ rewind Θ₂ , … ⟫`       §6  EXACT
 --     IdPush      (same two frames)                           §6  EXACT
 --     Drop$ / Drop-true / Drop-false                          §7  vacuous
 --     ξ-*         the SIBLINGS move, by `↑ᴹ[ δ ]`             §8  EXACT
@@ -128,15 +129,15 @@ private
 -- cross: EXACT, and the rule carries W verbatim.
 Peel-frame : ∀ {Γᵢ : Ctxᵗ} (Θ : Boundary) (Γ : Ctxᵗ)
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
-  → Γᵢ ⊢ⁱ dualBoundary Θ ⇒ Γ
+  → Γᵢ ⊢ⁱ dual Θ ⇒ Γ
 Peel-frame Θ Γ = dual-interior
 
 -- … and Peel allocates nothing, so its siblings do not move either.
 Peel-no-alloc : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Value V → Value W
   → Δ ⊢ᶜ Θ ⇒ Δᶜ → Δ ⊢ⁱ Θ ⇒ Δᵢ
-  → Δᵢ ⊢ᶜ dualBoundary Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
+  → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
   → Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
-      -→ (V · (W ⟪ dualBoundary Θ , s′ ⟫)) ⟪ Θ , t ⟫ ∣ none
+      -→ (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ∣ none
 Peel-no-alloc = Peel
 
 ------------------------------------------------------------------------
@@ -145,17 +146,17 @@ Peel-no-alloc = Peel
 
 -- THE Λ CLAUSE MOVES NOTHING.  `N` already lives one `abstR` binder in
 -- (`⊢Λ`), and the allocation REFINES that binder to `bindR R` in place
--- while `instantiate Θ` restores its ordinary name at position 0 (the
+-- while `inst Θ` restores its ordinary name at position 0 (the
 -- appended `unlock 0 0`).  So the frame move is criterion (ii) and there
 -- is no renaming at all — the contractum mentions no `renᴹᴿ`.
 TyPeelR-Λ-restores-name-0 : (Θ : Boundary)
-  → ∃[ χ ] (changes (instantiate Θ) ≡ χ ++ (unlock 0 0 ∷ []))
+  → ∃[ χ ] ((inst Θ) ≡ χ ++ (unlock 0 0 ∷ []))
 TyPeelR-Λ-restores-name-0 Θ = _ , refl
 
 -- TyBeta is the same refinement one `∀` out: the fresh cell is allocated
--- at index 0 and `instantiate (boundary [])` gives it ordinary name 0.
+-- at index 0 and `inst []` gives it ordinary name 0.
 TyBeta-restores-name-0 :
-  changes (instantiate (boundary [])) ≡ unlock 0 0 ∷ []
+  (inst []) ≡ unlock 0 0 ∷ []
 TyBeta-restores-name-0 = refl
 
 -- THE WRAPPER CLAUSE.  The moved boundary crosses ONE freshly allocated
@@ -174,10 +175,10 @@ TyPeelR-⟪⟫-move-conversion ρ M Θ c = refl
 
 -- The appended lock names ordinary position 0 and the cell the
 -- allocation just minted, which is representation index 0 — and it is
--- APPENDED, so it acts FIRST (the change list is read head-last).
-TyPeelR-⟪⟫-addLock0 : (Θ′ : Boundary)
-  → changes (addLock0 Θ′) ≡ changes Θ′ ++ (lock 0 0 ∷ [])
-TyPeelR-⟪⟫-addLock0 Θ′ = refl
+-- APPENDED, so it acts FIRST (the change list is read head-last).  Since
+-- `Boundary = List Change` the rule WRITES that snoc, `Θ′ ++ (lock 0 0 ∷
+-- [])`, so there is nothing left here to state: the old
+-- `TyPeelR-⟪⟫-addLock0` was `refl` on one and the same list.
 
 ------------------------------------------------------------------------
 -- §4  TERMINATION — THE TOWER MEASURE
@@ -185,7 +186,7 @@ TyPeelR-⟪⟫-addLock0 Θ′ = refl
 
 -- The wrapper clause's contractum contains
 --
---    (… ⟪ addLock0 … , `∀ s″ ⟫) ·[ … , ` 0 ]
+--    (… ⟪ … ++ (lock 0 0 ∷ []) , `∀ s″ ⟫) ·[ … , ` 0 ]
 --
 -- which IS again a redex.  It is not a regress, and the measure says why:
 -- the number of nested boundaries above the `Λ`.
@@ -225,7 +226,7 @@ towerHeight-↑ᴹ (new R) M = towerHeight-renᴹᴿ suc M
 -- `·[]` instantiates is ONE BOUNDARY SHORTER than the one the redex's
 -- `·[]` instantiated.
 TyPeelR-⟪⟫-height : (W : Term) (Θ′ Θ : Boundary) (s′ s″ s : Conv)
-  → towerHeight (renᴹᴿ suc W ⟪ addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
+  → towerHeight (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
       ≡ towerHeight ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ∸ 1
 TyPeelR-⟪⟫-height W Θ′ Θ s′ s″ s =
   cong suc (towerHeight-renᴹᴿ suc W)
@@ -238,7 +239,7 @@ TyPeelR-⟪⟫-height W Θ′ Θ s′ s″ s =
 -- a boundary that was already there, (a) MINTS a new one.
 fixA-height-stalls : (V : Term) (Θ : Boundary) (s : Conv) (Bᵢ : Ty)
   → towerHeight (renᴹᴿ suc V
-                   ⟪ boundary (lock 0 0 ∷ []) , mkId (`∀ Bᵢ) ⟫)
+                   ⟪ (lock 0 0 ∷ []) , mkId (`∀ Bᵢ) ⟫)
       ≡ towerHeight (V ⟪ Θ , `∀ s ⟫)
 fixA-height-stalls V Θ s Bᵢ = cong suc (towerHeight-renᴹᴿ suc V)
 
@@ -258,8 +259,8 @@ mkId-∀-inert B = I-all
 -- what makes fix (a)'s regress feed itself and what lets the installed
 -- clause fire again on its own contractum.
 -- (`inert-renᶜ`, `value-renᴹ²` and `value-renᴹᴿ` moved to
--- strong-rep-store.TermSubst §2, where the typing-transport lemmas need
--- them for `⊢Λ`'s value premise.)
+-- strong-rep-store.proof.TermSubst §2, where the typing-transport lemmas
+-- need them for `⊢Λ`'s value premise.)
 value-↑ᴹ : ∀ {M} (δ : Alloc) → Value M → Value (↑ᴹ[ δ ] M)
 value-↑ᴹ none    v = v
 value-↑ᴹ (new R) v = value-renᴹᴿ suc v
@@ -290,7 +291,7 @@ progress-Λ-at-0 : ∀ {Δ Δᶜ V Θ s B A R C} → Value V
   → Σ[ N ∈ Term ]
       ((V ≡ Λ N)
        × (Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-            -→ N ⟪ instantiate Θ , instReveal 0 s ⟫ ∣ new R))
+            -→ N ⟪ inst Θ , instReveal 0 s ⟫ ∣ new R))
 progress-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) wA) rc pA eq
   with conv-all-inv ⊢c
 progress-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) wA) rc pA eq
@@ -330,13 +331,13 @@ Beta-ƛ-crossed-no-shift = refl
 
 -- THE `Λ` CROSSING IS REP-ONLY, AND ITS LOCK IS WHAT MAKES IT SO.  A
 -- value image crossing a `Λ` is weakened in the representation universe
--- and wrapped in `boundary (lock 0 0 ∷ [])`, whose lock deletes the
+-- and wrapped in `(lock 0 0 ∷ [])`, whose lock deletes the
 -- ordinary name the `Λ` just bound.  So the image's ordinary indices keep
 -- their positions — criterion (i) with nothing to shift.
 Beta-Λ-crossing : ∀ {W A}
   → ⇑ᴵ (ival W A)
       ≡ ival (renᴹ² (ren² idᵗ suc) W
-                ⟪ boundary (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+                ⟪ (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
              (⇑ᵗ A)
 Beta-Λ-crossing = refl
 
@@ -354,13 +355,13 @@ Beta-no-alloc = Beta
 Move-inner-frame : ∀ {Γ Γᵢ Γ₁ᵢ : Ctxᵗ} (Θ₁ Θ₂ : Boundary)
   → Γ ⊢ⁱ Θ₂ ⇒ Γᵢ
   → Γᵢ ⊢ⁱ Θ₁ ⇒ Γ₁ᵢ
-  → Γ ⊢ⁱ Θ₁ ⋉ Θ₂ ⇒ Γ₁ᵢ
+  → Γ ⊢ⁱ Θ₁ ++ Θ₂ ⇒ Γ₁ᵢ
 Move-inner-frame Θ₁ Θ₂ = merged-interior
 
 -- THE OUTER FRAME.  The outer boundary's interior — the position the
 -- INNER BOUNDARY node occupies — becomes the plain exterior: the ordinary
 -- changes have travelled inward, and the inner boundary REAPPLIES them
--- (`_⋉_` puts Θ₂'s change list at the tail of Θ₁'s, where the reading
+-- (`_++_` puts Θ₂'s change list at the tail of Θ₁'s, where the reading
 -- runs it FIRST), which is exactly why the composite above holds.
 -- Nothing else moves: both conversions are RE-MINTED (`mkId` / `unseal`),
 -- not transported.
@@ -474,10 +475,11 @@ Drop$-only-numerals (ξ-⟪⟫ ri st)            refl =
 -- §9  DEAD SHIFT MACHINERY
 ------------------------------------------------------------------------
 
--- `shiftᵐ = renⁿ suc` (strong-rep-store.TermSubst §3) and `canon-shiftᵐ`
--- (proof/Canonicity) have NO CONSUMERS: frame-exact substitution weakens
--- an image with `shiftᴵ`, which is `suc` on a variable image and the
--- IDENTITY on a value image (§5), so the term-variable shift is never
+-- `shiftᵐ = renⁿ suc` (strong-rep-store.proof.TermSubst §3) and
+-- `canon-shiftᵐ` (proof/Canonicity) have NO CONSUMERS: frame-exact
+-- substitution weakens an image with `shiftᴵ`, which is `suc` on a
+-- variable image and the IDENTITY on a value image (§5), so the
+-- term-variable shift is never
 -- applied to a term.  `renⁿ` itself is LIVE — `⊢renⁿ` at the identity
 -- renaming is what proves `⊢weakenⁿ`, the lemma that lets a term-closed
 -- image type at an arbitrary term context.

@@ -70,7 +70,7 @@ module strong-rep-store.notes.CancelRShiftWall where
 -- carry the invariant `numBinds Θ₁ ≡ 0` — the hope being that a
 -- REACHABLE `CancelR` redex always has it, since a bare `seal X` is
 -- minted by `Peel` on the crossing argument, whose frame is
--- `dualBoundary Θ`.  That hope was wrong: `Peel` mints TWO boundaries
+-- `dual Θ`.  That hope was wrong: `Peel` mints TWO boundaries
 -- and only the ARGUMENT's carries the dual, so
 -- `notes/CancelRReachabilityWitness.agda` reaches this configuration in
 -- nine steps from a closed, plain source program.  Path (b) is closed;
@@ -89,7 +89,7 @@ module strong-rep-store.notes.CancelRShiftWall where
 -- `IdPush`'s.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
-open import Data.List using (List; []; _∷_; map; length)
+open import Data.List using (List; []; _∷_; _++_; map; length)
 open import Data.Product using (_,_; ∃-syntax; proj₁; proj₂)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Relation.Nullary using (¬_)
@@ -127,7 +127,7 @@ wfΔ* = wf! Δ*
 -- The OUTER boundary scope is trivial, which keeps every context in the
 -- example computable.
 Θ₂* : Boundary
-Θ₂* = boundary []
+Θ₂* = []
 
 -- The INNER boundary scope UNLOCKS one name, and that is what the twelve
 -- runs' `CancelR`s never do: it makes Θ₁'s conversion context a
@@ -135,7 +135,7 @@ wfΔ* = wf! Δ*
 -- spellings.  (Before the store the same job was done by a one-wide bind
 -- block, `boundary (`ℕ ∷ []) []`, and the two maps differed by a SHIFT.)
 Θ₁* : Boundary
-Θ₁* = boundary (unlock 0 2 ∷ [])
+Θ₁* = (unlock 0 2 ∷ [])
 
 -- `Δ₁*` is at once the inner boundary's conversion context, its
 -- interior, and — since Θ₂* is trivial — the merged scope's conversion
@@ -152,7 +152,7 @@ wfΔ* = wf! Δ*
 
 -- A closed value at the name `` ` 2 `` of Δ₁*, which denotes cell 1.
 V* : Term
-V* = ($ 7) ⟪ boundary [] , seal 2 ⟫
+V* = ($ 7) ⟪ [] , seal 2 ⟫
 
 ⊢V* : Δ₁* ∣ [] ⊢ V* ⦂ ` 2
 ⊢V* = tc
@@ -184,8 +184,8 @@ ri* = proj₂ (int! Δ* Θ₂*)
 r₁* : Δ* ⊢ᶜ Θ₁* ⇒ Δ₁*
 r₁* = proj₂ (conv! Δ* Θ₁*)
 
-r⋉* : Δ* ⊢ᶜ Θ₁* ⋉ Θ₂* ⇒ Δ₁*
-r⋉* = proj₂ (conv! Δ* (Θ₁* ⋉ Θ₂*))
+r⋉* : Δ* ⊢ᶜ Θ₁* ++ Θ₂* ⇒ Δ₁*
+r⋉* = proj₂ (conv! Δ* (Θ₁* ++ Θ₂*))
 
 r₂* : Δ* ⊢ᶜ Θ₂* ⇒ Δ*
 r₂* = proj₂ (conv! Δ* Θ₂*)
@@ -267,13 +267,13 @@ extendReps° Rs (Ξ ∣ Δ) = pushRepBinds° Rs Ξ ∣ map (length Rs +_) Δ
 CancelRCase° : Set
 CancelRCase° = ∀ {Δ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y A A′ C} (Rs : List Ty)
   → WfCtx Δ → Value V
-  → extendReps° Rs Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+  → extendReps° Rs Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
   → Δ⋉ᶜ ⊢ A′ ≈ A ⊣ Δᶜ
   → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
   → Δᶜ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
   → Δ ∣ [] ⊢
-      (V ⟪ Θ₁ ⋉ Θ₂ , mkId A′ ⟫)
+      (V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫)
         ⟪ rewind Θ₂ , mkId A ⟫ ⦂ C
 
 -- At the width the store leaves, the retired prefix is the identity.
@@ -292,7 +292,7 @@ extendReps°-[] {Δ = Ξ ∣ Δn} = cong (Ξ ∣_) (map-id Δn)
 -- mints `mkId (` 2)` on the inner layer and `mkId (` 1)` on the outer:
 -- two spellings, one cell.
 repaired-step : Δ* ⊢ (V* ⟪ Θ₁* , seal 1 ⟫) ⟪ Θ₂* , unseal 0 ⟫
-  -→ (V* ⟪ Θ₁* ⋉ Θ₂* , mkId (` 2) ⟫) ⟪ rewind Θ₂* , mkId (` 1) ⟫
+  -→ (V* ⟪ Θ₁* ++ Θ₂* , mkId (` 2) ⟫) ⟪ rewind Θ₂* , mkId (` 1) ⟫
   ∣ none
 repaired-step = CancelR v* ri* r₁* d₁* r⋉* repaired-premise r₂* d₂*
 
@@ -300,7 +300,7 @@ repaired-step = CancelR v* ri* r₁* d₁* r⋉* repaired-premise r₂* d₂*
 -- repaired rule generates.  The wall is answered on the configuration
 -- that raised it, by the theorem rather than by a hand-built derivation.
 repaired-contractum-⊢ : Δ* ∣ [] ⊢
-    (V* ⟪ Θ₁* ⋉ Θ₂* , mkId (` 2) ⟫) ⟪ rewind Θ₂* , mkId (` 1) ⟫ ⦂ ` 1
+    (V* ⟪ Θ₁* ++ Θ₂* , mkId (` 2) ⟫) ⟪ rewind Θ₂* , mkId (` 1) ⟫ ⦂ ` 1
 repaired-contractum-⊢ =
   preserve-CancelR wfΔ* v* ri* r₁* d₁* r⋉* repaired-premise r₂* d₂*
     ⊢redex*

@@ -7,7 +7,7 @@ module strong-rep-store.proof.Preserve where
 -- §1 recovers type well-formedness from typing and supplies the ordinary
 -- type-substitution facts used by elimination.  §1b is `RepRefines` —
 -- the `abstR → bindR R` refinement a ∀-elimination performs in place.
--- §2 is `alloc-wf`/`repwk-alloc`/`instantiate-boundarywf`, everything the
+-- §2 is `alloc-wf`/`repwk-alloc`/`inst-boundarywf`, everything the
 -- ALLOCATION of a cell needs, and the conversions TyBeta and TyPeelR
 -- mint.  §3 proves the local reduction cases.  §4 states the four
 -- transports that are proved downstream — `CrossΛTyping`,
@@ -33,7 +33,7 @@ module strong-rep-store.proof.Preserve where
 
 open import Data.Nat using (ℕ; zero; suc; _+_; z≤n; s≤s)
 open import Data.Nat.Properties using (_≟_; suc-injective)
-open import Data.List using (List; []; _∷_; map; length)
+open import Data.List using (List; []; _∷_; _++_; map; length)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Product
   using (Σ; Σ-syntax; _×_; _,_; proj₁; proj₂; ∃-syntax)
@@ -50,6 +50,7 @@ open import strong-rep-store.Conversion
 open import strong-rep-store.Terms
 open import strong-rep-store.Boundary
 open import strong-rep-store.TermSubst
+open import strong-rep-store.proof.TermSubst
 open import strong-rep-store.Reduction
 
 private
@@ -541,21 +542,21 @@ repwk-alloc {R = R} wR = repwk-cons₀ (bindR R) (wf-bindR wR)
 -- ALLOCATED context.  `TyBeta` and both `TyPeelR` clauses mint the cell
 -- for the type argument's representation at index 0 and append
 -- `unlock 0 0`, which names it; the old changes run underneath, in both
--- universes.  The two readings are `instantiate-interior` and
--- `instantiate-conversion` (strong-rep-store.Boundary §3a).
+-- universes.  The two readings are `inst-interior` and
+-- `inst-conversion` (strong-rep-store.Boundary §3a).
 -- `preserve-TyPeelR-⟪⟫` uses it for the moved boundary's exterior;
 -- `strong-rep-store.proof.Progress.addLock0-reading` uses it for the
 -- `RepWk suc` that the same allocation induces.
-instantiate-boundarywf : ∀ {Δ Δᵢ Δᶜ Θ A R}
+inst-boundarywf : ∀ {Δ Δᵢ Δᶜ Θ A R}
   → BoundaryWf Δ Θ Δᵢ Δᶜ
   → names Δ ⊢ A ~ R
-  → BoundaryWf (allocate R Δ) (instantiate Θ)
+  → BoundaryWf (allocate R Δ) (inst Θ)
       ((bindR R ∷ reps Δᵢ) ∣ (zero ∷ shiftNames (names Δᵢ)))
       ((bindR R ∷ reps Δᶜ) ∣ (zero ∷ shiftNames (names Δᶜ)))
-instantiate-boundarywf (bw wΔ (interior cs) (conversion csᶜ)) p =
+inst-boundarywf (bw wΔ (interior cs) (conversion csᶜ)) p =
   bw (alloc-wf wΔ (same-wfᴿ wΔ p))
-     (instantiate-interior (interior cs))
-     (instantiate-conversion (conversion csᶜ))
+     (inst-interior (interior cs))
+     (inst-conversion (conversion csᶜ))
 
 represented-lookup : names Δ ⊢ A ~ R
   → ((bindR R ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
@@ -845,10 +846,10 @@ mutual
 -- §3. The local reduction cases
 ------------------------------------------------------------------------
 
-empty-interior : Δ ⊢ⁱ boundary [] ⇒ Δ
+empty-interior : Δ ⊢ⁱ [] ⇒ Δ
 empty-interior = interior changes[]
 
-empty-conversion : Δ ⊢ᶜ boundary [] ⇒ Δ
+empty-conversion : Δ ⊢ᶜ [] ⇒ Δ
 empty-conversion = conversion conv[]
 
 sameTy-∀⁻ : ∀ {η η′ A B}
@@ -872,7 +873,7 @@ preserve-TyBeta : ∀ {Δ N B A R C}
   → Δ ⊢ᶜ A ~ R
   → Δ ∣ [] ⊢ (Λ N) ·[ B , A ] ⦂ C
   → allocate R Δ ∣ [] ⊢
-      N ⟪ instantiate (boundary []) , reveal 0 B ⟫ ⦂ C
+      N ⟪ inst [] , reveal 0 B ⟫ ⦂ C
 preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} {R = R}
                 wfΔ p (⊢·[] (⊢Λ vN ⊢N) wA)
   with ⊢ᵗ-of CtxWf-[] (⊢Λ vN ⊢N)
@@ -910,11 +911,11 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} {R = R}
   sameₑ with wf-same wE₀
   sameₑ | S , q = ⇑ᵗ S , same-shift-free q , same-weaken q
 
-  mwβ : BoundaryWf (allocate R Δ) (instantiate (boundary [])) ΔR ΔR
+  mwβ : BoundaryWf (allocate R Δ) (inst []) ΔR ΔR
   mwβ =
     bw (alloc-wf wfΔ (same-wfᴿ wfΔ p))
-       (instantiate-interior {R = R} empty-interior)
-       (instantiate-conversion {R = R} empty-conversion)
+       (inst-interior {R = R} empty-interior)
+       (inst-conversion {R = R} empty-conversion)
 
 preserve-TyPeelR-Λ : ∀ {Δ Δᶜ N Θ s B A R Bᵢ Bₑ C}
   → WfCtx Δ
@@ -923,7 +924,7 @@ preserve-TyPeelR-Λ : ∀ {Δ Δᶜ N Θ s B A R Bᵢ Bₑ C}
   → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
   → Δ ⊢ᶜ A ~ R
   → Δ ∣ [] ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
-  → allocate R Δ ∣ [] ⊢ N ⟪ instantiate Θ , instReveal 0 s ⟫ ⦂ C
+  → allocate R Δ ∣ [] ⊢ N ⟪ inst Θ , instReveal 0 s ⟫ ⦂ C
 preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
                     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bₑ = Bₑ}
                     wfΔ v rc ⊢s p
@@ -966,8 +967,8 @@ preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
   ΔRᶜ : Ctxᵗ
   ΔRᶜ = (bindR R ∷ reps Δᶜ) ∣ (zero ∷ shiftNames (names Δᶜ))
 
-  mwᵢ : BoundaryWf (allocate R Δ) (instantiate Θ) ΔRᵢ ΔRᶜ
-  mwᵢ = instantiate-boundarywf mwΘ p
+  mwᵢ : BoundaryWf (allocate R Δ) (inst Θ) ΔRᵢ ΔRᶜ
+  mwᵢ = inst-boundarywf mwΘ p
 
   inner = ⊢refine (rr-represent rr-refl) (bw-interior-wf mwᵢ) ⊢N
 
@@ -1052,8 +1053,8 @@ preserve-Drop-false wfΔ
 -- THREE TRANSPORTS, all PROVED downstream, all internal staging
 -- interfaces only: `strong-rep-store.Preservation` instantiates each with
 -- its proof, so preservation has no parameter.  The first two need a
--- BINDER (`underΛ`, `addLock0`) on top of the renaming; the third, the
--- SIBLING SHIFT, is pure renaming.
+-- BINDER (`underΛ`, the appended `lock 0 0`) on top of the renaming; the
+-- third, the SIBLING SHIFT, is pure renaming.
 --
 --   CrossΛTyping   PROVED 2026-09-20,
 --                  `strong-rep-store.proof.RepWeaken.cross-Λ-⊢`, as one
@@ -1087,7 +1088,7 @@ CrossΛTyping = ∀ {Δ W A}
 -- PROVED in `strong-rep-store.proof.AddLock0.addLock0-⊢`: the
 -- `env`-to-`env` transport across one allocated cell and one fresh
 -- ordinary name.  The interior reading is
--- `strong-rep-store.Boundary.addLock0-interior-ren` (the appended lock
+-- `strong-rep-store.Boundary.snoc-lock0-interior-ren` (the appended lock
 -- DELETES the fresh name, so what is left is `interior-ren`), the
 -- interior term is `strong-rep-store.proof.RepWeaken.⊢renᴿ` at
 -- `repwk-alloc`, and the conversion is `conv-ren`
@@ -1102,12 +1103,12 @@ AddLock0Typing = ∀ {Δ Δᶜ Δ⁺ᶜ W Θ s s′ A P}
   → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ A
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
   → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
-      ⊢ᶜ addLock0 (renᴮᴿ suc Θ) ⇒ Δ⁺ᶜ
+      ⊢ᶜ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) ⇒ Δ⁺ᶜ
   → SameConv (underΛ Δ⁺ᶜ) s′
       (underΛ (renNameCtx suc Δ⁺ᶜ Δᶜ)) s
   → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
       ∣ [] ⊢
-        (renᴹᴿ suc W ⟪ addLock0 (renᴮᴿ suc Θ) , `∀ s′ ⟫)
+        (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) , `∀ s′ ⟫)
         ⦂ `∀ (renameᵗ (extᵗ suc) A)
 
 -- THE SIBLING SHIFT — the one new lemma of the store experiment
@@ -1270,8 +1271,8 @@ preserve-TyPeelR-⟪⟫ : AddLock0Typing
   → Δ ⊢ⁱ Θ ⇒ Δᵢ
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
   → Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ
-  → allocate R Δ ⊢ⁱ instantiate Θ ⇒ Δᵢ⁺
-  → Δᵢ⁺ ⊢ᶜ addLock0 (renᴮᴿ suc Θ′) ⇒ Δ″ᶜ
+  → allocate R Δ ⊢ⁱ inst Θ ⇒ Δᵢ⁺
+  → Δᵢ⁺ ⊢ᶜ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) ⇒ Δ″ᶜ
   → SameConv (underΛ Δ″ᶜ) s″
       (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′
   → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
@@ -1280,9 +1281,9 @@ preserve-TyPeelR-⟪⟫ : AddLock0Typing
   → Δ ∣ [] ⊢
       ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
   → allocate R Δ ∣ [] ⊢
-      ((renᴹᴿ suc W ⟪ addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
+      ((renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
         ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
-        ⟪ instantiate Θ , instReveal 0 s ⟫ ⦂ C
+        ⟪ inst Θ , instReveal 0 s ⟫ ⦂ C
 preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
@@ -1299,7 +1300,7 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
                        ⊢c sameᵢ sameₑ wE) wA)
   | refl | refl
   with conversion-functional r′ (bw-conversion mw′)
-     | interior-functional ri⁺ (instantiate-interior (bw-interior mwΘ))
+     | interior-functional ri⁺ (inst-interior (bw-interior mwΘ))
 preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
@@ -1360,20 +1361,20 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
   ΔRᶜ : Ctxᵗ
   ΔRᶜ = (bindR R ∷ reps Δᶜ) ∣ (zero ∷ shiftNames (names Δᶜ))
 
-  mwᵢ : BoundaryWf (allocate R Δ) (instantiate Θ) ΔRᵢ ΔRᶜ
-  mwᵢ = instantiate-boundarywf mwΘ p
+  mwᵢ : BoundaryWf (allocate R Δ) (inst Θ) ΔRᵢ ΔRᶜ
+  mwᵢ = inst-boundarywf mwΘ p
 
   moved : ΔRᵢ ∣ [] ⊢
-      (renᴹᴿ suc W ⟪ addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
+      (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
       ⦂ `∀ (renameᵗ (extᵗ suc) Bᵢ′)
   moved = addlock (bw-interior-wf mwᵢ)
                   (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′) r′ r″ sc
 
   int : ΔRᵢ ∣ [] ⊢
-      (renᴹᴿ suc W ⟪ addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
+      (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
        ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ] ⦂ Bᵢ′
   int = subst (λ T → ΔRᵢ ∣ [] ⊢
-          (renᴹᴿ suc W ⟪ addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
+          (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
            ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ] ⦂ T)
         (ren-suc-[0] Bᵢ′)
         (⊢·[] moved (wf-var (zero , here)))
@@ -1431,10 +1432,10 @@ PeelCase : Set
 PeelCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t C}
   → WfCtx Δ → Value V → Value W
   → Δ ⊢ᶜ Θ ⇒ Δᶜ → Δ ⊢ⁱ Θ ⇒ Δᵢ
-  → Δᵢ ⊢ᶜ dualBoundary Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
+  → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
   → Δ ∣ [] ⊢ (V ⟪ Θ , s ↦ t ⟫) · W ⦂ C
   → Δ ∣ [] ⊢
-      (V · (W ⟪ dualBoundary Θ , s′ ⟫)) ⟪ Θ , t ⟫ ⦂ C
+      (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ⦂ C
 
 CancelRCase : Set
 CancelRCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y}
@@ -1442,25 +1443,25 @@ CancelRCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y}
   → WfCtx Δ → Value V → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
   → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
   → Δ₁ᶜ ∋ X := Aᵢ
-  → Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+  → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
   → Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ
   → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
   → Δᶜ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
   → Δ ∣ [] ⊢
-      (V ⟪ Θ₁ ⋉ Θ₂ , mkId A′ ⟫)
+      (V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫)
         ⟪ rewind Θ₂ , mkId A ⟫ ⦂ C
 
 IdPushCase : Set
 IdPushCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X X′ Y A C}
   → WfCtx Δ → Value V → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
   → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
-  → Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+  → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
   → Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ
   → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ → Δᶜ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
   → Δ ∣ [] ⊢
-      (V ⟪ Θ₁ ⋉ Θ₂ , unseal X′ ⟫)
+      (V ⟪ Θ₁ ++ Θ₂ , unseal X′ ⟫)
         ⟪ rewind Θ₂ , mkId A ⟫ ⦂ C
 
 ------------------------------------------------------------------------
@@ -1499,7 +1500,7 @@ preserve-wf wfΔ ⊢M st = apply-wf wfΔ (step-alloc wfΔ st)
 
 module Impl
   (crossΛ  : CrossΛTyping)
-  (addLock0 : AddLock0Typing)
+  (lock0   : AddLock0Typing)
   (shift   : ShiftTyping)
   (peel    : PeelCase)
   (cancel  : CancelRCase)
@@ -1516,7 +1517,7 @@ module Impl
     preserve-TyPeelR-Λ wfΔ v rc ⊢s p ⊢M
   preserve wfΔ ⊢M
     (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm p) =
-    preserve-TyPeelR-⟪⟫ addLock0 wfΔ v ri rc r′ ri⁺ r″ sc ⊢s sm p ⊢M
+    preserve-TyPeelR-⟪⟫ lock0 wfΔ v ri rc r′ ri⁺ r″ sc ⊢s sm p ⊢M
   preserve wfΔ ⊢M (CancelR v ri r₁ d₁ rc sm r₂ d₂) =
     cancel wfΔ v ri r₁ d₁ rc sm r₂ d₂ ⊢M
   preserve wfΔ ⊢M (Drop$ b) = preserve-Drop$ wfΔ b ⊢M

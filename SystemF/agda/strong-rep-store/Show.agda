@@ -281,8 +281,8 @@ entBlock ps@(_ ∷ _) = joinC ps ++ " , "
 
 showBnd : Env → ℕ → Boundary → Conv → String
 showBnd e f Θ c =
-  "⟪ " ++ entBlock (changePieces e (changes Θ))
-       ++ showConv (onames (applyChsC (changes Θ) e)) c ++ " ⟫"
+  "⟪ " ++ entBlock (changePieces e Θ)
+       ++ showConv (onames (applyChsC Θ e)) c ++ " ⟫"
 
 ------------------------------------------------------------------------
 -- 6. Terms
@@ -312,7 +312,7 @@ showTmF e tms f x (Λ N) with showTmF (underΛE f e) tms (suc f) x N
 showTmF e tms f x (L ·[ B , A ]) with showTmF e tms f x L
 ... | l , f′ = l ++ " [" ++ showTy (onames e) A ++ "]" , f′
 showTmF e tms f x (M ⟪ Θ , c ⟫)
-  with showTmF (applyChsI (changes Θ) e) tms f x M
+  with showTmF (applyChsI Θ e) tms f x M
 ... | body , f′ = "(" ++ body ++ " " ++ showBnd e f Θ c ++ ")" , f′
 
 ------------------------------------------------------------------------

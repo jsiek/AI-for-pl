@@ -39,7 +39,7 @@ reps₃ = bindR `ℕ ∷ bindR `𝔹 ∷ bindR `ℕ ∷ []
 Δ₃ = reps₃ ∣ (0 ∷ 1 ∷ [])
 
 Mixed : Boundary
-Mixed = boundary (unlock 0 2 ∷ lock 0 0 ∷ [])
+Mixed = (unlock 0 2 ∷ lock 0 0 ∷ [])
 
 nmI nmC : Ctxᵗ → Boundary → Maybe TyCtx
 nmI Γ Θ with interior? Γ Θ
@@ -63,7 +63,7 @@ is-Γᶜ = refl
 
 -- The dual spelling is used here.  The map is a permutation of Γᶜ's map,
 -- not the same list.
-is-Γᵈ : nmC Γᵢ (dualBoundary Mixed) ≡ just (names Γᵈ)
+is-Γᵈ : nmC Γᵢ (dual Mixed) ≡ just (names Γᵈ)
 is-Γᵈ = refl
 
 respelled : SameConv Γᵈ (unseal 1) Γᶜ (unseal 0)
@@ -79,8 +79,8 @@ mixed-interior = proj₂ (int! Δ₃ Mixed)
 mixed-conversion : Δ₃ ⊢ᶜ Mixed ⇒ Γᶜ
 mixed-conversion = proj₂ (conv! Δ₃ Mixed)
 
-mixed-dual-conversion : Γᵢ ⊢ᶜ dualBoundary Mixed ⇒ Γᵈ
-mixed-dual-conversion = proj₂ (conv! Γᵢ (dualBoundary Mixed))
+mixed-dual-conversion : Γᵢ ⊢ᶜ dual Mixed ⇒ Γᵈ
+mixed-dual-conversion = proj₂ (conv! Γᵢ (dual Mixed))
 
 -- (Q) transports the representation named by source position zero to the
 -- dual's position one.

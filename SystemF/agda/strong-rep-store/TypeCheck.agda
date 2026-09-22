@@ -68,12 +68,12 @@ module strong-rep-store.TypeCheck where
 -- something about the PROGRAM: which conversion applies, which `_⊢_≈_⊣_`
 -- reading relates the three sides, what the interior term's type is.  The
 -- other three are MECHANICAL: the two contexts Θ induces, and the
--- well-formedness of each.  A derivation of `Ξ ∣ Δ ⊢χ changes Θ ⇒ Δ′` is
+-- well-formedness of each.  A derivation of `Ξ ∣ Δ ⊢χ Θ ⇒ Δ′` is
 -- one line per change and contains nothing the change list does not
 -- already determine.
 --
 -- That became unworkable when the fourth reduction example was finished.
--- `CancelR` and `IdPush` replace their frames by the COMPOSITES `Θ₁ ⋉ Θ₂`
+-- `CancelR` and `IdPush` replace their frames by the COMPOSITES `Θ₁ ++ Θ₂`
 -- and `rewind Θ₂`, whose change lists are the concatenations of their
 -- arguments', so unwinding an n-deep tower of boundaries reaches frames
 -- carrying tens of changes each.  The checker removes that transcription
@@ -336,13 +336,13 @@ wfCtx? Γ | just wr | just vn | just u  = just (wf-ctx wr vn u)
 
 interior? : (Γ : Ctxᵗ) (Θ : Boundary) → Maybe (∃[ Γᵢ ] Γ ⊢ⁱ Θ ⇒ Γᵢ)
 interior? Γ Θ
-  with runχ (reps Γ) (names Γ) (changes Θ)
+  with runχ (reps Γ) (names Γ) Θ
 interior? Γ Θ | nothing        = nothing
 interior? Γ Θ | just (Δ′ , cs) = just (_ , interior cs)
 
 conversion? : (Γ : Ctxᵗ) (Θ : Boundary) → Maybe (∃[ Γᶜ ] Γ ⊢ᶜ Θ ⇒ Γᶜ)
 conversion? Γ Θ
-  with runχᶜ (reps Γ) (names Γ) (changes Θ)
+  with runχᶜ (reps Γ) (names Γ) Θ
 conversion? Γ Θ | nothing        = nothing
 conversion? Γ Θ | just (Δ′ , cs) = just (_ , conversion cs)
 

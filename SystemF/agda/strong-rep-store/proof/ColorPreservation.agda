@@ -9,7 +9,7 @@ module strong-rep-store.proof.ColorPreservation where
 -- scope-map equation `names Δ₂ ≡ map ρ (names Δ₁)`.  Every rule but the
 -- movers is frame-for-frame (the interior lemmas of
 -- strong-rep-store.Boundary §3a supply the new boundary frames'
--- readings: `instantiate-interior`, `dual-interior`, `rewind-interior`,
+-- readings: `inst-interior`, `dual-interior`, `rewind-interior`,
 -- `merged-interior`); the movers — TyPeelR-⟪⟫'s inner boundary, the
 -- siblings an allocating congruence shifts, and Beta's copies under
 -- `crossΛᴹ` — go through `⊢C-ren`, the transport of a frame derivation
@@ -174,7 +174,7 @@ changes-len eq (changes∷ cs st) =
 ------------------------------------------------------------------------
 
 crossΛ-interior : (Γ : Ctxᵗ)
-  → underΛ Γ ⊢ⁱ boundary (lock 0 0 ∷ [])
+  → underΛ Γ ⊢ⁱ (lock 0 0 ∷ [])
       ⇒ ((abstR ∷ reps Γ) ∣ shiftNames (names Γ))
 crossΛ-interior Γ =
   interior (changes∷ changes[]
@@ -302,7 +302,7 @@ residual-frame : ∀ {Δ δ L L′ C M ρ D N Δ₁} {r : Δ ⊢ L -→ L′ ∣
 residual-frame {Δ = Δ} wfΔ (residual-TyBeta {R = R} vN pA)
     (frame-·[] (frame-Λ h)) =
   let (Ξ₂ , d , _) = ⊢C-len (bindR R ∷ reps Δ) refl h
-  in _ , frame-⟪⟫ (instantiate-interior {R = R} empty-interior) d
+  in _ , frame-⟪⟫ (inst-interior {R = R} empty-interior) d
        , sym (map-idᵗ _)
 
 residual-frame wfΔ (residual-Beta-body {W = W} {A = A} vW st)
@@ -325,7 +325,7 @@ residual-frame wfΔ (residual-Peel-arg vV vW rc ri rd sc) (frame-·R h) =
 residual-frame {Δ = Δ} wfΔ (residual-TyPeelR-Λ {R = R} vN rc ⊢s pA)
     (frame-·[] (frame-⟪⟫ (interior csᶠ) (frame-Λ h))) =
   let (Ξ₂ , d , _) = ⊢C-len (bindR R ∷ reps Δ) refl h
-  in _ , frame-⟪⟫ (instantiate-interior (interior csᶠ)) d
+  in _ , frame-⟪⟫ (inst-interior (interior csᶠ)) d
        , sym (map-idᵗ _)
 
 -- The one mover left inside a redex: the inner boundary is a SIBLING of
@@ -335,10 +335,10 @@ residual-frame {Δ = Δ} wfΔ
       vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA)
     (frame-·[] (frame-⟪⟫ (interior csᶠ) (frame-⟪⟫ (interior cs′) h))) =
   let w₀ = repwk-alloc {R = R} (same-wfᴿ wfΔ pA)
-      ri″ = addLock0-interior-ren w₀ (bindR R , here) (interior cs′)
+      ri″ = snoc-lock0-interior-ren w₀ (bindR R , here) (interior cs′)
       (Δ₂ , d₂ , e₂ , _) = ⊢C-ren suc C w₀ refl h
   in Δ₂
-   , frame-⟪⟫ (instantiate-interior (interior csᶠ))
+   , frame-⟪⟫ (inst-interior (interior csᶠ))
        (frame-·[] (frame-⟪⟫ ri″ d₂))
    , e₂
 

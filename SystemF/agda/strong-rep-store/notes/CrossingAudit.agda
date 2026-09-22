@@ -25,7 +25,7 @@ module strong-rep-store.notes.CrossingAudit where
 -- `Beta` and `TyPeelR-Λ` are safe, and safe STRUCTURALLY, not by luck:
 -- §§1–3 below.  `Peel` is the one that is neither — §4.
 
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; _++_)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Maybe using (Maybe; just; nothing; from-just)
 open import Data.Product using (_,_; proj₁)
@@ -49,7 +49,7 @@ open import strong-rep-store.TypeCheck
 Δ₀ = (bindR `ℕ ∷ bindR `𝔹 ∷ []) ∣ (0 ∷ 1 ∷ [])
 
 Θ₀ : Boundary
-Θ₀ = boundary (unlock 1 0 ∷ lock 0 0 ∷ [])
+Θ₀ = (unlock 1 0 ∷ lock 0 0 ∷ [])
 
 nmConv : Ctxᵗ → Boundary → Maybe TyCtx
 nmConv Γ Θ with conversion? Γ Θ
@@ -63,7 +63,7 @@ nmInt Γ Θ | nothing = nothing
 
 nmDual : Ctxᵗ → Boundary → Maybe TyCtx
 nmDual Γ Θ with interior? Γ Θ
-nmDual Γ Θ | just (Γᵢ , _) = nmConv Γᵢ (dualBoundary Θ)
+nmDual Γ Θ | just (Γᵢ , _) = nmConv Γᵢ (dual Θ)
 nmDual Γ Θ | nothing = nothing
 
 Δᵢ Δᶜ : Ctxᵗ
@@ -81,7 +81,7 @@ conversion-did-not = refl
 ------------------------------------------------------------------------
 
 -- `reveal 0 B` is minted from the redex's annotation `B`, read at
--- `underΛ Δ`, and lands on `instantiate (boundary [])`, READ AT THE
+-- `underΛ Δ`, and lands on `inst []`, READ AT THE
 -- ALLOCATED CONTEXT (experiment 2: the cell the ∀-elimination mints is
 -- pushed onto the ambient store, not onto the frame).  That scope has
 -- ONE change and it is an `unlock`, so its conversion context and its
@@ -89,7 +89,7 @@ conversion-did-not = refl
 -- scope never locks cannot cross wrongly.
 tybeta-used :
   names (proj₁ (from-just
-    (conversion? (allocate `ℕ Δ₀) (instantiate (boundary [])))))
+    (conversion? (allocate `ℕ Δ₀) (inst []))))
     ≡ names (underΛ Δ₀)
 tybeta-used = refl
 
@@ -98,13 +98,13 @@ tybeta-used = refl
 ------------------------------------------------------------------------
 
 -- A value crossing a `Λ` is wrapped by `crossΛᴹ` in `mkId (⇑ᵗ A)` over
--- the frame `boundary (lock 0 0 ∷ [])`.  `A` is read at Δ and `⇑ᵗ A` is
+-- the frame `(lock 0 0 ∷ [])`.  `A` is read at Δ and `⇑ᵗ A` is
 -- the right spelling at `underΛ Δ`; the frame's only change is the lock,
 -- which the conversion context SKIPS, so the conversion context IS
 -- `underΛ Δ`.  Nothing moves, so nothing can be misspelled.
 beta-used :
   names (proj₁ (from-just
-    (conversion? (underΛ Δ₀) (boundary (lock 0 0 ∷ [])))))
+    (conversion? (underΛ Δ₀) ((lock 0 0 ∷ [])))))
     ≡ names (underΛ Δ₀)
 beta-used = refl
 
@@ -113,15 +113,15 @@ beta-used = refl
 ------------------------------------------------------------------------
 
 -- `instReveal 0 s` is minted from the crossed boundary's conversion `s`,
--- read at `underΛ Δᶜ`, and lands on `instantiate Θ` at the ALLOCATED
--- context.  `instantiate`
+-- read at `underΛ Δᶜ`, and lands on `inst Θ` at the ALLOCATED
+-- context.  `inst`
 -- prepends one name and shifts every change of Θ by one in both
 -- universes, so its conversion context is Θ's with that one name in
 -- front — which is exactly `underΛ Δᶜ`.  Checked here on a frame that
 -- locks, which is where it could have failed.
 typeelrΛ-used :
   names (proj₁ (from-just
-    (conversion? (allocate `ℕ Δ₀) (instantiate Θ₀))))
+    (conversion? (allocate `ℕ Δ₀) (inst Θ₀))))
     ≡ names (underΛ Δᶜ)
 typeelrΛ-used = refl
 
@@ -130,13 +130,13 @@ typeelrΛ-used = refl
 ------------------------------------------------------------------------
 
 -- `Peel` splits the redex's conversion `s ↦ t`.  `t` stays on Θ, so it is
--- still read where it was.  `s` moves onto `dualBoundary Θ`, whose
+-- still read where it was.  `s` moves onto `dual Θ`, whose
 -- conversion context is taken at the INTERIOR — and that is a different
 -- map from Θ's own conversion context, where `s` was read:
 peel-read : names Δᶜ ≡ 0 ∷ 1 ∷ []
 peel-read = refl
 
-peel-used : names (proj₁ (from-just (conversion? Δᵢ (dualBoundary Θ₀))))
+peel-used : names (proj₁ (from-just (conversion? Δᵢ (dual Θ₀))))
   ≡ 1 ∷ 0 ∷ []
 peel-used = refl
 
@@ -157,10 +157,10 @@ peel-used = refl
 ------------------------------------------------------------------------
 
 -- Write I⟦Θ⟧Δ for the interior name map and C⟦Θ⟧Δ for the conversion
--- one.  `Peel` reads `s` at C⟦Θ⟧Δ and uses it at C⟦dualBoundary Θ⟧(I⟦Θ⟧Δ),
+-- one.  `Peel` reads `s` at C⟦Θ⟧Δ and uses it at C⟦dual Θ⟧(I⟦Θ⟧Δ),
 -- so what it needs, for the frame it fires on, is
 --
---     (P)    C⟦dualBoundary Θ⟧(I⟦Θ⟧Δ)  ≡  C⟦Θ⟧Δ
+--     (P)    C⟦dual Θ⟧(I⟦Θ⟧Δ)  ≡  C⟦Θ⟧Δ
 --
 -- and that is `Ok` below.  §4 showed (P) failing on a hand-built frame.
 -- The three facts that say when it holds are these.
@@ -174,14 +174,14 @@ reps₃ = bindR `ℕ ∷ bindR `𝔹 ∷ bindR `ℕ ∷ []
 Δ₃ = reps₃ ∣ (0 ∷ 1 ∷ [])
 
 Lock Unlock : Boundary
-Lock = boundary (lock 0 0 ∷ [])
-Unlock = boundary (unlock 0 2 ∷ [])
+Lock = (lock 0 0 ∷ [])
+Unlock = (unlock 0 2 ∷ [])
 
 -- FACT 1.  A change list with NO UNLOCKS has (P).  The conversion context
 -- skips every lock, so C⟦Θ⟧Δ = Δ; the interior deletes the locked names;
 -- the dual is all unlocks, at the positions the locks recorded, and each
 -- is fresh at the interior, so running them restores Δ exactly.
-locks-only-ok : Ok Δ₃ (boundary (lock 0 1 ∷ lock 0 0 ∷ []))
+locks-only-ok : Ok Δ₃ ((lock 0 1 ∷ lock 0 0 ∷ []))
 locks-only-ok = refl
 
 -- FACT 2.  A change list with NO LOCKS has (P).  Nothing is skipped, so
@@ -200,28 +200,28 @@ unlocks-only-ok = refl
 -- has already made different, so 2 lands before 1 in one and before 0 in
 -- the other.  The dual then restores 0 at the front of the interior's
 -- result, and the two maps hold the same names in different orders.
-mixed-dual : nmDual Δ₃ (boundary (unlock 0 2 ∷ lock 0 0 ∷ []))
+mixed-dual : nmDual Δ₃ ((unlock 0 2 ∷ lock 0 0 ∷ []))
   ≡ just (0 ∷ 2 ∷ 1 ∷ [])
 mixed-dual = refl
 
-mixed-conv : nmConv Δ₃ (boundary (unlock 0 2 ∷ lock 0 0 ∷ []))
+mixed-conv : nmConv Δ₃ ((unlock 0 2 ∷ lock 0 0 ∷ []))
   ≡ just (2 ∷ 0 ∷ 1 ∷ [])
 mixed-conv = refl
 
 -- SO THERE IS NO STRUCTURAL ARGUMENT FOR `Peel`.  (P) is not closed under
--- `_⋉_`, which is what mixes a locking list with an unlocking one:
-push-shape-dual : nmDual Δ₃ (rewind Unlock ⋉ Lock) ≡ just (0 ∷ 2 ∷ 1 ∷ [])
+-- `_++_`, which is what mixes a locking list with an unlocking one:
+push-shape-dual : nmDual Δ₃ (rewind Unlock ++ Lock) ≡ just (0 ∷ 2 ∷ 1 ∷ [])
 push-shape-dual = refl
 
-push-shape-conv : nmConv Δ₃ (rewind Unlock ⋉ Lock) ≡ just (2 ∷ 0 ∷ 1 ∷ [])
+push-shape-conv : nmConv Δ₃ (rewind Unlock ++ Lock) ≡ just (2 ∷ 0 ∷ 1 ∷ [])
 push-shape-conv = refl
 
--- and `_⋉_` is how `CancelR` and `IdPush` build every composite frame.
+-- and `_++_` is how `CancelR` and `IdPush` build every composite frame.
 -- So (P) cannot be proved by induction over the grammar of frames, which
 -- is what "every reachable frame is balanced" would have had to mean.
 --
 -- WHAT IS NOT CLAIMED.  That the frame above is REACHABLE.  It has the
--- form `Θ₁ ⋉ Θ₂` that `IdPush` builds, but no run is known to build one
+-- form `Θ₁ ++ Θ₂` that `IdPush` builds, but no run is known to build one
 -- from these ingredients, and no reachable frame violating (P) has been
 -- exhibited.  What the disproof rules out is the PROOF STRATEGY, not
 -- `Peel`.  `strong-rep-store.Examples` §7c is the hardest case the corpus puts
@@ -268,7 +268,7 @@ push-shape-conv = refl
 -- do TWO jobs and, once positions move, they want different numbers.
 -- On §5's mixed frame — `lock 0 0` then `unlock 0 2` over Δ₃:
 Mixed : Boundary
-Mixed = boundary (unlock 0 2 ∷ lock 0 0 ∷ [])
+Mixed = (unlock 0 2 ∷ lock 0 0 ∷ [])
 
 mixed-int : nmInt Δ₃ Mixed ≡ just (2 ∷ 1 ∷ [])
 mixed-int = refl
@@ -279,10 +279,10 @@ mixed-target = refl
 Δᵐ : Ctxᵗ
 Δᵐ = reps₃ ∣ (2 ∷ 1 ∷ [])
 
--- `dualBoundary Mixed`, as defined.  It INVERTS the interior, which is the
+-- `dual Mixed`, as defined.  It INVERTS the interior, which is the
 -- job the crossing frame identity needs — and misses (P).
 Dsyn : Boundary
-Dsyn = boundary (unlock 0 0 ∷ lock 0 2 ∷ [])
+Dsyn = (unlock 0 0 ∷ lock 0 2 ∷ [])
 
 syn-inverts : nmInt Δᵐ Dsyn ≡ just (0 ∷ 1 ∷ [])
 syn-inverts = refl
@@ -293,7 +293,7 @@ syn-misses = refl
 -- The same list with the restoring unlock moved to the position the
 -- CONVERSION reading wants.  It has (P) — and stops inverting.
 Dfix : Boundary
-Dfix = boundary (unlock 1 0 ∷ lock 0 2 ∷ [])
+Dfix = (unlock 1 0 ∷ lock 0 2 ∷ [])
 
 fix-has-P : nmConv Δᵐ Dfix ≡ just (2 ∷ 0 ∷ 1 ∷ [])
 fix-has-P = refl

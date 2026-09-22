@@ -86,10 +86,15 @@ module strong-rep-store.Reduction where
 -- TyPeelR rules therefore carry `Δ ⊢ᶜ A ~ R`, return the store change
 -- `new R` — the cell is pushed onto the AMBIENT representation context at
 -- index 0 (`allocate`, experiment 2, notes/RepStoreSketch.md) — and build
--- `instantiate Θ`, which unlocks ordinary name 0 for that cell and shifts
--- the old changes in both universes. Congruence rules carry the relational
--- interior/conversion-context witnesses rather than computing those
--- contexts, and shift the redex's SIBLINGS by the store change.
+-- `inst Θ`, which unlocks ordinary name 0 for that cell and shifts
+-- the old changes in both universes.  A boundary scope IS its change list
+-- (`Boundary = List Change`, strong-rep-store.Boundary §3), so the frames
+-- the rules build are list expressions: `Θ₁ ++ Θ₂` where CancelR and
+-- IdPush merge, and `renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])` where TyPeelR-⟪⟫
+-- moves a boundary past the cell it just minted. Congruence rules carry
+-- the relational interior/conversion-context witnesses rather than
+-- computing those contexts, and shift the redex's SIBLINGS by the store
+-- change.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; _++_; map; length)
@@ -129,7 +134,7 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
   -- It is kept verbatim so that the untyped relation is unchanged.
   TyBeta : ∀ {Δ B A R N} → Value N
     → Δ ⊢ᶜ A ~ R
-    → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ instantiate (boundary [])
+    → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ inst []
                                       , reveal 0 B ⟫ ∣ new R
 
   -- BETA, FRAME-EXACT (2026-09-08).  The substitution CARRIES THE
@@ -153,7 +158,7 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
   -- taken at the interior — a different name map, and not merely a
   -- renumbering of the same one: the invariant that would have made the
   -- two agree, `conv(dual Θ, int(Θ,Δ)) ≡ conv(Θ,Δ)`, is FALSE here, and
-  -- `_⋉_` is what breaks it (notes/CrossingAudit §§4–6).  So the rule
+  -- `_++_` is what breaks it (notes/CrossingAudit §§4–6).  So the rule
   -- NAMES the dual's spelling `s′` and carries a `SameConv` relating it to
   -- `s`, exactly as `TyPeelR-⟪⟫`, `IdPush` and `CancelR` carry
   -- `_⊢_≈_⊣_`.
@@ -167,10 +172,10 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
   Peel : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Value V → Value W
     → Δ ⊢ᶜ Θ ⇒ Δᶜ
     → Δ ⊢ⁱ Θ ⇒ Δᵢ
-    → Δᵢ ⊢ᶜ dualBoundary Θ ⇒ Δᵈ
+    → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ
     → SameConv Δᵈ s′ Δᶜ s
     → Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
-        -→ (V · (W ⟪ dualBoundary Θ , s′ ⟫)) ⟪ Θ , t ⟫ ∣ none
+        -→ (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ∣ none
 
   -- TYPEEL — the ∀-conversion analogue; the new binder is prepended and the
   -- elimination instantiates at the new binder's bind name.  IT IS TWO
@@ -187,7 +192,7 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
   --   TyPeelR-⟪⟫   the interior is a boundary: PUSH THE TYPE APPLICATION
   --                INWARD one layer, exactly as the single rule did, and
   --                mask the new binder in the MOVED BOUNDARY'S OWN change
-  --                list (`addLock0`, strong-rep-store.Boundary §3).
+  --                list (the snoc `++ (lock 0 0 ∷ [])`, §3).
   --
   -- Together they are TOTAL over canonical `∀`-values, so the split
   -- REPLACES the single rule (`progress`, proof/Progress) rather than
@@ -262,7 +267,7 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
     → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
     → Δ ⊢ᶜ A ~ R
     → Δ ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-        -→ N ⟪ instantiate Θ , instReveal 0 s ⟫ ∣ new R
+        -→ N ⟪ inst Θ , instReveal 0 s ⟫ ∣ new R
 
   -- The moved boundary crosses a binder that its appended `lock 0` removes
   -- from the INTERIOR reading.  Its ordinary term indices therefore retain
@@ -285,7 +290,7 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
   -- representation renaming made by the insertion: without that view, §6b
   -- of strong-rep-store.Examples loses its type at step 8 because
   -- a free representation index is compared to the newly inserted binder.
-  -- The contractum is otherwise unchanged: same `addLock0` frame, outer
+  -- The contractum is otherwise unchanged: same snoc-lock frame, outer
   -- frame, minted `instReveal 0 s`, pushed-in annotation and type argument
   -- `` ` 0 ``.
   -- THE RE-BASED ANNOTATION (2026-09-18).  `Bᵢ` is read at the CONVERSION
@@ -303,16 +308,16 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
     → Δ ⊢ⁱ Θ ⇒ Δᵢ
     → Δ ⊢ᶜ Θ ⇒ Δᶜ
     → Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ
-    → allocate R Δ ⊢ⁱ instantiate Θ ⇒ Δᵢ⁺
-    → Δᵢ⁺ ⊢ᶜ addLock0 (renᴮᴿ suc Θ′) ⇒ Δ″ᶜ
+    → allocate R Δ ⊢ⁱ inst Θ ⇒ Δᵢ⁺
+    → Δᵢ⁺ ⊢ᶜ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) ⇒ Δ″ᶜ
     → SameConv (underΛ Δ″ᶜ) s″ (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′
     → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
     → underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ
     → Δ ⊢ᶜ A ~ R
     → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-        -→ ((renᴹᴿ suc W ⟪ addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
+        -→ ((renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
               ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
-             ⟪ instantiate Θ , instReveal 0 s ⟫ ∣ new R
+             ⟪ inst Θ , instReveal 0 s ⟫ ∣ new R
 
   -- CANCEL — a conceal directly under the binder it names.  The
   -- conversion match is DEFINITIONAL: `seal X` and `unseal Y` cite the
@@ -381,12 +386,12 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
     → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
     → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
     → Δ₁ᶜ ∋ X := Aᵢ
-    → Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+    → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
     → Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ
     → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
     → Δᶜ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
-        -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId A′ ⟫)
+        -→ (V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫)
              ⟪ rewind Θ₂ , mkId A ⟫ ∣ none
 
   -- DROP$ — an identity boundary at a base type, over a numeral (`⊢$`
@@ -427,12 +432,12 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
   IdPush : ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X X′ Y A} → Value V
     → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
     → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
-    → Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+    → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
     → Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ
     → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
     → Δᶜ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
-        -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X′ ⟫)
+        -→ (V ⟪ Θ₁ ++ Θ₂ , unseal X′ ⟫)
              ⟪ rewind Θ₂ , mkId A ⟫ ∣ none
 
   -- THE CONGRUENCES pass the store change up and shift the SIBLINGS by
@@ -454,7 +459,7 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
         → Δ ⊢ M ⟪ Θ , c ⟫ -→ M′ ⟪ ↑ᴮ[ δ ] Θ , c ⟫ ∣ δ
 
 -- Concrete instantiation check: the ordinary argument `ℕ` translates to
--- representation payload `ℕ`, and `instantiate` produces TyBetaBoundary.
+-- representation payload `ℕ`, and `inst` produces TyBetaBoundary.
 TyBeta-ℕ : empty ⊢ (Λ ($ 7)) ·[ `ℕ , `ℕ ]
   -→ ($ 7) ⟪ TyBetaBoundary , id `ℕ ⟫ ∣ new `ℕ
 TyBeta-ℕ = TyBeta V-$ same-ℕ

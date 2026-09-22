@@ -31,18 +31,18 @@ module strong-rep-store.notes.CancelRReachabilityWitness where
 --
 -- WHERE THE WALL'S UNREACHABILITY ARGUMENT WENT WRONG.  It said a bare
 -- `seal X` conversion "is minted by exactly one rule — `Peel`, on the
--- crossing ARGUMENT — whose frame is `dualBoundary Θ`", and
--- `binds (dualBoundary Θ) ≡ []`.  `Peel` mints TWO boundaries, and only the
+-- crossing ARGUMENT — whose frame is `dual Θ`", and
+-- `binds (dual Θ) ≡ []`.  `Peel` mints TWO boundaries, and only the
 -- argument's carries the dual:
 --
 --       Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
---         -→ (V · (… ⟪ dualBoundary Θ , s′ ⟫)) ⟪ Θ , t ⟫
+--         -→ (V · (… ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫
 --                   ^^^^^^^^^^^^^ binds nothing     ^^^ the ORIGINAL frame
 --
 -- The RESULT boundary keeps `Θ` and takes the CODOMAIN `t`.  If `t` is a
 -- bare `seal`, that is a bare `seal` on whatever `Θ` binds.  And `Θ` binds
 -- when the boundary was minted by `TyPeelR`: its conversion is
--- `instReveal 0 s` on `instantiate R Θ₀`, and
+-- `instReveal 0 s` on `inst R Θ₀`, and
 -- `instReveal X (seal Y) ≡ seal Y`, so a `seal` leaf of the crossed
 -- `∀`-conversion survives onto a scope that unlocks one more cell than
 -- the scope it crossed (before the store: `suc (numBinds Θ₀)` binds).
@@ -77,7 +77,7 @@ module strong-rep-store.notes.CancelRReachabilityWitness where
 -- dissolution is recorded in notes/CancelRShiftWall.agda.
 
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; _++_)
 open import Data.Product using (_,_; _×_; ∃-syntax; proj₁; proj₂)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality
@@ -109,19 +109,19 @@ seal-survives-instReveal : ∀ {X Y} → instReveal X (seal Y) ≡ seal Y
 seal-survives-instReveal = refl
 
 -- … and the scope it lands on is read at a store with ONE MORE CELL:
--- `instantiate` names the freshly allocated address 0 and pushes the
+-- `inst` names the freshly allocated address 0 and pushes the
 -- crossed scope's own changes underneath it, in both universes.  (This
--- is what `numBinds (instantiate R Θ) ≡ suc (numBinds Θ)` said before
+-- is what `numBinds (inst R Θ) ≡ suc (numBinds Θ)` said before
 -- the store moved the bind onto the ambient context.)
-instantiate-names-the-cell :
-  instantiate (boundary []) ≡ boundary (unlock 0 0 ∷ [])
-instantiate-names-the-cell = refl
+inst-names-the-cell :
+  inst [] ≡ (unlock 0 0 ∷ [])
+inst-names-the-cell = refl
 
 -- whereas `Peel`'s ARGUMENT frame — the one the wall module looked at —
 -- changes no store at all.  Since experiment 2 NO boundary does: a
 -- boundary changes NAMES only, which is `interior-reps`.
 dual-keeps-the-store : ∀ {Θ Δ Δᵢ}
-  → Δ ⊢ⁱ dualBoundary Θ ⇒ Δᵢ → reps Δᵢ ≡ reps Δ
+  → Δ ⊢ⁱ dual Θ ⇒ Δᵢ → reps Δᵢ ≡ reps Δ
 dual-keeps-the-store = interior-reps
 
 ------------------------------------------------------------------------
@@ -207,18 +207,18 @@ Src-run = reaches-run Src-eval
 -- `↑β:=α`, `↑α:=ℕ`.)
 
 Θout Θ₁ Θ₂ : Boundary
-Θout = boundary (unlock 0 2 ∷ [])
-Θ₁   = boundary (lock 1 1 ∷ unlock 0 0 ∷ [])
-Θ₂   = boundary (unlock 0 1 ∷ [])
+Θout = (unlock 0 2 ∷ [])
+Θ₁   = (lock 1 1 ∷ unlock 0 0 ∷ [])
+Θ₂   = (unlock 0 1 ∷ [])
 
 -- the cancelled value: 7 under two lock-only, bind-free layers
 Vcr : Term
-Vcr = (($ 7) ⟪ boundary (lock 0 2 ∷ []) , seal 0 ⟫)
-        ⟪ boundary (lock 0 0 ∷ []) , id (` 1) ⟫
+Vcr = (($ 7) ⟪ (lock 0 2 ∷ []) , seal 0 ⟫)
+        ⟪ (lock 0 0 ∷ []) , id (` 1) ⟫
 
 Redex Contractum : Term
 Redex      = ((Vcr ⟪ Θ₁ , seal 1 ⟫) ⟪ Θ₂ , unseal 0 ⟫) ⟪ Θout , unseal 0 ⟫
-Contractum = ((Vcr ⟪ Θ₁ ⋉ Θ₂ , mkId (` 2) ⟫) ⟪ rewind Θ₂ , mkId (` 1) ⟫)
+Contractum = ((Vcr ⟪ Θ₁ ++ Θ₂ , mkId (` 2) ⟫) ⟪ rewind Θ₂ , mkId (` 1) ⟫)
                ⟪ Θout , unseal 0 ⟫
 
 -- what `eval` actually produces, at nine steps and at ten.  THE INNER
@@ -296,7 +296,7 @@ src-→*-contractum = eval-run 10 Src-⊢ contractum-is-state-10
 Δ⋉ᶜ : Ctxᵗ
 Δ⋉ᶜ = (bindR `ℕ ∷ bindR (` 0) ∷ bindR `ℕ ∷ []) ∣ (0 ∷ 1 ∷ 2 ∷ [])
 
-Δ⋉ᶜ-is-conversion : proj₁ (conv! Δ₉ (Θ₁ ⋉ Θ₂)) ≡ Δ⋉ᶜ
+Δ⋉ᶜ-is-conversion : proj₁ (conv! Δ₉ (Θ₁ ++ Θ₂)) ≡ Δ⋉ᶜ
 Δ⋉ᶜ-is-conversion = refl
 
 ------------------------------------------------------------------------
@@ -329,8 +329,8 @@ cancel-int = proj₂ (int! Δ₉ Θ₂)
 cancel-Θ₁ : Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
 cancel-Θ₁ = proj₂ (conv! Δᵢ Θ₁)
 
-cancel-⋉ : Δ₉ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
-cancel-⋉ = proj₂ (conv! Δ₉ (Θ₁ ⋉ Θ₂))
+cancel-⋉ : Δ₉ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
+cancel-⋉ = proj₂ (conv! Δ₉ (Θ₁ ++ Θ₂))
 
 cancel-Θ₂ : Δ₉ ⊢ᶜ Θ₂ ⇒ Δᶜ
 cancel-Θ₂ = proj₂ (conv! Δ₉ Θ₂)
@@ -366,7 +366,7 @@ cancel-value : Value Vcr
 cancel-value = V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-idv
 
 cancel-step : Δ₉ ⊢ (Vcr ⟪ Θ₁ , seal 1 ⟫) ⟪ Θ₂ , unseal 0 ⟫
-  -→ (Vcr ⟪ Θ₁ ⋉ Θ₂ , mkId (` 2) ⟫) ⟪ rewind Θ₂ , mkId (` 1) ⟫ ∣ none
+  -→ (Vcr ⟪ Θ₁ ++ Θ₂ , mkId (` 2) ⟫) ⟪ rewind Θ₂ , mkId (` 1) ⟫ ∣ none
 cancel-step =
   CancelR cancel-value cancel-int cancel-Θ₁ seal-source
           cancel-⋉ cancel-same cancel-Θ₂ lookup-A

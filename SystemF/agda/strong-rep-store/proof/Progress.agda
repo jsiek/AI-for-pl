@@ -24,10 +24,10 @@ module strong-rep-store.proof.Progress where
 -- The 2026-09-20 repair of `TyPeelR-⟪⟫` added NO parameter.  Its moved
 -- boundary's conversion reading and the retention that names the moved
 -- spelling are PROVED here as `addLock0-reading`, from the lock-skipping
--- transport `strong-rep-store.Boundary.addLock0-conversion-ren`.
+-- transport `strong-rep-store.Boundary.snoc-lock0-conversion-ren`.
 
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.List using ([]; _∷_; map)
+open import Data.List using ([]; _∷_; _++_; map)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
@@ -43,7 +43,7 @@ open import strong-rep-store.Boundary
 open import strong-rep-store.TermSubst
 open import strong-rep-store.Reduction
 open import strong-rep-store.proof.Canonical
-open import strong-rep-store.proof.Preserve using (instantiate-boundarywf)
+open import strong-rep-store.proof.Preserve using (inst-boundarywf)
 
 private
   variable
@@ -83,7 +83,7 @@ sameTy-target-∀⁻ (`∀ R , same-∀ p , same-∀ q) =
 -- 2. The boundary reading packages
 ------------------------------------------------------------------------
 
--- The conversion reading of `Θ₁ ⋉ Θ₂` retains the source whose spelling
+-- The conversion reading of `Θ₁ ++ Θ₂` retains the source whose spelling
 -- both id-layer rules move into that merged frame:
 --
 --   * repaired `CancelR` (2026-09-19) moves the cancelled seal's source,
@@ -98,7 +98,7 @@ MergedReading = ∀ {Δ Δᵢ Δᶜ Δ₁ᵢ Δ₁ᶜ Θ₁ Θ₂}
   → BoundaryWf Δ Θ₂ Δᵢ Δᶜ
   → BoundaryWf Δᵢ Θ₁ Δ₁ᵢ Δ₁ᶜ
   → Σ[ Δ⋉ᶜ ∈ Ctxᵗ ]
-      ((Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
+      ((Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ)
         × (names Δ₁ᶜ) ⊆ᵃ (names Δ⋉ᶜ))
 
 merged-reading : MergedReading
@@ -110,9 +110,9 @@ merged-reading = merged-conversion-exists
 -- progress must CONSTRUCT that reading.  It is not a new assumption: the
 -- lock-skipping transport `conv-weaken`/`conv-snoc-lock` and the
 -- representation renaming are assembled by
--- `strong-rep-store.Boundary.addLock0-conversion-ren`, and all this
--- wrapper adds is the `RepWk suc` witness for the cell `instantiate Θ`
--- mints, read off `instantiate-boundarywf`.
+-- `strong-rep-store.Boundary.snoc-lock0-conversion-ren`, and all this
+-- wrapper adds is the `RepWk suc` witness for the cell `inst Θ`
+-- mints, read off `inst-boundarywf`.
 --
 -- THE RENAMING IS THE WHOLE POINT.  The retained names are
 -- `map suc (names Δ′ᶜ)`, NOT `names Δ′ᶜ`: the allocation moves every
@@ -125,12 +125,12 @@ addLock0-reading : ∀ {Δ Δᵢ Δᶜ Δ′ᵢ Δ′ᶜ Θ Θ′ A R}
   → names Δ ⊢ A ~ R
   → Σ[ Δ″ᶜ ∈ Ctxᵗ ]
       ((((bindR R ∷ reps Δᵢ) ∣ (zero ∷ shiftNames (names Δᵢ)))
-          ⊢ᶜ addLock0 (renᴮᴿ suc Θ′) ⇒ Δ″ᶜ)
+          ⊢ᶜ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) ⇒ Δ″ᶜ)
         × (map suc (names Δ′ᶜ) ⊆ᵃ (names Δ″ᶜ)))
 addLock0-reading {R = R} mwΘ mw′ p =
-  addLock0-conversion-ren
+  snoc-lock0-conversion-ren
     (repwk-cons₀ (bindR R)
-      (λ _ → wf-reps (bw-interior-wf (instantiate-boundarywf mwΘ p))))
+      (λ _ → wf-reps (bw-interior-wf (inst-boundarywf mwΘ p))))
     (_ , here)
     (name-fn (bw-interior-wf mwΘ))
     (bw-conversion mw′)
@@ -333,7 +333,7 @@ module Impl where
       ⊢s sameD p
       | Δ″ᶜ , r″ , keep | r , rd | rdᴿ | s″ , rd″ =
       _ , _ , TyPeelR-⟪⟫ vW (bw-interior mwΘ) (bw-conversion mwΘ)
-            (bw-conversion mw′) (instantiate-interior (bw-interior mwΘ))
+            (bw-conversion mw′) (inst-interior (bw-interior mwΘ))
             r″ (_ , rd″ , rdᴿ) ⊢s sameD p
 
   ----------------------------------------------------------------------

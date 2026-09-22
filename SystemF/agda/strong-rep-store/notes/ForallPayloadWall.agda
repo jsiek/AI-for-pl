@@ -51,7 +51,7 @@ open import strong-rep-store.TypeCheck
 
 -- lock representation variable 0 away, then bring it back at the END
 Θ↔ : Boundary
-Θ↔ = boundary (unlock 1 0 ∷ lock 0 0 ∷ [])
+Θ↔ = (unlock 1 0 ∷ lock 0 0 ∷ [])
 
 reorder-interior : names (proj₁ (from-just (interior? Δ↔ Θ↔))) ≡ 1 ∷ 0 ∷ []
 reorder-interior = refl

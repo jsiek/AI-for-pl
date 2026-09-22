@@ -3,7 +3,7 @@ module strong-rep-store.proof.PeelDual where
 -- THE PEEL CROSSING — the dual is an INVERSE, and both of its readings
 -- are theorems of `strong-rep-store.Boundary` §3a.
 --
---   Δ ⊢ⁱ Θ ⇒ Δᵢ  →  Δᵢ ⊢ⁱ dualBoundary Θ ⇒ Δ
+--   Δ ⊢ⁱ Θ ⇒ Δᵢ  →  Δᵢ ⊢ⁱ dual Θ ⇒ Δ
 --
 -- is `dual-interior`: the crossing argument's frame IS THE EXTERIOR.
 -- Since the store experiment (2026-09-22) a boundary scope carries no
@@ -198,7 +198,7 @@ preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} 
   env mwΘ (⊢· ⊢V arg) ⊢t smBᵢ smCₑ wC
   where
   -- the dual's frame: the exterior itself
-  mwD : BoundaryWf Δᵢ (dualBoundary Θ) Δ Δᵈ
+  mwD : BoundaryWf Δᵢ (dual Θ) Δ Δᵈ
   mwD = bw (bw-interior-wf mwΘ) (dual-interior ri) rd
 
   -- the crossing argument's own exterior reading is the source spelling
@@ -218,6 +218,6 @@ preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} 
                              (proj₂ (proj₂ smAᵢ)))
             (proj₁ (proj₂ smQ))
 
-  arg : Δᵢ ∣ [] ⊢ (W ⟪ dualBoundary Θ , s′ ⟫) ⦂ Aᵢ
+  arg : Δᵢ ∣ [] ⊢ (W ⟪ dual Θ , s′ ⟫) ⦂ Aᵢ
   arg = env mwD ⊢W ⊢s′ sameᵢ-d sameₑ-d
             (same-wf (proj₁ (proj₂ smAᵢ)))

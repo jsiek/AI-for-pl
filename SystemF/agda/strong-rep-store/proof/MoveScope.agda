@@ -10,7 +10,7 @@ module strong-rep-store.proof.MoveScope where
 -- would then fail.  So the frames move with the conversions:
 --
 --   (V ⟪ Θ₁ , c ⟫) ⟪ Θ₂ , unseal Y ⟫
---     -→ (V ⟪ Θ₁ ⋉ Θ₂ , c′ ⟫) ⟪ rewind Θ₂ , mkId A ⟫
+--     -→ (V ⟪ Θ₁ ++ Θ₂ , c′ ⟫) ⟪ rewind Θ₂ , mkId A ⟫
 --
 -- In the two-universe design the frame algebra is RELATIONAL, and the
 -- three readings the contractum needs are theorems of
@@ -38,13 +38,13 @@ module strong-rep-store.proof.MoveScope where
 --
 -- WHAT WAS DELETED EARLIER (2026-09-19).  Everything this module used to
 -- hold about the retired masked-entry design: `applyUnlocks`/
--- `applyChanges` lookup transports (§1), the `shiftScope`/`rewind`/`_⋉_`
+-- `applyChanges` lookup transports (§1), the `shiftScope`/`rewind`/`_++_`
 -- list algebra (§2), the `scope`/`interior` context identities (§3), the
 -- frame lemmas as EQUALITIES and the lock-only refutation (§4, §4b), and
 -- `_⊢ᵐ_` for the two new frames (§5).
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
-open import Data.List using (List; []; _∷_; length)
+open import Data.List using (List; []; _∷_; _++_; length)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; trans; cong; subst)
@@ -96,7 +96,7 @@ var-inj refl = refl
 --
 -- FOUR MOVES, one per premise of the contractum's inner `env`:
 --
---   FRAME       `Θ₁ ⋉ Θ₂`, whose interior is the inner frame's own
+--   FRAME       `Θ₁ ++ Θ₂`, whose interior is the inner frame's own
 --               (`merged-interior`) and whose conversion context the rule
 --               carries.
 --   INTERIOR    `V`, retyped EXACTLY where it was.
@@ -197,7 +197,7 @@ preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
         (subst (λ a → reps Δ ∋ʳ a := bindR Rc) (sym eqX) dYrep)
     , qA″
 
-  mw⋉ : BoundaryWf Δ (Θ₁ ⋉ Θ₂) Δ₁ᵢ Δ⋉ᶜ
+  mw⋉ : BoundaryWf Δ (Θ₁ ++ Θ₂) Δ₁ᵢ Δ⋉ᶜ
   mw⋉ = bw wfΔ (merged-interior (bw-interior mw₂) (bw-interior mw₁)) r⋉
 
   innerᵢ : Δ₁ᵢ ⊢ B₁ ≈ ` X′ ⊣ Δ⋉ᶜ
@@ -212,7 +212,7 @@ preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
   innerₑ : Δ ⊢ C ≈ A″ ⊣ Δ⋉ᶜ
   innerₑ = Rc , pC , qA″
 
-  inner : Δ ∣ [] ⊢ V ⟪ Θ₁ ⋉ Θ₂ , unseal X′ ⟫ ⦂ C
+  inner : Δ ∣ [] ⊢ V ⟪ Θ₁ ++ Θ₂ , unseal X′ ⟫ ⦂ C
   inner = env mw⋉ ⊢V (conv-unseal dA″) innerᵢ innerₑ wE
 
   outerᵢ : Δ ⊢ C ≈ A ⊣ Δᶜ
@@ -354,7 +354,7 @@ preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
   eqA′ : RA′ ≡ RB
   eqA′ = same-rep-unique (proj₂ (proj₂ sm)) pAᵢ
 
-  mw⋉ : BoundaryWf Δ (Θ₁ ⋉ Θ₂) Δ₁ᵢ Δ⋉ᶜ
+  mw⋉ : BoundaryWf Δ (Θ₁ ++ Θ₂) Δ₁ᵢ Δ⋉ᶜ
   mw⋉ = bw wfΔ (merged-interior (bw-interior mw₂) (bw-interior mw₁)) r⋉
 
   innerᵢ : Δ₁ᵢ ⊢ B₁ ≈ A′ ⊣ Δ⋉ᶜ
@@ -370,7 +370,7 @@ preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
     Rc , pC
     , subst (λ T → names Δ⋉ᶜ ⊢ A′ ~ T) (trans eqA′ eqRB) qA′
 
-  inner : Δ ∣ [] ⊢ V ⟪ Θ₁ ⋉ Θ₂ , mkId A′ ⟫ ⦂ C
+  inner : Δ ∣ [] ⊢ V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫ ⦂ C
   inner = env mw⋉ ⊢V (mkId-⊢ (same-wf qA′)) innerᵢ innerₑ wE
 
   outerᵢ : Δ ⊢ C ≈ A ⊣ Δᶜ

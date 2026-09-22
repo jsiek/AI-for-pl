@@ -47,7 +47,7 @@ module strong-rep-store.Examples where
 --   §6   POLYMORPHIC PAYLOADS — `I` (impredicative) and `N` (a payload
 --        with a free representation variable under its own binder).
 --   §7   FUNCTIONS THAT CROSS — `A`, `B` and `C`: a `_↦_` conversion
---        drives `Peel` on boundaries that are `_⋉_`/`rewind` composites,
+--        drives `Peel` on boundaries that are `_++_`/`rewind` composites,
 --        `C` doing it through §5's tower.
 --   §8   THE CANCELR SHIFT WITNESS — `S`, the run that certifies the
 --        repaired `CancelR`; its cancelled representation is open in the
@@ -489,7 +489,7 @@ H-run = reaches-run H-eval
 -- argument is instantiated beneath LATER `Λ`s, so the value that reaches
 -- `true` has crossed several boundaries and carries a seal for each, and
 -- unwinding that tower drives `CancelR` and `IdPush` through frames that
--- are COMPOSITES (`_⋉_`, `rewind`).  Finishing §5a is what found the
+-- are COMPOSITES (`_++_`, `rewind`).  Finishing §5a is what found the
 -- defect recorded in notes/ReUnlockWall.agda.
 
 ------------------------------------------------------------------------
@@ -499,7 +499,7 @@ H-run = reaches-run H-eval
 -- The argument is instantiated beneath the LATER binder `ΛY`, so `f [Y]`
 -- crosses `Y`'s boundary as well as `X`'s and the identity that finally
 -- receives `true` sits under three seals.  Unwinding them is what drives
--- `CancelR` and `IdPush` through `_⋉_`/`rewind` composites, and what
+-- `CancelR` and `IdPush` through `_++_`/`rewind` composites, and what
 -- makes the tail of this run quadratic in the tower depth: `CancelR`
 -- leaves two identity layers and `IdPush` walks each outward one layer
 -- before the next `CancelR` can fire.
@@ -631,7 +631,7 @@ N-run = reaches-run N-eval
 -- §7a  (ΛX. λx:X. x) [ℕ⇒ℕ] · (λn:ℕ. n) · 7
 --
 -- A FUNCTION crosses a boundary and is then applied.  `CancelR` leaves it
--- under a `_⋉_` frame whose conversion is `mkId (ℕ⇒ℕ)` — which is a
+-- under a `_++_` frame whose conversion is `mkId (ℕ⇒ℕ)` — which is a
 -- `_↦_` — so `Peel` fires on a COMPOSITE frame, three times in all.  No
 -- earlier run does that: everywhere else the value that crosses is
 -- first-order and the composite frames only ever carry an identity.
@@ -652,7 +652,7 @@ A-run = reaches-run A-eval
 ------------------------------------------------------------------------
 -- §7b  the same, with the function crossing TWICE
 --
--- Stacked composites: `Peel` fires five times, on frames that are `_⋉_`
+-- Stacked composites: `Peel` fires five times, on frames that are `_++_`
 -- and `rewind` of each other.
 ------------------------------------------------------------------------
 
@@ -747,7 +747,7 @@ S-run = reaches-run S-eval
 
 -- the concealing layer these three share: 7, sealed at the ambient name
 Wseal : Term
-Wseal = ($ 7) ⟪ boundary [] , seal 0 ⟫
+Wseal = ($ 7) ⟪ [] , seal 0 ⟫
 
 ------------------------------------------------------------------------
 -- §9a  THE CANCEL PAIR
@@ -760,7 +760,7 @@ Wseal = ($ 7) ⟪ boundary [] , seal 0 ⟫
 -- walked off a numeral by `Drop$`.
 
 Tcancel : Term
-Tcancel = Wseal ⟪ boundary [] , unseal 0 ⟫
+Tcancel = Wseal ⟪ [] , unseal 0 ⟫
 
 Tcancel-⊢ : Δ₆ ∣ [] ⊢ Tcancel ⦂ `ℕ
 Tcancel-⊢ = tc
@@ -775,14 +775,14 @@ Tcancel-run = reaches-run Tcancel-eval
 -- old file's second, independent transcription of the rules; the runs of
 -- §§1–8 gave them up for the per-state type check
 -- (notes/DECISIONS.md), and this is the smallest run where writing them
--- out still costs nothing.  Note that `Θ₁ ⋉ Θ₂` here is the empty
+-- out still costs nothing.  Note that `Θ₁ ++ Θ₂` here is the empty
 -- boundary scope and `rewind Θ₂` is `Θ₂` — the inner frame locks nothing, so
 -- the rewind has nothing to undo.
 _ : evalTerms 3 Tcancel-⊢
       ≡ Tcancel
-      ∷ ((($ 7) ⟪ boundary [] , id `ℕ ⟫)
-           ⟪ boundary [] , id `ℕ ⟫)
-      ∷ (($ 7) ⟪ boundary [] , id `ℕ ⟫)
+      ∷ ((($ 7) ⟪ [] , id `ℕ ⟫)
+           ⟪ [] , id `ℕ ⟫)
+      ∷ (($ 7) ⟪ [] , id `ℕ ⟫)
       ∷ ($ 7)
       ∷ []
 _ = refl
@@ -797,8 +797,8 @@ _ = refl
 -- bringing the reveal down onto the seal, and the pair then cancels.
 
 Tid : Term
-Tid = (Wseal ⟪ boundary [] , id (` 0) ⟫)
-        ⟪ boundary [] , unseal 0 ⟫
+Tid = (Wseal ⟪ [] , id (` 0) ⟫)
+        ⟪ [] , unseal 0 ⟫
 
 Tid-⊢ : Δ₆ ∣ [] ⊢ Tid ⦂ `ℕ
 Tid-⊢ = tc
@@ -813,7 +813,7 @@ Tid-run = reaches-run Tid-eval
 ¬val-Tid (V-⟪⟫ _ ())
 
 -- STEP 1 is the `IdPush`: the two CONVERSIONS swap and BOTH FRAMES ARE
--- UNTOUCHED (`Θ₁ ⋉ Θ₂` and `rewind Θ₂` are each the frame they came from,
+-- UNTOUCHED (`Θ₁ ++ Θ₂` and `rewind Θ₂` are each the frame they came from,
 -- because neither locks).  The pushed name is the identity conversion's
 -- own, re-spelled into the merged conversion context, and the residue is
 -- the identity at the LOOKED-UP representation — which is where `IdPush`
@@ -821,14 +821,14 @@ Tid-run = reaches-run Tid-eval
 -- through the same ambient store cell.
 _ : evalTerms 5 Tid-⊢
       ≡ Tid
-      ∷ ((Wseal ⟪ boundary [] , unseal 0 ⟫)
-           ⟪ boundary [] , id `ℕ ⟫)
-      ∷ (((($ 7) ⟪ boundary [] , id `ℕ ⟫)
-             ⟪ boundary [] , id `ℕ ⟫)
-           ⟪ boundary [] , id `ℕ ⟫)
-      ∷ ((($ 7) ⟪ boundary [] , id `ℕ ⟫)
-           ⟪ boundary [] , id `ℕ ⟫)
-      ∷ (($ 7) ⟪ boundary [] , id `ℕ ⟫)
+      ∷ ((Wseal ⟪ [] , unseal 0 ⟫)
+           ⟪ [] , id `ℕ ⟫)
+      ∷ (((($ 7) ⟪ [] , id `ℕ ⟫)
+             ⟪ [] , id `ℕ ⟫)
+           ⟪ [] , id `ℕ ⟫)
+      ∷ ((($ 7) ⟪ [] , id `ℕ ⟫)
+           ⟪ [] , id `ℕ ⟫)
+      ∷ (($ 7) ⟪ [] , id `ℕ ⟫)
       ∷ ($ 7)
       ∷ []
 _ = refl
@@ -844,9 +844,9 @@ _ = refl
 -- extra layer.
 
 Tid₂ : Term
-Tid₂ = ((Wseal ⟪ boundary [] , id (` 0) ⟫)
-          ⟪ boundary [] , id (` 0) ⟫)
-         ⟪ boundary [] , unseal 0 ⟫
+Tid₂ = ((Wseal ⟪ [] , id (` 0) ⟫)
+          ⟪ [] , id (` 0) ⟫)
+         ⟪ [] , unseal 0 ⟫
 
 Tid₂-⊢ : Δ₆ ∣ [] ⊢ Tid₂ ⦂ `ℕ
 Tid₂-⊢ = tc
@@ -875,20 +875,20 @@ Tid₂-run = reaches-run Tid₂-eval
 -- `⇑ᵗ (` 0)` is `` ` 1 ``, read outside the lock.
 
 Wsub Nsub : Term
-Wsub = ($ 7) ⟪ boundary [] , seal 0 ⟫
+Wsub = ($ 7) ⟪ [] , seal 0 ⟫
 Nsub = Λ (` 0)
 
 _ : Nsub [ Wsub ∶ ` 0 ]ᵐ
-      ≡ Λ ((($ 7) ⟪ boundary [] , seal 0 ⟫)
-             ⟪ boundary (lock 0 0 ∷ []) , id (` 1) ⟫)
+      ≡ Λ ((($ 7) ⟪ [] , seal 0 ⟫)
+             ⟪ (lock 0 0 ∷ []) , id (` 1) ⟫)
 _ = refl
 
 -- the lock is at ordinary position 0 and names representation variable 0 —
 -- the abstract binding the `Λ` just introduced, immediately outside the
 -- image's own (empty) bind prefix
 _ : crossΛᴹ Wsub (` 0)
-      ≡ (($ 7) ⟪ boundary [] , seal 0 ⟫)
-          ⟪ boundary (lock 0 0 ∷ []) , id (` 1) ⟫
+      ≡ (($ 7) ⟪ [] , seal 0 ⟫)
+          ⟪ (lock 0 0 ∷ []) , id (` 1) ⟫
 _ = refl
 
 -- ── the ƛ clause: the bound slot is protected, the image is not ────────
@@ -917,7 +917,7 @@ _ = tc
 --   Bg = ((λx:ℕ. ΛZ. λ_:ℕ. x) · 7) [ℕ] · 0
 --
 -- Its first `Beta` reaches
--- `ΛZ. λ_:ℕ. 7 ⟪ boundary (lock 0 0 ∷ []) , id ℕ ⟫`.
+-- `ΛZ. λ_:ℕ. 7 ⟪ (lock 0 0 ∷ []) , id ℕ ⟫`.
 -- Instantiating that value and applying its dummy exposes the wrapper;
 -- the sixth step is the `Drop$` that removes it.
 
@@ -929,7 +929,7 @@ Bg-⊢ : empty ∣ [] ⊢ Bg ⦂ `ℕ
 Bg-⊢ = tc
 
 _ : (Λ (` 0)) [ $ 7 ∶ `ℕ ]ᵐ
-      ≡ Λ (($ 7) ⟪ boundary (lock 0 0 ∷ []) , id `ℕ ⟫)
+      ≡ Λ (($ 7) ⟪ (lock 0 0 ∷ []) , id `ℕ ⟫)
 _ = refl
 
 Bg-eval : Reaches 7 7 Bg-⊢ ($ 7)
@@ -939,7 +939,7 @@ Bg-run : empty ⊢ Bg -→* $ 7
 Bg-run = reaches-run Bg-eval
 
 -- the wrapper itself is not a value: its conversion is the ACTIVE `id ℕ`
-¬val-wrapper : ¬ Value (($ 7) ⟪ boundary (lock 0 0 ∷ []) , id `ℕ ⟫)
+¬val-wrapper : ¬ Value (($ 7) ⟪ (lock 0 0 ∷ []) , id `ℕ ⟫)
 ¬val-wrapper (V-⟪⟫ _ ())
 
 ------------------------------------------------------------------------

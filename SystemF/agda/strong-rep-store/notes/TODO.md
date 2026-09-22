@@ -2,6 +2,8 @@
 
 ### 2026-09-22
 
+* Add `notes/TwoSpellings.md`, a machine-derived worked `env` instance showing distinct exterior, interior, and conversion name maps.
+
 * Audit the notes/notes.md file to make sure it is synchronized
   with the Agda development.
   Brought up to date with both landed experiments: the value restriction

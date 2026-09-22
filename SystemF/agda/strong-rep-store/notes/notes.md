@@ -55,10 +55,9 @@ An `X` occurrence in a representation type is legal only under its representatio
 
     c, d ::= id A | seal X | unseal X | c ↦ d | ∀X.c
 
-`seal X` and `unseal X` carry an type variable.  They find its
-representation through the context; they never contain a representation
-variable directly.  Function conversions are contravariant on the left.
-Agda writes a function conversion's components `s ↦ t`.
+`seal X` and `unseal X` carry a type variable.  They find its
+representation through the context.  Function conversions are
+contravariant on the left.
 
 ## Terms
 
@@ -83,12 +82,9 @@ interior type to the boundary's exterior type.
     δ ::= lock X α | unlock X α
     Θ ::= ⟨ δ₁, ..., δₘ ⟩
 
-A boundary scope **is** its change sequence: `Boundary = List Change` in
-Agda, an alias and nothing more.  The changes are sequential and stored
-head-last, so the tail acts first.  We write `changes(Θ)` for the list.
-No boundary binds a representation: representations live in the ambient
-store (below), so a boundary changes **names** only, and `Θ` never shifts
-a representation index.
+A boundary scope is a change sequence: `Boundary = List Change` in
+Agda.  The changes are sequential and stored head-last, so the tail
+acts first.
 
 The displayed boundary notation follows `Show.agda`:
 
@@ -126,7 +122,7 @@ The main lookups are:
     Ξ ∣ Γ ∋ α := R      α's stored representation is R
     Ξ ∣ Γ ∋ X := A      X is live and A is its representation type
 
-The definition of lookup Ξ ∣ Γ ∋ X := A is derived form the other forms.
+The definition of lookup Ξ ∣ Γ ∋ X := A is derived from the other forms.
 
 ## Allocation
 
@@ -228,16 +224,16 @@ In the following equations, change sequences are written in acting order.
       performs the inverse changes in reverse acting order
 
     rewind Θ
-      performs changes(Θ), then their inverses
+      performs Θ, then their inverses
 
     Θ₁ ++ Θ₂
-      performs changes(Θ₂), then changes(Θ₁)
+      performs Θ₂, then Θ₁
 
     addLock(X,α,Θ)
-      performs lock X α first, then changes(Θ)
+      performs lock X α first, then Θ
 
     inst(X,α,Θ)
-      unlocks X α first, then performs changes(Θ)
+      unlocks X α first, then performs Θ
 
 In Agda these are list expressions on the change list, not operations on
 a record: `dual`, `rewind Θ = dual Θ ++ Θ`, merging is `Θ₁ ++ Θ₂`,

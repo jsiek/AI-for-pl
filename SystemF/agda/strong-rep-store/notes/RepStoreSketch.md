@@ -346,23 +346,25 @@ step is the inner `TyBeta`, INSIDE the outer boundary:
 ((((λx:ℕ. …) ⟪ ↑β:=ℕ , ↥Y , id ℕ ↦ id X ⟫) · 0) ⟪ ↑α:=ℕ , ↥X , unseal X ⟫
 ```
 
-With the store, in INDICES so the shift is visible (`α` was cell 0
-before the step and is cell 1 after it):
+With the store, showing each scope entry's REPRESENTATION INDEX after
+a colon (`↓X:1` is `lock 0 1`; conversions cite ordinary names and
+carry no index):
 
 ```
-Ξ = [ℕ]         (((ΛY. λx:ℕ. (7 ⟪ ↓X , seal 0 ⟫) ⟪ ↓Y , id 0 ⟫) [ℕ] · 0) ⟪ ↥X:=0 , unseal 0 ⟫
+Ξ = [ℕ]       (((ΛY. λx:ℕ. (7 ⟪ ↓X:1 , seal X ⟫) ⟪ ↓Y:0 , id X ⟫) [ℕ] · 0) ⟪ ↥X:0 , unseal X ⟫
  --ξ-⟪⟫ ⨟ ξ-·-l ⨟ TyBeta-->
-Ξ = [ℕ , ℕ]     ((((λx:ℕ. (7 ⟪ ↓X , seal 1 ⟫) ⟪ ↓Y , id 1 ⟫) ⟪ ↥Y:=0 , id ℕ ↦ id 1 ⟫) · 0) ⟪ ↥X:=1 , unseal 1 ⟫
+Ξ = [ℕ , ℕ]   ((((λx:ℕ. (7 ⟪ ↓X:1 , seal X ⟫) ⟪ ↓Y:0 , id X ⟫) ⟪ ↥Y:0 , id ℕ ↦ id X ⟫) · 0) ⟪ ↥X:1 , unseal X ⟫
 ```
 
-Three things moved by one: the body `N` did NOT (it was under the `ΛY`,
-its `seal 0`/`id 0` for `X` were already `1` there — hence `seal 1`,
-`id 1` verbatim in the contractum); the sibling argument `0` has no
-representation variables; the enclosing boundary's `↥X:=0 , unseal 0`
-became `↥X:=1 , unseal 1` through `ξ-⟪⟫`'s `renᴮᴿ`/`renᶜ`; and the
-ambient name map went from `[0]` to `[1]`.  The renderer (`Show.agda`)
-names cells by identity, so with names the trace reads exactly like
-today's minus the `↑β:=ℕ` on the frame.
+What moved by one: the enclosing boundary's scope, `↥X:0` → `↥X:1`,
+through `ξ-⟪⟫`'s `renᴮᴿ suc`, and the ambient name map, `[0]` → `[1]`.
+What did not: the body (it was under the `ΛY`, where `α` was already
+index 1 and the binder index 0 — which is now the cell `β`, so `↓X:1`,
+`↓Y:0` are right verbatim); the sibling argument `0`, which has no
+representation variables; and every conversion, `seal X`, `id X`,
+`unseal X`, because they cite ordinary names.  The renderer
+(`Show.agda`) names cells by identity, so with names the trace reads
+exactly like today's minus the `↑β:=ℕ` on the frame.
 
 ## 5. What the metatheory loses and gains
 

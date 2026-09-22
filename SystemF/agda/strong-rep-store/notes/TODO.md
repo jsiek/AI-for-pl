@@ -14,3 +14,5 @@
   This refactoring is needed so that this repo complies with the
   public/private mandate in the AGENTS.md file.
 
+* Audit the notes/notes.md file to make sure it is synchronized
+  with the Agda development.

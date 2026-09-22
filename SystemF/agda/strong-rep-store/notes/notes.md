@@ -454,9 +454,11 @@ reduction relation even when the redex's typing can reconstruct them.
 
 ## Computational rules
 
-Each rule is stated for a **well-typed redex** with variables as names.
-Under that reading only the `Value` premises are genuine side conditions:
-they fix the evaluation order and are what determinism rests on.  Every
+Each rule is stated for a **well-typed redex** with variables as names,
+and with the metavariable convention that `V` and `W` range over
+VALUES (so a rule written with `V`/`W` needs no `Value` premise; Agda's
+`Value V`/`Value W` premises are that convention spelled out — they fix
+the evaluation order and are what determinism rests on).  Every
 type the contractum writes (`R`, `Aᵢ`, `Aₒ`, `A`, `Bᵢ`) is determined by
 the redex, so it appears as a `where` clause, and every "is in scope in
 both" condition the Agda rules carry is a consequence of the readings'
@@ -464,10 +466,8 @@ inclusions (`Δᵢ ⊆ Δᶜ`, `Δ ⊆ Δᶜ`, `Δᶜ ≈ Δᵈ`, `Δ₁ᶜ ⊆ 
 of typing, and is omitted.  The mechanization notes say which Agda
 premises these were.
 
-    (TyBeta)    Value N
-                -----------------------------------------------
-                Δ ⊢ (ΛX.N) [B,A]
-                    -→ N ⟪ inst(X,α,⟨⟩) , revealₓ(B) ⟫ ∣ new R
+    (TyBeta)    Δ ⊢ (ΛX.V) [B,A]
+                    -→ V ⟪ inst(X,α,⟨⟩) , revealₓ(B) ⟫ ∣ new R
                 where Δ ⊢ᶜ A ~ R
 
 `X` and `α` are the ordinary and representation binders of the event.
@@ -475,13 +475,9 @@ premises these were.
 step allocates it at `α` — the allocation is the step's store change,
 not part of the boundary.
 
-    (Beta)      Value W
-                ---------------------------------------
-                Δ ⊢ (λx:A.N) · W -→ N[x:=W:A] ∣ none
+    (Beta)      Δ ⊢ (λx:A.N) · W -→ N[x:=W:A] ∣ none
 
-    (Peel)      Value V    Value W
-                ------------------------------------------------------
-                Δ ⊢ (V ⟪ Θ , c ↦ d ⟫) · W
+    (Peel)      Δ ⊢ (V ⟪ Θ , c ↦ d ⟫) · W
                     -→ (V · (W ⟪ dual Θ , c ⟫)) ⟪ Θ , d ⟫ ∣ none
 
 Mechanization note.  Agda's `Peel` carries the readings `Δ ⊢ᶜ Θ ⇒ Δᶜ`,
@@ -495,9 +491,7 @@ was spelled at.  `notes/CrossingAudit.agda` refutes equality of the de
 Bruijn name maps, while `notes/PeelPremise.agda` proves that they name
 the same representation variables.
 
-    (TyPeelR-Λ) Value V
-                --------------------------------------------------
-                Δ ⊢ ((ΛX.V) ⟪ Θ , ∀X.c ⟫) [B,A]
+    (TyPeelR-Λ) Δ ⊢ ((ΛX.V) ⟪ Θ , ∀X.c ⟫) [B,A]
                     -→ V ⟪ inst(X,α,Θ) , instRevealₓ(c) ⟫ ∣ new R
                 where Δ ⊢ᶜ A ~ R
 
@@ -509,8 +503,6 @@ Mechanization note.  Agda also carries `Δ ⊢ᶜ Θ ⇒ Δᶜ` and
 (`conv-all-inv`), and the contractum does not mention `Bᵢ`.
 
     (TyPeelR-⟪⟫)
-                Value W
-                ----------------------------------------------------------
                 Δ ⊢ ((W ⟪ Θ′ , ∀X.c′ ⟫) ⟪ Θ , ∀X.c ⟫) [B,A]
                     -→ ((W ⟪ addLock(X,α,Θ′) , ∀X.c′ ⟫) [Bᵢ,X])
                          ⟪ inst(X,α,Θ) , instRevealₓ(c) ⟫ ∣ new R
@@ -541,9 +533,7 @@ package's type with `∀Bᵢ` across `Δᵢ`/`Δᶜ`.
 annotation is wrong; `notes/AddLock0Wall.agda` shows why the skipped lock
 and old unlocks defeat every fixed conversion renaming.
 
-    (CancelR)   Value V
-                -------------------------------------------------------
-                Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
+    (CancelR)   Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
                     -→ (V ⟪ Θ₁ ++ Θ₂ , mkId Aᵢ ⟫)
                          ⟪ rewind Θ₂ , mkId Aₒ ⟫ ∣ none
                 where Δ₁ᶜ ∋ X := Aᵢ   (Δ ⊢ⁱ Θ₂ ⇒ Δᵢ , Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
@@ -575,9 +565,7 @@ representation shift between the two readings at all (`no-shift`);
                 ----------------------------------------------
                 Δ ⊢ false ⟪ Θ , id 𝔹 ⟫ -→ false ∣ none
 
-    (IdPush)    Value V
-                -------------------------------------------------------
-                Δ ⊢ (V ⟪ Θ₁ , id X ⟫) ⟪ Θ₂ , unseal Y ⟫
+    (IdPush)    Δ ⊢ (V ⟪ Θ₁ , id X ⟫) ⟪ Θ₂ , unseal Y ⟫
                     -→ (V ⟪ Θ₁ ++ Θ₂ , unseal X ⟫)
                          ⟪ rewind Θ₂ , mkId A ⟫ ∣ none
                 where Δᶜ ∋ Y := A   (Δ ⊢ᶜ Θ₂ ⇒ Δᶜ)
@@ -602,7 +590,7 @@ type annotation and no conversion is touched.
                 ----------------------------------
                 Δ ⊢ L · M -→ L′ · ↑ᴹ[δ]M ∣ δ
 
-    (ξ-·-r)     Value V    Δ ⊢ M -→ M′ ∣ δ
+    (ξ-·-r)     Δ ⊢ M -→ M′ ∣ δ
                 ----------------------------------
                 Δ ⊢ V · M -→ ↑ᴹ[δ]V · M′ ∣ δ
 

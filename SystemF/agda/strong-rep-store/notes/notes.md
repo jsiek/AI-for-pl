@@ -134,7 +134,7 @@ A ∀-elimination mints a representation cell on the ambient store:
 
     allocate(α:=R, (Ξ ∣ Γ))  =  (Ξ, α := R) ∣ Γ
 
-This is Agda's `allocate R (Ξ ∣ Δ) = (bindR R ∷ Ξ) ∣ shiftNames Δ`: the
+This is Agda's `allocate R (Ξ ∣ Δ) = (bindR R ∷ Ξ) ∣ shiftReps Δ`: the
 fresh cell takes index `0` and every existing representation index — in
 the name map and in every sibling term — moves up by one.  With names
 nothing moves; the new `α` is simply fresh, and `Γ` is unchanged.

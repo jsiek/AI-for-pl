@@ -71,7 +71,7 @@ allocation order (newest at 0):
 
 ```agda
 allocate : Ty → Ctxᵗ → Ctxᵗ
-allocate R (Ξ ∣ Δ) = (bindR R ∷ Ξ) ∣ shiftNames Δ
+allocate R (Ξ ∣ Δ) = (bindR R ∷ Ξ) ∣ shiftReps Δ
 -- fresh address 0; every existing representation variable, and every
 -- entry of the name map, moves up by one.  wf: WfCtx Δ → Ξ ⊢ᴿ R →
 -- WfCtx (allocate R Δ)   (today's `represented-wf`, at the ambient)
@@ -210,9 +210,9 @@ TyBeta : Value N → Δ ⊢ᶜ A ~ R
 
 (today: `N ⟪ instantiate R (boundary [] []) , reveal 0 B ⟫` — the
 SAME contractum with the bind moved from the boundary to the context.
-`N` is verbatim: it was typed at `underΛ Δ = abstR ∷ Ξ ∣ 0 ∷ shiftNames
+`N` is verbatim: it was typed at `underΛ Δ = abstR ∷ Ξ ∣ 0 ∷ shiftReps
 Δ`, and the interior of the contractum reads `unlock 0 0` at
-`allocate R Δ` as `bindR R ∷ Ξ ∣ 0 ∷ shiftNames Δ` — `⊢refine
+`allocate R Δ` as `bindR R ∷ Ξ ∣ 0 ∷ shiftReps Δ` — `⊢refine
 (rr-represent rr-refl)`, today's proof.)
 
 ```agda

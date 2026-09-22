@@ -554,14 +554,14 @@ items remain below as the implementation record.
        AddLock0Typing : Set        -- RESHAPED AND PROVED 2026-09-20
        AddLock0Typing = ∀ {Δ Δᶜ Δ⁺ᶜ W Θ s s′ A P}
          → WfCtx ((bindR P ∷ reps Δ) ∣
-                      (zero ∷ shiftNames (names Δ)))
+                      (zero ∷ shiftReps (names Δ)))
          → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ A
          → Δ ⊢ᶜ Θ ⇒ Δᶜ
-         → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
+         → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
              ⊢ᶜ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ) ⇒ Δ⁺ᶜ
          → SameConv (underΛ Δ⁺ᶜ) s′
              (underΛ (renNameCtx (extN (numBinds Θ) suc) Δ⁺ᶜ Δᶜ)) s
-         → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
+         → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
              ∣ [] ⊢
                (renᴹ² (ren² (λ X → X) (extN (numBinds Θ) suc)) W
                  ⟪ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ)
@@ -580,10 +580,10 @@ items remain below as the implementation record.
    **`CrossΛTyping` IS PROVED (2026-09-20)** by
    `proof/RepWeaken.agda` `cross-Λ-⊢`.  Its concrete wrapper has exterior
 
-       (abstR ∷ reps Δ) ∣ (0 ∷ shiftNames (names Δ))
+       (abstR ∷ reps Δ) ∣ (0 ∷ shiftReps (names Δ))
 
    and the `lock 0 0` interior deletes exactly that leading name, exposing
-   `(abstR ∷ reps Δ) ∣ shiftNames (names Δ)`.  There `⊢renᴿ` runs at the
+   `(abstR ∷ reps Δ) ∣ shiftReps (names Δ)`.  There `⊢renᴿ` runs at the
    new base instance `repwk-abst₀ : RepWk suc Ξ (abstR ∷ Ξ)`.  The
    conversion reading skips the lock and stays at `underΛ Δ`, so
    `mkId (⇑ᵗ A)` is typed there.  The inner alignment is the common

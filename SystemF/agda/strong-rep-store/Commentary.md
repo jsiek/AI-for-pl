@@ -2636,7 +2636,7 @@ call site it is `same-wfᴿ` of the allocating rule's own reading premise
 Allocating a cell pushes `bindR R` onto the head of the representation
 context and moves every existing representation variable — and every
 name-map entry — up by one; that is `RepWk suc` (`repwk-alloc`), and
-`map suc` IS `shiftNames`, so `allocate R (Ξ ∣ η)` is literally
+`map suc` IS `shiftReps`, so `allocate R (Ξ ∣ η)` is literally
 `(bindR R ∷ Ξ) ∣ map suc η`.  Hence THE ONE NEW LEMMA of the store
 experiment is `⊢renᴿ` at that instance, with no cast at all.
 
@@ -3387,7 +3387,7 @@ ORDINARY component.  The name moves with that renaming.
 THE FAMILY ONE UNIVERSE UP.  A representation-universe conversion is
 canonical at a REPRESENTATION VARIABLE.  `_⊩_~_` shifts that variable
 under a `` `∀ `` exactly as `CanonAt` shifts the ordinary name, because
-its `` `∀ `` clause reads the body at `zero ∷ shiftNames η`.
+its `` `∀ `` clause reads the body at `zero ∷ shiftReps η`.
 
 * DOWN (`canon-rep`): a conversion canonical at the ordinary name `X`
   denotes a representation conversion canonical at the representation

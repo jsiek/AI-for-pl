@@ -306,7 +306,7 @@ read? η (A ⇒ B) | nothing = nothing
 read? η (A ⇒ B) | just (R , p) with read? η B
 read? η (A ⇒ B) | just (R , p) | just (S , q) = just (R ⇒ S , same-⇒ p q)
 read? η (A ⇒ B) | just (R , p) | nothing = nothing
-read? η (`∀ A) with read? (zero ∷ shiftNames η) A
+read? η (`∀ A) with read? (zero ∷ shiftReps η) A
 read? η (`∀ A) | just (R , p) = just (`∀ R , same-∀ p)
 read? η (`∀ A) | nothing      = nothing
 
@@ -324,7 +324,7 @@ unread? η (R ⇒ S) | just (A , p) with unread? η S
 unread? η (R ⇒ S) | just (A , p) | just (B , q) =
   just (A ⇒ B , same-⇒ p q)
 unread? η (R ⇒ S) | just (A , p) | nothing = nothing
-unread? η (`∀ R) with unread? (zero ∷ shiftNames η) R
+unread? η (`∀ R) with unread? (zero ∷ shiftReps η) R
 unread? η (`∀ R) | just (A , p) = just (`∀ A , same-∀ p)
 unread? η (`∀ R) | nothing      = nothing
 
@@ -359,7 +359,7 @@ readᶜ? η (s ↦ t) | just (r , p) with readᶜ? η t
 readᶜ? η (s ↦ t) | just (r , p) | just (u , q) =
   just (r ↦ u , sameᶜ-fun p q)
 readᶜ? η (s ↦ t) | just (r , p) | nothing = nothing
-readᶜ? η (`∀ s) with readᶜ? (zero ∷ shiftNames η) s
+readᶜ? η (`∀ s) with readᶜ? (zero ∷ shiftReps η) s
 readᶜ? η (`∀ s) | just (r , p) = just (`∀ r , sameᶜ-all p)
 readᶜ? η (`∀ s) | nothing      = nothing
 
@@ -379,7 +379,7 @@ unreadᶜ? η (r ↦ u) | just (s , p) with unreadᶜ? η u
 unreadᶜ? η (r ↦ u) | just (s , p) | just (t , q) =
   just (s ↦ t , sameᶜ-fun p q)
 unreadᶜ? η (r ↦ u) | just (s , p) | nothing = nothing
-unreadᶜ? η (`∀ r) with unreadᶜ? (zero ∷ shiftNames η) r
+unreadᶜ? η (`∀ r) with unreadᶜ? (zero ∷ shiftReps η) r
 unreadᶜ? η (`∀ r) | just (s , p) = just (`∀ s , sameᶜ-all p)
 unreadᶜ? η (`∀ r) | nothing      = nothing
 

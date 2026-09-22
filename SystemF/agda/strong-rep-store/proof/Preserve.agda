@@ -57,26 +57,26 @@ private
 -- §1. Well-formedness of the type a derivation concludes
 ------------------------------------------------------------------------
 
-shiftNames-∋ : η ∋ˡ X := α → shiftNames η ∋ˡ X := suc α
-shiftNames-∋ here = here
-shiftNames-∋ (there d) = there (shiftNames-∋ d)
+shiftReps-∋ : η ∋ˡ X := α → shiftReps η ∋ˡ X := suc α
+shiftReps-∋ here = here
+shiftReps-∋ (there d) = there (shiftReps-∋ d)
 
-shiftNames-∋⁻ : shiftNames η ∋ˡ X := α
+shiftReps-∋⁻ : shiftReps η ∋ˡ X := α
   → ∃[ β ] ((α ≡ suc β) × (η ∋ˡ X := β))
-shiftNames-∋⁻ {η = []} ()
-shiftNames-∋⁻ {η = β ∷ η} here = β , refl , here
-shiftNames-∋⁻ {η = β ∷ η} (there d) with shiftNames-∋⁻ d
-shiftNames-∋⁻ {η = β ∷ η} (there d) | α′ , refl , d′ =
+shiftReps-∋⁻ {η = []} ()
+shiftReps-∋⁻ {η = β ∷ η} here = β , refl , here
+shiftReps-∋⁻ {η = β ∷ η} (there d) with shiftReps-∋⁻ d
+shiftReps-∋⁻ {η = β ∷ η} (there d) | α′ , refl , d′ =
   α′ , refl , there d′
 
 tv-underΛ-zero : underΛ Δ ∋tv zero
 tv-underΛ-zero = zero , here
 
 tv-underΛ-suc : Δ ∋tv X → underΛ Δ ∋tv suc X
-tv-underΛ-suc (α , d) = suc α , there (shiftNames-∋ d)
+tv-underΛ-suc (α , d) = suc α , there (shiftReps-∋ d)
 
 tv-underΛ-tail : underΛ Δ ∋tv suc X → Δ ∋tv X
-tv-underΛ-tail (α , there d) with shiftNames-∋⁻ d
+tv-underΛ-tail (α , there d) with shiftReps-∋⁻ d
 tv-underΛ-tail (α , there d) | β , refl , d′ = β , d′
 
 -- A well-formedness renaming only needs to preserve the existence of an
@@ -315,9 +315,9 @@ conv-refine rr (conv-all p) = conv-all (conv-refine (rr-abst rr) p)
     wf-ctx (wf-abstR wr) valid (unique-underΛ {Γ = Δ₀} uq)
     where
     valid : ValidNames (abstR ∷ reps Δ₀)
-                       (zero ∷ shiftNames (names Δ₀))
+                       (zero ∷ shiftReps (names Δ₀))
     valid here = abstR , here
-    valid (there d) with shiftNames-∋⁻ d
+    valid (there d) with shiftReps-∋⁻ d
     valid (there d) | α , refl , d′ with vn d′
     valid (there d) | α , refl , d′ | b , db = b , there db
 ⊢refine rr w′ (⊢·[] ⊢L w) =
@@ -388,20 +388,20 @@ subst-at-0 A B =
 
 underNames : ℕ → TyCtx → TyCtx
 underNames zero η = η
-underNames (suc n) η = zero ∷ shiftNames (underNames n η)
+underNames (suc n) η = zero ∷ shiftReps (underNames n η)
 
 underNames-weaken : ∀ {η X α} (n : ℕ)
   → underNames n η ∋ˡ X := α
-  → underNames n (zero ∷ shiftNames η)
+  → underNames n (zero ∷ shiftReps η)
       ∋ˡ extN n suc X := extN n suc α
-underNames-weaken zero d = there (shiftNames-∋ d)
+underNames-weaken zero d = there (shiftReps-∋ d)
 underNames-weaken (suc n) here = here
-underNames-weaken (suc n) (there d) with shiftNames-∋⁻ d
+underNames-weaken (suc n) (there d) with shiftReps-∋⁻ d
 underNames-weaken (suc n) (there d) | β , refl , d′ =
-  there (shiftNames-∋ (underNames-weaken n d′))
+  there (shiftReps-∋ (underNames-weaken n d′))
 
 same-weaken-at : ∀ {η A R} (n : ℕ) → underNames n η ⊢ A ~ R
-  → underNames n (zero ∷ shiftNames η)
+  → underNames n (zero ∷ shiftReps η)
       ⊢ renameᵗ (extN n suc) A ~ renameᵗ (extN n suc) R
 same-weaken-at n (same-var d) = same-var (underNames-weaken n d)
 same-weaken-at n same-ℕ = same-ℕ
@@ -410,7 +410,7 @@ same-weaken-at n (same-⇒ p q) =
   same-⇒ (same-weaken-at n p) (same-weaken-at n q)
 same-weaken-at n (same-∀ p) = same-∀ (same-weaken-at (suc n) p)
 
-same-weaken : η ⊢ A ~ R → (zero ∷ shiftNames η) ⊢ ⇑ᵗ A ~ ⇑ᵗ R
+same-weaken : η ⊢ A ~ R → (zero ∷ shiftReps η) ⊢ ⇑ᵗ A ~ ⇑ᵗ R
 same-weaken = same-weaken-at zero
 
 -- Eliminating an ordinary `∀` binder commutes with the representation
@@ -421,10 +421,10 @@ SameSub η η′ σ τ = ∀ {X α}
   → η′ ⊢ σ X ~ τ α
 
 SameSub-ext : ∀ {σ τ} → SameSub η η′ σ τ
-  → SameSub (zero ∷ shiftNames η) (zero ∷ shiftNames η′)
+  → SameSub (zero ∷ shiftReps η) (zero ∷ shiftReps η′)
             (extsᵗ σ) (extsᵗ τ)
 SameSub-ext h here = same-var here
-SameSub-ext h (there d) with shiftNames-∋⁻ d
+SameSub-ext h (there d) with shiftReps-∋⁻ d
 SameSub-ext h (there d) | α , refl , d′ = same-weaken (h d′)
 
 same-subst : ∀ {σ τ} → SameSub η η′ σ τ → η ⊢ A ~ R
@@ -435,28 +435,28 @@ same-subst h same-𝔹 = same-𝔹
 same-subst h (same-⇒ p q) = same-⇒ (same-subst h p) (same-subst h q)
 same-subst h (same-∀ p) = same-∀ (same-subst (SameSub-ext h) p)
 
-same-[] : (zero ∷ shiftNames η) ⊢ B ~ S → η ⊢ A ~ R
+same-[] : (zero ∷ shiftReps η) ⊢ B ~ S → η ⊢ A ~ R
   → η ⊢ B [ A ]ᵗ ~ S [ R ]ᵗ
 same-[] {A = A} {R = R} p q = same-subst h p
   where
-  h : SameSub (zero ∷ shiftNames _) _ (singleTyEnv A) (singleTyEnv R)
+  h : SameSub (zero ∷ shiftReps _) _ (singleTyEnv A) (singleTyEnv R)
   h here = q
-  h (there d) with shiftNames-∋⁻ d
+  h (there d) with shiftReps-∋⁻ d
   h (there d) | α , refl , d′ = same-var d′
 
 -- Shift only the FREE representation names while leaving the ordinary
 -- spelling in place.  The depth parameter accounts for local `∀` names.
 underNames-shift-free : ∀ {η X α} (n : ℕ)
   → underNames n η ∋ˡ X := α
-  → underNames n (shiftNames η) ∋ˡ X := extN n suc α
-underNames-shift-free zero d = shiftNames-∋ d
+  → underNames n (shiftReps η) ∋ˡ X := extN n suc α
+underNames-shift-free zero d = shiftReps-∋ d
 underNames-shift-free (suc n) here = here
-underNames-shift-free (suc n) (there d) with shiftNames-∋⁻ d
+underNames-shift-free (suc n) (there d) with shiftReps-∋⁻ d
 underNames-shift-free (suc n) (there d) | α , refl , d′ =
-  there (shiftNames-∋ (underNames-shift-free n d′))
+  there (shiftReps-∋ (underNames-shift-free n d′))
 
 same-shift-free-at : ∀ {η A R} (n : ℕ) → underNames n η ⊢ A ~ R
-  → underNames n (shiftNames η)
+  → underNames n (shiftReps η)
       ⊢ A ~ renameᵗ (extN n suc) R
 same-shift-free-at n (same-var d) =
   same-var (underNames-shift-free n d)
@@ -466,7 +466,7 @@ same-shift-free-at n (same-⇒ p q) =
   same-⇒ (same-shift-free-at n p) (same-shift-free-at n q)
 same-shift-free-at n (same-∀ p) = same-∀ (same-shift-free-at (suc n) p)
 
-same-shift-free : η ⊢ A ~ R → shiftNames η ⊢ A ~ ⇑ᵗ R
+same-shift-free : η ⊢ A ~ R → shiftReps η ⊢ A ~ ⇑ᵗ R
 same-shift-free = same-shift-free-at zero
 
 underNames-ref : ∀ {η X α} (n : ℕ) → ValidNames Ξ η
@@ -474,7 +474,7 @@ underNames-ref : ∀ {η X α} (n : ℕ) → ValidNames Ξ η
 underNames-ref zero valid d with valid d
 underNames-ref zero valid d | b , db = free-ref db
 underNames-ref (suc n) valid here = local-ref (s≤s z≤n)
-underNames-ref (suc n) valid (there d) with shiftNames-∋⁻ d
+underNames-ref (suc n) valid (there d) with shiftReps-∋⁻ d
 underNames-ref (suc n) valid (there d) | α , refl , d′ =
   ref-suc (underNames-ref n valid d′)
 
@@ -492,15 +492,15 @@ same-wfᴿ : WfCtx Δ → names Δ ⊢ A ~ R → reps Δ ⊢ᴿ R
 same-wfᴿ w p = same-wfᴿ-at zero (wf-names w) p
 
 represented-wf : WfCtx Δ → names Δ ⊢ A ~ R
-  → WfCtx ((bindR R ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
+  → WfCtx ((bindR R ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
 represented-wf {Δ = Δ} {R = R} w p =
   wf-ctx (wf-bindR (same-wfᴿ w p) (wf-reps w)) valid
          (unique-underΛ {Γ = Δ} (name-fn w))
   where
   valid : ValidNames (bindR R ∷ reps Δ)
-                     (zero ∷ shiftNames (names Δ))
+                     (zero ∷ shiftReps (names Δ))
   valid here = bindR R , here
-  valid (there d) with shiftNames-∋⁻ d
+  valid (there d) with shiftReps-∋⁻ d
   valid (there d) | α , refl , d′ with wf-names w d′
   valid (there d) | α , refl , d′ | b , db = b , there db
 
@@ -512,8 +512,8 @@ alloc-wf : ∀ {Δ R} → WfCtx Δ → reps Δ ⊢ᴿ R → WfCtx (allocate R Δ
 alloc-wf {Δ = Δ} {R = R} w wR =
   wf-ctx (wf-bindR wR (wf-reps w)) valid (unique-shift (name-fn w))
   where
-  valid : ValidNames (bindR R ∷ reps Δ) (shiftNames (names Δ))
-  valid d with shiftNames-∋⁻ d
+  valid : ValidNames (bindR R ∷ reps Δ) (shiftReps (names Δ))
+  valid d with shiftReps-∋⁻ d
   valid d | α , refl , d′ with wf-names w d′
   valid d | α , refl , d′ | b , db = b , there db
 
@@ -530,22 +530,22 @@ inst-boundarywf : ∀ {Δ Δᵢ Δᶜ Θ A R}
   → BoundaryWf Δ Θ Δᵢ Δᶜ
   → names Δ ⊢ A ~ R
   → BoundaryWf (allocate R Δ) (inst Θ)
-      ((bindR R ∷ reps Δᵢ) ∣ (zero ∷ shiftNames (names Δᵢ)))
-      ((bindR R ∷ reps Δᶜ) ∣ (zero ∷ shiftNames (names Δᶜ)))
+      ((bindR R ∷ reps Δᵢ) ∣ (zero ∷ shiftReps (names Δᵢ)))
+      ((bindR R ∷ reps Δᶜ) ∣ (zero ∷ shiftReps (names Δᶜ)))
 inst-boundarywf (bw wΔ (interior cs) (conversion csᶜ)) p =
   bw (alloc-wf wΔ (same-wfᴿ wΔ p))
      (inst-interior (interior cs))
      (inst-conversion (conversion csᶜ))
 
 represented-lookup : names Δ ⊢ A ~ R
-  → ((bindR R ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
+  → ((bindR R ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
       ∋ zero := ⇑ᵗ A
 represented-lookup {R = R} p =
   zero , ⇑ᵗ R , here , r-here , same-weaken p
 
 lookup-underΛ : Δ ∋ X := A → underΛ Δ ∋ suc X := ⇑ᵗ A
 lookup-underΛ (α , R , name , rep , same) =
-  suc α , ⇑ᵗ R , there (shiftNames-∋ name) , r-there-abst rep ,
+  suc α , ⇑ᵗ R , there (shiftReps-∋ name) , r-there-abst rep ,
   same-weaken same
 
 reveal-hit : (X : ℕ) → reveal X (` X) ≡ unseal X
@@ -611,7 +611,7 @@ rr-refl {Ξ = bindR R ∷ Ξ} = rr-bind rr-refl
 abstract-represent-refines : (n : ℕ)
   → RepRefines (reps (underΛN n (underΛ Δ)))
       (reps (underΛN n
-        ((bindR R ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))))
+        ((bindR R ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))))
 abstract-represent-refines zero = rr-represent rr-refl
 abstract-represent-refines (suc n) =
   rr-abst (abstract-represent-refines n)
@@ -619,22 +619,22 @@ abstract-represent-refines (suc n) =
 abstract-represent-names : ∀ {Δ R} (n : ℕ)
   → names (underΛN n (underΛ Δ))
     ≡ names (underΛN n
-        ((bindR R ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ))))
+        ((bindR R ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ))))
 abstract-represent-names zero = refl
 abstract-represent-names (suc n) =
-  cong (λ η → zero ∷ shiftNames η) (abstract-represent-names n)
+  cong (λ η → zero ∷ shiftReps η) (abstract-represent-names n)
 
 tv-abstract-represent : ∀ {Δ R X} (n : ℕ)
   → underΛN n (underΛ Δ) ∋tv X
   → underΛN n ((bindR R ∷ reps Δ)
-                   ∣ (zero ∷ shiftNames (names Δ))) ∋tv X
+                   ∣ (zero ∷ shiftReps (names Δ))) ∋tv X
 tv-abstract-represent n (α , name) =
   α , subst (λ η → η ∋ˡ _ := α) (abstract-represent-names n) name
 
 lookup-abstract-represent : ∀ {Δ R X A} (n : ℕ)
   → underΛN n (underΛ Δ) ∋ X := A
   → underΛN n ((bindR R ∷ reps Δ)
-                   ∣ (zero ∷ shiftNames (names Δ))) ∋ X := A
+                   ∣ (zero ∷ shiftReps (names Δ))) ∋ X := A
 lookup-abstract-represent {Δ = Δ} {R = R} {A = A} n
                           (α , S , name , rep , same) =
   α , S
@@ -721,7 +721,7 @@ abstract-no-bind {Δ = Δ} (suc n)
 abstract-name : (n : ℕ)
   → names (underΛN n (underΛ Δ)) ∋ˡ n := n
 abstract-name zero = here
-abstract-name (suc n) = there (shiftNames-∋ (abstract-name n))
+abstract-name (suc n) = there (shiftReps-∋ (abstract-name n))
 
 same-avoid : η ∋ˡ X := X → η ⊢ A ~ R → Avoid X R → Avoid X A
 same-avoid self (same-var d) (avoid-var ne) =
@@ -731,7 +731,7 @@ same-avoid self same-𝔹 avoid-𝔹 = avoid-𝔹
 same-avoid self (same-⇒ p q) (avoid-⇒ r s) =
   avoid-⇒ (same-avoid self p r) (same-avoid self q s)
 same-avoid self (same-∀ p) (avoid-∀ r) =
-  avoid-∀ (same-avoid (there (shiftNames-∋ self)) p r)
+  avoid-∀ (same-avoid (there (shiftReps-∋ self)) p r)
 
 abstract-lookup-fixed : ∀ {Δ X A} (n : ℕ)
   → underΛN n (underΛ Δ) ∋ X := A
@@ -749,7 +749,7 @@ abstract-index-≢ {Δ = Δ} n (α , R , name , rep , same) refl | refl =
 
 represented-binder : ∀ {Δ A R} (n : ℕ) → names Δ ⊢ A ~ R
   → underΛN n ((bindR R ∷ reps Δ)
-                   ∣ (zero ∷ shiftNames (names Δ)))
+                   ∣ (zero ∷ shiftReps (names Δ)))
       ∋ n := shiftBy (suc n) A
 represented-binder zero p = represented-lookup p
 represented-binder (suc n) p = lookup-underΛ (represented-binder n p)
@@ -759,7 +759,7 @@ mutual
     → names Δ ⊢ A ~ R
     → underΛN n (underΛ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
     → underΛN n ((bindR R ∷ reps Δ)
-                    ∣ (zero ∷ shiftNames (names Δ)))
+                    ∣ (zero ∷ shiftReps (names Δ)))
         ⊢ instReveal n s
         ∶ Bᵢ ⇝ Bₑ [ n := shiftBy (suc n) A ]ᵗ
   ⊢instReveal n p (conv-id base-ℕ) = conv-id base-ℕ
@@ -791,7 +791,7 @@ mutual
     → names Δ ⊢ A ~ R
     → underΛN n (underΛ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
     → underΛN n ((bindR R ∷ reps Δ)
-                    ∣ (zero ∷ shiftNames (names Δ)))
+                    ∣ (zero ∷ shiftReps (names Δ)))
         ⊢ instConceal n s
         ∶ Bᵢ [ n := shiftBy (suc n) A ]ᵗ ⇝ Bₑ
   ⊢instConceal n p (conv-id base-ℕ) = conv-id base-ℕ
@@ -833,15 +833,15 @@ empty-conversion = conversion conv[]
 
 sameTy-∀⁻ : ∀ {η η′ A B}
   → ∃[ R ] ((η ⊢ `∀ A ~ R) × (η′ ⊢ `∀ B ~ R))
-  → ∃[ R ] (((zero ∷ shiftNames η) ⊢ A ~ R) ×
-             ((zero ∷ shiftNames η′) ⊢ B ~ R))
+  → ∃[ R ] (((zero ∷ shiftReps η) ⊢ A ~ R) ×
+             ((zero ∷ shiftReps η′) ⊢ B ~ R))
 sameTy-∀⁻ (`∀ R , same-∀ p , same-∀ q) = R , p , q
 
 sameTy-target-∀⁻ : ∀ {η η′ A B}
   → ∃[ R ] ((η ⊢ A ~ R) × (η′ ⊢ `∀ B ~ R))
   → Σ[ A₀ ∈ Ty ] ((A ≡ `∀ A₀) ×
-       (∃[ R ] (((zero ∷ shiftNames η) ⊢ A₀ ~ R) ×
-          ((zero ∷ shiftNames η′) ⊢ B ~ R))))
+       (∃[ R ] (((zero ∷ shiftReps η) ⊢ A₀ ~ R) ×
+          ((zero ∷ shiftReps η′) ⊢ B ~ R))))
 sameTy-target-∀⁻ (`∀ R , same-∀ p , same-∀ q) =
   _ , refl , (R , p , q)
 wf-∀⁻ : Δ ⊢ᵗ `∀ A → underΛ Δ ⊢ᵗ A
@@ -861,7 +861,7 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} {R = R}
   env mwβ inner conv sameᵢ sameₑ wE
   where
   ΔR : Ctxᵗ
-  ΔR = (bindR R ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ))
+  ΔR = (bindR R ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ))
 
   wfΔR : WfCtx ΔR
   wfΔR = represented-wf wfΔ p
@@ -941,10 +941,10 @@ preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
   env mwᵢ inner conv sameᵢ′ sameₑ′ wFinal
   where
   ΔRᵢ : Ctxᵗ
-  ΔRᵢ = (bindR R ∷ reps Δᵢ) ∣ (zero ∷ shiftNames (names Δᵢ))
+  ΔRᵢ = (bindR R ∷ reps Δᵢ) ∣ (zero ∷ shiftReps (names Δᵢ))
 
   ΔRᶜ : Ctxᵗ
-  ΔRᶜ = (bindR R ∷ reps Δᶜ) ∣ (zero ∷ shiftNames (names Δᶜ))
+  ΔRᶜ = (bindR R ∷ reps Δᶜ) ∣ (zero ∷ shiftReps (names Δᶜ))
 
   mwᵢ : BoundaryWf (allocate R Δ) (inst Θ) ΔRᵢ ΔRᶜ
   mwᵢ = inst-boundarywf mwΘ p
@@ -1051,14 +1051,14 @@ CrossΛTyping = ∀ {Δ W A}
 AddLock0Typing : Set
 AddLock0Typing = ∀ {Δ Δᶜ Δ⁺ᶜ W Θ s s′ A P}
   → WfCtx ((bindR P ∷ reps Δ) ∣
-               (zero ∷ shiftNames (names Δ)))
+               (zero ∷ shiftReps (names Δ)))
   → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ A
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
-  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
+  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
       ⊢ᶜ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) ⇒ Δ⁺ᶜ
   → SameConv (underΛ Δ⁺ᶜ) s′
       (underΛ (renNameCtx suc Δ⁺ᶜ Δᶜ)) s
-  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
+  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
       ∣ [] ⊢
         (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) , `∀ s′ ⟫)
         ⦂ `∀ (renameᵗ (extᵗ suc) A)
@@ -1135,9 +1135,9 @@ wf-underΛ {Δ = Δ} (wf-ctx wr vn uq) =
   wf-ctx (wf-abstR wr) valid (unique-underΛ {Γ = Δ} uq)
   where
   valid : ValidNames (abstR ∷ reps Δ)
-                     (zero ∷ shiftNames (names Δ))
+                     (zero ∷ shiftReps (names Δ))
   valid here = abstR , here
-  valid (there d) with shiftNames-∋⁻ d
+  valid (there d) with shiftReps-∋⁻ d
   valid (there d) | α , refl , d′ with vn d′
   valid (there d) | α , refl , d′ | b , db = b , there db
 
@@ -1297,10 +1297,10 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
   env mwᵢ int conv sm sameₑ′′ wFinal
   where
   ΔRᵢ : Ctxᵗ
-  ΔRᵢ = (bindR R ∷ reps Δᵢ) ∣ (zero ∷ shiftNames (names Δᵢ))
+  ΔRᵢ = (bindR R ∷ reps Δᵢ) ∣ (zero ∷ shiftReps (names Δᵢ))
 
   ΔRᶜ : Ctxᵗ
-  ΔRᶜ = (bindR R ∷ reps Δᶜ) ∣ (zero ∷ shiftNames (names Δᶜ))
+  ΔRᶜ = (bindR R ∷ reps Δᶜ) ∣ (zero ∷ shiftReps (names Δᶜ))
 
   mwᵢ : BoundaryWf (allocate R Δ) (inst Θ) ΔRᵢ ΔRᶜ
   mwᵢ = inst-boundarywf mwΘ p

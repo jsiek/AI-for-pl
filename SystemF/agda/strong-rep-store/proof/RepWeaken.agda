@@ -92,7 +92,7 @@ cross-Λ-⊢ {Δ = Ξ ∣ η} {W = W} {A = A} wfΔ wA ⊢W =
         (env mwΛ inner (mkId-⊢ w↑) sameᵢ sameₑ w↑)
   where
   Δᵢ : Ctxᵗ
-  Δᵢ = (abstR ∷ Ξ) ∣ shiftNames η
+  Δᵢ = (abstR ∷ Ξ) ∣ shiftReps η
 
   w↑ : underΛ (Ξ ∣ η) ⊢ᵗ ⇑ᵗ A
   w↑ = wf-ren (WfRen-wk {Δ = Ξ ∣ η}) wA

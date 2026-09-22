@@ -160,7 +160,7 @@ changes-len eq (changes∷ cs st) =
 
 crossΛ-interior : (Γ : Ctxᵗ)
   → underΛ Γ ⊢ⁱ (lock 0 0 ∷ [])
-      ⇒ ((abstR ∷ reps Γ) ∣ shiftNames (names Γ))
+      ⇒ ((abstR ∷ reps Γ) ∣ shiftReps (names Γ))
 crossΛ-interior Γ =
   interior (changes∷ changes[]
     (step-lock (abstR , here) del-here fresh-zero-shift))

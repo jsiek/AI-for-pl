@@ -343,26 +343,26 @@ private
           (conv-changes-++ (conv-lock v conv[])
                            (conv-dual-id cs csᶜ keep))
 
-  shiftNames-lookup : Δ ∋ˡ X := α → shiftNames Δ ∋ˡ X := suc α
-  shiftNames-lookup here = here
-  shiftNames-lookup (there d) = there (shiftNames-lookup d)
+  shiftReps-lookup : Δ ∋ˡ X := α → shiftReps Δ ∋ˡ X := suc α
+  shiftReps-lookup here = here
+  shiftReps-lookup (there d) = there (shiftReps-lookup d)
 
   valid-suc : Ξ ∋ʳ α → (b ∷ Ξ) ∋ʳ suc α
   valid-suc (b′ , d) = b′ , there d
 
   insert-shift : α ⊢+ Δ at X ⇒ Δ′
-    → suc α ⊢+ shiftNames Δ at X ⇒ shiftNames Δ′
+    → suc α ⊢+ shiftReps Δ at X ⇒ shiftReps Δ′
   insert-shift ins-here = ins-here
   insert-shift (ins-there i) = ins-there (insert-shift i)
 
   delete-shift : α ⊢- Δ at X ⇒ Δ′
-    → suc α ⊢- shiftNames Δ at X ⇒ shiftNames Δ′
+    → suc α ⊢- shiftReps Δ at X ⇒ shiftReps Δ′
   delete-shift del-here = del-here
   delete-shift (del-there d) = del-there (delete-shift d)
 
   step-shift : Ξ ∣ Δ ⊢δ δ ⇒ Δ′
-    → (b ∷ Ξ) ∣ (zero ∷ shiftNames Δ) ⊢δ shiftChange δ
-        ⇒ (zero ∷ shiftNames Δ′)
+    → (b ∷ Ξ) ∣ (zero ∷ shiftReps Δ) ⊢δ shiftChange δ
+        ⇒ (zero ∷ shiftReps Δ′)
   step-shift (step-lock valid d fresh) =
     step-lock (valid-suc valid) (del-there (delete-shift d))
       (fresh∷ (λ ()) (fresh-shift fresh))
@@ -372,15 +372,15 @@ private
       (ins-there (insert-shift i))
 
   changes-shift : Ξ ∣ Δ ⊢χ χ ⇒ Δ′
-    → (b ∷ Ξ) ∣ (zero ∷ shiftNames Δ) ⊢χ map shiftChange χ
-        ⇒ (zero ∷ shiftNames Δ′)
+    → (b ∷ Ξ) ∣ (zero ∷ shiftReps Δ) ⊢χ map shiftChange χ
+        ⇒ (zero ∷ shiftReps Δ′)
   changes-shift changes[] = changes[]
   changes-shift (changes∷ cs st) =
     changes∷ (changes-shift cs) (step-shift st)
 
   conv-changes-shift : Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′
-    → (b ∷ Ξ) ∣ (zero ∷ shiftNames Δ) ⊢χᶜ map shiftChange χ
-        ⇒ (zero ∷ shiftNames Δ′)
+    → (b ∷ Ξ) ∣ (zero ∷ shiftReps Δ) ⊢χᶜ map shiftChange χ
+        ⇒ (zero ∷ shiftReps Δ′)
   conv-changes-shift conv[] = conv[]
   conv-changes-shift (conv-lock valid cs) =
     conv-lock (valid-suc valid) (conv-changes-shift cs)
@@ -390,14 +390,14 @@ private
       (ins-there (insert-shift i))
   conv-changes-shift (conv-unlock-live valid cs d) =
     conv-unlock-live (valid-suc valid) (conv-changes-shift cs)
-      (there (shiftNames-lookup d))
+      (there (shiftReps-lookup d))
 
 -- Instantiating a scope, read at the ALLOCATED context: the old changes
 -- run underneath the fresh ordinary name, in both induced readings.
 inst-interior : ∀ {R : Ty} {Γ Γᵢ : Ctxᵗ} {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
   → allocate R Γ ⊢ⁱ inst Θ ⇒
-      ((bindR R ∷ reps Γ) ∣ (zero ∷ shiftNames (names Γᵢ)))
+      ((bindR R ∷ reps Γ) ∣ (zero ∷ shiftReps (names Γᵢ)))
 inst-interior {Γ = Ξ ∣ Δ} (interior cs) =
   interior
     (changes-++
@@ -408,7 +408,7 @@ inst-interior {Γ = Ξ ∣ Δ} (interior cs) =
 inst-conversion : ∀ {R : Ty} {Γ Γᶜ : Ctxᵗ} {Θ : Boundary}
   → Γ ⊢ᶜ Θ ⇒ Γᶜ
   → allocate R Γ ⊢ᶜ inst Θ ⇒
-      ((bindR R ∷ reps Γ) ∣ (zero ∷ shiftNames (names Γᶜ)))
+      ((bindR R ∷ reps Γ) ∣ (zero ∷ shiftReps (names Γᶜ)))
 inst-conversion {Γ = Ξ ∣ Δ} (conversion cs) =
   conversion
     (conv-changes-++
@@ -922,7 +922,7 @@ snoc-lock0-conversion-ren : ∀ {Ξ Ξ′ Δ Θ Γᶜ}
   → Unique Δ
   → (Ξ ∣ Δ) ⊢ᶜ Θ ⇒ Γᶜ
   → Σ[ Γ′ᶜ ∈ Ctxᵗ ]
-        (((Ξ′ ∣ (zero ∷ shiftNames Δ))
+        (((Ξ′ ∣ (zero ∷ shiftReps Δ))
           ⊢ᶜ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) ⇒ Γ′ᶜ)
         × (map suc (names Γᶜ) ⊆ᵃ (names Γ′ᶜ)))
 snoc-lock0-conversion-ren w v₀ uq (conversion cs)
@@ -937,7 +937,7 @@ snoc-lock0-interior-ren : ∀ {Ξ Ξ′ Δ Θ Γᵢ}
   → RepWk suc Ξ Ξ′
   → Ξ′ ∋ʳ zero
   → (Ξ ∣ Δ) ⊢ⁱ Θ ⇒ Γᵢ
-  → (Ξ′ ∣ (zero ∷ shiftNames Δ)) ⊢ⁱ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) ⇒
+  → (Ξ′ ∣ (zero ∷ shiftReps Δ)) ⊢ⁱ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) ⇒
       (Ξ′ ∣ map suc (names Γᵢ))
 snoc-lock0-interior-ren w v₀ (interior cs) =
   interior

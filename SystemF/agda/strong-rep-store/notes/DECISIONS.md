@@ -3122,9 +3122,9 @@ ordinary/representation renaming and `addLock0`.
     AddLock0Typing : Set
     AddLock0Typing = ∀ {Δ W Θ s A P}
       → WfCtx ((bindR P ∷ reps Δ) ∣
-                   (zero ∷ shiftNames (names Δ)))
+                   (zero ∷ shiftReps (names Δ)))
       → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ A
-      → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
+      → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
           ∣ [] ⊢
             (renᴹ² (ren² (λ X → X) (extN (numBinds Θ) suc)) W
               ⟪ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ)
@@ -4061,13 +4061,13 @@ The proof is `strong-rep-store.proof.RepWeaken.cross-Λ-⊢`, beside
 
 then types that moved term at
 
-    (abstR ∷ reps Δ) ∣ shiftNames (names Δ) .
+    (abstR ∷ reps Δ) ∣ shiftReps (names Δ) .
 
 One zero-bind boundary supplies the ordinary side of the crossing.  Its
 exterior and conversion context are
 
     underΛ Δ
-      = (abstR ∷ reps Δ) ∣ (0 ∷ shiftNames (names Δ)) ,
+      = (abstR ∷ reps Δ) ∣ (0 ∷ shiftReps (names Δ)) ,
 
 and its interior is the moved term's context above.  `mkId (⇑ᵗ A)` is
 well formed at the exterior by the ordinary `WfRen-wk` transport.  If `A`
@@ -4415,7 +4415,7 @@ the rest never used a lemma from either moved group, and the set of names
 in scope in every file is exactly what it was before.
 
 Two things did NOT move, and both are deliberate.  The `private` helper
-blocks of `Boundary` §3a/§3b (`shiftNames-lookup`, `insert-shift`,
+blocks of `Boundary` §3a/§3b (`shiftReps-lookup`, `insert-shift`,
 `delete-shift`, `shiftRVars-suc`, `del-shiftRVars`, `ins-shiftRVars`) are
 context-only but are proof script for `instantiate`/`step-lift`; moving
 them would have made them public, so they stay private where they are
@@ -4729,7 +4729,7 @@ nothing else.  The representation a ∀-elimination mints is ALLOCATED on
 the AMBIENT representation context at address 0,
 
     allocate : Ty → Ctxᵗ → Ctxᵗ
-    allocate R (Ξ ∣ Δ) = (bindR R ∷ Ξ) ∣ shiftNames Δ
+    allocate R (Ξ ∣ Δ) = (bindR R ∷ Ξ) ∣ shiftReps Δ
 
 and a step returns the CHANGE it made, `δ : Alloc = none | new R`, so
 the contractum lives at `apply δ Δ` and every congruence shifts the

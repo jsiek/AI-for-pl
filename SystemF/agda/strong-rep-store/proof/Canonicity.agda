@@ -193,14 +193,14 @@ allIdᴿ-canon (ai-fun as at) α =
   car-fun (allIdᴿ-canon as α) (allIdᴿ-canon at α)
 allIdᴿ-canon (ai-all as)    α = car-all (allIdᴿ-canon as (suc α))
 
-shiftNames-∋ : η ∋ˡ X := α → shiftNames η ∋ˡ X := suc α
-shiftNames-∋ here      = here
-shiftNames-∋ (there d) = there (shiftNames-∋ d)
+shiftReps-∋ : η ∋ˡ X := α → shiftReps η ∋ˡ X := suc α
+shiftReps-∋ here      = here
+shiftReps-∋ (there d) = there (shiftReps-∋ d)
 
-shiftNames-∋⁻ : (η : TyCtx) → shiftNames η ∋ˡ X := β
+shiftReps-∋⁻ : (η : TyCtx) → shiftReps η ∋ˡ X := β
   → ∃[ α ] ((β ≡ suc α) × (η ∋ˡ X := α))
-shiftNames-∋⁻ (γ ∷ η) here      = γ , refl , here
-shiftNames-∋⁻ (γ ∷ η) (there d) with shiftNames-∋⁻ η d
+shiftReps-∋⁻ (γ ∷ η) here      = γ , refl , here
+shiftReps-∋⁻ (γ ∷ η) (there d) with shiftReps-∋⁻ η d
 ... | α , refl , d′ = α , refl , there d′
 
 -- DOWN.  A conversion canonical at the ordinary name X denotes a
@@ -225,7 +225,7 @@ canon-rep {η = η} (sameᶜ-all a) (ca-all cs)
   with canon-rep a cs
 ... | inj₁ ar                    = inj₁ (ai-all ar)
 ... | inj₂ (α₀ , there d₀ , c)
-  with shiftNames-∋⁻ η d₀
+  with shiftReps-∋⁻ η d₀
 ...   | α , refl , d = inj₂ (α , d , car-all c)
 
 -- UP.  On a name map that is a FUNCTION, a representation conversion
@@ -250,7 +250,7 @@ canon-name {η′ = η′} uq (sameᶜ-all a) (car-all cr)
   with canon-name (unique∷ fresh-zero-shift (unique-shift uq)) a cr
 ... | inj₁ as                  = inj₁ (ai-all as)
 ... | inj₂ (suc Y₀ , there d₀ , c)
-  with shiftNames-∋⁻ η′ d₀
+  with shiftReps-∋⁻ η′ d₀
 ...   | α , refl , d = inj₂ (Y₀ , d , ca-all c)
 
 -- THE RE-SPELLING.  `Peel` carries `SameConv Δᵈ s′ Δᶜ s`; the `Unique` its

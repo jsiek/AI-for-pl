@@ -123,13 +123,13 @@ _⊆ᵃ_ : TyCtx → TyCtx → Set
 -- 3. Ordinary types
 ------------------------------------------------------------------------
 
-shiftNames : TyCtx → TyCtx
-shiftNames = map suc
+shiftReps : TyCtx → TyCtx
+shiftReps = map suc
 
 -- A term-level `Λ` and the premise of ordinary `∀` formation bind both an
 -- ordinary type variable and an abstract representation variable.
 underΛ : Ctxᵗ → Ctxᵗ
-underΛ (Ξ ∣ Δ) = (abstR ∷ Ξ) ∣ (zero ∷ shiftNames Δ)
+underΛ (Ξ ∣ Δ) = (abstR ∷ Ξ) ∣ (zero ∷ shiftReps Δ)
 
 infix 4 _⊢ᵗ_
 data _⊢ᵗ_ : Ctxᵗ → Ty → Set where
@@ -186,7 +186,7 @@ data _⊢_~_ (η : TyCtx) : Ty → Ty → Set where
   same-ℕ   : η ⊢ `ℕ ~ `ℕ
   same-𝔹   : η ⊢ `𝔹 ~ `𝔹
   same-⇒   : η ⊢ A ~ R → η ⊢ B ~ S → η ⊢ A ⇒ B ~ R ⇒ S
-  same-∀   : (zero ∷ shiftNames η) ⊢ A ~ R → η ⊢ `∀ A ~ `∀ R
+  same-∀   : (zero ∷ shiftReps η) ⊢ A ~ R → η ⊢ `∀ A ~ `∀ R
 
 infix 4 _⊢ᶜ_~_
 _⊢ᶜ_~_ : Ctxᵗ → Ty → Ty → Set
@@ -268,7 +268,7 @@ shiftBy (suc n) R = ⇑ᵗ (shiftBy n R)
 -- representation context at index 0, and everything else moves up one.
 -- Commentary.md § Ctx.agda / THE STORE
 allocate : Ty → Ctxᵗ → Ctxᵗ
-allocate R (Ξ ∣ Δ) = (bindR R ∷ Ξ) ∣ shiftNames Δ
+allocate R (Ξ ∣ Δ) = (bindR R ∷ Ξ) ∣ shiftReps Δ
 
 -- What one reduction step did to the store: nothing, or one cell.
 data Alloc : Set where

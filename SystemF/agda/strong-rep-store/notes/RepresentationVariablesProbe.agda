@@ -80,11 +80,11 @@ private
 -- A term-level `Λ` extends BOTH global universes.  Existing representation-
 -- variable references shift because the new abstract representation variable
 -- occupies slot zero.
-shiftNames : TyCtx → TyCtx
-shiftNames = map suc
+shiftReps : TyCtx → TyCtx
+shiftReps = map suc
 
 underΛ : Ctxᵗ → Ctxᵗ
-underΛ (Ξ ∣ Δ) = (abstR ∷ Ξ) ∣ (zero ∷ shiftNames Δ)
+underΛ (Ξ ∣ Δ) = (abstR ∷ Ξ) ∣ (zero ∷ shiftReps Δ)
 
 -- `η ⊢ A ~ R` says that ordinary type A and representation type R have the
 -- same shape, with each free ordinary variable translated through η.  Under
@@ -97,7 +97,7 @@ data _⊢_~_ (η : TyCtx) : Ty → Ty → Set where
   same-ℕ   : η ⊢ `ℕ ~ `ℕ
   same-𝔹   : η ⊢ `𝔹 ~ `𝔹
   same-⇒   : η ⊢ A ~ R → η ⊢ B ~ S → η ⊢ A ⇒ B ~ R ⇒ S
-  same-∀   : (zero ∷ shiftNames η) ⊢ A ~ R → η ⊢ `∀ A ~ `∀ R
+  same-∀   : (zero ∷ shiftReps η) ⊢ A ~ R → η ⊢ `∀ A ~ `∀ R
 
 infix 4 _⊢ᶜ_~_
 _⊢ᶜ_~_ : Ctxᵗ → Ty → Ty → Set

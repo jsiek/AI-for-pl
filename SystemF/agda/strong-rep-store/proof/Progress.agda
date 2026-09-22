@@ -98,7 +98,7 @@ addLock0-reading : ∀ {Δ Δᵢ Δᶜ Δ′ᵢ Δ′ᶜ Θ Θ′ A R}
   → BoundaryWf Δᵢ Θ′ Δ′ᵢ Δ′ᶜ
   → names Δ ⊢ A ~ R
   → Σ[ Δ″ᶜ ∈ Ctxᵗ ]
-      ((((bindR R ∷ reps Δᵢ) ∣ (zero ∷ shiftNames (names Δᵢ)))
+      ((((bindR R ∷ reps Δᵢ) ∣ (zero ∷ shiftReps (names Δᵢ)))
           ⊢ᶜ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) ⇒ Δ″ᶜ)
         × (map suc (names Δ′ᶜ) ⊆ᵃ (names Δ″ᶜ)))
 addLock0-reading {R = R} mwΘ mw′ p =

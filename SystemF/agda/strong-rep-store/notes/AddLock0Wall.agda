@@ -345,9 +345,9 @@ no-bad (env mwΘ (⊢·[] ⊢L wA) ⊢c sameᵢ sameₑ wE) | refl = no-moved �
 AddLock0Typing° : Set
 AddLock0Typing° = ∀ {Δ W Θ s A P}
   → WfCtx ((bindR P ∷ reps Δ) ∣
-               (zero ∷ shiftNames (names Δ)))
+               (zero ∷ shiftReps (names Δ)))
   → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ A
-  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
+  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
       ∣ [] ⊢
         (renᴹᴿ suc W
           ⟪ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ []))

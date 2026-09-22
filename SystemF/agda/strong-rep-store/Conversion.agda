@@ -111,7 +111,7 @@ data _⊩_~_ (η : TyCtx) : Conv → Conv → Set where
   sameᶜ-seal   : η ∋ˡ X := α → η ⊩ seal X ~ seal α
   sameᶜ-unseal : η ∋ˡ X := α → η ⊩ unseal X ~ unseal α
   sameᶜ-fun    : η ⊩ s ~ r → η ⊩ t ~ u → η ⊩ s ↦ t ~ r ↦ u
-  sameᶜ-all    : (zero ∷ shiftNames η) ⊩ s ~ r → η ⊩ `∀ s ~ `∀ r
+  sameᶜ-all    : (zero ∷ shiftReps η) ⊩ s ~ r → η ⊩ `∀ s ~ `∀ r
 
 sameᶜ-cast : ∀ {η η′ : TyCtx} → η ≡ η′ → η ⊩ s ~ r → η′ ⊩ s ~ r
 sameᶜ-cast refl p = p

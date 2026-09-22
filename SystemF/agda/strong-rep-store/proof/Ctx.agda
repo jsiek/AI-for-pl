@@ -78,17 +78,17 @@ unique-lookup (unique∷ fresh unique) (there d) here =
 unique-lookup (unique∷ fresh unique) (there d) (there d′) =
   cong suc (unique-lookup unique d d′)
 
-fresh-zero-shift : shiftNames Δ ∌ʳ zero
+fresh-zero-shift : shiftReps Δ ∌ʳ zero
 fresh-zero-shift {Δ = []} = fresh[]
 fresh-zero-shift {Δ = α ∷ Δ} =
   fresh∷ (λ ()) fresh-zero-shift
 
-fresh-shift : Δ ∌ʳ α → shiftNames Δ ∌ʳ suc α
+fresh-shift : Δ ∌ʳ α → shiftReps Δ ∌ʳ suc α
 fresh-shift fresh[] = fresh[]
 fresh-shift (fresh∷ ne fresh) =
   fresh∷ (λ eq → ne (suc-injective eq)) (fresh-shift fresh)
 
-unique-shift : Unique Δ → Unique (shiftNames Δ)
+unique-shift : Unique Δ → Unique (shiftReps Δ)
 unique-shift unique[] = unique[]
 unique-shift (unique∷ fresh unique) =
   unique∷ (fresh-shift fresh) (unique-shift unique)
@@ -210,14 +210,14 @@ unique-ren inj unique[] = unique[]
 unique-ren inj (unique∷ fr uq) =
   unique∷ (fresh-ren inj fr) (unique-ren inj uq)
 
-shiftNames-ren : (ρ : Renameᵗ) (Δ : TyCtx)
-  → map (extᵗ ρ) (shiftNames Δ) ≡ shiftNames (map ρ Δ)
-shiftNames-ren ρ []      = refl
-shiftNames-ren ρ (α ∷ Δ) = cong (suc (ρ α) ∷_) (shiftNames-ren ρ Δ)
+shiftReps-ren : (ρ : Renameᵗ) (Δ : TyCtx)
+  → map (extᵗ ρ) (shiftReps Δ) ≡ shiftReps (map ρ Δ)
+shiftReps-ren ρ []      = refl
+shiftReps-ren ρ (α ∷ Δ) = cong (suc (ρ α) ∷_) (shiftReps-ren ρ Δ)
 
 names-underΛ-ren : (ρ : Renameᵗ) (Δ : TyCtx)
-  → map (extᵗ ρ) (zero ∷ shiftNames Δ) ≡ zero ∷ shiftNames (map ρ Δ)
-names-underΛ-ren ρ Δ = cong (zero ∷_) (shiftNames-ren ρ Δ)
+  → map (extᵗ ρ) (zero ∷ shiftReps Δ) ≡ zero ∷ shiftReps (map ρ Δ)
+names-underΛ-ren ρ Δ = cong (zero ∷_) (shiftReps-ren ρ Δ)
 
 -- The representation READING of an ordinary type moves with the map: the
 -- ordinary spelling is untouched and the representation it denotes is
@@ -379,12 +379,12 @@ wfᴿ-rename f wfᴿ-𝔹 = wfᴿ-𝔹
 wfᴿ-rename f (wfᴿ-⇒ a c) = wfᴿ-⇒ (wfᴿ-rename f a) (wfᴿ-rename f c)
 wfᴿ-rename f (wfᴿ-∀ a) = wfᴿ-∀ (wfᴿ-rename (ref-ext f) a)
 
-live-shift : Δ ∋ᵅ α → (shiftNames Δ) ∋ᵅ (suc α)
+live-shift : Δ ∋ᵅ α → (shiftReps Δ) ∋ᵅ (suc α)
 live-shift (zero , here) = zero , here
 live-shift (suc X , there d) with live-shift (X , d)
 live-shift (suc X , there d) | Y , d′ = suc Y , there d′
 
-live-shift-inv : (Δ : TyCtx) → (shiftNames Δ) ∋ᵅ α
+live-shift-inv : (Δ : TyCtx) → (shiftReps Δ) ∋ᵅ α
   → ∃[ β ] (Δ ∋ᵅ β × (α ≡ suc β))
 live-shift-inv (γ ∷ Δ) (zero , here) = γ , (zero , here) , refl
 live-shift-inv (γ ∷ Δ) (suc X , there d) with live-shift-inv Δ (X , d)
@@ -392,7 +392,7 @@ live-shift-inv (γ ∷ Δ) (suc X , there d) | β , lv , eq =
   β , ∋ᵅ-cons lv , eq
 
 ⊆ᵃ-underΛ : Δ ⊆ᵃ Δ′
-  → (zero ∷ shiftNames Δ) ⊆ᵃ (zero ∷ shiftNames Δ′)
+  → (zero ∷ shiftReps Δ) ⊆ᵃ (zero ∷ shiftReps Δ′)
 ⊆ᵃ-underΛ f (zero , here) = zero , here
 ⊆ᵃ-underΛ {Δ = Δ} f (suc X , there d) with live-shift-inv Δ (X , d)
 ⊆ᵃ-underΛ {Δ = Δ} f (suc X , there d) | β , lv , refl =

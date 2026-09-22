@@ -43,7 +43,7 @@ open import strong-rep-store.proof.PeelDual using (respell-⊢)
 -- split BEFORE it knows the representation is a `` `∀ `` — which is why
 -- this is an inversion and not a pattern match.
 same-∀⁻ : ∀ {η : TyCtx} {A V : Ty} → η ⊢ `∀ A ~ V
-  → Σ[ V₀ ∈ Ty ] ((V ≡ `∀ V₀) × ((zero ∷ shiftNames η) ⊢ A ~ V₀))
+  → Σ[ V₀ ∈ Ty ] ((V ≡ `∀ V₀) × ((zero ∷ shiftReps η) ⊢ A ~ V₀))
 same-∀⁻ (same-∀ q) = _ , refl , q
 
 ------------------------------------------------------------------------
@@ -57,7 +57,7 @@ moved-keep : ∀ {Δ Δᶜ Δ⁺ᶜ : Ctxᵗ} {Θ : Boundary} {P : Ty}
   → WfCtx Δ
   → WfRepCtx (bindR P ∷ reps Δ)
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
-  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
+  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
       ⊢ᶜ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) ⇒ Δ⁺ᶜ
   → (map suc (names Δᶜ)) ⊆ᵃ (names Δ⁺ᶜ)
 moved-keep wfΔ wr rc r⁺
@@ -95,7 +95,7 @@ moved-conv′ : ∀ {Δ Δᶜ Δ⁺ᶜ : Ctxᵗ} {Θ : Boundary} {s s′ : Conv}
   → WfCtx Δ
   → WfRepCtx (bindR P ∷ reps Δ)
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
-  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
+  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
       ⊢ᶜ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) ⇒ Δ⁺ᶜ
   → SameConv (underΛ Δ⁺ᶜ) s′
       (underΛ (renNameCtx suc Δ⁺ᶜ Δᶜ)) s
@@ -142,7 +142,7 @@ moved-sameₑ : ∀ {Δ Δᶜ Δ⁺ᶜ : Ctxᵗ} {Ξ : RepCtx} {A Cₑ B′ : Ty
   → Δ ⊢ `∀ A ≈ `∀ Cₑ ⊣ Δᶜ
   → underΛ Δ⁺ᶜ ⊢ B′ ≈ Cₑ ⊣
       underΛ (renNameCtx suc Δ⁺ᶜ Δᶜ)
-  → (Ξ ∣ (zero ∷ shiftNames (names Δ)))
+  → (Ξ ∣ (zero ∷ shiftReps (names Δ)))
       ⊢ `∀ (renameᵗ (extᵗ suc) A) ≈ `∀ B′ ⊣ Δ⁺ᶜ
 moved-sameₑ {Δᶜ = Δᶜ} (T , pₑ , qₑ) (S , a , b)
   with same-∀⁻ qₑ
@@ -159,7 +159,7 @@ moved-sameₑ (T , pₑ , qₑ) (S , a , b) | V₀ , refl , q₀ | refl =
 
 moved-env : ∀ {Δ Δᵢ Δᶜ Δ⁺ᶜ : Ctxᵗ} {W : Term} {Θ : Boundary}
   {s s′ : Conv} {A P Bᵢ Cᵢ Cₑ : Ty}
-  → WfCtx ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
+  → WfCtx ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
   → BoundaryWf Δ Θ Δᵢ Δᶜ
   → Δᵢ ∣ [] ⊢ W ⦂ Bᵢ
   → underΛ Δᶜ ⊢ s ∶ Cᵢ ⇝ Cₑ
@@ -167,11 +167,11 @@ moved-env : ∀ {Δ Δᵢ Δᶜ Δ⁺ᶜ : Ctxᵗ} {W : Term} {Θ : Boundary}
   → Δ ⊢ `∀ A ≈ `∀ Cₑ ⊣ Δᶜ
   → Δ ⊢ᵗ `∀ A
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
-  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
+  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
       ⊢ᶜ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) ⇒ Δ⁺ᶜ
   → SameConv (underΛ Δ⁺ᶜ) s′
       (underΛ (renNameCtx suc Δ⁺ᶜ Δᶜ)) s
-  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ))) ∣ [] ⊢
+  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ))) ∣ [] ⊢
       (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) , `∀ s′ ⟫)
       ⦂ `∀ (renameᵗ (extᵗ suc) A)
 moved-env wf⁺ mwΘ ⊢W ⊢s sameᵢ sameₑ wE rc r⁺ sc
@@ -183,7 +183,7 @@ moved-env {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δ⁺ᶜ = Δ⁺ᶜ} {W = W
   env mw⁺ ⊢W⁺ ⊢c⁺ smᵢ smₑ wE⁺
   where
   Δ⁺ : Ctxᵗ
-  Δ⁺ = (bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ))
+  Δ⁺ = (bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ))
 
   Δᵢ⁺ : Ctxᵗ
   Δᵢ⁺ = (bindR P ∷ reps Δ) ∣ map suc (names Δᵢ)
@@ -212,7 +212,7 @@ moved-env {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δ⁺ᶜ = Δ⁺ᶜ} {W = W
                     {Ξ = bindR P ∷ reps Δ} sameₑ smB
 
   wk⁺ : WfRen Δ Δ⁺ suc
-  wk⁺ (α , d) = suc α , there (shiftNames-∋ d)
+  wk⁺ (α , d) = suc α , there (shiftReps-∋ d)
 
   wE⁺ : Δ⁺ ⊢ᵗ `∀ (renameᵗ (extᵗ suc) A)
   wE⁺ = wf-ren wk⁺ wE

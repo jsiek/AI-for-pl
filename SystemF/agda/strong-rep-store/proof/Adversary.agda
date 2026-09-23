@@ -133,8 +133,10 @@ seal-bad-conv (conv-seal (α , R , here , rep , same))
   → ¬ (Δbad ∣ Γ ⊢ ($ 7) ⟪ Θ , seal 0 ⟫ ⦂ ` 0)
 ¬⊢bad rc (env mwᵥ ⊢$ ⊢c (R , pᵢ , qᵢ) smₑ wE)
   with conversion-functional (bw-conversion mwᵥ) rc
-... | refl with seal-bad-conv ⊢c
-...   | refl = ¬same-ℕ-∀ pᵢ qᵢ
+¬⊢bad rc (env mwᵥ ⊢$ ⊢c (R , pᵢ , qᵢ) smₑ wE) | refl
+  with seal-bad-conv ⊢c
+¬⊢bad rc (env mwᵥ ⊢$ ⊢c (R , pᵢ , qᵢ) smₑ wE) | refl | refl =
+  ¬same-ℕ-∀ pᵢ qᵢ
 
 ------------------------------------------------------------------------
 -- 4.  CANCEL'S TYPE EQUATION

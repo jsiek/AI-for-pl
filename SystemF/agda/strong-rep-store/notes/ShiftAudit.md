@@ -1,5 +1,29 @@
 # The shift audit — every place a rule moves a subterm
 
+> **ARCHIVED — THIS IS THE PRE-STORE AUDIT (2026-09-08), AND IT DESCRIBES
+> A CALCULUS THIS DIRECTORY NO LONGER HAS.**  Every row below is written
+> against the masked-entry, bind-block design: `wkᴹ (numBinds Θ)`,
+> `binds`, `pushBinds`, `maskEnt`/`unmasked`, `_⋉_`, and a `ξ-Λ` that no
+> longer exists.  Experiment 2 (2026-09-22) deleted the bind block — a
+> boundary changes NAMES only and `Peel` moves its crossing argument
+> VERBATIM — and experiment 3 (2026-09-23) made the `CancelR`/`IdPush`
+> contractum one layer, so the last two rows describe a contractum no
+> rule builds.  **Do not read a verdict off this table.**
+>
+> THE LIVE AUDIT IS `proof/ShiftAudit.agda`, site by site and
+> machine-checked, gated by `All.agda`; its prose is
+> `Commentary.md § proof/ShiftAudit.agda`.  Since the store there are no
+> binds to cross, so each site's fact is a transport lemma of
+> `Boundary.agda` §3a (`dual-interior` for `Peel`, `merged-interior` for
+> `CancelR`/`IdPush`) rather than an equation between computed contexts.
+>
+> WHAT THIS FILE IS STILL FOR: the diagnosis of the one leak the audit
+> found (the single `TyPeelR` offered its moved value a new UNMASKED
+> slot), the four candidate fixes with their hazards, and the verdict
+> that produced the `canon-∀` split into `TyPeelR-Λ` / `TyPeelR-⟪⟫`.
+> That split is in the live calculus and that reasoning is why.  The
+> surviving machine-checked half is `proof/ShiftAudit.agda` §§3–4.
+
 **Jeremy, 2026-09-08.**  "Frame exactness is the main point of Strong
 System F!"  (PR #199: `Beta` now wraps every value crossing a `Λ` in that
 binder's dual, `crossΛ`.)  Request: *audit all places that shift a term to

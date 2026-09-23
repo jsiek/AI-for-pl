@@ -117,8 +117,8 @@ _•ᵗ_ : Ty → Substᵗ → Substᵗ
 -- the rest down (used by reveal/tapp, which eliminate their variable).
 single-at : ℕ → Ty → Substᵗ
 single-at X A Y with X ≟ Y
-... | yes _ = A
-... | no  _ = ` Y
+single-at X A Y | yes _ = A
+single-at X A Y | no  _ = ` Y
 
 -- B [ X := A ]ᵗ : substitute A for the general index X in B.  Its
 -- substitution `single-at` is what strong-rep-store.proof.Preserve reasons about
@@ -134,5 +134,5 @@ B [ X := A ]ᵗ = substᵗ (single-at X A) B
 -- was written for, TyWrapCncl, went with the masked-entry design.
 downTyEnv : ℕ → Ty → Substᵗ
 downTyEnv X A Y with X ≟ Y
-... | yes _ = A
-... | no  _ = ` (Y ∸ suc X)
+downTyEnv X A Y | yes _ = A
+downTyEnv X A Y | no  _ = ` (Y ∸ suc X)

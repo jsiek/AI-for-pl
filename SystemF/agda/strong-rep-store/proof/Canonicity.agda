@@ -92,8 +92,8 @@ allId-canon (ai-all as)    X = ca-all (allId-canon as (suc X))
 mutual
   canonAt-reveal : (X : ℕ) (B : Ty) → CanonAt X (reveal X B)
   canonAt-reveal X (` Y) with X ≟ Y
-  ... | yes refl = ca-unseal
-  ... | no  _    = ca-id
+  canonAt-reveal X (` Y) | yes refl = ca-unseal
+  canonAt-reveal X (` Y) | no  _    = ca-id
   canonAt-reveal X `ℕ      = ca-id
   canonAt-reveal X `𝔹      = ca-id
   canonAt-reveal X (A ⇒ B) =
@@ -102,8 +102,8 @@ mutual
 
   canonAt-conceal : (X : ℕ) (B : Ty) → CanonAt X (conceal X B)
   canonAt-conceal X (` Y) with X ≟ Y
-  ... | yes refl = ca-seal
-  ... | no  _    = ca-id
+  canonAt-conceal X (` Y) | yes refl = ca-seal
+  canonAt-conceal X (` Y) | no  _    = ca-id
   canonAt-conceal X `ℕ      = ca-id
   canonAt-conceal X `𝔹      = ca-id
   canonAt-conceal X (A ⇒ B) =
@@ -213,20 +213,29 @@ canon-rep (sameᶜ-seal d)    ca-seal        = inj₂ (_ , d , car-seal)
 canon-rep (sameᶜ-unseal d)  ca-unseal      = inj₂ (_ , d , car-unseal)
 canon-rep (sameᶜ-fun a b)   (ca-fun cs ct)
   with canon-rep a cs | canon-rep b ct
-... | inj₁ ar          | inj₁ au          = inj₁ (ai-fun ar au)
-... | inj₁ ar          | inj₂ (α , d , c) =
+canon-rep (sameᶜ-fun a b) (ca-fun cs ct)
+  | inj₁ ar          | inj₁ au          = inj₁ (ai-fun ar au)
+canon-rep (sameᶜ-fun a b) (ca-fun cs ct)
+  | inj₁ ar          | inj₂ (α , d , c) =
   inj₂ (α , d , car-fun (allIdᴿ-canon ar α) c)
-... | inj₂ (α , d , c) | inj₁ au          =
+canon-rep (sameᶜ-fun a b) (ca-fun cs ct)
+  | inj₂ (α , d , c) | inj₁ au          =
   inj₂ (α , d , car-fun c (allIdᴿ-canon au α))
-... | inj₂ (α , d , c) | inj₂ (β , d′ , c′)
+canon-rep (sameᶜ-fun a b) (ca-fun cs ct)
+  | inj₂ (α , d , c) | inj₂ (β , d′ , c′)
   with ∋ˡ-det d d′
-...   | refl = inj₂ (α , d , car-fun c c′)
+canon-rep (sameᶜ-fun a b) (ca-fun cs ct)
+  | inj₂ (α , d , c) | inj₂ (β , d′ , c′) | refl =
+  inj₂ (α , d , car-fun c c′)
 canon-rep {η = η} (sameᶜ-all a) (ca-all cs)
   with canon-rep a cs
-... | inj₁ ar                    = inj₁ (ai-all ar)
-... | inj₂ (α₀ , there d₀ , c)
+canon-rep {η = η} (sameᶜ-all a) (ca-all cs)
+  | inj₁ ar = inj₁ (ai-all ar)
+canon-rep {η = η} (sameᶜ-all a) (ca-all cs)
+  | inj₂ (α₀ , there d₀ , c)
   with shiftReps-∋⁻ η d₀
-...   | α , refl , d = inj₂ (α , d , car-all c)
+canon-rep {η = η} (sameᶜ-all a) (ca-all cs)
+  | inj₂ (α₀ , there d₀ , c) | α , refl , d = inj₂ (α , d , car-all c)
 
 -- UP.  On a name map that is a FUNCTION, a representation conversion
 -- canonical at α has only one ordinary reading, so its spelling cites one
@@ -238,20 +247,29 @@ canon-name uq (sameᶜ-seal d)   car-seal        = inj₂ (_ , d , ca-seal)
 canon-name uq (sameᶜ-unseal d) car-unseal      = inj₂ (_ , d , ca-unseal)
 canon-name uq (sameᶜ-fun a b)  (car-fun cr cu)
   with canon-name uq a cr | canon-name uq b cu
-... | inj₁ as          | inj₁ at          = inj₁ (ai-fun as at)
-... | inj₁ as          | inj₂ (Y , d , c) =
+canon-name uq (sameᶜ-fun a b) (car-fun cr cu)
+  | inj₁ as          | inj₁ at          = inj₁ (ai-fun as at)
+canon-name uq (sameᶜ-fun a b) (car-fun cr cu)
+  | inj₁ as          | inj₂ (Y , d , c) =
   inj₂ (Y , d , ca-fun (allId-canon as Y) c)
-... | inj₂ (Y , d , c) | inj₁ at          =
+canon-name uq (sameᶜ-fun a b) (car-fun cr cu)
+  | inj₂ (Y , d , c) | inj₁ at          =
   inj₂ (Y , d , ca-fun c (allId-canon at Y))
-... | inj₂ (Y , d , c) | inj₂ (Z , d′ , c′)
+canon-name uq (sameᶜ-fun a b) (car-fun cr cu)
+  | inj₂ (Y , d , c) | inj₂ (Z , d′ , c′)
   with unique-lookup uq d d′
-...   | refl = inj₂ (Y , d , ca-fun c c′)
+canon-name uq (sameᶜ-fun a b) (car-fun cr cu)
+  | inj₂ (Y , d , c) | inj₂ (Z , d′ , c′) | refl =
+  inj₂ (Y , d , ca-fun c c′)
 canon-name {η′ = η′} uq (sameᶜ-all a) (car-all cr)
   with canon-name (unique∷ fresh-zero-shift (unique-shift uq)) a cr
-... | inj₁ as                  = inj₁ (ai-all as)
-... | inj₂ (suc Y₀ , there d₀ , c)
+canon-name {η′ = η′} uq (sameᶜ-all a) (car-all cr)
+  | inj₁ as = inj₁ (ai-all as)
+canon-name {η′ = η′} uq (sameᶜ-all a) (car-all cr)
+  | inj₂ (suc Y₀ , there d₀ , c)
   with shiftReps-∋⁻ η′ d₀
-...   | α , refl , d = inj₂ (Y₀ , d , ca-all c)
+canon-name {η′ = η′} uq (sameᶜ-all a) (car-all cr)
+  | inj₂ (suc Y₀ , there d₀ , c) | α , refl , d = inj₂ (Y₀ , d , ca-all c)
 
 -- THE RE-SPELLING.  `Peel` carries `SameConv Δᵈ s′ Δᶜ s`; the `Unique` its
 -- first context needs is `dual-unique` at the rule's own two readings.
@@ -260,13 +278,17 @@ canonC-respell : Unique η′
   → CanonC t → CanonC s
 canonC-respell uq (r , p , q) (X , ct)
   with canon-rep q ct
-... | inj₁ ar with canon-name uq p (allIdᴿ-canon ar 0)
-...   | inj₁ as        = 0 , allId-canon as 0
-...   | inj₂ (Y , d , c) = Y , c
+canonC-respell uq (r , p , q) (X , ct) | inj₁ ar
+  with canon-name uq p (allIdᴿ-canon ar 0)
+canonC-respell uq (r , p , q) (X , ct) | inj₁ ar | inj₁ as =
+  0 , allId-canon as 0
+canonC-respell uq (r , p , q) (X , ct) | inj₁ ar | inj₂ (Y , d , c) = Y , c
+canonC-respell uq (r , p , q) (X , ct) | inj₂ (α , d , c)
+  with canon-name uq p c
+canonC-respell uq (r , p , q) (X , ct) | inj₂ (α , d , c) | inj₁ as =
+  0 , allId-canon as 0
 canonC-respell uq (r , p , q) (X , ct)
-    | inj₂ (α , d , c) with canon-name uq p c
-...   | inj₁ as          = 0 , allId-canon as 0
-...   | inj₂ (Y , d′ , c′) = Y , c′
+  | inj₂ (α , d , c) | inj₂ (Y , d′ , c′) = Y , c′
 
 ------------------------------------------------------------------------
 -- 6.  Lifting to terms

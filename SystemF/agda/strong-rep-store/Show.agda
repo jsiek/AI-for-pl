@@ -272,8 +272,9 @@ showTmF e tms f x (ƛ A ∙ N)
   "(λ" ++ tmBinder x ++ ":" ++ showTy (onames e) A ++ ". " ++ body ++ ")"
     , f′
 showTmF e tms f x (L · M) with showTmF e tms f x L
-... | l , f₁ with showTmF e tms f₁ x M
-... | m , f₂ = "(" ++ l ++ " · " ++ m ++ ")" , f₂
+showTmF e tms f x (L · M) | l , f₁ with showTmF e tms f₁ x M
+showTmF e tms f x (L · M) | l , f₁ | m , f₂ =
+  "(" ++ l ++ " · " ++ m ++ ")" , f₂
 showTmF e tms f x (Λ N) with showTmF (underΛE f e) tms (suc f) x N
 ... | body , f′ = "(Λ" ++ tyBinder f ++ ". " ++ body ++ ")" , f′
 showTmF e tms f x (L ·[ B , A ]) with showTmF e tms f x L

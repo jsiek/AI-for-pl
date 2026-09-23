@@ -308,8 +308,8 @@ mkId-⊢ (wf-∀ wA)    = conv-all (mkId-⊢ wA)
 mutual
   reveal : ℕ → Ty → Conv
   reveal X (` Y) with X ≟ Y
-  ... | yes _ = unseal X
-  ... | no  _ = id (` Y)
+  reveal X (` Y) | yes _ = unseal X
+  reveal X (` Y) | no  _ = id (` Y)
   reveal X `ℕ      = id `ℕ
   reveal X `𝔹      = id `𝔹
   reveal X (A ⇒ B) = conceal X A ↦ reveal X B
@@ -317,8 +317,8 @@ mutual
 
   conceal : ℕ → Ty → Conv
   conceal X (` Y) with X ≟ Y
-  ... | yes _ = seal X
-  ... | no  _ = id (` Y)
+  conceal X (` Y) | yes _ = seal X
+  conceal X (` Y) | no  _ = id (` Y)
   conceal X `ℕ      = id `ℕ
   conceal X `𝔹      = id `𝔹
   conceal X (A ⇒ B) = reveal X A ↦ conceal X B

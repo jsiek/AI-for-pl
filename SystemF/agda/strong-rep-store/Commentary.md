@@ -3592,8 +3592,10 @@ it holds definitionally at both `Alloc`s.
   §9  dead shift machinery
 ```
 
-The verdict table, with the fix candidates and their hazards, is
-`notes/ShiftAudit.md`.
+The verdicts are the module itself.  `notes/ShiftAudit.md` is the
+ARCHIVED 2026-09-08 audit, written against the bind-block calculus: read
+it for the leak's diagnosis and the four rejected repairs, never for a
+verdict on the live rules.
 
 ### §1 — the sites
 

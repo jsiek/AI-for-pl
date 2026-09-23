@@ -133,8 +133,12 @@ sameTy-src-unique unique (R , p , q) (R′ , p′ , q′)
 ∋:=-det unique (α , R , name , rep , same)
                  (α′ , R′ , name′ , rep′ , same′)
   with ∋ˡ-det name name′
-... | refl with ∋ʳ-det rep rep′
-...   | refl = same-target-unique unique same same′
+∋:=-det unique (α , R , name , rep , same)
+                 (α′ , R′ , name′ , rep′ , same′) | refl
+  with ∋ʳ-det rep rep′
+∋:=-det unique (α , R , name , rep , same)
+                 (α′ , R′ , name′ , rep′ , same′) | refl | refl =
+  same-target-unique unique same same′
 
 wf-empty : WfCtx empty
 wf-empty = wf-ctx wf-reps[] (λ ()) unique[]

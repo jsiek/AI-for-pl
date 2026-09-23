@@ -173,7 +173,9 @@ It is not a single theorem statement but a site-by-site check —
 §7 the drops, §8 the congruences — resting on the relational transport
 lemmas `dual-interior` and `merged-interior` of `Boundary.agda` §3a.  Its headline here is that at every site but
 `TyBeta`'s the ordinary component of the move is the identity.  The
-verdict table and the rejected repairs are `notes/ShiftAudit.md`.
+verdicts are that module; `notes/ShiftAudit.md` is the ARCHIVED
+2026-09-08 audit, written against the bind-block calculus, and is where
+the leak's diagnosis and the four rejected repairs live.
 
 **Relation to `SystemF/agda/strong/`.**  That directory is the earlier
 **masked-entry** design, in which a type-context slot was a `Binding`
@@ -314,7 +316,7 @@ it.
 | `BoundarySurvey.md` | the empirical record of the earlier boundary bookkeeping: the master table plus the bookkeeping-independent requirements the redesign had to meet |
 | `RedesignAdvice.md` | survey data → design advice; the four answers (central rep storage, keep simultaneity, use Conversion, definitional cancel) |
 | `RuleRepairs-TyPeelR-CancelR.md` | the proposed repairs to those two rules, before/after, run on the breaking examples |
-| `ShiftAudit.md` | **the shift audit** (Jeremy, 2026-09-08): the criterion, the site-by-site verdict table, the leak in detail with its witness, the four candidate fixes with their hazards, and the verdict — the `canon-∀` split, installed as `TyPeelR-Λ` / `TyPeelR-⟪⟫` |
+| `ShiftAudit.md` | **the shift audit, ARCHIVED** (Jeremy, 2026-09-08): the criterion, the site-by-site verdict table, the leak in detail with its witness, the four candidate fixes with their hazards, and the verdict — the `canon-∀` split, installed as `TyPeelR-Λ` / `TyPeelR-⟪⟫`.  The table is written against the bind-block calculus and its last two rows against the two-layer contractum, so the LIVE audit is `proof/ShiftAudit.agda`; this file is kept for the diagnosis and the rejected repairs |
 | `CancelRReachability.md` | is the `CancelR` defect REACHABLE from closed source?  Yes (2026-09-19) — the witness (`notes/CancelRReachabilityWitness.agda`), the two controls, and the repair path it settled |
 | `BoundaryRules.md` | the earlier decision memo on boundary-manipulation rules |
 | `DualLicenseDesign.md` | the dual-conceal licence of the first design, fully ruled |

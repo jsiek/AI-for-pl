@@ -13,7 +13,11 @@ module strong-rep-store.proof.ShiftAudit where
 --     else it can name after and could not before is a FRAME LEAK.
 --   * Since the store there are no binds to cross, so the per-site
 --     facts are `strong-rep-store.Boundary` §3a's transport lemmas,
---     CITED not restated.  The verdicts are notes/ShiftAudit.md.
+--     CITED not restated.
+--   * THE VERDICTS ARE THIS MODULE.  notes/ShiftAudit.md is the
+--     ARCHIVED 2026-09-08 audit and is written against the bind-block
+--     calculus; read it for the leak's diagnosis and the rejected
+--     repairs, never for a verdict.  Prose: Commentary.md.
 -- Commentary: Commentary.md § proof/ShiftAudit.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _∸_)

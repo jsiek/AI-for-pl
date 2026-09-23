@@ -164,10 +164,12 @@ drop-empty-frame : ∀ {Δ Γ V A B}
 drop-empty-frame {Δ = Δ} {V = V} (env mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE)
   with interior-functional (bw-interior mwᵥ) (empty-interior Δ)
      | conversion-functional (bw-conversion mwᵥ) (empty-conversion Δ)
-... | refl | refl
+drop-empty-frame {Δ = Δ} {V = V}
+  (env mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE) | refl | refl
   with same-rep-unique qᵢ (subst (λ T → names Δ ⊢ T ~ S)
                                  (sym (conv-id-refl ⊢c)) qₑ)
-... | refl =
+drop-empty-frame {Δ = Δ} {V = V}
+  (env mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE) | refl | refl | refl =
   subst (λ T → Δ ∣ [] ⊢ V ⦂ T)
         (same-target-unique (name-fn (bw-exterior mwᵥ)) pᵢ pₑ)
         ⊢V

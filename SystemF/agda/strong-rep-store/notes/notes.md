@@ -203,7 +203,7 @@ the variable live anywhere in the boundary:
     unlock X α     is a no-op if α already has its unique live name
 
 The last clause is `conv-unlock-live`.  For example, a conversion reading
-of `↓X` leaves `X` live; the inverse `↥X` in `rewind Θ` must therefore
+of `↓X` leaves `X` live; the inverse `↥X` in `Θ ++ dual Θ` must therefore
 be a no-op, not a failed freshness check.  `notes/ReUnlockWall.agda`
 machine-checks the old failure and the repaired readings.
 
@@ -227,22 +227,18 @@ inverse of a change swaps lock and unlock:
     dual []          = []
     dual (δ ∷ Θ)     = dual Θ ++ [ δ⁻¹ ]      -- inverses, in reverse order
 
-    rewind Θ         = Θ ++ dual Θ
-
-    addLock(X,α,Θ)   = lock X α ∷ Θ
-
-    inst(X,α,Θ)      = unlock X α ∷ Θ
-
-Merging two scopes needs no operation: the merged scope of CancelR and
-IdPush is `Θ₂ ++ Θ₁`, the outer scope acting first.  Agda's change lists
-are head-LAST (the tail acts first), so its spellings are the mirror
-images: `dual χ = map dualChange (reverse χ)`, `rewind Θ = dual Θ ++ Θ`,
-the merge is `Θ₁ ++ Θ₂`, `addLock` is the snoc `Θ ++ (lock 0 0 ∷ [])`,
-and `inst Θ = map shiftChange Θ ++ (unlock 0 0 ∷ [])`.  Nothing shifts a
-representation when two scopes merge, because both were spelled at the
-same store; `inst` shifts in both universes because it is read one
-allocation later — with names that shift is invisible, which is why the
-equation above has none.
+The other scopes the rules build are written out at their use sites:
+`Θ ++ dual Θ` (CancelR/IdPush's outer scope), `lock X α ∷ Θ`
+(TyPeelR-⟪⟫'s moved scope), `unlock X α ∷ Θ` (the instantiated scope of
+TyBeta and both TyPeelR), and the merge `Θ₂ ++ Θ₁`, the outer scope
+acting first.  Agda's change lists are head-LAST (the tail acts first),
+so its spellings are the mirror images: `dual χ = map dualChange
+(reverse χ)`, `rewind Θ = dual Θ ++ Θ`, the merge is `Θ₁ ++ Θ₂`, the
+moved scope is the snoc `Θ ++ (lock 0 0 ∷ [])`, and the instantiated
+scope is `inst Θ = map shiftChange Θ ++ (unlock 0 0 ∷ [])`.  Nothing
+shifts a representation when two scopes merge, because both were spelled
+at the same store; `inst` shifts in both universes because it is read
+one allocation later — with names that shift is invisible.
 
 ## A concrete boundary
 
@@ -468,7 +464,7 @@ of typing, and is omitted.  The mechanization notes say which Agda
 premises these were.
 
     (TyBeta)    Δ ⊢ (ΛX.V) [B,A]
-                    -→ V ⟪ inst(X,α,⟨⟩) , revealₓ(B) ⟫ ∣ new R
+                    -→ V ⟪ [ unlock X α ] , revealₓ(B) ⟫ ∣ new R
                 where Δ ⊢ᶜ A ~ R
 
 `X` and `α` are the ordinary and representation binders of the event.
@@ -493,11 +489,11 @@ Bruijn name maps, while `notes/PeelPremise.agda` proves that they name
 the same representation variables.
 
     (TyPeelR-Λ) Δ ⊢ ((ΛX.V) ⟪ Θ , ∀X.c ⟫) [B,A]
-                    -→ V ⟪ inst(X,α,Θ) , instRevealₓ(c) ⟫ ∣ new R
+                    -→ V ⟪ unlock X α ∷ Θ , instRevealₓ(c) ⟫ ∣ new R
                 where Δ ⊢ᶜ A ~ R
 
 No term moves in this clause: the `Λ` binder becomes the binder the
-allocation introduces, and `inst` unlocks it.
+allocation introduces, and the prepended unlock names it.
 
 Mechanization note.  Agda also carries `Δ ⊢ᶜ Θ ⇒ Δᶜ` and
 `underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ`; both are recoverable from the redex typing
@@ -505,8 +501,8 @@ Mechanization note.  Agda also carries `Δ ⊢ᶜ Θ ⇒ Δᶜ` and
 
     (TyPeelR-⟪⟫)
                 Δ ⊢ ((W ⟪ Θ′ , ∀X.c′ ⟫) ⟪ Θ , ∀X.c ⟫) [B,A]
-                    -→ ((W ⟪ addLock(X,α,Θ′) , ∀X.c′ ⟫) [Bᵢ,X])
-                         ⟪ inst(X,α,Θ) , instRevealₓ(c) ⟫ ∣ new R
+                    -→ ((W ⟪ lock X α ∷ Θ′ , ∀X.c′ ⟫) [Bᵢ,X])
+                         ⟪ unlock X α ∷ Θ , instRevealₓ(c) ⟫ ∣ new R
                 where Δ ⊢ᶜ A ~ R
                   and under(X,α,Δᶜ) ⊢ c : Bᵢ ⇝ Bₑ   (Δ ⊢ᶜ Θ ⇒ Δᶜ)
 
@@ -526,7 +522,7 @@ source type spelled in the interior, where the annotation sits), and the
 moved conversion is `s″` with `SameConv` at the two conversion readings.
 Both the moved value and the moved boundary take the **sibling shift** of
 the allocation: `renᴹᴿ suc W` and `renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])`,
-which is `addLock` after that shift.  With names `c′` is unchanged
+which is `lock X α ∷ Θ′` after that shift.  With names `c′` is unchanged
 (`Δ′ᶜ ⊆ Δ″ᶜ` after the shift, `snoc-lock0-conversion-ren`) and `Bᵢ` is in
 scope in the interior because the outer `env` compares the inner
 package's type with `∀Bᵢ` across `Δᵢ`/`Δᶜ`.
@@ -536,7 +532,7 @@ and old unlocks defeat every fixed conversion renaming.
 
     (CancelR)   Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
                     -→ (V ⟪ Θ₂ ++ Θ₁ , mkId Aᵢ ⟫)
-                         ⟪ rewind Θ₂ , mkId Aₒ ⟫ ∣ none
+                         ⟪ Θ₂ ++ dual Θ₂ , mkId Aₒ ⟫ ∣ none
                 where Δ₁ᶜ ∋ X := Aᵢ   (Δ ⊢ⁱ Θ₂ ⇒ Δᵢ , Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
                   and Δᶜ ∋ Y := Aₒ   (Δ ⊢ᶜ Θ₂ ⇒ Δᶜ)
 
@@ -569,7 +565,7 @@ representation shift between the two readings at all (`no-shift`);
 
     (IdPush)    Δ ⊢ (V ⟪ Θ₁ , id X ⟫) ⟪ Θ₂ , unseal Y ⟫
                     -→ (V ⟪ Θ₂ ++ Θ₁ , unseal X ⟫)
-                         ⟪ rewind Θ₂ , mkId A ⟫ ∣ none
+                         ⟪ Θ₂ ++ dual Θ₂ , mkId A ⟫ ∣ none
                 where Δᶜ ∋ Y := A   (Δ ⊢ᶜ Θ₂ ⇒ Δᶜ)
 
 Mechanization note.  Agda carries `Δ ⊢ⁱ Θ₂ ⇒ Δᵢ`, `Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ`,
@@ -798,10 +794,10 @@ The rule names below are the Agda constructor names.
 | `↑ᴹ[δ]M`, `↑ᴮ[δ]Θ` | `↑ᴹ[_]`, `↑ᴮ[_]` (`renᴹᴿ suc`, `renᴮᴿ suc`) | the named shift is the identity: ordinary positions never move |
 | `Θ = ⟨ δ₁,…,δₘ ⟩` | `Boundary = List Change` | an alias; a scope IS its change list |
 | `dual Θ` | `dual` | none |
-| `rewind Θ` | `rewind Θ = dual Θ ++ Θ` | none |
+| `Θ ++ dual Θ` | `rewind Θ = dual Θ ++ Θ` | none |
 | `Θ₂ ++ Θ₁` (acting order) | `Θ₁ ++ Θ₂` (head-last) | nothing shifts: both scopes are spelled at the same store |
-| `addLock(X,α,Θ)` | the snoc `Θ ++ (lock 0 0 ∷ [])` | written out at its use sites |
-| `inst(X,α,Θ)` | `inst Θ = map shiftChange Θ ++ (unlock 0 0 ∷ [])` | one shift in each universe, because it is read one allocation later |
+| `lock X α ∷ Θ` | the snoc `Θ ++ (lock 0 0 ∷ [])` | written out at its use sites |
+| `unlock X α ∷ Θ` | `inst Θ = map shiftChange Θ ++ (unlock 0 0 ∷ [])` | one shift in each universe, because it is read one allocation later |
 
 ## Formation, conversion, and term typing
 
@@ -851,7 +847,7 @@ premises only at these sites:
   2. `Peel`: `SameConv Δᵈ s′ Δᶜ s` becomes one `c` readable in
      both contexts.
   3. `TyPeelR-⟪⟫`: the moved-reading premise uses
-     `renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])` in Agda and `addLock(X,α,Θ′)`
+     `renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])` in Agda and `lock X α ∷ Θ′`
      here; its `SameConv … s″ … s′` becomes one `c′` readable in both
      conversion contexts; and `underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ`
      becomes one `Bᵢ` readable in both contexts.

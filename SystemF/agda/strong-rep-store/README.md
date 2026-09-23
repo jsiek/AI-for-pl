@@ -1,10 +1,11 @@
 # Strong System F — `SystemF/agda/strong-rep-store/`
 
-## What this directory is (2026-09-21)
+## What this directory is (2026-09-23)
 
 A VARIANT of `SystemF/agda/strong-rep-var/`, forked verbatim at the
 `main` commit that merged PR #207, to experiment with changes to the
-design.  The first experiment, and so far the only difference:
+design.  Three experiments have landed; the differences from
+strong-rep-var are:
 
 * **the value restriction on type abstraction.**  `⊢Λ` requires the
   body to be a value — `⊢Λ : Value N → underΛ Δ ∣ ⤊ Γ ⊢ N ⦂ C → Δ ∣ Γ ⊢
@@ -20,6 +21,31 @@ design.  The first experiment, and so far the only difference:
   needs them; the `Λ` case of `progress` is immediate; and the example
   programs whose `Λ` body was a variable or an application now carry a
   dummy `λy:ℕ` under the `Λ` and an extra `· 0` at the use site.
+
+* **the store** (experiment 2, 2026-09-22).  A boundary carries no bind
+  block: the representation a ∀-elimination mints is allocated on the
+  ambient representation context and a step returns the change it made,
+  `δ : Alloc`.  `Boundary = List Change`, and a boundary changes NAMES
+  only.  `notes/RepStoreSketch.md`; `notes/DECISIONS.md`, 2026-09-22.
+
+* **the one-layer `CancelR`/`IdPush` contractum** (experiment 3,
+  2026-09-23).  Both rules used to build a TWO-layer contractum, the
+  outer layer being `⟪ rewind Θ₂ , mkId A ⟫` — an identity conversion
+  over a frame whose interior is the exterior it sits at
+  (`rewind-interior`).  That layer was a no-op: `preserve-CancelR` and
+  `preserve-IdPush` already typed the inner layer at the redex's own
+  exterior type, and wrapped it only to re-spell the type it already
+  had.  Both contracta are now ONE layer —
+  `V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫` and `V ⟪ Θ₁ ++ Θ₂ , unseal X′ ⟫` — and the
+  premises that existed only to mint the discarded `mkId A`,
+  `Δ ⊢ᶜ Θ₂ ⇒ Δᶜ` and `Δᶜ ∋ Y := A`, are gone from both rules; `Y` is
+  constrained by the redex's typing, which is all the metatheory ever
+  used it for (`idpush-name`, `cancel-name`, `proof/IdLayer.agda`).
+  Consequences: `det` no longer needs `∋:=-det` for the outer lookup,
+  `bdyRedex` no longer calls `cancelPremises?`, `proof/ShiftAudit.agda`
+  §6 is the merged frame alone, and NO rule builds a `rewind` any more.
+  Every run in `Examples.agda` got shorter — §7c `C` from 41 steps to
+  22, §5b `V` from 40 to 24.  `notes/DECISIONS.md`, 2026-09-23.
 
 Everything below this section is strong-rep-var's documentation with the
 module prefix renamed; where the two developments differ, this section
@@ -145,8 +171,7 @@ It is not a single theorem statement but a site-by-site check —
 `proof/ShiftAudit.agda`, §2 `Peel`, §3 the two `TyPeelR` clauses with
 §4's tower measure for termination, §5 `Beta`, §6 `CancelR`/`IdPush`,
 §7 the drops, §8 the congruences — resting on the relational transport
-lemmas `dual-interior`, `rewind-interior` and `merged-interior` of
-`Boundary.agda` §3a.  Its headline here is that at every site but
+lemmas `dual-interior` and `merged-interior` of `Boundary.agda` §3a.  Its headline here is that at every site but
 `TyBeta`'s the ordinary component of the move is the identity.  The
 verdict table and the rejected repairs are `notes/ShiftAudit.md`.
 
@@ -174,7 +199,7 @@ keyed by module and definition in source order.
 |------|----------|
 | `Types.agda` | the type syntax `Ty` and its substitution operations — `renameᵗ`/`substᵗ` with `extᵗ`/`extsᵗ`/`⇑ᵗ`, `_[_]ᵗ`, and the index-directed `single-at`/`_[_:=_]ᵗ`.  Definitions only, and no universe tag: the same `Ty` is read either as an ordinary type or as a representation payload |
 | `Ctx.agda` | **the two de Bruijn universes and every relation over them**: `RepBinding` (`abstR`/`bindR R`), `RepCtx`, `TyCtx` and the pair `Ctxᵗ = reps ∣ names`; the lookup family up to the square `_∋_:=_`; ordinary type formation `_⊢ᵗ_` and payload formation `_⊢ᴿ[_]_`; the two readings of a `Ty` (`_⊢_~_`, `_⊢_≈_⊣_`); well-formedness `WfCtx` with `Unique`/`ValidNames`/`WfRepCtx`; **the store** — `allocate R Δ`, which pushes a fresh cell at address 0 and moves every existing representation variable up by one, with `Alloc = none | new R` and `apply` (experiment 2, 2026-09-22) — the insert/delete relations, and the renaming interface `RepWk`.  Definitions only.  The bind-block machinery (`pushRepBinds`/`extendReps`/`_⊢ᴮ_`/`shiftRVars`/`shiftRep`/`SameTyExt`/`shiftByᵇ`) was deleted with the bind block |
-| `Boundary.agda` | the boundary scope `Boundary = List Change` (an ALIAS since 2026-09-22; the one-field record went the way of the bind block) — a SEQUENTIAL list of `lock X α`/`unlock X α`, and NOTHING ELSE since experiment 2 landed: the representation a ∀-elimination mints lives in the ambient store, so a boundary changes NAMES only — with its two RELATIONAL readings, `_⊢ⁱ_⇒_`, which performs every change, and `_⊢ᶜ_⇒_`, which SKIPS locks (hence `conv-unlock-live`); their functionality and the §3a–§3d transports (`dual-interior`, `rewind-interior`, `merged-interior`, `merged-conversion-exists`, the representation-renaming lemmas); the witness `BoundaryWf`; and the derived boundary scopes `rewind` and `inst` (the dual of a scope is §2's `dual` itself) — merging is plain `_++_` and the lock-0 frame is the snoc `Θ ++ (lock 0 0 ∷ [])`, both written out where they are used |
+| `Boundary.agda` | the boundary scope `Boundary = List Change` (an ALIAS since 2026-09-22; the one-field record went the way of the bind block) — a SEQUENTIAL list of `lock X α`/`unlock X α`, and NOTHING ELSE since experiment 2 landed: the representation a ∀-elimination mints lives in the ambient store, so a boundary changes NAMES only — with its two RELATIONAL readings, `_⊢ⁱ_⇒_`, which performs every change, and `_⊢ᶜ_⇒_`, which SKIPS locks (hence `conv-unlock-live`); their functionality and the §3a–§3d transports (`dual-interior`, `rewind-interior`, `merged-interior`, `merged-conversion-exists`, the representation-renaming lemmas); the witness `BoundaryWf`; and the derived boundary scopes `rewind` (no rule builds one since 2026-09-23 — see the one-layer contractum below) and `inst` (the dual of a scope is §2's `dual` itself) — merging is plain `_++_` and the lock-0 frame is the snoc `Θ ++ (lock 0 0 ∷ [])`, both written out where they are used |
 | `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B` with NO polarity index, `mkId`, the canonical mints at a slot (`reveal`/`conceal`, `instReveal`/`instConceal`), the re-spelling relation `SameConv` with its uniqueness and `respell` lemmas, `conv-ren`, the inversions and `conv-types-unique` |
 | `Terms.agda` | terms, whose last constructor is the boundary `_⟪_,_⟫`; the `Inert`/`Active` split with `act-or-inert`; `Value`; and the typing judgment `_∣_⊢_⦂_`, whose boundary rule `env` TAKES a `BoundaryWf Δ Θ Δᵢ Δᶜ` instead of computing contexts and compares all three sides by `_⊢_≈_⊣_` — the exterior premise's `SameTyExt (numBinds Θ)` collapsed into it when the bind block went — and whose `⊢Λ` carries the VALUE RESTRICTION `Value N` |
 | `TermSubst.agda` | the PAIRED type renaming (`ren²`, `renᴹ²`) and its representation-only traversal `renᴹᴿ`; **the sibling shift** `↑ᴹ[ δ ]`/`↑ᴮ[ δ ]`, which is `renᴹᴿ suc`/`renᴮᴿ suc` when a step allocated a cell and the identity when it did not; and FRAME-EXACT substitution — `Img`, `crossΛᴹ`, `substᵐ`, `_[_∶_]ᵐ` — which wraps a value crossing a `Λ` in that binder's dual rather than shifting it.  ONLY what a top-level file names lives here; the lemmas and the term-variable renaming moved to `proof/TermSubst.agda` on 2026-09-22 |
@@ -205,12 +230,12 @@ keyed by module and definition in source order.
 | `PeelDual.agda` | the `Peel` crossing: the dual is an INVERSE (`dual-interior`), so the argument crosses by a representation-only weakening; §1 re-spells a TYPED conversion across the crossing (`respell-⊢`), and §3 is `preserve-Peel` |
 | `RepWeaken.agda` | the two transports with an identity ordinary component, proved at a CUT over an arbitrary `RepWk ρ Ξ Ξ′`: `⊢renᴿ`, and from it `rep-weaken-⊢` (what `Peel` consumes) and `cross-Λ-⊢` (what `Beta`'s crossing consumes).  The hard case is `env`, whose six premises transport one lemma apiece |
 | `AddLock0.agda` | `addLock0-⊢`, preservation's last parameter, on the statement the 2026-09-20 `TyPeelR-⟪⟫` repair gave it: the moved boundary's typing, whose six `env` premises split into a representation-only half and a conversion half that must be re-spelled because a conversion reading skips the appended lock |
-| `MoveScope.agda` | **the scope move**: both `CancelR` and `IdPush` swap a two-layer wrapper's conversions, so the frames move with them (`Θ₁ ++ Θ₂` inside, `rewind Θ₂` outside).  §1 the shared inversions, §2 `preserve-IdPush`, §3 `preserve-CancelR` on the rule repaired 2026-09-19 |
+| `MoveScope.agda` | **the scope move**: both `CancelR` and `IdPush` neutralise a two-layer wrapper's OUTER conversion, so the two frames merge into the one the contractum keeps (`Θ₁ ++ Θ₂`).  §1 the shared inversions, §2 `preserve-IdPush`, §3 `preserve-CancelR` on the rule repaired 2026-09-19 |
 | `IdLayer.agda` | why `IdPush` and `CancelR` need no name-relating premise: typing already forces the two names to denote ONE representation variable (`idpush-name`, `cancel-name`), `unseal` is the only active conversion an id-layer can meet, and the naked drop is sound exactly at a frame that changes nothing |
 | `Adversary.agda` | the soundness gate: a conceal must cite a REPRESENTED binder, and the two universes refuse it twice over — the name may be absent from the map, or the representation variable it names may be `abstR` |
 | `ShiftAudit.agda` | **the shift audit**: every rule that moves a subterm, checked site by site against frame exactness, plus the tower measure that makes `TyPeelR-⟪⟫` terminate and the refutation of the rejected wrap repair |
 | `Residual.agda` | soundness of the residual layer: `plug C M` is the step's source and `plug D N` its contractum (`residual-source`, `residual-sound`, `residuals-sound`), via `plug-renCtxᴿ`, `plug-↑` and `plug-substCtx` — the sanity gate on the statement's data |
-| `ColorPreservation.agda` | **the color-preservation proof**: `⊢C-ren` transports a frame derivation along a representation-only renaming (`interior-ren`/`RepWk` at boundary frames), `⊢C-len` transports it across the `abstR → bindR R` slot refinement, `⊢C-shift`/`interior-apply` transport it along a step's store change, `residual-frame` constructs the target frame per step at `apply δ Δ` (minted frames read by `instantiate-interior`/`dual-interior`/`rewind-interior`/`merged-interior`/`addLock0-interior-ren`/`crossΛ-interior`), and `residuals-color` composes along `ρ′ ∘ ρ`, re-typing by `preservation` and carrying well-formedness by `preservation-wf`; `residuals-color-length` is the color corollary |
+| `ColorPreservation.agda` | **the color-preservation proof**: `⊢C-ren` transports a frame derivation along a representation-only renaming (`interior-ren`/`RepWk` at boundary frames), `⊢C-len` transports it across the `abstR → bindR R` slot refinement, `⊢C-shift`/`interior-apply` transport it along a step's store change, `residual-frame` constructs the target frame per step at `apply δ Δ` (minted frames read by `instantiate-interior`/`dual-interior`/`merged-interior`/`addLock0-interior-ren`/`crossΛ-interior`), and `residuals-color` composes along `ρ′ ∘ ρ`, re-typing by `preservation` and carrying well-formedness by `preservation-wf`; `residuals-color-length` is the color corollary |
 | `TypeSafety.agda` | `type-safety` = `progress ∘ preservation*` |
 
 ## Tools
@@ -246,14 +271,15 @@ which evaluates with fuel `k` and prints one state per line, each arrow
 labelled by the rule that fired (`showTrace n tr` does the same for a
 `Trace` you already have):
 
-    scripts/render_term.sh 'showRun 1 3 Tcancel-⊢' \
+    scripts/render_term.sh 'showRun 1 2 Tcancel-⊢' \
         'open import strong-rep-store.Examples' | sed 's/\\n/\n/g'
-    ((7 ⟪ seal X ⟫) ⟪ ↑β:=ℕ , unseal X ⟫)
+    Ξ = [α := ℕ]
+    ((7 ⟪ seal X ⟫) ⟪ unseal X ⟫)
       --[CancelR]-->
-    ((7 ⟪ id ℕ ⟫) ⟪ ↑β:=ℕ , id ℕ ⟫)
+    Ξ = [α := ℕ]
+    (7 ⟪ id ℕ ⟫)
       --[Drop$]-->
-    (7 ⟪ ↑β:=ℕ , id ℕ ⟫)
-      --[Drop$]-->
+    Ξ = [α := ℕ]
     7
         -- VALUE
 

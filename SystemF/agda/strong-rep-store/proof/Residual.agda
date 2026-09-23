@@ -125,9 +125,9 @@ residual-source (residual-TyPeelR-Λ vN rc ⊢s pA) = refl
 residual-source
   (residual-TyPeelR-⟪⟫ vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA) = refl
 residual-source
-  (residual-CancelR vV ri rc₁ lX rc⋉ sm rc₂ lY)  = refl
+  (residual-CancelR vV ri rc₁ lX rc⋉ sm)  = refl
 residual-source
-  (residual-IdPush vV ri rc₁ rc⋉ sm rc₂ lY)      = refl
+  (residual-IdPush vV ri rc₁ rc⋉ sm)      = refl
 residual-source (residual-ξ-·-l r)      = cong (_· _) (residual-source r)
 residual-source (residual-ξ-·-l-sib r)  = refl
 residual-source (residual-ξ-·-r v r)    = cong (_ ·_) (residual-source r)
@@ -152,9 +152,9 @@ residual-sound
                 ⟪ inst Θ , instReveal 0 s ⟫)
     (plug-renCtxᴿ suc C M)
 residual-sound
-  (residual-CancelR vV ri rc₁ lX rc⋉ sm rc₂ lY) = refl
+  (residual-CancelR vV ri rc₁ lX rc⋉ sm) = refl
 residual-sound
-  (residual-IdPush vV ri rc₁ rc⋉ sm rc₂ lY)     = refl
+  (residual-IdPush vV ri rc₁ rc⋉ sm)     = refl
 residual-sound (residual-ξ-·-l r)      = cong (_· _) (residual-sound r)
 residual-sound (residual-ξ-·-l-sib {δ = δ} {C = C} {M = M} r) =
   cong (_ ·_) (plug-↑ δ C M)

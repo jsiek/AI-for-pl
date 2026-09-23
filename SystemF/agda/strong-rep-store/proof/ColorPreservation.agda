@@ -327,16 +327,14 @@ residual-frame {Δ = Δ} wfΔ
        (frame-·[] (frame-⟪⟫ ri″ d₂))
    , e₂
 
-residual-frame wfΔ (residual-CancelR vV ri rc₁ lX rc⋉ sm rc₂ lY)
+residual-frame wfΔ (residual-CancelR vV ri rc₁ lX rc⋉ sm)
     (frame-⟪⟫ ri₂ᶠ (frame-⟪⟫ ri₁ᶠ h)) =
-  _ , frame-⟪⟫ (rewind-interior ri₂ᶠ)
-        (frame-⟪⟫ (merged-interior ri₂ᶠ ri₁ᶠ) h)
+  _ , frame-⟪⟫ (merged-interior ri₂ᶠ ri₁ᶠ) h
     , sym (map-idᵗ _)
 
-residual-frame wfΔ (residual-IdPush vV ri rc₁ rc⋉ sm rc₂ lY)
+residual-frame wfΔ (residual-IdPush vV ri rc₁ rc⋉ sm)
     (frame-⟪⟫ ri₂ᶠ (frame-⟪⟫ ri₁ᶠ h)) =
-  _ , frame-⟪⟫ (rewind-interior ri₂ᶠ)
-        (frame-⟪⟫ (merged-interior ri₂ᶠ ri₁ᶠ) h)
+  _ , frame-⟪⟫ (merged-interior ri₂ᶠ ri₁ᶠ) h
     , sym (map-idᵗ _)
 
 residual-frame wfΔ (residual-ξ-·-l r) (frame-·L h) =

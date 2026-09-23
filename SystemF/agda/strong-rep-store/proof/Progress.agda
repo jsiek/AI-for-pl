@@ -172,7 +172,7 @@ module Impl where
     | α , R , nameX , repX , sameA | A′ , sameA′ =
     _ , _ , CancelR vW (bw-interior mwΘ) (bw-conversion mw₁)
                 (α , R , nameX , repX , sameA)
-                r⋉ (R , sameA′ , sameA) (bw-conversion mwΘ) d
+                r⋉ (R , sameA′ , sameA)
   progress-unseal v mwΘ ⊢M sameᵢ d
     | Z , refl , sameZ | W , Θ₁ , X , vW , inj₂ refl with ⊢M
   progress-unseal v mwΘ ⊢M sameᵢ d
@@ -189,7 +189,6 @@ module Impl where
     | Δ⋉ᶜ , r⋉ , keep₁ | X′ , nameX′ =
     _ , _ , IdPush vW (bw-interior mwΘ) (bw-conversion mw₁) r⋉
                (` α , same-var nameX′ , same-var nameX)
-               (bw-conversion mwΘ) d
 
   -- Once the interior is a value, conversion classification decides whether
   -- the whole boundary is a value or one of the four active redex shapes.

@@ -156,47 +156,45 @@ det _ (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm same) (ξ-·[] st) =
 det _ (ξ-·[] st) (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm same) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
 
--- CancelR — both looked-up types and the re-spelling are functional
+-- CancelR — the cancelled binder's lookup and the re-spelling are
+-- functional; the outer lookup is gone with the outer layer.
 det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm r₂ d₂)
-    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′ r₂′ d₂′)
-  with interior-functional ri ri′ | conversion-functional r₂ r₂′
+    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm)
+    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′)
+  with interior-functional ri ri′
 det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm r₂ d₂)
-    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′ r₂′ d₂′)
-    | refl | refl
+    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm)
+    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′) | refl
   with conversion-functional r₁ r₁′ | conversion-functional r⋉ r⋉′
 det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm r₂ d₂)
-    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′ r₂′ d₂′)
-    | refl | refl | refl | refl
+    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm)
+    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′)
+    | refl | refl | refl
   with interior-functional ri (bw-interior mwΘ₂)
 det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm r₂ d₂)
-    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′ r₂′ d₂′)
-    | refl | refl | refl | refl | refl
+    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm)
+    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′)
+    | refl | refl | refl | refl
   with conversion-functional r₁ (bw-conversion mwΘ₁)
-     | conversion-functional r₂ (bw-conversion mwΘ₂)
 det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm r₂ d₂)
-    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′ r₂′ d₂′)
-    | refl | refl | refl | refl | refl | refl | refl
+    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm)
+    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′)
+    | refl | refl | refl | refl | refl
   with ∋:=-det (name-fn (bw-conversion-wf mwΘ₁)) d₁ d₁′
-     | ∋:=-det (name-fn (bw-conversion-wf mwΘ₂)) d₂ d₂′
 det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm r₂ d₂)
-    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′ r₂′ d₂′)
-    | refl | refl | refl | refl | refl | refl | refl | refl | refl
+    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm)
+    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′)
+    | refl | refl | refl | refl | refl | refl
   with sameTy-src-unique
          (conversion-unique (name-fn (bw-exterior mwΘ₂)) r⋉) sm sm′
 det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm r₂ d₂)
-    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′ r₂′ d₂′)
-    | refl | refl | refl | refl | refl | refl | refl | refl | refl | refl =
+    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm)
+    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′)
+    | refl | refl | refl | refl | refl | refl | refl =
   refl , refl
-det _ (CancelR v ri r₁ d₁ r⋉ sm r₂ d₂) (ξ-⟪⟫ frame st) =
+det _ (CancelR v ri r₁ d₁ r⋉ sm) (ξ-⟪⟫ frame st) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
-det _ (ξ-⟪⟫ frame st) (CancelR v ri r₁ d₁ r⋉ sm r₂ d₂) =
+det _ (ξ-⟪⟫ frame st) (CancelR v ri r₁ d₁ r⋉ sm) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
 
 -- Drop$
@@ -212,34 +210,29 @@ det _ Drop-false Drop-false = refl , refl
 det _ Drop-false (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step V-false st)
 det _ (ξ-⟪⟫ frame st) Drop-false = ⊥-elim (value-¬step V-false st)
 
--- IdPush — likewise determined by the lookup.
+-- IdPush — determined by the merged re-spelling alone: the contractum
+-- no longer mints an identity at a looked-up representation.
 det (env mwΘ₂ _ _ _ _ _)
-    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm rel d)
-    (IdPush v′ ri′ r₁′ r⋉′ sm′ rel′ d′)
-  with interior-functional ri ri′ | conversion-functional rel rel′
+    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm)
+    (IdPush v′ ri′ r₁′ r⋉′ sm′)
+  with interior-functional ri ri′
 det (env mwΘ₂ _ _ _ _ _)
-    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm rel d)
-    (IdPush v′ ri′ r₁′ r⋉′ sm′ rel′ d′) | refl | refl
+    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm)
+    (IdPush v′ ri′ r₁′ r⋉′ sm′) | refl
   with conversion-functional r₁ r₁′ | conversion-functional r⋉ r⋉′
 det (env mwΘ₂ _ _ _ _ _)
-    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm rel d)
-    (IdPush v′ ri′ r₁′ r⋉′ sm′ rel′ d′)
-    | refl | refl | refl | refl
-  with conversion-functional rel (bw-conversion mwΘ₂)
-det (env mwΘ₂ _ _ _ _ _)
-    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm rel d)
-    (IdPush v′ ri′ r₁′ r⋉′ sm′ rel′ d′)
-    | refl | refl | refl | refl | refl
+    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm)
+    (IdPush v′ ri′ r₁′ r⋉′ sm′)
+    | refl | refl | refl
   with sameTy-src-unique
          (conversion-unique (name-fn (bw-exterior mwΘ₂)) r⋉) sm sm′
-     | ∋:=-det (name-fn (bw-conversion-wf mwΘ₂)) d d′
 det (env mwΘ₂ _ _ _ _ _)
-    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm rel d)
-    (IdPush v′ ri′ r₁′ r⋉′ sm′ rel′ d′)
-    | refl | refl | refl | refl | refl | refl | refl = refl , refl
-det _ (IdPush v ri r₁ r⋉ sm rel d) (ξ-⟪⟫ frame st) =
+    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm)
+    (IdPush v′ ri′ r₁′ r⋉′ sm′)
+    | refl | refl | refl | refl = refl , refl
+det _ (IdPush v ri r₁ r⋉ sm) (ξ-⟪⟫ frame st) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-idv) st)
-det _ (ξ-⟪⟫ frame st) (IdPush v ri r₁ r⋉ sm rel d) =
+det _ (ξ-⟪⟫ frame st) (IdPush v ri r₁ r⋉ sm) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-idv) st)
 
 -- the congruences: the sibling shift is a function of the store change

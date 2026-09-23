@@ -4799,3 +4799,113 @@ exhibits at a reachable redex (19 steps, unchanged).
 always in the CONVERSION reading, a name-map fact — and its run is still
 `Reaches 8 8`.  `notes/RepWeakenBindsWall.agda` keeps its refutation with
 LOCAL copies of the retired bind-block machinery.
+
+## EXPERIMENT 3 — THE ONE-LAYER `CancelR` / `IdPush` CONTRACTUM (2026-09-23, approved by Jeremy)
+
+**The question Jeremy asked.**  "Can `IdPush` be simplified by removing
+the second boundary, the one with `mkId`, and somehow compensating for
+that in the first boundary?"
+
+**The answer: yes, and nothing needs compensating.**  Both rules built
+
+```
+  (V ⟪ Θ₁ , c ⟫) ⟪ Θ₂ , unseal Y ⟫
+    -→ (V ⟪ Θ₁ ++ Θ₂ , c′ ⟫) ⟪ rewind Θ₂ , mkId A ⟫ ∣ none
+```
+
+and the outer layer was a no-op on both counts a boundary has:
+`rewind-interior` says its frame's interior IS the exterior it sits at,
+and `mkId A : A ⇝ A` converts nothing.  Its only effect was to re-spell
+the exterior type — and the surviving layer could already be given that
+type.  `proof/MoveScope.agda` said so before the change: both
+`preserve-IdPush` and `preserve-CancelR` built a local
+
+```
+  inner : Δ ∣ [] ⊢ V ⟪ Θ₁ ++ Θ₂ , c′ ⟫ ⦂ C          -- C = THE REDEX'S TYPE
+```
+
+and then wrapped it.  Deleting the wrapper leaves each preservation case
+as that `inner` and nothing else.
+
+**The rules now.**
+
+```
+  CancelR : Value V
+    → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ  → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ  → Δ₁ᶜ ∋ X := Aᵢ
+    → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ  → Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ
+    → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
+        -→ V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫ ∣ none
+
+  IdPush  : Value V
+    → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ  → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
+    → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ  → Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ
+    → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
+        -→ V ⟪ Θ₁ ++ Θ₂ , unseal X′ ⟫ ∣ none
+```
+
+**The premises that went with the layer.**  `Δ ⊢ᶜ Θ₂ ⇒ Δᶜ` and
+`Δᶜ ∋ Y := A` existed only to mint the discarded `mkId A`, so both rules
+drop them; `Δᶜ` and `A` leave both telescopes.  `Y` now occurs only in
+the redex.  RULED BY JEREMY: "we can assume the redex is well-typed, so
+`Y` is effectively constrained" — typing forces `X` and `Y` to name ONE
+representation variable (`idpush-name` / `cancel-name`,
+`proof/IdLayer.agda`), which is the only thing the metatheory ever used
+those premises for.  `CancelR` keeps its OTHER lookup, `Δ₁ᶜ ∋ X := Aᵢ`:
+that one determines the identity it still mints.
+
+**What the change touched.**
+
+* `proof/MoveScope.agda` — both cases are the former `inner`, renamed
+  `contractum`; `mwR`, `outerᵢ`, `rewind-interior` and
+  `rewind-conversion` are gone, and the outer lookup is inverted out of
+  the redex's own `conv-unseal` where the proofs still need it.
+* `proof/Determinism.agda` — `IdPush` is determined by its re-spelling
+  `X′` alone (`sameTy-src-unique`); `CancelR` by `Δ₁ᶜ ∋ X := Aᵢ` and the
+  re-spelling.  The outer `∋:=-det` step is gone from both.
+* `Eval.agda` — `bdyRedex` no longer calls `cancelPremises?` in either
+  branch.
+* `proof/ShiftAudit.agda` §6 — `Move-outer-frame` and
+  `Move-outer-conversion` DELETED: they audited a layer no rule builds.
+* `Residual.agda`, `proof/ColorPreservation.agda`,
+  `proof/Canonicity.agda`, `proof/Progress.agda`, `Show.agda` — one
+  layer fewer, mechanically.
+* NO RULE BUILDS A `rewind` any more.  `rewind`, `rewind-interior` and
+  `rewind-conversion` stay in `Boundary.agda` §3/§3a as constructions.
+
+**What the corpus says.**  Every run that reaches a `CancelR` or an
+`IdPush` got shorter, and no endpoint moved:
+
+| run | before | after | | run | before | after |
+|---|---|---|---|---|---|---|
+| §1a `P`   | 6  | 5  | | §5b `V`   | 40 | 24 |
+| §1c `J`   | 11 | 10 | | §6a `I`   | 17 | 9  |
+| §1d `F`   | 6  | 5  | | §6b `N`   | 23 | 16 |
+| §1e `U`   | 7  | 6  | | §7a `A`   | 11 | 8  |
+| §2  `Q`   | 14 | 11 | | §7b `B`   | 21 | 15 |
+| §2a `D`   | 22 | 17 | | §7c `C`   | 41 | 22 |
+| §2b `L`   | 14 | 11 | | §8  `S`   | 19 | 14 |
+| §2c `R`   | 24 | 16 | | §9a `T`   | 3  | 2  |
+| §3  `G`   | 17 | 13 | | §9b `Tid` | 5  | 3  |
+| §4  `H`   | 11 | 9  | | §9c `Tid₂`| 7  | 4  |
+| §5a `E`   | 28 | 19 | | | | |
+
+(`§1b K` at 9 and `§10 Bg` at 7 are unchanged — neither reaches one of
+the two rules.)  `notes/CancelRReachabilityWitness.agda` runs in 14 with
+controls at 8 and 13, and `notes/RawRunProbe.agda` agrees at 14.
+
+The shape of the change is clearest in `Examples.agda` §9c, a stack of
+two transparent layers over a cancel pair:
+
+```
+  (((7 ⟪ seal X ⟫) ⟪ id X ⟫) ⟪ id X ⟫) ⟪ unseal X ⟫
+    --[IdPush]-->  ((7 ⟪ seal X ⟫) ⟪ id X ⟫) ⟪ unseal X ⟫
+    --[IdPush]-->  (7 ⟪ seal X ⟫) ⟪ unseal X ⟫
+    --[CancelR]--> 7 ⟪ id ℕ ⟫
+    --[Drop$]-->   7
+```
+
+`IdPush` now consumes one identity layer per step instead of relocating
+it, so the tower strictly shrinks.
+
+**Gate.**  `make check` green (whole development plus `notes/All.agda`),
+`postulate-check: OK`.

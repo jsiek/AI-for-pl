@@ -249,32 +249,20 @@ Beta-no-alloc : ∀ {Δ A N W} → Value W
 Beta-no-alloc = Beta
 
 ------------------------------------------------------------------------
--- §6  CANCELR / IDPUSH — exact, inner AND outer
+-- §6  CANCELR / IDPUSH — the merged frame is exact
 ------------------------------------------------------------------------
 
--- THE INNER FRAME (the one V lives in) is preserved ON THE NOSE: the
--- merged frame's interior IS the inner frame's own.
+-- THE ONE FRAME LEFT (the one V lives in) is preserved ON THE NOSE: the
+-- merged frame's interior IS the inner frame's own.  Θ₂'s changes travel
+-- inward and the surviving boundary REAPPLIES them, so the contractum is
+-- one layer, not two, and the redex's outer conversion is not
+-- transported — it is cancelled (`CancelR`) or re-read on the merge
+-- (`IdPush`).
 Move-inner-frame : ∀ {Γ Γᵢ Γ₁ᵢ : Ctxᵗ} (Θ₁ Θ₂ : Boundary)
   → Γ ⊢ⁱ Θ₂ ⇒ Γᵢ
   → Γᵢ ⊢ⁱ Θ₁ ⇒ Γ₁ᵢ
   → Γ ⊢ⁱ Θ₁ ++ Θ₂ ⇒ Γ₁ᵢ
 Move-inner-frame Θ₁ Θ₂ = merged-interior
-
--- THE OUTER FRAME.  The outer boundary's interior becomes the plain
--- exterior: the changes travelled inward and the inner boundary
--- REAPPLIES them.  Both conversions are RE-MINTED, not transported.
-Move-outer-frame : ∀ {Γ Γᵢ : Ctxᵗ} (Θ₂ : Boundary)
-  → Γ ⊢ⁱ Θ₂ ⇒ Γᵢ
-  → Γ ⊢ⁱ rewind Θ₂ ⇒ Γ
-Move-outer-frame Θ₂ = rewind-interior
-
--- … and the outer frame's CONVERSION context is Θ₂'s own, which is where
--- the redex's outer conversion was read.
-Move-outer-conversion : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} (Θ₂ : Boundary)
-  → Γ ⊢ⁱ Θ₂ ⇒ Γᵢ
-  → Γ ⊢ᶜ Θ₂ ⇒ Γᶜ
-  → Γ ⊢ᶜ rewind Θ₂ ⇒ Γᶜ
-Move-outer-conversion Θ₂ = rewind-conversion
 
 -- V is not renamed at all — it retypes exactly where it was.
 
@@ -304,11 +292,11 @@ Drop$-only-numerals (Beta w)                ()
 Drop$-only-numerals (Peel v w rc ri rd sc)  ()
 Drop$-only-numerals (TyPeelR-Λ v rc ⊢s p)   ()
 Drop$-only-numerals (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm p) ()
-Drop$-only-numerals (CancelR v ri r₁ d₁ r⋉ sm rc d) ()
+Drop$-only-numerals (CancelR v ri r₁ d₁ r⋉ sm) ()
 Drop$-only-numerals (Drop$ b)               refl = refl
 Drop$-only-numerals Drop-true               ()
 Drop$-only-numerals Drop-false              ()
-Drop$-only-numerals (IdPush v ri r₁ r⋉ sm rc d) ()
+Drop$-only-numerals (IdPush v ri r₁ r⋉ sm) ()
 Drop$-only-numerals (ξ-·-l st)              ()
 Drop$-only-numerals (ξ-·-r v st)            ()
 Drop$-only-numerals (ξ-·[] st)              ()

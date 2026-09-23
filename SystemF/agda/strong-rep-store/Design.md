@@ -27,6 +27,23 @@
 > or shifts a representation by `numBinds`, read it as describing
 > strong-rep-var.
 >
+> **EXPERIMENT 3 LANDED (2026-09-23): the one-layer contractum.**
+> `CancelR` and `IdPush` no longer emit a SECOND, outer boundary
+> `⟪ rewind Θ₂ , mkId A ⟫` over their contractum.  That layer was an
+> identity conversion over a frame whose interior is the exterior it
+> sits at, so it converted nothing; the surviving layer already carries
+> the redex's own exterior type.  The contracta are
+> `V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫` and `V ⟪ Θ₁ ++ Θ₂ , unseal X′ ⟫`, and the
+> premises that existed only to mint the discarded `mkId A` —
+> `Δ ⊢ᶜ Θ₂ ⇒ Δᶜ` and `Δᶜ ∋ Y := A` — are gone from both rules.  NO RULE
+> BUILDS A `rewind` any more.  Wherever the prose below displays a
+> two-layer `CancelR`/`IdPush` contractum, or argues about the outer
+> frame `rewind Θ₂` and the choice between it and "the two cheaper
+> frames" (§§ around "Why `rewind`, and not the two cheaper frames"),
+> read it as describing the design before this experiment; the decision
+> record is `notes/DECISIONS.md`, 2026-09-23, and the live rules are
+> `Reduction.agda` with `notes/notes.md` for the named presentation.
+>
 > **Where the per-file commentary lives.**  The design, history and
 > rationale notes that used to be inline in the `.agda` files are
 > `Commentary.md`, keyed by module and definition; each source file

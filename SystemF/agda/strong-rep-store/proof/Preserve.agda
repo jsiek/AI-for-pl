@@ -1353,31 +1353,24 @@ PeelCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t C}
       (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ⦂ C
 
 CancelRCase : Set
-CancelRCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y}
-  {A A′ Aᵢ C}
+CancelRCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ V Θ₁ Θ₂ X Y}
+  {A′ Aᵢ C}
   → WfCtx Δ → Value V → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
   → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
   → Δ₁ᶜ ∋ X := Aᵢ
   → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
   → Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ
-  → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
-  → Δᶜ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
-  → Δ ∣ [] ⊢
-      (V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫)
-        ⟪ rewind Θ₂ , mkId A ⟫ ⦂ C
+  → Δ ∣ [] ⊢ V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫ ⦂ C
 
 IdPushCase : Set
-IdPushCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X X′ Y A C}
+IdPushCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ V Θ₁ Θ₂ X X′ Y C}
   → WfCtx Δ → Value V → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
   → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
   → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
   → Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ
-  → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ → Δᶜ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
-  → Δ ∣ [] ⊢
-      (V ⟪ Θ₁ ++ Θ₂ , unseal X′ ⟫)
-        ⟪ rewind Θ₂ , mkId A ⟫ ⦂ C
+  → Δ ∣ [] ⊢ V ⟪ Θ₁ ++ Θ₂ , unseal X′ ⟫ ⦂ C
 
 ------------------------------------------------------------------------
 -- §5. What a step did to the store
@@ -1393,11 +1386,11 @@ step-alloc wfΔ (Peel v w rc ri rd sc) = aw-none
 step-alloc wfΔ (TyPeelR-Λ v rc ⊢s p) = aw-new (same-wfᴿ wfΔ p)
 step-alloc wfΔ (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm p) =
   aw-new (same-wfᴿ wfΔ p)
-step-alloc wfΔ (CancelR v ri r₁ d₁ r⋉ sm rc d) = aw-none
+step-alloc wfΔ (CancelR v ri r₁ d₁ r⋉ sm) = aw-none
 step-alloc wfΔ (Drop$ b) = aw-none
 step-alloc wfΔ Drop-true = aw-none
 step-alloc wfΔ Drop-false = aw-none
-step-alloc wfΔ (IdPush v ri r₁ r⋉ sm rc d) = aw-none
+step-alloc wfΔ (IdPush v ri r₁ r⋉ sm) = aw-none
 step-alloc wfΔ (ξ-·-l st) = step-alloc wfΔ st
 step-alloc wfΔ (ξ-·-r v st) = step-alloc wfΔ st
 step-alloc wfΔ (ξ-·[] st) = step-alloc wfΔ st
@@ -1431,13 +1424,13 @@ module Impl
   preserve wfΔ ⊢M
     (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm p) =
     preserve-TyPeelR-⟪⟫ lock0 wfΔ v ri rc r′ ri⁺ r″ sc ⊢s sm p ⊢M
-  preserve wfΔ ⊢M (CancelR v ri r₁ d₁ rc sm r₂ d₂) =
-    cancel wfΔ v ri r₁ d₁ rc sm r₂ d₂ ⊢M
+  preserve wfΔ ⊢M (CancelR v ri r₁ d₁ rc sm) =
+    cancel wfΔ v ri r₁ d₁ rc sm ⊢M
   preserve wfΔ ⊢M (Drop$ b) = preserve-Drop$ wfΔ b ⊢M
   preserve wfΔ ⊢M Drop-true = preserve-Drop-true wfΔ ⊢M
   preserve wfΔ ⊢M Drop-false = preserve-Drop-false wfΔ ⊢M
-  preserve wfΔ ⊢M (IdPush v ri r₁ rc sm r₂ d) =
-    idpush wfΔ v ri r₁ rc sm r₂ d ⊢M
+  preserve wfΔ ⊢M (IdPush v ri r₁ rc sm) =
+    idpush wfΔ v ri r₁ rc sm ⊢M
   preserve wfΔ (⊢· ⊢L ⊢M) (ξ-·-l st) =
     ⊢· (preserve wfΔ ⊢L st) (⊢↑ shift (step-alloc wfΔ st) ⊢M)
   preserve wfΔ (⊢· ⊢L ⊢M) (ξ-·-r v st) =

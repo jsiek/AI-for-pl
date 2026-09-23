@@ -104,21 +104,18 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
              ⟪ inst Θ , instReveal 0 s ⟫ ∣ new R
 
   -- CANCEL — a conceal directly under the binder it names.  Both
-  -- frames are kept (`Θ₁ ++ Θ₂` inside, `rewind Θ₂` outside) and both
-  -- conversions are neutralised; `A′` is the carried re-spelling.
+  -- frames are kept, MERGED as `Θ₁ ++ Θ₂`, and the matched pair is
+  -- neutralised to ONE identity; `A′` is the carried re-spelling.
   -- Commentary.md § Reduction.agda / CancelR
-  CancelR : ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y A A′ Aᵢ}
+  CancelR : ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ V Θ₁ Θ₂ X Y A′ Aᵢ}
     → Value V
     → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
     → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
     → Δ₁ᶜ ∋ X := Aᵢ
     → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
     → Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ
-    → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
-    → Δᶜ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
-        -→ (V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫)
-             ⟪ rewind Θ₂ , mkId A ⟫ ∣ none
+        -→ V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫ ∣ none
 
   -- an identity boundary at a base type, over a literal
   Drop$ : ∀ {Δ n Θ A} → Base A
@@ -130,19 +127,17 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
   Drop-false : ∀ {Δ Θ}
     → Δ ⊢ `false ⟪ Θ , id `𝔹 ⟫ -→ `false ∣ none
 
-  -- IDPUSH — the transparent-layer rule: the two conversions are
-  -- SWAPPED, both frames untouched.  `X′` is the carried re-spelling.
+  -- IDPUSH — the transparent-layer rule: the reveal moves onto the
+  -- MERGED frame `Θ₁ ++ Θ₂` and the transparent layer is CONSUMED.
+  -- `X′` is the carried re-spelling.
   -- Commentary.md § Reduction.agda / IdPush
-  IdPush : ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X X′ Y A} → Value V
+  IdPush : ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ V Θ₁ Θ₂ X X′ Y} → Value V
     → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
     → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
     → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
     → Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ
-    → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
-    → Δᶜ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
-        -→ (V ⟪ Θ₁ ++ Θ₂ , unseal X′ ⟫)
-             ⟪ rewind Θ₂ , mkId A ⟫ ∣ none
+        -→ V ⟪ Θ₁ ++ Θ₂ , unseal X′ ⟫ ∣ none
 
   -- THE CONGRUENCES pass the store change up and shift the SIBLINGS
   -- by it.  Commentary.md § Reduction.agda / The congruences

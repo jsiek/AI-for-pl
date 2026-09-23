@@ -174,7 +174,7 @@ Src-⊢ = tc
 -- `CancelR`, and the `Drop$` tower.  Under the OLD rule step 10 was
 -- recorded `illtyped` and the raw machine stuck at sixteen
 -- (notes/RawRunProbe.agda).
-Src-eval : Reaches 19 19 Src-⊢ ($ 7)
+Src-eval : Reaches 14 14 Src-⊢ ($ 7)
 Src-eval = reaches refl V-$
 
 Src-run : empty ⊢ Src -→* $ 7
@@ -218,8 +218,7 @@ Vcr = (($ 7) ⟪ (lock 0 2 ∷ []) , seal 0 ⟫)
 
 Redex Contractum : Term
 Redex      = ((Vcr ⟪ Θ₁ , seal 1 ⟫) ⟪ Θ₂ , unseal 0 ⟫) ⟪ Θout , unseal 0 ⟫
-Contractum = ((Vcr ⟪ Θ₁ ++ Θ₂ , mkId (` 2) ⟫) ⟪ rewind Θ₂ , mkId (` 1) ⟫)
-               ⟪ Θout , unseal 0 ⟫
+Contractum = (Vcr ⟪ Θ₁ ++ Θ₂ , mkId (` 2) ⟫) ⟪ Θout , unseal 0 ⟫
 
 -- what `eval` actually produces, at nine steps and at ten.  THE INNER
 -- SPELLING IS THE WHOLE REPAIR: `mkId (` 2)`, the SHIFTED reading, where
@@ -366,10 +365,10 @@ cancel-value : Value Vcr
 cancel-value = V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-idv
 
 cancel-step : Δ₉ ⊢ (Vcr ⟪ Θ₁ , seal 1 ⟫) ⟪ Θ₂ , unseal 0 ⟫
-  -→ (Vcr ⟪ Θ₁ ++ Θ₂ , mkId (` 2) ⟫) ⟪ rewind Θ₂ , mkId (` 1) ⟫ ∣ none
+  -→ Vcr ⟪ Θ₁ ++ Θ₂ , mkId (` 2) ⟫ ∣ none
 cancel-step =
   CancelR cancel-value cancel-int cancel-Θ₁ seal-source
-          cancel-⋉ cancel-same cancel-Θ₂ lookup-A
+          cancel-⋉ cancel-same
 
 -- and the same step where the run takes it, under the outermost boundary
 -- and at the context the run has reached
@@ -397,7 +396,7 @@ CtrlA = (Inner ·[ (`∀ (` 0 ⇒ ` 1)) ⇒ ` 0 , `ℕ ]) · (Λ (ƛ ` 0 ∙ ($ 
 CtrlA-⊢ : empty ∣ [] ⊢ CtrlA ⦂ `ℕ
 CtrlA-⊢ = tc
 
-CtrlA-eval : Reaches 9 9 CtrlA-⊢ ($ 5)
+CtrlA-eval : Reaches 8 8 CtrlA-⊢ ($ 5)
 CtrlA-eval = reaches refl V-$
 
 CtrlA-run : empty ⊢ CtrlA -→* $ 5
@@ -417,7 +416,7 @@ CtrlB  = (Outer′ ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 CtrlB-⊢ : empty ∣ [] ⊢ CtrlB ⦂ `ℕ
 CtrlB-⊢ = tc
 
-CtrlB-eval : Reaches 17 17 CtrlB-⊢ ($ 7)
+CtrlB-eval : Reaches 13 13 CtrlB-⊢ ($ 7)
 CtrlB-eval = reaches refl V-$
 
 CtrlB-run : empty ⊢ CtrlB -→* $ 7

@@ -228,22 +228,6 @@ crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , r
 crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
   | just (s′ , sc) = just (Δᶜ , Δᵢ , Δᵈ , s′ , rc , ri , rd , sc)
 
--- The looked-up type is an output: the contracta mention it only under
--- `mkId`, which the unifier cannot invert.
-CancelPremises : Ctxᵗ → Boundary → ℕ → Set
-CancelPremises Δ Θ Y =
-  Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ A ∈ Ty ]
-    ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (Δᶜ ∋ Y := A))
-
-cancelPremises? : (Δ : Ctxᵗ) (Θ : Boundary) (Y : ℕ)
-  → Maybe (CancelPremises Δ Θ Y)
-cancelPremises? Δ Θ Y with conversion? Δ Θ
-cancelPremises? Δ Θ Y | nothing = nothing
-cancelPremises? Δ Θ Y | just (Δᶜ , rel) with ∋:=? Δᶜ Y
-cancelPremises? Δ Θ Y | just (Δᶜ , rel) | nothing = nothing
-cancelPremises? Δ Θ Y | just (Δᶜ , rel) | just (A , d) =
-  just (Δᶜ , A , rel , d)
-
 ------------------------------------------------------------------------
 -- 3. The redexes, by the shape of the head
 ------------------------------------------------------------------------
@@ -319,31 +303,21 @@ bdyRedex Δ `false Θ (id `𝔹) = just (_ , none , Drop-false)
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) with value? V
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | nothing = nothing
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
-  with cancelPremises? Δ Θ Y
-bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v | nothing = nothing
+  with mergedPremises? Δ Θ₁ Θ X
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
-  | just (Δᶜ , A , rel , d) with mergedPremises? Δ Θ₁ Θ X
-bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
-  | just (Δᶜ , A , rel , d)
   | just (Δᵢ , Δ₁ᶜ , Aᵢ , Δ⋉ᶜ , A′
          , ri , r₁ , d₁ , r⋉ , sm) =
-  just (_ , none , CancelR v ri r₁ d₁ r⋉ sm rel d)
-bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
-  | just (Δᶜ , A , rel , d) | nothing = nothing
+  just (_ , none , CancelR v ri r₁ d₁ r⋉ sm)
+bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v | nothing = nothing
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) with value? V
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | nothing = nothing
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v
-  with cancelPremises? Δ Θ Y
+  with pushPremises? Δ Θ₁ Θ X
+bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v
+  | just (Δᵢ , Δ₁ᶜ , Δ⋉ᶜ , X′ , ri , r₁ , r⋉ , sm) =
+  just (_ , none , IdPush v ri r₁ r⋉ sm)
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v | nothing =
   nothing
-bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v
-  | just (Δᶜ , A , rel , d) with pushPremises? Δ Θ₁ Θ X
-bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v
-  | just (Δᶜ , A , rel , d)
-  | just (Δᵢ , Δ₁ᶜ , Δ⋉ᶜ , X′ , ri , r₁ , r⋉ , sm) =
-  just (_ , none , IdPush v ri r₁ r⋉ sm rel d)
-bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v
-  | just (Δᶜ , A , rel , d) | nothing = nothing
 bdyRedex Δ M Θ c = nothing
 
 ------------------------------------------------------------------------

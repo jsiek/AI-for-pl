@@ -110,7 +110,7 @@ mutual
     ca-fun (canonAt-reveal X A) (canonAt-conceal X B)
   canonAt-conceal X (`∀ A)  = ca-all (canonAt-conceal (suc X) A)
 
--- (b) The identity at an arbitrary type — CancelR's and IdPush's residue.
+-- (b) The identity at an arbitrary type — the conversion `CancelR` mints.
 -- It is the name-free half of the family.
 allId-mkId : (A : Ty) → AllId (mkId A)
 allId-mkId (` Y)   = ai-id
@@ -131,7 +131,7 @@ canonC-conceal X B = X , canonAt-conceal X B
 canonC-mkId : (A : Ty) → CanonC (mkId A)
 canonC-mkId A = 0 , canonAt-mkId 0 A
 
--- IdPush's other mint: the pushed `unseal` at the name the rule carries.
+-- IdPush's mint: the pushed `unseal` at the name the rule carries.
 canonC-unseal : (X : ℕ) → CanonC (unseal X)
 canonC-unseal X = X , ca-unseal
 
@@ -444,14 +444,14 @@ canon-step uq tp (ct-·[] (ct-⟪⟫ (ct-⟪⟫ cW cs′) cs))
                          cs′)))
         (tp cs)
 canon-step uq tp (ct-⟪⟫ (ct-⟪⟫ cV _) _)
-              (CancelR {A = A} {A′ = A′} _ _ _ _ _ _ _ _) =
-  ct-⟪⟫ (ct-⟪⟫ cV (canonC-mkId A′)) (canonC-mkId A)
+              (CancelR {A′ = A′} _ _ _ _ _ _) =
+  ct-⟪⟫ cV (canonC-mkId A′)
 canon-step uq tp (ct-⟪⟫ _ _) (Drop$ _)     = ct-lit
 canon-step uq tp (ct-⟪⟫ _ _) Drop-true     = ct-true
 canon-step uq tp (ct-⟪⟫ _ _) Drop-false    = ct-false
 canon-step uq tp (ct-⟪⟫ (ct-⟪⟫ cV _) _)
-              (IdPush {X′ = X′} {A = A} _ _ _ _ _ _ _) =
-  ct-⟪⟫ (ct-⟪⟫ cV (canonC-unseal X′)) (canonC-mkId A)
+              (IdPush {X′ = X′} _ _ _ _ _) =
+  ct-⟪⟫ cV (canonC-unseal X′)
 canon-step uq tp (ct-· cL cM) (ξ-·-l {δ = δ} st) =
   ct-· (canon-step uq tp cL st) (canon-↑ δ cM)
 canon-step uq tp (ct-· cV cM) (ξ-·-r {δ = δ} _ st) =

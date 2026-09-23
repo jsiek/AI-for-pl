@@ -280,28 +280,26 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
            ⟪C inst Θ , instReveal 0 s ⟫)
         (renᴹᴿ (holeᴿ suc C) M)
 
-  -- CancelR and IdPush: the value keeps its frame under both the merged
-  -- and the rewound scope (proof/ShiftAudit §6).
-  residual-CancelR : ∀ {Δ₁ᶜ Δ⋉ᶜ Δᶜ C M Θ₁ Θ₂ X Y A′ Aᵢ}
+  -- CancelR and IdPush: the value keeps its frame under the merged
+  -- scope, the one layer the contractum has (proof/ShiftAudit §6).
+  residual-CancelR : ∀ {Δ₁ᶜ Δ⋉ᶜ C M Θ₁ Θ₂ X Y A′ Aᵢ}
     (vV : Value (plug C M))
     (ri : Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) (rc₁ : Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
     (lX : Δ₁ᶜ ∋ X := Aᵢ)
     (rc⋉ : Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ)
     (sm : Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ)
-    (rc₂ : Δ ⊢ᶜ Θ₂ ⇒ Δᶜ) (lY : Δᶜ ∋ Y := A)
-    → Residual (CancelR {V = plug C M} vV ri rc₁ lX rc⋉ sm rc₂ lY)
+    → Residual (CancelR {V = plug C M} {Y = Y} vV ri rc₁ lX rc⋉ sm)
         ((C ⟪C Θ₁ , seal X ⟫) ⟪C Θ₂ , unseal Y ⟫) M idᵗ
-        ((C ⟪C Θ₁ ++ Θ₂ , mkId A′ ⟫) ⟪C rewind Θ₂ , mkId A ⟫) M
+        (C ⟪C Θ₁ ++ Θ₂ , mkId A′ ⟫) M
 
-  residual-IdPush : ∀ {Δ₁ᶜ Δ⋉ᶜ Δᶜ C M Θ₁ Θ₂ X X′ Y}
+  residual-IdPush : ∀ {Δ₁ᶜ Δ⋉ᶜ C M Θ₁ Θ₂ X X′ Y}
     (vV : Value (plug C M))
     (ri : Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) (rc₁ : Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
     (rc⋉ : Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ)
     (sm : Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ)
-    (rc₂ : Δ ⊢ᶜ Θ₂ ⇒ Δᶜ) (lY : Δᶜ ∋ Y := A)
-    → Residual (IdPush {V = plug C M} vV ri rc₁ rc⋉ sm rc₂ lY)
+    → Residual (IdPush {V = plug C M} {Y = Y} vV ri rc₁ rc⋉ sm)
         ((C ⟪C Θ₁ , id (` X) ⟫) ⟪C Θ₂ , unseal Y ⟫) M idᵗ
-        ((C ⟪C Θ₁ ++ Θ₂ , unseal X′ ⟫) ⟪C rewind Θ₂ , mkId A ⟫) M
+        (C ⟪C Θ₁ ++ Θ₂ , unseal X′ ⟫) M
 
   -- (Drop$, Drop-true, Drop-false: no residual — the literal is consumed
   -- with its boundary.)

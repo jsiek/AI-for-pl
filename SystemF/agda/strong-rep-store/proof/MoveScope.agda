@@ -1,18 +1,18 @@
 module strong-rep-store.proof.MoveScope where
 
 -- File Charter:
---   * THE SCOPE MOVE — the two-layer contractum `CancelR` and `IdPush`
+--   * THE SCOPE MOVE — the ONE-LAYER contractum `CancelR` and `IdPush`
 --     build, and the preservation cases they owe.  §1 the small
 --     inversions both cases share; §2 IDPUSH, PROVED; §3 CANCELR,
 --     PROVED on the rule repaired 2026-09-19.
---   * THE MOVE.  Both rules SWAP the two conversions, so the INNER
---     boundary starts presenting Y's REPRESENTATION — which inside
---     Θ₂'s locks need not be nameable.  So the frames move too:
---     `Θ₁ ++ Θ₂` inside, `rewind Θ₂` outside.
---   * The three readings the contractum needs are theorems of
---     strong-rep-store.Boundary §3a (`rewind-interior`,
---     `rewind-conversion`, `merged-interior`); the MERGED frame's
---     conversion context is not, so both rules carry it as a premise.
+--   * THE MOVE.  Both rules neutralise the OUTER conversion, so the
+--     surviving boundary starts presenting Y's REPRESENTATION — which
+--     inside Θ₂'s locks need not be nameable.  So the frames move too:
+--     the merge `Θ₁ ++ Θ₂` presents it OUTSIDE Θ₂'s locks.
+--   * The readings the contractum needs are theorems of
+--     strong-rep-store.Boundary §3a (`merged-interior`); the MERGED
+--     frame's conversion context is not, so both rules carry it as a
+--     premise.
 -- Commentary: Commentary.md § proof/MoveScope.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
@@ -60,46 +60,43 @@ var-inj refl = refl
 -- §2  IDPUSH
 ------------------------------------------------------------------------
 
--- The swap makes the INNER boundary the revealing one, so its exterior
--- type becomes the redex's own C, presented OUTSIDE Θ₂'s locks — where
--- `rewind Θ₂`'s interior is, so C is nameable there.  That retires the
--- old wall: the case needs no scoping invariant.
--- The four moves, one per premise of the inner `env`:
+-- The surviving boundary is the revealing one, so its exterior type
+-- becomes the redex's own C, presented OUTSIDE Θ₂'s locks — at the plain
+-- exterior Δ, so C is nameable there.  That retires the old wall: the
+-- case needs no scoping invariant.
+-- The four moves, one per premise of the `env`:
 -- Commentary.md § proof/MoveScope.agda / §2
 preserve-IdPush : IdPushCase
-preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
+preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ}
                 {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {X′ = X′}
-                {Y = Y} {A = A} {C = C}
-                wfΔ v ri r₁ r⋉ sm r₂ d
-                (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-idv tvX)
-                              sm₁ se₁ wB)
-                     (conv-unseal dY) sm₂ se₂ wE)
+                {Y = Y} {C = C}
+                wfΔ v ri r₁ r⋉ sm
+                (env {Δᶜ = Δᶜ} mw₂
+                     (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-idv tvX)
+                          sm₁ se₁ wB)
+                     (conv-unseal {A = A} dY) sm₂ se₂ wE)
   with interior-functional (bw-interior mw₂) ri
-     | conversion-functional (bw-conversion mw₂) r₂
-preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
+preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ}
                 {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {X′ = X′}
-                {Y = Y} {A = A} {C = C}
-                wfΔ v ri r₁ r⋉ sm r₂ d
-                (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-idv tvX)
-                              sm₁ se₁ wB)
-                     (conv-unseal dY) sm₂ se₂ wE)
-  | refl | refl
+                {Y = Y} {C = C}
+                wfΔ v ri r₁ r⋉ sm
+                (env {Δᶜ = Δᶜ} mw₂
+                     (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-idv tvX)
+                          sm₁ se₁ wB)
+                     (conv-unseal {A = A} dY) sm₂ se₂ wE)
+  | refl
   with conversion-functional (bw-conversion mw₁) r₁
-     | ∋:=-det (name-fn (bw-conversion-wf mw₂)) dY d
-preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
+preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ}
                 {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {X′ = X′}
-                {Y = Y} {A = A} {C = C}
-                wfΔ v ri r₁ r⋉ sm r₂ d
-                (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-idv tvX)
-                              sm₁ se₁ wB)
-                     (conv-unseal dY) sm₂ se₂ wE)
-  | refl | refl | refl | refl =
-  env mwR inner (mkId-⊢ (same-wf pA)) outerᵢ se₂ wE
+                {Y = Y} {C = C}
+                wfΔ v ri r₁ r⋉ sm
+                (env {Δᶜ = Δᶜ} mw₂
+                     (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-idv tvX)
+                          sm₁ se₁ wB)
+                     (conv-unseal {A = A} dY) sm₂ se₂ wE)
+  | refl | refl =
+  contractum
   where
-  -- the outer frame: the plain exterior
-  mwR : BoundaryWf Δ (rewind Θ₂) Δ Δᶜ
-  mwR = bw wfΔ (rewind-interior ri) (rewind-conversion ri r₂)
-
   -- THE BINDER Y NAMES, and the exterior type it represents
   αY : ℕ
   αY = proj₁ (sameTy-tgt-var sm₂)
@@ -118,13 +115,13 @@ preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
   dYrep : reps Δ ∋ʳ αY := bindR Rc
   dYrep =
     subst (λ Ξ → Ξ ∋ʳ αY := bindR Rc)
-      (conversion-reps r₂)
+      (conversion-reps (bw-conversion mw₂))
       (subst (λ a → reps Δᶜ ∋ʳ a := bindR Rc)
-        (∋ˡ-det (proj₁ (proj₂ (proj₂ d)))
+        (∋ˡ-det (proj₁ (proj₂ (proj₂ dY)))
                 (proj₂ (proj₂ (sameTy-tgt-var sm₂))))
-        (subst (λ T → reps Δᶜ ∋ʳ proj₁ d := bindR T)
-          (same-rep-unique (proj₂ (proj₂ (proj₂ (proj₂ d)))) pA)
-          (proj₁ (proj₂ (proj₂ (proj₂ d))))))
+        (subst (λ T → reps Δᶜ ∋ʳ proj₁ dY := bindR T)
+          (same-rep-unique (proj₂ (proj₂ (proj₂ (proj₂ dY)))) pA)
+          (proj₁ (proj₂ (proj₂ (proj₂ dY))))))
 
   -- X's representation IS Y's: `idpush-name` with no bind block to cross.
   αX : ℕ
@@ -157,8 +154,8 @@ preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
   mw⋉ : BoundaryWf Δ (Θ₁ ++ Θ₂) Δ₁ᵢ Δ⋉ᶜ
   mw⋉ = bw wfΔ (merged-interior (bw-interior mw₂) (bw-interior mw₁)) r⋉
 
-  innerᵢ : Δ₁ᵢ ⊢ B₁ ≈ ` X′ ⊣ Δ⋉ᶜ
-  innerᵢ =
+  sameᵢ : Δ₁ᵢ ⊢ B₁ ≈ ` X′ ⊣ Δ⋉ᶜ
+  sameᵢ =
     ` αX
     , subst (λ a → names Δ₁ᵢ ⊢ B₁ ~ ` a)
             (∋ˡ-det (proj₂ (proj₂ (sameTy-tgt-var sm₁)))
@@ -166,67 +163,62 @@ preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
             (proj₁ (proj₂ (sameTy-tgt-var sm₁)))
     , same-var (proj₁ (proj₂ (sameTy-var sm)))
 
-  innerₑ : Δ ⊢ C ≈ A″ ⊣ Δ⋉ᶜ
-  innerₑ = Rc , pC , qA″
+  sameₑ : Δ ⊢ C ≈ A″ ⊣ Δ⋉ᶜ
+  sameₑ = Rc , pC , qA″
 
-  inner : Δ ∣ [] ⊢ V ⟪ Θ₁ ++ Θ₂ , unseal X′ ⟫ ⦂ C
-  inner = env mw⋉ ⊢V (conv-unseal dA″) innerᵢ innerₑ wE
-
-  outerᵢ : Δ ⊢ C ≈ A ⊣ Δᶜ
-  outerᵢ = Rc , pC , pA
+  contractum : Δ ∣ [] ⊢ V ⟪ Θ₁ ++ Θ₂ , unseal X′ ⟫ ⦂ C
+  contractum = env mw⋉ ⊢V (conv-unseal dA″) sameᵢ sameₑ wE
 
 ------------------------------------------------------------------------
 -- §3  CANCELR — PROVED, on the repaired rule
 ------------------------------------------------------------------------
 
--- THE PROOF IS `preserve-IdPush`'s, and the outer layer is LITERALLY
--- it.  The inner layer diverges: `mkId A′`'s source and target are the
--- SAME type, so ONE type must satisfy both premises of the inner `env`.
+-- THE PROOF IS `preserve-IdPush`'s.  It diverges only in the
+-- conversion: `mkId A′`'s source and target are the SAME type, so ONE
+-- type must satisfy both premises of the `env`.
 -- What the 2026-09-19 repair bought, and what the store shrank:
 -- Commentary.md § proof/MoveScope.agda / §3
 preserve-CancelR : CancelRCase
-preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
+preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ}
                  {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y}
-                 {A = A} {A′ = A′} {Aᵢ = Aᵢ} {C = C}
-                 wfΔ v ri r₁ d₁ r⋉ sm r₂ d
-                 (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-seal dX)
-                               sm₁ se₁ wB)
-                      (conv-unseal dY) sm₂ se₂ wE)
+                 {A′ = A′} {Aᵢ = Aᵢ} {C = C}
+                 wfΔ v ri r₁ d₁ r⋉ sm
+                 (env {Δᶜ = Δᶜ} mw₂
+                      (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-seal dX)
+                           sm₁ se₁ wB)
+                      (conv-unseal {A = A} dY) sm₂ se₂ wE)
   with interior-functional (bw-interior mw₂) ri
-     | conversion-functional (bw-conversion mw₂) r₂
-preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
+preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ}
                  {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y}
-                 {A = A} {A′ = A′} {Aᵢ = Aᵢ} {C = C}
-                 wfΔ v ri r₁ d₁ r⋉ sm r₂ d
-                 (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-seal dX)
-                               sm₁ se₁ wB)
-                      (conv-unseal dY) sm₂ se₂ wE)
-  | refl | refl
+                 {A′ = A′} {Aᵢ = Aᵢ} {C = C}
+                 wfΔ v ri r₁ d₁ r⋉ sm
+                 (env {Δᶜ = Δᶜ} mw₂
+                      (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-seal dX)
+                           sm₁ se₁ wB)
+                      (conv-unseal {A = A} dY) sm₂ se₂ wE)
+  | refl
   with conversion-functional (bw-conversion mw₁) r₁
-     | ∋:=-det (name-fn (bw-conversion-wf mw₂)) dY d
-preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
+preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ}
                  {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y}
-                 {A = A} {A′ = A′} {Aᵢ = Aᵢ} {C = C}
-                 wfΔ v ri r₁ d₁ r⋉ sm r₂ d
-                 (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-seal dX)
-                               sm₁ se₁ wB)
-                      (conv-unseal dY) sm₂ se₂ wE)
-  | refl | refl | refl | refl
+                 {A′ = A′} {Aᵢ = Aᵢ} {C = C}
+                 wfΔ v ri r₁ d₁ r⋉ sm
+                 (env {Δᶜ = Δᶜ} mw₂
+                      (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-seal dX)
+                           sm₁ se₁ wB)
+                      (conv-unseal {A = A} dY) sm₂ se₂ wE)
+  | refl | refl
   with ∋:=-det (name-fn (bw-conversion-wf mw₁)) dX d₁
-preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
+preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ}
                  {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y}
-                 {A = A} {A′ = A′} {Aᵢ = Aᵢ} {C = C}
-                 wfΔ v ri r₁ d₁ r⋉ sm r₂ d
-                 (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-seal dX)
-                               sm₁ se₁ wB)
-                      (conv-unseal dY) sm₂ se₂ wE)
-  | refl | refl | refl | refl | refl =
-  env mwR inner (mkId-⊢ (same-wf pA)) outerᵢ se₂ wE
+                 {A′ = A′} {Aᵢ = Aᵢ} {C = C}
+                 wfΔ v ri r₁ d₁ r⋉ sm
+                 (env {Δᶜ = Δᶜ} mw₂
+                      (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-seal dX)
+                           sm₁ se₁ wB)
+                      (conv-unseal {A = A} dY) sm₂ se₂ wE)
+  | refl | refl | refl =
+  contractum
   where
-  -- the outer frame: the plain exterior
-  mwR : BoundaryWf Δ (rewind Θ₂) Δ Δᶜ
-  mwR = bw wfΔ (rewind-interior ri) (rewind-conversion ri r₂)
-
   -- THE BINDER Y NAMES, and the exterior type it represents
   αY : ℕ
   αY = proj₁ (sameTy-tgt-var sm₂)
@@ -243,13 +235,13 @@ preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
   dYrep : reps Δ ∋ʳ αY := bindR Rc
   dYrep =
     subst (λ Ξ → Ξ ∋ʳ αY := bindR Rc)
-      (conversion-reps r₂)
+      (conversion-reps (bw-conversion mw₂))
       (subst (λ a → reps Δᶜ ∋ʳ a := bindR Rc)
-        (∋ˡ-det (proj₁ (proj₂ (proj₂ d)))
+        (∋ˡ-det (proj₁ (proj₂ (proj₂ dY)))
                 (proj₂ (proj₂ (sameTy-tgt-var sm₂))))
-        (subst (λ T → reps Δᶜ ∋ʳ proj₁ d := bindR T)
-          (same-rep-unique (proj₂ (proj₂ (proj₂ (proj₂ d)))) pA)
-          (proj₁ (proj₂ (proj₂ (proj₂ d))))))
+        (subst (λ T → reps Δᶜ ∋ʳ proj₁ dY := bindR T)
+          (same-rep-unique (proj₂ (proj₂ (proj₂ (proj₂ dY)))) pA)
+          (proj₁ (proj₂ (proj₂ (proj₂ dY))))))
 
   -- THE CANCELLED BINDER, read on Θ₁'s own conversion context.  Its
   -- representation variable is X's, its payload the type `Aᵢ` denotes.
@@ -297,21 +289,18 @@ preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
   mw⋉ : BoundaryWf Δ (Θ₁ ++ Θ₂) Δ₁ᵢ Δ⋉ᶜ
   mw⋉ = bw wfΔ (merged-interior (bw-interior mw₂) (bw-interior mw₁)) r⋉
 
-  innerᵢ : Δ₁ᵢ ⊢ B₁ ≈ A′ ⊣ Δ⋉ᶜ
-  innerᵢ =
+  sameᵢ : Δ₁ᵢ ⊢ B₁ ≈ A′ ⊣ Δ⋉ᶜ
+  sameᵢ =
     RA′
     , subst (λ T → names Δ₁ᵢ ⊢ B₁ ~ T)
             (same-rep-unique (proj₂ (proj₂ sm₁)) (proj₂ (proj₂ sm)))
             (proj₁ (proj₂ sm₁))
     , qA′
 
-  innerₑ : Δ ⊢ C ≈ A′ ⊣ Δ⋉ᶜ
-  innerₑ =
+  sameₑ : Δ ⊢ C ≈ A′ ⊣ Δ⋉ᶜ
+  sameₑ =
     Rc , pC
     , subst (λ T → names Δ⋉ᶜ ⊢ A′ ~ T) (trans eqA′ eqRB) qA′
 
-  inner : Δ ∣ [] ⊢ V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫ ⦂ C
-  inner = env mw⋉ ⊢V (mkId-⊢ (same-wf qA′)) innerᵢ innerₑ wE
-
-  outerᵢ : Δ ⊢ C ≈ A ⊣ Δᶜ
-  outerᵢ = Rc , pC , pA
+  contractum : Δ ∣ [] ⊢ V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫ ⦂ C
+  contractum = env mw⋉ ⊢V (mkId-⊢ (same-wf qA′)) sameᵢ sameₑ wE

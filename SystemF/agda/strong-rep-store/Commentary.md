@@ -284,6 +284,9 @@ where it was.  There is no bind prefix to skip.
 ### `rewind`, `_++_`, the snoc lock, `inst`
 
 * `rewind Θ = dual Θ ++ Θ` — the changes, then their exact inverse.
+  NO RULE BUILDS ONE since the one-layer contractum (2026-09-23); it
+  survives as a `Boundary.agda` construction with its two transports,
+  `rewind-interior` and `rewind-conversion`.
 * Merging two scopes is `_++_`: the OUTER scope's changes sit at the
   TAIL, so they run first (head-last order, §2).  Nothing shifts — both
   were spelled at the same store.
@@ -311,10 +314,13 @@ LATER `unlock` of that same α — the shape every `dual`/`rewind`
 composite has, since a dual inverts each lock with an unlock — meets a
 name that is already there and the freshness premise of `conv-unlock`
 fails.  Without this clause `rewind Θ` and `Θ′ ++ Θ` have NO conversion
-context whenever Θ locks, so `CancelR`'s and `IdPush`'s contracta are
+context whenever Θ locks, so `CancelR`'s and `IdPush`'s contracta were
 untypeable: that is the wall the tower example walked into
 (`Examples.agda` §5a, `no-rewind-conv` / `no-cancel-inner-conv`; the
-refutation module is `notes/ReUnlockWall.agda`).
+refutation module is `notes/ReUnlockWall.agda`).  The rewind half of
+that is history since 2026-09-23 — no rule builds one — but the merge
+`Θ₁ ++ Θ₂` both rules do build has the same shape whenever `Θ₂` locks
+what `Θ₁` unlocks.
 
 The clause does not widen the judgement where the old one applied: the
 two unlock clauses are mutually exclusive (`fresh-not-lookup`), so the
@@ -867,7 +873,10 @@ with the repairs ruled in `notes/DECISIONS.md` ("Id-layer RULING",
 
 The principle behind (3)/(4): EVERY rule that mints an identity
 conversion at a looked-up representation carries the binder-lookup
-premise, and determinism for those rules is exactly `∋:=-det`.
+premise, and determinism for that lookup is exactly `∋:=-det`.  Since
+2026-09-23 `CancelR`'s `mkId A′` is the only such mint left — `IdPush`
+mints no identity at all — so `CancelR` carries one lookup,
+`Δ₁ᶜ ∋ X := Aᵢ`, and `IdPush` carries none.
 
 ### The two-universe / store port
 
@@ -1089,13 +1098,23 @@ masked EXTERIOR slots that need not exist (refuted by the retired
 because rebuilding the inner frame from Θ₂'s binds alone DISCARDED Θ₁'s
 whole frame, and a `V` that names one of Θ₁'s own binders lost it (the
 old `proof/PreserveObstruct.agda` §1 witness).  The honest form keeps
-BOTH FRAMES — `Θ₁ ++ Θ₂` inside, `rewind Θ₂` outside — and neutralises
-BOTH CONVERSIONS: composition happens only on the conversions, where
+BOTH FRAMES, MERGED as `Θ₁ ++ Θ₂`, and neutralises the matched PAIR to
+one conversion: composition happens only on the conversions, where
 `unseal ∘ seal = id` is the algebra we already trust, so no
 boundary-scope arithmetic returns.  `V` retypes exactly where it was
-(`rewind-interior : Γ ⊢ⁱ Θ ⇒ Γᵢ → Γ ⊢ⁱ rewind Θ ⇒ Γ`), and the two
-`mkId` layers are transparent at a variable and finished by `Drop$` at
-a base type.
+(`merged-interior`), and the `mkId` layer is transparent at a variable
+and finished by `Drop$` at a base type.
+
+ONE LAYER (2026-09-23).  The contractum used to carry a SECOND,
+OUTER boundary `⟪ rewind Θ₂ , mkId A ⟫` with `Δᶜ ∋ Y := A`.  A rewind's
+interior is the exterior it sits at (`rewind-interior`) and the
+conversion was an identity, so the layer converted nothing:
+`preserve-CancelR` already typed the surviving layer at the redex's own
+exterior type `C` and wrapped it only to re-spell a type it already
+had.  The layer is gone, and with it the two premises that existed only
+to mint it, `Δ ⊢ᶜ Θ₂ ⇒ Δᶜ` and `Δᶜ ∋ Y := A`.  `Y` is still pinned to
+`X`'s representation by the redex's typing (`cancel-name`), which is
+all the metatheory used those premises for.
 
 THE SINGLE-NAME PRESUMPTION, EXAMINED (3b).  The mini-core wrote ONE
 name `X` on both conversions.  That presumed the two conversions are
@@ -1150,23 +1169,28 @@ numeral anywhere, which is why `Drop$` needs no context premise.)
 
 Repair (4) — the transparent-layer rule, as ruled.  An inert
 `id (` X)` layer under an ACTIVE conversion is not a value and no other
-rule fires; instead of merging the two frames (`IdAbsorb`'s boundary
-arithmetic, retired for failing the no-⊕ test) the two CONVERSIONS are
-swapped: the transparent layer becomes the revealing one and the outer
-becomes transparent.  BOTH FRAMES ARE UNTOUCHED.  `unseal` is the only
-active conversion this left-hand side can meet
+rule fires; instead of merging the two frames with boundary arithmetic
+(`IdAbsorb`, retired for failing the no-⊕ test) the reveal is RE-READ
+on the merge `Θ₁ ++ Θ₂` and the transparent layer is CONSUMED.
+`unseal` is the only active conversion this left-hand side can meet
 (`proof/IdLayer.agda`, `outer-id-base-untypeable`), and the pushed name
 is already written in the identity conversion (`idpush-name`).
 
-THE SCOPE MOVE (2026-09-06).  The swap makes the INNER boundary the
-revealing one, so its exterior type becomes `Y`'s representation `A`.
-Θ₂'s changes travel into the inner frame — the merge `Θ₁ ++ Θ₂` — so
-that the representation is presented OUTSIDE Θ₂'s locks, where it is
-nameable.  With no bind block there is no shift left to get wrong:
-`rewind Θ₂`'s interior reading is `Δ` itself (`rewind-interior`), and
-`A` is `Y`'s representation read at Θ₂'s conversion context.  That is
-what retires the wall — the case needs no scoping invariant at all
-(`proof/MoveScope.agda`, `preserve-IdPush`).
+THE SCOPE MOVE (2026-09-06).  The surviving boundary is the revealing
+one, so its exterior type becomes `Y`'s representation.  Θ₂'s changes
+travel into that frame — the merge `Θ₁ ++ Θ₂` — so that the
+representation is presented OUTSIDE Θ₂'s locks, at the plain exterior
+`Δ`, where it is nameable.  With no bind block there is no shift left
+to get wrong.  That is what retires the wall — the case needs no
+scoping invariant at all (`proof/MoveScope.agda`, `preserve-IdPush`).
+
+ONE LAYER (2026-09-23).  As for `CancelR`: the outer
+`⟪ rewind Θ₂ , mkId A ⟫` was an identity over a frame whose interior is
+its own exterior, `preserve-IdPush` already typed the surviving layer at
+`C`, and the layer and its two minting premises are gone.  `Y` now
+appears only in the redex; typing pins it to `X`'s representation
+(`idpush-name`).  A stack of transparent layers therefore SHRINKS by one
+boundary per step (`Examples.agda` §9c).
 
 THE RE-BASED NAME (2026-09-18).  `X` is read at the INNER frame's
 conversion context; the swap moves it into the MERGED frame's, which is
@@ -1218,10 +1242,12 @@ It concludes `M₁ ≡ M₂ × δ₁ ≡ δ₂`.
   recovered from the redex typing's exterior and the carried
   instantiated interior / moved-conversion readings, just as `Peel`
   recovers the dual map.
-* `CancelR`: both looked-up types and the re-spelling are functional.
-  The repaired rule reads its inner lookup at Θ₁'s own conversion
-  context, so determinism inverts the redex typing to BOTH boundaries'
-  `BoundaryWf`s.  `IdPush` is likewise determined by the lookup.
+* `CancelR`: the cancelled binder's lookup and the re-spelling are
+  functional.  The repaired rule reads that lookup at Θ₁'s own
+  conversion context, so determinism inverts the redex typing to BOTH
+  boundaries' `BoundaryWf`s.  `IdPush` is determined by its re-spelling
+  `X′` alone (`sameTy-src-unique`): with the outer layer gone it looks
+  nothing up.
 * The congruences: the sibling shift is a function of the store change,
   so once the two steps agree on the contractum AND the change, the two
   shifted siblings agree too.
@@ -1322,9 +1348,9 @@ each.  A derivation of `Ξ ∣ Δ ⊢χ Θ ⇒ Δ′` is one line per change and
 contains nothing the change list does not already determine.
 
 That became unworkable when the fourth reduction example was finished.
-`CancelR` and `IdPush` replace their frames by the COMPOSITES
-`Θ₁ ++ Θ₂` and `rewind Θ₂`, whose change lists are the concatenations
-of their arguments', so unwinding an n-deep tower of boundaries reaches
+`CancelR` and `IdPush` replace their frames by the COMPOSITE
+`Θ₁ ++ Θ₂`, whose change list is the concatenation of its arguments',
+so unwinding an n-deep tower of boundaries reaches
 frames carrying tens of changes each.  The checker removes that
 transcription entirely, and — since it decides the term judgement too —
 an example's typing derivation becomes a statement of the type and
@@ -1426,7 +1452,7 @@ point (2) above.
 The step function and the evaluator built on it.  §1 decides the
 classifications the rules guard on (`base?`, `inert?`, `value?`); §2
 assembles each boundary rule's side conditions (`peelPremises?`,
-`crossPremises?`, `bdyPremises?`, `cancelPremises?`, `mergedPremises?`,
+`crossPremises?`, `bdyPremises?`, `mergedPremises?`,
 `pushPremises?`); §3 is the redex search by head shape (`appRedex`,
 `tyAppRedex`, `bdyRedex`); §4 is `step`, leftmost-outermost, returning
 the contractum, allocation and step derivation; §5 forgets the
@@ -1510,8 +1536,10 @@ re-exported here.
   boundary scope's two readings, the DUAL's conversion context (which
   the redex typing does not supply, so it is built here) and the dual's
   spelling of the domain half.  The redex fixes only Δ, Θ and `s`.
-* `CancelPremises` — the looked-up type is an OUTPUT: the contracta
-  mention it only under `mkId`, which the unifier cannot invert.
+
+(`CancelPremises` / `cancelPremises?` — the reading of Θ₂ and the lookup
+of `Y` — went with the outer layer on 2026-09-23: no rule asks for them
+any more.)
 
 ### §3 — the redexes, by the shape of the head
 
@@ -1925,7 +1953,7 @@ allocating step shifted.
   slot the allocation consumes, so its interior gets exactly the
   sibling shift `suc` — the one non-identity ρ a redex still produces.
 * `residual-CancelR` / `residual-IdPush` — the value keeps its frame
-  under both the merged and the rewound scope
+  under the merged scope, the one layer the contractum has
   (`proof/ShiftAudit.agda` §6).
 * `Drop$` / `Drop-true` / `Drop-false` — NO residual: the literal is
   consumed with its boundary.
@@ -2790,34 +2818,40 @@ same depth, so `sameTy-⇒⁻` serves both `env` premises.
 
 ## proof/MoveScope.agda
 
-THE SCOPE MOVE — the two-layer contractum `CancelR` and `IdPush` build,
+THE SCOPE MOVE — the ONE-LAYER contractum `CancelR` and `IdPush` build,
 and the preservation cases they owe.
 
 ### The move
 
-Both rules SWAP the two conversions of a two-layer wrapper, so the
-INNER boundary stops presenting the abstract name `` ` Y `` and starts
-presenting `Y`'s REPRESENTATION.  A representation is a type over the
-exterior; inside Θ₂'s LOCKS it need not be nameable at all, and `env`'s
-last premise would then fail.  So the frames move with the conversions:
+Both rules neutralise the OUTER conversion of a two-layer wrapper, so
+the surviving boundary stops presenting the abstract name `` ` Y `` and
+starts presenting `Y`'s REPRESENTATION.  A representation is a type over
+the exterior; inside Θ₂'s LOCKS it need not be nameable at all, and
+`env`'s last premise would then fail.  So the two frames merge:
 
 ```
-  (V ⟪ Θ₁ , c ⟫) ⟪ Θ₂ , unseal Y ⟫
-    -→ (V ⟪ Θ₁ ++ Θ₂ , c′ ⟫) ⟪ rewind Θ₂ , mkId A ⟫
+  (V ⟪ Θ₁ , c ⟫) ⟪ Θ₂ , unseal Y ⟫  -→  V ⟪ Θ₁ ++ Θ₂ , c′ ⟫
 ```
 
 In the two-universe design the frame algebra is RELATIONAL, and the
-three readings the contractum needs are theorems of `Boundary.agda`
-§3a:
+reading the contractum needs is a theorem of `Boundary.agda` §3a:
 
 ```
-  rewind-interior    the outer frame's interior IS the plain exterior;
-  rewind-conversion  the outer frame's conversion context IS Θ₂'s;
   merged-interior    the merged frame's interior IS the inner frame's.
 ```
 
 The merged frame's CONVERSION context is not a theorem of the readings
 the redex carries — it is a rule premise, and both rules carry it.
+
+ONE LAYER (2026-09-23).  Until then the contractum was TWO layers, the
+outer one `⟪ rewind Θ₂ , mkId A ⟫`, read by `rewind-interior` and
+`rewind-conversion`.  Its frame's interior is the exterior it sits at
+and its conversion is an identity, so it converted nothing: both proofs
+already built the surviving layer AT THE REDEX'S OWN EXTERIOR TYPE `C`
+and then wrapped it to re-spell a type it already had.  Deleting the
+layer deletes the wrapper, the two premises that minted it
+(`Δ ⊢ᶜ Θ₂ ⇒ Δᶜ`, `Δᶜ ∋ Y := A`) and the two rewind readings from this
+module.
 
 ```
   §1  the small inversions the two cases share
@@ -2857,13 +2891,12 @@ it reads as.
 
 ### §2 — `preserve-IdPush`
 
-The swap makes the INNER boundary the revealing one, so its exterior
-type becomes the redex's own exterior type `C`, presented OUTSIDE Θ₂'s
-locks — `rewind Θ₂`'s interior is exactly the plain exterior, which is
-where `C` is nameable.  That is what retires the old wall: the case
-needs no scoping invariant.
+The surviving boundary is the revealing one, so its exterior type is the
+redex's own exterior type `C`, presented OUTSIDE Θ₂'s locks — at the
+plain exterior `Δ`, which is where `C` is nameable.  That is what
+retires the old wall: the case needs no scoping invariant.
 
-FOUR MOVES, one per premise of the contractum's inner `env`:
+FOUR MOVES, one per premise of the contractum's `env`:
 
 ```
   FRAME       `Θ₁ ++ Θ₂`, whose interior is the inner frame's own
@@ -2881,12 +2914,13 @@ FOUR MOVES, one per premise of the contractum's inner `env`:
               frame's OWN exterior survives into it.
 ```
 
-The local `where` block names, in order: the outer frame (the plain
-exterior); the binder `Y` names and the exterior type it represents;
-`Y`'s own representation payload, which IS that same type read on the
-outer conversion context; `X`'s representation, which IS `Y`'s
-(`idpush-name`, with no bind block to cross); and the re-spelled
-exterior type with the conversion it lets us mint.
+The local `where` block names, in order: the binder `Y` names and the
+exterior type it represents; `Y`'s own representation payload, which IS
+that same type read on the outer conversion context — inverted out of
+the redex's own `conv-unseal`, since the rule no longer carries the
+lookup; `X`'s representation, which IS `Y`'s (`idpush-name`, with no
+bind block to cross); and the re-spelled exterior type with the
+conversion it lets us mint.
 
 ### §3 — `preserve-CancelR`
 
@@ -2907,13 +2941,12 @@ representation variable IS the outer binder's.  The premise is still
 read at `Δ₁ᶜ` — a different NAME MAP, which is what `_⊢_≈_⊣_` is for —
 so the rule is unchanged; only its proof shrinks.
 
-THE PROOF IS `preserve-IdPush`'s, and the outer layer is LITERALLY it.
-The inner layer diverges: `IdPush` mints `unseal X′`, whose SOURCE is a
-variable and whose TARGET is a LOOKUP; `CancelR` mints `mkId A′`, whose
-source and target are the SAME type, so ONE type must satisfy both
-premises of the inner `env` — and the two meet because the
-representation the seal's source names at `Δ₁ᶜ` is the outer binder's
-payload.
+THE PROOF IS `preserve-IdPush`'s.  It diverges only in the conversion:
+`IdPush` mints `unseal X′`, whose SOURCE is a variable and whose TARGET
+is a LOOKUP; `CancelR` mints `mkId A′`, whose source and target are the
+SAME type, so ONE type must satisfy both premises of the `env` — and the
+two meet because the representation the seal's source names at `Δ₁ᶜ` is
+the outer binder's payload.
 
 ## proof/IdLayer.agda
 
@@ -3145,8 +3178,7 @@ frame derivation it CONSTRUCTS the target position's, at the context
 
 Every rule but the movers is frame-for-frame — the interior lemmas of
 `Boundary.agda` §3a supply the new boundary frames' readings
-(`inst-interior`, `dual-interior`, `rewind-interior`,
-`merged-interior`).  The movers — `TyPeelR-⟪⟫`'s inner boundary, the
+(`inst-interior`, `dual-interior`, `merged-interior`).  The movers — `TyPeelR-⟪⟫`'s inner boundary, the
 siblings an allocating congruence shifts, and `Beta`'s copies under
 `crossΛᴹ` — go through `⊢C-ren`, the transport of a frame derivation
 along a representation-only renaming, whose boundary case is
@@ -3515,8 +3547,8 @@ The frame identities stopped being EQUATIONS BETWEEN COMPUTED CONTEXTS.
 There is no `interior Θ Δ` to write an equation about: a boundary scope
 RELATES an exterior to an interior, and the audit's per-site facts are
 exactly the transport lemmas of `Boundary.agda` §3a — `dual-interior`
-for `Peel`, `rewind-interior` / `merged-interior` for `CancelR` and
-`IdPush`.  So §2 and §6 CITE them rather than restating them.
+for `Peel`, `merged-interior` for `CancelR` and `IdPush`.  So §2 and §6
+CITE them rather than restating them.
 
 ### What the store changed (2026-09-22), and why most of the file is shorter
 
@@ -3577,8 +3609,8 @@ substituted (`grep renᴹ² renᴹᴿ wkᴹ ⇑ᴹ renⁿ shiftᵐ crossΛᴹ su
                 `++ (lock 0 0 ∷ [])` on its change list   §3  EXACT
     TyBeta      `N ⟪ inst [] , reveal 0 B ⟫`              §3  refinement
     Beta        `N [ W ∶ A ]ᵐ`, i.e. `substᵐ`/`crossΛᴹ`   §5  EXACT
-    CancelR     `V ⟪ Θ₁ ++ Θ₂ , … ⟫ ⟪ rewind Θ₂ , … ⟫`    §6  EXACT
-    IdPush      (same two frames)                         §6  EXACT
+    CancelR     `V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫`                §6  EXACT
+    IdPush      `V ⟪ Θ₁ ++ Θ₂ , unseal X′ ⟫`               §6  EXACT
     Drop$ / Drop-true / Drop-false                        §7  vacuous
     ξ-*         the SIBLINGS move, by `↑ᴹ[ δ ]`           §8  EXACT
 
@@ -3690,24 +3722,24 @@ indices keep their positions — criterion (i) with nothing to shift.
 `Beta-no-alloc`: `Beta` allocates nothing, so the substitution moves no
 representation.
 
-### §6 — `CancelR` / `IdPush`, exact inner AND outer
+### §6 — `CancelR` / `IdPush`, the merged frame is exact
 
-THE INNER FRAME (the one `V` lives in) is preserved ON THE NOSE: the
-merged frame's interior IS the inner frame's own.
-
-THE OUTER FRAME.  The outer boundary's interior — the position the
-INNER BOUNDARY node occupies — becomes the plain exterior: the ordinary
-changes have travelled inward, and the inner boundary REAPPLIES them
-(`_++_` puts Θ₂'s change list at the tail of Θ₁'s, where the reading
-runs it FIRST), which is exactly why the composite above holds.
-Nothing else moves: both conversions are RE-MINTED (`mkId` / `unseal`),
-not transported.  `Move-outer-conversion`: and the outer frame's
-CONVERSION context is Θ₂'s own, which is where the redex's outer
-conversion was read.
+THE ONE FRAME LEFT (the one `V` lives in) is preserved ON THE NOSE: the
+merged frame's interior IS the inner frame's own.  Θ₂'s ordinary changes
+have travelled inward and the surviving boundary REAPPLIES them (`_++_`
+puts Θ₂'s change list at the tail of Θ₁'s, where the reading runs it
+FIRST).  The redex's outer conversion is not transported: it is
+cancelled (`CancelR`, whose `mkId A′` is re-minted at the seal's own
+source) or re-read on the merge (`IdPush`'s `unseal X′`).
 
 `V` is not renamed at all — it retypes exactly where it was.  That is
 why neither rule's contractum mentions a renaming, and neither
 allocates.
+
+WHAT THE ONE-LAYER CONTRACTUM DELETED (2026-09-23).  `Move-outer-frame`
+and `Move-outer-conversion` audited the second, outer layer — a rewind
+whose interior is the exterior it sits at, carrying an identity.  No
+rule builds that layer any more, so the two obligations went with it.
 
 ### §7 — the drop rules, the frame change in the OTHER direction
 

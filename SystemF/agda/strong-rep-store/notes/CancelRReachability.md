@@ -208,6 +208,15 @@ carries no typing and used to stick at 16 steps on a non-value identity
 tower, now agrees exactly: `rawLen 100 Src ≡ 19`, ending at `$ 7`
 (`notes/RawRunProbe.agda`). The two controls keep their counts, 9 and 17.
 
+> **Update (2026-09-23), the one-layer contractum.** `CancelR` and
+> `IdPush` no longer emit the outer `⟪ rewind Θ₂ , mkId Aₒ ⟫` layer, and
+> the two premises that minted it (`Δ ⊢ᶜ Θ₂ ⇒ Δᶜ`, `Δᶜ ∋ Y := Aₒ`) are
+> gone from both rules. Nothing above changes in substance — step 10
+> still mints `mkId (` 2)`, on the merged scope, and it is still the
+> first state the old premise could not type — but the counts move:
+> `Src` now runs in FOURTEEN steps (`Reaches 14 14 Src-⊢ ($ 7)`,
+> `rawLen 100 empty Src ≡ 14`) and the two controls run in 8 and 13.
+
 And the question section 5 left open — whether the repaired premise is
 always satisfiable, and whether the preservation case it generates is
 provable — is answered for preservation:

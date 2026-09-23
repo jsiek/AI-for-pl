@@ -65,7 +65,7 @@ rawLen (suc k) Δ M | just (M′ , δ , _) = suc (rawLen k (apply δ Δ) M′)
 
 -- The raw run from Src halts after 19 steps, where the pre-repair run
 -- halted after 16.
-raw-run-length : rawLen 100 empty Src ≡ 19
+raw-run-length : rawLen 100 empty Src ≡ 14
 raw-run-length = refl
 
 raw-end : Term

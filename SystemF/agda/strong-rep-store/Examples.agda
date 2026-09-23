@@ -70,28 +70,28 @@ module strong-rep-store.Examples where
 -- store and grow it at each `TyBeta`/`TyPeelR`; §9 begins with the one-cell
 -- store `Δ₆`.  The endpoint term is stated independently of that final store.
 --
---   §1a  P     6 steps   7      : ℕ    the polymorphic identity
+--   §1a  P     5 steps   7      : ℕ    the polymorphic identity
 --   §1b  K     9 steps   true   : 𝔹    a polymorphic Boolean use
---   §1c  J    11 steps   3      : ℕ    a polymorphic constant
---   §1d  F     6 steps   false  : 𝔹    the identity at 𝔹
---   §1e  U     7 steps   5      : ℕ    an argument still reducing
---   §2   Q    14 steps   7      : ℕ    two IdPush steps
---   §2a  D    22 steps   7      : ℕ    four IdPush steps
---   §2b  L    14 steps   7      : ℕ    the wall context
---   §2c  R    24 steps   7      : ℕ    a chained representation
---   §3   G    17 steps   7      : ℕ    two store allocations
---   §4   H    11 steps   7      : ℕ    the reveal mirror
---   §5a  E    28 steps   true   : 𝔹    one later binder
---   §5b  V    40 steps   true   : 𝔹    two later binders
---   §6a  I    17 steps   true   : 𝔹    impredicative identity
---   §6b  N    23 steps   7      : ℕ    ∀-payload over a free var
---   §7a  A    11 steps   7      : ℕ    a function crosses
---   §7b  B    21 steps   7      : ℕ    a function crosses twice
---   §7c  C    41 steps   7      : ℕ    a function through the tower
---   §8   S    19 steps   7      : ℕ    the CancelR shift witness
---   §9a  T     3 steps   7      : ℕ    the cancel pair
---   §9b  Tid   5 steps   7      : ℕ    one transparent layer
---   §9c  Tid₂  7 steps   7      : ℕ    a stack of layers
+--   §1c  J    10 steps   3      : ℕ    a polymorphic constant
+--   §1d  F     5 steps   false  : 𝔹    the identity at 𝔹
+--   §1e  U     6 steps   5      : ℕ    an argument still reducing
+--   §2   Q    11 steps   7      : ℕ    two IdPush steps
+--   §2a  D    17 steps   7      : ℕ    four IdPush steps
+--   §2b  L    11 steps   7      : ℕ    the wall context
+--   §2c  R    16 steps   7      : ℕ    a chained representation
+--   §3   G    13 steps   7      : ℕ    two store allocations
+--   §4   H     9 steps   7      : ℕ    the reveal mirror
+--   §5a  E    19 steps   true   : 𝔹    one later binder
+--   §5b  V    24 steps   true   : 𝔹    two later binders
+--   §6a  I     9 steps   true   : 𝔹    impredicative identity
+--   §6b  N    16 steps   7      : ℕ    ∀-payload over a free var
+--   §7a  A     8 steps   7      : ℕ    a function crosses
+--   §7b  B    15 steps   7      : ℕ    a function crosses twice
+--   §7c  C    22 steps   7      : ℕ    a function through the tower
+--   §8   S    14 steps   7      : ℕ    the CancelR shift witness
+--   §9a  T     2 steps   7      : ℕ    the cancel pair
+--   §9b  Tid   3 steps   7      : ℕ    one transparent layer
+--   §9c  Tid₂  4 steps   7      : ℕ    a stack of layers
 --   §10  Bg    7 steps   7      : ℕ    the base-typed wrapper
 --
 -- WHAT A RUN HERE ASSERTS.  One `Reaches k n ⊢M V` says that with fuel
@@ -195,7 +195,7 @@ P₀ = (Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `ℕ ] · $ 7
 P₀-⊢ : empty ∣ [] ⊢ P₀ ⦂ `ℕ
 P₀-⊢ = tc
 
-P-eval : Reaches 6 6 P₀-⊢ ($ 7)
+P-eval : Reaches 5 5 P₀-⊢ ($ 7)
 P-eval = reaches refl V-$
 
 P-run : empty ⊢ P₀ -→* $ 7
@@ -241,7 +241,7 @@ J₀ = ((Jfun ·[ JB , `ℕ ]) · $ 7) · const3
 J₀-⊢ : empty ∣ [] ⊢ J₀ ⦂ `ℕ
 J₀-⊢ = tc
 
-J-eval : Reaches 11 11 J₀-⊢ ($ 3)
+J-eval : Reaches 10 10 J₀-⊢ ($ 3)
 J-eval = reaches refl V-$
 
 J-run : empty ⊢ J₀ -→* $ 3
@@ -261,7 +261,7 @@ F₀ = (Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `𝔹 ] · `false
 F₀-⊢ : empty ∣ [] ⊢ F₀ ⦂ `𝔹
 F₀-⊢ = tc
 
-F-eval : Reaches 6 6 F₀-⊢ `false
+F-eval : Reaches 5 5 F₀-⊢ `false
 F-eval = reaches refl V-false
 
 F-run : empty ⊢ F₀ -→* `false
@@ -282,7 +282,7 @@ U₀ = (ƛ (`ℕ ⇒ `ℕ) ∙ ((` 0) · $ 5))
 U₀-⊢ : empty ∣ [] ⊢ U₀ ⦂ `ℕ
 U₀-⊢ = tc
 
-U-eval : Reaches 7 7 U₀-⊢ ($ 5)
+U-eval : Reaches 6 6 U₀-⊢ ($ 5)
 U-eval = reaches refl V-$
 
 U-run : empty ⊢ U₀ -→* $ 5
@@ -316,7 +316,7 @@ Q₀    = (Qfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 Q₀-⊢ : empty ∣ [] ⊢ Q₀ ⦂ `ℕ
 Q₀-⊢ = tc
 
-Q-eval : Reaches 14 14 Q₀-⊢ ($ 7)
+Q-eval : Reaches 11 11 Q₀-⊢ ($ 7)
 Q-eval = reaches refl V-$
 
 Q-run : empty ⊢ Q₀ -→* $ 7
@@ -352,7 +352,7 @@ D₀     = (Dfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 D₀-⊢ : empty ∣ [] ⊢ D₀ ⦂ `ℕ
 D₀-⊢ = tc
 
-D-eval : Reaches 22 22 D₀-⊢ ($ 7)
+D-eval : Reaches 17 17 D₀-⊢ ($ 7)
 D-eval = reaches refl V-$
 
 D-run : empty ⊢ D₀ -→* $ 7
@@ -385,7 +385,7 @@ L₀    = (Lfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 L₀-⊢ : empty ∣ [] ⊢ L₀ ⦂ `ℕ
 L₀-⊢ = tc
 
-L-eval : Reaches 14 14 L₀-⊢ ($ 7)
+L-eval : Reaches 11 11 L₀-⊢ ($ 7)
 L-eval = reaches refl V-$
 
 L-run : empty ⊢ L₀ -→* $ 7
@@ -416,7 +416,7 @@ R₀    = (Rfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 R₀-⊢ : empty ∣ [] ⊢ R₀ ⦂ `ℕ
 R₀-⊢ = tc
 
-R-eval : Reaches 24 24 R₀-⊢ ($ 7)
+R-eval : Reaches 16 16 R₀-⊢ ($ 7)
 R-eval = reaches refl V-$
 
 R-run : empty ⊢ R₀ -→* $ 7
@@ -443,7 +443,7 @@ G₀    = (Gfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 G₀-⊢ : empty ∣ [] ⊢ G₀ ⦂ `ℕ
 G₀-⊢ = tc
 
-G-eval : Reaches 17 17 G₀-⊢ ($ 7)
+G-eval : Reaches 13 13 G₀-⊢ ($ 7)
 G-eval = reaches refl V-$
 
 G-run : empty ⊢ G₀ -→* $ 7
@@ -475,7 +475,7 @@ H₀   = (((Hfun ·[ HB , `ℕ ]) · ($ 7)) ·[ ` 0 ⇒ `ℕ , `ℕ ]) · ($ 5)
 H₀-⊢ : empty ∣ [] ⊢ H₀ ⦂ `ℕ
 H₀-⊢ = tc
 
-H-eval : Reaches 11 11 H₀-⊢ ($ 7)
+H-eval : Reaches 9 9 H₀-⊢ ($ 7)
 H-eval = reaches refl V-$
 
 H-run : empty ⊢ H₀ -→* $ 7
@@ -489,7 +489,7 @@ H-run = reaches-run H-eval
 -- argument is instantiated beneath LATER `Λ`s, so the value that reaches
 -- `true` has crossed several boundaries and carries a seal for each, and
 -- unwinding that tower drives `CancelR` and `IdPush` through frames that
--- are COMPOSITES (`_++_`, `rewind`).  Finishing §5a is what found the
+-- are COMPOSITES (the merge `_++_`).  Finishing §5a is what found the
 -- defect recorded in notes/ReUnlockWall.agda.
 
 ------------------------------------------------------------------------
@@ -499,10 +499,10 @@ H-run = reaches-run H-eval
 -- The argument is instantiated beneath the LATER binder `ΛY`, so `f [Y]`
 -- crosses `Y`'s boundary as well as `X`'s and the identity that finally
 -- receives `true` sits under three seals.  Unwinding them is what drives
--- `CancelR` and `IdPush` through `_++_`/`rewind` composites, and what
--- makes the tail of this run quadratic in the tower depth: `CancelR`
--- leaves two identity layers and `IdPush` walks each outward one layer
--- before the next `CancelR` can fire.
+-- `CancelR` and `IdPush` through `_++_` composites, and what makes the
+-- tail of this run grow with the tower depth: `CancelR` leaves one
+-- identity layer and `IdPush` walks the active conversion inward one
+-- layer before the next `CancelR` can fire.
 ------------------------------------------------------------------------
 
 EID EBod : Ty
@@ -524,7 +524,7 @@ E₀-⊢ = tc
 E₀ᴮ-⊢ : empty ∣ [] ⊢ E₀ᴮ ⦂ `𝔹
 E₀ᴮ-⊢ = tc
 
-E-eval : Reaches 28 28 E₀ᴮ-⊢ `true
+E-eval : Reaches 19 19 E₀ᴮ-⊢ `true
 E-eval = reaches refl V-true
 
 E-run : empty ⊢ E₀ᴮ -→* `true
@@ -556,7 +556,7 @@ V₀ = (((((Vfun ·[ VBod , `ℕ ]) · Earg)
 V₀-⊢ : empty ∣ [] ⊢ V₀ ⦂ `𝔹
 V₀-⊢ = tc
 
-V-eval : Reaches 40 40 V₀-⊢ `true
+V-eval : Reaches 24 24 V₀-⊢ `true
 V-eval = reaches refl V-true
 
 V-run : empty ⊢ V₀ -→* `true
@@ -590,7 +590,7 @@ I₀ = (((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , EID ]) · Earg)
 I₀-⊢ : empty ∣ [] ⊢ I₀ ⦂ `𝔹
 I₀-⊢ = tc
 
-I-eval : Reaches 17 17 I₀-⊢ `true
+I-eval : Reaches 9 9 I₀-⊢ `true
 I-eval = reaches refl V-true
 
 I-run : empty ⊢ I₀ -→* `true
@@ -617,7 +617,7 @@ N₀ =
 N₀-⊢ : empty ∣ [] ⊢ N₀ ⦂ `ℕ
 N₀-⊢ = tc
 
-N-eval : Reaches 23 23 N₀-⊢ ($ 7)
+N-eval : Reaches 16 16 N₀-⊢ ($ 7)
 N-eval = reaches refl V-$
 
 N-run : empty ⊢ N₀ -→* $ 7
@@ -643,7 +643,7 @@ A₀ = ((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `ℕ ⇒ `ℕ ] · (ƛ `ℕ ∙ 
 A₀-⊢ : empty ∣ [] ⊢ A₀ ⦂ `ℕ
 A₀-⊢ = tc
 
-A-eval : Reaches 11 11 A₀-⊢ ($ 7)
+A-eval : Reaches 8 8 A₀-⊢ ($ 7)
 A-eval = reaches refl V-$
 
 A-run : empty ⊢ A₀ -→* $ 7
@@ -663,7 +663,7 @@ B₀ = (idℕℕ · (idℕℕ · (ƛ `ℕ ∙ ` 0))) · $ 7
 B₀-⊢ : empty ∣ [] ⊢ B₀ ⦂ `ℕ
 B₀-⊢ = tc
 
-B-eval : Reaches 21 21 B₀-⊢ ($ 7)
+B-eval : Reaches 15 15 B₀-⊢ ($ 7)
 B-eval = reaches refl V-$
 
 B-run : empty ⊢ B₀ -→* $ 7
@@ -691,7 +691,7 @@ C₀ = (((E₀ ·[ `ℕ ⇒ (` 0 ⇒ ` 0) , `ℕ ⇒ `ℕ ]) · $ 0)
 C₀-⊢ : empty ∣ [] ⊢ C₀ ⦂ `ℕ
 C₀-⊢ = tc
 
-C-eval : Reaches 41 41 C₀-⊢ ($ 7)
+C-eval : Reaches 22 22 C₀-⊢ ($ 7)
 C-eval = reaches refl V-$
 
 C-run : empty ⊢ C₀ -→* $ 7
@@ -725,7 +725,7 @@ S₀ = ((Λ (ƛ (` 0) ∙
 S₀-⊢ : empty ∣ [] ⊢ S₀ ⦂ `ℕ
 S₀-⊢ = tc
 
-S-eval : Reaches 19 19 S₀-⊢ ($ 7)
+S-eval : Reaches 14 14 S₀-⊢ ($ 7)
 S-eval = reaches refl V-$
 
 S-run : empty ⊢ S₀ -→* $ 7
@@ -754,10 +754,10 @@ Wseal = ($ 7) ⟪ [] , seal 0 ⟫
 ------------------------------------------------------------------------
 
 -- The outer conversion is ACTIVE (`unseal`), the inner INERT (`seal`), and
--- they cite the same binder, so `CancelR` fires.  BOTH FRAMES STAY and
--- each conversion becomes the identity at the LOOKED-UP representation, so
--- nothing the value might name is dropped; the two identities are then
--- walked off a numeral by `Drop$`.
+-- they cite the same binder, so `CancelR` fires.  BOTH FRAMES STAY —
+-- MERGED as `Θ₁ ++ Θ₂` — and the matched pair becomes ONE identity at the
+-- cancelled binder's representation, so nothing the value might name is
+-- dropped; the identity is then walked off a numeral by `Drop$`.
 
 Tcancel : Term
 Tcancel = Wseal ⟪ [] , unseal 0 ⟫
@@ -765,7 +765,7 @@ Tcancel = Wseal ⟪ [] , unseal 0 ⟫
 Tcancel-⊢ : Δ₆ ∣ [] ⊢ Tcancel ⦂ `ℕ
 Tcancel-⊢ = tc
 
-Tcancel-eval : Reaches 3 3 Tcancel-⊢ ($ 7)
+Tcancel-eval : Reaches 2 2 Tcancel-⊢ ($ 7)
 Tcancel-eval = reaches refl V-$
 
 Tcancel-run : Δ₆ ⊢ Tcancel -→* $ 7
@@ -776,12 +776,9 @@ Tcancel-run = reaches-run Tcancel-eval
 -- §§1–8 gave them up for the per-state type check
 -- (notes/DECISIONS.md), and this is the smallest run where writing them
 -- out still costs nothing.  Note that `Θ₁ ++ Θ₂` here is the empty
--- boundary scope and `rewind Θ₂` is `Θ₂` — the inner frame locks nothing, so
--- the rewind has nothing to undo.
-_ : evalTerms 3 Tcancel-⊢
+-- boundary scope: neither frame changes a name.
+_ : evalTerms 2 Tcancel-⊢
       ≡ Tcancel
-      ∷ ((($ 7) ⟪ [] , id `ℕ ⟫)
-           ⟪ [] , id `ℕ ⟫)
       ∷ (($ 7) ⟪ [] , id `ℕ ⟫)
       ∷ ($ 7)
       ∷ []
@@ -793,8 +790,8 @@ _ = refl
 
 -- The same pair with an IDENTITY-AT-A-VARIABLE layer between them: the
 -- seal and the unseal are no longer adjacent, so `CancelR` cannot fire.
--- `IdPush` swaps the two conversions, leaving the identity OUTSIDE and
--- bringing the reveal down onto the seal, and the pair then cancels.
+-- `IdPush` brings the reveal down onto the seal and CONSUMES the
+-- transparent layer, and the pair then cancels.
 
 Tid : Term
 Tid = (Wseal ⟪ [] , id (` 0) ⟫)
@@ -803,7 +800,7 @@ Tid = (Wseal ⟪ [] , id (` 0) ⟫)
 Tid-⊢ : Δ₆ ∣ [] ⊢ Tid ⦂ `ℕ
 Tid-⊢ = tc
 
-Tid-eval : Reaches 5 5 Tid-⊢ ($ 7)
+Tid-eval : Reaches 3 3 Tid-⊢ ($ 7)
 Tid-eval = reaches refl V-$
 
 Tid-run : Δ₆ ⊢ Tid -→* $ 7
@@ -812,22 +809,14 @@ Tid-run = reaches-run Tid-eval
 ¬val-Tid : ¬ Value Tid
 ¬val-Tid (V-⟪⟫ _ ())
 
--- STEP 1 is the `IdPush`: the two CONVERSIONS swap and BOTH FRAMES ARE
--- UNTOUCHED (`Θ₁ ++ Θ₂` and `rewind Θ₂` are each the frame they came from,
--- because neither locks).  The pushed name is the identity conversion's
--- own, re-spelled into the merged conversion context, and the residue is
--- the identity at the LOOKED-UP representation — which is where `IdPush`
--- escapes the defect `CancelR` has: both readings resolve the identity
--- through the same ambient store cell.
-_ : evalTerms 5 Tid-⊢
+-- STEP 1 is the `IdPush`: the transparent layer is CONSUMED and the
+-- reveal is re-read on the merged frame `Θ₁ ++ Θ₂` (here the empty scope,
+-- because neither frame locks).  The pushed name is the identity
+-- conversion's own, re-spelled into the merged conversion context.  The
+-- contractum IS §9a's redex, so the rest of the run is §9a's.
+_ : evalTerms 3 Tid-⊢
       ≡ Tid
-      ∷ ((Wseal ⟪ [] , unseal 0 ⟫)
-           ⟪ [] , id `ℕ ⟫)
-      ∷ (((($ 7) ⟪ [] , id `ℕ ⟫)
-             ⟪ [] , id `ℕ ⟫)
-           ⟪ [] , id `ℕ ⟫)
-      ∷ ((($ 7) ⟪ [] , id `ℕ ⟫)
-           ⟪ [] , id `ℕ ⟫)
+      ∷ (Wseal ⟪ [] , unseal 0 ⟫)
       ∷ (($ 7) ⟪ [] , id `ℕ ⟫)
       ∷ ($ 7)
       ∷ []
@@ -839,9 +828,9 @@ _ = refl
 
 -- Two identity layers.  The stack resolves ONE LAYER PER STEP, outermost
 -- first: each `IdPush` moves the active conversion one layer inward toward
--- the seal, so a stack of any depth terminates.  Against §9b the run is
--- two steps longer, which is exactly one `IdPush` and one `Drop$` per
--- extra layer.
+-- the seal and consumes the layer it passed, so a stack of any depth
+-- terminates.  Against §9b the run is one step longer, which is exactly
+-- one `IdPush` per extra layer.
 
 Tid₂ : Term
 Tid₂ = ((Wseal ⟪ [] , id (` 0) ⟫)
@@ -851,7 +840,7 @@ Tid₂ = ((Wseal ⟪ [] , id (` 0) ⟫)
 Tid₂-⊢ : Δ₆ ∣ [] ⊢ Tid₂ ⦂ `ℕ
 Tid₂-⊢ = tc
 
-Tid₂-eval : Reaches 7 7 Tid₂-⊢ ($ 7)
+Tid₂-eval : Reaches 4 4 Tid₂-⊢ ($ 7)
 Tid₂-eval = reaches refl V-$
 
 Tid₂-run : Δ₆ ⊢ Tid₂ -→* $ 7

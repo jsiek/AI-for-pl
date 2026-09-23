@@ -66,7 +66,15 @@ The following parts have been ported and typecheck:
 The reduction tests are in `Examples.agda` (§§1–8; the thirteen-run suite
 that used to be `notes/RepresentationReductionExamples.agda` was merged
 there on 2026-09-21). All thirteen closed programs reduce to first-order
-values:
+values.
+
+> **The step counts in the list below are pre-experiment-2 (2026-09-22)
+> and pre-experiment-3 (2026-09-23), as is its `_⋉_` / `numBinds`
+> vocabulary.  The LIVE counts are the acceptance table in
+> `Examples.agda`'s charter; every one of them fell when the one-layer
+> `CancelR`/`IdPush` contractum landed (e.g. the tower run to 22 steps,
+> the shift witness to 14).**
+
 
 - `( ΛX. λx:X. x ) [ℕ] · 7` reduces in six steps to `7 : ℕ`;
 - the polymorphic Boolean example reduces in nine steps to `true : 𝔹`;

@@ -10,10 +10,14 @@ cd "$(dirname "$0")/../SystemF/agda" || exit 1
 EXPR="$1"; shift
 # Pick the renderer to match the development the caller imports from:
 # an import line mentioning `strong.` selects the old development's
-# renderer; the default is the strong-rep-var one.
+# renderer and one mentioning `strong-rep-store.` that development's;
+# the default is the strong-rep-var one.
 SHOW="strong-rep-var.Show"
 for imp in "$@"; do
-  case "$imp" in *"import strong."*) SHOW="strong.Show";; esac
+  case "$imp" in
+    *"import strong."*)            SHOW="strong.Show";;
+    *"import strong-rep-store."*)  SHOW="strong-rep-store.Show";;
+  esac
 done
 { echo "module RenderTmp where"
   echo "open import Relation.Binary.PropositionalEquality using (_≡_)"

@@ -680,8 +680,8 @@ mw! Γ Θ = from-just (boundaryWf? Γ Θ)
 wf! : (Γ : Ctxᵗ) → From-just (wfCtx? Γ)
 wf! Γ = from-just (wfCtx? Γ)
 
--- The lookup square, in the INFERRING form `CancelR` and `IdPush` need
--- (their contracta mention the type only under `mkId`).
+-- The lookup square, in the INFERRING form `CancelR` needs for the
+-- cancelled binder (its contractum mentions the type only under `mkId`).
 sq! : (Γ : Ctxᵗ) (X : ℕ) → From-just (∋:=? Γ X)
 sq! Γ X = from-just (∋:=? Γ X)
 

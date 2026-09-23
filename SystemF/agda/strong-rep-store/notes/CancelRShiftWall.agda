@@ -292,15 +292,13 @@ extendReps°-[] {Δ = Ξ ∣ Δn} = cong (Ξ ∣_) (map-id Δn)
 -- mints `mkId (` 2)` on the inner layer and `mkId (` 1)` on the outer:
 -- two spellings, one cell.
 repaired-step : Δ* ⊢ (V* ⟪ Θ₁* , seal 1 ⟫) ⟪ Θ₂* , unseal 0 ⟫
-  -→ (V* ⟪ Θ₁* ++ Θ₂* , mkId (` 2) ⟫) ⟪ rewind Θ₂* , mkId (` 1) ⟫
-  ∣ none
-repaired-step = CancelR v* ri* r₁* d₁* r⋉* repaired-premise r₂* d₂*
+  -→ V* ⟪ Θ₁* ++ Θ₂* , mkId (` 2) ⟫ ∣ none
+repaired-step = CancelR v* ri* r₁* d₁* r⋉* repaired-premise
 
 -- And its contractum IS well typed, by the preservation case the
 -- repaired rule generates.  The wall is answered on the configuration
 -- that raised it, by the theorem rather than by a hand-built derivation.
 repaired-contractum-⊢ : Δ* ∣ [] ⊢
-    (V* ⟪ Θ₁* ++ Θ₂* , mkId (` 2) ⟫) ⟪ rewind Θ₂* , mkId (` 1) ⟫ ⦂ ` 1
+    V* ⟪ Θ₁* ++ Θ₂* , mkId (` 2) ⟫ ⦂ ` 1
 repaired-contractum-⊢ =
-  preserve-CancelR wfΔ* v* ri* r₁* d₁* r⋉* repaired-premise r₂* d₂*
-    ⊢redex*
+  preserve-CancelR wfΔ* v* ri* r₁* d₁* r⋉* repaired-premise ⊢redex*

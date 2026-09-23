@@ -775,7 +775,7 @@ with the same mathematical content as in `Terms.agda` or `Reduction.agda`.
 The prose that used to sit between the rules of the Reduction section,
 keyed by the rule it follows.
 
-## Conventions (computational rules)
+## The computational rules: conventions
 
 Each rule is stated for a **well-typed redex** with variables as names,
 and with the metavariable convention that `V` and `W` range over
@@ -870,7 +870,7 @@ Mechanization note.  Agda carries `Δ ⊢ⁱ Θ₂ ⇒ Δᵢ`, `Δᵢ ⊢ᶜ Θ�
 same reason as CancelR's `Aᵢ`.  `notes/ForallPayloadWall.agda` exhibits
 the reordering that defeats a fixed index calculation.
 
-## Conventions (congruence rules)
+## The congruences: the sibling shift
 
 A congruence passes the store change up and applies it to the redex's
 **siblings**: after an allocation the whole program lives under one more
@@ -880,7 +880,7 @@ boundary scope; with names it is the identity, exactly like the other
 index shifts this note suppresses.  Ordinary positions never move, so no
 type annotation and no conversion is touched.
 
-## ξ-⟪⟫
+## No ξ-Λ, and where reduction goes
 
 There is **no `ξ-Λ`**: reduction does not go under a type abstraction,
 because the value restriction leaves nothing there to reduce.  There is
@@ -891,7 +891,7 @@ interior context.
 The reflexive-transitive closure used by preservation and type safety
 threads the store change through:
 
-## then
+## Runs and runCtx
 
 `runCtx r` is the context a run `r` **ends** at: every step's change
 applied in order.

@@ -1,0 +1,350 @@
+module strong-rep-store.proof.ShiftAudit where
+
+-- File Charter:
+--   * THE SHIFT AUDIT — every place a rule MOVES A SUBTERM, checked
+--     against FRAME EXACTNESS.  §1 the site table; §2 Peel; §3 the two
+--     TyPeelR clauses and TyBeta; §4 TERMINATION (the tower measure,
+--     and why the rejected repair stalls on it); §5 Beta; §6 CancelR
+--     and IdPush; §7 the drops; §8 the ξ rules; §9 dead machinery.
+--   * THE CRITERION.  A moved subterm's type context at the new
+--     position must be EXACTLY its context at the old one, up to
+--     (i) the binders it CROSSED and (ii) refinement
+--     `abstR → bindR R` of a variable it could ALREADY name.  Anything
+--     else it can name after and could not before is a FRAME LEAK.
+--   * Since the store there are no binds to cross, so the per-site
+--     facts are `strong-rep-store.Boundary` §3a's transport lemmas,
+--     CITED not restated.
+--   * THE VERDICTS ARE THIS MODULE.  notes/ShiftAudit.md is the
+--     ARCHIVED 2026-09-08 audit and is written against the bind-block
+--     calculus; read it for the leak's diagnosis and the rejected
+--     repairs, never for a verdict.  Prose: Commentary.md.
+-- Commentary: Commentary.md § proof/ShiftAudit.agda
+
+open import Data.Nat using (ℕ; zero; suc; _+_; _∸_)
+open import Data.List using (List; []; _∷_; _++_; map; length)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
+open import Data.Product using (Σ; Σ-syntax; _×_; _,_; proj₁; proj₂; ∃-syntax)
+open import Data.Empty using (⊥; ⊥-elim)
+open import Relation.Nullary using (¬_)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; _≢_; refl; sym; cong; cong₂; trans; subst)
+
+open import strong-rep-store.Types
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ; _[_]ᵗ)
+open import strong-rep-store.Ctx
+open import strong-rep-store.Conversion
+open import strong-rep-store.Terms
+open import strong-rep-store.Boundary
+open import strong-rep-store.TermSubst
+open import strong-rep-store.proof.TermSubst
+open import strong-rep-store.Reduction
+open import strong-rep-store.proof.Canonical using (canon-∀)
+
+private
+  variable
+    Δ Δ′ Γᵗ : Ctxᵗ
+    Γ : Ctx
+    A B C : Ty
+    X Y : ℕ
+    Θ Θ₁ Θ₂ : Boundary
+
+------------------------------------------------------------------------
+-- §1  THE SITES
+------------------------------------------------------------------------
+
+-- The site table — every rule that moves a subterm, with its verdict —
+-- is Commentary.md § proof/ShiftAudit.agda / §1.
+
+------------------------------------------------------------------------
+-- §2  PEEL — the crossing argument's frame is the EXTERIOR ITSELF
+------------------------------------------------------------------------
+
+-- Before: `Δ`.  After: the dual's interior, which `dual-interior` says
+-- is `Δ`.  EXACT, and the rule carries W verbatim.
+Peel-frame : ∀ {Γᵢ : Ctxᵗ} (Θ : Boundary) (Γ : Ctxᵗ)
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → Γᵢ ⊢ⁱ dual Θ ⇒ Γ
+Peel-frame Θ Γ = dual-interior
+
+-- … and Peel allocates nothing, so its siblings do not move either.
+Peel-no-alloc : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Value V → Value W
+  → Δ ⊢ᶜ Θ ⇒ Δᶜ → Δ ⊢ⁱ Θ ⇒ Δᵢ
+  → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
+  → Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
+      -→ (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ∣ none
+Peel-no-alloc = Peel
+
+------------------------------------------------------------------------
+-- §3  THE TWO TYPEELR CLAUSES, AND TYBETA
+------------------------------------------------------------------------
+
+-- THE Λ CLAUSE MOVES NOTHING: the allocation REFINES `N`'s own `abstR`
+-- binder to `bindR R` in place and `inst Θ` restores its ordinary name
+-- at position 0.  Criterion (ii), no renaming at all.
+TyPeelR-Λ-restores-name-0 : (Θ : Boundary)
+  → ∃[ χ ] ((inst Θ) ≡ χ ++ (bind 0 0 ∷ []))
+TyPeelR-Λ-restores-name-0 Θ = _ , refl
+
+-- TyBeta is the same refinement one `∀` out: the fresh cell is allocated
+-- at index 0 and `inst []` gives it ordinary name 0.
+TyBeta-restores-name-0 :
+  (inst []) ≡ bind 0 0 ∷ []
+TyBeta-restores-name-0 = refl
+
+-- THE WRAPPER CLAUSE.  The moved boundary crosses one fresh cell and
+-- one fresh ordinary name, and its appended `unbind 0 0` deletes that
+-- name again — so the move is the plain SIBLING SHIFT.
+-- Commentary.md § proof/ShiftAudit.agda / §3
+TyPeelR-⟪⟫-move-ordinary : (ρ : Renameᵗ) (L : Term) (B A : Ty)
+  → renᴹᴿ ρ (L ·[ B , A ]) ≡ renᴹᴿ ρ L ·[ B , A ]
+TyPeelR-⟪⟫-move-ordinary ρ L B A = refl
+
+TyPeelR-⟪⟫-move-conversion : (ρ : Renameᵗ) (M : Term) (Θ : Boundary)
+  (c : Conv) → renᴹᴿ ρ (M ⟪ Θ , c ⟫) ≡ renᴹᴿ ρ M ⟪ renᴮᴿ ρ Θ , c ⟫
+TyPeelR-⟪⟫-move-conversion ρ M Θ c = refl
+
+-- The appended unbind names ordinary position 0 and the cell just
+-- minted; it is APPENDED, so it acts FIRST.  The rule writes that snoc
+-- itself, so there is nothing left here to state.
+
+------------------------------------------------------------------------
+-- §4  TERMINATION — THE TOWER MEASURE
+------------------------------------------------------------------------
+
+-- The wrapper clause's contractum is again a redex; the measure — the
+-- number of nested boundaries above the `Λ` — says why that is not a
+-- regress.  Commentary.md § proof/ShiftAudit.agda / §4
+towerHeight : Term → ℕ
+towerHeight (` x)          = 0
+towerHeight ($ n)          = 0
+towerHeight `true          = 0
+towerHeight `false         = 0
+towerHeight (ƛ A ∙ N)      = 0
+towerHeight (L · M)        = 0
+towerHeight (Λ N)          = 0
+towerHeight (L ·[ B , A ]) = 0
+towerHeight (M ⟪ Θ , c ⟫)  = suc (towerHeight M)
+
+-- No renaming changes it — which is what makes the measure usable at all,
+-- since both candidate repairs rename the moved value.
+towerHeight-renᴹᴿ : (ρ : Renameᵗ) (M : Term)
+  → towerHeight (renᴹᴿ ρ M) ≡ towerHeight M
+towerHeight-renᴹᴿ ρ (` x)          = refl
+towerHeight-renᴹᴿ ρ ($ n)          = refl
+towerHeight-renᴹᴿ ρ `true          = refl
+towerHeight-renᴹᴿ ρ `false         = refl
+towerHeight-renᴹᴿ ρ (ƛ A ∙ N)      = refl
+towerHeight-renᴹᴿ ρ (L · M)        = refl
+towerHeight-renᴹᴿ ρ (Λ N)          = refl
+towerHeight-renᴹᴿ ρ (L ·[ B , A ]) = refl
+towerHeight-renᴹᴿ ρ (M ⟪ Θ , c ⟫)  =
+  cong suc (towerHeight-renᴹᴿ ρ M)
+
+-- … and neither does the sibling shift, at either `Alloc`.
+towerHeight-↑ᴹ : (δ : Alloc) (M : Term)
+  → towerHeight (↑ᴹ[ δ ] M) ≡ towerHeight M
+towerHeight-↑ᴹ none    M = refl
+towerHeight-↑ᴹ (new R) M = towerHeight-renᴹᴿ suc M
+
+-- THE MEASURE STRICTLY DECREASES.  The ∀-value the contractum's inner
+-- `·[]` instantiates is ONE BOUNDARY SHORTER than the one the redex's
+-- `·[]` instantiated.
+TyPeelR-⟪⟫-height : (W : Term) (Θ′ Θ : Boundary) (s′ s″ s : Conv)
+  → towerHeight (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
+      ≡ towerHeight ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ∸ 1
+TyPeelR-⟪⟫-height W Θ′ Θ s′ s″ s =
+  cong suc (towerHeight-renᴹᴿ suc W)
+
+-- THE REJECTED REPAIR STALLS AT THE SAME MEASURE: fix (a) MINTS a
+-- boundary where the installed clause CONSUMES one.
+fixA-height-stalls : (V : Term) (Θ : Boundary) (s : Conv) (Bᵢ : Ty)
+  → towerHeight (renᴹᴿ suc V
+                   ⟪ (unbind 0 0 ∷ []) , mkId (`∀ Bᵢ) ⟫)
+      ≡ towerHeight (V ⟪ Θ , `∀ s ⟫)
+fixA-height-stalls V Θ s Bᵢ = cong suc (towerHeight-renᴹᴿ suc V)
+
+-- AND IT IS SELF-FEEDING: an identity conversion at a `∀` is
+-- necessarily `` `∀ ``, hence INERT, hence the wrapped value under
+-- `·[ … ]` is itself a TyPeelR redex.
+mkId-∀ : (B : Ty) → mkId (`∀ B) ≡ `∀ (mkId B)
+mkId-∀ B = refl
+
+mkId-∀-inert : (B : Ty) → Inert (mkId (`∀ B))
+mkId-∀-inert B = I-all
+
+-- Values and inertness survive the renamings the rules perform.
+-- (`inert-renᶜ`, `value-renᴹ²`, `value-renᴹᴿ` moved to
+-- strong-rep-store.proof.TermSubst §2.)
+value-↑ᴹ : ∀ {M} (δ : Alloc) → Value M → Value (↑ᴹ[ δ ] M)
+value-↑ᴹ none    v = v
+value-↑ᴹ (new R) v = value-renᴹᴿ suc v
+
+-- WHERE THE DESCENT STOPS: a `∀`-value of tower height 0 is a `Λ`, so
+-- the run is `height − 1` wrapper steps then one `TyPeelR-Λ` step.
+canon-∀-height : ∀ {Δ V C} → Value V → Δ ∣ [] ⊢ V ⦂ `∀ C
+  → towerHeight V ≡ 0
+  → Σ[ N ∈ Term ] (Value N × (V ≡ Λ N))
+canon-∀-height v ⊢V eq with canon-∀ v ⊢V
+canon-∀-height v ⊢V eq | inj₁ p = p
+canon-∀-height v ⊢V ()
+    | inj₂ (W , Θ′ , s′ , vW , refl)
+
+-- … stated as the progress clause it decides, against the LIVE relation.
+-- At tower height 0 the step is `TyPeelR-Λ`, which ALLOCATES the cell for
+-- the type argument's representation — the contractum is named, and so is
+-- the change.
+progress-Λ-at-0 : ∀ {Δ Δᶜ V Θ s B A R C} → Value V
+  → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
+  → Δ ⊢ᶜ Θ ⇒ Δᶜ
+  → Δ ⊢ᶜ A ~ R
+  → towerHeight V ≡ 0
+    ----------------------------------------------------------------
+  → Σ[ N ∈ Term ]
+      ((V ≡ Λ N)
+       × (Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
+            -→ N ⟪ inst Θ , instReveal 0 s ⟫ ∣ new R))
+progress-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) wA) rc pA eq
+  with conv-all-inv ⊢c
+progress-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) wA) rc pA eq
+  | A₀ , B₀ , refl , eqₑ , ⊢s with smᵢ
+progress-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) wA) rc pA eq
+  | A₀ , B₀ , refl , eqₑ , ⊢s | _ , same-∀ pᵢ , same-∀ qᵢ
+  with conversion-functional (bw-conversion mwᵥ) rc
+progress-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) wA) rc pA eq
+  | A₀ , B₀ , refl , eqₑ , ⊢s | _ , same-∀ pᵢ , same-∀ qᵢ | refl
+  with canon-∀-height v ⊢V eq
+progress-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) wA) rc pA eq
+  | A₀ , B₀ , refl , eqₑ , ⊢s | _ , same-∀ pᵢ , same-∀ qᵢ | refl
+  | N , vN , refl = N , refl , TyPeelR-Λ vN rc ⊢s pA
+
+------------------------------------------------------------------------
+-- §5  BETA — the two crossings do not interfere
+------------------------------------------------------------------------
+
+-- THE `ƛ` CLAUSE.  A `ƛ` binds a TERM variable, so `shiftᴵ` must not
+-- touch the type side; on a value image it is the IDENTITY, which is
+-- correct because a value image is TERM-CLOSED and stays so.
+Beta-ƛ-no-shift : ∀ {W A} → shiftᴵ (ival W A) ≡ ival W A
+Beta-ƛ-no-shift = refl
+
+Beta-ƛ-crossed-no-shift : ∀ {W A} → shiftᴵ (⇑ᴵ (ival W A)) ≡ ⇑ᴵ (ival W A)
+Beta-ƛ-crossed-no-shift = refl
+
+-- … and the two crossings DO NOT INTERFERE (design law: simultaneity).
+-- Crossing a `ƛ` then a `Λ` is crossing a `Λ` then a `ƛ`, on the nose,
+-- for EVERY image — which is what makes the two clauses of `substᵐ`
+-- independent.
+⇑ᴵ-shiftᴵ-comm : (i : Img) → ⇑ᴵ (shiftᴵ i) ≡ shiftᴵ (⇑ᴵ i)
+⇑ᴵ-shiftᴵ-comm (ivar x)   = refl
+⇑ᴵ-shiftᴵ-comm (ival W A) = refl
+
+-- THE `Λ` CROSSING IS REP-ONLY, AND ITS UNBIND IS WHAT MAKES IT SO: the
+-- wrapper's `unbind 0 0` deletes the ordinary name the `Λ` just bound.
+Beta-Λ-crossing : ∀ {W A}
+  → ⇑ᴵ (ival W A)
+      ≡ ival (renᴹ² (ren² idᵗ suc) W
+                ⟪ (unbind 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+             (⇑ᵗ A)
+Beta-Λ-crossing = refl
+
+-- Beta allocates nothing: the substitution moves no representation.
+Beta-no-alloc : ∀ {Δ A N W} → Value W
+  → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ A ]ᵐ ∣ none
+Beta-no-alloc = Beta
+
+------------------------------------------------------------------------
+-- §6  CANCELR / IDPUSH — the merged frame is exact
+------------------------------------------------------------------------
+
+-- THE ONE FRAME LEFT (the one V lives in) is preserved ON THE NOSE: the
+-- merged frame's interior IS the inner frame's own.  Θ₂'s changes travel
+-- inward and the surviving boundary REAPPLIES them, so the contractum is
+-- one layer, not two, and the redex's outer conversion is not
+-- transported — it is cancelled (`CancelR`) or re-read on the merge
+-- (`IdPush`).
+Move-inner-frame : ∀ {Γ Γᵢ Γ₁ᵢ : Ctxᵗ} (Θ₁ Θ₂ : Boundary)
+  → Γ ⊢ⁱ Θ₂ ⇒ Γᵢ
+  → Γᵢ ⊢ⁱ Θ₁ ⇒ Γ₁ᵢ
+  → Γ ⊢ⁱ Θ₁ ++ Θ₂ ⇒ Γ₁ᵢ
+Move-inner-frame Θ₁ Θ₂ = merged-interior
+
+-- V is not renamed at all — it retypes exactly where it was.
+
+------------------------------------------------------------------------
+-- §7  THE DROP RULES — the frame change in the OTHER direction, and why
+--     it is vacuous
+------------------------------------------------------------------------
+
+-- The new frame can be STRICTLY MORE NAMEABLE, which the criterion also
+-- forbids — but a literal names no type variable at all.
+-- Commentary.md § proof/ShiftAudit.agda / §7
+Drop$-vacuous : (n : ℕ) (Δ : Ctxᵗ) (Γ : Ctx) → Δ ∣ Γ ⊢ ($ n) ⦂ `ℕ
+Drop$-vacuous n Δ Γ = ⊢$
+
+Drop-true-vacuous : (Δ : Ctxᵗ) (Γ : Ctx) → Δ ∣ Γ ⊢ `true ⦂ `𝔹
+Drop-true-vacuous Δ Γ = ⊢true
+
+Drop-false-vacuous : (Δ : Ctxᵗ) (Γ : Ctx) → Δ ∣ Γ ⊢ `false ⦂ `𝔹
+Drop-false-vacuous Δ Γ = ⊢false
+
+-- AND NO OTHER TERM CAN TAKE THE STEP: the rule's left-hand side is
+-- the LITERAL ITSELF, and a closed value at a base type IS a literal.
+Drop$-only-numerals : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ
+  → (∀ {n Θ A} → M ≡ ($ n) ⟪ Θ , id A ⟫ → M′ ≡ $ n)
+Drop$-only-numerals (TyBeta v p)            ()
+Drop$-only-numerals (Beta w)                ()
+Drop$-only-numerals (Peel v w rc ri rd sc)  ()
+Drop$-only-numerals (TyPeelR-Λ v rc ⊢s p)   ()
+Drop$-only-numerals (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm p) ()
+Drop$-only-numerals (CancelR v ri r₁ d₁ r⋉ sm) ()
+Drop$-only-numerals (Drop$ b)               refl = refl
+Drop$-only-numerals Drop-true               ()
+Drop$-only-numerals Drop-false              ()
+Drop$-only-numerals (IdPush v ri r₁ r⋉ sm) ()
+Drop$-only-numerals (ξ-·-l st)              ()
+Drop$-only-numerals (ξ-·-r v st)            ()
+Drop$-only-numerals (ξ-·[] st)              ()
+Drop$-only-numerals (ξ-⟪⟫ ri st)            refl =
+  ⊥-elim (numeral-¬step st)
+  where
+  numeral-¬step : ∀ {Δ n M′ δ} → Δ ⊢ ($ n) -→ M′ ∣ δ → ⊥
+  numeral-¬step ()
+
+------------------------------------------------------------------------
+-- §8  THE ξ RULES — the sibling shift IS the context move
+------------------------------------------------------------------------
+
+-- Each congruence reduces a subterm IN PLACE, at the very type context
+-- the corresponding TYPING rule reads it on.  For ξ-⟪⟫ that is not an
+-- equation: it CARRIES the interior reading `env` carries, so the two
+-- are identified by `interior-functional`.
+-- Commentary.md § proof/ShiftAudit.agda / §8
+ξ-⟪⟫-frame : ∀ {Γ Γᵢ Γᵢ′ : Ctxᵗ} {Θ : Boundary}
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ → Γ ⊢ⁱ Θ ⇒ Γᵢ′ → Γᵢ ≡ Γᵢ′
+ξ-⟪⟫-frame = interior-functional
+
+-- THE NEW OBLIGATION OF THE STORE: the sibling must move by EXACTLY
+-- the move the context made.  Both are read off the same `Alloc`, so it
+-- holds definitionally at both.
+ξ-shift-none : (M : Term) (Θ : Boundary) (Δ : Ctxᵗ)
+  → (↑ᴹ[ none ] M ≡ M) × (↑ᴮ[ none ] Θ ≡ Θ) × (apply none Δ ≡ Δ)
+ξ-shift-none M Θ Δ = refl , refl , refl
+
+ξ-shift-new : (R : Ty) (M : Term) (Θ : Boundary) (Δ : Ctxᵗ)
+  → (↑ᴹ[ new R ] M ≡ renᴹᴿ suc M)
+    × (↑ᴮ[ new R ] Θ ≡ renᴮᴿ suc Θ)
+    × (apply (new R) Δ ≡ (bindR R ∷ reps Δ) ∣ map suc (names Δ))
+ξ-shift-new R M Θ Δ = refl , refl , refl
+
+-- … and the reading of the shifted scope at the shifted context is the
+-- shifted reading: `interior-ren` at `suc`, cited not restated.
+
+------------------------------------------------------------------------
+-- §9  DEAD SHIFT MACHINERY
+------------------------------------------------------------------------
+
+-- `shiftᵐ` and `canon-shiftᵐ` have NO CONSUMERS; `renⁿ` itself is LIVE.
+-- Recorded, not deleted: an audit proposes, it does not land.
+-- Commentary.md § proof/ShiftAudit.agda / §9
+shiftᵐ-is-renⁿ : (M : Term) → shiftᵐ M ≡ renⁿ suc M
+shiftᵐ-is-renⁿ M = refl

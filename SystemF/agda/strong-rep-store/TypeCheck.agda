@@ -89,7 +89,7 @@ lookupˡ? (x ∷ xs) (suc i) | just (y , d) = just (y , there d)
 lookupˡ? (x ∷ xs) (suc i) | nothing      = nothing
 
 -- Where a representation variable currently sits, if it is live at all.
--- This is what the re-unlock clause of `_∣_⊢χᶜ_⇒_` needs.
+-- This is what the re-bind clause of `_∣_⊢χᶜ_⇒_` needs.
 find? : (Δ : TyCtx) (α : RVar) → Maybe (∃[ X ] Δ ∋ˡ X := α)
 find? []      α = nothing
 find? (β ∷ Δ) α with α ≟ β
@@ -152,22 +152,22 @@ validNames? Ξ (α ∷ Δ) | just (b , d) | just h =
 
 runδ : (Ξ : RepCtx) (Δ : TyCtx) (δ : Change)
   → Maybe (∃[ Δ′ ] Ξ ∣ Δ ⊢δ δ ⇒ Δ′)
-runδ Ξ Δ (lock X α) with validRVar? Ξ α
-runδ Ξ Δ (lock X α) | nothing = nothing
-runδ Ξ Δ (lock X α) | just v  with del? α Δ X
-runδ Ξ Δ (lock X α) | just v  | nothing = nothing
-runδ Ξ Δ (lock X α) | just v  | just (Δ′ , d) with fresh? α Δ′
-runδ Ξ Δ (lock X α) | just v  | just (Δ′ , d) | nothing = nothing
-runδ Ξ Δ (lock X α) | just v  | just (Δ′ , d) | just f =
-  just (Δ′ , step-lock v d f)
-runδ Ξ Δ (unlock X α) with validRVar? Ξ α
-runδ Ξ Δ (unlock X α) | nothing = nothing
-runδ Ξ Δ (unlock X α) | just v  with fresh? α Δ
-runδ Ξ Δ (unlock X α) | just v  | nothing = nothing
-runδ Ξ Δ (unlock X α) | just v  | just f with ins? α Δ X
-runδ Ξ Δ (unlock X α) | just v  | just f | nothing = nothing
-runδ Ξ Δ (unlock X α) | just v  | just f | just (Δ′ , i) =
-  just (Δ′ , step-unlock v f i)
+runδ Ξ Δ (unbind X α) with validRVar? Ξ α
+runδ Ξ Δ (unbind X α) | nothing = nothing
+runδ Ξ Δ (unbind X α) | just v  with del? α Δ X
+runδ Ξ Δ (unbind X α) | just v  | nothing = nothing
+runδ Ξ Δ (unbind X α) | just v  | just (Δ′ , d) with fresh? α Δ′
+runδ Ξ Δ (unbind X α) | just v  | just (Δ′ , d) | nothing = nothing
+runδ Ξ Δ (unbind X α) | just v  | just (Δ′ , d) | just f =
+  just (Δ′ , step-unbind v d f)
+runδ Ξ Δ (bind X α) with validRVar? Ξ α
+runδ Ξ Δ (bind X α) | nothing = nothing
+runδ Ξ Δ (bind X α) | just v  with fresh? α Δ
+runδ Ξ Δ (bind X α) | just v  | nothing = nothing
+runδ Ξ Δ (bind X α) | just v  | just f with ins? α Δ X
+runδ Ξ Δ (bind X α) | just v  | just f | nothing = nothing
+runδ Ξ Δ (bind X α) | just v  | just f | just (Δ′ , i) =
+  just (Δ′ , step-bind v f i)
 
 -- The tail acts first (head-LAST order, strong-rep-store.Boundary §2).
 runχ : (Ξ : RepCtx) (Δ : TyCtx) (χ : List Change)
@@ -180,33 +180,33 @@ runχ Ξ Δ (δ ∷ χ) | just (Δ₂ , cs) | nothing = nothing
 runχ Ξ Δ (δ ∷ χ) | just (Δ₂ , cs) | just (Δ₃ , st) =
   just (Δ₃ , changes∷ cs st)
 
--- The conversion reading: a `lock` is skipped, and an `unlock` of a name
--- the skipped locks left live is a no-op (strong-rep-store.Boundary §3).
+-- The conversion reading: an `unbind` is skipped, and a `bind` of a name
+-- the skipped unbinds left live is a no-op (strong-rep-store.Boundary §3).
 runχᶜ : (Ξ : RepCtx) (Δ : TyCtx) (χ : List Change)
   → Maybe (∃[ Δ′ ] Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′)
 runχᶜ Ξ Δ [] = just (Δ , conv[])
-runχᶜ Ξ Δ (lock X α ∷ χ) with validRVar? Ξ α
-runχᶜ Ξ Δ (lock X α ∷ χ) | nothing = nothing
-runχᶜ Ξ Δ (lock X α ∷ χ) | just v with runχᶜ Ξ Δ χ
-runχᶜ Ξ Δ (lock X α ∷ χ) | just v | nothing = nothing
-runχᶜ Ξ Δ (lock X α ∷ χ) | just v | just (Δ₂ , cs) =
-  just (Δ₂ , conv-lock v cs)
-runχᶜ Ξ Δ (unlock X α ∷ χ) with validRVar? Ξ α
-runχᶜ Ξ Δ (unlock X α ∷ χ) | nothing = nothing
-runχᶜ Ξ Δ (unlock X α ∷ χ) | just v with runχᶜ Ξ Δ χ
-runχᶜ Ξ Δ (unlock X α ∷ χ) | just v | nothing = nothing
-runχᶜ Ξ Δ (unlock X α ∷ χ) | just v | just (Δ₂ , cs) with fresh? α Δ₂
-runχᶜ Ξ Δ (unlock X α ∷ χ) | just v | just (Δ₂ , cs) | just f
+runχᶜ Ξ Δ (unbind X α ∷ χ) with validRVar? Ξ α
+runχᶜ Ξ Δ (unbind X α ∷ χ) | nothing = nothing
+runχᶜ Ξ Δ (unbind X α ∷ χ) | just v with runχᶜ Ξ Δ χ
+runχᶜ Ξ Δ (unbind X α ∷ χ) | just v | nothing = nothing
+runχᶜ Ξ Δ (unbind X α ∷ χ) | just v | just (Δ₂ , cs) =
+  just (Δ₂ , conv-unbind v cs)
+runχᶜ Ξ Δ (bind X α ∷ χ) with validRVar? Ξ α
+runχᶜ Ξ Δ (bind X α ∷ χ) | nothing = nothing
+runχᶜ Ξ Δ (bind X α ∷ χ) | just v with runχᶜ Ξ Δ χ
+runχᶜ Ξ Δ (bind X α ∷ χ) | just v | nothing = nothing
+runχᶜ Ξ Δ (bind X α ∷ χ) | just v | just (Δ₂ , cs) with fresh? α Δ₂
+runχᶜ Ξ Δ (bind X α ∷ χ) | just v | just (Δ₂ , cs) | just f
   with ins? α Δ₂ X
-runχᶜ Ξ Δ (unlock X α ∷ χ) | just v | just (Δ₂ , cs) | just f
-  | just (Δ₃ , i) = just (Δ₃ , conv-unlock v cs f i)
-runχᶜ Ξ Δ (unlock X α ∷ χ) | just v | just (Δ₂ , cs) | just f
+runχᶜ Ξ Δ (bind X α ∷ χ) | just v | just (Δ₂ , cs) | just f
+  | just (Δ₃ , i) = just (Δ₃ , conv-bind v cs f i)
+runχᶜ Ξ Δ (bind X α ∷ χ) | just v | just (Δ₂ , cs) | just f
   | nothing = nothing
-runχᶜ Ξ Δ (unlock X α ∷ χ) | just v | just (Δ₂ , cs) | nothing
+runχᶜ Ξ Δ (bind X α ∷ χ) | just v | just (Δ₂ , cs) | nothing
   with find? Δ₂ α
-runχᶜ Ξ Δ (unlock X α ∷ χ) | just v | just (Δ₂ , cs) | nothing
-  | just (Y , d) = just (Δ₂ , conv-unlock-live v cs d)
-runχᶜ Ξ Δ (unlock X α ∷ χ) | just v | just (Δ₂ , cs) | nothing
+runχᶜ Ξ Δ (bind X α ∷ χ) | just v | just (Δ₂ , cs) | nothing
+  | just (Y , d) = just (Δ₂ , conv-bind-live v cs d)
+runχᶜ Ξ Δ (bind X α ∷ χ) | just v | just (Δ₂ , cs) | nothing
   | nothing = nothing
 
 ------------------------------------------------------------------------

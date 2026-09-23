@@ -11,7 +11,7 @@ module strong-rep-store.Show where
 --   * THE TWO UNIVERSES PRINT DIFFERENTLY: a REPRESENTATION variable
 --     is a Greek letter (α, β, γ, α′, …) and the ORDINARY name that
 --     denotes it is the Latin letter at the same position (X, Y, Z,
---     X′, …).  A `lock` prints `↓X`, an `unlock` `↥X`, in ACTING
+--     X′, …).  An `unbind` prints `↓X`, a `bind` `↥X`, in ACTING
 --     order; the conversion is rendered on the CONVERSION context.
 --   * Driven non-interactively by scripts/render_term.sh.
 -- Commentary: Commentary.md § Show.agda
@@ -32,7 +32,7 @@ open import strong-rep-store.Terms
   using (Term; `_; $_; `true; `false; ƛ_∙_; _·_; Λ_; _·[_,_]; _⟪_,_⟫;
          _∣_⊢_⦂_)
 open import strong-rep-store.Boundary
-  using (Boundary; Change; lock; unlock)
+  using (Boundary; Change; unbind; bind)
 open import strong-rep-store.Reduction using (_⊢_-→_∣_; TyBeta; Beta; Peel;
   TyPeelR-Λ; TyPeelR-⟪⟫; CancelR; IdPush; Drop$; Drop-true; Drop-false;
   ξ-·-l; ξ-·-r; ξ-·[]; ξ-⟪⟫)
@@ -207,19 +207,19 @@ showConv ns (`∀ s)     =
 
 -- the interior reading: every change acts
 applyChI : Change → Env → Env
-applyChI (lock X α)   e = mkEnv (eReps e) (deleteAt X (eNames e))
-applyChI (unlock X α) e = mkEnv (eReps e) (insertAt X α (eNames e))
+applyChI (unbind X α)   e = mkEnv (eReps e) (deleteAt X (eNames e))
+applyChI (bind X α) e = mkEnv (eReps e) (insertAt X α (eNames e))
 
 applyChsI : List Change → Env → Env
 applyChsI []      e = e
 applyChsI (δ ∷ χ) e = applyChI δ (applyChsI χ e)
 
--- the conversion reading: a `lock` is SKIPPED, and an `unlock` of a name
--- that is already live is a no-op (`conv-unlock-live`,
+-- the conversion reading: an `unbind` is SKIPPED, and a `bind` of a name
+-- that is already live is a no-op (`conv-bind-live`,
 -- strong-rep-store.Boundary §3)
 applyChC : Change → Env → Env
-applyChC (lock X α)   e = e
-applyChC (unlock X α) e =
+applyChC (unbind X α)   e = e
+applyChC (bind X α) e =
   if memberN α (eNames e) then e
   else mkEnv (eReps e) (insertAt X α (eNames e))
 
@@ -228,8 +228,8 @@ applyChsC []      e = e
 applyChsC (δ ∷ χ) e = applyChC δ (applyChsC χ e)
 
 changePiece : Env → Change → String
-changePiece e (lock X α)   = "↓" ++ ordNm e X
-changePiece e (unlock X α) = "↥" ++ ordOf e α
+changePiece e (unbind X α)   = "↓" ++ ordNm e X
+changePiece e (bind X α) = "↥" ++ ordOf e α
 
 -- IN ACTING ORDER: the tail acts first, so it prints first.
 changePieces : Env → List Change → List String

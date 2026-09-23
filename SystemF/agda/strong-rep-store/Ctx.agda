@@ -193,7 +193,7 @@ _⊢ᶜ_~_ : Ctxᵗ → Ty → Ty → Set
 Γ ⊢ᶜ A ~ R = names Γ ⊢ A ~ R
 
 -- Two ordinary types at the same representation depth denote the same
--- representation-universe type. `lock` and `unlock` may give that type
+-- representation-universe type. `unbind` and `bind` may give that type
 -- different ordinary de Bruijn spellings.
 infix 4 _⊢_≈_⊣_
 _⊢_≈_⊣_ : Ctxᵗ → Ty → Ty → Ctxᵗ → Set
@@ -252,7 +252,7 @@ extN : ℕ → Renameᵗ → Renameᵗ
 extN zero    ρ = ρ
 extN (suc n) ρ = extᵗ (extN n ρ)
 
--- injectivity is what a `lock`'s freshness record needs
+-- injectivity is what an `unbind`'s freshness record needs
 Injᵗ : Renameᵗ → Set
 Injᵗ ρ = ∀ {α β} → ρ α ≡ ρ β → α ≡ β
 

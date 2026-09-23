@@ -80,7 +80,7 @@ becomes a corollary, not a restriction.
 CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → convCtx Θ₂ Δ ∋ Y := A
   → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
       -→ V ⟪ repsOf→bind (repsOf Θ₂) , mkId A ⟫   -- drops Θ₁'s ENTIRE frame
-                                             --   and Θ₂'s unlocks; V was
+                                             --   and Θ₂'s binds; V was
                                              --   typed in
                                              --   interior Θ₁ (interior Θ₂ Δ)
 ```
@@ -114,7 +114,7 @@ inside Θ₂'s interior — the common wall (DECISIONS "Peel FIXED and
 PROVEN; CancelR/TyPeelR/IdPush share ONE wall").  proof/WallReach.agda
 covers it: `unseal-scoped`/`cancelR-scoped` derive the needed
 `interior Θ₂ Δ ⊢ᵗ A` from `RepWf` + `MaskOnly`, and `RepWf-dual` shows every
-reachable Θ₂ satisfies `RepWf` (a Peel's locks never block a rep, no
+reachable Θ₂ satisfies `RepWf` (a Peel's unbinds never block a rep, no
 side condition).  So these cases discharge OVER THE INVARIANT — not over
 a rule premise Progress would have to supply — and the remaining debt
 for that route is the Θ₂-`RepWf` term-level induction (its mint

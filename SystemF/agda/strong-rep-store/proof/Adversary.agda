@@ -3,7 +3,7 @@ module strong-rep-store.proof.Adversary where
 -- File Charter:
 --   * THE SOUNDNESS GATE, and the adversaries of the previous design,
 --     refuted.  §1 the gate; §2 the abstract-slot adversary; §2b the
---     locked-name adversary, new on this branch; §3 `bad`, two
+--     unbound-name adversary, new on this branch; §3 `bad`, two
 --     spellings of one fact; §4 cancel's type equation.
 --   * A CONCEAL MUST CITE A REPRESENTED BINDER — a one-line inversion
 --     of `conv-seal`.  With two universes `Δ ∋ X := A` is a SQUARE, so
@@ -63,14 +63,14 @@ seal-cites-representation (conv-seal d) = d
 ¬seal-adv : ∀ {A B} → Δadv ⊢ seal 0 ∶ A ⇝ B → ⊥
 ¬seal-adv (conv-seal d) = ¬know-adv d
 
--- The boundary scope the adversary used to hide behind: it locks the very name
--- its conversion cites.  A conversion context SKIPS a lock, so the lock
+-- The boundary scope the adversary used to hide behind: it unbinds the very name
+-- its conversion cites.  A conversion context SKIPS an unbind, so the unbind
 -- buys nothing — the seal is still read where the slot is abstract.
 Θadv : Boundary
-Θadv = (lock 0 zero ∷ [])
+Θadv = (unbind 0 zero ∷ [])
 
 conv-Θadv : ∀ {Δᶜ} → Δadv ⊢ᶜ Θadv ⇒ Δᶜ → Δᶜ ≡ Δadv
-conv-Θadv (conversion (conv-lock valid conv[])) = refl
+conv-Θadv (conversion (conv-unbind valid conv[])) = refl
 
 ¬⊢adv : ∀ {Γ} → ¬ (Δadv ∣ Γ ⊢ ($ 7) ⟪ Θadv , seal 0 ⟫ ⦂ ` 0)
 ¬⊢adv (env mwᵥ ⊢M ⊢c smᵢ smₑ wE)
@@ -78,10 +78,10 @@ conv-Θadv (conversion (conv-lock valid conv[])) = refl
 ... | refl = ¬seal-adv ⊢c
 
 ------------------------------------------------------------------------
--- 2b.  THE SECOND GATE, NEW ON THIS BRANCH: a conceal at a LOCKED name
+-- 2b.  THE SECOND GATE, NEW ON THIS BRANCH: a conceal at a UNBOUND name
 ------------------------------------------------------------------------
 
--- A lock DELETES the ordinary name, so a seal at a name the interior
+-- An unbind DELETES the ordinary name, so a seal at a name the interior
 -- lost is refused by the NAME half of the square.
 
 Δlk : Ctxᵗ

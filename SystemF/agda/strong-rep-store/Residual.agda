@@ -170,7 +170,7 @@ data ImageResidual : ℕ → Img → TermCtx → Term → Renameᵗ → TermCtx
   image-Λ : ∀ {k V C M D N}
     → ImageResidual k (ival V A) C M ρ D N
     → ImageResidual (suc k) (⇑ᴵ (ival V A)) C M (holeᴿ suc D ∘ ρ)
-        (renCtxᴿ suc D ⟪C (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+        (renCtxᴿ suc D ⟪C (unbind 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
         (renᴹᴿ (holeᴿ suc D) N)
 
 -- Positions inside a copy of the argument, followed through the body to
@@ -248,7 +248,7 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
         ((V ·R (C ⟪C dual Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
 
   -- TyPeelR-Λ: as TyBeta, one boundary in — the body's `Λ` slot becomes
-  -- the allocated cell the instantiated scope unlocks.
+  -- the allocated cell the instantiated scope binds.
   residual-TyPeelR-Λ : ∀ {Δᶜ C M s R Bᵢ Bₑ}
     (vN : Value (plug C M))
     (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (⊢s : underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ)
@@ -265,7 +265,7 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
     (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ) (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ)
     (rc′ : Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ)
     (ri⁺ : allocate R Δ ⊢ⁱ inst Θ ⇒ Δᵢ⁺)
-    (rc″ : Δᵢ⁺ ⊢ᶜ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) ⇒ Δ″ᶜ)
+    (rc″ : Δᵢ⁺ ⊢ᶜ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) ⇒ Δ″ᶜ)
     (sc : SameConv (underΛ Δ″ᶜ) s″
             (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′)
     (⊢s : underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ)
@@ -275,7 +275,7 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
                  vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA)
         (((C ⟪C Θ′ , `∀ s′ ⟫) ⟪C Θ , `∀ s ⟫) ·C[ B , A ]) M
         (holeᴿ suc C)
-        (((renCtxᴿ suc C ⟪C (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
+        (((renCtxᴿ suc C ⟪C (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
             ·C[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
            ⟪C inst Θ , instReveal 0 s ⟫)
         (renᴹᴿ (holeᴿ suc C) M)

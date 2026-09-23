@@ -7,8 +7,8 @@ module strong-rep-store.proof.MoveScope where
 --     PROVED on the rule repaired 2026-09-19.
 --   * THE MOVE.  Both rules neutralise the OUTER conversion, so the
 --     surviving boundary starts presenting Y's REPRESENTATION — which
---     inside Θ₂'s locks need not be nameable.  So the frames move too:
---     the merge `Θ₁ ++ Θ₂` presents it OUTSIDE Θ₂'s locks.
+--     inside Θ₂'s unbinds need not be nameable.  So the frames move too:
+--     the merge `Θ₁ ++ Θ₂` presents it OUTSIDE Θ₂'s unbinds.
 --   * The readings the contractum needs are theorems of
 --     strong-rep-store.Boundary §3a (`merged-interior`); the MERGED
 --     frame's conversion context is not, so both rules carry it as a
@@ -61,7 +61,7 @@ var-inj refl = refl
 ------------------------------------------------------------------------
 
 -- The surviving boundary is the revealing one, so its exterior type
--- becomes the redex's own C, presented OUTSIDE Θ₂'s locks — at the plain
+-- becomes the redex's own C, presented OUTSIDE Θ₂'s unbinds — at the plain
 -- exterior Δ, so C is nameable there.  That retires the old wall: the
 -- case needs no scoping invariant.
 -- The four moves, one per premise of the `env`:

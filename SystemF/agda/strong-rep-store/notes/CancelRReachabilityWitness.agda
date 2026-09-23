@@ -44,7 +44,7 @@ module strong-rep-store.notes.CancelRReachabilityWitness where
 -- when the boundary was minted by `TyPeelR`: its conversion is
 -- `instReveal 0 s` on `inst R Θ₀`, and
 -- `instReveal X (seal Y) ≡ seal Y`, so a `seal` leaf of the crossed
--- `∀`-conversion survives onto a scope that unlocks one more cell than
+-- `∀`-conversion survives onto a scope that binds one more cell than
 -- the scope it crossed (before the store: `suc (numBinds Θ₀)` binds).
 --
 -- Both fire in this run, in that order (steps 7 and 8).  The `seal` leaf
@@ -114,7 +114,7 @@ seal-survives-instReveal = refl
 -- is what `numBinds (inst R Θ) ≡ suc (numBinds Θ)` said before
 -- the store moved the bind onto the ambient context.)
 inst-names-the-cell :
-  inst [] ≡ (unlock 0 0 ∷ [])
+  inst [] ≡ (bind 0 0 ∷ [])
 inst-names-the-cell = refl
 
 -- whereas `Peel`'s ARGUMENT frame — the one the wall module looked at —
@@ -139,7 +139,7 @@ dual-keeps-the-store = interior-reps
 --        at `X` UNDER a `∀` and to the RIGHT of an `⇒`, which is the one
 --        way a `seal` leaf reaches the codomain of a `↦` under a `` `∀ ``.
 --        `f [ℕ]` then fires `TyPeelR-Λ` (carrying that leaf onto a scope
---        that unlocks a freshly allocated cell) and `· 7` fires `Peel`
+--        that binds a freshly allocated cell) and `· 7` fires `Peel`
 --        (installing it as the boundary's own conversion).  That is the
 --        name-map disagreement of §5 (i) — before the store,
 --        `numBinds Θ₁ ≡ 1`.
@@ -207,14 +207,14 @@ Src-run = reaches-run Src-eval
 -- `↑β:=α`, `↑α:=ℕ`.)
 
 Θout Θ₁ Θ₂ : Boundary
-Θout = (unlock 0 2 ∷ [])
-Θ₁   = (lock 1 1 ∷ unlock 0 0 ∷ [])
-Θ₂   = (unlock 0 1 ∷ [])
+Θout = (bind 0 2 ∷ [])
+Θ₁   = (unbind 1 1 ∷ bind 0 0 ∷ [])
+Θ₂   = (bind 0 1 ∷ [])
 
--- the cancelled value: 7 under two lock-only, bind-free layers
+-- the cancelled value: 7 under two unbind-only, bind-free layers
 Vcr : Term
-Vcr = (($ 7) ⟪ (lock 0 2 ∷ []) , seal 0 ⟫)
-        ⟪ (lock 0 0 ∷ []) , id (` 1) ⟫
+Vcr = (($ 7) ⟪ (unbind 0 2 ∷ []) , seal 0 ⟫)
+        ⟪ (unbind 0 0 ∷ []) , id (` 1) ⟫
 
 Redex Contractum : Term
 Redex      = ((Vcr ⟪ Θ₁ , seal 1 ⟫) ⟪ Θ₂ , unseal 0 ⟫) ⟪ Θout , unseal 0 ⟫

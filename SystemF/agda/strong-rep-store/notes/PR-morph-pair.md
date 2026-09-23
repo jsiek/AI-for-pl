@@ -9,12 +9,12 @@ Gate: `make -C SystemF/agda/strong check` passes, cold, exit 0
 Jeremy's ruling (2026-09-06): the boundary's boundary scope is not one
 interleaved list.  Its two halves are different kinds of thing —
 **binds are PARALLEL** (a block of binders whose representations are read
-outside all of them) and **lock/unlock are SEQUENTIAL** — so the type
+outside all of them) and **unbind/bind are SEQUENTIAL** — so the type
 now says so.
 
 ```agda
 data Change : Set where
-  lock unlock : ℕ → Change          -- EXTERIOR indices, name only
+  unbind bind : ℕ → Change          -- EXTERIOR indices, name only
 
 record Boundary : Set where
   constructor boundary
@@ -28,8 +28,8 @@ Field names are Jeremy's (`binds` / `changes`); the constructor is
 `Design.md` and the lemma names use them:
 
 ```agda
-applyChanges : List Change → Ctxᵗ → Ctxᵗ    -- locks AND unlocks, head-last
-applyUnlocks : List Change → Ctxᵗ → Ctxᵗ    -- unlocks only (locks skipped)
+applyChanges : List Change → Ctxᵗ → Ctxᵗ    -- unbinds AND binds, head-last
+applyUnlocks : List Change → Ctxᵗ → Ctxᵗ    -- binds only (unbinds skipped)
 
 scope         Θ Δ = applyChanges (changes Θ) Δ
 unlockedScope Θ Δ = applyUnlocks (changes Θ) Δ
@@ -61,8 +61,8 @@ data _⊢ʳ_ : Ctxᵗ → List Ty → Set where        -- the PARALLEL reps
 
 data _⊢ˢ_ : Ctxᵗ → List Change → Set where    -- the SEQUENTIAL changes
   sw[] : Δ ⊢ˢ []
-  sw-l : applyChanges S Δ ∋tv X → Δ ⊢ˢ S → Δ ⊢ˢ (lock X ∷ S)
-  sw-u : applyChanges S Δ ∋lk X → Δ ⊢ˢ S → Δ ⊢ˢ (unlock X ∷ S)
+  sw-l : applyChanges S Δ ∋tv X → Δ ⊢ˢ S → Δ ⊢ˢ (unbind X ∷ S)
+  sw-u : applyChanges S Δ ∋lk X → Δ ⊢ˢ S → Δ ⊢ˢ (bind X ∷ S)
 
 record _⊢ᵐ_ (Δ : Ctxᵗ) (Θ : Boundary) : Set where
   constructor bw
@@ -74,10 +74,10 @@ record _⊢ᵐ_ (Δ : Ctxᵗ) (Θ : Boundary) : Set where
 ## The one semantic change
 
 The interleaved list read a bind's representation past **its own tail's**
-unlocks (`mw-b : unlockedScope Θ′ Δ ⊢ᵗ A → … → Δ ⊢ᵐ (bind A ∷ Θ′)`).  The
+binds (`mw-b : unlockedScope Θ′ Δ ⊢ᵗ A → … → Δ ⊢ᵐ (bind A ∷ Θ′)`).  The
 pair reads **every** representation past the **whole** change list.  This
 is the one thing the refactor changes about what is derivable, and it is
-strictly **more permissive** — a rep may now name a slot that an unlock
+strictly **more permissive** — a rep may now name a slot that a bind
 *to its left in the old list* re-exposed.  It is also the point: a
 parallel block has no left and no right.
 
@@ -86,15 +86,15 @@ Consequences observed, in full:
 * **No `⊢ᵐ` derivation in the development needed the tighter reading, and
   none needed the looser one.**  Exactly one boundary scope in the whole tree
   had a change to the left of a bind under the old order —
-  `rewind Θ₆ = lock 0 ∷ bind (` 0) ∷ unlock 0 ∷ []` in
+  `rewind Θ₆ = unbind 0 ∷ bind (` 0) ∷ bind 0 ∷ []` in
   `proof/MwUObstruct` §4 — and there the two readings *coincide*, because
-  the entry to the left is a `lock` and `applyUnlocks` skips locks.
+  the entry to the left is an `unbind` and `applyUnlocks` skips unbinds.
   Every other boundary scope has all its binds before all its changes, where
   the two readings are the same.  So: no example was refused, and none
   needed the extra permissiveness.
 * **One lemma pays for it:** `proof/MoveScope.⊢ᵐ-rewind`.  A rewound
   frame's change list is `dualScope 0 (changes Θ) ++ changes Θ`, and the
-  inverse half turns `Θ`'s *locks* into *unlocks* — so under the pair the
+  inverse half turns `Θ`'s *unbinds* into *binds* — so under the pair the
   reps of `rewind Θ` are read on a context with those extra unmasks
   applied.  That is more nameable, so the proof gains one `⊢ʳ-⊑` step
   (with a `subst` along `applyUnlocks-++`).  Under the interleaved list
@@ -139,7 +139,7 @@ repsOf-ren) map-length`).  `wf-convCtx-rewind` lost its `subst`;
 `⊢ˢ-dualScope`, `dualScope-unmask-comm`, `applyUnlocks-dualScope`,
 `⊢ˢ-++`, `applyChanges-shiftScope`, `applyUnlocks-shiftScope`,
 `⊢ˢ-shiftScope`, `applyUnlocks-∋bind`, `locksOnly`, `dropL`), and every
-induction over the reps lost its `lock`/`unlock` cases (`⊢ʳ-⊑`,
+induction over the reps lost its `unbind`/`bind` cases (`⊢ʳ-⊑`,
 `⊢ʳ-ren`).
 
 **Split, not added.**  `⊢ᵐ-⊑ᵃ` and `⊢ᵐ-ren` survive with their statements
@@ -182,7 +182,7 @@ which is never rendered.
 `scripts/render_term.sh` still works unchanged, e.g.
 
     scripts/render_term.sh \
-      'showBndIn 1 (boundary (`ℕ ∷ []) (lock 0 ∷ unlock 0 ∷ [])) (id `ℕ)' \
+      'showBndIn 1 (boundary (`ℕ ∷ []) (unbind 0 ∷ bind 0 ∷ [])) (id `ℕ)' \
       'open import strong-rep-store.Types' 'open import strong-rep-store.Conversion' \
       'open import strong-rep-store.Boundary' 'open import Data.List using ([]; _∷_)'
     ⟪ ↑Y:=ℕ , ↓X , ↥X , id ℕ ⟫
@@ -192,9 +192,9 @@ which is never rendered.
 Everything, with statements unchanged: `proof/PeelDual`
 (`interior-dual` (†), `convCtx-dual`, `⊢ᵐ-dual`, `preserve-Peel`),
 `proof/MoveScope` (the frame equalities, `⊢ᵐ-⋉`, `⊢ᵐ-rewind`,
-`preserve-IdPush`, `preserve-CancelR`, and the lock-only refutation
+`preserve-IdPush`, `preserve-CancelR`, and the unbind-only refutation
 `¬frame-locksOnly` on the pair witness
-`Θ✗ = boundary [] (unlock 0 ∷ lock 0 ∷ [])`), `proof/Preserve`,
+`Θ✗ = boundary [] (bind 0 ∷ unbind 0 ∷ [])`), `proof/Preserve`,
 `strong-rep-store.Preservation`, `strong-rep-store.Progress`, `det`, `value-¬step`,
 `proof/Canonicity`, `proof/Adversary`, `proof/IdLayer`,
 `proof/MaskFacts`, `proof/DualTightness`, `proof/MwUObstruct` (its

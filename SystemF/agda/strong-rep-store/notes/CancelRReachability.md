@@ -41,7 +41,7 @@ argument. Both facts are load-bearing, one per conjunct (§3).
 `scripts/render_term.sh 'showRun 0 12 Src-⊢' 'open import
 strong-rep-store.notes.CancelRReachabilityWitness'` (α, β, γ are representation
 variables; `↑β:=α` is a bind whose payload is the representation VARIABLE
-α; `↥` an unlock, `↓` a lock):
+α; `↥` a bind, `↓` an unbind):
 
 ```
 ((ΛX. (λx:X. ((ΛY. (λy:(∀Z. (Z⇒Y)). (y [ℕ] · 7))) [X] · (ΛZ. (λy:Z. x))))) [ℕ] · 7)
@@ -76,8 +76,8 @@ In de Bruijn, with `Δ₉ = (bindR ℕ ∷ []) ∣ (0 ∷ [])` the ambient of th
 `CancelR`:
 
 ```
-Θ₁ = boundary (ℕ ∷ [])   (lock 1 1 ∷ unlock 0 0 ∷ [])   numBinds Θ₁ ≡ 1
-Θ₂ = boundary (` 0 ∷ []) (unlock 0 0 ∷ [])              payload ` 0 — a rep VARIABLE
+Θ₁ = boundary (ℕ ∷ [])   (unbind 1 1 ∷ bind 0 0 ∷ [])   numBinds Θ₁ ≡ 1
+Θ₂ = boundary (` 0 ∷ []) (bind 0 0 ∷ [])              payload ` 0 — a rep VARIABLE
 Δᶜ = conv Θ₂ Δ₉ = (bindR (` 0) ∷ bindR ℕ ∷ []) ∣ (0 ∷ 1 ∷ [])
 ```
 

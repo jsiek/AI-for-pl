@@ -1,9 +1,14 @@
 module strong-rep-store.notes.ReUnlockWall where
 
+-- THE MODULE NAME IS A DATE-STAMPED PROPER NOUN.  `Change`'s two
+-- constructors were renamed `lock`/`unlock` → `unbind`/`bind` on
+-- 2026-09-23 (notes/DECISIONS.md), so the "re-unlock" clause this
+-- file is about is now `conv-bind-live`.
+
 -- File Charter:
 --   * The machine-checked record of ONE defect in the reduction rules and
 --     of its repair: `rewind Θ` and `Θ₁ ++ Θ₂` had no conversion context
---     whenever Θ locks, so `CancelR`'s and `IdPush`'s contracta were
+--     whenever Θ unbinds, so `CancelR`'s and `IdPush`'s contracta were
 --     untypeable.
 --   * It holds the obstruction (`no-old-rewind-conv`, stated against a
 --     local copy of the conversion judgement as it stood) and the two
@@ -11,7 +16,7 @@ module strong-rep-store.notes.ReUnlockWall where
 --     conversion context.
 --   * Nothing here runs a program.  The reasoning is in
 --     notes/DECISIONS.md (2026-09-17); the rule that changed is
---     `conv-unlock-live` in strong-rep-store.Boundary §3.
+--     `conv-bind-live` in strong-rep-store.Boundary §3.
 --
 -- HOW THIS WAS FOUND.  By finishing the tower example
 -- (strong-rep-store.Examples §5a).  The eleventh step of that
@@ -38,17 +43,17 @@ open import strong-rep-store.Boundary
 open import strong-rep-store.TypeCheck using (conv!)
 
 ------------------------------------------------------------------------
--- 1. The locking frame, and the contexts it runs in
+-- 1. The unbinding frame, and the contexts it runs in
 ------------------------------------------------------------------------
 
--- Θ₂ LOCKS: it is `TyPeelR-Λ`'s `inst` over a frame that had
+-- Θ₂ UNBINDS: it is `TyPeelR-Λ`'s `inst` over a frame that had
 -- already crossed two `Λ`s.
-Θlock : Boundary
-Θlock = inst ((lock 0 2 ∷ lock 0 0 ∷ []))
+Θunbind : Boundary
+Θunbind = inst ((unbind 0 2 ∷ unbind 0 0 ∷ []))
 
-Θlock-explicit :
-  Θlock ≡ (lock 1 3 ∷ lock 1 1 ∷ unlock 0 0 ∷ [])
-Θlock-explicit = refl
+Θunbind-explicit :
+  Θunbind ≡ (unbind 1 3 ∷ unbind 1 1 ∷ bind 0 0 ∷ [])
+Θunbind-explicit = refl
 
 repsW : RepCtx
 repsW = bindR (` 0) ∷ bindR (` 0) ∷ bindR `𝔹 ∷ bindR `ℕ ∷ []
@@ -69,7 +74,7 @@ repsW = bindR (` 0) ∷ bindR (` 0) ∷ bindR `𝔹 ∷ bindR `ℕ ∷ []
 -- `no-old-rewind-conv` below is a statement about exactly this context
 -- and would be a true statement about an irrelevant one if this were
 -- wrong.  (It used to be stated about
--- `extendReps (binds (rewind Θlock)) Δ-out`, which is what `Δ-out` now
+-- `extendReps (binds (rewind Θunbind)) Δ-out`, which is what `Δ-out` now
 -- IS.)
 chk-reps : reps Δ-out ≡ repsW
 chk-reps = refl
@@ -81,34 +86,34 @@ chk-names = refl
 -- 2. The wall
 ------------------------------------------------------------------------
 
--- THE CONVERSION JUDGEMENT AS IT STOOD, before the re-unlock clause.  A
--- `rewind` appends the dual of every change, so `rewind Θlock`
--- re-`unlock`s two representation variables whose `lock`s the conversion
+-- THE CONVERSION JUDGEMENT AS IT STOOD, before the re-bind clause.  A
+-- `rewind` appends the dual of every change, so `rewind Θunbind`
+-- re-`bind`s two representation variables whose `unbind`s the conversion
 -- context SKIPPED — and under these three clauses that is a freshness
 -- violation.
 infix 4 _∣_⊢χᶜ°_⇒_
 data _∣_⊢χᶜ°_⇒_ (Ξ : RepCtx)
   : TyCtx → List Change → TyCtx → Set where
   conv°[] : ∀ {Δ} → Ξ ∣ Δ ⊢χᶜ° [] ⇒ Δ
-  conv°-lock : ∀ {Δ₁ Δ₂ χ X α} → Ξ ∋ʳ α
+  conv°-unbind : ∀ {Δ₁ Δ₂ χ X α} → Ξ ∋ʳ α
     → Ξ ∣ Δ₁ ⊢χᶜ° χ ⇒ Δ₂
-    → Ξ ∣ Δ₁ ⊢χᶜ° lock X α ∷ χ ⇒ Δ₂
-  conv°-unlock : ∀ {Δ₁ Δ₂ Δ₃ χ X α} → Ξ ∋ʳ α
+    → Ξ ∣ Δ₁ ⊢χᶜ° unbind X α ∷ χ ⇒ Δ₂
+  conv°-bind : ∀ {Δ₁ Δ₂ Δ₃ χ X α} → Ξ ∋ʳ α
     → Ξ ∣ Δ₁ ⊢χᶜ° χ ⇒ Δ₂
     → Δ₂ ∌ʳ α
     → α ⊢+ Δ₂ at X ⇒ Δ₃
-    → Ξ ∣ Δ₁ ⊢χᶜ° unlock X α ∷ χ ⇒ Δ₃
+    → Ξ ∣ Δ₁ ⊢χᶜ° bind X α ∷ χ ⇒ Δ₃
 
--- `rewind Θlock` has NO conversion context, so `env` cannot type
+-- `rewind Θunbind` has NO conversion context, so `env` cannot type
 -- `CancelR`'s contractum and the run stops dead.
 no-old-rewind-conv : ∀ {Δᶜ}
-  → repsW ∣ (1 ∷ 3 ∷ []) ⊢χᶜ° (rewind Θlock) ⇒ Δᶜ → ⊥
+  → repsW ∣ (1 ∷ 3 ∷ []) ⊢χᶜ° (rewind Θunbind) ⇒ Δᶜ → ⊥
 no-old-rewind-conv
-  (conv°-lock _
-    (conv°-unlock _
-      (conv°-unlock _
-        (conv°-lock _
-          (conv°-lock _ (conv°-unlock _ conv°[] _ ins-here)))
+  (conv°-unbind _
+    (conv°-bind _
+      (conv°-bind _
+        (conv°-unbind _
+          (conv°-unbind _ (conv°-bind _ conv°[] _ ins-here)))
         (fresh∷ _ (fresh∷ _ (fresh∷ ne _))) _)
       _ _)) = ne refl
 
@@ -116,15 +121,15 @@ no-old-rewind-conv
 -- 3. The repair
 ------------------------------------------------------------------------
 
--- With the re-unlock clause the run goes through, and the conversion
--- context is the one Θlock's own conversion produced — which is exactly
+-- With the re-bind clause the run goes through, and the conversion
+-- context is the one Θunbind's own conversion produced — which is exactly
 -- what `CancelR`'s minted `mkId A` is checked against.
-rewind-conv-repaired : Δ-out ⊢ᶜ rewind Θlock ⇒ Δ-conv
-rewind-conv-repaired = proj₂ (conv! Δ-out (rewind Θlock))
+rewind-conv-repaired : Δ-out ⊢ᶜ rewind Θunbind ⇒ Δ-conv
+rewind-conv-repaired = proj₂ (conv! Δ-out (rewind Θunbind))
 
 -- The same wall stands in front of `CancelR`'s OTHER frame, `Θ₁ ++ Θ₂`,
 -- whenever the crossing argument acquired Θ₂'s dual at a `Peel`.
 cancel-inner-conv-repaired :
-  Δ-arg ⊢ᶜ dual Θlock ++ Θlock ⇒ Δ-conv
+  Δ-arg ⊢ᶜ dual Θunbind ++ Θunbind ⇒ Δ-conv
 cancel-inner-conv-repaired =
-  proj₂ (conv! Δ-arg (dual Θlock ++ Θlock))
+  proj₂ (conv! Δ-arg (dual Θunbind ++ Θunbind))

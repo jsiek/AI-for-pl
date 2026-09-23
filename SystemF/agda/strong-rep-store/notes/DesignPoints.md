@@ -8,7 +8,7 @@ uses today's vocabulary — a boundary's **interior**, its **exterior**
 (the plain `Δ`), its **conversion context** `convCtx Θ Δ`, its
 **conversion** `c` with a **source** and a **target** type, a variable's
 **binder** (the `bind` entry that carries its representation), and the
-boundary-scope entries **bind / lock / unlock**.
+boundary-scope entries **bind / unbind / bind**.
 
 Where a section title is quoted it is a heading of `notes/DECISIONS.md`
 unless stated otherwise.  "Gauntlet §9x" refers to the numbered sections
@@ -370,7 +370,7 @@ mention carries a name and resolves by `Δ ∋ X := A`, which is a lookup,
 so knowledge transport is definitional and the cancel equation follows
 from `∋:=-det` twice (commit `93d37333`; `Design.md` §1, §3).
 
-**D34 — mask, do not drop.**  A `lock X` **masks** its slot in place and
+**D34 — mask, do not drop.**  An `unbind X` **masks** its slot in place and
 retains every other entry, and the interior is *computed* from the
 ambient context at the boundary's current position.  This is era A's
 deferred lesson 1 (`D05`), and it is **forced, not stylistic**: the probe
@@ -382,7 +382,7 @@ mask/unmask be functions (`THE REDESIGN PROBE VERDICT`, obligation 2;
 (`⊑-kn`).
 
 **D35 — the conversion boundary `M ⟪Θ, c⟫`.**  One boundary form carrying
-a boundary scope `Θ` (entries `bind A` / `lock X` / `unlock X`) and a
+a boundary scope `Θ` (entries `bind A` / `unbind X` / `bind X`) and a
 representation-free **conversion** `c` (`id` / `seal X` / `unseal X` /
 `_↦_` / `` `∀ ``) checked by `Δ ⊢ c ∶ A ⇝ B` in the boundary's own
 **conversion context** `convCtx Θ Δ`.  The probe was green on the
@@ -397,7 +397,7 @@ outermost reveal, the conceals and the inner reveals should be *different*
 constructors, making binder-ship a syntactic invariant; it was folded into
 the probe mandate (commit `e179e23e`).  It was **not** carried into the
 restructure: v2 has one boundary form whose `Θ` distinguishes the three
-purposes by entry kind (`bind` / `lock` / `unlock`), which is where the
+purposes by entry kind (`bind` / `unbind` / `bind`), which is where the
 one-representation-per-variable invariant actually lives.
 
 **D37 — the polarity index on conversions.**  GTSF's conversions are
@@ -436,7 +436,7 @@ determinism is bought ("Id-layer RULING"; commit `92ede193`;
 `det` + `values-don't-step` proven; `1caf9b27` then proved **progress
 with zero parameters**.  Jeremy's vocabulary rulings landed on top
 ("skeleton" → boundary scope, "spine" → type context, `own`/`ali`/`cnc`
-→ `bind`/`unlock`/`lock`), and `TyBeta`'s `Value N` premise was confirmed
+→ `bind`/`bind`/`unbind`), and `TyBeta`'s `Value N` premise was confirmed
 as the fifth determinism repair.
 
 **D41 — v2 preservation FALSE: four rules refuted.**  Commit `5554c6b2`:
@@ -449,13 +449,13 @@ shift, `CancelR`'s residue) and `IdPush` as a possible design question
 definition, not a proof gap.
 
 **D42 — the dual repaired (half of it).**  `dualScope` had mapped a no-op
-`unlock X` to a real `lock` and replayed the boundary scope in `Θ`-order, so a
-same-slot mask/unmask pair failed to cancel; **dropping** the `unlock`
+`bind X` to a real `unbind` and replayed the boundary scope in `Θ`-order, so a
+same-slot mask/unmask pair failed to cancel; **dropping** the `bind`
 case fixes both defects, and `interior-dual` / `convCtx-dual` are then
 proven in general, discharging `PeelCase` (commit `7e9c4109`,
-`proof/PeelDual.agda`).  The reading behind the drop — "an `unlock`
+`proof/PeelDual.agda`).  The reading behind the drop — "a `bind`
 claims nothing, so the dual need not restore it" — is what **leaked**
-four days later (`D47`), and the current `dual` restores the `unlock`
+four days later (`D47`), and the current `dual` restores the `bind`
 *and* reverses the list (`D50`).  What survives from `D42` is the
 diagnosis: a dual is an inverse, and the two defects it names are real.
 
@@ -472,12 +472,12 @@ frames and neutralizes both conversions to identities instead of dropping
 **D44 — the wall, and four candidate invariants.**  Both repaired
 contracta make an inner wrapper present a representation inside `Θ₂`'s
 interior, owing `interior Θ₂ Δ ⊢ᵗ A`, and four grounded invariants were
-tried and **all machine-refuted**: (1) folding `RepWf` into the lock
+tried and **all machine-refuted**: (1) folding `RepWf` into the unbind
 clause of `_⊢ᵐ_` — impossible, the unsound witness and the reachable one
 have the same `(Δ, Θ)`, and `RepWf` is not `⊑`-stable; (2) exterior-type
 `Scoped` on reveal conversions — too weak, `R★`; (3) pointwise `RepWf` at
 name-faced boundaries — refuted by a seven-step closed program that mints
-`Y := Z` under an id-faced lock of `Z`; (4) chain-scoped — preserved by
+`Y := Z` under an id-faced unbind of `Z`; (4) chain-scoped — preserved by
 `IdPush` and `CancelR` but not `⊑`-stable ("Rule repairs LANDED; the
 invariant hunt", commit `e4c9fe88`).  The four record modules were
 deleted by ruling once the wall dissolved (`b1ed2b87`).
@@ -485,15 +485,15 @@ deleted by ruling once the wall dissolved (`b1ed2b87`).
 **D45 — the scope move `Θ₁ ⋉ Θ₂`.**  Jeremy: "I'm contemplating whether
 part of `Θ₂` should sometimes be moved to the inner boundary in the
 contractum … the `↓X` could be moved to the left of the `unseal Y`."
-`IdPush` and `CancelR` now move `Θ₂`'s **whole scope** — locks *and*
-unlocks, order kept, indices lifted — into the inner frame and leave a
+`IdPush` and `CancelR` now move `Θ₂`'s **whole scope** — unbinds *and*
+binds, order kept, indices lifted — into the inner frame and leave a
 scope-free outer frame behind, so the representation is presented outside
-the locks that hide it; moving only the locks is refuted in tree
+the unbinds that hide it; moving only the unbinds is refuted in tree
 (`proof/MoveScope` §4b, `¬frame-locksOnly`).  The wall's premise then
 follows from the redex typing, and **preservation is proven
 parameter-free** (commit `cdb24a41`).  "The wall was never a missing
 invariant — the rule put the representation on the wrong side of the
-lock."  The move itself is unchanged today; what changed at `D50` is
+unbind."  The move itself is unchanged today; what changed at `D50` is
 *which* scope-free frame stays outside — `dropLocks Θ₂` then,
 `rewind Θ₂` now, because only `rewind` keeps its own `_⊢ᵐ_`
 (`proof/MwUObstruct` §2/§4).
@@ -504,17 +504,17 @@ lock."  The move itself is unchanged today; what changed at `D50` is
 with no parameters, no postulates and no holes under `--safe`.  Jeremy
 then ruled the vocabulary on 2026-09-06: `intC → interior`,
 `fceC → convCtx` (the conversion context — *not* the exterior, since the
-conversion names the boundary's own binds and cites locked binders, so it
+conversion names the boundary's own binds and cites unbound binders, so it
 types in neither the interior nor the exterior), "exterior" meaning the
 plain `Δ` and nothing else, **"face" retired** in favour of
 conversion / source / target, **"binder" instead of "owner"**, and
 `BoundaryWf Δ Θ` becoming the infix judgment `Δ ⊢ᵐ Θ` (commits `390c5723`,
 `a6ed7232`, `505f6ad9`, `9c7c6f9d`; `Design.md` Appendix A).
 
-**D47 — `dual` drops `unlock` entries: the scope leak.**  The design
-point is the *reading* behind `D42`: an `unlock X` "claims nothing", so
+**D47 — `dual` drops `bind` entries: the scope leak.**  The design
+point is the *reading* behind `D42`: a `bind X` "claims nothing", so
 the dual of a boundary need not restore it.  **Refuted by Jeremy's test**
-(`notes/DECISIONS.md`, "Peel's dual is NOT tight for `unlock` entries
+(`notes/DECISIONS.md`, "Peel's dual is NOT tight for `bind` entries
 (Jeremy's test, 2026-09-06)"; `proof/DualTightness.agda`, commits
 `db4e3351` / `a9e12cee`).  Jeremy: "create an example program that takes
 a `Peel` step, and the program should have an ill-formed type in the
@@ -532,34 +532,34 @@ This is the only edge in the whole map driven by an ill-typed program.
 
 **D48 — masked-only `mw-u` + unconditional relock + `bindsOnly`.**  The
 three-part repair, proposed as one package: (1) `mw-u` demands the slot
-be LOCKED, so a *vacuous* unlock is refused; (2)
-`dualScope n (unlock X ∷ Θ)` mints `lock (n + X)`; (3) the scope move's
+be UNBOUND, so a *vacuous* bind is refused; (2)
+`dualScope n (bind X ∷ Θ)` mints `unbind (n + X)`; (3) the scope move's
 outer frame becomes `bindsOnly Θ₂`, its scope deleted outright.
 **Refuted as a package** (`proof/MwUObstruct.agda`, same commits), *under
 the simultaneous `_⊢ᵐ_` of the day*.  Part (3) alone is good — the frame
 lemmas become equalities, and `frame-move`'s `⊑` turns out to have been
-an artifact of the retained unlocks.  But (2) forces (1), and (1) then
+an artifact of the retained binds.  But (2) forces (1), and (1) then
 kills two things at once: `⊢retag` along `⊑`, because `le-mu` *unmasks* a
-slot that an `unlock` cites and so destroys its claim; and `⊢ᵐ-⋉`,
-because `_⋉_` builds lists that both lock and unlock one slot while (1)
+slot that a `bind` cites and so destroys its claim; and `⊢ᵐ-⋉`,
+because `_⋉_` builds lists that both unbind and bind one slot while (1)
 makes `mw-l` and `mw-u` exact complements, so no simultaneous derivation
 exists.  The structural diagnosis is what the entry is worth keeping for:
 **`_⊢ᵐ_` was simultaneous and `scope` is sequential**, and the two cannot
 both be right.
 
 **D49 — the Δ-dependent dual (`δ`).**  Leave `_⊢ᵐ_` alone and let the
-dual read the exterior: `dual Δ Θ` maps `unlock X ↦ lock X` only when `X`
+dual read the exterior: `dual Δ Θ` maps `bind X ↦ unbind X` only when `X`
 is actually masked in `Δ`.  Reduction is already `Δ`-indexed, so `Peel`
 may inspect `Δ`, and one read on the plain `Δ` respects simultaneity.
-Vacuous unlocks then add nothing (so `preserve-Peel` survives),
-non-vacuous ones are re-locked (so the leak closes), and (†) should stay
+Vacuous binds then add nothing (so `preserve-Peel` survives),
+non-vacuous ones are re-unbound (so the leak closes), and (†) should stay
 exact with no change to the scope move.  Probed on branch `dual-relock`
-(`notes/DECISIONS.md`, "RULING: vacuous unlocks are wrong and
+(`notes/DECISIONS.md`, "RULING: vacuous binds are wrong and
 unreachable (Jeremy, 2026-09-06)"; commit `01459ab0`).  **Superseded, not
-refuted**: it leaves the vacuous unlock *legal*, which Jeremy had just
+refuted**: it leaves the vacuous bind *legal*, which Jeremy had just
 ruled wrong — "why do we allow `↥X` over `X := ℕ` visible?  That feels
 wrong … and unreachable" — and paying for it would have meant weakening
-`mw-l`.  `D50` closes the leak and refuses the vacuous unlock at once.
+`mw-l`.  `D50` closes the leak and refuses the vacuous bind at once.
 
 **D50 — sequential `⊢ᵐ`, the exact dual, `rewind`, reps on
 `unlockedScope`.**  The package that landed, from the probe run in
@@ -572,20 +572,20 @@ Four coupled parts:
   its entry acts on, in the order `scope` applies the list (head-last):
   `mw-l` needs `scope Θ′ Δ ∋tv X`, `mw-u` needs `scope Θ′ Δ ∋lk X`, and
   `mw-b` reads its representation on `unlockedScope Θ′ Δ`.  No vacuous
-  unlocks and no double locks, so `Locked` is one mask deep and
+  binds and no double unbinds, so `Unbound` is one mask deep and
   `mask ∘ unmask` is the identity where the dual needs it.  Both of
   `D48`'s refutations dissolve: they were artifacts of reading every
   premise on the plain `Δ`.
-* **The dual becomes an exact inverse.**  `unlock X ↦ lock (n + X)` —
-  restoring what `Θ` unlocked — *and* the list is **reversed**, because
+* **The dual becomes an exact inverse.**  `bind X ↦ unbind (n + X)` —
+  restoring what `Θ` bound — *and* the list is **reversed**, because
   `scope` applies it head-last.  Then (†)
   `interior (dual Θ) (interior Θ Δ)
   ≡ map masked (pushBinds (repsOf Θ) []) ++ Δ` is an equality: the
   crossing frame *is* the exterior, and the argument crosses by
   `⊢rename` alone.
 * **`rewind Θ₂ = dualScope 0 Θ₂ ++ Θ₂`** as the scope move's outer frame,
-  neither `dropLocks Θ₂` (its moved unlock goes vacuous) nor
-  `bindsOnly Θ₂` (its own bind rep loses the unlock it was read past) —
+  neither `dropLocks Θ₂` (its moved bind goes vacuous) nor
+  `bindsOnly Θ₂` (its own bind rep loses the bind it was read past) —
   the two refutations that remain in `proof/MwUObstruct`, on
   `Δ₆ = ⌷[U := ℕ]`, `Θ₂ = ↥U`, `Θ₁ = ↑V:=U`, `Θ₁ ⋉ Θ₂ = ↑V:=U , ↥U`.
 * **`⊢retag` runs along `_⊑ᵃ_`**, the refinement without `le-mu`: a term
@@ -593,21 +593,21 @@ Four coupled parts:
   one that unmasks a slot its boundaries cite.
 
 Jeremy ratified item 2 of the package and ordered the merge ("RATIFIED:
-representations read past the tail's unlocks; PR #193 merged (Jeremy,
+representations read past the tail's binds; PR #193 merged (Jeremy,
 2026-09-06)"): "That particular law was not valuable on its own, it was
 just a design idea to try."  **Design law 4 is thereby reduced to its
 surviving half** — a representation is never blocked by its own frame's
-locks, and `pushBinds` lifts it past exactly the binders inside it —
+unbinds, and `pushBinds` lifts it past exactly the binders inside it —
 while the "every premise on the plain exterior" half is retired.  The
 tests that came out of the episode are `proof/DualTightness` (the
-`unlock` half of `Peel`) and `Examples` §15 (every other rule that moves
+`bind` half of `Peel`) and `Examples` §15 (every other rule that moves
 a subterm into a new frame, with the five frame identities collected in
 §15f and tabulated in `Design.md` §7).
 
 **D51 — the boundary scope is a pair: parallel binds, sequential changes.**
 Jeremy, reading `dual`, asked whether treating binds specially
 (`hideBinds` at the front, reps read outside all of them) while
-lock/unlock are sequential was essential, and whether the binds should
+unbind/bind are sequential was essential, and whether the binds should
 then live in their own list.  The special treatment is essential — it is
 the half of simultaneity that survived `D18`, and the fully sequential
 composition was the first design (`D02`) — but the interleaving was not:
@@ -615,7 +615,7 @@ only `mw-b`'s tail-dependent rep frame ever looked at bind-vs-change
 order.  `Boundary` became `record boundary { binds : List Ty ; changes :
 List Change }` with `Δ ⊢ᵐ Θ` a record of `unlockedScope Θ Δ ⊢ʳ binds Θ`
 and `Δ ⊢ˢ changes Θ`; a rep is now read past all of the boundary scope's
-unlocks, which no example needed and no theorem felt, and `repsOf`,
+binds, which no example needed and no theorem felt, and `repsOf`,
 eight filtering lemmas and `⊢ᵐ-++` vanished.  Rendering unchanged.  PR
 #195 (`3f080fdb`); `notes/DECISIONS.md` "The boundary scope becomes a
 PAIR".

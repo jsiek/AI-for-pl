@@ -78,17 +78,17 @@ Peel-no-alloc = Peel
 -- binder to `bindR R` in place and `inst Θ` restores its ordinary name
 -- at position 0.  Criterion (ii), no renaming at all.
 TyPeelR-Λ-restores-name-0 : (Θ : Boundary)
-  → ∃[ χ ] ((inst Θ) ≡ χ ++ (unlock 0 0 ∷ []))
+  → ∃[ χ ] ((inst Θ) ≡ χ ++ (bind 0 0 ∷ []))
 TyPeelR-Λ-restores-name-0 Θ = _ , refl
 
 -- TyBeta is the same refinement one `∀` out: the fresh cell is allocated
 -- at index 0 and `inst []` gives it ordinary name 0.
 TyBeta-restores-name-0 :
-  (inst []) ≡ unlock 0 0 ∷ []
+  (inst []) ≡ bind 0 0 ∷ []
 TyBeta-restores-name-0 = refl
 
 -- THE WRAPPER CLAUSE.  The moved boundary crosses one fresh cell and
--- one fresh ordinary name, and its appended `lock 0 0` deletes that
+-- one fresh ordinary name, and its appended `unbind 0 0` deletes that
 -- name again — so the move is the plain SIBLING SHIFT.
 -- Commentary.md § proof/ShiftAudit.agda / §3
 TyPeelR-⟪⟫-move-ordinary : (ρ : Renameᵗ) (L : Term) (B A : Ty)
@@ -99,7 +99,7 @@ TyPeelR-⟪⟫-move-conversion : (ρ : Renameᵗ) (M : Term) (Θ : Boundary)
   (c : Conv) → renᴹᴿ ρ (M ⟪ Θ , c ⟫) ≡ renᴹᴿ ρ M ⟪ renᴮᴿ ρ Θ , c ⟫
 TyPeelR-⟪⟫-move-conversion ρ M Θ c = refl
 
--- The appended lock names ordinary position 0 and the cell just
+-- The appended unbind names ordinary position 0 and the cell just
 -- minted; it is APPENDED, so it acts FIRST.  The rule writes that snoc
 -- itself, so there is nothing left here to state.
 
@@ -146,7 +146,7 @@ towerHeight-↑ᴹ (new R) M = towerHeight-renᴹᴿ suc M
 -- `·[]` instantiates is ONE BOUNDARY SHORTER than the one the redex's
 -- `·[]` instantiated.
 TyPeelR-⟪⟫-height : (W : Term) (Θ′ Θ : Boundary) (s′ s″ s : Conv)
-  → towerHeight (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
+  → towerHeight (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
       ≡ towerHeight ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ∸ 1
 TyPeelR-⟪⟫-height W Θ′ Θ s′ s″ s =
   cong suc (towerHeight-renᴹᴿ suc W)
@@ -155,7 +155,7 @@ TyPeelR-⟪⟫-height W Θ′ Θ s′ s″ s =
 -- boundary where the installed clause CONSUMES one.
 fixA-height-stalls : (V : Term) (Θ : Boundary) (s : Conv) (Bᵢ : Ty)
   → towerHeight (renᴹᴿ suc V
-                   ⟪ (lock 0 0 ∷ []) , mkId (`∀ Bᵢ) ⟫)
+                   ⟪ (unbind 0 0 ∷ []) , mkId (`∀ Bᵢ) ⟫)
       ≡ towerHeight (V ⟪ Θ , `∀ s ⟫)
 fixA-height-stalls V Θ s Bᵢ = cong suc (towerHeight-renᴹᴿ suc V)
 
@@ -234,12 +234,12 @@ Beta-ƛ-crossed-no-shift = refl
 ⇑ᴵ-shiftᴵ-comm (ivar x)   = refl
 ⇑ᴵ-shiftᴵ-comm (ival W A) = refl
 
--- THE `Λ` CROSSING IS REP-ONLY, AND ITS LOCK IS WHAT MAKES IT SO: the
--- wrapper's `lock 0 0` deletes the ordinary name the `Λ` just bound.
+-- THE `Λ` CROSSING IS REP-ONLY, AND ITS UNBIND IS WHAT MAKES IT SO: the
+-- wrapper's `unbind 0 0` deletes the ordinary name the `Λ` just bound.
 Beta-Λ-crossing : ∀ {W A}
   → ⇑ᴵ (ival W A)
       ≡ ival (renᴹ² (ren² idᵗ suc) W
-                ⟪ (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+                ⟪ (unbind 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
              (⇑ᵗ A)
 Beta-Λ-crossing = refl
 

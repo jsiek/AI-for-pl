@@ -39,7 +39,7 @@ reps₃ = bindR `ℕ ∷ bindR `𝔹 ∷ bindR `ℕ ∷ []
 Δ₃ = reps₃ ∣ (0 ∷ 1 ∷ [])
 
 Mixed : Boundary
-Mixed = (unlock 0 2 ∷ lock 0 0 ∷ [])
+Mixed = (bind 0 2 ∷ unbind 0 0 ∷ [])
 
 nmI nmC : Ctxᵗ → Boundary → Maybe TyCtx
 nmI Γ Θ with interior? Γ Θ

@@ -153,8 +153,8 @@ extendReps Rs (Ξ ∣ Δ) =
 ------------------------------------------------------------------------
 
 data Change : Set where
-  lock   : ℕ → RVar → Change
-  unlock : ℕ → RVar → Change
+  unbind : ℕ → RVar → Change
+  bind   : ℕ → RVar → Change
 
 private
   variable
@@ -177,22 +177,22 @@ data _⊢-_at_⇒_ (α : RVar) : TyCtx → ℕ → TyCtx → Set where
 
 infix 4 _⊢δ_⇒_
 data _⊢δ_⇒_ : TyCtx → Change → TyCtx → Set where
-  step-lock   : α ⊢- Δ at X ⇒ Δ′ → Δ ⊢δ lock X α ⇒ Δ′
-  step-unlock : α ⊢+ Δ at X ⇒ Δ′ → Δ ⊢δ unlock X α ⇒ Δ′
+  step-unbind : α ⊢- Δ at X ⇒ Δ′ → Δ ⊢δ unbind X α ⇒ Δ′
+  step-bind   : α ⊢+ Δ at X ⇒ Δ′ → Δ ⊢δ bind X α ⇒ Δ′
 
 dualChange : Change → Change
-dualChange (lock X α)   = unlock X α
-dualChange (unlock X α) = lock X α
+dualChange (unbind X α)   = bind X α
+dualChange (bind X α) = unbind X α
 
 dual-step : Δ ⊢δ δ ⇒ Δ′ → Δ′ ⊢δ dualChange δ ⇒ Δ
-dual-step (step-lock del-here) = step-unlock ins-here
-dual-step (step-lock (del-there d)) with dual-step (step-lock d)
-dual-step (step-lock (del-there d)) | step-unlock i =
-  step-unlock (ins-there i)
-dual-step (step-unlock ins-here) = step-lock del-here
-dual-step (step-unlock (ins-there i)) with dual-step (step-unlock i)
-dual-step (step-unlock (ins-there i)) | step-lock d =
-  step-lock (del-there d)
+dual-step (step-unbind del-here) = step-bind ins-here
+dual-step (step-unbind (del-there d)) with dual-step (step-unbind d)
+dual-step (step-unbind (del-there d)) | step-bind i =
+  step-bind (ins-there i)
+dual-step (step-bind ins-here) = step-unbind del-here
+dual-step (step-bind (ins-there i)) with dual-step (step-bind i)
+dual-step (step-bind (ins-there i)) | step-unbind d =
+  step-unbind (del-there d)
 
 infix 4 _⊢χ_⇒_
 data _⊢χ_⇒_ : TyCtx → List Change → TyCtx → Set where
@@ -244,10 +244,10 @@ _ : names ΛX ≡ zero ∷ []
 _ = refl
 
 -- Crossing under `ΛX` anti-binds X but retains α; the dual binds X back.
-cross-X : names ΛX ⊢δ lock 0 0 ⇒ []
-cross-X = step-lock del-here
+cross-X : names ΛX ⊢δ unbind 0 0 ⇒ []
+cross-X = step-unbind del-here
 
-uncross-X : [] ⊢δ unlock 0 0 ⇒ names ΛX
+uncross-X : [] ⊢δ bind 0 0 ⇒ names ΛX
 uncross-X = dual-step cross-X
 
 -- Type application first binds α to ℕ, then introduces ordinary X as a
@@ -261,19 +261,19 @@ _ = refl
 _ : names β-reps ≡ []
 _ = refl
 
-β-name : names β-reps ⊢δ unlock 0 0 ⇒ zero ∷ []
-β-name = step-unlock ins-here
+β-name : names β-reps ⊢δ bind 0 0 ⇒ zero ∷ []
+β-name = step-bind ins-here
 
 TyBetaBoundary : Boundary
-TyBetaBoundary = boundary (`ℕ ∷ []) (unlock 0 0 ∷ [])
+TyBetaBoundary = boundary (`ℕ ∷ []) (bind 0 0 ∷ [])
 
 TyBetaCtx : Ctxᵗ
 TyBetaCtx = (bindR `ℕ ∷ []) ∣ (zero ∷ [])
 
 TyBetaCtx-ok : empty ⊢ᵐ TyBetaBoundary ⇒ TyBetaCtx
-TyBetaCtx-ok = apply-boundary (changes∷ changes[] (step-unlock ins-here))
+TyBetaCtx-ok = apply-boundary (changes∷ changes[] (step-bind ins-here))
 
--- With X older than Y, the name map is [Y↦β, X↦α] = [0,1].  Locking X
+-- With X older than Y, the name map is [Y↦β, X↦α] = [0,1].  Unbinding X
 -- removes ordinary slot 1.  Y consequently remains as ordinary slot 0;
 -- α remains representation slot 1 and can be restored at the same position.
 ΛXΛY : Ctxᵗ
@@ -282,10 +282,10 @@ TyBetaCtx-ok = apply-boundary (changes∷ changes[] (step-unlock ins-here))
 _ : names ΛXΛY ≡ zero ∷ suc zero ∷ []
 _ = refl
 
-hide-X : names ΛXΛY ⊢δ lock 1 1 ⇒ zero ∷ []
-hide-X = step-lock (del-there del-here)
+hide-X : names ΛXΛY ⊢δ unbind 1 1 ⇒ zero ∷ []
+hide-X = step-unbind (del-there del-here)
 
-show-X : zero ∷ [] ⊢δ unlock 1 1 ⇒ names ΛXΛY
+show-X : zero ∷ [] ⊢δ bind 1 1 ⇒ names ΛXΛY
 show-X = dual-step hide-X
 
 -- The same ordinary type has a representation-universe reading obtained

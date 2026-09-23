@@ -70,7 +70,7 @@ subgraph Dv2["D. v2 — conversion boundaries — 2026-09-05/06"]
   D44["D44 the wall: four candidate invariants"]
   D45["D45 the scope move Θ₁ ⋉ Θ₂"]
   D46["D46 TypeSafety and the naming rulings"]
-  D47["D47 dual drops unlocks — the scope leak"]
+  D47["D47 dual drops binds — the scope leak"]
   D48["D48 masked-only mw-u, unconditional relock, bindsOnly"]
   D49["D49 Δ-dependent dual: relock on scope Θ′ Δ"]
   D50["D50 sequential ⊢ᵐ, exact dual, rewind, reps on unlockedScope"]
@@ -118,17 +118,17 @@ D30 -->|"SUPERSEDED: the bookkeeping is broken, survey first"| D31
 D31 -->|"F1–F12: every typability loss is a failed rep COPY"| D32
 D32 -->|"Q1 YES: store the rep once, cite it by name"| D33
 D32 -->|"Q3 YES: Conversion as the conversion half of a split boundary"| D35
-D33 -->|"realization (i), a global Σ-store, NOT taken — lexical scope is needed for lock blocking"| D34
+D33 -->|"realization (i), a global Σ-store, NOT taken — lexical scope is needed for unbind blocking"| D34
 D34 -->|"ConvBoundaryProbe: transport PASSES, the demotion is inexpressible"| D35
 
 D35 -->|"Jeremy: one constructor per purpose — binder, conceal, alias?"| D36
-D36 -->|"REVERTED to one boundary form with bind/lock/unlock entries"| D40
+D36 -->|"REVERTED to one boundary form with bind-block/unbind/bind entries"| D40
 D35 -->|"conversions are polarized: ↦ flips on domains"| D37
 D35 -->|"§6: a value at an id-variable conversion cannot be eliminated — T₆ stuck-well-typed"| D38
 D38 -->|"IdLayerProbe: ⊳ jams; its only repair is rep-into-rep, i.e. ⊕ regrown"| D39
 D39 -->|"RULING: IdPush plus the lookup premise plus the five repairs"| D40
 D40 -->|"Preservation FALSE as the rules stand — four rules refuted"| D41
-D41 -->|"dualScope turns a no-op unlock into a lock and replays in Θ-order"| D42
+D41 -->|"dualScope turns a no-op bind into an unbind and replays in Θ-order"| D42
 D41 -->|"TyPeelR's annotation and double shift; CancelR's residue drops Θ₁'s frame"| D43
 D42 -->|"interior-dual and convCtx-dual PROVEN; PeelCase discharged"| D43
 D37 -->|"§13: the pushed seal ↦ seal types at NEITHER polarity — the TyPeelR blocker"| D43
@@ -137,13 +137,13 @@ D43 -->|"the honest contracta owe interior Θ₂ Δ ⊢ᵗ A — one wall, three
 D44 -->|"all four invariants refuted; Jeremy: move part of Θ₂ into the inner boundary"| D45
 D45 -->|"PRESERVATION PROVEN, parameter-free"| D46
 
-D42 -->|"an unlock claims nothing, so the dual may drop it — the reading that leaked"| D47
+D42 -->|"a bind claims nothing, so the dual may drop it — the reading that leaked"| D47
 D46 -->|"Jeremy's test: at Δᵤ = ⌷U with Θᵤ = ↥U, an ILL-TYPED redex has a WELL-TYPED Peel contractum — proof/DualTightness"| D47
-D47 -->|"proposed as one package: masked-only mw-u, unlock ↦ lock, bindsOnly outer frame"| D48
+D47 -->|"proposed as one package: masked-only mw-u, bind ↦ unbind, bindsOnly outer frame"| D48
 D45 -->|"the outer frame of CancelR and IdPush is the package's third part"| D48
 D48 -->|"under a SIMULTANEOUS ⊢ᵐ: ⊢retag dies on le-mu, and Θ₁ ⋉ Θ₂ = ↑V:=U , ↥U has no derivation — proof/MwUObstruct"| D49
 D48 -->|"the same audit carried through: make ⊢ᵐ SEQUENTIAL, and both refutations dissolve"| D50
-D49 -->|"superseded: it leaves the vacuous unlock legal and would need mw-l weakened"| D50
+D49 -->|"superseded: it leaves the vacuous bind legal and would need mw-l weakened"| D50
 
 D16 -.->|"kept: tightness, no term type-shifts"| D34
 D18 -.->|"kept: simultaneity"| D35
@@ -152,7 +152,7 @@ D27 -.->|"kept: active/inert and determinism"| D40
 D13 -.->|"retired: towers, not merges — Q5a, F8/F9"| D35
 D26 -.->|"reinstated as CancelR"| D43
 D47 -.->|"design law 2 restated for the RELATION, then tested rule by rule — Examples §15"| D50
-D18 -.->|"law 4 reduced to its surviving half: a rep is never blocked by its own frame's locks"| D50
+D18 -.->|"law 4 reduced to its surviving half: a rep is never blocked by its own frame's unbinds"| D50
 D50 -->|"Jeremy, reading dual: binds are a hidden block, changes are sequential — make the type say so"| D51
 D18 -.->|"what survived of simultaneity — a PARALLEL block of binders — is now a record field"| D51
 
@@ -175,7 +175,7 @@ class D34,D35,D39,D40,D43,D45,D46,D50,D51 current;
 |---|---|
 | green, solid | part of the design as it stands today (`Design.md`) |
 | red, dashed border | refuted or abandoned — the calculus does not contain it |
-| amber | landed then reverted, proposed then withdrawn, or reverted then reinstated.  `D26` is the round trip: `Cancel` was an era-A rule, dropped when the boundary was combined, revived on Jeremy's direction at Decision 6, refuted there as a standalone rule, and reinstated in v2 as `CancelR`.  `D42` is the near miss: the repaired `dual` was right about the ORDER and wrong about the `unlock`s, and `D47` is where that half came back.  `D49` is the alternative that would have worked and was not taken |
+| amber | landed then reverted, proposed then withdrawn, or reverted then reinstated.  `D26` is the round trip: `Cancel` was an era-A rule, dropped when the boundary was combined, revived on Jeremy's direction at Decision 6, refuted there as a standalone rule, and reinstated in v2 as `CancelR`.  `D42` is the near miss: the repaired `dual` was right about the ORDER and wrong about the `bind`s, and `D47` is where that half came back.  `D49` is the alternative that would have worked and was not taken |
 | blue | a ruling or survey finding that was confirmed and still governs v2, even where the object it ruled on is gone |
 | solid arrow | the design moved here next |
 | dashed arrow | a principle or artifact carried across, not a successor |
@@ -228,38 +228,38 @@ corpus coincided with a demotion — a failed copy (F1, F3, F4, F5).  Era D
 therefore **removes the copy instead of repairing it**: a variable's
 representation is stored **once**, at its binder, and every other
 boundary cites it by **name** (`D33`), which makes the cancel face-match
-definitional and knowledge transport a lookup; a `lock` **masks** its
+definitional and knowledge transport a lookup; an `unbind` **masks** its
 slot in place instead of dropping it, so nothing ever has to be rebuilt
 and demotion is not even expressible (`D34` — era A's deferred lesson 1);
 and a boundary's two types are related by an explicit **conversion**
 rather than by reading one type through two substitutions (`D35`), which
 closes the 61-of-195 rows the survey found term-undetermined.  The last
 obstruction was the mirror image of the original mistake — a repaired
-rule left a representation on the wrong side of a lock — and the fix was
-the same principle one level up: **move the locks, do not drop them**
+rule left a representation on the wrong side of an unbind — and the fix was
+the same principle one level up: **move the unbinds, do not drop them**
 (`D45`).
 
 And then, once all six theorems held, the same disease turned up one
 level further out.  Every step so far had been driven by a **well-typed**
 program that lost its typing; Jeremy asked instead for an **ill-typed**
 one that gained it, and got it on the first try (`D47`): `dual` had
-*dropped* the crossed boundary's `unlock` entries, on the reading that an
-unlock "claims nothing", and so handed a crossing argument a frame
+*dropped* the crossed boundary's `bind` entries, on the reading that an
+bind "claims nothing", and so handed a crossing argument a frame
 strictly more nameable than the exterior.  Dropping again — the third
 time, after era A's truncated interior and era B's dropped slots.  The
 repair had to restore what was dropped in four places at once, and the
 first attempt (`D48`) failed for a reason worth keeping: `_⊢ᵐ_` was
 **simultaneous**, reading every premise on the plain exterior, while
 `scope` applies its list in order, so the judgement could not even state
-that a lock and a later unlock of one slot are both true.  Reading each
+that an unbind and a later bind of one slot are both true.  Reading each
 premise on the frame its entry acts on (`D50`) dissolved both
 refutations, and made `dual` an exact inverse — restoring *and* reversed
 — and both scope-move frame lemmas equalities.  The cost was half of
 design law 4, which Jeremy retired on the spot: what a representation
-must not be blocked by is its **own** frame's locks, not every entry of
+must not be blocked by is its **own** frame's unbinds, not every entry of
 every frame.  The half that survives is `pushBinds`, unchanged since era
 B.  The through line, then, is one sentence in three registers: *nothing
-may be dropped* — not a context, not a representation, not a lock, not an
-unlock — and the calculus is finished when every rule can be shown to
+may be dropped* — not a context, not a representation, not an unbind, not an
+bind — and the calculus is finished when every rule can be shown to
 move a subterm into a frame that is the old one, exactly, one prefix in
 (`Examples` §15).

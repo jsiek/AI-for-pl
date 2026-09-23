@@ -98,12 +98,12 @@ cross-Λ-⊢ {Δ = Ξ ∣ η} {W = W} {A = A} wfΔ wA ⊢W =
   w↑ = wf-ren (WfRen-wk {Δ = Ξ ∣ η}) wA
 
   mwΛ : BoundaryWf (underΛ (Ξ ∣ η))
-          ((lock 0 0 ∷ [])) Δᵢ (underΛ (Ξ ∣ η))
+          ((unbind 0 0 ∷ [])) Δᵢ (underΛ (Ξ ∣ η))
   mwΛ =
     bw (wf-underΛ wfΔ)
        (interior (changes∷ changes[]
-                   (step-lock (_ , here) del-here fresh-zero-shift)))
-       (conversion (conv-lock (_ , here) conv[]))
+                   (step-unbind (_ , here) del-here fresh-zero-shift)))
+       (conversion (conv-unbind (_ , here) conv[]))
 
   inner : Δᵢ ∣ [] ⊢ renᴹᴿ suc W ⦂ A
   inner = ⊢renᴿ repwk-abst₀ ⊢W
@@ -117,7 +117,7 @@ cross-Λ-⊢ {Δ = Ξ ∣ η} {W = W} {A = A} wfΔ wA ⊢W =
   sameₑ | R , p = R , p , p
 
   term-eq : crossΛᴹ W A
-    ≡ renᴹᴿ suc W ⟪ (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫
+    ≡ renᴹᴿ suc W ⟪ (unbind 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫
   term-eq =
-    cong (λ M → M ⟪ (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+    cong (λ M → M ⟪ (unbind 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
          (renᴹ²-ord-id (λ X → refl) W)

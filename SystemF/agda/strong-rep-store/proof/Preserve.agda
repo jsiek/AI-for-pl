@@ -224,10 +224,10 @@ valid-refine rr (S , d) = lookup-refine rr d
 
 step-refine : RepRefines Ξ Ξ′ → Ξ ∣ η ⊢δ δ ⇒ η′
   → Ξ′ ∣ η ⊢δ δ ⇒ η′
-step-refine rr (step-lock valid d fresh) =
-  step-lock (valid-refine rr valid) d fresh
-step-refine rr (step-unlock valid fresh i) =
-  step-unlock (valid-refine rr valid) fresh i
+step-refine rr (step-unbind valid d fresh) =
+  step-unbind (valid-refine rr valid) d fresh
+step-refine rr (step-bind valid fresh i) =
+  step-bind (valid-refine rr valid) fresh i
 
 changes-refine : RepRefines Ξ Ξ′ → Ξ ∣ η ⊢χ χ ⇒ η′
   → Ξ′ ∣ η ⊢χ χ ⇒ η′
@@ -238,12 +238,12 @@ changes-refine rr (changes∷ cs st) =
 conv-changes-refine : RepRefines Ξ Ξ′ → Ξ ∣ η ⊢χᶜ χ ⇒ η′
   → Ξ′ ∣ η ⊢χᶜ χ ⇒ η′
 conv-changes-refine rr conv[] = conv[]
-conv-changes-refine rr (conv-lock valid cs) =
-  conv-lock (valid-refine rr valid) (conv-changes-refine rr cs)
-conv-changes-refine rr (conv-unlock valid cs fresh i) =
-  conv-unlock (valid-refine rr valid) (conv-changes-refine rr cs) fresh i
-conv-changes-refine rr (conv-unlock-live valid cs d) =
-  conv-unlock-live (valid-refine rr valid) (conv-changes-refine rr cs) d
+conv-changes-refine rr (conv-unbind valid cs) =
+  conv-unbind (valid-refine rr valid) (conv-changes-refine rr cs)
+conv-changes-refine rr (conv-bind valid cs fresh i) =
+  conv-bind (valid-refine rr valid) (conv-changes-refine rr cs) fresh i
+conv-changes-refine rr (conv-bind-live valid cs d) =
+  conv-bind-live (valid-refine rr valid) (conv-changes-refine rr cs) d
 
 rep-lookup-refine : RepRefines Ξ Ξ′ → Ξ ∋ʳ α := b
   → b ≡ bindR R → Ξ′ ∋ʳ α := bindR R
@@ -1045,22 +1045,22 @@ CrossΛTyping = ∀ {Δ W A}
 -- exactly the SIBLING SHIFT, and the moved conversion is NAMED and
 -- pinned by a `SameConv` against `renNameCtx suc` of the old
 -- conversion context.  PROVED in
--- strong-rep-store.proof.AddLock0.addLock0-⊢; it stays a PARAMETER of
+-- strong-rep-store.proof.AddUnbind0.addUnbind0-⊢; it stays a PARAMETER of
 -- `Impl` here only because that proof imports this module.
 -- Commentary.md § proof/Preserve.agda / §4
-AddLock0Typing : Set
-AddLock0Typing = ∀ {Δ Δᶜ Δ⁺ᶜ W Θ s s′ A P}
+AddUnbind0Typing : Set
+AddUnbind0Typing = ∀ {Δ Δᶜ Δ⁺ᶜ W Θ s s′ A P}
   → WfCtx ((bindR P ∷ reps Δ) ∣
                (zero ∷ shiftReps (names Δ)))
   → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ A
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
   → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
-      ⊢ᶜ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) ⇒ Δ⁺ᶜ
+      ⊢ᶜ (renᴮᴿ suc Θ ++ (unbind 0 0 ∷ [])) ⇒ Δ⁺ᶜ
   → SameConv (underΛ Δ⁺ᶜ) s′
       (underΛ (renNameCtx suc Δ⁺ᶜ Δᶜ)) s
   → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
       ∣ [] ⊢
-        (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) , `∀ s′ ⟫)
+        (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ ++ (unbind 0 0 ∷ [])) , `∀ s′ ⟫)
         ⦂ `∀ (renameᵗ (extᵗ suc) A)
 
 -- THE SIBLING SHIFT — the one new lemma of the store experiment.
@@ -1205,7 +1205,7 @@ ren-suc-[0] T =
   h zero = refl
   h (suc X) = refl
 
-preserve-TyPeelR-⟪⟫ : AddLock0Typing
+preserve-TyPeelR-⟪⟫ : AddUnbind0Typing
   → ∀ {Δ Δᵢ Δᵢ⁺ Δᶜ Δ′ᶜ Δ″ᶜ W Θ′ s′ s″ Θ s B A R Bᵢ Bᵢ′ Bₑ C}
   → WfCtx Δ
   → Value W
@@ -1213,7 +1213,7 @@ preserve-TyPeelR-⟪⟫ : AddLock0Typing
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
   → Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ
   → allocate R Δ ⊢ⁱ inst Θ ⇒ Δᵢ⁺
-  → Δᵢ⁺ ⊢ᶜ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) ⇒ Δ″ᶜ
+  → Δᵢ⁺ ⊢ᶜ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) ⇒ Δ″ᶜ
   → SameConv (underΛ Δ″ᶜ) s″
       (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′
   → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
@@ -1222,10 +1222,10 @@ preserve-TyPeelR-⟪⟫ : AddLock0Typing
   → Δ ∣ [] ⊢
       ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
   → allocate R Δ ∣ [] ⊢
-      ((renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
+      ((renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
         ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
         ⟪ inst Θ , instReveal 0 s ⟫ ⦂ C
-preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+preserve-TyPeelR-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
     wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
@@ -1233,7 +1233,7 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
                        ⊢c sameᵢ sameₑ wE) wA)
   with interior-functional (interior csΘ) (bw-interior mwΘ)
      | conversion-functional rc (bw-conversion mwΘ)
-preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+preserve-TyPeelR-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
     wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
@@ -1242,14 +1242,14 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
   | refl | refl
   with conversion-functional r′ (bw-conversion mw′)
      | interior-functional ri⁺ (inst-interior (bw-interior mwΘ))
-preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+preserve-TyPeelR-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
     wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
     (⊢·[] (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
                        ⊢c sameᵢ sameₑ wE) wA)
   | refl | refl | refl | refl with conv-all-inv ⊢c
-preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+preserve-TyPeelR-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
     wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
@@ -1259,7 +1259,7 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
   with conv-types-unique
          (unique-underΛ {Γ = Δᶜ} (name-fn (bw-conversion-wf mwΘ)))
          ⊢s ⊢s₀
-preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+preserve-TyPeelR-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
     wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
@@ -1267,7 +1267,7 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
                        ⊢c sameᵢ sameₑ wE) wA)
   | refl | refl | refl | refl | A₀ , B₀ , refl , refl , ⊢s₀
   | refl , refl with sameTy-target-∀⁻ sameᵢ
-preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+preserve-TyPeelR-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
     wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
@@ -1277,7 +1277,7 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
   | refl , refl | D , refl , sameD
   with sameTy-src-unique
          (name-fn (wf-underΛ (bw-interior-wf mwΘ))) sameD sm
-preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+preserve-TyPeelR-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
     wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
@@ -1286,7 +1286,7 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
   | refl | refl | refl | refl | A₀ , B₀ , refl , refl , ⊢s₀
   | refl , refl | D , refl , sameD | refl
   with respell-ty (conversion-live rc) p
-preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+preserve-TyPeelR-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
     wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
@@ -1306,16 +1306,16 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
   mwᵢ = inst-boundarywf mwΘ p
 
   moved : ΔRᵢ ∣ [] ⊢
-      (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
+      (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
       ⦂ `∀ (renameᵗ (extᵗ suc) Bᵢ′)
-  moved = addlock (bw-interior-wf mwᵢ)
+  moved = addunbind (bw-interior-wf mwᵢ)
                   (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′) r′ r″ sc
 
   int : ΔRᵢ ∣ [] ⊢
-      (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
+      (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
        ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ] ⦂ Bᵢ′
   int = subst (λ T → ΔRᵢ ∣ [] ⊢
-          (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
+          (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
            ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ] ⦂ T)
         (ren-suc-[0] Bᵢ′)
         (⊢·[] moved (wf-var (zero , here)))
@@ -1406,7 +1406,7 @@ preserve-wf wfΔ ⊢M st = apply-wf wfΔ (step-alloc wfΔ st)
 
 module Impl
   (crossΛ  : CrossΛTyping)
-  (lock0   : AddLock0Typing)
+  (unbind0 : AddUnbind0Typing)
   (shift   : ShiftTyping)
   (peel    : PeelCase)
   (cancel  : CancelRCase)
@@ -1423,7 +1423,7 @@ module Impl
     preserve-TyPeelR-Λ wfΔ v rc ⊢s p ⊢M
   preserve wfΔ ⊢M
     (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm p) =
-    preserve-TyPeelR-⟪⟫ lock0 wfΔ v ri rc r′ ri⁺ r″ sc ⊢s sm p ⊢M
+    preserve-TyPeelR-⟪⟫ unbind0 wfΔ v ri rc r′ ri⁺ r″ sc ⊢s sm p ⊢M
   preserve wfΔ ⊢M (CancelR v ri r₁ d₁ rc sm) =
     cancel wfΔ v ri r₁ d₁ rc sm ⊢M
   preserve wfΔ ⊢M (Drop$ b) = preserve-Drop$ wfΔ b ⊢M

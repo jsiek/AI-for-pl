@@ -100,7 +100,7 @@ image-sound image-here = refl
 -- `crossΛᴹ` is written with the paired renaming, whose ordinary half is
 -- the identity; `renᴹ²-ord-id` is what identifies it with `renᴹᴿ suc`.
 image-sound (image-Λ {A = A} {D = D} {N = N} r) =
-  cong (_⟪ (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+  cong (_⟪ (unbind 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
     (trans (trans (plug-renCtxᴿ suc D N)
                   (cong (renᴹᴿ suc) (image-sound r)))
            (sym (renᴹ²-ord-id (λ X → refl) _)))
@@ -147,7 +147,7 @@ residual-sound (residual-TyPeelR-Λ vN rc ⊢s pA) = refl
 residual-sound
   (residual-TyPeelR-⟪⟫ {Θ = Θ} {C = C} {M = M} {Θ′ = Θ′} {s″ = s″}
     {s = s} {Bᵢ′ = Bᵢ′} vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA) =
-  cong (λ z → ((z ⟪ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
+  cong (λ z → ((z ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
                   ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
                 ⟪ inst Θ , instReveal 0 s ⟫)
     (plug-renCtxᴿ suc C M)

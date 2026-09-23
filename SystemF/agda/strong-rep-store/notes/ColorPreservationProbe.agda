@@ -21,7 +21,7 @@ module strong-rep-store.notes.ColorPreservationProbe where
 -- ambient context `underΛ empty` with scope map {X ↦ α}.
 --
 -- WHERE THE MOVE IS, WITH THE STORE (experiment 2, 2026-09-22).  TyBeta
--- ALLOCATES the cell β := α at address 0 and unlocks the name Y for it;
+-- ALLOCATES the cell β := α at address 0 and binds the name Y for it;
 -- every existing representation variable — α, and the ambient name map
 -- entry that points at it — moves up by one, and so does the redex's
 -- SIBLING, which is the very position followed here (`ξ-·-l`'s
@@ -84,7 +84,7 @@ Ex-⊢ = tc
 Δ₁ : Ctxᵗ                      -- the ambient after TyBeta allocated α:=Y
 Δ₁ = allocate (` 0) Δ₀
 
-Θ₀ : Boundary                  -- unlock X for the fresh cell, by TyBeta
+Θ₀ : Boundary                  -- bind X for the fresh cell, by TyBeta
 Θ₀ = inst []
 
 s t : Conv                     -- TyBeta's reveal, split at its arrow

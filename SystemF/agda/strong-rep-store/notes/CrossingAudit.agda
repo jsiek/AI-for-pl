@@ -4,15 +4,15 @@ module strong-rep-store.notes.CrossingAudit where
 --   * The audit of every rule that MINTS or MOVES a spelling, against the
 --     question three repairs have already turned on: is the spelling read
 --     in the same context it is used in?
---   * Each answer is machine-checked here, on a frame that both locks and
---     unlocks, since that is what makes the two contexts part.
+--   * Each answer is machine-checked here, on a frame that both unbinds and
+--     binds, since that is what makes the two contexts part.
 --   * It records one hazard that is NOT repaired — `Peel` — and DISPROVES
 --     the invariant that would have made it safe (§5).
 --   * §6 compares with `main`, where that same invariant IS a theorem,
 --     and locates what this branch's design gave up to lose it.
 --
 -- THE QUESTION.  A boundary scope induces two name maps: the INTERIOR, which
--- performs every change, and the CONVERSION context, which skips `lock`s
+-- performs every change, and the CONVERSION context, which skips `unbind`s
 -- so that a conversion can still name what the interior concealed.  An
 -- ordinary de Bruijn index means different things in the two, and they
 -- can even reorder relative to each other (§0).  So every spelling a rule
@@ -40,16 +40,16 @@ open import strong-rep-store.TypeCheck
 -- 0. The frame the audit runs on
 ------------------------------------------------------------------------
 
--- It must LOCK and UNLOCK, because a frame that only unlocks has the two
+-- It must UNBIND and BIND, because a frame that only binds has the two
 -- contexts equal and would audit clean whatever the rule did.  This one
--- locks representation variable 0 away and brings it back at the END, so
+-- unbinds representation variable 0 away and brings it back at the END, so
 -- the interior moves it and the conversion context — which skipped the
--- lock, and whose re-unlock is therefore a no-op — does not.
+-- unbind, and whose re-bind is therefore a no-op — does not.
 Δ₀ : Ctxᵗ
 Δ₀ = (bindR `ℕ ∷ bindR `𝔹 ∷ []) ∣ (0 ∷ 1 ∷ [])
 
 Θ₀ : Boundary
-Θ₀ = (unlock 1 0 ∷ lock 0 0 ∷ [])
+Θ₀ = (bind 1 0 ∷ unbind 0 0 ∷ [])
 
 nmConv : Ctxᵗ → Boundary → Maybe TyCtx
 nmConv Γ Θ with conversion? Γ Θ
@@ -84,9 +84,9 @@ conversion-did-not = refl
 -- `underΛ Δ`, and lands on `inst []`, READ AT THE
 -- ALLOCATED CONTEXT (experiment 2: the cell the ∀-elimination mints is
 -- pushed onto the ambient store, not onto the frame).  That scope has
--- ONE change and it is an `unlock`, so its conversion context and its
+-- ONE change and it is a `bind`, so its conversion context and its
 -- interior are the same map, and both are `underΛ Δ`.  A rule whose
--- scope never locks cannot cross wrongly.
+-- scope never unbinds cannot cross wrongly.
 tybeta-used :
   names (proj₁ (from-just
     (conversion? (allocate `ℕ Δ₀) (inst []))))
@@ -98,13 +98,13 @@ tybeta-used = refl
 ------------------------------------------------------------------------
 
 -- A value crossing a `Λ` is wrapped by `crossΛᴹ` in `mkId (⇑ᵗ A)` over
--- the frame `(lock 0 0 ∷ [])`.  `A` is read at Δ and `⇑ᵗ A` is
--- the right spelling at `underΛ Δ`; the frame's only change is the lock,
+-- the frame `(unbind 0 0 ∷ [])`.  `A` is read at Δ and `⇑ᵗ A` is
+-- the right spelling at `underΛ Δ`; the frame's only change is the unbind,
 -- which the conversion context SKIPS, so the conversion context IS
 -- `underΛ Δ`.  Nothing moves, so nothing can be misspelled.
 beta-used :
   names (proj₁ (from-just
-    (conversion? (underΛ Δ₀) ((lock 0 0 ∷ [])))))
+    (conversion? (underΛ Δ₀) ((unbind 0 0 ∷ [])))))
     ≡ names (underΛ Δ₀)
 beta-used = refl
 
@@ -118,7 +118,7 @@ beta-used = refl
 -- prepends one name and shifts every change of Θ by one in both
 -- universes, so its conversion context is Θ's with that one name in
 -- front — which is exactly `underΛ Δᶜ`.  Checked here on a frame that
--- locks, which is where it could have failed.
+-- unbinds, which is where it could have failed.
 typeelrΛ-used :
   names (proj₁ (from-just
     (conversion? (allocate `ℕ Δ₀) (inst Θ₀))))
@@ -173,47 +173,47 @@ reps₃ = bindR `ℕ ∷ bindR `𝔹 ∷ bindR `ℕ ∷ []
 Δ₃ : Ctxᵗ
 Δ₃ = reps₃ ∣ (0 ∷ 1 ∷ [])
 
-Lock Unlock : Boundary
-Lock = (lock 0 0 ∷ [])
-Unlock = (unlock 0 2 ∷ [])
+Unbind Bind : Boundary
+Unbind = (unbind 0 0 ∷ [])
+Bind = (bind 0 2 ∷ [])
 
--- FACT 1.  A change list with NO UNLOCKS has (P).  The conversion context
--- skips every lock, so C⟦Θ⟧Δ = Δ; the interior deletes the locked names;
--- the dual is all unlocks, at the positions the locks recorded, and each
+-- FACT 1.  A change list with NO BINDS has (P).  The conversion context
+-- skips every unbind, so C⟦Θ⟧Δ = Δ; the interior deletes the unbound names;
+-- the dual is all binds, at the positions the unbinds recorded, and each
 -- is fresh at the interior, so running them restores Δ exactly.
-locks-only-ok : Ok Δ₃ ((lock 0 1 ∷ lock 0 0 ∷ []))
-locks-only-ok = refl
+unbinds-only-ok : Ok Δ₃ ((unbind 0 1 ∷ unbind 0 0 ∷ []))
+unbinds-only-ok = refl
 
--- FACT 2.  A change list with NO LOCKS has (P).  Nothing is skipped, so
+-- FACT 2.  A change list with NO UNBINDS has (P).  Nothing is skipped, so
 -- the two readings perform the same insertions and C⟦Θ⟧Δ = I⟦Θ⟧Δ; the
--- dual is all locks, which the conversion context skips, so it leaves
+-- dual is all unbinds, which the conversion context skips, so it leaves
 -- that map alone.
-unlocks-only-ok : Ok Δ₃ Unlock
-unlocks-only-ok = refl
+binds-only-ok : Ok Δ₃ Bind
+binds-only-ok = refl
 
--- FACT 3.  A MIXED list need not.  `lock 0 0` then `unlock 0 2`:
+-- FACT 3.  A MIXED list need not.  `unbind 0 0` then `bind 0 2`:
 --
---   interior     (0 1)  --lock 0 0-->  (1)    --unlock 0 2 at 0-->  (2 1)
---   conversion   (0 1)  --skipped-->   (0 1)  --unlock 0 2 at 0-->  (2 0 1)
+--   interior     (0 1)  --unbind 0 0-->  (1)    --bind 0 2 at 0-->  (2 1)
+--   conversion   (0 1)  --skipped-->   (0 1)  --bind 0 2 at 0-->  (2 0 1)
 --
--- The same unlock inserts at position 0 of two lists that a skipped lock
+-- The same bind inserts at position 0 of two lists that a skipped unbind
 -- has already made different, so 2 lands before 1 in one and before 0 in
 -- the other.  The dual then restores 0 at the front of the interior's
 -- result, and the two maps hold the same names in different orders.
-mixed-dual : nmDual Δ₃ ((unlock 0 2 ∷ lock 0 0 ∷ []))
+mixed-dual : nmDual Δ₃ ((bind 0 2 ∷ unbind 0 0 ∷ []))
   ≡ just (0 ∷ 2 ∷ 1 ∷ [])
 mixed-dual = refl
 
-mixed-conv : nmConv Δ₃ ((unlock 0 2 ∷ lock 0 0 ∷ []))
+mixed-conv : nmConv Δ₃ ((bind 0 2 ∷ unbind 0 0 ∷ []))
   ≡ just (2 ∷ 0 ∷ 1 ∷ [])
 mixed-conv = refl
 
 -- SO THERE IS NO STRUCTURAL ARGUMENT FOR `Peel`.  (P) is not closed under
--- `_++_`, which is what mixes a locking list with an unlocking one:
-push-shape-dual : nmDual Δ₃ (rewind Unlock ++ Lock) ≡ just (0 ∷ 2 ∷ 1 ∷ [])
+-- `_++_`, which is what mixes an unbinding list with a binding one:
+push-shape-dual : nmDual Δ₃ (rewind Bind ++ Unbind) ≡ just (0 ∷ 2 ∷ 1 ∷ [])
 push-shape-dual = refl
 
-push-shape-conv : nmConv Δ₃ (rewind Unlock ++ Lock) ≡ just (2 ∷ 0 ∷ 1 ∷ [])
+push-shape-conv : nmConv Δ₃ (rewind Bind ++ Unbind) ≡ just (2 ∷ 0 ∷ 1 ∷ [])
 push-shape-conv = refl
 
 -- and `_++_` is how `CancelR` and `IdPush` build every composite frame.
@@ -240,23 +240,23 @@ push-shape-conv = refl
 -- mixed ones included, and `preserve-Peel` is proved from it.  The reason
 -- is not a cleverer proof.  It is the representation.
 --
--- There a name map is a FIXED CARRIER WITH A BIT PER SLOT: `lock` and
--- `unlock` are `updateAt maskEnt X` and `updateAt unmaskEnt X`, so
+-- There a name map is a FIXED CARRIER WITH A BIT PER SLOT: `unbind` and
+-- `bind` are `updateAt maskEnt X` and `updateAt unmaskEnt X`, so
 -- nothing moves, nothing is renumbered, and an index means the same
 -- thing in both readings.  (P) is then a two-line argument about bits:
 --
---     int(Θ)        sets the lock bits, clears the unlock bits
---     conv(dual Θ)  additionally CLEARS the lock bits
---     net           the unlock bits cleared, i.e. conv(Θ)
+--     int(Θ)        sets the unbind bits, clears the bind bits
+--     conv(dual Θ)  additionally CLEARS the unbind bits
+--     net           the bind bits cleared, i.e. conv(Θ)
 --
--- The set-then-cleared step is where `Δ ⊢ˢ changes Θ` is spent: a lock is
+-- The set-then-cleared step is where `Δ ⊢ˢ changes Θ` is spent: an unbind is
 -- admitted only at a nameable slot, so `unmask ∘ mask = id` there.  And
 -- bits at distinct slots are independent (`updateAt-updateAt-comm`),
 -- which makes the dual's REVERSAL invisible (`dualScope-unmask-comm`) —
 -- the one genuinely nontrivial step in main's whole proof.
 --
 -- HERE a name map is a SEQUENCE.  Deleting an entry renumbers every later
--- one, so two unlocks do not commute and the reversal is not invisible.
+-- one, so two binds do not commute and the reversal is not invisible.
 -- There is no fixed carrier for the bit argument to stand on.  That is
 -- not an oversight: a variable being in scope or not in scope, rather
 -- than present-but-marked, is the premise of this branch, and removing
@@ -264,11 +264,11 @@ push-shape-conv = refl
 
 -- THE OBSTRUCTION TO REPAIRING `dual` INSTEAD OF `Peel`.  One could hope
 -- to recompute the restored positions against Δ rather than replay the
--- ones the locks recorded.  It does not work, because `dual` is asked to
+-- ones the unbinds recorded.  It does not work, because `dual` is asked to
 -- do TWO jobs and, once positions move, they want different numbers.
--- On §5's mixed frame — `lock 0 0` then `unlock 0 2` over Δ₃:
+-- On §5's mixed frame — `unbind 0 0` then `bind 0 2` over Δ₃:
 Mixed : Boundary
-Mixed = (unlock 0 2 ∷ lock 0 0 ∷ [])
+Mixed = (bind 0 2 ∷ unbind 0 0 ∷ [])
 
 mixed-int : nmInt Δ₃ Mixed ≡ just (2 ∷ 1 ∷ [])
 mixed-int = refl
@@ -282,7 +282,7 @@ mixed-target = refl
 -- `dual Mixed`, as defined.  It INVERTS the interior, which is the
 -- job the crossing frame identity needs — and misses (P).
 Dsyn : Boundary
-Dsyn = (unlock 0 0 ∷ lock 0 2 ∷ [])
+Dsyn = (bind 0 0 ∷ unbind 0 2 ∷ [])
 
 syn-inverts : nmInt Δᵐ Dsyn ≡ just (0 ∷ 1 ∷ [])
 syn-inverts = refl
@@ -290,10 +290,10 @@ syn-inverts = refl
 syn-misses : nmConv Δᵐ Dsyn ≡ just (0 ∷ 2 ∷ 1 ∷ [])
 syn-misses = refl
 
--- The same list with the restoring unlock moved to the position the
+-- The same list with the restoring bind moved to the position the
 -- CONVERSION reading wants.  It has (P) — and stops inverting.
 Dfix : Boundary
-Dfix = (unlock 1 0 ∷ lock 0 2 ∷ [])
+Dfix = (bind 1 0 ∷ unbind 0 2 ∷ [])
 
 fix-has-P : nmConv Δᵐ Dfix ≡ just (2 ∷ 0 ∷ 1 ∷ [])
 fix-has-P = refl

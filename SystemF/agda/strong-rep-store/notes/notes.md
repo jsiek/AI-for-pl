@@ -79,7 +79,7 @@ interior type to the boundary's exterior type.
 
 ## Boundary Scope
 
-    δ ::= lock X α | unlock X α
+    δ ::= unbind X α | bind X α
     Θ ::= ⟨ δ₁, ..., δₘ ⟩
 
 A boundary scope is a change sequence: `Boundary = List Change` in
@@ -88,12 +88,12 @@ acts first.
 
 The displayed boundary notation follows `Show.agda`:
 
-    ↓X         lock X, recording that it names α
-    ↥X         unlock the type variable X for α
+    ↓X         unbind X, recording that it names α
+    ↥X         bind the type variable X for α
 
 Thus `M ⟪ ↓Y , ↥Z , c ⟫` displays changes in the order in which they act,
-and the conversion last.  The full change syntax remains `lock Y β` and
-`unlock Z γ`; the Greek argument is recoverable from the displayed Latin
+and the conversion last.  The full change syntax remains `unbind Y β` and
+`bind Z γ`; the Greek argument is recoverable from the displayed Latin
 name.
 
 # The two context universes
@@ -109,7 +109,7 @@ where `Ξ` is a representation context and `Γ` maps type variables to represent
 
 `Ξ` is the **store**: it holds every representation cell the run has
 minted, interleaved with the abstract cells the `Λ`s introduced.  The Γ
-context contains exactly the live type variables.  A locked type
+context contains exactly the live type variables.  An unbound type
 variable has no entry in `Γ`, but its representation variable remains in
 `Ξ`.  In a well-formed context every representation type is well formed outside its
 own binder, every type variable points into `Ξ`, and no representation variable has
@@ -174,7 +174,7 @@ says that `A` in `Δ` and `B` in `Δ′` denote the same representation
 type.  `SameConv Δ c Δ′ c′` is the structural analogue for conversions.
 
 With names, the type variable of a representation does not change merely
-because another name is locked or unlocked.  Therefore a re-spelling
+because another name is unbound or bound.  Therefore a re-spelling
 premise normally becomes:
 
   * use the same type variable or conversion on both sides; and
@@ -192,17 +192,17 @@ Agda's `interior-reps`/`conversion-reps`: `reps Δᵢ ≡ reps Δ ≡ reps Δᶜ
 
 The **interior scope** generation, written `Δ ⊢ⁱ Θ ⇒ Δᵢ`, performs every change:
 
-    lock X α       removes X ↦ α
-    unlock X α     adds X ↦ α, provided α has no live type variable
+    unbind X α   removes X ↦ α
+    bind X α     adds X ↦ α, provided α has no live type variable
 
 The **conversion scope** generation, written `Δ ⊢ᶜ Θ ⇒ Δᶜ`, is the union of
 the variable live anywhere in the boundary:
 
-    lock X α       is skipped
-    unlock X α     adds X ↦ α if α is not live
-    unlock X α     is a no-op if α already has its unique live name
+    unbind X α   is skipped
+    bind X α     adds X ↦ α if α is not live
+    bind X α     is a no-op if α already has its unique live name
 
-The last clause is `conv-unlock-live`.  For example, a conversion reading
+The last clause is `conv-bind-live`.  For example, a conversion reading
 of `↓X` leaves `X` live; the inverse `↥X` in `Θ ++ dual Θ` must therefore
 be a no-op, not a failed freshness check.  `notes/ReUnlockWall.agda`
 machine-checks the old failure and the repaired readings.
@@ -219,24 +219,24 @@ derived.
 ## Derived Boundary Scopes
 
 Change sequences are written in ACTING order (the head acts first).  The
-inverse of a change swaps lock and unlock:
+inverse of a change swaps unbind and bind:
 
-    (lock X α)⁻¹    = unlock X α
-    (unlock X α)⁻¹  = lock X α
+    (unbind X α)⁻¹  = bind X α
+    (bind X α)⁻¹    = unbind X α
 
     dual []          = []
     dual (δ ∷ Θ)     = dual Θ ++ [ δ⁻¹ ]      -- inverses, in reverse order
 
 The other scopes the rules build are written out at their use sites:
-`lock X α ∷ Θ` (TyPeelR-⟪⟫'s moved scope), `unlock X α ∷ Θ` (the
+`unbind X α ∷ Θ` (TyPeelR-⟪⟫'s moved scope), `bind X α ∷ Θ` (the
 instantiated scope of TyBeta and both TyPeelR), and the merge
 `Θ₂ ++ Θ₁`, the outer scope acting first, which is the one CancelR and
 IdPush build.  The rewind `Θ ++ dual Θ` is still a scope one can write,
 but since 2026-09-23 no rule builds one.  Agda's change lists are head-LAST (the tail acts first),
 so its spellings are the mirror images: `dual χ = map dualChange
 (reverse χ)`, `rewind Θ = dual Θ ++ Θ`, the merge is `Θ₁ ++ Θ₂`, the
-moved scope is the snoc `Θ ++ (lock 0 0 ∷ [])`, and the instantiated
-scope is `inst Θ = map shiftChange Θ ++ (unlock 0 0 ∷ [])`.  Nothing
+moved scope is the snoc `Θ ++ (unbind 0 0 ∷ [])`, and the instantiated
+scope is `inst Θ = map shiftChange Θ ++ (bind 0 0 ∷ [])`.  Nothing
 shifts a representation when two scopes merge, because both were spelled
 at the same store; `inst` shifts in both universes because it is read
 one allocation later — with names that shift is invisible.
@@ -383,8 +383,8 @@ The boundary rule is the only non-System-F rule:
 
 With variables as names no scope premises are needed.  `Bᵢ` is in scope
 in `Δᵢ` by its typing premise, and every name live in the interior is
-live in the conversion context — a lock is the only thing that removes a
-name and the conversion reading skips locks (`int⇒conv-live`,
+live in the conversion context — an unbind is the only thing that removes a
+name and the conversion reading skips unbinds (`int⇒conv-live`,
 Boundary.agda §3a) — so it is in scope in `Δᶜ` too.  `Bₑ` is in scope in
 `Δ` by `Δ ⊢ᵗ Bₑ`, and the conversion reading never removes an exterior
 name (`conversion-live`), so it is in scope in `Δᶜ` too.
@@ -458,7 +458,7 @@ contractum writes.  Commentary is in the appendix at the end of this
 file, keyed by rule.
 
     (TyBeta)    Δ ⊢ (ΛX.V) [B,A]
-                    -→ V ⟪ [ unlock X α ] , revealₓ(B) ⟫ ∣ new R
+                    -→ V ⟪ [ bind X α ] , revealₓ(B) ⟫ ∣ new R
                 where Δ ⊢ᶜ A ~ R
 
     (Beta)      Δ ⊢ (λx:A.N) · W -→ N[x:=W:A] ∣ none
@@ -467,13 +467,13 @@ file, keyed by rule.
                     -→ (V · (W ⟪ dual Θ , c ⟫)) ⟪ Θ , d ⟫ ∣ none
 
     (TyPeelR-Λ) Δ ⊢ ((ΛX.V) ⟪ Θ , ∀X.c ⟫) [B,A]
-                    -→ V ⟪ unlock X α ∷ Θ , instRevealₓ(c) ⟫ ∣ new R
+                    -→ V ⟪ bind X α ∷ Θ , instRevealₓ(c) ⟫ ∣ new R
                 where Δ ⊢ᶜ A ~ R
 
     (TyPeelR-⟪⟫)
                 Δ ⊢ ((W ⟪ Θ′ , ∀X.c′ ⟫) ⟪ Θ , ∀X.c ⟫) [B,A]
-                    -→ ((W ⟪ lock X α ∷ Θ′ , ∀X.c′ ⟫) [Bᵢ,X])
-                         ⟪ unlock X α ∷ Θ , instRevealₓ(c) ⟫ ∣ new R
+                    -→ ((W ⟪ unbind X α ∷ Θ′ , ∀X.c′ ⟫) [Bᵢ,X])
+                         ⟪ bind X α ∷ Θ , instRevealₓ(c) ⟫ ∣ new R
                 where Δ ⊢ᶜ A ~ R
                   and under(X,α,Δᶜ) ⊢ c : Bᵢ ⇝ Bₑ   (Δ ⊢ᶜ Θ ⇒ Δᶜ)
 
@@ -678,12 +678,12 @@ does not hide why the Agda carries relational witnesses.
 
 | defect | live repair | what naming removes | what survives |
 |---|---|---|---|
-| `notes/ReUnlockWall.agda` | `conv-unlock-live` | a repeated insertion position | the conversion reading is a union and differs from the interior |
+| `notes/ReUnlockWall.agda` | `conv-bind-live` | a repeated insertion position | the conversion reading is a union and differs from the interior |
 | `notes/ForallPayloadWall.agda`, `TyPeelR-⟪⟫` | carry `Bᵢ′` with `_⊢_≈_⊣_` | reindexing the interior annotation | it must be readable in both the interior and conversion contexts |
 | `notes/ForallPayloadWall.agda`, `IdPush` | carry `X′` with `_⊢_≈_⊣_` | reindexing the pushed name | the name must be live at the inner and merged conversion contexts |
 | `notes/CancelRShiftWall.agda` (dissolved by the store, kept as a record) | carry `A′` from `Θ₁`'s own conversion context | the bind-prefix shift, which no longer exists (`no-shift`) | the type is still read at two different NAME MAPS, `Θ₁`'s and the merged one |
 | `notes/CrossingAudit.agda` and `notes/PeelPremise.agda` | carry `s′` with `SameConv` | reindexing the domain conversion across the dual | the original and dual conversion contexts remain different |
-| `notes/AddLock0Wall.agda` | carry `s″` with `SameConv` | reindexing through the new lock and old unlocks | both conversion readings and the old context's representation-rebased view remain premises |
+| `notes/AddLock0Wall.agda` | carry `s″` with `SameConv` | reindexing through the new unbind and old binds | both conversion readings and the old context's representation-rebased view remain premises |
 
 # Notes ↔ Agda correspondence
 
@@ -703,8 +703,8 @@ The rule names below are the Agda constructor names.
 | `dual Θ` | `dual` | none |
 | `Θ ++ dual Θ` | `rewind Θ = dual Θ ++ Θ` | no rule builds one since 2026-09-23 |
 | `Θ₂ ++ Θ₁` (acting order) | `Θ₁ ++ Θ₂` (head-last) | nothing shifts: both scopes are spelled at the same store |
-| `lock X α ∷ Θ` | the snoc `Θ ++ (lock 0 0 ∷ [])` | written out at its use sites |
-| `unlock X α ∷ Θ` | `inst Θ = map shiftChange Θ ++ (unlock 0 0 ∷ [])` | one shift in each universe, because it is read one allocation later |
+| `unbind X α ∷ Θ` | the snoc `Θ ++ (unbind 0 0 ∷ [])` | written out at its use sites |
+| `bind X α ∷ Θ` | `inst Θ = map shiftChange Θ ++ (bind 0 0 ∷ [])` | one shift in each universe, because it is read one allocation later |
 
 ## Formation, conversion, and term typing
 
@@ -712,9 +712,9 @@ The rule names below are the Agda constructor names.
 |---|---|---|
 | `wf-var`, `wf-ℕ`, `wf-𝔹`, `wf-⇒`, `wf-∀` | same names in `Ctx.agda` | named binders replace `underΛ` index shifts |
 | representation formation | `wfᴿ-var`, `wfᴿ-ℕ`, `wfᴿ-𝔹`, `wfᴿ-⇒`, `wfᴿ-∀` | free Greek variables and local Latin binders replace the mixed index cutoff |
-| `lock`, `unlock` | `step-lock`, `step-unlock` | membership/freshness replaces positional insert/delete evidence |
+| `unbind`, `bind` | `step-unbind`, `step-bind` | membership/freshness replaces positional insert/delete evidence |
 | interior changes | `changes[]`, `changes∷` | named sequences suppress index shifts only |
-| conversion changes | `conv[]`, `conv-lock`, `conv-unlock`, `conv-unlock-live` | the no-op re-unlock remains semantically visible |
+| conversion changes | `conv[]`, `conv-unbind`, `conv-bind`, `conv-bind-live` | the no-op re-bind remains semantically visible |
 | `BoundaryWf` | `bw` | three fields only — exterior `WfCtx` and the two readings; output well-formedness is derived in both presentations |
 | `conv-id`, `conv-idv`, `conv-unseal`, `conv-seal`, `conv-fun`, `conv-all` | same names in `Conversion.agda` | none beyond named lookup and binders |
 | `mkId`, `revealₓ`, `concealₓ`, `instRevealₓ`, `instConcealₓ` | `mkId`, `reveal`, `conceal`, `instReveal`, `instConceal` | the Agda operations carry the slot as an index, not a name |
@@ -754,7 +754,7 @@ premises only at these sites:
   2. `Peel`: `SameConv Δᵈ s′ Δᶜ s` becomes one `c` readable in
      both contexts.
   3. `TyPeelR-⟪⟫`: the moved-reading premise uses
-     `renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])` in Agda and `lock X α ∷ Θ′`
+     `renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])` in Agda and `unbind X α ∷ Θ′`
      here; its `SameConv … s″ … s′` becomes one `c′` readable in both
      conversion contexts; and `underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ`
      becomes one `Bᵢ` readable in both contexts.
@@ -811,7 +811,7 @@ the same representation variables.
 ## TyPeelR-Λ
 
 No term moves in this clause: the `Λ` binder becomes the binder the
-allocation introduces, and the prepended unlock names it.
+allocation introduces, and the prepended bind names it.
 
 Mechanization note.  Agda also carries `Δ ⊢ᶜ Θ ⇒ Δᶜ` and
 `underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ`; both are recoverable from the redex typing
@@ -829,19 +829,19 @@ inner package's body type, which typing identifies with `Bᵢ`.
 Mechanization note.  Agda's rule carries five readings — `Δ ⊢ⁱ Θ ⇒ Δᵢ`,
 `Δ ⊢ᶜ Θ ⇒ Δᶜ`, `Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ`, `allocate R Δ ⊢ⁱ inst Θ ⇒ Δᵢ⁺` (at the
 ALLOCATED context: the cell this step mints is ambient) and
-`Δᵢ⁺ ⊢ᶜ renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ []) ⇒ Δ″ᶜ` — and two re-spellings:
+`Δᵢ⁺ ⊢ᶜ renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ []) ⇒ Δ″ᶜ` — and two re-spellings:
 the annotation is `Bᵢ′` with `underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ` (the
 source type spelled in the interior, where the annotation sits), and the
 moved conversion is `s″` with `SameConv` at the two conversion readings.
 Both the moved value and the moved boundary take the **sibling shift** of
-the allocation: `renᴹᴿ suc W` and `renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])`,
-which is `lock X α ∷ Θ′` after that shift.  With names `c′` is unchanged
-(`Δ′ᶜ ⊆ Δ″ᶜ` after the shift, `snoc-lock0-conversion-ren`) and `Bᵢ` is in
+the allocation: `renᴹᴿ suc W` and `renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])`,
+which is `unbind X α ∷ Θ′` after that shift.  With names `c′` is unchanged
+(`Δ′ᶜ ⊆ Δ″ᶜ` after the shift, `snoc-unbind0-conversion-ren`) and `Bᵢ` is in
 scope in the interior because the outer `env` compares the inner
 package's type with `∀Bᵢ` across `Δᵢ`/`Δᶜ`.
 `notes/ForallPayloadWall.agda` shows why a fixed position for the
-annotation is wrong; `notes/AddLock0Wall.agda` shows why the skipped lock
-and old unlocks defeat every fixed conversion renaming.
+annotation is wrong; `notes/AddLock0Wall.agda` shows why the skipped unbind
+and old binds defeat every fixed conversion renaming.
 
 ## CancelR
 

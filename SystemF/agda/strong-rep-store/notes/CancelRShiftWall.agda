@@ -41,7 +41,7 @@ module strong-rep-store.notes.CancelRShiftWall where
 -- step with its typeable contractum, on this very configuration (§6).
 --
 -- The local-copy device is the repo's usual one for a retired design:
--- `notes/ReUnlockWall.agda` states the pre-`conv-unlock-live` conversion
+-- `notes/ReUnlockWall.agda` states the pre-`conv-bind-live` conversion
 -- judgement locally in the same way.
 --
 -- WHAT THE RULE SAID, BEFORE (strong-rep-store.Reduction, until
@@ -114,7 +114,7 @@ open import strong-rep-store.proof.MoveScope using (preserve-CancelR)
 -- type VARIABLE produces (`f [Y]` under a later `Λ`).  That is what
 -- makes R a representation variable rather than a closed type, and the
 -- spelling difference therefore visible.  Cell 2 is what the inner
--- boundary scope unlocks.
+-- boundary scope binds.
 Ξ* : RepCtx
 Ξ* = bindR (` 0) ∷ bindR `ℕ ∷ bindR `𝔹 ∷ []
 
@@ -129,13 +129,13 @@ wfΔ* = wf! Δ*
 Θ₂* : Boundary
 Θ₂* = []
 
--- The INNER boundary scope UNLOCKS one name, and that is what the twelve
+-- The INNER boundary scope BINDS one name, and that is what the twelve
 -- runs' `CancelR`s never do: it makes Θ₁'s conversion context a
 -- different NAME MAP from Θ₂'s, so the cancelled binder has two
 -- spellings.  (Before the store the same job was done by a one-wide bind
 -- block, `boundary (`ℕ ∷ []) []`, and the two maps differed by a SHIFT.)
 Θ₁* : Boundary
-Θ₁* = (unlock 0 2 ∷ [])
+Θ₁* = (bind 0 2 ∷ [])
 
 -- `Δ₁*` is at once the inner boundary's conversion context, its
 -- interior, and — since Θ₂* is trivial — the merged scope's conversion

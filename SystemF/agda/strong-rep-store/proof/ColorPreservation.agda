@@ -93,8 +93,8 @@ map-suc-ext ρ (α ∷ Δn) = cong (suc (ρ α) ∷_) (map-suc-ext ρ Δn)
 
 step-len : length Ξ ≡ length Ξ′
   → Ξ ∣ Δn ⊢δ ch ⇒ Δn′ → Ξ′ ∣ Δn ⊢δ ch ⇒ Δn′
-step-len eq (step-lock v d f)   = step-lock (∋ʳ-len eq v) d f
-step-len eq (step-unlock v f i) = step-unlock (∋ʳ-len eq v) f i
+step-len eq (step-unbind v d f)   = step-unbind (∋ʳ-len eq v) d f
+step-len eq (step-bind v f i) = step-bind (∋ʳ-len eq v) f i
 
 changes-len : length Ξ ≡ length Ξ′
   → Ξ ∣ Δn ⊢χ χ ⇒ Δn′ → Ξ′ ∣ Δn ⊢χ χ ⇒ Δn′
@@ -153,17 +153,17 @@ changes-len eq (changes∷ cs st) =
 ⊢C-substCtx σ (frame-⟪⟫ ri d) = frame-⟪⟫ ri d
 
 ------------------------------------------------------------------------
--- 5. The dual `crossΛᴹ` mints has a reading at every context: it locks
+-- 5. The dual `crossΛᴹ` mints has a reading at every context: it unbinds
 --    exactly the fresh name the `Λ` added, and slot 0 is fresh in the
 --    shifted remainder.
 ------------------------------------------------------------------------
 
 crossΛ-interior : (Γ : Ctxᵗ)
-  → underΛ Γ ⊢ⁱ (lock 0 0 ∷ [])
+  → underΛ Γ ⊢ⁱ (unbind 0 0 ∷ [])
       ⇒ ((abstR ∷ reps Γ) ∣ shiftReps (names Γ))
 crossΛ-interior Γ =
   interior (changes∷ changes[]
-    (step-lock (abstR , here) del-here fresh-zero-shift))
+    (step-unbind (abstR , here) del-here fresh-zero-shift))
 
 ------------------------------------------------------------------------
 -- 6. THE TRANSPORT: a frame derivation moves along a representation-only
@@ -320,7 +320,7 @@ residual-frame {Δ = Δ} wfΔ
       vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA)
     (frame-·[] (frame-⟪⟫ (interior csᶠ) (frame-⟪⟫ (interior cs′) h))) =
   let w₀ = repwk-alloc {R = R} (same-wfᴿ wfΔ pA)
-      ri″ = snoc-lock0-interior-ren w₀ (bindR R , here) (interior cs′)
+      ri″ = snoc-unbind0-interior-ren w₀ (bindR R , here) (interior cs′)
       (Δ₂ , d₂ , e₂ , _) = ⊢C-ren suc C w₀ refl h
   in Δ₂
    , frame-⟪⟫ (inst-interior (interior csᶠ))

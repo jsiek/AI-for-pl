@@ -23,11 +23,11 @@ In the new design:
 - `Λ` binds both an ordinary type variable and an abstract representation
   variable.
 - A boundary scope's `binds` introduce representation variables.
-- `lock X α` removes ordinary name `X`, recording that it named
+- `unbind X α` removes ordinary name `X`, recording that it named
   representation variable `α`.
-- `unlock X α` restores that ordinary name.
-- Locked ordinary variables are absent from the ordinary de Bruijn universe;
-  surviving ordinary indices therefore compress across a lock.
+- `bind X α` restores that ordinary name.
+- Unbound ordinary variables are absent from the ordinary de Bruijn universe;
+  surviving ordinary indices therefore compress across an unbind.
 - Representation payloads may contain ordinary `∀` binders and occurrences of
   the locally bound type variables inside those payloads.
 
@@ -134,19 +134,19 @@ Testing has found and repaired these errors:
    representation type crosses the boundary scope's representation-bind prefix.
 2. `Peel` shifts the argument only in the representation-variable universe.
 3. Substitution across `Λ` shifts a value only in the representation-variable
-   universe before adding the binder's lock. Since that lock deletes the new
+   universe before adding the binder's unbind. Since that unbind deletes the new
    ordinary name, the surviving ordinary indices retain their positions.
 4. `TyPeelR-⟪⟫` requires the same rep-only movement for the moved value and
-   its frame. For example, shifting `[lock 0 1]` in both universes incorrectly
-   produced `[lock 1 2, lock 0 0]`; after the fresh lock acts, ordinary index
+   its frame. For example, shifting `[unbind 0 1]` in both universes incorrectly
+   produced `[unbind 1 2, unbind 0 0]`; after the fresh unbind acts, ordinary index
    `1` is out of range. The corrected frame is
-   `[lock 0 2, lock 0 0]`.
-5. The conversion context needs a third clause. It skips a `lock`, so the
-   matching `unlock` that `rewind Θ` and `Θ₁ ⋉ Θ₂` append meets a name that
-   is still live and fails `conv-unlock`'s freshness premise. Both of
+   `[unbind 0 2, unbind 0 0]`.
+5. The conversion context needs a third clause. It skips an `unbind`, so the
+   matching `bind` that `rewind Θ` and `Θ₁ ⋉ Θ₂` append meets a name that
+   is still live and fails `conv-bind`'s freshness premise. Both of
    `CancelR`'s frames therefore had no conversion context whenever the
-   cancelled boundary locked, which made its contractum untypeable. The
-   repair is `conv-unlock-live`: an `unlock` of an already-live name is a
+   cancelled boundary unbound, which made its contractum untypeable. The
+   repair is `conv-bind-live`: a `bind` of an already-live name is a
    no-op, which is what reading the conversion context as the union of the
    names live along the boundary scope already meant. See
    `notes/DECISIONS.md` (2026-09-17) and the machine-checked
@@ -170,10 +170,10 @@ Testing has found and repaired these errors:
    alone: the invariant that would have excused it, `conv(dual Θ,
    int(Θ,Δ)) ≡ conv(Θ,Δ)`, is DISPROVED. `TyBeta`, `Beta` and
    `TyPeelR-Λ` were audited and are safe STRUCTURALLY — their frames either
-   never lock, or the conversion context skips the only lock, so the two
+   never unbind, or the conversion context skips the only unbind, so the two
    maps coincide. `Peel` is neither repaired nor clean, and the invariant
    that would have excused it — write it (P), `conv(dual Θ, int(Θ, Δ)) =
-   conv(Θ, Δ)` — is FALSE: lock-free and unlock-free change lists have it,
+   conv(Θ, Δ)` — is FALSE: unbind-free and bind-free change lists have it,
    mixed ones need not, and `_⋉_` mixes. No REACHABLE frame violating (P)
    has been exhibited; what the disproof rules out is the proof strategy,
    not the rule. See the completed plan record. Machine-checked in
@@ -181,7 +181,7 @@ Testing has found and repaired these errors:
 
    The invariant that REPLACES (P) is proved. Write (Q) for: the two
    conversion contexts `Peel` straddles name the same representation
-   variables — both being Δ with the unlocked names added. (P) said they
+   variables — both being Δ with the bound names added. (P) said they
    are the same LIST; (Q) says only the same SET, and a premise on `Peel`
    absorbs the difference. (Q) holds for every well-formed boundary scope, with
    no restriction on the change list and no `Unique`, so it holds exactly
@@ -190,9 +190,9 @@ Testing has found and repaired these errors:
    are stated over — the dual's conversion context, which typing the redex
    does NOT supply — always exists: `dual-conversion-exists`, for every
    boundary scope, needing only that the exterior name map is `Unique`. The one
-   position obligation is a lock's, and `pigeon` discharges it: everything
-   live just before the lock is either still live at the end or is the
-   locked name itself, so the recorded position is still in range. The
+   position obligation is an unbind's, and `pigeon` discharges it: everything
+   live just before the unbind is either still live at the end or is the
+   unbound name itself, so the recorded position is still in range. The
    premise, the rule it would produce, (Q), satisfiability and existence
    are all in `notes/PeelPremise.agda`, with `peel-premises` putting them
    together; nothing is installed, and `strong-rep-store.Reduction` is unchanged.
@@ -206,8 +206,8 @@ Testing has found and repaired these errors:
    `BoundaryWf`'s two OUTPUT well-formedness fields are now DERIVED and have
    been dropped from the record (`Boundary.agda` §3a, `interior-wf` and
    `conversion-wf`; `notes/DECISIONS.md`, 2026-09-18). All three `WfCtx`
-   fields transport: `Unique` because a lock deletes and an unlock inserts
-   a name its own premise says is fresh; `ValidNames` because an unlock
+   fields transport: `Unique` because an unbind deletes and a bind inserts
+   a name its own premise says is fresh; `ValidNames` because a bind
    carries its own `Ξ ∋ʳ α`; and `WfRepCtx` because neither reading
    touches the representation context, leaving only a weakening of each
    bind payload past the block's tail (`wfᴿ-rename`, the one new proof).
@@ -394,7 +394,7 @@ call site, where it is `bw-binds` of the boundary being crossed — the
 statement is proved in `proof/RepWeaken.agda`, and `PeelCase` is
 UNCONDITIONAL. See `notes/DECISIONS.md` (2026-09-20).
 
-**AND `CrossΛTyping` IS PROVED (2026-09-20)**, by one locked `env` around
+**AND `CrossΛTyping` IS PROVED (2026-09-20)**, by one unbound `env` around
 the same renaming transport (`proof/RepWeaken.agda`, `cross-Λ-⊢`), so
 `Beta` is unconditional too.
 
@@ -403,12 +403,12 @@ the same renaming transport (`proof/RepWeaken.agda`, `cross-Λ-⊢`), so
 defect, not a missing premise. The old `TyPeelR-⟪⟫` contractum re-spelled
 the moved boundary's conversion with `renᶜ suc` (written
 `` `∀ (renᶜ (extᵗ suc) s′) ``). That is the renaming that is right for
-the INTERIOR reading — `addLock0` appends `lock 0 (numBinds Θ′)`, a
-change list acts head-LAST, so that lock runs FIRST and deletes the new
+the INTERIOR reading — `addUnbind0` appends `unbind 0 (numBinds Θ′)`, a
+change list acts head-LAST, so that unbind runs FIRST and deletes the new
 ordinary name before Θ′'s own changes do anything. The conversion is
-checked at the CONVERSION reading, which SKIPS locks (`conv-lock`): the
-new name survives there, and every `unlock X α` of Θ′ inserts around it,
-so it does NOT land at position zero. One `TyBeta`-minted `unlock 0 0` is
+checked at the CONVERSION reading, which SKIPS unbinds (`conv-unbind`): the
+new name survives there, and every `bind X α` of Θ′ inserts around it,
+so it does NOT land at position zero. One `TyBeta`-minted `bind 0 0` is
 enough to displace it. The moved conversion then read the NEW binder —
 the type argument's representation — instead of the binder it named, and
 `env`'s `SameTyExt` refused the result.
@@ -420,51 +420,51 @@ F program with no hand-written boundary,
 
 which lost its type in three steps (`TyBeta`, `Beta`, `TyPeelR-⟪⟫`).
 The module proves the reached state UNTYPEABLE — not merely rejected by
-`check⊢` — which refuted the old `AddLock0Typing`, `Preservation` and
+`check⊢` — which refuted the old `AddUnbind0Typing`, `Preservation` and
 `Preservation*`.
 
 **THE REPAIR, APPROVED BY JEREMY AND INSTALLED 2026-09-20**, is the one
 `Peel` got on 2026-09-18: the rule NAMES the moved conversion `s″` and
 carries a `SameConv` relating it to the original across the two conversion
 contexts, since the correct re-spelling is not a renaming at all — where
-the new name lands depends on Θ′'s unlocks. `Reduction.agda` now reads
+the new name lands depends on Θ′'s binds. `Reduction.agda` now reads
 
     TyPeelR-⟪⟫ : … → Δ ⊢ⁱ Θ ⇒ Δᵢ → Δ ⊢ᶜ Θ ⇒ Δᶜ
       → Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ
       → Δ ⊢ⁱ instantiate R Θ ⇒ Δᵢ⁺
-      → Δᵢ⁺ ⊢ᶜ addLock0 (renᴮ² (ren² idᵗ suc) Θ′) ⇒ Δ″ᶜ
+      → Δᵢ⁺ ⊢ᶜ addUnbind0 (renᴮ² (ren² idᵗ suc) Θ′) ⇒ Δ″ᶜ
       → SameConv (underΛ Δ″ᶜ) s″
           (underΛ (renNameCtx (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ)) s′
-      → … -→ … ⟪ addLock0 (renᴮ² (ren² idᵗ suc) Θ′) , `∀ s″ ⟫ …
+      → … -→ … ⟪ addUnbind0 (renᴮ² (ren² idᵗ suc) Θ′) , `∀ s″ ⟫ …
 
 The old conversion context is read through `renNameCtx`, i.e. through the
 REPRESENTATION renaming the inserted binder makes; without that view, §6b
 of `Examples.agda` loses its type at step 8 (measured). The wall program now runs to a VALUE in four steps with every
 state typed (`Src-eval : Reaches 4 4 Src-⊢ Dst`), and
 `notes/AddLock0Wall.agda` keeps the retired statement as a LOCAL
-`AddLock0Typing°` and still refutes that.
+`AddUnbind0Typing°` and still refutes that.
 
 `Examples.agda`'s runs keep their step counts and endpoints across the
 repair: the carried premise is invisible in every run where `TyPeelR-⟪⟫`
 fires.
 
 **PROGRESS TOOK NO NEW PARAMETER.** The repaired rule's premises are
-CONSTRUCTED in `proof/Progress.agda` (`addLock0-reading`), from the new
-lock-skipping transport `strong-rep-store.Boundary.addLock0-conversion-ren`
-(`conv-weaken` + `conv-snoc-lock` + the representation renaming). The
+CONSTRUCTED in `proof/Progress.agda` (`addUnbind0-reading`), from the new
+unbind-skipping transport `strong-rep-store.Boundary.addUnbind0-conversion-ren`
+(`conv-weaken` + `conv-snoc-unbind` + the representation renaming). The
 moved reading is representation-shifted FIRST (`sameᶜ-ren`, past the `Λ`
 by `names-underΛ-ren`) and only then respelled through `⊆ᵃ-underΛ keep`;
 doing it the other way round leaves the reading in the unrenamed map.
 `proof/Progress.agda` now packages that construction outright, and
 `Progress.agda` exports `progress : Progress` with no parameter.
 
-**AND PRESERVATION IS NOW UNCONDITIONAL (2026-09-20).** `AddLock0Typing`,
+**AND PRESERVATION IS NOW UNCONDITIONAL (2026-09-20).** `AddUnbind0Typing`,
 in its RESHAPED form — it receives the two conversion readings and the
-`SameConv` from the rule — is PROVED, `proof/AddLock0.agda`
-`addLock0-⊢`. It is the `env`-to-`env` transport across one inserted
+`SameConv` from the rule — is PROVED, `proof/AddUnbind0.agda`
+`addUnbind0-⊢`. It is the `env`-to-`env` transport across one inserted
 representation binder and one fresh ordinary name: `bw-binds` by
-`binds-ren`, the interior reading by `Boundary.addLock0-interior-ren` (NEW:
-the interior half, where the appended lock DELETES the fresh name and what
+`binds-ren`, the interior reading by `Boundary.addUnbind0-interior-ren` (NEW:
+the interior half, where the appended unbind DELETES the fresh name and what
 is left is `interior-ren`), the interior term by `proof/RepWeaken.⊢renᴿ` at
 `repwk-push (repwk-cons₀ (bindR P) …) (binds Θ)`, and the conversion by
 `conv-ren` followed by `proof/PeelDual.respell-⊢` — whose
@@ -515,9 +515,9 @@ Where the open threads are: item 1's stage-1 preservation port is done;
 stage 2 proved `IdPush`, `Peel` and — after the rule repair of 2026-09-19
 — `CancelR` (item 2); of the three representation-only typing transports
 `RepWeakenTyping` and `CrossΛTyping` are PROVED (2026-09-20,
-`proof/RepWeaken.agda`) and the third, `AddLock0Typing`, was REFUTED
+`proof/RepWeaken.agda`) and the third, `AddUnbind0Typing`, was REFUTED
 together with the rule that asked for it — the rule was REPAIRED, the
-statement RESHAPED and then PROVED (`proof/AddLock0.agda`), all the same
+statement RESHAPED and then PROVED (`proof/AddUnbind0.agda`), all the same
 day; item 3's rewind transport and item 4's rule-set cleanup are
 done; canonical forms are done; item 6's progress port and its module sweep
 are done. Preservation, progress and type safety are UNCONDITIONAL. The
@@ -547,10 +547,10 @@ items remain below as the implementation record.
    the well-formed context required by the new relational interface.
 
    **ALL THREE PROVED (2026-09-20) — NEW MAJOR LEMMA STATEMENTS.** The old
-   development's `⊢crossΛ` and `⊢addLock0-cross` needed two-universe
+   development's `⊢crossΛ` and `⊢addUnbind0-cross` needed two-universe
    counterparts. Stage 1 exposed the two required transports as parameters
    (stage 2 added a third, `RepWeakenTyping`, in item 2 below; it and
-   `CrossΛTyping` are PROVED as of 2026-09-20, leaving `AddLock0Typing`):
+   `CrossΛTyping` are PROVED as of 2026-09-20, leaving `AddUnbind0Typing`):
 
        CrossΛTyping : Set
        CrossΛTyping = ∀ {Δ W A}
@@ -559,30 +559,30 @@ items remain below as the implementation record.
          → Δ ∣ [] ⊢ W ⦂ A
          → underΛ Δ ∣ [] ⊢ crossΛᴹ W A ⦂ ⇑ᵗ A
 
-       AddLock0Typing : Set        -- RESHAPED AND PROVED 2026-09-20
-       AddLock0Typing = ∀ {Δ Δᶜ Δ⁺ᶜ W Θ s s′ A P}
+       AddUnbind0Typing : Set        -- RESHAPED AND PROVED 2026-09-20
+       AddUnbind0Typing = ∀ {Δ Δᶜ Δ⁺ᶜ W Θ s s′ A P}
          → WfCtx ((bindR P ∷ reps Δ) ∣
                       (zero ∷ shiftReps (names Δ)))
          → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ A
          → Δ ⊢ᶜ Θ ⇒ Δᶜ
          → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
-             ⊢ᶜ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ) ⇒ Δ⁺ᶜ
+             ⊢ᶜ addUnbind0 (renᴮ² (ren² (λ X → X) suc) Θ) ⇒ Δ⁺ᶜ
          → SameConv (underΛ Δ⁺ᶜ) s′
              (underΛ (renNameCtx (extN (numBinds Θ) suc) Δ⁺ᶜ Δᶜ)) s
          → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
              ∣ [] ⊢
                (renᴹ² (ren² (λ X → X) (extN (numBinds Θ) suc)) W
-                 ⟪ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ)
+                 ⟪ addUnbind0 (renᴮ² (ren² (λ X → X) suc) Θ)
                  , `∀ s′ ⟫)
                ⦂ `∀ (renameᵗ (extᵗ suc) A)
 
    The version this replaced fixed the moved conversion at
    `` `∀ (renᶜ (extᵗ suc) s) ``, and THAT is the one
-   `notes/AddLock0Wall.agda` refutes (as a local `AddLock0Typing°`).
+   `notes/AddLock0Wall.agda` refutes (as a local `AddUnbind0Typing°`).
 
    On the Beta redex `( ƛ A ∙ N) · W`, `CrossΛTyping` types each
    substituted image when it crosses a `Λ`. On the nested TyPeelR redex,
-   `AddLock0Typing` types the moved inner boundary after the fresh lock and
+   `AddUnbind0Typing` types the moved inner boundary after the fresh unbind and
    paired ordinary/representation renaming.
 
    **`CrossΛTyping` IS PROVED (2026-09-20)** by
@@ -590,17 +590,17 @@ items remain below as the implementation record.
 
        (abstR ∷ reps Δ) ∣ (0 ∷ shiftReps (names Δ))
 
-   and the `lock 0 0` interior deletes exactly that leading name, exposing
+   and the `unbind 0 0` interior deletes exactly that leading name, exposing
    `(abstR ∷ reps Δ) ∣ shiftReps (names Δ)`.  There `⊢renᴿ` runs at the
    new base instance `repwk-abst₀ : RepWk suc Ξ (abstR ∷ Ξ)`.  The
-   conversion reading skips the lock and stays at `underΛ Δ`, so
+   conversion reading skips the unbind and stays at `underΛ Δ`, so
    `mkId (⇑ᵗ A)` is typed there.  The inner alignment is the common
    representation `⇑ᵗ R`, obtained by `same-ren suc` on the moved `A`
    reading and `same-weaken` on the conversion's `⇑ᵗ A` reading.  No new
-   premise was needed. The OLD `AddLock0Typing` was REFUTED — and with it
+   premise was needed. The OLD `AddUnbind0Typing` was REFUTED — and with it
    the `TyPeelR-⟪⟫` rule and preservation itself; the rule was repaired,
    the statement reshaped, and the reshaped statement PROVED, all on
-   2026-09-20 (`proof/AddLock0.agda`). See the status section above and
+   2026-09-20 (`proof/AddUnbind0.agda`). See the status section above and
    `notes/AddLock0Wall.agda`.
 2. Preservation for `Peel`. The RULE repair is INSTALLED (2026-09-18):
    `Peel` names the dual's spelling `s′` and carries
@@ -648,7 +648,7 @@ items remain below as the implementation record.
 
      **PROVED (2026-09-20), AFTER ONE PREMISE REPAIR** — the third
      representation-only typing transport, beside `CrossΛTyping` and
-     `AddLock0Typing` (`proof/Preserve.agda` §4):
+     `AddUnbind0Typing` (`proof/Preserve.agda` §4):
 
          RepWeakenTyping : Set
          RepWeakenTyping = ∀ {Δ W A} (Rs : List Ty)
@@ -688,16 +688,16 @@ items remain below as the implementation record.
      is the hard case and every premise transports by a per-relation
      lemma: `wfctx-ren`, `binds-ren`, `interior-ren`/`conversion-ren`,
      `conv-ren` (`Conversion.agda` §2d), `same-ren`, `wf-ren-rep`.
-     `RepWk`'s injectivity field is the easily missed one: a `lock`
+     `RepWk`'s injectivity field is the easily missed one: an `unbind`
      records freshness, which a non-injective renaming would break.
 
      The same identity-ordinary pattern occurs in the concrete movers
      `crossΛᴹ W A = renᴹ² (ren² idᵗ suc) W ⟪ ... ⟫` and
-     `AddLock0Typing`'s
+     `AddUnbind0Typing`'s
      `renᴹ² (ren² (λ X → X) (extN (numBinds Θ) suc)) W`: on that same `W`,
      `renᴹ²-ord-id` exposes `renᴹᴿ suc W` and
      `renᴹᴿ (extN (numBinds Θ) suc) W`, respectively.  The first now feeds
-     `cross-Λ-⊢`; the second remains available for `AddLock0Typing`.
+     `cross-Λ-⊢`; the second remains available for `AddUnbind0Typing`.
 
    - `CancelRCase` WAS **FALSE**, and machine-checked false:
      `notes/CancelRShiftWall.agda` proved `¬ CancelRCase` from a concrete
@@ -759,7 +759,7 @@ items remain below as the implementation record.
 
    Consequently `strong-rep-store.Preservation` HAS NO `Stage1` MODULE at all —
    `crossΛ`, `peel`, `idpush`, `cancel`, `repWeaken` and, since
-   2026-09-20, `addLock0` are all proved and plugged in — and
+   2026-09-20, `addUnbind0` are all proved and plugged in — and
    `strong-rep-store.TypeSafety` exports preservation outright. As of 2026-09-21,
    `strong-rep-store.Progress` and both type-safety modules have no `Stage1` either:
    `MergedReading` is proved, so the WHOLE parameter surface is empty. The
@@ -781,9 +781,9 @@ items remain below as the implementation record.
    original conversion reading. No `WfCtx`, bind-well-formedness or
    `BoundaryWf` hypothesis is needed. The interior reading is genuinely
    necessary for the second lemma because the raw conversion relation
-   permits a `conv-lock` whose name is absent; it proves that every inverse
-   unlock corresponds to a name the original change run could actually
-   lock. `conv-unlock-live` then makes that inverse unlock a no-op.
+   permits a `conv-unbind` whose name is absent; it proves that every inverse
+   bind corresponds to a name the original change run could actually
+   unbind. `conv-bind-live` then makes that inverse bind a no-op.
 
    These are exactly the facts the outer `rewind Θ₂` frame in both
    `CancelR` and `IdPush` consumes. Their inner `Θ₁ ⋉ Θ₂` frame already
@@ -828,10 +828,10 @@ items remain below as the implementation record.
    in `proof/PeelDual.agda`, unconditionally since `RepWeakenTyping` was
    proved on 2026-09-20), or was REFUTED and
    then REPAIRED AND PROVED (`TyPeelR-⟪⟫`'s moved conversion re-spelled by
-   a FIXED `renᶜ suc` where the conversion reading skips the appended lock
+   a FIXED `renᶜ suc` where the conversion reading skips the appended unbind
    — `notes/AddLock0Wall.agda`, the fifth crossing defect; the moved
    conversion is now NAMED and pinned by `SameConv`, installed 2026-09-20,
-   and `proof/AddLock0.agda` proves the case it generates;
+   and `proof/AddUnbind0.agda` proves the case it generates;
    `CancelR`'s inner `mkId` read its type UNSHIFTED where
    the inner `env` demands `shiftBy (numBinds Θ₁)` —
    `notes/CancelRShiftWall.agda`, the fourth crossing defect, exactly the
@@ -873,9 +873,9 @@ items remain below as the implementation record.
 
    **THE PREVIOUS FINAL PARAMETER (2026-09-20).** The `TyPeelR-⟪⟫` repair
    of that day added three premises to the rule, and progress CONSTRUCTS
-   all three: `proof/Progress.addLock0-reading` gets the moved boundary's
+   all three: `proof/Progress.addUnbind0-reading` gets the moved boundary's
    conversion reading and the retention `map (extN (numBinds Θ′) suc)
-   (names Δ′ᶜ) ⊆ᵃ names Δ″ᶜ` from `Boundary.addLock0-conversion-ren`, and
+   (names Δ′ᶜ) ⊆ᵃ names Δ″ᶜ` from `Boundary.addUnbind0-conversion-ren`, and
    the moved spelling then comes from `sameᶜ-ren` followed by `respell`.
    No second parameter was introduced. The one parameter that remained was
    discharged on 2026-09-21.
@@ -886,10 +886,10 @@ items remain below as the implementation record.
 
    PORTED: `proof/Adversary.agda` (the soundness gate, the abstract-slot
    adversary, the one-spelling fact, and cancel's type equation — the
-   masking half, `unlock-claims-a-lock`/`unlock-mentions-no-rep`, deleted);
+   masking half, `bind-claims-a-unbind`/`bind-mentions-no-rep`, deleted);
    `proof/IdLayer.agda` (`idpush-name`/`cancel-name` restated one universe
    up on the representation variable, `outer-id-base-untypeable`, the naked
-   drop and its sound side condition — `convCtx-lock` deleted);
+   drop and its sound side condition — `convCtx-unbind` deleted);
    `proof/Canonicity.agda` (plus a new §5: canonicity crosses `Peel`'s
    `SameConv`, which needs the family stated on representation variables
    and a `Unique` name map, so `canon-step` takes `Unique (names Δ)`);

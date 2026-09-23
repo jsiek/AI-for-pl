@@ -88,7 +88,7 @@ BdyPremises Δ Θ Θ′ s′ R Bᵢ Δᶜ =
         × (underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ)
         × (Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ)
         × (allocate R Δ ⊢ⁱ inst Θ ⇒ Δᵢ⁺)
-        × (Δᵢ⁺ ⊢ᶜ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) ⇒ Δ″ᶜ)
+        × (Δᵢ⁺ ⊢ᶜ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) ⇒ Δ″ᶜ)
         × SameConv (underΛ Δ″ᶜ) s″
             (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′)
 
@@ -110,7 +110,7 @@ bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | nothing = nothing
 bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
-  with conversion? Δᵢ⁺ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ []))
+  with conversion? Δᵢ⁺ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ []))
 bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
   | nothing = nothing

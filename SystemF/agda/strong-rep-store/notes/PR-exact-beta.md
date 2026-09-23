@@ -40,17 +40,17 @@ at the value's type:
 
 ```agda
 crossΛ : Term → Ty → Term
-crossΛ W A = ⇑ᴹ W ⟪ boundary [] (lock 0 ∷ []) , mkId (⇑ᵗ A) ⟫
+crossΛ W A = ⇑ᴹ W ⟪ boundary [] (unbind 0 ∷ []) , mkId (⇑ᵗ A) ⟫
 ```
 
 A `Λ` is an `abst` binder occupying slot 0 inside, so its dual is
-`boundary [] (lock 0 ∷ [])` — no binds, one lock — which is exactly
+`boundary [] (unbind 0 ∷ [])` — no binds, one unbind — which is exactly
 `dual (boundary (A ∷ []) [])`, the boundary scope `Peel` mints.  The frame
 identity is then DEFINITIONAL:
 
 ```agda
 interior-Beta-Λ : (Δ : Ctxᵗ)
-  → interior (boundary [] (lock 0 ∷ [])) (unmasked abst ∷ Δ)
+  → interior (boundary [] (unbind 0 ∷ [])) (unmasked abst ∷ Δ)
       ≡ masked abst ∷ Δ
 interior-Beta-Λ Δ = refl
 ```
@@ -141,7 +141,7 @@ The whole content of the repair is one lemma, and every premise of its
 ```
 
 `⊢rename` at `suc` for the interior, `mkId-⊢` for the conversion, `sw-l`
-for the lock (legal because the `Λ`'s own slot is nameable).  No knowledge
+for the unbind (legal because the `Λ`'s own slot is nameable).  No knowledge
 premise appears: a boundary carries NAMES.
 
 Two supporting facts were new.  `shiftᴵ-⊢` has no premise to discharge —
@@ -180,7 +180,7 @@ contractum is a wrapper.)
 compile **untouched**.  The rule set is the same; only `Beta`'s contractum
 moved, and it moved as a function of the same redex.  In particular:
 
-* `W ⟪ boundary [] (lock 0 ∷ []) , mkId A′ ⟫` is a value iff `mkId A′` is
+* `W ⟪ boundary [] (unbind 0 ∷ []) , mkId A′ ⟫` is a value iff `mkId A′` is
   inert — at a variable, a function type and a `∀` it is (`I-idv`,
   `I-fun`, `I-all`), so the wrapper is a value; at a BASE type `mkId` is
   `id ℕ`, which is ACTIVE, and `7 ⟪ ↓Y , id ℕ ⟫` takes one `Drop$`.  That
@@ -252,12 +252,12 @@ the wrapper is *literally* the shape `Peel` already mints, so `Peel`'s own
 machinery (`interior-dual`, `convCtx-dual`) is the model for the proof.
 
 **(ii) EXTEND an existing crossing wrapper's changes** when the image is
-already a boundary — append `lock 0` to `changes Θ` instead of adding a
+already a boundary — append `unbind 0` to `changes Θ` instead of adding a
 layer.  Rejected.  It is fewer wrappers (`Q₀` would stay at 9 steps), and
-it types — `applyUnlocks` skips locks, so the inner conversion is still
+it types — `applyUnlocks` skips unbinds, so the inner conversion is still
 read outside the new mask — but it is a SPECIAL CASE (a `ƛ`, a numeral or
 a variable image still needs a fresh wrapper), and the frame identity
-stops being `refl`: `interior (renᴮ suc Θ ⊕ lock 0) (unmasked abst ∷ Δ)`
+stops being `refl`: `interior (renᴮ suc Θ ⊕ unbind 0) (unmasked abst ∷ Δ)`
 has to be related to the shifted original interior by a renaming
 COMPOSITION lemma, and the conversion has to be re-based through it.  That
 is a real proof where (i) has none, for a saving that is only in the step
@@ -267,7 +267,7 @@ count.
 composed dual of everything crossed (`hideBinds k` for `k` `Λ`s, `dual Θ`
 shifted for a boundary).  Rejected for now, but it is the cheaper
 variant if the step counts ever matter: for a single `Λ` it IS (i), and
-for `k` `Λ`s it gives one `boundary [] (lock 0 ∷ … ∷ lock (k−1) ∷ [])` layer
+for `k` `Λ`s it gives one `boundary [] (unbind 0 ∷ … ∷ unbind (k−1) ∷ [])` layer
 instead of `k`, with `mkId (shiftBy k A)`.  The cost is that `substᵐ` must
 then thread the accumulated dual (a `Boundary` and a shift count) through
 its own recursion rather than composing one binder at a time, and the

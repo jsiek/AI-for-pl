@@ -1,19 +1,25 @@
 module strong-rep-store.notes.AddLock0Wall where
 
+-- THE MODULE NAME IS A DATE-STAMPED PROPER NOUN.  `Change`'s two
+-- constructors were renamed `lock`/`unlock` → `unbind`/`bind` on
+-- 2026-09-23 (notes/DECISIONS.md); this file keeps the name the wall
+-- was recorded under, and the live helper it is about is now
+-- `strong-rep-store.proof.AddUnbind0.addUnbind0-⊢`.
+
 -- File Charter:
 --   * THE WALL, and the record of the repair that answered it.  Found by
 --     the stage-1 preservation assembly (2026-09-20): `TyPeelR-⟪⟫`
 --     RE-SPELLED ITS MOVED CONVERSION IN THE WRONG NAME MAP.  A closed,
 --     plain System F program — no boundary written by hand — lost its type
---     three steps in, so `AddLock0Typing` was FALSE and so was
+--     three steps in, so `AddUnbind0Typing` was FALSE and so was
 --     `Preservation`.
 --   * REPAIRED THE SAME DAY, with Jeremy's approval — the `Peel` repair of
 --     2026-09-18, transplanted: the rule now NAMES the moved conversion
 --     `s″`, carries the old and the moved conversion readings, and pins
 --     the spelling with `SameConv`.  `strong-rep-store.Reduction` carries the
 --     repaired rule; `strong-rep-store.proof.Progress` constructs its premises
---     outright (`addLock0-reading`); and the RESHAPED transport is PROVED
---     (`strong-rep-store.proof.AddLock0`), which makes
+--     outright (`addUnbind0-reading`); and the RESHAPED transport is PROVED
+--     (`strong-rep-store.proof.AddUnbind0`), which makes
 -- `strong-rep-store.Preservation`
 --     unconditional.  See notes/DECISIONS.md, 2026-09-20.
 --   * WHAT SURVIVES HERE, all still machine-checked: the source program
@@ -27,7 +33,7 @@ module strong-rep-store.notes.AddLock0Wall where
 -- The local-copy device is the repo's usual one for a retired design:
 -- `notes/CancelRShiftWall.agda` states the pre-2026-09-19 `CancelRCase`
 -- locally in the same way, and `notes/ReUnlockWall.agda` the
--- pre-`conv-unlock-live` conversion judgement, so that each refutation
+-- pre-`conv-bind-live` conversion judgement, so that each refutation
 -- stays a checked refutation rather than prose.
 --
 -- WHAT THE RULE SAID, BEFORE (strong-rep-store.Reduction, until 2026-09-20).
@@ -36,28 +42,28 @@ module strong-rep-store.notes.AddLock0Wall where
 -- SEPARATELY:
 --
 --     renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc)) W   -- the interior term
---       ⟪ addLock0 (renᴮ² (ren² idᵗ suc) Θ′)        -- the frame
+--       ⟪ addUnbind0 (renᴮ² (ren² idᵗ suc) Θ′)        -- the frame
 --       , `∀ (renᶜ (extᵗ suc) s′) ⟫                 -- the conversion
 --
--- The first two are right, and still are.  `addLock0` APPENDS
--- `lock 0 (numBinds Θ′)` to the change list, and a change list acts
--- head-LAST, so that lock runs FIRST: in the INTERIOR reading it deletes
+-- The first two are right, and still are.  `addUnbind0` APPENDS
+-- `unbind 0 (numBinds Θ′)` to the change list, and a change list acts
+-- head-LAST, so that unbind runs FIRST: in the INTERIOR reading it deletes
 -- the new ordinary name before any of Θ′'s own changes run, which is
 -- exactly what leaves every ordinary position of the moved term where it
 -- was.
 --
 -- THE CONVERSION IS READ SOMEWHERE ELSE.  `env` checks it at the
--- boundary's CONVERSION context, and the conversion reading SKIPS locks
--- (`conv-lock`, strong-rep-store.Boundary §3) — that is the whole point of a
+-- boundary's CONVERSION context, and the conversion reading SKIPS unbinds
+-- (`conv-unbind`, strong-rep-store.Boundary §3) — that is the whole point of a
 -- conversion context: it is the union of the names live anywhere along
 -- the boundary scope.  So the new name is NOT deleted there, and every
--- `unlock X α` of Θ′ then inserts at position X of a map that already
--- carries it.  The new name is therefore DISPLACED by Θ′'s unlocks, while
+-- `bind X α` of Θ′ then inserts at position X of a map that already
+-- carries it.  The new name is therefore DISPLACED by Θ′'s binds, while
 -- `renᶜ (extᵗ suc) s′` — which is `renᶜ suc` on the whole `` `∀ ``
 -- conversion — assumes it landed at position ZERO.
 --
--- ONE UNLOCK IS ENOUGH, and `TyBeta` mints one: `inst Θ` appends
--- `unlock 0 0`.  In the run below the moved boundary's conversion context
+-- ONE BIND IS ENOUGH, and `TyBeta` mints one: `inst Θ` appends
+-- `bind 0 0`.  In the run below the moved boundary's conversion context
 -- goes
 --
 --     (bindR `ℕ ∷ bindR `ℕ ∷ [])            ∣ (1 ∷ [])     -- before
@@ -76,7 +82,7 @@ module strong-rep-store.notes.AddLock0Wall where
 -- WHY NO PREMISE REPAIRED IT.  The offending spelling was in the
 -- CONTRACTUM, so no hypothesis on the redex could change it; and the
 -- correct re-spelling is NOT A RENAMING AT ALL — where the new name ends
--- up depends on Θ′'s own unlocks.  This is precisely the defect the
+-- up depends on Θ′'s own binds.  This is precisely the defect the
 -- crossing audit found for `Peel` on 2026-09-18 ("not merely a renumbering
 -- of the same one", strong-rep-store.Reduction).
 --
@@ -84,7 +90,7 @@ module strong-rep-store.notes.AddLock0Wall where
 -- spelling `s″` and carries, besides the two readings it already had, the
 -- old boundary's conversion reading `Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ`, the instantiated
 -- outer interior `Δ ⊢ⁱ inst R Θ ⇒ Δᵢ⁺`, the moved boundary's own
--- reading `Δᵢ⁺ ⊢ᶜ addLock0 (renᴮ² (ren² idᵗ suc) Θ′) ⇒ Δ″ᶜ`, and
+-- reading `Δᵢ⁺ ⊢ᶜ addUnbind0 (renᴮ² (ren² idᵗ suc) Θ′) ⇒ Δ″ᶜ`, and
 --
 --     SameConv (underΛ Δ″ᶜ) s″
 --       (underΛ (renNameCtx (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ)) s′
@@ -100,9 +106,9 @@ module strong-rep-store.notes.AddLock0Wall where
 -- WHAT SURVIVED OF THE DECOMPOSITION, and still does: the representation
 -- half is fine and is proved elsewhere — the mover is `renᴹᴿ suc`, and
 -- the head insertion is `repwk-cons₀` (strong-rep-store.proof.Ctx §3).
--- The interior reading of `Θ′ ++ (lock 0 0 ∷ [])` is the interior
+-- The interior reading of `Θ′ ++ (unbind 0 0 ∷ [])` is the interior
 -- reading of Θ′,
--- because the appended lock deletes the new name first.  It was the
+-- because the appended unbind deletes the new name first.  It was the
 -- CONVERSION reading, and only it, that the rule got wrong.
 --
 -- WHAT THE STORE CHANGED (experiment 2, 2026-09-22,
@@ -111,14 +117,14 @@ module strong-rep-store.notes.AddLock0Wall where
 -- the conversion reading is a name-map fact.  A boundary no longer
 -- carries a bind block, so `numBinds Θ′` is gone and the three movers
 -- collapse to one: the interior term moves by `renᴹᴿ suc`, the scope by
--- `renᴮᴿ suc`, and the frame is the snoc `Θ′ ++ (lock 0 0 ∷ [])` rather
--- than an `addLock0` appending `lock 0 (numBinds Θ′)`.  The run is the
+-- `renᴮᴿ suc`, and the frame is the snoc `Θ′ ++ (unbind 0 0 ∷ [])` rather
+-- than an `addUnbind0` appending `unbind 0 (numBinds Θ′)`.  The run is the
 -- SAME eight steps to the same shape, the displaced name is displaced by
--- the same one `unlock`, and
+-- the same one `bind`, and
 -- the repaired leaf is still `seal 1 ↦ unseal 1` where the fixed
 -- renaming wrote `seal 2 ↦ unseal 2`.  What moved is only WHERE the two
 -- cells live: in the ambient store, so every scope below carries a
--- larger representation index (`unlock 0 1` rather than `unlock 0 0`,
+-- larger representation index (`bind 0 1` rather than `bind 0 0`,
 -- and so on).
 
 open import Data.Nat using (ℕ; zero; suc)
@@ -176,13 +182,13 @@ Src-⊢ : empty ∣ [] ⊢ Src ⦂ `ℕ ⇒ `ℕ
 Src-⊢ = tc
 
 -- The outer `TyBeta` boundary, which every later state sits inside.  It
--- unlocks the cell `TyBeta` allocated — and WHICH address that is
+-- binds the cell `TyBeta` allocated — and WHICH address that is
 -- depends on how many cells the run has allocated since, so the scope is
 -- spelled once per state (experiment 2: the allocation shifts every
 -- sibling's representation indices by one).
 Outer₇ Outer₈ : Boundary
-Outer₇ = (unlock 0 1 ∷ [])
-Outer₈ = (unlock 0 2 ∷ [])
+Outer₇ = (bind 0 1 ∷ [])
+Outer₈ = (bind 0 2 ∷ [])
 
 -- THE RUN, BEFORE (2026-09-20, the wall): `TyBeta`, then `Beta`, then
 -- `TyPeelR-⟪⟫` — and the evaluator's own per-state check REJECTED the
@@ -200,9 +206,9 @@ Outer₈ = (unlock 0 2 ∷ [])
 Dst : Term
 Dst =
   (((ƛ (` 1) ∙ ` 0)
-        ⟪ (unlock 1 3 ∷ lock 1 1 ∷ unlock 0 0 ∷ [])
+        ⟪ (bind 1 3 ∷ unbind 1 1 ∷ bind 0 0 ∷ [])
         , seal 1 ↦ unseal 1 ⟫)
-      ⟪ (lock 1 2 ∷ unlock 0 1 ∷ []) , id `ℕ ↦ id `ℕ ⟫)
+      ⟪ (unbind 1 2 ∷ bind 0 1 ∷ []) , id `ℕ ↦ id `ℕ ⟫)
     ⟪ Outer₈ , id `ℕ ↦ id `ℕ ⟫
 
 Src-eval : Reaches 8 8 Src-⊢ Dst
@@ -221,7 +227,7 @@ run-keeps-the-type = refl
 Θ′ : Boundary
 Θ′ = renᴮᴿ suc TyBetaBoundary
 
-Θ′-explicit : Θ′ ≡ (unlock 0 1 ∷ [])
+Θ′-explicit : Θ′ ≡ (bind 0 1 ∷ [])
 Θ′-explicit = refl
 
 inner : Term
@@ -243,8 +249,8 @@ wf⁺ = wf! Δ⁺
 
 -- THE TWO CONVERSION CONTEXTS.  Before the move the boundary's own
 -- conversion context names one representation variable; after it, two —
--- and the NEW one is at position 1, because the skipped `lock 0 0` left
--- it in place and Θ′'s `unlock` inserted in front of it.
+-- and the NEW one is at position 1, because the skipped `unbind 0 0` left
+-- it in place and Θ′'s `bind` inserted in front of it.
 --
 -- Read one universe up, this is the representation renaming the repaired
 -- rule carries: the allocated cell takes address 0 and everything below
@@ -260,9 +266,9 @@ conv-before : Δᵢ ⊢ᶜ Θ′ ⇒ Δᶜ′
 conv-before = proj₂ (conv! Δᵢ Θ′)
 
 AL : Boundary
-AL = (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ []))
+AL = (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ []))
 
-AL-explicit : AL ≡ (unlock 0 2 ∷ lock 0 0 ∷ [])
+AL-explicit : AL ≡ (bind 0 2 ∷ unbind 0 0 ∷ [])
 AL-explicit = refl
 
 conv-after : Δ⁺ ⊢ᶜ AL ⇒ Δᶜ⁺
@@ -275,7 +281,7 @@ conv-after = proj₂ (conv! Δ⁺ AL)
 moved bad : Term
 moved = Vfun ⟪ AL , `∀ (seal 2 ↦ unseal 2) ⟫
 bad = (moved ·[ `ℕ ⇒ `ℕ , ` 0 ])
-        ⟪ (lock 1 1 ∷ unlock 0 0 ∷ []) , id `ℕ ↦ id `ℕ ⟫
+        ⟪ (unbind 1 1 ∷ bind 0 0 ∷ []) , id `ℕ ↦ id `ℕ ⟫
 
 ------------------------------------------------------------------------
 -- §3  That state has no typing derivation
@@ -312,8 +318,8 @@ no-moved (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | refl | refl , refl
 Δ₆ : Ctxᵗ
 Δ₆ = (bindR `ℕ ∷ bindR `ℕ ∷ []) ∣ (0 ∷ [])
 
-int⁺ : allocate `𝔹 Δ₆ ⊢ⁱ (lock 1 1 ∷ unlock 0 0 ∷ []) ⇒ Δ⁺
-int⁺ = proj₂ (int! (allocate `𝔹 Δ₆) ((lock 1 1 ∷ unlock 0 0 ∷ [])))
+int⁺ : allocate `𝔹 Δ₆ ⊢ⁱ (unbind 1 1 ∷ bind 0 0 ∷ []) ⇒ Δ⁺
+int⁺ = proj₂ (int! (allocate `𝔹 Δ₆) ((unbind 1 1 ∷ bind 0 0 ∷ [])))
 
 no-bad : ¬ (allocate `𝔹 Δ₆ ∣ [] ⊢ bad ⦂ `ℕ ⇒ `ℕ)
 no-bad (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE)
@@ -324,7 +330,7 @@ no-bad (env mwΘ (⊢·[] ⊢L wA) ⊢c sameᵢ sameₑ wE) | refl = no-moved �
 -- §4  The RETIRED transport statement, refuted — a LOCAL statement
 ------------------------------------------------------------------------
 
--- `AddLock0Typing°` is `strong-rep-store.proof.Preserve.AddLock0Typing`
+-- `AddUnbind0Typing°` is `strong-rep-store.proof.Preserve.AddUnbind0Typing`
 -- AS IT STOOD on 2026-09-20 before the repair — the moved boundary's
 -- typing, with the moved conversion FIXED at `renᶜ (extᵗ suc) s`.  It is
 -- written out here rather than imported because the statement it came
@@ -336,29 +342,29 @@ no-bad (env mwΘ (⊢·[] ⊢L wA) ⊢c sameᵢ sameₑ wE) | refl = no-moved �
 -- `renᴮ² (ren² idᵗ suc)` became when the bind block went: the
 -- refutation is about the conversion leaf either way.)
 --
--- The live `strong-rep-store.proof.Preserve.AddLock0Typing` was RESHAPED
+-- The live `strong-rep-store.proof.Preserve.AddUnbind0Typing` was RESHAPED
 -- with the rule: it receives the two conversion readings and the
 -- `SameConv`, and names the moved spelling.  It is therefore not the
 -- statement refuted here — and it is PROVED,
--- `strong-rep-store.proof.AddLock0.addLock0-⊢`, so nothing below could
+-- `strong-rep-store.proof.AddUnbind0.addUnbind0-⊢`, so nothing below could
 -- refute it.
-AddLock0Typing° : Set
-AddLock0Typing° = ∀ {Δ W Θ s A P}
+AddUnbind0Typing° : Set
+AddUnbind0Typing° = ∀ {Δ W Θ s A P}
   → WfCtx ((bindR P ∷ reps Δ) ∣
                (zero ∷ shiftReps (names Δ)))
   → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ A
   → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
       ∣ [] ⊢
         (renᴹᴿ suc W
-          ⟪ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ []))
+          ⟪ (renᴮᴿ suc Θ ++ (unbind 0 0 ∷ []))
           , `∀ (renᶜ (extᵗ suc) s) ⟫)
         ⦂ `∀ (renameᵗ (extᵗ suc) A)
 
 -- §2 supplies the instance the run produced — Δ is the outer boundary's
 -- interior, W is `Vfun`, Θ is the `TyBeta` scope, and P is the type
 -- argument's representation `` `𝔹 `` — and §3 refutes its output.
-no-addLock0° : ¬ AddLock0Typing°
-no-addLock0° al =
+no-addUnbind0° : ¬ AddUnbind0Typing°
+no-addUnbind0° al =
   no-moved (al {Δ = Δᵢ} {W = Vfun} {Θ = Θ′}
                {s = seal 1 ↦ unseal 1} {A = `ℕ ⇒ `ℕ} {P = `𝔹}
                wf⁺ ⊢inner)
@@ -373,12 +379,12 @@ no-addLock0° al =
 -- `seal 2 ↦ unseal 2`.  Position 1 of `underΛ Δᶜ⁺` still names the
 -- `TyBeta` cell (§2), so the correct re-spelling here is the IDENTITY on
 -- the conversion — which no fixed renaming delivers, because `renᶜ suc`
--- was forced on a boundary scope whose unlocks happen to insert nothing
+-- was forced on a boundary scope whose binds happen to insert nothing
 -- in front of the new name.
 moved-repaired good : Term
 moved-repaired = Vfun ⟪ AL , `∀ (seal 1 ↦ unseal 1) ⟫
 good = (moved-repaired ·[ `ℕ ⇒ `ℕ , ` 0 ])
-         ⟪ (lock 1 1 ∷ unlock 0 0 ∷ []) , id `ℕ ↦ id `ℕ ⟫
+         ⟪ (unbind 1 1 ∷ bind 0 0 ∷ []) , id `ℕ ↦ id `ℕ ⟫
 
 -- THE SEVENTH STATE OF THE RUN, MEASURED (the third, in strong-rep-var).
 -- This is the state §3 refutes, with that one leaf repaired, sitting in

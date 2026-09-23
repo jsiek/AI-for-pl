@@ -32,7 +32,7 @@ in the AMBIENT store at index 0 by `allocate`, every existing
 representation variable moves up by one, and a step therefore RETURNS
 the change it made (`Alloc`, `apply`), with the congruences shifting
 the redex's siblings.  A boundary scope is consequently nothing but its
-change list — `Boundary = List Change`, `lock X α` and `unlock X α` —
+change list — `Boundary = List Change`, `unbind X α` and `bind X α` —
 so merging frames is `_++_`, the dual is `dual`, rewinding is `rewind`,
 instantiating is `inst`, and the two contexts a boundary induces are
 RELATIONS (`_⊢ⁱ_⇒_`, `_⊢ᶜ_⇒_`), not functions of the exterior.  The
@@ -90,7 +90,7 @@ operations live in `Boundary.agda`.
    `map ρ`, so no ordinary spelling in any type, conversion or change
    moves.  `RepWk` is exactly what such a move must supply — three
    fields for `WfCtx`'s three obligations one universe down, plus
-   injectivity, which is what a `lock`'s freshness record needs — and
+   injectivity, which is what an `unbind`'s freshness record needs — and
    it is what makes `renᴹᴿ` (`TermSubst.agda`) type-preserving.
 
 ### `renNameCtx`
@@ -129,7 +129,7 @@ extends only the LOCAL binder prefix on both sides; it does not
 allocate a free representation variable.
 
 `_⊢_≈_⊣_` says two ordinary types at the same representation depth
-denote the same representation-universe type.  `lock` and `unlock` may
+denote the same representation-universe type.  `unbind` and `bind` may
 give that type different ordinary de Bruijn spellings, which is exactly
 why the reduction rules carry `≈` premises rather than renamings — see
 § Reduction.agda / The crossing-spelling law.
@@ -148,7 +148,7 @@ the `n` local `∀`s inside a representation payload: a reference at
 depth `m` is either local (untouched) or free (renamed), which is
 exactly what `extN m ρ` does (`wk-ref`, `proof/Ctx.agda`).
 
-`Injᵗ ρ` — an INJECTIVE renaming is what a name map needs: `lock`
+`Injᵗ ρ` — an INJECTIVE renaming is what a name map needs: `unbind`
 records that the name it deleted is now fresh, and freshness is not
 preserved by a map that identifies two representation variables.
 
@@ -178,7 +178,7 @@ conversion and change is untouched — which is the whole point of
 exactly what the two induced readings, the conversion typing and the
 typing judgement all consume.  Three fields are the three `WfCtx`
 obligations one universe down; the fourth, injectivity, is what a
-`lock`'s freshness record needs.
+`unbind`'s freshness record needs.
 
 The base instances insert ONE fresh binding at the head: `repwk-abst₀`
 (abstract, for `crossΛᴹ`) and `repwk-cons₀ (bindR R)` (represented, at
@@ -199,18 +199,18 @@ instance under the one way the typing induction goes deeper: a `Λ`.
 ## Boundary.agda
 
 The boundary scope and its two induced contexts.  §2 is `Change`
-(`lock`/`unlock`), its two running judgements `_∣_⊢δ_⇒_` and
+(`unbind`/`bind`), its two running judgements `_∣_⊢δ_⇒_` and
 `_∣_⊢χ_⇒_`, the dual (`dualChange`, `dual`, `dual-step`) and the
 representation-only renaming `renᶠᴿ`.  §3 is `Boundary = List Change`
 with `renᴮᴿ`, the constructions `rewind` and `inst`, and the two
 readings — `_⊢ⁱ_⇒_`, which PERFORMS every change, and `_⊢ᶜ_⇒_` (via
-`_∣_⊢χᶜ_⇒_`), which SKIPS locks — with `interior-functional` and
+`_∣_⊢χᶜ_⇒_`), which SKIPS unbinds — with `interior-functional` and
 `conversion-functional`.  §§3a–3d are transport:
 `interior-wf`/`conversion-wf`, the name-set invariant (Q) that `Peel`
 needs, `dual-conversion-exists`, `conv-weaken`,
 `merged-conversion-exists`, and the representation-renaming lemmas
 (`changes-ren`, `interior-ren`, `conversion-ren`,
-`snoc-lock0-conversion-ren`, `snoc-lock0-interior-ren`).  The witness
+`snoc-unbind0-conversion-ren`, `snoc-unbind0-interior-ren`).  The witness
 `BoundaryWf` and its derived `bw-interior-wf`/`bw-conversion-wf` close
 §3d; §4 is the concrete shapes `TyBetaBoundary`, `TyBeta-bw`,
 `crossΛ`/`uncrossΛ`.
@@ -232,13 +232,13 @@ precisely so that it need not import that module.  Conversions are
 in `Boundary.agda`, `Conversion.agda`, `Terms.agda`, `Reduction.agda`
 and `TypeCheck.agda`; it is stated here once.
 
-The conversion context performs `unlock`s but SKIPS `lock`s, so both a
+The conversion context performs `bind`s but SKIPS `unbind`s, so both a
 concealed ordinary variable and its representation stay available to
 the conversion.  It is therefore the UNION of the names live anywhere
 along the boundary scope, not the name map at any one point of the run.
 A conversion reading only ADDS names (`conversion-live`).
 
-**(2) BOTH READINGS ARE FUNCTIONS OF THE CHANGE LIST.**  The two unlock
+**(2) BOTH READINGS ARE FUNCTIONS OF THE CHANGE LIST.**  The two bind
 clauses are mutually exclusive (`fresh-not-lookup`), so
 `conv-changes-functional` / `conversion-functional` hold, and they are
 exactly what determinism for `CancelR`, `IdPush` and `TyPeelR-⟪⟫`
@@ -261,14 +261,14 @@ allocated in the ambient representation context instead (`allocate`,
 `notes/RepStoreSketch.md`): the bind block it used to carry lives in the
 ambient store, and the one-field record that briefly survived that
 experiment is gone too.  So a scope is written as the list it is,
-merging is `_++_`, and the rewind / dual / lock-0 constructions are
+merging is `_++_`, and the rewind / dual / unbind-0 constructions are
 plain list expressions.
 
 Changes retain the head-LAST order: the tail acts first.
 
-### `_∣_⊢δ_⇒_` — `lock` and `unlock`
+### `_∣_⊢δ_⇒_` — `unbind` and `bind`
 
-`lock` records FRESHNESS OF THE RESULT and `unlock` demands FRESHNESS
+`unbind` records FRESHNESS OF THE RESULT and `bind` demands FRESHNESS
 OF ITS INPUT.  Thus one representation variable never has two
 simultaneous ordinary names, and the two changes are exact inverses.
 The `Ξ` index makes the carried representation-variable occurrence well
@@ -281,7 +281,7 @@ ordinary position is untouched, which is what makes a rep-only
 weakening leave every ordinary de Bruijn spelling in a term exactly
 where it was.  There is no bind prefix to skip.
 
-### `rewind`, `_++_`, the snoc lock, `inst`
+### `rewind`, `_++_`, the snoc unbind, `inst`
 
 * `rewind Θ = dual Θ ++ Θ` — the changes, then their exact inverse.
   NO RULE BUILDS ONE since the one-layer contractum (2026-09-23); it
@@ -290,11 +290,11 @@ where it was.  There is no bind prefix to skip.
 * Merging two scopes is `_++_`: the OUTER scope's changes sit at the
   TAIL, so they run first (head-last order, §2).  Nothing shifts — both
   were spelled at the same store.
-* Appending `lock 0 0` — `Θ ++ (lock 0 0 ∷ [])` — makes it act FIRST:
+* Appending `unbind 0 0` — `Θ ++ (unbind 0 0 ∷ [])` — makes it act FIRST:
   the NEW ordinary name 0, which names the NEW cell 0, is deleted
   before the scope's own changes run.
 * `inst Θ` is a scope read at `allocate R Γ`: the fresh cell is
-  representation index 0, the appended `unlock 0 0` (acting first)
+  representation index 0, the appended `bind 0 0` (acting first)
   gives it ordinary name 0, and the old changes — spelled at `Γ` — run
   underneath both, hence one shift in each universe.
 
@@ -304,36 +304,36 @@ The interior reading PERFORMS every change on the name map.  The
 representation context is untouched: a boundary changes NAMES only
 (`interior-reps`).
 
-### `_∣_⊢χᶜ_⇒_`, `_⊢ᶜ_⇒_` — and the re-unlock clause
+### `_∣_⊢χᶜ_⇒_`, `_⊢ᶜ_⇒_` — and the re-bind clause
 
 The conversion reading is the union described in law (1).
 
-THE RE-UNLOCK CLAUSE (2026-09-17).  Reading the conversion context as a
-union FORCES a third clause.  Skipping a `lock X α` leaves α live, so a
-LATER `unlock` of that same α — the shape every `dual`/`rewind`
-composite has, since a dual inverts each lock with an unlock — meets a
-name that is already there and the freshness premise of `conv-unlock`
+THE RE-BIND CLAUSE (2026-09-17).  Reading the conversion context as a
+union FORCES a third clause.  Skipping an `unbind X α` leaves α live, so a
+LATER `bind` of that same α — the shape every `dual`/`rewind`
+composite has, since a dual inverts each unbind with a bind — meets a
+name that is already there and the freshness premise of `conv-bind`
 fails.  Without this clause `rewind Θ` and `Θ′ ++ Θ` have NO conversion
-context whenever Θ locks, so `CancelR`'s and `IdPush`'s contracta were
+context whenever Θ unbinds, so `CancelR`'s and `IdPush`'s contracta were
 untypeable: that is the wall the tower example walked into
 (`Examples.agda` §5a, `no-rewind-conv` / `no-cancel-inner-conv`; the
 refutation module is `notes/ReUnlockWall.agda`).  The rewind half of
 that is history since 2026-09-23 — no rule builds one — but the merge
-`Θ₁ ++ Θ₂` both rules do build has the same shape whenever `Θ₂` locks
-what `Θ₁` unlocks.
+`Θ₁ ++ Θ₂` both rules do build has the same shape whenever `Θ₂` unbinds
+what `Θ₁` binds.
 
 The clause does not widen the judgement where the old one applied: the
-two unlock clauses are mutually exclusive (`fresh-not-lookup`), so the
+two bind clauses are mutually exclusive (`fresh-not-lookup`), so the
 conversion context stays a FUNCTION of the change list.  In
 `conv-changes-functional` the mixed pairs are impossible: one says α is
 FRESH in the tail's output, the other says α is LOOKED UP there.
 
-WHY THE POSITION IS DROPPED.  `conv-lock` already ignores its position:
-skipping the lock keeps α exactly where it was.  The paired unlock must
+WHY THE POSITION IS DROPPED.  `conv-unbind` already ignores its position:
+skipping the unbind keeps α exactly where it was.  The paired bind must
 therefore keep it there too — re-inserting it at the interior position
 `X` would move a name the conversion context never moved.  The
 positions of a conversion context are the interior's positions with the
-locked names left in place, and this clause is what makes that reading
+unbound names left in place, and this clause is what makes that reading
 hold through a dual.
 
 ### §3a — transport across a boundary scope
@@ -342,14 +342,14 @@ The two induced contexts are WELL FORMED whenever the exterior is.
 Each of `WfCtx`'s three fields transports separately, and none of them
 needs the term or the conversion.
 
-* (i) `name-fn` (`int-unique`, `conv-unique`).  A lock deletes and an
-  unlock inserts a name its own premise says is fresh, so both readings
+* (i) `name-fn` (`int-unique`, `conv-unique`).  An unbind deletes and an
+  bind inserts a name its own premise says is fresh, so both readings
   preserve uniqueness.  The conversion reading preserves it for the
-  same reasons: it skips locks, and an unlock either inserts a fresh
+  same reasons: it skips unbinds, and a bind either inserts a fresh
   name or does nothing at all.
 * (ii) `wf-names` (`int-valid`).  Every name a reading leaves live is
-  one the exterior already had, or one an `unlock` brought in — and an
-  unlock carries its own `Ξ ∋ʳ α` premise.
+  one the exterior already had, or one a `bind` brought in — and an
+  bind carries its own `Ξ ∋ʳ α` premise.
 * `conversion-live`.  A conversion reading only adds ordinary names.
   Preservation uses this to re-spell an exterior type in the conversion
   context selected by the relational reading.
@@ -361,11 +361,11 @@ needs the term or the conversion.
 `rewind-interior : Γ ⊢ⁱ Θ ⇒ Γᵢ → Γ ⊢ⁱ rewind Θ ⇒ Γ`.  A rewound
 boundary scope performs the original changes and then their exact
 inverse, so ITS INTERIOR IS THE EXTERIOR ITSELF.  Its conversion
-context is the original conversion context: locks are skipped in both
-halves, and each inverse unlock is a no-op because the corresponding
-locked name is live in that union context.  The interior reading is the
+context is the original conversion context: unbinds are skipped in both
+halves, and each inverse bind is a no-op because the corresponding
+unbound name is live in that union context.  The interior reading is the
 evidence for that last fact — a conversion reading alone permits a
-`conv-lock` even when its name is absent.
+`conv-unbind` even when its name is absent.
 
 `dual-interior : Γ ⊢ⁱ Θ ⇒ Γᵢ → Γᵢ ⊢ⁱ dual Θ ⇒ Γ`.  The dual runs the
 same changes backwards, so it returns a crossing argument to the
@@ -398,13 +398,13 @@ concrete witness.
 
 ### §3c — `conv-weaken`, `dual-conversion-exists`, `merged-conversion-exists`
 
-A conversion reading is MONOTONE in its starting name set.  Locks are
-skipped; an unlock either finds its name already live in the larger set
+A conversion reading is MONOTONE in its starting name set.  Unbinds are
+skipped; a bind either finds its name already live in the larger set
 or inserts it at the same position.  The old output therefore remains
 available, although its ordinary positions may change.  This is the
-lock-skipping transport needed when the appended `lock 0 0` carries a
-boundary across a newly inserted name.  (`conv-snoc-lock`: appending a
-lock makes it run first, and a conversion reading skips it.)
+unbind-skipping transport needed when the appended `unbind 0 0` carries a
+boundary across a newly inserted name.  (`conv-snoc-unbind`: appending a
+unbind makes it run first, and a conversion reading skips it.)
 
 `merged-conversion-exists`.  The MERGED frame's conversion reading
 exists and retains every name available at the inner frame's conversion
@@ -416,28 +416,28 @@ safety shed, on 2026-09-21 (`notes/DECISIONS.md`).
 
 ### §3d — renaming the representation universe
 
-The change run and both readings.  A `lock` deletes at the same
+The change run and both readings.  An `unbind` deletes at the same
 ordinary position and records freshness of the RENAMED name; an
-`unlock` inserts at the same position.  Nothing here is arithmetic on
+`bind` inserts at the same position.  Nothing here is arithmetic on
 ordinary positions, which is why the ordinary spelling survives.  Under
 a representation renaming the scope is renamed by `renᴮᴿ ρ`, the name
 maps by `map ρ`, and the store is whatever the `RepWk` says — no bind
 prefix, no `extN` offset.
 
-`snoc-lock0-conversion-ren`.  The snoc `Θ ++ (lock 0 0 ∷ [])` carries a
+`snoc-unbind0-conversion-ren`.  The snoc `Θ ++ (unbind 0 0 ∷ [])` carries a
 scope past one fresh cell and one fresh ordinary name (`TyPeelR-⟪⟫`).
 The conversion reading: representation renaming transports the old
-reading, the appended lock is skipped, and `conv-weaken` restarts the
+reading, the appended unbind is skipped, and `conv-weaken` restarts the
 transported run in the map that also holds the fresh name; it retains
 the REPRESENTATION-RENAMED old names.
-`snoc-lock0-interior-ren`: the interior reading, where the appended
-lock acts first and deletes the fresh name, after which the renamed old
+`snoc-unbind0-interior-ren`: the interior reading, where the appended
+unbind acts first and deletes the fresh name, after which the renamed old
 changes run as before.
 
 ### §4 — `TyBetaBoundary`
 
 `TyBeta` on `(Λ N) ·[ B , ℕ ]` at `empty`: the cell is allocated and
-the scope unlocks name 0 for it.
+the scope binds name 0 for it.
 
 ### Retired
 
@@ -473,9 +473,9 @@ family.
 The judgement carried a global index `p` that fixed `unseal` to a
 REVEAL position and `seal` to a CONCEAL one, flipping on `conv-fun`'s
 domain.  It is REDUNDANT: the discipline it enforced is PER TYPE
-VARIABLE, and `env` already enforces it with the FRAMES — a LOCKED `X`
+VARIABLE, and `env` already enforces it with the FRAMES — a UNBOUND `X`
 is DELETED from the interior reading, so it cannot sit on the interior
-side of a leaf, and a name the scope itself UNLOCKS has no entry in the
+side of a leaf, and a name the scope itself BINDS has no entry in the
 exterior name map, so it cannot sit on the exterior side.  Dropping `p`
 is what makes `TyPeelR`'s preservation case a theorem at every `∀`
 conversion rather than only at a reveal one
@@ -597,7 +597,7 @@ produced by well-formed boundary scopes preserve this invariant
 
 ### Retired
 
-* "a LOCKED X is masked in `interior`" / "a BOUND X is not in the image
+* "a UNBOUND X is masked in `interior`" / "a BOUND X is not in the image
   of `shiftBy`" (the no-polarity argument) — there is no masking and no
   bind block; the same argument is made above with deletion from the
   interior reading and absence from the exterior name map.
@@ -769,7 +769,7 @@ Bruijn universes.  Consequently a syntax-level type renaming carries
 two maps:
 
 * the ORDINARY map renames term annotations, type arguments, conversion
-  names, and the positions carried by `lock` and `unlock`;
+  names, and the positions carried by `unbind` and `bind`;
 * the REPRESENTATION map renames boundary scope payloads and the
   representation-variable occurrence carried by every change.
 
@@ -783,7 +783,7 @@ moves up by one; when it does not, nothing moves.  So `↑ᴹ[ new R ]` is
 ### §5 — `crossΛᴹ`, `⇑ᴵ`
 
 A value crossing `Λ` is weakened only in the free representation
-universe and wrapped in the binder's DUAL.  The lock removes the fresh
+universe and wrapped in the binder's DUAL.  The unbind removes the fresh
 ordinary variable, so the surviving ordinary indices retain their old
 positions; representation occurrences move past the new abstract
 binder.
@@ -841,8 +841,8 @@ after a machine-checked defect:
 
 A sixth defect of the same reading discipline hit the CONVERSION
 CONTEXT itself rather than a spelling: a conversion reading skips
-locks, so a later `unlock` can meet a name that is already live.  That
-is the clause `conv-unlock-live` (2026-09-17, `notes/ReUnlockWall.agda`,
+unbinds, so a later `bind` can meet a name that is already live.  That
+is the clause `conv-bind-live` (2026-09-17, `notes/ReUnlockWall.agda`,
 `Boundary.agda` §3; see § Boundary.agda / `_∣_⊢χᶜ_⇒_`).
 
 Determinism for the carried premises is `sameConv-src-unique`,
@@ -885,12 +885,12 @@ mints a representation payload `R`.  `TyBeta` and both `TyPeelR` rules
 therefore carry `Δ ⊢ᶜ A ~ R`, return the store change `new R` — the
 cell is pushed onto the AMBIENT representation context at index 0
 (`allocate`, experiment 2, `notes/RepStoreSketch.md`) — and build
-`inst Θ`, which unlocks ordinary name 0 for that cell and shifts the
+`inst Θ`, which binds ordinary name 0 for that cell and shifts the
 old changes in both universes.
 
 A boundary scope IS its change list (`Boundary = List Change`), so the
 frames the rules build are plain list expressions: `Θ₁ ++ Θ₂` where
-`CancelR` and `IdPush` merge, and `renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])`
+`CancelR` and `IdPush` merge, and `renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])`
 where `TyPeelR-⟪⟫` moves a boundary past the cell it just minted.
 Congruence rules carry the relational interior/conversion-context
 witnesses rather than computing those contexts, and shift the redex's
@@ -970,7 +970,7 @@ else.  So:
   TyPeelR-⟪⟫   the interior is a boundary: PUSH THE TYPE APPLICATION
                INWARD one layer, exactly as the single rule did, and
                mask the new binder in the MOVED BOUNDARY'S OWN change
-               list (the snoc `++ (lock 0 0 ∷ [])`).
+               list (the snoc `++ (unbind 0 0 ∷ [])`).
 ```
 
 Together they are TOTAL over canonical `∀`-values, so the split
@@ -981,7 +981,7 @@ WHY THE MOVED VALUE'S FRAME MUST NOT GAIN AN UNMASKED SLOT.  In the
 store design `V` moves by the representation-only renaming `renᴹᴿ suc`
 — past the cell this rule allocates — while the new ORDINARY name 0 is
 removed from the moved boundary's interior reading by the appended
-`lock 0 0`.  `V` is therefore offered exactly the ordinary scope it
+`unbind 0 0`.  `V` is therefore offered exactly the ordinary scope it
 already had.  (History, and the reason the split exists: in the
 masked-entry ancestor the single rule moved `V` by `wkᴹ 1` into its old
 frame with ONE NEW SLOT, offered UNMASKED.  `V` neither had that slot
@@ -1037,8 +1037,8 @@ rule prepended (history).  There are no binds now: the cell is
 allocated in the AMBIENT context at index 0, so every one of Θ's
 changes moves up in BOTH universes, and that shift is exactly what
 `inst` packages —
-`inst Θ = map shiftChange Θ ++ (unlock 0 0 ∷ [])`, `Boundary.agda` §4 —
-with the appended `unlock 0 0` making ordinary name 0 denote the new
+`inst Θ = map shiftChange Θ ++ (bind 0 0 ∷ [])`, `Boundary.agda` §4 —
+with the appended `bind 0 0` making ordinary name 0 denote the new
 cell inside the boundary.
 
 THE CONVERSION.  Slot 0 of the conversion's body was ABSTRACT and is
@@ -1046,11 +1046,11 @@ now the cell this rule allocates, so every leaf of `s` that reads it
 must become the instantiation step: `instReveal 0 s`.  Keeping `s`
 itself is ill-typed — its TARGET body still reads ordinary name 0 as
 abstract, where the contractum's `env` premise demands the type `s`
-produces after instantiation at the newly unlocked name.
+produces after instantiation at the newly bound name.
 
 ### `TyPeelR-⟪⟫`
 
-The moved boundary crosses a binder that its appended `lock 0 0`
+The moved boundary crosses a binder that its appended `unbind 0 0`
 removes from the INTERIOR reading.  Its ordinary term indices therefore
 retain their positions after deletion; only representation occurrences
 move past the new representation binder.  Thus the interior term and
@@ -1059,10 +1059,10 @@ frame use paired, representation-only renamings (`renᴹᴿ suc`,
 the outer frame's interior.
 
 THE CONVERSION WALL AND REPAIR (2026-09-20).  The conversion reading
-SKIPS locks.  Hence the new ordinary name survives there while every
-`unlock X α` in `Θ′` inserts around it; where that name ends up depends
+SKIPS unbinds.  Hence the new ordinary name survives there while every
+`bind X α` in `Θ′` inserts around it; where that name ends up depends
 on `Θ′`.  In the closed witness of `notes/AddLock0Wall.agda`, one
-`unlock 0 0` displaces it to position one, so the old fixed
+`bind 0 0` displaces it to position one, so the old fixed
 `renᶜ (extᵗ suc) s′` points at the wrong representation and the third
 state loses its type.  No fixed renaming can be right for all `Θ′`.
 
@@ -1073,7 +1073,7 @@ through the representation renaming made by the insertion
 (`renNameCtx suc Δ″ᶜ Δ′ᶜ`): without that view, §6b of `Examples.agda`
 loses its type at step 8, because a free representation index is
 compared to the newly inserted binder.  The contractum is otherwise
-unchanged: same snoc-lock frame, outer frame, minted `instReveal 0 s`,
+unchanged: same snoc-unbind frame, outer frame, minted `instReveal 0 s`,
 pushed-in annotation and type argument `` ` 0 ``.
 
 THE RE-BASED ANNOTATION (2026-09-18).  `Bᵢ` is read at the CONVERSION
@@ -1135,7 +1135,7 @@ THE SCOPE MOVE (3d, 2026-09-06).  The residue's INNER boundary now
 presents `Y`'s representation where it presented the abstract name, so
 Θ₂'s changes must travel into the inner frame — which is precisely what
 the merge `Θ₁ ++ Θ₂` does, Θ₂ first and then Θ₁ — otherwise `env`'s
-last premise reads that representation INSIDE Θ₂'s locks.
+last premise reads that representation INSIDE Θ₂'s unbinds.
 
 THE RE-BASED IDENTITY (2026-09-18), REPAIRED (2026-09-19, repair (a),
 approved by Jeremy).  `A` is the looked-up type at the OUTER conversion
@@ -1179,7 +1179,7 @@ is already written in the identity conversion (`idpush-name`).
 THE SCOPE MOVE (2026-09-06).  The surviving boundary is the revealing
 one, so its exterior type becomes `Y`'s representation.  Θ₂'s changes
 travel into that frame — the merge `Θ₁ ++ Θ₂` — so that the
-representation is presented OUTSIDE Θ₂'s locks, at the plain exterior
+representation is presented OUTSIDE Θ₂'s unbinds, at the plain exterior
 `Δ`, where it is nameable.  With no bind block there is no shift left
 to get wrong.  That is what retires the wall — the case needs no
 scoping invariant at all (`proof/MoveScope.agda`, `preserve-IdPush`).
@@ -1264,7 +1264,7 @@ Dropped from the inline text, with the reason:
   (numBinds Θ) A) ∷ interior Θ Δ`", "`shiftBy (numBinds Θ + 1)
   (Bₑ [ A ])`", "`SameTyExt (numBinds Θ₁)`", "`X ≡ numBinds Θ₁ + Y`",
   "the `unmasked (bind …) ∷ interior Θ Δ` frame", "`le-mu`",
-  "`la-uu le-ab`", "Θ₂'s LOCKS travel into the inner frame (§2b)" — all
+  "`la-uu le-ab`", "Θ₂'s UNBINDS travel into the inner frame (§2b)" — all
   name the BIND BLOCK and the MASKED-ENTRY contexts, neither of which
   exists.  The claims they made are restated above against
   `Boundary = List Change`, `_++_`, `rewind`, `inst` and `allocate`.
@@ -1359,14 +1359,14 @@ nothing else.
 ### §2 — `find?`
 
 Where a representation variable currently sits, if it is live at all.
-This is what the re-unlock clause of `_∣_⊢χᶜ_⇒_` needs
+This is what the re-bind clause of `_∣_⊢χᶜ_⇒_` needs
 (§ Boundary.agda).
 
 ### §3 — `runχ`, `runχᶜ`
 
 The tail acts first (head-LAST order, `Boundary.agda` §2).  In the
-conversion reading a `lock` is skipped, and an `unlock` of a name the
-skipped locks left live is a no-op (`Boundary.agda` §3).
+conversion reading an `unbind` is skipped, and a `bind` of a name the
+skipped unbinds left live is a no-op (`Boundary.agda` §3).
 
 ### §4 — `ref?`
 
@@ -1659,7 +1659,7 @@ by `runCtx` (`Reduction.agda`).
 
 NO PROOF SCRIPT LIVES HERE.  The theorems are thin wrappers around
 `proof/Preserve.agda`'s `Impl` and `preserve-wf`, instantiated with
-`RepWeaken.cross-Λ-⊢`, `AddLock0.addLock0-⊢`, `RepWeaken.shift-⊢` (THE
+`RepWeaken.cross-Λ-⊢`, `AddUnbind0.addUnbind0-⊢`, `RepWeaken.shift-⊢` (THE
 SIBLING SHIFT), `PeelDual.preserve-Peel`, `MoveScope.preserve-CancelR`
 and `MoveScope.preserve-IdPush`.  Progress is `Progress.agda`, their
 composition is `TypeSafety.agda`, and the refuted statements that
@@ -1707,20 +1707,20 @@ Stage 2 (2026-09-19) discharged all three: `IdPush` and, after the
 `CancelR` rule repair of the same day, `CancelR` are proved outright
 (`proof/MoveScope.agda`), and `Peel` is proved in
 `proof/PeelDual.agda`.  NOTHING REMAINS A PARAMETER (2026-09-20): the
-last one, `AddLock0Typing`, is proved by `proof/AddLock0.agda`'s
-`addLock0-⊢`.
+last one, `AddUnbind0Typing`, is proved by `proof/AddUnbind0.agda`'s
+`addUnbind0-⊢`.
 
 ### The wall of 2026-09-20, and its repair
 
-`notes/AddLock0Wall.agda` refuted the OLD `AddLock0Typing` and, at the
+`notes/AddLock0Wall.agda` refuted the OLD `AddUnbind0Typing` and, at the
 same instance, `Preservation` and `Preservation*`: a closed, plain
 System F program — no hand-written boundary — lost its type three steps
 in, at `TyPeelR-⟪⟫`.  That rule re-spelled the moved boundary's
 conversion with `renᶜ suc`, the renaming that is correct for the
-INTERIOR reading (where the appended lock, acting first, deletes the
+INTERIOR reading (where the appended unbind, acting first, deletes the
 new ordinary name) and wrong for the CONVERSION reading (which SKIPS
-locks, so the new name survives and the moved boundary scope's own
-unlocks displace it).  No premise repairs a contractum, so the RULE was
+unbinds, so the new name survives and the moved boundary scope's own
+binds displace it).  No premise repairs a contractum, so the RULE was
 repaired, with Jeremy's approval and in the pattern `Peel` got on
 2026-09-18: the moved conversion is NAMED and pinned by a `SameConv`,
 against the old conversion context viewed through the representation
@@ -1804,7 +1804,7 @@ must be.
 PRESERVATION BECAME UNCONDITIONAL ON 2026-09-20, in three steps of the
 same day: `RepWeakenTyping` was proved, making `PeelCase`
 unconditional; `CrossΛTyping` was proved, making `Beta` unconditional;
-and `AddLock0Typing`, which `notes/AddLock0Wall.agda` had REFUTED that
+and `AddUnbind0Typing`, which `notes/AddLock0Wall.agda` had REFUTED that
 morning, was answered by the RULE repair Jeremy approved (the moved
 conversion is NAMED and pinned by `SameConv`) and then PROVED on the
 reshaped statement.  That was the second rule defect of the shape
@@ -1939,7 +1939,7 @@ allocating step shifted.
 
 * `residual-TyBeta` — the body stays where it is; its `Λ` slot BECOMES
   the allocated cell (refinement `abstR → bindR R`, no move), and the
-  scope `inst []` re-unlocks the body's own name for it, so the body's
+  scope `inst []` re-binds the body's own name for it, so the body's
   indices are already right and ρ is `idᵗ`.
 * `residual-Beta-body` — a node the substitution does not replace;
   `residual-Beta-arg` — one residual per occurrence that receives it.
@@ -1948,7 +1948,7 @@ allocating step shifted.
   there is no bind block to cross any more, and `dual-interior` lands
   the dual's interior at the exterior itself, so ρ is `idᵗ`.
 * `residual-TyPeelR-Λ` — as `TyBeta`, one boundary in: the body's `Λ`
-  slot becomes the allocated cell the instantiated scope unlocks.
+  slot becomes the allocated cell the instantiated scope binds.
 * `residual-TyPeelR-⟪⟫` — the inner boundary is a SIBLING of the `Λ`
   slot the allocation consumes, so its interior gets exactly the
   sibling shift `suc` — the one non-identity ρ a redex still produces.
@@ -2061,7 +2061,7 @@ That is the point of the 2026-09-19 port.
   at the same position — X, Y, Z, then X′, Y′, Z′, ….
 
 So `X` is by construction the ordinary name of α, `Y` of β, and a
-boundary that unlocks cell α at ordinary position 0 prints as
+boundary that binds cell α at ordinary position 0 prints as
 `⟪ ↥X , … ⟫`.  Reading a change's letter therefore says which
 representation it is about; if a rendered `↓` shows a letter other than
 the one its representation was allocated with, the name map and the
@@ -2073,13 +2073,13 @@ defect class the 2026-09-18 repairs were about.
 Under an exterior environment:
 
 * `Θ`'s CHANGES appear IN THE ORDER THEY ACT — that is, the list is
-  walked head-LAST, which is the order `_∣_⊢χ_⇒_` uses.  A `lock`
-  prints as `↓X` naming the ordinary variable it deletes, an `unlock`
+  walked head-LAST, which is the order `_∣_⊢χ_⇒_` uses.  An `unbind`
+  prints as `↓X` naming the ordinary variable it deletes, a `bind`
   as `↥X` naming the ordinary variable it inserts.
 * the CONVERSION comes last and is read on the CONVERSION context —
-  unlocks performed, locks SKIPPED, a re-unlock of a live name a no-op
+  binds performed, unbinds SKIPPED, a re-bind of a live name a no-op
   — which is a different name map from the interior's whenever the
-  boundary scope locks.  `showBnd` computes both; the body is rendered
+  boundary scope unbinds.  `showBnd` computes both; the body is rendered
   on the interior, `c` on the conversion context.
 
 ### How it is driven
@@ -2403,7 +2403,7 @@ type-substitution facts used by elimination.  §1b is `RepRefines` — the
 ALLOCATION of a cell needs, and the conversions `TyBeta` and `TyPeelR`
 mint (§2b).  §3 proves the local reduction cases.  §4 states the
 transports that are proved downstream — `CrossΛTyping`,
-`AddLock0Typing`, `ShiftTyping` and the three crossing cases (§4b) —
+`AddUnbind0Typing`, `ShiftTyping` and the three crossing cases (§4b) —
 and supplies the `AllocWf` / `env-apply` machinery the congruences
 consume.  §5 reads off a step what it did to the store (`step-alloc`),
 proves `preserve-wf`, and assembles `preserve` / `preserve*` in `Impl`.
@@ -2418,8 +2418,8 @@ gone: the dual's interior is now the exterior itself, so `Peel` moves
 its argument verbatim.
 
 ALL FOUR TRANSPORTS have implementations, the last being
-`AddLock0Typing` — reshaped with the 2026-09-20 `TyPeelR-⟪⟫` repair and
-proved the same day in `proof/AddLock0.agda` — so `Preservation.agda`
+`AddUnbind0Typing` — reshaped with the 2026-09-20 `TyPeelR-⟪⟫` repair and
+proved the same day in `proof/AddUnbind0.agda` — so `Preservation.agda`
 exposes no parameter at all.
 
 ### §1 — `WfRen`, `SubWf`, `same-wf`
@@ -2455,11 +2455,11 @@ well formed because `same-wfᴿ` reads it off the argument's `~`.
 `inst-boundarywf` — THE INSTANTIATED SCOPE IS AGAIN A BOUNDARY SCOPE
 WITNESS, read at the ALLOCATED context.  `TyBeta` and both `TyPeelR`
 clauses mint the cell for the type argument's representation at index 0
-and append `unlock 0 0`, which names it; the old changes run
+and append `bind 0 0`, which names it; the old changes run
 underneath, in both universes.  The two readings are `inst-interior`
 and `inst-conversion` (`Boundary.agda` §3a).
 `preserve-TyPeelR-⟪⟫` uses it for the moved boundary's exterior;
-`proof/Progress.agda`'s `addLock0-reading` uses it for the `RepWk suc`
+`proof/Progress.agda`'s `addUnbind0-reading` uses it for the `RepWk suc`
 that the same allocation induces.
 
 `SameSub` — eliminating an ordinary `∀` binder COMMUTES with the
@@ -2482,13 +2482,13 @@ type outright.
 THREE TRANSPORTS, all PROVED downstream, all internal staging
 interfaces only: `Preservation.agda` instantiates each with its proof,
 so preservation has no parameter.  The first two need a BINDER
-(`underΛ`, the appended `lock 0 0`) on top of the renaming; the third,
+(`underΛ`, the appended `unbind 0 0`) on top of the renaming; the third,
 the SIBLING SHIFT, is pure renaming.
 
 ```
   CrossΛTyping    PROVED 2026-09-20, `proof/RepWeaken.cross-Λ-⊢`, as one
                   `env` around `⊢renᴿ` at `repwk-abst₀`.
-  AddLock0Typing  REFUTED, RESHAPED and PROVED, all on 2026-09-20, and
+  AddUnbind0Typing  REFUTED, RESHAPED and PROVED, all on 2026-09-20, and
                   reshaped again by the store, which removed its
                   `numBinds` arithmetic.
   ShiftTyping     NEW with the store (2026-09-22),
@@ -2499,7 +2499,7 @@ the SIBLING SHIFT, is pure renaming.
                   congruence's SIBLING.
 ```
 
-`AddLock0Typing`, RESHAPED WITH THE RULE (2026-09-20) AND AGAIN WITH
+`AddUnbind0Typing`, RESHAPED WITH THE RULE (2026-09-20) AND AGAIN WITH
 THE STORE (2026-09-22).  The moved boundary crosses ONE fresh cell and
 ONE fresh ordinary name for it, so its interior term and its scope get
 exactly the SIBLING SHIFT — `renᴹᴿ suc` and `renᴮᴿ suc`, with no
@@ -2509,10 +2509,10 @@ more.  The moved conversion is still NAMED (`s′`) and pinned by a
 representation renaming the allocation makes (`renNameCtx suc`) — that
 was the 2026-09-20 repair (`notes/AddLock0Wall.agda`), and it stays.
 
-PROVED in `proof/AddLock0.agda`'s `addLock0-⊢`: the `env`-to-`env`
+PROVED in `proof/AddUnbind0.agda`'s `addUnbind0-⊢`: the `env`-to-`env`
 transport across one allocated cell and one fresh ordinary name.  The
-interior reading is `Boundary.snoc-lock0-interior-ren` (the appended
-lock DELETES the fresh name, so what is left is `interior-ren`), the
+interior reading is `Boundary.snoc-unbind0-interior-ren` (the appended
+unbind DELETES the fresh name, so what is left is `interior-ren`), the
 interior term is `proof/RepWeaken.⊢renᴿ` at `repwk-alloc`, and the
 conversion is `conv-ren` (`Conversion.agda` §2d) followed by
 `proof/PeelDual.respell-⊢` — whose `reps Γ′ ≡ reps Γ` premise is
@@ -2553,17 +2553,17 @@ representation weakening.
 The downstream crossing cases and transports stay module parameters
 HERE because their proofs import this module.  `Preservation.agda`
 plugs in every implementation and exposes NO public parameter at all.
-Until 2026-09-20 `AddLock0Typing` was REFUTED and `Impl.preserve` a
+Until 2026-09-20 `AddUnbind0Typing` was REFUTED and `Impl.preserve` a
 conditional theorem with a false hypothesis; the `TyPeelR-⟪⟫` repair
 installed that day reshaped it (`notes/AddLock0Wall.agda`), and
-`proof/AddLock0.addLock0-⊢` proved the reshaped statement, which made
+`proof/AddUnbind0.addUnbind0-⊢` proved the reshaped statement, which made
 preservation UNCONDITIONAL.
 
 ```
   CrossΛTyping   PROVED (2026-09-20) — `proof/RepWeaken.cross-Λ-⊢`.
-  AddLock0Typing PROVED (2026-09-20), on the statement RESHAPED with
+  AddUnbind0Typing PROVED (2026-09-20), on the statement RESHAPED with
                  the `TyPeelR-⟪⟫` repair of the same day —
-                 `proof/AddLock0.addLock0-⊢`.  The old statement fixed
+                 `proof/AddUnbind0.addUnbind0-⊢`.  The old statement fixed
                  the moved conversion at `renᶜ (extᵗ suc) s` and was
                  REFUTED from a closed, plain source program
                  (`notes/AddLock0Wall.agda`, which keeps that statement
@@ -2673,24 +2673,24 @@ experiment is `⊢renᴿ` at that instance, with no cast at all.
 The same induction at the base instance
 `repwk-abst₀ : RepWk suc Ξ (abstR ∷ Ξ)`.  The moved term lands under
 the new abstract representation binder but OUTSIDE its ordinary name.
-One `env` with `(lock 0 0 ∷ [])` then supplies exactly that missing
+One `env` with `(unbind 0 0 ∷ [])` then supplies exactly that missing
 ordinary boundary: its interior DELETES name zero, while its conversion
 reading RETAINS it for `mkId (⇑ᵗ A)`.
 
-## proof/AddLock0.agda
+## proof/AddUnbind0.agda
 
-THE MOVED BOUNDARY'S TYPING — `AddLock0Typing`, preservation's last
+THE MOVED BOUNDARY'S TYPING — `AddUnbind0Typing`, preservation's last
 parameter, on the statement the 2026-09-20 `TyPeelR-⟪⟫` repair gave it
 and the 2026-09-22 store experiment simplified.
 
 `TyPeelR-⟪⟫` moves the inner boundary out across ONE freshly allocated
 cell (the type argument's representation, minted by `inst`) and ONE
-fresh ordinary name for it, and appends `lock 0 0` to the scope.  The
+fresh ordinary name for it, and appends `unbind 0 0` to the scope.  The
 move is the plain SIBLING SHIFT on the TERM — `renᴹᴿ suc` — because the
-appended lock acts FIRST in the interior reading and deletes the fresh
+appended unbind acts FIRST in the interior reading and deletes the fresh
 ordinary name before any of Θ's own changes run.  It is NOT
 representation-only on the CONVERSION, because a conversion reading
-SKIPS locks: the fresh name survives there and Θ's own unlocks displace
+SKIPS unbinds: the fresh name survives there and Θ's own binds displace
 it.  That is the content of `notes/AddLock0Wall.agda`, and it is why
 the rule carries the moved spelling `s′` with a `SameConv` instead of
 renaming for it.
@@ -2699,7 +2699,7 @@ renaming for it.
 
 ```
   bw-exterior    the statement's own `WfCtx` premise
-  bw-interior    `snoc-lock0-interior-ren` — the lock deletes the fresh
+  bw-interior    `snoc-unbind0-interior-ren` — the unbind deletes the fresh
                  name, leaving `interior-ren` at `suc`
   bw-conversion  the rule's own premise
   the interior   `proof/RepWeaken.⊢renᴿ` at `repwk-cons₀ (bindR P) …`:
@@ -2721,7 +2721,7 @@ renaming for it.
 ```
 
 The retention `respell-⊢` consumes is NOT a new assumption: it is the
-`keep` component of `Boundary.snoc-lock0-conversion-ren`, transported
+`keep` component of `Boundary.snoc-unbind0-conversion-ren`, transported
 onto the rule's own `Δ⁺ᶜ` by `conversion-functional`.  Nothing is
 postulated.
 
@@ -2742,7 +2742,7 @@ postulated.
   the two representations are identified because a reading determines
   its representation.  `moved-sameₑ`: the exterior alignment — the new
   ordinary name weakens the exterior reading, and that is all.
-* §3 `moved-env`, the assembled `env`; §4 `addLock0-⊢`, the theorem.
+* §3 `moved-env`, the assembled `env`; §4 `addUnbind0-⊢`, the theorem.
 
 ## proof/PeelDual.agda
 
@@ -2826,7 +2826,7 @@ and the preservation cases they owe.
 Both rules neutralise the OUTER conversion of a two-layer wrapper, so
 the surviving boundary stops presenting the abstract name `` ` Y `` and
 starts presenting `Y`'s REPRESENTATION.  A representation is a type over
-the exterior; inside Θ₂'s LOCKS it need not be nameable at all, and
+the exterior; inside Θ₂'s UNBINDS it need not be nameable at all, and
 `env`'s last premise would then fail.  So the two frames merge:
 
 ```
@@ -2876,7 +2876,7 @@ Everything this module used to hold about the retired masked-entry
 design: `applyUnlocks` / `applyChanges` lookup transports (§1), the
 `shiftScope` / `rewind` / `_++_` list algebra (§2), the `scope` /
 `interior` context identities (§3), the frame lemmas as EQUALITIES and
-the lock-only refutation (§4, §4b), and `_⊢ᵐ_` for the two new frames
+the unbind-only refutation (§4, §4b), and `_⊢ᵐ_` for the two new frames
 (§5).
 
 ### §1 — the small inversions
@@ -2892,7 +2892,7 @@ it reads as.
 ### §2 — `preserve-IdPush`
 
 The surviving boundary is the revealing one, so its exterior type is the
-redex's own exterior type `C`, presented OUTSIDE Θ₂'s locks — at the
+redex's own exterior type `C`, presented OUTSIDE Θ₂'s unbinds — at the
 plain exterior `Δ`, which is where `C` is nameable.  That is what
 retires the old wall: the case needs no scoping invariant.
 
@@ -2984,10 +2984,10 @@ outer one.  `push-rep` therefore lost its depth argument and its
 `shiftRep` bookkeeping, and both `env` comparisons it reads are the one
 relation `_⊢_≈_⊣_` at equal depth.
 
-WHAT WAS DELETED.  `convCtx-lock` — "a conceal is invisible to the
+WHAT WAS DELETED.  `convCtx-unbind` — "a conceal is invisible to the
 conversion context" as an EQUALITY between computed contexts — has no
 two-universe counterpart.  The relational statement of the same fact is
-`conv-lock` itself (`Boundary.agda` §3), which skips a lock outright.
+`conv-unbind` itself (`Boundary.agda` §3), which skips an unbind outright.
 
 ### §1 — the names are forced
 
@@ -3028,7 +3028,7 @@ is a variable.
 A boundary can never conceal the name its OWN conversion cites —
 `value-var-visible` (`Terms.agda`) says a value's variable type is
 visible on the value's exterior context, because `env`'s last conjunct
-checks it there.  So "Θ₁ locks `Y` while the conversion cites `Y`" is
+checks it there.  So "Θ₁ unbinds `Y` while the conversion cites `Y`" is
 untypeable.
 
 ### §3 — the naked drop
@@ -3059,8 +3059,8 @@ whatever the premise returned while shifting the sibling by `↑ᴹ[ δ ]`.
 
 The 2026-09-20 repair of `TyPeelR-⟪⟫` added NO parameter.  Its moved
 boundary's conversion reading and the retention that names the moved
-spelling are PROVED here as `addLock0-reading`, from the lock-skipping
-transport `Boundary.snoc-lock0-conversion-ren`.
+spelling are PROVED here as `addUnbind0-reading`, from the unbind-skipping
+transport `Boundary.snoc-unbind0-conversion-ren`.
 
 ### §2 — the boundary reading packages
 
@@ -3080,13 +3080,13 @@ component had no consumer.  Since the store experiment it is read over
 `Boundary.merged-conversion-exists`, which is what made progress
 unconditional on 2026-09-21.
 
-`addLock0-reading` — THE MOVED BOUNDARY'S OWN READING (2026-09-20, the
+`addUnbind0-reading` — THE MOVED BOUNDARY'S OWN READING (2026-09-20, the
 repair's progress obligation).  The repaired `TyPeelR-⟪⟫` carries the
 moved boundary's conversion reading and a `SameConv` pinning the moved
 spelling, so progress must CONSTRUCT that reading.  It is not a new
-assumption: the lock-skipping transport `conv-weaken` / `conv-snoc-lock`
+assumption: the unbind-skipping transport `conv-weaken` / `conv-snoc-unbind`
 and the representation renaming are assembled by
-`Boundary.snoc-lock0-conversion-ren`, and all this wrapper adds is the
+`Boundary.snoc-unbind0-conversion-ren`, and all this wrapper adds is the
 `RepWk suc` witness for the cell `inst Θ` mints, read off
 `inst-boundarywf`.
 
@@ -3118,7 +3118,7 @@ witness.
   to compute since the store experiment.  So the reading is transported
   along the representation renaming the allocation makes (`sameᶜ-ren`,
   past the `Λ` by `names-underΛ-ren`), and only THEN respelled into the
-  moved boundary's own context by the retention `addLock0-reading`
+  moved boundary's own context by the retention `addUnbind0-reading`
   supplies.  Doing the respell first — the 2026-09-20 dead end — leaves
   the reading in the unrenamed map.
 * the `Λ` case is immediate: the value restriction means `⊢Λ` hands us
@@ -3211,7 +3211,7 @@ are the whole store bookkeeping.
 * §3 the frame judgement is functional.
 * §4 `Beta`'s substitution never moves a frame: boundary frames are
   term-closed and every other frame ignores its side terms.
-* §5 the dual `crossΛᴹ` mints has a reading at EVERY context: it locks
+* §5 the dual `crossΛᴹ` mints has a reading at EVERY context: it unbinds
   exactly the fresh name the `Λ` added, and slot 0 is fresh in the
   shifted remainder.
 * §6 THE TRANSPORT (`⊢C-ren`): a frame derivation moves along a
@@ -3262,16 +3262,16 @@ representation variable α, α carries a `bindR R`, and `A` is `R` read
 back through the current ordinary name map.  The gate therefore refuses
 a seal for TWO INDEPENDENT REASONS — the name may be absent from the
 map (§2b), or the representation variable it names may be `abstR` (§2).
-Neither can be repaired by a change list: a `lock` deletes a name and
-an `unlock` restores one, and NO change rewrites a representation
+Neither can be repaired by a change list: an `unbind` deletes a name and
+a `bind` restores one, and NO change rewrites a representation
 binding.
 
 WHAT WAS DELETED (2026-09-19).  The masking half of this module —
-`unlock-claims-a-lock` and `unlock-mentions-no-rep`, statements about
+`bind-claims-a-unbind` and `bind-mentions-no-rep`, statements about
 `∋lk`, `Nameable` and `applyChanges` — has no two-universe
-counterpart: an unlock no longer clears a bit at a retained entry, it
+counterpart: a bind no longer clears a bit at a retained entry, it
 INSERTS a name, and what it claims is `Ξ ∋ʳ α` plus freshness, which is
-already the rule's own premise (`step-unlock`, `Boundary.agda` §2).
+already the rule's own premise (`step-bind`, `Boundary.agda` §2).
 
 ### §1 — the gate
 
@@ -3289,14 +3289,14 @@ UNMINTABLE, because `seal 0` demands `Δadv ∋ 0 := A`, whose middle
 component asks `abstR` to be a `bindR`.
 
 `Θadv` is the boundary scope the adversary used to hide behind: it
-locks the very name its conversion cites.  A conversion context SKIPS a
-lock, so the lock buys nothing — the seal is still read where the slot
+unbinds the very name its conversion cites.  A conversion context SKIPS a
+unbind, so the unbind buys nothing — the seal is still read where the slot
 is abstract.
 
 ### §2b — the second gate, new on this branch
 
-A conceal at a LOCKED name.  The old design kept a locked slot's entry
-and marked it; here a lock DELETES the ordinary name.  A seal at a name
+A conceal at a UNBOUND name.  The old design kept an unbound slot's entry
+and marked it; here an unbind DELETES the ordinary name.  A seal at a name
 the interior lost is therefore refused by the NAME half of the square
 rather than by the representation half — and this is the reading that
 replaces `∋lk`.
@@ -3472,7 +3472,7 @@ value weakened in the REPRESENTATION universe only (§6).
            `CanonTyPeelR`, which is REFUTED.  (This is NOT a leftover
            of the polarity index: it survives the index's retirement,
            for the two-binder reason.)  The Λ clause moves nothing; the
-           wrapper clause renames the moved boundary and appends a lock
+           wrapper clause renames the moved boundary and appends an unbind
            to its frame, which touches no conversion.
   CancelR  MINTS `mkId A′` and `mkId A` — name-free leaves of the family.
   IdPush   MINTS BOTH conversions: the pushed `unseal X′` (binder X′,
@@ -3582,7 +3582,7 @@ it holds definitionally at both `Alloc`s.
   §1  the site table
   §2  Peel                    — EXACT, by `dual-interior`; NO shift
   §3  the two TyPeelR clauses — the Λ clause shifts nothing; the
-      wrapper clause is the sibling shift plus one appended lock
+      wrapper clause is the sibling shift plus one appended unbind
   §4  TERMINATION — the tower measure, and why the rejected repair
       (wrap the moved value in the new binder's dual) stalls on it
   §5  Beta                    — the `ƛ` and `Λ` crossings do not interfere
@@ -3606,7 +3606,7 @@ substituted (`grep renᴹ² renᴹᴿ wkᴹ ⇑ᴹ renⁿ shiftᵐ crossΛᴹ su
                 `⟪ dual Θ , s′ ⟫`                        §2  EXACT
     TyPeelR-Λ   `N ⟪ inst Θ , instReveal 0 s ⟫`           §3  EXACT
     TyPeelR-⟪⟫  `renᴹᴿ suc` on the moved boundary, plus
-                `++ (lock 0 0 ∷ [])` on its change list   §3  EXACT
+                `++ (unbind 0 0 ∷ [])` on its change list   §3  EXACT
     TyBeta      `N ⟪ inst [] , reveal 0 B ⟫`              §3  refinement
     Beta        `N [ W ∶ A ]ᵐ`, i.e. `substᵐ`/`crossΛᴹ`   §5  EXACT
     CancelR     `V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫`                §6  EXACT
@@ -3635,31 +3635,31 @@ so its siblings do not move either.
 THE `Λ` CLAUSE MOVES NOTHING.  `N` already lives one `abstR` binder in
 (`⊢Λ`), and the allocation REFINES that binder to `bindR R` in place
 while `inst Θ` restores its ordinary name at position 0 (the appended
-`unlock 0 0`).  So the frame move is criterion (ii) and there is no
+`bind 0 0`).  So the frame move is criterion (ii) and there is no
 renaming at all — the contractum mentions no `renᴹᴿ`.  `TyBeta` is the
 same refinement one `∀` out: the fresh cell is allocated at index 0 and
 `inst []` gives it ordinary name 0.
 
 THE WRAPPER CLAUSE.  The moved boundary crosses ONE freshly allocated
-cell and ONE fresh ordinary name for it, and its appended `lock 0 0`
+cell and ONE fresh ordinary name for it, and its appended `unbind 0 0`
 DELETES that ordinary name again.  So the move is the plain SIBLING
 SHIFT — representation-only, `renᴹᴿ suc` — and the moved boundary's
 ordinary indices keep their positions.  That is the whole of the
 2026-09-08 repair, restated in the universe that now carries it.
 
-The appended lock names ordinary position 0 and the cell the allocation
+The appended unbind names ordinary position 0 and the cell the allocation
 just minted, which is representation index 0 — and it is APPENDED, so
 it acts FIRST (the change list is read head-last).  Since
 `Boundary = List Change` the rule WRITES that snoc,
-`Θ′ ++ (lock 0 0 ∷ [])`, so there is nothing left to state: the old
-`TyPeelR-⟪⟫-addLock0` was `refl` on one and the same list.
+`Θ′ ++ (unbind 0 0 ∷ [])`, so there is nothing left to state: the old
+`TyPeelR-⟪⟫-addUnbind0` was `refl` on one and the same list.
 
 ### §4 — termination, the tower measure
 
 The wrapper clause's contractum contains
 
 ```
-    (… ⟪ … ++ (lock 0 0 ∷ []) , `∀ s″ ⟫) ·[ … , ` 0 ]
+    (… ⟪ … ++ (unbind 0 0 ∷ []) , `∀ s″ ⟫) ·[ … , ` 0 ]
 ```
 
 which IS again a redex.  It is not a regress, and the measure says why:
@@ -3694,7 +3694,7 @@ the number of nested boundaries above the `Λ`.
 * `canon-∀-height`: WHERE THE DESCENT STOPS.  A `∀`-value of tower
   height 0 is a `Λ` (`canon-∀` has no third shape), so once
   `TyPeelR-⟪⟫` has consumed the tower it is `TyPeelR-Λ` that fires —
-  and `TyPeelR-Λ` neither renames nor locks anything (§3).  So the run
+  and `TyPeelR-Λ` neither renames nor unbinds anything (§3).  So the run
   is `height − 1` wrapper steps then one `Λ` step, and never more.
 * `progress-Λ-at-0` states that as the progress clause it decides,
   against the LIVE relation: at tower height 0 the step is
@@ -3714,9 +3714,9 @@ simultaneity).  Crossing a `ƛ` then a `Λ` is crossing a `Λ` then a `ƛ`,
 on the nose, for EVERY image — which is what makes the two clauses of
 `substᵐ` independent.
 
-`Beta-Λ-crossing`: THE `Λ` CROSSING IS REP-ONLY, AND ITS LOCK IS WHAT
+`Beta-Λ-crossing`: THE `Λ` CROSSING IS REP-ONLY, AND ITS UNBIND IS WHAT
 MAKES IT SO.  A value image crossing a `Λ` is weakened in the
-representation universe and wrapped in `(lock 0 0 ∷ [])`, whose lock
+representation universe and wrapped in `(unbind 0 0 ∷ [])`, whose unbind
 deletes the ordinary name the `Λ` just bound.  So the image's ordinary
 indices keep their positions — criterion (i) with nothing to shift.
 `Beta-no-alloc`: `Beta` allocates nothing, so the substitution moves no
@@ -3744,7 +3744,7 @@ rule builds that layer any more, so the two obligations went with it.
 ### §7 — the drop rules, the frame change in the OTHER direction
 
 `($ n) ⟪ Θ , id A ⟫ → $ n` moves the literal from the boundary scope's
-interior OUT to `Δ`: Θ's locks are undone, so the new frame can be
+interior OUT to `Δ`: Θ's unbinds are undone, so the new frame can be
 STRICTLY MORE NAMEABLE.  That is a frame gain in the direction the
 criterion also forbids — but it is VACUOUS, because a literal names no
 type variable at all: `⊢$`, `⊢true` and `⊢false` type it at EVERY type

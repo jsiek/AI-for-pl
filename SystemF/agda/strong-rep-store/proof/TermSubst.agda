@@ -96,10 +96,10 @@ renᶜ-pointwise-id h (`∀ s) =
 
 renᶠ²-ord-id : ∀ {ρᵗ ρʳ} → (∀ X → ρᵗ X ≡ X)
   → ∀ δ → renᶠ² ρᵗ ρʳ δ ≡ renᶠᴿ ρʳ δ
-renᶠ²-ord-id {ρʳ = ρʳ} h (lock X α) =
-  cong (λ X′ → lock X′ (ρʳ α)) (h X)
-renᶠ²-ord-id {ρʳ = ρʳ} h (unlock X α) =
-  cong (λ X′ → unlock X′ (ρʳ α)) (h X)
+renᶠ²-ord-id {ρʳ = ρʳ} h (unbind X α) =
+  cong (λ X′ → unbind X′ (ρʳ α)) (h X)
+renᶠ²-ord-id {ρʳ = ρʳ} h (bind X α) =
+  cong (λ X′ → bind X′ (ρʳ α)) (h X)
 
 renᴮ²-ord-id : ∀ {ρᵗ ρʳ} → (∀ X → ρᵗ X ≡ X)
   → ∀ Θ → renᴮ² (ren² ρᵗ ρʳ) Θ ≡ renᴮᴿ ρʳ Θ

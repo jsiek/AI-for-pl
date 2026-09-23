@@ -25,7 +25,7 @@ module strong-rep-store.notes.ForallPayloadWall where
 -- `IdPush` at the eleventh of the other.
 --
 -- WHY THE PAYLOAD MATTERED.  Not for itself.  A `∀` payload is simply the
--- first thing that made a lock and an unlock move a name far enough for
+-- first thing that made an unbind and a bind move a name far enough for
 -- the two readings to disagree; the defect was never about payloads.
 
 open import Data.List using (List; []; _∷_)
@@ -43,15 +43,15 @@ open import strong-rep-store.TypeCheck
 -- 1. The two name maps can REORDER
 ------------------------------------------------------------------------
 
--- The interior's `unlock` inserts at a position in ITS list; the
--- conversion context, having skipped the matching `lock`, is looking at a
+-- The interior's `bind` inserts at a position in ITS list; the
+-- conversion context, having skipped the matching `unbind`, is looking at a
 -- different one.  So the two are not even subsequences of one another.
 Δ↔ : Ctxᵗ
 Δ↔ = (bindR `ℕ ∷ bindR `𝔹 ∷ []) ∣ (0 ∷ 1 ∷ [])
 
--- lock representation variable 0 away, then bring it back at the END
+-- unbind representation variable 0 away, then bring it back at the END
 Θ↔ : Boundary
-Θ↔ = (unlock 1 0 ∷ lock 0 0 ∷ [])
+Θ↔ = (bind 1 0 ∷ unbind 0 0 ∷ [])
 
 reorder-interior : names (proj₁ (from-just (interior? Δ↔ Θ↔))) ≡ 1 ∷ 0 ∷ []
 reorder-interior = refl
@@ -72,7 +72,7 @@ crossing : rebase? (0 ∷ 1 ∷ []) (1 ∷ 0 ∷ []) (` 0)
 crossing = refl
 
 -- and it is PARTIAL: the conversion context holds names the interior's
--- locks removed, and those have no interior spelling at all
+-- unbinds removed, and those have no interior spelling at all
 no-crossing : rebase? (0 ∷ 1 ∷ []) (1 ∷ []) (` 0) ≡ nothing
 no-crossing = refl
 

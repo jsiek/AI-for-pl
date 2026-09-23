@@ -126,7 +126,7 @@ module strong-rep-store.Examples where
 -- The old file was written against the masked-entry design, in which a
 -- type-context slot was a `Binding` under a lock BIT and the two contexts
 -- a boundary scope induces were COMPUTED (`interior Θ Δ`, `convCtx Θ Δ`).
--- Neither exists here: a lock DELETES an ordinary name, an unlock INSERTS
+-- Neither exists here: an unbind DELETES an ordinary name, a bind INSERTS
 -- one, and both contexts are RELATIONS.  So:
 --
 --   * old §4 (`Tᵣ`/`Tₘ`, the two adversaries the retired `⊳` could not
@@ -369,13 +369,13 @@ D-run = reaches-run D-eval
 --
 -- After the inner `TyBeta` the new binder's representation is the CHAINED
 -- one — it is the representation the outer binder named — and the
--- `Peel`-minted `lock` inside blocks exactly the ordinary name that
+-- `Peel`-minted `unbind` inside blocks exactly the ordinary name that
 -- representation was read through.  That is the configuration the old
 -- development called THE WALL, and the point of the example is unchanged
 -- by the port: the wall CONTEXT is reachable, the wall CONFIGURATION is
 -- not.  The blocked name sits inside an INERT (concealing) wrapper — a
 -- `Θ₁` position — and the `Θ₂` of every `IdPush`/`CancelR` redex on this
--- run is lock-free.  The run reaches a value, and no state loses its type.
+-- run is unbind-free.  The run reaches a value, and no state loses its type.
 
 Lbody Lfun L₀ : Term
 Lbody = (Qvac ·[ `ℕ ⇒ ` 1 , ` 0 ]) · $ 0
@@ -570,8 +570,8 @@ V-run = reaches-run V-eval
 -- receive a representation payload with a `∀` in it.  They did not run when
 -- they were written: `TyPeelR-⟪⟫` and `IdPush` each carried a
 -- spelling from the conversion context into the interior without
--- re-basing it, and the two contexts disagree exactly when a lock and an
--- unlock have moved the name.  Both rules now carry the interior spelling
+-- re-basing it, and the two contexts disagree exactly when an unbind and an
+-- bind have moved the name.  Both rules now carry the interior spelling
 -- as a premise (notes/ForallPayloadWall.agda, notes/DECISIONS.md
 -- 2026-09-18).
 
@@ -811,7 +811,7 @@ Tid-run = reaches-run Tid-eval
 
 -- STEP 1 is the `IdPush`: the transparent layer is CONSUMED and the
 -- reveal is re-read on the merged frame `Θ₁ ++ Θ₂` (here the empty scope,
--- because neither frame locks).  The pushed name is the identity
+-- because neither frame unbinds).  The pushed name is the identity
 -- conversion's own, re-spelled into the merged conversion context.  The
 -- contractum IS §9a's redex, so the rest of the run is §9a's.
 _ : evalTerms 3 Tid-⊢
@@ -855,13 +855,13 @@ Tid₂-run = reaches-run Tid₂-eval
 -- THIS IS THE EQUATION THE BRANCH'S DESIGN TURNS ON (notes/PLAN.md,
 -- repair 3).  A value planted under a `Λ` is weakened in the
 -- REPRESENTATION universe only and then wrapped in the crossed binder's
--- dual.  The lock that dual carries DELETES the ordinary name the `Λ`
+-- dual.  The unbind that dual carries DELETES the ordinary name the `Λ`
 -- introduced, so every surviving ordinary index keeps its position — and
 -- the image's `seal 0`, an ORDINARY name, is therefore UNCHANGED.  In the
 -- one-universe design the same crossing renamed it to `seal 1`.
 --
 -- The wrapper's own conversion is `mkId` at the image's type, shifted:
--- `⇑ᵗ (` 0)` is `` ` 1 ``, read outside the lock.
+-- `⇑ᵗ (` 0)` is `` ` 1 ``, read outside the unbind.
 
 Wsub Nsub : Term
 Wsub = ($ 7) ⟪ [] , seal 0 ⟫
@@ -869,15 +869,15 @@ Nsub = Λ (` 0)
 
 _ : Nsub [ Wsub ∶ ` 0 ]ᵐ
       ≡ Λ ((($ 7) ⟪ [] , seal 0 ⟫)
-             ⟪ (lock 0 0 ∷ []) , id (` 1) ⟫)
+             ⟪ (unbind 0 0 ∷ []) , id (` 1) ⟫)
 _ = refl
 
--- the lock is at ordinary position 0 and names representation variable 0 —
+-- the unbind is at ordinary position 0 and names representation variable 0 —
 -- the abstract binding the `Λ` just introduced, immediately outside the
 -- image's own (empty) bind prefix
 _ : crossΛᴹ Wsub (` 0)
       ≡ (($ 7) ⟪ [] , seal 0 ⟫)
-          ⟪ (lock 0 0 ∷ []) , id (` 1) ⟫
+          ⟪ (unbind 0 0 ∷ []) , id (` 1) ⟫
 _ = refl
 
 -- ── the ƛ clause: the bound slot is protected, the image is not ────────
@@ -906,7 +906,7 @@ _ = tc
 --   Bg = ((λx:ℕ. ΛZ. λ_:ℕ. x) · 7) [ℕ] · 0
 --
 -- Its first `Beta` reaches
--- `ΛZ. λ_:ℕ. 7 ⟪ (lock 0 0 ∷ []) , id ℕ ⟫`.
+-- `ΛZ. λ_:ℕ. 7 ⟪ (unbind 0 0 ∷ []) , id ℕ ⟫`.
 -- Instantiating that value and applying its dummy exposes the wrapper;
 -- the sixth step is the `Drop$` that removes it.
 
@@ -918,7 +918,7 @@ Bg-⊢ : empty ∣ [] ⊢ Bg ⦂ `ℕ
 Bg-⊢ = tc
 
 _ : (Λ (` 0)) [ $ 7 ∶ `ℕ ]ᵐ
-      ≡ Λ (($ 7) ⟪ (lock 0 0 ∷ []) , id `ℕ ⟫)
+      ≡ Λ (($ 7) ⟪ (unbind 0 0 ∷ []) , id `ℕ ⟫)
 _ = refl
 
 Bg-eval : Reaches 7 7 Bg-⊢ ($ 7)
@@ -928,7 +928,7 @@ Bg-run : empty ⊢ Bg -→* $ 7
 Bg-run = reaches-run Bg-eval
 
 -- the wrapper itself is not a value: its conversion is the ACTIVE `id ℕ`
-¬val-wrapper : ¬ Value (($ 7) ⟪ (lock 0 0 ∷ []) , id `ℕ ⟫)
+¬val-wrapper : ¬ Value (($ 7) ⟪ (unbind 0 0 ∷ []) , id `ℕ ⟫)
 ¬val-wrapper (V-⟪⟫ _ ())
 
 ------------------------------------------------------------------------

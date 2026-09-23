@@ -35,20 +35,20 @@ used below.  These are whole terms; reduction is vertical.
 The same transition in raw Agda syntax is:
 
     (((((Λ (ƛ ` 0 ∙ ` 0))
-          ⟪ lock 0 1 ∷ [] , `∀ (id (` 0) ↦ id (` 0)) ⟫)
-         ⟪ lock 0 0 ∷ [] , `∀ (id (` 0) ↦ id (` 0)) ⟫)
+          ⟪ unbind 0 1 ∷ [] , `∀ (id (` 0) ↦ id (` 0)) ⟫)
+         ⟪ unbind 0 0 ∷ [] , `∀ (id (` 0) ↦ id (` 0)) ⟫)
         ·[ (` 0) ⇒ (` 0) , ` 0 ])
-       ⟪ unlock 1 1 ∷ unlock 0 0 ∷ [] , seal 0 ↦ unseal 0 ⟫)
+       ⟪ bind 1 1 ∷ bind 0 0 ∷ [] , seal 0 ↦ unseal 0 ⟫)
       · `true)
     │
     │ TyPeelR-⟪⟫
     ▼
     (((((Λ (ƛ ` 0 ∙ ` 0))
-          ⟪ lock 0 2 ∷ lock 0 0 ∷ [] ,
+          ⟪ unbind 0 2 ∷ unbind 0 0 ∷ [] ,
              `∀ (id (` 0) ↦ id (` 0)) ⟫)
          ·[ (` 0) ⇒ (` 0) , ` 0 ])
-        ⟪ lock 1 1 ∷ unlock 0 0 ∷ [] , seal 0 ↦ unseal 0 ⟫)
-       ⟪ unlock 1 2 ∷ unlock 0 1 ∷ [] , seal 0 ↦ unseal 0 ⟫)
+        ⟪ unbind 1 1 ∷ bind 0 0 ∷ [] , seal 0 ↦ unseal 0 ⟫)
+       ⟪ bind 1 2 ∷ bind 0 1 ∷ [] , seal 0 ↦ unseal 0 ⟫)
       · `true)
 
 ## 2. The boundary and its three name maps
@@ -62,11 +62,11 @@ interior reading (`root.fun.body`).  The focused boundary is:
 In raw syntax its body, scope, and conversion are:
 
     M = ((Λ (ƛ ` 0 ∙ ` 0))
-          ⟪ lock 0 2 ∷ lock 0 0 ∷ [] ,
+          ⟪ unbind 0 2 ∷ unbind 0 0 ∷ [] ,
              `∀ (id (` 0) ↦ id (` 0)) ⟫)
          ·[ (` 0) ⇒ (` 0) , ` 0 ]
 
-    Θ = lock 1 1 ∷ unlock 0 0 ∷ []
+    Θ = unbind 1 1 ∷ bind 0 0 ∷ []
     c = seal 0 ↦ unseal 0
 
 The list is head-last, so `Θ` acts as `↥X` and then `↓Y`.  All three
@@ -83,9 +83,9 @@ Only their name maps differ:
 | interior `Δᵢ` | `0 ∷ 2 ∷ []` | `X↦α , Z↦γ` |
 | conversion `Δᶜ` | `0 ∷ 1 ∷ 2 ∷ []` | `X↦α , Y↦β , Z↦γ` |
 
-Starting from `[1,2]`, `unlock 0 0` inserts `0` at the front, producing
-`[0,1,2]`.  The interior reading then performs `lock 1 1` and deletes the
-middle `1`, producing `[0,2]`.  The conversion reading skips that lock and
+Starting from `[1,2]`, `bind 0 0` inserts `0` at the front, producing
+`[0,1,2]`.  The interior reading then performs `unbind 1 1` and deletes the
+middle `1`, producing `[0,2]`.  The conversion reading skips that unbind and
 therefore remains `[0,1,2]`.
 
 ## 3. The actual `env` instance
@@ -101,7 +101,7 @@ Agda inferred the four ordinary endpoint types as follows:
 
 The six premises of this occurrence of `env` are:
 
-1. `BoundaryWf Δ (lock 1 1 ∷ unlock 0 0 ∷ []) Δᵢ Δᶜ`.
+1. `BoundaryWf Δ (unbind 1 1 ∷ bind 0 0 ∷ []) Δᵢ Δᶜ`.
 2. ``Δᵢ ∣ [] ⊢ M ⦂ (` 0 ⇒ ` 0)``.
 3. ``Δᶜ ⊢ seal 0 ↦ unseal 0 ∶ (` 0 ⇒ ` 0) ⇝ (` 1 ⇒ ` 1)``.
 4. ``Δᵢ ⊢ (` 0 ⇒ ` 0) ≈ (` 0 ⇒ ` 0) ⊣ Δᶜ``.
@@ -127,7 +127,7 @@ Thus the named instance reads:
 
 The exterior `Y` is position `0` in `names Δ` but position `1` in
 `names Δᶜ`.  The preceding `↥X` inserted `X` in front of it; `↓Y` removes
-`Y` only from the interior because the conversion reading skips locks.
+`Y` only from the interior because the conversion reading skips unbinds.
 This is exactly why premise 5 relates raw `` `0⇒`0 `` to raw `` `1⇒`1 ``.
 
 ## 4. “In scope in both” is not raw equality
@@ -164,9 +164,9 @@ It reaches at state `1` the boundary
 Its raw boundary is:
 
     (ƛ ` 0 ∙ (((Λ (ƛ `ℕ ∙ ` 1)) ·[ `ℕ ⇒ ` 1 , `ℕ ]) · $ 0))
-      ⟪ unlock 0 0 ∷ [] , seal 0 ↦ unseal 0 ⟫
+      ⟪ bind 0 0 ∷ [] , seal 0 ↦ unseal 0 ⟫
 
 Its raw maps are `names Δ = []` and
-`names Δᵢ = names Δᶜ = 0 ∷ []`.  With no lock to skip, the interior and
+`names Δᵢ = names Δᶜ = 0 ∷ []`.  With no unbind to skip, the interior and
 conversion readings coincide.  This is why `Q₀` is useful as a contrast
 but not as the main three-map example.

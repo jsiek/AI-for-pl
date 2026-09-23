@@ -52,8 +52,8 @@ underΛ-ren : TyRename → TyRename
 underΛ-ren (ren² ρᵗ ρʳ) = ren² (extᵗ ρᵗ) (extᵗ ρʳ)
 
 renᶠ² : Renameᵗ → Renameᵗ → Change → Change
-renᶠ² ρᵗ ρʳ (lock X α)   = lock (ρᵗ X) (ρʳ α)
-renᶠ² ρᵗ ρʳ (unlock X α) = unlock (ρᵗ X) (ρʳ α)
+renᶠ² ρᵗ ρʳ (unbind X α)   = unbind (ρᵗ X) (ρʳ α)
+renᶠ² ρᵗ ρʳ (bind X α) = bind (ρᵗ X) (ρʳ α)
 
 renᴮ² : TyRename → Boundary → Boundary
 renᴮ² (ren² ρᵗ ρʳ) Θ = map (renᶠ² ρᵗ ρʳ) Θ
@@ -119,7 +119,7 @@ shiftᴵ (ival W A) = ival W A
 crossΛᴹ : Term → Ty → Term
 crossΛᴹ W A =
   renᴹ² (ren² idᵗ suc) W
-    ⟪ (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫
+    ⟪ (unbind 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫
 
 -- Variables cross a type binder unchanged. Closed value images acquire the
 -- frame-exact wrapper above, and their ordinary type spelling is weakened.

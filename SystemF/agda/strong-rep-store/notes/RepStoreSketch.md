@@ -31,12 +31,12 @@ crossing a boundary no longer changes the representation context at
 all.
 
 The NAME MAP `names Δ : List RVar` (ordinary `X` ↦ its representation
-variable) and the `lock`/`unlock` changes on it are UNCHANGED.  This is
+variable) and the `unbind`/`bind` changes on it are UNCHANGED.  This is
 the answer to the 2026-09-05 objection recorded at `DesignSpace.md` D33 →
-D34 ("a global Σ-store, NOT taken — lexical scope is needed for lock
+D34 ("a global Σ-store, NOT taken — lexical scope is needed for unbind
 blocking"): that proposal stored the whole context; this one stores
 only what `bindR` held.  `reps Δ` says WHAT a representation is;
-`names Δ` says WHETHER this position may name it.  Lock blocking is
+`names Δ` says WHETHER this position may name it.  Unbind blocking is
 still lexical.
 
 **Why experiment 1 had to come first.**  With `ξ-Λ`, a `TyBeta` under a
@@ -89,8 +89,8 @@ used by `TyBeta` exactly as today.
 
 ```agda
 data Change : Set where
-  lock   : ℕ → RVar → Change
-  unlock : ℕ → RVar → Change
+  unbind : ℕ → RVar → Change
+  bind   : ℕ → RVar → Change
 
 Boundary : Set
 Boundary = List Change
@@ -98,8 +98,8 @@ Boundary = List Change
 dualBoundary Θ = map dualChange (reverse Θ)             -- as today
 rewind Θ       = dualBoundary Θ ++ Θ                     -- as today
 Θ₁ ⋉ Θ₂        = Θ₁ ++ Θ₂           -- no underRepBinds: nothing shifts
-addLock0 Θ     = Θ ++ (lock 0 0 ∷ [])          -- was lock 0 (numBinds Θ)
-instantiate Θ  = map shiftChange Θ ++ (unlock 0 0 ∷ [])
+addUnbind0 Θ     = Θ ++ (unbind 0 0 ∷ [])          -- was unbind 0 (numBinds Θ)
+instantiate Θ  = map shiftChange Θ ++ (bind 0 0 ∷ [])
                  -- TODAY's shiftChange, BOTH universes: the new name 0
                  -- names the new cell 0, and the old changes, spelled
                  -- before the allocation, sit one binder in on each
@@ -113,7 +113,7 @@ prefix and become plain name-map transformers:
 
 ```agda
 Δ ⊢ⁱ Θ ⇒ Δᵢ     -- every change applied     (interior)
-Δ ⊢ᶜ Θ ⇒ Δᶜ     -- locks skipped            (conversion context)
+Δ ⊢ᶜ Θ ⇒ Δᶜ     -- unbinds skipped            (conversion context)
 -- reps Δᵢ ≡ reps Δ ≡ reps Δᶜ : a boundary changes NAMES only
 ```
 
@@ -205,13 +205,13 @@ lemma is stated once at `none` (identity) and once at `new R` (`suc`).
 ```agda
 TyBeta : Value N → Δ ⊢ᶜ A ~ R
   → Δ ⊢ (Λ N) ·[ B , A ]
-      -→ N ⟪ unlock 0 0 ∷ [] , reveal 0 B ⟫ ∣ new R
+      -→ N ⟪ bind 0 0 ∷ [] , reveal 0 B ⟫ ∣ new R
 ```
 
 (today: `N ⟪ instantiate R (boundary [] []) , reveal 0 B ⟫` — the
 SAME contractum with the bind moved from the boundary to the context.
 `N` is verbatim: it was typed at `underΛ Δ = abstR ∷ Ξ ∣ 0 ∷ shiftReps
-Δ`, and the interior of the contractum reads `unlock 0 0` at
+Δ`, and the interior of the contractum reads `bind 0 0` at
 `allocate R Δ` as `bindR R ∷ Ξ ∣ 0 ∷ shiftReps Δ` — `⊢refine
 (rr-represent rr-refl)`, today's proof.)
 
@@ -241,7 +241,7 @@ TyPeelR-⟪⟫ : Value W → Δ ⊢ᶜ A ~ R → (the Bᵢ′ reading, as today)
   → (the readings of Θ′ before and after the move, as today)
   → SameConv (underΛ Δ″ᶜ) s″ (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′
   → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-      -→ ((↑ᴿ W ⟪ addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
+      -→ ((↑ᴿ W ⟪ addUnbind0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
             ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
            ⟪ instantiate Θ , instReveal 0 s ⟫
       ∣ new R
@@ -321,7 +321,7 @@ binds as `↑α:=ℕ`):
  --Drop$-->   7
 ```
 
-With the store (`Ξ` on the left; `↥X:=α` is `unlock 0 α`; the sibling
+With the store (`Ξ` on the left; `↥X:=α` is `bind 0 α`; the sibling
 `7` of the first step has no representation variables, so `↑ᴿ 7 = 7`):
 
 ```
@@ -350,7 +350,7 @@ step is the inner `TyBeta`, INSIDE the outer boundary:
 ```
 
 With the store, showing each scope entry's REPRESENTATION INDEX after
-a colon (`↓X:1` is `lock 0 1`; conversions cite ordinary names and
+a colon (`↓X:1` is `unbind 0 1`; conversions cite ordinary names and
 carry no index):
 
 ```
@@ -438,7 +438,7 @@ is read off `δ`.
 ## 7. Suggested order of work
 
 1. `Boundary.agda`: `Boundary = List Change`, the two readings without
-   `extendReps`, `instantiate`/`addLock0`/`_⋉_`/`renᴮᴿ` as in §1.2;
+   `extendReps`, `instantiate`/`addUnbind0`/`_⋉_`/`renᴮᴿ` as in §1.2;
    `Conversion.agda` untouched.  Statements only, then `Terms.agda`'s
    `env` and `allocate` in `Ctx.agda`.
 2. `Reduction.agda` with the `∣ δ` index and `↑[ δ ]` in the

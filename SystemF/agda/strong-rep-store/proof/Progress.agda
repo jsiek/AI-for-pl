@@ -3,14 +3,14 @@ module strong-rep-store.proof.Progress where
 -- File Charter:
 --   * PROGRESS for the two-universe conversion-boundary calculus.
 --     §1 local inversions and representation readings; §2 the boundary
---     reading packages (`MergedReading`, `addLock0-reading`); §3 base
+--     reading packages (`MergedReading`, `addUnbind0-reading`); §3 base
 --     identities; §4 the boundary cases; §5 the induction.
 --   * The ordinary cases are the standard induction over
 --     strong-rep-store.proof.Canonical; the boundary cases additionally
 --     CONSTRUCT the relational readings and re-spellings the rules
 --     carry.  Nothing is a parameter: `MergedReading` comes from
---     `merged-conversion-exists` and `addLock0-reading` from
---     `snoc-lock0-conversion-ren`.
+--     `merged-conversion-exists` and `addUnbind0-reading` from
+--     `snoc-unbind0-conversion-ren`.
 --   * PROGRESS RETURNS THE STORE CHANGE TOO: every clause names the
 --     `δ` its rule makes.
 -- Commentary: Commentary.md § proof/Progress.agda
@@ -93,16 +93,16 @@ merged-reading = merged-conversion-exists
 -- are `map suc (names Δ′ᶜ)`, not `names Δ′ᶜ`; the unrenamed inclusion
 -- is FALSE, and §6b of strong-rep-store.Examples is the witness.
 -- Commentary.md § proof/Progress.agda / §2
-addLock0-reading : ∀ {Δ Δᵢ Δᶜ Δ′ᵢ Δ′ᶜ Θ Θ′ A R}
+addUnbind0-reading : ∀ {Δ Δᵢ Δᶜ Δ′ᵢ Δ′ᶜ Θ Θ′ A R}
   → BoundaryWf Δ Θ Δᵢ Δᶜ
   → BoundaryWf Δᵢ Θ′ Δ′ᵢ Δ′ᶜ
   → names Δ ⊢ A ~ R
   → Σ[ Δ″ᶜ ∈ Ctxᵗ ]
       ((((bindR R ∷ reps Δᵢ) ∣ (zero ∷ shiftReps (names Δᵢ)))
-          ⊢ᶜ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) ⇒ Δ″ᶜ)
+          ⊢ᶜ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) ⇒ Δ″ᶜ)
         × (map suc (names Δ′ᶜ) ⊆ᵃ (names Δ″ᶜ)))
-addLock0-reading {R = R} mwΘ mw′ p =
-  snoc-lock0-conversion-ren
+addUnbind0-reading {R = R} mwΘ mw′ p =
+  snoc-unbind0-conversion-ren
     (repwk-cons₀ (bindR R)
       (λ _ → wf-reps (bw-interior-wf (inst-boundarywf mwΘ p))))
     (_ , here)
@@ -279,7 +279,7 @@ module Impl where
     tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
       (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
       ⊢s sameD p
-      with addLock0-reading mwΘ mw′ p
+      with addUnbind0-reading mwΘ mw′ p
     tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
       (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
       ⊢s sameD p

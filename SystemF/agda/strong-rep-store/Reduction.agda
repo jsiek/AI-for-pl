@@ -84,7 +84,7 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
 
   -- the interior is a boundary: push the type application inward one
   -- layer, masking the new ordinary name in the MOVED boundary's own
-  -- change list (the snoc `++ (lock 0 0 ∷ [])`).  `s″` and `Bᵢ′` are
+  -- change list (the snoc `++ (unbind 0 0 ∷ [])`).  `s″` and `Bᵢ′` are
   -- the two carried re-spellings.
   -- Commentary.md § Reduction.agda / TyPeelR-⟪⟫
   TyPeelR-⟪⟫ : ∀ {Δ Δᵢ Δᵢ⁺ Δᶜ Δ′ᶜ Δ″ᶜ W Θ′ s′ s″ Θ s B A R
@@ -93,13 +93,13 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
     → Δ ⊢ᶜ Θ ⇒ Δᶜ
     → Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ
     → allocate R Δ ⊢ⁱ inst Θ ⇒ Δᵢ⁺
-    → Δᵢ⁺ ⊢ᶜ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) ⇒ Δ″ᶜ
+    → Δᵢ⁺ ⊢ᶜ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) ⇒ Δ″ᶜ
     → SameConv (underΛ Δ″ᶜ) s″ (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′
     → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
     → underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ
     → Δ ⊢ᶜ A ~ R
     → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-        -→ ((renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])) , `∀ s″ ⟫)
+        -→ ((renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
               ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
              ⟪ inst Θ , instReveal 0 s ⟫ ∣ new R
 

@@ -55,14 +55,14 @@ order.
 | `Δᵢ`, the total extension of `δᵢ` | binder lookup `Δ ∋ X := A` |
 | `{Δ} = {Δ₁,…,Δₙ}`, ambient, monotone | the exterior `Δ`, fixed along `Δ ⊢ M -→ M′` |
 | `t ∉ Dom(δᵢ)` — `t` is *opaque* to `i` | `masked E` — the slot is *unnameable* |
-| — (no counterpart) | `lock X` / `unlock X`, rendered `↓X` / `↥X` |
+| — (no counterpart) | `unbind X` / `bind X`, rendered `↓X` / `↥X` |
 | — (no counterpart) | `interior Θ Δ`, `convCtx Θ Δ` |
 | `⊢ τ ≲_ℓ τ′` (Fig. 13, p.1051) | `Δ ⊢ c ∶ A ⇝ B` (`Conversion.agda`) |
 | oblivious (Def. 3.10, p.1054) | `Nameable` / `wf-var` (`Ctx.agda`) |
 
 Ours in Jeremy's words: a boundary `M ⟪ Θ , c ⟫` carries a **boundary
 scope** `Θ = boundary binds changes` with **parallel binds** `↑X:=A` and
-**sequential changes** `↓X` (lock) and `↥X` (unlock), and a
+**sequential changes** `↓X` (unbind) and `↥X` (bind), and a
 **conversion** `c` whose **source type** is the interior type and whose
 **target type** is the exterior type read inside.  The boundary scope induces
 `interior Θ Δ` (where `M` is typed) and `convCtx Θ Δ` (where `c` is
@@ -168,8 +168,8 @@ independent axes where STA has one:
 | STA | always | iff `X ∈ Dom(δᵢ)` |
 | ours | iff `Δ ∋tv X` | iff `Δ ∋ X := A` |
 
-A `lock X` moves a slot down the first axis without touching the second:
-the entry is retained, so `unlock X` can put it back, and the
+An `unbind X` moves a slot down the first axis without touching the second:
+the entry is retained, so `bind X` can put it back, and the
 representation is still stored at the binder for the *conversion* to
 cite in `convCtx Θ Δ`.  STA has no move of that kind.
 
@@ -244,12 +244,12 @@ which variables `eⱼ` may write.  Our `env` (`Terms.agda`) says both:
           ------------------------------------
         → Δ ∣ Γ ⊢ M ⟪ Θ , c ⟫ ⦂ Bₑ
 
-Premise 2 is where the masks bite: if `Θ` locks `X`, then `Bᵢ` — and
+Premise 2 is where the masks bite: if `Θ` unbinds `X`, then `Bᵢ` — and
 every type inside `M` — cannot name `X`.  STA's `[embed]` has no premise
 that could be weakened this way, because it types `eⱼ` at the same `Γ`
 and the same global type namespace as its context.
 
-**`unlock` (re-exposure when a value crosses back).**  No counterpart,
+**`bind` (re-exposure when a value crosses back).**  No counterpart,
 and there cannot be one: a variable is never hidden, so nothing needs
 re-exposing.  The nearest structural relative is `[9]`'s `rev(ℓ)`, which
 re-orders the *agent list* on the argument's embedding.  The paper's
@@ -265,8 +265,8 @@ That is exactly the argument in `Boundary.agda` for reversing
 `dualScope` — *"an inverse runs backwards"* — except that ours is
 reversing a list of **frame changes** and theirs a list of **agents**:
 
-    dualScope n (unlock X ∷ S) = dualScope n S ++ (lock   (n + X) ∷ [])
-    dualScope n (lock   X ∷ S) = dualScope n S ++ (unlock (n + X) ∷ [])
+    dualScope n (bind   X ∷ S) = dualScope n S ++ (unbind (n + X) ∷ [])
+    dualScope n (unbind X ∷ S) = dualScope n S ++ (bind   (n + X) ∷ [])
     dual Θ = boundary [] (hideBinds (numBinds Θ) ++ dualScope (numBinds Θ)
                                                            (changes Θ))
 
@@ -329,7 +329,7 @@ difference and it explains all the others.
 So: **STA's `⟨{Δ}, e⟩` configuration is a store, and our type context is
 a lexical scope.**  `notes/DesignSpace.md` records that the global-store
 realization was considered and *not* taken (edge `D33→D34`: "a global
-Σ-store, **NOT taken** — lexical scope is needed for lock blocking"),
+Σ-store, **NOT taken** — lexical scope is needed for unbind blocking"),
 and `notes/DesignPoints.md` `D33` has Jeremy's ruling in full: "once
 type variables are in a global store, it becomes more difficult to talk
 about their lexical scope relationships, which we are currently using in
@@ -459,12 +459,12 @@ The deeper point is that **both designs found the same fact by different
 routes: the accumulated crossing history must be an ordered list, and
 forgetting the order is unsound.**  Theirs is a three-agent knowledge
 counterexample; ours is a frame counterexample in `proof/MoveScope` §4b,
-where moving only the *locks* out of `Θ₂` past a same-slot `unlock`
+where moving only the *unbinds* out of `Θ₂` past a same-slot `bind`
 corrupts the value's frame:
 
-    Θ✗ = boundary [] (unlock 0 ∷ lock 0 ∷ [])   over   Δ✗ = bind ℕ ∷ []
+    Θ✗ = boundary [] (bind 0 ∷ unbind 0 ∷ [])   over   Δ✗ = bind ℕ ∷ []
     interior Θ✗ Δ✗ ≡ bind ℕ ∷ []
-    lock-only contractum's interior ≡ masked (bind ℕ) ∷ []   -- corrupted
+    unbind-only contractum's interior ≡ masked (bind ℕ) ∷ []   -- corrupted
 
 Their answer is `rev(ℓ)` and list append; ours is the scope move
 
@@ -576,7 +576,7 @@ Two knock-on differences.
 **We have, and STA does not.**
 
 * **An explicit type context on each boundary** — `interior Θ Δ` and
-  `convCtx Θ Δ` — and therefore masking, `unlock`, and tightness.
+  `convCtx Θ Δ` — and therefore masking, `bind`, and tightness.
 * **Strong (under-`Λ`) reduction.**
 * **A leaf-by-leaf conversion `c` instead of one annotation `τ`**, with
   `conv-seal` as the soundness gate: a conceal must cite a live binder,
@@ -629,7 +629,7 @@ The source (`Design.md` §1, `Examples` §14, `E₀`), machine-rendered:
 
 In our design this runs to a value in five steps and `E₃ → E₄` is
 `TyPeelR` — "the line the pre-boundary design died on".  At that redex,
-the crossed value's frame is the single lock `↓X` and its two contexts
+the crossed value's frame is the single unbind `↓X` and its two contexts
 are (`Examples` §14, `E-int` / `E-ext`, rendered by
 `scripts/render_term.sh`):
 
@@ -735,14 +735,14 @@ strong** (§11).  Making STA strong would not create a scope problem; it
 would only make more of the same registry reachable.
 
 The real contrast with Strong System F is therefore **lexical scope
-versus a global registry**.  Our binders live *in contexts*; `lock X`
+versus a global registry**.  Our binders live *in contexts*; `unbind X`
 masks a slot **in place** (`D34`); a boundary's two contexts are
 *computed at its current position*, `interior Θ Δ` and `convCtx Θ Δ`;
 and those frames are preserved by reduction under `Λ`, because `ξ-Λ`
 pushes `abst` onto `Δ` and every rule re-derives the frame at the new
 position.  That is precisely the `D33` fork, and we took the other
 branch on purpose: "realization (i), a global `Σ`-store, **NOT taken** —
-lexical scope is needed for lock blocking"
+lexical scope is needed for unbind blocking"
 (`notes/DesignSpace.md`, edge `D33→D34`; `Design.md` §9;
 `notes/RedesignAdvice.md` Q1, realizations (i) and (ii)).  **STA is the
 design that took (i).**  So STA's theorems being *silent* on tightness
@@ -770,7 +770,7 @@ so `X` is their `s` (representation `Y`) and `Y` is their `t`
 **is their nested embedding**, with `7` for `3`: the inner boundary
 conceals the numeral at `Y` (that is `⌈3ᵢ⌉^t_i`) and the outer conceals
 the result at `X` (that is `⌈·⌉^s_j`).  The `↥Y` is there because `Vi`
-sits inside a boundary that locks `Y`:
+sits inside a boundary that unbinds `Y`:
 
     scripts/render_term.sh 'showTCtx (interior Θi Δi)'
       =  X := Y , ⌷[Y := ℕ]
@@ -821,11 +821,11 @@ Diagram:
 * `IdPush` is the rule with no STA counterpart at all.  It exists
   because our `canon-var` has two shapes where their Lemma 3.2 has one
   (§6), and its content is the **scope move**: `Θ₂`'s whole scope —
-  locks *and* unlocks, in order — travels into the inner frame, and
+  unbinds *and* binds, in order — travels into the inner frame, and
   what stays outside is `rewind Θ₂`, whose net effect on the type
   context is nothing (`scope (rewind Θ₂) Δ ≡ Δ`).  The representation
   `Y` that the reveal hands back is thereby presented *outside* the
-  lock, where it is nameable.  STA has no such problem because its
+  unbind, where it is nameable.  STA has no such problem because its
   `δᵢ` is global: a representation is never "inside" anything.
 
 That last bullet is the whole comparison in miniature.  **A global
@@ -842,7 +842,7 @@ knowledge base cannot have the wall, and cannot have tightness either.**
 | reduction judgement | `⟨{Δ}, eᵢ⟩ ↦→ ⟨{Δ′}, e′ᵢ⟩`, `{Δ}` may grow | `Δ ⊢ M -→ M′`, same `Δ` throughout |
 | abstraction mechanism | opacity: `t ∉ Dom(δᵢ)` | opacity (`Δ ∋ X := A`) **and** unnameability (`Nameable`) |
 | out-of-scope variable | does not exist; `Θ` is freshness-only (p.1072) | `masked E`, refused by `wf-var` |
-| re-exposure | — | `unlock X` (`↥X`), with `sw-u` refusing vacuous unlocks |
+| re-exposure | — | `bind X` (`↥X`), with `sw-u` refusing vacuous binds |
 | type abstraction intro | `[Ttypeabs]` at the `Λ`, by translation (p.1075) | `TyBeta` at the type application, by reduction |
 | type application through a boundary | `[∀2]` pushes the embedding inside the `Λ`; `[∀1]` extends `δᵢ` and substitutes `{τ/α}ᵢ` | `TyPeelR`: one bind prepended, interior instantiated at the fresh **name** `` ` 0 ``, conversion re-minted as `instReveal 0 s` |
 | pushing the type argument in | into `i`-coloured subterms only | never — law 3 forbids term type-shifts |
@@ -918,7 +918,7 @@ one that decides how much a boundary must carry *once lexical scope has
 been chosen*: it makes the drifted boundary of §8 reachable, so a
 boundary must carry a context, and every question this development spent
 a week on — mask vs. drop, push vs. bind, merge vs. tower, drop vs. move
-the locks — appears at once.  The through line of `DesignSpace.md`,
+the unbinds — appears at once.  The through line of `DesignSpace.md`,
 *nothing may be dropped*, is the answer to a question that arises only
 on the lexical branch.
 

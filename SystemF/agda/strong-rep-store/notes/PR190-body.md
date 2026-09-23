@@ -34,7 +34,7 @@ All six, with **no module parameters, no postulates, no holes**, under
 ## The design, in ten bullets
 
 1. **One boundary form, one frame change.**  `M ⟪ Θ , c ⟫`, with `Θ` a
-   list of `bind A` / `lock X` / `unlock X` (rendered `↑X:=A` / `↓X` /
+   list of `bind A` / `unbind X` / `bind X` (rendered `↑X:=A` / `↓X` /
    `↥X`) and `c` a conversion.  The interior is term-closed.
 2. **Binder-syntactic representations.**  A representation lives only at
    its `bind` entry; conversions carry names (`seal X`, `unseal X`), and
@@ -47,8 +47,8 @@ All six, with **no module parameters, no postulates, no holes**, under
    expressible (`⊑-kn`).
 4. **Two type contexts per boundary.**  `interior Θ Δ` (interior: masks
    applied, binders pushed on) types the interior; the **conversion
-   context** `convCtx Θ Δ` (the interior with `Θ`'s locks lifted) is
-   where the conversion is checked, so a `seal X` at a locked `X` can
+   context** `convCtx Θ Δ` (the interior with `Θ`'s unbinds lifted) is
+   where the conversion is checked, so a `seal X` at an unbound `X` can
    still cite its binder.  `interior (dropLocks Θ) Δ ≡ convCtx Θ Δ`.
 5. **Simultaneity.**  Every `Δ ⊢ᵐ Θ` premise and every representation is
    read in the exterior; `pushBinds` lifts a representation past exactly
@@ -57,7 +57,7 @@ All six, with **no module parameters, no postulates, no holes**, under
    with `id` restricted to base types and variables and compound
    identities built by `mkId`.
 7. **No polarity index.**  The discipline is per type *variable*, and
-   `env`'s two contexts already enforce it: a locked `X` is masked in the
+   `env`'s two contexts already enforce it: an unbound `X` is masked in the
    interior, a bound `X` is not in the image of `shiftBy`.  Dropping the
    index is what makes `TyPeelR` a theorem at every `∀`-conversion.
 8. **Active/inert, after Siek & Chen** (`notes/ParameterizedCastCalculi.md`).
@@ -72,7 +72,7 @@ All six, with **no module parameters, no postulates, no holes**, under
 10. **The scope move.**  When a rule swaps two conversions, the outer
     frame keeps only its binds and unmasks (`dropLocks Θ₂`) and its whole
     scope travels into the inner frame's tail (`Θ₁ ⋉ Θ₂`), so the
-    representation is presented **outside** the locks, where it is
+    representation is presented **outside** the unbinds, where it is
     nameable.
 
 ## The arc
@@ -93,7 +93,7 @@ All six, with **no module parameters, no postulates, no holes**, under
   out.
 * **The restructure.**  `4c4c44c6` (v2 layout, v1 deleted, `det` and
   values-don't-step proven), `8e933017` / `85171c82` / `eb1deb47`
-  (Jeremy's vocabulary: boundary scope, `bind`/`lock`/`unlock`,
+  (Jeremy's vocabulary: boundary scope, `bind`/`unbind`/`bind`,
   `numBinds`), `13836d87` + `c2a39c02` (`⊢subst`, first end-to-end v2 run),
   `1caf9b27` (**progress proven, zero parameters**).
 * **Rule repairs.**  `5554c6b2` + `b167f622` (v2 preservation verdict:
@@ -125,7 +125,7 @@ All six, with **no module parameters, no postulates, no holes**, under
 * **The Wall** —
   https://claude.ai/code/artifact/a0dbab1e-9c07-4857-a5c4-42ca95f89b2e
   (the `IdPush` premise `interior Θ₂ Δ ⊢ᵗ A`, the invariant hunt, and
-  Jeremy's lock-moving contractum: `R₀ → R₁′ → R₂`, the old refutation
+  Jeremy's unbind-moving contractum: `R₀ → R₁′ → R₂`, the old refutation
   witness running to a value.)
 
 ## Review round 1 (Codex, 2026-09-06)
@@ -185,8 +185,8 @@ All six, with **no module parameters, no postulates, no holes**, under
   `unsealAt`/`sealAt` → `reveal`/`conceal`,
   `unsealAtᶜ`/`sealAtᶜ` → `instReveal`/`instConceal`, `dualS` →
   `dualScope`, `lockBinds` → `hideBinds`, `moveS` → `scopeOf`,
-  `unlocked` → `dropLocks`, `_◃_` → `_⋉_`.  `dual`, `Inj`, `Θ`, `bind`,
-  `lock`, `unlock`, `abst`, `mask`, `unmask`, `Ent`, `Ctxᵗ`, `Boundary`
+  `bound` → `dropLocks`, `_◃_` → `_⋉_`.  `dual`, `Inj`, `Θ`, `bind`,
+  `unbind`, `bind`, `abst`, `mask`, `unmask`, `Ent`, `Ctxᵗ`, `Boundary`
   and `MorphEnt` are unchanged.  The `_⊑ᵉ_` constructors were relettered
   to spell the entries they relate: `le-ao` → `le-ab`, `le-oo` → `le-bb`,
   `le-bb` → `le-mm`, `le-bu` → `le-mu` (`le-aa` unchanged).

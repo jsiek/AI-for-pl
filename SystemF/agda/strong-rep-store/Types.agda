@@ -5,8 +5,8 @@ module strong-rep-store.Types where
 --     and `Ty` (`` `_ ``, `` `ℕ ``, `` `𝔹 ``, `_⇒_`, `` `∀ ``);
 --     parallel renaming and substitution `renameᵗ`/`substᵗ` with
 --     `extᵗ`/`extsᵗ`/`⇑ᵗ`; single substitution `_[_]ᵗ` (via
---     `singleTyEnv`), `idᵗ` and `_•ᵗ_`; and the two index-directed
---     substitutions `single-at`/`_[_:=_]ᵗ` and `downTyEnv`.
+--     `singleTyEnv`), `idᵗ` and `_•ᵗ_`; and the index-directed
+--     substitution `single-at`/`_[_:=_]ᵗ`.
 --     Mirrors SystemF/agda/extrinsic/Types.agda.
 --   * NO LEMMAS.  The equational facts about these operations live in
 --     strong-rep-store.proof.Types (`substᵗ-cong`, `extsᵗ-renᵗ`, `substᵗ-renᵗ`);
@@ -26,7 +26,7 @@ module strong-rep-store.Types where
 --     shifts the rest down because reveal/tapp ELIMINATE their
 --     variable.
 
-open import Data.Nat using (ℕ; zero; suc; _∸_)
+open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Properties using (_≟_)
 open import Relation.Nullary using (yes; no)
 
@@ -126,13 +126,3 @@ single-at X A Y | no  _ = ` Y
 infix 8 _[_:=_]ᵗ
 _[_:=_]ᵗ : Ty → ℕ → Ty → Ty
 B [ X := A ]ᵗ = substᵗ (single-at X A) B
-
--- downTyEnv X A : move a type from the ambient context Δ INTO the prefix
--- Δ ↓ X (which drops indices 0..X).  The concealed variable X becomes its
--- representation A; deeper variables Y > X shift down by X+1 to fill the
--- dropped slots.  It has NO caller in the live development: the rule it
--- was written for, TyWrapCncl, went with the masked-entry design.
-downTyEnv : ℕ → Ty → Substᵗ
-downTyEnv X A Y with X ≟ Y
-downTyEnv X A Y | yes _ = A
-downTyEnv X A Y | no  _ = ` (Y ∸ suc X)

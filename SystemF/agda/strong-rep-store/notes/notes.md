@@ -104,7 +104,7 @@ A type context is presented as
 
 where `Ξ` is a representation context and `Γ` maps type variables to representation variables:
 
-    Ξ ::= · | Ξ, α abstract | Ξ, α := R
+    Ξ ::= · | Ξ, α | Ξ, α := R
     Γ ::= · | Γ, X ↦ α
 
 `Ξ` is the **store**: it holds every representation cell the run has
@@ -140,7 +140,7 @@ nothing moves; the new `α` is simply fresh, and `Γ` is unchanged.
 Write `Δ = Ξ ∣ Γ`.  Extending under an ordinary type binder allocates a
 fresh abstract representation variable and a type variable for it:
 
-    under(X,α,Δ) = (Ξ, α abstract) ∣ (Γ, X ↦ α)
+    under(X,α,Δ) = (Ξ, α) ∣ (Γ, X ↦ α)
 
 The ordinary formation rules are:
 
@@ -244,20 +244,20 @@ one allocation later — with names that shift is invisible.
 
 Let
 
-    Δ = (α := ℕ, β abstract) ∣ (X ↦ α, Y ↦ β)
+    Δ = (α := ℕ, β) ∣ (X ↦ α, Y ↦ β)
     Θ = ⟨ ↓X, ↥Z ⟩
 
 where `Z` names `γ`, a cell the enclosing ∀-elimination just allocated:
 the boundary is read at `allocate(γ:=α, Δ)`, so
 
-    Δ₀ = (α := ℕ, β abstract, γ := α) ∣ (X ↦ α, Y ↦ β)
+    Δ₀ = (α := ℕ, β, γ := α) ∣ (X ↦ α, Y ↦ β)
 
 Then
 
-    Δᵢ = (α := ℕ, β abstract, γ := α)
+    Δᵢ = (α := ℕ, β, γ := α)
          ∣ (Y ↦ β, Z ↦ γ)
 
-    Δᶜ = (α := ℕ, β abstract, γ := α)
+    Δᶜ = (α := ℕ, β, γ := α)
          ∣ (X ↦ α, Y ↦ β, Z ↦ γ)
 
 The interior scope loses `X`; the conversion scope keeps it.  Both keep

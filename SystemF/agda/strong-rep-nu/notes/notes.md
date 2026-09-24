@@ -331,7 +331,7 @@ The interior scope loses `X`; the conversion scope keeps it.  Both keep
 `Δ₀`'s store, unchanged.
 At `Δᶜ`, `unseal Z` converts `Z` to `X`, because `Z` names `γ`,
 `γ` stores the representation type `α`, and `X` is the live type variable of `α`.
-Thus an `env` instance can type
+Thus a `boundary` instance can type
 
     Δᵢ ∣ · ⊢ M : Z
     Δᶜ ⊢ unseal Z : Z ⇝ X
@@ -544,7 +544,7 @@ retired `Nu-⟪⟫`; no rule builds a `ν` now, so every `ν` in the run of a
 compiled program is one the compiler wrote.
 
 Mechanization note.  Agda's `⊢ν` compares the result by representation,
-`allocate R Δ ⊢ B ≈ Cₑ ⊣ Δᶜ`, exactly as `env` compares its exterior;
+`allocate R Δ ⊢ B ≈ Cₑ ⊣ Δᶜ`, exactly as `boundary` compares its exterior;
 with names that is the identification of `c`'s target with `B` written
 into the rule above.
 
@@ -574,7 +574,7 @@ The empty term context in the second premise is load-bearing: substitution
 does not descend into a boundary.
 
 Mechanization note.  In de Bruijn form the same variable can have
-different indices in the three name maps, so Agda's `env` carries two
+different indices in the three name maps, so Agda's `boundary` carries two
 weakening premises, `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` and `Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ` —
 **the same relation on both sides**, since the exterior and the
 conversion context now share one store (the bind-prefix-crossing
@@ -1018,11 +1018,11 @@ The rule names below are the Agda constructor names.
 | `Δ ⊢ c₁ ⨟ c₂` and its sort operators | `_⊢_⨟_`, `_⊢_⨟ᵀ_`, `_⊢_⨟ᵀᵀ_`, `_⊢_⨟ᵐ_`, with `repOf`, `_⨾sealˢ_`, `unseal_⨾ˢ_`, `cancelᵀ` | the `mkId A` of the seal-then-unseal clause is `mkId (repOf Δ X)`, whose fallback is never reached on typed input |
 | `⊢⨟` | `proof/Compose.agda`, `⊢⨟` | the uniqueness premise is `Unique (names Δ)` |
 | `mkId`, `revealₓ`, `concealₓ` | `mkId`, `reveal`, `conceal` | the Agda operations carry the slot as an index, not a name |
-| `⊢\``, `⊢$`, `⊢true`, `⊢false`, `⊢ƛ`, `⊢·`, `⊢Λ`, `⊢ν` | same constructors in `Terms.agda` | named binders replace term/type indices; `⊢Λ`'s `Value N` is the value restriction; `⊢ν`'s bound `X` is Agda's ordinary variable 0 in `c`, and its result is compared by `≈` as in `env` |
+| `⊢\``, `⊢$`, `⊢true`, `⊢false`, `⊢ƛ`, `⊢·`, `⊢Λ`, `⊢ν` | same constructors in `Terms.agda` | named binders replace term/type indices; `⊢Λ`'s `Value N` is the value restriction; `⊢ν`'s bound `X` is Agda's ordinary variable 0 in `c`, and its result is compared by `≈` as in `boundary` |
 | `νX:=A · L ⟨ c ⟩` | `ν A · L ⟨ c ⟩` | the name `X` is implicit (de Bruijn 0 in `c`) |
 | source `M [A]`, `⊢ˢ`-rules | `Source.agda`: `_[_]`, `` ⊢ˢ` ``, `⊢ˢ$`, `⊢ˢtrue`, `⊢ˢfalse`, `⊢ˢƛ`, `⊢ˢ·`, `⊢ˢΛ`, `⊢ˢ[]` | a count `n` of type variables replaces a type context |
 | `⟦d⟧` | `compile d` | defined on derivations |
-| `env` | `env` | Agda has `Bᵢ/Cᵢ` and `Bₑ/Cₑ`, both related by `_⊢_≈_⊣_`; notes use one named endpoint plus paired scope conditions |
+| `boundary` | `boundary` | Agda has `Bᵢ/Cᵢ` and `Bₑ/Cₑ`, both related by `_⊢_≈_⊣_`; notes use one named endpoint plus paired scope conditions |
 | inert tails | `InertTail`: `I-idv`, `I-fun`, `I-all`, `I-seal`, `I-seal-seq`; `Inert`: `I-tail` | none |
 | active conversions | `A-idb`, `A-unseal`, `A-unseal-seq` | none |
 | simple values `U` | `Simple`: `S-$`, `S-true`, `S-false`, `S-ƛ`, `S-Λ` | named binders only |
@@ -1051,7 +1051,7 @@ The rule names below are the Agda constructor names.
 For completeness, the named rules render differently from their Agda
 premises only at these sites:
 
-  1. `env`: `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` becomes one `Bᵢ` readable in
+  1. `boundary`: `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` becomes one `Bᵢ` readable in
      both contexts; `Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ` becomes one `Bₑ`
      readable in the exterior and conversion contexts.
   2. `Peel`: `SameConv Δᵈ s′ Δᶜ s` becomes one `c` readable in

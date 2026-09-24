@@ -41,7 +41,7 @@ Option 1a — record the knowledge in the interior context:
   (true at run time: only Λ and reveals create entries — a probe should
   confirm), or a dual that copies Γ's knowledge for blocked slots.
 
-Option 1b — keep (env); progress for reachable terms via a predicate
+Option 1b — keep (boundary); progress for reachable terms via a predicate
 
     Consistent M  ⟺  every ↓Y:=A in M whose enclosing boundary has ↑Y:=A′
                      satisfies A = A′
@@ -93,7 +93,7 @@ notes/old/GroundedProbe.agda (agda --safe clean) fixes the exact form:
                                  dual at dropped-but-unconcealed slots
 
   Open (small): whether `BlkAbst` then holds for every run-time boundary (only
-  Λ, reveals and ↑Y:⋆ create context entries) or must be a premise of (env).
+  Λ, reveals and ↑Y:⋆ create context entries) or must be a premise of (boundary).
 
 ### Decision 1 — refinement forced by the implementation (2026-09-04)
 
@@ -186,7 +186,7 @@ The alternatives, on this example:
         Works (the rework closed Wrap with it) but it is a companion predicate
         on terms — against the grounded-invariants law.
 
-  (W2)  Make it an (env) premise: "every slot the boundary drops without
+  (W2)  Make it an (boundary) premise: "every slot the boundary drops without
         concealing is ABSTRACT".  h is then ill typed (Y:=𝔹 is dropped and not
         concealed).  Grounded — but TyWrap creates h-like terms by weakening a
         sealed value under a new reveal, so TyWrap would fail preservation.
@@ -212,7 +212,7 @@ The alternatives, on this example:
         stay in scope (γ still resolves them to their reps) and no slot is ever
         blocked.  Then the dual has nothing to rebuild (its interior is a
         weakening of Γ by the reveal slots, which ⊢renameᵀ supplies), the
-        scope premise of (env) becomes vacuous, Merge's context law is trivial,
+        scope premise of (boundary) becomes vacuous, Merge's context law is trivial,
         and the counterexample below (a reveal rep naming a blocked slot)
         cannot arise.  Cost: it gives up the TIGHT interior of §2 — the
         property that a sealed value's context contains only variables that
@@ -565,7 +565,7 @@ All seven sites SAFE, with one requirement and one residual:
   ✓ renaming: better than (a′) — the entrywise strengthening dissolves
     (UnfRen≈-abst is refl).  RESIDUAL: the hybrid entry commutes with
     renaming only up to ≼≈ (¬⟦⟧ᴴ-ren / ⟦⟧ᴴ-ren≼≈) — one ⊢retag≈ inside
-    ⊢renameᵀ's (env) case;
+    ⊢renameᵀ's (boundary) case;
   ✓ Merge's retyping-along-unfolding collapses into ≼≈ (both directions);
   ✓ the raw/unfolded mixture is coherent (mix-≼≈, idempotence, two-routes,
     abstraction barrier bit-identical).
@@ -693,7 +693,7 @@ bad₂/near-bad gauntlet:
        rep both live over the same context).  Also probed: whether (b3)
        subsumes the (a″) hybrid at Pn, and the structural argument ruling
        out (b4) (a co-boundary-parameterized judgment: the contractum must
-       be typed by plain env).
+       be typed by plain boundary).
 ## D1 PROBE VERDICT — root cause pinned; A SOUNDNESS HOLE in the landed license; the SkelEq repair (2026-09-04)
 
 notes/D1Probe.agda (agda --safe clean).  Answers to Jeremy's two questions:
@@ -1457,7 +1457,7 @@ must satisfy — or be absent — for bare V to be typed in Δ at
 Jeremy's identity CONFIRMED as a machine fact, and the side condition is
 DERIVED, not chosen — but Cancel cannot carry progress alone.
 
-(1) THE SOUND CANCEL.  Inverting (env) twice forces the side condition:
+(1) THE SOUND CANCEL.  Inverting (boundary) twice forces the side condition:
 
     CancelOK Δ Θ₁ Θ₂ B₁ B₂ =
         (intOf (intOf Δ Θ₂) Θ₁ ≡ Δ)                 -- contexts undo
@@ -1705,7 +1705,7 @@ DualRep≈/DualInt≈ agents still out, their verdicts fold in):
     preservation's Merge case by a retag≈-style lemma.  Obstacle: ⊢retag≈
     moves CONTEXTS; a type-side ≈ in the typing judgment has no
     transport today — this road may lead to a conversion-style typing
-    rule or ≈-stated (env) faces, a deep change to Boundary.agda.
+    rule or ≈-stated (boundary) faces, a deep change to Boundary.agda.
 (β) BORN-RESOLVED REPS: normalize reps THROUGH THE AMBIENT AT MINT TIME
     (in the RULES — TyBeta/TyWrap/dualᴳ — not in the entry maps, so the
     transports that killed (a′)-at-entry-birth are untouched).  Kills
@@ -1941,7 +1941,7 @@ THE MINI-CORE (verbatim in the probe): spine entries abst / own A /
 blk E (mask retains the entry); conversions c-b/c-v/c-u(unseal at
 owner)/c-s(seal at owner)/c-f(⇛, contravariant)/c-a(∀ᶜ), polarity-
 indexed; one boundary form M ⟪ Θ , c ⟫ with own/ali/cnc entries and
-(env) checking the conversion between the faces over a face spine;
+(boundary) checking the conversion between the faces over a face spine;
 rules TyBeta/Beta/Peel/TyPeel/Cancel/Drop$/ξ; dual Θ = maskOwns ++
 name-flips (cnc↔ali) — NAMES ONLY; Inert = {cv, csl, ⇛, ∀ᶜ}, Active =
 {cb, cus} — constructor totality, no arithmetic.
@@ -2226,7 +2226,7 @@ the preservation proof".  LANDED (Reduction.agda):
         -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ]) ⟪ bind A ∷ Θ , unsealAtᶜ 0 s ⟫
 
 The RuleRepairs note MISSED one defect: the pushed face `s` still names
-the bound variable in its target while env demands liftN (n+1) (Bₑ[A]);
+the bound variable in its target while boundary demands liftN (n+1) (Bₑ[A]);
 the new bind slot needs the instantiation leaves — `unsealAtᶜ`, the Conv
 analogue of TyBeta's unsealAt (unsealAtᶜ X (idc B) ≡ unsealAt X B).
 det/value-¬step re-proven (conv-faces-unique: faces are a function of
@@ -2308,7 +2308,7 @@ per type variable, not one polarity for all type variables.  However, do
 we really need polarity at all?"  Analysis: per variable the face IS
 consistent — each variable's name sits on the side where it is a name
 (Y: bind, interior side; X: unbind, exterior side) — and that per-variable
-fact is already enforced by env's frames (an unbound X is masked in intC,
+fact is already enforced by boundary's frames (an unbound X is masked in intC,
 a bound X is not in the image of liftN), so `p` is a redundant summary
 that is uniform only for single-kind boundary scopes and breaks the first time
 a mint mixes kinds (TyPeelR's `bind A ∷ Θ`).  Nothing uses p for work
@@ -2574,7 +2574,7 @@ substitution carries the value's type and wraps every value image that
 crosses a Λ in the binder's dual with an identity conversion,
 `crossΛ W A = ⇑ᴹ W ⟪ boundary [] (unbind 0 ∷ []) , mkId (⇑ᵗ A) ⟫`; Beta is
 `(ƛ A ∙ N) · W -→ N [ W ∶ A ]ᵐ`.  Images are a two-constructor type
-(variable / closed value with its type), since env types a boundary's
+(variable / closed value with its type), since boundary types a boundary's
 interior at Γ = [].  The boundary-interior half of the gap is VACUOUS:
 substitution never descends into a wrapper (term-closed), and Peel's
 crossing is already exact by (†).  Frame identity `interior (boundary []
@@ -2659,7 +2659,7 @@ point: the conversion must still be able to name the concealed variable),
 so when the dual's matching `bind` arrives, the name is still live and
 the `Fresh α Δ₂` premise of `conv-bind` fails.
 
-So `rewind Θc` and `dualBoundary Θc ⋉ Θc` have NO conversion context, `env`
+So `rewind Θc` and `dualBoundary Θc ⋉ Θc` have NO conversion context, `boundary`
 cannot type the contractum, and preservation fails at `CancelR` — and at
 `IdPush`, which has the same two frames.  Machine-checked:
 `no-old-rewind-conv` (strong-rep-store/notes/ReUnlockWall.agda, against a local copy of the
@@ -2733,7 +2733,7 @@ value premises at each edge are the content of the test.
 One design point is worth recording.  The checker must INFER, not merely
 check: `⊢·` and `⊢·[]` need the head's type and a head can be a boundary.
 Inferring a boundary's exterior type means inverting `shiftRep`, because
-`env` reads that type across the boundary scope's representation-bind prefix
+`boundary` reads that type across the boundary scope's representation-bind prefix
 (`Δᶜ ⊢ᶜ Cₑ ~ shiftRep n R`).  That inverse is `strAt`, strengthening at a
 binder depth, and it is the only place in the checker that produces an
 equation rather than a derivation.
@@ -2837,7 +2837,7 @@ other candidate.
 Determinism: the premise is a `SameTy`, whose target is unique on a name
 map with `Unique` names by `same-target-unique` (strong-rep-nu.Ctx) — already
 proved, and both rules already carry the `Unique` premise.  Progress: it
-comes by inverting the redex's own `env`, at exactly the point where
+comes by inverting the redex's own `boundary`, at exactly the point where
 `TyPeelR` already inverts to recover its annotation premise.
 
 (4) It is what this design already does everywhere else, and the reason it
@@ -2996,7 +2996,7 @@ Determinism now states
       → Δ ⊢ M -→ M₁ → Δ ⊢ M -→ M₂ → M₁ ≡ M₂
 
 and obtains name-map functionality from that typing derivation. In a
-boundary case it inverts to `env`, reads `name-fn` from the stored
+boundary case it inverts to `boundary`, reads `name-fn` from the stored
 `BoundaryWf`, and uses `bw-interior-wf`/`bw-conversion-wf`; `unique-underΛ`
 handles the type-binder cases. The merged contexts of `CancelR` and
 `IdPush` transport the exterior's uniqueness through their explicit
@@ -3050,7 +3050,7 @@ already supplies both.
 
 WHY THESE TWO FORMS. The outer identity layer minted by both `CancelR` and
 `IdPush` uses `rewind Θ₂`, so these lemmas construct exactly the
-interior and conversion readings its `env` needs. The inner layer uses
+interior and conversion readings its `boundary` needs. The inner layer uses
 `Θ₁ ⋉ Θ₂`; both reduction rules already carry that composite's
 conversion reading explicitly, so item 3 needs no additional composite
 theorem.
@@ -3232,13 +3232,13 @@ For the preservation counterexample at the duplicate-name context,
 TyBeta's contractum had to mint a new `BoundaryWf`, so preservation needed
 `WfCtx Δ`. Progress only mints a step derivation. TyBeta gets its
 representation reading from the type-formation premise, and if Progress is
-under a boundary then that boundary's `env` node already carries the needed
+under a boundary then that boundary's `boundary` node already carries the needed
 `BoundaryWf`. Thus the typing derivation alone suffices.
 
 THE PROVED PEEL PACKAGE MOVED FROM NOTES TO CORE. The name-set invariant (Q),
 its list machinery, and `dual-conversion-exists` now live in
 `Boundary.agda` §3b/§3c. Type/conversion weakening, readability,
-`premise-exists`, `peel-premises`, and `peel-premises-env` now live in
+`premise-exists`, `peel-premises`, and `peel-premises-boundary` now live in
 `Conversion.agda` §2c. `notes/PeelPremise.agda` retains the mixed-frame
 counterexample and machine-checks the moved `Q` and `premise-exists` on it.
 The duplicate `Keeps`, `keeps-underΛ`, and `weaken-ty` definitions in
@@ -3247,7 +3247,7 @@ The duplicate `Keeps`, `keeps-underΛ`, and `weaken-ty` definitions in
 All other Progress obligations are direct inversions of the typing
 derivation. `canon-base`'s three branches construct `Drop$`, `Drop-true`, and
 `Drop-false`; the two TyPeelR clauses reuse the outer `BoundaryWf` readings and
-the `SameTy` body inversion; Peel uses `peel-premises-env`; CancelR and
+the `SameTy` body inversion; Peel uses `peel-premises-boundary`; CancelR and
 IdPush reuse the outer lookup and the deferred merged package. No term,
 typing, conversion, or reduction rule changed.
 
@@ -3273,7 +3273,7 @@ Its contractum
     (V ⟪ Θ₁* ⋉ Θ₂* , mkId (` 0) ⟫) ⟪ rewind Θ₂* , mkId (` 1) ⟫
 
 has NO typing derivation. The outer `mkId (` 1)` pins the inner boundary's
-exterior type to representation 1; the inner `env`'s `SameTyExt 1` then
+exterior type to representation 1; the inner `boundary`'s `SameTyExt 1` then
 asks its conversion's type to denote `shiftBy 1 (` 1) ≡ ` 2`, while the
 inner `mkId (` 0)` denotes representation 1. A representation reading is
 unique (`same-rep-unique`), and `1 ≢ 2`.
@@ -3285,7 +3285,7 @@ identity type in the OUTER conversion context:
 
 so it asserts that `A′` denotes the SAME representation as `A`. But the
 inner boundary sits `numBinds Θ₁` representation binders inside its own
-exterior, and `env` compares an exterior type with a conversion type
+exterior, and `boundary` compares an exterior type with a conversion type
 across exactly that block. The premise therefore drops the shift. The
 other three crossings do not: `TyPeelR-⟪⟫` and `IdPush` weaken against
 the INNER boundary's own conversion context `Δ₁ᶜ`, where the shifted
@@ -3357,7 +3357,7 @@ premise into the dual boundary's conversion TYPING: the two conversion
 contexts share a representation context, so a `seal`/`unseal` cites the
 same binder and only its ordinary spelling changes, and an identity's
 payload goes through `weaken-ty` against (Q). Source and target come back
-paired with the `SameTy`s the crossing boundary's `env` consumes.
+paired with the `SameTy`s the crossing boundary's `boundary` consumes.
 
 **REVIEW REQUIRED — NEW MAJOR STATEMENT, NOT PROVED.** The argument must
 be retyped one bind block in, and that is the third representation-only
@@ -3769,7 +3769,7 @@ mints `mkId A′`.
 
 WHY THE SPELLING MUST BE READ AT `Δ₁ᶜ`, in one paragraph.  The inner
 boundary of the contractum carries the merged frame `Θ₁ ⋉ Θ₂`, and
-`numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁`.  So its `env` compares its exterior
+`numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁`.  So its `boundary` compares its exterior
 type against its conversion's type across `n = numBinds Θ₁`
 representation binders: `SameTyExt n`, which asks the conversion's type to
 denote `shiftBy n` of what the exterior denotes.  The outer layer's
@@ -3819,7 +3819,7 @@ the same argument.  The outer layer is literally `IdPush`'s: the same
 `mkId A` at the outer binder's payload, the redex's own `se₂`/`wE` reused.
 The inner layer is where the two diverge, because `mkId A′` has the SAME
 type as source and target, so one type must satisfy both premises of the
-inner `env`.  They meet because the lookup still shifts itself, one level
+inner `boundary`.  They meet because the lookup still shifts itself, one level
 up: the cancelled binder's representation variable is `numBinds Θ₁ + αY`
 (`eqX`, the old `cancel-name` equation one universe up), and `∋ʳ-push`
 reads Y's payload through Θ₁'s bind block as `shiftBy (numBinds Θ₁)` of it
@@ -3912,7 +3912,7 @@ THE STATEMENT NEEDED A PREMISE, and the simplified form landed that
 morning is FALSE without it.  `extendReps Rs Δ` pushes the payloads `Rs`
 onto the representation context WITHOUT checking them, but a boundary
 inside the crossing argument has to be RETYPED at the weakened context,
-and `env` stores a `BoundaryWf` whose `bw-exterior` is a `WfCtx` of that
+and `boundary` stores a `BoundaryWf` whose `bw-exterior` is a `WfCtx` of that
 context — which demands `WfRepCtx`, that is, that every stored payload be
 well formed where it is written.  The counterexample is as small as the
 development allows: `β-seven` at the EMPTY context, weakened by the single
@@ -3978,7 +3978,7 @@ the type context at all, and no ordinary type spelling moves under a
 representation renaming — so the `⊢ƛ` case needs nothing.  The depth is
 the cut, above.
 
-THE HARD CASE IS `env`, and every one of its six premises transports by a
+THE HARD CASE IS `boundary`, and every one of its six premises transports by a
 per-relation lemma, in the style §3a already used:
 
   * `bw-exterior` by `wfctx-ren` (the three `WfCtx` fields: `wk-reps`,
@@ -4006,7 +4006,7 @@ per-relation lemma, in the style §3a already used:
 
 `TyBeta`-minted boundaries inside the argument, `instantiate` boundary scopes
 and unbind/bind change lists are NOT special-cased anywhere: they are
-`env`s and change runs like any other, and the generic transports cover
+`boundary`s and change runs like any other, and the generic transports cover
 them.
 
 THREE SMALL RELOCATIONS, in the closed-world spirit.  `extN` moved from
@@ -4028,7 +4028,7 @@ shape as this one — `crossΛᴹ`'s `renᴹ² (ren² idᵗ suc) W` is
 both; what they add is a BINDER (`underΛ`, `addUnbind0`) on top of the
 renaming, which this lemma does not.  That is a separate landing.
 
-## 2026-09-20 — `CrossΛTyping` is PROVED by one unbound `env`
+## 2026-09-20 — `CrossΛTyping` is PROVED by one unbound `boundary`
 
 THE CONCRETE CROSSING TERM is `Examples.agda` §5's image
 
@@ -4147,7 +4147,7 @@ pushes the conversion's occurrences of position 0 onto position 1 — onto
 the NEW binder, whose payload is the type argument's representation.  So
 `seal 1 ↦ unseal 1`, which converted `` ` 1 ⇒ ` 1 `` to `` `ℕ ⇒ `ℕ ``,
 becomes `seal 2 ↦ unseal 2`, which converts `` ` 2 ⇒ ` 2 `` to
-`` `𝔹 ⇒ `𝔹 ``, and `env`'s exterior alignment `SameTyExt` has to relate
+`` `𝔹 ⇒ `𝔹 ``, and `boundary`'s exterior alignment `SameTyExt` has to relate
 `` `∀ (`ℕ ⇒ `ℕ) `` to `` `∀ (`𝔹 ⇒ `𝔹) ``.  It cannot.
 
 THE PROGRAM.  No boundary is written by hand:
@@ -4321,8 +4321,8 @@ AND THE RESHAPED PARAMETER IS PROVED — PRESERVATION IS UNCONDITIONAL.
 `AddUnbind0Typing` (`proof/Preserve.agda`) was RESHAPED with the rule — it
 now receives `Δ ⊢ᶜ Θ ⇒ Δᶜ`, the moved reading and the `SameConv`, and names
 the moved spelling — and `proof/AddUnbind0.agda` proves it, the same day.  It
-is the `env`-to-`env` transport across one inserted representation binder
-and one fresh ordinary name, and each of the six `env` premises moves by a
+is the `boundary`-to-`boundary` transport across one inserted representation binder
+and one fresh ordinary name, and each of the six `boundary` premises moves by a
 lemma that already existed or by one small new one:
 
   * `bw-exterior` is the statement's own `WfCtx` premise;
@@ -4627,7 +4627,7 @@ on `WfCtx Δ` — the price of decision 5 (any Δ, since ξ-Λ reduces under
 Λ).  `ColorPreservationClosed` at `empty` is the v7-faithful form,
 premise-free beyond the typing.  Decision 4 is resolved the other way
 too: the typing premise IS needed, at exactly two sites — Peel's
-argument (the crossed bind block's `⊢ᴮ`, from the redex's own `env` via
+argument (the crossed bind block's `⊢ᴮ`, from the redex's own `boundary` via
 `bw-binds`, feeding `repwk-wkN`) and TyPeelR-⟪⟫ (the refined store's
 well-formedness via `instantiate-boundarywf`).
 
@@ -4765,7 +4765,7 @@ renumbering `map ρ` reports.
 WHAT THE STORE RETIRED.  `binds`/`numBinds`/`extendReps`/
 `pushRepBinds`/`shiftRVars`/`_⊢ᴮ_`/`shiftByᵇ` (Ctx), `underRepBinds`
 (Boundary), `renᴮ`/`TyBetaBoundary-ren-Λ` (TermSubst),
-`SameTyExt`/`shiftRep` (Ctx — `env`'s exterior premise is now plain
+`SameTyExt`/`shiftRep` (Ctx — `boundary`'s exterior premise is now plain
 `_⊢_≈_⊣_`), the bind-block lemma family in `proof/Ctx.agda`
 (`wfᴿ-push`, `wfRepCtx-push`, `∋ʳ-push`, `∋ʳ-pushᵇ`, `shiftByᵇ-*`,
 `∋ˡ-push`, `∋ˡ-shiftRVars`, `⊆ᵃ-shiftRVars`, `validNames-push`,
@@ -4984,7 +4984,7 @@ proposal, its two examples and the alternatives are
    GTPLC's `⊢ν` does.  `c` is read at the conversion context of
    `TyBetaBoundary` over `allocate R Δ`, which is where the `Nu` rules
    put it, and its target is compared to the result type by `≈`, as in
-   `env`.  The generality is used: `Nu-⟪⟫` pushes a `ν` whose conversion
+   `boundary`.  The generality is used: `Nu-⟪⟫` pushes a `ν` whose conversion
    is a run-time reveal of the inner body.
 2. **Rule 2: N1, stack, don't fuse.**  `Nu-⟪Λ⟫` moves the crossed
    conversion `s` verbatim into a middle layer over `liftᴮ Θ` and puts

@@ -46,7 +46,7 @@ and redex change):
       --[Beta]-->  --[CancelR]-->  --[Drop$]-->
     Ξ = [α := ℕ]   7
 
-Typing sketch (the `env` pattern, at the context `Nu-Λ` leaves):
+Typing sketch (the `boundary` pattern, at the context `Nu-Λ` leaves):
 
     ⊢ν : Δ ⊢ᵗ A → Δ ∣ Γ ⊢ L ⦂ ∀C
        → Δ ⊢ᶜ A ~ R
@@ -54,7 +54,7 @@ Typing sketch (the `env` pattern, at the context `Nu-Λ` leaves):
        → allocate R Δ ⊢ B ≈ Cₑ ⊣ Δᶜ    -- B's names read at `allocate R Δ`
        → Δ ∣ Γ ⊢ ν A · L ⟨ c ⟩ ⦂ B
 
-(`c`'s target is compared to `B` by representation, as `env` does, so
+(`c`'s target is compared to `B` by representation, as `boundary` does, so
 the compiler is free to spell `c` = `reveal 0 C`.)
 
 ## Rule 2: `ν` over a boundary — the open question

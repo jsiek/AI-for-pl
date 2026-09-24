@@ -68,11 +68,11 @@ The frame must *say the truth* about what the subterm may name.
 | **TyBeta** (the type `B`) | nothing | `unmasked abst ∷ Δ` | `convCtx (boundary (A ∷ []) []) Δ ≡ unmasked (bind A) ∷ Δ` | **exact up to refinement** — same step. |
 | **Beta**, no binder crossed | `substᵐ` | `Δ` | `Δ` | **exact**.  (The one recorded exception is **erasure** — a dropped argument crosses nowhere; `Examples` §15d.) |
 | **Beta**, crossing a `Λ` | `crossΛ W A = ⇑ᴹ W ⟪ boundary [] (unbind 0 ∷ []) , mkId (⇑ᵗ A) ⟫` | `Δ` | `interior (boundary [] (unbind 0 ∷ [])) (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ` — `interior-Beta-Λ` | **exact** (PR #199).  Slot 0 is refused (`Beta-Λ-slot0-unbound`). |
-| **Beta**, crossing a `ƛ` | `shiftᴵ` | `Δ` | `Δ` | **exact, vacuous**.  A `ƛ` binds a *term* variable; `shiftᴵ` is the identity on a value image because the image is **term-closed**, and it stays term-closed after #199 (`crossΛ W A` is a boundary, and `env` types its interior at `Γ = []`).  The two crossings commute on the nose (`⇑ᴵ-shiftᴵ-comm`) — the no-interference law. |
+| **Beta**, crossing a `ƛ` | `shiftᴵ` | `Δ` | `Δ` | **exact, vacuous**.  A `ƛ` binds a *term* variable; `shiftᴵ` is the identity on a value image because the image is **term-closed**, and it stays term-closed after #199 (`crossΛ W A` is a boundary, and `boundary` types its interior at `Γ = []`).  The two crossings commute on the nose (`⇑ᴵ-shiftᴵ-comm`) — the no-interference law. |
 | **CancelR / IdPush** (`V`) | nothing | `interior Θ₁ (interior Θ₂ Δ)` | `interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ)` — `proof/MoveScope.interior-⋉-rewind` | **exact** — an *equality*, which is why neither case needs `⊢retag`. |
 | **CancelR / IdPush** (outer) | nothing | `interior Θ₂ Δ` | `interior (rewind Θ₂) Δ ≡ pushBinds (binds Θ₂) Δ` | **exact**.  Only the inner boundary node sits there, and `_⋉_` **reapplies** Θ₂'s whole change list at the tail, where `applyChanges` runs it first.  Both conversions are **re-minted** (`mkId`/`unseal`), not transported.  `numBinds` is unchanged on both sides (`refl`). |
 | **Drop$** | the numeral leaves its frame | `interior Θ Δ` | `Δ` | **vacuous**.  This is a frame change in the *other* direction — the bind prefix disappears and Θ's unbinds lift, so the new frame is strictly *more* nameable — but a numeral names no type variable: `⊢$` types it at every type context (`Drop$-vacuous`).  No other term can take the step: the rule's LHS interior is the **numeral itself** (`Drop$-only-numerals`), and progress needs no more because a closed value at a base type *is* a numeral (`canon-base`). |
-| **ξ-Λ / ξ-⟪⟫ / ξ-·-l / ξ-·-r / ξ-·[]** | nothing | — | — | **exact**.  Each reduces a subterm *in place*, at the very context the corresponding typing rule reads it on: `unmasked abst ∷ Δ` is `⊢Λ`'s premise context, `interior Θ Δ` is `env`'s.  Both `refl`. |
+| **ξ-Λ / ξ-⟪⟫ / ξ-·-l / ξ-·-r / ξ-·[]** | nothing | — | — | **exact**.  Each reduces a subterm *in place*, at the very context the corresponding typing rule reads it on: `unmasked abst ∷ Δ` is `⊢Λ`'s premise context, `interior Θ Δ` is `boundary`'s.  Both `refl`. |
 
 Not rules, and therefore not sites: `⊢rename`, `⊢retag`, `Ren-wk`,
 `Ren-addUnbind0`, `renᴹ`, `renⁿ`, `⊢renⁿ`, `⊢weakenⁿ`,
@@ -173,7 +173,7 @@ is **kept** in `proof/ShiftAudit.agda` as a refutation record:
   from the type's well-formedness alone.  **So the answer to "does TyPeelR
   require anything of `s` that `mkId` fails?" is NO** — `mkId` is exactly
   what the wrapper carries, and `mkId-⊢` types it wherever the type is well
-  formed, which the wrapper's own `env` premise guarantees.
+  formed, which the wrapper's own `boundary` premise guarantees.
 * `T₀ -→ᵃ T₁ -→ᵃ T₂` on the closed instance
   `((ΛY. 3) ⟪ · , (∀Y. id ℕ) ⟫) [ℕ]`: the `Λ` is still buried under a
   fresh `boundary [] (unbind 0 ∷ [])` layer at `T₂`, so `TyBeta` never fires
@@ -322,7 +322,7 @@ all.
 | `addUnbind0`, `interior-addUnbind0`, `unlockedScope-addUnbind0`, `convCtx-addUnbind0`, `numBinds-addUnbind0` | `strong-rep-nu.Boundary` §5 | the appended unbind is `mask 0` on the interior and **invisible** on the conversion context |
 | `Ren-addUnbind0`, `interior-addUnbind0-cross`, `map-renᶠ-shiftScope` | `strong-rep-nu.TermSubst` | the crossing renaming and the frame identity at the shift the rule performs |
 | `⊢addUnbind0-cross` | `strong-rep-nu.TermSubst` §6 | **the crossing lemma** — a boundary crosses one new bind slot, masking it in its own frame.  Reps by `⊢ʳ-ren`, changes by `⊢ˢ-++` (`⊢ˢ-ren` over the frame the unbind leaves, `sw-l` for the unbind), interior by `⊢rename` at `Ren-addUnbind0` **alone**, conversion by `conv-ren` at `ren-convCtx`.  The (b′) analogue of `⊢crossΛ` |
-| `preserve-TyPeelR-Λ`, `preserve-TyPeelR-⟪⟫` | `proof/Preserve` §3 | **preservation** for the two clauses — the Λ clause is the old proof with `⊢retag` for `int`, the wrapper clause is the old proof with `⊢addUnbind0-cross` for `⊢wkV`; the outer `env` is verbatim in both |
+| `preserve-TyPeelR-Λ`, `preserve-TyPeelR-⟪⟫` | `proof/Preserve` §3 | **preservation** for the two clauses — the Λ clause is the old proof with `⊢retag` for `int`, the wrapper clause is the old proof with `⊢addUnbind0-cross` for `⊢wkV`; the outer `boundary` is verbatim in both |
 | `preservation-TyPeelR-Λ`, `preservation-TyPeelR-⟪⟫` | `strong-rep-nu.Preservation` | the public per-rule statements |
 | `det` | `strong-rep-nu.Reduction` | **determinism** over the whole rule set.  The two `TyPeelR` patterns are disjoint (a `Λ` is not a boundary); the wrapper case needs `conv-src-unique`, exactly as the old rule did, and the Λ case needs nothing |
 | `progress-·[]-∀conv` | `proof/Progress` | **progress** — `canon-∀` hands the split exactly its two patterns, so the pair is TOTAL over canonical `∀`-values: the old rule is **replaced**, not supplemented |

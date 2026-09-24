@@ -27,7 +27,7 @@ table is exact (`interior-dual` for `Peel`, `interior-⋉-rewind` for
 table in `Design.md` §7 read `Δ` when the truth was `unmasked abst ∷ Δ`.
 
 Passing into a boundary interior is not a second half of the gap: a
-boundary is TERM-CLOSED (`env` types its interior at `Γ = []`), so
+boundary is TERM-CLOSED (`boundary` types its interior at `Γ = []`), so
 `substᵐ` is the identity on wrappers and never descends into one.  The
 crossing into a boundary interior that DOES happen is `Peel`'s, and it is
 already exact — `(†) interior-dual`, `proof/PeelDual`.
@@ -64,7 +64,7 @@ Reduction under binders is by the frame-indexed relation already, so
 
 ## The substitution carries the argument's type
 
-`mkId` needs the value's type, and `env` needs the value TERM-CLOSED.
+`mkId` needs the value's type, and `boundary` needs the value TERM-CLOSED.
 Both facts live in the substitution's IMAGES:
 
 ```agda
@@ -98,7 +98,7 @@ N [ W ∶ A ]ᵐ = substᵐ (λ { zero → ival W A ; (suc x) → ivar x }) N
 ```
 
 A VARIABLE image is never wrapped, and it cannot be: a variable is not
-term-closed, so `env` would refuse it.  A VALUE image is closed, which is
+term-closed, so `boundary` would refuse it.  A VALUE image is closed, which is
 what makes both the wrapper and the (premise-free) weakening legal.
 
 `Beta` becomes
@@ -114,7 +114,7 @@ unchanged.
 ## The typing
 
 The image judgement records the two facts, and its conclusion holds at an
-ARBITRARY term context, exactly as `env`'s does:
+ARBITRARY term context, exactly as `boundary`'s does:
 
 ```agda
 data _∣_⊢ⁱ_⦂_ : Ctxᵗ → Ctx → Img → Ty → Set where
@@ -123,7 +123,7 @@ data _∣_⊢ⁱ_⦂_ : Ctxᵗ → Ctx → Img → Ty → Set where
 ```
 
 The whole content of the repair is one lemma, and every premise of its
-`env` is DEFINITIONAL at the dual (`numBinds = 0`,
+`boundary` is DEFINITIONAL at the dual (`numBinds = 0`,
 `convCtx … (unmasked abst ∷ Δ) ≡ unmasked abst ∷ Δ`,
 `interior … (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ`):
 
@@ -134,7 +134,7 @@ The whole content of the repair is one lemma, and every premise of its
     -----------------------------------------------
   → (unmasked abst ∷ Δ) ∣ [] ⊢ crossΛ W A ⦂ ⇑ᵗ A
 ⊢crossΛ w ⊢W =
-  env (bw rw[] (sw-l (unmasked abst , ez , nameable) sw[]))
+  boundary (bw rw[] (sw-l (unmasked abst , ez , nameable) sw[]))
       (⊢rename Ren-wk Inj-suc ⊢W)
       (mkId-⊢ (wf-ren Ren-wk w))
       (wf-ren Ren-wk w)

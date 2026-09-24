@@ -248,7 +248,7 @@ lets `TyBeta` mint its conversion without re-deriving the body type.
 
 `M ⟪ Θ , c ⟫` is **the boundary**, and it is the only new form.  It
 makes exactly one frame change, described by `Θ`, and carries exactly one
-conversion `c`.  Its interior `M` is **term-closed**: `env` types it at
+conversion `c`.  Its interior `M` is **term-closed**: `boundary` types it at
 the empty term context.
 
 ### Boundary scopes (`strong-rep-nu.Boundary`)
@@ -334,7 +334,7 @@ An earlier form of the judgment carried a global index `p` that pinned
 judgment", 2026-09-06).  The discipline `p` summarized is **per type
 variable**, not per boundary: each variable's name sits on the side where
 it *is* a name — a `bind`'s name on the interior side, an `unbind`'s name on
-the exterior side — and `env` already enforces exactly that with its two
+the exterior side — and `boundary` already enforces exactly that with its two
 type contexts.  An unbound `X` is masked in the interior context, so it
 cannot appear on the interior side of a leaf; a bound `X` is not in the
 image of `shiftBy`, so it cannot appear on the exterior side.  A single
@@ -539,7 +539,7 @@ The three contexts are ordered by refinement, in one direction only:
     interior⊑convCtx : interior Θ Δ ⊑ convCtx Θ Δ
     Δ⊑unlockedScope  : Δ ⊑ unlockedScope Θ Δ
 
-and each buys one side of `env`'s conversion premise — for the two sides
+and each buys one side of `boundary`'s conversion premise — for the two sides
 of `c` live in different contexts.  The source is the interior type `Bᵢ`,
 a type of `interior Θ Δ`, read up in the conversion context by the first
 refinement (`⊢retag` / `conv-⊑`, types unchanged).  The target is
@@ -742,7 +742,7 @@ them.  Two further consequences:
 
 and the boundary rule, in full:
 
-    env : Δ ⊢ᵐ Θ
+    boundary : Δ ⊢ᵐ Θ
         → interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
         → convCtx Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
         → Δ ⊢ᵗ Bₑ
@@ -1017,7 +1017,7 @@ frame — and reduction under binders is by the frame-indexed relation
 already, so `ξ-⟪⟫` is untouched (strong-rep-nu has no `ξ-Λ`).
 
 **Which is why the rule carries `A`.**  `mkId` needs the value's type, and
-`env` needs the value TERM-CLOSED (it types an interior at `Γ = []`).
+`boundary` needs the value TERM-CLOSED (it types an interior at `Γ = []`).
 Both live in the substitution's IMAGES (`strong-rep-nu.TermSubst` §5b):
 
     data Img : Set where
@@ -1146,7 +1146,7 @@ where `Bᵢ` is the interior `∀`-body determined by the premise.
    that reads it must become the instantiation step: `unseal 0` where the
    conversion runs covariantly, `seal 0` where it runs contravariantly —
    that is `instReveal 0 s`.  Keeping `s` is ill-typed: its exterior body
-   still mentions `` ` 0 `` where `env` demands the instantiated
+   still mentions `` ` 0 `` where `boundary` demands the instantiated
    `shiftBy (numBinds Θ + 1) (Bₑ [ A ])` (`Examples` §13a, `¬⊢J-plain`).
 
 **What the `Λ` clause does.**  Nothing moves.  The `Λ`'s `abst` slot
@@ -1169,7 +1169,7 @@ exterior body at every non-identity leaf.  `Bᵢ` is not syntactically
 recoverable from a representation-free conversion (a `seal`'s source is a
 binder's representation), so the rule carries the conversion typing as a
 **premise**.  `Progress` supplies it for free by inverting the redex's own
-`env` (`conv-all-inv`), and determinism is `conv-src-unique`.
+`boundary` (`conv-all-inv`), and determinism is `conv-src-unique`.
 
 **Why the appended unbind.**  Without it the moved boundary's interior is
 offered the new bind slot **unmasked** — a slot it could not name before
@@ -1304,7 +1304,7 @@ active conversion this left-hand side can meet
 **Why the frames move.**  Both `IdPush` and `CancelR` make the *inner*
 boundary stop presenting the abstract name and start presenting `Y`'s
 **representation** `A`.  A representation is a type over the
-exterior, so `env`'s last premise now asks for `A` to be well formed
+exterior, so `boundary`'s last premise now asks for `A` to be well formed
 *inside* the outer frame — and `Θ₂`'s own unbinds may have masked the very
 slot `A` names.  That was **the wall**, and the whole invariant hunt was a
 search for a side condition to ground it.  Every candidate was refuted;
@@ -1363,7 +1363,7 @@ Read `R₀` and `R₁′` side by side: `↓Y` has moved from the outer boundary
 to the inner one, and the reveal `unseal X` went with it.  The
 representation `Y` that the reveal hands back is now presented on the
 outer boundary's own type context, where `Y` is live, instead of inside
-the unbind, which is what `env`'s last premise refused.  The value's frame
+the unbind, which is what `boundary`'s last premise refused.  The value's frame
 is unchanged (`interior ([] ⋉ Θi) (interior (rewind Θi) Δi)
 ≡ interior [] (interior Θi Δi)` is `refl`), so `V` retypes where it was —
 by `subst`, not by `⊢retag` — and `R₂` is a **value**.  The `↥Y , ↓Y`
@@ -1449,13 +1449,13 @@ The public surface, verbatim, all parameter-free and `--safe`:
 
 Two structural facts about the statements.  **The term context is
 empty**, and it has to be: `_⊢_-→_` carries no term context, and
-`TyBeta`'s contractum is a boundary, whose body `env` types at `Γ = []`.
+`TyBeta`'s contractum is a boundary, whose body `boundary` types at `Γ = []`.
 At a non-empty `Γ` the theorem is already false — `Λ (λx:ℕ. y)` is a
 value at `Γ = ℕ , ·`, `TyBeta` fires, and the contractum's interior would
 have to mention a term variable that a boundary body may not have.  And
 **there is no context well-formedness premise** (`⊢ᶜ Δ`, the store-typing
 pattern the v1 endgame expected).  It is unnecessary: every site that
-reads a representation back also has the `env` node that put it there,
+reads a representation back also has the `boundary` node that put it there,
 whose last premise is `Δ ⊢ᵗ Bₑ`, and `⊢ᵗ-of` recovers the
 well-formedness of any typed term's type from the derivation alone.
 
@@ -1470,7 +1470,7 @@ a `↦`-converted boundary, `canon-∀` gives `Λ` (with its body a value, so
 `TyBeta`'s premise is `V-Λ`'s premise) or a `∀`-converted boundary, and
 `canon-base` gives a numeral.  The boundary case is the content, and it
 is two steps.  First run the induction hypothesis on the **interior**, at
-`interior Θ Δ`, where `env`'s second premise types it; an interior step lifts
+`interior Θ Δ`, where `boundary`'s second premise types it; an interior step lifts
 by `ξ-⟪⟫`.  Then classify the conversion by `act-or-inert`, keeping the
 active branches' premises:
 
@@ -1515,7 +1515,7 @@ Induction on the step, with the rule cases distributed:
   boundary's binder — and the minted `instReveal 0 s` types leaf by leaf,
   each leaf citing its own binder.  Nothing is renamed.
 * **`TyPeelR-⟪⟫`** (`proof/Preserve.preserve-TyPeelR-⟪⟫`) — the same
-  outer `env`, with the moved boundary crossing by `⊢addUnbind0-cross`
+  outer `boundary`, with the moved boundary crossing by `⊢addUnbind0-cross`
   (`strong-rep-nu.TermSubst`): its reps by `⊢ʳ-ren`, its changes by `⊢ˢ-++`
   (`⊢ˢ-ren` plus `sw-l` for the appended unbind, whose slot **is**
   nameable), its interior by `⊢rename` at `Ren-addUnbind0` **alone**, and
@@ -1526,7 +1526,7 @@ Induction on the step, with the rule cases distributed:
 * **`Drop$`** — one inversion: `conv-id-refl` plus `shiftBy-ℕ⁻` force the
   exterior type to be the base type.
 * **`CancelR`, `IdPush`** (`proof/MoveScope`) — the scope move, §6.7.
-  Four moves each, one per premise of the contractum's inner `env`:
+  Four moves each, one per premise of the contractum's inner `boundary`:
   the frame is `Θ₁ ⋉ Θ₂`, well formed by `⊢ᵐ-⋉`; the interior is `V`,
   moved by `subst` along the frame **equality**; the conversion cites the
   binder that `move-∋` transports; and the exterior premise is
@@ -1540,7 +1540,7 @@ Induction on the step, with the rule cases distributed:
   re-reads `Θ₂`'s
   entries one bind prefix in, and `Θ₁` is then read over exactly
   `interior Θ₂ Δ` — its own exterior in the redex.
-* the five `ξ` rules — structural, using the same `env` node.
+* the five `ξ` rules — structural, using the same `boundary` node.
 
 The three transports the induction rests on are `⊢rename` (along a
 context renaming, with `Inj ρ`), `⊢retag` (along `⊑ᵃ`, types unchanged),
@@ -1705,7 +1705,7 @@ machine-checked consequence in tree.
    invariant lives *in the relation*, is minted by the rules and
    preserved by reduction.  The scope move is this law winning: instead
    of grounding `interior Θ₂ Δ ⊢ᵗ A` with a side condition, the rule was
-   changed so that the fact follows from `env`'s own last premise.
+   changed so that the fact follows from `boundary`'s own last premise.
 2. **Tightness, for terms and for scope.**  A masked slot may not be
    named in any type; `Nameable` and `wf-var` are the whole enforcement.
    *Mentioning* a masked index in a boundary scope entry (`↓X`, `↥X`) is not a

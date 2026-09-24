@@ -148,10 +148,10 @@ has extended.
 
 ## 2. Typing
 
-`Δ ∣ Γ ⊢ M ⦂ A` keeps its shape and all of its rules except `env`:
+`Δ ∣ Γ ⊢ M ⦂ A` keeps its shape and all of its rules except `boundary`:
 
 ```agda
-env : Δ ⊢ⁱ Θ ⇒ Δᵢ
+boundary : Δ ⊢ⁱ Θ ⇒ Δᵢ
     → Δ ⊢ᶜ Θ ⇒ Δᶜ
     → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
     → Δᶜ ⊢ c ∶ Cᵢ ⇝ Cₑ
@@ -440,7 +440,7 @@ is read off `δ`.
 1. `Boundary.agda`: `Boundary = List Change`, the two readings without
    `extendReps`, `instantiate`/`addUnbind0`/`_⋉_`/`renᴮᴿ` as in §1.2;
    `Conversion.agda` untouched.  Statements only, then `Terms.agda`'s
-   `env` and `allocate` in `Ctx.agda`.
+   `boundary` and `allocate` in `Ctx.agda`.
 2. `Reduction.agda` with the `∣ δ` index and `↑[ δ ]` in the
    congruences; `_-→*_` applying each step's `δ` to the tail's context;
    `det` and `value-¬step`.

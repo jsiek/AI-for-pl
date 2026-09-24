@@ -31,7 +31,7 @@ subgraph B["B. v1 — the combined boundary M ⟪Θ, B₀⟫ — 2026-09-03/04"]
   D11["D11 Reversal: license read back outward"]
   D12["D12 TyWrap′ and push-through Wrap"]
   D13["D13 Merge ⊕ with Drop∅"]
-  D14["D14 W1 RunOK and W2 env premise"]
+  D14["D14 W1 RunOK and W2 boundary premise"]
   D15["D15 W3 knowledge-preserving weakening"]
   D16["D16 W4 stop dropping"]
   D17["D17 ambient dual dualᴳ"]
@@ -132,7 +132,7 @@ D41 -->|"dualScope turns a no-op bind into an unbind and replays in Θ-order"| D
 D41 -->|"TyPeelR's annotation and double shift; CancelR's residue drops Θ₁'s frame"| D43
 D42 -->|"interior-dual and convCtx-dual PROVEN; PeelCase discharged"| D43
 D37 -->|"§13: the pushed seal ↦ seal types at NEITHER polarity — the TyPeelR blocker"| D43
-D37 -.->|"RULING: polarity DROPPED — env's frames enforce it per variable"| D46
+D37 -.->|"RULING: polarity DROPPED — boundary's frames enforce it per variable"| D46
 D43 -->|"the honest contracta owe interior Θ₂ Δ ⊢ᵗ A — one wall, three rules"| D44
 D44 -->|"all four invariants refuted; Jeremy: move part of Θ₂ into the inner boundary"| D45
 D45 -->|"PRESERVATION PROVEN, parameter-free"| D46

@@ -682,7 +682,7 @@ infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
   | just (`∀ C , ⊢L) | just (Δᵢ , Δᶜ , mwf) | just (C′ , Cₑ , ⊢c)
   | just refl | just (B , sameₑ) | just wB =
   just (B , ⊢ν wA rA ⊢L mwf ⊢c sameₑ wB)
--- The boundary.  `env`'s mechanical premises come from §5; its three
+-- The boundary.  `boundary`'s mechanical premises come from §5; its three
 -- informative ones are the interior term's type, the conversion's two
 -- types, and the two readings that relate them.
 infer Δ Γ (M ⟪ Θ , c ⟫) with boundaryWf? Δ Θ
@@ -709,7 +709,7 @@ infer Δ Γ (M ⟪ Θ , c ⟫) | just (Δᵢ , Δᶜ , mwf) | just (Bᵢ , ⊢M)
   nothing
 infer Δ Γ (M ⟪ Θ , c ⟫) | just (Δᵢ , Δᶜ , mwf) | just (Bᵢ , ⊢M)
   | just (Cᵢ , Cₑ , ⊢c) | just sameᵢ | just (Bₑ , sameₑ) | just wE =
-  just (Bₑ , env mwf ⊢M ⊢c sameᵢ sameₑ wE)
+  just (Bₑ , boundary mwf ⊢M ⊢c sameᵢ sameₑ wE)
 
 ------------------------------------------------------------------------
 -- 9. Checking a term against a stated type

@@ -66,15 +66,15 @@ merge-redex : ∀ {Δ Δᵢ Δ₂ᶜ U Θ₁ Θ₂ t₁ c₂ B C D}
   → Δ₂ᶜ ⊢ c₂ ∶ C ⇝ D
   → Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ]
       (Δ ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫ -→ M′ ∣ δ)
-merge-redex u it mw₂ (env mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c₂
+merge-redex u it mw₂ (boundary mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c₂
   with merged-conversion-exists mw₂ mw₁
-merge-redex u it mw₂ (env mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c₂
+merge-redex u it mw₂ (boundary mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c₂
   | Δ⋉ᶜ , r⋉ , keep₁ with readableᵀ ⊢t₁ | readable ⊢c₂
-merge-redex u it mw₂ (env mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c₂
+merge-redex u it mw₂ (boundary mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c₂
   | Δ⋉ᶜ , r⋉ , keep₁ | r₁ , rd₁ | r₂ , rd₂
   with weakenᵀ keep₁ rd₁
      | weaken (merged-keeps₂ (bw-conversion mw₂) r⋉) rd₂
-merge-redex u it mw₂ (env mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c₂
+merge-redex u it mw₂ (boundary mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c₂
   | Δ⋉ᶜ , r⋉ , keep₁ | r₁ , rd₁ | r₂ , rd₂ | t₁′ , rd₁′ | c₂′ , rd₂′ =
   _ , none
   , Merge u it (bw-interior mw₂) (bw-conversion mw₁) (bw-conversion mw₂)
@@ -112,7 +112,7 @@ module Impl where
   -- `Merge` redex; over a simple value the conversion classification
   -- decides — inert is a value, `id` at a base type drops, and an
   -- unseal cannot occur (a simple value has no variable type).
-  progress-env : ∀ {Δ Δᵢ Δᶜ Θ c M Bᵢ Cᵢ Cₑ}
+  progress-boundary : ∀ {Δ Δᵢ Δᶜ Θ c M Bᵢ Cᵢ Cₑ}
     → Value M
     → BoundaryWf Δ Θ Δᵢ Δᶜ
     → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
@@ -121,32 +121,32 @@ module Impl where
     → Value (M ⟪ Θ , c ⟫)
       ⊎ (Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ]
            (Δ ⊢ M ⟪ Θ , c ⟫ -→ M′ ∣ δ))
-  progress-env (V-⟪⟫ u it) mwΘ ⊢M ⊢c sameᵢ =
+  progress-boundary (V-⟪⟫ u it) mwΘ ⊢M ⊢c sameᵢ =
     inj₂ (merge-redex u it mwΘ ⊢M ⊢c)
-  progress-env (V-simple u) mwΘ ⊢M ⊢c sameᵢ with act-or-inert ⊢c
-  progress-env (V-simple u) mwΘ ⊢M ⊢c sameᵢ | inj₂ (I-tail it) =
+  progress-boundary (V-simple u) mwΘ ⊢M ⊢c sameᵢ with act-or-inert ⊢c
+  progress-boundary (V-simple u) mwΘ ⊢M ⊢c sameᵢ | inj₂ (I-tail it) =
     inj₁ (V-⟪⟫ u it)
-  progress-env (V-simple u) mwΘ ⊢M ⊢c sameᵢ | inj₁ (A-idb b)
+  progress-boundary (V-simple u) mwΘ ⊢M ⊢c sameᵢ | inj₁ (A-idb b)
     with conv-id-base-src b ⊢c
-  progress-env {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} (V-simple u) mwΘ ⊢M ⊢c sameᵢ
+  progress-boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} (V-simple u) mwΘ ⊢M ⊢c sameᵢ
     | inj₁ (A-idb b) | refl =
     inj₂ (progress-id-base (V-simple u) b
       (⊢ty≡ (sameTy-base-src {Δ = Δᵢ} {Δ′ = Δᶜ} b sameᵢ) ⊢M))
-  progress-env {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} (V-simple u) mwΘ ⊢M
+  progress-boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} (V-simple u) mwΘ ⊢M
     (conv-unseal d) sameᵢ | inj₁ A-unseal
     with ≈-var-source {Δ = Δᵢ} {Δ′ = Δᶜ} sameᵢ
-  progress-env {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} (V-simple u) mwΘ ⊢M
+  progress-boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} (V-simple u) mwΘ ⊢M
     (conv-unseal d) sameᵢ | inj₁ A-unseal | Y , refl =
     ⊥-elim (simple-¬var u ⊢M)
-  progress-env {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} (V-simple u) mwΘ ⊢M
+  progress-boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} (V-simple u) mwΘ ⊢M
     (conv-unseal-seq d ⊢c n m) sameᵢ | inj₁ A-unseal-seq
     with ≈-var-source {Δ = Δᵢ} {Δ′ = Δᶜ} sameᵢ
-  progress-env {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} (V-simple u) mwΘ ⊢M
+  progress-boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} (V-simple u) mwΘ ⊢M
     (conv-unseal-seq d ⊢c n m) sameᵢ | inj₁ A-unseal-seq | Y , refl =
     ⊥-elim (simple-¬var u ⊢M)
 
   -- A function-conversion wrapper carries its own BoundaryWf and the domain
-  -- conversion typing needed by the core `peel-premises-env` theorem.
+  -- conversion typing needed by the core `peel-premises-boundary` theorem.
   progress-peel : ∀ {Δ U M Θ s t A B}
     → Simple U
     → Value M
@@ -154,10 +154,10 @@ module Impl where
     → Σ[ N ∈ Term ] Σ[ δ ∈ Alloc ]
         (Δ ⊢ (U ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · M -→ N ∣ δ)
   progress-peel u vM
-    (env mwΘ ⊢U (conv-tail (conv-mid (conv-fun ⊢s ⊢t))) sameᵢ sameₑ wE)
-    with peel-premises-env mwΘ ⊢s
+    (boundary mwΘ ⊢U (conv-tail (conv-mid (conv-fun ⊢s ⊢t))) sameᵢ sameₑ wE)
+    with peel-premises-boundary mwΘ ⊢s
   progress-peel u vM
-    (env mwΘ ⊢U (conv-tail (conv-mid (conv-fun ⊢s ⊢t))) sameᵢ sameₑ wE)
+    (boundary mwΘ ⊢U (conv-tail (conv-mid (conv-fun ⊢s ⊢t))) sameᵢ sameₑ wE)
     | Δᵈ , s′ , rd , sc =
     _ , _ , Peel u vM (bw-conversion mwΘ) (bw-interior mwΘ) rd sc
 
@@ -169,10 +169,10 @@ module Impl where
     → Σ[ M ∈ Term ] Σ[ δ ∈ Alloc ]
         (Δ ⊢ ν A · ((Λ N) ⟪ Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩ -→ M ∣ δ)
   progress-ν-∀conv vN
-    (⊢ν wA rA (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) mwν ⊢cν sameν wB)
+    (⊢ν wA rA (boundary mwΘ ⊢V ⊢c sameᵢ sameₑ wE) mwν ⊢cν sameν wB)
     with conv-all-inv ⊢c
   progress-ν-∀conv vN
-    (⊢ν wA rA (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) mwν ⊢cν sameν wB)
+    (⊢ν wA rA (boundary mwΘ ⊢V ⊢c sameᵢ sameₑ wE) mwν ⊢cν sameν wB)
     | A₀ , B₀ , refl , eqₑ , ⊢s =
     _ , _ , Nu-⟪Λ⟫ vN (bw-conversion mwΘ) ⊢s rA
 
@@ -210,8 +210,8 @@ module Impl where
   progress (⊢ν wA rA ⊢L mw ⊢c same wB) | inj₁ vL
     | inj₂ (N , Θ , s , vN , refl) =
     inj₂ (progress-ν-∀conv vN (⊢ν wA rA ⊢L mw ⊢c same wB))
-  progress (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) with progress ⊢M
-  progress (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | inj₂ (M′ , δ , st) =
+  progress (boundary mwΘ ⊢M ⊢c sameᵢ sameₑ wE) with progress ⊢M
+  progress (boundary mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | inj₂ (M′ , δ , st) =
     inj₂ (M′ ⟪ ↑ᴮ[ δ ] _ , _ ⟫ , δ , ξ-⟪⟫ (bw-interior mwΘ) st)
-  progress (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | inj₁ vM =
-    progress-env vM mwΘ ⊢M ⊢c sameᵢ
+  progress (boundary mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | inj₁ vM =
+    progress-boundary vM mwΘ ⊢M ⊢c sameᵢ

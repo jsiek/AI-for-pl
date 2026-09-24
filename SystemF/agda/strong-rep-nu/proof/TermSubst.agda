@@ -261,8 +261,8 @@ mutual
 ⊢renⁿ h (⊢Λ vN ⊢N) = ⊢Λ (value-renⁿ vN) (⊢renⁿ (⤊-∋ⁿ h) ⊢N)
 ⊢renⁿ h (⊢ν wA rA ⊢L mw ⊢c same wB) =
   ⊢ν wA rA (⊢renⁿ h ⊢L) mw ⊢c same wB
-⊢renⁿ h (env mwᵥ ⊢M ⊢c sameᵢ sameₑ wE) =
-  env mwᵥ ⊢M ⊢c sameᵢ sameₑ wE
+⊢renⁿ h (boundary mwᵥ ⊢M ⊢c sameᵢ sameₑ wE) =
+  boundary mwᵥ ⊢M ⊢c sameᵢ sameₑ wE
 
 renⁿ-id : (ρ : Var → Var) → (∀ x → ρ x ≡ x)
   → (M : Term) → renⁿ ρ M ≡ M

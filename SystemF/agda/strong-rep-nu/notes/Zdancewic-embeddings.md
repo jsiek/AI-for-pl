@@ -129,7 +129,7 @@ So: **one** annotation type + a list of principals; the *inner* type is not stor
   `e_i` embedded inside it." Spawning an agent that knows `α = τ` **is** `rvl τ`; recording rather than
   substituting is their choice too. (They also note the other option — plain System F with agent type
   variables kept disjoint — as "straightforward".)
-* **Rule (7)** (retag the annotation to `Δ̄_i(τ)`) has no analogue in ours: our `env` derives both faces from
+* **Rule (7)** (retag the annotation to `Δ̄_i(τ)`) has no analogue in ours: our `boundary` derives both faces from
   `B₀`, so there is nothing to refine. It is (7) that makes (8) and (9)'s side conditions satisfiable, i.e.
   it plays the role our `cf-∀-B₀`/`cf-⇒-B₀` inversions play.
 
@@ -192,7 +192,7 @@ Proposed rule, in `BReduction.agda` style:
 
 **Invariant it relies on — and yes, it is exactly the open "rep inconsistency" issue.** The cancel clause is
 well-typed only if `A` (the conceal's internal rep) equals the rep of the enclosing reveal it names. Under
-today's `env` that is unprovable (memo §4, `bad`, `bad-cancel-ill-typed`), so **do not land merge on the
+today's `boundary` that is unprovable (memo §4, `bad`, `bad-cancel-ill-typed`), so **do not land merge on the
 current relation.** Under route 2 the reveal contributes `rvld A` to `intOf` and `bwf↓` on `cnc X A` demands
 `Δ ∋ X := A`, which *forces* the agreement — the merge clause then discharges by inversion, and `bad` ceases
 to typecheck at all. This is the same move the paper makes: `≲_ℓ` is only transitive because the `δ_i` agree.
@@ -202,7 +202,7 @@ Two obligations to state before writing any proof:
 ```agda
   ⊕ᵇ-int : intOf Δ (Θ₁ ⊕ᵇ Θ₂) ≡ intOf (intOf Δ Θ₂) Θ₁                     -- contexts compose
   ⊕ᵇ-γ   : substᵗ (γᵇ (Θ₁ ⊕ᵇ Θ₂)) B₂ ≡ substᵗ (γᵇ Θ₁) B₁                   -- their (trans)+Lemma A.1
-             -- given the env premise substᵗ (ρᵇ Θ₁) B₁ ≡ substᵗ (γᵇ Θ₂) B₂ (the "middle type")
+             -- given the boundary premise substᵗ (ρᵇ Θ₁) B₁ ≡ substᵗ (γᵇ Θ₂) B₂ (the "middle type")
   ⊕ᵇ-ρ   : substᵗ (ρᵇ (Θ₁ ⊕ᵇ Θ₂)) B₂ ≡ substᵗ (ρᵇ Θ₂) B₂
 ```
 

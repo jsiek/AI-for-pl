@@ -4,7 +4,7 @@ module strong-rep-nu.proof.PeelDual where
 --   * THE PEEL CROSSING — the dual is an INVERSE, and both of its
 --     readings are theorems of strong-rep-nu.Boundary §3a.  §1
 --     weakens a TYPED conversion across the crossing (`weaken-⊢`);
---     §2 splits the redex's `env` premises at the arrow; §3 is
+--     §2 splits the redex's `boundary` premises at the arrow; §3 is
 --     `preserve-Peel`.
 --   * THE ARGUMENT DOES NOT MOVE.  `dual-interior` says the dual's
 --     interior IS the exterior, and since the store there is no bind
@@ -232,7 +232,7 @@ mutual
 ------------------------------------------------------------------------
 
 -- The interior type of a `_↦_` boundary is an arrow, because its
--- reading is.  Since the store this ONE inversion serves BOTH `env`
+-- reading is.  Since the store this ONE inversion serves BOTH `boundary`
 -- premises.
 sameTy-⇒⁻ : ∀ {η η′ : TyCtx} {B A₁ B₁ : Ty}
   → ∃[ R ] ((η ⊢ B ~ R) × (η′ ⊢ A₁ ⇒ B₁ ~ R))
@@ -252,14 +252,14 @@ preserve-Peel : PeelCase
 preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
               {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
               wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
-              (⊢· (env mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
+              (⊢· (boundary mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
                        sameᵢ sameₑ (wf-⇒ wA wC)) ⊢W)
   with interior-functional (bw-interior mwΘ) ri
      | conversion-functional (bw-conversion mwΘ) rc
 preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
               {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
               wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
-              (⊢· (env mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
+              (⊢· (boundary mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
                        sameᵢ sameₑ (wf-⇒ wA wC)) ⊢W)
   | refl | refl
   with sameTy-⇒⁻ sameᵢ | sameTy-⇒⁻ sameₑ
@@ -271,13 +271,13 @@ preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} 
 preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
               {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
               wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
-              (⊢· (env mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
+              (⊢· (boundary mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
                        sameᵢ sameₑ (wf-⇒ wA wC)) ⊢W)
   | refl | refl
   | Aᵢ , Bᵢ , refl , smAᵢ , smBᵢ
   | Aₑ , Cₑ , refl , smAₑ , smCₑ
   | P′ , Q′ , ⊢s′ , smP , smQ =
-  env mwΘ (⊢· ⊢V arg) ⊢t smBᵢ smCₑ wC
+  boundary mwΘ (⊢· ⊢V arg) ⊢t smBᵢ smCₑ wC
   where
   -- the dual's frame: the exterior itself
   mwD : BoundaryWf Δᵢ (dual Θ) Δ Δᵈ
@@ -301,5 +301,5 @@ preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} 
             (proj₁ (proj₂ smQ))
 
   arg : Δᵢ ∣ [] ⊢ (W ⟪ dual Θ , s′ ⟫) ⦂ Aᵢ
-  arg = env mwD ⊢W ⊢s′ sameᵢ-d sameₑ-d
+  arg = boundary mwD ⊢W ⊢s′ sameᵢ-d sameₑ-d
             (same-wf (proj₁ (proj₂ smAᵢ)))

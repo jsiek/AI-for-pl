@@ -25,7 +25,7 @@ module strong-rep-nu.notes.RepWeakenBindsWall where
 -- and in that form it is FALSE.  `extendReps Rs Δ` pushes the payloads
 -- `Rs` onto the representation context WITHOUT checking them, but a
 -- boundary inside `W` has to be RETYPED at the weakened context, and the
--- `env` rule stores a `BoundaryWf` whose `bw-exterior` field is a `WfCtx`
+-- `boundary` rule stores a `BoundaryWf` whose `bw-exterior` field is a `WfCtx`
 -- of that context — which demands `WfRepCtx`, i.e. that every stored
 -- payload be well formed where it is written.
 --
@@ -103,9 +103,9 @@ renamed-frame = refl
 
 no-rep-weaken : ¬ RepWeakenTyping₀
 no-rep-weaken rw with rw openPayload β-seven-⊢
-no-rep-weaken rw | env mwΘ ⊢M ⊢c sameᵢ sameₑ wE
+no-rep-weaken rw | boundary mwΘ ⊢M ⊢c sameᵢ sameₑ wE
   with wf-reps (bw-exterior mwΘ)
-no-rep-weaken rw | env mwΘ ⊢M ⊢c sameᵢ sameₑ wE
+no-rep-weaken rw | boundary mwΘ ⊢M ⊢c sameᵢ sameₑ wE
   | wf-bindR (wfᴿ-var (local-ref ())) wr
-no-rep-weaken rw | env mwΘ ⊢M ⊢c sameᵢ sameₑ wE
+no-rep-weaken rw | boundary mwΘ ⊢M ⊢c sameᵢ sameₑ wE
   | wf-bindR (wfᴿ-var (free-ref (there ()))) wr

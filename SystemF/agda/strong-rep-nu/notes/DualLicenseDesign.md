@@ -44,8 +44,8 @@ New CONTEXT entry form (TyEntry, strong-rep-nu/Context.agda):
   ordinary knowledge lookup (∋:=) does not see it — that is what dodges the
   ¬hk-int renaming trap (checked: no-know-Z).
 
-The interior computation  Γ ⇈ Θ  (strong-rep-nu/Boundary.agda; used by (env) in the
-typing relation  Δ ∣ Γ ⊢ M : A — the (env) rule itself is unchanged):
+The interior computation  Γ ⇈ Θ  (strong-rep-nu/Boundary.agda; used by (boundary) in the
+typing relation  Δ ∣ Γ ⊢ M : A — the (boundary) rule itself is unchanged):
 
     before   reveal ↑Z:=A ⇒ entry Z:=⟦A⟧ when expressible;
              retried at the unfolding (hybrid);  ABSTRACT otherwise
@@ -130,6 +130,6 @@ bwf-↓x / the dual's reveal block REBUILDING knowledge via ≼≈, DualInt≈).
 
   (b1) additionally re-opens conceals of plain abstract variables
   (bwf1-garbage), undoing what the restored invariant bought.  (b4) — a
-  co-boundary-parameterized judgment — is ruled out structurally: (env)'s
+  co-boundary-parameterized judgment — is ruled out structurally: (boundary)'s
   premise has no co-boundary slot, and preservation must produce a plain
   derivation.

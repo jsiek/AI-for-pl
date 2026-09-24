@@ -1,6 +1,6 @@
-# One representation, two ordinary spellings: a worked `env`
+# One representation, two ordinary spellings: a worked `boundary`
 
-This is a machine-derived instance of `Terms.agda` §4's `env` rule and of
+This is a machine-derived instance of `Terms.agda` §4's `boundary` rule and of
 `notes/notes.md`'s “One representation, two ordinary spellings.”  Every
 state number, numeral, de Bruijn index, context, type, representation, and
 named rendering below was normalized by a temporary Agda probe.  None of the
@@ -88,7 +88,7 @@ Starting from `[1,2]`, `bind 0 0` inserts `0` at the front, producing
 middle `1`, producing `[0,2]`.  The conversion reading skips that unbind and
 therefore remains `[0,1,2]`.
 
-## 3. The actual `env` instance
+## 3. The actual `boundary` instance
 
 Agda inferred the four ordinary endpoint types as follows:
 
@@ -99,7 +99,7 @@ Agda inferred the four ordinary endpoint types as follows:
 | `Cₑ` in `Δᶜ` | `` ` 1 ⇒ ` 1 `` | `Y⇒Y` |
 | `Bₑ` in `Δ` | `` ` 0 ⇒ ` 0 `` | `Y⇒Y` |
 
-The six premises of this occurrence of `env` are:
+The six premises of this occurrence of `boundary` are:
 
 1. `BoundaryWf Δ (unbind 1 1 ∷ bind 0 0 ∷ []) Δᵢ Δᶜ`.
 2. ``Δᵢ ∣ [] ⊢ M ⦂ (` 0 ⇒ ` 0)``.

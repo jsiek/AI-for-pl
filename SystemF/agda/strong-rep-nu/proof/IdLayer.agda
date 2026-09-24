@@ -35,7 +35,7 @@ open import strong-rep-nu.proof.Canonical
 -- §1  THE NAMES ARE FORCED
 ------------------------------------------------------------------------
 
--- The heart of both cases, on the two `env` premises alone.  Stated on
+-- The heart of both cases, on the two `boundary` premises alone.  Stated on
 -- NAME MAPS, because the judgement reaches a context only through the
 -- `names` projection, which does not determine it.
 -- Commentary.md § proof/IdLayer.agda / §1
@@ -60,11 +60,11 @@ idpush-name : ∀ {Δ Γ V Θ₁ Θ₂ X Y C}
         × (Δᶜ ∋ᵗ Y := α)
         × (Δ₁ᶜ ∋ᵗ X := α))
 idpush-name
-    (env mw₂ (env mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX))) sm₁ se₁ wB)
+    (boundary mw₂ (boundary mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX))) sm₁ se₁ wB)
          (conv-unseal dY) sm₂ se₂ wE)
   with push-rep se₁ sm₂
 idpush-name
-    (env mw₂ (env mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX))) sm₁ se₁ wB)
+    (boundary mw₂ (boundary mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX))) sm₁ se₁ wB)
          (conv-unseal dY) sm₂ se₂ wE)
   | α , d , d′ =
   _ , _ , _ , α
@@ -82,11 +82,11 @@ cancel-name : ∀ {Δ Γ V Θ₁ Θ₂ X Y C}
         × (Δᶜ ∋ᵗ Y := α)
         × (Δ₁ᶜ ∋ᵗ X := α))
 cancel-name
-    (env mw₂ (env mw₁ ⊢V (conv-tail (conv-seal dX)) sm₁ se₁ wB)
+    (boundary mw₂ (boundary mw₁ ⊢V (conv-tail (conv-seal dX)) sm₁ se₁ wB)
          (conv-unseal dY) sm₂ se₂ wE)
   with push-rep se₁ sm₂
 cancel-name
-    (env mw₂ (env mw₁ ⊢V (conv-tail (conv-seal dX)) sm₁ se₁ wB)
+    (boundary mw₂ (boundary mw₁ ⊢V (conv-tail (conv-seal dX)) sm₁ se₁ wB)
          (conv-unseal dY) sm₂ se₂ wE)
   | α , d , d′ =
   _ , _ , _ , α
@@ -109,19 +109,19 @@ same-base-source same-𝔹 base-𝔹 = base-𝔹
 outer-id-base-untypeable : ∀ {Δ Γ V Θ₁ Θ₂ X A C} → Base A
   → ¬ (Δ ∣ Γ ⊢ (V ⟪ Θ₁ , ⌞ id (` X) ⌟ ⟫) ⟪ Θ₂ , ⌞ id A ⌟ ⟫ ⦂ C)
 outer-id-base-untypeable bA
-    (env {Δᵢ = Δᵢ} mw₂
-         (env {Δᶜ = Δ₁ᶜ} mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX)))
+    (boundary {Δᵢ = Δᵢ} mw₂
+         (boundary {Δᶜ = Δ₁ᶜ} mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX)))
               sm₁ se₁ wB)
          (conv-tail (conv-mid (conv-id bA′))) (R , p , q) se₂ wE)
   with ≈-base-target {Δ = Δᵢ} {Δ′ = Δ₁ᶜ}
          (same-base-target p (same-base-source q bA′)) se₁
 outer-id-base-untypeable bA
-    (env {Δᵢ = Δᵢ} mw₂
-         (env {Δᶜ = Δ₁ᶜ} mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX)))
+    (boundary {Δᵢ = Δᵢ} mw₂
+         (boundary {Δᶜ = Δ₁ᶜ} mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX)))
               sm₁ se₁ wB)
          (conv-tail (conv-mid (conv-id bA′))) (R , p , q) se₂ wE) | ()
 outer-id-base-untypeable ()
-  (env _ (env _ _ (conv-tail (conv-mid (conv-idv _))) _ _ _)
+  (boundary _ (boundary _ _ (conv-tail (conv-mid (conv-idv _))) _ _ _)
        (conv-tail (conv-mid (conv-idv _))) _ _ _)
 
 -- A boundary can never conceal the name its OWN conversion cites
@@ -143,10 +143,10 @@ outer-id-base-untypeable ()
 
 naked-drop-trap : ∀ {C} →
   ¬ (Δₑ ∣ [] ⊢ ($ 7) ⟪ [] , tail (seal 1) ⟫ ⦂ C)
-naked-drop-trap (env mwᵥ ⊢$ ⊢c smᵢ smₑ wE)
+naked-drop-trap (boundary mwᵥ ⊢$ ⊢c smᵢ smₑ wE)
   with bw-conversion mwᵥ
 naked-drop-trap
-  (env mwᵥ ⊢$ (conv-tail (conv-seal (α , R , name , rep , same)))
+  (boundary mwᵥ ⊢$ (conv-tail (conv-seal (α , R , name , rep , same)))
        smᵢ smₑ wE)
   | conversion conv[] = Δₑ-no-1 name
 
@@ -167,15 +167,15 @@ drop-empty-frame : ∀ {Δ Γ V A B}
   → Δ ∣ Γ ⊢ V ⟪ [] , ⌞ id A ⌟ ⟫ ⦂ B
     ------------------------------------
   → Δ ∣ [] ⊢ V ⦂ B
-drop-empty-frame {Δ = Δ} {V = V} (env mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE)
+drop-empty-frame {Δ = Δ} {V = V} (boundary mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE)
   with interior-functional (bw-interior mwᵥ) (empty-interior Δ)
      | conversion-functional (bw-conversion mwᵥ) (empty-conversion Δ)
 drop-empty-frame {Δ = Δ} {V = V}
-  (env mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE) | refl | refl
+  (boundary mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE) | refl | refl
   with same-rep-unique qᵢ (subst (λ T → names Δ ⊢ T ~ S)
                                  (sym (conv-id-refl ⊢c)) qₑ)
 drop-empty-frame {Δ = Δ} {V = V}
-  (env mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE) | refl | refl | refl =
+  (boundary mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE) | refl | refl | refl =
   subst (λ T → Δ ∣ [] ⊢ V ⦂ T)
         (same-target-unique (name-fn (bw-exterior mwᵥ)) pᵢ pₑ)
         ⊢V

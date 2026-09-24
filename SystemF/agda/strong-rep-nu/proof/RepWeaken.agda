@@ -33,7 +33,7 @@ open import strong-rep-nu.TermSubst
 open import strong-rep-nu.proof.TermSubst
 open import strong-rep-nu.proof.Preserve
   using (CrossΛTyping; ShiftTyping; repwk-alloc; WfRen-wk; wf-ren;
-         wf-same; same-weaken; wf-underΛ; ν-env-ren)
+         wf-same; same-weaken; wf-underΛ; ν-boundary-ren)
 
 ------------------------------------------------------------------------
 -- §1  The renaming induction
@@ -59,16 +59,16 @@ open import strong-rep-nu.proof.Preserve
   ⊢Λ (value-renᴹᴿ (extᵗ ρ) vN)
      (⊢cast (names-underΛ-ren ρ η) (⊢renᴿ (repwk-abst w) ⊢N))
 ⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} w (⊢ν wA rA ⊢L mw ⊢c same wB)
-  with ν-env-ren w rA mw ⊢c same
+  with ν-boundary-ren w rA mw ⊢c same
 ⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} w (⊢ν wA rA ⊢L mw ⊢c same wB)
   | Δ′ , mw′ , ⊢c′ , same′ =
   ⊢ν (wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} wA) (same-ren ρ rA)
      (⊢renᴿ w ⊢L) mw′ ⊢c′ same′
      (wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} wB)
 ⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {η = η} {ρ = ρ} w
-      (env (bw wΔ (interior cs) (conversion csᶜ))
+      (boundary (bw wΔ (interior cs) (conversion csᶜ))
            ⊢M ⊢c (Rᵢ , pᵢ , qᵢ) (Rₑ , pₑ , qₑ) wE) =
-  env (bw (wfctx-ren w wΔ)
+  boundary (bw (wfctx-ren w wΔ)
           (interior-ren w (interior cs))
           (conversion-ren w (conversion csᶜ)))
       (⊢renᴿ w ⊢M)
@@ -94,7 +94,7 @@ shift-⊢ wR ⊢M = ⊢renᴿ (repwk-alloc wR) ⊢M
 cross-Λ-⊢ : CrossΛTyping
 cross-Λ-⊢ {Δ = Ξ ∣ η} {W = W} {A = A} wfΔ wA ⊢W =
   subst (λ M → underΛ (Ξ ∣ η) ∣ [] ⊢ M ⦂ ⇑ᵗ A) (sym term-eq)
-        (env mwΛ inner (mkId-⊢ w↑) sameᵢ sameₑ w↑)
+        (boundary mwΛ inner (mkId-⊢ w↑) sameᵢ sameₑ w↑)
   where
   Δᵢ : Ctxᵗ
   Δᵢ = (abstR ∷ Ξ) ∣ shiftReps η

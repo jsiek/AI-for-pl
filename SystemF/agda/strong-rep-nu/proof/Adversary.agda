@@ -73,7 +73,7 @@ conv-Θadv : ∀ {Δᶜ} → Δadv ⊢ᶜ Θadv ⇒ Δᶜ → Δᶜ ≡ Δadv
 conv-Θadv (conversion (conv-unbind valid conv[])) = refl
 
 ¬⊢adv : ∀ {Γ} → ¬ (Δadv ∣ Γ ⊢ ($ 7) ⟪ Θadv , tail (seal 0) ⟫ ⦂ ` 0)
-¬⊢adv (env mwᵥ ⊢M ⊢c smᵢ smₑ wE)
+¬⊢adv (boundary mwᵥ ⊢M ⊢c smᵢ smₑ wE)
   with conv-Θadv (bw-conversion mwᵥ)
 ... | refl = ¬seal-adv ⊢c
 
@@ -124,7 +124,7 @@ seal-bad-conv (conv-tail (conv-seal (α , R , here , rep , same)))
   same-target-unique (unique∷ fresh[] unique[]) same bad-reading
 
 -- The adversary's term is `7` behind that conceal, presented at `` ` 0 ``.
--- It is refused by the seal's SOURCE type alone: `env` makes the boundary's
+-- It is refused by the seal's SOURCE type alone: `boundary` makes the boundary's
 -- interior type and the conversion's source two spellings of one
 -- representation, and `7 : ℕ` cannot spell ∀Z.Z→Z.
 ¬same-ℕ-∀ : ∀ {η η′ R} → η ⊢ `ℕ ~ R → η′ ⊢ ∀ZZ ~ R → ⊥
@@ -132,11 +132,11 @@ seal-bad-conv (conv-tail (conv-seal (α , R , here , rep , same)))
 
 ¬⊢bad : ∀ {Γ Θ} → Δbad ⊢ᶜ Θ ⇒ Δbad
   → ¬ (Δbad ∣ Γ ⊢ ($ 7) ⟪ Θ , tail (seal 0) ⟫ ⦂ ` 0)
-¬⊢bad rc (env mwᵥ ⊢$ ⊢c (R , pᵢ , qᵢ) smₑ wE)
+¬⊢bad rc (boundary mwᵥ ⊢$ ⊢c (R , pᵢ , qᵢ) smₑ wE)
   with conversion-functional (bw-conversion mwᵥ) rc
-¬⊢bad rc (env mwᵥ ⊢$ ⊢c (R , pᵢ , qᵢ) smₑ wE) | refl
+¬⊢bad rc (boundary mwᵥ ⊢$ ⊢c (R , pᵢ , qᵢ) smₑ wE) | refl
   with seal-bad-conv ⊢c
-¬⊢bad rc (env mwᵥ ⊢$ ⊢c (R , pᵢ , qᵢ) smₑ wE) | refl | refl =
+¬⊢bad rc (boundary mwᵥ ⊢$ ⊢c (R , pᵢ , qᵢ) smₑ wE) | refl | refl =
   ¬same-ℕ-∀ pᵢ qᵢ
 
 ------------------------------------------------------------------------

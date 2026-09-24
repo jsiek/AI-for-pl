@@ -553,7 +553,7 @@ conversions stay rep-free (Jeremy, 2026-09-24).
 The judgement carried a global index `p` that fixed `unseal` to a
 REVEAL position and `seal` to a CONCEAL one, flipping on `conv-fun`'s
 domain.  It is REDUNDANT: the discipline it enforced is PER TYPE
-VARIABLE, and `env` already enforces it with the FRAMES — a UNBOUND `X`
+VARIABLE, and `boundary` already enforces it with the FRAMES — a UNBOUND `X`
 is DELETED from the interior reading, so it cannot sit on the interior
 side of a leaf, and a name the scope itself BINDS has no entry in the
 exterior name map, so it cannot sit on the exterior side.  Dropping `p`
@@ -718,11 +718,11 @@ binder's representation — there is no second spelling, which is why the
 
 `conv-all-inv`: a `∀` conversion's body, as an inversion that returns
 the two `∀` shapes AS EQUATIONS.  At the use sites the conversion's
-source and target are variables that `env` constrains only
+source and target are variables that `boundary` constrains only
 RELATIONALLY, so matching `conv-all` directly does not unify;
 `Nu-⟪Λ⟫`'s premise `underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ` is recovered by this
 lemma instead.  (History: the
-lemma was introduced when `env` pinned the target type to a
+lemma was introduced when `boundary` pinned the target type to a
 `shiftBy`-headed stuck term, which could not be seen through either.)
 
 ### §6 — `conv-types-unique`
@@ -738,8 +738,8 @@ produced by well-formed boundary scopes preserve this invariant
   of `shiftBy`" (the no-polarity argument) — there is no masking and no
   bind block; the same argument is made above with deletion from the
   interior reading and absence from the exterior name map.
-* "`env` pins the target type to `shiftBy (numBinds Θ) Bₑ`, which is a
-  stuck term" (`conv-all-inv`) — `env`'s exterior premise is the
+* "`boundary` pins the target type to `shiftBy (numBinds Θ) Bₑ`, which is a
+  stuck term" (`conv-all-inv`) — `boundary`'s exterior premise is the
   relation `Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ`; the lemma is still needed, for the
   reason given above.
 * The one-sort grammar `id | seal | unseal | _↦_ | `∀` with the single
@@ -758,7 +758,7 @@ conversion as `Inert` or `Active`, with `act-or-inert` and
 `act-not-inert`.  §3 is `Simple` and `Value` — AT MOST ONE BOUNDARY on
 a value — which come BEFORE the typing judgement because `⊢Λ` reads
 them.  §4 is
-`_∣_⊢_⦂_`, whose boundary rule is `env`, whose `⊢Λ` carries the
+`_∣_⊢_⦂_`, whose boundary rule is `boundary`, whose `⊢Λ` carries the
 VALUE RESTRICTION and whose `⊢ν` types the ∀-elimination, plus
 `value-var-visible`.  §5 is the concrete `β-seven` / `β-seven-⊢`.
 
@@ -771,12 +771,12 @@ theorem statements in `Preservation.agda`, `Progress.agda` and
 
 ### The four laws a reader must know
 
-1. `env` never COMPUTES the two contexts a boundary scope induces: it
+1. `boundary` never COMPUTES the two contexts a boundary scope induces: it
    takes `BoundaryWf Δ Θ Δᵢ Δᶜ` (`Boundary.agda`) and the two contexts
    are its OUTPUTS.  The retired `interior` / `convCtx` functions are
    gone.
 2. The three sides can spell the same semantic type differently, so
-   `env` compares them by the REPRESENTATION each denotes, by one and
+   `boundary` compares them by the REPRESENTATION each denotes, by one and
    the same relation on both sides: `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` inside and
    `Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ` outside (`Ctx.agda` §5).  A boundary's interior
    is TERM-CLOSED — `Δᵢ ∣ [] ⊢ M ⦂ Bᵢ` — which is what lets
@@ -853,7 +853,7 @@ premise is discharged by the typing derivation.
 
 THE ∀-ELIMINATION (2026-09-24, `notes/NuSketch.md`).  `ν A · L ⟨ c ⟩`
 instantiates `L : ∀ C` at a fresh cell holding `A`'s representation `R`
-and converts the result with `c`.  The premises are the `env` pattern,
+and converts the result with `c`.  The premises are the `boundary` pattern,
 read at the context the `Nu` rules leave:
 
 ```
@@ -863,7 +863,7 @@ read at the context the `Nu` rules leave:
                                        the scope `inst []` over the cell
   Δᶜ ⊢ c ∶ C ⇝ Cₑ                      c, read on its conversion context
   allocate R Δ ⊢ B ≈ Cₑ ⊣ Δᶜ,  Δ ⊢ᵗ B  the result, compared by
-                                       representation as `env` does
+                                       representation as `boundary` does
 ```
 
 ANY `c` WHOSE TYPES LINE UP IS ACCEPTED (Jeremy, 2026-09-24, as GTPLC's
@@ -887,7 +887,7 @@ counterexample to premise-free preservation no longer exists in
 well-typed form (§ Preservation.agda / Why `WfCtx Δ` is part of the
 statement).
 
-### §4 — `env`
+### §4 — `boundary`
 
 The boundary scope witness supplies both contexts.  Since ordinary
 variables may be inserted and removed, the same semantic type can have
@@ -900,7 +900,7 @@ relation as the interior one.
 ### §4 — `value-var-visible`
 
 A value's variable type is VISIBLE on the value's own type context,
-because `env`'s last conjunct checks it there.  So a boundary can never
+because `boundary`'s last conjunct checks it there.  So a boundary can never
 conceal the slot its conversion names.
 
 ### §5 — `β-seven`
@@ -912,7 +912,7 @@ has been allocated.
 ### Retired
 
 * "the bind-prefix crossing `SameTyExt`" in law (2) and "`SameTyExt` is
-  gone" at `env` — stated once above as "one store, the same relation
+  gone" at `boundary` — stated once above as "one store, the same relation
   on both sides".
 * "on the value's BIND type context" (`value-var-visible`) — there is
   no bind block; the context is the value's own.
@@ -952,7 +952,7 @@ module.  Reduction is `Reduction.agda`; the typing transport for
 
 ### The two laws a reader must know
 
-1. Boundaries are TERM-CLOSED (`Terms.agda`, `env`), so `substᵐ` does
+1. Boundaries are TERM-CLOSED (`Terms.agda`, `boundary`), so `substᵐ` does
    NOT descend into `_⟪_,_⟫`.
 2. `Beta` is FRAME-EXACT: a closed value image crossing a `Λ` is
    wrapped in that binder's DUAL with an identity conversion at the
@@ -1169,7 +1169,7 @@ NAMES the dual's spelling `s′` and carries a `SameConv` relating it to
 The premise never blocks a reduction.  The two contexts name the same
 representation variables — that is (Q), `notes/PeelPremise.agda` §5 —
 and a well-typed conversion always has a reading to transport, so a
-witness always exists (`peel-premises-env`, `Conversion.agda` §2c).
+witness always exists (`peel-premises-boundary`, `Conversion.agda` §2c).
 `t` needs no premise: it stays on the same boundary, at `Δᶜ`, where it
 was read.
 
@@ -1236,7 +1236,7 @@ THE CONVERSION.  `s` is moved VERBATIM.  Its body's slot 0 was the
 name 0, which the outer layer binds to the new cell, so `s` is typed at
 exactly the conversion context `liftᴮ-conversion` produces from the
 crossed one, and `preserve-Nu-⟪Λ⟫` retypes the middle layer from the
-crossed `env`'s premises, refined at the new cell (`liftᴮ-interior`,
+crossed `boundary`'s premises, refined at the new cell (`liftᴮ-interior`,
 `liftᴮ-conversion`).  The leaves of `s` that read slot 0 are
 identities, and they STAY identities: the instantiation step is `c`'s
 job, one layer out, and the next `Merge` composes the two.
@@ -1246,7 +1246,7 @@ THE BODY PREMISE (2a).  The rule carries the typing
 syntactic (a `seal`'s source is a binder's representation, which the
 rep-free conversion does not carry) but it IS DETERMINED by the
 conversion typing, so the rule carries that typing as a PREMISE.
-Progress derives it by inverting the redex's own `env`
+Progress derives it by inverting the redex's own `boundary`
 (`conv-all-inv`); the contractum does not use it, so determinism needs
 nothing for it.
 
@@ -1489,7 +1489,7 @@ is used instead and the input is written out.
 
 ### Why it exists (2026-09-17)
 
-A boundary `M ⟪ Θ , c ⟫` is typed by `env`, whose six premises are of
+A boundary `M ⟪ Θ , c ⟫` is typed by `boundary`, whose six premises are of
 two very different kinds.  Three of them say something about the
 PROGRAM: which conversion applies, which `_⊢_≈_⊣_` reading relates the
 three sides, what the interior term's type is.  The other three are
@@ -1535,7 +1535,7 @@ prefix on both sides.  Backward (`unread?`): the ordinary spelling a
 representation type has under a given name map, if it has one.
 
 RE-BASING (`rebase?`) is the one genuinely non-obvious checker, and it
-is also the reason `infer` is an inference and not a check: `env`
+is also the reason `infer` is an inference and not a check: `boundary`
 exposes the conversion target at the CONVERSION context, while the
 result type must be spelled at the AMBIENT context.  `A` is read on the
 name map `η`; `rebase?` finds its spelling on `η′` together with the
@@ -1572,7 +1572,7 @@ RECURSION, not a shape test; `V-⟪⟫` needs only `Simple U` and
 `InertTail t`, one boundary deep.  `infer` needs `value?` for `⊢Λ`'s value restriction;
 `Eval.agda` reuses both for the rules' side conditions.
 
-The boundary case: `env`'s mechanical premises come from §5; its three
+The boundary case: `boundary`'s mechanical premises come from §5; its three
 informative ones are the interior term's type, the conversion's two
 types, and the two readings that relate them.
 
@@ -1903,7 +1903,7 @@ renaming the allocation makes.
 
 `CancelRCase` WAS refuted too — the old rule weakened the inner
 layer's identity type in the OUTER conversion context and so dropped a
-shift `env` demanded, at a redex reachable from a closed plain source
+shift `boundary` demanded, at a redex reachable from a closed plain source
 program.  Repair (a) was approved by Jeremy on 2026-09-19 and installed
 in `Reduction.agda`: the premise now reads the cancelled seal's own
 source at Θ₁'s conversion context.  With the store there is no shift
@@ -1970,7 +1970,7 @@ takes `WfCtx Δ`; the premise-free form is FALSE here, because at a
 duplicate name map a `Beta` contractum must mint a `BoundaryWf` that
 `Unique` refuses (§ Preservation.agda, and `notes/DECISIONS.md`,
 2026-09-18).  `progress` takes NO such premise — a boundary case reads
-well-formedness off its own `env`.  `det` takes the REDEX'S TYPING
+well-formedness off its own `boundary`.  `det` takes the REDEX'S TYPING
 DERIVATION, from which it recovers the name-map uniqueness the rules
 used to carry as premises (same entry).  The reduction relation is
 indexed by the type context `Δ` only; the term context is empty, as it
@@ -2471,7 +2471,7 @@ that the top level plus the theorem statements can be read alone.
 
 ### The two laws a reader must know
 
-1. Boundaries are TERM-CLOSED (`Terms.agda`, `env`), so `renⁿ` does NOT
+1. Boundaries are TERM-CLOSED (`Terms.agda`, `boundary`), so `renⁿ` does NOT
    descend into `_⟪_,_⟫` and `⊢renⁿ` reuses the boundary's derivation
    unchanged.
 2. A type renaming carries TWO independent maps, and the ordinary one
@@ -2503,7 +2503,7 @@ CANONICAL FORMS for the conversion-boundary calculus.
 A closed value is a SIMPLE value or a simple value under ONE inert
 tail, and its EXTERIOR TYPE decides which shape.  The whole suite is
 driven by ONE observation: for a wrapper value `U ⟪ Θ , tail t ⟫` the
-`env` rule relates the EXTERIOR TYPE and the TARGET TYPE of `t` by
+`boundary` rule relates the EXTERIOR TYPE and the TARGET TYPE of `t` by
 `_⊢_≈_⊣_` — two ordinary spellings of ONE representation type — and an
 INERT tail determines that target type's head constructor outright:
 
@@ -2525,7 +2525,7 @@ boundary over a boundary value is its redex.)
 
 ### §1 — `≈` preserves the exterior type's head constructor
 
-History: the old `env` exposed `shiftBy (numBinds Θ) Bₑ` directly, and
+History: the old `boundary` exposed `shiftBy (numBinds Θ) Bₑ` directly, and
 the relational rule that replaced it factored both spellings through a
 representation type and applied `shiftRep` on the conversion side.
 With the store design (experiment 2) there is no bind prefix to cross,
@@ -2565,9 +2565,9 @@ that the canonical-forms lemmas can be applied to it.
 
 ### Retired
 
-* "`env` relates the exterior type and the target type of `c` through
+* "`boundary` relates the exterior type and the target type of `c` through
   `SameTyExt`, its common representation type shifted past Θ's
-  representation binders on the conversion side" — `env`'s exterior
+  representation binders on the conversion side" — `boundary`'s exterior
   premise is `_⊢_≈_⊣_` at equal depth, as stated above.
 * `inert-var-conv` and `canon-var` (retired 2026-09-24) — a value at a
   variable type exposed `CancelR`'s or `IdPush`'s inner layer; with
@@ -2591,7 +2591,7 @@ with their helpers: no rule mints `instReveal` any more.)  §3 opens with `nu-ou
 contractum shares, typed from `⊢ν`'s own premises.  §3 proves the local reduction cases.  §4 states the
 transports that are proved downstream — `CrossΛTyping`, `ShiftTyping`
 and the two crossing cases `PeelCase` and `MergeCase` (§4b) —
-and supplies the `AllocWf` / `env-apply` machinery the congruences
+and supplies the `AllocWf` / `boundary-apply` machinery the congruences
 consume.  §5 reads off a step what it did to the store (`step-alloc`),
 proves `preserve-wf`, and assembles `preserve` / `preserve*` in `Impl`.
 
@@ -2673,7 +2673,7 @@ renaming.
 
 ```
   CrossΛTyping    PROVED 2026-09-20, `proof/RepWeaken.cross-Λ-⊢`, as one
-                  `env` around `⊢renᴿ` at `repwk-abst₀`.
+                  `boundary` around `⊢renᴿ` at `repwk-abst₀`.
   ShiftTyping     NEW with the store (2026-09-22),
                   `proof/RepWeaken.shift-⊢`.  It REPLACES
                   `RepWeakenTyping`, the bind-block weakening `Peel`
@@ -2697,7 +2697,7 @@ ordinary spelling are unchanged.  It is today's rep-weakening at
 `⊢renᴿ (repwk-alloc wR)`.
 
 THE PAYLOAD MUST BE WELL FORMED.  Without `reps Δ ⊢ᴿ R` the statement
-is FALSE: a boundary's `env` stores a `BoundaryWf` whose `bw-exterior`
+is FALSE: a boundary's `boundary` stores a `BoundaryWf` whose `bw-exterior`
 demands a `WfCtx` of the allocated context, and
 `WfRepCtx (bindR R ∷ Ξ)` holds only when `R` checks over `Ξ`.  At every
 call site it is `same-wfᴿ` of the rule's own `Δ ⊢ᶜ A ~ R` premise
@@ -2709,7 +2709,7 @@ nothing, or one well-formed cell.  Everything the theorems need about
 `new R`.  `aw-reps`: a boundary changes NAMES only, so a reading
 transports an `AllocWf`.
 
-`env-apply` — THE BOUNDARY CASE OF THE CONGRUENCE.  The interior
+`boundary-apply` — THE BOUNDARY CASE OF THE CONGRUENCE.  The interior
 stepped at `Δᵢ` and its contractum lives at `apply δ Δᵢ`; the new
 boundary is read at `apply δ Δ` by `interior-ren` / `conversion-ren` at
 `suc`, and that reading's interior IS `apply δ Δᵢ` — a boundary keeps
@@ -2803,7 +2803,7 @@ CROSSING A BOUNDARY CHANGES NOTHING any more: since the store
 experiment a boundary scope carries no bind block, so the SAME ρ runs
 inside it (`interior-ren` / `conversion-ren` at ρ, no `extN` offset).
 
-### The hard case is `env`
+### The hard case is `boundary`
 
 Every one of its premises transports by a lemma of `proof/Ctx.agda` §3,
 `Boundary.agda` §3d or `Conversion.agda` §2d: the exterior
@@ -2819,7 +2819,7 @@ the SAME relation at the same depth, which is what retired the old
 ### The payload must be well formed
 
 `repwk-alloc` (`proof/Preserve.agda` §2) demands `Ξ ⊢ᴿ R`, and without
-it the shift is FALSE: `env` stores a `BoundaryWf` whose `bw-exterior`
+it the shift is FALSE: `boundary` stores a `BoundaryWf` whose `bw-exterior`
 is a `WfCtx`, so the ALLOCATED context must be well formed, and
 `WfRepCtx (bindR R ∷ Ξ)` holds only when `R` checks over `Ξ`.  At every
 call site it is `same-wfᴿ` of the allocating rule's own reading premise
@@ -2839,7 +2839,7 @@ experiment is `⊢renᴿ` at that instance, with no cast at all.
 The same induction at the base instance
 `repwk-abst₀ : RepWk suc Ξ (abstR ∷ Ξ)`.  The moved term lands under
 the new abstract representation binder but OUTSIDE its ordinary name.
-One `env` with `(unbind 0 0 ∷ [])` then supplies exactly that missing
+One `boundary` with `(unbind 0 0 ∷ [])` then supplies exactly that missing
 ordinary boundary: its interior DELETES name zero, while its conversion
 reading RETAINS it for `mkId (⇑ᵗ A)`.
 
@@ -2885,7 +2885,7 @@ premise into the dual boundary's conversion typing.
 
 ```
   §1  weakening a TYPED conversion across the crossing
-  §2  the ⇒-splitting the redex's `env` premises need
+  §2  the ⇒-splitting the redex's `boundary` premises need
   §3  the crossing, and `preserve-Peel`
 ```
 
@@ -2897,14 +2897,14 @@ representation context and differ only in their ordinary name map, so
 every leaf transports: a `seal`/`unseal` cites the SAME binder and only
 its ordinary spelling changes, and an identity's payload is weakened
 by `weaken-ty`.  The source and target types come back paired with
-`_⊢_≈_⊣_`s, which is what the crossing boundary's `env` consumes.
+`_⊢_≈_⊣_`s, which is what the crossing boundary's `boundary` consumes.
 
 ### §2 — splitting at the arrow
 
 The interior type of a boundary whose conversion is a `_↦_` is an
 arrow, because its reading is.  Since the store experiment the EXTERIOR
 comparison is the same relation at the same depth, so this one
-inversion (`sameTy-⇒⁻`) serves BOTH `env` premises.
+inversion (`sameTy-⇒⁻`) serves BOTH `boundary` premises.
 
 ### §3 — the crossing
 
@@ -2925,7 +2925,7 @@ their `updateAt` commutations (old §2); `interior-dual`, `convCtx-dual`
 context to state an equality between, (P) is refuted, and the frame
 identity is `dual-interior`.  AND (2026-09-22) `shiftRep-⇒` and
 `sameTyExt-⇒⁻`: the exterior comparison is now the same relation at the
-same depth, so `sameTy-⇒⁻` serves both `env` premises.
+same depth, so `sameTy-⇒⁻` serves both `boundary` premises.
 
 ## proof/Compose.agda
 
@@ -3003,12 +3003,12 @@ interior.  These are the `_⊆ᵃ_` inclusions `weaken-⊢` needs to move
 ### §2 — gluing two readings of one representation
 
 `same-glue`, `same-sym`, `same-both`: small algebra on `_⊢_≈_⊣_`
-through the common representation, used to connect the redex's `env`
+through the common representation, used to connect the redex's `boundary`
 comparisons to the weakened conversions' endpoints.
 
 ### §3 — `preserve-Merge`
 
-FOUR MOVES, one per premise of the contractum's `env`:
+FOUR MOVES, one per premise of the contractum's `boundary`:
 
 ```
   FRAME       `Θ₁ ++ Θ₂`, whose interior is the inner frame's own
@@ -3019,7 +3019,7 @@ FOUR MOVES, one per premise of the contractum's `env`:
               weakened typings, with `Unique (names Δ⋉ᶜ)` from the
               merged reading's well-formedness.
   EXTERIOR    the redex's own exterior type `C`, related to `c₂′`'s
-              target by gluing the outer `env`'s comparison to the
+              target by gluing the outer `boundary`'s comparison to the
               weakening.
 ```
 
@@ -3076,7 +3076,7 @@ The two names denote the SAME representation variable, not one
 `numBinds Θ₁` above the other: a boundary scope carries no bind block,
 so there is no prefix between the inner conversion context and the
 outer one.  `push-rep` therefore lost its depth argument and its
-`shiftRep` bookkeeping, and both `env` comparisons it reads are the one
+`shiftRep` bookkeeping, and both `boundary` comparisons it reads are the one
 relation `_⊢_≈_⊣_` at equal depth.
 
 WHAT WAS DELETED.  `convCtx-unbind` — "a conceal is invisible to the
@@ -3086,7 +3086,7 @@ two-universe counterpart.  The relational statement of the same fact is
 
 ### §1 — the names are forced
 
-`push-rep` is the heart of both cases, on the two `env` premises alone.
+`push-rep` is the heart of both cases, on the two `boundary` premises alone.
 The inner boundary's exterior type `B` is read at the OUTER interior;
 its own conversion spells it `` ` X `` and the outer conversion spells
 it `` ` Y ``.  Since the store experiment there is no bind prefix
@@ -3122,7 +3122,7 @@ is a variable.
 
 A boundary can never conceal the name its OWN conversion cites —
 `value-var-visible` (`Terms.agda`) says a value's variable type is
-visible on the value's exterior context, because `env`'s last conjunct
+visible on the value's exterior context, because `boundary`'s last conjunct
 checks it there.  So "Θ₁ unbinds `Y` while the conversion cites `Y`" is
 untypeable.
 
@@ -3146,7 +3146,7 @@ The ordinary cases are the standard induction, using
 `proof/Canonical.agda`.  Boundary reductions additionally construct the
 relational context readings and weakenings the rules carry.  `Peel`'s
 package is proved in `Boundary.agda` / `Conversion.agda`
-(`peel-premises-env`); `Merge`'s is `merge-redex` here.  Nothing is a
+(`peel-premises-boundary`); `Merge`'s is `merge-redex` here.  Nothing is a
 parameter.
 
 ONE BOUNDARY PER VALUE: a boundary over a boundary value is ALWAYS a
@@ -3174,14 +3174,14 @@ unconditional on 2026-09-21 (then for `CancelR` and `IdPush`, as
 
 ### §4 — the boundary cases of the induction
 
-* `progress-env`: once the interior is a value, a boundary over a
+* `progress-boundary`: once the interior is a value, a boundary over a
   boundary value is a `Merge` redex (`merge-redex`); over a simple
   value the conversion classification decides — inert is a value, `id`
   at a base type drops (`progress-id-base`, §3), and an unseal cannot
   occur, because a simple value has no variable type (`simple-¬var`).
 * `progress-peel`: a function-middle wrapper carries its own
   `BoundaryWf` and the domain conversion typing needed by the core
-  `peel-premises-env` theorem.
+  `peel-premises-boundary` theorem.
 * `progress-ν-∀conv`: a `ν` over a `Λ` under a `∀` middle (the
   induction gets that shape from `canon-∀`: the wrapper's interior is
   simple, hence a `Λ`), so the step is `Nu-⟪Λ⟫`, and the middle's body
@@ -3384,7 +3384,7 @@ The stored payload, looked up, is `∀ZZ` again: `⇑ᵗ` moves only the FREE
 representation occurrences, and `∀ZZ` has none; and `∀ZZ` has exactly
 one ordinary reading on `names Δbad`.  The adversary's term is `7`
 behind that conceal, presented at `` ` 0 ``.  It is refused by the
-seal's SOURCE type alone: `env` makes the boundary's interior type and
+seal's SOURCE type alone: `boundary` makes the boundary's interior type and
 the conversion's source two spellings of one representation, and
 `7 : ℕ` cannot spell `∀Z.Z→Z`.
 
@@ -3586,7 +3586,7 @@ THE `ƛ` CLAUSE.  A `ƛ` binds a TERM variable, so no type frame changes
 and `shiftᴵ` must not touch the type side at all.  It does not: on a
 value image it is the IDENTITY, which is correct because a value image
 is TERM-CLOSED — and it stays term-closed, because `crossΛᴹ W A` is a
-BOUNDARY and `env` types its interior at `Γ = []`.
+BOUNDARY and `boundary` types its interior at `Γ = []`.
 
 `⇑ᴵ-shiftᴵ-comm`: the two crossings DO NOT INTERFERE (design law:
 simultaneity).  Crossing a `ƛ` then a `Λ` is crossing a `Λ` then a `ƛ`,
@@ -3644,14 +3644,14 @@ Each congruence reduces a subterm IN PLACE, at the very type context
 the corresponding TYPING rule reads it on:
 
 ```
-  ξ-⟪⟫   premise at the boundary scope's INTERIOR = `env`'s premise
+  ξ-⟪⟫   premise at the boundary scope's INTERIOR = `boundary`'s premise
          context
 ```
 
 (`ξ-·-l`, `ξ-·-r`, `ξ-ν` read their premise at `Δ` itself, and there
 is no `ξ-Λ`: `strong-rep-nu` never reduces under a type binder.)
 This is not an equation: `ξ-⟪⟫` CARRIES the interior reading, which is
-the same object `env` carries, so the two contexts are identified by
+the same object `boundary` carries, so the two contexts are identified by
 `interior-functional` rather than by `refl`.
 
 THE NEW OBLIGATION OF THE STORE.  A congruence leaves a SIBLING behind

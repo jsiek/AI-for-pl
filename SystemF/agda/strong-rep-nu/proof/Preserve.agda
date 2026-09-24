@@ -6,7 +6,7 @@ module strong-rep-nu.proof.Preserve where
 --     facts; §1b `RepRefines`, the in-place `abstR → bindR R`
 --     refinement; §2 the allocation and the minted conversions;
 --     §3 the local reduction cases; §4/§4b the transports and crossing
---     cases proved downstream, with the `AllocWf`/`env-apply`
+--     cases proved downstream, with the `AllocWf`/`boundary-apply`
 --     machinery; §5 `step-alloc`, `preserve-wf`, and `Impl`.
 --   * A STEP RETURNS THE CHANGE IT MADE, so the contractum is typed at
 --     `apply δ Δ` and the congruences SHIFT THE REDEX'S SIBLINGS
@@ -157,7 +157,7 @@ CtxWf-⤊ {Δ = Δ} h d | A , refl , q =
 ⊢ᵗ-of h (⊢· ⊢L ⊢M) | wf-⇒ wA wB = wB
 ⊢ᵗ-of h (⊢Λ _ ⊢N) = wf-∀ (⊢ᵗ-of (CtxWf-⤊ h) ⊢N)
 ⊢ᵗ-of h (⊢ν wA rA ⊢L mw ⊢c same wB) = wB
-⊢ᵗ-of h (env _ _ _ _ _ wE) = wE
+⊢ᵗ-of h (boundary _ _ _ _ _ wE) = wE
 
 wf-same : Δ ⊢ᵗ A → ∃[ R ] names Δ ⊢ A ~ R
 wf-same (wf-var (α , name)) = ` α , same-var name
@@ -347,13 +347,13 @@ subst-at-∀ X A B = cong `∀ (subst-cong (single-at-ext X A) B)
 
 subst-at-0 : (A B : Ty) → B [ 0 := ⇑ᵗ A ]ᵗ ≡ ⇑ᵗ (B [ A ]ᵗ)
 subst-at-0 A B =
-  trans (subst-cong env-eq B)
+  trans (subst-cong boundary-eq B)
         (sym (rename-subst suc (singleTyEnv A) B))
   where
-  env-eq : (Y : ℕ)
+  boundary-eq : (Y : ℕ)
     → single-at 0 (⇑ᵗ A) Y ≡ renameᵗ suc (singleTyEnv A Y)
-  env-eq zero = refl
-  env-eq (suc Y) = refl
+  boundary-eq zero = refl
+  boundary-eq (suc Y) = refl
 
 underNames : ℕ → TyCtx → TyCtx
 underNames zero η = η
@@ -529,9 +529,9 @@ repwk-alloc {R = R} wR = repwk-cons₀ (bindR R) (wf-bindR wR)
            (interior (changes-refine (rr-bind rr) cs))
            (conversion (conv-changes-refine (rr-bind rr) csᶜ))
 ⊢refine {Ξ = Ξ} {Ξ′ = Ξ′} {η = η} rr w′
-        (env (bw w (interior cs) (conversion csᶜ))
+        (boundary (bw w (interior cs) (conversion csᶜ))
              ⊢M ⊢c sameᵢ sameₑ wE) =
-  env mw′
+  boundary mw′
       (⊢refine rr (bw-interior-wf mw′) ⊢M)
       (conv-refine rr ⊢c)
       sameᵢ sameₑ (wf-refine rr wE)
@@ -561,7 +561,7 @@ inst-boundarywf (bw wΔ (interior cs) (conversion csᶜ)) p =
 -- (`repwk-bind`), and the conversion and both readings move with it.
 -- Consumed by `⊢renᴿ` (strong-rep-nu.proof.RepWeaken) and by the
 -- `ξ-ν` congruence of `preserve`.
-ν-env-ren : ∀ {ρ Ξ′ Δ A R Δᵢ Δᶜ c C Cₑ B}
+ν-boundary-ren : ∀ {ρ Ξ′ Δ A R Δᵢ Δᶜ c C Cₑ B}
   → RepWk ρ (reps Δ) Ξ′
   → Δ ⊢ᶜ A ~ R
   → BoundaryWf (allocate R Δ) TyBetaBoundary Δᵢ Δᶜ
@@ -572,10 +572,10 @@ inst-boundarywf (bw wΔ (interior cs) (conversion csᶜ)) p =
                   TyBetaBoundary Δ′ Δ′
       × (Δ′ ⊢ c ∶ C ⇝ Cₑ)
       × (allocate (renameᵗ ρ R) (Ξ′ ∣ map ρ (names Δ)) ⊢ B ≈ Cₑ ⊣ Δ′))
-ν-env-ren {ρ = ρ} {Ξ′ = Ξ′} {Δ = Δ} {R = R} w p mw ⊢c (Rₑ , q₁ , q₂)
+ν-boundary-ren {ρ = ρ} {Ξ′ = Ξ′} {Δ = Δ} {R = R} w p mw ⊢c (Rₑ , q₁ , q₂)
   with conversion-functional (bw-conversion mw)
          (inst-conversion {R = R} {Γ = Δ} (conversion conv[]))
-ν-env-ren {ρ = ρ} {Ξ′ = Ξ′} {Δ = Δ} {R = R} w p mw ⊢c (Rₑ , q₁ , q₂)
+ν-boundary-ren {ρ = ρ} {Ξ′ = Ξ′} {Δ = Δ} {R = R} w p mw ⊢c (Rₑ , q₁ , q₂)
   | refl = _ , mw′ , ⊢c′ , same′
   where
   η₀ = names Δ
@@ -716,7 +716,7 @@ nu-outer {Δ = Δ} {R = R} mw ⊢M ⊢c same wB
      | conversion-functional (bw-conversion mw)
          (inst-conversion {R = R} {Γ = Δ} (conversion conv[]))
 nu-outer {Δ = Δ} {R = R} mw ⊢M ⊢c same wB | refl | refl =
-  env mw ⊢M ⊢c sameᵢ same
+  boundary mw ⊢M ⊢c sameᵢ same
       (wf-ren-rep {Ξ = reps Δ} {Ξ′ = bindR R ∷ reps Δ} {ρ = suc} wB)
   where
   sameᵢ : reprCtx R Δ ⊢ _ ≈ _ ⊣ reprCtx R Δ
@@ -736,7 +736,7 @@ preserve-Nu-Λ wfΔ p (⊢ν wA rA (⊢Λ vN ⊢N) mw ⊢c same wB) | refl =
            ⊢c same wB
 
 -- `Nu-⟪Λ⟫`: the middle layer is the crossed boundary read under the new
--- name, and every one of its premises is the crossed `env`'s, refined
+-- name, and every one of its premises is the crossed `boundary`'s, refined
 -- at the new cell (`liftᴮ-interior`, `liftᴮ-conversion`).
 preserve-Nu-⟪Λ⟫ : ∀ {Δ N Θ s c A R C}
   → WfCtx Δ
@@ -744,10 +744,10 @@ preserve-Nu-⟪Λ⟫ : ∀ {Δ N Θ s c A R C}
   → Δ ∣ [] ⊢ ν A · ((Λ N) ⟪ Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩ ⦂ C
   → allocate R Δ ∣ [] ⊢ (N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫ ⦂ C
 preserve-Nu-⟪Λ⟫ wfΔ p
-    (⊢ν wA rA (env mwΘ (⊢Λ vN ⊢N) ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
+    (⊢ν wA rA (boundary mwΘ (⊢Λ vN ⊢N) ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
   with same-rep-unique rA p | conv-all-inv ⊢c₀
 preserve-Nu-⟪Λ⟫ wfΔ p
-    (⊢ν wA rA (env mwΘ (⊢Λ vN ⊢N) ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
+    (⊢ν wA rA (boundary mwΘ (⊢Λ vN ⊢N) ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
   | refl | A₀ , B₀ , refl , refl , ⊢s₀ =
   nu-outer mw middle ⊢c same wB
   where
@@ -756,7 +756,7 @@ preserve-Nu-⟪Λ⟫ wfΔ p
            (liftᴮ-conversion (bw-conversion mwΘ))
 
   middle =
-    env mw₁ (⊢refine (rr-represent rr-refl) (bw-interior-wf mw₁) ⊢N)
+    boundary mw₁ (⊢refine (rr-represent rr-refl) (bw-interior-wf mw₁) ⊢N)
         (conv-refine (rr-represent rr-refl) ⊢s₀)
         (sameTy-∀⁻ sameᵢ) (sameTy-∀⁻ sameₑ)
         (wf-refine (rr-represent rr-refl) (wf-∀⁻ wE))
@@ -796,11 +796,11 @@ preserve-Drop$ : ∀ {Δ n Θ A C}
   → Δ ∣ [] ⊢ ($ n) ⟪ Θ , ⌞ id A ⌟ ⟫ ⦂ C
   → Δ ∣ [] ⊢ $ n ⦂ C
 preserve-Drop$ wfΔ base-ℕ
-  (env mwΘ ⊢$ (conv-tail (conv-mid (conv-id base-ℕ)))
+  (boundary mwΘ ⊢$ (conv-tail (conv-mid (conv-id base-ℕ)))
        sameᵢ sameₑ wE)
   rewrite sameTy-ℕ wfΔ sameₑ = ⊢$
 preserve-Drop$ wfΔ base-𝔹
-  (env mwΘ ⊢$ (conv-tail (conv-mid (conv-id base-𝔹)))
+  (boundary mwΘ ⊢$ (conv-tail (conv-mid (conv-id base-𝔹)))
        sameᵢ sameₑ wE) =
   ⊥-elim (sameTy-ℕ-𝔹-absurd sameᵢ)
 
@@ -809,7 +809,7 @@ preserve-Drop-true : ∀ {Δ Θ C}
   → Δ ∣ [] ⊢ `true ⟪ Θ , ⌞ id `𝔹 ⌟ ⟫ ⦂ C
   → Δ ∣ [] ⊢ `true ⦂ C
 preserve-Drop-true wfΔ
-  (env mwΘ ⊢true (conv-tail (conv-mid (conv-id base-𝔹)))
+  (boundary mwΘ ⊢true (conv-tail (conv-mid (conv-id base-𝔹)))
        sameᵢ sameₑ wE)
   rewrite sameTy-𝔹 wfΔ sameₑ = ⊢true
 
@@ -818,7 +818,7 @@ preserve-Drop-false : ∀ {Δ Θ C}
   → Δ ∣ [] ⊢ `false ⟪ Θ , ⌞ id `𝔹 ⌟ ⟫ ⦂ C
   → Δ ∣ [] ⊢ `false ⦂ C
 preserve-Drop-false wfΔ
-  (env mwΘ ⊢false (conv-tail (conv-mid (conv-id base-𝔹)))
+  (boundary mwΘ ⊢false (conv-tail (conv-mid (conv-id base-𝔹)))
        sameᵢ sameₑ wE)
   rewrite sameTy-𝔹 wfΔ sameₑ = ⊢false
 
@@ -878,7 +878,7 @@ apply-wf w (aw-new wR) = alloc-wf w wR
 -- THE BOUNDARY CASE OF THE CONGRUENCE: the new boundary's reading at
 -- `apply δ Δ` has interior `apply δ Δᵢ`, because a boundary keeps the
 -- store.  Commentary.md § proof/Preserve.agda / §4
-env-apply : ∀ {Δ Δᵢ Δᶜ Γ Θ c M′ Bᵢ Cᵢ Cₑ Bₑ} {δ : Alloc}
+boundary-apply : ∀ {Δ Δᵢ Δᶜ Γ Θ c M′ Bᵢ Cᵢ Cₑ Bₑ} {δ : Alloc}
   → AllocWf δ Δ
   → BoundaryWf Δ Θ Δᵢ Δᶜ
   → apply δ Δᵢ ∣ [] ⊢ M′ ⦂ Bᵢ
@@ -887,12 +887,12 @@ env-apply : ∀ {Δ Δᵢ Δᶜ Γ Θ c M′ Bᵢ Cᵢ Cₑ Bₑ} {δ : Alloc}
   → Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ
   → Δ ⊢ᵗ Bₑ
   → apply δ Δ ∣ Γ ⊢ M′ ⟪ ↑ᴮ[ δ ] Θ , c ⟫ ⦂ Bₑ
-env-apply aw-none mwΘ ⊢M′ ⊢c sameᵢ sameₑ wE =
-  env mwΘ ⊢M′ ⊢c sameᵢ sameₑ wE
-env-apply {Δ = Δ} {δ = new R} (aw-new wR)
+boundary-apply aw-none mwΘ ⊢M′ ⊢c sameᵢ sameₑ wE =
+  boundary mwΘ ⊢M′ ⊢c sameᵢ sameₑ wE
+boundary-apply {Δ = Δ} {δ = new R} (aw-new wR)
           (bw wΔ (interior cs) (conversion csᶜ))
           ⊢M′ ⊢c (Rᵢ , pᵢ , qᵢ) (Rₑ , pₑ , qₑ) wE =
-  env (bw (alloc-wf wΔ wR)
+  boundary (bw (alloc-wf wΔ wR)
           (interior-ren w (interior cs))
           (conversion-ren w (conversion csᶜ)))
       ⊢M′
@@ -905,7 +905,7 @@ env-apply {Δ = Δ} {δ = new R} (aw-new wR)
   w = repwk-alloc wR
 
 -- THE `ν` CASE OF THE CONGRUENCE: `ν`'s own boundary is re-read at
--- `apply δ Δ` by `ν-env-ren` at the allocation's weakening.
+-- `apply δ Δ` by `ν-boundary-ren` at the allocation's weakening.
 nu-apply : ∀ {Δ Δᵢ Δᶜ Γ A R L′ C Cₑ B c} {δ : Alloc}
   → AllocWf δ Δ
   → Δ ⊢ᵗ A
@@ -918,7 +918,7 @@ nu-apply : ∀ {Δ Δᵢ Δᶜ Γ A R L′ C Cₑ B c} {δ : Alloc}
   → apply δ Δ ∣ Γ ⊢ ν A · L′ ⟨ c ⟩ ⦂ B
 nu-apply aw-none wA rA ⊢L′ mw ⊢c same wB = ⊢ν wA rA ⊢L′ mw ⊢c same wB
 nu-apply {δ = new S} (aw-new wS) wA rA ⊢L′ mw ⊢c same wB
-  with ν-env-ren (repwk-alloc wS) rA mw ⊢c same
+  with ν-boundary-ren (repwk-alloc wS) rA mw ⊢c same
 nu-apply {δ = new S} (aw-new wS) wA rA ⊢L′ mw ⊢c same wB
   | Δ′ , mw′ , ⊢c′ , same′ =
   ⊢ν (⊢ᵗ-apply (new S) wA) (same-ren suc rA) ⊢L′ mw′ ⊢c′ same′
@@ -969,8 +969,8 @@ wf-underΛ {Δ = Δ} (wf-ctx wr vn uq) =
      (⊢substᴹ cross (wf-underΛ wfΔ) (⇑ᴵ-⊢ cross wfΔ h) ⊢N)
 ⊢substᴹ cross wfΔ h (⊢ν wA rA ⊢L mw ⊢c same wB) =
   ⊢ν wA rA (⊢substᴹ cross wfΔ h ⊢L) mw ⊢c same wB
-⊢substᴹ cross wfΔ h (env mwᵥ ⊢M ⊢c sameᵢ sameₑ wE) =
-  env mwᵥ ⊢M ⊢c sameᵢ sameₑ wE
+⊢substᴹ cross wfΔ h (boundary mwᵥ ⊢M ⊢c sameᵢ sameₑ wE) =
+  boundary mwᵥ ⊢M ⊢c sameᵢ sameₑ wE
 
 ⊢subst : CrossΛTyping → ∀ {Δ Γ A B N W}
   → WfCtx Δ
@@ -1073,11 +1073,11 @@ module Impl
     ⊢· (⊢↑ shift (step-alloc wfΔ st) ⊢L) (preserve wfΔ ⊢M st)
   preserve wfΔ (⊢ν wA rA ⊢L mw ⊢c same wB) (ξ-ν st) =
     nu-apply (step-alloc wfΔ st) wA rA (preserve wfΔ ⊢L st) mw ⊢c same wB
-  preserve wfΔ (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) (ξ-⟪⟫ ri st)
+  preserve wfΔ (boundary mwΘ ⊢M ⊢c sameᵢ sameₑ wE) (ξ-⟪⟫ ri st)
     with interior-functional ri (bw-interior mwΘ)
-  preserve wfΔ (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) (ξ-⟪⟫ ri st)
+  preserve wfΔ (boundary mwΘ ⊢M ⊢c sameᵢ sameₑ wE) (ξ-⟪⟫ ri st)
     | refl =
-    env-apply (aw-reps (interior-reps ri)
+    boundary-apply (aw-reps (interior-reps ri)
                        (step-alloc (bw-interior-wf mwΘ) st))
               mwΘ (preserve (bw-interior-wf mwΘ) ⊢M st)
               ⊢c sameᵢ sameₑ wE

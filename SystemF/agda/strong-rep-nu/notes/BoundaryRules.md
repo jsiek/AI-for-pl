@@ -7,7 +7,7 @@ postulates); section numbers below point at that file. Nothing in
 
 Notation is Boundary.agda's throughout: `M ⟪ Θ , B₀ ⟫`, `rvl A`, `cnc X A`,
 `revs Θ` (= *r*), `cmax Θ` (= *c*), `intOf Δ Θ = prepAbst r (dropN c Δ)`,
-faces `γᵇ` (internal) / `ρᵇ` (external), scope stack `baseS Θ Δ`, rule `env`.
+faces `γᵇ` (internal) / `ρᵇ` (external), scope stack `baseS Θ Δ`, rule `boundary`.
 
 ## 1. Proposed minimal rule set
 
@@ -55,7 +55,7 @@ conceal rep for that slot (read in `intOf Δ Θ` — exactly a reveal rep's home
 So `revs (dualᵇ Θ) = cmax Θ`, `cmax (dualᵇ Θ) = revs Θ`, and the boundary frame
 is permuted by the block swap `swapᵇ`. A dropped slot that is *not* concealed
 is **blocked**; it gets an arbitrary rep (`ℕ`), which is sound precisely because
-`env`'s `Scoped` premise forbids `B₁` from naming it — the one slot where the
+`boundary`'s `Scoped` premise forbids `B₁` from naming it — the one slot where the
 exterior face law genuinely fails is kept as a checked witness
 (`blocked-slot-differs`, probe §3a), so R2's preservation must use
 `subst-cong-sc`, not a pointwise identity.
@@ -174,7 +174,7 @@ holds; the old design's ill-typed term is unreachable. R2 likewise never moves
 a type *into* the interior — `dualᵇ` only re-reads reps that already live on
 the right side of the boundary.
 
-**The one real risk is not Example 8 but rep inconsistency.** `env` records one
+**The one real risk is not Example 8 but rep inconsistency.** `boundary` records one
 `B₀` and derives both faces (§2, settled), and there is no premise relating a
 `cnc X A`'s rep to the rep of the reveal whose variable it conceals — the
 reveal lives on an *enclosing* wrapper, so no local premise could. Hence
@@ -189,7 +189,7 @@ whose whole content is `$ 7`. `bad ·[ Z→Z , ℕ ] : ℕ→ℕ` is well typed,
 unsound (`bad-cancel-ill-typed : ¬ ([] ∣ [] ⊢ $ 7 ⦂ `∀ (` 0 ⇒ ` 0))`). No merge
 can help: the composite of those two boundaries would have to be a `Θ₂` over
 `[]` with `intOf [] Θ₂ ≡ []`, whose two faces then coincide — but they must be
-`ℕ` and `∀(Z→Z)`. **So progress cannot be proved from `env` alone**; the term is
+`ℕ` and `∀(Z→Z)`. **So progress cannot be proved from `boundary` alone**; the term is
 unreachable (R2's conceals come from `dualᵇ`, which copies the reveal's own
 rep), so the options are:
 

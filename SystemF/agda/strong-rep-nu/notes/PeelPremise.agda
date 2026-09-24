@@ -11,7 +11,7 @@ module strong-rep-nu.notes.PeelPremise where
 --   * strong-rep-nu.Boundary §3c constructs the dual's conversion context;
 --   * strong-rep-nu.Conversion §2c weakens a well-typed conversion and
 -- exports
---     `peel-premises` / `peel-premises-env`.
+--     `peel-premises` / `peel-premises-boundary`.
 --
 -- This note retains the concrete mixed-frame witness that motivated (Q) and
 -- checks that the moved package constructs exactly the premise `Peel` needs.

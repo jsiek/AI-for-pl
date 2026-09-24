@@ -169,7 +169,7 @@ substitution {a} {b} {c} =
         (single-subst-def (substᵗ σ a) c)
         (sub-sub σ τ a)))
     (trans
-      (subst-cong env-eq a)
+      (subst-cong boundary-eq a)
       (trans
         (sym (sub-sub (extsᵗ τ) φ a))
         (sym
@@ -188,15 +188,15 @@ substitution {a} {b} {c} =
     φ : Substᵗ
     φ = singleTyEnv (substᵗ τ b)
 
-    env-eq : (X : ℕ) → (σ ⨟ᵗ τ) X ≡ ((extsᵗ τ) ⨟ᵗ φ) X
-    env-eq zero          = refl
-    env-eq (suc zero)    =
+    boundary-eq : (X : ℕ) → (σ ⨟ᵗ τ) X ≡ ((extsᵗ τ) ⨟ᵗ φ) X
+    boundary-eq zero          = refl
+    boundary-eq (suc zero)    =
       trans
         (sym (subst-id c))
         (trans
           (subst-cong (λ X → refl) c)
           (sym (rename-subst-commute suc φ c)))
-    env-eq (suc (suc X)) = refl
+    boundary-eq (suc (suc X)) = refl
 
 exts-sub-cons : {σ : Substᵗ} {a v : Ty} →
   (substᵗ (extsᵗ σ) a) [ v ]ᵗ ≡ substᵗ (cons-sub v σ) a
@@ -205,7 +205,7 @@ exts-sub-cons {σ} {a} {v} =
     (single-subst-def (substᵗ (extsᵗ σ) a) v)
     (trans
       (sub-sub (extsᵗ σ) φ a)
-      (subst-cong env-eq a))
+      (subst-cong boundary-eq a))
   where
     φ : Substᵗ
     φ = singleTyEnv v
@@ -213,9 +213,9 @@ exts-sub-cons {σ} {a} {v} =
     ψ : Substᵗ
     ψ = cons-sub v σ
 
-    env-eq : (X : ℕ) → ((extsᵗ σ) ⨟ᵗ φ) X ≡ ψ X
-    env-eq zero    = refl
-    env-eq (suc Y) =
+    boundary-eq : (X : ℕ) → ((extsᵗ σ) ⨟ᵗ φ) X ≡ ψ X
+    boundary-eq zero    = refl
+    boundary-eq (suc Y) =
       trans
         (rename-subst-commute suc φ (σ Y))
         (trans
@@ -230,14 +230,14 @@ rename-[]ᵗ-commute ρ A B =
       (cong (renameᵗ ρ) (single-subst-def A B))
       (rename-subst ρ (singleTyEnv B) A))
     (trans
-      (subst-cong env-eq A)
+      (subst-cong boundary-eq A)
       (sym (rename-subst-commute (extᵗ ρ) (singleTyEnv (renameᵗ ρ B)) A)))
   where
-    env-eq : (X : ℕ) →
+    boundary-eq : (X : ℕ) →
       (λ Y → renameᵗ ρ (singleTyEnv B Y)) X ≡
       (λ Y → singleTyEnv (renameᵗ ρ B) (extᵗ ρ Y)) X
-    env-eq zero    = refl
-    env-eq (suc X) = refl
+    boundary-eq zero    = refl
+    boundary-eq (suc X) = refl
 
 subst-[]ᵗ-commute : (σ : Substᵗ) (A B : Ty) →
   substᵗ σ (A [ B ]ᵗ) ≡ (substᵗ (extsᵗ σ) A) [ substᵗ σ B ]ᵗ
@@ -247,9 +247,9 @@ subst-[]ᵗ-commute σ A B =
     (trans
       (sub-sub (singleTyEnv B) σ A)
       (trans
-        (subst-cong env-eq A)
+        (subst-cong boundary-eq A)
         (sym (exts-sub-cons {σ = σ} {a = A} {v = substᵗ σ B}))))
   where
-    env-eq : (X : ℕ) → ((singleTyEnv B) ⨟ᵗ σ) X ≡ cons-sub (substᵗ σ B) σ X
-    env-eq zero    = refl
-    env-eq (suc X) = refl
+    boundary-eq : (X : ℕ) → ((singleTyEnv B) ⨟ᵗ σ) X ≡ cons-sub (substᵗ σ B) σ X
+    boundary-eq zero    = refl
+    boundary-eq (suc X) = refl

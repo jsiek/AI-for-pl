@@ -5,11 +5,11 @@ module strong-rep-nu.Terms where
 --     `Term` (last constructor: the boundary `_⟪_,_⟫`), `Ctx`, `_∋_⦂_`,
 --     `⤊`.  §2 `InertTail`/`Inert`/`Active`.  §3 `Simple`/`Value` —
 --     AT MOST ONE BOUNDARY on a value — stated BEFORE the typing
---     judgement because `⊢Λ` reads it.  §4 `_∣_⊢_⦂_` with `env` and
+--     judgement because `⊢Λ` reads it.  §4 `_∣_⊢_⦂_` with `boundary` and
 --     `⊢Λ`, plus `value-var-visible`.  §5 `β-seven`.
 --   * NO OPERATIONS AND NO METATHEORY: see strong-rep-nu.TermSubst,
 --     .Reduction, .TypeCheck and the proof/ tree.
---   * FOUR LAWS.  (1) `env` TAKES `BoundaryWf Δ Θ Δᵢ Δᶜ`; the two
+--   * FOUR LAWS.  (1) `boundary` TAKES `BoundaryWf Δ Θ Δᵢ Δᶜ`; the two
 --     induced contexts are its outputs, never computed.  (2) It
 --     compares all three sides by the REPRESENTATION each denotes
 --     (`_⊢_≈_⊣_`), and a boundary's interior is TERM-CLOSED.
@@ -183,10 +183,10 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
        --------------------------------------------
      → Δ ∣ Γ ⊢ ν A · L ⟨ c ⟩ ⦂ B
 
-  -- (env). The boundary scope witness supplies both contexts, and the
+  -- (boundary). The boundary scope witness supplies both contexts, and the
   -- three sides are compared by the representation each denotes.
-  -- Commentary.md § Terms.agda / §4 — env
-  env : ∀ {Δ Δᵢ Δᶜ Γ Θ c M Bᵢ Cᵢ Cₑ Bₑ}
+  -- Commentary.md § Terms.agda / §4 — boundary
+  boundary : ∀ {Δ Δᵢ Δᶜ Γ Θ c M Bᵢ Cᵢ Cₑ Bₑ}
       → BoundaryWf Δ Θ Δᵢ Δᶜ
       → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
       → Δᶜ ⊢ c ∶ Cᵢ ⇝ Cₑ
@@ -200,7 +200,7 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
 -- boundary can never conceal the slot its conversion names.
 value-var-visible : ∀ {Δ V X}
   → Value V → Δ ∣ [] ⊢ V ⦂ ` X → Δ ∋tv X
-value-var-visible (V-⟪⟫ _ _) (env _ _ _ _ _ (wf-var tv)) = tv
+value-var-visible (V-⟪⟫ _ _) (boundary _ _ _ _ _ (wf-var tv)) = tv
 value-var-visible (V-simple S-$) ()
 value-var-visible (V-simple S-true) ()
 value-var-visible (V-simple S-false) ()
@@ -217,7 +217,7 @@ value-var-visible (V-simple (S-Λ v)) ()
 -- typed at the context Nu-Λ LEAVES: the cell for ℕ has been allocated
 β-seven-⊢ : allocate `ℕ empty ∣ [] ⊢ β-seven ⦂ `ℕ
 β-seven-⊢ =
-  env TyBeta-bw ⊢$ (conv-tail (conv-mid (conv-id base-ℕ)))
+  boundary TyBeta-bw ⊢$ (conv-tail (conv-mid (conv-id base-ℕ)))
       (`ℕ , same-ℕ , same-ℕ)
       (`ℕ , same-ℕ , same-ℕ)
       wf-ℕ

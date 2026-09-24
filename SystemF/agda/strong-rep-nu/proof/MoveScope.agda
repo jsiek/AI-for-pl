@@ -106,7 +106,7 @@ preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂
                {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁} {t₁′ = t₁′}
                {c₂ = c₂} {c₂′ = c₂′} {C = C}
                wfΔ u it ri r₁ r₂ r⋉ (r₁ʳ , p⋉₁ , p₁) (r₂ʳ , p⋉₂ , p₂)
-               (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
+               (boundary mw₂ (boundary {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
                     ⊢c₂ sm₂ se₂ wE)
   with interior-functional (bw-interior mw₂) ri
      | conversion-functional (bw-conversion mw₂) r₂
@@ -114,7 +114,7 @@ preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂
                {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁} {t₁′ = t₁′}
                {c₂ = c₂} {c₂′ = c₂′} {C = C}
                wfΔ u it ri r₁ r₂ r⋉ (r₁ʳ , p⋉₁ , p₁) (r₂ʳ , p⋉₂ , p₂)
-               (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
+               (boundary mw₂ (boundary {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
                     ⊢c₂ sm₂ se₂ wE)
   | refl | refl
   with conversion-functional (bw-conversion mw₁) r₁
@@ -122,7 +122,7 @@ preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂
                {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁} {t₁′ = t₁′}
                {c₂ = c₂} {c₂′ = c₂′} {C = C}
                wfΔ u it ri r₁ r₂ r⋉ (r₁ʳ , p⋉₁ , p₁) (r₂ʳ , p⋉₂ , p₂)
-               (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
+               (boundary mw₂ (boundary {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
                     ⊢c₂ sm₂ se₂ wE)
   | refl | refl | refl
   with weaken-⊢ {Γ = Δ₁ᶜ} {Γ′ = Δ⋉ᶜ}
@@ -138,7 +138,7 @@ preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂
                {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁} {t₁′ = t₁′}
                {c₂ = c₂} {c₂′ = c₂′} {C = C}
                wfΔ u it ri r₁ r₂ r⋉ (r₁ʳ , p⋉₁ , p₁) (r₂ʳ , p⋉₂ , p₂)
-               (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
+               (boundary mw₂ (boundary {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
                     ⊢c₂ sm₂ se₂ wE)
   | refl | refl | refl
   | C₁′ , D₁′ , ⊢t₁′ , smC₁ , smD₁ | C₂′ , D₂′ , ⊢c₂′ , smC₂ , smD₂
@@ -149,7 +149,7 @@ preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂
                {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁} {t₁′ = t₁′}
                {c₂ = c₂} {c₂′ = c₂′} {C = C}
                wfΔ u it ri r₁ r₂ r⋉ (r₁ʳ , p⋉₁ , p₁) (r₂ʳ , p⋉₂ , p₂)
-               (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
+               (boundary mw₂ (boundary {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
                     ⊢c₂ sm₂ se₂ wE)
   | refl | refl | refl
   | C₁′ , D₁′ , ⊢t₁′ , smC₁ , smD₁ | C₂′ , D₂′ , ⊢c₂′ , smC₂ , smD₂
@@ -159,12 +159,12 @@ preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂
                {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁} {t₁′ = t₁′}
                {c₂ = c₂} {c₂′ = c₂′} {C = C}
                wfΔ u it ri r₁ r₂ r⋉ (r₁ʳ , p⋉₁ , p₁) (r₂ʳ , p⋉₂ , p₂)
-               (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
+               (boundary mw₂ (boundary {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
                     ⊢c₂ sm₂ se₂ wE)
   | refl | refl | refl
   | C₁′ , D₁′ , ⊢t₁′ , smC₁ , smD₁ | C₂′ , D₂′ , ⊢c₂′ , smC₂ , smD₂
   | S , qC , qD | refl =
-  env mw⋉ ⊢U ⊢merged sameᵢ sameₑ wE
+  boundary mw⋉ ⊢U ⊢merged sameᵢ sameₑ wE
   where
   mw⋉ : BoundaryWf Δ (Θ₁ ++ Θ₂) Δ₁ᵢ Δ⋉ᶜ
   mw⋉ = bw wfΔ (merged-interior (bw-interior mw₂) (bw-interior mw₁)) r⋉

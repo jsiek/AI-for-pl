@@ -67,7 +67,7 @@ Determinism: a conversion's source and target types are functions of
 read theirs from the owner lookup
 (`∋:=`-det), `↦`/`∀` are structural — so a `conv-types-unique` lemma
 (to prove alongside) closes the TyPeelR-vs-TyPeelR det case.  Progress
-derives the premise for free by inverting the redex's `env` (its
+derives the premise for free by inverting the redex's `boundary` (its
 conversion typing IS this fact, one `∀` inside), exactly as it recovers
 the lookup premises today.  The `↑ˢ` special case (syntactic `srcOf`)
 becomes a corollary, not a restriction.

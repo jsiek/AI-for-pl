@@ -235,9 +235,9 @@ Nothing.  Systematically, against our three devices:
 
 **Masks.**  No counterpart.  `[embed]` (p.1051) relates the inside type
 `τ′` to the annotation `τ` by the chain `≲_{jℓi}` and says nothing about
-which variables `eⱼ` may write.  Our `env` (`Terms.agda`) says both:
+which variables `eⱼ` may write.  Our `boundary` (`Terms.agda`) says both:
 
-    env : Δ ⊢ᵐ Θ
+    boundary : Δ ⊢ᵐ Θ
         → interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
         → convCtx Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
         → Δ ⊢ᵗ Bₑ
@@ -616,7 +616,7 @@ preserved.  Lemma 3.12's `φ` has five clauses, of which (4) and (5) —
 > preserved by reduction.
 
 Their `φ` is what a design pays when the type system does not carry the
-invariant; our `env` premises are what it costs to carry it.  Whether
+invariant; our `boundary` premises are what it costs to carry it.  Whether
 our abstraction theorems, when we state them, will avoid a `φ` of their
 own is an open question this note does not settle.
 
@@ -855,7 +855,7 @@ knowledge base cannot have the wall, and cannot have tightness either.**
 | determinism | a convenience (p.1042) | design law 5, theorem `det` |
 | principals | `n` agents, compatible knowledge (Def. 3.1) | two sides per boundary |
 | main theorems | type safety; erasure; Independence of Evaluation (3.11); Value Abstraction (3.12); Host-Provided Values (3.13) | `progress`, `preservation`, `type-safety`, `det`, `value-¬step`, plus tightness as a tested property |
-| invariants | external companion predicates `φ`, `Ψ` (Fig. 15, p.1057) | grounded in `env`'s premises (law 1) |
+| invariants | external companion predicates `φ`, `Ψ` (Fig. 15, p.1057) | grounded in `boundary`'s premises (law 1) |
 | mechanized | no | yes, `--safe`, postulate-free |
 
 
@@ -898,7 +898,7 @@ theorems, and they are a different kind of statement:
 
 The closest STA gets to our machinery is Lemma 3.12's `φ`, whose clauses
 (4) and (5) are per-boundary shape invariants preserved by reduction —
-structurally our `env` premises, but living outside the type system,
+structurally our `boundary` premises, but living outside the type system,
 which our design law 1 forbids.  And their `[9]`'s `rev(ℓ)` argument
 (p.1050) is, word for word, our argument for reversing `dualScope`.
 

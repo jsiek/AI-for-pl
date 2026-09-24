@@ -196,9 +196,9 @@ Testing has found and repaired these errors:
    premise, the rule it would produce, (Q), satisfiability and existence
    are all in `notes/PeelPremise.agda`, with `peel-premises` putting them
    together; nothing is installed, and `strong-rep-nu.Reduction` is unchanged.
-   Nothing is assumed: `Unique (names Γ)` is `WfCtx.name-fn`, and `env`
+   Nothing is assumed: `Unique (names Γ)` is `WfCtx.name-fn`, and `boundary`
    carries a `BoundaryWf` whose `bw-exterior` is a `WfCtx` of the crossed
-   boundary's exterior, so `peel-premises-env` takes the redex's own
+   boundary's exterior, so `peel-premises-boundary` takes the redex's own
    typing and returns the rule premises plus the `Unique` fact determinism
    derives via `dual-unique`. None of the five boundary rules now carries
    a `Unique` premise.
@@ -261,7 +261,7 @@ Three things about it are worth knowing before using it.
 
 The checker has to INFER, not just check: `⊢·` and `⊢·[]` need the head's type
 and a head can be a boundary. Inferring a boundary's exterior type means
-inverting `shiftRep`, since `env` reads that type across the boundary scope's
+inverting `shiftRep`, since `boundary` reads that type across the boundary scope's
 representation-bind prefix; that is `strAt`, strengthening at a binder depth,
 and it is the only place in the checker that produces an equation rather than a
 derivation.
@@ -345,7 +345,7 @@ REACHABLE from a closed, plain source program
 (strong-rep-store/notes/CancelRReachabilityWitness.agda). Jeremy approved repair (a) on
 2026-09-19, it is installed in `Reduction.agda`, and the preservation case
 it generates is proved in `proof/MoveScope.agda`. Canonical
-forms now pass against the relational `env` interface as well. Stage-1
+forms now pass against the relational `boundary` interface as well. Stage-1
 progress passes too, and its public logical statement stays premise-free.
 As of 2026-09-21 its former `MergedReading` parameter is proved and gone.
 
@@ -394,7 +394,7 @@ call site, where it is `bw-binds` of the boundary being crossed — the
 statement is proved in `proof/RepWeaken.agda`, and `PeelCase` is
 UNCONDITIONAL. See `notes/DECISIONS.md` (2026-09-20).
 
-**AND `CrossΛTyping` IS PROVED (2026-09-20)**, by one unbound `env` around
+**AND `CrossΛTyping` IS PROVED (2026-09-20)**, by one unbound `boundary` around
 the same renaming transport (`proof/RepWeaken.agda`, `cross-Λ-⊢`), so
 `Beta` is unconditional too.
 
@@ -411,7 +411,7 @@ new name survives there, and every `bind X α` of Θ′ inserts around it,
 so it does NOT land at position zero. One `TyBeta`-minted `bind 0 0` is
 enough to displace it. The moved conversion then read the NEW binder —
 the type argument's representation — instead of the binder it named, and
-`env`'s `SameTyExt` refused the result.
+`boundary`'s `SameTyExt` refused the result.
 
 Machine-checked in `strong-rep-store/notes/AddLock0Wall.agda`, from a CLOSED, PLAIN System
 F program with no hand-written boundary,
@@ -461,7 +461,7 @@ doing it the other way round leaves the reading in the unrenamed map.
 **AND PRESERVATION IS NOW UNCONDITIONAL (2026-09-20).** `AddUnbind0Typing`,
 in its RESHAPED form — it receives the two conversion readings and the
 `SameConv` from the rule — is PROVED, `proof/AddUnbind0.agda`
-`addUnbind0-⊢`. It is the `env`-to-`env` transport across one inserted
+`addUnbind0-⊢`. It is the `boundary`-to-`boundary` transport across one inserted
 representation binder and one fresh ordinary name: `bw-binds` by
 `binds-ren`, the interior reading by `Boundary.addUnbind0-interior-ren` (NEW:
 the interior half, where the appended unbind DELETES the fresh name and what
@@ -616,8 +616,8 @@ items remain below as the implementation record.
    variables — is proved for every boundary scope (§5); a well-typed conversion
    always has a reading to transport (§6); the dual's conversion context
    always exists, the position obligation being discharged by a pigeonhole
-   argument (§7); and `peel-premises-env` assembles all of it from the
-   `BoundaryWf` that `env` already stores (§8). `det` now takes that typing
+   argument (§7); and `peel-premises-boundary` assembles all of it from the
+   `BoundaryWf` that `boundary` already stores (§8). `det` now takes that typing
    derivation and obtains the dual context's uniqueness with the core
    `dual-unique`, so the rule does not carry it.
 
@@ -663,7 +663,7 @@ items remain below as the implementation record.
 
      The premise `reps Δ ⊢ᴮ Rs` is NECESSARY: without it the statement is
      refuted by `β-seven` weakened with the single open payload `` ` 0 ``
-     (`notes/RepWeakenBindsWall.agda`), because `env` stores a `BoundaryWf`
+     (`notes/RepWeakenBindsWall.agda`), because `boundary` stores a `BoundaryWf`
      whose `bw-exterior` is a `WfCtx` of the WEAKENED context and
      `WfRepCtx` checks every stored payload. It costs nothing: at the one
      call site it is `bw-binds` of the boundary being crossed.
@@ -684,7 +684,7 @@ items remain below as the implementation record.
 
      `repwk-abst` and `repwk-push` carry `RepWk` across the two ways the
      induction goes deeper — `extᵗ ρ` and `extN (numBinds Θ) ρ`, exactly
-     how `renᴹᴿ` recurses — and `repwk-wkN` is the head instance. `env`
+     how `renᴹᴿ` recurses — and `repwk-wkN` is the head instance. `boundary`
      is the hard case and every premise transports by a per-relation
      lemma: `wfctx-ren`, `binds-ren`, `interior-ren`/`conversion-ren`,
      `conv-ren` (`Conversion.agda` §2d), `same-ren`, `wf-ren-rep`.
@@ -705,7 +705,7 @@ items remain below as the implementation record.
      actual `CancelR` step. The rule's weakening premise
      `SameTy Δ⋉ᶜ A′ Δᶜ A` read the inner layer's identity type in the
      OUTER conversion context, so it asserted that `A′` denotes the same
-     representation as `A`; the inner `env`'s `SameTyExt (numBinds Θ₁)`
+     representation as `A`; the inner `boundary`'s `SameTyExt (numBinds Θ₁)`
      demands that it denote `shiftBy (numBinds Θ₁)` of it. The two agree
      only when `numBinds Θ₁ ≡ 0` or the representation is closed — which
      is why no example saw it: every `CancelR` in the twelve runs cancels
@@ -749,7 +749,7 @@ items remain below as the implementation record.
      `preserve-CancelR`, beside `preserve-IdPush` and by the same
      argument: the outer layer is literally `IdPush`'s, and the inner
      layer's one obligation — that the minted `mkId A′` serve both the
-     interior and the exterior premise of the inner `env` — is discharged
+     interior and the exterior premise of the inner `boundary` — is discharged
      because the cancelled binder's representation variable is
      `numBinds Θ₁ + αY` and `∋ʳ-push` reads Y's payload through Θ₁'s bind
      block already shifted. One new inversion, `bindR-inj`. See
@@ -801,7 +801,7 @@ items remain below as the implementation record.
    interior/conversion-context
    reading stayed: those are what pin each contractum's spelling.
 
-   `det` now inverts the redex typing to the boundary's `env`. For
+   `det` now inverts the redex typing to the boundary's `boundary`. For
    `TyPeelR-⟪⟫` it reads the induced contexts' `name-fn` fields through
    `bw-interior-wf` and `bw-conversion-wf`, then uses `unique-underΛ`.
    `CancelR` and `IdPush` read the outer conversion context the same way
@@ -833,7 +833,7 @@ items remain below as the implementation record.
    conversion is now NAMED and pinned by `SameConv`, installed 2026-09-20,
    and `proof/AddUnbind0.agda` proves the case it generates;
    `CancelR`'s inner `mkId` read its type UNSHIFTED where
-   the inner `env` demands `shiftBy (numBinds Θ₁)` —
+   the inner `boundary` demands `shiftBy (numBinds Θ₁)` —
    `notes/CancelRShiftWall.agda`, the fourth crossing defect, exactly the
    read-context question this item was written to ask; repair (a)
    installed 2026-09-19 and `preserve-CancelR` proved). The per-site

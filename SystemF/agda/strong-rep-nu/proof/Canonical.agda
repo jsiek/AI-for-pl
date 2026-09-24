@@ -6,7 +6,7 @@ module strong-rep-nu.proof.Canonical where
 --     TARGET type; §3 `simple-¬var`, `canon-simple-∀`, `canon-base`,
 --     `canon-ℕ`, `canon-⇒`, `canon-∀`.
 --   * ONE OBSERVATION DRIVES THE SUITE: for a wrapper value
---     `U ⟪ Θ , tail t ⟫`, `env` relates the EXTERIOR type and the
+--     `U ⟪ Θ , tail t ⟫`, `boundary` relates the EXTERIOR type and the
 --     TARGET type of `t` by `_⊢_≈_⊣_`, and an INERT `t` determines that
 --     target's head constructor outright (`id (` X)` and the seals ⇝ a
 --     variable, `s ↦ u` ⇝ an arrow, `` `∀ s `` ⇝ a `∀`).  So no inert
@@ -166,7 +166,7 @@ canon-base (V-simple S-false) base-𝔹 ⊢false = inj₂ (inj₂ refl)
 canon-base (V-simple S-ƛ)     ()     (⊢ƛ _ _)
 canon-base (V-simple (S-Λ _)) ()     (⊢Λ _ _)
 canon-base {Δ = Δ} (V-⟪⟫ u it) b
-    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _) =
+    (boundary {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _) =
   ⊥-elim
     (inert-¬base it ⊢c
       (≈-base-target {Δ = Δ} {Δ′ = Δᶜ}
@@ -191,14 +191,14 @@ canon-⇒ (V-simple S-false) ()
 canon-⇒ (V-simple S-ƛ)     (⊢ƛ _ _) = inj₁ (_ , refl)
 canon-⇒ (V-simple (S-Λ _)) ()
 canon-⇒ {Δ = Δ} (V-⟪⟫ u it)
-    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
+    (boundary {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   with ≈-⇒-target {Δ = Δ} {Δ′ = Δᶜ} sameₑ
 canon-⇒ {Δ = Δ} (V-⟪⟫ u it)
-    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
+    (boundary {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   | A′ , B′ , eq
   with inert-fun-conv it (conv-tgt≡ eq ⊢c)
 canon-⇒ {Δ = Δ} (V-⟪⟫ u it)
-    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
+    (boundary {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   | A′ , B′ , eq | s , t , refl =
   inj₂ (_ , _ , s , t , u , refl)
 
@@ -215,24 +215,24 @@ canon-∀ (V-simple S-false)  ()
 canon-∀ (V-simple S-ƛ)      ()
 canon-∀ (V-simple (S-Λ vN)) (⊢Λ _ _) = inj₁ (_ , vN , refl)
 canon-∀ {Δ = Δ} (V-⟪⟫ u it)
-    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
+    (boundary {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   with ≈-∀-target {Δ = Δ} {Δ′ = Δᶜ} sameₑ
 canon-∀ {Δ = Δ} (V-⟪⟫ u it)
-    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
+    (boundary {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   | C′ , eq
   with inert-all-conv it (conv-tgt≡ eq ⊢c)
 canon-∀ {Δ = Δ} (V-⟪⟫ u it)
-    (env {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
+    (boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
   | C′ , eq | s , refl with conv-all-inv ⊢c
 canon-∀ {Δ = Δ} (V-⟪⟫ u it)
-    (env {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
+    (boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
   | C′ , eq | s , refl | A₀ , B₀ , refl , eqB , ⊢s
   with ≈-∀-source {Δ = Δᵢ} {Δ′ = Δᶜ} sameᵢ
 canon-∀ {Δ = Δ} (V-⟪⟫ u it)
-    (env {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
+    (boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
   | C′ , eq | s , refl | A₀ , B₀ , refl , eqB , ⊢s | D , refl
   with canon-simple-∀ u ⊢U
 canon-∀ {Δ = Δ} (V-⟪⟫ u it)
-    (env {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
+    (boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
   | C′ , eq | s , refl | A₀ , B₀ , refl , eqB , ⊢s | D , refl
   | N , vN , refl = inj₂ (_ , _ , s , vN , refl)

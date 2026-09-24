@@ -57,7 +57,7 @@ All six, with **no module parameters, no postulates, no holes**, under
    with `id` restricted to base types and variables and compound
    identities built by `mkId`.
 7. **No polarity index.**  The discipline is per type *variable*, and
-   `env`'s two contexts already enforce it: an unbound `X` is masked in the
+   `boundary`'s two contexts already enforce it: an unbound `X` is masked in the
    interior, a bound `X` is not in the image of `shiftBy`.  Dropping the
    index is what makes `TyPeelR` a theorem at every `∀`-conversion.
 8. **Active/inert, after Siek & Chen** (`notes/ParameterizedCastCalculi.md`).
@@ -132,7 +132,7 @@ All six, with **no module parameters, no postulates, no holes**, under
 
 * **Public/proof split for progress.**  `Progress.agda` held the whole
   proof.  The implementation moved to `proof/Progress.agda`
-  (`progress-env`, `∀-conv-premise`, the recursive `progress`); the
+  (`progress-boundary`, `∀-conv-premise`, the recursive `progress`); the
   public `strong-rep-nu.Progress` now holds only the statement `Progress` and
   the one-line `progress = P.progress`, exactly as `Preservation.agda`
   does.  `Examples` §8 and `proof/TypeSafety` still open the public

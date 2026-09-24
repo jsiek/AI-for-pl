@@ -187,21 +187,21 @@ progress-Λ-at-0 : ∀ {Δ Δᶜ V Θ s c A R C} → Value V
        × (Δ ⊢ ν A · (V ⟪ Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩
             -→ (N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫ ∣ new R))
 progress-Λ-at-0 v
-    (⊢ν wA rA (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
+    (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
   with conv-all-inv ⊢c
 progress-Λ-at-0 v
-    (⊢ν wA rA (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
+    (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
   | A₀ , B₀ , refl , eqₑ , ⊢s with smᵢ
 progress-Λ-at-0 v
-    (⊢ν wA rA (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
+    (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
   | A₀ , B₀ , refl , eqₑ , ⊢s | _ , same-∀ pᵢ , same-∀ qᵢ
   with conversion-functional (bw-conversion mwᵥ) rc
 progress-Λ-at-0 v
-    (⊢ν wA rA (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
+    (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
   | A₀ , B₀ , refl , eqₑ , ⊢s | _ , same-∀ pᵢ , same-∀ qᵢ | refl
   with canon-∀-height v ⊢V eq
 progress-Λ-at-0 v
-    (⊢ν wA rA (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
+    (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
   | A₀ , B₀ , refl , eqₑ , ⊢s | _ , same-∀ pᵢ , same-∀ qᵢ | refl
   | N , vN , refl = N , refl , Nu-⟪Λ⟫ vN rc ⊢s pA
 
@@ -301,7 +301,7 @@ Drop$-only-numerals (ξ-⟪⟫ ri st)            refl =
 
 -- Each congruence reduces a subterm IN PLACE, at the very type context
 -- the corresponding TYPING rule reads it on.  For ξ-⟪⟫ that is not an
--- equation: it CARRIES the interior reading `env` carries, so the two
+-- equation: it CARRIES the interior reading `boundary` carries, so the two
 -- are identified by `interior-functional`.
 -- Commentary.md § proof/ShiftAudit.agda / §8
 ξ-⟪⟫-frame : ∀ {Γ Γᵢ Γᵢ′ : Ctxᵗ} {Θ : Boundary}

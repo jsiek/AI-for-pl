@@ -52,18 +52,18 @@ det _ (ξ-·-r v st) (Beta w)     = ⊥-elim (value-¬step w st)
 
 -- Peel
 -- the dual's spelling is pinned by `sameConv-src-unique`
-det (⊢· (env mwΘ _ _ _ _ _) _)
+det (⊢· (boundary mwΘ _ _ _ _ _) _)
     (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
   with conversion-functional rc rc′ | interior-functional ri ri′
-det (⊢· (env mwΘ _ _ _ _ _) _)
+det (⊢· (boundary mwΘ _ _ _ _ _) _)
     (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
   | refl | refl with conversion-functional rd rd′
-det (⊢· (env mwΘ _ _ _ _ _) _)
+det (⊢· (boundary mwΘ _ _ _ _ _) _)
     (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
   | refl | refl | refl
   with sameConv-src-unique
          (dual-unique (name-fn (bw-exterior mwΘ)) ri rd) sc sc′
-det (⊢· (env mwΘ _ _ _ _ _) _)
+det (⊢· (boundary mwΘ _ _ _ _ _) _)
     (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
   | refl | refl | refl | refl = refl , refl
 det _ (Peel v w rc ri rd sc) (ξ-·-l st) =
@@ -88,16 +88,16 @@ det _ (ξ-ν st) (Nu-⟪Λ⟫ v rel ⊢s same) =
 
 -- Merge — the three readings are functions of the scopes, and the two
 -- carried spellings are pinned at the merged conversion context.
-det (env mwΘ₂ _ _ _ _ _)
+det (boundary mwΘ₂ _ _ _ _ _)
     (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
     (Merge u′ it′ ri′ r₁′ r₂′ r⋉′ sc₁′ sc₂′)
   with interior-functional ri ri′
-det (env mwΘ₂ _ _ _ _ _)
+det (boundary mwΘ₂ _ _ _ _ _)
     (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
     (Merge u′ it′ ri′ r₁′ r₂′ r⋉′ sc₁′ sc₂′) | refl
   with conversion-functional r₁ r₁′ | conversion-functional r₂ r₂′
      | conversion-functional r⋉ r⋉′
-det (env mwΘ₂ _ _ _ _ _)
+det (boundary mwΘ₂ _ _ _ _ _)
     (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
     (Merge u′ it′ ri′ r₁′ r₂′ r⋉′ sc₁′ sc₂′)
     | refl | refl | refl | refl
@@ -105,7 +105,7 @@ det (env mwΘ₂ _ _ _ _ _)
          (conversion-unique (name-fn (bw-exterior mwΘ₂)) r⋉) sc₁ sc₁′
      | sameConv-src-unique
          (conversion-unique (name-fn (bw-exterior mwΘ₂)) r⋉) sc₂ sc₂′
-det (env mwΘ₂ _ _ _ _ _)
+det (boundary mwΘ₂ _ _ _ _ _)
     (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
     (Merge u′ it′ ri′ r₁′ r₂′ r⋉′ sc₁′ sc₂′)
     | refl | refl | refl | refl | refl | refl = refl , refl
@@ -136,12 +136,12 @@ det (⊢· ⊢L ⊢M) (ξ-·-r v st) (ξ-·-r u st′) with det ⊢M st st′
 det (⊢· ⊢L ⊢M) (ξ-·-r v st) (ξ-·-r u st′) | refl , refl = refl , refl
 det (⊢ν wA rA ⊢L mw ⊢c same wB) (ξ-ν st) (ξ-ν st′) with det ⊢L st st′
 det (⊢ν wA rA ⊢L mw ⊢c same wB) (ξ-ν st) (ξ-ν st′) | refl , refl = refl , refl
-det (env mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
+det (boundary mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
   with interior-functional rel rel′
-det (env mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
+det (boundary mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
   | refl with interior-functional rel (bw-interior mwΘ)
-det (env mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
+det (boundary mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
   | refl | refl with det ⊢M st st′
-det (env mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
+det (boundary mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
   | refl | refl | refl , refl = refl , refl
 

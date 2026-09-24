@@ -99,7 +99,7 @@ Consequences observed, in full:
   applied.  That is more nameable, so the proof gains one `⊢ʳ-⊑` step
   (with a `subst` along `applyUnlocks-++`).  Under the interleaved list
   the reps sat inside the appended `Θ` tail and were read unchanged.
-* **No theorem is weakened.**  `_⊢ᵐ_` is a premise of `env`, so a more
+* **No theorem is weakened.**  `_⊢ᵐ_` is a premise of `boundary`, so a more
   permissive `_⊢ᵐ_` admits a (very slightly) larger set of typed terms;
   `preservation`, `progress`, `det`, `value-¬step`, tightness and
   canonicity are all reproved over the new judgement with their
@@ -207,7 +207,7 @@ Everything, with statements unchanged: `proof/PeelDual`
 `Design.md` §2 (the record, the two halves, the rendering order), §3
 (`applyChanges`/`applyUnlocks` under `scope`/`unlockedScope`), §4.2 (the
 paired judgement, verbatim, and the one semantic move), §4.3 (what
-`env`'s first premise checks), §6.3/§6.7 (`dual`, `rewind`, `⋉`,
+`boundary`'s first premise checks), §6.3/§6.7 (`dual`, `rewind`, `⋉`,
 `shiftScope`), §8 law 4 (simultaneity, now stated exactly), §9 (a new
 bullet, *The pair*), Appendix A (names).  `README.md`: the module map
 lines for `Boundary.agda`, `MoveScope.agda`, `MwUObstruct.agda`.

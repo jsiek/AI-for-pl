@@ -87,7 +87,7 @@ replace per-variable wrappers by a single wrapper `M ⟪ Θ , B₀ ⟫` whose
 type `B₀` read two ways (internal face `B₀[γΘ]`, external face
 `B₀[ρΘ]`), a whole-`Γ` tight interior `intOf Δ Θ` restricted once at the
 deepest conceal, and a **scope premise** `Scoped (baseS Θ Δ) B₀` on
-`(env)` forbidding `B₀` to name a blocked slot.  Combining is what lets a
+`(boundary)` forbidding `B₀` to name a blocked slot.  Combining is what lets a
 conceal's interior still see a reveal's fresh variable — the thing the
 per-variable design could not express.  Refuted as a whole on 2026-09-05
 (`D29`).
@@ -159,7 +159,7 @@ concealing it, its dual cannot rebuild the exterior's knowledge there, so
 a crossing argument fails to retype (program `P`, `notes/old/notes-v1.md`
 Example 9).  `W1` added a `RunOK Γ M` premise to preservation ("at every
 boundary the dual rebuilds the exterior") — a companion predicate on
-terms, against the grounded-invariants law.  `W2` made it an `(env)`
+terms, against the grounded-invariants law.  `W2` made it an `(boundary)`
 premise ("every dropped-unconcealed slot is abstract") — refuted because
 `TyWrap` itself creates the offending terms by weakening a sealed value
 under a new reveal.
@@ -406,7 +406,7 @@ polarity index `p` and "Option A" kept it, with a canonicity invariant to
 be proven alongside preservation.  `Examples` §13 then showed the landed
 `TyPeelR` contractum `seal 0 ↦ seal 1` types at **neither** polarity, and
 Jeremy asked "do we really need polarity at all?" — the per-variable
-invariant is already enforced by `env`'s two contexts, and nothing uses
+invariant is already enforced by `boundary`'s two contexts, and nothing uses
 `p` for work.  **RULED dropped** on 2026-09-06, which is what makes
 `TyPeelR` provable at every `∀` conversion (commit `adcf48f9`;
 `Design.md` §2, "Why there is no polarity index").

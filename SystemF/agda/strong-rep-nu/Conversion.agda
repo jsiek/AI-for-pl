@@ -450,12 +450,12 @@ peel-premises uq int conv ⊢s | Γᵈ , dconv
 peel-premises uq int conv ⊢s | Γᵈ , dconv | s′ , sc =
   Γᵈ , s′ , dconv , sc
 
-peel-premises-env : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : Boundary}
+peel-premises-boundary : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : Boundary}
   → BoundaryWf Γ Θ Γᵢ Γᶜ
   → Γᶜ ⊢ s ∶ A ⇝ B
   → ∃[ Γᵈ ] ∃[ s′ ]
       ((Γᵢ ⊢ᶜ dual Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
-peel-premises-env mwΘ ⊢s =
+peel-premises-boundary mwΘ ⊢s =
   peel-premises (name-fn (bw-exterior mwΘ)) (bw-interior mwΘ)
                 (bw-conversion mwΘ) ⊢s
 
@@ -664,7 +664,7 @@ conv-id-refl (conv-tail (conv-mid (conv-id _)))  = refl
 conv-id-refl (conv-tail (conv-mid (conv-idv _))) = refl
 
 -- A ∀ conversion's body, as an inversion returning the two `∀` shapes
--- AS EQUATIONS: at the use sites `env` constrains the conversion's
+-- AS EQUATIONS: at the use sites `boundary` constrains the conversion's
 -- types only relationally, so `conv-all` does not unify directly.
 -- Commentary.md § Conversion.agda / §5
 conv-all-inv : Δ ⊢ ⌞ `∀ s ⌟ ∶ A ⇝ B

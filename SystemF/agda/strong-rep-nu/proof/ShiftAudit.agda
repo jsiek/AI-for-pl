@@ -247,7 +247,7 @@ Beta-no-alloc = Beta
 -- THE ONE FRAME LEFT (the one U lives in) is preserved ON THE NOSE: the
 -- merged frame's interior IS the inner frame's own.  Θ₂'s changes travel
 -- inward and the surviving boundary REAPPLIES them, so the contractum is
--- one layer, not two; both conversions are re-spelled onto the merged
+-- one layer, not two; both conversions are weakened onto the merged
 -- conversion context (the carried `t₁′`, `c₂′`) and composed there.
 Move-inner-frame : ∀ {Γ Γᵢ Γ₁ᵢ : Ctxᵗ} (Θ₁ Θ₂ : Boundary)
   → Γ ⊢ⁱ Θ₂ ⇒ Γᵢ

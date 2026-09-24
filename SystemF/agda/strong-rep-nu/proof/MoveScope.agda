@@ -8,11 +8,11 @@ module strong-rep-nu.proof.MoveScope where
 --     representation; §3 MERGE, PROVED.
 --   * THE MOVE.  The merged boundary presents the outer boundary's
 --     exterior and the inner boundary's interior, so the frames merge
---     too: `Θ₁ ++ Θ₂`.  Both conversions are re-spelled onto the merged
---     conversion context (`respell-⊢`, the Peel lemma) and composed
+--     too: `Θ₁ ++ Θ₂`.  Both conversions are weakened onto the merged
+--     conversion context (`weaken-⊢`, the Peel lemma) and composed
 --     there (`⊢⨟`, strong-rep-nu.proof.Compose).
 --   * THE MIDDLE TYPE AGREES: the target of `t₁′` and the source of
---     `c₂′` re-spell ONE representation (the redex's middle type) at
+--     `c₂′` weaken ONE representation (the redex's middle type) at
 --     ONE context with unique names (`same-target-unique`).
 -- Commentary: Commentary.md § proof/MoveScope.agda
 
@@ -30,7 +30,7 @@ open import strong-rep-nu.Conversion
 open import strong-rep-nu.Terms
 open import strong-rep-nu.Boundary
 open import strong-rep-nu.proof.Preserve using (MergeCase)
-open import strong-rep-nu.proof.PeelDual using (respell-⊢)
+open import strong-rep-nu.proof.PeelDual using (weaken-⊢)
 open import strong-rep-nu.proof.Compose using (⊢⨟)
 
 ------------------------------------------------------------------------
@@ -77,7 +77,7 @@ merged-keeps₁ mw₂ mw₁ r⋉ | Γ⋉ , r⋉′ , keep | refl = keep
 -- §2  Gluing two readings of one representation
 ------------------------------------------------------------------------
 
--- Two re-spellings of one type `A` (read on η) denote one
+-- Two weakenings of one type `A` (read on η) denote one
 -- representation.
 same-glue : ∀ {η η′ η″ : TyCtx} {A A′ A″ : Ty}
   → ∃[ R ] ((η′ ⊢ A′ ~ R) × (η ⊢ A ~ R))
@@ -125,12 +125,12 @@ preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂
                (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
                     ⊢c₂ sm₂ se₂ wE)
   | refl | refl | refl
-  with respell-⊢ {Γ = Δ₁ᶜ} {Γ′ = Δ⋉ᶜ}
+  with weaken-⊢ {Γ = Δ₁ᶜ} {Γ′ = Δ⋉ᶜ}
          (trans (conversion-reps r⋉)
                 (sym (trans (conversion-reps r₁) (interior-reps ri))))
          (name-fn (bw-conversion-wf mw₁))
          (merged-keeps₁ mw₂ mw₁ r⋉) p₁ p⋉₁ ⊢t₁
-     | respell-⊢ {Γ = Δ₂ᶜ} {Γ′ = Δ⋉ᶜ}
+     | weaken-⊢ {Γ = Δ₂ᶜ} {Γ′ = Δ⋉ᶜ}
          (trans (conversion-reps r⋉) (sym (conversion-reps r₂)))
          (name-fn (bw-conversion-wf mw₂))
          (merged-keeps₂ r₂ r⋉) p₂ p⋉₂ ⊢c₂
@@ -142,7 +142,7 @@ preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂
                     ⊢c₂ sm₂ se₂ wE)
   | refl | refl | refl
   | C₁′ , D₁′ , ⊢t₁′ , smC₁ , smD₁ | C₂′ , D₂′ , ⊢c₂′ , smC₂ , smD₂
-  -- the middle type, re-spelled twice at the merged context
+  -- the middle type, weakened twice at the merged context
   with same-both (same-glue (same-sym (same-glue smD₁ se₁))
                             (same-sym (same-glue smC₂ sm₂)))
 preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ}

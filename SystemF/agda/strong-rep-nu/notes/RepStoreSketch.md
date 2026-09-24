@@ -131,11 +131,11 @@ readings' half of the sibling-shift lemma.
 ### 1.3 Conversions: UNCHANGED (R2 withdrawn)
 
 `Conv`, `mkId`, `reveal`/`conceal`/`instReveal`/`instConceal`, the
-judgement `Δ ⊢ c ∶ A ⇝ B`, `SameConv` and the `respell` lemmas all stay
+judgement `Δ ⊢ c ∶ A ⇝ B`, `SameConv` and the `weaken` lemmas all stay
 as they are: `seal X`/`unseal X`/`id (` X)` cite ORDINARY names, and a
-conversion moved to a boundary with a different name map is re-spelled
+conversion moved to a boundary with a different name map is weakened
 through `SameConv`, exactly as today.  (An earlier revision proposed
-citing the cell instead, which would have deleted the re-spelling
+citing the cell instead, which would have deleted the weakening
 premises; Jeremy, 2026-09-22: no show-stopper, stay close to
 strong-rep-var to keep the port cheap.  It is also what keeps the
 sibling shift `renᴹᴿ suc` off conversions — `renᴹᴿ` leaves `c` alone
@@ -230,7 +230,7 @@ Peel : Value V → Value W
 
 (today's rule minus one thing: `renᴹ² (ren² idᵗ (wkN (numBinds Θ))) W`
 becomes `W` — the boundary has no binds to move the argument past.  The
-re-spelling `s′` and its `SameConv` premise stay.)
+weakening `s′` and its `SameConv` premise stay.)
 
 ```agda
 TyPeelR-Λ : Value N → Δ ⊢ᶜ A ~ R
@@ -378,8 +378,8 @@ frame-exactness obligations for moves across binds (there are no binds
 to move across).  `MoveScope.agda`'s `preserve-CancelR`/`preserve-IdPush`
 reduce to the store lookup.
 
-Kept: `Conversion.agda` whole, `SameConv`/`respell`, and the
-re-spelling premises of `Peel`/`TyPeelR-⟪⟫`/`CancelR`/`IdPush`.  Kept
+Kept: `Conversion.agda` whole, `SameConv`/`weaken`, and the
+weakening premises of `Peel`/`TyPeelR-⟪⟫`/`CancelR`/`IdPush`.  Kept
 and PROMOTED: `proof/RepWeaken.agda` (`RepWk`, `⊢renᴿ`, `repwk-wkN`,
 `interior-ren`, `conversion-ren`, `value-renᴹᴿ`) is the sibling-shift
 lemma, applied in the four
@@ -421,7 +421,7 @@ is read off `δ`.
 - ~~R1~~ dissolved (2026-09-22): `RVar = ℕ`, `Rep = Ty`, contexts as
   today.
 - ~~R2~~ WITHDRAWN (Jeremy, 2026-09-22): conversions keep citing
-  ordinary names; `SameConv` and the re-spelling premises stay.  No
+  ordinary names; `SameConv` and the weakening premises stay.  No
   show-stopper required the change, and staying close to strong-rep-var
   keeps the port cheap.
 - ~~R3~~ dissolved by fresh = 0: `TyBeta`'s body is verbatim and its

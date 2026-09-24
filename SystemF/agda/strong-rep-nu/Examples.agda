@@ -574,7 +574,7 @@ V-run = reaches-run V-eval
 -- into the interior without re-basing it, and the two contexts disagree
 -- exactly when an unbind and a bind have moved the name
 -- (strong-rep-store/notes/ForallPayloadWall.agda, notes/DECISIONS.md 2026-09-18).
--- `Merge` carries both of its re-spellings as premises.
+-- `Merge` carries both of its weakenings as premises.
 
 ------------------------------------------------------------------------
 -- §6a  (ΛX. λx:X. x) [∀Z. Z⇒Z] · (ΛZ. λz:Z. z), at [𝔹] · true
@@ -703,7 +703,7 @@ C-run = reaches-run C-eval
 -- §8  THE CANCEL SHIFT WITNESS
 ------------------------------------------------------------------------
 
--- The program that found the CancelR re-spelling defect and, after
+-- The program that found the CancelR weakening defect and, after
 -- repair (a), the run that certified the repaired rule (2026-09-19; the
 -- before/after record is
 -- strong-rep-store/notes/CancelRReachabilityWitness.agda, and

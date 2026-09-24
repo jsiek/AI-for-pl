@@ -1335,7 +1335,7 @@ genuine conflict between two rulings, both sides machine-checked:
 
 (1) PROGRESS NEEDS MERGE (gauntlet §9i).  At a reveal-variable face the
 interior type is `γᵇ Θ X = ` X` — abstract — so Peel/TyPeel, which push
-the elimination INWARD, cannot type there; re-spelling B₀ as the rep
+the elimination INWARD, cannot type there; weakening B₀ as the rep
 breaks the internal face by §9g's own ¬γ argument.  The nesting must
 collapse: Merge is the ONLY rule that fires.  Reachable BY PEEL STEPS
 ALONE from a closed plain source (`⊢rvQ₀`, `rv-step₁…₅` live):
@@ -2982,7 +2982,7 @@ used to carry both `Unique (names Δ⋉ᶜ)` for the merged frame and
 `Unique (names Δᶜ)` for Θ₂'s conversion context. The contractum mentions
 neither witness; it depends on the retained `SameTy`, lookup and context
 readings. The same duplication occurred at every boundary rule whose
-determinism case compared a re-spelled type or conversion.
+determinism case compared a weakened type or conversion.
 
 THE RULING, INSTALLED. Reduction carries no `Unique` premises. All eight
 were removed: one each from `Peel` and `TyPeelR-Λ`, and two each from
@@ -3190,14 +3190,14 @@ After the push, the conversion must therefore be `unseal 1`, not `unseal 0`:
 
 The typing derivation supplies `BoundaryWf` for Θ₂ and Θ₁, but it does not
 supply a conversion reading for `Θ₁ ⋉ Θ₂`. The rule carries that reading and
-the `SameTy` re-spelling explicitly, so Progress must construct both before it
+the `SameTy` weakening explicitly, so Progress must construct both before it
 can exhibit this step.
 
 THE TWO IMPLEMENTATION CHOICES on this example were:
 
 1. Prove immediately that the merged reading always exists and contains both
    source name sets. On the example this theorem constructs a context
-   containing representation 1 and re-spells name 0 as name 1.
+   containing representation 1 and weakens name 0 as name 1.
 2. State that invariant exactly, use it as a stage-1 module parameter, and
    defer its proof for review. On the same example the parameter supplies the
    identical merged reading and the identical name-1 witness, while making the
@@ -3216,9 +3216,9 @@ already proved in `notes/PeelPremise.agda`:
             × Keeps (names Δᶜ) (names Δ⋉ᶜ)
             × Keeps (names Δ₁ᶜ) (names Δ⋉ᶜ))
 
-The first `Keeps` supplies CancelR's re-spelling of the lookup type from
-Θ₂'s conversion context. The second supplies IdPush's re-spelling of the
-inner identity variable from Θ₁'s conversion context. `respell-ty` turns each
+The first `Keeps` supplies CancelR's weakening of the lookup type from
+Θ₂'s conversion context. The second supplies IdPush's weakening of the
+inner identity variable from Θ₁'s conversion context. `weaken-ty` turns each
 name-retention fact into the exact `SameTy` carried by the reduction rule.
 
 THE PUBLIC LOGICAL STATEMENT DOES NOT CHANGE and takes no `WfCtx` premise:
@@ -3237,11 +3237,11 @@ under a boundary then that boundary's `env` node already carries the needed
 
 THE PROVED PEEL PACKAGE MOVED FROM NOTES TO CORE. The name-set invariant (Q),
 its list machinery, and `dual-conversion-exists` now live in
-`Boundary.agda` §3b/§3c. Type/conversion re-spelling, readability,
+`Boundary.agda` §3b/§3c. Type/conversion weakening, readability,
 `premise-exists`, `peel-premises`, and `peel-premises-env` now live in
 `Conversion.agda` §2c. `notes/PeelPremise.agda` retains the mixed-frame
 counterexample and machine-checks the moved `Q` and `premise-exists` on it.
-The duplicate `Keeps`, `keeps-underΛ`, and `respell-ty` definitions in
+The duplicate `Keeps`, `keeps-underΛ`, and `weaken-ty` definitions in
 `proof/Preserve.agda` were removed so preservation reuses the core facts too.
 
 All other Progress obligations are direct inversions of the typing
@@ -3278,7 +3278,7 @@ asks its conversion's type to denote `shiftBy 1 (` 1) ≡ ` 2`, while the
 inner `mkId (` 0)` denotes representation 1. A representation reading is
 unique (`same-rep-unique`), and `1 ≢ 2`.
 
-THE DIAGNOSIS. `CancelR`'s re-spelling premise reads the inner layer's
+THE DIAGNOSIS. `CancelR`'s weakening premise reads the inner layer's
 identity type in the OUTER conversion context:
 
     SameTy Δ⋉ᶜ A′ Δᶜ A ,
@@ -3287,9 +3287,9 @@ so it asserts that `A′` denotes the SAME representation as `A`. But the
 inner boundary sits `numBinds Θ₁` representation binders inside its own
 exterior, and `env` compares an exterior type with a conversion type
 across exactly that block. The premise therefore drops the shift. The
-other three crossings do not: `TyPeelR-⟪⟫` and `IdPush` re-spell against
+other three crossings do not: `TyPeelR-⟪⟫` and `IdPush` weaken against
 the INNER boundary's own conversion context `Δ₁ᶜ`, where the shifted
-reading already lives, and `Peel` re-spells a conversion between two
+reading already lives, and `Peel` weakens a conversion between two
 contexts that share a representation context. `CancelR` was the one
 repaired PREVENTIVELY (2026-09-18), against no failing program, and it was
 repaired against the wrong context.
@@ -3334,7 +3334,7 @@ facts do it, and three are relational readings:
     nose. The lifted copy of Θ₂'s changes re-creates Θ₂'s interior one
     bind block in, which is exactly where Θ₁'s reading starts. This is
     the relational form of the retired `interior-⋉-rewind` equality;
-  * `conversion-live` re-spells the exterior type C into the merged
+  * `conversion-live` weakens the exterior type C into the merged
     conversion context, because a conversion reading only ADDS names, so
     every name of the merged frame's own exterior survives into it. That
     is the half of `MergedReading` preservation actually needs, and it was
@@ -3352,11 +3352,11 @@ lookup be taken at all.
 PEEL LANDS ON ONE NEW TRANSPORT. `dual-interior` — NEW, §3a, beside
 `rewind-interior` — says the dual's interior is the exterior under the
 original bind block, so the crossing argument gains no ordinary scope.
-`respell-⊢` — NEW, `proof/PeelDual.agda` §1 — turns the rule's `SameConv`
+`weaken-⊢` — NEW, `proof/PeelDual.agda` §1 — turns the rule's `SameConv`
 premise into the dual boundary's conversion TYPING: the two conversion
 contexts share a representation context, so a `seal`/`unseal` cites the
 same binder and only its ordinary spelling changes, and an identity's
-payload goes through `respell-ty` against (Q). Source and target come back
+payload goes through `weaken-ty` against (Q). Source and target come back
 paired with the `SameTy`s the crossing boundary's `env` consumes.
 
 **REVIEW REQUIRED — NEW MAJOR STATEMENT, NOT PROVED.** The argument must
@@ -3484,7 +3484,7 @@ WHAT WAS PORTED.
   decompose and rename facts port unchanged. `Peel` is what forces the new
   work: it no longer carries its crossing argument's conversion `s` onto
   the dual, it carries the dual's own spelling `s′` with a `SameConv`
-  (2026-09-18). So canonicity must RE-SPELL, and §5 does it by stating the
+  (2026-09-18). So canonicity must WEAKEN, and §5 does it by stating the
   family a SECOND time on representation variables (`CanonAtᴿ`) and
   transporting through `_⊩_~_` in both directions. Two things fell out.
   First, the way back needs the target name map to be a FUNCTION, so
@@ -3493,7 +3493,7 @@ WHAT WAS PORTED.
   through `ξ-Λ`/`ξ-⟪⟫` by `unique-underΛ`/`interior-unique`. This is the
   same ruling as for `det`: uniqueness is a property of the context, not a
   premise of a rule. Second, a conversion whose leaves are ALL identities
-  names no binder, so it is canonical everywhere and its re-spelling has
+  names no binder, so it is canonical everywhere and its weakening has
   no name to inherit; both transports therefore return a sum over a new
   `AllId` predicate, of which `mkId` is the leading instance. The old §10,
   which validated the invariant on `strong-rep-nu.Examples`, is dropped while that
@@ -3735,7 +3735,7 @@ ruled on directly.  The two earlier entries of today left `CancelR` with a
 refuted preservation case and only one repair path open: path (b), the
 invariant `numBinds Θ₁ ≡ 0`, died when the configuration turned out to be
 reachable from a closed, plain source program.  Repair (a) — read the
-re-spelling premise at the INNER boundary's conversion context — is
+weakening premise at the INNER boundary's conversion context — is
 approved and installed.  `strong-rep-nu.Reduction` is no longer untouched.
 
 THE RULE, BEFORE:
@@ -3763,7 +3763,7 @@ Three premises are added and one is re-pointed.  The contractum is
 UNCHANGED as a term shape; what changed is which type `A′` is forced to
 be.  The block is now premise-isomorphic to `IdPush`'s: the same interior
 reading of Θ₂, the same conversion reading of Θ₁, the same lookup at
-`Δ₁ᶜ`, the same re-spelling target `Δ⋉ᶜ`.  `IdPush` looks up a VARIABLE
+`Δ₁ᶜ`, the same weakening target `Δ⋉ᶜ`.  `IdPush` looks up a VARIABLE
 and mints `unseal X′`; `CancelR` looks up the cancelled seal's SOURCE and
 mints `mkId A′`.
 
@@ -3781,7 +3781,7 @@ or the representation is closed.  `Δ₁ᶜ` is `n` binders in, which is where
 the shifted reading already lives; and the cancelled `seal X`'s own source
 is read there, by `conv-seal`, in the redex's own typing derivation.  This
 is not a coincidence of `CancelR`: it is why `TyPeelR-⟪⟫` and `IdPush`
-re-spell against `Δ₁ᶜ` too.  `CancelR` was the one crossing repaired
+weaken against `Δ₁ᶜ` too.  `CancelR` was the one crossing repaired
 PREVENTIVELY (2026-09-18), against no failing program — and it was
 repaired against the wrong context.
 
@@ -4085,7 +4085,7 @@ downstream-parameter shape stays unchanged just as it does for `Peel`,
 `MergedReading`.
 
 ## 2026-09-20 — `AddUnbind0Typing` is REFUTED, and with it PRESERVATION:
-## `TyPeelR-⟪⟫` re-spells its moved conversion in the wrong name map
+## `TyPeelR-⟪⟫` weakens its moved conversion in the wrong name map
 
 Jeremy's instruction was "now prove AddUnbind0Typing, same approach, though
 consider decomposing into simpler and more general lemmas".  The
@@ -4177,7 +4177,7 @@ no renaming to substitute, because where the new name lands depends on
 `Peel` on 2026-09-18 — "not merely a renumbering of the same one" — and
 it wants the same repair: `TyPeelR-⟪⟫` should NAME the moved conversion
 and carry a `SameConv` relating it to the original across the two
-conversion contexts, with `respell`/`Q` (`Conversion.agda` §2b,
+conversion contexts, with `weaken`/`Q` (`Conversion.agda` §2b,
 `Boundary.agda` §3b) supplying the witness and `proof/Progress.agda`
 deriving the premise as it already does for `Peel`.  That is a rule
 change, so it is Jeremy's call; `Reduction.agda` and `Terms.agda` are
@@ -4254,7 +4254,7 @@ binder makes.  The ordinary POSITIONS of `Δ′ᶜ` are kept; what each denotes
 moves, because Θ′'s own bind block stays at representation indices
 `0 … numBinds Θ′ - 1` and everything below it is pushed past the new
 binder.  Taking `reps` from the TARGET is what makes
-`proof/PeelDual.respell-⊢` applicable later: its premise is
+`proof/PeelDual.weaken-⊢` applicable later: its premise is
 `reps Γ′ ≡ reps Γ`.
 
 The view is NOT optional.  Replacing `renNameCtx … Δ″ᶜ Δ′ᶜ` by plain `Δ′ᶜ`
@@ -4275,7 +4275,7 @@ state type-checked:
 Its third state is the state the wall refutes with ONE conversion leaf
 changed — `seal 1 ↦ unseal 1` where the old rule wrote
 `seal 2 ↦ unseal 2`; the frames are identical.  Here the correct
-re-spelling is the IDENTITY, which is precisely what no fixed renaming
+weakening is the IDENTITY, which is precisely what no fixed renaming
 delivers.  `strong-rep-store/notes/AddLock0Wall.agda` checks all of that
 (`repaired-state`, `good≢bad`), keeps the retired statement as a LOCAL
 `AddUnbind0Typing°` and still refutes THAT, and states no refutation of
@@ -4285,7 +4285,7 @@ THE SUITE IS BYTE-IDENTICAL.  `notes/RepresentationReductionExamples.agda`
 and `Examples.agda` are unchanged and green, at the same endpoints and the
 same step counts.  `TyPeelR-⟪⟫` fires in several of those runs; the
 carried premise is invisible there because `Eval.agda`'s
-`bdyPremises?` builds it by the same `respell?` search the checker already
+`bdyPremises?` builds it by the same `weaken?` search the checker already
 ran for `Peel`.
 
 PROGRESS TOOK NO NEW PARAMETER — the point at which the experiment and the
@@ -4310,8 +4310,8 @@ THE ORDER OF THE TWO TRANSPORTS IS THE WHOLE KNOT.  `readable` reads the
 old conversion at `underΛ Δ′ᶜ`.  The rule wants it at
 `underΛ (renNameCtx ρ Δ″ᶜ Δ′ᶜ)`, whose name map is `map ρ (names Δ′ᶜ)`.
 So the reading is REPRESENTATION-SHIFTED FIRST — `sameᶜ-ren (extᵗ ρ)`,
-carried past the `Λ` by `names-underΛ-ren` — and only THEN respelled into
-the moved boundary's own context through `⊆ᵃ-underΛ keep`.  Respelling
+carried past the `Λ` by `names-underΛ-ren` — and only THEN weakened into
+the moved boundary's own context through `⊆ᵃ-underΛ keep`.  Weakening
 first, which is what the experiment did, leaves the reading in the
 UNRENAMED map and the goal unprovable; that was the one open hole the
 experiment reported.  `strong-rep-nu.Progress.Stage1` therefore still takes
@@ -4338,13 +4338,13 @@ lemma that already existed or by one small new one:
     `repwk-push (repwk-cons₀ (bindR P) …) (binds Θ)` — purely
     representation, which is what `renᴹᴿ` was for;
   * the CONVERSION by `conv-ren` (`Conversion.agda` §2d), which moves the
-    representation context, then `proof/PeelDual.respell-⊢`, which moves
-    the name map.  `respell-⊢` demands `reps Γ′ ≡ reps Γ`, and THAT is what
+    representation context, then `proof/PeelDual.weaken-⊢`, which moves
+    the name map.  `weaken-⊢` demands `reps Γ′ ≡ reps Γ`, and THAT is what
     `renNameCtx` was shaped to satisfy: it keeps the old ordinary positions
     and takes the representation context from the moved side.  Its
     retention argument is the `keep` of `addUnbind0-conversion-ren`, pushed
     onto the rule's own `Δ⁺ᶜ` by `conversion-functional`;
-  * the two `SameTy` premises come back FROM `respell-⊢`, paired with the
+  * the two `SameTy` premises come back FROM `weaken-⊢`, paired with the
     old readings; `same-ren` supplies the moved side and `same-rep-unique`
     identifies the two representations;
   * the exterior `SameTyExt` by `same-weaken` for the fresh ordinary name
@@ -4435,7 +4435,7 @@ and `IdPush` reads its identity variable there too. Both branches use only
 
     names Δ₁ᶜ ⊆ᵃ names Δ⋉ᶜ
 
-to re-spell that source in the merged conversion context. Neither branch
+to weaken that source in the merged conversion context. Neither branch
 uses the former outer component
 
     names Δᶜ ⊆ᵃ names Δ⋉ᶜ .
@@ -4815,7 +4815,7 @@ that in the first boundary?"
 
 and the outer layer was a no-op on both counts a boundary has:
 `rewind-interior` says its frame's interior IS the exterior it sits at,
-and `mkId A : A ⇝ A` converts nothing.  Its only effect was to re-spell
+and `mkId A : A ⇝ A` converts nothing.  Its only effect was to weaken
 the exterior type — and the surviving layer could already be given that
 type.  `proof/MoveScope.agda` said so before the change: both
 `preserve-IdPush` and `preserve-CancelR` built a local
@@ -4859,9 +4859,9 @@ that one determines the identity it still mints.
   `contractum`; `mwR`, `outerᵢ`, `rewind-interior` and
   `rewind-conversion` are gone, and the outer lookup is inverted out of
   the redex's own `conv-unseal` where the proofs still need it.
-* `proof/Determinism.agda` — `IdPush` is determined by its re-spelling
+* `proof/Determinism.agda` — `IdPush` is determined by its weakening
   `X′` alone (`sameTy-src-unique`); `CancelR` by `Δ₁ᶜ ∋ X := Aᵢ` and the
-  re-spelling.  The outer `∋:=-det` step is gone from both.
+  weakening.  The outer `∋:=-det` step is gone from both.
 * `Eval.agda` — `bdyRedex` no longer calls `cancelPremises?` in either
   branch.
 * `proof/ShiftAudit.agda` §6 — `Move-outer-frame` and
@@ -5154,18 +5154,18 @@ re-exports them.
   the drops match `⌞ id A ⌟`.
 
 **Proofs.**  `preserve-Merge : MergeCase` (`proof/MoveScope.agda`)
-re-spells both typed conversions onto `Δ⋉ᶜ` by `respell-⊢` and composes
+weakens both typed conversions onto `Δ⋉ᶜ` by `weaken-⊢` and composes
 them by `⊢⨟`; the middle type agrees by `same-target-unique`.
 `merge-redex` (`proof/Progress.agda`) builds the premises from
 `merged-conversion-exists`.  `det` handles `Merge` by
-`sameConv-src-unique`; `respell-⊢` gained `Unique (names Γ)` for
+`sameConv-src-unique`; `weaken-⊢` gained `Unique (names Γ)` for
 `NoCancel`.  `Merge-height` (`proof/ShiftAudit.agda` §4): `Merge`
 lowers the tower measure, which is at most one on a value.  The
 top-level theorem statements are unchanged.
 
 **Deleted files.**  `proof/Canonicity.agda` (retired, above),
 `proof/AddUnbind0.agda` (used only by `Nu-⟪⟫`),
-`notes/CancelRShiftWall.agda` (the record of the `CancelR` re-spelling
+`notes/CancelRShiftWall.agda` (the record of the `CancelR` weakening
 wall; dropped from `notes/All.agda`).  New files: `Lookup.agda`,
 `proof/Compose.agda`, `notes/MergeSketch.md`, `notes/StackCensus.agda`
 (gated by `notes/All.agda`).

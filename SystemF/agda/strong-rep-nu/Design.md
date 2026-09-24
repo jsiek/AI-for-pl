@@ -80,7 +80,7 @@ The name also records a syntactic property the design maintains:
 variable that a term may not name is not simply absent from the context —
 its entry is **masked in place** (`masked`), so it is still there for a
 later re-exposure to point back at, but no type may name it.  Nothing is
-dropped and nothing is re-spelled; that is what makes the transports
+dropped and nothing is weakened; that is what makes the transports
 (`⊢rename`, `⊢retag`) hypothesis-light and what killed v1, where the
 representation of a variable was *copied* into every boundary that
 mentioned it and the copies drifted apart.

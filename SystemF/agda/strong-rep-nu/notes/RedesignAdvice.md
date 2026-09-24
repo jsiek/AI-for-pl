@@ -6,7 +6,7 @@
 ## up from inner boundaries?  YES — the strongest-supported change.
 
 What the data says about per-boundary rep spelling (the current design):
-- Every preservation failure is a failed attempt to COPY or RE-SPELL a
+- Every preservation failure is a failed attempt to COPY or WEAKEN a
   rep across a boundary: F4 (x-copies die unconditionally), F5 (chained
   copies die at Λ-bound targets), R2′ (the discriminator is the entry at
   the named slot), and D1's two-copies drift was the same disease at the
@@ -37,7 +37,7 @@ Key structural fact favoring both: the owner's wrapper syntactically
 ENCLOSES every inner user (a variable's scope is inside its reveal), so
 inner crossings can never drop the owner — the pointer is stable where
 the copy was not.  The demotion CONCEPT disappears: a dual re-points
-slots; it never re-spells knowledge, so it has nothing to destroy.
+slots; it never weakens knowledge, so it has nothing to destroy.
 
 ## Q2 — Simultaneity: KEEP IT.  The data does not implicate it.
 

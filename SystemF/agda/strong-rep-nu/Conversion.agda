@@ -7,7 +7,7 @@ module strong-rep-nu.Conversion where
 --     LEFT), an unseal chain `Conv` (associates RIGHT) — with renaming,
 --     §1b the syntactic identity `IsId` and the `NoCancel` side
 --     condition, §2 the three typing judgements with NO polarity
---     index, §2b the re-spelling relation `SameConv`, §2c re-spelling
+--     index, §2b the weakening relation `SameConv`, §2c weakening
 --     across a crossing, §2d representation renaming, §3 `mkId`,
 --     §4 `reveal`/`conceal`, §4b COMPOSITION `Δ ⊢ c₁ ⨟ c₂`, §5 the
 --     inversions, §6 `conv-types-unique`, §7 concrete checks.
@@ -345,7 +345,7 @@ sameConv-∀ (r , p , q) =
            , sameᶜ-tail (sameᶜ-mid (sameᶜ-all q))
 
 ------------------------------------------------------------------------
--- 2c. Re-spelling a conversion across a boundary scope crossing
+-- 2c. Weakening a conversion across a boundary scope crossing
 ------------------------------------------------------------------------
 
 -- `Q` and `dual-conversion-exists` live with the relational context
@@ -353,47 +353,47 @@ sameConv-∀ (r , p , q) =
 -- actual type and conversion spellings.
 -- Commentary.md § Conversion.agda / §2c
 
-respell-ty : η ⊆ᵃ η′ → η ⊢ A ~ R
+weaken-ty : η ⊆ᵃ η′ → η ⊢ A ~ R
   → ∃[ A′ ] (η′ ⊢ A′ ~ R)
-respell-ty f (same-var d) with f (_ , d)
-respell-ty f (same-var d) | X , d′ = ` X , same-var d′
-respell-ty f same-ℕ = `ℕ , same-ℕ
-respell-ty f same-𝔹 = `𝔹 , same-𝔹
-respell-ty f (same-⇒ a b) with respell-ty f a
-respell-ty f (same-⇒ a b) | A′ , a′ with respell-ty f b
-respell-ty f (same-⇒ a b) | A′ , a′ | B′ , b′ =
+weaken-ty f (same-var d) with f (_ , d)
+weaken-ty f (same-var d) | X , d′ = ` X , same-var d′
+weaken-ty f same-ℕ = `ℕ , same-ℕ
+weaken-ty f same-𝔹 = `𝔹 , same-𝔹
+weaken-ty f (same-⇒ a b) with weaken-ty f a
+weaken-ty f (same-⇒ a b) | A′ , a′ with weaken-ty f b
+weaken-ty f (same-⇒ a b) | A′ , a′ | B′ , b′ =
   A′ ⇒ B′ , same-⇒ a′ b′
-respell-ty f (same-∀ a) with respell-ty (⊆ᵃ-underΛ f) a
-respell-ty f (same-∀ a) | A′ , a′ = `∀ A′ , same-∀ a′
+weaken-ty f (same-∀ a) with weaken-ty (⊆ᵃ-underΛ f) a
+weaken-ty f (same-∀ a) | A′ , a′ = `∀ A′ , same-∀ a′
 
 
 mutual
-  respellᵐ : ∀ {g₀} → η ⊆ᵃ η′ → η ⊩ᵐ g ~ g₀ → ∃[ g′ ] (η′ ⊩ᵐ g′ ~ g₀)
-  respellᵐ f (sameᶜ-id a) with respell-ty f a
-  respellᵐ f (sameᶜ-id a) | A′ , a′ = id A′ , sameᶜ-id a′
-  respellᵐ f (sameᶜ-fun a b) with respell f a
-  respellᵐ f (sameᶜ-fun a b) | s₁ , a′ with respell f b
-  respellᵐ f (sameᶜ-fun a b) | s₁ , a′ | s₂ , b′ =
+  weakenᵐ : ∀ {g₀} → η ⊆ᵃ η′ → η ⊩ᵐ g ~ g₀ → ∃[ g′ ] (η′ ⊩ᵐ g′ ~ g₀)
+  weakenᵐ f (sameᶜ-id a) with weaken-ty f a
+  weakenᵐ f (sameᶜ-id a) | A′ , a′ = id A′ , sameᶜ-id a′
+  weakenᵐ f (sameᶜ-fun a b) with weaken f a
+  weakenᵐ f (sameᶜ-fun a b) | s₁ , a′ with weaken f b
+  weakenᵐ f (sameᶜ-fun a b) | s₁ , a′ | s₂ , b′ =
     s₁ ↦ s₂ , sameᶜ-fun a′ b′
-  respellᵐ f (sameᶜ-all a) with respell (⊆ᵃ-underΛ f) a
-  respellᵐ f (sameᶜ-all a) | s₁ , a′ = `∀ s₁ , sameᶜ-all a′
+  weakenᵐ f (sameᶜ-all a) with weaken (⊆ᵃ-underΛ f) a
+  weakenᵐ f (sameᶜ-all a) | s₁ , a′ = `∀ s₁ , sameᶜ-all a′
 
-  respellᵀ : ∀ {t₀} → η ⊆ᵃ η′ → η ⊩ᵀ t ~ t₀ → ∃[ t′ ] (η′ ⊩ᵀ t′ ~ t₀)
-  respellᵀ f (sameᶜ-mid a) with respellᵐ f a
-  respellᵀ f (sameᶜ-mid a) | g′ , a′ = mid g′ , sameᶜ-mid a′
-  respellᵀ f (sameᶜ-seal d) with f (_ , d)
-  respellᵀ f (sameᶜ-seal d) | X , d′ = seal X , sameᶜ-seal d′
-  respellᵀ f (sameᶜ-seal-seq a d) with respellᵀ f a | f (_ , d)
-  respellᵀ f (sameᶜ-seal-seq a d) | t′ , a′ | X , d′ =
+  weakenᵀ : ∀ {t₀} → η ⊆ᵃ η′ → η ⊩ᵀ t ~ t₀ → ∃[ t′ ] (η′ ⊩ᵀ t′ ~ t₀)
+  weakenᵀ f (sameᶜ-mid a) with weakenᵐ f a
+  weakenᵀ f (sameᶜ-mid a) | g′ , a′ = mid g′ , sameᶜ-mid a′
+  weakenᵀ f (sameᶜ-seal d) with f (_ , d)
+  weakenᵀ f (sameᶜ-seal d) | X , d′ = seal X , sameᶜ-seal d′
+  weakenᵀ f (sameᶜ-seal-seq a d) with weakenᵀ f a | f (_ , d)
+  weakenᵀ f (sameᶜ-seal-seq a d) | t′ , a′ | X , d′ =
     t′ ⨾seal X , sameᶜ-seal-seq a′ d′
 
-  respell : ∀ {c₀} → η ⊆ᵃ η′ → η ⊩ c ~ c₀ → ∃[ c′ ] (η′ ⊩ c′ ~ c₀)
-  respell f (sameᶜ-tail a) with respellᵀ f a
-  respell f (sameᶜ-tail a) | t′ , a′ = tail t′ , sameᶜ-tail a′
-  respell f (sameᶜ-unseal d) with f (_ , d)
-  respell f (sameᶜ-unseal d) | X , d′ = unseal X , sameᶜ-unseal d′
-  respell f (sameᶜ-unseal-seq d a) with f (_ , d) | respell f a
-  respell f (sameᶜ-unseal-seq d a) | X , d′ | c′ , a′ =
+  weaken : ∀ {c₀} → η ⊆ᵃ η′ → η ⊩ c ~ c₀ → ∃[ c′ ] (η′ ⊩ c′ ~ c₀)
+  weaken f (sameᶜ-tail a) with weakenᵀ f a
+  weaken f (sameᶜ-tail a) | t′ , a′ = tail t′ , sameᶜ-tail a′
+  weaken f (sameᶜ-unseal d) with f (_ , d)
+  weaken f (sameᶜ-unseal d) | X , d′ = unseal X , sameᶜ-unseal d′
+  weaken f (sameᶜ-unseal-seq d a) with f (_ , d) | weaken f a
+  weaken f (sameᶜ-unseal-seq d a) | X , d′ | c′ , a′ =
     unseal X ⨾ c′ , sameᶜ-unseal-seq d′ a′
 
 mutual
@@ -433,7 +433,7 @@ premise-exists : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ : Boundary}
   → ∃[ s′ ] SameConv Γᵈ s′ Γᶜ s
 premise-exists int conv dconv ⊢s with readable ⊢s
 premise-exists int conv dconv ⊢s | r , rd
-  with respell (Q int conv dconv) rd
+  with weaken (Q int conv dconv) rd
 premise-exists int conv dconv ⊢s | r , rd | s′ , rd′ =
   s′ , (r , rd′ , rd)
 

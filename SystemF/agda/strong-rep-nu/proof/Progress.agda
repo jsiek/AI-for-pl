@@ -7,9 +7,9 @@ module strong-rep-nu.proof.Progress where
 --     identities; §4 the boundary cases; §5 the induction.
 --   * The ordinary cases are the standard induction over
 --     strong-rep-nu.proof.Canonical; the boundary cases additionally
---     CONSTRUCT the relational readings and re-spellings the rules
+--     CONSTRUCT the relational readings and weakenings the rules
 --     carry, from `merged-conversion-exists`, `readable` and
---     `respell`.  Nothing is a parameter.
+--     `weaken`.  Nothing is a parameter.
 --   * ONE BOUNDARY PER VALUE: a boundary over a boundary value is
 --     ALWAYS a `Merge` redex, whatever its conversion.
 --   * PROGRESS RETURNS THE STORE CHANGE TOO: every clause names the
@@ -56,7 +56,7 @@ sameTy-base-src base-𝔹 (`𝔹 , same-𝔹 , same-𝔹) = refl
 
 -- `Merge`'s premises exist whenever a boundary sits over a value's
 -- boundary: the merged conversion reading (`merged-conversion-exists`)
--- retains both old conversion contexts' names, so `respell` moves each
+-- retains both old conversion contexts' names, so `weaken` moves each
 -- conversion there.
 -- Commentary.md § proof/Progress.agda / §2
 merge-redex : ∀ {Δ Δᵢ Δ₂ᶜ U Θ₁ Θ₂ t₁ c₂ B C D}
@@ -72,8 +72,8 @@ merge-redex u it mw₂ (env mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c�
   | Δ⋉ᶜ , r⋉ , keep₁ with readableᵀ ⊢t₁ | readable ⊢c₂
 merge-redex u it mw₂ (env mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c₂
   | Δ⋉ᶜ , r⋉ , keep₁ | r₁ , rd₁ | r₂ , rd₂
-  with respellᵀ keep₁ rd₁
-     | respell (merged-keeps₂ (bw-conversion mw₂) r⋉) rd₂
+  with weakenᵀ keep₁ rd₁
+     | weaken (merged-keeps₂ (bw-conversion mw₂) r⋉) rd₂
 merge-redex u it mw₂ (env mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c₂
   | Δ⋉ᶜ , r⋉ , keep₁ | r₁ , rd₁ | r₂ , rd₂ | t₁′ , rd₁′ | c₂′ , rd₂′ =
   _ , none

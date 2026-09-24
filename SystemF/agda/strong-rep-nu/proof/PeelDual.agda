@@ -3,7 +3,7 @@ module strong-rep-nu.proof.PeelDual where
 -- File Charter:
 --   * THE PEEL CROSSING — the dual is an INVERSE, and both of its
 --     readings are theorems of strong-rep-nu.Boundary §3a.  §1
---     re-spells a TYPED conversion across the crossing (`respell-⊢`);
+--     weakens a TYPED conversion across the crossing (`weaken-⊢`);
 --     §2 splits the redex's `env` premises at the arrow; §3 is
 --     `preserve-Peel`.
 --   * THE ARGUMENT DOES NOT MOVE.  `dual-interior` says the dual's
@@ -32,7 +32,7 @@ open import strong-rep-nu.Boundary
 open import strong-rep-nu.proof.Preserve using (PeelCase; same-wf)
 
 ------------------------------------------------------------------------
--- §1  Re-spelling a TYPED conversion
+-- §1  Weakening a TYPED conversion
 ------------------------------------------------------------------------
 
 sameTy-⇒ : ∀ (Γ Γ′ : Ctxᵗ) {A B C D : Ty}
@@ -46,7 +46,7 @@ sameTy-∀ : ∀ (Γ Γ′ : Ctxᵗ) {A B : Ty}
   → Γ ⊢ `∀ A ≈ `∀ B ⊣ Γ′
 sameTy-∀ Γ Γ′ (R , p , q) = `∀ R , same-∀ p , same-∀ q
 
--- A re-spelling keeps the SHAPE, so it keeps identity and the
+-- A weakening keeps the SHAPE, so it keeps identity and the
 -- cancellation side condition (the latter because names are unique).
 mutual
   isIdᵐ-~ : ∀ {η g r} → η ⊩ᵐ g ~ r → IsIdᵐ g → IsIdᵐ r
@@ -100,7 +100,7 @@ noCancel-~ uq d d′ (sameᶜ-tail p) (sameᶜ-tail p′) nc =
 noCancel-~ uq d d′ (sameᶜ-unseal e) (sameᶜ-unseal e′) nc = tt
 noCancel-~ uq d d′ (sameᶜ-unseal-seq e p) (sameᶜ-unseal-seq e′ p′) nc = tt
 
--- `respell` (strong-rep-nu.Conversion §2c) produces a conversion's
+-- `weaken` (strong-rep-nu.Conversion §2c) produces a conversion's
 -- other spelling; this produces its TYPING.  The two contexts share a
 -- representation context and differ only in their ordinary name map;
 -- the source context's names are unique, so `NoCancel` survives.
@@ -112,7 +112,7 @@ lookup-~ : ∀ {Γ Γ′ : Ctxᵗ} {X X′ α A}
   → Γ ∋ X := A
   → Σ[ A′ ∈ Ty ] ((Γ′ ∋ X′ := A′) × (Γ′ ⊢ A′ ≈ A ⊣ Γ))
 lookup-~ {Γ′ = Γ′} eq f d d′ (α , R , dn , dr , pA)
-  with respell-ty f pA
+  with weaken-ty f pA
 lookup-~ {Γ′ = Γ′} eq f d d′ (α , R , dn , dr , pA) | A′ , qA′ =
   A′
   , (α , R
@@ -134,7 +134,7 @@ lookup-~′ {Γ′ = Γ′} eq d d′ (α , R , dn , dr , pA) (S , q′ , q) =
   , subst (λ T → names Γ′ ⊢ _ ~ T) (same-rep-unique q pA) q′
 
 mutual
-  respellᵐ-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {g g′ r} {A B : Ty}
+  weakenᵐ-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {g g′ r} {A B : Ty}
     → reps Γ′ ≡ reps Γ → Unique (names Γ)
     → (names Γ) ⊆ᵃ (names Γ′)
     → names Γ ⊩ᵐ g ~ r → names Γ′ ⊩ᵐ g′ ~ r
@@ -142,36 +142,36 @@ mutual
     → Σ[ A′ ∈ Ty ] Σ[ B′ ∈ Ty ]
         ((Γ′ ⊢ᵐ g′ ∶ A′ ⇝ B′)
           × (Γ′ ⊢ A′ ≈ A ⊣ Γ) × (Γ′ ⊢ B′ ≈ B ⊣ Γ))
-  respellᵐ-⊢ eq uq f (sameᶜ-id same-ℕ) (sameᶜ-id same-ℕ) (conv-id base-ℕ) =
+  weakenᵐ-⊢ eq uq f (sameᶜ-id same-ℕ) (sameᶜ-id same-ℕ) (conv-id base-ℕ) =
     `ℕ , `ℕ , conv-id base-ℕ
     , (`ℕ , same-ℕ , same-ℕ) , (`ℕ , same-ℕ , same-ℕ)
-  respellᵐ-⊢ eq uq f (sameᶜ-id same-𝔹) (sameᶜ-id same-𝔹) (conv-id base-𝔹) =
+  weakenᵐ-⊢ eq uq f (sameᶜ-id same-𝔹) (sameᶜ-id same-𝔹) (conv-id base-𝔹) =
     `𝔹 , `𝔹 , conv-id base-𝔹
     , (`𝔹 , same-𝔹 , same-𝔹) , (`𝔹 , same-𝔹 , same-𝔹)
-  respellᵐ-⊢ eq uq f (sameᶜ-id (same-var d)) (sameᶜ-id (same-var d′))
+  weakenᵐ-⊢ eq uq f (sameᶜ-id (same-var d)) (sameᶜ-id (same-var d′))
             (conv-idv tv) =
     _ , _ , conv-idv (_ , d′)
     , (` _ , same-var d′ , same-var d) , (` _ , same-var d′ , same-var d)
-  respellᵐ-⊢ {Γ = Γ} {Γ′ = Γ′} eq uq f (sameᶜ-fun a b) (sameᶜ-fun a′ b′)
+  weakenᵐ-⊢ {Γ = Γ} {Γ′ = Γ′} eq uq f (sameᶜ-fun a b) (sameᶜ-fun a′ b′)
             (conv-fun ⊢x ⊢y)
-    with respell-⊢ eq uq f a a′ ⊢x | respell-⊢ eq uq f b b′ ⊢y
-  respellᵐ-⊢ {Γ = Γ} {Γ′ = Γ′} eq uq f (sameᶜ-fun a b) (sameᶜ-fun a′ b′)
+    with weaken-⊢ eq uq f a a′ ⊢x | weaken-⊢ eq uq f b b′ ⊢y
+  weakenᵐ-⊢ {Γ = Γ} {Γ′ = Γ′} eq uq f (sameᶜ-fun a b) (sameᶜ-fun a′ b′)
             (conv-fun ⊢x ⊢y)
     | P₁ , Q₁ , ⊢x′ , smP₁ , smQ₁ | P₂ , Q₂ , ⊢y′ , smP₂ , smQ₂ =
     Q₁ ⇒ P₂ , P₁ ⇒ Q₂ , conv-fun ⊢x′ ⊢y′
     , sameTy-⇒ Γ′ Γ smQ₁ smP₂ , sameTy-⇒ Γ′ Γ smP₁ smQ₂
-  respellᵐ-⊢ {Γ = Γ} {Γ′ = Γ′} eq uq f (sameᶜ-all a) (sameᶜ-all a′)
+  weakenᵐ-⊢ {Γ = Γ} {Γ′ = Γ′} eq uq f (sameᶜ-all a) (sameᶜ-all a′)
             (conv-all ⊢x)
-    with respell-⊢ {Γ = underΛ Γ} {Γ′ = underΛ Γ′}
+    with weaken-⊢ {Γ = underΛ Γ} {Γ′ = underΛ Γ′}
                    (cong (abstR ∷_) eq) (unique-underΛ {Γ = Γ} uq)
                    (⊆ᵃ-underΛ f) a a′ ⊢x
-  respellᵐ-⊢ {Γ = Γ} {Γ′ = Γ′} eq uq f (sameᶜ-all a) (sameᶜ-all a′)
+  weakenᵐ-⊢ {Γ = Γ} {Γ′ = Γ′} eq uq f (sameᶜ-all a) (sameᶜ-all a′)
             (conv-all ⊢x)
     | A₀ , B₀ , ⊢x′ , smA , smB =
     `∀ A₀ , `∀ B₀ , conv-all ⊢x′
     , sameTy-∀ Γ′ Γ smA , sameTy-∀ Γ′ Γ smB
 
-  respellᵀ-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {t t′ r} {A B : Ty}
+  weakenᵀ-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {t t′ r} {A B : Ty}
     → reps Γ′ ≡ reps Γ → Unique (names Γ)
     → (names Γ) ⊆ᵃ (names Γ′)
     → names Γ ⊩ᵀ t ~ r → names Γ′ ⊩ᵀ t′ ~ r
@@ -179,26 +179,26 @@ mutual
     → Σ[ A′ ∈ Ty ] Σ[ B′ ∈ Ty ]
         ((Γ′ ⊢ᵀ t′ ∶ A′ ⇝ B′)
           × (Γ′ ⊢ A′ ≈ A ⊣ Γ) × (Γ′ ⊢ B′ ≈ B ⊣ Γ))
-  respellᵀ-⊢ eq uq f (sameᶜ-mid a) (sameᶜ-mid a′) (conv-mid ⊢g)
-    with respellᵐ-⊢ eq uq f a a′ ⊢g
-  respellᵀ-⊢ eq uq f (sameᶜ-mid a) (sameᶜ-mid a′) (conv-mid ⊢g)
+  weakenᵀ-⊢ eq uq f (sameᶜ-mid a) (sameᶜ-mid a′) (conv-mid ⊢g)
+    with weakenᵐ-⊢ eq uq f a a′ ⊢g
+  weakenᵀ-⊢ eq uq f (sameᶜ-mid a) (sameᶜ-mid a′) (conv-mid ⊢g)
     | A′ , B′ , ⊢g′ , smA , smB = A′ , B′ , conv-mid ⊢g′ , smA , smB
-  respellᵀ-⊢ eq uq f (sameᶜ-seal d) (sameᶜ-seal d′) (conv-seal dX)
+  weakenᵀ-⊢ eq uq f (sameᶜ-seal d) (sameᶜ-seal d′) (conv-seal dX)
     with lookup-~ eq f d d′ dX
-  respellᵀ-⊢ eq uq f (sameᶜ-seal d) (sameᶜ-seal d′) (conv-seal dX)
+  weakenᵀ-⊢ eq uq f (sameᶜ-seal d) (sameᶜ-seal d′) (conv-seal dX)
     | A′ , dX′ , smA =
     A′ , _ , conv-seal dX′ , smA , (` _ , same-var d′ , same-var d)
-  respellᵀ-⊢ eq uq f (sameᶜ-seal-seq a d) (sameᶜ-seal-seq a′ d′)
+  weakenᵀ-⊢ eq uq f (sameᶜ-seal-seq a d) (sameᶜ-seal-seq a′ d′)
             (conv-seal-seq ⊢t dX n)
-    with respellᵀ-⊢ eq uq f a a′ ⊢t
-  respellᵀ-⊢ eq uq f (sameᶜ-seal-seq a d) (sameᶜ-seal-seq a′ d′)
+    with weakenᵀ-⊢ eq uq f a a′ ⊢t
+  weakenᵀ-⊢ eq uq f (sameᶜ-seal-seq a d) (sameᶜ-seal-seq a′ d′)
             (conv-seal-seq ⊢t dX n)
     | A′ , R′ , ⊢t′ , smA , smR =
     A′ , _
     , conv-seal-seq ⊢t′ (lookup-~′ eq d d′ dX smR) (¬isIdᵀ-~ a a′ n)
     , smA , (` _ , same-var d′ , same-var d)
 
-  respell-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {s s′ r : Conv} {A B : Ty}
+  weaken-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {s s′ r : Conv} {A B : Ty}
     → reps Γ′ ≡ reps Γ → Unique (names Γ)
     → (names Γ) ⊆ᵃ (names Γ′)
     → names Γ ⊩ s ~ r
@@ -207,19 +207,19 @@ mutual
     → Σ[ A′ ∈ Ty ] Σ[ B′ ∈ Ty ]
         ((Γ′ ⊢ s′ ∶ A′ ⇝ B′)
           × (Γ′ ⊢ A′ ≈ A ⊣ Γ) × (Γ′ ⊢ B′ ≈ B ⊣ Γ))
-  respell-⊢ eq uq f (sameᶜ-tail a) (sameᶜ-tail a′) (conv-tail ⊢t)
-    with respellᵀ-⊢ eq uq f a a′ ⊢t
-  respell-⊢ eq uq f (sameᶜ-tail a) (sameᶜ-tail a′) (conv-tail ⊢t)
+  weaken-⊢ eq uq f (sameᶜ-tail a) (sameᶜ-tail a′) (conv-tail ⊢t)
+    with weakenᵀ-⊢ eq uq f a a′ ⊢t
+  weaken-⊢ eq uq f (sameᶜ-tail a) (sameᶜ-tail a′) (conv-tail ⊢t)
     | A′ , B′ , ⊢t′ , smA , smB = A′ , B′ , conv-tail ⊢t′ , smA , smB
-  respell-⊢ eq uq f (sameᶜ-unseal d) (sameᶜ-unseal d′) (conv-unseal dX)
+  weaken-⊢ eq uq f (sameᶜ-unseal d) (sameᶜ-unseal d′) (conv-unseal dX)
     with lookup-~ eq f d d′ dX
-  respell-⊢ eq uq f (sameᶜ-unseal d) (sameᶜ-unseal d′) (conv-unseal dX)
+  weaken-⊢ eq uq f (sameᶜ-unseal d) (sameᶜ-unseal d′) (conv-unseal dX)
     | B′ , dX′ , smB =
     _ , B′ , conv-unseal dX′ , (` _ , same-var d′ , same-var d) , smB
-  respell-⊢ eq uq f (sameᶜ-unseal-seq d a) (sameᶜ-unseal-seq d′ a′)
+  weaken-⊢ eq uq f (sameᶜ-unseal-seq d a) (sameᶜ-unseal-seq d′ a′)
             (conv-unseal-seq dX ⊢c n m)
-    with respell-⊢ eq uq f a a′ ⊢c
-  respell-⊢ eq uq f (sameᶜ-unseal-seq d a) (sameᶜ-unseal-seq d′ a′)
+    with weaken-⊢ eq uq f a a′ ⊢c
+  weaken-⊢ eq uq f (sameᶜ-unseal-seq d a) (sameᶜ-unseal-seq d′ a′)
             (conv-unseal-seq dX ⊢c n m)
     | R′ , B′ , ⊢c′ , smR , smB =
     _ , B′
@@ -263,7 +263,7 @@ preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} 
                        sameᵢ sameₑ (wf-⇒ wA wC)) ⊢W)
   | refl | refl
   with sameTy-⇒⁻ sameᵢ | sameTy-⇒⁻ sameₑ
-     | respell-⊢ (trans (conversion-reps rd)
+     | weaken-⊢ (trans (conversion-reps rd)
                    (trans (interior-reps ri)
                           (sym (conversion-reps rc))))
                  (name-fn (bw-conversion-wf mwΘ))

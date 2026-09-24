@@ -393,7 +393,7 @@ needs the term or the conversion.
   one the exterior already had, or one a `bind` brought in — and an
   bind carries its own `Ξ ∋ʳ α` premise.
 * `conversion-live`.  A conversion reading only adds ordinary names.
-  Preservation uses this to re-spell an exterior type in the conversion
+  Preservation uses this to weaken an exterior type in the conversion
   context selected by the relational reading.
 * `interior-unique` / `dual-unique`.  The lifted readings preserve
   name-map functionality independently of the other two `WfCtx` fields.
@@ -426,7 +426,7 @@ construction sites shrink.
 ### §3b — the name-set invariant (Q)
 
 `Peel` reads its domain conversion at a boundary scope's conversion
-context, then uses a re-spelling of it at the DUAL's conversion
+context, then uses a weakening of it at the DUAL's conversion
 context.  Those contexts need not have the same name LIST, but they
 name the same representation variables.  That is (Q):
 
@@ -521,8 +521,8 @@ three sorts (2026-09-24, `notes/MergeSketch.md`).  §1 the grammar, a
 middle `Mid`, a seal chain `Tail` and an unseal chain `Conv`, with
 renaming; §1b the syntactic identity `IsId` and the side condition
 `NoCancel`; §2 the three typing judgements `_⊢ᵐ_∶_⇝_`, `_⊢ᵀ_∶_⇝_`,
-`_⊢_∶_⇝_`; §2b the re-spelling relation `SameConv` and its uniqueness;
-§2c re-spelling across a crossing; §2d representation renaming; §3
+`_⊢_∶_⇝_`; §2b the weakening relation `SameConv` and its uniqueness;
+§2c weakening across a crossing; §2d representation renaming; §3
 `mkId`; §4 the canonical mints at a slot (`reveal`/`conceal`); §4b
 COMPOSITION `Δ ⊢ c₁ ⨟ c₂`; §5 the inversions; §6 `conv-types-unique`;
 §7 concrete lookup-square and composition checks.
@@ -641,7 +641,7 @@ the spelling, so a rule carrying it stays a function;
 `sameConv-src-unique` is `Peel`'s and `Merge`'s determinism case, in
 the shape `sameTy-src-unique` has.
 
-### §2c — re-spelling across a crossing
+### §2c — weakening across a crossing
 
 These facts were proved first in `notes/PeelPremise.agda`.  They are
 core infrastructure now because progress must construct every premise
@@ -1029,7 +1029,7 @@ THREE such spellings are carried today: `Peel`'s `s′` and `Merge`'s
 `t₁′` and `c₂′` (the rule's charter says so).  The table is the history
 of the five installed before the merge port, each only after a
 machine-checked defect; `Merge`'s pair replaces the `X′` and `A′` rows
-and keeps their lesson (the inner conversion is re-spelled FROM Θ₁'s
+and keeps their lesson (the inner conversion is weakened FROM Θ₁'s
 own conversion context), and the two `Nu-⟪⟫` rows went with that rule
 (2026-09-24):
 
@@ -1211,7 +1211,7 @@ fused one: `inst Θ = liftᴮ Θ ++ inst []`, by `refl`
 pair is a boundary over a value's boundary, i.e. a `Merge` redex, so
 the fusion happens ON THE NEXT STEP by general composition; Jeremy
 chose this over merging on construction (M2), which would have made
-this rule carry the merge's re-spelling premises.  The stacking cost
+this rule carry the merge's weakening premises.  The stacking cost
 (K 9→11 … V 24→49 in the `ν` port) was more than repaid by `Merge`
 (K 11→9 … V 49→19; `notes/DECISIONS.md`, 2026-09-24).
 
@@ -1284,18 +1284,18 @@ spellings `t₁′` and `c₂′` and pins them by `SameConv Δ⋉ᶜ (tail t₁
 FROM `Δ₁ᶜ` is the lesson of the 2026-09-19 `CancelR` repair (below).  A
 witness always exists: the merged conversion reading retains both old
 contexts' names (`merged-conversion-exists`, `merged-keeps₂`), so
-`respell` moves each conversion there (`merge-redex`,
+`weaken` moves each conversion there (`merge-redex`,
 `proof/Progress.agda`).
 
 THE MIDDLE TYPE AGREES.  That `t₁′`'s target and `c₂′`'s source are the
-same type at `Δ⋉ᶜ` is a LEMMA, not a premise: both re-spell the redex's
+same type at `Δ⋉ᶜ` is a LEMMA, not a premise: both weaken the redex's
 one middle type at one context whose names are unique
 (`same-target-unique`, in `preserve-Merge`, `proof/MoveScope.agda`).
 The composite is then typed by `⊢⨟`.
 
 WHY A SEPARATE STEP (Jeremy, 2026-09-24).  Merging ON CONSTRUCTION (M2)
 would have made every rule that builds a stack — `Peel`'s argument,
-`Beta`'s crossed-`Λ` wrapper, `Nu-⟪Λ⟫` — carry the merge's re-spelling
+`Beta`'s crossed-`Λ` wrapper, `Nu-⟪Λ⟫` — carry the merge's weakening
 premises.  With a separate `Merge` those rules are unchanged, and a
 value's single boundary is an invariant the rules restore one step
 later rather than one each rule maintains.
@@ -1433,7 +1433,7 @@ payloads and context well-formedness (`wfᴿ?`, `wfRepCtx?`,
 `validNames?`, `unique?`, `wfCtx?`); §5 the two induced contexts
 `interior?` / `conversion?` and the complete witness `boundaryWf?`;
 §6 the readings between the universes (`read?`, `sameTy?`, `rebase?`,
-`respell?`, `respellᵀ?`); §7 the lookup square `∋:=?` (re-exported
+`weaken?`, `weakenᵀ?`); §7 the lookup square `∋:=?` (re-exported
 from `Lookup.agda`), type formation `wfTy?`, conversion typing `convTy?`
 and `noCancel?`; §8 `infer`; §9 the checking forms
 `check⊢`, `checkConv`, `check~`; §10 the forcing family `IsJ`/`force`
@@ -1456,7 +1456,7 @@ the theorems.
 
 1. It must INFER, not merely CHECK.  `⊢·` and `⊢ν` need the head's
    type, and a head can be a boundary; inferring a boundary's exterior
-   type means re-spelling the conversion target at the ambient name
+   type means weakening the conversion target at the ambient name
    map.  `rebase?` (§6) supplies that spelling through the common
    representation.
 2. A goal-directed form discharges a premise only when the goal fixes
@@ -1527,7 +1527,7 @@ variable; otherwise it is `n + α` for a free representation variable α,
 and the subtraction has to be PROVED to put the index back in
 constructor form.
 
-### §6 — `read?` / `unread?` / `rebase?` / `respell?`
+### §6 — `read?` / `unread?` / `rebase?` / `weaken?`
 
 Forward (`read?`): replace each live ordinary name by the
 representation variable it names.  A `∀` extends only the LOCAL binder
@@ -1549,8 +1549,8 @@ this as a premise rather than computing it.
 `readᶜ?` is the same thing for a CONVERSION, which is what `Peel`
 needs: a conversion mentions ordinary names at three kinds of leaf only,
 so both directions are `read?`/`unread?` with those cases added.
-`respell? η η′ s` is `rebase?` one universe up, and `respellᵀ?` the
-same for a tail — `Merge` re-spells its inner tail with it.
+`weaken? η η′ s` is `rebase?` one universe up, and `weakenᵀ?` the
+same for a tail — `Merge` weakens its inner tail with it.
 
 The lookup functions `find?`, `unread?` and the square `∋:=?` live in
 `Lookup.agda` since 2026-09-24, BELOW `Conversion.agda` (composition
@@ -1646,7 +1646,7 @@ only to say where that run ends (`Reaches`, §10).
 
 WHERE THE PREMISES COME FROM.  The boundary rules carry side conditions
 not read off the redex — induced contexts, conversion typing, lookup
-squares, re-spellings and the representation reading of a type
+squares, weakenings and the representation reading of a type
 argument.  Those are decided by `TypeCheck.agda`, which returns the
 ordinary derivations, so this module assumes nothing either.  Name
 uniqueness is no longer a reduction premise and is not decided here.
@@ -1681,9 +1681,9 @@ re-exported here.
   and the argument's representation.
 * `MergePremises` — `Merge`'s four readings (the outer interior, the
   inner conversion context, the outer conversion context and the merged
-  one, read at the plain exterior) and both conversions re-spelled onto
-  the merged conversion context, `t₁′` by `respellᵀ?` and `c₂′` by
-  `respell?`.
+  one, read at the plain exterior) and both conversions weakened onto
+  the merged conversion context, `t₁′` by `weakenᵀ?` and `c₂′` by
+  `weaken?`.
 * `CrossPremises` — `Peel`'s crossing premises (2026-09-18): the
   boundary scope's two readings, the DUAL's conversion context (which
   the redex typing does not supply, so it is built here) and the dual's
@@ -1890,7 +1890,7 @@ System F program — no hand-written boundary — lost its type three steps
 in, at `TyPeelR-⟪⟫` (later `Nu-⟪⟫`, which inherited the repair and was
 retired on 2026-09-24; the
 witness module is kept as a record and ungated since 2026-09-24).  That
-rule re-spelled the moved boundary's
+rule weakened the moved boundary's
 conversion with `renᶜ suc`, the renaming that is correct for the
 INTERIOR reading (where the appended unbind, acting first, deletes the
 new ordinary name) and wrong for the CONVERSION reading (which SKIPS
@@ -1901,7 +1901,7 @@ repaired, with Jeremy's approval and in the pattern `Peel` got on
 against the old conversion context viewed through the representation
 renaming the allocation makes.
 
-`CancelRCase` WAS refuted too — the old rule re-spelled the inner
+`CancelRCase` WAS refuted too — the old rule weakened the inner
 layer's identity type in the OUTER conversion context and so dropped a
 shift `env` demanded, at a redex reachable from a closed plain source
 program.  Repair (a) was approved by Jeremy on 2026-09-19 and installed
@@ -2730,8 +2730,8 @@ implementation and exposes NO public parameter at all.
                  2026-09-24 the crossed value is `Simple`.
   MergeCase      PROVED outright (2026-09-24) —
                  `proof/MoveScope.preserve-Merge`: both conversions
-                 re-spelled onto the merged conversion context by
-                 `respell-⊢` and composed there by `⊢⨟`.
+                 weakened onto the merged conversion context by
+                 `weaken-⊢` and composed there by `⊢⨟`.
 ```
 
 History.  Until 2026-09-20 `AddUnbind0Typing` was REFUTED and
@@ -2849,7 +2849,7 @@ RETIRED 2026-09-24 (the merge port): the module is deleted.  It proved
 `AddUnbind0Typing` (`addUnbind0-⊢`), the typing of the boundary the
 retired `Nu-⟪⟫` moved out across one freshly allocated cell and one
 fresh ordinary name, by the sibling shift on the term and a `SameConv`
-re-spelling of the moved conversion against the old conversion context
+weakening of the moved conversion against the old conversion context
 viewed through `renNameCtx suc` (the 2026-09-20 repair recorded by
 `strong-rep-store/notes/AddLock0Wall.agda`).  With one boundary per
 value `Nu-⟪⟫` cannot fire, so the rule and this transport went
@@ -2884,19 +2884,19 @@ together with a `SameConv` relating it to `s`.  §1 is what turns that
 premise into the dual boundary's conversion typing.
 
 ```
-  §1  re-spelling a TYPED conversion across the crossing
+  §1  weakening a TYPED conversion across the crossing
   §2  the ⇒-splitting the redex's `env` premises need
   §3  the crossing, and `preserve-Peel`
 ```
 
-### §1 — `respell-⊢`
+### §1 — `weaken-⊢`
 
-`respell` (`Conversion.agda` §2c) produces a conversion's other
+`weaken` (`Conversion.agda` §2c) produces a conversion's other
 spelling; this produces its TYPING.  The two contexts share a
 representation context and differ only in their ordinary name map, so
 every leaf transports: a `seal`/`unseal` cites the SAME binder and only
-its ordinary spelling changes, and an identity's payload is re-spelled
-by `respell-ty`.  The source and target types come back paired with
+its ordinary spelling changes, and an identity's payload is weakened
+by `weaken-ty`.  The source and target types come back paired with
 `_⊢_≈_⊣_`s, which is what the crossing boundary's `env` consumes.
 
 ### §2 — splitting at the arrow
@@ -2981,7 +2981,7 @@ reading the contractum needs is a theorem of `Boundary.agda` §3a:
 ```
 
 The merged frame's CONVERSION context `Δ⋉ᶜ` is a rule premise.  Both
-conversions are re-spelled onto it (`respell-⊢`, the `Peel` lemma of
+conversions are weakened onto it (`weaken-⊢`, the `Peel` lemma of
 `proof/PeelDual.agda` §1) and composed there (`⊢⨟`,
 `proof/Compose.agda`).
 
@@ -2997,14 +2997,14 @@ conversions are re-spelled onto it (`respell-⊢`, the `Peel` lemma of
 `merged-keeps₂`: every name live at Θ₂'s conversion context is live at
 the merged one (a conversion reading only ADDS names).
 `merged-keeps₁`: the same for Θ₁'s OWN conversion context, read at Θ₂'s
-interior.  These are the `_⊆ᵃ_` inclusions `respell-⊢` needs to move
+interior.  These are the `_⊆ᵃ_` inclusions `weaken-⊢` needs to move
 `t₁` and `c₂` onto `Δ⋉ᶜ`.
 
 ### §2 — gluing two readings of one representation
 
 `same-glue`, `same-sym`, `same-both`: small algebra on `_⊢_≈_⊣_`
 through the common representation, used to connect the redex's `env`
-comparisons to the re-spelled conversions' endpoints.
+comparisons to the weakened conversions' endpoints.
 
 ### §3 — `preserve-Merge`
 
@@ -3016,14 +3016,14 @@ FOUR MOVES, one per premise of the contractum's `env`:
               carries.
   INTERIOR    `U`, retyped EXACTLY where it was.
   CONVERSION  `Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′`, typed by `⊢⨟` from the two
-              re-spelled typings, with `Unique (names Δ⋉ᶜ)` from the
+              weakened typings, with `Unique (names Δ⋉ᶜ)` from the
               merged reading's well-formedness.
   EXTERIOR    the redex's own exterior type `C`, related to `c₂′`'s
               target by gluing the outer `env`'s comparison to the
-              re-spelling.
+              weakening.
 ```
 
-THE MIDDLE TYPE AGREES: `t₁′`'s target and `c₂′`'s source both re-spell
+THE MIDDLE TYPE AGREES: `t₁′`'s target and `c₂′`'s source both weaken
 the redex's one middle type at `Δ⋉ᶜ`, so `same-both`/`same-glue` put
 them over one representation and `same-target-unique` identifies them —
 the lemma the proposal promised in place of a premise.
@@ -3144,7 +3144,7 @@ PROGRESS for the two-universe conversion-boundary calculus.
 
 The ordinary cases are the standard induction, using
 `proof/Canonical.agda`.  Boundary reductions additionally construct the
-relational context readings and re-spellings the rules carry.  `Peel`'s
+relational context readings and weakenings the rules carry.  `Peel`'s
 package is proved in `Boundary.agda` / `Conversion.agda`
 (`peel-premises-env`); `Merge`'s is `merge-redex` here.  Nothing is a
 parameter.
@@ -3163,9 +3163,9 @@ whatever the premise returned while shifting the sibling by `↑ᴹ[ δ ]`.
 value's boundary.  The merged conversion reading exists and retains the
 inner conversion context's names (`Boundary.merged-conversion-exists`),
 and the outer one's by `merged-keeps₂`; `readableᵀ`/`readable` read the
-two conversions, and `respellᵀ`/`respell` move them onto the merged
+two conversions, and `weakenᵀ`/`weaken` move them onto the merged
 context, which supplies `t₁′`, `c₂′` and their `SameConv`s.
-`_⊆ᵃ_` states only NAME AVAILABILITY; the re-spelling functions then
+`_⊆ᵃ_` states only NAME AVAILABILITY; the weakening functions then
 construct the premise at the exact conversion being moved.  Since the
 store experiment the merged reading is read over `Δ` ITSELF — Θ₂ has no
 binds to push first.  `merged-conversion-exists` is what made progress
@@ -3608,7 +3608,7 @@ merged frame's interior IS the inner frame's own (`Move-inner-frame`,
 which is `merged-interior`).  Θ₂'s ordinary changes have travelled
 inward and the surviving boundary REAPPLIES them (`_++_` puts Θ₂'s
 change list at the tail of Θ₁'s, where the reading runs it FIRST).  The
-two conversions are not moved as subterms: both are re-spelled onto the
+two conversions are not moved as subterms: both are weakened onto the
 merged conversion context (the carried `t₁′`, `c₂′`) and composed
 there.
 

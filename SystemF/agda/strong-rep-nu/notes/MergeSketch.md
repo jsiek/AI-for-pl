@@ -204,7 +204,7 @@ whose first seal is `X` — it returns `id X`.  Otherwise it returns
 
     (Merge)  Δ ⊢ (U ⟪ Θ₁ , t₁ ⟫) ⟪ Θ₂ , c₂ ⟫ -→ U ⟪ Θ₁ ++ Θ₂ , t₁′ ⨟ c₂′ ⟫ ∣ none
 
-Here `t₁′` and `c₂′` are `t₁` and `c₂` re-spelled at the MERGED conversion
+Here `t₁′` and `c₂′` are `t₁` and `c₂` weakened at the MERGED conversion
 context of `Θ₁ ++ Θ₂`.  They are carried, pinned by `SameConv`, the same
 way `CancelR` carries `A′` and `IdPush` carries `X′`.  If the merged
 conversion is active (`id` at a base type), `Drop$`/`Drop-true`/
@@ -272,7 +272,7 @@ implemented, tighter spellings above.)
    every rule that would build a stack — `Peel`'s argument, `Beta`'s
    crossed-`Λ` wrapper, `Nu-⟪Λ⟫` — builds the merged boundary directly?
    M2 never builds a stack, but every such rule then carries the merge's
-   re-spelling premises.
+   weakening premises.
 3. **`Nu-⟪Λ⟫` under M1.**  Its stacked contractum is merged one step
    later.  That is exactly the fused shape (N2) you declined, now reached
    in two steps and with general composition in place of `instReveal`.
@@ -427,7 +427,7 @@ with `A` a base type.
 context `Δ⋉ᶜ`.)
 
 That `t₁′`'s target and `c₂′`'s source agree at `Δ⋉ᶜ` is a lemma: they
-re-spell one representation at one context, and the names there are
+weaken one representation at one context, and the names there are
 unique.  `SameConv` extends to the new sorts leaf by leaf, as today.
 
 **The rules that change shape**: `Peel` matches `tail (mid (s ↦ t))`,

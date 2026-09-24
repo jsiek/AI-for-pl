@@ -42,7 +42,7 @@ All six, with **no module parameters, no postulates, no holes**, under
    cancel equation is definitional instead of a relation up to
    unfolding.
 3. **Mask, do not drop.**  A concealed slot's entry is retained (`masked`)
-   and merely made unnameable (`Nameable`).  Nothing is re-spelled, so
+   and merely made unnameable (`Nameable`).  Nothing is weakened, so
    knowledge transport is definitional (`ren-kn`) and demotion is not
    expressible (`⊑-kn`).
 4. **Two type contexts per boundary.**  `interior Θ Δ` (interior: masks

@@ -10,7 +10,7 @@ search built. Two controls confirm that it is the CONJUNCTION of the two
 conjuncts that breaks preservation, not either one alone.
 
 That settles the repair question in favour of **path (a)** — carry the
-re-spelling premise against the inner boundary's own conversion context —
+weakening premise against the inner boundary's own conversion context —
 because there is no invariant `numBinds Θ₁ ≡ 0` to prove: it is false on a
 reachable redex. §6 of the witness module also checks, on this very
 contractum, that the shifted spelling repair (a) would supply retypes it.
@@ -191,7 +191,7 @@ Jeremy approved repair (a) the same day this hunt log was written, and it
 is installed on `codex/strong-system-f-representation-vars`.
 
 `strong-rep-nu.Reduction`'s `CancelR` now carries the three readings the old rule
-lacked and re-spells at the inner boundary's own conversion context:
+lacked and weakens at the inner boundary's own conversion context:
 
     CancelR : … → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ → Δ₁ᶜ ∋ X := Aᵢ
       → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ

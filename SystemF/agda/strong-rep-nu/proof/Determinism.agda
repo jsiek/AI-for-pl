@@ -6,7 +6,7 @@ module strong-rep-nu.proof.Determinism where
 --     contractum AND of the store change.  Name-map uniqueness is read
 --     off the typing through `bw-exterior`; the carried readings are
 --     identified by `interior-functional`/`conversion-functional`, the
---     re-spellings (Peel's `s′`, Merge's `t₁′` and `c₂′`) by
+--     weakenings (Peel's `s′`, Merge's `t₁′` and `c₂′`) by
 --     `sameConv-src-unique`.  The public statement is
 --     strong-rep-nu.TypeSafety.
 --   * Commentary: Commentary.md § Reduction.agda / det.

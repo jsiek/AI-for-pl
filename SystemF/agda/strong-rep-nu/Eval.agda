@@ -38,7 +38,7 @@ open import strong-rep-nu.TermSubst
 open import strong-rep-nu.Reduction
 open import strong-rep-nu.TypeCheck
   using (interior?; conversion?; ∋:=?; read?; convTy?;
-         rebase?; respell?; respellᵀ?; check⊢; inert?; inertTail?;
+         rebase?; weaken?; weakenᵀ?; check⊢; inert?; inertTail?;
          simple?; value?)
 
 ------------------------------------------------------------------------
@@ -80,7 +80,7 @@ peelPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
   | just (R , same) = just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
 
 -- `Merge`'s premises: the three readings, and both conversions
--- re-spelled onto the merged frame's conversion context.
+-- weakened onto the merged frame's conversion context.
 MergePremises : Ctxᵗ → Boundary → Boundary → Tail → Conv → Set
 MergePremises Δ Θ₁ Θ₂ t₁ c₂ =
   Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ Δ₂ᶜ ∈ Ctxᵗ ] Σ[ Δ⋉ᶜ ∈ Ctxᵗ ]
@@ -106,8 +106,8 @@ mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r
   | just (Δ₂ᶜ , r₂) | nothing = nothing
 mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | just (Δ₂ᶜ , r₂) | just (Δ⋉ᶜ , r⋉)
-  with respellᵀ? (names Δ₁ᶜ) (names Δ⋉ᶜ) t₁
-     | respell? (names Δ₂ᶜ) (names Δ⋉ᶜ) c₂
+  with weakenᵀ? (names Δ₁ᶜ) (names Δ⋉ᶜ) t₁
+     | weaken? (names Δ₂ᶜ) (names Δ⋉ᶜ) c₂
 mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | just (Δ₂ᶜ , r₂) | just (Δ⋉ᶜ , r⋉)
   | just (t₁′ , r , p , q) | just (c₂′ , sc₂) =
@@ -139,7 +139,7 @@ crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri)
 crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri)
   | nothing = nothing
 crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
-  with respell? (names Δᶜ) (names Δᵈ) s
+  with weaken? (names Δᶜ) (names Δᵈ) s
 crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
   | nothing = nothing
 crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)

@@ -3,7 +3,7 @@
 This is the mathematical presentation of the calculus in
 `SystemF/agda/strong-rep-nu/` at commit `5d98bbe2` (2026-09-24).  The Agda uses de
 Bruijn indices; this note uses names.  The named presentation is not a
-different calculus: it suppresses index shifts and re-spellings, but keeps
+different calculus: it suppresses index shifts and weakenings, but keeps
 the contexts in which types and conversions are read.
 
 ## What changed and why
@@ -237,7 +237,7 @@ says that `A` in `Δ` and `B` in `Δ′` denote the same representation
 type.  `SameConv Δ c Δ′ c′` is the structural analogue for conversions.
 
 With names, the type variable of a representation does not change merely
-because another name is unbound or bound.  Therefore a re-spelling
+because another name is unbound or bound.  Therefore a weakening
 premise normally becomes:
 
   * use the same type variable or conversion on both sides; and
@@ -340,7 +340,7 @@ Thus an `env` instance can type
 
 The body type is read in the interior and conversion contexts.  The result
 type is read in the conversion and exterior contexts.  Naming removes the
-index re-spelling, not this four-context fact.
+index weakening, not this four-context fact.
 
 # Conversion typing
 
@@ -575,7 +575,7 @@ does not descend into a boundary.
 
 Mechanization note.  In de Bruijn form the same variable can have
 different indices in the three name maps, so Agda's `env` carries two
-re-spelling premises, `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` and `Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ` —
+weakening premises, `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` and `Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ` —
 **the same relation on both sides**, since the exterior and the
 conversion context now share one store (the bind-prefix-crossing
 `SameTyExt` went with the bind block).  Their job is to pin the
@@ -960,7 +960,7 @@ of `Examples.agda` as source and proves, by `refl`, that `compile` of the
 derivation `inferˢ` builds for it IS the run-time term `Examples.agda`
 runs.
 
-# The six re-spelling repairs
+# The six weakening repairs
 
 The named presentation makes the same name remain the same name, but it
 does not hide why the Agda carries relational witnesses.  Six repairs
@@ -1115,7 +1115,7 @@ is `inst []`, which is `TyBetaBoundary`.
 
 Mechanization note.  Agda's `Peel` carries the readings `Δ ⊢ᶜ Θ ⇒ Δᶜ`,
 `Δ ⊢ⁱ Θ ⇒ Δᵢ`, `Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ` and `SameConv Δᵈ s′ Δᶜ s`: the domain
-conversion is re-spelled from Θ's conversion context to the dual's.
+conversion is weakened from Θ's conversion context to the dual's.
 With names `c` is textually unchanged, and that the two contexts name
 the same representation variables is `Q`/`Q-inv` (Boundary.agda §3b), so
 none of these is a premise here.  The crossed value `U` is simple,
@@ -1201,7 +1201,7 @@ value; they are `Merge` redexes too (`notes/MergeSketch.md`, the census,
 and the K and S runs above).
 
 That `t₁`'s target and `c₂`'s source agree at `Δ⋉ᶜ` is a lemma, not a
-premise: both re-spell the redex's one middle type at one context whose
+premise: both weaken the redex's one middle type at one context whose
 names are unique (`same-target-unique`, `proof/MoveScope.agda`).  With
 names this is invisible.
 
@@ -1217,8 +1217,8 @@ spellings `t₁′` and `c₂′`, pinned by `SameConv Δ⋉ᶜ (tail t₁′) �
 `Δ₂ᶜ ⊆ Δ⋉ᶜ` (`merged-conversion-exists`).  The inner spelling is read
 from Θ₁'s OWN conversion context, the lesson of the 2026-09-19
 `CancelR` repair.  Preservation is `preserve-Merge`
-(`proof/MoveScope.agda`), which re-spells both typed conversions by
-`respell-⊢` and composes them by `⊢⨟`.
+(`proof/MoveScope.agda`), which weakens both typed conversions by
+`weaken-⊢` and composes them by `⊢⨟`.
 
 ## Retired rules: Nu-⟪⟫, CancelR, IdPush (2026-09-24)
 
@@ -1238,7 +1238,7 @@ These three rules were deleted by the merge port.
     spellings `A′` and `X′` are `Merge`'s `t₁′`.  The facts that made
     them sound without a name-relating premise (`cancel-name`,
     `idpush-name`, `proof/IdLayer.agda`) now justify composition's
-    seal-then-unseal clause.  The record of the `CancelR` re-spelling
+    seal-then-unseal clause.  The record of the `CancelR` weakening
     wall, `notes/CancelRShiftWall.agda`, was deleted with them.
 
 The history of all three rules is in `notes/DECISIONS.md` and in

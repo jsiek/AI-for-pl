@@ -6,7 +6,7 @@ module strong-rep-nu.TypeCheck where
 --     change-list readings; §4 payloads and context well-formedness;
 --     §5 `interior?`/`conversion?`/`boundaryWf?`; §6 the readings
 --     between the universes (`read?`, `sameTy?`, `rebase?`,
---     `respell?`, `respellᵀ?`); §7 `∋:=?`, `wfTy?`, `convTy?`; §8 `infer`;
+--     `weaken?`, `weakenᵀ?`); §7 `∋:=?`, `wfTy?`, `convTy?`; §8 `infer`;
 --     §9 `check⊢`/`checkConv`/`check~`; §10 the forcing family.
 --   * NOTHING HERE IS ASSUMED AND NOTHING IS TRUSTED: every checker
 --     returns a `Maybe` of the ORDINARY derivation, so there is no
@@ -397,24 +397,24 @@ mutual
     just (unseal X ⨾ s , sameᶜ-unseal-seq d p)
   unreadᶜ? η (unseal α ⨾ r) | just (X , d) | nothing = nothing
 
--- `respell? η η′ s` is `rebase?` one universe up: `s` is read on η, and
+-- `weaken? η η′ s` is `rebase?` one universe up: `s` is read on η, and
 -- this finds its spelling on η′ with the `SameConv` that relates them.
-respell? : (η η′ : TyCtx) (s : Conv)
+weaken? : (η η′ : TyCtx) (s : Conv)
   → Maybe (∃[ s′ ] (∃[ r ] ((η′ ⊩ s′ ~ r) × (η ⊩ s ~ r))))
-respell? η η′ s with readᶜ? η s
-respell? η η′ s | nothing = nothing
-respell? η η′ s | just (r , q) with unreadᶜ? η′ r
-respell? η η′ s | just (r , q) | just (s′ , p) = just (s′ , r , p , q)
-respell? η η′ s | just (r , q) | nothing = nothing
+weaken? η η′ s with readᶜ? η s
+weaken? η η′ s | nothing = nothing
+weaken? η η′ s | just (r , q) with unreadᶜ? η′ r
+weaken? η η′ s | just (r , q) | just (s′ , p) = just (s′ , r , p , q)
+weaken? η η′ s | just (r , q) | nothing = nothing
 
 -- the same for a TAIL, which `Merge` carries for its inner conversion
-respellᵀ? : (η η′ : TyCtx) (t : Tail)
+weakenᵀ? : (η η′ : TyCtx) (t : Tail)
   → Maybe (∃[ t′ ] (∃[ r ] ((η′ ⊩ᵀ t′ ~ r) × (η ⊩ᵀ t ~ r))))
-respellᵀ? η η′ t with readᵀ? η t
-respellᵀ? η η′ t | nothing = nothing
-respellᵀ? η η′ t | just (r , q) with unreadᵀ? η′ r
-respellᵀ? η η′ t | just (r , q) | just (t′ , p) = just (t′ , r , p , q)
-respellᵀ? η η′ t | just (r , q) | nothing = nothing
+weakenᵀ? η η′ t with readᵀ? η t
+weakenᵀ? η η′ t | nothing = nothing
+weakenᵀ? η η′ t | just (r , q) with unreadᵀ? η′ r
+weakenᵀ? η η′ t | just (r , q) | just (t′ , p) = just (t′ , r , p , q)
+weakenᵀ? η η′ t | just (r , q) | nothing = nothing
 
 sameTy? : (Γ Γ′ : Ctxᵗ) (A B : Ty) → Maybe (Γ ⊢ A ≈ B ⊣ Γ′)
 sameTy? Γ Γ′ A B with read? (names Γ) A

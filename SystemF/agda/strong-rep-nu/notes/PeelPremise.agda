@@ -9,7 +9,7 @@ module strong-rep-nu.notes.PeelPremise where
 -- two
 --     sides of a crossing name the same representation variables;
 --   * strong-rep-nu.Boundary §3c constructs the dual's conversion context;
---   * strong-rep-nu.Conversion §2c re-spells a well-typed conversion and
+--   * strong-rep-nu.Conversion §2c weakens a well-typed conversion and
 -- exports
 --     `peel-premises` / `peel-premises-env`.
 --
@@ -66,8 +66,8 @@ is-Γᶜ = refl
 is-Γᵈ : nmC Γᵢ (dual Mixed) ≡ just (names Γᵈ)
 is-Γᵈ = refl
 
-respelled : SameConv Γᵈ (unseal 1) Γᶜ (unseal 0)
-respelled = unseal 2 , sameᶜ-unseal (there here) , sameᶜ-unseal here
+weakened : SameConv Γᵈ (unseal 1) Γᶜ (unseal 0)
+weakened = unseal 2 , sameᶜ-unseal (there here) , sameᶜ-unseal here
 
 ------------------------------------------------------------------------
 -- 2. The moved core package, exercised on the same frame
@@ -88,7 +88,7 @@ mixed-Q : (names Γᵈ) ∋ᵅ 2
 mixed-Q = Q mixed-interior mixed-conversion mixed-dual-conversion
             (0 , here)
 
--- The conversion re-spelling theorem consumes the same readings and returns
+-- The conversion weakening theorem consumes the same readings and returns
 -- the premise carried by `Peel`.
 mixed-premise : ∃[ s′ ] SameConv Γᵈ s′ Γᶜ (unseal 0)
 mixed-premise = premise-exists mixed-interior mixed-conversion

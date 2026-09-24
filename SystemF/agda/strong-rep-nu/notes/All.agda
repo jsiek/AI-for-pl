@@ -20,7 +20,7 @@ open import strong-rep-nu.notes.RepWeakenBindsWall
 -- still runs green as strong-rep-nu.Examples §8 `S`.
 --
 -- DROPPED IN THE MERGE PORT (2026-09-24): notes/CancelRShiftWall, the
--- record of the `CancelR` re-spelling wall.  Its checked content is a
+-- record of the `CancelR` weakening wall.  Its checked content is a
 -- `CancelR` step and `preserve-CancelR`; both rules it was about
 -- (`CancelR`, `IdPush`) are subsumed by `Merge`, whose preservation
 -- case is strong-rep-nu.proof.MoveScope.preserve-Merge.  The file was

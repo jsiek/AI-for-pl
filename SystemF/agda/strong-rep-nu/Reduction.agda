@@ -84,7 +84,7 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
         -→ (N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫ ∣ new R
 
   -- MERGE — a boundary directly over a value's boundary.  Both frames
-  -- are kept, MERGED as `Θ₁ ++ Θ₂`; both conversions are re-spelled at
+  -- are kept, MERGED as `Θ₁ ++ Θ₂`; both conversions are weakened at
   -- the merged frame's conversion context `Δ⋉ᶜ` (the carried `t₁′`,
   -- `c₂′`) and COMPOSED there.  Subsumes the retired `CancelR`
   -- (`seal X` then `unseal X`) and `IdPush` (`id X` then `unseal X`).

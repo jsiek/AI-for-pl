@@ -273,7 +273,11 @@ with the lookup square, and each identity variable must be in scope:
       unseal : Δ ∋ X := R → Δ ⊢ᶜᵛ c → Δ ⊢ᶜᵛ unseal X ⨾ c    (c : Conv R B)
       seal   : Δ ⊢ᵗᵛ t → Δ ∋ X := R → Δ ⊢ᵗᵛ t ⨾seal X     (t : Tail A R)
       id-var : Δ ∋tv X → Δ ⊢ᵐᵛ id at-var
-      ...                                               (the remaining cases are structural)
+      id-base: Δ ⊢ᵐᵛ id (at-base b)
+      fun    : Δ ⊢ᶜᵛ s → Δ ⊢ᶜᵛ t → Δ ⊢ᵐᵛ s ↦ t
+      all    : underΛ Δ ⊢ᶜᵛ s → Δ ⊢ᵐᵛ `∀ s
+      mid    : Δ ⊢ᵐᵛ g → Δ ⊢ᵗᵛ mid g
+      tail   : Δ ⊢ᵗᵛ t → Δ ⊢ᶜᵛ tail t
 
 `reveal`/`conceal` gain the representation spelling:
 `reveal : (X : ℕ) (A B : Ty) → Conv B (B [ X := A ]ᵗ)`.  The compiler

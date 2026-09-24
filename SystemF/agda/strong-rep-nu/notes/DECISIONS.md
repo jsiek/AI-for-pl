@@ -5062,3 +5062,11 @@ derivation-producing checker (`infer` succeeds on the redex and fails on
 the contractum), not machine-checked as a refutation.
 
 **Gate.**  `make check` green at 4bf42f26.
+
+**Deleted, 2026-09-24 (Jeremy).**  The unused `⊢instReveal`/
+`⊢instConceal` (old `proof/Preserve.agda` §2b, with its `underΛN`/
+`Avoid`/`abstract-*` helpers), then `instReveal`/`instConceal`/
+`instReveal-mkId` (`Conversion.agda` §4) and the refuted record
+`CanonTyPeelR`/`¬CanonTyPeelR` (`proof/Canonicity.agda` §8).
+`¬canonC-two-binders` (§10) now carries the two-binder refutation
+directly.

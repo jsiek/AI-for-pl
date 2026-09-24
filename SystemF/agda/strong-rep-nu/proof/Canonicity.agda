@@ -7,8 +7,7 @@ module strong-rep-nu.proof.Canonicity where
 --     or `unseal X`.  §1 the family `CanonAt`/`CanonC`/`AllId`;
 --     §2 MINT; §3 DECOMPOSE; §4 RENAME; §5 RE-SPELL (the family one
 --     universe up, `CanonAtᴿ`); §6 lifting to terms; §7 substitution;
---     §8 `canon-step`, the invariant — UNCONDITIONAL since `ν`
---     (the old `CanonTyPeelR` hypothesis is kept, REFUTED, as a record);
+--     §8 `canon-step`, the invariant — UNCONDITIONAL since `ν`;
 --     §9 sources; §10 the mint lemmas on the ground.
 --   * WHAT THE FAMILY SAYS is the NAME, not a polarity shape: every
 --     non-identity leaf cites the SAME binder, shifted under each
@@ -66,7 +65,7 @@ data CanonAt : ℕ → Conv → Set where
   ca-all    : CanonAt (suc X) s → CanonAt X (`∀ s)
 
 -- The term-level reading: a wrapper's conversion cites SOME single
--- binder — existential, and single-name (see §8's `¬CanonTyPeelR`).
+-- binder — existential, and single-name (see `¬canonC-two-binders`).
 CanonC : Conv → Set
 CanonC c = ∃[ X ] CanonAt X c
 
@@ -149,7 +148,7 @@ canonC-fun-cod : CanonC (s ↦ t) → CanonC t
 canonC-fun-cod (X , ca-fun cs ct) = X , ct
 
 -- `Nu-⟪Λ⟫`/`Nu-⟪⟫` read `∀ s` apart and move the body `s` VERBATIM into
--- the middle layer (the retired TyPeelR minted `instReveal 0 s` there).
+-- the middle layer.
 -- The decomposition only walks the name past the binder.
 canonC-all : CanonC (`∀ s) → CanonC s
 canonC-all (X , ca-all cs) = suc X , cs
@@ -417,33 +416,9 @@ canon-subst cN cW =
 ------------------------------------------------------------------------
 
 -- One case per rule; the rule-by-rule story is
--- Commentary.md § proof/Canonicity.agda / §8.  Before `ν` the ONE case
--- that was not unconditional was TyPeelR's mint `instReveal 0 s`, which
--- put leaves at slot 0 ALONGSIDE the conversion's own, so the result
--- cited TWO binders — hence the hypothesis `CanonTyPeelR` below, which
--- is REFUTED.  The `Nu` rules STACK instead of fusing: `s` moves
--- verbatim and `ν`'s own `c` is the outer layer, so `canon-step` no
--- longer needs the hypothesis.  It is kept as the record of the wall.
-
--- WHAT TYPEELR'S MINT OWED THE FAMILY, as a statement.
-CanonTyPeelR : Set
-CanonTyPeelR = ∀ {s : Conv} → CanonC (`∀ s) → CanonC (instReveal 0 s)
-
--- IT FAILS on `` `∀ (id (` 0) ↦ seal 1) `` — a polymorphic ARGUMENT
--- that crossed a Peel.  The mint TYPES; it is the SINGLE-BINDER
--- reading that it leaves.
--- Commentary.md § proof/Canonicity.agda / §8
-canonC-∀conv : CanonC (`∀ (id (` 0) ↦ seal 1))
-canonC-∀conv = 0 , ca-all (ca-fun ca-id ca-seal)
-
-_ : instReveal 0 (id (` 0) ↦ seal 1) ≡ seal 0 ↦ seal 1
-_ = refl
-
-¬canonC-seal↦seal : ¬ CanonC (seal 0 ↦ seal 1)
-¬canonC-seal↦seal (X , ca-fun ca-seal ())
-
-¬CanonTyPeelR : ¬ CanonTyPeelR
-¬CanonTyPeelR tp = ¬canonC-seal↦seal (tp canonC-∀conv)
+-- Commentary.md § proof/Canonicity.agda / §8.  Every case is
+-- unconditional: the `Nu` rules STACK rather than fuse, so `s` moves
+-- verbatim and `ν`'s own `c` is the outer layer.
 
 canon-step : ∀ {Δ M M′ δ} → Unique (names Δ)
   → CanonTm M → Δ ⊢ M -→ M′ ∣ δ → CanonTm M′
@@ -545,4 +520,4 @@ _ = λ cW →
 -- A TWO-BINDER tree is outside the family, though perfectly TYPEABLE:
 -- the FRAMES, not a global index, keep the two binders apart.
 ¬canonC-two-binders : ¬ CanonC (seal 0 ↦ seal 1)
-¬canonC-two-binders = ¬canonC-seal↦seal
+¬canonC-two-binders (X , ca-fun ca-seal ())

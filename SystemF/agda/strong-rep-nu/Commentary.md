@@ -484,7 +484,7 @@ Conversions — the `c` of a boundary `M ⟪ Θ , c ⟫`.  §1 the grammar; §2
 the typing judgement `Δ ⊢ c ∶ A ⇝ B`; §2b the re-spelling relation
 `SameConv` and its uniqueness; §2c re-spelling across a crossing;
 §2d representation renaming; §3 `mkId`; §4 the canonical mints at a
-slot (`reveal`/`conceal`, `instReveal`/`instConceal`); §5 the
+slot (`reveal`/`conceal`); §5 the
 inversions; §6 `conv-types-unique`; §7 concrete lookup-square checks.
 
 ### Where the grammar comes from
@@ -581,28 +581,12 @@ contravariantly.  These are what the boundary rules mint at a fresh
 binder; they are DERIVED FROM THE TYPE, not from stored knowledge, and
 they carry only the NAME `X`.
 
-`instReveal` / `instConceal` — THE SAME MINT, APPLIED TO A CONVERSION
-(the `TyPeelR` repair, `notes/RuleRepairs-TyPeelR-CancelR.md` §1).  When
-a boundary whose conversion is a `` `∀ `` is instantiated, the
-boundary's frame gains a BINDER at slot 0 — the slot the conversion's
-`` `∀ `` had left ABSTRACT.  Every leaf of the conversion that reads
-that slot is an identity (`id (` 0)`, because an abstract slot has no
-binder to seal or unseal at), and each such leaf must become the
-instantiation step: `unseal 0` where the conversion runs covariantly,
-`seal 0` where it runs contravariantly.  That is exactly
-`reveal`/`conceal` pushed through a CONVERSION instead of through a
-type — and on an identity conversion the two agree
-(`instReveal-mkId`).
-
-NO RULE MINTS `instReveal` SINCE 2026-09-24.  The retired `TyPeelR-Λ`
-and `TyPeelR-⟪⟫` minted `instReveal 0 s`, fusing the crossed conversion
-with the instantiation.  Their `ν` successors STACK instead: `s` moves
-verbatim into a middle layer and `ν`'s own conversion — the compiler's
-`reveal 0 C`, or `Nu-⟪⟫`'s run-time `reveal 0 (⇑Bᵢ′)` — sits outside it
-(§ Reduction.agda / Nu-⟪Λ⟫, Nu-⟪⟫).  `reveal` is the only mint that
-survives, and the compiler writes it.  `instReveal`/`instConceal` stay
-here with `instReveal-mkId`, and `proof/Canonicity.agda` keeps the
-refuted `CanonTyPeelR` about them as a record.
+`instReveal` / `instConceal` (the same mint applied to a CONVERSION,
+used by the retired `TyPeelR` rules) were DELETED on 2026-09-24, with
+`instReveal-mkId` and the refuted `CanonTyPeelR` record in
+`proof/Canonicity.agda`.  The `ν` rules STACK the crossed conversion
+under `ν`'s own instead of fusing them (§ Reduction.agda / Nu-⟪Λ⟫,
+Nu-⟪⟫), so `reveal` is the only mint left, and the compiler writes it.
 
 ### §5 — the inversions
 
@@ -3570,7 +3554,7 @@ single binder.  It has to be existential, and single-name is what the
 `Nu` rules' STACKING keeps true: the retired `TyPeelR`'s minted
 conversion `instReveal 0 s` read TWO binders in one wrapper — the
 conversion's own, and the one the instantiation just bound at slot 0 —
-which is exactly what `¬CanonTyPeelR` (§8) records.  The `Nu` rules put
+which the deleted `¬CanonTyPeelR` refuted.  The `Nu` rules put
 the two in two different wrappers.
 
 `AllId` — the name-free members of the family: every leaf is an
@@ -3673,9 +3657,9 @@ value weakened in the REPRESENTATION universe only (§6).
            `unique-shift` before `interior-unique`.
 ```
 
-WHAT THE RETIRED `TyPeelR`'S MINT OWED THE FAMILY, as a statement,
-kept as the record of the wall: `CanonTyPeelR`.
-IT FAILS on the `∀` conversion `` `∀ (id (` 0) ↦ seal 1) `` — a
+WHAT THE RETIRED `TyPeelR`'S MINT OWED THE FAMILY was a hypothesis,
+`CanonTyPeelR` (deleted 2026-09-24 with `instReveal`; see
+notes/DECISIONS.md).  IT FAILED on the `∀` conversion `` `∀ (id (` 0) ↦ seal 1) `` — a
 polymorphic ARGUMENT that crossed a `Peel`, `conceal 0 (∀Y. Y ⇒ X)`.
 That conversion cites the ONE binder `X` (slot 1 under the `` `∀ ``),
 but its mint `seal 0 ↦ seal 1` cites TWO: the binder `TyPeelR` just

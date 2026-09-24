@@ -347,15 +347,11 @@ one at run time:
     concealₓ(A⇒B)   = revealₓ(A) ↦ concealₓ(B)
     concealₓ(∀Y.A)  = ∀Y.concealₓ(A)
 
-Both operations are identities on base types.  `instRevealₓ(c)` and
-`instConcealₓ(c)` recurse over an existing conversion: an `id A` leaf
-becomes `revealₓ(A)` or `concealₓ(A)`, existing `seal`/`unseal` leaves
-stay fixed, function position flips the operation, and `∀` recurses.
-Since 2026-09-24 no rule applies `instRevealₓ`: the pre-`ν` boundary
-rules minted `instRevealₓ(c)`, fusing the crossed conversion with the
-reveal, and the `Nu` rules stack the two instead.  The operation stays
-in `Conversion.agda`, where `proof/Canonicity.agda` keeps the refuted
-`CanonTyPeelR` about it as a record.
+Both operations are identities on base types.  (The pre-`ν` boundary
+rules also used `instRevealₓ(c)`, the same mint pushed through an
+existing conversion, fusing the crossed conversion with the reveal.  The
+`Nu` rules stack the two instead, and `instRevealₓ`/`instConcealₓ` were
+deleted on 2026-09-24.)
 
 # Term typing
 
@@ -851,7 +847,7 @@ The rule names below are the Agda constructor names.
 | conversion changes | `conv[]`, `conv-unbind`, `conv-bind`, `conv-bind-live` | the no-op re-bind remains semantically visible |
 | `BoundaryWf` | `bw` | three fields only — exterior `WfCtx` and the two readings; output well-formedness is derived in both presentations |
 | `conv-id`, `conv-idv`, `conv-unseal`, `conv-seal`, `conv-fun`, `conv-all` | same names in `Conversion.agda` | none beyond named lookup and binders |
-| `mkId`, `revealₓ`, `concealₓ`, `instRevealₓ`, `instConcealₓ` | `mkId`, `reveal`, `conceal`, `instReveal`, `instConceal` | the Agda operations carry the slot as an index, not a name |
+| `mkId`, `revealₓ`, `concealₓ` | `mkId`, `reveal`, `conceal` | the Agda operations carry the slot as an index, not a name |
 | `⊢\``, `⊢$`, `⊢true`, `⊢false`, `⊢ƛ`, `⊢·`, `⊢Λ`, `⊢ν` | same constructors in `Terms.agda` | named binders replace term/type indices; `⊢Λ`'s `Value N` is the value restriction; `⊢ν`'s bound `X` is Agda's ordinary variable 0 in `c`, and its result is compared by `≈` as in `env` |
 | `νX:=A · L ⟨ c ⟩` | `ν A · L ⟨ c ⟩` | the name `X` is implicit (de Bruijn 0 in `c`) |
 | source `M [A]`, `⊢ˢ…` | `Source.agda`: `_[_]`, `` ⊢ˢ` ``, `⊢ˢ$`, `⊢ˢtrue`, `⊢ˢfalse`, `⊢ˢƛ`, `⊢ˢ·`, `⊢ˢΛ`, `⊢ˢ[]` | a count `n` of type variables replaces a type context |

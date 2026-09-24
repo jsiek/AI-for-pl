@@ -1,5 +1,14 @@
 # Strong System F — `SystemF/agda/strong-rep-nu/`
 
+## strong-rep-nu (2026-09-24)
+
+A VARIANT of `SystemF/agda/strong-rep-store/`, forked verbatim at
+`main` 694fe461 (after PR #208), to experiment with a GTPLC-style
+`ν A · L ⟨ c ⟩` term carrying a Conversion: System F type application
+elaborates to `ν`, so `TyBeta`'s `reveal` moves to compile time and
+`ν` becomes the allocation site.  Proposal: `notes/NuSketch.md`.
+Until it lands, everything below describes strong-rep-store.
+
 ## What this directory is (2026-09-23)
 
 A VARIANT of `SystemF/agda/strong-rep-var/`, forked verbatim at the

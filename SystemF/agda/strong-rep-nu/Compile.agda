@@ -29,8 +29,8 @@ compile (⊢ˢ[] {A = A} {C = C} d _) = ν A · compile d ⟨ reveal 0 C ⟩
 -- source values compile to run-time values
 compile-value : ∀ {n Γ M A} (d : n ∣ Γ ⊢ˢ M ⦂ A)
   → SValue M → Value (compile d)
-compile-value ⊢ˢ$ SV-$ = V-$
-compile-value ⊢ˢtrue SV-true = V-true
-compile-value ⊢ˢfalse SV-false = V-false
-compile-value (⊢ˢƛ _ d) SV-ƛ = V-ƛ
-compile-value (⊢ˢΛ _ d) (SV-Λ v) = V-Λ (compile-value d v)
+compile-value ⊢ˢ$ SV-$ = V-simple S-$
+compile-value ⊢ˢtrue SV-true = V-simple S-true
+compile-value ⊢ˢfalse SV-false = V-simple S-false
+compile-value (⊢ˢƛ _ d) SV-ƛ = V-simple S-ƛ
+compile-value (⊢ˢΛ _ d) (SV-Λ v) = V-simple (S-Λ (compile-value d v))

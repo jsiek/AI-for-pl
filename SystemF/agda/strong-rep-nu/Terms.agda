@@ -3,7 +3,8 @@ module strong-rep-nu.Terms where
 -- File Charter:
 --   * THE TERM SYNTAX, THE TYPING JUDGEMENT, AND VALUES.  §1 `Var` and
 --     `Term` (last constructor: the boundary `_⟪_,_⟫`), `Ctx`, `_∋_⦂_`,
---     `⤊`.  §2 `Inert`/`Active`.  §3 `Value`, stated BEFORE the typing
+--     `⤊`.  §2 `InertTail`/`Inert`/`Active`.  §3 `Simple`/`Value` —
+--     AT MOST ONE BOUNDARY on a value — stated BEFORE the typing
 --     judgement because `⊢Λ` reads it.  §4 `_∣_⊢_⦂_` with `env` and
 --     `⊢Λ`, plus `value-var-visible`.  §5 `β-seven`.
 --   * NO OPERATIONS AND NO METATHEORY: see strong-rep-nu.TermSubst,
@@ -79,46 +80,62 @@ data _∋_⦂_ : Ctx → Var → Ty → Set where
 -- 2.  Classification — ACTIVE / INERT, by the CONVERSION constructor
 ------------------------------------------------------------------------
 
--- Inert  = { s ↦ t , ∀ s , seal X , id-at-a-variable }
--- Active = { unseal X , id-at-base }
-data Inert : Conv → Set where
-  I-idv  : ∀ {X}   → Inert (id (` X))
-  I-seal : ∀ {X}   → Inert (seal X)
-  I-fun  : ∀ {s t} → Inert (s ↦ t)
-  I-all  : ∀ {s}   → Inert (`∀ s)
+-- A boundary over a SIMPLE value has a non-variable source type, so its
+-- conversion is a TAIL.  Inert tails: everything but the identity at a
+-- base type, which `Drop$`/`Drop-true`/`Drop-false` remove.
+data InertTail : Tail → Set where
+  I-idv      : ∀ {X}   → InertTail (mid (id (` X)))
+  I-fun      : ∀ {s t} → InertTail (mid (s ↦ t))
+  I-all      : ∀ {s}   → InertTail (mid (`∀ s))
+  I-seal     : ∀ {X}   → InertTail (seal X)
+  I-seal-seq : ∀ {t X} → InertTail (t ⨾seal X)
 
+data Inert : Conv → Set where
+  I-tail : ∀ {t} → InertTail t → Inert (tail t)
+
+-- Active = { id-at-base , unseal X , unseal X ; c }
 data Active : Conv → Set where
-  A-idb    : ∀ {A} → Base A → Active (id A)
-  A-unseal : ∀ {X} → Active (unseal X)
+  A-idb        : ∀ {A} → Base A → Active ⌞ id A ⌟
+  A-unseal     : ∀ {X} → Active (unseal X)
+  A-unseal-seq : ∀ {X c} → Active (unseal X ⨾ c)
 
 -- Totality over TYPED conversions: the payload restriction on `id`
 -- makes classification a match on the TYPING derivation.
 act-or-inert : ∀ {Δ c A B} → Δ ⊢ c ∶ A ⇝ B → Active c ⊎ Inert c
-act-or-inert (conv-id b)      = inj₁ (A-idb b)
-act-or-inert (conv-idv tv)    = inj₂ I-idv
-act-or-inert (conv-seal o)    = inj₂ I-seal
-act-or-inert (conv-unseal o)  = inj₁ A-unseal
-act-or-inert (conv-fun s t)   = inj₂ I-fun
-act-or-inert (conv-all s)     = inj₂ I-all
+act-or-inert (conv-tail (conv-mid (conv-id b)))   = inj₁ (A-idb b)
+act-or-inert (conv-tail (conv-mid (conv-idv tv))) = inj₂ (I-tail I-idv)
+act-or-inert (conv-tail (conv-mid (conv-fun s t))) = inj₂ (I-tail I-fun)
+act-or-inert (conv-tail (conv-mid (conv-all s)))   = inj₂ (I-tail I-all)
+act-or-inert (conv-tail (conv-seal d))             = inj₂ (I-tail I-seal)
+act-or-inert (conv-tail (conv-seal-seq t d n))     =
+  inj₂ (I-tail I-seal-seq)
+act-or-inert (conv-unseal d)             = inj₁ A-unseal
+act-or-inert (conv-unseal-seq d c n m)   = inj₁ A-unseal-seq
 
 act-not-inert : ∀ {c} → Active c → Inert c → ⊥
-act-not-inert (A-idb ()) I-idv
-act-not-inert A-unseal ()
+act-not-inert (A-idb ()) (I-tail I-idv)
 
 ------------------------------------------------------------------------
--- 3.  Values
+-- 3.  Values — at most ONE boundary
 ------------------------------------------------------------------------
 
--- V-Λ carries `Value N`, which `⊢Λ` makes automatic here; it is kept so
--- that `Value` stays strong-rep-var's relation verbatim.
+-- A SIMPLE value is a value that is not a boundary; a value is a simple
+-- value, or a simple value under ONE inert boundary.  A second boundary
+-- on a value is a `Merge` redex.  `S-Λ` carries `Value N`, which `⊢Λ`
+-- makes automatic.
 -- Commentary.md § Terms.agda / §3
-data Value : Term → Set where
-  V-$  : ∀ {n} → Value ($ n)
-  V-true : Value `true
-  V-false : Value `false
-  V-ƛ  : ∀ {A N} → Value (ƛ A ∙ N)
-  V-Λ  : ∀ {N} → Value N → Value (Λ N)
-  V-⟪⟫ : ∀ {M Θ c} → Value M → Inert c → Value (M ⟪ Θ , c ⟫)
+mutual
+  data Simple : Term → Set where
+    S-$     : ∀ {n} → Simple ($ n)
+    S-true  : Simple `true
+    S-false : Simple `false
+    S-ƛ     : ∀ {A N} → Simple (ƛ A ∙ N)
+    S-Λ     : ∀ {N} → Value N → Simple (Λ N)
+
+  data Value : Term → Set where
+    V-simple : ∀ {U} → Simple U → Value U
+    V-⟪⟫     : ∀ {U Θ t} → Simple U → InertTail t
+      → Value (U ⟪ Θ , tail t ⟫)
 
 ------------------------------------------------------------------------
 -- 4.  The typing judgment
@@ -184,18 +201,23 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
 value-var-visible : ∀ {Δ V X}
   → Value V → Δ ∣ [] ⊢ V ⦂ ` X → Δ ∋tv X
 value-var-visible (V-⟪⟫ _ _) (env _ _ _ _ _ (wf-var tv)) = tv
+value-var-visible (V-simple S-$) ()
+value-var-visible (V-simple S-true) ()
+value-var-visible (V-simple S-false) ()
+value-var-visible (V-simple S-ƛ) ()
+value-var-visible (V-simple (S-Λ v)) ()
 
 ------------------------------------------------------------------------
 -- 5. Concrete boundary typing
 ------------------------------------------------------------------------
 
 β-seven : Term
-β-seven = ($ 7) ⟪ TyBetaBoundary , id `ℕ ⟫
+β-seven = ($ 7) ⟪ TyBetaBoundary , ⌞ id `ℕ ⌟ ⟫
 
 -- typed at the context Nu-Λ LEAVES: the cell for ℕ has been allocated
 β-seven-⊢ : allocate `ℕ empty ∣ [] ⊢ β-seven ⦂ `ℕ
 β-seven-⊢ =
-  env TyBeta-bw ⊢$ (conv-id base-ℕ)
+  env TyBeta-bw ⊢$ (conv-tail (conv-mid (conv-id base-ℕ)))
       (`ℕ , same-ℕ , same-ℕ)
       (`ℕ , same-ℕ , same-ℕ)
       wf-ℕ

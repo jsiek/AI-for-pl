@@ -411,7 +411,7 @@ for a tail and `Δ ⊢ c : A ⇝ B` for a conversion.
                     -------------------
                     Δ ⊢ᵀ seal X : A ⇝ X
 
-    (conv-seal-seq) Δ ⊢ᵀ t : A ⇝ R    Δ ∋ X := R    t is not an identity
+    (conv-seal-seq) Δ ⊢ᵀ t : A ⇝ B    Δ ∋ X := B    t is not an identity
                     -----------------------------------------------------
                     Δ ⊢ᵀ t ; seal X : A ⇝ X
 
@@ -424,7 +424,7 @@ for a tail and `Δ ⊢ c : A ⇝ B` for a conversion.
                     Δ ⊢ unseal X : X ⇝ A
 
     (conv-unseal-seq)
-                    Δ ∋ X := R    Δ ⊢ c : R ⇝ B
+                    Δ ∋ X := A    Δ ⊢ c : A ⇝ B
                     c is not an identity    NoCancel X c
                     -------------------------------------
                     Δ ⊢ unseal X ; c : X ⇝ B

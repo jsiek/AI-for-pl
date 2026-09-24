@@ -193,11 +193,11 @@ mutual
 
     -- CONCEAL: the interior sees the rep, the exterior the name.
     -- THE SOUNDNESS GATE: a seal must cite a LIVE BINDER.
-    conv-seal : Δ ∋ X := R
+    conv-seal : Δ ∋ X := A
         --------------------------------
-      → Δ ⊢ᵀ seal X ∶ R ⇝ ` X
+      → Δ ⊢ᵀ seal X ∶ A ⇝ ` X
 
-    conv-seal-seq : Δ ⊢ᵀ t ∶ A ⇝ R → Δ ∋ X := R → ¬ IsIdᵀ t
+    conv-seal-seq : Δ ⊢ᵀ t ∶ A ⇝ B → Δ ∋ X := B → ¬ IsIdᵀ t
         --------------------------------
       → Δ ⊢ᵀ t ⨾seal X ∶ A ⇝ ` X
 
@@ -207,11 +207,11 @@ mutual
       → Δ ⊢ tail t ∶ A ⇝ B
 
     -- REVEAL: the interior sees the name, the exterior its rep.
-    conv-unseal : Δ ∋ X := R
+    conv-unseal : Δ ∋ X := A
         --------------------------------
-      → Δ ⊢ unseal X ∶ ` X ⇝ R
+      → Δ ⊢ unseal X ∶ ` X ⇝ A
 
-    conv-unseal-seq : Δ ∋ X := R → Δ ⊢ c ∶ R ⇝ B
+    conv-unseal-seq : Δ ∋ X := A → Δ ⊢ c ∶ A ⇝ B
       → ¬ IsIdᶜ c → NoCancel X c
         --------------------------------
       → Δ ⊢ unseal X ⨾ c ∶ ` X ⇝ B

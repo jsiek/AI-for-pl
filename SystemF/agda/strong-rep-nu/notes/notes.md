@@ -76,9 +76,9 @@ An `X` occurrence in a representation type is legal only under its representatio
 Conversions are NORMAL FORMS in three sorts (Agda `Mid`, `Tail`,
 `Conv`):
 
-    g ::= id A | c ↦ d | ∀X.c                 middle      (A a base type or a variable)
-    t ::= g | seal X | t ; seal X             tail        (a seal chain, associates LEFT)
-    c, d ::= t | unseal X | unseal X ; c      conversion  (an unseal chain, associates RIGHT)
+    g ::= id A | c ↦ d | ∀X.c             middle  (A is base type or variable)
+    t ::= g | seal X | t ; seal X         tail    (seal chain, left assoc)
+    c,d ::= t | unseal X | unseal X ; c   conversion (unseal chain, right assoc)
 
 A middle is a tail and a tail is a conversion; Agda writes the
 injections `mid g` and `tail t`, and `⌞ g ⌟` for `tail (mid g)`.  The
@@ -105,11 +105,11 @@ whose target is a variable.
 
 **No cancellation.**  `NoCancel X c` says that `c`'s seal chain does not
 begin with a bare `seal X`, so that `unseal X ; c` is not a second
-spelling of an identity:
+representation of an identity:
 
     NoCancel X (seal Y)        = X and Y are distinct
     NoCancel X (t ; seal Y)    = NoCancel X t
-    NoCancel X g               = true      (a non-identity middle blocks the cancel)
+    NoCancel X g               = true  (a non-identity middle blocks the cancel)
     NoCancel X (unseal Y)      = true
     NoCancel X (unseal Y ; c)  = true
 
@@ -154,7 +154,7 @@ The displayed boundary notation follows `Show.agda`:
     ↓X         unbind X, recording that it names α
     ↥X         bind the type variable X for α
 
-Thus `M ⟪ ↓Y , ↥Z , c ⟫` displays changes in the order in which they act,
+Thus `M ⟪ ⟨↓Y, ↥Z⟩, c ⟫` displays changes in the order in which they act,
 and the conversion last.  The full change syntax remains `unbind Y β` and
 `bind Z γ`; the Greek argument is recoverable from the displayed Latin
 name.
@@ -170,14 +170,17 @@ where `Ξ` is a representation context and `Γ` maps type variables to represent
     Ξ ::= · | Ξ, α | Ξ, α := R
     Γ ::= · | Γ, X ↦ α
 
+Write `Δ = Ξ ∣ Γ`.
+
 `Ξ` is the **store**: it holds every representation cell the run has
-minted, interleaved with the abstract cells the `Λ`s introduced.  The Γ
-context contains exactly the live type variables.  An unbound type
-variable has no entry in `Γ`, but its representation variable remains in
-`Ξ`.  In a well-formed context every representation type is well formed outside its
-own binder, every type variable points into `Ξ`, and no representation variable has
-two simultaneous type variables.  We use the Barendregt convention, so
-type variables and representation variables are chosen fresh.
+minted, interleaved with the abstract cells the `Λ`s introduced.  The
+Γ context contains exactly the live type variables.  An unbound type
+variable has no entry in `Γ`, but its representation variable remains
+in `Ξ`.  In a well-formed context every representation type is well
+formed outside its own binder, every type variable points into `Ξ`,
+and no representation variable has two simultaneous type variables.
+We use the Barendregt convention, so type variables and representation
+variables are chosen fresh.
 
 The main lookups are:
 
@@ -200,7 +203,7 @@ nothing moves; the new `α` is simply fresh, and `Γ` is unchanged.
 
 ## Well-formed Types
 
-Write `Δ = Ξ ∣ Γ`.  Extending under an ordinary type binder allocates a
+Extending under an ordinary type binder allocates a
 fresh abstract representation variable and a type variable for it:
 
     under(X,α,Δ) = (Ξ, α) ∣ (Γ, X ↦ α)
@@ -265,10 +268,11 @@ the variable live anywhere in the boundary:
     bind X α     adds X ↦ α if α is not live
     bind X α     is a no-op if α already has its unique live name
 
-The last clause is `conv-bind-live`.  For example, a conversion reading
-of `↓X` leaves `X` live; the inverse `↥X` in `Θ ++ dual Θ` must therefore
-be a no-op, not a failed freshness check.  `strong-rep-store/notes/ReUnlockWall.agda`
-machine-checks the old failure and the repaired readings.
+The last clause is `conv-bind-live`.  For example, a conversion
+reading of `↓X` leaves `X` live; the inverse `↥X` in `Θ ++ dual Θ`
+must therefore be a no-op, not a failed freshness check.
+`strong-rep-store/notes/ReUnlockWall.agda` machine-checks the old
+failure and the repaired readings.
 
 Both readings are relations, but each is functional.  A well-formed
 boundary witness is:
@@ -291,23 +295,25 @@ inverse of a change swaps unbind and bind:
     dual (δ ∷ Θ)     = dual Θ ++ [ δ⁻¹ ]      -- inverses, in reverse order
 
 The other scopes the rules build are written out at their use sites:
-`[ bind X α ]` (the outer layer of both `Nu` contracta), `Θ` itself read
-under that bind (the middle layer of Nu-⟪Λ⟫), and the merge `Θ₂ ++ Θ₁`,
-the outer scope acting first, which is the one Merge builds.  Stacked,
-the outer and middle layers act as `bind X α ∷ Θ`, which is the single
-scope the pre-`ν` rules wrote, and the next Merge builds exactly that
-merge.  The rewind `Θ ++ dual Θ` is still a scope one can write, but
-since 2026-09-23 no rule builds one.  Agda's change lists are head-LAST
-(the tail acts first), so its spellings are the mirror images:
-`dual χ = map dualChange (reverse χ)`, `rewind Θ = dual Θ ++ Θ`, the
-merge is `Θ₁ ++ Θ₂`, the outer layer is `inst [] = bind 0 0 ∷ []`
-(`TyBetaBoundary`), and the middle layer is `liftᴮ Θ = map shiftChange
-Θ`, so that `inst Θ = liftᴮ Θ ++ (bind 0 0 ∷ [])` is the two stacked.  Nothing shifts a representation when two
-scopes merge, because both were spelled at the same store; `liftᴮ`
-shifts in both universes because it is read one allocation later — with
-names that shift is invisible.
+`[ bind X α ]` (the outer layer of both `Nu` contracta), `Θ` itself
+read under that bind (the middle layer of Nu-⟪Λ⟫), and the merge `Θ₂
+++ Θ₁`, the outer scope acting first, which is the one Merge builds.
+Stacked, the outer and middle layers act as `bind X α ∷ Θ`, which is
+the single scope the pre-`ν` rules wrote, and the next Merge builds
+exactly that merge.  The rewind `Θ ++ dual Θ` is still a scope one can
+write, but since 2026-09-23 no rule builds one.  Agda's change lists
+are head-LAST (the tail acts first), so its spellings are the mirror
+images: `dual χ = map dualChange (reverse χ)`, `rewind Θ = dual Θ ++
+Θ`, the merge is `Θ₁ ++ Θ₂`, the outer layer is 
+`inst [] = bind 0 0 ∷ []` (`TyBetaBoundary`), and the middle layer
+is `liftᴮ Θ = map shiftChange Θ`, so that
+`inst Θ = liftᴮ Θ ++ (bind 0 0 ∷ [])` is the two stacked.
+Nothing shifts a representation when two scopes merge,
+because both were spelled at the same store; `liftᴮ` shifts in both
+universes because it is read one allocation later — with names that
+shift is invisible.
 
-## A concrete boundary
+## An example boundary
 
 Let
 
@@ -446,13 +452,13 @@ only passed on.
     (t ; seal X) ⨟ᵀ unseal Y   =  t
     (t ; seal X) ⨟ᵀ (unseal Y ; c)
                                =  t ⨟ᵀ c
-    g ⨟ᵀ unseal Y              =  unseal Y      g's target is a variable, so g = id Y
+    g ⨟ᵀ unseal Y              =  unseal Y      g's target is var, so g = id Y
     g ⨟ᵀ (unseal Y ; c)        =  unseal Y ; c  likewise
 
     t ⨟ᵀᵀ seal Y               =  t ;ˢ seal Y
     t ⨟ᵀᵀ (t₂ ; seal Y)        =  (t ⨟ᵀᵀ t₂) ;ˢ seal Y
     g ⨟ᵀᵀ g₂                   =  g ⨟ᵐ g₂
-    seal X ⨟ᵀᵀ g₂              =  seal X        g₂'s source is a variable, so g₂ = id X
+    seal X ⨟ᵀᵀ g₂              =  seal X        g₂'s source is var, so g₂ = id X
     (t ; seal X) ⨟ᵀᵀ g₂        =  t ; seal X    likewise
 
     id A ⨟ᵐ g₂                 =  g₂
@@ -475,9 +481,9 @@ The two smart constructors keep the result tight:
     unseal X ;ˢ c      =  unseal X ; c      if c is an unseal chain
 
     cancelₓ(g)         =  unseal X ; g
-    cancelₓ(seal Y)    =  id X              if X = Y
-                       =  unseal X ; seal Y otherwise
-    cancelₓ(t ; seal Y) = t′ ;ˢ seal Y      if cancelₓ(t) is a tail t′
+    cancelₓ(seal Y)    =  id X                if X = Y
+                       =  unseal X ; seal Y   otherwise
+    cancelₓ(t ; seal Y) = t′ ;ˢ seal Y        if cancelₓ(t) is a tail t′
                        =  unseal X ; (t ; seal Y)   otherwise
 
 Composition is well typed (`⊢⨟`, `proof/Compose.agda`):
@@ -517,8 +523,8 @@ context `Γₜ`.
                -----------------------------------
                Δ ∣ Γₜ ⊢ L · M : B
 
-    (⊢Λ)       Value N    under(X,α,Δ) ∣ ⇑Γₜ ⊢ N : C
-               -------------------------------------
+    (⊢Λ)       Value N    under(X,α,Δ) ∣ Γₜ ⊢ N : C
+               ------------------------------------- (X ∉ Δ)
                Δ ∣ Γₜ ⊢ ΛX.N : ∀X.C
 
     (⊢ν)       Δ ⊢ᵗ A    Δ ⊢ᶜ A ~ R    Δ ∣ Γₜ ⊢ L : ∀X.C
@@ -529,10 +535,17 @@ context `Γₜ`.
                ---------------------------------------
                Δ ∣ Γₜ ⊢ νX:=A · L ⟨ c ⟩ : B
 
-Here `⇑Γₜ` weakens every type in the term context through the fresh
-type binder.
+    (boundary) BoundaryWf Δ Θ Δᵢ Δᶜ
+               Δᵢ ∣ · ⊢ M : Bᵢ
+               Δᶜ ⊢ c : Bᵢ ⇝ Bₑ
+               Δ ⊢ᵗ Bₑ
+               --------------------------------
+               Δ ∣ Γₜ ⊢ M ⟪ Θ , c ⟫ : Bₑ
+               
 
-`⊢ν` accepts ANY conversion `c` whose types line up.  Its source is the
+The `⊢ν` and boundary rules are the non-System-F rules.
+
+`⊢ν` accepts any conversion `c` whose types line up.  Its source is the
 operator's body `C`, and it is read at the conversion context of the
 scope `[ bind X α ]` over the allocation, which is the context the `Nu`
 rules put `c` at (Agda: `TyBetaBoundary` at `allocate R Δ`).  The
@@ -548,27 +561,14 @@ Mechanization note.  Agda's `⊢ν` compares the result by representation,
 with names that is the identification of `c`'s target with `B` written
 into the rule above.
 
-`⊢Λ`'s `Value N` premise is **the value restriction**, the first of the two
-experiments.  It is what licenses the absence of `ξ-Λ`: a well-typed
-`ΛX.N` is already a value, so there is nothing a congruence under the
-binder could do.
-
-The boundary rule and `⊢ν` are the non-System-F rules:
-
-    (boundary) BoundaryWf Δ Θ Δᵢ Δᶜ
-               Δᵢ ∣ · ⊢ M : Bᵢ
-               Δᶜ ⊢ c : Bᵢ ⇝ Bₑ
-               Δ ⊢ᵗ Bₑ
-               --------------------------------
-               Δ ∣ Γₜ ⊢ M ⟪ Θ , c ⟫ : Bₑ
-
-With variables as names no scope premises are needed.  `Bᵢ` is in scope
-in `Δᵢ` by its typing premise, and every name live in the interior is
-live in the conversion context — an unbind is the only thing that removes a
-name and the conversion reading skips unbinds (`int⇒conv-live`,
-Boundary.agda §3a) — so it is in scope in `Δᶜ` too.  `Bₑ` is in scope in
-`Δ` by `Δ ⊢ᵗ Bₑ`, and the conversion reading never removes an exterior
-name (`conversion-live`), so it is in scope in `Δᶜ` too.
+Regarding (boundary), with variables as names no scope premises are
+needed.  `Bᵢ` is in scope in `Δᵢ` by its typing premise, and every
+name live in the interior is live in the conversion context — an
+unbind is the only thing that removes a name and the conversion
+reading skips unbinds (`int⇒conv-live`, Boundary.agda §3a) — so it is
+in scope in `Δᶜ` too.  `Bₑ` is in scope in `Δ` by `Δ ⊢ᵗ Bₑ`, and the
+conversion reading never removes an exterior name (`conversion-live`),
+so it is in scope in `Δᶜ` too.
 
 The empty term context in the second premise is load-bearing: substitution
 does not descend into a boundary.
@@ -584,6 +584,11 @@ not to put anything in scope; with names they are the identifications
 `Cᵢ = Bᵢ`, `Cₑ = Bₑ` already written into the rule above.  A worked
 instance with all three maps distinct is notes/TwoSpellings.md.
 
+`⊢Λ`'s `Value N` premise is **the value restriction**, the first of the two
+experiments.  It is what licenses the absence of `ξ-Λ`: a well-typed
+`ΛX.N` is already a value, so there is nothing a congruence under the
+binder could do.
+
 # Values and conversion classification
 
 Classification is by conversion constructor, subject to conversion typing:
@@ -595,7 +600,7 @@ The two classes are total on typed conversions and disjoint
 (`act-or-inert`, `act-not-inert`).  Every inert conversion is a tail
 (Agda `Inert (tail t)` from `InertTail t`).
 
-A value carries AT MOST ONE boundary:
+A value carries at most one boundary:
 
     U ::= n | true | false | λx:A.N | ΛX.V          simple values
     V, W ::= U | U ⟪ Θ , t ⟫   if t is an inert tail
@@ -631,13 +636,13 @@ frame-exact.
 
 The judgment is
 
-    Δ ⊢ M -→ M′ ∣ δ            δ ::= none | new R
+    Δ ⊢ M -→ M′ ∣ δ            δ ::= none | new α:=R
 
 where `δ` is the change the step made to the **store**, the second
 experiment.  The contractum is read one context later:
 
-    apply none Δ      = Δ
-    apply (new R) Δ   = allocate(α:=R, Δ)
+    apply none Δ         = Δ
+    apply (new α:=R) Δ   = allocate(α:=R, Δ)
 
 The premises naming interior and conversion contexts are part of the
 reduction relation even when the redex's typing can reconstruct them.
@@ -650,7 +655,7 @@ clause defines a context or a type the contractum reads.  Commentary is
 in the appendix at the end of this file, keyed by rule.
 
     (Nu-Λ)      Δ ⊢ νX:=A · (ΛX.V) ⟨ d ⟩
-                    -→ V ⟪ [ bind X α ] , d ⟫ ∣ new R
+                    -→ V ⟪ [ bind X α ] , d ⟫ ∣ new α:=R
                 where Δ ⊢ᶜ A ~ R
 
     (Beta)      Δ ⊢ (λx:A.N) · W -→ N[x:=W:A] ∣ none
@@ -659,7 +664,7 @@ in the appendix at the end of this file, keyed by rule.
                     -→ (U · (W ⟪ dual Θ , c ⟫)) ⟪ Θ , d ⟫ ∣ none
 
     (Nu-⟪Λ⟫)    Δ ⊢ νX:=A · ((ΛX.V) ⟪ Θ , ∀X.c ⟫) ⟨ d ⟩
-                    -→ (V ⟪ Θ , c ⟫) ⟪ [ bind X α ] , d ⟫ ∣ new R
+                    -→ (V ⟪ Θ , c ⟫) ⟪ [ bind X α ] , d ⟫ ∣ new α:=R
                 where Δ ⊢ᶜ A ~ R
 
     (Merge)     t₁ is an inert tail
@@ -672,8 +677,9 @@ in the appendix at the end of this file, keyed by rule.
                 --------------------------------------
                 Δ ⊢ U ⟪ Θ , id A ⟫ -→ U ∣ none
 
-There are six computational rules and four congruences, ten in all.  `Merge` fires whatever the outer conversion `c₂` is: at an active
-one it does what the retired `CancelR` (`seal X` then `unseal X`) and
+There are six computational rules and four congruences, ten in all.
+`Merge` fires whatever the outer conversion `c₂` is: at an active one
+it does what the retired `CancelR` (`seal X` then `unseal X`) and
 `IdPush` (`id X` then `unseal X`) did, and at an inert one it merges a
 pair that used to stack.  If the composite is `id` at a base type, a
 drop fires next.
@@ -785,13 +791,6 @@ final term lives at `runCtx r`.
       Δ ⊢ M -→ M′ ∣ δ
       ------------------------
       apply δ Δ ∣ · ⊢ M′ : A
-
-    PreservationWf
-      WfCtx Δ
-      Δ ∣ · ⊢ M : A
-      Δ ⊢ M -→ M′ ∣ δ
-      ----------------
-      WfCtx (apply δ Δ)
 
     Preservation*
       WfCtx Δ
@@ -908,7 +907,7 @@ restriction as the run-time `⊢Λ`:
 The other rules are the System F ones.  `inferˢ` is a checker that
 builds these derivations.
 
-`compile` (`Compile.agda`) is defined on typing DERIVATIONS, because the
+`compile` (`Compile.agda`) is defined on typing derivations, because the
 conversion it writes needs the operator's type.  It is structural except
 at type application:
 

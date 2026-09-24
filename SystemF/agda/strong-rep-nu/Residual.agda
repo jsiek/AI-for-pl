@@ -270,7 +270,7 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
         ((C ⟪C Θ₁ , tail t₁ ⟫) ⟪C Θ₂ , c₂ ⟫) M idᵗ
         (C ⟪C Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′ ⟫) M
 
-  -- (Drop$, Drop-true, Drop-false: no residual — the literal is consumed
+  -- (Drop: no residual — the literal is consumed
   -- with its boundary.)
 
   -- The ξ rules: the position is inside the stepping subterm, or in the

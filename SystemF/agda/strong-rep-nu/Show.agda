@@ -36,7 +36,7 @@ open import strong-rep-nu.Terms
 open import strong-rep-nu.Boundary
   using (Boundary; Change; unbind; bind)
 open import strong-rep-nu.Reduction using (_⊢_-→_∣_; Nu-Λ; Beta; Peel;
-  Nu-⟪Λ⟫; Merge; Drop$; Drop-true; Drop-false;
+  Nu-⟪Λ⟫; Merge; Drop;
   ξ-·-l; ξ-·-r; ξ-ν; ξ-⟪⟫)
 open import strong-rep-nu.Eval
   using (Trace; stop; illtyped; _◅⟨_⟩_; Final; value; no-redex; out-of-fuel;
@@ -376,9 +376,7 @@ ruleName (Beta v)                    = "Beta"
 ruleName (Peel v w rc ri rd sc)      = "Peel"
 ruleName (Nu-⟪Λ⟫ v rel ⊢s same)      = "Nu-⟪Λ⟫"
 ruleName (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) = "Merge"
-ruleName (Drop$ b)                   = "Drop$"
-ruleName Drop-true                   = "Drop-true"
-ruleName Drop-false                  = "Drop-false"
+ruleName (Drop u b)                  = "Drop"
 ruleName (ξ-·-l st)                  = ruleName st
 ruleName (ξ-·-r v st)                = ruleName st
 ruleName (ξ-ν st)                    = ruleName st

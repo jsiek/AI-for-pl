@@ -47,6 +47,12 @@ data Ty : Set where
   _⇒_ : Ty → Ty → Ty      -- A → B
   `∀  : Ty → Ty           -- ∀X.A   (A is a type with one more type variable)
 
+-- The base types: the types of the literals, and where a bare `id` and
+-- the `Drop` rule sit.
+data Base : Ty → Set where
+  base-ℕ : Base `ℕ
+  base-𝔹 : Base `𝔹
+
 ------------------------------------------------------------------------
 -- Parallel renaming and substitution on types
 ------------------------------------------------------------------------

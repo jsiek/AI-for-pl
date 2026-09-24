@@ -27,7 +27,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; trans; cong; cong₂; subst)
 
 open import strong-rep-nu.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ; Base; base-ℕ; base-𝔹)
 open import strong-rep-nu.proof.Types
 open import strong-rep-nu.Ctx
 

@@ -33,8 +33,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; cong; trans; cong₂; subst)
 
 open import strong-rep-nu.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; TyVar; Renameᵗ; renameᵗ; extᵗ;
-         ⇑ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; TyVar; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ; Base; base-ℕ; base-𝔹)
 open import strong-rep-nu.Ctx
 open import strong-rep-nu.proof.Ctx
 open import strong-rep-nu.Boundary

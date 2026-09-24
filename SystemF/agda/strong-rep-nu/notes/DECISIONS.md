@@ -5181,3 +5181,15 @@ categories, and GTSFImp's `Conv↑`/`Conv↓`, the closest relative, which
 does not merge.
 
 **Gate.**  `make check` green at 5d98bbe2.
+
+## 2026-09-24 — one `Drop` rule; `Base` moves to `Types.agda` (Jeremy)
+
+`Drop$`, `Drop-true` and `Drop-false` are merged into one rule,
+
+    Drop : Simple U → Base A → Δ ⊢ U ⟪ Θ , ⌞ id A ⌟ ⟫ -→ U ∣ none
+
+Typing makes `U` a literal (`preserve-Drop`; `ShiftAudit`'s
+`Drop-only-simple`), so nothing is lost, and the reduction relation has
+ten rules.  `Base` is a fact about types alone, so it moved from
+`Ctx.agda` to `Types.agda`.  Step counts are unchanged.  Historical
+entries above keep the old rule names.

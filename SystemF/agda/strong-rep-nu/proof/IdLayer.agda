@@ -22,7 +22,7 @@ open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; trans; subst)
 
-open import strong-rep-nu.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
+open import strong-rep-nu.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Base; base-ℕ; base-𝔹)
 open import strong-rep-nu.Ctx
 open import strong-rep-nu.proof.Ctx
 open import strong-rep-nu.Conversion

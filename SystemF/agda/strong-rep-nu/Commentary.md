@@ -999,8 +999,8 @@ cite the very same substitution when it follows a position through
 
 ## Reduction.agda
 
-The rule set.  §1 is `_⊢_-→_∣_` with twelve rules — `Nu-Λ`, `Beta`,
-`Peel`, `Nu-⟪Λ⟫`, `Merge`, `Drop$`, `Drop-true`, `Drop-false` and the
+The rule set.  §1 is `_⊢_-→_∣_` with ten rules — `Nu-Λ`, `Beta`,
+`Peel`, `Nu-⟪Λ⟫`, `Merge`, `Drop` and the
 four congruences `ξ-·-l`, `ξ-·-r`, `ξ-ν`, `ξ-⟪⟫` — plus the concrete check `Nu-ℕ`, the multi-step
 `_⊢_-→*_` and `runCtx`.  §2 is `value-¬step`.  (`det` is
 `proof/Determinism.agda`.)
@@ -1305,10 +1305,10 @@ at a seal/unseal pair: typing forces the two names to denote one
 representation variable (`cancel-name`, `idpush-name`,
 `proof/IdLayer.agda`), so composition compares no names.
 
-### `Drop$`, `Drop-true`, `Drop-false`
+### `Drop`
 
 An identity boundary at a base type, over a literal.  (`⊢$` types a
-numeral anywhere, which is why `Drop$` needs no context premise.)
+numeral anywhere, which is why `Drop` needs no context premise.)
 
 ### `Nu-⟪⟫`, `CancelR`, `IdPush` — retired 2026-09-24
 
@@ -2051,7 +2051,7 @@ eliminates, the `ƛ` and `·` nodes of `Beta`, the boundary nodes every
 boundary rule re-mints.  Every node strictly inside a retained subterm
 has exactly one residual, except that a term variable `Beta`
 substitutes is replaced by a COPY of the argument (`CopyResidual`), and
-`Drop$` / `Drop-true` / `Drop-false` consume their literal with its
+`Drop` consume their literal with its
 boundary — a literal has no scope to preserve
 (`proof/ShiftAudit.agda` §7, "vacuous").
 
@@ -2134,7 +2134,7 @@ everywhere but in a sibling the allocating step shifted (and, until
   scope, the one layer the contractum has (`proof/ShiftAudit.agda` §6).
   (It replaced `residual-CancelR` / `residual-IdPush`; `residual-Nu-⟪⟫`
   went with its rule, 2026-09-24.)
-* `Drop$` / `Drop-true` / `Drop-false` — NO residual: the literal is
+* `Drop` — NO residual: the literal is
   consumed with its boundary.
 * the ξ rules — the position is inside the stepping subterm, or in the
   SIBLING that stands still, and a sibling moves by the step's own
@@ -3482,7 +3482,7 @@ it holds definitionally at both `Alloc`s.
       Merge lowers it
   §5  Beta                    — the `ƛ` and `Λ` crossings do not interfere
   §6  Merge                   — exact
-  §7  Drop$ / Drop-true / Drop-false — vacuous
+  §7  Drop — vacuous
   §8  the ξ rules             — the sibling shift IS the context move
   §9  dead shift machinery
 ```
@@ -3505,7 +3505,7 @@ substituted (`grep renᴹ² renᴹᴿ wkᴹ ⇑ᴹ renⁿ shiftᵐ crossΛᴹ su
     Nu-Λ        `N ⟪ inst [] , c ⟫`                       §3  refinement
     Beta        `N [ W ∶ A ]ᵐ`, i.e. `substᵐ`/`crossΛᴹ`   §5  EXACT
     Merge       `U ⟪ Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′ ⟫`     §6  EXACT
-    Drop$ / Drop-true / Drop-false                        §7  vacuous
+    Drop                        §7  vacuous
     ξ-*         the SIBLINGS move, by `↑ᴹ[ δ ]`           §8  EXACT
 
   TRANSPORTS, not rules (no term is moved by a reduction; these are the

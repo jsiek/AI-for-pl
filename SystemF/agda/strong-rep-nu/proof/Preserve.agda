@@ -790,37 +790,48 @@ sameTy-𝔹 wfΔ (R , p , q) with same-𝔹-rep q
 sameTy-𝔹 wfΔ (R , p , q) | refl =
   same-target-unique (name-fn wfΔ) p same-𝔹
 
-preserve-Drop$ : ∀ {Δ n Θ A C}
+-- `Drop`: typing makes the simple value a literal at the base type,
+-- and a literal types at every context.
+preserve-Drop : ∀ {Δ U Θ A C}
   → WfCtx Δ
+  → Simple U
   → Base A
-  → Δ ∣ [] ⊢ ($ n) ⟪ Θ , ⌞ id A ⌟ ⟫ ⦂ C
-  → Δ ∣ [] ⊢ $ n ⦂ C
-preserve-Drop$ wfΔ base-ℕ
+  → Δ ∣ [] ⊢ U ⟪ Θ , ⌞ id A ⌟ ⟫ ⦂ C
+  → Δ ∣ [] ⊢ U ⦂ C
+preserve-Drop wfΔ u base-ℕ
   (boundary mwΘ ⊢$ (conv-tail (conv-mid (conv-id base-ℕ)))
        sameᵢ sameₑ wE)
   rewrite sameTy-ℕ wfΔ sameₑ = ⊢$
-preserve-Drop$ wfΔ base-𝔹
+preserve-Drop wfΔ u base-𝔹
   (boundary mwΘ ⊢$ (conv-tail (conv-mid (conv-id base-𝔹)))
        sameᵢ sameₑ wE) =
   ⊥-elim (sameTy-ℕ-𝔹-absurd sameᵢ)
-
-preserve-Drop-true : ∀ {Δ Θ C}
-  → WfCtx Δ
-  → Δ ∣ [] ⊢ `true ⟪ Θ , ⌞ id `𝔹 ⌟ ⟫ ⦂ C
-  → Δ ∣ [] ⊢ `true ⦂ C
-preserve-Drop-true wfΔ
+preserve-Drop wfΔ u base-𝔹
   (boundary mwΘ ⊢true (conv-tail (conv-mid (conv-id base-𝔹)))
        sameᵢ sameₑ wE)
   rewrite sameTy-𝔹 wfΔ sameₑ = ⊢true
-
-preserve-Drop-false : ∀ {Δ Θ C}
-  → WfCtx Δ
-  → Δ ∣ [] ⊢ `false ⟪ Θ , ⌞ id `𝔹 ⌟ ⟫ ⦂ C
-  → Δ ∣ [] ⊢ `false ⦂ C
-preserve-Drop-false wfΔ
+preserve-Drop wfΔ u base-ℕ
+  (boundary mwΘ ⊢true (conv-tail (conv-mid (conv-id base-ℕ)))
+       (_ , same-𝔹 , ()) sameₑ wE)
+preserve-Drop wfΔ u base-𝔹
   (boundary mwΘ ⊢false (conv-tail (conv-mid (conv-id base-𝔹)))
        sameᵢ sameₑ wE)
   rewrite sameTy-𝔹 wfΔ sameₑ = ⊢false
+preserve-Drop wfΔ u base-ℕ
+  (boundary mwΘ ⊢false (conv-tail (conv-mid (conv-id base-ℕ)))
+       (_ , same-𝔹 , ()) sameₑ wE)
+preserve-Drop wfΔ u base-ℕ
+  (boundary mwΘ (⊢ƛ w ⊢N) (conv-tail (conv-mid (conv-id base-ℕ)))
+       (_ , same-⇒ _ _ , ()) sameₑ wE)
+preserve-Drop wfΔ u base-𝔹
+  (boundary mwΘ (⊢ƛ w ⊢N) (conv-tail (conv-mid (conv-id base-𝔹)))
+       (_ , same-⇒ _ _ , ()) sameₑ wE)
+preserve-Drop wfΔ u base-ℕ
+  (boundary mwΘ (⊢Λ v ⊢N) (conv-tail (conv-mid (conv-id base-ℕ)))
+       (_ , same-∀ _ , ()) sameₑ wE)
+preserve-Drop wfΔ u base-𝔹
+  (boundary mwΘ (⊢Λ v ⊢N) (conv-tail (conv-mid (conv-id base-𝔹)))
+       (_ , same-∀ _ , ()) sameₑ wE)
 
 ------------------------------------------------------------------------
 -- §4. The representation-only transports, and the store bookkeeping
@@ -1032,9 +1043,7 @@ step-alloc wfΔ (Beta w) = aw-none
 step-alloc wfΔ (Peel v w rc ri rd sc) = aw-none
 step-alloc wfΔ (Nu-⟪Λ⟫ v rc ⊢s p) = aw-new (same-wfᴿ wfΔ p)
 step-alloc wfΔ (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) = aw-none
-step-alloc wfΔ (Drop$ b) = aw-none
-step-alloc wfΔ Drop-true = aw-none
-step-alloc wfΔ Drop-false = aw-none
+step-alloc wfΔ (Drop u b) = aw-none
 step-alloc wfΔ (ξ-·-l st) = step-alloc wfΔ st
 step-alloc wfΔ (ξ-·-r v st) = step-alloc wfΔ st
 step-alloc wfΔ (ξ-ν st) = step-alloc wfΔ st
@@ -1064,9 +1073,7 @@ module Impl
   preserve wfΔ ⊢M (Nu-⟪Λ⟫ v rc ⊢s p) = preserve-Nu-⟪Λ⟫ wfΔ p ⊢M
   preserve wfΔ ⊢M (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) =
     merge wfΔ u it ri r₁ r₂ r⋉ sc₁ sc₂ ⊢M
-  preserve wfΔ ⊢M (Drop$ b) = preserve-Drop$ wfΔ b ⊢M
-  preserve wfΔ ⊢M Drop-true = preserve-Drop-true wfΔ ⊢M
-  preserve wfΔ ⊢M Drop-false = preserve-Drop-false wfΔ ⊢M
+  preserve wfΔ ⊢M (Drop u b) = preserve-Drop wfΔ u b ⊢M
   preserve wfΔ (⊢· ⊢L ⊢M) (ξ-·-l st) =
     ⊢· (preserve wfΔ ⊢L st) (⊢↑ shift (step-alloc wfΔ st) ⊢M)
   preserve wfΔ (⊢· ⊢L ⊢M) (ξ-·-r v st) =

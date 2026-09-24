@@ -114,18 +114,12 @@ det _ (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) (ξ-⟪⟫ frame st) =
 det _ (ξ-⟪⟫ frame st) (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) =
   ⊥-elim (value-¬step (V-⟪⟫ u it) st)
 
--- Drop$
-det _ (Drop$ b)    (Drop$ b′)   = refl , refl
-det _ (Drop$ b) (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step (V-simple S-$) st)
-det _ (ξ-⟪⟫ frame st) (Drop$ b) = ⊥-elim (value-¬step (V-simple S-$) st)
-
--- Drop-true / Drop-false
-det _ Drop-true Drop-true = refl , refl
-det _ Drop-true (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step (V-simple S-true) st)
-det _ (ξ-⟪⟫ frame st) Drop-true = ⊥-elim (value-¬step (V-simple S-true) st)
-det _ Drop-false Drop-false = refl , refl
-det _ Drop-false (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step (V-simple S-false) st)
-det _ (ξ-⟪⟫ frame st) Drop-false = ⊥-elim (value-¬step (V-simple S-false) st)
+-- Drop
+det _ (Drop u b) (Drop u′ b′) = refl , refl
+det _ (Drop u b) (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step (V-simple u) st)
+det _ (ξ-⟪⟫ frame st) (Drop u b) = ⊥-elim (value-¬step (V-simple u) st)
+det _ (Drop () b) (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
+det _ (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) (Drop () b)
 
 -- the congruences: the sibling shift is a function of the store change
 det (⊢· ⊢L ⊢M) (ξ-·-l st) (ξ-·-l st′) with det ⊢L st st′

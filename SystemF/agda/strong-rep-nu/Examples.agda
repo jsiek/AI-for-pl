@@ -26,7 +26,7 @@ module strong-rep-nu.Examples where
 --   §1   THE BASELINE RUNS — five closed, plain System F programs with
 --        no boundary anywhere in the source: `P` (the polymorphic
 --        identity), `K` (a polymorphic Boolean use), `J` (a polymorphic
---        constant), `F` (the identity at 𝔹, for `Drop-false`) and `U`
+--        constant), `F` (the identity at 𝔹, for `Drop`) and `U`
 --        (an argument still reducing, for `ξ-·-r`).
 --   §2   THE VACUOUS-Λ FAMILY — four programs whose runs are born with
 --        an IDENTITY LAYER, which a `Merge` absorbs: `Q` (one vacuous
@@ -112,10 +112,10 @@ module strong-rep-nu.Examples where
 -- strictly less than an exact transcript.  The states of any other run
 -- are one `evalTerms` away whenever a reader wants to look at one.
 --
--- COVERAGE.  All twelve live reduction rules fire somewhere in §§1–8.
+-- COVERAGE.  All ten live reduction rules fire somewhere in §§1–8.
 -- §1d and §1e retain cases that the other runs do not reach:
--- `Drop-false` and `ξ-·-r`.  Each dummy route is the four-step sequence
--- `Nu-Λ`, `Peel`, `Drop$`, `Beta`; it introduces no new rule shape.
+-- `Drop` and `ξ-·-r`.  Each dummy route is the four-step sequence
+-- `Nu-Λ`, `Peel`, `Drop`, `Beta`; it introduces no new rule shape.
 --
 -- WHAT IS STILL THIN.  Depth, differently.  A value carries ONE
 -- boundary, and a second is merged on the step it appears, so no state
@@ -252,7 +252,7 @@ J-run = reaches-run J-eval
 ------------------------------------------------------------------------
 -- §1d  (ΛX. λx:X. x) [𝔹] · false
 --
--- §1a at the other base type.  It is here for `Drop-false`, which no
+-- §1a at the other base type.  It is here for `Drop`, which no
 -- other run reaches: every other example that ends in a Boolean ends at
 -- `true`.
 ------------------------------------------------------------------------
@@ -452,7 +452,7 @@ G-run : empty ⊢ G₀ -→* $ 7
 G-run = reaches-run G-eval
 
 -- The allocation is carried by the step result, not the boundary: `Nu-Λ`
--- and `Nu-⟪Λ⟫` return `new R`; `Peel`, `Merge`, the drops, and their
+-- and `Nu-⟪Λ⟫` return `new R`; `Peel`, `Merge`, `Drop`, and their
 -- congruences return or propagate `none`.
 
 ------------------------------------------------------------------------
@@ -760,7 +760,7 @@ Wseal = ($ 7) ⟪ [] , tail (seal 0) ⟫
 -- BOTH FRAMES STAY — MERGED as `Θ₁ ++ Θ₂` — and the matched pair becomes
 -- ONE identity at the cancelled binder's representation (`mkId` of
 -- `repOf`), so nothing the value might name is dropped; the identity is
--- then walked off a numeral by `Drop$`.
+-- then walked off a numeral by `Drop`.
 
 Tcancel : Term
 Tcancel = Wseal ⟪ [] , unseal 0 ⟫
@@ -899,7 +899,7 @@ _ = tc
 --
 -- `mkId` is INERT at a variable, a function type and a `∀`, so there the
 -- wrapper is a VALUE.  At a BASE type it is `id ℕ`, which is ACTIVE, so
--- the wrapper is NOT a value and `Drop$` finishes it in one step.  That is
+-- the wrapper is NOT a value and `Drop` finishes it in one step.  That is
 -- the whole price of frame-exactness at a base-typed argument, and
 -- progress is not disturbed by it: a closed value at `ℕ` is a numeral, a
 -- Boolean literal being the other base case, so a drop always applies.
@@ -909,7 +909,7 @@ _ = tc
 -- Its first `Beta` reaches
 -- `ΛZ. λ_:ℕ. 7 ⟪ (unbind 0 0 ∷ []) , id ℕ ⟫`.
 -- Instantiating that value and applying its dummy exposes the wrapper;
--- the sixth step is the `Drop$` that removes it.
+-- the sixth step is the `Drop` that removes it.
 
 Bg : Term
 Bg = (ν `ℕ · ((ƛ `ℕ ∙ (Λ (ƛ `ℕ ∙ ` 1))) · ($ 7)) ⟨ reveal 0 (`ℕ ⇒ `ℕ) ⟩) · $ 0

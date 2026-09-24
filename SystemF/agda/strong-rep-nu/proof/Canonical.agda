@@ -24,7 +24,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; trans; subst)
 
 open import strong-rep-nu.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; renameᵗ; extᵗ; ⇑ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; renameᵗ; extᵗ; ⇑ᵗ; Base; base-ℕ; base-𝔹)
 open import strong-rep-nu.Ctx
 open import strong-rep-nu.Conversion
 open import strong-rep-nu.Terms

@@ -25,7 +25,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; subst)
 
 open import strong-rep-nu.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; extᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; extᵗ; Base; base-ℕ; base-𝔹)
 open import strong-rep-nu.Ctx
 open import strong-rep-nu.proof.Ctx
 open import strong-rep-nu.Conversion
@@ -92,15 +92,11 @@ progress-id-base : ∀ {Δ Δᵢ Θ M A}
   → Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ]
       (Δ ⊢ M ⟪ Θ , ⌞ id A ⌟ ⟫ -→ M′ ∣ δ)
 progress-id-base v b ⊢M with canon-base v b ⊢M
-progress-id-base v b ⊢M | inj₁ (n , refl) = $ n , none , Drop$ b
-progress-id-base v base-ℕ ⊢M | inj₂ (inj₁ refl) with ⊢M
-progress-id-base v base-ℕ ⊢M | inj₂ (inj₁ refl) | ()
-progress-id-base v base-𝔹 ⊢M | inj₂ (inj₁ refl) =
-  `true , none , Drop-true
-progress-id-base v base-ℕ ⊢M | inj₂ (inj₂ refl) with ⊢M
-progress-id-base v base-ℕ ⊢M | inj₂ (inj₂ refl) | ()
-progress-id-base v base-𝔹 ⊢M | inj₂ (inj₂ refl) =
-  `false , none , Drop-false
+progress-id-base v b ⊢M | inj₁ (n , refl) = $ n , none , Drop S-$ b
+progress-id-base v b ⊢M | inj₂ (inj₁ refl) =
+  `true , none , Drop S-true b
+progress-id-base v b ⊢M | inj₂ (inj₂ refl) =
+  `false , none , Drop S-false b
 
 ------------------------------------------------------------------------
 -- 4. Progress

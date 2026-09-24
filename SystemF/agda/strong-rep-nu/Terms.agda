@@ -28,8 +28,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; cong₂; trans; subst)
 
 open import strong-rep-nu.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; TyVar; Renameᵗ; renameᵗ; extᵗ;
-         ⇑ᵗ; _[_]ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; TyVar; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ; _[_]ᵗ; Base; base-ℕ; base-𝔹)
 open import strong-rep-nu.Ctx
 open import strong-rep-nu.Conversion
 open import strong-rep-nu.Boundary
@@ -82,7 +81,7 @@ data _∋_⦂_ : Ctx → Var → Ty → Set where
 
 -- A boundary over a SIMPLE value has a non-variable source type, so its
 -- conversion is a TAIL.  Inert tails: everything but the identity at a
--- base type, which `Drop$`/`Drop-true`/`Drop-false` remove.
+-- base type, which `Drop` remove.
 data InertTail : Tail → Set where
   I-idv      : ∀ {X}   → InertTail (mid (id (` X)))
   I-fun      : ∀ {s t} → InertTail (mid (s ↦ t))

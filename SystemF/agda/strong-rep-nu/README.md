@@ -113,8 +113,8 @@ Jeremy's decisions: `notes/MergeSketch.md` (status IMPLEMENTED);
   `V-⟪⟫ : Simple U → InertTail t → Value (U ⟪ Θ , tail t ⟫)`).  A value
   boundary's source type is not a variable, so its conversion is a
   tail; the inert tails are everything but `id` at a base type.
-* **The rules** (`Reduction.agda`) are twelve: `Nu-Λ`, `Beta`, `Peel`,
-  `Nu-⟪Λ⟫`, `Merge`, `Drop$`, `Drop-true`, `Drop-false`, `ξ-·-l`,
+* **The rules** (`Reduction.agda`) are ten: `Nu-Λ`, `Beta`, `Peel`,
+  `Nu-⟪Λ⟫`, `Merge`, `Drop`, `ξ-·-l`,
   `ξ-·-r`, `ξ-ν`, `ξ-⟪⟫`.  `Merge` rewrites
   `(U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫` to
   `U ⟪ Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′ ⟫`: both conversions are
@@ -168,7 +168,7 @@ first step is `Nu-Λ`; the `Merge` step is the old `CancelR`:
       --[Merge]-->
     Ξ = [α := ℕ]
     (7 ⟪ ↥X , ↓X , id ℕ ⟫)
-      --[Drop$]-->
+      --[Drop]-->
     Ξ = [α := ℕ]
     7
         -- VALUE
@@ -363,7 +363,7 @@ the refinement `abstR → bindR R` of a variable it could already name.
 It is not a single theorem statement but a site-by-site check —
 `proof/ShiftAudit.agda`, §2 `Peel`, §3 the two `Nu` rules, §4 the
 tower measure (at most one boundary on a value, and `Merge` lowers it),
-§5 `Beta`, §6 `Merge`, §7 the drops, §8 the congruences — resting on the relational transport
+§5 `Beta`, §6 `Merge`, §7 the drop, §8 the congruences — resting on the relational transport
 lemmas `dual-interior` and `merged-interior` of `Boundary.agda` §3a.  Its headline here is that at every site but
 `TyBeta`'s the ordinary component of the move is the identity.  The
 verdicts are that module; `notes/ShiftAudit.md` is the ARCHIVED
@@ -399,13 +399,13 @@ keyed by module and definition in source order.
 | `Conversion.agda` | conversions as NORMAL FORMS in three sorts (since 2026-09-24): the middle `Mid` (`id` / `_↦_` / `` `∀ ``), the seal chain `Tail` (`mid` / `seal` / `_⨾seal_`) and the unseal chain `Conv` (`tail` / `unseal` / `unseal_⨾_`), with `IsId` and `NoCancel`; the three judgements `_⊢ᵐ_∶_⇝_`, `_⊢ᵀ_∶_⇝_`, `_⊢_∶_⇝_` with NO polarity index; `mkId`, the canonical mints at a slot (`reveal`/`conceal`), COMPOSITION `Δ ⊢ c₁ ⨟ c₂` (§4b, with `repOf` and the smart constructors), the weakening relation `SameConv` with its uniqueness and `weaken` lemmas, `conv-ren`, the inversions and `conv-types-unique` |
 | `Terms.agda` | terms, whose last constructor is the boundary `_⟪_,_⟫`; the `InertTail`/`Inert`/`Active` split with `act-or-inert`; `Simple` and `Value`, with AT MOST ONE boundary on a value (`V-⟪⟫ : Simple U → InertTail t → Value (U ⟪ Θ , tail t ⟫)`); and the typing judgment `_∣_⊢_⦂_`, whose boundary rule `boundary` TAKES a `BoundaryWf Δ Θ Δᵢ Δᶜ` instead of computing contexts and compares all three sides by `_⊢_≈_⊣_`, and whose `⊢Λ` carries the VALUE RESTRICTION `Value N` |
 | `TermSubst.agda` | the PAIRED type renaming (`ren²`, `renᴹ²`) and its representation-only traversal `renᴹᴿ`; **the sibling shift** `↑ᴹ[ δ ]`/`↑ᴮ[ δ ]`, which is `renᴹᴿ suc`/`renᴮᴿ suc` when a step allocated a cell and the identity when it did not; and FRAME-EXACT substitution — `Img`, `crossΛᴹ`, `substᵐ`, `_[_∶_]ᵐ` — which wraps a value crossing a `Λ` in that binder's dual rather than shifting it.  ONLY what a top-level file names lives here; the lemmas and the term-variable renaming moved to `proof/TermSubst.agda` on 2026-09-22 |
-| `Reduction.agda` | `_⊢_-→_∣_` with **twelve** rules — a step returns the CHANGE `δ : Alloc` it made to the store, so the contractum lives at `apply δ Δ` and each congruence shifts the redex's siblings by `↑ᴹ[ δ ]` — `Nu-Λ`, `Beta`, `Peel`, `Nu-⟪Λ⟫`, `Merge`, `Drop$`, `Drop-true`, `Drop-false` and the four congruences `ξ-·-l`, `ξ-·-r`, `ξ-ν`, `ξ-⟪⟫` (no `ξ-Λ`: nothing reduces under a type binder) — the multi-step `_⊢_-→*_` (each step's change applied to the tail's context) with `runCtx` and `value-¬step`.  (`det`, which takes the redex's typing derivation and concludes `M₁ ≡ M₂ × δ₁ ≡ δ₂`, is `proof/Determinism.agda`.)  Its charter states the crossing-spelling law and lists the three carried spellings |
+| `Reduction.agda` | `_⊢_-→_∣_` with **ten** rules — a step returns the CHANGE `δ : Alloc` it made to the store, so the contractum lives at `apply δ Δ` and each congruence shifts the redex's siblings by `↑ᴹ[ δ ]` — `Nu-Λ`, `Beta`, `Peel`, `Nu-⟪Λ⟫`, `Merge`, `Drop` and the four congruences `ξ-·-l`, `ξ-·-r`, `ξ-ν`, `ξ-⟪⟫` (no `ξ-Λ`: nothing reduces under a type binder) — the multi-step `_⊢_-→*_` (each step's change applied to the tail's context) with `runCtx` and `value-¬step`.  (`det`, which takes the redex's typing derivation and concludes `M₁ ≡ M₂ × δ₁ ≡ δ₂`, is `proof/Determinism.agda`.)  Its charter states the crossing-spelling law and lists the three carried spellings |
 | `TypeCheck.agda` | an executable, DERIVATION-PRODUCING checker for every judgment above: `wfCtx?`, `interior?`/`conversion?`/`boundaryWf?`, the readings `read?`/`sameTy?`/`sameTyExt?`/`weaken?`, `∋:=?`, `wfTy?`, `convTy?`, `infer`, `check⊢`, and the forcing family `tc`/`tk`/`tu`/`tf`/`tr` with the inferring `sq!`, `mw!`, `ty!`.  Every result is a `Maybe` of the ORDINARY derivation, so there is no soundness theorem to owe |
 | `Eval.agda` | the evaluator: `step`, leftmost-outermost, RETURNS the derivation it found, so soundness is its type; `eval` iterates it with fuel and CHECKS every contractum at the run's type; `Trace` with `illtyped` as the one way a type is lost, `Checked`, `traceEnd`/`traceTerms`/`traceLen`/`evalTerms`, `trace-sound`, and `Reaches k n ⊢M V`, which states endpoint, step count, "no state lost the type" and value in ONE equation |
 | `Progress.agda` | the statement `Progress`, stated premise-free, and `progress`, a one-line wrapper around `proof.Progress.Impl.progress`; unconditional since 2026-09-21 |
 | `Preservation.agda` | `Preservation`, `PreservationWf` and `Preservation*` stated in full and proved by instantiating `proof.Preserve.Impl` at `RepWeaken.cross-Λ-⊢`, `RepWeaken.shift-⊢`, `PeelDual.preserve-Peel` and `MoveScope.preserve-Merge`; the charter explains why `WfCtx Δ` is part of the statement |
 | `TypeSafety.agda` | the public theorem surface: the six theorems above, stated in full in one place rather than re-exported, every right-hand side a delegation |
-| `Examples.agda` | the living regression: **eleven sections** (§1 baseline runs, §2 the vacuous-Λ family, §3 `Nu-⟪Λ⟫` from closed plain source, §4 the reveal mirror, §5 the tower, §6 polymorphic payloads, §7 functions that cross, §8 the cancel shift witness, §9 hand-built boundaries at a non-empty ambient, §10 what substitution does at a crossing, §11 refutations and non-vacuity) and **23 `Reaches` runs**.  All twelve reduction rules fire in §§1–8; §9a and §9b are the only two runs pinned state by state, by `evalTerms` |
+| `Examples.agda` | the living regression: **eleven sections** (§1 baseline runs, §2 the vacuous-Λ family, §3 `Nu-⟪Λ⟫` from closed plain source, §4 the reveal mirror, §5 the tower, §6 polymorphic payloads, §7 functions that cross, §8 the cancel shift witness, §9 hand-built boundaries at a non-empty ambient, §10 what substitution does at a crossing, §11 refutations and non-vacuity) and **23 `Reaches` runs**.  All ten reduction rules fire in §§1–8; §9a and §9b are the only two runs pinned state by state, by `evalTerms` |
 | `Source.agda` | the SOURCE language: plain System F with the standard `L [ A ]`, typing `n ∣ Γ ⊢ˢ M ⦂ A` over a count of type variables, the value restriction on `Λ`, and the derivation-building checker `inferˢ` |
 | `Compile.agda` | `compile`, on source typing derivations: structural except `⟦L [A]⟧ = ν A · ⟦L⟧ ⟨ reveal 0 C ⟩`; `compile-value` |
 | `CompileTyping.agda` | the elaboration theorems `compile-⊢` (with `CtxWf Δ Γ`), `compile-closed`, `compile-safe`, thin wrappers over `proof/Compile.agda` |
@@ -422,7 +422,7 @@ keyed by module and definition in source order.
 | `Types.agda` | the bottom of the hierarchy: `substᵗ-cong`, `extsᵗ-renᵗ`, `substᵗ-renᵗ`.  It imports `strong-rep-nu.Types` and the standard library and nothing else |
 | `TypeSubst.agda` | the algebraic theory of type substitution — `_⨟ᵗ_`, the congruences, the fusion laws, `sub-sub`, `substitution`, `exts-sub-cons` — a deliberate mirror of `SystemF/agda/extrinsic/TypeSubst.agda`.  Its only client here is `proof.Preserve` |
 | `Ctx.agda` | every fact about the two universes: the determinacy suite `det` consumes (`∋ˡ-det`, `∋ʳ-det`, `same-rep-unique`, `sameTy-src-unique`, `∋:=-det`, `unique-lookup`), the name-map half of representation renaming, the insert/delete relations, and `RepWk`'s instances `repwk-abst₀`/`repwk-cons₀`/`repwk-abst` with `wfctx-ren` and `∋:=-ren` |
-| `Preserve.agda` | the preservation induction: `⊢ᵗ-of` (type well-formedness recovered from typing), the minted-conversion typings `⊢reveal`/`⊢conceal`, the `Nu` cases, the three drops, `preserve-Beta`, the crossing-case statements `PeelCase` and `MergeCase`, and `module Impl`, which assembles them |
+| `Preserve.agda` | the preservation induction: `⊢ᵗ-of` (type well-formedness recovered from typing), the minted-conversion typings `⊢reveal`/`⊢conceal`, the `Nu` cases, `preserve-Drop`, `preserve-Beta`, the crossing-case statements `PeelCase` and `MergeCase`, and `module Impl`, which assembles them |
 | `Progress.agda` | the progress induction, `module Impl`: the ordinary cases over `proof.Canonical`, and the boundary cases constructing the relational readings and weakenings the rules carry; a boundary over a boundary value is ALWAYS a `Merge` redex (`merge-redex`) |
 | `Canonical.agda` | canonical forms — `simple-¬var`, `canon-simple-∀`, `canon-base`, `canon-ℕ`, `canon-⇒`, `canon-∀` — all driven by the observation that an INERT tail's target type determines the head constructor, so no inert tail has a base target and, with one boundary per value, the interior of a ∀-value's boundary is a `Λ` |
 | `TermSubst.agda` | the proof half of the term renaming/substitution API, in the section numbers its material had at top level: the derived `id²`/`renᶠ`/`renᴹ`/`wkN`/`wkᴹ`/`⇑ᴹ`; values under renaming (`inert-renᶜ`, `value-renᴹ²`, `value-renᴹᴿ`, `value-renⁿ`, `value-substᵐ`); the ordinary-identity agreement `renᴹ²-ord-id` with its `-pointwise-id` helpers; TERM-VARIABLE renaming `extⁿ`/`renⁿ`/`shiftᵐ` with `⊢renⁿ`, `renⁿ-id`, `⊢weakenⁿ`; the `⤊` transports; and the typed images `_∣_⊢ⁱ_⦂_` with `⊢imgTm`, `shiftᴵ-⊢`, `extᴵ-⊢` |
@@ -477,7 +477,7 @@ labelled by the rule that fired (`showTrace n tr` does the same for a
       --[Merge]-->
     Ξ = [α := ℕ]
     (7 ⟪ id ℕ ⟫)
-      --[Drop$]-->
+      --[Drop]-->
     Ξ = [α := ℕ]
     7
         -- VALUE
@@ -551,7 +551,7 @@ Three PDFs sit at the top level for the digests above:
 * **`notes/notes.md`** — the calculus itself, in named-variable
   notation: syntax, the two context universes, the boundary scope readings,
   conversion and term typing with the three normal-form sorts and
-  composition, all twelve reduction rules, a worked `Merge` run, the metatheory with its premises argued, the six
+  composition, all ten reduction rules, a worked `Merge` run, the metatheory with its premises argued, the six
   weakening repairs, and a notes ↔ Agda correspondence table that
   names the gap at every rule.
 * **`notes/PLAN.md`** — how it got here: what was ported, what was

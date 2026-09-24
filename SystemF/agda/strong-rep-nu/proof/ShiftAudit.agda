@@ -258,7 +258,7 @@ Move-inner-frame Θ₁ Θ₂ = merged-interior
 -- U is not renamed at all — it retypes exactly where it was.
 
 ------------------------------------------------------------------------
--- §7  THE DROP RULES — the frame change in the OTHER direction, and why
+-- §7  THE DROP RULE — the frame change in the OTHER direction, and why
 --     it is vacuous
 ------------------------------------------------------------------------
 
@@ -274,26 +274,22 @@ Drop-true-vacuous Δ Γ = ⊢true
 Drop-false-vacuous : (Δ : Ctxᵗ) (Γ : Ctx) → Δ ∣ Γ ⊢ `false ⦂ `𝔹
 Drop-false-vacuous Δ Γ = ⊢false
 
--- AND NO OTHER TERM CAN TAKE THE STEP: the rule's left-hand side is
--- the LITERAL ITSELF, and a closed value at a base type IS a literal.
-Drop$-only-numerals : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ
-  → (∀ {n Θ A} → M ≡ ($ n) ⟪ Θ , ⌞ id A ⌟ ⟫ → M′ ≡ $ n)
-Drop$-only-numerals (Nu-Λ v p)              ()
-Drop$-only-numerals (Beta w)                ()
-Drop$-only-numerals (Peel v w rc ri rd sc)  ()
-Drop$-only-numerals (Nu-⟪Λ⟫ v rc ⊢s p)      ()
-Drop$-only-numerals (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) ()
-Drop$-only-numerals (Drop$ b)               refl = refl
-Drop$-only-numerals Drop-true               ()
-Drop$-only-numerals Drop-false              ()
-Drop$-only-numerals (ξ-·-l st)              ()
-Drop$-only-numerals (ξ-·-r v st)            ()
-Drop$-only-numerals (ξ-ν st)                ()
-Drop$-only-numerals (ξ-⟪⟫ ri st)            refl =
-  ⊥-elim (numeral-¬step st)
-  where
-  numeral-¬step : ∀ {Δ n M′ δ} → Δ ⊢ ($ n) -→ M′ ∣ δ → ⊥
-  numeral-¬step ()
+-- AND THE STEP RETURNS EXACTLY THE SIMPLE VALUE: the rule's left-hand
+-- side is the simple value itself, and a closed simple value at a base
+-- type IS a literal (`preserve-Drop`).
+Drop-only-simple : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ
+  → (∀ {U Θ A} → Simple U → M ≡ U ⟪ Θ , ⌞ id A ⌟ ⟫ → M′ ≡ U)
+Drop-only-simple (Nu-Λ v p)              u ()
+Drop-only-simple (Beta w)                u ()
+Drop-only-simple (Peel v w rc ri rd sc)  u ()
+Drop-only-simple (Nu-⟪Λ⟫ v rc ⊢s p)      u ()
+Drop-only-simple (Merge u′ it ri r₁ r₂ r⋉ sc₁ sc₂) () refl
+Drop-only-simple (Drop u′ b)             u refl = refl
+Drop-only-simple (ξ-·-l st)              u ()
+Drop-only-simple (ξ-·-r v st)            u ()
+Drop-only-simple (ξ-ν st)                u ()
+Drop-only-simple (ξ-⟪⟫ ri st)            u refl =
+  ⊥-elim (value-¬step (V-simple u) st)
 
 ------------------------------------------------------------------------
 -- §8  THE ξ RULES — the sibling shift IS the context move

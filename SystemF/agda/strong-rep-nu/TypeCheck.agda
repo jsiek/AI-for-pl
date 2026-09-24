@@ -31,7 +31,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; subst)
 
 open import strong-rep-nu.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; _[_]ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; _[_]ᵗ; Base; base-ℕ; base-𝔹)
 open import strong-rep-nu.Ctx
 open import strong-rep-nu.Conversion
 open import strong-rep-nu.Boundary

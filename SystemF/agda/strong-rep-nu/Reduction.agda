@@ -1,8 +1,8 @@
 module strong-rep-nu.Reduction where
 
 -- File Charter:
---   * §1 `_⊢_-→_∣_`, the twelve rules — Nu-Λ, Beta, Peel, Nu-⟪Λ⟫,
---     Merge, Drop$, Drop-true, Drop-false and the congruences
+--   * §1 `_⊢_-→_∣_`, the ten rules — Nu-Λ, Beta, Peel, Nu-⟪Λ⟫,
+--     Merge, Drop and the congruences
 --     ξ-·-l, ξ-·-r, ξ-ν, ξ-⟪⟫ (NO ξ-Λ) —
 --     with `Nu-ℕ`, the multi-step `_⊢_-→*_` and `runCtx`.
 --     §2 `value-¬step`.  (The proof of determinism, `det`, is
@@ -26,8 +26,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; cong₂; trans; subst)
 
 open import strong-rep-nu.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ;
-         _[_]ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ; _[_]ᵗ; Base; base-ℕ; base-𝔹)
 open import strong-rep-nu.Ctx
 open import strong-rep-nu.proof.Ctx
 open import strong-rep-nu.Conversion
@@ -105,18 +104,11 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
     → Δ ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫
         -→ U ⟪ Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′ ⟫ ∣ none
 
-  -- an identity boundary at a base type, over a literal
-  Drop$ : ∀ {Δ n Θ A} → Base A
-      ----------------------------------------
-    → Δ ⊢ ($ n) ⟪ Θ , ⌞ id A ⌟ ⟫ -→ $ n ∣ none
-
-  Drop-true : ∀ {Δ Θ}
-      -------------------------------------------
-    → Δ ⊢ `true ⟪ Θ , ⌞ id `𝔹 ⌟ ⟫ -→ `true ∣ none
-
-  Drop-false : ∀ {Δ Θ}
-      ---------------------------------------------
-    → Δ ⊢ `false ⟪ Θ , ⌞ id `𝔹 ⌟ ⟫ -→ `false ∣ none
+  -- an identity boundary at a base type, over a simple value (which
+  -- typing makes a literal: a numeral at ℕ, `true`/`false` at 𝔹)
+  Drop : ∀ {Δ U Θ A} → Simple U → Base A
+      ----------------------------------
+    → Δ ⊢ U ⟪ Θ , ⌞ id A ⌟ ⟫ -→ U ∣ none
 
   -- THE CONGRUENCES pass the store change up and shift the SIBLINGS
   -- by it.  Commentary.md § Reduction.agda / The congruences
@@ -171,6 +163,6 @@ value-¬step (V-simple S-true) ()
 value-¬step (V-simple S-false) ()
 value-¬step (V-simple S-ƛ) ()
 value-¬step (V-simple (S-Λ v)) ()
-value-¬step (V-⟪⟫ u I-idv) (Drop$ ())
+value-¬step (V-⟪⟫ u I-idv) (Drop u′ ())
 value-¬step (V-⟪⟫ () it) (Merge u it′ ri r₁ r₂ r⋉ sc₁ sc₂)
 value-¬step (V-⟪⟫ u it) (ξ-⟪⟫ rel st) = value-¬step (V-simple u) st

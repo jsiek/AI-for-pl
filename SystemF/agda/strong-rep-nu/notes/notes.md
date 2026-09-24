@@ -605,7 +605,7 @@ A value carries AT MOST ONE boundary:
 Value (U ⟪ Θ , tail t ⟫)`.)  A simple value has a type that is not a
 variable, so a value boundary's conversion has a non-variable source: it
 has no unseal chain, and it is a tail.  The one active tail is `id` at a
-base type, which the drops remove.  A second boundary on a value is not
+base type, which `Drop` removes.  A second boundary on a value is not
 a value but a `Merge` redex, and a boundary with an active conversion is
 not a value.
 
@@ -668,19 +668,11 @@ in the appendix at the end of this file, keyed by rule.
                     -→ U ⟪ Θ₂ ++ Θ₁ , Δ⋉ᶜ ⊢ t₁ ⨟ c₂ ⟫ ∣ none
                 where Δ ⊢ᶜ Θ₂ ++ Θ₁ ⇒ Δ⋉ᶜ
 
-    (Drop$)     Base A
+    (Drop)      U is simple    Base A
                 --------------------------------------
-                Δ ⊢ n ⟪ Θ , id A ⟫ -→ n ∣ none
+                Δ ⊢ U ⟪ Θ , id A ⟫ -→ U ∣ none
 
-    (Drop-true) --------------------------------------------
-                Δ ⊢ true ⟪ Θ , id 𝔹 ⟫ -→ true ∣ none
-
-    (Drop-false)
-                ----------------------------------------------
-                Δ ⊢ false ⟪ Θ , id 𝔹 ⟫ -→ false ∣ none
-
-There are eight computational rules and four congruences, twelve in
-all.  `Merge` fires whatever the outer conversion `c₂` is: at an active
+There are six computational rules and four congruences, ten in all.  `Merge` fires whatever the outer conversion `c₂` is: at an active
 one it does what the retired `CancelR` (`seal X` then `unseal X`) and
 `IdPush` (`id X` then `unseal X`) did, and at an inert one it merges a
 pair that used to stack.  If the composite is `id` at a base type, a
@@ -746,7 +738,7 @@ as rendered:
     ((7 ⟪ ↥Y , ↥X , ↓Y , ↓X , ↓Z , seal Z ⟫) ⟪ ↥Z , unseal Z ⟫)
       --[Merge]-->
     (7 ⟪ ↥Z , ↥Y , ↥X , ↓Y , ↓X , ↓Z , id ℕ ⟫)
-      --[Drop$]-->
+      --[Drop]-->
     7
 
 Every step merges the innermost pair, and each shows one clause of the
@@ -765,7 +757,7 @@ composition:
   4. `seal Z ⨟ unseal Z = mkId ℕ = id ℕ`: the identity at `Z`'s
      representation, which composition reads off the merged conversion
      context (`repOf`).
-  5. `Drop$` removes the identity at a base type.
+  5. `Drop` removes the identity at a base type.
 
 The trace makes the two universes visible: the store cell `β := γ` holds
 an open representation, while `↥Y` gives `β` a type variable.  Every
@@ -1037,9 +1029,7 @@ The rule names below are the Agda constructor names.
 | `Peel` | `Peel` | `Simple V` and `Value W` are retained; `s′`/`SameConv` becomes one `c` plus scope in `Δᶜ,Δᵈ`; `W` moves verbatim.  `none` |
 | `Nu-⟪Λ⟫` | `Nu-⟪Λ⟫` | the middle scope is `liftᴮ Θ`, whose shift is invisible with names; `s` and `c` move verbatim; the premises `Δ ⊢ᶜ Θ ⇒ Δᶜ` and `underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ` are recoverable from typing.  `new R` |
 | `Merge` | `Merge` | `Simple U` and `InertTail t₁` are retained; the carried `t₁′` and `c₂′` with their two `SameConv`s collapse to `t₁` and `c₂` read at the merged conversion context `Δ⋉ᶜ`; the readings `Δ ⊢ⁱ Θ₂ ⇒ Δᵢ`, `Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ` and `Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ` are retained in Agda.  `none` |
-| `Drop$` | `Drop$` | none; the `Base A` premise is retained.  `none` |
-| `Drop-true` | `Drop-true` | none.  `none` |
-| `Drop-false` | `Drop-false` | none.  `none` |
+| `Drop` | `Drop` | none; the `Simple U` and `Base A` premises are retained (typing makes `U` a literal).  `none` |
 | `ξ-·-l` | `ξ-·-l` | the sibling shift `↑ᴹ[δ]` is the named identity |
 | `ξ-·-r` | `ξ-·-r` | same; `Value V` is retained |
 | `ξ-ν` | `ξ-ν` | none; `A` and `c` are ordinary and never shift |
@@ -1193,7 +1183,7 @@ two are.  `Examples.agda` §1a, the fourth and fifth states
     (7 ⟪ ↥X , ↓X , id ℕ ⟫)
 
 Here the composite is `seal X ⨟ unseal X = mkId ℕ`, the identity at
-`X`'s representation, and `Drop$` fires next.  This is the step the
+`X`'s representation, and `Drop` fires next.  This is the step the
 retired `CancelR` made; the retired `IdPush` (`id X` under `unseal Y`)
 is the composite `id X ⨟ unseal Y = unseal Y`.  The pairs neither rule
 handled, an inert tail under an inert conversion, used to STACK on a

@@ -29,7 +29,7 @@ open import Data.Product
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; trans; cong; subst)
 
-open import strong-rep-nu.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
+open import strong-rep-nu.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Base; base-ℕ; base-𝔹)
 open import strong-rep-nu.Ctx
 open import strong-rep-nu.Conversion
 open import strong-rep-nu.Boundary
@@ -193,12 +193,6 @@ nuRedex Δ A c _ = nothing
 -- else is either a congruence or stuck, which is the caller's business.
 bdyRedex : (Δ : Ctxᵗ) (M : Term) (Θ : Boundary) (c : Conv)
   → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ M ⟪ Θ , c ⟫ -→ N ∣ δ))
-bdyRedex Δ ($ n) Θ (tail (mid (id A))) with base? A
-bdyRedex Δ ($ n) Θ (tail (mid (id A))) | just b  =
-  just (_ , none , Drop$ b)
-bdyRedex Δ ($ n) Θ (tail (mid (id A))) | nothing = nothing
-bdyRedex Δ `true  Θ (tail (mid (id `𝔹))) = just (_ , none , Drop-true)
-bdyRedex Δ `false Θ (tail (mid (id `𝔹))) = just (_ , none , Drop-false)
 bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ with simple? U | inertTail? t₁
 bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | just it
   with mergePremises? Δ Θ₁ Θ t₁ c₂
@@ -209,6 +203,11 @@ bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | just it | nothing =
   nothing
 bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | nothing = nothing
 bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | nothing | it = nothing
+bdyRedex Δ U Θ (tail (mid (id A))) with simple? U | base? A
+bdyRedex Δ U Θ (tail (mid (id A))) | just u  | just b  =
+  just (_ , none , Drop u b)
+bdyRedex Δ U Θ (tail (mid (id A))) | just u  | nothing = nothing
+bdyRedex Δ U Θ (tail (mid (id A))) | nothing | b       = nothing
 bdyRedex Δ M Θ c = nothing
 
 ------------------------------------------------------------------------

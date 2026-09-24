@@ -328,7 +328,8 @@ Drop$-only-numerals (ξ-⟪⟫ ri st)            refl =
 -- §9  DEAD SHIFT MACHINERY
 ------------------------------------------------------------------------
 
--- `shiftᵐ` and `canon-shiftᵐ` have NO CONSUMERS; `renⁿ` itself is LIVE.
+-- `shiftᵐ` has NO CONSUMERS (`canon-shiftᵐ` went with
+-- proof/Canonicity.agda); `renⁿ` itself is LIVE.
 -- Recorded, not deleted: an audit proposes, it does not land.
 -- Commentary.md § proof/ShiftAudit.agda / §9
 shiftᵐ-is-renⁿ : (M : Term) → shiftᵐ M ≡ renⁿ suc M

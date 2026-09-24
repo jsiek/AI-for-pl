@@ -1,8 +1,15 @@
 # Merging boundaries — design sketch (2026-09-24)
 
-Status: PROPOSAL.  Nothing here is implemented.  Data comes from
+Status: IMPLEMENTED at 5d98bbe2 (definitional layer 0e662d1b, ports
+and proofs 5d98bbe2), on the "Proposed statements (revised 2026-09-24)" section
+below with the corrections marked there.  The sections before
+"Decisions" are the proposal as written: where they say "today" they
+mean the calculus BEFORE `Merge` (with `CancelR`, `IdPush` and
+`Nu-⟪⟫`), and where they disagree with the revised statements, the
+revised statements and the Agda win.  Data comes from
 `notes/StackCensus.agda`, which renders with
-`scripts/render_term.sh 'census' 'open import strong-rep-nu.notes.StackCensus'`.
+`scripts/render_term.sh 'census' 'open import strong-rep-nu.notes.StackCensus'`
+(since `Merge`, every pair that census finds is a `Merge` redex).
 
 ## The goal
 
@@ -72,7 +79,10 @@ the SOURCE and TARGET types.
   neither.  That is exactly the gap the chains below fill.  Two things
   carry over: (i) endpoint-indexed syntax, which makes "the middle type
   decides the clause" a matter of the indices; (ii) the pivot, which
-  generalises to a pivot SET for question 4.
+  generalises to a pivot SET for question 4.  (Neither carried over in
+  the end: endpoint indexing was withdrawn to keep representation
+  variables, and question 4 was answered by retiring Canonicity; see
+  "Decisions".)
 
 strong-rep-nu has no `★`, so the only sequencing is by seal and unseal.
 The types force their positions:
@@ -176,27 +186,39 @@ goes with it, and after that every reveal is written by the compiler.
 ## On an example: §1b, `K`
 
 The first three steps (`Nu-Λ`, `Peel`, `Beta`) are unchanged.  After
-`Nu-⟪Λ⟫` the state is (rendered from today's run):
+`Nu-⟪Λ⟫` the state is:
 
     Ξ = [α := β , β := 𝔹]
     ((((λx:X. true) ⟪ ↓Y , (id X ↦ id 𝔹) ⟫) ⟪ ↥X , (seal X ↦ id 𝔹) ⟫)
          ⟪ ↥Y , (seal Y ↦ id 𝔹) ⟫) · false
 
-Today two `Peel`s take the argument through the three layers one at a
-time, and three `Drop-true`s peel the result.  With `Merge` (HAND-DERIVED;
-frame spellings not checked):
+Before `Merge`, two `Peel`s took the argument through the three layers
+one at a time, and three `Drop-true`s peeled the result.  With `Merge`
+the rest of the run is (RENDERED at 5d98bbe2 by
+`scripts/render_term.sh 'showRun 0 9 K₀-⊢' 'open import strong-rep-nu.Examples'`,
+continuing from the state above; each line is one state, the store
+`Ξ = [α := β , β := 𝔹]` throughout):
 
-    --[Merge]-->   (id X ↦ id 𝔹) ⨟ (seal X ↦ id 𝔹) = seal X ↦ id 𝔹
-    ((λx:X. true) ⟪ ↓Y , ↥X , (seal X ↦ id 𝔹) ⟫) ⟪ ↥Y , (seal Y ↦ id 𝔹) ⟫ · false
-    --[Merge]-->   the domain composes to the tail id 𝔹 ; seal Y ; seal X
-    (λx:X. true) ⟪ ↓Y , ↥X , ↥Y , ((id 𝔹 ; seal Y ; seal X) ↦ id 𝔹) ⟫ · false
-    --[Peel]-->
-    ((λx:X. true) · (false ⟪ dual Θ , id 𝔹 ; seal Y ; seal X ⟫)) ⟪ Θ , id 𝔹 ⟫
-    --[Beta]-->  --[Drop-true]-->
+    ((((λx:X. true) ⟪ ↓Y , (id X ↦ id 𝔹) ⟫) ⟪ ↥X , (seal X ↦ id 𝔹) ⟫) ⟪ ↥Y , (seal Y ↦ id 𝔹) ⟫) · false
+      --[Merge]-->
+    (((λx:X. true) ⟪ ↥X , ↓Y , (seal X ↦ id 𝔹) ⟫) ⟪ ↥Y , (seal Y ↦ id 𝔹) ⟫) · false
+      --[Merge]-->
+    ((λx:X. true) ⟪ ↥Y , ↥X , ↓Y , ((seal Y ; seal X) ↦ id 𝔹) ⟫) · false
+      --[Peel]-->
+    ((λx:X. true) · (false ⟪ ↥Y , ↓X , ↓Y , seal Y ; seal X ⟫)) ⟪ ↥Y , ↥X , ↓Y , id 𝔹 ⟫
+      --[Beta]-->
+    true ⟪ ↥Y , ↥X , ↓Y , id 𝔹 ⟫
+      --[Drop-true]-->
     true
 
-That is 9 steps against today's 11, and no state carries more than one
-boundary on a value.
+That is 9 steps against the 11 before `Merge`, and no state carries
+more than one boundary on a value.  The first `Merge` composes
+`(id X ↦ id 𝔹) ⨟ (seal X ↦ id 𝔹)` to `seal X ↦ id 𝔹`; the second
+composes the domains `seal Y ⨟ seal X` (contravariantly) to the seal
+chain `seal Y ; seal X`, whose identity middle is implicit.  (The
+proposal's hand derivation wrote that chain as `id 𝔹 ; seal Y ; seal X`
+and the argument's scope as `dual Θ`; the rendered run shows the
+implemented, tighter spellings above.)
 
 ## Questions for Jeremy
 
@@ -234,6 +256,11 @@ boundary on a value.
   ("Endpoint-indexed" was withdrawn once representation variables were
   kept; see below.)
 - `Nu-⟪Λ⟫` keeps its stacked (N1) contractum, and `Merge` fires next.
+- Composition takes the conversion context (option (c)), written
+  `Δ ⊢ c₁ ⨟ c₂` with the context first: `seal X` meeting `unseal X`
+  writes `mkId` of `X`'s representation, which only the context knows
+  (`repOf Δ X`, through `Lookup.agda`'s `∋:=?`), and composition under
+  `∀` reads at `underΛ Δ`.
 - `proof/Canonicity.agda` is retired when `Merge` lands: the single-binder
   invariant is exactly what merging gives up.
 - The work continues on branch `strong-rep-nu` (PR #209).
@@ -302,6 +329,12 @@ that `(id ℕ ↦ id ℕ) ; seal Y` is not a second spelling of `seal Y`:
 
 (`IsIdᵗ (mid g) = IsIdᵐ g`, and `IsIdᵗ t = ⊥` for the two seal forms.)
 
+As implemented the three judgements are `_⊢ᵐ_∶_⇝_`, `_⊢ᵀ_∶_⇝_` and
+`_⊢_∶_⇝_`, with constructors `conv-id`, `conv-idv`, `conv-fun`,
+`conv-all`; `conv-mid`, `conv-seal`, `conv-seal-seq`; `conv-tail`,
+`conv-unseal`, `conv-unseal-seq`.  The tail-sort identity is spelled
+`IsIdᵀ`.
+
 `NoCancel X c` says that `c` does not start by resealing `X`.  With the
 identity middle now implicit, that means `c`'s seal chain does not begin
 with a bare `seal X`:
@@ -316,10 +349,17 @@ with a bare `seal X`:
     NoCancel X (unseal Y ⨾ c)        = ⊤
 
 **Composition** is an untyped function on the syntax.  Its correctness
-is a lemma:
+is a lemma.  As IMPLEMENTED (`Conversion.agda` §4b, `proof/Compose.agda`)
+the function takes the context first and the lemma needs unique names:
 
-    _⨟_ : Conv → Conv → Conv
-    ⊢⨟  : Δ ⊢ c₁ ∶ A ⇝ B → Δ ⊢ c₂ ∶ B ⇝ C → Δ ⊢ c₁ ⨟ c₂ ∶ A ⇝ C
+    _⊢_⨟_ : Ctxᵗ → Conv → Conv → Conv
+    ⊢⨟    : Unique (names Δ)
+          → Δ ⊢ c₁ ∶ A ⇝ B → Δ ⊢ c₂ ∶ B ⇝ C → Δ ⊢ (Δ ⊢ c₁ ⨟ c₂) ∶ A ⇝ C
+
+(The proposal wrote `_⨟_ : Conv → Conv → Conv` and `⊢⨟` without the
+`Unique` premise.  The context is needed where `seal X` meets
+`unseal X`, whose result is `mkId (repOf Δ X)`; `Unique` is what
+`∋:=-det` needs at that pair and at `repOf`.)
 
 Each clause is justified by typing.  Pairs that typing rules out, such
 as `seal X` followed by `unseal Y` with `X ≢ Y`, get an arbitrary result
@@ -336,7 +376,9 @@ Term` is unchanged.
       V-simple : Simple U → Value U
       V-⟪⟫     : Simple U → InertTail t → Value (U ⟪ Θ , tail t ⟫)
 
-`InertTail t` holds unless `t = mid (id A)` with `A` a base type.
+`InertTail t` has the constructors `I-idv` (`mid (id (` X))`), `I-fun`,
+`I-all`, `I-seal` and `I-seal-seq`: every typed tail except `mid (id A)`
+with `A` a base type.
 
 **Merge** (`Reduction.agda`) replaces `CancelR` and `IdPush`:
 
@@ -346,7 +388,10 @@ Term` is unchanged.
       → SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ (tail t₁)
       → SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂
       → Δ ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫
-          -→ U ⟪ Θ₁ ++ Θ₂ , tail t₁′ ⨟ c₂′ ⟫ ∣ none
+          -→ U ⟪ Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′ ⟫ ∣ none
+
+(As implemented; the composition is taken at the merged conversion
+context `Δ⋉ᶜ`.)
 
 That `t₁′`'s target and `c₂′`'s source agree at `Δ⋉ᶜ` is a lemma: they
 re-spell one representation at one context, and the names there are

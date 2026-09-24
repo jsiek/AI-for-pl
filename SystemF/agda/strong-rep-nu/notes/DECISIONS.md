@@ -5071,3 +5071,113 @@ the contractum), not machine-checked as a refutation.
 `CanonTyPeelR`/`¬CanonTyPeelR` (`proof/Canonicity.agda` §8).
 `¬canonC-two-binders` (§10) now carries the two-binder refutation
 directly.
+
+## 2026-09-24 — merging boundaries: one boundary per value, and `Merge` (RULED by Jeremy; IMPLEMENTED 0e662d1b, 5d98bbe2)
+
+Proposal, census and the ruled statements: `notes/MergeSketch.md`
+(status IMPLEMENTED).  The census (`notes/StackCensus.agda`) found every
+place a value boundary sits directly under another boundary, over every
+state of the 19 compiled runs; `CancelR` and `IdPush` handled only the
+pairs whose outer conversion is an unseal, and every other pair
+stacked.
+
+**Decisions (Jeremy, 2026-09-24).**
+
+* A SEPARATE `Merge` step (M1), not merging on construction (M2), so
+  that `Peel`, `Beta` and `Nu-⟪Λ⟫` carry no merge premises.
+* Conversions are normal forms in THREE SYNTACTIC SORTS with
+  `NoCancel`, NOT endpoint-indexed.  Endpoint indexing was withdrawn
+  once representation variables were kept: `seal X`'s source is `X`'s
+  representation spelled in `Δ`, which no syntax index can state while
+  seals and unseals carry only the ordinary NAME (rep-free, read through
+  the lookup square).  Consequently the bare `seal X` / `unseal X`
+  stay, standing for an identity middle, and a chain extends only a
+  non-identity.
+* Composition TAKES THE CONTEXT (option (c)), written `Δ ⊢ c₁ ⨟ c₂`
+  with the context first: `seal X` meeting `unseal X` writes
+  `mkId (repOf Δ X)`, and under `∀` the bodies compose at `underΛ Δ`.
+* `Nu-⟪Λ⟫` keeps its STACKED contractum; `Merge` fuses it on the next
+  step.
+* `proof/Canonicity.agda` is RETIRED: its single-binder invariant is
+  exactly what merging gives up (a chain `seal Y ⨾seal X` names two
+  binders); the pivot-set generalisation was declined.
+* The work stays on branch `strong-rep-nu` (PR #209).
+
+**The definitions.**
+
+```
+  Mid   g ::= id A | s ↦ c | `∀ s
+  Tail  t ::= mid g | seal X | t ⨾seal X        seal chain, associates LEFT
+  Conv  c ::= tail t | unseal X | unseal X ⨾ c  unseal chain, associates RIGHT
+
+  _⊢ᵐ_∶_⇝_   conv-id  conv-idv  conv-fun  conv-all
+  _⊢ᵀ_∶_⇝_   conv-mid  conv-seal  conv-seal-seq  (¬ IsIdᵀ t)
+  _⊢_∶_⇝_    conv-tail  conv-unseal  conv-unseal-seq  (¬ IsIdᶜ c, NoCancel X c)
+
+  _⊢_⨟_ : Ctxᵗ → Conv → Conv → Conv                  Conversion.agda §4b
+  ⊢⨟    : Unique (names Δ) → Δ ⊢ c₁ ∶ A ⇝ B → Δ ⊢ c₂ ∶ B ⇝ C
+        → Δ ⊢ (Δ ⊢ c₁ ⨟ c₂) ∶ A ⇝ C                   proof/Compose.agda
+
+  Simple   S-$  S-true  S-false  S-ƛ  S-Λ
+  Value    V-simple : Simple U → Value U
+           V-⟪⟫     : Simple U → InertTail t → Value (U ⟪ Θ , tail t ⟫)
+
+  Merge : Simple U → InertTail t₁
+    → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ → Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ
+    → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
+    → SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ (tail t₁)
+    → SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂
+    → Δ ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫
+        -→ U ⟪ Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′ ⟫ ∣ none
+```
+
+The lookup functions moved to a new `Lookup.agda`, below
+`Conversion.agda`, because composition reads `∋:=?`; `TypeCheck.agda`
+re-exports them.
+
+**Rule changes.**  The rule set is twelve: `Nu-Λ`, `Beta`, `Peel`,
+`Nu-⟪Λ⟫`, `Merge`, `Drop$`, `Drop-true`, `Drop-false`, `ξ-·-l`,
+`ξ-·-r`, `ξ-ν`, `ξ-⟪⟫`.
+
+* `Merge` is NEW and SUBSUMES `CancelR` (`seal X` then `unseal X`) and
+  `IdPush` (`id X` then `unseal X`), both DELETED.  Its carried
+  spellings `t₁′`/`c₂′` replace `A′`/`X′`, and the inner one is read
+  from Θ₁'s own conversion context, the lesson of the 2026-09-19
+  `CancelR` repair.
+* `Nu-⟪⟫` is DELETED as unreachable: the interior of a `∀`-value's
+  single boundary is a `Λ` (`canon-∀`), so only `Nu-⟪Λ⟫` fires.  With
+  it went the one reveal minted at run time; every reveal is now
+  written by the compiler.  Its carried `Bᵢ′` and `s″` and the tower
+  descent (`Nu-⟪⟫-height`) went too.
+* `Peel` requires `Simple V` (the crossed value's one boundary is the
+  one it peels) and matches `⌞ s ↦ t ⌟`; `Nu-⟪Λ⟫` matches `⌞ `∀ s ⌟`;
+  the drops match `⌞ id A ⌟`.
+
+**Proofs.**  `preserve-Merge : MergeCase` (`proof/MoveScope.agda`)
+re-spells both typed conversions onto `Δ⋉ᶜ` by `respell-⊢` and composes
+them by `⊢⨟`; the middle type agrees by `same-target-unique`.
+`merge-redex` (`proof/Progress.agda`) builds the premises from
+`merged-conversion-exists`.  `det` handles `Merge` by
+`sameConv-src-unique`; `respell-⊢` gained `Unique (names Γ)` for
+`NoCancel`.  `Merge-height` (`proof/ShiftAudit.agda` §4): `Merge`
+lowers the tower measure, which is at most one on a value.  The
+top-level theorem statements are unchanged.
+
+**Deleted files.**  `proof/Canonicity.agda` (retired, above),
+`proof/AddUnbind0.agda` (used only by `Nu-⟪⟫`),
+`notes/CancelRShiftWall.agda` (the record of the `CancelR` re-spelling
+wall; dropped from `notes/All.agda`).  New files: `Lookup.agda`,
+`proof/Compose.agda`, `notes/MergeSketch.md`, `notes/StackCensus.agda`
+(gated by `notes/All.agda`).
+
+**Counts.**  K 11→9, G 16→14, H 11→10, E 30→16, V 49→19, I 12→10,
+N 20→15, B 15→13, C 33→19, S 16→15; the others are unchanged.
+Against the pre-`ν` counts, E (19), V (24), N (16) and C (22) are now
+shorter, K (9) is equal, and J, G, H, I and S remain longer.
+
+**Inspiration**, recorded in `notes/MergeSketch.md`: GTLC's three
+normal-form sorts, GTPLC's chain association, GTSF's strict/cross
+categories, and GTSFImp's `Conv↑`/`Conv↓`, the closest relative, which
+does not merge.
+
+**Gate.**  `make check` green at 5d98bbe2.

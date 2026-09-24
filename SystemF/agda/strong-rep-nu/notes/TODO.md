@@ -1,6 +1,4 @@
-* DONE (2026-09-23) Regarding the Change data type, rename lock to unbind. (in agda, the notes, etc.)
+* Replace uses of "respell" with "weaken" (I suppose all the uses of
+  respell are indeed weakenings). In general, the term "spell" is
+  never used in programming language theory, so we should avoid it too.
 
-* DONE (2026-09-23) Regarding the Change data type, rename unlock to bind. (in agda, the notes, etc.)
-
-  The full mapping, what kept its old name and why, and the one "bind"
-  collision to know about are in notes/DECISIONS.md, 2026-09-23.

@@ -3,11 +3,108 @@
 ## strong-rep-nu (2026-09-24)
 
 A VARIANT of `SystemF/agda/strong-rep-store/`, forked verbatim at
-`main` 694fe461 (after PR #208), to experiment with a GTPLC-style
-`ν A · L ⟨ c ⟩` term carrying a Conversion: System F type application
-elaborates to `ν`, so `TyBeta`'s `reveal` moves to compile time and
-`ν` becomes the allocation site.  Proposal: `notes/NuSketch.md`.
-Until it lands, everything below describes strong-rep-store.
+`main` 694fe461 (after PR #208).  One experiment has landed, and the
+difference from strong-rep-store is:
+
+* **type application is gone from the run-time language; `ν` replaces
+  it.**  The run-time term `ν A · L ⟨ c ⟩` (`Terms.agda`, borrowed in
+  shape from GTPLC's `ν A · L •⟨ c ⟩`) evaluates `L` to a `∀`-value,
+  allocates a fresh store cell for `A`'s representation, instantiates
+  `L` there, and converts the result with the Conversion `c`.  Its
+  typing rule `⊢ν` accepts ANY `c` whose types line up at the
+  conversion context of `TyBetaBoundary` over the allocation.  The
+  compiler writes `c = reveal 0 C` for an operator `L : ∀ C`, so the
+  reveal that `TyBeta` used to mint at run time is now written at
+  compile time, and the old `·[ B , A ]` annotation `B` is gone.
+  Proposal and Jeremy's four answers: `notes/NuSketch.md`;
+  `notes/DECISIONS.md`, 2026-09-24.
+
+What changed with it:
+
+| strong-rep-store | strong-rep-nu | contractum |
+|---|---|---|
+| `TyBeta` | `Nu-Λ` | `N ⟪ inst [] , c ⟫`, the conversion `ν` carries |
+| `TyPeelR-Λ` | `Nu-⟪Λ⟫` | `(N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫`, STACKED |
+| `TyPeelR-⟪⟫` | `Nu-⟪⟫` | pushes `ν (` 0) · … ⟨ reveal 0 (⇑Bᵢ′) ⟩` in, under the same two layers |
+| `ξ-·[]` | `ξ-ν` | — |
+
+* **Stack, don't fuse.**  `TyPeelR-Λ` wrote one layer,
+  `N ⟪ inst Θ , instReveal 0 s ⟫`, which fused the crossed conversion
+  `s` with the reveal.  `Nu-⟪Λ⟫` moves `s` VERBATIM into a middle layer
+  over `liftᴮ Θ` (Θ shifted one step in both universes) and puts `ν`'s
+  own `c` outside it on `inst []`.  `Boundary.agda` gains `liftᴮ`, with
+  `inst Θ = liftᴮ Θ ++ [bind 0 0]`, so read inside out the two stacked
+  scopes are the old fused `inst Θ` (`Nu-⟪Λ⟫-stacks-to-inst`,
+  `proof/ShiftAudit.agda` §3).  No rule computes a conversion from `c`,
+  and no rule mints `instReveal` any more.
+* **One run-time reveal is left.**  `Nu-⟪⟫` pushes a `ν` at the new
+  name inward, and that `ν`'s conversion `reveal 0 (⇑Bᵢ′)` is minted by
+  the rule.  (The old `TyPeelR-⟪⟫` pushed in `·[ ⇑Bᵢ′ , 0 ]`, and the
+  next `TyBeta` turned it into the same reveal.)  When the pushed `ν`
+  fires it allocates an ALIAS cell, whose payload is the cell the outer
+  `ν` just allocated, as the old rule did.  The two
+  carried spellings `Bᵢ′` and `s″` belong to `Nu-⟪⟫` now.
+* **A source language and a compiler.**  `Source.agda` is plain System
+  F with the standard `L [ A ]`, over a COUNT of type variables, with
+  the same value restriction on `Λ` and a derivation-building checker
+  `inferˢ`.  `Compile.agda` defines `compile` on typing derivations,
+  because `reveal 0 C` needs the operator's type.  `CompileTyping.agda`
+  states `compile-⊢`, `compile-closed` and `compile-safe`; the proofs
+  are in `proof/Compile.agda`.  `compile-⊢` needs `CtxWf Δ Γ` (every
+  type in the term context is well formed), because without it the
+  statement is false for open terms: at `Γ = [∀ (` 5)]` the source term
+  `x [ℕ]` types, but its compiled `ν` needs `Δ ⊢ᵗ B` for a result type
+  that names a variable `Δ` does not have.  `SourceExamples.agda`
+  writes each of the twenty plain-System-F programs of `Examples.agda`
+  as source and proves `compile … ≡ E.X₀` by `refl`.
+* **Consequences.**  `canon-step`/`canon-steps`
+  (`proof/Canonicity.agda`) lost their `CanonTyPeelR` hypothesis,
+  because nothing mints `instReveal` any more.  The refuted statement
+  is kept as a record, `¬CanonTyPeelR`.  The stacked layer costs steps:
+  K 9→11, J 10→12, G 13→16, H 9→11, E 19→30, V 24→49, I 9→12,
+  N 16→20, C 22→33, S 14→16.  Three historical wall records were
+  dropped from `notes/All.agda` because their checked content is exact
+  states of runs through the retired rules:
+  `CancelRReachabilityWitness`, `RawRunProbe` and `AddLock0Wall`.  The
+  files are kept unported, and strong-rep-store holds their checked
+  versions.  `notes/All.agda` now gates seven of the ten wall and probe
+  modules listed below, plus `ColorPreservationProbe`.  `Show.agda`
+  renders `ν` as `(ν X:=A · L ⟨ c ⟩)`, naming the cell `ν` will
+  allocate and reading `c` under that name.
+
+A regenerated run, `Examples.agda` §1a (`showRun 0 5 P₀-⊢`).  The
+first step is `Nu-Λ`; from there the run is the one strong-rep-store
+had after `TyBeta`:
+
+    Ξ = []
+    ((ν X:=ℕ · (ΛY. (λx:Y. x)) ⟨ (seal X ↦ unseal X) ⟩) · 7)
+      --[Nu-Λ]-->
+    Ξ = [α := ℕ]
+    (((λx:X. x) ⟪ ↥X , (seal X ↦ unseal X) ⟫) · 7)
+      --[Peel]-->
+    Ξ = [α := ℕ]
+    (((λx:X. x) · (7 ⟪ ↓X , seal X ⟫)) ⟪ ↥X , unseal X ⟫)
+      --[Beta]-->
+    Ξ = [α := ℕ]
+    ((7 ⟪ ↓X , seal X ⟫) ⟪ ↥X , unseal X ⟫)
+      --[CancelR]-->
+    Ξ = [α := ℕ]
+    (7 ⟪ ↥X , ↓X , id ℕ ⟫)
+      --[Drop$]-->
+    Ξ = [α := ℕ]
+    7
+        -- VALUE
+
+Where to read on: `notes/notes.md` is the calculus with the `ν` rules;
+`Commentary.md` § Reduction.agda / Nu-Λ, § Reduction.agda / Nu-⟪Λ⟫,
+Nu-⟪⟫, and § Terms.agda / §4 — ⊢ν; `notes/NuSketch.md` for the design
+alternatives that were considered.
+
+Everything below this line is strong-rep-store's documentation, kept
+as the inherited record.  Wherever it says `TyBeta`, `TyPeelR-Λ`,
+`TyPeelR-⟪⟫`, `ξ-·[]` or `L ·[ B , A ]`, read `Nu-Λ`, `Nu-⟪Λ⟫`,
+`Nu-⟪⟫`, `ξ-ν` and `ν A · L ⟨ c ⟩`.  Where it and this section
+disagree, this section and the file charters win.
 
 ## What this directory is (2026-09-23)
 

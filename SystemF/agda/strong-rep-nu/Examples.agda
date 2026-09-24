@@ -34,8 +34,8 @@ module strong-rep-nu.Examples where
 --        (a chained representation).  The dummy detours make `IdPush`
 --        fire twice for `Q` and `L`, four times for `D`, and six times
 --        for `R`.
---   §3   NU-⟪⟫ FROM CLOSED PLAIN SOURCE — `G`, whose second inner
---        instantiation is a `Nu-⟪⟫` redex after the first allocation;
+--   §3   NU-⟪Λ⟫ FROM CLOSED PLAIN SOURCE — `G`, whose second inner
+--        instantiation is a `Nu-⟪Λ⟫` redex after the first allocation;
 --        both cells live in the ambient representation store.
 --   §4   THE REVEAL MIRROR — `H`, where the `∀` crosses the boundary
 --        OUTWARD as a result rather than inward as an argument.
@@ -292,8 +292,8 @@ U-run = reaches-run U-eval
 -- §2  THE VACUOUS-Λ FAMILY — id-layers from closed, plain source
 ------------------------------------------------------------------------
 
--- WHAT MAKES AN ID-LAYER.  `ν`'s conversion (the compiler's `reveal 0 B`) is
--- `instReveal 0 s` on the body type, and at a body type that is an OUTER
+-- WHAT MAKES AN ID-LAYER.  `ν`'s conversion is the compiler's `reveal 0 B`
+-- of the body type `B`, and at a body type that is an OUTER
 -- ordinary variable that conversion is an IDENTITY at a variable — inert,
 -- and therefore a layer the value carries rather than a step it takes.
 -- The smallest source with that shape is a VACUOUS type abstraction: a
@@ -302,7 +302,7 @@ U-run = reaches-run U-eval
 --   Q = ((ΛY. λx:Y. ((ΛZ. λ_:ℕ. x) [ℕ]) · 0) [ℕ]) · 7
 --
 -- Under Z the outer Y is ordinary slot 1, so `ΛZ. λ_:ℕ. x` has type
--- `∀ (ℕ ⇒ ` 1)`.  The inner `Nu-Λ` mints an identity layer around x's
+-- `∀ (ℕ ⇒ ` 1)`.  The inner `Nu-Λ` installs an identity layer around x's
 -- value, inside the OUTER package's revealing wrapper.  That stack
 -- contains the original `IdPush` redex; the dummy route contributes a
 -- second identity layer, so the new run fires `IdPush` twice.
@@ -423,14 +423,14 @@ R-run : empty ⊢ R₀ -→* $ 7
 R-run = reaches-run R-eval
 
 ------------------------------------------------------------------------
--- §3  NU-⟪⟫ FROM CLOSED PLAIN SOURCE, WITH TWO STORE CELLS
+-- §3  NU-⟪Λ⟫ FROM CLOSED PLAIN SOURCE, WITH TWO STORE CELLS
 ------------------------------------------------------------------------
 
 --   G = ((ΛX. λx:X. ((ΛY. ΛZ. λ_:ℕ. x) [ℕ]) [ℕ] · 0) [ℕ]) · 7
 --
 -- `ΛY. ΛZ. x` has type `∀Y. ∀Z. X`, so the first inner instantiation
--- allocates one store cell and mints an INERT `∀` conversion.  The second
--- instantiation is therefore a `Nu-⟪⟫` redex and allocates a second cell.
+-- allocates one store cell and installs an INERT `∀` conversion.  The second
+-- instantiation is therefore a `Nu-⟪Λ⟫` redex and allocates a second cell.
 -- The crossed boundary itself still contains only changes.
 
 Gpoly Gbody Gfun G₀ : Term
@@ -538,10 +538,10 @@ E-run = reaches-run E-eval
 -- §5a with one more later binder, which is what puts weight on the two
 -- rules §5a barely touches.  The argument now crosses THREE boundaries
 -- before it is instantiated, so the `∀`-value the type application meets
--- is two boundaries deep and `Nu-⟪⟫` fires twice rather than once;
--- the seal tower it leaves is four deep, and unwinding it is quadratic,
--- so `IdPush` still fires repeatedly.  The dummy route changes the exact
--- total from fifteen to twelve, while §5a still fires it six times.
+-- is two boundaries deep and `Nu-⟪⟫` fires twice there (three times in
+-- the whole run, against once in §5a); the seal tower it leaves is four
+-- deep, and unwinding it is quadratic, so `IdPush` fires fourteen times
+-- (§5a: eight).
 ------------------------------------------------------------------------
 
 VBod : Ty
@@ -570,8 +570,8 @@ V-run = reaches-run V-eval
 
 -- Both programs here instantiate at a POLYMORPHIC type, so their stores
 -- receive a representation payload with a `∀` in it.  They did not run when
--- they were written: `Nu-⟪⟫` and `IdPush` each carried a
--- spelling from the conversion context into the interior without
+-- they were written: `TyPeelR-⟪⟫` (today `Nu-⟪⟫`) and `IdPush` each
+-- carried a spelling from the conversion context into the interior without
 -- re-basing it, and the two contexts disagree exactly when an unbind and an
 -- bind have moved the name.  Both rules now carry the interior spelling
 -- as a premise (notes/ForallPayloadWall.agda, notes/DECISIONS.md

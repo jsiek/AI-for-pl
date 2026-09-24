@@ -4968,3 +4968,97 @@ live use of "bind" is the change; where the historical notes mean the
 block they say "bind block".
 
 **Gate.**  `make check` green, cold; `postulate-check: OK`.
+
+## 2026-09-24 — strong-rep-nu FORKED from strong-rep-store: `ν A · L ⟨ c ⟩` replaces type application (RULED by Jeremy)
+
+strong-rep-nu is a verbatim copy of strong-rep-store at `main` 694fe461
+(after PR #208).  The experiment borrows GTPLC's `ν A · L •⟨ c ⟩`
+(`GTPLC/Terms.agda`, `⊢ν`), with a Conversion in place of the coercion:
+evaluate `L` to a `∀`-value, allocate a fresh cell for `A`'s
+representation, instantiate `L` there, and convert with `c`.  The
+proposal, its two examples and the alternatives are
+`notes/NuSketch.md`.  Jeremy answered its four questions:
+
+1. **Elaboration.**  The compiler writes `c = reveal 0 C` for an
+   operator `L : ∀ C`, but `⊢ν` accepts ANY `c` whose types line up, as
+   GTPLC's `⊢ν` does.  `c` is read at the conversion context of
+   `TyBetaBoundary` over `allocate R Δ`, which is where the `Nu` rules
+   put it, and its target is compared to the result type by `≈`, as in
+   `env`.  The generality is used: `Nu-⟪⟫` pushes a `ν` whose conversion
+   is a run-time reveal of the inner body.
+2. **Rule 2: N1, stack, don't fuse.**  `Nu-⟪Λ⟫` moves the crossed
+   conversion `s` verbatim into a middle layer over `liftᴮ Θ` and puts
+   `ν`'s own `c` outside it on `inst []`:
+   ```
+     ν A · ((Λ N) ⟪ Θ , ∀ s ⟫) ⟨ c ⟩  -→  (N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫ ∣ new R
+   ```
+   N2 (a run-time composition `s ⨟ c`) was rejected: it would put back
+   the run-time work the compile-time reveal removed.
+3. **Nested case: (a), re-allocate an alias cell per layer.**  `Nu-⟪⟫`
+   pushes `ν (` 0) · (↑W ⟪ ↑Θ′ ++ [unbind 0 0] , ∀ s″ ⟫) ⟨ reveal 0 (⇑Bᵢ′) ⟩`
+   inward under the same two stacked layers.  When it fires it
+   allocates a cell whose payload is the outer `ν`'s cell.  (b), one
+   allocation per `ν` with a non-allocating instantiation form, was
+   rejected: it needs a non-injective representation renaming that
+   `RepWk`/`⊢renᴿ` do not cover.
+4. **`·[_,_]` leaves the run-time language.**  A SEPARATE source
+   language, plain System F with the standard `L [ A ]`
+   (`Source.agda`), is compiled into it (`Compile.agda`).
+
+As implemented, the rule renaming is:
+
+```
+  TyBeta       ⟶  Nu-Λ       contractum N ⟪ inst [] , c ⟫ (c is ν's own)
+  TyPeelR-Λ    ⟶  Nu-⟪Λ⟫     stacked, as in (2)
+  TyPeelR-⟪⟫   ⟶  Nu-⟪⟫      pushes a ν, as in (3)
+  ξ-·[]        ⟶  ξ-ν
+```
+
+`Boundary.agda` gains `liftᴮ Θ = map shiftChange Θ`, and
+`inst Θ = liftᴮ Θ ++ (bind 0 0 ∷ [])`, so read inside out the stacked
+scopes are the old fused one (`Nu-⟪Λ⟫-stacks-to-inst`,
+`proof/ShiftAudit.agda` §3).  No rule mints `instReveal` any more, so
+`canon-step`/`canon-steps` (`proof/Canonicity.agda`) lost their
+`CanonTyPeelR` hypothesis; `¬CanonTyPeelR` is kept as the record of the
+wall.  The one reveal still minted at run time is `Nu-⟪⟫`'s; the old
+`TyPeelR-⟪⟫` pushed in `·[⇑Bᵢ′, 0]`, which the next `TyBeta` turned into
+the same `reveal 0 (⇑Bᵢ′)`.
+
+**`compile-⊢` carries `CtxWf Δ Γ`** (Jeremy approved the extra
+premise, 2026-09-24).  The statement is
+
+```
+  compile-⊢ : WfCtx Δ → CtxWf Δ Γ → length (names Δ) ≡ n
+            → (d : n ∣ Γ ⊢ˢ M ⦂ A) → Δ ∣ Γ ⊢ compile d ⦂ A
+```
+
+and it is FALSE without `CtxWf Δ Γ` (every type in the term context is
+well formed at `Δ`) for open terms.  The source variable rule does not
+check the variable's type, so at `n = 0`, `Γ = [∀ (` 5)]` the term
+`x [ℕ]` has a source derivation, but its compiled `ν` needs
+`Δ ⊢ᵗ B` of a result type that names a variable `Δ` does not have.
+`compile-closed` discharges it by `CtxWf-[]`, and `compile-safe` is
+`type-safety` after `compile-closed`.  `SourceExamples.agda` checks
+`compile … ≡ E.X₀` by `refl` for the twenty plain-System-F programs of
+`Examples.agda`.
+
+**What it cost.**  The stacked layer is one more boundary per crossing:
+K 9→11, J 10→12, G 13→16, H 9→11, E 19→30, V 24→49, I 9→12, N 16→20,
+C 22→33, S 14→16 steps.  Three wall records whose checked content is
+exact states of runs through the retired rules left `notes/All.agda`:
+`CancelRReachabilityWitness`, `RawRunProbe` and `AddLock0Wall`.  The
+files are kept unported; strong-rep-store holds their checked versions,
+and the CancelR witness program still runs green as `Examples.agda` §8
+`S`.
+
+**The premise-free preservation counterexample moved.**  The 2026-09-18
+counterexample was the `TyBeta` redex `(Λ ($ 0)) ·[ ℕ , ℕ ]` at a
+duplicate name map.  Its `ν` counterpart is not typeable there at all,
+because `⊢ν` carries `BoundaryWf (allocate R Δ) TyBetaBoundary …`.  The
+premise is still needed: `Beta` on `(λx:ℕ. ΛZ. λy:ℕ. x) · 0` mints the
+dual boundary `0 ⟪ ↓Z , id ℕ ⟫` under the `Λ`, whose `BoundaryWf`
+demands the well-formedness the duplicate map lacks.  Checked with the
+derivation-producing checker (`infer` succeeds on the redex and fails on
+the contractum), not machine-checked as a refutation.
+
+**Gate.**  `make check` green at 4bf42f26.

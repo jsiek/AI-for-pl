@@ -1,5 +1,7 @@
 # Strong System F v2 — the conversion-boundary calculus
 
+> **strong-rep-nu (2026-09-24).**  The rules below are superseded by `notes/notes.md`, which has the `ν` rules (`Nu-Λ`, `Nu-⟪Λ⟫`, `Nu-⟪⟫`, `ξ-ν`) that replace type application.
+
 > **strong-rep-nu (2026-09-21).**  This directory is a variant of
 > `strong-rep-var`, and this document is strong-rep-var's design note
 > with the module prefix renamed.  The first difference is the

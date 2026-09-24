@@ -40,6 +40,22 @@ one-paragraph map of the files this commentary follows is `README.md`;
 the store sketch that ruled the current shape is
 `notes/RepStoreSketch.md`.
 
+Since 2026-09-24 (strong-rep-nu, `notes/NuSketch.md`) the run-time
+language has NO TYPE APPLICATION.  Its ∀-elimination is the term
+`ν A · L ⟨ c ⟩`, which carries the conversion `c` the compiler wrote
+(`reveal 0 C` for `L : ∀ C`); plain System F with `L [ A ]` is a
+separate source language (`Source.agda`) that `Compile.agda` elaborates
+into it.  The four rules that changed were renamed, and the dated
+history below keeps the name a rule had at the time:
+
+```
+  TyBeta       ⟶  Nu-Λ       the reveal moved to compile time
+  TyPeelR-Λ    ⟶  Nu-⟪Λ⟫     STACKS s under ν's c instead of fusing
+                             them into `instReveal 0 s`
+  TyPeelR-⟪⟫   ⟶  Nu-⟪⟫      pushes a `ν`, not a type application
+  ξ-·[]        ⟶  ξ-ν
+```
+
 ## Ctx.agda
 
 The two de Bruijn universes and every relation over them.  §1 declares
@@ -99,7 +115,7 @@ View one context's ordinary names after a representation renaming,
 using a SECOND context's representation store.  Crossings use this when
 the same ordinary spelling is carried across an inserted representation
 binder: the positions stay fixed, but the representation indices they
-denote move.  `TyPeelR-⟪⟫`'s `SameConv` premise is stated through it.
+denote move.  `Nu-⟪⟫`'s `SameConv` premise is stated through it.
 
 ### `_∋ʳ_:=_`
 
@@ -162,7 +178,7 @@ every sibling term — moves up by one.  `Alloc` is what one reduction
 step did to the store (nothing, or one cell) and `apply` performs it.
 
 Fresh = 0 rather than append-at-the-end, because under `Λ N` the body
-is already typed with the binder at index 0: if the cell `TyBeta` mints
+is already typed with the binder at index 0: if the cell `Nu-Λ` mints
 is also index 0, the body's indices already line up and `N` moves into
 the contractum VERBATIM, its re-typing being the in-place refinement
 `abstR → bindR R`.  The price is that a step GROWS the context, which
@@ -241,7 +257,7 @@ A conversion reading only ADDS names (`conversion-live`).
 **(2) BOTH READINGS ARE FUNCTIONS OF THE CHANGE LIST.**  The two bind
 clauses are mutually exclusive (`fresh-not-lookup`), so
 `conv-changes-functional` / `conversion-functional` hold, and they are
-exactly what determinism for `CancelR`, `IdPush` and `TyPeelR-⟪⟫`
+exactly what determinism for `CancelR`, `IdPush` and `Nu-⟪⟫`
 consumes.
 
 `BoundaryWf` stores only what cannot be recovered — the exterior's
@@ -281,7 +297,7 @@ ordinary position is untouched, which is what makes a rep-only
 weakening leave every ordinary de Bruijn spelling in a term exactly
 where it was.  There is no bind prefix to skip.
 
-### `rewind`, `_++_`, the snoc unbind, `inst`
+### `rewind`, `_++_`, the snoc unbind, `inst`, `liftᴮ`
 
 * `rewind Θ = dual Θ ++ Θ` — the changes, then their exact inverse.
   NO RULE BUILDS ONE since the one-layer contractum (2026-09-23); it
@@ -297,6 +313,15 @@ where it was.  There is no bind prefix to skip.
   representation index 0, the appended `bind 0 0` (acting first)
   gives it ordinary name 0, and the old changes — spelled at `Γ` — run
   underneath both, hence one shift in each universe.
+* `liftᴮ Θ = map shiftChange Θ` is that shift alone, so
+  `inst Θ = liftᴮ Θ ++ (bind 0 0 ∷ [])` (2026-09-24).  The `Nu` rules
+  write the two halves as two STACKED layers — `inst []` outside, the
+  crossed frame `liftᴮ Θ` in the middle — and `liftᴮ-interior` /
+  `liftᴮ-conversion` are the halves of `inst-interior` /
+  `inst-conversion` that read the middle layer at the outer layer's
+  interior.  No rule builds a whole `inst Θ` any more; `Nu-⟪⟫` still
+  reads one (`allocate R Δ ⊢ⁱ inst Θ ⇒ Δᵢ⁺`), because the stacked
+  layers' combined interior is exactly that reading.
 
 ### `_⊢ⁱ_⇒_`
 
@@ -425,7 +450,7 @@ maps by `map ρ`, and the store is whatever the `RepWk` says — no bind
 prefix, no `extN` offset.
 
 `snoc-unbind0-conversion-ren`.  The snoc `Θ ++ (unbind 0 0 ∷ [])` carries a
-scope past one fresh cell and one fresh ordinary name (`TyPeelR-⟪⟫`).
+scope past one fresh cell and one fresh ordinary name (`Nu-⟪⟫`).
 The conversion reading: representation renaming transports the old
 reading, the appended unbind is skipped, and `conv-weaken` restarts the
 transported run in the map that also holds the fresh name; it retains
@@ -436,8 +461,11 @@ changes run as before.
 
 ### §4 — `TyBetaBoundary`
 
-`TyBeta` on `(Λ N) ·[ B , ℕ ]` at `empty`: the cell is allocated and
-the scope binds name 0 for it.
+`inst []`, the outer scope of every `Nu` contractum, and the scope
+`⊢ν` reads its conversion under.  At `empty` it is `Nu-Λ` on
+`ν ℕ · (Λ N) ⟨ c ⟩`: the cell is allocated and the scope binds name 0
+for it.  (The name is from the retired `TyBeta`, whose boundary this
+was.)
 
 ### Retired
 
@@ -477,9 +505,9 @@ VARIABLE, and `env` already enforces it with the FRAMES — a UNBOUND `X`
 is DELETED from the interior reading, so it cannot sit on the interior
 side of a leaf, and a name the scope itself BINDS has no entry in the
 exterior name map, so it cannot sit on the exterior side.  Dropping `p`
-is what makes `TyPeelR`'s preservation case a theorem at every `∀`
-conversion rather than only at a reveal one
-(`proof/Preserve.agda`, `preserve-TyPeelR-Λ`).
+is what makes the `Nu` boundary rules' preservation cases theorems at
+every `∀` conversion rather than only at a reveal one
+(`proof/Preserve.agda`, `preserve-Nu-⟪Λ⟫`, `preserve-Nu-⟪⟫`).
 
 ### Conversions are REP-FREE
 
@@ -566,12 +594,15 @@ instantiation step: `unseal 0` where the conversion runs covariantly,
 type — and on an identity conversion the two agree
 (`instReveal-mkId`).
 
-`TyBeta`'s minted conversion IS this operation at an identity
-conversion: the type version is the conversion version on `mkId`.  So
-`TyPeelR`'s reveal case really is `TyBeta`'s mint, one `∀` inside — and
-since the 2026-09-08 split that is literal: `TyPeelR-Λ` moves nothing
-and refines the `Λ`'s own slot into the boundary's binder, exactly as
-`TyBeta` does.
+NO RULE MINTS `instReveal` SINCE 2026-09-24.  The retired `TyPeelR-Λ`
+and `TyPeelR-⟪⟫` minted `instReveal 0 s`, fusing the crossed conversion
+with the instantiation.  Their `ν` successors STACK instead: `s` moves
+verbatim into a middle layer and `ν`'s own conversion — the compiler's
+`reveal 0 C`, or `Nu-⟪⟫`'s run-time `reveal 0 (⇑Bᵢ′)` — sits outside it
+(§ Reduction.agda / Nu-⟪Λ⟫, Nu-⟪⟫).  `reveal` is the only mint that
+survives, and the compiler writes it.  `instReveal`/`instConceal` stay
+here with `instReveal-mkId`, and `proof/Canonicity.agda` keeps the
+refuted `CanonTyPeelR` about them as a record.
 
 ### §5 — the inversions
 
@@ -584,7 +615,8 @@ binder's representation — there is no second spelling, which is why the
 the two `∀` shapes AS EQUATIONS.  At the use sites the conversion's
 source and target are variables that `env` constrains only
 RELATIONALLY, so matching `conv-all` directly does not unify; the
-`TyPeelR` premise is recovered by this lemma instead.  (History: the
+`Nu-⟪Λ⟫`/`Nu-⟪⟫` premise `underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ` is recovered by this
+lemma instead.  (History: the
 lemma was introduced when `env` pinned the target type to a
 `shiftBy`-headed stuck term, which could not be seen through either.)
 
@@ -609,14 +641,15 @@ produced by well-formed boundary scopes preserve this invariant
 ## Terms.agda
 
 The term syntax, the typing judgement, and values.  §1 is `Var` (= ℕ)
-and `Term`, whose last constructor is the boundary `_⟪_,_⟫`, together
+and `Term` — with `ν_·_⟨_⟩` in place of type application since
+2026-09-24 — whose last constructor is the boundary `_⟪_,_⟫`, together
 with the ordinary term context `Ctx`, its lookup `_∋_⦂_` and the
 type-binder lift `⤊`.  §2 classifies a conversion as `Inert` or
 `Active`, with `act-or-inert` and `act-not-inert`.  §3 is `Value`,
 which comes BEFORE the typing judgement because `⊢Λ` reads it.  §4 is
-`_∣_⊢_⦂_`, whose boundary rule is `env` and whose `⊢Λ` carries the
-VALUE RESTRICTION, plus `value-var-visible`.  §5 is the concrete
-`β-seven` / `β-seven-⊢`.
+`_∣_⊢_⦂_`, whose boundary rule is `env`, whose `⊢Λ` carries the
+VALUE RESTRICTION and whose `⊢ν` types the ∀-elimination, plus
+`value-var-visible`.  §5 is the concrete `β-seven` / `β-seven-⊢`.
 
 NO OPERATIONS AND NO METATHEORY.  Renaming and substitution on terms
 are `TermSubst.agda`; reduction is `Reduction.agda`; the decision
@@ -683,7 +716,7 @@ every `N` and both "values don't step" and determinism failed
 (`notes/DECISIONS.md`, repair 3).  `strong-rep-nu` has no `ξ-Λ` and
 its `⊢Λ` rule demands `Value N` OUTRIGHT, so on well-typed terms the
 premise is automatic; it is kept so that `Value` stays the
-`strong-rep-var` relation VERBATIM and so that `TyBeta`'s premise keeps
+`strong-rep-var` relation VERBATIM and so that `Nu-Λ`'s premise keeps
 meaning the same thing on untyped terms.
 
 ### §4 — `⊢Λ`
@@ -691,8 +724,46 @@ meaning the same thing on untyped terms.
 THE VALUE RESTRICTION (`strong-rep-nu`'s first experiment).  A type
 abstraction's body must ALREADY be a value: there is no `ξ-Λ` rule, so
 a `Λ` over a redex would be stuck.  With the premise, `Λ N` is a value
-the moment it is well typed (`V-Λ`), and `TyBeta`'s own `Value N`
+the moment it is well typed (`V-Λ`), and `Nu-Λ`'s own `Value N`
 premise is discharged by the typing derivation.
+
+### §4 — `⊢ν`
+
+THE ∀-ELIMINATION (2026-09-24, `notes/NuSketch.md`).  `ν A · L ⟨ c ⟩`
+instantiates `L : ∀ C` at a fresh cell holding `A`'s representation `R`
+and converts the result with `c`.  The premises are the `env` pattern,
+read at the context the `Nu` rules leave:
+
+```
+  Δ ⊢ᵗ A,  Δ ⊢ᶜ A ~ R                  the argument and its representation
+  Δ ∣ Γ ⊢ L ⦂ ∀ C                      the operator
+  BoundaryWf (allocate R Δ) TyBetaBoundary Δᵢ Δᶜ
+                                       the scope `inst []` over the cell
+  Δᶜ ⊢ c ∶ C ⇝ Cₑ                      c, read on its conversion context
+  allocate R Δ ⊢ B ≈ Cₑ ⊣ Δᶜ,  Δ ⊢ᵗ B  the result, compared by
+                                       representation as `env` does
+```
+
+ANY `c` WHOSE TYPES LINE UP IS ACCEPTED (Jeremy, 2026-09-24, as GTPLC's
+`⊢ν` does).  The compiler always writes `reveal 0 C`
+(`Compile.agda`; its typing is `compile-ν`, `proof/Compile.agda`), but
+the generality is used at run time: `Nu-⟪⟫` pushes a `ν` whose
+conversion is the reveal of an INNER body, and the typing rule must not
+care who wrote it.
+
+WHY `c` IS READ AT `Δᶜ` AND NOT AT `underΛ Δ`.  `c`'s ordinary variable
+0 is the name `inst []` binds for the new cell, so its source `C` reads
+that name as REPRESENTED — the same `abstR → bindR R` refinement the
+contractum's body undergoes.  Every `Nu` contractum's outer layer is
+`⟪ inst [] , c ⟫`, and `preserve-Nu-*` retype it by reusing these
+premises verbatim (`nu-outer`, `proof/Preserve.agda` §3).
+
+WHY `⊢ν` CARRIES A `BoundaryWf`.  It is what `nu-outer` needs, and it
+has a consequence for the metatheory: a `ν` cannot be typed at a
+context whose allocation is ill formed, so the old `TyBeta`
+counterexample to premise-free preservation no longer exists in
+well-typed form (§ Preservation.agda / Why `WfCtx Δ` is part of the
+statement).
 
 ### §4 — `env`
 
@@ -712,8 +783,9 @@ conceal the slot its conversion names.
 
 ### §5 — `β-seven`
 
-The term `TyBeta` produces on `(Λ ($ 7)) ·[ `ℕ , `ℕ ]`, typed at the
-context `TyBeta` LEAVES: the cell for `ℕ` has been allocated.
+The term `Nu-Λ` produces on `ν ℕ · (Λ ($ 7)) ⟨ id ℕ ⟩` (`Nu-ℕ`,
+`Reduction.agda`), typed at the context `Nu-Λ` LEAVES: the cell for `ℕ`
+has been allocated.
 
 ### Retired
 
@@ -802,11 +874,12 @@ cite the very same substitution when it follows a position through
 
 ## Reduction.agda
 
-The rule set.  §1 is `_⊢_-→_∣_` with fourteen rules — `TyBeta`, `Beta`,
-`Peel`, `TyPeelR-Λ`, `TyPeelR-⟪⟫`, `CancelR`, `Drop$`, `Drop-true`,
+The rule set.  §1 is `_⊢_-→_∣_` with fourteen rules — `Nu-Λ`, `Beta`,
+`Peel`, `Nu-⟪Λ⟫`, `Nu-⟪⟫`, `CancelR`, `Drop$`, `Drop-true`,
 `Drop-false`, `IdPush` and the four congruences `ξ-·-l`, `ξ-·-r`,
-`ξ-·[]`, `ξ-⟪⟫` — plus the concrete check `TyBeta-ℕ`, the multi-step
-`_⊢_-→*_` and `runCtx`.  §2 is `value-¬step`.  §3 is `det`.
+`ξ-ν`, `ξ-⟪⟫` — plus the concrete check `Nu-ℕ`, the multi-step
+`_⊢_-→*_` and `runCtx`.  §2 is `value-¬step`.  (`det` is
+`proof/Determinism.agda`.)
 
 What is *not* here: the typing judgement is `Terms.agda`; the decision
 procedures that DISCHARGE these rules' side conditions are
@@ -834,10 +907,16 @@ after a machine-checked defect:
 | spelling | rule | pinned by | date | wall |
 |---|---|---|---|---|
 | `s′`  | `Peel`       | `SameConv Δᵈ s′ Δᶜ s`        | 2026-09-18 | `notes/CrossingAudit.agda`, `notes/PeelPremise.agda` |
-| `Bᵢ′` | `TyPeelR-⟪⟫` | `≈` at the interior          | 2026-09-18 | `notes/ForallPayloadWall.agda` |
+| `Bᵢ′` | `Nu-⟪⟫`      | `≈` at the interior          | 2026-09-18 | `notes/ForallPayloadWall.agda` |
 | `X′`  | `IdPush`     | `≈` at the merged frame      | 2026-09-18 | `notes/ForallPayloadWall.agda` |
-| `A′`  | `CancelR`    | `≈` at Θ₁'s OWN conv. ctx    | 2026-09-19 | `notes/CancelRShiftWall.agda`, `notes/CancelRReachabilityWitness.agda` |
-| `s″`  | `TyPeelR-⟪⟫` | `SameConv` at `underΛ Δ″ᶜ`   | 2026-09-20 | `notes/AddLock0Wall.agda` |
+| `A′`  | `CancelR`    | `≈` at Θ₁'s OWN conv. ctx    | 2026-09-19 | `notes/CancelRShiftWall.agda`, `notes/CancelRReachabilityWitness.agda`† |
+| `s″`  | `Nu-⟪⟫`      | `SameConv` at `underΛ Δ″ᶜ`   | 2026-09-20 | `notes/AddLock0Wall.agda`† |
+
+(The dates are those of the pre-`ν` rules, `TyPeelR-⟪⟫` for the `Nu-⟪⟫`
+rows; both spellings moved to `Nu-⟪⟫` unchanged on 2026-09-24.  † kept
+unported and no longer gated by `notes/All.agda` since 2026-09-24:
+their checked content is exact states of runs through the retired
+rules, and strong-rep-store holds their checked versions.)
 
 A sixth defect of the same reading discipline hit the CONVERSION
 CONTEXT itself rather than a spelling: a conversion reading skips
@@ -859,17 +938,18 @@ with the repairs ruled in `notes/DECISIONS.md` ("Id-layer RULING",
    was because reduction went under `Λ`; here `⊢Λ` itself demands
    `Value N` and `ξ-Λ` is gone.
 2. `TyPeelR` shifts its type annotation, and is SPLIT IN TWO —
-   `TyPeelR-Λ` and `TyPeelR-⟪⟫` — by the shift audit
-   (`notes/ShiftAudit.md`, 2026-09-08), so that no moved subterm is
-   offered a slot it could not name before.
+   `TyPeelR-Λ` and `TyPeelR-⟪⟫`, today `Nu-⟪Λ⟫` and `Nu-⟪⟫` — by the
+   shift audit (`notes/ShiftAudit.md`, 2026-09-08), so that no moved
+   subterm is offered a slot it could not name before.
 3. `CancelR` drops the residue its mini-core ancestor appended, carries
    the BINDER-LOOKUP premise that determines its `mkId` conversion, and
    names its two conversions separately.
 4. `IdPush` replaces `IdAbsorb`: the two conversions are SWAPPED
    instead of the two frames being merged, so no boundary-scope
    arithmetic is needed and the no-⊕ test is passed by construction.
-5. `TyBeta` carries `Value N`.  In `strong-rep-var` that closed the
-   `TyBeta` / `ξ-·[] ⨟ ξ-Λ` overlap; here it is implied by `⊢Λ`.
+5. `TyBeta`, today `Nu-Λ`, carries `Value N`.  In `strong-rep-var` that
+   closed the `TyBeta` / `ξ-·[] ⨟ ξ-Λ` overlap; here it is implied by
+   `⊢Λ`.
 
 The principle behind (3)/(4): EVERY rule that mints an identity
 conversion at a looked-up representation carries the binder-lookup
@@ -880,18 +960,19 @@ mints no identity at all — so `CancelR` carries one lookup,
 
 ### The two-universe / store port
 
-A type application carries an ordinary type `A`, but a ∀-elimination
-mints a representation payload `R`.  `TyBeta` and both `TyPeelR` rules
-therefore carry `Δ ⊢ᶜ A ~ R`, return the store change `new R` — the
-cell is pushed onto the AMBIENT representation context at index 0
-(`allocate`, experiment 2, `notes/RepStoreSketch.md`) — and build
-`inst Θ`, which binds ordinary name 0 for that cell and shifts the
-old changes in both universes.
+A `ν` carries an ordinary type `A`, but a ∀-elimination mints a
+representation payload `R`.  The three `Nu` rules therefore carry
+`Δ ⊢ᶜ A ~ R`, return the store change `new R` — the cell is pushed onto
+the AMBIENT representation context at index 0 (`allocate`, experiment
+2, `notes/RepStoreSketch.md`) — and build the outer layer `inst []`,
+which binds ordinary name 0 for that cell; the two boundary rules put
+the crossed frame under it as `liftᴮ Θ`, which shifts the old changes in
+both universes.
 
 A boundary scope IS its change list (`Boundary = List Change`), so the
 frames the rules build are plain list expressions: `Θ₁ ++ Θ₂` where
 `CancelR` and `IdPush` merge, and `renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])`
-where `TyPeelR-⟪⟫` moves a boundary past the cell it just minted.
+where `Nu-⟪⟫` moves a boundary past the cell it just minted.
 Congruence rules carry the relational interior/conversion-context
 witnesses rather than computing those contexts, and shift the redex's
 SIBLINGS by the store change.
@@ -903,10 +984,20 @@ a ∀-elimination allocated the cell for `R`.  The contractum therefore
 lives at `apply δ Δ`, not at `Δ`, and the congruences shift the redex's
 siblings by `↑ᴹ[ δ ]` / `↑ᴮ[ δ ]` (`TermSubst.agda` §2).
 
-### `TyBeta`
+### `Nu-Λ`
 
 A boundary is BORN: the ∀-elimination mints THE BINDER of the event.
-The contractum is `N ⟪ inst [] , reveal 0 B ⟫` at change `new R`.
+The contractum is `N ⟪ inst [] , c ⟫` at change `new R`, and `c` is the
+conversion `ν` carries, moved verbatim.
+
+THE REVEAL MOVED TO COMPILE TIME (2026-09-24, `notes/NuSketch.md`,
+rule 1).  The rule's predecessor `TyBeta` reduced `(Λ N) ·[ B , A ]`
+and MINTED `reveal 0 B` from the annotation `B`.  The compiler now
+writes that reveal into the `ν` (`Compile.agda`), so a compiled program
+takes exactly the step it took before and reaches the same contractum;
+only the origin of the conversion changed, and `B` is gone from the
+run-time term.  Since `⊢ν` accepts any `c` whose types line up, the rule
+does not look at `c` at all.
 
 THE VALUE PREMISE (repair (5), history).  In `strong-rep-var` reduction
 went under `Λ`, and the premise kept `TyBeta` from overlapping
@@ -940,7 +1031,7 @@ renumbering of the same one: the invariant that would have made the two
 agree, `conv(dual Θ, int(Θ,Δ)) ≡ conv(Θ,Δ)`, is FALSE here, and `_++_`
 is what breaks it (`notes/CrossingAudit.agda` §§4–6).  So the rule
 NAMES the dual's spelling `s′` and carries a `SameConv` relating it to
-`s`, exactly as `TyPeelR-⟪⟫`, `IdPush` and `CancelR` carry `_⊢_≈_⊣_`.
+`s`, exactly as `Nu-⟪⟫`, `IdPush` and `CancelR` carry `_⊢_≈_⊣_`.
 
 The premise never blocks a reduction.  The two contexts name the same
 representation variables — that is (Q), `notes/PeelPremise.agda` §5 —
@@ -952,36 +1043,57 @@ was read.
 Since experiment 2 the argument crosses VERBATIM: no representation
 renaming is applied to `W` at all (see § Residual.agda).
 
-### `TyPeelR` — why it is two clauses
+### `Nu-⟪Λ⟫`, `Nu-⟪⟫`
 
-The ∀-conversion analogue of `Peel`: the new binder is prepended and
-the elimination instantiates at the new binder's bind name.  IT IS TWO
+`ν` OVER A BOUNDARY — the ∀-conversion analogue of `Peel`.  IT IS TWO
 CLAUSES, split on the crossed boundary's INTERIOR (2026-09-08, the
-shift audit; `notes/ShiftAudit.md`).
+shift audit, `notes/ShiftAudit.md`, when the rules were `TyPeelR-Λ` and
+`TyPeelR-⟪⟫`).
 
 `canon-∀` (`proof/Canonical.agda`) says a closed value at a `∀` type is
 a `Λ` over a value or a WRAPPER with a `∀` conversion, and nothing
 else.  So:
 
 ```
-  TyPeelR-Λ    the interior is `Λ N`: INSTANTIATE AT ONCE.  N moves
-               nowhere, gains no shift, and the boundary is born on
-               the spot.
-  TyPeelR-⟪⟫   the interior is a boundary: PUSH THE TYPE APPLICATION
-               INWARD one layer, exactly as the single rule did, and
-               mask the new binder in the MOVED BOUNDARY'S OWN change
-               list (the snoc `++ (unbind 0 0 ∷ [])`).
+  Nu-⟪Λ⟫   the interior is `Λ N`: INSTANTIATE AT ONCE.  N moves
+           nowhere, gains no shift, and the boundary is born on
+           the spot.
+  Nu-⟪⟫    the interior is a boundary: PUSH A `ν` AT THE NEW NAME
+           INWARD one layer, and mask that name in the MOVED
+           BOUNDARY'S OWN change list (the snoc `++ (unbind 0 0 ∷ [])`).
 ```
 
-Together they are TOTAL over canonical `∀`-values, so the split
-REPLACES the single rule (`progress`, `proof/Progress.agda`) rather
-than supplementing it.
+Together they are TOTAL over canonical `∀`-values (`progress`,
+`proof/Progress.agda`; `nuRedex`, `Eval.agda`).
+
+STACK, DON'T FUSE (Jeremy, 2026-09-24, `notes/NuSketch.md` candidate
+N1).  Both contracta have the same two outer layers:
+
+```
+    (… ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫
+```
+
+`ν`'s own conversion `c` is the OUTER layer, on the scope `⊢ν` read it
+at, and the crossed conversion `s` is the MIDDLE layer, moved VERBATIM,
+on the crossed frame read under the new name (`liftᴮ Θ`, Θ shifted one
+step in both universes).  The retired rules wrote ONE layer,
+`N ⟪ inst Θ , instReveal 0 s ⟫`: they FUSED `s` with the reveal
+`TyBeta` would have minted.  With `c` written by the compiler there is
+nothing to fuse with — the alternative, a run-time conversion
+composition `s ⨟ c` (N2), would put back the run-time work the
+compile-time reveal removed.  So NO RULE COMPUTES A CONVERSION FROM `c`,
+and none mints `instReveal`.  Read inside out the two scopes act as the
+old fused one: `inst Θ = liftᴮ Θ ++ inst []`, by `refl`
+(`Nu-⟪Λ⟫-stacks-to-inst`, `proof/ShiftAudit.agda` §3).  The cost is one
+more layer per crossing, which a later `Peel` passes and an `IdPush` or
+a `Drop` consumes: every run in `Examples.agda` that crosses a boundary
+got longer (K 9→11 … V 24→49; `notes/DECISIONS.md`, 2026-09-24).
 
 WHY THE MOVED VALUE'S FRAME MUST NOT GAIN AN UNMASKED SLOT.  In the
-store design `V` moves by the representation-only renaming `renᴹᴿ suc`
+store design `W` moves by the representation-only renaming `renᴹᴿ suc`
 — past the cell this rule allocates — while the new ORDINARY name 0 is
 removed from the moved boundary's interior reading by the appended
-`unbind 0 0`.  `V` is therefore offered exactly the ordinary scope it
+`unbind 0 0`.  `W` is therefore offered exactly the ordinary scope it
 already had.  (History, and the reason the split exists: in the
 masked-entry ancestor the single rule moved `V` by `wkᴹ 1` into its old
 frame with ONE NEW SLOT, offered UNMASKED.  `V` neither had that slot
@@ -994,96 +1106,118 @@ rule masks what it introduces — `Peel` by the dual, `Beta` by `crossΛ`
 — so this was the one exception, and the audit closed it.
 
 WHY THE `Λ` CLAUSE NEEDS NO SHIFT.  The `Λ`'s abstract slot BECOMES the
-boundary's bind slot: `N` already lives one `abst` binder in (`⊢Λ`,
-`underΛ`), and the cell is allocated at index 0, exactly where `N`'s
-own abstract variable already sits, so `N` moves into the contractum
-VERBATIM and its re-typing is the in-place refinement
+cell the outer layer binds: `N` already lives one `abst` binder in
+(`⊢Λ`, `underΛ`), and the cell is allocated at index 0, exactly where
+`N`'s own abstract variable already sits, so `N` moves into the
+contractum VERBATIM and its re-typing is the in-place refinement
 `abstR → bindR R`.  Hence no renaming of `N`, and the contractum does
 not mention `Bᵢ` at all.
 
-WHY THE WRAPPER CLAUSE TERMINATES.  Its contractum's inner application
-is again a redex, but the `∀`-value's TOWER HEIGHT — the number of
-nested boundaries above the `Λ` — strictly DECREASES
-(`TyPeelR-⟪⟫-height`, `proof/ShiftAudit.agda` §4), because the clause
-CONSUMES a boundary that was already there.  The rejected repair (wrap
-the moved value in the new binder's dual) MINTS one instead, so its
-measure stalls and it loops: an identity conversion at a `∀` is
-necessarily a `` `∀ `` conversion, hence inert, hence the wrapped value
-under `·[ … ]` is itself a redex (`fixA-height-stalls`,
+WHY THE WRAPPER CLAUSE TERMINATES.  Its contractum's pushed `ν` is again
+a redex (reached by `ξ-⟪⟫` through the two stacked layers), but the
+`∀`-value's TOWER HEIGHT — the number of nested boundaries above the `Λ`
+— strictly DECREASES (`Nu-⟪⟫-height`, `proof/ShiftAudit.agda` §4),
+because the clause CONSUMES a boundary that was already there.  The
+rejected repair (wrap the moved value in the new binder's dual) MINTS
+one instead, so its measure stalls and it loops: an identity conversion
+at a `∀` is necessarily a `` `∀ `` conversion, hence inert, hence the
+wrapped value under a `ν` is itself a redex (`fixA-height-stalls`,
 `proof/ShiftAudit.agda` §4; the looping run is written out in
-`notes/ShiftAudit.md`, candidate fix (a)).  A tower height `h`
-therefore takes `h − 1` `TyPeelR-⟪⟫` steps and then exactly one
-`TyPeelR-Λ` step.
+`notes/ShiftAudit.md`, candidate fix (a)).  A tower of height `h`
+therefore takes `h − 1` `Nu-⟪⟫` steps and then exactly one `Nu-⟪Λ⟫`
+step.
 
-THE ANNOTATION PREMISE (2a).  The pushed-in `·[ _ , ` 0 ]` must carry
-the INTERIOR ∀-body — what the interior's own `⊢·[]` demands — not the
-exterior body `B`, from which it differs at every non-identity leaf.
-The interior body is not syntactic (a `seal`'s source is a binder's
+THE BODY PREMISE (2a).  Both clauses carry the typing
+`underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ` of the crossed conversion's body.  The
+interior body `Bᵢ` is not syntactic (a `seal`'s source is a binder's
 representation, which the representation-free conversion does not
-carry) but it IS DETERMINED by the conversion typing, so both clauses
-carry that typing as a PREMISE — the same move already ruled for the
-`mkId` conversions.  It is read at the ∀-body, i.e. under one `abst`,
-and progress derives it for free by inverting the redex's own `env`
-(`conv-all-inv`).  Determinism is `conv-src-unique` for the wrapper
-clause, exactly as it is `∋:=-det` for the lookup-carrying rules; the
-`Λ` clause needs neither.
+carry) but it IS DETERMINED by the conversion typing, so the rules carry
+that typing as a PREMISE — the same move already ruled for the `mkId`
+conversions.  It is read at the ∀-body, i.e. under one `abst`, and
+progress derives it for free by inverting the redex's own `env`
+(`conv-all-inv`).  `Nu-⟪Λ⟫`'s contractum does not use it; `Nu-⟪⟫`'s
+writes it, re-spelled as `Bᵢ′`, into the pushed `ν`'s conversion.
+Determinism is `conv-src-unique` for the wrapper clause; the `Λ` clause
+needs nothing.
 
-### `TyPeelR-Λ`
+### `Nu-⟪Λ⟫`
 
-THE SHIFT.  The frame the rule builds is `inst Θ`.  In the bind-block
-ancestor the boundary's own changes were left UNSHIFTED, because the
-interior reading itself lifted the boundary's binds past the binder the
-rule prepended (history).  There are no binds now: the cell is
-allocated in the AMBIENT context at index 0, so every one of Θ's
-changes moves up in BOTH universes, and that shift is exactly what
-`inst` packages —
-`inst Θ = map shiftChange Θ ++ (bind 0 0 ∷ [])`, `Boundary.agda` §4 —
-with the appended `bind 0 0` making ordinary name 0 denote the new
-cell inside the boundary.
+THE SHIFT.  The middle layer's frame is `liftᴮ Θ = map shiftChange Θ`
+(`Boundary.agda` §4): the cell is allocated in the AMBIENT context at
+index 0, so every one of Θ's changes moves up in BOTH universes.  The
+outer layer's `inst [] = bind 0 0 ∷ []` makes ordinary name 0 denote the
+new cell, and it acts FIRST, so the middle layer is read at a context
+where name 0 is the new cell and Θ's old names sit one step up.  (In the
+bind-block ancestor the boundary's own changes were left UNSHIFTED,
+because the interior reading itself lifted the boundary's binds past the
+prepended binder — history.)
 
-THE CONVERSION.  Slot 0 of the conversion's body was ABSTRACT and is
-now the cell this rule allocates, so every leaf of `s` that reads it
-must become the instantiation step: `instReveal 0 s`.  Keeping `s`
-itself is ill-typed — its TARGET body still reads ordinary name 0 as
-abstract, where the contractum's `env` premise demands the type `s`
-produces after instantiation at the newly bound name.
+THE CONVERSION.  `s` is moved VERBATIM.  Its body's slot 0 was the
+`` `∀ ``'s abstract variable; in the middle layer it reads as ordinary
+name 0, which the outer layer binds to the new cell, so `s` is typed at
+exactly the conversion context `liftᴮ-conversion` produces from the
+crossed one, and `preserve-Nu-⟪Λ⟫` retypes the middle layer from the
+crossed `env`'s premises, refined at the new cell (`liftᴮ-interior`,
+`liftᴮ-conversion`).  The leaves of `s` that read slot 0 are
+identities, and they STAY identities: the instantiation step is `c`'s
+job, one layer out.  (The retired `TyPeelR-Λ` had to turn them into
+`instReveal 0 s`, because it had only one layer.)
 
-### `TyPeelR-⟪⟫`
+### `Nu-⟪⟫`
 
 The moved boundary crosses a binder that its appended `unbind 0 0`
 removes from the INTERIOR reading.  Its ordinary term indices therefore
 retain their positions after deletion; only representation occurrences
 move past the new representation binder.  Thus the interior term and
 frame use paired, representation-only renamings (`renᴹᴿ suc`,
-`renᴮᴿ suc`), and the pushed-in annotation is re-spelled separately at
-the outer frame's interior.
+`renᴮᴿ suc`), and the pushed `ν`'s body type is re-spelled separately
+at the outer frame's interior.
 
-THE CONVERSION WALL AND REPAIR (2026-09-20).  The conversion reading
-SKIPS unbinds.  Hence the new ordinary name survives there while every
-`bind X α` in `Θ′` inserts around it; where that name ends up depends
-on `Θ′`.  In the closed witness of `notes/AddLock0Wall.agda`, one
-`bind 0 0` displaces it to position one, so the old fixed
-`renᶜ (extᵗ suc) s′` points at the wrong representation and the third
-state loses its type.  No fixed renaming can be right for all `Θ′`.
+THE PUSHED `ν` AND THE ONE RUN-TIME REVEAL.  The pushed term is
+
+```
+    ν (` 0) · (renᴹᴿ suc W ⟪ renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ []) , ∀ s″ ⟫)
+            ⟨ reveal 0 (renameᵗ (extᵗ suc) Bᵢ′) ⟩
+```
+
+Its argument is the new name, so when it fires it allocates an ALIAS
+cell whose payload is this step's cell — as the retired rule's pushed
+type application did (NuSketch nested case (a), Jeremy, 2026-09-24).
+Its conversion is the reveal of the inner body `Bᵢ′`, lifted past the
+new name with the body's own variable kept at 0; its target is `Bᵢ`
+read through the alias, which is the source of the middle layer's `s`.
+This is the only conversion any rule mints from a type, and the reason
+`⊢ν` must accept any `c` whose types line up.  (The retired
+`TyPeelR-⟪⟫` pushed in `·[ ⇑Bᵢ′ , 0 ]`, and the next `TyBeta` or
+`TyPeelR` minted the same reveal from that annotation.)
+
+THE CONVERSION WALL AND REPAIR (2026-09-20, on `TyPeelR-⟪⟫`).  The
+conversion reading SKIPS unbinds.  Hence the new ordinary name survives
+there while every `bind X α` in `Θ′` inserts around it; where that name
+ends up depends on `Θ′`.  In the closed witness of
+`notes/AddLock0Wall.agda`, one `bind 0 0` displaces it to position one,
+so the old fixed `renᶜ (extᵗ suc) s′` points at the wrong representation
+and the third state loses its type.  No fixed renaming can be right for
+all `Θ′`.  (That witness runs through the retired rules; the module is
+kept as the record, ungated since 2026-09-24.)
 
 The rule therefore NAMES the carried spelling `s″`, carries both the
 old and the moved conversion readings, and pins the spellings with
 `SameConv`, in the same pattern as `Peel`.  The old context is viewed
 through the representation renaming made by the insertion
 (`renNameCtx suc Δ″ᶜ Δ′ᶜ`): without that view, §6b of `Examples.agda`
-loses its type at step 8, because a free representation index is
-compared to the newly inserted binder.  The contractum is otherwise
-unchanged: same snoc-unbind frame, outer frame, minted `instReveal 0 s`,
-pushed-in annotation and type argument `` ` 0 ``.
+loses its type, because a free representation index is compared to the
+newly inserted binder.  `Nu-⟪⟫` inherited the repair unchanged: same
+snoc-unbind frame, same carried `s″`.
 
-THE RE-BASED ANNOTATION (2026-09-18).  `Bᵢ` is read at the CONVERSION
+THE RE-BASED BODY (2026-09-18).  `Bᵢ` is read at the CONVERSION
 context, because that is where the crossed boundary's conversion is
-typed; the pushed-in `·[ _ , ` 0 ]` is read by `⊢·[]` at the INTERIOR.
-Those are two different name maps, and they can even reorder relative
-to each other (`notes/ForallPayloadWall.agda` §3), so the rule carries
-the interior spelling `Bᵢ′` and a `_⊢_≈_⊣_` relating the two.
-Determinism for it is `sameTy-src-unique`; `det` reads the interior's
-`Unique` name map from the redex typing derivation.
+typed; the pushed `ν` is typed at the INTERIOR.  Those are two
+different name maps, and they can even reorder relative to each other
+(`notes/ForallPayloadWall.agda` §3), so the rule carries the interior
+spelling `Bᵢ′` and a `_⊢_≈_⊣_` relating the two.  Determinism for it is
+`sameTy-src-unique`; `det` reads the interior's `Unique` name map from
+the redex typing derivation.
 
 ### `CancelR`
 
@@ -1195,15 +1329,17 @@ boundary per step (`Examples.agda` §9c).
 THE RE-BASED NAME (2026-09-18).  `X` is read at the INNER frame's
 conversion context; the swap moves it into the MERGED frame's, which is
 a different name map.  So the rule carries the merged spelling `X′` and
-a `_⊢_≈_⊣_` relating the two, exactly as `TyPeelR-⟪⟫` does for its
-annotation.
+a `_⊢_≈_⊣_` relating the two, exactly as `Nu-⟪⟫` does for its
+pushed body type.
 
 ### The congruences, and the absent `ξ-Λ`
 
 THE CONGRUENCES pass the store change up and shift the SIBLINGS by it:
 after an allocation the whole program lives under one more
 representation binder.  Type annotations are ordinary and do not move;
-neither does a boundary's conversion (`renᴹᴿ` leaves it alone).
+neither does a boundary's conversion (`renᴹᴿ` leaves it alone).  `ξ-ν`
+reduces the operator of a `ν` and has no sibling: `A` and `c` are
+ordinary, so it passes `δ` up and shifts nothing.
 
 There is NO `ξ-Λ`.  `strong-rep-nu` does not reduce under a type
 binder: `⊢Λ` (`Terms.agda`) requires the body to be a value, so a
@@ -1231,13 +1367,16 @@ It concludes `M₁ ≡ M₂ × δ₁ ≡ δ₂`.
 
 * `Peel`: the dual's spelling is pinned by `sameConv-src-unique`, once
   the three readings have been identified.
-* `TyPeelR`: the two clauses' patterns are DISJOINT (a `Λ` is not a
-  boundary), so no cross case arises.  The `Λ` clause is determined by
-  the redex OUTRIGHT — its contractum does not mention `Bᵢ`, so
-  `conv-src-unique` is not needed at all.  The wrapper clause's two
-  contracta agree after all five carried readings have been identified:
-  the SOURCE type determines the pushed-in annotation, the type
-  argument determines the instantiated frame, and the moved conversion
+* `Nu-Λ`: determined by the redex outright (`same-rep-unique` for the
+  cell).  The three `Nu` rules' patterns are DISJOINT (a `Λ` is not a
+  boundary, and a `Λ` under a boundary is not a tower), and each is
+  disjoint from `ξ-ν` because its operator is a value (`value-¬step`).
+* `Nu-⟪Λ⟫`: determined by the redex OUTRIGHT — its contractum does not
+  mention `Bᵢ`, so `conv-src-unique` is not needed at all.
+* `Nu-⟪⟫`: the two contracta agree after all five carried readings have
+  been identified: the SOURCE type determines the pushed `ν`'s reveal,
+  the type argument determines the instantiated frame, and the moved
+  conversion
   spelling is pinned by `sameConv-src-unique`, whose `Unique` map is
   recovered from the redex typing's exterior and the carried
   instantiated interior / moved-conversion readings, just as `Peel`
@@ -1256,6 +1395,11 @@ It concludes `M₁ ≡ M₂ × δ₁ ≡ δ₂`.
 
 Dropped from the inline text, with the reason:
 
+* `TyBeta`, `TyPeelR-Λ`, `TyPeelR-⟪⟫`, `ξ-·[]` and the check
+  `TyBeta-ℕ` (2026-09-24) — replaced by `Nu-Λ`, `Nu-⟪Λ⟫`, `Nu-⟪⟫`, `ξ-ν`
+  and `Nu-ℕ` when type application left the run-time language.  What
+  the old rules' sections argued is restated above against `ν`; the
+  one thing that did NOT survive is the fused `instReveal 0 s` mint.
 * "`hideBinds (numBinds Θ₂)`", "`repsOf→bind (binds Θ₂)`",
   "`numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁`", "`shiftBy (numBinds Θ₁) A`",
   "`interior (rewind Θ₂) Δ` IS `pushBinds (binds Θ₂) Δ`",
@@ -1304,7 +1448,7 @@ the theorems.
 
 ### Three things to know before using it (`notes/PLAN.md`)
 
-1. It must INFER, not merely CHECK.  `⊢·` and `⊢·[]` need the head's
+1. It must INFER, not merely CHECK.  `⊢·` and `⊢ν` need the head's
    type, and a head can be a boundary; inferring a boundary's exterior
    type means re-spelling the conversion target at the ambient name
    map.  `rebase?` (§6) supplies that spelling through the common
@@ -1433,8 +1577,8 @@ call the failing sub-checker directly.
 
 The goal-directed family: `tc` a term's typing derivation, `tk` a
 conversion's, `tf` a type's well-formedness, `tr` the reading that
-relates an ordinary type to its representation (what `TyBeta` and both
-`TyPeelR` clauses carry as `Δ ⊢ᶜ A ~ R`), and `tu` name-uniqueness of a
+relates an ordinary type to its representation (what the three `Nu`
+rules and `⊢ν` carry as `Δ ⊢ᶜ A ~ R`), and `tu` name-uniqueness of a
 name map.  No REDUCTION rule carries `tu`'s judgement any more — since
 2026-09-18 `det` recovers it from the redex's typing derivation
 (`notes/DECISIONS.md`) — but `WfCtx`'s `name-fn` field and the lemmas
@@ -1516,17 +1660,20 @@ the first one `check⊢` would have rejected (`notes/DECISIONS.md`,
 needs `value?` to discharge `⊢Λ`'s value restriction; they are
 re-exported here.
 
-* `TyPeelR-Λ` asks for three things of the crossed frame and the type
-  argument; `TyPeelR-⟪⟫` asks for those and, since 2026-09-18, for the
-  interior spelling of the annotation it pushes in.
+* `PeelPremises` (the name is from the `TyPeelR` rules) — `Nu-⟪Λ⟫`
+  asks for three things of the crossed frame and the type argument:
+  the frame's conversion reading, the crossed body's conversion typing
+  and the argument's representation.  `Nu-⟪⟫` asks for those and, since
+  2026-09-18, for the interior spelling of the body type its pushed `ν`
+  reveals.
 * `BdyPremises` — the wrapper clause's remaining premises.  Besides
-  re-spelling the pushed-in annotation, it reads the old inner
+  re-spelling the pushed body type, it reads the old inner
   boundary, the instantiated outer frame and the moved inner boundary,
   then re-spells the inner conversion between those two conversion
   contexts.  In particular, NO arithmetic renaming is used for the
   carried conversion.
 * `PushPremises` — `IdPush` re-bases the name it pushes into the merged
-  frame, the same way `TyPeelR-⟪⟫` re-bases its annotation.
+  frame, the same way `Nu-⟪⟫` re-bases its pushed body type.
 * `MergedPremises` — `CancelR`'s inner layer is checked at the MERGED
   frame's conversion context, so its `mkId` needs a type spelled there.
   Repaired 2026-09-19: the type re-spelled is the cancelled `seal X`'s
@@ -1546,10 +1693,10 @@ any more.)
 * `appRedex`: an application whose two sides are values.  Matching on
   the head's VALUE derivation is what refines its shape — and, at a
   boundary, its conversion, since `Peel` fires only under a `_↦_`.
-* `tyAppRedex`: a type application whose head is a value.  `canon-∀`
-  says the head is a `Λ`, a `Λ` under one `∀`-conversion boundary, or a
-  tower of them; the three clauses are `TyBeta`, `TyPeelR-Λ` and
-  `TyPeelR-⟪⟫` in that order.
+* `nuRedex`: a `ν` whose operator is a value.  `canon-∀` says the
+  operator is a `Λ`, a `Λ` under one `∀`-conversion boundary, or a
+  tower of them; the three clauses are `Nu-Λ`, `Nu-⟪Λ⟫` and `Nu-⟪⟫` in
+  that order.  None of them looks at `ν`'s conversion.
 * `bdyRedex`: a boundary.  `Drop` fires at a literal under an identity
   at a base type; `CancelR` and `IdPush` fire at a REVEALING boundary
   over an inert one, and are told apart by the inner conversion.
@@ -1673,16 +1820,32 @@ alone, the term context being empty; but a contractum can MINT a
 `BoundaryWf`, whose exterior field demands `WfCtx Δ`, from a redex that
 mentioned no ordinary type variable at all.
 
-For example, let `names Δ` be `0 ∷ 0 ∷ []`.  The redex
+For example, let `reps Δ` be `bindR ℕ ∷ []` and `names Δ` be
+`0 ∷ 0 ∷ []`.  The redex (rendered)
 
 ```
-    (Λ ($ 0)) ·[ `ℕ , `ℕ ]
+    ((λx:ℕ. (ΛX. (λy:ℕ. x))) · 0)
 ```
 
-can be typed because it mentions no ordinary type variable.  `TyBeta`'s
-contractum, however, contains a newly minted `BoundaryWf`, whose
-exterior field requires `WfCtx Δ`; uniqueness fails for that duplicate
-name map.
+can be typed because it mentions no ordinary type variable.  `Beta`
+substitutes the value `0` under the `Λ`, so frame-exact substitution
+wraps it in the binder's dual, and the contractum is
+
+```
+    (ΛX. (λx:ℕ. (0 ⟪ ↓X , id ℕ ⟫)))
+```
+
+That boundary's `BoundaryWf` is read at `underΛ Δ`, whose `WfCtx`
+fails: uniqueness fails for the duplicate name map.  (Checked with the
+derivation-producing checker on 2026-09-24: `infer` succeeds on the
+redex and fails on the contractum.)
+
+UNTIL 2026-09-24 the example was the type application
+`(Λ ($ 0)) ·[ ℕ , ℕ ]`, whose `TyBeta` contractum minted the
+`BoundaryWf`.  Its `ν` counterpart `ν ℕ · (Λ ($ 0)) ⟨ id ℕ ⟩` is not
+typeable at that `Δ` at all: `⊢ν` carries
+`BoundaryWf (allocate R Δ) TyBetaBoundary …` itself (§ Terms.agda / §4
+— ⊢ν).
 
 `progress` needs no such premise, because every boundary typing node
 carries its own `BoundaryWf`.
@@ -1698,8 +1861,8 @@ One lemma is new and several are gone.
 * GONE: the `RepWeakenTyping` parameter `Peel` used to consume —
   `dual-interior` now lands the crossing argument at the exterior
   ITSELF, so it moves verbatim — and every `shiftBy` / `shiftRep` /
-  `numBinds` occurrence in `TyBeta`, both `TyPeelR` clauses, `CancelR`
-  and `IdPush`.
+  `numBinds` occurrence in `TyBeta`, both `TyPeelR` clauses (today the
+  three `Nu` rules), `CancelR` and `IdPush`.
 
 ### How the three crossing cases landed
 
@@ -1715,7 +1878,9 @@ last one, `AddUnbind0Typing`, is proved by `proof/AddUnbind0.agda`'s
 `notes/AddLock0Wall.agda` refuted the OLD `AddUnbind0Typing` and, at the
 same instance, `Preservation` and `Preservation*`: a closed, plain
 System F program — no hand-written boundary — lost its type three steps
-in, at `TyPeelR-⟪⟫`.  That rule re-spelled the moved boundary's
+in, at `TyPeelR-⟪⟫` (today `Nu-⟪⟫`, which inherited the repair; the
+witness module is kept as a record and ungated since 2026-09-24).  That
+rule re-spelled the moved boundary's
 conversion with `renᶜ suc`, the renaming that is correct for the
 INTERIOR reading (where the appended unbind, acting first, deletes the
 new ordinary name) and wrong for the CONVERSION reading (which SKIPS
@@ -1790,7 +1955,7 @@ wall modules under `notes/`, and the dated record is
 
 `preservation` (and everything built on it, `type-safety` included)
 takes `WfCtx Δ`; the premise-free form is FALSE here, because at a
-duplicate name map a `TyBeta` contractum must mint a `BoundaryWf` that
+duplicate name map a `Beta` contractum must mint a `BoundaryWf` that
 `Unique` refuses (§ Preservation.agda, and `notes/DECISIONS.md`,
 2026-09-18).  `progress` takes NO such premise — a boundary case reads
 well-formedness off its own `env`.  `det` takes the REDEX'S TYPING
@@ -1837,7 +2002,7 @@ step's contractum is `proof/Residual.agda`, and the theorem is
 
 A position is a pair `(C , M)`, the hole and the node in it.  A step
 moves a retained node to a new position `(D , N)`, and every move in
-this calculus except `TyBeta`'s refinement is REPRESENTATION-ONLY
+this calculus except the `Nu` rules' refinement is REPRESENTATION-ONLY
 (`proof/ShiftAudit.agda` §3): the node is `M` renamed by some
 `renᴹᴿ ρ`, so the residual relation carries that `ρ` — the
 representation renaming that reaches the hole — as an INDEX.
@@ -1854,9 +2019,9 @@ SHIFT a step's allocation imposes — `suc` when the step returns
 
 `Peel`'s argument therefore moves VERBATIM (`dual-interior` lands it at
 the exterior itself), and the redex's own contractum keeps `idᵗ`:
-`TyBeta`'s and `TyPeelR-Λ`'s body sits under the `Λ` binder that
+`Nu-Λ`'s and `Nu-⟪Λ⟫`'s body sits under the `Λ` binder that
 BECOMES the allocated cell, so its indices are already right.  The one
-position that still moves inside a redex is `TyPeelR-⟪⟫`'s inner
+position that still moves inside a redex is `Nu-⟪⟫`'s inner
 boundary, a SIBLING of that `Λ`, which gets exactly `suc`.
 
 What went with the bind block: the paired `renCtx²` / `holeRen²`, whose
@@ -1867,7 +2032,7 @@ the `moveᴿ` wrapper — §3 is now the representation-only `renCtxᴿ` /
 ### Which nodes have residuals
 
 The nodes of the REDEX ITSELF are CONSUMED — the application node
-`Peel` pushes through a boundary, the `Λ` and `·[]` nodes `TyBeta`
+`Peel` pushes through a boundary, the `Λ` and `ν` nodes `Nu-Λ`
 eliminates, the `ƛ` and `·` nodes of `Beta`, the boundary nodes every
 boundary rule re-mints.  Every node strictly inside a retained subterm
 has exactly one residual, except that a term variable `Beta`
@@ -1880,8 +2045,9 @@ boundary — a literal has no scope to preserve
 
 Its `names` is the hole's SCOPE MAP: which ordinary type variables are
 live there (the positions) and which representation variable each
-denotes (the entries).  `ƛ`, `·` and `·[]` frames bind no type
-variable; `Λ` binds one in both universes; a boundary frame moves to
+denotes (the entries).  `ƛ`, `·` and `ν` frames bind no type
+variable (a `ν` frame's hole is its operator, read at the `ν`'s own
+context); `Λ` binds one in both universes; a boundary frame moves to
 the INTERIOR its boundary scope relates the frame's context to.
 
 ### §3 — `renCtxᴿ`, `holeᴿ`, and the sibling shift
@@ -1934,10 +2100,10 @@ the body receives no copy.
 hole `D` as `N`, and the representation renaming that reaches the hole
 is `ρ`.  The site-by-site moves are `proof/ShiftAudit.agda` §1's table;
 `ρ` is that table's third column, and since the store it is `idᵗ`
-everywhere but in `TyPeelR-⟪⟫`'s moved boundary and in a sibling the
+everywhere but in `Nu-⟪⟫`'s moved boundary and in a sibling the
 allocating step shifted.
 
-* `residual-TyBeta` — the body stays where it is; its `Λ` slot BECOMES
+* `residual-Nu-Λ` — the body stays where it is; its `Λ` slot BECOMES
   the allocated cell (refinement `abstR → bindR R`, no move), and the
   scope `inst []` re-binds the body's own name for it, so the body's
   indices are already right and ρ is `idᵗ`.
@@ -1947,9 +2113,10 @@ allocating step shifted.
   `residual-Peel-arg` — the argument crosses into the dual VERBATIM:
   there is no bind block to cross any more, and `dual-interior` lands
   the dual's interior at the exterior itself, so ρ is `idᵗ`.
-* `residual-TyPeelR-Λ` — as `TyBeta`, one boundary in: the body's `Λ`
-  slot becomes the allocated cell the instantiated scope binds.
-* `residual-TyPeelR-⟪⟫` — the inner boundary is a SIBLING of the `Λ`
+* `residual-Nu-⟪Λ⟫` — as `Nu-Λ`, one boundary in: the body's `Λ`
+  slot becomes the allocated cell the outer scope `inst []` binds, and
+  the crossed boundary is the middle layer.
+* `residual-Nu-⟪⟫` — the inner boundary is a SIBLING of the `Λ`
   slot the allocation consumes, so its interior gets exactly the
   sibling shift `suc` — the one non-identity ρ a redex still produces.
 * `residual-CancelR` / `residual-IdPush` — the value keeps its frame
@@ -2008,12 +2175,12 @@ A hole's COLOR is its SCOPE MAP, `names Δ` at that hole
 (`Residual.agda` §2): which ordinary type variables are live there and
 which representation variable each denotes.  A move can rename the
 representation universe — an allocating step shifts the redex's
-siblings by one, `TyPeelR-⟪⟫` shifts the boundary it pushes in, `Beta`
+siblings by one, `Nu-⟪⟫` shifts the boundary it pushes in, `Beta`
 sends a copy past a `Λ`'s dual — so the scope map is transported along
 the representation renaming `ρ` the run delivered to the hole, which
 `Residuals` records.  Everything else is EQUAL: no ordinary position is
 added, removed or moved, and a name denotes the same representation
-variable, read through `ρ`.  `TyBeta` / `TyPeelR-Λ`'s refinement of an
+variable, read through `ρ`.  `Nu-Λ` / `Nu-⟪Λ⟫`'s refinement of an
 `abstR` slot to `bindR R` changes what a representation variable IS
 BOUND TO, not which one a name denotes, so it is invisible to the scope
 map (and `ρ` is `idᵗ`).
@@ -2117,6 +2284,14 @@ type/representation counter `f` is threaded left to right through the
 whole term; the term-binder counter is the λ-depth, restored after each
 body, because term names are stable across steps and sibling λs may
 share one.
+
+A `ν` takes a name from the same counter `f` (2026-09-24): it prints as
+`(ν X:=A · L ⟨ c ⟩)`, where `X` is the name of the cell it WILL
+allocate, and `c` is shown under that name — the conversion context of
+`TyBetaBoundary` at the allocated context is `underΛE`'s shape with a
+bound cell.  Because the operator `L` draws later names, a `Λ` inside it
+prints with a different letter than the `ν` (`ν X:=ℕ · (ΛY. …)`), and the
+two denote the same variable once `Nu-Λ` fires.
 
 ### §7 — `showRepEntries`
 
@@ -2375,8 +2550,8 @@ that the canonical-forms lemmas can be applied to it.
   The wrapper's interior is itself a value, which is exactly `Peel`'s
   first premise.
 * ∀.  A closed value at a `∀` type is a `Λ` over a VALUE (`V-Λ`'s
-  premise, and exactly `TyBeta`'s premise) or a wrapper with a `∀`
-  CONVERSION (`TyPeelR`'s).
+  premise, and exactly `Nu-Λ`'s premise) or a wrapper with a `∀`
+  CONVERSION (`Nu-⟪Λ⟫`'s and `Nu-⟪⟫`'s).
 * VARIABLE.  A closed value at an abstract type is a wrapper whose
   conversion is `seal Y` or `id (` Y)`, nothing else: the two left-hand
   sides of `CancelR` and `IdPush`.  (`value-var-visible` is NOT needed
@@ -2400,8 +2575,11 @@ the GLOBAL REPRESENTATION STORE (experiment 2,
 type-substitution facts used by elimination.  §1b is `RepRefines` — the
 `abstR → bindR R` refinement a ∀-elimination performs in place.  §2 is
 `alloc-wf` / `repwk-alloc` / `inst-boundarywf`, everything the
-ALLOCATION of a cell needs, and the conversions `TyBeta` and `TyPeelR`
-mint (§2b).  §3 proves the local reduction cases.  §4 states the
+ALLOCATION of a cell needs, and the minted-conversion typings
+`⊢reveal`/`⊢conceal` — which `compile-ν` and `Nu-⟪⟫`'s pushed `ν` use —
+with `⊢instReveal`/`⊢instConceal` (§2b), which no rule needs since
+2026-09-24.  §3 opens with `nu-outer`, the outer layer every `Nu`
+contractum shares, typed from `⊢ν`'s own premises.  §3 proves the local reduction cases.  §4 states the
 transports that are proved downstream — `CrossΛTyping`,
 `AddUnbind0Typing`, `ShiftTyping` and the three crossing cases (§4b) —
 and supplies the `AllocWf` / `env-apply` machinery the congruences
@@ -2418,7 +2596,8 @@ gone: the dual's interior is now the exterior itself, so `Peel` moves
 its argument verbatim.
 
 ALL FOUR TRANSPORTS have implementations, the last being
-`AddUnbind0Typing` — reshaped with the 2026-09-20 `TyPeelR-⟪⟫` repair and
+`AddUnbind0Typing` — reshaped with the 2026-09-20 `TyPeelR-⟪⟫` (today
+`Nu-⟪⟫`) repair and
 proved the same day in `proof/AddUnbind0.agda` — so `Preservation.agda`
 exposes no parameter at all.
 
@@ -2442,7 +2621,7 @@ refinement that creates a concrete binding is supplied by the caller
 together with its payload proof.  All output well-formedness is then
 derived by `BoundaryWf`.
 
-### §2 — the allocation, and the conversion `TyBeta` mints
+### §2 — the allocation, and the conversion a reveal mints
 
 `alloc-wf` — ALLOCATING A CELL.  The store grows at index 0 and every
 existing representation variable — in the name map and in every sibling
@@ -2453,12 +2632,12 @@ well formed because `same-wfᴿ` reads it off the argument's `~`.
 `repwk-cons₀` needs exactly the payload's well-formedness.
 
 `inst-boundarywf` — THE INSTANTIATED SCOPE IS AGAIN A BOUNDARY SCOPE
-WITNESS, read at the ALLOCATED context.  `TyBeta` and both `TyPeelR`
-clauses mint the cell for the type argument's representation at index 0
-and append `bind 0 0`, which names it; the old changes run
-underneath, in both universes.  The two readings are `inst-interior`
-and `inst-conversion` (`Boundary.agda` §3a).
-`preserve-TyPeelR-⟪⟫` uses it for the moved boundary's exterior;
+WITNESS, read at the ALLOCATED context.  The three `Nu` rules mint the
+cell for the type argument's representation at index 0 and bind it by
+`bind 0 0`; the old changes run underneath, in both universes.  The
+two readings are `inst-interior` and `inst-conversion`
+(`Boundary.agda` §3a).  `preserve-Nu-⟪⟫` uses it for the moved
+boundary's exterior;
 `proof/Progress.agda`'s `addUnbind0-reading` uses it for the `RepWk suc`
 that the same allocation induces.
 
@@ -2562,7 +2741,7 @@ preservation UNCONDITIONAL.
 ```
   CrossΛTyping   PROVED (2026-09-20) — `proof/RepWeaken.cross-Λ-⊢`.
   AddUnbind0Typing PROVED (2026-09-20), on the statement RESHAPED with
-                 the `TyPeelR-⟪⟫` repair of the same day —
+                 the `TyPeelR-⟪⟫` (today `Nu-⟪⟫`) repair of the same day —
                  `proof/AddUnbind0.addUnbind0-⊢`.  The old statement fixed
                  the moved conversion at `renᶜ (extᵗ suc) s` and was
                  REFUTED from a closed, plain source program
@@ -2681,9 +2860,11 @@ reading RETAINS it for `mkId (⇑ᵗ A)`.
 
 THE MOVED BOUNDARY'S TYPING — `AddUnbind0Typing`, preservation's last
 parameter, on the statement the 2026-09-20 `TyPeelR-⟪⟫` repair gave it
-and the 2026-09-22 store experiment simplified.
+and the 2026-09-22 store experiment simplified.  The statement is
+unchanged by `ν`: `Nu-⟪⟫` moves the inner boundary exactly as
+`TyPeelR-⟪⟫` did, and only what surrounds it changed.
 
-`TyPeelR-⟪⟫` moves the inner boundary out across ONE freshly allocated
+`Nu-⟪⟫` moves the inner boundary out across ONE freshly allocated
 cell (the type argument's representation, minted by `inst`) and ONE
 fresh ordinary name for it, and appends `unbind 0 0` to the scope.  The
 move is the plain SIBLING SHIFT on the TERM — `renᴹᴿ suc` — because the
@@ -3057,7 +3238,8 @@ every clause names the `δ` its rule makes: `new R` for the three
 ∀-eliminations, `none` everywhere else, and the congruences pass up
 whatever the premise returned while shifting the sibling by `↑ᴹ[ δ ]`.
 
-The 2026-09-20 repair of `TyPeelR-⟪⟫` added NO parameter.  Its moved
+The 2026-09-20 repair of `TyPeelR-⟪⟫` (today `Nu-⟪⟫`) added NO
+parameter.  Its moved
 boundary's conversion reading and the retention that names the moved
 spelling are PROVED here as `addUnbind0-reading`, from the unbind-skipping
 transport `Boundary.snoc-unbind0-conversion-ren`.
@@ -3081,7 +3263,7 @@ component had no consumer.  Since the store experiment it is read over
 unconditional on 2026-09-21.
 
 `addUnbind0-reading` — THE MOVED BOUNDARY'S OWN READING (2026-09-20, the
-repair's progress obligation).  The repaired `TyPeelR-⟪⟫` carries the
+repair's progress obligation).  The repaired `Nu-⟪⟫` carries the
 moved boundary's conversion reading and a `SameConv` pinning the moved
 spelling, so progress must CONSTRUCT that reading.  It is not a new
 assumption: the unbind-skipping transport `conv-weaken` / `conv-snoc-unbind`
@@ -3108,10 +3290,11 @@ witness.
 * `progress-peel`: a function-conversion wrapper carries its own
   `BoundaryWf` and the domain conversion typing needed by the core
   `peel-premises-env` theorem.
-* `progress-·[]-∀conv`: the outer conversion's `_⊢_≈_⊣_` premise
-  exposes the interior `∀` body and is exactly `TyPeelR-⟪⟫`'s
-  re-spelling premise.
-* `tyPeelR-⟪⟫` — THE MOVED READING IS REPRESENTATION-SHIFTED FIRST.
+* `progress-ν-∀conv`: a `ν` over a `∀`-conversion wrapper; the outer
+  conversion's `_⊢_≈_⊣_` premise exposes the interior `∀` body and is
+  exactly `Nu-⟪⟫`'s re-spelling premise.  At a `Λ` interior it is
+  `Nu-⟪Λ⟫`, otherwise `nu-⟪⟫`.
+* `nu-⟪⟫` — THE MOVED READING IS REPRESENTATION-SHIFTED FIRST.
   `readable` reads the old conversion at `underΛ Δ′ᶜ`; the rule wants
   it at `underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)`, whose name map is
   `map suc (names Δ′ᶜ)` — the SIBLING SHIFT, with no bind-block offset
@@ -3178,7 +3361,8 @@ frame derivation it CONSTRUCTS the target position's, at the context
 
 Every rule but the movers is frame-for-frame — the interior lemmas of
 `Boundary.agda` §3a supply the new boundary frames' readings
-(`inst-interior`, `dual-interior`, `merged-interior`).  The movers — `TyPeelR-⟪⟫`'s inner boundary, the
+(`inst-interior`, `liftᴮ-interior`, `dual-interior`,
+`merged-interior`).  The movers — `Nu-⟪⟫`'s inner boundary, the
 siblings an allocating congruence shifts, and `Beta`'s copies under
 `crossΛᴹ` — go through `⊢C-ren`, the transport of a frame derivation
 along a representation-only renaming, whose boundary case is
@@ -3206,8 +3390,8 @@ are the whole store bookkeeping.
 * §1 map bookkeeping.  `map-suc-ext`: renaming and the `Λ` shift
   commute on a name map.
 * §2 the frame judgement ignores the representation STORE beyond its
-  LENGTH: the refinement `abstR → bindR R` of a slot (`TyBeta`'s,
-  `TyPeelR-Λ`'s) transports every `⊢C` derivation, names untouched.
+  LENGTH: the refinement `abstR → bindR R` of a slot (`Nu-Λ`'s,
+  `Nu-⟪Λ⟫`'s) transports every `⊢C` derivation, names untouched.
 * §3 the frame judgement is functional.
 * §4 `Beta`'s substitution never moves a frame: boundary frames are
   term-closed and every other frame ignores its side terms.
@@ -3231,7 +3415,7 @@ are the whole store bookkeeping.
   where an allocation's payload must be known well formed
   (`step-alloc`, `same-wfᴿ`).  Two cases worth naming: the `Peel`
   argument moves VERBATIM — `dual-interior` says the dual's interior IS
-  the exterior the argument was already read at — and `TyPeelR-⟪⟫`'s
+  the exterior the argument was already read at — and `Nu-⟪⟫`'s
   inner boundary is the one mover left inside a redex, a SIBLING of the
   `Λ` slot the allocation consumes, so it takes exactly `suc`.
 * §9 THE THEOREM: compose the per-step equations along the run,
@@ -3334,7 +3518,10 @@ the CANONICAL FAMILY: it is a subtree, a re-spelling, or a mint of
 `reveal X B`, `conceal X B`, `mkId A`, or `unseal X`.  This file states
 that family as an inductive predicate, proves the four closure facts
 the rules need (MINT / DECOMPOSE / RENAME / RE-SPELL), lifts it to
-terms, and proves it PRESERVED BY REDUCTION (`canon-step`).
+terms, and proves it PRESERVED BY REDUCTION (`canon-step`) —
+UNCONDITIONALLY since 2026-09-24: before `ν`, `canon-step` and
+`canon-steps` took the hypothesis `CanonTyPeelR`, which is refuted, and
+the `Nu` rules removed the one mint that needed it.
 
 ### What the family says
 
@@ -3344,8 +3531,8 @@ leaf cites the SAME binder `X`, shifted under each `` `∀ `` exactly as
 `reveal`/`conceal` shift it).  The first half was a restatement of what
 the indexed typing judgement already forced, and it went with the index
 (Jeremy's ruling, § Conversion.agda / NO POLARITY): a mixed tree like
-`seal 0 ↦ seal 1` is now perfectly typeable, and `TyPeelR`'s contractum
-IS one.  The SECOND half is the content that survives, and it is what
+`seal 0 ↦ seal 1` is now perfectly typeable, and the retired
+`TyPeelR`'s contractum WAS one.  The SECOND half is the content that survives, and it is what
 `CanonAt X c` states.
 
 ### What the two universes add (2026-09-19)
@@ -3379,10 +3566,12 @@ is `suc X`, which is precisely the shift `reveal`/`conceal` perform on
 the `` `∀ `` case.
 
 `CanonC` is the term-level reading: a wrapper's conversion cites SOME
-single binder.  It has to be existential and it has to be single-name:
-`TyPeelR`'s minted conversion `instReveal 0 s` reads TWO binders in one
-wrapper — the conversion's own, and the one the instantiation just
-bound at slot 0 — which is exactly what `¬CanonTyPeelR` (§8) records.
+single binder.  It has to be existential, and single-name is what the
+`Nu` rules' STACKING keeps true: the retired `TyPeelR`'s minted
+conversion `instReveal 0 s` read TWO binders in one wrapper — the
+conversion's own, and the one the instantiation just bound at slot 0 —
+which is exactly what `¬CanonTyPeelR` (§8) records.  The `Nu` rules put
+the two in two different wrappers.
 
 `AllId` — the name-free members of the family: every leaf is an
 identity.  These are canonical at every name, and they are the ones a
@@ -3390,8 +3579,9 @@ re-spelling cannot read a name off.
 
 ### §2 — MINT
 
-(a) `TyBeta`'s conversion and its dual, by mutual induction on the type
-it is minted from — the same recursion `reveal`/`conceal` are defined
+(a) `reveal`/`conceal` — the conversion the compiler writes into a `ν`
+and `Nu-⟪⟫` writes into the one it pushes — by mutual induction on the
+type it is minted from — the same recursion `reveal`/`conceal` are defined
 by.  (b) `allId-mkId`: the identity at an arbitrary type — `CancelR`'s
 and `IdPush`'s residue — is the name-free half of the family.
 `canonC-unseal` is `IdPush`'s other mint: the pushed `unseal` at the
@@ -3402,16 +3592,15 @@ name the rule carries.
 `Peel` reads `s ↦ t` apart; the DOMAIN comes back at the SAME binder,
 and is then re-spelled onto the dual's name map (§5).
 
-`TyPeelR` reads `∀ s` apart — and then MINTS on the body
-(`instReveal 0`): the slot the `` `∀ `` left abstract is now the binder
-the rule introduces, so the conversion's identity leaves at that slot
-become the instantiation.  The decomposition itself only walks the name
-past the binder.
+`Nu-⟪Λ⟫`/`Nu-⟪⟫` read `∀ s` apart and move the body `s` VERBATIM into
+the middle layer (`canonC-all`): the decomposition only walks the name
+past the binder.  (The retired `TyPeelR` then MINTED on the body,
+`instReveal 0`, which is where the two-binder trees came from.)
 
 ### §4 — RENAME
 
 `renᴹ²` (hence the representation-only renamings `Peel` and
-`TyPeelR-⟪⟫` perform) renames the conversions it passes with its
+`Nu-⟪⟫` perform) renames the conversions it passes with its
 ORDINARY component.  The name moves with that renaming.
 
 ### §5 — RE-SPELL
@@ -3459,56 +3648,62 @@ value weakened in the REPRESENTATION universe only (§6).
 ### §8 — the invariant, rule by rule
 
 ```
-  TyBeta   MINTS `reveal 0 B` at the binder it just bound (name 0).
+  Nu-Λ     moves `ν`'s own conversion onto the new boundary — `ct-ν`
+           already made it canonical, and a compiled `ν`'s is
+           `reveal 0 C` (§9).
   Beta     substitutes — §7, wrappers are opaque to `substᵐ`.
   Peel     DECOMPOSES `s ↦ t` and RE-SPELLS the domain onto the dual's
            name map (§5); the argument is moved verbatim, which
            touches no conversion name.
-  TyPeelR-Λ / TyPeelR-⟪⟫
-           both DECOMPOSE `∀ s` and MINT `instReveal 0 s` on the body —
-           the ONE case that is not unconditional, because the mint
-           puts leaves at slot 0 ALONGSIDE the conversion's own, so the
-           result cites TWO binders; hence the hypothesis
-           `CanonTyPeelR`, which is REFUTED.  (This is NOT a leftover
-           of the polarity index: it survives the index's retirement,
-           for the two-binder reason.)  The Λ clause moves nothing; the
-           wrapper clause renames the moved boundary and appends an unbind
-           to its frame, which touches no conversion.
+  Nu-⟪Λ⟫ / Nu-⟪⟫
+           both DECOMPOSE `∀ s` and move the body VERBATIM into the
+           middle layer; `ν`'s own conversion is the outer layer.  The
+           Λ clause moves nothing; the wrapper clause renames the moved
+           boundary, appends an unbind to its frame and RE-SPELLS its
+           `∀ s′` as `∀ s″` (§5, at the moved boundary's own reading),
+           and its pushed `ν` MINTS `reveal 0 (⇑Bᵢ′)` (§2).  All
+           unconditional: no conversion cites two binders.
   CancelR  MINTS `mkId A′` and `mkId A` — name-free leaves of the family.
   IdPush   MINTS BOTH conversions: the pushed `unseal X′` (binder X′,
            which the rule carries) and the residue `mkId A`.
   Drop$ / Drop-true / Drop-false
            contract to a literal; no wrappers at all.
   ξ-*      structural; `ξ-⟪⟫` transports `Unique` through
-           `interior-unique`, and the wrapper `TyPeelR` case uses
+           `interior-unique`, and the `Nu-⟪⟫` case uses
            `unique-shift` before `interior-unique`.
 ```
 
-WHAT `TyPeelR`'S MINT OWES THE FAMILY, as a statement: `CanonTyPeelR`.
+WHAT THE RETIRED `TyPeelR`'S MINT OWED THE FAMILY, as a statement,
+kept as the record of the wall: `CanonTyPeelR`.
 IT FAILS on the `∀` conversion `` `∀ (id (` 0) ↦ seal 1) `` — a
 polymorphic ARGUMENT that crossed a `Peel`, `conceal 0 (∀Y. Y ⇒ X)`.
 That conversion cites the ONE binder `X` (slot 1 under the `` `∀ ``),
 but its mint `seal 0 ↦ seal 1` cites TWO: the binder `TyPeelR` just
-bound at slot 0 and the crossed boundary's at slot 1.  The mint TYPES
-(`proof/Preserve.agda`, `preserve-TyPeelR-Λ`; the tree was untypeable
-only under the retired index) — it is the SINGLE-BINDER reading that it
-leaves.
+bound at slot 0 and the crossed boundary's at slot 1.  The mint TYPED
+(it was `preserve-TyPeelR-Λ`'s case; the tree was untypeable only under
+the retired polarity index) — it is the SINGLE-BINDER reading that it
+left.  Under the `Nu` rules the same crossing stacks
+`⟪ …, id (` 0) ↦ seal 1 ⟫` under `ν`'s own `⟪ inst [] , c ⟫`: two
+wrappers, one binder each.
 
 ### §9 — sources
 
-Compilation from plain System F introduces no boundary at all: every
-wrapper in a reachable term was minted by a reduction step, so §8 is
-the whole story.  Stated for the record (`Plain`).
+Compilation from plain System F (`Compile.agda`) introduces no
+boundary at all, and every `ν` it writes carries `reveal 0 B`, which §2
+puts in the family: every wrapper in a reachable term was minted by a
+reduction step or is a `ν`'s reveal, so §8 is the whole story.  Stated
+for the record (`Plain`, with `pl-ν`; `canon-source`).
 
 ### §10 — the mint lemmas, on the ground
 
-`TyBeta`'s conversion at a function type is the `↦`-tree whose domain
+The compiler's `reveal` at a function type is the `↦`-tree whose domain
 is the DUAL family.  The wrapper frame-exact `Beta` mints at a crossed
 `Λ` is name-free.  And a TWO-BINDER tree — `seal` leaves at two
 different names — is outside the family, though (unlike under the
-retired polarity index) it is perfectly TYPEABLE: it is what `TyPeelR`
-mints, and the FRAMES, not a global index, are what keep the two
-binders apart.
+retired polarity index) it is perfectly TYPEABLE: it is what the
+retired `TyPeelR` minted, and the FRAMES, not a global index, are what
+keep the two binders apart — which is what the `Nu` rules' stacking
+does.
 
 ### Retired
 
@@ -3535,7 +3730,8 @@ position, up to
 
 * (i) the movement past the binders it CROSSED, and
 * (ii) refinement `abstR → bindR R` of a representation variable it
-  could ALREADY name (`TyBeta`'s reveal, `TyPeelR`'s `instReveal`).
+  could ALREADY name (the `Nu` rules' cell, which `ν`'s conversion
+  reveals).
 
 Any variable the subterm COULD NOT name before and CAN name after is a
 FRAME LEAK, even when the subterm's shifted indices cannot reach it:
@@ -3562,11 +3758,12 @@ every site but one.
   `Peel-frame-names` and `Peel-dual-numBinds` were about the bind block
   the dual's interior used to carry; the dual's interior is now the
   exterior ITSELF, so they are retired.
-* `TyPeelR-⟪⟫` moves its boundary by the UNIFORM SIBLING SHIFT
-  `renᴹᴿ suc` (§3), not by an `extN (numBinds Θ′) suc` computed from
-  the crossed scope; `TyPeelR-⟪⟫-move-ordinary` survives in the form
-  that still says something — a representation renaming leaves every
-  ordinary annotation in place.
+* `TyPeelR-⟪⟫` (today `Nu-⟪⟫`) moves its boundary by the UNIFORM
+  SIBLING SHIFT `renᴹᴿ suc` (§3), not by an `extN (numBinds Θ′) suc`
+  computed from the crossed scope; the old `TyPeelR-⟪⟫-move-ordinary`
+  survives, as `Nu-⟪⟫-move-ordinary` and `Nu-⟪⟫-move-conversion`, in
+  the form that still says something — a representation renaming leaves
+  every ordinary annotation and every conversion in place.
 * `CancelR` / `IdPush` (§6) keep both frame identities, now stated at
   the plain exterior.  `Move-outer-numBinds` / `Move-inner-numBinds`
   are retired with `numBinds`.
@@ -3581,8 +3778,8 @@ it holds definitionally at both `Alloc`s.
 ```
   §1  the site table
   §2  Peel                    — EXACT, by `dual-interior`; NO shift
-  §3  the two TyPeelR clauses — the Λ clause shifts nothing; the
-      wrapper clause is the sibling shift plus one appended unbind
+  §3  the three Nu rules     — Nu-Λ and Nu-⟪Λ⟫ shift nothing; Nu-⟪⟫
+      is the sibling shift plus one appended unbind
   §4  TERMINATION — the tower measure, and why the rejected repair
       (wrap the moved value in the new binder's dual) stalls on it
   §5  Beta                    — the `ƛ` and `Λ` crossings do not interfere
@@ -3606,10 +3803,10 @@ substituted (`grep renᴹ² renᴹᴿ wkᴹ ⇑ᴹ renⁿ shiftᵐ crossΛᴹ su
   RULES that move a subterm
     Peel        `W`, verbatim, inside the frame
                 `⟪ dual Θ , s′ ⟫`                        §2  EXACT
-    TyPeelR-Λ   `N ⟪ inst Θ , instReveal 0 s ⟫`           §3  EXACT
-    TyPeelR-⟪⟫  `renᴹᴿ suc` on the moved boundary, plus
+    Nu-⟪Λ⟫      `(N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫`       §3  refinement
+    Nu-⟪⟫       `renᴹᴿ suc` on the moved boundary, plus
                 `++ (unbind 0 0 ∷ [])` on its change list   §3  EXACT
-    TyBeta      `N ⟪ inst [] , reveal 0 B ⟫`              §3  refinement
+    Nu-Λ        `N ⟪ inst [] , c ⟫`                       §3  refinement
     Beta        `N [ W ∶ A ]ᵐ`, i.e. `substᵐ`/`crossΛᴹ`   §5  EXACT
     CancelR     `V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫`                §6  EXACT
     IdPush      `V ⟪ Θ₁ ++ Θ₂ , unseal X′ ⟫`               §6  EXACT
@@ -3632,22 +3829,32 @@ REMOVED.  Criterion (i) with nothing to cross: EXACT, and the rule
 carries `W` verbatim.  `Peel-no-alloc`: and `Peel` allocates nothing,
 so its siblings do not move either.
 
-### §3 — the two `TyPeelR` clauses, and `TyBeta`
+### §3 — the three `Nu` rules
 
-THE `Λ` CLAUSE MOVES NOTHING.  `N` already lives one `abstR` binder in
+`Nu-Λ` MOVES NOTHING.  `N` already lives one `abstR` binder in
 (`⊢Λ`), and the allocation REFINES that binder to `bindR R` in place
-while `inst Θ` restores its ordinary name at position 0 (the appended
-`bind 0 0`).  So the frame move is criterion (ii) and there is no
-renaming at all — the contractum mentions no `renᴹᴿ`.  `TyBeta` is the
-same refinement one `∀` out: the fresh cell is allocated at index 0 and
-`inst []` gives it ordinary name 0.
+while `inst []` gives it ordinary name 0 (`Nu-Λ-restores-name-0`).  So
+the frame move is criterion (ii) and there is no renaming at all — the
+contractum mentions no `renᴹᴿ`.
 
-THE WRAPPER CLAUSE.  The moved boundary crosses ONE freshly allocated
-cell and ONE fresh ordinary name for it, and its appended `unbind 0 0`
-DELETES that ordinary name again.  So the move is the plain SIBLING
-SHIFT — representation-only, `renᴹᴿ suc` — and the moved boundary's
-ordinary indices keep their positions.  That is the whole of the
-2026-09-08 repair, restated in the universe that now carries it.
+`Nu-⟪Λ⟫` IS THE SAME REFINEMENT ONE BOUNDARY IN, with the two layers
+STACKED: the outer `inst []` restores name 0, and the middle `liftᴮ Θ`
+is the crossed frame read under it.  Read inside out they are exactly
+the fused `inst Θ` the retired `TyPeelR-Λ` wrote —
+`Nu-⟪Λ⟫-stacks-to-inst : inst Θ ≡ liftᴮ Θ ++ inst []`, by `refl` — so
+`N`'s frame is the one it had under `TyPeelR-Λ`, and criterion (ii)
+again.  The crossed conversion moves verbatim and is read at the middle
+layer's conversion context, which is the crossed one refined.
+
+THE WRAPPER CLAUSE, `Nu-⟪⟫`.  The moved boundary crosses ONE freshly
+allocated cell and ONE fresh ordinary name for it, and its appended
+`unbind 0 0` DELETES that ordinary name again.  So the move is the
+plain SIBLING SHIFT — representation-only, `renᴹᴿ suc` — and the moved
+boundary's ordinary indices keep their positions.  That is the whole of
+the 2026-09-08 repair, restated in the universe that now carries it.  A
+`ν` the shift passes keeps its type argument and conversion
+(`Nu-⟪⟫-move-ordinary`), and so does a boundary
+(`Nu-⟪⟫-move-conversion`): both are read on their own scope.
 
 The appended unbind names ordinary position 0 and the cell the allocation
 just minted, which is representation index 0 — and it is APPENDED, so
@@ -3661,31 +3868,31 @@ it acts FIRST (the change list is read head-last).  Since
 The wrapper clause's contractum contains
 
 ```
-    (… ⟪ … ++ (unbind 0 0 ∷ []) , `∀ s″ ⟫) ·[ … , ` 0 ]
+    ν (` 0) · (… ⟪ … ++ (unbind 0 0 ∷ []) , `∀ s″ ⟫) ⟨ reveal 0 (⇑Bᵢ′) ⟩
 ```
 
-which IS again a redex.  It is not a regress, and the measure says why:
+under its two stacked layers, which IS again a redex.  It is not a regress, and the measure says why:
 the number of nested boundaries above the `Λ`.
 
 * `towerHeight-renᴹᴿ`: no renaming changes it — which is what makes the
   measure usable at all, since both candidate repairs rename the moved
   value.  `towerHeight-↑ᴹ`: and neither does the sibling shift, at
   either `Alloc`.
-* `TyPeelR-⟪⟫-height`: THE MEASURE STRICTLY DECREASES.  The ∀-value the
-  contractum's inner `·[]` instantiates is ONE BOUNDARY SHORTER than
-  the one the redex's `·[]` instantiated.
+* `Nu-⟪⟫-height`: THE MEASURE STRICTLY DECREASES.  The ∀-value the
+  contractum's pushed `ν` instantiates is ONE BOUNDARY SHORTER than
+  the one the redex's `ν` instantiated.
 * `fixA-height-stalls`: THE REJECTED REPAIR STALLS AT THE SAME MEASURE.
   Fix (a) — wrap the moved value in the new binder's dual, with an
   identity conversion at the value's own type — puts the ∀-value under
   a FRESH boundary, so the height is the redex's height again: nothing
   is consumed.  THIS is the difference between (a) and the installed
-  clause: `TyPeelR-⟪⟫` CONSUMES a boundary that was already there, (a)
+  clause: `Nu-⟪⟫` CONSUMES a boundary that was already there, (a)
   MINTS a new one.
 * `mkId-∀`: AND IT IS SELF-FEEDING.  An identity conversion at a `∀`
   type is NECESSARILY a `` `∀ `` conversion — `conv-id` wants a base
   type and `conv-idv` a variable, so `mkId` has no other spelling —
   hence the inserted layer is INERT `I-all`, hence the wrapped value
-  sitting under `·[ … ]` is ITSELF a `TyPeelR` redex.  Fix (a) does not
+  sitting under a `ν` is ITSELF a `Nu-⟪Λ⟫`/`Nu-⟪⟫` redex.  Fix (a) does not
   converge: it inserts one layer per step, forever.
 * `value-↑ᴹ`: values and inertness survive the renamings the rules
   perform, which is what makes fix (a)'s regress feed itself and what
@@ -3695,12 +3902,12 @@ the number of nested boundaries above the `Λ`.
   them for `⊢Λ`'s value premise.)
 * `canon-∀-height`: WHERE THE DESCENT STOPS.  A `∀`-value of tower
   height 0 is a `Λ` (`canon-∀` has no third shape), so once
-  `TyPeelR-⟪⟫` has consumed the tower it is `TyPeelR-Λ` that fires —
-  and `TyPeelR-Λ` neither renames nor unbinds anything (§3).  So the run
+  `Nu-⟪⟫` has consumed the tower it is `Nu-⟪Λ⟫` that fires —
+  and `Nu-⟪Λ⟫` neither renames nor unbinds anything (§3).  So the run
   is `height − 1` wrapper steps then one `Λ` step, and never more.
 * `progress-Λ-at-0` states that as the progress clause it decides,
   against the LIVE relation: at tower height 0 the step is
-  `TyPeelR-Λ`, which ALLOCATES the cell for the type argument's
+  `Nu-⟪Λ⟫`, which ALLOCATES the cell for the type argument's
   representation — the contractum is named, and so is the change.
 
 ### §5 — `Beta`, the two crossings do not interfere
@@ -3769,7 +3976,7 @@ the corresponding TYPING rule reads it on:
          context
 ```
 
-(`ξ-·-l`, `ξ-·-r`, `ξ-·[]` read their premise at `Δ` itself, and there
+(`ξ-·-l`, `ξ-·-r`, `ξ-ν` read their premise at `Δ` itself, and there
 is no `ξ-Λ`: `strong-rep-nu` never reduces under a type binder.)
 This is not an equation: `ξ-⟪⟫` CARRIES the interior reading, which is
 the same object `env` carries, so the two contexts are identified by

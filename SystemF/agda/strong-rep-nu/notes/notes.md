@@ -812,7 +812,7 @@ does not hide why the Agda carries relational witnesses.
 | `notes/ForallPayloadWall.agda`, `IdPush` | carry `X′` with `_⊢_≈_⊣_` | reindexing the pushed name | the name must be live at the inner and merged conversion contexts |
 | `notes/CancelRShiftWall.agda` (dissolved by the store, kept as a record) | carry `A′` from `Θ₁`'s own conversion context | the bind-prefix shift, which no longer exists (`no-shift`) | the type is still read at two different NAME MAPS, `Θ₁`'s and the merged one |
 | `notes/CrossingAudit.agda` and `notes/PeelPremise.agda` | carry `s′` with `SameConv` | reindexing the domain conversion across the dual | the original and dual conversion contexts remain different |
-| `notes/AddLock0Wall.agda` (against `TyPeelR-⟪⟫`; kept unported, not gated since 2026-09-24) | carry `s″` with `SameConv` in `Nu-⟪⟫` | reindexing through the new unbind and old binds | both conversion readings and the old context's representation-rebased view remain premises |
+| `strong-rep-store/notes/AddLock0Wall.agda` (against `TyPeelR-⟪⟫`; deleted here 2026-09-24) | carry `s″` with `SameConv` in `Nu-⟪⟫` | reindexing through the new unbind and old binds | both conversion readings and the old context's representation-rebased view remain premises |
 
 # Notes ↔ Agda correspondence
 
@@ -1060,7 +1060,7 @@ and the moved boundary take the **sibling shift** of the allocation:
 in scope in the interior because the outer `env` compares the inner
 package's type with `∀Bᵢ` across `Δᵢ`/`Δᶜ`.
 `notes/ForallPayloadWall.agda` shows why a fixed position for the
-inner body is wrong; `notes/AddLock0Wall.agda` (a record against the
+inner body is wrong; `strong-rep-store/notes/AddLock0Wall.agda` (a record against the
 pre-`ν` `TyPeelR-⟪⟫`, no longer gated) shows why the skipped unbind and
 old binds defeat every fixed conversion renaming.
 
@@ -1094,7 +1094,7 @@ names `Aᵢ` is in scope in the merged context because
 `Δ₁ᶜ ⊆ Δ⋉ᶜ` (`merged-conversion-exists`).  `notes/CancelRShiftWall.agda`
 records the wall and its dissolution — with the store there is no
 representation shift between the two readings at all (`no-shift`);
-`notes/CancelRReachabilityWitness.agda` reaches that case from source.
+`strong-rep-store/notes/CancelRReachabilityWitness.agda` reaches that case from source.
 
 ## IdPush
 

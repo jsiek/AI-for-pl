@@ -706,7 +706,7 @@ C-run = reaches-run C-eval
 
 -- The program that found the CancelR re-spelling defect and, after
 -- repair (a), the run that certifies the repaired rule (2026-09-19; the
--- before/after record is notes/CancelRReachabilityWitness.agda, the
+-- before/after record is strong-rep-store/notes/CancelRReachabilityWitness.agda, the
 -- defect notes/CancelRShiftWall.agda and notes/DECISIONS.md).  Two
 -- choices make it bite where §§1–7 do not: the argument's polymorphic
 -- type RETURNS the abstracted variable, so a bare `seal` leaf reaches a

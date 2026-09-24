@@ -5,7 +5,7 @@ have an example source program that reduces to the problematic
 configuration?"*
 
 **VERDICT: YES.** The witness is machine-checked in
-`notes/CancelRReachabilityWitness.agda` and is the FIRST candidate the
+`strong-rep-store/notes/CancelRReachabilityWitness.agda` and is the FIRST candidate the
 search built. Two controls confirm that it is the CONJUNCTION of the two
 conjuncts that breaks preservation, not either one alone.
 
@@ -206,7 +206,7 @@ the run COMPLETES — `Reaches 19 19 Src-⊢ ($ 7)`, every state type checked
 (`notes/CancelRReachabilityWitness.Src-eval`). The raw machine, which
 carries no typing and used to stick at 16 steps on a non-value identity
 tower, now agrees exactly: `rawLen 100 Src ≡ 19`, ending at `$ 7`
-(`notes/RawRunProbe.agda`). The two controls keep their counts, 9 and 17.
+(`strong-rep-store/notes/RawRunProbe.agda`). The two controls keep their counts, 9 and 17.
 
 > **Update (2026-09-23), the one-layer contractum.** `CancelR` and
 > `IdPush` no longer emit the outer `⟪ rewind Θ₂ , mkId Aₒ ⟫` layer, and

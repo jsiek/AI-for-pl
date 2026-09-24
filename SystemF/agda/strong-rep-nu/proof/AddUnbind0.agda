@@ -10,7 +10,7 @@ module strong-rep-nu.proof.AddUnbind0 where
 --     the appended `unbind 0 0` acts FIRST and deletes the fresh
 --     ordinary name) but NOT on the CONVERSION, because a conversion
 --     reading SKIPS unbinds — which is why the rule carries the moved
---     spelling `s′` with a `SameConv` (notes/AddLock0Wall.agda).
+--     spelling `s′` with a `SameConv` (strong-rep-store/notes/AddLock0Wall.agda).
 --   * Nothing is postulated: the retention `respell-⊢` consumes is the
 --     `keep` component of `snoc-unbind0-conversion-ren`.
 -- Commentary: Commentary.md § proof/AddUnbind0.agda

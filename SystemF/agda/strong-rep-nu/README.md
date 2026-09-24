@@ -67,8 +67,8 @@ What changed with it:
   dropped from `notes/All.agda` because their checked content is exact
   states of runs through the retired rules:
   `CancelRReachabilityWitness`, `RawRunProbe` and `AddLock0Wall`.  The
-  files are kept unported, and strong-rep-store holds their checked
-  versions.  `notes/All.agda` now gates seven of the ten wall and probe
+  files were then deleted here; strong-rep-store's `notes/` holds their
+  checked versions.  `notes/All.agda` gates the seven wall and probe
   modules listed below, plus `ColorPreservationProbe`.  `Show.agda`
   renders `ν` as `(ν X:=A · L ⟨ c ⟩)`, naming the cell `ν` will
   allocate and reading `c` under that name.
@@ -259,8 +259,8 @@ refutation:
 | `s′` | `Peel` | 2026-09-18 | `notes/CrossingAudit.agda`, `notes/PeelPremise.agda` |
 | `Bᵢ′` | `TyPeelR-⟪⟫` | 2026-09-18 | `notes/ForallPayloadWall.agda` |
 | `X′` | `IdPush` | 2026-09-18 | `notes/ForallPayloadWall.agda` |
-| `A′` | `CancelR` | 2026-09-19 | `notes/CancelRShiftWall.agda`, `notes/CancelRReachabilityWitness.agda` |
-| `s″` | `TyPeelR-⟪⟫` | 2026-09-20 | `notes/AddLock0Wall.agda` |
+| `A′` | `CancelR` | 2026-09-19 | `notes/CancelRShiftWall.agda`, `strong-rep-store/notes/CancelRReachabilityWitness.agda` |
+| `s″` | `TyPeelR-⟪⟫` | 2026-09-20 | `strong-rep-store/notes/AddLock0Wall.agda` |
 
 The sixth defect of the same reading discipline hit the **conversion
 context** itself rather than a spelling: a conversion reading skips
@@ -424,7 +424,7 @@ it.
 | `RedesignAdvice.md` | survey data → design advice; the four answers (central rep storage, keep simultaneity, use Conversion, definitional cancel) |
 | `RuleRepairs-TyPeelR-CancelR.md` | the proposed repairs to those two rules, before/after, run on the breaking examples |
 | `ShiftAudit.md` | **the shift audit, ARCHIVED** (Jeremy, 2026-09-08): the criterion, the site-by-site verdict table, the leak in detail with its witness, the four candidate fixes with their hazards, and the verdict — the `canon-∀` split, installed as `TyPeelR-Λ` / `TyPeelR-⟪⟫`.  The table is written against the bind-block calculus and its last two rows against the two-layer contractum, so the LIVE audit is `proof/ShiftAudit.agda`; this file is kept for the diagnosis and the rejected repairs |
-| `CancelRReachability.md` | is the `CancelR` defect REACHABLE from closed source?  Yes (2026-09-19) — the witness (`notes/CancelRReachabilityWitness.agda`), the two controls, and the repair path it settled |
+| `CancelRReachability.md` | is the `CancelR` defect REACHABLE from closed source?  Yes (2026-09-19) — the witness (`strong-rep-store/notes/CancelRReachabilityWitness.agda`), the two controls, and the repair path it settled |
 | `BoundaryRules.md` | the earlier decision memo on boundary-manipulation rules |
 | `DualLicenseDesign.md` | the dual-conceal licence of the first design, fully ruled |
 | `PreservationEndgame.md` | the preservation endgame plan of the first design |
@@ -438,12 +438,13 @@ it.
 
 `notes/` also holds the **checked wall and probe modules** — the
 machine-checked refutations and witnesses behind the repairs above.
-All ten are gated by `notes/All.agda`, which `All.agda` opens last, so
+All seven are gated by `notes/All.agda`, which `All.agda` opens last, so
 `make check` type-checks them with everything else:
 `ReUnlockWall`, `ForallPayloadWall`, `CrossingAudit`, `PeelPremise`,
-`CancelRReachabilityWitness`, `RawRunProbe`,
-`RepresentationVariablesProbe`, `RepWeakenBindsWall`, `AddLock0Wall`
-and `CancelRShiftWall`.  The index above lists the main notes, not
+`RepresentationVariablesProbe`, `RepWeakenBindsWall` and
+`CancelRShiftWall`.  (`CancelRReachabilityWitness`, `RawRunProbe` and
+`AddLock0Wall` pinned runs of the retired rules and live on in
+strong-rep-store's `notes/`.)  The index above lists the main notes, not
 every file in the directory.
 
 Three PDFs sit at the top level for the digests above:

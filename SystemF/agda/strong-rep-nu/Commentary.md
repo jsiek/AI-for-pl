@@ -893,14 +893,14 @@ after a machine-checked defect:
 | `s′`  | `Peel`       | `SameConv Δᵈ s′ Δᶜ s`        | 2026-09-18 | `notes/CrossingAudit.agda`, `notes/PeelPremise.agda` |
 | `Bᵢ′` | `Nu-⟪⟫`      | `≈` at the interior          | 2026-09-18 | `notes/ForallPayloadWall.agda` |
 | `X′`  | `IdPush`     | `≈` at the merged frame      | 2026-09-18 | `notes/ForallPayloadWall.agda` |
-| `A′`  | `CancelR`    | `≈` at Θ₁'s OWN conv. ctx    | 2026-09-19 | `notes/CancelRShiftWall.agda`, `notes/CancelRReachabilityWitness.agda`† |
-| `s″`  | `Nu-⟪⟫`      | `SameConv` at `underΛ Δ″ᶜ`   | 2026-09-20 | `notes/AddLock0Wall.agda`† |
+| `A′`  | `CancelR`    | `≈` at Θ₁'s OWN conv. ctx    | 2026-09-19 | `notes/CancelRShiftWall.agda`, `strong-rep-store/notes/CancelRReachabilityWitness.agda`† |
+| `s″`  | `Nu-⟪⟫`      | `SameConv` at `underΛ Δ″ᶜ`   | 2026-09-20 | `strong-rep-store/notes/AddLock0Wall.agda`† |
 
 (The dates are those of the pre-`ν` rules, `TyPeelR-⟪⟫` for the `Nu-⟪⟫`
-rows; both spellings moved to `Nu-⟪⟫` unchanged on 2026-09-24.  † kept
-unported and no longer gated by `notes/All.agda` since 2026-09-24:
-their checked content is exact states of runs through the retired
-rules, and strong-rep-store holds their checked versions.)
+rows; both spellings moved to `Nu-⟪⟫` unchanged on 2026-09-24.  † deleted
+from strong-rep-nu on 2026-09-24: their checked content is exact
+states of runs through the retired rules; the paths point at
+strong-rep-store's checked versions.)
 
 A sixth defect of the same reading discipline hit the CONVERSION
 CONTEXT itself rather than a spelling: a conversion reading skips
@@ -1179,7 +1179,7 @@ THE CONVERSION WALL AND REPAIR (2026-09-20, on `TyPeelR-⟪⟫`).  The
 conversion reading SKIPS unbinds.  Hence the new ordinary name survives
 there while every `bind X α` in `Θ′` inserts around it; where that name
 ends up depends on `Θ′`.  In the closed witness of
-`notes/AddLock0Wall.agda`, one `bind 0 0` displaces it to position one,
+`strong-rep-store/notes/AddLock0Wall.agda`, one `bind 0 0` displaces it to position one,
 so the old fixed `renᶜ (extᵗ suc) s′` points at the wrong representation
 and the third state loses its type.  No fixed renaming can be right for
 all `Θ′`.  (That witness runs through the retired rules; the module is
@@ -1275,7 +1275,7 @@ reading, the same lookup, the same re-spelling target.
 The wall is `notes/CancelRShiftWall.agda` (the incompatibility, and the
 OLD statement refuted against a local copy); the reachable closed
 witness and the measured before/after run are
-`notes/CancelRReachabilityWitness.agda`.  See `notes/DECISIONS.md`,
+`strong-rep-store/notes/CancelRReachabilityWitness.agda`.  See `notes/DECISIONS.md`,
 2026-09-19.
 
 ### `Drop$`, `Drop-true`, `Drop-false`
@@ -1859,7 +1859,7 @@ last one, `AddUnbind0Typing`, is proved by `proof/AddUnbind0.agda`'s
 
 ### The wall of 2026-09-20, and its repair
 
-`notes/AddLock0Wall.agda` refuted the OLD `AddUnbind0Typing` and, at the
+`strong-rep-store/notes/AddLock0Wall.agda` refuted the OLD `AddUnbind0Typing` and, at the
 same instance, `Preservation` and `Preservation*`: a closed, plain
 System F program — no hand-written boundary — lost its type three steps
 in, at `TyPeelR-⟪⟫` (today `Nu-⟪⟫`, which inherited the repair; the
@@ -1953,12 +1953,12 @@ must be.
 PRESERVATION BECAME UNCONDITIONAL ON 2026-09-20, in three steps of the
 same day: `RepWeakenTyping` was proved, making `PeelCase`
 unconditional; `CrossΛTyping` was proved, making `Beta` unconditional;
-and `AddUnbind0Typing`, which `notes/AddLock0Wall.agda` had REFUTED that
+and `AddUnbind0Typing`, which `strong-rep-store/notes/AddLock0Wall.agda` had REFUTED that
 morning, was answered by the RULE repair Jeremy approved (the moved
 conversion is NAMED and pinned by `SameConv`) and then PROVED on the
 reshaped statement.  That was the second rule defect of the shape
 `CancelRCase`'s had (refuted by `notes/CancelRShiftWall.agda`, reached
-from source by `notes/CancelRReachabilityWitness.agda`, repaired by
+from source by `strong-rep-store/notes/CancelRReachabilityWitness.agda`, repaired by
 Jeremy's repair (a) on 2026-09-19 and proved).  The final progress
 obligation, `MergedReading`, was proved on 2026-09-21.
 
@@ -2670,7 +2670,7 @@ bind-block offset to compute, since a boundary carries no binds any
 more.  The moved conversion is still NAMED (`s′`) and pinned by a
 `SameConv` against the old conversion context viewed through the
 representation renaming the allocation makes (`renNameCtx suc`) — that
-was the 2026-09-20 repair (`notes/AddLock0Wall.agda`), and it stays.
+was the 2026-09-20 repair (`strong-rep-store/notes/AddLock0Wall.agda`), and it stays.
 
 PROVED in `proof/AddUnbind0.agda`'s `addUnbind0-⊢`: the `env`-to-`env`
 transport across one allocated cell and one fresh ordinary name.  The
@@ -2718,7 +2718,7 @@ HERE because their proofs import this module.  `Preservation.agda`
 plugs in every implementation and exposes NO public parameter at all.
 Until 2026-09-20 `AddUnbind0Typing` was REFUTED and `Impl.preserve` a
 conditional theorem with a false hypothesis; the `TyPeelR-⟪⟫` repair
-installed that day reshaped it (`notes/AddLock0Wall.agda`), and
+installed that day reshaped it (`strong-rep-store/notes/AddLock0Wall.agda`), and
 `proof/AddUnbind0.addUnbind0-⊢` proved the reshaped statement, which made
 preservation UNCONDITIONAL.
 
@@ -2729,7 +2729,7 @@ preservation UNCONDITIONAL.
                  `proof/AddUnbind0.addUnbind0-⊢`.  The old statement fixed
                  the moved conversion at `renᶜ (extᵗ suc) s` and was
                  REFUTED from a closed, plain source program
-                 (`notes/AddLock0Wall.agda`, which keeps that statement
+                 (`strong-rep-store/notes/AddLock0Wall.agda`, which keeps that statement
                  locally and still refutes it).
   PeelCase       PROVED UNCONDITIONALLY (2026-09-20), and SHRUNK by the
                  store (2026-09-22) — `proof/PeelDual.agda`.  The
@@ -2856,7 +2856,7 @@ appended unbind acts FIRST in the interior reading and deletes the fresh
 ordinary name before any of Θ's own changes run.  It is NOT
 representation-only on the CONVERSION, because a conversion reading
 SKIPS unbinds: the fresh name survives there and Θ's own binds displace
-it.  That is the content of `notes/AddLock0Wall.agda`, and it is why
+it.  That is the content of `strong-rep-store/notes/AddLock0Wall.agda`, and it is why
 the rule carries the moved spelling `s′` with a `SameConv` instead of
 renaming for it.
 
@@ -3095,7 +3095,7 @@ that `A′` denotes the SAME representation as `A`, where the inner
 `env`'s bind-prefix comparison demanded a shift of it (history: the
 premise was `SameTyExt (numBinds Θ₁)`).  That was refuted at a
 reachable redex (`notes/CancelRShiftWall.agda`,
-`notes/CancelRReachabilityWitness.agda`).  The repaired premise reads
+`strong-rep-store/notes/CancelRReachabilityWitness.agda`).  The repaired premise reads
 the cancelled `seal X`'s OWN source `Aᵢ` at Θ₁'s conversion context
 `Δ₁ᶜ`.
 

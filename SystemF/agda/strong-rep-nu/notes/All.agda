@@ -18,8 +18,8 @@ open import strong-rep-nu.notes.CancelRShiftWall
 -- wall records whose checked content is exact states of runs through the
 -- retired `·[]`/TyBeta/TyPeelR rules — notes/CancelRReachabilityWitness,
 -- notes/RawRunProbe (which runs that witness's program) and
--- notes/AddLock0Wall.  The files are kept unported; strong-rep-store
--- holds their checked versions.  The CancelR witness program itself
+-- notes/AddLock0Wall.  The files were DELETED here; strong-rep-store's
+-- notes/ holds their checked versions.  The CancelR witness program itself
 -- still runs green as strong-rep-nu.Examples §8 `S`.
 
 -- COLOR PRESERVATION on one run (2026-09-21): the statement layer of

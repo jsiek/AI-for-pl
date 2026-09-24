@@ -3723,7 +3723,7 @@ THE RULING: STILL NOTHING IS CHANGED.  `strong-rep-nu.Reduction` is untouched,
 `strong-rep-nu.proof.Preserve` keeps `CancelRCase` as the open parameter it was,
 and the public preservation and type-safety theorems stay conditional on a
 hypothesis now known false FOR A REACHABLE REDEX rather than only for a
-hand-built one.  The evidence is `notes/CancelRReachabilityWitness.agda`
+hand-built one.  The evidence is `strong-rep-store/notes/CancelRReachabilityWitness.agda`
 (in `All.agda`, which stays green) with the hunt log in
 `notes/CancelRReachability.md`.
 
@@ -3785,7 +3785,7 @@ re-spell against `Δ₁ᶜ` too.  `CancelR` was the one crossing repaired
 PREVENTIVELY (2026-09-18), against no failing program — and it was
 repaired against the wrong context.
 
-THE MEASURED RUN.  `notes/CancelRReachabilityWitness.agda`'s `Src` —
+THE MEASURED RUN.  `strong-rep-store/notes/CancelRReachabilityWitness.agda`'s `Src` —
 closed, plain System F, no boundary in the source — is unchanged.  Its
 first nine steps are unchanged.  Step 10 now mints `mkId (` 2)` on the
 inner layer where it minted `mkId (` 1)`, pinned by
@@ -3798,7 +3798,7 @@ and the run COMPLETES:
 
 nineteen steps, every state type checked at `ℕ`.  The tail past the
 repaired `CancelR` is three `IdPush`es, a second `CancelR`, and the
-`Drop$` tower.  `notes/RawRunProbe.agda` checks the same thing without the
+`Drop$` tower.  `strong-rep-store/notes/RawRunProbe.agda` checks the same thing without the
 type checker in the loop: `rawLen 100 Src ≡ 19` ending at `$ 7`, where the
 pre-repair raw machine stuck after SIXTEEN steps at a non-value identity
 tower — an `id ℕ` boundary over a wrapper claiming type X.  The raw and
@@ -3846,12 +3846,12 @@ runs, the `Δ*` configuration and the redex typing are untouched, and a new
 and its contractum is retyped by `preserve-CancelR` itself.  Only the old
 rule's `step*` had to go, since its constructor no longer exists.  The
 wall module now sits BELOW the proof scripts in `All.agda` for that
-reason.  `notes/CancelRReachabilityWitness.agda` becomes the before/after
+reason.  `strong-rep-store/notes/CancelRReachabilityWitness.agda` becomes the before/after
 record: the before half is prose (its equations were about a constructor
 that is gone), the after half is `Src-eval` plus the pinned state-9 redex,
 the pinned state-10 contractum, the six contexts the run builds, both
 conjuncts, and the repaired premises assembled into an actual `CancelR`
-step.  `notes/RawRunProbe.agda` is KEPT as a separate module rather than
+step.  `strong-rep-store/notes/RawRunProbe.agda` is KEPT as a separate module rather than
 folded in, because it checks something the witness cannot: `eval` refuses
 to continue past an ill-typed state, so its count is partly a statement
 about the checker, while the raw step function carries no typing at all.
@@ -4091,7 +4091,7 @@ Jeremy's instruction was "now prove AddUnbind0Typing, same approach, though
 consider decomposing into simpler and more general lemmas".  The
 decomposition is right and two of its three parts hold; the third does
 not, and it is the RULE that is wrong, not the statement's premises.  The
-wall is `notes/AddLock0Wall.agda`, and it is reached from a CLOSED, PLAIN
+wall is `strong-rep-store/notes/AddLock0Wall.agda`, and it is reached from a CLOSED, PLAIN
 System F program.
 
 THE DECOMPOSITION, AS PLANNED.  The move has three orthogonal parts.
@@ -4276,7 +4276,7 @@ Its third state is the state the wall refutes with ONE conversion leaf
 changed — `seal 1 ↦ unseal 1` where the old rule wrote
 `seal 2 ↦ unseal 2`; the frames are identical.  Here the correct
 re-spelling is the IDENTITY, which is precisely what no fixed renaming
-delivers.  `notes/AddLock0Wall.agda` checks all of that
+delivers.  `strong-rep-store/notes/AddLock0Wall.agda` checks all of that
 (`repaired-state`, `good≢bad`), keeps the retired statement as a LOCAL
 `AddUnbind0Typing°` and still refutes THAT, and states no refutation of
 anything live.
@@ -4527,9 +4527,9 @@ resolve through this map:
 
 Comments elsewhere that cited the suite by module name or run number were
 retargeted: `Reduction.agda`, `Boundary.agda`, `proof/Progress.agda`,
-`proof/Preserve.agda`, `notes/AddLock0Wall.agda`,
+`proof/Preserve.agda`, `strong-rep-store/notes/AddLock0Wall.agda`,
 `notes/ForallPayloadWall.agda`, `notes/ReUnlockWall.agda`,
-`notes/CrossingAudit.agda`, `notes/CancelRReachabilityWitness.agda`,
+`notes/CrossingAudit.agda`, `strong-rep-store/notes/CancelRReachabilityWitness.agda`,
 `notes/PLAN.md`, `notes/CancelRReachability.md`. Dated entries above keep
 the old names: they describe the past. `notes/All.agda` lost the import;
 `strong-rep-nu.All` already reached `strong-rep-nu.Examples`, so the checked set loses
@@ -4793,9 +4793,9 @@ binders inside it (`no-shift`, one line) — so the shift the old premise
 dropped does not exist and the old premise and the repaired one have the
 same witness on the very configuration that raised the wall.  The
 repaired premise stays, for the reason `_⊢_≈_⊣_` has always existed: two
-different NAME MAPS, which `notes/CancelRReachabilityWitness.agda` still
+different NAME MAPS, which `strong-rep-store/notes/CancelRReachabilityWitness.agda` still
 exhibits at a reachable redex (19 steps, unchanged).
-`notes/AddLock0Wall.agda` is UNTOUCHED in substance — its defect was
+`strong-rep-store/notes/AddLock0Wall.agda` is UNTOUCHED in substance — its defect was
 always in the CONVERSION reading, a name-map fact — and its run is still
 `Reaches 8 8`.  `notes/RepWeakenBindsWall.agda` keeps its refutation with
 LOCAL copies of the retired bind-block machinery.
@@ -4890,8 +4890,8 @@ that one determines the identity it still mints.
 | §5a `E`   | 28 | 19 | | | | |
 
 (`§1b K` at 9 and `§10 Bg` at 7 are unchanged — neither reaches one of
-the two rules.)  `notes/CancelRReachabilityWitness.agda` runs in 14 with
-controls at 8 and 13, and `notes/RawRunProbe.agda` agrees at 14.
+the two rules.)  `strong-rep-store/notes/CancelRReachabilityWitness.agda` runs in 14 with
+controls at 8 and 13, and `strong-rep-store/notes/RawRunProbe.agda` agrees at 14.
 
 The shape of the change is clearest in `Examples.agda` §9c, a stack of
 two transparent layers over a cancel pair:
@@ -4951,7 +4951,7 @@ locks" are "Θ's unbinds".  The displayed notation of `notes/notes.md` and
 
 WHAT KEPT ITS OLD NAME, and why.  Two note modules are date-stamped
 records of walls and are cited by name throughout this log, so their
-FILENAMES stand: `notes/AddLock0Wall.agda` and `notes/ReUnlockWall.agda`.
+FILENAMES stand: `strong-rep-store/notes/AddLock0Wall.agda` and `notes/ReUnlockWall.agda`.
 Each now opens with a comment saying so.  The retired masked-entry
 design's "lock bit" (`unmasked b` / `masked b`, `SystemF/agda/strong/`)
 also keeps its name: it is a bit on a slot, not a `Change`.  And
@@ -5047,7 +5047,8 @@ K 9→11, J 10→12, G 13→16, H 9→11, E 19→30, V 24→49, I 9→12, N 16�
 C 22→33, S 14→16 steps.  Three wall records whose checked content is
 exact states of runs through the retired rules left `notes/All.agda`:
 `CancelRReachabilityWitness`, `RawRunProbe` and `AddLock0Wall`.  The
-files are kept unported; strong-rep-store holds their checked versions,
+files were kept unported at first and then DELETED the same day (Jeremy);
+strong-rep-store holds their checked versions,
 and the CancelR witness program still runs green as `Examples.agda` §8
 `S`.
 

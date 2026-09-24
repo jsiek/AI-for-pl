@@ -1424,7 +1424,7 @@ is not a barrier to reduction; it is a barrier to *naming*.
 
 A source program that wants to compute under a type binder writes a
 dummy `λ` there and eliminates it after instantiating (the `Examples`
-§2/§3/§5/§7c/§10 programs and `notes/AddLock0Wall.agda` do this):
+§2/§3/§5/§7c/§10 programs and `strong-rep-store/notes/AddLock0Wall.agda` do this):
 
     (ΛX. λy:ℕ. ((λx:ℕ. 1) · 2)) [ℕ] · 0
       →  ((λy:ℕ. ((λx:ℕ. 1) · 2)) ⟪ ↑X:=ℕ , id ℕ ↦ id ℕ ⟫) · 0

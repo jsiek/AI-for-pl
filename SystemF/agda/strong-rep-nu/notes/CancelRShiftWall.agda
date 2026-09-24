@@ -30,7 +30,7 @@ module strong-rep-nu.notes.CancelRShiftWall where
 -- They agree only because typing forces `X` and `Y` to name the same
 -- cell (`cancel-name`, proof/IdLayer), which a REDUCTION rule may not
 -- invert.  The reachable version of this configuration is
--- notes/CancelRReachabilityWitness.agda, nine steps from a closed plain
+-- strong-rep-store/notes/CancelRReachabilityWitness.agda, nine steps from a closed plain
 -- System F program.
 --
 -- WHAT SURVIVES HERE, all still machine-checked: the `Δ*` configuration
@@ -72,7 +72,7 @@ module strong-rep-nu.notes.CancelRShiftWall where
 -- minted by `Peel` on the crossing argument, whose frame is
 -- `dual Θ`.  That hope was wrong: `Peel` mints TWO boundaries
 -- and only the ARGUMENT's carries the dual, so
--- `notes/CancelRReachabilityWitness.agda` reaches this configuration in
+-- `strong-rep-store/notes/CancelRReachabilityWitness.agda` reaches this configuration in
 -- nine steps from a closed, plain source program.  Path (b) is closed;
 -- path (a) — carry the premise at Θ₁'s own conversion context — is what
 -- Jeremy approved and what §6 checks here.

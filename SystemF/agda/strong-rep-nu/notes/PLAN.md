@@ -240,7 +240,7 @@ Testing has found and repaired these errors:
    preservation case `CancelRCase` is PROVED,
    `proof/MoveScope.agda` `preserve-CancelR`. See `notes/DECISIONS.md`
    (2026-09-19), `notes/CancelRShiftWall.agda`,
-   `notes/CancelRReachabilityWitness.agda`.
+   `strong-rep-store/notes/CancelRReachabilityWitness.agda`.
 
 `TypeCheck.agda` is an executable, derivation-producing type checker for the
 whole development: decidable equality on types, the two contexts a boundary
@@ -342,7 +342,7 @@ stage 2 (item 2) has now discharged ALL THREE of its crossing cases.
 cancelled inner boundary binds a representation variable and the cancelled
 binder's payload is open (notes/CancelRShiftWall.agda), a configuration
 REACHABLE from a closed, plain source program
-(notes/CancelRReachabilityWitness.agda). Jeremy approved repair (a) on
+(strong-rep-store/notes/CancelRReachabilityWitness.agda). Jeremy approved repair (a) on
 2026-09-19, it is installed in `Reduction.agda`, and the preservation case
 it generates is proved in `proof/MoveScope.agda`. Canonical
 forms now pass against the relational `env` interface as well. Stage-1
@@ -413,7 +413,7 @@ enough to displace it. The moved conversion then read the NEW binder —
 the type argument's representation — instead of the binder it named, and
 `env`'s `SameTyExt` refused the result.
 
-Machine-checked in `notes/AddLock0Wall.agda`, from a CLOSED, PLAIN System
+Machine-checked in `strong-rep-store/notes/AddLock0Wall.agda`, from a CLOSED, PLAIN System
 F program with no hand-written boundary,
 
     (λf : ∀X. ℕ⇒ℕ. ΛX. f [𝔹]) · ((ΛY. ΛZ. λx:Y. x) [ℕ])
@@ -441,7 +441,7 @@ The old conversion context is read through `renNameCtx`, i.e. through the
 REPRESENTATION renaming the inserted binder makes; without that view, §6b
 of `Examples.agda` loses its type at step 8 (measured). The wall program now runs to a VALUE in four steps with every
 state typed (`Src-eval : Reaches 4 4 Src-⊢ Dst`), and
-`notes/AddLock0Wall.agda` keeps the retired statement as a LOCAL
+`strong-rep-store/notes/AddLock0Wall.agda` keeps the retired statement as a LOCAL
 `AddUnbind0Typing°` and still refutes that.
 
 `Examples.agda`'s runs keep their step counts and endpoints across the
@@ -578,7 +578,7 @@ items remain below as the implementation record.
 
    The version this replaced fixed the moved conversion at
    `` `∀ (renᶜ (extᵗ suc) s) ``, and THAT is the one
-   `notes/AddLock0Wall.agda` refutes (as a local `AddUnbind0Typing°`).
+   `strong-rep-store/notes/AddLock0Wall.agda` refutes (as a local `AddUnbind0Typing°`).
 
    On the Beta redex `( ƛ A ∙ N) · W`, `CrossΛTyping` types each
    substituted image when it crosses a `Λ`. On the nested TyPeelR redex,
@@ -601,7 +601,7 @@ items remain below as the implementation record.
    the `TyPeelR-⟪⟫` rule and preservation itself; the rule was repaired,
    the statement reshaped, and the reshaped statement PROVED, all on
    2026-09-20 (`proof/AddUnbind0.agda`). See the status section above and
-   `notes/AddLock0Wall.agda`.
+   `strong-rep-store/notes/AddLock0Wall.agda`.
 2. Preservation for `Peel`. The RULE repair is INSTALLED (2026-09-18):
    `Peel` names the dual's spelling `s′` and carries
    `SameConv Δᵈ s′ Δᶜ s`, with the boundary scope's two readings, the dual's
@@ -754,7 +754,7 @@ items remain below as the implementation record.
      `numBinds Θ₁ + αY` and `∋ʳ-push` reads Y's payload through Θ₁'s bind
      block already shifted. One new inversion, `bindR-inj`. See
      `notes/DECISIONS.md` (2026-09-19),
-     `notes/CancelRReachabilityWitness.agda` and
+     `strong-rep-store/notes/CancelRReachabilityWitness.agda` and
      `notes/CancelRReachability.md`.
 
    Consequently `strong-rep-nu.Preservation` HAS NO `Stage1` MODULE at all —
@@ -829,7 +829,7 @@ items remain below as the implementation record.
    proved on 2026-09-20), or was REFUTED and
    then REPAIRED AND PROVED (`TyPeelR-⟪⟫`'s moved conversion re-spelled by
    a FIXED `renᶜ suc` where the conversion reading skips the appended unbind
-   — `notes/AddLock0Wall.agda`, the fifth crossing defect; the moved
+   — `strong-rep-store/notes/AddLock0Wall.agda`, the fifth crossing defect; the moved
    conversion is now NAMED and pinned by `SameConv`, installed 2026-09-20,
    and `proof/AddUnbind0.agda` proves the case it generates;
    `CancelR`'s inner `mkId` read its type UNSHIFTED where

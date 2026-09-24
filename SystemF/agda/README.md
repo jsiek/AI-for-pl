@@ -2,17 +2,20 @@ This directory contains several versions of System F.
 
 # extrinsic
 
-Standard System F.
+Standard System F. The metatheory includes proofs of type safety and
+parametricity.
 
 # curry
 
 No type annotations on lambda and type application.  We proved
 parametricity first for this version because it was much simpler.
+The metatheory also includes a proof of type safety.
      
 # intrinsic
 
-Standard System F with intrinsic typing. The proof of parametricity is
-stalled.
+Standard System F with intrinsic typing. Type preservation is built
+in. The progress lemma has not been proved. The proof of parametricity
+is stalled.
 
 # strong
 
@@ -36,11 +39,11 @@ change: the VALUE RESTRICTION on type abstraction — `⊢Λ` requires the
 body to be a value and the congruence `ξ-Λ` is removed, so nothing
 reduces under a type binder.  Everything else is strong-rep-var's; the
 whole development, examples included, checks.  See the first section of
-strong-rep-store/README.md.
+strong-rep-store/README.md. Type safety is proved.
 
 # strong-rep-nu
 
 A variant of strong-rep-store (2026-09-24) exploring a GTPLC-style `ν`
 term with a Conversion in place of a coercion: type application
 elaborates to `ν`, moving `TyBeta`'s reveal to compile time.  See
-strong-rep-nu/notes/NuSketch.md.
+strong-rep-nu/notes/notes.md. Type safety is proved.

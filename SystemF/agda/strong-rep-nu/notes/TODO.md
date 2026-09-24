@@ -4,5 +4,5 @@
 
   - 2026-09-24: DONE for the identifiers (`respell*` → `weaken*`) and the
     verb family ("re-spell(ed/s/ing)" → "weaken(ed/s/ing)"), 657cd4c8.
-    OPEN: the noun "spelling" / "spelled" (≈230 uses) needs a
-    replacement word; notes/old/ left as history.
+    The noun "spelling" / "spelled" (≈230 uses) is a SEPARATE issue,
+    deferred by Jeremy (2026-09-24); notes/old/ left as history.

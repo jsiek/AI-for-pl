@@ -233,36 +233,36 @@ module Impl where
 
   -- The outer conversion's `_⊢_≈_⊣_` premise exposes the interior ∀
   -- body and
-  -- is exactly TyPeelR-⟪⟫'s re-spelling premise.
-  progress-·[]-∀conv : ∀ {Δ V Θ s B A C}
+  -- is exactly Nu-⟪⟫'s re-spelling premise.
+  progress-ν-∀conv : ∀ {Δ V Θ s c A C}
     → Value V
-    → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
+    → Δ ∣ [] ⊢ ν A · (V ⟪ Θ , `∀ s ⟫) ⟨ c ⟩ ⦂ C
     → Σ[ M ∈ Term ] Σ[ δ ∈ Alloc ]
-        (Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] -→ M ∣ δ)
-  progress-·[]-∀conv v
-    (⊢·[] (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) wA)
+        (Δ ⊢ ν A · (V ⟪ Θ , `∀ s ⟫) ⟨ c ⟩ -→ M ∣ δ)
+  progress-ν-∀conv v
+    (⊢ν wA rA (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) mwν ⊢cν sameν wB)
     with conv-all-inv ⊢c
-  progress-·[]-∀conv v
-    (⊢·[] (env {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
-                mwΘ ⊢V ⊢c sameᵢ sameₑ wE) wA)
+  progress-ν-∀conv v
+    (⊢ν wA rA (env {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+                mwΘ ⊢V ⊢c sameᵢ sameₑ wE) mwν ⊢cν sameν wB)
     | A₀ , B₀ , refl , eqₑ , ⊢s
     with sameTy-target-∀⁻ {Δ = Δᵢ} {Δ′ = Δᶜ} sameᵢ
-  progress-·[]-∀conv v
-    (⊢·[] (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) wA)
+  progress-ν-∀conv v
+    (⊢ν wA rA (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) mwν ⊢cν sameν wB)
     | A₀ , B₀ , refl , eqₑ , ⊢s | D , refl , sameD
-    with canon-∀ v ⊢V | wf-same wA
-  progress-·[]-∀conv v
-    (⊢·[] (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) wA)
+    with canon-∀ v ⊢V
+  progress-ν-∀conv v
+    (⊢ν wA rA (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) mwν ⊢cν sameν wB)
     | A₀ , B₀ , refl , eqₑ , ⊢s | D , refl , sameD
-    | inj₁ (N , vN , refl) | R , p =
-    _ , _ , TyPeelR-Λ vN (bw-conversion mwΘ) ⊢s p
-  progress-·[]-∀conv v
-    (⊢·[] (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) wA)
+    | inj₁ (N , vN , refl) =
+    _ , _ , Nu-⟪Λ⟫ vN (bw-conversion mwΘ) ⊢s rA
+  progress-ν-∀conv v
+    (⊢ν wA rA (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) mwν ⊢cν sameν wB)
     | A₀ , B₀ , refl , eqₑ , ⊢s | D , refl , sameD
-    | inj₂ (W , Θ′ , s′ , vW , refl) | R , p =
-    tyPeelR-⟪⟫ vW mwΘ ⊢V ⊢s sameD p
+    | inj₂ (W , Θ′ , s′ , vW , refl) =
+    nu-⟪⟫ vW mwΘ ⊢V ⊢s sameD rA
     where
-    tyPeelR-⟪⟫ : ∀ {Δ Δᵢ Δᶜ W Θ′ s′ Θ s B A R Bᵢ Bᵢ′ Bₑ}
+    nu-⟪⟫ : ∀ {Δ Δᵢ Δᶜ W Θ′ s′ Θ s c A R Bᵢ Bᵢ′ Bₑ}
       → Value W
       → BoundaryWf Δ Θ Δᵢ Δᶜ
       → Δᵢ ∣ [] ⊢ W ⟪ Θ′ , `∀ s′ ⟫ ⦂ `∀ Bᵢ′
@@ -270,37 +270,37 @@ module Impl where
       → underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ
       → names Δ ⊢ A ~ R
       → Σ[ M ∈ Term ] Σ[ δ ∈ Alloc ]
-          (Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ] -→ M ∣ δ)
+          (Δ ⊢ ν A · ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ⟨ c ⟩ -→ M ∣ δ)
     -- THE MOVED READING IS REPRESENTATION-SHIFTED FIRST, and only
     -- then respelled into the moved boundary's own context.  Doing the
     -- respell first — the 2026-09-20 dead end — leaves the reading in
     -- the unrenamed map.
     -- Commentary.md § proof/Progress.agda / §4
-    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
+    nu-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
       (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
       ⊢s sameD p
       with addUnbind0-reading mwΘ mw′ p
-    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
+    nu-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
       (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
       ⊢s sameD p
       | Δ″ᶜ , r″ , keep with readable ⊢s′
-    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
+    nu-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
       (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
       ⊢s sameD p
       | Δ″ᶜ , r″ , keep | r , rd
       with sameᶜ-cast
              (names-underΛ-ren suc (names Δ′ᶜ))
              (sameᶜ-ren (extᵗ suc) rd)
-    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
+    nu-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
       (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
       ⊢s sameD p
       | Δ″ᶜ , r″ , keep | r , rd | rdᴿ
       with respell (⊆ᵃ-underΛ keep) rdᴿ
-    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
+    nu-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
       (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
       ⊢s sameD p
       | Δ″ᶜ , r″ , keep | r , rd | rdᴿ | s″ , rd″ =
-      _ , _ , TyPeelR-⟪⟫ vW (bw-interior mwΘ) (bw-conversion mwΘ)
+      _ , _ , Nu-⟪⟫ vW (bw-interior mwΘ) (bw-conversion mwΘ)
             (bw-conversion mw′) (inst-interior (bw-interior mwΘ))
             r″ (_ , rd″ , rdᴿ) ⊢s sameD p
 
@@ -329,17 +329,15 @@ module Impl where
   progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₁ vM
     | inj₂ (W , Θ , s , t , vW , refl) =
     inj₂ (progress-peel vW vM ⊢L)
-  progress (⊢·[] ⊢L wA) with progress ⊢L
-  progress (⊢·[] ⊢L wA) | inj₂ (L′ , δ , st) =
-    inj₂ (L′ ·[ _ , _ ] , δ , ξ-·[] st)
-  progress (⊢·[] ⊢L wA) | inj₁ vL with canon-∀ vL ⊢L
-  progress (⊢·[] ⊢L wA) | inj₁ vL | inj₁ (N , vN , refl)
-    with wf-same wA
-  progress (⊢·[] ⊢L wA) | inj₁ vL | inj₁ (N , vN , refl)
-    | R , p = inj₂ (_ , _ , TyBeta vN p)
-  progress (⊢·[] ⊢L wA) | inj₁ vL
+  progress (⊢ν wA rA ⊢L mw ⊢c same wB) with progress ⊢L
+  progress (⊢ν wA rA ⊢L mw ⊢c same wB) | inj₂ (L′ , δ , st) =
+    inj₂ (ν _ · L′ ⟨ _ ⟩ , δ , ξ-ν st)
+  progress (⊢ν wA rA ⊢L mw ⊢c same wB) | inj₁ vL with canon-∀ vL ⊢L
+  progress (⊢ν wA rA ⊢L mw ⊢c same wB) | inj₁ vL
+    | inj₁ (N , vN , refl) = inj₂ (_ , _ , Nu-Λ vN rA)
+  progress (⊢ν wA rA ⊢L mw ⊢c same wB) | inj₁ vL
     | inj₂ (W , Θ , s , vW , refl) =
-    inj₂ (progress-·[]-∀conv vW (⊢·[] ⊢L wA))
+    inj₂ (progress-ν-∀conv vW (⊢ν wA rA ⊢L mw ⊢c same wB))
   progress (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) with progress ⊢M
   progress (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | inj₂ (M′ , δ , st) =
     inj₂ (M′ ⟪ ↑ᴮ[ δ ] _ , _ ⟫ , δ , ξ-⟪⟫ (bw-interior mwΘ) st)

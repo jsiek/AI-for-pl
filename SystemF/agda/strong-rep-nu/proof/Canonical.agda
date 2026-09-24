@@ -192,7 +192,7 @@ canon-⇒ {Δ = Δ} (V-⟪⟫ v ic)
   inj₂ (_ , _ , s , t , v , refl)
 
 -- ∀.  A closed value at a ∀ type is a Λ over a VALUE (V-Λ's premise, and
--- exactly TyBeta's premise) or a wrapper with a ∀ CONVERSION (TyPeelR's).
+-- exactly Nu-Λ's premise) or a wrapper with a ∀ CONVERSION (Nu-⟪Λ⟫'s).
 canon-∀ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ `∀ C
   → (Σ[ N ∈ Term ] (Value N × (V ≡ Λ N)))
   ⊎ (Σ[ W ∈ Term ] Σ[ Θ ∈ Boundary ] Σ[ s ∈ Conv ]

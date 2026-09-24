@@ -148,9 +148,15 @@ private
 -- Instantiating a scope, read at `allocate R Γ`: the appended
 -- `bind 0 0` gives the fresh cell ordinary name 0, and the old
 -- changes run underneath both — one shift in each universe.
+-- The old changes, one shift in each universe: `Θ` read UNDER a freshly
+-- bound name 0 for a freshly allocated cell (the middle layer of
+-- strong-rep-nu's `Nu-⟪Λ⟫` / `Nu-⟪⟫`).
+liftᴮ : Boundary → Boundary
+liftᴮ Θ = map shiftChange Θ
+
 inst : Boundary → Boundary
 inst Θ =
-  map shiftChange Θ ++ (bind 0 0 ∷ [])
+  liftᴮ Θ ++ (bind 0 0 ∷ [])
 
 -- The interior reading PERFORMS every change on the name map.  The
 -- representation context is untouched: a boundary changes NAMES only.
@@ -414,6 +420,22 @@ inst-conversion {Γ = Ξ ∣ Δ} (conversion cs) =
     (conv-changes-++
       (conv-bind (_ , here) conv[] fresh-zero-shift ins-here)
       (conv-changes-shift cs))
+
+-- The MIDDLE LAYER of `Nu-⟪Λ⟫`/`Nu-⟪⟫`: the old changes read under a
+-- freshly bound name 0 for a freshly allocated cell.  These are the
+-- `liftᴮ Θ` halves of `inst-interior`/`inst-conversion` (inst Θ =
+-- liftᴮ Θ ++ (bind 0 0 ∷ []), and the tail acts first).
+liftᴮ-interior : ∀ {b : RepBinding} {Γ Γᵢ : Ctxᵗ} {Θ : Boundary}
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → ((b ∷ reps Γ) ∣ (zero ∷ shiftReps (names Γ))) ⊢ⁱ liftᴮ Θ ⇒
+      ((b ∷ reps Γᵢ) ∣ (zero ∷ shiftReps (names Γᵢ)))
+liftᴮ-interior (interior cs) = interior (changes-shift cs)
+
+liftᴮ-conversion : ∀ {b : RepBinding} {Γ Γᶜ : Ctxᵗ} {Θ : Boundary}
+  → Γ ⊢ᶜ Θ ⇒ Γᶜ
+  → ((b ∷ reps Γ) ∣ (zero ∷ shiftReps (names Γ))) ⊢ᶜ liftᴮ Θ ⇒
+      ((b ∷ reps Γᶜ) ∣ (zero ∷ shiftReps (names Γᶜ)))
+liftᴮ-conversion (conversion cs) = conversion (conv-changes-shift cs)
 
 -- A rewound scope's interior is the exterior itself.
 rewind-interior : ∀ {Θ : Boundary}
@@ -914,7 +936,7 @@ conversion-ren : ∀ {ρ Ξ Ξ′ Θ} {Γᶜ : Ctxᵗ} → RepWk ρ Ξ Ξ′
 conversion-ren w (conversion cs) = conversion (conv-changes-ren w cs)
 
 -- The snoc `Θ ++ (unbind 0 0 ∷ [])` carries a scope past one fresh cell
--- and one fresh ordinary name (`TyPeelR-⟪⟫`) — conversion reading.
+-- and one fresh ordinary name (`Nu-⟪⟫`) — conversion reading.
 -- Commentary.md § Boundary.agda / §3d
 snoc-unbind0-conversion-ren : ∀ {Ξ Ξ′ Δ Θ Γᶜ}
   → RepWk suc Ξ Ξ′
@@ -949,7 +971,7 @@ snoc-unbind0-interior-ren w v₀ (interior cs) =
 -- 4. Concrete boundary shapes
 ------------------------------------------------------------------------
 
--- `TyBeta` on `(Λ N) ·[ B , ℕ ]` at `empty`: the cell is allocated and
+-- `Nu-Λ` on `ν ℕ · (Λ N) ⟨ c ⟩` at `empty`: the cell is allocated and
 -- the scope binds name 0 for it.
 TyBetaBoundary : Boundary
 TyBetaBoundary = (bind 0 0 ∷ [])

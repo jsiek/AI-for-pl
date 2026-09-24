@@ -33,7 +33,7 @@ open import strong-rep-nu.TermSubst
 open import strong-rep-nu.proof.TermSubst
 open import strong-rep-nu.proof.Preserve
   using (CrossΛTyping; ShiftTyping; repwk-alloc; WfRen-wk; wf-ren;
-         wf-same; same-weaken; wf-underΛ)
+         wf-same; same-weaken; wf-underΛ; ν-env-ren)
 
 ------------------------------------------------------------------------
 -- §1  The renaming induction
@@ -58,8 +58,13 @@ open import strong-rep-nu.proof.Preserve
 ⊢renᴿ {η = η} {ρ = ρ} w (⊢Λ vN ⊢N) =
   ⊢Λ (value-renᴹᴿ (extᵗ ρ) vN)
      (⊢cast (names-underΛ-ren ρ η) (⊢renᴿ (repwk-abst w) ⊢N))
-⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} w (⊢·[] ⊢L wA) =
-  ⊢·[] (⊢renᴿ w ⊢L) (wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} wA)
+⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} w (⊢ν wA rA ⊢L mw ⊢c same wB)
+  with ν-env-ren w rA mw ⊢c same
+⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} w (⊢ν wA rA ⊢L mw ⊢c same wB)
+  | Δ′ , mw′ , ⊢c′ , same′ =
+  ⊢ν (wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} wA) (same-ren ρ rA)
+     (⊢renᴿ w ⊢L) mw′ ⊢c′ same′
+     (wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} wB)
 ⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {η = η} {ρ = ρ} w
       (env (bw wΔ (interior cs) (conversion csᶜ))
            ⊢M ⊢c (Rᵢ , pᵢ , qᵢ) (Rₑ , pₑ , qₑ) wE) =

@@ -39,8 +39,8 @@ plug-renCtxᴿ ρ (L ·R C) M =
   cong (renᴹᴿ ρ L ·_) (plug-renCtxᴿ ρ C M)
 plug-renCtxᴿ ρ (ΛC C) M =
   cong Λ_ (plug-renCtxᴿ (extᵗ ρ) C M)
-plug-renCtxᴿ ρ (C ·C[ B , A ]) M =
-  cong (_·[ B , A ]) (plug-renCtxᴿ ρ C M)
+plug-renCtxᴿ ρ (νC A · C ⟨ c ⟩) M =
+  cong (λ t → ν A · t ⟨ c ⟩) (plug-renCtxᴿ ρ C M)
 plug-renCtxᴿ ρ (C ⟪C Θ , c ⟫) M =
   cong (_⟪ renᴮᴿ ρ Θ , c ⟫) (plug-renCtxᴿ ρ C M)
 
@@ -71,8 +71,8 @@ substᵐ-ivar σ h (Λ N) =
   where
     lam-ivar : ∀ x → (λ y → ⇑ᴵ (σ y)) x ≡ ivar x
     lam-ivar x = cong ⇑ᴵ (h x)
-substᵐ-ivar σ h (L ·[ B , A ]) =
-  cong (λ t → t ·[ B , A ]) (substᵐ-ivar σ h L)
+substᵐ-ivar σ h (ν A · L ⟨ c ⟩) =
+  cong (λ t → ν A · t ⟨ c ⟩) (substᵐ-ivar σ h L)
 substᵐ-ivar σ h (M ⟪ Θ , c ⟫) = refl
 
 -- Substituting through a context is substituting the plugged term.
@@ -87,8 +87,8 @@ plug-substCtx σ (L ·R C) M =
   cong (substᵐ σ L ·_) (plug-substCtx σ C M)
 plug-substCtx σ (ΛC C) M =
   cong Λ_ (plug-substCtx (λ x → ⇑ᴵ (σ x)) C M)
-plug-substCtx σ (C ·C[ B , A ]) M =
-  cong (_·[ B , A ]) (plug-substCtx σ C M)
+plug-substCtx σ (νC A · C ⟨ c ⟩) M =
+  cong (λ t → ν A · t ⟨ c ⟩) (plug-substCtx σ C M)
 -- A boundary frame is term-closed: the substitution neither enters the
 -- frame nor reaches the hole, so both sides are the original plug.
 plug-substCtx σ (C ⟪C Θ , c ⟫) M =
@@ -112,18 +112,18 @@ copy-sound (copy-ƛ r)     = cong₂ ƛ_∙_ refl (copy-sound r)
 copy-sound (copy-·L r)    = cong₂ _·_ (copy-sound r) refl
 copy-sound (copy-·R r)    = cong₂ _·_ refl (copy-sound r)
 copy-sound (copy-Λ r)     = cong Λ_ (copy-sound r)
-copy-sound (copy-·[] r)   = cong (_·[ _ , _ ]) (copy-sound r)
+copy-sound (copy-ν r)     = cong (λ t → ν _ · t ⟨ _ ⟩) (copy-sound r)
 
 residual-source : ∀ {Δ L L′ δ C M ρ D N} {r : Δ ⊢ L -→ L′ ∣ δ}
   → Residual r C M ρ D N → plug C M ≡ L
-residual-source (residual-TyBeta vN pA)          = refl
+residual-source (residual-Nu-Λ vN pA)            = refl
 residual-source (residual-Beta-body vW st)       = refl
 residual-source (residual-Beta-arg vW cr)        = refl
 residual-source (residual-Peel-fun vV vW rc ri rd sc) = refl
 residual-source (residual-Peel-arg vV vW rc ri rd sc) = refl
-residual-source (residual-TyPeelR-Λ vN rc ⊢s pA) = refl
+residual-source (residual-Nu-⟪Λ⟫ vN rc ⊢s pA)   = refl
 residual-source
-  (residual-TyPeelR-⟪⟫ vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA) = refl
+  (residual-Nu-⟪⟫ vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA) = refl
 residual-source
   (residual-CancelR vV ri rc₁ lX rc⋉ sm)  = refl
 residual-source
@@ -132,24 +132,27 @@ residual-source (residual-ξ-·-l r)      = cong (_· _) (residual-source r)
 residual-source (residual-ξ-·-l-sib r)  = refl
 residual-source (residual-ξ-·-r v r)    = cong (_ ·_) (residual-source r)
 residual-source (residual-ξ-·-r-sib v r) = refl
-residual-source (residual-ξ-·[] r) = cong (_·[ _ , _ ]) (residual-source r)
+residual-source (residual-ξ-ν r) =
+  cong (λ t → ν _ · t ⟨ _ ⟩) (residual-source r)
 residual-source (residual-ξ-⟪⟫ ri r) = cong (_⟪ _ , _ ⟫) (residual-source r)
 
 residual-sound : ∀ {Δ L L′ δ C M ρ D N} {r : Δ ⊢ L -→ L′ ∣ δ}
   → Residual r C M ρ D N → plug D N ≡ L′
-residual-sound (residual-TyBeta vN pA) = refl
+residual-sound (residual-Nu-Λ vN pA) = refl
 residual-sound (residual-Beta-body {W = W} {A = A} {C = C} {M = M} vW st) =
   plug-substCtx (betaEnv W A) C M
 residual-sound (residual-Beta-arg vW cr) = copy-sound cr
 residual-sound (residual-Peel-fun vV vW rc ri rd sc) = refl
 residual-sound (residual-Peel-arg vV vW rc ri rd sc) = refl
-residual-sound (residual-TyPeelR-Λ vN rc ⊢s pA) = refl
+residual-sound (residual-Nu-⟪Λ⟫ vN rc ⊢s pA) = refl
 residual-sound
-  (residual-TyPeelR-⟪⟫ {Θ = Θ} {C = C} {M = M} {Θ′ = Θ′} {s″ = s″}
-    {s = s} {Bᵢ′ = Bᵢ′} vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA) =
-  cong (λ z → ((z ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
-                  ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
-                ⟪ inst Θ , instReveal 0 s ⟫)
+  (residual-Nu-⟪⟫ {Θ = Θ} {c = c} {C = C} {M = M} {Θ′ = Θ′}
+    {s″ = s″} {s = s} {Bᵢ′ = Bᵢ′} vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA) =
+  cong (λ z → ((ν ` 0
+                  · (z ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
+                  ⟨ reveal 0 (renameᵗ (extᵗ suc) Bᵢ′) ⟩)
+                 ⟪ liftᴮ Θ , s ⟫)
+                ⟪ inst [] , c ⟫)
     (plug-renCtxᴿ suc C M)
 residual-sound
   (residual-CancelR vV ri rc₁ lX rc⋉ sm) = refl
@@ -161,7 +164,8 @@ residual-sound (residual-ξ-·-l-sib {δ = δ} {C = C} {M = M} r) =
 residual-sound (residual-ξ-·-r v r)    = cong (_ ·_) (residual-sound r)
 residual-sound (residual-ξ-·-r-sib {δ = δ} {C = C} {M = M} v r) =
   cong (_· _) (plug-↑ δ C M)
-residual-sound (residual-ξ-·[] r) = cong (_·[ _ , _ ]) (residual-sound r)
+residual-sound (residual-ξ-ν r) =
+  cong (λ t → ν _ · t ⟨ _ ⟩) (residual-sound r)
 residual-sound (residual-ξ-⟪⟫ ri r) = cong (_⟪ _ , _ ⟫) (residual-sound r)
 
 residuals-sound : ∀ {Δ L L′ C M ρ D N} {rs : Δ ⊢ L -→* L′}

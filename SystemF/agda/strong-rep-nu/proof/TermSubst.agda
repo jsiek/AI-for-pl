@@ -122,12 +122,12 @@ renᴹ²-ord-id h (L · M) =
   cong₂ _·_ (renᴹ²-ord-id h L) (renᴹ²-ord-id h M)
 renᴹ²-ord-id h (Λ N) =
   cong Λ_ (renᴹ²-ord-id (extᵗ-pointwise-id h) N)
-renᴹ²-ord-id {ρᵗ} {ρʳ} h (L ·[ B , A ]) =
+renᴹ²-ord-id {ρᵗ} {ρʳ} h (ν A · L ⟨ c ⟩) =
   trans
-    (cong₂ (λ L′ B′ → L′ ·[ B′ , renameᵗ ρᵗ A ])
+    (cong₂ (λ L′ c′ → ν renameᵗ ρᵗ A · L′ ⟨ c′ ⟩)
            (renᴹ²-ord-id h L)
-           (renameᵗ-pointwise-id (extᵗ-pointwise-id h) B))
-    (cong (λ A′ → renᴹᴿ ρʳ L ·[ B , A′ ])
+           (renᶜ-pointwise-id (extᵗ-pointwise-id h) c))
+    (cong (λ A′ → ν A′ · renᴹᴿ ρʳ L ⟨ c ⟩)
           (renameᵗ-pointwise-id h A))
 renᴹ²-ord-id {ρᵗ} {ρʳ} h (M ⟪ Θ , c ⟫) =
   trans
@@ -173,7 +173,7 @@ renⁿ ρ `false          = `false
 renⁿ ρ (ƛ A ∙ N)      = ƛ A ∙ renⁿ (extⁿ ρ) N
 renⁿ ρ (L · M)        = renⁿ ρ L · renⁿ ρ M
 renⁿ ρ (Λ N)          = Λ (renⁿ ρ N)
-renⁿ ρ (L ·[ B , A ]) = renⁿ ρ L ·[ B , A ]
+renⁿ ρ (ν A · L ⟨ c ⟩) = ν A · renⁿ ρ L ⟨ c ⟩
 renⁿ ρ (M ⟪ Θ , c ⟫)  = M ⟪ Θ , c ⟫
 
 shiftᵐ : Term → Term
@@ -229,7 +229,8 @@ value-renⁿ (V-⟪⟫ v ic) = V-⟪⟫ v ic
 ⊢renⁿ h (⊢ƛ w ⊢N) = ⊢ƛ w (⊢renⁿ (∋-extⁿ h) ⊢N)
 ⊢renⁿ h (⊢· ⊢L ⊢M) = ⊢· (⊢renⁿ h ⊢L) (⊢renⁿ h ⊢M)
 ⊢renⁿ h (⊢Λ vN ⊢N) = ⊢Λ (value-renⁿ vN) (⊢renⁿ (⤊-∋ⁿ h) ⊢N)
-⊢renⁿ h (⊢·[] ⊢L w) = ⊢·[] (⊢renⁿ h ⊢L) w
+⊢renⁿ h (⊢ν wA rA ⊢L mw ⊢c same wB) =
+  ⊢ν wA rA (⊢renⁿ h ⊢L) mw ⊢c same wB
 ⊢renⁿ h (env mwᵥ ⊢M ⊢c sameᵢ sameₑ wE) =
   env mwᵥ ⊢M ⊢c sameᵢ sameₑ wE
 
@@ -246,8 +247,8 @@ renⁿ-id ρ h (ƛ A ∙ N) = cong (ƛ A ∙_) (renⁿ-id (extⁿ ρ) ext-id N)
   ext-id (suc x) = cong suc (h x)
 renⁿ-id ρ h (L · M) = cong₂ _·_ (renⁿ-id ρ h L) (renⁿ-id ρ h M)
 renⁿ-id ρ h (Λ N) = cong Λ_ (renⁿ-id ρ h N)
-renⁿ-id ρ h (L ·[ B , A ]) =
-  cong (λ L′ → L′ ·[ B , A ]) (renⁿ-id ρ h L)
+renⁿ-id ρ h (ν A · L ⟨ c ⟩) =
+  cong (λ L′ → ν A · L′ ⟨ c ⟩) (renⁿ-id ρ h L)
 renⁿ-id ρ h (M ⟪ Θ , c ⟫) = refl
 
 ⊢weakenⁿ : ∀ {Δ Γ M A}

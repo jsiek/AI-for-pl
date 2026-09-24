@@ -29,13 +29,13 @@ open import strong-rep-nu.Ctx
   using (Ctxᵗ; RepCtx; abstR; bindR; reps; names; apply)
 open import strong-rep-nu.Conversion using (Conv; id; seal; unseal; _↦_; `∀)
 open import strong-rep-nu.Terms
-  using (Term; `_; $_; `true; `false; ƛ_∙_; _·_; Λ_; _·[_,_]; _⟪_,_⟫;
+  using (Term; `_; $_; `true; `false; ƛ_∙_; _·_; Λ_; ν_·_⟨_⟩; _⟪_,_⟫;
          _∣_⊢_⦂_)
 open import strong-rep-nu.Boundary
   using (Boundary; Change; unbind; bind)
-open import strong-rep-nu.Reduction using (_⊢_-→_∣_; TyBeta; Beta; Peel;
-  TyPeelR-Λ; TyPeelR-⟪⟫; CancelR; IdPush; Drop$; Drop-true; Drop-false;
-  ξ-·-l; ξ-·-r; ξ-·[]; ξ-⟪⟫)
+open import strong-rep-nu.Reduction using (_⊢_-→_∣_; Nu-Λ; Beta; Peel;
+  Nu-⟪Λ⟫; Nu-⟪⟫; CancelR; IdPush; Drop$; Drop-true; Drop-false;
+  ξ-·-l; ξ-·-r; ξ-ν; ξ-⟪⟫)
 open import strong-rep-nu.Eval
   using (Trace; stop; illtyped; _◅⟨_⟩_; Final; value; no-redex; out-of-fuel;
          eval)
@@ -277,8 +277,13 @@ showTmF e tms f x (L · M) | l , f₁ | m , f₂ =
   "(" ++ l ++ " · " ++ m ++ ")" , f₂
 showTmF e tms f x (Λ N) with showTmF (underΛE f e) tms (suc f) x N
 ... | body , f′ = "(Λ" ++ tyBinder f ++ ". " ++ body ++ ")" , f′
-showTmF e tms f x (L ·[ B , A ]) with showTmF e tms f x L
-... | l , f′ = l ++ " [" ++ showTy (onames e) A ++ "]" , f′
+-- `ν` names the cell it will allocate (counter `f`), and `c` is read
+-- under that fresh name: the conversion reading of `TyBetaBoundary` at
+-- the allocated context is `underΛE`'s shape with a bound cell.
+showTmF e tms f x (ν A · L ⟨ c ⟩) with showTmF e tms (suc f) x L
+... | l , f′ =
+  "(ν " ++ tyBinder f ++ ":=" ++ showTy (onames e) A ++ " · " ++ l
+    ++ " ⟨ " ++ showConv (onames (underΛE f e)) c ++ " ⟩)" , f′
 showTmF e tms f x (M ⟪ Θ , c ⟫)
   with showTmF (applyChsI Θ e) tms f x M
 ... | body , f′ = "(" ++ body ++ " " ++ showBnd e f Θ c ++ ")" , f′
@@ -344,12 +349,11 @@ showState Γ M =
 -- The rule that actually fired: a congruence reports the rule inside it,
 -- which is what a reader of a trace wants to see.
 ruleName : ∀ {Δ M N δ} → Δ ⊢ M -→ N ∣ δ → String
-ruleName (TyBeta v same)             = "TyBeta"
+ruleName (Nu-Λ v same)               = "Nu-Λ"
 ruleName (Beta v)                    = "Beta"
 ruleName (Peel v w rc ri rd sc)      = "Peel"
-ruleName (TyPeelR-Λ v rel ⊢s same)   = "TyPeelR-Λ"
-ruleName (TyPeelR-⟪⟫ v ri rel r′ ri⁺ r″ sc ⊢s sm same) =
-  "TyPeelR-⟪⟫"
+ruleName (Nu-⟪Λ⟫ v rel ⊢s same)      = "Nu-⟪Λ⟫"
+ruleName (Nu-⟪⟫ v ri rel r′ ri⁺ r″ sc ⊢s sm same) = "Nu-⟪⟫"
 ruleName (CancelR v ri r₁ d₁ r⋉ sm) = "CancelR"
 ruleName (IdPush v ri r₁ r⋉ sm) = "IdPush"
 ruleName (Drop$ b)                   = "Drop$"
@@ -357,7 +361,7 @@ ruleName Drop-true                   = "Drop-true"
 ruleName Drop-false                  = "Drop-false"
 ruleName (ξ-·-l st)                  = ruleName st
 ruleName (ξ-·-r v st)                = ruleName st
-ruleName (ξ-·[] st)                  = ruleName st
+ruleName (ξ-ν st)                    = ruleName st
 ruleName (ξ-⟪⟫ rel st)               = ruleName st
 
 finalName : ∀ {M} → Final M → String

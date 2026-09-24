@@ -33,13 +33,13 @@ det : ∀ {Δ Γ M M₁ M₂ A δ₁ δ₂}
   → Δ ⊢ M -→ M₂ ∣ δ₂
   → M₁ ≡ M₂ × δ₁ ≡ δ₂
 
--- TyBeta
-det _ (TyBeta v same) (TyBeta v′ same′)
+-- Nu-Λ
+det _ (Nu-Λ v same) (Nu-Λ v′ same′)
   with same-rep-unique same same′
-det _ (TyBeta v same) (TyBeta v′ same′) | refl = refl , refl
-det _ (TyBeta v same) (ξ-·[] st) =
+det _ (Nu-Λ v same) (Nu-Λ v′ same′) | refl = refl , refl
+det _ (Nu-Λ v same) (ξ-ν st) =
   ⊥-elim (value-¬step (V-Λ v) st)
-det _ (ξ-·[] st) (TyBeta v same) =
+det _ (ξ-ν st) (Nu-Λ v same) =
   ⊥-elim (value-¬step (V-Λ v) st)
 
 -- Beta
@@ -74,71 +74,71 @@ det _ (ξ-·-l st) (Peel v w rc ri rd sc) =
 det _ (ξ-·-r u′ st) (Peel v w rc ri rd sc) =
   ⊥-elim (value-¬step w st)
 
--- TyPeelR — the two clauses' patterns are DISJOINT, and the Λ clause is
--- determined by the redex outright.
-det _ (TyPeelR-Λ v rel ⊢s same)
-    (TyPeelR-Λ v′ rel′ ⊢s′ same′)
+-- Nu over a boundary — the two clauses' patterns are DISJOINT, and the
+-- Λ clause is determined by the redex outright.
+det _ (Nu-⟪Λ⟫ v rel ⊢s same)
+    (Nu-⟪Λ⟫ v′ rel′ ⊢s′ same′)
   with same-rep-unique same same′
-det _ (TyPeelR-Λ v rel ⊢s same)
-    (TyPeelR-Λ v′ rel′ ⊢s′ same′) | refl = refl , refl
-det _ (TyPeelR-Λ v rel ⊢s same) (ξ-·[] st) =
+det _ (Nu-⟪Λ⟫ v rel ⊢s same)
+    (Nu-⟪Λ⟫ v′ rel′ ⊢s′ same′) | refl = refl , refl
+det _ (Nu-⟪Λ⟫ v rel ⊢s same) (ξ-ν st) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-Λ v) I-all) st)
-det _ (ξ-·[] st) (TyPeelR-Λ v rel ⊢s same) =
+det _ (ξ-ν st) (Nu-⟪Λ⟫ v rel ⊢s same) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-Λ v) I-all) st)
 
 -- the wrapper clause: all five carried readings are identified first
-det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
+    (Nu-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
       v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
   with interior-functional ri ri′ | conversion-functional rc rc′
-det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
+    (Nu-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
       v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
     | refl | refl
   with interior-functional ri (bw-interior mwΘ)
      | conversion-functional rc (bw-conversion mwΘ)
-det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
+    (Nu-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
       v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
     | refl | refl | refl | refl
   with conversion-functional r′ r′′
-det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
+    (Nu-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
       v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
     | refl | refl | refl | refl | refl
   with conv-src-unique
          (unique-underΛ {Γ = Δᶜ} (name-fn (bw-conversion-wf mwΘ))) ⊢s ⊢s′
-det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
+    (Nu-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
       v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
     | refl | refl | refl | refl | refl | refl
   with sameTy-src-unique
          (unique-underΛ {Γ = Δᵢ} (name-fn (bw-interior-wf mwΘ))) sm sm′
-det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
+    (Nu-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
       v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
     | refl | refl | refl | refl | refl | refl | refl
   with same-rep-unique same same′
-det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
+    (Nu-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
       v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
     | refl | refl | refl | refl | refl | refl | refl | refl
   with interior-functional ri⁺ ri⁺′
-det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ {Δ″ᶜ = Δ″ᶜ} v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
+    (Nu-⟪⟫ {Δ″ᶜ = Δ″ᶜ} v ri rc r′ ri⁺ r″ sc ⊢s sm same)
+    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
     | refl | refl | refl | refl | refl | refl | refl | refl | refl
   with conversion-functional r″ r″′
-det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ {Δ″ᶜ = Δ″ᶜ} v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
+    (Nu-⟪⟫ {Δ″ᶜ = Δ″ᶜ} v ri rc r′ ri⁺ r″ sc ⊢s sm same)
+    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
     | refl | refl | refl | refl | refl | refl | refl | refl | refl | refl
   with sameConv-src-unique
          (unique-underΛ {Γ = Δ″ᶜ}
@@ -146,14 +146,14 @@ det (⊢·[] (env mwΘ _ _ _ _ _) _)
              (interior-unique (unique-shift (name-fn (bw-exterior mwΘ)))
                               ri⁺) r″))
          sc sc′
-det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
+    (Nu-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm same)
+    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
     | refl | refl | refl | refl | refl | refl | refl | refl | refl | refl
     | refl = refl , refl
-det _ (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm same) (ξ-·[] st) =
+det _ (Nu-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm same) (ξ-ν st) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
-det _ (ξ-·[] st) (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm same) =
+det _ (ξ-ν st) (Nu-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm same) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
 
 -- CancelR — the cancelled binder's lookup and the re-spelling are
@@ -242,8 +242,8 @@ det _ (ξ-·-l st) (ξ-·-r v st′) = ⊥-elim (value-¬step v st)
 det _ (ξ-·-r v st) (ξ-·-l st′) = ⊥-elim (value-¬step v st′)
 det (⊢· ⊢L ⊢M) (ξ-·-r v st) (ξ-·-r u st′) with det ⊢M st st′
 det (⊢· ⊢L ⊢M) (ξ-·-r v st) (ξ-·-r u st′) | refl , refl = refl , refl
-det (⊢·[] ⊢L ⊢A) (ξ-·[] st) (ξ-·[] st′) with det ⊢L st st′
-det (⊢·[] ⊢L ⊢A) (ξ-·[] st) (ξ-·[] st′) | refl , refl = refl , refl
+det (⊢ν wA rA ⊢L mw ⊢c same wB) (ξ-ν st) (ξ-ν st′) with det ⊢L st st′
+det (⊢ν wA rA ⊢L mw ⊢c same wB) (ξ-ν st) (ξ-ν st′) | refl , refl = refl , refl
 det (env mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
   with interior-functional rel rel′
 det (env mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)

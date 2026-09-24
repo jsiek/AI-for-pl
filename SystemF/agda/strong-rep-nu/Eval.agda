@@ -130,7 +130,7 @@ bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
        , ri , sm , r′ , ri⁺ , r″ , sc)
 
 -- `IdPush` re-bases the name it pushes into the merged frame, the same
--- way `TyPeelR-⟪⟫` re-bases its annotation.
+-- way `Nu-⟪⟫` re-bases its annotation.
 PushPremises : Ctxᵗ → Boundary → Boundary → ℕ → Set
 PushPremises Δ Θ₁ Θ₂ X =
   Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ Δ⋉ᶜ ∈ Ctxᵗ ] Σ[ X′ ∈ ℕ ]
@@ -252,42 +252,41 @@ appRedex Δ V-$             vM = nothing
 appRedex Δ V-true          vM = nothing
 appRedex Δ V-false         vM = nothing
 
--- A type application whose head is a value.  `canon-∀` says the head is a
--- `Λ`, a `Λ` under one `∀`-conversion boundary, or a tower of them; the
--- three clauses below are `TyBeta`, `TyPeelR-Λ` and `TyPeelR-⟪⟫` in that
--- order.
-tyAppRedex : (Δ : Ctxᵗ) {L : Term} (B A : Ty) → Value L
-  → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ L ·[ B , A ] -→ N ∣ δ))
-tyAppRedex Δ B A (V-Λ vN) with read? (names Δ) A
-tyAppRedex Δ B A (V-Λ vN) | just (R , same) =
-  just (_ , new R , TyBeta vN same)
-tyAppRedex Δ B A (V-Λ vN) | nothing = nothing
-tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s}))
+-- A `ν` whose body is a value.  `canon-∀` says the body is a `Λ`, a `Λ`
+-- under one `∀`-conversion boundary, or a tower of them; the three
+-- clauses below are `Nu-Λ`, `Nu-⟪Λ⟫` and `Nu-⟪⟫` in that order.
+nuRedex : (Δ : Ctxᵗ) {L : Term} (A : Ty) (c : Conv) → Value L
+  → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ ν A · L ⟨ c ⟩ -→ N ∣ δ))
+nuRedex Δ A c (V-Λ vN) with read? (names Δ) A
+nuRedex Δ A c (V-Λ vN) | just (R , same) =
+  just (_ , new R , Nu-Λ vN same)
+nuRedex Δ A c (V-Λ vN) | nothing = nothing
+nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s}))
   with peelPremises? Δ Θ s A
-tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s}))
+nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s}))
   | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same) =
-  just (_ , new R , TyPeelR-Λ vN rel ⊢s same)
-tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s})) | nothing = nothing
-tyAppRedex Δ B A
+  just (_ , new R , Nu-⟪Λ⟫ vN rel ⊢s same)
+nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s})) | nothing = nothing
+nuRedex Δ A c
   (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
   with peelPremises? Δ Θ s A
-tyAppRedex Δ B A
+nuRedex Δ A c
   (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
   | nothing = nothing
-tyAppRedex Δ B A
+nuRedex Δ A c
   (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
   | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
   with bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ
-tyAppRedex Δ B A
+nuRedex Δ A c
   (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
   | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
   | just (Δᵢ , Bᵢ′ , Δ′ᶜ , Δᵢ⁺ , Δ″ᶜ , s″
          , ri , sm , r′ , ri⁺ , r″ , sc) =
-  just (_ , new R , TyPeelR-⟪⟫ vW ri rel r′ ri⁺ r″ sc ⊢s sm same)
-tyAppRedex Δ B A
+  just (_ , new R , Nu-⟪⟫ vW ri rel r′ ri⁺ r″ sc ⊢s sm same)
+nuRedex Δ A c
   (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
   | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same) | nothing = nothing
-tyAppRedex Δ B A _ = nothing
+nuRedex Δ A c _ = nothing
 
 -- A boundary.  `Drop` fires at a literal under an identity at a base
 -- type; `CancelR` and `IdPush` fire at a REVEALING boundary over an inert
@@ -350,12 +349,12 @@ step Δ (L · M) | nothing | just vL | nothing with value? M
 step Δ (L · M) | nothing | just vL | nothing | nothing = nothing
 step Δ (L · M) | nothing | just vL | nothing | just vM =
   appRedex Δ vL vM
-step Δ (L ·[ B , A ]) with step Δ L
-step Δ (L ·[ B , A ]) | just (L′ , δ , st) =
-  just (L′ ·[ B , A ] , δ , ξ-·[] st)
-step Δ (L ·[ B , A ]) | nothing with value? L
-step Δ (L ·[ B , A ]) | nothing | nothing   = nothing
-step Δ (L ·[ B , A ]) | nothing | just vL = tyAppRedex Δ B A vL
+step Δ (ν A · L ⟨ c ⟩) with step Δ L
+step Δ (ν A · L ⟨ c ⟩) | just (L′ , δ , st) =
+  just (ν A · L′ ⟨ c ⟩ , δ , ξ-ν st)
+step Δ (ν A · L ⟨ c ⟩) | nothing with value? L
+step Δ (ν A · L ⟨ c ⟩) | nothing | nothing = nothing
+step Δ (ν A · L ⟨ c ⟩) | nothing | just vL = nuRedex Δ A c vL
 step Δ (M ⟪ Θ , c ⟫) with bdyRedex Δ M Θ c
 step Δ (M ⟪ Θ , c ⟫) | just r = just r
 step Δ (M ⟪ Θ , c ⟫) | nothing with interior? Δ Θ

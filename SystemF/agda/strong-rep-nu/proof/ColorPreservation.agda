@@ -78,8 +78,8 @@ map-suc-ext ρ (α ∷ Δn) = cong (suc (ρ α) ∷_) (map-suc-ext ρ Δn)
 
 ------------------------------------------------------------------------
 -- 2. The frame judgment ignores the representation STORE beyond its
---    length: the refinement `abstR → bindR R` of a slot (TyBeta's,
---    TyPeelR-Λ's) transports every `⊢C` derivation, names untouched.
+--    length: the refinement `abstR → bindR R` of a slot (Nu-Λ's,
+--    Nu-⟪Λ⟫'s) transports every `⊢C` derivation, names untouched.
 ------------------------------------------------------------------------
 
 ∋ˡ-len : ∀ {A : Set} {Ξ Ξ′ : List A} {α : ℕ} {x : A}
@@ -116,8 +116,8 @@ changes-len eq (changes∷ cs st) =
 ⊢C-len Ξ′ eq (frame-Λ d)    =
   let (Ξ₂ , d′ , l) = ⊢C-len (abstR ∷ Ξ′) (cong suc eq) d
   in Ξ₂ , frame-Λ d′ , l
-⊢C-len Ξ′ eq (frame-·[] d)  =
-  let (Ξ₂ , d′ , l) = ⊢C-len Ξ′ eq d in Ξ₂ , frame-·[] d′ , l
+⊢C-len Ξ′ eq (frame-ν d)   =
+  let (Ξ₂ , d′ , l) = ⊢C-len Ξ′ eq d in Ξ₂ , frame-ν d′ , l
 ⊢C-len Ξ′ eq (frame-⟪⟫ (interior cs) d) =
   let (Ξ₂ , d′ , l) = ⊢C-len Ξ′ eq d
   in Ξ₂ , frame-⟪⟫ (interior (changes-len eq cs)) d′ , l
@@ -132,7 +132,7 @@ changes-len eq (changes∷ cs st) =
 ⊢C-functional (frame-·L d)  (frame-·L d′)  = ⊢C-functional d d′
 ⊢C-functional (frame-·R d)  (frame-·R d′)  = ⊢C-functional d d′
 ⊢C-functional (frame-Λ d)   (frame-Λ d′)   = ⊢C-functional d d′
-⊢C-functional (frame-·[] d) (frame-·[] d′) = ⊢C-functional d d′
+⊢C-functional (frame-ν d) (frame-ν d′) = ⊢C-functional d d′
 ⊢C-functional (frame-⟪⟫ ri d) (frame-⟪⟫ ri′ d′)
   with interior-functional ri ri′
 ⊢C-functional (frame-⟪⟫ ri d) (frame-⟪⟫ ri′ d′) | refl =
@@ -149,7 +149,7 @@ changes-len eq (changes∷ cs st) =
 ⊢C-substCtx σ (frame-·L d)    = frame-·L (⊢C-substCtx σ d)
 ⊢C-substCtx σ (frame-·R d)    = frame-·R (⊢C-substCtx σ d)
 ⊢C-substCtx σ (frame-Λ d)     = frame-Λ (⊢C-substCtx (λ x → ⇑ᴵ (σ x)) d)
-⊢C-substCtx σ (frame-·[] d)   = frame-·[] (⊢C-substCtx σ d)
+⊢C-substCtx σ (frame-ν d)   = frame-ν (⊢C-substCtx σ d)
 ⊢C-substCtx σ (frame-⟪⟫ ri d) = frame-⟪⟫ ri d
 
 ------------------------------------------------------------------------
@@ -190,9 +190,9 @@ crossΛ-interior Γ =
 ⊢C-ren ρ (L ·R C) w eq (frame-·R d) =
   let (Δ₂ , d′ , e , w′) = ⊢C-ren ρ C w eq d
   in Δ₂ , frame-·R d′ , e , w′
-⊢C-ren ρ (C ·C[ B , A ]) w eq (frame-·[] d) =
+⊢C-ren ρ (νC A · C ⟨ c ⟩) w eq (frame-ν d) =
   let (Δ₂ , d′ , e , w′) = ⊢C-ren ρ C w eq d
-  in Δ₂ , frame-·[] d′ , e , w′
+  in Δ₂ , frame-ν d′ , e , w′
 ⊢C-ren ρ {Γ = Γ} (ΛC C) w eq (frame-Λ d) =
   let (Δ₂ , d′ , e , w′) =
         ⊢C-ren (extᵗ ρ) C (repwk-abst w)
@@ -267,8 +267,8 @@ copy-frame (copy-·R r)   h =
   let (Δ₂ , d , e) = copy-frame r h in Δ₂ , frame-·R d , e
 copy-frame (copy-Λ r)    h =
   let (Δ₂ , d , e) = copy-frame r h in Δ₂ , frame-Λ d , e
-copy-frame (copy-·[] r)  h =
-  let (Δ₂ , d , e) = copy-frame r h in Δ₂ , frame-·[] d , e
+copy-frame (copy-ν r)    h =
+  let (Δ₂ , d , e) = copy-frame r h in Δ₂ , frame-ν d , e
 
 ------------------------------------------------------------------------
 -- 8. THE PER-STEP THEOREM.  From the source position's frame, the
@@ -284,8 +284,8 @@ residual-frame : ∀ {Δ δ L L′ C M ρ D N Δ₁} {r : Δ ⊢ L -→ L′ ∣
   → Δ ⊢C C ⊣ Δ₁
   → Σ[ Δ₂ ∈ Ctxᵗ ] (apply δ Δ ⊢C D ⊣ Δ₂) × (names Δ₂ ≡ map ρ (names Δ₁))
 
-residual-frame {Δ = Δ} wfΔ (residual-TyBeta {R = R} vN pA)
-    (frame-·[] (frame-Λ h)) =
+residual-frame {Δ = Δ} wfΔ (residual-Nu-Λ {R = R} vN pA)
+    (frame-ν (frame-Λ h)) =
   let (Ξ₂ , d , _) = ⊢C-len (bindR R ∷ reps Δ) refl h
   in _ , frame-⟪⟫ (inst-interior {R = R} empty-interior) d
        , sym (map-idᵗ _)
@@ -307,24 +307,28 @@ residual-frame wfΔ (residual-Peel-arg vV vW rc ri rd sc) (frame-·R h) =
   _ , frame-⟪⟫ ri (frame-·R (frame-⟪⟫ (dual-interior ri) h))
     , sym (map-idᵗ _)
 
-residual-frame {Δ = Δ} wfΔ (residual-TyPeelR-Λ {R = R} vN rc ⊢s pA)
-    (frame-·[] (frame-⟪⟫ (interior csᶠ) (frame-Λ h))) =
+-- The two stacked layers read, in turn, `inst []` and the crossed
+-- frame under the new name: together exactly `inst Θ`'s interior.
+residual-frame {Δ = Δ} wfΔ (residual-Nu-⟪Λ⟫ {R = R} vN rc ⊢s pA)
+    (frame-ν (frame-⟪⟫ (interior csᶠ) (frame-Λ h))) =
   let (Ξ₂ , d , _) = ⊢C-len (bindR R ∷ reps Δ) refl h
-  in _ , frame-⟪⟫ (inst-interior (interior csᶠ)) d
+  in _ , frame-⟪⟫ (inst-interior {R = R} empty-interior)
+           (frame-⟪⟫ (liftᴮ-interior {b = bindR R} (interior csᶠ)) d)
        , sym (map-idᵗ _)
 
 -- The one mover left inside a redex: the inner boundary is a SIBLING of
 -- the `Λ` slot the allocation consumes, so it takes exactly `suc`.
 residual-frame {Δ = Δ} wfΔ
-    (residual-TyPeelR-⟪⟫ {C = C} {Θ′ = Θ′} {R = R}
+    (residual-Nu-⟪⟫ {C = C} {Θ′ = Θ′} {R = R}
       vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA)
-    (frame-·[] (frame-⟪⟫ (interior csᶠ) (frame-⟪⟫ (interior cs′) h))) =
+    (frame-ν (frame-⟪⟫ (interior csᶠ) (frame-⟪⟫ (interior cs′) h))) =
   let w₀ = repwk-alloc {R = R} (same-wfᴿ wfΔ pA)
       ri″ = snoc-unbind0-interior-ren w₀ (bindR R , here) (interior cs′)
       (Δ₂ , d₂ , e₂ , _) = ⊢C-ren suc C w₀ refl h
   in Δ₂
-   , frame-⟪⟫ (inst-interior (interior csᶠ))
-       (frame-·[] (frame-⟪⟫ ri″ d₂))
+   , frame-⟪⟫ (inst-interior {R = R} empty-interior)
+       (frame-⟪⟫ (liftᴮ-interior {b = bindR R} (interior csᶠ))
+         (frame-ν (frame-⟪⟫ ri″ d₂)))
    , e₂
 
 residual-frame wfΔ (residual-CancelR vV ri rc₁ lX rc⋉ sm)
@@ -348,8 +352,8 @@ residual-frame {δ = δ} wfΔ (residual-ξ-·-r-sib {C = C} v r)
     (frame-·L h) =
   let (Δ₂ , d , e) = ⊢C-shift δ C (step-alloc wfΔ r) h
   in Δ₂ , frame-·L d , e
-residual-frame wfΔ (residual-ξ-·[] r) (frame-·[] h) =
-  let (Δ₂ , d , e) = residual-frame wfΔ r h in Δ₂ , frame-·[] d , e
+residual-frame wfΔ (residual-ξ-ν r) (frame-ν h) =
+  let (Δ₂ , d , e) = residual-frame wfΔ r h in Δ₂ , frame-ν d , e
 residual-frame {δ = δ} wfΔ (residual-ξ-⟪⟫ {r = r} ri res)
     (frame-⟪⟫ riᶠ h)
   with interior-functional riᶠ ri

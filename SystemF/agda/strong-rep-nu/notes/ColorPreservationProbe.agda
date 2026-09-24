@@ -7,8 +7,8 @@ module strong-rep-nu.notes.ColorPreservationProbe where
 -- strong-rep-nu.notes.ColorPreservationProbe'`) the program and its
 -- three states are, with the ambient store `Ξ` on the left:
 --
---   Ξ = [α]      Ex   ((ΛY. λx:(X⇒X). x) [X]) · (λx:X. x)      : X ⇒ X
---     --TyBeta-->
+--   Ξ = [α]      Ex   (νY:=X · (ΛY. λx:(X⇒X). x) ⟨ … ⟩) · (λx:X. x)  : X ⇒ X
+--     --Nu-Λ-->
 --   Ξ = [β:=α,α] Ex₁  ((λx:(X⇒X). x)
 --                       ⟪ ↥Y , (id X ↦ id X) ↦ (id X ↦ id X) ⟫)
 --                       · (λx:X. x)
@@ -20,7 +20,7 @@ module strong-rep-nu.notes.ColorPreservationProbe where
 -- The position followed is the argument `λx:X. x`.  It is born at the
 -- ambient context `underΛ empty` with scope map {X ↦ α}.
 --
--- WHERE THE MOVE IS, WITH THE STORE (experiment 2, 2026-09-22).  TyBeta
+-- WHERE THE MOVE IS, WITH THE STORE (experiment 2, 2026-09-22).  Nu-Λ
 -- ALLOCATES the cell β := α at address 0 and binds the name Y for it;
 -- every existing representation variable — α, and the ambient name map
 -- entry that points at it — moves up by one, and so does the redex's
@@ -65,7 +65,7 @@ open import strong-rep-nu.ColorPreservation
 Δ₀ : Ctxᵗ                      -- the ambient left by an enclosing ΛX
 Δ₀ = underΛ empty
 
--- the ∀-body annotation of the inner type application, and the argument
+-- the ∀ body the `ν`'s reveal is written at, and the argument
 Bod : Ty
 Bod = (` 1 ⇒ ` 1) ⇒ (` 1 ⇒ ` 1)
 
@@ -76,18 +76,18 @@ F : Term                       -- λf:(Y⇒Y). f, under ΛY ΛX
 F = ƛ (` 1 ⇒ ` 1) ∙ ` 0
 
 Ex : Term
-Ex = ((Λ F) ·[ Bod , ` 0 ]) · W
+Ex = (ν ` 0 · (Λ F) ⟨ reveal 0 Bod ⟩) · W
 
 Ex-⊢ : Δ₀ ∣ [] ⊢ Ex ⦂ ` 0 ⇒ ` 0
 Ex-⊢ = tc
 
-Δ₁ : Ctxᵗ                      -- the ambient after TyBeta allocated α:=Y
+Δ₁ : Ctxᵗ                      -- the ambient after Nu-Λ allocated α:=Y
 Δ₁ = allocate (` 0) Δ₀
 
-Θ₀ : Boundary                  -- bind X for the fresh cell, by TyBeta
+Θ₀ : Boundary                  -- bind X for the fresh cell, by Nu-Λ
 Θ₀ = inst []
 
-s t : Conv                     -- TyBeta's reveal, split at its arrow
+s t : Conv                     -- the `ν`'s reveal, split at its arrow
 s = id (` 1) ↦ id (` 1)
 t = id (` 1) ↦ id (` 1)
 
@@ -130,7 +130,7 @@ pA : Δ₀ ⊢ᶜ ` 0 ~ ` 0
 pA = same-var here
 
 run : Δ₀ ⊢ Ex -→* Ex₃
-run = ξ-·-l (TyBeta V-ƛ pA)
+run = ξ-·-l (Nu-Λ V-ƛ pA)
       then Peel V-ƛ V-ƛ rc ri rd sc
       then ξ-⟪⟫ ri (Beta (V-⟪⟫ V-ƛ I-fun))
       then done
@@ -140,7 +140,7 @@ run = ξ-·-l (TyBeta V-ƛ pA)
 ------------------------------------------------------------------------
 
 C₀ : TermCtx                   -- the argument of the outer application
-C₀ = ((Λ F) ·[ Bod , ` 0 ]) ·R □
+C₀ = (ν ` 0 · (Λ F) ⟨ reveal 0 Bod ⟩) ·R □
 
 C₁ : TermCtx
 C₁ = (F ⟪ Θ₀ , s ↦ t ⟫) ·R □
@@ -157,7 +157,7 @@ C₃ = (□ ⟪C dual Θ₀ , s′ ⟫) ⟪C Θ₀ , t ⟫
 
 res : Residuals run C₀ W ρ★ C₃ W
 res = residuals-step
-        (residual-ξ-·-l-sib (TyBeta V-ƛ pA))
+        (residual-ξ-·-l-sib (Nu-Λ V-ƛ pA))
       (residuals-step
         (residual-Peel-arg V-ƛ V-ƛ rc ri rd sc)
       (residuals-step

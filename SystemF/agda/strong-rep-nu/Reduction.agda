@@ -1,10 +1,10 @@
 module strong-rep-nu.Reduction where
 
 -- File Charter:
---   * §1 `_⊢_-→_∣_`, the fourteen rules — TyBeta, Beta, Peel,
---     TyPeelR-Λ, TyPeelR-⟪⟫, CancelR, Drop$, Drop-true, Drop-false,
---     IdPush and the congruences ξ-·-l, ξ-·-r, ξ-·[], ξ-⟪⟫ (NO ξ-Λ) —
---     with `TyBeta-ℕ`, the multi-step `_⊢_-→*_` and `runCtx`.
+--   * §1 `_⊢_-→_∣_`, the fourteen rules — Nu-Λ, Beta, Peel,
+--     Nu-⟪Λ⟫, Nu-⟪⟫, CancelR, Drop$, Drop-true, Drop-false,
+--     IdPush and the congruences ξ-·-l, ξ-·-r, ξ-ν, ξ-⟪⟫ (NO ξ-Λ) —
+--     with `Nu-ℕ`, the multi-step `_⊢_-→*_` and `runCtx`.
 --     §2 `value-¬step`.  (The proof of determinism, `det`, is
 --     strong-rep-nu.proof.Determinism; its statement is TypeSafety.)
 --   * THE STORE CHANGE.  A step returns the change `δ : Alloc` it made
@@ -43,12 +43,12 @@ open import strong-rep-nu.TermSubst
 infix 2 _⊢_-→_∣_
 data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
 
-  -- a boundary is BORN: the ∀-elimination mints THE BINDER of the event
-  -- Commentary.md § Reduction.agda / TyBeta
-  TyBeta : ∀ {Δ B A R N} → Value N
+  -- a boundary is BORN: `ν` mints THE BINDER of the event, and the
+  -- conversion is the one `ν` carries (the compiler wrote it).
+  -- Commentary.md § Reduction.agda / Nu-Λ
+  Nu-Λ : ∀ {Δ A R N c} → Value N
     → Δ ⊢ᶜ A ~ R
-    → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ inst []
-                                      , reveal 0 B ⟫ ∣ new R
+    → Δ ⊢ ν A · (Λ N) ⟨ c ⟩ -→ N ⟪ inst [] , c ⟫ ∣ new R
 
   -- beta, FRAME-EXACT: the substitution carries the ƛ's annotation A
   -- Commentary.md § Reduction.agda / Beta
@@ -66,29 +66,32 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
     → Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
         -→ (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ∣ none
 
-  -- TYPEEL — the ∀-conversion analogue of Peel, SPLIT IN TWO on the
-  -- crossed boundary's interior: `TyPeelR-Λ` instantiates at once,
-  -- `TyPeelR-⟪⟫` pushes the type application inward one layer.
-  -- Together they are total over canonical `∀`-values.
-  -- Commentary.md § Reduction.agda / TyPeelR — why it is two clauses
+  -- `ν` OVER A BOUNDARY — the ∀-conversion analogue of Peel, SPLIT IN
+  -- TWO on the crossed boundary's interior.  Both STACK rather than
+  -- fuse: the outer layer is `ν`'s own `⟪ inst [] , c ⟫`, the middle
+  -- layer is the crossed frame read under the new name (`liftᴮ Θ`)
+  -- with the crossed conversion `s` moved VERBATIM.  No rule computes
+  -- a conversion from `c`.  Together they are total over canonical
+  -- `∀`-values.
+  -- Commentary.md § Reduction.agda / Nu-⟪Λ⟫, Nu-⟪⟫
   --
-  -- the interior is `Λ N`: instantiate on the spot.  The frame is
-  -- `inst Θ` and the conversion is instantiated at the new name.
-  -- Commentary.md § Reduction.agda / TyPeelR-Λ
-  TyPeelR-Λ : ∀ {Δ Δᶜ N Θ s B A R Bᵢ Bₑ} → Value N
+  -- the interior is `Λ N`: instantiate on the spot.
+  Nu-⟪Λ⟫ : ∀ {Δ Δᶜ N Θ s c A R Bᵢ Bₑ} → Value N
     → Δ ⊢ᶜ Θ ⇒ Δᶜ
     → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
     → Δ ⊢ᶜ A ~ R
-    → Δ ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-        -→ N ⟪ inst Θ , instReveal 0 s ⟫ ∣ new R
+    → Δ ⊢ ν A · ((Λ N) ⟪ Θ , `∀ s ⟫) ⟨ c ⟩
+        -→ (N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫ ∣ new R
 
-  -- the interior is a boundary: push the type application inward one
-  -- layer, masking the new ordinary name in the MOVED boundary's own
-  -- change list (the snoc `++ (unbind 0 0 ∷ [])`).  `s″` and `Bᵢ′` are
-  -- the two carried re-spellings.
-  -- Commentary.md § Reduction.agda / TyPeelR-⟪⟫
-  TyPeelR-⟪⟫ : ∀ {Δ Δᵢ Δᵢ⁺ Δᶜ Δ′ᶜ Δ″ᶜ W Θ′ s′ s″ Θ s B A R
-                    Bᵢ Bᵢ′ Bₑ} → Value W
+  -- the interior is a boundary: push a `ν` at the new name inward one
+  -- layer, masking that name in the MOVED boundary's own change list
+  -- (the snoc `++ (unbind 0 0 ∷ [])`).  The pushed `ν` allocates an
+  -- ALIAS cell when it fires, and ITS conversion is the reveal of the
+  -- inner body `Bᵢ′`, minted here: the one run-time reveal left.
+  -- `s″` and `Bᵢ′` are the two carried re-spellings.
+  -- Commentary.md § Reduction.agda / Nu-⟪⟫
+  Nu-⟪⟫ : ∀ {Δ Δᵢ Δᵢ⁺ Δᶜ Δ′ᶜ Δ″ᶜ W Θ′ s′ s″ Θ s c A R Bᵢ Bᵢ′ Bₑ}
+    → Value W
     → Δ ⊢ⁱ Θ ⇒ Δᵢ
     → Δ ⊢ᶜ Θ ⇒ Δᶜ
     → Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ
@@ -98,10 +101,12 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
     → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
     → underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ
     → Δ ⊢ᶜ A ~ R
-    → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-        -→ ((renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
-              ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
-             ⟪ inst Θ , instReveal 0 s ⟫ ∣ new R
+    → Δ ⊢ ν A · ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ⟨ c ⟩
+        -→ ((ν (` 0)
+               · (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
+               ⟨ reveal 0 (renameᵗ (extᵗ suc) Bᵢ′) ⟩)
+              ⟪ liftᴮ Θ , s ⟫)
+             ⟪ inst [] , c ⟫ ∣ new R
 
   -- CANCEL — a conceal directly under the binder it names.  Both
   -- frames are kept, MERGED as `Θ₁ ++ Θ₂`, and the matched pair is
@@ -145,18 +150,18 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
     → Δ ⊢ L · M -→ L′ · ↑ᴹ[ δ ] M ∣ δ
   ξ-·-r : ∀ {Δ V M M′ δ} → Value V → Δ ⊢ M -→ M′ ∣ δ
     → Δ ⊢ V · M -→ ↑ᴹ[ δ ] V · M′ ∣ δ
-  ξ-·[] : ∀ {Δ L L′ B A δ} → Δ ⊢ L -→ L′ ∣ δ
-    → Δ ⊢ L ·[ B , A ] -→ L′ ·[ B , A ] ∣ δ
+  ξ-ν : ∀ {Δ L L′ A c δ} → Δ ⊢ L -→ L′ ∣ δ
+    → Δ ⊢ ν A · L ⟨ c ⟩ -→ ν A · L′ ⟨ c ⟩ ∣ δ
   -- (NO ξ-Λ: nothing reduces under a type binder — see `⊢Λ`.)
   ξ-⟪⟫  : ∀ {Δ Δᵢ M M′ Θ c δ} → Δ ⊢ⁱ Θ ⇒ Δᵢ
         → Δᵢ ⊢ M -→ M′ ∣ δ
         → Δ ⊢ M ⟪ Θ , c ⟫ -→ M′ ⟪ ↑ᴮ[ δ ] Θ , c ⟫ ∣ δ
 
 -- Concrete instantiation check: the ordinary argument `ℕ` translates to
--- representation payload `ℕ`, and `inst` produces TyBetaBoundary.
-TyBeta-ℕ : empty ⊢ (Λ ($ 7)) ·[ `ℕ , `ℕ ]
+-- representation payload `ℕ`, and `inst []` is TyBetaBoundary.
+Nu-ℕ : empty ⊢ ν `ℕ · (Λ ($ 7)) ⟨ id `ℕ ⟩
   -→ ($ 7) ⟪ TyBetaBoundary , id `ℕ ⟫ ∣ new `ℕ
-TyBeta-ℕ = TyBeta V-$ same-ℕ
+Nu-ℕ = Nu-Λ V-$ same-ℕ
 
 -- A run needs no store index: each step's change is applied to the
 -- context the tail runs at.

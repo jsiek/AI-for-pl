@@ -343,7 +343,7 @@ mutual
   instConceal X (s ↦ t)    = instReveal X s ↦ instConceal X t
   instConceal X (`∀ s)     = `∀ (instConceal (suc X) s)
 
--- TyBeta's minted conversion IS this operation at an identity
+-- The reveal a `ν` carries (`reveal 0 B`) IS this operation at an identity
 -- conversion: the type version is the conversion version on `mkId`.
 mutual
   instReveal-mkId : (X : ℕ) (B : Ty) → instReveal X (mkId B) ≡ reveal X B

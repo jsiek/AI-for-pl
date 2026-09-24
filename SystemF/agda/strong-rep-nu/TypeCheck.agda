@@ -516,7 +516,7 @@ value? `true          = just V-true
 value? `false         = just V-false
 value? (ƛ A ∙ N)      = just V-ƛ
 value? (L · M)        = nothing
-value? (L ·[ B , A ]) = nothing
+value? (ν A · L ⟨ c ⟩) = nothing
 value? (Λ N) with value? N
 value? (Λ N) | just v  = just (V-Λ v)
 value? (Λ N) | nothing = nothing
@@ -557,19 +557,54 @@ infer Δ Γ (Λ N) | nothing = nothing
 infer Δ Γ (Λ N) | just vN with infer (underΛ Δ) (⤊ Γ) N
 infer Δ Γ (Λ N) | just vN | just (C , ⊢N) = just (`∀ C , ⊢Λ vN ⊢N)
 infer Δ Γ (Λ N) | just vN | nothing = nothing
-infer Δ Γ (L ·[ B , A ]) with wfTy? Δ A
-infer Δ Γ (L ·[ B , A ]) | nothing = nothing
-infer Δ Γ (L ·[ B , A ]) | just wA with infer Δ Γ L
-infer Δ Γ (L ·[ B , A ]) | just wA | nothing = nothing
-infer Δ Γ (L ·[ B , A ]) | just wA | just (` X , ⊢L) = nothing
-infer Δ Γ (L ·[ B , A ]) | just wA | just (`ℕ , ⊢L) = nothing
-infer Δ Γ (L ·[ B , A ]) | just wA | just (`𝔹 , ⊢L) = nothing
-infer Δ Γ (L ·[ B , A ]) | just wA | just (C ⇒ D , ⊢L) = nothing
-infer Δ Γ (L ·[ B , A ]) | just wA | just (`∀ C , ⊢L) with C ≟Ty B
-infer Δ Γ (L ·[ B , A ]) | just wA | just (`∀ C , ⊢L) | just refl =
-  just (B [ A ]ᵗ , ⊢·[] ⊢L wA)
-infer Δ Γ (L ·[ B , A ]) | just wA | just (`∀ C , ⊢L) | nothing =
-  nothing
+-- `ν`.  `R` is READ from `A`; `c` is typed on the conversion context
+-- of `TyBetaBoundary` at `allocate R Δ` (the context the `Nu` rules
+-- leave), and the result type is `c`'s target re-based onto that
+-- allocated exterior.
+infer Δ Γ (ν A · L ⟨ c ⟩) with wfTy? Δ A
+infer Δ Γ (ν A · L ⟨ c ⟩) | nothing = nothing
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA with read? (names Δ) A
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | nothing = nothing
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA) with infer Δ Γ L
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA) | nothing = nothing
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
+  | just (` X , ⊢L) = nothing
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
+  | just (`ℕ , ⊢L) = nothing
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
+  | just (`𝔹 , ⊢L) = nothing
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
+  | just (C ⇒ D , ⊢L) = nothing
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
+  | just (`∀ C , ⊢L) with boundaryWf? (allocate R Δ) TyBetaBoundary
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
+  | just (`∀ C , ⊢L) | nothing = nothing
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
+  | just (`∀ C , ⊢L) | just (Δᵢ , Δᶜ , mwf) with convTy? Δᶜ c
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
+  | just (`∀ C , ⊢L) | just (Δᵢ , Δᶜ , mwf) | nothing = nothing
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
+  | just (`∀ C , ⊢L) | just (Δᵢ , Δᶜ , mwf) | just (C′ , Cₑ , ⊢c)
+  with C′ ≟Ty C
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
+  | just (`∀ C , ⊢L) | just (Δᵢ , Δᶜ , mwf) | just (C′ , Cₑ , ⊢c)
+  | nothing = nothing
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
+  | just (`∀ C , ⊢L) | just (Δᵢ , Δᶜ , mwf) | just (C′ , Cₑ , ⊢c)
+  | just refl with rebase? (names Δᶜ) (names (allocate R Δ)) Cₑ
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
+  | just (`∀ C , ⊢L) | just (Δᵢ , Δᶜ , mwf) | just (C′ , Cₑ , ⊢c)
+  | just refl | nothing = nothing
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
+  | just (`∀ C , ⊢L) | just (Δᵢ , Δᶜ , mwf) | just (C′ , Cₑ , ⊢c)
+  | just refl | just (B , sameₑ) with wfTy? Δ B
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
+  | just (`∀ C , ⊢L) | just (Δᵢ , Δᶜ , mwf) | just (C′ , Cₑ , ⊢c)
+  | just refl | just (B , sameₑ) | nothing = nothing
+infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
+  | just (`∀ C , ⊢L) | just (Δᵢ , Δᶜ , mwf) | just (C′ , Cₑ , ⊢c)
+  | just refl | just (B , sameₑ) | just wB =
+  just (B , ⊢ν wA rA ⊢L mwf ⊢c sameₑ wB)
 -- The boundary.  `env`'s mechanical premises come from §5; its three
 -- informative ones are the interior term's type, the conversion's two
 -- types, and the two readings that relate them.
@@ -662,7 +697,7 @@ tf : ∀ {Γ A} {w : IsJ (wfTy? Γ A)} → Γ ⊢ᵗ A
 tf {Γ} {A} {w} = force (wfTy? Γ A) w
 
 -- The reading that relates an ordinary type to its representation, which
--- `TyBeta` and both `TyPeelR` clauses carry as `Δ ⊢ᶜ A ~ R`.
+-- `Nu-Λ` and both `Nu-⟪⟫` clauses carry as `Δ ⊢ᶜ A ~ R`.
 tr : ∀ {η A R} {w : IsJ (check~ η A R)} → η ⊢ A ~ R
 tr {η} {A} {R} {w} = force (check~ η A R) w
 

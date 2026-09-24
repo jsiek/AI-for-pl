@@ -512,6 +512,33 @@ repwk-abst {ρ = ρ} {Ξ = Ξ} {Ξ′ = Ξ′} w =
   rps : WfRepCtx (abstR ∷ Ξ) → WfRepCtx (abstR ∷ Ξ′)
   rps (wf-abstR wr) = wf-abstR (wk-reps w wr)
 
+-- Going under a REPRESENTED binder — the cell a `ν` allocates.  The
+-- payload moves with the renaming; nothing else changes.
+repwk-bind : ∀ {ρ Ξ Ξ′ R} → RepWk ρ Ξ Ξ′
+  → RepWk (extᵗ ρ) (bindR R ∷ Ξ) (bindR (renameᵗ ρ R) ∷ Ξ′)
+repwk-bind {ρ = ρ} {Ξ = Ξ} {Ξ′ = Ξ′} {R = R} w =
+  repwk (inj-extᵗ (wk-inj w)) look bnd rps
+  where
+  look : ∀ {α b} → (bindR R ∷ Ξ) ∋ˡ α := b
+    → ∃[ b′ ] ((bindR (renameᵗ ρ R) ∷ Ξ′) ∋ˡ extᵗ ρ α := b′)
+  look here = _ , here
+  look (there d) with wk-look w d
+  look (there d) | b′ , d′ = b′ , there d′
+
+  bnd : ∀ {α b} → (bindR R ∷ Ξ) ∋ʳ α := b
+    → (bindR (renameᵗ ρ R) ∷ Ξ′) ∋ʳ extᵗ ρ α := renRepBinding (extᵗ ρ) b
+  bnd r-here =
+    subst (λ c → (bindR (renameᵗ ρ R) ∷ Ξ′) ∋ʳ zero := c)
+          (sym (renRepBinding-⇑ ρ (bindR R)))
+          r-here
+  bnd (r-there {b = b} d) =
+    subst (λ c → (bindR (renameᵗ ρ R) ∷ Ξ′) ∋ʳ suc (ρ _) := c)
+          (sym (renRepBinding-⇑ ρ b))
+          (r-there (wk-bind w d))
+
+  rps : WfRepCtx (bindR R ∷ Ξ) → WfRepCtx (bindR (renameᵗ ρ R) ∷ Ξ′)
+  rps (wf-bindR wR wr) = wf-bindR (wk-wfᴿ w zero wR) (wk-reps w wr)
+
 -- The three `WfCtx` fields, and the conversion LOOKUP SQUARE.
 validNames-ren : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → ValidNames Ξ Δ
   → ValidNames Ξ′ (map ρ Δ)

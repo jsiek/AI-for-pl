@@ -70,9 +70,9 @@ renᴹ² ρ `false          = `false
 renᴹ² ρ (ƛ A ∙ N)      = ƛ renameᵗ (ordinary ρ) A ∙ renᴹ² ρ N
 renᴹ² ρ (L · M)        = renᴹ² ρ L · renᴹ² ρ M
 renᴹ² ρ (Λ N)          = Λ (renᴹ² (underΛ-ren ρ) N)
-renᴹ² ρ (L ·[ B , A ]) =
-  renᴹ² ρ L ·[ renameᵗ (extᵗ (ordinary ρ)) B
-             , renameᵗ (ordinary ρ) A ]
+-- `c` is read under the hypothetical name 0 for the cell `ν` allocates
+renᴹ² ρ (ν A · L ⟨ c ⟩) =
+  ν renameᵗ (ordinary ρ) A · renᴹ² ρ L ⟨ renᶜ (extᵗ (ordinary ρ)) c ⟩
 renᴹ² ρ (M ⟪ Θ , c ⟫) =
   renᴹ² ρ M ⟪ renᴮ² ρ Θ , renᶜ (ordinary ρ) c ⟫
 
@@ -84,7 +84,7 @@ renᴹᴿ ρ `false          = `false
 renᴹᴿ ρ (ƛ A ∙ N)      = ƛ A ∙ renᴹᴿ ρ N
 renᴹᴿ ρ (L · M)        = renᴹᴿ ρ L · renᴹᴿ ρ M
 renᴹᴿ ρ (Λ N)          = Λ (renᴹᴿ (extᵗ ρ) N)
-renᴹᴿ ρ (L ·[ B , A ]) = renᴹᴿ ρ L ·[ B , A ]
+renᴹᴿ ρ (ν A · L ⟨ c ⟩) = ν A · renᴹᴿ ρ L ⟨ c ⟩
 renᴹᴿ ρ (M ⟪ Θ , c ⟫) = renᴹᴿ ρ M ⟪ renᴮᴿ ρ Θ , c ⟫
 
 -- THE SIBLING SHIFT (experiment 2): `renᴹᴿ suc` when the step
@@ -139,7 +139,7 @@ substᵐ σ `false          = `false
 substᵐ σ (ƛ A ∙ N)      = ƛ A ∙ substᵐ (extᴵ σ) N
 substᵐ σ (L · M)        = substᵐ σ L · substᵐ σ M
 substᵐ σ (Λ N)          = Λ (substᵐ (λ x → ⇑ᴵ (σ x)) N)
-substᵐ σ (L ·[ B , A ]) = substᵐ σ L ·[ B , A ]
+substᵐ σ (ν A · L ⟨ c ⟩) = ν A · substᵐ σ L ⟨ c ⟩
 substᵐ σ (M ⟪ Θ , c ⟫)  = M ⟪ Θ , c ⟫
 
 -- The substitution `Beta` performs.  A NAMED function, not a pattern

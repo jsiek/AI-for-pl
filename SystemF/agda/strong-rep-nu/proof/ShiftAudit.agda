@@ -2,8 +2,8 @@ module strong-rep-nu.proof.ShiftAudit where
 
 -- File Charter:
 --   * THE SHIFT AUDIT — every place a rule MOVES A SUBTERM, checked
---     against FRAME EXACTNESS.  §1 the site table; §2 Peel; §3 the two
---     TyPeelR clauses and TyBeta; §4 TERMINATION (the tower measure,
+--     against FRAME EXACTNESS.  §1 the site table; §2 Peel; §3 the
+--     three `Nu` rules; §4 TERMINATION (the tower measure,
 --     and why the rejected repair stalls on it); §5 Beta; §6 CancelR
 --     and IdPush; §7 the drops; §8 the ξ rules; §9 dead machinery.
 --   * THE CRITERION.  A moved subterm's type context at the new
@@ -75,33 +75,36 @@ Peel-no-alloc : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Value V → Value
 Peel-no-alloc = Peel
 
 ------------------------------------------------------------------------
--- §3  THE TWO TYPEELR CLAUSES, AND TYBETA
+-- §3  THE THREE `Nu` RULES
 ------------------------------------------------------------------------
 
--- THE Λ CLAUSE MOVES NOTHING: the allocation REFINES `N`'s own `abstR`
--- binder to `bindR R` in place and `inst Θ` restores its ordinary name
--- at position 0.  Criterion (ii), no renaming at all.
-TyPeelR-Λ-restores-name-0 : (Θ : Boundary)
-  → ∃[ χ ] ((inst Θ) ≡ χ ++ (bind 0 0 ∷ []))
-TyPeelR-Λ-restores-name-0 Θ = _ , refl
-
--- TyBeta is the same refinement one `∀` out: the fresh cell is allocated
--- at index 0 and `inst []` gives it ordinary name 0.
-TyBeta-restores-name-0 :
+-- `Nu-Λ` MOVES NOTHING: the allocation REFINES `N`'s own `abstR` binder
+-- to `bindR R` in place and `inst []` gives it ordinary name 0.
+-- Criterion (ii), no renaming at all.
+Nu-Λ-restores-name-0 :
   (inst []) ≡ bind 0 0 ∷ []
-TyBeta-restores-name-0 = refl
+Nu-Λ-restores-name-0 = refl
+
+-- `Nu-⟪Λ⟫` is the same refinement one boundary in, with the two layers
+-- STACKED: the outer `inst []` restores name 0, and the middle
+-- `liftᴮ Θ` is the crossed frame read under it.  Read inside out they
+-- are exactly the fused `inst Θ` the retired TyPeelR-Λ wrote.
+Nu-⟪Λ⟫-stacks-to-inst : (Θ : Boundary)
+  → inst Θ ≡ liftᴮ Θ ++ inst []
+Nu-⟪Λ⟫-stacks-to-inst Θ = refl
 
 -- THE WRAPPER CLAUSE.  The moved boundary crosses one fresh cell and
 -- one fresh ordinary name, and its appended `unbind 0 0` deletes that
--- name again — so the move is the plain SIBLING SHIFT.
+-- name again — so the move is the plain SIBLING SHIFT.  A `ν` it passes
+-- keeps its type and conversion: both are read on its own scope.
 -- Commentary.md § proof/ShiftAudit.agda / §3
-TyPeelR-⟪⟫-move-ordinary : (ρ : Renameᵗ) (L : Term) (B A : Ty)
-  → renᴹᴿ ρ (L ·[ B , A ]) ≡ renᴹᴿ ρ L ·[ B , A ]
-TyPeelR-⟪⟫-move-ordinary ρ L B A = refl
+Nu-⟪⟫-move-ordinary : (ρ : Renameᵗ) (L : Term) (A : Ty) (c : Conv)
+  → renᴹᴿ ρ (ν A · L ⟨ c ⟩) ≡ ν A · renᴹᴿ ρ L ⟨ c ⟩
+Nu-⟪⟫-move-ordinary ρ L A c = refl
 
-TyPeelR-⟪⟫-move-conversion : (ρ : Renameᵗ) (M : Term) (Θ : Boundary)
+Nu-⟪⟫-move-conversion : (ρ : Renameᵗ) (M : Term) (Θ : Boundary)
   (c : Conv) → renᴹᴿ ρ (M ⟪ Θ , c ⟫) ≡ renᴹᴿ ρ M ⟪ renᴮᴿ ρ Θ , c ⟫
-TyPeelR-⟪⟫-move-conversion ρ M Θ c = refl
+Nu-⟪⟫-move-conversion ρ M Θ c = refl
 
 -- The appended unbind names ordinary position 0 and the cell just
 -- minted; it is APPENDED, so it acts FIRST.  The rule writes that snoc
@@ -122,7 +125,7 @@ towerHeight `false         = 0
 towerHeight (ƛ A ∙ N)      = 0
 towerHeight (L · M)        = 0
 towerHeight (Λ N)          = 0
-towerHeight (L ·[ B , A ]) = 0
+towerHeight (ν A · L ⟨ c ⟩) = 0
 towerHeight (M ⟪ Θ , c ⟫)  = suc (towerHeight M)
 
 -- No renaming changes it — which is what makes the measure usable at all,
@@ -136,7 +139,7 @@ towerHeight-renᴹᴿ ρ `false         = refl
 towerHeight-renᴹᴿ ρ (ƛ A ∙ N)      = refl
 towerHeight-renᴹᴿ ρ (L · M)        = refl
 towerHeight-renᴹᴿ ρ (Λ N)          = refl
-towerHeight-renᴹᴿ ρ (L ·[ B , A ]) = refl
+towerHeight-renᴹᴿ ρ (ν A · L ⟨ c ⟩) = refl
 towerHeight-renᴹᴿ ρ (M ⟪ Θ , c ⟫)  =
   cong suc (towerHeight-renᴹᴿ ρ M)
 
@@ -146,13 +149,13 @@ towerHeight-↑ᴹ : (δ : Alloc) (M : Term)
 towerHeight-↑ᴹ none    M = refl
 towerHeight-↑ᴹ (new R) M = towerHeight-renᴹᴿ suc M
 
--- THE MEASURE STRICTLY DECREASES.  The ∀-value the contractum's inner
--- `·[]` instantiates is ONE BOUNDARY SHORTER than the one the redex's
--- `·[]` instantiated.
-TyPeelR-⟪⟫-height : (W : Term) (Θ′ Θ : Boundary) (s′ s″ s : Conv)
+-- THE MEASURE STRICTLY DECREASES.  The ∀-value the contractum's pushed
+-- `ν` instantiates is ONE BOUNDARY SHORTER than the one the redex's `ν`
+-- instantiated.
+Nu-⟪⟫-height : (W : Term) (Θ′ Θ : Boundary) (s′ s″ s : Conv)
   → towerHeight (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
       ≡ towerHeight ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ∸ 1
-TyPeelR-⟪⟫-height W Θ′ Θ s′ s″ s =
+Nu-⟪⟫-height W Θ′ Θ s′ s″ s =
   cong suc (towerHeight-renᴹᴿ suc W)
 
 -- THE REJECTED REPAIR STALLS AT THE SAME MEASURE: fix (a) MINTS a
@@ -164,8 +167,8 @@ fixA-height-stalls : (V : Term) (Θ : Boundary) (s : Conv) (Bᵢ : Ty)
 fixA-height-stalls V Θ s Bᵢ = cong suc (towerHeight-renᴹᴿ suc V)
 
 -- AND IT IS SELF-FEEDING: an identity conversion at a `∀` is
--- necessarily `` `∀ ``, hence INERT, hence the wrapped value under
--- `·[ … ]` is itself a TyPeelR redex.
+-- necessarily `` `∀ ``, hence INERT, hence the wrapped value under a
+-- `ν` is itself a `Nu-⟪Λ⟫`/`Nu-⟪⟫` redex.
 mkId-∀ : (B : Ty) → mkId (`∀ B) ≡ `∀ (mkId B)
 mkId-∀ B = refl
 
@@ -180,7 +183,7 @@ value-↑ᴹ none    v = v
 value-↑ᴹ (new R) v = value-renᴹᴿ suc v
 
 -- WHERE THE DESCENT STOPS: a `∀`-value of tower height 0 is a `Λ`, so
--- the run is `height − 1` wrapper steps then one `TyPeelR-Λ` step.
+-- the run is `height − 1` wrapper steps then one `Nu-⟪Λ⟫` step.
 canon-∀-height : ∀ {Δ V C} → Value V → Δ ∣ [] ⊢ V ⦂ `∀ C
   → towerHeight V ≡ 0
   → Σ[ N ∈ Term ] (Value N × (V ≡ Λ N))
@@ -190,32 +193,37 @@ canon-∀-height v ⊢V ()
     | inj₂ (W , Θ′ , s′ , vW , refl)
 
 -- … stated as the progress clause it decides, against the LIVE relation.
--- At tower height 0 the step is `TyPeelR-Λ`, which ALLOCATES the cell for
+-- At tower height 0 the step is `Nu-⟪Λ⟫`, which ALLOCATES the cell for
 -- the type argument's representation — the contractum is named, and so is
 -- the change.
-progress-Λ-at-0 : ∀ {Δ Δᶜ V Θ s B A R C} → Value V
-  → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
+progress-Λ-at-0 : ∀ {Δ Δᶜ V Θ s c A R C} → Value V
+  → Δ ∣ [] ⊢ ν A · (V ⟪ Θ , `∀ s ⟫) ⟨ c ⟩ ⦂ C
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
   → Δ ⊢ᶜ A ~ R
   → towerHeight V ≡ 0
     ----------------------------------------------------------------
   → Σ[ N ∈ Term ]
       ((V ≡ Λ N)
-       × (Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-            -→ N ⟪ inst Θ , instReveal 0 s ⟫ ∣ new R))
-progress-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) wA) rc pA eq
+       × (Δ ⊢ ν A · (V ⟪ Θ , `∀ s ⟫) ⟨ c ⟩
+            -→ (N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫ ∣ new R))
+progress-Λ-at-0 v
+    (⊢ν wA rA (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
   with conv-all-inv ⊢c
-progress-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) wA) rc pA eq
+progress-Λ-at-0 v
+    (⊢ν wA rA (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
   | A₀ , B₀ , refl , eqₑ , ⊢s with smᵢ
-progress-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) wA) rc pA eq
+progress-Λ-at-0 v
+    (⊢ν wA rA (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
   | A₀ , B₀ , refl , eqₑ , ⊢s | _ , same-∀ pᵢ , same-∀ qᵢ
   with conversion-functional (bw-conversion mwᵥ) rc
-progress-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) wA) rc pA eq
+progress-Λ-at-0 v
+    (⊢ν wA rA (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
   | A₀ , B₀ , refl , eqₑ , ⊢s | _ , same-∀ pᵢ , same-∀ qᵢ | refl
   with canon-∀-height v ⊢V eq
-progress-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) wA) rc pA eq
+progress-Λ-at-0 v
+    (⊢ν wA rA (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
   | A₀ , B₀ , refl , eqₑ , ⊢s | _ , same-∀ pᵢ , same-∀ qᵢ | refl
-  | N , vN , refl = N , refl , TyPeelR-Λ vN rc ⊢s pA
+  | N , vN , refl = N , refl , Nu-⟪Λ⟫ vN rc ⊢s pA
 
 ------------------------------------------------------------------------
 -- §5  BETA — the two crossings do not interfere
@@ -291,11 +299,11 @@ Drop-false-vacuous Δ Γ = ⊢false
 -- the LITERAL ITSELF, and a closed value at a base type IS a literal.
 Drop$-only-numerals : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ
   → (∀ {n Θ A} → M ≡ ($ n) ⟪ Θ , id A ⟫ → M′ ≡ $ n)
-Drop$-only-numerals (TyBeta v p)            ()
+Drop$-only-numerals (Nu-Λ v p)              ()
 Drop$-only-numerals (Beta w)                ()
 Drop$-only-numerals (Peel v w rc ri rd sc)  ()
-Drop$-only-numerals (TyPeelR-Λ v rc ⊢s p)   ()
-Drop$-only-numerals (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm p) ()
+Drop$-only-numerals (Nu-⟪Λ⟫ v rc ⊢s p)      ()
+Drop$-only-numerals (Nu-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm p) ()
 Drop$-only-numerals (CancelR v ri r₁ d₁ r⋉ sm) ()
 Drop$-only-numerals (Drop$ b)               refl = refl
 Drop$-only-numerals Drop-true               ()
@@ -303,7 +311,7 @@ Drop$-only-numerals Drop-false              ()
 Drop$-only-numerals (IdPush v ri r₁ r⋉ sm) ()
 Drop$-only-numerals (ξ-·-l st)              ()
 Drop$-only-numerals (ξ-·-r v st)            ()
-Drop$-only-numerals (ξ-·[] st)              ()
+Drop$-only-numerals (ξ-ν st)                ()
 Drop$-only-numerals (ξ-⟪⟫ ri st)            refl =
   ⊥-elim (numeral-¬step st)
   where

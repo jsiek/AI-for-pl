@@ -51,6 +51,7 @@ infix  9 $_
 infixl 7 _·_
 infix  6 ƛ_∙_
 infix  5 _⟪_,_⟫
+infix  5 ν_·_⟨_⟩
 
 data Term : Set where
   `_      : Var → Term
@@ -60,7 +61,7 @@ data Term : Set where
   ƛ_∙_    : Ty → Term → Term
   _·_     : Term → Term → Term
   Λ_      : Term → Term
-  _·[_,_] : Term → Ty → Ty → Term
+  ν_·_⟨_⟩ : Ty → Term → Conv → Term
   _⟪_,_⟫  : Term → Boundary → Conv → Term
 
 Ctx : Set
@@ -148,8 +149,22 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
   ⊢Λ : ∀ {Δ Γ C N} → Value N → underΛ Δ ∣ ⤊ Γ ⊢ N ⦂ C
     → Δ ∣ Γ ⊢ Λ N ⦂ `∀ C
 
-  ⊢·[] : ∀ {Δ Γ A B L} → Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A
-       → Δ ∣ Γ ⊢ L ·[ B , A ] ⦂ B [ A ]ᵗ
+  -- (ν). Instantiate `L : ∀ C` at a fresh cell holding `A`'s
+  -- representation `R` and convert with `c`.  `c` is read on the
+  -- conversion context of `TyBetaBoundary` at `allocate R Δ` — the
+  -- context the `Nu` rules leave — and ANY `c` whose types line up is
+  -- accepted (the compiler writes `reveal 0 C`, strong-rep-nu.Compile).
+  -- Commentary.md § Terms.agda / §4 — ⊢ν
+  ⊢ν : ∀ {Δ Δᵢ Δᶜ Γ A R L C Cₑ B c}
+     → Δ ⊢ᵗ A
+     → Δ ⊢ᶜ A ~ R
+     → Δ ∣ Γ ⊢ L ⦂ `∀ C
+     → BoundaryWf (allocate R Δ) TyBetaBoundary Δᵢ Δᶜ
+     → Δᶜ ⊢ c ∶ C ⇝ Cₑ
+     → allocate R Δ ⊢ B ≈ Cₑ ⊣ Δᶜ
+     → Δ ⊢ᵗ B
+       --------------------------------------------
+     → Δ ∣ Γ ⊢ ν A · L ⟨ c ⟩ ⦂ B
 
   -- (env). The boundary scope witness supplies both contexts, and the
   -- three sides are compared by the representation each denotes.
@@ -177,7 +192,7 @@ value-var-visible (V-⟪⟫ _ _) (env _ _ _ _ _ (wf-var tv)) = tv
 β-seven : Term
 β-seven = ($ 7) ⟪ TyBetaBoundary , id `ℕ ⟫
 
--- typed at the context TyBeta LEAVES: the cell for ℕ has been allocated
+-- typed at the context Nu-Λ LEAVES: the cell for ℕ has been allocated
 β-seven-⊢ : allocate `ℕ empty ∣ [] ⊢ β-seven ⦂ `ℕ
 β-seven-⊢ =
   env TyBeta-bw ⊢$ (conv-id base-ℕ)

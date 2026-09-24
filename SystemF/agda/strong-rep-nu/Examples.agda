@@ -34,8 +34,8 @@ module strong-rep-nu.Examples where
 --        (a chained representation).  The dummy detours make `IdPush`
 --        fire twice for `Q` and `L`, four times for `D`, and six times
 --        for `R`.
---   §3   TYPEELR FROM CLOSED PLAIN SOURCE — `G`, whose second inner
---        instantiation is a `TyPeelR` redex after the first allocation;
+--   §3   NU-⟪⟫ FROM CLOSED PLAIN SOURCE — `G`, whose second inner
+--        instantiation is a `Nu-⟪⟫` redex after the first allocation;
 --        both cells live in the ambient representation store.
 --   §4   THE REVEAL MIRROR — `H`, where the `∀` crosses the boundary
 --        OUTWARD as a result rather than inward as an argument.
@@ -67,28 +67,28 @@ module strong-rep-nu.Examples where
 -- THE RUNS, AND WHAT THEY REACH.  This table is the acceptance test: a
 -- change to the rules that moves a step count or an endpoint is a change
 -- that has to be argued for.  Sections §1–§8 and §10 begin with the empty
--- store and grow it at each `TyBeta`/`TyPeelR`; §9 begins with the one-cell
+-- store and grow it at each `Nu` rule; §9 begins with the one-cell
 -- store `Δ₆`.  The endpoint term is stated independently of that final store.
 --
 --   §1a  P     5 steps   7      : ℕ    the polymorphic identity
---   §1b  K     9 steps   true   : 𝔹    a polymorphic Boolean use
---   §1c  J    10 steps   3      : ℕ    a polymorphic constant
+--   §1b  K    11 steps   true   : 𝔹    a polymorphic Boolean use
+--   §1c  J    12 steps   3      : ℕ    a polymorphic constant
 --   §1d  F     5 steps   false  : 𝔹    the identity at 𝔹
 --   §1e  U     6 steps   5      : ℕ    an argument still reducing
 --   §2   Q    11 steps   7      : ℕ    two IdPush steps
 --   §2a  D    17 steps   7      : ℕ    four IdPush steps
 --   §2b  L    11 steps   7      : ℕ    the wall context
 --   §2c  R    16 steps   7      : ℕ    a chained representation
---   §3   G    13 steps   7      : ℕ    two store allocations
---   §4   H     9 steps   7      : ℕ    the reveal mirror
---   §5a  E    19 steps   true   : 𝔹    one later binder
---   §5b  V    24 steps   true   : 𝔹    two later binders
---   §6a  I     9 steps   true   : 𝔹    impredicative identity
---   §6b  N    16 steps   7      : ℕ    ∀-payload over a free var
+--   §3   G    16 steps   7      : ℕ    two store allocations
+--   §4   H    11 steps   7      : ℕ    the reveal mirror
+--   §5a  E    30 steps   true   : 𝔹    one later binder
+--   §5b  V    49 steps   true   : 𝔹    two later binders
+--   §6a  I    12 steps   true   : 𝔹    impredicative identity
+--   §6b  N    20 steps   7      : ℕ    ∀-payload over a free var
 --   §7a  A     8 steps   7      : ℕ    a function crosses
 --   §7b  B    15 steps   7      : ℕ    a function crosses twice
---   §7c  C    22 steps   7      : ℕ    a function through the tower
---   §8   S    14 steps   7      : ℕ    the CancelR shift witness
+--   §7c  C    33 steps   7      : ℕ    a function through the tower
+--   §8   S    16 steps   7      : ℕ    the CancelR shift witness
 --   §9a  T     2 steps   7      : ℕ    the cancel pair
 --   §9b  Tid   3 steps   7      : ℕ    one transparent layer
 --   §9c  Tid₂  4 steps   7      : ℕ    a stack of layers
@@ -115,7 +115,7 @@ module strong-rep-nu.Examples where
 -- COVERAGE.  All fourteen live reduction rules fire somewhere in §§1–8.
 -- §1d, §1e and §5b retain cases that the smaller baseline and tower runs
 -- do not reach: `Drop-false`, `ξ-·-r`, and the second
--- `TyPeelR-⟪⟫`.  Each dummy route is the four-step sequence `TyBeta`,
+-- `Nu-⟪⟫`.  Each dummy route is the four-step sequence `Nu-Λ`,
 -- `Peel`, `Drop$`, `Beta`; it introduces no new rule shape.
 --
 -- WHAT IS STILL THIN.  Depth.  The deepest seal tower any run builds is
@@ -190,7 +190,7 @@ open import strong-rep-nu.Eval
 ------------------------------------------------------------------------
 
 P₀ : Term
-P₀ = (Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `ℕ ] · $ 7
+P₀ = ν `ℕ · (Λ (ƛ ` 0 ∙ ` 0)) ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩ · $ 7
 
 P₀-⊢ : empty ∣ [] ⊢ P₀ ⦂ `ℕ
 P₀-⊢ = tc
@@ -211,14 +211,14 @@ FB = GT ⇒ (` 0 ⇒ `𝔹)
 
 truePoly Fbody Ffun K₀ : Term
 truePoly = Λ (ƛ ` 0 ∙ `true)
-Fbody = ƛ GT ∙ ((` 0) ·[ ` 0 ⇒ `𝔹 , ` 0 ])
+Fbody = ƛ GT ∙ (ν ` 0 · (` 0) ⟨ reveal 0 (` 0 ⇒ `𝔹) ⟩)
 Ffun = Λ Fbody
-K₀ = ((Ffun ·[ FB , `𝔹 ]) · truePoly) · `false
+K₀ = ((ν `𝔹 · Ffun ⟨ reveal 0 FB ⟩) · truePoly) · `false
 
 K₀-⊢ : empty ∣ [] ⊢ K₀ ⦂ `𝔹
 K₀-⊢ = tc
 
-K-eval : Reaches 9 9 K₀-⊢ `true
+K-eval : Reaches 11 11 K₀-⊢ `true
 K-eval = reaches refl V-true
 
 K-run : empty ⊢ K₀ -→* `true
@@ -234,14 +234,14 @@ JB = ` 0 ⇒ (JT ⇒ ` 0)
 
 const3 Jbody Jfun J₀ : Term
 const3 = Λ (ƛ ` 0 ∙ $ 3)
-Jbody = ƛ JT ∙ (((` 0) ·[ ` 0 ⇒ ` 1 , ` 0 ]) · ` 1)
+Jbody = ƛ JT ∙ ((ν ` 0 · (` 0) ⟨ reveal 0 (` 0 ⇒ ` 1) ⟩) · ` 1)
 Jfun = Λ (ƛ ` 0 ∙ Jbody)
-J₀ = ((Jfun ·[ JB , `ℕ ]) · $ 7) · const3
+J₀ = ((ν `ℕ · Jfun ⟨ reveal 0 JB ⟩) · $ 7) · const3
 
 J₀-⊢ : empty ∣ [] ⊢ J₀ ⦂ `ℕ
 J₀-⊢ = tc
 
-J-eval : Reaches 10 10 J₀-⊢ ($ 3)
+J-eval : Reaches 12 12 J₀-⊢ ($ 3)
 J-eval = reaches refl V-$
 
 J-run : empty ⊢ J₀ -→* $ 3
@@ -256,7 +256,7 @@ J-run = reaches-run J-eval
 ------------------------------------------------------------------------
 
 F₀ : Term
-F₀ = (Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `𝔹 ] · `false
+F₀ = ν `𝔹 · (Λ (ƛ ` 0 ∙ ` 0)) ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩ · `false
 
 F₀-⊢ : empty ∣ [] ⊢ F₀ ⦂ `𝔹
 F₀-⊢ = tc
@@ -277,7 +277,7 @@ F-run = reaches-run F-eval
 
 U₀ : Term
 U₀ = (ƛ (`ℕ ⇒ `ℕ) ∙ ((` 0) · $ 5))
-       · ((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `ℕ ])
+       · (ν `ℕ · (Λ (ƛ ` 0 ∙ ` 0)) ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩)
 
 U₀-⊢ : empty ∣ [] ⊢ U₀ ⦂ `ℕ
 U₀-⊢ = tc
@@ -292,7 +292,7 @@ U-run = reaches-run U-eval
 -- §2  THE VACUOUS-Λ FAMILY — id-layers from closed, plain source
 ------------------------------------------------------------------------
 
--- WHAT MAKES AN ID-LAYER.  `TyBeta`'s minted conversion is
+-- WHAT MAKES AN ID-LAYER.  `ν`'s conversion (the compiler's `reveal 0 B`) is
 -- `instReveal 0 s` on the body type, and at a body type that is an OUTER
 -- ordinary variable that conversion is an IDENTITY at a variable — inert,
 -- and therefore a layer the value carries rather than a step it takes.
@@ -302,16 +302,16 @@ U-run = reaches-run U-eval
 --   Q = ((ΛY. λx:Y. ((ΛZ. λ_:ℕ. x) [ℕ]) · 0) [ℕ]) · 7
 --
 -- Under Z the outer Y is ordinary slot 1, so `ΛZ. λ_:ℕ. x` has type
--- `∀ (ℕ ⇒ ` 1)`.  The inner `TyBeta` mints an identity layer around x's
+-- `∀ (ℕ ⇒ ` 1)`.  The inner `Nu-Λ` mints an identity layer around x's
 -- value, inside the OUTER package's revealing wrapper.  That stack
 -- contains the original `IdPush` redex; the dummy route contributes a
 -- second identity layer, so the new run fires `IdPush` twice.
 
 Qvac Qbody Qfun Q₀ : Term
 Qvac  = Λ (ƛ `ℕ ∙ ` 1)                   -- ΛZ. λ_:ℕ. x
-Qbody = (Qvac ·[ `ℕ ⇒ ` 1 , `ℕ ]) · $ 0
+Qbody = (ν `ℕ · Qvac ⟨ reveal 0 (`ℕ ⇒ ` 1) ⟩) · $ 0
 Qfun  = Λ (ƛ ` 0 ∙ Qbody)
-Q₀    = (Qfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
+Q₀    = (ν `ℕ · Qfun ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩) · ($ 7)
 
 Q₀-⊢ : empty ∣ [] ⊢ Q₀ ⦂ `ℕ
 Q₀-⊢ = tc
@@ -335,7 +335,7 @@ Q-⦂ = reaches-⦂ Q-eval
 --          ((ΛZ. λ_:ℕ. ((ΛW. λ_:ℕ. x) [ℕ]) · 0) [ℕ]) · 0)
 --        [ℕ]) · 7
 --
--- Each vacuous `Λ` contributes one `TyBeta` whose body type ends in an
+-- Each vacuous `Λ` contributes one `Nu-Λ` whose body type ends in an
 -- outer ordinary variable, hence one identity layer.  The inner package
 -- is instantiated and applied only after the outer package's dummy
 -- lambda has itself been instantiated and applied; no step occurs under
@@ -344,10 +344,10 @@ Q-⦂ = reaches-⦂ Q-eval
 
 Dinner Dbody Dfun D₀ : Term
 Dinner =
-  Λ (ƛ `ℕ ∙ ((Λ (ƛ `ℕ ∙ ` 2)) ·[ `ℕ ⇒ ` 2 , `ℕ ]) · $ 0)
-Dbody  = (Dinner ·[ `ℕ ⇒ ` 1 , `ℕ ]) · $ 0
+  Λ (ƛ `ℕ ∙ (ν `ℕ · (Λ (ƛ `ℕ ∙ ` 2)) ⟨ reveal 0 (`ℕ ⇒ ` 2) ⟩) · $ 0)
+Dbody  = (ν `ℕ · Dinner ⟨ reveal 0 (`ℕ ⇒ ` 1) ⟩) · $ 0
 Dfun   = Λ (ƛ ` 0 ∙ Dbody)
-D₀     = (Dfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
+D₀     = (ν `ℕ · Dfun ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩) · ($ 7)
 
 D₀-⊢ : empty ∣ [] ⊢ D₀ ⦂ `ℕ
 D₀-⊢ = tc
@@ -367,7 +367,7 @@ D-run = reaches-run D-eval
 --
 --   L = ((ΛY. λx:Y. ((ΛZ. λ_:ℕ. x) [Y]) · 0) [ℕ]) · 7
 --
--- After the inner `TyBeta` the new binder's representation is the CHAINED
+-- After the inner `Nu-Λ` the new binder's representation is the CHAINED
 -- one — it is the representation the outer binder named — and the
 -- `Peel`-minted `unbind` inside blocks exactly the ordinary name that
 -- representation was read through.  That is the configuration the old
@@ -378,9 +378,9 @@ D-run = reaches-run D-eval
 -- run is unbind-free.  The run reaches a value, and no state loses its type.
 
 Lbody Lfun L₀ : Term
-Lbody = (Qvac ·[ `ℕ ⇒ ` 1 , ` 0 ]) · $ 0
+Lbody = (ν ` 0 · Qvac ⟨ reveal 0 (`ℕ ⇒ ` 1) ⟩) · $ 0
 Lfun  = Λ (ƛ ` 0 ∙ Lbody)
-L₀    = (Lfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
+L₀    = (ν `ℕ · Lfun ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩) · ($ 7)
 
 L₀-⊢ : empty ∣ [] ⊢ L₀ ⦂ `ℕ
 L₀-⊢ = tc
@@ -409,9 +409,9 @@ L-run = reaches-run L-eval
 -- itself a variable of the representation universe.
 
 Rbody Rfun R₀ : Term
-Rbody = (Qfun ·[ ` 0 ⇒ ` 0 , ` 0 ]) · (` 0)
+Rbody = (ν ` 0 · Qfun ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩) · (` 0)
 Rfun  = Λ (ƛ ` 0 ∙ Rbody)
-R₀    = (Rfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
+R₀    = (ν `ℕ · Rfun ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩) · ($ 7)
 
 R₀-⊢ : empty ∣ [] ⊢ R₀ ⦂ `ℕ
 R₀-⊢ = tc
@@ -423,34 +423,34 @@ R-run : empty ⊢ R₀ -→* $ 7
 R-run = reaches-run R-eval
 
 ------------------------------------------------------------------------
--- §3  TYPEELR FROM CLOSED PLAIN SOURCE, WITH TWO STORE CELLS
+-- §3  NU-⟪⟫ FROM CLOSED PLAIN SOURCE, WITH TWO STORE CELLS
 ------------------------------------------------------------------------
 
 --   G = ((ΛX. λx:X. ((ΛY. ΛZ. λ_:ℕ. x) [ℕ]) [ℕ] · 0) [ℕ]) · 7
 --
 -- `ΛY. ΛZ. x` has type `∀Y. ∀Z. X`, so the first inner instantiation
 -- allocates one store cell and mints an INERT `∀` conversion.  The second
--- instantiation is therefore a `TyPeelR` redex and allocates a second cell.
+-- instantiation is therefore a `Nu-⟪⟫` redex and allocates a second cell.
 -- The crossed boundary itself still contains only changes.
 
 Gpoly Gbody Gfun G₀ : Term
 Gpoly = Λ (Λ (ƛ `ℕ ∙ ` 1))
-Gbody = ((Gpoly ·[ `∀ (`ℕ ⇒ ` 2) , `ℕ ])
-           ·[ `ℕ ⇒ ` 1 , `ℕ ]) · $ 0
+Gbody = (ν `ℕ · (ν `ℕ · Gpoly ⟨ reveal 0 (`∀ (`ℕ ⇒ ` 2)) ⟩)
+           ⟨ reveal 0 (`ℕ ⇒ ` 1) ⟩) · $ 0
 Gfun  = Λ (ƛ ` 0 ∙ Gbody)
-G₀    = (Gfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
+G₀    = (ν `ℕ · Gfun ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩) · ($ 7)
 
 G₀-⊢ : empty ∣ [] ⊢ G₀ ⦂ `ℕ
 G₀-⊢ = tc
 
-G-eval : Reaches 13 13 G₀-⊢ ($ 7)
+G-eval : Reaches 16 16 G₀-⊢ ($ 7)
 G-eval = reaches refl V-$
 
 G-run : empty ⊢ G₀ -→* $ 7
 G-run = reaches-run G-eval
 
--- The allocation is carried by the step result, not the boundary: `TyBeta`
--- and both `TyPeelR` rules return `new R`; `Peel`, `CancelR`, `IdPush`, the
+-- The allocation is carried by the step result, not the boundary: `Nu-Λ`
+-- and both `Nu` boundary rules return `new R`; `Peel`, `CancelR`, `IdPush`, the
 -- drops, and their congruences return or propagate `none`.
 
 ------------------------------------------------------------------------
@@ -460,7 +460,7 @@ G-run = reaches-run G-eval
 --   H = ((((ΛX. λx:X. ΛY. λy:Y. x) [ℕ]) · 7) [ℕ]) · 5
 --
 -- §2's programs send the `∀` INWARD, as an argument; here it goes OUTWARD,
--- as the result, so the conversion `TyBeta` mints reveals on the codomain
+-- as the result, so the conversion the `ν` carries reveals on the codomain
 -- where §2's conceals on the domain.  Under the retired polarity index
 -- that difference decided TYPEABILITY; now it decides only which binder
 -- each minted leaf cites, and the mirror runs to the same numeral.
@@ -470,12 +470,13 @@ HB = ` 0 ⇒ `∀ (` 0 ⇒ ` 1)
 
 Hfun H₀ : Term
 Hfun = Λ (ƛ ` 0 ∙ (Λ (ƛ ` 0 ∙ (` 1))))
-H₀   = (((Hfun ·[ HB , `ℕ ]) · ($ 7)) ·[ ` 0 ⇒ `ℕ , `ℕ ]) · ($ 5)
+H₀   = (ν `ℕ · ((ν `ℕ · Hfun ⟨ reveal 0 HB ⟩) · ($ 7))
+          ⟨ reveal 0 (` 0 ⇒ `ℕ) ⟩) · ($ 5)
 
 H₀-⊢ : empty ∣ [] ⊢ H₀ ⦂ `ℕ
 H₀-⊢ = tc
 
-H-eval : Reaches 9 9 H₀-⊢ ($ 7)
+H-eval : Reaches 11 11 H₀-⊢ ($ 7)
 H-eval = reaches refl V-$
 
 H-run : empty ⊢ H₀ -→* $ 7
@@ -511,10 +512,10 @@ EBod = EID ⇒ `∀ (`ℕ ⇒ (` 0 ⇒ ` 0))
 
 Earg Ebody Efun E₀ E₀ᴮ : Term
 Earg = Λ (ƛ ` 0 ∙ ` 0)
-Ebody = Λ (ƛ `ℕ ∙ ((` 1) ·[ ` 0 ⇒ ` 0 , ` 0 ]))
+Ebody = Λ (ƛ `ℕ ∙ (ν ` 0 · (` 1) ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩))
 Efun = Λ (ƛ EID ∙ Ebody)
-E₀ = (Efun ·[ EBod , `ℕ ]) · Earg
-E₀ᴮ = ((E₀ ·[ `ℕ ⇒ (` 0 ⇒ ` 0) , `𝔹 ]) · $ 0) · `true
+E₀ = (ν `ℕ · Efun ⟨ reveal 0 EBod ⟩) · Earg
+E₀ᴮ = ((ν `𝔹 · E₀ ⟨ reveal 0 (`ℕ ⇒ (` 0 ⇒ ` 0)) ⟩) · $ 0) · `true
 
 -- Uncontinued, the program is already a run: it reaches a VALUE at
 -- `∀Y. ℕ ⇒ Y ⇒ Y`, which is where the value-restricted design parks it.
@@ -524,7 +525,7 @@ E₀-⊢ = tc
 E₀ᴮ-⊢ : empty ∣ [] ⊢ E₀ᴮ ⦂ `𝔹
 E₀ᴮ-⊢ = tc
 
-E-eval : Reaches 19 19 E₀ᴮ-⊢ `true
+E-eval : Reaches 30 30 E₀ᴮ-⊢ `true
 E-eval = reaches refl V-true
 
 E-run : empty ⊢ E₀ᴮ -→* `true
@@ -537,7 +538,7 @@ E-run = reaches-run E-eval
 -- §5a with one more later binder, which is what puts weight on the two
 -- rules §5a barely touches.  The argument now crosses THREE boundaries
 -- before it is instantiated, so the `∀`-value the type application meets
--- is two boundaries deep and `TyPeelR-⟪⟫` fires twice rather than once;
+-- is two boundaries deep and `Nu-⟪⟫` fires twice rather than once;
 -- the seal tower it leaves is four deep, and unwinding it is quadratic,
 -- so `IdPush` still fires repeatedly.  The dummy route changes the exact
 -- total from fifteen to twelve, while §5a still fires it six times.
@@ -547,16 +548,17 @@ VBod : Ty
 VBod = EID ⇒ `∀ (`∀ (`ℕ ⇒ (` 0 ⇒ ` 0)))
 
 Vbody Vfun V₀ : Term
-Vbody = Λ (Λ (ƛ `ℕ ∙ ((` 1) ·[ ` 0 ⇒ ` 0 , ` 0 ])))
+Vbody = Λ (Λ (ƛ `ℕ ∙ (ν ` 0 · (` 1) ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩)))
 Vfun = Λ (ƛ EID ∙ Vbody)
-V₀ = (((((Vfun ·[ VBod , `ℕ ]) · Earg)
-           ·[ `∀ (`ℕ ⇒ (` 0 ⇒ ` 0)) , `𝔹 ])
-          ·[ `ℕ ⇒ (` 0 ⇒ ` 0) , `𝔹 ]) · $ 0) · `true
+V₀ = ((ν `𝔹
+        · (ν `𝔹 · ((ν `ℕ · Vfun ⟨ reveal 0 VBod ⟩) · Earg)
+             ⟨ reveal 0 (`∀ (`ℕ ⇒ (` 0 ⇒ ` 0))) ⟩)
+        ⟨ reveal 0 (`ℕ ⇒ (` 0 ⇒ ` 0)) ⟩) · $ 0) · `true
 
 V₀-⊢ : empty ∣ [] ⊢ V₀ ⦂ `𝔹
 V₀-⊢ = tc
 
-V-eval : Reaches 24 24 V₀-⊢ `true
+V-eval : Reaches 49 49 V₀-⊢ `true
 V-eval = reaches refl V-true
 
 V-run : empty ⊢ V₀ -→* `true
@@ -568,7 +570,7 @@ V-run = reaches-run V-eval
 
 -- Both programs here instantiate at a POLYMORPHIC type, so their stores
 -- receive a representation payload with a `∀` in it.  They did not run when
--- they were written: `TyPeelR-⟪⟫` and `IdPush` each carried a
+-- they were written: `Nu-⟪⟫` and `IdPush` each carried a
 -- spelling from the conversion context into the interior without
 -- re-basing it, and the two contexts disagree exactly when an unbind and an
 -- bind have moved the name.  Both rules now carry the interior spelling
@@ -584,13 +586,13 @@ V-run = reaches-run V-eval
 ------------------------------------------------------------------------
 
 I₀ : Term
-I₀ = (((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , EID ]) · Earg)
-       ·[ ` 0 ⇒ ` 0 , `𝔹 ] · `true
+I₀ = ν `𝔹 · ((ν EID · (Λ (ƛ ` 0 ∙ ` 0)) ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩) · Earg)
+       ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩ · `true
 
 I₀-⊢ : empty ∣ [] ⊢ I₀ ⦂ `𝔹
 I₀-⊢ = tc
 
-I-eval : Reaches 9 9 I₀-⊢ `true
+I-eval : Reaches 12 12 I₀-⊢ `true
 I-eval = reaches refl V-true
 
 I-run : empty ⊢ I₀ -→* `true
@@ -608,16 +610,16 @@ I-run = reaches-run I-eval
 
 N₀ : Term
 N₀ =
-  ((Λ (ƛ ` 0 ∙
-        (((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `∀ (` 0 ⇒ ` 1) ])
+  ν `𝔹 · (ν `ℕ · (Λ (ƛ ` 0 ∙
+        ((ν (`∀ (` 0 ⇒ ` 1)) · (Λ (ƛ ` 0 ∙ ` 0)) ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩)
           · (Λ (ƛ ` 0 ∙ ` 1)))))
-     ·[ ` 0 ⇒ `∀ (` 0 ⇒ ` 1) , `ℕ ] · $ 7)
-    ·[ ` 0 ⇒ `ℕ , `𝔹 ] · `true
+       ⟨ reveal 0 (` 0 ⇒ `∀ (` 0 ⇒ ` 1)) ⟩ · $ 7)
+    ⟨ reveal 0 (` 0 ⇒ `ℕ) ⟩ · `true
 
 N₀-⊢ : empty ∣ [] ⊢ N₀ ⦂ `ℕ
 N₀-⊢ = tc
 
-N-eval : Reaches 16 16 N₀-⊢ ($ 7)
+N-eval : Reaches 20 20 N₀-⊢ ($ 7)
 N-eval = reaches refl V-$
 
 N-run : empty ⊢ N₀ -→* $ 7
@@ -638,7 +640,8 @@ N-run = reaches-run N-eval
 ------------------------------------------------------------------------
 
 A₀ : Term
-A₀ = ((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `ℕ ⇒ `ℕ ] · (ƛ `ℕ ∙ ` 0)) · $ 7
+A₀ = (ν (`ℕ ⇒ `ℕ) · (Λ (ƛ ` 0 ∙ ` 0)) ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩
+        · (ƛ `ℕ ∙ ` 0)) · $ 7
 
 A₀-⊢ : empty ∣ [] ⊢ A₀ ⦂ `ℕ
 A₀-⊢ = tc
@@ -657,7 +660,7 @@ A-run = reaches-run A-eval
 ------------------------------------------------------------------------
 
 idℕℕ B₀ : Term
-idℕℕ = (Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `ℕ ⇒ `ℕ ]
+idℕℕ = ν (`ℕ ⇒ `ℕ) · (Λ (ƛ ` 0 ∙ ` 0)) ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩
 B₀ = (idℕℕ · (idℕℕ · (ƛ `ℕ ∙ ` 0))) · $ 7
 
 B₀-⊢ : empty ∣ [] ⊢ B₀ ⦂ `ℕ
@@ -676,7 +679,7 @@ B-run = reaches-run B-eval
 -- crosses is a function, every identity the unwinding tower mints is a
 -- `mkId` at a function type — that is, a `_↦_` — so `Peel` fires on the
 -- composite frames `CancelR` and `IdPush` build, rather than only on the
--- ones born at a `TyBeta`.  `notes/CrossingAudit` §5 shows that those
+-- ones born at a `Nu-Λ`.  `notes/CrossingAudit` §5 shows that those
 -- composites are not structurally guaranteed to be safe; this run is the
 -- evidence that they are safe in practice, which is testing and not
 -- proof.
@@ -685,13 +688,13 @@ B-run = reaches-run B-eval
 ------------------------------------------------------------------------
 
 C₀ : Term
-C₀ = (((E₀ ·[ `ℕ ⇒ (` 0 ⇒ ` 0) , `ℕ ⇒ `ℕ ]) · $ 0)
+C₀ = (((ν (`ℕ ⇒ `ℕ) · E₀ ⟨ reveal 0 (`ℕ ⇒ (` 0 ⇒ ` 0)) ⟩) · $ 0)
         · (ƛ `ℕ ∙ ` 0)) · $ 7
 
 C₀-⊢ : empty ∣ [] ⊢ C₀ ⦂ `ℕ
 C₀-⊢ = tc
 
-C-eval : Reaches 22 22 C₀-⊢ ($ 7)
+C-eval : Reaches 33 33 C₀-⊢ ($ 7)
 C-eval = reaches refl V-$
 
 C-run : empty ⊢ C₀ -→* $ 7
@@ -715,17 +718,16 @@ C-run = reaches-run C-eval
 -- contains an open representation.
 
 S₀ : Term
-S₀ = ((Λ (ƛ (` 0) ∙
-        (((Λ (ƛ (`∀ (` 0 ⇒ ` 1)) ∙
-             (((` 0) ·[ ` 0 ⇒ ` 1 , `ℕ ]) · ($ 7))))
-            ·[ (`∀ (` 0 ⇒ ` 1)) ⇒ ` 0 , ` 0 ])
-          · (Λ (ƛ ` 0 ∙ (` 1))))))
-       ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
+S₀ = (ν `ℕ · (Λ (ƛ (` 0) ∙
+        ((ν ` 0 · (Λ (ƛ (`∀ (` 0 ⇒ ` 1)) ∙
+             ((ν `ℕ · (` 0) ⟨ reveal 0 (` 0 ⇒ ` 1) ⟩) · ($ 7))))
+           ⟨ reveal 0 ((`∀ (` 0 ⇒ ` 1)) ⇒ ` 0) ⟩)
+          · (Λ (ƛ ` 0 ∙ (` 1)))))) ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩) · ($ 7)
 
 S₀-⊢ : empty ∣ [] ⊢ S₀ ⦂ `ℕ
 S₀-⊢ = tc
 
-S-eval : Reaches 14 14 S₀-⊢ ($ 7)
+S-eval : Reaches 16 16 S₀-⊢ ($ 7)
 S-eval = reaches refl V-$
 
 S-run : empty ⊢ S₀ -→* $ 7
@@ -911,8 +913,7 @@ _ = tc
 -- the sixth step is the `Drop$` that removes it.
 
 Bg : Term
-Bg = (((ƛ `ℕ ∙ (Λ (ƛ `ℕ ∙ ` 1))) · ($ 7))
-        ·[ `ℕ ⇒ `ℕ , `ℕ ]) · $ 0
+Bg = (ν `ℕ · ((ƛ `ℕ ∙ (Λ (ƛ `ℕ ∙ ` 1))) · ($ 7)) ⟨ reveal 0 (`ℕ ⇒ `ℕ) ⟩) · $ 0
 
 Bg-⊢ : empty ∣ [] ⊢ Bg ⦂ `ℕ
 Bg-⊢ = tc
@@ -941,7 +942,7 @@ Bg-run = reaches-run Bg-eval
 -- also not a value, so the value restriction independently rejects it.  A
 -- `just` here would be a soundness bug in `strong-rep-nu.TypeCheck`; the
 -- run of §2b is the positive companion, where the argument IS a live name.
-_ : infer empty [] ((Λ (` 0)) ·[ ` 0 , ` 0 ]) ≡ nothing
+_ : infer empty [] (ν ` 0 · (Λ (` 0)) ⟨ reveal 0 (` 0) ⟩) ≡ nothing
 _ = refl
 
 -- A `Λ` OVER A NON-VALUE IS REJECTED EVEN IN WELL-SCOPED CONTEXTS.

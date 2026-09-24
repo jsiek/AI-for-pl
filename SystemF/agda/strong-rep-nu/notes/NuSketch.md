@@ -1,7 +1,7 @@
 # strong-rep-nu — design sketch (2026-09-24)
 
-Status: PROPOSAL, nothing below is implemented yet.  The directory is
-still a verbatim copy of strong-rep-store (commit 3c444661).
+Status: DECIDED 2026-09-24 (see "Decisions" at the end); being
+implemented.  The proposal text below is kept as the record.
 
 ## The idea
 
@@ -128,3 +128,45 @@ an ALIAS cell `β := α` on the next step) is the real design point:
    allocation per `ν` with a non-allocating `•`?
 4. Does the source `·[_,_]` term go away entirely (ν is the only
    instantiation form), or stay as the elaboration's input language?
+
+## Decisions (Jeremy, 2026-09-24)
+
+1. The compiler writes `c = reveal 0 C`, but `⊢ν` accepts ANY `c` whose
+   types line up, as GTPLC's `⊢ν` does.  (This is what lets `Nu-⟪⟫`
+   push a `ν` whose conversion is a run-time reveal of the inner body.)
+2. N1 — stack, don't fuse.
+3. (a) — the nested case re-allocates an alias cell per layer.
+4. `·[_,_]` leaves the run-time language.  A SEPARATE source language,
+   plain System F with the standard `L [ A ]` (`Source.agda`), is
+   compiled into it (`Compile.agda`).
+
+## As implemented
+
+    ν_·_⟨_⟩ : Ty → Term → Conv → Term
+
+    ⊢ν : Δ ⊢ᵗ A → Δ ⊢ᶜ A ~ R → Δ ∣ Γ ⊢ L ⦂ ∀C
+       → BoundaryWf (allocate R Δ) TyBetaBoundary Δᵢ Δᶜ
+       → Δᶜ ⊢ c ∶ C ⇝ Cₑ → allocate R Δ ⊢ B ≈ Cₑ ⊣ Δᶜ → Δ ⊢ᵗ B
+       → Δ ∣ Γ ⊢ ν A · L ⟨ c ⟩ ⦂ B
+
+    (Nu-Λ)    ν A · (Λ N) ⟨c⟩
+                -→ N ⟪ inst [] , c ⟫                                ∣ new R
+    (Nu-⟪Λ⟫)  ν A · ((Λ N) ⟪ Θ , ∀ s ⟫) ⟨c⟩
+                -→ (N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫              ∣ new R
+    (Nu-⟪⟫)   ν A · ((W ⟪ Θ′ , ∀ s′ ⟫) ⟪ Θ , ∀ s ⟫) ⟨c⟩
+                -→ ((ν 0 · (↑W ⟪ ↑Θ′ ++ [unbind 0 0] , ∀ s″ ⟫)
+                        ⟨ reveal 0 (⇑Bᵢ′) ⟩)
+                      ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫              ∣ new R
+    (ξ-ν)     L -→ L′ ∣ δ  gives  ν A · L ⟨c⟩ -→ ν A · L′ ⟨c⟩ ∣ δ
+
+`liftᴮ Θ` is `Θ` shifted one step in both universes, and
+`inst Θ = liftᴮ Θ ++ [bind 0 0]`: the middle layer of a stacked
+contractum, read at the outer layer's interior, has exactly the interior
+that `inst Θ` had before.  `Nu-⟪⟫` is where the one remaining run-time
+reveal is minted: the old `TyPeelR-⟪⟫` pushed in `·[⇑Bᵢ′, 0]`, which
+the next `TyBeta` turned into `reveal 0 (⇑Bᵢ′)`.
+
+Source/compile (`Source.agda`, `Compile.agda`): `n ∣ Γ ⊢ˢ M ⦂ A` over
+a COUNT `n` of type variables, with the same value restriction on `Λ`
+as the run-time `⊢Λ`; `compile` is defined on derivations
+(`⟦⊢ˢ[] d _⟧ = ν A · ⟦d⟧ ⟨ reveal 0 C ⟩`).

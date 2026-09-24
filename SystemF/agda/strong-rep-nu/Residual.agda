@@ -9,10 +9,10 @@ module strong-rep-nu.Residual where
 --     `↑ᶜ[_]`/`↑ᴴ[_]`/`↑ʳ[_]`; §4 `Beta`'s substitution through a
 --     context; §5 `Residual`, ONE step; §6 `Residuals`, a whole run.
 --   * WHAT A RESIDUAL RECORDS.  A position is a pair `(C , M)`.  Every
---     move but `TyBeta`'s refinement is REPRESENTATION-ONLY, so the
---     relation carries as an INDEX the renaming ρ that reaches the
+--     move but the `Nu` rules' refinement is REPRESENTATION-ONLY, so
+--     the relation carries as an INDEX the renaming ρ that reaches the
 --     hole.  Since experiment 2 ρ is `idᵗ` everywhere but in
---     `TyPeelR-⟪⟫`'s pushed-in boundary and in a shifted sibling.
+--     `Nu-⟪⟫`'s pushed-in boundary and in a shifted sibling.
 --   * THE REDEX'S OWN NODES ARE CONSUMED; a substituted variable's
 --     position becomes the argument copy's (`CopyResidual`).
 --   * THIS MODULE PROVES NOTHING.
@@ -50,6 +50,7 @@ private
 infixl 7 _·L_ _·R_
 infix  6 ƛC_∙_
 infix  5 _⟪C_,_⟫
+infix  5 νC_·_⟨_⟩
 
 data TermCtx : Set where
   □        : TermCtx
@@ -57,7 +58,7 @@ data TermCtx : Set where
   _·L_     : TermCtx → Term → TermCtx
   _·R_     : Term → TermCtx → TermCtx
   ΛC_      : TermCtx → TermCtx
-  _·C[_,_] : TermCtx → Ty → Ty → TermCtx
+  νC_·_⟨_⟩ : Ty → TermCtx → Conv → TermCtx
   _⟪C_,_⟫  : TermCtx → Boundary → Conv → TermCtx
 
 plug : TermCtx → Term → Term
@@ -66,7 +67,7 @@ plug (ƛC A ∙ C) M        = ƛ A ∙ plug C M
 plug (C ·L N) M          = plug C M · N
 plug (L ·R C) M          = L · plug C M
 plug (ΛC C) M            = Λ (plug C M)
-plug (C ·C[ B , A ]) M   = plug C M ·[ B , A ]
+plug (νC A · C ⟨ c ⟩) M = ν A · plug C M ⟨ c ⟩
 plug (C ⟪C Θ , c ⟫) M    = plug C M ⟪ Θ , c ⟫
 
 ------------------------------------------------------------------------
@@ -80,7 +81,7 @@ data _⊢C_⊣_ : Ctxᵗ → TermCtx → Ctxᵗ → Set where
   frame-·L  : ∀ {C} → Δ ⊢C C ⊣ Δ′ → Δ ⊢C C ·L N ⊣ Δ′
   frame-·R  : ∀ {C} → Δ ⊢C C ⊣ Δ′ → Δ ⊢C L ·R C ⊣ Δ′
   frame-Λ   : ∀ {C} → underΛ Δ ⊢C C ⊣ Δ′ → Δ ⊢C ΛC C ⊣ Δ′
-  frame-·[] : ∀ {C} → Δ ⊢C C ⊣ Δ′ → Δ ⊢C C ·C[ B , A ] ⊣ Δ′
+  frame-ν   : ∀ {C} → Δ ⊢C C ⊣ Δ′ → Δ ⊢C νC A · C ⟨ c ⟩ ⊣ Δ′
   frame-⟪⟫  : ∀ {C} → Δ ⊢ⁱ Θ ⇒ Δᵢ → Δᵢ ⊢C C ⊣ Δ′
     → Δ ⊢C C ⟪C Θ , c ⟫ ⊣ Δ′
 
@@ -95,7 +96,7 @@ renCtxᴿ ρ (ƛC A ∙ C)      = ƛC A ∙ renCtxᴿ ρ C
 renCtxᴿ ρ (C ·L N)        = renCtxᴿ ρ C ·L renᴹᴿ ρ N
 renCtxᴿ ρ (L ·R C)        = renᴹᴿ ρ L ·R renCtxᴿ ρ C
 renCtxᴿ ρ (ΛC C)          = ΛC (renCtxᴿ (extᵗ ρ) C)
-renCtxᴿ ρ (C ·C[ B , A ]) = renCtxᴿ ρ C ·C[ B , A ]
+renCtxᴿ ρ (νC A · C ⟨ c ⟩) = νC A · renCtxᴿ ρ C ⟨ c ⟩
 renCtxᴿ ρ (C ⟪C Θ , c ⟫)  = renCtxᴿ ρ C ⟪C renᴮᴿ ρ Θ , c ⟫
 
 holeᴿ : Renameᵗ → TermCtx → Renameᵗ
@@ -104,7 +105,7 @@ holeᴿ ρ (ƛC A ∙ C)      = holeᴿ ρ C
 holeᴿ ρ (C ·L N)        = holeᴿ ρ C
 holeᴿ ρ (L ·R C)        = holeᴿ ρ C
 holeᴿ ρ (ΛC C)          = holeᴿ (extᵗ ρ) C
-holeᴿ ρ (C ·C[ B , A ]) = holeᴿ ρ C
+holeᴿ ρ (νC A · C ⟨ c ⟩) = holeᴿ ρ C
 holeᴿ ρ (C ⟪C Θ , c ⟫)  = holeᴿ ρ C
 
 -- THE SIBLING SHIFT AT A POSITION, split into its three halves: the
@@ -135,7 +136,7 @@ substCtx σ (ƛC A ∙ C)      = ƛC A ∙ substCtx (extᴵ σ) C
 substCtx σ (C ·L N)        = substCtx σ C ·L substᵐ σ N
 substCtx σ (L ·R C)        = substᵐ σ L ·R substCtx σ C
 substCtx σ (ΛC C)          = ΛC (substCtx (λ x → ⇑ᴵ (σ x)) C)
-substCtx σ (C ·C[ B , A ]) = substCtx σ C ·C[ B , A ]
+substCtx σ (νC A · C ⟨ c ⟩) = νC A · substCtx σ C ⟨ c ⟩
 substCtx σ (C ⟪C Θ , c ⟫)  = C ⟪C Θ , c ⟫
 
 holeEnv : (Var → Img) → TermCtx → Var → Img
@@ -144,7 +145,7 @@ holeEnv σ (ƛC A ∙ C)      = holeEnv (extᴵ σ) C
 holeEnv σ (C ·L N)        = holeEnv σ C
 holeEnv σ (L ·R C)        = holeEnv σ C
 holeEnv σ (ΛC C)          = holeEnv (λ x → ⇑ᴵ (σ x)) C
-holeEnv σ (C ·C[ B , A ]) = holeEnv σ C
+holeEnv σ (νC A · C ⟨ c ⟩) = holeEnv σ C
 holeEnv σ (C ⟪C Θ , c ⟫)  = ivar
 
 data Stable (σ : Var → Img) : Term → Set where
@@ -155,7 +156,7 @@ data Stable (σ : Var → Img) : Term → Set where
   stable-ƛ     : Stable σ (ƛ A ∙ N)
   stable-·     : Stable σ (L · N)
   stable-Λ     : Stable σ (Λ N)
-  stable-·[]   : Stable σ (L ·[ B , A ])
+  stable-ν     : Stable σ (ν A · L ⟨ c ⟩)
   stable-⟪⟫    : Stable σ (N ⟪ Θ , c ⟫)
 
 -- A copy of the argument, at one substituted occurrence; each `Λ` it
@@ -192,9 +193,9 @@ data CopyResidual (k : ℕ) (σ : Var → Img)
   copy-Λ : ∀ {C M D N}
     → CopyResidual (suc k) (λ x → ⇑ᴵ (σ x)) P C M ρ D N
     → CopyResidual k σ (Λ P) C M ρ (ΛC D) N
-  copy-·[] : ∀ {C M D N}
+  copy-ν : ∀ {C M D N}
     → CopyResidual k σ L C M ρ D N
-    → CopyResidual k σ (L ·[ B , A ]) C M ρ (D ·C[ B , A ]) N
+    → CopyResidual k σ (ν A · L ⟨ c ⟩) C M ρ (νC A · D ⟨ c ⟩) N
 
 ------------------------------------------------------------------------
 -- 5. Residuals of one step.  `Residual r C M ρ D N`: the step `r` moves
@@ -205,13 +206,13 @@ data CopyResidual (k : ℕ) (σ : Var → Img)
 data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
               → TermCtx → Term → Renameᵗ → TermCtx → Term → Set where
 
-  -- TyBeta: the body stays where it is — its `Λ` slot BECOMES the
+  -- Nu-Λ: the body stays where it is — its `Λ` slot BECOMES the
   -- allocated cell — so ρ is `idᵗ`.
-  residual-TyBeta : ∀ {R C M}
+  residual-Nu-Λ : ∀ {R C M}
     (vN : Value (plug C M)) (pA : Δ ⊢ᶜ A ~ R)
-    → Residual (TyBeta {Δ = Δ} {B = B} {A = A} {N = plug C M} vN pA)
-        ((ΛC C) ·C[ B , A ]) M idᵗ
-        (C ⟪C inst [] , reveal 0 B ⟫) M
+    → Residual (Nu-Λ {Δ = Δ} {A = A} {N = plug C M} {c = c} vN pA)
+        (νC A · (ΛC C) ⟨ c ⟩) M idᵗ
+        (C ⟪C inst [] , c ⟫) M
 
   -- Beta, the body: a node the substitution does not replace.
   residual-Beta-body : ∀ {C M}
@@ -247,20 +248,20 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
         ((V ⟪ Θ , s ↦ t ⟫) ·R C) M idᵗ
         ((V ·R (C ⟪C dual Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
 
-  -- TyPeelR-Λ: as TyBeta, one boundary in — the body's `Λ` slot becomes
-  -- the allocated cell the instantiated scope binds.
-  residual-TyPeelR-Λ : ∀ {Δᶜ C M s R Bᵢ Bₑ}
+  -- Nu-⟪Λ⟫: as Nu-Λ, one boundary in — the body's `Λ` slot becomes
+  -- the allocated cell, and the crossed boundary is the middle layer.
+  residual-Nu-⟪Λ⟫ : ∀ {Δᶜ C M s R Bᵢ Bₑ}
     (vN : Value (plug C M))
     (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (⊢s : underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ)
     (pA : Δ ⊢ᶜ A ~ R)
-    → Residual (TyPeelR-Λ {N = plug C M} {B = B} vN rc ⊢s pA)
-        (((ΛC C) ⟪C Θ , `∀ s ⟫) ·C[ B , A ]) M idᵗ
-        (C ⟪C inst Θ , instReveal 0 s ⟫) M
+    → Residual (Nu-⟪Λ⟫ {N = plug C M} {c = c} vN rc ⊢s pA)
+        (νC A · ((ΛC C) ⟪C Θ , `∀ s ⟫) ⟨ c ⟩) M idᵗ
+        ((C ⟪C liftᴮ Θ , s ⟫) ⟪C inst [] , c ⟫) M
 
-  -- TyPeelR-⟪⟫: the inner boundary is a SIBLING of the consumed `Λ`
+  -- Nu-⟪⟫: the inner boundary is a SIBLING of the consumed `Λ`
   -- slot, so it gets exactly `suc` — the one non-identity ρ a redex
   -- still produces.
-  residual-TyPeelR-⟪⟫ : ∀ {Δᵢ⁺ Δᶜ Δ′ᶜ Δ″ᶜ C M Θ′ s′ s″ s R Bᵢ Bᵢ′ Bₑ}
+  residual-Nu-⟪⟫ : ∀ {Δᵢ⁺ Δᶜ Δ′ᶜ Δ″ᶜ C M Θ′ s′ s″ s R Bᵢ Bᵢ′ Bₑ}
     (vW : Value (plug C M))
     (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ) (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ)
     (rc′ : Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ)
@@ -271,13 +272,16 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
     (⊢s : underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ)
     (sm : underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ)
     (pA : Δ ⊢ᶜ A ~ R)
-    → Residual (TyPeelR-⟪⟫ {W = plug C M} {B = B}
+    → Residual (Nu-⟪⟫ {W = plug C M} {c = c}
                  vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA)
-        (((C ⟪C Θ′ , `∀ s′ ⟫) ⟪C Θ , `∀ s ⟫) ·C[ B , A ]) M
+        (νC A · ((C ⟪C Θ′ , `∀ s′ ⟫) ⟪C Θ , `∀ s ⟫) ⟨ c ⟩) M
         (holeᴿ suc C)
-        (((renCtxᴿ suc C ⟪C (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
-            ·C[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
-           ⟪C inst Θ , instReveal 0 s ⟫)
+        (((νC ` 0
+             · (renCtxᴿ suc C
+                  ⟪C (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
+             ⟨ reveal 0 (renameᵗ (extᵗ suc) Bᵢ′) ⟩)
+            ⟪C liftᴮ Θ , s ⟫)
+           ⟪C inst [] , c ⟫)
         (renᴹᴿ (holeᴿ suc C) M)
 
   -- CancelR and IdPush: the value keeps its frame under the merged
@@ -320,10 +324,10 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
     (r : Δ ⊢ P -→ P′ ∣ δ)
     → Residual (ξ-·-r v r) (C ·L P) M (↑ʳ[ δ ] C)
         (↑ᶜ[ δ ] C ·L P′) (↑ᴴ[ δ ] C M)
-  residual-ξ-·[] : ∀ {L′ C M D N} {r : Δ ⊢ L -→ L′ ∣ δ}
+  residual-ξ-ν : ∀ {L′ C M D N} {r : Δ ⊢ L -→ L′ ∣ δ}
     → Residual r C M ρ D N
-    → Residual (ξ-·[] {B = B} {A = A} r)
-        (C ·C[ B , A ]) M ρ (D ·C[ B , A ]) N
+    → Residual (ξ-ν {A = A} {c = c} r)
+        (νC A · C ⟨ c ⟩) M ρ (νC A · D ⟨ c ⟩) N
   residual-ξ-⟪⟫ : ∀ {M′ C O D O′} {r : Δᵢ ⊢ N -→ M′ ∣ δ}
     (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ) → Residual r C O ρ D O′
     → Residual (ξ-⟪⟫ {c = c} ri r) (C ⟪C Θ , c ⟫) O ρ

@@ -11,6 +11,8 @@ open import strong-rep-nu.Conversion
 open import strong-rep-nu.Terms
 open import strong-rep-nu.TermSubst
 open import strong-rep-nu.Reduction
+open import strong-rep-nu.Source
+open import strong-rep-nu.Compile
 
 -- executable, derivation-producing type checking, and the step function
 -- that searches for a redex.  Neither depends on the metatheory below, so
@@ -70,9 +72,8 @@ open import strong-rep-nu.proof.Canonicity
 -- THE SHIFT AUDIT (2026-09-08, ported 2026-09-19).  Every rule that MOVES
 -- a subterm, checked against frame exactness — now the relational
 -- transport lemmas of strong-rep-nu.Boundary §3a plus the observation that
--- every
--- move but TyBeta's is REPRESENTATION-ONLY — together with the tower
--- measure that makes the wrapper clause of TyPeelR terminate.
+-- every move but the `Nu` rules' refinement is REPRESENTATION-ONLY —
+-- together with the tower measure that makes `Nu-⟪⟫` terminate.
 -- Direct gate: no top-level module reaches this shift audit.
 open import strong-rep-nu.proof.ShiftAudit
 

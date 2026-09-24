@@ -7,7 +7,8 @@ module strong-rep-nu.proof.Canonicity where
 --     or `unseal X`.  §1 the family `CanonAt`/`CanonC`/`AllId`;
 --     §2 MINT; §3 DECOMPOSE; §4 RENAME; §5 RE-SPELL (the family one
 --     universe up, `CanonAtᴿ`); §6 lifting to terms; §7 substitution;
---     §8 `canon-step`, the invariant, with `CanonTyPeelR` REFUTED;
+--     §8 `canon-step`, the invariant — UNCONDITIONAL since `ν`
+--     (the old `CanonTyPeelR` hypothesis is kept, REFUTED, as a record);
 --     §9 sources; §10 the mint lemmas on the ground.
 --   * WHAT THE FAMILY SAYS is the NAME, not a polarity shape: every
 --     non-identity leaf cites the SAME binder, shifted under each
@@ -86,7 +87,7 @@ allId-canon (ai-all as)    X = ca-all (allId-canon as (suc X))
 -- 2.  MINT — the conversions the rules write are canonical
 ------------------------------------------------------------------------
 
--- (a) TyBeta's conversion and its dual, by mutual induction on the type
+-- (a) a `ν`'s reveal and its dual, by mutual induction on the type
 -- it is minted from — the same recursion `reveal`/`conceal` are defined
 -- by.
 mutual
@@ -147,11 +148,9 @@ canonC-fun-dom (X , ca-fun cs ct) = X , cs
 canonC-fun-cod : CanonC (s ↦ t) → CanonC t
 canonC-fun-cod (X , ca-fun cs ct) = X , ct
 
--- TyPeelR reads `∀ s` apart — and then MINTS on the body (`instReveal 0`):
--- the slot the `` `∀ `` left abstract is now the binder the rule
--- introduces, so the conversion's identity leaves at that slot become
--- the instantiation.  The decomposition itself only walks the name past
--- the binder.
+-- `Nu-⟪Λ⟫`/`Nu-⟪⟫` read `∀ s` apart and move the body `s` VERBATIM into
+-- the middle layer (the retired TyPeelR minted `instReveal 0 s` there).
+-- The decomposition only walks the name past the binder.
 canonC-all : CanonC (`∀ s) → CanonC s
 canonC-all (X , ca-all cs) = suc X , cs
 
@@ -160,7 +159,7 @@ canonC-all (X , ca-all cs) = suc X , cs
 ------------------------------------------------------------------------
 
 -- `renᴹ²` (hence `wkᴹ`, `⇑ᴹ`, and the rep-only renamings Peel and
--- TyPeelR-⟪⟫ perform) renames the conversions it passes with its ORDINARY
+-- Nu-⟪⟫ perform) renames the conversions it passes with its ORDINARY
 -- component.  The name moves with that renaming.
 canonAt-ren : (ρ : Renameᵗ) → CanonAt X c → CanonAt (ρ X) (renᶜ ρ c)
 canonAt-ren ρ ca-id          = ca-id
@@ -305,7 +304,7 @@ data CanonTm : Term → Set where
   ct-ƛ     : CanonTm N → CanonTm (ƛ A ∙ N)
   ct-·     : CanonTm L → CanonTm M → CanonTm (L · M)
   ct-Λ     : CanonTm N → CanonTm (Λ N)
-  ct-·[]   : CanonTm L → CanonTm (L ·[ B , A ])
+  ct-ν     : CanonTm L → CanonC c → CanonTm (ν A · L ⟨ c ⟩)
   ct-⟪⟫    : ∀ {Θ} → CanonTm M → CanonC c → CanonTm (M ⟪ Θ , c ⟫)
 
 -- Renaming a term renames its conversions with the renaming's ORDINARY
@@ -320,7 +319,8 @@ canon-renᴹ² ρ (ct-ƛ cN)        = ct-ƛ (canon-renᴹ² ρ cN)
 canon-renᴹ² ρ (ct-· cL cM)     =
   ct-· (canon-renᴹ² ρ cL) (canon-renᴹ² ρ cM)
 canon-renᴹ² ρ (ct-Λ cN)        = ct-Λ (canon-renᴹ² (underΛ-ren ρ) cN)
-canon-renᴹ² ρ (ct-·[] cL)      = ct-·[] (canon-renᴹ² ρ cL)
+canon-renᴹ² ρ (ct-ν cL cc)     =
+  ct-ν (canon-renᴹ² ρ cL) (canonC-ren (extᵗ (ordinary ρ)) cc)
 canon-renᴹ² ρ (ct-⟪⟫ cM cc) =
   ct-⟪⟫ (canon-renᴹ² ρ cM) (canonC-ren (ordinary ρ) cc)
 
@@ -333,7 +333,7 @@ canon-renᴹᴿ ρ (ct-ƛ cN)     = ct-ƛ (canon-renᴹᴿ ρ cN)
 canon-renᴹᴿ ρ (ct-· cL cM)  =
   ct-· (canon-renᴹᴿ ρ cL) (canon-renᴹᴿ ρ cM)
 canon-renᴹᴿ ρ (ct-Λ cN)     = ct-Λ (canon-renᴹᴿ (extᵗ ρ) cN)
-canon-renᴹᴿ ρ (ct-·[] cL)   = ct-·[] (canon-renᴹᴿ ρ cL)
+canon-renᴹᴿ ρ (ct-ν cL cc)  = ct-ν (canon-renᴹᴿ ρ cL) cc
 canon-renᴹᴿ ρ (ct-⟪⟫ cM cc) = ct-⟪⟫ (canon-renᴹᴿ ρ cM) cc
 
 canon-↑ : (δ : Alloc) → CanonTm M → CanonTm (↑ᴹ[ δ ] M)
@@ -370,7 +370,7 @@ canon-renⁿ ρ ct-false      = ct-false
 canon-renⁿ ρ (ct-ƛ cN)     = ct-ƛ (canon-renⁿ (extⁿ ρ) cN)
 canon-renⁿ ρ (ct-· cL cM)  = ct-· (canon-renⁿ ρ cL) (canon-renⁿ ρ cM)
 canon-renⁿ ρ (ct-Λ cN)     = ct-Λ (canon-renⁿ ρ cN)
-canon-renⁿ ρ (ct-·[] cL)   = ct-·[] (canon-renⁿ ρ cL)
+canon-renⁿ ρ (ct-ν cL cc)  = ct-ν (canon-renⁿ ρ cL) cc
 canon-renⁿ ρ (ct-⟪⟫ cM cc) = ct-⟪⟫ cM cc
 
 canon-shiftᵐ : CanonTm M → CanonTm (shiftᵐ M)
@@ -405,7 +405,7 @@ canon-substᵐ cσ (ct-· cL cM)              =
   ct-· (canon-substᵐ cσ cL) (canon-substᵐ cσ cM)
 canon-substᵐ {σ = σ} cσ (ct-Λ cN)         =
   ct-Λ (canon-substᵐ (λ x → canon-⇑ᴵ (σ x) (cσ x)) cN)
-canon-substᵐ cσ (ct-·[] cL)               = ct-·[] (canon-substᵐ cσ cL)
+canon-substᵐ cσ (ct-ν cL cc)              = ct-ν (canon-substᵐ cσ cL) cc
 canon-substᵐ cσ (ct-⟪⟫ cM cc)             = ct-⟪⟫ cM cc
 
 canon-subst : CanonTm N → CanonTm W → CanonTm (N [ W ∶ A ]ᵐ)
@@ -417,12 +417,15 @@ canon-subst cN cW =
 ------------------------------------------------------------------------
 
 -- One case per rule; the rule-by-rule story is
--- Commentary.md § proof/Canonicity.agda / §8.  The ONE case that is
--- not unconditional is TyPeelR's mint, which puts leaves at slot 0
--- ALONGSIDE the conversion's own, so the result cites TWO binders —
--- hence the hypothesis `CanonTyPeelR` below, which is REFUTED.
+-- Commentary.md § proof/Canonicity.agda / §8.  Before `ν` the ONE case
+-- that was not unconditional was TyPeelR's mint `instReveal 0 s`, which
+-- put leaves at slot 0 ALONGSIDE the conversion's own, so the result
+-- cited TWO binders — hence the hypothesis `CanonTyPeelR` below, which
+-- is REFUTED.  The `Nu` rules STACK instead of fusing: `s` moves
+-- verbatim and `ν`'s own `c` is the outer layer, so `canon-step` no
+-- longer needs the hypothesis.  It is kept as the record of the wall.
 
--- WHAT TYPEELR'S MINT OWES THE FAMILY, as a statement.
+-- WHAT TYPEELR'S MINT OWED THE FAMILY, as a statement.
 CanonTyPeelR : Set
 CanonTyPeelR = ∀ {s : Conv} → CanonC (`∀ s) → CanonC (instReveal 0 s)
 
@@ -442,62 +445,65 @@ _ = refl
 ¬CanonTyPeelR : ¬ CanonTyPeelR
 ¬CanonTyPeelR tp = ¬canonC-seal↦seal (tp canonC-∀conv)
 
-canon-step : ∀ {Δ M M′ δ} → Unique (names Δ) → CanonTyPeelR
+canon-step : ∀ {Δ M M′ δ} → Unique (names Δ)
   → CanonTm M → Δ ⊢ M -→ M′ ∣ δ → CanonTm M′
-canon-step uq tp (ct-·[] (ct-Λ cN)) (TyBeta {B = B} _ _) =
-  ct-⟪⟫ cN (canonC-reveal 0 B)
-canon-step uq tp (ct-· (ct-ƛ cN) cW) (Beta _) = canon-subst cN cW
-canon-step uq tp (ct-· (ct-⟪⟫ cV cst) cW) (Peel _ _ rc ri rd sc) =
+canon-step uq (ct-ν (ct-Λ cN) cc) (Nu-Λ _ _) = ct-⟪⟫ cN cc
+canon-step uq (ct-· (ct-ƛ cN) cW) (Beta _) = canon-subst cN cW
+canon-step uq (ct-· (ct-⟪⟫ cV cst) cW) (Peel _ _ rc ri rd sc) =
   ct-⟪⟫ (ct-· cV (ct-⟪⟫ cW
                         (canonC-respell (dual-unique uq ri rd) sc
                                         (canonC-fun-dom cst))))
         (canonC-fun-cod cst)
-canon-step uq tp (ct-·[] (ct-⟪⟫ (ct-Λ cN) cs)) (TyPeelR-Λ _ _ _ _) =
-  ct-⟪⟫ cN (tp cs)
-canon-step uq tp (ct-·[] (ct-⟪⟫ (ct-⟪⟫ cW cs′) cs))
-              (TyPeelR-⟪⟫ {Δ′ᶜ = Δ′ᶜ} {Δ″ᶜ = Δ″ᶜ} {Θ′ = Θ′}
+canon-step uq (ct-ν (ct-⟪⟫ (ct-Λ cN) cs) cc) (Nu-⟪Λ⟫ _ _ _ _) =
+  ct-⟪⟫ (ct-⟪⟫ cN (canonC-all cs)) cc
+canon-step uq (ct-ν (ct-⟪⟫ (ct-⟪⟫ cW cs′) cs) cc)
+              (Nu-⟪⟫ {Δ′ᶜ = Δ′ᶜ} {Δ″ᶜ = Δ″ᶜ} {Θ′ = Θ′} {Bᵢ′ = Bᵢ′}
                 _ _ _ _ ri⁺ r″ sc _ _ _) =
-  ct-⟪⟫ (ct-·[] (ct-⟪⟫ (canon-renᴹᴿ suc cW)
+  ct-⟪⟫ (ct-⟪⟫
+          (ct-ν (ct-⟪⟫ (canon-renᴹᴿ suc cW)
                        (canonC-respell
                          (conversion-unique
                            (interior-unique (unique-shift uq) ri⁺) r″)
                          (sameConv-∀ {Γ = Δ″ᶜ}
                            {Γ′ = renNameCtx suc Δ″ᶜ Δ′ᶜ} sc)
-                         cs′)))
-        (tp cs)
-canon-step uq tp (ct-⟪⟫ (ct-⟪⟫ cV _) _)
+                         cs′))
+                (canonC-reveal 0 (renameᵗ (extᵗ suc) Bᵢ′)))
+          (canonC-all cs))
+        cc
+canon-step uq (ct-⟪⟫ (ct-⟪⟫ cV _) _)
               (CancelR {A′ = A′} _ _ _ _ _ _) =
   ct-⟪⟫ cV (canonC-mkId A′)
-canon-step uq tp (ct-⟪⟫ _ _) (Drop$ _)     = ct-lit
-canon-step uq tp (ct-⟪⟫ _ _) Drop-true     = ct-true
-canon-step uq tp (ct-⟪⟫ _ _) Drop-false    = ct-false
-canon-step uq tp (ct-⟪⟫ (ct-⟪⟫ cV _) _)
+canon-step uq (ct-⟪⟫ _ _) (Drop$ _)     = ct-lit
+canon-step uq (ct-⟪⟫ _ _) Drop-true     = ct-true
+canon-step uq (ct-⟪⟫ _ _) Drop-false    = ct-false
+canon-step uq (ct-⟪⟫ (ct-⟪⟫ cV _) _)
               (IdPush {X′ = X′} _ _ _ _ _) =
   ct-⟪⟫ cV (canonC-unseal X′)
-canon-step uq tp (ct-· cL cM) (ξ-·-l {δ = δ} st) =
-  ct-· (canon-step uq tp cL st) (canon-↑ δ cM)
-canon-step uq tp (ct-· cV cM) (ξ-·-r {δ = δ} _ st) =
-  ct-· (canon-↑ δ cV) (canon-step uq tp cM st)
-canon-step uq tp (ct-·[] cL)   (ξ-·[] st)   =
-  ct-·[] (canon-step uq tp cL st)
-canon-step uq tp (ct-⟪⟫ cM cc) (ξ-⟪⟫ ri st) =
-  ct-⟪⟫ (canon-step (interior-unique uq ri) tp cM st) cc
+canon-step uq (ct-· cL cM) (ξ-·-l {δ = δ} st) =
+  ct-· (canon-step uq cL st) (canon-↑ δ cM)
+canon-step uq (ct-· cV cM) (ξ-·-r {δ = δ} _ st) =
+  ct-· (canon-↑ δ cV) (canon-step uq cM st)
+canon-step uq (ct-ν cL cc) (ξ-ν st) =
+  ct-ν (canon-step uq cL st) cc
+canon-step uq (ct-⟪⟫ cM cc) (ξ-⟪⟫ ri st) =
+  ct-⟪⟫ (canon-step (interior-unique uq ri) cM st) cc
 
-canon-steps : ∀ {Δ M M′} → Unique (names Δ) → CanonTyPeelR
+canon-steps : ∀ {Δ M M′} → Unique (names Δ)
   → CanonTm M → Δ ⊢ M -→* M′ → CanonTm M′
-canon-steps uq tp cM done = cM
-canon-steps uq tp cM (_then_ {δ = none} st sts) =
-  canon-steps uq tp (canon-step uq tp cM st) sts
-canon-steps uq tp cM (_then_ {δ = new R} st sts) =
-  canon-steps (unique-shift uq) tp (canon-step uq tp cM st) sts
+canon-steps uq cM done = cM
+canon-steps uq cM (_then_ {δ = none} st sts) =
+  canon-steps uq (canon-step uq cM st) sts
+canon-steps uq cM (_then_ {δ = new R} st sts) =
+  canon-steps (unique-shift uq) (canon-step uq cM st) sts
 
 ------------------------------------------------------------------------
 -- 9.  SOURCES — plain System F terms are canonical, vacuously
 ------------------------------------------------------------------------
 
--- Compilation from plain System F introduces no boundary at all: every
--- wrapper in a reachable term was minted by a reduction step, so §8 is
--- the whole story.  Stated for the record.
+-- Compilation from plain System F introduces no boundary at all, and
+-- its `ν`s carry `reveal 0 B` (what strong-rep-nu.Compile writes): every
+-- wrapper in a reachable term was minted by a reduction step or is a
+-- `ν`'s reveal, so §8 is the whole story.  Stated for the record.
 data Plain : Term → Set where
   pl-var   : ∀ {x} → Plain (` x)
   pl-lit   : ∀ {n} → Plain ($ n)
@@ -506,7 +512,7 @@ data Plain : Term → Set where
   pl-ƛ     : Plain N → Plain (ƛ A ∙ N)
   pl-·     : Plain L → Plain M → Plain (L · M)
   pl-Λ     : Plain N → Plain (Λ N)
-  pl-·[]   : Plain L → Plain (L ·[ B , A ])
+  pl-ν     : Plain L → Plain (ν A · L ⟨ reveal 0 B ⟩)
 
 canon-source : Plain M → CanonTm M
 canon-source pl-var        = ct-var
@@ -516,13 +522,14 @@ canon-source pl-false      = ct-false
 canon-source (pl-ƛ pN)     = ct-ƛ (canon-source pN)
 canon-source (pl-· pL pM)  = ct-· (canon-source pL) (canon-source pM)
 canon-source (pl-Λ pN)     = ct-Λ (canon-source pN)
-canon-source (pl-·[] pL)   = ct-·[] (canon-source pL)
+canon-source (pl-ν {B = B} pL) =
+  ct-ν (canon-source pL) (canonC-reveal 0 B)
 
 ------------------------------------------------------------------------
 -- 10.  The mint lemmas, on the ground
 ------------------------------------------------------------------------
 
--- TyBeta's conversion at a function type is the ↦-tree whose domain is
+-- A `ν`'s reveal at a function type is the ↦-tree whose domain is
 -- the DUAL family.
 _ : reveal 0 (` 0 ⇒ ` 0) ≡ seal 0 ↦ unseal 0
 _ = refl

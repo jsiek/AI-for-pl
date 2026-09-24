@@ -6,14 +6,14 @@ module strong-rep-nu.TypeCheck where
 --     change-list readings; §4 payloads and context well-formedness;
 --     §5 `interior?`/`conversion?`/`boundaryWf?`; §6 the readings
 --     between the universes (`read?`, `sameTy?`, `rebase?`,
---     `respell?`); §7 `∋:=?`, `wfTy?`, `convTy?`; §8 `infer`;
+--     `respell?`, `respellᵀ?`); §7 `∋:=?`, `wfTy?`, `convTy?`; §8 `infer`;
 --     §9 `check⊢`/`checkConv`/`check~`; §10 the forcing family.
 --   * NOTHING HERE IS ASSUMED AND NOTHING IS TRUSTED: every checker
 --     returns a `Maybe` of the ORDINARY derivation, so there is no
 --     soundness theorem to owe.  It depends on no metatheory.
 --   * USING IT.  `tc` IS a typing derivation, read off the goal; where
 --     the answer is an OUTPUT the goal does not fix, use the `!`
---     family (notably `sq!` for `CancelR`/`IdPush`).  A FAILURE IS A
+--     family (notably `sq!` for a looked-up representation).  A FAILURE IS A
 --     REJECTION: Agda reports an unsolved meta, which `make check`
 --     turns into an error; `proj₂ (ty! Δ Γ M)` says what it inferred.
 -- Commentary: Commentary.md § TypeCheck.agda
@@ -22,7 +22,7 @@ open import Data.Nat using (ℕ; zero; suc; _∸_; _<_)
 open import Data.Nat.Properties using (_≟_; _<?_; ≮⇒≥; m+[n∸m]≡n)
 open import Data.List using (List; []; _∷_)
 open import Data.Maybe using (Maybe; just; nothing; From-just; from-just)
-open import Data.Unit using (⊤)
+open import Data.Unit using (⊤; tt)
 open import Data.Empty using (⊥)
 open import Data.Product
   using (Σ; Σ-syntax; _×_; _,_; ∃-syntax; proj₁; proj₂)
@@ -306,48 +306,96 @@ rebase? η η′ A | just (R , q) with unread? η′ R
 rebase? η η′ A | just (R , q) | just (A′ , p) = just (A′ , R , p , q)
 rebase? η η′ A | just (R , q) | nothing = nothing
 
--- THE SAME THING FOR A CONVERSION, which is what `Peel` needs.  A
--- conversion mentions ordinary names at three leaves only, so both
--- directions are `read?`/`unread?` with those three cases added.
-readᶜ? : (η : TyCtx) (s : Conv) → Maybe (∃[ r ] η ⊩ s ~ r)
-readᶜ? η (id A) with read? η A
-readᶜ? η (id A) | just (R , p) = just (id R , sameᶜ-id p)
-readᶜ? η (id A) | nothing      = nothing
-readᶜ? η (seal X) with lookupˡ? η X
-readᶜ? η (seal X) | just (α , d) = just (seal α , sameᶜ-seal d)
-readᶜ? η (seal X) | nothing      = nothing
-readᶜ? η (unseal X) with lookupˡ? η X
-readᶜ? η (unseal X) | just (α , d) = just (unseal α , sameᶜ-unseal d)
-readᶜ? η (unseal X) | nothing      = nothing
-readᶜ? η (s ↦ t) with readᶜ? η s
-readᶜ? η (s ↦ t) | nothing = nothing
-readᶜ? η (s ↦ t) | just (r , p) with readᶜ? η t
-readᶜ? η (s ↦ t) | just (r , p) | just (u , q) =
-  just (r ↦ u , sameᶜ-fun p q)
-readᶜ? η (s ↦ t) | just (r , p) | nothing = nothing
-readᶜ? η (`∀ s) with readᶜ? (zero ∷ shiftReps η) s
-readᶜ? η (`∀ s) | just (r , p) = just (`∀ r , sameᶜ-all p)
-readᶜ? η (`∀ s) | nothing      = nothing
+-- THE SAME THING FOR A CONVERSION, which is what `Peel` and `Merge`
+-- need.  A conversion mentions ordinary names at its `id`, seal and
+-- unseal leaves only, so both directions are `read?`/`unread?` with
+-- those leaves added, one function per sort.
+mutual
+  readᵐ? : (η : TyCtx) (g : Mid) → Maybe (∃[ r ] η ⊩ᵐ g ~ r)
+  readᵐ? η (id A) with read? η A
+  readᵐ? η (id A) | just (R , p) = just (id R , sameᶜ-id p)
+  readᵐ? η (id A) | nothing      = nothing
+  readᵐ? η (s ↦ t) with readᶜ? η s
+  readᵐ? η (s ↦ t) | nothing = nothing
+  readᵐ? η (s ↦ t) | just (r , p) with readᶜ? η t
+  readᵐ? η (s ↦ t) | just (r , p) | just (u , q) =
+    just (r ↦ u , sameᶜ-fun p q)
+  readᵐ? η (s ↦ t) | just (r , p) | nothing = nothing
+  readᵐ? η (`∀ s) with readᶜ? (zero ∷ shiftReps η) s
+  readᵐ? η (`∀ s) | just (r , p) = just (`∀ r , sameᶜ-all p)
+  readᵐ? η (`∀ s) | nothing      = nothing
 
-unreadᶜ? : (η : TyCtx) (r : Conv) → Maybe (∃[ s ] η ⊩ s ~ r)
-unreadᶜ? η (id R) with unread? η R
-unreadᶜ? η (id R) | just (A , p) = just (id A , sameᶜ-id p)
-unreadᶜ? η (id R) | nothing      = nothing
-unreadᶜ? η (seal α) with find? η α
-unreadᶜ? η (seal α) | just (X , d) = just (seal X , sameᶜ-seal d)
-unreadᶜ? η (seal α) | nothing      = nothing
-unreadᶜ? η (unseal α) with find? η α
-unreadᶜ? η (unseal α) | just (X , d) = just (unseal X , sameᶜ-unseal d)
-unreadᶜ? η (unseal α) | nothing      = nothing
-unreadᶜ? η (r ↦ u) with unreadᶜ? η r
-unreadᶜ? η (r ↦ u) | nothing = nothing
-unreadᶜ? η (r ↦ u) | just (s , p) with unreadᶜ? η u
-unreadᶜ? η (r ↦ u) | just (s , p) | just (t , q) =
-  just (s ↦ t , sameᶜ-fun p q)
-unreadᶜ? η (r ↦ u) | just (s , p) | nothing = nothing
-unreadᶜ? η (`∀ r) with unreadᶜ? (zero ∷ shiftReps η) r
-unreadᶜ? η (`∀ r) | just (s , p) = just (`∀ s , sameᶜ-all p)
-unreadᶜ? η (`∀ r) | nothing      = nothing
+  readᵀ? : (η : TyCtx) (t : Tail) → Maybe (∃[ r ] η ⊩ᵀ t ~ r)
+  readᵀ? η (mid g) with readᵐ? η g
+  readᵀ? η (mid g) | just (r , p) = just (mid r , sameᶜ-mid p)
+  readᵀ? η (mid g) | nothing      = nothing
+  readᵀ? η (seal X) with lookupˡ? η X
+  readᵀ? η (seal X) | just (α , d) = just (seal α , sameᶜ-seal d)
+  readᵀ? η (seal X) | nothing      = nothing
+  readᵀ? η (t ⨾seal X) with readᵀ? η t
+  readᵀ? η (t ⨾seal X) | nothing = nothing
+  readᵀ? η (t ⨾seal X) | just (r , p) with lookupˡ? η X
+  readᵀ? η (t ⨾seal X) | just (r , p) | just (α , d) =
+    just (r ⨾seal α , sameᶜ-seal-seq p d)
+  readᵀ? η (t ⨾seal X) | just (r , p) | nothing = nothing
+
+  readᶜ? : (η : TyCtx) (s : Conv) → Maybe (∃[ r ] η ⊩ s ~ r)
+  readᶜ? η (tail t) with readᵀ? η t
+  readᶜ? η (tail t) | just (r , p) = just (tail r , sameᶜ-tail p)
+  readᶜ? η (tail t) | nothing      = nothing
+  readᶜ? η (unseal X) with lookupˡ? η X
+  readᶜ? η (unseal X) | just (α , d) = just (unseal α , sameᶜ-unseal d)
+  readᶜ? η (unseal X) | nothing      = nothing
+  readᶜ? η (unseal X ⨾ c) with lookupˡ? η X
+  readᶜ? η (unseal X ⨾ c) | nothing = nothing
+  readᶜ? η (unseal X ⨾ c) | just (α , d) with readᶜ? η c
+  readᶜ? η (unseal X ⨾ c) | just (α , d) | just (r , p) =
+    just (unseal α ⨾ r , sameᶜ-unseal-seq d p)
+  readᶜ? η (unseal X ⨾ c) | just (α , d) | nothing = nothing
+
+mutual
+  unreadᵐ? : (η : TyCtx) (r : Mid) → Maybe (∃[ g ] η ⊩ᵐ g ~ r)
+  unreadᵐ? η (id R) with unread? η R
+  unreadᵐ? η (id R) | just (A , p) = just (id A , sameᶜ-id p)
+  unreadᵐ? η (id R) | nothing      = nothing
+  unreadᵐ? η (r ↦ u) with unreadᶜ? η r
+  unreadᵐ? η (r ↦ u) | nothing = nothing
+  unreadᵐ? η (r ↦ u) | just (s , p) with unreadᶜ? η u
+  unreadᵐ? η (r ↦ u) | just (s , p) | just (t , q) =
+    just (s ↦ t , sameᶜ-fun p q)
+  unreadᵐ? η (r ↦ u) | just (s , p) | nothing = nothing
+  unreadᵐ? η (`∀ r) with unreadᶜ? (zero ∷ shiftReps η) r
+  unreadᵐ? η (`∀ r) | just (s , p) = just (`∀ s , sameᶜ-all p)
+  unreadᵐ? η (`∀ r) | nothing      = nothing
+
+  unreadᵀ? : (η : TyCtx) (r : Tail) → Maybe (∃[ t ] η ⊩ᵀ t ~ r)
+  unreadᵀ? η (mid r) with unreadᵐ? η r
+  unreadᵀ? η (mid r) | just (g , p) = just (mid g , sameᶜ-mid p)
+  unreadᵀ? η (mid r) | nothing      = nothing
+  unreadᵀ? η (seal α) with find? η α
+  unreadᵀ? η (seal α) | just (X , d) = just (seal X , sameᶜ-seal d)
+  unreadᵀ? η (seal α) | nothing      = nothing
+  unreadᵀ? η (r ⨾seal α) with unreadᵀ? η r
+  unreadᵀ? η (r ⨾seal α) | nothing = nothing
+  unreadᵀ? η (r ⨾seal α) | just (t , p) with find? η α
+  unreadᵀ? η (r ⨾seal α) | just (t , p) | just (X , d) =
+    just (t ⨾seal X , sameᶜ-seal-seq p d)
+  unreadᵀ? η (r ⨾seal α) | just (t , p) | nothing = nothing
+
+  unreadᶜ? : (η : TyCtx) (r : Conv) → Maybe (∃[ s ] η ⊩ s ~ r)
+  unreadᶜ? η (tail r) with unreadᵀ? η r
+  unreadᶜ? η (tail r) | just (t , p) = just (tail t , sameᶜ-tail p)
+  unreadᶜ? η (tail r) | nothing      = nothing
+  unreadᶜ? η (unseal α) with find? η α
+  unreadᶜ? η (unseal α) | just (X , d) =
+    just (unseal X , sameᶜ-unseal d)
+  unreadᶜ? η (unseal α) | nothing      = nothing
+  unreadᶜ? η (unseal α ⨾ r) with find? η α
+  unreadᶜ? η (unseal α ⨾ r) | nothing = nothing
+  unreadᶜ? η (unseal α ⨾ r) | just (X , d) with unreadᶜ? η r
+  unreadᶜ? η (unseal α ⨾ r) | just (X , d) | just (s , p) =
+    just (unseal X ⨾ s , sameᶜ-unseal-seq d p)
+  unreadᶜ? η (unseal α ⨾ r) | just (X , d) | nothing = nothing
 
 -- `respell? η η′ s` is `rebase?` one universe up: `s` is read on η, and
 -- this finds its spelling on η′ with the `SameConv` that relates them.
@@ -358,6 +406,15 @@ respell? η η′ s | nothing = nothing
 respell? η η′ s | just (r , q) with unreadᶜ? η′ r
 respell? η η′ s | just (r , q) | just (s′ , p) = just (s′ , r , p , q)
 respell? η η′ s | just (r , q) | nothing = nothing
+
+-- the same for a TAIL, which `Merge` carries for its inner conversion
+respellᵀ? : (η η′ : TyCtx) (t : Tail)
+  → Maybe (∃[ t′ ] (∃[ r ] ((η′ ⊩ᵀ t′ ~ r) × (η ⊩ᵀ t ~ r))))
+respellᵀ? η η′ t with readᵀ? η t
+respellᵀ? η η′ t | nothing = nothing
+respellᵀ? η η′ t | just (r , q) with unreadᵀ? η′ r
+respellᵀ? η η′ t | just (r , q) | just (t′ , p) = just (t′ , r , p , q)
+respellᵀ? η η′ t | just (r , q) | nothing = nothing
 
 sameTy? : (Γ Γ′ : Ctxᵗ) (A B : Ty) → Maybe (Γ ⊢ A ≈ B ⊣ Γ′)
 sameTy? Γ Γ′ A B with read? (names Γ) A
@@ -398,29 +455,84 @@ wfTy? Γ (`∀ A) | nothing = nothing
 ConvResult : Ctxᵗ → Conv → Set
 ConvResult Γ c = Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Γ ⊢ c ∶ A ⇝ B
 
-convTy? : (Γ : Ctxᵗ) (c : Conv) → Maybe (ConvResult Γ c)
-convTy? Γ (id (` X)) with ∋tv? Γ X
-convTy? Γ (id (` X)) | just tv = just (` X , ` X , conv-idv tv)
-convTy? Γ (id (` X)) | nothing = nothing
-convTy? Γ (id `ℕ) = just (`ℕ , `ℕ , conv-id base-ℕ)
-convTy? Γ (id `𝔹) = just (`𝔹 , `𝔹 , conv-id base-𝔹)
-convTy? Γ (id (A ⇒ B)) = nothing
-convTy? Γ (id (`∀ A)) = nothing
-convTy? Γ (seal X) with ∋:=? Γ X
-convTy? Γ (seal X) | just (A , d) = just (A , ` X , conv-seal d)
-convTy? Γ (seal X) | nothing      = nothing
-convTy? Γ (unseal X) with ∋:=? Γ X
-convTy? Γ (unseal X) | just (A , d) = just (` X , A , conv-unseal d)
-convTy? Γ (unseal X) | nothing      = nothing
-convTy? Γ (s ↦ t) with convTy? Γ s
-convTy? Γ (s ↦ t) | nothing = nothing
-convTy? Γ (s ↦ t) | just (A′ , A , ⊢s) with convTy? Γ t
-convTy? Γ (s ↦ t) | just (A′ , A , ⊢s) | just (B , B′ , ⊢t) =
-  just (A ⇒ B , A′ ⇒ B′ , conv-fun ⊢s ⊢t)
-convTy? Γ (s ↦ t) | just (A′ , A , ⊢s) | nothing = nothing
-convTy? Γ (`∀ s) with convTy? (underΛ Γ) s
-convTy? Γ (`∀ s) | just (A , B , ⊢s) = just (`∀ A , `∀ B , conv-all ⊢s)
-convTy? Γ (`∀ s) | nothing = nothing
+-- `NoCancel` is decidable: it only compares names.
+noCancelᵀ? : (X : ℕ) (t : Tail) → Maybe (NoCancelᵀ X t)
+noCancelᵀ? X (mid g) = just tt
+noCancelᵀ? X (seal Y) with X ≟ Y
+noCancelᵀ? X (seal Y) | yes _  = nothing
+noCancelᵀ? X (seal Y) | no ne = just ne
+noCancelᵀ? X (t ⨾seal Y) = noCancelᵀ? X t
+
+noCancel? : (X : ℕ) (c : Conv) → Maybe (NoCancel X c)
+noCancel? X (tail t)       = noCancelᵀ? X t
+noCancel? X (unseal Y)     = just tt
+noCancel? X (unseal Y ⨾ c) = just tt
+
+mutual
+  convᵐTy? : (Γ : Ctxᵗ) (g : Mid)
+    → Maybe (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Γ ⊢ᵐ g ∶ A ⇝ B)
+  convᵐTy? Γ (id (` X)) with ∋tv? Γ X
+  convᵐTy? Γ (id (` X)) | just tv = just (` X , ` X , conv-idv tv)
+  convᵐTy? Γ (id (` X)) | nothing = nothing
+  convᵐTy? Γ (id `ℕ) = just (`ℕ , `ℕ , conv-id base-ℕ)
+  convᵐTy? Γ (id `𝔹) = just (`𝔹 , `𝔹 , conv-id base-𝔹)
+  convᵐTy? Γ (id (A ⇒ B)) = nothing
+  convᵐTy? Γ (id (`∀ A)) = nothing
+  convᵐTy? Γ (s ↦ t) with convTy? Γ s
+  convᵐTy? Γ (s ↦ t) | nothing = nothing
+  convᵐTy? Γ (s ↦ t) | just (A′ , A , ⊢s) with convTy? Γ t
+  convᵐTy? Γ (s ↦ t) | just (A′ , A , ⊢s) | just (B , B′ , ⊢t) =
+    just (A ⇒ B , A′ ⇒ B′ , conv-fun ⊢s ⊢t)
+  convᵐTy? Γ (s ↦ t) | just (A′ , A , ⊢s) | nothing = nothing
+  convᵐTy? Γ (`∀ s) with convTy? (underΛ Γ) s
+  convᵐTy? Γ (`∀ s) | just (A , B , ⊢s) =
+    just (`∀ A , `∀ B , conv-all ⊢s)
+  convᵐTy? Γ (`∀ s) | nothing = nothing
+
+  convᵀTy? : (Γ : Ctxᵗ) (t : Tail)
+    → Maybe (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Γ ⊢ᵀ t ∶ A ⇝ B)
+  convᵀTy? Γ (mid g) with convᵐTy? Γ g
+  convᵀTy? Γ (mid g) | just (A , B , ⊢g) = just (A , B , conv-mid ⊢g)
+  convᵀTy? Γ (mid g) | nothing = nothing
+  convᵀTy? Γ (seal X) with ∋:=? Γ X
+  convᵀTy? Γ (seal X) | just (A , d) = just (A , ` X , conv-seal d)
+  convᵀTy? Γ (seal X) | nothing      = nothing
+  convᵀTy? Γ (t ⨾seal X) with isIdᵀ? t
+  convᵀTy? Γ (t ⨾seal X) | yes _ = nothing
+  convᵀTy? Γ (t ⨾seal X) | no n with convᵀTy? Γ t
+  convᵀTy? Γ (t ⨾seal X) | no n | nothing = nothing
+  convᵀTy? Γ (t ⨾seal X) | no n | just (A , R′ , ⊢t) with ∋:=? Γ X
+  convᵀTy? Γ (t ⨾seal X) | no n | just (A , R′ , ⊢t) | nothing = nothing
+  convᵀTy? Γ (t ⨾seal X) | no n | just (A , R′ , ⊢t) | just (R , d)
+    with R′ ≟Ty R
+  convᵀTy? Γ (t ⨾seal X) | no n | just (A , R′ , ⊢t) | just (R , d)
+    | just refl = just (A , ` X , conv-seal-seq ⊢t d n)
+  convᵀTy? Γ (t ⨾seal X) | no n | just (A , R′ , ⊢t) | just (R , d)
+    | nothing = nothing
+
+  convTy? : (Γ : Ctxᵗ) (c : Conv) → Maybe (ConvResult Γ c)
+  convTy? Γ (tail t) with convᵀTy? Γ t
+  convTy? Γ (tail t) | just (A , B , ⊢t) = just (A , B , conv-tail ⊢t)
+  convTy? Γ (tail t) | nothing = nothing
+  convTy? Γ (unseal X) with ∋:=? Γ X
+  convTy? Γ (unseal X) | just (A , d) = just (` X , A , conv-unseal d)
+  convTy? Γ (unseal X) | nothing      = nothing
+  convTy? Γ (unseal X ⨾ c) with isIdᶜ? c | noCancel? X c
+  convTy? Γ (unseal X ⨾ c) | yes _ | m = nothing
+  convTy? Γ (unseal X ⨾ c) | no n | nothing = nothing
+  convTy? Γ (unseal X ⨾ c) | no n | just nc with ∋:=? Γ X
+  convTy? Γ (unseal X ⨾ c) | no n | just nc | nothing = nothing
+  convTy? Γ (unseal X ⨾ c) | no n | just nc | just (R , d)
+    with convTy? Γ c
+  convTy? Γ (unseal X ⨾ c) | no n | just nc | just (R , d) | nothing =
+    nothing
+  convTy? Γ (unseal X ⨾ c) | no n | just nc | just (R , d)
+    | just (R′ , B , ⊢c) with R′ ≟Ty R
+  convTy? Γ (unseal X ⨾ c) | no n | just nc | just (R , d)
+    | just (R′ , B , ⊢c) | just refl =
+    just (` X , B , conv-unseal-seq d ⊢c n nc)
+  convTy? Γ (unseal X ⨾ c) | no n | just nc | just (R , d)
+    | just (R′ , B , ⊢c) | nothing = nothing
 
 ------------------------------------------------------------------------
 -- 8. Term typing
@@ -439,35 +551,57 @@ InferResult Δ Γ M = Σ[ A ∈ Ty ] Δ ∣ Γ ⊢ M ⦂ A
 -- Deciding the classifications `Value` guards on.  `infer` needs
 -- `value?` for `⊢Λ`'s value restriction; strong-rep-nu.Eval reuses
 -- both for the rules' side conditions.
-inert? : (c : Conv) → Maybe (Inert c)
-inert? (id (` X))   = just I-idv
-inert? (id `ℕ)      = nothing
-inert? (id `𝔹)      = nothing
-inert? (id (A ⇒ B)) = nothing
-inert? (id (`∀ A))  = nothing
-inert? (seal X)     = just I-seal
-inert? (unseal X)   = nothing
-inert? (s ↦ t)      = just I-fun
-inert? (`∀ s)       = just I-all
+inertTail? : (t : Tail) → Maybe (InertTail t)
+inertTail? (mid (id (` X)))   = just I-idv
+inertTail? (mid (id `ℕ))      = nothing
+inertTail? (mid (id `𝔹))      = nothing
+inertTail? (mid (id (A ⇒ B))) = nothing
+inertTail? (mid (id (`∀ A)))  = nothing
+inertTail? (mid (s ↦ t))      = just I-fun
+inertTail? (mid (`∀ s))       = just I-all
+inertTail? (seal X)           = just I-seal
+inertTail? (t ⨾seal X)        = just I-seal-seq
 
--- `V-Λ` carries `Value N` and `V-⟪⟫` carries `Inert c`, so this is a
--- recursion, not a shape test.
-value? : (M : Term) → Maybe (Value M)
-value? (` x)          = nothing
-value? ($ n)          = just V-$
-value? `true          = just V-true
-value? `false         = just V-false
-value? (ƛ A ∙ N)      = just V-ƛ
-value? (L · M)        = nothing
-value? (ν A · L ⟨ c ⟩) = nothing
-value? (Λ N) with value? N
-value? (Λ N) | just v  = just (V-Λ v)
-value? (Λ N) | nothing = nothing
-value? (M ⟪ Θ , c ⟫) with value? M
-value? (M ⟪ Θ , c ⟫) | nothing = nothing
-value? (M ⟪ Θ , c ⟫) | just v with inert? c
-value? (M ⟪ Θ , c ⟫) | just v | just ic = just (V-⟪⟫ v ic)
-value? (M ⟪ Θ , c ⟫) | just v | nothing = nothing
+inert? : (c : Conv) → Maybe (Inert c)
+inert? (tail t) with inertTail? t
+inert? (tail t) | just it = just (I-tail it)
+inert? (tail t) | nothing = nothing
+inert? (unseal X)     = nothing
+inert? (unseal X ⨾ c) = nothing
+
+-- `S-Λ` carries `Value N` and `V-⟪⟫` carries `Simple U` and
+-- `InertTail t`, so this is a recursion, not a shape test.
+mutual
+  simple? : (M : Term) → Maybe (Simple M)
+  simple? (` x)          = nothing
+  simple? ($ n)          = just S-$
+  simple? `true          = just S-true
+  simple? `false         = just S-false
+  simple? (ƛ A ∙ N)      = just S-ƛ
+  simple? (L · M)        = nothing
+  simple? (ν A · L ⟨ c ⟩) = nothing
+  simple? (Λ N) with value? N
+  simple? (Λ N) | just v  = just (S-Λ v)
+  simple? (Λ N) | nothing = nothing
+  simple? (M ⟪ Θ , c ⟫)  = nothing
+
+  value? : (M : Term) → Maybe (Value M)
+  value? (` x)          = nothing
+  value? ($ n)          = just (V-simple S-$)
+  value? `true          = just (V-simple S-true)
+  value? `false         = just (V-simple S-false)
+  value? (ƛ A ∙ N)      = just (V-simple S-ƛ)
+  value? (L · M)        = nothing
+  value? (ν A · L ⟨ c ⟩) = nothing
+  value? (Λ N) with value? N
+  value? (Λ N) | just v  = just (V-simple (S-Λ v))
+  value? (Λ N) | nothing = nothing
+  value? (M ⟪ Θ , tail t ⟫) with simple? M | inertTail? t
+  value? (M ⟪ Θ , tail t ⟫) | just u | just it = just (V-⟪⟫ u it)
+  value? (M ⟪ Θ , tail t ⟫) | just u | nothing = nothing
+  value? (M ⟪ Θ , tail t ⟫) | nothing | it    = nothing
+  value? (M ⟪ Θ , unseal X ⟫)     = nothing
+  value? (M ⟪ Θ , unseal X ⨾ c ⟫) = nothing
 
 infer : (Δ : Ctxᵗ) (Γ : Ctx) (M : Term) → Maybe (InferResult Δ Γ M)
 infer Δ Γ (` x) with lookupTm? Γ x
@@ -640,7 +774,7 @@ tf : ∀ {Γ A} {w : IsJ (wfTy? Γ A)} → Γ ⊢ᵗ A
 tf {Γ} {A} {w} = force (wfTy? Γ A) w
 
 -- The reading that relates an ordinary type to its representation, which
--- `Nu-Λ` and both `Nu-⟪⟫` clauses carry as `Δ ⊢ᶜ A ~ R`.
+-- `Nu-Λ` and `Nu-⟪Λ⟫` carry as `Δ ⊢ᶜ A ~ R`.
 tr : ∀ {η A R} {w : IsJ (check~ η A R)} → η ⊢ A ~ R
 tr {η} {A} {R} {w} = force (check~ η A R) w
 
@@ -658,8 +792,8 @@ mw! Γ Θ = from-just (boundaryWf? Γ Θ)
 wf! : (Γ : Ctxᵗ) → From-just (wfCtx? Γ)
 wf! Γ = from-just (wfCtx? Γ)
 
--- The lookup square, in the INFERRING form `CancelR` needs for the
--- cancelled binder (its contractum mentions the type only under `mkId`).
+-- The lookup square, in the INFERRING form (the goal need not fix the
+-- representation).
 sq! : (Γ : Ctxᵗ) (X : ℕ) → From-just (∋:=? Γ X)
 sq! Γ X = from-just (∋:=? Γ X)
 

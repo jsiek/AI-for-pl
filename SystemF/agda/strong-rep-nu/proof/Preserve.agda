@@ -11,7 +11,7 @@ module strong-rep-nu.proof.Preserve where
 --   * A STEP RETURNS THE CHANGE IT MADE, so the contractum is typed at
 --     `apply δ Δ` and the congruences SHIFT THE REDEX'S SIBLINGS
 --     (`ShiftTyping`, the one lemma the store experiment added).
---   * ALL FOUR TRANSPORTS have implementations, so
+--   * EVERY PARAMETER of `Impl` has an implementation, so
 --     strong-rep-nu.Preservation exposes no parameter at all.
 -- Commentary: Commentary.md § proof/Preserve.agda
 
@@ -278,17 +278,30 @@ wf-refine rr wf-𝔹 = wf-𝔹
 wf-refine rr (wf-⇒ wA wB) = wf-⇒ (wf-refine rr wA) (wf-refine rr wB)
 wf-refine rr (wf-∀ wA) = wf-∀ (wf-refine (rr-abst rr) wA)
 
-conv-refine : RepRefines Ξ Ξ′ → (Ξ ∣ η) ⊢ s ∶ A ⇝ B
-  → (Ξ′ ∣ η) ⊢ s ∶ A ⇝ B
-conv-refine rr (conv-id b) = conv-id b
-conv-refine {Ξ = Ξ} {Ξ′ = Ξ′} rr (conv-idv tv) =
-  conv-idv (tv-refine {Ξ = Ξ} {Ξ′ = Ξ′} tv)
-conv-refine rr (conv-unseal d) =
-  conv-unseal (lookup-square-refine rr d)
-conv-refine rr (conv-seal d) = conv-seal (lookup-square-refine rr d)
-conv-refine rr (conv-fun p q) =
-  conv-fun (conv-refine rr p) (conv-refine rr q)
-conv-refine rr (conv-all p) = conv-all (conv-refine (rr-abst rr) p)
+mutual
+  convᵐ-refine : ∀ {g} → RepRefines Ξ Ξ′ → (Ξ ∣ η) ⊢ᵐ g ∶ A ⇝ B
+    → (Ξ′ ∣ η) ⊢ᵐ g ∶ A ⇝ B
+  convᵐ-refine rr (conv-id b) = conv-id b
+  convᵐ-refine {Ξ = Ξ} {Ξ′ = Ξ′} rr (conv-idv tv) =
+    conv-idv (tv-refine {Ξ = Ξ} {Ξ′ = Ξ′} tv)
+  convᵐ-refine rr (conv-fun p q) =
+    conv-fun (conv-refine rr p) (conv-refine rr q)
+  convᵐ-refine rr (conv-all p) = conv-all (conv-refine (rr-abst rr) p)
+
+  convᵀ-refine : ∀ {t} → RepRefines Ξ Ξ′ → (Ξ ∣ η) ⊢ᵀ t ∶ A ⇝ B
+    → (Ξ′ ∣ η) ⊢ᵀ t ∶ A ⇝ B
+  convᵀ-refine rr (conv-mid p) = conv-mid (convᵐ-refine rr p)
+  convᵀ-refine rr (conv-seal d) = conv-seal (lookup-square-refine rr d)
+  convᵀ-refine rr (conv-seal-seq p d n) =
+    conv-seal-seq (convᵀ-refine rr p) (lookup-square-refine rr d) n
+
+  conv-refine : RepRefines Ξ Ξ′ → (Ξ ∣ η) ⊢ s ∶ A ⇝ B
+    → (Ξ′ ∣ η) ⊢ s ∶ A ⇝ B
+  conv-refine rr (conv-tail p) = conv-tail (convᵀ-refine rr p)
+  conv-refine rr (conv-unseal d) =
+    conv-unseal (lookup-square-refine rr d)
+  conv-refine rr (conv-unseal-seq d p n m) =
+    conv-unseal-seq (lookup-square-refine rr d) (conv-refine rr p) n m
 
 ------------------------------------------------------------------------
 -- §2. The allocation, and the conversion a reveal mints
@@ -602,17 +615,17 @@ reveal-hit X with X ≟ X
 reveal-hit X | yes _ = refl
 reveal-hit X | no ne = ⊥-elim (ne refl)
 
-reveal-miss : (X Y : ℕ) → X ≢ Y → reveal X (` Y) ≡ id (` Y)
+reveal-miss : (X Y : ℕ) → X ≢ Y → reveal X (` Y) ≡ ⌞ id (` Y) ⌟
 reveal-miss X Y ne with X ≟ Y
 reveal-miss X Y ne | yes eq = ⊥-elim (ne eq)
 reveal-miss X Y ne | no _ = refl
 
-conceal-hit : (X : ℕ) → conceal X (` X) ≡ seal X
+conceal-hit : (X : ℕ) → conceal X (` X) ≡ tail (seal X)
 conceal-hit X with X ≟ X
 conceal-hit X | yes _ = refl
 conceal-hit X | no ne = ⊥-elim (ne refl)
 
-conceal-miss : (X Y : ℕ) → X ≢ Y → conceal X (` Y) ≡ id (` Y)
+conceal-miss : (X Y : ℕ) → X ≢ Y → conceal X (` Y) ≡ ⌞ id (` Y) ⌟
 conceal-miss X Y ne with X ≟ Y
 conceal-miss X Y ne | yes eq = ⊥-elim (ne eq)
 conceal-miss X Y ne | no _ = refl
@@ -624,25 +637,31 @@ mutual
   ⊢reveal {X = X} {A = A} {B = ` Y} d (wf-var tv) | yes refl
     rewrite reveal-hit X | single-at-hit X A = conv-unseal d
   ⊢reveal {X = X} {A = A} {B = ` Y} d (wf-var tv) | no ne
-    rewrite reveal-miss X Y ne | single-at-miss X Y A ne = conv-idv tv
-  ⊢reveal d wf-ℕ = conv-id base-ℕ
-  ⊢reveal d wf-𝔹 = conv-id base-𝔹
-  ⊢reveal d (wf-⇒ wA wB) = conv-fun (⊢conceal d wA) (⊢reveal d wB)
+    rewrite reveal-miss X Y ne | single-at-miss X Y A ne =
+    conv-tail (conv-mid (conv-idv tv))
+  ⊢reveal d wf-ℕ = conv-tail (conv-mid (conv-id base-ℕ))
+  ⊢reveal d wf-𝔹 = conv-tail (conv-mid (conv-id base-𝔹))
+  ⊢reveal d (wf-⇒ wA wB) =
+    conv-tail (conv-mid (conv-fun (⊢conceal d wA) (⊢reveal d wB)))
   ⊢reveal {X = X} {A = A} {B = `∀ B} d (wf-∀ wB)
-    rewrite subst-at-∀ X A B = conv-all (⊢reveal (lookup-underΛ d) wB)
+    rewrite subst-at-∀ X A B =
+    conv-tail (conv-mid (conv-all (⊢reveal (lookup-underΛ d) wB)))
 
   ⊢conceal : Δ ∋ X := A → Δ ⊢ᵗ B
     → Δ ⊢ conceal X B ∶ B [ X := A ]ᵗ ⇝ B
   ⊢conceal {X = X} {A = A} {B = ` Y} d (wf-var tv) with X ≟ℕ Y
   ⊢conceal {X = X} {A = A} {B = ` Y} d (wf-var tv) | yes refl
-    rewrite conceal-hit X | single-at-hit X A = conv-seal d
+    rewrite conceal-hit X | single-at-hit X A = conv-tail (conv-seal d)
   ⊢conceal {X = X} {A = A} {B = ` Y} d (wf-var tv) | no ne
-    rewrite conceal-miss X Y ne | single-at-miss X Y A ne = conv-idv tv
-  ⊢conceal d wf-ℕ = conv-id base-ℕ
-  ⊢conceal d wf-𝔹 = conv-id base-𝔹
-  ⊢conceal d (wf-⇒ wA wB) = conv-fun (⊢reveal d wA) (⊢conceal d wB)
+    rewrite conceal-miss X Y ne | single-at-miss X Y A ne =
+    conv-tail (conv-mid (conv-idv tv))
+  ⊢conceal d wf-ℕ = conv-tail (conv-mid (conv-id base-ℕ))
+  ⊢conceal d wf-𝔹 = conv-tail (conv-mid (conv-id base-𝔹))
+  ⊢conceal d (wf-⇒ wA wB) =
+    conv-tail (conv-mid (conv-fun (⊢reveal d wA) (⊢conceal d wB)))
   ⊢conceal {X = X} {A = A} {B = `∀ B} d (wf-∀ wB)
-    rewrite subst-at-∀ X A B = conv-all (⊢conceal (lookup-underΛ d) wB)
+    rewrite subst-at-∀ X A B =
+    conv-tail (conv-mid (conv-all (⊢conceal (lookup-underΛ d) wB)))
 
 rr-refl : RepRefines Ξ Ξ
 rr-refl {Ξ = []} = rr[]
@@ -722,7 +741,7 @@ preserve-Nu-Λ wfΔ p (⊢ν wA rA (⊢Λ vN ⊢N) mw ⊢c same wB) | refl =
 preserve-Nu-⟪Λ⟫ : ∀ {Δ N Θ s c A R C}
   → WfCtx Δ
   → Δ ⊢ᶜ A ~ R
-  → Δ ∣ [] ⊢ ν A · ((Λ N) ⟪ Θ , `∀ s ⟫) ⟨ c ⟩ ⦂ C
+  → Δ ∣ [] ⊢ ν A · ((Λ N) ⟪ Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩ ⦂ C
   → allocate R Δ ∣ [] ⊢ (N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫ ⦂ C
 preserve-Nu-⟪Λ⟫ wfΔ p
     (⊢ν wA rA (env mwΘ (⊢Λ vN ⊢N) ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
@@ -774,38 +793,42 @@ sameTy-𝔹 wfΔ (R , p , q) | refl =
 preserve-Drop$ : ∀ {Δ n Θ A C}
   → WfCtx Δ
   → Base A
-  → Δ ∣ [] ⊢ ($ n) ⟪ Θ , id A ⟫ ⦂ C
+  → Δ ∣ [] ⊢ ($ n) ⟪ Θ , ⌞ id A ⌟ ⟫ ⦂ C
   → Δ ∣ [] ⊢ $ n ⦂ C
 preserve-Drop$ wfΔ base-ℕ
-  (env mwΘ ⊢$ (conv-id base-ℕ) sameᵢ sameₑ wE)
+  (env mwΘ ⊢$ (conv-tail (conv-mid (conv-id base-ℕ)))
+       sameᵢ sameₑ wE)
   rewrite sameTy-ℕ wfΔ sameₑ = ⊢$
 preserve-Drop$ wfΔ base-𝔹
-  (env mwΘ ⊢$ (conv-id base-𝔹) sameᵢ sameₑ wE) =
+  (env mwΘ ⊢$ (conv-tail (conv-mid (conv-id base-𝔹)))
+       sameᵢ sameₑ wE) =
   ⊥-elim (sameTy-ℕ-𝔹-absurd sameᵢ)
 
 preserve-Drop-true : ∀ {Δ Θ C}
   → WfCtx Δ
-  → Δ ∣ [] ⊢ `true ⟪ Θ , id `𝔹 ⟫ ⦂ C
+  → Δ ∣ [] ⊢ `true ⟪ Θ , ⌞ id `𝔹 ⌟ ⟫ ⦂ C
   → Δ ∣ [] ⊢ `true ⦂ C
 preserve-Drop-true wfΔ
-  (env mwΘ ⊢true (conv-id base-𝔹) sameᵢ sameₑ wE)
+  (env mwΘ ⊢true (conv-tail (conv-mid (conv-id base-𝔹)))
+       sameᵢ sameₑ wE)
   rewrite sameTy-𝔹 wfΔ sameₑ = ⊢true
 
 preserve-Drop-false : ∀ {Δ Θ C}
   → WfCtx Δ
-  → Δ ∣ [] ⊢ `false ⟪ Θ , id `𝔹 ⟫ ⦂ C
+  → Δ ∣ [] ⊢ `false ⟪ Θ , ⌞ id `𝔹 ⌟ ⟫ ⦂ C
   → Δ ∣ [] ⊢ `false ⦂ C
 preserve-Drop-false wfΔ
-  (env mwΘ ⊢false (conv-id base-𝔹) sameᵢ sameₑ wE)
+  (env mwΘ ⊢false (conv-tail (conv-mid (conv-id base-𝔹)))
+       sameᵢ sameₑ wE)
   rewrite sameTy-𝔹 wfΔ sameₑ = ⊢false
 
 ------------------------------------------------------------------------
 -- §4. The representation-only transports, and the store bookkeeping
 ------------------------------------------------------------------------
 
--- THREE TRANSPORTS, all PROVED downstream, all internal staging
--- interfaces only.  The first two need a BINDER on top of the
--- renaming; the third, the SIBLING SHIFT, is pure renaming.
+-- TWO TRANSPORTS, both PROVED downstream, both internal staging
+-- interfaces only.  The first needs a BINDER on top of the renaming;
+-- the second, the SIBLING SHIFT, is pure renaming.
 -- Commentary.md § proof/Preserve.agda / §4
 CrossΛTyping : Set
 CrossΛTyping = ∀ {Δ W A}
@@ -813,29 +836,6 @@ CrossΛTyping = ∀ {Δ W A}
   → Δ ⊢ᵗ A
   → Δ ∣ [] ⊢ W ⦂ A
   → underΛ Δ ∣ [] ⊢ crossΛᴹ W A ⦂ ⇑ᵗ A
-
--- RESHAPED WITH THE RULE (2026-09-20) AND AGAIN WITH THE STORE
--- (2026-09-22): the moved boundary's interior term and scope get
--- exactly the SIBLING SHIFT, and the moved conversion is NAMED and
--- pinned by a `SameConv` against `renNameCtx suc` of the old
--- conversion context.  PROVED in
--- strong-rep-nu.proof.AddUnbind0.addUnbind0-⊢; it stays a PARAMETER of
--- `Impl` here only because that proof imports this module.
--- Commentary.md § proof/Preserve.agda / §4
-AddUnbind0Typing : Set
-AddUnbind0Typing = ∀ {Δ Δᶜ Δ⁺ᶜ W Θ s s′ A P}
-  → WfCtx ((bindR P ∷ reps Δ) ∣
-               (zero ∷ shiftReps (names Δ)))
-  → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ A
-  → Δ ⊢ᶜ Θ ⇒ Δᶜ
-  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
-      ⊢ᶜ (renᴮᴿ suc Θ ++ (unbind 0 0 ∷ [])) ⇒ Δ⁺ᶜ
-  → SameConv (underΛ Δ⁺ᶜ) s′
-      (underΛ (renNameCtx suc Δ⁺ᶜ Δᶜ)) s
-  → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
-      ∣ [] ⊢
-        (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ ++ (unbind 0 0 ∷ [])) , `∀ s′ ⟫)
-        ⦂ `∀ (renameᵗ (extᵗ suc) A)
 
 -- THE SIBLING SHIFT — the one new lemma of the store experiment.
 -- THE PAYLOAD MUST BE WELL FORMED: without `reps Δ ⊢ᴿ R` the statement
@@ -989,158 +989,6 @@ preserve-Beta : CrossΛTyping → ∀ {Δ A B N W}
 preserve-Beta cross wfΔ (⊢· (⊢ƛ w ⊢N) ⊢W) =
   ⊢subst cross wfΔ w ⊢N ⊢W
 
--- The pushed `ν`'s reveal, read at the alias cell: its target is the
--- body re-based one cell up.
-ren-suc-[0:=1] : (T : Ty)
-  → (renameᵗ (extᵗ suc) T) [ 0 := ` 1 ]ᵗ ≡ ⇑ᵗ T
-ren-suc-[0:=1] T =
-  trans (rename-subst-commute (extᵗ suc) (single-at 0 (` 1)) T)
-        (trans (subst-cong h T)
-               (trans (sym (rename-subst suc `_ T))
-                      (cong ⇑ᵗ (subst-id T))))
-  where
-  h : (X : ℕ) → single-at 0 (` 1) (extᵗ suc X) ≡ renameᵗ suc (` X)
-  h zero = refl
-  h (suc X) = refl
-
--- `Nu-⟪⟫`: the middle layer's interior is a PUSHED `ν` at name 0, which
--- instantiates the moved boundary at an ALIAS cell for `R`; its
--- conversion is the reveal of the moved body, and its type is the
--- carried spelling `Bᵢ′`, pinned by `sm` against the crossed source.
-preserve-Nu-⟪⟫ : AddUnbind0Typing
-  → ∀ {Δ Δᵢ Δᵢ⁺ Δᶜ Δ′ᶜ Δ″ᶜ W Θ′ s′ s″ Θ s c A R Bᵢ Bᵢ′ Bₑ C}
-  → WfCtx Δ
-  → Value W
-  → Δ ⊢ⁱ Θ ⇒ Δᵢ
-  → Δ ⊢ᶜ Θ ⇒ Δᶜ
-  → Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ
-  → allocate R Δ ⊢ⁱ inst Θ ⇒ Δᵢ⁺
-  → Δᵢ⁺ ⊢ᶜ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) ⇒ Δ″ᶜ
-  → SameConv (underΛ Δ″ᶜ) s″
-      (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′
-  → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
-  → underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ
-  → Δ ⊢ᶜ A ~ R
-  → Δ ∣ [] ⊢ ν A · ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ⟨ c ⟩ ⦂ C
-  → allocate R Δ ∣ [] ⊢
-      ((ν (` 0)
-          · (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
-          ⟨ reveal 0 (renameᵗ (extᵗ suc) Bᵢ′) ⟩)
-         ⟪ liftᴮ Θ , s ⟫)
-        ⟪ inst [] , c ⟫ ⦂ C
-preserve-Nu-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
-    {W = W} {Θ′ = Θ′} {s″ = s″} {R = R} {Bᵢ′ = Bᵢ′}
-    wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
-    (⊢ν wA rA (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
-                       ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
-  with same-rep-unique rA p
-     | interior-functional (interior csΘ) (bw-interior mwΘ)
-     | conversion-functional rc (bw-conversion mwΘ)
-preserve-Nu-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
-    {W = W} {Θ′ = Θ′} {s″ = s″} {R = R} {Bᵢ′ = Bᵢ′}
-    wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
-    (⊢ν wA rA (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
-                       ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
-  | refl | refl | refl
-  with conversion-functional r′ (bw-conversion mw′)
-     | interior-functional ri⁺ (inst-interior (bw-interior mwΘ))
-preserve-Nu-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
-    {W = W} {Θ′ = Θ′} {s″ = s″} {R = R} {Bᵢ′ = Bᵢ′}
-    wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
-    (⊢ν wA rA (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
-                       ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
-  | refl | refl | refl | refl | refl with conv-all-inv ⊢c₀
-preserve-Nu-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
-    {W = W} {Θ′ = Θ′} {s″ = s″} {R = R} {Bᵢ′ = Bᵢ′}
-    wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
-    (⊢ν wA rA (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
-                       ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
-  | refl | refl | refl | refl | refl | A₀ , B₀ , refl , refl , ⊢s₀
-  with conv-types-unique
-         (unique-underΛ {Γ = Δᶜ} (name-fn (bw-conversion-wf mwΘ)))
-         ⊢s ⊢s₀
-preserve-Nu-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
-    {W = W} {Θ′ = Θ′} {s″ = s″} {R = R} {Bᵢ′ = Bᵢ′}
-    wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
-    (⊢ν wA rA (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
-                       ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
-  | refl | refl | refl | refl | refl | A₀ , B₀ , refl , refl , ⊢s₀
-  | refl , refl with sameTy-target-∀⁻ sameᵢ
-preserve-Nu-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
-    {W = W} {Θ′ = Θ′} {s″ = s″} {R = R} {Bᵢ′ = Bᵢ′}
-    wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
-    (⊢ν wA rA (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
-                       ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
-  | refl | refl | refl | refl | refl | A₀ , B₀ , refl , refl , ⊢s₀
-  | refl , refl | D , refl , sameD
-  with sameTy-src-unique
-         (name-fn (wf-underΛ (bw-interior-wf mwΘ))) sameD sm
-preserve-Nu-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
-    {W = W} {Θ′ = Θ′} {s″ = s″} {R = R} {Bᵢ′ = Bᵢ′}
-    wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
-    (⊢ν wA rA (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
-                       ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
-  | refl | refl | refl | refl | refl | A₀ , B₀ , refl , refl , ⊢s₀
-  | refl , refl | D , refl , sameD | refl =
-  nu-outer mw middle ⊢c same wB
-  where
-  ΔRᵢ : Ctxᵗ
-  ΔRᵢ = reprCtx R Δᵢ
-
-  mwᵢ = inst-boundarywf mwΘ p
-
-  wfΔRᵢ : WfCtx ΔRᵢ
-  wfΔRᵢ = bw-interior-wf mwᵢ
-
-  movedTm : Term
-  movedTm =
-    renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫
-
-  B⁺ : Ty
-  B⁺ = renameᵗ (extᵗ suc) Bᵢ′
-
-  moved : ΔRᵢ ∣ [] ⊢ movedTm ⦂ `∀ B⁺
-  moved = addunbind wfΔRᵢ
-                    (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′) r′ r″ sc
-
-  -- the alias cell: `` ` 0 `` read on ΔRᵢ is R's cell
-  ΔR⁺ : Ctxᵗ
-  ΔR⁺ = reprCtx (` 0) ΔRᵢ
-
-  mw⁺ : BoundaryWf (allocate (` 0) ΔRᵢ) (inst []) ΔR⁺ ΔR⁺
-  mw⁺ = inst-boundarywf {Δ = ΔRᵢ}
-          (bw wfΔRᵢ (interior changes[]) (conversion conv[]))
-          (same-var here)
-
-  wB⁺ : ΔR⁺ ⊢ᵗ B⁺
-  wB⁺ = wf-refine (rr-represent rr-refl)
-                  (wf-∀⁻ (⊢ᵗ-of CtxWf-[] moved))
-
-  conv⁺ : ΔR⁺ ⊢ reveal 0 B⁺ ∶ B⁺ ⇝ ⇑ᵗ Bᵢ′
-  conv⁺ = subst (λ T → ΔR⁺ ⊢ reveal 0 B⁺ ∶ B⁺ ⇝ T)
-                (ren-suc-[0:=1] Bᵢ′)
-                (⊢reveal (represented-lookup {Δ = ΔRᵢ} (same-var here)) wB⁺)
-
-  same⁺ : allocate (` 0) ΔRᵢ ⊢ Bᵢ′ ≈ ⇑ᵗ Bᵢ′ ⊣ ΔR⁺
-  same⁺ = ⇑ᵗ (proj₁ sm) , same-shift-free (proj₁ (proj₂ sm))
-        , same-weaken (proj₁ (proj₂ sm))
-
-  wBᵢ′ : ΔRᵢ ⊢ᵗ Bᵢ′
-  wBᵢ′ = same-wf {Δ = ΔRᵢ} (proj₁ (proj₂ sm))
-
-  inner : ΔRᵢ ∣ [] ⊢ ν (` 0) · movedTm ⟨ reveal 0 B⁺ ⟩ ⦂ Bᵢ′
-  inner = ⊢ν (wf-var (zero , here)) (same-var here) moved mw⁺ conv⁺
-             same⁺ wBᵢ′
-
-  mw₁ = bw (represented-wf wfΔ p)
-           (liftᴮ-interior (bw-interior mwΘ))
-           (liftᴮ-conversion (bw-conversion mwΘ))
-
-  middle =
-    env mw₁ inner (conv-refine (rr-represent rr-refl) ⊢s₀)
-        sm (sameTy-∀⁻ sameₑ)
-        (wf-refine (rr-represent rr-refl) (wf-∀⁻ wE))
-
 ------------------------------------------------------------------------
 -- §4b. Preservation assembled over the downstream crossing cases
 ------------------------------------------------------------------------
@@ -1152,38 +1000,30 @@ preserve-Nu-⟪⟫ addunbind {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
 
 PeelCase : Set
 PeelCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t C}
-  → WfCtx Δ → Value V → Value W
+  → WfCtx Δ → Simple V → Value W
   → Δ ⊢ᶜ Θ ⇒ Δᶜ → Δ ⊢ⁱ Θ ⇒ Δᵢ
   → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
-  → Δ ∣ [] ⊢ (V ⟪ Θ , s ↦ t ⟫) · W ⦂ C
+  → Δ ∣ [] ⊢ (V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · W ⦂ C
   → Δ ∣ [] ⊢
       (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ⦂ C
 
-CancelRCase : Set
-CancelRCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ V Θ₁ Θ₂ X Y}
-  {A′ Aᵢ C}
-  → WfCtx Δ → Value V → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
+MergeCase : Set
+MergeCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ₂ᶜ Δ⋉ᶜ U Θ₁ Θ₂ t₁ t₁′ c₂ c₂′ C}
+  → WfCtx Δ → Simple U → InertTail t₁
+  → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
   → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
-  → Δ₁ᶜ ∋ X := Aᵢ
+  → Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ
   → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
-  → Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ
-  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
-  → Δ ∣ [] ⊢ V ⟪ Θ₁ ++ Θ₂ , mkId A′ ⟫ ⦂ C
-
-IdPushCase : Set
-IdPushCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ V Θ₁ Θ₂ X X′ Y C}
-  → WfCtx Δ → Value V → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
-  → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
-  → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
-  → Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ
-  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
-  → Δ ∣ [] ⊢ V ⟪ Θ₁ ++ Θ₂ , unseal X′ ⟫ ⦂ C
+  → SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ (tail t₁)
+  → SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂
+  → Δ ∣ [] ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫ ⦂ C
+  → Δ ∣ [] ⊢ U ⟪ Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′ ⟫ ⦂ C
 
 ------------------------------------------------------------------------
 -- §5. What a step did to the store
 ------------------------------------------------------------------------
 
--- ONLY THE THREE ∀-ELIMINATIONS ALLOCATE, and each carries the reading
+-- ONLY THE TWO ∀-ELIMINATIONS ALLOCATE, and each carries the reading
 -- that makes the minted cell well formed.  NO TYPING DERIVATION IS
 -- NEEDED — the rule premises and `WfCtx Δ` are enough.
 step-alloc : ∀ {Δ M M′ δ} → WfCtx Δ → Δ ⊢ M -→ M′ ∣ δ → AllocWf δ Δ
@@ -1191,13 +1031,10 @@ step-alloc wfΔ (Nu-Λ v p) = aw-new (same-wfᴿ wfΔ p)
 step-alloc wfΔ (Beta w) = aw-none
 step-alloc wfΔ (Peel v w rc ri rd sc) = aw-none
 step-alloc wfΔ (Nu-⟪Λ⟫ v rc ⊢s p) = aw-new (same-wfᴿ wfΔ p)
-step-alloc wfΔ (Nu-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm p) =
-  aw-new (same-wfᴿ wfΔ p)
-step-alloc wfΔ (CancelR v ri r₁ d₁ r⋉ sm) = aw-none
+step-alloc wfΔ (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) = aw-none
 step-alloc wfΔ (Drop$ b) = aw-none
 step-alloc wfΔ Drop-true = aw-none
 step-alloc wfΔ Drop-false = aw-none
-step-alloc wfΔ (IdPush v ri r₁ r⋉ sm) = aw-none
 step-alloc wfΔ (ξ-·-l st) = step-alloc wfΔ st
 step-alloc wfΔ (ξ-·-r v st) = step-alloc wfΔ st
 step-alloc wfΔ (ξ-ν st) = step-alloc wfΔ st
@@ -1213,11 +1050,9 @@ preserve-wf wfΔ ⊢M st = apply-wf wfΔ (step-alloc wfΔ st)
 
 module Impl
   (crossΛ  : CrossΛTyping)
-  (unbind0 : AddUnbind0Typing)
   (shift   : ShiftTyping)
   (peel    : PeelCase)
-  (cancel  : CancelRCase)
-  (idpush  : IdPushCase)
+  (merge   : MergeCase)
   where
 
   preserve : ∀ {Δ M M′ A δ} → WfCtx Δ → Δ ∣ [] ⊢ M ⦂ A
@@ -1227,16 +1062,11 @@ module Impl
   preserve wfΔ ⊢M (Peel v w rc ri rd sc) =
     peel wfΔ v w rc ri rd sc ⊢M
   preserve wfΔ ⊢M (Nu-⟪Λ⟫ v rc ⊢s p) = preserve-Nu-⟪Λ⟫ wfΔ p ⊢M
-  preserve wfΔ ⊢M
-    (Nu-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm p) =
-    preserve-Nu-⟪⟫ unbind0 wfΔ v ri rc r′ ri⁺ r″ sc ⊢s sm p ⊢M
-  preserve wfΔ ⊢M (CancelR v ri r₁ d₁ rc sm) =
-    cancel wfΔ v ri r₁ d₁ rc sm ⊢M
+  preserve wfΔ ⊢M (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) =
+    merge wfΔ u it ri r₁ r₂ r⋉ sc₁ sc₂ ⊢M
   preserve wfΔ ⊢M (Drop$ b) = preserve-Drop$ wfΔ b ⊢M
   preserve wfΔ ⊢M Drop-true = preserve-Drop-true wfΔ ⊢M
   preserve wfΔ ⊢M Drop-false = preserve-Drop-false wfΔ ⊢M
-  preserve wfΔ ⊢M (IdPush v ri r₁ rc sm) =
-    idpush wfΔ v ri r₁ rc sm ⊢M
   preserve wfΔ (⊢· ⊢L ⊢M) (ξ-·-l st) =
     ⊢· (preserve wfΔ ⊢L st) (⊢↑ shift (step-alloc wfΔ st) ⊢M)
   preserve wfΔ (⊢· ⊢L ⊢M) (ξ-·-r v st) =

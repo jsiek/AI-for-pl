@@ -31,16 +31,16 @@ open import strong-rep-nu.Boundary
 ------------------------------------------------------------------------
 
 seal-cites-binder : ∀ {Δ X A B c}
-  → Δ ⊢ c ∶ A ⇝ B → c ≡ seal X → Δ ∋ X := A
-seal-cites-binder (conv-seal d) refl = d
+  → Δ ⊢ c ∶ A ⇝ B → c ≡ tail (seal X) → Δ ∋ X := A
+seal-cites-binder (conv-tail (conv-seal d)) refl = d
 
 -- Spelled out: the cited ordinary name is LIVE, the representation
 -- variable it names is REPRESENTED, and the seal's source type is that
 -- representation read on the conversion context.  No other premise exists.
-seal-cites-representation : ∀ {Δ X A B} → Δ ⊢ seal X ∶ A ⇝ B
+seal-cites-representation : ∀ {Δ X A B} → Δ ⊢ tail (seal X) ∶ A ⇝ B
   → ∃[ α ] ∃[ R ]
       ((Δ ∋ᵗ X := α) × (Δ ∋rep α := R) × (Δ ⊢ᶜ A ~ R))
-seal-cites-representation (conv-seal d) = d
+seal-cites-representation (conv-tail (conv-seal d)) = d
 
 ------------------------------------------------------------------------
 -- 2.  THE ADVERSARY (the old ⊢3n-adv): a conceal asserting false knowledge
@@ -60,8 +60,8 @@ seal-cites-representation (conv-seal d) = d
 ¬know-adv : ∀ {A} → Δadv ∋ 0 := A → ⊥
 ¬know-adv (α , R , here , rep , same) = ¬rep-adv rep
 
-¬seal-adv : ∀ {A B} → Δadv ⊢ seal 0 ∶ A ⇝ B → ⊥
-¬seal-adv (conv-seal d) = ¬know-adv d
+¬seal-adv : ∀ {A B} → Δadv ⊢ tail (seal 0) ∶ A ⇝ B → ⊥
+¬seal-adv (conv-tail (conv-seal d)) = ¬know-adv d
 
 -- The boundary scope the adversary used to hide behind: it unbinds the very name
 -- its conversion cites.  A conversion context SKIPS an unbind, so the unbind
@@ -72,7 +72,7 @@ seal-cites-representation (conv-seal d) = d
 conv-Θadv : ∀ {Δᶜ} → Δadv ⊢ᶜ Θadv ⇒ Δᶜ → Δᶜ ≡ Δadv
 conv-Θadv (conversion (conv-unbind valid conv[])) = refl
 
-¬⊢adv : ∀ {Γ} → ¬ (Δadv ∣ Γ ⊢ ($ 7) ⟪ Θadv , seal 0 ⟫ ⦂ ` 0)
+¬⊢adv : ∀ {Γ} → ¬ (Δadv ∣ Γ ⊢ ($ 7) ⟪ Θadv , tail (seal 0) ⟫ ⦂ ` 0)
 ¬⊢adv (env mwᵥ ⊢M ⊢c smᵢ smₑ wE)
   with conv-Θadv (bw-conversion mwᵥ)
 ... | refl = ¬seal-adv ⊢c
@@ -90,8 +90,9 @@ conv-Θadv (conversion (conv-unbind valid conv[])) = refl
 ¬name-lk : ∀ {α} → Δlk ∋ᵗ 0 := α → ⊥
 ¬name-lk ()
 
-¬seal-lk : ∀ {A B} → Δlk ⊢ seal 0 ∶ A ⇝ B → ⊥
-¬seal-lk (conv-seal (α , R , name , rep , same)) = ¬name-lk name
+¬seal-lk : ∀ {A B} → Δlk ⊢ tail (seal 0) ∶ A ⇝ B → ⊥
+¬seal-lk (conv-tail (conv-seal (α , R , name , rep , same))) =
+  ¬name-lk name
 
 ------------------------------------------------------------------------
 -- 3.  `bad`: two spellings of one fact — inexpressible
@@ -116,8 +117,8 @@ bad-lookup = r-here
 bad-reading : Δbad ⊢ᶜ ∀ZZ ~ ∀ZZ
 bad-reading = same-∀ (same-⇒ (same-var here) (same-var here))
 
-seal-bad-conv : ∀ {A B} → Δbad ⊢ seal 0 ∶ A ⇝ B → A ≡ ∀ZZ
-seal-bad-conv (conv-seal (α , R , here , rep , same))
+seal-bad-conv : ∀ {A B} → Δbad ⊢ tail (seal 0) ∶ A ⇝ B → A ≡ ∀ZZ
+seal-bad-conv (conv-tail (conv-seal (α , R , here , rep , same)))
   with ∋ʳ-det rep bad-lookup
 ... | refl =
   same-target-unique (unique∷ fresh[] unique[]) same bad-reading
@@ -130,7 +131,7 @@ seal-bad-conv (conv-seal (α , R , here , rep , same))
 ¬same-ℕ-∀ same-ℕ ()
 
 ¬⊢bad : ∀ {Γ Θ} → Δbad ⊢ᶜ Θ ⇒ Δbad
-  → ¬ (Δbad ∣ Γ ⊢ ($ 7) ⟪ Θ , seal 0 ⟫ ⦂ ` 0)
+  → ¬ (Δbad ∣ Γ ⊢ ($ 7) ⟪ Θ , tail (seal 0) ⟫ ⦂ ` 0)
 ¬⊢bad rc (env mwᵥ ⊢$ ⊢c (R , pᵢ , qᵢ) smₑ wE)
   with conversion-functional (bw-conversion mwᵥ) rc
 ¬⊢bad rc (env mwᵥ ⊢$ ⊢c (R , pᵢ , qᵢ) smₑ wE) | refl
@@ -139,7 +140,7 @@ seal-bad-conv (conv-seal (α , R , here , rep , same))
   ¬same-ℕ-∀ pᵢ qᵢ
 
 ------------------------------------------------------------------------
--- 4.  CANCEL'S TYPE EQUATION
+-- 4.  THE CANCELLED PAIR'S TYPE EQUATION (composition's seal ⨟ unseal)
 ------------------------------------------------------------------------
 
 -- The inner conceal's SOURCE and the outer reveal's TARGET are the SAME
@@ -147,7 +148,7 @@ seal-bad-conv (conv-seal (α , R , here , rep , same))
 -- name map is a function, which every `BoundaryWf` supplies.
 cancel-types-agree : ∀ {Δ X A B A′ B′}
   → Unique (names Δ)
-  → Δ ⊢ seal X ∶ A ⇝ B       -- the inner conceal
+  → Δ ⊢ tail (seal X) ∶ A ⇝ B       -- the inner conceal
   → Δ ⊢ unseal X ∶ A′ ⇝ B′   -- the binder it names
     ---------------------------
   → A ≡ B′

@@ -8,8 +8,8 @@ module strong-rep-nu.Examples where
 --   * EXAMPLES ONLY.  Nothing here records a design decision, a defect or
 --     a repair.  Those go in notes/DECISIONS.md, and a machine-checked
 --     witness for one goes in its own notes/ module — see
---     notes/ReUnlockWall.agda, notes/ForallPayloadWall.agda and
---     notes/CancelRShiftWall.agda, each of which these runs produced.
+--     notes/ReUnlockWall.agda and notes/ForallPayloadWall.agda, each of
+--     which these runs produced.
 --   * AN EXAMPLE IS FOUR LINES, so the corpus is meant to grow.  Adding
 --     one should not require touching anything else in this file.
 --   * ONE EQUATION PER RUN.  A program is evaluated once, by its one
@@ -29,11 +29,10 @@ module strong-rep-nu.Examples where
 --        constant), `F` (the identity at 𝔹, for `Drop-false`) and `U`
 --        (an argument still reducing, for `ξ-·-r`).
 --   §2   THE VACUOUS-Λ FAMILY — four programs whose runs are born with
---        an IDENTITY LAYER and therefore land on `IdPush`: `Q` (one
---        vacuous layer), `D` (two), `L` (the "wall" context), and `R`
---        (a chained representation).  The dummy detours make `IdPush`
---        fire twice for `Q` and `L`, four times for `D`, and six times
---        for `R`.
+--        an IDENTITY LAYER, which a `Merge` absorbs: `Q` (one vacuous
+--        layer), `D` (two), `L` (the "wall" context), and `R` (a chained
+--        representation).  `Merge` fires three times for `Q` and `L` and
+--        five times for `D` and `R`.
 --   §3   NU-⟪Λ⟫ FROM CLOSED PLAIN SOURCE — `G`, whose second inner
 --        instantiation is a `Nu-⟪Λ⟫` redex after the first allocation;
 --        both cells live in the ambient representation store.
@@ -41,21 +40,22 @@ module strong-rep-nu.Examples where
 --        OUTWARD as a result rather than inward as an argument.
 --   §5   CROSSINGS UNDER LATER BINDERS: THE TOWER — `E` and `V`, whose
 --        argument is instantiated beneath LATER `Λ`s, so the value that
---        arrives has crossed several boundaries and carries a seal for
---        each.  These are the runs that put the boundary rules under
---        real load.
+--        arrives has crossed several boundaries; each crossing is merged
+--        into its one boundary as it happens.  These are the runs that
+--        put the boundary rules under real load.
 --   §6   POLYMORPHIC PAYLOADS — `I` (impredicative) and `N` (a payload
 --        with a free representation variable under its own binder).
 --   §7   FUNCTIONS THAT CROSS — `A`, `B` and `C`: a `_↦_` conversion
 --        drives `Peel` on boundaries that are `_++_`/`rewind` composites,
 --        `C` doing it through §5's tower.
---   §8   THE CANCELR SHIFT WITNESS — `S`, the run that certifies the
---        repaired `CancelR`; its cancelled representation is open in the
---        ambient store.
+--   §8   THE CANCEL SHIFT WITNESS — `S`, the run that certified the
+--        repaired (now retired) `CancelR`; the `Merge` that cancels its
+--        seal against the unseal reads an OPEN representation.
 --   §9   HAND-BUILT BOUNDARIES AT A NON-EMPTY AMBIENT — the cancel pair
 --        and the id-layer stack, written down rather than reached, at a
---        Δ that is not `empty`.  Two of these runs are pinned state by
---        state; they are the only EXACT transcripts in the corpus.
+--        Δ that is not `empty`; every step is a `Merge` or a drop.  Two
+--        of these runs are pinned state by state; they are the only
+--        EXACT transcripts in the corpus.
 --   §10  WHAT SUBSTITUTION DOES AT A CROSSING — the three `substᵐ`
 --        regressions, including the one this branch's design turns on: a
 --        value crossing a `Λ` moves in the REPRESENTATION universe only.
@@ -71,24 +71,24 @@ module strong-rep-nu.Examples where
 -- store `Δ₆`.  The endpoint term is stated independently of that final store.
 --
 --   §1a  P     5 steps   7      : ℕ    the polymorphic identity
---   §1b  K    11 steps   true   : 𝔹    a polymorphic Boolean use
+--   §1b  K     9 steps   true   : 𝔹    a polymorphic Boolean use
 --   §1c  J    12 steps   3      : ℕ    a polymorphic constant
 --   §1d  F     5 steps   false  : 𝔹    the identity at 𝔹
 --   §1e  U     6 steps   5      : ℕ    an argument still reducing
---   §2   Q    11 steps   7      : ℕ    two IdPush steps
---   §2a  D    17 steps   7      : ℕ    four IdPush steps
+--   §2   Q    11 steps   7      : ℕ    three Merge steps
+--   §2a  D    17 steps   7      : ℕ    five Merge steps
 --   §2b  L    11 steps   7      : ℕ    the wall context
 --   §2c  R    16 steps   7      : ℕ    a chained representation
---   §3   G    16 steps   7      : ℕ    two store allocations
---   §4   H    11 steps   7      : ℕ    the reveal mirror
---   §5a  E    30 steps   true   : 𝔹    one later binder
---   §5b  V    49 steps   true   : 𝔹    two later binders
---   §6a  I    12 steps   true   : 𝔹    impredicative identity
---   §6b  N    20 steps   7      : ℕ    ∀-payload over a free var
+--   §3   G    14 steps   7      : ℕ    two store allocations
+--   §4   H    10 steps   7      : ℕ    the reveal mirror
+--   §5a  E    16 steps   true   : 𝔹    one later binder
+--   §5b  V    19 steps   true   : 𝔹    two later binders
+--   §6a  I    10 steps   true   : 𝔹    impredicative identity
+--   §6b  N    15 steps   7      : ℕ    ∀-payload over a free var
 --   §7a  A     8 steps   7      : ℕ    a function crosses
---   §7b  B    15 steps   7      : ℕ    a function crosses twice
---   §7c  C    33 steps   7      : ℕ    a function through the tower
---   §8   S    16 steps   7      : ℕ    the CancelR shift witness
+--   §7b  B    13 steps   7      : ℕ    a function crosses twice
+--   §7c  C    19 steps   7      : ℕ    a function through the tower
+--   §8   S    15 steps   7      : ℕ    the cancel shift witness
 --   §9a  T     2 steps   7      : ℕ    the cancel pair
 --   §9b  Tid   3 steps   7      : ℕ    one transparent layer
 --   §9c  Tid₂  4 steps   7      : ℕ    a stack of layers
@@ -112,15 +112,16 @@ module strong-rep-nu.Examples where
 -- strictly less than an exact transcript.  The states of any other run
 -- are one `evalTerms` away whenever a reader wants to look at one.
 --
--- COVERAGE.  All fourteen live reduction rules fire somewhere in §§1–8.
--- §1d, §1e and §5b retain cases that the smaller baseline and tower runs
--- do not reach: `Drop-false`, `ξ-·-r`, and the second
--- `Nu-⟪⟫`.  Each dummy route is the four-step sequence `Nu-Λ`,
--- `Peel`, `Drop$`, `Beta`; it introduces no new rule shape.
+-- COVERAGE.  All twelve live reduction rules fire somewhere in §§1–8.
+-- §1d and §1e retain cases that the other runs do not reach:
+-- `Drop-false` and `ξ-·-r`.  Each dummy route is the four-step sequence
+-- `Nu-Λ`, `Peel`, `Drop$`, `Beta`; it introduces no new rule shape.
 --
--- WHAT IS STILL THIN.  Depth.  The deepest seal tower any run builds is
--- four (§5b), and unwinding is quadratic in that depth, so a defect that
--- needs five boundaries would not show up here.
+-- WHAT IS STILL THIN.  Depth, differently.  A value carries ONE
+-- boundary, and a second is merged on the step it appears, so no state
+-- of any run stacks more than two boundaries over a simple value
+-- (notes/StackCensus); a defect that needs a longer SEAL CHAIN inside
+-- one conversion than these runs build would not show up here.
 --
 -- WHAT WAS DROPPED IN THE 2026-09-19 PORT, AND WHERE ITS VERDICT LIVES.
 -- The old file was written against the masked-entry design, in which a
@@ -136,8 +137,9 @@ module strong-rep-nu.Examples where
 --     the shape-IV survivor) — those redexes are written in
 --     `unmasked (bind …)` contexts and refute rule shapes that no longer
 --     exist.  The live preservation verdicts are `proof/Preserve.agda`,
---     `proof/MoveScope.agda`, `proof/PeelDual.agda` and the ONE
---     refutation that survives the port, `notes/CancelRShiftWall.agda`.
+--     `proof/MoveScope.agda` and `proof/PeelDual.agda`.  The one
+--     refutation that survived that port, notes/CancelRShiftWall.agda,
+--     was deleted with `CancelR` in the 2026-09-24 merge port.
 --   * old §8, §9 (progress and preservation along a run) —
 --     `strong-rep-nu.Preservation.preservation` (2026-09-20) and
 --     `strong-rep-nu.Progress.progress` (2026-09-21) are UNCONDITIONAL,
@@ -196,7 +198,7 @@ P₀-⊢ : empty ∣ [] ⊢ P₀ ⦂ `ℕ
 P₀-⊢ = tc
 
 P-eval : Reaches 5 5 P₀-⊢ ($ 7)
-P-eval = reaches refl V-$
+P-eval = reaches refl (V-simple S-$)
 
 P-run : empty ⊢ P₀ -→* $ 7
 P-run = reaches-run P-eval
@@ -218,8 +220,8 @@ K₀ = ((ν `𝔹 · Ffun ⟨ reveal 0 FB ⟩) · truePoly) · `false
 K₀-⊢ : empty ∣ [] ⊢ K₀ ⦂ `𝔹
 K₀-⊢ = tc
 
-K-eval : Reaches 11 11 K₀-⊢ `true
-K-eval = reaches refl V-true
+K-eval : Reaches 9 9 K₀-⊢ `true
+K-eval = reaches refl (V-simple S-true)
 
 K-run : empty ⊢ K₀ -→* `true
 K-run = reaches-run K-eval
@@ -242,7 +244,7 @@ J₀-⊢ : empty ∣ [] ⊢ J₀ ⦂ `ℕ
 J₀-⊢ = tc
 
 J-eval : Reaches 12 12 J₀-⊢ ($ 3)
-J-eval = reaches refl V-$
+J-eval = reaches refl (V-simple S-$)
 
 J-run : empty ⊢ J₀ -→* $ 3
 J-run = reaches-run J-eval
@@ -262,7 +264,7 @@ F₀-⊢ : empty ∣ [] ⊢ F₀ ⦂ `𝔹
 F₀-⊢ = tc
 
 F-eval : Reaches 5 5 F₀-⊢ `false
-F-eval = reaches refl V-false
+F-eval = reaches refl (V-simple S-false)
 
 F-run : empty ⊢ F₀ -→* `false
 F-run = reaches-run F-eval
@@ -283,7 +285,7 @@ U₀-⊢ : empty ∣ [] ⊢ U₀ ⦂ `ℕ
 U₀-⊢ = tc
 
 U-eval : Reaches 6 6 U₀-⊢ ($ 5)
-U-eval = reaches refl V-$
+U-eval = reaches refl (V-simple S-$)
 
 U-run : empty ⊢ U₀ -→* $ 5
 U-run = reaches-run U-eval
@@ -303,9 +305,9 @@ U-run = reaches-run U-eval
 --
 -- Under Z the outer Y is ordinary slot 1, so `ΛZ. λ_:ℕ. x` has type
 -- `∀ (ℕ ⇒ ` 1)`.  The inner `Nu-Λ` installs an identity layer around x's
--- value, inside the OUTER package's revealing wrapper.  That stack
--- contains the original `IdPush` redex; the dummy route contributes a
--- second identity layer, so the new run fires `IdPush` twice.
+-- value, inside the OUTER package's revealing wrapper.  That stack is a
+-- `Merge` redex (the retired `IdPush`'s); the dummy route contributes a
+-- second identity layer, and the run fires `Merge` three times.
 
 Qvac Qbody Qfun Q₀ : Term
 Qvac  = Λ (ƛ `ℕ ∙ ` 1)                   -- ΛZ. λ_:ℕ. x
@@ -317,7 +319,7 @@ Q₀-⊢ : empty ∣ [] ⊢ Q₀ ⦂ `ℕ
 Q₀-⊢ = tc
 
 Q-eval : Reaches 11 11 Q₀-⊢ ($ 7)
-Q-eval = reaches refl V-$
+Q-eval = reaches refl (V-simple S-$)
 
 Q-run : empty ⊢ Q₀ -→* $ 7
 Q-run = reaches-run Q-eval
@@ -328,7 +330,7 @@ Q-⦂ : traceCtx (eval 14 Q₀ Q₀-⊢) ∣ [] ⊢ $ 7 ⦂ `ℕ
 Q-⦂ = reaches-⦂ Q-eval
 
 ------------------------------------------------------------------------
--- §2a  TWO VACUOUS LAYERS — `IdPush` firing four times in one run
+-- §2a  TWO VACUOUS LAYERS — `Merge` firing five times in one run
 ------------------------------------------------------------------------
 
 --   D = ((ΛY. λx:Y.
@@ -339,8 +341,8 @@ Q-⦂ = reaches-⦂ Q-eval
 -- outer ordinary variable, hence one identity layer.  The inner package
 -- is instantiated and applied only after the outer package's dummy
 -- lambda has itself been instantiated and applied; no step occurs under
--- either `Λ`.  Each dummy route contributes another layer, so the two
--- `IdPush` steps of the old run are now four.
+-- either `Λ`.  Each dummy route contributes another layer, each absorbed
+-- by a `Merge`.
 
 Dinner Dbody Dfun D₀ : Term
 Dinner =
@@ -353,7 +355,7 @@ D₀-⊢ : empty ∣ [] ⊢ D₀ ⦂ `ℕ
 D₀-⊢ = tc
 
 D-eval : Reaches 17 17 D₀-⊢ ($ 7)
-D-eval = reaches refl V-$
+D-eval = reaches refl (V-simple S-$)
 
 D-run : empty ⊢ D₀ -→* $ 7
 D-run = reaches-run D-eval
@@ -374,8 +376,8 @@ D-run = reaches-run D-eval
 -- development called THE WALL, and the point of the example is unchanged
 -- by the port: the wall CONTEXT is reachable, the wall CONFIGURATION is
 -- not.  The blocked name sits inside an INERT (concealing) wrapper — a
--- `Θ₁` position — and the `Θ₂` of every `IdPush`/`CancelR` redex on this
--- run is unbind-free.  The run reaches a value, and no state loses its type.
+-- `Θ₁` position — and the `Θ₂` of every `Merge` redex on this run is
+-- unbind-free.  The run reaches a value, and no state loses its type.
 
 Lbody Lfun L₀ : Term
 Lbody = (ν ` 0 · Qvac ⟨ reveal 0 (`ℕ ⇒ ` 1) ⟩) · $ 0
@@ -386,7 +388,7 @@ L₀-⊢ : empty ∣ [] ⊢ L₀ ⦂ `ℕ
 L₀-⊢ = tc
 
 L-eval : Reaches 11 11 L₀-⊢ ($ 7)
-L-eval = reaches refl V-$
+L-eval = reaches refl (V-simple S-$)
 
 L-run : empty ⊢ L₀ -→* $ 7
 L-run = reaches-run L-eval
@@ -405,7 +407,7 @@ L-run = reaches-run L-eval
 --        [ℕ]) · 7
 --
 -- The inner instantiation `[X]` allocates a cell whose representation is the
--- one `X` names, so at the `IdPush` redex the looked-up representation is
+-- one `X` names, so at the `Merge` redex the looked-up representation is
 -- itself a variable of the representation universe.
 
 Rbody Rfun R₀ : Term
@@ -417,7 +419,7 @@ R₀-⊢ : empty ∣ [] ⊢ R₀ ⦂ `ℕ
 R₀-⊢ = tc
 
 R-eval : Reaches 16 16 R₀-⊢ ($ 7)
-R-eval = reaches refl V-$
+R-eval = reaches refl (V-simple S-$)
 
 R-run : empty ⊢ R₀ -→* $ 7
 R-run = reaches-run R-eval
@@ -443,15 +445,15 @@ G₀    = (ν `ℕ · Gfun ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩) · ($ 7)
 G₀-⊢ : empty ∣ [] ⊢ G₀ ⦂ `ℕ
 G₀-⊢ = tc
 
-G-eval : Reaches 16 16 G₀-⊢ ($ 7)
-G-eval = reaches refl V-$
+G-eval : Reaches 14 14 G₀-⊢ ($ 7)
+G-eval = reaches refl (V-simple S-$)
 
 G-run : empty ⊢ G₀ -→* $ 7
 G-run = reaches-run G-eval
 
 -- The allocation is carried by the step result, not the boundary: `Nu-Λ`
--- and both `Nu` boundary rules return `new R`; `Peel`, `CancelR`, `IdPush`, the
--- drops, and their congruences return or propagate `none`.
+-- and `Nu-⟪Λ⟫` return `new R`; `Peel`, `Merge`, the drops, and their
+-- congruences return or propagate `none`.
 
 ------------------------------------------------------------------------
 -- §4  THE REVEAL MIRROR
@@ -476,8 +478,8 @@ H₀   = (ν `ℕ · ((ν `ℕ · Hfun ⟨ reveal 0 HB ⟩) · ($ 7))
 H₀-⊢ : empty ∣ [] ⊢ H₀ ⦂ `ℕ
 H₀-⊢ = tc
 
-H-eval : Reaches 11 11 H₀-⊢ ($ 7)
-H-eval = reaches refl V-$
+H-eval : Reaches 10 10 H₀-⊢ ($ 7)
+H-eval = reaches refl (V-simple S-$)
 
 H-run : empty ⊢ H₀ -→* $ 7
 H-run = reaches-run H-eval
@@ -488,22 +490,20 @@ H-run = reaches-run H-eval
 
 -- These are the runs that put the boundary rules under load: their
 -- argument is instantiated beneath LATER `Λ`s, so the value that reaches
--- `true` has crossed several boundaries and carries a seal for each, and
--- unwinding that tower drives `CancelR` and `IdPush` through frames that
--- are COMPOSITES (the merge `_++_`).  Finishing §5a is what found the
--- defect recorded in notes/ReUnlockWall.agda.
+-- `true` has crossed several boundaries, each merged into its one
+-- boundary as it is crossed, so `Merge` composes conversions on frames
+-- that are COMPOSITES (the merge `_++_`).  Finishing §5a is what found
+-- the defect recorded in notes/ReUnlockWall.agda.
 
 ------------------------------------------------------------------------
 -- §5a  ( ΛX. λf:(∀Z. Z⇒Z). ΛY. λ_:ℕ. f [Y] ) [ℕ]
 --      · (ΛZ. λz:Z. z), at [𝔹] · 0 · true
 --
 -- The argument is instantiated beneath the LATER binder `ΛY`, so `f [Y]`
--- crosses `Y`'s boundary as well as `X`'s and the identity that finally
--- receives `true` sits under three seals.  Unwinding them is what drives
--- `CancelR` and `IdPush` through `_++_` composites, and what makes the
--- tail of this run grow with the tower depth: `CancelR` leaves one
--- identity layer and `IdPush` walks the active conversion inward one
--- layer before the next `CancelR` can fire.
+-- crosses `Y`'s boundary as well as `X`'s.  Before `Merge` the identity
+-- that finally received `true` sat under three seals and unwinding them
+-- took the run to 30 steps; now each crossing is merged as it happens
+-- (`Merge` fires five times), and the run is 16 steps.
 ------------------------------------------------------------------------
 
 EID EBod : Ty
@@ -525,8 +525,8 @@ E₀-⊢ = tc
 E₀ᴮ-⊢ : empty ∣ [] ⊢ E₀ᴮ ⦂ `𝔹
 E₀ᴮ-⊢ = tc
 
-E-eval : Reaches 30 30 E₀ᴮ-⊢ `true
-E-eval = reaches refl V-true
+E-eval : Reaches 16 16 E₀ᴮ-⊢ `true
+E-eval = reaches refl (V-simple S-true)
 
 E-run : empty ⊢ E₀ᴮ -→* `true
 E-run = reaches-run E-eval
@@ -535,13 +535,12 @@ E-run = reaches-run E-eval
 -- §5b  ( ΛX. λf:(∀Z. Z⇒Z). ΛY. ΛW. λ_:ℕ. f [W] ) [ℕ]
 --      · (ΛZ. λz:Z. z), at [𝔹] [𝔹] · 0 · true
 --
--- §5a with one more later binder, which is what puts weight on the two
--- rules §5a barely touches.  The argument now crosses THREE boundaries
--- before it is instantiated, so the `∀`-value the type application meets
--- is two boundaries deep and `Nu-⟪⟫` fires twice there (three times in
--- the whole run, against once in §5a); the seal tower it leaves is four
--- deep, and unwinding it is quadratic, so `IdPush` fires fourteen times
--- (§5a: eight).
+-- §5a with one more later binder.  The argument now crosses THREE
+-- boundaries before it is instantiated; under the retired rules the
+-- `∀`-value the type application met was two boundaries deep and the
+-- seal tower it left was four deep (49 steps).  Now every crossing is
+-- merged into ONE boundary, `Nu-⟪Λ⟫` fires three times and `Merge`
+-- seven, and the run is 19 steps.
 ------------------------------------------------------------------------
 
 VBod : Ty
@@ -558,8 +557,8 @@ V₀ = ((ν `𝔹
 V₀-⊢ : empty ∣ [] ⊢ V₀ ⦂ `𝔹
 V₀-⊢ = tc
 
-V-eval : Reaches 49 49 V₀-⊢ `true
-V-eval = reaches refl V-true
+V-eval : Reaches 19 19 V₀-⊢ `true
+V-eval = reaches refl (V-simple S-true)
 
 V-run : empty ⊢ V₀ -→* `true
 V-run = reaches-run V-eval
@@ -570,12 +569,12 @@ V-run = reaches-run V-eval
 
 -- Both programs here instantiate at a POLYMORPHIC type, so their stores
 -- receive a representation payload with a `∀` in it.  They did not run when
--- they were written: `TyPeelR-⟪⟫` (today `Nu-⟪⟫`) and `IdPush` each
--- carried a spelling from the conversion context into the interior without
--- re-basing it, and the two contexts disagree exactly when an unbind and an
--- bind have moved the name.  Both rules now carry the interior spelling
--- as a premise (notes/ForallPayloadWall.agda, notes/DECISIONS.md
--- 2026-09-18).
+-- they were written: `TyPeelR-⟪⟫` (later `Nu-⟪⟫`) and `IdPush` — both
+-- retired since — each carried a spelling from the conversion context
+-- into the interior without re-basing it, and the two contexts disagree
+-- exactly when an unbind and a bind have moved the name
+-- (notes/ForallPayloadWall.agda, notes/DECISIONS.md 2026-09-18).
+-- `Merge` carries both of its re-spellings as premises.
 
 ------------------------------------------------------------------------
 -- §6a  (ΛX. λx:X. x) [∀Z. Z⇒Z] · (ΛZ. λz:Z. z), at [𝔹] · true
@@ -592,8 +591,8 @@ I₀ = ν `𝔹 · ((ν EID · (Λ (ƛ ` 0 ∙ ` 0)) ⟨ reveal 0 (` 0 ⇒ ` 0) 
 I₀-⊢ : empty ∣ [] ⊢ I₀ ⦂ `𝔹
 I₀-⊢ = tc
 
-I-eval : Reaches 12 12 I₀-⊢ `true
-I-eval = reaches refl V-true
+I-eval : Reaches 10 10 I₀-⊢ `true
+I-eval = reaches refl (V-simple S-true)
 
 I-run : empty ⊢ I₀ -→* `true
 I-run = reaches-run I-eval
@@ -619,8 +618,8 @@ N₀ =
 N₀-⊢ : empty ∣ [] ⊢ N₀ ⦂ `ℕ
 N₀-⊢ = tc
 
-N-eval : Reaches 20 20 N₀-⊢ ($ 7)
-N-eval = reaches refl V-$
+N-eval : Reaches 15 15 N₀-⊢ ($ 7)
+N-eval = reaches refl (V-simple S-$)
 
 N-run : empty ⊢ N₀ -→* $ 7
 N-run = reaches-run N-eval
@@ -632,11 +631,11 @@ N-run = reaches-run N-eval
 ------------------------------------------------------------------------
 -- §7a  (ΛX. λx:X. x) [ℕ⇒ℕ] · (λn:ℕ. n) · 7
 --
--- A FUNCTION crosses a boundary and is then applied.  `CancelR` leaves it
--- under a `_++_` frame whose conversion is `mkId (ℕ⇒ℕ)` — which is a
--- `_↦_` — so `Peel` fires on a COMPOSITE frame, three times in all.  No
--- earlier run does that: everywhere else the value that crosses is
--- first-order and the composite frames only ever carry an identity.
+-- A FUNCTION crosses a boundary and is then applied.  `Merge` leaves it
+-- under a `_++_` frame whose conversion is an identity at `ℕ⇒ℕ` — which
+-- is a `_↦_` — so `Peel` fires on a COMPOSITE frame.  No earlier run
+-- does that: everywhere else the value that crosses is first-order and
+-- the composite frames only ever carry an identity.
 ------------------------------------------------------------------------
 
 A₀ : Term
@@ -647,7 +646,7 @@ A₀-⊢ : empty ∣ [] ⊢ A₀ ⦂ `ℕ
 A₀-⊢ = tc
 
 A-eval : Reaches 8 8 A₀-⊢ ($ 7)
-A-eval = reaches refl V-$
+A-eval = reaches refl (V-simple S-$)
 
 A-run : empty ⊢ A₀ -→* $ 7
 A-run = reaches-run A-eval
@@ -655,8 +654,8 @@ A-run = reaches-run A-eval
 ------------------------------------------------------------------------
 -- §7b  the same, with the function crossing TWICE
 --
--- Stacked composites: `Peel` fires five times, on frames that are `_++_`
--- and `rewind` of each other.
+-- Stacked composites: `Peel` fires three times, on frames that are
+-- `_++_` and `rewind` of each other.
 ------------------------------------------------------------------------
 
 idℕℕ B₀ : Term
@@ -666,8 +665,8 @@ B₀ = (idℕℕ · (idℕℕ · (ƛ `ℕ ∙ ` 0))) · $ 7
 B₀-⊢ : empty ∣ [] ⊢ B₀ ⦂ `ℕ
 B₀-⊢ = tc
 
-B-eval : Reaches 15 15 B₀-⊢ ($ 7)
-B-eval = reaches refl V-$
+B-eval : Reaches 13 13 B₀-⊢ ($ 7)
+B-eval = reaches refl (V-simple S-$)
 
 B-run : empty ⊢ B₀ -→* $ 7
 B-run = reaches-run B-eval
@@ -676,10 +675,10 @@ B-run = reaches-run B-eval
 -- §7c  §5a's tower, with a FUNCTION flowing through it
 --
 -- The hardest case the corpus puts to `Peel`.  Because the value that
--- crosses is a function, every identity the unwinding tower mints is a
+-- crosses is a function, every identity a cancelling `Merge` mints is a
 -- `mkId` at a function type — that is, a `_↦_` — so `Peel` fires on the
--- composite frames `CancelR` and `IdPush` build, rather than only on the
--- ones born at a `Nu-Λ`.  `notes/CrossingAudit` §5 shows that those
+-- composite frames `Merge` builds, rather than only on the ones born at a
+-- `Nu-Λ`.  `notes/CrossingAudit` §5 shows that those
 -- composites are not structurally guaranteed to be safe; this run is the
 -- evidence that they are safe in practice, which is testing and not
 -- proof.
@@ -694,28 +693,29 @@ C₀ = (((ν (`ℕ ⇒ `ℕ) · E₀ ⟨ reveal 0 (`ℕ ⇒ (` 0 ⇒ ` 0)) ⟩) 
 C₀-⊢ : empty ∣ [] ⊢ C₀ ⦂ `ℕ
 C₀-⊢ = tc
 
-C-eval : Reaches 33 33 C₀-⊢ ($ 7)
-C-eval = reaches refl V-$
+C-eval : Reaches 19 19 C₀-⊢ ($ 7)
+C-eval = reaches refl (V-simple S-$)
 
 C-run : empty ⊢ C₀ -→* $ 7
 C-run = reaches-run C-eval
 
 ------------------------------------------------------------------------
--- §8  THE CANCELR SHIFT WITNESS
+-- §8  THE CANCEL SHIFT WITNESS
 ------------------------------------------------------------------------
 
 -- The program that found the CancelR re-spelling defect and, after
--- repair (a), the run that certifies the repaired rule (2026-09-19; the
--- before/after record is strong-rep-store/notes/CancelRReachabilityWitness.agda, the
--- defect notes/CancelRShiftWall.agda and notes/DECISIONS.md).  Two
+-- repair (a), the run that certified the repaired rule (2026-09-19; the
+-- before/after record is
+-- strong-rep-store/notes/CancelRReachabilityWitness.agda, and
+-- notes/DECISIONS.md).  `CancelR` is retired; its step is a `Merge`.  Two
 -- choices make it bite where §§1–7 do not: the argument's polymorphic
 -- type RETURNS the abstracted variable, so a bare `seal` leaf reaches a
 -- `↦`'s codomain and `Peel`'s RESULT boundary installs it under a boundary
 -- whose cell is already in the store; the inner `Λ` is instantiated at the
 -- outer cell's
 -- own variable, so the cancelled binder's payload is a representation
--- VARIABLE.  Its `CancelR` is the corpus's only one whose cancelled cell
--- contains an open representation.
+-- VARIABLE.  Its cancelling `Merge` is the corpus's only one whose
+-- cancelled cell contains an open representation.
 
 S₀ : Term
 S₀ = (ν `ℕ · (Λ (ƛ (` 0) ∙
@@ -727,8 +727,8 @@ S₀ = (ν `ℕ · (Λ (ƛ (` 0) ∙
 S₀-⊢ : empty ∣ [] ⊢ S₀ ⦂ `ℕ
 S₀-⊢ = tc
 
-S-eval : Reaches 16 16 S₀-⊢ ($ 7)
-S-eval = reaches refl V-$
+S-eval : Reaches 15 15 S₀-⊢ ($ 7)
+S-eval = reaches refl (V-simple S-$)
 
 S-run : empty ⊢ S₀ -→* $ 7
 S-run = reaches-run S-eval
@@ -749,17 +749,18 @@ S-run = reaches-run S-eval
 
 -- the concealing layer these three share: 7, sealed at the ambient name
 Wseal : Term
-Wseal = ($ 7) ⟪ [] , seal 0 ⟫
+Wseal = ($ 7) ⟪ [] , tail (seal 0) ⟫
 
 ------------------------------------------------------------------------
 -- §9a  THE CANCEL PAIR
 ------------------------------------------------------------------------
 
 -- The outer conversion is ACTIVE (`unseal`), the inner INERT (`seal`), and
--- they cite the same binder, so `CancelR` fires.  BOTH FRAMES STAY —
--- MERGED as `Θ₁ ++ Θ₂` — and the matched pair becomes ONE identity at the
--- cancelled binder's representation, so nothing the value might name is
--- dropped; the identity is then walked off a numeral by `Drop$`.
+-- they cite the same binder, so `Merge` composes them to the identity.
+-- BOTH FRAMES STAY — MERGED as `Θ₁ ++ Θ₂` — and the matched pair becomes
+-- ONE identity at the cancelled binder's representation (`mkId` of
+-- `repOf`), so nothing the value might name is dropped; the identity is
+-- then walked off a numeral by `Drop$`.
 
 Tcancel : Term
 Tcancel = Wseal ⟪ [] , unseal 0 ⟫
@@ -768,7 +769,7 @@ Tcancel-⊢ : Δ₆ ∣ [] ⊢ Tcancel ⦂ `ℕ
 Tcancel-⊢ = tc
 
 Tcancel-eval : Reaches 2 2 Tcancel-⊢ ($ 7)
-Tcancel-eval = reaches refl V-$
+Tcancel-eval = reaches refl (V-simple S-$)
 
 Tcancel-run : Δ₆ ⊢ Tcancel -→* $ 7
 Tcancel-run = reaches-run Tcancel-eval
@@ -781,45 +782,44 @@ Tcancel-run = reaches-run Tcancel-eval
 -- boundary scope: neither frame changes a name.
 _ : evalTerms 2 Tcancel-⊢
       ≡ Tcancel
-      ∷ (($ 7) ⟪ [] , id `ℕ ⟫)
+      ∷ (($ 7) ⟪ [] , ⌞ id `ℕ ⌟ ⟫)
       ∷ ($ 7)
       ∷ []
 _ = refl
 
 ------------------------------------------------------------------------
--- §9b  ONE TRANSPARENT LAYER — `IdPush`
+-- §9b  ONE TRANSPARENT LAYER
 ------------------------------------------------------------------------
 
--- The same pair with an IDENTITY-AT-A-VARIABLE layer between them: the
--- seal and the unseal are no longer adjacent, so `CancelR` cannot fire.
--- `IdPush` brings the reveal down onto the seal and CONSUMES the
--- transparent layer, and the pair then cancels.
+-- The same pair with an IDENTITY-AT-A-VARIABLE layer between them.  The
+-- outer boundary is not over a VALUE (its interior carries two
+-- boundaries), so the first `Merge` is the inner one: it absorbs the
+-- transparent layer into the seal, and the pair then cancels.
 
 Tid : Term
-Tid = (Wseal ⟪ [] , id (` 0) ⟫)
+Tid = (Wseal ⟪ [] , ⌞ id (` 0) ⌟ ⟫)
         ⟪ [] , unseal 0 ⟫
 
 Tid-⊢ : Δ₆ ∣ [] ⊢ Tid ⦂ `ℕ
 Tid-⊢ = tc
 
 Tid-eval : Reaches 3 3 Tid-⊢ ($ 7)
-Tid-eval = reaches refl V-$
+Tid-eval = reaches refl (V-simple S-$)
 
 Tid-run : Δ₆ ⊢ Tid -→* $ 7
 Tid-run = reaches-run Tid-eval
 
 ¬val-Tid : ¬ Value Tid
-¬val-Tid (V-⟪⟫ _ ())
+¬val-Tid (V-simple ())
 
--- STEP 1 is the `IdPush`: the transparent layer is CONSUMED and the
--- reveal is re-read on the merged frame `Θ₁ ++ Θ₂` (here the empty scope,
--- because neither frame unbinds).  The pushed name is the identity
--- conversion's own, re-spelled into the merged conversion context.  The
--- contractum IS §9a's redex, so the rest of the run is §9a's.
+-- STEP 1 is the inner `Merge`: `seal 0 ⨟ id (` 0)` is `seal 0`, on the
+-- merged frame `Θ₁ ++ Θ₂` (here the empty scope, because neither frame
+-- unbinds).  The contractum IS §9a's redex, so the rest of the run is
+-- §9a's.
 _ : evalTerms 3 Tid-⊢
       ≡ Tid
       ∷ (Wseal ⟪ [] , unseal 0 ⟫)
-      ∷ (($ 7) ⟪ [] , id `ℕ ⟫)
+      ∷ (($ 7) ⟪ [] , ⌞ id `ℕ ⌟ ⟫)
       ∷ ($ 7)
       ∷ []
 _ = refl
@@ -828,22 +828,21 @@ _ = refl
 -- §9c  A STACK OF LAYERS
 ------------------------------------------------------------------------
 
--- Two identity layers.  The stack resolves ONE LAYER PER STEP, outermost
--- first: each `IdPush` moves the active conversion one layer inward toward
--- the seal and consumes the layer it passed, so a stack of any depth
--- terminates.  Against §9b the run is one step longer, which is exactly
--- one `IdPush` per extra layer.
+-- Two identity layers.  The stack resolves ONE LAYER PER STEP, innermost
+-- first: each `Merge` absorbs the layer directly over the value, so a
+-- stack of any depth terminates.  Against §9b the run is one step
+-- longer, which is exactly one `Merge` per extra layer.
 
 Tid₂ : Term
-Tid₂ = ((Wseal ⟪ [] , id (` 0) ⟫)
-          ⟪ [] , id (` 0) ⟫)
+Tid₂ = ((Wseal ⟪ [] , ⌞ id (` 0) ⌟ ⟫)
+          ⟪ [] , ⌞ id (` 0) ⌟ ⟫)
          ⟪ [] , unseal 0 ⟫
 
 Tid₂-⊢ : Δ₆ ∣ [] ⊢ Tid₂ ⦂ `ℕ
 Tid₂-⊢ = tc
 
 Tid₂-eval : Reaches 4 4 Tid₂-⊢ ($ 7)
-Tid₂-eval = reaches refl V-$
+Tid₂-eval = reaches refl (V-simple S-$)
 
 Tid₂-run : Δ₆ ⊢ Tid₂ -→* $ 7
 Tid₂-run = reaches-run Tid₂-eval
@@ -866,20 +865,20 @@ Tid₂-run = reaches-run Tid₂-eval
 -- `⇑ᵗ (` 0)` is `` ` 1 ``, read outside the unbind.
 
 Wsub Nsub : Term
-Wsub = ($ 7) ⟪ [] , seal 0 ⟫
+Wsub = ($ 7) ⟪ [] , tail (seal 0) ⟫
 Nsub = Λ (` 0)
 
 _ : Nsub [ Wsub ∶ ` 0 ]ᵐ
-      ≡ Λ ((($ 7) ⟪ [] , seal 0 ⟫)
-             ⟪ (unbind 0 0 ∷ []) , id (` 1) ⟫)
+      ≡ Λ ((($ 7) ⟪ [] , tail (seal 0) ⟫)
+             ⟪ (unbind 0 0 ∷ []) , ⌞ id (` 1) ⌟ ⟫)
 _ = refl
 
 -- the unbind is at ordinary position 0 and names representation variable 0 —
 -- the abstract binding the `Λ` just introduced, immediately outside the
 -- image's own (empty) bind prefix
 _ : crossΛᴹ Wsub (` 0)
-      ≡ (($ 7) ⟪ [] , seal 0 ⟫)
-          ⟪ (unbind 0 0 ∷ []) , id (` 1) ⟫
+      ≡ (($ 7) ⟪ [] , tail (seal 0) ⟫)
+          ⟪ (unbind 0 0 ∷ []) , ⌞ id (` 1) ⌟ ⟫
 _ = refl
 
 -- ── the ƛ clause: the bound slot is protected, the image is not ────────
@@ -919,17 +918,18 @@ Bg-⊢ : empty ∣ [] ⊢ Bg ⦂ `ℕ
 Bg-⊢ = tc
 
 _ : (Λ (` 0)) [ $ 7 ∶ `ℕ ]ᵐ
-      ≡ Λ (($ 7) ⟪ (unbind 0 0 ∷ []) , id `ℕ ⟫)
+      ≡ Λ (($ 7) ⟪ (unbind 0 0 ∷ []) , ⌞ id `ℕ ⌟ ⟫)
 _ = refl
 
 Bg-eval : Reaches 7 7 Bg-⊢ ($ 7)
-Bg-eval = reaches refl V-$
+Bg-eval = reaches refl (V-simple S-$)
 
 Bg-run : empty ⊢ Bg -→* $ 7
 Bg-run = reaches-run Bg-eval
 
 -- the wrapper itself is not a value: its conversion is the ACTIVE `id ℕ`
-¬val-wrapper : ¬ Value (($ 7) ⟪ (unbind 0 0 ∷ []) , id `ℕ ⟫)
+¬val-wrapper : ¬ Value (($ 7) ⟪ (unbind 0 0 ∷ []) , ⌞ id `ℕ ⌟ ⟫)
+¬val-wrapper (V-simple ())
 ¬val-wrapper (V-⟪⟫ _ ())
 
 ------------------------------------------------------------------------
@@ -967,4 +967,4 @@ no-short-fuel r | ()
 
 -- AND A VALUE DOES NOT STEP, so a run cannot be padded at the end.
 no-step-past-value : ∀ {M δ} → ¬ (Δ₆ ⊢ $ 7 -→ M ∣ δ)
-no-step-past-value st = value-¬step V-$ st
+no-step-past-value st = value-¬step (V-simple S-$) st

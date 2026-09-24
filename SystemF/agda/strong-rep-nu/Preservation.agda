@@ -27,7 +27,6 @@ import strong-rep-nu.proof.Preserve as P
 import strong-rep-nu.proof.PeelDual as PD
 import strong-rep-nu.proof.MoveScope as MS
 import strong-rep-nu.proof.RepWeaken as RW
-import strong-rep-nu.proof.AddUnbind0 as AL
 
 ------------------------------------------------------------------------
 -- 1. Public statements
@@ -59,10 +58,9 @@ Preservation* = ∀ {Δ M M′ A}
 ------------------------------------------------------------------------
 
 private
-  module I = P.Impl RW.cross-Λ-⊢ AL.addUnbind0-⊢ RW.shift-⊢
+  module I = P.Impl RW.cross-Λ-⊢ RW.shift-⊢
                     PD.preserve-Peel
-                    MS.preserve-CancelR
-                    MS.preserve-IdPush
+                    MS.preserve-Merge
 
 preservation : Preservation
 preservation = I.preserve

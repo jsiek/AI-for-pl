@@ -88,11 +88,11 @@ Ex-⊢ = tc
 Θ₀ = inst []
 
 s t : Conv                     -- the `ν`'s reveal, split at its arrow
-s = id (` 1) ↦ id (` 1)
-t = id (` 1) ↦ id (` 1)
+s = ⌞ ⌞ id (` 1) ⌟ ↦ ⌞ id (` 1) ⌟ ⌟
+t = ⌞ ⌞ id (` 1) ⌟ ↦ ⌞ id (` 1) ⌟ ⌟
 
 Ex₁ : Term
-Ex₁ = (F ⟪ Θ₀ , s ↦ t ⟫) · W
+Ex₁ = (F ⟪ Θ₀ , ⌞ s ↦ t ⌟ ⟫) · W
 
 -- Peel's premises, decided by the evaluator's own procedure — at the
 -- ALLOCATED ambient, which is where the Peel fires.
@@ -130,9 +130,9 @@ pA : Δ₀ ⊢ᶜ ` 0 ~ ` 0
 pA = same-var here
 
 run : Δ₀ ⊢ Ex -→* Ex₃
-run = ξ-·-l (Nu-Λ V-ƛ pA)
-      then Peel V-ƛ V-ƛ rc ri rd sc
-      then ξ-⟪⟫ ri (Beta (V-⟪⟫ V-ƛ I-fun))
+run = ξ-·-l (Nu-Λ (V-simple S-ƛ) pA)
+      then Peel S-ƛ (V-simple S-ƛ) rc ri rd sc
+      then ξ-⟪⟫ ri (Beta (V-⟪⟫ S-ƛ I-fun))
       then done
 
 ------------------------------------------------------------------------
@@ -143,7 +143,7 @@ C₀ : TermCtx                   -- the argument of the outer application
 C₀ = (ν ` 0 · (Λ F) ⟨ reveal 0 Bod ⟩) ·R □
 
 C₁ : TermCtx
-C₁ = (F ⟪ Θ₀ , s ↦ t ⟫) ·R □
+C₁ = (F ⟪ Θ₀ , ⌞ s ↦ t ⌟ ⟫) ·R □
 
 C₂ : TermCtx                   -- inside the dual, inside X:=Y
 C₂ = (F ·R (□ ⟪C dual Θ₀ , s′ ⟫)) ⟪C Θ₀ , t ⟫
@@ -157,12 +157,12 @@ C₃ = (□ ⟪C dual Θ₀ , s′ ⟫) ⟪C Θ₀ , t ⟫
 
 res : Residuals run C₀ W ρ★ C₃ W
 res = residuals-step
-        (residual-ξ-·-l-sib (Nu-Λ V-ƛ pA))
+        (residual-ξ-·-l-sib (Nu-Λ (V-simple S-ƛ) pA))
       (residuals-step
-        (residual-Peel-arg V-ƛ V-ƛ rc ri rd sc)
+        (residual-Peel-arg S-ƛ (V-simple S-ƛ) rc ri rd sc)
       (residuals-step
         (residual-ξ-⟪⟫ ri
-          (residual-Beta-arg (V-⟪⟫ V-ƛ I-fun) (copy-var image-here)))
+          (residual-Beta-arg (V-⟪⟫ S-ƛ I-fun) (copy-var image-here)))
         residuals-done))
 
 ------------------------------------------------------------------------

@@ -11,8 +11,8 @@ module strong-rep-nu.Residual where
 --   * WHAT A RESIDUAL RECORDS.  A position is a pair `(C , M)`.  Every
 --     move but the `Nu` rules' refinement is REPRESENTATION-ONLY, so
 --     the relation carries as an INDEX the renaming ρ that reaches the
---     hole.  Since experiment 2 ρ is `idᵗ` everywhere but in
---     `Nu-⟪⟫`'s pushed-in boundary and in a shifted sibling.
+--     hole.  Since experiment 2 ρ is `idᵗ` everywhere but in a
+--     shifted sibling.
 --   * THE REDEX'S OWN NODES ARE CONSUMED; a substituted variable's
 --     position becomes the argument copy's (`CopyResidual`).
 --   * THIS MODULE PROVES NOTHING.
@@ -232,20 +232,20 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
 
   -- Peel, the function: it keeps its frame.
   residual-Peel-fun : ∀ {Δᶜ Δᵈ C M s s′ t}
-    (vV : Value (plug C M)) (vW : Value W)
+    (vV : Simple (plug C M)) (vW : Value W)
     (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ)
     (rd : Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ) (sc : SameConv Δᵈ s′ Δᶜ s)
     → Residual (Peel {V = plug C M} {W = W} {t = t} vV vW rc ri rd sc)
-        ((C ⟪C Θ , s ↦ t ⟫) ·L W) M idᵗ
+        ((C ⟪C Θ , ⌞ s ↦ t ⌟ ⟫) ·L W) M idᵗ
         ((C ·L (W ⟪ dual Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
 
   -- Peel, the argument: it crosses into the dual VERBATIM.
   residual-Peel-arg : ∀ {Δᶜ Δᵈ V C M s s′ t}
-    (vV : Value V) (vW : Value (plug C M))
+    (vV : Simple V) (vW : Value (plug C M))
     (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ)
     (rd : Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ) (sc : SameConv Δᵈ s′ Δᶜ s)
     → Residual (Peel {V = V} {W = plug C M} {t = t} vV vW rc ri rd sc)
-        ((V ⟪ Θ , s ↦ t ⟫) ·R C) M idᵗ
+        ((V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) ·R C) M idᵗ
         ((V ·R (C ⟪C dual Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
 
   -- Nu-⟪Λ⟫: as Nu-Λ, one boundary in — the body's `Λ` slot becomes
@@ -255,55 +255,20 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
     (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (⊢s : underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ)
     (pA : Δ ⊢ᶜ A ~ R)
     → Residual (Nu-⟪Λ⟫ {N = plug C M} {c = c} vN rc ⊢s pA)
-        (νC A · ((ΛC C) ⟪C Θ , `∀ s ⟫) ⟨ c ⟩) M idᵗ
+        (νC A · ((ΛC C) ⟪C Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩) M idᵗ
         ((C ⟪C liftᴮ Θ , s ⟫) ⟪C inst [] , c ⟫) M
 
-  -- Nu-⟪⟫: the inner boundary is a SIBLING of the consumed `Λ`
-  -- slot, so it gets exactly `suc` — the one non-identity ρ a redex
-  -- still produces.
-  residual-Nu-⟪⟫ : ∀ {Δᵢ⁺ Δᶜ Δ′ᶜ Δ″ᶜ C M Θ′ s′ s″ s R Bᵢ Bᵢ′ Bₑ}
-    (vW : Value (plug C M))
-    (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ) (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ)
-    (rc′ : Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ)
-    (ri⁺ : allocate R Δ ⊢ⁱ inst Θ ⇒ Δᵢ⁺)
-    (rc″ : Δᵢ⁺ ⊢ᶜ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) ⇒ Δ″ᶜ)
-    (sc : SameConv (underΛ Δ″ᶜ) s″
-            (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′)
-    (⊢s : underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ)
-    (sm : underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ)
-    (pA : Δ ⊢ᶜ A ~ R)
-    → Residual (Nu-⟪⟫ {W = plug C M} {c = c}
-                 vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA)
-        (νC A · ((C ⟪C Θ′ , `∀ s′ ⟫) ⟪C Θ , `∀ s ⟫) ⟨ c ⟩) M
-        (holeᴿ suc C)
-        (((νC ` 0
-             · (renCtxᴿ suc C
-                  ⟪C (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
-             ⟨ reveal 0 (renameᵗ (extᵗ suc) Bᵢ′) ⟩)
-            ⟪C liftᴮ Θ , s ⟫)
-           ⟪C inst [] , c ⟫)
-        (renᴹᴿ (holeᴿ suc C) M)
-
-  -- CancelR and IdPush: the value keeps its frame under the merged
-  -- scope, the one layer the contractum has (proof/ShiftAudit §6).
-  residual-CancelR : ∀ {Δ₁ᶜ Δ⋉ᶜ C M Θ₁ Θ₂ X Y A′ Aᵢ}
-    (vV : Value (plug C M))
+  -- Merge: the simple value keeps its frame under the merged scope,
+  -- the one layer the contractum has (proof/ShiftAudit §6).
+  residual-Merge : ∀ {Δ₁ᶜ Δ₂ᶜ Δ⋉ᶜ C M Θ₁ Θ₂ t₁ t₁′ c₂ c₂′}
+    (u : Simple (plug C M)) (it : InertTail t₁)
     (ri : Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) (rc₁ : Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
-    (lX : Δ₁ᶜ ∋ X := Aᵢ)
-    (rc⋉ : Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ)
-    (sm : Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ)
-    → Residual (CancelR {V = plug C M} {Y = Y} vV ri rc₁ lX rc⋉ sm)
-        ((C ⟪C Θ₁ , seal X ⟫) ⟪C Θ₂ , unseal Y ⟫) M idᵗ
-        (C ⟪C Θ₁ ++ Θ₂ , mkId A′ ⟫) M
-
-  residual-IdPush : ∀ {Δ₁ᶜ Δ⋉ᶜ C M Θ₁ Θ₂ X X′ Y}
-    (vV : Value (plug C M))
-    (ri : Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) (rc₁ : Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
-    (rc⋉ : Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ)
-    (sm : Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ)
-    → Residual (IdPush {V = plug C M} {Y = Y} vV ri rc₁ rc⋉ sm)
-        ((C ⟪C Θ₁ , id (` X) ⟫) ⟪C Θ₂ , unseal Y ⟫) M idᵗ
-        (C ⟪C Θ₁ ++ Θ₂ , unseal X′ ⟫) M
+    (rc₂ : Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ) (rc⋉ : Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ)
+    (sc₁ : SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ (tail t₁))
+    (sc₂ : SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂)
+    → Residual (Merge {U = plug C M} u it ri rc₁ rc₂ rc⋉ sc₁ sc₂)
+        ((C ⟪C Θ₁ , tail t₁ ⟫) ⟪C Θ₂ , c₂ ⟫) M idᵗ
+        (C ⟪C Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′ ⟫) M
 
   -- (Drop$, Drop-true, Drop-false: no residual — the literal is consumed
   -- with its boundary.)

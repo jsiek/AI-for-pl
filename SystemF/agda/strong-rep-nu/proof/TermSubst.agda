@@ -47,27 +47,40 @@ renᶠ ρ = renᶠ² ρ ρ
 
 -- VALUES SURVIVE EVERY RENAMING AND SUBSTITUTION, because `⊢Λ` carries
 -- `Value N` and every typing-transport lemma must rebuild it.
+inert-renᵀ : ∀ {t} (ρ : Renameᵗ) → InertTail t → InertTail (renᵀ ρ t)
+inert-renᵀ ρ I-idv      = I-idv
+inert-renᵀ ρ I-fun      = I-fun
+inert-renᵀ ρ I-all      = I-all
+inert-renᵀ ρ I-seal     = I-seal
+inert-renᵀ ρ I-seal-seq = I-seal-seq
+
 inert-renᶜ : ∀ {c} (ρ : Renameᵗ) → Inert c → Inert (renᶜ ρ c)
-inert-renᶜ ρ I-idv  = I-idv
-inert-renᶜ ρ I-seal = I-seal
-inert-renᶜ ρ I-fun  = I-fun
-inert-renᶜ ρ I-all  = I-all
+inert-renᶜ ρ (I-tail it) = I-tail (inert-renᵀ ρ it)
 
-value-renᴹ² : ∀ {M} (ρ : TyRename) → Value M → Value (renᴹ² ρ M)
-value-renᴹ² ρ V-$         = V-$
-value-renᴹ² ρ V-true      = V-true
-value-renᴹ² ρ V-false     = V-false
-value-renᴹ² ρ V-ƛ         = V-ƛ
-value-renᴹ² ρ (V-Λ v)     = V-Λ (value-renᴹ² (underΛ-ren ρ) v)
-value-renᴹ² ρ (V-⟪⟫ v ic) = V-⟪⟫ (value-renᴹ² _ v) (inert-renᶜ _ ic)
+mutual
+  simple-renᴹ² : ∀ {M} (ρ : TyRename) → Simple M → Simple (renᴹ² ρ M)
+  simple-renᴹ² ρ S-$     = S-$
+  simple-renᴹ² ρ S-true  = S-true
+  simple-renᴹ² ρ S-false = S-false
+  simple-renᴹ² ρ S-ƛ     = S-ƛ
+  simple-renᴹ² ρ (S-Λ v) = S-Λ (value-renᴹ² (underΛ-ren ρ) v)
 
-value-renᴹᴿ : ∀ {M} (ρ : Renameᵗ) → Value M → Value (renᴹᴿ ρ M)
-value-renᴹᴿ ρ V-$         = V-$
-value-renᴹᴿ ρ V-true      = V-true
-value-renᴹᴿ ρ V-false     = V-false
-value-renᴹᴿ ρ V-ƛ         = V-ƛ
-value-renᴹᴿ ρ (V-Λ v)     = V-Λ (value-renᴹᴿ (extᵗ ρ) v)
-value-renᴹᴿ ρ (V-⟪⟫ v ic) = V-⟪⟫ (value-renᴹᴿ _ v) ic
+  value-renᴹ² : ∀ {M} (ρ : TyRename) → Value M → Value (renᴹ² ρ M)
+  value-renᴹ² ρ (V-simple u) = V-simple (simple-renᴹ² ρ u)
+  value-renᴹ² ρ (V-⟪⟫ u it)  =
+    V-⟪⟫ (simple-renᴹ² ρ u) (inert-renᵀ (ordinary ρ) it)
+
+mutual
+  simple-renᴹᴿ : ∀ {M} (ρ : Renameᵗ) → Simple M → Simple (renᴹᴿ ρ M)
+  simple-renᴹᴿ ρ S-$     = S-$
+  simple-renᴹᴿ ρ S-true  = S-true
+  simple-renᴹᴿ ρ S-false = S-false
+  simple-renᴹᴿ ρ S-ƛ     = S-ƛ
+  simple-renᴹᴿ ρ (S-Λ v) = S-Λ (value-renᴹᴿ (extᵗ ρ) v)
+
+  value-renᴹᴿ : ∀ {M} (ρ : Renameᵗ) → Value M → Value (renᴹᴿ ρ M)
+  value-renᴹᴿ ρ (V-simple u) = V-simple (simple-renᴹᴿ ρ u)
+  value-renᴹᴿ ρ (V-⟪⟫ u it)  = V-⟪⟫ (simple-renᴹᴿ ρ u) it
 
 extᵗ-pointwise-id : ∀ {ρ} → (∀ X → ρ X ≡ X)
   → ∀ X → extᵗ ρ X ≡ X
@@ -84,15 +97,28 @@ renameᵗ-pointwise-id h (A ⇒ B) =
 renameᵗ-pointwise-id h (`∀ A) =
   cong `∀ (renameᵗ-pointwise-id (extᵗ-pointwise-id h) A)
 
-renᶜ-pointwise-id : ∀ {ρ} → (∀ X → ρ X ≡ X)
-  → ∀ c → renᶜ ρ c ≡ c
-renᶜ-pointwise-id h (id A) = cong id (renameᵗ-pointwise-id h A)
-renᶜ-pointwise-id h (seal X) = cong seal (h X)
-renᶜ-pointwise-id h (unseal X) = cong unseal (h X)
-renᶜ-pointwise-id h (s ↦ t) =
-  cong₂ _↦_ (renᶜ-pointwise-id h s) (renᶜ-pointwise-id h t)
-renᶜ-pointwise-id h (`∀ s) =
-  cong `∀ (renᶜ-pointwise-id (extᵗ-pointwise-id h) s)
+mutual
+  renᵐ-pointwise-id : ∀ {ρ} → (∀ X → ρ X ≡ X)
+    → ∀ g → renᵐ ρ g ≡ g
+  renᵐ-pointwise-id h (id A) = cong id (renameᵗ-pointwise-id h A)
+  renᵐ-pointwise-id h (s ↦ t) =
+    cong₂ _↦_ (renᶜ-pointwise-id h s) (renᶜ-pointwise-id h t)
+  renᵐ-pointwise-id h (`∀ s) =
+    cong `∀ (renᶜ-pointwise-id (extᵗ-pointwise-id h) s)
+
+  renᵀ-pointwise-id : ∀ {ρ} → (∀ X → ρ X ≡ X)
+    → ∀ t → renᵀ ρ t ≡ t
+  renᵀ-pointwise-id h (mid g) = cong mid (renᵐ-pointwise-id h g)
+  renᵀ-pointwise-id h (seal X) = cong seal (h X)
+  renᵀ-pointwise-id h (t ⨾seal X) =
+    cong₂ _⨾seal_ (renᵀ-pointwise-id h t) (h X)
+
+  renᶜ-pointwise-id : ∀ {ρ} → (∀ X → ρ X ≡ X)
+    → ∀ c → renᶜ ρ c ≡ c
+  renᶜ-pointwise-id h (tail t) = cong tail (renᵀ-pointwise-id h t)
+  renᶜ-pointwise-id h (unseal X) = cong unseal (h X)
+  renᶜ-pointwise-id h (unseal X ⨾ c) =
+    cong₂ unseal_⨾_ (h X) (renᶜ-pointwise-id h c)
 
 renᶠ²-ord-id : ∀ {ρᵗ ρʳ} → (∀ X → ρᵗ X ≡ X)
   → ∀ δ → renᶠ² ρᵗ ρʳ δ ≡ renᶠᴿ ρʳ δ
@@ -181,13 +207,17 @@ shiftᵐ = renⁿ suc
 
 -- Ordinary-variable renaming never enters a boundary and a variable is
 -- never a value, so values are preserved on the nose.
-value-renⁿ : ∀ {M} {ρ : Var → Var} → Value M → Value (renⁿ ρ M)
-value-renⁿ V-$         = V-$
-value-renⁿ V-true      = V-true
-value-renⁿ V-false     = V-false
-value-renⁿ V-ƛ         = V-ƛ
-value-renⁿ (V-Λ v)     = V-Λ (value-renⁿ v)
-value-renⁿ (V-⟪⟫ v ic) = V-⟪⟫ v ic
+mutual
+  simple-renⁿ : ∀ {M} {ρ : Var → Var} → Simple M → Simple (renⁿ ρ M)
+  simple-renⁿ S-$     = S-$
+  simple-renⁿ S-true  = S-true
+  simple-renⁿ S-false = S-false
+  simple-renⁿ S-ƛ     = S-ƛ
+  simple-renⁿ (S-Λ v) = S-Λ (value-renⁿ v)
+
+  value-renⁿ : ∀ {M} {ρ : Var → Var} → Value M → Value (renⁿ ρ M)
+  value-renⁿ (V-simple u) = V-simple (simple-renⁿ u)
+  value-renⁿ (V-⟪⟫ u it)  = V-⟪⟫ u it
 
 ∋-extⁿ : ∀ {Γ Γ′ A x B} {ρ : Var → Var}
   → (∀ {y C} → Γ ∋ y ⦂ C → Γ′ ∋ ρ y ⦂ C)
@@ -265,13 +295,18 @@ renⁿ-id ρ h (M ⟪ Θ , c ⟫) = refl
 
 -- Likewise for substitution: a value contains no free ordinary variable
 -- at a value position, and boundaries are left alone.
-value-substᵐ : ∀ {M} {σ : Var → Img} → Value M → Value (substᵐ σ M)
-value-substᵐ V-$         = V-$
-value-substᵐ V-true      = V-true
-value-substᵐ V-false     = V-false
-value-substᵐ V-ƛ         = V-ƛ
-value-substᵐ (V-Λ v)     = V-Λ (value-substᵐ v)
-value-substᵐ (V-⟪⟫ v ic) = V-⟪⟫ v ic
+mutual
+  simple-substᵐ : ∀ {M} {σ : Var → Img} → Simple M
+    → Simple (substᵐ σ M)
+  simple-substᵐ S-$     = S-$
+  simple-substᵐ S-true  = S-true
+  simple-substᵐ S-false = S-false
+  simple-substᵐ S-ƛ     = S-ƛ
+  simple-substᵐ (S-Λ v) = S-Λ (value-substᵐ v)
+
+  value-substᵐ : ∀ {M} {σ : Var → Img} → Value M → Value (substᵐ σ M)
+  value-substᵐ (V-simple u) = V-simple (simple-substᵐ u)
+  value-substᵐ (V-⟪⟫ u it)  = V-⟪⟫ u it
 
 ------------------------------------------------------------------------
 -- 6. Typed images away from type-context transport

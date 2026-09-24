@@ -38,7 +38,8 @@ open import strong-rep-nu.TermSubst
 open import strong-rep-nu.Reduction
 open import strong-rep-nu.TypeCheck
   using (interior?; conversion?; ∋:=?; read?; convTy?;
-         rebase?; respell?; check⊢; inert?; value?)
+         rebase?; respell?; respellᵀ?; check⊢; inert?; inertTail?;
+         simple?; value?)
 
 ------------------------------------------------------------------------
 -- 1. Deciding the classifications the rules guard on
@@ -51,8 +52,8 @@ base? `𝔹      = just base-𝔹
 base? (A ⇒ B) = nothing
 base? (`∀ A)  = nothing
 
--- `inert?` and `value?` live in strong-rep-nu.TypeCheck now and are
--- re-exported here through its `open import`.
+-- `inert?`, `inertTail?`, `simple?` and `value?` live in
+-- strong-rep-nu.TypeCheck and are used here through its `open import`.
 
 ------------------------------------------------------------------------
 -- 2. The side conditions the boundary rules carry
@@ -78,130 +79,46 @@ peelPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
 peelPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
   | just (R , same) = just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
 
--- The wrapper clause's remaining premises.  No arithmetic renaming is
--- used for the carried conversion.
-BdyPremises : Ctxᵗ → Boundary → Boundary → Conv → Ty → Ty → Ctxᵗ → Set
-BdyPremises Δ Θ Θ′ s′ R Bᵢ Δᶜ =
-  Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Bᵢ′ ∈ Ty ] Σ[ Δ′ᶜ ∈ Ctxᵗ ] Σ[ Δᵢ⁺ ∈ Ctxᵗ ]
-    Σ[ Δ″ᶜ ∈ Ctxᵗ ] Σ[ s″ ∈ Conv ]
-      ((Δ ⊢ⁱ Θ ⇒ Δᵢ)
-        × (underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ)
-        × (Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ)
-        × (allocate R Δ ⊢ⁱ inst Θ ⇒ Δᵢ⁺)
-        × (Δᵢ⁺ ⊢ᶜ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) ⇒ Δ″ᶜ)
-        × SameConv (underΛ Δ″ᶜ) s″
-            (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′)
-
-bdyPremises? : (Δ : Ctxᵗ) (Θ Θ′ : Boundary) (s′ : Conv)
-  (R Bᵢ : Ty) (Δᶜ : Ctxᵗ) → Maybe (BdyPremises Δ Θ Θ′ s′ R Bᵢ Δᶜ)
-bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ with interior? Δ Θ
-bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | nothing = nothing
-bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
-  with rebase? (names (underΛ Δᶜ)) (names (underΛ Δᵢ)) Bᵢ
-bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri) | nothing = nothing
-bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
-  | just (Bᵢ′ , sm) with conversion? Δᵢ Θ′
-bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
-  | just (Bᵢ′ , sm) | nothing = nothing
-bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
-  | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′)
-  with interior? (allocate R Δ) (inst Θ)
-bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
-  | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | nothing = nothing
-bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
-  | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
-  with conversion? Δᵢ⁺ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ []))
-bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
-  | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
-  | nothing = nothing
-bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
-  | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
-  | just (Δ″ᶜ , r″)
-  with respell?
-         (names (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)))
-         (names (underΛ Δ″ᶜ)) s′
-bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
-  | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
-  | just (Δ″ᶜ , r″) | nothing = nothing
-bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
-  | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
-  | just (Δ″ᶜ , r″) | just (s″ , sc) =
-  just (Δᵢ , Bᵢ′ , Δ′ᶜ , Δᵢ⁺ , Δ″ᶜ , s″
-       , ri , sm , r′ , ri⁺ , r″ , sc)
-
--- `IdPush` re-bases the name it pushes into the merged frame, the same
--- way `Nu-⟪⟫` re-bases its annotation.
-PushPremises : Ctxᵗ → Boundary → Boundary → ℕ → Set
-PushPremises Δ Θ₁ Θ₂ X =
-  Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ Δ⋉ᶜ ∈ Ctxᵗ ] Σ[ X′ ∈ ℕ ]
-    ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
-      × (Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ)
-      × (Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ))
-
-pushPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : Boundary) (X : ℕ)
-  → Maybe (PushPremises Δ Θ₁ Θ₂ X)
-pushPremises? Δ Θ₁ Θ₂ X with interior? Δ Θ₂
-pushPremises? Δ Θ₁ Θ₂ X | nothing = nothing
-pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) with conversion? Δᵢ Θ₁
-pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | nothing = nothing
-pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  with conversion? Δ (Θ₁ ++ Θ₂)
-pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | nothing = nothing
-pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ⋉ᶜ , r⋉)
-  with rebase? (names Δ₁ᶜ) (names Δ⋉ᶜ) (` X)
-pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ⋉ᶜ , r⋉) | nothing = nothing
-pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ⋉ᶜ , r⋉) | just (` X′ , sm) =
-  just (Δᵢ , Δ₁ᶜ , Δ⋉ᶜ , X′ , ri , r₁ , r⋉ , sm)
-pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ⋉ᶜ , r⋉) | just (`ℕ , sm) = nothing
-pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ⋉ᶜ , r⋉) | just (`𝔹 , sm) = nothing
-pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ⋉ᶜ , r⋉) | just (C ⇒ D , sm) = nothing
-pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ⋉ᶜ , r⋉) | just (`∀ C , sm) = nothing
-
--- `CancelR`'s inner layer is checked at the MERGED frame's conversion
--- context.  Repaired 2026-09-19: the re-spelled type is the cancelled
--- `seal X`'s OWN source, read at Θ₁'s conversion context.
-MergedPremises : Ctxᵗ → Boundary → Boundary → ℕ → Set
-MergedPremises Δ Θ₁ Θ₂ X =
-  Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ Aᵢ ∈ Ty ]
-    Σ[ Δ⋉ᶜ ∈ Ctxᵗ ] Σ[ A′ ∈ Ty ]
-      ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
-        × (Δ₁ᶜ ∋ X := Aᵢ)
+-- `Merge`'s premises: the three readings, and both conversions
+-- re-spelled onto the merged frame's conversion context.
+MergePremises : Ctxᵗ → Boundary → Boundary → Tail → Conv → Set
+MergePremises Δ Θ₁ Θ₂ t₁ c₂ =
+  Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ Δ₂ᶜ ∈ Ctxᵗ ] Σ[ Δ⋉ᶜ ∈ Ctxᵗ ]
+    Σ[ t₁′ ∈ Tail ] Σ[ c₂′ ∈ Conv ]
+      ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ) × (Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ)
         × (Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ)
-        × (Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ))
+        × SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ (tail t₁)
+        × SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂)
 
-mergedPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : Boundary) (X : ℕ)
-  → Maybe (MergedPremises Δ Θ₁ Θ₂ X)
-mergedPremises? Δ Θ₁ Θ₂ X with interior? Δ Θ₂
-mergedPremises? Δ Θ₁ Θ₂ X | nothing = nothing
-mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri)
-  with conversion? Δᵢ Θ₁
-mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | nothing = nothing
-mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  with ∋:=? Δ₁ᶜ X
-mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+mergePremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : Boundary) (t₁ : Tail) (c₂ : Conv)
+  → Maybe (MergePremises Δ Θ₁ Θ₂ t₁ c₂)
+mergePremises? Δ Θ₁ Θ₂ t₁ c₂ with interior? Δ Θ₂
+mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | nothing = nothing
+mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) with conversion? Δᵢ Θ₁
+mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | nothing = nothing
+mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+  with conversion? Δ Θ₂
+mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | nothing = nothing
-mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Aᵢ , d₁)
-  with conversion? Δ (Θ₁ ++ Θ₂)
-mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Aᵢ , d₁) | nothing = nothing
-mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Aᵢ , d₁) | just (Δ⋉ᶜ , r⋉)
-  with rebase? (names Δ₁ᶜ) (names Δ⋉ᶜ) Aᵢ
-mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Aᵢ , d₁) | just (Δ⋉ᶜ , r⋉) | nothing = nothing
-mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Aᵢ , d₁) | just (Δ⋉ᶜ , r⋉) | just (A′ , sm) =
-  just (Δᵢ , Δ₁ᶜ , Aᵢ , Δ⋉ᶜ , A′
-       , ri , r₁ , d₁ , r⋉ , sm)
+mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+  | just (Δ₂ᶜ , r₂) with conversion? Δ (Θ₁ ++ Θ₂)
+mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+  | just (Δ₂ᶜ , r₂) | nothing = nothing
+mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+  | just (Δ₂ᶜ , r₂) | just (Δ⋉ᶜ , r⋉)
+  with respellᵀ? (names Δ₁ᶜ) (names Δ⋉ᶜ) t₁
+     | respell? (names Δ₂ᶜ) (names Δ⋉ᶜ) c₂
+mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+  | just (Δ₂ᶜ , r₂) | just (Δ⋉ᶜ , r⋉)
+  | just (t₁′ , r , p , q) | just (c₂′ , sc₂) =
+  just (Δᵢ , Δ₁ᶜ , Δ₂ᶜ , Δ⋉ᶜ , t₁′ , c₂′ , ri , r₁ , r₂ , r⋉
+       , (tail r , sameᶜ-tail p , sameᶜ-tail q) , sc₂)
+mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+  | just (Δ₂ᶜ , r₂) | just (Δ⋉ᶜ , r⋉)
+  | just (t₁′ , r , p , q) | nothing = nothing
+mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+  | just (Δ₂ᶜ , r₂) | just (Δ⋉ᶜ , r⋉)
+  | nothing | m = nothing
 
 -- `Peel`'s crossing premises (2026-09-18).  The redex fixes only Δ, Θ
 -- and `s`; the dual's conversion context is built here.
@@ -234,89 +151,64 @@ crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , r
 
 -- An application whose two sides are values.  Matching on the head's
 -- VALUE derivation is what refines its shape — and, at a boundary, its
--- conversion, since `Peel` fires only under a `_↦_`.
+-- conversion, since `Peel` fires only under a `_↦_` middle.
 appRedex : (Δ : Ctxᵗ) {L M : Term} → Value L → Value M
   → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ L · M -→ N ∣ δ))
-appRedex Δ V-ƛ             vM = just (_ , none , Beta vM)
-appRedex Δ (V-⟪⟫ {Θ = Θ} v (I-fun {s = s})) vM
+appRedex Δ (V-simple S-ƛ) vM = just (_ , none , Beta vM)
+appRedex Δ (V-⟪⟫ {Θ = Θ} u (I-fun {s = s})) vM
   with crossPremises? Δ Θ s
-appRedex Δ (V-⟪⟫ {Θ = Θ} v (I-fun {s = s})) vM
+appRedex Δ (V-⟪⟫ {Θ = Θ} u (I-fun {s = s})) vM
   | just (Δᶜ , Δᵢ , Δᵈ , s′ , rc , ri , rd , sc) =
-  just (_ , none , Peel v vM rc ri rd sc)
-appRedex Δ (V-⟪⟫ {Θ = Θ} v (I-fun {s = s})) vM | nothing = nothing
-appRedex Δ (V-⟪⟫ v I-idv)  vM = nothing
-appRedex Δ (V-⟪⟫ v I-seal) vM = nothing
-appRedex Δ (V-⟪⟫ v I-all)  vM = nothing
-appRedex Δ (V-Λ v)         vM = nothing
-appRedex Δ V-$             vM = nothing
-appRedex Δ V-true          vM = nothing
-appRedex Δ V-false         vM = nothing
+  just (_ , none , Peel u vM rc ri rd sc)
+appRedex Δ (V-⟪⟫ {Θ = Θ} u (I-fun {s = s})) vM | nothing = nothing
+appRedex Δ (V-⟪⟫ u I-idv)      vM = nothing
+appRedex Δ (V-⟪⟫ u I-all)      vM = nothing
+appRedex Δ (V-⟪⟫ u I-seal)     vM = nothing
+appRedex Δ (V-⟪⟫ u I-seal-seq) vM = nothing
+appRedex Δ (V-simple (S-Λ v))  vM = nothing
+appRedex Δ (V-simple S-$)      vM = nothing
+appRedex Δ (V-simple S-true)   vM = nothing
+appRedex Δ (V-simple S-false)  vM = nothing
 
--- A `ν` whose body is a value.  `canon-∀` says the body is a `Λ`, a `Λ`
--- under one `∀`-conversion boundary, or a tower of them; the three
--- clauses below are `Nu-Λ`, `Nu-⟪Λ⟫` and `Nu-⟪⟫` in that order.
+-- A `ν` whose body is a value.  `canon-∀` says the body is a `Λ` or a
+-- `Λ` under one `∀`-middle boundary; the two clauses below are `Nu-Λ`
+-- and `Nu-⟪Λ⟫` in that order.
 nuRedex : (Δ : Ctxᵗ) {L : Term} (A : Ty) (c : Conv) → Value L
   → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ ν A · L ⟨ c ⟩ -→ N ∣ δ))
-nuRedex Δ A c (V-Λ vN) with read? (names Δ) A
-nuRedex Δ A c (V-Λ vN) | just (R , same) =
+nuRedex Δ A c (V-simple (S-Λ vN)) with read? (names Δ) A
+nuRedex Δ A c (V-simple (S-Λ vN)) | just (R , same) =
   just (_ , new R , Nu-Λ vN same)
-nuRedex Δ A c (V-Λ vN) | nothing = nothing
-nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s}))
+nuRedex Δ A c (V-simple (S-Λ vN)) | nothing = nothing
+nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (S-Λ vN) (I-all {s}))
   with peelPremises? Δ Θ s A
-nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s}))
+nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (S-Λ vN) (I-all {s}))
   | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same) =
   just (_ , new R , Nu-⟪Λ⟫ vN rel ⊢s same)
-nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s})) | nothing = nothing
-nuRedex Δ A c
-  (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
-  with peelPremises? Δ Θ s A
-nuRedex Δ A c
-  (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
-  | nothing = nothing
-nuRedex Δ A c
-  (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
-  | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
-  with bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ
-nuRedex Δ A c
-  (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
-  | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
-  | just (Δᵢ , Bᵢ′ , Δ′ᶜ , Δᵢ⁺ , Δ″ᶜ , s″
-         , ri , sm , r′ , ri⁺ , r″ , sc) =
-  just (_ , new R , Nu-⟪⟫ vW ri rel r′ ri⁺ r″ sc ⊢s sm same)
-nuRedex Δ A c
-  (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
-  | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same) | nothing = nothing
+nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (S-Λ vN) (I-all {s})) | nothing = nothing
 nuRedex Δ A c _ = nothing
 
 -- A boundary.  `Drop` fires at a literal under an identity at a base
--- type; `CancelR` and `IdPush` fire at a REVEALING boundary over an inert
--- one, and are told apart by the inner conversion.  Everything else is
--- either a congruence or stuck, which is the caller's business.
+-- type; `Merge` fires at ANY boundary over a boundary value, computing
+-- the two carried spellings and the merged frame's reading.  Everything
+-- else is either a congruence or stuck, which is the caller's business.
 bdyRedex : (Δ : Ctxᵗ) (M : Term) (Θ : Boundary) (c : Conv)
   → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ M ⟪ Θ , c ⟫ -→ N ∣ δ))
-bdyRedex Δ ($ n) Θ (id A) with base? A
-bdyRedex Δ ($ n) Θ (id A) | just b  = just (_ , none , Drop$ b)
-bdyRedex Δ ($ n) Θ (id A) | nothing = nothing
-bdyRedex Δ `true  Θ (id `𝔹) = just (_ , none , Drop-true)
-bdyRedex Δ `false Θ (id `𝔹) = just (_ , none , Drop-false)
-bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) with value? V
-bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | nothing = nothing
-bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
-  with mergedPremises? Δ Θ₁ Θ X
-bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
-  | just (Δᵢ , Δ₁ᶜ , Aᵢ , Δ⋉ᶜ , A′
-         , ri , r₁ , d₁ , r⋉ , sm) =
-  just (_ , none , CancelR v ri r₁ d₁ r⋉ sm)
-bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v | nothing = nothing
-bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) with value? V
-bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | nothing = nothing
-bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v
-  with pushPremises? Δ Θ₁ Θ X
-bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v
-  | just (Δᵢ , Δ₁ᶜ , Δ⋉ᶜ , X′ , ri , r₁ , r⋉ , sm) =
-  just (_ , none , IdPush v ri r₁ r⋉ sm)
-bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v | nothing =
+bdyRedex Δ ($ n) Θ (tail (mid (id A))) with base? A
+bdyRedex Δ ($ n) Θ (tail (mid (id A))) | just b  =
+  just (_ , none , Drop$ b)
+bdyRedex Δ ($ n) Θ (tail (mid (id A))) | nothing = nothing
+bdyRedex Δ `true  Θ (tail (mid (id `𝔹))) = just (_ , none , Drop-true)
+bdyRedex Δ `false Θ (tail (mid (id `𝔹))) = just (_ , none , Drop-false)
+bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ with simple? U | inertTail? t₁
+bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | just it
+  with mergePremises? Δ Θ₁ Θ t₁ c₂
+bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | just it
+  | just (Δᵢ , Δ₁ᶜ , Δ₂ᶜ , Δ⋉ᶜ , t₁′ , c₂′ , ri , r₁ , r₂ , r⋉ , sc₁ , sc₂)
+  = just (_ , none , Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
+bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | just it | nothing =
   nothing
+bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | nothing = nothing
+bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | nothing | it = nothing
 bdyRedex Δ M Θ c = nothing
 
 ------------------------------------------------------------------------

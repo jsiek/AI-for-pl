@@ -12,7 +12,6 @@ open import strong-rep-nu.notes.CrossingAudit
 open import strong-rep-nu.notes.PeelPremise
 open import strong-rep-nu.notes.RepresentationVariablesProbe
 open import strong-rep-nu.notes.RepWeakenBindsWall
-open import strong-rep-nu.notes.CancelRShiftWall
 
 -- DROPPED IN THE `ν` PORT (strong-rep-nu, 2026-09-24): three historical
 -- wall records whose checked content is exact states of runs through the
@@ -21,6 +20,13 @@ open import strong-rep-nu.notes.CancelRShiftWall
 -- notes/AddLock0Wall.  The files were DELETED here; strong-rep-store's
 -- notes/ holds their checked versions.  The CancelR witness program itself
 -- still runs green as strong-rep-nu.Examples §8 `S`.
+--
+-- DROPPED IN THE MERGE PORT (2026-09-24): notes/CancelRShiftWall, the
+-- record of the `CancelR` re-spelling wall.  Its checked content is a
+-- `CancelR` step and `preserve-CancelR`; both rules it was about
+-- (`CancelR`, `IdPush`) are subsumed by `Merge`, whose preservation
+-- case is strong-rep-nu.proof.MoveScope.preserve-Merge.  The file was
+-- DELETED; the git history holds it.
 
 -- COLOR PRESERVATION on one run (2026-09-21): the statement layer of
 -- strong-rep-nu.Residual exercised end to end on a Peel under a Λ.

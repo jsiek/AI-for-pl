@@ -22,7 +22,9 @@ open import strong-rep-nu.proof.Compile
 open import strong-rep-nu.TypeCheck
 open import strong-rep-nu.Eval
 
--- the main theorems
+-- the main theorems; composition's typing (`⊢⨟`) is reached through
+-- the Merge case of preservation
+open import strong-rep-nu.proof.Compose
 open import strong-rep-nu.Preservation
 
 -- progress (the canonical-forms suite, the proof script, the theorem)
@@ -57,28 +59,21 @@ open import strong-rep-nu.Show
 -- Direct gate: no top-level module reaches this soundness audit.
 open import strong-rep-nu.proof.Adversary
 
--- THE ID-LAYER FACTS.  What makes IdPush and CancelR legitimate: the
--- pushed name is already written in the inner conversion (one universe
--- up, on the representation variable), `unseal` is the only active
--- conversion an id-layer can meet, and the naked drop is unsound except
--- at an empty frame.
+-- THE ID-LAYER FACTS about the `Merge` redexes the retired IdPush and
+-- CancelR handled: the two names already denote one representation
+-- variable, `unseal` is the only active conversion an id-layer can
+-- meet, and the naked drop is unsound except at an empty frame.
 -- Direct gate: no top-level module reaches this id-layer audit.
 open import strong-rep-nu.proof.IdLayer
-
--- CANONICITY.  Every conversion reduction writes is in the canonical
--- family, and the family survives reduction — including `Peel`'s
--- re-spelling onto the dual's name map, which is what the two universes
--- added.
--- Direct gate: no top-level module reaches this canonicity audit.
-open import strong-rep-nu.proof.Canonicity
 
 -- THE SHIFT AUDIT (2026-09-08, ported 2026-09-19).  Every rule that MOVES
 -- a subterm, checked against frame exactness — now the relational
 -- transport lemmas of strong-rep-nu.Boundary §3a plus the observation that
 -- every move but the `Nu` rules' refinement is REPRESENTATION-ONLY —
--- together with the tower measure that makes `Nu-⟪⟫` terminate.
+-- together with the tower measure: one boundary per value, and `Merge`
+-- lowers it.
 -- Direct gate: no top-level module reaches this shift audit.
 open import strong-rep-nu.proof.ShiftAudit
 
--- The checked notes come last because CancelRShiftWall reaches MoveScope.
+-- The checked notes come last.
 open import strong-rep-nu.notes.All

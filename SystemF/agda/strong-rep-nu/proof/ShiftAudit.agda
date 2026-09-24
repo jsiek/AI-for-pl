@@ -3,9 +3,9 @@ module strong-rep-nu.proof.ShiftAudit where
 -- File Charter:
 --   * THE SHIFT AUDIT — every place a rule MOVES A SUBTERM, checked
 --     against FRAME EXACTNESS.  §1 the site table; §2 Peel; §3 the
---     three `Nu` rules; §4 TERMINATION (the tower measure,
---     and why the rejected repair stalls on it); §5 Beta; §6 CancelR
---     and IdPush; §7 the drops; §8 the ξ rules; §9 dead machinery.
+--     two `Nu` rules; §4 the tower measure (ONE boundary per value, and
+--     `Merge` lowers it); §5 Beta; §6 Merge; §7 the drops; §8 the ξ
+--     rules; §9 dead machinery.
 --   * THE CRITERION.  A moved subterm's type context at the new
 --     position must be EXACTLY its context at the old one, up to
 --     (i) the binders it CROSSED and (ii) refinement
@@ -67,15 +67,15 @@ Peel-frame : ∀ {Γᵢ : Ctxᵗ} (Θ : Boundary) (Γ : Ctxᵗ)
 Peel-frame Θ Γ = dual-interior
 
 -- … and Peel allocates nothing, so its siblings do not move either.
-Peel-no-alloc : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Value V → Value W
+Peel-no-alloc : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Simple V → Value W
   → Δ ⊢ᶜ Θ ⇒ Δᶜ → Δ ⊢ⁱ Θ ⇒ Δᵢ
   → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
-  → Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
+  → Δ ⊢ (V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · W
       -→ (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ∣ none
 Peel-no-alloc = Peel
 
 ------------------------------------------------------------------------
--- §3  THE THREE `Nu` RULES
+-- §3  THE TWO `Nu` RULES
 ------------------------------------------------------------------------
 
 -- `Nu-Λ` MOVES NOTHING: the allocation REFINES `N`'s own `abstR` binder
@@ -93,30 +93,14 @@ Nu-⟪Λ⟫-stacks-to-inst : (Θ : Boundary)
   → inst Θ ≡ liftᴮ Θ ++ inst []
 Nu-⟪Λ⟫-stacks-to-inst Θ = refl
 
--- THE WRAPPER CLAUSE.  The moved boundary crosses one fresh cell and
--- one fresh ordinary name, and its appended `unbind 0 0` deletes that
--- name again — so the move is the plain SIBLING SHIFT.  A `ν` it passes
--- keeps its type and conversion: both are read on its own scope.
--- Commentary.md § proof/ShiftAudit.agda / §3
-Nu-⟪⟫-move-ordinary : (ρ : Renameᵗ) (L : Term) (A : Ty) (c : Conv)
-  → renᴹᴿ ρ (ν A · L ⟨ c ⟩) ≡ ν A · renᴹᴿ ρ L ⟨ c ⟩
-Nu-⟪⟫-move-ordinary ρ L A c = refl
-
-Nu-⟪⟫-move-conversion : (ρ : Renameᵗ) (M : Term) (Θ : Boundary)
-  (c : Conv) → renᴹᴿ ρ (M ⟪ Θ , c ⟫) ≡ renᴹᴿ ρ M ⟪ renᴮᴿ ρ Θ , c ⟫
-Nu-⟪⟫-move-conversion ρ M Θ c = refl
-
--- The appended unbind names ordinary position 0 and the cell just
--- minted; it is APPENDED, so it acts FIRST.  The rule writes that snoc
--- itself, so there is nothing left here to state.
-
 ------------------------------------------------------------------------
--- §4  TERMINATION — THE TOWER MEASURE
+-- §4  THE TOWER MEASURE — one boundary per value
 ------------------------------------------------------------------------
 
--- The wrapper clause's contractum is again a redex; the measure — the
--- number of nested boundaries above the `Λ` — says why that is not a
--- regress.  Commentary.md § proof/ShiftAudit.agda / §4
+-- The number of nested boundaries at the head of a term.  Under the
+-- one-boundary invariant a value's is at most one, and a `Merge` step
+-- lowers it by one — so the retired `Nu-⟪⟫` tower descent is gone.
+-- Commentary.md § proof/ShiftAudit.agda / §4
 towerHeight : Term → ℕ
 towerHeight (` x)          = 0
 towerHeight ($ n)          = 0
@@ -128,8 +112,7 @@ towerHeight (Λ N)          = 0
 towerHeight (ν A · L ⟨ c ⟩) = 0
 towerHeight (M ⟪ Θ , c ⟫)  = suc (towerHeight M)
 
--- No renaming changes it — which is what makes the measure usable at all,
--- since both candidate repairs rename the moved value.
+-- No renaming changes it.
 towerHeight-renᴹᴿ : (ρ : Renameᵗ) (M : Term)
   → towerHeight (renᴹᴿ ρ M) ≡ towerHeight M
 towerHeight-renᴹᴿ ρ (` x)          = refl
@@ -149,31 +132,30 @@ towerHeight-↑ᴹ : (δ : Alloc) (M : Term)
 towerHeight-↑ᴹ none    M = refl
 towerHeight-↑ᴹ (new R) M = towerHeight-renᴹᴿ suc M
 
--- THE MEASURE STRICTLY DECREASES.  The ∀-value the contractum's pushed
--- `ν` instantiates is ONE BOUNDARY SHORTER than the one the redex's `ν`
--- instantiated.
-Nu-⟪⟫-height : (W : Term) (Θ′ Θ : Boundary) (s′ s″ s : Conv)
-  → towerHeight (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
-      ≡ towerHeight ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ∸ 1
-Nu-⟪⟫-height W Θ′ Θ s′ s″ s =
-  cong suc (towerHeight-renᴹᴿ suc W)
+simple-height : ∀ {U} → Simple U → towerHeight U ≡ 0
+simple-height S-$     = refl
+simple-height S-true  = refl
+simple-height S-false = refl
+simple-height S-ƛ     = refl
+simple-height (S-Λ v) = refl
 
--- THE REJECTED REPAIR STALLS AT THE SAME MEASURE: fix (a) MINTS a
--- boundary where the installed clause CONSUMES one.
-fixA-height-stalls : (V : Term) (Θ : Boundary) (s : Conv) (Bᵢ : Ty)
-  → towerHeight (renᴹᴿ suc V
-                   ⟪ (unbind 0 0 ∷ []) , mkId (`∀ Bᵢ) ⟫)
-      ≡ towerHeight (V ⟪ Θ , `∀ s ⟫)
-fixA-height-stalls V Θ s Bᵢ = cong suc (towerHeight-renᴹᴿ suc V)
+-- ONE BOUNDARY PER VALUE.
+value-height : ∀ {V} → Value V → (towerHeight V ≡ 0) ⊎ (towerHeight V ≡ 1)
+value-height (V-simple u) = inj₁ (simple-height u)
+value-height (V-⟪⟫ u it)  = inj₂ (cong suc (simple-height u))
 
--- AND IT IS SELF-FEEDING: an identity conversion at a `∀` is
--- necessarily `` `∀ ``, hence INERT, hence the wrapped value under a
--- `ν` is itself a `Nu-⟪Λ⟫`/`Nu-⟪⟫` redex.
-mkId-∀ : (B : Ty) → mkId (`∀ B) ≡ `∀ (mkId B)
+-- `Merge` strictly lowers the measure.
+Merge-height : (U : Term) (Θ₁ Θ₂ : Boundary) (c₁ c₂ c : Conv)
+  → towerHeight (U ⟪ Θ₁ ++ Θ₂ , c ⟫)
+      ≡ towerHeight ((U ⟪ Θ₁ , c₁ ⟫) ⟪ Θ₂ , c₂ ⟫) ∸ 1
+Merge-height U Θ₁ Θ₂ c₁ c₂ c = refl
+
+-- An identity conversion at a `∀` is necessarily `` `∀ ``, hence INERT.
+mkId-∀ : (B : Ty) → mkId (`∀ B) ≡ ⌞ `∀ (mkId B) ⌟
 mkId-∀ B = refl
 
 mkId-∀-inert : (B : Ty) → Inert (mkId (`∀ B))
-mkId-∀-inert B = I-all
+mkId-∀-inert B = I-tail I-all
 
 -- Values and inertness survive the renamings the rules perform.
 -- (`inert-renᶜ`, `value-renᴹ²`, `value-renᴹᴿ` moved to
@@ -182,29 +164,27 @@ value-↑ᴹ : ∀ {M} (δ : Alloc) → Value M → Value (↑ᴹ[ δ ] M)
 value-↑ᴹ none    v = v
 value-↑ᴹ (new R) v = value-renᴹᴿ suc v
 
--- WHERE THE DESCENT STOPS: a `∀`-value of tower height 0 is a `Λ`, so
--- the run is `height − 1` wrapper steps then one `Nu-⟪Λ⟫` step.
+-- A `∀`-value of tower height 0 is a `Λ`.
 canon-∀-height : ∀ {Δ V C} → Value V → Δ ∣ [] ⊢ V ⦂ `∀ C
   → towerHeight V ≡ 0
   → Σ[ N ∈ Term ] (Value N × (V ≡ Λ N))
 canon-∀-height v ⊢V eq with canon-∀ v ⊢V
 canon-∀-height v ⊢V eq | inj₁ p = p
 canon-∀-height v ⊢V ()
-    | inj₂ (W , Θ′ , s′ , vW , refl)
+    | inj₂ (N , Θ′ , s′ , vN , refl)
 
 -- … stated as the progress clause it decides, against the LIVE relation.
--- At tower height 0 the step is `Nu-⟪Λ⟫`, which ALLOCATES the cell for
--- the type argument's representation — the contractum is named, and so is
--- the change.
+-- The step is `Nu-⟪Λ⟫`, which ALLOCATES the cell for the type
+-- argument's representation.
 progress-Λ-at-0 : ∀ {Δ Δᶜ V Θ s c A R C} → Value V
-  → Δ ∣ [] ⊢ ν A · (V ⟪ Θ , `∀ s ⟫) ⟨ c ⟩ ⦂ C
+  → Δ ∣ [] ⊢ ν A · (V ⟪ Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩ ⦂ C
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
   → Δ ⊢ᶜ A ~ R
   → towerHeight V ≡ 0
     ----------------------------------------------------------------
   → Σ[ N ∈ Term ]
       ((V ≡ Λ N)
-       × (Δ ⊢ ν A · (V ⟪ Θ , `∀ s ⟫) ⟨ c ⟩
+       × (Δ ⊢ ν A · (V ⟪ Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩
             -→ (N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫ ∣ new R))
 progress-Λ-at-0 v
     (⊢ν wA rA (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
@@ -261,22 +241,21 @@ Beta-no-alloc : ∀ {Δ A N W} → Value W
 Beta-no-alloc = Beta
 
 ------------------------------------------------------------------------
--- §6  CANCELR / IDPUSH — the merged frame is exact
+-- §6  MERGE — the merged frame is exact
 ------------------------------------------------------------------------
 
--- THE ONE FRAME LEFT (the one V lives in) is preserved ON THE NOSE: the
+-- THE ONE FRAME LEFT (the one U lives in) is preserved ON THE NOSE: the
 -- merged frame's interior IS the inner frame's own.  Θ₂'s changes travel
 -- inward and the surviving boundary REAPPLIES them, so the contractum is
--- one layer, not two, and the redex's outer conversion is not
--- transported — it is cancelled (`CancelR`) or re-read on the merge
--- (`IdPush`).
+-- one layer, not two; both conversions are re-spelled onto the merged
+-- conversion context (the carried `t₁′`, `c₂′`) and composed there.
 Move-inner-frame : ∀ {Γ Γᵢ Γ₁ᵢ : Ctxᵗ} (Θ₁ Θ₂ : Boundary)
   → Γ ⊢ⁱ Θ₂ ⇒ Γᵢ
   → Γᵢ ⊢ⁱ Θ₁ ⇒ Γ₁ᵢ
   → Γ ⊢ⁱ Θ₁ ++ Θ₂ ⇒ Γ₁ᵢ
 Move-inner-frame Θ₁ Θ₂ = merged-interior
 
--- V is not renamed at all — it retypes exactly where it was.
+-- U is not renamed at all — it retypes exactly where it was.
 
 ------------------------------------------------------------------------
 -- §7  THE DROP RULES — the frame change in the OTHER direction, and why
@@ -298,17 +277,15 @@ Drop-false-vacuous Δ Γ = ⊢false
 -- AND NO OTHER TERM CAN TAKE THE STEP: the rule's left-hand side is
 -- the LITERAL ITSELF, and a closed value at a base type IS a literal.
 Drop$-only-numerals : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ
-  → (∀ {n Θ A} → M ≡ ($ n) ⟪ Θ , id A ⟫ → M′ ≡ $ n)
+  → (∀ {n Θ A} → M ≡ ($ n) ⟪ Θ , ⌞ id A ⌟ ⟫ → M′ ≡ $ n)
 Drop$-only-numerals (Nu-Λ v p)              ()
 Drop$-only-numerals (Beta w)                ()
 Drop$-only-numerals (Peel v w rc ri rd sc)  ()
 Drop$-only-numerals (Nu-⟪Λ⟫ v rc ⊢s p)      ()
-Drop$-only-numerals (Nu-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm p) ()
-Drop$-only-numerals (CancelR v ri r₁ d₁ r⋉ sm) ()
+Drop$-only-numerals (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) ()
 Drop$-only-numerals (Drop$ b)               refl = refl
 Drop$-only-numerals Drop-true               ()
 Drop$-only-numerals Drop-false              ()
-Drop$-only-numerals (IdPush v ri r₁ r⋉ sm) ()
 Drop$-only-numerals (ξ-·-l st)              ()
 Drop$-only-numerals (ξ-·-r v st)            ()
 Drop$-only-numerals (ξ-ν st)                ()

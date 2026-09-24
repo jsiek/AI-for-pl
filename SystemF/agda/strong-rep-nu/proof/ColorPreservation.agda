@@ -316,27 +316,8 @@ residual-frame {Δ = Δ} wfΔ (residual-Nu-⟪Λ⟫ {R = R} vN rc ⊢s pA)
            (frame-⟪⟫ (liftᴮ-interior {b = bindR R} (interior csᶠ)) d)
        , sym (map-idᵗ _)
 
--- The one mover left inside a redex: the inner boundary is a SIBLING of
--- the `Λ` slot the allocation consumes, so it takes exactly `suc`.
-residual-frame {Δ = Δ} wfΔ
-    (residual-Nu-⟪⟫ {C = C} {Θ′ = Θ′} {R = R}
-      vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA)
-    (frame-ν (frame-⟪⟫ (interior csᶠ) (frame-⟪⟫ (interior cs′) h))) =
-  let w₀ = repwk-alloc {R = R} (same-wfᴿ wfΔ pA)
-      ri″ = snoc-unbind0-interior-ren w₀ (bindR R , here) (interior cs′)
-      (Δ₂ , d₂ , e₂ , _) = ⊢C-ren suc C w₀ refl h
-  in Δ₂
-   , frame-⟪⟫ (inst-interior {R = R} empty-interior)
-       (frame-⟪⟫ (liftᴮ-interior {b = bindR R} (interior csᶠ))
-         (frame-ν (frame-⟪⟫ ri″ d₂)))
-   , e₂
-
-residual-frame wfΔ (residual-CancelR vV ri rc₁ lX rc⋉ sm)
-    (frame-⟪⟫ ri₂ᶠ (frame-⟪⟫ ri₁ᶠ h)) =
-  _ , frame-⟪⟫ (merged-interior ri₂ᶠ ri₁ᶠ) h
-    , sym (map-idᵗ _)
-
-residual-frame wfΔ (residual-IdPush vV ri rc₁ rc⋉ sm)
+-- Merge: the two frames read in turn are the merged frame's interior.
+residual-frame wfΔ (residual-Merge u it ri rc₁ rc₂ rc⋉ sc₁ sc₂)
     (frame-⟪⟫ ri₂ᶠ (frame-⟪⟫ ri₁ᶠ h)) =
   _ , frame-⟪⟫ (merged-interior ri₂ᶠ ri₁ᶠ) h
     , sym (map-idᵗ _)

@@ -148,7 +148,8 @@ runCtx (_then_ {δ = δ} st sts) = runCtx sts
 -- 2.  VALUES DON'T STEP
 ------------------------------------------------------------------------
 
--- the `V-Λ` case is absurd outright: there is no ξ-Λ
+-- the `S-Λ` case is absurd outright: there is no ξ-Λ; a `Merge` needs
+-- a boundary over a boundary, which is not a value
 value-¬step : ∀ {Δ M M′ δ} → Value M → Δ ⊢ M -→ M′ ∣ δ → ⊥
 value-¬step (V-simple S-$) ()
 value-¬step (V-simple S-true) ()

@@ -123,11 +123,7 @@ residual-source (residual-Peel-fun vV vW rc ri rd sc) = refl
 residual-source (residual-Peel-arg vV vW rc ri rd sc) = refl
 residual-source (residual-Nu-⟪Λ⟫ vN rc ⊢s pA)   = refl
 residual-source
-  (residual-Nu-⟪⟫ vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA) = refl
-residual-source
-  (residual-CancelR vV ri rc₁ lX rc⋉ sm)  = refl
-residual-source
-  (residual-IdPush vV ri rc₁ rc⋉ sm)      = refl
+  (residual-Merge u it ri rc₁ rc₂ rc⋉ sc₁ sc₂) = refl
 residual-source (residual-ξ-·-l r)      = cong (_· _) (residual-source r)
 residual-source (residual-ξ-·-l-sib r)  = refl
 residual-source (residual-ξ-·-r v r)    = cong (_ ·_) (residual-source r)
@@ -146,18 +142,7 @@ residual-sound (residual-Peel-fun vV vW rc ri rd sc) = refl
 residual-sound (residual-Peel-arg vV vW rc ri rd sc) = refl
 residual-sound (residual-Nu-⟪Λ⟫ vN rc ⊢s pA) = refl
 residual-sound
-  (residual-Nu-⟪⟫ {Θ = Θ} {c = c} {C = C} {M = M} {Θ′ = Θ′}
-    {s″ = s″} {s = s} {Bᵢ′ = Bᵢ′} vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA) =
-  cong (λ z → ((ν ` 0
-                  · (z ⟪ (renᴮᴿ suc Θ′ ++ (unbind 0 0 ∷ [])) , `∀ s″ ⟫)
-                  ⟨ reveal 0 (renameᵗ (extᵗ suc) Bᵢ′) ⟩)
-                 ⟪ liftᴮ Θ , s ⟫)
-                ⟪ inst [] , c ⟫)
-    (plug-renCtxᴿ suc C M)
-residual-sound
-  (residual-CancelR vV ri rc₁ lX rc⋉ sm) = refl
-residual-sound
-  (residual-IdPush vV ri rc₁ rc⋉ sm)     = refl
+  (residual-Merge u it ri rc₁ rc₂ rc⋉ sc₁ sc₂) = refl
 residual-sound (residual-ξ-·-l r)      = cong (_· _) (residual-sound r)
 residual-sound (residual-ξ-·-l-sib {δ = δ} {C = C} {M = M} r) =
   cong (_ ·_) (plug-↑ δ C M)

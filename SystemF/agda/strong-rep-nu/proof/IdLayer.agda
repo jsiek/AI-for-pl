@@ -1,13 +1,14 @@
 module strong-rep-nu.proof.IdLayer where
 
 -- File Charter:
---   * THE ID-LAYER FACTS — what makes IdPush and CancelR legitimate.
---     §1 typing FORCES the inner conversion's name and the outer's to
---     denote ONE representation variable (`idpush-name`,
---     `cancel-name`), so neither rule invents a variable and neither
---     needs an equation as a premise.  §2 `unseal` is the ONLY active
---     conversion an id-(` X) layer can meet.  §3 the naked drop is
---     sound exactly when the boundary changes NO FRAME.
+--   * THE ID-LAYER FACTS about the two `Merge` redexes the retired
+--     IdPush and CancelR used to handle (an `unseal Y` over `id (` X)`
+--     or over `seal X`).  §1 typing FORCES the inner conversion's name
+--     and the outer's to denote ONE representation variable
+--     (`idpush-name`, `cancel-name`), which is why composition's
+--     seal-then-unseal clause compares no names.  §2 `unseal` is the
+--     ONLY active conversion an id-(` X) layer can meet.  §3 the naked
+--     drop is sound exactly when the boundary changes NO FRAME.
 --   * §1 used to be an EQUATION between ordinary indices; with two
 --     universes the fact is one universe UP, and with the store the
 --     two names denote the same variable outright.
@@ -52,18 +53,18 @@ push-rep (R , p , same-var d′) (R′ , p′ , same-var d) | refl =
 -- NAMES the pushed conversion's binder.  IdPush therefore invents no
 -- representation variable.
 idpush-name : ∀ {Δ Γ V Θ₁ Θ₂ X Y C}
-  → Δ ∣ Γ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
+  → Δ ∣ Γ ⊢ (V ⟪ Θ₁ , ⌞ id (` X) ⌟ ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
     --------------------------------------------------------------------
   → Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ α ∈ RVar ]
       ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δ ⊢ᶜ Θ₂ ⇒ Δᶜ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
         × (Δᶜ ∋ᵗ Y := α)
         × (Δ₁ᶜ ∋ᵗ X := α))
 idpush-name
-    (env mw₂ (env mw₁ ⊢V (conv-idv tvX) sm₁ se₁ wB)
+    (env mw₂ (env mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX))) sm₁ se₁ wB)
          (conv-unseal dY) sm₂ se₂ wE)
   with push-rep se₁ sm₂
 idpush-name
-    (env mw₂ (env mw₁ ⊢V (conv-idv tvX) sm₁ se₁ wB)
+    (env mw₂ (env mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX))) sm₁ se₁ wB)
          (conv-unseal dY) sm₂ se₂ wE)
   | α , d , d′ =
   _ , _ , _ , α
@@ -74,18 +75,18 @@ idpush-name
 -- spelling `` ` X ``, so the same two premises settle it, and CancelR
 -- needs no premise relating its two names either.
 cancel-name : ∀ {Δ Γ V Θ₁ Θ₂ X Y C}
-  → Δ ∣ Γ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
+  → Δ ∣ Γ ⊢ (V ⟪ Θ₁ , tail (seal X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
     --------------------------------------------------------------------
   → Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ α ∈ RVar ]
       ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δ ⊢ᶜ Θ₂ ⇒ Δᶜ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
         × (Δᶜ ∋ᵗ Y := α)
         × (Δ₁ᶜ ∋ᵗ X := α))
 cancel-name
-    (env mw₂ (env mw₁ ⊢V (conv-seal dX) sm₁ se₁ wB)
+    (env mw₂ (env mw₁ ⊢V (conv-tail (conv-seal dX)) sm₁ se₁ wB)
          (conv-unseal dY) sm₂ se₂ wE)
   with push-rep se₁ sm₂
 cancel-name
-    (env mw₂ (env mw₁ ⊢V (conv-seal dX) sm₁ se₁ wB)
+    (env mw₂ (env mw₁ ⊢V (conv-tail (conv-seal dX)) sm₁ se₁ wB)
          (conv-unseal dY) sm₂ se₂ wE)
   | α , d , d′ =
   _ , _ , _ , α
@@ -106,19 +107,22 @@ same-base-source same-𝔹 base-𝔹 = base-𝔹
 -- the id-base branch of `Active` is unreachable over this LHS.
 -- Commentary.md § proof/IdLayer.agda / §2
 outer-id-base-untypeable : ∀ {Δ Γ V Θ₁ Θ₂ X A C} → Base A
-  → ¬ (Δ ∣ Γ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , id A ⟫ ⦂ C)
+  → ¬ (Δ ∣ Γ ⊢ (V ⟪ Θ₁ , ⌞ id (` X) ⌟ ⟫) ⟪ Θ₂ , ⌞ id A ⌟ ⟫ ⦂ C)
 outer-id-base-untypeable bA
     (env {Δᵢ = Δᵢ} mw₂
-         (env {Δᶜ = Δ₁ᶜ} mw₁ ⊢V (conv-idv tvX) sm₁ se₁ wB)
-         (conv-id bA′) (R , p , q) se₂ wE)
+         (env {Δᶜ = Δ₁ᶜ} mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX)))
+              sm₁ se₁ wB)
+         (conv-tail (conv-mid (conv-id bA′))) (R , p , q) se₂ wE)
   with ≈-base-target {Δ = Δᵢ} {Δ′ = Δ₁ᶜ}
          (same-base-target p (same-base-source q bA′)) se₁
 outer-id-base-untypeable bA
     (env {Δᵢ = Δᵢ} mw₂
-         (env {Δᶜ = Δ₁ᶜ} mw₁ ⊢V (conv-idv tvX) sm₁ se₁ wB)
-         (conv-id bA′) (R , p , q) se₂ wE) | ()
-outer-id-base-untypeable () (env _ (env _ _ (conv-idv _) _ _ _)
-                                 (conv-idv _) _ _ _)
+         (env {Δᶜ = Δ₁ᶜ} mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX)))
+              sm₁ se₁ wB)
+         (conv-tail (conv-mid (conv-id bA′))) (R , p , q) se₂ wE) | ()
+outer-id-base-untypeable ()
+  (env _ (env _ _ (conv-tail (conv-mid (conv-idv _))) _ _ _)
+       (conv-tail (conv-mid (conv-idv _))) _ _ _)
 
 -- A boundary can never conceal the name its OWN conversion cites
 -- (`value-var-visible`, strong-rep-nu.Terms).
@@ -138,10 +142,12 @@ outer-id-base-untypeable () (env _ (env _ _ (conv-idv _) _ _ _)
 Δₑ-no-1 (there ())
 
 naked-drop-trap : ∀ {C} →
-  ¬ (Δₑ ∣ [] ⊢ ($ 7) ⟪ [] , seal 1 ⟫ ⦂ C)
+  ¬ (Δₑ ∣ [] ⊢ ($ 7) ⟪ [] , tail (seal 1) ⟫ ⦂ C)
 naked-drop-trap (env mwᵥ ⊢$ ⊢c smᵢ smₑ wE)
   with bw-conversion mwᵥ
-naked-drop-trap (env mwᵥ ⊢$ (conv-seal (α , R , name , rep , same)) smᵢ smₑ wE)
+naked-drop-trap
+  (env mwᵥ ⊢$ (conv-tail (conv-seal (α , R , name , rep , same)))
+       smᵢ smₑ wE)
   | conversion conv[] = Δₑ-no-1 name
 
 ------------------------------------------------------------------------
@@ -158,7 +164,7 @@ empty-conversion : (Γ : Ctxᵗ) → Γ ⊢ᶜ [] ⇒ Γ
 empty-conversion Γ = conversion conv[]
 
 drop-empty-frame : ∀ {Δ Γ V A B}
-  → Δ ∣ Γ ⊢ V ⟪ [] , id A ⟫ ⦂ B
+  → Δ ∣ Γ ⊢ V ⟪ [] , ⌞ id A ⌟ ⟫ ⦂ B
     ------------------------------------
   → Δ ∣ [] ⊢ V ⦂ B
 drop-empty-frame {Δ = Δ} {V = V} (env mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE)

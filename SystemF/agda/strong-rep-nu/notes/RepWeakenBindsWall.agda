@@ -98,7 +98,7 @@ openPayload = ` 1 ∷ []
 -- boundary's own one-wide bind block, so `extᵗ (wkN 1) 0 ≡ 0`.  With the
 -- store the change names an AMBIENT cell, and the weakening moves it.
 renamed-frame : renᴹᴿ (wkN 1) β-seven
-  ≡ ($ 7) ⟪ (bind 0 1 ∷ []) , id `ℕ ⟫
+  ≡ ($ 7) ⟪ (bind 0 1 ∷ []) , ⌞ id `ℕ ⌟ ⟫
 renamed-frame = refl
 
 no-rep-weaken : ¬ RepWeakenTyping₀

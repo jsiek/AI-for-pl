@@ -6,7 +6,8 @@ module strong-rep-nu.proof.Determinism where
 --     contractum AND of the store change.  Name-map uniqueness is read
 --     off the typing through `bw-exterior`; the carried readings are
 --     identified by `interior-functional`/`conversion-functional`, the
---     re-spellings by `sameConv-src-unique`.  The public statement is
+--     re-spellings (Peel's `s′`, Merge's `t₁′` and `c₂′`) by
+--     `sameConv-src-unique`.  The public statement is
 --     strong-rep-nu.TypeSafety.
 --   * Commentary: Commentary.md § Reduction.agda / det.
 
@@ -38,15 +39,15 @@ det _ (Nu-Λ v same) (Nu-Λ v′ same′)
   with same-rep-unique same same′
 det _ (Nu-Λ v same) (Nu-Λ v′ same′) | refl = refl , refl
 det _ (Nu-Λ v same) (ξ-ν st) =
-  ⊥-elim (value-¬step (V-Λ v) st)
+  ⊥-elim (value-¬step (V-simple (S-Λ v)) st)
 det _ (ξ-ν st) (Nu-Λ v same) =
-  ⊥-elim (value-¬step (V-Λ v) st)
+  ⊥-elim (value-¬step (V-simple (S-Λ v)) st)
 
 -- Beta
 det _ (Beta w)     (Beta w′)    = refl , refl
-det _ (Beta w)     (ξ-·-l st)   = ⊥-elim (value-¬step V-ƛ st)
+det _ (Beta w)     (ξ-·-l st)   = ⊥-elim (value-¬step (V-simple S-ƛ) st)
 det _ (Beta w)     (ξ-·-r v st) = ⊥-elim (value-¬step w st)
-det _ (ξ-·-l st)   (Beta w)     = ⊥-elim (value-¬step V-ƛ st)
+det _ (ξ-·-l st)   (Beta w)     = ⊥-elim (value-¬step (V-simple S-ƛ) st)
 det _ (ξ-·-r v st) (Beta w)     = ⊥-elim (value-¬step w st)
 
 -- Peel
@@ -74,166 +75,57 @@ det _ (ξ-·-l st) (Peel v w rc ri rd sc) =
 det _ (ξ-·-r u′ st) (Peel v w rc ri rd sc) =
   ⊥-elim (value-¬step w st)
 
--- Nu over a boundary — the two clauses' patterns are DISJOINT, and the
--- Λ clause is determined by the redex outright.
+-- Nu over a boundary — determined by the redex outright.
 det _ (Nu-⟪Λ⟫ v rel ⊢s same)
     (Nu-⟪Λ⟫ v′ rel′ ⊢s′ same′)
   with same-rep-unique same same′
 det _ (Nu-⟪Λ⟫ v rel ⊢s same)
     (Nu-⟪Λ⟫ v′ rel′ ⊢s′ same′) | refl = refl , refl
 det _ (Nu-⟪Λ⟫ v rel ⊢s same) (ξ-ν st) =
-  ⊥-elim (value-¬step (V-⟪⟫ (V-Λ v) I-all) st)
+  ⊥-elim (value-¬step (V-⟪⟫ (S-Λ v) I-all) st)
 det _ (ξ-ν st) (Nu-⟪Λ⟫ v rel ⊢s same) =
-  ⊥-elim (value-¬step (V-⟪⟫ (V-Λ v) I-all) st)
+  ⊥-elim (value-¬step (V-⟪⟫ (S-Λ v) I-all) st)
 
--- the wrapper clause: all five carried readings are identified first
-det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
-    (Nu-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
-      v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
-  with interior-functional ri ri′ | conversion-functional rc rc′
-det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
-    (Nu-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
-      v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
-    | refl | refl
-  with interior-functional ri (bw-interior mwΘ)
-     | conversion-functional rc (bw-conversion mwΘ)
-det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
-    (Nu-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
-      v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
-    | refl | refl | refl | refl
-  with conversion-functional r′ r′′
-det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
-    (Nu-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
-      v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
-    | refl | refl | refl | refl | refl
-  with conv-src-unique
-         (unique-underΛ {Γ = Δᶜ} (name-fn (bw-conversion-wf mwΘ))) ⊢s ⊢s′
-det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
-    (Nu-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
-      v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
-    | refl | refl | refl | refl | refl | refl
-  with sameTy-src-unique
-         (unique-underΛ {Γ = Δᵢ} (name-fn (bw-interior-wf mwΘ))) sm sm′
-det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
-    (Nu-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
-      v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
-    | refl | refl | refl | refl | refl | refl | refl
-  with same-rep-unique same same′
-det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
-    (Nu-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
-      v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
-    | refl | refl | refl | refl | refl | refl | refl | refl
-  with interior-functional ri⁺ ri⁺′
-det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
-    (Nu-⟪⟫ {Δ″ᶜ = Δ″ᶜ} v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
-    | refl | refl | refl | refl | refl | refl | refl | refl | refl
-  with conversion-functional r″ r″′
-det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
-    (Nu-⟪⟫ {Δ″ᶜ = Δ″ᶜ} v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
-    | refl | refl | refl | refl | refl | refl | refl | refl | refl | refl
-  with sameConv-src-unique
-         (unique-underΛ {Γ = Δ″ᶜ}
-           (conversion-unique
-             (interior-unique (unique-shift (name-fn (bw-exterior mwΘ)))
-                              ri⁺) r″))
-         sc sc′
-det (⊢ν _ _ (env mwΘ _ _ _ _ _) _ _ _ _)
-    (Nu-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm same)
-    (Nu-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
-    | refl | refl | refl | refl | refl | refl | refl | refl | refl | refl
-    | refl = refl , refl
-det _ (Nu-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm same) (ξ-ν st) =
-  ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
-det _ (ξ-ν st) (Nu-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm same) =
-  ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
-
--- CancelR — the cancelled binder's lookup and the re-spelling are
--- functional; the outer lookup is gone with the outer layer.
-det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm)
-    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′)
+-- Merge — the three readings are functions of the scopes, and the two
+-- carried spellings are pinned at the merged conversion context.
+det (env mwΘ₂ _ _ _ _ _)
+    (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
+    (Merge u′ it′ ri′ r₁′ r₂′ r⋉′ sc₁′ sc₂′)
   with interior-functional ri ri′
-det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm)
-    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′) | refl
-  with conversion-functional r₁ r₁′ | conversion-functional r⋉ r⋉′
-det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm)
-    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′)
-    | refl | refl | refl
-  with interior-functional ri (bw-interior mwΘ₂)
-det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm)
-    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′)
+det (env mwΘ₂ _ _ _ _ _)
+    (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
+    (Merge u′ it′ ri′ r₁′ r₂′ r⋉′ sc₁′ sc₂′) | refl
+  with conversion-functional r₁ r₁′ | conversion-functional r₂ r₂′
+     | conversion-functional r⋉ r⋉′
+det (env mwΘ₂ _ _ _ _ _)
+    (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
+    (Merge u′ it′ ri′ r₁′ r₂′ r⋉′ sc₁′ sc₂′)
     | refl | refl | refl | refl
-  with conversion-functional r₁ (bw-conversion mwΘ₁)
-det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm)
-    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′)
-    | refl | refl | refl | refl | refl
-  with ∋:=-det (name-fn (bw-conversion-wf mwΘ₁)) d₁ d₁′
-det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm)
-    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′)
-    | refl | refl | refl | refl | refl | refl
-  with sameTy-src-unique
-         (conversion-unique (name-fn (bw-exterior mwΘ₂)) r⋉) sm sm′
-det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm)
-    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′)
-    | refl | refl | refl | refl | refl | refl | refl =
-  refl , refl
-det _ (CancelR v ri r₁ d₁ r⋉ sm) (ξ-⟪⟫ frame st) =
-  ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
-det _ (ξ-⟪⟫ frame st) (CancelR v ri r₁ d₁ r⋉ sm) =
-  ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
+  with sameConv-src-unique
+         (conversion-unique (name-fn (bw-exterior mwΘ₂)) r⋉) sc₁ sc₁′
+     | sameConv-src-unique
+         (conversion-unique (name-fn (bw-exterior mwΘ₂)) r⋉) sc₂ sc₂′
+det (env mwΘ₂ _ _ _ _ _)
+    (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
+    (Merge u′ it′ ri′ r₁′ r₂′ r⋉′ sc₁′ sc₂′)
+    | refl | refl | refl | refl | refl | refl = refl , refl
+det _ (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) (ξ-⟪⟫ frame st) =
+  ⊥-elim (value-¬step (V-⟪⟫ u it) st)
+det _ (ξ-⟪⟫ frame st) (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) =
+  ⊥-elim (value-¬step (V-⟪⟫ u it) st)
 
 -- Drop$
 det _ (Drop$ b)    (Drop$ b′)   = refl , refl
-det _ (Drop$ b) (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step V-$ st)
-det _ (ξ-⟪⟫ frame st) (Drop$ b) = ⊥-elim (value-¬step V-$ st)
+det _ (Drop$ b) (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step (V-simple S-$) st)
+det _ (ξ-⟪⟫ frame st) (Drop$ b) = ⊥-elim (value-¬step (V-simple S-$) st)
 
 -- Drop-true / Drop-false
 det _ Drop-true Drop-true = refl , refl
-det _ Drop-true (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step V-true st)
-det _ (ξ-⟪⟫ frame st) Drop-true = ⊥-elim (value-¬step V-true st)
+det _ Drop-true (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step (V-simple S-true) st)
+det _ (ξ-⟪⟫ frame st) Drop-true = ⊥-elim (value-¬step (V-simple S-true) st)
 det _ Drop-false Drop-false = refl , refl
-det _ Drop-false (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step V-false st)
-det _ (ξ-⟪⟫ frame st) Drop-false = ⊥-elim (value-¬step V-false st)
-
--- IdPush — determined by the merged re-spelling alone: the contractum
--- no longer mints an identity at a looked-up representation.
-det (env mwΘ₂ _ _ _ _ _)
-    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm)
-    (IdPush v′ ri′ r₁′ r⋉′ sm′)
-  with interior-functional ri ri′
-det (env mwΘ₂ _ _ _ _ _)
-    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm)
-    (IdPush v′ ri′ r₁′ r⋉′ sm′) | refl
-  with conversion-functional r₁ r₁′ | conversion-functional r⋉ r⋉′
-det (env mwΘ₂ _ _ _ _ _)
-    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm)
-    (IdPush v′ ri′ r₁′ r⋉′ sm′)
-    | refl | refl | refl
-  with sameTy-src-unique
-         (conversion-unique (name-fn (bw-exterior mwΘ₂)) r⋉) sm sm′
-det (env mwΘ₂ _ _ _ _ _)
-    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm)
-    (IdPush v′ ri′ r₁′ r⋉′ sm′)
-    | refl | refl | refl | refl = refl , refl
-det _ (IdPush v ri r₁ r⋉ sm) (ξ-⟪⟫ frame st) =
-  ⊥-elim (value-¬step (V-⟪⟫ v I-idv) st)
-det _ (ξ-⟪⟫ frame st) (IdPush v ri r₁ r⋉ sm) =
-  ⊥-elim (value-¬step (V-⟪⟫ v I-idv) st)
+det _ Drop-false (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step (V-simple S-false) st)
+det _ (ξ-⟪⟫ frame st) Drop-false = ⊥-elim (value-¬step (V-simple S-false) st)
 
 -- the congruences: the sibling shift is a function of the store change
 det (⊢· ⊢L ⊢M) (ξ-·-l st) (ξ-·-l st′) with det ⊢L st st′

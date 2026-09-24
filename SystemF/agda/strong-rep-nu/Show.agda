@@ -27,14 +27,16 @@ open import Data.Product using (_×_; _,_; proj₁; proj₂)
 open import strong-rep-nu.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong-rep-nu.Ctx
   using (Ctxᵗ; RepCtx; abstR; bindR; reps; names; apply)
-open import strong-rep-nu.Conversion using (Conv; id; seal; unseal; _↦_; `∀)
+open import strong-rep-nu.Conversion
+  using (Mid; Tail; Conv; id; _↦_; `∀; mid; seal; _⨾seal_; tail; unseal;
+         unseal_⨾_)
 open import strong-rep-nu.Terms
   using (Term; `_; $_; `true; `false; ƛ_∙_; _·_; Λ_; ν_·_⟨_⟩; _⟪_,_⟫;
          _∣_⊢_⦂_)
 open import strong-rep-nu.Boundary
   using (Boundary; Change; unbind; bind)
 open import strong-rep-nu.Reduction using (_⊢_-→_∣_; Nu-Λ; Beta; Peel;
-  Nu-⟪Λ⟫; Nu-⟪⟫; CancelR; IdPush; Drop$; Drop-true; Drop-false;
+  Nu-⟪Λ⟫; Merge; Drop$; Drop-true; Drop-false;
   ξ-·-l; ξ-·-r; ξ-ν; ξ-⟪⟫)
 open import strong-rep-nu.Eval
   using (Trace; stop; illtyped; _◅⟨_⟩_; Final; value; no-redex; out-of-fuel;
@@ -190,16 +192,36 @@ showRep ls rs (`∀ R)  =
        ++ showRep (tyBinder (length ls) ∷ ls) rs R ++ ")"
 
 -- `seal` and `unseal` name ORDINARY variables, read on the conversion
--- context; `` `∀ `` binds one.
-showConv : List String → Conv → String
-showConv ns (id A)     = "id " ++ showTy ns A
-showConv ns (seal X)   = "seal " ++ nthS ns X
-showConv ns (unseal X) = "unseal " ++ nthS ns X
-showConv ns (s ↦ t)    =
-  "(" ++ showConv ns s ++ " ↦ " ++ showConv ns t ++ ")"
-showConv ns (`∀ s)     =
-  "(∀" ++ tyBinder (length ns) ++ ". "
-       ++ showConv (tyBinder (length ns) ∷ ns) s ++ ")"
+-- context; `` `∀ `` binds one.  A chain prints its links with `;`, in
+-- the order they act; a chain under `↦` is parenthesised.
+mutual
+  showMid : List String → Mid → String
+  showMid ns (id A)  = "id " ++ showTy ns A
+  showMid ns (s ↦ t) =
+    "(" ++ showConvP ns s ++ " ↦ " ++ showConvP ns t ++ ")"
+  showMid ns (`∀ s)  =
+    "(∀" ++ tyBinder (length ns) ++ ". "
+         ++ showConv (tyBinder (length ns) ∷ ns) s ++ ")"
+
+  showTail : List String → Tail → String
+  showTail ns (mid g)     = showMid ns g
+  showTail ns (seal X)    = "seal " ++ nthS ns X
+  showTail ns (t ⨾seal X) = showTail ns t ++ " ; seal " ++ nthS ns X
+
+  showConv : List String → Conv → String
+  showConv ns (tail t)       = showTail ns t
+  showConv ns (unseal X)     = "unseal " ++ nthS ns X
+  showConv ns (unseal X ⨾ c) = "unseal " ++ nthS ns X ++ " ; " ++ showConv ns c
+
+  -- a conversion as an operand of `↦`
+  showConvP : List String → Conv → String
+  showConvP ns (tail (mid g))   = showMid ns g
+  showConvP ns (tail (seal X))  = "seal " ++ nthS ns X
+  showConvP ns (tail (t ⨾seal X)) =
+    "(" ++ showTail ns t ++ " ; seal " ++ nthS ns X ++ ")"
+  showConvP ns (unseal X)       = "unseal " ++ nthS ns X
+  showConvP ns (unseal X ⨾ c)   =
+    "(unseal " ++ nthS ns X ++ " ; " ++ showConv ns c ++ ")"
 
 ------------------------------------------------------------------------
 -- 5. Boundary scopes
@@ -353,9 +375,7 @@ ruleName (Nu-Λ v same)               = "Nu-Λ"
 ruleName (Beta v)                    = "Beta"
 ruleName (Peel v w rc ri rd sc)      = "Peel"
 ruleName (Nu-⟪Λ⟫ v rel ⊢s same)      = "Nu-⟪Λ⟫"
-ruleName (Nu-⟪⟫ v ri rel r′ ri⁺ r″ sc ⊢s sm same) = "Nu-⟪⟫"
-ruleName (CancelR v ri r₁ d₁ r⋉ sm) = "CancelR"
-ruleName (IdPush v ri r₁ r⋉ sm) = "IdPush"
+ruleName (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) = "Merge"
 ruleName (Drop$ b)                   = "Drop$"
 ruleName Drop-true                   = "Drop-true"
 ruleName Drop-false                  = "Drop-false"

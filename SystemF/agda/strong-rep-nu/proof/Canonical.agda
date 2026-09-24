@@ -2,16 +2,16 @@ module strong-rep-nu.proof.Canonical where
 
 -- File Charter:
 --   * CANONICAL FORMS.  §1 `≈` preserves the exterior type's head
---     constructor; §2 what an INERT conversion can look like, read off
---     its TARGET type; §3 `canon-base`, `canon-ℕ`, `canon-⇒`,
---     `canon-∀`, `canon-var`.
+--     constructor; §2 what an INERT tail can look like, read off its
+--     TARGET type; §3 `simple-¬var`, `canon-simple-∀`, `canon-base`,
+--     `canon-ℕ`, `canon-⇒`, `canon-∀`.
 --   * ONE OBSERVATION DRIVES THE SUITE: for a wrapper value
---     `V ⟪ Θ , c ⟫`, `env` relates the EXTERIOR type and the TARGET
---     type of `c` by `_⊢_≈_⊣_`, and an INERT `c` determines that
---     target's head constructor outright (`id (` X)`/`seal X` ⇝ a
---     variable, `s ↦ t` ⇝ an arrow, `` `∀ s `` ⇝ a `∀`).  So no inert
---     conversion has a BASE target, and the two with a VARIABLE target
---     are exactly CancelR's and IdPush's left-hand sides.
+--     `U ⟪ Θ , tail t ⟫`, `env` relates the EXTERIOR type and the
+--     TARGET type of `t` by `_⊢_≈_⊣_`, and an INERT `t` determines that
+--     target's head constructor outright (`id (` X)` and the seals ⇝ a
+--     variable, `s ↦ u` ⇝ an arrow, `` `∀ s `` ⇝ a `∀`).  So no inert
+--     tail has a BASE target, and — with ONE boundary per value — the
+--     interior of a ∀-value's boundary is a `Λ`.
 -- Commentary: Commentary.md § proof/Canonical.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
@@ -98,147 +98,141 @@ conv-tgt≡ refl ⊢c = ⊢c
   → A ≡ B → Δ ∣ Γ ⊢ M ⦂ A → Δ ∣ Γ ⊢ M ⦂ B
 ⊢ty≡ refl ⊢M = ⊢M
 
+-- The SOURCE side, for the interior of a ∀-conversion.
+≈-∀-source : ∀ {Δ Δ′ A B}
+  → Δ ⊢ B ≈ `∀ A ⊣ Δ′
+  → Σ[ B′ ∈ Ty ] (B ≡ `∀ B′)
+≈-∀-source (_ , p , same-∀ q) = same-∀-target p
+
+≈-var-source : ∀ {Δ Δ′ X B}
+  → Δ ⊢ B ≈ ` X ⊣ Δ′
+  → Σ[ Y ∈ ℕ ] (B ≡ ` Y)
+≈-var-source (_ , p , same-var d) = same-var-target p
+
 ------------------------------------------------------------------------
--- §2  What an INERT conversion can look like, read off its TARGET type
+-- §2  What an INERT tail can look like, read off its TARGET type
 ------------------------------------------------------------------------
 
--- No inert conversion has a base target.  `id A` at a base type is the
--- one conversion with a base target, and it is ACTIVE (A-idb), so `V-⟪⟫`
--- can never build a value at a base type.
-inert-¬base : Inert c → Δ ⊢ c ∶ A ⇝ B → ¬ Base B
-inert-¬base I-idv  (conv-id ())
-inert-¬base I-idv  (conv-idv _)   ()
-inert-¬base I-seal (conv-seal _)  ()
-inert-¬base I-fun  (conv-fun _ _) ()
-inert-¬base I-all  (conv-all _)   ()
+-- A value boundary's conversion is a TAIL (its interior is simple, so
+-- its source is not a variable).  No inert tail has a base target:
+-- `id A` at a base type is ACTIVE (A-idb), so `V-⟪⟫` never builds a
+-- value at a base type.
+inert-¬base : ∀ {t} → InertTail t → Δ ⊢ tail t ∶ A ⇝ B → ¬ Base B
+inert-¬base I-idv (conv-tail (conv-mid (conv-id ())))
+inert-¬base I-idv (conv-tail (conv-mid (conv-idv _))) ()
+inert-¬base I-fun (conv-tail (conv-mid (conv-fun _ _))) ()
+inert-¬base I-all (conv-tail (conv-mid (conv-all _))) ()
+inert-¬base I-seal (conv-tail (conv-seal _)) ()
+inert-¬base I-seal-seq (conv-tail (conv-seal-seq _ _ _)) ()
 
--- An ARROW target forces a function conversion: `id`/`seal` have
--- variable targets and `` `∀ `` has a ∀ target.
-inert-fun-conv : Inert c → Δ ⊢ c ∶ A ⇝ (B ⇒ C)
-  → Σ[ s ∈ Conv ] Σ[ t ∈ Conv ] (c ≡ s ↦ t)
-inert-fun-conv I-fun (conv-fun ⊢s ⊢t) = _ , _ , refl
+-- An ARROW target forces a function middle; a ∀ target a ∀ middle.
+inert-fun-conv : ∀ {t} → InertTail t → Δ ⊢ tail t ∶ A ⇝ (B ⇒ C)
+  → Σ[ s ∈ Conv ] Σ[ u ∈ Conv ] (t ≡ mid (s ↦ u))
+inert-fun-conv I-fun (conv-tail (conv-mid (conv-fun ⊢s ⊢t))) =
+  _ , _ , refl
 
--- A ∀ target forces a ∀ conversion.
-inert-all-conv : Inert c → Δ ⊢ c ∶ A ⇝ `∀ B
-  → Σ[ s ∈ Conv ] (c ≡ `∀ s)
-inert-all-conv I-all (conv-all ⊢s) = _ , refl
-
--- A VARIABLE target admits exactly TWO conversions, and the variable is
--- literally the name they carry — there is no second spelling to compare.
--- These two are the left-hand sides of CancelR and IdPush.
-inert-var-conv : Inert c → Δ ⊢ c ∶ A ⇝ ` X
-  → (c ≡ seal X) ⊎ (c ≡ id (` X))
-inert-var-conv I-idv  (conv-id ())
-inert-var-conv I-idv  (conv-idv _)  = inj₂ refl
-inert-var-conv I-seal (conv-seal _) = inj₁ refl
+inert-all-conv : ∀ {t} → InertTail t → Δ ⊢ tail t ∶ A ⇝ `∀ B
+  → Σ[ s ∈ Conv ] (t ≡ mid (`∀ s))
+inert-all-conv I-all (conv-tail (conv-mid (conv-all ⊢s))) = _ , refl
 
 ------------------------------------------------------------------------
 -- §3  CANONICAL FORMS
 ------------------------------------------------------------------------
 
+-- A SIMPLE value never has a variable type, and at a ∀ type it is a
+-- `Λ` over a value.
+simple-¬var : ∀ {U} → Simple U → Δ ∣ [] ⊢ U ⦂ ` X → ⊥
+simple-¬var S-$ ()
+simple-¬var S-true ()
+simple-¬var S-false ()
+simple-¬var S-ƛ ()
+simple-¬var (S-Λ v) ()
+
+canon-simple-∀ : ∀ {U} → Simple U → Δ ∣ [] ⊢ U ⦂ `∀ C
+  → Σ[ N ∈ Term ] (Value N × (U ≡ Λ N))
+canon-simple-∀ S-$ ()
+canon-simple-∀ S-true ()
+canon-simple-∀ S-false ()
+canon-simple-∀ S-ƛ ()
+canon-simple-∀ (S-Λ vN) (⊢Λ _ _) = _ , vN , refl
+
 -- BASE.  A closed value at a base type is a numeral or Boolean literal,
 -- outright — no wrapper survives (§2, inert-¬base).
 canon-base : ∀ {V} → Value V → Base A → Δ ∣ [] ⊢ V ⦂ A
   → (Σ[ n ∈ ℕ ] (V ≡ $ n)) ⊎ (V ≡ `true) ⊎ (V ≡ `false)
-canon-base V-$       b       ⊢$     = inj₁ (_ , refl)
-canon-base V-true    base-𝔹 ⊢true  = inj₂ (inj₁ refl)
-canon-base V-false   base-𝔹 ⊢false = inj₂ (inj₂ refl)
-canon-base V-ƛ       ()      (⊢ƛ _ _)
-canon-base (V-Λ _)   ()      (⊢Λ _ _)
-canon-base {Δ = Δ} (V-⟪⟫ v ic) b
+canon-base (V-simple S-$)     b      ⊢$     = inj₁ (_ , refl)
+canon-base (V-simple S-true)  base-𝔹 ⊢true  = inj₂ (inj₁ refl)
+canon-base (V-simple S-false) base-𝔹 ⊢false = inj₂ (inj₂ refl)
+canon-base (V-simple S-ƛ)     ()     (⊢ƛ _ _)
+canon-base (V-simple (S-Λ _)) ()     (⊢Λ _ _)
+canon-base {Δ = Δ} (V-⟪⟫ u it) b
     (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _) =
   ⊥-elim
-    (inert-¬base ic ⊢c
+    (inert-¬base it ⊢c
       (≈-base-target {Δ = Δ} {Δ′ = Δᶜ}
         b sameₑ))
 
 canon-ℕ : ∀ {V}
   → Value V → Δ ∣ [] ⊢ V ⦂ `ℕ → Σ[ n ∈ ℕ ] (V ≡ $ n)
-canon-ℕ V-$       ⊢$ = _ , refl
-canon-ℕ V-true    ()
-canon-ℕ V-false   ()
-canon-ℕ V-ƛ       ()
-canon-ℕ (V-Λ _)   ()
-canon-ℕ {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _) =
-  ⊥-elim
-    (inert-¬base ic ⊢c
-      (≈-base-target {Δ = Δ} {Δ′ = Δᶜ}
-        base-ℕ sameₑ))
+canon-ℕ v ⊢V with canon-base v base-ℕ ⊢V
+canon-ℕ v ⊢V | inj₁ p = p
+canon-ℕ v ()  | inj₂ (inj₁ refl)
+canon-ℕ v ()  | inj₂ (inj₂ refl)
 
--- ARROW.  A closed value at an arrow type is a λ or a wrapper with a
--- FUNCTION CONVERSION — the two left-hand sides of Beta and Peel.  The
--- wrapper's interior is itself a value, which is exactly Peel's first
--- premise.
+-- ARROW.  A closed value at an arrow type is a λ or a SIMPLE value
+-- under a function middle — the two left-hand sides of Beta and Peel.
 canon-⇒ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ (A ⇒ B)
   → (Σ[ N ∈ Term ] (V ≡ ƛ A ∙ N))
-  ⊎ (Σ[ W ∈ Term ] Σ[ Θ ∈ Boundary ] Σ[ s ∈ Conv ] Σ[ t ∈ Conv ]
-       (Value W × (V ≡ W ⟪ Θ , s ↦ t ⟫)))
-canon-⇒ V-$     ()
-canon-⇒ V-true  ()
-canon-⇒ V-false ()
-canon-⇒ V-ƛ     (⊢ƛ _ _) = inj₁ (_ , refl)
-canon-⇒ (V-Λ _) ()
-canon-⇒ {Δ = Δ} (V-⟪⟫ v ic)
+  ⊎ (Σ[ U ∈ Term ] Σ[ Θ ∈ Boundary ] Σ[ s ∈ Conv ] Σ[ t ∈ Conv ]
+       (Simple U × (V ≡ U ⟪ Θ , ⌞ s ↦ t ⌟ ⟫)))
+canon-⇒ (V-simple S-$)     ()
+canon-⇒ (V-simple S-true)  ()
+canon-⇒ (V-simple S-false) ()
+canon-⇒ (V-simple S-ƛ)     (⊢ƛ _ _) = inj₁ (_ , refl)
+canon-⇒ (V-simple (S-Λ _)) ()
+canon-⇒ {Δ = Δ} (V-⟪⟫ u it)
     (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   with ≈-⇒-target {Δ = Δ} {Δ′ = Δᶜ} sameₑ
-canon-⇒ {Δ = Δ} (V-⟪⟫ v ic)
+canon-⇒ {Δ = Δ} (V-⟪⟫ u it)
     (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   | A′ , B′ , eq
-  with inert-fun-conv ic (conv-tgt≡ eq ⊢c)
-canon-⇒ {Δ = Δ} (V-⟪⟫ v ic)
+  with inert-fun-conv it (conv-tgt≡ eq ⊢c)
+canon-⇒ {Δ = Δ} (V-⟪⟫ u it)
     (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   | A′ , B′ , eq | s , t , refl =
-  inj₂ (_ , _ , s , t , v , refl)
+  inj₂ (_ , _ , s , t , u , refl)
 
--- ∀.  A closed value at a ∀ type is a Λ over a VALUE (V-Λ's premise, and
--- exactly Nu-Λ's premise) or a wrapper with a ∀ CONVERSION (Nu-⟪Λ⟫'s).
+-- ∀.  A closed value at a ∀ type is a Λ over a VALUE (Nu-Λ's premise)
+-- or a Λ under a ∀ middle (Nu-⟪Λ⟫'s): the one-boundary invariant
+-- leaves no third shape.
 canon-∀ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ `∀ C
   → (Σ[ N ∈ Term ] (Value N × (V ≡ Λ N)))
-  ⊎ (Σ[ W ∈ Term ] Σ[ Θ ∈ Boundary ] Σ[ s ∈ Conv ]
-       (Value W × (V ≡ W ⟪ Θ , `∀ s ⟫)))
-canon-∀ V-$      ()
-canon-∀ V-true   ()
-canon-∀ V-false  ()
-canon-∀ V-ƛ      ()
-canon-∀ (V-Λ vN) (⊢Λ _ _) = inj₁ (_ , vN , refl)
-canon-∀ {Δ = Δ} (V-⟪⟫ v ic)
+  ⊎ (Σ[ N ∈ Term ] Σ[ Θ ∈ Boundary ] Σ[ s ∈ Conv ]
+       (Value N × (V ≡ (Λ N) ⟪ Θ , ⌞ `∀ s ⌟ ⟫)))
+canon-∀ (V-simple S-$)      ()
+canon-∀ (V-simple S-true)   ()
+canon-∀ (V-simple S-false)  ()
+canon-∀ (V-simple S-ƛ)      ()
+canon-∀ (V-simple (S-Λ vN)) (⊢Λ _ _) = inj₁ (_ , vN , refl)
+canon-∀ {Δ = Δ} (V-⟪⟫ u it)
     (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   with ≈-∀-target {Δ = Δ} {Δ′ = Δᶜ} sameₑ
-canon-∀ {Δ = Δ} (V-⟪⟫ v ic)
+canon-∀ {Δ = Δ} (V-⟪⟫ u it)
     (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   | C′ , eq
-  with inert-all-conv ic (conv-tgt≡ eq ⊢c)
-canon-∀ {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
-  | C′ , eq | s , refl =
-  inj₂ (_ , _ , s , v , refl)
-
--- VARIABLE — the v2 canon-var, dissolved into a two-way case split on
--- a conversion constructor: `seal Y` or `id (` Y)`, nothing else.
--- Commentary.md § proof/Canonical.agda / §3
-canon-var : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ ` X
-  → Σ[ W ∈ Term ] Σ[ Θ ∈ Boundary ] Σ[ Y ∈ ℕ ]
-      (Value W
-       × ((V ≡ W ⟪ Θ , seal Y ⟫) ⊎ (V ≡ W ⟪ Θ , id (` Y) ⟫)))
-canon-var V-$     ()
-canon-var V-true  ()
-canon-var V-false ()
-canon-var V-ƛ     ()
-canon-var (V-Λ _) ()
-canon-var {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
-  with ≈-var-target {Δ = Δ} {Δ′ = Δᶜ} sameₑ
-canon-var {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
-  | Y , eq
-  with inert-var-conv ic (conv-tgt≡ eq ⊢c)
-canon-var {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
-  | Y , eq | inj₁ refl =
-  _ , _ , _ , v , inj₁ refl
-canon-var {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
-  | Y , eq | inj₂ refl =
-  _ , _ , _ , v , inj₂ refl
-
+  with inert-all-conv it (conv-tgt≡ eq ⊢c)
+canon-∀ {Δ = Δ} (V-⟪⟫ u it)
+    (env {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
+  | C′ , eq | s , refl with conv-all-inv ⊢c
+canon-∀ {Δ = Δ} (V-⟪⟫ u it)
+    (env {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
+  | C′ , eq | s , refl | A₀ , B₀ , refl , eqB , ⊢s
+  with ≈-∀-source {Δ = Δᵢ} {Δ′ = Δᶜ} sameᵢ
+canon-∀ {Δ = Δ} (V-⟪⟫ u it)
+    (env {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
+  | C′ , eq | s , refl | A₀ , B₀ , refl , eqB , ⊢s | D , refl
+  with canon-simple-∀ u ⊢U
+canon-∀ {Δ = Δ} (V-⟪⟫ u it)
+    (env {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
+  | C′ , eq | s , refl | A₀ , B₀ , refl , eqB , ⊢s | D , refl
+  | N , vN , refl = inj₂ (_ , _ , s , vN , refl)

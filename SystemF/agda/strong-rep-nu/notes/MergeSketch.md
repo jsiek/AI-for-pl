@@ -226,3 +226,91 @@ boundary on a value.
    `seal Y ; seal X` chain, which cites two binders.  Should the
    invariant be generalised — to a pivot SET, in the spirit of
    GTSFImp's `PivotJoin` — or retired?
+
+## Decisions (Jeremy, 2026-09-24)
+
+- A separate `Merge` step (M1), not merge-on-construction.
+- The three-sort grammar with `NoCancel`, as ENDPOINT-INDEXED datatypes.
+- `Nu-⟪Λ⟫` keeps its stacked (N1) contractum, and `Merge` fires next.
+- `proof/Canonicity.agda` is retired when `Merge` lands: the single-binder
+  invariant is exactly what merging gives up.
+- The work continues on branch `strong-rep-nu` (PR #209).
+
+## Proposed statements (for review before implementing)
+
+**Syntax** (`Conversion.agda`).  The sorts are indexed by their endpoints.
+A seal or unseal carries the representation spelling `R` in its
+indices, as GTSFImp's `seal X R` does.  The context enters only through
+the validity judgement below.
+
+    data Atomic : Ty → Set where           -- where a bare `id` may sit
+      at-base : Base A → Atomic A
+      at-var  : Atomic (` X)
+
+    mutual
+      data Mid : Ty → Ty → Set where
+        id    : Atomic A → Mid A A
+        _↦_   : Conv A′ A → Conv B B′ → Mid (A ⇒ B) (A′ ⇒ B′)
+        `∀    : Conv A B → Mid (`∀ A) (`∀ B)
+
+      data Tail : Ty → Ty → Set where
+        mid     : Mid A B → Tail A B
+        _⨾seal_ : Tail A R → (X : ℕ) → Tail A (` X)
+
+      data Conv : Ty → Ty → Set where
+        tail      : Tail A B → Conv A B
+        unseal_⨾_ : (X : ℕ) (c : Conv R B) → NoCancel X c → Conv (` X) B
+
+`NoCancel X c` is a computed `Set`: `⊥` if `c` is a tail whose middle
+is an identity and whose first seal is `X`, and `⊤` otherwise.  Being
+computed, its proofs are unique, so it does not break equality of
+conversions.
+
+**Validity** replaces `Δ ⊢ c ∶ A ⇝ B`.  Each seal and unseal must agree
+with the lookup square, and each identity variable must be in scope:
+
+    Δ ⊢ᶜᵛ c      for c : Conv A B      (and ⊢ᵗᵛ, ⊢ᵐᵛ for the other sorts)
+      unseal : Δ ∋ X := R → Δ ⊢ᶜᵛ c → Δ ⊢ᶜᵛ unseal X ⨾ c    (c : Conv R B)
+      seal   : Δ ⊢ᵗᵛ t → Δ ∋ X := R → Δ ⊢ᵗᵛ t ⨾seal X     (t : Tail A R)
+      id-var : Δ ∋tv X → Δ ⊢ᵐᵛ id at-var
+      ...                                               (the remaining cases are structural)
+
+`reveal`/`conceal` gain the representation spelling:
+`reveal : (X : ℕ) (A B : Ty) → Conv B (B [ X := A ]ᵗ)`.  The compiler
+writes `reveal 0 (⇑ A) C`.
+
+**Composition** — its typing is by construction:
+
+    _⨟_  : Conv A B → Conv B C → Conv A C
+    ⊢⨟   : Δ ⊢ᶜᵛ c₁ → Δ ⊢ᶜᵛ c₂ → Δ ⊢ᶜᵛ (c₁ ⨟ c₂)
+
+**Terms and values** (`Terms.agda`):
+
+    _⟪_,_⟫ : Term → Boundary → Conv A B → Term        (A and B implicit)
+
+    data Simple : Term → Set      -- $n, true, false, ƛ, Λ
+    data Value  : Term → Set where
+      V-simple : Simple U → Value U
+      V-⟪⟫     : Simple U → InertTail t → Value (U ⟪ Θ , tail t ⟫)
+
+`InertTail t` holds unless `t = mid (id (at-base b))`.
+
+**Merge** (`Reduction.agda`) replaces `CancelR` and `IdPush`:
+
+    Merge : Simple U → InertTail t₁
+      → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ   → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
+      → Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ  → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
+      → SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ (tail t₁)       -- t₁′ : Tail A′ M
+      → SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂                     -- c₂′ : Conv M C′
+      → Δ ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫
+          -→ U ⟪ Θ₁ ++ Θ₂ , tail t₁′ ⨟ c₂′ ⟫ ∣ none
+
+The two re-spellings SHARE the middle index `M`, so `_⨟_` applies
+without a cast.  That both `M`s agree is a lemma: they re-spell one
+representation at one context, and the names there are unique.
+
+**The rules that change shape**: `Peel` matches `tail (mid (s ↦ t))`,
+`Nu-⟪Λ⟫` matches `tail (mid (∀ s))`, and the drops match
+`tail (mid (id (at-base b)))`.  `Nu-⟪⟫`, `CancelR` and `IdPush` are
+deleted.  The theorem statements are unchanged: `Progress`,
+`Preservation`, `det`, `TypeSafety`, `compile-⊢`.

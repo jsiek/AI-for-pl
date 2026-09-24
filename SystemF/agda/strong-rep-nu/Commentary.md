@@ -2576,9 +2576,9 @@ type-substitution facts used by elimination.  §1b is `RepRefines` — the
 `abstR → bindR R` refinement a ∀-elimination performs in place.  §2 is
 `alloc-wf` / `repwk-alloc` / `inst-boundarywf`, everything the
 ALLOCATION of a cell needs, and the minted-conversion typings
-`⊢reveal`/`⊢conceal` — which `compile-ν` and `Nu-⟪⟫`'s pushed `ν` use —
-with `⊢instReveal`/`⊢instConceal` (§2b), which no rule needs since
-2026-09-24.  §3 opens with `nu-outer`, the outer layer every `Nu`
+`⊢reveal`/`⊢conceal` — which `compile-ν` and `Nu-⟪⟫`'s pushed `ν` use.
+(`⊢instReveal`/`⊢instConceal`, the old §2b, were deleted on 2026-09-24
+with their helpers: no rule mints `instReveal` any more.)  §3 opens with `nu-outer`, the outer layer every `Nu`
 contractum shares, typed from `⊢ν`'s own premises.  §3 proves the local reduction cases.  §4 states the
 transports that are proved downstream — `CrossΛTyping`,
 `AddUnbind0Typing`, `ShiftTyping` and the three crossing cases (§4b) —

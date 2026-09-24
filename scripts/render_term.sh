@@ -17,6 +17,7 @@ for imp in "$@"; do
   case "$imp" in
     *"import strong."*)            SHOW="strong.Show";;
     *"import strong-rep-store."*)  SHOW="strong-rep-store.Show";;
+    *"import strong-rep-nu."*)     SHOW="strong-rep-nu.Show";;
   esac
 done
 { echo "module RenderTmp where"

@@ -37,3 +37,10 @@ body to be a value and the congruence `ξ-Λ` is removed, so nothing
 reduces under a type binder.  Everything else is strong-rep-var's; the
 whole development, examples included, checks.  See the first section of
 strong-rep-store/README.md.
+
+# strong-rep-nu
+
+A variant of strong-rep-store (2026-09-24) exploring a GTPLC-style `ν`
+term with a Conversion in place of a coercion: type application
+elaborates to `ν`, moving `TyBeta`'s reveal to compile time.  See
+strong-rep-nu/notes/NuSketch.md.

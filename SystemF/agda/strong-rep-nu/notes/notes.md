@@ -229,10 +229,43 @@ Representation formation has the same structural rules.  Its free-variable
 rule asks for `α ∈ Ξ`; under representation type `∀X` it adds only the representation-local
 ordinary binder `X`, not a new free representation variable.
 
+## Reading a type as a representation
+
+The relation `Γ ⊢ A ~ R` reads the ordinary type `A` through the name
+map `Γ`, giving the representation type `R`.  A free type variable is
+replaced by the representation variable it names; a `∀` binds the same
+local variable on both sides and does not touch the free
+representation variables.
+
+    (same-var)  X ↦ α ∈ Γ
+                -------------
+                Γ ⊢ X ~ α
+
+    (same-ℕ)    ---------          (same-𝔹)   ---------
+                Γ ⊢ ℕ ~ ℕ                      Γ ⊢ 𝔹 ~ 𝔹
+
+    (same-⇒)    Γ ⊢ A ~ R    Γ ⊢ B ~ S
+                -----------------------
+                Γ ⊢ A ⇒ B ~ R ⇒ S
+
+    (same-∀)    Γ, X ↦ X ⊢ A ~ R
+                ------------------
+                Γ ⊢ ∀X.A ~ ∀X.R
+
+In `same-∀`, the entry `X ↦ X` maps `X` to the representation-local
+binder `X` of `∀X.R`, not to a representation variable of `Ξ`.  (Agda's
+premise is `(zero ∷ shiftReps Γ) ⊢ A ~ R`: local index `0` reads as
+local index `0`, and every free representation index moves up past the
+new local binder.  With names nothing moves.)  The relation mentions
+only `Γ`; the store is not consulted.  On a whole context we write
+
+    Ξ ∣ Γ ⊢ᶜ A ~ R   =   Γ ⊢ A ~ R
+
+(Agda's `Δ ⊢ᶜ A ~ R = names Δ ⊢ A ~ R`).
+
 ## One representation, two ordinary spellings
 
-The Agda relation `Γ ⊢ A ~ R` says that the ordinary type `A`, read
-through scope map `Γ`, denotes representation type `R`.  Consequently
+Using `~`, the relation
 
     Δ ⊢ A ≈ B ⊣ Δ′
 

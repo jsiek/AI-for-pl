@@ -25,3 +25,4 @@ open import strong-rep-nu.notes.CancelRShiftWall
 -- COLOR PRESERVATION on one run (2026-09-21): the statement layer of
 -- strong-rep-nu.Residual exercised end to end on a Peel under a Λ.
 open import strong-rep-nu.notes.ColorPreservationProbe
+open import strong-rep-nu.notes.StackCensus

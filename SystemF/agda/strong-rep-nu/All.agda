@@ -38,6 +38,7 @@ open import strong-rep-nu.TypeSafety
 -- the two universes differently (X names α) and a whole run with the rule
 -- that fired at each step.
 open import strong-rep-nu.Examples
+open import strong-rep-nu.SourceExamples
 
 -- COLOR PRESERVATION (2026-09-21): the one-hole-context/residual layer,
 -- the theorem, and its proof (reached through the public module).

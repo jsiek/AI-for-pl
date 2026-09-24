@@ -45,5 +45,6 @@ compile-safe : ∀ {M A N}
   → (d : 0 ∣ [] ⊢ˢ M ⦂ A)
   → (r : empty ⊢ compile d -→* N)
     ---------------------------------------------
-  → Value N ⊎ (Σ[ N′ ∈ Term ] Σ[ δ ∈ Alloc ] (runCtx r ⊢ N -→ N′ ∣ δ))
+  → Value N
+    ⊎ (Σ[ N′ ∈ Term ] Σ[ δ ∈ Alloc ] (runCtx r ⊢ N -→ N′ ∣ δ))
 compile-safe d r = type-safety wf-empty (compile-closed d) r

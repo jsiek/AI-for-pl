@@ -13,6 +13,8 @@ open import strong-rep-nu.TermSubst
 open import strong-rep-nu.Reduction
 open import strong-rep-nu.Source
 open import strong-rep-nu.Compile
+open import strong-rep-nu.CompileTyping
+open import strong-rep-nu.proof.Compile
 
 -- executable, derivation-producing type checking, and the step function
 -- that searches for a redex.  Neither depends on the metatheory below, so

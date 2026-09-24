@@ -167,6 +167,9 @@ give that type different ordinary de Bruijn spellings, which is exactly
 why the reduction rules carry `≈` premises rather than renamings — see
 § Reduction.agda / The crossing-spelling law.
 
+On well-formed types `~` is renaming through the name map and `≈` is an
+equation between two such renamings — § proof/SameRenaming.agda.
+
 ### `extN`, `Injᵗ` (§8, the name-map half of representation renaming)
 
 A REPRESENTATION-ONLY renaming moves representation variables and
@@ -2443,6 +2446,23 @@ free (renamed), which is exactly what `extN m ρ` does.
 * The bind-block lemmas themselves — `wfᴿ-push`, `wfRepCtx-push`,
   `∋ʳ-push`, `⊆ᵃ-shiftRVars`, `repwk-push` and the `shiftRVars` family
   — went on 2026-09-22 with experiment 2.
+
+## proof/SameRenaming.agda
+
+`_⊢_~_` IS RENAMING.  `⟦ A ⟧ η = renameᵗ (read η) A` reads the name
+map as a renaming; `same→ren` / `ren→same` show
+`names Δ ⊢ A ~ R ⇔ Δ ⊢ᵗ A × ⟦ A ⟧ names Δ ≡ R`, and `≈→ren` / `ren→≈`
+restate `_⊢_≈_⊣_` as an equation between two renamings.  The one new
+induction is `~→ren`, for any renaming that `Agrees` with the map;
+`agrees-ext` is `same-∀`'s extension of the map, on the renaming side.
+The scoping direction is `same-wf` / `wf-same` (proof/Preserve.agda).
+
+WHY THE RELATION STAYS.  `read` needs a value off the map, so
+`extᵗ (read η)` and `read (zero ∷ shiftReps η)` agree only on
+well-formed types; a renaming-based development pays for that under
+every binder, and loses the inversions the clients get by matching on
+`same-*` (estimated 2026-09-24 at +100–220 lines net).  Nothing in the
+development imports this file; it records what `~` means.
 
 ## proof/TermSubst.agda
 

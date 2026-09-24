@@ -59,6 +59,10 @@ open import strong-rep-nu.Show
 -- Direct gate: no top-level module reaches this soundness audit.
 open import strong-rep-nu.proof.Adversary
 
+-- `_⊢_~_` IS RENAMING through the name map, on well-formed types.
+-- Direct gate: nothing depends on this characterization.
+open import strong-rep-nu.proof.SameRenaming
+
 -- THE ID-LAYER FACTS about the `Merge` redexes the retired IdPush and
 -- CancelR handled: the two names already denote one representation
 -- variable, `unseal` is the only active conversion an id-layer can

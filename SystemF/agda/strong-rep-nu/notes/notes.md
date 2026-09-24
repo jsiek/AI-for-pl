@@ -263,6 +263,15 @@ only `Γ`; the store is not consulted.  On a whole context we write
 
 (Agda's `Δ ⊢ᶜ A ~ R = names Δ ⊢ A ~ R`).
 
+Equivalently, `~` is renaming: `Γ ⊢ A ~ R` holds exactly when `A` is
+well formed in `Γ` and `R = A[Γ]`, where `A[Γ]` replaces each free `X`
+by the `α` with `X ↦ α ∈ Γ`.  Likewise `Δ ⊢ A ≈ B ⊣ Δ′` holds exactly
+when `A` and `B` are well formed in `Δ` and `Δ′` and `A[Γ] = B[Γ′]`.
+(`proof/SameRenaming.agda`: `same→ren`, `ren→same`, `≈→ren`,
+`ren→≈`.)  The relation is kept because one derivation carries both
+the scoping and the result, and it inverts by pattern matching; the
+partiality of `A[Γ]` is exactly the well-formedness of `A`.
+
 ## One representation, two ordinary spellings
 
 Using `~`, the relation

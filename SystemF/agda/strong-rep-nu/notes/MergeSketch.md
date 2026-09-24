@@ -230,91 +230,132 @@ boundary on a value.
 ## Decisions (Jeremy, 2026-09-24)
 
 - A separate `Merge` step (M1), not merge-on-construction.
-- The three-sort grammar with `NoCancel`, as ENDPOINT-INDEXED datatypes.
+- The three-sort grammar with `NoCancel`, as three syntactic datatypes.
+  ("Endpoint-indexed" was withdrawn once representation variables were
+  kept; see below.)
 - `Nu-⟪Λ⟫` keeps its stacked (N1) contractum, and `Merge` fires next.
 - `proof/Canonicity.agda` is retired when `Merge` lands: the single-binder
   invariant is exactly what merging gives up.
 - The work continues on branch `strong-rep-nu` (PR #209).
 
-## Proposed statements (for review before implementing)
+## Proposed statements (revised 2026-09-24: representation variables kept)
 
-**Syntax** (`Conversion.agda`).  The sorts are indexed by their endpoints.
-A seal or unseal carries the representation spelling `R` in its
-indices, as GTSFImp's `seal X R` does.  The context enters only through
-the validity judgement below.
+Jeremy: keep the current design, where a seal or unseal carries only the
+ordinary NAME `X` and its representation is read through the lookup
+square `Δ ∋ X := R` (CONVERSIONS ARE REP-FREE).  Two consequences:
 
-    data Atomic : Ty → Set where           -- where a bare `id` may sit
-      at-base : Base A → Atomic A
-      at-var  : Atomic (` X)
+- **The sorts are syntactic but not endpoint-indexed.**  `seal X`'s
+  source is `X`'s representation spelled in `Δ`, so no syntax index can
+  state it.  The endpoints come from a per-sort typing judgement, as
+  today.
+- **Standalone `seal X` and `unseal X` return.**  `unseal X ; id R` would
+  have to spell `R`, which may be compound (run B has `ℕ⇒ℕ`).  So a bare
+  `seal X` or `unseal X` stands for an identity middle, and a chain
+  extends only a NON-identity — GTPLC's `A ≢ B` premise.
+
+**Syntax** (`Conversion.agda`):
 
     mutual
-      data Mid : Ty → Ty → Set where
-        id    : Atomic A → Mid A A
-        _↦_   : Conv A′ A → Conv B B′ → Mid (A ⇒ B) (A′ ⇒ B′)
-        `∀    : Conv A B → Mid (`∀ A) (`∀ B)
+      data Mid : Set where
+        id   : Ty → Mid                 -- typing restricts A to a base type or a variable
+        _↦_  : Conv → Conv → Mid
+        `∀   : Conv → Mid
 
-      data Tail : Ty → Ty → Set where
-        mid     : Mid A B → Tail A B
-        _⨾seal_ : Tail A R → (X : ℕ) → Tail A (` X)
+      data Tail : Set where
+        mid     : Mid → Tail
+        seal    : ℕ → Tail              -- the identity middle, then seal X
+        _⨾seal_ : Tail → ℕ → Tail       -- t ; seal X
 
-      data Conv : Ty → Ty → Set where
-        tail      : Tail A B → Conv A B
-        unseal_⨾_ : (X : ℕ) (c : Conv R B) → NoCancel X c → Conv (` X) B
+      data Conv : Set where
+        tail      : Tail → Conv
+        unseal    : ℕ → Conv            -- unseal X, then the identity middle
+        unseal_⨾_ : ℕ → Conv → Conv     -- unseal X ; c
 
-`NoCancel X c` is a computed `Set`: `⊥` if `c` is a tail whose middle
-is an identity and whose first seal is `X`, and `⊤` otherwise.  Being
-computed, its proofs are unique, so it does not break equality of
-conversions.
+**Identity** is syntactic.  It includes the structural identities, so
+that `(id ℕ ↦ id ℕ) ; seal Y` is not a second spelling of `seal Y`:
 
-**Validity** replaces `Δ ⊢ c ∶ A ⇝ B`.  Each seal and unseal must agree
-with the lookup square, and each identity variable must be in scope:
+    IsIdᵐ (id A)   = ⊤
+    IsIdᵐ (s ↦ t)  = IsIdᶜ s × IsIdᶜ t
+    IsIdᵐ (`∀ s)   = IsIdᶜ s
+    IsIdᶜ (tail (mid g)) = IsIdᵐ g
+    IsIdᶜ c              = ⊥          for every other shape of c
 
-    Δ ⊢ᶜᵛ c      for c : Conv A B      (and ⊢ᵗᵛ, ⊢ᵐᵛ for the other sorts)
-      unseal : Δ ∋ X := R → Δ ⊢ᶜᵛ c → Δ ⊢ᶜᵛ unseal X ⨾ c    (c : Conv R B)
-      seal   : Δ ⊢ᵗᵛ t → Δ ∋ X := R → Δ ⊢ᵗᵛ t ⨾seal X     (t : Tail A R)
-      id-var : Δ ∋tv X → Δ ⊢ᵐᵛ id at-var
-      id-base: Δ ⊢ᵐᵛ id (at-base b)
-      fun    : Δ ⊢ᶜᵛ s → Δ ⊢ᶜᵛ t → Δ ⊢ᵐᵛ s ↦ t
-      all    : underΛ Δ ⊢ᶜᵛ s → Δ ⊢ᵐᵛ `∀ s
-      mid    : Δ ⊢ᵐᵛ g → Δ ⊢ᵗᵛ mid g
-      tail   : Δ ⊢ᵗᵛ t → Δ ⊢ᶜᵛ tail t
+**Typing** (per sort, with the endpoints read off `Δ`):
 
-`reveal`/`conceal` gain the representation spelling:
-`reveal : (X : ℕ) (A B : Ty) → Conv B (B [ X := A ]ᵗ)`.  The compiler
-writes `reveal 0 (⇑ A) C`.
+    Δ ⊢ g ∶ A ⇒ᵐ B
+      id-base   Base ι                              ⟹  Δ ⊢ id ι ∶ ι ⇒ᵐ ι
+      id-var    Δ ∋tv X                             ⟹  Δ ⊢ id (` X) ∶ X ⇒ᵐ X
+      fun       Δ ⊢ s ∶ A′ ⇝ A ,  Δ ⊢ t ∶ B ⇝ B′    ⟹  Δ ⊢ s ↦ t ∶ A⇒B ⇒ᵐ A′⇒B′
+      all       underΛ Δ ⊢ s ∶ A ⇝ B                ⟹  Δ ⊢ ∀ s ∶ ∀A ⇒ᵐ ∀B
 
-**Composition** — its typing is by construction:
+    Δ ⊢ t ∶ A ⇒ᵗ B
+      mid       Δ ⊢ g ∶ A ⇒ᵐ B                      ⟹  Δ ⊢ mid g ∶ A ⇒ᵗ B
+      seal      Δ ∋ X := R                          ⟹  Δ ⊢ seal X ∶ R ⇒ᵗ X
+      seal-seq  Δ ⊢ t ∶ A ⇒ᵗ R ,  Δ ∋ X := R ,  ¬ IsIdᵗ t
+                                                    ⟹  Δ ⊢ t ⨾seal X ∶ A ⇒ᵗ X
 
-    _⨟_  : Conv A B → Conv B C → Conv A C
-    ⊢⨟   : Δ ⊢ᶜᵛ c₁ → Δ ⊢ᶜᵛ c₂ → Δ ⊢ᶜᵛ (c₁ ⨟ c₂)
+    Δ ⊢ c ∶ A ⇝ B
+      tail        Δ ⊢ t ∶ A ⇒ᵗ B                    ⟹  Δ ⊢ tail t ∶ A ⇝ B
+      unseal      Δ ∋ X := R                        ⟹  Δ ⊢ unseal X ∶ X ⇝ R
+      unseal-seq  Δ ∋ X := R ,  Δ ⊢ c ∶ R ⇝ B ,  ¬ IsIdᶜ c ,  NoCancel X c
+                                                    ⟹  Δ ⊢ unseal X ⨾ c ∶ X ⇝ B
 
-**Terms and values** (`Terms.agda`):
+(`IsIdᵗ (mid g) = IsIdᵐ g`, and `IsIdᵗ t = ⊥` for the two seal forms.)
 
-    _⟪_,_⟫ : Term → Boundary → Conv A B → Term        (A and B implicit)
+`NoCancel X c` says that `c` does not start by resealing `X`.  With the
+identity middle now implicit, that means `c`'s seal chain does not begin
+with a bare `seal X`:
+
+    NoCancel X (tail (seal Y))       = X ≢ Y
+    NoCancel X (tail (t ⨾seal Y))    = NoCancelᵗ X t
+    NoCancelᵗ X (seal Y)             = X ≢ Y
+    NoCancelᵗ X (t ⨾seal Y)          = NoCancelᵗ X t
+    NoCancelᵗ X (mid g)              = ⊤        (a non-identity middle blocks the cancel)
+    NoCancel X (tail (mid g))        = ⊤
+    NoCancel X (unseal Y)            = ⊤
+    NoCancel X (unseal Y ⨾ c)        = ⊤
+
+**Composition** is an untyped function on the syntax.  Its correctness
+is a lemma:
+
+    _⨟_ : Conv → Conv → Conv
+    ⊢⨟  : Δ ⊢ c₁ ∶ A ⇝ B → Δ ⊢ c₂ ∶ B ⇝ C → Δ ⊢ c₁ ⨟ c₂ ∶ A ⇝ C
+
+Each clause is justified by typing.  Pairs that typing rules out, such
+as `seal X` followed by `unseal Y` with `X ≢ Y`, get an arbitrary result
+in the function; the lemma never looks at them.  The smart constructors
+`_⨾sealˢ_` and `unseal_⨾ˢ_` drop an identity middle (turning `mid g`
+with `IsIdᵐ g` into a bare `seal X`/`unseal X`) and apply the
+`NoCancel` cancellation (`unseal X` then `seal X` is `mid (id (` X))`).
+
+**Terms and values** (`Terms.agda`): `_⟪_,_⟫ : Term → Boundary → Conv →
+Term` is unchanged.
 
     data Simple : Term → Set      -- $n, true, false, ƛ, Λ
     data Value  : Term → Set where
       V-simple : Simple U → Value U
       V-⟪⟫     : Simple U → InertTail t → Value (U ⟪ Θ , tail t ⟫)
 
-`InertTail t` holds unless `t = mid (id (at-base b))`.
+`InertTail t` holds unless `t = mid (id A)` with `A` a base type.
 
 **Merge** (`Reduction.agda`) replaces `CancelR` and `IdPush`:
 
     Merge : Simple U → InertTail t₁
       → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ   → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
       → Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ  → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
-      → SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ (tail t₁)       -- t₁′ : Tail A′ M
-      → SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂                     -- c₂′ : Conv M C′
+      → SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ (tail t₁)
+      → SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂
       → Δ ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫
           -→ U ⟪ Θ₁ ++ Θ₂ , tail t₁′ ⨟ c₂′ ⟫ ∣ none
 
-The two re-spellings SHARE the middle index `M`, so `_⨟_` applies
-without a cast.  That both `M`s agree is a lemma: they re-spell one
-representation at one context, and the names there are unique.
+That `t₁′`'s target and `c₂′`'s source agree at `Δ⋉ᶜ` is a lemma: they
+re-spell one representation at one context, and the names there are
+unique.  `SameConv` extends to the new sorts leaf by leaf, as today.
 
 **The rules that change shape**: `Peel` matches `tail (mid (s ↦ t))`,
 `Nu-⟪Λ⟫` matches `tail (mid (∀ s))`, and the drops match
-`tail (mid (id (at-base b)))`.  `Nu-⟪⟫`, `CancelR` and `IdPush` are
-deleted.  The theorem statements are unchanged: `Progress`,
-`Preservation`, `det`, `TypeSafety`, `compile-⊢`.
+`tail (mid (id A))` with `A` a base type.  `Nu-⟪⟫`, `CancelR` and
+`IdPush` are deleted.  `reveal`/`conceal` keep their signatures and
+emit bare `unseal X`/`seal X`, so the compiler is unchanged.  The
+theorem statements are unchanged: `Progress`, `Preservation`, `det`,
+`TypeSafety`, `compile-⊢`.

@@ -359,7 +359,7 @@ fails.  Without this clause `rewind Θ` and `Θ′ ++ Θ` have NO conversion
 context whenever Θ unbinds, so `CancelR`'s and `IdPush`'s contracta were
 untypeable: that is the wall the tower example walked into
 (`Examples.agda` §5a, `no-rewind-conv` / `no-cancel-inner-conv`; the
-refutation module is `notes/ReUnlockWall.agda`).  The rewind half of
+refutation module is `strong-rep-store/notes/ReUnlockWall.agda`).  The rewind half of
 that is history since 2026-09-23 — no rule builds one — but the merge
 `Θ₁ ++ Θ₂` that `Merge` builds (as both retired rules did) has the same
 shape whenever `Θ₂` unbinds what `Θ₁` binds.
@@ -1036,8 +1036,8 @@ own conversion context), and the two `Nu-⟪⟫` rows went with that rule
 | spelling | rule | pinned by | date | wall |
 |---|---|---|---|---|
 | `s′`  | `Peel`       | `SameConv Δᵈ s′ Δᶜ s`        | 2026-09-18 | `notes/CrossingAudit.agda`, `notes/PeelPremise.agda` |
-| `Bᵢ′` | `Nu-⟪⟫` (retired) | `≈` at the interior     | 2026-09-18 | `notes/ForallPayloadWall.agda` |
-| `X′`  | `IdPush` (retired) | `≈` at the merged frame | 2026-09-18 | `notes/ForallPayloadWall.agda` |
+| `Bᵢ′` | `Nu-⟪⟫` (retired) | `≈` at the interior     | 2026-09-18 | `strong-rep-store/notes/ForallPayloadWall.agda` |
+| `X′`  | `IdPush` (retired) | `≈` at the merged frame | 2026-09-18 | `strong-rep-store/notes/ForallPayloadWall.agda` |
 | `A′`  | `CancelR` (retired) | `≈` at Θ₁'s OWN conv. ctx | 2026-09-19 | `notes/CancelRShiftWall.agda`‡, `strong-rep-store/notes/CancelRReachabilityWitness.agda`† |
 | `s″`  | `Nu-⟪⟫` (retired) | `SameConv` at `underΛ Δ″ᶜ` | 2026-09-20 | `strong-rep-store/notes/AddLock0Wall.agda`† |
 | `t₁′`, `c₂′` | `Merge` | `SameConv` at the merged conv. ctx `Δ⋉ᶜ` | 2026-09-24 | none: installed with the rule, on the `X′`/`A′` lesson |
@@ -1052,7 +1052,7 @@ strong-rep-store's checked versions.  ‡ deleted in the merge port,
 A sixth defect of the same reading discipline hit the CONVERSION
 CONTEXT itself rather than a spelling: a conversion reading skips
 unbinds, so a later `bind` can meet a name that is already live.  That
-is the clause `conv-bind-live` (2026-09-17, `notes/ReUnlockWall.agda`,
+is the clause `conv-bind-live` (2026-09-17, `strong-rep-store/notes/ReUnlockWall.agda`,
 `Boundary.agda` §3; see § Boundary.agda / `_∣_⊢χᶜ_⇒_`).
 
 Determinism for the carried premises is `sameConv-src-unique` (both
@@ -1542,7 +1542,7 @@ name map `η`; `rebase?` finds its spelling on `η′` together with the
 `_⊢_≈_⊣_` that relates them.  It goes through the REPRESENTATION, which
 is the only route there is: the two maps can reorder relative to each
 other, so no arithmetic on positions would do
-(`notes/ForallPayloadWall.agda` §3).  It is PARTIAL, because `η′` need
+(`strong-rep-store/notes/ForallPayloadWall.agda` §3).  It is PARTIAL, because `η′` need
 not name everything `η` does — which is why the rules that cross carry
 this as a premise rather than computing it.
 
@@ -2396,7 +2396,7 @@ type has at most one ordinary reading.
 `sameTy-src-unique`: a spelling CROSSES between the interior and the
 conversion context by the REPRESENTATION it denotes, never by
 arithmetic on its position — the two name maps can reorder relative to
-each other (`notes/ForallPayloadWall.agda` §3).  `_⊢_≈_⊣_` is that
+each other (`strong-rep-store/notes/ForallPayloadWall.agda` §3).  `_⊢_≈_⊣_` is that
 crossing, and on a unique name map it is a FUNCTION, which is what
 determinism needs from the rules that carry it.  It is stated on NAME
 MAPS, because `_⊢_≈_⊣_`'s contexts reach the judgement only through

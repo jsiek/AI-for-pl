@@ -267,7 +267,7 @@ the variable live anywhere in the boundary:
 
 The last clause is `conv-bind-live`.  For example, a conversion reading
 of `↓X` leaves `X` live; the inverse `↥X` in `Θ ++ dual Θ` must therefore
-be a no-op, not a failed freshness check.  `notes/ReUnlockWall.agda`
+be a no-op, not a failed freshness check.  `strong-rep-store/notes/ReUnlockWall.agda`
 machine-checks the old failure and the repaired readings.
 
 Both readings are relations, but each is functional.  A well-formed
@@ -973,9 +973,9 @@ rule.
 
 | defect | repair | status | what naming removes | what survives |
 |---|---|---|---|---|
-| `notes/ReUnlockWall.agda` | `conv-bind-live` | live | a repeated insertion position | the conversion reading is a union and differs from the interior |
-| `notes/ForallPayloadWall.agda`, `TyPeelR-⟪⟫` | carry `Bᵢ′` with `_⊢_≈_⊣_` | retired with `Nu-⟪⟫`, 2026-09-24 | reindexing the interior annotation | it had to be readable in both the interior and conversion contexts |
-| `notes/ForallPayloadWall.agda`, `IdPush` | carry `X′` with `_⊢_≈_⊣_` | subsumed by `Merge`'s `t₁′`, 2026-09-24 | reindexing the pushed name | the name must be live at the inner and merged conversion contexts |
+| `strong-rep-store/notes/ReUnlockWall.agda` | `conv-bind-live` | live | a repeated insertion position | the conversion reading is a union and differs from the interior |
+| `strong-rep-store/notes/ForallPayloadWall.agda`, `TyPeelR-⟪⟫` | carry `Bᵢ′` with `_⊢_≈_⊣_` | retired with `Nu-⟪⟫`, 2026-09-24 | reindexing the interior annotation | it had to be readable in both the interior and conversion contexts |
+| `strong-rep-store/notes/ForallPayloadWall.agda`, `IdPush` | carry `X′` with `_⊢_≈_⊣_` | subsumed by `Merge`'s `t₁′`, 2026-09-24 | reindexing the pushed name | the name must be live at the inner and merged conversion contexts |
 | `notes/CancelRShiftWall.agda` (deleted 2026-09-24; git history) | carry `A′` from `Θ₁`'s own conversion context | subsumed by `Merge`'s `t₁′`, 2026-09-24 | the bind-prefix shift, which no longer exists | the type is still read at two different NAME MAPS, `Θ₁`'s and the merged one |
 | `notes/CrossingAudit.agda` and `notes/PeelPremise.agda` | carry `s′` with `SameConv` | live | reindexing the domain conversion across the dual | the original and dual conversion contexts remain different |
 | `strong-rep-store/notes/AddLock0Wall.agda` (against `TyPeelR-⟪⟫`) | carry `s″` with `SameConv` | retired with `Nu-⟪⟫`, 2026-09-24 | reindexing through the new unbind and old binds | both conversion readings and the old context's representation-rebased view were premises |

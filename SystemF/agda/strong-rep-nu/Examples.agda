@@ -8,7 +8,7 @@ module strong-rep-nu.Examples where
 --   * EXAMPLES ONLY.  Nothing here records a design decision, a defect or
 --     a repair.  Those go in notes/DECISIONS.md, and a machine-checked
 --     witness for one goes in its own notes/ module — see
---     notes/ReUnlockWall.agda and notes/ForallPayloadWall.agda, each of
+--     strong-rep-store/notes/ReUnlockWall.agda and strong-rep-store/notes/ForallPayloadWall.agda, each of
 --     which these runs produced.
 --   * AN EXAMPLE IS FOUR LINES, so the corpus is meant to grow.  Adding
 --     one should not require touching anything else in this file.
@@ -493,7 +493,7 @@ H-run = reaches-run H-eval
 -- `true` has crossed several boundaries, each merged into its one
 -- boundary as it is crossed, so `Merge` composes conversions on frames
 -- that are COMPOSITES (the merge `_++_`).  Finishing §5a is what found
--- the defect recorded in notes/ReUnlockWall.agda.
+-- the defect recorded in strong-rep-store/notes/ReUnlockWall.agda.
 
 ------------------------------------------------------------------------
 -- §5a  ( ΛX. λf:(∀Z. Z⇒Z). ΛY. λ_:ℕ. f [Y] ) [ℕ]
@@ -573,7 +573,7 @@ V-run = reaches-run V-eval
 -- retired since — each carried a spelling from the conversion context
 -- into the interior without re-basing it, and the two contexts disagree
 -- exactly when an unbind and a bind have moved the name
--- (notes/ForallPayloadWall.agda, notes/DECISIONS.md 2026-09-18).
+-- (strong-rep-store/notes/ForallPayloadWall.agda, notes/DECISIONS.md 2026-09-18).
 -- `Merge` carries both of its re-spellings as premises.
 
 ------------------------------------------------------------------------

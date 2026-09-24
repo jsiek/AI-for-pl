@@ -48,6 +48,39 @@ the head constructors, and "occurrences" totals the counts over all states.
 The largest number of stacked pairs in one state: V 11, E 7, C 7, D 5,
 G 5.  `IdPush` and `CancelR` together account for 22 of V's 49 steps.
 
+### Re-rendered after `Merge` (2026-09-24, 5d98bbe2)
+
+The same census, taken over the implemented runs.  Tags are
+`inner-value·c₁/c₂` over the new sorts (`t;seal`, `unseal;c`).  The
+occurrences are totals over all states.
+
+| stacked pair | occurrences | runs |
+|---|---|---|
+| `$·seal/idv`           | 56 | D, G, H, L, N, Q, S |
+| `Λ·all/all`            | 23 | C, E, N, V |
+| `ƛ·fun/fun`            | 17 | C, E, G, H, I, J, K, N, S, V |
+| `$·seal/unseal`        | 11 | D, G, H, J, L, N, P, Q, R, S, U |
+| `$·t;seal/idv`         |  6 | R |
+| `$·seal/seal`          |  3 | J, R, S |
+| `ƛ·seal/unseal`        |  3 | A, B |
+| `b·seal/unseal`        |  2 | F, I |
+| `$·t;seal/unseal`      |  2 | R, S |
+| `b·t;seal/unseal;c`    |  2 | E, V |
+| `Λ·seal/unseal`        |  2 | I, N |
+| `ƛ·fun/seal`           |  1 | B |
+| `ƛ·t;seal/unseal;c`    |  1 | C |
+
+Rules fired over the 19 runs: `Merge` 66, `Beta` 46, `Peel` 45, `Nu-Λ` 29,
+`Drop$` 26, `Nu-⟪Λ⟫` 14, `Drop-true` 4, `Drop-false` 1.  No state holds
+more than TWO stacked pairs (before `Merge` the maximum was 11, in V).
+
+A stack in EVALUATION position is merged on the very next step.  The
+stacks that persist sit under a binder.  In G, for example,
+`((7 ⟪ ↓Z , seal Z ⟫) ⟪ ↓Y , id Z ⟫) ⟪ ↓X , id Z ⟫` stays inside a
+`λx:ℕ.` body across steps 3–8: these are the frame-exact wrappers that
+`Beta` puts on a value crossing a `Λ` (`crossΛᴹ`).  They are merged, one
+per step, once the application reaches them (steps 9–12).
+
 ## Proposal
 
 **(1) A normal-form grammar for conversions**, in three sorts, read off

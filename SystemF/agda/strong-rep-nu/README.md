@@ -343,15 +343,15 @@ two `Nu-⟪⟫` rows went with that rule:
 | spelling | rule | date | wall module |
 |---|---|---|---|
 | `s′` | `Peel` | 2026-09-18 | `notes/CrossingAudit.agda`, `notes/PeelPremise.agda` |
-| `Bᵢ′` | `TyPeelR-⟪⟫` (retired) | 2026-09-18 | `notes/ForallPayloadWall.agda` |
-| `X′` | `IdPush` (retired) | 2026-09-18 | `notes/ForallPayloadWall.agda` |
+| `Bᵢ′` | `TyPeelR-⟪⟫` (retired) | 2026-09-18 | `strong-rep-store/notes/ForallPayloadWall.agda` |
+| `X′` | `IdPush` (retired) | 2026-09-18 | `strong-rep-store/notes/ForallPayloadWall.agda` |
 | `A′` | `CancelR` (retired) | 2026-09-19 | `notes/CancelRShiftWall.agda` (deleted 2026-09-24; git history), `strong-rep-store/notes/CancelRReachabilityWitness.agda` |
 | `s″` | `TyPeelR-⟪⟫` (retired) | 2026-09-20 | `strong-rep-store/notes/AddLock0Wall.agda` |
 
 The sixth defect of the same reading discipline hit the **conversion
 context** itself rather than a spelling: a conversion reading skips
 unbinds, so a later `bind` can meet a name that is already live, which
-is the clause `conv-bind-live` (2026-09-17, `notes/ReUnlockWall.agda`,
+is the clause `conv-bind-live` (2026-09-17, `strong-rep-store/notes/ReUnlockWall.agda`,
 `Boundary.agda` §3).  The six are tabulated against what the named
 presentation hides in `notes/notes.md`, "The six re-spelling repairs".
 
@@ -528,15 +528,18 @@ it.
 
 `notes/` also holds the **checked wall and probe modules** — the
 machine-checked refutations and witnesses behind the repairs above.
-All six are gated by `notes/All.agda`, which `All.agda` opens last, so
-`make check` type-checks them with everything else:
-`ReUnlockWall`, `ForallPayloadWall`, `CrossingAudit`, `PeelPremise`,
-`RepresentationVariablesProbe` and `RepWeakenBindsWall`; `notes/All.agda`
+All four are gated by `notes/All.agda`, which `All.agda` opens last, so
+`make check` type-checks them with everything else: `CrossingAudit`,
+`PeelPremise`, `RepresentationVariablesProbe` and `RepWeakenBindsWall`;
+`notes/All.agda`
 also gates `ColorPreservationProbe` and the stack census `StackCensus`
 (2026-09-24).  (`CancelRReachabilityWitness`, `RawRunProbe` and
 `AddLock0Wall` pinned runs of the retired rules and live on in
 strong-rep-store's `notes/`; `CancelRShiftWall`, about `CancelR`, was
-deleted in the merge port and lives on in the git history.)  The index above lists the main notes, not
+deleted in the merge port and lives on in the git history;
+`ReUnlockWall` and `ForallPayloadWall`, the walls for `CancelR`,
+`IdPush` and `TyPeelR-⟪⟫`, were deleted after it and live on in
+strong-rep-store's `notes/`.)  The index above lists the main notes, not
 every file in the directory.
 
 Three PDFs sit at the top level for the digests above:

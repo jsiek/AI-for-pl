@@ -6,8 +6,6 @@ module strong-rep-nu.notes.All where
 -- (The thirteen-run reduction suite that used to head this list was
 -- merged into strong-rep-nu.Examples on 2026-09-21; strong-rep-nu.All checks
 -- it.)
-open import strong-rep-nu.notes.ReUnlockWall
-open import strong-rep-nu.notes.ForallPayloadWall
 open import strong-rep-nu.notes.CrossingAudit
 open import strong-rep-nu.notes.PeelPremise
 open import strong-rep-nu.notes.RepresentationVariablesProbe
@@ -27,6 +25,12 @@ open import strong-rep-nu.notes.RepWeakenBindsWall
 -- (`CancelR`, `IdPush`) are subsumed by `Merge`, whose preservation
 -- case is strong-rep-nu.proof.MoveScope.preserve-Merge.  The file was
 -- DELETED; the git history holds it.
+--
+-- DROPPED AFTER THE MERGE PORT (Jeremy, 2026-09-24): the wall probes
+-- for rules no longer in the design — notes/ReUnlockWall (the
+-- `CancelR`/`IdPush` contracta that motivated `conv-bind-live`) and
+-- notes/ForallPayloadWall (the `TyPeelR-⟪⟫`/`IdPush` crossing
+-- spellings).  DELETED here; strong-rep-store's notes/ holds both.
 
 -- COLOR PRESERVATION on one run (2026-09-21): the statement layer of
 -- strong-rep-nu.Residual exercised end to end on a Peel under a Λ.

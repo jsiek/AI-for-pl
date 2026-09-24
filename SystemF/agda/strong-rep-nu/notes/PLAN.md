@@ -150,7 +150,7 @@ Testing has found and repaired these errors:
    no-op, which is what reading the conversion context as the union of the
    names live along the boundary scope already meant. See
    `notes/DECISIONS.md` (2026-09-17) and the machine-checked
-   `no-old-rewind-conv` in `notes/ReUnlockWall.agda`.
+   `no-old-rewind-conv` in `strong-rep-store/notes/ReUnlockWall.agda`.
 6. A spelling — an ordinary de Bruijn index — that is valid in a boundary
    scope's conversion context is not valid in its interior, and `TyPeelR-⟪⟫` and
    `IdPush` each carried one across without re-basing. The two name maps can
@@ -161,7 +161,7 @@ Testing has found and repaired these errors:
    it to the conversion context's; determinism is `sameTy-src-unique`.
    Found by examples 8 and 9, the first programs that instantiate at a
    polymorphic type. See `notes/DECISIONS.md` (2026-09-18) and
-   `notes/ForallPayloadWall.agda`. `CancelR` had the same crossing and was
+   `strong-rep-store/notes/ForallPayloadWall.agda`. `CancelR` had the same crossing and was
    repaired the same way, preventively — and against the WRONG context,
    which is the seventh repair below. `Peel` was the fourth and
    last crossing, repaired on 2026-09-18 with `SameConv` — the same idea

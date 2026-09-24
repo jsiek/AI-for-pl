@@ -2662,7 +2662,7 @@ the `Fresh α Δ₂` premise of `conv-bind` fails.
 So `rewind Θc` and `dualBoundary Θc ⋉ Θc` have NO conversion context, `env`
 cannot type the contractum, and preservation fails at `CancelR` — and at
 `IdPush`, which has the same two frames.  Machine-checked:
-`no-old-rewind-conv` (notes/ReUnlockWall.agda, against a local copy of the
+`no-old-rewind-conv` (strong-rep-store/notes/ReUnlockWall.agda, against a local copy of the
 two-clause judgement as it stood).  Every state up to
 and including the redex is well typed, so this is a defect in the rule
 set, not in the example.
@@ -2769,7 +2769,7 @@ BOTH WERE WELL TYPED AND NEITHER RAN.  H₀ takes ten steps and loses its
 type at the eleventh; N₀ takes eight and loses it at the ninth.  These are
 not stuck states: the evaluator finds a redex each time, and the
 CONTRACTUM fails to typecheck.  Machine-checked at the time in
-notes/ForallPayloadWall.agda, which pinned the failing premise in each
+strong-rep-store/notes/ForallPayloadWall.agda, which pinned the failing premise in each
 case.  REPAIRED, below; both programs now run, as §8 and §9 of
 notes/RepresentationReductionExamples.agda — seventeen and twenty-three
 steps, every state type-checked.
@@ -3839,7 +3839,7 @@ open, plausible obligations pending review.
 WHAT THE HISTORY MODULES BECAME, and the choice made for each.
 `notes/CancelRShiftWall.agda` KEEPS its refutation machine-checked, by
 stating the old preservation case LOCALLY as `CancelRCase°` — the device
-`notes/ReUnlockWall.agda` already uses for the pre-`conv-bind-live`
+`strong-rep-store/notes/ReUnlockWall.agda` already uses for the pre-`conv-bind-live`
 conversion judgement.  So `cancelR-case°-false : ¬ CancelRCase°` still
 runs, the `Δ*` configuration and the redex typing are untouched, and a new
 §6 closes the module: the repaired rule fires on the same configuration
@@ -4528,7 +4528,7 @@ resolve through this map:
 Comments elsewhere that cited the suite by module name or run number were
 retargeted: `Reduction.agda`, `Boundary.agda`, `proof/Progress.agda`,
 `proof/Preserve.agda`, `strong-rep-store/notes/AddLock0Wall.agda`,
-`notes/ForallPayloadWall.agda`, `notes/ReUnlockWall.agda`,
+`strong-rep-store/notes/ForallPayloadWall.agda`, `strong-rep-store/notes/ReUnlockWall.agda`,
 `notes/CrossingAudit.agda`, `strong-rep-store/notes/CancelRReachabilityWitness.agda`,
 `notes/PLAN.md`, `notes/CancelRReachability.md`. Dated entries above keep
 the old names: they describe the past. `notes/All.agda` lost the import;
@@ -4951,7 +4951,7 @@ locks" are "Θ's unbinds".  The displayed notation of `notes/notes.md` and
 
 WHAT KEPT ITS OLD NAME, and why.  Two note modules are date-stamped
 records of walls and are cited by name throughout this log, so their
-FILENAMES stand: `strong-rep-store/notes/AddLock0Wall.agda` and `notes/ReUnlockWall.agda`.
+FILENAMES stand: `strong-rep-store/notes/AddLock0Wall.agda` and `strong-rep-store/notes/ReUnlockWall.agda`.
 Each now opens with a comment saying so.  The retired masked-entry
 design's "lock bit" (`unmasked b` / `masked b`, `SystemF/agda/strong/`)
 also keeps its name: it is a bit on a slot, not a `Change`.  And

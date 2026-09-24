@@ -49,11 +49,13 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
   -- Commentary.md § Reduction.agda / Nu-Λ
   Nu-Λ : ∀ {Δ A R N c} → Value N
     → Δ ⊢ᶜ A ~ R
+      --------------------------------------------------
     → Δ ⊢ ν A · (Λ N) ⟨ c ⟩ -→ N ⟪ inst [] , c ⟫ ∣ new R
 
   -- beta, FRAME-EXACT: the substitution carries the ƛ's annotation A
   -- Commentary.md § Reduction.agda / Beta
   Beta : ∀ {Δ A N W} → Value W
+      ----------------------------------------
     → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ A ]ᵐ ∣ none
 
   -- THE CROSSING: the application is pushed in one layer and the
@@ -65,6 +67,7 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
     → Δ ⊢ⁱ Θ ⇒ Δᵢ
     → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ
     → SameConv Δᵈ s′ Δᶜ s
+      -----------------------------------------------
     → Δ ⊢ (V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · W
         -→ (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ∣ none
 
@@ -80,6 +83,7 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
     → Δ ⊢ᶜ Θ ⇒ Δᶜ
     → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
     → Δ ⊢ᶜ A ~ R
+      ------------------------------------------------
     → Δ ⊢ ν A · ((Λ N) ⟪ Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩
         -→ (N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫ ∣ new R
 
@@ -97,30 +101,41 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
     → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
     → SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ (tail t₁)
     → SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂
+      -------------------------------------------------
     → Δ ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫
         -→ U ⟪ Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′ ⟫ ∣ none
 
   -- an identity boundary at a base type, over a literal
   Drop$ : ∀ {Δ n Θ A} → Base A
+      ----------------------------------------
     → Δ ⊢ ($ n) ⟪ Θ , ⌞ id A ⌟ ⟫ -→ $ n ∣ none
 
   Drop-true : ∀ {Δ Θ}
+      -------------------------------------------
     → Δ ⊢ `true ⟪ Θ , ⌞ id `𝔹 ⌟ ⟫ -→ `true ∣ none
 
   Drop-false : ∀ {Δ Θ}
+      ---------------------------------------------
     → Δ ⊢ `false ⟪ Θ , ⌞ id `𝔹 ⌟ ⟫ -→ `false ∣ none
 
   -- THE CONGRUENCES pass the store change up and shift the SIBLINGS
   -- by it.  Commentary.md § Reduction.agda / The congruences
   ξ-·-l : ∀ {Δ L L′ M δ} → Δ ⊢ L -→ L′ ∣ δ
+      -------------------------------
     → Δ ⊢ L · M -→ L′ · ↑ᴹ[ δ ] M ∣ δ
+
   ξ-·-r : ∀ {Δ V M M′ δ} → Value V → Δ ⊢ M -→ M′ ∣ δ
+      -------------------------------
     → Δ ⊢ V · M -→ ↑ᴹ[ δ ] V · M′ ∣ δ
+
   ξ-ν : ∀ {Δ L L′ A c δ} → Δ ⊢ L -→ L′ ∣ δ
+      ---------------------------------------
     → Δ ⊢ ν A · L ⟨ c ⟩ -→ ν A · L′ ⟨ c ⟩ ∣ δ
+
   -- (NO ξ-Λ: nothing reduces under a type binder — see `⊢Λ`.)
   ξ-⟪⟫  : ∀ {Δ Δᵢ M M′ Θ c δ} → Δ ⊢ⁱ Θ ⇒ Δᵢ
         → Δᵢ ⊢ M -→ M′ ∣ δ
+          -------------------------------------------
         → Δ ⊢ M ⟪ Θ , c ⟫ -→ M′ ⟪ ↑ᴮ[ δ ] Θ , c ⟫ ∣ δ
 
 -- Concrete instantiation check: the ordinary argument `ℕ` translates to

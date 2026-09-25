@@ -1,0 +1,2632 @@
+
+
+=== PAGE 1 ===
+JFP 31, e30, 73 pages, 2021. c© The Author(s), 2021. Published by Cambridge University Press. This is an Open 1
+Access article, distributed under the terms of the Creative Commons Attribution licence ( https://creativecommons.org/
+licenses/by/4.0/), which permits unrestricted re-use, distribution, and reproduction in any medium, provided the original
+work is properly cited.
+doi:10.1017/S0956796821000241
+Parameterized cast calculi and reusable
+meta-theory for gradually typed lambda calculi
+JEREMY G. SIEK A N D TIANYU CHEN
+Indiana University, Bloomington, IN 47405, USA
+(e-mails: jsiek@indiana.edu,chen512@indiana.edu)
+Abstract
+The research on gradual typing has led to many variations on the Gradually Typed Lambda Calculus
+(GTLC) of Siek & Taha (2006) and its underlying cast calculus. For example, Wadler and Findler
+(2009) added blame tracking, Siek et al. (2009) investigated alternate cast evaluation strategies, and
+Herman et al . (2010) replaced casts with coercions for space efﬁciency. The meta-theory for the
+GTLC has also expanded beyond type safety to include blame safety (Tobin-Hochstadt & Felleisen,
+2006), space consumption (Herman et al ., 2010), and the gradual guarantees (Siek et al ., 2015).
+These results have been proven for some variations of the GTLC but not others. Furthermore,
+researchers continue to develop variations on the GTLC, but establishing all of the meta-theory
+for new variations is time-consuming. This article identiﬁes abstractions that capture similarities
+between many cast calculi in the form of two parameterized cast calculi, one for the purposes of lan-
+guage speciﬁcation and the other to guide space-efﬁcient implementations. The article then develops
+reusable meta-theory for these two calculi, proving type safety, blame safety, the gradual guarantees,
+and space consumption. Finally, the article instantiates this meta-theory for eight cast calculi includ-
+ing ﬁve from the literature and three new calculi. All of these deﬁnitions and theorems, including the
+two parameterized calculi, the reusable meta-theory, and the eight instantiations, are mechanized in
+Agda making extensive use of module parameters and dependent records to deﬁne the abstractions.
+1 Introduction
+The theory of gradual typing has grown at a fast pace, since the idea crystallized in the mid
+2000s ( Siek & Taha , 2006a; Tobin-Hochstadt & Felleisen , 2006; Matthews & Findler ,
+2007; Gronski et al ., 2006). Researchers have discovered many choices regarding the
+design and formalization of gradually typed languages. For example, a language designer
+can choose between runtime casts that provide lazy, eager, or even partially eager seman-
+tics (Siek et al., 2009; García-Pérezet al., 2014). Alternatively, the designer might apply
+the methodology of Abstracting Gradual Typing (AGT) to derive the semantics ( Garcia
+et al., 2016). When a runtime casts fails, there is the question of who to blame, using either
+the D or UD blame-tracking approaches ( Siek et al., 2009). Furthermore, with the need to
+address the problems of space efﬁciency ( Herman et al ., 2010), one might choose to use
+threesomes (Siek & Wadler , 2010), supercoercions ( Garcia, 2013), or coercions in one of
+several normal forms ( Siek & Garcia, 2012; Siek et al., 2015a).
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 2 ===
+2 J. G. Siek and T. Chen
+The last decade has also seen tremendous progress in the mechanization of program-
+ming language theory ( Aydemir et al., 2005). It has become routine for researchers to use
+proof assistants such as Coq ( The Coq Dev. Team , 2004), Isabelle ( Nipkow et al., 2007),
+or Agda ( Bove et al ., 2009) to verify the proofs of the meta-theory for a programming
+language. From the beginning, researchers in gradual typing used proof assistants to verify
+type safety (Siek & Taha, 2006c,b; Tobin-Hochstadt & Felleisen, 2008). They continue to
+mechanize the type soundness of new designs ( Siek & Vitousek, 2013; Chung et al., 2018)
+and to mechanize proofs of new properties such as open-world soundness and the gradual
+guarantee (Siek et al., 2015b; Vitousek & Siek, 2016b; Xie et al., 2018).
+While machine-checked proofs provide the ultimate degree of trust, they come at a high
+development cost. With this in mind, it would be useful to reduce the cost by reusing deﬁ-
+nitions, theorems, and proofs about gradually typed languages. Agda provides particularly
+nice support for reuse: its combination of parameterized modules, dependent types, and
+more speciﬁcally, dependent records, provide a high degree of ﬂexibility at a relatively low
+cost in complexity. For this reason, we choose to develop a new mechanization in Agda
+instead of building on prior mechanizations of gradual typing in other proof assistants.
+The research on gradual typing has revealed subtle and complex interactions between
+gradual typing and other language features such as
+• mutable state ( Herman et al., 2010; Siek et al., 2015c; Toro & Tanter, 2020),
+• subtyping ( Siek & Taha , 2007; Garcia et al ., 2016; Chung et al ., 2018; Bañados
+Schwerter et al., 2021),
+• classes and objects ( Takikawa et al ., 2012; Allende et al ., 2013; Vitek, 2016;
+Takikawa, 2016; Muehlboeck & Tate, 2017; Chung et al., 2018),
+• parametric polymorphism ( Ahmed et al., 2011, 2017; Toro et al., 2019; New et al.,
+2019),
+• type inference (Siek & Vachharajani, 2008; Garcia & Cimini, 2015; Castagna et al.,
+2019),
+• set-theoretic types ( Castagna & Lanvin, 2017),
+• dependent types ( Eremondi et al., 2019; Lennon-Bertrand et al., 2020),
+• and many more.
+This article starts at the beginning, focusing on a language with ﬁrst-class functions and
+constants, that is, the Gradually Typed Lambda Calculus (GTLC) ( Siek & Taha , 2006a),
+with the addition of pairs and sums whose presence helps to reveal some patterns that
+require abstraction.
+The Gradually Typed Lambda Calculus. We present a formalization of the static
+semantics of the GTLC in Section 2, including the type system and deﬁnitions of important
+relations such as consistency and type precision. We present a proof of the static gradual
+guarantee: that changing type annotations to be less precise preserves typing. This is not
+the ﬁrst mechanization of the static gradual guarantee for the GTLC ( Siek et al., 2015b); it
+is here for the sake of completeness.
+The dynamic semantics of the GTLC is deﬁned by translation to a cast calculus. We
+present that translation in Section 4 and prove that it preserves types and is monotone
+with respect to precision. There are many different cast calculi to choose from, with subtle
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 3 ===
+Parameterized cast calculi and reusable meta-theory 3
+variations in semantics and dramatic variations in efﬁciency. This article identiﬁes the sim-
+ilarities between many cast calculi in the form of the Parameterized Cast Calculus and the
+Space-Efﬁcient Parameterized Cast Calculus. The former is for the purposes of language
+speciﬁcation, whereas the later is meant as an guide to implementation. We discuss both
+in more detail below.
+The Parameterized Cast Calculus. The ﬁrst part of the article designs the Parameterized
+Cast Calculus. It is parameterized with respect to the cast representation and operations on
+casts. It can therefore model a range of cast calculi, from ones that represent a cast with a
+source type, target type, and a blame label such as the Blame Calculus ( Wadler & Findler,
+2009), to other calculi that represent casts using the Coercion Calculus of (Henglein, 1994).
+The article proves the following theorems about the Parameterized Cast Calculus, with
+mechanizations in Agda.
+• type safety,
+• blame-subtyping, and
+• the dynamic gradual guarantee.
+This article instantiates the Parameterized Cast Calculus to produce deﬁnitions and
+results for cast calculi in the literature as well as new cast calculi. We produce the type sys-
+tems, reduction relations, and proofs of type safety and blame safety for all of the following
+systems.
+1. The cast calculus of Siek & Taha ( 2006a) (Section 5.1).
+2. A variant that classiﬁes a function cast applied to a value as a value (Section 5.2).
+3. The Blame Calculus λB of Siek et al.( 2015a) (Section 5.3).
+4. A coercion-based version of Siek and Taha’s cast calculus (Section 5.4).
+5. A lazy D coercion-based calculus ( Siek et al., 2009) (Section 5.5).
+6. The λC calculus of Siek et al.( 2015a) (Section 5.6).
+Our parameterized proof of the dynamic gradual guarantee was completed only recently;
+we have instantiated it on two variants of λB.
+Scope of the Parameterized Cast Calculus. How many of the designs in the literature on
+gradually typed languages are instances of the Parameterized Cast Calculus? Although the
+constructive examples above give some evidence to its breadth, we do not yet have a com-
+plete answer to this question. However, we can make some informal statements about our
+intentions. The Parameterized Cast Calculus is designed to model sound gradual languages,
+and not unsound ones such as optional type systems ( Bracha, 2004) that compile grad-
+ual programs to dynamically typed programs via type erasure ( Bracha & Griswold , 1993;
+Chaudhuri; Maidl et al., 2014; Verlaguet & Menghrajani; Bierman et al., 2014; Greenman
+& Felleisen, 2018). The Parameterized Cast Calculus is only applicable to languages that
+use casts for runtime enforcement, and not other mechanisms such as the checks in tran-
+sient semantics ( Vitousek & Siek , 2016a; Vitousek et al ., 2017; Greenman & Felleisen ,
+2018; Greenman & Migeed , 2018; Vitousek et al ., 2019; Greenman, 2020). We expect
+that several, different, parameterized cast calculi are needed to capture the large design
+space present in the literature. We encourage other researchers to join us in this project
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 4 ===
+4 J. G. Siek and T. Chen
+of developing reusable meta-theory for gradually typed languages. We conjecture that the
+Parameterized Cast Calculus, with some minor modiﬁcations, could model the intrinsic
+calculi used in the AGT methodology ( Toro & Tanter, 2020).
+An important consideration regarding the design of an abstraction such as the
+Parameterized Cast Calculus is where to draw the line between the generic versus the
+speciﬁc. The Parameterized Cast Calculus makes a natural choice regarding where to draw
+the line: at the representation of casts and the operations on them. However, there are two
+competing principles that inﬂuence the design:
+1. The more generic the design, the more instances can be accommodated, which
+increases reuse.
+2. The more generic the design, the less meta-theory can be carried out generically,
+which reduces reuse.
+More experimentation with these design choices is needed to better understand the trade-
+offs. The Parameterized Cast Calculus of this article is one data point.
+Space-efﬁcient gradual typing. The second part of the article develops the Space-
+Efﬁcient Parameterized Cast Calculus, which compresses sequences of casts to obtain
+space efﬁciency. To support this compression, the cast representation is required to pro-
+vide a compose operator. We instantiate this calculus to produce results for a speciﬁc cast
+calculi in the literature as well as a new cast calculi. In particular, we produce deﬁnitions
+and proofs of space efﬁciency in Agda for
+1. the λS calculus of Siek et al.( 2015a) (Section 7.1), and
+2. a new cast calculus based on hypercoercions ( Lu et al., 2020) (Section 7.2).
+Correctness of space-efﬁcient calculi. Concurrently to the development of this article,
+and with an overlapping set of authors, Lu et al .( 2020) investigate the semantics of
+parameterized cast calculi using abstract machines. They deﬁne two parameterized CEK
+machines (Felleisen & Friedman, 1986), one to deﬁne the semantics and the other to imple-
+ment casts in a space-efﬁcient manner. The main result is a parameterized proof in Agda
+of a weak bisimulation between the two machines, under the assumptions that both cast
+representations satisfy certain laws speciﬁc to the lazy D semantics ( Lu, 2020). They
+instantiate this generic theorem to prove the correctness of hypercoercions. Generalizing
+this correctness result to include cast semantics other than lazy D is future work.
+Mechanization in Agda. The language deﬁnitions and proofs are mechanized in Agda
+version 2.6.2 following the style in the textbook Programming Language Foundations in
+Agda (Wadler & Kokke, 2019) and is publicly available in the following github repository,
+at release version 2.1.
+https://github.com/jsiek/gradual-typing-in-agda
+This project depends on the Abstract Binding Trees library, at release version 1.0.
+https://github.com/jsiek/abstract-binding-trees
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 5 ===
+Parameterized cast calculi and reusable meta-theory 5
+Fig. 1. Gradual types, typing contexts, consistency, join, and matching.
+2 Gradually Typed Lambda Calculus
+In this section, we formalize the static semantics of the GTLC of Siek & Taha ( 2006a) with
+the addition of products and sums. We use de Bruijn representation of variables and deﬁne
+the terms by leveraging the Abstract Binding Tree library. Their typing rules are deﬁned
+as an Agda data type. The dynamic semantics of the GTLC is deﬁned by translation to a
+cast calculus in Section 4.
+Types. Figure 1 deﬁnes the set of types T of the GTLC, which includes function types,
+product types, sum types, and atomic types. The atomic types include the base types (nat-
+ural numbers, Booleans, etc.) and the unknown type, written ? (aka. the dynamic type). As
+usual, the unknown type represents the absence of static type information. Figure 1 deﬁnes
+typing contexts /Gamma1, which are sequences of types, that is, they map variables (represented
+by de Bruijn indices) to types.
+Figure 1 deﬁnes the consistency relation at the heart of gradual typing. We say that
+two types are consistent, written A ∼ B, if they are equal except in spots where either type
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 6 ===
+6 J. G. Siek and T. Chen
+contains the unknown type. For example,
+Nat → Bool ∼ ? → Bool
+Because ? ∼ Nat and Bool ∼ Bool. The rules for consistency in Figure 1 are labeled with
+their proof constructors. For example, the following is a proof of the above example:
+Fun∼ (UnkL∼[Nat]) (Base∼[Bool])
+We use a colon for Agda’s “proves” relation, which can also be read as a “has-type” rela-
+tion thanks to the Curry–Howard correspondence ( Howard, 1980). In the rule Fun∼,t h eA
+and A′ﬂip in the premise, which is unusual but does not matter; it just makes some of the
+Agda proofs easier.
+Figure 1 also deﬁnes a join function ⨆ that computes the least upper bound of two types
+with respect to the precision relation ⊑ (with ? at the bottom) ( Siek & Taha , 2006a; Siek
+& Vachharajani , 2008), which is deﬁned in Figure 4 of Section 2.1. The join function is
+typically deﬁned on a pair of types and is a partial function where it is deﬁned if and only
+if the two types are consistent. Here, we instead make ⨆ a total function over proofs of
+consistency.
+Finally, Figure 1 deﬁnes the matching relation A ⊿B that is used in the typing rules for
+eliminators (such as function application and accessing elements of a pair). The matching
+relation handles the situation where the function or pair expression has type ?.
+Variables. The function V, deﬁned in Figure 3, maps a typing context /Gamma1and type A to the
+set of all variables that have type A in context /Gamma1. As stated above, variables are de Bruijn
+indices, that is, natural numbers where the number x refers to the xth enclosing lambda
+abstraction. There are two constructors for variables: Z (zero) and S (plus one). The two
+rules in Figure 3 correspond to the signatures of these two constructors, where premises
+(above the line) are the parameter types and the conclusion (below the line) is the result
+type. The variable Z refers to the ﬁrst lexical position in the enclosing context, so Z takes
+no parameters, and its result type is V /Gamma1A if /Gamma1is a non-empty typing context where type A
+is at the front. A variable of the form S x refers to one position further out than that of x.S o
+the constructor S has one parameter, a variable in V /Gamma1A for some /Gamma1and A, and its result
+type is a variable in V (/Gamma1· B) A, for any type B. An expression formed by combinations of
+the constructors Z and S is a proof of a proposition of the form V /Gamma1A. For example, SSZ is
+a proof of V (∅· Bool · Nat · Int) Bool because Bool is at position 2 in the typing context
+∅· Bool · Nat · Int.
+Constants. We represent the constants of GTLC by a particular set of Agda values. First,
+we carve out the subset of GTLC types that a constant is allowed to have, which are the
+base types and n-ary functions over base types. We call them primitive types and induc-
+tively deﬁne the predicate P A in Figure 3 to identify them. We then deﬁne a mapping /llbracket·/rrbracket
+from P A to Agda types (elements of Set), also in Figure 3.
+Terms. The syntax of GTLC terms is deﬁned in Figure 2 and their typing rules are pre-
+sented in Figure 3. Terms, ranging over L, M, and N, are deﬁned using the Abstract Binding
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 7 ===
+Parameterized cast calculi and reusable meta-theory 7
+blame labels 𝓁
+GTLC terms L, M, N ::= $k | ‘x | λ[A] N | (LM )𝓁| if𝓁 LMN |
+cons MN | π𝓁
+i M, i ∈{ 1, 2}|
+inl[B] M | inr[A] M | case𝓁[B, C] LMN
+Fig. 2. Syntax of the Gradually Typed Lambda Calculus (GTLC).
+Tree library, so they are extrinsically typed. As usual, we deﬁne the typing judgment as
+/Gamma1⊣G M : A, represented by an Agda data type.
+The constant $k has type P in context /Gamma1provided that the Agda value k has type /llbracketP/rrbracketand
+P proves that A is a primitive type. A variable ‘ x has type A in context /Gamma1if x is a de Bruijn
+index in V /Gamma1A (explained above).
+As usual, a lambda abstraction ( λ[A] M) has type A → B in context /Gamma1provided that M
+has type B in context /Gamma1· A. Lambda abstraction does not include a parameter name because
+we represent variables as de Bruijn indices. An application ( LM )𝓁 has type B if L has some
+type A that matches a function type A1 → A2, M has some type B, and B is consistent with
+A1. The blame label 𝓁is a unique identiﬁer for this location in the source code. Each blame
+label has a complement 𝓁and the complement operation is involutive, that is, 𝓁= 𝓁.
+The term if𝓁 LMN requires that the type of L is consistent with Bool, M and N have
+consistent types, and the type of the if as a whole is the join of the types of M and N.T h e
+rules for pairs and projection are straightforward. Regarding sums, in case𝓁 LMN ,t h e
+type of L is consistent with the sum type B1 + C1. A variable of type B1 goes into scope for
+the branch M and a variable of type C1 goes into scope for N. The types of the branches,
+B2 and C2, must be consistent and the type of the case is the join of B2 and C2.
+Examples. The following are a few example terms and their typing derivations in the
+GTLC.
+∅⊣ G cons $2 $3 : Nat × Nat
+∅⊣ G ((λ[?] ‘Z) $4)𝓁1 : Nat
+∅⊣ G case𝓁2 (inr[Bool]$ true)( ‘Z)( $¬ ‘Z)𝓁3 : Bool
+2.1 Static gradual guarantee
+Figure 4 presents the deﬁnitions of the precision relations on GTLC types, terms, and
+typing contexts. In particular, a type A is less precise than A′, written A ⊑ A′,i f A and A′
+are equal except in the places where A has type ?.
+The precision relation ⊑∗ between typing contexts is straightforward. We require that
+each variable has types that are related by ⊑ in the respective typing contexts. We say term
+M′in GTLC is more precise than M if the type annotations in the former are more precise
+than the corresponding annotations in the latter, written M ⊑ G M′. For example,
+∅· ? ⊑∗ ∅· Int
+((λ[?] ‘Z) $42)𝓁⊑ G ((λ[Nat]‘Z) $42)𝓁′
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 8 ===
+8 J. G. Siek and T. Chen
+Fig. 3. Typing rules of the Gradually Typed Lambda Calculus (GTLC).
+An important property of a gradual type system is that reducing the precision of type
+annotations in a well-typed term should yield a well-typed term, a property known as the
+static gradual guarantee ( Siek et al., 2015b). Here, we extend this result for the GTLC to
+include products and sums.
+Lemma 1. Suppose /Gamma1⊑∗ /Gamma1′.I fx : V /Gamma1′A′, there exists type A such that x : V /Gamma1A and
+A ⊑ A′.
+Proof sketch. By induction on x. □
+Theorem 2 (Static Gradual Guarantee). Suppose M′is well-typed /Gamma1′⊣G M′: A′.I f /Gamma1⊑∗
+/Gamma1′and M ⊑ G M′, there exists type A such that /Gamma1⊣G M : A and A ⊑ A′.
+Proof sketch. By the induction on the typing derivation /Gamma1′⊣G M′: A′. We brieﬂy describe
+the main idea of the interesting cases, since the full proof is mechanized in Agda.
+Case ‘x By Lemma 1 and typing rule ⊣var.
+Case λ N′ By the induction hypothesis for N′and the extended typing context.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 9 ===
+Parameterized cast calculi and reusable meta-theory 9
+Fig. 4. Precision on GTLC types, terms, and typing contexts.
+Case L′M′ The induction hypothesis for L′ produces two subcases: The term L in
+LM ⊑ G L′M′ can be either of ? or of function type. If L is of type ?, the theorem is
+proved by type matching and ? being less precise than any type. On the other hand, if L
+is of function type, it is proved by the fact that the codomain types satisfy the precision
+relation.
+Other cases follow the same structure as function application: by the induction hypotheses
+for subterms and casing on whether the left side of a precision relation can be ? whenever
+necessary. □
+3 Parameterized Cast Calculus
+Recall that the dynamic semantics of the GTLC is deﬁned by translation to a cast calculus.
+There are many cast calculi in the literature with differing semantics and efﬁciency guar-
+antees. In this section, we deﬁne the Parameterized Cast Calculus CC(⇒) that captures
+the similarities in many of those calculi, for the purposes of language speciﬁcation. (As a
+guide to implementation, we present the Space-Efﬁcient Parameterized Cast Calculus in
+Section 6.) This section begins with the static semantics of CC(⇒) and a number of param-
+eters packaged into PreCastStruct (Section 3.1), which is then used to express the notion
+of Value, evaluation contexts (Section 3.2), and eta-style cast reductions (Section 3.3). We
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 10 ===
+10 J. G. Siek and T. Chen
+Fig. 5. Term constructors for the Parameterized Cast Calculus CC(⇒).
+introduce another parameter, for applying a cast to a value, in CastStruct (Section 3.4), and
+then deﬁne the dynamic semantics of CC(⇒), with deﬁnitions of substitution (Section 3.5)
+and the reduction semantics (Section 3.6).
+We present CC(⇒) as an intrinsically typed calculus with de Bruijn representation of
+variables, analogous to the formalization of the Simply Typed Lambda Calculus in the
+DeBruijn Chapter of PLFA. As such, the terms are represented by derivations of their
+typing judgment. The judgment has the form/Gamma1⊣ A, which says that type A can be inhabited
+in context /Gamma1. So terms, ranged over by L, M, N, are proofs of propositions of the form /Gamma1⊣
+A. For example, a typing judgment normally written/Gamma1⊣ M : A here has the form M : /Gamma1⊣ A.
+The term constructors for CC(⇒) are deﬁned in Figure 5. Like most cast calculi, CC(⇒)
+extends the Simply Typed Lambda Calculus with the unknown type ? and explicit runtime
+casts. Unlike other cast calculi, the CC(⇒) calculus is parameterized over the representa-
+tion of casts, that is, the parameter ⇒ is a function that, given a source and target type,
+returns the representation type for casts from A to B.S o c : A ⇒ B says that c is a cast from
+A to B.
+The types and variables of the Parameterized Cast Calculus are the same as those of
+the GTLC (Section 2). The intrinsically typed terms of the Parameterized Cast Calculus
+are deﬁned in Figure 5. Cast application is written M⟨c⟩where the cast representation c
+is not concrete but is instead speciﬁed by the parameter ⇒. In the literature, some cast
+calculi annotate the cast application form with a blame label. In other cast calculi, such
+as coercion-based calculi or threesomes, blame labels instead appear inside the cast c.
+For purposes of uniformity, we place the responsibility for blame tracking inside the cast
+representation, which means they do not appear directly in the cast application form of the
+Parameterized Cast Calculus. As usual there is an uncatchable exception blame 𝓁.
+3.1 The PreCastStruct structure
+We introduce the ﬁrst of several structures (as in algebraic structures) that group together
+parameters needed to deﬁne the notion of values, frames, and the reduction relation for the
+Parametric Cast Calculus. The structures are represented in Agda as dependent records.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 11 ===
+Parameterized cast calculi and reusable meta-theory 11
+The PreCastStruct structure includes the operations and predicates that do not depend
+on the terms of the cast calculus so that this structure can be reused for different cast
+calculi, such as the space-efﬁcient cast calculus in Section 6.T h e CastStruct structure
+extends PreCastStruct with the one additional operation that depends on terms, which is
+applyCast.
+One of the main responsibilities of the PreCastStruct structure is categorizing casts as
+either active or inert. An active cast is one that needs to be reduced by invoking applyCast
+(see reduction rule (cast) in Figure 8). An inert cast is one that does not need to be reduced,
+which means that a value with an inert cast around it forms a larger value (see the deﬁnition
+of Value in Figure 6). Different cast calculi may make different choices regarding which
+casts are active and inert, so the PreCastStruct structure includes the two predicates Active
+and Inert to parameterize these differences. The proof of Progress (Theorem 14) needs to
+know that every cast can be categorized as either active or inert, so PreCastStruct also
+includes the ActiveOrInert ﬁeld which is a (total) function from casts to their categorization
+as active or inert.
+The reduction semantics must also identify casts whose source and target type have
+the same head type constructor, such as a cast from A × B to C × D. We refer to such
+casts as cross casts and include the Cross predicate in the PreCastStruct structure. When
+a cross cast is inert, the reduction semantics must decompose the cast when reducing the
+elimination form for that type. For example, when accessing the fst element of a pair V
+that is wrapped in an inert cast c, we decompose the cast using an operator, also called
+fst, provided in the PreCastStruct structure. Here is the relevant reduction rule, which is
+(fst-cast) in Figure 8:
+fst (V⟨c⟩) −→(fst V )⟨fst cx ⟩
+Finally, the proof of Progress (Theorem 14) also needs to know that the cast is a cross
+cast when the target type of an inert cast is a function, product, or sum type. Thus, the
+PreCastStruct includes the ﬁelds InsertCross→, InsertCross×, and InsertCross+.T h e
+target type of an inert cast may not be a base type (ﬁeld baseNotInert) to ensure that
+the canonical forms at base type are just constants.
+The ﬁelds of the PreCastStruct record as follows:
+−⇒− : T → T → Set
+Given the source and target type, this returns the Agda type for casts.
+Inert : ∀AB. A ⇒ B → Set
+This predicate categorizes the inert casts, that is, casts that when combined with a value,
+form a value.
+Active : ∀AB. A ⇒ B → Set
+This predicate categorizes the active casts, that is, casts that require a reduction rule to
+specify what happens when they are applied to a value.
+ActiveOrInert : ∀AB.( c : A ⇒ B) → Active c ⨄ Inert c
+All casts must be active or inert, which is used in the proof of Progress.
+Cross : ∀AB. A ⇒ B → Set
+This predicate categorizes the cross casts, that is, casts from one type constructor to
+the same type constructor, such as A → B ⇒ C → D. This categorization is needed to
+deﬁne other ﬁelds below, such as dom.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 12 ===
+12 J. G. Siek and T. Chen
+InertCross→ : ∀ABC.( c : A ⇒ B→C) → Inert c → Cross c × /Sigma1A1A2. A ≡ A1→A2
+An inert cast whose target is a function type must be a cross cast. This ﬁeld and the
+following two ﬁelds are used in the proof of Progress.
+InertCross× : ∀ABC.( c : A ⇒ B × C) → Inert c → Cross c × /Sigma1A1A2. A ≡ A1 × A2
+An inert cast whose target is a pair type must be a cross cast.
+InertCross+ : ∀ABC.( c : A ⇒ B + C) → Inert c → Cross c × /Sigma1A1A2. A ≡ A1 + A2
+An inert cast whose target is a sum type must be a cross cast.
+baseNotInert : ∀Ab.( c : A ⇒ b) →¬ Inert c
+A cast whose target is a base type must never be inert. This ﬁeld is used in the proof of
+Progress.
+dom : ∀A1A2B1B2.( c :( A1 → A2) ⇒ (B1 → B2)) → Cross c → B1 ⇒ A1
+Given a cross cast between function types, dom returns the part of the cast between
+their domain types. As usual, domains are treated contravariantly, so the result is a cast
+from B1 to A1.
+cod : ∀A1A2B1B2.( c :( A1 → A2) ⇒ (B1 → B2)) → Cross c → A2 ⇒ B2
+Given a cross cast between function types, cod returns the part of the cast between the
+codomain types.
+fst : ∀A1A2B1B2.( c :( A1 × A2) ⇒ (B1 × B2)) → Cross c → A1 ⇒ B1
+Given a cross cast between pair types, fst returns the part of the cast between the ﬁrst
+components of the pair.
+snd : ∀A1A2B1B2.( c :( A1 × A2) ⇒ (B1 × B2)) → Cross c → A2 ⇒ B2
+Given a cross cast between pair types, snd returns the part of the cast between the
+second components of the pair.
+inl : ∀A1A2B1B2.( c :( A1 + A2) ⇒ (B1 + B2)) → Cross c → A1 ⇒ B1
+Given a cross cast between sum types, inl returns the part of the cast for the ﬁrst branch.
+inr : ∀A1A2B1B2.( c :( A1 + A2) ⇒ (B1 + B2)) → Cross c → A2 ⇒ B2
+Given a cross cast between sum types, inr returns the part of the cast for the second
+branch.
+3.2 Values and frames of CC (⇒)
+This section is parameterized by a PreCastStruct. So, for example, when we refer to ⇒
+and Inert, we mean those ﬁelds of the PreCastStruct.
+The values of the Parameterized Cast Calculus are deﬁned in Figure 6. The judgment
+Value M says that the term M is a value. Let V and W range over values. The only rule
+speciﬁc to gradual typing is Vcast which states that a cast application V⟨c⟩is a value if c
+is an inert cast.
+A value of type ? must be a cast application where the cast is inert and its target type is ?.
+Lemma 3 (Canonical Form for type ?). If M : /Gamma1⊣ ? and Value M, then M ≡ M′⟨c⟩where
+M′: /Gamma1⊣ A, c : A ⇒ ?, and Inert c.
+In the reduction semantics, we use single-term evaluation contexts, called frames, to col-
+lapse the many congruence rules that one usually ﬁnds in a structural operational semantics
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 13 ===
+Parameterized cast calculi and reusable meta-theory 13
+Fig. 6. Values and frames of CC(⇒).
+into a single congruence rule. Unlike regular evaluation contexts, frames are not recursive.
+Instead that recursion is in the congruence reduction rule.
+The deﬁnition of frames for the Parameterized Cast Calculus is given in Figure 6.T h e
+deﬁnition is typical for a call-by-value calculus. We also deﬁne the plug function at the
+bottom of Figure 6, which replaces the hole in a frame with a term, producing a term.
+The plug function is type preserving. This is proved in Agda by embedding the statement
+of this lemma into the type of plug (see Figure 6) and then relying on Agda to check that
+the deﬁnition of plug satisﬁes its declared type.
+Lemma 4 (Frame Filling). If M : /Gamma1⊣ A and ⊣ F : A ↣ B, then plug M F : /Gamma1⊣ B.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 14 ===
+14 J. G. Siek and T. Chen
+3.3 The eta cast reduction rules
+This section is parameterized by a PreCastStruct.
+Some cast calculi include reduction rules that resemble η-reduction ( Flanagan, 2006;
+Siek & Taha, 2006a). For example, the following rule reduces a cast between two function
+types, applied to a value V ,b y η-expanding V and inserting the appropriate casts:
+V⟨A→B ⇒ C→D⟩− →λ(V (‘Z⟨C ⇒ A⟩))⟨B ⇒ D⟩
+Here, we deﬁne three auxiliary functions that apply casts between two function types, two
+pair types, and two sum types, respectively. Each of these functions requires the cast c to
+be a cross cast. These auxiliary functions are used by cast calculi that choose to categorize
+these cross casts as active casts.
+eta→ : ∀/Gamma1ABCD.( M : /Gamma1⊣ A→B) → (c :( A→B) ⇒ (C→D))
+→ Cross c → (/Gamma1⊣ C → D)
+eta→ Mcx = λ ((rename S M)( ‘Z⟨dom cx ⟩))⟨cod cx ⟩
+eta× : ∀/Gamma1ABCD.( M : /Gamma1⊣ A × B) → (c :( A × B) ⇒ (C × D))
+→ Cross c → (/Gamma1⊣ C × D)
+eta× Mcx = cons (π1M)⟨fst cx ⟩(π2M)⟨snd cx ⟩
+eta+ : ∀/Gamma1ABCD.( M : /Gamma1⊣ A + B) → (c :( A + B) ⇒ (C + D))
+→ Cross c → (/Gamma1⊣ C + D)
+eta+ Mcx = case M (λinl[D](Z⟨inl cx ⟩)) (λinr[C](Z⟨inr cx ⟩))
+3.4 The CastStruct structure
+The CastStruct record type extends PreCastStruct with one more ﬁeld, for applying an
+active cast to a value. Thus, this structure depends on terms of the cast calculus:
+applyCast : ∀/Gamma1AB.( M : /Gamma1⊣ A) → Value M → (c : A ⇒ B) → Active c → /Gamma1⊣ B
+3.5 Substitution in CC (⇒)
+We deﬁne substitution functions (Figure 7)f o r CC(⇒) in the style of PLFA ( Wadler &
+Kokke, 2019), due to Conor McBride. A renaming is a map ρ from variables (natural num-
+bers) to variables. A substitution is a map σ from variables to terms. The notation M[N]
+substitutes term N for all occurrences of variable Z inside M. Its deﬁnition relies on several
+auxiliary functions. Renaming extension, ext ρ, transports ρ under one lambda abstraction.
+The result maps Z to itself, because Z is bound by the lambda abstraction. For any other
+variable, ext ρ transports the variable above the lambda by subtracting one, looking it up
+in ρ, and then transports it back under the lambda by adding one. Simultaneous renaming,
+rename ρ M, applies ρ to all the free variables in M. Substitution extension, exts σ , trans-
+ports σ under one lambda abstraction. The result maps Z to itself. For any other variable,
+exts σ transports the variable above the lambda by subtracting one, looking it up in σ , and
+then transporting the resulting term under the lambda by incrementing every free variable,
+using simultaneous renaming. Simultaneous substitution, subst σ M, applies σ to the free
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 15 ===
+Parameterized cast calculi and reusable meta-theory 15
+Fig. 7. Substitution and its auxiliary functions.
+variables in M. The notation M[N] is meant to be used for β reduction, where M is the
+body of the lambda abstraction and N is the argument. What M[N] does is substitute Z for
+N in M and also transports M above the lambda by incrementing the other free variables.
+All this is accomplished by building a substitution substZero N (also deﬁned in Figure 7)
+and then applying it to M.
+Substitution is type preserving, which is established by the following sequences of lem-
+mas. As usual, we prove one theorem per function. In Agda, these theorems are proved by
+embedding their statements into the types of the four functions. Given a sequence S,w e
+write S!i to access its ith element. Recall that /Gamma1and /Delta1range over typing contexts (which
+are sequences of types).
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 16 ===
+16 J. G. Siek and T. Chen
+Lemma 5 (Renaming Extension). Suppose that for position x in /Gamma1, /Gamma1!x = /Delta1!ρ(x).
+For any y and B, (/Gamma1· B)!y = (/Delta1· B)!(ext ρ)(y).
+Lemma 6 (Renaming Variables). Suppose that for any x, /Gamma1!x = /Delta1!ρ(x).
+If M : /Gamma1⊣ A, then rename ρ M : /Delta1⊣ A.
+Lemma 7 (Substitution Extension). Suppose that for any x, σ (x): /Delta1⊣ /Gamma1!x.
+For any y and B, σ (y):( /Delta1· B) ⊣ (/Gamma1· B)!y.
+Proposition 8 (Simultaneous Substitution). Suppose that for any x, σ (x): /Delta1⊣ /Gamma1!x.
+If M : /Gamma1⊣ A, then subst σ M : /Delta1⊣ A.
+Corollary 9 (Substitution). If M : /Gamma1· B ⊣ A and /Gamma1⊣ N : B, then M [N]: /Gamma1⊣ A.
+3.6 Reduction semantics of CC (⇒)
+This section is parameterized by CastStruct.
+Figure 8 deﬁnes the reduction relation for CC(⇒). The last eight rules are typical of
+the Simply-Typed Lambda Calculus, including rules for function application, conditional
+branching, projecting the ﬁrst or second element of a pair, and case analysis on a sum.
+The congruence rule ( ξ ) says that reduction can happen underneath a single frame. The
+rule (ξ -blame) propagates an exception up one frame. Perhaps the most important rule is
+(cast), for applying an active cast to a value. This reduction rule simply delegates to the
+applyCast ﬁeld of the CastStruct. The next four rules ( fun-cast, fst-cast, snd-cast,
+and case-cast) handle the possibility that the CastStruct categorizes casts between func-
+tions, pairs, or sums as inert casts. In such situations, we need reduction rules for when
+cast-wrapped values ﬂow into an elimination form. First, recall that the PreCastStruct
+record includes a proof that every inert cast between two function types is a cross cast. Also
+recall that the PreCastStruct record includes ﬁelds for decomposing a cross cast between
+function types into a cast on the domain and codomain. Putting these pieces together, the
+reduction rule ( fun-cast) says that applying the cast-wrapped function V⟨c⟩to argument
+W reduces to an application of V to W⟨dom cx ⟩followed by the cast cod cx , where x is
+the proof that c is a cross cast. The story is similar for for pairs and sums.
+3.7 Determinism of CC (⇒)
+The reduction relation of the Parameterized Cast Calculus is deterministic. We prove this
+fact by deﬁning a function named hop that maps any term that is not a value to the same
+term that would result from one step of reduction. (See the Agda formalization for details.)
+hop : ∀A, M : ∅⊣ A →¬ Value M →∅⊣ A
+Indeed, if M reduces to N, then hop M is N.
+Lemma 10. If M −→N and p : ¬Value M, then hop Mp = N.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 17 ===
+Parameterized cast calculi and reusable meta-theory 17
+M −→N
+M −→M′
+plug M F −→plug M′F (ξ )
+plug (blame 𝓁) F −→blame 𝓁 (ξ -blame)
+V⟨c⟩− →applyCast Vc a a : Active c (cast)
+V⟨c⟩W −→(VW ⟨dom cx ⟩)⟨cod cx ⟩ x : Cross c, Inert c (fun-cast)
+fst (V⟨c⟩) −→(fst V )⟨fst cx ⟩ x : Cross c, Inert c (fst-cast)
+snd (V⟨c⟩) −→(snd V )⟨snd cx ⟩ x : Cross c, Inert c (snd-cast)
+case (V⟨c⟩) W1 W2 −→case VW ′
+1 W′
+2
+(case-cast)
+where
+x : Cross c, Inert c
+W′
+1 = λ(rename S W1)( Z⟨inl cx ⟩)
+W′
+2 = λ(rename S W2)( Z⟨inr cx ⟩)
+(λM) V −→M[V ] (β)
+if $true MN −→M (β-true)
+if $false MN −→N (β-false)
+fst (cons VW ) −→V (β-fst)
+snd (cons VW ) −→W (β-snd)
+case (inl V ) LM −→LV (β-caseL)
+case (inr V ) LM −→MV (β-caseR)
+kk ′−→/llbracketk/rrbracket/llbracketk′/rrbracket (δ)
+Fig. 8. Reduction for the Parameterized Cast Calculus CC(⇒), parameterized by the CastStruct
+structure.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 18 ===
+18 J. G. Siek and T. Chen
+Of course, a term that reduces cannot be a value.
+Lemma 11. If M −→N, then ¬Value M.
+The determinism of the Parameterized Cast Calculus follows directly from these
+lemmas.
+Theorem 12. (Determinism). If M −→N and M −→N′, then N = N′.
+Proof. By Lemma 11, M is not a value, with proof p.S ob yL e m m a10, we have hop M
+p = N and also hop Mp = N′. Therefore, N = N′. □
+3.8 Type safety of CC (⇒)
+The Preservation theorem is a direct consequence of the type that we give to the reduction
+relation and that it was checked by Agda.
+Theorem 13 (Preservation). If M : /Gamma1⊣ A and M −→M′, then M ′: /Gamma1⊣ A.
+We prove the Progress theorem by deﬁning an Agda function named progress that takes
+a closed, well-typed term M and either (1) returns a redex inside M, (2) identiﬁes M as a
+value, or (3) identiﬁes M as an exception.
+Theorem 14 (Progress). If M : ∅⊣ A, then
+1. M −→M′for some M ′,
+2. Value M, or
+3. M ≡ blame 𝓁.
+Proof sketch. To convey the ﬂavor of the proof, we detail the cases for function applica-
+tion and cast application. The reader may read the proofs of the other cases in the Agda
+development.
+Case M1 M2 The induction hypothesis for M1 yields the following subcases.
+Subcase M1 −→M′
+1. By rule (ξ ), we conclude that
+M1 M2 −→M′
+1 M2
+Subcase M1 ≡ blame 𝓁. By rule (ξ -blame), we conclude that
+(blame 𝓁) M2 −→blame 𝓁
+Subcase Value M1. The induction hypothesis for M2 yields three subcases.
+Subcase M2 −→M′
+2. By rule (ξ ), using Value M1, we conclude that
+M1 M2 −→M1 M′
+2
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 19 ===
+Parameterized cast calculi and reusable meta-theory 19
+Subcase M2 ≡ blame 𝓁. By rule ( ξ -blame), using Value M1, we conclude
+that
+M1 (blame 𝓁) −→blame 𝓁
+Subcase Value M2. We proceed by cases on Value M1, noting it is of func-
+tion type.
+Subcase M1 ≡ λM11. By rule (β), using Value M2, we conclude that
+(λM11) M2 −→M11[M2]
+Subcase M1 ≡ V⟨c⟩and i : Inert c. The ﬁeld InertCross→ of record
+PreCastStruct gives us a proof x that c is a cross cast. So by rule
+(fun-cast), we have
+V⟨c⟩M2 −→(VM 2⟨dom cx ⟩)⟨cod cx ⟩
+Subcase M1 ≡ k1. We proceed by cases on Value M2, most of which lead
+to contradictions and are therefore vacuously true. Suppose M2 ≡ k2.B y
+rule (δ), we conclude that
+k1 k2 −→/llbracketk1/rrbracket/llbracketk2/rrbracket
+Suppose M2 ≡ M21⟨c⟩ and c is inert. Then c is a cast on base types,
+which contradicts that c is inert thanks to the baseNotInert ﬁeld of
+PreCastStruct.
+Case M⟨c⟩ The induction hypothesis for M yields three subcases.
+Subcase M −→M′. By rule (ξ ), we conclude that
+M⟨c⟩− →M′⟨c⟩
+Subcase M ≡ blame 𝓁. By rule (ξ -blame), we conclude that
+(blame 𝓁)⟨c⟩− →blame 𝓁
+Subcase Value M. Here we use the ActiveOrInert ﬁeld of the PreCastStruct on
+the cast c. Suppose c is active, so we have a : Active c.B yr u l e( cast), using
+Value M, we conclude that
+M⟨c⟩− →applyCast Mca
+Suppose c is inert. Then, we conclude that Value M⟨c⟩. □
+3.9 The CC ′(⇒) variant
+Siek et al.( 2015b), in their Isabelle mechanization of the GTLC and the dynamic gradual
+guarantee, make a syntactic distinction between cast applications as unevaluated expres-
+sions versus cast applications that are part of values. (The paper glosses over this detail.) In
+particular, they introduce a term constructor named Wrap for casts between function types
+that are part of a value and another term constructor named Inj for casts into ? that are part
+of a value. The reason they make this distinction is to enable a smaller simulation relation
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 20 ===
+20 J. G. Siek and T. Chen
+in their proof of the dynamic gradual guarantee. 1 To aid the proof the Dynamic Gradual
+Guarantee in Section 3.11, we introduce a variant of CC(⇒), named CC′(⇒) (Figure 9),
+that makes a syntactic distinction between arbitrary casts and inert casts. We write inert
+cast application as M⟨⟨c⟩⟩. Instead of making the further distinction as in Wrap and Inj,
+we rely on the source and target types of the casts to distinguish those cases. With the
+addition of inert casts, we change the deﬁnition of Value M, removing the Vcast rule and
+replacing it with Vwrap, which states that V⟨⟨c⟩⟩is a value if c is inert. We also change
+the reduction rules ( fun-cast), ( fst-cast), ( snd-cast), and ( case-cast) to eliminate
+values of the form V⟨⟨c⟩⟩instead of V⟨c⟩. This change regarding inert casts does not affect
+the observable behavior of programs with respect to CC(⇒).
+We also change case expressions to include the variable binding, so all of the reduc-
+tion rules for case must be changed. We change the rules ( β-caseL), ( β-caseR), and
+(case-cast)t ot h er u l e s(β-caseL-alt), (β-caseR-alt), and ( case-cast-alt), which
+use substitution. This change allows us to avoid relating terms to their η-expansions. We
+conjecture that this change is not necessary for the proof but would require a more com-
+plex simulation relation to take η-expansion into account. The change to ( case-cast)i s
+an observable difference. Consider an expression of the form:
+case (inl V )⟨⟨c⟩⟩MN
+Suppose variable Z does not occur in M and the cast ( inl cx ) always fails. With
+(case-cast), there is an error but with ( case-cast-alt) there is not.
+3.10 Blame-Subtyping Theorem for CC ′(⇒)
+Recall that the Blame-Subtyping Theorem (Siek et al., 2015b) states that a cast from A to B
+cannot be blamed (cause a runtime error), if the source type is a subtype of the target type,
+that is, A <: B. We identify a cast with a blame label 𝓁. Thanks to the Blame-Subtyping
+Theorem, a programmer or static analyzer can inspect the source type, the target type, and
+the blame label of a cast and decide whether the cast is entirely safe or whether it might
+cause a runtime error. During execution, casts with different labels can be composed (see
+Section 6), producing casts that contain multiple blame labels. So more generally, a cast is
+safe w.r.t a label 𝓁if the cast will not give rise to a runtime error labeled 𝓁.
+In this section, we develop a parameterized proof of the Blame-Subtyping Theorem for
+the Parameterized Cast Calculus CC′(⇒) following the approach of Wadler & Findler
+(2009). The idea is to use a preservation-style proof but preserve cast safety instead of typ-
+ing. However, the appropriate subtyping relation and deﬁnition of safety for casts depends
+on the representation and semantics of casts ( Siek et al ., 2009), which is a parameter of
+CC′(⇒). Thus, the deﬁnition of safety is a parameter of the proof: the CastBlameSafe
+predicate. The proof is not parameterized on the subtyping relation, clients of the proof
+typically use subtyping to deﬁne the CastBlameSafe predicate.
+We require that applying a blame-safe cast to a value does not raise a runtime error,
+that is, if c is blame-safe for 𝓁, then applyCast Vc a ⁄= blame 𝓁. However, to handle the
+application of casts to higher-order values, we must generalize this requirement. The output
+1 Wadler & Findler ( 2009) make similar distinctions for different reasons in the Blame Calculus.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 21 ===
+Parameterized cast calculi and reusable meta-theory 21
+M : /Gamma1⊣′A
+case : /Gamma1⊣′A1 + A2 /Gamma1· A1 ⊣′B /Gamma1· A2 ⊣′B
+/Gamma1⊣′B
+−⟨ ⟨c⟩⟩: /Gamma1⊣′A
+/Gamma1⊣′B c : A ⇒ B, Inert c
+Value :( /Gamma1⊣′A) → Set
+Vwrap : Value M
+Value (M⟨⟨c⟩⟩) Inert c
+rename ρ M
+rename ρ (case LMN ) = case (rename ρ L)( rename (ext ρ) M)( rename (ext ρ) N)
+rename ρ (M⟨⟨c⟩⟩) = (rename ρ M)⟨⟨c⟩⟩
+subst σ M
+subst ρ (case LMN ) = case (subst ρ L)( subst (exts ρ) M)( subst (exts ρ) N)
+subst ρ (M⟨⟨c⟩⟩) = (subst ρ M)⟨⟨c⟩⟩
+M −→N
+V⟨c⟩− →V⟨⟨c⟩⟩ Inert c (wrap)
+V⟨⟨c⟩⟩W −→(VW ⟨dom cx ⟩)⟨cod cx ⟩ x : Cross c, Inert c (fun-cast-alt)
+fst (V⟨⟨c⟩⟩) −→(fst V )⟨fst cx ⟩ x : Cross c, Inert c (fst-cast-alt)
+snd (V⟨⟨c⟩⟩) −→(snd V )⟨snd cx ⟩ x : Cross c, Inert c (snd-cast-alt)
+case (V⟨⟨c⟩⟩) MN −→case VM ′N′ (case-cast-alt)
+where
+x : Cross c, Inert c
+M′= (rename (ext S) M)[‘Z⟨inl cx ⟩]
+N′= (rename (ext S) N)[‘Z⟨inr cx ⟩]
+case (inl V ) LM −→L[V ] (β-caseL-alt)
+case (inr V ) LM −→M[V ] (β-caseR-alt)
+Fig. 9. The CC′(⇒) Variant.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 22 ===
+22 J. G. Siek and T. Chen
+Fig. 10. The predicate that a term contains only blame-safe casts.
+of applyCast can be any term, so in addition to ruling out blame 𝓁we also need to rule out
+terms that contain casts that are not blame-safe for 𝓁. Thus, we deﬁne a predicate, written
+M safe for 𝓁(Wadler & Findler , 2009), that holds if all the casts in M are blame-safe for
+𝓁, deﬁned in Figure 10. Most importantly, blame 𝓁′ is safe for 𝓁 only when 𝓁⁄= 𝓁′.T h e
+other important case is the one for casts: M⟨c⟩is safe for 𝓁if CastBlameSafe c 𝓁and M is
+recursively safe for 𝓁.
+We also require that CastBlameSafe should be preserved under the operations on casts:
+dom, cod, fst, snd, inl, and inr.
+We capture these requirements in two structures:
+1. PreBlameSafe and
+2. BlameSafe.
+The ﬁrst structure includes the CastBlameSafe predicate and the ﬁelds that preserve
+blame safety under the casts operations (Figure 11). The second structure includes the
+requirement that applyCast preserves blame safety.
+The structure BlameSafe extends PreBlameSafe and CastStruct. It also includes the
+following ﬁeld which, roughly speaking, requires that applying a blame-safe cast to a
+blame-safe value V results in a blame-safe term.
+applyCast-pres-allsafe : ∀/Gamma1AB𝓁.( V : /Gamma1⊣ A) → Value V → (c : A ⇒ B)
+→ (a : Active c) → CastBlameSafe c 𝓁
+→ V safe for 𝓁
+→ (applyCast Vc a ) safe for 𝓁
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 23 ===
+Parameterized cast calculi and reusable meta-theory 23
+Fig. 11. PreBlameSafe extends PreCastStruct (Section 3.1).
+We turn to the proof of blame safety. We ﬁrst prove that “safe for” is preserved
+during reduction (Lemma 15). The proof depends on a number of technical lemmas
+about renaming and substitution. They are omitted here but can be found in the Agda
+formalization.
+Lemma 15 (Preservation of Blame Safety). If M : /Gamma1⊣ A, M ′: /Gamma1⊣ A, M safe for 𝓁, and
+M −→M′, then M ′safe for 𝓁.
+Using Preservation of Blame Safety (Lemma 15), we prove the following Blame-
+Subtyping Theorem. The theorem says that if every cast with label 𝓁is blame-safe in M,
+then these casts never fail and 𝓁is guaranteed not to be blamed.
+Theorem 16 (Blame-Subtyping Theorem). If M : /Gamma1⊣ A and M safe for 𝓁, then ¬(M −→∗
+blame 𝓁).
+Proof sketch. By induction on the reduction sequence and by inversion on the “safe for”
+predicate. □
+3.11 Dynamic gradual guarantee
+Recall that the dynamic gradual guarantee ( Siek et al ., 2015b) states that changing type
+annotations in a program to be more precise should either result in the same observable
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 24 ===
+24 J. G. Siek and T. Chen
+behavior or, in the event of a conﬂict between the new type annotation and some other
+part of the program, the program could produce a runtime cast error. On the other hand,
+changing the program to be less precise should always result in the same observable
+behavior.
+Our proof of the dynamic gradual guarantee follows the same structure as that of Siek
+et al.( 2015b). Their proof involves two main lemmas: (1) compilation from GTLC to its
+cast calculus preserves precision and (2) a more-precise program in the cast calculus sim-
+ulates any less-precise version of itself. In this article, the proof that compilation preserves
+precision is in Section 4. Our proof of the simulation is in this section and is parameterized
+with respect to the cast representation, using two new structures, so that it can be applied
+to different cast calculi.
+The second of those structures, CastStructWithPrecision, consists of ﬁve properties
+that must be proved for each cast representation. The proofs of these properties together
+account for approximately one half of the total effort of proving the dynamic gradual
+guarantee for a particular calculus. This places a higher burden on each cast repre-
+sentation compared to the generic proofs of type safety (Section 3.8), blame-subtyping
+(Section 3.10), and the space efﬁciency theorem (Section 6.5). So far we have proved that
+λB satisﬁes CastStructWithPrecision (Section 5.3.3) but we have not yet had the time for
+the proofs for the other cast calculi. An interesting open question is whether there exists
+a better structure that enables more of the proof of the dynamic gradual guarantee to be
+generic with respect to cast representations.
+3.11.1 Precision structures and precision for CC ′
+The deﬁnition of term precision relies on a notion of precision for the cast representa-
+tion, so precision for casts must be a parameter of the proof. In particular, we deﬁne
+PreCastStructWithPrecision as an extension of PreCastStruct in Figure 12. This structure
+includes three ﬁelds that deﬁne the precision relation between two casts and precision
+between a cast and a type (on the left or right). The record also includes four requirements
+on those relations that correspond to the precision rules in Figure 9 of Siek et al.( 2015b):
+⊑→ lpit corresponds to the forward direction of the bottom right rule, while lpii→⊑ ,
+lpit→⊑ , and lpti→⊑ are inversion properties about the top left, bottom right, and bottom
+left rules, respectively.
+We deﬁne the precision relation between CC′(⇒) terms in Figure 13.T h er u l e sCast⊑ C ,
+CastL⊑ C , and CastR⊑ C correspond to the precision rules for casts in Figure 9 of Siek
+et al .( 2015b). The rule Wrap⊑ C corresponds to the rules p_wrap_wrap and p_inj in
+the Isabelle mechanization of Siek et al .( 2015b). The side condition that B = ? implies
+B′= ? ensures that our Wrap⊑ C rule handles the same cases as p_inj (where both B =
+? and B′= ?) and p_wrap_wrap (where neither B = ? nor B′= ?). The WrapL⊑ C rule
+corresponds to the rules p_wrap_r and p_injr.2 The WrapR⊑ C rule corresponds to the
+rule p_wrap_l. The side condition A ⁄= ? prevents overlap with the Wrap⊑ C rule which
+we explain as follows. If A = ?, then by Lemma 3 the term M would be an injection and
+therefore the Wrap⊑ C rule would apply. (For the same reason, there is no p_injl rule in
+2 The precision ordering in Siek et al.( 2015b) is ﬂipped with respect to our which explains the switching of left
+versus right.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 25 ===
+Parameterized cast calculi and reusable meta-theory 25
+Fig. 12. PreCastStructWithPrecision extends PreCastStruct.
+the mechanization of Siek et al.( 2015b).) The term blame 𝓁is treated as more precise than
+any term, just as in Siek et al.( 2015b). The rest of the rules are equivalent to the precision
+rules for GTLC (Figure 4).
+There are ﬁve technical lemmas of Siek et al.( 2015b) used in the simulation proof that
+directly involve the cast representation, so those too become structure ﬁelds. We extend
+CastSruct to create the structure CastStructWithPrecision in Figure 14
+3.11.2 Proof of the simulation
+This section is parameterized by CastStructWithPrecision and contains two lemmas that
+lead up to the proof of the simulation. The ﬁrst lemma states that a term that is less precise
+than a value will catch up by reducing to a value.
+Lemma 17 (Catchup to Value). Suppose M : /Gamma1⊣ A and V ′: /Gamma1′⊣ A′.I fM ⊑ C V′, then
+M −→∗ V and V ⊑ C V′for some V .
+Proof sketch. The proof is by induction on the precision relation M ⊑ C V′. All the cases
+are trivial, using induction hypotheses about subterms, except the one case for C AST L.
+Suppose M ≡ N⟨c⟩. By the induction hypothesis for N, we have N −→∗ V for some V and
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 26 ===
+26 J. G. Siek and T. Chen
+Fig. 13. Precision between CC′(⇒) terms and between substitutions.
+V ⊑ C V′. For V⟨c⟩, we case on whether cast c is inert or active: if inert, then V⟨c⟩− →V⟨⟨i⟩⟩
+where i : Inert c by rule wrap; if active, then it is proved by the ﬁeld applyCast-catchup of
+CastStructWithPrecision (Figure 14). □
+Next, we prove that substitution preserves precision.
+Lemma 18 (Substitution Preserves ⊑ C ). If σ ⊑ s σ′and N ⊑ C N′,
+then subst σ N ⊑ C subst σ′N′.
+Proof sketch. The proof is by induction on the precision relation N ⊑ C N′. □
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 27 ===
+Parameterized cast calculi and reusable meta-theory 27
+Fig. 14. The CastStructWithPrecision structure extends CastStruct.
+We come to the proof of the main lemma that a program simulates any more-precise
+version of itself.
+Lemma 19 (Simulation of More Precise Programs). Suppose M1 : ∅⊣ A and M ′
+1 : ∅⊣ A′
+and M ′
+2 : ∅⊣ A′.I fM 1 ⊑ C M′
+1 and M ′
+1 −→M′
+2, then M 1 −→∗ M2 and M2 ⊑ C M′
+2 for some
+M2.
+Proof sketch. The proof is by induction on the precision relation M1 ⊑ C M′
+1. The full proof
+is in Agda; we brieﬂy describe a few cases here.
+Application (M1 ≡ LM and M′
+1 ≡ L′M′). We case on the reduction L′M′−→M′
+2, which
+yields seven subcases:
+Subcase ξ , where frame F = (□_). By the induction hypothesis about the precision
+between L and L′, there exists L2 such that L −→∗ L2 and L2 satisﬁes the precision
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 28 ===
+28 J. G. Siek and T. Chen
+relation. Since multi-step reduction is a congruence, there exists M2 ≡ L2 M that
+satisﬁes M1 −→∗ M2 and M2 ⊑ C M′
+2.
+Subcase ξ , where frame F = (_ □). By Proposition 17, there exists L2 such that: 1) L2
+is a value; 2) L −→∗ L2;3 ) L2 ⊑ C L′. By the induction hypothesis about M and M′,
+there exists N2 such that M −→∗ N2 and N2 satisﬁes the precision relation. Since
+multi-step reduction is a congruence and is transitive, there exists M2 ≡ L2 N2 that
+satisﬁes M1 −→∗ M2 and M2 ⊑ C M′
+2.
+Subcase ξ -blame, where frame F = (□_). LM itself satisﬁes the precision relation
+since blame is more precise than any term, so there exists M2 ≡ LM .
+Subcase ξ -blame, where frame F = (_ □). Same as the previous case.
+Subcase β. Using Proposition 17 twice, LM −→∗ VW , where V and W are both val-
+ues and V ⊑ C L′, W ⊑ C M′. We know that L′≡ λ N′ for some N′ due to β.B y
+induction on the precision relation V ⊑ C λ N′and inversion on Value V , it further
+generates two sub subcases:
+Sub-subcase: V is Vλ Suppose V ≡ λ N, then there exists M2 ≡ N[W ] that satis-
+ﬁes both the reduction (from VW by β) and the precision.
+Sub-subcase: V is Vwrap Suppose V ≡ V1⟨⟨i⟩⟩for some value V1 and i : Inert c:
+V1⟨⟨i⟩⟩W −→(V1 W⟨dom c⟩)⟨cod c⟩,b y fun-cast.
+By using Proposition 17 and congruence of reduction:
+(V1 W⟨dom c⟩)⟨cod c⟩− →∗ V1 W1⟨cod c⟩
+for some value W1. Note that V1, and W1 are now both values, about which by
+induction hypothesis there exists N such that V1 W1 −→∗ N and N satisﬁes
+the precision relation.
+Subcase δ. Similar to the previous case, by repeatedly using Proposition 17 (“catch-
+up”) and the induction hypothesis.
+Subcase fun−cast. Similar to the previous case, by repeatedly using Proposition 17
+(“catch-up”) and the induction hypothesis.
+Cast (M1 ≡ M⟨c⟩and M′
+1 ≡ M′⟨c′⟩). We case on the reduction M′⟨c′⟩− →M′
+2, which
+yields four subcases:
+Subcase ξ . By the induction hypothesis about subterms M and M′and that multi-step
+reduction is a congruence.
+Subcase ξ -blame. M⟨c⟩ itself satisﬁes the precision relation since blame is more
+precise than any term.
+Subcase cast. By Proposition 17 and that M′is value, there exists value V such that
+M −→∗ V and V ⊑ C M′. Then this case is directly proved by the ﬁeld sim-cast of
+CastStructWithPrecision (Figure 14).
+Subcase wrap. Similar to the previous case, ﬁrst use Proposition 17 and then use ﬁeld
+sim-wrap of CastStructWithPrecision (Figure 14).
+Similarly, ﬁelds castr-cast and castr-wrap of CastStructWithPrecision a r eu s e di nt h e
+case for castr, which is omitted since the idea is the same as the cast case described
+above.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 29 ===
+Parameterized cast calculi and reusable meta-theory 29
+Fig. 15. Compilation from GTLC to CC(⇒)a n d CC′(⇒).
+Wrap (M1 ≡ M⟨⟨i⟩⟩and M′
+1 ≡ M′⟨i′⟩). We case on the reduction M′⟨⟨i′⟩⟩ −→M′
+2, which
+yields two subcases:
+Subcase ξ . By the induction hypothesis about subterms M and M′and that multi-step
+reduction is a congruence.
+Subcase ξ -blame. M⟨⟨i⟩⟩itself satisﬁes the precision relation since blame is more
+precise than any term. □
+4 Compilation of GTLC to CC(⇒) and CC(⇒)′
+This section is parameterized by the cast representation ⇒ and by a cast constructor, writ-
+ten /llparenthesisA ⇒ B/rrparenthesis𝓁, that builds a cast from a source type A, target type B, blame label 𝓁, and
+(implicitly) a proof that A and B are consistent.
+The compilation functions C/llbracket−/rrbracketand C′/llbracket−/rrbracketare deﬁned in Figure 15 and map a well-
+typed term of the GTLC to a well-typed term of the Parameterized Cast Calculus CC(⇒)
+or CC′(⇒), respectively. The two functions are the same except in the equation for case,
+so we only show that equation for C′/llbracket−/rrbracket. The Agda type signatures of the compilation
+functions ensure that they are type preserving.
+Lemma 20 (Compilation Preserves Types).
+1. If /Gamma1⊣G M : A, then C/llbracketM/rrbracket: /Gamma1⊣ A.
+2. If /Gamma1⊣G M : A, then C′/llbracketM/rrbracket: /Gamma1⊣′A.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 30 ===
+30 J. G. Siek and T. Chen
+The compilation functions also preserve precision, which is an important lemma in
+the proof of the dynamic gradual guarantee. This lemma is parameterized over the
+PreCastStructWithPrecision structure (Figure 12).
+Lemma 21 (Compilation Preserves Precision). Suppose /Gamma1⊣G M : A and /Gamma1′⊣G M′: A′.I f
+/Gamma1⊑ /Gamma1′and M ⊑ G M′, then C′/llbracketM/rrbracket⊑ C C′/llbracketM′/rrbracketand A ⊑ A′.
+5 A half-dozen cast calculi
+We begin to reap the beneﬁts of creating the Parameterized Cast Calculus by instantiating
+it with six different implementations of CastStruct to produce six cast calculi.
+5.1 Partially Eager “D” casts with Active cross casts (EDA)
+The cast calculus deﬁned in this section corresponds to the original one of Siek & Taha
+(2006a), although their presentation used a big-step semantics instead of a reduction
+semantics and did not include blame tracking. In the nomenclature of Siek et al .( 2009),
+this calculus is partially eager and uses the “D” blame tracking strategy. As we shall see
+shortly, this calculus categorizes cross casts as active, so we refer to this cast calculus as
+the partially eager “D” cast calculus with active cross casts (EDA).
+We deﬁne the EDA calculus and prove that it is type-safe and blame-safe by instantiating
+the meta-theory of the Parameterized Cast Calculus. This requires that we deﬁne instances
+of the structures PreCastStruct, CastStruct, PreBlameSafe, and BlameSafe.
+We begin by deﬁning the cast representation type ⇒ as a data type with a single con-
+structor also named ⇒ that takes two types, a blame label, and a proof of consistency:
+c : A ⇒ B
+A ⇒𝓁 B : A ⇒ B A ∼ B
+The cast constructor is deﬁned trivially as follows:
+/llparenthesisA ⇒ B/rrparenthesis𝓁= (A ⇒𝓁 B)
+(Recall that the cast constructor is used during compilation in Section 4.)
+5.1.1 Reduction semantics and type safety
+We categorize the casts whose target type is ? as inert casts.
+Inert c
+Inert (A ⇒𝓁 ?)
+A ⁄= ?
+We categorize casts between function, pair, and sum types as cross casts.
+Cross c
+Cross⊗ :
+Cross (A ⊗ B ⇒𝓁 C ⊗ D)
+⊗∈{ →, ×, +}
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 31 ===
+Parameterized cast calculi and reusable meta-theory 31
+We categorize the identity, projection, and cross casts as active.
+Active c
+ActId :
+Active (a ⇒𝓁 a)
+ActProj :
+Active (? ⇒𝓁 B)
+B ⁄= ?
+ActCross : Cross c
+Active c
+Lemma 22. For any types A and B, c : A ⇒ B is either an active or inert cast.
+Proof. The cast c must be of the form A ⇒𝓁 B where A ∼ B. We proceed by cases on
+A ∼ B.
+Case A ∼ ?I f A ≡ ?, then c is active by ActId. Otherwise c is inert.
+Case ? ∼ B If B ≡ ?, then c is active by ActId. Otherwise c is active by ActProj.
+Case b ∼ bc is active by ActId.
+Case A ⊗ B ∼ A′⊗ B′ where ⊗∈{ →, ×, +}. c is active by ActCross and
+Cross⊗. □
+Next we show that inert casts into non-atomic types are cross casts.
+Lemma 23. If c : A ⇒ (B ⊗ C) and Inert c, then Cross c and A ≡ D ⊗ E for some D and E.
+Proof. There are no inert casts whose target type is B ⊗ C (it must be ?), so this lemma is
+vacuously true. □
+Continuing on the topic of cross casts, we deﬁne dom, cod, etc. as follows. (The second
+parameter x is the evidence that the ﬁrst parameter is a cross cast.)
+dom (A → B ⇒𝓁 C → D) x = C ⇒𝓁 A
+cod (A → B ⇒𝓁 C → D) x = B ⇒𝓁 D
+fst (A × B ⇒𝓁 C × D) x = A ⇒𝓁 C
+snd (A × B ⇒𝓁 C × D) x = B ⇒𝓁 D
+inl (A + B ⇒𝓁 C + D) x = A ⇒𝓁 C
+inr (A + B ⇒𝓁 C + D) x = B ⇒𝓁 D
+We check that a cast to a base type is not inert.
+Lemma 24. A cast c : A ⇒ b is not inert.
+Proof. This is easy to verify because b ⁄= ?. □
+Proposition 25. The EDA calculus is an instance of the PreCastStruct structure.
+We import and instantiate the deﬁnitions and lemmas from Section 3.2 (values and
+frames) and Section 3.3 (eta-like reduction rules).
+Next we deﬁne the applyCast function by cases on the proof that the cast is active.
+The case below for ActProj relies on Lemma 3 to know that the term is of the form
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 32 ===
+32 J. G. Siek and T. Chen
+A <:? b <: b
+C <: AB <: D
+A → B <: C → D
+A <: CB <: D
+A × B <: C × D
+A <: CB <: D
+A + B <: C + D
+Fig. 16. Subtyping for “D” blame tracking.
+M⟨A ⇒𝓁1 ?⟩.
+applyCast : ∀/Gamma1AB.( M : /Gamma1⊣ A) → Value M → (c : A ⇒ B) → Active c → /Gamma1⊣ B
+applyCast M v (A ⇒𝓁 A) ActId = M
+applyCast M⟨A ⇒𝓁1 ?⟩ v (? ⇒𝓁2 B) ActProj =
+{
+M⟨A ⇒𝓁2 B⟩ if A ∼ B
+blame 𝓁2 otherwise
+applyCast M v c Act⊗= eta⊗ Mc Cross⊗
+Proposition 26. The EDA calculus is an instance of the CastStruct structure.
+We instantiate from CC(⇒) the reduction semantics (Section 3.6) and proof of type
+safety (Section 3.8) to obtain the following deﬁnition and results.
+Deﬁnition 27 (Reduction for EDA). The reduction relation M −→N for the EDA calcu-
+lus is the reduction relation of CC (⇒) instantiated with EDA’s instance of CastStruct.
+Corollary 28 (Preservation for EDA). If M : /Gamma1⊣ A and M −→M′, then M ′: /Gamma1⊣ A.
+Corollary 29 (Progress for EDA). If M : ∅⊣ A, then
+1. M −→M′for some M ′,
+2. Value M, or
+3. M ≡ blame 𝓁.
+Let EDA′be the variant of EDA obtained by instantiating CC′instead of CC.
+5.1.2 Blame-subtyping
+Because the EDA ′ calculus uses the “D” blame-tracking strategy, the subtyping relation
+that corresponds to safe casts is the one in Figure 16 where the unknown type ? is the top
+of the subtyping order.
+We deﬁne the CastBlameSafe predicate as follows:
+A <: B
+CastBlameSafe (A ⇒𝓁 B) 𝓁
+𝓁⁄= 𝓁′
+CastBlameSafe (A ⇒𝓁′
+B) 𝓁
+Lemma 30 (Blame Safety of Cast Operators). Suppose CastBlameSafe c 𝓁 and c is a
+cross cast, that is, x : Cross c.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 33 ===
+Parameterized cast calculi and reusable meta-theory 33
+• If x = Cross →, then CastBlameSafe (dom cx ) 𝓁and CastBlameSafe (cod cx ) 𝓁.
+• If x = Cross×, then CastBlameSafe (fst cx ) 𝓁and CastBlameSafe (snd cx ) 𝓁.
+• If x = Cross+, then CastBlameSafe (inl cx ) 𝓁and CastBlameSafe (inr cx ) 𝓁.
+Proposition 31. EDA′is an instance of the PreBlameSafe structure.
+Lemma 32 (applyCast preserves blame safety in EDA ′). If CastBlameSafe c 𝓁 and a :
+Active c and V safe for 𝓁and v : Value V , then (applyCast V v ca ) safe for 𝓁.
+Proof. The proof is by cases on a (the cast being active and if a cross cast, cases on the
+three kinds) and then by cases on CastBlameSafe c 𝓁, except that if the cast is an identity
+cast, then there is no need for casing on CastBlameSafe c 𝓁. So there are nine cases to
+check, but they are all straightforward. □
+Proposition 33. EDA′is an instance of the BlameSafe structure.
+We instantiate Theorem 16 with this BlameSafe instance to obtain the Blame-Subtyping
+Theorem for EDA′.
+Corollary 34 (Blame-Subtyping Theorem for EDA′). If M : /Gamma1⊣ A and M safe for 𝓁, then
+¬(M −→∗ blame 𝓁).
+5.2 Partially Eager “D” casts with Inert cross casts (EDI)
+Many cast calculi ( Wadler & Findler, 2007, 2009; Siek et al., 2009; Siek & Wadler, 2010;
+Siek et al., 2015a) categorize terms of the form:
+V⟨A → B ⇒ C → D⟩
+as values and then deﬁne the reduction rule:
+V⟨A → B ⇒ C → D⟩W −→(V (W⟨C ⇒ A⟩))⟨B ⇒ D⟩
+That is, these calculi categorize cross casts as inert instead of active. In this section, we
+take this approach for functions, pairs, and sums, but keep everything else the same as
+in the previous section. We conjecture that this cast calculus is equivalent in observable
+behavior to EDA. We refer to this calculus as EDI, where the I stands for “inert.”
+So the cast representation type is again made of a source type, target type, blame label,
+and consistency proof.
+c : A ⇒ B
+A ⇒𝓁 B : A ⇒ B A ∼ B
+The cast constructor is deﬁned as follows:
+/llparenthesisA ⇒ B/rrparenthesis𝓁= (A ⇒𝓁 B)
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 34 ===
+34 J. G. Siek and T. Chen
+5.2.1 Reduction semantics and type safety
+Again, we categorize casts between function, pair, and sum types as cross casts.
+Cross c
+Cross⊗ : ⊗∈{ →, ×, +}
+Cross (A ⊗ B ⇒𝓁 C ⊗ D)
+But for the inert casts, we include the cross casts this time.
+Inert c
+InInj : A ⁄= ?
+Inert (A ⇒𝓁 ?)
+InCross : Cross c
+Inert c
+The active casts include just the identity casts and projections.
+Active c
+ActId :
+Active (a ⇒𝓁 a)
+ActProj : B ⁄= ?
+Active (? ⇒𝓁 B)
+Lemma 35. For any types A and B, c : A ⇒ B is either an active or inert cast.
+Proof. The proof is similar to that of Lemma 22, except the cross casts are categorized as
+inert instead of active. □
+Lemma 36. If c : A ⇒ (B ⊗ C) and Inert c, then Cross c and A ≡ D ⊗ E for some D and E.
+Proof. We proceed by cases on Inert c.
+Case InInj: The target type is ?, not B ⊗ C, so we have a contradiction.
+Case InCross: We have Cross c. By cases on Cross c, we have A ≡ D ⊗ E for some D
+and E. □
+The deﬁnitions of dom, cod, etc. are exactly the same as in Section 5.1.
+Lemma 37. A cast c : A ⇒ b is not inert.
+Proof. The inert casts in this section have a target type of either ? or a non-atomic type
+A1 ⊗ A2, but not a base type. □
+Proposition 38. The EDI calculus is an instance of the PreCastStruct structure.
+Again, we deﬁne the applyCast function by cases on the proof that the cast is active,
+but this time there is one less case to consider (the cross casts). The cases for ActId and
+ActProj are the same as in Section 5.1.
+applyCast : ∀/Gamma1AB.( M : /Gamma1⊣ A) → Value M → (c : A ⇒ B) → Active c → /Gamma1⊣ B
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 35 ===
+Parameterized cast calculi and reusable meta-theory 35
+applyCast M v (a ⇒𝓁 a) ActId = M
+applyCast M⟨A ⇒𝓁1 ?⟩ v (? ⇒𝓁2 B) ActProj =
+{
+M⟨A ⇒𝓁2 B⟩ if A ∼ B
+blame 𝓁2 otherwise
+Proposition 39. The EDI calculus is an instance of the CastStruct structure.
+We instantiate from CC(⇒) the reduction semantics (Section 3.6) and proof of type
+safety (Section 3.8) for EDI to obtain the following deﬁnition and results.
+Deﬁnition 40. (Reduction for EDI). The reduction relation M −→N for the EDI calculus
+is the reduction relation of CC (⇒) instantiated with EDI’s instance of CastStruct.
+Corollary 41 (Preservation for EDI). If M : /Gamma1⊣ A and M −→M′, then M ′: /Gamma1⊣ A.
+Corollary 42 (Progress for EDI). If M : ∅⊣ A, then
+1. M −→M′for some M ′,
+2. Value M, or
+3. M ≡ blame 𝓁.
+Let EDI′be the variant of EDI obtained by instantiating CC′instead of CC.
+5.2.2 Blame-subtyping
+We deﬁne the CastBlameSafe predicate for EDI′exactly the same way as for EDA ′,u s i n g
+the subtyping relation of Figure 16.
+Because the cast operators for EDI are deﬁned exactly the same as for EDA, Lemma 30
+also applies to EDI, that is, the cast operators such as dom preserve blame safety.
+Proposition 43. EDI′is an instance of the PreBlameSafe structure.
+Lemma 44 (applyCast preserves blame safety in EDI ′). If CastBlameSafe c 𝓁 and a :
+Active c and V safe for 𝓁and v : Value V , then (applyCast V v ca ) safe for 𝓁.
+Proof. The proof of this lemma is much shorter than the corresponding one for EDA ′
+because there are fewer casts categorized as active. So there are just three straightforward
+cases to check. □
+Proposition 45. EDI′is an instance of the BlameSafe structure.
+We instantiate Theorem 16 with this BlameSafe instance to obtain the Blame-Subtyping
+Theorem for EDI′.
+Corollary 46 (Blame-Subtyping Theorem for EDI ′). If M : /Gamma1⊣ A and M safe for 𝓁, then
+¬(M −→∗ blame 𝓁).
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 36 ===
+36 J. G. Siek and T. Chen
+5.3 The λB Blame Calculus
+This section generates the λB variant (Siek et al., 2015a) of the Blame Calculus ( Wadler
+& Findler , 2009) as an instance of the Parameterized Cast Calculus. It also extends λB
+in Siek et al .( 2015a) with product types and sum types. We explore treating cross casts
+on products and sums both as active and inert casts in Section 5.3.1. Compared to the
+previous sections, the main difference in λB is that all injections and projections factor
+through ground types, deﬁned as follows:
+Ground Types G, H ::= b | ? → ? | ? × ? | ? + ?
+The cast representation type consists of a source type, target type, blame label, and
+consistency proof.
+c : A ⇒ B
+A ⇒𝓁 B : A ⇒ B A ∼ B
+The cast constructor is deﬁned as follows:
+/llparenthesisA ⇒ B/rrparenthesis𝓁= (A ⇒𝓁 B)
+5.3.1 Reduction semantics and type safety
+We categorize casts between function, pair, and sum types as cross casts.
+Cross c
+Cross⊗ :
+Cross (A ⊗ B ⇒𝓁 C ⊗ D)
+⊗∈{ →, ×, +}
+Regarding inert casts in λB, an injection from ground type is inert and a cast between
+function types is inert. As for casts between product types and sum types, there are two
+choices, either to make them inert or to make them active. This yields two variants of λB:
+Variant 1 where all cross casts are inert and Variant 2 where only function casts are inert.
+Inert c. Variant 1
+InInj :
+Inert (G ⇒𝓁 ?)
+InCross : Cross c
+Inert c
+Inert c. Variant 2
+InInj :
+Inert (G ⇒𝓁 ?)
+InFun :
+Inert (A → B ⇒𝓁 C → D)
+The active casts in both λB variations include injections from non-ground type, pro-
+jections, and identity casts. In Variant 2, we categorize only function casts as active, so
+compared to Variant 1 we have an additional rule Act⊗ for casts between product types
+and sum types being active.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 37 ===
+Parameterized cast calculi and reusable meta-theory 37
+Active c. Variant 1
+ActId :
+Active (a ⇒𝓁 a)
+ActInj :
+Active (A ⇒𝓁 ?)
+A ⁄≡ ?, ⁄∃G. A ≡ G
+ActProj :
+Active (? ⇒𝓁 B)
+B ⁄= ?
+Active c. Variant 2
+ActId :
+Active (a ⇒𝓁 a)
+ActInj :
+Active (A ⇒𝓁 ?)
+A ⁄≡ ?, ⁄∃G. A ≡ G
+ActProj :
+Active (? ⇒𝓁 B)
+B ⁄= ?
+Act⊗ :
+Active (A ⊗ B ⇒𝓁 C ⊗ D)
+⊗∈{ ×, +}
+Lemma 47. For any types A and B, c : A ⇒ B is either an active or inert cast.
+Lemma 48. If c : A ⇒ (B ⊗ C) and Inert c, then Cross c and A ≡ D ⊗ E for some D and E.
+Lemma 49. A cast c : A ⇒ b is not inert.
+Proposition 50. Both variants of λB are instances of the PreCastStruct structure.
+We deﬁne the following partial function named gnd (short for “ground”). It is deﬁned
+on all types except for ?.
+gnd A
+gnd b = b
+gnd A ⊗ B = ? ⊗ ?f o r ⊗∈{ →, ×, +}
+Also, we use the following shorthand for a sequence of two casts:
+M⟨A ⇒𝓁1 B ⇒𝓁2 C⟩=M⟨A ⇒𝓁1 B⟩⟨B ⇒𝓁2 C⟩
+The following is the deﬁnition of applyCast for λB Variant 1:
+applyCast : ∀/Gamma1AB.( M : /Gamma1⊣ A) → Value M → (c : A ⇒ B) → Active c → /Gamma1⊣ B
+applyCast M v (a ⇒𝓁 a) ActId = M
+applyCast M v (A ⇒𝓁 ?) ActInj = M⟨A ⇒𝓁 gnd A ⇒𝓁 ?⟩
+applyCast M⟨G ⇒𝓁1 ?⟩ v (? ⇒𝓁2 B) ActProj = M′
+where
+M′=
+⎧
+⎪⎪⎨
+⎪⎪⎩
+M if B = gnd B = G
+blame 𝓁2 if B = gnd B ⁄= G
+M⟨G ⇒𝓁1 ? ⇒𝓁2 gnd B ⇒𝓁2 B⟩ otherwise
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 38 ===
+38 J. G. Siek and T. Chen
+The deﬁnition of applyCast for λB Variant 2 has two additional cases, for Act× and
+Act+, respectively:
+applyCast : ∀/Gamma1AB.( M : /Gamma1⊣ A) → Value M → (c : A ⇒ B) → Active c → /Gamma1⊣ B
+applyCast M v (a ⇒𝓁 a) ActId = M
+applyCast M v (A ⇒𝓁 ?) ActInj = M⟨A ⇒𝓁 gnd A ⇒𝓁 ?⟩
+applyCast M v c Act×= eta× Mc Cross×
+applyCast M v c Act+= eta+ Mc Cross+
+applyCast M⟨G ⇒𝓁1 ?⟩ v (? ⇒𝓁2 B) ActProj = M′
+where
+M′=
+⎧
+⎪⎪⎨
+⎪⎪⎩
+M if B = gnd B = G
+blame 𝓁2 if B = gnd B ⁄= G
+M⟨G ⇒𝓁1 ? ⇒𝓁2 gnd B ⇒𝓁2 B⟩ otherwise
+Proposition 51. Both variants of λB are instances of the CastStruct structure.
+We import and instantiate the reduction semantics and proof of type safety from
+Sections 3.6 and 3.8 to obtain the following deﬁnition and results.
+Deﬁnition 52 (Reduction for λB). The reduction relation M −→Nf o rλB is the reduction
+relation of CC(⇒) instantiated with λB’s instance of CastStruct.
+Corollary 53 (Preservation for λB). If M : /Gamma1⊣ A and M −→M′, then M ′: /Gamma1⊣ A.
+Corollary 54 (Progress for λB). If M : ∅⊣ A, then
+1. M −→M′for some M ′,
+2. Value M, or
+3. M ≡ blame 𝓁.
+Let λB′be the variant of λB obtained by instantiating CC′instead of CC.
+5.3.2 Blame-subtyping
+λB′ uses the “UD” blame-tracking strategy ( Wadler & Findler , 2009; Siek et al ., 2009),
+so the subtyping relation that corresponds to safe casts is the one in Figure 17.I nt h i s
+subtyping relation, a type A is a subtype of ? only if it is a subtype of a ground type. For
+example, Int → Int ⁄<: ? because Int → Int ⁄<:? → ? because ? ⁄<: Int.
+The CastBlameSafe predicate is deﬁned as it was for EDA in Section 5.1.2, except using
+the subtyping relation of Figure 17.
+The cast operators for λB′are deﬁned exactly the same as for EDA, so Lemma 30 also
+applies to λB′, that is, the cast operators such as dom preserve blame safety.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 39 ===
+Parameterized cast calculi and reusable meta-theory 39
+? <:? b <: b
+A <: G
+A <:?
+C <: AB <: D
+A → B <: C → D
+A <: CB <: D
+A × B <: C × D
+A <: CB <: D
+A + B <: C + D
+Fig. 17. Subtyping for “UD” blame tracking.
+Proposition 55. λB′is an instance of the PreBlameSafe structure.
+Lemma 56 (applyCast preserves blame safety in both variants of λB′).
+If CastBlameSafe c 𝓁 and a : Active c and V safe for 𝓁 and v : Value V , then
+(applyCast V v ca ) safe for 𝓁.
+Proposition 57 Both variants of λB′are an instance of the BlameSafe structure.
+We instantiate Theorem 16 with this BlameSafe instance to obtain the Blame-Subtyping
+Theorem for both variants of λB′.
+Corollary 58 (Blame-Subtyping Theorem for both variants of λB′).
+If M : /Gamma1⊣ A and M safe for 𝓁, then ¬(M −→∗ blame 𝓁).
+5.3.3 Dynamic gradual guarantee
+We now turn to proving the dynamic gradual guarantee for both variants of λB.T h i s
+involving deﬁning precision on casts and then proving the lemmas required to show that
+λB is an instance of CastStructWithPrecision. We then instantiate the generic Lemma 19
+to obtain the required simulation result and prove the main theorem.
+We deﬁne the precision relations between two casts and between a cast and a type,
+corresponding to the ﬁrst three ﬁelds in PreCastStructWithPrecision (Figure 12).
+⟨⟨i⟩⟩ ⊑ ⟨⟨i′⟩⟩. Variant 1
+i : Inert (G ⇒𝓁 ?) i′: Inert (G ⇒𝓁′
+?)
+⟨⟨i⟩⟩ ⊑ ⟨⟨i′⟩⟩
+A → B ⊑ A′→ B′ C → D ⊑ C′→ D′
+i : Inert (A → B ⇒𝓁 C → D)
+i′: Inert (A′→ B′⇒𝓁′
+C′→ D′)
+⟨⟨i⟩⟩ ⊑ ⟨⟨i′⟩⟩
+A × B ⊑ A′× B′ C × D ⊑ C′× D′
+i : Inert (A × B ⇒𝓁 C × D)
+i′: Inert (A′× B′⇒𝓁′
+C′× D′)
+⟨⟨i⟩⟩ ⊑ ⟨⟨i′⟩⟩
+A + B ⊑ A′+ B′ C + D ⊑ C′+ D′
+i : Inert (A + B ⇒𝓁 C + D)
+i′: Inert (A′+ B′⇒𝓁′
+C′+ D′)
+⟨⟨i⟩⟩ ⊑ ⟨⟨i′⟩⟩
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 40 ===
+40 J. G. Siek and T. Chen
+⟨⟨i⟩⟩ ⊑A′. Variant 1
+i : Inert (G ⇒𝓁 ?) G ⊑ A′
+⟨⟨i⟩⟩ ⊑A′
+A → B ⊑ A′→ B′ C → D ⊑ A′→ B′
+i : Inert (A → B ⇒𝓁 C → D)
+⟨⟨i⟩⟩ ⊑A′→ B′
+A × B ⊑ A′× B′ C × D ⊑ A′× B′
+i : Inert (A × B ⇒𝓁 C × D)
+⟨⟨i⟩⟩ ⊑A′× B′
+A + B ⊑ A′+ B′ C + D ⊑ A′+ B′
+i : Inert (A + B ⇒𝓁 C + D)
+⟨⟨i⟩⟩ ⊑A′+ B′
+A ⊑⟨ ⟨i′⟩⟩. Variant 1
+A → B ⊑ A′→ B′ A → B ⊑ C′→ D′
+i′: Inert (A′→ B′⇒𝓁 C′→ D′)
+A → B ⊑⟨ ⟨i′⟩⟩
+A × B ⊑ A′× B′ A × B ⊑ C′× D′
+i′: Inert (A′× B′⇒𝓁 C′× D′)
+⟨⟨A × B⟩⟩ ⊑i′
+A + B ⊑ A′+ B′ A + B ⊑ C′+ D′
+i′: Inert (A′+ B′⇒𝓁 C′+ D′)
+⟨⟨A + B⟩⟩ ⊑i′
+The precision relations for Variant 2 have fewer cases compared to Variant 1, since the
+casts between product types and sum types are active:
+⟨⟨i⟩⟩ ⊑ ⟨⟨i′⟩⟩. Variant 2
+i : Inert (G ⇒𝓁 ?) i′: Inert (G ⇒𝓁′
+?)
+⟨⟨i⟩⟩ ⊑ ⟨⟨i′⟩⟩
+A → B ⊑ A′→ B′ C → D ⊑ C′→ D′
+i : Inert (A → B ⇒𝓁 C → D)
+i′: Inert (A′→ B′⇒𝓁′
+C′→ D′)
+⟨⟨i⟩⟩ ⊑ ⟨⟨i′⟩⟩
+⟨⟨i⟩⟩ ⊑A′. Variant 2
+i : Inert (G ⇒𝓁 ?) G ⊑ A′
+⟨⟨i⟩⟩ ⊑A′
+A → B ⊑ A′→ B′ C → D ⊑ A′→ B′
+i : Inert (A → B ⇒𝓁 C → D)
+⟨⟨i⟩⟩ ⊑A′→ B′
+A ⊑⟨ ⟨i′⟩⟩. Variant 2
+A → B ⊑ A′→ B′ A → B ⊑ C′→ D′
+i′: Inert (A′→ B′⇒𝓁 C′→ D′)
+A → B ⊑⟨ ⟨i′⟩⟩
+Then, we instantiate and prove the four lemmas that correspond to the last four ﬁelds in
+PreCastStructWithPrecision (Figure 12). They are forward direction and inversion lem-
+mas about the precision relations deﬁned above between casts and between a cast and a
+type.
+Lemma 59 (Type Precision Implies Cast-Type Precision). Suppose c : A ⇒ B and i :
+Inert c. If A ⊑ A′,B ⊑ A′, then ⟨⟨i⟩⟩ ⊑A′.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 41 ===
+Parameterized cast calculi and reusable meta-theory 41
+Lemma 60 (Cast-Cast Precision Implies Type Precision). Suppose c : A ⇒ B, c′: A′⇒ B′,
+i : Inert c, i′: Inert c′.I f ⟨⟨i⟩⟩ ⊑ ⟨⟨i′⟩⟩, then A ⊑ A′and B ⊑ B′.
+Lemma 61 (Cast-Type Precision Implies Type Precision). Suppose c : A ⇒ B and i :
+Inert c. If ⟨⟨i⟩⟩ ⊑A′, then A ⊑ A′and B ⊑ A′.
+Lemma 62 (Type-Cast Precision Implies Type Precision). Suppose c′: A′⇒ B′ and i′:
+Inert c′.I fA ⊑⟨ ⟨i′⟩⟩, then A ⊑ A′and A ⊑ B′.
+We instantiate PreCastStructWithPrecision using the deﬁnitions of precision and their
+related lemmas (Lemmas 59, 60, 61, and 62).
+Proposition 63 λB′is an instance of the PreCastStructWithPrecision structure.
+We instantiate Lemma 21 to prove that compilation of the GTLC into λB′preserves the
+precision relation.
+Corollary 64 (Compilation into λB′Preserves Precision). Suppose /Gamma1⊣G M : A and /Gamma1′⊣G
+M′: A′.I f /Gamma1⊑ /Gamma1′and M ⊑ G M′, then C′/llbracketM/rrbracket⊑ C C′/llbracketM′/rrbracketand A ⊑ A′.
+Lemma 65 (applyCast Catches Up to the Right). Suppose V ′: /Gamma1′⊣ A′,c : A ⇒ B, and
+a : Active c. If A ⊑ A′,B ⊑ A′, and V ⊑ C V′, then applyCast Vc a −→∗ W and W ⊑ C V′
+for some value W .
+Proof sketch. We brieﬂy describe the proof for Variant 1, since the proof methodology is
+the same for both variants.
+By induction on the premise Active c, it generates three cases:
+ActId. Since c is identity cast, W ≡ V satisﬁes the reduction and W ⊑ C V′.
+ActInj. We follow the branch structure of applyCast and proceed.
+ActProj. We follow the branch structure of applyCast and case on whether the target
+type B of the projection is ground. If B is ground, then the proof is straightforward
+by inversion on the canonical form of the projected value. Otherwise, if the B is not
+ground, applyCast expands the cast by routing through a ground type, from where we
+proceed using the induction hypothesis. □
+Lemma 66 (Simulation Between Cast and applyCast). Suppose c : A ⇒ B, c ′: A′⇒
+B′, and a ′: Active c′.I fA ⊑ A′,B ⊑ B′, and V ⊑ C V′, then V ⟨c⟩− →∗ N and N ⊑ C
+applyCast V′c′a′for some N.
+Proof sketch. We case on Active c′and generate three cases that are all straightforward. □
+Lemma 67 (Simulation Between Cast and Wrap). Suppose c : A ⇒ B, c′: A′⇒ B′, and
+i′: Inert c′.I fA ⊑ A′,B ⊑ B′, and V ⊑ C V′, then V ⟨c⟩− →∗ N and N ⊑ C V′⟨⟨i′⟩⟩for some
+N.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 42 ===
+42 J. G. Siek and T. Chen
+Proof sketch. We case on the premise Inert c′:
+InInj. In this case, by inversion on A ⊑ A′and B ⊑ B′, A can be either ? or ground. If
+A is ?, an identity cast ? ⇒ ? is active so we use rule cast and proceed; otherwise,
+the cast is inert so we use rule wrap and proceed.
+InCross. Similar to the InInj case, by inversion on the two type precision
+relations. □
+Lemma 68 (Simulation Between Value and applyCast). Suppose V : ∅⊣ A, c′: A′⇒ B′,
+and a′: Active c′.I fA ⊑ A′,A ⊑ B′, and V ⊑ C V′, then V ⊑ C applyCast V′c′a′.
+Proof sketch. Straightforward. By case analysis on a′: Active c′. □
+Lemma 69 (Simulation Between Value and Wrap). Suppose V : ∅⊣ A, c′: A′⇒ B′, and
+i′: Inert c′.I fA ⊑ A′,A ⊑ B′, and V ⊑ C V′, then V ⊑ C V′⟨⟨i′⟩⟩.
+Proof sketch. Straightforward. By case analysis on i′: Inert c′and by inversion on the type
+precision relations. □
+We prove that both variants of λB′ are instances of CastStructWithPrecision using
+Lemmas 65, 66, 67, 68, and 69.
+Proposition 70 Both variants of λB′ are an instance of the CastStructWithPrecision
+structure.
+We instantiate Lemma 19 (Simulation of More Precise Programs) with the λB′instances
+of CastStructWithPrecision (Proposition 70) to obtain the main lemma of the dynamic
+gradual guarantee for both variants of λB′.
+Corollary 71 (Simulation of More Precise Programs for λB′). Suppose M 1 : ∅⊣ A and
+M′
+1 : ∅⊣ A′and M′
+2 : ∅⊣ A′.I fM 1 ⊑ C M′
+1 and M′
+1 −→M′
+2, then M1 −→∗ M2 and M2 ⊑ C M′
+2
+for some M2.
+We prove the dynamic gradual guarantee for λB′following the reasoning of Siek et al.
+(2015b). We give the full proof here.
+Theorem 72 (Dynamic Gradual Guarantee for both variants of λB′).
+Suppose M ⊑ G N and /Gamma1⊣G M : A and /Gamma1⊣G N : B.
+1. If C/llbracketN/rrbracket−→∗ W , then C/llbracketM/rrbracket−→∗ V and V ⊑ C W.
+2. If C/llbracketN/rrbracketdiverges, so does C/llbracketM/rrbracket.
+3. If C/llbracketM/rrbracket−→∗ V , then either C/llbracketN/rrbracket−→∗ W and V ⊑ C W, o r C/llbracketN/rrbracket−→∗ blame 𝓁for
+some 𝓁.
+4. If C/llbracketM/rrbracketdiverges then either C/llbracketN/rrbracketdiverges or C/llbracketN/rrbracket−→∗ blame 𝓁for some 𝓁.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 43 ===
+Parameterized cast calculi and reusable meta-theory 43
+Proof.
+1. By Corollary 64, we have C/llbracketM/rrbracket⊑ C C/llbracketN/rrbracket. Then by induction on C/llbracketN/rrbracket−→∗ W
+and Corollary 71, we have C/llbracketM/rrbracket−→∗ M′and M′⊑ C W for some M′. Finally, by
+Lemma 17 (instantiated for λB′), we have M′−→∗ V and V ⊑ C W .
+2. By Corollary 64, we have C/llbracketM/rrbracket⊑ C C/llbracketN/rrbracket. Then by Corollary 71, C/llbracketM/rrbracketalso
+diverges.
+3. Because λB′is type safe (Corollaries 53 and 54), we have the following cases.
+• Case C/llbracketN/rrbracket−→∗ W for some W . Then by Part 1 of this theorem and because
+reduction is deterministic, V ⊑ C W .
+• Case C/llbracketN/rrbracket−→∗ blame 𝓁for some 𝓁. We immediately conclude.
+• Case C/llbracketN/rrbracketdiverges. Then by Part 1, C/llbracketM/rrbracketalso diverges, but that contradicts the
+assumption that C/llbracketM/rrbracket−→∗ V .
+4. Again because λB′is type safe (Corollaries 53 and 54), we have the following cases.
+• Case C/llbracketN/rrbracket−→∗ W for some W . Then by Part 1, C/llbracketM/rrbracket−→∗ V for some V but
+that contradicts the assumption that C/llbracketM/rrbracketdiverges.
+• Case C/llbracketN/rrbracket−→∗ blame 𝓁for some 𝓁. We immediately conclude.
+• Case C/llbracketN/rrbracketdiverges. We immediately conclude. □
+5.4 Partially Eager “D” Coercions (EDC)
+The next three cast calculi use cast representations based on the Coercion Calculus of
+Henglein (1994). We start with one that provides the same behavior as the cast calculus of
+Siek & Taha (2006a), that is, partially eager casts with active cross casts (Section 5.1). We
+use the abbreviation EDC for this cast calculus.
+We deﬁne coercions as follows, omitting sequence coercions because they are not nec-
+essary in this calculus.
+c, d : A ⇒ B
+id : a ⇒ a A! : A ⁄= ?
+A ⇒ ? B?𝓁 : B ⁄= ?
+? ⇒ B
+−→− : C ⇒ AB ⇒ D
+(A → B) ⇒ (C → D) −⊗ −: A ⇒ CB ⇒ D
+(A ⊗ B) ⇒ (C ⊗ D) ⊗∈{ ×, +}
+The cast constructor is deﬁned by applying the coerce function (deﬁned later in this
+section) to the implicit proof of consistency between A and B and the blame label 𝓁:
+/llparenthesisA ⇒ B/rrparenthesis𝓁{p : A ∼ B}= coerce p 𝓁
+5.4.1 Reduction semantics and type safety
+Injections are categorized as inert casts.
+Inert c
+Inert A!
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 44 ===
+44 J. G. Siek and T. Chen
+The coercions between function, pair, and sum types are categorized as cross casts.
+Cross c
+Cross⊗ : Cross (c ⊗ d) ⊗∈{ →, ×, +}
+We categorize the identity, projection, and cross casts as active.
+Active c
+ActId : Active id ActProj :
+Active A?𝓁 ActCross : Cross c
+Active c
+Lemma 73. For any types A and B, c : A ⇒ B is either an active or inert cast.
+Lemma 74. If c : A ⇒ (B ⊗ C) and Inert c, then Cross c and A ≡ D ⊗ E for some D and E.
+The cast operators dom, cod, etc. are deﬁned as follows:
+dom (c → d) x = c
+cod (c → d) x = d
+fst (c × d) x = c
+snd (c × d) x = d
+inl (c + d) x = c
+inr (c + d) x = d
+Lemma 75. A cast c : A ⇒ b is not inert.
+Proposition 76 The EDC calculus is instance of the PreCastStruct structure.
+To help deﬁne the applyCast function, we deﬁne an auxiliary function named coerce for
+converting two consistent types and a blame label into a coercion. (The coerce function is
+also necessary for compiling from the GTLC to this calculus.)
+coerce : ∀AB . A ∼ B → Label → A ⇒ B
+coerce UnkL∼[B] 𝓁=
+{
+id if B ≡ ?
+B?𝓁 B ⁄≡ ?
+coerce UnkR∼[A] 𝓁=
+{
+id if A ≡ ?
+A! A ⁄≡ ?
+coerce Base∼[b] 𝓁= id
+coerce (Fun∼ d1 d2) 𝓁= (coerce d1 𝓁) → (coerce d2 𝓁)
+coerce (Pair∼ d1 d2) 𝓁= (coerce d1 𝓁) × (coerce d2 𝓁)
+coerce (Sum∼ d1 d2) 𝓁= (coerce d1 𝓁) + (coerce d2 𝓁)
+The structure of coercions is quite similar to that of the active casts but a bit more
+convenient to work with, so we deﬁne the applyCast function by cases on the coercion.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 45 ===
+Parameterized cast calculi and reusable meta-theory 45
+CastBlameSafe id 𝓁 CastBlameSafe A! 𝓁
+𝓁⁄= 𝓁′
+CastBlameSafe B?𝓁′
+𝓁
+CastBlameSafe c 𝓁 CastBlameSafe d 𝓁
+CastBlameSafe (c ⊗ d) 𝓁 ⊗∈{ →, ×, +}
+Fig. 18. Deﬁnition of the CastBlameSafe predicate for EDC′.
+We omit the case for injection because that coercion is not active.
+applyCast : ∀/Gamma1AB.( M : /Gamma1⊣ A) → Value M → (c : A ⇒ B) → Active c → /Gamma1⊣ B
+applyCast M v id a = M
+applyCast M⟨A!⟩ v B?𝓁 a =
+{
+M⟨coerce ab 𝓁⟩ if ab : A ∼ B
+blame 𝓁 otherwise
+applyCast M v c ⊗ da = eta⊗ Mc Cross⊗
+Proposition 77. The EDC calculus is an instance of the CastStruct structure.
+We import and instantiate the reduction semantics and proof of type safety from
+Sections 3.6 and 3.8 to obtain the following deﬁnition and results.
+Deﬁnition 78 (Reduction for EDC). The reduction relation M −→N for the EDC calcu-
+lus is the reduction relation of CC (⇒) instantiated with EDC’s instance of CastStruct.
+Corollary 79 (Preservation for EDC). If M : /Gamma1⊣ A and M −→M′, then M ′: /Gamma1⊣ A.
+Corollary 80 (Progress for EDC). If M : ∅⊣ A, then
+1. M −→M′for some M ′,
+2. Value M, or
+3. M ≡ blame 𝓁.
+Let EDC′be the variant of EDC obtained by instantiating CC′instead of CC.
+5.4.2 Blame-subtyping
+The CastBlameSafe predicate for EDC′is deﬁned in Figure 18.
+Lemma 81 (Blame Safety of Cast Operators). Suppose CastBlameSafe c 𝓁 and c is a
+cross cast, that is, x : Cross c.
+• If x = Cross →, then CastBlameSafe (dom cx ) 𝓁and CastBlameSafe (cod cx ) 𝓁.
+• If x = Cross×, then CastBlameSafe (fst cx ) 𝓁and CastBlameSafe (snd cx ) 𝓁.
+• If x = Cross+, then CastBlameSafe (inl cx ) 𝓁and CastBlameSafe (inr cx ) 𝓁.
+Proof. By inversion on Cross c and the CastBlameSafe predicate. □
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 46 ===
+46 J. G. Siek and T. Chen
+Proposition 82. EDC′is an instance of the PreBlameSafe structure.
+Lemma 83 (coerce is blame safe). Suppose 𝓁⁄= 𝓁′.I fa b : A ∼ B,
+then CastBlameSafe (coerce ab 𝓁′) 𝓁.
+Lemma 84 (applyCast preserves blame safety in EDC ′). If CastBlameSafe c 𝓁 and a :
+Active c and V safe for 𝓁and v : Value V , then (applyCast V v ca ) safe for 𝓁.
+Proof. The proof is by cases on Active c and inversion on CastBlameSafe c 𝓁,u s i n g
+Lemma 83 in the case for projection. □
+Proposition 85. EDC′is an instance of the BlameSafe structure.
+We instantiate Theorem 16 with this BlameSafe instance to obtain the Blame-Subtyping
+Theorem for EDC′.
+Corollary 86 (Blame-Subtyping Theorem for EDC′). If M : /Gamma1⊣ A and M safe for 𝓁, then
+¬(M −→∗ blame 𝓁).
+5.5 Lazy “D” Coercions (LDC)
+The Lazy “D” Coercions sometimes catch inconsistencies later in the execution of a pro-
+gram compared to the partially eager and eager calculi. For example, the following term
+does not immediately trigger a cast failure:
+(λ‘Z)⟨Nat → Nat ⇒ Bool → Bool⟩
+It would instead trigger an error if/when it is applied to an argument. In this respect, Lazy
+“D” Coercions are similar to λB (Section 5.3) and λC (Section 5.6). The lazy behavior of
+the Lazy “D” Coercions is acheived by changing the deﬁnition of applyCast to use shallow
+consistency instead of consistency (via the deﬁnition of the cast constructor /llparenthesisA ⇒ B/rrparenthesis𝓁),
+which only inspects the head constructors of the source and target type. However, Lazy
+“D” Coercions differs from λB and λC with respect to how it performs blame tracking.
+In particular, a cast from any type to the unknown type ? is a safe cast with the “D”
+blame-tracking strategy.
+The Lazy “D” Coercions ( Siek et al., 2009) are syntactically similar to the coercions of
+Section 5.4 except that include a failure coercion, written ⊥𝓁.
+c, d : A ⇒ B
+⊥𝓁 : A ⇒ B id : a ⇒ a A! : A ⁄= ?
+A ⇒ ? B?𝓁 : B ⁄= ?
+? ⇒ B
+−→− : C ⇒ AB ⇒ D
+(A → B) ⇒ (C → D) −⊗ −: A ⇒ CB ⇒ D
+(A ⊗ B) ⇒ (C ⊗ D) ⊗∈{ ×, +}
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 47 ===
+Parameterized cast calculi and reusable meta-theory 47
+The cast constructor is deﬁned as follows, using the coerce function deﬁned later in this
+section:
+/llparenthesisA ⇒ B/rrparenthesis𝓁=
+{
+coerce d 𝓁 if d : A ⌣ B
+⊥𝓁 otherwise
+5.5.1 Reduction semantics and type safety
+Injections are categorized as inert casts.
+Inert c
+Inert A!
+The coercions between function, pair, and sum types are categorized as cross casts.
+Cross c
+Cross⊗ : Cross c ⊗ d ⊗∈{ →, ×, +}
+In addition to the identity and projection coercions and the cross casts, the failure coercions
+are also active.
+Active c
+ActId : Active id ActProj :
+Active A?𝓁 ActCross : Cross c
+Active c
+ActFail :
+Active ⊥𝓁
+Lemma 87. For any types A and B, c : A ⇒ B is either an active or inert cast.
+Lemma 88. If c : A ⇒ (B ⊗ C) and Inert c, then Cross c and A ≡ D ⊗ E for some D and E.
+The deﬁnition of cast operators such as dom are the same as in Section 5.4.
+Lemma 89. A cast c : A ⇒ b is not inert.
+Proposition 90. The LDC calculus is an instance of the PreCastStruct structure.
+We deﬁne shallow consistency, written A ⌣ B, as follows:
+UnkL⌣ [B]:? ⌣ B UnkR⌣ [B]: A ⌣ ? Base⌣ [b]: b ⌣ b
+⊗⌣ [A, B, C, D]:( A ⊗ B) ⌣ (C ⊗ D)
+The coerce function differs from that of the EDC calculus (Section 5.4) in that we
+only require the source and target types to be shallowly consistent. The coerce function
+is mutually deﬁned with the function /llparenthesisA ⇒ B/rrparenthesis𝓁 that was presented earlier in this section:
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 48 ===
+48 J. G. Siek and T. Chen
+coerce : ∀AB . A ⌣ B → Label → A ⇒ B
+coerce UnkL⌣ [B] 𝓁=
+{
+id if B ≡ ?
+B?𝓁 B ⁄≡ ?
+coerce UnkR⌣ [A] 𝓁=
+{
+id if A ≡ ?
+A! A ⁄≡ ?
+coerce Base⌣ [b] 𝓁= id
+coerce (Fun⌣ [A, B, C, D]) 𝓁= /llparenthesisC ⇒ A/rrparenthesis𝓁→ /llparenthesisB ⇒ D/rrparenthesis𝓁
+coerce (Pair⌣ [A, B, C, D]) 𝓁= /llparenthesisA ⇒ C/rrparenthesis𝓁× /llparenthesisB ⇒ D/rrparenthesis𝓁
+coerce (Sum⌣ [A, B, C, D]) 𝓁= /llparenthesisA ⇒ C/rrparenthesis𝓁+ /llparenthesisB ⇒ D/rrparenthesis𝓁
+The deﬁnition of applyCast is similar to the one for EDC (Section 5.4) except that there
+is an additional case for ⊥𝓁 and the projection case checks for shallow consistency instead
+of consistency, using /llparenthesisA ⇒ B/rrparenthesis𝓁:
+applyCast : ∀/Gamma1AB.( M : /Gamma1⊣ A) → Value M → (c : A ⇒ B) → Active c → /Gamma1⊣ B
+applyCast M v id a = M
+applyCast M⟨A!⟩ v B?𝓁 a = M⟨/llparenthesisA ⇒ B/rrparenthesis𝓁⟩
+applyCast M v c ⊗ da = eta⊗ Mc Cross⊗
+applyCast M v ⊥𝓁 a = blame 𝓁
+Proposition 91. The LDC calculus is an instance of the CastStruct structure.
+We import and instantiate the reduction semantics and proof of type safety from
+Sections 3.6 and 3.8 to obtain the following deﬁnition and results.
+Deﬁnition 92 (Reduction for LDC). The reduction relation M −→N for the LDC calcu-
+lus is the reduction relation of CC (⇒) instantiated with LDC’s instance of CastStruct.
+Corollary 93 (Preservation for LDC). If M : /Gamma1⊣ A and M −→M′, then M ′: /Gamma1⊣ A.
+Corollary 94 (Progress for LDC). If M : ∅⊣ A, then
+1. M −→M′for some M ′,
+2. Value M, or
+3. M ≡ blame 𝓁.
+Let LDC′be the variant of LDC obtained by instantiating CC′instead of CC.
+5.5.2 Blame-subtyping
+The CastBlameSafe predicate for LDC′is the same as for EDC ′(Section 5.4) except that
+there is an additional rule for failure coercions:
+𝓁⁄= 𝓁′
+CastBlameSafe ⊥𝓁′
+𝓁
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 49 ===
+Parameterized cast calculi and reusable meta-theory 49
+Lemma 95 (Blame Safety of Cast Operators). Suppose CastBlameSafe c 𝓁 and c is a
+cross cast, that is, x : Cross c.
+• If x = Cross →, then CastBlameSafe (dom cx ) 𝓁and CastBlameSafe (cod cx ) 𝓁.
+• If x = Cross×, then CastBlameSafe (fst cx ) 𝓁and CastBlameSafe (snd cx ) 𝓁.
+• If x = Cross+, then CastBlameSafe (inl cx ) 𝓁and CastBlameSafe (inr cx ) 𝓁.
+Proposition 96. LDC′is an instance of the PreBlameSafe structure.
+Lemma 97. (coerce is blame safe). Suppose 𝓁⁄= 𝓁′.
+1. CastBlameSafe /llparenthesisA ⇒ B/rrparenthesis𝓁′
+𝓁.
+2. If ab : A ⌣ B, then CastBlameSafe (coerce ab 𝓁′) 𝓁.
+Lemma 98. (applyCast preserves blame safety in LDC ′). If CastBlameSafe c 𝓁 and a :
+Active c and V safe for 𝓁and v : Value V , then (applyCast V v ca ) safe for 𝓁.
+Proof. The proof is by cases on Active c and inversion on CastBlameSafe c 𝓁,u s i n g
+Lemma 97 in the case for projection. □
+Proposition 99. LDC′is an instance of the BlameSafe structure.
+We instantiate Theorem 16 with this BlameSafe instance to obtain the Blame-Subtyping
+Theorem for LDC′.
+Corollary 100 (Blame-Subtyping Theorem for LDC′). If M : /Gamma1⊣ A and M safe for 𝓁, then
+¬(M −→∗ blame 𝓁).
+5.6 The λC Coercion Calculus
+This section instantiates the Parametric Cast Calculus to obtain the λC calculus of Siek
+et al .( 2015a). Again we represent casts as coercions, but this time we must include
+the notion of sequencing of two coercions, written c ; d, to enable the factoring of casts
+through the ground type. As part of this factoring, injections and projections are restricted
+to ground types. We omit the failure coercion because it is not necessary for λC.
+c, d : A ⇒ B
+id : a ⇒ a G! : G ⇒ ? H?𝓁 : ? ⇒ H − ; − : A ⇒ BB ⇒ C
+A ⇒ C
+−→− : C ⇒ AB ⇒ D
+(A → B) ⇒ (C → D) −⊗ −: A ⇒ CB ⇒ D
+(A ⊗ B) ⇒ (C ⊗ D) ⊗∈{ ×, +}
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 50 ===
+50 J. G. Siek and T. Chen
+The cast constructor is deﬁned as follows:
+/llparenthesisA ⇒ ?/rrparenthesis𝓁= /llparenthesisA ⇒ G/rrparenthesis𝓁 ;/llparenthesisG ⇒ ?/rrparenthesis𝓁
+/llparenthesis? ⇒ A/rrparenthesis𝓁= /llparenthesis? ⇒ G/rrparenthesis𝓁 ;/llparenthesisG ⇒ A/rrparenthesis𝓁
+/llparenthesisG ⇒ ?/rrparenthesis𝓁= G!
+/llparenthesis? ⇒ H/rrparenthesis𝓁= H?𝓁
+/llparenthesisb ⇒ b/rrparenthesis𝓁= id
+/llparenthesisA → B ⇒ A′→ B′/rrparenthesis𝓁= /llparenthesisA′⇒ A/rrparenthesis𝓁→ /llparenthesisB ⇒ B′/rrparenthesis𝓁
+/llparenthesisA × B ⇒ A′× B′/rrparenthesis𝓁= /llparenthesisA′⇒ A/rrparenthesis𝓁× /llparenthesisB ⇒ B′/rrparenthesis𝓁
+/llparenthesisA + B ⇒ A′+ B′/rrparenthesis𝓁= /llparenthesisA′⇒ A/rrparenthesis𝓁+ /llparenthesisB ⇒ B′/rrparenthesis𝓁
+5.6.1 Reduction semantics and type safety
+The coercions between function, pair, and sum types are categorized as cross casts. We
+do not categorize sequence coercions as cross casts, which, for example, simpliﬁes the
+deﬁnition of the dom and cod functions.
+Cross c
+Cross⊗ : Cross c ⊗ d ⊗∈{ →, ×, +}
+Injections and function coercions are categorized as inert casts.
+Inert c
+InInj : Inert G! InFun : Inert c → d
+The active casts inλC include identity casts, projections, and sequences. TheλC calculus
+did not include pairs and sums ( Siek et al., 2015a), but here we choose to categorize casts
+between pairs and sums as active casts, as we did for Variant 2 of λB in Section 5.3.
+Active c
+ActId : Active id ActProj :
+Active H?𝓁 ActSeq : Active (c ; d)
+Act⊗ : Active (c ⊗ d) ⊗∈{ ×, +}
+Lemma 101. For any types A and B, c : A ⇒ B is either an active or inert cast.
+Lemma 102. If c : A ⇒ (B ⊗ C) and Inert c, then Cross c and A ≡ D ⊗ Ef o rs o m eD
+and E.
+The deﬁnition of the functions such as dom are the usual ones, but note that the x param-
+eter plays an important role in this deﬁnition. We did not categorize sequence casts as cross
+casts, so the following functions can omit the cases for ( c ; d):
+dom (c → d) Cross→= c
+cod (c → d) Cross→= d
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 51 ===
+Parameterized cast calculi and reusable meta-theory 51
+fst (c × d) Cross×= c
+snd (c × d) Cross×= d
+inl (c + d) Cross+= c
+inr (c + d) Cross+= d
+Lemma 103. A cast c : A ⇒ b is not inert.
+Proposition 104. The λC Calculus is an instance of the PreCastStruct structure.
+We deﬁne the applyCast function for λC as follows:
+applyCast : ∀/Gamma1AB.( M : /Gamma1⊣ A) → Value M → (c : A ⇒ B) → Active c → /Gamma1⊣ B
+applyCast M v id a = M
+applyCast M⟨G!⟩ v H?𝓁 a =
+{
+M if G ≡ H
+blame 𝓁 otherwise
+applyCast M v c ; da = M⟨c⟩⟨d⟩
+applyCast M v c × da = eta× Mc Cross×
+applyCast M v c + da = eta+ Mc Cross+
+Proposition 105. The λC calculus is an instance of the CastStruct structure.
+We import and instantiate the reduction semantics and proof of type safety from
+Sections 3.6 and 3.8 to obtain the following deﬁnition and results.
+Deﬁnition 106 (Reduction for λC). The reduction relation M −→Nf o r λC is the
+reduction relation of CC (⇒) instantiated with λC’s instance of CastStruct.
+Corollary 107 (Preservation for λC). If M : /Gamma1⊣ A and M −→M′, then M ′: /Gamma1⊣ A.
+Corollary 108 (Progress for λC). If M : ∅⊣ A, then
+1. M −→M′for some M ′,
+2. Value M, or
+3. M ≡ blame 𝓁.
+Let λC′be the variant of λC obtained by instantiating CC′instead of CC.
+5.6.2 Blame-subtyping
+The CastBlameSafe predicate for λC′is the same as the one for EDC ′(Figure 18) except
+for the additional rule for sequence coercions:
+CastBlameSafe c 𝓁 CastBlameSafe d 𝓁
+CastBlameSafe (c; d) 𝓁
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 52 ===
+52 J. G. Siek and T. Chen
+Lemma 109 (Blame Safety of Cast Operators). Suppose CastBlameSafe c 𝓁 and c is a
+cross cast, that is, x : Cross c.
+• If x = Cross →, then CastBlameSafe (dom cx ) 𝓁and CastBlameSafe (cod cx ) 𝓁.
+• If x = Cross×, then CastBlameSafe (fst cx ) 𝓁and CastBlameSafe (snd cx ) 𝓁.
+• If x = Cross+, then CastBlameSafe (inl cx ) 𝓁and CastBlameSafe (inr cx ) 𝓁.
+Proposition 110. λC′is an instance of the PreBlameSafe structure.
+Lemma 111 (applyCast preserves blame safety in λC′). If CastBlameSafe c 𝓁 and a :
+Active c and V safe for 𝓁and v : Value V , then (applyCast V v ca ) safe for 𝓁.
+Proof. The proof is by cases on Active c and inversion on CastBlameSafe c 𝓁. □
+Proposition 112. λC′is an instance of the BlameSafe structure.
+We instantiate Theorem 16 with this BlameSafe instance to obtain the Blame-Subtyping
+Theorem for λC′.
+Corollary 113 (Blame-Subtyping Theorem for λC′). If M : /Gamma1⊣ A and M safe for 𝓁, then
+¬(M −→∗ blame 𝓁).
+6 Space-Efﬁcient Parameterized Cast Calculus
+The cast calculi in Section 5 all suffer from a space efﬁciency problem ( Herman et al .,
+2010). When a cast is applied to a higher-order value such as a function, these calculi
+either wrap it inside another function or wrap the cast itself around the value. Either
+way, the value grows larger. If a value goes through many casts, it can grow larger in
+an unbounded fashion. This phenomenon causes signiﬁcant space and time overheads in
+real programs, for example, changing the worse-cast time complexity of quicksort from
+O(n2)t o O(n3)( Takikawa et al., 2016; Kuhlenschmidt et al., 2019).
+Herman et al .( 2010) proposed solving this problem by replacing casts with the coer-
+cions of Henglein (1994). Any sequence of coercions can normalize to just three coercions,
+thereby providing a space-efﬁcient representation. Siek et al.( 2015a) deﬁne an algorithm
+for efﬁciently normalizing coercions and use it to deﬁne the λS calculus.
+Siek & Wadler ( 2010) propose another approach that compresses a sequence of casts
+into two casts where the middle type is the least upper bound with respect to precision.
+The AGT methodology uses a similar representation ( Garcia et al., 2016) and was proved
+space-efﬁcient ( Toro & Tanter, 2020; Bañados Schwerter et al., 2021).
+In this section, we develop a space-efﬁcient version of the Parameterized Cast Calculus,
+w h i c hw en a m eSC(⇒). As a sanity check, prove that SC(⇒) is type-safe, but more impor-
+tantly, we prove that SC(⇒) is indeed space-efﬁcient provided that the cast representation
+is an instance of the structures deﬁned later in this section. In Section 7, we instantiate
+SC(⇒) two different ways to reproduce the λS calculus and to deﬁne a new calculus that
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 53 ===
+Parameterized cast calculi and reusable meta-theory 53
+more directly maps to a compact bit-level encoding. We then instantiate the meta-theory
+for SC(⇒) to produce proofs of type safety and space efﬁciency for both of these calculi.
+6.1 Space-efﬁcient values
+This subsection is parameterized over the PreCastStruct structure.
+To prepare for the deﬁnition of space-efﬁcient cast calculi, we deﬁne a notion of value
+that may be wrapped in at most one cast. We accomplish this by stratifying the non-cast
+values, that is the simple values S, from the values V that may be wrapped in a cast.
+S :( /Gamma1⊣ A) → Set
+Sλ : Simple (λM) Sconst : Simple ($k) Spair : Value M Value N
+Simple (cons MN )
+Sinl : Value M
+Simple (inl[B] M) Sinr : Value M
+Simple (inr[A] M)
+V :( /Gamma1⊣ A) → Set
+Vsimp : Simple M
+Value M Vcast : Simple M
+Value (M⟨c⟩) Inert c
+Lemma 114. If Simple M and M : /Gamma1⊣ A, then A ⁄≡ ?.
+Lemma 115 (Canonical Form for type ?). If M : /Gamma1⊣ ? and Value M, then M ≡ M′⟨c⟩
+where M′: /Gamma1⊣ A, c : A ⇒ ?, Inert c, and A ⁄≡ ?.
+Lemma 116. If Simple M and M : /Gamma1⊣ b, then M ≡ kf o rs o m ek: /llbracketb/rrbracket
+6.2 The ComposableCasts structure
+The ComposableCasts structure extends PreCastStruct with two more ﬁelds, one for
+applying a cast to a value (like CastStruct) and one for composing two casts into a single,
+equivalent cast, for the purposes of achieving space efﬁciency. 3 It would seem reasonable
+to have this structure extend CastStruct instead of PreCastStruct, but the problem is that
+the notion of value is different. Here, we use the deﬁnition of Value from Section 6.1.
+The two ﬁelds of the ComposableCasts are
+applyCast : ∀/Gamma1AB.( M : /Gamma1⊣ A) → SimpleValueM → (c : A ⇒ B)
+→ Active c → /Gamma1⊣ B
+− /fatsemi− : ∀ABC. A ⇒ B → B ⇒ C → A ⇒ C
+3 The ComposableCasts structure is named EﬃcientCastStruct in the Agda development.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 54 ===
+54 J. G. Siek and T. Chen
+Fig. 19. Frames of SC(⇒).
+6.3 Reduction semantics of SC (⇒)
+This section is parameterized by ComposableCasts and deﬁnes the Space-Efﬁcient
+Parameterized Cast Calculus, written SC(⇒). The syntax is the same as that of the
+Parameterized Cast Calculus (Figure 5).
+The frames of SC(⇒) and the plug function are deﬁned in Figure 19. The deﬁnitions
+are quite similar to those of the Parameterized Cast Calculus (Figure 6), with the notable
+omission of a frame for casts, which are handled by special congruence rules.
+A space-efﬁcient reduction semantics must include a reduction rule for compress-
+ing adjacent casts to prevent the growth of long sequences of them. In particular, the
+(compose) rule compresses two adjacent casts into a single cast:
+M⟨c⟩⟨d⟩− →M⟨c /fatsemid⟩
+Furthermore, the semantics must ensure that this reduction rule is triggered frequently
+enough to prevent long sequences from forming. To date, the way to accomplish this in
+a reduction semantics has been to deﬁne evaluation contexts in a subtle way, with two
+mutual deﬁnitions ( Herman et al., 2007, 2010; Siek & Wadler , 2010; Siek et al., 2015a).
+Here, we take a different approach that we believe is simpler to understand and that ﬁts into
+using frames to control evaluation order. The idea is to parameterize the reduction relation
+according to whether a reduction rule can ﬁre in any context or only in non-cast contexts,
+that is, when the immediately enclosing term is not a cast. We deﬁne reduction context
+RedCtx as follows. (It is isomorphic to the Booleans but with more speciﬁc names.)
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 55 ===
+Parameterized cast calculi and reusable meta-theory 55
+ctx : RedCtx
+Any : RedCtx NonCast : RedCtx
+So the reduction relation takes the form:
+ctx ⊣ M −→N
+To prevent reducing under a sequence of two or more casts, the congruence rule for casts
+(ξ -cast) requires a non-cast context. Further, the inner reduction must be OK with a cast
+context (i.e. Any context). The congruence rule ( ξ ) for all other language features can ﬁre
+in any context, and the inner reduction can require either any context or non-cast contexts.
+The rule for composing two casts can only ﬁre in a non-cast context, which enforces an
+outside-in strategy for compressing sequences of casts. For the same reason, the rule for
+applying a cast to a value can only ﬁre in a non-cast context. All other reduction rules can
+ﬁre in any context. The reduction semantics for SC(⇒) is deﬁned in Figure 20.
+6.4 Type safety of SC (⇒)
+Our terms are intrinsically typed, so the fact that Agda checked the deﬁnition in Figure 20
+gives us Preservation.
+Theorem 117 (Preservation). If M : /Gamma1⊣ A and M −→M′, then M ′: /Gamma1⊣ A.
+Next, we prove Progress. First we deﬁne the following predicate for identifying when a
+term is a cast and prove a lemma about switching from NonCast to Any when the redex is
+not a cast.
+IsCast M
+IsCast (M⟨c⟩)
+Lemma 118. If NonCast ⊣ M −→M′, then IsCast M.
+Theorem 119 (Progress). If M : ∅⊣ A, then
+1. ctx ⊣ M −→M′for some M ′and ctx,
+2. Value M, or
+3. M ≡ blame 𝓁.
+Proof. The proof is quite similar to that of Theorem 14 except in the case for casts, so we
+explain just that case here.
+Case M⟨c⟩ The induction hypothesis for M yields three subcases.
+Subcase ctx ⊣ M −→M′. Suppose ctx = Any.B yr u l e( ξ -cast), we conclude
+that
+Any ⊣ M⟨c⟩− →M′⟨c⟩
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 56 ===
+56 J. G. Siek and T. Chen
+ctx ⊣ M −→N
+ctx ⊣ M −→M′
+Any ⊣ plug M F −→plug M′F (ξ )
+Any ⊣ M −→M′
+NonCast ⊣ M⟨c⟩− →M′⟨c⟩ (ξ -cast)
+Any ⊣ plug (blame 𝓁) F −→blame 𝓁 (ξ -blame)
+NonCast ⊣ (blame 𝓁)⟨c⟩− →blame 𝓁 (ξ -cast-blame)
+NonCast ⊣ S⟨c⟩− →applyCast Sca a : Active c (cast)
+NonCast ⊣ M⟨c⟩⟨d⟩− →M⟨c /fatsemid⟩ (compose)
+Any ⊣ V⟨c⟩W −→(VW ⟨dom cx ⟩)⟨cod cx ⟩ x : Cross c (fun-cast)
+Any ⊣ fst (V⟨c⟩) −→(fst V )⟨fst cx ⟩ x : Cross c (fst-cast)
+Any ⊣ snd (V⟨c⟩) −→(snd V )⟨snd cx ⟩ x : Cross c (snd-cast)
+Any ⊣ case (V⟨c⟩) W1 W2 −→case VW ′
+1 W′
+2
+(case-cast)
+where
+x : Cross c
+W′
+1 = λ(rename S W1)( Z⟨inl cx ⟩)
+W′
+2 = λ(rename S W2)( Z⟨inr cx ⟩)
+Any ⊣ (λM) V −→M[V ] (β)
+Any ⊣ if $true MN −→M (β-true)
+Any ⊣ if $false MN −→N (β-false)
+Any ⊣ fst (cons VW ) −→V (β-fst)
+Any ⊣ snd (cons VW ) −→W (β-snd)
+Any ⊣ case (inl V ) LM −→LV (β-caseL)
+Any ⊣ case (inr V ) LM −→MV (β-caseR)
+Any ⊣ kk ′−→/llbracketk/rrbracket/llbracketk′/rrbracket (δ)
+Fig. 20. Reduction for the Space-Efﬁcient Parameterized Cast Calculus SC(⇒).
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 57 ===
+Parameterized cast calculi and reusable meta-theory 57
+On the other hand, suppose ctx = NonCast. By Lemma 118, IsCast M, so we have
+M ≡ M1⟨d⟩.B yr u l e(compose), we conclude that
+NonCast ⊣ M1⟨d⟩⟨c⟩− →M1⟨d /fatsemic⟩
+Subcase M ≡ blame 𝓁. By rule (ξ -cast-blame), we conclude that
+NonCast ⊣ (blame 𝓁)⟨c⟩− →blame 𝓁
+Subcase Value M. Here, we use the ActiveOrInert ﬁeld of the PreCastStruct on
+the cast c. Suppose c is active, so we have a : Active c.B yr u l e( cast), using
+Value M, we conclude that
+NonCast ⊣ M⟨c⟩− →applyCast Mca
+Suppose c is inert. From Value M, we know that M is either a simple value or a
+cast. If M is a simple value, then we conclude that Value M⟨c⟩. Otherwise, M ≡
+M1⟨d⟩and we conclude by rule ( compose):
+NonCast ⊣ M1⟨d⟩⟨c⟩− →M1⟨d /fatsemic⟩ □
+6.5 Space efﬁciency of SC (⇒)
+We follow the space efﬁciency proof of Herman et al .( 2010) but refactor it into two
+parts: (1) generic lemmas about the reduction of SC(⇒) that appear in this section and
+(2) lemmas about speciﬁc casts and coercions, which appear in Section 7.W ec l a r i f ya
+misleading statement by Herman et al.( 2010) and ﬁll in details needed to mechanize the
+proof in Agda.
+The theorem we aim to prove is that, during execution, the program’s size is bounded
+above by the program’s idealized size multiplied by a constant. The idealized size does not
+include any of the casts. The following are excerpts from the deﬁnitions of real-size and
+ideal-size :
+···
+real-size(M⟨c⟩) = size(c) + real-size(M)
+···
+ideal-size(M⟨c⟩) = ideal-size(M)
+We shall prove that the size of every cast is bounded above by a constant, so we can
+simplify some of the technical development by using the following alternative deﬁnition
+of size that uses 1 as the size of each cast:
+size(M⟨c⟩) = 1 + size(M)
+Regarding reduction of SC(⇒), the key property is that the reduction rules prevent the
+accumulation of long sequences of adjacent casts. In their proof, Herman et al.( 2010) state
+that there is never a coercion adjacent to another coercion.
+“During evaluation, the [E-CCAST ] rule prevents nesting of adjacent coercions in any term
+in the evaluation context, redex, or store. Thus the number of coercions in the program state
+is proportional to the size of the program state.”
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 58 ===
+58 J. G. Siek and T. Chen
+Fig. 21. The Size Predicate limits the number of adjacent casts.
+Of course, for the rule [E-CC AST ] to apply in the ﬁrst place, there must be two adjacent
+coercions. So perhaps we could amend the statement of Herman et al .( 2010) to instead
+say that there are never more than two. However, even that would be technically incor-
+rect. Consider the following example that begins with three separated coercions but a
+β-reduction brings them together:
+((λ ‘0⟨Int?⟩)( 1⟨Int!⟩))⟨Int!⟩ − →$1⟨Int!⟩⟨Int?𝓁⟩⟨Int!⟩
+This turns out to be the worst-case scenario. In the following, we prove that the [E-CC AST ]
+rule, that is, the ( compose) rule in this article, together with rules about the order of
+evaluation, prevent nesting of more than three adjacent coercions.
+We deﬁne the Size Predicate on terms in Figure 21 which only includes terms with
+no more than three adjacent coercions. The judgment is written n | b ⊣ M ok where M is
+at e r m ,n counts the number of cast application expressions at the top of the term, and
+b indicates with true or false whether this term is in a delayed context, that is, inside
+a λ-abstraction or a branch of a conditional expression. The above example with three
+coercions satisﬁes the predicate when outside of a delayed context:
+3 | false ⊣ $1⟨Int!⟩⟨Int?𝓁⟩⟨Int!⟩ok
+The rule SCast1 for cast application expressions adds one to the count of adjacent casts
+and makes sure that the count does not exceed three.
+For terms in a delayed context, the rule (SC AST 2) restricts the number of adjacent casts
+to two instead of three. To see why, consider the next example in which there are three
+adjacent casts inside the λ-abstraction and a β-reduction yields a term with four adjacent
+casts:
+((λ $8⟨Int!⟩⟨Int?𝓁1 ⟩⟨Int!⟩) 1)⟨Int?𝓁2 ⟩− →$8⟨Int!⟩⟨Int?𝓁1 ⟩⟨Int!⟩⟨Int?𝓁2 ⟩
+The rule SVar starts the count at one even though a variable is obviously not a cast
+application. The reason is that a value substituted for a variable may have one cast at the
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 59 ===
+Parameterized cast calculi and reusable meta-theory 59
+top. If we did not count variables as one, then a variable could be surrounded by two casts
+inside of a λ-abstraction which could reduce to a term with four adjacent casts as in the
+following example:
+((λ ‘0⟨Int?𝓁1 ⟩⟨Int!⟩)( 1⟨Int!⟩))⟨Int?𝓁2 ⟩− →1⟨Int!⟩⟨Int?𝓁1 ⟩⟨Int!⟩⟨Int?𝓁2 ⟩
+We turn to the proof of the space consumption theorem, starting with the necessary
+lemmas.
+The Size Predicate guarantees that the number of adjacent casts is less than or
+equal to 3.
+Lemma 120 (Maximum of 3 Adjacent Casts). If n | b ⊣ M ok, then n ≤ 3.
+The Size Predicate guarantees that a term’s size is bounded above by its ideal size
+multiplied by a constant, plus 3.
+Lemma 121 (Size Predicate and Ideal Size).
+If n | b ⊣ M ok then size(M) ≤ 10 · ideal-size(M) + 3.
+The compilation of source programs (GTCL) to the cast calculus produces terms that
+satisfy the Size Predicate.
+Lemma 122 (Cast Insertion Size).
+If /Gamma1⊣G M : A then n | b ⊣ C/llbracketM/rrbracketok for some n ≤ 1.
+Reduction preserves the Size Predicate. The proof of this lemma involves a number of
+technical lemmas about substitution, evaluation contexts, and values, which can be found
+in the Agda formalization.
+Lemma 123 (Size Preservation). If M : /Gamma1⊣ A and M ′: /Gamma1⊣ A and n | false ⊣ M ok and
+M −→M′, then m | false ⊣ M′ok for some m.
+The next piece needed for the space efﬁciency theorem is to place a bound on the size of
+the casts. We require their size to be bounded by their height, as in Herman et al.( 2010),
+so it remains to show that the heights of all the coercions does not grow during execution.
+To prove this, we must place further requirements on the speciﬁc cast calculi, which we
+formulate as a structure named CastHeight in Figure 22 that extends the ComposableCasts
+structure in Section 6.
+We deﬁne the cast height of a term, written c-height(M), to be the maximum of the
+heights of the all the casts in term M. The cast height of a term monotonically decreases
+under reduction.
+Lemma 124 (Preserve Height). If M : /Gamma1⊣ A, M ′: /Gamma1⊣ A, and ctx ⊣ M −→M′, then
+c-height(M′) ≤ c-height(M).
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 60 ===
+60 J. G. Siek and T. Chen
+Fig. 22. CastHeight extends ComposableCasts (Section 6.2).
+The size of any cast c is bounded above by k2 · 2height(c) (according to the size-height
+member of CastHeight), so the real-size of a term is bounded above by k2 · 2c-height(M)
+multiplied by its size.
+Lemma 125 (Real Size Bounded by Size).
+If M : /Gamma1⊣ A, then real-size(M) ≤ k2 · 2c-height(M) · size(M).
+With the above lemmas in place, we proceed with the main theorem. The size of the
+program (including the casts) is bounded above by its ideal size (not including casts)
+multiplied by a constant.
+Theorem 126 (Space Consumption). If M : /Gamma1⊣ A, then there exists c such that for any
+M′: /Gamma1⊣ A where ctx ⊣ C/llbracketM/rrbracket−→∗ M′, we have real-size(M′) ≤ c · ideal-size(M′).
+Proof. (The formal proof of this theorem is in the Agda development. Here we give a
+proof that is less formal but easier to read.) By Lemma 122, there is an n such that
+n | false ⊣ C/llbracketM/rrbracketok
+Using Lemma 123 and an induction on the reduction sequence ctx ⊣ C/llbracketM/rrbracket−→∗ M′, there
+is an m such that
+m | false ⊣ M ok
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 61 ===
+Parameterized cast calculi and reusable meta-theory 61
+We establish the conclusion of the theorem by the following inequational reasoning:
+real-size(M′) ≤ k2 · 2c-height(M′) · size(M′) by Lemma 125
+≤ (k2 · 2c-height(M′)) · (3 + 10 · ideal-size(M′)) by Lemma 121
+≤ 3k2 · 2c-height(M′) + 10k2 · 2c-height(M′) · ideal-size(M′)
+≤ 3k2 · 2c-height(C/llbracketM/rrbracket) + 10k2 · 2c-height(C/llbracketM/rrbracket) · ideal-size(M′) by Lemma 124
+≤ 13k2 · 2c-height(C/llbracketM/rrbracket) · ideal-size(M′)
+So we choose 13 k2 · 2c-height(C/llbracketM/rrbracket) as the witness for c. □
+We observe that the space consumption theorem of Herman et al.( 2010) (as well as the
+above theorem) has a limitation in that it does not prevent a cast calculus that uses the eta
+cast reduction rules, as discussed in Section 3.3, from consuming an unbounded amount of
+space. To capture the space used by the eta cast rules, one would need to mark the terms
+introduced by the eta cast rules so that they can be excluded from the ideal-size of a term.
+We do not pursue that direction at this time, but note that the calculi that we introduce in
+the next section do not use eta cast rules.
+7 Space-efﬁcient cast calculi
+We instantiate the Efﬁcient Parameterized Calculus SC(⇒) with two different instances of
+the ComposableCasts and CastHeight to obtain deﬁnitions and proofs of type safety and
+space efﬁciency for two cast calculi: λS of Siek et al.( 2015a) and the hypercoercions of
+Lu et al.( 2020).
+7.1 λS
+The cast representation in λS are coercions in a particular canonical form, with a three-part
+grammar consisting of top-level coercions, intermediate coercions, and ground coercions,
+deﬁned in Figure 23. A top-level coercion is an identity cast, a projection followed by
+an intermediate coercion, or just an intermediate coercion. An intermediate coercion is a
+ground coercion followed by an injection, just a ground coercion, or a failure coercion. A
+ground coercion is an identity on base type or a cross cast between function, pair, or sum
+types.
+The cast constructor is also deﬁned in Figure 23.
+7.1.1 Reduction semantics and type safety
+Casts between function, pair, and sum types are categorized as cross casts.
+Cross c
+Cross⊗ : Cross (c ⊗ d) ⊗∈{ →, ×, +}
+The inert casts include casts between function types, injections, and the failure coercion.
+Inert c
+Inert c → d Inert g; G! Inert ⊥𝓁
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 62 ===
+62 J. G. Siek and T. Chen
+Fig. 23. Coercions of λS and its cast constructor.
+There are ﬁve kinds of active coercions: the identity on ?, projections, failures, cross
+casts on pairs and sums, and identity on base types.
+Active c
+Aid : Active id Aproj :
+Active (G?𝓁; i)
+Afail :
+Active ⊥𝓁
+A⊗ : ⊗∈{ ×, +}
+Active (c ⊗ d) Abase : Active id
+Lemma 127. For any types A and B, c : A ⇒ B is either an active or inert cast.
+Lemma 128. If c : A ⇒ (B ⊗ C) and Inert c, then Cross c and A ≡ D ⊗ Ef o rs o m eD
+and E.
+The deﬁnition of dom, etc., for λS is given below:
+dom (c → d) Cross→= c
+cod (c → d) Cross→= d
+fst (c × d) Cross×= c
+snd (c × d) Cross×= d
+inl (c + d) Cross+= c
+inr (c + d) Cross+= d
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 63 ===
+Parameterized cast calculi and reusable meta-theory 63
+Lemma 129. A cast c : A ⇒ b is not inert.
+Proposition 130. λS is an instance of the PreCastStruct structure.
+To support space efﬁciency, we deﬁne a composition operator for the coercions of λS.
+The operator uses two auxiliary versions of the operator for intermediate and ground coer-
+cions. The operator that composes an intermediate coercion with a coercion always yields
+an intermediate coercion. The operator that composes two ground coercions always returns
+a ground coercion. Agda does not automatically prove termination for this set of mutually
+recursive functions, so we manually prove termination, using the sum of the sizes of the
+two coercions as the measure.
+c /fatsemid i /fatsemid g /fatsemih
+id /fatsemid = d
+(G?𝓁; i) /fatsemid = G?𝓁;( i /fatsemid)
+(g; G!) /fatsemiid = g; G!
+g /fatsemi(h; H!) = (g /fatsemih); H!
+(g; G!) /fatsemi(G?𝓁; i) = g /fatsemii
+(g; G!) /fatsemi(H?𝓁; i) =⊥ 𝓁 if G ⁄= H
+⊥𝓁 /fatsemid =⊥ 𝓁
+g /fatsemi⊥𝓁=⊥ 𝓁
+id /fatsemiid = id
+(c1 → d1) /fatsemi(c2 → d2) = (c2 /fatsemic1) → (d1 /fatsemid2)
+(c1 × d1) /fatsemi(c2 × d2) = (c1 /fatsemic2) × (d1 /fatsemid2)
+(c1 + d1) /fatsemi(c2 + d2) = (c1 /fatsemic2) + (d1 /fatsemid2)
+We deﬁne applyCast for λS by cases on the coercion.
+applyCast : ∀/Gamma1AB.( M : /Gamma1⊣ A) → SimpleValueM → (c : A ⇒ B) → Active c → /Gamma1⊣ B
+applyCast M v id a = M
+applyCast M v ⊥𝓁 a = blame 𝓁
+applyCast M⟨c⟩ v (G?𝓁; i) a = M⟨c /fatsemi(G?𝓁; i)⟩
+applyCast (cons V1 V2) v c × da = cons (V1⟨c⟩)( V2⟨d⟩)
+applyCast (inl V ) v c + da = inl (V⟨c⟩)
+applyCast (inr V ) v c + da = inr (V⟨d⟩)
+Proposition 131. λS is an instance of the ComposableCasts structure.
+We import and instantiate the reduction semantics and proof of type safety from
+Section 6 to obtain the following deﬁnitions and results for λS.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 64 ===
+64 J. G. Siek and T. Chen
+Deﬁnition 132 (Reduction). The reduction relation ctx ⊣ M −→S No f λS is the reduction
+relation of SC(⇒) instantiated with λS’s instance of the ComposableCasts structure.
+Corollary 133 (Preservation for λS). If M : /Gamma1⊣ A and M −→S M′, then M ′: /Gamma1⊣ A.
+Corollary 134 (Progress for λS). If M : ∅⊣ A, then
+1. M −→S M′for some M ′,
+2. Value M, or
+3. M ≡ blame 𝓁.
+7.1.2 Space efﬁciency
+Next, we establish that λS is an instance of the CastHeight structure so that we can apply
+Theorem 126 (Space Consumption) to obtain space efﬁciency for λS.
+We deﬁne the height of a coercion as follows:
+height(id) = 0
+height(⊥𝓁) = 0
+height(G?𝓁; i) = height(i)
+height(g; G!) = height(g)
+height(c → d) = 1 + max(height(c), height(d))
+height(c × d) = 1 + max(height(c), height(d))
+height(c + d) = 1 + max(height(c), height(d))
+The size of a coercion is given by the following deﬁnition:
+size(id) = 0
+size(⊥𝓁) = 0
+size(G?𝓁; i) = 2 + size(i)
+size(g; G!) = 2 + size(g)
+size(c → d) = 1 + size(c) + size(d)
+size(c × d) = 1 + size(c) + size(d)
+size(c + d) = 1 + size(c) + size(d)
+The cast height of the result of applyCast applied to a simple value S and coercion c is
+less than the max of the cast height of S and the height of c.
+Lemma 135. c-height(applyCast Sc ) ≤ max(height(S), height(c))
+The dom, cod, fst, snd, inl, and inr operators on coercions all return coercions of equal
+or lesser height than their input.
+Lemma 136.
+1. height(dom cx ) ≤ height(c)
+2. height(cod cx )) ≤ height(c)
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 65 ===
+Parameterized cast calculi and reusable meta-theory 65
+3. height(fst cx ) ≤ height(c)
+4. height(snd cx ) ≤ height(c)
+5. height(inl cx ) ≤ height(c)
+6. height(inr cx ) ≤ height(c)
+The size of a coercion c is bounded by 9 · 2height(c). We prove this by simultaneously
+proving the following three facts about the three kinds of coercions.
+Lemma 137.
+1. size(c) + 5 ≤ 9 · 2height(c)
+2. size(i) + 7 ≤ 9 · 2height(i)
+3. size(g) + 9 ≤ 9 · 2height(g)
+The above lemmas and deﬁnitions establish the following.
+Proposition 138. λS is an instance of the CastHeight structure.
+We apply Theorem 139 (Space Consumption) to obtain the following result for λS.
+Corollary 139 (Space Consumption for λS). If M : /Gamma1⊣ A, then there exists c such that
+for any M ′: /Gamma1⊣ A where ctx ⊣ C/llbracketM/rrbracket−→∗
+S M′, we have real-size(M′) ≤ c · ideal-size(M′).
+7.2 Hypercoercions
+This section develops an alternative formulation of λS using a new representation, called
+hypercoercions and written λH, that more directly maps to a compact bit-level encod-
+ing. We presented hypercoercions at the Workshop on Gradual Typing ( Lu et al., 2020).
+Hypercoercions are inspired by the supercoercions of Garcia ( 2013).
+The idea behind hypercoercions is to choose a canonical representation in which a coer-
+cion always has three parts, a beginning p, middle m, and end i. The beginning part p
+may be a projection or an identity. The middle part m is a cross cast or an identity cast
+at base type. The end part i may be an injection, failure, or identity. The deﬁnition of
+hypercoercions, given in Figure 24, factors the deﬁnition into these three parts.
+The cast constructor is also deﬁned in Figure 24.
+7.2.1 Reduction semantics and type safety
+A hypercoercion whose middle is a cast between function, pair, or sum types, is a cross
+cast, provided the hypercoercion begins and ends with the identity.
+Cross c
+Cross⊗ : Cross (id; c ⊗ d; id) ⊗∈{ →, ×, +}
+A hypercoercion that begins with identity and ends with an injection to ? is inert. A
+hypercoercion that begins and ends with identity, but whose middle is a cast between
+function types, is also insert.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 66 ===
+66 J. G. Siek and T. Chen
+Fig. 24. Hypercoercions.
+Inert c
+Inert (id; m; G!) Inert (id; c → d; id)
+There are four kinds of active hypercoercions. The identity hypercoercion is active, as
+is a hypercoercion that begins with a projection from ? or ends with a failure coercion.
+Furthermore, if the hypercoercion begins and ends with identity, and the middle is either
+the identity or a cast between pair or sum types, then it is active.
+Active c
+Aid : Active id Aproj :
+Active (H?𝓁; m; i)
+Afail :
+Active (p; m; ⊥𝓁)
+A⊗ : ⊗∈{ ×, +}
+Active (id; c ⊗ d; id) Abase : Active (id; id; id)
+Lemma 140. For any types A and B, c : A ⇒ B is either an active or inert cast.
+Lemma 141. If c : A ⇒ (B ⊗ C) and Inert c, then Cross c and A ≡ D ⊗ Ef o rs o m eD
+and E.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 67 ===
+Parameterized cast calculi and reusable meta-theory 67
+Fig. 25. Composition of Hypercoercions.
+The deﬁnition of dom, etc. for hypercoercions is given below:
+dom (id; c → d; id) Cross→= c
+cod (id; c → d; id) Cross→= d
+fst (id; c × d; id) Cross×= c
+snd (id; c × d; id) Cross×= d
+inl (id; c + d; id) Cross+= c
+inr (id; c + d; id) Cross+= d
+Lemma 142. A cast c : A ⇒ b is not inert.
+Proposition 143. Hypercoercions are an instance of the PreCastStruct structure.
+To support space efﬁciency, we deﬁne the composition operator on hypercoercions in
+Figure 25. For the most part, this operator compares the end of the ﬁrst coercion with the
+beginning of the second. For example, if the end of the ﬁrst coercion is an injection G!
+and the beginning of the second is the corresponding projection G?𝓁, then the injection and
+projection are discarded and the resulting hypercoercion is formed using the beginning of
+the ﬁrst, the composition of the middles, and the end of the second. The composition oper-
+ator handles identity coercions and failure coercions as special cases. An identity coercion
+composed on the left or right is discarded. A failure coercion on the left causes the coer-
+cion on the right to be discarded. The composition operator is a mutually recursive with
+the deﬁnition of composition on the middle parts. Thankfully, Agda’s termination checker
+approves of this deﬁnition even though the contravariance in function coercions means that
+it is not technically structurally recursive.
+We deﬁne the applyCast function for hypercoercions by cases on Active c.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 68 ===
+68 J. G. Siek and T. Chen
+applyCast : ∀/Gamma1AB.( M : /Gamma1⊣ A) → SimpleValueM → (c : A ⇒ B) → Active c → /Gamma1⊣ B
+applyCast M v id Aid = M
+applyCast M⟨c⟩ v (H?𝓁; m; i) Aproj = M⟨c /fatsemi(H?𝓁; m; i)⟩
+applyCast M v (id; m; ⊥𝓁) Afail = blame 𝓁
+applyCast (cons V1 V2) v (id; c × d; id) A×= cons (V1⟨c⟩)( V2⟨d⟩)
+applyCast (inl V ) v (id; c + d; id) A+= inl (V⟨c⟩)
+applyCast (inr V ) v (id; c + d; id) A+= inr (V⟨d⟩)
+applyCast M v (id; id; id) Abase = M
+Proposition 144. Hypercoercions are an instance of the ComposableCasts structure.
+We import and instantiate the reduction semantics and proof of type safety from
+Section 6 to obtain the following deﬁnition and results.
+Deﬁnition 145 (Reduction). The reduction relation ctx ⊣ M −→H No f λH is the reduc-
+tion relation of SC (⇒) instantiated with λH’s instance of the ComposableCasts structure.
+Corollary 146 (Preservation for λH). If M : /Gamma1⊣ A and M −→H M′,
+then M′: /Gamma1⊣ A.
+Corollary 147 (Progress for λH). If M : ∅⊣ A, then
+1. M −→H M′for some M ′,
+2. Value M, or
+3. M ≡ blame 𝓁.
+7.2.2 Space efﬁciency
+Next, we establish that λH is an instance of the CastHeight structure so that we can apply
+Theorem 126 (Space Consumption) to obtain space efﬁciency for λH.
+We deﬁne the height of a hypercoercion to be the height of its middle part:
+height(id) = 0
+height(p; m; i) = height(m)
+height(c → d) = 1 + max(height(c), height(d))
+height(c × d) = 1 + max(height(c), height(d))
+height(c + d) = 1 + max(height(c), height(d))
+The size of a hypercoercion is given by the following deﬁnition:
+size(id) = 0
+size(⊥𝓁) = 0
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 69 ===
+Parameterized cast calculi and reusable meta-theory 69
+size(G!) = 1
+size(G?𝓁) = 1
+size(p; m; i) = 2 + size(p) + size(m) + size(i)
+size(c → d) = 1 + size(c) + size(d)
+size(c × d) = 1 + size(c) + size(d)
+size(c + d) = 1 + size(c) + size(d)
+The cast height of the result of applyCast applied to a simple value S and coercion c is
+less than the max of the cast height of S and the height of c.
+Lemma 148. c-height(applyCast Sc ) ≤ max(height(S), height(c))
+The dom, cod, fst, snd, inl, and inr operators on coercions all return coercions of equal
+or lesser height than their input.
+Lemma 149.
+1. height(dom cx ) ≤ height(c)
+2. height(cod cx )) ≤ height(c)
+3. height(fst cx ) ≤ height(c)
+4. height(snd cx ) ≤ height(c)
+5. height(inl cx ) ≤ height(c)
+6. height(inr cx ) ≤ height(c)
+The size of a hypercoercion c is bounded by 9 · 2height(c). We prove this by simultane-
+ously proving the following three facts about the four kinds of hypercoercions.
+Lemma 150.
+1. size(c) + 5 ≤ 9 · 2height(c)
+2. size(p) ≤ 1
+3. size(i) ≤ 1
+4. size(m) + 9 ≤ 9 · 2height(m)
+The above lemmas and deﬁnitions establish the following.
+Proposition 151. λH is an instance of the CastHeight structure.
+We apply Theorem 139 (Space Consumption) to obtain the following result for λH.
+Corollary 152 (Space Consumption for λH). If M : /Gamma1⊣ A, then there exists c such that
+for any M ′: /Gamma1⊣ A where ctx ⊣ C/llbracketM/rrbracket−→∗
+H M′, we have real-size(M′) ≤ c · ideal-size(M′).
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 70 ===
+70 J. G. Siek and T. Chen
+8 Conclusion
+In this paper, we present two parameterized cast calculi, CC(⇒) and its space-efﬁcient
+partner SC(⇒). We prove type safety, blame safety, and the gradual guarantee for the
+former. We prove type safety and space efﬁciency for the later. We instantiate CC(⇒)
+a half-dozen ways to reproduce some results from the literature but to also ﬁll in many
+gaps. We instantiate SC(⇒) two different ways to reproduce λS and to create a new space-
+efﬁcient calculus based on hypercoercions. All of this is formalized in Agda.
+Conﬂicts of interest
+The authors are employed at Indiana University.
+References
+Ahmed, A., Findler, R. B., Siek, J. G. & Wadler, P. (January 2011) Blame for all. In Symposium on
+Principles of Programming Languages .
+Ahmed, A., Jamner, D., Siek, J. G. & Wadler, P. (September 2017) Theorems for free for free:
+Parametricity, with and without types. In International Conference on Functional Programming ,
+ICFP.
+Allende, E., Fabry, J. & Tanter, E. (2013) Cast insertion strategies for gradually-typed objects. In
+Proceedings of the 9th Symposium on Dynamic Languages, DLS ’13, New York, NY, USA: ACM,
+pp. 27–36.
+Aydemir, B. E., Bohannon, A., Fairbairn, M., Foster, J. N., Pierce, B. C., Sewell, P., Vytiniotis, D.,
+Weirich, G. W. S. & Zdancewic, S. (May 2005) Mechanized Metatheory for the Masses: The
+POPLmark Challenge.
+Bañados Schwerter, F., Clark, A. M., Jafery, K. A. & Garcia, R. (January 2021) Abstracting gradual
+typing moving forward: Precise and space-efﬁcient. Proc. ACM Program. Lang. 5(POPL). doi:
+10.1145/3434342.
+Bierman, G., Abadi, M. & Torgersen, M. (2014) Understanding TypeScript. In ECOOP 2014 –
+Object-Oriented Programming , Jones, R. (ed), vol. 8586. Lecture Notes in Computer Science .
+Springer Berlin Heidelberg, pp. 257–281.
+Bove, A., Dybjer, P. & Norell, U. (2009) A brief overview of agd a—Af u n c t i o n a ll anguage with
+dependent types. In Proceedings of the 22nd International Conference on Theorem Proving in
+Higher Order Logics, TPHOLs ’09, Berlin, Heidelberg: Springer-Verlag, pp. 73–78.
+Bracha, G. (2004) Pluggable type systems. In OOPSLA’04 Workshop on Revival of Dynamic
+Languages.
+Bracha, G. & Griswold, D. (1993) Strongtalk: typechecking Smalltalk in a production environment.
+In OOPSLA ’93: Proceedings of the Eighth Annual Conference on Object-Oriented Programming
+Systems, Languages, and Applications , New York, NY, USA: ACM Press, pp. 215–230. ISBN
+0-89791-587-9.
+Castagna, G. & Lanvin, V. (2017) Gradual typing with union and intersection types. In International
+Conference on Functional Programming .
+Castagna, G., Lanvin, V., Petrucciani, T. & Siek, J. G. (2019) Gradual typing: A new perspective.
+Proc. ACM Program. Lang. 3(POPL), 16:1–16:32. ISSN 2475-1421. doi: 10.1145/3290329.
+Chaudhuri, A. Flow: A static type checker for Javascript. Available at: http://flowtype.org/
+Chung, B., Li, P., Nardelli, F. Z. & Vitek, J. (2018) KafKa: Gradual typing for objects. In
+32nd European Conference on Object-Oriented Programming (ECOOP 2018) , Millstein, T. (ed),
+vol. 109. Leibniz International Proceedings in Informatics (LIPIcs), Dagstuhl, Germany, Schloss
+Dagstuhl–Leibniz-Zentrum fuer Informatik, pp. 12:1–12:24. ISBN 978-3-95977-079-8. doi: 10.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 71 ===
+Parameterized cast calculi and reusable meta-theory 71
+4230/LIPIcs.ECOOP.2018.12. Available at: http://drops.dagstuhl.de/opus/volltexte/
+2018/9217.
+Eremondi, J., Tanter, E. & Garcia, R. (July 2019) Approximate normalization for gradual dependent
+types. Proc. ACM Program. Lang. 3(ICFP). doi: 10.1145/3341692.
+Felleisen, M. & Friedman, D. P. (1986) Control operators, the SECD-machine and the lambda-
+calculus, pp. 193–217.
+Flanagan, C. (January 2006) Hybrid type checking. In POPL 2006: The 33rd ACM SIGPLAN-
+SIGACT Symposium on Principles of Programming Languages , Charleston, South Carolina, pp.
+245–256.
+Garcia, R. (2013) Calculating threesomes, with blame. In ICFP ’13: Proceedings of the International
+Conference on Functional Programming .
+Garcia, R. & Cimini, M. (2015) Principal type schemes for gradual programs. In Proceedings of
+the 42nd Annual ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages ,
+POPL ’15. ACM, pp. 303–315.
+Garcia, R., Clark, A. M. & Tanter, E. (2016) Abstracting gradual typing. In Proceedings of the
+43rd Annual ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages ,
+POPL 2016 , New York, NY, USA: ACM, pp. 429–442. ISBN 978-1-4503-3549-2. doi:
+10.1145/2837614.2837670.
+García-Pérez, A., Nogueira, P. & Sergey, I. (2014) Deriving interpretations of the gradually-typed
+lambda calculus. In Proceedings of the ACM SIGPLAN 2014 Workshop on Partial Evaluation
+and Program Manipulation, PEPM ’14, New York, NY, USA: ACM, pp. 157–168. ISBN 978-1-
+4503-2619-3. doi: 10.1145/2543728.2543742.
+Greenman, B. (November 2020) Deep and Shallow Types . PhD thesis, Northeastern University.
+Greenman, B. & Felleisen, M. (2018) A spectrum of type soundness and performance. Proc. ACM
+Program. Lang. 2(ICFP), 71:1–71:32. ISSN 2475-1421. doi: 10.1145/3236766.
+Greenman, B. & Migeed, Z. (2018) On the cost of type-tag soundness. In Proceedings of the ACM
+SIGPLAN Workshop on Partial Evaluation and Program Manipulation , PEPM ’18, New York,
+NY, USA: ACM, pp. 30–39. ISBN 978-1-4503-5587-2. doi: 10.1145/3162066.
+Gronski, J., Knowles, K., Tomb, A., Freund, S. N. & Flanagan, C. (2006) Sage: Hybrid checking for
+ﬂexible speciﬁcations. In Scheme and Functional Programming Workshop , pp. 93–104.
+Henglein, F. (1994). Dynamic typing: Syntax and proof theory. Sci. Comput. Program. 22(3),
+197–230.
+Herman, D., Tomb, A. & Flanagan, C. (2007) Space-efﬁcient gradual typing. In Trends in Functional
+Prog. (TFP), p. XXVIII.
+Herman, D., Tomb, A. & Flanagan, C. (2010) Space-efﬁcient gradual typing. Higher-Order Symb.
+Comput. 23(2), 167–189.
+Howard, W. A. (1980). The Formulae-as-Types Notion of Construction . Academic Press.
+Kuhlenschmidt, A., Almahallawi, D. & Siek, J. G. (2019) Toward efﬁcient gradual typing for struc-
+tural types via coercions. In Conference on Programming Language Design and Implementation ,
+PLDI. ACM.
+Lennon-Bertrand, M., Maillard, K., Tabareau, N. & Tanter, É. (2020) Gradualizing the Calculus of
+Inductive Constructions.
+Lu, K.-C. (April 2020) Equivalence of Cast Representations in Gradual Typing . Master’s thesis,
+Indiana University.
+Lu, K.-C., Siek, J. G. & Kuhlenschmidt, A. (2020). Hypercoercions and a framework for equivalence
+of cast calculi. In Workshop on Gradual Typing .
+Maidl, A. M., Mascarenhas, F. & Ierusalimschy, R. (2014) Typed lua: An optional type system for
+lua. In Proceedings of the Workshop on Dynamic Languages and Applications , Dyla’14, New
+York, NY, USA: ACM, pp. 3:1–3:10.
+Matthews, J. & Findler, R. B. (January 2007) Operational semantics for multi-language programs.
+In The 34th ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages .
+Muehlboeck, F. & Tate, R. (2017). Sound gradual typing is nominally alive and well. Proc. ACM
+Program. Lang. 1(OOPSLA), 56:1–56:30. ISSN 2475-1421. doi: 10.1145/3133880.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 72 ===
+72 J. G. Siek and T. Chen
+New, M. S., Jamner, D. & Ahmed, A. (2019) Graduality and parametricity: Together again for the
+ﬁrst time. Proc. ACM Program. Lang. 4(POPL), doi: 10.1145/3371114.
+Nipkow, T., Paulson, L. C. & Wenzel, M. (November 2007) Isabelle/HOL — A Proof Assistant for
+Higher-Order Logic, vol. 2283. LNCS. Springer.
+Siek, J. G. & Garcia, R. (2012) Interpretations of the gradually-typed lambda calculus. In Scheme
+and Functional Programming Workshop .
+Siek, J. G. & Taha, W. (2006a) Gradual typing for functional languages. In Scheme and Functional
+Programming Workshop, pp. 81–92.
+Siek, J. G. & Taha, W. (December 2006b). Gradual Typing for Objects: Isabelle Formaliztaion .
+Technical Report CU-CS-1021-06, Boulder, CO: University of Colorado.
+Siek, J. G. & Taha, W. (2006c). Gradual Typing: Isabelle/Isar Formalization . Technical Report
+TR06-874, Houston, Texas: Rice University.
+Siek, J. G. & Taha, W. (August 2007) Gradual typing for objects. In European Conference on
+Object-Oriented Programming, vol. 4609. LNCS, pp. 2–27.
+Siek, J. G. & Vachharajani, M. (2008) Gradual typing and uniﬁcation-based inference. In DLS.
+Siek, J. G. & Vitousek, M. M. (2013) Monotonic references for gradual typing. CoRR,
+abs/1312.0694.
+Siek, J. G. & Wadler, P. (January 2010) Threesomes, with and without blame. In Symposium on
+Principles of Programming Languages , POPL, pp. 365–376.
+Siek, J. G., Garcia, R. & Taha, W. (March 2009) Exploring the design space of higher-order casts.
+In European Symposium on Programming, ESOP , pp. 17–31.
+Siek, J. G., Thiemann, P. & Wadler, P. (June 2015a) Blame and coercion: Together again for the
+ﬁrst time. In Conference on Programming Language Design and Implementation , PLDI.
+Siek, J. G., Vitousek, M. M., Cimini, M. & Boyland, J. T. (May 2015b) Reﬁned criteria for
+gradual typing. In SNAPL: Summit on Advances in Programming Languages , LIPIcs: Leibniz
+International Proceedings in Informatics.
+Siek, J. G., Vitousek, M. M., Cimini, M., Tobin-Hochstadt, S. & Garcia, R. (April 2015c) Monotonic
+references for efﬁcient gradual typing. In European Symposium on Programming , ESOP.
+Takikawa, A. (April 2016) The Design, Implementation, and Evaluation of a Gradual Type System
+for Dynamic Class Composition . PhD thesis, Northeastern University.
+Takikawa, A., Strickland, T. S., Dimoulas, C., Tobin-Hochstadt, S. & Felleisen, M. (2012) Gradual
+typing for ﬁrst-class classes. In Conference on Object Oriented Programming Systems Languages
+and Applications, OOPSLA ’12, pp. 793–810.
+Takikawa, A., Feltey, D., Greenman, B., New, M., Vitek, J. & Felleisen, M. (January 2016) Is sound
+gradual typing dead? In Principles of Programming Languages , POPL.A C M .
+The Coq Dev. Team. (April 2004) The Coq Proof Assistant Reference Manual – Version V8.0.
+Available at: http://coq.inria.fr.
+Tobin-Hochstadt, S. & Felleisen, M. (2006) Interlanguage migration: From scripts to programs. In
+Dynamic Languages Symposium.
+Tobin-Hochstadt, S. & Felleisen, M. (January 2008) The design and implementation of Typed
+Scheme. In Symposium on Principles of Programming Languages .
+Toro, M. & Tanter, É. (2020) Abstracting gradual references. Sci. Comput. Program. 197, 102496.
+ISSN 0167-6423. doi: https://doi.org/10.1016/j.scico.2020.102496. Available at: http://www.
+sciencedirect.com/science/article/pii/S0167642320301052.
+Toro, M., Labrada, E. & Tanter, E. (2019) Gradual parametricity, revisited. Proc. ACM Program.
+Lang. 3(POPL), 17:1–17:30. ISSN 2475-1421. doi: 10.1145/3290330.
+Verlaguet, J. & Menghrajani, A. Hack: A new programming langauge for HHVM. Available
+at: https://code.facebook.com/posts/264544830379293/hack-a-new-programming-
+language-for-hhvm/
+Vitek, J. (2016) Gradual types for real-world objects. In Script To Program Evolution Workshop ,
+STOP.
+Vitousek, M. & Siek, J. (2016a) From optional to gradual typing via transient checks. In Script To
+Program Evolution Workshop , STOP.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press
+
+=== PAGE 73 ===
+Parameterized cast calculi and reusable meta-theory 73
+Vitousek, M., Swords, C. & Siek, J. G. (2017) Big types in little runtime. In Symposium on Principles
+of Programming Languages, POPL.
+Vitousek, M. M. & Siek, J. G. (October 206b) Gradual Typing in An Open World . Technical Report
+TR729, Indiana University.
+Vitousek, M. M., Siek, J. G. & Chaudhuri, A. (2019) Optimizing and evaluating transient grad-
+ual typing. In Proceedings of the 15th ACM SIGPLAN International Symposium on Dynamic
+Languages, DLS 2019, New York, NY, USA: Association for Computing Machinery, pp. 28–41.
+ISBN 9781450369961. doi: 10.1145/3359619.3359742.
+Wadler, P. & Findler, R. B. (2007) Well-typed programs can’t be blamed. In Workshop on Scheme
+and Functional Programming , pp. 15–26.
+Wadler, P. & Findler, R. B. (March 2009) Well-typed programs can’t be blamed. In European
+Symposium on Programming , ESOP, pp. 1–16.
+Wadler, P. & Kokke, W. (2019) Programming Language Foundations in Agda . Available at
+http://plfa.inf.ed.ac.uk/
+Xie, N., Bi, X. & Oliveira, B. C. d. S. (2018) Consistent subtyping for all. In Programming
+Languages and Systems , Ahmed, A. (ed), pp. 3–30, Cham: Springer International Publishing.
+ISBN 978-3-319-89884-1.
+https://doi.org/10.1017/S0956796821000241 Published online by Cambridge University Press

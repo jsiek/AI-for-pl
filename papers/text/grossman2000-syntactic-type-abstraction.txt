@@ -1,0 +1,2540 @@
+
+
+=== PAGE 1 ===
+Syntactic Type Abstraction
+DAN GROSSMAN, GREG MORRISETT, and STEVE ZDANCEWIC
+Cornell University
+Software developers often structure programs in such a way that dierent pieces of code constitute
+distinct principals. Types help dene the protocol by which these principals interact. In particular,
+abstract types allow a principal to make strong assumptions about how well-typed clients use
+the facilities that it provides. We show how the notions of principals and type abstraction can
+be formalized within a language. Dierent principals can know the implementation of dierent
+abstract types. We use additional syntax to track the ﬂow of values with abstract types during
+the evaluation of a program and demonstrate how this framework supports syntactic proofs (in
+the style of subject reduction) for type-abstraction properties. Such properties have traditionally
+required semantic arguments; using syntax avoids the need to build a model for the language. We
+present various typed lambda calculi with principals, including versions that have mutable state
+and recursive types.
+Categories and Subject Descriptors: D.2.11 [ Software Engineering]: Software Architectures|
+Information Hiding ; Languages; D.3.1 [ Programming Languages ]: Formal Denitions and
+Theory|Syntax; Semantics; D.3.3 [Programming Languages]: Language Constructs and Fea-
+tures|Abstract data types; F.3.2 [Logics and Meanings of Programs]: Semantics of Program-
+ming Languages|Operational Semantics; F.3.3 [Logics and Meanings of Programs]: Studies
+of Program Constructs|Type Structure
+General Terms: Languages, Security, Theory, Verication
+Additional Key Words and Phrases: Operational semantics, parametricity, proof techniques, syn-
+tactic proofs, type abstraction
+1. INTRODUCTION
+Programmers often use a notion of principal when designing the structure of a
+program. Examples of principals include modules of a large system, a host and
+its clients, and separate functions. Dividing code into such agents is useful for
+composing programs. Moreover, with the increasing use of extensible systems, such
+as Web browsers, databases, and operating systems, this notion of principal becomes
+critical for reasoning about untrusted clients that interact with host-provided code.
+In this paper, we incorporate the idea of principal into various typed lambda
+calculi. Doing so allows us to formulate security policies and check that the type
+This material is based on work supported in part by the AFOSR grant F49620-97-1-0013,
+ARPA/RADC grant F30602-1-0317, and National Science Foundation Graduate Fellowships. Any
+opinions, ndings, and conclusions or recommendations expressed in this publication are those of
+the authors and do not reﬂect the views of these agencies.
+Authors’ address: Department of Computer Science, 4130 Upson Hall, Cornell University, Ithaca,
+NY, 14853; email: fdanieljg, jgm, zdanceg@cs.cornell.edu.
+Permission to make digital/hard copy of all or part of this material without fee for personal
+or classroom use provided that the copies are not made or distributed for prot or commercial
+advantage, the ACM copyright/server notice, the title of the publication, and its date appear, and
+notice is given that copying is by permission of the ACM, Inc. To copy otherwise, to republish,
+to post on servers, or to redistribute to lists requires prior specic permission and/or a fee.
+c© 2000 ACM 0164-0925/00/1100-1037 $5.00
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000, Pages 1037{1080.
+
+=== PAGE 2 ===
+1038  Dan Grossman et al.
+(* File handle implemented as int *)
+abstype fh
+open :string! fh
+read : fh!char
+Fig. 1. Abstract interface for le handles.
+system enforces them. An example of a useful policy is, \clients can gain access to
+a le handle only through the open procedure."
+Consider a host-provided interface for an abstract type of le handles, fh,t h a t
+includes operations to create and use them (Figure 1). The principals in this sce-
+nario are the host implementation of the interface and its clients. Each principal’s
+\view of the world" corresponds to its knowledge regarding fh. In particular, the
+host knows that fh =int, whereas clients do not.
+The conventional wisdom is that the use of abstract data types in a type-safe
+language prevents clients from directly accessing host data. Instead, a client may
+manipulate such data only via a host-provided interface. To formalize this wisdom,
+it is necessary to prove theorems that say, \client code cannot violate type abstrac-
+tions provided by the host." For instance, a client should not be able to treat an
+object of type fh as an integer, even though the host implements it that way.
+How do we prove such properties? One way of phrasing the result is to say
+that the client behaves parametrically with respect to the type fh. Using this
+observation, we can encode the agent program in a language like Girard’s System
+F [Girard et al. 1989], the polymorphic lambda calculus [Reynolds 1974]. The type
+fh is held abstract by encoding the client as a polymorphic function:
+fh:host : {open :string! fh;read : fh!char}:client code
+We can then appeal to Reynolds’ parametricity results [Reynolds 1983] to conclude
+that the client respects the host’s interface.
+Unfortunately, these representation-independence results are proven using seman-
+tic arguments based on a model of the language (see the work of Mitchell [1991], for
+example). We are unaware of any similar results for languages including multiple
+features of modern languages, such as references, recursive types, objects, threads,
+and control operators.
+Our calculus circumvents this problem by syntactically distinguishing agents with
+dierent type information. By \coloring" host code and client code dierently, we
+can track how these colors intermingle during evaluation. By using dierent seman-
+tics for each principal, we force the client to respect the abstract types provided
+by the host. This separation of principals provides hooks that enable us to prove
+some type-abstraction properties syntactically.
+To see why these new mechanisms are useful, consider the evaluation of the client
+code when linked against a host implementation. Figure 2 shows the standard en-
+coding of linking as application. In one step of the standard operational semantics,
+the host type is substituted throughout the client code. It is impossible to talk
+about the type fh remaining abstract within the client because fh is replaced by
+int. After a second step, host code is substituted throughout client code,a n da l l
+distinctions between principals are lost.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 3 ===
+Syntactic Type Abstraction  1039
+ = {open :string! fh;read : fh!char}
+(fh:host ::client code) int host code
+7−!(host :fint=fhg:fint=fhgclient code) host code
+7−!fhost code=hostgfint=fhgclient code
+Fig. 2. Standard encoding for \linking" client and host code.
+In the next section, we describe a two-agent setting sucient for proving inter-
+esting properties about the le-handle example. It introduces the general approach
+of distinguishing principals 1 during evaluation. Section 3 introduces a multiagent
+calculus that provides for multiple agents, multiple abstract types, and an arbi-
+trary assignment of what types are known to what agents. We prove several safety
+and abstraction theorems for this calculus; the safety properties for the two-agent
+calculus follow as corollaries. The next two sections sketch extensions to our sys-
+tem that we believe are more dicult in a less syntactic framework. Section 4
+adds references and state; the presentation emphasizes the subtle ways that naive
+treatments of state can break type abstraction. Section 5 adds recursive types and
+polymorphism; here we emphasize that these features can be treated as orthogo-
+nal to principals or that these features can be encoded using principals. Section 6
+surveys related work; this work includes approaches to proving type abstraction,
+approaches to using syntactic proof techniques, and approaches to putting a notion
+of principal in a programming language.
+This work extends our previously published paper [Zdancewic et al. 1999] by
+providing a more complete presentation of the two-agent and multiagent calculi
+and extensions that incorporate state, recursive types, and polymorphism.
+2. THE TWO-AGENT CALCULUS
+2.1 Syntax
+This section describes a variant of the simply typed lambda calculus with two
+principals, a client and a host. The language maintains a syntactic distinction
+between host and client code throughout evaluation. The host exports one abstract
+type, t, implemented as concrete type h.
+Figure 3 gives the syntax for the two-agent calculus. Types, , include a base
+type, b, the host’s abstract type, t, and function types. The terms of the language
+are client terms, C, client values, ^C,h o s tt e r m s ,H, and host values, ^H.T h e
+metavariablexc ranges over client variables, which are disjoint from host variables,
+ranged over by xh.
+The metavariables bc and bh range over values of base type. We assume that
+the host and client use the same underlying representation for values of base type.
+These values are thus the fundamental medium of information exchange between
+agents. For example, the client value 3c corresponds to the host value 3h. It would
+be possible to relax this assumption; conversion between host and client values
+would then require computation (for instance to change the byte-order of integer
+1Throughout this paper, we use the words \principal," \agent," and \color" interchangeably.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 4 ===
+1040  Dan Grossman et al.
+ ::= t j b j !0
+C ::= xc j bc j xc ::C j CC0 j px Hqy
+
+h
+^C ::= bc j xc ::C j px
+^Hqy
+t
+h
+H ::= xh j bh j xh ::H j HH0 j px Cqy
+
+c
+^H ::= bh j xh ::H
+e ::= C j H
+^e ::= ^C j ^H
+Fig. 3. Two-agent syntax.
+values). One of the advantages of distinguishing principals is that places where
+such marshalling and unmarshalling is needed are made explicit in the program.
+It is helpful to think of terms generated by C and H as having dierent colors
+(indicated by the subscripts c and h respectively) that indicate to which principal
+each belongs. As observed in the introduction, client and host terms mix during
+evaluation. To keep track of this intermingling, agent terms contain embedded host
+terms of the formpxHqy
+h. Intuitively, the brackets delimit a piece of h-colored code,
+where H is exported to the agent at type . Dually, host terms may contain
+embedded clients.
+The type annotations on the embeddings keep track of values of type t during
+execution. In particular, a host term of type h may be embedded in a client term.
+If the annotation is t, then the client has no information about the form of the
+term inside the embedding. Thus, an embedding with annotation t and containing
+a host value is a client value.
+A good intuition for the semantics is to imagine two copies of the simply typed
+lambda calculus augmented with a new type t. In the client copy, t is abstract,
+whereas in the host copy, t ish. Because the host has more knowledge, there is an
+asymmetry in the language. In the semantics, this asymmetry manifests itself in
+rules in which the host renes t toh. It also means the notion of value depends on
+the principal and the type information: an embedding with annotation t is a client
+value. An embedding is never a host value because the annotation is never a type
+that is abstract to the host.
+2.2 Notation
+Before describing the semantics, we dene some convenient notions. Let e range
+over both client and host terms, and let ^e range over both client and host values.
+The color of e is c if e is a C term; otherwise, e’s color ish. Note that both terms
+in a syntactically well-formed application are the same color. Because the host and
+client terms share some semantic rules, we use polychromatic rules to range over
+both kinds of terms. The intention is that all terms mentioned in a polychromatic
+rule have the same color; the rule is short-hand for two analogous rules, one for
+each color.
+We writefe0=xge for the capture-avoiding substitution of e0 for x in e.T e r m s
+are equal up to alpha conversion, where substituted variables are of the same color.
+We also dene substitution on types, written f0=tg. Intuitively, we use the sub-
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 5 ===
+Syntactic Type Abstraction  1041
+Polychromatic Steps [ P1] ee0 7−!e00 e0 if e7−!e00
+[P2]^ ee0 7−!^ee00 if e07−!e00
+[P3]( x::e )^e 7−! f^e=xge
+Client Steps [ C1] px Hqy
+
+h 7−!px H0
+qy
+
+h if H7−!H0
+[C2] px bh
+qy
+b
+h 7−!bc
+[C3] px xh ::H qy
+0!00
+h 7−!xc :0: px fpx xc
+qy
+
+c=xhgHqy
+00
+h
+Host Steps [ H1] px Cqy
+
+c 7−!px C0
+qy
+
+c if C7−!C0
+[H2] px bc
+qy
+b
+c 7−!bh
+[H3] px xc ::C qy
+0!00
+c 7−!xh :fh=tg0: px fpx xh
+qy
+
+h=xcgCqy
+00
+c
+[H4] pxp x
+^Hqy
+t
+h
+qy
+hc 7−!^H
+Fig. 4. Two-agent dynamic semantics.
+stitutionfh=tg to produce the host’s view of .
+We say a client term is host-free if it contains no embeddings (and similarly for
+client-free host terms).
+2.3 Dynamic Semantics
+Figure 4 describes a small-step operational semantics for the two-agent calculus.
+The polychromatic rules are the same as for the simply typed call-by-value lambda
+calculus. The other rules handle embeddings.
+Rules [ C1]a n d[ H1] allow evaluation to proceed within embeddings. Inside
+embeddings, the rules for the other color apply. These \context switches" ensure
+that terms evaluate with the appropriate rules for their color. If an embedded
+value is exported to the outer principal at type b, the outer agent can strip away
+the embedding and use that value (see rules [C2]a n d[H2]). It is at this point that
+conversion between data representations would take place.
+Rules [C3]a n d[H3 ] maintain the distinction between client and host code. For
+example, suppose the client contains a host function that is being exported at type
+0!00. In this case, the client does know that the embedding contains a function,
+so the client can apply it to an argument of a suitable type. If instead the function
+had been exported at type t, the client would not have been able to apply it. The
+subtlety is that the host type of the function may be more specic than the client
+type, such as when 0 = t.
+Thus, [ C3] converts an embedded host function to a client function with an
+argument of type0. The body of the client version of the function is an embedding
+of the host code, except that, as the argument now comes from the client, every
+occurrence of the original argument variable,xh, is replaced by an embedding of the
+client’s argument variable,pxxcqy
+c . This embedding is exported to the host at type,
+the type the host originally expected for the function argument. The rule for hosts,
+[H3], is symmetric, except that, because the host may use t ash, occurrences of t
+in the host function’s type annotation are replaced by h.
+The nal rule, [ H4 ], allows the host to \open up" a client value that is an
+embedded host value. This rule allows the host to recover a value that has been
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 6 ===
+1042  Dan Grossman et al.
+(openc :string! fh: openc \myle"c) px sh :string: ho sh
+qy
+string!fh
+h
+(1) ( openc :string! fh: openc \myle"c)( sc :string: px ho px sc
+qy
+string
+c
+qy
+fh
+h )
+(2) ( sc :string: px ho px sc
+qy
+string
+c
+qy
+fh
+h )\ m y  l e "c
+(3) px ho px \myle"c
+qy
+string
+c
+qy
+fh
+h
+(4) px ho \myle"h
+qy
+fh
+h
+...
+(n) px 3h
+qy
+fh
+h
+Fig. 5. Client calling open.
+embedded abstractly in the client. The restricted form of this rule ensures that
+the term inside the embedding is a value and is itself an embedding. (Specically,
+if the annotation is not t, then the term is not a value.) Therefore, no other rule
+applies. This restriction keeps our system deterministic, a property that we nd
+convenient, but that is probably not necessary.
+The crucial point is that any attempt by the client to treat a value of type t as a
+function leads to a stuck conguration (no rule applies). More generally, we ensure
+that any conguration in which an abstract value appears in an \active position"
+is stuck. This fact, along with the stuck congurations of the simply typed lambda
+calculus, allows us to prove the safety properties of Section 2.6.
+2.4 Examples
+We now give two examples of program evaluation in the two-agent calculus. Re-
+turning to our example of le handles, let t = fh and h =int.
+Figure 5 shows the client obtaining a le handle through a host interface. For
+simplicity, only the host’sopen function is provided to the client. The host imple-
+mentation, ho, takes in a string and produces an integer representing a le handle.
+This code is embedded inside the client at the more abstract type string! fh.
+Step (1) uses [ C3] to convert the embedded host function to a client function.
+Note that the new variable, sc, is embedded in the host as a client term. Step (2)
+is a standard -reduction. Together, these two reduction steps correspond to the
+linking of host and client code, but, unlike the example in Figure 2, there is no
+type information about fh given to the client code. Step (3) is another -reduction,
+passing in the client string \myle." Step (4) uses [ H2] to extract the string from
+the embedding. At this point, the host function ho is applied to a host value.
+Repeated use of [ C1] allows the host function to proceed. We assume that ho
+returns 3 when applied to \myle." This result, embedded within the client code
+at type fh, is a client value.
+The second example (Figure 6) illustrates the client calling the host’sread func-
+tion, passing in the le handlepx3hqyfh
+h . W ea s s u m et h eh o s tc o d ef o rread is already
+embedded in the client and exported at the type fh!char. The body of the host
+function ishr, a host term taking an integer representing a le handle and returning
+a character read from that le.
+In step (1), the client extracts the host function via rule [ C3]. The type of the
+argument handlec is abstract in the client, so the type annotation is changed to
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 7 ===
+Syntactic Type Abstraction  1043
+px handleh :int: hr handleh
+qy
+fh!char
+h
+px 3h
+qy
+fh
+h
+(1) ( handlec : fh: px hr px handlec
+qy
+int
+c
+qy
+char
+h ) px 3h
+qy
+fh
+h
+(2) px hr pxp x 3h
+qy
+fh
+h
+qy
+int
+c
+qy
+char
+h
+(3) px hr 3h
+qy
+char
+h
+...
+(n) px
+0A0
+h
+qy
+char
+h
+(n +1 )0A0
+c
+Fig. 6. Client calling read.
+Polychromatic Rules
+[var] Γ‘x :Γ (x)[ const] Γ‘b : b [app]
+Γ‘e :0! Γ‘e0 :0
+Γ‘ee0 :
+Client Rules
+[Cfn]
+Γ[xc :0]‘C :
+Γ‘xc :0:C :0! [HinC]
+Γ‘H :fh=tg
+Γ‘px Hqy
+
+h :
+Host Rules
+[Hfn]
+Γ[xh :0]‘H :
+Γ‘xh :0:H :0! t620
+[CinH]
+Γ‘C :
+Γ‘px Cqy
+
+c :fh=tg
+Fig. 7. Two-agent static semantics.
+fh. The second step is a -reduction. At this point, evaluation continues via [ H4],
+which in step (3) allows the embedded host code to extract the integer 3, held
+abstract by the client, as a host value. The application ( hr 3h) proceeds as usual
+until the host computes the character read from the le. At last, because this
+embedded character is exported to the client at type char, rule [ C2] produces the
+value0A0
+c.
+2.5 Static Semantics
+Figure 7 describes the static semantics for the two-agent calculus. The typing
+context, Γ, maps variables (of either color) to types. The polychromatic rules are
+standard, as is the introduction rule for client functions. For host functions, the
+only dierence is that t is not allowed to appear in the annotation for the argument
+to a function. Because the host knows that t = h, this restriction does not limit
+expressiveness. The convenient eect of this side condition and rule [ CinH ]i st h a t
+types of host terms never contain t. The presence of t in host-function types would
+complicate other rules, such as [ var]a n d[ app], because we would often need to
+rene a type  tofh=tg in order for types to be preserved under evaluation.
+The interesting typing rules are those for embeddings. Rule [ HinC ]s a y st h a t
+an embedded host term, H, exported to the client at type  (which may contain
+occurrences of t)h a st y p e if the host is able to show that the \actual" type of H
+isfh=tg. In other words, the host may hide type information from the client by
+replacing some occurrences of h with t in the exported type. The rule for clients
+embedded inside of host terms, [ CinH ], is dual in that the host renes the types
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 8 ===
+1044  Dan Grossman et al.
+erase(xi)= x
+erase(b)= b
+erase(x::e )= x:fh=tg:erase (e)
+erase(ee0)= erase(e) erase(e0)
+erase(px eqy
+
+i )= erase(e)
+Fig. 8. Two-agent erase translation.
+provided by the client.
+2.6 Safety Properties
+In this section, we explore properties of the two-agent calculus including soundness
+and some type-abstraction theorems. We defer the proofs because they are corol-
+laries to the corresponding theorems in Sections 3.7 and 3.8. These properties are
+not intended to be as general as possible. Rather, they convey the ﬂavor of some
+statements that are provable using syntactic arguments.
+The following lemmas establish type soundness:
+Lemma 2.1 (Canonical Forms). Assuming;‘^e :,
+|i f  = b,t h e n^e =b for some b.
+|i f  =0!00,t h e n^e =x:0:e0 for some x and e0.
+|i f  = t,t h e n^e =px ^Hqyt
+h for some ^H of type h.
+Lemma 2.2 (Preservation). If;‘e : and e7−!e0 then;‘e0 :.
+Lemma 2.3 (Progress). If;‘e :, then either e is a value or there exists an
+e0 such that e7−!e0.
+Denition 2.4. At e r me is stuck if it is not a value and there is no e0 such that
+e7−!e0.
+Theorem 2.5 (Type Soundness). If;‘e :, then there is no stuck e0 such
+that e7−! e0.
+Given a term, if we ignore the colors, erase the embeddings, and replace t with
+h, then we have a well-typed term of the simply typed lambda calculus. Formally,
+Figure 8 denes the erasure of a two-agent term. (All rules are polychromatic.)
+The following lemma states that erasure commutes with evaluation.
+Lemma 2.6 (Erasure). Lete be any two-agent term such that ;‘e :. Then
+e7−! ^e if and only if erase(e)7−! erase(^e).
+The interesting fact is that the erasure of rule [ C3] is basically x :: e7−!
+x0 ::fx0=xge; the substitution of h for t in the erasure process ensures that the
+types of the bound variables on either side of the transition are the same. Because
+x ::e is alpha equivalent to x0 ::fx0=xge, the transition [ C3] corresponds to
+the identity transition (zero steps) in the erased language.
+With soundness and erasure established, we reexamine the abstraction properties
+of the introduction. Because the host is always capable of providing information to
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 9 ===
+Syntactic Type Abstraction  1045
+the client, we are particularly interested in evaluations where we assume the host
+does not do so. Recall that we say host-free to describe a client term that has no
+host terms embedded in it.
+One desirable property of the le handle interface is that the client never breaks
+the type abstraction for le handles. For example, if C is host-free,;‘handle : fh,
+and;‘fc :fh:C :,t h e n(fc : fh:C ) handle never evaluates to a term in which
+handle is treated as an integer. This property is a corollary of type soundness
+because within the client code the type fh is not equal to int (and hence, for
+example, the expression fc + 3 is not well-typed).
+A stronger property is that the client is oblivious to the particular choice of
+integer that the host uses to represent a given le handle. More formally:
+Theorem 2.7 (Independence of Evaluation). Ifpx ^Hqyfh
+h andpx ^H0qyfh
+h are
+well-typed,C is host-free, and;‘fc :fh:C : fh! b,t h e n(fc :fh:C )px ^Hqyfh
+h 7−!
+bc if and only if (fc :fh:C )px ^H0qyfh
+h 7−! bc.
+The proof strengthens the claim to a step-by-step evaluation correspondence
+when using ^H and ^H0:
+Lemma 2.8 (Value Abstraction). Let ^H and ^H0 be host values of type h.I f
+C is host-free, [xc : fh]‘C :,a n dfpx ^Hqyfh
+h =xcgC is not a value, then there exists
+a host-free term C0 such that:
+| [xc : fh]‘C0 :
+|fpx ^Hqyfh
+h =xcgC7−!fpx ^Hqyfh
+h =xcgC0
+|fpx ^H0qyfh
+h =xcgC7−!fpx ^H0qyfh
+h =xcgC0
+The embeddings also enable us to track expressions of the abstract type during
+evaluation, thus allowing us to formalize a third property: The client must have
+called open to obtain a le handle.
+Theorem 2.9 (File Handles Come from open). SupposeC is host-free, ho
+is client-free, andopenc :string! fh:C is well-typed. If (openc :string! fh:C )
+applied to pxsh :string: ho shqystring!fh
+h steps to some term C0 containingpx ^Hqyfh
+h
+as a subterm, then ^H was derived from a sequence of the form (ho ^H0)7−! ^H.
+The proof shows that (after one step) every host embedding has as its embedded
+term either an application of ho or an intermediate result of such an application.
+3. THE MULTIAGENT CALCULUS
+So far, we have described a simple two-agent setting in which the host has strictly
+more information than the client. We can model many interesting cases in this
+fashion, but there are times when both principals wish to hide information or in
+which there are more than two agents involved. For example, we need a multiagent
+setting to prove safety properties about nested abstract data types.
+Another natural generalization is to allow an agent to export multiple abstract
+types. Once that facility exists, agents should be able to share type information.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 10 ===
+1046  Dan Grossman et al.
+(agents) i;j 2f 1;:::;n g
+(lists) ‘::= i j i‘
+(types)  ::= t j b j !0
+(i-terms) ei ::= xi j bi j xi ::ei j ei e0
+i j x fi(xi:):ei j px ej
+qy
+
+‘
+(i-primvals) ^vi ::= bi j xi ::ei
+(i-values) vi ::= ^vi j px ^vj
+qy
+t
+‘(t62 Dom(i))
+Fig. 9. Multiagent syntax.
+3.1 Syntax
+Figure 9 shows the syntax for the multiagent language. The types include a base
+type, b, function types, and type variables ranged over by t. In what follows, we
+also use u and s to range over type variables.
+Rather than just two colors of terms, we now assume that there are n agents,
+where n is xed. We use the metavariables i, j,a n dk to range over the set of
+agentsf1;:::;n g.
+Every nonembedding term has exactly one color, as indicated by the subscript.
+Embeddings also have a color that is determined by context|the grammar allows
+ei and ej to produce syntactically identical embedding terms. We explicitly state
+the color of the term when it is ambiguous or particularly relevant to the discussion.
+Functions and applications are always constructed from subterms of the same color.
+The terms for agent i include variables,xi, constants,bi, nonrecursive functions,
+xi ::ei, recursive functions, x fi(xi:):ei, function applications, ei e0
+i,a n de m -
+beddings,pxejqy
+‘. We include both recursive and nonrecursive functions to simplify
+the dynamic semantics (see rule [ 4] in Figure 10).
+An embedding containing a j-term is labeled with a list of agents, ‘, for reasons
+explained in Section 3.3. We write simply j for the singleton list containing the
+agentj, and we use juxtaposition to denote appending two lists (‘‘0 is the concate-
+nation of lists‘and‘0). The static semantics requires that the list for an embedded
+j-term begins with j,s oi nf a c t‘=j‘0 for the termpxejqy
+‘; but we write just‘when
+the j is unimportant. We use rev(‘) to mean the list-reversal of ‘.
+3.2 Type Information
+The goal is a language in which each agent has limited knowledge of type informa-
+tion. Thus, we must somehow represent what an agent \knows" and ensure that
+agents sharing information do so consistently. For example, agent i might know
+that fh =int.A g e n tj may or may not have this piece of information, but if j does
+know the realization of fh, that knowledge must be compatible with what i knows.
+(It should not be the case that j thinks fh =string.)
+To capture this information, we assume each agent i has a nite partial map
+from type variables to types calledi. To maintain consistency of knowledge among
+agents, we require that all agents that know the implementation of an abstract type
+t know the same implementation. We further restrict the i maps so that for each
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 11 ===
+Syntactic Type Abstraction  1047
+type variable, t, there is a unique, most concrete interpretation of t. For example,
+we do not allow i(t)= t!t, or the more subtle i(t)= s!s, j(s)= t, because
+these examples do not admit a well-dened notion of most-concrete type for t.
+The need for consistency among agents motivates the rst part of the following
+denition; the need for most concrete interpretations of a type motivates the second
+part.
+Denition 3.1. As e tf1;:::; ng of nite partial maps from type variables to
+types is compatible if:
+|For everyi;j2f 1;:::;n g if t2 Dom(i)\ Dom(j), then i(t)= j(t).
+|The collection of type variables can be totally ordered such that for every agent,
+i, and type variable, t, all variables in i(t) precede t.
+Eachi extends naturally to a total function, i from types to types:
+i(b)= b
+i(t)=
+tt 62 Dom(i)
+i(t) t2 Dom(i)
+i(!0)= i()! i(0)
+Applying i t oat y p e either yields  (if i has no information about the type
+variables appearing in ) or a more concrete version of . For example,  h(fh!
+fh)= int! int.W e s a y t h a t i() renes , and we write vi for the reﬂexive,
+transitive closure of i viewed as a relation on types. Thus, fh! fhvh int!int.
+The second condition in the denition of compatibility, and the fact that each
+agent has a nite amount of type information, guarantees that the process of an
+agent rening a type halts. That is, the sequence vi i()vi i(i())vi :::
+reaches a xpoint, which we write i(). This xpoint is the most concrete view
+of  that agent i is able to determine from its knowledge.
+Even if all of the agents pool their information about type variables, the notion of
+a most concrete view of is still valid. We write  for the union of the compatible i
+maps. It contains the composite knowledge of every agent in the system. Let v be
+the reﬂexive, transitive closure of the relation . As above, the process of rening
+ using  also terminates:  v ()v (())v ::: reaches a xpoint. The
+notation () indicates this xpoint, which is the most concrete type compatible
+with .
+In practice, the compatibility constraints guarantee two things. First, no set of
+agents can conspire to show that incompatible types are equal (and thus eectively
+cast an integer to a function, for example). Second, there is a well-dened notion
+of most concrete type for each agent. The rst criterion is clearly necessary for
+soundness of the system. The second criterion greatly simplies the static seman-
+tics. There may be other notions of compatibility that relax one or both of these
+conditions while still admitting a sound type system and a well behaved semantics.
+3.3 Embeddings
+The set of i-terms that are values depends on i’s available type information. In
+addition to the usual notion of values, given by i-primvals, a j-primval embedded
+in agent i is a value if i cannot determine any more type information about the
+value. That is,px^vjqyt
+‘is an i-value if t62 Dom(i).
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 12 ===
+1048  Dan Grossman et al.
+Because an embedding is not an i-primval, a nested embedding (for example,
+pxpxxj ::xjqyt
+jqys
+i ) is never an i-value. We could have made such terms values, but
+the result would signicantly complicate the dynamic semantics: if our example
+nested embedding were passed to an agent that was able to renes to an arrow type,
+then we would need to cross two embedding boundaries to nd the function that
+the agent expects. Instead, our dynamic semantics collapses the two embeddings
+into one, in this case pxxj ::xjqys
+ji. As a result, values never cross more than one
+embedding at a time, but the embeddings are now annotated with a list of agents.
+Why is this somewhat complicated mechanism necessary? There must be some
+way of relating the type of a term inside an embedding to the type annotation on
+the embedding; otherwise, an agent could export an integer as a function. The
+list of agents allows us to maintain exactly the information needed to establish
+the connection between the type of the term inside an embedding and the type
+annotating the embedding. If we forget any agents, inconsistencies may arise. For
+example, consider three agents, i, j,a n dk, such that i(t)= int, j(s)= t,a n d
+k =;. Then collapsing the k-termpxpx3iqyt
+iqys
+j to eitherpx3iqys
+i orpx3jqys
+j violates the
+type-abstraction properties because neither i nor j knows that s abstracts an int.
+If we use sets of agents instead of (ordered) lists, the reasonable rules become too
+permissive because we lose the information that agent i must have exported the
+integer at typet beforej could export it at types. As we explain in Section 3.6, the
+type system admits the nested-embedding term and the collapsed version, px3iqys
+ij,
+but not the others.
+In summary, the lists of agents on embeddings let us remember a particular
+order of principals, which is necessary for type checking, without treating nested
+embeddings as values.
+3.4 Dynamic Semantics
+Figure 10 shows the operational semantics for agent i in the multiagent language.
+That is, several of the rules depend on the color of the term being reduced, and the
+rules use i to denote this color.
+Rules [1], [2], [4], and [ 5] establish a typical call-by-value semantics. 2 Rule [3]
+allows evaluation inside embeddings. Rule [ 6] lets agent i pull a constant out of an
+embedding, provided that the constant is exported at type b. This rule corresponds
+to rules [C2]a n d[H2 ] of the two-agent scenario.
+As in the two-agent case, in which the host had more type information than the
+client, an agent can use its knowledge to rene the type of an embedded term. Pre-
+viously, the substitutionfh=tg in rule [H3 ] served this purpose. Now, i captures
+the type-renement information available to agent i. Correspondingly, rule [ 7]a l -
+lowsi to rene the type of an embedded value. The side condition on this rule (in
+conjunction with the conditions on [8]a n d[9]) ensures that evaluation is determin-
+istic. This determinism of the type-renement rules is not critical to the system,
+but it makes many of the proofs easier because there is only one applicable rule
+for each evaluation step. The choice of when the operational semantics renes type
+information interacts with where we must apply the  i maps in the static seman-
+tics; we chose to maintain the invariants that the static semantics always derives
+2We believe the language can easily be adapted to a call-by-name setting.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 13 ===
+Syntactic Type Abstraction  1049
+[1]
+ei7−!e00
+i
+ei e0
+i7−!e00
+i e0
+i [2]
+e0
+i7−!e00
+i
+vi e0
+i7−!vi e00
+i [3]
+ej7−!e0
+j
+px ej
+qy
+
+‘7−!px e0
+j
+qy
+
+‘
+[4] x fi(xi:):ei 7−!xi ::fx fi(xi:):ei=figei
+[5]( xi ::ei) vi 7−! fvi=xigei
+[6] px bj
+qy
+b
+‘7−!bi
+[7] px ^vj
+qy
+
+‘7−!px ^vj
+qy
+i()
+‘ (6= i())
+[8] pxp x ^vj
+qy
+u
+‘
+qy
+
+k‘0 7−!px ^vj
+qy
+
+‘k‘0 (u62 Dom(k); = i())
+[9] px xj ::ej
+qy
+0!00
+j‘ 7−!xi :0: px fpx xi
+qy
+
+irev(‘)=xjgej
+qy
+00
+j‘(xi fresh; 0!00 = i(0!00))
+Fig. 10. Multiagent dynamic semantics: e7−!e0 where color(e)= i.
+the most concrete type for any term, and that types explicitly mentioned in the
+lambda-abstraction syntax are most concrete. It would be possible to reformulate
+the calculus so that these conditions are relaxed (by allowing a nondeterministic
+type-renement rule in the static semantics), but doing so would require additional
+proof-normalization arguments.
+Rule [8] is the multiagent generalization of rule [ H4 ]. Both rules allow progress
+when we have nested embeddings, and the inner embedding cannot be reduced be-
+cause the inner agent considers it a value. In the two-agent case, this situation can
+occur only when the outer agent is the host. Because we are not concerned with
+tracking what values the host manipulates, rule [H4] strips away both embeddings.
+However, in the more symmetric multiagent setting, naively stripping away em-
+beddings loses information about which agents could have contributed information
+about the type of a term.
+Rule [ 8] says that if there are nested embeddings, pxpx^vjqyu
+‘qy
+k‘0 , and the inner
+embedding,px^vjqyu
+‘,i sa k-value (that is, u62 Dom(k)), then the two embeddings
+can be collapsed into one, px^vjqy
+‘k‘0 . Because we append the two lists, we lose no
+information about which agents have participated in the evaluation of the term.
+The most interesting rule is [ 9], which is really what tracks the principals. The
+embedded function is lifted to the outside. Its argument now belongs to the outer
+agent, i, instead of the inside agent, j. As such, it must be given the type that
+i thinks the argument should have. The body of the function is still a j-term
+e m b e d d e di na ni-term, so any occurrence of the new formal argument xi must be
+embedded as an i-term inside a j-term. The corresponding type annotation must
+b et h et y p et h a tj expects the argument to have. Hence the function body is still
+abstract to i, and, when the function is applied, the actual argument will be held
+abstract from j. The only remaining issue is the agent list on the formal-argument
+embeddings. Because the \inside type" and \outside type" have reversed roles, the
+list must be in reverse order. Intuitively, the agents that successively provided the
+function-argument type toi must undo their work in the body of the function. The
+side condition ensuring that the embedding’s type is most concrete with respect to
+the outer agent preserves the determinism of the semantics and ensures that the
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 14 ===
+1050  Dan Grossman et al.
+Assume h(fh)= int and fh62 Dom(c)
+(yh :int!int:yh 3h) px xc : fh:xc
+qy
+fh!fh
+c
+[7]( yh :int!int:yh 3h) px xc : fh:xc
+qy
+int!int
+c
+[9]( yh :int!int:yh 3h)( x0
+h :int: pxp x x0
+h
+qy
+fh
+h
+qy
+int
+c )
+[5]( x0
+h :int: pxp x x0
+h
+qy
+fh
+h
+qy
+int
+c )3h
+[5] pxp x 3h
+qy
+fh
+h
+qy
+int
+c
+[8] px 3h
+qy
+int
+hc
+[6]3 h
+Fig. 11. Multiagent evaluation example.
+explicit type for xi is most concrete.
+3.5 Example
+As an example, we encode our two-agent calculus by letting h map fh to int and
+letting c be undened everywhere. An evaluation that uses all of the novel rules
+appears in Figure 11. The host program invokes a client function dened in terms of
+the abstract type fh. (For simplicity, it is just the identity function.) The evaluation
+takes place in a host context, enabling the host to apply the function to the value 3
+even though the client function expects an argument of type fh. Within the body of
+the client code, however, the host value 3 is wrapped in an embedding and must be
+treated abstractly. Even so, the host code is able to recover the value 3 returned by
+the client. The numbers in the gure are the reduction rules used to take the step.
+Note that under this simple system, rules [ 7]a n d[ 9] encode what was previously
+\hard-wired" into rule [H3 ]. Similarly, rules [ 8]a n d[6] do the work of [ H4].
+3.6 Static Semantics
+Figure 12 shows the multiagent static semantics. Note that the rules depend on the
+color of the term and the value of the maps1;:::; n. The rules use i to denote the
+color of the term. The values of the maps do not change, so we leave them implicit.
+Therefore, the judgment Γ ‘ei :  should be read as, \Under maps 1;:::; n in
+context Γ, agent i can show that ei has type ."
+All of the rules except [ embed] are essentially standard. The rules [ abs]a n d
+[x] have additional conditions that force an agent to use the most concrete type
+available for functions internal to the agent; they are analogous to the side condition
+on [Hfn] in the two-agent case. Similarly, the use of i in the conclusion of [embed]
+guarantees that an embedded term is viewed by agent i at the most concrete type
+possible. Formally, the convenient invariant we are maintaining is that Γ ‘ei : 
+implies i()= .
+The issue of consistency among agents arises during type checking. For instance,
+we do not want a principal to export anint as a function. Likewise, we do not want
+an agent, or collection of agents, to violate the type abstractions represented by the
+i maps. Thus, we need to relate the type of the expression inside the embedding
+to the type annotation on the embedding.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 15 ===
+Syntactic Type Abstraction  1051
+[const] Γ‘bi : b [var] Γ‘xi :Γ (xi)[ app]
+Γ‘ei :0! Γ‘e0
+i :0
+Γ‘ei e0
+i :
+[abs]
+Γ[xi :0]‘e0
+i : i(0)= 0
+Γ‘xi :0:e0
+i :0! (xi62 Dom(Γ))
+[x]
+Γ[fi :0!][xi :0]‘e0
+i : i(0!)= 0!
+Γ‘x fi(xi:0):e0
+i :0! (fi;xi62 Dom(Γ);fi6=xi)
+[embed]
+Γ‘ej :0 ‘0
+/.
+j‘i
+Γ‘px ej
+qy
+
+j‘: i()
+Fig. 12. Multiagent static semantics: Γ ‘ei :.
+[eq]
+i()= i(0)
+‘ /.
+i 0 [trans]
+‘ /.
+‘00 ‘00
+/.
+‘0 0
+‘ /.
+‘‘0 0
+Fig. 13. Type relations: ‘ /.
+‘0.
+We establish an agent-list indexed family of relations on types, .‘0. Judg-
+ments of the form‘.‘0, showing when two types may be related by the list ‘,
+are given in Figure 13. 3 These rules say that 0 .i1i2:::im m if there exist types
+1;:::; m−1 such that agent ik is able to show that k−1 =k fork2f 1;:::;m g.
+Informally, the agents are able to chain together their knowledge of type information
+to show that 0 =m.
+The [embed] rule uses the.j‘irelation to ensure that the type inside the embed-
+ding matches up with the annotation on the embedding. The agent i is appended
+to the list because, as the outermost agent, i is implicitly involved in evaluation of
+the term.
+3.7 Safety Properties
+This section illustrates some of the standard safety theorems of typed programming
+languages and then presents an embedding-erasure transformation that commutes
+with evaluation.
+The following standard lemmas help establish type soundness. The proofs are
+straightforward.
+Lemma 3.2 (Canonical Forms). Assuming;‘vi :,
+|i f  = b,t h e nvi =bi for some b.
+|i f  =0!00,t h e nvi =xi :0:e0
+i for some xi and e0
+i.
+|i f  =t,t h e nt62 Dom(i) and vi =px^vjqyt
+j‘for some ^vj and ‘.
+3We give a nondeterministic rule for [ trans] because we are not concerned with an algorithmic
+presentation of type checking. This formulation lets us slightly simplify the proofs of the Type-
+Relations Properties, but is not essential to their correctness.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 16 ===
+1052  Dan Grossman et al.
+Lemma 3.3 (Substitution). Suppose Γ[xj :0]‘ei : and Γ‘ej :0. Then
+Γ‘fej=xjgei :.
+We also need several properties about the . relations.
+Lemma 3.4 (Type-Relation Properties).
+Idempotence: ‘.‘ii‘0 0 if and only if ‘.‘i‘0 0.
+Reversal: If‘.‘0,t h e n‘0.rev(‘) .
+Arrow: If‘1!2.‘3!4,t h e n‘1.‘3 and‘2.‘4.
+Proofs of the rst two properties are simple arguments by induction on the deriva-
+tion of the type relation. Our proof of the last property requires a tedious normal-
+ization argument showing that if‘1!2.‘3!4, then there is a derivation
+that relates only types whose top-level constructors are arrows. We give a brief
+sketch of the argument: the proof is by induction on the length of the list ‘.T h e
+base case, when‘is of length one, follows from the compatibility of thei relations.
+The inductive case is straightforward if the types in the chain are all arrows, so
+we suppose that in a chain of types showing ‘1!2 .‘3!4 the rst type
+variable encountered is t. Then the type before t must be some 5 ! 6.A f t e r
+some number of type variables in the chain, we must again have some arrow type.
+From the consistency conditions on the i maps, this next arrow type must be
+5 !6. Hence we did not need the occurrence of t in the chain, and can simply
+replace it with 5!6. In other words, any occurrences of type variables provide
+no additional information, so we can remove them, reducing the problem to a chain
+consisting only of arrow types.
+We now have the results we need to prove the two main lemmas.
+Lemma 3.5 (Preservation). If;‘ei : and ei7−!e0
+i,t h e n;‘e0
+i :.
+Proof. By induction on the derivation that ei7−!e0
+i. We proceed by cases on
+the last step of the derivation. Cases [ 1], [2], and [3] follow from induction. Cases
+[4]a n d[5] follow immediately from the Substitution Lemma. Case [ 6] is trivial to
+prove. We consider the remaining cases individually:
+[7] We have a typing derivation as follows:
+;‘^vj :00 ‘00.j‘i0
+;‘px^vjqy0
+j‘: i(0)
+Because i(0)e q u a l si( i(0)), by [ eq]w eh a v et h a t‘0 .i i(0). Thus
+by [ trans]w eh a v et h a t‘00 .j‘iii(0), and we can remove the second i by
+Idempotence. We can now derive:
+;‘^vj :00 ‘00.j‘ii(0)
+;‘px^vjqy
+i(0)
+j‘ : i(0)
+The conclusion is the desired result.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 17 ===
+Syntactic Type Abstraction  1053
+[8] We have a typing derivation as follows:
+;‘^vj :00 ‘00.j‘ku
+;‘px^vjqyu
+j‘: k(u) ‘k(u).k‘0i 0
+;‘pxpx^vjqyu
+j‘qy0
+k‘0 : i(0)
+The fact that the inner embedding is labeled with a list starting with j follows
+from the Canonical Forms Lemma. Furthermore, u62 k,s o k(u)= u.T h u s
+by [trans] and the premises, we have ‘00.j‘kk‘0i 0. So Idempotence proves that
+‘00.j‘k‘0i 0. We can now derive:
+;‘^vj :00 ‘00.j‘k‘0i 0
+;‘px^vjqy0
+j‘k‘0 : i(0)
+The conclusion is the desired result.
+[9] We have a typing derivation as follows:
+[xj :0]‘ej :3 j(0)= 0
+;‘xj :0:ej :0!3 ‘0!3.j‘i1!2
+;‘pxxj :0:ejqy1!2
+j‘ : i(1!2)
+Furthermore, the concreteness side condition on rule [ 9] implies that  i(1 !
+2)= 1 ! 2. So by the denition of  i, we know that  i(1)= 1 and
+i(2)= 2. From the Arrow Lemma and the right-hand premise of the bottom
+step, we conclude that‘0.j‘i1 and‘3.j‘i2. The reverse of j‘iisirev(‘)j,
+so by the Reversal Lemma,‘1.irev(‘)j 0. Thus we can derive:
+[xi :1]‘xi :1 ‘1.irev(‘)j 0
+[xi :1]‘pxxiqy0
+irev(‘) : j(0)
+Because the original derivation provides  j(0)= 0, we conclude [ xi : 1] ‘
+pxxiqy0
+irev(‘) : 0. It also provides [ xj : 0] ‘ej : 3. Because xi is fresh, we
+may weaken this claim to [ xi : 1][xj : 0] ‘ej : 3. Hence by Substitution,
+[xi :1]‘fpxxiqy0
+irev(‘)=xjgej :3. So we can derive:
+[xi :1]‘fpxxiqy0
+irev(‘)=xjgej :3 ‘3.j‘i2
+[xi :1]‘pxfpxxiqy0
+irev(‘)=xjgejqy2
+j‘: i(2) i(1)= 1
+;‘xi :1:pxfpxxiqy0
+irev(‘)=xjgejqy2
+j‘:1! i(2)
+Because i(2)= 2, the conclusion is the desired result.
+Lemma 3.6 (Progress). If e is well-typed, then either e is a value or there
+exists an e0 such that e7−!e0.
+Proof Sketch. The proof is a straightforward inductive argument on the struc-
+ture of e. The interesting case is when e =ei =pxvjqy
+‘.I f i()6=, then rule [ 7]
+applies. Else, if vj is an embedding, then rule [ 8] applies. Otherwise, we proceed
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 18 ===
+1054  Dan Grossman et al.
+erase(xi)= x
+erase(bi)= b
+erase(xi ::ei)= x: ():erase (ei)
+erase(x fi(xi:):ei)= x f(x:()):erase(ei)
+erase(ei e0
+i)= erase(ei) erase(e0
+i)
+erase(px ej
+qy
+
+‘)= erase(ej)
+where  =S
+i i
+Fig. 14. Multiagent erase translation.
+by cases on the form of.I f  = b, rule [6] applies. If  =0!00, rule [9] applies.
+Elseei is a value.
+Given the previous two lemmas, we conclude type safety:
+Theorem 3.7 (Type Safety). If;‘e :, then there is no stuck e0 such that
+e7−! e0.
+The cost of including embeddings is the addition of several dynamic rules. Worse
+yet, with recursion and multiple agents, the lists annotating embeddings might
+grow arbitrarily large. The erasure property stated below essentially shows that
+these syntactic tricks are only a proof technique.
+For erasure to a typed language, it is necessary to combine the type information
+of all the agents. The multiagent denition of erase is given in Figure 14, where
+we recall that  is the map obtained by taking the union of the compatible  i
+maps. () is the most concrete type for  that can be found using all n agents’
+knowledge.
+The target language has one agent and no embeddings.
+Lemma 3.8 (Erasure). If ei is well-typed then either both ei and erase(ei)
+diverge or ei 7−! vi and erase(ei)7−! erase(vi).
+Proof Sketch. By induction on the number of steps in the source deriva-
+tion. For one step, show that if ei 7−!e0
+i, then either erase(ei)= erase(e0
+i)o r
+erase(ei)7−!erase(e0
+i). That is, the erased version takes either zero steps (if the
+source step uses one of rules [ 6] through [ 9]) or one step (if the source step uses
+rule [ 4]o r[ 5]). For divergence, show the contrapositive|any term erasing to a
+nondiverging term is nondiverging. The essence of the argument is that the source
+derivation can take only a nite number of steps before using rules [ 4]o r[ 5].
+3.8 Type-Abstraction Properties
+In this section, we use subject-reduction arguments to prove type-abstraction prop-
+erties that generalize those of the two-agent case.
+Denition 3.9. Let Agents(ei) be the set of colors appearing in ei.( T h e s e t
+necessarily includesi as well as any agents appearing in lists annotating embedding
+subterms of ei.)
+Denition 3.10. A set of agents, S,i s oblivious to type t if for all i2 S, t62
+Dom(i).
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 19 ===
+Syntactic Type Abstraction  1055
+Theorem 3.11 (Independence of Evaluation). Let ei be a term such that
+Agents(ei) are oblivious to t and;‘xi :t:ei :t! b.L e t ^vj and ^v0
+j be closed,
+well-typed terms with type j(t). Then (xi :t:ei)px^vjqyt
+j 7−! bi if and only if
+(xi :t:ei)px^v0
+jqyt
+j 7−! bi.
+First note that ^vj and ^v0
+j are primitive values. Hencepx^vjqyt
+j andpx^v0
+jqyt
+j are values.
+Also, we know j62 Agents(ei): because ^vj is a constant or a function and px^vjqyt
+j
+is well-typed, [ embed] ensures that t2 Dom(j). Agents(ei) are oblivious to t,s o
+j62 Agents(ei).
+The proof of the theorem strengthens the claim to a step-by-step evaluation
+correspondence when using ^vj and ^v0
+j. We give the intuition before presenting
+the formal lemma: we maintain that the intermediate terms in the two evaluation
+sequences are always exactly the same except that every occurrence of ^vj in one is
+replaced with ^v0
+j in the other. To ensure this correspondence, we show that every
+occurrence of ^vj is safely within an embedding with a type that agents other than
+j can relate to t. These agents are oblivious to t, so the embedding’s type must be
+at least as abstract as t. We also maintain that there are no j-terms other than the
+ones we are abstracting and that j appears nowhere in an embedding list except
+as the rst element. These conditions suce to argue that j never helps the other
+agents break the type abstraction.
+More specically, properties (1) and (2) of ’(dened in the lemma) suce to
+show that Agents(ei)nfjg cannot distinguish values of type t without the help of
+agent j; properties (3), (4), and (5) suce to show that j does not provide such
+help.
+Lemma 3.12 (Value Abstraction). Let ^vj and ^v0
+j have type j(t).L e t’(ei)
+mean:
+(1)[ xj : j(t)]‘ei : for some .
+(2)A g e n t s (ei)nfjg are oblivious to t.
+(3) The only j-term in ei is xj . (It may appear zero, one, or more times.)
+(4) Ifpxxjqy
+j‘is a k-term in ei,t h e n‘t.‘k.
+(5) j never appears in an embedding list within ei except as the rst element.
+Then if ’(ei) andf^vj=xjgei7−!e1
+i , then there exists an e2
+i such that:
+(a) ’(e2
+i )
+(b)f^vj=xjge2
+i = e1
+i
+(c)f^v0
+j=xjgei7−!f^v0
+j=xjge2
+i
+Proof Sketch. By induction on the derivation off^vj=xjgei7−!e1
+i , proceeding
+by cases on the last rule used in the derivation.
+Rules [ 1], [ 2], and [ 3] essentially follow from induction and the denition of
+substitution. Note that for [ 3], the embedded term is not a j-term because the
+only j-term, ^vj, is a value.
+Rules [4]a n d[5] follow from the denition of substitution and the fact that the
+variable for which we substitute a term must be distinct from xj because the term
+and xj are dierent colors. Furthermore, ^vj is closed, so the substitution has no
+eect on it.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 20 ===
+1056  Dan Grossman et al.
+Rule [6] is trivial except that we must prove the term inside the embedding is
+not ^vj (otherwise e1
+i =^vi, so property (c) will not hold). Assume for contradiction
+the term inside is ^vj. Then by property (3), before the substitution this term was
+xj. Then by properties (4) and (5), a j-free list of agents, ‘,c a ns h o w‘t.‘b.A
+simple proof by induction on the rules for.‘shows that this conclusion contradicts
+property (2).
+Rules [7]a n d[ 8] are straightforward to verify. Note that in [ 8] the outer agent
+list cannot contain j because of properties (3) and (5).
+Rule [9] requires an analogous argument to the one we used in [ 6] to show that
+the term inside the embedding cannot bexj. Hence the agent list on the embedding
+does not containj, so property (5) is preserved even though the agent list is reversed.
+The substitution in the body of the function is unproblematic because ^vj is closed
+and therefore unaected.
+This lemma suces to prove Independence of Evaluation because, given the as-
+sumptions of the theorem, ’((xi :t:ei)pxxjqyt
+j). By induction on the length of the
+evaluation, property (b) holds forbi,w h e r ebi is the result of the evaluation with ^vj.
+This implies that the same bi must be the result of the evaluation with ^v0
+j because
+the two results are alpha equivalent.
+The generalization of Theorem 2.9 is the following theorem. It eectively says
+that a client containing a value of abstract type fh must have obtained that value
+via a host-provided function.
+Theorem 3.13 (Host-Provided Values). Supposeprog is a closed and well-
+typed term of the form (openi : b! fh: client)pxxh : b: hoqyb!fh
+h . Further sup-
+pose Agents(client) are oblivious to fh, h knows fh, ho is embedding-free, and
+prog7−! ei. Then any subterm of ei that is a closed value of type fh has the form
+px^vhqyfh
+h‘,a n dt h e r ee x i s t sa neh such thatfeh=xhgho7−! ^vh and erase(eh)= b for
+some base value b.
+Note that it is not necessarily the case that fbh=xhgho7−! ^vh because h(fh)
+could be a function type and because the dynamic semantics does not evaluate
+under functions. Also note that we make no restrictions on the agents in client
+and their type abstractions except that none of them know the implementation of
+fh. For example, one agent could export fh more abstractly to another agent.
+The proof consists of an intricate subject-reduction argument, so we rst present
+the general idea. Intuitively, the onlyh terms areho and the result of applyingho to
+an argument. Because only h knows fh, all values of type fh come from applyingho.
+The main complication is tracking all the functions that are essentially xh :b: ho
+except that they dier in color and embeddings: The rst step of prog uses [9]t o
+convertpxxh : b: hoqyb!fh
+h to xi : b:pxfpxxiqyb
+i =xhghoqyfh
+h , so we must consider the
+latter term a legitimate producer of le handles. Agent i could pass this term to
+another agent using [ 9] again, and that result must also be legitimate.
+Due to these complications, we carefully state a property that evaluation of a
+well-typed term preserves: Figure 15 presents two relations, ’(e)a n d (e), where
+as usual, we mean the least relations closed under the appropriate inference rules.
+In the rules, we assume the color of e does not know fh; we use colors j and k to
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 21 ===
+Syntactic Type Abstraction  1057
+[A] ’(b)[ B] ’(x)
+[C ]
+’(e) ’(e0)
+’(ee0)[ D]
+’(e)
+’(x::e )[ E]
+’(e)
+’(x f(x:):e)[ F]
+’(e) h62‘
+’(px eqy
+
+‘)
+[G]
+feh=xhgho7−! e0
+h erase(eh)= b ;‘eh : b ‘fh /.
+‘0 h 62‘‘0
+’(px e0
+h
+qy
+
+h‘)
+[H ]
+ (e)
+’(e)[ I]  (xj : b: px fpx xj
+qy
+b
+j=xhghoqy
+fh
+h )
+[J]
+ (yk :1: px eqy
+2
+‘) ‘3
+/.
+jrev(‘0) 1 h62‘0
+ (xj :3: pxp x fpx xj
+qy
+1
+jrev(‘0)=ykgeqy
+2
+‘
+qy
+4
+k‘0 )
+[K ]  (px xh : b: hoqy
+b!fh
+h )
+Fig. 15. Host-Provided Values preservation property.
+range over any such color. We implicitly assume the context of the Host-Provided
+Values Theorem, so xh :b: ho is closed, well-typed, and embedding-free.
+Rules [A] through [F] are just structural rules; we use them to \nd the important
+terms," namely the functions that are essentially xh :b: ho and the results of
+applying such functions. No other h-terms are allowed.
+Rule [G] accepts terms that are the (intermediate) results of applying such func-
+tions. Because such functions dier from ho in terms of embeddings, [ G]d o e sn o t
+require that e =pxe0
+hqy
+hl where there exists a vh such that fvh=xhgho 7−! e0
+h.
+Rather, vh may be a nonvalue eh so long as its erasure is a value.
+Rule [H ] accepts the terms that are essentially xh :b: ho by using the auxiliary
+relation  . Rule [ I ] accepts the function we have after one step of prog.F o r e a c h
+time that the function is passed to another agent via rule [ 9], we use the rule [ J ]
+to conclude that the resulting function is still acceptable. We include rule [ K ]s o
+that’(prog) holds. It is easy to show that  (e) implies e is closed and well-typed.
+It is straightforward to prove that if ’(e) is preserved under evaluation then the
+Host-Provided Values Theorem is true: rst verify that ’(prog). Therefore, ’(ei)
+for any ei such that prog7−! ei. A simple induction on the derivation of ’(ei),
+appealing to the canonical forms of values as necessary, suces to prove that for
+any subterm v that is a closed value of type fh, it must be that ’(v). Rule [ G]
+is necessary to derive ’(v), and the antecedents of this rule are strong enough to
+prove the theorem. (A separate inductive argument shows that if  (e), then no
+subterm of e is a closed value of type fh.)
+We now proceed with the rigorous proof that ’is preserved. As usual, the
+subject-reduction argument relies on a substitution lemma that we prove before
+presenting the main lemma.
+Lemma 3.14 (Host-Provided Substitution). If’(e), ’(e0) andcolor(e0)=
+color(x),t h e n’(fe0=xge).
+Proof. The proof is by induction on the derivation of ’(e), proceeding by cases
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 22 ===
+1058  Dan Grossman et al.
+on the last rule in the derivation. Cases [ A]a n d[ B] are trivial. Cases [ C ], [ D],
+[E], [F] follow from straightforward inductive arguments. Case [ G] follows because
+feh=xhgho is closed and evaluation preserves this property. Case [H ] follows because
+ (e) implies that e is closed (as shown by induction on the derivation of  (e)).
+Lemma 3.15 (Host-Provided Preservation). If ’(e),;‘e : ,a n de7−!
+e0,t h e n’(e0).
+Proof. The proof is by induction on the derivation of e7−!e0, proceeding by
+cases on the last rule in the derivation.
+[1] Follows from the induction hypothesis and [ C ].
+[2] Follows from the induction hypothesis and [ C ].
+[3] The derivation of ’(e) ends with [ F]o r[ G]. (Note that [ H ] is impossible
+because  (e) holds only for values or embeddings of values, which do not t the
+conditions of [ 3].) If [ F], then the result follows from the induction hypothesis
+and [F]. If [ G], then we know e =pxe0
+hqy
+h‘andfeh=xhgho7−!n e0
+h for some n and
+appropriate eh. Therefore, we know that feh=xhgho7−!n+1 e00
+h and e0 =pxe00
+hqy
+h‘.
+So we can use [ G]t od e r i v e’(e0).
+[4] Follows from the induction hypothesis, [ E], Host-Provided Substitution, and
+[D].
+[5]T h e ne =(xj :0:e00) vj, vj has type 0, and the derivation ends with [ C ].
+Therefore, ’(vj )a n d ’(xj :0:e00); the derivation of the latter ends in [ D]o r
+[H ]. If [ D], then the result follows from the induction hypothesis, [ D], and Host-
+Provided Substitution. If [ H ], then  (xj :0:e00), the derivation ending in [ I ]o r
+[J ]. Therefore, e00 has the formpxe000qy00
+‘. It suces to show that ’(fvj=xjgpxe000qy00
+‘).
+To prove this fact, we prove that  (xj :0:pxe000qy00
+‘), ’(vj ), and vj has type 0
+implies two stronger facts:
+|erase(vj)= b for some b
+|For any ej of type 0, if there is a b such that ’(ej)a n derase(ej)= b,t h e n
+’(fej=xjgpxe000qy00
+‘).
+It is clear that this strengthened claim suces. We prove it by induction on the
+derivation of (x:0:pxe000qy00
+‘), proceeding by cases on the last rule used.
+For case [I ],0 = b, so the rst fact follows from the Canonical Forms Lemma and
+the well-typedness of e. For the second fact, fej=xjgpxe000qy00
+‘ =pxfpxejqyb
+j =xhghoqyfh
+h .
+So [G] applies by letting eh =pxejqyb
+j and e0
+h =feh=xhgho.
+For case [ J ], we have xj :0:pxe000qy00
+‘ = xj :3:pxpxfpxxjqy1
+jrev(‘0)=ykge1qy2
+‘qy4
+j‘0 .
+Furthermore, we have from the derivation that (yk :1:pxe1qy2
+‘)a n d‘3.jrev(‘0)
+1. From the induction hypothesis, we conclude that if some vk has type 1 and
+’(vk), then erase(vk)= b for some b. Because ‘3 .jrev(‘0) 1,w ec a nu s et h e
+Canonical Forms Lemma to conclude that if vj has type 3,t h e nerase(vj)= b,
+which is our rst obligation. From the induction hypothesis, we know that for any
+ek of type1 such that’(ek)a n derase(ek)= b,w ek n o w’(fek=ykgpxe1qy2
+‘). So for
+arbitraryej such that ’(ej )a n derase(ej)= b,w el e tek =pxejqy1
+jrev(‘0) to conclude
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 23 ===
+Syntactic Type Abstraction  1059
+that ’(fpxejqy1
+jrev(‘0)=ykgpxe1qy2
+‘). Therefore, from the denition of substitution, we
+have’(pxfej=xjgfpxxjqy1
+jrev(‘0)=ykge1qy2
+‘). Finally, becauseh62‘0, we can use rule [F]
+and the denition of substitution to derive ’(fej=xjgpxpxfpxxjqy1
+jrev(‘0)=ykge1qy2
+‘qy4
+j‘0 ,
+which is our second obligation.
+[6] Immediate because ’(b).
+[7] Then the derivation of ’(e) ends with [F]o r[ G]. (Note that [H ] is impossible
+because that derivation would have to end with [K ], but no nonhost agent can rene
+b! fh.) For either [ F]o r[ G], inspection of the antecedents reveals that the same
+rule applies after the step.
+[8] Then each of the last two steps of the derivation of ’(e) are [F]o r[ G]. (Note
+that [H ] is impossible because [ K ] is not a nested embedding and b! fh is not a
+type variable.) If both are [ F], then the induction hypothesis and one use of [ F]l e t
+us conclude’(e0). If the last step is [ F] and the second-to-last step is [G], then the
+induction hypothesis and one use of [ G] let us conclude ’(e0). Note that the well-
+typedness of e suces to satisfy the requirement that the type on the annotation
+be more abstract than fh. The remaining cases have [ G] as the last step; we show
+by contradiction this situation is impossible. Suppose the derivation of ’(e) ends
+in [G]. Then the e0
+h in the consequent of the rule is an h-value of the form px^vjqyu
+‘
+and u62 h.B u t ho is embedding-free and ;‘eh : b, so it is easy to show that
+feh=xhgho cannot evaluate to a value that is an embedding.
+[9] Then the derivation of ’(e) ends in [ H ]o r[ F]. (Note that [ G] is impossible
+because Agents(client) are oblivious to fh,s o  must be at least as abstract as
+fh.) If the derivation ends in [ H ], we know e =pxxh : b: hoqyb!fh
+h and therefore
+e0 = xi : b:pxfpxxiqyb
+i =xhghoqyfh
+h ,s o[ I ] lets us conclude ’(e0). If the derivation
+ends with [ F], we know the second-to-last step is [ D]o r[ H ]. If [ D], then the
+result follows from Host-Provided Substitution, [ F], and [D]. If [ H ], then we know
+ (y :1:pxe00qy2
+‘0 )w h e r ee =pxy :1:pxe00qy2
+‘0 qy3!4
+‘ .( E i t h e r[I ]o r[ J ] could be the
+last rule used to derive this result; e has this form in both cases.) Therefore, we
+can use [J ]a n d[H ]t od e r i v e’(e0). Note that the well-typedness of e and the fact
+thath62‘suce to satisfy the antecedents of [ J ].
+It is worth considering how we could generalize this proof and proof technique.
+Generalizing the means by which clients obtain le handles is straightforward. The
+function ho is just an example of a constructor; it is an expression that is exported
+at a type in which fh appears in a positive position. By tracking these constructors,
+we can show that all abstract values originate from them. More generally, using
+syntax and subject reduction to track the ﬂow of values requires that we can always
+\nd" the interesting terms, which is the purpose of rules [A] through [F]. Rule [ G]
+describes the property of interest (in this case that the term came from an invocation
+of the host implementation of open). The auxiliary predicate  describes how the
+host term can appear after being exported to any number of agents|embeddings
+can pile up, but only in a uniform way which does not change the underlying code,
+only the interface at which the code is available.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 24 ===
+1060  Dan Grossman et al.
+4. REFERENCES AND STATE
+In this section, we augment the program states of the preceding development with
+a mutable store and appropriate expressions for manipulating the store. The goal
+is to extend our type-abstraction results to a stateful setting without being unduly
+restrictive.
+The next section is a brief overview of our formalization of state, ignoring is-
+sues regarding agents and type abstraction. The point is simply to establish basic
+notation for the discussion that follows. Our work follows closely the standard
+treatment of references in a subject-reduction setting, e.g., see the work of Wright
+and Felleisen [1994] or Harper [1994]. We then give an informal description of the
+issues that make the store a particularly interesting addition to our framework.
+Then we formally augment our calculus with state and discuss the reasons for par-
+ticular design decisions. Finally, we augment the proofs of type soundness and
+safety properties appropriately.
+4.1 Notation
+Ignoring types and agents, a store, M, is a partial map from labels to values. The
+collection of labels is an innite set; we use l to range over its members. A program
+state is a pair of a store and a closed expression, and the dynamic semantics operates
+on program states. Three new expression forms allow a program to manipulate the
+store. Reference creation, refv, evaluates to a fresh label, l, and extends the store
+to map l to v. Dereference, ! l evaluates to M(l)w h e r eM is the current store.
+Update, l :=v, evaluates to v and changes the current store to map l to v.
+So that we may give appropriate types to labels, we add a unary type constructor
+ref. Under store M, the values of type ref are thosel such thatM(l)h a st y p e.
+The static semantics ensures that well-formed program states refer only to labels
+dened in the store. This restriction applies to the store itself, not just to the closed
+expression. Hence, stores and expressions are well-formed relative what labels are
+in the store and what types these labels have. Store types, ranged over by Ψ,
+formalize these assumptions as a partial map from labels to types.
+Figure 16 summarizes the preceding considerations by presenting the syntax and
+semantics for a lambda calculus with state. Note that the rule for store well-
+formedness permits the store to contain cycles.
+4.2 Problems with State
+Although the semantics associated with our stateful calculus is well understood,
+discussing type abstraction between principals in such a setting is considerably
+more complicated. Here we present examples of the diculties.
+The rst diculty is that the expressions that a program may use in its eval-
+uation are not syntactically captured by the subterms of an expression. That is,
+we previously described some client expression, C,a s host-free, but now we must
+account for C obtaining host code from the store. For example, in the expression
+(!lpxvqyt
+h), whether or not the evaluation is independent of the value of v depends
+on the value ofM(l)w h e r eM is the current store. An obvious solution is to dene
+\host-free" over the entire program state (M;C ), but this solution is unnecessarily
+restrictive. Instead, our safety theorems use a notion of expressions reachable from
+C in (M;C ).
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 25 ===
+Syntactic Type Abstraction  1061
+Syntax
+ ::= b j !0 j ref
+e ::= v j x j ee0 j xf(x:):e j ref e j e :=e0 j !e
+v ::= b j l j x::e
+Dynamic Semantics
+(M;e 1)7−!(M0;e0
+1)
+(M;e 1 e2)7−!(M0;e0
+1 e2)
+(M;e 2)7−!(M0;e0
+2)
+(M;v 1 e2)7−!(M0;v 1 e0
+2)
+(M;e 1)7−!(M0;e0
+1)
+(M;e 1 :=e2)7−!(M0;e0
+1 :=e2)
+(M;e 2)7−!(M0;e0
+2)
+(M;v 1 :=e2)7−!(M0;v 1 :=e0
+2)
+(M;e )7−!(M0;e0)
+(M; !e)7−!(M0; !e0)
+(M;e )7−!(M0;e0)
+(M; ref e)7−!(M0; ref e0)
+(M; (x::e )v)7−!(M;fv=xge) (M; !l)7−!(M;M (l))
+(M; ref v)7−!(M[l7!v];l ) l fresh (M;l :=v)7−!(M[l7!v];v )
+(M; xf(x:):e)7−!(M;x ::fx f(x:):e=fge)
+Static Semantics
+‘M :Ψ Ψ ; ;‘e :
+‘(M;e ): 
+Dom(M)= Dom(Ψ) 8l2 Dom(M): Ψ;;‘M(l):Ψ ( l)
+‘M :Ψ
+Ψ; Γ‘x :Γ (x) Ψ; Γ‘b : b Ψ; Γ‘l : ref Ψ(l)
+Ψ; Γ‘e :0! Ψ; Γ‘e0 :0
+Ψ; Γ‘ee0 :
+Ψ; Γ[x :0]‘e :
+Ψ; Γ‘x:0:e :0! x62 Dom(Γ)
+Ψ; Γ[f :0!][x :0]‘e :
+Ψ; Γ‘x f(x:0):e :0! f;x62 Dom(Γ);f 6=x Ψ; Γ‘e : ref
+Ψ; Γ‘!e :
+Ψ; Γ‘e : ref Ψ; Γ‘e0 :
+Ψ; Γ‘e :=e0 :
+Ψ; Γ‘e :
+Ψ; Γ‘ref e : ref
+Fig. 16. Lambda calculus with state.
+The second diculty is that the store provides a new medium for interagent
+communication. For example, the client could assign to a shared reference that the
+host then dereferences. Suppose that l is a shared reference and that the program
+evaluates the client program state ( M;l :=pxvqyt
+h). If we interpret this program
+to mean that M(l)i sn o wpxvqyt
+h, then, from the host’s perspective, the store now
+contains a client term. If we mean M(l)i sn o w pxpxvqyt
+hqyh
+c , then the store now
+contains a nonvalue. The dual case is also a potential problem: if the host assigns
+v of type h to l and then the client dereferences l, the result must be a client
+expression that preserves the type abstraction.
+In general, when a reference is assigned, we do not know which agents will deref-
+erence the value. Despite this lack of knowledge, the semantics must create the
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 26 ===
+1062  Dan Grossman et al.
+correct embeddings to allow a syntactic account of type abstraction. Fortunately,
+because all expressions are colored, we do know which agent last assigned to a
+reference.
+The third diculty is that the host should not provide the client the same refer-
+ence as a ref t and a ref h. Using a let notation as syntactic sugar for function
+application, an expression that violates this requirement could have the form
+let rh = ref v
+let client =pxxc :ref t:yc :refh:eqyrefh!refh!
+c
+client rh rh
+To see the problem, consider what the values of ! xc and !yc should be in the
+body of the client function, e, after the application client rh rh. An answer that
+preserves the types of the expressions is ! xc =pxvqyt
+h and !yc =pxvqyh
+h respectively,
+but this answer requires that the dynamic semantics depends on the types of xc
+andyc. This dependence is undesirable in the substitution-based semantics we use.
+This approach is even less sensible if we consider a code fragment within e such as:
+let =yc := (v0 :h)
+!xc
+Because the agent knows h, it can construct a value v0 of this type and assign
+it to the shared reference. The ensuing dereference cannot preserve the type of ! xc
+unless it is something like pxv0qyt
+h, but v0 is not a host-provided term.
+Even if we could somehow resolve the subject-reduction issues exemplied above,
+the resulting system can still break type abstraction. The example we give below is
+well-known in the context of the ML programming language; the same device works
+in that setting [Pierce and Sangiorgi 1999]. If the client term e can determine that
+values of types ref t and refh are the same value, then it can correctly conclude
+that t = h. The following client fragment makes such a determination using
+aliasing information. We assume only that the client can distinguish two values of
+typeh,c a l lt h e mv1 and v2.
+let =yc :=v1
+let abs1 =!xc
+let =yc :=v2
+let =xc :=abs1
+if !yc ==v1
+then\aha, t =h"
+Given these problems, the challenge is to prohibit an agent from viewing the
+contents of the same reference at two dierent levels of abstraction. In so doing,
+we should not otherwise restrict the language’s expressiveness.
+4.3 The Revised Calculus
+Before presenting the formal calculus, we summarize how we solve the problems
+just outlined.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 27 ===
+Syntactic Type Abstraction  1063
+The denition of host-free is straightforward: an expression e0 is reachable from
+(M;e )i f e0 is a subterm of e or l is a subterm of e and e0 is reachable from
+(M;M (l)).4 (M;e ) is host-free if all terms reachable from ( M;e ) are client terms.
+To correctly handle interagent communication through the store, we make the se-
+mantics of the dereference operator depend on the color of the expression currently
+stored in the reference. For example, if M(l)= vc,t h e n(M; !lh)7−!(M;pxvcqy
+c )b e -
+causelh andvc are dierent colors. (To know what type to put on the embedding,
+we annotate labels with types|see below.) Conversely, ( M; !lc)7−!(M;vc). This
+technique requires only that every expression (even an embedding) has one color
+and that we can determine this color at run time. Intuitively, a value is embedded
+precisely when it is received by a dierent agent.
+Alternatively, we could have made all dereference operations return embeddings.
+Allowing i-embeddings in i code is perfectly reasonable|in fact, our multiagent
+calculus does not prevent it. We choose not to take this approach because we
+prefer to introduce embeddings precisely when interagent communication occurs.
+Although our theorems do not rely on the fact that intraagent evaluation does
+not introduce embeddings, we nd this fact aesthetically pleasing. (If crossing an
+embedding boundary requires computation to change data representation, avoiding
+these redundant embeddings reduces computational overhead.)
+Finally, we prevent an agent from exporting a reference at dierent levels of
+abstraction. To enforce this restriction syntactically, we associate a type expression
+with each label, l
+i , and reference creation expression, ref e. Such expressions
+have type ref  and must be exported at precisely ref , or at a fully abstract
+type, such as t. So the host must decide when creating a reference at what level
+of abstraction it will expose the contents of the reference. To prevent exposing a
+reference at a dierent level of abstraction, the rules for relating the type on an
+embedding annotation to the type of the embedded value do not substitute for any
+types under the ref constructor.
+Of course, the host could allow the client to access a reference of type ref t by
+also providing functions get =pxxh : ref t: !xhqyref t!h
+h and set =pxxh :h: yh :
+ref t:yh :=xhqyt!ref t!t
+h . It might appear, then, that the client could use get and
+set to encode the aliasing example above that breaks type abstraction. However,
+because we assume that the client does not know the function bodies associated with
+get andset, the client cannot ever conclude for sure that two references of dierent
+types are aliases. After all, get could perform other computation that happened
+to evaluate to the contents of the supposedly aliased value. In other words, the
+correctness of the aliasing device relies on the atomic, completely specied behavior
+of the assignment and dereference operators.
+Having given some intuition for our design decisions, we now present the aug-
+mented calculus. We extend the multiagent calculus because the symmetry of this
+calculus actually simplies much of the presentation, but we explain the system in
+terms of the familiar host and client example.
+First, recall thati is a nite partial map from type variables to types; it encodes
+what type variables agent i knows. (So in the two-agent case, h maps t to h and
+4Because we are generally concerned with stores of nite size, we interpret this denition induc-
+tively; otherwise, a coinductive interpretation is warranted.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 28 ===
+1064  Dan Grossman et al.
+[!1] (M; ref vi)7−!(M[l 7!vi];l
+i ) l fresh [!2] (M;l
+i :=vi)7−!(M[l 7!vi];vi)
+[!3]
+color(M(l )) =i
+(M; !l
+i )7−!(M;M (l )) [! 4]
+color(M(l )) =j6=i
+(M; !l
+i )7−!(M; px M(l )qy
+
+j )
+[!5]
+(M;ej )7−!(M;e0
+j)
+(M; px ej
+qy
+
+‘)7−!(M; px e0
+j
+qy
+
+‘)[ ! 6] (M; px l
+j
+qy
+ref
+‘ )7−!(M;l
+i )
+Fig. 17. Dynamic semantics with state (partial): ( M;e )7−!(M0;e0)w h e r ecolor(e)= i.
+c is the empty map.) We extendi t oaf u n c t i o ni on types that does not operate
+under the ref constructor:
+i(b)= b
+i(t)=
+
+tt 62 Dom(i)
+i(t) t2 Dom(i)
+i(!0)= i()! i(0)
+i(ref)= ref
+Hence a value of type ref  is exported either abstractly or as ref , but not at
+ref0 for 06=.
+In the two-agent case, we previously wrote h asfh=tg and c as the identity
+function. Using syntax that suggests substitution is now misleading because sub-
+stitution does not occur under ref. As before, i()= F
+n0 n
+i (), which in the
+one-abstract-type case is just i.
+The dynamic semantics is a straightforward combination of the multiagent se-
+mantics presented in Figure 10 and the stateful semantics presented in Figure 16.
+Specically, the system is dened by
+|Rules [4]{[9] in Figure 10, suitably extended so that they operate on program
+states and do not modify the store.
+|The top six rules in Figure 16, which allow evaluation to proceed in subexpres-
+sions of applications and state operations.
+|Rules for evaluating the state operations and allowing evaluation within an em-
+bedding, as shown in Figure 17.
+Rules [!3] and [! 4 ] enforce our decision to introduce embeddings when the heap
+facilitates interagent communication. Rule [! 6 ] allows an agent to extract a label
+from an embedding when the agent has sucient type information to know that
+the embedding contains a label. Note that the type on the label is ,a n dt h et y p e
+on the embedding is ref; this equality is consistent with our denition of  i.
+The interesting additions to the static semantics appear in Figure 18. To ob-
+tain the full semantics, include the rules presented in Figures 12 and 13 with the
+modication that all typing judgments include the store type Ψ in the context.
+Store contents are typechecked according to their color. Hence a reference may
+hold a value of any color. In the two-agent setting, this policy means that if lt
+contains a host value, then that value must have type h under the host’s static
+semantics; but if the reference contains an agent value, then the value must have
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 29 ===
+Syntactic Type Abstraction  1065
+[heap1]
+‘M :Ψ Ψ ; ;‘ei :
+‘(M;e ): 
+[heap2]
+Dom(M)= Dom(Ψ)
+8l 2 Dom(M): (Ψ;;‘M(l ): 0 i()= 0 color(M(l )) =i)
+‘M :Ψ
+[label]
+l 2 Dom(Ψ)
+Ψ; Γ‘l
+i : ref [ref ]
+Ψ; Γ‘ei :0 i()= 0
+Ψ; Γ‘ref ei : ref
+[assign]
+Ψ; Γ‘ei : ref Ψ; Γ‘e0
+i :0 i()= 0
+Ψ; Γ‘ei :=e0
+i :0 [deref ]
+Ψ; Γ‘ei : ref
+Ψ; Γ‘!ei : i()
+Fig. 18. Static semantics with state (partial).
+type t under the agent’s static semantics. Note this treatment requires that we can
+determine the color of M(l ).
+We maintain the convenient invariant that Ψ; Γ ‘vi :  implies  = i().
+Because references have the type with which they are annotated, this invariant
+means the type of the dereference operation must explicitly be i()w h e r et h e
+reference has type ref . The rules for reference creation and assignment require
+the subexpression that evaluates to the reference’s eventual contents to have type
+i(). In other words, i must know that  is a legitimate abstraction of 0, which
+by our invariant is most concrete.5 For example, in our two-agent system, consider
+reft v where v has type h. This expression is well-formed if it is a host term, but
+not if it is an agent term.
+The rule for relating the type on an embedding to the type of the embedded
+expression prevents a ref from being exported at any reference type other than
+ref  even if ref  is a constituent of another type. This important fact follows
+from the denition of the.‘relation, which is dened in terms of the i maps. In
+the two-agent case, the right antecedent of rule [ embed] is simply h()= 0 for
+host terms and  =0 for agent terms.
+4.4 Safety Properties
+The type soundness and erasure results that we established for the calculi without
+state extend naturally to the stateful calculus. Therefore, we only present the
+aspects of the theorems and proofs that pertain to the additional rules.
+The Canonical Forms Lemma now describes the form of vi based on , assuming
+that Ψ;;‘vi :. The addition is that if  = ref0,t h e nvi has the form l0
+i .
+For the sake of type soundness, the Substitution Lemma still need describe only
+substitution over expressions, as opposed to program states. This simplicity is
+because the dynamic semantics substitutes through only expressions. As we will see,
+however, the Independence of Evaluation Lemma needs denitions for substitution
+through program states and well-formedness of open stores (that is, stores that may
+contain values with free variables).
+5An equivalent antecedent is‘ /.
+i 0; it is equivalent because 0 =i(0).
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 30 ===
+1066  Dan Grossman et al.
+The Preservation Lemma now expresses that evaluation extends the store con-
+sistently. Together with a Store Weakening Lemma, stating that store extensions
+cannot change the type of an expression, the induction hypothesis is strong enough.
+Lemma 4.1 (Store Weakening). If Ψ0 is an extension of Ψ and Ψ; Γ‘e :,
+then Ψ0;Γ ‘e :.
+Lemma 4.2 (Preservation). If‘M :Ψ , Ψ;;‘e :,a n d (M;e )7−!(M0;e0),
+then there exists a Ψ0 such that Ψ0 extends Ψ ,‘M0 :Ψ0,a n d Ψ0;;‘e0 :.
+Note that this strengthening of Preservation is precisely what is needed to extend
+the lambda calculus with state; principals add no complications. As for the proof,
+the careful use of i in the static semantics makes it routine. Recall that the proof
+is by induction on the derivation that (M;e )7−!(M0;e0). We show only the cases
+for the rules in Figure 17. The other cases are either simple restatements of the
+analogous cases from the proof without state or trivial inductive arguments using
+the Store Weakening Lemma.
+Proof.
+[!1] By assumption, there must be a derivation of the form
+Ψ;;‘vi :0 i()= 0
+Ψ;;‘ref vi : ref:
+Letting M0 = M[l 7! vi]a n dΨ0 =Ψ [ l 7! ], we have Ψ0 extends Ψ. Because
+we know ‘M :Ψ ,t op r o v e‘M0 :Ψ 0, it suces to prove Ψ 0;;‘vi : 0 and
+i()= 0. These facts follow from the antecedents of the static derivation and
+the Store Weakening Lemma. Our nal obligation, Ψ 0;;‘l
+i : ref, follows from
+the denition of Ψ0 and the static semantics.
+[!2] By assumption, there must be a derivation of the form
+Ψ;;‘l
+i : ref Ψ;;‘vi :0 i()= 0
+Ψ;;‘l
+i :=vi ::
+Letting M0 = M[l 7! vi]a n dΨ0 =Ψw eh a v et h a t M0 and Ψ0 are extensions
+of M and Ψ respectively. We have from the hypothesis of the derivation that
+Ψ;;‘vi : 0, so we have to show only that ‘M0 : Ψ. Because we already know
+‘M : Ψ, this conclusion follows from Ψ; ;‘vi :0 and i()= 0.
+[!3] and [!4] By assumption, there must be a derivation of the form
+Ψ;;‘l
+i : ref
+Ψ;;‘!l
+i : i():
+Letting M0 = M and Ψ0 = Ψ, we need to show only that Ψ; ;‘vi : i().
+There are two cases: color( M(l )) = i or not. First assume color( M(l )) = i.
+Then vi = M(l ). It follows from the hypotheses needed to prove ‘M :Ψt h a t
+Ψ;;‘vi :0 and i()= 0 from which the conclusion is immediate. Now assume
+M(l ) is a dierent color. Then vi =pxM(l )qy
+j . By the argument given for the
+other case, we know Ψ; ;‘M(l ): 0 and j()= 0. Hence by [ eq] we conclude
+0.j . Hence [ embed] applies, and its conclusion is the desired result.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 31 ===
+Syntactic Type Abstraction  1067
+[!5] By induction.
+[!6] By assumption, there must be a derivation of the form
+l 2 Dom(Ψ)
+Ψ;;‘l
+j : ref ‘ref.‘iref
+Ψ;;‘pxl
+jqyref
+‘ : i(ref) :
+Because i(ref )= ref  and from hypothesis we have l 2 Dom(Ψ), we can
+derive Ψ;;‘l
+i : ref using [label]. Letting M0 =M and Ψ0 = Ψ, we are done.
+The statement of the Progress Lemma remains unchanged other than to use
+program states instead of expressions. The additions to the proof are entirely
+straightforward. In the case of ( M;px^vjqy
+‘), there is one additional case because 
+could have the form ref 0. In this case, Canonical Forms guarantees that ^ vj has
+the form l0
+j , so we can take a step using [! 6].
+Dening erasure from this stateful language with embeddings to the calculus in
+Figure 16 such that erasure commutes with evaluation is straightforward, so we omit
+the details. Note that the target of this transformation does not include explicit
+types on labels; these explicit types have no real dynamic eect.
+Extending the Value Abstraction Lemma (to which the Independence of Evalu-
+ation Theorem is a corollary) to our stateful calculus is straightforward except for
+some technical distractions. First, we must use the notion of reachable expressions,
+which includes expressions in the store, instead of the simpler notion of subterms.
+Second, the Value Abstraction Lemma uses substitution (such as f^vj=xjgei)t oe s -
+tablish a correspondence between two evaluations. To use this technique, we extend
+the denition of substitution to work on stores in a pointwise fashion. Otherwise
+the Lemma would not apply if an agent stored px^vjqy
+j‘in the store and, hence,
+would not be strong enough to prove the Independence of Evaluation Theorem.
+Substituting through a store requires that we dene a well-formed open store with
+respect to a context Γ, so that Γ ‘M : Ψ makes sense. The correct denition is
+the obvious generalization: Γ ‘M : Ψ if for all l 2 Dom(M), Ψ; Γ ‘M(l ): 0
+and i()= 0,w h e r eM(l ) is a possibly-open i-value.
+Extending the Host-Provided Values Theorem to our stateful calculus is also
+straightforward. Essentially, the preservation property needs to be inductively de-
+ned to include all terms that are reachable from the current program state without
+considering the trusted ho term. That is, ho can maintain private state without
+invalidating the theorem.
+5. POLYMORPHISM AND RECURSIVE TYPES
+In this section, we explore the extension of the multiagent language of Section 3 to
+include recursive types and polymorphism. Both of these mechanisms dene type
+variables: the type :() establishes the equation  = (). Instantiation of a
+polymorphic value, e:8:,a tt y p e0 establishes a context in which  =0 and e
+has type  (that is,f0=g).
+Because thei maps of the multiagent calculus already provide a way of express-
+ing equalities of the form  = , we may try to encode recursive or polymorphic
+types using them. The current multiagent language is not sucient to encode either
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 32 ===
+1068  Dan Grossman et al.
+(types)  ::= ::: j  j :
+(i-terms) ei ::= ::: j roll: ei j unrollei
+(i-primvals) ^vi ::= ::: j roll: vi
+[1]
+ei7−!e0
+i
+roll: ei7−!roll: e0
+i [2]
+ei7−!e0
+i
+unrollei7−!unrolle0
+i
+[3] unroll roll: vi 7−!vi
+[4] px roll: ^vj
+qy
+:0
+j‘ 7−!roll:0 px ^vj
+qy
+f:0=g0
+j‘ (:0 = i(:0))
+[roll]
+Γ‘ei :f:=g
+Γ‘roll: ei :: [unroll]
+Γ‘ei ::
+Γ‘unrollei :f:=g
+Fig. 19. Recursive types as an orthogonal extension.
+of them. The following sections discuss the consequences of adding the necessary
+mechanisms.
+5.1 Recursive Types
+There are two general approaches for adding recursive types to the multiagent
+language. The rst way is straightforward, and it interacts well with the previous
+results about the language. The idea is to treat -bound type variables as separate
+entities from the type variables that are used for abstraction (they could be drawn
+from the same syntactic class, but separating them makes for cleaner presentation).
+Figure 19 contains the necessary additions to the language.
+The new types include recursive type variables, ranged over by ,a n dt h er e -
+cursive types themselves, :.T e r m sroll and unroll mediate the isomorphism
+between: andf:=g.I f vi is an i-value, then roll: vi is an i-primval.
+The typing judgments for the new forms are standard.6 The operational rules [1 ],
+[2], and [3] are also standard|they allow progress under a roll or unroll and
+establish that composing unroll with roll is the identity.
+The new rule, [ 4 ], propagates the embedding on a roll expression that is ex-
+ported at a concrete type. It is similar to rule [ 9] used for embedded functions
+in that the outer agent may have dierent information about the nature of the
+recursive type. For instance, the outer agent may know that the value is of type
+:1+ t,t h et y p eo ft-lists, whereas the inner agent, for whomj(t)= int views
+the value as an int-list.7 The side condition on [4 ] ensures that the dynamic se-
+mantics are deterministic|rule [ 7] applies to a disjoint collection of terms.
+The only remaining change needed to establish the soundness of this system is
+6A si nt h ec a s ef o r-abstractions, types annotating roll terms are required to be the most concrete
+possible, but we do not need to apply  i because the concreteness of the type in the antecedent
+implies the concreteness of the type on the roll.
+7We did not formally add product and sum types to our framework, but doing so is straightforward.
+For example, px inleft0+1ej
+qy
+2+3
+‘ 7−!inleft2+3
+px ej
+qy
+2
+‘ when 2 and 3 are most concrete.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 33 ===
+Syntactic Type Abstraction  1069
+to extend the denition of i in terms of i.
+i(:)= :i()
+i()= 
+Because the -bound type variables are syntactically distinct from the abstraction
+type variables, it makes no sense for to be in the domain ofi. To avoid problems
+with capture, we prohibit free occurrences of  in the range of i.
+Having made these additions to the language, it is straightforward to establish
+type soundness. To establish Preservation for the case of [ 4 ], we need a type-
+relations lemma that is analogous to the Arrow Lemma used in the case of [ 9]:
+Lemma 5.1 ( Type Relations). If‘:.‘:0,t h e n‘f:=g.‘
+f:0=g0
+The most interesting case of the proof of preservation is when the last rule of the
+dynamic derivation is [4 ]:
+Proof. By assumption, we have a derivation of the form
+;‘ej :f:=g
+;‘roll: ej :: ‘:.j‘i:0
+;‘pxroll: ejqy:0
+j‘ : i(:0) :
+Using the right antecedent and Lemma 5.1, we conclude that ‘f:=g .j‘i
+f:0=g0. So using the top antecedent, we can derive
+;‘ej :f:=g ‘f:=g.j‘if:0=g0
+;‘pxejqyf:0=g0
+j‘ : i(f:0=g0) :
+By assumption, we have the side condition i(:0)= :0. From this condition,
+it is easy to show that i(f:0=g0)= f i(:0)=g i(0)= f:0=g0.S o
+we can derive
+;‘pxejqyf:0=g0
+j‘ :f:0=g0
+;‘roll:0 pxejqyf:0=g0
+j‘ ::0:
+The Progress Lemma is routine; it uses an extension of the Canonical Forms Lemma
+that asserts that i-values of type : have the form roll: vi.
+This way of dealing with recursive types has the advantage of simplicity: because
+the presence of recursive types is orthogonal to the kind of type abstraction allowed
+by embeddings, all of the proofs of safety properties in Section 3 require minimal
+changes to account for the new constructs.
+Another approach to incorporating recursive types into this system requires us
+to change the notion of compatibility of the  i maps to account for cycles. Given
+a recursive type :, observe that the rolled values behave essentially abstractly.
+There is only one destructor for the term roll: vi,n a m e l y ,unroll. This obser-
+vation suggests that we can encode recursive types like so: Let r and u be fresh
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 34 ===
+1070  Dan Grossman et al.
+type variables. Create a special agent, r, whose sole function is to provide the roll
+and unroll operations for a recursive type. From the type perspective, r knows
+that r =fu=g, i.e., r(r)= fu=g,a n dr is otherwise undened. For any client
+agent,i, who wishes to use values of type :,l e ti(u)= r. The terms encoding
+roll: x and unrollx are
+roll: pxxr :fu=g:xrqyfu=g!r
+r
+unroll pxxr :fu=g:xrqyr!fu=g
+r
+The type variable r acts like the type :. As expected, the agent r provides
+identity functions that outwardly appear to clients as having the types appropriate
+to roll and unroll:fr=g! r and r!f r=g, respectively.
+Although this approach is initially appealing, it requires substantial changes to
+the language. The essential diculty is that there may not be a most concrete form
+for a given type variable, due to the possibly cyclic nature of the type information.
+Two reasonable alternatives are (1) move to an operational semantics in which
+types are rened nondeterministically, or (2) require that each agent’s type infor-
+mation be acyclic, even if there are cycles globally. Neither of these options is
+satisfactory. The rst makes reasoning about the behavior of programs unduly
+complicated. The second choice means that giving more type information to an
+agent can destroy a system’s compatibility. Both suer from the problem that
+erasure (to a typed language) is harder to establish.
+There may be merit in further considering this approach, particularly if the agents
+are module-level constructs and if the concern is mutually recursive data types that
+cross module boundaries. For a core language, however, the simplicity of the rst
+approach and its compatibility with our previous proofs make it more valuable.
+5.2 Polymorphism
+The primary dierence between polymorphism and the type abstraction already
+present in the multiagent calculus is one of scope: the abstract types present in the
+multiagent calculus are global and static, whereas a polymorphic instantiation is
+local to part of the program. That is, the application ( :e ) introduces the type
+equality  =  within the scope of the expression e. A second dierence between
+type abstraction and polymorphism is that, in the latter, the same type variable
+may be instantiated at dierent types, for example,
+x:8:!: (::: (x [int])::: (x [bool])::: ):
+It appears that  = int holds for part of the term whereas  = bool holds for a
+dierent part of the term.
+This second dierence is supercial, however. Because the  inx’s type is bound
+in8:! , we are free to rename it for each occurrence of x in the body. We
+can think of the term (x [int]) as establishing the equation  =int whereas in the
+second term we choose the type of x to be (the equivalent type) 8:! ,a n d
+thus (x [bool]) denes  = bool. In this way, each type application can establish
+the concrete form of a distinct type variable.
+The true distinction, then, between our type-abstraction mechanism and poly-
+morphism is local scoping. As with our rst approach to recursive types, we could
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 35 ===
+Syntactic Type Abstraction  1071
+(types)  ::= ::: j8 :
+(i-terms) ei ::= ::: j :ei j ei []
+(i-primvals) ^vi ::= ::: j :ei
+Domfg =
+[
+i
+Dom(i)
+[81] hfg; (:ei)[]i7 − !h fg]if =g;f=gieii
+[82] hfg; px :ej
+qy
+8:
+‘ i7 − !h fg; : px ej
+qy
+
+‘i
+[8intro]
+; ;fg;Γ ‘ei :
+;fg;Γ ‘:ei :8: (62 [ Domfg)
+[8elim]
+;fg;Γ ‘ei :8: i(0)= 0
+;fg;Γ ‘ei [0]: f0=g (62 Domfg)
+Fig. 20. Polymorphism.
+include both features separately. Instead, we investigate how to extend our frame-
+work to unify type abstraction and polymorphism via a single mechanism. Bridging
+the gap between the two features amounts to allowing the denitions of thei maps
+to change during evaluation. We use the notation fg to mean a set of type maps
+f1;:::; ng; it captures the type knowledge each agent has at a particular point
+in the program evaluation. We can then integrate traditional polymorphic terms
+by extending our notion of evaluation from ei 7−!e0
+i tohfg;eii7− !hf0g;e0
+ii.
+This approach is similar to the allocation-based, explicit type-passing semantics for
+polymorphism found in the dissertation of Morrisett [1995].
+Figure 20 contains the necessary adjustments to the language. Note that we
+have only one form of type variable. In keeping with convention with respect to
+polymorphism, we allow  and  to range over type variables in addition to t, s,
+and u. Types are extended with the form 8:. We add terms of the form  :ei,
+in which  is abstract in ei.
+Instantiation of a type variable is represented by ei []. Operationally (see rule
+[81]), this application corresponds to extending i to include  = .W e u s e t h e
+notation i]f = g to mean the mapping from types to types obtained from
+i[7!]. The notation fg]if =g represents
+f1;:::; i−1; i]f =g; i+1;:::; ng:
+This extension is valid only if it preserves the compatibility of the  maps. Let-
+ting Domfg meanS
+i Dom(i), it is easy to show that if fg is compatible and
+62 Domfg,t h e nfg]if = g is compatible. As a notational convenience,
+whenever we usefg]if =g, we implicitly assume that 62 Domfg.
+We need to specify the behavior of  i on types of the form 8:. Assuming
+62 Dom(i), which is always possible via alpha-conversion of 8:,w eh a v e
+i(8:)= 8:i():
+The original multiagent calculus maintains the invariant that any types appearing
+as part of the syntax of ani-term are most concrete from agenti’s perspective. This
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 36 ===
+1072  Dan Grossman et al.
+invariant is enforced in the typing rules; for example, the [ abs] rule requires that
+i(0)= 0. Unfortunately, this invariant is harder to maintain now that an agent
+may \learn" information about a type variable at runtime. To do so, we introduce
+a special substitution operator,f=gi, to perform the substitution of  for only
+in terms colored i, including i-subterms of any j-colored subexpressions. We can
+extend the operator to contexts in a pointwise manner because variables in the
+context have a color.
+We can now understand the operational behavior of the new constructs. Poly-
+morphic expressions are values. Rule [ 81 ] performs type instantiation. Agent i’s
+type map is extended with the new binding for , and we substitute  for  in
+thei-colored terms of the body. Most importantly, no other agents knows .T h a t
+way, if the body of the polymorphic expression is a dierent color, then we will be
+able to use our techniques to argue that (under sucient conditions) it evaluates
+independently of certain values it is passed. Rule [82 ] describes the transition step
+for an embedded polymorphic value being exported as such. In this case, the type
+maps do not change; the outer embedding is simply moved inside the .
+The static semantics are derived from the regular polymorphic lambda calculus
+with a few twists to account for our dierent style of tracking type information.
+First, becausefg changes during the course of evaluation, we must parameterize
+our typing judgments by the current denition of fg. We also need to track
+the lexical scoping of -bound type variables. We do so by adding a set, , of
+type variables currently in scope. The new form of typing judgments is therefore
+;fg;Γ‘ei :.
+With these additions, the static rules of the original multiagent calculus carry
+over to the new setting, with the understanding that occurrences of  i in those
+judgments now refer to the i found in thefg parameter to the rule. ( is unused
+by the new version of the old rules.) The typing rules for the new constructs are
+[8intro]a n d[8elim]. The former lets us conclude that a polymorphic term has type
+8: if, when we add  to the variables in scope, the body has type . The side
+condition ensures that  is distinct from all other variables in scope and distinct
+from those variables that are dened in any  map. (We can always satisfy this
+condition by suitable alpha conversion.) Note that this condition means i()= 
+for any agent i, and hence  may mention .
+The rule [8elim] shows how to type polymorphic instantiation. Because agent
+i is performing the instantiation, we require that the instantiation type is most
+concrete from the perspective of agent i. The last antecedent requires that such an
+update preserves compatibility.
+One might expect that the static scoping of type variables regulated by  and
+the dynamic information encapsulated in fg are closely related. The following
+lemma, which we need to prove preservation, establishes the relation.
+Lemma 5.2. Suppose ; ;fg;Γ ‘ej : 0 and  62 Domfg.L e t f0g =
+fg]if =g. Then
+(i) If i =j then ;f0g;f=giΓ‘f=giej :f=g0
+(ii) If i6=j then ;f0g;f=giΓ‘f=giej :0.
+Proof Sketch. By simultaneous induction of parts (i) and (ii) on the derivation
+that ; ;fg;Γ ‘ej :0.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 37 ===
+Syntactic Type Abstraction  1073
+As usual, when we add a new type constructor to the language, we need a Type
+Relations Lemma to relate subcomponents of related types. In this case, we have
+the following:
+Lemma 5.3 (8 Type Relations). Iffg‘8:.‘8:0,t h e nfg‘.‘
+0.
+We alter the statement of preservation to account for the dierence in program
+congurations. As usual for an allocation-style semantics, we must show that the
+program does not lose type information during the course of evaluation. Thus, we
+make the following denition:
+Denition 5.4. Letfgf 0g meanf0g =fg]if = g for some agent
+i,t y p e, and type variable  such that 62 Domfg. Let  be the reﬂexive,
+transitive closure of.W es a yt h a tf0g renesfg wheneverfgf0g.
+Lemma 5.5 (Preservation). If;;fg;;‘ei : andhfg;eii7−!hf0g;e0
+ii,
+thenf0g;;‘e0
+i :. Furthermore,f0g is compatible and renes fg.
+Proof. The cases for terms not involving the new constructs are similar to those
+cases presented earlier, so we omit them. The new cases are:
+[81] By assumption, there is a derivation of the form
+;fg;;‘ei :00
+;;fg;;‘:ei :8:00 i()= 
+;;fg;;‘(:ei)[ ]: f=g00 (62 Domfg):
+Letf0g =fg]if =g and 0
+i =i]if =g. We can apply Lemma 5.2 to the
+antecedent to obtain ;;f0g;;‘f=giei :f=g00. Clearly f0g is compatible
+and renesfg .
+[82] By assumption, there is a derivation of the form
+;fg;;‘ej :1
+;;fg;;‘:ej :8:1 fg‘8:1.j‘i8:
+;;fg;;‘px:ejqy8:
+j‘ : i(8:) :
+The side conditions ensure that 62 Domfg, so we are able to conclude that
+i(8:)= 8: i(). We need to construct a derivation for
+;fg;;‘ej :1 fg‘1.j‘i
+;fg;;‘pxejqy
+j‘: i()
+;;fg;;‘:pxejqy
+j‘:8: i() :
+We have the rst antecedent from the original typing derivation. The Type Re-
+lations Lemma (5.3) says that fg‘8:1 .j‘i8: impliesfg‘1 .j‘i.
+The side condition on [8intro] has already been observed above. Because fg is
+compatible and renes itself, we are done.
+Because thefg context changes during evaluation, and the denition of when
+px^vjqyt
+j‘is an i-value depends on whether  i(t)= t, the notion of value is also
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 38 ===
+1074  Dan Grossman et al.
+ ::=  j ! j8 :
+e ::= x j x::e j (ee ) j :e j (e [])
+Γ‘x :Γ (x)
+Γ[x:]‘e :0
+Γ‘x::e :!0 (x62 Dom(Γ)) Γ‘e :0! Γ‘e0 :0
+Γ‘(ee0): 
+Γ‘e :
+Γ‘:e :8: (62FTV (Γ)) Γ‘e :8:0
+Γ‘(e []) :f=g0
+Fig. 21. Polymorphic lambda calculus.
+dynamic. We write fg‘ei : Value when either ei is an i-primval or ei =px^vjqyt
+‘
+and t62 Domfg.
+Progress, proved as usual by induction on the structure of ei, then becomes:
+Lemma 5.6 (Progress). If;;fg;;‘ei :  then either fg‘ei : Value or
+there exists an e0
+i andf0g such thathfg;eii7−!hf0g;e0
+ii
+5.3 Translation from the Polymorphic Lambda Calculus
+The net eect of our design decisions is that we can faithfully embed the poly-
+morphic lambda calculus (shown in Figure 21) into this new language by simply
+decorating the term with a single color. In this case, the operational semantics de-
+generates to those of the regular polymorphic lambda calculus; in particular, type
+application still substitutes a type for a type variable. Using such a naive transla-
+tion, our system will provide no more opportunity to use syntactic proofs of type
+abstraction than before.
+Instead, we show that a smarter translation, which essentially colors the code in
+such a way as to make agents with dierent type information explicit, allows us to
+recover some type-abstraction proofs in a syntactic manner.
+We formulate the translation as a type-directed transformationC[[ Γ‘e :]] . T h e
+translation takes two additional parameters:i, an agent indicating the desired color
+of the result term, andγ, a map from source variables to target variables (including
+color information). We maintain the invariant that, when compiling the judgment
+C[[ Γ‘e : ]]iγ,w eh a v eDom(γ)= Dom(Γ). The result of the translation is an
+i-term.
+The translation is given in Figure 22. Most of the rules are straightforward|they
+recursively translate the subterms of the expression and combine the results into
+the corresponding construct. The two interesting cases are [ Tvar]a n d[Ttypeabs].
+The rule for translating the variable x simply looks up x in the map γ.I f t h e
+resulting variable has the same color as the desired color of the term, no further
+action is needed. Otherwise, the translation produces an embedding of the variable
+to yield a term of the appropriate color. Because the type Γ( x)m a ym e n t i o nt y p e
+variables that are currently in scope, the embedding may be abstract.
+The idea for translating a polymorphic term is to \spawn" a new agent with
+which to color the body of the type abstraction. By recursively translating the
+body to a term of this new color, [ Ttypeabs] explicitly marks the boundaries where
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 39 ===
+Syntactic Type Abstraction  1075
+[Tvar] C[[ Γ‘x :Γ (x)] ]iγ=
+(
+γ(x)i f color(γ(x)) =i
+px γ(x)qy
+Γ(x)
+j if color(γ(x)) =j6=i
+[Tabs]
+C[[ Γ [x:]‘e :0]]i(γ[x7!xi]) =ei
+C[[ Γ‘x::e :!0]]iγ=xi ::ei
+[Tapp]
+C[[ Γ‘e :0!]]iγ=ei C[[ Γ‘e0 :0]]iγ=e0
+i
+C[[ Γ‘(ee0): ]]iγ=(ei e0
+i)
+[Ttypeabs]
+C[[ Γ‘e :]]jγ=ej
+C[[ Γ‘:e :8:]]iγ=: px ej
+qy
+
+j
+(j fresh)
+[Ttypeapp]
+C[[ Γ‘e :8:]]iγ=ei
+C[[ Γ‘(e [0]) :f0=g]]iγ=(ei [0])
+Fig. 22. Translation of the polymorphic lambda calculus.
+type information changes.
+As examples, we have the following translations:
+C[[;‘:x ::x :8:!]]i; =:pxxj ::xjqy!
+j
+C[[;‘x:b: :x : b!8:b]]i; =xi :b: :pxpxxiqyb
+iqyb
+j
+The translation is type-preserving, as formalized in the following lemma, where
+γΓ is the pointwise application of γto the variables in Γ.
+Lemma 5.7. Suppose Γ‘e :  in the polymorphic lambda calculus and γis a
+map from source variables to target variables where Dom (γ)= Dom(Γ).S u p p o s e
+further that C[[ Γ‘e : ]]iγ= ei.L e tfg =fk j k2 Agents(ei);k =;g,a n d
+let = FTV (Γ), the free type variables appearing in Γ. Then ;fg;γΓ‘ei :.
+Proof Sketch. By induction on the derivation that Γ ‘e :  in the source
+language. The base case is handled by the denition of γ.I t u s e s t h e f a c t t h a t
+for anyfg and nonempty ‘,fg‘.‘. The same idea is used to show that
+the embedding introduced in the translation of a polymorphic term is well-typed.
+To show that a translated type application is well-formed, we need to show that
+62 Domfg and that i(0)= 0, but these follow from the fact that each k is
+the empty map. The remainder of the cases follow by straightforward induction.
+We can erase this extended multiagent calculus (excluding x) to the polymor-
+phic lambda calculus by extending our denition of erasure to include the new
+terms. Also, the denition of  (the composite type information) depends on the
+currentfg, so we treatfgas an input to erase.
+erase(fg; :pxejqy
+j‘)= :erase (fg;ej)
+erase(fg;ei []) = erase(fg;ei)[ ()]
+Using the same techniques as before, we prove the following lemma:
+Lemma 5.8 (Erasure). If ei is well-typed and hfg;eii7 − ! hf0g;e0
+ii,t h e n
+erase(fg;ei)7−! erase(f0g;e0
+i).
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 40 ===
+1076  Dan Grossman et al.
+This lemma lets us establish a correspondence between the polymorphic lambda
+calculus and its translation into our multiagent setting.
+Lemma 5.9 (Translation). If;‘e :  in the polymorphic lambda calculus,
+then erase(C[[;‘e :]]i;)= e.
+Proof Sketch. By induction on the derivation that e is well-typed. The in-
+variant must be strengthened to include open terms.
+Putting the previous two lemmas together yields the following theorem, which
+establishes the correctness of our translation:
+Theorem 5.10 (Correctness of Translation). Suppose;‘e : is a term
+of the polymorphic lambda calculus, e 7−! v,a n dC[[;‘e : ]]i; = ei. Further-
+more, letfg =fk j k2 Agents(ei);k =;g. Then there exists a vi such that
+hfg;eii7− ! hf0g;vii and erase(f0g;vi)= v.
+Finally, if we return to the le-handle example from the introduction, letting
+c =string! fh,w es e et h a t
+C[[ ( fh: host:c:client code)inthost code]]h;
+=
+(fh:pxhostc :c:client codecqyc!
+c )inthost codeh:
+If we assume thathost codeh is a value, the Canonical Forms lemma tells us that
+it is a function, xh :string: host. Let h be string! int, the host’s view of c.
+Letfg befh =;;c =;g andf0g befh =[ fh7!int];c =;g. Then the rst
+several steps of the operational semantics are
+hfg; (fh:pxhostc :c:client codecqyc!
+c )inthost codehi
+7−! hf0g;pxhostc :c:client codecqyh!
+c host codehi
+7−! hf0g; (hosth :h:pxfpxhosthqyc
+h =hostcgclient codecqy
+c )host codehi
+7−! hf0g;pxfpxhost codehqyc
+h =hostcgclient codecqy
+ci:
+The evaluation from this point on is via rule [3]. We can use the invariant’pre-
+sented for the Host-Provided Preservation Lemma: if we assume that client code
+is host-free, it is easy to establish that ’(client code). By rule [ H ], we have
+’(pxhost codeqyh
+h ). Thus, by Host-Provided Substitution we are able to conclude
+’(fpxhost codehqya
+h =hostcgclient codec). We conclude that any closed value of type
+fh appearing in the client code during evaluation was obtained through the host
+interface. (Technically, we should require that the bodies of the client and host do
+not themselves contain polymorphic terms, because the proof in Section 3 does not
+account for the new extensions to the language. We expect that this requirement
+is actually not necessary.)
+6. RELATED WORK
+There has been much work on representation independence and parametric poly-
+morphism, as pioneered by Strachey [1967] and Reynolds [1983], and more recently
+by Ma and Reynolds [1992]. Such notions have been incorporated into programming
+languages such as SML [Milner et al. 1997] and Haskell [Peyton Jones et al. 1999]
+and studied extensively in Girard’s System F [1989]. The connection between type
+abstraction and existential types has been studied by Mitchell and Plotkin [1988].
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 41 ===
+Syntactic Type Abstraction  1077
+Model-theoretic approaches to studying polymorphism have also enjoyed a rich
+history, although incorporating notions of recursion have proven to be dicult: see
+MacQueen et al. [1986], the work of Coquand et al. [1987; 1989], and Abadi and
+Plotkin [1990]. Pitts [1996] has studied relational properties on recursively dened
+domains and investigated parametricity in extensions of the polymorphic lambda
+calculus that include xpoint recursion [Pitts 2000].
+Wright and Felleisen [1994] popularized the use of syntactic techniques for proving
+type safety. We can view our work as extending theirs to prove stronger properties
+by adding innocuous syntax to a language. Given the right syntactic additions,
+the resulting proofs follow precisely the subject-reduction form that Wright and
+Felleisen advocate.
+Abadi et al. [1993] have taken a syntactic approach to parametricity by formaliz-
+ing the logical relations arguments used in such proofs. More recently, Crary [1999]
+has proposed the use of singleton types as a means of proving parametricity results
+without resorting to the construction of models.
+None of the above work explicitly involves the notion of principal. Our syntactic
+separation of agents is similar to Nielson and Nielson’s two-level lambda calculus
+[Nielson and Nielson 1992]. There they are concerned with binding-time analysis,
+so the two principals’ code is inherently not mixed during evaluation. A notion
+of principal also arises in the study of language-based security, where privileged
+agents may not leak information to unprivileged ones. See, for example, Heinze
+and Riecke’s work on the SLam calculus [1998], Volpano and Smith’s work on type-
+based security [1997], and the language JFlow [Myers 1999].
+Pierce and Sangiorgi [1999] prove parametricity results for a polymorphic pi cal-
+culus in an operational setting. Rather than add principals to the term language,
+they use external substitutions to reason about bisimilarity of polymorphic pro-
+cesses in which there are both abstract and concrete views of data values. Sewell
+and Vitek [1999] have also used the idea of coloring in a variant of the pi calculus
+to prove properties about causal relationships in a security setting.
+Perhaps the closest work to ours is Leroy and Rouaix’s investigation into the
+safety properties of typed applets [Leroy and Rouaix 1998]. They use a lambda
+calculus augmented with state in order to prove theorems similar to our two-agent
+theorems. They too distinguish between execution-environment code and applet
+code, similar to our use of principals, but they consider only the two-agent case
+and take a less syntactic approach.
+7. SUMMARY AND CONCLUSIONS
+Abstract types are an invaluable tool to software designers. They aid programmers
+in reasoning about interfaces between dierent pieces of code.
+Despite this utility, it is very hard to prove that the informal reasoning about
+abstract types, such as, \all le handles are obtained from the open system call," is
+correct. One approach is to encode dierent principals in the well-understood poly-
+morphic lambda calculus and appeal to results on parametricity. This approach
+is not always feasible, such as when the language includes state, threads, recur-
+sive types, or other expressive features. The syntactic proofs of type-abstraction
+properties presented in this paper are tedious, but conceptually straightforward. In
+contrast, building a model is conceptually dicult but can yield elegant proofs.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 42 ===
+1078  Dan Grossman et al.
+We have presented a syntactic approach to proving some type-abstraction prop-
+erties. The main idea is \color" the dierent principals in the language, each of
+which has access to dierent type information. We show how we can track these
+principals throughout evaluation. This extra syntactic structure gives us a frame-
+work in which we can prove properties about where certain values came from (the
+le-handle example), as well as how abstraction is preserved by evaluation. The
+arguments take the form of subject-reduction proofs, which show that a desired
+property is invariant with respect to evaluation, so the hope is that they will scale
+more easily than model-theoretic techniques. As evidence supporting this hope, we
+have shown how to extend these results to include mutable references, recursive
+types, and parametric polymorphism.
+There are a number of open questions about our approach. Parametric polymor-
+phism oers the strong notion of representation independence, which can be used
+to reason about the equivalence of abstract data types. As long as two implemen-
+tations are equivalent in an appropriate sense, it does not matter which implemen-
+tation a program uses|they produce equivalent results. We have avoided building
+such logical relations, but it remains to be seen exactly what formal connections
+can be drawn between those results and the ones presented here.
+We also have not investigated the connections between the multiagent calculus
+and process-based calculi or object-oriented calculi where the notion of principal
+(that is, threads or objects) arises naturally. Our method of tracking principals
+during evaluation should adapt to these domains, but we may also learn more
+about the multiagent calculus by viewing each agent as a thread and the embedding
+annotations as points at which synchronization occurs during execution. There is
+also a similarity between our use (in Section 5.2) of global alpha conversion and
+the restriction operator, , of the pi calculus to generate a \fresh" type variable at
+runtime.
+Another addition to our approach would be an integration of traditional subtyp-
+ing. That is, we have not considered how we would need to adapt the framework
+to permit a primitive subtyping relation between (multiple) base types and its
+standard extension to other type constructors. Our multiagent calculus does allow
+a principal to reveal partial information about a type. (For example, by letting
+t1 = t2 ! t3, t2 = int,a n d t3 = int, an agent can export a function of type
+int!int at four dierent types.) Perhaps there is some connection between this
+sort of partial information and the partial information of knowing that  is some
+subtype of0, but it seems our approach is closer to polymorphism than subtyping.
+The kinds of properties we have proven in the multiagent language are limited by
+the granularity of types. The system does not let us prove that an agent does not
+misuse le handles, for instance by duplicating them or confusing two dierent le
+handles obtained from separate calls to open. The reason is that we track embed-
+dings at the granularity of their types|the theorems do not distinguish particular
+instances of type fh. We could imagine tracking such ne-grained details, but the
+necessary invariants for subject-reduction proofs may become more complex.
+Finally, the notion of principal could prove useful for results other than abstrac-
+tion. For example, we could easily give dierent operational semantics to dierent
+principals and then reason about interlanguage interoperability. Lifting constants
+and values out of embeddings could require wrapper code or data conversions.
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 43 ===
+Syntactic Type Abstraction  1079
+Similarly, we could imagine that embeddings represent a form of remote commu-
+nication. In this case, putting values in embeddings and taking values out would
+require marshalling and unmarshalling.
+REFERENCES
+Abadi, M., Cardelli, L., and Curien, P.-L. 1993. Formal parametric polymorphism. In 20th
+ACM Symposium on Principles of Programming Languages . ACM Press, New York, NY, 157{
+167.
+Abadi, M. and Plotkin, G. D. 1990. A PER model of polymorphism. In 5th Annual Symposium
+on Logic in Computer Science . IEEE Computer Society Press, Los Alamitos, CA, 355{365.
+Coquand, T., G u n t e r ,C .A ., and Winskel, G. 1987. DI-domains as a model of polymorphism.
+In Mathematical Foundations of Programming Language Semantics , M. Main, A. Melton,
+M. Mislove, and D. A. Schmidt, Eds. Lecture Notes in Computer Science, vol. 298. Springer-
+Verlag, New York, NY, 344{363.
+Coquand, T., Gunter, C. A., and Winskel, G. 1989. Domain theoretic models of polymorphism.
+Inf. Comput. 81, 2 (May), 123{167.
+Crary, K. 1999. A simple proof technique for certain parametricity results. In 4th ACM Inter-
+national Conference on Functional Programming. ACM Press, New York, NY, 82{89.
+Girard, J.-Y. , Lafont, Y., and Taylor, P. 1989. Proofs and Types . Cambridge University
+Press, Cambridge, UK.
+Harper, R. 1994. A simplied account of polymorphic references. Information Processing Let-
+ters 51, 4 (August), 201{206.
+Heintze, N. and Riecke, J. G.1998. The SLam calculus: programming with secrecy and integrity.
+In 25th ACM Symposium on Principles of Programming Languages . ACM Press, New York,
+NY, 365{377.
+Leroy, X. and Rouaix, F. 1998. Security properties of typed applets. In 25th ACM Symposium
+on Principles of Programming Languages . ACM Press, New York, NY, 391{403.
+Ma, Q. and Reynolds, J. 1992. Types, abstraction, and parametric polymorphism: Part 2. In
+Proceedings of the 1991 Mathematical Foundations of Programming Semantics ,S .B r o o k e s ,
+M. Main, A. Melton, M. Mislove, and D. A. Schmidt, Eds. Number 598 in Lecture Notes in
+Computer Science. Springer-Verlag, New York, NY, 1{40.
+MacQueen, D., Plotkin, G. D., and Sethi, R. 1986. An ideal model for recursive polymorphism.
+Information and Control 71, 1/2 (October/November), 95{130.
+Milner, R., Tofte, M., Harper, R., and MacQueen, D. 1997. The Denition of Standard ML
+(Revised). The MIT Press, Cambridge, MA.
+Mitchell, J. 1991. On the equivalence of data representations. In Articial Intelligence and
+Mathematical Theory of Computation: Papers in Honor of John McCarthy ,V .L i f s c h i t z ,E d .
+Academic Press, San Diego, CA, 305{330.
+Mitchell, J. C. and Plotkin, G. D. 1988. Abstract types have existential type. ACM Trans-
+actions on Programming Languages and Systems 10, 3 (July), 470{502.
+Morrisett, G. 1995. Compiling with types. Ph.D. thesis, Carnegie Mellon University. Published
+as CMU Tech Report number CMU-CS-95-226.
+Myers, A. C. 1999. JFlow: Practical mostly-static information ﬂow control. In 26th ACM
+Symposium on Principles of Programming Languages . ACM Press, New York, NY, 228{241.
+Nielson, F. and Nielson, H. R.1992. Two-Level Functional Languages. Number 34 in Cambridge
+Tracts in Theoretical Computer Science. Cambridge University Press, Cambridge, UK.
+Peyton Jones, S., Hughes, J., Augustsson, L., Barton, D., Boutel, B., Fasel, J., Hammond,
+K., Hinze, R., Hudak, P., Johnsson, T., Jones, M., Launchbury, J., Meijer, E., Peterson,
+J., Reid, A., Runciman, C., and Wadler, P. 1999. Haskell 98: A non-strict, purely functional
+language. http://www.haskell.org/onlinereport/.
+Pierce, B. C. and Sangiorgi, D. 1999. Behavioral equivalence in the polymorphic pi-calculus.
+Tech. Rep. MS-CIS-99-10, University of Pennsylvania. Apr. (Summary in 24th ACM Sympo-
+sium on Principles of Programming Languages).
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.
+
+=== PAGE 44 ===
+1080  Dan Grossman et al.
+Pitts, A. M. 1996. Relational properties of domains. Inf. Comput. 127 , 66{90.
+Pitts, A. M. 2000. Parametric polymorphism and operational equivalence. Mathematical Struc-
+tures in Computer Science 10 , 1{39.
+Reynolds, J. C. 1974. Towards a theory of type structure. In Programming Symposium. Lecture
+Notes in Computer Science, vol. 19. Springer-Verlag, New York, NY, 408{425.
+Reynolds, J. C. 1983. Types, abstraction and parametric polymorphism. In Information Pro-
+cessing 83, R. E. A. Mason, Ed. Elsevier Science Publishers B. V. (North-Holland), Amsterdam,
+513{523.
+Sewell, P. and Vitek, J.1999. Secure composition of untrusted code with wrappers and causality
+types. Work in Progress http://www.cs.purdue.edu/homes/jv/publist.html.
+Strachey, C. 1967. Fundamental concepts in programming languages. Unpublished Lecture
+Notes, Summer School in Computer Programming.
+Volpano, D. and Smith, G. 1997. A type-based approach to program security. In TAPSOFT’97,
+Theory and Practice of Software Development . Lecture Notes in Computer Science, vol. 1214.
+Springer-Verlag, New York, NY.
+Wright, A. K. and Felleisen, M. 1994. A syntactic approach to type soundness. Inf. Com-
+put. 115, 1, 38{94. Preliminary version in Rice Tech. Rep. 91-160.
+Zdancewic, S., Grossman, D., and Morrisett, G.1999. Principals in programming languages: A
+syntactic proof technique. In 4th ACM International Conference on Functional Programming.
+ACM Press, New York, NY, 197{207.
+Received February 2000; revised September 2000; accepted November 2000
+ACM Transactions on Programming Languages and Systems, Vol. 22, No. 6, November 2000.

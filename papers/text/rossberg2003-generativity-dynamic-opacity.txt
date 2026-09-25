@@ -1,0 +1,1458 @@
+
+
+=== PAGE 1 ===
+Generativity and Dynamic Opacity for Abstract Types
+Andreas Rossberg
+∗
+Universit¨at des Saarlandes
+rossberg@ps.uni-sb.de
+ABSTRACT
+Thestandardformalismforexplainingabstracttypesisex-
+istentialquantiﬁcation. Whileitprovidesasuﬃcientmodel
+for type abstraction in entirely statically typed languages,
+itproves tobe too weak for languagesenriched withforms
+of dynamic typing, where parametricity is violated. As an
+alternativeapproachtotypeabstractionthataddressesthis
+shortcomingwe present a calculus for dynamic type gener-
+ation. It features an explicit construct for generating new
+typenamesandreliesoncoercionsformanagingabstraction
+boundaries between generated types and their designated
+representation. Sealingisrepresentedasageneralizedform
+ofthesecoercions. Thecalculusmaintainsabstractionsdy-
+namicallywithoutrestrictingtypeanalysis.
+Categories and Subject Descriptors
+D.3.3 [Language Constructs and F eatures ]: Abstract
+datatypes;F.3.3[ Studies of Program Constructs]: Type
+structure
+General Terms
+Languages,Theory
+Keywords
+abstracttypes,existentialtypes,dynamictyping,generativ-
+ity,opacity,encapsulation
+1. INTRODUCTION
+Typeabstractionisanimportanttoolforstructuringpro-
+gramsandisafundamentalfeatureofmostmodulesystems.
+Languages like Modula [33, 4], CLU [16] and ML [17, 13]
+providefeaturesforspecifyingabstracttypes,eitherdirectly
+∗ThisresearchisfundedbytheDeutscheForschungsgemein-
+schaft(DFG)aspartofSFB378: Ressourcenadaptivekog-
+nitive Prozesse, Project NEP: Statisch getypte Program-
+mierumgebungf¨urnebenl¨auﬁgeConstraints
+Permission to make digital or hard copies of all or part of this work for
+personal or classroom use is granted without fee provided that copies are
+not made or distributed for proﬁt or commercial advantage and that copies
+bear this notice and the full citation on the ﬁrst page. To copy otherwise, to
+republish, to post on servers or to redistribute to lists, requires prior speciﬁc
+permission and/or a fee.
+PPDP’03,August 27–29, 2003, Uppsala, Sweden.
+Copyright 2003 ACM 1-58113-705-2/03/0008 ...$5.00.
+or by means of their module systems. Generally speaking,
+anabstracttypeisdeclaredintwoparts: its signatureand
+an implementation. The former usually allows to declare
+a name for the abstract type and speciﬁes the operations
+availableonvaluesofthattype,whilethelatterﬁxesa rep-
+resentation type forthosevaluesanddeﬁnesthesignature’s
+operations accordingly. The key property is that the rep-
+resentationtype remains private: the sole way to create or
+access values of the abstract type from the outside is by
+goingthroughtheoperationslistedinthesignature.
+For illustration purposes we will use (a subset of) the
+Standard ML module language [17]. In SML, an abstract
+type’ssignaturecanbespeciﬁedbyasignaturedeclaration.
+Considerthecommonexampleofacomplexnumbertype:
+signature COMPLEX =
+sig
+type complex
+val mk : real * real -> complex
+val re : complex -> real
+val im : complex -> real
+val mul : complex * complex -> complex
+end
+Animplemen tationispro videdb yastructuredeclaration:
+structure C :> COMPLEX =
+struct
+type complex = real * real (* polar *)
+fun mk(x,y) = (sqrt(x*x+y*y), atan2(y,x)+pi)
+fun re(a,th) = a * cos th
+fun im(a,th) = a * sin th
+fun mul((a1,th1), (a2,th2)) =
+(a1*a2, rem(th1+th2, 2*pi))
+end
+Analternativeimplementationmightuseacartesianrepre-
+sentationforcomplexnumbers. Inanycase,theabstraction
+operator :> hides the representation typereal * real in
+thesensethat,totheoutside,thetype complexisdiﬀerent
+from real * real —o ra n yo t h e rt y p e ,f o rt h a tm a t t e r .
+Theoperationsexportedthroughthesignaturearetheonly
+meanstocomposeanddecomposecomplexnumbers.
+Theadvantageoftheencapsulationideaimplementedby
+type abstraction is twofold. First, the use of type abstrac-
+tion enforces loose coupling: client code is compelled not
+todependoninternalsofanabstracttype’srepresentation.
+The implementation may thus be modiﬁed freely without
+breaking any existing client code, as long as the signature
+(and the semantics of its operations) remains the same.
+241 
+
+=== PAGE 2 ===
+Evenmore important is the second point: the type system
+guarantees that values of abstract type cannot be forged
+byclients. Suchaguaranteeisanessentialprerequisitefor
+enabling implementations to maintain invariants on their
+representations and their internal state. For example, our
+compleximplementationpreservestheinvariantthatthear-
+gument θ(th)ofthecomplexnumberisalwaysnormalized
+to θ ∈[0;2 π[. Typeabstractionalsopreventsmixingvalues
+stemmingfromdiﬀerent(incompatible)implementationsof
+thesamesiganture,e.g. apolarandacartesianrepresenta-
+tionofcomplexnumbers.
+In their classic paper, Mitchell and Plotkin showed that
+abstract types can be formalised naturally as existential
+types[19],usingthestandardtypingrulesasfoundincon-
+structivelogic(e.g.SystemF[8]). Wewillreviewexistential
+typesandtheirrelationtoabstracttypesinsection2.
+1.1 Dynamic type analysis
+Constructsfor(dynamic)typeanalysishavebeenformu-
+lated in diﬀerent ﬂavours. Examples are dynamics [1, 14]
+andintensionaltypeanalysis[11]andextensionalpolymor-
+phism [7]. They have in common that there is some form
+of typecase expression that allows branching dependent on
+atypethatisdetermineddynamically.
+LetusconsideranextensionofSMLwithtypecase. Inor-
+dertosimplifythepresentation,weuseaverysimplevariant
+throughoutthispaper. Ourtypecasedoesnotbindanytype
+variables,butmerelyallowsthetypeofanexpressiontobe
+comparedtoasecondtype:
+typecase exp1 : τ1 of x : τ2 then exp2 else exp3
+The intuitive semantics of this expression form is that it
+evaluatesto exp2[x:= exp1]iﬀ τ1 = τ2 dynamically,to exp3
+otherwise. That semantics will be made more precise in
+section 2.3. An example for using a typecase might be a
+simplisticpolymorphicstringconversionfunction:
+fun ’a toString (x : ’a) =
+typecase x : ’a of x’ : int
+then Int.toString x’
+else typecase x : ’a of x’ : real
+then Real.toString x’
+else typecase x : ’a of x’ : bool
+then Bool.toString x’
+else "_"
+By applying this function to some arbitrary valuev,t h e
+polymorphictypevariable ’awillbeinstantiatedtoacon-
+crete (dynamic) typeτ,t h et y p eo fv. The function will
+properlydispatchonthattypeanddelegatetheconversion
+tasktoasuitablelibraryfunction,ifavailable.
+Howdoestypecaseinteractwithtypeabstraction? What
+happens,ifwetrytoevaluatethefollowingexpression:
+typecase C.mk(0.0, 1.0) : C.complex
+of p : real * real
+then print("theta = " ^ Real.toString(#2 p))
+else raise CouldntAccessRepresentation
+Orevenmorecritical:
+typecase (1.0, 1001.0*pi) : real * real
+of z : C.complex
+then z
+else raise CouldntAccessRepresentation
+It is obvious that in both cases theelsebranch should be
+chosen. Or is it? Unfortunately, this is not the answer the
+standardmodelofabstracttypesusingexistentialquantiﬁ-
+cationwillgive! Thereasonswillbecomeapparentinsection
+2.3. Infact,itiswell-knownthatexistentialabstractioncan
+be broken in the presence of primitives for type analysis,
+because the presence of the latter causes loss of the para-
+metricityproperty[30,26]itsencapsulationpowerrelieson.
+Weirichdemonstratedthatinanon-parametricsettingarbi-
+traryvaluesofexistentialtypecanbecastbackandforthto
+andfromtheiractualrepresentationtype[32]. Whilesucha
+castisstilltype-safeinthesenseofnotviolatingsoundness,
+itclearlyunderminesanyofthepreviouslymentionedguar-
+a n t e e st h et y p es y s t e ms h o u l dm a k ea b o u ta b s t r a c tt y p e s
+— the ﬁrst expression above is coupled to internals of the
+complexrepresentation,whilethesecondevenbreaksitsin-
+variantonthecomplexangle θ. Becausetypeabstractionis
+nolongersuﬃcienttoensureencapsulation,itispractically
+rendereduseless.
+1.2 Agenda
+How can the conﬂict be solved? Asimple possibility is
+to forbid analysis of abstract types altogether. For exam-
+ple,HarperandMorrisettcurtlyproposetodistinguishbe-
+tween analyzable and non-analyzable types [11]. However,
+this clearly is overly restrictive. For example, it woulddis-
+allowustoextendthestringconversionfunctiontohandle
+complexnumbers,byrenderingthefollowingcodeillegal:
+fun ’a toString (x : ’a) =
+typecase x : ’a of x’ : C.complex then
+Real.toString(C.re x’) ^
+(if im x’ >= 0.0 then "+" else "-") ^
+Real.toString(abs(C.im x’)) ^ "i"
+else ...
+Similarly,inalanguagewithtype dynamic,itwouldbecome
+impossibletoinjectvalueswithabstracttypeinto dynamic
+— or more precisely, to project them out again. Hence,
+suchasolutionmightseriouslyimpairtheusefulnessoftype
+analysisaswellastheapplicabilityoftypeabstraction.
+Thispaperthusaimstodeﬁneaformalsemanticsfortype
+abstraction that is fully compatible with type analysis. In
+short, we seek a semantics in which the interplay between
+bothfeatureshasthefollowingcharacteristics:
+1. dynamic opacity: anabstracttypecannotbeidentiﬁed
+withanyothertypethroughdynamicanalysis,
+2. full reﬂexivity: everytypecanbeanalyzed.
+Dynamicopacitybasicallysaysthatthekeypropertyoftype
+abstractionoughttocarryoverfromthestatictypesystem
+to dynamic typing: abstract types need to be unaccessible
+and unforgeable even by means of dynamic type analysis.
+The second property eﬀectively means that any type must
+be comparable(dynamically)to anyother. Weborrow the
+term full reﬂexivity fromTrifonov,SahaandShao[31],who
+introduceditinaslightlydiﬀerentcontexttoexpresstheab-
+senceofanyrestrictiononthe syntactic form oftypesthat
+areavailableforanalysis(nosuchrestrictionisnecessaryfor
+theweaktypecaseusedhere). Takentogether,bothrequire-
+ments imply that an abstract type must be diﬀerent from
+anyothertypeinthelanguage’suniverseoftypes. Itclearly
+followsthattypeabstractionmusthavesomesortof genera-
+tiveoperationalsemantics: introductionofanabstracttype
+242 
+
+=== PAGE 3 ===
+dynamically generates a new type. Without generativity,
+typeabstractionhasnodynamicinterpretation!
+Itshouldbenotedthatwesolelydiscusstherequirements
+of dynamic typing intended for programmaticuse, i.e. as a
+languagefeatureavailabletotheprogrammerintheexternal
+language. There are diﬀerent application domains for type
+analysis,especiallyinlanguageimplementationsfordealing
+with specialised data representations in the compilation of
+polymorphicfunctions(whichwasthemotivationforHarper
+andMorrisett’swork). Suchinternalusedemandsfordiﬀer-
+ent, incompatible properties. In particular, dynamic opac-
+ityisspeciﬁcallynotwantedundersuchcircumstances. We
+viewexternalandinternaluseofdynamictypingaslargely
+independentissues,andwillnotfurtherconsiderthelatter.
+1.3 Plan
+Insection2wegiveashortoverviewoverabstracttypes
+intheexistentialtypeencodingandinvestigatehowitinter-
+fereswithdynamictypeanalysis. Insection3weintroduce
+the basic features of theλN-calculus, which we propose as
+an alternative model. Section 4 discusses the calculus and
+its basic properties formally. In section 5 we look at its
+higher-order generalization and an extension incorporating
+analternative,applicativenotionofgenerativity. Wereview
+somerelatedworkinsection6andconcludeinsection7.
+2. ABSTRACTION BY EXISTENTIAL
+QUANTIFICATION
+In this section we will give a short recap of existential
+typesandtheircorrespondence toabstracttypes. Wethen
+discussinmoredetailhowthiscorrespondenceisdestroyed
+byaddingdynamictypeanalysis. Wewrite ≡forsyntactic
+equivalence (moduloα-conversion). FV(e) denotes the set
+of free term variables ofe deﬁned in the usual way, and
+FTV(t)thefreetypevariablesoftypeorterm t. Forclarity,
+we will sometimes use the notation (letx = e1 in e2)a s
+anabbreviationfortheexpression( λx:τ1.e2) e1,where τ1 is
+thet ypeof e1. Moreover,wesometimesuse for don ’t care
+variables.
+2.1 Existential types
+Figure1showsthesyntax,evaluationandtypingrulesfor
+existential types, as an extension to the plain polymorphic
+lambda calculus [3]. Avalue of existential type is usually
+calleda package. Itessentiallyisapair ⟨τ, e⟩,encapsulating
+a representation type τ and animplementation e.Ap a c k -
+age is assigned existential type∃α.τ ′if its implementation
+matches thesignature type τ ′, by replacing all occurrences
+of α with the actual representation typeτ. Unfortunately,
+thesignaturetypeisnotdetermineduniquelybytheimple-
+mentationandrepresentationtypesalone,thusithastobe
+annotatedexplicitly,asapparentfromthesyntax. 1
+Inordertodoanythinginterestingwithapackage,i.e.ac-
+cesstheencapsulatedimplementation,theexistentialquan-
+tiﬁerhastobeeliminated. Intheexpressionform(open ⟨α, x⟩=
+e1 in e2) the subexpressione1 denotes a package, whose
+representation type and implementation can be referred to
+through variablesαand xwithin e2, respectively. Such an
+openexpressionevaluatestoitsbody e2,bysubstitutingits
+1Another common syntax for existential introduction is
+(pack τ1,e as ∃α.τ2)andvariantsthereof.
+(types) τ ::= ... |∃ α.τ
+(terms) e ::= ... |⟨τ, e⟩:∃α.τ ′|open ⟨α, x⟩= e1 in e2
+open ⟨α, x⟩= ⟨τ, e1⟩:∃α.τ ′in e2 → e2[α:= τ][x:= e1]
+(Pack) Γ ⊣ e: τ ′[α:= τ]
+Γ ⊣(⟨τ, e⟩:∃α.τ ′): ∃α.τ ′
+(Open) Γ ⊣ e1 : ∃α.τ ′ Γ,α ,x:τ ′⊣ e2 : τ
+Γ ⊣(open ⟨α, x⟩= e1 in e2): τ (α/∈FV(τ))
+Figure 1: Existential types
+boundvariableswiththeactualtypeandvaluefoundinthe
+package.2
+2.2 Encoding Abstract Types
+Anabstracttypedeclarationintroducesanewtypebun-
+dled with a set of operations available on values of that
+type. Anencodingviaexistentialtypesisrelativelystraight-
+forward. Let us assume that the polymorphic lambda cal-
+culushasbeenenrichedfurtherwithproducttypesandreal
+numbers. ThentheSMLsignature COMPLEXfromtheintro-
+ductioncanberepresentedbythetype
+COMPLEX ≡∃ α.(real × real → α) ×(α → real) ×
+(α → real) ×(α × α → α)
+Thatis,thesetofoperationsismappedtoatupleofappro-
+priatetype,andthistypeisexistentiallyquantiﬁedoverthe
+type to be hidden by the abstraction. The structureCcan
+bemodelledas(takingthefreedomtousetuplepatterns):
+C ≡⟨ real × real,
+(λ(x, y): real × real .(
+/D4
+x2 + y2,arctan(y/x)+ π),
+λ(a, θ): real × real .a ·cos θ,
+λ(a, θ): real × real .a ·sin θ,
+λ((a1,θ 1),(a2,θ 2)):( real × real) ×(real × real) .
+(a1 · a2, rem(θ1 + θ2,2π))
+) ⟩:COMPLEX
+ML style module access does not map as directly, because
+structure components are accessed using the dot notation,
+whileapackagehastobeopenedexplicitlytomakeitscon-
+tentavailable. However,CardelliandLeroyhaveshownthat
+thereexistsasystematictranslationfromdotnotationinto
+plainexistentialtypes[5]. Essentially,thepackageencoding
+astructureisopenedimmediately. Forourpurpose,
+val a = C.re(C.mk(0.0, 1.0))
+mightbeencodedas
+a ≡ open ⟨α,(mk , re, , )⟩= Cin re(mk (0,1))
+Thetypingrulesforopenplusthestandardhygieneconven-
+tionsforboundvariablesensurethat αisdistinctfromany
+othertypevariableinthesamescopeandthusbehaveslike
+2Often the existential elimination form is written
+(unpack e1 as α, xin e2).
+243 
+
+=== PAGE 4 ===
+e ::= ... |tcase e1 : τ1 of x: τ2 then e2 else e3
+(Tcase)
+Γ ⊣ e1 : τ1 Γ ⊣ τ2 :Ω
+Γ,x : τ2 ⊣ e2 : τ Γ ⊣ e3 : τ
+Γ ⊣(tcase e1 : τ1 of x: τ2 then e2 else e3): τ
+tcase e1 : τ of x: τ then e2 else e3 → e2[x:= e1]
+tcase e1 : τ1 of x: τ2 then e2 else e3 → e3 (τ1 ⁄= τ2)
+Figure 2: A typecase extension
+a“fresh”type. Moreover,itbehavesfullyabstractbecause
+in standardλ-calculi every expression isparametric[25] in
+alltypevariables,meaningthatreductioncanproceeduni-
+formingly for all possible instantiations. In particular, the
+body e2 ofanopenexpressionisparametricwithrespectto
+theboundvariable α—evaluationwillneverdependonthe
+actual representation typeτ of the package being opened,
+although αis substitutedby τ during reduction. That key
+observationestablishestheclosecorrespondencebetweenex-
+istentialtypesandabstracttypes.
+2.3 Interaction with dynamic type analysis
+Figure2speciﬁesthesemanticsofourtypecase,asanex-
+tensiontothelambdacalculus. 3 Itprovidesonlyasimple
+formoftypeanalysisbutsuﬃcestodemonstratethefunda-
+mentalproblem.
+Wehaveseenthattheencodingofabstracttypesviaexis-
+tentialscruciallyreliesontheparametricityproperty. That
+propertybreaksdowninthefaceofoperationsfortypeanal-
+ysis: if a polymorphic function is able to analyse its type
+argumentusingtypecase,itobviouslywillnotevaluateinde-
+pendentlyofanyconreteinstantiation. Similarly,afunction
+that is passed an argument of existentially quantiﬁed type
+mightinspectthetypeencapsulatedbythequantiﬁer—the
+computationcanbedependentontheactualrepresentation
+type. Recallthetypecaseexpressionfromsection1.1that
+wasincriminatedtobreakthecomplexinvariant. Expressed
+withexistentialtypes(and ⊥)itmaylooklikefollows:
+open ⟨α,(mk , re, im, mul)⟩= ⟨real × real,... ⟩in
+(... tcase(1 ,1001π): real × realof z: α
+then zelse ⊥ ... )
+Butuponreductionoftheopenexpressionthetypevariable
+αnamingtheabstracttypewillbesubstitutedandreveal
+→ (... typecase(1 ,1001π): real × realof z: real × real
+then zelse ⊥ ... )
+Bothtypesinthetypecasearenowequalandtheconstruct
+returns z ≡(1,1001π)fromitsleftbranchhavingthesame
+statictype αaspropercomplexvalues.
+3Addingtypecasetothepolymorphiclambdacalculuswith-
+out restricting the reduction relation breaks conﬂuence.
+Consider (Λα.λx:α.tcase x:α of y:int then 1 else 0)int 9.
+Dependingonwhichredexgetsreducedﬁrst,thisexpression
+yields1or0. Forsimplicity,wehenceassumeacall-by-value
+strategy.
+3. TOW ARDS A FORMAL SEMANTICS
+FOR DYNAMIC TYPE GENERATION
+Althoughwellknown,theinterferencebetweenexistential
+typesandtypeanalysishasreceivedonlylittleattentionin
+prior work. Besides the proposal by Harper and Morrisett
+mentioned in the introduction, Abadi, Cardelli, Pierce and
+R´emy [1] already suggested generativity as a solution, ob-
+servingthatdynamicopacitycanbeachievedbysimplyre-
+placingthetypevariableboundbyopenwitha“fresh”type
+constantduringevaluation. Theirideaamountstochanging
+thecorrespondingreductionruleto:
+open ⟨α, x⟩= ⟨τ, e1⟩:∃α.τ ′in e2 → e2[α:= t][x:= e1]
+where t is a fresh type constant. Obviously, the represen-
+tationtypecouldnolongerbeanalysedtransparently. Un-
+fortunately,thismodiﬁcationdestroystypepreservation,as
+can easily be seen from the following example, which is a
+simple η-expansionoftheexpression agiveninsection2.2:
+a′≡open ⟨α,(mk , re, , )⟩= Cin( λz:α.re z)( mk (0,1))
+Thistermiswell-typed,butafterapplyingtheabovereduc-
+tionruleitbecomes:
+(λz:t.(λ(a, θ): real × real .a ·cos θ) z)(( λ... )(0 ,1))
+which is no longer typable — there is a clash between the
+abstracttype tanditsrespectiverepresentationtype real ×
+real,whichistheargumenttypeoffunction re.
+Consequently, inorder tomaketheidea ofusinggenera-
+tivityfor abstractionwork, wehavetosolvetwoproblems:
+the concept of dynamic type “freshness” must be ﬂeshed
+outformally,andtransitionsbetweenabstractandconcrete
+typemustbemanagedinasoundway.
+3.1 Generativity
+Formalisms for describing dynamic generation of fresh
+value names are well developed. For example, the name
+restriction formνn.P is a central feature of theπ-calculus
+[28] and can be viewed as an expression that generates a
+newname nwithlocalscope. Pitts’ λν-calculus[24]trans-
+fers that idea to theλ-calculus, although with a diﬀerent
+implementation.
+Weintroduceasimilarconstruct,butforgenerating type
+namesinsteadofvaluenames. Wewillusethenotation
+Nγ≈τ.e
+(with N read as upper-case nu) to introduce a fresh type
+name γ withinexpression e. N-boundnamesaresubjectto
+standard α-conversion rules. Because having a fresh type
+that is not inhabited by any values is not very interesting
+onitsown,theN-formalsodeclaresarepresentationtype τ.
+Within etherelationbetweenthenewtypeanditsrepresen-
+t a t i o ni sk n o w na n dc a nb eu s e dt oc o n s t r u c ta n di n s p e c t
+values of typeγ. Outside the scope of the corresponding
+N-expression that relation is not visible. We defer the dis-
+cussiononhowvaluesareconstructedtothenextsection.
+Howdowetrackgeneratedtypenames?Wechosetotake
+the path of theπ-calculus, where ν-expressions never get
+eliminated, but ﬂoat outwards by special equivalence rules
+for scope extrusion.4 In order to allow interaction between
+4Wealsoconsideredthealternativeapproachofintroducing
+anexplicittypestoreorheapasinthe λν-calculus,butthat
+choicewouldproduceamorecomplicatedsystem.
+244 
+
+=== PAGE 5 ===
+a N-expression’s bodye and the expression’s context, we
+incorporatereductionrulesinasimilarspirit,e.g.:
+(Nγ≈τ.e1) e2 → Nγ≈τ.(e1 e2)( γ/∈FTN(e2))
+e1 (Nγ≈τ.e2) → Nγ≈τ.(e1 e2)( γ/∈FTN(e1))
+The side conditions on the free type names of subterms
+(written FTN(e)) ensure that the context cannot capture
+thetypename γ.
+ThetypingruleforNisstraight-forward:
+Γ,γ ≈τ ⊣ e: τ ′
+Γ ⊣Nγ≈τ.e: τ ′(γ/∈FTN(τ ′))
+Weneedtobeabletorecordthe type assertion γ≈τ inthe
+environment, so thatγ is properly related to its represen-
+tation. Thesideconditionkeeps γ fromescapingitsscope,
+and is similar to the side condition of the (Open)t y p i n g
+ruleforexistentialtypes.
+3.2 Coercions
+What does it mean for a new typeγ to be ‘represented’
+by τ? Itcertainlycannotmeanthatbothtypesaresimply
+equivalent (i.e. γ = τ), since such an interpretation would
+notmake γ particularly‘new’andinevitablybringusback
+to a semantics that violates dynamic opacity. We always
+have to be able to distinguish both types. Consequently,
+in order to avoid running into type preservation problems,
+wealsoneedtobeabletodistinguishvaluesofbothtypes.
+Hence we require appropriate coercions to go from the ab-
+stracttypetoitsrepresentationandviceversa. Wewilluse
+thenotation
+{e}+
+γ
+forcoercingavalue eofrepresentationtype τtotheabstract
+type γ. Dually,wehave
+{e′}−
+γ
+for the inverse coercion. Coercions allow an implementa-
+tion to perform appropriate type conversions for any value
+of abstract typeγ that crosses the abstraction boundaries
+in either direction. Positive coercions can be seen as con-
+structors for values of the new type. They are eliminated
+only by negative coercions, the corresponding destructors.
+Consequently,theonlyevaluationpossiblewithcoercionsis
+cancel lation,implementedbyasinglereductionrule:
+{{e}+
+γ }−
+γ → e
+The standard scoping rules guarantee that only coercions
+belonging to the same abstract type can cancel out each
+other.
+Thetypingrulesforcoercionsareobvious:
+Γ ⊣ e: τγ ≈τ ∈Γ
+Γ ⊣{ e}+
+γ : γ
+Γ ⊣ e: γγ ≈τ ∈Γ
+Γ ⊣{ e}−
+γ : τ
+Due to the side conditions in the rules, coercions are only
+availablewithinthelexicalscopeofthecorrespondingtype
+generator,thusthetransitionacrossabstractionboundaries
+canonlybetriggeredfromwithintheabstraction.
+3.3 Example
+Recall the complex example from the introduction and
+its encoding with existential types. Rewritten using type
+generationitlooksasfollows:
+C′ ≡ Nγ≈real × real.
+⟨γ,
+(λ(x, y):real × real . {(
+/D4
+x2 + y2,arctan(y/x)+ π)}+
+γ ,
+λz:γ. let( a, θ)= {z}−
+γ in a ·cos θ,
+λz:γ. let( a, θ)= {z}−
+γ in a ·sin θ,
+λ(z1,z 2): γ × γ. let( a1,θ 1)= {z1}−
+γ in
+let( a2,θ 2)= {z2}−
+γ in
+{(a1 · a2, rem(θ1 + θ2,2π))}+
+γ
+) ⟩:COMPLEX
+We still use an existential type. However, it is no longer
+utilizedforprovidingabstraction,butmerelyforclosingthe
+signatureoftheabstraction(recallthat γitselfmaynotap-
+pearinthesignature). Byputtingtheabstracttypeintoa
+packageitbecomes accessiblefromtheoutside. Thesigna-
+tureoftheabstractionisuniquelydeterminedbytheusesof
+γandcorrespondingcoercionsinitsimplementation. Hence
+COMPLEX istheonlypossibletypeforthepackage.
+Therewrittenabstracttype C′canbeusedasbefore,via
+simplyopeningthepackage:
+open ⟨α,(mk, re, , )⟩= C′in re(mk (0,1))
+ThecontainedN-binderwillbeshiftedoutwardsautomati-
+callybythecorrespondingscopeextrusionrules.
+3.4 A-posteriori abstraction
+Sofar,tobuildanabstractionitsimplementationhasto
+usecoercionsinternally,inordertomeettheintendedsigna-
+turetype. Wespeakof ap r i o r iabstraction: animplementa-
+tionmustbetailoredtoaparticularsignature. Ontheother
+hand,abstractionbasedonexistentialtypeshappens ap o s -
+teriori: arbitrarypartsofagivenimplementation’stypeare
+just hidden away without aﬀecting the implementation it-
+self, a construction sometimes calledsealingin the context
+ofmodules[6]. Canwerecoverthatﬂexibility?
+Theanswerisyes: givenanabstractsignaturetypeanda
+suitableimplementation,wecansystematicallyconstructan
+expression that coerces the whole implementation into the
+desiredsignaturetype. Let ebeanexpressionthatshallbe
+sealed with signatureτ ′, abstracting away some typeτ as
+γ. Assuming e: τ ′[γ:= τ], the term produced by applying
+thetransformation {e: τ ′}+
+γ≈τ deﬁned in ﬁgure 3 willhave
+the desired signature type. The transformation is deﬁned
+inductively over the signature typeτ ′.I tc o n s t r u c t sa nη-
+expansionoftheoriginalterm e,wrappingallparts e′that
+are supposed to get typeγ into a suitable coercion{e′}+
+γ.
+Function types require an inverse treatment of their argu-
+ment, wheree′: γ is replaced by{e′}−
+γ instead. Since the
+inversetransformationiscompletelydual,weusethenota-
+tion ± to capture both directions in a single set of rules.
+Coercion polarity is inverted for function arguments. The
+followinglemmacapturesthecentralinvariants:
+Lemma 1 (A-posteriori Abstraction Invariants).
+Let e be an expression and Γ an evironment with γ≈τ ∈Γ.
+1. If Γ ⊣ e: τ ′[γ:= τ],t h e nΓ ⊣{ e: τ ′}+
+γ≈τ : τ ′.
+2. If Γ ⊣ e: τ ′,t h e nΓ ⊣{ e: τ ′}−
+γ≈τ : τ ′[γ:= τ].
+245 
+
+=== PAGE 6 ===
+{e: γ}±
+γ≈τ = {e}±
+γ
+{e: γ′}±
+γ≈τ = e (γ′⁄≡ γ)
+{e: α}±
+γ≈τ = e
+{e: τ1 → τ2}±
+γ≈τ = λx:{τ1}±
+γ≈τ .{e {x: τ1}∓
+γ≈τ : τ2}±
+γ≈τ
+{e: ∀α.τ1}±
+γ≈τ =Λ α.{eα : τ1}±
+γ≈τ
+{τ ′}+
+γ≈τ = τ ′
+{τ ′}−
+γ≈τ = τ ′[γ:= τ]
+Figure 3: A-posteriori abstraction
+With this in mind we introduce another building block
+of our calculus: in order to allow it to express sealing di-
+rectly,wegeneralizecoercionexpressionstoarbitrarytypes
+andmakethetransformationrulesfromﬁgure3built-inby
+turning them into reduction rules. That is, coercions will
+havetheactualform
+{e: τ ′}±
+γ≈τ
+Inthisgeneralizedform,coercionsarereminiscentoftheab-
+stractionbracketsbyGrossman,MorrisettandZdancewic [10].
+Wewilldiscussthatconnectioninsection6. Usinggeneral-
+izedcoercions, ﬁrst-classabstracttypes can berepresented
+byexpressionsoftheform
+Nγ≈τ.⟨γ, {e: τ ′}+
+γ≈τ ⟩
+where τ is the representation type,τ ′the signature, ande
+theimplementationoftheabstracttype.
+3.5 Polymorphic coercions
+We have not yet given the typing rules for generalized
+coercions. Thelemmafromtheprevioussectionsuggests
+Γ ⊣ e: τ ′[γ:= τ] γ≈τ ∈Γ
+Γ ⊣{ e: τ ′}+
+γ≈τ : τ ′
+Γ ⊣ e: τ ′ γ≈τ ∈Γ
+Γ ⊣{ e: τ ′}−
+γ≈τ : τ ′[γ:= τ]
+Obviously,theserulesgeneralizethetypingrulesforsimple
+coercions, for{e}±
+γ = {e : γ}±
+γ≈τ. Unfortunately, they are
+notcorrect. Firstnotethatitisnotpossibletosealavalue
+twice with respect to the same typeγ: in the sealing rule,
+t h et y p eo fe must be free ofγ. Dually, unsealing always
+delivers aγ-free type. Consequently, a complication arises
+with polymorphic coercions. Consider the following term,
+forexample:
+P ≡(Λα.λx:α.{x: α}−
+γ≈τ) γ
+Under the above rules,P would be assigned typeγ → γ.
+However,standard β-reductionyields
+λx:γ.{x: γ}−
+γ≈τ
+which has typeγ → τ. Type preservation is violated. The
+problemis,thatturnedintoreductionsteps,theabstraction
+transformation is not static but interleaved with other re-
+ductions. Hence,thetypingrulesmustaccountforpotential
+substitutions. Intuitively,theγ-substitutionsinthecoercion
+typingrulesmustbedelayeduntilallfreetypevariablesin
+τ ′havebeensubstituted. Wedealwiththisbyintroducing
+unsealed typesoftheform
+{τ ′}−
+γ≈τ
+thatessentiallyperformasubstitutionon τ ′,asthefollowing
+setofspecialequivalencerulesreveals:
+{γ}−
+γ≈τ = τ
+{γ′}−
+γ≈τ = γ′ (γ′⁄≡ γ)
+{τ1 → τ2}−
+γ≈τ = {τ1}−
+γ≈τ →{ τ2}−
+γ≈τ
+{∀α.τ1}−
+γ≈τ = ∀α.{τ1}−
+γ≈τ
+Thereisnoequivalencerulefortypevariables,sothatatype
+oftheform {α}−
+γ≈τ maintainsthependingsubstitutionfor γ
+until αissubstituted. Usingthissetup,soundtypingrules
+canbegiv enforcoercions:
+Γ ⊣ e: {τ ′}−
+γ≈τ γ≈τ ∈Γ
+Γ ⊣{ e: τ ′}+
+γ≈τ : τ ′
+Γ ⊣ e: τ ′ γ≈τ ∈Γ
+Γ ⊣{ e: τ ′}−
+γ≈τ : {τ ′}−
+γ≈τ
+Aslongasnotypev ariablesoccurin τ ′,theyareequivalent
+totherulesaboveunderthestatedtypeequivalence. How-
+ever, for the termP they correctly allow derivation of the
+type γ →{ γ}−
+γ≈τ = γ → τ. Likewise, they prohibit dou-
+ble sealing even in polymorphic cases. That implies that a
+polymorphicsealingfunctionlike
+Λα.λx:α.{x: α}+
+γ≈τ
+isnotwell-typed. Itmustbeformulatedaseither
+Λα.λx:{α}−
+γ≈τ .{x: α}+
+γ≈τ : ∀α.{α}−
+γ≈τ → α
+or
+Λα.λx:α.{{x: α}−
+γ≈τ : α}+
+γ≈τ : ∀α.α → α
+In the former version, the function is not applicable to ar-
+gumensthatalreadycontainoccurrencesofabstracttype γ.
+The latter version lifts this restriction by simply unsealing
+anysuchpotentialvaluesﬁrst.
+4. THE λN-CALCULUS
+Wearenowpreparedtolookatthecalculusthatwewill
+refertoas λN asawhole.
+4.1 Syntax
+The syntax of theλN-calculus is shown in ﬁgure 4. Es-
+sentially,itisapolymorphiclambdacalculuswithrecursive
+functions, extended with the constructs introduced in the
+previous section. It also contains a typecase expression, so
+that it allows discussion of the issues raised by dynamic
+typing. Valuesaredeﬁnedintheusualway,butincludeab-
+stractvaluesoftheform {ˆˆe: τ }+
+γ≈τ ′ withthesidecondition
+τ = γ. Further, we distinguish a second subclass of terms
+called results,whichisnecessarytoformulatedeterministic
+evaluationrulesforscopeextrusion.
+Wewillwrite λx:τ.efor(ﬁx x′(x:τ):τ ′.e)if x′ /∈FV(e)and
+τ ′isthe(unique) typeof e. Wealsoabbreviate {e: γ}±
+γ≈τ
+to {e}±
+γ if τ isclearfromcontext. Wewillusenotationfor
+existential types in some examples, which can be encoded
+in λN using universal types in the usual way [20]. Also,
+wesometimessilentlyassumeadditionaltypeslike int, real,
+unit andrespectiveconstants,orcartesianproducts.
+Environmentsareextendedtoincludetypeassertions γ≈τ
+for type names. They track the validity of coercions. We
+take the liberty to treat environments as sets of the con-
+tainedassignmentsandassertions,orasﬁnitefunctionsmap-
+pingvariablestotypes. WewriteDom(Γ)todenotetheset
+ofallnamesandvariablesboundbyΓ.
+246 
+
+=== PAGE 7 ===
+(types) τ ::= α | γ | τ1 → τ2 |∀ α.τ |{ τ }−
+γ≈τ ′
+(terms) e ::= x |ﬁx x1(x2:τ2):τ1.e | e1 e2 |Λα.e | eτ |
+Nγ≈τ.e |{ e: τ }±
+γ≈τ ′ |
+tcase e1 : τ1 of x: τ2 then e2 else e3
+(results) ˆe ::= ˆˆe |Nγ≈τ.ˆe
+(values) ˆˆe ::= ﬁx x1(x2:τ2):τ1.e |Λα.e |{ˆˆe: τ }+
+γ≈τ ′ (τ = γ)
+(env’s) Γ ::= ·| Γ,x:τ |Γ,α |Γ,γ ≈τ
+Figure 4: λN Syntax
+4.2 Reduction
+Figure 5 collects the one-step evaluation rules forλN.
+Theycanbecategorizedintoﬁvegroups: standard β-reduction
+rules (1–2), coercion rules (3–6), type analysis rules (7–8),
+scope extrusion (9–13), and structural rules (14–19). To-
+gether,theyspecifyadeterministiccall-by-valueevaluation
+strategy. Wewillwrite= for convertibilitywithrespect to
+thecorrespondingequivalencerelationgeneratedfrom →.
+Note that the coercion rules 4–6 are overloaded for both
+polarities. At function type we use the followingdeﬁnition
+forsubstitutingtypeannotationsdependingonpolarity:
+{τ }+
+γ≈τ ′ = τ
+Reduction of coercions and typecase is type-directed. The
+equivalence relation on types will be given in the next sec-
+tion. In rules 5 and 6 we implicitly require the equivalent
+types to be well-formed, i.e.⊣ τ2→τ1 :Ωa n d⊣∀ α.τ1 :Ω ,
+respectively. For deterministic scope extrusion we have in-
+troduced the syntactic class ofresults. Aresult is a value
+preﬁxed by a sequence of N-binders. Scope extrusion only
+applies to the outermost binder of a result; evaluation has
+to proceed under a N-binder until its body has become a
+result. Intuitively,aresultmaybethoughtofasanexpres-
+sion’s “return value” paired with theheap of type names
+its evaluation allocated. The type names generated in dif-
+ferentsubexpressionswillallaccumulateintheheapofthe
+completeexpressions’sresult. Forexample,considerthefol-
+lowingreductionsequence:
+(λf:int→int.f(Nγ1≈τ1.f4))( λx:int.Nγ2≈τ2.x)
+→ (λx:int.Nγ2≈τ2.x)(N γ1≈τ1.(λx:int.Nγ′
+2≈τ2.x)4)
+→ (λx:int.Nγ2≈τ2.x)(N γ1≈τ1.Nγ′
+2≈τ2.4)
+→ Nγ1≈τ1.(λx:int.Nγ2≈τ2.x)(N γ′
+2≈τ2.4)
+→ Nγ1≈τ1.Nγ′
+2≈τ2.(λx:int.Nγ2≈τ2.x)4
+→ Nγ1≈τ1.Nγ′
+2≈τ2.Nγ2≈τ2.4
+Generationisfullydynamic,i.e.thenumberoftypenames
+generated is not determined statically. The following non-
+terminatingexpressionwillactuallygenerateaninﬁnitenum-
+beroftypes:
+(ﬁx f(x:unit):unit.Nγ≈τ.f x)()
+4.3 Typing
+Thetypingandwell-formednessrulesofthecalculusarea
+simpleextensionoftherulesforthepolymorphic λ-calculus.
+Weneedtheusualthreejudgmentforms:
+⊣Γ: ⋄ well-formednessofenvironments
+Γ ⊣ τ :Ω well-formednessoftypes
+Γ ⊣ e: τ well-typednessofterms
+In comparison to the plainλ-calculus, λN adds the previ-
+ouslydiscussedtypingrulesforN,coercions,andtypecase,
+as well as extended well-formedness rules for dealing with
+type names and type assertions. The presence of a non-
+trivialtypeequivalencerelationrequiresanadditionalstruc-
+tural typing rule (Equiv) for assigning of equivalent types
+toaterm. Thetypeequivalencerelationisdeﬁnedinﬁgure
+7.
+It is not diﬃcult to show that type soundness properties
+holdfor λN:
+Theorem 1 (Preservation). IfΓ ⊣ e: τ and e → e′,
+thenΓ ⊣ e′: τ .
+Theorem 2 (Progress). If ·⊣ e: τ (i.e. e is closed),
+then either e ≡ˆe for some result ˆe,o r e → e′ for some e′.
+Notethatif ˆeisclosed,then ˆe ⁄≡{ˆe′}+
+γ.W ea l s oh a v e
+Theorem 3 (Unique Types). WheneverΓ ⊣ e: τ and
+Γ ⊣ e: τ ′ then τ = τ ′.
+4.4 Opacity
+Toseehowopacityisstillpreservedinthenon-parametric
+settingof λN letusgobac ktothe λN-encoding ofcomplex
+numbers, as shown in section 3.3. It is safe with respect
+todynamictyping,asthereductionoftheexpressionrepre-
+sentingthesecondoﬀendingexamplefromsection1.1shows:
+open ⟨α, ⟩=N γ≈real × real . ⟨γ, . . . ⟩in
+(... tcase(1 ,1001π): real × realof z: αthen zelse ⊥ ... )
+→Nγ≈real × real .open ⟨α, ⟩= ⟨γ, . . . ⟩in
+(... tcase(1 ,1001π): real × realof z: αthen zelse ⊥ ... )
+→Nγ≈real × real .
+(... tcase(1 ,1001π): real × realof z: γthen zelse ⊥ ... )
+→Nγ≈real × real .(... ⊥ ... )
+The variablez keeps an abstract type even after opening
+thepackage,andtheattempttoviolatetheabstractionvia
+typecaseremainsunsuccessful.
+More generally, consider a closed, well-typed function of
+the form Λα.λx:α.e (which may contain random uses of
+typecase).Appliedtoanabstracttype γandvalue ˆˆe: γ,its
+result will be independent ofγ’s respective representation
+type, as well as of the concrete valueˆˆe. Formally, we can
+phrasethefollowingproperty:
+Theorem 4 (Opacity). Let e be an expression with
+α, x:α ⊣ e : τ . Assume a set of values ˆˆei (i =1 ,...,n )
+such that γi≈τi ⊣ˆˆei : γi.L e t σi =[ α:= γi,x :=ˆˆei] for all i.
+If eσ1 is not a value then there is an e′ with α, x:α ⊣ e′: τ
+such that eσi → e′σi for all σi.
+Opacity subsumes value abstraction [10], but is slightly
+stronger because it also impliestype abstraction, i.e. inde-
+pendencefromabstracttyperepresentations.
+4.5 Sharing
+Despiteopacity, λN stillallowsexpressing(dynamic) shar-
+ingbetweenabstracttypes. Forexample,thefollowingfunc-
+tion checks if two given complex types are compatible and
+mixesoperationsfrombothofthemifthatisthecase:
+λC1 : COMPLEX .λ C2 : COMPLEX .
+open ⟨α1,(mk 1, , , )⟩= C1 in
+open ⟨α2,( , , im2, )⟩= C2 in
+tcase im2 : α2 → realof im′
+2 : α1 → real
+then im′
+2(mk1(0,2))else ⊥
+247 
+
+=== PAGE 8 ===
+(1) (ﬁx x1(x2:τ2):τ1.e)ˆˆe → e[x1 :=ﬁx x1(x2:τ2):τ1.e, x2 :=ˆˆe]
+(2) (Λ α.e) τ → e[α:= τ]
+(3) {{ˆˆe: τ1}+
+γ≈τ ′ : τ2}−
+γ≈τ ′ → ˆˆe (if τ1 = τ2 = γ)
+(4) {ˆˆe: τ }±
+γ≈τ ′ → ˆˆe (if τ = γ′⁄≡ γ)
+(5) {ˆˆe: τ }±
+γ≈τ ′ → ﬁx x1(x2 : {τ2}±
+γ≈τ ′): {τ1}±
+γ≈τ ′ . (if τ = τ2→τ1; x1,x 2 /∈FV(ˆˆe))
+{ˆˆe {x: τ2}∓
+γ≈τ ′ : τ1}±
+γ≈τ ′
+(6) {ˆˆe: τ }±
+γ≈τ ′ → Λα.{ˆˆeα : τ1}±
+γ≈τ ′ (if τ = ∀α.τ1)
+(7) tcase ˆˆe: τ1 of x: τ2 then e2 else e3 → e2[x:=ˆˆe]( i f τ1 = τ2)
+(8) tcase ˆˆe: τ1 of x: τ2 then e2 else e3 → e3 (if τ1 ⁄= τ2)
+(9) (N γ≈τ.ˆe) e → Nγ≈τ.ˆee (γ/∈FTN(e))
+(10) ˆˆe(Nγ≈τ.ˆe) → Nγ≈τ.ˆˆeˆe (γ/∈FTN(ˆˆe))
+(11) (N γ≈τ.ˆe) τ ′ → Nγ≈τ.ˆeτ ′ (γ/∈FTN(τ ′))
+(12) {Nγ≈τ.ˆe: τ ′′}±
+γ′ ≈τ ′ → Nγ≈τ.{ˆe: τ ′′}±
+γ′ ≈τ ′ (γ ⁄≡ γ′; γ/∈FTN(τ ′,τ ′′))
+(13) tcaseN γ≈τ.ˆe1 : τ1 of x: τ2 then e2 else e3 → Nγ≈τ.tcaseˆe1 : τ1 of x: τ2 then e2 else e3 (γ/∈FTN(τ1,τ 2,e 2,e 3))
+(14) ee 2 → e′e2 (if e → e′)
+(15) ˆˆee → ˆˆee ′ (if e → e′)
+(16) eτ → e′τ (if e → e′)
+(17) N γ≈τ.e → Nγ≈τ.e′ (if e → e′)
+(18) {e: τ ′}±
+γ≈τ →{ e′: τ ′}±
+γ≈τ (if e → e′)
+(19) tcase e: τ1 of x: τ2 then e2 else e3 → tcase e′: τ1 of x: τ2 then e2 else e3 (if e → e′)
+Figure 5: λN Reduction
+That is, we are able to ﬁnd out dynamically whether ab-
+stract types are compatible, although we cannot look at
+their representation. This ability is important for dynamic
+programmingwithabstracttypes. Forexample, consider a
+scenario where a process retrieves values of abstract types
+from diﬀerent, statically undetermined locations. In order
+to combine those values, the program must be able to dy-
+namicallyverifytheircompatibility.
+5. HIGHER-ORDER TYPES
+The λN-calculusisequippedwithasecond-ordertypesys-
+tem. Thatenablesittomodelgenerativityofpropertypes.
+However,manyprogramminglanguagesallowthedeﬁnition
+of“polymorphic”abstracttypes. E.g.inSML,wecandeﬁne
+apolymorphicabstractstack:
+signature STACK =
+sig
+type ’a stack
+val empty : ’a stack
+val push : ’a * ’a stack -> ’a stack
+val pop : ’a stack -> ’a * ’a stack
+end
+structure Stack :> STACK =
+struct
+type ’a stack = ’a list
+...
+end
+Such higher-order type abstraction can be captured by ex-
+tending the calculus with higher-order types, allowing to
+deﬁne
+Nγ≈(λα:Ω.list α).e
+(assumingexistenceofatypeconstructor list:Ω →Ω). The
+essentialsofthehigher-ordercalculusareshowninﬁgure8.
+Besidesthestandardmodiﬁcationstotypingrulesthatare
+necessary when moving from System F to Fω (which have
+been omitted for space reasons) [8, 20], typing has to deal
+withhigher-kindedtypenames. Asaminortechnicality,we
+alsoaddakindannotationtoN-bindersthatisnotstrictly
+necessary in λω
+N per se, but needed for the extension pre-
+sented in the next section. We will omit this annotation
+whereobvious. Thetypeequivalencerelation(omitted)has
+tobeextendedwith βand η-rulesaswellasobviousrulesfor
+pushingunsealedtypesthroughtypeabstractionandappli-
+cation. Valuesofabstracttypenolongerneedtohaveplain
+type γ, but generally have a type of the formγτ 1 ...τ n
+(with n ≥ 0), which we abbreviate asγ⃗τ. For example,
+inanencodingofthestackabstraction,integerstackvalues
+haveshape {ˆˆe: γ int}+
+γ≈λα:Ω.list α : γ int.
+The primary complication in the higher-order extension
+appears withthereduction rules forcoercions: anabstract
+typemayhavetheform γ1 ⃗τ,andsome γ2 mayappearin ⃗τ.
+Forexample,consideranexpression
+{ˆˆe: γ1 γ2}−
+γ2 ≈τ2
+Howcanthecoercionbepushedinward,acrosstheunrelated
+abstract typeγ1? Fortunately, the canonical forms lemma
+forthecalculusimplies ˆˆe ≡{ˆˆe′: γ1 γ2}+
+γ1 ≈τ1. Wecanhence
+exchange bothcoercions, yielding simpler ones thatcanbe
+248 
+
+=== PAGE 9 ===
+⊣· : ⋄
+⊣Γ: ⋄ Γ ⊣ τ :Ω
+⊣Γ,x:τ : ⋄ (x/∈Dom(Γ))
+⊣Γ: ⋄
+⊣Γ,α : ⋄(α/∈Dom(Γ)) ⊣Γ: ⋄ Γ ⊣ τ :Ω
+⊣Γ,γ ≈τ : ⋄ (γ/∈Dom(Γ))
+⊣Γ: ⋄ α ∈Γ
+Γ ⊣ α:Ω
+⊣Γ: ⋄ γ≈τ ∈Γ
+Γ ⊣ γ:Ω
+Γ ⊣ τ1 :Ω Γ ⊣ τ2 :Ω
+Γ ⊣ τ1 → τ2 :Ω
+Γ,α ⊣ τ :Ω
+Γ ⊣∀ α.τ :Ω
+Γ ⊣ τ1 :Ω γ≈τ2 ∈Γ
+Γ ⊣{ τ1}−
+γ≈τ2 :Ω
+(Id) ⊣Γ: ⋄ x:τ ∈Γ
+Γ ⊣ x: τ (App) Γ ⊣ e1 : τ ′→ τ Γ ⊣ e2 : τ ′
+Γ ⊣ e1 e2 : τ
+(Fix) Γ ⊣ τ1 :Ω Γ ⊣ τ2 :Ω Γ ,x 1:τ2→τ1,x 2:τ2 ⊣ e: τ1
+Γ ⊣(ﬁx x1(x2:τ2):τ1.e): τ2 → τ1
+(Gen) Γ,α ⊣ e: τ
+Γ ⊣Λα.e: ∀α.τ (Inst) Γ ⊣ e: ∀α.τ Γ ⊣ τ ′:Ω
+Γ ⊣ eτ ′: τ[α:= τ ′]
+(New) Γ ⊣ τ ′:Ω Γ ,γ ≈τ ′⊣ e: τ
+Γ ⊣Nγ≈τ ′.e: τ (γ/∈FTN(τ))
+(Seal)
+Γ ⊣ e: {τ }−
+γ≈τ ′ γ≈τ ′∈Γ
+Γ ⊣{ e: τ }+
+γ≈τ ′ : τ
+(Unseal) Γ ⊣ e: τγ ≈τ ′∈Γ
+Γ ⊣{ e: τ }−
+γ≈τ ′ : {τ }−
+γ≈τ ′
+(Tcase) Γ ⊣ e1 : τ1 Γ ⊣ τ2 :Ω Γ ,x:τ2 ⊣ e2 : τ Γ ⊣ e3 : τ
+Γ ⊣(tcase e1 : τ1 of x: τ2 then e2 else e3): τ
+(Equiv) Γ ⊣ e: τ ′ τ ′= τ Γ ⊣ τ :Ω
+Γ ⊣ e: τ
+Figure 6: λN Typing
+copedwithasusual(orbyanotherstepofthesamesort):
+{{ˆˆe′: γ1 γ2}+
+γ1 : γ1 γ2}−
+γ2 →{ { ˆˆe′: τ1 γ2}−
+γ2 : γ1 τ2}+
+γ1
+In general however,γ1 can occur inτ2,o rγ2 may occur in
+τ1 (sincetypeassertionscannotbe circular, atmostoneof
+these cases can actually arise at a time). Either way, the
+reductwouldnotbewell-typed. Wehencehavetoinsertan
+auxiliarycoercion,reducingtoeither
+{{{ˆˆe′: τ1 γ2}−
+γ2 : τ1 τ2}−
+γ1 : γ1 τ2}+
+γ1 (γ2 /∈FTN(τ1))
+or
+{{{ˆˆe′: τ1 γ2}−
+γ2 : τ1 {τ2}−
+γ1 }+
+γ2 : γ1 τ2}+
+γ1 (γ1 /∈FTN(τ2))
+dependingonwhichcaseactuallyapplies. Inasimilarvein,
+positive coercions have to be handled. The modiﬁed re-
+ductionrulesforhigher-order coercionsareshowninﬁgure
+8. To keep side conditions readable we use the following
+conventions: (1) γ ⁄≡ γ′;( 2 ){ˆˆe:τ ′}±
+γ≈τ matches any term
+{ˆˆe:τ ′′}±
+γ≈τ with τ ′′= τ ′and ·⊣ τ ′′: κ;( 3 )γ ∈ FTN(τ)
+τ = τ
+τ ′= τ
+τ = τ ′
+τ = τ ′ τ ′= τ ′′
+τ = τ ′′
+τ1 = τ ′
+1 τ2 = τ ′
+2
+τ1→τ2 = τ ′
+1→τ ′
+2
+τ = τ ′
+∀α.τ = ∀α.τ ′
+τ1 = τ ′
+1
+{τ1}−
+γ≈τ2 = {τ ′
+1}−
+γ≈τ2
+{γ}−
+γ≈τ = τ {γ′}−
+γ≈τ = γ′(γ ⁄≡ γ′)
+{τ1→τ2}−
+γ≈τ3 = {τ1}−
+γ≈τ3 →{τ2}−
+γ≈τ3
+{∀α.τ1}−
+γ≈τ2 = ∀α.{τ1}−
+γ≈τ2
+(α/∈FTV(τ2))
+Figure 7: λN Type equivalence
+means ∀τ ′.τ ′= τ ⇒ γ ∈FTN(τ ′). Reductionrule(4a)gen-
+eralizesthepreviousrule(4),whilerules(4b)–(4e)treatthe
+cases discussed above. They also handleγ′occuring in its
+ownargumentvector ⃗τ.
+Soundnessresultsextendto λω
+N inastraight-forwardman-
+ner. Opacityhastobereformulatedasfollows:
+Theorem 5 ( λω
+N Opacity). Let e be an expression with
+α, x:α⃗τ ⊣ e : τ for some ⃗τ . Assume a set of values ˆˆei
+(i =1 ,...,n ) such that γi≈τi ⊣ ˆˆei : γi ⃗τ .L e t σi =[ α :=
+γi,x :=ˆˆei] for all i.I f eσ1 is not a value then there is an e′
+with α, x:α⃗τ ⊣ e′: τ such that eσi → e′σi for all σi.
+5.1 Applicative generativity
+AfunctioncontainingaN-binderwillproduceanewcopy
+ofthebinderoneveryapplication. Forexample,
+let f = λx:unit.Nγ≈int.⟨γ, {13}+
+γ ⟩in( f (),f ())
+=N γ1≈int.Nγ2≈int.(⟨γ1, {13}+
+γ1 ⟩, ⟨γ2, {13}+
+γ2 ⟩)
+Thestandard α-renamingrulesmake γ1 and γ2 twoincom-
+patible types. That behaviour is analoguous to functors in
+SML,wherethefollowingsnippetdeclarestwoincompatible
+types X1.tand X2.t:
+functor F () :> sig type t; va lx:te n d
+= struct type t = int; val x = 13 end
+structure X1 = F ()
+structure X2 = F ()
+In other words,λN implements afully generative type ab-
+straction discipline. There are alternative approaches to
+functors that makeX1.t and X2.t equivalent types. Af-
+ter Leroy, such functors are calledapplicative[12]. Dreyer,
+CraryandHarperproposetwoalternativesealingoperators
+:>and :: toallowgenerativeandapplicativefunctorstoco-
+exist[6]. Intheirapproach,replacing :>by :: intheabove
+examplewouldyieldcompatibletypes X1.tand X2.t.
+We can incorporate applicative generativity intoλω
+N by
+extending itwithasecondformofN-binder, whichwedis-
+tinguishbymarkingitasfollows:
+ˇNγ:κ≈τ.e
+TypingforthisbinderisthesameasforplainN,butitcomes
+withdiﬀerentreductionrules—thefundamentalideabeing
+thatitisliftedoutoflambdaspriorto β-reduction,avoiding
+249 
+
+=== PAGE 10 ===
+(kinds) κ ::= Ω | κ1 → κ2
+(types) τ ::= ... |∀ α:κ.τ | λα:κ.τ | τ1 τ2
+(terms) e ::= ... |Λα:κ.e |Nγ:κ≈τ.e
+(values) ˆˆe ::= ... |Λα:κ.e |{ˆˆe: τ }+
+γ≈τ ′ (τ = γ⃗τ)
+(env’s) Γ ::= ... |Γ,α:κ
+γ≈τ ∈ΓΓ ⊣ τ : κ
+Γ ⊣ γ: κ
+(New) Γ ⊣ τ ′: κ Γ,γ ≈τ ′⊣ e: τ
+Γ ⊣Nγ:κ≈τ ′.e: τ (γ/∈FTN(τ))
+(3) {{ˆˆe: γ⃗τ }+
+γ≈τ : γ⃗τ }−
+γ≈τ → ˆˆe
+(4a) {{ˆˆe: γ′⃗τ ′}+
+γ′ ≈τ ′ : γ′⃗τ }±
+γ≈τ →{ ˆˆe: γ′⃗τ ′}+
+γ′ (if γ/∈FTN(⃗τ))
+(4b) {{ˆˆe: γ′⃗τ ′}+
+γ′ ≈τ ′ : γ′⃗τ }+
+γ≈τ → {{{ ˆˆe: τ ′{{⃗τ }−
+γ }−
+γ′ }−
+γ : τ ′{⃗τ }−
+γ′ }+
+γ : γ′⃗τ }+
+γ′ (if γ′ /∈FTN(τ); γ ∈FTN(⃗τ))
+(4c) {{ˆˆe: γ′⃗τ ′}+
+γ′ ≈τ ′ : γ′⃗τ }−
+γ≈τ → {{{ ˆˆe: τ ′{⃗τ }−
+γ′ }−
+γ : τ ′{{⃗τ }−
+γ }−
+γ′ }+
+γ : γ′{⃗τ }−
+γ }+
+γ′ (if γ′ /∈FTN(τ); γ ∈FTN(⃗τ))
+(4d) {{ˆˆe: γ′⃗τ ′}+
+γ′ ≈τ ′ : γ′⃗τ }+
+γ≈τ → {{{ ˆˆe: τ ′{{⃗τ }−
+γ′ }−
+γ }+
+γ′ : τ ′{⃗τ }−
+γ′ }+
+γ : γ′⃗τ }+
+γ′ (if γ′∈FTN(τ); γ ∈FTN(⃗τ))
+(4e) {{ˆˆe: γ′⃗τ ′}+
+γ′ ≈τ ′ : γ′⃗τ }−
+γ≈τ → {{{ ˆˆe: τ ′{⃗τ }−
+γ′ }−
+γ : τ ′{{⃗τ }−
+γ′ }−
+γ }−
+γ′ : γ′{⃗τ }−
+γ }+
+γ′ (if γ′∈FTN(τ); γ ∈FTN(⃗τ))
+Figure 8: The λω
+N-calculus (excerpt)
+duplication. Figure 9 shows the extended syntax. For rea-
+sonsthatwillbecomeappearentshortly,wecalltheclassof
+termsextendedwith ˇN pre-terms. Again,weneedanaddi-
+tional class of results, calledpre-results, to get a determin-
+isticevaluation relation. Pre-results are ordinaryλω
+N-terms
+preﬁxedbyasequenceof ˇN-binders.
+Figure10revealstheextendedreductionrelation. Itcon-
+tains scope extrusion rules forˇN (20–29), structural rules
+on pre-terms (30–40), and a singleﬁxation rule (41). Un-
+likeplainN,thescopeof ˇNcanbeextrudedacrossbinders
+like ﬁx, Λ and plain N, as well as from the branches of a
+typecase. Moreover,pre-termreductionmayproceedunder
+alltheseconstructs. Theonlyinterestingrulesare(23)and
+(25), where aˇN-binder has to be lifted out of a binder for
+a type variable. Since that variable may occur free in the
+respectiverepresentationtype,specialcarehastobetaken.
+We borrow an idea from Russo [27], who models applica-
+tive functors by representing abstract types in their result
+signature as higher-order abstractions over all types of the
+functor’s argument. In a similar vein, the aforementioned
+reductionrulesraisethetypename γtohigherorderbyab-
+stractingovertherespectivetypevariablewhosebindingthe
+scopewillbeextrudedfrom. Asasimpleexample,consider
+thefollowingreduction:
+let f =Λ α:Ω.λx:α.ˇNγ≈α.⟨γ, {x: γ}+
+γ≈α⟩
+in( f int3,f int4,f real5.0)
+=l e tf = ˇNγ≈(λα:Ω.α).Λα:Ω.λx:α.⟨γα , {x: γα }+
+γ≈λα:Ω.α⟩
+in( f int3,f int4,f real5.0)
+= ˇNγ≈(λα:Ω.α).let f =Λ α:Ω.λx:α.⟨γα , {x: γα }+
+γ≈λα:Ω.α⟩
+in( f int3,f int4,f real5.0)
+=N γ≈(λα:Ω.α).(⟨γ int, {3}+
+γ ⟩, ⟨γ int, {4}+
+γ ⟩, ⟨γ real, {5.0}+
+γ ⟩)
+Theﬁrsttwopackagescarrythesametype γ int,whilethe
+lastonecontainsthediﬀerenttype γ real.
+Since scope extrusion is the only actual evaluation tak-
+ingplaceonnon-plainpre-terms,theeﬀectofreducingpre-
+termsisliftingoutall ˇN-bindersuntilthepre-term hasbe-
+come a pre-result, i.e. its body is a plain term. Once that
+form has been reached, the ﬁxation rule (41) turns all its
+now outermostˇN-binders into plain N-binders, leaving an
+ordinary λω
+N-term, for which evaluation proceeds as before.
+Inotherwords,evaluationhappensintwophases: ﬁrst,rules
+(20–41)transformthepre-term intoaplainterm, thenthe
+(pre-terms) ˇˇe ::= x |ﬁx x1(x2:τ2):τ1.ˇˇe |ˇˇe1 ˇˇe2 |Λα:κ.ˇˇe |
+ˇˇeτ |Nγ:κ≈τ.ˇˇe | ˇNγ:κ≈τ.ˇˇe |{ˇˇe: τ }±
+γ≈τ ′ |
+tcaseˇˇe1 : τ1 of x: τ2 thenˇˇe2 elseˇˇe3
+(pre-results) ˇe ::= e | ˇNγ:κ≈τ.ˇe
+Figure 9: Syntax of pre-terms
+rules(1–19)performproperevaluation. Theﬁrstphasewill
+alwaysterminate:
+Theorem 6 (Finite Pre-term Reduction). Every
+well-typed pre-term ˇˇe r e d u c e st oap l a i nt e r me by a ﬁnite
+reduction sequence (involving only rules (20)–(41)).
+In this light, it is valid to view pre-terms as an exter-
+nal language, which is transformed into the internal core
+languageofplaintermspriortoevaluationviaastaticelab-
+orationprocess.
+6. RELATED WORK
+Although being relatively simple in spirit, to our knowl-
+edge there is no previous work that isolates the dynamic
+aspectoftypegenerativityforabstractionandformalisesit
+in a calculus. While module theories usually account for
+generativity as well, they do so solelyon the staticlevel of
+typing rules. In fact, all of the inﬂuential theories for ML
+modules[12,15,27,6]arenotfullcalculi,butmerely type
+systems, that side-step the issue of reduction. The pres-
+ence of ad-hoc typing rules encompassing type abstraction
+precludesatype-preservingreductionsemantics.
+OnenotableexceptionisSewell,whousesgenerativityfor
+modellingcertainaspectsoftypeabstraction[29]. However,
+inhissystemgeneratedabstracttypesarerecordedasman-
+ifestlyequaltotheirrepresentationinaglobalenvironment,
+sothatopacityisnotproperlymaintaineddynamically.
+Glewpresentedacalculusforgeneratingnewtaggedtypes
+atruntimeanddispatchingonthem[9]. Hissystemismore
+complex than ours in order to allow for hierarchical types,
+but it is not fully reﬂexive since untagged types cannot be
+analysed.
+The work most relevant to ours is by Grossman, Mor-
+risett and Zdancewic on proof techniques for abstraction
+250 
+
+=== PAGE 11 ===
+(20) ﬁx x1(x2:τ2):τ1.ˇNγ:κ≈τ.ˇe → ˇNγ:κ≈τ.ﬁx x1(x2:τ2):τ1.ˇe (γ/∈FTN(τ1,τ 2))
+(21) ( ˇNγ:κ≈τ.ˇe)ˇˇe → ˇNγ:κ≈τ.ˇeˇˇe (γ/∈FTN(ˇˇe))
+(22) e(ˇNγ:κ≈τ.ˇe) → ˇNγ:κ≈τ.eˇe (γ/∈FTN(e))
+(23) Λ α:κ′.ˇNγ:κ≈τ.ˇe → ˇNγ:κ′→κ≈(λα:κ′.τ).Λα:κ′.ˇe[γ:= γα]
+(24) ( ˇNγ:κ≈τ.ˇe) τ ′ → ˇNγ:κ≈τ.ˇeτ ′ (γ/∈FTN(τ ′))
+(25) N γ′:κ′≈τ ′.ˇNγ:κ≈τ.ˇe → ˇNγ:κ′→κ≈(λα:κ′.τ[γ′:= α]).Nγ′:κ′≈τ ′.ˇe[γ:= γγ ′]
+(γ ⁄≡ γ′; α/∈FTV(τ); γ/∈FTN(τ ′))
+(26) {ˇNγ:κ≈τ.ˇe: τ ′′}±
+γ′ ≈τ ′ → ˇNγ:κ≈τ.{ˇe: τ ′′}±
+γ′ ≈τ ′ (γ ⁄≡ γ′; γ/∈FTN(τ ′,τ ′′))
+(27) tcase ˇNγ:κ≈τ.ˇe1 : τ1 of x: τ2 thenˇˇe2 elseˇˇe3 → ˇNγ:κ≈τ.tcaseˇe1 : τ1 of x: τ2 thenˇˇe2 elseˇˇe3 (γ/∈FTN(τ1,τ 2,ˇˇe2,ˇˇe3))
+(28) tcase e1 : τ1 of x: τ2 then ˇNγ:κ≈τ.ˇe2 elseˇˇe3 → ˇNγ:κ≈τ.tcase e1 : τ1 of x: τ2 thenˇe2 elseˇˇe3 (γ/∈FTN(τ1,τ 2,e 1,ˇˇe3))
+(29) tcase e1 : τ1 of x: τ2 then e2 else ˇNγ:κ≈τ.ˇe3 → ˇNγ:κ≈τ.tcase e1 : τ1 of x: τ2 then e2 elseˇe3 (γ/∈FTN(τ1,τ 2,e 1,e 2))
+(30) ﬁx x1(x2:τ2):τ1.ˇˇe → ﬁx x1(x2:τ2):τ1.ˇˇe′ (ifˇˇe →ˇˇe′;ˇˇe ⁄≡ˇe)
+(31) ˇˇeˇˇe2 → ˇˇe′ˇˇe2 (ifˇˇe →ˇˇe′;ˇˇe ⁄≡ˇe)
+(32) eˇˇe → eˇˇe′ (ifˇˇe →ˇˇe′;ˇˇe ⁄≡ˇe)
+(33) Λ α:κ.ˇˇe → Λα:κ.ˇˇe′ (ifˇˇe →ˇˇe′;ˇˇe ⁄≡ˇe)
+(34) ˇˇeτ → ˇˇe′τ (ifˇˇe →ˇˇe′;ˇˇe ⁄≡ˇe)
+(35) N γ:κ≈τ.ˇˇe → Nγ:κ≈τ.ˇˇe′ (ifˇˇe →ˇˇe′;ˇˇe ⁄≡ˇe)
+(36) ˇNγ:κ≈τ.ˇˇe → ˇNγ:κ≈τ.ˇˇe′ (ifˇˇe →ˇˇe′;ˇˇe ⁄≡ˇe)
+(37) {ˇˇe: τ ′}±
+γ≈τ →{ ˇˇe′: τ ′}±
+γ≈τ (ifˇˇe →ˇˇe′;ˇˇe ⁄≡ˇe)
+(38) tcase ˇˇe: τ1 of x: τ2 thenˇˇe2 elseˇˇe3 → tcaseˇˇe′: τ1 of x: τ2 thenˇˇe2 elseˇˇe3 (ifˇˇe →ˇˇe′;ˇˇe ⁄≡ˇe)
+(39) tcase e1 : τ1 of x: τ2 thenˇˇeelseˇˇe3 → tcase e1 : τ1 of x: τ2 thenˇˇe′elseˇˇe3 (ifˇˇe →ˇˇe′;ˇˇe ⁄≡ˇe)
+(40) tcase e1 : τ1 of x: τ2 then e2 elseˇˇe → tcase e1 : τ1 of x: τ2 then e2 elseˇˇe′ (ifˇˇe →ˇˇe′;ˇˇe ⁄≡ˇe)
+(41) ˇNγ:κ≈τ.e → Nγ:κ≈τ.e
+Figure 10: Reduction for applicative generation
+[10]. They present a calculus that uses annotated brackets
+formarkingabstractionboundariesduringreduction. These
+are similar to the generalized coercions inλN. However,
+intheirsystemabstractionbracketsarenotdirected,i.e.it
+doesnotdistinguishbetweensealingandunsealing. Instead,
+all directly nested brackets are collapsed on reduction and
+annotatedwiththesequenceof‘principals’thatownthecor-
+responding abstractions. That appears to be slightly more
+complex, but avoids the need for the artefact of unsealed
+types, as well asη-expansion during reduction. The latter
+isadvantegeousforprovingatypeerasuretheorem. Onthe
+other hand, in their system the deﬁnition of type equiva-
+lencedependsonanadditionaltypeassertionenvironment.
+Thiscomplicatestheoperationalsemantics,becausetheen-
+vironment has to be maintained dynamically to cope with
+abstractionscoping. Furthermore,theircalculuscannotex-
+press dynamic abstraction, but requires identifying a ﬁxed
+setofabstractionsstatically,sincetechnically,thereduction
+relation has to be extended for each occuring abstraction.
+Both these aspects make it less suited as a simple opera-
+tionalmodelfortypeabstraction.
+The λN-calculus also reveals close similarities to Pierce
+and Sumii’s cryptographic lambda calculus [21]: N-binders
+correspond to key generation and sealing/unsealing to en-
+cryption/decryption operations in that calculus. However,
+their type system is weaker in the sense that decryption
+mayfaildynamically. Theypresentanencodingoftypeab-
+stractingpolymorphism using ciphertext, but do not prove
+anythingaboutit.
+Noneofthementionedworkconsidershigher-ordertypes
+andhigher-ordersealing,orapplicativegenerativity.
+7. CONCLUSION
+The standard encoding of abstract types via existential
+types relies on parametricity of polymorphism. If para-
+metricity is not given, due to constructs for type analysis,
+theencodingisinappropriatebecauseitcannotwarranten-
+capsulation. In non-parametric settings it is necessary to
+capturegenerativitytoachievedynamicopacityandthereby
+encapsulation.
+As a solution we proposed a calculus whose core feature
+is a syntactic treatment of dynamic generativity, using a
+variationofnamegenerationasknownfrom π-calculusand
+other systems. It relies on coercions as explicit transition
+markers for abstraction boundaries. By generalizing these
+coercionsinductivelyoveralltypestheycanbeusedtoex-
+presssealing. Thecalculuscanbeextendedtohigher-order
+abstracttypesandaugmentedwithsupport forapplicative
+generativity.
+As future work, we would liketo integrate aspects ofλω
+N
+withrecentmoduletheories[6],inordertogetafulltheory
+ofmoduleswithdynamictyping. Forexample,thelanguage
+AliceMLthatiscurrently being developed [2]provides so-
+called packagesas a form of dynamics generalized to mod-
+ules. Acombinedtheoryisneededtogiveaformalsemantics
+forthatfeature.
+Fullrepresentationindependenceorextensionality[18,22]
+of abstract types inλN is a challenge to prove. There ap-
+pears to be very little work on proof techniques for oper-
+ational equivalence in non-parametric extensions of theλ-
+calculus. Itisnotclearhowtechniqueslikelogicalrelations
+[18,25,23]canbeappliedinsuchasetting.
+251 
+
+=== PAGE 12 ===
+8. REFERENCES
+[1] M.Abadi,L.Cardelli,B.Pierce,andD.R´ emy.
+Dynamictypinginpolymorphiclanguages. Journal of
+Functional Programming,5(1):111–130,Jan.1995.
+[2] AliceTeam. The Alice System.ProgrammingSystem
+Lab,Universit¨atdesSaarlandes,
+http://www.ps.un-sb.de/alice/, 2003.
+[3] H.Barendregt.Lambdacalculiwithtypes.In
+S.Abramsky,D.Gabbay,andT.Maibaum,editors,
+Handbook of Logic in Computer Science ,volume2,
+chapter2,pages117–309.OxfordUniversityPress,
+1992.
+[4] L.Cardelli,J.Donahue,L.Glassman,M.Jordan,
+B.Kalsow,andG.Nelson.Modula-3language
+deﬁnition.InG.Nelson,editor, System Programming
+with Modula-3,chapter2,pages11–66.PrenticeHall,
+1991.
+[5] L.CardelliandX.Leroy.Abstracttypesandthedot
+notation.In IFIP TC2 working conference on
+programming concepts and methods,pages479–504.
+North-Holland,Mar.1990.
+[6] D.Dreyer,K.Crary,andR.Harper.Atypesystem
+forhigher-ordermodules.In 30th Symposium on
+Principles of Programming Languages,NewOrleans,
+USA,Jan.2003.
+[7] C.Dubois,F.Rouaix,andP.Weis.Extensional
+polymorphism.In 22nd Symposium on Principles of
+Programming Languages,SanFrancisco,USA,Jan.
+1995.
+[8] J.-Y.Girard. Interpr´etation Fonctionnelle et
+´Elimination des Coupures de l’Arithm´ etique d’Ordre
+Sup´erieur.PhDthesis,June1972.
+[9] N.Glew.Typedispatchfornamedhierarchicaltypes.
+In International Conference on Functional
+Programming,Paris,France,Oct.1999.
+[10] D.Grossman,G.Morrisett,andS.Zdancewic.
+Syntactictypeabstraction. Transactions on
+Programming Languages and Systems,
+22(6):1037–1080,Nov.2000.
+[11] R.HarperandG.Morrisett.Compilingpolymorphism
+usingintensionaltypeanalysis.In 22nd Symposium on
+Principles of Programming Languages,pages130–141,
+SanFrancisco,USA,Jan.1995.
+[12] X.Leroy.Applicativefunctorsandfullytransparent
+higher-ordermodules.In 22nd Symposium on
+Principles of Programming Languages,pages142–153,
+SanFrancisco,USA,Jan.1995.ACM.
+[13] X.Leroy. The Objective Caml System .INRIA,2003.
+http://pauillac.inria.fr/ocaml/htmlman/.
+[14] X.LeroyandM.Mauny.DynamicsinML. Journal of
+Functional Programming,3(4):431–463,1993.
+[15] M.Lillibridge. Translucent Sums: A Foundation for
+Higher-Order Module Systems.PhDthesis,Sc hoolof
+ComputerScience,CarnegieMellonUniversity,
+Pittsburgh,USA,May1997.
+[16] B.Liskov,R.Atkinson,T.Bloom,E.Moss,
+C.Schaﬀert,R.Scheiﬂer,andA.Snyder.CLU
+referencemanual.TechnicalReport
+MIT/LCS/TR-225,1979.
+[17] R.Milner,M.Tofte,R.Harper,andD.MacQueen.
+Deﬁnition of Standard ML (Revised) .TheMITPress,
+1997.
+[18] J.Mitchell.Ontheequivalenceofdata
+representations.InV.Lifschitz,editor, Artiﬁcial
+Intelligence and Mathematical Theory of Computation:
+Papers in Honor of John McCarthy ,pages305–330.
+AcademicPress,1991.
+[19] J.MitchellandG.Plotkin.Abstracttypeshave
+existentialtype. Transactions on Programming
+Languages and Systems,10(3):470–502,1988.
+Preliminaryversionappearedin 12th Symposium on
+Principles of Programming Languages,1985.
+[20] B.Pierce. Types and Programming Languages.The
+MITPress,Feb.2002.
+[21] B.PierceandE.Sumii.Relatingcryptographyand
+polymorphism.Technicalreport,July2000.
+http://www.yl.is.s.u-tokyo.ac.jp/~sumii/pub/.
+[22] A.Pitts.Existentialtypes: Logicalrelationsand
+operationalequivalence.In 25th International
+Colloquium on Automata, Languages and
+Programming,volume1443of Lecture Notes in
+Computer Science,pages309–326.Springer-Verlag,
+Berlin,1998.
+[23] A.Pitts.Parametricpolymorphismandoperational
+equivalence. Mathematical Structures in Computer
+Science,10:321–359,2000.
+[24] A.PittsandI.Stark.Ontheobservablepropertiesof
+higherorderfunctionsthatdynamicallycreatelocal
+names.InP.Hudak,editor, Workshop on State in
+Programming Languages,pages31–45,Copenhagen,
+Denmark,1993.
+[25] G.PlotkinandM.Abadi.Alogicforparametric
+polymorphism.InM.BeezeandJ.F.Groote,editors,
+Typed Lambda Calculus and Applications,volume664
+of Lecture Notes in Computer Science ,pages361–375.
+Springer-Verlag,Berlin,1993.
+[26] J.Reynolds.Types,abstractionandparametric
+polymorphism.InR.Mason,editor, Information
+Processing,pages513–523,Amsterdam,1983.North
+Holland.
+[27] C.Russo. Types for Modules.Dissertation,University
+ofEdinburgh,1998.
+[28] D.SangiorgiandD.Walker. The π-calculus: a Theory
+of Mobile Processes.CambridgeUniversityPress,Dec.
+2001.
+[29] P.Sewell.Modules,abstracttypes,anddistributed
+versioning.In 28th Symposium on Principles of
+Programming Languages,London,UK,Jan.2001.
+[30] C.Strachey.Fundamentalconceptsinprogramming
+languages.In Lecture Notes, International Summer
+School in Computer Programming.Copenhagen,Aug.
+1967.Reprintedin: Higher-Order and Symbolic
+Computation,13(1–2):11–49,April2000.
+[31] V.Trifonov,B.Saha,andZ.Shao.Fullyreﬂexive
+intensionaltypeanalysis.In Fifth International
+Conference on Functional Programming,pages82–93,
+Montreal,Canada,Sept.2000.
+[32] S.Weirich.Type-safecast.In International
+Conference on Functional Programming,pages58–67,
+Montreal,Canada,Sept.2000.
+[33] N.Wirth. Programming in MODULA-2.
+Springer-Verlag,3rdedition,1985.
+252 

@@ -24,6 +24,26 @@ those are the ones to prune if hosting them is a concern.
 | `siek2021-parameterized-cast-calculi.pdf` | Jeremy G. Siek, Tianyu Chen. *Parameterized Cast Calculi and Reusable Meta-theory for Gradually Typed Lambda Calculi.* JFP 31, e30, 2021. | CC-BY 4.0 | `SystemF/agda/strong*/notes/ParameterizedCastCalculi.md` |
 | `zdancewic1999-principals-in-programming-languages.pdf` | Steve Zdancewic, Dan Grossman, Greg Morrisett. *Principals in Programming Languages: A Syntactic Proof Technique.* ICFP 1999, pp. 197–207. | ACM © | `SystemF/agda/strong*/notes/Zdancewic-embeddings.md`, `TypeAbstractionComparison.md` |
 
+## Text extractions: `papers/text/`
+
+`papers/text/<same-name>.txt` is the text layer of each PDF, extracted
+with `pypdf` (no poppler in the container), with `=== PAGE n ===`
+markers at PDF page boundaries.  Grep these first; open the PDF only to
+confirm a formula.  Known defects:
+
+- Displayed math loses subscripts, superscripts and layout everywhere;
+  treat rule transcriptions as a pointer into the PDF, not a source.
+- `rossberg2003-…` runs words together ("Thestandardformalism…").
+- `grossman2000-…` has no ToUnicode maps, so some math glyphs are
+  missing (see `SystemF/agda/strong*/notes/TypeAbstractionComparison.md`
+  §12).
+- PDF page ≠ printed page for journal papers (STA: printed = PDF + 1036).
+
+To regenerate after adding a PDF: fetch the `pypdf` wheel from PyPI into
+a scratch directory, unzip it, and run
+`PYTHONPATH=<dir> python3 -c "from pypdf import PdfReader; …"` over the
+file, writing one `=== PAGE n ===` block per page.
+
 ## Wanted, not yet here
 
 Cited or flagged by `SystemF/agda/strong-rep-nu/paper/draft.md`,

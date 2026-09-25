@@ -1,0 +1,1779 @@
+
+
+=== PAGE 1 ===
+39
+Theorems for Free for Free:
+Parametricity, With and Without Types
+AMAL AHMED, Northeastern University, USA
+DUSTIN JAMNER, Northeastern University, USA
+JEREMY G. SIEK, Indiana University, USA
+PHILIP W ADLER, University of Edinburgh, UK
+The polymorphic blame calculus integrates static typing, including universal types, with dynamic typing.
+The primary challenge with this integration is preserving parametricity: even dynamically typed code should
+satisfy it once it has been cast to a universal type. Ahmed et al. (2011) employ runtime type generation in the
+polymorphic blame calculus to preserve parametricity, but a proof that it does so has been elusive. Matthews
+and Ahmed (2008) gave a proof of parametricity for a closely related system that combines ML and Scheme,
+but later found a flaw in their proof. In this paper we present an improved version of the polymorphic blame
+calculus and we prove that it satisfies relational parametricity. The proof relies on a step-indexed Kripke logical
+relation. The step-indexing is required to make the logical relation well defined in the case for the dynamic
+type. The possible worlds include the mapping of generated type names to their types and the mapping of type
+names to relations. We prove the Fundamental Property of this logical relation and that it is sound with respect
+to contextual equivalence. To demonstrate the utility of parametricity in the polymorphic blame calculus, we
+derive two free theorems.
+CCS Concepts: • Software and its engineering → Functional languages; Polymorphism; Semantics;
+Additional Key Words and Phrases: parametricity, dynamic typing, gradual typing, logical relation
+ACM Reference Format:
+Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler. 2017. Theorems for Free for Free: Parametricity,
+With and Without Types. Proc. ACM Program. Lang. 1, ICFP, Article 39 (September 2017), 28 pages.
+https://doi.org/10.1145/3110283
+1 INTRODUCTION
+The last decade has delivered considerable progress regarding the integration of static and dynamic
+typing, both in theory and in practice. On the practical side, languages such as TypeScript [ Bierman
+et al. 2014; Hejlsberg 2012], Hack [ Verlaguet 2013], Flow [ Chaudhuri 2014], Dart [ Bracha 2011],
+and C# [Hejlsberg 2010] combine elements of static and dynamic typing. Over a million lines of
+TypeScript code went into the Microsoft Azure portal [ Turner 2014]. On the theory side, in the
+last decade researchers have studied gradual typing [Allende et al. 2013; Gronski et al. 2006; Ina
+and Igarashi 2011; Siek and Taha 2006; Swamy et al. 2014], multi-language integration [Matthews
+and Findler 2007 ; Tobin-Hochstadt and Felleisen 2006 ], the blame calculus [Wadler and Findler
+2009], and manifest contracts [Greenberg et al. 2010]. In fact, this area of research has a long history,
+including the dynamic type of Abadi et al. [1991], the quasi-static types of Thatte [1990], the coercions
+Permission to make digital or hard copies of part or all of this work for personal or classroom use is granted without fee
+provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and
+the full citation on the first page. Copyrights for third-party components of this work must be honored. For all other uses,
+contact the owner/author(s).
+© 2017 Copyright held by the owner/author(s).
+2475-1421/2017/9-ART39
+https://doi.org/10.1145/3110283
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+This work is licensed under a Creative Commons Attribution 4.0 International License.
+
+
+=== PAGE 2 ===
+39:2 Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler
+of Henglein [1994], the contracts of Findler and Felleisen [2002], and the dynamic dependent types
+of Ou et al. [2004].
+The integration of dynamic typing with languages that include polymorphism (i.e., type ab-
+straction) is particularly delicate. Abadi et al . [1991] remark that their typecase construct for
+eliminating values of type Dynamic could be used to violate type abstraction and suggest static
+restrictions to prevent that. Leroy and Mauny [1991] implement this approach in CAML as well
+as a non-parametric approach. A few years later, Abadi et al. [1995] allude to using runtime type
+generation (RTG) as a mechanism for protecting abstraction. Indeed, Sewell [2001] uses RTG to
+protect abstractions in distributed systems and Rossberg [2003, 2006] uses RTG for safe dynamic
+linking. Rossberg [2003] proves an Opacity Theorem, showing that substitution of different values
+at abstract type does not affect reduction.
+The strongest correctness criteria regarding the protection of type abstractions is relational
+parametricity [Reynolds 1983]. The idea is expressed in terms of a type-indexed relation, a logical
+relation, that captures when two expressions exhibit the same behavior when viewed at a particular
+type. Consider the following traditional example [ Pitts 1998a]
+(0,(λ(x:int ). 1 − x ),(λ(x:int ). x = 0)) vs. (1,(λ(x:int ). 1 − x ),(λ(x:int ). x = 1))
+each of which may be given either of the types
+int × (int → int ) × (int → bool ) vs. ∃X .X × (X → X ) × (X → bool ).
+The two expressions differ when assigned the first type, but behave identically when assigned the
+second. To prove that equivalence, one would choose the relation R = {(0,1),(1,0)} for X . The
+Abstraction Theorem of Reynolds [1983] proves that the polymorphic λ-calculus preserves its type
+abstractions by way of showing that every well-typed expression is related to itself in the logical
+relation. This kind of theorem is now referred to as the Fundamental Property of a logical relation.
+Matthews and Ahmed [2008] studied the integration of Scheme and ML, using RTG to protect
+ML’s polymorphic functions from the runtime type testsÐe.g., checking whether a value is an
+integer, a Boolean, or a functionÐcommon to dynamic languages like Scheme. For their ML+Scheme
+multi-language, they defined a step-indexed logical relation indexed by ML types and a dynamic
+type (TST, the Scheme type) and presented a proof of the Fundamental Property for the multi-
+language. Unfortunately, they later discovered a flaw in the proof. Ahmed et al. [2011] fixed this
+proof by introducing possible worlds that map a type variable to a tuple of the generated type
+name, the instantiating type, and a relation to use when relating values at the type variable. This
+line of work was put on hold but the above-cited unpublished manuscript is available.
+Neis et al. [2011] study G, a polymorphic language extended with Girard’s J operator but without
+the type Dynamic. The J operator is a non-parametric cast that tests for type equality at runtime,
+after abstract types have been replaced by their instantiating types. Neis et al . [2011] define a
+Kripke logical relation, with some similarities to the one we use here, that supports reasoning about
+program equivalence and they prove the Fundamental Property. This logical relation, however,
+does not ensure that expressions of polymorphic type behave parametrically. It instead associates
+parametric behavior with type names that result from RTG. However, they show that parametric
+behavior can be obtained by wrapping expressions in a type-directed manner with appropriate
+uses of RTG. We have investigated whether a polymorphic language with the dynamic type could
+be compiled to G in a way that would ensure parametricity (using recursive types to encode the
+dynamic type), but it seems that the results in Neis et al. [2011] are not general enough to make
+this possible. Nevertheless, more investigation would be helpful to clarify the relationship between
+the polymorphic blame calculus and G.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 3 ===
+Theorems for Free for Free: Parametricity, With and Without Types 39:3
+In this paper we pick up where Ahmed et al . [2011] left off, but relocate to the more general
+setting of the polymorphic blame calculus ( λB) of Ahmed et al . [2011]. The relocation came with
+many technical changes at the heart of the semantics and logical relation, including the mechanics
+of type application and run-time type generation. The λB calculus combines the polymorphic λ-
+calculus of Girard [1972] and Reynolds [1974] with the blame calculus of Wadler and Findler [2009]
+(minus refinement types). In Section 2 we review these three calculi and make improvements to the
+polymorphic blame calculus. We give the formal definition of the new version of the polymorphic
+blame calculus in Section 3. With the stage set, Section 4 defines a Kripke logical relation, proves
+the Fundamental Property, and proves soundness with respect to contextual equivalence. To
+demonstrate the utility of our logical relation, in Section 5 we derive free theorems in the tradition of
+Wadler [1989]. We prove a theorem about theK combinator and a theorem about how rearrangement
+functions commute with the map function.
+To summarize, this paper makes the following technical contributions.
+• An improved polymorphic blame calculus ( λB) that enables a natural notion of parametricity
+(Sections 2.4 and 3).
+• The definition of a Kripke logical relation for λB for program equivalence and parametricity
+(Section 4.2).
+• A proof of the Fundamental Property (Section 4.3).
+• A proof of Soundness with respect to Contextual Equivalence (Section 4.3).
+• Two examples of free theorems derived from our parametricity result (Section 5).
+The complete definitions and proofs are in the accompanying technical report [ Ahmed et al . 2017].
+We explain the relationship between this result and those in the literature in Section 6. We discuss
+further research and conclude in Section 7.
+This paper subsumes and improves on sections 1 through 4 of an unpublished manuscript by
+Siek and Wadler [2016].
+2 THE ROAD TO POLYMORPHIC BLAME
+The polymorphic blame calculus combines the polymorphic λ-calculus [Girard 1972; Reynolds 1974]
+with the blame calculus [ Wadler and Findler 2009]. We review the polymorphic λ-calculus and its
+notion of parametricity in subsection 2.1. We review the blame calculus, and how it integrates typed
+and untyped languages using casts and the dynamic type, in subsection 2.2. We then review the
+design considerations in prior versions of the polymorphic blame calculus of Ahmed et al . [2011]
+(subsection 2.3) before presenting our improvements to it in subsection 2.4.
+2.1 Review of the Polymorphic Lambda Calculus and Parametricity
+The polymorphic λ-calculus (λF) extends the λ-calculus to capture the essence of generics. That is,
+it enables code to be reused on data of different types. λF adds two language constructs to simply
+typed λ-calculus: type abstraction Λ X .e and type application e [B]. Type abstraction parameterizes
+an expression e with respect to a type variable X . Values of type X may flow through the expression
+e but e may not manipulate those values in a way that depends on their actual type. A simple
+example of a type abstraction is the swap function that exchanges the two elements of a pair:
+swap : ∀X . ∀Y . X ×Y → Y ×X
+swap = Λ X .Λ Y .λ(p : X ×Y ). (snd(p),fst(p))
+A type abstraction Λ X .e has universal (or polymorphic) type, written ∀X . A, meaning that e has
+type A for any type X . One can nest type abstractions, as in swap above, to parameterize over
+multiple types.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 4 ===
+39:4 Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler
+E /llbracketA/rrbracketρ = {(e1,e2) | ∃v1,v2. e1 − →∗ v1 and e2 − →∗ v2 and (v1,v2) ∈ V /llbracketA/rrbracketρ}
+V /llbracketX /rrbracketρ = ρ (X )
+V /llbracketint /rrbracketρ = {(n,n) | n ∈ Z}
+V /llbracketbool /rrbracketρ = {(b,b) | b ∈ B}
+V /llbracketA × B/rrbracketρ = {(p1,p2) | (fst(p1),fst(p2)) ∈ E /llbracketA/rrbracketρ and (snd(p1),snd(p2)) ∈ E /llbracketA/rrbracketρ}
+V /llbracketA → B/rrbracketρ = {(vf ,vд ) | ∀ (v1,v2) ∈ V /llbracketA/rrbracketρ. (vf v1,vд v2) ∈ E /llbracketB/rrbracketρ}
+V /llbracket∀X . A/rrbracketρ = {(v1,v2) | ∀B1,B2,R ⊆ B1×B2. (v1 [B1],v2 [B2]) ∈ E /llbracketA/rrbracketρ (X :=R)}
+V /llbracket∃X . A/rrbracketρ = {(pack(B1,v1),pack(B2,v2)) | ∃ R ⊆ B1×B2. (v1,v2) ∈ V /llbracketA/rrbracketρ (X :=R)}
+Fig. 1. A Logical Relation for λF.
+Type application e [B] enables the use of a type abstraction (the result of e) by instantiating its
+type variable at type B. To swap a pair of an integer and a bool, we apply swap to int , bool , and
+then to the pair. We swap back similarly.
+swap [int ] [bool ] (1,true ) − →∗ (true,1)
+swap [bool ] [int] (true,1) − →∗ (1,true )
+The following example is rejected by the type system of λF because it tries to add the elements
+of the pair, which would depend on both elements having type int .
+bad = Λ X .Λ Y .λ(p : X ×Y ). fst(p) + snd(p)
+In return for this restriction on type abstractions, λF provides a reasoning principle called
+relational parametricity [Reynolds 1983], for establishing when two expressions of the same type
+A have identical behavior, which is expressed in terms of a logical relation. Figure 1 defines the
+logical relation for call-by-value λF, consisting of a relation E /llbracketA/rrbracketover pairs of expressions, and an
+auxiliary relation V /llbracketA/rrbracketover pairs of values; both relations take an extra argument, an environment
+ρ mapping type variables to relations on values. Relation E /llbracketA/rrbracketholds when two expressions behave
+the same: when they evaluate to values that behave the same according to V /llbracketA/rrbracket.
+The relation V /llbracketA/rrbracketis defined by induction on the type A. For integers and Booleans, it requires
+the two values to be literally the same. For two pairs of type A × B, the first elements and second
+elements must behave the same, respectively. For two functions of type A → B to behave the same,
+they are only required to produce outputs related at B when given inputs related at A. (There
+need not be any syntactic similarity between the two functions.) For two type abstractions of type
+∀X . A to behave the same, their instantiations must behave the same. However, because the two
+abstractions do not manipulate values of type X , it is not required that the values at type X behave
+the same. Instead, they can be related according to any arbitrary relation R! The reason for the
+mapping ρ becomes apparent: it maps each type variable X to a relation R that says how values at
+type X are related. Dually, for two existential packages to be related at type ∃X . A, there must exist
+some relation R such that the packed values v1 and v2 are related at type A under an environment
+extended with X bound to R.
+The Abstraction Theorem of Reynolds [1983] (aka. Fundamental Property, aka. Parametricity)
+says that every well-typed expression e of λF behaves the same as itself according to its type A, that
+is, (e,e) ∈ E /llbracketA/rrbracketρ. At first glance this is underwhelming; of course e behaves the same as itself!
+The powerful part is that e behaves łaccording to its type Až. It is powerful enough to provide
+behavioral guarantees, which Wadler [1989] christened theorems for free.
+Consider again the swap function of type ∀X . ∀Y . X ×Y → Y ×X . The following free theorem
+completely determines the output of swap and any other function with the same type.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 5 ===
+Theorems for Free for Free: Parametricity, With and Without Types 39:5
+Theorem 2.1. (A Free Theorem of ∀X . ∀Y . X ×Y → Y ×X )
+Suppose e is any expression of type ∀X . ∀Y . X ×Y → Y ×X . Let A and B be arbitrary types. For any v1
+of type A and v2 of type B,
+e [A] [B] (v1,v2) − →∗ (v2,v1)
+Proof (sketch)
+By the Fundamental Property, we have (e,e) ∈ E /llbracket∀X . ∀Y . X ×Y → Y ×X /rrbracket. Choose R1 =
+{(v1,v1)} and R2 = {(v2,v2)}. So e [A] [B] − →∗ v for some v and
+(v,v) ∈ E /llbracketX ×Y → Y ×X /rrbracket(X :=R1,Y :=R2)
+Note that the input (v1,v2) is related to itself at X × Y
+((v1,v2),(v1,v2)) ∈ V /llbracketX × Y /rrbracket(X :=R1,Y :=R2)
+so the outputs of v are related at type Y × X .
+(v (v1,v2),v (v1,v2)) ∈ E /llbracketY ×X /rrbracket(X :=R1,Y :=R2)
+Thus, the two copies of v (v1,v2) reduce to some pairs p1 and p2 related at Y × X .
+v (v1,v2) − →∗ p1 v (v1,v2) − →∗ p2 (p1,p2) ∈ V /llbracketY ×X /rrbracket(X :=R1,Y :=R2)
+With a little work we obtain p1 = (v11,v12) and p2 = (v21,v22). We have v11 and v21 related at
+Y , therefore (v11,v21) ∈ R2. Which means that v11 = v21 = v2. Similarly, we have v12 and v22
+related at X , therefore (v12,v22) ∈ R1. Which means that v12 = v22 = v1. So we have shown
+e [A] [B] (v1,v2) − →∗ (v2,v1). □
+If we had chosen a weaker polymorphic type we would have obtained a weaker theorem. For
+example, for the type ∀X . X ×X → X ×X the free theorem would be e [A] (v1,v2) − →∗ (v3,v4) for
+some v3,v4 where v3 ∈ {v1,v2} and v4 ∈ {v1,v2}.
+2.2 Review of the Blame Calculus
+The blame calculus defines interaction between a typed and untyped λ-calculus. It introduces a
+dynamic type ⋆ to characterize expressions of statically unknown type and one language construct:
+the cast
+(e : A
+p
+=⇒ B)
+which checks whether the value produced by e has type B. If not, it ascribes fault to the blame label
+p. We abbreviate a sequence of casts in the obvious way,
+e : A1
+p
+=⇒ A2
+q
+=⇒ A3
+def
+= (e : A1
+p
+=⇒ A2) : A2
+q
+=⇒ A3
+One scenario is that a programmer begins with untyped code and then adds types. Here is a
+program assembling untyped components. Untyped code is surrounded by ceiling brackets, ⌈·⌉.
+let inc⋆ = ⌈λ(x ). x + 1⌉ in
+let twice⋆ = ⌈λ( f ). λ(x ). f ( f x )⌉ in
+⌈twice⋆ inc⋆ 0⌉
+It evaluates to ⌈2⌉ : ⋆.
+Following a slogan of Dana Scott [ Harper 2013; Statman 1991] we treat łuntyped as unitypedž:
+untyped code is typed code where every term has the dynamic type ⋆. By convention, we append
+⋆ to the name of untyped functions to distinguish them from their typed counterpart.
+It is trivial to rewrite a three-line program to have types, but we wish to add types gradually:
+our technique should work as well when each one-line definition is replaced by a thousand-line
+module. We use casts to manage the transition between typed and untyped code.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 6 ===
+39:6 Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler
+Here is our program again but we add types to the twice component and insert a cast from its
+type to ⋆.
+let inc⋆ = ⌈λ(x ). x + 1⌉ in
+let twice = (λ( f :int→int ). λ(x:int ). f ( f x )) in
+let twice⋆ = (twice : (int →int )→int →int
++ℓ
+=⇒ ⋆) in
+⌈twice⋆ inc⋆ 0⌉
+(1)
+It evaluates to ⌈2⌉ : ⋆. If in ( 1) we replace
+⌈twice⋆ inc⋆ 0⌉ by ⌈twice⋆ 0 inc⋆⌉ (2)
+it now evaluates to blame −ℓ because the number 0 is cast to function type int→int . Blaming −ℓ
+indicates fault lies with the context containing the cast. The positive and negative blame labels, +ℓ
+and −ℓ, correspond to p and ¯p, respectively, in prior blame calculi [ Ahmed et al . 2011]. The above
+example demonstrates a benefit of casts and blame tracking: the fault lies at the boundary between
+the typed and untyped code, providing encapsulation for the typed code.
+Conversely, here is the program mostly typed, with twice⋆ the only untyped component, cast
+from ⋆ to its type.
+let inc = (λ(x:int ). x + 1) in
+let twice⋆ = ⌈λ( f ). λ(x ). f ( f x )⌉ in
+let twice = (twice⋆ : ⋆
++ℓ
+=⇒ (int→int )→int →int ) in
+twice inc 0
+(3)
+It evaluates to 2 : int . If in ( 3) we replace
+⌈λ( f ). λ(x ). f ( f x )⌉ by ⌈λ( f ). λ(x ). x f ⌉ (4)
+it now evaluates to blame +ℓ because the untyped code tries to use an number as a function.
+Blaming +ℓ indicates fault lies with the term contained in the cast.
+Untyped λ-calculus is defined by embedding into blame calculus. For example, ⌈λ(x ). x + 1⌉ is
+equivalent to
+(λ(x : ⋆). ((x : ⋆
++m
+=⇒ int ) + 1) : int
++n
+=⇒ ⋆) : ⋆→⋆
++o
+=⇒ ⋆
+where m,n,o are fresh blame labels.
+Casting an int to ⋆ and back to int acts as the identity.
+2 : int
++ℓ
+=⇒ ⋆
++m
+=⇒ int − →2
+On the other hand, casting the integer to a function type raises blame.
+2 : int
++ℓ
+=⇒ ⋆
++m
+=⇒ (int→int ) − →blame +m
+A cast that yields a function reduces to two casts, one contravariant on the domain and one covariant
+on the range.
+(⌈λ(x ). x+1⌉ : ⋆
++ℓ
+=⇒ int →int ) 2 − →∗ (λ(x:⋆). ⌈x+1⌉) (2 : int
+−ℓ
+=⇒ ⋆) : ⋆
++ℓ
+=⇒ int − →∗ 3
+The blame label is negated on the contravariant cast.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 7 ===
+Theorems for Free for Free: Parametricity, With and Without Types 39:7
+2.3 Prior Work on Polymorphic Blame
+The polymorphic blame calculus of Ahmed et al. [2011] seeks to integrate the blame calculus into λF
+without sacrificing parametricity. To see why this is challenging, consider the following variation
+on the swap function. It casts a dynamically typed function to one which has the type of the swap
+function. The dynamically typed function has no restrictions enforced by its type; we choose it to
+be the identity function.
+badSwap = ⌈λ(x ). x⌉ : ⋆
++ℓ
+=⇒ (∀X .∀Y .X × Y → Y × X )
+First, note that the polymorphic blame calculus does not reject this badSwap statically because
+it allows casts from any type to ⋆ and from ⋆ to any type, which is needed to accommodate
+interactions with untyped code. So we turn to the dynamic behavior of badSwap. Given its type,
+parametricity tells us that if we instantiate it at int twice and apply it to (1,2), the result, if there
+is one, should be (2,1). Let’s see what happens if we evaluate badSwap by simply combining the
+reduction rules of λF and the blame calculus, assuming that we can simply replace the type variables
+X and Y by their instantiations int .
+badSwap [int ][int ](1,2)
+− →∗ ((λ(x : ⋆). x ) (( 1,2) : int × int
+−ℓ
+=⇒ ⋆)) : ⋆
++ℓ
+=⇒ int × int
+− →∗ (1,2) : int × int
+−ℓ
+=⇒ ⋆
++ℓ
+=⇒ int × int
+− →∗ ((1 : int
+−ℓ
+=⇒ ⋆
++ℓ
+=⇒ int ),(2 : int
+−ℓ
+=⇒ ⋆
++ℓ
+=⇒ int ))
+− →∗ (1,2)
+This answer is wrong! It violates the Fundamental Property for the type of badSwap, namely
+∀X .∀Y .X × Y → Y × X . We would prefer the program to halt with an error, blaming the cast with
+label +ℓ.
+The problem is that in λF, type application is accomplished by substitution, with the reduction
+rule
+(Λ X .e) [B] − →e[B/ X ]
+In the badSwap example, the distinction between the type variables X and Y was erased when they
+were both replaced by int. Ahmed et al . [2011] solve this problem by delaying the substitution,
+using a ν binder and a conversion operator that replaces a ν -bound type variable with its binding
+(called a static cast in that paper).
+(Λ X .v) [B] − →νX :=B. (v : A
++X
+=⇒ A[X :=B]) if ⊢ Λ X .v : ∀X .A
+With that change, badSwap halts with an error when it fails to cast from X to ⋆ to Y , because
+X /nequalY .
+badSwap[int ][int ](1,2)
+− →∗ νX :=int .νY :=int . /parenlefttpA/parenleftexA
+/parenleftbtA
+1 : int
+−X
+=⇒ X
+−ℓ
+=⇒ ⋆
++ℓ
+=⇒ Y ,
+2 : int
+−Y
+=⇒ Y
+−ℓ
+=⇒ ⋆
++ℓ
+=⇒ X
+/parenrighttpA/parenrightexA
+/parenrightbtA
+− →∗ blame +ℓ
+Ahmed et al . [2011] conjecture that this design ensures parametricity, but they did not formulate a
+logical relation for the polymorphic blame calculus nor prove the Fundamental Property 1.
+1Ahmed et al . [2009] prove blame and subtyping theorems for a polymorphic blame calculus. Ahmed et al . [2011] present a
+proof of a stronger subtyping theorem based on the jack-of-all-trades property, but unfortunately that proof is flawed [Ahmed
+et al. 2014 ].
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 8 ===
+39:8 Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler
+2.4 Righting the Topsy-Turvy System
+Regardless of parametricity, the design of Ahmed et al . [2011] is ‘topsy turvy’ in that it evaluates
+things one might expect to be values, and leaves as values things one might expect to be evaluated.
+In particular, following Wright [1995] and Pitts [1998b], one might expect the bodies of type
+abstractions to be restricted to values. Ahmed et al. [2011] mention that this would be desirable,
+but it is impossible in their system due to their formulation of reductions for casts:
+v : A→B
+p
+=⇒ A′→B ′ − →λ(x:A′). v (x : A′ −p
+=⇒ A) : B
+p
+=⇒ B ′ (5)
+v : A
+p
+=⇒ ∀X .B − →Λ X . (v : A
+p
+=⇒ B) (6)
+The right-hand side of the second rule is a type abstraction with a body that is an arbitrary cast,
+and hence not a value. One might take any type abstraction to be a value, regardless of whether
+its body is a value, but this would lead to a violation of parametricity. For instance, parametricity
+requires that there should be no values of type ∀X .X , but the term Λ X . blame +ℓ has that type! To
+avoid the problem, they evaluate underneath type abstractions. That in turn leads to a problem
+with ν binders, so instead of generating new names globally, they push ν binders inside of values:
+νX :=A. λ(y:B). e − →λ(y:B[X :=A]). νX :=A. e (7)
+νX :=A. Λ X . v − →Λ X . νX :=A. v (8)
+Rule 7 causes ν binders to be retained in function values, where one might expect the ν binder to
+be evaluated immediately.
+Here we propose a simple way to avoid these convolutions, taking inspiration from the alternate
+approach to function casts that can be made space-efficient [Siek and Wadler 2010]. In that approach,
+casts between function type are values and the following reduction rule handles the application of
+a cast-wrapped function.
+(v : A→B
+p
+=⇒ A′→B ′) v ′ − →v (v ′ : A′ −p
+=⇒ A) : B
+p
+=⇒ B ′ (9)
+The same approach can be applied to polymorphic values. Declare casts of the form (v : A
+p
+=⇒ ∀X .B)
+to be values and add a reduction rule for applying a cast-wrapped polymorphic value to a type.
+The following are the two reduction rules for applying polymorphic values.
+Σ ▷ (Λ X . v) [B] − →Σ,α:=B ▷ v[α/ X ] : A[α/ X ]
++α
+=⇒ A[B/ X ] (10)
+Σ ▷ (v : A
+p
+=⇒ ∀X .A′) [B] − →Σ,α:=B ▷ v : A
+p
+=⇒ A′[α/ X ]
++α
+=⇒ A′[B/ X ] (11)
+In place of type abstraction on the right-hand side of reduction rule (6), here in reduction rule
+(11) we have application on the left-hand side. Reductions no longer insert casts inside of type
+abstractions so their bodies can be restricted to values, as desired. This rules out any need to evaluate
+under type abstractions. In particular, Λ X . blame +ℓ is no longer a valid term, since blame +ℓ is
+not a value.
+With the removal of evaluation under type abstractions, we are free to immediately place
+generated names in a global store, forgoing the use of ν binders. Let Σ range over name stores
+whose entries take the form α:=B and write Σ ▷ e for a configuration that pairs a name store with
+an expression.
+3 POLYMORPHIC BLAME CALCULUS
+Now that we solved these design challenges, we can proceed with the formal presentation of the
+polymorphic blame calculus ( λB). The syntax is defined in Figure 2. Let A and B range over types,
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 9 ===
+Theorems for Free for Free: Parametricity, With and Without Types 39:9
+Conversion Labels ϕ ::= + α | − α
+Blame Labels p ,q ::= + ℓ | − ℓ
+Base Types ι ::= int | bool
+Types A ,B ::= ι | A × B | A → B | ∀ X . A | X | α | ⋆
+Ground Types G ,H ::= ι | ⋆ × ⋆ | ⋆→ ⋆ | α
+Operations ⊛ ::= + | − | ∗ | . . .
+Expressions e ::= n | true | false | if e then e else e | e⊛ e | x |
+λ(x : A ). e | e e | Λ X .v | e [B] | ⟨ e ,e ⟩ | π1 e |
+π2 e | (e : A
+ϕ
+=⇒ B ) | (e : A
+p
+=⇒ B ) | blame p
+Values v ::= n | true | false | λ(x : A ). e | Λ X .v | ⟨ v ,v ⟩ |
+(v : A → B
+ϕ
+=⇒ A′→ B′) | (v : ∀X . A
+ϕ
+=⇒ ∀X . B ) |
+(v : A
+−α
+=⇒ α ) | (v : A → B
+p
+=⇒ A′→ B′) |
+(v : A
+p
+=⇒ ∀X . B ) | (v : G
+p
+=⇒ ⋆)
+Type-Name Stores Σ ::= · | Σ ,α :=A
+Type Environments ∆ ::= · | ∆ ,X
+Environments Γ ::= · | Γ ,x : A
+Evaluation Contexts E ::= [·] | E⊛ e | v⊛ E | if E then e else e | E e | v E |
+E [A] | ⟨ E,e⟩ | ⟨ v,E⟩ | (E : A
+ϕ
+=⇒ B ) | (E : A
+p
+=⇒ B )
+Fig. 2. Syntax
+which are either base types ι, pair types A × B, function types A → B, universal types ∀X .B, type
+variables X , type names α, or the dynamic type ⋆. Let ι include integers int and Booleans bool .
+We do not include existential types here but plan to investigate both the encoding into universal
+types and directly adding them to the language. The ground types are those types that can be
+directly injected into type ⋆, and include the base types, the function type ⋆ → ⋆, the pair type
+⋆ × ⋆, and type names α. The other types can be cast to ⋆, but such casts factor through the
+ground types. Let e range over expressions, which are either integers n, the Booleans true and
+false , variables x, operator applications e⊛ e, function abstraction λ(x:A). e, function application
+e1 e2, type abstraction Λ X . v, type application e [A], pairs ⟨e ,e ⟩, projections π1 e and π2 e , casts
+(e : A
+p
+=⇒ B), conversions (e : A
+ϕ
+=⇒ B), or errors blame p. The body of a type abstraction must be a
+value.
+The conversion form (e : A
+ϕ
+=⇒ B) is used to make explicit the conversion between a type name
+and the type it is bound to (in Σ). Let ϕ range over conversion labels of the form +α or −α.
+Let v range over values, which include integers, Booleans, function abstractions, pairs of values,
+and type abstractions. A value whose type is a name is a conversion of the form (v : A
+−α
+=⇒ α ). In
+addition, conversions and casts to a function or a universal type are values, which reduce when
+applied to a value or type, respectively.
+We write B[A/ X ] (or B[A/ α]) for the capture-avoiding substitution of type A for X (or α) in type
+B. We abbreviate a sequence of conversions in the same way as casts and similarly for combinations
+of casts and conversions.
+Static Semantics. The static semantics for types is defined in Figure 3. Let ∆ range over type
+variable contexts, which are lists of X ’s. Let Σ range over name stores, which are lists of binding of
+type names to types α:=A. Write ⊢ Σ to indicate that Σ is a well-formed name store and Σ; ∆ ⊢ Γ
+for well-formed type context. Write Σ; ∆ ⊢ A for well-formed types.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 10 ===
+39:10 Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler
+Type-Name Store Well-Formedness ⊢ Σ
+⊢ ·
+α /nelementΣ Σ ; · ⊢ A
+⊢ Σ ,α :=A
+Type Well-Formedness Σ ; ∆ ⊢ A where ⊢ Σ
+⊢ Σ X ∈ ∆
+Σ ; ∆ ⊢ X
+⊢ Σ α :=A ∈ Σ
+Σ ; ∆ ⊢ α
+⊢ Σ
+Σ ; ∆ ⊢ ι
+⊢ Σ
+Σ ; ∆ ⊢ ⋆
+Σ; ∆ ⊢ A Σ; ∆ ⊢ B
+Σ; ∆ ⊢ A × B
+Σ ; ∆ ⊢ A Σ ; ∆ ⊢ B
+Σ ; ∆ ⊢ A → B
+Σ ; ∆ ,X ⊢ A
+Σ ; ∆ ⊢ ∀X . A
+Convertibility Σ ; ∆ ⊢ A ≺ϕ B where Σ ; ∆ ⊢ A, Σ ; ∆ ⊢ B , and FTN (ϕ ) ∈ Σ
+⊢ Σ
+Σ ; ∆ ⊢ ι ≺ϕ ι
+Σ; ∆ ⊢ A ≺ϕ A′ Σ; ∆ ⊢ B ≺ϕ B′
+Σ; ∆ ⊢ A × B ≺ϕ A′ × B′
+Σ ; ∆ ⊢ A′ ≺−ϕ A Σ ; ∆ ⊢ B ≺ϕ B′
+Σ ; ∆ ⊢ A → B ≺ϕ A′→ B′
+Σ ; ∆ ,X ⊢ A ≺ϕ B
+Σ ; ∆ ⊢ ∀X . A ≺ϕ ∀X . B
+⊢ Σ α :=A ∈ Σ
+Σ ; ∆ ⊢ α ≺+α A
+⊢ Σ α :=A ∈ Σ
+Σ ; ∆ ⊢ A ≺−α α
+⊢ Σ α :=A ∈ Σ α /nelementϕ
+Σ ; ∆ ⊢ α ≺ϕ α
+⊢ Σ X ∈ ∆
+Σ ; ∆ ⊢ X ≺ϕ X
+⊢ Σ
+Σ ; ∆ ⊢ ⋆ ≺ϕ ⋆
+Label Negation
+−(+α ) def= −α −(−α ) def= + α
+Compatibility Σ ; ∆ ⊢ A ≺ B where Σ ; ∆ ⊢ A and Σ ; ∆ ⊢ B
+⊢ Σ
+Σ ; ∆ ⊢ ι ≺ ι
+Σ; ∆ ⊢ A ≺ A′ Σ; ∆ ⊢ B ≺ B′
+Σ; ∆ ⊢ A × B ≺ A′ × B′
+Σ ; ∆ ⊢ A′ ≺ A Σ ; ∆ ⊢ B ≺ B′
+Σ ; ∆ ⊢ A → B ≺ A′→ B′
+Σ ; ∆ ,X ⊢ A ≺ B X /nelementA
+Σ ; ∆ ⊢ A ≺ ∀X . B
+Σ ; ∆ ⊢ A [⋆/ X ] ≺ B
+Σ ; ∆ ⊢ ∀X . A ≺ B
+⊢ Σ α ∈ Σ
+Σ ; ∆ ⊢ α ≺ α
+⊢ Σ X ∈ ∆
+Σ ; ∆ ⊢ X ≺ X
+Σ ; ∆ ⊢ A
+Σ ; ∆ ⊢ A ≺ ⋆
+Σ ; ∆ ⊢ A
+Σ ; ∆ ⊢ ⋆ ≺ A
+Fig. 3. Type-Level Static Semantics
+Write Σ; ∆ ⊢ A ≺ϕ B to indicate that in context Σ; ∆ types A and B are convertible under ϕ. Con-
+versions must be between convertible types, and the rules for convertibility ensure that reductions
+involving conversions preserve convertibility. That is, when a conversion (e : A
+ϕ
+=⇒ B) occurs on
+the right-hand side of a reduction rule, we can deduce that Σ; ∆ ⊢ A ≺ϕ B from the fact that the
+conversions of the left-hand side of the rule were well typed. If α:=A ∈ Σ, judgments Σ; ∆ ⊢ B ≺+α B ′
+and Σ; ∆ ⊢ B ′ ≺−α B hold iff B ′ = B[A/ α]. Further, Σ; ∆ ⊢ A ≺ϕ B iff Σ; ∆ ⊢ B ≺−ϕ A. Write α /nelementϕ if
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 11 ===
+Theorems for Free for Free: Parametricity, With and Without Types 39:11
+Environment Well-Formedness Σ ; ∆ ⊢ Γ where ⊢ Σ
+⊢ Σ
+Σ ; ∆ ⊢ ·
+Σ ; ∆ ⊢ Γ Σ ; ∆ ⊢ A
+Σ ; ∆ ⊢ Γ ,x : A
+Well-typed Expressions Σ ; ∆ ; Γ ⊢ e : A where Σ ; ∆ ⊢ Γ and Σ ; ∆ ⊢ A
+Σ ; ∆ ; Γ ⊢ e : bool Σ ; ∆ ; Γ ⊢ e1 : A Σ ; ∆ ; Γ ⊢ e2 : A
+Σ ; ∆ ; Γ ⊢ if e then e1 else e2 : A
+Σ ; ∆ ⊢ Γ
+Σ ; ∆ ; Γ ⊢ true : bool
+Σ ; ∆ ⊢ Γ
+Σ ; ∆ ; Γ ⊢ false : bool
+Σ ; ∆ ⊢ Γ
+Σ ; ∆ ; Γ ⊢ n : int
+Σ ; ∆ ; Γ ⊢ e : int Σ ; ∆ ; Γ ⊢ e′ : int
+Σ ; ∆ ; Γ ⊢ e⊛ e′ : int
+Σ; ∆ ; Γ ⊢ e1 : A Σ; ∆ ; Γ ⊢ e2 : B
+Σ; ∆ ; Γ ⊢ ⟨e1,e2⟩ : A × B
+Σ; ∆ ; Γ ⊢ e : A × B
+Σ; ∆ ; Γ ⊢ π1 e : A
+Σ; ∆ ; Γ ⊢ e : A × B
+Σ; ∆ ; Γ ⊢ π2 e : B
+Σ ; ∆ ⊢ Γ Γ ( x ) = A
+Σ ; ∆ ; Γ ⊢ x : A
+Σ ; ∆ ; Γ ,x : A ⊢ e : B
+Σ ; ∆ ; Γ ⊢ λ(x : A ). e : A → B
+Σ ; ∆ ; Γ ⊢ e : B → A Σ ; ∆ ; Γ ⊢ e′ : B
+Σ ; ∆ ; Γ ⊢ e e ′ : A
+Σ ; ∆ ,X ; Γ ⊢ v : A Σ ; ∆ ⊢ Γ
+Σ ; ∆ ; Γ ⊢ Λ X .v : ∀X . A
+Σ ; ∆ ; Γ ⊢ e : ∀X . A Σ ; ∆ ⊢ B
+Σ ; ∆ ; Γ ⊢ e [B ] : A [B / X ]
+Σ ; ∆ ; Γ ⊢ e : A Σ ; ∆ ⊢ A ≺ϕ B
+Σ ; ∆ ; Γ ⊢ (e : A
+ϕ
+=⇒ B ) : B
+Σ ; ∆ ; Γ ⊢ e : A Σ ; ∆ ⊢ A ≺ B
+Σ ; ∆ ; Γ ⊢ (e : A
+p
+=⇒ B ) : B
+Σ ; ∆ ⊢ Γ Σ ; ∆ ⊢ A
+Σ ; ∆ ; Γ ⊢ blame p : A
+Fig. 4. Expression-Level Static Semantics
+ϕ is not +α or −α. Convertability is almost reflexive: in that Σ; ∆ ⊢ A ≺ϕ A if α /nelementϕ for every free
+name α in A. Figure 3 defines negation −ϕ to flip the sign of a conversion label.
+Write Σ; ∆ ⊢ A ≺ B to indicate that in context Σ; ∆ types A and B are compatible. The intuition
+is that two types are compatible if it is possible for a cast from one to the other to succeed. The
+type ⋆ is compatible with any type (on either side). A universal type ∀X .A is compatible with a
+type B if instantiating it with ⋆ yields a compatible type, that is, if A[⋆/ X ] is compatible with B.
+On the other hand, a type A is compatible with a universal type ∀X .B if A is compatible with B
+while holding X abstract, that is, if Σ; ∆ ,X ⊢ A ≺ B. The compatibility relation is reflexive but not
+symmetric because of the treatment of universal types. The rules for compatibility ensure that
+reductions involving casts preserve compatibility.
+The static semantics for expressions is defined in Figure 4. Let Γ range over type contexts,
+which are lists of hypotheses of the form x:A. Write Σ; ∆ ; Γ ⊢ e : A to indicate that in context Σ; ∆ ; Γ
+expression e has type A. Typing for constants, operators, function abstraction, function application,
+type abstraction, and type application is standard. A conversion(e : A
+ϕ
+=⇒ B) has type B if expression
+e has type A and Σ; ∆ ⊢ A ≺ϕ B. Similarly, a cast (e : A
+p
+=⇒ B) has type B if expression e has type A
+and Σ; ∆ ⊢ A ≺ B.
+Dynamic Semantics. The dynamic semantics of λB is defined in Figure 5. Write e − →e ′ for
+reduction of expressions. Reduction for operators is standard: each operator application n⊛ n′
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 12 ===
+39:12 Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler
+Reduction of Expressions e − →e′
+n⊛ n′ − → /llbracket⊛/rrbracket(n,n′)
+if true then e1 else e2 − → e1
+if false then e1 else e2 − → e2
+(λ(x : A ). e ) v − → e [v / x ]
+π1 ⟨v1,v2⟩ − → v1
+π2 ⟨v1,v2⟩ − → v2
+(v : ι
+ϕ
+=⇒ ι) − → v
+(⟨v1,v2⟩ : A × B
+ϕ
+=⇒ A′ × B′) − → ⟨ (v1 : A
+ϕ
+=⇒ B),(v2 : A′ ϕ
+=⇒ B′)⟩
+(v : A → B
+ϕ
+=⇒ A′→ B′) v′ − → (v (v′ : A′ −ϕ
+=⇒ A ) : B
+ϕ
+=⇒ B′)
+(v : α
+ϕ
+=⇒ α ) − → v if α /nelementϕ
+((v : A
+−α
+=⇒ α ) : α
++α
+=⇒ A ) − → v
+(v : ⋆
+ϕ
+=⇒ ⋆) − → v
+(v : ι
+p
+=⇒ ι) − → v
+(⟨v1,v2⟩ : A × B
+p
+=⇒ A′ × B′) − → ⟨ (v1 : A
+p
+=⇒ B),(v2 : A′ p
+=⇒ B′)⟩
+(v : A → B
+p
+=⇒ A′→ B′) v′ − → (v (v′ : A′ −p
+=⇒ A ) : B
+p
+=⇒ B′)
+(v : ∀X . A
+p
+=⇒ B ) − → (v [⋆] : A [⋆/ X ]
+p
+=⇒ B ) if B /nequal∀Y . B′ for any Y ,B′
+(v : α
+p
+=⇒ α ) − → v
+(v : ⋆
+p
+=⇒ ⋆) − → v
+((v : G
+p
+=⇒ ⋆) : ⋆
+q
+=⇒ G ) − → v
+((v : G
+p
+=⇒ ⋆) : ⋆
+q
+=⇒ H ) − → blame q if G /nequalH
+(v : A
+p
+=⇒ ⋆) − → ((v : A
+p
+=⇒ G) : G
+p
+=⇒ ⋆) if A ∼ G,A /nequalG,A /nequal⋆
+(v : ⋆
+p
+=⇒ A) − → ((v : ⋆
+p
+=⇒ G) : G
+p
+=⇒ A) if A ∼ G,A /nequalG,A /nequal⋆
+Reduction of Configurations Σ ▷ e ↦− →Σ ′ ▷ e′
+e − →e′
+Σ ▷ E [e ] ↦− →Σ ▷ E [e′]
+Σ ▷ e ↦− →Σ ′ ▷ e′
+Σ ▷ E [e ] ↦− →Σ ′ ▷ E [e′] Σ ▷ E [blame p ] ↦− →Σ ▷ blame p
+Σ; (·,X ); · ⊢ v : A α /nelementdom(Σ)
+Σ ▷ (Λ X .v ) [B ] ↦− →Σ ,α:=B ▷ (v [α/ X ] : A[α/ X ]
++α
+=⇒ A[B / X ])
+α /nelementdom(Σ)
+Σ ▷ (v : A
+p
+=⇒ ∀X . A′) [B] ↦− →Σ,α:=B ▷ ((v : A
+p
+=⇒ A′[α/ X ]) : A′[α/ X ]
++α
+=⇒ A′[B/ X ])
+α /nelementdom(Σ)
+Σ ▷ (v : ∀X . A
+ϕ
+=⇒ ∀X . A′) [B] ↦− →Σ,α:=B ▷ ((v [α] : A[α/ X ]
+ϕ
+=⇒ A′[α/ X ]) : A′[α/ X ]
++α
+=⇒ A′[B/ X ])
+Fig. 5. Dynamic Semantics
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 13 ===
+Theorems for Free for Free: Parametricity, With and Without Types 39:13
+is specified by a total meaning function /llbracket⊛/rrbracket(n,n′) that preserves types. Reduction for function
+application is standard. Reduction for type application is non-standard and discussed below in the
+reduction of configurations.
+Conversions are reduced as follows. Conversion from a base type to itself is the identity. Conver-
+sion between two function types, when applied to a value, reduces to a contravariant conversion
+on the domain (negating the label) and a covariant conversion on the range. Conversion between
+two universal types are discussed below. A type name reduces to itself only if the conversion label
+refers to a different name. Two mirror image conversions, from A to α and back, reduce to the
+identity.
+Many of the reductions for casts are similar to those for conversion, but some are different. A
+cast from universal type to a non-universal type reduces to an instantiation of the polymorphic
+value at type ⋆. A cast from ground type G to ⋆ back to G is the identity whereas a cast from G to
+⋆ to a different ground type H raises blame. A cast from a non-ground type to or from ⋆ factors
+through its unique ground type.
+Write Σ ▷ e ↦− →Σ ′ ▷ e ′ for reduction of configurations. In addition to handling reduction under
+an evaluation context, the reduction of configurations also handles the reductions that involve
+type application, which use the name store Σ. The application of a type abstraction generates a
+fresh name α and binds it to the instantiating type B in the store. Then α is substituted for the
+abstraction’s variable X in the body. Finally, a conversion is wrapped around the body to mediate
+between its type A[α/ X ] and the type that the context expects it to have, which is A[B/ X ] 2. The
+application of a cast whose target is a universal type ∀X .A′ also generates a fresh name α and binds
+it to the instantiating type B. The α is substituted for X in A′ and again, a conversion is inserted to
+mediate between A′[α/ X ] and A′[B/ X ]. Finally, the application of a conversion between ∀X .A and
+∀X .A′ involves generating α and binding it to B, then instantiating v at α, and substituting α for X
+in the conversion. As in the other cases, a conversion is inserted to mediate between A′[α/ X ] and
+A′[B/ X ].
+In general, if − →is a reduction relation, write − →∗ for its reflexive and transitive closure. We write
+Σ ▷ e ⇓ when a configuration terminates with a valueÐthat is, as shorthand for ∃Σ ′,v . Σ ▷ e ↦− →∗
+Σ ′ ▷ v
+3.1 Contextual Equivalence
+Two open expressions e1 and e2 have the same behavior, formally, when they are contextually equiv-
+alent [Morris 1968], that is, when substituting one for the other in the context of a larger program
+does not change the result of the program. As is common, we define contextual equivalence, below,
+in terms of contextual approximation. We write Σ ; ∆ ; Γ ⊢ e1 ⪯ctx e2 : A to say that e2 mimics the
+behavior of e1 at type A in the context of Σ, ∆ , and Γ. Then we write Σ ; ∆ ; Γ ⊢ e 1 ≈ctx e 2 : A to say e1
+and e2 are contextually equivalent, that is, they approximate each other. The definition of contextual
+equivalence requires the context C to be well-typed, written ⊢ C : (Σ ; ∆ ; Γ ⊢ A )⇝ (Σ ′; ∆ ′; Γ′ ⊢ A′),
+which is defined in the accompanying technical report [ Ahmed et al . 2017]. The well-known prob-
+lem with contextual equivalence is that it is difficult to reason about all possible contexts. The
+advantage of logical relations is that they provide a means for proving the contextual equivalence
+of two expressions that only requires reasoning about the two expressions.
+2The reduction rule for type abstraction obtainsA, the type of the body, by referring to the type system, but an implementation
+would not do that. Instead, we recommend recording the type A during compilation and attaching it to the type abstraction
+so that it is available in constant time.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 14 ===
+39:14 Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler
+Definition 3.1. Contextual Approximation and Equivalence
+Σ ; ∆ ; Γ ⊢ e 1 ⪯ctx e 2 : A
+def
+= Σ ; ∆ ; Γ ⊢ e 1 : A ∧ Σ ; ∆ ; Γ ⊢ e 2 : A ∧
+∀C ,Σ ′,B . ⊢ C : (Σ ; ∆ ; Γ ⊢ A )⇝ (Σ ′; · ; · ⊢ B ) =⇒
+(Σ ′ ▷ C [e 1]⇓ =⇒ Σ ′ ▷ C [e 2]⇓) ∧
+(∃Σ 1. Σ ′ ▷ C[e1] ↦− →∗ Σ 1 ▷ blame p =⇒
+∃Σ 2. Σ ′ ▷ C[e2] ↦− →∗ Σ 2 ▷ blame p )
+Σ ; ∆ ; Γ ⊢ e 1 ≈ctx e 2 : A
+def
+= Σ ; ∆ ; Γ ⊢ e 1 ⪯ctx e 2 : A ∧ Σ ; ∆ ; Γ ⊢ e 2 ⪯ctx e 1 : A
+4 LOGICAL RELATION AND PARAMETRICITY
+In this section, we present our logical relation for λB and prove the Fundamental Property of the
+logical relation, which for this language can also be referred to as the Parametricity Theorem.
+We show that our logical relation is sound with respect to contextual equivalenceÐthat is, if two
+programs are logically related then they are contextually equivalentÐwhich justifies the use of the
+logical relation for proving contextual equivalence of programs.
+4.1 Main Ideas of the Logical Relation
+To establish parametricity for λB, we construct a Kripke logical relation which is a logical relation
+indexed by possible worlds. Kripke logical relations are needed when reasoning about properties
+that depend on certain conditions regarding the state of the computation. The basic idea, then, is to
+track prevailing conditions in the current world. Thus, our logical relation for closed terms E /llbracketA/rrbracket
+relates two expressions e 1 and e 2 in a world W . In contrast, the logical relation for λF (Figure 1) did
+not require worlds because λF is a pure language. The world W keeps track of three ingredients
+which we now discuss in turn.
+First, a world W contains a natural number j that, intuitively, represents the number of steps
+left in the computation. In essence, we need step-indexed logical relations because λB contains the
+dynamic type ⋆ which, semantically, behaves like the following type D encoded using recursive
+types and tagged sums:
+D = µX . ι + (X × X ) + (X → X ) + (α1 + . . . + αn )
+where α1, . . . ,αn are the set of type names that have been generated thus far. So unlike λF, the
+logical relation cannot be defined simply by induction on the indexing type. Instead we make use
+of induction on the step index to ensure that the logical relation is well-founded. This is by now a
+standard technique used when defining logical relations for untyped languages or languages with
+dynamic type [ Acar et al. 2008 ; Matthews and Ahmed 2008 ].
+Second, a world W keeps track of the (current) type-name stores Σ 1 and Σ 2 under which the
+expressions e 1 and e 2, respectively, should be type checked and evaluated.
+Finally, for any related type names α in the two programs, W keeps track of the relational
+interpretation R that should be used to relate values of type α . Intuitively, what makes these type
+names łrelatedž is that they were generated (earlier in the computation) when both programs
+performed some type application that we wish to relate. The placement of a map from type names
+to relational interpretations in worlds is a significant departure from the logical relation for λF
+(Figure 1), where instead the ρ maps type variables to their relational interpretation. This change is
+the result of moving from static enforcement of parametricity to dynamic enforcement with RTG. 3
+3Technically, due to the nondeterministic nature of type-name generation, those two type applications could have generated
+different type names α 1 and α 2, with some type variable X replaced by α 1 in one program and with α 2 in the other. But
+since we have an infinite supply of type names, we can assume without loss of generality that we can always generate the
+same fresh name for both programs when using the logical relation to reason about equivalence. This assumption reduces
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 15 ===
+Theorems for Free for Free: Parametricity, With and Without Types 39:15
+Atomn [A1,A2] = {(W ,e1,e2) | W .j < n ∧ W ∈ Worldn ∧
+W .Σ 1; · ; · ⊢ e1 : A1 ∧ W .Σ 2; · ; · ⊢ e2 : A2}
+Atomvaln [A1,A2] = {(W ,v 1,v 2) ∈ Atomn [A1,A2] }
+Reln [A1,A2] = {R ⊆ Atomvaln [A1,A2] | ∀(W ,v 1,v 2) ∈ R. ∀W ′ ⊒ W . (W ′,v 1,v 2) ∈ R}
+Worldn = {(j,Σ 1,Σ 2,κ ) ∈ Nat × TNStore × TNStore × (TName
+fin
+→ Relj ) |
+j < n ∧ ⊢ Σ 1 ∧ ⊢ Σ 2 ∧ ∀ α ∈ dom(κ ). κ (α ) ∈ Relj [Σ 1 (α ),Σ 2 (α )] }
+Atom [A ] ρ = ⋃
+n ≥0
+{(W ,e1,e2) ∈ Atomn [ρ (A ),ρ (A )] }
+World = ⋃
+n ≥0
+Worldn
+⌊R⌋n = {(W ,e1,e2) ∈ R | W .j < n}
+⌊κ ⌋n = {α ↦→⌊R⌋n | κ (α ) = R}
+W ′ ⊒ W def= W ′.j ≤ W .j ∧ W ′.Σ 1 ⊇ W .Σ 1 ∧ W ′.Σ 2 ⊇ W .Σ 2 ∧
+W ′.κ ⊒ ⌊W .κ ⌋W ′.j ∧ W ,W ′ ∈ World
+κ ′ ⊒ κ def= ∀α ∈ dom(κ ). κ ′(α ) = κ (α )
+W ′ ⊒n W def= W ′.j + n = W .j ∧ W ′ ⊒ W
+▶R = {(W ,e1,e2) | W .j > 0 =⇒ (▶W ,e1,e2) ∈ R}
+▶(j + 1,Σ 1,Σ 2,κ ) def= (j ,Σ 1,Σ 2,⌊κ ⌋j )
+W⊞ (α,B1,B2,R) def= (W .j,W .Σ 1,α:=B1,W .Σ 2,α:=B2,W .κ [α ↦→R])
+Fig. 6. Logical Relation: Auxiliary Definitions
+An essential part of Kripke logical relations is a world extension relation W ′ ⊒ W that specifies
+constraints on how the current world W may evolve into a future world W ′Ðintuitively, capturing
+how the properties of the state evolve from W to W ′ as the computation progresses. In our logical
+relation, we allow the step index to decrease over time as steps are used up by the computation,
+while allowing type-name stores and the finite map from type names to relational interpretations to
+grow over time as new type names are generated (ensuring that we don’t forget information about
+existing type names). Intuitively, the semantic treatment of dynamically generated type names is
+similar to that of dynamically allocated mutable references, which is why the underlying structure
+of our logical relation resembles that of step-indexed Kripke logical relations for ML-style mutable
+references [Ahmed et al. 2010 , 2003, 2009; Ahmed 2004].
+4.2 Logical Relation, Formally Defined
+The logical relation for λB is defined in Figures 6 and 7.
+Preliminaries. We start by specifying the semantic objects used in the construction of the logical
+relation (Figure 6, top). We explain the basic properties of these semantic objects and then discuss
+details related to step indexing.
+clutter in our logical relation, as otherwise we would have to keep track of a bijection between a subset of the existing type
+names of both programs as Neis et al. [2011] and Ahmed et al. [2011] do.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 16 ===
+39:16 Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler
+We construct relational interpretations of types as sets of atoms of the form (W ,e1,e2) where
+worlds describe the assumptions under which the pair of expressions are related. Atomn [A1,A2]
+requires that e 1 and e 2 have the types A1 and A2 under the type-name stores Σ 1 and Σ 2 from the
+world W , and that they have no free type or term variables.
+WorldsW are 4-tuples of the form (j,Σ 1,Σ 2,κ). (We use dot notation W .j, W .Σ 1, W .Σ 2, W .κ to
+project out the relevant components of world W .) Here j is a natural number representing the step
+index, Σ 1 and Σ 2 are the type-name stores under which the terms being related are type checked
+and evaluated, and κ is a finite map from type names α to admissible relations R that relate values
+of type Σ 1(α ) and Σ 2(α ).4
+Reln [A1,A2] specifies the set of admissible relations as relations R that satisfy monotonicity (or
+closure) under world extension: if R relates v1 and v2 in a world W , then R must relate v1 and v2
+in any future world of W . Monotonicity ensures that when we extend the world, associating new
+type names with types and relations, we do not lose or modify information associated with old
+type names.
+Since relations contain worlds and worlds contain relations (in the codomain of κ), we cannot
+naïvely construct a set-theoretic model based on the above intentions. As explained byAhmed [2004]
+and Ahmed et al. [2009], who present step-indexed logical relations for ML-style mutable references,
+a naïve construction would have an inconsistent cardinality. To eliminate the inconsistency, we
+stratify both worlds and relations with a step index. We require that an n-level world W ∈ Worldn
+contains only step indices j < n and interpretations κ that map type names to j-level relations
+R ∈ Relj [A1,A2]; and the latter may only contain j-level atoms which contain j-level worlds
+W ∈ Worldj . Our world structure is similar to that of Ahmed [2004] because dynamically generated
+type names are analogous to the dynamically allocated locations of mutable references.
+Approximation, World Extension, and Later. The bottom half of Figure 6 presents definitions
+of n-approximation ⌊·⌋n, world extension ( ⊒) and the łlaterž operation ( ▶). For a set of atoms
+R, we define the n-approximation of the set (written ⌊R⌋n) as the subset of its elements whose
+step indices are strictly smaller than n. For any interpretation κ mapping type names to relational
+interpretations, we define n-approximation (written ⌊κ⌋n) by applying ⌊·⌋n to all relations in the
+codomain of κ.
+A world W ′ extends W (written W ′ ⊒ W ) if W ′ has the same or fewer steps left as W ; if the
+type-name stores in W ′ are supersets of the corresponding stores in W ; and if W ′.κ remembers
+the relational interpretations associated with each α ∈ dom(W .κ) up to approximation W ′.j. Note
+that this definition allows W ′ to provide interpretations for a superset of the type names that W
+interprets. Finally, we write W ′ ⊒n W when W ′ extends W and we consume exactly n steps to get
+from W to W ′.
+Given a world W with a positive step index, we use▶W (pronounced łlater W ž) to lower the step
+index of the worldÐand of the κ in the worldÐby one. We lift this notion to relational interpretations
+R as follows: we say▶R relates two expressions in world W if R relates the expressions in▶W
+whenever W has a positive step index.
+Relational Interpretation of Types. Figure 7 presents the definition of the logical relation intended
+to capture contextual approximation. The value relation V /llbracketA/rrbracketρ relates closed valuesÐi.e., values
+with no free type or term variables, though they may have free type names. The expression relation
+E /llbracketA/rrbracketρ relates similarly closed expressions. The value and expression relations are parameterized
+by a type substitution ρ that maps free type variables X in A to type names α . Note that, unlike
+existing logical relations for polymorphic languagesÐsuch as the one shown in Section 2 or the
+4The notation Σ (α ) looks up the type associated with α in Σ . If Σ contains α :=A , then Σ (α ) = A.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 17 ===
+Theorems for Free for Free: Parametricity, With and Without Types 39:17
+V /llbracketint /rrbracketρ = {(W ,n ,n ) ∈ Atom [int ] ρ}
+V /llbracketbool /rrbracketρ = {(W ,b ,b ) ∈ Atom [bool ] ρ}
+V /llbracketA × B/rrbracketρ = {(W ,⟨v1,v2⟩,⟨v ′
+1,v ′
+2⟩) ∈ Atom [A × B] ρ |
+(W ,v1,v2) ∈ V /llbracketA/rrbracketρ ∧ (W ,v ′
+1,v ′
+2) ∈ V /llbracketB/rrbracketρ}
+V /llbracketA → B /rrbracketρ = {(W ,v f 1,v f 2) ∈ Atom [A → B ] ρ |
+∀W ′ ⊒ W . ∀v 1,v 2. (W ′,v 1,v 2) ∈ V /llbracketA /rrbracketρ =⇒
+(W ′,v f 1 v 1,v f 2 v 2) ∈ E /llbracketB /rrbracketρ}
+V /llbracket∀X . A /rrbracketρ = {(W ,v f 1,v f 2) ∈ Atom [∀X . A ] ρ |
+∀W ′ ⊒ W . ∀B1,B2,R. ∀e1,e2. ∀α .
+W ′.Σ 1; · ⊢ B1 ∧ W ′.Σ 2; · ⊢ B2 ∧ R ∈ RelW ′.j [B1,B2] ∧
+W ′.Σ 1 ▷ v f 1 [B1] ↦− →W ′.Σ 1,α:=B1 ▷ (e1 : ρ (A )[α/ X ]
++α
+=⇒ ρ (A )[B1/ X ]) ∧
+W ′.Σ 2 ▷ v f 2 [B2] ↦− →W ′.Σ 2,α:=B2 ▷ (e2 : ρ (A )[α/ X ]
++α
+=⇒ ρ (A )[B2/ X ])
+=⇒ (W ′⊞ (α,B1,B2,R),e1,e2) ∈▶E /llbracketA /rrbracketρ[X ↦→α]}
+V /llbracketX /rrbracketρ = {(W ,(v 1 : A1
+−α
+=⇒ α ),(v 2 : A2
+−α
+=⇒ α )) ∈ Atom [X ] ρ | (W ,v 1,v 2) ∈▶W .κ (α )}
+V /llbracketα /rrbracketρ = {(W ,(v 1 : A1
+−α
+=⇒ α ),(v 2 : A2
+−α
+=⇒ α )) ∈ Atom [α ] ∅ | (W ,v 1,v 2) ∈▶W .κ (α )}
+V /llbracket⋆/rrbracketρ = {(W ,(v : ι
+p
+=⇒ ⋆),(v : ι
+p
+=⇒ ⋆)) ∈ Atom [⋆] ∅}
+∪ { (W ,(v 1 : ⋆→ ⋆
+p
+=⇒ ⋆),(v 2 : ⋆→ ⋆
+p
+=⇒ ⋆)) ∈ Atom [⋆] ∅ |
+(W ,v 1,v 2) ∈▶V /llbracket⋆→ ⋆/rrbracketρ}
+∪ { (W ,(v 1 : α
+p
+=⇒ ⋆),(v 2 : α
+p
+=⇒ ⋆)) ∈ Atom [⋆] ∅ |
+v 1 = (v′
+1 : A1
+−α
+=⇒ α ) ∧ v 2 = (v′
+2 : A2
+−α
+=⇒ α ) ∧ (W ,v′
+1,v′
+2) ∈▶W .κ (α )}
+E /llbracketA /rrbracketρ = {(W ,e1,e2) ∈ Atom [A ] ρ | ∀j < W .j.
+(∀Σ 1,v1. W .Σ 1 ▷ e1 − →j Σ 1 ▷ v1 =⇒
+∃W ′,Σ 2,v2. W .Σ 2 ▷ e2 − →∗ Σ 2 ▷ v2 ∧ W ′ ⊒j W ∧
+W ′.Σ 1 = Σ 1 ∧ W ′.Σ 2 = Σ 2 ∧ (W ′,v1,v2) ∈ V /llbracketA/rrbracketρ) ∧
+(∀Σ 1,p. W .Σ 1 ▷ e1 − →j Σ 1 ▷ blame p =⇒ ∃ Σ 2. W .Σ 2 ▷ e2 − →∗ Σ 2 ▷ blame p )}
+S /llbracket· /rrbracket = World
+S /llbracketΣ ,α :=A /rrbracket= S /llbracketΣ /rrbracket∩ {W ∈ World | W .Σ 1 (α ) = A ∧ W .Σ 2 (α ) = A ∧
+⊢W .Σ 1 ∧ ⊢ W .Σ 2 ∧ W .κ (α ) = ⌊V /llbracketA /rrbracket∅⌋
+W .j }
+D /llbracket· /rrbracket = {(W ,∅) | W ∈ World}
+D /llbracket∆ ,X /rrbracket= {(W ,ρ[X ↦→α]) | (W ,ρ) ∈ D /llbracket∆ /rrbracket∧ α ∈ dom(W .κ )}
+G /llbracket· /rrbracketρ = {(W ,∅) | W ∈ World}
+G /llbracketΓ ,x : A /rrbracketρ = {(W ,γ [x ↦→(v 1,v 2)]) | (W ,γ ) ∈ G /llbracketΓ /rrbracketρ ∧ (W ,v 1,v 2) ∈ V /llbracketA /rrbracketρ}
+Σ ; ∆ ; Γ ⊢ e1 ⪯ e2 : A def= Σ ; ∆ ; Γ ⊢ e1 : A ∧ Σ ; ∆ ; Γ ⊢ e2 : A ∧ ∀ W ,ρ,γ .
+(W ∈ S /llbracketΣ /rrbracket∧ (W ,ρ) ∈ D /llbracket∆ /rrbracket∧ (W ,γ ) ∈ G /llbracketΓ /rrbracketρ)
+=⇒ (W ,ρ (γ 1 (e1)) ,ρ (γ 2 (e2))) ∈ E /llbracketA /rrbracketρ
+Σ ; ∆ ; Γ ⊢ e1 ≈ e2 : A def= Σ ; ∆ ; Γ ⊢ e1 ⪯ e2 : A ∧ Σ ; ∆ ; Γ ⊢ e2 ⪯ e1 : A
+Fig. 7. Logical Relation
+related work by Neis et al . [2011] and Ahmed et al . [2011]Ðρ does not map type variables X to
+relational interpretations R. Instead ρ specifies a mapping from type variables X to type names α
+and we look up the relational interpretation for α (which is the same as the relational interpretation
+we wish to use for X ) in the world W . We return to this point below when we discuss the value
+relation for universal types.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 18 ===
+39:18 Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler
+The relation V /llbracketA/rrbracketρ specifies when closed values v 1 and v 2 are related in a world W . It requires
+that v 1 and v 2 have type ρ (A) under the type-name stores W .Σ 1 and W .Σ 2, respectively. The
+definition of V /llbracketA/rrbracketρ is straightforward for base types and pairs. Two values are related at a base
+type ι in any world W as long as they are equal. Two pairs are related at the type A × B in a world
+W if the first components of the pairs are related at type A in W and the second components are
+related at type B in W .
+Functions v f 1 and v f 2 are related at A→ B in world W if, in any future world W ′ that extends
+W , given two arguments v 1 and v 2 related at the argument type A in W ′, the functions applied to
+the arguments are related expressions at the result type B in world W ′. The extension to a future
+world W ′ is essential for proving monotonicity of V /llbracketA→ B/rrbracketρ under world extension. Note that in
+λB, the values v f 1 and v f 2 may each be a function abstraction or a conversion or cast from a value
+to a function type.
+The definition of V /llbracket∀X . A/rrbracketρ is made more complex by several factors. Note that it must relate
+values v f 1 and v f 2, which may each be a type abstraction or a conversion or cast from a value
+to a universal type. V /llbracket∀X . A/rrbracketρ says that v f 1 and v f 2 are related in world W if, in any future
+world W ′ that extends W , given two types B1 and B2 that are well formed under the type-name
+stores from W ′, and given an admissible relation R ∈ Rel [B1,B2] that is good for the remaining
+W ′.j steps, the type applications v f 1 [B1] and v f 2 [B2] must be related. The unusual aspect of the
+definition is how we specify relatedness of the aforementioned type applications.
+Unlike Ahmed et al. [2011] and Neis et al. [2011], who require that the type applications v f 1 [B1]
+and v f 2 [B2] are related in E /llbracketA/rrbracketwith an environment ρ that maps X to (B1,B2,R), in a world
+that extends W ′ to record (essentially) that X maps to the type name α and the triple (B1,B2,R),
+we avoid duplicating the information (B1,B2,R) in both ρ and the world. Instead we rely on the
+indirection provided by type names. That is, we let ρ specify simply that X maps to type name
+α and store the types and relational interpretation for α in the world (written W ′⊞ (α,B1,B2,R),
+which is defined at the bottom of Figure 6).
+But having made the above design decision, we have a bit of a problem regarding how to
+specify relatedness of the type applications v f 1 [B1] and v f 2 [B2] in the definition of V /llbracket∀X . A /rrbracketρ.
+We proceed by noting that the operational semantics guarantees that regardless of whether the
+values vf i are type abstractions or conversions or casts to universal type, a type application
+Σ ▷ vf i [Bi ] steps to a configuration of the form Σ,α:=Bi ▷ (ei : ρ (A )[α/ X ]
++α
+=⇒ ρ (A )[Bi / X ]). Thus,
+V /llbracket∀X . A/rrbracketρ requires that the subexpressions e1 and e2 be related in▶E /llbracketA/rrbracketρ[X ↦→α] in world
+W ′⊞ (α,B1,B2,R). (At the end of Section 4.2, we explain why the dynamic semantics of type
+application in λB precludes a more standard logical-relation design where ρ maps type variables X
+to triples (B1,B2,R).)
+We use▶E /llbracketA/rrbracketbecause we must ensure that we go down a step to avoid circularities due
+to impredicative polymorphism (as pointed out in prior work [ Ahmed 2006, 2004]). Specifically,
+consider what happens if B1 and B2 happen to be the type ρ (∀X . A )Ði.e., types that are not strictly
+smaller than the type whose relational interpretation we wish to define. Then, to ensure that our
+definition of V /llbracket∀X . A/rrbracketρ at world W is well founded, when we relate e1 and e2 we must use only
+the (W .j − 1)-approximation of R (where W .j ≥ W ′.j). This is justified because type application
+consumes a reduction step.
+The relation V /llbracketX /rrbracketρ relates values of type ρ (X ) = α. Hence, the values must be of the form
+(vi : Ai
+−α
+=⇒ α ) for i ∈ { 1,2}. These values are related if the underlying v1 and v2 are related by the
+relational interpretation for α (i.e., W .κ (α )) for one fewer step.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 19 ===
+Theorems for Free for Free: Parametricity, With and Without Types 39:19
+The relation V /llbracketα/rrbracketρ also relates values of type α. Hence, the values must again be of the form
+(vi : Ai
+−α
+=⇒ α ) for i ∈ { 1,2}. As above, these values are related if the underlying v1 and v2 are
+related by W .κ (α ) for one fewer step.
+The relation V /llbracket⋆/rrbracketρ relates values of the form (v 1 : G
+p
+=⇒ ⋆) and (v 2 : G
+p
+=⇒ ⋆) in world W ,
+where both values have the same ground type G. There are three cases to consider. When G is
+a base type, v1 and v2 must be equal. When G is ⋆→ ⋆, v1 and v2 must be related at the type
+⋆→ ⋆ in world W for one fewer step. Since our definition of the value relation at ⋆ relies on the
+value relation for the bigger type ⋆→ ⋆, it is imperative that we go down a step to ensure that the
+logical relation is well founded. Going down a step is justified since extracting the values vi from
+(vi : ⋆→ ⋆
+p
+=⇒ ⋆) consumes a reduction step. Finally, when G is a type name α, the values v1 and
+v2 must be of the form (v ′
+i : Ai
+−α
+=⇒ α ) and v ′
+1 and v ′
+2 are related by the relational interpretation for
+α (i.e., W .κ (α )) for one fewer step.
+The expression relation E /llbracketA/rrbracketρ is similar to prior step-indexed Kripke logical relations (in
+particular, Matthews and Ahmed [2008]). It says that two expressions e1 and e2 are related in world
+W if whenever e1 evaluates to a value under W .Σ 1 in fewer than W .j steps, then e2 evaluates to a
+value under W .Σ 2 and the resulting values and stores are related in some future world W ′; and
+whenever e1 evaluates to blame p under W .Σ 1, again in fewer than W .j steps, then e2 evaluates to
+blame p under W .Σ 2.
+The remaining definitions in Figure 7 specify the logical relation for open terms. First, S /llbracketΣ /rrbracket
+specifies worlds W that satisfy Σ . It says that the type-name stores in W should be well formed,
+and for every α := A ∈ Σ, the type-name stores in W should map α to A and the interpretation W .κ
+should map α to the W .j-approximation of V /llbracketA/rrbracket∅. Next, D /llbracket∆ /rrbracketsays that a type substitution ρ
+satisfies ∆ in a world W if it maps all the type variables in ∆ to type names α that are associated
+with a relational interpretation in W .κ. Finally, we let the metavariable γ range over relational
+value substitutions, i.e., finite maps from variables to pairs of values. G /llbracketΓ/rrbracketρ says that γ satisfies Γ
+in world W if every variable in x ∈ dom(Γ) is mapped to pairs of values related in V /llbracketΓ(x )/rrbracketρ in W .
+The logical approximation relation on open terms Σ ; ∆ ; Γ ⊢ e1 ⪯ e2 : A says that given a world
+W that satisfies Σ , a type substitution ρ that maps type variables in ∆ to type names in W , and a
+relational value substitution γ that maps variables to pairs of values related inW , the terms ρ (γ1(e1))
+and ρ (γ2(e2)) are related in E /llbracketA/rrbracketρ at world W . The logical equivalence relation Σ ; ∆ ; Γ ⊢ e 1 ≈ e 2 : A
+requires that e1 logically approximates e2 and vice versa.
+Complications in the Interpretation of Universal Types. Consider defining the logical relation in the
+usual way with value interpretations parameterized by an environment ρ that maps type variables
+X to triples (B1,B2,R) that record the types B1 and B2 that X was instantiated with and the relational
+interpretation R that should be used to relate values at the type X . Then our interpretation of type
+variables and universal types would be as follows:
+V /llbracketX /rrbracketρ = R where ρ (X ) = (B1,B2,R)
+V /llbracket∀X . A/rrbracketρ = {(W ,v 1,v 2) ∈ Atom [∀X . A] ρ | ∀W ′ ⊒ W . ∀α,B1,B2,R.
+W ′.Σ 1; · ⊢ B1 ∧ W ′.Σ 2; · ⊢ B2 ∧ R ∈ RelW ′.j [B1,B2] =⇒
+(W ′⊞ (α,B1,B2,R),v 1 [B1],v 2 [B2]) ∈ E /llbracketA/rrbracketρ[X ↦→(B1,B2,R)]}
+With the above definitions, assuming a standard definition of the open term relation, we fail to
+prove the compatibility lemma for type abstraction. That lemma says: if Σ ; ∆ ,X ; Γ ⊢ v 1 ⪯ v 2 : A
+then Σ ; ∆ ; Γ ⊢ Λ X .v 1 ⪯ Λ X .v 2 : ∀X . A.
+Next, we show the proof attempt for a simpler version of that lemma which says: if ·; ·,X ; ·
+⊢ v 1 ⪯ v 2 : A then ·; · ; · ⊢ Λ X .v 1 ⪯ Λ X .v 2 : ∀X . A. Given W that satisfies the empty type-name
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 20 ===
+39:20 Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler
+store, it suffices to show that (W ,Λ X .v 1,Λ X .v 2) ∈ V /llbracket∀X . A/rrbracket∅. Unrolling the definition given
+above, we assume appropriate W ′, α, B1, B2, and R and need to show
+(W ′⊞ (α,B1,B2,R),(Λ X .v 1) [B1],(Λ X .v 2) [B2]) ∈ E /llbracketA /rrbracket∅[X ↦→(B1,B2,R)]
+or equivalently (after taking a step),
+/parenlefttpA
+/parenleftbtA
+W ′⊞ (α,B1,B2,R),(v 1[α/ X ] : A[α/ X ]
++α
+=⇒ A[B1/ X ]),
+(v 2[α/ X ] : A[α/ X ]
++α
+=⇒ A[B2/ X ])
+/parenrighttpA
+/parenrightbtA
+∈▶E /llbracketA /rrbracketρ[X ↦→(B1,B2,R)]
+But instantiating the premise ·; ·,X ; · ⊢ v 1 ⪯ v 2 : A with W ′⊞ (α,B1,B2,R) and ∅[X ↦→(B1,B2,R)]
+gives us:
+(W ′⊞ (α,B1,B2,R),v 1[B1/ X ],v 2[B2/ X ]) ∈ E /llbracketA/rrbracketρ[X ↦→(B1,B2,R)]
+and we have no way of completing the proof.
+The problem is that the logical relation for open terms substitutes the Bi for X while the reduction
+rule for type application substitutes a fresh type name α for X and then performs a conversion
+from A[α/ X ] to A[Bi / X ]. To fix this mismatch, we would at a minimum need to make ρ a mapping
+from type variables X to (α,B1,B2,R) so we can keep track of the type name generated for each X .
+In addition, the logical relation for open terms Σ ; ∆ ; Γ ⊢ e1 ⪯ e2 : A would have to be modified so
+that once we have picked a world W that satisfies Σ; a ρ that maps all Xi in ∆ to (αi ,Bi1,Bi2,Ri ),
+where the αi are fresh type names with respect to the type-name stores in W ; and a substitution γ
+that satisfies Γ, we would require that the two terms being related by E /llbracketA/rrbracketρ (for j ∈ { 1,2}) be of
+the form:
+((ej [α1/ X1] . . . [αn/ Xn] : A[α1/ X1] . . . [αn/ Xn]
++α1
+=⇒ A[B1j / X1][α2/ X2] . . . [αn/ Xn]) . . .
+: A[B1j / X1] . . . [B(n−1)j / Xn−1][αn/ Xn]
++αn
+=⇒ A[B1j / X1] . . . [Bnj / Xn])
+Clearly, the logical relation design we just sketched out is more complicated than the logical
+relation we present in this paper. The lesson is that every logical relation must łlistenž to the (static
+and dynamic semantics of the) language at hand. The design of λB presents different challenges in
+the design of the logical relation compared to the related work by Neis et al. [2011] and Ahmed et al.
+[2011] even though all three use Kripke logical relations (which is to be expected for any language
+with RTG). We give a detailed comparison with the aforementioned related work in Section 6.
+4.3 Parametricity and Soundness of the Logical Relation
+In this section, we summarize the proofs for the Fundamental Property and soundness of the logical
+relation with respect to contextual equivalence. The full proofs are in the accompanying technical
+report [Ahmed et al. 2017 ].
+The Fundamental Property is that any well-typed term of λB is related to itself by the logical
+relation.
+Theorem 4.1 (Fundamental Property / Parametricity). If Σ ; ∆ ; Γ ⊢ e : A , thenΣ ; ∆ ; Γ ⊢ e ⪯ e : A .
+The proof of the fundamental property is by induction on the derivation of Σ ; ∆ ; Γ ⊢ e : A,
+relying on a compatibility lemma for each kind of expression in λB. The compatibility lemmas for
+conversion, type application, and cast are interesting.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 21 ===
+Theorems for Free for Free: Parametricity, With and Without Types 39:21
+For conversion, the proof boils down to showing that ife1 and e2 are related, applying a conversion
+to them, either positively or negatively, yields related expressions:
+Σ ; ∆ ⊢ A ≺+α B and (W ,e 1,e 2) ∈ E /llbracketA/rrbracketρ
+implies (W ,(e 1 : ρ (A )
++α
+=⇒ ρ (B )) ,(e 2 : ρ (A )
++α
+=⇒ ρ (B ))) ∈ E /llbracketB /rrbracketρ
+Σ ; ∆ ⊢ B ≺−α A and ∧ (W ,e 1,e 2) ∈ E /llbracketB /rrbracketρ
+implies (W ,(e 1 : ρ (B )
+−α
+=⇒ ρ (A )) ,(e 2 : ρ (B )
+−α
+=⇒ ρ (A ))) ∈ E /llbracketA/rrbracketρ
+We prove these two statements simultaneously by induction on the size of A, using numerous
+technical lemmas (e.g., anti-reduction, monotonicity, and compositionality).
+The proof of compatibility for type application requires that we show
+(W ,v1,v2) ∈ V /llbracket∀X . A/rrbracketρ implies (W ,v1 [ρ (B)],v1 [ρ (B)]) ∈ E /llbracketA[B/ X ]/rrbracketρ
+The proof of this does not require induction, but it uses the above property of conversion as well as
+many of the same technical lemmas.
+The proof of compatibility for casts boils down to showing that if some expressions e1 and e2 are
+related, casting them yields related expressions:
+Σ ; ∆ ⊢ A ≺ B and (W ,e1,e2) ∈ E /llbracketA/rrbracketρ
+implies (W ,e1 : ρ (A)
+p
+=⇒ ρ (B),e2 : ρ (A)
+p
+=⇒ ρ (B)) ∈ E /llbracketB/rrbracketρ
+We prove this by induction on the step index in W and the derivation of Σ ; ∆ ⊢ A ≺ B . The induction
+on the step index is needed for the cases that cast to and from ⋆. We rely on the above property of
+type application for the cast from ∀X .A′ to ⋆.
+Next we discuss the proof that the logical relation is sound with respect to contextual approxi-
+mation (and therefore contextual equivalence).
+Theorem 4.2 (Soundness w.r.t. Contextual Approximation).
+If Σ ; ∆ ; Γ ⊢ e 1 ⪯ e 2 : A then Σ ; ∆ ; Γ ⊢ e 1 ⪯ctx e 2 : A .
+The proof follows the usual route of going through congruence and adequacy.
+Lemma 4.3 (Congruence). If Σ ; ∆ ; Γ ⊢ e 1 ≈ e 2 : A and ⊢ C : (Σ ; ∆ ; Γ ⊢ A )⇝ (Σ ′; ∆ ′; Γ′ ⊢ B )
+then Σ ′; ∆ ′; Γ′ ⊢ C [e 1] ≈ C [e 2] : B .
+Congruence is proved by induction on the typing derivation for C, using a weakening lemma for
+cases where C is empty, and the compatibility lemmas for all other cases.
+Lemma 4.4 (Adeqacy). If Σ ; · ; · ⊢ e 1 ≈ e 2 : A then Σ ▷ e 1⇓ if and only if Σ ▷ e 2⇓.
+Adequacy follows easily from the definition of the logical relation.
+5 FREE THEOREM EXAMPLES
+We consider two examples of obtaining theorems for free from parametricity. The first example,
+about the K combinator, comes from Ahmed et al . [2011]. The second example comes from Wadler
+[1989], and revisits our discussion of swap from Section 2.
+We write Σ ⊢ e : A as shorthand for Σ; · ; · ⊢ e : A.
+5.1 K Combinator
+Ahmed et al . [2011] discuss the K combinator to motivate the design of the polymorphic lambda
+calculus, so it is illustrative to return to this example. On the left we have the untyped K combinator
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 22 ===
+39:22 Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler
+and on the right we have the untyped K combinator again, but with a typo!
+K ⋆ = ⌈λ(x ). λ(y). x⌉
+K = (K ⋆ : ⋆
+ℓ1
+=⇒ ∀X .∀Y .X → Y → X )
+badK ⋆ = ⌈λ(x ). λ(y). y⌉
+badK = (badK ⋆ : ⋆
+ℓ2
+=⇒ ∀X .∀Y .X → Y → X )
+Let us consider the behavior of these two combinators once they are cast to the polymorphic type
+that one would expect for the K combinator, that is, ∀X .∀Y .X → Y → X . As explained by Ahmed
+et al. [2011], parametricity should tell us that a value of type ∀X .∀Y .X → Y → X is a polymorphic
+function that returns its first argument or is a function that diverges or a function that raises blame.
+Indeed, the above expression K is an example of the former and badK is an example of the later.
+Furthermore, with our parametricity result in hand we can prove that in general, values of type
+∀X .∀Y .X → Y → X behave as expected.
+Theorem 5.1 (Free Theorem: K-Combinator).
+If Σ ⊢ v : ∀X . ∀Y . X → Y → X , Σ ⊢ v1 : A, and Σ ⊢ v2 : B, then either
+(1) Σ ▷ v [A] [B] v1 v2 ↦− →∗ Σ ′ ▷ v ′
+1 and v ′
+1≈ctxv1, for some Σ ′,v ′
+1, or
+(2) Σ ▷ v [A] [B] v1 v2 ⇑, or
+(3) Σ ▷ v [A] [B] v1 v2 ↦− →∗ Σ ′ ▷ blame p , for some Σ ′,p.
+Proof (sketch)
+(The full proof is in the accompanying technical report [ Ahmed et al. 2017]). Here we give the
+high points.) We focus on case (1) where v [A] [B] reduces to a value. Let e = v [A] [B] v1 v2.
+We need to show that v ′
+1≈ctxv1.
+By the Fundamental Property (Theorem 4.1), we have
+(W0,v,v) ∈ V /llbracket∀X .∀Y .X → Y → X /rrbracket∅ (12)
+The type applications reduce as follows.
+Σ ▷ v [A] [B] ↦− →∗ Σ ′ ▷ e1 : α → β → α
++α
+=⇒ A → β → A
++β
+=⇒ A → B → A (13)
+where Σ ′ = Σ,α:=A,β:=B. Let e ′ be the right-hand side of the above reduction. Let v ′′
+1 be the
+result of normalizing v1 : A
+−β
+=⇒ A, so we have v ′′
+1 ≈ctx v1. From (12) and ( 13) we have
+(W1,e1,e1) ∈ E /llbracketα → β → α/rrbracket∅ (14)
+with W1.Σ 1(α ) = W1.Σ 2(α ) = A, W1.Σ 1(β ) = W1.Σ 2(β ) = B, W1.κ (α ) = RX , and W1.κ (β ) =
+RY , where we choose
+RX = {(W ,v ′′
+1 ,v ′′
+1 )∈Atomval
+W0 .j [A,A]} and RY = {(W ,v2,v2)∈Atomval
+W0 .j [B,B]}. (15)
+Next, we have the reduction
+Σ ′ ▷ e ′ v1 v2 ↦− →∗ Σ ′ ▷ e1 (v ′′
+1 : A
+−α
+=⇒ α ) ( v2 : B
+−β
+=⇒ β ).
+From (15) we have
+(W2,v ′′
+1 : A
+−α
+=⇒ α,v ′′
+1 : A
+−α
+=⇒ α )∈V /llbracketα/rrbracket∅ and
+(W2,v2 : B
+−β
+=⇒ β,v2 : B
+−β
+=⇒ β )∈V /llbracketβ/rrbracket∅.
+So from (14) we have that e1 (v ′′
+1 : A
+−α
+=⇒ α ) ( v2 : B
+−β
+=⇒ β ) reduces to a value vr : A
+−α
+=⇒ α
+and (W3,vr ,vr ) ∈ W3.κ (α ) for some W3 ⊒ W1. So (W3,vr ,vr ) ∈ RX and therefore vr = v ′′
+1 .
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 23 ===
+Theorems for Free for Free: Parametricity, With and Without Types 39:23
+Finally, we have the reduction
+(v ′′
+1 : A
+−α
+=⇒ α
++α
+=⇒ A
++β
+=⇒ A) − →(v ′′
+1 : A
++β
+=⇒ A) − →∗ v ′
+1 and v ′
+1 ≈ctx v ′′
+1 ≈ctx v1.
+□
+5.2 Rearrangements Commute with Map
+Wadler [1989]’s introductory example of a free theorem showed that any function r of type
+∀X .List X → List X (r is for łrearrangementž) commutes with the map function. That is, for any
+function f : A → B and list l : List A,
+map f (r [A] l ) = r [B] (map f l ).
+Here we derive the free theorem for rearrangements on pairs instead of lists. That is, any functionr of
+type ∀X .X × X → X × X commutes with the pair-mapping operation: map f ⟨v1,v2⟩ = ⟨f v 1,f v 2⟩.
+Note that functions of type ∀X .X × X → X × X include untyped functions that have been cast to
+this type, such as
+swap⋆ = ⌈λ(p). ⟨π2 p,π1 p⟩⌉ : ⋆
+ℓ
+=⇒ ∀X .X × X → X × X
+id⋆ = ⌈λ(x ). x⌉ : ⋆
+ℓ
+=⇒ ∀X .X × X → X × X
+bad⋆ = ⌈λ(p). ⟨π1 p + π2 p,42⟩⌉ : ⋆
+ℓ
+=⇒ ∀X .X × X → X × X
+We write e↓ for the value resulting from normalizing the expression e, if it exists.
+Theorem 5.2 (Free Theorem: Rearrangement).
+Suppose Σ ⊢ r : ∀X . X × X → X × X , Σ ⊢ f : A→ B, Σ ⊢ v : A × A, Σ ▷ f (π1 v)⇓,
+and Σ ▷ f (π2 v)⇓. Then Σ; · ; · ⊢ map f (r [A] v) ≈ctx r [B] (map f v ) : B × B.
+Proof (sketch)
+(The full proof is in the accompanying technical report [ Ahmed et al. 2017].) We focus on the
+case where r terminates with a value. The type applications reduce as follows
+r [A] − →r ′ : α × α → α × α
++α
+=⇒ A × A → A × A and
+r [B] − →r ′ : α × α → α × α
++α
+=⇒ B × B → B × B.
+By the Fundamental Property (Theorem 4.1), we have
+(W0,r,r ) ∈ V /llbracket∀X .X × X → X × X /rrbracket∅ and therefore
+(W1,r ′,r ′) ∈ E /llbracketα × α → α × α/rrbracket∅ (16)
+in a world W1 with W1.Σ 1(α ) = A, W1.Σ 2(α ) = B, and W1.κ (α ) = RX . We choose
+RX = {(W ,v ′,f v ′↓) ∈ Atomval
+W ′.j [A,B] | Σ ⊢ v ′ : A}. (17)
+Let v = ⟨v1,v2⟩. We have
+(W1,v1 : A
+−α
+=⇒ α,f v 1↓ : B
+−α
+=⇒ α ) ∈ V /llbracketα/rrbracket∅ and
+(W1,v2 : A
+−α
+=⇒ α,f v 2↓ : B
+−α
+=⇒ α ) ∈ V /llbracketα/rrbracket∅.
+Let p = ⟨v1 : A
+−α
+=⇒ α,v2 : A
+−α
+=⇒ α⟩ and p ′ = ⟨f v 1↓ : B
+−α
+=⇒ α,f v 2↓ : B
+−α
+=⇒ α⟩.
+So (W1,p,p ′) ∈ V /llbracketα × α/rrbracket∅ and from (16) we have (W2,r ′ p,r ′ p ′) ∈ E /llbracketα × α/rrbracket∅. We have
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 24 ===
+39:24 Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler
+the reductions
+r ′ p − →∗ ⟨v3 : A
+−α
+=⇒ α,v4 : A
+−α
+=⇒ α⟩ and
+r ′ p ′ − →∗ ⟨v ′
+3 : B
+−α
+=⇒ α,v ′
+4 : B
+−α
+=⇒ α⟩
+so (W3,v3,v ′
+3) ∈ V /llbracketα/rrbracket∅ and (W3,v4,v ′
+4) ∈ V /llbracketα/rrbracket∅. Therefore, from (17) we have v ′
+3 = f v 3↓
+and v ′
+4 = f v 4↓. Next we have the reductions
+⟨v3 : A
+−α
+=⇒ α,v4 : A
+−α
+=⇒ α⟩ : α × α
++α
+=⇒ A × A − →∗ ⟨v3,v4⟩ and
+⟨f v 3↓ : B
+−α
+=⇒ α,f v 4↓ : B
+−α
+=⇒ α⟩ : α × α
++α
+=⇒ B × B − →∗ ⟨f v 3↓,f v 4↓⟩.
+To put this all together, we have
+map f (r [A] v) − →∗ map f ⟨v3,v4⟩ − →∗ ⟨f v 3↓,f v 4↓⟩ and
+r [B] (map f v ) − →∗ ⟨f v 3↓,f v 4↓⟩.
+We conclude that map f (r [A] ⟨v1,v2⟩)≈ctxr [B] ⟨f v 1,f v 2⟩. □
+6 RELATED WORK
+The syntactic type abstraction of Grossman et al. [2000] inspired the conversion construct used
+in this paper. They use brackets to hide a host’s knowledge that X =A from a client; so their [ M]B
+h
+corresponds to our negative conversion M : B[α:=A]
+−α
+=⇒ B and their [ M]B
+c corresponds to our
+positive conversion M : B
++α
+=⇒ B[α:=A]. In their semantics, brackets push through λ, in contrast to
+our approach. Grossman et al. [2000] do not prove parametricity but they do prove a weaker value
+abstraction property.
+Greenberg [2013] and Sekiyama et al . [2017] study a language that combines polymorphism and
+manifest contracts (aka. refinement types), but not type dynamic, and they prove parametricity. In
+their language parametricity is enforced statically (as in System F), so no dynamic enforcement is
+needed.
+Sulzmann et al . [2007] study System F extended with type equality coercions, to serve as an
+intermediate language for Haskell. Their coercions have a similar purpose to the conversions of
+λB and their reduction rules push coercions through abstractions, similar to those of Ahmed et al .
+[2011] that we discussed in Section 2.4.
+Non-parametric Polymorphism. Several language designs provide polymorphism but do not
+enforce parametricity. The argument in favor of this design choice is that it increases expressiveness.
+The languages include CAML [ Leroy and Mauny 1991 ], Typed Racket [ Tobin-Hochstadt and
+Felleisen 2006, 2008, 2010], and those generated by the Gradualizer [ Cimini and Siek 2016 , 2017].
+Sealing for Parametricity. The use of sealing to enforce type abstraction goes back to Morris
+[1973], who described a language with a Createseal primitive that returns a pair of functions for
+sealing and unsealing, which respectively correspond to encryption and decryption. The distinction
+between sealing and RTG is that the seals are values, not types. Thus, sealing applies in untyped
+languages. Guha et al. [2007] use sealing in the design of polymorphic contracts for PLT Scheme.
+Sumii and Pierce [2003] create a simply typed λ-calculus with cryptographic sealing. They define
+a logical relation, prove parametricity for the language, and present an embedding of System F into
+their calculus [ Pierce and Sumii 2000 ]. Their logical relation uses possible worlds analogous to
+ours, but they connect relational interpretations to private keys instead of type names.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 25 ===
+Theorems for Free for Free: Parametricity, With and Without Types 39:25
+Pitts and Stark [1993] and Stark [1995] study a language with fresh name generation (akin to
+Scheme’s gensym) and define a logical relation for reasoning about representation independence. It
+is straightforward to implement sealing using name generation and equality on names.
+Takikawa et al . [2012] present a gradual type system for class-based code that uses sealing
+contracts to protect row-polymorphic functions on classes. Sealing is applied at the level of fields
+and methods, which hides abstracted behavior within an object. They present a formal model
+of gradually typed dynamic class composition with an operational semantics that carries extra
+information for contract monitoring and blame assignment, including ownership information for
+valuesÐwhere a value’s owners include any components that may affect the flow of that value. They
+prove type soundness and a property called complete monitoring [Dimoulas et al . 2012]. The latter
+ensures that sealing and unsealing are handled properly, in essence, ensuring row parametricity.
+Instead of using a logical relation, they use a standard progress-and-preservation-style proof, but
+at the cost of having to augment the operational semantics to track extra information such as
+ownership labels.
+Runtime Type Generation. As discussed in Section 1, Matthews and Ahmed [2008] studied the
+integration of Scheme and ML by designing a multi-language that uses RTG to protect ML’s
+polymorphic functions from Scheme’s runtime type tests. Their multi-language contains boundaries
+that mediate between Scheme and ML code and are annotated with conversion schemes κ (which
+are essentially types). Boundaries have the form SMκ (ML inside, Scheme outside: convert from κ
+to ⋆) and κ MS (Scheme inside, ML outside: convert from ⋆ to κ). Ahmed et al . [2011] later fixed
+their proof of parametricity, making cosmetic changes to the multi-language in the process. Their
+reduction rule for type application is as follows:
+K ▷ (Λ X .e) [B] − → K,k ▷ e[X := ⟨k; B⟩]
+where K is a type-name store, k is a freshly generated type name, and e[X := ⟨k; B⟩] denotes a
+sealing substitution, which replaces occurrences of X in the conversion schemes κ that appear on
+boundaries in e. Performing sealing substitution on conversion schemes provides two things: (1)
+local storage of type-name bindings, whereas in λB, type-name bindings reside in a global store;
+and (2) a means to insert many local conversions, whereas in λB, the type application rule performs
+one global conversion from A[α/ X ] to A[B/ X ]. Recall that at the end of Section 4.2, we discussed
+the ramifications of this global conversion on the design of the logical relation for λB. Due to the
+sealing substitutions and many-local-conversions aspects of the multi-language design, Ahmed
+et al. [2011] can parameterize V /llbracketA/rrbracketwith a ρ that maps X to (B1,B2,R) without storing type names
+in ρ. A final distinction between the Scheme+ML multi-language and λB is that the former only
+allows casts to and from ⋆, while we support casts between many more (compatible) types, which
+makes our calculus more general.
+In Section 1, we also discussed the work by Neis et al. [2009] who present a Kripke logical relation
+for G, a polymorphic language extended with Girard’s non-parametric J operator, but without the
+type ⋆. Since their language is non-parametric, they have a conversion typing rule that essentially
+says that if e : A and A ≈ A′ under some type-name store Σ (where A ≈ A′ allows all type names in
+A and A′ to be replaced by the types they are bound to in Σ), then e : A′. In λB, we do not have such
+a conversion rule, which would break parametricity. These language distinctions lead to differences
+in the design of the logical relation as discussed in Section 4.2.
+Finally, Igarashi et al . [2017] present work at the same conference that is complementary to this
+paper. They design a gradually typed variant of System F, called F G, and prove that it satisfies the
+static part of the gradual guarantee [ Siek et al . 2015] thanks to a careful definition of consistency
+for universal types. They give a dynamic semantics to F G via translation to F C, a calculus based
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 26 ===
+39:26 Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler
+on the λB of this paper, though there are a few differences to note. They considered using the
+compatibility relation of this paper for F G, but found that it broke conservativity of typing with
+respect to System F. So they instead develop a new consistency relation that solves that problem.
+As a result, they also use consistency in F C instead of compatibility. A second difference is that
+Igarashi et al . [2017] differentiate between static and gradual type variables, building on the work
+of Garcia and Cimini [2015]. Only the gradual type variables require RTG; the static ones can be
+erased. The final difference between F C and λB is that they replace conversions with the use of
+type environment application. Regarding the metatheory of F C, they prove that it is type safe and
+they prove the blame theorem.
+7 CONCLUSION
+This paper settles a long-standing open question: can a language that integrates dynamic typing
+into a statically typed language with universal types satisfy parametricity? For a variant of the
+polymorphic blame calculus of Ahmed et al . [2011], we define a Kripke logical relation, prove the
+Fundamental Property (Theorem 4.1), and prove that the logical relation is sound with respect to
+contextual equivalence (Theorem 4.2). To demonstrate the utility of this parametricity result, we
+prove free theorems about the K combinator and about rearrangements.
+Looking to the future, it would be interesting to see our parametricity result adapted to F C of
+Igarashi et al. [2017]. We are also eager to see whether the dynamic aspect of the gradual guarantee
+holds for F G, which requires challenging lemmas regarding F C. Finally, we plan to investigate
+whether a coercion-based version of the polymorphic blame calculus can achieve space efficiency.
+ACKNOWLEDGMENTS
+This work was supported by EPSRC grant EP/K034413/1, by a Northeastern University Advanced
+Research and Creative Endeavor Award for Undergraduate Research, and by National Science
+Foundation grants CCF-1518844 and CCF-1453796. Any opinions, findings, and conclusions or
+recommendations expressed in this material are those of the authors and do not necessarily reflect
+the views of the National Science Foundation.
+REFERENCES
+Martín Abadi, Luca Cardelli, Benjamin Pierce, and Gordon Plotkin. 1991. Dynamic Typing in a Statically Typed Language.
+ACM Transactions on Programming Languages and Systems 13, 2 (April 1991), 237ś268.
+M. Abadi, L. Cardelli, B. Pierce, and D. Rémy. 1995. Dynamic typing in polymorphic languages. Journal of Functional
+Programming 5 (1995), 111ś130.
+Umut A. Acar, Amal Ahmed, and Matthias Blume. 2008. Imperative Self-Adjusting Computation. In ACM Symposium on
+Principles of Programming Languages (POPL), San Francisco, California . 309ś322.
+Amal Ahmed. 2006. Step-Indexed Syntactic Logical Relations for Recursive and Quantified Types. In European Symposium
+on Programming (ESOP). 69ś83.
+Amal Ahmed, Andrew W. Appel, Christopher D. Richards, Kedar N. Swadi, Gang Tan, and Daniel C. Wang. 2010. Semantic
+Foundations for Typed Assembly Languages. ACM Transactions on Programming Languages and Systems 32, 3 (March
+2010), 1ś67.
+Amal Ahmed, Andrew W. Appel, and Roberto Virga. 2003. An Indexed Model of Impredicative Polymorphism and Mutable
+References. (Jan. 2003). Available at http://www.cs.princeton.edu/∼appel/papers/impred.pdf.
+Amal Ahmed, Derek Dreyer, and Andreas Rossberg. 2009. State-Dependent Representation Independence. InACM Symposium
+on Principles of Programming Languages (POPL), Savannah, Georgia .
+Amal Ahmed, Robert Bruce Findler, Jeremy Siek, and Philip Wadler. 2011. Blame for All. In ACM Symposium on Principles of
+Programming Languages (POPL), Austin, Texas. 201ś214.
+Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler. 2017. Technical Report: Theorems for Free for Free:
+Parametricity, With and Without Types. Technical Report. Perma.cc. https://perma.cc/L74G-6A8W
+Amal Ahmed, Lindsey Kuper, and Jacob Matthews. 2011. Parametric polymorphism through run-time sealing, or, Theorems
+for low, low prices! (April 2011). Available at http://www.ccs.neu.edu/home/amal/papers/paramseal-tr.pdf.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 27 ===
+Theorems for Free for Free: Parametricity, With and Without Types 39:27
+Amal Ahmed, Jacob Matthews, Robert Bruce Findler, and Philip Wadler. 2009. Blame for all. In Workshop on Script-to-Program
+Evolution (STOP). 1ś13.
+Amal Ahmed, James T. Perconti, Jeremy G. Siek, and Philip Wadler. 2014. Blame for All (revised). (August 2014). draft.
+Amal Jamil Ahmed. 2004. Semantics of Types for Mutable State . Ph.D. Dissertation. Princeton University.
+Esteban Allende, Oscar Callaú, Johan Fabry, Éric Tanter, and Marcus Denker. 2013. Gradual Typing for Smalltalk. Science of
+Computer Programming (Aug. 2013). Available online.
+Gavin Bierman, Martín Abadi, and Mads Torgersen. 2014. Understanding TypeScript. In ECOOP 2014 ś Object-Oriented
+Programming, Richard Jones (Ed.). Lecture Notes in Computer Science, Vol. 8586. Springer Berlin Heidelberg, 257ś281.
+Gilad Bracha. 2011. Optional Types in Dart . Google.
+Avik Chaudhuri. 2014. Flow: a static type checker for JavaScript. (2014). http://flowtype.org/
+Matteo Cimini and Jeremy G. Siek. 2016. The Gradualizer: a methodology and algorithm for generating gradual type systems.
+In Symposium on Principles of Programming Languages (POPL) .
+Matteo Cimini and Jeremy G. Siek. 2017. Automatically Generating the Dynamic Semantics of Gradually Typed Languages.
+In Symposium on Principles of Programming Languages (POPL) .
+Christos Dimoulas, Sam Tobin-Hochstadt, and Matthias Felleisen. 2012. Complete Monitors for Behavioral Contracts. In
+European Symposium on Programming (ESOP) .
+Robert Bruce Findler and Matthias Felleisen. 2002. Contracts for higher-order functions. In International Conference on
+Functional Programming (ICFP), Pittsburgh, Pennsylvania . 48ś59.
+Ronald Garcia and Matteo Cimini. 2015. Principal Type Schemes for Gradual Programs. In Proceedings of the 42nd Annual
+ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages (POPL ’15) . ACM, 303ś315.
+Jean-Yves Girard. 1972. Interprétation Fonctionnelle et Élimination des Coupures de l’Arithmétique d’Ordre Supérieur . Thèse de
+doctorat d’état. Université Paris VII, Paris, France.
+Michael Greenberg. 2013. Manifest Contracts. Ph.D. Dissertation. University of Pennsylvania.
+Michael Greenberg, Benjamin C. Pierce, and Stephanie Weirich. 2010. Contracts made manifest. In ACM Symposium on
+Principles of Programming Languages (POPL), Madrid, Spain . 353ś364.
+Jessica Gronski, Kenneth Knowles, Aaron Tomb, Stephen N. Freund, and Cormac Flanagan. 2006. Sage: Hybrid Checking
+for Flexible Specifications. In Scheme and Functional Programming Workshop (Scheme) . 93ś104.
+Dan Grossman, Greg Morrisett, and Steve Zdancewic. 2000. Syntactic Type Abstraction. ACM Transactions on Programming
+Languages and Systems 22, 6 (Nov. 2000), 1037ś1080.
+Arjun Guha, Jacob Matthews, Robert Bruce Findler, and Shriram Krishnamurthi. 2007. Relationally-Parametric Polymorphic
+Contracts. In Dynamic Languages Symposium (DLS) . 29ś40.
+Robert Harper. 2013. Practical Foundations for Programming Languages . Cambridge University Press.
+Anders Hejlsberg. 2010. C# 4.0 and beyond by Anders Hejlsberg. Microsoft Channel 9 Blog. (April 2010).
+Anders Hejlsberg. 2012. Introducing TypeScript. Microsoft Channel 9 Blog. (2012).
+Fritz Henglein. 1994. Dynamic typing: syntax and proof theory. Science of Computer Programming 22, 3 (June 1994), 197ś230.
+Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi. 2017. On Polymorphic Gradual Typing. Proc. ACM Program. Lang. 1,
+ICFP, Article 40 (Sept. 2017), 29 pages. DOI:http://dx.doi.org/10.1145/3110284
+Lintaro Ina and Atsushi Igarashi. 2011. Gradual typing for generics. In Proceedings of the 2011 ACM international conference
+on Object oriented programming systems languages and applications (OOPSLA ’11) .
+Xavier Leroy and Michel Mauny. 1991. Dynamics in ML . Springer Berlin Heidelberg, Berlin, Heidelberg, 406ś426. DOI:
+http://dx.doi.org/10.1007/3540543961_20
+Jacob Matthews and Amal Ahmed. 2008. Parametric polymorphism through run-time sealing, or, Theorems for low, low
+prices!. In European Symposium on Programming (ESOP) . 16ś31.
+Jacob Matthews and Robert Bruce Findler. 2007. Operational Semantics for Multi-Language Programs. In ACM Symposium
+on Principles of Programming Languages (POPL), Nice, France . 3ś10.
+James H. Morris. 1968. Lambda-calculus Models of Programming Languages . Ph.D. Dissertation. MIT, Cambridge, MA, USA.
+James H. Morris, Jr. 1973. Protection in Programming Languages. Commun. ACM 16, 1 (Jan. 1973), 15ś21.
+Georg Neis, Derek Dreyer, and Andreas Rossberg. 2009. Non-Parametric Parametricity. In International Conference on
+Functional Programming (ICFP), Edinburgh, Scotland . 135ś148.
+Georg Neis, Derek Dreyer, and Andreas Rossberg. 2011. Non-parametric parametricity. Journal of Functional Programming
+21 (2011), 497ś562.
+Xinming Ou, Gang Tan, Yitzhak Mandelbaum, and David Walker. 2004. Dynamic Typing with Dependent Types. In IFIP
+International Conference on Theoretical Computer Science . 437ś450.
+Benjamin Pierce and Eijiro Sumii. 2000. Relating cryptography and polymorphism. (2000). www.cis.upenn.edu/~bcpierce/
+papers/infohide.ps Manuscript.
+Andrew M. Pitts. 1998a. Existential Types: Logical Relations and Operational Equivalence. Lecture Notes in Computer Science
+1443 (1998), 309ś326.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.
+
+
+=== PAGE 28 ===
+39:28 Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler
+Andrew M. Pitts. 1998b. Existential types: Logical relations and operational equivalence . Springer Berlin Heidelberg, Berlin,
+Heidelberg, 309ś326. DOI:http://dx.doi.org/10.1007/BFb0055063
+Andrew M. Pitts and Ian D. B. Stark. 1993. Observable Properties of Higher Order Functions That Dynamically Create Local
+Names, or What’s New?. In Proceedings of the 18th International Symposium on Mathematical Foundations of Computer
+Science (MFCS ’93) . Springer-Verlag, London, UK, UK, 122ś141.
+John C. Reynolds. 1974. Towards a Theory of Type Structure. In Programming Symposium (LNCS) , Vol. 19. Springer-Verlag,
+408ś425.
+John C. Reynolds. 1983. Types, abstraction, and parametric polymorphism. Information Processing (1983), 513ś523.
+Andreas Rossberg. 2003. Generativity and dynamic opacity for abstract types. In ACM Conference on Principles and Practice
+of Declarative Programming (PPDP) . 241ś252.
+Andreas Rossberg. 2006. The Missing Link: Dynamic Components for ML. In Proceedings of the Eleventh ACM SIGPLAN
+International Conference on Functional Programming (ICFP ’06) . ACM, New York, NY, USA, 99ś110. DOI:http://dx.doi.
+org/10.1145/1159803.1159816
+Taro Sekiyama, Atsushi Igarashi, and Michael Greenberg. 2017. Polymorphic Manifest Contracts, Revised and Resolved.
+ACM Trans. Program. Lang. Syst. 39, 1, Article 3 (Feb. 2017), 36 pages. DOI:http://dx.doi.org/10.1145/2994594
+Peter Sewell. 2001. Modules, Abstract Types, and Distributed Versioning. In Proceedings of the 28th ACM SIGPLAN-SIGACT
+Symposium on Principles of Programming Languages (POPL ’01) . ACM, New York, NY, USA, 236ś247.
+Jeremy G. Siek and Walid Taha. 2006. Gradual Typing for Functional Languages. In Scheme and Functional Programming
+Workshop (Scheme). 81ś92.
+Jeremy G. Siek, Michael M. Vitousek, Matteo Cimini, and John Tang Boyland. 2015. Refined Criteria for Gradual Typing. In
+SNAPL: Summit on Advances in Programming Languages (LIPIcs: Leibniz International Proceedings in Informatics) .
+Jeremy G. Siek and Philip Wadler. 2010. Threesomes, with and without blame. In ACM Symposium on Principles of
+Programming Languages (POPL). 365ś376.
+Jeremy G. Siek and Philip Wadler. 2016. The key to blame: Gradual typing meets cryptography. (July 2016). http://homepages.
+inf.ed.ac.uk/wadler/topics/blame.html#blame-key (draft).
+Ian Stark. 1995. Names and Higher-Order Functions . Ph.D. Dissertation. University of Cambridge.
+Richard Statman. 1991. A local translation of untyped [lambda] calculus into simply typed [lambda] calculus . Technical
+Report. Carnegie-Mellon University.
+Martin Sulzmann, Manuel M. T. Chakravarty, Simon Peyton Jones, and Kevin Donnelly. 2007. System F with type equality
+coercions. In TLDI ’07: Proceedings of the 2007 ACM SIGPLAN international workshop on Types in languages design and
+implementation. ACM, New York, NY, USA, 53ś66.
+Eijiro Sumii and Benjamin Pierce. 2003. Logical relations for encryption. J. Comput. Secur. 11, 4 (July 2003), 521ś554.
+Nikhil Swamy, Cédric Fournet, Aseem Rastogi, Karthikeyan Bhargavan, Juan Chen, Pierre-Yves Strub, and Gavin M. Bierman.
+2014. Gradual typing embedded securely in JavaScript. In ACM Symposium on Principles of Programming Languages
+(POPL), San Diego, California . 425ś438.
+Asumu Takikawa, T. Stephen Strickland, Christos Dimoulas, Sam Tobin-Hochstadt, and Matthias Felleisen. 2012. Gradual
+Typing for First-Class Classes. In ACM Symposium on Object Oriented Programming: Systems, Languages, and Applications
+(OOPSLA).
+Satish Thatte. 1990. Quasi-static typing. In ACM Symposium on Principles of Programming Languages (POPL) . 367ś381.
+Sam Tobin-Hochstadt and Matthias Felleisen. 2006. Interlanguage Migration: From Scripts to Programs. In Dynamic
+Languages Symposium (DLS) . 964ś974.
+Sam Tobin-Hochstadt and Matthias Felleisen. 2008. The Design and Implementation of Typed Scheme. In ACM Symposium
+on Principles of Programming Languages (POPL), San Francisco, California .
+Sam Tobin-Hochstadt and Matthias Felleisen. 2010. Logical Types for Untyped Languages. In International Conference on
+Functional Programming (ICFP). ACM, 117ś128.
+Jonathan Turner. 2014. TypeScript and the Road to 2.0. (October 2014). https://blogs.msdn.microsoft.com/typescript/2014/
+10/22/typescript-and-the-road-to-2-0/
+Julien Verlaguet. 2013. Facebook: Analyzing PHP statically. In Commercial Users of Functional Programming (CUFP) .
+Philip Wadler. 1989. Theorems for free!. InACM Symposium on Functional Programming Languages and Computer Architecture
+(FPCA).
+Philip Wadler and Robert Bruce Findler. 2009. Well-typed programs can’t be blamed. InEuropean Symposium on Programming
+(ESOP). 1ś16.
+Andrew K. Wright. 1995. Simple Imperative Polymorphism. Higher-Order and Symbolic Computation 8, 4 (Dec. 1995),
+343ś355.
+Proc. ACM Program. Lang., Vol. 1, No. ICFP, Article 39. Publication date: September 2017.

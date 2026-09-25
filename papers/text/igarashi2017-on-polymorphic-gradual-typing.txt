@@ -1,0 +1,1463 @@
+
+
+=== PAGE 1 ===
+40
+On Polymorphic Gradual Typing
+YUU IGARASHI, Kyoto University
+TARO SEKIYAMA, IBM Research - Tokyo
+ATSUSHI IGARASHI, Kyoto University
+We study an extension of gradual typing—a method to integrate dynamic typing and static typing smoothly in a
+single language—to parametric polymorphism and its theoretical properties, including conservativity of typing
+and semantics over both statically and dynamically typed languages, type safety, blame-subtyping theorem,
+and the gradual guarantee—the so-called refined criteria, advocated by Siek et al. We develop System FG,
+which is a gradually typed extension of System F with the dynamic type and a new type consistency relation,
+and translation to a new polymorphic blame calculus System FC, which is based on previous polymorphic
+blame calculi by Ahmed et al. The design of System FG and System FC, geared to the criteria, is influenced by
+the distinction between static and gradual type variables, first observed by Garcia and Cimini. This distinction
+is also useful to execute statically typed code without incurring additional overhead to manage type names
+as in the prior calculi. We prove that System FG satisfies most of the criteria: all but the hardest property of
+the gradual guarantee on semantics. We show that a key conjecture to prove the gradual guarantee leads to
+the Jack-of-All-Trades property, conjectured as an important property of the polymorphic blame calculus by
+Ahmed et al.
+CCS Concepts: • Software and its engineering → Functional languages; Polymorphism; Semantics;
+Additional Key Words and Phrases: gradual typing, parametric polymorphism, gradual guarantee
+ACM Reference format:
+Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi. 2017. On Polymorphic Gradual Typing.Proc. ACM Program.
+Lang. 1, 1, Article 40 (September 2017), 29 pages.
+https://doi.org/10.1145/3110284
+1 INTRODUCTION
+1.1 Gradual Typing
+Types are a broadly used, lightweight tool to verify programs and many programming languages
+adopt either static typing or dynamic typing to prevent programs from exposing undefined behavior.
+Static typing, which guarantees that programs behave as types, is useful for early and exhaustive
+detection of certain classes of errors and makes it possible to generate more efficient machine code,
+but programmers cannot run their programs until they pass static typechecking, which sometimes
+prevents writing programs as they hope. Dynamic typing enables rapid software development and
+flexible programming, while it often consumes more computational resources and it is not easy to
+support exhaustive error detection. In summary, they are complementary.
+Integration of static and dynamic typing has been studied widely, from theory [Abadi et al. 1991,
+1995; Ahmed et al. 2011; Matthews and Ahmed 2008; Matthews and Findler 2009; Siek and Taha 2006;
+Thatte 1990; Tobin-Hochstadt and Felleisen 2006; Wadler and Findler 2009] to practice [Bierman
+et al. 2014, 2010; Bonnaire-Sergeant et al . 2016; Facebook 2017; Gronski et al . 2006; Meijer and
+Drayton 2004; Tobin-Hochstadt and Felleisen 2008; Vitousek et al. 2014], to cite a few, and gradual
+typing [Siek and Taha 2006] is a methodology for achieving a full spectrum between fully statically
+This work is licensed under a Creative Commons “Attribution 4.0 International” license.
+© 2017 Copyright held by the owner/author(s).
+2475-1421/2017/9-ART40
+https://doi.org/10.1145/3110284
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 2 ===
+40:2 Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi
+typed and fully dynamically typed programs. For example, gradual typing enables programmers to
+write a fully dynamically typed program, as a prototype, at the early stage of development, change
+its pieces to statically typed code gradually, and finally obtain a fully statically typed program,
+which has no run-time typing errors, in a single programming language. Since Siek and Taha
+[2006] proposed gradual typing for the simply typed lambda calculus, their idea has been applied
+to many programming concepts such as objects [Siek and Taha 2007], generics [Ina and Igarashi
+2011], effects [Bañados Schwerter et al. 2014], and type inference [Garcia and Cimini 2015; Siek
+and Vachharajani 2008]. More recently, even general approaches to gradual typing, which give a
+gradually typed version of a statically typed language, have been studied [Cimini and Siek 2016,
+2017; Garcia et al. 2016].
+Gradual typing “gradualizes” statically typed languages with two key components: the dynamic
+type and type consistency. The dynamic type, denoted by ⋆, is the type of dynamically typed code.
+All statically typed expressions can be injected to ⋆ and, conversely, values of ⋆ can be projected to
+any type with run-time checking. In fact, gradual typing allows interaction between not only a
+fully static type and the dynamic type but also types on the spectrum, such as⋆→ Int and Int→ ⋆,
+by using type consistency. Type consistency is the same as type equality except that it allows the
+dynamic type to match with any type. By using type consistency instead of type equality, gradually
+typed languages achieve fine-grained transition between program pieces on the spectrum, while
+all typing errors in a program without the dynamic type are detected statically.
+1.2 Our Work
+This work studies a gradually typed language with parametric polymorphism. We propose System
+FG, a gradual extension of System F [Girard 1972; Reynolds 1974]. The design of System FG, in
+particular its type consistency, is geared to the so-called “refined criteria” proposed by Siek et al.
+[2015], which are properties that gradually typed languages should satisfy. In System FG, type
+variables are classified into two kinds— static type variables and gradual type variables —as first
+observed by Garcia and Cimini [2015]. Gradual type variables can be consistent with the dynamic
+type whereas static type variables cannot. The distinction of static and gradual type variables
+makes the dynamic semantics of System FG “pay-as-you-go” in the sense of Siek and Taha [2006],
+that is, statically typed code can be executed without much additional overhead—in particular, the
+run-time system of System FG would be able to run well-typed System F terms in almost the same
+way as System F.
+The dynamic semantics of System FG is defined by translation to a new polymorphic blame
+calculus System FC, which is an extension of (a subset of) the simply typed blame calculus [Wadler
+and Findler 2009] and aims at dynamic enforcement of parametricity. Our blame calculus is largely
+based on previous polymorphic blame calculi [Ahmed et al. 2011, 2017] which use type bindings
+for enforcing parametricity at run time, but System FC inherits the distinction between static and
+gradual type variables from System FG and has slightly different cast semantics.
+We show that System FG and System FC meet almost all of the refined criteria [Siek et al. 2015],
+except the hardest property called the gradual guarantee on semantics, which is left as a conjecture.
+Our contributions are summarized as follows.
+• We carefully define type consistency of System FG so that it is a conservative extension over
+System F in terms of typing. Our key observation is that a polymorphic type can be consistent
+with a nonpolymorphic type only if the nonpolymorphic type contains the dynamic type.
+We also show that untyped terms can be embedded in System FG.
+• We introduce a new polymorphic blame calculus System FC and give formal translation from
+System FG to System FC. The semantics of System FC is conservative over both System F and
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 3 ===
+On Polymorphic Gradual Typing 40:3
+Syntax
+Types A, B ::=ι| ⋆| A→ B Terms e ::= c| x | λx :A. e| e e
+Values v ::= c| λx :A. e Type environments Γ ::=∅| Γ, x : A
+T ▷ T Matching
+A→ A′ ▷ A→ A′
+⋆ ▷ ⋆→ ⋆
+A∼ B Type consistency
+A∼ A (C_Refl) ⋆∼ A (C_StarL) A∼ ⋆ (C_StarR) A∼ A′ B∼ B′
+A→ B∼ A′→ B′ (C_Arrow)
+Γ⊢G e : A Typing
+ty (c ) = A
+Γ⊢G c : A (T_Const_G) x : A∈ Γ
+Γ⊢G x : A (T_V ar_G) Γ, x : A⊢G e : B
+Γ⊢G λx :A. e : A→ B (T_Abs_G)
+Γ⊢G e1 : A1 Γ⊢G e2 : A2 A1 ▷ A11→ A12 A11∼ A2
+Γ⊢G e1 e2 : A12
+(T_App_G)
+Fig. 1. Static semantics of GTLC
+the untyped lambda calculus. We show type safety of System FG via progress and subject
+reduction of System FC as well as soundness of the translation.
+• We discuss type-erasing semantics of System FC and implement a prototype interpreter 1
+based on it in OCaml, demonstrating that a “pay-as-you-go” implementation is possible.
+• We show properties relevant to the Blame Theorem [Tobin-Hochstadt and Felleisen 2006;
+Wadler and Findler 2009], which justifies the intuition that all run-time typing errors are
+triggered by only untyped code, for System FC. We define our subtyping relations so that
+they are subsets of type consistency because we are interested in only well-typed terms. We
+have bidirectional factoring of ordinary subtyping, a.k.a., Tangram [Wadler 2015].
+• We extend precision of types and terms to formalize the gradual guarantee [Siek et al. 2015],
+which is concerned with invariance of typing and semantics through code evolution. Although
+the gradual guarantee on typing is proved, the gradual guarantee on semantics is still left as
+a conjecture. We discuss a few key lemmas that have been proved and one key conjecture,
+which turns out to be related to another tough conjecture, Jack-of-All-Trades [Ahmed et al.
+2013], an important property of the prior polymorphic blame calculi.
+System FG is fully explicitly typed—every variable has to declare its type and type abstraction/ap-
+plication is explicit—so it may be far from practical polymorphically typed languages, where some
+type information can be omitted thanks to type inference. Ideally, we should design a surface
+language where many type annotations are inferred and give elaboration from the surface language
+to a blame calculus, for which operational semantics is defined. System FG can be considered an
+intermediate language after type inference and before translation to a blame calculus. The design
+of a surface language and study of type inference (translation to System FG) are left as future work.
+The rest of the paper is organized as follows. We review a simple gradually typed λ-calculus,
+a simply typed blame calculus, and the refined criteria in Section 2. We present an overview of
+System FG and System FC in Section 3. The definitions of System FG and System FC with their
+properties are presented in Sections 4 and 5, respectively. After we discuss type erasure in Section 6,
+we prove the Blame Theorem in Section 7 and discuss the gradual guarantee in Section 8. After
+discussing related work in Section 9, we conclude in Section 10.
+In this paper, we omit the details of proofs; they can be found in the supplementary material.
+1https://github.com/SoftwareFoundationGroupAtKyotoU/SystemFg
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 4 ===
+40:4 Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi
+2 GRADUALLY TYPED λ-CALCULUS
+In this section, we review a simple gradually typed language, a blame calculus, which works as an
+internal language for the first language, and Siek et al. ’s criteria that gradually typed languages
+should meet.
+2.1 The Source Language
+We show the source language with its syntax and type system in Fig. 1. The definition is mostly the
+same as the Gradually Typed Lambda Calculus (GTLC) by Siek et al. [2015]. In this paper, GTLC
+refers to the definition in Fig. 1.
+The syntax is a standard simply-typed lambda calculus extended with the dynamic type ⋆. The
+metavariableι ranges over base types, which include at least Int and Bool. A term is a constant c, a
+variable x, a lambda abstractionλx:A. e, or an application e e. A constant includes at least integers
+and Booleans. A value is a constant or a lambda abstraction.
+A notable feature of gradually typed languages is type consistency A∼ B , which is defined
+by relaxing type equality, used in typechecking, say, function applications. The dynamic type is
+considered as a wild card in type consistency for allowing dynamically typed code to always pass
+typecheck. Formally, type consistency is defined as the least reflexive and compatible relation
+including ⋆∼ A for any type A (rules (C_StarL) and (C_StarR)). For example, we can derive
+⋆→ Int∼ Bool→ ⋆ . It is easy to see that type consistency is symmetric but not transitive.
+Typing judgment Γ⊢G e : A means that terme has type A in type environment Γ. All the rules but
+(T_App_G) are standard. The function ty in (T_Const_G) assigns a constant a first-order type of
+the formι1→···→ ιn. In an application, the type of e1 is normalized to a function type A11→ A12
+by matching A1 ▷ A11→ A12. By the normalization, a term of ⋆ can be applied to any term as if it is
+a function; it is checked at run-time whether it is really a function. In (T_App_G), type consistency
+replaces usual type equality between the function argument type A11 and the actual argument
+type A2, allowing, for example, a dynamically typed expression to be passed to a statically typed
+function.
+2.2 The Internal Language: Blame Calculus
+We define the dynamic semantics of GTLC by cast insertion translation to (a subset of) the blame
+calculus by Wadler and Findler [2009]. The definition of the blame calculus, adapted from Siek et al.
+[2015], is found in Fig. 2. Throughout this paper, the blame calculus refers to the definition in Fig. 2.
+Types are the same as GTLC. A ground type, used as a tag of injection (w : G⇒p ⋆), is either a
+base type or ⋆→ ⋆. A blame label, which decorates a cast, abstracts a program location such as
+the numbers of the row and the column. We have an involutive operator p (called negation) on
+blame labels, that is, p = p. This is used to blame the context (not the subject of a cast). Terms,
+ranged over by f , are GTLC terms augmented with casts, f : A ⇒p B, and blame, blame p,
+which is an uncatchable exception to notify cast failure. We abbreviate a sequence of two casts
+((f : A⇒p1 B) : B⇒p2 C) to f : A⇒p1 B⇒p2 C. A value, ranged over byw, is a constant, a lambda
+abstraction, a value with a cast from a ground type to ⋆, or a value with a cast between function
+types. Evaluation contexts indicate that the evaluation is left-to-right and call-by-value.
+Typing rules are straightforward. Rules (T_Const_C), (T_V ar_C), and (T_Abs_C) are the same
+as those of GTLC. Rule (T_App_C) requires the actual and formal argument types to be equal and
+(T_Cast_C) allows only casts for pairs of consistent types. Blame is given any type (T_Blame_C).
+The dynamic semantics of GTLC is defined by cast insertion (⇝) and reduction (−→) in the
+blame calculus. We write−→⋆ for the reflexive transitive closure of−→.
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 5 ===
+On Polymorphic Gradual Typing 40:5
+Syntax Types A, B, C ::=ι| ⋆| A→ B
+Ground types G, H ::=ι| ⋆→ ⋆
+Blame labels p, q ::= ℓ
+Terms f ::= c| x | λx :A. f | f f | f : A⇒p B| blame p
+Values w ::= c| λx :A. f | w : G⇒p ⋆| w : A→ B⇒p A′→ B′
+Evaluation contexts E ::= [ ]| E f | w E| E : A⇒p B
+Type environments Γ ::=∅| Γ, x : A
+Γ⊢C f : A Typing
+ty (c ) = A
+Γ⊢C c : A (T_Const_C) x : A∈ Γ
+Γ⊢C x : A (T_V ar_C) Γ, x : A⊢C f : B
+Γ⊢C λx :A. f : A→ B (T_Abs_C)
+Γ⊢C f1 : A→ B Γ⊢C f2 : A
+Γ⊢C f1 f2 : B (T_App_C) Γ⊢C f : A A ∼ B
+Γ⊢C f : A⇒p B : B (Cast) Γ⊢C blame p : A (T_Abort_C)
+Γ⊢ e⇝ f : A Cast insertion
+Γ⊢ e1⇝ f1 : A1 Γ⊢ e2⇝ f2 : A2 A1 ▷ A11→ A12 A11∼ A2
+Γ⊢ e1 e2⇝ (f1 : A1⇒ℓ
+? A11→ A12) ( f2 : A2⇒ℓ
+? A11) : A12
+(CI_App)
+f −→ f′ Reduction
+c1 c2−→δ (c1, c2) (R_Delta)
+(λx :A. f ) w−→ f [x B w ] (R_Beta)
+w : G⇒p G−→ w if G , ⋆→ ⋆ (R_Id)
+w : ⋆⇒p ⋆−→ w (R_Idstar)
+(w : A→ B⇒p A′→ B′) w′−→ (w (w′ : A′⇒p A)) : B⇒p B′ (R_Wrap)
+w : A→ A′⇒p ⋆−→ w : A→ A′⇒p ⋆→ ⋆⇒p ⋆ if A→ A′ , ⋆→ ⋆ (R_Ground)
+w : ⋆⇒p A→ A′−→ w : ⋆⇒p ⋆→ ⋆⇒p A→ A′ if A→ A′ , ⋆→ ⋆ (R_Extend)
+w : G⇒q ⋆⇒p G−→ w (R_Collapse)
+w : G⇒q ⋆⇒p H−→ blame p if G , H (R_Conflict)
+E , [ ]
+E[blame p]−→ blame p (R_Blame) f −→ f′
+E[f ]−→ E[f′] (R_Env)
+Fig. 2. Blame Calculus
+Definition 2.1 (Dynamic semantics of GTLC). For e with∅⊢ G e : A, e⇓G w
+def
+⇐⇒ ∅⊢e⇝ f : A
+and f −→⋆ w .
+Cast insertion Γ⊢ e⇝ f : A shown in the middle of Fig. 2 is a syntax-directed translation from
+GTLC terms to blame calculus terms. The only interesting rule is for application: casts are inserted
+so as to reflect the results of matching and consistency. Here, f : A⇒p
+? B denotes f when A = B,
+otherwise f : A⇒p B. Translation for the other forms of terms are trivial (and homomorphic)
+because no casts are inserted, and so rules are omitted.
+Finally, reduction rules are at the bottom of Fig. 2. The first two rules (R_Delta) and (R_Beta)
+are standard. Application of a primitive function c1 c2 is processed by the oracleδ, which produces
+a constant as a result of application (R_Delta). We suppose that the behavior ofδ is compatible
+with its type. The other rules are concerned about casts and blame. Identity casts for ground types
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 6 ===
+40:6 Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi
+(except for ⋆→ ⋆) and ⋆ disappear immediately ( (R_Id) and (R_Idstar), respectively). A cast
+between function types breaks down into a cast of the domain types and a cast of the codomain
+types, when it is applied to an argument (R_Wrap). The negation of the label means that the target
+of the blame changes from w (a term contained in the cast) to w′ (a context containing the cast).
+Casts between a function type (except for ⋆→ ⋆) and ⋆ is factored into two casts with ⋆→ ⋆
+in the middle ((R_Ground) and (R_Extend)). Although the previous blame calculus by Wadler
+and Findler [2009] deals with a more general case w : A⇒p ⋆ (where A is neither ground nor
+⋆), we consider only the case w : A→ A′⇒p ⋆ because this is the only case. If we had more
+type constructors, a general rule would be useful. Rules (R_Collapse) and (R_Conflict) describe
+run-time checks triggered by composition of injection and projection, which may result in blame.
+Blame in an evaluation context results in the blame(R_Abort). Finally,(R_Env) describes reduction
+under an evaluation context.
+2.3 Refined Criteria in GTLC
+We review the properties desired for GTLC, advocated by Siek et al . [2015], who called them
+refined criteria. We provide brief explanations and discuss their desirability here. For their formal
+statements, some of which are omitted here, readers are referred to Siek et al. [2015].
+Conservative extension of STLC and the untyped lambda calculus. GTLC is a superset of the simply
+typed lambda calculus (STLC) and the untyped lambda calculus (DTLC). Conservativity over STLC
+states that for terms in STLC, that is, terms without ⋆, typing and semantics of GTLC is equivalent
+to those of STLC. In other words, as long as programmers do not use ⋆ explicitly, GTLC is just as
+STLC. Conservativity over DTLC states that there exists an embedding of an untyped lambda term
+to a GTLC term of type ⋆ and the results of reduction in both languages agree. In practice, these
+properties ensure that programmers can use existing statically/dynamically typed code or libraries
+in a gradualized language without modification or semantic changes and, conversely, that statically
+typed code developed in a gradually typed language can be brought back to the statically typed
+world as it is.
+Type safety. Every well-typed term in GTLC results in either a value, blame, or divergence. This
+argues that a well-typed term does not cause untrapped errors.
+Blame-Subtyping Theorem. This is a theorem of soundness about blame. It states that a cast
+between two types in the subtyping relation, whose definition is omitted, never raises blame. The
+subtyping relation, which characterizes casts that never fail, can be used for static analysis and
+maybe optimization to remove redundant casts.
+The Gradual Guarantee. In a gradual type system, adding more static types to a program serves
+only to expose more errors either statically or dynamically and should not change the behavior of a
+program. In other words, for two programs, which are the same except that one is given more static
+type annotations than the other, the one with more static types is (1) less likely to be statically
+typechecked (due to more static errors) and (2) more likely to get blame but does not change the
+result (the value or divergence) otherwise. The gradual guarantee formulates this expectation.
+First, to formalize the relation between programs using more or less⋆, precision⊑, precongruence
+on types and terms in GTLC, is introduced. Intuitively,⊑ means that the right-hand side has more
+dynamic types. Here are all the rules of type precision and the key rule of term precision.
+A⊑ A A ⊑ ⋆ A⊑ A′ B⊑ B′
+A→ B⊑ A′→ B′
+e⊑ e′ A⊑ A′
+λx:A. e⊑λx:A′. e′
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 7 ===
+On Polymorphic Gradual Typing 40:7
+Type precision is related to consistency in the following sense [Siek and Wadler 2010]:A∼ B if and
+only if there is the greatest lower bound of A and B with respect to precision.
+Now, we are ready to show formal statements of the gradual guarantee. Here, e⇑G means that e
+(after cast insertion translation) diverges. (1) and (2) state that making types of well-typed terms
+less precise does not affect typeability and semantics; and (3) states that making types more precise
+may result in more blame; but otherwise the semantics is the same (modulo precision).
+Theorem 2.2 (The Gradual Guarantee [Siek et al. 2015]). Suppose∅⊢ G e : A and e⊑ e′.
+(1)∅⊢ G e′ : A′ and A⊑ A′ for some A′.
+(2) If e⇓G w then e′⇓G w′ and w⊑ w′ for some w′. If e⇑G then e′⇑G .
+(3) If e′⇓G w′ then e⇓G w and w⊑ w′ for some w′ or e⇓G blame p for some p. If e′⇑G then
+e⇑G or e⇓G blame p for some p.
+We can show that, if e′ invokes blame, so does e as a corollary of (2), while we cannot say much
+about e′ when e triggers blame because that blame may or may not remain in e′.
+3 KEY IDEAS OF SYSTEM F G AND SYSTEM F C
+We will design a polymorphic extension of GTLC so that it meets (an adapted version of) the criteria
+discussed in the last section. In this section, we give the key ideas behind our source language
+System FG and internal language System FC informally.
+3.1 Type consistency
+An advantage of gradually typed languages is that dynamically typed code can incorporate with
+statically typed code, so we design type consistency in SystemFG and System FC so that dynamically
+typed and polymorphically typed terms can interact smoothly, as follows (we use∀X .A and ΛX . v
+for polymorphic types and type abstractions, respectively):
+(λy:∀X .X→ X . y Int 1) (λx: ⋆ . x)
+where nonpolymorphic valueλx: ⋆ . x is passed to a function that expects polymorphic arguments.
+To accept this expression, type consistency has to allow∀X .X→ X∼ ⋆→ ⋆ to be derived. Our
+type consistency supports more general cases: it relates a polymorphic type and a non-∀ type.2
+Then, since the dynamic type is consistent with any type—even if it is a type variable—we can
+derive∀X .X→ X∼ ⋆→ ⋆.
+We have to, however, take care of what non-∀ types can be consistent with polymorphic types.
+In particular, allowing a fully static non-∀ type to be consistent with a fully static polymorphic
+type would result in violation of conservativity over typing of System F, one of Siek et al. ’s refined
+criteria. For example, a polymorphic gradually typed language with type consistency that relates
+Int→ Int to∀X .Int→ Int would accept (λy:∀X .Int→ Int. y Int 1) (λx:Int. x) even though it
+is ill-typed in System F. To prevent such a term to be accepted, our type consistency requires
+non-∀ types which are consistent with polymorphic types to have one or more occurrences of
+⋆. We coin quasi-polymorphic types for such non-∀ types in the sense that it may be used where
+a polymorphic type is expected. For example, ⋆→ ⋆ is a quasi-polymorphic but Int→ Int is
+not. Thus, that requirement allows us to derive∀X .X→ X∼ ⋆→ ⋆ while disallowing deriving
+∀X .Int→ Int∼ Int→ Int.
+By adding a structural rule for polymorphic types, there are two additional consistency rules
+(and a symmetric variant for the first):
+2A non-∀ type refers to a type whose top-most type constructor is not∀.
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 8 ===
+40:8 Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi
+A∼ B B ,∀X .B′ ⋆∈ Types(B) X < Ftv(B)
+∀X .A∼ B
+A∼ B
+∀X .A∼∀ X .B
+In the left rule, the predicate⋆∈ Types(B) means that ⋆ occurs somewhere in B, and so combining
+it with the side condition B , ∀X .B′ says that B is a quasi-polymorphic type. Ftv(A) denotes
+the set of free type variables in A and the condition X < Ftv(B) avoids that X captures free type
+variables in B. These rules allow us to derive, for example, the following relations:
+∀X .X→ Bool∼ ⋆→ Bool ∀X .X→ Int∼∀ X .X→ ⋆
+in addition to∀X .X→ X∼ ⋆→ ⋆. On the other hand, as intended, the following consistency
+relations do not hold:
+∀X .X→ Bool∼ Bool→ Bool Int → Int∼∀ X .Int→ Int
+because non-∀ types in the examples above do not involve⋆. Though we will refine type consistency
+with distinction of type variables in Section 3.3, the rules above are the heart of our type consistency.
+Ahmed et al. [2011] introduce type compatibility A≺ B (where a cast from A to B is allowed. It
+also relates a polymorphic type to a non-∀ type, for a polymorphic blame calculus instead of type
+consistency, and Ahmed et al. [2017] also follows it. We considered whether we could use it as
+type consistency in the source language but we soon found that type compatibility would break
+conservativity over typing of System F because their type compatibility allows∀X .Int≺ Int, for
+example.3 Their type compatibility is asymmetric: For example,∀X .A≺ [B/X ]A (for any B) but
+not vice versa. For source language following the GTLC, we stick to a symmetric relation.
+3.2 Type bindings
+As well known, naively adding the dynamic type to a polymorphically typed language results in the
+lack of parametricity. For example, let us consider f1 = ΛX .λx:Int. (x : Int⇒p ⋆⇒q X ), which
+performs run-time check that x of Int is at X via the injection to ⋆. Usual, substitution-based type
+application makes this term nonparametric:
+f1 Int 1 −→⋆ 1 : Int⇒p ⋆⇒q Int −→ 1
+f1 Bool 1 −→⋆ 1 : Int⇒p ⋆⇒q Bool −→ blame q
+Inhabitants of type variable X should be only expressions typed at X in the source code, so
+x : Int⇒p ⋆⇒q X should raise blame. However, type substitution erases the information that the
+target type in the cast was X.
+The prior polymorphic blame calculus [Ahmed et al. 2011] introduces type bindings to preserve
+the information about type variables. In their work, type applications generate type bindings
+X := A, which record that X is instantiated with A, instead of substituting A for X. They retain type
+bindings locally in the form of a termν X := A.t. Ahmed et al. [2017] refine Ahmed et al. ’s “local”
+type bindings and propose “global” ones, which we follow in this work. In the “global” approach,
+generated type bindings are immediately moved to the global store. For that, we extend reduction
+to quaternary relation Σ ▷ f −→ Σ′ ▷ f′, where Σ is a global store having type bindings X B A,
+and type applications reduce as follows:
+Σ ▷ (ΛX . w) A−→ Σ, X B A ▷ w.
+Thanks to the avoidance of type substitution, the examples above raise blame as we expected:
+Σ ▷ f1 Int 1 −→⋆ Σ, X B Int ▷ 1 : Int⇒p ⋆⇒q X −→ Σ, X B Int ▷ blame q
+Σ ▷ f1 Bool 1 −→⋆ Σ, X B Bool ▷ 1 : Int⇒p ⋆⇒q X −→ Σ, X B Bool ▷ blame q
+3Although one could argue that conservativity is not that important, we stick to it in favor of the refined criteria.
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 9 ===
+On Polymorphic Gradual Typing 40:9
+Type bindings also enforce parametric behavior for untyped terms used as parametric values.
+For example, let us consider using f2 = λx: ⋆ . ((x : ⋆⇒p1 Int) + 1) : Int⇒p2 ⋆ as a polymorphic
+identity function. Since f2 is not an identity function actually, it should be blamed, and it is thanks
+to type bindings.
+Σ ▷ (f : ⋆→ ⋆⇒p3∀X .X→ X ) Int 1
+−→ Σ, X B Int ▷ (f : ⋆→ ⋆⇒p3 X→ X ) 1
+−→⋆ Σ, X B Int ▷ ((1 : X⇒p3 ⋆⇒p1 Int) + 1) : Int⇒p2 ⋆⇒p3 X
+−→ Σ, X B Int ▷ blame p1
+On the other hand, an untyped identity function can behaves as a parametric one:
+Σ ▷ ((λx: ⋆ . x) : ⋆→ ⋆⇒p∀X .X→ X ) Int 1
+−→ Σ, X B Int ▷ ((λx: ⋆ . x) : ⋆→ ⋆⇒p X→ X ) 1
+−→⋆ Σ, X B Int ▷ (1 : X⇒p ⋆⇒p X )
+−→ Σ, X B Int ▷ 1
+3.3 Static and gradual type variables
+Although type bindings enable run-time enforcement of parametricity, they are generated even
+when unnecessary—for example, in reduction of pure System F terms—which leads to incurring
+additional run-time overhead, while type substitution in System F can be erased by type-erasing
+semantics [Pierce 2002, Section 23.7]. Our key observation to avoid the overhead of type binding
+generation is that a type binding for X is needed only when X occurs on casts together with ⋆.
+In other words, the type binding is unnecessary if X is not required to be consistent with ⋆. For
+example, we need to generate type bindings in the following examples for enforcing parametricity:
+ΛX .λx:Bool. x : Bool⇒p ⋆⇒q X ΛX .λx:X .λy:⋆→ ⋆. y (x : X⇒p ⋆)
+whereas we do not in the examples below:
+ΛX .λx:X . x ΛX .λx:X→ ⋆. (x : X→ ⋆⇒p X→ Int)
+The second expression does not need a type binding despite that it involves a cast accompanying
+X, because the cast is decomposed into a reflexive cast for X, which always succeeds even in
+type-substitution semantics.
+To distinguish usage of type variables, we introduce the concepts of static type variables and
+gradual type variables, first discussed in [Garcia and Cimini 2015].4 Static type variables are ones that
+are consistent only with themselves, whereas gradual type variables are ones that are consistent also
+with ⋆, just like other base types. In System FG and System FC, bound type variables are annotated
+by the two labels,S (for static) andG (for gradual). We writeX ::S for a static type variable andX ::G
+for a gradual type variable. Corresponding to the annotation of bound type variables, (ΛX ::S. w)
+and (ΛX ::G. w) are called a static type abstraction and a gradual type abstraction, respectively.
+Below are examples of type abstractions augmented with labels.
+ΛX ::G.λx:Bool. x : Bool⇒p ⋆⇒q X ΛX ::G.λx:X .λy:⋆→ ⋆. y (x : X⇒p ⋆)
+ΛX ::S.λx:X . x ΛX ::S.λx:X→ ⋆. (x : X→ ⋆⇒p X→ Int)
+Note thatS can be replaced withG, but the converse may not hold.
+The distinction of type abstractions meets the needs. By the nature of static type variables, they
+always appear in the same positions in the source and target types in a cast (if they ever appear),
+resulting in reflexive casts in the end. Thus, we do not have to generate a type binding for a type
+4They are called static and gradual type parameters; the distinction of type parameters plays a relatively minor role to
+describe a finer-grained notion of principal type schemes in their work, but it plays a central role in our work.
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 10 ===
+40:10 Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi
+application of a static type abstraction and so it reduces by type substitution, while applying a
+gradual type abstraction generates a type binding still.
+Σ ▷ (ΛX ::S. w) A−→ Σ ▷ w[X B A] Σ ▷ (ΛX ::G. w) A−→ Σ, X B A ▷ w
+In Section 6, we demonstrate that even the cost of type substitution can be erased under type-erasing
+semantics; so, the overhead is only generation of fresh type names for gradual type abstractions.
+This leads us to the “pay-as-you-go” implementation of a polymorphic gradually typed language,
+where there is no run-time type information at all, if a program is fully statically typed, that is,
+without any ⋆. Moreover, the distinction of type abstractions makes clear the correspondence
+between our calculus and System F (by regarding System-F type abstractions as static).
+It is ensured by type consistency that usage of bound type variables follows their labels. To this
+end, we extend the type consistency relation with a type environment Γ, where type variables are
+annotated. Our type consistency relation is actually a ternary relation Γ⊢ A∼ B . The three rules
+are extended with Γ as follows:
+∀X∈ Ftv(A). X ::G∈ Γ
+Γ⊢ ⋆∼ A.
+Γ, X ::G⊢ A∼ B B ,∀X .B′
+⋆∈ Types(B) X < Ftv(B)
+Γ⊢∀ X .A∼ B
+Γ, X ::S⊢ A∼ B
+Γ⊢∀ X .A∼∀ X .B.
+In the first rule, which is from (C_StarL), the side condition verifies that A does not contain static
+type variables. This restriction disallows static type variables to be consistent with ⋆ as expected.
+The second rule, which relates a polymorphic type and non-∀ type, choosesG as a label for X,
+because X does not occur in B and so X should be consistent with only ⋆ in A∼ B. The choice in
+the third rule is more subtle. In fact, from the perspective of type safety, bothS andG would be
+reasonable, but choosingS leads us to rejecting some failing casts and avoiding counterexamples
+of the gradual guarantee; we discuss in Section 5.2 in detail.
+Finally, we end this section with a few remarks on labels. First, the distinction of type variables
+is not kinding in the sense that it does not restrict the range of type variables; we can apply both
+sorts of type abstractions to any type including ⋆. So, we do not call them kinds but simply static
+and gradual labels. For the same reason, we do not annotate∀X .A with a label. The distinction
+arises only when we compare two forall types as above two consistency rules. Second, we always
+require an explicit label for type abstractions in our calculi, but we are sure that it is easily inferred
+by observing derivation of typing. In fact, our interpreter performs label inference along with
+cast insertion translation. Programmers will enjoy the pay-as-you-go property with no care about
+labels at all, though its formalization and correctness are future work. Third, the distinction of type
+variables is also used in the definition of term precision when we discuss the gradual guarantee in
+Section 8. It is interesting to see that the distinction has found another use, which is not directly
+related to our original motivation of a “pay-as-you-go” implementation.
+4 SYSTEM F G: A GRADUALLY TYPED EXTENSION OF SYSTEM F
+Having described key ideas in the last section, we formally define System FG, which is a gradually
+typed extension of System F and also a polymorphic extension of GTLC, with its syntax and type
+system and show its conservativity over typing of System F and DTLC.
+The definition of System FG is found in Fig. 3. Types are augmented (from GTLC) with polymor-
+phic types∀X .A and type variables X. Terms are extended with type abstractions ΛX ::L. v and
+type applications e A, where L denotes a label,S orG, meaning a static type variable or a gradual
+type variable, respectively. We restrict the body of a type abstraction to a value, following the latest
+polymorphic blame calculus [Ahmed et al. 2017]. A type abstraction is a value. Type environments
+are extended with a type variable with a label.
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 11 ===
+On Polymorphic Gradual Typing 40:11
+Syntax
+Types A, B ::=ι| ⋆| A→ B|∀ X .A| X
+Labels L ::=S|G
+Terms e ::= c| x | λx :A. e| e e | ΛX ::L.v| e A
+Values v ::= c| λx :A. e| ΛX ::L.v
+Type environments Γ ::=∅| Γ, x : A| Γ, X ::L
+T ▷ T Matching
+A→ A′ ▷ A→ A′
+⋆ ▷ ⋆→ ⋆
+∀X .A ▷∀X .A
+A ▷∀X .A if QPoly (A) and X < Ftv(A)
+Γ⊢ A∼ B Type consistency
+Γ⊢ A∼ A (C_Refl) Γ⊢ A∼ A′ Γ⊢ B∼ B′
+Γ⊢ A→ B∼ A′→ B′ (C_Arrow) GType (Γ, A) A ,∀Y .A′
+Γ⊢ ⋆∼ A (C_StarL)
+Γ, X ::S⊢ A∼ B
+Γ⊢∀ X .A∼∀ X .B (C_AllS) Γ, X ::G⊢ A∼ B QPoly (B) X < Ftv(B)
+Γ⊢∀ X .A∼ B (C_AllGL)
+Γ⊢ A Type well-formedness
+Γ⊢ι (Tw_Base) Γ⊢ ⋆ (Tw_Star) Γ⊢ A Γ⊢ B
+Γ⊢ A→ B (Tw_Arrow) X ::L∈ Γ
+Γ⊢ X (Tw_V ar) Γ, X ::L⊢ A
+Γ⊢∀ X .A (Tw_All)
+Γ⊢G e : A Typing
+ty (c ) = A
+Γ⊢G c : A (T_Const_G) x : A∈ Γ
+Γ⊢G x : A (T_V ar_G) Γ, x : A⊢G e : B Γ⊢ A
+Γ⊢G λx :A. e : A→ B (T_Abs_G)
+Γ⊢G e1 : A1 Γ⊢G e2 : A2 A1 ▷ A11→ A12 Γ⊢ A11∼ A2
+Γ⊢G e1 e2 : A12
+(T_App_G)
+Γ, X ::L⊢G v : B
+Γ⊢G ΛX ::L.v :∀X .B (T_Tyabs_G) Γ⊢G e : B B ▷∀X .B′ Γ⊢ A
+Γ⊢G e A : B′[X B A] (T_Tyapp_G)
+Fig. 3. System F G
+As we have discussed, type consistency is a ternary relation Γ⊢ A∼ B. Γ is used to know
+whether each of type variables is static or gradual.(C_Refl) and (C_Arrow) are the same as before
+except for the addition of Γ. In (C_StarL), we verify that A does not contain static type variables
+by predicate GType, defined by:
+GType (Γ, A)
+def
+⇐⇒∀X∈ Ftv(A). X ::G∈ Γ .
+We call a type without static type variables a gradual type. Readers should note that we may also
+call even a type without ⋆ as a gradual type. When we compare two polymorphic types, we record
+X as a static type variable in the type environment (C_AllS). In comparison of a polymorphic type
+and a non-∀ type, a type variable X is recorded as a gradual type variable ((C_AllGL)). QPoly (B)
+is the set of side conditions to check that type B is quasi-polymorphic:
+QPoly (A)
+def
+⇐⇒ A ,∀Y .A′ and ⋆∈ Types(A).
+The condition X < Ftv(B) is to avoid the capture of free occurrences of X in the premise. We
+omit symmetric variants of (C_StarL) and (C_AllGL), in which the types on both sides of∼ are
+swapped, for brevity.
+Type well-formedness verifies that all the free type variables in A are declared in Γ. In typing
+rules, we always check type well-formedness when new types appear in a term.
+Typing rules are obtained by a mostly straightforward combination of GTLC and System F. Γ is
+passed to type consistency in (T_App_G). Type application (T_Tyapp_G)is gradualized similarly
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 12 ===
+40:12 Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi
+to function application by (extended) matching B ▷∀X .B′. If B is a polymorphic type, matching
+returns B as it is. When B is a quasi-polymorphic type, matching returns∀X .B, where X is a fresh
+type variable. The conservativity over typing of System F is retained thanks to the side condition
+QPoly (B). This rule may be interesting also because the Gradualizer [Cimini and Siek 2016] does
+not generate it.
+The new (T_Tyapp_G)rule allows flexible prototyping. For example, type application like (λx: ⋆
+. x) A is allowed, where ⋆→ ⋆, the type of (λx: ⋆ . x), is quasi-polymorphic. Type application
+makes no essential effects in this case yet. In this calculus, programmers can evolve code from
+(λx: ⋆ . x) to (ΛX .λx:X . x) and (ΛX .λx:X . x) A is naturally well-typed. The context [ ] A deals
+with both cases. This context would enable programmers to write flexible code which accepts both
+polymorphic and untyped prototype code, the latter of which will evolve to polymorphic code.
+We describe correspondence of our calculus with System F and DTLC. By System F, we formally
+mean System FG without ⋆ and (ΛX ::G. v) from the syntax. An ordinary type abstraction (ΛX . v)
+is regarded as an abbreviation of (ΛX ::S. v). Typing Γ⊢S e : A in System F is as usual.
+Then, our type system is a conservative extension of that of System F.
+Theorem 4.1 (Conservativity over typing of System F). Suppose e is a closed term of System
+F.∅⊢ G e : A iff∅⊢ S e : A.
+Proof. Because types do not include ⋆, consistency and matching are mere equality in System
+FG. Especially, (C_AllGL) and (C_AllGR) cannot be used by the restriction ⋆∈ Types(B). □
+System FG also includes fully dynamic typing—that is, there exists an embedding ⌈e⌉ for an
+untyped term e. We assume a pure, call-by-value untyped lambda calculus with constants. The
+embedding is defined as follows:
+⌈c⌉ = (λx: ⋆ . x) c ⌈x⌉ = x ⌈λx . e⌉ = (λx: ⋆ . x) (λx: ⋆ .⌈e⌉) ⌈e1 e2⌉ =⌈e1⌉⌈ e2⌉
+Theorem 4.2 (Embedding DTLC [Siek et al . 2015]). If e is a closed DTLC term, then ⊢G⌈e⌉ : ⋆.
+5 SYSTEM F C: YET ANOTHER POLYMORPHIC BLAME CALCULUS
+We formally define System FC, an internal cast calculus of System FG, based on the previous
+polymorphic blame calculi by Ahmed et al. [2011] and Ahmed et al. [2017]. The dynamic semantics
+of System FG is defined by a cast insertion translation to System FC. We show that System FG
+satisfies conservativity over the semantics of System F and DTLC; we also show type safety.
+5.1 Definition
+The definition of System FC is found in Fig. 4. The syntax of System FC is an extension of the blame
+calculus in Fig. 2 with the features for polymorphism in System FG. A type variable is a ground
+type. A value with a cast to a polymorphic type (w : A⇒p∀X .B) is a value. This new value form
+comes from the latest polymorphic blame calculus by Ahmed et al. [2017]. This makes it possible
+to restrict the body of a type abstraction to a value throughout reduction. A type environment
+has a type binding X B A, which means that X is definitionally equal to A. Σ is a store, a type
+environment which consists of only type bindings. The predicate GType is extended along with
+this extension.
+GType (Γ, A)
+def
+⇐⇒ ∀X∈ Ftv(A). (X ::G∈ Γ or X B B∈ Γ)
+The bound type variable in a type binding is always considered gradual because a type binding is
+generated only when a gradual type abstraction is reduced. The premise of (Tw_V ar)rule is also
+extended to “X ::L∈ Γ or X B A∈ Γ” (this rule is not displayed in Fig. 4, though).
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 13 ===
+On Polymorphic Gradual Typing 40:13
+Syntax Types A, B ::=ι| ⋆| A→ B|∀ X .A| X
+Ground types G, H ::=ι| ⋆→ ⋆| X
+Blame labels p, q ::= l
+Labels L ::=S|G
+Terms f ::= c| x | λx :A. f | f f | ΛX ::L. w | f A | f : A⇒p B| blame p
+Values w ::= c| λx :A. f | ΛX ::L. w | w : G⇒p ⋆| w : A→ B⇒p A′→ B′| w : A⇒p∀X .B
+Context E ::= [ ]| E f | w E| E A| E : A⇒p B
+Type environments Γ ::=∅| Γ, x : A| Γ, X ::L|
+Store Σ ::=∅| Σ, X B A
+Γ⊢ e⇝ f : A Cast insertion
+Γ⊢ e1⇝ f1 : A1 Γ⊢ e2⇝ f2 : A2 A1 ▷ A11→ A12 Γ⊢ A11∼ A2
+Γ⊢ e1 e2⇝ (f1 : A1⇒ℓ
+? A11→ A12) ( f2 : A2⇒ℓ
+? A11) : A12
+(CI_App)
+Γ⊢ e⇝ f : B B ▷∀X .B′ Γ⊢ A
+Γ⊢ e A⇝ (f : B⇒ℓ
+? ∀X .B′) A : B′[X B A] (CI_Tyapp)
+Σ ▷ f −→ Σ′ ▷ f′ Reduction
+(ΛX ::S. w ) A−→ w [X B A] (R_Tybetas)
+Σ ▷ (ΛX ::G. w ) A−→ Σ, X B A ▷ w (R_Tybetag)
+(w :∀X .A⇒p∀X .B) C−→ (w C ) : A[X B C]⇒p B[X B C] (R_Content)
+Σ ▷ (w : A⇒p∀X .B) C−→ Σ, X B C ▷ w : A⇒p B if A ,∀X′.A′ and X is fresh. ( R_Generalize)
+w :∀X .A⇒p B−→ (w ⋆) : A[X B ⋆]⇒p B if B ,∀X′.B′ (R_Instantiate)
+Γ⊢C f : A Typing
+ty (c ) = A
+Γ⊢C c : A (T_Const_C) x : A∈ Γ
+Γ⊢C x : A (T_V ar_C) Γ, x : Γ(A)⊢C f : B Γ⊢ A
+Γ⊢C λx :A. f : Γ(A)→ B (T_Abs_C)
+Γ⊢C f1 : A→ B Γ⊢C f2 : A
+Γ⊢C f1 f2 : B (T_App_C) Γ⊢ A
+Γ⊢C blame p : A (T_Abort_C) Γ, X ::L⊢C w : B
+Γ⊢C ΛX ::L. w :∀X .B (T_Tyabs_C)
+Γ⊢C f :∀X .B Γ⊢ A
+Γ⊢C f A : B[X B Γ(A)] (T_Tyapp_C) Γ⊢C f : Γ(A) Γ⊢ B Γ⊢ A∼ B
+Γ⊢C f : A⇒p B : Γ(B) (T_Cast_C)
+Fig. 4. System F C
+We show only main rules of cast insertion; the full definition is found in the supplementary
+material. Type consistency is extended to a ternary relation in (CI_App). A cast may be inserted by
+following the matching for a polymorphic type (CI_Tyapp).
+The reduction relation takes the form Σ ▷ f −→ Σ′ ▷ f′. As we mentioned already, type bindings
+generated by reduction are immediately stored in Σ, inspired by the configuration reduction by
+Ahmed et al. [2017]. In the definition, f −→ f′ is an abbreviation of Σ ▷ f −→ Σ ▷ f′. All the
+reduction rules of the blame calculus in Section 2.2 are implicitly adopted to System FC similarly. It
+is worth noting that casts do not look through the store: that is, X B Int ▷ (1 : Int⇒p1 ⋆⇒p2 X )
+raises blame. We explain the rules specific to System FC here. Type application to a static type
+abstraction results in type substitution (R_TybetaS). Type application to a gradual type abstraction
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 14 ===
+40:14 Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi
+immediately stores a type binding in the store (R_TybetaG). Rule (R_Content) comes from Belo
+et al. [2011] and Sekiyama et al. [2017], where a cast between polymorphic types reduces without
+type arguments supplied. Our rule can be understood in terms of their rules as follows:
+(w :∀X .A⇒p∀X .B) C−→ (ΛX ::S. (w X ) : A⇒p B) C−→ (w C ) : A[X B C]⇒p B[X B C]
+A static type abstraction would be created in the intermediate state because the last applied rule
+in the derivation of Γ ⊢∀ X .A∼∀ X .B is (C_AllS). Then, we would proceed by (R_TybetaS).
+Rule (R_Generalize) can be understood similarly. Programmers should take care that gradual
+type abstractions, which cause overhead of name generation, may be implicitly introduced by
+(R_Generalize), even if gradual type abstractions do not appear explicitly in a program. If a
+polymorphic type appears only on the left-hand side of a cast, we immediately instantiate the source
+term by ⋆ (R_Instantiate). Rules (R_Generalize) and (R_Instantiate) come from the latest
+polymorphic blame calculus [Ahmed et al. 2017]. We discuss further about the latter rule in Section 8
+with the Jack-of-All-Trades conjecture [Ahmed et al. 2013]. As in GTLC, the dynamic semantics of
+System FG is defined by cast insertion, followed by reduction in System FC. Σ ▷ f −→⋆ Σ′ ▷ f′ is
+the reflexive transitive closure of Σ ▷ f −→ Σ′ ▷ f′ .
+Definition 5.1 (Dynamic semantics of System FG). For e with∅⊢ G e : A, e ⇓G Σ ▷ w
+def
+⇐⇒
+∅⊢ e⇝ f : A and∅ ▷ f −→⋆ Σ ▷ w.
+For typing, we take an approach slightly different from the previous polymorphic blame calculi.
+One can find the difficulties of typing with type bindings in reduction by (R_TybetaG)such as
+∅ ▷ (ΛX ::G. (λx:X . x)) Int−→ X B Int ▷ (λx:X . x).
+The type of the left term is clearly Int→ Int, but how about the right term? In terms of type
+preservation, the type of the right term should also be Int→ Int, but we could not assign the type
+only by the term (λx:X . x). We have to take X B Int into account and cause type application in
+the derivation of typing somehow. We develop the following typing rule for a lambda abstraction.
+Γ, x : Γ(A)⊢C f : B Γ⊢ A
+Γ⊢C λx:A. f : Γ(A)→ B (T_Abs_C)
+The type environment application Γ(A) applies all type bindings in Γ to a type A as follows.
+(∅)(A) = A (Γ, x : B)(A) = Γ(A) ( Γ, X ::L)(A) = Γ(A) ( Γ, X B B)(A) = Γ(A[X B B])
+Type bindings are applied sequentially from the innermost one so that accidental capture or escape
+of type variables cannot happen. Now, we can derive X B Int⊢C λx:X . x : Int→ Int as expected.
+Type environment application appears in rules (T_Tyapp_C)and (T_Cast_C) for the same reason.
+In the previous polymorphic blame calculus, static casts [Ahmed et al. 2011], which syntactically
+record where type substitution and abstraction occur, is used for syntax-directed typing, instead
+of type environment application, to make metatheory more tractable. We believe our approach
+makes the type system and reduction even simpler and easier to work with: we have achieved
+syntax-directed typing by type environment application without introducing additional devices.
+5.2 Why do we choose S in (C_AllS)?
+The consistency rule (C_AllS), which relates two polymorphic types, assignsS to the bound type
+variable. We expect that usingG instead ofS would work well for type safety, but it would be the
+source of two subtle issues.
+First, choosingG would result in acceptance of casts which always raise blame. For example,
+let us consider f = (id :∀X .X→ X⇒p∀X .⋆→ X ) where id is a polymorphic identity function.
+GivingG to bound type variables in the consistency rule for polymorphic types would allow for the
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 15 ===
+On Polymorphic Gradual Typing 40:15
+cast in f and change the reduction rule for polymorphic types as follows (recall that the information
+of type variables with labelG is stored in Σ):
+Σ ▷ (w :∀X .A⇒p∀X .B) C−→ Σ, X B C ▷ (w X ) : A⇒p B.
+Then, for any A, G, and w, term f A (w : G⇒q ⋆) triggers blame:
+Σ ▷ f A (w : G⇒q ⋆)−→ Σ, X B A ▷ ((id X ) : X→ X⇒p ⋆→ X ) ( w : G⇒q ⋆) ( X , G)
+−→⋆ Σ, X B A ▷ ((λx:X . x) ( w : G⇒q ⋆⇒p X )) : X⇒p X
+−→ blame p
+ChoosingS can reject such failing casts statically.
+Second, perhaps even worse, choosingG would give rise to a counterexample to the gradual
+guarantee of semantics ((2) of Theorem 2.2)—that is, there would be a case that a less precisely
+typed term fail. As mentioned above, if we choseG,∀X .⋆→ X∼∀ X .X→ X would hold, and so
+(λx:∀X .⋆→ X . x) id would be a well-typed term. We would also have∀X .X→ X⊑∀ X .⋆→ X 5
+and (λx:∀X .X → X . x) id Int 42⊑ (λx:∀X .⋆→ X . x) id Int 42. As discussed above, however,
+using the result of a cast from∀X .X→ X to∀X .⋆→ X, which occurs on the right-hand side,
+would trigger blame, whereas the term on the left-hand side should evaluate to 42—the gradual
+guarantee of semantics is broken! The rule (C_AllS) avoids such troublesome cases by rejecting
+∀X .X→ X⊑∀ X .⋆→ X and the term precision above.
+5.3 Properties
+In this section, we show properties of System FC: conservativity over semantics of System F
+(Theorem 5.2) and DTLC (Theorem 5.3) and type safety (Theorem 5.8).
+We assume standard reduction rules of System F [Pierce 2002, Chapter 23]. Let −→S be the
+reduction relation of System F and−→⋆
+S be the reflexive transitive closure of−→S . The dynamic
+semantics of our calculus is a conservative extension of that of System F.
+Theorem 5.2 (Conservativity over reduction of System F). Suppose e is a closed term of
+System F. e⇓G Σ ▷ w iff e−→⋆
+S w.
+Proof. First, no casts are inserted to e in System FG because e has no dynamic types. Possible
+reduction rules for e in System FC are (R_Delta), (R_Beta), or (R_TybetaS). These rules are the
+same as those in System F. □
+The reduction rules of DTLC are also as usual. However, we assume that a term is reduced to the
+special term wrong if reduction is stuck. The dynamic semantics of our calculus is a conservative
+extension of that of DTLC. The metavariable r denotes either a value or wrong in DTLC.
+Theorem 5.3 (Conservativity over reduction of DTLC [Siek et al . 2015]). There exists an
+embedding⌈·⌉C from DTLC into System FC such that, if e is a closed term of DTLC, then⌈e⌉⇓ G∅ ▷⌈r⌉C
+iff e⇓D r .
+Proof. The same result holds in GTLC and our calculus is a superset of GTLC. □
+If a term is well-typed in System FG, cast insertion always succeeds and the resulting term has
+the same type in System FC.
+Lemma 5.4. If Γ⊢G e : A, then Γ⊢ e⇝ f : A and Γ⊢C f : A for some f .
+We state the canonical forms lemma below. In some cases, the type of a value depends on Σ.
+Lemma 5.5 (Canonical Forms). If Σ⊢C w : A, then
+5Recall the relationship between type precison and consistency, discussed in Section 2.3.
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 16 ===
+40:16 Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi
+• w = c and A = ty(c),
+• w = λx:A′. f and A = Σ(A′)→ B,
+• w = w′ : B→ B′⇒p C→ C′ and A = Σ(C)→ Σ(C′),
+• w = ΛX ::L. w′ and A =∀X .A′,
+• w = (w′ : B⇒p∀X .A′) and A =∀X .Σ(A′), or
+• w = (w′ : G⇒p ⋆) and A = ⋆.
+A usual progress property holds: a well-typed term in System FC is a value, blame, or reduced.
+Lemma 5.6 (Progress). If Σ⊢C f : A, then (1) f = w, (2) f = blame p for some p, or (3)
+Σ ▷ f −→ Σ′ ▷ f′ for some Σ′ and f′.
+System FC satisfies also type preservation under the storeΣ. As a note, type bindings in reduction
+are essential only for this property. In the next section, we argue that only type names are required
+to reduce a term.
+Lemma 5.7 (Type preservation). If Σ⊢C f : A and Σ ▷ f −→ Σ′ ▷ f′, then Σ′⊢C f′ : A.
+Then, type safety, one of the desired criteria, holds in our calculus.
+Theorem 5.8 (Type Safety). If∅⊢ G e : A, then (1) e⇓G Σ ▷ w and Σ⊢C w : A for some Σ and w,
+(2) e⇓G Σ ▷ blame p for some Σ and p, or (3) e⇑G .
+6 TYPE ERASURE
+In this section, we discuss how we can implement System FC without most of the overhead of
+maintaining run-time type information. In fact, well-typed System F terms are subject to the same
+erasure translation as discussed by Pierce [2002, Section 23.7]: a static type abstraction is encoded
+into a function abstracted by a dummy variable of type unit and a type application is into an
+application to the unit value. For gradual type abstractions, we adopt an idea which is very similar
+to that used for encoding a polymorphic blame calculus into a language with dynamic sealing [Siek
+and Wadler 2016] with some additional twists. The cost of dynamic types is “pay-as-you-go” in
+the following sense. The baseline cost, at which a fully statically typed term aims, is the same as
+type-erasing semantics of System F; a static type abstraction basically meets this baseline because it
+does not cause additional casts (or blame) and name generation by its nature. Additional overhead
+is caused only when a gradual type abstraction is used. We have already implemented a prototype
+of a type-erasing interpreter in OCaml.
+As we saw in rule (R_TybetaG) in Section 5, type application of a gradual type abstraction
+generates a type binding. During reduction, a type binding records the actual type which the
+generated type name points at. However, in fact, the information of the actual type is required
+to prove type safety but not very essential for results of reduction. For example, we can blame
+following casts without knowledge about the actual types to which X and Y are bound.
+1 : Int⇒p1 ⋆⇒p2 X true : X⇒p1 ⋆⇒p2 Y
+Based on this observation, we no longer keep an actual type argument at type application. It suffices
+to generate a fresh ID to identify type variables introduced at each type application. The fresh ID
+is reminiscent of one of the cryptographic keys, used to express type abstraction of polymorphic
+blame calculusλB inλK, cryptographic lambda calculus [Siek and Wadler 2016]. We drop the other
+key to represent type binding because we erase run-time types.
+Our type system does not decide whether a term which is applied to a type results in a static
+type abstraction or a gradual. A possible implementation is to check whether a type abstraction
+is static or gradual at every type application, but we do not so. We create a thunk with a dummy
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 17 ===
+On Polymorphic Gradual Typing 40:17
+variable of type unit for every type abstraction and we put fresh ID generation into the thunk of a
+gradual type abstraction. As a result, we implement type application uniformly as application to a
+unit value without any checks.6 This strategy, i.e., fresh ID generation in a callee side, resembles
+the implementation of relationally-parametric polymorphic contracts by Guha et al. [2007], where
+a polymorphic contract is implemented by a function that generates an opaque container corre-
+sponding to a fresh ID every time an abstracted variable is instantiated by a concrete contract. This
+is in contrast to Siek and Wadler [2016], where fresh keys are generated at acaller (that is, type
+application) and passed to type abstractions. (The caller-side generation would make it easy to
+prove properties of encoding, though.) Cast rules such as (R_Content) and (R_Generalize) can
+be implemented as in static and gradual type abstractions, respectively.
+Now we show the core of the evaluator implemented in OCaml in Listing 1. The function eval
+is the main function which uses the infix operator (=⇒), which implements casts. It is not a tagless
+interpreter where values of statically typed expression come without run-time tags. Our main
+purpose is to demonstrate that static type variables can be completely erased and gradual type
+variables can be implemented in a lightweight manner. As the term constructorVar takes an integer,
+we use de Bruijn indices to represent variable bindings, although the names of identifiers are still
+recorded in an AST for a debugging purpose (the typeid in FunExp and so on). For simplicity, error
+handling code is omitted. We do not detail how blame is implemented—in Listing 1, blame is replaced
+with raising a simple exception. Implementing blame requires more costs due to manipulation of
+blame labels. Interested readers are referred to our prototype interpreter.
+Type abstractions of both kinds (TSFunExp and TGFunExp) evaluates to functions of type unit
+-> value (line 16 and 17 in eval). In the case of type abstraction by static type variables, the type
+argument is just discarded and the body is evaluated. In the case of type abstraction by gradual type
+variables, when it is applied, a fresh ID is generated by ref () and recorded in the environment,
+which maps (term) variables to values and gradual type variables to a reference to the unit value.
+A cast from a gradual type variable to ⋆ results in a value tagged with the ID of the type variable,
+retrieved from the environment (line 27). A cast from ⋆ to a gradual type variable will compare
+two IDs; if they disagree, blame is raised (lines 30–31). Lines 34–35 represent (R_Content); (static)
+type variables in terms t1 and t2 become free but their names will not be examined during
+evaluation (except at the reflexive case, which is omitted). Lines 36–39 implement (R_Generalize)
+and (R_Instantiate). In the former case, a fresh ID is generated just like type application of
+ΛX ::G. v.
+7 BLAME THEOREM
+The Blame Theorem, advocated by Tobin-Hochstadt and Felleisen [2006] and dubbed by Wadler
+and Findler [2009], is a standard property of a blame calculus and justifies the reasonable intuition
+that run-time typing errors are never triggered by statically typed code, which indicates that the
+cast semantics of the calculus is plausible. In fact, the Blame Theorem goes a step further: more
+precisely typed code never invokes run-time errors.
+We show the Blame Theorem by following Wadler and Findler [2009]: we introduce a few subtyp-
+ing relations—positive subtyping, negative subtyping, and precision (also called naive subtyping)—
+and show the relationship between them; and, finally, we prove that the “more precisely typed”
+side, which is formalized by precision, never causes run-time errors via the relationship. In addition,
+we introduce ordinary subtyping and show Blame-Subtyping Theorem, one of the refined criteria
+by Siek et al. [2015], which says that a cast from a type to its supertype never fails. We design all
+6Ideally, it is best to avoid even creation of a thunk, considering we adopted value restriction; we leave it for future work.
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 18 ===
+40:18 Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi
+Listing 1. Interpreter
+1type t y = I n t | Bool | Arr of t y ∗ t y | TyVar of i n t | F o r a l l of i d ∗ t y | Dyn
+2type term = Var of i n t | ··· | FunExp of i d ∗ t y ∗ term | AppExp of term ∗ term
+3| TSFunExp of i d ∗ term | TGFunExp of i d ∗ term | TAppExp of term ∗ t y
+4| CastExp of term ∗ t y ∗ t y
+5type t a g = I | B | Ar | TV of u n i t r e f ( ∗ ground t y p e s ∗ )
+6type v a l u e = In tV of i n t | BoolV of b o o l | Fun of ( v a l u e→ v a l u e )
+7| TFun of ( u n i t → v a l u e ) | Tagged of t a g ∗ v a l u e
+8and env = Empty | VB of v a l u e ∗ env | TB of u n i t r e f ∗ env
+9
+10( ∗ e v a l : env → term → v a l u e ∗ )
+11l e t r e c e v a l env = f u n c t i o n
+12| Var i d x → lookup i d x env
+13···
+14| FunExp ( id , _ , e ) → Fun ( fun v → e v a l ( VB ( v , env ) ) e )
+15| AppExp ( e1 , e2 ) → ( match e v a l env e1 with Fun f → f e v a l env e2 )
+16| TSFunExp ( id , e ) → TFun ( fun ( ) → e v a l env e )
+17| TGFunExp ( id , e ) → TFun ( fun ( ) → e v a l ( TB ( r e f ( ) , env ) ) e )
+18| TAppExp ( e , _ ) → ( match e v a l env e with TFun f → f ( ) )
+19| CastExp ( e , ty1 , t y 2 ) → l e t v = e v a l env e in ( t y 1 =⇒ t y 2 ) env v
+20( ∗ ( =⇒ ) : t y → t y → env → v a l u e→ v a l u e ∗ )
+21and ( =⇒ ) t 1 t 2 env v = match t1 , t 2 with
+22I n t , I n t → v ( ∗ R_ID ∗ )
+23| I n t , Dyn → Tagged ( I , v )
+24| Dyn , I n t → ( match v with
+25Tagged ( I , v0 ) → v0 ( ∗ R_Collapse ∗ )
+26| Tagged ( _ , _ ) → f a i l w i t h " Blame ! " ) ( ∗ R_Conflict ∗ )
+27| TyVar idx , Dyn → Tagged ( TV ( l o o k u p t y i d x env ) , v )
+28| Dyn , TyVar i d x → ( match v with
+29| Tagged ( TV r , v0 ) → i f l o o k u p t y i d x env == r then v0 ( ∗ R_Collapse ∗ )
+30e l s e f a i l w i t h " Blame ! " ( ∗ R_Conflict ∗ )
+31| Tagged ( _ , _ ) → f a i l w i t h " Blame ! " ) ( ∗ R_Conflict ∗ )
+32| Arr ( s1 , t 1 ) , Arr ( s2 , t 2 ) → ( match v with Fun f → ( ∗ R_Wrap ∗ )
+33Fun ( fun w → ( t 1 =⇒ t 2 ) env ( f ( ( s2 =⇒ s1 ) env w ) ) ) )
+34| F o r a l l ( id1 , t 1 ) , F o r a l l ( id2 , t 2 ) → ( match v with TFun f → ( ∗ R_Content ∗ )
+35TFun ( fun ( ) → ( t 1 =⇒ t 2 ) env ( f ( ) ) ) )
+36| ty1 , F o r a l l ( id2 , t y 2 ) → ( ∗ R_Generalize ∗ )
+37TFun ( fun ( ) → ( t y p e S h i f t 1 0 t y 1 =⇒ t y 2 ) ( TB ( r e f ( ) , env ) ) v )
+38| F o r a l l ( id1 , t y 1 ) , t y 2 → ( match v with TFun f → ( ∗ R_Instantiate ∗ )
+39( t y p e I n s t t y 1 Dyn =⇒ t y 2 ) env ( f ( ) ) )
+40···
+subtyping relations so that they are subsets of type consistency because we are interested in only
+well-typed programs.
+7.1 The Blame Theorem
+The Blame Theorem says that the “more precisely typed” side of a cast never triggers run-time
+errors. Namely, if A is a more precise type than B, then neither cast f : A⇒p B nor f : B⇒p A
+invokes blame p. Intuitively, A is more precise than B if A is a result type of replacing occurrences
+of the dynamic type in B with some types. Precision Γ⊢ A⊑ B formalizes this notion, that is, it
+means that A is more precise than B under Γ. The inference rules of precision are shown at the
+top of Fig. 5 and the same as the rules of type consistency except for the lack of a few rules for
+symmetry: we choose rules from type consistency so that the left-hand side is more precisely typed.
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 19 ===
+On Polymorphic Gradual Typing 40:19
+Γ⊢ A⊑ B Precision
+Γ⊢ A⊑ A (P_Refl) GType (Γ, A) A ,∀Y .A′
+Γ⊢ A⊑ ⋆ (P_Star) Γ⊢ A⊑ A′ Γ⊢ B⊑ B′
+Γ⊢ A→ B⊑ A′→ B′ (P_Arrow)
+Γ, X ::S⊢ A⊑ B
+Γ⊢∀ X .A⊑∀ X .B (P_AllS) Γ, X ::G⊢ A⊑ B QPoly (B) X < Ftv(B)
+Γ⊢∀ X .A⊑ B (P_AllG)
+Γ⊢ A <:+ B Positive Subtyping
+Γ⊢ A <:+ A (Ps_Refl) GType (Γ, A) A ,∀Y .A′
+Γ⊢ A <:+ ⋆ (Ps_Ground) X ::G+∈ Γ
+Γ⊢ ⋆ < :+ X (Ps_GV ar)
+Γ⊢ A′ <:− A Γ⊢ B <:+ B′
+Γ⊢ A→ B <:+ A′→ B′ (Ps_Arrow) Γ, X ::S⊢ A <:+ B
+Γ⊢∀ X .A <:+∀X .B (Ps_AllS)
+Γ, X ::G⊢ A <:+ B QPoly (B)
+X < Ftv(B)
+Γ⊢∀ X .A <:+ B (Ps_AllGL)
+Γ, X ::G⊢ A <:+ B QPoly (A)
+X < Ftv(A)
+Γ⊢ A <:+∀X .B (Ps_AllGR)
+Γ⊢ A <:− B Negative Subtyping
+Γ⊢ A <:− A (Ns_Refl) Γ⊢ A <:− G GType (Γ, A) A ,∀X .A′
+Γ⊢ A <:− ⋆ (Ns_Ground)
+A ,∀Y .A′ GType (Γ, A)
+Γ⊢ ⋆ < :− A (Ns_Star) Γ⊢ A′ <:+ A Γ⊢ B <:− B′
+Γ⊢ A→ B <:− A′→ B′ (Ns_Arrow)
+Γ, X ::S⊢ A <:− B
+Γ⊢∀ X .A <:−∀X .B (Ns_AllS) Γ, X ::G+⊢ A <:− B QPoly (B) X < Ftv(B)
+Γ⊢∀ X .A <:− B (Ns_AllGL)
+Γ, X ::G⊢ A <:− B QPoly (A) X < Ftv(A)
+Γ⊢ A <:−∀X .B (Ns_AllGR)
+Fig. 5. Precision, positive subtyping, and negative subtyping.
+Following the prior work [Ahmed et al. 2011; Wadler and Findler 2009], our proof of the Blame
+Theorem is based on two subtyping relations: positive and negative subtyping. The intention is
+that, if A is a positive or negative subtype of B, cast f : A⇒p B does not invoke blame p or blame p,
+respectively.
+Before showing the rules of positive and negative subtyping, we discuss a subtle observation in
+polymorphic blame calculi and describe an extension of type environments to address it. In general,
+we should not be able to derive ⋆ <:+ X because a cast from ⋆ to X could invoke blame. However,
+there are cases that X is instantiated with the dynamic type at run time—by (R_Instantiate)—in
+which case a cast from⋆ to X should never cause blame. For example, castw :∀X .X→ ⋆⇒p ⋆→ ⋆
+never causes blame, in particularblame p, despite that a cast from⋆ to X, obtained by decomposing
+the domain types contravariantly, does not always succeed. To capture such cases, we extend type
+environments with type variables given new gradual labelG+:
+Γ ::= ...| X ::G+
+GivingG+ to X means that X will be instantiated with the dynamic type at run time. The new label
+G+ is gradual and we extend GType (Γ, A) as follows:
+GType (Γ, A)
+def
+⇐⇒∀X∈ Ftv(A). (X ::G ∈Γ or X B B∈ Γ or X ::G+ ∈ Γ)
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 20 ===
+40:20 Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi
+The positive subtyping relation takes the form Γ ⊢ A <:+ B and its rules are shown in the
+middle of Fig. 5. (Ps_Ground) means that values of any type can be injected into the dynamic
+type safely, with (Ps_AllGL) for cases where the left-hand side is a polymorphic type. (Ps_GV ar)
+says that f : ⋆⇒p X always succeeds if X is givenG+ because X ofG+ should be replaced with
+the dynamic type. As we will see soon,G+ in the type environment is introduced by one of the
+negative subtyping rules. Note that, in general, we cannot expect that f : ⋆⇒p A succeeds if A is
+neither ⋆ nor X withG+. As ordinary subtyping, rule (Ps_Arrow), applied to function types, is
+contravariant on their domain types and covariant on their codomain types. It also reverses the
+polarity of subtyping in the domain types, corresponding to the negation of blame labels on casts
+between domain types in (R_Wrap). Other three rules (Ps_AllS), (Ps_AllGL), and (Ps_AllGR)
+follow from type consistency.
+Negative subtyping Γ⊢ A <:− B is used to identify casts f : A⇒p B which do not invoke
+blame p . The rules of negative subtyping are shown at the bottom in Fig. 5. The first four rules are
+standard [Wadler and Findler 2009], except conditions to make applicable rules syntax-directed
+and restrict negative subtyping to be a subset of type consistency. (Ns_Ground) requires a type on
+the left-hand side to be a negative subtype of some ground type G. This condition is needed for the
+case that A is a function type. In that case, f : A⇒p ⋆ will reduce to f : A⇒p ⋆→ ⋆⇒p ⋆ by
+(R_Ground), so we have to show that f : A⇒p ⋆→ ⋆ does not invoke blame p for proving that
+f : A⇒p ⋆ does not. Negative supertype G of function types is always ⋆→ ⋆, so the condition
+Γ⊢ A <:− G guarantees that f : A⇒p ⋆→ ⋆ never triggers blame p, as expected. (Ns_Arrow)
+is dual to (Ps_Arrow). (Ns_AllGL) givesG+ to the bound type variable X, because, if B is not a
+polymorphic type, cast f :∀X .A⇒p B will reduce to (f ⋆) : A[X B ⋆]⇒p B by reduction rule
+(R_Instantiate), and so X is bound to be instantiated with ⋆.
+Before showing the Blame Theorem, we discuss properties about positive and negative subtyping.
+First of all, we show that positive and negative subtyping are a subset of type consistency.
+Lemma 7.1. Let [ [−] ]G+7→G be a function over type environments such that it behaves an identity
+function except that it maps X ::G+ to X ::G.
+(1) If Γ⊢ A <:+ B, then [ [Γ] ]G+7→G⊢ A∼ B.
+(2) If Γ⊢ A <:− B, then [ [Γ] ]G+7→G⊢ A∼ B.
+Proof. By induction on the derivations of Γ⊢ A <:+ B and Γ⊢ A <:− B. □
+IntroducingG+ to type environments in (Ns_AllGL) enables positive and negative subtyping
+to relate more types than using justG. For example, we can derive∅⊢∀ X .X→ ⋆ < :− ⋆→ ⋆
+using (Ns_AllGL) as well as (Ps_Ground), as follows: we have X ::G+⊢ ⋆ < :+ X by (Ps_GV ar)
+and X ::G+⊢ ⋆ <:− ⋆ by (Ns_Refl); thus, X ::G+⊢ X→ ⋆ <:− ⋆→ ⋆ by (Ns_Fun); finally, we can
+derive∅⊢∀ X .X→ ⋆ <:− ⋆→ ⋆ by (Ns_AllGL). If we did not introduceG+ and usedG instead,
+we could not derive that judgment because X ::G⊢ ⋆ < :+ X does not hold. Thus,G cannot be a
+replacement forG+, whileG+ can be one forG, as the following lemmas show.
+Lemma 7.2.
+(1) If Γ, X ::G, Γ′⊢ A <:+ B, then Γ, X ::G+, Γ′⊢ A <:+ B.
+(2) If Γ, X ::G, Γ′⊢ A <:− B, then Γ, X ::G+, Γ′⊢ A <:− B.
+Proof. By induction on the derivations of Γ, X ::G, Γ′⊢ A <:+ B and Γ, X ::G, Γ′⊢ A <:− B. □
+As usual, we first show the relationship of precision to positive and negative subtyping.
+Lemma 7.3. If Γ⊢ A⊑ B, then Γ⊢ A <:+ B and Γ⊢ B <:− A.
+Proof. By induction on the derivation of Γ⊢ A⊑ B. □
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 21 ===
+On Polymorphic Gradual Typing 40:21
+Γ⊢ f sf p Safe term
+Γ⊢ A <:+ B Γ⊢ f sf p
+Γ⊢ (f : A⇒p B) sf p (Sf_Psub) Γ⊢ A <:− B Γ⊢ f sf p
+Γ⊢ (f : A⇒p B) sf p (Sf_Nsub) Γ⊢ f sf p q , p, p
+Γ⊢ (f : A⇒q B) sf p (Sf_Cast)
+Γ, X ::L⊢ w sf p
+Γ⊢ (ΛX ::L. w ) sf p (Sf_Tyabs) q , p
+Γ⊢ blame q sf p (Sf_Blame) Γ⊢ x sf p (Sf_V ar)
+Γ⊢ f sf p
+Γ⊢λx :A. f sf p (Sf_Abs) Γ⊢ f1 sf p Γ⊢ f2 sf p
+Γ⊢ f1 f2 sf p (Sf_App) Γ⊢ f sf p
+Γ⊢ f A sf p (Sf_Tyapp)
+Fig. 6. Safe terms.
+While Lemma 7.3 is enough to show the Blame Theorem, it is weaker than the Factoring (also
+known as, Tangram [Wadler 2015]) property, which states also the reverse direction [Wadler and
+Findler 2009]—i.e., A⊑ B iff A <:+ B and B <:− A. In fact, the Factoring property does not hold in
+our precision and subtyping relations.
+Example 7.4. ∅⊢ ⋆→ ⋆ < :+∀X .⋆→ ⋆ and∅⊢∀ X .⋆→ ⋆ < :− ⋆→ ⋆ are derivable, but
+∅⊢ ⋆→ ⋆⊑∀ X .⋆→ ⋆ is not.
+According to our precision rules, there are no non-∀ types more precise than polymorphic types.
+Ahmed et al. [2011] claimed that their naive subtyping satisfies the Tangram property, but we have
+found a counterexample to it: for example, using their positive subtyping <:+, negative subtyping
+<:−, and naive subtyping <:n, we can derive ⋆→ ⋆ <:+∀X .X→ ⋆ and∀X .X→ ⋆ <:− ⋆→ ⋆, but
+we cannot ⋆→ ⋆ <:n∀X .X→ ⋆. Thus, defining naive subtyping satisfying the Tangram property
+in polymorphic blame calculi is left open.
+Next, we show that a cast from one type to its positive (resp. negative) supertype never invokes
+positive (resp. negative) blame. Following Ahmed et al . [2011], we define safe terms Γ⊢ f sf p,
+which indicates that (1) blame p does not appear in f and (2) all casts with p in f are from one
+type to its positive supertype and all ones with p are from one type to its negative supertype. The
+rules for safe term are shown in Fig. 6—note that type environment Γ does not need to bind term
+variables. We show the Blame Theorem by proving that reduction preserves term safety. We write
+Σ ▷ f ̸−→⋆ Σ′ ▷ f′ to denote that Σ ▷ f −→⋆ Σ′ ▷ f′ cannot be derived.
+Lemma 7.5 (Blame Preservation). If Σ⊢ f sf p and Σ ▷ f −→ Σ′ ▷ f′, then Σ′⊢ f′ sf p.
+Theorem 7.6 (Blame Theorem). Let f be a closed term with a subterm f′ : A⇒p B such that
+neither p nor p occurs at other casts in f . Suppose that Γ is a type environment such that: (1) it captures
+all free type variables in A and B; and (2) type variables bound by Γ are bound in f with the same
+labels.
+(1) If Γ⊢ A <:+ B, then∅ ▷ f ̸−→⋆ Σ ▷ blame p for any Σ.
+(2) If Γ⊢ A <:− B, then∅ ▷ f ̸−→⋆ Σ ▷ blame p for any Σ.
+(3) If Γ⊢ A⊑ B, then∅ ▷ f ̸−→⋆ Σ ▷ blame p for any Σ.
+(4) If Γ⊢ B⊑ A, then∅ ▷ f ̸−→⋆ Σ ▷ blame p for any Σ.
+Proof. The first and second items are shown by Blame Preservation (Lemma 7.5) and the fact
+that f = blame p contradicts the safety of f .7 The third and fourth follow from Lemma 7.3 with
+the first and second, respectively. □
+7Our proof does not need Blame Progress, which is a lemma used to prove the Blame Theorem in Ahmed et al . [2011],
+though it can be derived from Blame Preservation and that fact about safe terms.
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 22 ===
+40:22 Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi
+Γ⊢ A <: B Subtyping
+Γ⊢ A <: A (S_Refl) Γ⊢ A <: G GType (Γ, A) A ,∀Y .A′
+Γ⊢ A <: ⋆ (S_Ground) X ::G+∈ Γ
+Γ⊢ ⋆ < : X (S_GV ar)
+Γ⊢ A′ <: A Γ⊢ B <: B′
+Γ⊢ A→ B <: A′→ B′ (S_Arrow) Γ, X ::S⊢ A <: B
+Γ⊢∀ X .A <:∀X .B (S_AllS)
+Γ, X ::G+⊢ A <: B QPoly (B)
+X < Ftv(B)
+Γ⊢∀ X .A <: B (S_AllGL)
+Γ, X ::G⊢ A <: B QPoly (A)
+X < Ftv(A)
+Γ⊢ A <:∀X .B (S_AllGR)
+Fig. 7. Ordinary subtyping.
+We make a remark on a slight difference from positive and negative subtyping in Ahmed et al.
+[2011]. While we introduceG+ to deal with casts from polymorphic types, Ahmed et al. adopts
+rules that, instead of usingG+, substitute the dynamic type for bound type variables, following
+their type compatibility. Although we believe that the Blame Theorem holds under their rules (with
+reasonable side conditions), they would violate our design policy that a subtyping relation should
+be a subset of type consistency. For example, it is derivable∀X .X→ X <:− Int→ Bool in Ahmed
+et al. [2011], though∀X .X→ X∼ Int→ Bool is not derivable in our type consistency. For the
+same reason, our subtyping rule, shown in Section 7.2, that takes polymorphic types on only the
+left-hand side usesG+, unlike the corresponding rule in Ahmed et al. [2011].
+7.2 Blame-Subtyping Theorem
+In this section, we investigate how to identify casts which never fail. For that, following the early
+work, we introduce ordinary subtyping Γ⊢ A <: B and show that casts from a type to its ordinary
+supertype never fail by factoring the ordinary subtyping into positive and negative subtyping.
+The rules of ordinary subtyping are shown in Fig. 7. A cast from a subtype of a ground type
+to the dynamic type does not fail because a cast from the ground type to the dynamic just adds
+a tag (S_Ground). A cast from the dynamic type to a type variable ofG+ succeeds because such
+a type variable is instantiated with the dynamic type, as discussed in Section 7.1 (S_GV ar). Rule
+(S_AllGL) givesG+ to X because X is instantiated with the dynamic type by (R_Instantiate).
+We show that casts from a type to its ordinary supertype never trigger blame.
+Theorem 7.7 (Factoring Subtyping). Γ⊢ A <: B iff Γ⊢ A <:+ B and Γ⊢ A <:− B.
+Proof. The left-to-right direction is shown by induction on the derivation of Γ⊢ A <: B. The
+other direction is by induction on the sum of sizes of A and B. □
+Corollary 7.8 (Blame-Subtyping Theorem). Suppose that f , A, B, p, and Γ are the same as
+given in the Blame Theorem. If Γ⊢ A <: B, then∅ ▷ f ̸−→⋆ Σ ▷ blame p and∅ ▷ f ̸−→⋆ Σ ▷ blame p
+for any Σ.
+Proof. By Factoring Subtyping (Theorem 7.7) and the Blame Theorem (Theorem 7.6). □
+8 THE GRADUAL GUARANTEE
+In this section, we discuss the gradual guarantee property for System FG. We first extend term
+precision of GTLC to System FG (type precision has been presented at the top of Fig. 5) and then
+prove that the term precision preserves typing (corresponding to Theorem 2.2 (1)). We state a
+conjecture that term precision also preserves the semantics (corresponding to Theorem 2.2 (2) and
+(3)), show auxiliary lemmas, which have been proved, and discuss how the conjecture may be
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 23 ===
+On Polymorphic Gradual Typing 40:23
+proved. Finally, we discuss that the simulation conjecture, a key lemma for the gradual guarantee,
+implies (the System FC version of) the Jack-of-All-Trades property [Ahmed et al . 2011, 2013],
+which has been proposed as a justification of the choice of ⋆ in the (R_Instantiate) rule of the
+polymorphic blame calculus but is still left open.8
+Term precision for System FG is actually nontrivial for two reasons: (1) naively extending the
+GTLC term precision by adding congruence rules for type abstraction and type application would
+break the expected gradual guarantee; and (2) in System FG, there is reasonable code evolution
+other than change in type annotations in lambda abstractions as in GTLC.
+We first discuss (1). We may expect that the term precision contains the following terms.
+(ΛX ::G. (λx:X . (x : X ))) Int (42 : Int )⊑ (ΛX ::G. (λx: ⋆ . (x : X ))) Int (42 : ⋆)
+Here, the term of the form (e : A), which is an abbreviation of (λz:A. z) e, ascribes type A to e. Their
+differences are the type annotations on x and type ascription for 42. Both terms are well-typed,
+but, while the term on the left is reduced to a value, the term on the right results in blame. This
+would be a counterexample of the gradual guarantee because making types less precise introduces
+blame. The problem here is code evolution within a type abstraction, more concretely, the type
+annotations X and ⋆ on x: X should not be considered more precise than ⋆, if they appear under
+ΛX (and even if X is declared to be gradual). To address this problem, we index our precision by χ,
+which is another type environment (consisting only of X ::S or X ::G), and give precision rules for
+lambda abstractions and type abstractions as follows:
+e⊑χ e′ χ⊢ A⊑ A′
+λx:A. e⊑χ λx:A′. e′
+v⊑χ,X ::S v′
+ΛX ::L. v⊑χ ΛX ::L′. v′
+Type annotations at λ are compared under χ. The rule for type abstractions assigns S to X ,
+irrespective of the label declared at Λ. The latter rule can be understood by analogy with the type
+consistency rule (C_All_S), whereS is assigned to X in comparison between two polymorphic
+types.
+We will see cases where X is givenG soon.
+Next, we discuss about (2). In GTLC, term precision captures change only in type annotation in
+lambda abstractions but, in System FG in which∀X .X→ X⊑ ⋆→ ⋆ holds, it is also reasonable to
+allow evolution from lambda abstraction, sayλx: ⋆ . x, to a type abstraction ΛX ::S.λx:X . x. Corre-
+spondingly, a more precise expression may have more type abstractions: (ΛX ::S.λx:X . x) Int 42
+should be considered more precise than (λx: ⋆ . x) 42. This observation leads to rules like:
+v⊑χ,X ::G v′ QPoly (TypeOf (v′))
+ΛX ::L. v⊑χ v′
+e⊑χ e′ TypeOf (e) =∀X .B QPoly (TypeOf (e′))
+e A⊑χ e′
+(where TypeOf (e) is the type of e under a certain implicitly assumed type environment). The
+condition QPoly(... ) means that the type of the right-hand side has to be quasi-polymorphic to
+align with the typing rule. Note also that X in χ is givenG, so that X is considered more precise
+than ⋆ in this context.
+The complete definition of term precision of System FG is found in Fig. 8. Both sides of term
+precision are accompanied by typing (that is, a type environment and a type) to avoid TypeOf (e),
+which has been informally used above and in the literature [Siek et al . 2015]. If Γ and types are
+ignored, the rules are as we explained.
+The property corresponding to Theorem 2.2 (1) holds. As a note, environment precision Γ⊑χ Γ′
+in Fig. 9 is needed. Label precisionL⊑ L′ is a reflexive relation withS⊑G . The second environment
+precision rule is essential in this proof.
+8The proof given in Ahmed et al. [2011] has turned out to be flawed [Ahmed et al. 2013].
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 24 ===
+40:24 Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi
+ty (c ) = A
+Γ⊢G c : A ⊑χ Γ′⊢G c : A (Tp_Const_G) x : A∈ Γ x : A′∈ Γ′
+Γ⊢G x : A ⊑χ Γ′⊢G x : A′ (Tp_V ar_G)
+Γ, x : A⊢G e : B ⊑χ Γ′, x : A′⊢G e′ : B′ χ⊢ A⊑ A′ Γ⊢ A Γ′⊢ A′
+Γ⊢G λx :A. e : A→ B ⊑χ Γ′⊢G λx :A′. e′ : A′→ B′ (Tp_Abs_G)
+Γ⊢G e1 : A1 ⊑χ Γ′⊢G e′
+1 : A′
+1 Γ⊢G e2 : A2 ⊑χ Γ′⊢G e′
+2 : A′
+2
+A1 ▷ A11→ A12 A′
+1 ▷ A′
+11→ A′
+12 Γ⊢ A11∼ A2 Γ′⊢ A′
+11∼ A′
+2
+Γ⊢G e1 e2 : A12 ⊑χ Γ′⊢G e′
+1 e′
+2 : A′
+12
+(Tp_App_G)
+Γ, X ::L⊢G v : A ⊑χ , X ::G Γ′⊢G v′ : A′ QPoly (A′) X < Ftv(A′)
+Γ⊢G ΛX ::L.v :∀X .A ⊑χ Γ′⊢G v′ : A′ (Tp_Tyabs1_G)
+Γ, X ::L⊢G v : A ⊑χ , X ::S Γ′, X ::L′⊢G v′ : A′ L⊑ L′
+Γ⊢G ΛX ::L.v :∀X .A ⊑χ Γ′⊢G ΛX ::L′.v′ :∀X .A′ (Tp_Tyabs2_G)
+Γ⊢G e : B ⊑χ Γ′⊢G e′ : B′ Γ⊢ A
+B ▷∀X .B1 GType (χ, A) QPoly (B′) X < Ftv(B′)
+Γ⊢G e A : B1[X B A] ⊑χ Γ′⊢G e′ : B′ (Tp_Tyapp1_G)
+Γ⊢G e : B1 ⊑χ Γ′⊢G e′ : B′
+1 B1 ▷∀X .B1 B′
+1 ▷∀X .B′
+1
+Γ⊢ A Γ′⊢ A′ χ⊢ A⊑ A′
+Γ⊢G e A : B1[X B A] ⊑χ Γ′⊢G e′ A′ : B′
+1[X B A′] (Tp_Tyapp2_G)
+Γ⊢G e :∀X .B ⊑χ Γ′⊢G e′ :∀X .B′ ∀X .B ▷∀X .B ∀X .B′ ▷∀X .B′
+Γ⊢ A Γ′⊢ A′ χ⊢ A⊑ A′
+Γ⊢G e A : B[X B A] ⊑χ Γ′⊢G e′ A′ : B′[X B A′] (Tp_Tyapp3_G)
+Fig. 8. Term precision.
+∅⊑ χ∅ Γ⊑χ Γ′ χ⊢ A⊑ A′
+Γ, x : A⊑χ Γ′, x : A′
+Γ⊑χ Γ′ L⊑ L′
+Γ, X ::L⊑χ Γ′, X ::L′
+Γ⊑χ Γ′
+Γ, X ::L⊑χ Γ′
+Fig. 9. Environment precision.
+Theorem 8.1 (The Gradual Guarantee on Typing). If Γ⊢G e : A ⊑χ Γ′⊢G e′ : A′ and
+Γ⊢G e : A and Γ⊑χ Γ′, then Γ′⊢G e′ : A′ and χ⊢ A⊑ A′.
+Proof. By induction on the derivation of Γ⊢G e : A ⊑χ Γ′⊢G e′ : A′. □
+The proof of the other gradual guarantee properties, which are concerned about the semantics,
+is not completed and so only conjectured here:
+Conjecture 8.2 (The Gradual Guarantee on Semantics). Suppose∅⊢ G e : A and∅⊢ G e :
+A ⊑∅ ∅⊢ G e′ : A.
+(1) If e⇓G Σ ▷ w, then e′⇓G Σ′ ▷ w′ and Σ⊢C w : A ⊑χ Σ′⊢C w′ : A′ for some χ .
+(2) If e⇑G then e′⇑G .
+(3) If e′ ⇓G Σ′ ▷ w′, then e ⇓G Σ ▷ w and Σ ⊢C w : A ⊑χ Σ′ ⊢C w′ : A′ for some χ or
+e⇓G Σ ▷ blame p.
+(4) If e′⇑G , then e⇑G or e⇓G Σ ▷ blame p.
+Our plan for proving this conjecture is to define term precision Σ⊢C f : A ⊑χ Σ′⊢C f′ : A′ of
+System FC similarly (the definition is omitted) and show that cast insertion preserves term precision
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 25 ===
+On Polymorphic Gradual Typing 40:25
+and, finally, that term precision is a weak simulation (modulo blame on the left). Unfortunately, we
+have not managed to finished proofs as of writing. In order to reduce the complexity of the proof,
+we might explore more sophisticated term precision so as to reflect the codomain of cast insertion
+translation.
+Conjecture 8.3. If Γ ⊢G e : A ⊑χ Γ′ ⊢G e′ : A′ and Γ ⊑χ Γ′ and Γ ⊢ e⇝ f : A and
+Γ′⊢ e′⇝ f′ : A′, then Γ⊢C f : A ⊑χ Γ′⊢C f′ : A′.
+Conjecture 8.4. Suppose Σ1⊢C f1 : A ⊑χ Σ′
+1⊢C f′
+1 : A′ and Σ1⊑χ Σ′
+1. If Σ1 ▷ f1−→ Σ2 ▷ f2,
+then Σ′
+1 ▷ f′
+1−→⋆ Σ′
+2 ▷ f′
+2 and Σ2⊢C f2 : A ⊑χ Σ′
+2⊢C f′
+2 : A′ for some Σ′
+2 and f′
+2 .
+Jack-of-All-Trades. Ahmed et al. [2011] formulated the Jack-of-All-Trades property as a justifica-
+tion of the rule (R_Instantiate):
+w :∀X .A⇒p B−→ (w ⋆) : A[X B ⋆]⇒p B
+Instantiation by ⋆ is a very delicate design choice. Suppose we have a term w :∀X .X→ X⇒p1
+⋆→ ⋆⇒p2 Int→ Int, it seems that instantiation by Int is more reasonable than ⋆. We do not
+know whether this optimistic instantiation by ⋆ preserves the behavior of instantiation by more
+precise types (by Int in this case). In order to trust in the (R_Instantiate) rule, we have to verify
+that there are no situations where ⋆ results in a blame while instantiation by a more precise type
+gets a value. The conjecture the Jack-of-All-Trades aims at such a justification and has been known
+as one of the big challenges of polymorphic blame calculi (See Ahmed et al. [2013] for the history).
+In fact, we have found that Conjecture 8.4 implies Jack-of-All-Trades in SystemFC, for which it can
+be stated as follows:
+Theorem 8.5 (Jack-of-All-Trades in System FC). Suppose Conjecture 8.4 holds and Σ ⊢C
+E[(w C ) : A[X B C]⇒p A′] : B and Σ⊢C E[(w ⋆) : A[X B ⋆]⇒p A′] : B and GType (χ, C) where
+χ ={X ::S| X B A∈ Σ or X is bound in E}.
+• If Σ ▷ E[(w C ) : A[X B C]⇒p A′]−→⋆ Σ1 ▷ w1, then Σ ▷ E[(w ⋆) : A[X B ⋆]⇒p A′]−→⋆
+Σ′
+1 ▷ w′
+1 for some Σ′
+1 and w′
+1.
+• If E[(w C ) : A[X B C]⇒p A′] diverges, then E[(w ⋆) : A[X B ⋆]⇒p A′] diverges.
+Proof. It is easy to show Σ⊢C E[(w C ) : A[X B C]⇒p A′] : B ⊑χ Σ⊢C E[(w ⋆) : A[X B
+⋆]⇒p A′] : B. Then the statement follows straightforwardly from Conjecture 8.4. □
+9 RELATED WORK
+Adding the dynamic type to statically typed languages with polymorphism. Abadi et al. [1995]
+studied adding the dynamic type to polymorphic programming languages. In their work, expressions
+of the dynamic type are investigated bytypecase operation explicitly, and neither parametricity nor
+smooth transition between statically and dynamically typed code were studied. Gronski et al. [2006]
+developed the Sage language, which extends hybrid type checking by Flanagan [2006] to advanced
+typing features including the dynamic type, first-class types, the Type:Type discipline [Cardelli 1986].
+Polymorphic functions can be expressed in Sage, but run-time checks do not enforce parametricity.
+Matthews and Ahmed [2008] studied parametricity in the multi-language combining an ML-like,
+polymorphically typed language and a Scheme-like, untyped language. They also use dynamic
+sealing [Morris 1973] for enforcing parametricity of statically typed values in untyped code and
+show parametricity.9 Sealing in their work sticks to casts—more precisely, type annotations given
+to untyped code—while we separate sealing and casts, following Ahmed et al . [2011]. Since the
+ML-like and Scheme-like languages are fully typed and fully untyped respectively, types on sides
+9Its proof turned out to be flawed [Neis et al. 2011], though.
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 26 ===
+40:26 Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi
+of a cast are either fully static (that is, without the dynamic type) or fully dynamic (that is, the
+dynamic type), while types in our work may contain the dynamic type as their subcomponents,
+which motivates study of precision on types and the gradual guarantee. Ina and Igarashi [2011]
+introduced generics, which is a typing feature to obtain polymorphism in object-oriented languages,
+to gradual typing, but they did not study enforcement of parametricity.
+Polymorphic Blame Calculus. Ahmed et al. [2009, 2011, 2013] introduced a series of polymorphic
+extensions of (a subset of) the blame calculus [Wadler and Findler 2009] and developed cast
+semantics which dynamically enforces parametricity. The later version [Ahmed et al. 2011, 2013]
+used type bindings to treat instantiated type variables in a special manner but the calculus had a
+problem that terms that are usually considered values reduce. Ahmed et al. [2017] addressed this
+problem by introducing a refined polymorphic blame calculusλB, from which we also incorporate
+some of the improvements. They also studied a formal encoding ofλB into a calculus of dynamic
+sealing [Morris 1973]. They use dynamic sealing for expressing type bindings and casts between
+type variables and the dynamic type. Our interpreter uses dynamic sealing only for the latter
+purpose because most type information, including type bindings, is erased. Ahmed et al. [2017]
+proved relational parametricity ofλB by a step-indexed Kripke logical relation. We expect that their
+proof method can be adapted to prove parametricity of System FC because it is largely based onλB.
+Although the polymorphic blame calculi are studied as foundations for polymorphic gradual
+typing, a source language design has never been studied,10 not to mention the refined criteria [Siek
+et al. 2015]. As we have discussed, their compatibility relation could not be used in the type
+consistency of the source language as the fact that it relates∀X .Int→ Int and Int→ Int would
+break conservativity over typing of System F.
+Static and Gradual Type Variables/Parameters. Garcia and Cimini [2015], who studied type in-
+ference for gradual typing, proposed the distinction between static and gradual type parameters,
+which correspond to our two kinds of type variables. In their work, type variables11 constrained
+only to be consistent with⋆ are instantiated to gradual type parameters, and type variables without
+any constraints are instantiated to static type parameters. The distinction of type parameters leads
+to the fine-grained notion of principal type schemes. They also mentioned possibility of using
+dynamic sealing only for gradual type parameters but did not elaborate the idea further.
+General approaches to gradual typing. Cimini and Siek [2016] introduced the Gradualizer, a
+general algorithmic methodology to generate gradual type systems from static type systems, and
+Cimini and Siek [2017] extended it so that the Gradualizer can generate dynamic semantics of
+gradually typed languages automatically. Garcia et al. [2016] introduced a framework called AGT
+(standing for Abstracting Gradual Typing); they reformalized type consistency by an interpretation
+of gradual types on the basis of the abstract interpretation. Once an interpretation of gradual types
+is given, all other definitions and properties of gradual typing are obtained systematically.
+In spite of a great deal of generality in these approaches, they are, unfortunately, not very
+satisfactory to our demand. The first approach, the Gradualizer, does not instruct us how to define
+type consistency, which is one of the main difficulties in designing our calculus. The second, AGT,
+seems to need some nontrivial extensions as we have extended type consistency to a ternary
+relation in order to manage the classification of type variables. It will be an interesting future
+direction to extend these approaches so as to handle parametric polymorphism.
+10The blame calculus itself could be used as a source language, though, as mentioned in Ahmed et al. [2011].
+11In Garcia and Cimini [2015], type variables refer to unknown types to be inferred, while type parameters are for expressing
+polymorphism.
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 27 ===
+On Polymorphic Gradual Typing 40:27
+Polymorphic Manifest Contracts. Belo et al. [2011] and, more recently, Sekiyama et al . [2017]
+studied polymorphic extensions of a manifest contract calculus [Flanagan 2006; Greenberg et al.
+2010], which integrates refinement types and dynamic contract checking. They enforce parametric-
+ity statically; in this sense, all type variables are static there. In fact, our cast rule (R_Content) is
+derived from their cast semantics.
+10 CONCLUSION
+We have introduced System FG as a foundation of polymorphic gradual typing. Type abstractions
+and the key relations of gradual typing, such as type consistency, subtyping, precision, and so on, are
+extended, along with the introduction of static and gradual type variables. We have also proposed
+System FC as an intermediate cast calculus on the basis of the existing polymorphic blame calculi.
+We have informally demonstrated the “pay-as-you-go” result by showing prototype implementation
+of a type-erasing interpreter. It is interesting future work to study erasure translation more formally
+along the line of Siek and Wadler [2016]. The Blame Theorem is also shown with sophisticated
+subtyping relations. Almost all the desired criteria of gradual typing have been proved in our
+calculus except for the gradual guarantee about semantics. As future work, we are going to prove
+the gradual guarantee on semantics; the Jack-of-All-Trades problem will also be solved in the
+process. Finally, parametricity of System FC should be proved.
+ACKNOWLEDGMENTS
+We would like to thank Jeremy Siek, Phil Wadler, and anonymous reviewers for valuable comments.
+This work was supported in part by the JSPS KAKENHI Grant Number JP17H01723.
+REFERENCES
+Martín Abadi, Luca Cardelli, Benjamin Pierce, and Gordon Plotkin. 1991. Dynamic Typing in a Statically Typed Language.
+13, 2 (1991), 237–268.
+Martín Abadi, Luca Cardelli, Benjamin C. Pierce, and Didier Rémy. 1995. Dynamic Typing in Polymorphic Languages. J.
+Funct. Program. 5, 1 (1995), 111–130.
+Amal Ahmed, Robert Bruce Findler, Jacob Matthews, and Philip Wadler. 2009. Blame for all. In Proc. of Workshop on Stript to
+Program Evolution.
+Amal Ahmed, Robert Bruce Findler, Jeremy G. Siek, and Philip Wadler. 2011. Blame for all. In Proceedings of the 38th ACM
+SIGPLAN-SIGACT Symposium on Principles of Programming Languages, POPL 2011, Austin, TX, USA, January 26-28, 2011 .
+201–214. https://doi.org/10.1145/1926385.1926409
+Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler. 2017. Theorems for Free for Free: Parametricity, With and
+Without Types. In Proceedings of the 22st ACM SIGPLAN International Conference on Functional Programming, ICFP 2017 .
+Amal Ahmed, James T. Perconti, Jeremy G. Siek, and Philip Wadler. 2013. Blame for All (revised). (2013).
+Felipe Bañados Schwerter, Ronald Garcia, and Éric Tanter. 2014. A theory of gradual effect systems. InProceedings of the 19th
+ACM SIGPLAN international conference on Functional programming, Gothenburg, Sweden, September 1-3, 2014 . 283–295.
+João Filipe Belo, Michael Greenberg, Atsushi Igarashi, and Benjamin C. Pierce. 2011. Polymorphic Contracts. InProgramming
+Languages and Systems - 20th European Symposium on Programming, ESOP 2011, Held as Part of the Joint European
+Conferences on Theory and Practice of Software, ETAPS 2011, Saarbrücken, Germany, March 26-April 3, 2011. Proceedings .
+18–37.
+Gavin M. Bierman, Martín Abadi, and Mads Torgersen. 2014. Understanding TypeScript. In ECOOP 2014 - Object-Oriented
+Programming - 28th European Conference, Uppsala, Sweden, July 28 - August 1, 2014. Proceedings . 257–281.
+Gavin M. Bierman, Erik Meijer, and Mads Torgersen. 2010. Adding Dynamic Types to C#. In ECOOP 2010 - Object-Oriented
+Programming, 24th European Conference, Maribor, Slovenia, June 21-25, 2010. Proceedings . 76–100.
+Ambrose Bonnaire-Sergeant, Rowan Davies, and Sam Tobin-Hochstadt. 2016. Practical Optional Types for Clojure. In
+Programming Languages and Systems - 25th European Symposium on Programming, ESOP 2016, Held as Part of the European
+Joint Conferences on Theory and Practice of Software, ETAPS 2016, Eindhoven, The Netherlands, April 2-8, 2016, Proceedings .
+68–94.
+Luca Cardelli. 1986. A Polymorphicλ-calculus with Type:Type. Technical Report 10. DEC Systems Research Center.
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 28 ===
+40:28 Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi
+Matteo Cimini and Jeremy G. Siek. 2016. The gradualizer: a methodology and algorithm for generating gradual type systems.
+In Proceedings of the 43rd Annual ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages, POPL 2016,
+St. Petersburg, FL, USA, January 20 - 22, 2016 . 443–455. https://doi.org/10.1145/2837614.2837632
+Matteo Cimini and Jeremy G. Siek. 2017. Automatically generating the dynamic semantics of gradually typed languages.
+In Proceedings of the 44th ACM SIGPLAN Symposium on Principles of Programming Languages, POPL 2017, Paris, France,
+January 18-20, 2017. 789–803.
+Facebook. 2017. The Hack Programming Language. (2017). http://hacklang.org/.
+Cormac Flanagan. 2006. Hybrid type checking. In Proceedings of the 33rd ACM SIGPLAN-SIGACT Symposium on Principles of
+Programming Languages, POPL 2006, Charleston, South Carolina, USA, January 11-13, 2006 . 245–256.
+Ronald Garcia and Matteo Cimini. 2015. Principal Type Schemes for Gradual Programs. In Proceedings of the 42nd Annual
+ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages, POPL 2015, Mumbai, India, January 15-17,
+2015. 303–315. https://doi.org/10.1145/2676726.2676992
+Ronald Garcia, Alison M. Clark, and Éric Tanter. 2016. Abstracting gradual typing. In Proceedings of the 43rd Annual ACM
+SIGPLAN-SIGACT Symposium on Principles of Programming Languages, POPL 2016, St. Petersburg, FL, USA, January 20 -
+22, 2016. 429–442. https://doi.org/10.1145/2837614.2837670
+Jean-Yves Girard. 1972. Interprétation fonctionnelle et élimination des coupures de l’arithmétique d’ordre supérieur . Thèse
+d’état. Université Paris VII. Summary in Proceedings of the Second Scandinavian Logic Symposium (J.E. Fenstad, editor),
+North-Holland, 1971 (pp. 63–92).
+Michael Greenberg, Benjamin C. Pierce, and Stephanie Weirich. 2010. Contracts made manifest. In Proceedings of the 37th
+ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages, POPL 2010, Madrid, Spain, January 17-23,
+2010. 353–364.
+Jessica Gronski, Kenneth Knowles, Aaron Tomb, Stephen N. Freund, and Cormac Flanagan. 2006. Sage: Hybrid checking for
+flexible specifications. In Scheme and Functional Programming Workshop .
+Arjun Guha, Jacob Matthews, Robert Bruce Findler, and Shriram Krishnamurthi. 2007. Relationally-parametric polymorphic
+contracts. In Proceedings of the 2007 Symposium on Dynamic Languages, DLS 2007, October 22, 2007, Montreal, Quebec,
+Canada. 29–40.
+Lintaro Ina and Atsushi Igarashi. 2011. Gradual typing for generics. In Proceedings of the 26th Annual ACM SIGPLAN
+Conference on Object-Oriented Programming, Systems, Languages, and Applications, OOPSLA 2011, part of SPLASH 2011,
+Portland, OR, USA, October 22 - 27, 2011 . 609–624.
+Jacob Matthews and Amal Ahmed. 2008. Parametric Polymorphism through Run-Time Sealing or, Theorems for Low, Low
+Prices!. In Programming Languages and Systems, 17th European Symposium on Programming, ESOP 2008, Held as Part of
+the Joint European Conferences on Theory and Practice of Software, ETAPS 2008, Budapest, Hungary, March 29-April 6, 2008.
+Proceedings. 16–31.
+Jacob Matthews and Robert Bruce Findler. 2009. Operational semantics for multi-language programs. ACM Trans. Program.
+Lang. Syst. 31, 3 (2009), 12:1–12:44.
+Erik Meijer and Peter Drayton. 2004. Static Typing Where Possible, Dynamic Typing When Needed: The End of the Cold
+War Between Programming Languages. In OOPSLA’04 Workshop on Revival of Dynamic Languages .
+James H. Morris, Jr. 1973. Protection in Programming Languages. 16, 1 (Jan. 1973), 15–21.
+Georg Neis, Derek Dreyer, and Andreas Rossberg. 2011. Non-parametric parametricity. J. Funct. Program. 21, 4-5 (2011),
+497–562.
+Benjamin C. Pierce. 2002. Types and Programming Languages. MIT Press, Chapter 23.
+John Reynolds. 1974. Towards a Theory of Type Structure. InProc. Colloque sur la Programmation (Lecture Notes in Computer
+Science), Vol. 19. Springer-Verlag, 408–425.
+Taro Sekiyama, Atsushi Igarashi, and Michael Greenberg. 2017. Polymorphic Manifest Contracts, Revised and Resolved.
+ACM Trans. Program. Lang. Syst. 39, 1, Article 3 (Feb. 2017), 36 pages.
+Jeremy G. Siek and Walid Taha. 2006. Gradual Typing for Functional Languages. In Scheme And Functional Programming
+Workshop. 81–92.
+Jeremy G. Siek and Walid Taha. 2007. Gradual Typing for Objects. In ECOOP 2007 - Object-Oriented Programming, 21st Euro-
+pean Conference, Berlin, Germany, July 30 - August 3, 2007, Proceedings . 2–27. https://doi.org/10.1007/978-3-540-73589-2_2
+Jeremy G. Siek and Manish Vachharajani. 2008. Gradual typing with unification-based inference. In Proceedings of the 2008
+Symposium on Dynamic Languages, DLS 2008, July 8, 2008, Paphos, Cyprus . 7. https://doi.org/10.1145/1408681.1408688
+Jeremy G. Siek, Michael M. Vitousek, Matteo Cimini, and John Tang Boyland. 2015. Refined Criteria for Gradual Typing.
+In 1st Summit on Advances in Programming Languages, SNAPL 2015, May 3-6, 2015, Asilomar, California, USA . 274–293.
+https://doi.org/10.4230/LIPIcs.SNAPL.2015.274
+Jeremy G. Siek and Philip Wadler. 2010. Threesomes, with and without blame. In Proceedings of the 37th ACM SIGPLAN-
+SIGACT Symposium on Principles of Programming Languages, POPL 2010, Madrid, Spain, January 17-23, 2010 . 365–376.
+Jeremy G. Siek and Philip Wadler. 2016. The key to blame: Gradual typing meets cryptography. (2016).
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.
+
+=== PAGE 29 ===
+On Polymorphic Gradual Typing 40:29
+Satish Thatte. 1990. Quasi-static Typing. In Proceedings of the 17th ACM SIGPLAN-SIGACT Symposium on Principles of
+Programming Languages, POPL 1990 . 367–381.
+Sam Tobin-Hochstadt and Matthias Felleisen. 2006. Interlanguage migration: from scripts to programs. In Companion to the
+21th Annual ACM SIGPLAN Conference on Object-Oriented Programming, Systems, Languages, and Applications, OOPSLA
+2006, October 22-26, 2006, Portland, Oregon, USA . 964–974.
+Sam Tobin-Hochstadt and Matthias Felleisen. 2008. The design and implementation of typed scheme. In Proceedings of the
+35th ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages, POPL 2008, San Francisco, California,
+USA, January 7-12, 2008 . 395–406.
+Michael M. Vitousek, Andrew M. Kent, Jeremy G. Siek, and Jim Baker. 2014. Design and Evaluation of Gradual Typing for
+Python. In Dynamic Language Symposium. 45–56.
+Philip Wadler. 2015. A Complement to Blame. In 1st Summit on Advances in Programming Languages, SNAPL 2015, May 3-6,
+2015, Asilomar, California, USA. 309–320.
+Philip Wadler and Robert Bruce Findler. 2009. Well-Typed Programs Can’t Be Blamed. InProgramming Languages and Systems,
+18th European Symposium on Programming, ESOP 2009, Held as Part of the Joint European Conferences on Theory and Practice
+of Software, ETAPS 2009, York, UK, March 22-29, 2009. Proceedings . 1–16. https://doi.org/10.1007/978-3-642-00590-9_1
+Proc. ACM Program. Lang., Vol. 1, No. 1, Article 40. Publication date: September 2017.

@@ -1,0 +1,1521 @@
+
+
+=== PAGE 1 ===
+Blame for All
+Amal Ahmed
+Indiana University
+amal@cs.indiana.edu
+Robert Bruce Findler
+Northwestern University
+robby@eecs.northwestern.edu
+Jeremy G. Siek
+University of Colorado at Boulder
+jeremy.siek@colorado.edu
+Philip Wadler
+University of Edinburgh
+wadler@inf.ed.ac.uk
+Abstract
+Several programming languages are beginning to integrate static
+and dynamic typing, including Racket (formerly PLT Scheme), Perl
+6, and C# 4.0 and the research languages Sage (Gronski, Knowles,
+Tomb, Freund, and Flanagan, 2006) and Thorn (Wrigstad, Eug-
+ster, Field, Nystrom, and Vitek, 2009). However, an important open
+question remains, which is how to add parametric polymorphism
+to languages that combine static and dynamic typing. We present a
+system that permits a value of dynamic type to be cast to a polymor-
+phic type and vice versa, with relational parametricity enforced by
+a kind of dynamic sealing along the lines proposed by Matthews
+and Ahmed (2008) and Neis, Dreyer, and Rossberg (2009). Our
+system includes a notion of blame, which allows us to show that
+when casting between a more-precise type and a less-precise type,
+any cast failures are due to the less-precisely-typed portion of the
+program. We also show that a cast from a subtype to its supertype
+cannot fail.
+Categories and Subject Descriptors D.3.3 [Language Constructs
+and Features]: Procedures, functions, and subroutines
+General Terms Languages, Theory
+Keywords casts, coercions, blame tracking, lambda-calculus
+1. Introduction
+The long tradition of work that integrates static and dynamic types
+includes the partial types of Thatte (1988), the dynamic type of
+Abadi et al. (1991), thecoercions of Henglein (1994), the contracts
+of Findler and Felleisen (2002), thedynamic dependent types of Ou
+et al. (2004), the hybrid types of Gronski et al. (2006), the grad-
+ual types of Siek and Taha (2006), the migratory types of Tobin-
+Hochstadt and Felleisen (2006), the multi-language programming
+of Matthews and Findler (2007), and the blame calculus of Wadler
+and Findler (2009). Integration of static and dynamic types is a fea-
+ture of .NET languages including Visual Basic and C#, is being ex-
+plored for Javascript, Perl, Python, and Ruby, and is the subject of
+the recent STOP 2009 workshop held in conjunction with ECOOP.
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for proﬁt or commercial advantage and that copies bear this notice and the full citation
+on the ﬁrst page. To copy otherwise, to republish, to post on servers or to redistribute
+to lists, requires prior speciﬁc permission and/or a fee.
+POPL’11, January 26–28, 2011, Austin, Texas, USA.
+Copyright c© 2011 ACM 978-1-4503-0490-0/11/01. . . $10.00
+A unifying theme in this work is to use casts to mediate between
+statically and dynamically typed code. Casts may be introduced by
+compiling to an intermediate language; the blame calculus may be
+regarded as either such an intermediate language or as a source
+language. The main innovation of the blame calculus is to assign
+positive and negative blame (to either the term contained in the
+cast or the context containing the cast), with associated notions of
+positive and negative subtype. These support the Blame Theorem,
+which ensures that when a program goes wrong, blame lies with
+the less-precisely-typed side of a cast (Wadler and Findler, 2009).
+In this paper, we extend a fragment of the blame calculus to
+incorporate polymorphism, based on a notion of dynamic sealing.
+For simplicity, our fragment includes base types, function types,
+and the dynamic type, as found in gradual types, but omits subset
+types, as found in hybrid types. Our system adds the ability to cast
+a value of dynamic type to a polymorphic type and vice versa. We
+name this system the polymorphic blame calculus.
+A fundamental semantic property of polymorphic types is re-
+lational parametricity, as introduced by Reynolds (1983). Our sys-
+tem uses dynamic sealing to ensure that values of polymorphic type
+satisfy relational parametricity. For instance, every function of type
+∀X.X→X must either be the identity function (one which always
+returns its argument) or an undeﬁned function (one which never
+returns a value), and this property holds true even for values of dy-
+namic type cast to a polymorphic type. Relational parametricity un-
+derlies some program optimizations, notablyshortcut deforestation
+as employed by the Glasgow Haskell Compiler (Gill et al., 1993).
+Our system may guarantee the validity of such optimizations even
+in the presence of dynamic types.
+Dynamic sealing to enforce parametricity has a long history.
+Sealing for data abstraction goes back at least to Morris (1973).
+Cryptographic sealing for parametricity was introduced by Pierce
+and Sumii (2000). Extending casts to include seals, while demon-
+strating relational parametricity, was ﬁrst explored in the context
+of multi-language programming by Matthews and Ahmed (2008).
+A practical implementation for Scheme contracts was described by
+Guha et al. (2007). Recently, Neis et al. (2009) used dynamic seal-
+ing to restore parametricity in a non-parametric language.
+Our development is supported by the use of type bindings to
+control the scope of type variables, both statically and dynamically.
+Type bindings are closely related to constructs for generating new
+type names (Neis et al., 2009; Rossberg, 2003); an important differ-
+ence is that our type bindings are immobile, that is, there is no scope
+extrusion. Our development also usesstatic casts to conceal and re-
+veal the representations of type variables. Together with type bind-
+ings, static casts provide a syntactic means to preserve the type-
+
+=== PAGE 2 ===
+hiding nature of type abstractions after they are instantiated. Static
+casts play an important role in the static semantics of our system
+but a lesser role in the dynamic semantics. As such, static casts are
+implicit in our main system (as in Neis et al. (2009)). However, we
+use an explicit version of the static casts as a technical device in
+our proof of the Subtyping Theorem. The explicit casts are closely
+related to the coercions of Rossberg (2003) and are reminiscent of
+the syntactic type abstractions of Grossman et al. (2000).
+We present three technical results in this paper. The ﬁrst result
+is the Jack-of-All-Trades Principle (Sections 6.3 and 11), which
+justiﬁes the way we implement casts that instantiate polymorphic
+values. The second result is the Blame Theorem (Section 8), which
+states that when casting between a less-precise type and a more-
+precise type, any cast failures are due to the less-precisely-typed
+portion of the program. The ﬁnal result is the Subtyping Theorem
+(Section 9), which states that a cast from a subtype to a supertype
+cannot lead to blame for that cast. We do not present a relational
+parametricity result; that result is forthcoming and will be an adap-
+tation of the result by Matthews and Ahmed (2008).
+The paper comes with a Redex model covering some of the
+systems in this paper, available online:
+http://plt.eecs.northwestern.edu/blame-for-all/
+This paper is an improved version of a paper in STOP 2009.
+The current paper is completely rewritten (and has lost one author
+and gained another). Among the more signiﬁcant differences, we
+use type bindings as compared to a global store; and we prove the
+Subtyping Theorem, a conjecture in the earlier paper.
+2. From untyped to typed
+The blame calculus provides a framework for integrating typed and
+untyped programs. One scenario is that we begin with a program in
+an untyped language and we wish to convert it to a typed language.
+Here is a simple untyped program.
+let pos⋆ =⌈λx.x> 0⌉ in
+let app⋆ =⌈λf.λx.f x⌉ in
+⌈app⋆ pos⋆ 1⌉
+It returns⌈true⌉ : ⋆. We indicate untyped code by surrounding
+it with ceiling brackets, ⌈·⌉. Untyped code is really uni-typed (a
+slogan due to Harper (2007)); it is a special case of typed code
+where every term has the dynamic type, ⋆. To aid the eye, we
+sometimes write variables of type⋆ with a superscript⋆.
+Here is the same program, rewritten with types.
+let pos =λx : I.x> 0 in
+let app = ΛX. ΛY.λf :X→Y.λx :X.f x in
+app I B pos 1
+This program returns true : B.
+As a matter of software engineering, when we add types to our
+code we may not want to do so all at once. Of course, it is trivial
+to rewrite a three-line program. However, the technique described
+here is intended to apply also when each one-line deﬁnition is
+replaced by a thousand-line module.
+We manage the transition between untyped and typed code with
+a relatively new construct (Gronski et al., 2006; Siek and Taha,
+2006) with an old name, “cast”. Casts can be between any two
+compatible types. Roughly speaking, type A is compatible with
+typeB when a value of type A can be coerced to type B. We are
+particularly interested in the case where either the source type is
+⋆ (corresponding to importing untyped code into typed code), or
+where the target type is ⋆ (corresponding to importing typed code
+into untyped code). We introduce an order on types corresponding
+to precision, where ⋆ is the least precise type. We introduce a
+notion of blame associated with casts, so that we can prove the
+following result: if a cast between a less-precise type and a more-
+precise type fails, then blame falls on the less-precise side of the
+cast. An immediate corollary is that if a cast between untyped and
+typed code fails, blame lies with the untyped code—“well-typed
+programs can’t be blamed”.
+A cast from a more-precise type to a less-precise type is called
+widening. Here is the above program rewritten to demonstrate
+widening. It is mostly untyped, but contains one typed component
+cast for use in an untyped context.
+let pos⋆ =⌈λx.x> 0⌉ in
+let app = ΛX. ΛY.λf :X→Y.λx :X.f x in
+let app⋆ = app :∀X.∀Y. (X→Y )→X→Y ⇒p ⋆ in
+⌈app⋆ pos⋆ 1⌉
+It returns⌈true⌉ :⋆.
+Every cast is annotated with a blame label, used to ascribe fault
+if the cast fails. The cast in the above program has blame labelp.
+Our notation is chosen for clarity rather than compactness. Writ-
+ing the source type of the cast is redundant; the type of the source
+can always be inferred. In a practical language, we would expect
+the source type to be elided.
+Of course, the untyped context may not satisfy the constraints
+required by the typed term. If in the above we replace
+⌈app⋆ pos⋆ 1⌉ by ⌈app⋆ 1 pos⋆⌉
+it now returns blamep. Blamingp (rather thanp) indicates that the
+fault lies with the context containing the cast labelledp (rather than
+the term contained in the cast). This is what we expect, because the
+context is untyped.
+Passing a polymorphically typed value into an untyped context
+requires an appropriate instantiation for the type parameters. As
+you might guess, in this case the type parameters X and Y are
+instantiated to⋆. However you might not guess that instantiating to
+⋆ always works, regardless of whether the target is ⋆ or something
+more precisely typed. One of the contributions of this paper is
+to prove the Jack-of-All-Trades Principle: if instantiating a type
+parameter to any given type yields an answer then instantiating that
+type parameter to⋆ yields the same answer.
+A cast from a less-precise type to a more-precise type is called
+narrowing. Here is the above program rewritten to demonstrate
+narrowing. It is mostly typed, but contains one untyped component
+cast for use in a typed context.
+let pos =λx : I.x> 0 in
+let app⋆ =⌈λf.λx.f x⌉ in
+let app = app⋆ :⋆⇒p∀X.∀Y. (X→Y )→X→Y in
+app I B pos 1
+This returns true : B.
+Of course, the untyped term may not satisfy the constraints
+required by the typed context. If in the above we replace
+⌈λf.λx.f x⌉ by ⌈λf.λx.x⌉
+it now returns blamep. Blamingp (rather thanp) indicates that the
+fault lies with the term contained in the cast labelledp (rather than
+the context containing the cast). This is what we expect, because
+the term is untyped.
+To check for this error, the implementation mustseal each value.
+That is, casting from type X to type ⋆ yields a value sealed with
+X, and attempting to cast from type ⋆ to type Y fails because the
+sealsX andY are distinct. One of the contributions of this paper is
+to work out the details of sealing in a setting with dynamic types.
+One consequence of sealing is that typed terms always satisfy
+appropriate parametricity properties, even when they are derived
+by casting from untyped terms.
+We now begin our formal development.
+
+=== PAGE 3 ===
+3. Simply-typed lambda calculus
+All the systems in this paper extend a vanilla call-by-value simply-
+typed lambda calculus, shown in Figure 1.
+We let A, B, and C range over types. A type is either a base
+typeι or a function typeA→B. The base types include integers and
+Booleans, written I and B respectively. We lets andt range over
+terms. Terms include constants, primitive application, variables,
+abstractions, and application. The variables v and w range over
+values. A value is either a constant or an abstraction.
+We write Γ⊣t :A if termt has typeA in type environment Γ.
+A type environment maps variables to types. The functionty maps
+constants and primitive operators to their types. The function δ
+maps an operator and a tuple of values to a value, and must preserve
+types. That is, if ty(op) = ⃗A→B and·⊣ ⃗ v: ⃗A then there is a w
+such that δ(op,⃗ v) = w and·⊣ w : B. Suitable choices of δ can
+specify arithmetic, conditional, and ﬁxpoint operators.
+We writes−→t to indicate that redexs reduces tot, and write
+s↦−→t to indicate that reducing a redex insides yieldst. We letE
+range over evaluation contexts, which are standard.
+4. Simply-typed blame calculus
+Before proceeding to polymorphism, we review the fundamentals
+of the simply-typed blame calculus, shown in Figure 2. The blame
+calculus extends the simply-typed lambda-calculus with a dynamic
+type, written⋆, and with four term forms: dynamic casts, grounded
+terms, type tests, and blame.
+One can think of the dynamic type ⋆ as the sum of all the base
+types plus the function type.
+⋆ = I + B + (⋆→⋆)
+Accordingly, the ground types are the base types together with the
+type ⋆→⋆. Every value of dynamic type is constructed by a cast
+from ground type to dynamic type, written v : G ⇒ ⋆. These
+casts can never fail, so they are not decorated with blame labels.
+For example, id⋆ = (λx:⋆.x ) :⋆→⋆⇒⋆ is a value of type⋆. A
+tests isG returns true ifs evaluates to a value grounded onG. For
+example, (1 : I⇒⋆) is I returns true.
+In general, a cast s : A⇒p B converts the value of term s
+from typeA to typeB. Casts are decorated with blame labels. We
+assume an involutive operation of negation on blame labels: ifp is
+a blame label thenp is its negation, andp is the same asp. We write
+s :A⇒p B⇒q C as shorthand for (s :A⇒p B) :B⇒q C.
+A cast fromA toB is permitted only if the types arecompatible,
+writtenA≺ B. Every type is compatible with itself, the dynamic
+type is compatible with every type, and functions are compatible if
+their domain and range are compatible; note the contravariance in
+the function rule. For now, compatibility is symmetric, but this will
+change in Section 6.
+Finally, the term blame p indicates a failure, identifying the
+relevant label. Blame terms may have any type.
+We now brieﬂy review the reduction rules. A cast from one
+function type to another reduces to a wrapper function that casts the
+argument, applies the original function, then casts the result—note
+the reversal in the argument cast, and the corresponding negating
+of the blame label (W RAP). A cast from a ground type to itself is
+the identity (I D). (The side condition G ⁄= ⋆→⋆ avoids overlap
+with (W RAP). For now, the only ground type other than ⋆→⋆ isι,
+but this will change in Section 6.) A cast from type A to⋆ factors
+into a cast from A to the unique ground type G that is compatible
+with A followed by a cast from G to ⋆ (GROUND ). Here we
+see the reason for distinguishing between casts and ground terms:
+otherwise whenever the (G ROUND ) rule is applicable, it would be
+applicable inﬁnitely many times. A cast from⋆ to typeA examines
+the groundG of the value of type⋆. IfG is compatible withA, the
+two casts collapse to a direct cast fromG toA (COLLAPSE ). IfG is
+not compatible with A, the offending cast is blamed (C ONFLICT ).
+A test checks the ground of the value of type ⋆. If it matches the
+test returns true, else it returns false (ISTRUE), (I SFALSE ). An
+occurrence of blamep in an evaluation position causes the program
+to abort (ABORT).
+For example, say pos =λx : I.x> 0. Then
+(pos : I→B⇒p ⋆→⋆) (1 : I⇒⋆)
+↦−→∗ pos (1 : I⇒⋆⇒p I) : B⇒p ⋆
+↦−→∗ pos 1 : B⇒p ⋆
+↦−→∗ true : B⇒⋆
+The function cast factors into a pair of casts. The cast on the ranges
+retains the order and the blame label. The cast on the domains
+swaps the order and negates the blame label. The swap is required
+for types to work out. Negation of the blame label is required
+to assign blame appropriately, as can be seen by changing the
+argument:
+(pos : I→B⇒p ⋆→⋆) (false : B⇒⋆)
+↦−→∗ pos (false : B⇒⋆⇒p I) : B⇒p ⋆
+↦−→∗ blamep
+The inner cast fails, ascribing blame to the label p on the cast.
+Blaming p (rather than p) indicates that the fault in the original
+cast lies with the context containing the cast (rather than the term
+contained in the cast). That is, we blame the untyped context for
+failing to supply an integer rather than blame the typed function for
+failing to accept a boolean.
+A cast from type dynamic to itself is the identity:
+v :⋆⇒p ⋆↦−→v′
+wherev′ is observationally equivalent to v. To see this, take v =
+w :G⇒⋆. Then
+w :G⇒⋆⇒p ⋆
+↦−→w :G⇒p ⋆
+↦−→w :G⇒p G⇒⋆
+via (COLLAPSE ) and (GROUND ). And a cast from a ground type to
+itself produces either an equivalent value, via (ID) or (WRAP).
+It is straightforward to deﬁne an embedding ⌈·⌉ from the un-
+typed lambda calculus into the blame calculus.
+⌈c⌉=c : ty(c)⇒⋆
+⌈op(⃗M )⌉= op(⌈⃗M⌉ :⃗⋆⇒⃗ q⃗A) :B⇒r ⋆, if ty(op) = ⃗A→B
+⌈x⌉=x
+⌈λx.M⌉= (λx:⋆.⌈M⌉) :⋆→⋆⇒q ⋆
+⌈M N⌉= (⌈M⌉ :⋆⇒q ⋆→⋆)⌈N⌉
+⌈M isG⌉=⌈M⌉ isG
+For example,⌈λx.x⌉ = (λx:⋆.x ):⋆→⋆⇒⋆.
+5. Explicit binding
+The traditional way to reduce a type application is by substitution,
+(ΛX.t )A−→t[X:=A]. We begin by explaining why this cannot
+work in our case, and then introduce a variant of the polymorphic
+lambda calculus with an explicit binding construct.
+5.1 The problem
+A naive integration of casts and dynamic type with type substitution
+cannot ensure relational parametricity.
+Say we wish to cast the untyped constant function
+K⋆ =⌈λx.λy.x⌉
+to a polymorphic type. We consider two casts.
+K⋆ :⋆⇒p∀X.∀Y.X→Y→X
+K⋆ :⋆⇒p∀X.∀Y.X→Y→Y
+
+=== PAGE 4 ===
+Syntax
+Variables x,y
+Constants c
+Base types ι ::= I| B
+Types A,B,C ::= ι|A→B
+Terms s,t ::= c| op(⃗t )|x|λx:A.t|ts
+Environments Γ ::= ·| Γ,x :A
+Values v,w ::= c|λx:A.t
+Contexts E ::= [ ·]| op(⃗ v,E,⃗t )|E s|v E
+Type rules
+ty(c) =ι
+Γ⊣c :ι
+Γ⊣⃗t : ⃗A ty(op) = ⃗A→B
+Γ⊣ op(⃗t ) :B
+x :A∈ Γ
+Γ⊣x :A
+Γ,x :A⊣t :B
+Γ⊣λx:A.t :A→B
+Γ⊣t :A→B Γ⊣s :A
+Γ⊣ts :B
+Reduction rules
+(λx:A.t )v−→t[x:=v] (BETA)
+op(⃗ v)−→δ(op,⃗ v) (DELTA)
+s−→t
+E[s]↦−→E[t] (STEP)
+Figure 1. Simply-typed lambda calculus.
+Syntax
+Blame labels p,q
+Types A,B,C ::= ι|A→B|⋆
+Ground types G,H ::= ι|⋆→⋆
+Terms s,t ::= c| op(⃗t )|x|λx:A.t|ts |s :A⇒p B|s :G⇒⋆|s isG| blamep
+Environments Γ ::= ·| Γ,x :A
+Values v,w ::= c|λx:A.t|v :G⇒⋆
+Contexts E ::= [ ·]| op(⃗ v,E,⃗t )|E s|v E|E isG|E :A⇒p B|E :G⇒⋆
+Untyped terms M,N ::= c| op(⃗M )|x|λx.M |M N|M isG
+Type rules
+Γ⊣s :A A ≺B
+Γ⊣ (s :A⇒p B) :B
+Γ⊣s :G
+Γ⊣ (s :G⇒⋆) :⋆
+Γ⊣s :⋆
+Γ⊣s isG : B Γ⊣ blamep :A
+Compatibility
+A≺A A ≺⋆ ⋆ ≺B A′≺A B ≺B′
+A→B≺A′→B′
+Reduction rules
+v :A→B⇒p A′→B′−→λx′:A′. (v (x′ :A′⇒p A) :B⇒p B′) (WRAP)
+v :G⇒p G−→v ifG⁄=⋆→⋆ (ID)
+v :A⇒p ⋆−→v :A⇒p G⇒⋆ ifA≺G andA⁄=⋆ (GROUND )
+v :G⇒⋆⇒p A−→v :G⇒p A ifG≺A (COLLAPSE )
+v :G⇒⋆⇒p A−→ blamep ifG⁄≺A (CONFLICT )
+(v :G⇒⋆) isG−→ true (ISTRUE)
+(v :H⇒⋆) isG−→ false ifG⁄=H (ISFALSE )
+E[blamep]↦−→ blamep ifE⁄= [·] (ABORT)
+Figure 2. Simply-typed blame calculus (extends Figure 1).
+We expect the ﬁrst cast to succeed and the second to fail, the
+latter because of parametricity. The parametricity property for the
+type∀X.∀Y.X→Y→Y guarantees that a value of this type must
+be either the ﬂipped constant function (which returns its second
+argument) or the undeﬁned function (which never returns a value).
+So an attempt to cast the constant function (which returns its ﬁrst
+argument) to this type should fail.
+The traditional way to reduce a type application is by substitu-
+tion. This cannot work in our case! To see why, consider reducing
+each of the above by substitutingX:=I,Y :=I.
+(K⋆ :⋆⇒p∀X.∀Y.X→Y→X) I I 2 3
+↦−→∗ (K⋆ :⋆⇒p I→I→I) 2 3
+↦−→∗ 2
+(K⋆ :⋆⇒p∀X.∀Y.X→Y→Y ) I I 2 3
+↦−→∗ (K⋆ :⋆⇒p I→I→I) 2 3
+↦−→∗ 2
+Note how, in the second line of each reduction, the substitution has
+erased the difference between the two programs—the system has
+forgotten that the terms were once polymorphic.
+Thus, we see that special run-time support is needed to enforce
+parametricity. In the literature, such run-time support is called dy-
+
+=== PAGE 5 ===
+Syntax
+Types A,B,C ::= ι|A→B|X|∀X.B
+Terms s,t ::= c| op(⃗t )|x|λx:A.t|ts | ΛX.t|tA |νX :=A.t
+Environments Γ ::= ·| Γ,x :A| Γ,X | Γ,X :=A
+∆ ::= ·| Γ,X | Γ,X :=A
+Values v,w ::= c|λx:A.t| ΛX.v
+Contexts E ::= [ ·]| op(⃗ v,E,⃗t )|E s|v E| ΛX.E |E A|νX :=A.E
+Type rules
+(TYABS) Γ,X ⊣t :B
+Γ⊣ ΛX.t :∀X.B (TYAPP) Γ⊣t :∀X.B Γ⊣A
+Γ⊣tA :B[X:=A]
+(N EW)
+Γ,X :=A⊣t :B Γ⊣A X /∈ ftv(B)
+Γ⊣νX :=A.t :B
+(REVEAL )
+Γ⊣t :B (X:=A)∈ Γ
+Γ⊣t :B[X:=A]
+(CONCEAL )
+Γ⊣t :B[X:=A] ( X:=A)∈ Γ
+Γ⊣t :B
+Reduction rules
+(ΛX.v )A−→νX :=A.v (TYBETA)
+νX :=A.c−→c (NUCONST )
+νX :=A. (λy:B.t )−→λy:B[X:=A]. (νX :=A.t ) (NUWRAP)
+νX :=A. (ΛY.v )−→ΛY. (νX :=A.v ) ifY ⁄=X andY /∈ ftv(A) (NUTYWRAP)
+Figure 3. Polymorphic lambda calculus with type bindings (extends Figure 1).
+Syntax
+Types A,B,C ::= ι|A→B|⋆|X|∀X.B
+Ground types G,H ::= ι|⋆→⋆|X
+Terms s,t ::= c| op(⃗t )|x|λx:A.t|ts |s :A⇒p B|s :G⇒⋆|s isG| blamep| ΛX.t|tA |νX :=A.t
+Values v,w ::= c|λx:A.t|v :G⇒⋆| ΛX.v
+Contexts E ::= [ ·]| op(⃗ v,E,⃗t )|E s|v E|E isG|E :A⇒p B|E :G⇒⋆| ΛX.E |E A|νX :=A.E
+Compatibility
+A≺B
+A≺∀X.B X /∈ ftv(A) A[X:=⋆]≺B
+∀X.A≺B
+Reduction rules
+(v :G⇒⋆) isG−→ true ifG⁄=X for anyX (ISTRUE)
+(v :H⇒⋆) isG−→ false ifG⁄=H andH⁄=X for anyX (ISFALSE )
+(v :X⇒⋆) isG−→ blamepis (ISTAMPER )
+νX :=A. (v :G⇒⋆)−→(νX :=A.v ) :G⇒⋆ ifG⁄=X (NUGROUND )
+νX :=A. (v :X⇒⋆)−→ blamepν (NUTAMPER )
+v :A⇒p (∀X.B )−→ΛX. (v :A⇒p B) ifX /∈ ftvA (GENERALIZE )
+v : (∀X.A )⇒p B−→(v ⋆) :A[X:=⋆]⇒p B ifB⁄=⋆ andB⁄=∀X′.B′ for anyX′,B′ (INSTANTIATE )
+Figure 4. Polymorphic blame calculus (extends and updates Figures 1, 2 and 3).
+namic sealing, which we review in Section 12. In particular, our ap-
+proach is inspired by the dynamic sealing of Matthews and Ahmed
+(2008), the dynamic type generation of Neis et al. (2009), and
+the syntactic type abstraction of Grossman et al. (2000). Based on
+these ideas, we introduce an alternate semantics for the polymor-
+phic lambda calculus as a step towards deﬁning our polymorphic
+blame calculus.
+5.2 Polymorphic lambda calculus with explicit binding
+We avoid the problems above by introducing a polymorphic lambda
+calculus with explicit binding, shown in Figure 3. As usual, types
+are augmented by adding type variablesX and universal quantiﬁers
+∀X.B , and terms are augmented by adding type abstractionsΛX.t
+and type applications t A. The key new construct is explicit type
+binding,νX :=A.t .
+Type environments are augmented to include, as usual, type
+variablesX and, more unusually, type bindings X:=A. As usual,
+we assume an implicit side condition when writing Γ,X or
+Γ,X :=A thatX is not in Γ.
+The type rules for type abstraction and application are standard
+(T YABS), (T YAPP). The type rule for binding augments the type
+environment with the binding, and a side condition ensures that free
+type variables do not escape the binding (N EW). Two additional
+type rules, which are not syntax directed, permit a type variable to
+be replaced by its bound type, or vice versa, within the scope of a
+type binding (R EVEAL ), (C ONCEAL ).
+
+=== PAGE 6 ===
+We now brieﬂy consider the reduction rules. Our rule for type
+applications, instead of performing substitution, introduces an ex-
+plicit type binding (T YBETA). Three new rules push explicit type
+bindings into the three value forms: constants (N UCONST ), value
+abstractions (N UWRAP), and type abstractions (N UTYWRAP).
+(Side conditions on the last rule avoid capture of type variables.)
+For example,
+(ΛX.λx :X. (λy:X.y )x) I 2
+↦−→(νX :=I.λx :X. (λy:X.y )x) 2
+↦−→(λx:I.νX :=I. (λy:X.y )x) 2
+↦−→νX :=I. (λy:X.y ) 2
+↦−→νX :=I. 2
+↦−→2
+by rules (TYBETA), (NUWRAP), (BETA), (BETA) and (NUCONST ),
+respectively. Note that for the termνX :=I. (λy:X.y ) 2 to be well-
+typed that 2 must be regarded as having type X—this is why the
+type rules permit both replacing a type variable by its binding and
+the converse.
+As is well known, allowing type abstraction over terms with ar-
+bitrary effects can be problematic. As we will see in Section 6.4,
+the same issue arises here, due to raising of blame as a possi-
+ble side effect. The usual solution is to restrict type abstraction
+to apply only to values, as in the value polymorphism restric-
+tion of SML (Wright, 1995). We would like to do the same here,
+and restrict our syntax to only include type abstractions of the
+form ΛX.v . However, this would not be consistent with the re-
+duction (N UTYWRAP), which may push the non-value type bind-
+ing construct underneath a type abstraction. (A similar issue arises
+with the reduction (G ENERALIZE ), introduced in Section 6.) In-
+stead, therefore, we allow the body of a type abstraction to be any
+term (hence, the term form ΛX.t ), but only consider a type ab-
+straction to be a value if its body is a value (hence, the value form
+ΛX.v ). This further requires, unusually, that we permit reduction
+underneath type abstractions (hence, the context form ΛX.E ).
+5.3 Relation to standard calculus
+We relate the polymorphic lambda calculus with explicit binding to
+the standard polymorphic lambda calculus based on type substitu-
+tion. We omit the deﬁnitions of the latter to save space. We deﬁne
+the erasuret◦ from the calculus with explicit bindings to the stan-
+dard calculus as follows:
+c◦=c
+(op(⃗t ))
+◦
+= op(⃗t
+◦
+)
+x◦=x
+(λx:A.t )◦=λx:A.t◦
+(ts )◦=t◦ s◦
+(ΛX.t )◦= ΛX.t◦
+(tA )◦=t◦ A
+(νX :=A.t )◦=t◦[X:=A]
+The only clause of interest is that for a binder, which is erased by
+performing the type substitution. We also deﬁne the application of
+an environment to a typeΓ(A) and the erasure of environmentsΓ◦.
+(Γ,x :B)(A)= Γ(A)
+(Γ,X )(A)= Γ(A)
+(Γ,X :=B)(A)= Γ(A[X:=B])
+(Γ,x :A)◦= Γ◦,x :Γ(A)
+(Γ,X )◦= Γ◦,X
+(Γ,X :=A)◦= Γ◦
+We can now state that the polymorphic lambda calculus with bind-
+ings correctly implements the standard calculus, that is, erasure pre-
+serves types and reductions.
+Proposition 1 (Erasure). If Γ⊣s :A then Γ◦⊣s◦ : Γ(A), and if
+s↦−→s′ then eithers◦ =s′◦ ors◦↦−→s′◦.
+5.4 Type safety
+It is straightforward to show the usual type safety results for the
+calculus with explicit binding. Typically these results are formu-
+lated with respect to closed terms and empty environments, but be-
+cause we allow reduction under type abstractions and binding our
+results are formulated with regard to terms that may contain free
+type variables and environments that may contain type variables
+and bindings (but not term variables). We let ∆ range over such
+environments.
+With this caveat, we have the usual results for canonical forms,
+progress, and preservation.
+Proposition 2 (Canonical forms). If ∆⊣v :C then either
+• v =c andC =ι for somec andι, or
+• v =λx:A.t andC =A→B for somex,t,A, andB, or
+• v = ΛX.w andC =∀X.A for somew,X, andA.
+Proposition 3 (Progress). If ∆⊣s :A then eithers =v for some
+valuev ors↦−→s′ for some term s′.
+Proposition 4 (Preservation). If ∆⊣ s : A and s↦−→s′ then
+∆⊣s′ :A.
+5.5 Relation to dynamic type generation
+Neis et al. (2009) present a form for generating type names:
+newX ≈ A int. The main difference between our bindings and
+new is that new adds its binding to a global list of bindings,σ.
+σ; newX≈A int−→σ,X≈A;t ifX /∈ dom(σ)
+Earlier versions of our system also used a global list of bindings,
+but two aspects of our system require the change to local bindings.
+First, evaluation proceeds under Λ in our system, which makes
+it problematic to use the global binding approach. Let
+s = (λx:X.λy:Y.x) :X→Y→X
+and consider the following program and hypothetical reduction
+sequence.
+ϵ; letf = ΛX.(ΛY.s)X in (f I,f B)
+↦−→ Y≈X; letf = ΛX.s in (f I,f B)
+↦−→ Y≈X; ((Λ X.s) I, (ΛX.s) B)
+↦−→ Y≈X,X≈I; ( s, (ΛX.s) B)
+But the next step in the sequence is problematic. We would like to
+α-rename theX in ΛX.s , but that would lose the connection with
+Y . Also,Y should really get two different bindings. Local bindings
+solve this problem by bindingY :=X locally, inside the ΛX.
+Second, bindings play a role in enforcing parametricity, which
+we discuss in detail in Section 6.2. An earlier system, the λN -
+calculus by Rossberg (2003), uses local type bindings, but λN
+performs scope extrusion, that is, the type bindings ﬂoat upwards.
+The type bindings in this paper are immobile because they can
+trigger errors and we want those errors to occur at predictable
+locations.
+6. Polymorphic blame calculus
+Now that we have established the machinery of explicit binding,
+we consider how to combine dynamic casts with polymorphism.
+The polymorphic blame calculus is shown in Figure 4. The syntax
+is simply the union of the constructs of the blame calculus and the
+polymorphic lambda calculus, and the type rules are the union of
+the previous type rules.
+Two new cases for quantiﬁed types are added to the deﬁnition
+of type compatibility, one each corresponding to casts to and from
+quantiﬁed types. Note that these break the symmetry of compat-
+ibility enjoyed by the simply-typed blame calculus. We discuss
+compatibility in tandem with the corresponding reductions, in Sec-
+tions 6.1 and 6.3.
+The intuition behind parametric polymorphism is that functions
+must behave uniformly with regard to type variables. To maintain
+parametricity in the presence of dynamic types, we arrange that
+
+=== PAGE 7 ===
+dynamic values corresponding to type variables must be treated
+abstractly. Recall that values of dynamic type have the form v :
+G⇒ ⋆, where G is a ground type. A key difference in moving
+to polymorphism is that the ground types, in addition to including
+base types ι and the function type ⋆→⋆, now also include type
+variablesX. A value of the form v : X ⇒ ⋆ is called a sealed
+value.
+We now brieﬂy consider the reduction rules. Tests are updated
+so that if the value is sealed then the test indicates blame rather
+than returning true or false (I STRUE), (I SFALSE ), (I STAMPER );
+the reason for this change is discussed in Section 6.2. Two rules
+are added to push bindings into the one new value form, ground
+values (NUGROUND ), (NUTAMPER ); the motivation for these rules
+is also discussed in Section 6.2. Finally, the last two rules extend
+casts to the case where the target type or source type is a quantiﬁed
+type (G ENERALIZE ), (I NSTANTIATE ); these rules are discussed in
+Sections 6.1 and 6.3. A side condition on (G ENERALIZE ) avoids
+capture of type variables, and a side condition of (I NSTANTIATE )
+avoids overlap with (G ROUND ) and (G ENERALIZE ). The rules
+(ISTAMPER ) and (NUTAMPER ) introduce two global blame labels,
+pis andpν, which are presumed not to label any cast.
+6.1 Generalization
+Perhaps the two rules of greatest interest are those that cast to and
+from a quantiﬁed type. We begin by discussing casts to a quantiﬁed
+type, postponing the reverse direction to Section 6.3.
+Rule (G ENERALIZE ) casts a value to a quantiﬁed type by ab-
+stracting over the type variable and recursively casting the value;
+note that the abstracted type variable may appear free in the target
+type of the cast. Observe that the corresponding rule for compat-
+ibility asserts that if the cast on the left of this rule is compatible
+then the cast on the right is also compatible.
+We now have enough rules in place to return to our examples
+from Section 5.1. Here is the ﬁrst example1
+(K⋆ :⋆⇒p∀X.∀Y.X→Y→X) I I 2 3
+↦−→∗ (ΛX. ΛY.K ⋆ :⋆⇒p X→Y→X) I I 2 3
+↦−→∗ (νY :=I.νX :=I.K⋆ :⋆⇒p X→Y→X) 2 3
+↦−→∗νY :=I.νX :=I.
+K⋆ (2 :X⇒p ⋆) (3 :Y ⇒p ⋆) :⋆⇒p X
+↦−→∗νY :=I.νX :=I.
+K⋆ (2 :X⇒⋆) (3 :Y ⇒⋆) :⋆⇒p X
+↦−→∗νY :=I.νX :=I. (2 :X⇒⋆) :⋆⇒p X
+↦−→∗νY :=I.νX :=I. 2
+↦−→∗ 2
+The ﬁrst step applies (G ENERALIZE ) twice, while the penultimate
+step applies (COLLAPSE ) and (ID). This yields 2, as expected.
+The second example is similar, save for the last steps.
+(K⋆ :⋆⇒p∀X.∀Y.X→Y→Y ) I I 2 3
+↦−→∗νY :=I.νX :=I. (2 :X⇒⋆) :⋆⇒p Y
+↦−→∗νY :=I.νX :=I. blamep
+↦−→∗ blamep
+Here the penultimate step applies (C ONFLICT ). and the ﬁnal step
+applies (ABORT). This yields blamep, as expected.
+6.2 Parametricity
+We now consider some further examples, with an eye to under-
+standing how sealing preserves parametricity.
+The parametricity property for the type∀X.X→X guarantees
+that a value of this type must be either the identity function or the
+1 Careful readers will spot that some reductions are shown out of order, so
+as to group related reductions together.
+undeﬁned function. Consider the following three untyped terms.
+id⋆ =⌈λx.x⌉
+inc⋆ =⌈λx.x + 1⌉
+test⋆ =⌈λx. if (x is I) then (x + 1) else x⌉
+Function id is parametric, because it acts uniformly on values of
+all types; while functions inc and test are not, since the former acts
+only on integers, while the latter acts on values of any type but
+behaves differently on integers than on other arguments. However,
+casting all three functions to type ∀X.X→X yields values that
+satisfy the corresponding parametricity property. Casting id⋆, as
+one might expect, yields the identity function, while casting inc⋆
+and test⋆, perhaps surprisingly, both yield the only other parametric
+function of this type, the everywhere undeﬁned function.
+Here is the ﬁrst example.
+(id⋆ :⋆⇒p∀X.X→X) I 2
+↦−→∗νX :=I. id⋆(2 :X⇒p ⋆) :⋆⇒p X
+↦−→∗νX :=I. 2 :X⇒⋆⇒p X
+↦−→∗ 2
+The last step is by rules (C OLLAPSE ) and (I D). No matter which
+type and value are supplied, the casts match up, so this behaves as
+the identity function.
+Here is the second example.
+(inc⋆ :⋆⇒p∀X.X→X) I 2
+↦−→∗νX :=I. inc⋆(2 :X⇒p ⋆) :⋆⇒p X
+↦−→∗νX :=I. ((2 :X⇒⋆⇒q I) + 1) : I⇒q ⋆⇒p X
+↦−→∗ blameq
+The last step is by rules (C ONFLICT ) and (A BORT); here q labels
+casts in inc⋆ introduced by embedding typed integer addition into
+the untyped lambda calculus. Regardless of what type and value
+are supplied the casts still don’t match, so this behaves as the
+everywhere undeﬁned function.
+Here is the third example.
+(test⋆ :⋆⇒p∀X.X→X) I 2
+↦−→∗νX :=I. test⋆(2 :X⇒p ⋆) :⋆⇒p X
+↦−→∗νX :=I. if (2 :X⇒⋆) is I then··· else···
+↦−→∗ blamepis
+The last step is by rules (I STAMPER ) and (A BORT). Sealed val-
+ues should never be examined, so rule (I STAMPER ) ensures that
+applying a type test to a sealed value always allocates blame.
+Rules (ISTRUE) and (ISFALSE ) add side-conditions to ensure they
+do not overlap with (ISTAMPER ). The use of explicit binding plays
+a central role: the test (2 : I⇒⋆) is I returns true, while the test
+(2 : X⇒ ⋆) is I allocates blame to pis, even when X is bound
+to type I. Regardless of what type and value are supplied, the test
+always fails, so this behaves as the everywhere undeﬁned function.
+An alternative choice might be for(v :X⇒⋆) isG to always
+return false (on the grounds that a sealed value is distinct from
+any ground value). This choice would still retain parametricity,
+because under this interpretation the result of casting test⋆ would
+be the identity function. However, we would lose another key
+property; we want to ensure that casting can lead to blame but
+cannot otherwise change a value. In this case, casting convertstest⋆
+to the everywhere undeﬁned function, which is acceptable, while
+converting it to the identity function would violate our criterion.
+Finally, consider the polymorphic type ∀X.X→⋆. The para-
+metricity property for this function states that it must be either a
+constant function (ignoring its argument and always returning the
+same value) or the everywhere undeﬁned function. Let’s see what
+
+=== PAGE 8 ===
+happens when we cast id⋆ to this type.
+(id⋆ :⋆⇒p∀X.X→⋆) I 2
+↦−→∗νX :=I. id⋆(2 :X⇒p ⋆) :⋆⇒p ⋆
+↦−→∗νX :=I. 2 :X⇒⋆⇒p ⋆
+↦−→∗νX :=I. 2 :X⇒⋆
+↦−→∗ blamepν
+Here rule (NUTAMPER ) plays a key role, ensuring that the attempt
+to pass a value grounded at type X through the binder forX must
+fail. In an earlier system we devised that did not have bindings
+(Ahmed et al., 2009), this term would in fact reduce to a value
+of type ⋆, violating a strict interpretation of the parametricity re-
+quirement. It was only a mild violation, because the value of type⋆
+was sealed, so any attempt to examine it would fail. Still, from both
+a theoretical and practical point of view the current system seems
+preferable, because it detects errors earlier, and even if the result of
+the offending cast is not examined.
+6.3 Instantiation
+Having considered casts to a quantiﬁed type, we now turn our
+attention to the reverse, casts from a quantiﬁed type.
+Rule (I NSTANTIATE ) casts a value from a quantiﬁed type by
+instantiating the quantiﬁed type variable to the dynamic type and
+recursively casting the result. Observe that the corresponding rule
+for compatibility asserts that if the cast on the left of this rule is
+compatible then the cast on the right is also compatible.
+The rule always instantiates with the dynamic type. Often, we
+are casting to the dynamic type, and in that case it seems natural
+to instantiate with the dynamic type itself. However, is this still
+sensible if we are casting to a type other than the dynamic type?
+We show that there is a strong sense in which instantiating to the
+dynamic type is always an appropriate choice.
+Let’s look at some examples. LetK be a polymorphically typed
+constant function.
+K = ΛX.λx :X.λy :X.x
+Here is an example casting to dynamic type.
+(K :∀X.X→X→X⇒p ⋆→⋆→⋆)⌈2⌉⌈ 3⌉
+↦−→∗ (K ⋆:⋆→⋆→⋆⇒p ⋆→⋆→⋆)⌈2⌉⌈ 3⌉
+↦−→∗⌈2⌉
+Unsurprisingly, instantiating polymorphically typed code to ⋆
+works perfectly when casting typed code to untyped code.
+Perhaps more surprisingly, it also works well when casting
+polymorphically typed code to a different type. Because every
+value embeds into the type ⋆, instantiating to ⋆ yields an answer
+if instantiating to any type yields an answer. Here is an example of
+casting to static type.
+(K :∀X.X→X→X⇒p I→ I→ I) 2 3
+↦−→∗ (K ⋆:⋆→⋆→⋆⇒p I→I→I) 2 3
+↦−→∗ 2
+This, of course, gives us exactly the same answer as if we had
+instantiatedK to I instead of⋆:
+(K I : I→ I→ I⇒p I→ I→ I) 2 3
+↦−→∗ 2
+In this sense, we say that ⋆ is a Jack-of-All-Trades: if instantiating
+to any type yields an answer, then so does instantiating to⋆.
+However, instantiating to⋆ is something of alaissez faire policy,
+in that it may yield an answer when a strict instantiation would fail.
+For instance, consider a slight variant on the example above.
+(K :∀X.X→X→X⇒p I→⋆→ I) 2⌈true⌉
+↦−→∗ (K ⋆:⋆→⋆→⋆⇒p I→⋆→I) 2⌈true⌉
+↦−→∗ 2
+Here, instantiating to I directly is more strict, yielding blame rather
+than a value.
+(K I : I→I→I⇒p I→⋆→I) 2⌈true⌉
+↦−→∗ blamep
+In other words,⋆, though a Jack-of-All-Trades, is a master of none.
+To formulate the relevant property precisely, we need to capture
+what we mean by saying that one term yields an answer if another
+does, so we formulate a notion of contextual approximation⊑.
+First, we deﬁne convergence and divergence. A term that neither
+converges nor diverges must allocate blame.
+Deﬁnition 5. A closed term s converges, written s⇓, if s↦−→∗ v
+for some value v, and diverges, written s ⇑, if the reduction
+sequence beginning withs does not terminate.
+Next, we deﬁne a variant of contextual approximation, where a
+term that allocates blame approximates every term.
+Deﬁnition 6. Terms approximates termt, writtens⊑t, if for all
+evaluation contextsE we have
+• E[s]⇑ impliesE[t]⇑, and
+• E[s]⇓ impliesE[t]⇓.
+We can now state the principle.
+Theorem 7 (Jack-of-All-Trades Principle). If ∆⊣v :∀X.A and
+A[X:=C]≺B (and henceA[X:=⋆]≺B) then
+(v C:A[X:=C]⇒p B) ⊑ (v ⋆:A[X:=⋆]⇒p B).
+We defer the proof until Section 11.
+6.4 Evaluation under type abstraction
+As noted in Section 5.2, an unusual feature of our presentation is
+that we evaluate underneath type abstractions. We now provide an
+example, promised there, of why such evaluation is necessary.
+Parametricity guarantees that a term of type ∀X.X cannot
+reduce to a value. One term with this type is ΛX. blame r. In
+our calculus, this term is not a value, and it evaluates to blamer.
+However, if we did not evaluate under type abstractions then this
+term would be a value.
+We want it to be the case thatv :A⇒p ⋆⇒q A is equivalent to
+v for any valuev of typeA. (Among other things, it is easy to show
+that this is a consequence of the Jack-of-All-Trades Principle.)
+However, if ΛX. blamer is a value, this is not the case.
+(ΛX. blamer) :∀X.X ⇒p ⋆⇒q∀X.X
+↦−→∗ (ΛX. blamer)⋆ :⋆⇒p ⋆⇒q∀X.X
+↦−→∗ (νX :=⋆. blamer) :⋆⇒p ⋆⇒q∀X.X
+↦−→∗ blamer
+This is no good—a cast that should leave a value unchanged has
+instead converted it to blame!
+The solution to this difﬁculty, as described in Section 5.2, is to
+permit evaluation under type abstractions, and to only regard terms
+of the form ΛX.v as values. We conjecture that if we based our
+system on call-by-name rather than call-by-value that evaluation
+under type abstraction would not be necessary.
+6.5 Type safety
+The usual type safety properties hold for the polymorphic blame
+calculus.
+Lemma 8 (Canonical forms). If ∆⊣v :C, then
+1. v =c andC =ι for somec andι, or
+2. v =w :G⇒⋆ andC =⋆, for some w andG, or
+3. v =λx:A.t andC =A→B, for some x,t,A, andB, or
+4. v = ΛX.w andC =∀X.A , for some w,X, andA.
+
+=== PAGE 9 ===
+Compatibility A ≺ B
+A≺A A ≺⋆ ⋆ ≺B A′≺A B ≺B′
+A→B≺A′→B′
+A[X :=⋆]≺B
+∀X.A≺B
+A≺B
+A≺∀X.B X /∈ ftv(A)
+Subtype A <: B
+A< :A A< :G
+A< :⋆
+A′ <:A B <:B′
+A→B <:A′→B′
+A[X:=C]<:B
+∀X.A< :B
+A< :B
+A< :∀X.B X /∈ ftv(A)
+Positive Subtype A <:+ B
+A< :+ A A< :+ ⋆ A′ <:− A B <:+ B′
+A→B <:+ A′→B′
+A[X:=⋆]<:+ B
+∀X.A< :+ B
+A< :+ B
+A< :+∀X.B
+X /∈ ftv(A)
+Negative Subtype A <:− B
+A< :− A A< :− G
+A< :− B
+⋆< :− B A′ <:+ A B <:− B′
+A→B <:− A′→B′
+A[X:=⋆]<:− B
+∀X.A< :− B
+A< :− B
+A< :−∀X.B
+X /∈ ftv(A)
+Naive Subtype A <:n B
+A< :n A A< :n ⋆ A< :n A′ B <:n B′
+A→B <:n A′→B′
+A[X:=⋆]<:n B
+∀X.A< :n B
+A< :n B
+A< :n∀X.B X /∈ ftv(A)
+Figure 5. Subtyping Relations
+Proposition 9 (Preservation). If ∆⊣ s : A and s↦−→s′, then
+∆⊣s′ :A.
+Proposition 10 (Progress). If ∆⊣s :A, then either
+• s =v for some value v, or
+• s↦−→s′ for some term s′, or
+• s = blamep for some blame label p.
+Preservation and progress on their own do not guarantee a great
+deal because they do not rule out blame as a result. In sections 8
+and 9 we characterize situations in which blame cannot arise.
+7. Subtyping relations
+Figure 5 presents the compatibility relation and four forms of
+subtyping—ordinary, positive, negative, and naive. Compatibility
+determines when it is sensible to attempt to cast one type to another
+type, and the different forms of subtyping characterize when a cast
+cannot give rise to certain kinds of blame. All ﬁve relations are
+reﬂexive, and all four subtyping relations are transitive.
+Why do we need four different subtyping relations? Each has a
+different purpose. We useA< :B to characterize when a cast from
+A toB cannot yield blame for that cast. One useful consequence
+is that casting from a quantiﬁed type ∀X.B to any instance of
+that typeB[X:=A] never yields blame. However, while subtyping
+gives a strong guarantee, it arises relatively rarely in programs that
+integrate static and dynamic typing. What we wish to show for such
+programs is not that they never fail, but that when they do fail that
+blame always lies on the less precisely typed side of the cast, and
+this is the purpose of the other three relations. We use A <:+ B
+and A <:− B to characterize when a cast from A to B cannot
+yield either positive or negative blame, respectively, and we use
+A< :n B to characterize whenA is a more precise type thanB.
+The deﬁnitions are related, in that A <: B holds if A <:+ B
+andA< :− B (but not conversely), andA< :n B holds if and only
+ifA< :+ B andB <:− A. We tried to massage our deﬁnitions so
+that the ﬁrst clause, like the second, would be an equivalence, but
+failed to do so.
+Compatibility is written A ≺ B. It is reﬂexive, and the dy-
+namic type is compatible with every other type. The remaining
+three compatibility rules can be read off directly from the reduc-
+tions (W RAP), (I NSTANTIATE ), and (G ENERALIZE ): replacing⇒
+in the reductions yields the≺ conditions in the rules. The casts on
+the left-hand side of the reductions correspond to the compatibili-
+ties in the conclusion of the rules, and the casts on the right-hand
+side correspond the hypotheses. Thus, the compatibility rules are
+designed to ensure that reducing compatible casts yield compatible
+casts.
+Function compatibility is contravariant in the domain and co-
+variant in the range, corresponding to the swapping in the (WRAP)
+rule. A polymorphic type ∀X.A is compatible with type B if
+its instance A[X:=⋆] is compatible with B, corresponding to the
+(INSTANTIATE ) rule. A type A is compatible with polymorphic
+type∀X.B if typeA is compatible withB (assumingX does not
+appear free in A so there is no capture of bound variables), corre-
+sponding to the (GENERALIZE ) rule.
+Ordinary subtyping is written A <: B. It characterizes when a
+cast cannot give rise to blame. Every subtype of a ground type is a
+subtype of⋆, because a cast from a ground type to⋆ never allocates
+blame. As with all the relations, function subtyping is contravariant
+in the domain and covariant in the range. A polymorphic type
+∀X.A is a subtype of a type B if some instance A[X:=C] is
+a subtype of B—this is the one way in which subtyping differs
+from all the other relations, which instantiate with ⋆ rather than an
+arbitrary type C. It is easy to see that A <:+ B and A <:− B
+together implyA< :B, but not conversely.
+The next two relations are concerned with positive and negative
+blame. If reducing a cast with label p allocates blame to p we
+say it yields positive blame, and if it allocates blame to p we
+say it yields negative blame. The positive and negative subtyping
+relations characterize when positive and negative blame can arise.
+In the next section, we show that a cast fromA toB withA< :+ B
+cannot give rise to positive blame, and withA <:− B cannot give
+rise to negative blame.
+The two judgments are deﬁned in terms of each other, and
+track the negating of blame labels that occurs in the contravariant
+
+=== PAGE 10 ===
+s sf p
+A< :+ B s sfp
+(s :A⇒p B) sfp
+A< :− B s sfp
+(s :A⇒p B) sfp
+q⁄=p q ⁄=p s sfp
+(s :A⇒q B) sfp
+s sfp
+(s :G⇒⋆) sfp
+s sfp
+(s isG) sfp
+q⁄=p
+(blameq) sfp
+c sfp
+⃗t sfp
+(op(⃗t )) sfp x sfp
+t sfp
+(λx :A.t ) sfp
+t sfp s sfp
+(ts ) sfp
+t sfp
+(ΛX.t ) sfp
+t sfp
+(tA ) sfp
+t sfp
+(νX :=A.t ) sfp
+Figure 6. Safety for<:+ and<:−
+position of function types. We have A <:+ ⋆ and ⋆ <:− B for
+every type A and B, because casting to ⋆ can never give rise to
+positive blame, and casting from ⋆ can never give rise to negative
+blame. We also haveA <:− G impliesA <:− B, because a cast
+from a ground type to⋆ cannot allocate blame, and a cast from⋆ to
+any type cannot allocate negative blame.
+We also deﬁne a naive subtyping judgment, A <:n B, which
+corresponds to our informal notion of type A being more precise
+than type B, and is covariant for both the domain and range of
+functions.
+8. The Blame Theorem
+The Blame Theorem asserts that a cast from a positive subtype
+cannot lead to positive blame, and a cast from a negative subtype
+cannot lead to negative blame. The structure of the proof is similar
+to a type safety proof, depending on progress and preservation
+lemmas. However, the invariant we preserve is not well-typing, but
+instead a safety relation, t sf p, as deﬁned in Figure 6. A term t is
+safe for blame labelp with respect to<:+ and<:−, writtent sfp,
+if every cast with label p has a source that is a positive subtype of
+the target, and every cast with labelp has a source that is a negative
+subtype of the target; we assume thatp⁄=pis andp⁄=pν.
+Lemma 11 (Blame progress). If s sfp thens ⁄↦−→blamep.
+Lemma 12 (Blame preservation). If s sf p and s↦−→s′, then
+s′ sfp.
+Positive and negative subtyping are closely related to naive subtyp-
+ing.
+Proposition 13 (Factoring). A< :n B iffA< :+ B andB <:− A.
+The proof of Proposition 13 requires four observations.
+Lemma 14.
+IfA< :+ B andX⁄∈A, thenX⁄∈B.
+IfA< :− B andX⁄∈B, thenX⁄∈A.
+GivenX⁄∈B, we have A[X:=⋆]<:+ B iffA< :+ B.
+GivenX⁄∈A, we have A< :− B[X:=⋆] iffA< :− B.
+We may now characterize how positive, negative, and naive
+subtyping relate to positive and negative blame. Note that, typically,
+each cast in a source program has a unique blame label.
+Corollary 15(Blame Theorem). Lett be a program with a subterm
+s :A⇒p B where the cast is labelled by the only occurrence of p
+int, andp does not appear in t.
+s sf<: p
+A< :B s sf<:p
+(s :A⇒p B) sf<:p
+A< :B s sf<:p
+(s :A⇒p B) sf<:p
+q⁄=p q ⁄=p s sf<:p
+(s :A⇒q B) sf<:p
+s sf<:p
+(s :G⇒⋆) sf<:p
+s sf<:p
+(s isG) sf<:p
+q⁄=p q ⁄=p
+(blameq) sf<:p
+c sf<:p
+⃗t sf<:p
+(op(⃗t )) sf<:p x sf<:p
+t sf<:p
+(λx :A.t ) sf<:p
+t sf<:p s sf<:p
+(ts ) sf<:p
+t sf<:p
+(ΛX.t ) sf<:p
+t sf<:p
+(tA ) sf<:p
+t sf<:p
+(νX :=A.t ) sf<:p
+Figure 7. Safety for<:
+• IfA< :+ B, thent ⁄↦−→∗ blamep.
+• IfA< :− B, thent ⁄↦−→∗ blamep.
+• IfA< :n B, thent ⁄↦−→∗ blamep.
+• IfB <:n A, thent ⁄↦−→∗ blamep.
+The ﬁrst two results are an immediate consequence of blame
+progress and preservation (Lemmas 11 and 12) while the second
+two results are an immediate consequence of the ﬁrst two and
+factoring (Proposition 13).
+Because our notion of more and less precise types is captured by
+naive subtyping, the last two clauses show that any failure of a cast
+from a more-precisely-typed term to a less-precisely-typed context
+must be blamed on the less-precisely-typed context, and any failure
+of a cast from a less-precisely-typed term to a more-precisely-typed
+context must be blamed on the less-precisely-typed term.
+The Blame Theorem and Subtyping Theorem give no guaran-
+tees regarding the two global blame labels pis andpν. We are in-
+vestigating an alternative design in which the is, Λ, and ν forms
+are individually labelled and the safety relations can guarantee the
+absence of blame going to those labels under suitable static condi-
+tions.
+9. The Subtyping Theorem
+The Subtyping Theorem asserts that a cast from a subtype to a
+supertype cannot lead to any blame whatsoever. As with the Blame
+Theorem, the structure of the proof is similar to that of a type safety
+proof, depending on progress and preservation lemmas. Again, we
+use a safety relation, s sf<: p, as deﬁned in Figure 7. A term t is
+safe for blame labelp with respect to<:, writtens sf<: p, if every
+cast with labelp orp has a source that is a subtype of the target; we
+assume thatp⁄=pis andp⁄=pν.
+Lemma 16 (Subtyping progress). If s sfp thens ⁄↦−→blamep.
+The preservation result is a little more complex than that for the
+Blame Theorem, because it involves approximation as introduced
+in Section 6.3.
+Lemma 17 (Subtyping preservation). If s sf<: p and s↦−→s′,
+then either s′ sf<: p or there exists s′′ such that s′′ ⊑ s′ and
+s′′ sf<: p.
+The proof is by case analysis on s−→s′ ands↦−→s′, where the
+case for (INSTANTIATE ) depends on the Jack-of-All-Trades Princi-
+ple. We may now characterize how subtyping relates to blame.
+
+=== PAGE 11 ===
+Syntax
+Binding reference P,Q ::= X|X
+Terms s,t ::= c| op(⃗t )|x|λx:A.t|ts | ΛX.v |tA |νX :=A.t|s :A⇒P B
+Values v,w ::= c|λx:A.t| ΛX.v |v :A⇒X X
+Contexts E ::= [ ·]| op(⃗ v,E,⃗t )|E s|v E|E A|νX :=A.E |E :A⇒P B
+Type rules
+(REVEAL )
+Γ⊣t :B (X:=A)∈ Γ
+Γ⊣ (t :B⇒X B[X:=A]) :B[X:=A]
+(CONCEAL )
+Γ⊣t :B[X:=A] ( X:=A)∈ Γ
+Γ⊣ (t :B[X:=A]⇒X B) :B
+Reduction rules
+(ΛX.v )A−→νX :=A. (v :B⇒X B[X:=A]) if ΛX.v :∀X.B (TYBETA)
+νX :=A. (v :B⇒Y Y )−→(νX :=A.v ) :B⇒Y Y (NUSC)
+v :ι⇒P ι−→v (SCB ASE)
+(λx :A.t ) :A→B⇒P A′→B′−→λx:A′. (t[x:=(x :A′⇒P A)] :B⇒P B′) (SCW RAP)
+(ΛX.v ) :∀X.B ⇒P∀X.B′−→ΛX. (v :B⇒P B′) ifX⁄=P andX⁄=P (SCT YWRAP)
+v :X⇒P X−→v ifX⁄=P andX⁄=P (SCS EAL)
+v :A⇒X X⇒X A−→v (SCC ANCEL )
+Figure 8. Polymorphic lambda calculus with static casts (extends and updates Figures 1 and 3).
+Syntax
+Terms s,t ::= c| op(⃗t )|x|λx:A.t|ts |s:A⇒pB|s:G⇒⋆|s isG| blamep| ΛX.t|tA |νX :=A.t|s:A⇒PB
+Values v,w ::= c|λx:A.t|v :G⇒⋆| ΛX.v |v :A⇒X X
+Contexts E ::= [ ·]| op(⃗ v,E,⃗t )|E s|v E|E isG|E:A⇒pB|E:G⇒⋆| ΛX.E |E A|νX :=A.E |E:A⇒PB
+Reduction rules
+v :⋆⇒P ⋆−→v (SCD YN)
+Figure 9. Polymorphic blame calculus with static casts (extends and updates Figures 1, 2, 3, 4, and 8).
+Corollary 18 (Subtyping Theorem) . Let t be a program with a
+subterm s : A ⇒p B where the cast is labelled by the only
+occurrence ofp int, andp does not appear in t.
+• IfA< :B, thent ⁄↦−→∗ blamep andt ⁄↦−→∗ blamep.
+The result is an immediate consequence of subtyping progress and
+preservation.
+10. Static casts
+The polymorphic lambda calculus with explicit bindings (Figure 3)
+includes two type rules that are not syntax directed, (REVEAL ) and
+(CONCEAL ). In this section, we introduce the polymorphic lambda
+calculus with static casts, which extends the earlier calculus by
+adding two new constructs so that the two type rules in question
+become syntax directed. The result is a calculus which syntactically
+records exactly where type abstraction occurs, similar in some
+respects to that of Grossman et al. (2000). The more reﬁned type
+information provided by the new calculus will be of use in the proof
+of the Jack-of-all-Trades Principle provided in the next section.
+10.1 Polymorphic lambda calculus with static casts
+We introduce the polymorphic lambda calculus with static casts
+in Figure 8. It proves convenient for the new constructs to use a
+notation similar to that for dynamic casts, and hence we call them
+static casts. Dynamic casts may fail and are decorated with a blame
+label. Static casts may not fail, and are decorated with a binding
+reference.
+Static casts come in two forms, corresponding to the rules (RE-
+VEAL ) and (C ONCEAL ) in the polymorphic lambda calculus with
+explicit binding. Assume binding X:=A appears in the environ-
+ment Γ. We reveal the binding of a type variable with the construct
+s :B⇒X B[X:=A]
+and we conceal the binding with the construct
+s :B[X:=A]⇒X B.
+For convenience in the reduction rules, we use the syntax
+s :A⇒P B
+to range over both forms, where P is a binding reference that is
+eitherX orX. We writeP for the involution that adds an overbar
+when one is missing, or removes the overbar when one is present.
+With the addition of static casts, we have a new value form. It is
+now the case that a value of typeX always has the form
+v :A⇒X X
+wherev has typeA andX is bound toA in the environment.
+The rule for type application is modiﬁed to also insert a suitable
+static cast (T YBETA). The static cast depends upon the type of
+the type abstraction; it is easy to annotate terms to preserve this
+information.
+
+=== PAGE 12 ===
+We introduce a reduction rule to push explicit bindings through
+the one new value form (N USC). Surprisingly, the (N USC) re-
+duction rule requires no side conditions; the type system already
+ensures thatX⁄=Y andX /∈ ftv(B). We also introduce reduction
+rules to perform static casts for each type constructor: base types
+(SCB ASE), functions (SCW RAP), quantiﬁed types (SCT YWRAP),
+and type variables (SCS EAL). The rules to push a static cast
+through a base type (SCB ASE) or a type variable (SCS EAL) both
+resemble the rule for dynamic casts (ID).
+The rule to apply a static cast to a function (SCW RAP) re-
+sembles the corresponding rule for dynamic casts (W RAP). Just as
+WRAP ﬂips the cast on the arguments and negates the blame label,
+SCW RAP also ﬂips the static cast on the arguments and negates the
+binding reference. One notable difference between (SCWRAP) and
+(WRAP) is that (SCWRAP) does not introduce a new wrapper func-
+tion to apply the cast, but instead performs substitution directly in
+the body of the lambda abstraction. This greatly simpliﬁes the sim-
+ulation relation used in the proof of the Jack-of-All-Trades Prin-
+ciple. The substitution-based approach is not viable for (W RAP)
+because a dynamic cast can fail, but works here because a static
+cast cannot fail.
+The rule to apply a static cast to a quantiﬁed type (SCTYWRAP)
+is simpler than the corresponding rules for applying a dynamic cast.
+For dynamic casts we require separate rules for universal quanti-
+ﬁers in the source (INSTANTIATE ) and in the target (GENERALIZE );
+while for static casts it sufﬁces to use a single rule to handle a uni-
+versal quantiﬁer in both the source and target (SCTYWRAP), since
+one will be a substitution instance of the other.
+Finally, if a static cast meets its negation, the two casts cancel
+(SCC ANCEL ).
+10.2 Relation to explicit binding
+We relate the polymorphic lambda calculus with static casts to the
+polymorphic lambda calculus with explicit binding. We deﬁne the
+erasuret• from the calculus with static casts to the calculus with
+explicit binding as follows:
+c•=c
+(op(⃗t))
+•
+= op(⃗t•)
+x•=x
+(λx:A.t )•=λx:A.t•
+(ts )•=t• s•
+(ΛX.t )•= ΛX.t•
+(tA )•=t• A
+(νX :=A.t )•=νX :=A.t•
+(t :A⇒P B)
+•
+=t•
+Proposition 19 (Erasure). If Γ⊣ s : A then Γ⊣ s• : A, and if
+s↦−→s′ then eithers• =s′• ors•↦−→s′•.
+10.3 Type safety
+It is straightforward to show the usual type safety results for the
+polymorphic lambda calculus with static casts. Notably, there is
+now one additional canonical form, for a term whose type is a type
+variable.
+Proposition 20 (Canonical forms). If ∆⊣v :C then either
+• v =c andC =ι for somec andι, or
+• v =λx:A.t andC =A→B for somex,t,A, andB, or
+• v = ΛX.w andC =∀X.A for somew,X, andA.
+• v =w :A⇒X X andC =X for somew,X, andA.
+Proposition 21 (Progress). If ∆⊣ s : A then either s = v for
+some valuev ors↦−→s′ for some term s′.
+Proposition 22 (Preservation). If ∆⊣ s : A ands↦−→s′ then
+∆⊣s′ :A.
+10.4 Polymorphic blame calculus with static casts
+Given the above development, it is straightforward to augment
+the polymorphic blame calculus to include static casts, as shown
+in Figure 9. The syntax is just the union of the syntaxes of the
+previous calculi. Only one additional reduction rule is required, to
+apply a static cast to the dynamic type (SCD YN). Analogues of
+the previous results to relate the calculus with static casts to the
+one without are straightforward, as are analogues of the type safety
+results, and we omit the details.
+11. The Jack-of-All-Trades Principle
+We now provide the proof of Theorem 7, the Jack-of-All-Trades
+Principle. To prove the theorem we introduce a relations ⊏∼ t that
+is contained in⊑ and prove that ⊏∼ is a simulation. Examining the
+theorem gives our starting point for the relation.
+v C:A[X:=C]⇒p B ⊏∼ v ⋆:A[X:=⋆]⇒p B.
+As these terms reduce, this cast can break into many casts, but they
+will all have the general form
+s :A⇒p B ⊏∼ t :A′⇒p B
+or the form
+s :B⇒p A ⊏∼ t :B⇒p A′
+wheres ⊏∼ t, andA andA′ are the same, except some types inA
+are replaced by⋆ inA′. To make the latter speciﬁc, we introduce a
+few deﬁnitions.
+Deﬁnition 23. If Σ is a map from type variables to types, itserasure
+Σ⋆ is the map that takes each X in the domain of Σ to⋆.
+Deﬁnition 24. We say that type A simulates typeA′, writtenA ⊏∼
+A′, if there exists a type A′′ and a map Σ such that A = Σ(A′′)
+andA′ = Σ⋆(A′′).
+For example, if A = ( X→X)→B and A′ = ⋆→⋆ we have
+A ⊏∼ A′ by taking A′′ = Y→Z and Σ = Y :=X→X,Z :=B
+(and hence Σ⋆ = Y :=⋆,Z :=⋆). As a second example, consider
+what typeA may simulate a type variableX,A ⊏∼X? The answer
+is thatX is the only type that simulatesX, soA =X.
+The full deﬁnition of the relation ⊏∼ is given in Figure 10.
+The rules on the right-hand side make ⊏∼ a congruence and the
+remaining rules help us keep terms related as they reduce. We add
+the following side condition to the rule (LEFT SC): the type variable
+in the binding reference does not appear anywhere in the program
+on the right-hand side of ⊏∼ ; this is because (LEFT SC) arises from
+(LEFT TYABS), in which there is a type abstraction on the left that
+does not appear on the right.
+Note that the simulation rules say nothing about types. But
+when the terms on each side of the conclusion are well typed then
+the terms in the hypothesis are as well. Furthermore, we have the
+following lemma.
+Lemma 25. Ifs ⊏∼ t, Γ⊣s :A, and Γ′⊣t :A′, thenA ⊏∼A′.
+The proof is a straightforward induction ons ⊏∼ t.
+An important property of ⊏∼ is that it relates values to terms
+that reduce to values.
+Lemma 26 (Value on the left of ⊏∼). Ifv ⊏∼ t, thent↦−→∗ w and
+v ⊏∼ w for some value w.
+In the proof that ⊏∼ is a simulation, the case for (BETA) requires
+the following lemma regarding substitution.
+Lemma 27 (Substitution preserves ⊏∼ ). Ift ⊏∼ t′ andv ⊏∼ v′,
+thent[x:=v] ⊏∼ t′[x:=v′].
+The result is a consequence of the fact that ⊏∼ is a congruence.
+We now show that ⊏∼ simulates both the reduction relation−→
+and the step relation↦−→, beginning with the former.
+
+=== PAGE 13 ===
+s ⊏∼ t A ⊏∼A′
+s :A⇒p B ⊏∼ t :A′⇒p B (POSCAST)
+s ⊏∼ t A ⊏∼A′
+s :B⇒¯p A ⊏∼ t :B⇒¯p A′ (NEGCAST)
+blameq ⊏∼ t (BLAME )
+s ⊏∼ t
+ΛY.s ⊏∼ t (LEFT TYABS)
+s ⊏∼ t
+s :A⇒P B ⊏∼ t
+(LEFT SC)
+s ⊏∼ t
+νX :=A.s ⊏∼ t (LEFT NU)
+v ⊏∼ w
+v ⊏∼ w :G⇒⋆ (RIGHT GROUND )
+v ⊏∼ w
+(ΛX.v )⋆ ⊏∼ w (LEFT TYAPP)
+c ⊏∼ c (CONG CONST )
+x ⊏∼ x (CONG VAR)
+s ⊏∼ t A ⊏∼A′
+λx:A.s ⊏∼ λx:A′.t (CONG ABS)
+s1 ⊏∼ t1 s2 ⊏∼ t2
+s1 s2 ⊏∼ t1 t2
+(CONG APP)
+s ⊏∼ t A ⊏∼A′
+ΛY.s ⊏∼ ΛY.t (CONG TYPE ABS)
+s ⊏∼ t
+sA ⊏∼ tA (CONG TYPE APP)
+s ⊏∼ t
+s isG ⊏∼ t isG (CONG IS)
+s ⊏∼ t
+s :A⇒p B ⊏∼ t :A⇒q B (CONG CAST)
+v ⊏∼ w
+v :G⇒⋆ ⊏∼ w :G⇒⋆ (CONG GROUND )
+s ⊏∼ t A ⊏∼A′ B ⊏∼B′
+s :A⇒P B ⊏∼ t :A′⇒P B′ (CONG SC)
+t ⊏∼ t′ A ⊏∼A′
+νX :=A.t ⊏∼ νX :=A′.t′ (CONG NU)
+Figure 10. Simulation relation ⊏∼
+Lemma 28. (⊏∼
+p simulates−→) Suppose ∆⊣s :A and ∆′⊣t :
+B. Ifs ⊏∼ t ands−→s′, thent↦−→∗ t′ ands′ ⊏∼ t′ for somet′.
+The proof relies on the presence of bindings and static casts to pre-
+serve type information, especially the presence of type variables.
+Lemma 29. (⊏∼
+p simulates↦−→) Suppose ∆⊣s :A and ∆′⊣t :
+B. Ifs ⊏∼ t ands↦−→s′, thent↦−→∗ t′ ands′ ⊏∼ t′ for somet′.
+We then prove that ⊏∼ is contained in⊑.
+Lemma 30. Ifs ⊏∼ t, thens⊑t.
+Proof. The proof is by case analysis on the reduction ofs.
+SupposeE[s]⇑. ThenE[t]⇑ by Lemma 29.
+SupposeE[s]⇓. ThenE[t]⇓ by Lemmas 29 and 26.
+The proof of the main theorem follows from this lemma.
+Proof of the Jack-of-All-Trades principle. We have
+(v C:A[X:=C]⇒p B) ⊏∼ (v ⋆:A[X:=⋆]⇒p B)
+and we conclude by applying Lemma 30.
+12. Related Work
+Run-time sealing Matthews and Ahmed (2008) present seman-
+tics for a multi-language system (Scheme and ML) that enforces the
+parametricity of ML values with polymorphic type (with embedded
+Scheme values). Their system places boundaries between the two
+languages. Their boundaries roughly correspond to a combination
+of a static and dynamic cast in our system. The contributions of our
+work with respect to the work of Matthews and Ahmed (2008) is
+that 1) we tease apart the notion of dynamic casting and sealing,
+associating sealing with type abstraction instead of the interface
+between languages, and 2) we establish the blame and subtyping
+theorems and the Jack-of-All-Trades principle.
+Syntactic type abstraction Grossman et al. (2000) develop a gen-
+eral theory of syntactic type abstraction in which multiple agents
+interact and have varying degrees of knowledge regarding the types
+at the interfaces between agents. Their general theory can be used
+to express the type abstraction in the polymorphic lambda calcu-
+lus, as well as many other kinds of syntactic abstractions. They
+present two systems, a simple two-agent system and a multi-agent
+system. The two-agent system can handle a program with one type
+abstraction whereas the multi-agent system is needed for arbitrary
+programs, using one agent per type abstraction. However, the multi-
+agent system adds considerable complexity for generality that is
+unnecessary in our setting. The advantage of our system is that it
+scales up to handle arbitrary number of type abstractions while re-
+taining much of the simplicity of the two-agent system.
+Sulzmann et al. (2007) develop an extension of System F with
+type equality coercions. Their coercions closely resemble the static
+casts of this paper, including the reduction rules. Their system
+does not have an analogue of our type bindings and instead uses
+substitution to perform type application.
+Integrating static and dynamic Tobin-Hochstadt and Felleisen
+(2006) formalize the interaction between static and dynamic typing
+at the granularity of modules and develop a precursor to the Blame
+Theorem. Wadler and Findler (2009) design the blame calculus
+
+=== PAGE 14 ===
+drawing on the blame tracking of higher-order contracts (Findler
+and Felleisen, 2002), and prove the Blame Theorem.
+Gronski et al. (2006) explore the interaction of type Dynamic
+with reﬁnement types and ﬁrst-class types, that is, allowing types
+to be passed to and returned from functions. This provides a form
+of polymorphism, but not relational parametricity.
+In the language Thorn, Wrigstad et al. (2010) show how to
+integrate typed and untyped code, using like types to bridge the
+gap in a way that better enables compiler optimizations in statically
+typed regions of code. Their formal development includes classes
+and objects but not polymorphism.
+13. Conclusion
+We have extended the blame calculus with support for ﬁrst-class
+parametric polymorphism, using explicit type binding to maintain
+relational parametricity for values of polymorphic type. Our cal-
+culus supports casts between the dynamic type and polymorphic
+types. When casting from a polymorphic type, our system instanti-
+ates the type variable with the dynamic type, a choice justiﬁed by
+the Jack-of-All-Trades Principle: if instantiating a type parameter
+to any given type yields an answer then instantiating that type pa-
+rameter to the dynamic type yields the same answer. We proved this
+principle via a simulation argument that depended on the presence
+of type bindings and static casts. We have also proved the Blame
+Theorem, so in the new polymorphic blame calculus, “well-typed
+programs can’t be blamed”. Further, as a corollary of the Jack-
+of-All-Trades Principle, we have proved the Subtyping Theorem,
+showing that a traditional notion of subtyping is sound with respect
+to our operational semantics.
+Looking forward, there are interesting questions regarding how
+to extend this work to subset and dependent types. Ultimately
+we hope to obtain a language with a full spectrum type system,
+supporting dynamic typing all the way to total correctness.
+Acknowledgments
+Our thanks to Jacob Matthews for his support and participation
+in early discussions of this work. Siek’s work on this paper was
+supported by NSF grant 0846121 and by a Distinguished Visiting
+Fellowship from the Scottish Informatics and Computer Science
+Alliance. Findler’s work was supported by NSF grant 0846012.
+References
+Martin Abadi, Luca Cardelli, Benjamin Pierce, and Gordon
+Plotkin. Dynamic typing in a statically typed language. ACM
+Transactions on Programming Languages and Systems , 13(2):
+237–268, April 1991.
+Amal Ahmed, Jacob Matthews, Robert Bruce Findler, and Philip
+Wadler. Blame for all. In Workshop on Script-to-Program
+Evolution (STOP), pages 1–13, 2009.
+Robert Bruce Findler and Matthias Felleisen. Contracts for higher-
+order functions. In ACM International Conference on Func-
+tional Programming (ICFP), pages 48–59, October 2002.
+Andrew Gill, John Launchbury, and Simon L. Peyton Jones. A
+short cut to deforestation. In ACM Conference on Functional
+Programming Languages and Computer Architecture (FPCA) ,
+pages 223–232, September 1993.
+Jessica Gronski, Kenneth Knowles, Aaron Tomb, Stephen N. Fre-
+und, and Cormac Flanagan. Sage: Hybrid checking for ﬂexible
+speciﬁcations. In Scheme and Functional Programming Work-
+shop (Scheme), pages 93–104, September 2006.
+Dan Grossman, Greg Morrisett, and Steve Zdancewic. Syntac-
+tic type abstraction. ACM Transactions on Programming Lan-
+guages and Systems, 22(6):1037–1080, November 2000.
+Arjun Guha, Jacob Matthews, Robert Bruce Findler, and Shriram
+Krishnamurthi. Relationally-parametric polymorphic contracts.
+In Dynamic Languages Symposium (DLS) , pages 29–40, 2007.
+Robert Harper. Practical F oundations for Programming Lan-
+guages. 2007. Working Draft.
+Fritz Henglein. Dynamic typing: Syntax and proof theory. Science
+of Computer Programming, 22(3):197–230, 1994.
+Jacob Matthews and Amal Ahmed. Parametric polymorphism
+through run-time sealing. In European Symposium on Program-
+ming (ESOP), pages 16–31, 2008.
+Jacob Matthews and Robert Bruce Findler. Operational semantics
+for multi-language programs. In ACM Symposium on Principles
+of Programming Languages (POPL), pages 3–10, January 2007.
+James H. Morris, Jr. Types are not sets. In ACM Symposium on
+Principles of Programming Languages (POPL), pages 120–124,
+October 1973.
+Georg Neis, Derek Dreyer, and Andreas Rossberg. Non-parametric
+parametricity. In ACM International Conference on Functional
+Programming (ICFP), pages 135–148, September 2009.
+Xinming Ou, Gang Tan, Yitzhak Mandelbaum, and David Walker.
+Dynamic typing with dependent types. In IFIP International
+Conference on Theoretical Computer Science , pages 437–450,
+August 2004.
+Benjamin Pierce and Eijiro Sumii. Relating cryptography and
+polymorphism. Manuscript, 2000. URL www.cis.upenn.edu/
+~bcpierce/papers/infohide.ps.
+John Reynolds. Types, abstraction, and parametric polymorphism.
+In R. E. A. Mason, editor, Information Processing, pages 513–
+523. North-Holland, 1983.
+Andreas Rossberg. Generativity and dynamic opacity for abstract
+types. In ACM Conference on Principles and Practice of Declar-
+ative Programming (PPDP), pages 241–252, 2003.
+Jeremy G. Siek and Walid Taha. Gradual typing for functional
+languages. In Scheme and Functional Programming Workshop
+(Scheme), pages 81–92, September 2006.
+Martin Sulzmann, Manuel M. T. Chakravarty, Simon Peyton Jones,
+and Kevin Donnelly. System F with type equality coercions. In
+ACM Workshop on Types in Languages Design and Implemen-
+tation (TLDI), pages 53–66, 2007.
+Satish Thatte. Type inference with partial types. In Interna-
+tional Colloquium on Automata, Languages and Programming
+(ICALP), volume 317 of Lecture Notes in Computer Science ,
+pages 615–629. Springer-Verlag, 1988.
+Sam Tobin-Hochstadt and Matthias Felleisen. Interlanguage mi-
+gration: From scripts to programs. In Dynamic Languages Sym-
+posium (DLS), pages 964–974, October 2006.
+Philip Wadler and Robert Bruce Findler. Well-typed programs can’t
+be blamed. In European Symposium on Programming (ESOP) ,
+pages 1–16, March 2009.
+Andrew K. Wright. Simple imperative polymorphism. Higher-
+Order and Symbolic Computation, 8(4):343–355, Dec. 1995.
+Tobias Wrigstad, Francesco Zappa Nardelli, Sylvain Lebresne, Jo-
+han ¨Ostlund, and Jan Vitek. Integrating typed and untyped code
+in a scripting language. In ACM Symposium on Principles of
+Programming Languages (POPL), pages 377–388, 2010.

@@ -2,17 +2,17 @@ module strong-rep-nu.notes.ColorPreservationProbe where
 
 -- COLOR PRESERVATION ON ONE RUN (2026-09-21; ported to the store
 -- 2026-09-22) — the statement layer of strong-rep-nu.Residual
--- exercised by a Peel at the ambient context `underΛ empty`.  In the
+-- exercised by a Wrap at the ambient context `underΛ empty`.  In the
 -- renderer's names (`scripts/render_term.sh 'showTmIn 1 Ex' 'open import
 -- strong-rep-nu.notes.ColorPreservationProbe'`) the program and its
 -- three states are, with the ambient store `Ξ` on the left:
 --
 --   Ξ = [α]      Ex   (νY:=X · (ΛY. λx:(X⇒X). x) ⟨ … ⟩) · (λx:X. x)  : X ⇒ X
---     --Nu-Λ-->
+--     --TyBeta-->
 --   Ξ = [β:=α,α] Ex₁  ((λx:(X⇒X). x)
 --                       ⟪ ↥Y , (id X ↦ id X) ↦ (id X ↦ id X) ⟫)
 --                       · (λx:X. x)
---     --Peel-->  Ex₂  ((λx:(X⇒X). x) · ((λx:X. x) ⟪ ↓Y , id X ↦ id X ⟫))
+--     --Wrap-->  Ex₂  ((λx:(X⇒X). x) · ((λx:X. x) ⟪ ↓Y , id X ↦ id X ⟫))
 --                       ⟪ ↥Y , id X ↦ id X ⟫
 --     --Beta-->  Ex₃  ((λx:X. x) ⟪ ↓Y , id X ↦ id X ⟫)
 --                       ⟪ ↥Y , id X ↦ id X ⟫
@@ -20,18 +20,18 @@ module strong-rep-nu.notes.ColorPreservationProbe where
 -- The position followed is the argument `λx:X. x`.  It is born at the
 -- ambient context `underΛ empty` with scope map {X ↦ α}.
 --
--- WHERE THE MOVE IS, WITH THE STORE (experiment 2, 2026-09-22).  Nu-Λ
+-- WHERE THE MOVE IS, WITH THE STORE (experiment 2, 2026-09-22).  TyBeta
 -- ALLOCATES the cell β := α at address 0 and binds the name Y for it;
 -- every existing representation variable — α, and the ambient name map
 -- entry that points at it — moves up by one, and so does the redex's
--- SIBLING, which is the very position followed here (`ξ-·-l`'s
--- `↑ᴹ[ new α ]`).  `Peel` then sends the argument into that scope's DUAL
+-- SIBLING, which is the very position followed here (`ξ-·₁`'s
+-- `↑ᴹ[ new α ]`).  `Wrap` then sends the argument into that scope's DUAL
 -- `↓Y` VERBATIM: there is no bind block left to cross, so its residual
 -- renaming is the identity.  Beta puts the wrapped copy in the function
 -- variable's place.
 --
 -- Three steps, one move — now the ALLOCATION's `suc`, delivered by the
--- congruence rather than by the Peel — and the scope map at the end is
+-- congruence rather than by the Wrap — and the scope map at the end is
 -- the initial one under that move:
 -- `names Δ₃ ≡ 1 ∷ [] ≡ map ρ★ (names Δ₀)`.  In named terms the color is
 -- LITERALLY unchanged — {X ↦ α} before and after; ρ is the index
@@ -81,10 +81,10 @@ Ex = (ν ` 0 · (Λ F) ⟨ reveal 0 Bod ⟩) · W
 Ex-⊢ : Δ₀ ∣ [] ⊢ Ex ⦂ ` 0 ⇒ ` 0
 Ex-⊢ = tc
 
-Δ₁ : Ctxᵗ                      -- the ambient after Nu-Λ allocated α:=Y
+Δ₁ : Ctxᵗ                      -- the ambient after TyBeta allocated α:=Y
 Δ₁ = allocate (` 0) Δ₀
 
-Θ₀ : Boundary                  -- bind X for the fresh cell, by Nu-Λ
+Θ₀ : Boundary                  -- bind X for the fresh cell, by TyBeta
 Θ₀ = inst []
 
 s t : Conv                     -- the `ν`'s reveal, split at its arrow
@@ -94,8 +94,8 @@ t = ⌞ ⌞ id (` 1) ⌟ ↦ ⌞ id (` 1) ⌟ ⌟
 Ex₁ : Term
 Ex₁ = (F ⟪ Θ₀ , ⌞ s ↦ t ⌟ ⟫) · W
 
--- Peel's premises, decided by the evaluator's own procedure — at the
--- ALLOCATED ambient, which is where the Peel fires.
+-- Wrap's premises, decided by the evaluator's own procedure — at the
+-- ALLOCATED ambient, which is where the Wrap fires.
 cross : CrossPremises Δ₁ Θ₀ s
 cross = force (crossPremises? Δ₁ Θ₀ s) tt
 
@@ -130,8 +130,8 @@ pA : Δ₀ ⊢ᶜ ` 0 ~ ` 0
 pA = same-var here
 
 run : Δ₀ ⊢ Ex -→* Ex₃
-run = ξ-·-l (Nu-Λ (V-simple S-ƛ) pA)
-      then Peel S-ƛ (V-simple S-ƛ) rc ri rd sc
+run = ξ-·₁ (TyBeta (V-simple S-ƛ) pA)
+      then Wrap S-ƛ (V-simple S-ƛ) rc ri rd sc
       then ξ-⟪⟫ ri (Beta (V-⟪⟫ S-ƛ I-fun))
       then done
 
@@ -152,14 +152,14 @@ C₃ : TermCtx                   -- Beta put the wrapped copy in f's place
 C₃ = (□ ⟪C dual Θ₀ , s′ ⟫) ⟪C Θ₀ , t ⟫
 
 ρ★ : Renameᵗ                   -- one move, the allocation's `suc`,
-                               -- delivered to the sibling by ξ-·-l
+                               -- delivered to the sibling by ξ-·₁
 ρ★ = ((idᵗ ∘ idᵗ) ∘ idᵗ) ∘ ↑ʳ[ new (` 0) ] □
 
 res : Residuals run C₀ W ρ★ C₃ W
 res = residuals-step
-        (residual-ξ-·-l-sib (Nu-Λ (V-simple S-ƛ) pA))
+        (residual-ξ-·₁-sib (TyBeta (V-simple S-ƛ) pA))
       (residuals-step
-        (residual-Peel-arg S-ƛ (V-simple S-ƛ) rc ri rd sc)
+        (residual-Wrap-arg S-ƛ (V-simple S-ƛ) rc ri rd sc)
       (residuals-step
         (residual-ξ-⟪⟫ ri
           (residual-Beta-arg (V-⟪⟫ S-ƛ I-fun) (copy-var image-here)))

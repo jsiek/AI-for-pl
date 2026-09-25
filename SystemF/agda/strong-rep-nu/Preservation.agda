@@ -24,7 +24,7 @@ open import strong-rep-nu.Reduction
   using (_⊢_-→_∣_; _⊢_-→*_; runCtx)
 
 import strong-rep-nu.proof.Preserve as P
-import strong-rep-nu.proof.PeelDual as PD
+import strong-rep-nu.proof.WrapDual as PD
 import strong-rep-nu.proof.MoveScope as MS
 import strong-rep-nu.proof.RepWeaken as RW
 
@@ -59,7 +59,7 @@ Preservation* = ∀ {Δ M M′ A}
 
 private
   module I = P.Impl RW.cross-Λ-⊢ RW.shift-⊢
-                    PD.preserve-Peel
+                    PD.preserve-Wrap
                     MS.preserve-Merge
 
 preservation : Preservation

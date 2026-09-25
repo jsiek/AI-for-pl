@@ -306,7 +306,7 @@ rebase? η η′ A | just (R , q) with unread? η′ R
 rebase? η η′ A | just (R , q) | just (A′ , p) = just (A′ , R , p , q)
 rebase? η η′ A | just (R , q) | nothing = nothing
 
--- THE SAME THING FOR A CONVERSION, which is what `Peel` and `Merge`
+-- THE SAME THING FOR A CONVERSION, which is what `Wrap` and `Merge`
 -- need.  A conversion mentions ordinary names at its `id`, seal and
 -- unseal leaves only, so both directions are `read?`/`unread?` with
 -- those leaves added, one function per sort.
@@ -635,7 +635,7 @@ infer Δ Γ (Λ N) | just vN with infer (underΛ Δ) (⤊ Γ) N
 infer Δ Γ (Λ N) | just vN | just (C , ⊢N) = just (`∀ C , ⊢Λ vN ⊢N)
 infer Δ Γ (Λ N) | just vN | nothing = nothing
 -- `ν`.  `R` is READ from `A`; `c` is typed on the conversion context
--- of `TyBetaBoundary` at `allocate R Δ` (the context the `Nu` rules
+-- of `TyBetaBoundary` at `allocate R Δ` (the context the ν rules
 -- leave), and the result type is `c`'s target re-based onto that
 -- allocated exterior.
 infer Δ Γ (ν A · L ⟨ c ⟩) with wfTy? Δ A
@@ -774,7 +774,7 @@ tf : ∀ {Γ A} {w : IsJ (wfTy? Γ A)} → Γ ⊢ᵗ A
 tf {Γ} {A} {w} = force (wfTy? Γ A) w
 
 -- The reading that relates an ordinary type to its representation, which
--- `Nu-Λ` and `Nu-⟪Λ⟫` carry as `Δ ⊢ᶜ A ~ R`.
+-- `TyBeta` and `TyWrap` carry as `Δ ⊢ᶜ A ~ R`.
 tr : ∀ {η A R} {w : IsJ (check~ η A R)} → η ⊢ A ~ R
 tr {η} {A} {R} {w} = force (check~ η A R) w
 

@@ -95,7 +95,7 @@ except where a row says *(from memory)*.
 | λC∀mp | `R_Tybeta_C`: `…(M⟨c⟩)[X:=α]⟨coerce⁺_α(Aₙ[X:=α])⟩`; at `★`, substitutes `★` | global store | yes, by `α` (or `★`) |
 | PolyGν | `M{X ≅ A}`: brings `X ≅ A` into the *context*, with explicit `seal_X`/`unseal_X` terms | lexical, exported "inside-out" to the continuation | no (in the source) |
 | PolyCν (New's thesis, Fig. 10.11) | `let x = M{X≅B}; N`, ANF: `X ≅ B` is bound in the continuation `N`; at run time `Σ, σ:A`, and `σ` is substituted for the bound variables | lexical in the source, global store `Σ` at run time | yes, by a fresh case `σ` |
-| **strong-rep-nu** | `Nu-Λ`: `νX:=A · (ΛX.V) ⟨c⟩ → V ⟪ ↥X , c ⟫ ∣ new α:=R` | global store for `α := R`; `X ↦ α` in the lexical name map | **no** |
+| **strong-rep-nu** | `TyBeta`: `νX:=A · (ΛX.V) ⟨c⟩ → V ⟪ ↥X , c ⟫ ∣ new α:=R` | global store for `α := R`; `X ↦ α` in the lexical name map | **no** |
 
 **The framing this suggests for the paper.**
 
@@ -164,15 +164,15 @@ representation `R`, keeps `V` as it is, and wraps it in a **boundary**
 **Example: the baseline** (§1a, `P₀`; rendered, `showRun 0 5 P₀-⊢`):
 
     Ξ = []         ((ν X:=ℕ · (ΛY. λx:Y. x) ⟨ seal X ↦ unseal X ⟩) · 7)
-      --[Nu-Λ]-->
+      --[TyBeta]-->
     Ξ = [α := ℕ]   (((λx:X. x) ⟪ ↥X , seal X ↦ unseal X ⟫) · 7)
-      --[Peel]-->
+      --[Wrap]-->
     Ξ = [α := ℕ]   (((λx:X. x) · (7 ⟪ ↓X , seal X ⟫)) ⟪ ↥X , unseal X ⟫)
       --[Beta]-->
     Ξ = [α := ℕ]   ((7 ⟪ ↓X , seal X ⟫) ⟪ ↥X , unseal X ⟫)
       --[Merge]-->
     Ξ = [α := ℕ]   (7 ⟪ ↥X , ↓X , id ℕ ⟫)
-      --[Drop]-->
+      --[Id]-->
     Ξ = [α := ℕ]   7
 
 **Against System F:** `λx:X. x` keeps its color `{X}` through the whole
@@ -181,7 +181,7 @@ run.  The identity function never sees `ℕ`: `7` enters it sealed as an
 at run time*, which is where "strong" in Strong System F comes from
 (`Design.md` §1).
 
-**Where:** `Reduction.agda` `Nu-Λ`; `notes/notes.md` "Reduction".
+**Where:** `Reduction.agda` `TyBeta`; `notes/notes.md` "Reduction".
 
 **Builds on.**
 - **Blame for All introduced this decision.** Its `(TYBETA)`,
@@ -236,9 +236,9 @@ sees the name), `unseal X` (the reverse), `c ↦ d`, `∀X.c`, and `id`.
 When a function wrapped in a boundary is applied, the argument
 **crosses** inward, wrapped in the **dual** scope with the domain
 conversion, and the result stays wrapped in the codomain conversion
-(`Peel`).
+(`Wrap`).
 
-**Example:** the `Peel` step of §1a above.  `7 : ℕ` must become an `X`
+**Example:** the `Wrap` step of §1a above.  `7 : ℕ` must become an `X`
 inside, so it gets `⟪ ↓X , seal X ⟫`: the dual `↓X` of `↥X`, with the
 domain half `seal X`.  The answer gets `unseal X` outside.
 
@@ -254,7 +254,7 @@ term did not determine the relationship (`notes/BoundarySurvey.md`,
   inner boundary *outward* across a conceal, which is the inverse of a
   substitution and therefore relational.  The v1 gauntlet (§9g)
   exhibited a reachable nesting with no flat form at all
-  (`DesignPoints.md` D24–D25).  `Peel` only ever moves things *in*.
+  (`DesignPoints.md` D24–D25).  `Wrap` only ever moves things *in*.
 * **No polarity index.**  Conversions were first polarized (`↦` flips on
   domains).  The pushed `seal ↦ seal` of `TyPeelR` typed at *neither*
   polarity (`DECISIONS.md` "RULING: polarity dropped", 2026-09-06).  The
@@ -274,8 +274,8 @@ term did not determine the relationship (`notes/BoundarySurvey.md`,
   Ahmed's `τMS e` / `SMτ e`, after Matthews & Findler's multi-language
   semantics (POPL 2007), are term-level boundaries, and "the direction
   of conversion reverses for function arguments" (§2). That is the
-  ancestor of `Peel`'s dual.
-- **`Peel` itself** is λB's rule (9),
+  ancestor of `Wrap`'s dual.
+- **`Wrap` itself** is λB's rule (9),
   `(v : A→B ⇒ A′→B′) v′ → v (v′ : A′ ⇒ A) : B ⇒ B′`, which λB takes from
   Siek & Wadler's space-efficient function casts (λB §2.4). It is also
   λC∀mp's `R_Wrap_C`, and in spirit STA's `[9]`, which reverses the
@@ -385,7 +385,7 @@ boundary around the ΛZ?" (`DECISIONS.md`, "Frame-exact Beta",
 `Beta` alone let a moved value gain a variable.
 
 **Cost:** a numeral crossing a `Λ` picks up an `id ℕ` layer, removed by
-one `Drop` (or merged away).
+one `Id` (or merged away).
 
 **Builds on.**
 - **STA's brackets travel with the value.** A substituted embedding
@@ -584,7 +584,7 @@ boundary had to re-index it (`renᴹ²`, `underRepBinds`, `SameTyExt`,
 `RepWeakenTyping`).
 
 **Example:** in the §1a trace the store `Ξ = [α := ℕ]` sits *outside* the
-term, and `Peel` moves `7` into `⟪ ↓X , seal X ⟫` verbatim.  Before the
+term, and `Wrap` moves `7` into `⟪ ↓X , seal X ⟫` verbatim.  Before the
 store, that crossing needed the bind-block weakening `RepWeakenTyping`.
 
 **Not the rejected "global Σ-store" (D33→D34):** that stored the whole
@@ -635,13 +635,13 @@ source language, and `compile` translates `L [A]` (with `L : ∀X.C`) to
 time, which needed the annotation `B` on `L [B, A]`.  Its partner
 `TyPeelR-Λ`, for a `∀`-value already under a boundary, had to **fuse**
 the crossed conversion with the reveal (`instReveal`).  With the
-conversion written at compile time, `Nu-⟪Λ⟫` can *stack* the crossed
+conversion written at compile time, `TyWrap` can *stack* the crossed
 conversion under `ν`'s own and leave the fusion to `Merge`.  Every
 reveal in a run is one the compiler wrote.
 
 **Example:** §1b, `((ΛX. λf:(∀Y. Y⇒𝔹). f[X]) [𝔹] · (ΛZ. λz:Z. true)) ·
 false`: two `ν`s, both written by the compiler (`NuSketch.md` Rule 2).
-§3 shows `Nu-⟪Λ⟫` with two store cells.
+§3 shows `TyWrap` with two store cells.
 
 **Side benefit:** a clean compiler-correctness story.  `compile-⊢`,
 `compile-closed` and `compile-safe` hold, and `SourceExamples.agda`
@@ -663,10 +663,10 @@ source typing but its `ν` has none.
   - `ν X:=A · L ⟨c⟩` is PolyGν's instantiation with the continuation
     specialized to a *conversion*: `X` is bound in `c`, and sealing and
     unsealing are `c`'s leaves `seal X` / `unseal X`.
-- **The shape of `Nu-⟪Λ⟫` is λB's.** λB's third type-application rule,
+- **The shape of `TyWrap` is λB's.** λB's third type-application rule,
   `Σ ▷ (v : ∀X.A =ϕ⇒ ∀X.A′)[B] → Σ,α:=B ▷ ((v[α] : A[α/X] =ϕ⇒
   A′[α/X]) : A′[α/X] =+α⇒ A′[B/X])`, moves the inner conversion inside
-  and stacks the reveal outside, which is `Nu-⟪Λ⟫`'s stacked contractum.
+  and stacks the reveal outside, which is `TyWrap`'s stacked contractum.
   PolyCν's `∀ν` casts accumulate on the `Λν` (`Λν{X.([B⊑↕], M)}`) and
   are applied at instantiation, the same discipline. λC∀mp's
   `R_Tybeta_C` fuses a whole sequence of `∀` coercions in one step.
@@ -710,7 +710,7 @@ count falls to ten.
 one clause of composition: absorbing an identity, *chaining* two seals
 (which exists only because of the alias cell `β := γ`), cancelling the
 last seal of a chain, `seal Z ⨟ unseal Z = id ℕ` read off the store, and
-`Drop`.
+`Id`.
 
 **Why this is not v1's merge coming back:** v1's `⊕` merged by
 substituting representations into representations, which is the copying
@@ -763,7 +763,7 @@ These come with `NoCancel` (no `unseal X` directly before a bare
 **Why:** composition must return *the* result, so that reduction stays
 deterministic (`det`), and the value classification must be syntactic.
 Inert tails are values and the one active tail, `id` at a base type, is
-removed by `Drop`.  Without `NoCancel`, `unseal X ; seal X` would be a
+removed by `Id`.  Without `NoCancel`, `unseal X ; seal X` would be a
 second spelling of an identity at `X`.
 
 **Example:** step 3 of the Merge excerpt, `(seal Z ; seal Y) ⨟ unseal Y =
@@ -838,7 +838,7 @@ otherwise.
 - *Theorems for Free for Free* (Ahmed, Jamner, Siek & Wadler, ICFP 2017)
   **(read)**. λB is the source of the word "conversion", of the value
   restriction plus global store argument (Decisions 7–8), and of the
-  `Nu-⟪Λ⟫` shape (Decision 9). Arguably closer to strong-rep-nu than BfA.
+  `TyWrap` shape (Decision 9). Arguably closer to strong-rep-nu than BfA.
 - *Generativity and Dynamic Opacity for Abstract Types* (Rossberg, PPDP
   2003) **(read)**: λN's coercions, lexical-scope gate and
   type-directed coercion generation (Decisions 2, 6).
@@ -953,7 +953,7 @@ the repo.
 
 * **Which relative leads the related-work section?** λB (*Theorems for
   Free for Free*) now looks at least as close as STA: conversions,
-  value restriction plus store, and the `Nu-⟪Λ⟫` shape. STA is closest
+  value restriction plus store, and the `TyWrap` shape. STA is closest
   on *color* and ordered merging. One option is to lead with STA for the
   goal and λB for the mechanism.
 * **An erasure theorem.** Should strong-rep-nu prove one before the

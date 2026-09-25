@@ -326,7 +326,7 @@ mutual
   sameᶜ-target-unique uq (sameᶜ-unseal-seq d a) (sameᶜ-unseal-seq d′ a′) =
     cong₂ unseal_⨾_ (unique-lookup uq d d′) (sameᶜ-target-unique uq a a′)
 
--- `Peel`'s determinism case, in the shape `sameTy-src-unique` has.
+-- `Wrap`'s determinism case, in the shape `sameTy-src-unique` has.
 sameConv-src-unique : Unique η
   → ∃[ r ] ((η ⊩ s ~ r) × (η′ ⊩ c ~ r))
   → ∃[ r ] ((η ⊩ s′ ~ r) × (η′ ⊩ c ~ r))
@@ -436,26 +436,26 @@ premise-exists int conv dconv ⊢s | r , rd
 premise-exists int conv dconv ⊢s | r , rd | s′ , rd′ =
   s′ , (r , rd′ , rd)
 
-peel-premises : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : Boundary}
+wrap-premises : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : Boundary}
   → Unique (names Γ)
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
   → Γ ⊢ᶜ Θ ⇒ Γᶜ
   → Γᶜ ⊢ s ∶ A ⇝ B
   → ∃[ Γᵈ ] ∃[ s′ ]
       ((Γᵢ ⊢ᶜ dual Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
-peel-premises uq int conv ⊢s with dual-conversion-exists uq int
-peel-premises uq int conv ⊢s | Γᵈ , dconv
+wrap-premises uq int conv ⊢s with dual-conversion-exists uq int
+wrap-premises uq int conv ⊢s | Γᵈ , dconv
   with premise-exists int conv dconv ⊢s
-peel-premises uq int conv ⊢s | Γᵈ , dconv | s′ , sc =
+wrap-premises uq int conv ⊢s | Γᵈ , dconv | s′ , sc =
   Γᵈ , s′ , dconv , sc
 
-peel-premises-boundary : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : Boundary}
+wrap-premises-boundary : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : Boundary}
   → BoundaryWf Γ Θ Γᵢ Γᶜ
   → Γᶜ ⊢ s ∶ A ⇝ B
   → ∃[ Γᵈ ] ∃[ s′ ]
       ((Γᵢ ⊢ᶜ dual Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
-peel-premises-boundary mwΘ ⊢s =
-  peel-premises (name-fn (bw-exterior mwΘ)) (bw-interior mwΘ)
+wrap-premises-boundary mwΘ ⊢s =
+  wrap-premises (name-fn (bw-exterior mwΘ)) (bw-interior mwΘ)
                 (bw-conversion mwΘ) ⊢s
 
 ------------------------------------------------------------------------

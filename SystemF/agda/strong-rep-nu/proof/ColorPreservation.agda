@@ -78,8 +78,8 @@ map-suc-ext ρ (α ∷ Δn) = cong (suc (ρ α) ∷_) (map-suc-ext ρ Δn)
 
 ------------------------------------------------------------------------
 -- 2. The frame judgment ignores the representation STORE beyond its
---    length: the refinement `abstR → bindR R` of a slot (Nu-Λ's,
---    Nu-⟪Λ⟫'s) transports every `⊢C` derivation, names untouched.
+--    length: the refinement `abstR → bindR R` of a slot (TyBeta's,
+--    TyWrap's) transports every `⊢C` derivation, names untouched.
 ------------------------------------------------------------------------
 
 ∋ˡ-len : ∀ {A : Set} {Ξ Ξ′ : List A} {α : ℕ} {x : A}
@@ -284,7 +284,7 @@ residual-frame : ∀ {Δ δ L L′ C M ρ D N Δ₁} {r : Δ ⊢ L -→ L′ ∣
   → Δ ⊢C C ⊣ Δ₁
   → Σ[ Δ₂ ∈ Ctxᵗ ] (apply δ Δ ⊢C D ⊣ Δ₂) × (names Δ₂ ≡ map ρ (names Δ₁))
 
-residual-frame {Δ = Δ} wfΔ (residual-Nu-Λ {R = R} vN pA)
+residual-frame {Δ = Δ} wfΔ (residual-TyBeta {R = R} vN pA)
     (frame-ν (frame-Λ h)) =
   let (Ξ₂ , d , _) = ⊢C-len (bindR R ∷ reps Δ) refl h
   in _ , frame-⟪⟫ (inst-interior {R = R} empty-interior) d
@@ -297,19 +297,19 @@ residual-frame wfΔ (residual-Beta-body {W = W} {A = A} vW st)
 residual-frame wfΔ (residual-Beta-arg vW cr) (frame-·R h) =
   copy-frame cr h
 
-residual-frame wfΔ (residual-Peel-fun vV vW rc ri rd sc)
+residual-frame wfΔ (residual-Wrap-fun vV vW rc ri rd sc)
     (frame-·L (frame-⟪⟫ riᶠ h)) =
   _ , frame-⟪⟫ riᶠ (frame-·L h) , sym (map-idᵗ _)
 
 -- The crossing argument moves VERBATIM: `dual-interior` says the dual's
 -- interior IS the exterior the argument was already read at.
-residual-frame wfΔ (residual-Peel-arg vV vW rc ri rd sc) (frame-·R h) =
+residual-frame wfΔ (residual-Wrap-arg vV vW rc ri rd sc) (frame-·R h) =
   _ , frame-⟪⟫ ri (frame-·R (frame-⟪⟫ (dual-interior ri) h))
     , sym (map-idᵗ _)
 
 -- The two stacked layers read, in turn, `inst []` and the crossed
 -- frame under the new name: together exactly `inst Θ`'s interior.
-residual-frame {Δ = Δ} wfΔ (residual-Nu-⟪Λ⟫ {R = R} vN rc ⊢s pA)
+residual-frame {Δ = Δ} wfΔ (residual-TyWrap {R = R} vN rc ⊢s pA)
     (frame-ν (frame-⟪⟫ (interior csᶠ) (frame-Λ h))) =
   let (Ξ₂ , d , _) = ⊢C-len (bindR R ∷ reps Δ) refl h
   in _ , frame-⟪⟫ (inst-interior {R = R} empty-interior)
@@ -322,14 +322,14 @@ residual-frame wfΔ (residual-Merge u it ri rc₁ rc₂ rc⋉ sc₁ sc₂)
   _ , frame-⟪⟫ (merged-interior ri₂ᶠ ri₁ᶠ) h
     , sym (map-idᵗ _)
 
-residual-frame wfΔ (residual-ξ-·-l r) (frame-·L h) =
+residual-frame wfΔ (residual-ξ-·₁ r) (frame-·L h) =
   let (Δ₂ , d , e) = residual-frame wfΔ r h in Δ₂ , frame-·L d , e
-residual-frame {δ = δ} wfΔ (residual-ξ-·-l-sib {C = C} r) (frame-·R h) =
+residual-frame {δ = δ} wfΔ (residual-ξ-·₁-sib {C = C} r) (frame-·R h) =
   let (Δ₂ , d , e) = ⊢C-shift δ C (step-alloc wfΔ r) h
   in Δ₂ , frame-·R d , e
-residual-frame wfΔ (residual-ξ-·-r v r) (frame-·R h) =
+residual-frame wfΔ (residual-ξ-·₂ v r) (frame-·R h) =
   let (Δ₂ , d , e) = residual-frame wfΔ r h in Δ₂ , frame-·R d , e
-residual-frame {δ = δ} wfΔ (residual-ξ-·-r-sib {C = C} v r)
+residual-frame {δ = δ} wfΔ (residual-ξ-·₂-sib {C = C} v r)
     (frame-·L h) =
   let (Δ₂ , d , e) = ⊢C-shift δ C (step-alloc wfΔ r) h
   in Δ₂ , frame-·L d , e

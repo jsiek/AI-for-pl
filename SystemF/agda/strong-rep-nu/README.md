@@ -2,6 +2,14 @@
 
 ## strong-rep-nu (2026-09-24)
 
+**Rule names (2026-09-25).**  The reduction rules were renamed to match
+the literature (`paper/draft.md`; `notes/DECISIONS.md`, 2026-09-25):
+`Nu-Λ` → `TyBeta`, `Peel` → `Wrap`, `Nu-⟪Λ⟫` → `TyWrap`, `Drop` → `Id`,
+`ξ-·-l` / `ξ-·-r` → `ξ-·₁` / `ξ-·₂`.  `proof/PeelDual.agda` is now
+`proof/WrapDual.agda`.  Dated history below and in `notes/` keeps the
+names in use at the time; in particular strong-rep-store's `TyBeta`
+minted its reveal at run time, and today's `TyBeta` does not.
+
 A VARIANT of `SystemF/agda/strong-rep-store/`, forked verbatim at
 `main` 694fe461 (after PR #208).  Two experiments have landed, both on
 2026-09-24, and the differences from strong-rep-store are `ν` (first
@@ -26,18 +34,18 @@ What changed with it:
 
 | strong-rep-store | strong-rep-nu | contractum |
 |---|---|---|
-| `TyBeta` | `Nu-Λ` | `N ⟪ inst [] , c ⟫`, the conversion `ν` carries |
-| `TyPeelR-Λ` | `Nu-⟪Λ⟫` | `(N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫`, STACKED |
+| `TyBeta` | `TyBeta` (named `Nu-Λ` until 2026-09-25) | `N ⟪ inst [] , c ⟫`, the conversion `ν` carries |
+| `TyPeelR-Λ` | `TyWrap` (named `Nu-⟪Λ⟫` until 2026-09-25) | `(N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫`, STACKED |
 | `TyPeelR-⟪⟫` | (none) | `Nu-⟪⟫` for the first part of the day; deleted in Part 2 as unreachable |
 | `ξ-·[]` | `ξ-ν` | none: a congruence |
 
 * **Stack, don't fuse.**  `TyPeelR-Λ` wrote one layer,
   `N ⟪ inst Θ , instReveal 0 s ⟫`, which fused the crossed conversion
-  `s` with the reveal.  `Nu-⟪Λ⟫` moves `s` VERBATIM into a middle layer
+  `s` with the reveal.  `TyWrap` moves `s` VERBATIM into a middle layer
   over `liftᴮ Θ` (Θ shifted one step in both universes) and puts `ν`'s
   own `c` outside it on `inst []`.  `Boundary.agda` gains `liftᴮ`, with
   `inst Θ = liftᴮ Θ ++ [bind 0 0]`, so read inside out the two stacked
-  scopes are the old fused `inst Θ` (`Nu-⟪Λ⟫-stacks-to-inst`,
+  scopes are the old fused `inst Θ` (`TyWrap-stacks-to-inst`,
   `proof/ShiftAudit.agda` §3).  No rule mints `instReveal` any more.
   Since Part 2 the stacked pair is a `Merge` redex, and `Merge` fuses it
   on the next step by general composition.
@@ -113,9 +121,9 @@ Jeremy's decisions: `notes/MergeSketch.md` (status IMPLEMENTED);
   `V-⟪⟫ : Simple U → InertTail t → Value (U ⟪ Θ , tail t ⟫)`).  A value
   boundary's source type is not a variable, so its conversion is a
   tail; the inert tails are everything but `id` at a base type.
-* **The rules** (`Reduction.agda`) are ten: `Nu-Λ`, `Beta`, `Peel`,
-  `Nu-⟪Λ⟫`, `Merge`, `Drop`, `ξ-·-l`,
-  `ξ-·-r`, `ξ-ν`, `ξ-⟪⟫`.  `Merge` rewrites
+* **The rules** (`Reduction.agda`) are ten: `TyBeta`, `Beta`, `Wrap`,
+  `TyWrap`, `Merge`, `Id`, `ξ-·₁`,
+  `ξ-·₂`, `ξ-ν`, `ξ-⟪⟫`.  `Merge` rewrites
   `(U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫` to
   `U ⟪ Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′ ⟫`: both conversions are
   weakened at the merged conversion context `Δ⋉ᶜ` (the carried `t₁′`
@@ -123,15 +131,15 @@ Jeremy's decisions: `notes/MergeSketch.md` (status IMPLEMENTED);
   `CancelR` (`seal X` then `unseal X`) and `IdPush` (`id X` then
   `unseal X`), which are deleted, and it also merges the inert pairs
   that used to stack.  `Nu-⟪⟫` is deleted as unreachable (Part 1).
-  `Nu-⟪Λ⟫` keeps its stacked contractum and `Merge` fuses it next.  The
-  crossing-spelling law now has three carried spellings: `Peel`'s `s′`
+  `TyWrap` keeps its stacked contractum and `Merge` fuses it next.  The
+  crossing-spelling law now has three carried spellings: `Wrap`'s `s′`
   and `Merge`'s `t₁′` and `c₂′`.
 * **Consequences.**  `proof/Canonicity.agda` is RETIRED: its
   single-binder invariant is exactly what merging gives up (a chain
   `seal Y ⨾seal X` names two binders).  `proof/AddUnbind0.agda` (used
   only by `Nu-⟪⟫`) and `notes/CancelRShiftWall.agda` (about `CancelR`)
   are deleted.  Preservation instantiates `proof.Preserve.Impl` at
-  `cross-Λ-⊢`, `shift-⊢`, `preserve-Peel` and `preserve-Merge`
+  `cross-Λ-⊢`, `shift-⊢`, `preserve-Wrap` and `preserve-Merge`
   (`proof/MoveScope.agda`); progress has `merge-redex`
   (`proof/Progress.agda`); `det` handles `Merge` by
   `sameConv-src-unique`; the tower measure is at most one on a value
@@ -152,14 +160,14 @@ Jeremy's decisions: `notes/MergeSketch.md` (status IMPLEMENTED);
   which does not merge.
 
 A regenerated run, `Examples.agda` §1a (`showRun 0 5 P₀-⊢`).  The
-first step is `Nu-Λ`; the `Merge` step is the old `CancelR`:
+first step is `TyBeta`; the `Merge` step is the old `CancelR`:
 
     Ξ = []
     ((ν X:=ℕ · (ΛY. (λx:Y. x)) ⟨ (seal X ↦ unseal X) ⟩) · 7)
-      --[Nu-Λ]-->
+      --[TyBeta]-->
     Ξ = [α := ℕ]
     (((λx:X. x) ⟪ ↥X , (seal X ↦ unseal X) ⟫) · 7)
-      --[Peel]-->
+      --[Wrap]-->
     Ξ = [α := ℕ]
     (((λx:X. x) · (7 ⟪ ↓X , seal X ⟫)) ⟪ ↥X , unseal X ⟫)
       --[Beta]-->
@@ -168,21 +176,21 @@ first step is `Nu-Λ`; the `Merge` step is the old `CancelR`:
       --[Merge]-->
     Ξ = [α := ℕ]
     (7 ⟪ ↥X , ↓X , id ℕ ⟫)
-      --[Drop]-->
+      --[Id]-->
     Ξ = [α := ℕ]
     7
         -- VALUE
 
 Where to read on: `notes/notes.md` is the calculus with the `ν` rules
 and `Merge`; `Commentary.md` § Conversion.agda / §4b,
-§ Reduction.agda / Nu-Λ, Nu-⟪Λ⟫ and Merge, and § Terms.agda / §3 and
+§ Reduction.agda / TyBeta, TyWrap and Merge, and § Terms.agda / §3 and
 §4 — ⊢ν; `notes/NuSketch.md` and `notes/MergeSketch.md` for the design
 alternatives that were considered.
 
 Everything below this line is strong-rep-store's documentation, kept
 as the inherited record, with the module map, gate and tools brought up
 to date.  Wherever it says `TyBeta`, `TyPeelR-Λ`, `ξ-·[]` or
-`L ·[ B , A ]`, read `Nu-Λ`, `Nu-⟪Λ⟫`, `ξ-ν` and `ν A · L ⟨ c ⟩`;
+`L ·[ B , A ]`, read `TyBeta`, `TyWrap`, `ξ-ν` and `ν A · L ⟨ c ⟩`;
 wherever it says `CancelR` or `IdPush`, read `Merge`; `TyPeelR-⟪⟫` has
 no successor.  Where it and this section disagree, this section and the
 file charters win.
@@ -306,7 +314,7 @@ actually consume and then proved by `Boundary.merged-conversion-exists`
 (`notes/DECISIONS.md`, 2026-09-21; `notes/PLAN.md`, "Current status").
 Since the merge port (2026-09-24) `AddUnbind0Typing` and its module are
 gone with `Nu-⟪⟫`, and `merged-conversion-exists` serves `Merge`; the
-preservation cases are `preserve-Peel` and `preserve-Merge`.
+preservation cases are `preserve-Wrap` and `preserve-Merge`.
 
 The gate, run **cold**, from `SystemF/agda`:
 
@@ -334,7 +342,7 @@ a rule **moves a subterm between two name maps**, the moved spelling is
 relation — `SameConv` for a conversion, `_⊢_≈_⊣_` for a type or a bare
 name — and is **never computed by a fixed renaming**, because the two
 contexts can reorder relative to each other.  Three carried spellings
-are live today: `Peel`'s `s′` and `Merge`'s `t₁′` and `c₂′`.  The table
+are live today: `Wrap`'s `s′` and `Merge`'s `t₁′` and `c₂′`.  The table
 is the history of the five installed before the merge port, each after
 its own machine-checked refutation; since 2026-09-24 only the first row
 is live, `Merge`'s two spellings replace the `X′` and `A′` rows, and the
@@ -342,7 +350,7 @@ two `Nu-⟪⟫` rows went with that rule:
 
 | spelling | rule | date | wall module |
 |---|---|---|---|
-| `s′` | `Peel` | 2026-09-18 | `notes/CrossingAudit.agda`, `notes/PeelPremise.agda` |
+| `s′` | `Wrap` | 2026-09-18 | `notes/CrossingAudit.agda`, `notes/WrapPremise.agda` |
 | `Bᵢ′` | `TyPeelR-⟪⟫` (retired) | 2026-09-18 | `strong-rep-store/notes/ForallPayloadWall.agda` |
 | `X′` | `IdPush` (retired) | 2026-09-18 | `strong-rep-store/notes/ForallPayloadWall.agda` |
 | `A′` | `CancelR` (retired) | 2026-09-19 | `notes/CancelRShiftWall.agda` (deleted 2026-09-24; git history), `strong-rep-store/notes/CancelRReachabilityWitness.agda` |
@@ -361,7 +369,7 @@ criterion that the subterm's type context at the new position be
 exactly its context at the old one, up to the binders it crossed and
 the refinement `abstR → bindR R` of a variable it could already name.
 It is not a single theorem statement but a site-by-site check —
-`proof/ShiftAudit.agda`, §2 `Peel`, §3 the two `Nu` rules, §4 the
+`proof/ShiftAudit.agda`, §2 `Wrap`, §3 the two ν rules, §4 the
 tower measure (at most one boundary on a value, and `Merge` lowers it),
 §5 `Beta`, §6 `Merge`, §7 the drop, §8 the congruences — resting on the relational transport
 lemmas `dual-interior` and `merged-interior` of `Boundary.agda` §3a.  Its headline here is that at every site but
@@ -399,18 +407,18 @@ keyed by module and definition in source order.
 | `Conversion.agda` | conversions as NORMAL FORMS in three sorts (since 2026-09-24): the middle `Mid` (`id` / `_↦_` / `` `∀ ``), the seal chain `Tail` (`mid` / `seal` / `_⨾seal_`) and the unseal chain `Conv` (`tail` / `unseal` / `unseal_⨾_`), with `IsId` and `NoCancel`; the three judgements `_⊢ᵐ_∶_⇝_`, `_⊢ᵀ_∶_⇝_`, `_⊢_∶_⇝_` with NO polarity index; `mkId`, the canonical mints at a slot (`reveal`/`conceal`), COMPOSITION `Δ ⊢ c₁ ⨟ c₂` (§4b, with `repOf` and the smart constructors), the weakening relation `SameConv` with its uniqueness and `weaken` lemmas, `conv-ren`, the inversions and `conv-types-unique` |
 | `Terms.agda` | terms, whose last constructor is the boundary `_⟪_,_⟫`; the `InertTail`/`Inert`/`Active` split with `act-or-inert`; `Simple` and `Value`, with AT MOST ONE boundary on a value (`V-⟪⟫ : Simple U → InertTail t → Value (U ⟪ Θ , tail t ⟫)`); and the typing judgment `_∣_⊢_⦂_`, whose boundary rule `boundary` TAKES a `BoundaryWf Δ Θ Δᵢ Δᶜ` instead of computing contexts and compares all three sides by `_⊢_≈_⊣_`, and whose `⊢Λ` carries the VALUE RESTRICTION `Value N` |
 | `TermSubst.agda` | the PAIRED type renaming (`ren²`, `renᴹ²`) and its representation-only traversal `renᴹᴿ`; **the sibling shift** `↑ᴹ[ δ ]`/`↑ᴮ[ δ ]`, which is `renᴹᴿ suc`/`renᴮᴿ suc` when a step allocated a cell and the identity when it did not; and FRAME-EXACT substitution — `Img`, `crossΛᴹ`, `substᵐ`, `_[_∶_]ᵐ` — which wraps a value crossing a `Λ` in that binder's dual rather than shifting it.  ONLY what a top-level file names lives here; the lemmas and the term-variable renaming moved to `proof/TermSubst.agda` on 2026-09-22 |
-| `Reduction.agda` | `_⊢_-→_∣_` with **ten** rules — a step returns the CHANGE `δ : Alloc` it made to the store, so the contractum lives at `apply δ Δ` and each congruence shifts the redex's siblings by `↑ᴹ[ δ ]` — `Nu-Λ`, `Beta`, `Peel`, `Nu-⟪Λ⟫`, `Merge`, `Drop` and the four congruences `ξ-·-l`, `ξ-·-r`, `ξ-ν`, `ξ-⟪⟫` (no `ξ-Λ`: nothing reduces under a type binder) — the multi-step `_⊢_-→*_` (each step's change applied to the tail's context) with `runCtx` and `value-¬step`.  (`det`, which takes the redex's typing derivation and concludes `M₁ ≡ M₂ × δ₁ ≡ δ₂`, is `proof/Determinism.agda`.)  Its charter states the crossing-spelling law and lists the three carried spellings |
+| `Reduction.agda` | `_⊢_-→_∣_` with **ten** rules — a step returns the CHANGE `δ : Alloc` it made to the store, so the contractum lives at `apply δ Δ` and each congruence shifts the redex's siblings by `↑ᴹ[ δ ]` — `TyBeta`, `Beta`, `Wrap`, `TyWrap`, `Merge`, `Id` and the four congruences `ξ-·₁`, `ξ-·₂`, `ξ-ν`, `ξ-⟪⟫` (no `ξ-Λ`: nothing reduces under a type binder) — the multi-step `_⊢_-→*_` (each step's change applied to the tail's context) with `runCtx` and `value-¬step`.  (`det`, which takes the redex's typing derivation and concludes `M₁ ≡ M₂ × δ₁ ≡ δ₂`, is `proof/Determinism.agda`.)  Its charter states the crossing-spelling law and lists the three carried spellings |
 | `TypeCheck.agda` | an executable, DERIVATION-PRODUCING checker for every judgment above: `wfCtx?`, `interior?`/`conversion?`/`boundaryWf?`, the readings `read?`/`sameTy?`/`sameTyExt?`/`weaken?`, `∋:=?`, `wfTy?`, `convTy?`, `infer`, `check⊢`, and the forcing family `tc`/`tk`/`tu`/`tf`/`tr` with the inferring `sq!`, `mw!`, `ty!`.  Every result is a `Maybe` of the ORDINARY derivation, so there is no soundness theorem to owe |
 | `Eval.agda` | the evaluator: `step`, leftmost-outermost, RETURNS the derivation it found, so soundness is its type; `eval` iterates it with fuel and CHECKS every contractum at the run's type; `Trace` with `illtyped` as the one way a type is lost, `Checked`, `traceEnd`/`traceTerms`/`traceLen`/`evalTerms`, `trace-sound`, and `Reaches k n ⊢M V`, which states endpoint, step count, "no state lost the type" and value in ONE equation |
 | `Progress.agda` | the statement `Progress`, stated premise-free, and `progress`, a one-line wrapper around `proof.Progress.Impl.progress`; unconditional since 2026-09-21 |
-| `Preservation.agda` | `Preservation`, `PreservationWf` and `Preservation*` stated in full and proved by instantiating `proof.Preserve.Impl` at `RepWeaken.cross-Λ-⊢`, `RepWeaken.shift-⊢`, `PeelDual.preserve-Peel` and `MoveScope.preserve-Merge`; the charter explains why `WfCtx Δ` is part of the statement |
+| `Preservation.agda` | `Preservation`, `PreservationWf` and `Preservation*` stated in full and proved by instantiating `proof.Preserve.Impl` at `RepWeaken.cross-Λ-⊢`, `RepWeaken.shift-⊢`, `WrapDual.preserve-Wrap` and `MoveScope.preserve-Merge`; the charter explains why `WfCtx Δ` is part of the statement |
 | `TypeSafety.agda` | the public theorem surface: the six theorems above, stated in full in one place rather than re-exported, every right-hand side a delegation |
-| `Examples.agda` | the living regression: **eleven sections** (§1 baseline runs, §2 the vacuous-Λ family, §3 `Nu-⟪Λ⟫` from closed plain source, §4 the reveal mirror, §5 the tower, §6 polymorphic payloads, §7 functions that cross, §8 the cancel shift witness, §9 hand-built boundaries at a non-empty ambient, §10 what substitution does at a crossing, §11 refutations and non-vacuity) and **23 `Reaches` runs**.  All ten reduction rules fire in §§1–8; §9a and §9b are the only two runs pinned state by state, by `evalTerms` |
+| `Examples.agda` | the living regression: **eleven sections** (§1 baseline runs, §2 the vacuous-Λ family, §3 `TyWrap` from closed plain source, §4 the reveal mirror, §5 the tower, §6 polymorphic payloads, §7 functions that cross, §8 the cancel shift witness, §9 hand-built boundaries at a non-empty ambient, §10 what substitution does at a crossing, §11 refutations and non-vacuity) and **23 `Reaches` runs**.  All ten reduction rules fire in §§1–8; §9a and §9b are the only two runs pinned state by state, by `evalTerms` |
 | `Source.agda` | the SOURCE language: plain System F with the standard `L [ A ]`, typing `n ∣ Γ ⊢ˢ M ⦂ A` over a count of type variables, the value restriction on `Λ`, and the derivation-building checker `inferˢ` |
 | `Compile.agda` | `compile`, on source typing derivations: structural except `⟦L [A]⟧ = ν A · ⟦L⟧ ⟨ reveal 0 C ⟩`; `compile-value` |
 | `CompileTyping.agda` | the elaboration theorems `compile-⊢` (with `CtxWf Δ Γ`), `compile-closed`, `compile-safe`, thin wrappers over `proof/Compile.agda` |
 | `SourceExamples.agda` | every plain `Examples` program as source, with `compile (inferˢ …) ≡ E.X₀` by `refl` |
-| `Residual.agda` | **the color-preservation statement layer** (2026-09-21): one-hole contexts `TermCtx`/`plug`; the type context AT THE HOLE `Δ ⊢C C ⊣ Δ′`, whose `names` is the hole's SCOPE MAP; `renCtxᴿ`/`holeᴿ` and `substCtx`/`holeEnv` (representation-only renaming and `Beta`-substitution through a context, and what reaches the hole), with the Alloc-indexed sibling shift `↑ᶜ[ δ ]`/`↑ᴴ[ δ ]`/`↑ʳ[ δ ]`; `Residual r C M ρ D N`/`Residuals`, indexed by the representation renaming ρ the move delivers to the hole.  Since experiment 2 that ρ is `idᵗ` everywhere but in a sibling an allocating step shifted (the pushed-in boundary of the retired `Nu-⟪⟫` was the other exception) — `Peel`'s argument moves VERBATIM.  Redex nodes are consumed; the `Drop` rules consume their literal; a substituted variable's position becomes the argument copy's (`CopyResidual`) |
+| `Residual.agda` | **the color-preservation statement layer** (2026-09-21): one-hole contexts `TermCtx`/`plug`; the type context AT THE HOLE `Δ ⊢C C ⊣ Δ′`, whose `names` is the hole's SCOPE MAP; `renCtxᴿ`/`holeᴿ` and `substCtx`/`holeEnv` (representation-only renaming and `Beta`-substitution through a context, and what reaches the hole), with the Alloc-indexed sibling shift `↑ᶜ[ δ ]`/`↑ᴴ[ δ ]`/`↑ʳ[ δ ]`; `Residual r C M ρ D N`/`Residuals`, indexed by the representation renaming ρ the move delivers to the hole.  Since experiment 2 that ρ is `idᵗ` everywhere but in a sibling an allocating step shifted (the pushed-in boundary of the retired `Nu-⟪⟫` was the other exception) — `Wrap`'s argument moves VERBATIM.  Redex nodes are consumed; the `Id` rules consume their literal; a substituted variable's position becomes the argument copy's (`CopyResidual`) |
 | `ColorPreservation.agda` | TWO theorems.  `color-preservation : ColorPreservation` is the color theorem proper — color is about type variables only, so a residual position's lexical type-variable scope keeps its size: `length (names Δ₂) ≡ length (names Δ₁)`.  It is a corollary of the stronger `scope-map-preservation : ScopeMapPreservation` — the whole scope map is the old one under the run's representation renaming: `names Δ₂ ≡ map ρ (names Δ₁)`.  The source position is read at `Δ` and the target at `runCtx rs`, the context the run ends at.  Both carry `WfCtx Δ` (spent re-typing the run's middle terms by `preservation`/`preservation-wf`) and have premise-free closed forms at `empty`.  Proofs in `proof/ColorPreservation.agda`; the concrete instance is `notes/ColorPreservationProbe.agda` |
 | `Show.agda` | de Bruijn → named renderer, printing the two universes differently — α, β, γ for representation variables, X, Y, Z for the ordinary names that denote them (see **Tools**) |
 | `All.agda` | aggregate driver: type-checking it type-checks the whole development |
@@ -422,13 +430,13 @@ keyed by module and definition in source order.
 | `Types.agda` | the bottom of the hierarchy: `substᵗ-cong`, `extsᵗ-renᵗ`, `substᵗ-renᵗ`.  It imports `strong-rep-nu.Types` and the standard library and nothing else |
 | `TypeSubst.agda` | the algebraic theory of type substitution — `_⨟ᵗ_`, the congruences, the fusion laws, `sub-sub`, `substitution`, `exts-sub-cons` — a deliberate mirror of `SystemF/agda/extrinsic/TypeSubst.agda`.  Its only client here is `proof.Preserve` |
 | `Ctx.agda` | every fact about the two universes: the determinacy suite `det` consumes (`∋ˡ-det`, `∋ʳ-det`, `same-rep-unique`, `sameTy-src-unique`, `∋:=-det`, `unique-lookup`), the name-map half of representation renaming, the insert/delete relations, and `RepWk`'s instances `repwk-abst₀`/`repwk-cons₀`/`repwk-abst` with `wfctx-ren` and `∋:=-ren` |
-| `Preserve.agda` | the preservation induction: `⊢ᵗ-of` (type well-formedness recovered from typing), the minted-conversion typings `⊢reveal`/`⊢conceal`, the `Nu` cases, `preserve-Drop`, `preserve-Beta`, the crossing-case statements `PeelCase` and `MergeCase`, and `module Impl`, which assembles them |
+| `Preserve.agda` | the preservation induction: `⊢ᵗ-of` (type well-formedness recovered from typing), the minted-conversion typings `⊢reveal`/`⊢conceal`, the ν cases, `preserve-Id`, `preserve-Beta`, the crossing-case statements `WrapCase` and `MergeCase`, and `module Impl`, which assembles them |
 | `Progress.agda` | the progress induction, `module Impl`: the ordinary cases over `proof.Canonical`, and the boundary cases constructing the relational readings and weakenings the rules carry; a boundary over a boundary value is ALWAYS a `Merge` redex (`merge-redex`) |
 | `Canonical.agda` | canonical forms — `simple-¬var`, `canon-simple-∀`, `canon-base`, `canon-ℕ`, `canon-⇒`, `canon-∀` — all driven by the observation that an INERT tail's target type determines the head constructor, so no inert tail has a base target and, with one boundary per value, the interior of a ∀-value's boundary is a `Λ` |
 | `TermSubst.agda` | the proof half of the term renaming/substitution API, in the section numbers its material had at top level: the derived `id²`/`renᶠ`/`renᴹ`/`wkN`/`wkᴹ`/`⇑ᴹ`; values under renaming (`inert-renᶜ`, `value-renᴹ²`, `value-renᴹᴿ`, `value-renⁿ`, `value-substᵐ`); the ordinary-identity agreement `renᴹ²-ord-id` with its `-pointwise-id` helpers; TERM-VARIABLE renaming `extⁿ`/`renⁿ`/`shiftᵐ` with `⊢renⁿ`, `renⁿ-id`, `⊢weakenⁿ`; the `⤊` transports; and the typed images `_∣_⊢ⁱ_⦂_` with `⊢imgTm`, `shiftᴵ-⊢`, `extᴵ-⊢` |
 | `Compose.agda` | **composition is well typed**: `⊢⨟ : Unique (names Δ) → Δ ⊢ c₁ ∶ A ⇝ B → Δ ⊢ c₂ ∶ B ⇝ C → Δ ⊢ (Δ ⊢ c₁ ⨟ c₂) ∶ A ⇝ C`, with the chain premises `¬ IsId` and `NoCancel` rebuilt, never assumed.  §1 `isIdᶜ-types`, §2 the lookup functions are complete (`repOf-sound`), §3 the smart constructors, §4 `⊢⨟` one lemma per sort |
-| `PeelDual.agda` | the `Peel` crossing: the dual is an INVERSE (`dual-interior`), so the argument crosses by a representation-only weakening; §1 weakens a TYPED conversion across the crossing (`weaken-⊢`), and §3 is `preserve-Peel` |
-| `RepWeaken.agda` | the two transports with an identity ordinary component, proved at a CUT over an arbitrary `RepWk ρ Ξ Ξ′`: `⊢renᴿ`, and from it `rep-weaken-⊢` (what `Peel` consumes) and `cross-Λ-⊢` (what `Beta`'s crossing consumes).  The hard case is `boundary`, whose six premises transport one lemma apiece |
+| `WrapDual.agda` | the `Wrap` crossing: the dual is an INVERSE (`dual-interior`), so the argument crosses by a representation-only weakening; §1 weakens a TYPED conversion across the crossing (`weaken-⊢`), and §3 is `preserve-Wrap` |
+| `RepWeaken.agda` | the two transports with an identity ordinary component, proved at a CUT over an arbitrary `RepWk ρ Ξ Ξ′`: `⊢renᴿ`, and from it `rep-weaken-⊢` (what `Wrap` consumes) and `cross-Λ-⊢` (what `Beta`'s crossing consumes).  The hard case is `boundary`, whose six premises transport one lemma apiece |
 | `MoveScope.agda` | **the scope move**: `Merge` keeps both frames, MERGED as `Θ₁ ++ Θ₂`, weakens both conversions onto the merged conversion context (`weaken-⊢`) and composes them there (`⊢⨟`).  §1 the merged context retains both old ones (`merged-keeps₁`, `merged-keeps₂`), §2 gluing two readings of one representation, §3 `preserve-Merge` |
 | `IdLayer.agda` | the id-layer facts about the two `Merge` redexes the retired `IdPush` and `CancelR` handled: typing already forces the two names to denote ONE representation variable (`idpush-name`, `cancel-name`), which is why composition's seal-then-unseal clause compares no names; `unseal` is the only active conversion an id-layer can meet; and the naked drop is sound exactly at a frame that changes nothing |
 | `Adversary.agda` | the soundness gate: a conceal must cite a REPRESENTED binder, and the two universes refuse it twice over — the name may be absent from the map, or the representation variable it names may be `abstR` |
@@ -477,7 +485,7 @@ labelled by the rule that fired (`showTrace n tr` does the same for a
       --[Merge]-->
     Ξ = [α := ℕ]
     (7 ⟪ id ℕ ⟫)
-      --[Drop]-->
+      --[Id]-->
     Ξ = [α := ℕ]
     7
         -- VALUE
@@ -506,7 +514,7 @@ it.
 | `notes.md` | the mathematical presentation of the current calculus, named-variable notation |
 | `PLAN.md` | the experiment's plan and running status block, the port's history, and a resume section for another machine |
 | `TODO.md` | the live handoff queue — empty: the COLOR PRESERVATION port is complete (statement approved and proof landed 2026-09-21); the file records the two deltas flagged for Jeremy |
-| `ColorPreservationProbe.agda` | the color-preservation statement on ONE RUN — `ΛX. ((ΛY. λx:(X⇒X). x) [X]) · (λx:X. x)`, three steps (TyBeta, Peel, Beta), the argument's `Residuals` derivation, its `⊢C` contexts at both ends, and `names Δ₃ ≡ map ρ★ (names Δ₀)` by `refl`: the TyBeta ALLOCATES a cell and `ξ-·-l` hands the argument that allocation's `suc`, so α's index shifts by one and the map is otherwise unchanged |
+| `ColorPreservationProbe.agda` | the color-preservation statement on ONE RUN — `ΛX. ((ΛY. λx:(X⇒X). x) [X]) · (λx:X. x)`, three steps (TyBeta, Wrap, Beta), the argument's `Residuals` derivation, its `⊢C` contexts at both ends, and `names Δ₃ ≡ map ρ★ (names Δ₀)` by `refl`: the TyBeta ALLOCATES a cell and `ξ-·₁` hands the argument that allocation's `suc`, so α's index shifts by one and the map is otherwise unchanged |
 | `DECISIONS.md` | **the design log**, in date order: decisions stated as definitions, worked examples, probe verdicts, and Jeremy's rulings.  Start at the end |
 | `DesignSpace.md` | **the map**: a mermaid graph of the fifty-one design points explored 2026-09-01…06, edges labelled with the evidence that moved the design, plus the legend and the through line |
 | `DesignPoints.md` | the map's glossary: one entry per node id, same order, each with a pointer into `DECISIONS.md`, `Design.md`, `Examples.agda` or a commit |
@@ -530,7 +538,7 @@ it.
 machine-checked refutations and witnesses behind the repairs above.
 All four are gated by `notes/All.agda`, which `All.agda` opens last, so
 `make check` type-checks them with everything else: `CrossingAudit`,
-`PeelPremise`, `RepresentationVariablesProbe` and `RepWeakenBindsWall`;
+`WrapPremise`, `RepresentationVariablesProbe` and `RepWeakenBindsWall`;
 `notes/All.agda`
 also gates `ColorPreservationProbe` and the stack census `StackCensus`
 (2026-09-24).  (`CancelRReachabilityWitness`, `RawRunProbe` and

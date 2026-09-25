@@ -81,7 +81,7 @@ data _∋_⦂_ : Ctx → Var → Ty → Set where
 
 -- A boundary over a SIMPLE value has a non-variable source type, so its
 -- conversion is a TAIL.  Inert tails: everything but the identity at a
--- base type, which `Drop` remove.
+-- base type, which `Id` remove.
 data InertTail : Tail → Set where
   I-idv      : ∀ {X}   → InertTail (mid (id (` X)))
   I-fun      : ∀ {s t} → InertTail (mid (s ↦ t))
@@ -168,7 +168,7 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
   -- (ν). Instantiate `L : ∀ C` at a fresh cell holding `A`'s
   -- representation `R` and convert with `c`.  `c` is read on the
   -- conversion context of `TyBetaBoundary` at `allocate R Δ` — the
-  -- context the `Nu` rules leave — and ANY `c` whose types line up is
+  -- context the ν rules leave — and ANY `c` whose types line up is
   -- accepted (the compiler writes `reveal 0 C`, strong-rep-nu.Compile).
   -- Commentary.md § Terms.agda / §4 — ⊢ν
   ⊢ν : ∀ {Δ Δᵢ Δᶜ Γ A R L C Cₑ B c}
@@ -213,7 +213,7 @@ value-var-visible (V-simple (S-Λ v)) ()
 β-seven : Term
 β-seven = ($ 7) ⟪ TyBetaBoundary , ⌞ id `ℕ ⌟ ⟫
 
--- typed at the context Nu-Λ LEAVES: the cell for ℕ has been allocated
+-- typed at the context TyBeta LEAVES: the cell for ℕ has been allocated
 β-seven-⊢ : allocate `ℕ empty ∣ [] ⊢ β-seven ⦂ `ℕ
 β-seven-⊢ =
   boundary TyBeta-bw ⊢$ (conv-tail (conv-mid (conv-id base-ℕ)))

@@ -60,23 +60,23 @@ base? (`∀ A)  = nothing
 ------------------------------------------------------------------------
 
 -- Commentary.md § Eval.agda / §1–§2
-PeelPremises : Ctxᵗ → Boundary → Conv → Ty → Set
-PeelPremises Δ Θ s A =
+WrapPremises : Ctxᵗ → Boundary → Conv → Ty → Set
+WrapPremises Δ Θ s A =
   Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Bᵢ ∈ Ty ] Σ[ Bₑ ∈ Ty ] Σ[ R ∈ Ty ]
     ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ)
       × (Δ ⊢ᶜ A ~ R))
 
-peelPremises? : (Δ : Ctxᵗ) (Θ : Boundary) (s : Conv) (A : Ty)
-  → Maybe (PeelPremises Δ Θ s A)
-peelPremises? Δ Θ s A with conversion? Δ Θ
-peelPremises? Δ Θ s A | nothing = nothing
-peelPremises? Δ Θ s A | just (Δᶜ , rel) with convTy? (underΛ Δᶜ) s
-peelPremises? Δ Θ s A | just (Δᶜ , rel) | nothing = nothing
-peelPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
+wrapPremises? : (Δ : Ctxᵗ) (Θ : Boundary) (s : Conv) (A : Ty)
+  → Maybe (WrapPremises Δ Θ s A)
+wrapPremises? Δ Θ s A with conversion? Δ Θ
+wrapPremises? Δ Θ s A | nothing = nothing
+wrapPremises? Δ Θ s A | just (Δᶜ , rel) with convTy? (underΛ Δᶜ) s
+wrapPremises? Δ Θ s A | just (Δᶜ , rel) | nothing = nothing
+wrapPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
   with read? (names Δ) A
-peelPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
+wrapPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
   | nothing = nothing
-peelPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
+wrapPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
   | just (R , same) = just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
 
 -- `Merge`'s premises: the three readings, and both conversions
@@ -120,7 +120,7 @@ mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r
   | just (Δ₂ᶜ , r₂) | just (Δ⋉ᶜ , r⋉)
   | nothing | m = nothing
 
--- `Peel`'s crossing premises (2026-09-18).  The redex fixes only Δ, Θ
+-- `Wrap`'s crossing premises (2026-09-18).  The redex fixes only Δ, Θ
 -- and `s`; the dual's conversion context is built here.
 CrossPremises : Ctxᵗ → Boundary → Conv → Set
 CrossPremises Δ Θ s =
@@ -151,7 +151,7 @@ crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , r
 
 -- An application whose two sides are values.  Matching on the head's
 -- VALUE derivation is what refines its shape — and, at a boundary, its
--- conversion, since `Peel` fires only under a `_↦_` middle.
+-- conversion, since `Wrap` fires only under a `_↦_` middle.
 appRedex : (Δ : Ctxᵗ) {L M : Term} → Value L → Value M
   → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ L · M -→ N ∣ δ))
 appRedex Δ (V-simple S-ƛ) vM = just (_ , none , Beta vM)
@@ -159,7 +159,7 @@ appRedex Δ (V-⟪⟫ {Θ = Θ} u (I-fun {s = s})) vM
   with crossPremises? Δ Θ s
 appRedex Δ (V-⟪⟫ {Θ = Θ} u (I-fun {s = s})) vM
   | just (Δᶜ , Δᵢ , Δᵈ , s′ , rc , ri , rd , sc) =
-  just (_ , none , Peel u vM rc ri rd sc)
+  just (_ , none , Wrap u vM rc ri rd sc)
 appRedex Δ (V-⟪⟫ {Θ = Θ} u (I-fun {s = s})) vM | nothing = nothing
 appRedex Δ (V-⟪⟫ u I-idv)      vM = nothing
 appRedex Δ (V-⟪⟫ u I-all)      vM = nothing
@@ -171,23 +171,23 @@ appRedex Δ (V-simple S-true)   vM = nothing
 appRedex Δ (V-simple S-false)  vM = nothing
 
 -- A `ν` whose body is a value.  `canon-∀` says the body is a `Λ` or a
--- `Λ` under one `∀`-middle boundary; the two clauses below are `Nu-Λ`
--- and `Nu-⟪Λ⟫` in that order.
+-- `Λ` under one `∀`-middle boundary; the two clauses below are `TyBeta`
+-- and `TyWrap` in that order.
 nuRedex : (Δ : Ctxᵗ) {L : Term} (A : Ty) (c : Conv) → Value L
   → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ ν A · L ⟨ c ⟩ -→ N ∣ δ))
 nuRedex Δ A c (V-simple (S-Λ vN)) with read? (names Δ) A
 nuRedex Δ A c (V-simple (S-Λ vN)) | just (R , same) =
-  just (_ , new R , Nu-Λ vN same)
+  just (_ , new R , TyBeta vN same)
 nuRedex Δ A c (V-simple (S-Λ vN)) | nothing = nothing
 nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (S-Λ vN) (I-all {s}))
-  with peelPremises? Δ Θ s A
+  with wrapPremises? Δ Θ s A
 nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (S-Λ vN) (I-all {s}))
   | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same) =
-  just (_ , new R , Nu-⟪Λ⟫ vN rel ⊢s same)
+  just (_ , new R , TyWrap vN rel ⊢s same)
 nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (S-Λ vN) (I-all {s})) | nothing = nothing
 nuRedex Δ A c _ = nothing
 
--- A boundary.  `Drop` fires at a literal under an identity at a base
+-- A boundary.  `Id` fires at a literal under an identity at a base
 -- type; `Merge` fires at ANY boundary over a boundary value, computing
 -- the two carried spellings and the merged frame's reading.  Everything
 -- else is either a congruence or stuck, which is the caller's business.
@@ -205,7 +205,7 @@ bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | nothing = nothing
 bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | nothing | it = nothing
 bdyRedex Δ U Θ (tail (mid (id A))) with simple? U | base? A
 bdyRedex Δ U Θ (tail (mid (id A))) | just u  | just b  =
-  just (_ , none , Drop u b)
+  just (_ , none , Id u b)
 bdyRedex Δ U Θ (tail (mid (id A))) | just u  | nothing = nothing
 bdyRedex Δ U Θ (tail (mid (id A))) | nothing | b       = nothing
 bdyRedex Δ M Θ c = nothing
@@ -230,12 +230,12 @@ step Δ (ƛ A ∙ N) = nothing
 step Δ (Λ N)     = nothing        -- no ξ-Λ: a type abstraction is a value
 step Δ (L · M) with step Δ L
 step Δ (L · M) | just (L′ , δ , st) =
-  just (L′ · ↑ᴹ[ δ ] M , δ , ξ-·-l st)
+  just (L′ · ↑ᴹ[ δ ] M , δ , ξ-·₁ st)
 step Δ (L · M) | nothing with value? L
 step Δ (L · M) | nothing | nothing = nothing
 step Δ (L · M) | nothing | just vL with step Δ M
 step Δ (L · M) | nothing | just vL | just (M′ , δ , st) =
-  just (↑ᴹ[ δ ] L · M′ , δ , ξ-·-r vL st)
+  just (↑ᴹ[ δ ] L · M′ , δ , ξ-·₂ vL st)
 step Δ (L · M) | nothing | just vL | nothing with value? M
 step Δ (L · M) | nothing | just vL | nothing | nothing = nothing
 step Δ (L · M) | nothing | just vL | nothing | just vM =

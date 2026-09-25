@@ -2,8 +2,8 @@ module strong-rep-nu.proof.ShiftAudit where
 
 -- File Charter:
 --   * THE SHIFT AUDIT — every place a rule MOVES A SUBTERM, checked
---     against FRAME EXACTNESS.  §1 the site table; §2 Peel; §3 the
---     two `Nu` rules; §4 the tower measure (ONE boundary per value, and
+--     against FRAME EXACTNESS.  §1 the site table; §2 Wrap; §3 the
+--     two ν rules; §4 the tower measure (ONE boundary per value, and
 --     `Merge` lowers it); §5 Beta; §6 Merge; §7 the drops; §8 the ξ
 --     rules; §9 dead machinery.
 --   * THE CRITERION.  A moved subterm's type context at the new
@@ -61,37 +61,37 @@ private
 
 -- Before: `Δ`.  After: the dual's interior, which `dual-interior` says
 -- is `Δ`.  EXACT, and the rule carries W verbatim.
-Peel-frame : ∀ {Γᵢ : Ctxᵗ} (Θ : Boundary) (Γ : Ctxᵗ)
+Wrap-frame : ∀ {Γᵢ : Ctxᵗ} (Θ : Boundary) (Γ : Ctxᵗ)
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
   → Γᵢ ⊢ⁱ dual Θ ⇒ Γ
-Peel-frame Θ Γ = dual-interior
+Wrap-frame Θ Γ = dual-interior
 
--- … and Peel allocates nothing, so its siblings do not move either.
-Peel-no-alloc : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Simple V → Value W
+-- … and Wrap allocates nothing, so its siblings do not move either.
+Wrap-no-alloc : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Simple V → Value W
   → Δ ⊢ᶜ Θ ⇒ Δᶜ → Δ ⊢ⁱ Θ ⇒ Δᵢ
   → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
   → Δ ⊢ (V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · W
       -→ (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ∣ none
-Peel-no-alloc = Peel
+Wrap-no-alloc = Wrap
 
 ------------------------------------------------------------------------
--- §3  THE TWO `Nu` RULES
+-- §3  THE TWO ν RULES
 ------------------------------------------------------------------------
 
--- `Nu-Λ` MOVES NOTHING: the allocation REFINES `N`'s own `abstR` binder
+-- `TyBeta` MOVES NOTHING: the allocation REFINES `N`'s own `abstR` binder
 -- to `bindR R` in place and `inst []` gives it ordinary name 0.
 -- Criterion (ii), no renaming at all.
-Nu-Λ-restores-name-0 :
+TyBeta-restores-name-0 :
   (inst []) ≡ bind 0 0 ∷ []
-Nu-Λ-restores-name-0 = refl
+TyBeta-restores-name-0 = refl
 
--- `Nu-⟪Λ⟫` is the same refinement one boundary in, with the two layers
+-- `TyWrap` is the same refinement one boundary in, with the two layers
 -- STACKED: the outer `inst []` restores name 0, and the middle
 -- `liftᴮ Θ` is the crossed frame read under it.  Read inside out they
 -- are exactly the fused `inst Θ` the retired TyPeelR-Λ wrote.
-Nu-⟪Λ⟫-stacks-to-inst : (Θ : Boundary)
+TyWrap-stacks-to-inst : (Θ : Boundary)
   → inst Θ ≡ liftᴮ Θ ++ inst []
-Nu-⟪Λ⟫-stacks-to-inst Θ = refl
+TyWrap-stacks-to-inst Θ = refl
 
 ------------------------------------------------------------------------
 -- §4  THE TOWER MEASURE — one boundary per value
@@ -174,7 +174,7 @@ canon-∀-height v ⊢V ()
     | inj₂ (N , Θ′ , s′ , vN , refl)
 
 -- … stated as the progress clause it decides, against the LIVE relation.
--- The step is `Nu-⟪Λ⟫`, which ALLOCATES the cell for the type
+-- The step is `TyWrap`, which ALLOCATES the cell for the type
 -- argument's representation.
 progress-Λ-at-0 : ∀ {Δ Δᶜ V Θ s c A R C} → Value V
   → Δ ∣ [] ⊢ ν A · (V ⟪ Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩ ⦂ C
@@ -203,7 +203,7 @@ progress-Λ-at-0 v
 progress-Λ-at-0 v
     (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
   | A₀ , B₀ , refl , eqₑ , ⊢s | _ , same-∀ pᵢ , same-∀ qᵢ | refl
-  | N , vN , refl = N , refl , Nu-⟪Λ⟫ vN rc ⊢s pA
+  | N , vN , refl = N , refl , TyWrap vN rc ⊢s pA
 
 ------------------------------------------------------------------------
 -- §5  BETA — the two crossings do not interfere
@@ -268,27 +268,27 @@ Move-inner-frame Θ₁ Θ₂ = merged-interior
 Drop$-vacuous : (n : ℕ) (Δ : Ctxᵗ) (Γ : Ctx) → Δ ∣ Γ ⊢ ($ n) ⦂ `ℕ
 Drop$-vacuous n Δ Γ = ⊢$
 
-Drop-true-vacuous : (Δ : Ctxᵗ) (Γ : Ctx) → Δ ∣ Γ ⊢ `true ⦂ `𝔹
-Drop-true-vacuous Δ Γ = ⊢true
+Id-true-vacuous : (Δ : Ctxᵗ) (Γ : Ctx) → Δ ∣ Γ ⊢ `true ⦂ `𝔹
+Id-true-vacuous Δ Γ = ⊢true
 
-Drop-false-vacuous : (Δ : Ctxᵗ) (Γ : Ctx) → Δ ∣ Γ ⊢ `false ⦂ `𝔹
-Drop-false-vacuous Δ Γ = ⊢false
+Id-false-vacuous : (Δ : Ctxᵗ) (Γ : Ctx) → Δ ∣ Γ ⊢ `false ⦂ `𝔹
+Id-false-vacuous Δ Γ = ⊢false
 
 -- AND THE STEP RETURNS EXACTLY THE SIMPLE VALUE: the rule's left-hand
 -- side is the simple value itself, and a closed simple value at a base
--- type IS a literal (`preserve-Drop`).
-Drop-only-simple : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ
+-- type IS a literal (`preserve-Id`).
+Id-only-simple : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ
   → (∀ {U Θ A} → Simple U → M ≡ U ⟪ Θ , ⌞ id A ⌟ ⟫ → M′ ≡ U)
-Drop-only-simple (Nu-Λ v p)              u ()
-Drop-only-simple (Beta w)                u ()
-Drop-only-simple (Peel v w rc ri rd sc)  u ()
-Drop-only-simple (Nu-⟪Λ⟫ v rc ⊢s p)      u ()
-Drop-only-simple (Merge u′ it ri r₁ r₂ r⋉ sc₁ sc₂) () refl
-Drop-only-simple (Drop u′ b)             u refl = refl
-Drop-only-simple (ξ-·-l st)              u ()
-Drop-only-simple (ξ-·-r v st)            u ()
-Drop-only-simple (ξ-ν st)                u ()
-Drop-only-simple (ξ-⟪⟫ ri st)            u refl =
+Id-only-simple (TyBeta v p)              u ()
+Id-only-simple (Beta w)                u ()
+Id-only-simple (Wrap v w rc ri rd sc)  u ()
+Id-only-simple (TyWrap v rc ⊢s p)      u ()
+Id-only-simple (Merge u′ it ri r₁ r₂ r⋉ sc₁ sc₂) () refl
+Id-only-simple (Id u′ b)             u refl = refl
+Id-only-simple (ξ-·₁ st)              u ()
+Id-only-simple (ξ-·₂ v st)            u ()
+Id-only-simple (ξ-ν st)                u ()
+Id-only-simple (ξ-⟪⟫ ri st)            u refl =
   ⊥-elim (value-¬step (V-simple u) st)
 
 ------------------------------------------------------------------------

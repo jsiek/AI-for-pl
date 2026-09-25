@@ -1,10 +1,10 @@
 module strong-rep-nu.Reduction where
 
 -- File Charter:
---   * §1 `_⊢_-→_∣_`, the ten rules — Nu-Λ, Beta, Peel, Nu-⟪Λ⟫,
---     Merge, Drop and the congruences
---     ξ-·-l, ξ-·-r, ξ-ν, ξ-⟪⟫ (NO ξ-Λ) —
---     with `Nu-ℕ`, the multi-step `_⊢_-→*_` and `runCtx`.
+--   * §1 `_⊢_-→_∣_`, the ten rules — TyBeta, Beta, Wrap, TyWrap,
+--     Merge, Id and the congruences
+--     ξ-·₁, ξ-·₂, ξ-ν, ξ-⟪⟫ (NO ξ-Λ) —
+--     with `TyBeta-ℕ`, the multi-step `_⊢_-→*_` and `runCtx`.
 --     §2 `value-¬step`.  (The proof of determinism, `det`, is
 --     strong-rep-nu.proof.Determinism; its statement is TypeSafety.)
 --   * THE STORE CHANGE.  A step returns the change `δ : Alloc` it made
@@ -13,7 +13,7 @@ module strong-rep-nu.Reduction where
 --   * THE CROSSING-SPELLING LAW.  When a rule MOVES a subterm between
 --     two name maps, the moved spelling is CARRIED as a named premise
 --     and PINNED by `SameConv` or `_⊢_≈_⊣_`, never computed by a fixed
---     renaming.  Three spellings are carried: Peel's `s′`, Merge's
+--     renaming.  Three spellings are carried: Wrap's `s′`, Merge's
 --     `t₁′` and `c₂′`.
 -- Commentary: Commentary.md § Reduction.agda
 
@@ -45,8 +45,8 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
 
   -- a boundary is BORN: `ν` mints THE BINDER of the event, and the
   -- conversion is the one `ν` carries (the compiler wrote it).
-  -- Commentary.md § Reduction.agda / Nu-Λ
-  Nu-Λ : ∀ {Δ A R N c} → Value N
+  -- Commentary.md § Reduction.agda / TyBeta
+  TyBeta : ∀ {Δ A R N c} → Value N
     → Δ ⊢ᶜ A ~ R
       --------------------------------------------------
     → Δ ⊢ ν A · (Λ N) ⟨ c ⟩ -→ N ⟪ inst [] , c ⟫ ∣ new R
@@ -60,8 +60,8 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
   -- THE CROSSING: the application is pushed in one layer and the
   -- argument acquires the DUAL, whose spelling `s′` the rule carries.
   -- The crossed value carries ONE boundary, so its interior is SIMPLE.
-  -- Commentary.md § Reduction.agda / Peel
-  Peel : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Simple V → Value W
+  -- Commentary.md § Reduction.agda / Wrap
+  Wrap : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Simple V → Value W
     → Δ ⊢ᶜ Θ ⇒ Δᶜ
     → Δ ⊢ⁱ Θ ⇒ Δᵢ
     → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ
@@ -70,15 +70,15 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
     → Δ ⊢ (V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · W
         -→ (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ∣ none
 
-  -- `ν` OVER A BOUNDARY — the ∀-conversion analogue of Peel.  Under
+  -- `ν` OVER A BOUNDARY — the ∀-conversion analogue of Wrap.  Under
   -- the one-boundary invariant the interior of a `∀`-value's boundary
-  -- is a `Λ`, so this ONE clause and `Nu-Λ` are total over canonical
+  -- is a `Λ`, so this ONE clause and `TyBeta` are total over canonical
   -- `∀`-values.  The contractum STACKS: the outer layer is `ν`'s own
   -- `⟪ inst [] , c ⟫`, the middle layer the crossed frame read under
   -- the new name (`liftᴮ Θ`) with the crossed conversion `s` moved
   -- VERBATIM; `Merge` fuses them on the next step.
-  -- Commentary.md § Reduction.agda / Nu-⟪Λ⟫
-  Nu-⟪Λ⟫ : ∀ {Δ Δᶜ N Θ s c A R Bᵢ Bₑ} → Value N
+  -- Commentary.md § Reduction.agda / TyWrap
+  TyWrap : ∀ {Δ Δᶜ N Θ s c A R Bᵢ Bₑ} → Value N
     → Δ ⊢ᶜ Θ ⇒ Δᶜ
     → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
     → Δ ⊢ᶜ A ~ R
@@ -106,17 +106,17 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
 
   -- an identity boundary at a base type, over a simple value (which
   -- typing makes a literal: a numeral at ℕ, `true`/`false` at 𝔹)
-  Drop : ∀ {Δ U Θ A} → Simple U → Base A
+  Id : ∀ {Δ U Θ A} → Simple U → Base A
       ----------------------------------
     → Δ ⊢ U ⟪ Θ , ⌞ id A ⌟ ⟫ -→ U ∣ none
 
   -- THE CONGRUENCES pass the store change up and shift the SIBLINGS
   -- by it.  Commentary.md § Reduction.agda / The congruences
-  ξ-·-l : ∀ {Δ L L′ M δ} → Δ ⊢ L -→ L′ ∣ δ
+  ξ-·₁ : ∀ {Δ L L′ M δ} → Δ ⊢ L -→ L′ ∣ δ
       -------------------------------
     → Δ ⊢ L · M -→ L′ · ↑ᴹ[ δ ] M ∣ δ
 
-  ξ-·-r : ∀ {Δ V M M′ δ} → Value V → Δ ⊢ M -→ M′ ∣ δ
+  ξ-·₂ : ∀ {Δ V M M′ δ} → Value V → Δ ⊢ M -→ M′ ∣ δ
       -------------------------------
     → Δ ⊢ V · M -→ ↑ᴹ[ δ ] V · M′ ∣ δ
 
@@ -132,9 +132,9 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
 
 -- Concrete instantiation check: the ordinary argument `ℕ` translates to
 -- representation payload `ℕ`, and `inst []` is TyBetaBoundary.
-Nu-ℕ : empty ⊢ ν `ℕ · (Λ ($ 7)) ⟨ ⌞ id `ℕ ⌟ ⟩
+TyBeta-ℕ : empty ⊢ ν `ℕ · (Λ ($ 7)) ⟨ ⌞ id `ℕ ⌟ ⟩
   -→ ($ 7) ⟪ TyBetaBoundary , ⌞ id `ℕ ⌟ ⟫ ∣ new `ℕ
-Nu-ℕ = Nu-Λ (V-simple S-$) same-ℕ
+TyBeta-ℕ = TyBeta (V-simple S-$) same-ℕ
 
 -- A run needs no store index: each step's change is applied to the
 -- context the tail runs at.
@@ -163,6 +163,6 @@ value-¬step (V-simple S-true) ()
 value-¬step (V-simple S-false) ()
 value-¬step (V-simple S-ƛ) ()
 value-¬step (V-simple (S-Λ v)) ()
-value-¬step (V-⟪⟫ u I-idv) (Drop u′ ())
+value-¬step (V-⟪⟫ u I-idv) (Id u′ ())
 value-¬step (V-⟪⟫ () it) (Merge u it′ ri r₁ r₂ r⋉ sc₁ sc₂)
 value-¬step (V-⟪⟫ u it) (ξ-⟪⟫ rel st) = value-¬step (V-simple u) st

@@ -1,6 +1,6 @@
-module strong-rep-nu.notes.PeelPremise where
+module strong-rep-nu.notes.WrapPremise where
 
--- THE ARGUMENT FOR THE `Peel` PREMISE, now used by Progress.
+-- THE ARGUMENT FOR THE `Wrap` PREMISE, now used by Progress.
 --
 -- The proof formerly lived in this notes module.  Its reusable pieces have
 -- moved into the core:
@@ -11,10 +11,10 @@ module strong-rep-nu.notes.PeelPremise where
 --   * strong-rep-nu.Boundary §3c constructs the dual's conversion context;
 --   * strong-rep-nu.Conversion §2c weakens a well-typed conversion and
 -- exports
---     `peel-premises` / `peel-premises-boundary`.
+--     `wrap-premises` / `wrap-premises-boundary`.
 --
 -- This note retains the concrete mixed-frame witness that motivated (Q) and
--- checks that the moved package constructs exactly the premise `Peel` needs.
+-- checks that the moved package constructs exactly the premise `Wrap` needs.
 
 open import Data.Nat using (ℕ)
 open import Data.List using ([]; _∷_)
@@ -89,7 +89,7 @@ mixed-Q = Q mixed-interior mixed-conversion mixed-dual-conversion
             (0 , here)
 
 -- The conversion weakening theorem consumes the same readings and returns
--- the premise carried by `Peel`.
+-- the premise carried by `Wrap`.
 mixed-premise : ∃[ s′ ] SameConv Γᵈ s′ Γᶜ (unseal 0)
 mixed-premise = premise-exists mixed-interior mixed-conversion
                                mixed-dual-conversion

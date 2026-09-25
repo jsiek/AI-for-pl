@@ -48,7 +48,7 @@ data Ty : Set where
   `∀  : Ty → Ty           -- ∀X.A   (A is a type with one more type variable)
 
 -- The base types: the types of the literals, and where a bare `id` and
--- the `Drop` rule sit.
+-- the `Id` rule sit.
 data Base : Ty → Set where
   base-ℕ : Base `ℕ
   base-𝔹 : Base `𝔹

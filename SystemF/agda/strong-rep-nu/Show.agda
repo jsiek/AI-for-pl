@@ -35,9 +35,9 @@ open import strong-rep-nu.Terms
          _∣_⊢_⦂_)
 open import strong-rep-nu.Boundary
   using (Boundary; Change; unbind; bind)
-open import strong-rep-nu.Reduction using (_⊢_-→_∣_; Nu-Λ; Beta; Peel;
-  Nu-⟪Λ⟫; Merge; Drop;
-  ξ-·-l; ξ-·-r; ξ-ν; ξ-⟪⟫)
+open import strong-rep-nu.Reduction using (_⊢_-→_∣_; TyBeta; Beta; Wrap;
+  TyWrap; Merge; Id;
+  ξ-·₁; ξ-·₂; ξ-ν; ξ-⟪⟫)
 open import strong-rep-nu.Eval
   using (Trace; stop; illtyped; _◅⟨_⟩_; Final; value; no-redex; out-of-fuel;
          eval)
@@ -371,14 +371,14 @@ showState Γ M =
 -- The rule that actually fired: a congruence reports the rule inside it,
 -- which is what a reader of a trace wants to see.
 ruleName : ∀ {Δ M N δ} → Δ ⊢ M -→ N ∣ δ → String
-ruleName (Nu-Λ v same)               = "Nu-Λ"
+ruleName (TyBeta v same)               = "TyBeta"
 ruleName (Beta v)                    = "Beta"
-ruleName (Peel v w rc ri rd sc)      = "Peel"
-ruleName (Nu-⟪Λ⟫ v rel ⊢s same)      = "Nu-⟪Λ⟫"
+ruleName (Wrap v w rc ri rd sc)      = "Wrap"
+ruleName (TyWrap v rel ⊢s same)      = "TyWrap"
 ruleName (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) = "Merge"
-ruleName (Drop u b)                  = "Drop"
-ruleName (ξ-·-l st)                  = ruleName st
-ruleName (ξ-·-r v st)                = ruleName st
+ruleName (Id u b)                  = "Id"
+ruleName (ξ-·₁ st)                  = ruleName st
+ruleName (ξ-·₂ v st)                = ruleName st
 ruleName (ξ-ν st)                    = ruleName st
 ruleName (ξ-⟪⟫ rel st)               = ruleName st
 

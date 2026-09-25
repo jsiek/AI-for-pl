@@ -9,7 +9,7 @@ module strong-rep-nu.Residual where
 --     `↑ᶜ[_]`/`↑ᴴ[_]`/`↑ʳ[_]`; §4 `Beta`'s substitution through a
 --     context; §5 `Residual`, ONE step; §6 `Residuals`, a whole run.
 --   * WHAT A RESIDUAL RECORDS.  A position is a pair `(C , M)`.  Every
---     move but the `Nu` rules' refinement is REPRESENTATION-ONLY, so
+--     move but the ν rules' refinement is REPRESENTATION-ONLY, so
 --     the relation carries as an INDEX the renaming ρ that reaches the
 --     hole.  Since experiment 2 ρ is `idᵗ` everywhere but in a
 --     shifted sibling.
@@ -206,11 +206,11 @@ data CopyResidual (k : ℕ) (σ : Var → Img)
 data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
               → TermCtx → Term → Renameᵗ → TermCtx → Term → Set where
 
-  -- Nu-Λ: the body stays where it is — its `Λ` slot BECOMES the
+  -- TyBeta: the body stays where it is — its `Λ` slot BECOMES the
   -- allocated cell — so ρ is `idᵗ`.
-  residual-Nu-Λ : ∀ {R C M}
+  residual-TyBeta : ∀ {R C M}
     (vN : Value (plug C M)) (pA : Δ ⊢ᶜ A ~ R)
-    → Residual (Nu-Λ {Δ = Δ} {A = A} {N = plug C M} {c = c} vN pA)
+    → Residual (TyBeta {Δ = Δ} {A = A} {N = plug C M} {c = c} vN pA)
         (νC A · (ΛC C) ⟨ c ⟩) M idᵗ
         (C ⟪C inst [] , c ⟫) M
 
@@ -230,31 +230,31 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
     → Residual (Beta {Δ = Δ} {A = A} {N = P} {W = plug C M} vW)
         ((ƛ A ∙ P) ·R C) M ρ D N
 
-  -- Peel, the function: it keeps its frame.
-  residual-Peel-fun : ∀ {Δᶜ Δᵈ C M s s′ t}
+  -- Wrap, the function: it keeps its frame.
+  residual-Wrap-fun : ∀ {Δᶜ Δᵈ C M s s′ t}
     (vV : Simple (plug C M)) (vW : Value W)
     (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ)
     (rd : Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ) (sc : SameConv Δᵈ s′ Δᶜ s)
-    → Residual (Peel {V = plug C M} {W = W} {t = t} vV vW rc ri rd sc)
+    → Residual (Wrap {V = plug C M} {W = W} {t = t} vV vW rc ri rd sc)
         ((C ⟪C Θ , ⌞ s ↦ t ⌟ ⟫) ·L W) M idᵗ
         ((C ·L (W ⟪ dual Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
 
-  -- Peel, the argument: it crosses into the dual VERBATIM.
-  residual-Peel-arg : ∀ {Δᶜ Δᵈ V C M s s′ t}
+  -- Wrap, the argument: it crosses into the dual VERBATIM.
+  residual-Wrap-arg : ∀ {Δᶜ Δᵈ V C M s s′ t}
     (vV : Simple V) (vW : Value (plug C M))
     (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ)
     (rd : Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ) (sc : SameConv Δᵈ s′ Δᶜ s)
-    → Residual (Peel {V = V} {W = plug C M} {t = t} vV vW rc ri rd sc)
+    → Residual (Wrap {V = V} {W = plug C M} {t = t} vV vW rc ri rd sc)
         ((V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) ·R C) M idᵗ
         ((V ·R (C ⟪C dual Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
 
-  -- Nu-⟪Λ⟫: as Nu-Λ, one boundary in — the body's `Λ` slot becomes
+  -- TyWrap: as TyBeta, one boundary in — the body's `Λ` slot becomes
   -- the allocated cell, and the crossed boundary is the middle layer.
-  residual-Nu-⟪Λ⟫ : ∀ {Δᶜ C M s R Bᵢ Bₑ}
+  residual-TyWrap : ∀ {Δᶜ C M s R Bᵢ Bₑ}
     (vN : Value (plug C M))
     (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (⊢s : underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ)
     (pA : Δ ⊢ᶜ A ~ R)
-    → Residual (Nu-⟪Λ⟫ {N = plug C M} {c = c} vN rc ⊢s pA)
+    → Residual (TyWrap {N = plug C M} {c = c} vN rc ⊢s pA)
         (νC A · ((ΛC C) ⟪C Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩) M idᵗ
         ((C ⟪C liftᴮ Θ , s ⟫) ⟪C inst [] , c ⟫) M
 
@@ -270,24 +270,24 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
         ((C ⟪C Θ₁ , tail t₁ ⟫) ⟪C Θ₂ , c₂ ⟫) M idᵗ
         (C ⟪C Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′ ⟫) M
 
-  -- (Drop: no residual — the literal is consumed
+  -- (Id: no residual — the literal is consumed
   -- with its boundary.)
 
   -- The ξ rules: the position is inside the stepping subterm, or in the
   -- SIBLING that stands still — and a sibling moves by the step's own
   -- store change, `↑ᶜ[ δ ]`/`↑ᴴ[ δ ]`/`↑ʳ[ δ ]`.
-  residual-ξ-·-l : ∀ {L′ C M D N} {r : Δ ⊢ L -→ L′ ∣ δ}
+  residual-ξ-·₁ : ∀ {L′ C M D N} {r : Δ ⊢ L -→ L′ ∣ δ}
     → Residual r C M ρ D N
-    → Residual (ξ-·-l {M = P} r) (C ·L P) M ρ (D ·L ↑ᴹ[ δ ] P) N
-  residual-ξ-·-l-sib : ∀ {L′ C M} (r : Δ ⊢ L -→ L′ ∣ δ)
-    → Residual (ξ-·-l {M = plug C M} r) (L ·R C) M (↑ʳ[ δ ] C)
+    → Residual (ξ-·₁ {M = P} r) (C ·L P) M ρ (D ·L ↑ᴹ[ δ ] P) N
+  residual-ξ-·₁-sib : ∀ {L′ C M} (r : Δ ⊢ L -→ L′ ∣ δ)
+    → Residual (ξ-·₁ {M = plug C M} r) (L ·R C) M (↑ʳ[ δ ] C)
         (L′ ·R ↑ᶜ[ δ ] C) (↑ᴴ[ δ ] C M)
-  residual-ξ-·-r : ∀ {V P′ C M D N} {r : Δ ⊢ P -→ P′ ∣ δ}
+  residual-ξ-·₂ : ∀ {V P′ C M D N} {r : Δ ⊢ P -→ P′ ∣ δ}
     (v : Value V) → Residual r C M ρ D N
-    → Residual (ξ-·-r v r) (V ·R C) M ρ (↑ᴹ[ δ ] V ·R D) N
-  residual-ξ-·-r-sib : ∀ {P′ C M} (v : Value (plug C M))
+    → Residual (ξ-·₂ v r) (V ·R C) M ρ (↑ᴹ[ δ ] V ·R D) N
+  residual-ξ-·₂-sib : ∀ {P′ C M} (v : Value (plug C M))
     (r : Δ ⊢ P -→ P′ ∣ δ)
-    → Residual (ξ-·-r v r) (C ·L P) M (↑ʳ[ δ ] C)
+    → Residual (ξ-·₂ v r) (C ·L P) M (↑ʳ[ δ ] C)
         (↑ᶜ[ δ ] C ·L P′) (↑ᴴ[ δ ] C M)
   residual-ξ-ν : ∀ {L′ C M D N} {r : Δ ⊢ L -→ L′ ∣ δ}
     → Residual r C M ρ D N

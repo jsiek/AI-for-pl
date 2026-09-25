@@ -9,7 +9,7 @@ module strong-rep-nu.proof.MoveScope where
 --   * THE MOVE.  The merged boundary presents the outer boundary's
 --     exterior and the inner boundary's interior, so the frames merge
 --     too: `Θ₁ ++ Θ₂`.  Both conversions are weakened onto the merged
---     conversion context (`weaken-⊢`, the Peel lemma) and composed
+--     conversion context (`weaken-⊢`, the Wrap lemma) and composed
 --     there (`⊢⨟`, strong-rep-nu.proof.Compose).
 --   * THE MIDDLE TYPE AGREES: the target of `t₁′` and the source of
 --     `c₂′` weaken ONE representation (the redex's middle type) at
@@ -30,7 +30,7 @@ open import strong-rep-nu.Conversion
 open import strong-rep-nu.Terms
 open import strong-rep-nu.Boundary
 open import strong-rep-nu.proof.Preserve using (MergeCase)
-open import strong-rep-nu.proof.PeelDual using (weaken-⊢)
+open import strong-rep-nu.proof.WrapDual using (weaken-⊢)
 open import strong-rep-nu.proof.Compose using (⊢⨟)
 
 ------------------------------------------------------------------------

@@ -6,7 +6,7 @@ module strong-rep-nu.proof.Determinism where
 --     contractum AND of the store change.  Name-map uniqueness is read
 --     off the typing through `bw-exterior`; the carried readings are
 --     identified by `interior-functional`/`conversion-functional`, the
---     weakenings (Peel's `s′`, Merge's `t₁′` and `c₂′`) by
+--     weakenings (Wrap's `s′`, Merge's `t₁′` and `c₂′`) by
 --     `sameConv-src-unique`.  The public statement is
 --     strong-rep-nu.TypeSafety.
 --   * Commentary: Commentary.md § Reduction.agda / det.
@@ -34,56 +34,56 @@ det : ∀ {Δ Γ M M₁ M₂ A δ₁ δ₂}
   → Δ ⊢ M -→ M₂ ∣ δ₂
   → M₁ ≡ M₂ × δ₁ ≡ δ₂
 
--- Nu-Λ
-det _ (Nu-Λ v same) (Nu-Λ v′ same′)
+-- TyBeta
+det _ (TyBeta v same) (TyBeta v′ same′)
   with same-rep-unique same same′
-det _ (Nu-Λ v same) (Nu-Λ v′ same′) | refl = refl , refl
-det _ (Nu-Λ v same) (ξ-ν st) =
+det _ (TyBeta v same) (TyBeta v′ same′) | refl = refl , refl
+det _ (TyBeta v same) (ξ-ν st) =
   ⊥-elim (value-¬step (V-simple (S-Λ v)) st)
-det _ (ξ-ν st) (Nu-Λ v same) =
+det _ (ξ-ν st) (TyBeta v same) =
   ⊥-elim (value-¬step (V-simple (S-Λ v)) st)
 
 -- Beta
 det _ (Beta w)     (Beta w′)    = refl , refl
-det _ (Beta w)     (ξ-·-l st)   = ⊥-elim (value-¬step (V-simple S-ƛ) st)
-det _ (Beta w)     (ξ-·-r v st) = ⊥-elim (value-¬step w st)
-det _ (ξ-·-l st)   (Beta w)     = ⊥-elim (value-¬step (V-simple S-ƛ) st)
-det _ (ξ-·-r v st) (Beta w)     = ⊥-elim (value-¬step w st)
+det _ (Beta w)     (ξ-·₁ st)   = ⊥-elim (value-¬step (V-simple S-ƛ) st)
+det _ (Beta w)     (ξ-·₂ v st) = ⊥-elim (value-¬step w st)
+det _ (ξ-·₁ st)   (Beta w)     = ⊥-elim (value-¬step (V-simple S-ƛ) st)
+det _ (ξ-·₂ v st) (Beta w)     = ⊥-elim (value-¬step w st)
 
--- Peel
+-- Wrap
 -- the dual's spelling is pinned by `sameConv-src-unique`
 det (⊢· (boundary mwΘ _ _ _ _ _) _)
-    (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
+    (Wrap v w rc ri rd sc) (Wrap v′ w′ rc′ ri′ rd′ sc′)
   with conversion-functional rc rc′ | interior-functional ri ri′
 det (⊢· (boundary mwΘ _ _ _ _ _) _)
-    (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
+    (Wrap v w rc ri rd sc) (Wrap v′ w′ rc′ ri′ rd′ sc′)
   | refl | refl with conversion-functional rd rd′
 det (⊢· (boundary mwΘ _ _ _ _ _) _)
-    (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
+    (Wrap v w rc ri rd sc) (Wrap v′ w′ rc′ ri′ rd′ sc′)
   | refl | refl | refl
   with sameConv-src-unique
          (dual-unique (name-fn (bw-exterior mwΘ)) ri rd) sc sc′
 det (⊢· (boundary mwΘ _ _ _ _ _) _)
-    (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
+    (Wrap v w rc ri rd sc) (Wrap v′ w′ rc′ ri′ rd′ sc′)
   | refl | refl | refl | refl = refl , refl
-det _ (Peel v w rc ri rd sc) (ξ-·-l st) =
+det _ (Wrap v w rc ri rd sc) (ξ-·₁ st) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
-det _ (Peel v w rc ri rd sc) (ξ-·-r u′ st) =
+det _ (Wrap v w rc ri rd sc) (ξ-·₂ u′ st) =
   ⊥-elim (value-¬step w st)
-det _ (ξ-·-l st) (Peel v w rc ri rd sc) =
+det _ (ξ-·₁ st) (Wrap v w rc ri rd sc) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
-det _ (ξ-·-r u′ st) (Peel v w rc ri rd sc) =
+det _ (ξ-·₂ u′ st) (Wrap v w rc ri rd sc) =
   ⊥-elim (value-¬step w st)
 
--- Nu over a boundary — determined by the redex outright.
-det _ (Nu-⟪Λ⟫ v rel ⊢s same)
-    (Nu-⟪Λ⟫ v′ rel′ ⊢s′ same′)
+-- TyWrap (ν over a boundary) — determined by the redex outright.
+det _ (TyWrap v rel ⊢s same)
+    (TyWrap v′ rel′ ⊢s′ same′)
   with same-rep-unique same same′
-det _ (Nu-⟪Λ⟫ v rel ⊢s same)
-    (Nu-⟪Λ⟫ v′ rel′ ⊢s′ same′) | refl = refl , refl
-det _ (Nu-⟪Λ⟫ v rel ⊢s same) (ξ-ν st) =
+det _ (TyWrap v rel ⊢s same)
+    (TyWrap v′ rel′ ⊢s′ same′) | refl = refl , refl
+det _ (TyWrap v rel ⊢s same) (ξ-ν st) =
   ⊥-elim (value-¬step (V-⟪⟫ (S-Λ v) I-all) st)
-det _ (ξ-ν st) (Nu-⟪Λ⟫ v rel ⊢s same) =
+det _ (ξ-ν st) (TyWrap v rel ⊢s same) =
   ⊥-elim (value-¬step (V-⟪⟫ (S-Λ v) I-all) st)
 
 -- Merge — the three readings are functions of the scopes, and the two
@@ -114,20 +114,20 @@ det _ (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) (ξ-⟪⟫ frame st) =
 det _ (ξ-⟪⟫ frame st) (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) =
   ⊥-elim (value-¬step (V-⟪⟫ u it) st)
 
--- Drop
-det _ (Drop u b) (Drop u′ b′) = refl , refl
-det _ (Drop u b) (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step (V-simple u) st)
-det _ (ξ-⟪⟫ frame st) (Drop u b) = ⊥-elim (value-¬step (V-simple u) st)
-det _ (Drop () b) (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
-det _ (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) (Drop () b)
+-- Id
+det _ (Id u b) (Id u′ b′) = refl , refl
+det _ (Id u b) (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step (V-simple u) st)
+det _ (ξ-⟪⟫ frame st) (Id u b) = ⊥-elim (value-¬step (V-simple u) st)
+det _ (Id () b) (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
+det _ (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) (Id () b)
 
 -- the congruences: the sibling shift is a function of the store change
-det (⊢· ⊢L ⊢M) (ξ-·-l st) (ξ-·-l st′) with det ⊢L st st′
-det (⊢· ⊢L ⊢M) (ξ-·-l st) (ξ-·-l st′) | refl , refl = refl , refl
-det _ (ξ-·-l st) (ξ-·-r v st′) = ⊥-elim (value-¬step v st)
-det _ (ξ-·-r v st) (ξ-·-l st′) = ⊥-elim (value-¬step v st′)
-det (⊢· ⊢L ⊢M) (ξ-·-r v st) (ξ-·-r u st′) with det ⊢M st st′
-det (⊢· ⊢L ⊢M) (ξ-·-r v st) (ξ-·-r u st′) | refl , refl = refl , refl
+det (⊢· ⊢L ⊢M) (ξ-·₁ st) (ξ-·₁ st′) with det ⊢L st st′
+det (⊢· ⊢L ⊢M) (ξ-·₁ st) (ξ-·₁ st′) | refl , refl = refl , refl
+det _ (ξ-·₁ st) (ξ-·₂ v st′) = ⊥-elim (value-¬step v st)
+det _ (ξ-·₂ v st) (ξ-·₁ st′) = ⊥-elim (value-¬step v st′)
+det (⊢· ⊢L ⊢M) (ξ-·₂ v st) (ξ-·₂ u st′) with det ⊢M st st′
+det (⊢· ⊢L ⊢M) (ξ-·₂ v st) (ξ-·₂ u st′) | refl , refl = refl , refl
 det (⊢ν wA rA ⊢L mw ⊢c same wB) (ξ-ν st) (ξ-ν st′) with det ⊢L st st′
 det (⊢ν wA rA ⊢L mw ⊢c same wB) (ξ-ν st) (ξ-ν st′) | refl , refl = refl , refl
 det (boundary mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)

@@ -5193,3 +5193,30 @@ Typing makes `U` a literal (`preserve-Drop`; `ShiftAudit`'s
 ten rules.  `Base` is a fact about types alone, so it moved from
 `Ctx.agda` to `Types.agda`.  Step counts are unchanged.  Historical
 entries above keep the old rule names.
+
+## 2026-09-25 — the reduction rules are RENAMED to match the literature (Jeremy)
+
+Jeremy asked for rule names in line with similar rules in the
+literature (`paper/draft.md`, related work; sources in `papers/text/`).
+Ruled: `TyBeta`, `Wrap`, `TyWrap`, `Id`, `ξ-·₁`/`ξ-·₂`.
+
+| was | now | same rule in the literature |
+|---|---|---|
+| `Nu-Λ` | `TyBeta` | Blame for All `(TYBETA)`; λC∀mp/λS∀mp `R_Tybeta` |
+| `Peel` | `Wrap` | λS∀mp `R_Wrap_S` (exactly our rule), λC∀mp `R_Wrap_C`, Blame for All `(WRAP)` (eager form), GTPLC `β-↦` |
+| `Nu-⟪Λ⟫` | `TyWrap` | the `∀` counterpart of `Wrap`, as Blame for All pairs `(SCWRAP)`/`(SCTYWRAP)` |
+| `Drop` | `Id` | Blame for All `(ID)`, λC∀mp/λS∀mp `R_Id`, GTPLC `β-id` |
+| `ξ-·-l`, `ξ-·-r` | `ξ-·₁`, `ξ-·₂` | the repo's own convention (GTPLC and the other calculi); PLFA |
+
+`Beta`, `Merge` (λS∀mp `R_Merge_S`, exactly our rule), `ξ-ν` and `ξ-⟪⟫`
+keep their names.  The `Peel` family followed the rule: `preserve-Wrap`,
+`WrapCase`, `WrapPremises`, `wrapPremises?`, `wrap-premises`,
+`residual-Wrap-*`, and the files `proof/WrapDual.agda` and
+`notes/WrapPremise.agda`; likewise `preserve-TyBeta`, `preserve-TyWrap`,
+`preserve-Id`, `Id-only-simple`, `TyBeta-ℕ`, and "the `Nu` rules" is now
+"the ν rules".  The live documents (`README.md`, `Commentary.md`,
+`notes/notes.md`, `paper/draft.md`) and `Show.ruleName` use the new
+names.  Entries above this one, and the other files in `notes/`, keep
+the names of their date.  Caution when reading them: before 2026-09-24
+`TyBeta` named strong-rep-store's rule, which minted its reveal at run
+time; today's `TyBeta` carries the compiler-written conversion.

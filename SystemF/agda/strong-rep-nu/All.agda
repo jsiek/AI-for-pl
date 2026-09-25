@@ -73,7 +73,7 @@ open import strong-rep-nu.proof.IdLayer
 -- THE SHIFT AUDIT (2026-09-08, ported 2026-09-19).  Every rule that MOVES
 -- a subterm, checked against frame exactness — now the relational
 -- transport lemmas of strong-rep-nu.Boundary §3a plus the observation that
--- every move but the `Nu` rules' refinement is REPRESENTATION-ONLY —
+-- every move but the ν rules' refinement is REPRESENTATION-ONLY —
 -- together with the tower measure: one boundary per value, and `Merge`
 -- lowers it.
 -- Direct gate: no top-level module reaches this shift audit.

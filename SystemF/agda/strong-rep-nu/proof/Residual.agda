@@ -116,38 +116,38 @@ copy-sound (copy-ν r)     = cong (λ t → ν _ · t ⟨ _ ⟩) (copy-sound r)
 
 residual-source : ∀ {Δ L L′ δ C M ρ D N} {r : Δ ⊢ L -→ L′ ∣ δ}
   → Residual r C M ρ D N → plug C M ≡ L
-residual-source (residual-Nu-Λ vN pA)            = refl
+residual-source (residual-TyBeta vN pA)            = refl
 residual-source (residual-Beta-body vW st)       = refl
 residual-source (residual-Beta-arg vW cr)        = refl
-residual-source (residual-Peel-fun vV vW rc ri rd sc) = refl
-residual-source (residual-Peel-arg vV vW rc ri rd sc) = refl
-residual-source (residual-Nu-⟪Λ⟫ vN rc ⊢s pA)   = refl
+residual-source (residual-Wrap-fun vV vW rc ri rd sc) = refl
+residual-source (residual-Wrap-arg vV vW rc ri rd sc) = refl
+residual-source (residual-TyWrap vN rc ⊢s pA)   = refl
 residual-source
   (residual-Merge u it ri rc₁ rc₂ rc⋉ sc₁ sc₂) = refl
-residual-source (residual-ξ-·-l r)      = cong (_· _) (residual-source r)
-residual-source (residual-ξ-·-l-sib r)  = refl
-residual-source (residual-ξ-·-r v r)    = cong (_ ·_) (residual-source r)
-residual-source (residual-ξ-·-r-sib v r) = refl
+residual-source (residual-ξ-·₁ r)      = cong (_· _) (residual-source r)
+residual-source (residual-ξ-·₁-sib r)  = refl
+residual-source (residual-ξ-·₂ v r)    = cong (_ ·_) (residual-source r)
+residual-source (residual-ξ-·₂-sib v r) = refl
 residual-source (residual-ξ-ν r) =
   cong (λ t → ν _ · t ⟨ _ ⟩) (residual-source r)
 residual-source (residual-ξ-⟪⟫ ri r) = cong (_⟪ _ , _ ⟫) (residual-source r)
 
 residual-sound : ∀ {Δ L L′ δ C M ρ D N} {r : Δ ⊢ L -→ L′ ∣ δ}
   → Residual r C M ρ D N → plug D N ≡ L′
-residual-sound (residual-Nu-Λ vN pA) = refl
+residual-sound (residual-TyBeta vN pA) = refl
 residual-sound (residual-Beta-body {W = W} {A = A} {C = C} {M = M} vW st) =
   plug-substCtx (betaEnv W A) C M
 residual-sound (residual-Beta-arg vW cr) = copy-sound cr
-residual-sound (residual-Peel-fun vV vW rc ri rd sc) = refl
-residual-sound (residual-Peel-arg vV vW rc ri rd sc) = refl
-residual-sound (residual-Nu-⟪Λ⟫ vN rc ⊢s pA) = refl
+residual-sound (residual-Wrap-fun vV vW rc ri rd sc) = refl
+residual-sound (residual-Wrap-arg vV vW rc ri rd sc) = refl
+residual-sound (residual-TyWrap vN rc ⊢s pA) = refl
 residual-sound
   (residual-Merge u it ri rc₁ rc₂ rc⋉ sc₁ sc₂) = refl
-residual-sound (residual-ξ-·-l r)      = cong (_· _) (residual-sound r)
-residual-sound (residual-ξ-·-l-sib {δ = δ} {C = C} {M = M} r) =
+residual-sound (residual-ξ-·₁ r)      = cong (_· _) (residual-sound r)
+residual-sound (residual-ξ-·₁-sib {δ = δ} {C = C} {M = M} r) =
   cong (_ ·_) (plug-↑ δ C M)
-residual-sound (residual-ξ-·-r v r)    = cong (_ ·_) (residual-sound r)
-residual-sound (residual-ξ-·-r-sib {δ = δ} {C = C} {M = M} v r) =
+residual-sound (residual-ξ-·₂ v r)    = cong (_ ·_) (residual-sound r)
+residual-sound (residual-ξ-·₂-sib {δ = δ} {C = C} {M = M} v r) =
   cong (_· _) (plug-↑ δ C M)
 residual-sound (residual-ξ-ν r) =
   cong (λ t → ν _ · t ⟨ _ ⟩) (residual-sound r)

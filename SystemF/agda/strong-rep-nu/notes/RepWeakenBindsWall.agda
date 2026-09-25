@@ -4,10 +4,10 @@ module strong-rep-nu.notes.RepWeakenBindsWall where
 --
 -- WHAT THE STORE CHANGED (experiment 2, 2026-09-22,
 -- notes/RepStoreSketch.md).  `RepWeakenTyping` is RETIRED: it was the
--- bind-block weakening `Peel`'s crossing argument consumed, and a
+-- bind-block weakening `Wrap`'s crossing argument consumed, and a
 -- boundary no longer HAS a bind block — `dual-interior` lands the
--- argument at the exterior itself, so `Peel` moves it verbatim
--- (strong-rep-nu.proof.PeelDual).  The one weakening left is the
+-- argument at the exterior itself, so `Wrap` moves it verbatim
+-- (strong-rep-nu.proof.WrapDual).  The one weakening left is the
 -- SIBLING SHIFT `⊢renᴿ` at `ρ = suc`, whose payload premise
 -- (`repwk-alloc`, `Ξ ⊢ᴿ R`) is exactly the discipline this wall argued
 -- for, now carried by the allocating rule's own `Δ ⊢ᶜ A ~ R`.
@@ -42,7 +42,7 @@ module strong-rep-nu.notes.RepWeakenBindsWall where
 -- (there are no local binders) nor free (the store has one entry).
 --
 -- THE REPAIR was the premise `reps Δ ⊢ᴮ Rs`, discharged at the one call
--- site — `Peel`'s crossing argument — by `bw-binds` of the very boundary
+-- site — `Wrap`'s crossing argument — by `bw-binds` of the very boundary
 -- being crossed.  Both the premise and that field went with the bind
 -- block; the surviving discipline is `repwk-alloc`'s `Ξ ⊢ᴿ R`.
 

@@ -6,7 +6,7 @@ module strong-rep-nu.proof.Compile where
 --     formation on any context with as many live names; §2 the theorem.
 --     The `ν` case is the old `preserve-TyBeta`'s construction: the
 --     compiled conversion `reveal 0 C` is typed at the conversion context
---     of `inst []` over the allocation, exactly where `Nu-Λ` puts it.
+--     of `inst []` over the allocation, exactly where `TyBeta` puts it.
 
 open import Data.Nat using (ℕ; zero; suc; _<_; s≤s; z≤n)
 open import Data.List using (List; []; _∷_; map; length)

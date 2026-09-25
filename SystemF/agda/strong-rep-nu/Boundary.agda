@@ -150,7 +150,7 @@ private
 -- changes run underneath both — one shift in each universe.
 -- The old changes, one shift in each universe: `Θ` read UNDER a freshly
 -- bound name 0 for a freshly allocated cell (the middle layer of
--- strong-rep-nu's `Nu-⟪Λ⟫`).
+-- strong-rep-nu's `TyWrap`).
 liftᴮ : Boundary → Boundary
 liftᴮ Θ = map shiftChange Θ
 
@@ -421,7 +421,7 @@ inst-conversion {Γ = Ξ ∣ Δ} (conversion cs) =
       (conv-bind (_ , here) conv[] fresh-zero-shift ins-here)
       (conv-changes-shift cs))
 
--- The MIDDLE LAYER of `Nu-⟪Λ⟫`: the old changes read under a
+-- The MIDDLE LAYER of `TyWrap`: the old changes read under a
 -- freshly bound name 0 for a freshly allocated cell.  These are the
 -- `liftᴮ Θ` halves of `inst-interior`/`inst-conversion` (inst Θ =
 -- liftᴮ Θ ++ (bind 0 0 ∷ []), and the tail acts first).
@@ -470,7 +470,7 @@ int-valid vn (changes∷ cs (step-bind v fr i)) =
   ins-valid i v (int-valid vn cs)
 
 -- The dual runs the same changes backwards, returning a crossing
--- argument to the name map the boundary was read on.  `Peel`'s
+-- argument to the name map the boundary was read on.  `Wrap`'s
 -- counterpart of `rewind-interior`; it needs no `BoundaryWf` either.
 dual-interior : ∀ {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
@@ -528,7 +528,7 @@ dual-unique uq int dconv =
 -- 3b. The name-set invariant for a crossed boundary scope
 ------------------------------------------------------------------------
 
--- (Q): the two conversion contexts straddled by `Peel` name the same
+-- (Q): the two conversion contexts straddled by `Wrap` name the same
 -- representation variables, though their ordinary positions may differ.
 -- Commentary.md § Boundary.agda / §3b
 
@@ -972,7 +972,7 @@ snoc-unbind0-interior-ren w v₀ (interior cs) =
 -- 4. Concrete boundary shapes
 ------------------------------------------------------------------------
 
--- `Nu-Λ` on `ν ℕ · (Λ N) ⟨ c ⟩` at `empty`: the cell is allocated and
+-- `TyBeta` on `ν ℕ · (Λ N) ⟨ c ⟩` at `empty`: the cell is allocated and
 -- the scope binds name 0 for it.
 TyBetaBoundary : Boundary
 TyBetaBoundary = (bind 0 0 ∷ [])

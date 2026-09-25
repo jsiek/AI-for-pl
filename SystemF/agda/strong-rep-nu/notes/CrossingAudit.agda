@@ -6,7 +6,7 @@ module strong-rep-nu.notes.CrossingAudit where
 --     in the same context it is used in?
 --   * Each answer is machine-checked here, on a frame that both unbinds and
 --     binds, since that is what makes the two contexts part.
---   * It records one hazard that is NOT repaired — `Peel` — and DISPROVES
+--   * It records one hazard that is NOT repaired — `Wrap` — and DISPROVES
 --     the invariant that would have made it safe (§5).
 --   * §6 compares with `main`, where that same invariant IS a theorem,
 --     and locates what this branch's design gave up to lose it.
@@ -23,7 +23,7 @@ module strong-rep-nu.notes.CrossingAudit where
 -- name and were each found to cross wrongly — `TyPeelR-⟪⟫`, `IdPush` and
 -- `CancelR`, all repaired (notes/DECISIONS.md, 2026-09-18).  `TyBeta`,
 -- `Beta` and `TyPeelR-Λ` are safe, and safe STRUCTURALLY, not by luck:
--- §§1–3 below.  `Peel` is the one that is neither — §4.
+-- §§1–3 below.  `Wrap` is the one that is neither — §4.
 
 open import Data.List using (List; []; _∷_; _++_)
 open import Data.Nat using (ℕ; zero; suc)
@@ -126,19 +126,19 @@ typeelrΛ-used :
 typeelrΛ-used = refl
 
 ------------------------------------------------------------------------
--- 4. Peel — THE REMAINING HAZARD, not repaired
+-- 4. Wrap — THE REMAINING HAZARD, not repaired
 ------------------------------------------------------------------------
 
--- `Peel` splits the redex's conversion `s ↦ t`.  `t` stays on Θ, so it is
+-- `Wrap` splits the redex's conversion `s ↦ t`.  `t` stays on Θ, so it is
 -- still read where it was.  `s` moves onto `dual Θ`, whose
 -- conversion context is taken at the INTERIOR — and that is a different
 -- map from Θ's own conversion context, where `s` was read:
-peel-read : names Δᶜ ≡ 0 ∷ 1 ∷ []
-peel-read = refl
+wrap-read : names Δᶜ ≡ 0 ∷ 1 ∷ []
+wrap-read = refl
 
-peel-used : names (proj₁ (from-just (conversion? Δᵢ (dual Θ₀))))
+wrap-used : names (proj₁ (from-just (conversion? Δᵢ (dual Θ₀))))
   ≡ 1 ∷ 0 ∷ []
-peel-used = refl
+wrap-used = refl
 
 -- Same names, opposite order: ordinary index 0 is representation variable
 -- 0 where `s` was read and representation variable 1 where it is used.  A
@@ -153,11 +153,11 @@ peel-used = refl
 -- than assumed.
 --
 ------------------------------------------------------------------------
--- 5. THE PROPERTY `Peel` NEEDS, AND WHEN IT HOLDS
+-- 5. THE PROPERTY `Wrap` NEEDS, AND WHEN IT HOLDS
 ------------------------------------------------------------------------
 
 -- Write I⟦Θ⟧Δ for the interior name map and C⟦Θ⟧Δ for the conversion
--- one.  `Peel` reads `s` at C⟦Θ⟧Δ and uses it at C⟦dual Θ⟧(I⟦Θ⟧Δ),
+-- one.  `Wrap` reads `s` at C⟦Θ⟧Δ and uses it at C⟦dual Θ⟧(I⟦Θ⟧Δ),
 -- so what it needs, for the frame it fires on, is
 --
 --     (P)    C⟦dual Θ⟧(I⟦Θ⟧Δ)  ≡  C⟦Θ⟧Δ
@@ -208,7 +208,7 @@ mixed-conv : nmConv Δ₃ ((bind 0 2 ∷ unbind 0 0 ∷ []))
   ≡ just (2 ∷ 0 ∷ 1 ∷ [])
 mixed-conv = refl
 
--- SO THERE IS NO STRUCTURAL ARGUMENT FOR `Peel`.  (P) is not closed under
+-- SO THERE IS NO STRUCTURAL ARGUMENT FOR `Wrap`.  (P) is not closed under
 -- `_++_`, which is what mixes an unbinding list with a binding one:
 push-shape-dual : nmDual Δ₃ (rewind Bind ++ Unbind) ≡ just (0 ∷ 2 ∷ 1 ∷ [])
 push-shape-dual = refl
@@ -224,10 +224,10 @@ push-shape-conv = refl
 -- form `Θ₁ ++ Θ₂` that `IdPush` builds, but no run is known to build one
 -- from these ingredients, and no reachable frame violating (P) has been
 -- exhibited.  What the disproof rules out is the PROOF STRATEGY, not
--- `Peel`.  `strong-rep-nu.Examples` §7c is the hardest case the corpus puts
+-- `Wrap`.  `strong-rep-nu.Examples` §7c is the hardest case the corpus puts
 -- to
 -- it — a function through §5a's tower, so the identities the tower mints
--- are `_↦_`s and `Peel` fires on composites `CancelR` and `IdPush` built —
+-- are `_↦_`s and `Wrap` fires on composites `CancelR` and `IdPush` built —
 -- and it passes.  That is testing, not proof.
 
 ------------------------------------------------------------------------
@@ -235,9 +235,9 @@ push-shape-conv = refl
 ------------------------------------------------------------------------
 
 -- On `main` the SAME equation is a theorem — `convCtx-dual`, in
--- strong-rep-nu/proof/PeelDual.agda — for an ARBITRARY well-formed change
+-- strong-rep-nu/proof/WrapDual.agda — for an ARBITRARY well-formed change
 -- list,
--- mixed ones included, and `preserve-Peel` is proved from it.  The reason
+-- mixed ones included, and `preserve-Wrap` is proved from it.  The reason
 -- is not a cleverer proof.  It is the representation.
 --
 -- There a name map is a FIXED CARRIER WITH A BIT PER SLOT: `unbind` and
@@ -262,7 +262,7 @@ push-shape-conv = refl
 -- than present-but-marked, is the premise of this branch, and removing
 -- the carrier is what it buys.
 
--- THE OBSTRUCTION TO REPAIRING `dual` INSTEAD OF `Peel`.  One could hope
+-- THE OBSTRUCTION TO REPAIRING `dual` INSTEAD OF `Wrap`.  One could hope
 -- to recompute the restored positions against Δ rather than replay the
 -- ones the unbinds recorded.  It does not work, because `dual` is asked to
 -- do TWO jobs and, once positions move, they want different numbers.
@@ -302,8 +302,8 @@ fix-stops-inverting : nmInt Δᵐ Dfix ≡ just (1 ∷ 0 ∷ [])
 fix-stops-inverting = refl
 
 -- So no single change list serves both readings on this frame, and the
--- choice is between the two things `Peel` needs.  What is left is either
--- a PREMISE on `Peel`, as the other three crossings got — but `Peel`
+-- choice is between the two things `Wrap` needs.  What is left is either
+-- a PREMISE on `Wrap`, as the other three crossings got — but `Wrap`
 -- carries a CONVERSION, and there is no judgement yet relating two
 -- conversions that name the same representations, so `_⊢_≈_⊣_` does not
 -- transfer — or a representation in which removing a name does not

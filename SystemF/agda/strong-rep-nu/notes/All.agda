@@ -7,7 +7,7 @@ module strong-rep-nu.notes.All where
 -- merged into strong-rep-nu.Examples on 2026-09-21; strong-rep-nu.All checks
 -- it.)
 open import strong-rep-nu.notes.CrossingAudit
-open import strong-rep-nu.notes.PeelPremise
+open import strong-rep-nu.notes.WrapPremise
 open import strong-rep-nu.notes.RepresentationVariablesProbe
 open import strong-rep-nu.notes.RepWeakenBindsWall
 
@@ -33,6 +33,6 @@ open import strong-rep-nu.notes.RepWeakenBindsWall
 -- spellings).  DELETED here; strong-rep-store's notes/ holds both.
 
 -- COLOR PRESERVATION on one run (2026-09-21): the statement layer of
--- strong-rep-nu.Residual exercised end to end on a Peel under a Λ.
+-- strong-rep-nu.Residual exercised end to end on a Wrap under a Λ.
 open import strong-rep-nu.notes.ColorPreservationProbe
 open import strong-rep-nu.notes.StackCensus

@@ -180,7 +180,7 @@ canon-ℕ v ()  | inj₂ (inj₁ refl)
 canon-ℕ v ()  | inj₂ (inj₂ refl)
 
 -- ARROW.  A closed value at an arrow type is a λ or a SIMPLE value
--- under a function middle — the two left-hand sides of Beta and Peel.
+-- under a function middle — the two left-hand sides of Beta and Wrap.
 canon-⇒ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ (A ⇒ B)
   → (Σ[ N ∈ Term ] (V ≡ ƛ A ∙ N))
   ⊎ (Σ[ U ∈ Term ] Σ[ Θ ∈ Boundary ] Σ[ s ∈ Conv ] Σ[ t ∈ Conv ]
@@ -202,8 +202,8 @@ canon-⇒ {Δ = Δ} (V-⟪⟫ u it)
   | A′ , B′ , eq | s , t , refl =
   inj₂ (_ , _ , s , t , u , refl)
 
--- ∀.  A closed value at a ∀ type is a Λ over a VALUE (Nu-Λ's premise)
--- or a Λ under a ∀ middle (Nu-⟪Λ⟫'s): the one-boundary invariant
+-- ∀.  A closed value at a ∀ type is a Λ over a VALUE (TyBeta's premise)
+-- or a Λ under a ∀ middle (TyWrap's): the one-boundary invariant
 -- leaves no third shape.
 canon-∀ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ `∀ C
   → (Σ[ N ∈ Term ] (Value N × (V ≡ Λ N)))

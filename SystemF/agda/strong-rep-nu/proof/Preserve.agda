@@ -700,7 +700,7 @@ wf-∀⁻ (wf-∀ w) = w
 reprCtx : Ty → Ctxᵗ → Ctxᵗ
 reprCtx R Δ = (bindR R ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ))
 
--- THE OUTER LAYER OF EVERY `Nu` CONTRACTUM is `⊢ν`'s own boundary:
+-- THE OUTER LAYER OF EVERY ν CONTRACTUM is `⊢ν`'s own boundary:
 -- the scope witness, the conversion and the exterior reading are `⊢ν`'s
 -- premises verbatim, once the scope's readings are pinned.
 nu-outer : ∀ {Δ R Δᵢ Δᶜ M c C Cₑ B}
@@ -723,30 +723,30 @@ nu-outer {Δ = Δ} {R = R} mw ⊢M ⊢c same wB | refl | refl =
   sameᵢ with wf-same (⊢ᵗ-of CtxWf-[] ⊢M)
   sameᵢ | S , q = S , q , q
 
--- `Nu-Λ`: the body, refined at the new cell, is the interior.
-preserve-Nu-Λ : ∀ {Δ N A R c C}
+-- `TyBeta`: the body, refined at the new cell, is the interior.
+preserve-TyBeta : ∀ {Δ N A R c C}
   → WfCtx Δ
   → Δ ⊢ᶜ A ~ R
   → Δ ∣ [] ⊢ ν A · (Λ N) ⟨ c ⟩ ⦂ C
   → allocate R Δ ∣ [] ⊢ N ⟪ inst [] , c ⟫ ⦂ C
-preserve-Nu-Λ wfΔ p (⊢ν wA rA (⊢Λ vN ⊢N) mw ⊢c same wB)
+preserve-TyBeta wfΔ p (⊢ν wA rA (⊢Λ vN ⊢N) mw ⊢c same wB)
   with same-rep-unique rA p
-preserve-Nu-Λ wfΔ p (⊢ν wA rA (⊢Λ vN ⊢N) mw ⊢c same wB) | refl =
+preserve-TyBeta wfΔ p (⊢ν wA rA (⊢Λ vN ⊢N) mw ⊢c same wB) | refl =
   nu-outer mw (⊢refine (rr-represent rr-refl) (represented-wf wfΔ p) ⊢N)
            ⊢c same wB
 
--- `Nu-⟪Λ⟫`: the middle layer is the crossed boundary read under the new
+-- `TyWrap`: the middle layer is the crossed boundary read under the new
 -- name, and every one of its premises is the crossed `boundary`'s, refined
 -- at the new cell (`liftᴮ-interior`, `liftᴮ-conversion`).
-preserve-Nu-⟪Λ⟫ : ∀ {Δ N Θ s c A R C}
+preserve-TyWrap : ∀ {Δ N Θ s c A R C}
   → WfCtx Δ
   → Δ ⊢ᶜ A ~ R
   → Δ ∣ [] ⊢ ν A · ((Λ N) ⟪ Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩ ⦂ C
   → allocate R Δ ∣ [] ⊢ (N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫ ⦂ C
-preserve-Nu-⟪Λ⟫ wfΔ p
+preserve-TyWrap wfΔ p
     (⊢ν wA rA (boundary mwΘ (⊢Λ vN ⊢N) ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
   with same-rep-unique rA p | conv-all-inv ⊢c₀
-preserve-Nu-⟪Λ⟫ wfΔ p
+preserve-TyWrap wfΔ p
     (⊢ν wA rA (boundary mwΘ (⊢Λ vN ⊢N) ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
   | refl | A₀ , B₀ , refl , refl , ⊢s₀ =
   nu-outer mw middle ⊢c same wB
@@ -790,46 +790,46 @@ sameTy-𝔹 wfΔ (R , p , q) with same-𝔹-rep q
 sameTy-𝔹 wfΔ (R , p , q) | refl =
   same-target-unique (name-fn wfΔ) p same-𝔹
 
--- `Drop`: typing makes the simple value a literal at the base type,
+-- `Id`: typing makes the simple value a literal at the base type,
 -- and a literal types at every context.
-preserve-Drop : ∀ {Δ U Θ A C}
+preserve-Id : ∀ {Δ U Θ A C}
   → WfCtx Δ
   → Simple U
   → Base A
   → Δ ∣ [] ⊢ U ⟪ Θ , ⌞ id A ⌟ ⟫ ⦂ C
   → Δ ∣ [] ⊢ U ⦂ C
-preserve-Drop wfΔ u base-ℕ
+preserve-Id wfΔ u base-ℕ
   (boundary mwΘ ⊢$ (conv-tail (conv-mid (conv-id base-ℕ)))
        sameᵢ sameₑ wE)
   rewrite sameTy-ℕ wfΔ sameₑ = ⊢$
-preserve-Drop wfΔ u base-𝔹
+preserve-Id wfΔ u base-𝔹
   (boundary mwΘ ⊢$ (conv-tail (conv-mid (conv-id base-𝔹)))
        sameᵢ sameₑ wE) =
   ⊥-elim (sameTy-ℕ-𝔹-absurd sameᵢ)
-preserve-Drop wfΔ u base-𝔹
+preserve-Id wfΔ u base-𝔹
   (boundary mwΘ ⊢true (conv-tail (conv-mid (conv-id base-𝔹)))
        sameᵢ sameₑ wE)
   rewrite sameTy-𝔹 wfΔ sameₑ = ⊢true
-preserve-Drop wfΔ u base-ℕ
+preserve-Id wfΔ u base-ℕ
   (boundary mwΘ ⊢true (conv-tail (conv-mid (conv-id base-ℕ)))
        (_ , same-𝔹 , ()) sameₑ wE)
-preserve-Drop wfΔ u base-𝔹
+preserve-Id wfΔ u base-𝔹
   (boundary mwΘ ⊢false (conv-tail (conv-mid (conv-id base-𝔹)))
        sameᵢ sameₑ wE)
   rewrite sameTy-𝔹 wfΔ sameₑ = ⊢false
-preserve-Drop wfΔ u base-ℕ
+preserve-Id wfΔ u base-ℕ
   (boundary mwΘ ⊢false (conv-tail (conv-mid (conv-id base-ℕ)))
        (_ , same-𝔹 , ()) sameₑ wE)
-preserve-Drop wfΔ u base-ℕ
+preserve-Id wfΔ u base-ℕ
   (boundary mwΘ (⊢ƛ w ⊢N) (conv-tail (conv-mid (conv-id base-ℕ)))
        (_ , same-⇒ _ _ , ()) sameₑ wE)
-preserve-Drop wfΔ u base-𝔹
+preserve-Id wfΔ u base-𝔹
   (boundary mwΘ (⊢ƛ w ⊢N) (conv-tail (conv-mid (conv-id base-𝔹)))
        (_ , same-⇒ _ _ , ()) sameₑ wE)
-preserve-Drop wfΔ u base-ℕ
+preserve-Id wfΔ u base-ℕ
   (boundary mwΘ (⊢Λ v ⊢N) (conv-tail (conv-mid (conv-id base-ℕ)))
        (_ , same-∀ _ , ()) sameₑ wE)
-preserve-Drop wfΔ u base-𝔹
+preserve-Id wfΔ u base-𝔹
   (boundary mwΘ (⊢Λ v ⊢N) (conv-tail (conv-mid (conv-id base-𝔹)))
        (_ , same-∀ _ , ()) sameₑ wE)
 
@@ -1009,8 +1009,8 @@ preserve-Beta cross wfΔ (⊢· (⊢ƛ w ⊢N) ⊢W) =
 -- and exposes NO public parameter at all.  Who proves what, and when:
 -- Commentary.md § proof/Preserve.agda / §4b
 
-PeelCase : Set
-PeelCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t C}
+WrapCase : Set
+WrapCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t C}
   → WfCtx Δ → Simple V → Value W
   → Δ ⊢ᶜ Θ ⇒ Δᶜ → Δ ⊢ⁱ Θ ⇒ Δᵢ
   → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
@@ -1038,14 +1038,14 @@ MergeCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ₂ᶜ Δ⋉ᶜ U Θ₁ Θ₂ t₁ t₁′ 
 -- that makes the minted cell well formed.  NO TYPING DERIVATION IS
 -- NEEDED — the rule premises and `WfCtx Δ` are enough.
 step-alloc : ∀ {Δ M M′ δ} → WfCtx Δ → Δ ⊢ M -→ M′ ∣ δ → AllocWf δ Δ
-step-alloc wfΔ (Nu-Λ v p) = aw-new (same-wfᴿ wfΔ p)
+step-alloc wfΔ (TyBeta v p) = aw-new (same-wfᴿ wfΔ p)
 step-alloc wfΔ (Beta w) = aw-none
-step-alloc wfΔ (Peel v w rc ri rd sc) = aw-none
-step-alloc wfΔ (Nu-⟪Λ⟫ v rc ⊢s p) = aw-new (same-wfᴿ wfΔ p)
+step-alloc wfΔ (Wrap v w rc ri rd sc) = aw-none
+step-alloc wfΔ (TyWrap v rc ⊢s p) = aw-new (same-wfᴿ wfΔ p)
 step-alloc wfΔ (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) = aw-none
-step-alloc wfΔ (Drop u b) = aw-none
-step-alloc wfΔ (ξ-·-l st) = step-alloc wfΔ st
-step-alloc wfΔ (ξ-·-r v st) = step-alloc wfΔ st
+step-alloc wfΔ (Id u b) = aw-none
+step-alloc wfΔ (ξ-·₁ st) = step-alloc wfΔ st
+step-alloc wfΔ (ξ-·₂ v st) = step-alloc wfΔ st
 step-alloc wfΔ (ξ-ν st) = step-alloc wfΔ st
 step-alloc wfΔ (ξ-⟪⟫ ri st) =
   aw-reps (interior-reps ri) (step-alloc (interior-wf wfΔ ri) st)
@@ -1060,23 +1060,23 @@ preserve-wf wfΔ ⊢M st = apply-wf wfΔ (step-alloc wfΔ st)
 module Impl
   (crossΛ  : CrossΛTyping)
   (shift   : ShiftTyping)
-  (peel    : PeelCase)
+  (wrap    : WrapCase)
   (merge   : MergeCase)
   where
 
   preserve : ∀ {Δ M M′ A δ} → WfCtx Δ → Δ ∣ [] ⊢ M ⦂ A
     → Δ ⊢ M -→ M′ ∣ δ → apply δ Δ ∣ [] ⊢ M′ ⦂ A
-  preserve wfΔ ⊢M (Nu-Λ v p) = preserve-Nu-Λ wfΔ p ⊢M
+  preserve wfΔ ⊢M (TyBeta v p) = preserve-TyBeta wfΔ p ⊢M
   preserve wfΔ ⊢M (Beta v) = preserve-Beta crossΛ wfΔ ⊢M
-  preserve wfΔ ⊢M (Peel v w rc ri rd sc) =
-    peel wfΔ v w rc ri rd sc ⊢M
-  preserve wfΔ ⊢M (Nu-⟪Λ⟫ v rc ⊢s p) = preserve-Nu-⟪Λ⟫ wfΔ p ⊢M
+  preserve wfΔ ⊢M (Wrap v w rc ri rd sc) =
+    wrap wfΔ v w rc ri rd sc ⊢M
+  preserve wfΔ ⊢M (TyWrap v rc ⊢s p) = preserve-TyWrap wfΔ p ⊢M
   preserve wfΔ ⊢M (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) =
     merge wfΔ u it ri r₁ r₂ r⋉ sc₁ sc₂ ⊢M
-  preserve wfΔ ⊢M (Drop u b) = preserve-Drop wfΔ u b ⊢M
-  preserve wfΔ (⊢· ⊢L ⊢M) (ξ-·-l st) =
+  preserve wfΔ ⊢M (Id u b) = preserve-Id wfΔ u b ⊢M
+  preserve wfΔ (⊢· ⊢L ⊢M) (ξ-·₁ st) =
     ⊢· (preserve wfΔ ⊢L st) (⊢↑ shift (step-alloc wfΔ st) ⊢M)
-  preserve wfΔ (⊢· ⊢L ⊢M) (ξ-·-r v st) =
+  preserve wfΔ (⊢· ⊢L ⊢M) (ξ-·₂ v st) =
     ⊢· (⊢↑ shift (step-alloc wfΔ st) ⊢L) (preserve wfΔ ⊢M st)
   preserve wfΔ (⊢ν wA rA ⊢L mw ⊢c same wB) (ξ-ν st) =
     nu-apply (step-alloc wfΔ st) wA rA (preserve wfΔ ⊢L st) mw ⊢c same wB

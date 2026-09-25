@@ -92,11 +92,11 @@ progress-id-base : ∀ {Δ Δᵢ Θ M A}
   → Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ]
       (Δ ⊢ M ⟪ Θ , ⌞ id A ⌟ ⟫ -→ M′ ∣ δ)
 progress-id-base v b ⊢M with canon-base v b ⊢M
-progress-id-base v b ⊢M | inj₁ (n , refl) = $ n , none , Drop S-$ b
+progress-id-base v b ⊢M | inj₁ (n , refl) = $ n , none , Id S-$ b
 progress-id-base v b ⊢M | inj₂ (inj₁ refl) =
-  `true , none , Drop S-true b
+  `true , none , Id S-true b
 progress-id-base v b ⊢M | inj₂ (inj₂ refl) =
-  `false , none , Drop S-false b
+  `false , none , Id S-false b
 
 ------------------------------------------------------------------------
 -- 4. Progress
@@ -142,20 +142,20 @@ module Impl where
     ⊥-elim (simple-¬var u ⊢M)
 
   -- A function-conversion wrapper carries its own BoundaryWf and the domain
-  -- conversion typing needed by the core `peel-premises-boundary` theorem.
-  progress-peel : ∀ {Δ U M Θ s t A B}
+  -- conversion typing needed by the core `wrap-premises-boundary` theorem.
+  progress-wrap : ∀ {Δ U M Θ s t A B}
     → Simple U
     → Value M
     → Δ ∣ [] ⊢ U ⟪ Θ , ⌞ s ↦ t ⌟ ⟫ ⦂ (A ⇒ B)
     → Σ[ N ∈ Term ] Σ[ δ ∈ Alloc ]
         (Δ ⊢ (U ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · M -→ N ∣ δ)
-  progress-peel u vM
+  progress-wrap u vM
     (boundary mwΘ ⊢U (conv-tail (conv-mid (conv-fun ⊢s ⊢t))) sameᵢ sameₑ wE)
-    with peel-premises-boundary mwΘ ⊢s
-  progress-peel u vM
+    with wrap-premises-boundary mwΘ ⊢s
+  progress-wrap u vM
     (boundary mwΘ ⊢U (conv-tail (conv-mid (conv-fun ⊢s ⊢t))) sameᵢ sameₑ wE)
     | Δᵈ , s′ , rd , sc =
-    _ , _ , Peel u vM (bw-conversion mwΘ) (bw-interior mwΘ) rd sc
+    _ , _ , Wrap u vM (bw-conversion mwΘ) (bw-interior mwΘ) rd sc
 
   -- `ν` over a Λ under a ∀ middle: the middle's body typing is the
   -- rule's premise.
@@ -170,7 +170,7 @@ module Impl where
   progress-ν-∀conv vN
     (⊢ν wA rA (boundary mwΘ ⊢V ⊢c sameᵢ sameₑ wE) mwν ⊢cν sameν wB)
     | A₀ , B₀ , refl , eqₑ , ⊢s =
-    _ , _ , Nu-⟪Λ⟫ vN (bw-conversion mwΘ) ⊢s rA
+    _ , _ , TyWrap vN (bw-conversion mwΘ) ⊢s rA
 
   ----------------------------------------------------------------------
   -- 5. The induction
@@ -187,22 +187,22 @@ module Impl where
   progress (⊢Λ vN ⊢N) = inj₁ (V-simple (S-Λ vN))
   progress (⊢· ⊢L ⊢M) with progress ⊢L
   progress (⊢· ⊢L ⊢M) | inj₂ (L′ , δ , st) =
-    inj₂ (L′ · ↑ᴹ[ δ ] _ , δ , ξ-·-l st)
+    inj₂ (L′ · ↑ᴹ[ δ ] _ , δ , ξ-·₁ st)
   progress (⊢· ⊢L ⊢M) | inj₁ vL with progress ⊢M
   progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₂ (M′ , δ , st) =
-    inj₂ (↑ᴹ[ δ ] _ · M′ , δ , ξ-·-r vL st)
+    inj₂ (↑ᴹ[ δ ] _ · M′ , δ , ξ-·₂ vL st)
   progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₁ vM with canon-⇒ vL ⊢L
   progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₁ vM | inj₁ (N , refl) =
     inj₂ (_ , none , Beta vM)
   progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₁ vM
     | inj₂ (U , Θ , s , t , u , refl) =
-    inj₂ (progress-peel u vM ⊢L)
+    inj₂ (progress-wrap u vM ⊢L)
   progress (⊢ν wA rA ⊢L mw ⊢c same wB) with progress ⊢L
   progress (⊢ν wA rA ⊢L mw ⊢c same wB) | inj₂ (L′ , δ , st) =
     inj₂ (ν _ · L′ ⟨ _ ⟩ , δ , ξ-ν st)
   progress (⊢ν wA rA ⊢L mw ⊢c same wB) | inj₁ vL with canon-∀ vL ⊢L
   progress (⊢ν wA rA ⊢L mw ⊢c same wB) | inj₁ vL
-    | inj₁ (N , vN , refl) = inj₂ (_ , _ , Nu-Λ vN rA)
+    | inj₁ (N , vN , refl) = inj₂ (_ , _ , TyBeta vN rA)
   progress (⊢ν wA rA ⊢L mw ⊢c same wB) | inj₁ vL
     | inj₂ (N , Θ , s , vN , refl) =
     inj₂ (progress-ν-∀conv vN (⊢ν wA rA ⊢L mw ⊢c same wB))

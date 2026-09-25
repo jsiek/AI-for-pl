@@ -1,19 +1,19 @@
-module strong-rep-nu.proof.PeelDual where
+module strong-rep-nu.proof.WrapDual where
 
 -- File Charter:
 --   * THE PEEL CROSSING — the dual is an INVERSE, and both of its
 --     readings are theorems of strong-rep-nu.Boundary §3a.  §1
 --     weakens a TYPED conversion across the crossing (`weaken-⊢`);
 --     §2 splits the redex's `boundary` premises at the arrow; §3 is
---     `preserve-Peel`.
+--     `preserve-Wrap`.
 --   * THE ARGUMENT DOES NOT MOVE.  `dual-interior` says the dual's
 --     interior IS the exterior, and since the store there is no bind
 --     block, so it is the exterior ON THE NOSE — `⊢W` is reused
 --     verbatim.
 --   * THE DUAL'S CONVERSION CONTEXT is not free: (P) is FALSE here,
---     (Q) is what survives, and `Peel` therefore carries the dual's
+--     (Q) is what survives, and `Wrap` therefore carries the dual's
 --     own spelling `s′` with a `SameConv`.
--- Commentary: Commentary.md § proof/PeelDual.agda
+-- Commentary: Commentary.md § proof/WrapDual.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; length)
@@ -29,7 +29,7 @@ open import strong-rep-nu.proof.Ctx
 open import strong-rep-nu.Conversion
 open import strong-rep-nu.Terms
 open import strong-rep-nu.Boundary
-open import strong-rep-nu.proof.Preserve using (PeelCase; same-wf)
+open import strong-rep-nu.proof.Preserve using (WrapCase; same-wf)
 
 ------------------------------------------------------------------------
 -- §1  Weakening a TYPED conversion
@@ -104,7 +104,7 @@ noCancel-~ uq d d′ (sameᶜ-unseal-seq e p) (sameᶜ-unseal-seq e′ p′) nc 
 -- other spelling; this produces its TYPING.  The two contexts share a
 -- representation context and differ only in their ordinary name map;
 -- the source context's names are unique, so `NoCancel` survives.
--- Commentary.md § proof/PeelDual.agda / §1
+-- Commentary.md § proof/WrapDual.agda / §1
 -- the lookup square, re-read on the second name map
 lookup-~ : ∀ {Γ Γ′ : Ctxᵗ} {X X′ α A}
   → reps Γ′ ≡ reps Γ → names Γ ⊆ᵃ names Γ′
@@ -247,16 +247,16 @@ sameTy-⇒⁻ (R ⇒ S , same-⇒ p q , same-⇒ p′ q′) =
 ------------------------------------------------------------------------
 
 -- THE ARGUMENT DOES NOT MOVE ANY MORE: `⊢W` is reused verbatim.
--- Commentary.md § proof/PeelDual.agda / §3
-preserve-Peel : PeelCase
-preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
+-- Commentary.md § proof/WrapDual.agda / §3
+preserve-Wrap : WrapCase
+preserve-Wrap {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
               {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
               wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
               (⊢· (boundary mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
                        sameᵢ sameₑ (wf-⇒ wA wC)) ⊢W)
   with interior-functional (bw-interior mwΘ) ri
      | conversion-functional (bw-conversion mwΘ) rc
-preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
+preserve-Wrap {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
               {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
               wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
               (⊢· (boundary mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
@@ -268,7 +268,7 @@ preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} 
                           (sym (conversion-reps rc))))
                  (name-fn (bw-conversion-wf mwΘ))
                  (Q ri rc rd) rcᶜ rdᶜ ⊢s
-preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
+preserve-Wrap {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
               {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
               wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
               (⊢· (boundary mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))

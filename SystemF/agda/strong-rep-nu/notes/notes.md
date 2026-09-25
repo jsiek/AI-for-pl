@@ -25,15 +25,15 @@ all four are visible in every section below.
      `νX:=A · L ⟨ c ⟩`, which carries the conversion the old `TyBeta`
      minted at run time.  Plain System F, with the standard `L [A]`, is a
      separate source language that is compiled into it (§ "The source
-     language and `compile`" below).  The ∀-elimination rules are `Nu-Λ`
-     and `Nu-⟪Λ⟫`, and `Nu-⟪Λ⟫` STACKS the crossed conversion under
+     language and `compile`" below).  The ∀-elimination rules are `TyBeta`
+     and `TyWrap`, and `TyWrap` STACKS the crossed conversion under
      `ν`'s own instead of fusing the two.
   4. **Merging boundaries** (2026-09-24, strong-rep-nu, 5d98bbe2).
      Conversions are normal forms in three sorts, a value carries AT
      MOST ONE boundary, and a boundary directly over a value's boundary
      is a redex of the one rule `Merge`, which merges the two frames and
      COMPOSES the two conversions (`Δ ⊢ c₁ ⨟ c₂`).  `Merge` subsumes
-     the retired `CancelR` and `IdPush`, and it fuses `Nu-⟪Λ⟫`'s stacked
+     the retired `CancelR` and `IdPush`, and it fuses `TyWrap`'s stacked
      layers one step later.  The third ∀-elimination rule, `Nu-⟪⟫`, is
      deleted: the interior of a `∀`-value's single boundary is a `Λ`, so
      it could not fire, and with it went the one reveal minted at run
@@ -337,8 +337,8 @@ inverse of a change swaps unbind and bind:
     dual (δ ∷ Θ)     = dual Θ ++ [ δ⁻¹ ]      -- inverses, in reverse order
 
 The other scopes the rules build are written out at their use sites:
-`[ bind X α ]` (the outer layer of both `Nu` contracta), `Θ` itself
-read under that bind (the middle layer of Nu-⟪Λ⟫), and the merge `Θ₂
+`[ bind X α ]` (the outer layer of both ν contracta), `Θ` itself
+read under that bind (the middle layer of TyWrap), and the merge `Θ₂
 ++ Θ₁`, the outer scope acting first, which is the one Merge builds.
 Stacked, the outer and middle layers act as `bind X α ∷ Θ`, which is
 the single scope the pre-`ν` rules wrote, and the next Merge builds
@@ -468,7 +468,7 @@ one at run time:
 Both operations are identities on base types.  (The pre-`ν` boundary
 rules also used `instRevealₓ(c)`, the same mint pushed through an
 existing conversion, fusing the crossed conversion with the reveal.  The
-`Nu` rules stack the two instead, and `instRevealₓ`/`instConcealₓ` were
+ν rules stack the two instead, and `instRevealₓ`/`instConcealₓ` were
 deleted on 2026-09-24.)
 
 ## Composition
@@ -589,7 +589,7 @@ The `⊢ν` and boundary rules are the non-System-F rules.
 
 `⊢ν` accepts any conversion `c` whose types line up.  Its source is the
 operator's body `C`, and it is read at the conversion context of the
-scope `[ bind X α ]` over the allocation, which is the context the `Nu`
+scope `[ bind X α ]` over the allocation, which is the context the ν
 rules put `c` at (Agda: `TyBetaBoundary` at `allocate R Δ`).  The
 compiler always writes `c = revealₓ(C)`, whose target is `C[X:=A]` read
 through the cell, so a compiled `νX:=A · L ⟨ revealₓ(C) ⟩` has the
@@ -652,7 +652,7 @@ A value carries at most one boundary:
 Value (U ⟪ Θ , tail t ⟫)`.)  A simple value has a type that is not a
 variable, so a value boundary's conversion has a non-variable source: it
 has no unseal chain, and it is a tail.  The one active tail is `id` at a
-base type, which `Drop` removes.  A second boundary on a value is not
+base type, which `Id` removes.  A second boundary on a value is not
 a value but a `Merge` redex, and a boundary with an active conversion is
 not a value.
 
@@ -696,16 +696,16 @@ Rules are stated for a well-typed redex, with variables as names,
 clause defines a context or a type the contractum reads.  Commentary is
 in the appendix at the end of this file, keyed by rule.
 
-    (Nu-Λ)      Δ ⊢ νX:=A · (ΛX.V) ⟨ d ⟩
+    (TyBeta)      Δ ⊢ νX:=A · (ΛX.V) ⟨ d ⟩
                     -→ V ⟪ [ bind X α ] , d ⟫ ∣ new α:=R
                 where Δ ⊢ᶜ A ~ R
 
     (Beta)      Δ ⊢ (λx:A.N) · W -→ N[x:=W:A] ∣ none
 
-    (Peel)      Δ ⊢ (U ⟪ Θ , c ↦ d ⟫) · W
+    (Wrap)      Δ ⊢ (U ⟪ Θ , c ↦ d ⟫) · W
                     -→ (U · (W ⟪ dual Θ , c ⟫)) ⟪ Θ , d ⟫ ∣ none
 
-    (Nu-⟪Λ⟫)    Δ ⊢ νX:=A · ((ΛX.V) ⟪ Θ , ∀X.c ⟫) ⟨ d ⟩
+    (TyWrap)    Δ ⊢ νX:=A · ((ΛX.V) ⟪ Θ , ∀X.c ⟫) ⟨ d ⟩
                     -→ (V ⟪ Θ , c ⟫) ⟪ [ bind X α ] , d ⟫ ∣ new α:=R
                 where Δ ⊢ᶜ A ~ R
 
@@ -715,7 +715,7 @@ in the appendix at the end of this file, keyed by rule.
                     -→ U ⟪ Θ₂ ++ Θ₁ , Δ⋉ᶜ ⊢ t₁ ⨟ c₂ ⟫ ∣ none
                 where Δ ⊢ᶜ Θ₂ ++ Θ₁ ⇒ Δ⋉ᶜ
 
-    (Drop)      U is simple    Base A
+    (Id)      U is simple    Base A
                 --------------------------------------
                 Δ ⊢ U ⟪ Θ , id A ⟫ -→ U ∣ none
 
@@ -732,11 +732,11 @@ A congruence passes the store change `δ` up and shifts the redex's
 siblings by it (`↑ᴹ[δ]` on a term, `↑ᴮ[δ]` on a scope; the identity
 with names).
 
-    (ξ-·-l)     Δ ⊢ L -→ L′ ∣ δ
+    (ξ-·₁)     Δ ⊢ L -→ L′ ∣ δ
                 ----------------------------------
                 Δ ⊢ L · M -→ L′ · ↑ᴹ[δ]M ∣ δ
 
-    (ξ-·-r)     Δ ⊢ M -→ M′ ∣ δ
+    (ξ-·₂)     Δ ⊢ M -→ M′ ∣ δ
                 ----------------------------------
                 Δ ⊢ V · M -→ ↑ᴹ[δ]V · M′ ∣ δ
 
@@ -786,7 +786,7 @@ as rendered:
     ((7 ⟪ ↥Y , ↥X , ↓Y , ↓X , ↓Z , seal Z ⟫) ⟪ ↥Z , unseal Z ⟫)
       --[Merge]-->
     (7 ⟪ ↥Z , ↥Y , ↥X , ↓Y , ↓X , ↓Z , id ℕ ⟫)
-      --[Drop]-->
+      --[Id]-->
     7
 
 Every step merges the innermost pair, and each shows one clause of the
@@ -805,7 +805,7 @@ composition:
   4. `seal Z ⨟ unseal Z = mkId ℕ = id ℕ`: the identity at `Z`'s
      representation, which composition reads off the merged conversion
      context (`repOf`).
-  5. `Drop` removes the identity at a base type.
+  5. `Id` removes the identity at a base type.
 
 The trace makes the two universes visible: the store cell `β := γ` holds
 an open representation, while `↥Y` gives `β` a type variable.  Every
@@ -897,7 +897,7 @@ The four congruences all rest on one lemma, the **sibling shift**
 well-formed representation at `Δ`'s store, then
 `allocate(α:=R,Δ) ∣ Γₜ ⊢ ↑ᴹ[new R]M : A`.  The type does not change,
 because an allocation only renumbers the representation universe.  It is
-what replaced the bind-block weakening the old `Peel` consumed.
+what replaced the bind-block weakening the old `Wrap` consumed.
 
 ## Color preservation
 
@@ -998,7 +998,7 @@ runs.
 The named presentation makes the same name remain the same name, but it
 does not hide why the Agda carries relational witnesses.  Six repairs
 were installed, each after a machine-checked defect.  Since the merge
-port (2026-09-24) three premises are live: `conv-bind-live`, `Peel`'s
+port (2026-09-24) three premises are live: `conv-bind-live`, `Wrap`'s
 `s′`, and `Merge`'s pair `t₁′`/`c₂′`, which inherits the lesson of the
 `X′` and `A′` rows (the inner conversion is read at Θ₁'s own conversion
 context, not at the merged one).  The two `Nu-⟪⟫` rows went with that
@@ -1010,7 +1010,7 @@ rule.
 | `strong-rep-store/notes/ForallPayloadWall.agda`, `TyPeelR-⟪⟫` | carry `Bᵢ′` with `_⊢_≈_⊣_` | retired with `Nu-⟪⟫`, 2026-09-24 | reindexing the interior annotation | it had to be readable in both the interior and conversion contexts |
 | `strong-rep-store/notes/ForallPayloadWall.agda`, `IdPush` | carry `X′` with `_⊢_≈_⊣_` | subsumed by `Merge`'s `t₁′`, 2026-09-24 | reindexing the pushed name | the name must be live at the inner and merged conversion contexts |
 | `notes/CancelRShiftWall.agda` (deleted 2026-09-24; git history) | carry `A′` from `Θ₁`'s own conversion context | subsumed by `Merge`'s `t₁′`, 2026-09-24 | the bind-prefix shift, which no longer exists | the type is still read at two different NAME MAPS, `Θ₁`'s and the merged one |
-| `notes/CrossingAudit.agda` and `notes/PeelPremise.agda` | carry `s′` with `SameConv` | live | reindexing the domain conversion across the dual | the original and dual conversion contexts remain different |
+| `notes/CrossingAudit.agda` and `notes/WrapPremise.agda` | carry `s′` with `SameConv` | live | reindexing the domain conversion across the dual | the original and dual conversion contexts remain different |
 | `strong-rep-store/notes/AddLock0Wall.agda` (against `TyPeelR-⟪⟫`) | carry `s″` with `SameConv` | retired with `Nu-⟪⟫`, 2026-09-24 | reindexing through the new unbind and old binds | both conversion readings and the old context's representation-rebased view were premises |
 
 # Notes ↔ Agda correspondence
@@ -1031,7 +1031,7 @@ The rule names below are the Agda constructor names.
 | `dual Θ` | `dual` | none |
 | `Θ ++ dual Θ` | `rewind Θ = dual Θ ++ Θ` | no rule builds one since 2026-09-23 |
 | `Θ₂ ++ Θ₁` (acting order) | `Θ₁ ++ Θ₂` (head-last) | nothing shifts: both scopes are spelled at the same store |
-| `[ bind X α ]` | `inst [] = TyBetaBoundary = bind 0 0 ∷ []` | the outer layer of every `Nu` contractum |
+| `[ bind X α ]` | `inst [] = TyBetaBoundary = bind 0 0 ∷ []` | the outer layer of every ν contractum |
 | `Θ` under that bind | `liftᴮ Θ = map shiftChange Θ` | one shift in each universe, because it is read one allocation later; `inst Θ = liftᴮ Θ ++ (bind 0 0 ∷ [])` is the two layers stacked |
 
 ## Formation, conversion, and term typing
@@ -1065,14 +1065,14 @@ The rule names below are the Agda constructor names.
 
 | notes rule | Agda constructor | presentation/mechanization gap |
 |---|---|---|
-| `Nu-Λ` | `Nu-Λ` | the contractum's scope is `inst []`; the conversion is `ν`'s own `c`, moved verbatim; `Value N` is retained.  Store change `new R` |
+| `TyBeta` | `TyBeta` | the contractum's scope is `inst []`; the conversion is `ν`'s own `c`, moved verbatim; `Value N` is retained.  Store change `new R` |
 | `Beta` | `Beta` | named frame-exact substitution hides the representation-only weakening under `Λ`, not the crossing boundary.  `none` |
-| `Peel` | `Peel` | `Simple V` and `Value W` are retained; `s′`/`SameConv` becomes one `c` plus scope in `Δᶜ,Δᵈ`; `W` moves verbatim.  `none` |
-| `Nu-⟪Λ⟫` | `Nu-⟪Λ⟫` | the middle scope is `liftᴮ Θ`, whose shift is invisible with names; `s` and `c` move verbatim; the premises `Δ ⊢ᶜ Θ ⇒ Δᶜ` and `underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ` are recoverable from typing.  `new R` |
+| `Wrap` | `Wrap` | `Simple V` and `Value W` are retained; `s′`/`SameConv` becomes one `c` plus scope in `Δᶜ,Δᵈ`; `W` moves verbatim.  `none` |
+| `TyWrap` | `TyWrap` | the middle scope is `liftᴮ Θ`, whose shift is invisible with names; `s` and `c` move verbatim; the premises `Δ ⊢ᶜ Θ ⇒ Δᶜ` and `underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ` are recoverable from typing.  `new R` |
 | `Merge` | `Merge` | `Simple U` and `InertTail t₁` are retained; the carried `t₁′` and `c₂′` with their two `SameConv`s collapse to `t₁` and `c₂` read at the merged conversion context `Δ⋉ᶜ`; the readings `Δ ⊢ⁱ Θ₂ ⇒ Δᵢ`, `Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ` and `Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ` are retained in Agda.  `none` |
-| `Drop` | `Drop` | none; the `Simple U` and `Base A` premises are retained (typing makes `U` a literal).  `none` |
-| `ξ-·-l` | `ξ-·-l` | the sibling shift `↑ᴹ[δ]` is the named identity |
-| `ξ-·-r` | `ξ-·-r` | same; `Value V` is retained |
+| `Id` | `Id` | none; the `Simple U` and `Base A` premises are retained (typing makes `U` a literal).  `none` |
+| `ξ-·₁` | `ξ-·₁` | the sibling shift `↑ᴹ[δ]` is the named identity |
+| `ξ-·₂` | `ξ-·₂` | same; `Value V` is retained |
 | `ξ-ν` | `ξ-ν` | none; `A` and `c` are ordinary and never shift |
 | `ξ-⟪⟫` | `ξ-⟪⟫` | the scope shift `↑ᴮ[δ]` is the named identity; the explicit interior-reading premise is retained |
 | — | (no `ξ-Λ`) | the value restriction removed it |
@@ -1085,7 +1085,7 @@ premises only at these sites:
   1. `boundary`: `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` becomes one `Bᵢ` readable in
      both contexts; `Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ` becomes one `Bₑ`
      readable in the exterior and conversion contexts.
-  2. `Peel`: `SameConv Δᵈ s′ Δᶜ s` becomes one `c` readable in
+  2. `Wrap`: `SameConv Δᵈ s′ Δᶜ s` becomes one `c` readable in
      both contexts.
   3. `Merge`: `SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ (tail t₁)` becomes one `t₁`
      readable at `Δ₁ᶜ` and `Δ⋉ᶜ`, and `SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂` one `c₂`
@@ -1116,7 +1116,7 @@ carry is a consequence of the readings' inclusions (`Δᵢ ⊆ Δᶜ`,
 omitted.  The mechanization notes say which Agda
 premises these were.
 
-## Nu-Λ
+## TyBeta
 
 `X` and `α` are the ordinary and representation binders of the event:
 `ν`'s own bound name, the `Λ`'s binder alpha-renamed to it, and the cell
@@ -1131,7 +1131,7 @@ changed.  `Examples.agda` §1a, rendered (`showRun 0 5 P₀-⊢`):
 
     Ξ = []
     ((ν X:=ℕ · (ΛY. (λx:Y. x)) ⟨ (seal X ↦ unseal X) ⟩) · 7)
-      --[Nu-Λ]-->
+      --[TyBeta]-->
     Ξ = [α := ℕ]
     (((λx:X. x) ⟪ ↥X , (seal X ↦ unseal X) ⟫) · 7)
 
@@ -1142,9 +1142,9 @@ the step.)
 Mechanization note.  Agda carries `Value N` and `Δ ⊢ᶜ A ~ R`; the scope
 is `inst []`, which is `TyBetaBoundary`.
 
-## Peel
+## Wrap
 
-Mechanization note.  Agda's `Peel` carries the readings `Δ ⊢ᶜ Θ ⇒ Δᶜ`,
+Mechanization note.  Agda's `Wrap` carries the readings `Δ ⊢ᶜ Θ ⇒ Δᶜ`,
 `Δ ⊢ⁱ Θ ⇒ Δᵢ`, `Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ` and `SameConv Δᵈ s′ Δᶜ s`: the domain
 conversion is weakened from Θ's conversion context to the dual's.
 With names `c` is textually unchanged, and that the two contexts name
@@ -1153,14 +1153,14 @@ none of these is a premise here.  The crossed value `U` is simple,
 because a value carries one boundary.  `W` **moves verbatim** — a boundary
 changes names only, so the crossing argument lands at the very store it
 was spelled at.  `notes/CrossingAudit.agda` refutes equality of the de
-Bruijn name maps, while `notes/PeelPremise.agda` proves that they name
+Bruijn name maps, while `notes/WrapPremise.agda` proves that they name
 the same representation variables.
 
-## Nu-⟪Λ⟫: stack, then merge
+## TyWrap: stack, then merge
 
 With one boundary per value, a `∀`-value is a `Λ` or a `Λ` under ONE
-`∀`-conversion boundary (`canon-∀`, `proof/Canonical.agda`), so `Nu-Λ`
-and `Nu-⟪Λ⟫` are total over canonical `∀`-values.  `Nu-⟪Λ⟫`'s contractum
+`∀`-conversion boundary (`canon-∀`, `proof/Canonical.agda`), so `TyBeta`
+and `TyWrap` are total over canonical `∀`-values.  `TyWrap`'s contractum
 has two outer layers: `ν`'s own `⟪ [bind X α] , d ⟫` outside, and the
 crossed boundary's `⟪ Θ , c ⟫`, read under the new name, in the middle.
 The crossed conversion `c` moves VERBATIM and the rule computes no
@@ -1169,12 +1169,12 @@ wrote ONE layer `⟪ bind X α ∷ Θ , instRevealₓ(c) ⟫`, fusing the crosse
 conversion with the reveal; stacking was chosen over a fused contractum
 (`notes/NuSketch.md`, candidates N1/N2).  Read inside out the two
 layers' scopes act as `bind X α ∷ Θ`, the old fused scope
-(`Nu-⟪Λ⟫-stacks-to-inst`, `proof/ShiftAudit.agda` §3).  Since the merge
+(`TyWrap-stacks-to-inst`, `proof/ShiftAudit.agda` §3).  Since the merge
 port the stacked pair is a `Merge` redex, so the fusion happens on the
 next step, by general composition (Jeremy kept the stacked contractum
 rather than merging on construction, 2026-09-24).
 
-## Nu-⟪Λ⟫
+## TyWrap
 
 No term moves in this clause: the `Λ` binder becomes the binder the
 allocation introduces, and the outer bind names it.  `Examples.agda`
@@ -1182,7 +1182,7 @@ allocation introduces, and the outer bind names it.  `Examples.agda`
 
     Ξ = [α := 𝔹]
     (((ν Y:=X · ((ΛZ. (λx:Z. true)) ⟪ ↓X , (∀Y. (id Y ↦ id 𝔹)) ⟫) ⟨ (seal Y ↦ id 𝔹) ⟩) ⟪ ↥X , (seal X ↦ id 𝔹) ⟫) · false)
-      --[Nu-⟪Λ⟫]-->
+      --[TyWrap]-->
     Ξ = [α := β , β := 𝔹]
     (((((λx:X. true) ⟪ ↓Y , (id X ↦ id 𝔹) ⟫) ⟪ ↥X , (seal X ↦ id 𝔹) ⟫) ⟪ ↥Y , (seal Y ↦ id 𝔹) ⟫) · false)
 
@@ -1190,8 +1190,8 @@ The renderer names cells newest first, so after the step the new cell is
 `α` (named `X`) and the old one is `β` (named `Y`).  The contractum's
 innermost layer is the crossed boundary `⟪ ↓Y , id X ↦ id 𝔹 ⟫`, its
 conversion the crossed `∀`'s body moved verbatim; the next is `ν`'s own
-`⟪ ↥X , seal X ↦ id 𝔹 ⟫`; the outermost is the layer the first `Nu-Λ`
-built.  The new cell's payload is `β`, the cell the first `Nu-Λ`
+`⟪ ↥X , seal X ↦ id 𝔹 ⟫`; the outermost is the layer the first `TyBeta`
+built.  The new cell's payload is `β`, the cell the first `TyBeta`
 allocated, because this `ν`'s argument is the name of that cell.  The
 next two steps are `Merge`s, which fuse the three layers into one:
 
@@ -1224,7 +1224,7 @@ two are.  `Examples.agda` §1a, the fourth and fifth states
     (7 ⟪ ↥X , ↓X , id ℕ ⟫)
 
 Here the composite is `seal X ⨟ unseal X = mkId ℕ`, the identity at
-`X`'s representation, and `Drop` fires next.  This is the step the
+`X`'s representation, and `Id` fires next.  This is the step the
 retired `CancelR` made; the retired `IdPush` (`id X` under `unseal Y`)
 is the composite `id X ⨟ unseal Y = unseal Y`.  The pairs neither rule
 handled, an inert tail under an inert conversion, used to STACK on a

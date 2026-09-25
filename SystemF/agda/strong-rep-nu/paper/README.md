@@ -59,7 +59,8 @@ way.
 **Confirmed against ACM's own build (2026-09-25).**  ACM's template zip
 (`acmart-primary.zip`, from
 <https://portalparts.acm.org/hippo/latex_templates/acmart-primary.zip>,
-behind a Cloudflare check, so downloaded by hand) is the same release,
+behind a Cloudflare check, so downloaded by hand; committed in 4b155794
+and removed once checked, as it duplicated the files here) is the same release,
 v2.20 (2026/08/16), with the class and samples pre-generated.  Every file
 used here is byte-identical to its copy there: `acmart.cls`,
 `ACM-Reference-Format.bst`, `acmart.dtx`, `acmart.ins`, `samples.dtx`,

@@ -1,365 +1,40 @@
 module strong-rep-nu.notes.ErasureProbe where
 
 -- File Charter:
---   * THE ERASURE FROM THE RUN-TIME LANGUAGE TO THE SOURCE LANGUAGE,
---     ITS THEOREM STATEMENTS, AND CHECKS OF THEM ON RUNS.  Design and
---     decision points: notes/ErasureSketch.md.
---     §1 what a representation variable DENOTES (`env`), read through
---     the store, and the source scope (`srcScope`); §2 the erasure of
---     types (`nameσ`, `eraseTy`); §3 the interior name map, computed
---     (`interiorⁿ`, `inside`), and its agreement with `_⊢ⁱ_⇒_`
---     (`inside-sound`); §4 the erasure of terms (`erase`); §5 the
---     STATEMENTS, as `Set`s, unproved: `ErasureTyping`,
---     `ErasureSimulation`, `ErasureStutter`, `ErasureStep`, `ErasureRun`,
---     `ErasureReflection`, `CompiledRunErases`; §6 `EraseCompileAt`
---     and `EraseCompile`, PROVED; §7 the example checks, by `refl`.
---   * NO POSTULATES.  Typing and simulation are STATED, not proved
---     (Jeremy's rule: statements are reviewed before proofs).
---   * ERASURE IS A FUNCTION OF (Δ, M), not of a typing derivation:
---     the context carries the name map and the store, which is all
---     an ordinary type variable needs to be resolved.
+--   * CHECKS OF THE ERASURE THEOREMS ON RUNS, by `refl`.  The erasure is
+--     strong-rep-nu.Erasure, the statements strong-rep-nu.ErasureTheorems
+--     (proofs under proof/Erasure*); the design is notes/ErasureSketch.md.
+--   * §7a equality deciders; §7b per-step rows (predicted by `isStutter`,
+--     observed on the erasures); §7c rendering; §7d the required runs;
+--     §7e all twenty compiled programs; §7f runs beyond the corpus, the
+--     store followed, the naive erasure, and `Mbad` (why the simulation
+--     needs its typing premise).
 
 open import Data.Nat using (ℕ; zero; suc; _≡ᵇ_)
-open import Data.Bool using (Bool; true; false; _∧_; if_then_else_; T)
+open import Data.Bool using (Bool; true; false; _∧_; if_then_else_)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Maybe using (Maybe; just; nothing)
 import Data.Maybe as Maybe
-open import Data.Product using (Σ-syntax; ∃-syntax; _×_; _,_; proj₁)
-open import Data.Sum using (_⊎_)
+open import Data.Product using (_,_; proj₁)
 open import Data.String using (String)
 import Data.Nat.Show
-open import Relation.Nullary using (¬_)
-open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; cong; cong₂; trans)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import strong-rep-nu.Types
 open import strong-rep-nu.Ctx
-open import strong-rep-nu.Boundary
-  using (Change; unbind; bind; Boundary; _∣_⊢δ_⇒_; step-unbind;
-         step-bind; _∣_⊢χ_⇒_; changes[]; changes∷; _⊢ⁱ_⇒_; interior)
+open import strong-rep-nu.Boundary using (unbind)
 open import strong-rep-nu.Terms
-  using (Term; Ctx; `_; $_; `true; `false; ƛ_∙_; _·_; Λ_; ν_·_⟨_⟩;
-         _⟪_,_⟫; _∣_⊢_⦂_)
+  using (Term; `_; $_; `true; `false; ƛ_∙_; _·_; Λ_; ν_·_⟨_⟩; _⟪_,_⟫)
 open import strong-rep-nu.Reduction
 open import strong-rep-nu.Eval using (step)
 open import strong-rep-nu.Show using (ruleName; tyBinder; tmBinder; nthS)
 open import strong-rep-nu.Source
-  using (STerm; `_; $_; `true; `false; ƛ_∙_; _·_; Λ_; _[_];
-         _∣_⊢ˢ_⦂_; ⊢ˢ`; ⊢ˢ$; ⊢ˢtrue; ⊢ˢfalse; ⊢ˢƛ; ⊢ˢ·; ⊢ˢΛ; ⊢ˢ[];
-         inferˢ)
-open import strong-rep-nu.Compile using (compile)
+  using (STerm; `_; $_; `true; `false; ƛ_∙_; _·_; Λ_; _[_]; inferˢ)
 open import strong-rep-nu.Conversion using (⌞_⌟; id)
 open import strong-rep-nu.SourceReduction
-open import strong-rep-nu.proof.TypeSubst using (subst-cong; subst-id)
+open import strong-rep-nu.Erasure
 import strong-rep-nu.Examples as E
 import strong-rep-nu.SourceExamples as SE
-
-------------------------------------------------------------------------
--- 1. What a representation variable denotes
-------------------------------------------------------------------------
-
--- `env Ξ α` is the SOURCE type the representation variable α denotes
--- at the store Ξ.  An abstract cell (created by a `Λ`) denotes a source
--- type variable, numbered by how many abstract cells are NEWER than it;
--- a concrete cell `bindR R` denotes its payload, itself erased at the
--- store BELOW it (a payload is read outside its own binder), so an ALIAS
--- cell `β := γ` denotes whatever γ denotes.  A payload's own `∀`s are
--- handled by `substᵗ`'s `extsᵗ`, which is exactly the mixed reading
--- `_⊢ᴿ[_]_` (local index i < n, free index n + α).
-env : RepCtx → Substᵗ
-env []            = `_                       -- junk: never read at WfCtx
-env (abstR ∷ Ξ)   = ` 0 •ᵗ (λ α → ⇑ᵗ (env Ξ α))
-env (bindR R ∷ Ξ) = substᵗ (env Ξ) R •ᵗ env Ξ
-
--- the number of source type variables in scope: the abstract cells
-srcScope : RepCtx → ℕ
-srcScope []            = zero
-srcScope (abstR ∷ Ξ)   = suc (srcScope Ξ)
-srcScope (bindR R ∷ Ξ) = srcScope Ξ
-
-------------------------------------------------------------------------
--- 2. Erasing a type
-------------------------------------------------------------------------
-
-lookupⁿ : TyCtx → ℕ → Maybe RVar
-lookupⁿ []      X       = nothing
-lookupⁿ (α ∷ η) zero    = just α
-lookupⁿ (α ∷ η) (suc X) = lookupⁿ η X
-
--- an ordinary variable with no name-map entry erases to ITSELF (junk,
--- never reached on a well-formed type; it makes `EraseCompile`
--- unconditional)
-resolve : RepCtx → ℕ → Maybe RVar → Ty
-resolve Ξ X (just α) = env Ξ α
-resolve Ξ X nothing  = ` X
-
--- what each ordinary type variable of Δ denotes: follow the name map
--- to a representation variable, then the store
-nameσ : Ctxᵗ → Substᵗ
-nameσ Δ X = resolve (reps Δ) X (lookupⁿ (names Δ) X)
-
--- ⌊ A ⌋ at Δ
-eraseTy : Ctxᵗ → Ty → Ty
-eraseTy Δ A = substᵗ (nameσ Δ) A
-
-eraseCtx : Ctxᵗ → Ctx → Ctx
-eraseCtx Δ Γ = map (eraseTy Δ) Γ
-
-------------------------------------------------------------------------
--- 3. The interior name map, computed
-------------------------------------------------------------------------
-
-deleteAt : ℕ → TyCtx → TyCtx
-deleteAt k       []       = []
-deleteAt zero    (α ∷ αs) = αs
-deleteAt (suc k) (α ∷ αs) = α ∷ deleteAt k αs
-
-insertAt : ℕ → RVar → TyCtx → TyCtx
-insertAt zero    β αs       = β ∷ αs
-insertAt (suc k) β []       = β ∷ []
-insertAt (suc k) β (α ∷ αs) = α ∷ insertAt k β αs
-
-act : Change → TyCtx → TyCtx
-act (unbind X α) η = deleteAt X η
-act (bind X α)   η = insertAt X α η
-
--- head-LAST, as in `_∣_⊢χ_⇒_`: the tail acts first
-interiorⁿ : Boundary → TyCtx → TyCtx
-interiorⁿ []      η = η
-interiorⁿ (δ ∷ Θ) η = act δ (interiorⁿ Θ η)
-
--- the context a boundary's body is erased at: same store, interior names
-inside : Ctxᵗ → Boundary → Ctxᵗ
-inside Δ Θ = reps Δ ∣ interiorⁿ Θ (names Δ)
-
--- the computed interior IS the relational one
-private
-  delete-sound : ∀ {α η X η′} → α ⊢- η at X ⇒ η′ → deleteAt X η ≡ η′
-  delete-sound del-here      = refl
-  delete-sound (del-there d) = cong (_ ∷_) (delete-sound d)
-
-  insert-sound : ∀ {α η X η′} → α ⊢+ η at X ⇒ η′ → insertAt X α η ≡ η′
-  insert-sound ins-here      = refl
-  insert-sound (ins-there i) = cong (_ ∷_) (insert-sound i)
-
-  act-sound : ∀ {Ξ η δ η′} → Ξ ∣ η ⊢δ δ ⇒ η′ → act δ η ≡ η′
-  act-sound (step-unbind v d f) = delete-sound d
-  act-sound (step-bind v f i)   = insert-sound i
-
-  changes-sound : ∀ {Ξ η Θ η′} → Ξ ∣ η ⊢χ Θ ⇒ η′ → interiorⁿ Θ η ≡ η′
-  changes-sound changes[] = refl
-  changes-sound (changes∷ {δ = δ} cs st) =
-    trans (cong (act δ) (changes-sound cs)) (act-sound st)
-
-inside-sound : ∀ {Δ Θ Δᵢ} → Δ ⊢ⁱ Θ ⇒ Δᵢ → inside Δ Θ ≡ Δᵢ
-inside-sound (interior cs) = cong (_ ∣_) (changes-sound cs)
-
-------------------------------------------------------------------------
--- 4. Erasing a term
-------------------------------------------------------------------------
-
--- ⌊ M ⌋ at Δ.  Boundaries and conversions vanish, but a boundary's body
--- is erased at ITS OWN context `inside Δ Θ`; `ν A · L ⟨ c ⟩` becomes the
--- source type application `⌊L⌋ [ ⌊A⌋ ]`; `Λ` erases its body at
--- `underΛ Δ`, whose new abstract cell is source variable 0.
-erase : Ctxᵗ → Term → STerm
-erase Δ (` x)           = ` x
-erase Δ ($ n)           = $ n
-erase Δ `true           = `true
-erase Δ `false          = `false
-erase Δ (ƛ A ∙ N)       = ƛ eraseTy Δ A ∙ erase Δ N
-erase Δ (L · M)         = erase Δ L · erase Δ M
-erase Δ (Λ N)           = Λ (erase (underΛ Δ) N)
-erase Δ (ν A · L ⟨ c ⟩) = erase Δ L [ eraseTy Δ A ]
-erase Δ (M ⟪ Θ , c ⟫)   = erase (inside Δ Θ) M
-
-------------------------------------------------------------------------
--- 5. The statements (NOT proved here)
-------------------------------------------------------------------------
-
--- TYPING.  Erasure preserves typing, at the erased type, over the count
--- of abstract cells.
-ErasureTyping : Set
-ErasureTyping = ∀ {Δ Γ M A}
-  → WfCtx Δ
-  → Δ ∣ Γ ⊢ M ⦂ A
-    ------------------------------------------------------------
-  → srcScope (reps Δ) ∣ eraseCtx Δ Γ ⊢ˢ erase Δ M ⦂ eraseTy Δ A
-
--- SIMULATION (Blame for All, Prop. 1).  The contractum is erased at the
--- context it lives at, `apply δ Δ`.
-ErasureSimulation : Set
-ErasureSimulation = ∀ {Δ M M′ A δ}
-  → WfCtx Δ
-  → Δ ∣ [] ⊢ M ⦂ A
-  → Δ ⊢ M -→ M′ ∣ δ
-    --------------------------------------------------------------
-  → (erase Δ M ≡ erase (apply δ Δ) M′)
-    ⊎ (erase Δ M ⟶ˢ erase (apply δ Δ) M′)
-
--- WHICH disjunct, by rule.  A STUTTER is a step whose erasure does not
--- move: `Wrap`, `Merge`, `Id`, and the congruences around them.  Every
--- other step (`TyBeta`, `Beta`, `TyWrap`, under congruences) takes
--- exactly one source step.
-isStutter : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ → Bool
-isStutter (TyBeta v a)                     = false
-isStutter (Beta w)                         = false
-isStutter (Wrap v w r₁ r₂ r₃ sc)           = true
-isStutter (TyWrap v r s a)                 = false
-isStutter (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) = true
-isStutter (Id u b)                         = true
-isStutter (ξ-·₁ st)                        = isStutter st
-isStutter (ξ-·₂ v st)                      = isStutter st
-isStutter (ξ-ν st)                         = isStutter st
-isStutter (ξ-⟪⟫ r st)                      = isStutter st
-
-Stutter : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ → Set
-Stutter r = T (isStutter r)
-
--- A stutter leaves the erasure unchanged …
-ErasureStutter : Set
-ErasureStutter = ∀ {Δ M M′ A δ}
-  → WfCtx Δ
-  → Δ ∣ [] ⊢ M ⦂ A
-  → (r : Δ ⊢ M -→ M′ ∣ δ)
-  → Stutter r
-    ---------------------------------------
-  → erase Δ M ≡ erase (apply δ Δ) M′
-
--- … and every other step is exactly one source step.
--- (Together they imply ErasureSimulation.)
-ErasureStep : Set
-ErasureStep = ∀ {Δ M M′ A δ}
-  → WfCtx Δ
-  → Δ ∣ [] ⊢ M ⦂ A
-  → (r : Δ ⊢ M -→ M′ ∣ δ)
-  → ¬ Stutter r
-    ---------------------------------------
-  → erase Δ M ⟶ˢ erase (apply δ Δ) M′
-
--- RUNS.  (From ErasureSimulation and preservation.)
-ErasureRun : Set
-ErasureRun = ∀ {Δ M N A}
-  → WfCtx Δ
-  → Δ ∣ [] ⊢ M ⦂ A
-  → (r : Δ ⊢ M -→* N)
-    ----------------------------------
-  → erase Δ M ⟶ˢ* erase (runCtx r) N
-
--- REFLECTION (the converse; not in BfA).  Every source step of the
--- erasure is matched by a finite run, stutters then one β-rule.  It
--- needs the stutter rules (Wrap, Merge, Id) to terminate.
-ErasureReflection : Set
-ErasureReflection = ∀ {Δ M A N}
-  → WfCtx Δ
-  → Δ ∣ [] ⊢ M ⦂ A
-  → erase Δ M ⟶ˢ N
-    -------------------------------------------------------------
-  → ∃[ M′ ] Σ[ r ∈ Δ ⊢ M -→* M′ ] (erase (runCtx r) M′ ≡ N)
-
--- A compiled program's run is its own source run, with stutters.
--- (From EraseCompile and ErasureRun.)
-CompiledRunErases : Set
-CompiledRunErases = ∀ {M A N}
-  → (d : 0 ∣ [] ⊢ˢ M ⦂ A)
-  → (r : empty ⊢ compile d -→* N)
-    ------------------------------
-  → M ⟶ˢ* erase (runCtx r) N
-
-------------------------------------------------------------------------
--- 6. Compile then erase — PROVED
-------------------------------------------------------------------------
-
--- the context whose n ordinary names denote the n source variables
-idCtx : ℕ → Ctxᵗ
-idCtx zero    = empty
-idCtx (suc n) = underΛ (idCtx n)
-
--- AT ANY CONTEXT: erasing the compiled term replaces each type variable
--- by what the context says it denotes.
-EraseCompileAt : Set
-EraseCompileAt = ∀ (Δ : Ctxᵗ) {n Γ M A} (d : n ∣ Γ ⊢ˢ M ⦂ A)
-  → erase Δ (compile d) ≡ substˢᵗ (nameσ Δ) M
-
-EraseCompile : Set
-EraseCompile = ∀ {n Γ M A} (d : n ∣ Γ ⊢ˢ M ⦂ A)
-  → erase (idCtx n) (compile d) ≡ M
-
-private
-  lookupⁿ-suc : ∀ η X
-    → lookupⁿ (map suc η) X ≡ Maybe.map suc (lookupⁿ η X)
-  lookupⁿ-suc []      X       = refl
-  lookupⁿ-suc (α ∷ η) zero    = refl
-  lookupⁿ-suc (α ∷ η) (suc X) = lookupⁿ-suc η X
-
-  resolve-abs : ∀ Ξ X m
-    → resolve (abstR ∷ Ξ) (suc X) (Maybe.map suc m) ≡ ⇑ᵗ (resolve Ξ X m)
-  resolve-abs Ξ X (just α) = refl
-  resolve-abs Ξ X nothing  = refl
-
--- the name map under Λ denotes the extended substitution
-nameσ-underΛ : ∀ Δ X → nameσ (underΛ Δ) X ≡ extsᵗ (nameσ Δ) X
-nameσ-underΛ (Ξ ∣ η) zero    = refl
-nameσ-underΛ (Ξ ∣ η) (suc X) =
-  trans (cong (resolve (abstR ∷ Ξ) (suc X)) (lookupⁿ-suc η X))
-        (resolve-abs Ξ X (lookupⁿ η X))
-
-substˢᵗ-cong : ∀ {σ τ : Substᵗ} → (∀ X → σ X ≡ τ X)
-  → ∀ M → substˢᵗ σ M ≡ substˢᵗ τ M
-substˢᵗ-cong h (` x)     = refl
-substˢᵗ-cong h ($ k)     = refl
-substˢᵗ-cong h `true     = refl
-substˢᵗ-cong h `false    = refl
-substˢᵗ-cong h (ƛ A ∙ N) =
-  cong₂ ƛ_∙_ (subst-cong h A) (substˢᵗ-cong h N)
-substˢᵗ-cong h (L · M)   = cong₂ _·_ (substˢᵗ-cong h L) (substˢᵗ-cong h M)
-substˢᵗ-cong {σ} {τ} h (Λ N) = cong Λ_ (substˢᵗ-cong h-ext N)
-  where
-  h-ext : ∀ X → extsᵗ σ X ≡ extsᵗ τ X
-  h-ext zero    = refl
-  h-ext (suc X) = cong ⇑ᵗ (h X)
-substˢᵗ-cong h (L [ A ]) = cong₂ _[_] (substˢᵗ-cong h L) (subst-cong h A)
-
-substˢᵗ-id : ∀ {σ : Substᵗ} → (∀ X → σ X ≡ ` X) → ∀ M → substˢᵗ σ M ≡ M
-substˢᵗ-id h (` x)     = refl
-substˢᵗ-id h ($ k)     = refl
-substˢᵗ-id h `true     = refl
-substˢᵗ-id h `false    = refl
-substˢᵗ-id h (ƛ A ∙ N) =
-  cong₂ ƛ_∙_ (trans (subst-cong h A) (subst-id A)) (substˢᵗ-id h N)
-substˢᵗ-id h (L · M)   = cong₂ _·_ (substˢᵗ-id h L) (substˢᵗ-id h M)
-substˢᵗ-id {σ} h (Λ N) = cong Λ_ (substˢᵗ-id h-ext N)
-  where
-  h-ext : ∀ X → extsᵗ σ X ≡ ` X
-  h-ext zero    = refl
-  h-ext (suc X) = cong ⇑ᵗ (h X)
-substˢᵗ-id h (L [ A ]) =
-  cong₂ _[_] (substˢᵗ-id h L) (trans (subst-cong h A) (subst-id A))
-
-erase-compile-at : EraseCompileAt
-erase-compile-at Δ ⊢ˢ$ = refl
-erase-compile-at Δ ⊢ˢtrue = refl
-erase-compile-at Δ ⊢ˢfalse = refl
-erase-compile-at Δ (⊢ˢ` x) = refl
-erase-compile-at Δ (⊢ˢƛ wA d) =
-  cong (ƛ_∙_ _) (erase-compile-at Δ d)
-erase-compile-at Δ (⊢ˢ· d e) =
-  cong₂ _·_ (erase-compile-at Δ d) (erase-compile-at Δ e)
-erase-compile-at Δ (⊢ˢΛ {N = N} v d) =
-  cong Λ_ (trans (erase-compile-at (underΛ Δ) d)
-                 (substˢᵗ-cong (nameσ-underΛ Δ) N))
-erase-compile-at Δ (⊢ˢ[] d wA) =
-  cong (_[ _ ]) (erase-compile-at Δ d)
-
-nameσ-idCtx : ∀ n X → nameσ (idCtx n) X ≡ ` X
-nameσ-idCtx zero    X       = refl
-nameσ-idCtx (suc n) zero    = refl
-nameσ-idCtx (suc n) (suc X) =
-  trans (nameσ-underΛ (idCtx n) (suc X)) (cong ⇑ᵗ (nameσ-idCtx n X))
-
-erase-compile : EraseCompile
-erase-compile {n} {M = M} d =
-  trans (erase-compile-at (idCtx n) d) (substˢᵗ-id (nameσ-idCtx n) M)
 
 ------------------------------------------------------------------------
 -- 7. The example checks
@@ -737,3 +412,4 @@ link-bad = refl
 
 link-bad-step : link ((ƛ `ℕ ∙ ` 0) · $ 1) ($ 2) ≡ bad
 link-bad-step = refl
+

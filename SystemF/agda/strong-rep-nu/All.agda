@@ -16,6 +16,8 @@ open import strong-rep-nu.SourceReduction
 open import strong-rep-nu.Compile
 open import strong-rep-nu.CompileTyping
 open import strong-rep-nu.proof.Compile
+open import strong-rep-nu.Erasure
+open import strong-rep-nu.ErasureTheorems
 
 -- executable, derivation-producing type checking, and the step function
 -- that searches for a redex.  Neither depends on the metatheory below, so

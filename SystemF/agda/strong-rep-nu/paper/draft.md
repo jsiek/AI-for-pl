@@ -362,6 +362,89 @@ and the only way to express a new scope is to substitute.
   That is why `seal X` / `unseal X` can relate an interior `X` to an
   exterior representation.
 
+**Why `↓X` is needed: one program, three calculi.**  Keeping `X` bound
+in the body (instead of renaming it) has a price. Anything that later
+*crosses into* that body must be readable without `X`, so the calculus
+needs a way to end a scope, which is `↓X`. Here is the argument
+`λn:ℕ. n` of §7a, `(ΛX. λx:X. x) [ℕ⇒ℕ] · (λn:ℕ. n) · 7`. It is written
+outside `ΛX`, so its color is `{}`.
+
+1. *Strong-rep-nu* (rendered, `showRun 0 4 A₀-⊢`; the renderer calls
+   the argument `λx:ℕ. x`):
+
+       (((λx:X. x) ⟪ ↥X , seal X ↦ unseal X ⟫) · (λn:ℕ. n)) · 7
+         --[Wrap]-->
+       (((λx:X. x) · ((λn:ℕ. n) ⟪ ↓X , seal X ⟫)) ⟪ ↥X , unseal X ⟫) · 7
+         --[Beta]-->
+       (((λn:ℕ. n) ⟪ ↓X , seal X ⟫) ⟪ ↥X , unseal X ⟫) · 7
+
+   The body keeps `X`, bound by `↥X`. The argument now sits inside `↥X`,
+   under its own `↓X`, and is read with color `{}` (`dual-interior`).
+
+2. *Blame for All*: keeps the binder, but has no way to end its scope.
+   This trace is derived from BfA's rules `(TYBETA)`,
+   `νX:=A. (λy:B. t) → λy:B[X:=A]. (νX:=A. t)` `(NUWRAP)` and `(BETA)`;
+   the paper does not print it.
+
+       (ΛX. λx:X. x) (ℕ→ℕ) (λn:ℕ. n)
+         → (νX:=ℕ→ℕ. λx:X. x) (λn:ℕ. n)        TYBETA
+         → (λx:ℕ→ℕ. νX:=ℕ→ℕ. x) (λn:ℕ. n)      NUWRAP
+         → νX:=ℕ→ℕ. (λn:ℕ. n)                  BETA
+
+   The argument lands under `νX` and is read with `X` in scope, so its
+   color goes from `{}` to `{X}`. BfA has no construct for "inside `ν`,
+   but not for this subterm". `NUWRAP` also rewrote the annotation
+   `X` to `ℕ→ℕ`, a type-β-style recoloring of the body.
+
+3. *λB*, and likewise GSF and λC∀mp: renames. Derived from λB's rules:
+
+       Σ ▷ (ΛX. λx:X. x)[ℕ⇒ℕ] (λn:ℕ. n)
+         → Σ,α:=ℕ⇒ℕ ▷ ((λx:α. x) : α⇒α =+α⇒ (ℕ⇒ℕ)⇒(ℕ⇒ℕ)) (λn:ℕ. n)
+         → … ((λx:α. x) ((λn:ℕ. n) : ℕ⇒ℕ =−α⇒ α)) : α =+α⇒ ℕ⇒ℕ
+
+   The argument keeps color `{}`, but only because the *body* lost `X`
+   at type application: it is now read with a store name `α` in place
+   of its own binder.
+
+**The dichotomy.**
+
+| design | body at type β | argument crossing in |
+|---|---|---|
+| rename `X` to a store name (λB, GSF, λC∀mp) | recolored | fine: nothing is in `X`'s scope any more |
+| keep the binder, no unbinding change (BfA) | keeps `X` (but `NUWRAP` rewrites annotations) | recolored, gains `X` |
+| keep the binder, and `↓X` (strong-rep-nu) | keeps `X` | keeps its color |
+
+So `↓X` is exactly the price of not renaming, and it is the reason the
+change list needs unbinds as well as binds. The same holds for term
+substitution: frame-exact `Beta`'s `↓Y` ends `ΛY`'s scope for a value
+planted under it (Decision 4).
+
+**Machine-checked: without `↓U`, an ill-scoped argument gains a type.**
+`notes/DualTightness.agda` (ported 2026-09-25 from
+`strong/proof/DualTightness.agda`, Jeremy's tightness test of
+2026-09-06) builds the smallest case:
+- **The setup.** The exterior store has a cell `α := ℕ` but no live
+  name for it, so `U` is out of scope. The boundary is `⟪ ↥U , … ⟫`,
+  and the argument `W = λz:ℕ. (λy:U⇒U. z) · (λu:U. u)` names `U`.
+- **The redex is ill typed** (`¬Redex`).
+- **The real `Wrap` step** is computed by `Eval.step` (`wrap-steps`,
+  by `refl`) and sends `W` in under `↓U`. That contractum is **refused**
+  (`¬Contractum`): inside `↥U` and then `↓U`, the name map is empty again.
+- **The same contractum without the `↓U`** (`Leaky`, `W` under the empty
+  scope) is **well typed** (`⊢Leaky`). The argument has gained `U` by
+  crossing a boundary.
+- **A control:** an argument that does not name `U` types before and
+  after the real step.
+
+The original file recorded the one step in the design history driven by
+an *ill*-typed program that gained a type: there, `dual` dropped the
+inverse of an entry, which is exactly `Leaky`.
+
+**STA has this for agents.** STA's `[9]` sends a function's argument
+across with the reversed agent list `rev(ℓ)`, which returns it to its
+own agent's color. That is an anti-binder for principals. Strong-rep-nu
+adds the same thing for type variables.
+
 **Example: the pre-boundary counterexample** (Jeremy's trace; `Design.md`
 §1; §5a is today's version):
 

@@ -36,3 +36,8 @@ open import strong-rep-nu.notes.RepWeakenBindsWall
 -- strong-rep-nu.Residual exercised end to end on a Wrap under a Λ.
 open import strong-rep-nu.notes.ColorPreservationProbe
 open import strong-rep-nu.notes.StackCensus
+
+-- THE UNBIND IS LOAD-BEARING (2026-09-25): strong/proof/DualTightness
+-- ported.  Without the `↓U` that `Wrap`'s dual adds, an argument ill
+-- scoped where it was written becomes well typed inside a `↥U` boundary.
+open import strong-rep-nu.notes.DualTightness

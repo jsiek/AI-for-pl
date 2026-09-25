@@ -51,7 +51,7 @@ color worth tracking, so the example uses the smallest term that does:
 a function, whose annotation is read in a scope.)  Nothing goes wrong
 for this argument, whose annotation `ℕ` mentions no variable, but for
 a polymorphic argument it is the same failure one level up
-(Decision 4).
+(Decision 5).
 
 The rest of the list is what it takes to repair these two recolorings
 without losing type safety.
@@ -99,6 +99,13 @@ except where a row says *(from memory)*.
 
 **The framing this suggests for the paper.**
 
+Lead: the related-work discussion is organized around two papers.
+**STA** for the goal (agents as colors, colored substitution, and the
+ordered history of crossings), and **λB** for the mechanism (conversions,
+the value restriction plus a global store, and the `∀`-conversion rule
+that `TyWrap` follows). The other calculi are placed relative to these
+two.
+
 Tone: strong-rep-nu is built on this line of work, and the draft should
 say so plainly. For each decision it records what we take from whom
 (**Builds on**) and what we add (**New here**). The prior calculi were
@@ -138,29 +145,32 @@ asking for a stronger syntactic invariant, not from a flaw in theirs.
   literature during its own development, and gained from doing so:
   - the global store (Decision 8: λB, F_C, GSF, λC∀mp);
   - the value restriction (Decision 7: λB §2.4);
-  - one boundary per value with merging (Decision 10: STA `[8]`, λS∀mp).
-- **What is new.** Decisions 3, 4 and 5 have no counterpart I found, and
+  - one boundary per value with merging (Decision 11: STA `[8]`, λS∀mp).
+- **What is new.** Decisions 2, 3 and 5 have no counterpart I found, and
   they are the decisions color preservation forces. The heart of it is
-  Decision 3 together with Decision 5.
+  Decision 3 together with Decision 2.
   - **Decision 3:** boundary scopes are change lists in which `↥X` is a
     *binder* for type variables that names an existing representation,
     and `↓X` ends a scope. Every type variable therefore has a lexical
     binder at every point of a run, and every rule moves or inverts
     binders instead of substituting.
-  - **Decision 5:** representation variables behind a name map, which
+  - **Decision 2:** representation variables behind a name map, which
     let a binder name an existing representation at all.
-  - **Decision 4:** frame-exact `Beta`, which is that same principle
+  - **Decision 5:** frame-exact `Beta`, which is that same principle
     applied to term substitution. In one sentence: *strong-rep-nu
   takes the λB/STA design and adds a name map, so that type application
   no longer needs to rename.*
 
 ---
 
-## The ranked list
+## The design decisions, in narrative order
 
-Ranked by how much of the calculus each decision explains.  Every entry
-has an **example**, **what goes wrong without the decision**, **what the
-calculus does**, and **where to look**.
+In the order a reader needs them: the boundary (1), what it binds (2–3),
+how values cross it (4–5), how the store and names are kept (6–8), and
+the run-time language that results (9–12).  Every entry has an
+**example**, with its reduction steps shown; **what goes wrong without
+the decision**, in one line of history; **what the calculus does**; and
+**where to look**, followed by **Builds on** / **New here**.
 
 ### 1. Type application does not substitute; it installs a boundary
 
@@ -209,7 +219,7 @@ at run time*, which is where "strong" in Strong System F comes from
   in the original program but has been substituted with a concrete
   type" (§3). Their observation that "the production of fresh names by
   capture-avoiding substitution corresponds exactly to the production
-  of fresh seals" is a good epigraph for Decision 5.
+  of fresh seals" is a good epigraph for Decision 2.
 - **λB, GSF and λC∀mp refine the idea with a global store** and a
   fresh name `α`. On §1a, λB gives
   `Σ,α:=ℕ ▷ ((λx:α. x) : α⇒α =+α⇒ ℕ⇒ℕ) 7`. That is exactly right for
@@ -235,70 +245,80 @@ an agent boundary: under its one-color translation "type application
 still substitutes a type for a type variable" (p.1074). Strong-rep-nu
 installs a boundary at every instantiation, so no coloring is needed.
 
-### 2. A boundary carries a *conversion*, and crossings go inward through the dual
+### 2. Two universes: type variables are lexical, representation variables are storage
 
-A boundary relates two types, the interior type (read inside) and the
-exterior type (read outside), by an explicit **conversion**, built leaf
-by leaf: `seal X` (the interior sees the representation, the exterior
-sees the name), `unseal X` (the reverse), `c ↦ d`, `∀X.c`, and `id`.
-When a function wrapped in a boundary is applied, the argument
-**crosses** inward, wrapped in the **dual** scope with the domain
-conversion, and the result stays wrapped in the codomain conversion
-(`Wrap`).
+A type context is a pair `Ξ ∣ Γ`: a store `Ξ` of representation cells
+(`α` abstract, or `α := R`), and a **name map** `Γ` listing the live type
+variables and which `α` each one names.  An unbind deletes a *name*; it
+never touches a representation.  The relation `Γ ⊢ A ~ R`, which is
+renaming through `Γ` (`proof/SameRenaming.agda`), connects the two.
 
-**Example:** the `Wrap` step of §1a above.  `7 : ℕ` must become an `X`
-inside, so it gets `⟪ ↓X , seal X ⟫`: the dual `↓X` of `↥X`, with the
-domain half `seal X`.  The answer gets `unseal X` outside.
+**Example 2a: the crossing does not rename** (§10, `Examples.agda`,
+checked by `refl`; rendered, ``showTmIn 1 (Nsub [ Wsub ∶ ` 0 ]ᵐ)``).
+Substituting `W = 7 ⟪ seal X ⟫` for `x` in `ΛY. x` gives
 
-**Without it (history):** a boundary that recorded just "the interior is
-the exterior with `X := A`" and read *one* type through two
-substitutions.  The v2 survey found 61 of 195 configurations where the
-term did not determine the relationship (`notes/BoundarySurvey.md`,
-`DesignPoints.md` D35).  An explicit conversion is what closes them.
+    ΛY. ((7 ⟪ seal X ⟫) ⟪ ↓Y , id X ⟫)
 
-**Sub-decisions, each with its own example:**
+The image's `seal X` is *unchanged*.  In the one-universe design the same crossing
+renamed it (`seal 0` became `seal 1` in de Bruijn), because a type
+variable was also a storage slot and a new `Λ` slot shifted it.
 
-* **Crossings are inward only.**  An earlier `Merge ⊕` re-expressed an
-  inner boundary *outward* across a conceal, which is the inverse of a
-  substitution and therefore relational.  The v1 gauntlet (§9g)
-  exhibited a reachable nesting with no flat form at all
-  (`DesignPoints.md` D24–D25).  `Wrap` only ever moves things *in*.
-* **No polarity index.**  Conversions were first polarized (`↦` flips on
-  domains).  The pushed `seal ↦ seal` of `TyPeelR` typed at *neither*
-  polarity (`DECISIONS.md` "RULING: polarity dropped", 2026-09-06).  The
-  boundary's frames already say, per variable, which side sees what.
+**Example 2b: one representation, several names over time** (the Merge
+run excerpt in `notes/notes.md`, from `S₀`; rendered):
+
+    Ξ = [α := ℕ , β := γ , γ := ℕ]
+    (((((7 ⟪ ↓Z , seal Z ⟫) ⟪ ↓X , id Z ⟫) ⟪ ↥X , ↓Y , seal Y ⟫)
+        ⟪ ↥Y , unseal Y ⟫) ⟪ ↥Z , unseal Z ⟫)
+
+`β := γ` is an **alias** cell: its stored representation is the
+representation *variable* `γ`, which `Z` names.  `↥Y` gives `β` a name
+in one frame, `↓Y` takes it away in another, and the cell never moves.
+
+**Why it matters for the goal:** color becomes a first-class object.  A
+position's color is literally its name map `names Δ`.  Because every move
+except the allocation is representation-only, ordinary positions never
+shift, and `ScopeMapPreservation` can say `names Δ₂ ≡ map ρ (names Δ₁)`.
+The one-universe v7 theorem had to count a push/pop balance instead
+(`DECISIONS.md` 2026-09-21, "COLOR PRESERVATION is RESTATED").
+
+**Where:** `Ctx.agda`; `strong-rep-var/notes/PLAN.md` "Goal" (the two
+roles of a type variable, split).
 
 **Builds on.**
-- **Conversions.** The name and the idea are λB's: `=+α⇒` / `=−α⇒`,
-  which BfA called static casts. λC∀mp's concealment `α⁻` / revelation
-  `α⁺` "correspond to static casts in [BfA], conversions in [λB], and
-  sealing/unsealing operations in [New et al. 2020]" (λC∀mp §3). λN's
-  coercions `{e}⁺_γ` / `{e}⁻_γ` are the earliest version in this list.
-- **Generating conversions from types.** `revealₓ(C)` and `mkId` are
-  λN's type-directed `{e : τ′}^±_{γ≈τ}` (Fig. 3; "coercion polarity is
-  inverted for function arguments"), λB's conversion inserted at type
-  application, and λC∀mp's `coerce^±_α`.
-- **Boundaries as terms, and the reversal on arguments.** Matthews &
-  Ahmed's `τMS e` / `SMτ e`, after Matthews & Findler's multi-language
-  semantics (POPL 2007), are term-level boundaries, and "the direction
-  of conversion reverses for function arguments" (§2). That is the
-  ancestor of `Wrap`'s dual.
-- **`Wrap` itself** is λB's rule (9),
-  `(v : A→B ⇒ A′→B′) v′ → v (v′ : A′ ⇒ A) : B ⇒ B′`, which λB takes from
-  Siek & Wadler's space-efficient function casts (λB §2.4). It is also
-  λC∀mp's `R_Wrap_C`, and in spirit STA's `[9]`, which reverses the
-  agent list with `rev(ℓ)`.
+- **λB already separates the two sorts.** λC∀mp notes that "type names
+  and variables are distinguished in λC∀mp (following Ahmed et al.
+  [2017])": a type variable `X` is lexical and a type name `α` lives in
+  the store. Strong-rep-nu's two universes are this distinction.
+- **Funky pairs a lexical label with what it denotes.** An unknown type
+  carries an instantiation environment: "`?^{X:Int}` expresses that type
+  variable X is in scope and instantiated to Int. … In the type
+  `?^{X:X}`, the two occurrences of X play a different role: the first
+  is merely a label, while the second is an actual occurrence of the
+  type variable X" (§3). That is the name map's split between a lexical
+  label and what it denotes.
+- **Matthews & Ahmed's `⟨α; τ⟩`** pairs the abstract variable with its
+  instance on a boundary annotation.
+- **GSF's evidence type names record alias chains.** `αβ^Int` records
+  "that α is bound to β, which is itself bound to Int" (GSF §7.2).
+  These correspond to the alias cells of Example 2b (`β := γ`).
+- **F_C keys its global store by `X` itself** (`Σ, X≔A`), a clean
+  one-sort design with a store. Strong-rep-var started from the
+  analogous one-universe design.
 
-**New here.**
-- **`seal X` names a lexical type variable**, and the representation is
-  found through the name map. The calculi above seal with a store name
-  `α`.
-- **The argument crosses under `dual Θ`**, a change list that says
-  exactly which names the argument may use.
-- **No polarity index.** λB negates the label on the domain and λN
-  inverts polarity. Strong-rep-nu's frames record direction per variable,
-  so the conversion judgment needs no polarity (Decision 2's
-  sub-point).
+**New here.** How the two sorts are *connected*. λB, GSF and λC∀mp
+connect them by substituting `α` for `X`. Funky updates its
+environments by substitution (`?^{Y:X, X:X}[Int/X] = ?^{Y:Int,
+X:Int}`), and they live on each `?` rather than in the context.
+Strong-rep-nu connects the sorts by a lexical name map `X ↦ α` in the
+type context, which boundaries edit and nothing substitutes. That is
+what makes color the checkable equation of `ScopeMapPreservation`. I
+found nothing closer, but that is a search result, not a proof of
+novelty.
+
+*Terminology (from memory).* "Representation" also names the run-time
+type representations of intensional polymorphism (Crary, Weirich &
+Morrisett, ICFP 1998). Strong-rep-nu's representations are types in the
+store, never terms; say so once.
 
 ### 3. A boundary scope is a list of changes, and an unbind masks instead of dropping
 
@@ -342,7 +362,7 @@ frame lemma saying its new frame reads back to the old scope:
   inverse change list, so the argument is read in exactly the scope it
   came from (`dual-interior`: `Γ ⊢ⁱ Θ ⇒ Γᵢ → Γᵢ ⊢ⁱ dual Θ ⇒ Γ`).
 - **`Beta`** wraps a value it substitutes under `ΛY` in `↓Y`, the
-  inverse of the binder it crossed (Decision 4; `crossΛ-interior`).
+  inverse of the binder it crossed (Decision 5; `crossΛ-interior`).
 - **`TyWrap`** reads the crossed scope `Θ` one binder in, under the new
   `↥X` (`liftᴮ-interior`).
 - **`Merge`** concatenates the two scopes, which reads the inner frame
@@ -354,7 +374,7 @@ and the only way to express a new scope is to substitute.
 `↥X` also buys two things the other binders cannot express:
 - **Re-naming an existing representation.** `⟪ ↓X , ↥Y ⟫` hides `X` and
   names the *same* α as `Y` for the interior: a boundary that
-  α-converts. The alias chains of Example 5b (`↥X , ↓Y`) are built this
+  α-converts. The alias chains of Example 2b (`↥X , ↓Y`) are built this
   way.
 - **The conversion reads both sides.** The *conversion context* performs
   every `↥` and skips every `↓` (`conv-bind`, `conv-bind-live`), so a
@@ -417,7 +437,7 @@ outside `ΛX`, so its color is `{}`.
 So `↓X` is exactly the price of not renaming, and it is the reason the
 change list needs unbinds as well as binds. The same holds for term
 substitution: frame-exact `Beta`'s `↓Y` ends `ΛY`'s scope for a value
-planted under it (Decision 4).
+planted under it (Decision 5).
 
 **Machine-checked: without `↓U`, an ill-scoped argument gains a type.**
 `notes/DualTightness.agda` (ported 2026-09-25 from
@@ -445,38 +465,60 @@ across with the reversed agent list `rev(ℓ)`, which returns it to its
 own agent's color. That is an anti-binder for principals. Strong-rep-nu
 adds the same thing for type variables.
 
-**Example: the pre-boundary counterexample** (Jeremy's trace; `Design.md`
-§1; §5a is today's version):
+**Example: the pre-boundary counterexample.**  We tried one wrapper per
+variable, `M ↑[X:=A]` / `M ↓[X:=A]`, whose conceal interior *truncated*
+the context at `X`.  It fails on Jeremy's program (`Design.md` §1):
 
     (ΛX. λf:(∀Z.Z→Z). ΛY. f [Y]) [ℕ] · (ΛZ. λz:Z. z)
+    → TyBeta      (λf:(∀Z.Z→Z). ΛY. f [Y]) ↑[X:=ℕ] · (ΛZ. λz:Z. z)
+    → WrapReveal  ((λf. ΛY. f [Y]) · (ΛZ. λz:Z. z)↓[X:=ℕ]) ↑[X:=ℕ]
+    → Beta        (ΛY. (ΛZ. λz:Z. z)↓[X:=ℕ] [Y]) ↑[X:=ℕ]
+    → TyWrapCncl  (ΛY. ((ΛZ. λz:Z. z) [Y]) ↓[X:=ℕ]) ↑[X:=ℕ]      ← ill typed
 
-**Without it:** the pre-boundary design had one wrapper per variable,
-`M ↑[X:=A]` / `M ↓[X:=A]`.  A conceal's interior was `Γ ↓ X`, the
-exterior *truncated* at `X`, with everything bound after `X` dropped.
-Its elimination rule `TyWrapCncl` pushed the type argument into the
-concealed body.  After four steps the conceal sits under the later
-`ΛY`, its interior is `(Y , X:=ℕ) ↓ X = ∅`, and the pushed `[Y]` must
-type at `∅ ⊢ Y`.  The fourth term has no type at all.
+(These are that design's rule names, not today's.)  The conceal now sits
+under `ΛY`, its interior `(Y , X:=ℕ) ↓ X` is empty, and the pushed `[Y]`
+cannot type.  Two lessons, which together are what a boundary is:
+**mask, don't drop** (`↓X` removes `X` and nothing else), and **never push
+a type argument into a concealed body** (record it as a new `↥` instead).
+A boundary then carries binds and unbinds at once, so it is a list.
 
-**Two lessons, and together they are what a boundary is:**
-1. **Mask, don't drop.**  `↓X` deletes `X` and nothing else.  The
-   variables bound between the boundary's birth and its current position
-   stay nameable.
-2. **Never push a type argument into a concealed body.**  Record it as a
-   new `bind` instead.  A boundary then has to carry a bind and an
-   unbind at the same time, so it is a *list*.
+**The same program in strong-rep-nu** (§5a, with the value restriction
+applied, Decision 7; rendered, `showRun 0 20 E₀-⊢`; the renderer reuses
+letters across binders, so `X′`, `Y′` are the argument's own bound
+variables):
 
-**What the calculus does with the same program:** §5a runs it (value
-restriction applied, Decision 7) to a value at `∀Y. ℕ ⇒ Y ⇒ Y`; see the
-trace in Decision 4.
+    Ξ = []
+    ((ν X:=ℕ · (ΛY. (λx:(∀Y. (Y⇒Y)). (ΛZ. (λy:ℕ.
+          (ν X′:=Z · x ⟨ (seal X′ ↦ unseal X′) ⟩)))))
+       ⟨ ((∀Y. (id Y ↦ id Y)) ↦ (∀Y. (id ℕ ↦ (id Y ↦ id Y)))) ⟩)
+     · (ΛY′. (λx:Y′. x)))
+      --[TyBeta]-->
+    Ξ = [α := ℕ]
+    (((λx:(∀Y. (Y⇒Y)). (ΛY. (λy:ℕ. (ν Z:=Y · x ⟨ (seal Z ↦ unseal Z) ⟩))))
+        ⟪ ↥X , ((∀Y. (id Y ↦ id Y)) ↦ (∀Y. (id ℕ ↦ (id Y ↦ id Y)))) ⟫)
+     · (ΛX′. (λx:X′. x)))
+      --[Wrap]-->
+    Ξ = [α := ℕ]
+    (((λx:(∀Y. (Y⇒Y)). (ΛY. (λy:ℕ. (ν Z:=Y · x ⟨ (seal Z ↦ unseal Z) ⟩))))
+        · ((ΛX′. (λx:X′. x)) ⟪ ↓X , (∀Y. (id Y ↦ id Y)) ⟫))
+       ⟪ ↥X , (∀Y. (id ℕ ↦ (id Y ↦ id Y))) ⟫)
+      --[Beta]-->
+    Ξ = [α := ℕ]
+    ((ΛY. (λx:ℕ. (ν Z:=Y ·
+        (((ΛX′. (λy:X′. y)) ⟪ ↓X , (∀Y. (id Y ↦ id Y)) ⟫)
+           ⟪ ↓Y , (∀Z. (id Z ↦ id Z)) ⟫)
+        ⟨ (seal Z ↦ unseal Z) ⟩)))
+      ⟪ ↥X , (∀Y. (id ℕ ↦ (id Y ↦ id Y))) ⟫)
+        -- VALUE
 
-**A later instance of the same lesson, "move the unbinds, don't drop
-them":** the scope move `Θ₁ ⋉ Θ₂` (`DesignPoints.md` D45), and the
-`dual` that dropped `bind` entries and so let an **ill-typed** redex step
-to a **well-typed** contractum (Jeremy's tightness test,
-`DesignPoints.md` D47; `strong/` `proof/DualTightness`).  That makes
-three times the design died of dropping something.  Candidate slogan:
-*nothing may be dropped*.
+It stops at a value under `ΛY` (the value restriction parks it there),
+and the argument is read in its birth frame: under its own `↓X` from the
+crossing and `↓Y` from the substitution (Decision 5).
+
+Twice more the design died of dropping something: the scope move
+(`DesignPoints.md` D45), and a `dual` that dropped the inverse of a `↥`
+(D47; `notes/DualTightness.agda` above).  Candidate slogan: *nothing may be
+dropped*.
 
 **Builds on.**
 - **STA showed that the history of crossings must be an ordered list.**
@@ -489,7 +531,7 @@ three times the design died of dropping something.  Candidate slogan:
   "mask here, keep the rest" discipline meaningful at all.
 
 **New here.** This is one of the two most novel parts of strong-rep-nu,
-with Decision 5, and the paper should present it as a contribution.
+with Decision 2, and the paper should present it as a contribution.
 - **A binder that does not allocate, and an unbinder.** In the calculi
   above, the construct that binds a type name also creates it:
   - BfA's `νX:=A. t`, λN's `Nγ≈τ. e`, Neis et al.'s `new α≈τ in e` and
@@ -501,7 +543,7 @@ with Decision 5, and the paper should present it as a contribution.
 
   `↥X` binds a name to an existing representation variable, which is
   possible only because names and representations are separate
-  (Decision 5), and `↓X` ends a scope at a chosen position.
+  (Decision 2), and `↓X` ends a scope at a chosen position.
 - **Color is read off the binders.** Because every type variable has a
   lexical binder at every point of a run, and every rule moves or
   inverts binders, color preservation is a statement about scopes. The
@@ -520,16 +562,76 @@ with Decision 5, and the paper should present it as a contribution.
   `⇑`), but it acts on the type context and is never pushed into the
   term.
 
-### 4. Frame-exact term substitution
+### 4. A boundary carries a *conversion*, and crossings go inward through the dual
+
+A boundary relates two types, the interior type (read inside) and the
+exterior type (read outside), by an explicit **conversion**, built leaf
+by leaf: `seal X` (the interior sees the representation, the exterior
+sees the name), `unseal X` (the reverse), `c ↦ d`, `∀X.c`, and `id`.
+When a function wrapped in a boundary is applied, the argument
+**crosses** inward, wrapped in the **dual** scope with the domain
+conversion, and the result stays wrapped in the codomain conversion
+(`Wrap`).
+
+**Example:** the `Wrap` step of §1a above.  `7 : ℕ` must become an `X`
+inside, so it gets `⟪ ↓X , seal X ⟫`: the dual `↓X` of `↥X`, with the
+domain half `seal X`.  The answer gets `unseal X` outside.
+
+**Without it:** we tried reading one type through two substitutions
+instead of an explicit conversion; the survey found 61 of 195
+configurations where the term did not determine the relationship
+(`notes/BoundarySurvey.md`).
+
+**Sub-decisions, each with its own example:**
+
+* **Crossings are inward only.**  We tried re-expressing a boundary
+  outward (v1's `Merge ⊕`); it fails on a reachable nesting that has no
+  flat form (`DesignPoints.md` D24–D25).
+* **No polarity index.**  We tried polarized conversions; the pushed
+  `seal ↦ seal` of the old `TyPeelR` typed at neither polarity
+  (`DECISIONS.md`, 2026-09-06).
+
+**Builds on.**
+- **Conversions.** The name and the idea are λB's: `=+α⇒` / `=−α⇒`,
+  which BfA called static casts. λC∀mp's concealment `α⁻` / revelation
+  `α⁺` "correspond to static casts in [BfA], conversions in [λB], and
+  sealing/unsealing operations in [New et al. 2020]" (λC∀mp §3). λN's
+  coercions `{e}⁺_γ` / `{e}⁻_γ` are the earliest version in this list.
+- **Generating conversions from types.** `revealₓ(C)` and `mkId` are
+  λN's type-directed `{e : τ′}^±_{γ≈τ}` (Fig. 3; "coercion polarity is
+  inverted for function arguments"), λB's conversion inserted at type
+  application, and λC∀mp's `coerce^±_α`.
+- **Boundaries as terms, and the reversal on arguments.** Matthews &
+  Ahmed's `τMS e` / `SMτ e`, after Matthews & Findler's multi-language
+  semantics (POPL 2007), are term-level boundaries, and "the direction
+  of conversion reverses for function arguments" (§2). That is the
+  ancestor of `Wrap`'s dual.
+- **`Wrap` itself** is λB's rule (9),
+  `(v : A→B ⇒ A′→B′) v′ → v (v′ : A′ ⇒ A) : B ⇒ B′`, which λB takes from
+  Siek & Wadler's space-efficient function casts (λB §2.4). It is also
+  λC∀mp's `R_Wrap_C`, and in spirit STA's `[9]`, which reverses the
+  agent list with `rev(ℓ)`.
+
+**New here.**
+- **`seal X` names a lexical type variable**, and the representation is
+  found through the name map. The calculi above seal with a store name
+  `α`.
+- **The argument crosses under `dual Θ`**, a change list that says
+  exactly which names the argument may use.
+- **No polarity index.** λB negates the label on the domain and λN
+  inverts polarity. Strong-rep-nu's frames record direction per variable,
+  so the conversion judgment needs no polarity (Decision 4's
+  sub-point).
+
+### 5. Frame-exact term substitution
 
 Substituting a value `W : A` for `x` under a `ΛY` wraps it in that
 binder's dual, `W ⟪ ↓Y , id A ⟫`.  The value arrives in the frame it was
 born in.  This is `_[_∶_]ᵐ` (`TermSubst.agda`), and why `Beta` carries
 the argument type.
 
-**Example:** §5a, the `Beta` step (rendered, `showRun 0 20 E₀-⊢`; the
-renderer reuses letters across binders, so `X′` is simply the argument's
-own bound variable):
+**Example:** the `Beta` step of the §5a run shown in full in Decision 3
+(rendered, `showRun 0 20 E₀-⊢`):
 
     Ξ = [α := ℕ]
     (((λx:(∀Y. Y⇒Y). ΛY. λy:ℕ. ν Z:=Y · x ⟨ seal Z ↦ unseal Z ⟩)
@@ -548,11 +650,9 @@ The argument was born under `↓X` and before `ΛY`.  It lands under
 neither `X` (masked by its own crossing) nor `Y` (masked by the
 substitution).
 
-**Without it:** the second recoloring of §0.  Jeremy found it by reading
-exactly this trace: "On the fourth step, is there a missing −Y in the
-boundary around the ΛZ?" (`DECISIONS.md`, "Frame-exact Beta",
-2026-09-08).  Before the repair every other rule was frame-exact and
-`Beta` alone let a moved value gain a variable.
+**Without it:** the argument gains `Y`, the second recoloring of §0.
+Jeremy spotted the missing `↓Y` in this very trace (`DECISIONS.md`,
+2026-09-08).
 
 **Cost:** a numeral crossing a `Λ` picks up an `id ℕ` layer, removed by
 one `Id` (or merged away).
@@ -572,97 +672,16 @@ use ordinary capture-avoiding substitution for term `β`, which suits
 their goals. Suggested claim for the paper: frame-exact substitution is
 new.
 
-### 5. Two universes: type variables are lexical, representation variables are storage
-
-A type context is a pair `Ξ ∣ Γ`: a store `Ξ` of representation cells
-(`α` abstract, or `α := R`), and a **name map** `Γ` listing the live type
-variables and which `α` each one names.  An unbind deletes a *name*; it
-never touches a representation.  The relation `Γ ⊢ A ~ R`, which is
-renaming through `Γ` (`proof/SameRenaming.agda`), connects the two.
-
-**Example 5a: the crossing does not rename** (§10, `Examples.agda`,
-checked by `refl`; rendered, ``showTmIn 1 (Nsub [ Wsub ∶ ` 0 ]ᵐ)``).
-Substituting `W = 7 ⟪ seal X ⟫` for `x` in `ΛY. x` gives
-
-    ΛY. ((7 ⟪ seal X ⟫) ⟪ ↓Y , id X ⟫)
-
-The image's `seal X` is *unchanged*.  In the one-universe design the same crossing
-renamed it (`seal 0` became `seal 1` in de Bruijn), because a type
-variable was also a storage slot and a new `Λ` slot shifted it.
-
-**Example 5b: one representation, several names over time** (the Merge
-run excerpt in `notes/notes.md`, from `S₀`; rendered):
-
-    Ξ = [α := ℕ , β := γ , γ := ℕ]
-    (((((7 ⟪ ↓Z , seal Z ⟫) ⟪ ↓X , id Z ⟫) ⟪ ↥X , ↓Y , seal Y ⟫)
-        ⟪ ↥Y , unseal Y ⟫) ⟪ ↥Z , unseal Z ⟫)
-
-`β := γ` is an **alias** cell: its stored representation is the
-representation *variable* `γ`, which `Z` names.  `↥Y` gives `β` a name
-in one frame, `↓Y` takes it away in another, and the cell never moves.
-
-**Why it matters for the goal:** color becomes a first-class object.  A
-position's color is literally its name map `names Δ`.  Because every move
-except the allocation is representation-only, ordinary positions never
-shift, and `ScopeMapPreservation` can say `names Δ₂ ≡ map ρ (names Δ₁)`.
-The one-universe v7 theorem had to count a push/pop balance instead
-(`DECISIONS.md` 2026-09-21, "COLOR PRESERVATION is RESTATED").
-
-**Where:** `Ctx.agda`; `strong-rep-var/notes/PLAN.md` "Goal" (the two
-roles of a type variable, split).
-
-**Builds on.**
-- **λB already separates the two sorts.** λC∀mp notes that "type names
-  and variables are distinguished in λC∀mp (following Ahmed et al.
-  [2017])": a type variable `X` is lexical and a type name `α` lives in
-  the store. Strong-rep-nu's two universes are this distinction.
-- **Funky pairs a lexical label with what it denotes.** An unknown type
-  carries an instantiation environment: "`?^{X:Int}` expresses that type
-  variable X is in scope and instantiated to Int. … In the type
-  `?^{X:X}`, the two occurrences of X play a different role: the first
-  is merely a label, while the second is an actual occurrence of the
-  type variable X" (§3). That is the name map's split between a lexical
-  label and what it denotes.
-- **Matthews & Ahmed's `⟨α; τ⟩`** pairs the abstract variable with its
-  instance on a boundary annotation.
-- **GSF's evidence type names record alias chains.** `αβ^Int` records
-  "that α is bound to β, which is itself bound to Int" (GSF §7.2).
-  These correspond to the alias cells of Example 5b (`β := γ`).
-- **F_C keys its global store by `X` itself** (`Σ, X≔A`), a clean
-  one-sort design with a store. Strong-rep-var started from the
-  analogous one-universe design.
-
-**New here.** How the two sorts are *connected*. λB, GSF and λC∀mp
-connect them by substituting `α` for `X`. Funky updates its
-environments by substitution (`?^{Y:X, X:X}[Int/X] = ?^{Y:Int,
-X:Int}`), and they live on each `?` rather than in the context.
-Strong-rep-nu connects the sorts by a lexical name map `X ↦ α` in the
-type context, which boundaries edit and nothing substitutes. That is
-what makes color the checkable equation of `ScopeMapPreservation`. I
-found nothing closer, but that is a search result, not a proof of
-novelty.
-
-*Terminology (from memory).* "Representation" also names the run-time
-type representations of intensional polymorphism (Crary, Weirich &
-Morrisett, ICFP 1998). Strong-rep-nu's representations are types in the
-store, never terms; say so once.
-
 ### 6. A representation is stored once and cited by name
 
 A conversion never contains a representation: `seal X` carries the name
 `X`, and its representation is found through the context (the lookup
 square `Δ ∋ X := A`).  The store holds each representation exactly once.
 
-**Without it (history, the biggest single refutation):** v1's combined
-boundary *copied* a variable's representation into every boundary that
-mentioned it.  On 2026-09-05 both progress and preservation were
-machine-refuted in the same hour, and the survey found that *every*
-typability loss in the corpus was a failed copy: a representation copied
-into a context that could not spell it (`BoundarySurvey.md` F1–F12;
-`DesignSpace.md` "The through line").  Each era-B patch (`Reversal`, the
-ambient dual, unfolding, `cnc⋆`, x-licenses, `SkelEq`) was killed by a
-program that made the copy impossible one more way (`bad`, `bad₂`, `P`,
-`E`, `E★`, …).  The fix was to remove the copy instead of repairing it.
+**Without it:** we tried copying a variable's representation into every
+boundary that mentions it (v1).  Progress and preservation both failed,
+and every typability loss in the survey was a copy the target context
+could not spell (`notes/BoundarySurvey.md`).
 
 **Example (the soundness gate, `proof/Adversary.agda`):** at
 `Ξ ∣ Γ = (α) ∣ (X ↦ α)`, where `α` is abstract,
@@ -687,7 +706,7 @@ is bound to `ℕ`.*
   the store") and Neis et al.'s G (α and τ are "equal as classifiers,
   but not as data", with no "explicit term-level type coercions") show
   how light the implicit alternative can be. The explicit choice is
-  what lets conversions be syntactic normal forms (Decision 11) and
+  what lets conversions be syntactic normal forms (Decision 10) and
   keeps reduction deterministic.
 - **STA's compatible knowledge.** Def. 3.1 requires agents' knowledge
   to agree where it overlaps ("if `t ∈ Dom(δᵢ) ∩ Dom(δⱼ)` then
@@ -720,9 +739,9 @@ a dummy `λ` to make the body a value, and apply it.
 
     (ΛZ. x) [ℕ]      becomes      ((ΛZ. λy:ℕ. x) [ℕ]) · 0
 
-§5a shows the other side of the cost: the program *stops* at a value
-`ΛY. …` that System F would also stop at, instead of reducing under the
-binder.
+The §5a run in Decision 3 shows the other side of the cost: it *stops*
+at a value `ΛY. …`, which System F would also stop at, instead of
+reducing under the binder.
 
 **Builds on.** This decision is λB's, and the paper should say so.
 - λB §2.4 explains why BfA had to reduce under `Λ`: BfA wanted the value
@@ -746,30 +765,34 @@ the change it made (`δ = none | new R`), and the congruences shift the
 redex's *siblings* by that one allocation.  A boundary changes names
 only: `reps Δᵢ ≡ reps Δ ≡ reps Δᶜ`.
 
-**Without it (strong-rep-var):** each boundary carried its own block of
-representation bindings, pushed onto the context on the way *into* that
-boundary.  A representation variable was then an index relative to the
-enclosing boundaries, and every rule that moved a subterm across a
-boundary had to re-index it (`renᴹ²`, `underRepBinds`, `SameTyExt`,
-`RepWeakenTyping`).
+**Without it:** we tried giving each boundary its own block of
+representation bindings (strong-rep-var); every rule that moved a
+subterm across a boundary then had to re-index it.
 
 **Example:** in the §1a trace the store `Ξ = [α := ℕ]` sits *outside* the
 term, and `Wrap` moves `7` into `⟪ ↓X , seal X ⟫` verbatim.  Before the
 store, that crossing needed the bind-block weakening `RepWeakenTyping`.
 
-**Not the rejected "global Σ-store" (D33→D34):** that stored the whole
-context and lost lexical unbinding.  This one stores only the
-representations, and unbinding stays lexical in `Γ`: `Ξ` says *what* a
+It is not the global Σ-store rejected earlier (D33→D34), which stored
+names too and lost lexical unbinding: here `Ξ` says *what* a
 representation is, and `Γ` says *whether* this position may name it.
 
 **Builds on.**
 - **The global store is the standard design**: λB, F_C (following λB),
   GSF, λC∀mp, PolyG and Neis et al.'s G (`σ`, with freshness "achieved
   by α-renaming").
-- **The case for it** is BfA §5.5: under reduction under `Λ`, in
-  `let f = ΛX.(ΛY.s)X in (f I, f B)`, "`Y` should really get two
-  different bindings", which a global list cannot give. That is exactly
-  why the value restriction (Decision 7) comes first.
+- **The case for it** is BfA §5.5, which shows why a global list of
+  bindings needs the value restriction first (Decision 7). Its
+  hypothetical reduction, with `s = (λx:X. λy:Y. x) : X→Y→X`:
+
+      ε;      let f = ΛX.(ΛY.s)X in (f I, f B)
+      ↦ Y≈X;   let f = ΛX.s in (f I, f B)
+      ↦ Y≈X;   ((ΛX.s) I, (ΛX.s) B)
+      ↦ Y≈X, X≈I; (s, (ΛX.s) B)
+
+  "We would like to α-rename the X in ΛX.s, but that would lose the
+  connection with Y. Also, Y should really get two different
+  bindings."
 - **The alternatives:** λN's scope extrusion ("we also considered … an
   explicit type store or heap as in the λν-calculus, but that choice
   would produce a more complicated system", fn. 4), which G also names
@@ -801,17 +824,62 @@ The run-time language has no `L [A]`.  Plain System F is a separate
 source language, and `compile` translates `L [A]` (with `L : ∀X.C`) to
 `ν X:=A · ⟦L⟧ ⟨ revealₓ(C) ⟩`.
 
-**Why:** before `ν`, `TyBeta` minted the conversion `reveal X B` at run
-time, which needed the annotation `B` on `L [B, A]`.  Its partner
-`TyPeelR-Λ`, for a `∀`-value already under a boundary, had to **fuse**
-the crossed conversion with the reveal (`instReveal`).  With the
-conversion written at compile time, `TyWrap` can *stack* the crossed
-conversion under `ν`'s own and leave the fusion to `Merge`.  Every
-reveal in a run is one the compiler wrote.
+**Why:** without it, type application had to mint the reveal at run
+time (which needed an annotation `B` on `L [B, A]`), and its
+`∀`-over-a-boundary partner had to fuse two conversions.  With the reveal
+written by the compiler, `TyWrap` stacks and `Merge` fuses.
 
 **Example:** §1b, `((ΛX. λf:(∀Y. Y⇒𝔹). f[X]) [𝔹] · (ΛZ. λz:Z. true)) ·
-false`: two `ν`s, both written by the compiler (`NuSketch.md` Rule 2).
-§3 shows `TyWrap` with two store cells.
+false`, compiled to two `ν`s, both written by the compiler (rendered,
+`showRun 0 9 K₀-⊢`):
+
+    Ξ = []
+    (((ν X:=𝔹 · (ΛY. (λx:(∀Y. (Y⇒𝔹)). (ν Z:=Y · x ⟨ (seal Z ↦ id 𝔹) ⟩)))
+         ⟨ ((∀Y. (id Y ↦ id 𝔹)) ↦ (seal X ↦ id 𝔹)) ⟩)
+      · (ΛX′. (λx:X′. true))) · false)
+      --[TyBeta]-->
+    Ξ = [α := 𝔹]
+    ((((λx:(∀Y. (Y⇒𝔹)). (ν Y:=X · x ⟨ (seal Y ↦ id 𝔹) ⟩))
+         ⟪ ↥X , ((∀Y. (id Y ↦ id 𝔹)) ↦ (seal X ↦ id 𝔹)) ⟫)
+      · (ΛZ. (λx:Z. true))) · false)
+      --[Wrap]-->
+    Ξ = [α := 𝔹]
+    ((((λx:(∀Y. (Y⇒𝔹)). (ν Y:=X · x ⟨ (seal Y ↦ id 𝔹) ⟩))
+         · ((ΛZ. (λx:Z. true)) ⟪ ↓X , (∀Y. (id Y ↦ id 𝔹)) ⟫))
+        ⟪ ↥X , (seal X ↦ id 𝔹) ⟫) · false)
+      --[Beta]-->
+    Ξ = [α := 𝔹]
+    (((ν Y:=X · ((ΛZ. (λx:Z. true)) ⟪ ↓X , (∀Y. (id Y ↦ id 𝔹)) ⟫)
+          ⟨ (seal Y ↦ id 𝔹) ⟩)
+        ⟪ ↥X , (seal X ↦ id 𝔹) ⟫) · false)
+      --[TyWrap]-->
+    Ξ = [α := β , β := 𝔹]
+    (((((λx:X. true) ⟪ ↓Y , (id X ↦ id 𝔹) ⟫)
+          ⟪ ↥X , (seal X ↦ id 𝔹) ⟫)
+        ⟪ ↥Y , (seal Y ↦ id 𝔹) ⟫) · false)
+      --[Merge]-->
+    Ξ = [α := β , β := 𝔹]
+    ((((λx:X. true) ⟪ ↥X , ↓Y , (seal X ↦ id 𝔹) ⟫)
+        ⟪ ↥Y , (seal Y ↦ id 𝔹) ⟫) · false)
+      --[Merge]-->
+    Ξ = [α := β , β := 𝔹]
+    (((λx:X. true) ⟪ ↥Y , ↥X , ↓Y , ((seal Y ; seal X) ↦ id 𝔹) ⟫) · false)
+      --[Wrap]-->
+    Ξ = [α := β , β := 𝔹]
+    (((λx:X. true) · (false ⟪ ↥Y , ↓X , ↓Y , seal Y ; seal X ⟫))
+      ⟪ ↥Y , ↥X , ↓Y , id 𝔹 ⟫)
+      --[Beta]-->
+    Ξ = [α := β , β := 𝔹]
+    (true ⟪ ↥Y , ↥X , ↓Y , id 𝔹 ⟫)
+      --[Id]-->
+    Ξ = [α := β , β := 𝔹]
+    true
+        -- VALUE
+
+The inner `ν Y:=X · x ⟨…⟩` meets a `∀`-value under a boundary, so
+`TyWrap` fires. It allocates the *alias* cell `α := β` (Decision 2),
+stacks the crossed conversion under `ν`'s own, and the two `Merge`s fuse
+the layers, chaining `seal Y ; seal X` through the alias.
 
 **Side benefit:** a clean compiler-correctness story.  `compile-⊢`,
 `compile-closed` and `compile-safe` hold, and `SourceExamples.agda`
@@ -859,69 +927,7 @@ keeps PolyGν's explicit, arbitrary conversion (`⊢ν` accepts any `c`
 whose types line up), and has the compiler write it once:
 `⟦L[A]⟧ = ν X:=A · ⟦L⟧ ⟨revealₓ(C)⟩`.
 
-### 10. One boundary per value, and `Merge` composes conversions
-
-A value carries at most one boundary.  A boundary directly over a
-value's boundary is a redex of `Merge`, which concatenates the two
-scopes and **composes** the two conversions (`Δ ⊢ c₁ ⨟ c₂`).
-
-**Without it:** boundaries piled up ("towers, not merges", the v2 law).
-Special rules handled particular pairs (`CancelR` for `seal X` under
-`unseal X`, `IdPush` for `id X` under `unseal X`), and `Nu-⟪⟫` pushed a
-`ν` inward past towers.  The stack census over the 19 compiled runs
-found up to **11** stacked pairs in one state (run V), and `CancelR` plus
-`IdPush` made up 22 of V's 49 steps (`MergeSketch.md`).
-
-**After it:** at most two stacked pairs in any state, V drops from 49
-steps to 19, `CancelR`, `IdPush` and `Nu-⟪⟫` are deleted, and the rule
-count falls to ten.
-
-**Example:** the Merge excerpt in Decision 5b.  Its five steps each show
-one clause of composition: absorbing an identity, *chaining* two seals
-(which exists only because of the alias cell `β := γ`), cancelling the
-last seal of a chain, `seal Z ⨟ unseal Z = id ℕ` read off the store, and
-`Id`.
-
-**Why this is not v1's merge coming back:** v1's `⊕` merged by
-substituting representations into representations, which is the copying
-disease.  `Merge` composes *name-carrying* conversions at the merged
-frame, and reads a representation only where `seal Z` meets `unseal Z`,
-by lookup (`repOf`).
-
-**Builds on.**
-- **The invariant is the space-efficiency one.** λS∀mp states it
-  exactly: "a value is wrapped by at most one coercion and the hole in a
-  frame never appears under coercion applications" (§4.2), after
-  Herman, Tomb & Flanagan and Siek, Thiemann & Wadler's normal-form
-  coercions.
-- **The cancellation rules are well established.** `Merge`'s
-  `seal Z ⨟ unseal Z` clause is λN's `{{e}⁺_γ}⁻_γ → e`, λB's "two mirror
-  image conversions … reduce to the identity", λC∀mp's `R_Remove_C`
-  (`V⟨α⁻⟩⟨α⁺⟩ → V`), and GSF's consistent-transitivity rule `(unsl)`.
-- **Composing at every step is GSF's style.** GSF combines evidence at
-  every step, and is the closest relative in *how* `Merge` works.
-- **STA's `[8]` merges nested embeddings** with an ordered list.
-
-**New here.** Composition of name-carrying conversions at a merged
-frame, keeping both scopes (`Θ₂ ++ Θ₁`).
-
-**An open question, with a candidate answer.** Ozaki, Sekiyama &
-Igarashi (Scheme 2021) prove that λC∀ is not space-efficient (Thm 6).
-- Their witness is polymorphic recursion at `★`: `M = (fix f = ΛX.
-  λx:X. f ★ (x⟨X!⟩)) ★ (0⟨Int!⟩)` reaches `0⟨Int!⟩⟨X₁!⟩⋯⟨Xₙ!⟩` with
-  `Xᵢ := ★`, which no smaller coercion can replace. They conjecture that
-  forbidding `★` as a type argument restores space efficiency, which
-  λC∀mp then develops.
-- Strong-rep-nu has neither `★` nor recursion. But the role `Xᵢ := ★`
-  plays there, a cell that lets one seal follow another, is played here
-  by *alias* cells `β := α`, which is what seal chains `t ; seal X ;
-  seal Y` are built from (Example 5b). A polymorphically recursive
-  `f [X]` under `ΛX` would mint a new alias cell per round.
-- Conjecture: with `fix`, seal chains grow without bound and Ozaki et
-  al.'s argument transfers. Without `fix`, every run terminates, so
-  chains are bounded, but no bound is proved.
-
-### 11. Conversions are tight normal forms, in three sorts
+### 10. Conversions are tight normal forms, in three sorts
 
     g ::= id A | c ↦ d | ∀X.c                 middle
     t ::= g | seal X | t ; seal X             tail   (left-associated seal chain)
@@ -955,17 +961,103 @@ GTPLC's chain association (`MergeSketch.md`).
 - Chains of several seals are possible, through aliases, where `★`
   admits one tag.
 
+### 11. One boundary per value, and `Merge` composes conversions
+
+A value carries at most one boundary.  A boundary directly over a
+value's boundary is a redex of `Merge`, which concatenates the two
+scopes and **composes** the two conversions (`Δ ⊢ c₁ ⨟ c₂`).
+
+**Without it:** we tried letting boundaries pile up, with special rules
+for particular pairs (`CancelR`, `IdPush`); the census found up to 11
+stacked pairs in one state, and run V took 49 steps (`MergeSketch.md`).
+
+**After it:** at most two stacked pairs in any state, V drops from 49
+steps to 19, `CancelR`, `IdPush` and `Nu-⟪⟫` are deleted, and the rule
+count falls to ten.
+
+**Example:** the tail of run `S₀` (Example 2b's program; rendered,
+`showRun 0 15 S₀-⊢`, last five steps, all at the store
+`Ξ = [α := ℕ , β := γ , γ := ℕ]`):
+
+    (((((7 ⟪ ↓Z , seal Z ⟫) ⟪ ↓X , id Z ⟫) ⟪ ↥X , ↓Y , seal Y ⟫)
+         ⟪ ↥Y , unseal Y ⟫) ⟪ ↥Z , unseal Z ⟫)
+      --[Merge]-->
+    ((((7 ⟪ ↓X , ↓Z , seal Z ⟫) ⟪ ↥X , ↓Y , seal Y ⟫) ⟪ ↥Y , unseal Y ⟫)
+       ⟪ ↥Z , unseal Z ⟫)
+      --[Merge]-->
+    (((7 ⟪ ↥X , ↓Y , ↓X , ↓Z , seal Z ; seal Y ⟫) ⟪ ↥Y , unseal Y ⟫)
+       ⟪ ↥Z , unseal Z ⟫)
+      --[Merge]-->
+    ((7 ⟪ ↥Y , ↥X , ↓Y , ↓X , ↓Z , seal Z ⟫) ⟪ ↥Z , unseal Z ⟫)
+      --[Merge]-->
+    (7 ⟪ ↥Z , ↥Y , ↥X , ↓Y , ↓X , ↓Z , id ℕ ⟫)
+      --[Id]-->
+    7
+
+Each step shows one clause of composition:
+1. `seal Z ⨟ id Z = seal Z`: an identity is absorbed.
+2. `seal Z ⨟ seal Y = seal Z ; seal Y`: two seals *chain*, which is
+   possible only because of the alias cell `β := γ`.
+3. `(seal Z ; seal Y) ⨟ unseal Y = seal Z`: the last seal of the chain
+   is cancelled.
+4. `seal Z ⨟ unseal Z = id ℕ`: the identity at `Z`'s representation,
+   read off the store.
+5. `Id` removes the identity at a base type.
+
+(Not v1's merge coming back: v1's `⊕` substituted representations into
+representations, whereas `Merge` composes name-carrying conversions and
+reads a representation only where `seal Z` meets `unseal Z`, by lookup.)
+
+**Builds on.**
+- **The invariant is the space-efficiency one.** λS∀mp states it
+  exactly: "a value is wrapped by at most one coercion and the hole in a
+  frame never appears under coercion applications" (§4.2), after
+  Herman, Tomb & Flanagan and Siek, Thiemann & Wadler's normal-form
+  coercions.
+- **The cancellation rules are well established.** `Merge`'s
+  `seal Z ⨟ unseal Z` clause is λN's `{{e}⁺_γ}⁻_γ → e`, λB's "two mirror
+  image conversions … reduce to the identity", λC∀mp's `R_Remove_C`
+  (`V⟨α⁻⟩⟨α⁺⟩ → V`), and GSF's consistent-transitivity rule `(unsl)`.
+- **Composing at every step is GSF's style.** GSF combines evidence at
+  every step, and is the closest relative in *how* `Merge` works.
+- **STA's `[8]` merges nested embeddings** with an ordered list.
+
+**New here.** Composition of name-carrying conversions at a merged
+frame, keeping both scopes (`Θ₂ ++ Θ₁`).
+
+**An open question, with a candidate answer.** Ozaki, Sekiyama &
+Igarashi (Scheme 2021) prove that λC∀ is not space-efficient (Thm 6).
+- Their witness is polymorphic recursion at `★`: `M = (fix f = ΛX.
+  λx:X. f ★ (x⟨X!⟩)) ★ (0⟨Int!⟩)` reaches `0⟨Int!⟩⟨X₁!⟩⋯⟨Xₙ!⟩` with
+  `Xᵢ := ★`, which no smaller coercion can replace (the paper states
+  the reachable state, not the individual steps). They conjecture that
+  forbidding `★` as a type argument restores space efficiency, which
+  λC∀mp then develops.
+- Strong-rep-nu has neither `★` nor recursion. But the role `Xᵢ := ★`
+  plays there, a cell that lets one seal follow another, is played here
+  by *alias* cells `β := α`, which is what seal chains `t ; seal X ;
+  seal Y` are built from (Example 2b). A polymorphically recursive
+  `f [X]` under `ΛX` would mint a new alias cell per round.
+- Conjecture: with `fix`, seal chains grow without bound and Ozaki et
+  al.'s argument transfers. Without `fix`, every run terminates, so
+  chains are bounded, but no bound is proved.
+
 ### 12. Hygiene: one live name per representation variable, and `WfCtx`
 
 A well-formed context has no representation variable with two live
 names (`Unique (names Δ)`).  Preservation takes `WfCtx Δ`.
 
 **Example (the counterexample to premise-free preservation,
-`notes/notes.md` "Metatheory"):** at `Ξ = (α := ℕ)`,
-`Γ = (X ↦ α, Y ↦ α)`, the redex `(λx:ℕ. ΛZ. λy:ℕ. x) · 0` types (it
-mentions neither `X` nor `Y`), but its frame-exact contractum
-`ΛZ. λy:ℕ. (0 ⟪ ↓Z , id ℕ ⟫)` mints a boundary whose well-formedness
-demands uniqueness.  With names this is ordinary alpha-hygiene.  With
+`notes/notes.md` "Metatheory"; rendered there):**
+
+    Ξ = (α := ℕ),  Γ = (X ↦ α, Y ↦ α)
+    (λx:ℕ. ΛZ. λy:ℕ. x) · 0
+      --[Beta]-->
+    ΛZ. λy:ℕ. (0 ⟪ ↓Z , id ℕ ⟫)
+
+The redex types, because it mentions neither `X` nor `Y`.  Its
+frame-exact contractum mints a boundary whose well-formedness demands
+uniqueness, which the duplicate naming of `α` violates.  With names this is ordinary alpha-hygiene.  With
 duplicates, `X` and `Y` would both spell `α`, and `≈` would not
 determine a spelling (`same-target-unique` needs `Unique`).
 
@@ -975,24 +1067,21 @@ names are distinct", and STA's global α-conversion.
 
 **New here.** Uniqueness is stated for *representation variables*
 (each has at most one live name). That condition exists only because of
-Decision 5.
+Decision 2.
 
 ---
 
 ## Examples still to find or render
 
 * A **single running example** that exercises Decisions 1–5 at once.
-  §5a is the candidate (it *is* the pre-boundary counterexample), but its
-  trace is long.  Check whether a shorter program shows mask-not-drop and
-  frame-exact `Beta` together.
+  §5a is the candidate (it *is* the pre-boundary counterexample, and its
+  three-step run is now shown in Decision 3), but its terms are wide.
+  Check whether a smaller program shows mask-not-drop and frame-exact
+  `Beta` together.
 * A **color-preservation picture**: the §1a and §5a traces colored by
   scope map (standing preference: colored trace artifacts for scope and
   boundary material).  `notes/ColorPreservationProbe.agda` has a checked
   three-step run to start from.
-* For each **"without"** claim, the same example run under the retired
-  rule, from `strong/`, `strong-rep-var/` or `strong-rep-store/` (all
-  still build), so that each decision is shown on one example with and
-  without it.
 * A **parametricity example** for Decision 6 that a reader recognises,
   e.g. a `∀X. X ⇒ X` that tries to return `7`.  The calculus refuses the
   boundary, not the program, so the example has to be built by hand
@@ -1011,7 +1100,7 @@ otherwise.
   `TyWrap` shape (Decision 9). Arguably closer to strong-rep-nu than BfA.
 - *Generativity and Dynamic Opacity for Abstract Types* (Rossberg, PPDP
   2003) **(read)**: λN's coercions, lexical-scope gate and
-  type-directed coercion generation (Decisions 2, 6).
+  type-directed coercion generation (Decisions 4, 6).
   - Rossberg identified, and solved, the effect behind Decision 1: once
     coercions are reduction rules, substituting into a coercion's
     annotation changes its meaning. His example is
@@ -1037,7 +1126,7 @@ otherwise.
 - *Parametric Polymorphism through Run-Time Sealing, or, Theorems for
   Low, Low Prices!* (Matthews & Ahmed, ESOP 2008) **(read, §§1–3)**.
   Term-level boundaries `τMS e` / `SMτ e` between System F and Scheme,
-  reversing direction on function arguments (Decision 2). At type
+  reversing direction on function arguments (Decision 4). At type
   application, boundary annotations receive sealed instances `⟨α; τ⟩`
   while ML terms are substituted (Decision 1): the earliest "the
   boundary remembers the abstract variable" in this list. The text
@@ -1055,7 +1144,7 @@ otherwise.
 - *Is Space-Efficient Polymorphic Gradual Typing Possible?* (Ozaki,
   Sekiyama & Igarashi, Scheme 2021) **(read, §§1, 4–5)**: Theorem 6 and
   its polymorphic-recursion witness, behind the seal-chain conjecture in
-  Decision 11.
+  Decision 10.
 - *Blame and Coercion: Together Again for the First Time* (Siek,
   Thiemann & Wadler, PLDI 2015) and *Space-Efficient Gradual Typing*
   (Herman, Tomb & Flanagan, TFP 2007 / HOSC 2010) **(not read)**: normal
@@ -1076,7 +1165,7 @@ otherwise.
   - the only *lexically scoped* sealing in the gradual line (Funky);
   - its critique of global seals (Decisions 1 and 8);
   - its instantiation environments `?^{X:F}`, the nearest analogue of
-    the name map (Decision 5);
+    the name map (Decision 2);
   - its key lemmas are mechanized in Agda.
 - The rest of this group is **not read**:
   - *Consistent Subtyping for All* (Xie, Bi & Oliveira, ESOP 2018): the
@@ -1119,23 +1208,17 @@ Ozaki et al. Scheme'21, *Gradual Parametricity, Revisited* and
 *Plausible Sealing*.  Everything still marked (not read) has no PDF in
 the repo.
 
+## Resolved questions (Jeremy, 2026-09-25)
+
+* **Ordering:** narrative order (this revision).
+* **Related work:** lead with STA for color and λB for mechanism.
+* **History:** the short form, one line of "we tried X; it fails on
+  example E" per decision.
+* **Decisions 7 and 8** (value restriction, global store) count as design
+  decisions.
+* **Erasure theorem:** a design-and-statement pass is under way (statements
+  for review before any proof).
+
 ## Open questions for the draft
 
-* **Which relative leads the related-work section?** λB (*Theorems for
-  Free for Free*) now looks at least as close as STA: conversions,
-  value restriction plus store, and the `TyWrap` shape. STA is closest
-  on *color* and ordered merging. One option is to lead with STA for the
-  goal and λB for the mechanism.
-* **An erasure theorem.** Should strong-rep-nu prove one before the
-  paper, since BfA and STA both have one?
-
-* **Ordering.** Is the list ranked by *explanatory power* (as here) or
-  by *narrative order* (the order a reader needs them, which would put
-  7–8 before 9–10)?
-* **Scope of history.** How much of the refuted-designs history
-  (pre-boundary, v1 copies, towers) belongs in the paper, versus a
-  one-line "we tried X; it fails on example E"?
-* **Decisions 7 and 8.** Are the value restriction and the global store
-  design *decisions*, or engineering that makes the metatheory
-  tractable?  They are motivated by the mechanization more than by the
-  goal.
+* **Erasure theorem statements:** to review when the design pass reports.

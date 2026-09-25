@@ -864,13 +864,14 @@ Tid₂-run = reaches-run Tid₂-eval
 -- The wrapper's own conversion is `mkId` at the image's type, shifted:
 -- `⇑ᵗ (` 0)` is `` ` 1 ``, read outside the unbind.
 
+-- `Nsub = ΛY. λ_:ℕ. x` (value-restricted: the `Λ` body is a `λ`).
 Wsub Nsub : Term
 Wsub = ($ 7) ⟪ [] , tail (seal 0) ⟫
-Nsub = Λ (` 0)
+Nsub = Λ (ƛ `ℕ ∙ ` 1)
 
 _ : Nsub [ Wsub ∶ ` 0 ]ᵐ
-      ≡ Λ ((($ 7) ⟪ [] , tail (seal 0) ⟫)
-             ⟪ (unbind 0 0 ∷ []) , ⌞ id (` 1) ⌟ ⟫)
+      ≡ Λ (ƛ `ℕ ∙ ((($ 7) ⟪ [] , tail (seal 0) ⟫)
+                     ⟪ (unbind 0 0 ∷ []) , ⌞ id (` 1) ⌟ ⟫))
 _ = refl
 
 -- the unbind is at ordinary position 0 and names representation variable 0 —
@@ -917,8 +918,8 @@ Bg = (ν `ℕ · ((ƛ `ℕ ∙ (Λ (ƛ `ℕ ∙ ` 1))) · ($ 7)) ⟨ reveal 0 (`
 Bg-⊢ : empty ∣ [] ⊢ Bg ⦂ `ℕ
 Bg-⊢ = tc
 
-_ : (Λ (` 0)) [ $ 7 ∶ `ℕ ]ᵐ
-      ≡ Λ (($ 7) ⟪ (unbind 0 0 ∷ []) , ⌞ id `ℕ ⌟ ⟫)
+_ : (Λ (ƛ `ℕ ∙ ` 1)) [ $ 7 ∶ `ℕ ]ᵐ
+      ≡ Λ (ƛ `ℕ ∙ (($ 7) ⟪ (unbind 0 0 ∷ []) , ⌞ id `ℕ ⌟ ⟫))
 _ = refl
 
 Bg-eval : Reaches 7 7 Bg-⊢ ($ 7)

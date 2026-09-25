@@ -254,10 +254,12 @@ never touches a representation.  The relation `Γ ⊢ A ~ R`, which is
 renaming through `Γ` (`proof/SameRenaming.agda`), connects the two.
 
 **Example 2a: the crossing does not rename** (§10, `Examples.agda`,
-checked by `refl`; rendered, ``showTmIn 1 (Nsub [ Wsub ∶ ` 0 ]ᵐ)``).
-Substituting `W = 7 ⟪ seal X ⟫` for `x` in `ΛY. x` gives
+checked by `refl`; rendered, ``showTmIn 1 (Nsub [ Wsub ∶ ` 0 ]ᵐ)``,
+with ``Nsub = Λ (ƛ ℕ ∙ ` 1)``).
+Substituting `W = 7 ⟪ seal X ⟫` for `x` in `ΛY. λ_:ℕ. x` (value-restricted:
+the `Λ` body is a `λ`) gives
 
-    ΛY. ((7 ⟪ seal X ⟫) ⟪ ↓Y , id X ⟫)
+    ΛY. λ_:ℕ. ((7 ⟪ seal X ⟫) ⟪ ↓Y , id X ⟫)
 
 The image's `seal X` is *unchanged*.  In the one-universe design the same crossing
 renamed it (`seal 0` became `seal 1` in de Bruijn), because a type
@@ -467,53 +469,130 @@ adds the same thing for type variables.
 
 **Example: the pre-boundary counterexample.**  We tried one wrapper per
 variable, `M ↑[X:=A]` / `M ↓[X:=A]`, whose conceal interior *truncated*
-the context at `X`.  It fails on Jeremy's program (`Design.md` §1):
+the context at `X`.  It fails on Jeremy's program (`Design.md` §1), here
+in its value-restricted form (Decision 7: the `ΛY` body gets a dummy
+`λ_:ℕ`, and the program is continued with `[𝔹] · 0 · true` to reach it).
+This is the program of §5a, `E₀ᴮ`:
 
-    (ΛX. λf:(∀Z.Z→Z). ΛY. f [Y]) [ℕ] · (ΛZ. λz:Z. z)
-    → TyBeta      (λf:(∀Z.Z→Z). ΛY. f [Y]) ↑[X:=ℕ] · (ΛZ. λz:Z. z)
-    → WrapReveal  ((λf. ΛY. f [Y]) · (ΛZ. λz:Z. z)↓[X:=ℕ]) ↑[X:=ℕ]
-    → Beta        (ΛY. (ΛZ. λz:Z. z)↓[X:=ℕ] [Y]) ↑[X:=ℕ]
-    → TyWrapCncl  (ΛY. ((ΛZ. λz:Z. z) [Y]) ↓[X:=ℕ]) ↑[X:=ℕ]      ← ill typed
+    (((ΛX. λf:(∀Z.Z→Z). ΛY. λ_:ℕ. f [Y]) [ℕ] · (ΛZ. λz:Z. z)) [𝔹] · 0) · true
 
-(These are that design's rule names, not today's.)  The conceal now sits
-under `ΛY`, its interior `(Y , X:=ℕ) ↓ X` is empty, and the pushed `[Y]`
-cannot type.  Two lessons, which together are what a boundary is:
-**mask, don't drop** (`↓X` removes `X` and nothing else), and **never push
-a type argument into a concealed body** (record it as a new `↥` instead).
-A boundary then carries binds and unbinds at once, so it is a list.
+In the old design (rule names of that design; derived by hand from its
+rules in `notes/old/notes-v1.md`, "Old per-variable design", which is no
+longer mechanized; type annotations on wrappers omitted as in Jeremy's
+original trace):
 
-**The same program in strong-rep-nu** (§5a, with the value restriction
-applied, Decision 7; rendered, `showRun 0 20 E₀-⊢`; the renderer reuses
-letters across binders, so `X′`, `Y′` are the argument's own bound
-variables):
+      (((ΛX. λf. ΛY. λ_:ℕ. f [Y]) [ℕ] · (ΛZ. λz:Z. z)) [𝔹] · 0) · true
+    → TyBeta      ((((λf. ΛY. λ_. f [Y]) ↑[X:=ℕ]) · (ΛZ. λz. z)) [𝔹] · 0) · true
+    → WrapReveal  ((((λf. ΛY. λ_. f [Y]) · (ΛZ. λz. z)↓[X:=ℕ]) ↑[X:=ℕ]) [𝔹] · 0) · true
+    → Beta        (((ΛY. λ_. (ΛZ. λz. z)↓[X:=ℕ] [Y]) ↑[X:=ℕ]) [𝔹] · 0) · true
+    → TyWrapRevl  ((((ΛY. λ_. (ΛZ. λz. z)↓[X:=ℕ] [Y]) [𝔹]) ↑[X:=ℕ]) · 0) · true
+    → TyBeta      ((((λ_. (ΛZ. λz. z)↓[X:=ℕ] [Y]) ↑[Y:=𝔹]) ↑[X:=ℕ]) · 0) · true
+    → WrapReveal  ((((λ_. …) ↑[Y:=𝔹]) · 0↓[X:=ℕ]) ↑[X:=ℕ]) · true
+    → WrapReveal  (((((λ_. …) · 0↓[X:=ℕ]↓[Y:=𝔹]) ↑[Y:=𝔹]) ↑[X:=ℕ]) · true
+    → Beta        ((((ΛZ. λz. z)↓[X:=ℕ] [Y]) ↑[Y:=𝔹]) ↑[X:=ℕ]) · true
+    → TyWrapCncl  (((((ΛZ. λz. z) [Y]) ↓[X:=ℕ]) ↑[Y:=𝔹]) ↑[X:=ℕ]) · true   ← ill typed
+
+The conceal now sits inside `↑[Y:=𝔹]`, whose `Y` was bound *after* `X`.
+Its exterior is `Y:=𝔹, X:=ℕ` and its interior truncates at `X`,
+`(Y:=𝔹, X:=ℕ) ↓ X = ∅`, so the pushed `[Y]` cannot type.  (The design
+reduced under `Λ`, and Jeremy's original trace hit the same wall in four
+steps.)  Two lessons, which together are what a boundary is: **mask,
+don't drop** (`↓X` removes `X` and nothing else), and **never push a type
+argument into a concealed body** (record it as a new `↥` instead).  A
+boundary then carries binds and unbinds at once, so it is a list.
+
+**The same program in strong-rep-nu** (rendered, `showRun 0 16 E₀ᴮ-⊢`,
+lines wrapped; the renderer reuses letters across binders, so primed
+names are the argument's own bound variables), sixteen steps to `true`:
 
     Ξ = []
-    ((ν X:=ℕ · (ΛY. (λx:(∀Y. (Y⇒Y)). (ΛZ. (λy:ℕ.
-          (ν X′:=Z · x ⟨ (seal X′ ↦ unseal X′) ⟩)))))
-       ⟨ ((∀Y. (id Y ↦ id Y)) ↦ (∀Y. (id ℕ ↦ (id Y ↦ id Y)))) ⟩)
-     · (ΛY′. (λx:Y′. x)))
+    (((ν X:=𝔹 · ((ν Y:=ℕ · (ΛZ. (λx:(∀Y. (Y⇒Y)). (ΛX′. (λy:ℕ. (ν Y′:=X′ · x ⟨
+      (seal Y′ ↦ unseal Y′) ⟩))))) ⟨ ((∀Y. (id Y ↦ id Y)) ↦ (∀Y. (id ℕ ↦ (id Y
+      ↦ id Y)))) ⟩) · (ΛZ′. (λx:Z′. x))) ⟨ (id ℕ ↦ (seal X ↦ unseal X)) ⟩) ·
+      0) · true)
       --[TyBeta]-->
     Ξ = [α := ℕ]
-    (((λx:(∀Y. (Y⇒Y)). (ΛY. (λy:ℕ. (ν Z:=Y · x ⟨ (seal Z ↦ unseal Z) ⟩))))
-        ⟪ ↥X , ((∀Y. (id Y ↦ id Y)) ↦ (∀Y. (id ℕ ↦ (id Y ↦ id Y)))) ⟫)
-     · (ΛX′. (λx:X′. x)))
+    (((ν Y:=𝔹 · (((λx:(∀Y. (Y⇒Y)). (ΛZ. (λy:ℕ. (ν X′:=Z · x ⟨ (seal X′ ↦
+      unseal X′) ⟩)))) ⟪ ↥X , ((∀Y. (id Y ↦ id Y)) ↦ (∀Y. (id ℕ ↦ (id Y ↦ id
+      Y)))) ⟫) · (ΛY′. (λx:Y′. x))) ⟨ (id ℕ ↦ (seal Y ↦ unseal Y)) ⟩) · 0) ·
+      true)
       --[Wrap]-->
     Ξ = [α := ℕ]
-    (((λx:(∀Y. (Y⇒Y)). (ΛY. (λy:ℕ. (ν Z:=Y · x ⟨ (seal Z ↦ unseal Z) ⟩))))
-        · ((ΛX′. (λx:X′. x)) ⟪ ↓X , (∀Y. (id Y ↦ id Y)) ⟫))
-       ⟪ ↥X , (∀Y. (id ℕ ↦ (id Y ↦ id Y))) ⟫)
+    (((ν Y:=𝔹 · (((λx:(∀Y. (Y⇒Y)). (ΛZ. (λy:ℕ. (ν X′:=Z · x ⟨ (seal X′ ↦
+      unseal X′) ⟩)))) · ((ΛY′. (λx:Y′. x)) ⟪ ↓X , (∀Y. (id Y ↦ id Y)) ⟫)) ⟪
+      ↥X , (∀Y. (id ℕ ↦ (id Y ↦ id Y))) ⟫) ⟨ (id ℕ ↦ (seal Y ↦ unseal Y)) ⟩) ·
+      0) · true)
       --[Beta]-->
     Ξ = [α := ℕ]
-    ((ΛY. (λx:ℕ. (ν Z:=Y ·
-        (((ΛX′. (λy:X′. y)) ⟪ ↓X , (∀Y. (id Y ↦ id Y)) ⟫)
-           ⟪ ↓Y , (∀Z. (id Z ↦ id Z)) ⟫)
-        ⟨ (seal Z ↦ unseal Z) ⟩)))
-      ⟪ ↥X , (∀Y. (id ℕ ↦ (id Y ↦ id Y))) ⟫)
-        -- VALUE
+    (((ν Y:=𝔹 · ((ΛZ. (λx:ℕ. (ν X′:=Z · (((ΛY′. (λy:Y′. y)) ⟪ ↓X , (∀Y. (id Y
+      ↦ id Y)) ⟫) ⟪ ↓Z , (∀Z. (id Z ↦ id Z)) ⟫) ⟨ (seal X′ ↦ unseal X′) ⟩))) ⟪
+      ↥X , (∀Y. (id ℕ ↦ (id Y ↦ id Y))) ⟫) ⟨ (id ℕ ↦ (seal Y ↦ unseal Y)) ⟩) ·
+      0) · true)
+      --[TyWrap]-->
+    Ξ = [α := 𝔹 , β := ℕ]
+    (((((λx:ℕ. (ν Z:=X · (((ΛX′. (λy:X′. y)) ⟪ ↓Y , (∀Y. (id Y ↦ id Y)) ⟫) ⟪
+      ↓X , (∀Z. (id Z ↦ id Z)) ⟫) ⟨ (seal Z ↦ unseal Z) ⟩)) ⟪ ↥Y , (id ℕ ↦ (id
+      X ↦ id X)) ⟫) ⟪ ↥X , (id ℕ ↦ (seal X ↦ unseal X)) ⟫) · 0) · true)
+      --[Merge]-->
+    Ξ = [α := 𝔹 , β := ℕ]
+    ((((λx:ℕ. (ν Z:=X · (((ΛX′. (λy:X′. y)) ⟪ ↓Y , (∀Y. (id Y ↦ id Y)) ⟫) ⟪ ↓X
+      , (∀Z. (id Z ↦ id Z)) ⟫) ⟨ (seal Z ↦ unseal Z) ⟩)) ⟪ ↥X , ↥Y , (id ℕ ↦
+      (seal X ↦ unseal X)) ⟫) · 0) · true)
+      --[Wrap]-->
+    Ξ = [α := 𝔹 , β := ℕ]
+    ((((λx:ℕ. (ν Z:=X · (((ΛX′. (λy:X′. y)) ⟪ ↓Y , (∀Y. (id Y ↦ id Y)) ⟫) ⟪ ↓X
+      , (∀Z. (id Z ↦ id Z)) ⟫) ⟨ (seal Z ↦ unseal Z) ⟩)) · (0 ⟪ ↓Y , ↓X , id ℕ
+      ⟫)) ⟪ ↥X , ↥Y , (seal X ↦ unseal X) ⟫) · true)
+      --[Id]-->
+    Ξ = [α := 𝔹 , β := ℕ]
+    ((((λx:ℕ. (ν Z:=X · (((ΛX′. (λy:X′. y)) ⟪ ↓Y , (∀Y. (id Y ↦ id Y)) ⟫) ⟪ ↓X
+      , (∀Z. (id Z ↦ id Z)) ⟫) ⟨ (seal Z ↦ unseal Z) ⟩)) · 0) ⟪ ↥X , ↥Y ,
+      (seal X ↦ unseal X) ⟫) · true)
+      --[Beta]-->
+    Ξ = [α := 𝔹 , β := ℕ]
+    (((ν Z:=X · (((ΛX′. (λx:X′. x)) ⟪ ↓Y , (∀Y. (id Y ↦ id Y)) ⟫) ⟪ ↓X , (∀Z.
+      (id Z ↦ id Z)) ⟫) ⟨ (seal Z ↦ unseal Z) ⟩) ⟪ ↥X , ↥Y , (seal X ↦ unseal
+      X) ⟫) · true)
+      --[Merge]-->
+    Ξ = [α := 𝔹 , β := ℕ]
+    (((ν Z:=X · ((ΛX′. (λx:X′. x)) ⟪ ↓X , ↓Y , (∀Z. (id Z ↦ id Z)) ⟫) ⟨ (seal
+      Z ↦ unseal Z) ⟩) ⟪ ↥X , ↥Y , (seal X ↦ unseal X) ⟫) · true)
+      --[TyWrap]-->
+    Ξ = [α := β , β := 𝔹 , γ := ℕ]
+    (((((λx:X. x) ⟪ ↓Y , ↓Z , (id X ↦ id X) ⟫) ⟪ ↥X , (seal X ↦ unseal X) ⟫) ⟪
+      ↥Y , ↥Z , (seal Y ↦ unseal Y) ⟫) · true)
+      --[Merge]-->
+    Ξ = [α := β , β := 𝔹 , γ := ℕ]
+    ((((λx:X. x) ⟪ ↥X , ↓Y , ↓Z , (seal X ↦ unseal X) ⟫) ⟪ ↥Y , ↥Z , (seal Y ↦
+      unseal Y) ⟫) · true)
+      --[Merge]-->
+    Ξ = [α := β , β := 𝔹 , γ := ℕ]
+    (((λx:X. x) ⟪ ↥Y , ↥Z , ↥X , ↓Y , ↓Z , ((seal Y ; seal X) ↦ (unseal X ;
+      unseal Y)) ⟫) · true)
+      --[Wrap]-->
+    Ξ = [α := β , β := 𝔹 , γ := ℕ]
+    (((λx:X. x) · (true ⟪ ↥Z , ↥Y , ↓X , ↓Z , ↓Y , seal Y ; seal X ⟫)) ⟪ ↥Y ,
+      ↥Z , ↥X , ↓Y , ↓Z , unseal X ; unseal Y ⟫)
+      --[Beta]-->
+    Ξ = [α := β , β := 𝔹 , γ := ℕ]
+    ((true ⟪ ↥Z , ↥Y , ↓X , ↓Z , ↓Y , seal Y ; seal X ⟫) ⟪ ↥Y , ↥Z , ↥X , ↓Y ,
+      ↓Z , unseal X ; unseal Y ⟫)
+      --[Merge]-->
+    Ξ = [α := β , β := 𝔹 , γ := ℕ]
+    (true ⟪ ↥Y , ↥Z , ↥X , ↓Y , ↓Z , ↥Z , ↥Y , ↓X , ↓Z , ↓Y , id 𝔹 ⟫)
+      --[Id]-->
+    Ξ = [α := β , β := 𝔹 , γ := ℕ]
+    true
+      -- VALUE
 
-It stops at a value under `ΛY` (the value restriction parks it there),
-and the argument is read in its birth frame: under its own `↓X` from the
-crossing and `↓Y` from the substitution (Decision 5).
+Step 3 is the frame-exact `Beta` of Decision 5: the argument lands under
+`ΛZ` inside its own `↓X` (from the crossing) and `↓Z` (from the
+substitution).  Where the old design pushed `[Y]` into a concealed body,
+here the two `TyWrap` steps (4 and 10) *bind* the instantiation as a new
+`↥` and allocate a cell, the second one an alias (`α := β`).  The two
+`Merge`s after the second `TyWrap` build the seal chain
+`seal Y ; seal X` and the unseal chain `unseal X ; unseal Y` that carry
+`true` across both instantiations.
 
 Twice more the design died of dropping something: the scope move
 (`DesignPoints.md` D45), and a `dual` that dropped the inverse of a `↥`
@@ -630,8 +709,9 @@ binder's dual, `W ⟪ ↓Y , id A ⟫`.  The value arrives in the frame it was
 born in.  This is `_[_∶_]ᵐ` (`TermSubst.agda`), and why `Beta` carries
 the argument type.
 
-**Example:** the `Beta` step of the §5a run shown in full in Decision 3
-(rendered, `showRun 0 20 E₀-⊢`):
+**Example:** the `Beta` step of the §5a run (step 3 of the trace in
+Decision 3), shown here on the uncontinued program `E₀`, where it ends
+in a value (rendered, `showRun 0 20 E₀-⊢`):
 
     Ξ = [α := ℕ]
     (((λx:(∀Y. Y⇒Y). ΛY. λy:ℕ. ν Z:=Y · x ⟨ seal Z ↦ unseal Z ⟩)
@@ -739,9 +819,10 @@ a dummy `λ` to make the body a value, and apply it.
 
     (ΛZ. x) [ℕ]      becomes      ((ΛZ. λy:ℕ. x) [ℕ]) · 0
 
-The §5a run in Decision 3 shows the other side of the cost: it *stops*
-at a value `ΛY. …`, which System F would also stop at, instead of
-reducing under the binder.
+The §5a program in Decision 3 shows the other side of the cost: the
+pre-boundary counterexample needs its `ΛY` body padded with `λ_:ℕ` and
+the program continued with `[𝔹] · 0` before the interesting reduction
+happens, because nothing reduces under the binder.
 
 **Builds on.** This decision is λB's, and the paper should say so.
 - λB §2.4 explains why BfA had to reduce under `Λ`: BfA wanted the value
@@ -783,7 +864,9 @@ representation is, and `Γ` says *whether* this position may name it.
   by α-renaming").
 - **The case for it** is BfA §5.5, which shows why a global list of
   bindings needs the value restriction first (Decision 7). Its
-  hypothetical reduction, with `s = (λx:X. λy:Y. x) : X→Y→X`:
+  hypothetical reduction, with `s = (λx:X. λy:Y. x) : X→Y→X`, is
+  deliberately *not* value-restricted (`ΛX.(ΛY.s)X` reduces under
+  `ΛX`); that is its point, so it is quoted as is:
 
       ε;      let f = ΛX.(ΛY.s)X in (f I, f B)
       ↦ Y≈X;   let f = ΛX.s in (f I, f B)
@@ -1075,7 +1158,7 @@ Decision 2.
 
 * A **single running example** that exercises Decisions 1–5 at once.
   §5a is the candidate (it *is* the pre-boundary counterexample, and its
-  three-step run is now shown in Decision 3), but its terms are wide.
+  sixteen-step run is now shown in Decision 3), but its terms are wide.
   Check whether a smaller program shows mask-not-drop and frame-exact
   `Beta` together.
 * A **color-preservation picture**: the §1a and §5a traces colored by

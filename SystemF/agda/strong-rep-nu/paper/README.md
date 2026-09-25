@@ -54,5 +54,16 @@ v2.16, each generated from the matching tag of
 <https://github.com/borisveytsman/acmart> and compared with committed
 copies in public repositories.  If a TeX installation is at hand,
 `latex acmart.ins` in `acmart-v2.20/` regenerates the class the usual
-way.  The generated class may be distributed only together with its
+way.
+
+**Confirmed against ACM's own build (2026-09-25).**  ACM's template zip
+(`acmart-primary.zip`, from
+<https://portalparts.acm.org/hippo/latex_templates/acmart-primary.zip>,
+behind a Cloudflare check, so downloaded by hand) is the same release,
+v2.20 (2026/08/16), with the class and samples pre-generated.  Every file
+used here is byte-identical to its copy there: `acmart.cls`,
+`ACM-Reference-Format.bst`, `acmart.dtx`, `acmart.ins`, `samples.dtx`,
+`samples.ins`, `acmsmall-conf.tex`, `sample-base.bib`, `sampleteaser.pdf`,
+`sample-franklin.png`.  Only the two prebuilt PDFs (separate builds) and
+one maintainer line of ACM's README differ.  The generated class may be distributed only together with its
 sources (see its header), which is why `acmart-v2.20/` is kept here.

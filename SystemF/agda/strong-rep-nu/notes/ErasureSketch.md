@@ -1,7 +1,7 @@
 # Erasure to plain System F: design, statements, example checks
 
 2026-09-25.  Agda: `notes/ErasureProbe.agda` (module
-`strong-rep-nu.notes.ErasureProbe`) and `notes/SourceReduction.agda`.
+`strong-rep-nu.notes.ErasureProbe`) and `SourceReduction.agda`.
 Both are gated by `notes/All.agda`.
 
 The goal is a theorem in the style of Blame for All Prop. 1 (Ahmed,
@@ -95,7 +95,7 @@ relates two types with the SAME erasure:
   * `unseal X` is the same in reverse;
   * `id`, `↦` and `∀` are structural.
 
-## 2. Source reduction (`notes/SourceReduction.agda`)
+## 2. Source reduction (`SourceReduction.agda`)
 
 This is standard call-by-value System F on `STerm`, with the value
 restriction of `⊢ˢΛ`:

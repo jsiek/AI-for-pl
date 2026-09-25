@@ -1,4 +1,4 @@
-module strong-rep-nu.notes.SourceReduction where
+module strong-rep-nu.SourceReduction where
 
 -- File Charter:
 --   * A SMALL-STEP CALL-BY-VALUE REDUCTION FOR THE SOURCE LANGUAGE

@@ -48,7 +48,7 @@ open import strong-rep-nu.Source
          inferˢ)
 open import strong-rep-nu.Compile using (compile)
 open import strong-rep-nu.Conversion using (⌞_⌟; id)
-open import strong-rep-nu.notes.SourceReduction
+open import strong-rep-nu.SourceReduction
 open import strong-rep-nu.proof.TypeSubst using (subst-cong; subst-id)
 import strong-rep-nu.Examples as E
 import strong-rep-nu.SourceExamples as SE

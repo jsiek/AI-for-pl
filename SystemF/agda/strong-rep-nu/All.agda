@@ -12,6 +12,7 @@ open import strong-rep-nu.Terms
 open import strong-rep-nu.TermSubst
 open import strong-rep-nu.Reduction
 open import strong-rep-nu.Source
+open import strong-rep-nu.SourceReduction
 open import strong-rep-nu.Compile
 open import strong-rep-nu.CompileTyping
 open import strong-rep-nu.proof.Compile

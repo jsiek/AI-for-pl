@@ -46,5 +46,4 @@ open import strong-rep-nu.notes.DualTightness
 -- a source reduction, the typing/simulation statements (unproved),
 -- EraseCompile (proved), and checks on every compiled run
 -- (notes/ErasureSketch.md).
-open import strong-rep-nu.notes.SourceReduction
 open import strong-rep-nu.notes.ErasureProbe

@@ -726,7 +726,7 @@ actually inspected by the dynamic semantics".
 Nothing reduces under a type binder.
 
 **Why:** it makes every redex's context the **ambient** one.  With
-`ξ-Λ`, an allocation under a `Λ` would mint a cell whose representation
+`ξ-Λ`, an allocation under a `Λ` would create a cell whose representation
 mentions the `Λ`'s own abstract variable, onto a context the `Λ`'s
 siblings do not share.  With the restriction, "allocate at the top and
 shift everyone else" means something (`RepStoreSketch.md`, "Why
@@ -824,7 +824,7 @@ The run-time language has no `L [A]`.  Plain System F is a separate
 source language, and `compile` translates `L [A]` (with `L : ∀X.C`) to
 `ν X:=A · ⟦L⟧ ⟨ revealₓ(C) ⟩`.
 
-**Why:** without it, type application had to mint the reveal at run
+**Why:** without it, type application had to create the reveal at run
 time (which needed an annotation `B` on `L [B, A]`), and its
 `∀`-over-a-boundary partner had to fuse two conversions.  With the reveal
 written by the compiler, `TyWrap` stacks and `Merge` fuses.
@@ -1037,7 +1037,7 @@ Igarashi (Scheme 2021) prove that λC∀ is not space-efficient (Thm 6).
   plays there, a cell that lets one seal follow another, is played here
   by *alias* cells `β := α`, which is what seal chains `t ; seal X ;
   seal Y` are built from (Example 2b). A polymorphically recursive
-  `f [X]` under `ΛX` would mint a new alias cell per round.
+  `f [X]` under `ΛX` would create a new alias cell per round.
 - Conjecture: with `fix`, seal chains grow without bound and Ozaki et
   al.'s argument transfers. Without `fix`, every run terminates, so
   chains are bounded, but no bound is proved.
@@ -1056,7 +1056,7 @@ names (`Unique (names Δ)`).  Preservation takes `WfCtx Δ`.
     ΛZ. λy:ℕ. (0 ⟪ ↓Z , id ℕ ⟫)
 
 The redex types, because it mentions neither `X` nor `Y`.  Its
-frame-exact contractum mints a boundary whose well-formedness demands
+frame-exact contractum creates a boundary whose well-formedness demands
 uniqueness, which the duplicate naming of `α` violates.  With names this is ordinary alpha-hygiene.  With
 duplicates, `X` and `Y` would both spell `α`, and `≈` would not
 determine a spelling (`same-target-unique` needs `Unique`).

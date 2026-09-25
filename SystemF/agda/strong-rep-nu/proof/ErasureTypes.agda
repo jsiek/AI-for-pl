@@ -39,6 +39,7 @@ open import strong-rep-nu.proof.TypeSubst
   using (subst-cong; subst-id; sub-sub; _⨟ᵗ_; rename-subst-commute;
          rename-subst)
 open import strong-rep-nu.proof.Preserve using (shiftReps-∋⁻; wf-same)
+open import strong-rep-nu.proof.Types using (substᵗ-renᵗ; extsᵗ-renᵗ)
 
 ------------------------------------------------------------------------
 -- 1. Lookups and the name map
@@ -345,6 +346,18 @@ substˢᵗ-id {σ} h (Λ N) = cong Λ_ (substˢᵗ-id h-ext N)
   h-ext (suc X) = cong ⇑ᵗ (h X)
 substˢᵗ-id h (L [ A ]) =
   cong₂ _[_] (substˢᵗ-id h L) (trans (subst-cong h A) (subst-id A))
+
+substˢᵗ-renᵗ : ∀ (ρ : Renameᵗ) M → substˢᵗ (renᵗ ρ) M ≡ renameˢᵗ ρ M
+substˢᵗ-renᵗ ρ (` x) = refl
+substˢᵗ-renᵗ ρ ($ k) = refl
+substˢᵗ-renᵗ ρ `true = refl
+substˢᵗ-renᵗ ρ `false = refl
+substˢᵗ-renᵗ ρ (ƛ A ∙ N) =
+  cong₂ ƛ_∙_ (substᵗ-renᵗ ρ A) (substˢᵗ-renᵗ ρ N)
+substˢᵗ-renᵗ ρ (L · M) = cong₂ _·_ (substˢᵗ-renᵗ ρ L) (substˢᵗ-renᵗ ρ M)
+substˢᵗ-renᵗ ρ (Λ N) =
+  cong Λ_ (trans (substˢᵗ-cong (extsᵗ-renᵗ ρ) N) (substˢᵗ-renᵗ (extᵗ ρ) N))
+substˢᵗ-renᵗ ρ (L [ A ]) = cong₂ _[_] (substˢᵗ-renᵗ ρ L) (substᵗ-renᵗ ρ A)
 
 ------------------------------------------------------------------------
 -- 9. Values erase to values

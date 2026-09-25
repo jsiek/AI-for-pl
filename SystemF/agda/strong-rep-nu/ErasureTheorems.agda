@@ -25,6 +25,7 @@ open import strong-rep-nu.Compile using (compile)
 open import strong-rep-nu.Erasure
 import strong-rep-nu.proof.ErasureCompile as EC
 import strong-rep-nu.proof.ErasureTyping as ET
+import strong-rep-nu.proof.ErasureSim as ES
 
 ------------------------------------------------------------------------
 -- 1. The statements
@@ -118,6 +119,21 @@ EraseCompile = ∀ {n Γ M A} (d : n ∣ Γ ⊢ˢ M ⦂ A)
 
 erasure-typing : ErasureTyping
 erasure-typing = ET.erasure-typing
+
+erasure-stutter : ErasureStutter
+erasure-stutter = ES.erasure-stutter
+
+erasure-step : ErasureStep
+erasure-step = ES.erasure-step
+
+erasure-simulation : ErasureSimulation
+erasure-simulation = ES.erasure-sim
+
+erasure-run : ErasureRun
+erasure-run = ES.erasure-run
+
+compiled-run-erases : CompiledRunErases
+compiled-run-erases = ES.compiled-run-erases
 
 erase-compile-at : EraseCompileAt
 erase-compile-at = EC.erase-compile-at

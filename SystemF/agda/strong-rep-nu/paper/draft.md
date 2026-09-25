@@ -150,18 +150,23 @@ asking for a stronger syntactic invariant, not from a flaw in theirs.
   - one boundary per value with merging (Decision 11: STA `[8]`, λS∀mp).
 - **What is new.** Decisions 2, 3 and 5 have no counterpart I found, and
   they are the decisions color preservation forces. The heart of it is
-  Decision 3 together with Decision 2.
-  - **Decision 3:** boundary scopes are change lists in which `↥X` is a
-    *binder* for type variables that names an existing representation,
-    and `↓X` ends a scope. Every type variable therefore has a lexical
-    binder at every point of a run, and every rule moves or inverts
-    binders instead of substituting.
-  - **Decision 2:** representation variables behind a name map, which
-    let a binder name an existing representation at all.
-  - **Decision 5:** frame-exact `Beta`, which is that same principle
-    applied to term substitution. In one sentence: *strong-rep-nu
-  takes the λB/STA design and adds a name map, so that type application
-  no longer needs to rename.*
+  Decisions 2 and 3, which had to go together:
+  - **Decision 2, the driving decision:** boundary scopes are change
+    lists in which `↥X` is a *binder* for type variables and `↓X` ends a
+    scope. Every type variable therefore has a lexical binder at every
+    point of a run, and every rule moves or inverts binders instead of
+    substituting.
+  - **Decision 3, forced by Decision 2:** once boundaries bind and
+    unbind type variables, a representation must outlive the name that
+    denotes it (after `↓X`) and be reachable by different names in
+    different frames (`↥X` naming an existing cell). So type variables
+    and representations become two universes, connected by a name map.
+  - **Decision 5:** frame-exact `Beta`, the same binder principle
+    applied to term substitution.
+
+  In one sentence: *strong-rep-nu takes the λB/STA design and adds
+  binding boundaries and a name map, so that type application no
+  longer needs to rename.*
 
 ---
 
@@ -222,7 +227,7 @@ at run time*, which is where "strong" in Strong System F comes from
   in the original program but has been substituted with a concrete
   type" (§3). Their observation that "the production of fresh names by
   capture-avoiding substitution corresponds exactly to the production
-  of fresh seals" is a good epigraph for Decision 2.
+  of fresh seals" is a good epigraph for Decision 3.
 - **λB, GSF and λC∀mp refine the idea with a global store** and a
   fresh name `α`. On §1a, λB gives
   `Σ,α:=ℕ ▷ ((λx:α. x) : α⇒α =+α⇒ ℕ⇒ℕ) 7`. That is exactly right for
@@ -248,84 +253,7 @@ an agent boundary: under its one-color translation "type application
 still substitutes a type for a type variable" (p.1074). Strong-rep-nu
 installs a boundary at every instantiation, so no coloring is needed.
 
-### 2. Two universes: type variables are lexical, representation variables are storage
-
-A type context is a pair `Ξ ∣ Γ`: a store `Ξ` of representation cells
-(`α` abstract, or `α := R`), and a **name map** `Γ` listing the live type
-variables and which `α` each one names.  An unbind deletes a *name*; it
-never touches a representation.  The relation `Γ ⊢ A ~ R`, which is
-renaming through `Γ` (`proof/SameRenaming.agda`), connects the two.
-
-**Example 2a: the crossing does not rename** (§10, `Examples.agda`,
-checked by `refl`; rendered, ``showTmIn 1 (Nsub [ Wsub ∶ ` 0 ]ᵐ)``,
-with ``Nsub = Λ (ƛ ℕ ∙ ` 1)``).
-Substituting `W = 7 ⟪ seal X ⟫` for `x` in `ΛY. λ_:ℕ. x` (value-restricted:
-the `Λ` body is a `λ`) gives
-
-    ΛY. λ_:ℕ. ((7 ⟪ seal X ⟫) ⟪ ↓Y , id X ⟫)
-
-The image's `seal X` is *unchanged*.  In the one-universe design the same crossing
-renamed it (`seal 0` became `seal 1` in de Bruijn), because a type
-variable was also a storage slot and a new `Λ` slot shifted it.
-
-**Example 2b: one representation, several names over time** (the Merge
-run excerpt in `notes/notes.md`, from `S₀`; rendered):
-
-    Ξ = [α := ℕ , β := γ , γ := ℕ]
-    (((((7 ⟪ ↓Z , seal Z ⟫) ⟪ ↓X , id Z ⟫) ⟪ ↥X , ↓Y , seal Y ⟫)
-        ⟪ ↥Y , unseal Y ⟫) ⟪ ↥Z , unseal Z ⟫)
-
-`β := γ` is an **alias** cell: its stored representation is the
-representation *variable* `γ`, which `Z` names.  `↥Y` gives `β` a name
-in one frame, `↓Y` takes it away in another, and the cell never moves.
-
-**Why it matters for the goal:** color becomes a first-class object.  A
-position's color is literally its name map `names Δ`.  Because every move
-except the allocation is representation-only, ordinary positions never
-shift, and `ScopeMapPreservation` can say `names Δ₂ ≡ map ρ (names Δ₁)`.
-The one-universe v7 theorem had to count a push/pop balance instead
-(`DECISIONS.md` 2026-09-21, "COLOR PRESERVATION is RESTATED").
-
-**Where:** `Ctx.agda`; `strong-rep-var/notes/PLAN.md` "Goal" (the two
-roles of a type variable, split).
-
-**Builds on.**
-- **λB already separates the two sorts.** λC∀mp notes that "type names
-  and variables are distinguished in λC∀mp (following Ahmed et al.
-  [2017])": a type variable `X` is lexical and a type name `α` lives in
-  the store. Strong-rep-nu's two universes are this distinction.
-- **Funky pairs a lexical label with what it denotes.** An unknown type
-  carries an instantiation environment: "`?^{X:Int}` expresses that type
-  variable X is in scope and instantiated to Int. … In the type
-  `?^{X:X}`, the two occurrences of X play a different role: the first
-  is merely a label, while the second is an actual occurrence of the
-  type variable X" (§3). That is the name map's split between a lexical
-  label and what it denotes.
-- **Matthews & Ahmed's `⟨α; τ⟩`** pairs the abstract variable with its
-  instance on a boundary annotation.
-- **GSF's evidence type names record alias chains.** `αβ^Int` records
-  "that α is bound to β, which is itself bound to Int" (GSF §7.2).
-  These correspond to the alias cells of Example 2b (`β := γ`).
-- **F_C keys its global store by `X` itself** (`Σ, X≔A`), a clean
-  one-sort design with a store. Strong-rep-var started from the
-  analogous one-universe design.
-
-**New here.** How the two sorts are *connected*. λB, GSF and λC∀mp
-connect them by substituting `α` for `X`. Funky updates its
-environments by substitution (`?^{Y:X, X:X}[Int/X] = ?^{Y:Int,
-X:Int}`), and they live on each `?` rather than in the context.
-Strong-rep-nu connects the sorts by a lexical name map `X ↦ α` in the
-type context, which boundaries edit and nothing substitutes. That is
-what makes color the checkable equation of `ScopeMapPreservation`. I
-found nothing closer, but that is a search result, not a proof of
-novelty.
-
-*Terminology (from memory).* "Representation" also names the run-time
-type representations of intensional polymorphism (Crary, Weirich &
-Morrisett, ICFP 1998). Strong-rep-nu's representations are types in the
-store, never terms; say so once.
-
-### 3. A boundary scope is a list of changes, and an unbind masks instead of dropping
+### 2. A boundary scope is a list of changes, and an unbind masks instead of dropping
 
 A boundary carries a **sequence** `Θ` of changes, `↓X` (unbind) and
 `↥X` (bind), and its interior is **computed from the exterior at the
@@ -379,7 +307,7 @@ and the only way to express a new scope is to substitute.
 `↥X` also buys two things the other binders cannot express:
 - **Re-naming an existing representation.** `⟪ ↓X , ↥Y ⟫` hides `X` and
   names the *same* α as `Y` for the interior: a boundary that
-  α-converts. The alias chains of Example 2b (`↥X , ↓Y`) are built this
+  α-converts. The alias chains of Example 3b (`↥X , ↓Y`) are built this
   way.
 - **The conversion reads both sides.** The *conversion context* performs
   every `↥` and skips every `↓` (`conv-bind`, `conv-bind-live`), so a
@@ -452,7 +380,7 @@ the problem either, once store names count as type variables: a global
 store of names recolors everything at each allocation.  Strong-rep-nu's
 store is just as global, but its representation variables never appear
 in types (types mention only the lexical names of the name map), so an
-allocation changes no color (Decisions 2 and 8). The same holds for term
+allocation changes no color (Decisions 3 and 8). The same holds for term
 substitution: frame-exact `Beta`'s `↓Y` ends `ΛY`'s scope for a value
 planted under it (Decision 5).
 
@@ -614,6 +542,15 @@ Twice more the design died of dropping something: the scope move
 (D47; `notes/DualTightness.agda` above).  Candidate slogan: *nothing may be
 dropped*.
 
+**What this forces: Decision 3.**  A binder that does not allocate
+(`↥X` names an existing α) and an anti-binder that keeps the store
+(`↓X` ends `X`'s scope but α stays) only make sense if the thing named
+and the name are different.  When a type variable is itself the storage
+slot, ending its scope must either delete the slot (dropping, which this
+decision rules out) or keep it hidden in place, and a new name for an
+old slot has nothing to point at.  Decision 3 is the separation this
+requires.
+
 **Builds on.**
 - **STA showed that the history of crossings must be an ordered list.**
   Its three-agent counterexample (p.1048) shows that nested embeddings
@@ -625,7 +562,7 @@ dropped*.
   "mask here, keep the rest" discipline meaningful at all.
 
 **New here.** This is one of the two most novel parts of strong-rep-nu,
-with Decision 2, and the paper should present it as a contribution.
+with Decision 3, and the paper should present it as a contribution.
 - **A binder that does not allocate, and an unbinder.** In the calculi
   above, the construct that binds a type name also creates it:
   - BfA's `νX:=A. t`, λN's `Nγ≈τ. e`, Neis et al.'s `new α≈τ in e` and
@@ -637,7 +574,7 @@ with Decision 2, and the paper should present it as a contribution.
 
   `↥X` binds a name to an existing representation variable, which is
   possible only because names and representations are separate
-  (Decision 2), and `↓X` ends a scope at a chosen position.
+  (Decision 3), and `↓X` ends a scope at a chosen position.
 - **Color is read off the binders.** Because every type variable has a
   lexical binder at every point of a run, and every rule moves or
   inverts binders, color preservation is a statement about scopes. The
@@ -655,6 +592,114 @@ with Decision 2, and the paper should present it as a contribution.
   It is in the spirit of explicit substitutions (λσ's shift `↑` and lift
   `⇑`), but it acts on the type context and is never pushed into the
   term.
+
+### 3. Two universes: type variables are lexical, representation variables are storage
+
+**Forced by Decision 2.**  This decision came second and was forced by
+the first.  Once a boundary's `↥X` binds and `↓X` unbinds type
+variables, two things have to be expressible that a single universe of
+type variables cannot express:
+- **A representation that outlives its name.** After `↓X`, the interior
+  cannot name `X`, but `X`'s representation must still exist: a
+  conversion (`seal X` at the conversion context) and the frames outside
+  still refer to it.
+- **One representation under different names in different frames.**
+  `↥Y` gives an *existing* representation a new name for an interior.
+
+The `S₀` run of Example 3b shows both:
+- **Names come and go around a fixed cell.** In the scope
+  `⟪ ↥X , ↓Y , seal Y ⟫`, `↥X` names one cell for the interior while
+  `↓Y` hides another, and neither cell moves.
+- **A cell may be an alias.** The store holds `β := γ`: `β`'s
+  representation is the representation *variable* `γ`, which `Z`
+  names.
+
+So the calculus needs something for names to *denote*, separate from
+the names themselves (representation variables, in the store), and a
+map connecting them that boundaries edit (the name map).
+
+**Without it:** we tried one universe, in which a type variable was also
+its storage slot and `↓X` hid the slot in place (the original `strong/`,
+from which strong-rep-var split the two universes).  It works, but a
+crossing renamed ordinary variables (Example 3a), and the color theorem
+could only compare scope *sizes*, by a push/pop count, rather than
+relate the name maps themselves (`ScopeMapPreservation`;
+`DECISIONS.md`, 2026-09-21).
+
+A type context is a pair `Ξ ∣ Γ`: a store `Ξ` of representation cells
+(`α` abstract, or `α := R`), and a **name map** `Γ` listing the live type
+variables and which `α` each one names.  An unbind deletes a *name*; it
+never touches a representation.  The relation `Γ ⊢ A ~ R`, which is
+renaming through `Γ` (`proof/SameRenaming.agda`), connects the two.
+
+**Example 3a: the crossing does not rename** (§10, `Examples.agda`,
+checked by `refl`; rendered, ``showTmIn 1 (Nsub [ Wsub ∶ ` 0 ]ᵐ)``,
+with ``Nsub = Λ (ƛ ℕ ∙ ` 1)``).
+Substituting `W = 7 ⟪ seal X ⟫` for `x` in `ΛY. λ_:ℕ. x` (value-restricted:
+the `Λ` body is a `λ`) gives
+
+    ΛY. λ_:ℕ. ((7 ⟪ seal X ⟫) ⟪ ↓Y , id X ⟫)
+
+The image's `seal X` is *unchanged*.  In the one-universe design the same crossing
+renamed it (`seal 0` became `seal 1` in de Bruijn), because a type
+variable was also a storage slot and a new `Λ` slot shifted it.
+
+**Example 3b: one representation, several names over time** (the Merge
+run excerpt in `notes/notes.md`, from `S₀`; rendered):
+
+    Ξ = [α := ℕ , β := γ , γ := ℕ]
+    (((((7 ⟪ ↓Z , seal Z ⟫) ⟪ ↓X , id Z ⟫) ⟪ ↥X , ↓Y , seal Y ⟫)
+        ⟪ ↥Y , unseal Y ⟫) ⟪ ↥Z , unseal Z ⟫)
+
+`β := γ` is an **alias** cell: its stored representation is the
+representation *variable* `γ`, which `Z` names.  `↥Y` gives `β` a name
+in one frame, `↓Y` takes it away in another, and the cell never moves.
+
+**Why it matters for the goal:** color becomes a first-class object.  A
+position's color is literally its name map `names Δ`.  Because every move
+except the allocation is representation-only, ordinary positions never
+shift, and `ScopeMapPreservation` can say `names Δ₂ ≡ map ρ (names Δ₁)`.
+The one-universe v7 theorem had to count a push/pop balance instead
+(`DECISIONS.md` 2026-09-21, "COLOR PRESERVATION is RESTATED").
+
+**Where:** `Ctx.agda`; `strong-rep-var/notes/PLAN.md` "Goal" (the two
+roles of a type variable, split).
+
+**Builds on.**
+- **λB already separates the two sorts.** λC∀mp notes that "type names
+  and variables are distinguished in λC∀mp (following Ahmed et al.
+  [2017])": a type variable `X` is lexical and a type name `α` lives in
+  the store. Strong-rep-nu's two universes are this distinction.
+- **Funky pairs a lexical label with what it denotes.** An unknown type
+  carries an instantiation environment: "`?^{X:Int}` expresses that type
+  variable X is in scope and instantiated to Int. … In the type
+  `?^{X:X}`, the two occurrences of X play a different role: the first
+  is merely a label, while the second is an actual occurrence of the
+  type variable X" (§3). That is the name map's split between a lexical
+  label and what it denotes.
+- **Matthews & Ahmed's `⟨α; τ⟩`** pairs the abstract variable with its
+  instance on a boundary annotation.
+- **GSF's evidence type names record alias chains.** `αβ^Int` records
+  "that α is bound to β, which is itself bound to Int" (GSF §7.2).
+  These correspond to the alias cells of Example 3b (`β := γ`).
+- **F_C keys its global store by `X` itself** (`Σ, X≔A`), a clean
+  one-sort design with a store. Strong-rep-var started from the
+  analogous one-universe design.
+
+**New here.** How the two sorts are *connected*. λB, GSF and λC∀mp
+connect them by substituting `α` for `X`. Funky updates its
+environments by substitution (`?^{Y:X, X:X}[Int/X] = ?^{Y:Int,
+X:Int}`), and they live on each `?` rather than in the context.
+Strong-rep-nu connects the sorts by a lexical name map `X ↦ α` in the
+type context, which boundaries edit and nothing substitutes. That is
+what makes color the checkable equation of `ScopeMapPreservation`. I
+found nothing closer, but that is a search result, not a proof of
+novelty.
+
+*Terminology (from memory).* "Representation" also names the run-time
+type representations of intensional polymorphism (Crary, Weirich &
+Morrisett, ICFP 1998). Strong-rep-nu's representations are types in the
+store, never terms; say so once.
 
 ### 4. A boundary carries a *conversion*, and crossings go inward through the dual
 
@@ -725,7 +770,7 @@ born in.  This is `_[_∶_]ᵐ` (`TermSubst.agda`), and why `Beta` carries
 the argument type.
 
 **Example:** the `Beta` step of the §5a run (step 3 of the trace in
-Decision 3), shown here on the uncontinued program `E₀`, where it ends
+Decision 2), shown here on the uncontinued program `E₀`, where it ends
 in a value (rendered, `showRun 0 20 E₀-⊢`):
 
     Ξ = [α := ℕ]
@@ -834,7 +879,7 @@ a dummy `λ` to make the body a value, and apply it.
 
     (ΛZ. x) [ℕ]      becomes      ((ΛZ. λy:ℕ. x) [ℕ]) · 0
 
-The §5a program in Decision 3 shows the other side of the cost: the
+The §5a program in Decision 2 shows the other side of the cost: the
 pre-boundary counterexample needs its `ΛY` body padded with `λ_:ℕ` and
 the program continued with `[𝔹] · 0` before the interesting reduction
 happens, because nothing reduces under the binder.
@@ -907,7 +952,7 @@ representation is, and `Γ` says *whether* this position may name it.
   appears in a type: types mention only the lexical names of the name
   map. So allocating a cell, which in λB, GSF or λC∀mp would add a new
   type variable to the color of every subterm, changes no position's
-  color here (Decision 3's worked example).
+  color here (Decision 2's worked example).
 - **What the store holds.** It holds *representations* only, while
   names stay lexical in the name map. That combines the global store's
   simplicity with the lexical scoping Plausible Sealing argues for, and
@@ -980,7 +1025,7 @@ false`, compiled to two `ν`s, both written by the compiler (rendered,
         -- VALUE
 
 The inner `ν Y:=X · x ⟨…⟩` meets a `∀`-value under a boundary, so
-`TyWrap` fires. It allocates the *alias* cell `α := β` (Decision 2),
+`TyWrap` fires. It allocates the *alias* cell `α := β` (Decision 3),
 stacks the crossed conversion under `ν`'s own, and the two `Merge`s fuse
 the layers, chaining `seal Y ; seal X` through the alias.
 
@@ -1078,7 +1123,7 @@ stacked pairs in one state, and run V took 49 steps (`MergeSketch.md`).
 steps to 19, `CancelR`, `IdPush` and `Nu-⟪⟫` are deleted, and the rule
 count falls to ten.
 
-**Example:** the tail of run `S₀` (Example 2b's program; rendered,
+**Example:** the tail of run `S₀` (Example 3b's program; rendered,
 `showRun 0 15 S₀-⊢`, last five steps, all at the store
 `Ξ = [α := ℕ , β := γ , γ := ℕ]`):
 
@@ -1139,7 +1184,7 @@ Igarashi (Scheme 2021) prove that λC∀ is not space-efficient (Thm 6).
 - Strong-rep-nu has neither `★` nor recursion. But the role `Xᵢ := ★`
   plays there, a cell that lets one seal follow another, is played here
   by *alias* cells `β := α`, which is what seal chains `t ; seal X ;
-  seal Y` are built from (Example 2b). A polymorphically recursive
+  seal Y` are built from (Example 3b). A polymorphically recursive
   `f [X]` under `ΛX` would create a new alias cell per round.
 - Conjecture: with `fix`, seal chains grow without bound and Ozaki et
   al.'s argument transfers. Without `fix`, every run terminates, so
@@ -1170,7 +1215,7 @@ names are distinct", and STA's global α-conversion.
 
 **New here.** Uniqueness is stated for *representation variables*
 (each has at most one live name). That condition exists only because of
-Decision 2.
+Decision 3.
 
 ---
 
@@ -1252,7 +1297,7 @@ result.
 
 * A **single running example** that exercises Decisions 1–5 at once.
   §5a is the candidate (it *is* the pre-boundary counterexample, and its
-  sixteen-step run is now shown in Decision 3), but its terms are wide.
+  sixteen-step run is now shown in Decision 2), but its terms are wide.
   Check whether a smaller program shows mask-not-drop and frame-exact
   `Beta` together.
 * A **color-preservation picture**: the §1a and §5a traces colored by
@@ -1342,7 +1387,7 @@ otherwise.
   - the only *lexically scoped* sealing in the gradual line (Funky);
   - its critique of global seals (Decisions 1 and 8);
   - its instantiation environments `?^{X:F}`, the nearest analogue of
-    the name map (Decision 2);
+    the name map (Decision 3);
   - its key lemmas are mechanized in Agda.
 - The rest of this group is **not read**:
   - *Consistent Subtyping for All* (Xie, Bi & Oliveira, ESOP 2018): the

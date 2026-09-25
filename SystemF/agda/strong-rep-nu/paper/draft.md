@@ -836,8 +836,10 @@ otherwise.
 
 **Where the PDFs are:** every paper marked (read) above, and every
 paper named in the abbreviation list, is in the repo-level `papers/`
-directory (index: `papers/README.md`).  The (not read) ones are listed
-there under "Wanted".
+directory (index: `papers/README.md`).  So are the five marked (not
+read) that have a PDF: Matthews & Ahmed ESOP'08, Neis–Dreyer–Rossberg,
+Ozaki et al. Scheme'21, *Gradual Parametricity, Revisited* and
+*Plausible Sealing*.  "Not read" still means not read.
 
 ## Open questions for the draft
 

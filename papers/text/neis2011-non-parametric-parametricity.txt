@@ -1,0 +1,3496 @@
+
+
+=== PAGE 1 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Under consideration for publication in J. Functional Programming 1
+Non-Parametric Parametricity
+GEORG NEIS, DEREK DREYER and ANDREAS ROSSBERG
+Max Planck Institute for Software Systems (MPI-SWS)
+(e-mail: {neis,dreyer,rossberg}@mpi-sws.org)
+Abstract
+Type abstraction and intensional type analysis are features seemingly at odds—type abstraction is in-
+tended to guarantee parametricity and representation independence, while type analysis is inherently
+non-parametric. Recently, however, several researchers h ave proposed and implemented “dynamic
+type generation” as a way to reconcile these features. The id ea is that, when one deﬁnes an abstract
+type, one should also be able to generate at run time a fresh ty pe name, which may be used as a
+dynamic representative of the abstract type for purposes of type analysis. The question remains: in
+a language with non-parametric polymorphism, does dynamic type generation provide us with the
+same kinds of abstraction guarantees that we get from parametric polymorphism?
+Our goal is to provide a rigorous answer to this question. We deﬁne a step-indexed Kripke logical
+relation for a language with both non-parametric polymorph ism (in the form of type-safe cast) and
+dynamic type generation. Our logical relation enables us toestablish parametricity and representation
+independence results, even in a non-parametric setting, by attaching arbitrary relational interpreta-
+tions to dynamically-generated type names. In addition, we explore how programs that are provably
+equivalent in a more traditional parametric logical relation may be “wrapped” systematically to pro-
+duce terms that are related by our non-parametric relation, and vice versa. This leads us to develop a
+“polarized” variant of our logical relation, which enablesus to distinguish formally between positive
+and negative notions of parametricity.
+1 Introduction
+When we say that a language supports parametric polymorphism, we mean that “abstract”
+types in that language are really abstract—that is, no clien t of an abstract type can guess
+or depend on its underlying implementation (Reynolds, 1983 ). Traditionally, the para-
+metric nature of polymorphism is guaranteed statically by t he language’s type system,
+thus enabling the so-called type-erasure interpretation of polymorphism by which type
+abstractions and instantiations are erased during compilation.
+However, some modern programming languages include a usefu l feature that appears
+to be in direct conﬂict with parametric polymorphism, namel y the ability to perform in-
+tensional type analysis (Harper & Morrisett, 1995). Probably the simplest and most c om-
+mon instance of intensional type analysis is found in the imp lementation of languages
+supporting a type Dynamic (Abadi et al., 1995). In such languages, any value v may be
+cast to type Dynamic, but the cast from type Dynamic to any type τ requires a runtime
+check to ensure that v’s actual type equals τ. Other languages such as Acute (Sewell
+et al., 2007) and Alice ML (Rossberget al., 2004), which are designed to support dynamic
+loading of modules, require the ability to check dynamically whether a module implements
+
+=== PAGE 2 ===
+ZU064-05-FPR main 29 April 2011 15:27
+2 Georg Neis, Derek Dreyer and Andreas Rossberg
+an expected interface, which in turn involves runtime inspe ction of the module’s type
+components. There have also been a number of more experimental proposals for languages
+that employ a typecase construct to facilitate polytypic programming (e.g., (Weirich, 2004;
+Vytiniotis et al., 2005)).
+There is a fundamental tension between type analysis and typ e abstraction. If one can
+inspect the identity of an unknown type at run time, then the t ype is not really abstract,
+so any invariants concerning values of that type may be broke n (Weirich, 2004). Conse-
+quently, languages with a type Dynamic sometimes distinguish between castable and non-
+castable types—with types that mention user-deﬁned abstract types b elonging to the latter
+category—and prohibit values with non-castable types from being cast to type Dynamic.
+This is, however, an unnecessarily severe restriction, whi ch effectively penalizes pro-
+grammers for using type abstraction. Given a user-deﬁned ab stract type t—implemented
+internally, say, asint—it is perfectly reasonable to cast a value of type t → t to Dynamic, so
+long as we can ensure that it will subsequently be cast back only to t → t (not to, say,int →
+int or int → t), i.e., so long as the cast is abstraction-safe. Moreover, such casts are useful
+when marshalling (or “pickling”) a modular component whose interface refers to abstract
+types deﬁned in other components (Rossberget al., 2004). That said, in order to ensure that
+casts are abstraction-safe, it is necessary to have some wayof distinguishing (dynamically,
+when a cast occurs) between an abstract type and its underlying implementation.
+Thus, several researchers have proposed that languages wit h type analysis facilities
+should also support dynamic type generation (Sewell, 2001; Rossberg, 2003; Vytiniotis
+et al., 2005; Rossberg, 2008). The idea is simple: when one deﬁnes a n abstract type, one
+should also be able to generate at run time a “fresh” type name , which may be used as
+a unique dynamic representative of the abstract type for pur poses of type analysis. 1 (We
+will see a concrete example of this in Section 2.) Intuitivel y, the freshness of type name
+generation ensures that user-deﬁned abstract types are vie wed dynamically in the same
+way that they are viewed statically— i.e., as distinct from all other types.
+The question remains: how do we know that dynamic type genera tion works? In a lan-
+guage with intensional type analysis— i.e., non-parametric polymorphism—can the sys-
+tematic use of dynamic type generation provably ensure abst raction safety and provide
+us with the same kinds of abstraction guarantees that we get f rom traditional parametric
+polymorphism?
+Our goal is to provide a rigorous answer to this question. We study an extension of Sys-
+tem F, supporting (1) a type-safecast mechanism, which is essentially a variant of Girard’s
+J operator (Girard, 1972), and (2) a facility for dynamic gen eration of fresh type names.
+For brevity, we will call this language G. As a practical lang uage mechanism, the cast
+operator is somewhat crude in comparison to the more expressive typecase-style constructs
+proposed in the literature, but it is nonetheless useful. For instance, the implementation of
+dynamic modules in Alice ML (Rossberget al., 2004) relies merely on acast-like operator,
+not a typecase. Moreover, the cast operator renders polymorphism non-parametric, and it
+is one of the simplest, most canonical operators that does so , making it an ideal object
+1 In languages with simple module mechanisms, such as Haskell , it is possible to generate unique
+type names statically. However, this is not sufﬁcient in thepresence of functors, local modules, or
+ﬁrst-class modules.
+
+=== PAGE 3 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 3
+for formal study. Our main technical result is that, in our la nguage G, the parametricity
+of polymorphism that is lost due to the presence of cast may be provably regained via
+judicious use of dynamic type generation. More precisely, w e show that all terms that are
+related by a parametric logical relation for G can be rendered observationally equi valent
+by applying a type-directed “wrapping” function that we can construct systematically.
+The rest of the paper is structured as follows. In Section 2, w e present our language
+under consideration, G, and also give an example to illustrate how dynamic type generation
+is useful.
+In Section 3, we explain informally the approach that we have developed for reasoning
+about G. Our approach employs astep-indexed Kripke logical relation(Ahmed et al., 2009;
+Appel & McAllester, 2001), with an unusual form of possible world that is a close relative
+of Sumii & Pierce’s (2003). This section is intended to be bro adly accessible to readers
+who are generally familiar with the basic idea of relational parametricity but not with the
+details of (advanced) logical relations techniques.
+In Section 4, we formalize our logical relation for G and show how it may be used
+to reason about parametricity and representation independ ence. A particularly appealing
+feature of our formalization is that thenon-parametricity of G is encapsulated in the notion
+of what it means for two types to be logically related to each other when viewed as data
+(rather than as classiﬁers). The deﬁnition of this type-level logical relation is a one -liner,
+which can easily be replaced with an alternative “parametric” version.
+In Sections 5–7, we explore how terms related by the parametr ic version of our logical
+relation may be “wrapped” systematically to produce terms related by the non-parametric
+version (and vice versa), thus clarifying how dynamic type generation facilitates parametric
+reasoning. This leads us, in Section 8, to develop a “polariz ed” variant of our logical
+relation, which enables us to distinguish formally betweenpositive and negative notions of
+parametricity. Essentially, positively parametric terms expect to be treated parametrically
+(by their contexts), whereas negatively parametric terms a ctually behave parametrically
+themselves.
+In Section 9, we extend G with iso-recursive types to form G μ and adapt the previous
+development accordingly. Then, in Section 10, we discuss how the abovementioned “wrap-
+ping” function can be seen as an embedding of System F (+ recursive types) into Gμ, which
+we conjecture to be fully abstract.
+In Section 11, we observe that our logical-relations model is incomplete w.r.t. contextual
+equivalence in G, but also that there are good reasons for this. Most importantly, our model
+is intended to generalize to the setting of a language with typecase. Thus, while there exist
+programs that are equivalent in the presence of a cast operator but not in the presence of
+the more powerful typecase, our model does not support proofs of such equivalences. (In
+essence, we conjecture that our model is in fact a “better ﬁt”for typecase than for cast; we
+have chosen to study cast, as explained above, because it is simpler yet still interesting.)
+Finally, in Section 12, we discuss related work, including r ecent work on the rele-
+vant concepts of dynamic sealing (Sumii & Pierce, 2007a) and multi-language interoper-
+ation (Matthews & Ahmed, 2008), and in Section 13, we conclud e and suggest directions
+for future work.
+
+=== PAGE 4 ===
+ZU064-05-FPR main 29 April 2011 15:27
+4 Georg Neis, Derek Dreyer and Andreas Rossberg
+Types τ ::= α | b | τ× τ | τ → τ | ∀α .τ | ∃α .τ
+Values v ::= x | . . . | ⟨v,v⟩ |λx:τ.e | λ α.e | pack ⟨τ,v⟩as τ
+Terms e ::= v | . . . | ⟨e,e⟩ |e.1 | e.2 | e e | e τ | pack ⟨τ,e⟩as τ |
+unpack ⟨α ,x⟩=e in e | cast τ τ | new α ≈τ in e
+Stores σ ::= ε | σ , α ≈τ
+Conﬁg’s ζ ::= σ;e
+Evaluation Ctxt’s E ::= . . . | ⟨E,e⟩ | ⟨v,E⟩ |E.1 | E.2 | E e | v E | E τ |
+pack ⟨τ,E⟩as τ | unpack ⟨α ,x⟩=E in e
+Type Environments ∆ ::= ε | ∆, α | ∆, α ≈τ
+Value Environments Γ ::= ε | Γ,x:τ
+∆; Γ ⊢ e : τ
+· · ·
+(ECAST ) ∆ ⊢ τ1 ∆ ⊢ τ2
+∆; Γ ⊢ cast τ1 τ2 : τ1 → τ2 → τ2
+(ENEW ) ∆ ⊢ τ ∆, α ≈τ; Γ ⊢ e : τ′ ∆ ⊢ τ′
+∆; Γ ⊢ new α ≈τ in e : τ′
+(ECONV ) ∆; Γ ⊢ e : τ′ ∆ ⊢ τ ≈ τ′
+∆; Γ ⊢ e : τ
+∆ ⊢ τ
+(TNAME ) α ≈τ ∈ ∆
+∆ ⊢ α · · ·
+∆ ⊢ τ ≈ τ
+(CNAME ) α ≈τ ∈ ∆
+∆ ⊢ α ≈ τ · · ·
+⊢ ζ : τ
+(CONF ) ⊢ σ σ ; ε ⊢ e : τ ε ⊢ τ
+⊢ σ;e : τ
+· · ·
+σ;E[⟨v1,v2⟩.i]֒→σ;E[vi] ( RPROJ )
+σ;E[(λx:τ.e)v]֒→σ;E[e[v/x]] ( RAPP )
+σ;E[(λ α.e) τ]֒→σ;E[e[τ/α ]] ( RINST )
+σ;E[unpack ⟨α ,x⟩=(pack ⟨τ,v⟩) in e]֒→σ;E[e[τ/α ][v/x]] ( RUNPACK )
+(α /∈ dom(σ )) σ;E[new α ≈τ in e]֒→σ , α ≈τ;E[e] ( RNEW )
+(τ1 = τ2) σ;E[cast τ1 τ2]֒→σ;E[λx1:τ1.λx2:τ2.x1] ( RCAST 1)
+(τ1 ⁄= τ2) σ;E[cast τ1 τ2]֒→σ;E[λx1:τ1.λx2:τ2.x2] ( RCAST 2)
+Fig. 1. Syntax and Semantics of G (excerpt)
+2 The Language G
+Figure 1 deﬁnes our non-parametric language G. For the most part, G is a standard call-by-
+value λ-calculus, consisting of the usual types and terms from Syst em F (Girard, 1972),
+including pairs and existential types. (We could instead us e a Church encoding of exis-
+
+=== PAGE 5 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 5
+tentials via universals, but building existentials in as primitive gives us more leeway later,
+cf. Section 5.) We also assume an unspeciﬁed set of base types b, along with suitable
+constants of—and primitive operations over—those types (i ndicated by . . .in the syntax).
+Two additional, non-standard constructs isolate the essen tial aspects of the class of
+languages we are interested in:
+• cast τ1 τ2 v1 v2 converts v1 from type τ1 to τ2. It checks that those two types are the
+same at the time of evaluation. If so, the operatorsucceeds and returns v1. Otherwise,
+it fails and defaults to v2, which acts as an else clause of the target type τ2.
+• new α ≈τine generates a fresh abstract type nameα. Values of typeα can be formed
+using its representation type τ. Both types are deemed isomorphic, but not equiva-
+lent. That is, they are considered equal as classiﬁers, but not as data. In particular,
+cast α τv1 v2 will not succeed in casting v1 from α to τ—it will instead return the
+default value v2.
+Our cast operator is essentially the same as Harper & Mitchell’sTypeCond operator (Harper
+& Mitchell, 1999), which was itself a variant of the non-para metric J operator that Girard
+studied in his thesis (Girard, 1972). Our new construct is similar to previously proposed
+constructs for dynamic type generation (Rossberg, 2003; Vytiniotis et al., 2005; Rossberg,
+2008). However, we do not requireexplicit term-level type coercions to witness the isomor-
+phism between an abstract type name α and its representation τ. Instead, our type system
+is simple enough that we can perform this conversion implicitly without losing signiﬁcant
+type information.2
+For convenience, we will occasionally use expressions of the form letx=e1 ine2, which
+abbreviate the term (λx:τ1.e2)e1 (with τ1 being an appropriate type for e1). We omit the
+type annotation for functions and existential packages where clear from context. Moreover,
+we take the liberty to generalize binary tuples to n-ary ones where necessary and to use
+pattern matching notation to decompose tuples in the obvious manner.
+2.1 Typing Rules
+The typing rules for the System F fragment of G are completely standard and thus omitted
+from Figure 1. We focus on the non-standard rules related to cast and new. Full formal
+details of the type system are given in Section A.
+Typing of casts is straightforward (Rule E CAST ): cast τ1 τ2 is simply treated as a func-
+tion of type τ1 → τ2 → τ2. Its ﬁrst argument is the value to be converted, and its secon d
+argument is the default value returned in the case of failure . The rule merely requires that
+the two types be well-formed.
+For an expression new α ≈τine, which binds α in e, Rule E NEW checks that the body
+e is well-typed under the assumption that α is implemented by the representation type τ.
+For that purpose, we enrich type environments ∆ with entries of the form α ≈τ that keep
+track of the representation types tied to abstract type names. (Note that τ may not mention
+α.) We call such environment entries type isomorphism assumptions.
+2 It is not obvious whether this would still be possible if the l anguage were enriched with features
+such as singleton kinds (Rossberg, 2008) or type-level computations (Weirich et al., 2011).
+
+=== PAGE 6 ===
+ZU064-05-FPR main 29 April 2011 15:27
+6 Georg Neis, Derek Dreyer and Andreas Rossberg
+Syntactically, type “names” are just type variables in the c alculus (and like other type
+variables, they are α-convertible). As a matter of terminology, however, we refe r as type
+names only to those type variables α that are bound with the syntax “α ≈τ” (that is, either
+by new, in a store σ, or with a respective entry in a type environment ∆).
+When viewed as data ( i.e., when inspected by the cast operator), types are considered
+equivalent iff they are syntactically equal (moduloα-conversion). In contrast, when viewed
+as classiﬁers for terms, knowledge about the representatio n of type names may be taken
+into account. Rule E CONV says that if a term e has a type τ′, it may be assigned any
+other type that is isomorphic to τ′. Type isomorphism, in turn, is deﬁned by the judgment
+∆ ⊢ τ1 ≈ τ2. We only show the rule CNAME , which discharges an isomorphism assumption
+α ≈τ from the environment; the other rules implement the congrue nce closure of this
+axiom. The important point here is that equivalent types are isomorphic, but isomorphic
+types are not necessarily equivalent.
+Finally, Rule ENEW also requires that the type τ′ of the body e does not contain α (i.e.,
+τ′ must be well formed in ∆ alone). A type of this form can always be derived by applying
+ECONV to convert τ′ to τ′[τ/α ].
+Note that the typing rules ensure that type environments areordered and acyclic. Conse-
+quently, any type∆ ⊢ τ can be normalized to a typeτ′ that does not contain any type names
+and is isomorphic toτ, i.e., ∆′ ⊢ τ′ and ∆ ⊢ τ≈ τ′, where ∆′ is ∆ without all the isomorphism
+assumptions. This normalization is done using the substitu tion ∆∗ that is obtained from ∆
+in the following way:
+ε∗ def= / 0
+(∆, α )∗ def= ∆∗
+(∆, α ≈τ)∗ def= ∆∗, α ↦→∆∗(τ)
+Given this normalization, it easy to see that type checking is decidable.
+2.2 Dynamic Semantics
+The operational semantics has to deal with the generation offresh type names. To that end,
+we introduce a type store σ to record generated type names. Hence, reduction is deﬁned
+on conﬁgurations (σ;e) instead of plain terms. Figure 1 shows the main reduction rules.
+The reduction rules for the F fragment are as usual and do not a ctually touch the store.
+However, types occurring in F constructs can contain type names bound in the store.
+Reducing the expression new α ≈τine creates a new entry for α in the type store. We
+rely on the usual hygiene convention for bound variables to e nsure that α is fresh with
+respect to the current store (which can always be achieved byα-renaming).3 Note that this
+rule is the single source of nondeterminism in our operational semantics.
+The two remaining rules are for casts. A cast takes two types a nd checks whether or
+not they are equivalent (i.e., syntactically equal). In either case, the expression reduc es to
+a function that will return the appropriate one of the additi onal value arguments, i.e., the
+3 A well-known alternative approach would omit the type store in favor of using scope extrusion
+rules for new binders, as in Rossberg (2003).
+
+=== PAGE 7 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 7
+value to be converted in case of success, and the default value otherwise. In the former case,
+type preservation is ensured because source and target types are known to be equivalent.
+Type preservation can be expressed using the typing rule CONF for conﬁgurations. We
+formulate this rule by treating the type store as a type envir onment, which is possible
+because type stores are a syntactic subclass of type environments. (In a similar manner, we
+can write ⊢ σ for well-formedness of store σ, by viewing it as a type environment.) It is
+worth noting that the representation types in the store are n ever actually inspected by the
+dynamic semantics. In particular, they are only needed for s pecifying well-formedness of
+conﬁgurations and proving type soundness.
+2.3 Motivating Example
+Consider the following attempt to write a simple functional“binary semaphore” ADT (Pitts,
+2005) in G. Following Mitchell & Plotkin (1988), we use an existential type, as we would
+in System F:
+τsem := ∃α .α × (α → α ) × (α → bool)
+esem := pack ⟨int, ⟨1, λx: int .(1 − x), λx:int .(x ⁄= 0)⟩⟩as τsem
+A semaphore is essentially a ﬂag that can be in two states: eit her locked or unlocked. The
+state can be toggled using the ﬁrst function of the ADT, and it can be polled using the
+second. Our little module uses an integer value for represen ting the state, taking 1 for
+locked and 0 for unlocked. It is an invariant of the implement ation that the integer never
+takes any other value—otherwise, the toggle function would no longer operate correctly.
+In System F, the implementation invariant would be protected by the fact that existential
+types are parametric: there is no way to inspect the witness of α after opening the package,
+and hence no client could produce values of typeα other than those returned by the module
+(nor could they apply integer operations to values of type α).
+Not so in G. The following program usescast to forge a values of the abstract semaphore
+type α:
+eclient := unpack ⟨α , ⟨s0,toggle,poll⟩⟩= esem in
+lets = cast int α 666 s0 in
+⟨poll s, poll (toggle s)⟩
+Because reduction of unpack simply substitutes the representation type int for α, the
+consecutive cast succeeds, and the whole expression evalua tes to ⟨true, true⟩—although
+the second component should have toggled s and thus be different from the ﬁrst.
+The way to prevent this in G is to create a fresh type name α ′ as witness of the abstract
+type:
+esem1 := new α ′ ≈ int in
+pack ⟨α ′, ⟨1, λx: int .(1 − x), λx:int .(x ⁄= 0)⟩⟩as τsem
+After replacing the initial semaphore implementation with this one, eclient will evaluate
+to ⟨true, false⟩as desired—the cast expression will no longer succeed, because α will be
+substituted by the dynamic type name α ′, and α ′ ⁄= int. (Moreover, since α ′ is only visible
+statically in the scope of thenew expression, the client has no access toα ′, and thus cannot
+use type conversion to convert terms from int to α ′ either.)
+
+=== PAGE 8 ===
+ZU064-05-FPR main 29 April 2011 15:27
+8 Georg Neis, Derek Dreyer and Andreas Rossberg
+Now, while it is clear that new ensures proper type abstraction in the client program
+eclient, we want to prove that it does so forany client program. A standard way of doing so is
+by showing a more general result, namely representation independence (Reynolds, 1983):
+we show that the module esem1 is contextually equivalent to another module of the same
+type that implements the abstract type in a different way. Co ntextual equivalence means
+that no G program can observe any difference between the two modules. By choosing that
+other module to be a suitable reference implementation of th e ADT in question, we can
+conclude that the “real” one behaves properly under all circumstances.
+The obvious candidate for a reference implementation of the semaphore ADT is the
+following:
+esem2 := new α ′ ≈ bool in
+pack ⟨α ′, ⟨true, λx: bool .¬x, λx: bool .x⟩⟩as τsem
+Here, the semaphore state is represented directly by a Boole an ﬂag and does not rely on
+any additional invariant. If we can show thatesem1 is contextually equivalent toesem2, then
+we can conclude that esem1’s type representation is truly being held abstract.
+2.4 Contextual Equivalence
+In order to be able to reason about representation independe nce, we need to make precise
+the notion of contextual equivalence.
+A context C is an expression with a single hole [ ], deﬁned in the usual manner (see
+Section A.4). Typing of contexts is deﬁned by a judgment form⊢C : (∆; Γ; τ)↝ (∆′; Γ′; τ′),
+where the triple (∆; Γ; τ) indicates the type of the hole. The judgment implies that for any
+expression e with ∆; Γ ⊢ e : τ we have ∆′; Γ′ ⊢ C[e] : τ′. The rules are straightforward, the
+key rule being the one for holes:
+∆ ⊆ ∆′ Γ ⊆ Γ′
+⊢ [ ] : (∆; Γ; τ)↝ (∆′; Γ′; τ)
+We can now deﬁne contextual approximation and contextual eq uivalence as follows
+(with σ;e ↓ asserting that σ;e terminates):
+Deﬁnition 1 (Contextual Approximation and Equivalence)
+Let ∆; Γ ⊢ e1 : τ and ∆; Γ ⊢ e2 : τ.
+∆; Γ ⊢ e1 ≤ e2 : τ def⇔ ∀ C, τ′, σ . ⊢ σ ∧ ⊢ C : (∆; Γ; τ)↝ (σ; ε; τ′)
+∧ σ;C[e1] ↓ ⇒ σ;C[e2] ↓
+∆; Γ ⊢ e1 ≡ e2 : τ def⇔ ∆; Γ ⊢ e1 ≤ e2 : τ ∧ ∆; Γ ⊢ e2 ≤ e1 : τ
+That is, contextual approximation ∆; Γ ⊢ e1 ≤ e2 : τ means that for any well-typed program
+context C with a hole of appropriate type, the termination of C[e1] implies the termination
+of C[e2]. Contextual equivalence ∆; Γ ⊢ e1 ≡ e2 : τ is just approximation in both directions.
+Considering that G does not explicitly contain any recursiv e or looping constructs, the
+reader may wonder why termination is used as the notion of “di stinguishing observation”
+in our deﬁnition of contextual equivalence. The reason is th at the cast operator, together
+with impredicative polymorphism, makes it possible to writ e well-typed non-terminating
+programs (Harper & Mitchell, 1999). (This was Girard’s reason for studying the J operator
+
+=== PAGE 9 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 9
+in the ﬁrst place (Girard, 1972).) Moreover, using cast, one can encode arbitrary recursive
+function deﬁnitions (see Section A.5 for details). Other fo rms of observation may then be
+encoded in terms of (non-)termination.
+3 A Logical Relation for G: Main Ideas
+Following Reynolds (1983) and Mitchell (1986), our general approach to reasoning about
+parametricity and representation independence is to deﬁne a logical relation. Essentially,
+logical relations give us a tractable way of proving that two terms are contextually equiv-
+alent, which in turn gives us a way of proving that abstract ty pes are really abstract. Of
+course, since polymorphism in G is non-parametric, the deﬁnition of our logical relation in
+the cases of universal and existential types is somewhat unusual. To place our approach in
+context, we ﬁrst review the traditional approach to deﬁning logical relations for languages
+with parametric polymorphism, such as System F.
+3.1 Logical Relations for Parametric Polymorphism
+Although the technical meaning of “logical relation” is rat her woolly, the basic idea is
+to deﬁne an equivalence (or approximation) relation on prog rams inductively, following
+the structure of their types. To take the canonical example o f arrow types, we would say
+that two functions are logically related at the type τ1 → τ2 if, when passed arguments that
+are logically related at τ1, either they both diverge or they both converge to values tha t
+are logically related at τ2. The fundamental theorem of logical relations states that the
+logical relation is a congruence with respect to the constru cts of the language. Together
+with what Pitts (2005) calls adequacy— i.e., the fact (built into the deﬁnition of the logical
+relation) that logically related terms have equivalent termination behavior—the fundamen-
+tal theorem implies that logically related terms are contextually equivalent, since contextual
+equivalence is deﬁned precisely to be the largest adequate congruence.
+Traditionally, the parametric nature of polymorphism is made clear by the deﬁnition of
+the logical relation for universal and existential types. I ntuitively, two type abstractions,
+λ α.e1 and λ α.e2, are logically related at type ∀α .τ if they map related type arguments
+to related results. But what does it mean for two type argumen ts to be related? Moreover,
+once we settle on two related type argumentsτ′
+1 and τ′
+2, at what type do we relate the results
+e1[τ′
+1/α ] and e2[τ′
+2/α ]?
+One approach would be to restrict “related type arguments” to be the same type τ′. Thus,
+λ α.e1 and λ α.e2 would be logically related at ∀α .τ iff, for any (closed) type τ′, it is the
+case that e1[τ′/α ] and e2[τ′/α ] are logically related at the type τ[τ′/α ]. A key problem
+with this deﬁnition, however, is that, due to the quantiﬁcat ion over any argument type τ′,
+the type τ[τ′/α ] may in fact be larger than the type ∀α .τ, and thus the deﬁnition of the
+logical relation is no longer inductive in the structure of t he type. Another problem is that
+this deﬁnition does not tell us anything about the parametric nature of polymorphism.
+Reynolds’ alternative approach is a generalization of Girard’s “candidates” method for
+proving strong normalization for System F (Girard, 1972). T he idea is simple: instead of
+deﬁning two type arguments to be related only if they are the same, allow any two different
+type arguments to be related by an (almost) arbitrary relati onal interpretation (subject to
+
+=== PAGE 10 ===
+ZU064-05-FPR main 29 April 2011 15:27
+10 Georg Neis, Derek Dreyer and Andreas Rossberg
+certain admissibility constraints). That is, we parameterize the logical relatio n at type τ
+by an interpretation function ρ, which maps each free type variable of τ to a pair of types
+τ′
+1, τ′
+2 together with some (admissible) relation between values ofthose types. Then, we say
+that λ α.e1 and λ α.e2 are logically related at type ∀α .τ under interpretation ρ iff, for any
+closed types τ′
+1 and τ′
+2 and any relation R between values of those types, it is the case that
+e1[τ′
+1/α ] and e2[τ′
+2/α ] are logically related at typeτ under interpretation ρ, α ↦→(τ′
+1, τ′
+2,R).
+The miracle of Reynolds/Girard’s method is that it simultaneously (1) renders the logical
+relation inductively well-deﬁned in the structure of the ty pe, and (2) demonstrates the
+parametricity of polymorphism: logically related type abs tractions must behave the same
+even when passed completely different type arguments, so their behavior may not analyze
+the type argument and behave in different ways for different arguments. Dually, we can
+show that two ADTs pack ⟨τ1,v1⟩as ∃α .τ and pack ⟨τ2,v2⟩as ∃α .τ are logically related
+(and thus contextually equivalent) by exhibiting some relational interpretation R for the
+abstract type α, even if the underlying type representations τ1 and τ2 are different. This is
+the essence of what is meant by “representation independence”.
+Unfortunately, in the setting of G, Reynolds/Girard’s method is not directly applicable,
+precisely because polymorphism in G is not parametric! This essentially forces us back to
+the ﬁrst approach suggested above, namely to only consider type arguments to be logically
+related if they are equal. Moreover, it makes sense: the cast operator views types as data,
+so types may only be logically related if they are indistinguishable as data.
+The natural questions, then, are: (1) what metric do we use to deﬁne the logical relation
+inductively, if not the structure of the type, and (2) how do we establish that dynamic type
+generation regains a form of parametricity? We address thes e questions in the next two
+sections, respectively.
+3.2 Step-Indexed Logical Relations for Non-Parametricity
+First, in order to provide a metric for inductively deﬁning t he logical relation, we em-
+ploy step-indexing. Step-indexed logical relations were proposed originally by Appel and
+McAllester (2001) as a way of giving a simple operational-se mantics-based model for
+general recursive types in the context of foundational proo f-carrying code. In subsequent
+work by Ahmed and others (Ahmed, 2006; Ahmed et al. , 2009), the method has been
+adapted to support relational reasoning in a variety of sett ings, including untyped and
+imperative languages.
+The key idea of step-indexed logical relations is to index th e deﬁnition of the logical
+relation not only by the type of the programs being related, b ut also by a natural number
+n representing (intuitively) “the number of steps left in the computation”. That is, if two
+terms e1 and e2 are logically related at type τ for n steps, then if we place them in any
+program context C and run the resulting programs for n steps of computation, we should
+not be able to produce observably different results ( e.g., C[e1] evaluating to 5 and C[e2]
+evaluating to 7). To show that e1 and e2 are contextually equivalent, then, it sufﬁces to
+show that they are logically related for n steps, for any n.
+To see how step-indexing helps us, consider how we might deﬁne a step-indexed logical
+relation for G in the case of universal types: two type abstra ctions λ α.e1 and λ α.e2 are
+logically related at ∀α .τ for n steps iff, for any type argumentτ′, it is the case thate1[τ′/α ]
+
+=== PAGE 11 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 11
+and e2[τ′/α ] are logically related atτ[τ′/α ] for n−1 steps. This reasoning is sound because
+the only way a program context can distinguish between λ α.e1 and λ α.e2 in n steps is by
+ﬁrst applying them to a type argument τ′—which incurs a step of computation for the β-
+reduction (λ α.ei) τ′֒→ei[τ′/α ]—and then distinguishing between e1[τ′/α ] and e2[τ′/α ]
+within the next n − 1 steps. Moreover, although the type τ[τ′/α ] may be larger than ∀α .τ,
+the step index n − 1 is smaller, so the logical relation is inductively well-deﬁned.
+3.3 Kripke Logical Relations for Dynamic Parametricity
+Second, in order to establish the parametricity properties of dynamic type generation, we
+employ Kripke logical relations, i.e., logical relations that are indexed by possible worlds.
+(In fact, step-indexed logical relations may already be und erstood as a special case of
+Kripke logical relations, in which the step index serves as the notion of possible world, and
+where n is a future world of m iff n ≤ m.) Kripke logical relations are appropriate when
+reasoning about properties that are true only under certain conditions, such as equivalence
+of modules with local mutable state. For instance, an impera tive ADT might only behave
+according to its speciﬁcation if its local data structures o bey certain invariants. Possible
+worlds allow one to codify suchlocal invariantson the machine store (Pitts & Stark, 1993).
+In our setting, the local invariant we want to establish is wh at a dynamically generated
+type name means. That is, we will use possible worlds to assign relational in terpreta-
+tions to dynamically generated type names. For example, con sider the programs esem1
+and esem2 from Section 2. We want to show they are logically related at ∃α . α × (α →
+α ) × (α → bool) in an empty initial world w0 (i.e., under empty type stores). The proof
+proceeds roughly as follows. First, we evaluate the two programs. This will have the effect
+of generating a fresh type name α ′, with α ′ ≈ int extending the type store of the ﬁrst
+program and α ′ ≈ bool extending the type store of the second program. At this point ,
+we correspondingly extend the initial world w0 with a mapping from α ′ to the relation
+R = {(1, true), (0, false)}, thus forming a new worldw that speciﬁes the semantic meaning
+of α ′.
+We now must show that the values
+pack ⟨α ′, ⟨1, λx: int .(1 − x), λx:int .(x ⁄= 0)⟩⟩as τsem
+and
+pack ⟨α ′, ⟨true, λx: bool .¬x, λx: bool .x⟩⟩as τsem
+are logically related in the world w. Since G’s logical relation for existential types is non-
+parametric, the two packages must have the same type representation, but of course the
+whole point of using new was to ensure that they do (namely, it is α ′). The remainder
+of the proof is showing that the value components of the packa ges are related at the type
+α ′ × (α ′ → α ′)× (α ′ → bool) under the interpretationρ = α ′ ↦→(int, bool,R) derived from
+the world w. This last part is completely analogous to what one would sho w in a standard
+representation independence proof.
+In short, the possible worlds in our Kripke logical relation s bring back the ability to
+assign arbitrary relational interpretations R to abstract types, an ability that was seem-
+ingly lost when we moved to a non-parametric logical relatio n. The only catch is that
+
+=== PAGE 12 ===
+ZU064-05-FPR main 29 April 2011 15:27
+12 Georg Neis, Derek Dreyer and Andreas Rossberg
+we can only assign arbitrary interpretations to dynamic type names, not to static, univer-
+sally/existentially quantiﬁed type variables.
+There is one minor technical matter that we glossed over in the above proof sketch but is
+worth mentioning. Due to nondeterminism of type name allocation, the evaluation ofesem1
+and esem2 may result in α ′ being replaced by α ′
+1 in the former and α ′
+2 in the latter (for some
+fresh α ′
+1 ⁄= α ′
+2). Moreover, we are also interested in proving equivalence o f programs that
+do not necessarily allocate exactly the same number of type names in the same order.
+Consequently, we also include in our possible worlds a parti al bijection η between the
+type names of the ﬁrst program and the type names of the secondprogram, which speciﬁes
+how each dynamically generated abstract type is concretelyrepresented in the stores of the
+two programs. We require them to be in 1-1 correspondence bec ause the cast construct
+permits the program context to observe equality on type names, as follows:
+equal? : ∀α .∀β. bool def=
+Λα .Λβ. cast ((α → α ) → bool) ((β → β) → bool)
+(λx:(α → α ). true)(λx:(β → β). false)(λx:β.x)
+We then consider types to be logically related if they are the same up to this bijection. For
+instance, in our running example, when extending w0 to w, we would not only extend its
+relational interpretation with α ′ ↦→(int, bool,R) but also extend its η with α ′ ↦→(α ′
+1, α ′
+2).
+Thus, the type representations of the two existential packages, α ′
+1 and α ′
+2, though syntacti-
+cally distinct, would still be logically related under w.
+4 A Logical Relation for G: Formal Details
+We now formalize our logical relation for G. For technical reasons related to step-indexing
+we do not deﬁne it directly in terms of equivalent termination behavior. Instead, we deﬁne it
+in terms of approximated termination behavior, such that, if e1 and e2 are logically related,
+then e1 contextually approximates e2 (i.e., C[e2] terminates whenever C[e1] does). Logical
+equivalence then is just logical approximation in both directions.
+Figures 2 and 3 display our step-indexed Kripke logical relation for G in full gory detail.
+It is easiest to understand this deﬁnition by making two pass es over it. First, as the step
+indices have a way of infecting the whole deﬁnition in a superﬁcially complex—but really
+very straightforward—way, we will ﬁrst walk through the who le deﬁnition ignoring all
+occurrences of n’s andk’s (as well as auxiliary functions like the⌊·⌋n operator). Second, we
+will pinpoint the few places where step indices actually play an important role in ensuring
+that the logical relation is inductively well-founded.
+4.1 Highlights of the Logical Relation
+The ﬁrst section of Figure 2 deﬁnes the kinds of semantic obje cts that are used in the
+construction of the logical relation. Relations R are sets of atoms, which are pairs of terms,
+e1 and e2, indexed by a possible world w. The deﬁnition of Atom [τ1, τ2] requires that e1
+and e2 have the types τ1 and τ2 under the type stores w.σ1 and w.σ2, respectively. (We use
+the dot notation w.σi to denote the i-th type store component of w, and analogous notation
+for projecting out the other components of worlds.)
+
+=== PAGE 13 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 13
+Rval def= {(k,w,v1,v2) | (k,w,v1,v2) ∈ R}
+Atomn[τ1, τ2] def= {(k,w,e1,e2) | k < n ∧ w ∈ Worldk ∧ ⊢ w.σ1;e1 : τ1 ∧ ⊢ w.σ2;e2 : τ2}
+Reln[τ1, τ2] def= {R ⊆ Atomvaln [τ1, τ2] |
+∀(k,w,v1,v2) ∈ R. ∀(k′,w′) ⊒ (k,w). (k′,w′,v1,v2) ∈ R}
+SomeReln
+def= {r = (τ1, τ2,R) | fv(τ1, τ2) = / 0∧ R ∈ Reln[τ1, τ2]}
+Interpn
+def= {ρ ∈ TVar ﬁn→ SomeReln}
+Conc def= {η ∈ TVar ﬁn→ TVar×TVar |
+∀α , α ′ ∈ dom(η). α ⁄= α ′ ⇒ η1(α ) ⁄= η1(α ′) ∧ η2(α ) ⁄= η2(α ′)}
+Worldn
+def= {w = (σ1, σ2, η, ρ) |
+⊢ σ1 ∧ ⊢ σ2 ∧ η ∈ Conc ∧ ρ ∈ Interpn ∧dom(η) = dom(ρ) ∧
+ρ1 = σ ∗
+1 ◦ η1 ∧ ρ2 = σ ∗
+2 ◦ η2}
+⌊(σ1, σ2, η, ρ)⌋n
+def= ( σ1, σ2, η, ⌊ρ⌋n)
+⌊ρ⌋n
+def= {α ↦→⌊r⌋n | ρ(α ) = r}
+⌊(τ1, τ2,R)⌋n
+def= ( τ1, τ2, ⌊R⌋n)
+⌊R⌋n
+def= {(k,w,e1,e2) ∈ R | k < n}
+(k′,w′) ⊒ (k,w) def⇔ k′ ≤ k ∧ w′ ∈ Worldk′ ∧w′.η ⊒ w.η ∧ w′.ρ ⊒ ⌊w.ρ⌋k′ ∧ ∀i ∈ {1,2}.
+w′.σi ⊇ w.σi ∧ rng(w′.ηi) − rng(w.ηi) ⊆ dom(w′.σi) − dom(w.σi)
+η ′ ⊒ η def⇔ ∀ α ∈ dom(η). η ′(α ) = η(α )
+ρ′ ⊒ ρ def⇔ ∀ α ∈ dom(ρ). ρ′(α ) = ρ(α )
+(k′,w′) = (k,w) def⇔ k′ < k ∧ (k′,w′) ⊒ (k,w)
+⊲R def= {(k,w,e1,e2) | ∀(k′,w′) = (k,w). (k′,w′,e1,e2) ∈ R}
+Fig. 2. Worlds and Auxiliary Deﬁnitions
+Rel[τ1, τ2] deﬁnes the set of admissible relations, which are permitted to be used as
+the semantic interpretations of abstract types. For our pur poses, admissibility is simply
+monotonicity— i.e., closure under world extension. That is, if a relation in Rel r elates two
+values v1 and v2 under a world w, then the relation must relate those values in any future
+world of w. (We discuss the deﬁnition of world extension below.) Monotonicity is needed
+in order to ensure that we can extend worlds with interpretat ions of new dynamic type
+names, without interfering somehow with the interpretations of the old ones.
+Worlds w are 4-tuples (σ1, σ2, η, ρ), which describe a set of assumptions under which
+pairs of terms are related. Here, σ1 and σ2 are the type stores under which the terms are
+typechecked and evaluated. The ﬁnite mappings η and ρ share a common domain, which
+can be understood as the set of abstract type names that have been generated dynamically.
+These “semantic” type names do not exist in either store σ1 or σ2. (In fact, technically
+speaking, we consider dom (η) = dom(ρ) to be bound variables of the world w.) Rather,
+they provide a way of referring to an abstract type that is rep resented by some type name
+α1 in σ1 and some type name α2 in σ2. Thus, for each name α ∈ dom(η) = dom(ρ),
+
+=== PAGE 14 ===
+ZU064-05-FPR main 29 April 2011 15:27
+14 Georg Neis, Derek Dreyer and Andreas Rossberg
+the concretization η maps the “semantic” name α to a pair of “concrete” names from the
+stores σ1 and σ2, respectively. (See the end of Section 3.3 for an example of s uch an η.)
+As the deﬁnition of Conc makes clear, distinct semantic type names must have distinct
+concretizations; consequently, η represents a partial bijection between σ1 and σ2.
+The last component of the world w is ρ, which assigns relational interpretations to the
+aforementioned semantic type names. Formally, ρ maps each α to a triple r = (τ1, τ2,R),
+where R is a monotone relation between values of types τ1 and τ2. (Again, see the end
+of Section 3.3 for an example of such a ρ.) The ﬁnal condition in the deﬁnition of World
+stipulates that the closed syntactic types in the range of ρ and the concrete type names in
+the range of η are isomorphic. As a matter of notation, we will write η i and ρi to denote
+the type substitutions {α ↦→αi | η(α ) = ( α1, α2)} and {α ↦→τi | ρ(α ) = ( τ1, τ2,R)},
+respectively.
+The second section of Figure 2 displays the deﬁnition of worl d extension. In order
+for w′ to extend w (written w′ ⊒ w), it must be the case that (1) w′ speciﬁes semantic
+interpretations for a superset of the type names that w interprets, (2) for the names that w
+interprets, w′ must interpret them in the same way, and (3) any new semantic t ype names
+that w′ interprets may only correspond to new concrete type names that did not exist in
+the stores of w. Condition (3) here corresponds to the common practice in Kr ipke logical
+relations proofs, whereby one extends a given “input” worldto a future “output” world only
+when one wants to establish some invariants about freshly allocated entities (in the case of
+G, fresh type names). Although this condition is not strictl y necessary for establishing
+soundness of the logical relation, it has not in our experien ce made it more difﬁcult to
+prove anything. Moreover, we have found it to be useful when p roving certain examples
+(e.g., the “order independence” example in Section 4.4), because it cuts down on the set of
+worlds one must consider when one universally quantiﬁes over a future world.
+Figure 3 deﬁnes the logical relation itself.V [ [τ] ]ρ is the logical relation for values,E[ [τ] ]ρ
+is the one for terms, andT [ [Ω ] ]w is the one fortypes as data, as described in Section 3 (here,
+Ω represents the kind of types).
+V [ [τ] ]ρ relates values at the type τ, where the free type variables of τ are given rela-
+tional interpretations by ρ. Ignoring the step indices, V [ [τ] ]ρ is mostly very standard. For
+instance, at certain points (namely, in the→ and ∀ cases), when we quantify over logically
+related (value or type) arguments, we must allow them to come from an arbitrary future
+world w′ in order to ensure monotonicity. This kind of quantiﬁcation over future worlds is
+commonplace in Kripke logical relations.
+The only really interesting bit in the deﬁnition of V [ [τ] ]ρ is the use of T [ [Ω ] ]w to char-
+acterize when the two type arguments (resp. components) of a universal (resp. existential)
+are logically related. As explained in Section 3.3, we consi der two types to be logically
+related in world w iff they are the same up to the partial bijectionw.η. Formally, we deﬁne
+T [ [Ω ] ]w as a relation on triples (τ1, τ2,r), where τ1 and τ2 are the two logically related
+types and r is a relation telling us how to relate values of those types. T o be logically
+related means that τ1 and τ2 are the concretizations (according to w.η) of some “semantic”
+type τ′. Correspondingly, r is the logical relation V [ [τ′] ]w.ρ at that semantic type. Thus,
+when we write E[ [τ] ]ρ, α ↦→r in the deﬁnition of V [ [∀α .τ] ]ρ, this is roughly equivalent to
+writing E[ [τ[τ′/α ]] ]ρ (which our discussion in Section 3.2 might have led the reade r to
+expect to see here instead). The reason for our present formu lation is that E[ [τ[τ′/α ]] ]ρ is
+
+=== PAGE 15 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 15
+Vn[ [α ] ]ρ def= ⌊ρ(α ).R⌋n
+Vn[ [b] ]ρ def= {(k,w,v,v) ∈ Atomn[b,b]}
+Vn[ [τ× τ′] ]ρ def= {(k,w, ⟨v1,v′
+1⟩, ⟨v2,v′
+2⟩) ∈ Atomn[ρ1(τ× τ′), ρ2(τ× τ′)] |
+(k,w,v1,v2) ∈ Vn[ [τ] ]ρ ∧ (k,w,v′
+1,v′
+2) ∈ Vn[ [τ′] ]ρ}
+Vn[ [τ′ → τ] ]ρ def= {(k,w, λx:τ1.e1, λx:τ2.e2) ∈ Atomn[ρ1(τ′ → τ), ρ2(τ′ → τ)] |
+∀(k′,w′,v1,v2) ∈ Vn[ [τ′] ]ρ. (k′,w′) ⊒ (k,w) ⇒
+(k′,w′,e1[v1/x],e2[v2/x]) ∈ En[ [τ] ]ρ}
+Vn[ [∀α .τ] ]ρ def= {(k,w, λ α.e1, λ α.e2) ∈ Atomn[ρ1(∀α .τ), ρ2(∀α .τ)] |
+∀(k′,w′) ⊒ (k,w). ∀(τ1, τ2,r) ∈ Tk′ [ [Ω ] ]w′.
+(k′,w′,e1[τ1/α ],e2[τ2/α ]) ∈ ⊲En[ [τ] ]ρ, α ↦→r}
+Vn[ [∃α .τ] ]ρ def= {(k,w, pack ⟨τ1,v1⟩, pack ⟨τ2,v2⟩) ∈ Atomn[ρ1(∃α .τ), ρ2(∃α .τ)] |
+∃r. (τ1, τ2,r) ∈ Tk[ [Ω ] ]w ∧ (k,w,v1,v2) ∈ ⊲Vn[ [τ] ]ρ, α ↦→r}
+En[ [τ] ]ρ def= {(k,w,e1,e2) ∈ Atomn[ρ1(τ), ρ2(τ)] |
+∀ j < k. ∀σ1,v1. (w.σ1;e1֒→j σ1;v1) ⇒ ∃w′,v2. (k − j,w′) ⊒ (k,w) ∧
+w′.σ1 = σ1 ∧ (w.σ2;e2֒→∗ w′.σ2;v2) ∧ (k − j,w′,v1,v2) ∈ Vn[ [τ] ]ρ}
+Tn[ [Ω ] ]w def= {(w.η1(τ),w.η2(τ), (w.ρ1(τ),w.ρ2(τ),Vn[ [τ] ]w.ρ)) | fv(τ) ⊆ dom(w.ρ)}
+Gn[ [ε] ]ρ def= {(k,w, / 0, / 0) | k < n ∧ w ∈ Worldk}
+Gn[ [Γ,x:τ] ]ρ def= {(k,w, (γ1,x↦→v1), (γ2,x↦→v2)) |
+(k,w, γ1, γ2) ∈ Gn[ [Γ] ]ρ ∧ (k,w,v1,v2) ∈ Vn[ [τ] ]ρ}
+Dn[ [ε] ]w def= {(/ 0, / 0, / 0)}
+Dn[ [∆, α ] ]w def= {((δ1, α ↦→τ1), (δ2, α ↦→τ2), (ρ, α ↦→r)) |
+(δ1, δ2, ρ) ∈ Dn[ [∆] ]w ∧ (τ1, τ2,r) ∈ Tn[ [Ω ] ]w}
+Dn[ [∆, α ≈τ] ]w def= {((δ1, α ↦→β1), (δ2, α ↦→β2), (ρ, α ↦→r)) |
+(δ1, δ2, ρ) ∈ Dn[ [∆] ]w ∧
+∃α ′.w.ρ(α ′) = r ∧ w.η(α ′) = (β1, β2) ∧
+w.σ1(β1) = δ1(τ) ∧ w.σ2(β2) = δ2(τ) ∧ r.R = Vn[ [τ] ]ρ}
+∆; Γ ⊢ e1≼ e2 : τ def⇔ ∆; Γ ⊢ e1 : τ∧ ∆; Γ ⊢ e2 : τ∧
+∀n ≥ 0. ∀w0 ∈ Worldn. ∀(δ1, δ2, ρ) ∈ Dn[ [∆] ]w0. ∀(k,w, γ1, γ2) ∈ Gn[ [Γ] ]ρ.
+(k,w) = (n,w0) ⇒ (k,w, δ1γ1(e1), δ2γ2(e2)) ∈ En[ [τ] ]ρ
+Fig. 3. Logical Relation for G
+not quite right: the free variables of τ are interpreted by ρ, but the free variables of τ′ are
+dynamic type names whose interpretations are given by w.ρ. It is possible to merge ρ and
+w.ρ into a uniﬁed interpretation ρ′, but we feel our present approach is cleaner.
+Another point of note: since r is uniquely determined from τ1 and τ2, it is not really
+necessary to include it in the T [ [Ω ] ]w relation. However, as we shall see in Section 6,
+formulating the logical relation in this way has the beneﬁt o f isolating all of the non-
+parametricity of our logical relation in the one-line deﬁni tion of T [ [Ω ] ]w, which may then
+easily be replaced with a more traditional parametric one.
+The term relation E[ [τ] ]ρ is very similar to that in previous step-indexed Kripke logi cal
+relations (Ahmed et al., 2009). Brieﬂy, it says that two terms are related in an initial world
+
+=== PAGE 16 ===
+ZU064-05-FPR main 29 April 2011 15:27
+16 Georg Neis, Derek Dreyer and Andreas Rossberg
+w if whenever the ﬁrst evaluates to a value under w.σ1, the second evaluates to a value
+under w.σ2, and the resulting stores and values are related in some future world w′.
+The remainder of the deﬁnitions in Figure 3 serve to formalize a logical relation foropen
+terms. G[ [Γ] ]ρ is the logical relation on value substitutions γ, which asserts that related γ’s
+must map variables in dom (Γ) to related values. D[ [∆] ]w is the logical relation on type
+substitutions. It asserts that related δ’s must map variables in dom (∆) to types that are
+related in w. For type variablesα bound as α ≈ τ, the δ’s must mapα to a type name whose
+semantic interpretation in w is precisely the logical relation at τ. Analogously to T [ [Ω ] ]w,
+the relation D[ [∆] ]w also includes a relational interpretation ρ, which may be uniquely
+determined from the δ’s.
+Finally, the open logical relation ∆; Γ ⊢ e1≼ e2 : τ is deﬁned in a fairly standard way.
+It says that for any starting world w0, and any type substitutions δ1 and δ2 related in that
+world, if we are given related value substitutions γ1 and γ2 in any future world w, then
+δ1γ1e1 and δ2γ2e2 are related in w as well.
+4.2 Why and Where the Steps Matter
+As we explained in Section 3.2, step indices play a critical r ole in making the logical
+relation well-founded. Essentially, whenever we run into a n apparent circularity, we “go
+down a step” by deﬁning an n-level property in terms of an ( n−1)-level one. Of course,
+this trick only works if, at all such “stepping points”, the o nly way that an adversarial
+program context could possibly tell whether the n-level property holds or not is by taking
+one step of computation and then checking whether the underl ying (n−1)-level property
+holds. Fortunately, this is the case.
+Since worlds contain relations, and relations contain sets of tuples that include worlds,
+a na¨ ıve construction of these objects would have an inconsi stent cardinality. We thus
+stratify both worlds and relations by a step index: n-level worlds w ∈ Worldn contain n-
+level interpretations ρ ∈ Interpn, which map type variables to n-level relations; n-level
+relations R ∈ Reln[τ1, τ2] only contain atoms indexed by a step level k < n and a world
+w ∈ Worldk. Although our possible worlds have a different structure than in previous work,
+the technique of mutual world and relation stratiﬁcation is similar to that used in Ahmed’s
+thesis (2004), as well as recent work by Ahmed, Dreyer & Rossberg (2009).
+Intuitively, the reason this works in our setting is as follows. Viewed as a judgment, our
+logical relation asserts that two terms e1 and e2 are logically related for k steps in a world
+w at a type τ under an interpretation ρ (whose domain contains the free type variables of
+τ). Clearly, in order to handle the case where τ is just a type variable α, the relations r in
+the range of ρ must include atoms at step index k (i.e., the r’s must be in SomeRelk+1).
+But what about the relations in the range of w.ρ? Those relations only come into play in
+the universal and existential cases of the logical relationfor values. Consider the existential
+case (the universal one is analogous). There, w.ρ pops up in the deﬁnition of the relation
+r that comes from Tk[ [Ω ] ]w. However, that r is only needed in deﬁning the relatedness of
+the values v1 and v2 at step level k−1 (note the deﬁnition of ⊲R in the second section of
+Figure 2). Consequently, we only need r to include atoms at step k−1 and lower ( i.e., r
+must be in SomeRelk), so the world w from which r is derived need only be in Worldk.
+
+=== PAGE 17 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 17
+As this discussion suggests, it is crucial that we “go down a step” in the universal and
+existential cases of the logical relation. For the other cas es, it is not necessary to go down
+a step, although we have the option of doing so. For example, w e could deﬁne k-level
+relatedness at pair type τ1 × τ2 in terms of (k−1)-level relatedness at τ1 and τ2. But since
+the type gets smaller, there is no need to. For clarity, we hav e only gone down a step in
+the logical relation at the points where it is absolutely nec essary, and we have used the ⊲
+notation to underscore those points.
+4.3 Interesting Properties of the Logical Relation
+The main result concerning our logical relation is, of cours e, that it provides a sound
+technique for proving contextual equivalence of G programs. We now present the technical
+development necessary to establish this result. For conven ience, we often omit the step
+annotation on the restriction operator when it is obvious fr om context, e.g., we will write
+(k − j − 1, ⌊w⌋) instead of (k − j − 1, ⌊w⌋k− j−1). Furthermore, at many places we are re-
+quired to establish the well-typedness conditions imposedby the deﬁnition of Atom[τ1, τ2],
+but since this is completely straightforward and usually te dious, we will omit this part
+of the proofs. If the reader is interested in seeing how the sy ntactic typing conditions
+are maintained, we would refer them to the ﬁrst author’s mast er’s thesis, which shows
+the full gory details in two representative cases (namely, t he proofs of Lemma 10.21 and
+Theorem 10.41).
+4.3.1 Basic Lemmas
+We start with a few very basic lemmas that are needed ubiquito usly in subsequent proofs
+(to the extent that we will usually not even apply them explicitly).
+Lemma 1 (Transitivity of World Extension)
+1. If (k′′,w′′) ⊒ (k′,w′) and (k′,w′) ⊒ (k,w), then (k′′,w′′) ⊒ (k,w).
+2. If (k′′,w′′) = (k′,w′) and (k′,w′) = (k,w), then (k′′,w′′) = (k,w).
+Lemma 2 (Restriction)
+1. If k′ ≤ k, then Vk′ [ [τ] ]ρ = ⌊Vk[ [τ] ]ρ⌋k′.
+2. If k′ ≤ k, then Ek′[ [τ] ]ρ = ⌊Ek[ [τ] ]ρ⌋k′.
+Irrelevance (Lemma 3) states that the logical relation onlydepends on ρ’s interpretation
+of those variables that actually occur in τ.
+Lemma 3 (Irrelevance)
+If ⌊ρ′⌋n ⊒ ⌊ρ⌋n and ftv(τ) ⊆ dom(ρ), then
+1. Vn[ [τ] ]ρ′ = Vn[ [τ] ]ρ,
+2. En[ [τ] ]ρ′ = En[ [τ] ]ρ, and
+3. Gn[ [τ] ]ρ′ = Gn[ [τ] ]ρ.
+The next lemma is a combination of the previous two, but for th e type and type substi-
+tution relations.
+Lemma 4
+
+=== PAGE 18 ===
+ZU064-05-FPR main 29 April 2011 15:27
+18 Georg Neis, Derek Dreyer and Andreas Rossberg
+1. If (τ1, τ2,r) ∈ Tn[ [Ω ] ]w0 and (k,w) ⊒ (n,w0), then (τ1, τ2, ⌊r⌋k) ∈ Tk[ [Ω ] ]w.
+2. If (δ1, δ2, ρ) ∈ Dn[ [∆] ]w0 and (k,w) ⊒ (n,w0), then (δ1, δ2, ⌊ρ⌋k) ∈ Dk[ [∆] ]w.
+Finally, Inclusion tells us that in order to show two values related in the term relation, it
+sufﬁces to show them related in the value relation.
+Lemma 5 (Inclusion)
+Vn[ [τ] ]ρ ⊆ En[ [τ] ]ρ
+Proof
+Follows easily from the deﬁnition ofEn[ [τ] ]ρ, by choosing the ﬁnal worldw′ to be the same
+as the initial world w.
+4.3.2 Validity
+The ﬁrst important property to show is that, under the assumption that ρ is a valid relational
+interpretation of the free variables of τ (i.e., ρ ∈ Interp and ftv(τ) ⊆ dom(ρ)), the logical
+relation (LR) for values Vn[ [τ] ]ρ is itself a valid relation (i.e., an element of Rel).
+For the sake of convenience, whenever we writeVn[ [τ] ]ρ, En[ [τ] ]ρ, Gn[ [Γ] ]ρ, Dn[ [∆] ]w, and
+Tn[ [Ω ] ]w from now on, we assume ρ ∈ Interp, w ∈ World, and ftv(τ) ⊆ dom(ρ).
+As a ﬁrst step, we note that every element of the value and term relations is a proper
+atom.
+Lemma 6 (Atomicity)
+1. Vn[ [τ] ]ρ ⊆ Atomval
+n [ρ1(τ), ρ2(τ)]
+2. En[ [τ] ]ρ ⊆ Atomn[ρ1(τ), ρ2(τ)]
+The key property of Rel is that its elements must be closed und er world extension.
+Proving this for the value relation is very easy because the p roperty has mostly been built
+into its deﬁnition.
+Lemma 7 (Closure Under World Extension)
+1. If (k,w,v1,v2) ∈ Vn[ [τ] ]ρ and (k′,w′) ⊒ (k,w), then (k′,w′,v1,v2) ∈ Vn[ [τ] ]ρ.
+2. If (k,w, γ1, γ2) ∈ Gn[ [Γ] ]ρ and (k′,w′) ⊒ (k,w), then (k′,w′, γ1, γ2) ∈ Gn[ [Γ] ]ρ.
+Lemma 8 (LR-Validity)
+Vn[ [τ] ]ρ ∈ Reln[ρ1(τ), ρ2(τ)]
+Proof
+Follows from Atomicity and Closure Under World Extension.
+4.3.3 Compatibility
+The basic building blocks for proving soundness of our logical relation are what Pitts calls
+compatibility lemmas (Pitts, 2005), which state that the logical relation is closed under the
+constructs of the language.
+
+=== PAGE 19 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 19
+We ﬁrst have three properties about syntactic type substitutions, which will be needed for
+proving well-formedness of different syntactic elements. Although (as mentioned earlier)
+we will be omitting proofs of syntactic-typing side conditi ons in the present paper, we
+include these lemmas here as they help to clarify the subtle relationship between the various
+substitutions inhabiting Dn[ [∆] ]w and Gn[ [Γ] ]ρ.
+Lemma 9
+If (δ1, δ2, ρ) ∈ Dn[ [∆] ]w, then ρi = w.σ ∗
+i ◦ δi and w.σi ⊢ δi : ∆ and ε ⊢ ρi : ∆.
+Lemma 10
+If (k,w, γ1, γ2) ∈ Gn[ [Γ] ]ρ, then w.σi; ε ⊢ γi : ρi(Γ).
+The following is a standard type substitution lemma for logi cal relations. It is mainly
+needed in showing the compatibility lemmas for quantiﬁed types.
+Lemma 11 (LR-Substitution)
+1. Vn[ [τ] ]ρ, α ↦→(ρ1(τ′), ρ2(τ′),Vn[ [τ′] ]ρ) = Vn[ [τ[τ′/α ]] ]ρ.
+2. En[ [τ] ]ρ, α ↦→(ρ1(τ′), ρ2(τ′),Vn[ [τ′] ]ρ) = En[ [τ[τ′/α ]] ]ρ.
+The following two lemmas are needed for dealing with the part icularities of the non-
+parametric logical relation. We know by the deﬁnition ofT and D that for any (δ1, δ2, ρ) ∈
+Dn[ [∆] ]w0 and any α bound in ∆ there is some τα such that δ1(α ) and δ2(α ) are the
+concretizations of τα w.r.t. w0, i.e., δ1(α ) = w0.η 1(τ) and δ2(α ) = w0.η 2(τ). We deﬁne
+an operation, au, that yields the substitutionδ mapping each α to its corresponding τα (see
+Lemma 12):
+Deﬁnition 2 (Anti-Uniﬁer)
+Assume that (δ1, δ2, ρ) ∈ Dn[ [∆] ]w. The anti-unifying substitution of δ1 and δ2 with respect
+to w.η, written au(δ1, δ2,w.η), is deﬁned as follows.
+au(ε, ε, η) def= ε
+au((δ1, α ↦→τ1), (δ2, α ↦→τ2), η) def= au(δ1, δ2, η), α ↦→τ where τ = η −1(τ1) = η −2(τ2)
+Here, η −i is short for (η i)−1, the inverse of η i. The latter exists, because the deﬁnition
+of Conc ensures that η i is injective. Furthermore, since η is a partial bijection on the
+generated type names, η −1(τ1) and η −2(τ2) are guaranteed to be equal.
+Lemma 12
+1. If δ = au(δ1, δ2, η), then δ1 = η 1 ◦ δ and δ2 = η 2 ◦ δ.
+2. If (δ1, δ2, ρ) ∈ Dn[ [∆] ]w0 and δ = au(δ1, δ2,w0.η) and (k,w) ⊒ (n,w0), then δ =
+au(δ1, δ2,w.η).
+Proof
+1. Follows easily from the deﬁnition.
+2. First, note that (δ1, δ2, ⌊ρ⌋k) ∈ Dk[ [∆] ]w by Lemma 4. Furthermore, since w.η is an
+extension of w0.η, the former agrees with the latter on dom (w0.η). As we know
+ftv(δi(α )) ⊆ rng(w0.η) for any α, it is clear that au(δ1, δ2,w0.η) = au(δ1, δ2,w.η).
+
+=== PAGE 20 ===
+ZU064-05-FPR main 29 April 2011 15:27
+20 Georg Neis, Derek Dreyer and Andreas Rossberg
+The motivation for deﬁning au is the following property, whi ch is crucial for proving
+compatibility of≼ for the rules EINST , EPACK, and ECAST , in which its non-parametricity
+becomes manifest. The property essentially combines LR-Su bstitution (Lemma 11) with
+the observation that, when (δ1, δ2, ρ) ∈ Dn[ [∆] ]w0, it means that ρ is actually highly con-
+strained. Speciﬁcally, ⌊ρ(α ).r⌋n must be the logical relationVn[ [δ(α )] ]w0.ρ, where δ is the
+anti-uniﬁer of δ1 and δ2.
+Lemma 13
+If (δ1, δ2, ρ) ∈ Dn[ [∆] ]w0 and δ = au(δ1, δ2,w0.η) and ∆ ⊢ τ, then:
+1. Vn[ [τ] ]ρ = Vn[ [δ(τ)] ]w0.ρ
+2. En[ [τ] ]ρ = En[ [δ(τ)] ]w0.ρ
+Proof
+By primary induction on n and secondary induction on the derivation of ∆ ⊢ τ. We show
+the interesting cases in Appendix B.
+Many of the compatibility proofs are straightforward—they do not deal with worlds in
+any interesting way, and the non-parametricity does not sho w up because it is hidden in
+T [ [Ω ] ]. Those proofs are thus essentially analogous to their count erparts in a parametric
+System F-like setting (Ahmed, 2006) and we only show one exam ple (E UNPACK ) here.
+The only proofs that actually involve interesting reasoning about worlds are for EINST and
+EPACK. We show the latter; the former is similar (and dual).
+Lemma 14 (Compatibility: EPACK)
+If ∆; Γ ⊢ e1≼ e2 : τ[τ′/α ] and ∆ ⊢ τ′, then ∆; Γ ⊢ pack ⟨τ′,e1⟩≼ pack ⟨τ′,e2⟩: ∃α .τ.
+Proof
+• Suppose w0 ∈ Worldn, (δ1, δ2, ρ) ∈ Dn[ [∆] ]w0, (k,w, γ1, γ2) ∈ Gn[ [Γ] ]ρ and (k,w) =
+(n,w0).
+• To show: (k,w, δ1γ1(pack ⟨τ′,e1⟩), δ2γ2(pack ⟨τ′,e2⟩)) ∈ En[ [∃α .τ] ]ρ
+• Assume w.σ1; δ1γ1(pack ⟨τ′,e1⟩)֒→j σ1; pack ⟨δ1(τ′),v1⟩where j < k.
+• Instantiating the premise yields (k,w, δ1γ1(e1), δ2γ2(e2)) ∈ En[ [τ[τ′/α ]] ]ρ.
+• Consequently, there exists (k − j,w′) ⊒ (k,w) such that
+w.σ2; δ2γ2(pack ⟨τ′,e2⟩)֒→∗ w′.σ2; pack ⟨δ2(τ′),v2⟩
+with w′.σ1 = σ1 and (k − j,w′,v1,v2) ∈ Vn[ [τ[τ′/α ]] ]ρ.
+• It remains to show (k − j,w′, pack ⟨δ1(τ′),v1⟩, pack ⟨δ2(τ′),v2⟩) ∈ Vn[ [∃α .τ] ]ρ.
+• Let r := (w′.σ ∗
+1 (δ1(τ′)),w′.σ ∗
+2 (δ2(τ′)),Vk− j[ [τ′] ]ρ).
+• We now have to show that this witness relation actually has th e shape required by
+the deﬁnition of T [ [Ω ] ], i.e., that (δ1(τ′), δ2(τ′),r) ∈ Tk− j[ [Ω ] ]w′:
+— Let δ := au(δ1, δ2,w0.η).
+— It sufﬁces to show (δ1(τ′), δ2(τ′),r) = (w′.η 1δ(τ′),w′.η 2δ(τ′),
+(w′.ρ1δ(τ′),w′.ρ2δ(τ′),Vk− j[ [δ(τ′)] ]w′.ρ)).
+— By Lemma 4, (δ1, δ2, ⌊ρ⌋) ∈ Dk− j[ [∆] ]w′.
+— First, δi(τ′) = w′.η iδ(τ′) by Lemma 12.
+— Second, w′.σ ∗
+i (δi(τ′)) = w′.σ ∗
+i (w′.η iδ(τ′)) = w′.ρiδ(τ′) because w′ ∈ World.
+— Finally, Vk− j[ [τ′] ]ρ = Vk− j[ [δ(τ′)] ]w′.ρ by Lemma 13.
+
+=== PAGE 21 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 21
+• It thus sufﬁces to show that (k′′,w′′,v1,v2) ∈ Vn[ [τ] ]ρ, α ↦→r for any (k′′,w′′) = (k −
+j,w′), which follows by Closure Under World Extension and LR-Subs titution from
+(k − j,w′,v1,v2) ∈ Vn[ [τ[τ′/α ]] ]ρ.
+Lemma 15 (Compatibility: EUNPACK )
+If ∆; Γ ⊢ e1≼ e2 : ∃α .τ′ and ∆, α; Γ,x:τ′ ⊢ e3≼ e4 : τ with ∆ ⊢ τ,
+then ∆; Γ ⊢ unpack⟨α ,x⟩=e1 in e3≼ unpack⟨α ,x⟩=e2 in e4 : τ.
+Proof
+• Suppose w0 ∈ Worldn, (δ1, δ2, ρ) ∈ Dn[ [∆] ]w0, (k,w, γ1, γ2) ∈ Gn[ [Γ] ]ρ and (k,w) =
+(n,w0).
+• Show: (k,w, δ1γ1(unpack ⟨α ,x⟩=e1 in e3), δ2γ2(unpack ⟨α ,x⟩=e2 in e4)) in En[ [τ] ]ρ
+• Assume that w.σ1; δ1γ1(unpack ⟨α ,x⟩=e1 in e3) terminates:
+w.σ1; δ1γ1(unpack ⟨α ,x⟩=e1 in e3)
+֒→j1 σ ′
+1; unpack ⟨α ,x⟩=(pack ⟨τ1,v1⟩) in δ1γ1(e3)
+֒→1 σ ′
+1; δ1γ1(e3)[τ1/α ][v1/x]
+֒→j2 σ1;v3
+and that j1 + 1 + j2 =: j < k.
+• Instantiating the ﬁrst premise yields the existence of (k − j1,w′) ⊒ (k,w) such that
+w.σ2; δ2γ2(unpack ⟨α ,x⟩=e2 in e4)
+֒→∗ w′.σ2; unpack ⟨α ,x⟩=(pack ⟨τ2,v2⟩) in δ2γ2(e4)
+with w′.σ1 = σ ′
+1 and (k − j1,w′, pack ⟨τ1,v1⟩, pack ⟨τ2,v2⟩) ∈ Vn[ [∃α .τ′] ]ρ.
+• Hence there is r such that (τ1, τ2,r) ∈ Tk− j1[ [Ω ] ]w′ and (k − j1 − 1, ⌊w′⌋,v1,v2) ∈
+Vn[ [τ′] ]ρ, α ↦→r.
+• By Lemma 4, (δ1, δ2, ⌊ρ⌋k− j1) ∈ Dk− j1[ [∆] ]w′.
+• Let (δ′
+1, δ′
+2, ρ′) := ((δ1, α ↦→τ1), ((δ2, α ↦→τ2), (⌊ρ⌋k− j1 , α ↦→r))), hence (δ′
+1, δ′
+2, ρ′) ∈
+Dk− j1[ [∆, α ] ]w′.
+• By Closure Under World Extension we know(k − j1 − 1, ⌊w′⌋, γ1, γ2) ∈ Gn[ [Γ] ]ρ and
+thus (k − j1 − 1, ⌊w′⌋, γ1, γ2) ∈ Gk− j1[ [Γ] ]ρ′.
+• Let γ′
+i := γi,x↦→vi, so we get (k − j1 − 1, ⌊w′⌋, γ′
+1, γ′
+2) ∈ Gk− j1 [ [Γ,x:τ′′] ]ρ′.
+• Instantiating the second premise with w′ ∈ Worldk− j1, (δ′
+1, δ′
+2, ρ′) ∈ Dk− j1 [ [∆, α ] ]w′
+and (k − j1 − 1, ⌊w′⌋, γ′
+1, γ′
+2) ∈ Gk− j1 [ [Γ,x:τ′′] ]ρ′ now yields
+(k − j1 − 1, ⌊w′⌋, δ′
+1γ′
+1(e3), δ′
+2γ′
+2(e4)) ∈ Ek− j1[ [τ] ]ρ′.
+• Note that
+δ′
+i γ′
+i (ei+2)
+= δi(γi(ei+2)[vi/x])[τi/α ])
+= δiγi(ei+2)[vi/x][τi/α ]) since ⊢ w′.σi;vi : (ρ, α ↦→Vk− j1[ [τ′′] ]w′.ρ)i(τ′)
+= δiγi(ei+2)[τi/α ][vi/x] dito
+• Therefore, σ ′
+1; δ1γ1(e3)[τ1/α ][v1/x]֒→j2 σ1;v3 implies the existence of(k − j,w′′) ⊒
+(k − j1 − 1, ⌊w′⌋) such that
+w′.σ2; δ2γ2(e4)[τ2/α ][v2/x]֒→∗ w′′σ2;v4
+with w′′.σ1 = σ1 and (k − j,w′′,v3,v4) ∈ Vk− j1[ [τ] ]ρ′.
+
+=== PAGE 22 ===
+ZU064-05-FPR main 29 April 2011 15:27
+22 Georg Neis, Derek Dreyer and Andreas Rossberg
+• Since ∆ ⊢ τ, the latter implies (k − j,w′′,v3,v4) ∈ Vn[ [τ] ]ρ.
+In the proof of compatibility for cast, we ﬁrst have to argue that the argument types
+on the left-hand side, δ1(τ1) and δ1(τ2), are equal if and only if the argument types on
+the right-hand side, δ2(τ1) and δ2(τ2), are, so that we have the same reduction on both
+sides. This is easy to see with the help of Lemma 12, which tell s us that δi = w0.η i ◦ δ
+(where δ is the anti-unifying substitution of δ1 and δ2)—meaning that δ1 and δ2 map to
+types that are syntactically identical up to some bijection on type names. Recall that we
+consider dom(w0.η) to contain bound variables and thus can assume it to be disjoint from
+rng(w0.η i) without loss of generality. We then have to distinguish two c ases. If the type
+arguments are not equal (the cast fails), there is not much to do, as expected. If the cast
+succeeds, however, we basically need to show that the argument types are alsosemantically
+equal, i.e., Vn[ [τ1] ]ρ = Vn[ [τ2] ]ρ. Since δ(τ1) = δ(τ2), this follows from Lemma 13.
+Lemma 16 (Compatibility: ECAST )
+If ∆ ⊢ Γ and ∆ ⊢ τ1 and ∆ ⊢ τ2, then ∆; Γ ⊢ cast τ1 τ2≼ cast τ1 τ2 : τ1 → τ2 → τ2.
+Proof
+• Suppose w0 ∈ Worldn, (δ1, δ2, ρ) ∈ Dn[ [∆] ]w0, (k,w, γ1, γ2) ∈ Gn[ [Γ] ]ρ and (k,w) =
+(n,w0).
+• To show: (k,w, cast δ1(τ1) δ1(τ2), cast δ2(τ1) δ2(τ2)) ∈ En[ [τ1 → τ2 → τ2] ]ρ.
+• Let δ := au(δ1, δ2,w0.η).
+• Then δ(τ1) = w0.η −iδi(τ1) and w0.η −iδi(τ2) = δ(τ2) by Lemma 12.
+• Consequently,
+δ1(τ1) = δ1(τ2)
+⇐ ⇒ w0.η −1δ1(τ1) = w0.η −1δ1(τ2)
+⇐ ⇒ δ(τ1) = δ(τ2)
+⇐ ⇒ w0.η −1δ2(τ1) = w0.η −1δ2(τ2)
+⇐ ⇒ δ2(τ1) = δ2(τ2)
+• Case δi(τ1) = δi(τ2):
+— Then we have the following reductions:
+w.σi; cast δi(τ1) δi(τ2)֒→1 w.σi; λx1.λx2.x1
+— Hence it sufﬁces to show
+(k − 1, ⌊w⌋, λx1.λx2.x1, λx1.λx2.x1) ∈ Vn[ [τ1 → τ2 → τ2] ]ρ.
+— So suppose (k′,w′) ⊒ (k − 1, ⌊w⌋) and (k′,w′,v1,v2) ∈ Vn[ [τ1] ]ρ.
+— To show: (k′,w′, λx2.v1, λx2.v2) ∈ Vn[ [τ2 → τ2] ]ρ.
+— So suppose (k′′,w′′) ⊒ (k′,w′) and (k′′,w′′,v′
+1,v′
+2) ∈ Vn[ [τ2] ]ρ.
+— To show: (k′′,w′′,v1,v2) ∈ Vn[ [τ2] ]ρ
+— By Closure Under World Extension, (k′′,w′′,v1,v2) ∈ Vn[ [τ1] ]ρ.
+— The claim then follows by δ(τ1) = δ(τ2) and Lemma 13.
+• Case δi(τ1) ⁄= δi(τ2):
+— Then we have the following reductions:
+w.σi; cast δi(τ1) δi(τ2)֒→1 w.σi; λx1.λx2.x2
+
+=== PAGE 23 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 23
+— Hence it sufﬁces to show
+(k − 1, ⌊w⌋, λx1.λx2.x2, λx1.λx2.x2) ∈ Vn[ [τ1 → τ2 → τ2] ]ρ.
+— So suppose (k′,w′) ⊒ (k − 1, ⌊w⌋) and (k′,w′,v1,v2) ∈ Vn[ [τ1] ]ρ.
+— To show: (k′,w′, λx2.x2, λx2.x2) ∈ Vn[ [τ2 → τ2] ]ρ.
+— So suppose (k′′,w′′) ⊒ (k′,w′) and (k′′,w′′,v′
+1,v′
+2) ∈ Vn[ [τ2] ]ρ.
+— To show: (k′′,w′′,v′
+1,v′
+2) ∈ Vn[ [τ2] ]ρ, which is immediate.
+Since new is the only construct that modiﬁes the type store, its compat ibility proof is
+also the only one where we actually have to extend the η and ρ components of the initial
+world w with bindings for some fresh dynamically-generated type name (here, α). The η is
+extended with α ↦→(α1, α2), where α1 and α2 are the concrete fresh names that are chosen
+when evaluating the left and rightnew expressions. The ρ is extended so that the relational
+interpretation of α is simply the logical relation at type τ′. The proof of this lemma is
+highly reminiscent of the proof of compatibility for reference allocation in a language with
+mutable references (Ahmed et al., 2009).
+Lemma 17 (Compatibility: ENEW )
+If ∆, α ≈τ′; Γ ⊢ e1≼ e2 : τ and ∆ ⊢ τ and ∆ ⊢ Γ,
+then ∆; Γ ⊢ new α ≈τ′ in e1≼ new α ≈τ′ in e2 : τ.
+Proof
+• Suppose w0 ∈ Worldn, (δ1, δ2, ρ) ∈ Dn[ [∆] ]w0, (k,w, γ1, γ2) ∈ Gn[ [Γ] ]ρ and (k,w) =
+(n,w0).
+• To show: (k,w, δ1γ1(new α ≈τ′ in e1), δ2γ2(new α ≈τ′ in e2)) ∈ En[ [τ] ]ρ.
+• Assume w.σ1; δ1γ1(new α ≈τ′ in e1) terminates:
+w.σ1; δ1γ1(new α ≈τ′ in e1)
+֒→1 w.σ1, α1≈δ1(τ′); δ1γ1(e1)[α1/α ]
+֒→j′
+σ1;v1
+and 1 + j′ =: j < k.
+• Note that
+w.σ2; δ2γ2(new α ≈τ′ in e2)֒→1 w.σ2, α2≈δ2(τ′); δ2γ2(e2)[α2/α ].
+• Let wα := ((w.σ1, α1≈δ1(τ′)), (w.σ2, α2≈δ2(τ′)), (w.η, α ↦→(α1, α2)), (w.ρ, α ↦→r))
+for r := (ρ1(τ′), ρ2(τ′),Vk[ [τ′] ]⌊ρ⌋), so (k,wα ) ⊒ (k,w) and (δ1, δ2, ⌊ρ⌋) ∈ Dk[ [∆] ]wα .
+• Let (δ′
+1, δ′
+2, ρ′) := ((δ1, α ↦→α1), (δ2, α ↦→α2), (⌊ρ⌋, α ↦→r)).
+• Note that wα .σi(αi) = δi(τ′), αi = wα .η i(α ), and wα .ρ(α ).R = Vk[ [τ′] ]⌊ρ⌋.
+• Therefore, (δ′
+1, δ′
+2, ρ′) ∈ Dk[ [∆, α ≈τ′] ]wα .
+• By Closure Under World Extension we know (k − 1, ⌊wα ⌋, γ1, γ2) ∈ Gn[ [Γ] ]ρ and
+therefore (k − 1, ⌊wα ⌋, γ1, γ2) ∈ Gk[ [Γ] ]ρ′.
+• Now instantiate the premise with wα ∈ Worldk, (δ′
+1, δ′
+2, ρ′) ∈ Dk[ [∆, α ≈τ′] ]wα ,
+(k − 1, ⌊wα ⌋, γ1, γ2) ∈ Gk[ [Γ] ]ρ′ and (k − 1, ⌊wα ⌋) = (k,wα ) to get
+(k − 1, ⌊wα ⌋, δ′
+1γ1(e1), δ′
+2γ2(e2)) ∈ Ek[ [τ] ]ρ′.
+• Note that δ′
+i γi(ei) = δiγi(ei)[αi/α ].
+
+=== PAGE 24 ===
+ZU064-05-FPR main 29 April 2011 15:27
+24 Georg Neis, Derek Dreyer and Andreas Rossberg
+• Consequently, there exists (k − j,w′) ⊒ (k − 1,wα ) such that
+w.σ2, α2≈δ2(τ′); δ2γ2(e2)[α2/α ]֒→∗ w′.σ2;v2
+with w′.σ1 = σ1 and (k − j,w′,v1,v2) ∈ Vk[ [τ] ]ρ′.
+• Because of ∆ ⊢ τ, the latter implies (k − j,w′,v1,v2) ∈ Vn[ [τ] ]ρ.
+Compatibility for E CONV follows from the fact that isomorphic types are semanticall y
+equal, which we prove separately below. The interesting cas e is when τ1 is a variable α
+bound in ∆ as α ≈ τ2, and the result in this case follows easily from the deﬁnitio n of
+D[ [∆, α ≈τ] ]w.
+Lemma 18 (Type Isomorphism)
+If ∆ ⊢ τ1 ≈ τ2 and (δ1, δ2, ρ) ∈ Dn[ [∆] ]w, then
+1. Vn[ [τ1] ]ρ = Vn[ [τ2] ]ρ and
+2. En[ [τ1] ]ρ = En[ [τ2] ]ρ.
+Lemma 19 (Compatibility: ECONV )
+If ∆; Γ ⊢ e1≼ e2 : τ′ and ∆ ⊢ τ ≈ τ′, then ∆; Γ ⊢ e1≼ e2 : τ.
+Proof
+Follows from Type Isomorphism.
+4.3.4 Soundness
+Theorem 20 (Fundamental Property of≼ )
+If ∆; Γ ⊢ e : τ, then ∆; Γ ⊢ e≼ e : τ.
+Proof
+By induction on the typing derivation, in each case using the appropriate compatibility
+lemma.
+The full compatibility and the Fundamental Property of≼ are at the heart of the sound-
+ness proof. Based on that and the following small lemma we can ﬁnally establish that≼ is
+a precongruence with respect to the constructs of the langua ge and then prove the actual
+soundness theorem.
+Lemma 21 (LR-Weakening)
+If ∆; Γ ⊢ e1≼ e2 : τ, ∆′ ⊇ ∆, Γ′ ⊇ Γ, and ∆′ ⊢ Γ, then ∆′; Γ′ ⊢ e1≼ e2 : τ.
+Lemma 22 (Precongruence of≼ )
+If ∆; Γ ⊢ e1≼ e2 : τ and ⊢ C : (∆; Γ; τ) ; (∆′; Γ′; τ′), then ∆′; Γ′ ⊢ C[e1]≼ C[e2] : τ′.
+Proof
+By induction on the derivation of the context typing, in each case using the appropriate
+compatibility lemma. For a context containing another termwe also need the Fundamental
+Property; for C = [ ] we need LR-Weakening.
+Theorem 23 (Soundness of≼ w.r.t.≤)
+If ∆; Γ ⊢ e1≼ e2 : τ, then ∆; Γ ⊢ e1 ≤ e2 : τ.
+
+=== PAGE 25 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 25
+Proof
+• Suppose ⊢ σ and ⊢ C : (∆; Γ; τ) ; (σ; / 0;τ′) and σ;C[e1] ↓, i.e., σ;C[e1]֒→j σ1;v1.
+• To show: σ;C[e2] ↓
+• By Precongruence we have σ; ε ⊢ C[e1]≼ C[e2] : τ′.
+• To instantiate this, we ﬁrst need to create an initial world r epresenting σ. Say σ =
+α1≈τ1, . . . ,αn≈τn.
+• Let
+σ0 := ε
+σi+1 := σi, αi+1≈τi+1
+δ0 := / 0
+δi+1 := δi, αi+1↦→αi+1
+ρ0 := / 0
+ρi+1 := ρi, αi+1↦→Vj+2[ [τi+1] ]ρi
+w := ( σ , σ , {αi↦→(αi, αi) | 1 ≤ i ≤ n}, ρn)
+• Note that ρi ∈ Interp j+2 and w ∈ Worldj+2.
+• Furthermore, given 0 ≤ i < n, it is easy to see that (δi, δi, ρi) ∈ D j+2[ [σi] ]w implies
+(δi+1, δi+1, ρi+1) ∈ D j+2[ [σi+1] ]w.
+• Together with (δ0, δ0, ρ0) ∈ D j+2[ [ε] ]w this means (δn, δn, ρn) ∈ D j+2[ [σ ] ]w.
+• Instantiate σ; ε ⊢ C[e1]≼ C[e2] : τ′ with w ∈ Worldj+2, (δn, δn, ρn) ∈ D j+2[ [σ ] ]w and
+( j + 1, ⌊w⌋, / 0, / 0) ∈ G j+2[ [ε] ]ρn to get ( j + 1, ⌊w⌋, δn(C[e1]), δn(C[e2])) ∈ E j+2[ [τ′] ]ρn.
+• Note that δn(C[ei]) = C[ei].
+• Because of the assumption σ;C[e1]֒→j σ1;v1, we therefore get σ;C[e2] ↓.
+4.4 Examples
+Semaphore. We now return to our semaphore example from Section 2 and show how
+to prove representation independence for the two different implementations esem1 and
+esem2. Recall that the former uses int, the latter bool. To show that they are contextually
+equivalent, it sufﬁces by Soundness to show that each logically approximates the other. We
+prove only one direction, namely ⊢ esem1≼ esem2 : τsem; the other is proven analogously.
+Expanding the deﬁnitions, we need to show (k,w,esem1,esem2) ∈ En[ [τsem] ]. Note how
+each term generates a fresh type name αi in one step, resulting in a package value. Hence
+all we need to do is come up with a world w′ satisfying
+• (k − 1,w′) ⊒ (k,w),
+• w′.σ1 = w.σ1, α1≈int and w′.σ2 = w.σ2, α2≈bool,
+• (k − 1,w′, pack⟨α1,v1⟩, pack⟨α2,v2⟩) ∈ Vn[ [τsem] ].
+where vi is the term component of esemi’s implementation. We constructw′ by extending
+w with mappings that establish the relation between the new type names:
+R := {(k′′,w′′,vint,vbool) ∈ Atomval
+k−1[int, bool] |
+(vint,vbool) = (1, true) ∨ (vint,vbool) = (0, false)}
+r := ( int, bool,R)
+w′ := (( w.σ1, α1≈int), (w.σ2, α2≈bool), (w.η, α ↦→(α1, α2)), (⌊w.ρ⌋k−1, α ↦→r))
+
+=== PAGE 26 ===
+ZU064-05-FPR main 29 April 2011 15:27
+26 Georg Neis, Derek Dreyer and Andreas Rossberg
+The ﬁrst two conditions above are satisﬁed by construction. To show that the packages
+are related we need to show the existence of an r′ with (α1, α2,r′) ∈ Tk−1[ [Ω ] ]w′ such that
+(k − 2, ⌊w′⌋,v1,v2) ∈ Vn[ [τ′
+sem] ](α ↦→r′), where τ′
+sem = α × (α → α ) × (α → bool). Since
+αi = w′.η i(α ), r′ must be (int, bool,Vk−1[ [α ] ]w′.ρ) by deﬁnition of T [ [Ω ] ]. Of course, we
+deﬁned w′ the way we did so that this r′ is exactly r.
+The proof of (k − 2, ⌊w′⌋,v1,v2) ∈ Vn[ [τ′
+sem] ](α ↦→r) decomposes into three parts, follow-
+ing the structure of τ′
+sem:
+1. (k − 2, ⌊w′⌋,1, true) ∈ Vn[ [α ] ](α ↦→r)
+This holds because Vn[ [α ] ](α ↦→r) = R.
+2. (k − 2, ⌊w′⌋, λx.(1 − x), λx.¬x) ∈ Vn[ [α → α ] ](α ↦→r)
+• Suppose we are given related arguments in a future world: (k′′,w′′,v′
+1,v′
+2) ∈
+Vn[ [α ] ](α ↦→r) = R.
+• Hence either (v′
+1,v′
+2) = (1, true) or (v′
+1,v′
+2) = (0, false).
+• Consequently, 1− v′
+1 and ¬v′
+2 will evaluate in one step, without effects, to values
+again related by R.
+• In other words, (k′′,w′′,1 − v′
+1, ¬v′
+2) ∈ En[ [α ] ](α ↦→r).
+3. (k − 2, ⌊w′⌋, λx.(x ⁄= 0), λx.x) ∈ Vn[ [α → bool] ](α ↦→r)
+Like in the previous part, the argumentsv′
+1 and v′
+2 will be related by R in some future
+(k′′,w′′). Therefore v′
+1 ⁄= 0 will reduce in one step without effects tov′
+2, which already
+is a value. Because of the deﬁnition of the logical relation a t type bool, this implies
+(k′′,w′′,v′
+1 ⁄= 0,v′
+2) ∈ En[ [bool] ](α ↦→r).
+Partly Benign Effects (Repeatability). When side effects are introduced into a pure
+language, they often falsify various equational laws conce rning repeatability and order
+independence of computations. In this section, we offer som e evidence that the effect
+of dynamic type generation is partly benign in that it does not invalidate some of these
+equational laws.
+Consider the following functions (where τ is arbitrary but closed):
+v1 := λx:(unit → τ). let x′ = x () in x ()
+v2 := λx:(unit → τ). x ()
+The only difference between v1 and v2 is whether the argument x is applied once or
+twice. Intuitively, either x () diverges, in which case both programs diverge, or else the
+ﬁrst application of x terminates, in which case so should the second. A detailed fo rmal
+proof of v1 and v2’s equivalence is given in Appendix B.
+Partly Benign Effects (Order Independence). Now consider the following functions:
+v′
+1 := λx:(unit → τ).λy:(unit → τ′). lety′ = y () in ⟨x (),y′⟩
+v′
+2 := λx:(unit → τ).λy:(unit → τ′). ⟨x (),y ()⟩
+The only difference between v′
+1 and v′
+2 is the order in which they call their argument
+callbacks x and y. Those calls may both result in the generation of fresh type n ames, but
+the order in which the names are generated should not matter. Again, a formal proof of
+equivalence can be found in Appendix B.
+
+=== PAGE 27 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 27
+However, as we shall see in the example ofe′
+1 and e′
+2 in the next section, our G language
+does not enjoy referential transparency. This is to be expected, of c ourse, since new is an
+effectful operation and (in-)equality of type names is observable in the language.
+5 Wrapping
+We have seen that parametricity can be re-established in G byintroducing name generation
+in the right place. But what is the “right place” in general? T hat is, given an arbritrary
+expression e with polymorphic type τe, how can we systematically transform it into an
+expression e′ of the same type τe that is parametric?
+One obvious—but unfortunately bogus—idea is the following : transform e such that
+every existential introduction and every universal elimination creates a fresh name for the
+respective witness or instance type. Formally, apply the following rewrite rules to e:
+pack ⟨τ,e⟩as τ′ ↝ new α ≈τ in pack ⟨α ,e⟩as τ′
+e τ ↝ new α ≈τ in e α
+Obviously, this would make every quantiﬁed type abstract, s o that any cast that tries to
+inspect it would fail.
+Or would it? Perhaps surprisingly, the answer is no. To see why, consider the following
+expressions of type (∃α .τ′) × (∃α .τ′):
+e1 := letx = pack ⟨τ,v⟩in ⟨x,x⟩
+e2 := ⟨pack ⟨τ,v⟩, pack ⟨τ,v⟩⟩
+They are clearly equivalent in a parametric language (and in fact they are even equivalent
+in G). Yet rewriting yields:
+e′
+1 := letx = (new α ≈τ in pack ⟨α ,v⟩) in ⟨x,x⟩
+e′
+2 := ⟨new α ≈τ in pack ⟨α ,v⟩, new α ≈τ in pack ⟨α ,v⟩⟩
+The resulting expressions are not equivalent anymore, because they perform different ef-
+fects. Here is one distinguishing context:
+let p = [ ] in unpack⟨α1,x1⟩= p.1 in
+unpack ⟨α2,x2⟩= p.2 in equal? α1 α2
+Although the representation type τ is not disclosed as such, sharing between the two
+abstract types in e′
+1 is. In a parametric language, that would not be possible.
+In order to introduce effects uniformly, and to hide interna l sharing, the transformation
+we are looking for needs to be deﬁned on the structure of types , not terms. Roughly, for
+each quantiﬁer occurring in τe we need to generate one fresh type name. That is, instead of
+transforming e itself, we simply wrap it with some expression that introduces the necessary
+names at the boundary, by induction on the type τe.
+In fact, we can reﬁne the problem further. When looking at a G e xpression e, what do
+we actually mean by “making it parametric”? We can mean two di fferent things: either
+ensuring that e behaves parametrically, or dually, that any context treats e parametrically.
+In the former case, we are protecting thecontext against e, in the latter we protect e against
+malicious contexts. The latter is what is sometimes referred to as abstraction safety.
+
+=== PAGE 28 ===
+ZU064-05-FPR main 29 April 2011 15:27
+28 Georg Neis, Derek Dreyer and Andreas Rossberg
+Wr±α
+def= λx:α .x
+Wr±
+b
+def= λx:b.x
+Wr±
+τ1×τ2
+def= λx:(τ1 × τ2).⟨Wr±τ1 (x.1),Wr±τ2 (x.2)⟩
+Wr±τ1→τ2
+def= λx:(τ1 → τ2).λx1:τ1.Wr±τ2 (x (Wr∓τ1 x1))
+Wr±
+∀α .τ
+def= λx:(∀α .τ).Λα . new∓ α in Wr±τ (x α )
+Wr±
+∃α .τ
+def= λx:(∃α .τ). unpack ⟨α ,x′⟩=x in
+new± α in pack ⟨α ,Wr±τ x′⟩as ∃α .τ
+new+ α in e def= new α ′≈α in e[α ′/α ]
+new− α in e def= e
+Fig. 4. Wrapping for G
+Figure 4 deﬁnes a pair of wrapping operators that correspond to these two dual re-
+quirements: Wr+ protects an expression e : τe from being used in a non-parametric way,
+by inserting fresh names for each existential quantiﬁer. Du ally, Wr− forces e to behave
+parametrically by creating a fresh name for each polymorphic instantiation. The deﬁnitions
+extend to other types in the usual functorial manner. Both de ﬁnitions are interdependent,
+because roles switch for function arguments. These operato rs are similar to the type-
+directed translation that Sumii & Pierce (2007a) suggest for establishing type abstraction in
+an untyped language (they propose the descriptive terms “ﬁrewall” for Wr+, and “sandbox”
+for Wr−). However, their use of dynamic sealing instead of type gene ration results in the
+insertion of runtime coercions to seal/unseal each individ ual value of abstract type, while
+our wrapping leaves such values alone.
+Lemma 24
+If ∆ ⊢ τ, then ∆; ε ⊢ Wr±
+τ : τ → τ.
+Given these operators, we can go back to our semaphore exampl e: esem1 can now be
+obtained as Wr+
+τsem esem (modulo some harmless η-expansions). This generalizes to other
+ADTs: wrapping their implementations positively will guar antee abstraction by “making
+them parametric”. We prove that in the next section.
+Positive wrapping at existential type is reminiscent of module sealing (or opaque sig-
+nature ascription) in ML-style module languages. If we view e as a module and its type
+τe as a signature, then Wr +
+τe e corresponds to the sealing operation e :> τe. While module
+sealing typically only performs static abstraction, wrapp ing provides the dynamic equiva-
+lent (Rossberg, 2008). In fact, positive wrapping is precisely how sealing is implemented in
+Alice ML (Rossberget al., 2004), where the module language is non-parametric otherwise.
+The correspondence to module sealing motivates our treatme nt of existential types.
+Notice that Wr + causes a fresh type name to be created only once for each exist entially
+quantiﬁed type—that is, corresponding to each existential introduction. Another option
+would be to generate type names with each existentialelimination. In fact, such a semantics
+would arise naturally were we to use a Church encoding of existentials in conjunction with
+our wrapping for universals. However, in such a semantics, unpacking an existential value
+twice would have the effect of producing two distinct abstract types. While this corresponds
+
+=== PAGE 29 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 29
+T πn [ [Ω ] ]w def= {(τ1, τ2, (w.σ ∗
+1 (τ1),w.σ ∗
+2 (τ2),R)) |
+ftv(τi) ⊆ dom(w.σi) ∧ R ∈ Reln[w.σ ∗
+1 (τ1),w.σ ∗
+2 (τ2)]}
+(everything else as in Figure 3)
+Fig. 5. Parametric Logical Relation
+intuitively to the “generativity” of unpack in System F, it is undesirable in the context of
+dynamic, ﬁrst-class modules. In particular, in order for an abstract type t deﬁned by some
+dynamic module M to have some permanent identity (so that it can be referenced by other
+dynamic modules), it is important that each unpacking of M yi elds a handle to the same
+name for t. (See Rossberg’s thesis (2007) for illustrative examples.) Moreover, as we show
+in the next section, our deﬁnition of wrapping is sufﬁcient to ensure abstraction safety.
+6 Parametric Reasoning
+The logical relation developed in Section 4 enables us to do non-parametric reasoning
+about equivalence of G programs. It also enables us to do parametric reasoning, but only
+indirectly: we have to explicitly deal with the effects ofnew and to deﬁne worlds containing
+relations between type names. It would be preferable if we were able to do parametric rea-
+soning directly. For example, given two termse1 and e2 that do not use casts, and assuming
+that the context does not do so either, we should be able to reason about equivalence of e1
+and e2 in a manner similar to what we do when reasoning about System F.
+6.1 A Parametric Logical Relation
+Thanks to the modular formulation of our logical relation in Figure 3, it is easy to modify
+it so that it becomes parametric. All we need to do is swap out t he deﬁnition of T [ [Ω ] ]w,
+which relates types as data. Figure 5 gives an alternative de ﬁnition that allows choosing
+an arbitrary relation between arbitrary types. Everything else stays exactly the same. We
+decorate the set of parametric logical relations thus obtained with π (i.e., V π, E π, etc.) to
+distinguish them from the original ones. Likewise, we write≼ π for the notion of paramet-
+ric logical approximation deﬁned as in Figure 3 but in terms of the parametric relations .
+For clarity, we will refer to the original deﬁnition as the non-parametric logical relation.
+This modiﬁcation gives us a seemingly parametric deﬁnition of logical approximation
+for G terms. But what does that actuallymean? What is the relation between parametric and
+non-parametric logical approximation and, ultimately, contextual approximation? Since
+the language is not parametric, clearly, parametrically eq uivalent terms generally are not
+contextually equivalent.
+The answer is given by the wrapping functions we deﬁned in the previous section. The
+following theorem connects the two notions of logical relation and approximation that we
+have introduced:
+Theorem 25 (Wrapping for≼ π)
+1. If ⊢ e1≼ π e2 : τ, then ⊢ Wr+
+τ e1≼ Wr+
+τ e2 : τ.
+2. If ⊢ e1≼ e2 : τ, then ⊢ Wr−
+τ e1≼ π Wr−
+τ e2 : τ.
+
+=== PAGE 30 ===
+ZU064-05-FPR main 29 April 2011 15:27
+30 Georg Neis, Derek Dreyer and Andreas Rossberg
+This theorem justiﬁes the deﬁnition of the parametric logical relation. At the same time,
+it can be read as a correctness result for the wrapping operat ors: it says that if we can
+relate two terms using parametric reasoning, then the posit ive wrapping of the ﬁrst term
+contextually approximates the positive wrapping of the second. Dually, once any properly
+related terms are wrapped negatively, they can safely be pas sed to any term that depends
+on its context behaving parametrically.
+Rather than giving the proof of Theorem 25 now, we will wait until Section 8.1 to derive
+it as a corollary of a more general result (see Corollary 32).
+The alert reader may wonder why this Wrapping Theorem only talks about closed terms.
+First of all, simply allowing open terms would not be correct. For instance, it is easy to see
+that we have
+ε;x:(∀α .bool) ⊢ x bool≼ π x unit : bool
+because the instantiations of x will be parametric by deﬁnition. For≼ they may of course
+be non-parametric (consider equal? unit being plugged in for x), hence
+ε;x:(∀α .bool) ⊢ x bool≼ x unit : bool
+does not hold. However, since Wr+
+bool is just the identity function, this is essentially what
+the naive extension of the Wrapping theorem to open terms would tell us.
+The solution to this (we conjecture) is to wrap all free value variables at the inverse
+polarity, so that the theorem would look as follows:
+1. If ∆; Γ ⊢ e1≼ π e2 : τ, then ∆; Γ ⊢ Wr+
+τ γ−
+Γ (e1)≼ Wr+
+τ γ−
+Γ (e2) : τ.
+2. If ∆; Γ ⊢ e1≼ e2 : τ, then ∆; Γ ⊢ Wr−
+τ γ+
+Γ (e1)≼ π Wr−
+τ γ+
+Γ (e2) : τ.
+Here the substitution γ±
+Γ replaces each free variable x:τ by its wrapping Wr ±
+τ x and could
+be deﬁned as follows:
+γ±
+ε
+def= / 0 γ±
+Γ,x:τ
+def= γ±
+Γ ,x↦→(Wr±
+τ x)
+Proving this theorem correct, however, is another matter. One problem is that if we attempt
+to prove the above statement, after unfolding the deﬁnition of logical approximation in
+part (1), we are given some(δ1, δ2, ρ) ∈ D[ [∆] ]. To instantiate the assumption appropriately,
+(δ1, δ2, ρ) needs to be inDπ[ [∆] ]. In part (2), the situation is the other way around. However,
+D[ [∆] ]and Dπ[ [∆] ]are only equal if ∆ does not contain components of the form α ≈τ′.
+Another problem is that wrapped value substitutions—which arise in the proof—are no
+longer value substitutions. All in all, we believe these problems can be s olved, but we
+leave the solution to future work.
+Finally, what can we say about the content of the parametric r elation? Obviously, it
+cannot contain arbitrary non-parametric G terms— e.g., Λα1.Λα2. cast α1 α2 is not even
+related to itself in E π. Apart from cast, however, the parametric relation is compatible
+with all constructs. The corresponding compatibility proofs for the non-parametric relation
+carry over. The only difference is that compatibility for E PACK and EINST become easier
+to show. In the proof of the former, for instance, it is immedi ate that the witness relation
+has the required form, because T π[ [Ω ] ]does not actually impose any restrictions.
+Consequently, we obtain the following restricted form of the Fundamental Property:
+Theorem 26 (Fundamental Property for≼ π)
+
+=== PAGE 31 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 31
+If ∆; Γ ⊢ e : τ and e is cast-free, then ∆; Γ ⊢ e≼ π e : τ.
+In particular, this implies that any well-typed System F ter m is parametrically related to
+itself. The relation will also contain terms with cast, but only if the use of cast does not
+violate parametricity. (We discuss this further in Section7.)
+Along the same lines, we can show that our parametric logical relation is sound w.r.t.
+contextual approximation, if the deﬁnition of the latter is limited to quantifying only ov er
+cast-free contexts:
+Theorem 27 (Soundness of≼ π)
+If ∆; Γ ⊢ e1≼ π e2 : τ, then for any cast-free C : (∆; Γ; τ)↝ (σ; ε; τ′) with ⊢ σ:
+σ;C[e1] ↓ ⇒ σ;C[e2] ↓
+Proof
+Analogous to the soundness proof for≼ . The difference is that≼ π is a precongruence only
+w.r.t. cast-free contexts.
+6.2 Examples
+Semaphore. Consider our running example of the semaphore module again. Using the
+parametric relation, we can prove that the two implementations are related without actually
+reasoning about type generation. That latter aspect of the proof is covered once and for all
+by the Wrapping Theorem.
+Recall the two implementations, here given in unwrapped form:
+τsem := ∃α .α × (α → α ) × (α → bool)
+e′
+sem1 := pack ⟨int, ⟨1, λx: int .(1 − x), λx:int .(x ⁄= 0)⟩⟩as τsem
+e′
+sem2 := pack ⟨bool, ⟨true, λx: bool .¬x, λx: bool .x⟩⟩as τsem
+We can prove ⊢ e′
+sem1≼ π e′
+sem2 : τsem using conventional parametric reasoning about
+polymorphic terms, i.e., we immediately get to pick the relational interpretation of the
+abstract type and don’t have to operate on worlds at all:
+Proof
+• Suppose w0 ∈ Worldn and (k,w) = (n,w0).
+• To show: (k,w,e′
+sem1,e′
+sem2) ∈ V π
+n [ [∃α .τ] ]
+• Let R := {(k′,w′,va,vb) ∈ Atomk−1 | (va,vb) = (true,1) ∨ (va,vb) = (false,0)} and
+r := (int, bool,R), such that (int, bool,r) ∈ T π[ [Ω ] ]w.
+• It thus sufﬁces to show (k′,w′,v1,v2) ∈ V π
+n [ [α × (α → α ) × (α → bool)] ](α ↦→r) for
+any (k′,w′) = (k,w), where v1 and v2 are the term components of e′
+sem1 and e′
+sem2,
+respectively.
+• This decomposes into the same three parts as in Section 4.4.
+Now deﬁne esem1 = Wr+
+τsem e′
+sem1 and esem2 = Wr+
+τsem e′
+sem2, which are semantically
+equivalent (by some simple applications of β- and η-equivalence) to the original deﬁni-
+tions in Section 2.3. The Wrapping Theorem then tells us that ⊢ esem1≼ esem2 : τsem.
+
+=== PAGE 32 ===
+ZU064-05-FPR main 29 April 2011 15:27
+32 Georg Neis, Derek Dreyer and Andreas Rossberg
+A Free Theorem. We can use the parametric relation for proving free theorems (Wadler,
+1989) in G. For example, for any ⊢ g : ∀α .α → α in G it holds that Wr− g either diverges
+for all possible arguments τ and ⊢ v : τ, or it returns v in all cases.
+Informally, we ﬁrst apply the Fundamental Property for≼ to relate g to itself in E, then
+transfer this to E π for Wr− g using the Wrapping Theorem. From there the proof proceeds
+in the usual way.
+Formally, we have to strengthen the claim slightly: Suppose σ0 ⊢ v : ∀α .α → α. We
+want to show that either
+1. for all σ ⊇ σ0, τ, v′ with σ ⊢ v′ : τ, σ;Wr −
+∀α .α →α v τ v′ ↑ , or
+2. for all σ ⊇ σ0, τ, v′ with σ ⊢ v′ : τ, there is σ ′ such that σ;Wr −
+∀α .α →α v τv′֒→∗ σ ′;v′.
+Assume (1) does not hold (otherwise we are done). In this casewe know that there is at least
+one appropriate σ1, τ1, v1 such that σ1;Wr − v τ1 v1 evaluates in j := j1 + 1 + j2 + 1 + j3
+steps to some σ ′′′
+1 ;v′
+1:
+σ1;Wr − v τ1 v1
+֒→j1 σ ′
+1; (Λα .e1) τ1 v1
+֒→1 σ ′
+1;e1[τ1/α ] v1
+֒→j2 σ ′′
+1 ; (λx:τ′
+1.e′
+1) v1
+֒→1 σ ′′
+1 ;e′
+1[v1/x]
+֒→j3 σ ′′′
+1 ;v′
+1
+We now show that this implies that any σ2;Wr − v τ2 v2 will indeed evaluate to σ ′
+2;v2 (for
+some σ ′
+2):
+• By the Fundamental Property, σ0; ε ⊢ v≼ v : ∀α .α → α.
+• Construct w0 ∈ Worldj+2 and (δ1, δ2, ρ) ∈ D j+2[ [σ0] ]w0 in the same manner as in the
+proof of Soundness (Theorem 23) except that w0.σ1 = σ1 and w0.σ2 = σ2.
+• Instantiating σ0; ε ⊢ v≼ v : ∀α .α → α then yields
+( j + 1, ⌊w0⌋,v,v) ∈ Vn[ [∀α .α → α ] ]ρ
+• By Wrapping, ( j + 1, ⌊w0⌋,Wr− v,Wr− v) ∈ E π
+n [ [∀α .α → α ] ]ρ.
+• Consequently, there exists ( j + 1 − j1,w′) ⊒ ( j + 1, ⌊w0⌋) such that
+σ2;Wr − v τ2 v2֒→∗ w′.σ2; (Λα .e2) τ2 v2
+with w′.σ1 = σ ′
+1 and ( j + 1 − j1,w′, Λα .e1, Λα .e2) ∈ V π
+n [ [∀α .α → α ] ]ρ.
+• Let R := {(ˆk, ˆw, ˆv1, ˆv2) ∈ Atom j+1− j1 | ˆv1 = v1 ∧ ˆv2 = v2} and r := (σ ∗
+1 (τ1), σ ∗
+2 (τ2),R),
+so (τ1, τ2,r) ∈ T π
+j+1− j1[ [Ω ] ]w′.
+• Instantiate ( j + 1 − j1,w′, Λα .e1, Λα .e2) ∈ V π
+n [ [∀α .α → α ] ]ρ to get
+( j + 1 − j1 − 1, ⌊w′⌋,e1[τ1/α ],e2[τ2/α ]) ∈ E π
+n [ [α → α ] ]ρ, α ↦→r.
+• Consequently, there exists ( j + 1 − j1 − 1 − j2,w′′) ⊒ ( j + 1 − j1 − 1, ⌊w′⌋) such that
+w′.σ2;e2[τ2/α ] v2֒→∗ w′′.σ2; (λx.e′
+2) v2
+with w′′.σ1 = σ ′′
+1 and ( j + 1 − j1 − 1 − j2,w′′, λx.e′
+1, λx.e′
+2) ∈ V π
+n [ [α → α ] ]ρ, α ↦→r.
+• Since ( j + 1 − j1 − 1 − j2 − 1, ⌊w′′⌋,v1,v2) ∈ R = V π
+n [ [α ] ]ρ, α ↦→r, we get ( j + 1 −
+j1 − 1 − j2 − 1, ⌊w′′⌋,e′
+1[v1/x],e′
+2[v2/x]) ∈ E π
+n [ [α ] ]ρ, α ↦→r.
+• Consequently, there exists (1,w′′′) ⊒ ( j + 1 − j1 − 1 − j2 − 1, ⌊w′′⌋) such that
+w′′.σ2;e′
+2[v2/x]֒→∗ w′′′.σ2;v′
+2
+
+=== PAGE 33 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 33
+with w′′′.σ1 = σ ′′′
+1 and (1,w′′′,v′
+1,v′
+2) ∈ V π
+n [ [α ] ]ρ, α ↦→r = R.
+• Hence v′
+1 = v1 and v′
+2 = v2 by construction of R.
+7 Syntactic vs. Semantic Parametricity
+The primary motivation for our parametric relation in the pr evious section was to enable
+more direct parametric reasoning about the result of (positively) wrapping System F terms.
+However, it is also possible to use our parametric relation t o reason about terms that are
+syntactically, or intensionally, non-parametric ( i.e., that use cast’s), so long as they are
+semantically, or extensionally, parametric (i.e., the use of cast is not externally observable).
+For example, consider the following two polymorphic functions of type ∀α .τα (here, let
+b2i = λx:bool. if x then 1 else 0):
+τα := ∃β. (α × α → β) × (β → α ) × (β → α )
+g1 := λ α. pack ⟨α × α , ⟨λ p.p, λx.(x.1), λx.(x.2)⟩⟩as τα
+g2 := λ α. cast τbool τα
+(pack ⟨int, ⟨λ p:(bool × bool). b2i(p.1) +2×b2i(p.2),
+λx:int. x mod 2 ⁄= 0,
+λx:int. x div 2 ⁄= 0⟩⟩as τbool )
+(g1 α )
+These two functions take a type argument α and return a simple generic ADT for pairs
+over α. But g2 is more clever about it and specializes the representation f or α = bool. In
+that case, it packs both components into the two least signiﬁ cant bits of a single integer.
+For all other types, g2 falls back to the generic implementation from g1.
+Using the parametric relation, we will be able to show that⊢ Wr+ g1 ≤ Wr+ g2 : ∀α .τα .
+One might ﬁnd this surprising, since g2 is syntactically non-parametric, returning differ-
+ent implementations for different instantiations of its ty pe argument. However, since the
+two possible implementations g2 returns are extensionally equivalent to each other, g2 is
+semantically indistinguishable from the syntactically parametric g1.
+Formally: Assume that τ1, τ2 are the types and Rα ∈ Rel[τ1, τ2] is the relation the
+context picks, parametrically, for α. If τ2 ⁄= bool, the rest of the proof is straightforward.
+Otherwise, we do not know anything about τ1 and Rα , because τ1 and τ2 are related in T π.
+Nevertheless, we can construct a suitable relational interpretation Rβ ∈ Rel[τ1 × τ1, int] for
+the type β:
+Rβ := {(k,w, ⟨v,v′⟩,0) | (k,w,v, false), (k,w,v′, false) ∈ Rα }
+∪ { (k,w, ⟨v,v′⟩,1) | (k,w,v, true), (k,w,v′, false) ∈ Rα }
+∪ { (k,w, ⟨v,v′⟩,2) | (k,w,v, false), (k,w,v′, true) ∈ Rα }
+∪ { (k,w, ⟨v,v′⟩,3) | (k,w,v, true), (k,w,v′, true) ∈ Rα }
+As it turns out, we do not need to know much about the structureof Rα to deﬁne Rβ. What
+we are relying on here is only the knowledge that all values in Rα are well-typed, which is
+built into our deﬁnition of Rel. From that we know that there can never be any other value
+than true or false on the right side of the relation Rα . Hence we can still enumerate all
+possible cases to deﬁne Rβ, and do a respective case distinction when proving equivalence
+of the projection operations.
+
+=== PAGE 34 ===
+ZU064-05-FPR main 29 April 2011 15:27
+34 Georg Neis, Derek Dreyer and Andreas Rossberg
+Interestingly, it seems that our proof relies critically onthe fact that our logical relations
+are restricted to syntactically well-typed terms. Were we t o lift this restriction, we would
+be forced (it seems) to extend the deﬁnition ofRβ with a “junk” case, but the calls tob2i in
+g2 would get stuck if applied to non-boolean values. We leave further investigation of this
+observation to future work.
+8 Polarized Logical Relations
+The parametric relation is useful for proving parametricit y properties about (the positive
+wrappings of) G terms. However, it is all-or-nothing: it can only be used to prove para-
+metricity for terms that expect to betreated parametrically and also behave parametrically,
+cf. the two dual aspects of parametricity described in Secti on 5. We might also be inter-
+ested in proving representation independence for terms tha t do not behave parametrically
+themselves (in either the syntactic or semantic sense consi dered in the previous section).
+One situation where this might arise is if we want to show repr esentation independence
+for generic ADTs that (like the one in Section 7) return diffe rent results for different
+instantiations of their type arguments, but where (unlike the one in Section 7) the difference
+is not only syntactic but also semantic.
+Here is a somewhat contrived example to illustrate the point. Consider the following two
+polymorphic functions of type ∀α .τα :
+τα := ∃β. (α → β) × (β → α )
+f1 := λ α. cast τint τα (pack ⟨int, ⟨λx:int.x+1, λx:int.x⟩⟩as τint)
+(pack ⟨α , ⟨λx:α .x, λx:α .x⟩⟩as τα )
+f2 := λ α. cast τint τα (pack ⟨int, ⟨λx:int.x, λx:int.x+1⟩⟩as τint)
+(pack ⟨α , ⟨λx:α .x, λx:α .x⟩⟩as τα )
+These functions take a type argument α and return a simple ADT β. Values of type α can
+be injected intoβ, and projected out again. However, both functions specialize the behavior
+of this ADT for type int—for integers, injecting n and projecting again will give back not
+n, but rather n + 1. This is true for both functions, but they implement it in a different way.
+We want to prove that both implementations are equivalent un der wrapping using a
+form of parametric reasoning. However, we cannot do that usi ng the parametric relation
+from Section 6—since the functions do not behave parametrically (i.e., the package each
+function returns when instantiated with int is semantically different from the one that it
+returns for any other type instantiation), they will not be related in E π.
+To support that kind of reasoning, we need a more reﬁned treatment of parametricity in
+the logical relation. The idea is to separate the two aforementioned aspects of parametricity.
+Consequently, we are going to have a pair of separate relatio ns, E + and E −. The former
+enforces parametric usage, the latter parametric behavior.
+Figure 6 gives the deﬁnition of these relations. We call them polarized, because they
+are mutually dependent and the polarity (+ or −) switches for contravariant positions, i.e.,
+for function arguments and for universal quantiﬁers. Intui tively, in these places, term and
+context switch roles.
+Except for the consistent addition of polarities, the deﬁni tion of the polarized rela-
+tions again only represents a minor modiﬁcation of the origi nal one. We merely reﬁne
+
+=== PAGE 35 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 35
+V ±n [ [α ] ]ρ def= ⌊ρ(α ).R⌋n
+V ±n [ [b] ]ρ def= {(k,w,v,v) ∈ Atomn[b,b]}
+V ±n [ [τ× τ′] ]ρ def= {(k,w, ⟨v1,v′
+1⟩, ⟨v2,v′
+2⟩) ∈ Atomn[ρ1(τ× τ′), ρ2(τ× τ′)] |
+(k,w,v1,v2) ∈ V ±n [ [τ] ]ρ ∧ (k,w,v′
+1,v′
+2) ∈ V ±n [ [τ′] ]ρ}
+V ±n [ [τ′ → τ] ]ρ def= {(k,w, λx:τ1.e1, λx:τ2.e2) ∈ Atomn[ρ1(τ′ → τ), ρ2(τ′ → τ)] |
+∀(k′,w′,v1,v2) ∈ V ∓n [ [τ′] ]ρ. (k′,w′) ⊒ (k,w) ⇒
+(k′,w′,e1[v1/x],e2[v2/x]) ∈ E±n [ [τ] ]ρ}
+V ±n [ [∀α .τ] ]ρ def= {(k,w, λ α.e1, λ α.e2) ∈ Atomn[ρ1(∀α .τ), ρ2(∀α .τ)] |
+∀(k′,w′) ⊒ (k,w). ∀(τ1, τ2,r) ∈ T ∓
+k′ [ [Ω ] ]w′.
+(k′,w′,e1[τ1/α ],e2[τ2/α ]) ∈ ⊲E±n [ [τ] ]ρ, α ↦→r}
+V ±n [ [∃α .τ] ]ρ def= {(k,w, pack ⟨τ1,v1⟩, pack ⟨τ2,v2⟩) ∈ Atomn[ρ1(∃α .τ), ρ2(∃α .τ)] |
+∃r. (τ1, τ2,r) ∈ T ±
+k [ [Ω ] ]w ∧ (k,w,v1,v2) ∈ ⊲V ±n [ [τ] ]ρ, α ↦→r}
+E±n [ [τ] ]ρ def= {(k,w,e1,e2) ∈ Atomn[ρ1(τ), ρ2(τ)] |
+∀ j < k. ∀σ1,v1. (w.σ1;e1֒→j σ1;v1) ⇒ ∃w′,v2. (k − j,w′) ⊒ (k,w) ∧
+w′.σ1 = σ1 ∧ (w.σ2;e2֒→∗ w′.σ2;v2) ∧ (k − j,w′,v1,v2) ∈ V ±n [ [τ] ]ρ}
+T +n [ [Ω ] ]w def= T πn [ [Ω ] ]w
+T −n [ [Ω ] ]w def= Tn[ [Ω ] ]w
+Fig. 6. Polarized Logical Relations
+the deﬁnition of the type relation T [ [Ω ] ]w to distinguish polarity: in the positive case it
+behaves parametrically (i.e., allowing an arbitrary relation) and in the negative case non -
+parametrically (i.e., demanding r be the logical relation at some type). Thus, existential
+types are parametric in E + but non-parametric in E −, and vice versa for universals.
+In fact, all four relations can easily be formulated in a sing le uniﬁed deﬁnition indexed
+by ι::= ε| π | + | − (with ε representing the original non-parametric relation). We refer the
+interested reader to the ﬁrst author’s master’s thesis for details (Neis, 2009).
+8.1 Key Properties
+The way in which polarities switch in the polarized relation s mirrors what is going on in
+the deﬁnition of wrapping. That of course is no accident, and we can show the following
+theorem that relates the polarized relations with the non-p arametric and parametric ones
+through uses of wrapping:
+Theorem 28 (Wrapping for≼ ±)
+1. If ⊢ e1≼ + e2 : τ, then ⊢ Wr+
+τ e1≼ Wr+
+τ e2 : τ.
+2. If ⊢ e1≼ e2 : τ, then ⊢ Wr−
+τ e1≼ − Wr−
+τ e2 : τ.
+3. If ⊢ e1≼ + e2 : τ, then ⊢ Wr−
+τ e1≼ π Wr−
+τ e2 : τ.
+4. If ⊢ e1≼ π e2 : τ, then ⊢ Wr+
+τ e1≼ − Wr+
+τ e2 : τ.
+Intuitively, the ﬁrst property says that whenever two terms are related for parametric uses,
+their positive wrappings will actually be related uncondit ionally, even in a “hostile” non-
+parametric context— i.e., positive wrapping enforces parametric use. By the second pr op-
+erty, when two terms are related unconditionally, their negative wrappings are related even
+
+=== PAGE 36 ===
+ZU064-05-FPR main 29 April 2011 15:27
+36 Georg Neis, Derek Dreyer and Andreas Rossberg
+E+
+Eπ E
+E−
+eF ∈
+eG∈
+∋ eG
+Wr− Wr+
+Wr+ Wr−
+Fig. 7. Relating the Relations
+in contexts that expect them to behave parametrically— i.e., negative wrapping enforces
+parametric behavior. Dually, the latter two properties cha racterize the effect of applying
+positive and negative wrappings to positively-related ter ms in the reverse order. This is
+probably best understood graphically: the labeled, outer arrows in Figure 7 summarize the
+situation by showing how the two polarities of wrapping can take terms from one relation
+to another (we explain the rest of the diagram in the remainder of this section).
+To show this theorem, we prove the following more general lemma. Each subitem here
+actually states two properties, which are obtained by ﬁrst consistently ignoring the left su-
+perscript of the X ι1,ι2 notation in the whole statement, and then the right one. For instance,
+(1a) states that the positive wrapping transports values from V π to E − and, independently,
+from V + to E ε (that is, to E). Similarly, each proof actually represents two proofs simulta-
+neously.
+Lemma 29
+Suppose w0 ∈ Worldn, (δ1, δ2, ρ) ∈ Dπ
+n [ [∆] ]w0, (k,w) = (n,w0), and ∆ ⊢ τ.
+1. (a) If (k,w,v1,v2) ∈ V π,+
+n [ [τ] ]ρ, then (k,w, δ1(Wr+
+τ ) v1, δ2(Wr+
+τ ) v2) ∈ E −,ε
+n [ [τ] ]ρ.
+(b) If (k,w,e1,e2) ∈ E π,+
+n [ [τ] ]ρ, then (k,w, δ1(Wr+
+τ ) e1, δ2(Wr+
+τ ) e2) ∈ E −,ε
+n [ [τ] ]ρ.
+2. (a) If (k,w,v1,v2) ∈ V +,ε
+n [ [τ] ]ρ, then (k,w, δ1(Wr−
+τ ) v1, δ2(Wr−
+τ ) v2) ∈ E π,−
+n [ [τ] ]ρ.
+(b) If (k,w,e1,e2) ∈ E +,ε
+n [ [τ] ]ρ, then (k,w, δ1(Wr−
+τ ) e1, δ2(Wr−
+τ ) e2) ∈ E π,−
+n [ [τ] ]ρ.
+The most interesting cases of the proof (given below) are existential types in the ﬁrst part
+and universal types in the second part, because that is where the wrapping actually has to
+generate a fresh type. Technically, what happens in both cases is that we have some triple
+(τ1, τ2,r) ∈ T π,+[ [Ω ] ]w′, but would like it—or something equivalent—to be in T −,ε[ [Ω ] ]w′′,
+i.e., T [ [Ω ] ]w′′, where w′′ must be some extension of w′ that incorporates the new names α1
+and α2. What we do is choose w′′ such that it extends w′ by a new semantic name α that
+is connected to the concrete names α1 and α2 as well as their representation types, and is
+interpreted by the relation r. Then we can use (α1, α2, (w′′.ρ1(α ),w′′.ρ2(α ),V [ [α ] ]w′′.ρ)),
+
+=== PAGE 37 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 37
+which has the form required by T [ [Ω ] ]w′′ and, since w′′.ρ maps α to r, carries the same
+relation as (τ1, τ2,r).
+Proof
+By primary induction on n and secondary induction on the derivation of ∆ ⊢ τ. Note that
+δi only affects the type annotations (of function arguments an d package types) inside the
+wrapping function. We show a few representative cases:
+1. (a) • Case τ = τ′ → τ′′: vi = λx.ei
+— To show: (k,w, δ1(λx.λx′.Wr+
+τ′′ (x (Wr−
+τ′ x′))) v1,
+δ2(λx.λx′.Wr+
+τ′′ (x (Wr−
+τ′ x′))) v2) ∈ E −,ε
+n [ [τ′ → τ′′] ]ρ
+— Since
+w.σi; δi(λx.λx′.Wr+
+τ′′ (x (Wr−
+τ′ x′))) vi
+֒→1 w.σi; λx′.δi(Wr+
+τ′′ ) (vi (δi(Wr−
+τ′)x′))
+it sufﬁces to show (k − 1, ⌊w⌋, λx′.δ1(Wr+
+τ′′ ) (v1 (δ1(Wr−
+τ′ )x′)),
+λx′.δ2(Wr+
+τ′′ ) (v2 (δ2(Wr−
+τ′)x′))) ∈ V −,ε
+n [ [τ′ → τ′′] ]ρ.
+— Suppose (k′,w′,v3,v4) ∈ V +,ε
+n [ [τ′] ]ρ where (k′,w′) ⊒ (k − 1, ⌊w⌋).
+— To show: (k′,w′, δ1(Wr+
+τ′′ ) (v1 (δ1(Wr−
+τ′)v3)),
+δ2(Wr+
+τ′′) (v2 (δ2(Wr−
+τ′ )v4)))) ∈ E −,ε
+n [ [τ′′] ]ρ
+— So suppose w′.σ1; δ1(Wr+
+τ′′ ) (v1 (δ1(Wr−
+τ′ )v3)) terminates:
+w′.σ1; δ1(Wr+
+τ′′ ) (v1 (δ1(Wr−
+τ′ )v3))
+֒→j1 σ ′′
+1 ; δ1(Wr+
+τ′′ ) (v1 v′
+3)
+֒→1 σ ′′
+1 ; δ1(Wr+
+τ′′ )e1[v′
+3/x]
+֒→j2 σ1;v′
+1
+and j1 + 1 + j2 =: j < k′.
+— By induction, (k′,w′, δ1(Wr−
+τ′)v3, δ2(Wr−
+τ′)v4) ∈ E π,−
+n [ [τ′] ]ρ.
+— This implies the existence of (k′ − j1,w′′) ⊒ (k′,w′) such that
+w′.σ2; δ2(Wr+
+τ′′ ) (v2 (δ2(Wr−
+τ′ )v4))֒→∗ w′′.σ2; δ2(Wr+
+τ′′) (v2 v′
+4)
+with w′′.σ1 = σ ′′
+1 and (k′ − j1,w′′,v′
+3,v′
+4) ∈ V π,−
+n [ [τ′] ]ρ.
+— So by assumption and Closure Under World Extension,
+(k′ − j1 − 1, ⌊w′′⌋,e1[v′
+3/x],e2[v′
+4/x]) ∈ E π,+
+n [ [τ′′] ]ρ.
+— By induction,
+(k′ − j1 − 1, ⌊w′′⌋, δ1(Wr+
+τ′′)e1[v′
+3/x], δ2(Wr+
+τ′′ )e2[v′
+4/x]) ∈ E −,ε
+n [ [τ′′] ]ρ.
+— Hence there exists (k′ − j,w′′′) ⊒ (k′ − j1 − 1, ⌊w′′⌋) such that
+w′′.σ2; δ1(Wr+
+τ′′ )e2[v′
+4/x]֒→∗ w′′′.σ2;v′
+2
+with w′′′.σ1 = σ1 and (k′ − j,w′′′,v′
+1,v′
+2) ∈ V −,ε
+n [ [τ′′] ]ρ.
+• Case τ = ∃α .τ′: vi = pack ⟨τi,v′
+i⟩
+— To show:
+(k,w, δ1(λx. unpack ⟨α ,x′⟩=x in new α ≈α in pack ⟨α ,Wr+
+τ′ x′⟩) v1,
+δ2(λx. unpack ⟨α ,x′⟩=x in new α ≈α in pack ⟨α ,Wr+
+τ′ x′⟩) v2)
+∈ E −,ε
+n [ [∃α .τ′] ]ρ
+
+=== PAGE 38 ===
+ZU064-05-FPR main 29 April 2011 15:27
+38 Georg Neis, Derek Dreyer and Andreas Rossberg
+— So suppose the ﬁrst conﬁguration terminates:
+w.σ1; δ1(λx. unpack ⟨α ,x′⟩=x in new α ≈α in pack ⟨α ,Wr+
+τ′ x′⟩) v1
+֒→1 w.σ1; unpack ⟨α ,x′⟩=v1 in new α ≈α in pack ⟨α , δ1(Wr+
+τ′)x′⟩
+֒→1 w.σ1; new α ≈τ1 in pack ⟨α , δ1(Wr+
+τ′ )v′
+1⟩
+֒→1 w.σ1, α1≈τ1; pack ⟨α1, δ′
+1(Wr+
+τ′)v′
+1⟩
+֒→j′
+σ1; pack ⟨α1,v′′
+1⟩
+where 3 + j′ =: j < k and δ′
+1 := δ1, α ↦→α1
+— Note that
+w.σ2; δ2(λx. unpack ⟨α ,x′⟩=x in new α ≈α in pack ⟨α ,Wr+
+τ′ x′⟩) v2
+֒→1 w.σ2; unpack ⟨α ,x′⟩=v2 in new α ≈α in pack ⟨α , δ2(Wr+
+τ′)x′⟩
+֒→1 w.σ2; new α ≈τ2 in pack ⟨α , δ2(Wr+
+τ′ )v′
+2⟩
+֒→1 w.σ2, α2≈τ2; pack ⟨α2, δ′
+2(Wr+
+τ′)v′
+2⟩
+where δ′
+2 := δ2, α ↦→α2
+— By assumption we know (k′,w′,v′
+1,v′
+2) ∈ V π,+
+n [ [τ′] ]ρ, α ↦→r for some r
+with (τ1, τ2,r) ∈ T π,+
+k [ [Ω ] ]w and any (k′,w′) = (k,w).
+— Let wα := ((w.σ1, α1≈τ1), (w.σ2, α2≈τ2),
+(w.η, α ↦→(α1, α2)), ⌊w.ρ, α ↦→r⌋k−2), so (k − 2,wα ) = (k,w).
+— Hence (k − 2,wα ,v′
+1,v′
+2) ∈ V π,+
+n [ [τ′] ]ρ, α ↦→r.
+— By Closure Under World Extension,
+(k − 3, ⌊wα ⌋,v′
+1,v′
+2) ∈ V π,+
+n [ [τ′] ]ρ, α ↦→r and thus (k − 3, ⌊wα ⌋,v′
+1,v′
+2) ∈
+V π,+
+n [ [τ′] ]ρ′ for ρ′ := ⌊ρ⌋k−2, α ↦→r′.
+— Let r′ := (wα .ρ1(α ),wα .ρ2(α ),Vk−2[ [α ] ]wα ) = ⌊r⌋k−2,
+so (α1, α2,r′) ∈ T −,ε
+k−2 [ [Ω ] ]wα ⊆ T π
+k−2[ [Ω ] ]wα .
+— Furthermore (δ1, δ2, ⌊ρ⌋k−2) ∈ Dπ
+k−2[ [∆] ]wα by Lemma 4, so
+(δ′
+1, δ′
+2, ρ′) ∈ Dπ
+k−2[ [∆, α ] ]wα .
+— Hence induction yields
+(k − 3, ⌊wα ⌋, δ′
+1(Wr+
+τ′)v′
+1, δ′
+2(Wr+
+τ′)v′
+2) ∈ E −,ε
+n [ [τ′] ]ρ′.
+— Because wα .σ1 = w.σ1, α1≈τ1, this implies the existence of(k − j,w′) ⊒
+(k − 3, ⌊wα ⌋) such that
+w.σ2, α2≈τ2; pack ⟨α2, δ′
+2(Wr+
+τ′ )v′
+2⟩֒→∗ w′.σ2; pack ⟨α2,v′′
+2⟩
+with w′.σ1 = σ1 and (k − j,w′,v′′
+1,v′′
+2) ∈ V −,ε
+n [ [τ′] ]ρ′.
+— By Closure Under World Extension,
+(k′′,w′′,v′′
+1,v′′
+2) ∈ V −,ε
+n [ [τ′] ]ρ, α ↦→⌊r′⌋k− j for any (k′′,w′′) = (k − j,w′).
+— Since (α1, α2, ⌊r′⌋k− j) ∈ T −,ε
+k− j [ [Ω ] ]w′ by Lemma 4,
+(k− j,w′, pack ⟨α1,v′′
+1⟩as δ1(τ), pack ⟨α2,v′′
+2⟩as δ2(τ)) ∈V −,ε
+n [ [∃α .τ′] ]ρ.
+(b) • Suppose w.σ1; δ1(Wr+
+τ )e1 terminates:
+w.σ1; δ1(Wr+
+τ )e1
+֒→j1 σ ′
+1; δ1(Wr+
+τ )v1
+֒→j2 σ1;v′
+1
+
+=== PAGE 39 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 39
+and j1 + j2 =: j < k steps
+• So by assumption there exists (k − j1,w′) ⊒ (k,w) such that
+w.σ2; δ2(Wr+
+τ )e2֒→∗ w′.σ2; δ2(Wr+
+τ )v2
+with w′.σ1 = σ ′
+1 and (k − j1,w′,v1,v2) ∈ V π,+
+n [ [τ] ]ρ.
+• By part (a), (k − j1,w′, δ1(Wr+
+τ )v1, δ2(Wr+
+τ )v2) ∈ E −,ε
+n [ [τ] ]ρ.
+• Consequently, there exists (k − j,w′′) ⊒ (k − j1,w′) such that
+w′.σ2; δ2(Wr+
+τ )v2֒→∗ w′′.σ2;v′
+2
+with w′′.σ1 = σ1 and (k − j,w′′,v′
+1,v′
+2) ∈ V −,ε
+n [ [τ] ]ρ.
+2. (a) • Case τ = ∃α .τ′: vi = pack ⟨τi,v′
+i⟩
+— To show: (k,w, δ1(λx. unpack ⟨α ,x′⟩=x in pack ⟨α ,Wr−
+τ′ x′⟩) v1,
+δ2(λx. unpack ⟨α ,x′⟩=x in pack ⟨α ,Wr−
+τ′ x′⟩) v2) ∈ E π,−
+n [ [∃α .τ′] ]ρ
+— So suppose w.σ1; δ1(λx. unpack ⟨α ,x′⟩=x in pack ⟨α ,Wr−
+τ′ x′⟩) v1 termi-
+nates:
+w.σ1; δ1(λx. unpack ⟨α ,x′⟩=x in pack ⟨α ,Wr−
+τ′ x′⟩) v1
+֒→1 w.σ1; unpack ⟨α ,x′⟩=v1 in pack ⟨α , δ1(Wr−
+τ′ )x′⟩
+֒→1 w.σ1; pack ⟨τ1, δ′
+1(Wr−
+τ′)v′
+1⟩
+֒→j′
+σ1; pack ⟨τ1,v′′
+1⟩
+where 2 + j′ =: j < k and δ′
+1 := δ1, α ↦→τ1
+— Note that
+w.σ2; δ2(λx. unpack ⟨α ,x′⟩=x in pack ⟨α ,Wr−
+τ′ x′⟩) v2
+֒→1 w.σ2; unpack ⟨α ,x′⟩=v2 in pack ⟨α , δ2(Wr−
+τ′)x′⟩
+֒→1 w.σ2; pack ⟨τ2, δ′
+2(Wr−
+τ′ )v′
+2⟩
+where δ′
+2 := δ2, α ↦→τ2
+— By assumption we know (k − 2, ⌊w⌋,v′
+1,v′
+2) ∈ V +,ε
+n [ [τ′] ]ρ, α ↦→r for some
+r with (τ1, τ2,r) ∈ T +,ε
+k [ [Ω ] ]w ⊆ T π
+k [ [Ω ] ]w.
+— Furthermore (δ1, δ2, ⌊ρ⌋) ∈ Dπ
+k [ [∆] ]w by Lemma 4, and therefore we get
+(δ′
+1, δ′
+2, (⌊ρ⌋, α ↦→r)) ∈ Dπ
+k [ [∆, α ] ]w.
+— Hence induction yields
+(k − 2, ⌊w⌋, δ′
+1(Wr−
+τ′)v′
+1, δ′
+2(Wr−
+τ′ )v′
+2) ∈ E π,−
+n [ [τ′] ]⌊ρ⌋k, α ↦→r.
+— Consequently, there exists (k − j,w′) ⊒ (k − 2, ⌊w⌋) such that
+w.σ2; pack ⟨τ2, δ′
+2(Wr−
+τ′)v′
+2⟩֒→∗ w′.σ2; pack ⟨τ2,v′′
+2⟩
+with w′.σ1 = σ1 and (k − 1 − j,w′,v′′
+1,v′′
+2) ∈ V π,−
+n [ [τ′] ]⌊ρ⌋k, α ↦→r.
+— For any (k′′,w′′) = (k− j,w′), we get(k′′,w′′,v′′
+1,v′′
+2) ∈V π,−
+n [ [τ′] ]ρ, α ↦→⌊r⌋
+by Closure Under World Extension.
+— Since (τ1, τ2, ⌊r⌋) ∈ T π,−
+k− j [ [Ω ] ]w′ Lemma 4, this implies
+(k − j,w′, pack ⟨τ1,v′′
+1⟩, pack ⟨τ2,v′′
+2⟩) ∈ V π,−
+n [ [∃α .τ′] ]ρ.
+(b) Symmetric to (1b).
+
+=== PAGE 40 ===
+ZU064-05-FPR main 29 April 2011 15:27
+40 Georg Neis, Derek Dreyer and Andreas Rossberg
+Corollary 30 (aka Theorem 28)
+1. If ⊢ e1≼ π,+ e2 : τ, then ⊢ Wr+ e1≼ −,ε Wr+ e2 : τ.
+2. If ⊢ e1≼ +,ε e2 : τ, then ⊢ Wr− e1≼ π,− Wr− e2 : τ.
+Moreover, we can show that the inverse directions of these im plications require no
+wrapping at all:
+Theorem 31 (Inclusion for≼ ±)
+1. If ⊢ e1≼ e2 : τ or ⊢ e1≼ π e2 : τ, then ⊢ e1≼ + e2 : τ.
+2. If ⊢ e1≼ − e2 : τ, then ⊢ e1≼ e2 : τ and ⊢ e1≼ π e2 : τ.
+This theorem can equivalently be stated asE − ⊆ E ⊆ E + and E − ⊆ E π ⊆ E +. In Figure 7, it
+is depicted by the unlabeled arrows between different relations, which represent inclusion.
+Corollary 32 (aka Theorem 25)
+1. If ⊢ e1≼ π e2 : τ, then ⊢ Wr+ e1≼ Wr+ e2 : τ.
+2. If ⊢ e1≼ e2 : τ, then ⊢ Wr− e1≼ π Wr− e2 : τ.
+Proof
+Follows immediately from Theorem 28 and Theorem 31.
+Similarly, the following follows from Theorem 31 together with the Fundamental Prop-
+erty of≼ :
+Corollary 33 (Fundamental Property of≼ +)
+If ⊢ e : τ and w ∈ Worldk, then (k,w,e,e) ∈ E +
+k+1[ [τ] ].
+Interestingly, compatibility does not hold for ≼ ± (consider the polarities in the rule for
+application), which has the consequence that we cannot show Corollary 33 directly. For a
+similar reason, we cannot show any such property for E − at all.
+The ∈-operators in Figure 7 sum up the fundamental properties for the respective rela-
+tions, i.e., which class of terms (G terms or F terms) are included in which relation.
+LR-Substitution does not hold for the polarized relations. Consider the case where τ =
+α → α. Then, for instance,V +
+n [ [τ] ]ρ, α ↦→(ρ1(τ′), ρ2(τ′),V +
+n [ [τ′] ]ρ) tells us something about
+how its elements behave when applied to arguments out of V +
+n [ [τ′] ]ρ. V +
+n [ [τ[τ′/α ]] ]ρ, on
+the other hand, only tells us something about how its element s behave when applied to
+arguments out of V −
+n [ [τ′] ]ρ.
+8.2 Example
+Getting back to our motivating example from the beginning of the section, it is essentially
+straightforward to prove that ⊢ f1≼ + f2 : ∀α .τα . The proof proceeds as usual, except that
+we have to make a case distinction when we want to show that the function bodies are
+related in E +. At that point, we are given a triple (τ1, τ2,r) ∈ T −[ [Ω ] ]w.
+If τ1 = int, then we know from the deﬁnition ofT − that τ2 = int, too. We hence know that
+both sides will evaluate to the specialized version of the ADT. Since we are inE +, we get to
+pick some (τ′
+1, τ′
+2,r′) ∈ T +[ [Ω ] ]w as the interpretation ofβ, where the choice ofr′ is up to us.
+
+=== PAGE 41 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 41
+Types τ ::= . . . | μα .τ
+Values v ::= . . . | roll v as τ
+Terms e ::= . . . | roll e as τ | unroll e
+Evaluation Ctxt’s E ::= . . . | roll E as τ | unroll E
+∆; Γ ⊢ e : τ
+· · ·
+(EROLL ) ∆; Γ ⊢ e : τ[μα .τ/α ]
+∆; Γ ⊢ roll e as μα .τ : μα .τ (EUNROLL ) ∆; Γ ⊢ e : μα .τ
+∆; Γ ⊢ unroll e : τ[μα .τ/α ]
+· · ·
+σ;E[unroll (roll v as τ)]֒→σ;E[v]
+Fig. 8. Syntax and Semantics of G μ (excerpt)
+The natural choice is to useτ′
+1 = τ′
+2 = int with the relationr′ = (int, int, {(k,w,n +1,n) | n ∈
+Z}). The rest of the proof is then straightforward.
+If τ1 ⁄= int we similarly know that τ2 ⁄= int from the deﬁnition of T −. Hence, both sides
+use the default implementations, which are trivially related in E +, thanks to Corollary 33.
+Finally, applying the Wrapping Theorem, we can conclude tha t ⊢ Wr+ f1≼ Wr+ f2 :
+∀α .τα , and hence by Soundness, ⊢ Wr+ f1 ≤ Wr+ f2 : ∀α .τα .
+Note how we relied on the knowledge that τ1 and τ2 can only be int at the same time.
+This holds for types related in T − but not in T + or T π. If we had tried to do this proof in
+E π, the types τ1 and τ2 would have been related by T π only, which would give us too little
+information to proceed with the necessary case distinction.
+9 Recursive Types
+In this section, we consider an interesting and non-trivial extension of G with a ubiquitous
+feature—namely, (iso-)recursive types. We call the extended language G μ (see Figure 8).
+The deﬁnition of contextual equivalence does not change (except there are more contexts),
+but of course we must extend our logical relation, our deﬁnit ion of wrapping, and our
+meta-theory, to handle recursive types.
+9.1 Extending the Logical Relations
+The step-indexing that we used in deﬁning our logical relations makes it very easy to adapt
+them to G μ. There are two natural ways in which we could deﬁne the value r elation at a
+recursive type:
+1. V ι
+n [ [μα .τ] ]ρ def= {(k,w, roll v1, roll v2) ∈ Atomn[. . .] |
+(k,w,v1,v2) ∈ ⊲V ι
+k [ [τ] ]ρ, α ↦→V ι
+k [ [μα .τ] ]ρ}
+2. V ι
+n [ [μα .τ] ]ρ def= {(k,w, roll v1, roll v2) ∈ Atomn[. . .] |
+(k,w,v1,v2) ∈ ⊲V ι
+k [ [τ[μα .τ/α ]] ]ρ}
+
+=== PAGE 42 ===
+ZU064-05-FPR main 29 April 2011 15:27
+42 Georg Neis, Derek Dreyer and Andreas Rossberg
+For ι∈ {ε, π}— i.e., for the non-parametric and parametric forms of the logical relation—
+the above two formulations are equivalent due to LR-Substitution. Unfortunately, though,
+we do not have such a property for the polarized relation. In f act, for ι ∈ { +, −}, the
+ﬁrst deﬁnition wrongly records a ﬁxed polarity for α. It is thus crucial that we choose
+the second one; only then do all key properties continue to ho ld in G μ. Adapting the
+proofs of soundness, the fundamental property, and related lemmas from Section 4, to
+Gμ is straightforward.
+9.2 Extending the Wrapping
+How can we upgrade the wrapping to account for recursive type s? Given an argument of
+type μα .τ, the basic idea is to ﬁrst unfold it to type τ[μα .τ/α ], then wrap it at that type,
+and ﬁnally fold the result back to type μα .τ. Of course, since τ[μα .τ/α ] may be larger
+than μα .τ, a direct implementation of this idea will not result in a well-founded deﬁnition.
+The solution is to use a ﬁxed-point (deﬁnable in terms of recu rsive types, of course),
+which gives us a handle on the wrapping function we are in the middle of deﬁning. Figure 9
+shows the new deﬁnition. We ﬁrst index the wrapping by an environment ϕ that maps each
+recursive type variable α to the appropriate wrapping and the corresponding syntactic type
+(we write ϕ val(α ) for the former and ϕ typ(α ) for the latter). Roughly, the wrapping at type
+μα .τ under environment ϕ is a recursive function F, deﬁned in terms of the wrapping at
+τ under environment ϕ, α ↦→(μα .τ,F). Since the bound variable of a recursive type may
+occur in positions of different polarity, we actually need two mutually recursive functions
+and then select the right one depending on the polarity. The c ognoscenti will recognize
+this as a polarized variant of the so-called syntactic projection function associated with a
+recursive type (Birkedal & Harper, 1999).
+Note that the deﬁnition of F ϕ
+μα .τ takes a unit argument merely for simplicity, so that
+we may encode two mutually recursive functions in terms of a single ﬁx (whose encoding
+appears in Section A.5). Note also that the environment only plays a role for recursive
+types, and that for any τ that does not involve recursive types, Wr±
+τ / 0 is the same as our old
+wrapping Wr±
+τ from Section 5. Taking Wr±
+τ to be shorthand for Wr ±
+τ / 0, we can show that
+our old Wrapping Theorems for G (Theorems 25 and 28) continue to hold for Gμ.
+First of all, Lemma 24 still holds, but we can generalize it as follows:
+Lemma 34
+If ∆,dom(ϕ) ⊢ τ and for all α ∈ dom(ϕ) both ∆ ⊢ ϕ typ(α ) and
+∆; ε ⊢ ϕ val(α ) : unit → (ϕ typ(α ) → ϕ typ(α )) × (ϕ typ(α ) → ϕ typ(α )),
+then ∆; ε ⊢ Wr±
+τ ϕ : ϕ typ(τ) → ϕ typ(τ).
+The next is a substitution lemma for the wrapping. Taking τ′ to be τ (which is how
+it will be used), it says that wrapping at the unfolding of a re cursive type μα .τ (i.e., at
+τ[μα .τ/α ]), relative to some environment ϕ, is syntactically the same as “moving the
+unfolding into the environment” and then wrapping at τ. This lemma is important for the
+recursive type case in the Wrapping Theorem.
+Lemma 35 (WR-Substitution)
+
+=== PAGE 43 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 43
+F ϕ
+μα .τ
+def= ﬁx f (x′).⟨λx:(μα .τ). roll Wr+τ (ϕ, α ↦→(μα .τ, f )) (unroll x) as μα .τ,
+λx:(μα .τ). roll Wr−τ (ϕ, α ↦→(μα .τ, f )) (unroll x) as μα .τ⟩
+: unit → ((μα .τ) → (μα .τ)) × ((μα .τ) → (μα .τ))
+Wr+α ϕ def= λx:ϕtyp(α ).(ϕval(α ) ()).1 x (if α ∈ dom(ϕ))
+Wr−α ϕ def= λx:ϕtyp(α ).(ϕval(α ) ()).2 x (if α ∈ dom(ϕ))
+Wr±α ϕ def= λx:α .x (if α /∈ dom(ϕ))
+Wr±
+b ϕ def= λx:b.x
+Wr±
+τ1×τ2 ϕ def= λx:(τ1 × τ2).⟨Wr±τ1 ϕ (x.1)),Wr±τ2 ϕ (x.2)⟩
+Wr±τ1→τ2 ϕ def= λx:(τ1 → τ2).λx′:τ1.Wr±τ2 ϕ (x (Wr∓τ1 ϕ x′))
+Wr±
+∀α .τ ϕ def= λx:(∀α .τ).Λα . new∓ α in Wr±τ ϕ (x α )
+Wr±
+∃α .τ ϕ def= λx:(∃α .τ). unpack ⟨α ,x′⟩=x in new± α in pack ⟨α ,Wr±τ ϕ x′⟩as ∃α .τ
+Wr+μα .τ ϕ def= λx:(μα .τ).(F ϕ
+μα .τ ()).1 x
+Wr−μα .τ ϕ def= λx:(μα .τ).(F ϕ
+μα .τ ()).2 x
+Wr±τ
+def= Wr±τ / 0
+Fig. 9. Wrapping for G μ
+If ϕ ′ = ϕ, α ↦→(μα .τ,F ϕ
+μα .τ), then Wr±
+τ′ ϕ ′ = Wr±
+τ′[μα .τ/α ] ϕ.
+Proof
+By induction on τ′.
+The proof of the Wrapping Theorem for G μ is obtained from the one for G by simply
+extending the case analysis. Note that the wrapping theorem is stated for an empty envi-
+ronment ϕ (recall that Wr±
+τ is just short for Wr±
+τ / 0). This may seem not general enough at
+ﬁrst, because in the case where τ = μα .τ′ we need an induction hypothesis that talks about
+wrapping relative to the non-empty environment ϕ := (α ↦→(τ,F / 0
+τ )). This is exactly where
+Lemma 35 comes in: it tells us that the terms involving Wr ±
+τ′ ϕ that we are interested in
+are the same as the terms involving Wr ±
+τ′[τ/α ] / 0 that we know are related by the induction
+hypothesis.
+Proof
+1. (a) Case τ = μα .τ′: vi = roll v′
+i
+• To show:(k,w, δ1(λx.(F / 0
+τ ()).1 x) v1, δ2(λx.(F / 0
+τ ()).1 x) v2) ∈ E −,ε
+n [ [μα .τ′] ]ρ
+• So suppose w.σ1; δ1(λx.(F / 0
+τ ()).1 x) v1 terminates
+w.σ1; δ1(λx.(F / 0
+τ ()).1 x) v1
+֒→1 w.σ1; (δ1(F / 0
+τ ) ()).1 v1
+֒→jc w.σ1; roll δ1(Wr+
+τ′ (α ↦→(τ,F / 0
+τ ))) (unroll v1)
+֒→1 w.σ1; roll δ1(Wr+
+τ′ (α ↦→(τ,F / 0
+τ ))) v′
+1
+֒→j′
+σ1; roll v′′
+1
+and 1 + jc + 1 + j′ =: j < k.
+
+=== PAGE 44 ===
+ZU064-05-FPR main 29 April 2011 15:27
+44 Georg Neis, Derek Dreyer and Andreas Rossberg
+• Note that
+w.σ2; δ2(λx.(F / 0
+τ ()).1 x) v2
+֒→1 w.σ2; (δ2(F / 0
+τ ) ()).1 v2
+֒→jc w.σ2; roll δ2(Wr+
+τ′ (α ↦→(τ,F / 0
+τ ))) (unroll v2)
+֒→1 w.σ2; roll δ2(Wr+
+τ′ (α ↦→(τ,F / 0
+τ ))) v′
+2
+• By assumption we know (k − j, ⌊w⌋,v′
+1,v′
+2) ∈ V π,+
+k [ [τ′[τ/α ]] ]ρ.
+• By induction,
+(k − j, ⌊w⌋, δ1(Wr+
+τ′[τ/α ]) v′
+1, δ2(Wr+
+τ′[τ/α ]) v′
+2) ∈ E −,ε
+k [ [τ′[τ/α ]] ]ρ.
+• By Lemma 35, Wr+
+τ′[τ/α ] = Wr+
+τ′ (α ↦→(τ,F / 0
+τ )).
+• Consequently, there exists (k − j,w′) = (k − jc − 1, ⌊w⌋) such that
+w.σ2; roll δ2(Wr+
+τ′(α ↦→(τ,F / 0
+τ ))) v′
+2֒→∗ w′.σ2; roll v′′
+2
+with w′.σ1 = σ1 and (k − j,w′,v′′
+1,v′′
+2) ∈ V −,ε
+k [ [τ′[τ/α ]] ]ρ.
+• By Closure Under World Extension the latter implies
+(k − j,w′, roll v′′
+1, roll v′′
+2) ∈ V −,ε
+n [ [τ] ]ρ.
+(b) As before.
+2. (a) Case τ = μα .τ′: symmetric to respective case of part (1)
+(b) As before.
+10 Towards Full Abstraction
+The deﬁnition of the parametric relation E π (including the extension for recursive types)
+is largely very similar to that of a typical step-indexed log ical relation EFμ for F μ, i.e.,
+System F extended with pairs, existentials and iso-recursi ve types (Ahmed, 2006). The
+main difference is the presence of worlds, but they are not ac tually used in a particularly
+interesting way in E π. Therefore, one might expect that any two F μ terms related by the
+hypothetical EFμ would also be related by E π and vice versa.
+However, this is not obvious: G μ is more expressive than F μ, in the sense that terms
+in the parametric relation can contain non-trivial uses of c asts (e.g., the generic ADT for
+pairs from Section 7), and there is no evident way to back-translate these terms into Fμ (as
+would be needed for function arguments). That invalidates a proof approach like the one
+taken by Ahmed & Blume (2008).
+Ultimately, the property we would like to be able to show is th at the embedding of F μ
+into Gμ by positive wrapping is fully abstract:
+⊢ e1 ≡Fμ e2 : τ ⇔ ⊢ Wr+
+τ e1 ≡ Wr+
+τ e2 : τ
+(The semantics of Fμ can be obtained from Gμ by restricting ∆ to simple variable compo-
+nents, ignoring all the rules related to cast and new as well as the conversion rule ECONV ,
+and dropping the type store from the reduction relation. Con textual approximation then is
+deﬁned as for Gμ except that it does not mention a type store and the universally quantiﬁed
+contexts must have type (∆; Γ; τ)↝ (ε; ε; τ′).) This equivalence is even stronger than the
+
+=== PAGE 45 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 45
+one about logical relatedness in EFμ and E π, because≼ is only sound w.r.t. contextual
+approximation, not complete.
+Since F μ is a fragment of G μ, and F μ contexts cannot observe any difference between
+an Fμ term and its wrapping, the direction from right to left, called equivalence reﬂection,
+is not terribly hard to show.
+Theorem 36 (Equivalence Reﬂection)
+If ∆; Γ ⊢Fμ e1 : τ and ∆; Γ ⊢Fμ e2 : τ and ∆; Γ ⊢ Wr+
+τ e1 ≡ Wr+
+τ e2 : τ,
+then ∆; Γ ⊢ e1 ≡Fμ e2 : τ.
+We present its proof in the remainder of this section.
+Unfortunately, it is not known to us whether the other direct ion, equivalence preserva-
+tion, holds as well. We conjecture that it does, but are not aware of any suitable technique
+to prove it.
+Note that while equivalence reﬂection also holds for F and G— i.e., in the absence of
+recursive types—equivalence preservation does not, becau se non-termination is encodable
+in G but not in F. Here is a trivial example exploiting this:
+e1 := λ f :(unit → unit). f ()
+e2 := λ f :(unit → unit).()
+Clearly, e1 and e2 are contextually equivalent in F. Wrapping basically leaves them unmod-
+iﬁed, because their type is simple. However,e1 and e2 are not contextually equivalent in G,
+since a G context can apply them to a diverging function.
+10.1 Equivalence Reﬂection
+Assuming ∆; Γ ⊢Fμ e1 : τ and ∆; Γ ⊢Fμ e2 : τ, we want to show:
+∆; Γ ⊢ Wr+
+τ e1 ≡Gμ Wr+
+τ e2 : τ ⇒ ∆; Γ ⊢ e1 ≡Fμ e2 : τ
+We will show the contrapositive. Since F μ is a fragment of G μ, it sufﬁces to show that
+any context C that can distinguish e1 and e2 in F μ will also distinguish their positive
+wrappings in Gμ. We do this in two steps. First, we prove thatC will distinguish theirsimple
+wrappings (Lemma 40). The simple wrapping, Sp±
+τ , whose deﬁnition is given in Figure 10,
+is the new-erasure of the proper wrapping, i.e., obtained by replacin g any new α ≈τ′ in e′
+in Wr±
+τ by e′[τ′/α ]. In the terms of Birkedal & Harper (1999), it is precisely the syntactic
+projection function associated with the type τ (hence Sp for “Syntactic projection”). Sub-
+sequently, we prove that distinguishing the simple wrappin gs implies distinguishing the
+proper wrappings (Lemma 46).
+For the ﬁrst part we actually show something stronger, namel y the so-called syntactic
+minimal invariance property (Birkedal & Harper, 1999), which says that the synt actic
+projection function at any type is contextually equivalent to the identity, and thus that any
+term e is contextually equivalent in Gμ to its simple wrapping. We do this with the help of
+our non-parametric logical relation, which is sound w.r.t. contextual approximation.
+Lemma 37 (SP-Substitution)
+If ϕ ′ = ϕ, α ↦→(μα .τ,Gϕ
+μα .τ), then Sp±
+τ′ ϕ ′ = Sp±
+τ′[μα .τ/α ] ϕ.
+
+=== PAGE 46 ===
+ZU064-05-FPR main 29 April 2011 15:27
+46 Georg Neis, Derek Dreyer and Andreas Rossberg
+Gϕ
+μα .τ
+def= ﬁx f (x′).⟨λx:(μα .τ). roll Sp+
+τ (ϕ, α ↦→(μα .τ, f )) (unroll x) as μα .τ,
+λx:(μα .τ). roll Sp−τ (ϕ, α ↦→(μα .τ, f )) (unroll x) as μα .τ⟩
+: unit → ((μα .τ) → (μα .τ)) × ((μα .τ) → (μα .τ))
+Sp+α ϕ def= λx:ϕtyp(α ).(ϕval(α ) ()).1 x (if α ∈ dom(ϕ))
+Sp−
+α ϕ def= λx:ϕtyp(α ).(ϕval(α ) ()).2 x (if α ∈ dom(ϕ))
+Sp±α ϕ def= λx:α .x (if α /∈ dom(ϕ))
+Sp±
+b ϕ def= λx:b.x
+Sp±
+τ1×τ2 ϕ def= λx:(τ1 × τ2).⟨Sp±τ1 ϕ (x.1)),Sp±τ2 ϕ (x.2)⟩
+Sp±τ1→τ2 ϕ def= λx:(τ1 → τ2).λx′:τ1.Sp±τ2 ϕ (x (Sp∓τ1 ϕ x′))
+Sp±
+∀α .τ ϕ def= λx:(∀α .τ).Λα .Sp±
+τ ϕ (x α )
+Sp±
+∃α .τ ϕ def= λx:(∃α .τ). unpack ⟨α ,x′⟩=x in pack ⟨α ,Sp±
+τ ϕ x′⟩as ∃α .τ
+Sp+
+μα .τ ϕ def= λx:(μα .τ).(Gϕ
+μα .τ ()).1 x
+Sp−
+μα .τ ϕ def= λx:(μα .τ).(Gϕ
+μα .τ ()).2 x
+Sp±
+τ
+def= Sp±
+τ / 0
+Fig. 10. Simple Wrapping for G μ (new-erasure of the proper wrapping)
+Lemma 38
+Suppose w0 ∈ Worldn, (δ1, δ2, ρ) ∈ Dn[ [∆] ]w0 and (k,w) = (n,w0) where ∆ ⊢ τ.
+1. If (k,w,v1,v2) ∈ Vn[ [τ] ]ρ,
+then (k,w,v1, δ2(Sp±
+τ )v2) ∈ En[ [τ] ]ρ and (k,w, δ1(Sp±
+τ )v1,v2) ∈ En[ [τ] ]ρ.
+2. If (k,w,e1,e2) ∈ En[ [τ] ]ρ,
+then (k,w,e1, δ2(Sp±
+τ )e2) ∈ En[ [τ] ]ρ and (k,w, δ1(Sp±
+τ )e1,e2) ∈ En[ [τ] ]ρ.
+Proof
+By primary induction on n and secondary induction on the derivation of ∆ ⊢ τ.
+Lemma 39
+If ∆; Γ ⊢ e : τ, then ∆; Γ ⊢ e ≡ Sp±
+τ e : τ.
+Proof
+We show ∆; Γ ⊢ e≼ Sp±
+τ e : τ. The proof of ∆; Γ ⊢ Sp±
+τ e≼ e : τ is symmetric. The claim
+then follows by Soundness.
+• Suppose w0 ∈ Worldn, (δ1, δ2, ρ) ∈ Dn[ [∆] ]w0, (k, γ1, γ2) ∈ Gn[ [Γ] ]ρ, and (k,w) =
+(n,w0).
+• By the Fundamental Property we know ∆; Γ ⊢ e≼ e : τ.
+• Instantiating this yields (k,w, δ1γ1(e), δ2γ2(e)) ∈ En[ [τ] ]ρ.
+• By Lemma 38, (k,w, δ1γ1(e), δ2(Sp±
+τ ) δ2γ2(e)) ∈ En[ [τ] ]ρ.
+• Note that δ2(Sp±
+τ ) δ2γ2(e) = δ2γ2(Sp±
+τ e).
+Lemma 40
+
+=== PAGE 47 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 47
+1. If ∆; Γ ⊢ e : τ, ⊢ C : (∆; Γ; τ) ; (ε; ε; τ′), and ε;C[e] ↓, then ε;C[Sp±
+τ e] ↓.
+2. If ∆; Γ ⊢ e : τ, ⊢ C : (∆; Γ; τ) ; (ε; ε; τ′), and ε;C[e] ↑, then ε;C[Sp±
+τ e] ↑.
+Proof
+Follows from Lemma 39.
+The second part (Lemma 46) can be proven in a more direct way. Intuitively, the property
+holds because the only difference between the reduction of C[Sp±
+τ e] and the reduction of
+C[Wr±
+τ e] is that during the latter fresh type names are being generate d and substituted.
+Since we assume C to be cast-free, there is no way for these type names to affect the
+reduction and thus the termination behavior. We will only sk etch the proof and not give
+formal details, as this would be a very tedious job here and not reveal any insights.
+The idea is to use a simulation that relates a terme1 to a term e2 iff e1 is the new-erasure
+of e2, i.e., e1 is obtained from e2 by dropping all occurences of new. Thus, in particular,
+the simulation relates the simple wrapping of a term to its proper wrapping.
+The deﬁnition of Erase, the new-erasure, is trivial. Its only interesting case is
+Erase(new α ≈τ in e) def= Erase(e[τ/α ]).
+For all the other language constructs, the deﬁnition just recurses on the subterms. It is easy
+to see that Erase satisﬁes standard congruence and substitution properties:
+Lemma 41
+If e1 = Erase(e2) and C is new-free, then C[e1] = Erase(C[e2]).
+Lemma 42
+1. If e1 = Erase(e2) and e′
+1 = Erase(e′
+2), then e1[e′
+1/x] = Erase(e2[e′
+2/x]).
+2. If e1 = Erase(e2), then e1[τ/α ] = Erase(e2[τ/α ]).
+The simulation argument is the following (where֒→+denotes a reduction sequence with
+at least one reduction):
+Lemma 43
+If e1 is cast-free and e1 = σ ∗
+2 (Erase(e2)) and σ1;e1֒→σ1;e′
+1, then there are σ ′
+2 and e′
+2 with
+e′
+1 = σ ′∗
+2 (Erase(e′
+2)) cast-free and σ2;e2֒→+σ ′
+2;e′
+2.
+This already yields the second part of Lemma 46. For the ﬁrst p art we need one more
+lemma and an easy induction.
+Lemma 44
+If v = σ ∗
+2 (Erase(e)), then σ2;e ↓.
+Lemma 45
+If e1 is cast-free and e1 = σ ∗
+2 (Erase(e2)) and σ1;e1 ↓, then σ2;e2 ↓.
+Proof
+By induction on the length of the reduction sequence, using Lemmas 44 and 43.
+Lemma 46
+Suppose e and C are both cast- and new-free.
+1. If ∆; Γ ⊢ e : τ, ⊢ C : (∆; Γ; τ) ; (ε; ε; τ′) and ε;C[Sp±
+τ e] ↓, then ε;C[Wr±
+τ e] ↓.
+
+=== PAGE 48 ===
+ZU064-05-FPR main 29 April 2011 15:27
+48 Georg Neis, Derek Dreyer and Andreas Rossberg
+2. If ∆; Γ ⊢ e : τ, ⊢ C : (∆; Γ; τ) ; (ε; ε; τ′) and ε;C[Sp±
+τ e] ↑, then ε;C[Wr±
+τ e] ↑.
+Proof
+Since C[Sp±
+τ e] = Erase(C[Wr±
+τ e]), the ﬁrst part follows from Lemma 45 and the second
+from Lemma 43.
+Finally, we can prove the actual theorem:
+Theorem 47 (Equivalence Reﬂection)
+If ∆; Γ ⊢Fμ e1 : τ, ∆; Γ ⊢Fμ e2 : τ and ∆; Γ ⊢ Wr±
+τ e1 ≡ Wr±
+τ e2 : τ, then ∆; Γ ⊢ e1 ≡Fμ e2 : τ.
+Proof
+Assume that ∆; Γ ⊢ e1 ≡Fμ e2 : τ does not hold,i.e., e1 and e2 are not contextually equivalent
+in F μ. Then there is an F μ-context C that can tell them apart: say, C[e1] ↓ and C[e2] ↑.
+Note that C also is a valid G context. It is easy to see that C will distinguish e1 and e2
+in G, too: ε;C[e1] ↓ and ε;C[e2] ↑. Using Lemma 40 and then Lemma 46, this implies
+that C also distinguishes their wrappings: ε;C[Wr±
+τ e1]↓ and ε;C[Wr±
+τ e2]↑. Consequently,
+∆; Γ ⊢ Wr±
+τ e1 ≡ Wr±
+τ e2 : τ does not hold either.
+11 Incompleteness of the Logical Relation
+While our logical relation for G μ is sound w.r.t. contextual approximation, it is not com-
+plete. There are at least two reasons why.
+First of all, we have deﬁned our logical relation in such a wayas to model a fairly general
+notion of non-parametricity, not tied speciﬁcally to the cast operator per se. Consequently,
+we conjecture that our logical relation (modulo potential m inor tweaks) would generalize
+to soundly model a language with a typecase mechanism instead of a cast operator. (As
+explained in the introduction, we have chosen to study cast because it is simpler yet
+still interesting.) However, typecase is strictly more powerful than cast, in the sense that
+typecase is capable of distinguishing between more programs. In particular, with typecase
+one can pattern-match on an abstract type α, which one can not always do with cast
+(see the example below). Thus, there are programs that we can not prove equivalent in
+our model—because they are not contextually equivalent in t he presence of typecase—but
+that (we conjecture) are contextually equivalent in the presence of cast, and this clearly
+leads our model to be incomplete w.r.t. Gμ.
+Consider the following example:
+τ := ∃β. (int × int → β) × (β → int) × (β → int)
+e1 := new α ≈int in pack ⟨α × α , ⟨λ p.p, λx.(x.1), λx.(x.2)⟩⟩as τ
+e2 := new α ≈(int × int) in pack ⟨α , ⟨λ p.p, λx.(x.1), λx.(x.2)⟩⟩as τ
+We strongly conjecture that e1 and e2 are contextually equivalent in G μ: Although the
+type components of the existential packages returned by e1 and e2—namely, α × α and α,
+respectively—are structurally different, there seems to be no way to observe this usingcast.
+Speciﬁcally, after unpacking the existential and binding a name (say, β) for the existential
+type variable, there is no way for a client of e1 to cast β to a pair type because, although
+β = α × α dynamically, the type name α is not in the client’s static scope.
+
+=== PAGE 49 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 49
+It is easy to see, however, that e1 and e2 are not equivalent according to our logical
+relation: Suppose they are, i.e., ⊢ e1≼ e2 : τ (and the other way around). Instantiating
+this with a sufﬁciently large number k + 1 and the empty world w yields (k, ⌊w⌋,e1,e2) ∈
+Ek+1[ [τ] ]. Now, since obviouslyε;e1֒→1 α1≈int;v1[α1/α ] (where v1 is the body ofe1), we
+know that there is w′ such that ε;e2֒→∗ w′.σ2;v2 and (k − 1,w′,v1,v′
+2) ∈ Vk+1[ [τ] ]. Clearly,
+v′
+2 must be v2[α2/α ], where v2 is the body of e2 and α2 is some type name. Recall that the
+(non-parametric) logical relation at existential type req uires the type components of the
+two package values to be structurally equal. Clearly, this i s not the case here, and so we
+have a contradiction.
+Of course, if the language had a typecase operator, the situation would be different,
+because a client could easily distinguish e1 and e2 by pattern-matching the abstract type
+β against a pair type constructor—the pattern match would suc ceed for e1 but fail for e2.
+Thus, by demanding that the type components of logically rel ated existential packages be
+structurally equal, our model appears to be a closer ﬁt for a l anguage with typecase (in
+which an adversarial context can perform complete structur al decomposition of abstract
+type variables) than for one with cast (in which an adversarial context can only test for
+equality against “known” types). This is ﬁne from our perspective since our goal was never
+to tailor our model to the peculiarities of the cast construct. Moreover, even if we were
+interested in doing so, it is far from obvious to us how to go about it.
+Our logical relation is also incomplete w.r.t. contextual a pproximation for reasons that
+have nothing to do with the non-parametric features of the la nguage. In particular, while
+we have shown in this paper how our logical relation enables o ne to use traditional para-
+metric reasoning when reasoning about wrapped programs, there are weird yet well-known
+examples—see, for instance, Pitts (2005)—of equivalences between existential packages
+that are not provable by direct use of logical relations. (Sp eciﬁcally, in these examples,
+there is no way to show the existential packages logically re lated because there is no way
+of choosing a relational interpretation of the abstract typ e such that the ADT operations
+are logically related, yet the existential packages are nevertheless contextually equivalent.)
+Our logical relation cannot be used to directly prove those equivalences either.
+A well-known technique for achieving completeness is to usebiorthogonality, otherwise
+known as ⊤⊤-closure (Pitts & Stark, 1998; Pitts, 2005). We believe it would not bedifﬁcult
+to incorporate biorthogonality into our present logical re lations in order to render them
+complete. However, the completeness guaranteed by biortho gonality does not translate
+into a practical technique for establishing weird equivale nces like the ones mentioned
+above. Moreover, as Benton & Tabareau (2009) have observed,biorthogonality also makes
+the logical relation (as a practical proof technique) sensi tive to order of evaluation, so
+that it would no longer be obvious how to use it to prove equiva lences like our “order
+independence” result from Section 4.4.
+12 Related Work
+Type Generation vs. Other Forms of Data Abstraction. Traditionally, authors have
+distinguished between two complementary forms of data abst raction, sometimes dubbed
+the static and the dynamic approach (Matthews & Ahmed, 2008). The former is tied to the
+type system and relies on parametricity (especially for existential types) to hide an ADT’s
+
+=== PAGE 50 ===
+ZU064-05-FPR main 29 April 2011 15:27
+50 Georg Neis, Derek Dreyer and Andreas Rossberg
+representation from clients (Mitchell & Plotkin, 1988). Th e latter approach is typically
+employed in untyped languages, which do not have the ability to place static restrictions
+on clients. Consequently, data hiding has to be enforced on t he level of individual values.
+Toward that end, languages provide means for generating unique names and using them as
+keys for dynamically sealing values. A value sealed by a given key can only be inspected
+by principals that have access to the key (Sumii & Pierce, 2007a).
+Dynamic type generation as we employ it (Rossberg, 2003; Vyt iniotis et al. , 2005;
+Rossberg, 2008) can be seen as a middle ground, because it bea rs resemblance to both
+approaches. As in the dynamic approach, we cannot rely on par ametricity and instead
+generate dynamic names to protect abstractions. However, these are type-level names, not
+term-level names, and they only “seal” type information. In particular, individual values
+of abstract type are still directly represented by the underlying representation type, so that
+crossing abstraction boundaries has no runtime cost. In tha t sense, we are closer to the
+static approach.
+Another approach to reconciling type abstraction and type analysis has been proposed by
+Washburn & Weirich (2005). They introduce a type system thattracks information ﬂow for
+terms and types-as-data. By distinguishing security level s, the type system can statically
+prevent unauthorized inspection of types by clients.
+Multi-Language Interoperation. The closest related work to ours is that of Matthews &
+Ahmed (2008). They describe a pair of mutually recursive log ical relations that deal with
+the interoperation between a typed language (“ML”) and an untyped language (“Scheme”).
+Unlike in G, parametric behavior is hard-wired into their ML side: polymorphic instan-
+tiation unconditionally performs a form of dynamic sealing to protect against the non-
+parametric Scheme side. (In contrast, we treat new as its own language construct, orthog-
+onal to universal types.) Dynamic sealing can then be deﬁned in terms of the primitive
+coercion operators that bridge between the ML and Scheme sid es. These coercions are
+similar to our (meta-level) wrapping operators, but ours pe rform type-level sealing, not
+term-level sealing.
+The logical relations in Matthews & Ahmed’s formalism are so mewhat reminiscent of
+E π and E, although theirs are distinct logical relations for two languages, while ours are for
+a single language and differ only in the deﬁnition of T [ [Ω ] ]w. In order to prove the funda-
+mental property for their relations, they prove a “bridge lemma”—transferring relatedness
+in one language to the other via coercions—that is analogous to our Wrapping Theorem
+for≼ π. However, they do not propose anything like our polarized logical relations.
+A key technical difference is that their formulation of the l ogical relations does not use
+possible worlds to capture the type store (the latter is left implicit in their operational
+semantics). Unfortunately, this resulted in a signiﬁcant ﬂaw in their paper (Ahmed, 2009).
+They have since reportedly ﬁxed the problem—independently of our work—using a tech-
+nique similar to ours, but they have yet to write up the details.
+Proof Methods. Logical relations in various forms are routinely used to rea son about
+program equivalence and type abstraction (Reynolds, 1983; Mitchell, 1986; Pitts, 2005;
+Ahmed, 2006). In particular, Ahmed, Dreyer & Rossberg recen tly applied step-indexed
+logical relations with possible worlds to reason about type abstraction for a language
+
+=== PAGE 51 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 51
+with higher-order state (Ahmed et al., 2009). State in G is comparatively benign, but still
+requires a circular deﬁnition of worlds that we stratify using steps.
+Pitts & Stark (1993) used logical relations to reason about p rogram equivalence in the
+ν-calculus, a language with dynamic generation of term-leve l names in a manner similar
+to G. Since these names are abstract values with only an equal ity operator, it is sufﬁcient
+in their case to index the logical relation by just the partial bijection between names, which
+essentially is a simple form of possible world. (In subseque nt work, Pitts & Stark (1998)
+generalized their technique to handle mutable references. ) Type names can encode term-
+level names via the type ∃α .1 (Rossberg, 2003). Clearly, though, this encoding is not
+fully abstract (in particular, ∃α .1 is also inhabited by values not containing generated type
+names). Moreover, the presence of non-termination in G mark s a fundamental difference
+from the ν-calculus that deeply affects the equational theory of the language.
+Sumii & Pierce (2003) employed logical relations in proving secrecy results for a lan-
+guage with dynamic sealing, where generated names are used as keys. Their logical relation
+uses a form of possible world very similar to ours, but tying r elational interpretations
+to term-level private keys instead of to type names. Their wo rlds come into play in the
+interpretation of the type bits of encrypted data, whereas in our setup the worlds are
+important in the interpretation of universal and existenti al types. In another line of work,
+Sumii & Pierce (2007a; 2007b) have used bisimulations to establish abstraction results for
+both untyped and polymorphic languages. However, none of the languages they investigate
+mixes the two paradigms.
+Grossman, Morrisett & Zdancewic (2000) have proposed the use of abstraction brackets
+for syntactically tracing abstraction boundaries during p rogram execution. However, this
+is a comparatively weak method that does not seem to help in pr oving parametricity or
+representation independence results.
+13 Conclusion and Future Work
+In traditional static languages, type abstraction is established by parametric polymorphism.
+This approach no longer works when dynamic typing features l ike casts, typecase, or
+reﬂection are added to the mix. Dynamic type generation addresses this problem.
+In this paper, we have shown that dynamic type generation succeeds in recovering type
+abstraction. More speciﬁcally: (1) we presented a step-indexed logical relation for reason-
+ing about program equivalence in a non-parametric languagewith cast and type generation;
+(2) we showed that parametricity can be re-established systematically using a simple type-
+directed wrapping, which then can be reasoned about using a p arametric variant of the
+logical relation; (3) we showed that parametricity can be re ﬁned into parametric behavior
+and parametric usage and gave a polarized logical relation that distinguishes th ese dual
+notions, thereby handling more subtle examples. The concept of a polarized logical relation
+seems novel, and it remains to be seen what else it might be use ful for. Interestingly, all
+our logical relations can be deﬁned as a single family differing only in the interpretation T
+of types-as-data.
+An open question is whether the wrapping, when seen as an embedding of Fμ into Gμ, is
+fully abstract. We conjecture that it is, but we were only able to show equivalence reﬂection,
+
+=== PAGE 52 ===
+ZU064-05-FPR main 29 April 2011 15:27
+52 Georg Neis, Derek Dreyer and Andreas Rossberg
+not equivalence preservation. Proving full abstraction remains an interesting challenge for
+future work.
+On the practical side, we would like to scale our logical relation to handle more realistic
+languages, such as ML. We do not expect any problems as long as we deal only with pure
+language features. But unfortunately, wrapping cannot easily be extended to an impure type
+of mutable references, at least not without making the wrapp ing operator primitive in the
+language semantics. Nevertheless, we believe that our approach still scales to a large class
+of impure languages, so long as we instrument it with a distin ction between module and
+core levels. Speciﬁcally, note that wrapping only does something “interesting” for universal
+and existential types, and is the identity (modulo η-expansion) otherwise. Thus, for a lan-
+guage like Standard ML, which does not support ﬁrst-class polymorphism—or extensions
+like Alice ML, which supports modules as ﬁrst-class values,but not existentials—wrapping
+is neverneeded on the core level, and could hence be conﬁned to the module level. In such a
+language, wrapping can be kept implicit, as part of the implementation of opaque signature
+ascription—and in fact, that is exactly what Alice ML does. F or core-level types, such as
+ref types, it can just be the identity. (Also included in “cor e-level” are recursive types,
+for which wrapping otherwise entails expensive copying.) This is a real advantage of type
+generation over dynamic sealing since, for the latter, the n eed to seal/unseal individual
+values of abstract type precludes any attempt to conﬁne wrapping to modules.
+References
+Abadi, Mart´ ın, Cardelli, Luca, Pierce, Benjamin, & R´ emy, Didier. (1995).
+Dynamic typing in polymorphic languages. Journal of Functional Programming , 5(1), 111–
+130.
+Ahmed, Amal. (2004). Semantics of types for mutable state. Ph.D. thesis, Princeton University.
+Ahmed, Amal. (2006). Step-indexed syntactic logical relat ions for recursive and quantiﬁed types.
+European Symposium on Programming (ESOP).
+Ahmed, Amal. (2009). Personal communication.
+Ahmed, Amal, & Blume, Matthias. (2008). Typed closure conve rsion preserves observational
+equivalence. ACM SIGPLAN International Conference on Functional Programming (ICFP).
+Ahmed, Amal, Dreyer, Derek, & Rossberg, Andreas. (2009). St ate-dependent representation
+independence. ACM SIGPLAN Symposium on Principles of Programming Languages (POPL).
+Appel, Andrew W., & McAllester, David. (2001). An indexed mo del of recursive types for
+foundational proof-carrying code. ACM Transactions on Programming Languages and Systems,
+23(5), 657–683.
+Benton, Nick, & Tabareau, Nicolas. (2009). Compiling funct ional types to relational speciﬁcations
+for low level imperative code. ACM SIGPLAN Workshop on Types in Language Design and
+Implementation (TLDI).
+Birkedal, Lars, & Harper, Robert W. (1999). Constructing in terpretations of recursive types in an
+operational setting. Information and computation, 155, 3–63.
+Girard, Jean-Yves. (1972). Interpr´ etation fonctionelle et ´ elimination des coupures de l’arithm´ etique
+d’ordre sup´ erieur. Ph.D. thesis, Universit´ e Paris VII.
+Grossman, Dan, Morrisett, Greg, & Zdancewic, Steve. (2000) . Syntactic type abstraction. ACM
+Transactions on Programming Languages and Systems, 22(6), 1037–1080.
+Harper, Robert, & Mitchell, John C. (1999). Parametricity a nd variants of Girard’s J operator.
+Information processing letters.
+
+=== PAGE 53 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 53
+Harper, Robert, & Morrisett, Greg. (1995). Compiling polymorphism using intensional type analysis.
+ACM SIGPLAN Symposium on Principles of Programming Languages (POPL).
+Matthews, Jacob, & Ahmed, Amal. (2008). Parametric polymor phism through run-time sealing, or,
+theorems for low, low prices! European Symposium on Programming (ESOP).
+Mitchell, John C. (1986). Representation independence and data abstraction. ACM SIGPLAN
+Symposium on Principles of Programming Languages (POPL).
+Mitchell, John C., & Plotkin, Gordon D. (1988). Abstract typ es have existential type. ACM
+Transactions on Programming Languages and Systems, 10(3), 470–502.
+Neis, Georg. (2009). Non-parametric parametricity. M.Phil. thesis, Universit¨ at des Saarlandes.
+Pitts, Andrew. (2005). Typed operational reasoning. Chap. 7 of: Benjamin C. Pierce (ed), Advanced
+Topics in Types and Programming Languages. MIT Press.
+Pitts, Andrew, & Stark, Ian. (1993). Observable propertiesof higher order functions that dynamically
+create local names, or: What’s new? International Symposium on Mathematical Foundations of
+Computer Science (MFCS). Lecture Notes in Computer Science, vol. 711.
+Pitts, Andrew, & Stark, Ian. (1998). Operational reasoning for functions with local state. Higher
+Order Operational Techniques in Semantics (HOOTS).
+Reynolds, John C. (1983). Types, abstraction and parametric polymorphism. Information processing.
+Rossberg, Andreas. (2003). Generativity and dynamic opaci ty for abstract types. ACM SIGPLAN
+Symposium on Principles and Practice of Declarative Programming (PPDP).
+Rossberg, Andreas. (2007). Typed open programming: A higher-order, typed approach to dynamic
+modularity and distribution. Ph.D. thesis, Universit¨ at des Saarlandes.
+Rossberg, Andreas. (2008). Dynamic translucency with abstraction kinds and higher-order coercions.
+Mathematical Foundations of Programming Semantics (MFPS).
+Rossberg, Andreas, Le Botlan, Didier, Tack, Guido, Brunkla us, Thorsten, & Smolka, Gert. (2004).
+Alice ML through the looking glass. Symposium on Trends in Functional Programming (TFP) ,
+vol. 5.
+Sewell, Peter. (2001). Modules, abstract types, and distri buted versioning. ACM SIGPLAN
+Symposium on Principles of Programming Languages (POPL).
+Sewell, Peter, Leifer, James, Wansbrough, Keith, Nardelli, Francesco Zappa, Allen-Williams, Mair,
+Habouzit, Pierre, & Vafeiadis, Viktor. (2007). Acute: High -level programming language design
+for distributed computation. Journal of Functional Programming, 17(4&5), 547–612.
+Sumii, Eijiro, & Pierce, Benjamin C. (2003). Logical relations for encryption. Jcs, 11(4), 521–554.
+Sumii, Eijiro, & Pierce, Benjamin C. (2007a). A bisimulatio n for dynamic sealing. Theoretical
+Computer Science, 375(1–3), 161–192.
+Sumii, Eijiro, & Pierce, Benjamin C. (2007b). A bisimulatio n for type abstraction and recursion.
+Journal of the ACM, 54(5), 1–43.
+Vytiniotis, Dimitrios, Washburn, Geoffrey, & Weirich, Stephanie. (2005). An open and shut typecase.
+ACM SIGPLAN Workshop on Types in Language Design and Implementation (TLDI).
+Wadler, Philip. (1989). Theorems for free! Conference on Functional Programming and Computer
+Architecture.
+Washburn, Geoffrey, & Weirich, Stephanie. (2005). General izing parametricity using information
+ﬂow. Symposium on Logic in Computer Science.
+Weirich, Stephanie. (2004). Type-safe cast. Journal of Functional Programming, 14(6), 681–695.
+Weirich, Stephanie, Vytiniotis, Dimitrios, Peyton Jones, Simon, & Zdancewic, Steve. (2011).
+Generative type abstraction and type-level computation.ACM SIGPLAN Symposium on Principles
+of Programming Languages (POPL).
+
+=== PAGE 54 ===
+ZU064-05-FPR main 29 April 2011 15:27
+54 Georg Neis, Derek Dreyer and Andreas Rossberg
+A The Languages G and Gμ
+The differences between G and G μ, i.e., everything related to recursive types, are under-
+lined.
+A.1 Syntax and Semantics
+Syntax
+Types τ ::= α | b | τ× τ | τ → τ | ∀α .τ | ∃α .τ | μα .τ
+Values v ::= x | . . . | ⟨v,v⟩ |λx:τ.e | Λα .e | pack ⟨τ,v⟩as τ | roll v as τ
+Expressions e ::= v | . . . | ⟨e,e⟩ |e.1 | e.2 | e e | e τ | pack ⟨τ,v⟩as τ |
+unpack ⟨α ,x⟩=e in e | roll e as τ | unroll e |
+cast τ τ | new α ≈τ in e
+Stores σ ::= ε | σ , α ≈τ
+Evaluation Ctxt’s E ::= . . . | ⟨E,e⟩ | ⟨v,E⟩ |E.1 | E.2 | E e | v E | E τ |
+pack ⟨τ,E⟩as τ | unpack ⟨α ,x⟩=E in e |
+roll E as τ | unroll E
+Type Environments ∆ ::= ε | ∆, α | ∆, α ≈τ
+Value Environments Γ ::= ε | Γ,x:τ
+Reduction σ;e֒→σ;e
+· · ·
+σ;E[⟨v1,v2⟩.i]֒→σ;E[vi] ( RPROJ )
+σ;E[(λx:τ.e)v]֒→σ;E[e[v/x]] ( RAPP )
+σ;E[(λ α.e) τ]֒→σ;E[e[τ/α ]] ( RINST )
+σ;E[unpack ⟨α ,x⟩=(pack ⟨τ,v⟩) in e]֒→σ;E[e[τ/α ][v/x]] ( RUNPACK )
+σ;E[unroll (roll v as τ)]֒→σ;E[v] ( RUNROLL )
+(α /∈ dom(σ )) σ;E[new α ≈τ in e]֒→σ , α ≈τ;E[e] ( RNEW )
+(τ1 = τ2) σ;E[cast τ1 τ2]֒→σ;E[λx1:τ1.λx2:τ2.x1] ( RCAST 1)
+(τ1 ⁄= τ2) σ;E[cast τ1 τ2]֒→σ;E[λx1:τ1.λx2:τ2.x2] ( RCAST 2)
+Type Environments ⊢ ∆
+⊢ ε
+⊢ ∆ α /∈ dom(∆)
+⊢ ∆, α
+∆ ⊢ τ α /∈ dom(∆)
+⊢ ∆, α ≈τ
+Value Environments ∆ ⊢ Γ
+⊢ ∆
+∆ ⊢ ε
+∆ ⊢ Γ ∆ ⊢ τ x /∈ dom(Γ)
+∆ ⊢ Γ,x:τ
+
+=== PAGE 55 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 55
+Types ∆ ⊢ τ
+(TVAR) ⊢ ∆ α ∈ ∆
+∆ ⊢ α (TNAME ) ⊢ ∆ α ≈τ ∈ ∆
+∆ ⊢ α
+(TBASE ) ⊢ ∆
+∆ ⊢ b (TTIMES ) ∆ ⊢ τ1 ∆ ⊢ τ2
+∆ ⊢ τ1 × τ2
+(TARR ) ∆ ⊢ τ1 ∆ ⊢ τ2
+∆ ⊢ τ1 → τ2
+(TALL ) ∆, α ⊢ τ
+∆ ⊢ ∀α .τ (TEXISTS ) ∆, α ⊢ τ
+∆ ⊢ ∃α .τ (TREC ) ∆, α ⊢ τ
+∆ ⊢ μα .τ
+Type Isomorphism ∆ ⊢ τ ≈ τ
+(CVAR) ⊢ ∆ α ∈ ∆
+∆ ⊢ α ≈ α (CNAME ) ⊢ ∆ α ≈τ ∈ ∆
+∆ ⊢ α ≈ τ (CBASE ) ⊢ ∆
+∆ ⊢ b ≈ b
+(CTIMES ) ∆ ⊢ τ1 ≈ τ′
+1 ∆ ⊢ τ2 ≈ τ′
+2
+∆ ⊢ τ1 × τ2 ≈ τ′
+1 × τ′
+2
+(CARR ) ∆ ⊢ τ1 ≈ τ′
+1 ∆ ⊢ τ2 ≈ τ′
+2
+∆ ⊢ τ1 → τ2 ≈ τ′
+1 → τ′
+2
+(CALL ) ∆, α ⊢ τ ≈ τ′
+∆ ⊢ ∀α .τ ≈ ∀α .τ′ (CEXISTS ) ∆, α ⊢ τ ≈ τ′
+∆ ⊢ ∃α .τ ≈ ∃α .τ′
+(CREC ) ∆, α ⊢ τ ≈ τ′
+∆ ⊢ μα .τ ≈ μα .τ′
+(CSYM ) ∆ ⊢ τ′ ≈ τ
+∆ ⊢ τ ≈ τ′ (CTRANS ) ∆ ⊢ τ ≈ τ′′ ∆ ⊢ τ′′ ≈ τ′
+∆ ⊢ τ ≈ τ′
+Expressions ∆; Γ ⊢ e : τ
+(EVAR) ∆ ⊢ Γ x:τ ∈ Γ
+∆; Γ ⊢ x : τ · · ·
+(EPAIR) ∆; Γ ⊢ e1 : τ1 ∆; Γ ⊢ e2 : τ2
+∆; Γ ⊢ ⟨e1,e2⟩: τ1 × τ2
+(EPROJ ) ∆; Γ ⊢ e : τ1 × τ2
+∆; Γ ⊢ e.i : τi
+(EABS ) ∆; Γ,x:τ1 ⊢ e : τ2
+∆; Γ ⊢ λx:τ1.e : τ1 → τ2
+(EAPP ) ∆; Γ ⊢ e1 : τ2 → τ ∆; Γ ⊢ e2 : τ2
+∆; Γ ⊢ e1 e2 : τ
+(EGEN ) ∆, α; Γ ⊢ e : τ
+∆; Γ ⊢ Λα .e : ∀α .τ (EINST ) ∆; Γ ⊢ e : ∀α .τ ∆ ⊢ τ2
+∆; Γ ⊢ e τ2 : τ[τ2/α ]
+(EPACK) ∆; Γ ⊢ e : τ[τ1/α ] ∆ ⊢ τ1
+∆; Γ ⊢ pack ⟨τ1,e⟩as ∃α .τ : ∃α .τ
+(EUNPACK ) ∆; Γ ⊢ e1 : ∃α .τ1 ∆, α; Γ,x:τ1 ⊢ e2 : τ ∆ ⊢ τ
+∆; Γ ⊢ unpack ⟨α ,x⟩=e1 in e2 : τ
+
+=== PAGE 56 ===
+ZU064-05-FPR main 29 April 2011 15:27
+56 Georg Neis, Derek Dreyer and Andreas Rossberg
+(EROLL ) ∆; Γ ⊢ e : τ[μα .τ/α ]
+∆; Γ ⊢ roll e as μα .τ : μα .τ (EUNROLL ) ∆; Γ ⊢ e : μα .τ
+∆; Γ ⊢ unroll e : τ[μα .τ/α ]
+(ECAST ) ∆ ⊢ Γ ∆ ⊢ τ1 ∆ ⊢ τ2
+∆; Γ ⊢ cast τ1 τ2 : τ1 → τ2 → τ2
+(ENEW ) ∆, α ≈τ′; Γ ⊢ e : τ ∆ ⊢ τ ∆ ⊢ Γ
+∆; Γ ⊢ new α ≈τ′ in e : τ
+(ECONV ) ∆; Γ ⊢ e : τ′ ∆ ⊢ τ ≈ τ′
+∆; Γ ⊢ e : τ
+A.2 Structural Properties
+Type Substitutions δ ::= / 0| δ, α ↦→τ
+Value Substitutions γ ::= / 0| γ,x↦→v
+Conﬁgurations ⊢ σ;e : τ
+∆ = σ ∆; ε ⊢ e : τ ε ⊢ τ
+⊢ σ;e : τ
+Type Substitutions ∆ ⊢ δ : ∆
+⊢ ∆′
+∆′ ⊢ / 0 :ε
+∆′ ⊢ δ : ∆ ∆ ′ ⊢ τ
+∆′ ⊢ δ, α ↦→τ : ∆, α
+∆′ ⊢ δ : ∆ α ′≈δ(τ) ∈ ∆′
+∆′ ⊢ δ, α ↦→α ′ : ∆, α ≈τ
+Type Substitution Isomorphism ∆ ⊢ δ ≈ δ : ∆
+⊢ ∆′
+∆′ ⊢ / 0≈ / 0 :ε
+∆′ ⊢ δ ≈ δ′ : ∆ ∆ ′ ⊢ τ ≈ τ′
+∆′ ⊢ δ, α ↦→τ ≈ δ′, α ↦→τ′ : ∆, α
+∆′ ⊢ δ ≈ δ′ : ∆ α1≈δ(τ) ∈ ∆′ α2≈δ′(τ) ∈ ∆′
+∆′ ⊢ δ, α ↦→α1 ≈ δ′, α ↦→α2 : ∆, α ≈τ
+Value Substitutions ∆; Γ ⊢ γ : Γ
+∆ ⊢ Γ′
+∆; Γ′ ⊢ / 0 :ε
+∆; Γ′ ⊢ γ: Γ ∆ ; Γ′ ⊢ v : τ
+∆; Γ′ ⊢ γ,x↦→v : Γ,x:τ
+Lemma 48 (Weakening)
+1. If ∆ ⊢ τ and ∆′ ⊇ ∆ and ⊢ ∆′, then ∆′ ⊢ τ.
+2. If ∆ ⊢ τ ≈ τ′ and ∆′ ⊇ ∆ and ⊢ ∆′, then ∆′ ⊢ τ ≈ τ′.
+3. If ∆ ⊢ Γ and ∆′ ⊇ ∆ and ⊢ ∆′, then ∆′ ⊢ Γ.
+
+=== PAGE 57 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 57
+4. If ∆; Γ ⊢ e : τ and ∆′ ⊇ ∆ and ⊢ ∆′, then ∆′; Γ ⊢ e : τ.
+5. If ∆; Γ ⊢ e : τ and Γ′ ⊇ Γ and ∆ ⊢ Γ′, then ∆; Γ′ ⊢ e : τ.
+6. If ∆; Γ ⊢ γ: Γ and ∆′ ⊇ ∆ and ⊢ ∆′, then ∆′; Γ ⊢ γ: Γ.
+Lemma 49 (Substitution)
+1. If ∆ ⊢ τ and ∆′ ⊢ δ : ∆, then ∆′ ⊢ δ(τ).
+2. If ∆ ⊢ τ ≈ τ′ and ∆′ ⊢ δ ≈ δ′ : ∆, then ∆′ ⊢ δ(τ) ≈ δ′(τ′).
+3. If ∆ ⊢ Γ and ∆′ ⊢ δ : ∆, then ∆′ ⊢ δ(Γ).
+4. If ∆; Γ ⊢ e : τ and ∆′ ⊢ δ : ∆, then ∆′; δ(Γ) ⊢ δ(e) : δ(τ).
+5. If ∆; Γ ⊢ e : τ and ∆; Γ′ ⊢ γ : Γ, then ∆; Γ′ ⊢ γ(e) : τ.
+Lemma 50 (Validity)
+1. If ∆ ⊢ τ, then ⊢ ∆.
+2. If ∆ ⊢ τ ≈ τ′, then ⊢ ∆.
+3. If ∆ ⊢ Γ, then ⊢ ∆.
+4. If ∆; Γ ⊢ e : τ, then ⊢ ∆ and ∆ ⊢ Γ and ∆ ⊢ τ.
+Lemma 51 (Variable Containment)
+1. If ∆ ⊢ τ and α ∈ ftv(τ), then α ∈ dom(∆).
+2. If ∆ ⊢ τ ≈ τ′ and α ∈ ftv(τ) ∪ ftv(τ′), then α ∈ dom(∆).
+3. If ∆ ⊢ Γ and α ∈ ftv(Γ), then α ∈ dom(∆).
+4. If ∆; Γ ⊢ e : τ and α ∈ ftv(Γ) ∪ ftv(e) ∪ ftv(τ), then α ∈ dom(∆).
+5. If ∆; Γ ⊢ e : τ and x ∈ fvv(e), then x ∈ dom(Γ).
+A.3 Type Safety
+Theorem 52 (Preservation)
+If σ;e֒→σ ′;e′ and ⊢ σ;e : τ, then ⊢ σ ′;e′ : τ.
+Lemma 53 (Canonical Values)
+Assume ⊢ σ;v : τ. Then:
+1. If τ = τ1 × τ2, then v = ⟨v1,v2⟩.
+2. If τ = τ1 → τ2, then v = λx:τ′
+1.e.
+3. If τ = ∀α .τ1, then v = Λα .e.
+4. If τ = ∃α .τ1, then v = pack ⟨τ2,v1⟩as τ′.
+5. If τ = μα .τ1, then v = roll v′ as τ′.
+Theorem 54 (Progress)
+If ⊢ σ;e : τ and e ⁄= v, then σ;e֒→σ ′;e′.
+A.4 Contextual Approximation and Equivalence
+(contexts) C ::= [ ] | ⟨C,e⟩ | ⟨e,C⟩ |C.1 | C.2 | λx:τ.C | C e | e C |
+Λα .C | C τ | pack⟨τ,C⟩ | unpack⟨α ,x⟩=C in e |
+unpack ⟨α ,x⟩=e in C | roll C as τ | unroll C | new α ≈τ in C
+
+=== PAGE 58 ===
+ZU064-05-FPR main 29 April 2011 15:27
+58 Georg Neis, Derek Dreyer and Andreas Rossberg
+Contexts ⊢ C : (∆; Γ; τ) ; (∆; Γ; τ)
+(CEMPTY ) ∆ ⊆ ∆′ Γ ⊆ Γ′ ∆′ ⊢ Γ′
+⊢ [ ] : (∆; Γ; τ) ; (∆′; Γ′; τ)
+(CABS ) ⊢ C : (∆; Γ; τ) ; (∆′; Γ′,x:τ1; τ2)
+⊢ λx:τ1.C : (∆; Γ; τ) ; (∆′; Γ′; τ1 → τ2)
+(CPAIR.1) ⊢ C : (∆; Γ; τ) ; (∆′; Γ′; τ1) ∆′; Γ′ ⊢ e : τ2
+⊢ ⟨C,e⟩: (∆; Γ; τ) ; (∆′; Γ′; τ1 × τ2)
+(CPAIR.2) ⊢ C : (∆; Γ; τ) ; (∆′; Γ′; τ2) ∆′; Γ′ ⊢ e : τ1
+⊢ ⟨e,C⟩: (∆; Γ; τ) ; (∆′; Γ′; τ1 × τ2)
+(CPROJ ) ⊢ C : (∆; Γ; τ) ; (∆′; Γ′; τ1 × τ2)
+⊢ C.i : (∆; Γ; τ) ; (∆′; Γ′; τi)
+(CAPP.1) ⊢ C : (∆; Γ; τ) ; (∆′; Γ′; τ1 → τ2) ∆′; Γ′ ⊢ e : τ1
+⊢ C e : (∆; Γ; τ) ; (∆′; Γ′; τ2)
+(CAPP.2) ⊢ C : (∆; Γ; τ) ; (∆′; Γ′; τ1) ∆′; Γ′ ⊢ e : τ1 → τ2
+⊢ e C : (∆; Γ; τ) ; (∆′; Γ′; τ2)
+(CGEN ) ⊢ C : (∆; Γ; τ) ; (∆′, α; Γ′; τ′)
+⊢ Λα .C : (∆; Γ; τ) ; (∆′; Γ′; ∀α .τ′)
+(CINST ) ⊢ C : (∆; Γ; τ) ; (∆′; Γ′; ∀α .τ1) ∆′ ⊢ τ2
+⊢ C τ2 : (∆; Γ; τ) ; (∆′; Γ′; τ1[τ2/α ])
+(CPACK) ⊢ C : (∆; Γ; τ) ; (∆′; Γ′; τ1[τ2/α ]) ∆′ ⊢ τ2
+⊢ pack⟨τ2,C⟩: (∆; Γ; τ) ; (∆′; Γ′; ∃α .τ1)
+(CUNPACK .1) ⊢ C : (∆; Γ; τ) ; (∆′; Γ′; ∃α .τ1) ∆′, α; Γ′,x:τ1 ⊢ e2 : τ2 ∆′ ⊢ τ2
+⊢ unpack ⟨α ,x⟩=C in e : (∆; Γ; τ) ; (∆′; Γ′; τ2)
+(CUNPACK .2 ) ⊢ C : (∆; Γ; τ) ; (∆′, α; Γ′,x:τ1; τ2) ∆′; Γ′ ⊢ e : ∃α .τ1 ∆′ ⊢ τ2
+⊢ unpack ⟨α ,x⟩=e in C : (∆; Γ; τ) ; (∆′; Γ′; τ2)
+(CROLL ) ⊢ C : (∆; Γ; τ) ; (∆′; Γ′; τ′[μα .τ′/α ])
+⊢ roll C as μα .τ′ : (∆; Γ; τ) ; (∆′; Γ′; μα .τ′)
+(CUNROLL ) ⊢ C : (∆; Γ; τ) ; (∆′; Γ′; μα .τ′)
+⊢ unroll C : (∆; Γ; τ) ; (∆′; Γ′; τ′[μα .τ′])
+(CNEW ) ⊢ C : (∆; Γ; τ) ; (∆′, α ≈τ1; Γ′; τ2) ∆′ ⊢ τ2 ∆′ ⊢ Γ′
+⊢ new α ≈τ′ in C : (∆; Γ; τ) ; (∆′; Γ′; τ2)
+(CCONV ) ⊢ C : (∆; Γ; τ) ; (∆′; Γ′; τ′) ∆′ ⊢ τ′ ≈ τ′′
+⊢ C : (∆; Γ; τ) ; (∆′; Γ′; τ′′)
+
+=== PAGE 59 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 59
+Termination & Divergence σ;e ↓ σ;e ↑
+σ;e ↓ def⇐ ⇒ ∃σ ′,v. σ;e֒→∗ σ ′;v
+σ;e ↑ def⇐ ⇒∄σ ′,v. σ;e֒→∗ σ ′;v
+Contextual Approximation ∆; Γ ⊢ e ≤ e : τ
+∆; Γ ⊢ e1 ≤ e2 : τ def⇐ ⇒ ∆; Γ ⊢ e1 : τ∧ ∆; Γ ⊢ e2 : τ∧ ∀σ ,C, τ′.
+⊢ σ ∧ ⊢C : (∆; Γ; τ) ; (σ; ε; τ′) ∧ σ;C[e1] ↓ ⇒ σ;C[e2] ↓
+Contextual Equivalence ∆; Γ ⊢ e ≡ e : τ
+∆; Γ ⊢ e1 ≡ e2 : τ def⇐ ⇒∆; Γ ⊢ e1 ≤ e2 : τ∧ ∆; Γ ⊢ e2 ≤ e1 : τ
+A.5 Encoding Recursive Functions
+A.5.1 Using cast
+ﬁx ′ f (x).e : τ1 → τ2 with vd := λxa:τ1.v (∀α .α → τ1 → τ2) v xa
+where v = Λα .λxs:α .(λ f :(τ1 → τ2).λx:τ1.e) v′
+and v′ = λxa:τ1.(cast α (∀α .α → τ1 → τ2) xs vd) xa
+Due to cast’s required default argument, ﬁx ′ also needs to take a default value. Con-
+sequently, a ﬁxed-point operator only exists for inhabited types. It is easy to verify the
+following two properties:
+• σ; (ﬁx ′ f (x).e : τ1 → τ2 with vd) v֒→∗ σ;e[ﬁx ′ f (x).e : τ1 → τ2 with vd/ f ][v/x], for
+any σ.
+• If ∆; Γ, f :τ1 → τ2,x:τ1 ⊢ e : τ2 and ∆; Γ ⊢ vd : ∀α .α → τ1 → τ2, then ∆; Γ ⊢ (ﬁx ′ f (x).e :
+τ1 → τ2 with vd) : τ1 → τ2.
+A.5.2 Using Recursive Types
+ﬁx f (x).e : τ1 → τ2 := λxa:τ1.v (roll v as μα .α → τ1 → τ2) xa
+where v = λxs:(μα .α → τ1 → τ2).(λ f :(τ1 → τ2).λx:τ1.e)
+(λxa:τ1.(unroll xs) xs xa)
+It is easy to verify the following two properties:
+• σ; (ﬁx f (x).e : τ1 → τ2) v֒→∗ σ;e[ﬁx f (x).e : τ1 → τ2/ f ][v/x], for any σ.
+• If ∆; Γ, f :τ1 → τ2,x:τ1 ⊢ e : τ2, then ∆; Γ ⊢ (ﬁx f (x).e : τ1 → τ2) : τ1 → τ2.
+
+=== PAGE 60 ===
+ZU064-05-FPR main 29 April 2011 15:27
+60 Georg Neis, Derek Dreyer and Andreas Rossberg
+B Some Proofs
+B.1 Lemma 13 from Section 4
+If (δ1, δ2, ρ) ∈ Dn[ [∆] ]w0 and δ = au(δ1, δ2,w0.η) and ∆ ⊢ τ, then:
+1. Vn[ [τ] ]ρ = Vn[ [δ(τ)] ]w0.ρ
+2. En[ [τ] ]ρ = En[ [δ(τ)] ]w0.ρ
+Proof
+By primary induction on n and secondary induction on the derivation of ∆ ⊢ τ. We show
+the interesting cases.
+1. • Case τ = α were α ∈ ∆:
+— Then we know from the deﬁnition of Dn[ [∆] ]w0 that there is (τ1, τ2,r) ∈
+Tn[ [Ω ] ]w0 such that δi = δi1, α ↦→τi, δi2 and ρ = ρ1, α ↦→r, ρ2.
+— By deﬁnition of Tn[ [Ω ] ]w0 there is τ′ such that τi = w0.η i(τ′) and r.R =
+Vn[ [τ′] ]w0.ρ.
+— Hence Vn[ [α ] ]ρ = Vn[ [τ′] ]w0.ρ.
+— Since τi = w0.η i(δ(α )) by Lemma 12, the injectivity of w0.η i implies τ′ =
+δ(α ).
+• Case τ = α where α ≈τ′ ∈ ∆:
+— Then we know from the deﬁnition of Dn[ [∆] ]w0 that δi = δi1, α ↦→αi, δi2 and
+ρ = ρ1, α ↦→(ρ1
+1 (τ′), ρ2
+1 (τ′),Vn[ [τ′] ]ρ1), ρ2 with αi = w0.η i(α ′) and Vn[ [τ′] ]ρ1 =
+w0.ρ(α ′).R for some α ′.
+— Because of the injectivity of w0.η i, w0.η i(α ′) = αi = δi(α ) = w0.η iδ(α )
+implies α ′ = δ(α ).
+— Hence Vn[ [α ] ]ρ = Vn[ [τ′] ]ρ1 = Vn[ [α ′] ]w0.ρ = Vn[ [δ(α )] ]w0.ρ.
+• Case τ = ∀α .τ′ with ∆, α ⊢ τ′:
+— We showVn[ [τ] ]ρ ⊆ Vn[ [δ(τ)] ]w0.ρ; the other direction is symmetric.
+— Suppose (k,w, Λα .e1, Λα .e2) ∈ Vn[ [∀α .τ′] ]ρ.
+— Suppose further (k′′,w′′) = (k′,w′) ⊒ (k,w) and (τ1, τ2,r) ∈ Tk′ [ [Ω ] ]w′.
+— We know (k′′,w′′,e1[τ1/α ],e2[τ2/α ]) ∈ En[ [τ′] ]ρ, α ↦→r.
+— To show: (k′′,w′′,e1[τ1/α ],e2[τ2/α ]) ∈ En[ [δ(τ′)] ]w0.ρ, α ↦→r
+— This reduces to showing Ek′[ [τ′] ]⌊ρ⌋k′, α ↦→r = Ek′ [ [δ(τ′)] ]w′.ρ, α ↦→r.
+— By assumption and Lemma 4, (δ1, δ2, ⌊ρ⌋k′ ) ∈ Dk′[ [∆] ]w′.
+— Let (δ′
+1, δ′
+2, ρ′) := ((δ1, α ↦→τ1), (δ2, α ↦→τ2), (⌊ρ⌋k′ , α ↦→r)), so (δ′
+1, δ′
+2, ρ′) ∈
+Dk′ [ [∆, α ] ]w′.
+— By Lemma 12, δ = au(δ1, δ2,w′.η).
+— Since (τ1, τ2,r) ∈ Tk′ [ [Ω ] ]w′ we know τi = w′.η i(τ′′) and
+r = (w′.ρ1(τ′′),w′.ρ2(τ′′),Vk′ [ [τ′′] ]w′.ρ).
+— It is easy to see then that δ, α ↦→τ′′ = au(δ′
+1, δ′
+2,w′.η).
+— Hence by induction, Ek′[ [τ′] ]ρ′ = Ek′[ [δ(τ′)[τ′′/α ]] ]w′.ρ.
+
+=== PAGE 61 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 61
+— And by LR-Substitution,
+Ek′[ [δ(τ′)[τ′′/α ]] ]w′.ρ
+= Ek′[ [δ(τ′)] ]w′.ρ, α ↦→(w′.ρ1(τ′′),w′.ρ2(τ′′),Vk′ [ [τ′′] ]w′.ρ)
+= Ek′[ [δ(τ′)] ]w′.ρ, α ↦→r.
+2. Follows immediately from part (1).
+B.2 Partly Benign Effects (Repeatability)
+Consider the following functions (where τ is arbitrary but closed):
+v1 := λx:(unit → τ). let x′ = x () in x ()
+v2 := λx:(unit → τ). x ()
+We ﬁrst prove ε; ε ⊢ v1≼ v2 : (unit → τ) → τ. The key here is that we relate the second
+call of x in v1—the one whose return value matters—to the single call of x in v2. To do so,
+we have to construct a world w′
+1 that differs from the “initial” worldw′ in that its ﬁrst type
+store is the one in which the second call of x is executed.
+Proof
+• Suppose w0 ∈ Worldn and (k,w) = (n,w0).
+• To show: (k,w,v1,v2) ∈ Vn[ [(unit → τ) → τ] ]
+• So suppose (k′,w′, λx.e1, λx.e2) ∈ Vn[ [unit → τ] ]where (k′,w′) ⊒ (k,w).
+• To show: (k′,w′, let x′ = (λx.e1) () in (λx.e1) (), (λx.e2) ()) ∈ En[ [τ] ]
+• Suppose that w′.σ1; let x′ = (λx.e1) () in (λx.e1) () terminates:
+w′.σ1; let x′ = (λx.e1) () in (λx.e1) ()
+֒→1 w′.σ1; let x′ = e1[()/x] in (λx.e1) ()
+֒→j1 σ ′
+1; let x′ = v′
+1 in (λx.e1) ()
+֒→1 σ ′
+1; (λx.e1) ()
+֒→1 σ ′
+1;e1[()/x]
+֒→j2 σ1;v′′
+1
+and that 3 + j1 + j2 =: j < k′.
+• Let w′
+1 := (σ ′
+1,w′.σ2,w′.η,w′.ρ), so (k′,w′
+1) ⊒ (k′,w′).
+• Instantiating (k′,w′, λx.e1, λx.e2) ∈ Vn[ [unit → τ] ]with (k′ − j1 − 3, ⌊w′
+1⌋, (), ()) ∈
+Vn[ [unit] ]gives us (k′ − j1 − 3, ⌊w′
+1⌋,e1[()/x],e2[()/x]) ∈ En[ [τ] ].
+• Instantiating this with σ ′
+1;e1[()/x]֒→j2 σ1;v′′
+1 yields (k′ − j,w′′) ⊒ (k′ − j1 −3, ⌊w′
+1⌋)
+such that
+w′.σ2;e2[()/x]֒→∗ w′′.σ2;v′
+2
+with w′′.σ1 = σ1 and (k′ − j,w′′,v′′
+1,v′
+2) ∈ Vn[ [τ] ].
+• This implies (k′ − j,w′′) ⊒ (k′,w′) and
+w′.σ2; (λx.e2) ()֒→∗ w′′.σ2;v′
+2.
+
+=== PAGE 62 ===
+ZU064-05-FPR main 29 April 2011 15:27
+62 Georg Neis, Derek Dreyer and Andreas Rossberg
+It remains to show the other direction,i.e., ε; ε ⊢ v2≼ v1 : (unit → τ) → τ. We ﬁrst relate
+the single call of x in v2 (resulting in a value v′
+1) to the ﬁrst call of x in v1. From that we
+learn that the latter terminates. We can then construct a world w′
+2 from w′ as in the previous
+part and use that to relate the call of x in v2 also to the second call of x in v1. From that we
+learn that also this call terminates and that it results in a value v′′
+2 to which v′
+1 is related.
+Proof
+• Suppose w0 ∈ Worldn and (k,w) = (n,w0).
+• To show: (k,w,v2,v1) ∈ Vn[ [(unit → τ) → τ] ]
+• So suppose (k′,w′, λx.e1, λx.e2) ∈ Vn[ [unit → τ] ]where (k′,w′) ⊒ (k,w).
+• To show: (k′,w′, (λx.e1) (), let x′ = (λx.e2) () in (λx.e2) ()) ∈ En[ [τ] ]
+• Suppose w′.σ1; (λx.e1) () terminates:
+w′.σ1; (λx.e1) ()
+֒→1 w′.σ1;e1[()/x]
+֒→j′
+σ1;v′
+1
+and that 1 + j′ =: j < k′.
+• Instantiating (k′,w′, λx.e1, λx.e2) ∈Vn[ [unit → τ] ]with (k′ −1, ⌊w′⌋, (), ()) ∈Vn[ [unit] ]
+yields (k′ − 1, ⌊w′⌋,e1[()/x],e2[()/x]) ∈ En[ [τ] ].
+• Consequently there exists (k′ − j,w′′) ⊒ (k′ − 1, ⌊w′⌋) such that
+w′.σ2;e2[()/x]֒→∗ w′′.σ2;v′
+2.
+• Let w′
+2 = (w′.σ1,w′′.σ2,w′.η,w′.ρ), so (k′,w′
+2) ⊒ (k′,w′).
+• Instantiating (k′,w′, λx.e1, λx.e2) ∈Vn[ [unit → τ] ]with (k′ −1, ⌊w′
+2⌋, (), ()) ∈Vn[ [unit] ]
+yields (k′ − 1, ⌊w′
+2⌋,e1[()/x],e2[()/x]) ∈ En[ [τ] ].
+• Consequently there exists (k′ − j,w′′′) ⊒ (k′ − 1, ⌊w′
+2⌋) such that
+w′′.σ2;e2[()/x]֒→∗ w′′′.σ2;v′′
+2
+with w′′′.σ1 = σ1 and (k′ − j,w′′′,v′
+1,v′′
+2) ∈ Vn[ [τ] ].
+• Note that
+w′.σ2; let x′ = (λx.e2) () in (λx.e2) ()
+֒→1 w′.σ2; let x′ = e2[()/x] in (λx.e2) ()
+֒→∗ w′′.σ2; let x′ = v′
+2 in (λx.e2) ()
+֒→1 w′′.σ2; (λx.e2) ()
+֒→1 w′′.σ2;e2[()/x]
+֒→∗ w′′′.σ2;v′′
+2
+B.3 Partly Benign Effects (Order Independence)
+Consider the following functions (where τ and τ′ are arbitrary but closed):
+v′
+1 := λx:(unit → τ).λy:(unit → τ′). lety′ = y () in ⟨x (),y′⟩
+v′
+2 := λx:(unit → τ).λy:(unit → τ′). ⟨x (),y ()⟩
+We show ε; ε ⊢ v′
+1≼ v′
+2 : (unit → τ) → (unit → τ′) → (τ× τ′). (The proof for the other
+direction is nearly identical.) We start by constructing a world w′
+2 from the “initial” world
+
+=== PAGE 63 ===
+ZU064-05-FPR main 29 April 2011 15:27
+Non-Parametric Parametricity 63
+w′′ that lets us relate the second application in v′
+1 (namely x ()) to the corresponding ﬁrst
+application in v′
+2, which yields a future world w′′
+2 and values v′′
+1, v′′
+2 that are related in it. We
+then construct another world w′
+1 that lets us relate the ﬁrst application inv′
+1 (namely y ()) to
+the corresponding second application in v′
+2, which yields a future world w′′
+1 and values v′
+3,
+v′
+4 that are related in it. Finally, we need to merge worldsw′′
+1 and w′′
+2 to obtain a single future
+world w3 in which the resulting pairs ⟨v′′
+1,v′
+3⟩, ⟨v′′
+2,v′
+4⟩are related. The well-formedness of
+that world is not obvious and needs to be veriﬁed by case analysis.
+Proof
+• Suppose w0 ∈ Worldn and (k,w) = (n,w0).
+• To show: (k,w,v′
+1,v′
+2) ∈ Vn[ [(unit → τ) → (unit → τ′) → (τ× τ′)] ]
+• So suppose (k′,w′, λz.e1, λz.e2) ∈ Vn[ [unit → τ] ]where (k′,w′) ⊒ (k,w).
+• To show: (k′,w′, λy. lety′ = y () in ⟨(λz.e1) (),y′⟩,
+λy. ⟨(λz.e2) (),y ()⟩) ∈ Vn[ [(unit → τ′) → (τ× τ′)] ]
+• So suppose (k′′,w′′, λz′.e3, λz′.e4) ∈ Vn[ [unit → τ′] ]where (k′′,w′′) ⊒ (k′,w′).
+• To show: (k′′,w′′, lety′ = (λz′.e3) () in ⟨(λz.e1) (),y′⟩,
+⟨(λz.e2) (), (λz′.e4) ()⟩) ∈ En[ [τ× τ′] ]
+• Suppose w′′.σ1; lety′ = (λz′.e3) () in ⟨(λz.e1) (),y′⟩terminates
+w′′.σ1; lety′ = (λz′.e3) () in ⟨(λz.e1) (),y′⟩
+֒→1 w′′.σ1; lety′ = e3[()/z′] in ⟨(λz.e1) (),y′⟩
+֒→j1 σ ′
+1; lety′ = v′
+3 in ⟨(λz.e1) (),y′⟩
+֒→1 σ ′
+1; ⟨(λz.e1) (),v′
+3⟩
+֒→1 σ ′
+1; ⟨e1[()/z],v′
+3⟩
+֒→j2 σ1; ⟨v′′
+1,v′
+3⟩
+and j1 + j2 + 3 =: j < k′′.
+• Let (k′
+2,w′
+2) := (k′′ − j1 − 3, (σ ′
+1,w′′.σ2,w′′.η, ⌊w′′.ρ⌋)), so (k′
+2,w′
+2) ⊒ (k′′,w′′).
+• Instantiating (k′,w′, λz.e1, λz.e2) ∈Vn[ [unit → τ] ]with (k′
+2,w′
+2, (), ()) ∈Vn[ [unit] ]gives
+us (k′
+2,w′
+2,e1[()/z],e2[()/z]) ∈ En[ [τ] ].
+• Note that w′
+2.σ1 = σ ′
+1.
+• Consequently, there exists (k′′ − j,w′′
+2) ⊒ (k′
+2,w′
+2) such that
+w′′.σ2;e2[()/z]֒→∗ w′′
+2.σ2;v′′
+2
+with w′′
+2.σ1 = σ1 and (k′′ − j,w′′
+2,v′′
+1,v′′
+2) ∈ Vn[ [τ] ].
+• Let (k′
+1,w′
+1) := (k′′ − 1, (w′′.σ1,w′′
+2.σ2,w′′.η, ⌊w′′.ρ⌋)), so (k′
+1,w′
+1) ⊒ (k′′,w′′).
+• Instantiating (k′′,w′′, λz′.e3, λz′.e4) ∈ Vn[ [unit → τ′] ]with (k′
+1,w′
+1, (), ()) ∈ Vn[ [unit] ]
+gives us (k′
+1,w′
+1,e3[()/z′],e4[()/z′]) ∈ En[ [τ′] ].
+• Note that w′
+1.σ1 = w′′.σ1.
+• Consequently, there exists (k′′ − 1 − j1,w′′
+1) ⊒ (k′
+1,w′
+1) such that
+w′′
+2.σ2;e4[()/z′]֒→∗ w′′
+1.σ2;v′
+4
+with w′′
+1.σ1 = σ ′
+1 and (k′′ − 1 − j1,w′′
+1,v′
+3,v′
+4) ∈ Vn[ [τ′] ].
+• W.l.o.g. (dom(w′′
+1.η) \ dom(w′′.η)) ∩ (dom(w′′
+2.η) \ dom(w′′.η)) = / 0, sow′′
+1.η ∪
+w′′
+2.η and w′′
+1.ρ ∪ w′′
+2.ρ are well-deﬁned.
+• Let w3 := (w′′
+2.σ1,w′′
+1.σ2,w′′
+1.η ∪ w′′
+2.η, ⌊w′′
+1.ρ⌋k′′− j ∪ w′′
+2.ρ).
+• To see that w3 is well-formed, it remains to show the injectivity of w3.η i:
+
+=== PAGE 64 ===
+ZU064-05-FPR main 29 April 2011 15:27
+64 Georg Neis, Derek Dreyer and Andreas Rossberg
+— Note that rng(w′′
+1.η i) \ rng(w′′.η i) ⊆ dom(w′′
+1.σi) \ dom(w′
+1.σi) by deﬁnition of
+world extension.
+— Similarly, rng(w′′
+2.η i) \ rng(w′′.η i) ⊆ dom(w′′
+2.σi) \ dom(w′
+2.σi) by deﬁnition of
+world extension.
+— Suppose α , α ′ ∈ dom(w3.η).
+— Case α , α ′ ∈ dom(w′′.η): Trivial.
+— Case α ∈ dom(w′′.η) and α ′ ∈ dom(w′′
+1.η) \ dom(w′′.η):
+– Then w3.η i(α ) ∈ dom(w′′.σi) and w3.η i(α ′) ∈ dom(w′′
+1.σi) \ dom(w′
+1.σi).
+– Since w′
+1.σi = w′′.σi, we have w3.η i(α ) ⁄= w3.η i(α ′).
+— Case α ∈ dom(w′′.η) and α ′ ∈ dom(w′′
+2.η) \ dom(w′′.η):
+– Then w3.η i(α ) ∈ dom(w′′.σi) and w3.η i(α ′) ∈ dom(w′′
+2.σi) \ dom(w′
+2.σi).
+– Since w′
+1.σi = w′′.σi, we have w3.η i(α ) ⁄= w3.η i(α ′).
+— Case α ∈ dom(w′′
+1.η) \ dom(w′′.η) and α ′ ∈ dom(w′′
+2.η) \ dom(w′′.η):
+– Then w3.η i(α ) ∈ dom(w′′
+1.σi) \ dom(w′
+1.σi) and w3.η i(α ′) ∈ dom(w′′
+2.σi) \
+dom(w′
+2.σi).
+– For i = 1 this means w3.η 1(α ) ∈ dom(w′′
+1.σ1) = dom(σ ′
+1) = dom(w′
+2.σ1), so
+it cannot equal w3.η 1(α ′).
+– For i = 2 this means w3.η 2(α ) ∈ dom(w′′
+1.σ2) \ dom(w′′
+2.σ2), so it cannot
+equal w3.η 2(α ′).
+• Also note that (k′′ − j,w3) ⊒ (k′′ − j,w′′
+2) and (k′′ − j,w3) ⊒ (k′′ − 1 − j1,w′′
+1).
+• Hence (k′′ − j,w3,v′′
+1,v′′
+2) ∈ Vn[ [τ] ]and (k′′ − j,w3,v′
+3,v′
+4) ∈ Vn[ [τ′] ]and therefore
+(k′′ − j,w3, ⟨v′′
+1,v′
+3⟩, ⟨v′′
+2,v′
+4⟩) ∈ Vn[ [τ× τ′] ].
+• And of course
+w′′.σ2; ⟨(λz.e2) (), (λz′.e4) ()⟩֒→∗ w3.σ2; ⟨v′′
+2,v′
+4⟩.

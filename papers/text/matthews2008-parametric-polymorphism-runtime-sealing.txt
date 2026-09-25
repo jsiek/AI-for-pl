@@ -1,0 +1,827 @@
+
+
+=== PAGE 1 ===
+Parametric polymorphism through run6time sealing
+or5 Theorems for low5 low pricest
+[acob =atthewsﬁ and ”mal ”hmedﬂ
+ﬁ University of !hicago jacobm@cs.uchicago.edu
+ﬂ Toyota Technological )nstitute at !hicago amal@tti-c.org
+Abstract0 We show how to extend System –’s parametricity guarantee to a =atthewsw
+–indlerwstyle multiwlanguage system that combines System – with an untyped
+language by use of dynamic sealingx While the use of sealing for this purpose
+has been suggested beforev it has never been proven to preserve parametricityx )n
+this paper we prove that it does using stepwindexed logical relationsx Using this
+result we show a scheme for implementing parametric higherworder contracts in
+an untyped setting which corresponds to a translation given by Sumii and Piercex
+These contracts satisfy rich enough guarantees that we can extract analogues to
+Wadler’s free theorems that rely on runwtime enforcement of dynamic sealsx
+! Introduction
+There have been two major strategies for hiding the implementation details of one part
+of a program from its other parts8 the static approach and the dynamic approachx
+The static approach can be summarized by the slogan “information hiding . paraw
+metric polymorphismx” )n itv the language’s type system is equipped with a facility
+such as existential types so that it can reject programs in which one module makes unw
+warranted assumptions about the internal details of anotherv even if those assumptions
+happen to be truex This approach rests on Reynolds’ notion of abstraction [ﬁ]v later
+redubbed the “parametricity” theorem by Wadler [ﬂ]x
+The dynamic approachv which goes back to =orris [1]v can be summarized by the
+alternate slogan “information hiding . local scope u generativityx” Rather than statically
+rejecting programs that make unwarranted assumptionsv the dynamic approach simply
+takes away programs’ ability to see if those assumptions are correctx )t allows a prow
+grammer to dynamically seal values by creating unique keys rcreate’seal 8 → keys and
+using those keys with locking and unlocking operations rseal 8 v × key → opaque and
+unseal 8 opaque × key → v respectivelysx ” value locked with a particular key is opaque
+to third parties8 nothing can be done but unlock it with the same keyx (ere is a simple
+implementation written in Schemev where gensym is a function that generates a newv
+completely unique symbol every time it is called8
+rdeﬁne rcreate’seals rgensymss
+rdeﬁne rseal v s1s rλ rs2s rif req? s1 s2s v rerrorssss
+rdeﬁne runseal sealed’v ss rsealed’v sss
+Using this facility a module can hand out a particular value while hiding its repw
+resentation by creating a fresh seal in its private lexical scopev sealing the value and
+hand the result to clientsv and then unsealing it again whenever it returnsx This is the
+
+=== PAGE 2 ===
+primary informationwhiding mechanism in many untyped languagesx –or instance P+T
+Scheme [2] uses generative structsv essentially a rmuchs more sophisticated version of
+sealsv to build abstractions for a great variety of programming constructs such as an obw
+ject systemx –urthermorev the idea has seen some use recently even in languages whose
+primary informationwhiding mechanism is staticv as recounted by Sumii and Pierce [3]x
+“oth of these strategies seem to match an intuitive understanding of what informationw
+hiding ought to entailx So it is surprising that a fundamental question — what is the
+relationship between the guarantee provided by the static approach and the dynamic
+approach, — has not been answered in the literaturex
+)n this paper we take a new perspective on the problemv posing it as a question
+of parametricity in a multiwlanguage system [4]x ”fter reviewing our previous work
+on multiwlanguage systems and giving a multiwlanguage system that combines Sysw
+tem – rhenceforth “=+”s and an untyped callwbywvalue lambda calculus rhenceforth
+“Scheme”s rsection ﬂsv we use this vantage point to show two resultsx –irstv in section 1
+we show that dynamic sealing preserves =+’s parametricity guarantee even when interw
+operating with Schemex –or the proofv we deﬁne two stepwindexed logical relations [5]v
+one for =+ rindexed by both types as well asv intuitivelyv the number of steps availw
+able for future evaluations and one for Scheme rindexed only by steps since Scheme
+is untypedsx The stratiﬁcation provided by stepwindexing is essential for modeling unw
+bounded computationv available in Scheme due to the presence of what amounts to a
+recursive typev and available in =+ via interaction with Schemex Then we show the
+fundamental theorems of each relationx The novelty of this proof is its use of what we
+call the “bridge lemmav” which states that if two terms are related in one languagev
+then wrapping those terms in boundaries results in terms that are related in the otherx
+The proof is otherwise essentially standardx Secondv in section 2 we restrict our attenw
+tion to Scheme programs that use boundaries with =+ only to implement a contract
+system [6]x ”ppealing to the ﬁrst parametricity resultv we give a more usefulv contractw
+indexed relation for dealing with these terms and prove that it relates contracted terms to
+themselvesx )n section 2xﬁ we show that our notion of contracts corresponds to –indler
+and –elleisen’sv and to a translation given by Sumii and Pierce [3v section 6]x
+We have elided most proofs herex They can be found in this paper’s companion
+technical report [7]x
+? A brief introduction to multi6language systems
+To make the present work selfwcontainedv in this section we summarize some relevant
+material from earlier work [4]x
+The natural embedding. The natural embedding multiwlanguage systemv presented in
+ﬁgure ﬁ is a method of modeling the semantics of a minimal “=+” rsimplywtypedv callw
+bywvalue lambda calculuss with a minimal “Scheme” runtypedv callwbywvalue lambda
+calculuss such that both languages have natural access to foreign valuesx They receive
+foreign numbers as native numbersv and they can call foreign functions as native funcw
+tionsx ’ote that throughout this paper we have typeset the nonterminals of our =+
+
+=== PAGE 3 ===
+e = x | v | (e e) | (op e e) | (if, e e e)
+| (cons e e) | (τMS e)
+v = λ x 8 τ.e | n | nil | (cons vﬁ vﬂ) | fst | rst
+op = + | −
+τ = Nat | τ → τ | τ∗
+x = =+ variables
+E = [ ]M | (E e) | (v E) | (op E e) | (op v E)
+| (if, E e e) | (cons E e) | (cons v E) | (τMS E)
+Γ , x 8 τ ⊣M x 8 τ
+Γ , x 8 τﬁ ⊣M e 8 τﬂ
+Γ ⊣M λ x 8 τﬁ. e 8 τﬁ → τﬂ
+Γ ⊣M eﬁ 8 τﬁ → τﬂ Γ ⊣M eﬂ 8 τﬁ
+Γ ⊣M (eﬁ eﬂ) 8 τﬂ
+Γ ⊣M nil 8 τ∗
+Γ ⊣M eﬁ 8 τ Γ ⊣M eﬂ 8 τ∗
+Γ ⊣M (cons eﬁ eﬂ) 8 τ∗
+Γ ⊣M rst 8 τ∗ → τ∗ Γ ⊣M fst 8 τ∗ → τ
+Γ ⊣M n 8 Nat
+Γ ⊣M eﬁ 8 Nat Γ ⊣M eﬂ 8 Nat
+Γ ⊣M (op eﬁ eﬂ) 8 Nat
+Γ ⊣M eﬁ 8 Nat Γ ⊣M eﬂ 8 τ Γ ⊣M e1 8 τ
+Γ ⊣M (if, eﬁ eﬂ e1) 8 τ
+Γ ⊣S e 8 TST
+Γ ⊣M (τMS e) 8 τ
+E [((λ x 8 τ. e) v)]M ↦→E [e[v/x]]
+E [(+ nﬁ nﬂ)]M ↦→E [nﬁ + nﬂ]
+E [(− nﬁ nﬂ)]M ↦→E [max(nﬁ − nﬂ, z)]
+E [(if, z eﬁ eﬂ)]M ↦→E [eﬁ]
+E [(if, n eﬁ eﬂ)]M ↦→E [eﬂ] where n ⁄= z
+E [(fst (cons vﬁ vﬂ))]M ↦→E [vﬁ]
+E [(fst nil)]M ↦→Error8 nil
+E [(rst (cons vﬁ vﬂ))]M ↦→E [vﬂ]
+E [(rst nil)]M ↦→Error8 nil
+E [(NatMS n)]M ↦→E [n]
+E [(NatMS v)]M ↦→Error8 ’onwnum
+where v ⁄= n for any n
+E [(τﬁ ↦→τﬂMS(λ x.e))]M ↦→
+E [(λ x 8 τﬁ.(τﬂMS ((λ x.e) (SMτﬁ x))))]
+E [(τﬁ ↦→τﬂMS v)]M ↦→Error8 nonwproc
+where v ⁄= λ x.e for any xv e
+E [(τ∗
+MS nil)]M ↦→E [nil]
+E [(τ∗
+MS (cons vﬁ vﬂ))]M ↦→
+E [(cons (τMS vﬁ) (τ∗
+MS vﬂ))]
+E [(τ∗
+MS v)]M ↦→Error8 ’onwlist
+where v is not a pair or nil
+e = v | (e e) | x | (op e e) | (if, e e e)
+| (pd e) | (cons e e) | (SMτ e)
+v = (λ x.e) | n | nil | (cons vﬁ vﬂ) | fst | rst
+op = + | −
+pd = proc, | nat, | nil, | pair,
+x = Scheme variables
+E = [ ]S | (E e) | (v E) | (op E e) | (op v E)
+| (if, E e e) | (pred E) | (cons E e)
+| (cons v E) | (SMτ E)
+Γ , x 8 TST ⊣S e 8 TST
+Γ ⊣S λ x. e 8 TST
+Γ ⊣M e 8 τ
+Γ ⊣S (SMτ e) 8 TST · · ·
+E [((λ x. e) v)]S ↦→E [e[v/x]]
+E [(vﬁ vﬂ)]S ↦→Error8 nonwproc
+vﬁ ⁄= λ x.e
+E [(+ nﬁ nﬂ)]S ↦→E [nﬁ + nﬂ]
+E [(− nﬁ nﬂ)]S ↦→E [max(nﬁ − nﬂ, z)]
+E [(op vﬁ vﬂ)]S ↦→Error8 nonwnum
+vﬁ ⁄= n or vﬂ ⁄= n
+E [(if, z eﬁ eﬂ)]S ↦→E [eﬁ]
+E [(if, v eﬁeﬂ)]S ↦→E [eﬂ] v ⁄= z
+E [(proc, (λ x. e))]S ↦→E [z]
+E [(proc, v)]S ↦→E [ﬁ]
+v ⁄= (λ x.e) for any xv e
+E [(nat, n)]S ↦→E [z]
+E [(nat, v)]S ↦→E [ﬁ]
+v ⁄= n for any n
+E [(nil, nil)]S ↦→E [z]
+E [(nil, v)]S ↦→E [ﬁ] v ⁄= nil
+E [(pair, (cons vﬁ vﬂ))]S ↦→E [z]
+E [(pair, v)]S ↦→E [ﬁ]
+v ⁄= (cons vﬁ vﬂ) for any vﬁv vﬂ
+E [(fst (cons vﬁ vﬂ))]S ↦→E [vﬁ]
+E [(fst v)]S ↦→Error8 nonwpair
+v ⁄= (cons vﬁ vﬂ) for any vﬁv vﬂ
+E [(rst (cons vﬁ vﬂ))]S ↦→E [vﬂ]
+E [(rst v)]S ↦→Error8 nonwpair
+v ⁄= (cons vﬁ vﬂ) for any vﬁv vﬂ
+E [(SMNat n)]S ↦→E [n]
+E [(SMτﬁ ↦→τﬂ v)]S ↦→
+E [(λ x. (SMτﬂ (v (τﬁMS x))))]
+E [(SMτ∗
+nil)]S ↦→E [nil]
+E [(SMτ∗
+(cons vﬁ vﬂ))]S ↦→
+E [(cons (SMτvﬁ) (SMτ∗
+vﬂ))]
+Fig0 !0 ’atural embedding of =+ rlefts and Scheme rrights
+
+=== PAGE 4 ===
+language using a bold red font with serifsv and those of our Scheme language with a
+light blue sans-serif fontx These font differences are semantically meaningfulx
+To the core languages we add new syntaxv evaluation contextsv and reduction rules
+that deﬁne syntactic boundariesv written τMS and SMτv to allow crosswlanguage comw
+municationx r–or this paper we have chosen arbitrarily to make topwlevel programs be
+=+ programs that optionally call into Schemev and so we choose E = E9 to make it the
+other way around we would let E = E insteadxs We assume we can translate numbers
+from one language to the otherv and give reduction rules for boundarywcrossing numbers
+based on that assumption8
+E [(SMNat n)]S ↦→ E [n] E [(NatMS n)]M ↦→ E [n]
+To convert procedures across languagesv we use native proxy proceduresx We repw
+resent a Scheme procedure in =+ at type τﬁ → τﬂ by a new procedure that takes an
+argument of type τﬁv converts it to a Scheme equivalentv runs the original Scheme prow
+cedure on that valuev and then converts the result back to =+ at type τﬂx –or examplev
+(τﬁ→ τﬂMS λ x.e) becomes (λ x 8 τﬁ.τﬂMS ((λ x.e) (SMτﬁ x))) and vice versa for Scheme
+to =+x ’ote that the boundary that converts the argument is an SMτﬁ boundaryv not
+an τﬁMS boundary—ixexv the direction of conversion reverses for function argumentsx
+Whenever a Scheme value is converted to =+v we also check that value’s ﬁrst order
+properties8 we check to see if a Scheme value is a number before converting it to an =+
+value of type Nat and that it is a procedure value before converting it to an =+ value of
+arrow type rand signal an error if either check failssx
+Theorem ! 1Natural embedding type safety [)]20 If ⊣M e 8 τ) then either e ↦→∗ v)
+e ↦→∗ Error: str) or e diverges.
+We showed in prior work that the dynamic checks in this system naturally give rise
+to higherworder contracts [6v ﬁz]9 in section 2 of this work we show another way of
+arriving at the same conclusionv this time equating a contract enforcing that an untyped
+term e behave as a rcloseds type speciﬁcation τ rwhich we write eτs by converting it to
+and from =+ at that type8 to a ﬁrst approximationv eτ = (SMτ (τMS e))x
+?0! Polymorphism5 attempt one
+”n omission from the “=+” side of the natural embedding to this point is that it contains
+no polymorphismx We now extend it to support polymorphism by replacing the simplyw
+typed lambda calculus with System –x When we do sov we immediately hit the question
+of how to properly handle boundariesx )n this subsectionv we make what we consider the
+most straightforward decision of how to handle boundaries and show that it results in a
+system that does not preserve System –’s parametricity property9 in the next subsection
+we reﬁne our strategy using dynamic sealing techniquesx
+–igure ﬂ shows the extensions we need to make to ﬁgure ﬁ to support nonwparametric
+polymorphismx To =+’s syntax we add type abstractions rΛ α . es and type application
+re⟨τ⟩s9 to its types we add ∀α . τ and α x ¨ur embedding converts Scheme functions that
+work polymorphically into polymorphic =+ valuesv and converts =+ type abstractions
+directly into plain Scheme functions that behave polymorphicallyx –or examplev =+
+might receive the Scheme function (λ x.x) from a boundary with type ∀α .α → α and
+
+=== PAGE 5 ===
+e = · · · | Λ α .e | e⟨τ⟩
+v = · · · | Λ α .e | (LMS v)
+τ = · · · | ∀α .τ | α | L
+∆ = • | ∆ , τ
+E = · · · | E⟨τ⟩
+∆ , α 9Γ ⊣M e 8 τ
+∆ 9Γ ⊣M (Λ α .e) 8 ∀α .τ
+∆ 9Γ ⊣M e 8 ∀α .τ′ ∆ ⊣ τ
+∆ 9Γ ⊣M e⟨τ⟩8 τ′[τ/α ]
+E [(Λ α .e)⟨τ⟩]M ↦→E [e[τ/α ]]
+E [(∀α .τMS v)]M ↦→E [(Λ α .(τMS v))]
+E [(SM∀α .τ v)]S ↦→E [(SMτ[L/α ] v⟨L⟩)]
+E [(SML (LMS v))]S ↦→E [v]
+Fig0 ?0 -xtensions to ﬁgure ﬁ for nonwparametric polymorphism
+use it successfully as an identity functionv and Scheme might receive the =+ type abw
+straction (Λ α .λ x 8 α .x) as a regular function that behaves as the identity function for
+any value Scheme gives itx
+To support this behaviorv the model must create a type abstraction from a regular
+Scheme value when converting from Scheme to =+v and must drop a type abstraction
+when converting from =+ to Schemex The former is straightforward8 we reduce a redex
+of the form (∀α .τMS v) by dropping the ∀ quantiﬁer on the type in the boundary and
+binding the nowwfree type variable in τ by wrapping the entire expression in a Λ formv
+yielding (Λ α . (τMS v))x
+This works for =+v but making a dual of it in Scheme would be somewhat sillyv
+since every Scheme value inhabits the same type so type abstraction and application
+forms would be uselessx )nsteadv we would like to allow Scheme to use an =+ value
+of typev sayv ∀α .α → α directly as a functionx To make boundaries with universallyw
+quantiﬁed types behave that wayv when we convert a polymorphic =+ value to a Scheme
+value we need to remove its initial typewabstraction by applying it to some type and then
+convert the resulting value according to the resulting typex ”s for which type to apply it
+tov we need a type to which we can reliably convert any Scheme valuev though it must
+not expose any of those values’ propertiesx )n prior workv we used the “lump” type to
+represent arbitraryv opaque Scheme values in =+9 we reuse it here as the argument to
+the =+ type abstractionx =ore speciﬁcally v we add L as a new base type in =+ and we
+add the cancellation rule for lumps to the set of reductions8 these changesv along with
+all the other additions required to support polymorphismv are summarized in ﬁgure ﬂx
+?0? Polymorphism5 attempt two
+”lthough this embedding is type safev the polymorphism is not parametric in the sense
+of Reynolds [ﬁ]x We can see this with an example8 it is wellwknown that in System –v
+for which parametricity holdsv the only value with type ∀α .α → α is the polymorphic
+identity functionx )n the system we have built so farv thoughv the term
+(∀α .α → αMS(λ x.(if0 (nat, x) (+ x ﬁ) x)))
+has type ∀α .α → α but when applied to the type Nat evaluates to
+(λ y.(NatMS((λ x.(if0 (nat, x) (+ x ﬁ) x)(SMNaty)))))
+Since the argument to this function is always a numberv this is equivalent to
+(λ y.(NatMS((λ x.(+ x ﬁ))(SMNaty))))
+which is wellwtyped but is not the identity functionx
+
+=== PAGE 6 ===
+e = · · · | Λ α .e | e⟨τ⟩| (κMS e)
+e = · · · | (SMκ e)
+v = · · · | Λ α .e | (LMS v)
+v = · · · | (SM⟨β 9τ⟩ v)
+τ = · · · | ∀α .τ | α | L
+κ = Nat | κﬁ → κﬂ | κ∗ | ∀α .κ | α | L | ⟨α 9 τ⟩
+∆ , α 9Γ ⊣M e 8 τ
+∆ 9Γ ⊣M (Λ α .e) 8 ∀α .τ
+∆ 9Γ ⊣M e 8 ∀α .τ′ ∆ ⊣ τ
+∆ 9Γ ⊣M e⟨τ⟩8 τ′[τ/α ]
+∆ 9Γ ⊣S e 8 TST ∆ ⊣ ⌊κ⌋
+∆ 9Γ ⊣M (κMS e) 8 ⌊κ⌋
+∆ 9Γ ⊣M e 8 ⌊κ⌋ ∆ ⊣ ⌊κ⌋
+∆ 9Γ ⊣S (SMκ e) 8 TST
+E [(SM∀α .τ v)]S ↦→E [(SMτ[L/α ] v⟨L⟩)]
+E [(SML (LMS v))]S ↦→E [v]
+E [(Λ α .e)⟨τ⟩]M ↦→E [e[τ/α ]]
+E [(∀α .κMS v)]M ↦→E [(Λ α .(κMS v))]
+E [(⟨α 9τ⟩MS (SM⟨α 9τ⟩ v))]M ↦→E [v]
+E [(⟨α 9τ⟩MS v)]M ↦→Error8 bad value
+rv ⁄= SM⟨α 9τ⟩ v for any vs
+⌊⌋8 κ → τ
+⌊Nat⌋= Nat
+⌊κﬁ → κﬂ⌋= ⌊κﬁ⌋→ ⌊κﬂ⌋
+⌊κ∗⌋= ⌊κ⌋∗
+⌊∀α .κ⌋= ∀α .⌊κ⌋
+⌊α ⌋= α
+⌊L⌋= L
+⌊⟨α 9 τ⟩⌋= τ
+Fig0 /0 -xtensions to ﬁgure ﬁ to support parametric polymorphism
+The problem with the misbehaving ∀α .α → α function above is that while the
+type system rules out =+ fragments that try to treat values of type α nonwgenericallyv
+it still allows Scheme programs to observe the concrete choice made for α and act
+accordinglyx To restore parametricityv we use dynamic seals to protect =+ values whose
+implementation should not be observedx When =+ provides Scheme with a value whose
+original type was α v Scheme gets a sealed value9 when Scheme returns a value to =+ at
+a type that was originally α v =+ unseals it or signals an error if it is not a sealed value
+with the appropriate keyx
+This means that we can no longer directly substitute types for free type variables on
+boundary annotationsx )nstead we introduce seals as typewlike annotations of the form
+⟨α 9 τ⟩that indicate on a boundary’s type annotation that a particular type is the instanw
+tiation of what was originally a type variablev and conversion schemes rindicated with
+metavariable κs as types that may also contain seals9 conversion schemes only appear
+as the annotations on boundariesx –rom a technical standpointv seals are introduced into
+a reduction sequence by the type substitution in the type application rulex –or a prew
+cise deﬁnitionv a type substitution η is a partial function from type variables to closed
+typesx We extend type substitutions to apply to typesv conversion schemesv and terms as
+follows rwe show the interesting casesv the rest are merely structural recursions8
+η (α ) def=
+{τ if ∃η ′. η = η ′, α 8 τ
+α otherwise
+η (κMS e) def= sl(η ,κ)MS η (e)
+η (SMκ e) def= SMsl(η ,κ) η (e)
+The boundary cases rwhich use the seal metafunction sl(· , · ) deﬁned belows are different
+from the regular type casesx When we close a type with respect to a type substitution
+η v we simply replace all occurrences of free variables with their mappings in η v but
+when we close a conversion scheme with respect to a type substitution we replace free
+variables with “sealed” instances of the types in η x The effect of this is that even when
+we have performed a type substitutionv we can distinguish between a type that was
+concrete in the original program and a type that was abstract in the original program but
+
+=== PAGE 7 ===
+has been substituted with a concrete typex The sl(· , · ) metafunction maps a type τ ror
+more generally a conversion scheme κs to an isomorphic conversion scheme κ where
+each instance of each type variable that occurs free in τ is replaced by an appropriate
+sealing declarationv if the type variable is in the domain of η x
+Deﬁnition ! 1sealing20 The metafunction sl(η , κ) is deﬁned as follows:
+sl(· , · ) 8 η × κ → κ
+sl(η , α ) def=
+{⟨α 9 η (α )⟩if η (α ) is deﬁned
+α otherwise
+sl(η , ⟨α 9 τ⟩) def= ⟨α 9 τ⟩
+sl(η , L) def= L
+sl(η , Nat) def= Nat
+sl(η , κﬁ → κﬂ) def= sl(η , κﬁ) → sl(η , κﬂ)
+sl(η , ∀α .κﬁ) def= ∀α .sl(η , κﬁ)
+sl(η , κ∗) def= sl(η , κ)∗
+We use the seal erasure metafunction ⌊⌋ to project conversion schemes to typesx
+–igure 1 deﬁnes these changes preciselyx ¨ne ﬁnal subtlety not written in ﬁgure 1 is
+that we treat a seal ⟨α 9 τ⟩as a free occurrence of α for the purposes of capturewavoiding
+substitutionv and we treat boundaries that include ∀α .τ types as though they were bindw
+ing instances of α x )n factv the production of fresh names by capturewavoiding substituw
+tion corresponds exactly to the production of fresh seals for information hidingv and the
+system would be neither parametric nor even typewsound were we to omit this detailx
+/ Parametricity
+)n this section we establish that the language of ﬁgure 1 is parametricv in the sense that
+all terms in the language map related environments to related resultsv using a syntactic
+logical relationx ¨ur parametricity property does not establish the exact same equivaw
+lences that would hold for terms in plain System –v but only because the embedding we
+are considering gives terms the power to diverge and to signal errorsx Sov for examplev
+we cannot show that any =+ value of type ∀α .α → α must be the identity functionv
+but we can show that it must be either the identity functionv the function that always
+divergesv or the function that always signals an errorx
+¨ur proof amounts to deﬁning two logical relationsv one for =+ and one for Scheme
+rsee ﬁgure 2s and proving that the =+ rSchemes relation relates each =+ rSchemes term
+to itself regardless of the interpretation of free type variablesx Though logical relations
+in the literature are usually deﬁned by induction on typesv we cannot use a typewindexed
+relation for Scheme since Scheme has only one typex This means in particular that
+the arguments to function values have types that are as large as the type of the function
+values themselves9 thus any relation that deﬁnes two functions to be related if the results
+are related for any pair of related arguments would not be wellwfoundedx )nstead we use
+a minor adaptation of the stepwindexed logical relation for recursive types given by
+”hmed [5]8 our Scheme logical relation is indexed by the number of steps k available
+for computationx )ntuitivelyv any two values are related for k steps if they cannot be
+distinguished by any computation running for no more than k stepsx
+Since we are interested in proving properties of =+ terms that may contain Scheme
+subtermsv the =+ relation must also be stepwindexed — if the Scheme subterms are
+only related for rsays 3z stepsv then the =+ terms cannot always be related for arbitrarily
+many stepsx Thusv the =+ relation is indexed by both types and steps ras in ”hmed [5]sx
+
+=== PAGE 8 ===
+Relτﬁ,τﬂ = { R | ∀(k, vﬁ, vﬂ) ∈ R. ∀j ≤ k. ( j, vﬁ, vﬂ) ∈ R and 9 ⊣ vﬁ 8 τﬁ and 9 ⊣ vﬂ 8 τﬂ }
+∆ ⊣ δ def= ∆ ⊆ dom(δ) and ∀α ∈ ∆ . δR(α ) ∈ Relδﬁ (α ),δﬂ (α )
+δ ⊣ γM ≤ kγ′
+M 8 ΓM
+def= ∀(x 8 τ) ∈ ΓM . γM (x) = vﬁ, γ′
+M (x) = vﬂ and δ ⊣ vﬁ ⪅k
+M vﬂ 8 τ
+δ ⊣ γS≤ kγ′
+S 8 ΓS
+def= ∀(x 8 TST) ∈ ΓS. γS(x) = vﬁ, γ′
+S(x) = vﬂ and δ ⊣ vﬁ ⪅k
+S vﬂ 8 TST
+δ ⊣ γ≤ kγ′8 Γ def= Γ = ΓM ∪ ΓS, γ = γM ∪ γS, γ′= γ′
+M ∪ γ′
+S and
+δ ⊣ γM ≤ kγ′
+M 8 ΓM and δ ⊣ γS≤ kγ′
+S 8 ΓS
+∆ 9Γ ⊣ eﬁ ≲M eﬂ 8 τ def= ∀k ≥ z. ∀δ, γﬁ, γﬂ. ∆ ⊣ δ and δ ⊣ γﬁ≤ kγﬂ 8 Γ ⇒
+δ ⊣ δﬁ(γﬁ(eﬁ)) ≲k
+M δﬂ(γﬂ(eﬂ)) 8 τ
+δ ⊣ eﬁ ≲k
+M eﬂ 8 τ def= ∀j < k. ( eﬁ ↪→ j Error8 s ⇒ eﬂ ↪→ ∗ Error8 s ) and
+( ∀vﬁ. eﬁ ↪→ j vﬁ ⇒ ∃vﬂ. eﬂ ↪→ ∗ vﬂ and δ ⊣ vﬁ ⪅k− j
+M vﬂ 8 τ)
+δ ⊣ vﬁ ⪅k
+M vﬂ 8 α def= (k, vﬁ, vﬂ) ∈ δR(α )
+δ ⊣ LMS vﬁ ⪅k
+M
+LMS vﬂ 8 L def= ∀j < k. δ ⊣ vﬁ ⪅ j
+S vﬂ 8 TST
+δ ⊣ n ⪅k
+M n 8 Nat :unconditionally,
+δ ⊣ λ x 8 δﬁ(τﬁ).eﬁ ⪅k
+M λ x 8 δﬂ(τﬁ).eﬂ 8 τﬁ → τﬂ
+def= ∀j < k. ∀vﬁ, vﬂ. δ ⊣ vﬁ ⪅ j
+M vﬂ 8 τﬁ ⇒
+δ ⊣ eﬁ[vﬁ/x] ≲ j
+M eﬂ[vﬂ/x] 8 τﬂ
+δ ⊣ Λ α .eﬁ ⪅k
+M Λ α .eﬂ 8 ∀α .τ def= ∀j < k. ∀ closed τﬁ, τﬂ. ∀R ∈ Relτﬁ ,τﬂ .
+δ, α 8 (τﬁ, τﬂ, R) ⊣ eﬁ[τﬁ/α ] ≲ j
+M eﬂ[τﬂ/α ] 8 τ
+δ ⊣ [vﬁ, · · · , vn] ⪅k
+M [v′
+ﬁ, · · · , v′n] 8 τ∗ def= ∀j < k. ∀i ∈ ﬁ . . . n. δ ⊣ vi ⪅ j
+M v′
+i 8 τ
+∆ 9Γ ⊣ eﬁ ≲S eﬂ 8 TST def= ∀k ≥ z. ∀δ, γﬁ, γﬂ. ∆ ⊣ δ and δ ⊣ γﬁ≤ kγﬂ 8 Γ ⇒
+δ ⊣ δﬁ(γﬁ(eﬁ)) ≲k
+S δﬂ(γﬂ(eﬂ)) 8 TST
+δ ⊣ eﬁ ≲k
+S eﬂ 8 TST def= ∀j < k. ( eﬁ ↪→ j Error8 s ⇒ eﬂ ↪→ ∗ Error8 s ) and
+( ∀vﬁ. eﬁ ↪→ j vﬁ ⇒ ∃vﬂ. eﬂ ↪→ ∗ vﬂ and δ ⊣ vﬁ ⪅k− j
+S vﬂ 8 TST )
+δ ⊣ n ⪅k
+S n 8 TST :unconditionally,
+δ ⊣ (SM⟨α 9τﬁ ⟩ vﬁ) ⪅k
+S (SM⟨α 9τﬂ ⟩ vﬂ) 8 TST def= ( (k, vﬁ, vﬂ) ∈ δR(α ) and δﬁ(α ) = τﬁ and δﬂ(α ) = τﬂ )
+or ( α /∈ dom(δ) and τﬁ = δﬁ(τ′) and τﬂ = δﬂ(τ′) and δ ⊣ vﬁ ⪅k
+M vﬂ 8 τ′)
+δ ⊣ λ x.eﬁ ⪅k
+S λ x.eﬂ 8 TST def= ∀j < k.∀vﬁ, vﬂ. δ ⊣ vﬁ ⪅ j
+S vﬂ 8 TST ⇒
+δ ⊣ eﬁ[vﬁ/x] ≲ j
+S eﬂ[vﬂ/x] 8 TST
+δ ⊣ nil ⪅k
+S nil 8 TST :unconditionally,
+δ ⊣ (cons vﬁ vﬂ) ⪅k
+S (cons v′
+ﬁ v′
+ﬂ) 8 TST def= ∀j < k. δ ⊣ vﬁ ⪅ j
+S v′
+ﬁ 8 TST and δ ⊣ vﬂ ⪅ j
+S v′
+ﬂ 8 TST
+Fig0 -0 +ogical approximation for =+ terms rmiddles and Scheme terms rbottoms
+
+=== PAGE 9 ===
+The deﬁni tions are largely independent rthough we do make a few concessions on
+this frontv in particular at the deﬁnition of the =+ relation at type Lsv but the proofs
+cannot bev since an =+ term can have an embedded Scheme subexpression and vice
+versax )nsteadv we prove the two claims by simultaneous induction and rely on a critical
+“bridge lemma” rlemma ﬁv see belows that lets us carry relatedness between languagesx
+Preliminaries. ” type relation δ is a partial function from type variables to triples
+(τﬁ, τﬂ, R)v where τﬁ and τﬂ are closed types and R is a set of triples of the form
+(k, vﬁ, vﬂ) rwhich intuitively means that vﬁ and vﬂ are related for k stepssx We use the
+following notations8 )f δ(α ) = (τﬁ, τﬂ, R) then δﬁ(α ) = τﬁv δﬂ(α ) = τﬂv and δR(α ) = Rx
+We also treat δﬁ and δﬂ as type substitutionsx )n the deﬁnition of the logical relation we
+only allow downward closed relations as choices for R9 i.e. relations that relate two
+values for k steps must also relate them for all j < k stepsx We make this restriction
+because downward closure is a critical property that would not otherwise holdx
+” Scheme r=+s substitution γS rγM s is a partial map from Scheme r=+s variables
+to closed Scheme r=+s valuesv and a substitution γ = γS ∪ γM for some γSv γM x We say
+that e ↪→ v ror Error8 ss if in all evaluation contexts E [e] ↦→E [v] ror Error8 ssx
+Lemma ! 1bridge lemma20 For all k ≥ z) type environments ∆ ) type relations δ such
+that ∆ ⊣ δ) types τ such that ∆ ⊣ τ) both of the following hold:
+1. For all eﬁ and eﬂ) if δ ⊣ eﬁ ≲k
+S eﬂ 8 TST then δ ⊣ (sl(δﬁ,τ)MS eﬁ) ≲k
+M (sl(δﬂ,τ)MS eﬂ) 8 τ.
+2. For all eﬁ and eﬂ) if δ ⊣ eﬁ ≲k
+M eﬂ 8 τ) then δ ⊣ (SMsl(δﬁ,τ) eﬁ) ≲k
+S (SMsl(δﬂ,τ) eﬂ) 8 TST.
+Proof. “y induction on τx ”ll cases are straightforward given the induction hypothesesx
+With the bridge lemma establishedv the fundamental theorem rand hence the fact
+that logical approximation implies contextual approximations is essentially standardx
+We restrict the parametricity theorem to sealwfree terms9 otherwise we would have to
+show that any sealed value is related to itself at type α which is falsex r” conversion
+strategy is sealwfree if it contains no instances of ⟨α 9 τ⟩for any α x ” term is sealwfree if
+it contains no conversion strategies with sealsxs This restriction is purely technicalv since
+the claim applies to open terms where seals may be introduced by closing environmentsx
+Theorem ? 1parametricity . fundamental theorem20 For all seal’free terms e and e:
+1. If ∆ 9Γ ⊣M e 8 τ) then ∆ 9Γ ⊣ e ≲M e 8 τ.
+2. If ∆ 9Γ ⊣S e 8 TST) then ∆ 9Γ ⊣ e ≲S e 8 TST.
+Proof. “y simultaneous induction on the derivations ∆ 9Γ ⊣M e 8 τ and ∆ 9Γ ⊣S e 8 TSTx
+The boundary cases both follow from lemma ﬁx
+- From multi6language to single6language sealing
+Suppose that instead of reasoning about multiwlanguage programsv we want to reason
+about Scheme terms but also to use a closed =+ type τ as a behavioral speciﬁcation for
+a Scheme term — Nat means the term must evaluate to a numberv Nat → Nat means the
+term must evaluate to a function that returns a number under the promise that the context
+will always provide it a numberv and so onx We can implement this using boundaries
+with the program fragment eτ = SMτ (τMS e)x
+
+=== PAGE 10 ===
+Rel = { R | ∀(k, vﬁ, vﬂ) ∈ R. ∀j ≤ k. ( j, vﬁ, vﬂ) ∈ R }
+σ ⊣ eﬁ ≤ k eﬂ 8 τ def= ∀j < k. ( eﬁ ↪→ j Error8 s ⇒ eﬂ ↪→ ∗ Error8 s ) and
+( ∀vﬁ. eﬁ ↪→ j vﬁ ⇒
+∃vﬂ. eﬂ ↪→ ∗ vﬂ and σ ⊣ vﬁ ≦k− j vﬂ 8 τ)
+σ ⊣ vﬁ ≦k vﬂ 8 α def= (k, vﬁ, vﬂ) ∈ σ (α )
+σ ⊣ n ≦k n 8 Nat :unconditionally,
+σ ⊣ λ x.eﬁ ≦k λ x.eﬂ 8 τﬁ → τﬂ
+def= ∀j < k. ∀vﬁ, vﬂ. σ ⊣ vﬁ ≦ j vﬂ 8 τﬁ ⇒
+σ ⊣ eﬁ[vﬁ/x] ≤ j eﬂ[vﬂ/x] 8 τﬂ
+σ ⊣ [vﬁ, · · · , vn] ≦k [v′
+ﬁ, · · · , v′n] 8 τ∗ def= ∀j < k. ∀i ∈ ﬁ . . . n. σ ⊣ vi ≦ j v′
+i 8 τ
+σ ⊣ vﬁ ≦k vﬂ 8 ∀α .τ def= ∀j < k. ∀R ∈ Rel. σ , α 8 R ⊣ vﬁ ≦ j vﬂ 8 τ
+Fig0 (0 “ehavioral speciﬁcation for polymorphic contracts
+)t is easy to check that such terms are always wellwtyped as long as e itself is wellw
+typedx Thereforev since we have deﬁned a contract as just a particular usage pattern for
+boundariesv we have by virtue of theorem ﬂ that every contracted term corresponds to itw
+selfv so intuitively every contracted term of polymorphic type should behave parametriw
+callyx (oweverv the logical relation we deﬁned in the previous section is not particularly
+convenient for proving facts about contracted Scheme termsv so instead we give another
+relation in ﬁgure 3 that we think of as the “contractedwSchemewterms” relationv which
+gives criteria for two Scheme terms being related at an =+ type rwhich we now interw
+pret as a behavioral contractsx (ere σ is an untyped mapping from type variables α to
+downwardwclosed relations R on Scheme values8 that isv σ = (α ﬁ ↦→Rﬁ, · · · , α n ↦→Rn)
+where each Ri ∈ Rel rsee ﬁgure 3sx
+¨ur goal is to prove that closedv contracted terms are related to themselves under
+this relationx Proving this directly is intractablev but we can prove it by showing that
+boundaries “reﬂect their relations”9 i.e. that if δ ⊣ eﬁ ≲k
+M eﬂ 8 τ then for some appropriate
+σ we have that σ ⊣ (SMτ eﬁ) ≤ k (SMτ eﬂ) 8 τ and vice versa9 this is the claim we show
+in lemma ﬂ rbridge lemma ﬂs belowv and the result we want is an easy corollary when
+combined with theorem ﬂx “efore we can precisely state the claimv thoughv we need
+some machinery for specifying what relationship between δ and σ we want to holdx
+Deﬁnition ? 1hybrid environments20 An hybrid environment φ is a partial map from
+type variables to tuples of the form (S, R) or (M, τﬁ, τﬂ, R).
+The intuition is that a hybrid environment is a tagged union of a Scheme enviw
+ronment σ reach element of which is tagged with Ss and an =+ environment δ reach
+element of which is tagged with =sx —iven such a hybrid environmentv one can mechanw
+ically derive both a Scheme and an =+ representation of it by keeping native elements
+aswis and wrapping foreign elements in the appropriate boundary8
+Deﬁnition / 1Scheme and ML projections of hybrid environments20 For a hybrid
+environment φ) if φ(α ) = (S, R)) then:
+σφ (α ) def= R
+δφ (α ) def= ( L, L, {(k, (LMS vﬁ), (LMS vﬂ)) | (k, vﬁ, vﬂ) ∈ R} )
+
+=== PAGE 11 ===
+If φ(α ) = (M, τﬁ, τﬂ, R)) then:
+σφ (α ) def= { (k, (SM⟨α 9τﬁ ⟩ vﬁ), (SM⟨α 9τﬂ ⟩ vﬂ)) | (k, vﬁ, vﬂ) ∈ R }
+δφ (α ) def= ( τﬁ, τﬂ, R )
+We say that ∆ ⊣ φ if for all α ∈ ∆ v φ(α ) is deﬁnedv and if φ(α ) = (S, R) then
+R ∈ Relv and if φ(α ) = (=, τﬁ, τﬂ, R) then R ∈ Relτﬁ,τﬂ x We also deﬁne operations
+cﬁ(· , · ) and cﬂ(· , · ) ranalogous to sl(· , · ) deﬁned earliers from hybrid environments φ and
+types τ to conversion schemes κ8
+Deﬁnition - 1closing with respect to a hybrid environment20 For i ∈ {ﬁ, ﬂ}:
+ci(φ, α ) def=
+
+
+
+L if φ(α ) = (S, R)
+⟨α 9 τi⟩if φ(α ) = (M, τﬁ, τﬂ, R)
+α otherwise
+ci(φ, L) def= L
+ci(φ, Nat) def= Nat
+ci(φ, τﬁ → τﬂ) def= ci(φ, τﬁ) → ci(φ, τﬂ)
+ci(φ, ∀α .τ′) def= ∀α .ci(φ, τ′)
+ci(φ, τ∗) def= ci(φ, τ)∗
+The interesting part of the deﬁnition is its action on type variablesx Variables that φ
+maps to Scheme relations are converted to type Lv since when Scheme uses a polymorw
+phic value in =+ its free type variables are instantiated as Lx Similarlyv variables that φ
+maps to =+ relations are instantiated as seals because when =+ uses a Scheme value
+as though it were polymorphic it uses dynamic seals to protect parametricityx
+’ow we can show that contracts respect the relation in ﬁgure 3 via a bridge lemmax
+Lemma ? 1bridge lemma ?20 For all k ≥ z) type environments ∆ ) hybrid environments
+φ such that ∆ ⊣ φ) τ such that ∆ ⊣ τ) and for all terms eﬁ) eﬂ) eﬁ) eﬂ:
+1. If δφ ⊣ eﬁ ≲k
+M eﬂ 8 τ then σφ ⊣ (SMcﬁ(φ,τ) eﬁ) ≤ k (SMcﬂ(φ,τ) eﬂ) 8 τ.
+2. If σφ ⊣ eﬁ ≤ k eﬂ 8 τ then δφ ⊣ cﬁ(φ,τ)MS eﬁ ≲k
+M (cﬂ(φ,τ)MS eﬂ) 8 τ.
+Proof. )nduction on τx ”ll cases are easy applications of the induction hypothesesx
+Theorem /0 For any seal’free term e such that ⊣S e 8 TST and for any closed type τ)
+we have that for all k ≥ z) ⊣ eτ ≤ k eτ 8 τ.
+Proof. “y theorem ﬂv for all k ≥ zv ⊣ (τMS e) ≲k
+M (τMS e) 8 τx Thusv by lemma ﬂv we
+have that for all k ≥ zv ⊣ (SMτ (τMS e)) ≤ k (SMτ (τMS e)) 8 τx
+Deﬁnition ( 1relational equality20 We write σ ⊣ eﬁ = eﬂ 8 τ if for all k ≥ z) σ ⊣ eﬁ ≤ k
+eﬂ 8 τ and σ ⊣ eﬂ ≤ k eﬁ 8 τ.
+Corollary !0 For any seal’free term e such that ⊣S e 8 TST and for any closed type τ)
+we have that ⊣ eτ = eτ 8 τ.
+-0! Dynamic sealing replaces boundaries
+The contract system of the previous section is a multiwlanguage systemv but just barelyv
+since the only part of =+ we make any use of is its boundary form to get back into
+Schemex )n this section we restrict our attention to Scheme plus boundaries used only
+for the purpose of implementing contractsv and we show an alternate implementation
+of contracts that uses dynamic sealingx Rather than the concrete implementation of dyw
+namic seals we gave in the introductionv we opt to use ra slight restriction ofs the more
+
+=== PAGE 12 ===
+abstract constructs taken from Sumii and Pierce’s λseal language [3]x Speciﬁcally v we
+use the following extension to our Scheme model8
+e = · · · | νsx. e | {e}se | (let {x}se = e in e)
+v = · · · | {v}sv
+se = sx | sv
+sx = [variables distinct from x]
+sv = [unspeciﬁedv unique brands]
+E = · · · | {E}sv | (let {x}sv = E in e)
+E [νsx. e]S ↦→E [e[sv/sx]]
+where sv fresh
+E [(let {x}svﬁ = {v}svﬁ in e)]S ↦→E [eﬁ[v/x]]
+E [(let {x}svﬁ = v in e)]S ↦→Error8 bad value
+where v ⁄= {v′}svﬁ for any v′
+We introduce a new set of seal variables sx that stand for seals relements of svs that will
+be computed at runtimex They are bound by νsx. ev which evaluates its body res with
+sx bound to a freshlywgenerated svx Two operations make use of these sealsx The ﬁrstv
+{e}sev evaluates e to a value and then itself becomes an opaque value sealed with the
+key to which se evaluatesx The secondv (let {x}se = eﬁ in eﬂ)v evaluates eﬁ to a value9
+if that value is an opaque value sealed with the seal to which se evaluatesv then the
+entire unsealing expression evaluates to eﬂ with x bound to the value that was sealedv
+otherwise the expression signals an errorx1
+Using these additional constructs we can demonstrate that a translation essentially
+the same as the one given by Sumii and Pierce [3v ﬁgure 2] does in fact generate
+parametrically polymorphic type abstractionsx Their translation essentially attaches a
+higherworder contract [6] τ to an expression of type τ rthough they do not point this outsx
+)t extends –indler and –elleisen’s notion of contractsv which does not include polymorw
+phic typesv by adding an environment ρ that maps a type variable to a tuple consisting
+of a seal and a symbol indicating the party reither + or − in Sumii and Pierces that has
+the power to instantiate that type variablev and translating uses of type variable α in a
+contract to an appropriate seal or unseal based on the value of ρ(α )x We deﬁne it as
+follows8 when p and q are each parties r+ or − s and p ⁄= qv
+E p,q
+Nat(ρ, e) = r+ e 0s
+E p,q
+τ∗ (ρ, e) = rlet rrv ess rif, rnil? vs
+nil
+rif, rpair? vs
+rcons E p,q
+τ (ρ, (fst v)) E p,q
+τ∗ (ρ, (rst v))s
+rwrong ~Non-list~ssss
+E p,q
+τﬁ → τﬂ (ρ, e) = rlet rrv ess rif, rproc? vs
+rλ x. E p,q
+τﬂ (ρ, (v Eq,p
+τﬁ (ρ, x)))s
+rwrong ~Non-proc~sss
+E p,q
+∀α .τ′(ρ, e) = νsx. E p,q
+e (ρ, α ↦→(sx, q), e)
+E p,q
+α (ρ, α ↦→(sx, p), e) = {e}sx
+E p,q
+α (ρ, α ↦→(sx, q), e) = (let {x}sx = e in x)
+The differences between our translation and Sumii and Pierce’s are as followsx –irstv we
+have mapped everything into our notation and adapted to our types rwe omit booleansv
+1 This presentation is a simpliﬁcation of λseal in two waysx –irstv in λseal the key position
+for a sealed value or for an unseal statement may be an arbitrary expressionv whereas here
+we syntactically restrict expressions that appear in those positions to be either seal variables or
+seal valuesx Secondv in λseal an unseal expression has an “else” clause that allows the program
+to continue even if an unsealing operation fails9 we do not allow those clausesx
+
+=== PAGE 13 ===
+tuplesv and existential types and add numbers and listssx Secondv our translations apply
+to arbitrary expressions rather than just variablesx Thirdv because we are concerned with
+the expression violating parametricity as well as the contextv we have to seal values prow
+vided by the context as well as by the expressionv and our decision of whether to seal or
+unseal at a type variable is based on whether the party that instantiated the type variable
+is providing a value with that contract or expecting onex –ourthv we modify the result
+of ∀α .τ so that it does not require application to a dummy valuex rThe reason we do
+this bears explanationx There are two components to a type abstraction in System – —
+abstracting over an interpretation of a variable and suspending a computationx Sumii
+and Pierce’s system achieves the former by generating a fresh sealv and the latter by
+wrapping the computation in a lambda abstractionx )n our variantv ∀α .τ contracts still
+abstract over a free contract variable’s interpretationv but they do not suspend computaw
+tion9 for that reason we retain fresh seal generation but eliminate the wrapper functionxs
+Deﬁnition ) 1boundary replacement20 R[e] is deﬁned as follows:
+R[eτ] = E+,−
+τ (•, R[e]) R[(eﬁ eﬂ)] = (R[eﬁ] R[eﬂ]) . . .
+Theorem - 1boundary replacement preserves termination20 If 9 ⊣S e 8 TST) then
+e ↦→∗ vﬁ ⇔ R[e] ↦→∗ vﬂ) where vﬁ = n ⇔ vﬂ = n.
+This claim is a special case of a more general theorem that requires us to consider
+open contractsx The term v∀α .α → α where v is a procedure value reduces as follows8
+v∀α .α → α = (SM∀α .α → α (∀α .α → αMS v))
+↦→1 (SML→ L(⟨α 9L⟩→⟨α 9L⟩MS v))
+↦→ﬂ λ x.(SML ((λ y 8 L. (⟨α 9L⟩MS (v (SM⟨α 9L⟩ y)))) (LMS x)))
+= λ x.(SML (⟨α 9L⟩MS (v (SM⟨α 9L⟩ (LMS x)))))
+’otice that the two closed occurrences of α in the original contracts become two differw
+ent conﬁgurations of boundaries when they appear open in the ﬁnal procedurex These
+correspond to the fact that negative and positive occurrences of a type variable with rew
+spect to its binder behave differentlyx ’egative occurrencesv of the form (SM⟨α 9L⟩(LMS . . .))v
+act as dynamic seals on their bodiesx Positive occurrencesv of the form (SML (⟨α 9L⟩MS . . .))v
+dynamically unseal the values their bodies producex Sov we write open contract variw
+ables as α − rfor negative occurrencess and α + rfor positive occurrencessx
+’ow we are prepared to deﬁne another logical relationv this time between contracted
+Scheme terms and λseal termsx We deﬁne it as followsv where p owns the given expresw
+sionsv q is the other partyv and ρ maps type variables to seals and owners8
+p9 q9 ρ ⊣ eﬁ =k
+seal eﬂ
+def= ∀j < k. ( eﬁ ↦→j Error8 s ⇒ eﬂ ↦→∗ Error8 s ) and
+( ∀vﬁ. eﬁ ↦→j vﬁ ⇒ ∃vﬂ. eﬂ ↦→∗ vﬂ and p9 q9 ρ ⊣ vﬁ =k− j
+seal vﬂ )
+∀j < k. ( eﬂ ↦→j Error8 s ⇒ eﬁ ↦→∗ Error8 s ) and
+( ∀vﬁ. eﬂ ↦→j vﬂ ⇒ ∃vﬂ. eﬁ ↦→∗ vﬁ and p9 q9 ρ ⊣ vﬁ =k− j
+seal vﬂ )
+p9 q9 ρ ⊣ vﬁα − =k
+seal {vﬂ}sv
+def= ρ(α ) = (sx, q) and ∀j < k. p9 q9 ρ ⊣ vﬁ = j
+seal vﬂxxx
+p9 q9 ρ ⊣ (λ x.eﬁ) =k
+seal (λ x.eﬂ) def= ∀j < k, vﬁ, vﬂ. q9 p9 ρ ⊣ vﬁ = j
+seal vﬂ ⇒
+p9 q9 ρ ⊣ eﬁ[vﬁ/x] = j
+seal eﬂ[vﬂ/x]
+The rest of the cases are deﬁned as in the Scheme relation of ﬁgure 2x ”n important
+subtlety above is that two sealed terms are related only if they are locked with a seal
+
+=== PAGE 14 ===
+owned by the other partyv and that the arguments to functions are owned by the party
+that does not own the functionx The former point allows us to establish this lemmav after
+which we can build a new bridge lemma and then prove the theorem of interest8
+Lemma /0 If p9 q9 ρ, α 8 (sx, p) ⊣ eﬁ =k
+seal eﬂ :and α not free in eﬁ,) then p9 q9 ρ ⊣
+eﬁ =k
+seal eﬂ. Similarly if p9 q9 ρ ⊣ eﬁ =k
+seal eﬂ) then p9 q9 ρ, α 8 (sx, p) ⊣ eﬁ =k
+seal eﬂ.
+Proof. We prove both claims simultaneously by induction on kx
+Lemma -0 For any two terms eﬁ and eﬂ such that eﬁ’s open type variables :and their
+ownership information, occur in ρ) and so do the open type variables in τ) then if
+(∀k.p9 q9 ρ ⊣ eﬁ =k
+seal eﬂ) then (∀k.p9 q9 ρ ⊣ eﬁτ =k
+seal E p,q
+τ (ρ, eﬂ).
+Proof. “y induction on τx The ∀α .τ case requires the preceding lemmax
+Theorem (0 If ρ ⊣ γﬁ =seal γﬂ 8 Γ ) e’s open type variables occur in ρ) ∆ 9Γ ⊣S e 8 TST)
+and e only uses boundaries as contracts) then ∀k.p9 q9 ρ ⊣ γﬁ(e) =k
+seal γﬂ(R[e]).
+Proof. )nduction on the derivation ∆ 9Γ ⊣S e 8 TSTx !ontract cases appeal to lemma 2x
+This theorem has two consequences8 ﬁrstv contracts as we have deﬁned them in this
+paper can be implemented by a variant on Sumii and Pierce’s translationv and thus due
+to our earlier development their translation preserves parametricity9 and secondv since
+Sumii and Pierce’s translation is itself a variant on –indlerwandw–elleisenwstyle contractsv
+our boundarywbased contracts are actually contracts in that sensex
+–inallyv notice that if we choose E = E then there is no trace of =+ left in the lanw
+guage we are considering9 it is pure Scheme with contractsx “utv strangelyv the contract
+system’s parametricity theorem relies on the fact that parametricity holds in =+x
+( Related work and conclusions
+We have mentioned Sumii and Pierce’s investigation of dynamic sealing [3v ﬁﬁ] many
+times in this paperx Sumii and Pierce also investigate logical relations for encryption [ﬁﬂ]v
+which is probably the most technically similar paper in their line of research to the
+present workx )n that workv they develop a logical relation that tracks secret keys as
+a proof technique for establishing the equivalence of programs that use encryption to
+hide informationx ¨ne can think of our development as a reﬁnement of their relation
+that allows Turingwcomplete “attackers” rwhich in particular may not terminates and
+that clariﬁes the fundamental connection between parametricity and dynamic sealingx
+Zdancewicv —rossmanv and =orrisett’s notion of principals [ﬁ1v ﬁ2] and their asw
+sociated proof technique are also relatedx !ompared to their workv the present proof
+technique establishes a much stronger propertyv but it is comparatively more difﬁcult to
+scale to more sophisticated programming language features such as state or advanced
+control featuresx Rossberg [ﬁ3vﬁ4] discusses the idea of preserving abstraction safety by
+the use of dynamicallywgenerated types that are very similar to our ⟨α 9 τ⟩sealed converw
+sion schemesx The property we have proven here is much stronger than the abstraction
+properties established by Rossberg9 howeverv his analysis considers a more complicated
+type system than we dox )t is certainly worth investigating how well the multiwlanguage
+technique presented here maps into Rossberg’s settingv but we have not done so yetx
+
+=== PAGE 15 ===
+The thrust of this paper has been to demonstrate that the parametricity property of
+System – is preserved under a multiwlanguage embedding with Schemev provided we
+protect all values that arise from terms that had quantiﬁed types in the original program
+using dynamic sealsx We think this fact is in itself interestingv and has the interesting
+consequence that polymorphic contracts are also parametric in a meaningful sensev in
+fact strong enough that we can derive “free theorems” about contracted Scheme terms
+rsee the technical report [7] for examplessx “ut it also suggests something broaderx
+Rather than just knowing that parametricity continues to hold in System – after the
+extensionv we would like the stronger property that the extension does not weaken Sysw
+tem –’s contextual equivalence relation at all9 in other words to design an embedding
+such that eﬁ ≃ ctxt eﬂ when considering only contexts without boundaries implies that
+eﬁ ≃ ctxt eﬂ in contexts with boundariesx This may be a useful way to approach the fullw
+abstraction question raised by Sumii and Piercex
+References
+ﬁx Reynoldsv [x!x8 Typesv abstraction and parametric polymorphismx )n8 )–)P !ongressx rﬁ761s
+3ﬁ1–3ﬂ1
+ﬂx Wadlerv Px8 Theorems for freek )n8 –unctional Programming +anguages and !omputer ”rw
+chitecture r–P!”sx rﬁ767s 125–137
+1x =orrisv [rxv [x(x8 Types are not setsx )n8 P¨P+x rﬁ751s
+2x –lattv =x8 P+T =zScheme8 +anguage manualx Technical Report TR75wﬂ6zv Rice University
+rﬁ775s http://www.plt-scheme.org/software/mzscheme/x
+3x Sumiiv -xv Piercev “x8 ” bisimulation for dynamic sealingx )n8 P¨P+x rﬂzz2s
+4x =atthewsv [xv –indlerv Rx“x8 ¨perational semantics for multiwlanguage programsx )n8 P¨P+x
+rﬂzz5s -xtended version8 University of !hicago Technical Report TRwﬂzz5w6v under reviewx
+5x ”hmedv ”x8 Stepwindexed syntactic logical relations for recursive and quantiﬁed typesx )n8
+-S¨Px rﬂzz4s 47–61 -xtended version8 (arvard University Technical Report TRwzﬁwz4v
+http://ttic.uchicago.edu/~amal/papers/lr-recquant-techrpt.pdfx
+6x –indlerv Rx“xv –elleisenv =x8 !ontracts for higherworder functionsx )n8 )!–Px rﬂzzﬂs
+7x =atthewsv [xv ”hmedv ”x8 Parametric polymorphism through runwtime sealingv orv theorems
+for lowv low pricesk rextended versionsx Technical Report TRwﬂzz6wzﬁv University of !hicago
+rﬂzz6s
+ﬁzx –indlerv Rx“xv “lumev =x8 !ontracts as pairs of projectionsx )n8 –+¨PSx rﬂzz4s
+ﬁﬁx Piercev “xv Sumiiv -x8 Relating cryptography and polymorphismx Unpublished manuscript
+rﬂzzzs
+ﬁﬂx Sumiiv -xv Piercev “x8 +ogical relations for encryptionx [ournal of !omputer Security r[S!s
+!!r2s rﬂzz1s 3ﬂﬁ–332
+ﬁ1x Zdancewicv Sxv —rossmanv ?xv =orrisettv —x8 Principals in programming languagesx )n8 )!–Px
+rﬁ777s
+ﬁ2x —rossmanv ?xv =orrisettv —xv Zdancewicv Sx8 Syntactic type abstractionx ”!= Transactions
+on Programming +anguages and Systems ?? rﬂzzzs ﬁz15–ﬁz6z
+ﬁ3x Rossbergv ”x8 —enerativity and dynamic opacity for abstract typesx )n =illerv ?xv edx8
+P”?+v Uppsalav Swedenv ”!= Press rﬂzz1s -xtended version8 http://www.ps.uni-sb.
+de/Papers/generativity-extended.htmlx
+ﬁ4x Rossbergv ”x8 Typed ¨pen Programming – ” higherworderv typed approach to dynamic
+modularity and distributionx Phd thesisv Universit¨at des Saarlandesv Saarbr¨uckenv —ermany
+rﬂzz5s Preliminary versionx

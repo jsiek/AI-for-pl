@@ -1,0 +1,1675 @@
+
+
+=== PAGE 1 ===
+70
+Plausible Sealing for Gradual Parametricity
+ELIZABETH LABRADA∗, University of Chile, Chile
+MATÍAS TORO, University of Chile, Chile
+ÉRIC TANTER, University of Chile, Chile
+DOMINIQUE DEVRIESE, KU Leuven, Belgium
+Graduality and parametricity have proven to be extremely challenging notions to bring together. Intuitively,
+enforcing parametricity gradually requires possibly sealing values in order to detect violations of uniform
+behavior. Toro et al. (2019) argue that the two notions are incompatible in the context of System F, where
+sealing is transparently driven by potentially imprecise type information, while New et al. (2020) reconcile both
+properties at the cost of abandoning the syntax of System F and requiring user-provided sealing annotations
+that are not subject to graduality guarantees. Furthermore, all current proposals rely on a global form of
+dynamic sealing in order to enforce parametric behavior at runtime, which weakens parametric reasoning
+and breaks equivalences in the static language. Based on the observation that the tension between graduality
+and parametricity comes from the early commitment to seal values based on type information, we propose
+plausible sealing as a new intermediate language mechanism that allows postponing such decisions to runtime.
+We propose an intermediate language for gradual parametricity, Funky, which supports plausible sealing in a
+simplified setting where polymorphism is restricted to instantiations with base and variable types. We prove
+that Funky satisfies both parametricity and graduality, mechanizing key lemmas in Agda. Additionally, we
+avoid global dynamic sealing and instead propose a novel lexically-scoped form of sealing realized using a
+representation of evidence inspired by the category of spans. As a consequence, Funky satisfies a standard
+formulation of parametricity that does not break System F equivalences. In order to show the practicality of
+plausible sealing, we describe a translation from Funk, a source language without explicit sealing, to Funky,
+that takes care of inserting plausible sealing forms. We establish graduality of Funk, subject to a restriction
+on type applications, and explain the source-level parametric reasoning it supports. Finally, we provide an
+interactive prototype along with illustrative examples both novel and from the literature.
+CCS Concepts: • Theory of computation → Operational semantics.
+Additional Key Words and Phrases: Gradual typing, polymorphism, parametricity
+ACM Reference Format:
+Elizabeth Labrada, Matías Toro, Éric Tanter, and Dominique Devriese. 2022. Plausible Sealing for Gradual
+Parametricity. Proc. ACM Program. Lang. 6, OOPSLA1, Article 70 (April 2022), 28 pages. https://doi.org/10.
+1145/3527314
+∗Research conducted while Elizabeth was affiliated with Vrije Universiteit Brussel and KU Leuven, Belgium.
+This work is partially funded by ANID FONDECYT projects 1190058 and 3200583, Chile.
+Authors’ addresses: Elizabeth Labrada, University of Chile, PLEIAD Lab, Computer Science Department (DCC), Beauchef
+851, Santiago, Chile, elabrada@dcc.uchile.cl; Matías Toro, University of Chile, PLEIAD Lab, Computer Science Department
+(DCC), Beauchef 851, Santiago, Chile, mtoro@dcc.uchile.cl; Éric Tanter, University of Chile, PLEIAD Lab, Computer Science
+Department (DCC), Beauchef 851, Santiago, Chile, etanter@dcc.uchile.cl; Dominique Devriese, KU Leuven, imec - DistriNet,
+Leuven, Belgium, dominique.devriese@kuleuven.be.
+© 2022 Copyright held by the owner/author(s).
+2475-1421/2022/4-ART70
+https://doi.org/10.1145/3527314
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+This work is licensed under a Creative Commons Attribution 4.0 International License.
+
+
+=== PAGE 2 ===
+70:2 Elizabeth Labrada, Matías Toro, Éric Tanter, and Dominique Devriese
+1 INTRODUCTION
+Parametric polymorphism enables the generic definition of functions and types, providing as benefits
+code reusability and representation independence. System F [ Girard 1972; Reynolds 1974] is the
+standard language to formalize this notion of parametric polymorphism. Relational parametricity
+stipulates that the behavior of polymorphic functions must be independent of the specific types
+they are instantiated with. For instance, the behavior of a function f of type ∀𝑋 . 𝑋 → 𝑋 should
+not depend on the type 𝑋 it is instantiated with and, consequently, should treat the argument of
+type 𝑋 opaquely. Hence, f [Int] 42 should never return a different value than 42.
+Also, in recent years, gradual typing has become a relevant feature for programming languages
+because it combines the best of static and dynamic type checking. Central to gradual typing is
+the notion of precision between types, which can range from fully-precise static types to the fully-
+imprecise unknown type (hereafter written ?), with partially specified types in between, such as
+Int → ?. Among the expected properties of gradual languages [ Siek et al . 2015], a particularly
+challenging one is the dynamic gradual guarantee (DGG), also called graduality [New and Ahmed
+2018]. Informally, graduality is a monotonicity property of reduction with respect to precision:
+introducing imprecision in a program ought not change its behavior. For instance, the function
+𝜆𝑥 : ?. 𝑥 + 1 of type ? → Int should be transparently usable in place of 𝜆𝑥 : Int. 𝑥 + 1.
+It turns that out that integrating parametric polymorphism and gradual typing into a language
+while preserving parametricity and graduality is extremely challenging [ Ahmed et al . 2009, 2017;
+Igarashi et al. 2017; Matthews and Ahmed 2008 ; New et al. 2020; Toro et al. 2019]. The difficulty
+observed in these efforts is a strong tension between the two desirable properties, considering that
+functions may attempt to use gradual typing to bypass parametricity. For example, the following
+function of type ∀𝑋 .𝑋 → 𝑋 should not be allowed to treat the value 𝑥 as an integer, even when 𝑋
+happens to be instantiated to Int:
+(Λ𝑋 . 𝜆𝑥 : 𝑋 . ((𝑥 :: ?) + 1) :: 𝑋 ) [ Int] 42 (we write 𝑡 :: 𝑇 for type ascriptions)
+To prevent this application from reducing to (( 42 :: ?) + 1) :: Int, gradual polymorphic languages
+have generally relied on a form of dynamic sealing [Matthews and Ahmed 2008 ]. Essentially, the
+function (Λ𝑋 . 𝜆𝑥 : 𝑋 . ((𝑥 :: ?) +1) :: 𝑋 ) is not applied to type Int and value 42; instead, the language
+generates a fresh seal 𝛼 and applies the function to 𝛼 and a sealed version of the value 42, and
+unseals the result. This approach ensures that effectively-parametric code behaves as usual, but
+that the above example fails (because addition fails on sealed values):
+(Λ𝑋 . 𝜆𝑥 : 𝑋 . 𝑥 ) [ Int] 42 →∗ unseal𝛼 (seal𝛼 (42)) → ∗ 42
+(Λ𝑋 . 𝜆𝑥 : 𝑋 . ((𝑥 :: ?) + 1) :: 𝑋 ) [ Int] 42 →∗ unseal𝛼 (( ( seal𝛼 (42) :: ?) + 1 ) :: 𝛼) → ∗ error
+Unfortunately, when applying a polymorphic function with an imprecise type, the decision of
+whether arguments should be sealed or not is not so clear-cut. Consider, for example, the functions
+𝑓1 = Λ𝑋 . 𝜆𝑥 : ?. 𝑥 :: 𝑋 and 𝑓2 = Λ𝑋 . 𝜆𝑥 : ?. 𝑥 :: Int. By graduality, the two functions should behave
+like their more precisely-typed versions Λ𝑋 . 𝜆𝑥 : 𝑋 . 𝑥 :: 𝑋 and Λ𝑋 . 𝜆𝑥 : Int. 𝑥 :: Int, respectively.
+However, this means that applying both functions to type Int and value 42 should treat their
+arguments differently even though they have the same parameter type. Applying 𝑓1 [Int] 42 should
+seal the argument 42, while 𝑓2 [Int] 42 should not. Most proposed gradual parametric languages
+decide whether to seal or not based on the type of the argument and the function being applied, i.e.
+they apply type-driven sealing. However, there is no way to make this choice a priori and modularly,
+without breaking graduality. For example, GSF [ Toro et al. 2019] does not seal the argument here,
+breaking graduality for 𝑓1.
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 3 ===
+Plausible Sealing for Gradual Parametricity 70:3
+A recent proposal by New et al. [2020] side-steps the conundrum by shifting the burden of choice
+to programmers using term-driven sealing. PolyG 𝜈 requires programmers to specify whether argu-
+ments should be sealed or not, by writing for example f1 [X = Int] ( sealX (42)) and f2 [X = Int] 42,
+respectively.1 While this strategy has produced the first parametric gradual calculus, it is important
+to realize that this calculus does not solve the same problem as the one tackled by other proposals
+like GSF, 𝜆𝐵 [Ahmed et al. 2017] or System F𝐺 [Igarashi et al. 2017]. Gradual languages are intended
+to smoothly support the static-to-dynamic checking spectrum, but as noted by New et al., PolyG 𝜈
+supports this only when the untyped code already contains the right sealing annotations. In other
+words, in PolyG 𝜈 , sealing annotations are not subject to graduality guarantees, i.e. f [Int] 42
+and 𝑓 [Int] seal𝑋 (42) are unrelated by precision, and therefore graduality does not relate their
+respective behavior.
+In this paper, we revisit the original problem: gradual parametricity with type-driven sealing.
+Consider again the applications 𝑓1 [Int] 42 and 𝑓2 [Int] 42. Instead of making an arbitrary choice
+between sealing or not sealing, we propose to keep both options open, so the decision can be
+made when the value 42 is actually used. This novel technique, called plausible sealing, essentially
+allows our calculus to treat the applications as 𝑓𝑖 [Int] ( maybeSeal𝑋 (42)). The maybe-sealed
+value 42 embeds the fact that it may be both sealed at 𝑋 and unsealed, which makes the two
+applications successfully reduce to 42. To study plausible sealing, we propose an intermediate
+gradual parametric language, Funky (F ?
+𝜀), which can be used as the elaboration target of different
+gradual source languages; we describe one such source language, Funk (F ?), with the familiar syntax
+of System F. 2 Note that for simplicity, we formalize the approach in a setting where polymorphism
+is limited to instantiations with base and variable types.
+The key novelty of the intermediate language F ?
+𝜀 is that it introduces maybe-sealing forms, which
+are interpreted thanks to an innovative runtime tracking technique. Additionally, F?
+𝜀 avoids the use of
+dynamically-generated global seals. In previous calculi, a seal 𝛼 can continue to exist when the type
+variable 𝑋 for which it was created goes out of scope: (Λ𝑋 . 𝜆𝑥 : 𝑋 . 𝑥 :: ?) [ Int] 42 →∗ seal𝛼 (42).
+In fact, seals in these calculi behave as a form of symbolic cryptography, which makes it possible
+to embed languages with runtime sealing [ Pierce and Sumii 2000 ; Sumii and Pierce 2004 ]. But
+at the same time, global seals have been shown to break equivalences that hold in System F
+[Devriese et al. 2018]. This global nature of seals is also the reason that parametricity theorems for
+gradual calculi so far have used formulations based on Kripke worlds containing semantic types
+for dynamically-allocated seals. F ?
+𝜀 features lexically-scoped sealing, and it is the first to support a
+stronger formulation of parametricity where semantic types are tracked in a lexical environment,
+similar to traditional formulations of parametricity [ Reynolds 1983]. As such, F ?
+𝜀 could perhaps
+satisfy the ambitious criterion for gradual languages recently proposed by Jacobs et al. [2021]: fully
+abstract embedding of the statically-typed language into the gradually-typed language. This has
+been disproved by Devriese et al. [2018] for 𝜆𝐵, but their counterexample, which essentially relies
+on the global nature of seals in 𝜆𝐵 and GSF, does not apply to F ?
+𝜀.3 Finally, we prove both graduality
+and parametricity for the intermediate language F ?
+𝜀.
+The elaboration of the source language F ? to F?
+𝜀 is in charge of introducing maybe-sealing forms
+when imprecise types occur in type applications. For F ?, we establish graduality, currently subject
+to a restriction on type applications. Specifically, reasoning about graduality requires users to
+verify that the types of polymorphic functions being applied have the same shape; for instance,
+graduality holds between functions of types ∀X. X→X and ∀X. ?→?, but not between ∀X. X→X and
+1As the syntax suggests, type variables in PolyG 𝜈 are introduced at instantiation time, with outward scoping; this requires
+linear typing environments and a mechanism to limit their propagation to the current lambda abstraction [ New et al. 2020].
+2Funk is for F-unknown (F?), and Funky is for Funk with evidence (F?𝜀 ).
+3See the technical report for a proof sketch that their counterexample does not apply to F ?𝜀 .
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 4 ===
+70:4 Elizabeth Labrada, Matías Toro, Éric Tanter, and Dominique Devriese
+∀X. ?. Except for this technical restriction, type and term precision is standard and graduality in F ?
+allows programmers to reason in much the same way as they would with the natural notion of
+term precision.
+In addition to graduality, we explain the source-level parametric reasoning that F ? offers. It is
+worth noting that parametric reasoning at the source level of a gradual language is subtle because of
+another point of tension between parametricity and gradual typing that was pointed out byNew et al.
+[2020]. Consider the two applications: (Λ𝑋 . 𝜆𝑥 : ?. 𝑥 :: 𝑋 ) [ Int] 42 and (Λ𝑋 . 𝜆𝑥 : ?. 𝑥 :: 𝑋 ) [ Bool] 42.
+Since the behavior of the polymorphic function Λ𝑋 . 𝜆𝑥 : ?.𝑥 :: 𝑋 should not depend on the type it
+is applied to, a strict interpretation of parametricity dictates that both applications should behave
+the same. At the same time, by graduality, the first application should behave equivalently to the
+following more precisely typed version, which reduces to 42: (Λ𝑋 . 𝜆𝑥 : 𝑋 . 𝑥 :: 𝑋 ) [ Int] 42 →∗ 42.
+However, the second application is of type Bool and there is no reasonable way to come up with a
+boolean value to return. Even worse, because parametricity implies preservation of relatedness of
+values, successfully returning a boolean in the second application would imply a contradiction,
+because that boolean would have to be related to 42 in an arbitrary, caller-chosen relation, even
+when that relation is empty. In other words, this strict interpretation of source-level parametricity
+is incompatible with graduality. However, that is not the end of the story.
+In F?, the second application fails at runtime: the value 42 does not have the right type to be
+sealed at type 𝑋 , so it is not maybe-sealed, and we simply report an error when it is treated as a
+value of type 𝑋 . This means that some polymorphic F ? terms may behave differently depending on
+the type they are applied to, as we have (Λ𝑋 .𝜆𝑥 :?.𝑥 :: 𝑋 ) [ Int] 42 ↦− →∗42 and (Λ𝑋 .𝜆𝑥 :?.𝑥 :: 𝑋 )
+[Bool] 42 ↦− →∗error. It would however be incorrect to conclude that F ? is not parametrically
+polymorphic. First, uniformity of behavior is satisfied for polymorphic functions of fully precise
+types,4 even if they internally use type applications that do (!). In these cases, the definition of
+parametricity coincides with the standard definition for System FÐexcept that related terms may
+also simultaneously fail with a runtime type error. In other words, the differences in behavior can
+only occur for imprecise types (and can therefore be avoided using ascriptions to precise types).
+Intuitively, these differences are a consequence of F ? applying plausible sealing in an attempt to
+infer whether the programmer intended to treat arguments (or results) as values of the quantified
+type 𝑋 , in a maximally permissive way. However, the behavior of plausible sealing is entirely
+predictable based on type information available statically at the call site, and does not depend on
+runtime type information. When one takes this behavior into account, gradual parametricity in F ?
+still implies useful free theorems. For example, for any 𝑓 : ∀X. ?→X, 𝑓 [Bool] true may diverge, fail
+or return the value true, but it can never return false.
+Contributions. We develop a novel approach to gradual parametricity based on plausible sealing.
+Technically, we use lexically-scoped rather than global sealing, and a novel runtime tracking
+mechanism based on proof-relevant precision to account for postponing sealing decisions. This is
+achieved using a representation of evidence inspired by the category of spans. Focusing on the new
+ideas, we formally develop our approach in a simplified setting where polymorphism is restricted to
+instantiations with base and variable types. We prove that the proposed intermediate language F ?
+𝜀
+satisfies both parametricity and graduality, and mechanize the two key lemmas in Agda needed to
+prove these properties. We illustrate the practicality of F?
+𝜀 by providing a translation from the source
+gradual language F ?. For F ?, we establish graduality, subject to a restriction on type applications,
+and explain the source-level parametric reasoning it offers.
+4Later on, we introduce a mechanism to annotate occurrences of the unknown type with the subset of type variables in
+scope that it might denote, and explain the impact of this feature on parametric reasoning for imprecise types.
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 5 ===
+Plausible Sealing for Gradual Parametricity 70:5
+Overview. In Section 2, we illustrate the behavior of F ?
+𝜀 programs by starting from their F ? source
+counterparts, and compare to other approaches. We then formalize the core calculus F ?
+𝜀 (Section 3),
+describe its novel form of runtime tracking mechanism for plausible sealing (Section 4), and prove
+parametricity (Section 5) and the gradual guarantees (Section 6). We then formalize the source
+language F? and its elaboration to F ?
+𝜀. We discuss the parametric reasoning enjoyed by F ?, and the
+gradual guarantees, subject to a technical restriction on type applications (Section 7). We discuss
+the lifting of the technical restrictions of this work in Section 8. Section 9 discusses related work
+and Section 10 concludes.
+Full definitions and proofs of the main results can be found in the companion technical report,
+provided as supplementary material. Mechanized proofs of two key technical results in Agda (Lem-
+mas 4.6 and 6.2, marked with ✓ ) are also included as supplementary material. The implementation
+(https://doi.org/10.5281/zenodo.6341550) exhibits typing derivations, the translation from F ? to
+F?
+𝜀, and reduction traces, including all the examples mentioned in this paper and of the related
+literature.
+2 BACKGROUND AND OVERVIEW OF F ?
+𝜀
+This section recalls the basics of gradual typing, emphasizing the Abstracting Gradual Typing
+methodology [Garcia et al . 2016], which inspired this work. It also outlines the behavior of F ?
+𝜀 with
+specific source program examples in F ? from the current state of the art of gradual parametricity,
+informally shedding light on how plausible sealing is realized and compares to other approaches.
+2.1 Background on (Abstracting) Gradual Typing
+Basics of gradual typing. Gradual typing smoothly supports the range from static to dynamic
+type checking by introducing the unknown type (here denoted ?) and allowing types to be partially
+specified [Siek and Taha 2006]. For instance, ? → Int is the gradual type of functions whose domain
+is statically unknown ? and whose codomain is Int. This type is said to be less precise (or more
+imprecise) than static types such as Bool → Int, and more precise than both ? → ? and ? [Siek
+et al. 2015]; this is noted Bool → Int ⊑ ? → Int ⊑ ? → ? ⊑ ?. Optimistically, a variable of type ?
+can be used at any type statically; at runtime, some mechanism ensures that a runtime type error is
+raised before any unsafe operation is performed. For instance, the application (𝜆𝑥 : ?. 𝑥 + 1) false is
+well-typed, but results in a runtime error before addition is performed.
+The flexibility of gradual typing is achieved by relaxing type predicates (such as type equality,
+subtyping, etc.) to optimistically account for imprecision. For example, type consistency (denoted ∼)
+is the relaxation of type equality [ Garcia et al. 2016; Siek and Taha 2006 ]. The application example
+above is well typed because Bool ∼ ? and ? ∼ Int (but Bool ≁ Int!). The dynamic semantics of a
+gradual source language is typically given by elaboration to a cast calculus [Siek and Taha 2006]. The
+elaboration inserts casts to guarantee that violations of static assumptions are detected, triggering
+type errors at runtime. For instance, the source term 𝜆x : ?. x+1 would typically be elaborated to
+the target term 𝜆x : ?. ⟨Int⇐=?⟩x+1, where the cast ⟨Int⇐=?⟩ ensures that the argument given at
+runtime is indeed an Int value, otherwise an error is raised. 5
+Abstracting gradual typing. The Abstracting Gradual Typing framework (AGT) [ Garcia et al .
+2016] derives the static and dynamic semantics of a gradual language starting from a static language
+and its type safety argument. The static semantics exploit a Galois connection between gradual
+types and the sets of static types they denote: predicates on gradual types are obtained by existential
+lifting of static predicates. For instance, consistency is the lifting of equality: two gradual types
+5We use the blue color and sans serif fonts for source languages and the red color and bold fonts for target languages.
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 6 ===
+70:6 Elizabeth Labrada, Matías Toro, Éric Tanter, and Dominique Devriese
+are consistent iff there exist two static types in their denotations (a.k.a. concretizations) that are
+equal. More advanced predicates and functions for gradual types, such as consistent subtyping and
+consistent join, can also be derived following this approach.
+In AGT, the dynamic semantics is defined by reduction of gradual typing derivations augmented
+with evidence for consistent judgments. Equivalently, one can understand this approach as defining
+an elaboration to an evidence-based target language, by analogy with cast calculi. The key notion
+here is that of evidence, which tracks the most precise information regarding a consistent judgment
+at runtime. During reduction, evidences are combined, just like casts, and this combination may
+fail with a runtime error, whenever the resulting consistent judgment is not justified anymore.
+This mechanism at least ensures type safety, and can be adjusted to ensure other properties
+(e.g. noninterference [Toro et al. 2018], parametricity [ Toro et al. 2019]).
+While the concept of evidence is very general and applies to a variety of typing disciplines,
+Garcia et al . [2016] observe that for a language with only type consistency, evidence coincides
+with the middle type of threesomes [ Siek and Wadler 2010 ]. A threesome is a three-place cast,
+⟨G2
+G
+⇐= G1⟩, representing a downcast from the source type G1 to the middle type G, followed by
+an upcast from the middle type to the target type G2. This representation allows for space efficiency
+of cast calculi: when combining two threesomes, it is sufficient to retain the outermost types and
+keep the meet ⊓ (according to the precision partial order) of the middle types. If such a meet is
+not defined, the combination of threesomes fails with a cast error. For instance, the combination
+⟨Int
+Int
+⇐= ?⟩⟨?
+Bool
+⇐= Bool⟩ fails because Int ⊓ Bool is undefined.
+Likewise, an evidence 𝜖 for a consistency judgment, noted 𝜖 : G1 ∼ G2, is naturally represented
+by a common more precise type G such that G ⊑ G1 and G ⊑ G2; for instance Int : Int ∼ ?. At
+runtime, reduction proceeds by combining evidences through consistent transitivity (◦), which is,
+like for threesomes, the precision meet of the evidences. For example, term 𝜖2 (𝜖1 x :: Int) :: ? (with
+𝜖i = Int) reduces to (𝜖1 ◦ 𝜖2) x :: ?, where 𝜖1 ◦ 𝜖2 = Int ⊓ Int = Int.
+The elaboration from the source language to the evidence-based target language simply inserts
+the initial evidence of all consistent judgments used in the gradual typing derivation of the term.
+For example, if ⊢ t : G then the source term t :: G′ would elaborate to 𝜖 t :: G′, where t is the
+elaboration of the subterm t, and 𝜖 is the initial evidence between the type G and the ascribed type
+G′, i.e. G ⊓ G′. In an elimination form such as a function application, elaboration introduces an
+ascription to ensure that the top-level type constructor matches.
+2.2 Evidence for Plausible Sealing
+In this work, we adopt AGT for deriving the static semantics of F ? and F?
+𝜀, and define the dynamic
+semantics of F ? by elaboration to the evidence-based target language F ?
+𝜀. Prior work using AGT
+for gradual parametricity (GSF [ Toro et al. 2019]) has shown that the semantics obtained blindly
+with AGT only ensure type safety, but not parametricity. Ensuring parametricity requires a refined
+representation of evidence and consistent transitivity. In GSF, evidence is represented not as a
+single type, but as a pair of types (extended with type names tracked globally), in order to capture
+the directionality of consistent judgments, which can intuitively denote either sealing or unsealing.
+Consistent transitivity is refined to forbid unsound unsealing and hence enforce parametricity. In
+order to address the limitations discussed in the introduction, we design a novel representation of
+evidence in F ?
+𝜀, to realize plausible sealing. The rest of this section informally describes this novel
+representation of evidence and the achieved behavior.
+Let us focus on the two terms (1) f1 [Int] 42 and (2) f2 [Int] 42 used in the introduction. As
+explained, these are key illustrations of the challenge of type-driven sealing: any early decision
+to either seal or not seal the argument would make one of these examples fail, thereby breaking
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 7 ===
+Plausible Sealing for Gradual Parametricity 70:7
+graduality. Our approach consists of capturing the different possibilities regarding sealing, and
+postponing the choice to seal or not to seal until a value is used; as a consequence, both programs
+successfully reduce to 42. This is achieved by a novel representation of evidence, which accommo-
+dates the different valid usages of an argument of unknown type, whenever the unknown type
+is in scope of some type variables. The first step consists of decorating the unknown type with
+the type variables that are in scope. So the type of both elaborated polymorphic functions in F ?
+𝜀
+are ∀X. ?X → X and ∀X. ?X → Int, respectively, since 𝑋 is the only type variable in the scope of
+the unknown type. The argument 42 is of type Int, so upon elaboration an ascription to ?∅ is
+introducedÐthere are no type variables in scope at that point. Hence, the elaboration of both
+examples (where G stands for either X (1) or Int (2)) is:
+(𝜖1 (( ΛX.𝜆 x : ?X . 𝜖 x :: G ) [ Int]) :: ?∅ → Int) ( 𝜖2 42 :: ?∅) (1)
+When these polymorphic functions are instantiated at type Int, the decorations of unknown
+types are enriched with the instantiation information, so the lambda-abstractions both take an
+argument of type ?X:Int. To proceed with the beta reduction, the argument 𝜖242 :: ?∅ is ascribed to
+the expected argument type of the lambda, yielding the value v = 𝜖 ′42 :: ?X:Int. This value is the
+maybeSeal𝑋 (42) used in the introduction. Observe that there are two ways in which the type of 42,
+Int, is consistent with ?X:Int: either because ?X:Int stands for Int, or because it stands for X (which
+happens to be instantiated with Int). So it is plausible that the value be sealed at type 𝑋 , though not
+mandatory. In order to account for this multiplicity of possibilities, we let 𝜖 ′ be a set of justifications,
+rather than a single justification as is standard in AGT (and in GSF). Both justifications support the
+same consistency judgment Int ∼ ?X:Int, so using just the meet is insufficient. Instead, we represent
+a justification of a consistent judgment between types G1 and G2 as a triple (G, c1, c2), where G
+is the meet, and c1 (resp. c2) is a proof term that characterizes how G is more precise than G1
+(resp. G2). Hence, precision in F ?
+𝜀 is a proof-relevant notion, and evidences carry these proofs. In the
+example, the precision judgments are injX : Int ⊑ ?X:Int and injInt : Int ⊑ ?X:Int, where the proof
+terms injX and injInt denote the two possible injections of imprecision. We write reflInt for the
+proof term of Int ⊑ Int. So we have:
+𝜖 ′ = {( Int, reflInt, injX), (Int, reflInt, injInt)}
+When v is substituted in the body, reduction proceeds by combining 𝜖 ′ with 𝜖 , the evidence
+inserted by the elaboration of the ascription in the body (Equation 1), using consistent transitivity.
+Importantly, in Example (1), 𝜖 justifies that the unknown type is consistent with X via injX, and
+when Int is substituted for X, the proof term injX in 𝜖 does not change (although it now justifies
+the judgment Int ⊑ ?X:Int rather than X ⊑ ?X). Then reduction proceeds by checking that there is
+at least one justification in 𝜖 ′ that is compatible with 𝜖 ; otherwise an error is raised. Because such
+a justification exists in both examples, they both successfully reduce to 42.
+In essence, we treat type precision ⊑ in F ?
+𝜀 not simply as a preorder, but as a category, and
+we construct evidence as a variant of the category of spans. Spans are the triples (G, c1, c2), and
+evidences are sets of spans. Composition of evidence through consistent transitivity can then be
+defined in terms of a category-theoretic pullback operation, again generalizing the order-theoretic
+meet that is used in regular threesomes and AGT.
+2.3 Comparing Plausible Sealing and Prior Approaches
+We now outline the behavior of F ?
+𝜀, informally shedding light on how plausible sealing is realized
+and compares to other approaches. For the sake of simplicity and understanding, we use source
+F? programs for the comparison. Note that, in order to be well typed, source terms in F ? need to
+be augmented with evidence in F ?
+𝜀, casts in 𝜆𝐵, and seal/unseal terms in PolyG 𝜈 (possibly yielding
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 8 ===
+70:8 Elizabeth Labrada, Matías Toro, Éric Tanter, and Dominique Devriese
+Table 1. Comparisons of gradual parametricity approaches.
+Source term in F ? F?𝜀 𝜆𝐵 System F𝐺 GSF PolyG𝜈
+1 (ΛX.𝜆 x : ?. x :: X) [ Int] 42 42 error error error error / 42
+2 (ΛX.𝜆 x : ?. x :: Int) [ Int] 42 42 42 42 42 42 / error
+3 (ΛX.𝜆 x : ?. x :: X) [ Bool] 42 error error error error error
+4 (( ΛX.𝜆 x : X. x :: ?) [ Int] 42) + 1 43 error error error error / 43
+5 (ΛX.𝜆 x : X. (x :: ?) + 1) [ Int] 3 error error error error error
+6 (ΛX. ΛY.𝜆 x : ?. ⟨x, x⟩ :: X × Y) [ Int] [ Int] 42 ⟨42, 42⟩ error error error error / error
+two possible well-typed variants), in addition to superficial syntactic differences. Table 1 compares
+F?
+𝜀 with prior approaches using a number of key examples from the literatureÐexcept Example
+(6)Ðeither adapted or verbatim. Additional examples are provided in the technical report.
+Examples (1) and (2) are the key examples discussed in Section 2.2. In GSF, 𝜆𝐵 and System F𝐺 ,
+Example (1) fails with an error, and Example (2) yields 42, because these systems eagerly choose
+not to seal the argument when it has the unknown type. In PolyG 𝜈 , programmers have to use
+explicit sealing to decide to seal or not, but this cannot be done modularly; one can obtain different
+behaviors accordingly. Example (3) raises a runtime error at the ascription to X, as the type
+variable is instantiated to Bool but a value of type Int is provided; together with Example (1), it
+illustrates the shallow non-parametric behavior of F ? discussed in the introduction. Note that other
+approaches also raise an error in this example because the argument is not sealed, which implies
+that Example (1) fails as well. Example (4) illustrates that, contrary to other approaches that use
+global type names as a runtime sealing mechanism, sealing in F ?
+𝜀 is lexically scoped: seals cannot
+outlive the lexical boundary of a type abstraction. In the example, when 42 is returned by the
+function, it is automatically unsealed and usable as a regular integer. In PolyG 𝜈 , an explicit unseal
+is needed to avoid failure. Example (5) illustrates the prevention of a violation of parametricity
+at runtime. Example (6) illustrates yet another flexibility of plausible sealing that makes it more
+expressive than prior approaches: evidence as sets of spans can support multiple sealing behaviors.
+In this example, the argument of the function, 42, is treated as plausibly sealed to both X and Y at
+the same time. This example fails in GSF. In PolyG 𝜈 , programmers have to pick in advance whether
+to seal with X or Y, and the example fails in both cases. Observe that this program does not have a
+fully statically-typed counterpart, and therefore showcases an expressiveness gain of the gradual
+language, which compromises neither graduality nor parametricity.
+These examples illustrate the flexibility afforded by plausible sealing, as a novel point in the
+design space of gradual parametricity.
+3 THE EVIDENCE-BASED LANGUAGE F ?
+𝜀
+Now that we have informally explained our representation of evidence and the obtained behavior,
+we turn to the formalization of F ?
+𝜀 and its properties: parametricity and graduality. This section
+centers on presenting the language without entering into the details of evidence: evidence and its
+operators are treated abstractly. We provide the full details of evidence for F?
+𝜀 in Section 4. Sections 5
+and 6 establish parametricity and graduality of F ?
+𝜀, respectively. Section 7 then studies the source
+language F?, its elaboration to F ?
+𝜀, and its properties.
+Syntax and static semantics. Figure 1 presents the syntax and semantics of F ?
+𝜀. A type G can
+be either a base type, a type variable, a function type, a polymorphic type, or the unknown
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 9 ===
+Plausible Sealing for Gradual Parametricity 70:9
+X ∈ TypeV ar, G ∈ GType, 𝜖 ∈ Evidence, t ∈ Term, ∆ ⊂ TypeV ar, Γ ∈ V ar
+fin
+⇀ GType
+F ::= B | X G ::= B | X | G → G | ∀X. G | ?𝛅 𝛅 ::= 𝛅, X : F | ∅
+u ::= b | 𝜆x : G. t | ΛX. t v ::= 𝜖 u :: G t ::= v | x | t t | t [F] | 𝜖 t :: G s ::= u | t
+∆; Γ ⊢ s : G Term typing
+Gasc
+∆; Γ ⊢ s : G′ ∆ ⊢ G 𝜖 : G′ ∼ G
+∆; Γ ⊢ 𝜖 s :: G : G GappG ∆; Γ ⊢ t : ∀X. G ∆ ⊢ F
+∆; Γ ⊢ t [F] : G [F/ X]
+t − − →t or error Notion of reduction
+(Rasc) 𝜖2 (𝜖1 u :: G1) :: G2 − − →
+{
+𝜖 u :: G2 if 𝜖 = 𝜖1 ◦ 𝜖2
+error otherwise
+(Rapp)
+(𝜖1 (𝜆x : G11. t) :: G1 → G2)
+(𝜖2 u :: G1) − − →
+{
+cod (𝜖1) (t [(𝜖 u :: G11)/ x]) :: G2 if 𝜖 = 𝜖2 ◦ dom(𝜖1)
+error otherwise
+(RappG) (𝜖 (ΛX. t) :: ∀X. G) [ F] − − →(schm(𝜖 ) t :: G) [F/ X]
+Fig. 1. F ?𝜀 : Syntax, Static and Dynamic Semantics (fragment).
+type. 6 Observe that static types from System F are syntactically included in gradual types G.
+In F ?
+𝜀, polymorphic types can only be instantiated with base types and type variables, called
+instantiation types, and denoted by metavariable F. As mentioned in the introduction, this restriction
+on polymorphism simplifies the already-dense technical development while still manifesting all the
+subtleties of gradual parametricity identified in prior work. Another distinctive feature of F ?
+𝜀 is that
+it avoids the use of a global typename store as used in all prior work on gradual parametricity thanks
+to the fact that the unknown type is indexed by an environment 𝛅. This instantiation environment
+keeps track of the static and dynamic information related to type variables in scope: ?X:Int expresses
+that type variable X is in scope and instantiated to Int. Uninstantiated type variables are associated
+with themselves X : X, which for brevity we simply write as X. It is worth noting that in the type
+?X:X, the two occurrences of X play a different role: the first is merely a label, while the second is
+an actual occurrence of the type variable X.
+A term t can be a value v, a variable, a term application, a type application (to an instantiation
+type), or an ascription. Note the presence of an evidence 𝜖 in an ascription, to justify the fact that
+the underlying term is of a type consistent with the ascribed type. Values v are ascribed raw values
+𝜖 u :: G, where 𝜖 justifies that the type of u is consistent with G. A raw value u can be a base value
+b, a function, or a type abstraction. To avoid duplication of typing rules, we use metavariable s to
+denote both raw values u and terms t.
+The typing judgment ∆; Γ ⊢ s : G establishes that s has type G, under type variable environment
+∆, and type environment Γ. ∆ is used to track type variables in scope, and Γ to map variables to their
+types. Most of the type rules are standard, closely following System F. Note that rule ( Gasc) is the
+only rule that uses the consistency relation; all other elimination rules require types to match exactly.
+Elaboration from the source language F ? is in charge of introducing the necessary ascriptions to
+safely support the flexibility of gradual typing. Rule ( GappG) is almost standard, save for the fact
+that it restricts instantiations to instantiation types F. The type substitution operator G [F/ X]
+6We omit formal definitions for pairs, which are unsurprising and found in the technical report.
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 10 ===
+70:10 Elizabeth Labrada, Matías Toro, Éric Tanter, and Dominique Devriese
+is standard, except for occurrences of unknown types, for which type substitution is applied
+to their instantiation environments 𝛅: (𝛅, X : F′) [F/ X] = 𝛅 [F/ X], X : F′[F/ X]. For instance,
+?Y:X, X:X [Int/ X] = ?Y:Int, X:Int. Notice that type substitution on an instantiation environment 𝛅 only
+affects type variable occurrences, not labels.
+Dynamic semantics. The dynamic semantics of F ?
+𝜀 are usual for an evidence-based reduction
+semantics [Garcia et al. 2016; Toro et al. 2019], using reduction frames and notions of reduction.
+Reduction uses the consistent transitivity operator ◦ to combine evidence and justify transitive
+judgments. If 𝜖1 ◦ 𝜖2 is defined then it yields a more precise evidence, otherwise an error is raised.
+For example, rule ( Rasc) reduces nested ascriptions, such as value 𝜖1 u :: G1 ascribed to G2 using
+evidence 𝜖2. Recall that 𝜖1 justifies that Gu, the type of u, is consistent with G1, noted 𝜖1 : Gu ∼ G1,
+and likewise, 𝜖2 : G1 ∼ G2. Therefore, if 𝜖1 ◦ 𝜖2 is defined, then the resulting evidence justifies
+the transitive judgment between Gu and G2, i.e. 𝜖1 ◦ 𝜖2 : Gu ∼ G2. Rule ( Rapp) reduces a term
+application substituting the argument in the body of the function. It first ascribes the argument to
+G11, the type of x. To justify the transitive judgment of the beta reduction, it combines 𝜖2, with
+dom(𝜖1). Evidence dom(𝜖1) and cod (𝜖1) can be extracted from 𝜖1 by reasoning about inversion on
+consistency (𝜖1 : G11 → G12 ∼ G1 → G2). Evidence 𝜖1 justifies that G11 → G12, the underlying type
+of the function, is consistent with G1 → G2. Thus, evidence dom(𝜖1) justifies that G1 is consistent
+with G11, and therefore 𝜖 ◦ dom(𝜖1), if defined, justifies that the type of the raw value u is consistent
+with G11. The output of the function is ascribed to the expected return type G2 using the co-domain
+evidence cod (𝜖1). Rule ( RappG) reduces type application by substituting type F in the schema
+evidence schm(𝜖 ), in the body of the type abstraction t and in the scheme type G. By inversion
+on consistency, if 𝜖 : ∀X. G′ ∼ ∀X. G, then schm(𝜖 ) : G′ ∼ G. Substitution on evidence 𝜖 [F/ X] is
+defined using substitution on types, for all type information that appears in the evidence (Section 4).
+Substitution on terms t [F/ X] is recursively defined over subterms, evidences, and types.
+It is worth noting that rule ( RappG) is remarkably standard unlike other gradual polymorphic
+calculi where dynamic type generation happens in this rule, being stored in a global store. This
+is made possible thanks to the use of the annotated unknown type ?𝛅 . Another point that has
+relevance in the reduction of type applications is that the type of the redex can contain instantiated
+type variables in scope. For example, term (𝜖2 (ΛX.𝜆 x : ?X .𝜖 1 x :: X) :: ∀X. ?X → X) [ Int] has type
+?X:Int → Int with X in the instantiation environment of the unknown type. To obtain a term that
+can be applied to an argument of type ?∅, an external evidence to the application is necessary to
+justify that ?X:Int → Int is consistent with ?∅ → Int. As we saw in Section 2 and will explain in
+detail in Section 7, this evidence is inserted by the elaboration from F ? to F?
+𝜀.
+Properties. As expected from any language, F ?
+𝜀 is type safe ( i.e. well-typed F ?
+𝜀 terms do not get
+stuck). Thus, a well-typed program either evaluates to a value, a runtime error, or diverges. In
+order to prove type safety, it is necessary to have some properties about the evidence, such as the
+resulting evidence from consistent transitivity supports the transitive consistency judgment and
+type substitution over the evidence supports the substitution over the judgment (Section 4).
+Lemma 3.1 (Type Safety). If ⊢ t : G then either t
+∗
+↦− →v with ⊢ v : G, t
+∗
+↦− →error, or t diverges.
+Of course, the most interesting properties of F ?
+𝜀 are parametricity and graduality. We dive into the
+details of these properties in Section 5 and Section 6 respectively, after giving a detailed account of
+evidence, including its representation, operations, and properties thereof, in particular associativity
+and monotonicity of consistent transitivity.
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 11 ===
+Plausible Sealing for Gradual Parametricity 70:11
+c ::= reflF | c → c | ∀X. c | injF | inj→ (c) | inj∀(c) | inj?
+c : G ⊑ G Proof-relevant precision
+reflB : B ⊑ B reflX : X ⊑ X
+𝛅 ⊆ 𝛅′
+inj? : ?𝛅 ⊑ ?𝛅′
+c : G1 ⊑ G2 c′ : G′
+1 ⊑ G′
+2
+c → c′ : G1 → G′
+1 ⊑ G2 → G′
+2
+c : G1 ⊑ G2
+∀X. c : ∀X. G1 ⊑ ∀X. G2
+X : F ∈ 𝛅 𝛅 ⊢ F
+injX : F ⊑ ?𝛅
+injB : B ⊑ ?𝛅
+c : G ⊑ ?𝛅 → ?𝛅
+inj→ (c) : G ⊑ ?𝛅
+c : G ⊑ ∀X. ?𝛅, X
+inj∀(c) : G ⊑ ?𝛅
+c;c = c Composition of precision proof terms
+reflB ;reflB = reflB reflX ;reflX = reflX (c1 → c2);(c′
+1 → c′
+2) = (c1;c′
+1) → ( c2;c′
+2)
+(∀X. c);(∀X. c′) = ∀X. (c;c′) reflB ;injB = injB reflF ;injX = injX
+c1;inj_ (c2) = inj_ (c1;c2) c;inj? = c
+G1 G G2c1 c2
+c1;c2 = c
+Int Int ?X:Int
+reflInt injInt
+injInt
+Int ?X:Int ?X:Int,Y:Int
+injX inj?
+injX
+Fig. 2. Proof-relevant type precision, composition, and examples.
+4 EVIDENCE FOR PLAUSIBLE SEALING IN F ?
+𝜀
+We now turn to the key technical innovation that makes F ?
+𝜀 (and by extension, F ?) able to address
+the dilemma presented in Section 1: plausible sealing, implemented via a novel representation of
+evidence based on a proof-relevant notion of gradual type precision. As explained in Section 2, for a
+consistency judgment G1 ∼ G2, instead of having evidence only track a common more precise type
+G, evidence is a set of spans, where each span includes a common more precise type G and two
+proof terms that describe how G ⊑ G1 and G ⊑ G2 hold, respectively.
+Proof-relevant precision. As mentioned in Section 2.2, there can be multiple ways of satisfying a
+precision relation G ⊑ G′. To differentiate them, we extend the precision relation between types
+with a proof term c that expresses how G is more precise than G′.
+Proof-relevant precision is presented in Figure 2. The proof relevant judgment c : G ⊑ G′ denotes
+that proof term c justifies that G is more precise than G′. A reflexive proof term reflF justifies
+that F is more precise than F. A function proof term c → c′ witnesses that a function type is
+more precise than another function type if their domains and codomains are related; likewise for
+polymorphic proof terms ( ∀𝑋 . c). Proof term injX represents an injection from X into ?𝛅, and
+witnesses that if X is associated to F in 𝛅 and F is well-formed with respect to 𝛅, then F is more
+precise than ?𝛅 . We say that a type F is well-formed with respect to 𝛅 (𝛅 ⊢ F) if F is a base type
+B or is a type variable X and X : X ∈ 𝛅. For example, if X is not yet instantiated and X : X ∈ 𝛅,
+then injX : X ⊑ ?X:X . If X : Int ∈ 𝛅, then injX : Int ⊑ ?X:Int. Injection injB witnesses that a
+base type B is more precise than any unknown type. Proof term sequence inj→(c) justifies that
+function types are more precise than unknown: if c witnesses that a type G is more precise than
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 12 ===
+70:12 Elizabeth Labrada, Matías Toro, Éric Tanter, and Dominique Devriese
+?𝛅 → ?𝛅, then inj→(c) justifies that G is more precise than ?𝛅. Similarly, inj∀(c) witnesses that
+polymorphic types are more precise than unknown respectively. inj? justifies that an unknown
+type is more precise than another if the environment of the former is contained in the environment
+of the latter.
+To support transitive judgments of precision, we define the composition of proof terms in Figure2.
+A reflexive proof term combined with itself yields the same proof term. The combinations of function,
+and abstraction proof terms are defined inductively. The combination of a reflexive base type proof
+term with an injection from that type yields the latter. Similarly, the combination of a reflexivereflF
+proof term with an injection from X, yields just the injection from X. Finally, the combination of an
+inj? from the right can always be dropped. Figure 2 illustrates graphically the composition function
+along some examples. If c1 : G1 ⊑ G, and c : G ⊑ G2, then c1;c2 : G1 ⊑ G2. If reflInt : Int ⊑ Int,
+and injInt : Int ⊑ ?X:Int, then as reflInt;injInt = injInt, then injInt : Int ⊑ ?X:Int. Finally, if
+injInt : Int ⊑ ?X:Int, and inj? : ?X:Int ⊑ ?X:Int, Y:Int, then injInt : Int ⊑ ?X:Int, Y:Int. With these
+reflexivity and composition operators, gradual types and type precision proof terms can be seen as
+the objects and morphisms of a category, which will be useful in Section 4.
+Evidence and consistent transitivity. As mentioned before, evidence is defined as a set of
+justifications, accounting for the multiple possibilities in which two types can be consistent. Using
+proof-relevant type precision, evidence 𝜖 is defined as a non-empty set of spans { S, ... }, where a
+span S is a tuple (G, c1, c2) such that if 𝜖 : G1 ∼ G2, then G is a common more precise type than
+G1 and G2, and c1 and c2 justify łhowž, respectively.
+Definition 4.1. 𝜖 : G1 ∼ G2 iff ∀(G, c1, c2) ∈ 𝜖, c1 : G ⊑ G1 ∧ c2 : G ⊑ G2.
+For example, 𝜖 = {( Int, reflInt, injInt), (Int, reflInt, injX)} justifies that Int ∼ ?X:Int, because
+reflInt : Int ⊑ Int, injInt : Int ⊑ ?X:Int, and injX : Int ⊑ ?X:Int. Therefore, as explained in
+Section 2, the term 𝜖 42 :: ?X:Int corresponds exactly to the maybe-sealed value maybeSeal𝑋 (42)
+from the introduction: the evidence holds both possible justifications.
+The type substitution definition on evidence, and more precisely on proof terms, is fundamental
+for the plausible sealing mechanism to preserve parametricity. Type substitution for evidence is
+defined as the type substitution for each of its spans. Type substitution for a span is defined as the
+type substitution of its components. For example, (X, reflX, reflX) [F/ X] = (F, reflF, reflF) and
+(X, injX, reflX ) [F/ X] = (F, injX, reflF ). Note that injX [F/ X] = injX is essential to preserve
+sealed values; otherwise, we would forget the sealing if we apply the substitution.
+To define consistent transitivity for this representation of evidence, we first define the pullback
+operator between proof terms.
+Lemma 4.2 (Pullback operator and its universal property).
+There exists a partial pullback operator such that if c1 : G1 ⊑ G and
+c2 : G2 ⊑ G, and pullback(G, (G1, c1), (G2, c2)) = (G3, c3, c4, c5), then
+c3 : G3 ⊑ G1, c4 : G3 ⊑ G2, c3;c1 = c5 and c4;c2 = c5. The pullback
+operator is universal in the following sense. If there exists G′
+3, c′
+3, c′
+4
+and c′
+5 such that c′
+3;c1 = c′
+5 and c′
+4;c2 = c′
+5, then pullback(G, (G1, c1),
+(G2, c2)) = (G3, c3, c4, c5) and there exists a unique c : G′
+3 ⊑ G3 such
+that c;c3 = c′
+3, c;c4 = c′
+4 and c;c5 = c′
+5.
+G
+G1 G2
+G3
+G′
+3
+c1 c2
+c3 c4
+c′
+3 c′
+4
+c5
+c
+Our pullback operator and its universal property are a mild adaptation of the standard definition
+in category theory [ nLab contributors 2021a ]. Figure 3 illustrates our pullback operator, along
+with two examples. The first example (second diagram) calculates pullback(?X:Int, (Int, injX ),
+(Int, injX)) , returning (Int, reflInt, reflInt, injX ). Note that the diamond diagram commutes, ob-
+taining injX both on the left and on the right. The second example (third diagram) tries to calculate
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 13 ===
+Plausible Sealing for Gradual Parametricity 70:13
+G
+G1 G2
+G3
+c1 c2
+c3 c4
+c5
+?X:Int
+Int Int
+Int
+injX injX
+reflInt reflInt
+injX
+?X:Int
+Int Int
+Int
+̸⟲
+injX injInt
+reflInt reflInt
+Fig. 3. Pullback and examples.
+G′
+1 G
+G1
+G′
+2
+G2
+G3
+c′
+1
+c1 c2
+c′
+2
+c3 c4
+c5
+c6 c7
+Int ?X:Int
+Int
+?Y:Int
+Int
+Int
+reflInt
+injX injX
+injYinjX
+reflInt reflInt
+Fig. 4. Consistent transitivity for spans and example.
+pullback(?X:Int, (Int, injX), (Int, injInt)) , but it is undefined since there is no gradual type and
+proof terms such that the diagram commutes. The definition of the pullback operator is algorithmic,
+proceeding in most cases congruently.
+The universal property in Lemma 4.2 establishes that if G′
+3 (with proof terms c′
+3 and c′
+4) makes
+the pullback diagram commute, then the pullback is defined, resulting in type G3 (with proof
+terms c3 and c4), the less precise type that makes the diagram commute. Additionally, there exists
+a proof term c such that c : G3 ⊑ G′
+3 and all sub-diagrams commute. For example, suppose
+c1 = c2 = inj? and G = G1 = G2 = ?X:Int. Since G′
+3 = Int, with c′
+3 = c′
+4 = injX, makes the
+diagram commute, we know that the pullback exists. In this case, we know that pullback(?X:Int,
+(?X:Int, inj?), (?X:Int, inj?)) = (?X:Int, inj?, inj?, inj?). Observe that there exist two proof terms
+c such that c : G3 ⊑ G′
+3, c = injInt and c = injX. However, only c = injX satisfies c;c3 = c′
+3,
+c;c4 = c′
+4 and c;c5 = c′
+5. Consistent transitivity between spans is then defined as follows:
+Definition 4.3 (Consistent transitivity for spans). Let c1 : G1 ⊑ G, c′
+1 : G1 ⊑ G′
+1, c2 : G2 ⊑ G
+and c′
+2 : G2 ⊑ G′
+2. We pose (G1, c′
+1, c1) ◦ ( G2, c2, c′
+2) = {( G3, c6, c7) | pullback(G, (G1, c1), (G2, c2)) =
+(G3, c3, c4, c5) ∧ c3;c′
+1 = c6 ∧ c4;c′
+2 = c7}.
+The definition is very close to the standard definition of composition of spans [ nLab contributors
+2021b], except that we are dealing with a partial pullback and a set of spans rather than a single
+span. Figure 4 graphically supports the definition of consistent transitivity, along with an example.
+First the pullback of c1 and c2 is computed. If the pullback is defined, then the new evidence
+type is computed using the common gradual type from the pullback G3, and new proofs that
+G3 is more precise than G′
+1 and G′
+2 using the proof-relevant composition operator. Note that the
+result of consistent transitivity for spans is either a singleton set or the empty set. In the example,
+we have that (Int, reflInt, injX) : Int ∼ ?X:Int (representing a seal at type X), and (Int, injX,
+injY) : ?X:Int ∼ ?Y:Int (an unseal at type X, followed by a seal at type Y). Consistent transitivity
+(Int, reflInt, injX) ◦ ( Int, injX, injY) is computed by first computing pullback(?X:Int, (Int, injX ),
+(Int, injX)) = (Int, reflInt, reflInt, injX). As reflInt;reflInt = reflInt, and reflInt;injY = injY,
+the result is (Int, reflInt, injY).
+Finally, consistent transitivity between evidences is just defined as the natural lifting of consistent
+transitivity of spans to sets of spans.
+Definition 4.4 (Consistent transitivity for evidence). Let 𝜖1 : G1 ∼ G, and 𝜖2 : G ∼ G2.
+𝜖1 ◦ 𝜖2 ::=
+®
+𝜖 if 𝜖 = {S | S ∈ S1 ◦ S2, S1 ∈ 𝜖1, S2 ∈ 𝜖2} ≠ ∅
+error otherwise
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 14 ===
+70:14 Elizabeth Labrada, Matías Toro, Éric Tanter, and Dominique Devriese
+Note that if the resulting set is empty, then consistent transitivity is undefined, representing a
+runtime type error because plausibility of well-typedness has been refuted. Otherwise, if consistent
+transitivity is defined, then the obtained evidence justifies the transitive judgment.
+Lemma 4.5. Let 𝜖1 : G1 ∼ G, and 𝜖2 : G ∼ G2. If 𝜖1 ◦ 𝜖2 is defined, then 𝜖1 ◦ 𝜖2 : G1 ∼ G2.
+Associativity of consistent transitivity. Associativity of consistent transitivity is a key property
+in evidence-based semantics, used to establish type soundness as well as space efficiency opti-
+mizations [Bañados Schwerter et al . 2021; Toro and Tanter 2020]. In particular, in this work the
+associativity lemma is used extensively in the proof of parametricity of F ?
+𝜀 (Section 5).
+Lemma 4.6 ( ✓ Associativity of Evidence Composition). (𝜖1 ◦ 𝜖2) ◦ 𝜖3 = 𝜖1 ◦ ( 𝜖2 ◦ 𝜖3).
+The proof of the associativity lemma relies on the universal property of the pullback (Lemma 4.2).
+Examples of reduction. Armed with the dynamic semantics of F ?
+𝜀 and the concrete representation
+of evidence, we first illustrate the reduction of Example (1) from Section2.3: (ΛX.𝜆 x : ?. x :: X) [Int] 42,
+which reduces to 42. Its elaboration (omitting some trivial evidence for conciseness) and reduction
+proceed as follows:
+(𝜖2 (ΛX.𝜆 x : ?X .𝜖 1 x :: X [Int]) :: ? → Int) ( 𝜖3 42 :: ?) where 𝜖1 = {( X, injX, reflX )} and
+𝜖2 = {( Int → Int, injX → reflInt, injInt → reflInt),
+(? → Int, inj? → reflInt, inj? → reflInt)} and 𝜖3 = {( Int, reflInt, injInt)}
+(RappG) ↦− →(𝜖2 (𝜆x : ?X:Int.𝜖 ′
+1 x :: Int) :: ? → Int) ( 𝜖3 42 :: ?) where 𝜖 ′
+1 = {( Int, injX, reflInt)}
+(Rapp) ↦− →cod (𝜖2) (𝜖 ′
+1 (𝜖 ′
+3 42 :: ?) :: Int) :: Int where 𝜖 ′
+3 = 𝜖3 ◦ dom(𝜖2) =
+{( Int, reflInt, injX ), (Int, reflInt, injInt)}
+(Rasc) ↦− →cod (𝜖2) (𝜖4 42 :: Int) :: Int where 𝜖4 = 𝜖 ′
+3 ◦ 𝜖 ′
+1 = {( Int, reflInt, reflInt)}
+(Rasc) ↦− →𝜖5 42 :: Int where 𝜖5 = 𝜖4 ◦ cod (𝜖2) = {( Int, reflInt, reflInt)}
+We now illustrate the reduction of Example (3) from Section 2.3: (ΛX.𝜆 x : ?. x :: X) [Bool] 42. The
+elaboration and reduction are as follows:
+(𝜖2 (ΛX.𝜆 x : ?X .𝜖 1 x :: X [Bool]) :: ? → Bool) ( 𝜖3 42 :: ?) where 𝜖1 = {( X, injX, reflX )} and
+𝜖2 = {( Bool → Bool, injX → reflBool, injBool → reflBool),
+(? → Bool, inj? → reflBool, inj? → reflBool)} and 𝜖3 = {( Int, reflInt, injInt)}
+(RappG) ↦− →(𝜖2 (𝜆x : ?X:Bool.𝜖 ′
+1 x :: Bool) :: ? → Bool) ( 𝜖3 42 :: ?) where 𝜖 ′
+1 = {( Bool, injX, reflBool)}
+(Rapp) ↦− →cod (𝜖2) (𝜖 ′
+1 (𝜖 ′
+3 42 :: ?) :: Bool) :: Bool where 𝜖 ′
+3 = 𝜖3 ◦ dom(𝜖2) = {( Int, reflInt, injInt)}
+(Rasc) ↦− →error because {( Int, reflInt, injInt)} ◦ {( Bool, injX, reflBool)} is undefined
+Finally, we show the reduction of Example (5) from Section 2.3, which illustrates the prevention
+of a violation of parametricity at runtime: (ΛX.𝜆 x : X. (x :: ?) + 1) [ Int] 3. The elaboration and
+reduction are as follows:
+(𝜖3 (( ΛX.𝜆 x : X. (𝜖2 (𝜖1 x :: ?X ) :: Int) + ( 𝜖Int 1 :: Int)) [ Int]) :: Int → Int) ( 𝜖Int 3 :: Int)
+where 𝜖1 = {( X, reflX, injX )}, 𝜖2 = {( Int, injInt, reflInt)}, 𝜖Int = {( Int, reflInt, reflInt)}
+and 𝜖3 = {( Int → Int, reflInt → reflInt, reflInt → reflInt)}
+(RappG) ↦− →(𝜖3 (𝜆x : Int. (𝜖2 (𝜖 ′
+1 x :: ?X:Int) :: Int) + ( 𝜖Int 1 :: Int)) :: Int → Int) ( 𝜖Int 3 :: Int)
+where 𝜖 ′
+1 = {( Int, reflInt, injX )}
+(Rapp) ↦− →cod (𝜖3) (( 𝜖2 (𝜖 ′
+1 (𝜖Int 3 :: Int) :: ?X:Int) :: Int) + ( 𝜖Int 1 :: Int)) :: Int where 𝜖Int ◦ dom(𝜖3) = 𝜖Int
+(Rasc) ↦− →cod (𝜖3) (( 𝜖2 (𝜖 ′
+1 3 :: ?X:Int) :: Int) + ( 𝜖Int 1 :: Int)) :: Int where 𝜖Int ◦ 𝜖 ′
+1 = 𝜖 ′
+1
+(Rasc) ↦− →error because 𝜖 ′
+1 ◦ 𝜖2 = {( Int, reflInt, injX )} ◦ {( Int, injInt, reflInt)} is undefined
+5 F ?
+𝜀 : GRADUAL PARAMETRICITY
+In this section, we present parametricity for F ?
+𝜀. Since gradual types support non-terminating terms,
+we use a standard technique for establishing this result: step-indexed logical relations [Ahmed 2006;
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 15 ===
+Plausible Sealing for Gradual Parametricity 70:15
+V𝜌 /llbracket𝐵/rrbracket = {(𝑛, v, v) ∈ Atom𝜌 [𝐵]}
+V𝜌 /llbracketG1 → G2/rrbracket= {(𝑛, v1, v2) ∈ Atom𝜌 [G1 → G2] | ∀ 𝑛′ ≤ 𝑛, v′
+1, v′
+2.
+▷ (𝑛′, v′
+1, v′
+2) ∈ V𝜌 /llbracketG1/rrbracket⇒ ( 𝑛′, v1 v′
+1, v2 v′
+2) ∈ T𝜌 /llbracketG2/rrbracket}
+V𝜌 /llbracket∀X. G/rrbracket = {(𝑛, v1, v2) ∈ Atom𝜌 [∀X. G] | ∀ ⊢ B1, ⊢ B2, 𝑅 ∈ Rel[B1, B2].
+(𝑛, v1 [B1], v2 [B2]) ∈ T𝜌;X↦→( B1, B2,𝑅 ) /llbracketG/rrbracket}
+V𝜌 /llbracketX/rrbracket = 𝜌.𝑅 (X)
+V𝜌 /llbracket?𝛅 /rrbracket = {(𝑛, v1, v2) ∈ Atom𝜌 [?𝛅 ] | ∀ GR, 𝜖, ⊢ 𝜖 : 𝛅 /rightarrowtriangleGR.
+(𝑛, 𝜌 1 (𝜖 ) v1 :: 𝜌1 (GR), 𝜌 2 (𝜖 ) v2 :: 𝜌2 (GR)) ∈ T𝜌 /llbracketGR/rrbracket}
+T𝜌 /llbracketG/rrbracket = {(𝑛, t1, t2) ∈ Atom𝜌 [G] | ∀ 𝑖 < 𝑛.
+(∀v1. t1 ↦− →𝑖 v1 ⇒ ∃v2. t2
+∗
+↦− →v2∧ ▷𝑖 (𝑛, v1, v2) ∈ V𝜌 /llbracketG/rrbracket)∧
+(t1 ↦− →𝑖 error ⇒ t2
+∗
+↦− →error)}
+D/llbracket∅/rrbracket = {(𝑛, ∅)}
+D/llbracket∆, X/rrbracket = {(𝑛, 𝜌 [X ↦→ ( B1, B2, 𝑅 )]) | ( 𝑛, 𝜌 ) ∈ D/llbracket∆/rrbracket∧ 𝑅 ∈ Rel[B1, B2]}
+G𝜌 /llbracket∅/rrbracket = {(𝑛, ∅)}
+G𝜌 /llbracketΓ, x : G/rrbracket= {(𝑛, 𝛾 [x ↦→ ( v1, v2)]) | ( 𝑛, 𝛾 ) ∈ G𝜌 /llbracketΓ/rrbracket∧ (𝑛, v1, v2) ∈ V𝜌 /llbracketG/rrbracket}
+∆; Γ ⊢ t1 ⪯ t2 : G ≜ ∆; Γ ⊢ t1 : G ∧ ∆; Γ ⊢ t2 : G ∧ ∀𝑛, 𝜌, 𝛾 . ((𝑛, 𝜌 ) ∈ D/llbracket∆/rrbracket∧ (𝑛, 𝛾 ) ∈ G𝜌 /llbracketΓ/rrbracket) ⇒
+(𝑛, 𝜌 1 (𝛾1 (t1)), 𝜌 2 (𝛾2 (t2))) ∈ T𝜌 /llbracketG/rrbracket
+∆; Γ ⊢ t1 ≈ t2 : G ≜ ∆; Γ ⊢ t1 ⪯ t2 : G ∧ ∆; Γ ⊢ t2 ⪯ t1 : G
+Atom𝜌 [G] ={(𝑛, t1, t2) ∈ Atom[𝜌. 1(G), 𝜌. 2(G)]}
+Atom[G1, G2] ={(𝑛, t1, t2) | ⊢ t1 : G1 ∧ ⊢ t2 : G2} Atomval [G1, G2] = {(𝑛, v1, v2) ∈ Atom[G1, G2]}
+Rel[G1, G2] ={𝑅 ⊆ Atomval [G1, G2] | ∀ 𝑛′ ≤ 𝑛, v1, v2. (𝑛, v1, v2) ∈ 𝑅 ⇒ ( 𝑛′, v1, v2) ∈ 𝑅}
+Fig. 5. Gradual logical relation and auxiliary definitions.
+Appel and McAllester 2001 ]. Step indexing ensures the well-foundedness of the logical relation. We
+start by defining the logical relation for values and terms, and then we establish the fundamental
+property or parametricity. Our proposal is the first gradual polymorphic language to support a
+formulation of parametricity where semantic types are tracked in a lexical environment, similar to
+traditional formulations of parametricity [ Reynolds 1983].
+Logical relations. Figure 5 presents the logical relation for parametricity along with some aux-
+iliary definitions. The relational interpretation is presented using atoms of the form (𝑛, t1, t2) ∈
+Atom[G1, G2], where 𝑛 denotes the step index, and t1 and t2 denote closed well-typed terms
+at types G1 and G2 respectively. The logical relation is defined using two mutually-defined in-
+terpretations: one for values V𝜌 /llbracketG/rrbracketand one for computations T𝜌 /llbracketG/rrbracket. Both interpretations are
+indexed by a type G, and an environment 𝜌, which maps type variables to two types G1 and
+G2 and a relation 𝑅 ∈ Rel[G1, G2]. Rel[G1, G2] defines the set of all admissible relations 𝑅 such
+that 𝑅 ⊆ Atomval [G1, G2] (the subset of atoms where terms are values). For convenience, if
+𝜌 = {Xi ↦→ ( Gi1, Gi2, 𝑅 𝑖 )}, then 𝜌. 1, 𝜌. 2, and 𝜌.𝑅 are abbreviations for {Xi ↦→ Gi1} and {Xi ↦→ Gi2},
+and {Xi ↦→ 𝑅𝑖 } respectively. Thus 𝜌. 𝑗 (G) is an abbreviation for multiple substitutions G [Xi ↦→ Gij].
+Finally, Atom𝜌 [G] denotes the set of atoms Atom[𝜌. 1(G), 𝜌. 2(G)]} .
+Logical relation for values. The definition of related values is standard except for the unknown
+type. Two base values of type B are related if they are the same. Two functions are related at type
+G1 → G2, if given two related arguments at type G1 (and a strictly smaller index), the application
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 16 ===
+70:16 Elizabeth Labrada, Matías Toro, Éric Tanter, and Dominique Devriese
+yields related computations at type G2. We use notation▷𝑖 (𝑛, v1, v2) ∈ V𝜌 /llbracketG/rrbracketas an abbreviation for
+(𝑛 − 𝑖, v1, v2) ∈ V𝜌 /llbracketG/rrbracket, and ▷ (𝑛, v1, v2) ∈ V𝜌 /llbracketG/rrbracketfor ▷1 (𝑛, v1, v2) ∈ V𝜌 /llbracketG/rrbracket. Two type abstractions
+are related if their instantiations to two arbitrary base types yields related computations for any
+given relation between the instantiated types. Two values are related at an abstract type X, if they
+are contained in the relation for X. Two values are related at the unknown type ?𝛅, if given any
+evidence 𝜖 that justifies that any GR is ground with respect to 𝛅, notation ⊢ 𝜖 : 𝛅 /rightarrowtriangleGR, then
+both values ascribed to 𝜌. 1(GR) and 𝜌. 2(GR), using 𝜌. 1(𝜖 ) and 𝜌. 2(𝜖 ) respectively, are related
+computations at type GR. This definition captures the fact that if two values are related at ?𝛅, they
+are also related at some more precise ground type, either X, B, ?𝛅 → ?𝛅 , or ∀X. ?𝛅, X, after removing
+the respective injections to the unknown type with the evidences 𝜌. 1(𝜖 ) and 𝜌. 2(𝜖 ). Both 𝜆𝐵 and
+GSF use similar approaches for defining the logical relation for values of type unknown but are
+formalized differently, according to the syntax of the considered languages. Relation ⊢ 𝜖 : 𝛅 /rightarrowtriangleGR
+is defined such that GR is a ground type restricted to 𝛅, and 𝜖 : ?𝛅 ∼ GR:
+⊢ {( B, injB, reflB )} : 𝛅 /rightarrowtriangleB ⊢ {( ?𝛅 → ?𝛅, inj→, inj? → inj?)} : 𝛅 /rightarrowtriangle?𝛅 → ?𝛅
+X : F ∈ 𝛅 𝛅 ⊢ F
+⊢ {( F, injX, reflF )} : 𝛅 /rightarrowtriangleF ⊢ {( ∀X. ?𝛅, X, inj∀, ∀X. inj?)} : 𝛅 /rightarrowtriangle∀X. ?𝛅, X
+Let us illustrate the interpretation of the unknown type with examples. Consider the evidences:
+𝜖Int? = {( Int, reflInt, injInt)} , 𝜖Int = {( Int, reflInt, reflInt)} and 𝜖X? = {( Int, reflInt, injX )},
+where 𝛅 = X : X, and 𝛅′ = X : Int.
+• ( 𝑛, 𝜖Int?42::?𝛅′, 𝜖Int?42::?𝛅′) ∈ V𝜌 /llbracket?𝛅 /rrbracketbecause for 𝜖 = {( Int, injInt, reflInt)} and ⊢ 𝜖 : 𝛅 /rightarrowtriangleInt,
+as 𝜖Int? ◦ 𝜌.𝑖 (𝜖 ) = 𝜖Int, then ▷ (𝑛, 𝜖Int42 :: Int, 𝜖Int42 :: Int) ∈ V𝜌 /llbracketInt/rrbracket(and for every other
+evidence 𝜖 and GR, such that ⊢ 𝜖 : 𝛅 /rightarrowtriangleGR, consistent transitivity is not defined).
+• ( 𝑛, 𝜖Int?42 :: ?𝛅′, 𝜖Int?43 :: ?𝛅′) ∉ V𝜌 /llbracket?𝛅 /rrbracketbecause for ⊢ {( Int, injInt, reflInt)} : 𝛅 /rightarrowtriangleInt, as
+▷ (𝑛, 𝜖Int42 :: Int, 𝜖Int43 :: Int) ∉ V𝜌 /llbracketInt/rrbracket.
+• Suppose ▷ (𝑛, 𝜖Int42 :: Int, 𝜖Int43 :: Int) ∈ 𝜌.𝑅 (X). Then (𝑛, 𝜖X?42 :: ?𝛅′, 𝜖X?43 :: ?𝛅′) ∈ V𝜌 /llbracket?𝛅/rrbracket
+because for 𝜖 = {( X, injX, reflX)} and ⊢ 𝜖 : 𝛅 /rightarrowtriangleX, as 𝜖X? ◦ 𝜌.𝑖 (𝜖 ) = 𝜖Int, then ▷
+(𝑛, 𝜖Int42 :: Int, 𝜖Int43 :: Int) ∈ V𝜌 /llbracketX/rrbracket= 𝜌.𝑅 (X) (and for every other evidence 𝜖 and GR, such
+that ⊢ 𝜖 : 𝛅 /rightarrowtriangleGR, consistent transitivity is not defined).
+• But (𝑛, 𝜖X?42 :: ?𝛅′, 𝜖X?43 :: ?𝛅′) ∉ V𝜌 /llbracket?𝛅′/rrbracketbecause for 𝜖 = {( Int, injX, reflInt)} and ⊢ 𝜖 :
+𝛅′ /rightarrowtriangleInt, as 𝜖X ◦ 𝜌.𝑖 (𝜖 ) = 𝜖Int, but ▷ (𝑛, 𝜖Int42 :: Int, 𝜖Int43 :: Int) ∉ V𝜌 /llbracketInt/rrbracket.
+• Suppose 𝜌.𝑅 (X) = V𝜌 /llbracketInt/rrbracket, and 𝜖m = 𝜖Int? ∪ 𝜖X?. Then (𝑛, 𝜖m42 :: ?𝛅′, 𝜖m42 :: ?𝛅′) ∈ V𝜌 /llbracket?𝛅/rrbracket
+because (1) for 𝜖 = {( X, injX, reflX)} and ⊢ 𝜖 : 𝛅 /rightarrowtriangleX, as 𝜖m ◦ 𝜌.𝑖 (𝜖 ) = 𝜖X? ◦ 𝜌.𝑖 (𝜖 ) =
+𝜖Int, then ▷ (𝑛, 𝜖Int42 :: Int, 𝜖Int42 :: Int) ∈ V𝜌 /llbracketX/rrbracket= 𝜌.𝑅 (X) = V𝜌 /llbracketInt/rrbracket; and (2) for 𝜖 =
+{( Int, injInt, reflInt)} , ⊢ 𝜖 : 𝛅 /rightarrowtriangleInt, as 𝜖m ◦ 𝜌.𝑖 (𝜖 ) = 𝜖Int? ◦ 𝜌.𝑖 (𝜖 ) = 𝜖Int, then ▷ (𝑛, 𝜖Int42 ::
+Int, 𝜖Int42 :: Int) ∈ V𝜌 /llbracketInt/rrbracket.
+Note that for the case of functions, type applications, and the unknown type, although the same
+step index is used in every recursive reasoning, the relations are well-formed as in each case a
+single step of reduction is always taken, lowering the index by one.
+Logical relation for terms. Two computations are related at 𝑛 steps if the first term yields a value
+in 𝑖 < 𝑛 reduction steps, then the second must produce a value related at that type at 𝑛 − 𝑖 steps;
+and if the first term fails, then the second also fails.
+Logical relation for environments. The interpretation of environment ∆, specifies all type
+substitutions 𝜌, such that all type variables in ∆ are mapped to a pair of base types and a relation
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 17 ===
+Plausible Sealing for Gradual Parametricity 70:17
+at those types. The interpretation of environment Γ, specifies all value substitution 𝛾, such that
+every variable of type G is mapped to a pair of related values at that type.
+Parametricity. The logical approximation ∆; Γ ⊢ t1 ⪯ t2 : G states that given any step index,
+any environments 𝜌 and 𝛾 that satisfy ∆ and Γ respectively, the substituted terms are related
+computations. Similarly to 𝜌, for convenience if 𝛾 = {x ↦→ ( vi1, vi2)}, then 𝛾 𝑗 = {x ↦→ vij}. Finally,
+the fundamental property states that any well-typed term logically approximates itself.
+Theorem 5.1 (Fundamental Property). If ∆; Γ ⊢ t : G then ∆; Γ ⊢ t ⪯ t : G.
+As standard [ Ahmed 2004 ], the proofs of the fundamental property depends on numerous
+compatibility lemmas for each term constructor and the compositionality lemma, which in this
+work resembles compositionality for System F.
+Lemma 5.2 (Compositionality). Let ∆ ⊢ F, ∆, X ⊢ G, (𝑛, 𝜌 ) ∈ D/llbracket∆/rrbracket, and 𝑅 = V𝜌 /llbracketF/rrbracket, then
+V𝜌 /llbracketG [F/ X]/rrbracket= V𝜌, X↦→( 𝜌1 (F),𝜌 2 (F),𝑅 ) /llbracketG/rrbracket.
+The most important lemma, used by almost all compatibility lemmas and compositionality is the
+ascription lemma, which says that the ascription of two related values yields related computations.
+Lemma 5.3 (Ascription Lemma). If (𝑛, v1, v2) ∈ V𝜌 /llbracketG/rrbracket, (𝑛, 𝜌 ) ∈ D/llbracket∆/rrbracket, ∆ ⊢ G′ and 𝜖 : G ∼ G′, then
+(𝑛, 𝜌 1 (𝜖 )v1 :: 𝜌1 (G′), 𝜌 2 (𝜖 )v2 :: 𝜌2 (G′)) ∈ T𝜌 /llbracketG′/rrbracket.
+We finalize this section by emphasizing that most of the logical relations and main lemmas are
+standard and defined just as in System F. In particular, and contrary to other gradual parametricity
+formulations, the definition of related values at polymorphic types is defined just as in System F,
+without the need for special notations and cases. The only unusual case is the definition of related
+values at the unknown type, but that is expected for any gradual language.
+6 F ?
+𝜀 : GRADUAL GUARANTEES
+This section presents graduality for F ?
+𝜀. We start by presenting the definition of evidence and term
+precision. Similar to type precision, these definitions are also proof-relevant. Then, we show two of
+the main challenges of proving graduality: monotonicity of consistent transitivity and monotonicity
+of type substitution over evidence. We end this section by establishing graduality, more specifically,
+the static and dynamic gradual guarantees [ Siek et al. 2015 ].
+Evidence precision. To define precision between evidence we start by stating two intuitive
+requirements. Suppose 𝜖1 : G1 ∼ G′
+1 and 𝜖2 : G2 ∼ G′
+2. We say that 𝜖1 is more precise than 𝜖2, if
+first, the types involved in the judgments are related by precision, i.e. c : G1 ⊑ G2 and c′ : G′
+1 ⊑ G′
+2
+for some c and c′; and second, we require that for all S1 ∈ 𝜖1 there exists some S2 ∈ 𝜖2, such that S1
+is more precise than S2. Note that there may be some S ∈ 𝜖2 not in precision with any element of 𝜖1.
+This is intuitively expected by graduality, as it may cause 𝜖2 to łfail lessž than 𝜖1 when combined
+with other evidence. Precision between spans (Gt1, c1, c′
+1) ⊑ ( Gt2, c2, c′
+2) could be naively defined if
+there exists some proof term ct that justifies that Gt1 is more precise than Gt2, i.e. ct : Gt1 ⊑ Gt2.
+However, the above requirements are not sufficient to define precision among evidences. Suppose
+that we have 𝜖1 = {( Int, reflInt, injX)} and 𝜖2 = {( Int, reflInt, injInt)} , where 𝜖i : Int ∼ ?X:Int
+(Figure 6 supports this example). These two evidences meet all the above requirements: there exist
+c = reflInt, c′ = inj?, and ct = reflInt such that c : Int ⊑ Int, c′ : ?X:Int ⊑ ?X:Int and ct : Int ⊑ Int.
+We may be tempted to say that 𝜖1 ⊑ 𝜖2 (or vice versa), but then graduality would not hold. In
+particular, monotonicity of consistent transitivity (MCT), a key lemma used to prove graduality,
+would be broken. MCT states that given two pairs of evidence related by precision 𝜖1 ⊑ 𝜖2 and
+𝜖 ′
+1 ⊑ 𝜖 ′
+2, if 𝜖1 ◦ 𝜖 ′
+1 is defined, then 𝜖1 ◦ 𝜖 ′
+1 ⊑ 𝜖2 ◦ 𝜖 ′
+2. In the example, if we take evidence 𝜖 ′
+1 = 𝜖 ′
+2 = {( Int,
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 18 ===
+70:18 Elizabeth Labrada, Matías Toro, Éric Tanter, and Dominique Devriese
+Int ?X:Int
+Int
+Int
+IntreflInt
+injInt
+injInt reflInt
+Int ?X:Int
+Int
+Int
+IntreflInt injX injInt reflInt
+reflInt
+reflInt
+inj? reflInt
+reflInt
+Fig. 6. Evidence precision auxiliary example.
+injInt, reflInt)} that justifies ?X:Int ∼ Int (and 𝜖 ′
+1 ⊑ 𝜖 ′
+2), then 𝜖1 ◦ 𝜖 ′
+1 = {( Int, reflInt, reflInt)} is
+defined but 𝜖2 ◦ 𝜖 ′
+2 is not. We can use an analogous reasoning when assuming 𝜖2 ⊑ 𝜖1, using
+𝜖 ′
+1 = 𝜖 ′
+2 = {( Int, injX, reflInt)}. These two evidences should not be related by precision; we miss a
+connection between ct and both c′ and c as described next.
+Definition 6.1 (Evidence Precision). If 𝜖1 : G1 ∼ G′
+1, 𝜖2 : G2 ∼ G′
+2,
+c : G1 ⊑ G2 and c′ : G′
+1 ⊑ G′
+2, then we say that [c]𝜖1 ⊑ 𝜖2 [c′] iff for
+all (Gt1, c1, c′
+1) ∈ 𝜖1 there exists a (Gt2, c2, c′
+2) ∈ 𝜖2, c′′
+1 , c′′
+2 and ct such
+that ct : Gt1 ⊑ Gt2, ct;c2 = c′′
+1 , c1;c = c′′
+1 , ct;c′
+2 = c′′
+2 and c′
+1;c′ = c′′
+2 .
+G2 G′
+2
+Gt2
+c2 c′
+2
+G1 G′
+1
+Gt1
+c1 c′
+1
+c c′
+ct
+c′′
+1 c′′
+2
+In addition to the requirements described above, evidence precision also requires that the combi-
+nation of ct and c2 must commute with the combination of c1 and c; similarly, the combination
+of ct and c′
+2 must commute with the combination of c′
+1 and c′. Going back to the example, 𝜖1
+and 𝜖2 are not related by precision as the diagram does not commute: reflInt;injInt = injInt
+(ct;c′
+2 = c′′
+2 ) and injX;inj? = injX (c′
+1;c′ = c′′
+2 ), but injInt ≠ injX . On the other hand, evi-
+dence {( Int, reflInt, reflInt)} is more precise than {( Int, reflInt, injX )} , because we can choose
+c = ct = reflInt, and c′ = injX , such that the diagram commutes: reflInt;injX = injX (ct;c′
+2 = c′′
+2 ),
+and reflInt;injX = injX (c′
+1;c′ = c′′
+2 ).
+Note that the evidence precision judgment [c]𝜖1 ⊑ 𝜖2 [c′] explicitly tracks proof terms c and c′
+(we will refer to them as boundary proofs). The reason is that monotonicity of consistent transitivity
+only holds when adjacent boundary proofs match up.
+Lemma 6.2 ( ✓ Monotonicity of Consistent Transitivity). If [c]𝜖1 ⊑ 𝜖2 [c′], [c′]𝜖 ′
+1 ⊑ 𝜖 ′
+2 [c′′]
+and (𝜖1 ◦ 𝜖 ′
+1) is defined, then [c] (𝜖1 ◦ 𝜖 ′
+1) ⊑ ( 𝜖2 ◦ 𝜖 ′
+2) [c′′].
+Let us consider the following example to understand why the łmiddlež boundary proof terms
+must match. We have that [reflInt]{( Int, reflInt, reflInt)} ⊑ {( Int, reflInt, injX)}[ injX] and
+[injInt]{( Int, reflInt, reflInt)} ⊑ {( Int, injInt, reflInt)}[ reflInt]. The precision proofs do not
+match (injX ≠ injInt), and even though {( Int, reflInt, reflInt)} ◦ {( Int, reflInt, reflInt)} is de-
+fined, {( Int, reflInt, injX)} ◦ {( Int, injInt, reflInt)} is not. Similar to consistent transitivity, type
+substitution over evidence is also monotonous concerning evidence precision (two evidences related
+by precision remain related after type substitution).
+Lemma 6.3 (Monotonicity of Type Substitution). If [∀X. c′]𝜖1 ⊑ 𝜖2 [∀X. c], then [c′] (schm(𝜖1))
+⊑ ( schm(𝜖2)) [c] and [c′[F/ X]] (schm(𝜖1) [F/ X]) ⊑ ( schm(𝜖2) [F/ X]) [c [F/ X]] .
+Term precision. Term precision is the natural lifting of type and evidence precision to terms, and
+is presented in Figure 7. Judgment Ω ⊢ c : s1 ⊑ s2 denotes that term s1 is more precise than s2
+justified by proof term c, under precision relation environment Ω. Boundary proof terms c are
+propagated for types, contexts, evidence, and subterms, justifying that the type of the less precise
+term is less precise than the type of the more precise term. Ω binds a term variable x to a type
+precision judgment c : G1 ⊑ G2. Rule ( ⊑x) establishes that a term variable is related with itself
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 19 ===
+Plausible Sealing for Gradual Parametricity 70:19
+Ω ⊢ c : s ⊑ s Term precision
+⊑b Ω ⊢ reflB : b ⊑ b ⊑x
+Ω(x) = c : G1 ⊑ G2
+Ω ⊢ c : x ⊑ x ⊑𝜆
+Ω, x ↦→ c : G′
+1 ⊑ G′
+2 ⊢ c′ : t1 ⊑ t2
+Ω ⊢ c → c′ : 𝜆x : G′
+1. t1 ⊑ 𝜆x : G′
+2. t2
+⊑Λ
+Ω ⊢ c : t1 ⊑ t2
+Ω ⊢ ∀X. c : ΛX. t1 ⊑ ΛX. t2
+⊑app
+Ω ⊢ c′ → c : t1 ⊑ t2 Ω ⊢ c′ : t′
+1 ⊑ t′
+2
+Ω ⊢ c : t1 t′
+1 ⊑ t2 t′
+2
+⊑appG Ω ⊢ ∀X. c : t1 ⊑ t2
+Ω ⊢ c [F/ X] : t1 [F] ⊑ t2 [F] ⊑asc
+Ω ⊢ c′ : s1 ⊑ s2 c : G1 ⊑ G2 [c′]𝜖1 ⊑ 𝜖2 [c]
+Ω ⊢ c : 𝜖1s1 :: G1 ⊑ 𝜖2s2 :: G2
+Fig. 7. F ?𝜀 : Term Precision (fragment).
+along boundary proof term c if x : ( c : G1 ⊑ G2) ∈ Ω, and Rule ( ⊑𝜆) extends Ω with the judgment
+that justifies that the argument types are in precision. Analogous to MCT, rule ( ⊑app) requires
+that the domain proof term of the function matches with the proof term of the arguments. Rule
+(⊑asc) establishes that two ascriptions are related if the sub-terms, s1 and s2, are in precision with
+proof term c′, the ascribed types, G1 and G2, are in precision with the proof c, and evidences are in
+precision with the boundary proof terms c′ and c.
+Gradual guarantees. Armed with the definition of term precision, we now establish the graduality
+of F?
+𝜀 with the gradual guarantees [ Siek et al. 2015 ].
+Theorem 6.4. Suppose ⊢ t1 : G1 and ⊢ c : t1 ⊑ t2. Then,
+• ⊢ t2 : G2 and c : G1 ⊑ G2.
+• t1
+∗
+↦− →v1 implies t2
+∗
+↦− →v2 and ⊢ c : v1 ⊑ v2.
+• t1 diverges implies t2 diverges.
+The only peculiarity of this result compared to others in the literature is that the type and term
+precision judgments are proof-relevant. The static part of graduality (the static gradual guarantee)
+ensures that if t1 with type G1 is more precise than t2, justified by proof c, then t2 has a less precise
+type G2 justified by c. The dynamic part of graduality (the dynamic gradual guarantee) establishes
+that if the more precise term reduces to a value, then the less precise term also does, resulting in
+values in precision with the same type proof term c. The key lemmas to prove graduality, are MCT
+(Lemma 6.2), and monotonicity of type substitution (evidence precision is monotonous with respect
+to type substitution) (Lemma 6.3).
+7 THE GRADUAL SOURCE LANGUAGE F ?
+Having formalized the key technical innovation of this work, plausible sealing, and established
+both graduality and parametricity for the intermediate language F ?
+𝜀, we now turn to the source
+language F?. This section presents the static semantics of F ? and its translation to F ?
+𝜀. The static
+semantics of F ? is derived systematically by applying AGT to System F 1, which is a variation of
+System F where type instantiations are restricted to instantiation types ( i.e. base types and type
+variables). The novel translation to F?
+𝜀 plays a crucial role since it is in charge of statically generating
+the maybe-sealing evidence for type applications. We study the gradual guarantees for F ? and the
+resulting source-level parametric reasoning.
+F?: Statics. In order to apply AGT to obtain the static semantics (i.e. lifting functions and predicates),
+we use explicit type equalities and partial type functions in the typing rules of System F 1. These
+partial functions also allow capturing elimination forms in a single rule that accounts for both precise
+and imprecise type information [ Garcia et al. 2016]. For instance, functions dom and cod extract the
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 20 ===
+70:20 Elizabeth Labrada, Matías Toro, Éric Tanter, and Dominique Devriese
+F ::= B | X G ::= F | G→G | ∀X. G | ?𝛿 𝛿 ::= 𝛿, X : X | ∅ t ::= b | 𝜆x : G. t | ΛX. t | x | t t | t [F] | t :: G
+Δ; Γ ⊢ t : G Term typing
+Gasc
+Δ; Γ ⊢ t : G′ Δ ⊢ G G ′ ∼ G
+Δ; Γ ⊢ t :: G : G GappG Δ; Γ ⊢ t : G Δ ⊢ F
+Δ; Γ ⊢ t [F] : inst♯ (G, F)
+Fig. 8. F ?: Syntax and Static Semantics (fragment).
+domain and codomain types, and inst instantiates a polymorphic type using a substitution function
+𝑇 [𝑇 ′/ 𝑋 ], which replaces 𝑇 ′ for 𝑋 in 𝑇 . For example, the typing rule for type applications is:
+(TappT) Δ; Γ ⊢ 𝑡 : 𝑇 Δ ⊢ 𝐹
+Δ; Γ ⊢ 𝑡 [𝐹 ] : inst (𝑇 , 𝐹 )
+Figure 8 presents the syntax of source gradual types G. Source gradual types are syntactically
+contained in the gradual types of F ?
+𝜀, and for simplicity throughout this section, we write G as the
+F?
+𝜀 counterpart of G. Source gradual types restricts the scope of unknown types to not-instantiated
+variables only. To represent this, we index unknown types with the 𝛿 meta-variable (included in 𝛅);
+and as every type variable in ?𝛿 is not instantiated (i.e. of the form X : X), for simplicity we just write
+𝛿 as a set of type variables. One final note is that ? (without a scope 𝛿, as used in previous sections)
+is syntactic sugar for ?Δ, where Δ is the set of all variables in scope at that point. A straightforward
+and simple translation can insert these annotations before typing.
+We give meaning to gradual types G through the concretization function 𝛾 (·) (omitted for space).
+The meaning of the unknown type ?𝛿 is the set of all well-formed static types with respect to 𝛿
+(i.e. 𝛾 (?𝛿 ) = { 𝑇 | 𝛿 ⊢ 𝑇 }). The concretization function helps us define precision ( G1 ⊑ G2 if and
+only if 𝛾 (G1) ⊆ 𝛾 (G2)) and consistency ( G1 ∼ G2 if and only if there exists 𝑇1 and 𝑇2 such that
+𝑇1 = 𝑇2, 𝑇1 ∈ 𝛾 (G1) and 𝑇2 ∈ 𝛾 (G2)). Precision and consistency resemble their F ?
+𝜀 counterpart and
+can also be inductively defined. For instance, X ∼ ?X, but X ≁ ?Y (for X ≠ Y). However, precision
+in F ? is no longer proof relevant: F ? contains only unknown types ?𝛿 with uninstantiated type
+variables, so that the precision relation from F ?
+𝜀 (which had the structure of a category) reduces to a
+proof-irrelevant order relation in F ?.
+Figure 8 presents a fragment of the term typing rules for F ?, which are obtained by replacing type
+predicates and functions with their corresponding liftings. The lifting is straightforward and uses
+the corresponding abstraction function 𝛼 (·) of 𝛾 (·) , forming a Galois connection. For example, rule
+(Gasc) uses type consistency instead of type equality, and rule ( GappG) uses the lifting of the func-
+tion inst, defined for polymorphic types and the unknown type ( i.e. inst♯ (∀X. G, G′) = G [G′/ X]\X,
+inst♯ (?𝛿, G′) = ?𝛿 and undefined for other cases). Note that inst♯ uses the scope removal function
+G\X, which is removes X from the scopes of unknown types in G: ?𝛿1, X,𝛿 2\X = ?𝛿1,𝛿 2. For instance,
+(X→?X, Y) [Int/ X]\X = Int→?Y.
+F?: Elaboration to F?
+𝜀 . The dynamic semantics of a F? program is given by a type-directed translation
+to F?
+𝜀. The rules are mostly standard save for the elaboration rule for type application. Judgment
+Δ; Γ ⊢ t : G /leadstot′ expresses that term t is elaborated to t′, under type variable environment Δ, and
+type environment Γ. The elaboration rules use the function initEv(G1, G2), which stands for the
+initial evidence between G1 and G2. It computes the least precise evidence that justifies consistency
+between the types, and is defined as follows:
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 21 ===
+Plausible Sealing for Gradual Parametricity 70:21
+instEv(B, X, F) = reflEv(B)
+instEv(X, X, F) = reflEv(F)
+instEv(?𝛿 , X, F) = reflEv(?𝛿 ) if X ∉ 𝛿
+instEv(Y, X, F) = reflEv(Y) if X ≠ Y
+instEv(G1→G2, X, F) = instEv(G1, X, F) → instEv(G2, X, F)
+instEv(∀Y. G, X, F) = ∀Y. instEv(G, X, F)
+instEv(?𝛿1;X;𝛿2, X, F) = {( ?𝛿1;𝛿2, inj?, inj?), (F, injX, injF )}
+Fig. 9. Instantiation evidence function.
+Definition 7.1 (Initial Evidence). If G1 ∼ G2 then G = G1 ⊓ G2 and
+initEv(G1, G2) = {( G, initPT(G, G1), initPT(G, G2))} .
+This evidence consists of a single span, where the first component is the meet (greatest lower
+bound with respect to precision) G1 ⊓ G2 between G1 and G2, and the second and third components
+are the initial proof terms between the meet and G1 and G2, respectively. The meet G1 ⊓ G2 is a
+partial function and corresponds formally to 𝛼 (𝛾 (G1) ∩ 𝛾 (G2)). As for the definition of precision
+and congruence, we also define an inductive definition for the meet. Note that from AGT, G ∼ G′
+holds if 𝛾 (G1) ∩ 𝛾 (G2) is not empty, then if G ∼ G′ then G ⊓ G′ will always be defined. The initial
+proof term between two types in precision is computed using the initPT(G, G′) function such that
+initPT(G, G′) : G ⊑ G′. It is important to note that the initial proof term between two types is
+unique since the type variables within the unknown type scope are not instantiated. Its definition
+is unsurprising and can be derived from the type precision judgment from Figure 2. For example,
+initPT(Int, ?X) = injInt and initPT(X, ?X) = injX .
+As F?
+𝜀 requires all values to be ascribed, the elaboration rules ascribe base values, functions and
+type abstractions to their own type using the reflexive evidence operator reflEv(G) ≜ initEv(G, G).
+For instance, term 42 is elaborated to reflEv(Int) 42 :: Int, where reflEv(Int) = {( Int, reflInt,
+reflInt)} . The elaboration process also inserts ascriptions to equate types in elimination forms. In
+particular, the translation of a term application (Eapp) ascribes the function term t1 to a function
+type that matches [ Cimini and Siek 2016 ] with its own type ( G1 /rightarrowtriangleG11→G12): its own type if t1
+has a function type; otherwise ?𝛅 → ?𝛅 (if the type is ?𝛿 ). Also, the argument term t2 is ascribed to
+the argument type of the ascribed function.
+Eapp
+Δ; Γ ⊢ t1 : G1 /leadstot′
+1 Δ; Γ ⊢ t2 : G2 /leadstot′
+2 G1 /rightarrowtriangleG11→G12
+𝜖1 = initEv(G1, G11→G12) 𝜖2 = initEv(G2, G11)
+Δ; Γ ⊢ t1 t2 : G12 /leadsto(𝜖1t′
+1 :: G11 → G12) ( 𝜖2t′
+2 :: G11)
+Rule (EappG) elaborates type applications, and is responsible of inserting łmaybe-sealž evidence.
+EappG
+Δ; Γ ⊢ t : G /leadstot′ Δ ⊢ F G /rightarrowtriangle∀X. G′ 𝜖1 = initEv(G, ∀X. G′) 𝜖2 = instEv(G′, X, F)
+Δ; Γ ⊢ t [F] : G′[F/ X]\X /leadsto𝜖2 ((𝜖1t′ :: ∀X. G′) [ F]) :: G′[F/ X]\X
+The elaborated type application is ascribed to the instantiated scheme type G′[F/ X]\X (removing
+X from the environments of unknown types), using a special evidence that justifies that G′[F/ X]
+is consistent with G′[F/ X]\X. This evidence is computed using the instantiation evidence function
+instEv defined in Figure 9. Function instEv(G, X, F) : G [F/ X] ∼ G [F/ X]\X is defined (inductively)
+almost as the reflexive evidence operator, save for the case when type G is ?𝛿 and X is in scope
+𝛿. Then, instEv generates an evidence which consist of two spans: one span that łseals to Xž and
+another one that does not. More in detail, the first span (F, injX, injF) represents that the unknown
+type should behave polymorphically in X. On the contrary, the second span (?𝛿1;𝛿2, inj?, inj?)
+does not acknowledge the existence of variable X. For example, we have that (?X → X) [Int/ X] =
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 22 ===
+70:22 Elizabeth Labrada, Matías Toro, Éric Tanter, and Dominique Devriese
+G ⩽ G Shape-restricted type precision
+⩽B B ⩽ B ⩽X X ⩽ X ⩽→
+G1 ⩽ G2 G′
+1 ⩽ G′
+2
+G1→G′
+1 ⩽ G2→G′
+2
+⩽∀
+G1 ⩽ G2
+∀X. G1 ⩽ ∀X. G2
+⩽B? B ⩽ ?𝛿
+⩽X?
+X ∈ 𝛿
+X ⩽ ?𝛿
+⩽?
+𝛿 ⊆ 𝛿 ′
+?𝛿 ⩽ ?𝛿′
+Ω ⊢ t : G ⊑ t : G Term precision
+⊑asc
+Ω ⊢ t1 : G′
+1 ⊑ t2 : G′
+2 G1 ⊑ G2
+Ω ⊢ t1 :: G1 : G1 ⊑ t2 :: G2 : G2
+⊑appG
+Ω ⊢ t1 : G1 ⊑ t2 : G2 G1 ⩽ G2
+G1 /rightarrowtriangle∀X. G′
+1 G2 /rightarrowtriangle∀X. G′
+2
+Ω ⊢ t1 [F] : G′
+1 [F/ X]\X ⊑ t2 [F] : G′
+2 [F/ X]\X
+Fig. 10. F ?: Shape-restricted type precision and term precision (fragment).
+?X:Int → Int and (?X → X) [Int/ X]\X = ? → Int. Therefore instEv(?X→X, X, Int) : ?X:Int → Int ∼
+? → Int, where instEv(?X→X, X, Int) = {( Int → Int, injX → reflInt, injInt → reflInt), (? → Int,
+inj? → reflInt, inj? → reflInt)} . Note that this evidence makes it impossible that a sealed value
+leaks out of a polymorphic function application. The scope of a type variable (label) is limited to
+the type application in which it appears. For example, consider the type application t [Int] in F?,
+where ⊢ t : ∀X. ?X→?X. This term is elaborated to instEv(?X→?X, X, Int) (t [Int]) :: ? → ?, where
+t [Int] has type ?X:Int → ?X:Int; the generated instEv evidence is used to coerce this type to ? → ?.
+The label X may appear in unknown types that are used inside t [Int], but the instEv evidence casts
+t [Int] to a type not mentioning the label X, effectively restricting the scope of X to inside the
+term t [Int]. Even when the resulting term computes further and t [Int] is reduced and combined
+with values from the context (for example, in a function application), the instEv evidence protects
+the scope of X, preventing it from interfering with possible other occurrences of the same name X
+introduced by other type applications. Because of this, there is no need for alpha-renaming.
+It is important to clarify one important limitation: the instantiation evidence instEv(G, X, F) is
+not general enough when G = ?𝛿1, X,𝛿 2. With the current definition, ?𝛿1, X,𝛿 2 intuitively only represents
+something of type X or other well-formed static type with respect to 𝛿1, 𝛿2. This means that at
+runtime, if ?𝛿1, X,𝛿 2 is used in a consistent judgment with a function such as X→X, the program could
+fail. For instance, the program (ΛX.𝜆 x : X. x) :: ∀X. ?X [Int] 1 generates the instantiation evidence
+instEv(?X, X, Int) = {( ?, inj?, inj?), (Int, injX, injInt)}, which will not seal argument 1, making
+this program fail at runtime. To fix the program, and generate appropriate sealing, the type of the
+ascription had to be changed as follows: (ΛX.𝜆 x : X. x) ::∀X. ?X→?X [Int] 1. The spans generated now
+include (Int → Int, injX → injX, injInt → injInt) which makes the program run without errors.
+However, statically there is no way to know a priori the exact shape of the evidence needed when
+imprecise information is involved. Consequently, a more general mechanism for the generation of
+the instantiation evidence is needed (see Section 8).
+Finally, we prove that the elaboration preserves typing:
+Theorem 7.2 (Elaboration Preserves Typing). If Δ; Γ ⊢ t : G, then Δ; Γ ⊢ t : G /leadstot′ and
+∆; Γ ⊢ t′ : G.
+Source-level graduality. Under the natural notion of type precision (Figure 8), some F ? terms
+related by precision elaborate to F ?
+𝜀 terms that are not related by precision. Consider program
+(ΛX.𝜆 x : X. x) :: ∀X. ?X→?X [Int] 1 more precise than (ΛX.𝜆 x : X. x) :: ∀X. ?X [Int] 1 (note that
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 23 ===
+Plausible Sealing for Gradual Parametricity 70:23
+∀X. ?X→?X ⊑ ∀X. ?X). The first program elaborates to a program that reduces correctly, but the sec-
+ond to a program that fails. As explained in the previous section, this is because instEv(?X, X, Int)
+does not generate evidence that contains function spans that seal the argument. This does not
+mean that there is no source-level graduality in F ? at all; as first explored by Igarashi et al . [2017],
+the fact that the gradual guarantees are stated relative to a notion of precision means that we may
+be able to characterize source-level graduality via a restricted notion of precision.
+To characterize the F ? programs for which we can guarantee graduality, it is enough to restrict
+term precision only for type applications, enforcing that for such expressions, type precision be
+restricted to types of the same shape. Notice how rule ( ⊑appG) in Figure 10 uses shape-restricted
+type precision ⩽ in its premise, while other rules, such as rule ( ⊑asc), use the natural type precision
+⊑. Shape-restricted type precision ⩽ is defined similarly to ⊑, but in the case of polymorphic
+and function types, the type constructors have to match. For example, ∀X. X→X ⩽ ∀X. ?X→?X but
+∀X. (X→X)→X ̸⩽ ∀X. ?X→?X and ∀X. X→X ̸⩽ ∀X. ?X. This means that if G1 ⩽ G2, then all sealing
+spans included in applying instEv to G1 will be included in the application of instEv to G2. The
+other cases of term precision are derived just as the natural lifting of type precision to terms.
+With this notion of term precision, two source terms related by precision elaborate to F ?
+𝜀 terms
+that are also related by precision:
+Lemma 7.3. If ⊢ t1 : G1 ⊑ t2 : G2, ⊢ t1 : G1 /leadstot1 and ⊢ t2 : G2 /leadstot2, then ⊢ initPT(G1, G2) : t1 ⊑ t2.
+Note that precision in F?
+𝜀 is proof-relevant, therefore we have to provide a proof term that justifies
+łhowž two terms are related. We do that by using the initial proof term function between the types
+of the related terms.
+The dynamic semantics of a F? term are given by first elaborating the term to F?
+𝜀 and then reducing
+the F?
+𝜀 term. Hence, for establishing the gradual guarantees in F ?, we write t ⇓ v if ⊢ t : G /leadstot and
+t
+∗
+↦− →v. Similarly, we write t ⇑ if the elaboration of t diverges. Then, using Lemmas 7.2, 7.3 and 6.4
+we can prove the gradual guarantees for F ?:
+Theorem 7.4 (Gradual guarantees). Suppose ⊢ t1 : G1 ⊑ t2 : G2 and ⊢ t1 : G1.
+(1) ⊢ t2 : G2 and G1 ⊑ G2.
+(2) If t1 ⇓ v1, then t2 ⇓ v2 and ⊢ initPT(G1, G2) : v1 ⊑ v2.
+If t1 ⇑ then t2 ⇑.
+Source-level parametric reasoning. As a first form of parametric reasoning for F ?, the elabo-
+rations of well-typed F ? terms produces F ?
+𝜀 terms that are also well typed (by Theorem 7.2), and
+hence related to themselves (by Theorem 5.1):
+Corollary 7.5. If Δ; Γ ⊢ t : G /leadstot then ∆; Γ ⊢ t ⪯ t : G.
+This lemma is powerful, but it is not immediately clear what it means for concrete example
+terms in F ?. We make this clearer as follows: a type abstraction f of type ∀X. G applied to related
+types, produces related terms whenever X does not occur in the scopes of unknown types in G (a
+condition written G\X = G below):
+Lemma 7.6. ∀𝑛, 𝜌
+Δ; Γ ⊢ f : ∀X. G ∀B1, B2, 𝑅 ∈ Rel[B1, B2] (( 𝑛, 𝜌 ) ∈ D/llbracket∆/rrbracket∧ (𝑛, 𝛾 ) ∈ G𝜌 /llbracketΓ/rrbracket)
+G\X = G Δ; Γ ⊢ f [Bi] : G [Bi/ X]\X /leadstoti
+(𝑛, 𝜌 1(𝛾1(t1)), 𝜌 2(𝛾2 (t2))) ∈ T𝜌, X↦→( B1, B2,𝑅 ) /llbracketG/rrbracket
+As a direct consequence of Lemma 7.6, every F ? program ascribed to a static type behaves
+parametrically, even if it internally uses the unknown type. Since the logical relation for F?
+𝜀 coincides
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 24 ===
+70:24 Elizabeth Labrada, Matías Toro, Éric Tanter, and Dominique Devriese
+almost exactly with traditional formulations for System F, this means we get the same reasoning
+about such applications than in System F itself, save for the possibility that two related terms both
+raise a runtime error. From Lemma 7.6, we can also derive free theorems involving imprecise types.
+For instance, given a function of type ∀X. ?∅→X, then the application of the function either fails or
+diverges.
+Lemma 7.7. If ⊢ f : ∀X. ?∅→X, ⊢ v : B and t = f [B] v, then t ⇓ error, or t ⇑.
+This behavior is expected because ?∅ can only stand for a type that does not involve X. Intuitively,
+this means that this gradual polymorphic function type denotes types such as ∀X. Int→X and
+∀X. Bool→X, but not ∀X. X→X. Therefore, the function cannot create a value of type X out of thin
+air, and the argument v cannot possibly be sealed as a value of type X, so the function necessarily
+fails if it tries to return any value.
+Lemma 7.6 does not apply to polymorphic functions whose type mentions unknown types with
+the quantified variable in scope. To understand why such types require more nuance, remember
+the example function 𝑓 = Λ𝑋 . 𝜆𝑥 : ?.𝑥 :: 𝑋 discussed in the introduction. When applied to type Int
+and value 42, this function produces the value 42, but it throws a runtime type error when applied
+to Bool and value 42. In such examples, F ? inserts plausible sealing evidence, in an effort to guess
+whether the programmer intended 42 to be treated as a value of type X or not, in a maximally
+permissive way. However, this does not mean we do not get any form of parametricity for such
+examples, but rather, we need to keep in mind the intuitive effect of plausible sealing. In other
+words, F? supports more parametric reasoning than just what Lemma 7.6 expresses. Particularly,
+when a type variable is in the scope of an unknown type within a function type, we can also derive
+some free theorems using Corollary 7.5. For instance, if a function f has type ∀X. ?X→X, then by
+parametricity we can deduce that f behaves either as the identity function or fails or diverges:
+Lemma 7.8. If ⊢ f : ∀X. ?X→X, ⊢ v : B and t = f [B] v, then t ⇓ v with ⊢ v : B /leadstov, or t ⇓ error, or t ⇑.
+Contrary to GSF [ Toro et al. 2019], in F ? this result holds just by looking at the type of f, without
+the need to unfold its definition. Intuitively, this lemma takes into account that F ? applies plausible
+sealing to the argument v, so f might return it as the result of type X. The function f can also diverge
+or fail, but parametricity for F ? still implies that f cannot return any value other than v.
+8 LIMITATIONS AND PERSPECTIVES
+The technical development of plausible sealing in this article suffers from two technical limitations.
+The first is that we only formalize a simplified form of polymorphism with instantiation types. The
+second is that graduality for F ? is restricted for type applications, since two type applications are
+only related when the polymorphic types have the same shape (Section 7).
+Both limitations manifest in the definition of instantiation evidence for the unknown type
+(Figure 9): instEv(?𝛿1;X;𝛿2, X, F) = {( ?𝛿1;𝛿2, inj?, inj?), (F, injX, injF)}. Recall that the role of this
+instantiation evidence is to cast, for example, a function application of type ?X:Int → Int to type
+?∅ → Int. The restricted form of polymorphism is apparent because instEv’s third argument F is
+restricted to an instantiation type (a base type or a type variable), and we simply useinjF : F ⊑ ?𝛅1;𝛅2
+to inject F into type ?𝛅1;𝛅2. Generalizing to full polymorphism would require replacing F and injF
+in the above definition with an arbitrary type G and a proof term c : G ⊑ ?𝛅1;𝛅2 . This requires
+to extend the syntax of 𝛅 to allow for any type. An initial exploration suggests this is largely
+unproblematic and in fact, our Agda proofs of consistent transitivity associativity and monotonicity
+already support such a richer syntax of 𝛅. A problem turns up when one of the other types in 𝛅1
+or 𝛅2 mentions ?𝛿′ with X : X ∈ 𝛿 ′. In that case, it appears we additionally need a proof term that
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 25 ===
+Plausible Sealing for Gradual Parametricity 70:25
+expresses precision between ?𝛅 and ?𝛅′ when 𝛅 is not just a subset of 𝛅′ but some of the types in 𝛅
+are themselves strictly more precise than corresponding types in 𝛅′.
+Allowing a type abstraction to be instantiated at any type G would require saving the information
+of the instantiated type in the proof term injX . This information could then be refined through
+composition. Therefore, we should transform injX to the proof term sequence injX (c), where
+injX (c) : G′ ⊑ ?𝛅, X : G ∈ 𝛅, c : G′ ⊑ G and 𝛅 ⊢ G′. In addition, the composition of proof
+terms for this case would slightly change: c1;injX (c2) = injX (c1;c2). Note that applying the type
+abstraction to any type G′ with rule RappG would not change; the instantiated type G′ would
+continue to be substituted in the body of the type abstraction and the evidence.
+The other main limitation of F ? is caused by the right-hand-side of the above definition. Prob-
+lematically, it only mentions two cases: a value of type ?𝛅1;𝛅2 will be converted into type ?𝛅1;X;𝛅2
+either (1) by not sealing at all and simply extending the scope of the unknown type, or (2) by
+sealing, converting a value of type F into a value sealed at type X in ?𝛅1;X;𝛅2. What is missing is
+a recursive case that would treat, for example, a value of type F → F as a value of type X → X
+and recursively seal it accordingly. In fact, this could be accommodated easily by extending the
+right-hand-side with an additional case: (F → F, inj→(injX → injX ), inj→ (injF → injF )). we
+conjecture that a solution is to introduce a syntax of recursive evidence that would allow us to
+define instEv(?𝛿1;X;𝛿2, X, F) as:
+𝜇𝜖 . inj→(𝜖 → 𝜖 ) ⊎ inj×(𝜖 × 𝜖 ) ⊎ inj∀(∀Y. 𝜖 ) ⊎ {( B, injB, injB)} ⊎ {( F, injX, injF )} . In this no-
+tation, we construct an evidence inj→ (𝜖 → 𝜖 ) : ?𝛅 ∼ ?𝛅′ from 𝜖 : ?𝛅 ∼ ?𝛅′ by combining two spans
+(G1, c1, c2) and (G2, c3, c4) from 𝜖 into the span (G1 → G2, inj→(c1 → c3), inj→ (c2 → c4)) and
+similarly for inj× and inj∀. We leave the definition of the operational behavior of such recursive
+evidence and the proofs of its properties to future work.
+9 DISCUSSION AND RELATED WORK
+Gradual parametricity has been intensively studied [ Ahmed et al . 2009, 2017; Igarashi et al. 2017;
+Matthews and Ahmed 2008 ; New et al . 2020; Toro et al. 2019; Xie et al . 2018]. We have already
+discussed in detail related work, emphasizing the most recent proposals. Recall that Section 2.3
+compares existing languages via examples (additional examples are included in the technical report).
+Sealing for Parametricity. Dynamic sealing, originally proposed by Morris [1973] to dynamically
+enforce type abstraction, has been widely used to guarantee parametricity in gradual languages.
+The notion of dynamic sealing combined with global runtime type name generation has driven the
+dynamic semantics of polymorphic gradual languages such as 𝜆𝐵 [Ahmed et al . 2017], CSA [Xie
+et al. 2018], GSF [ Toro et al . 2019] and PolyG 𝜈 [New et al . 2020]. Type names are dynamically
+generated in each type application and are kept in a global store, making the dynamic semantics
+and the definitions and proof of parametricity less standard and more complex. F ?
+𝜀 avoids using
+type names generation and, therefore, a global store thanks to the fact that the unknown type is
+decorated by an environment and the sealing/unsealing mechanism is generated statically. It is
+worth noting that, unlike other developed gradual polymorphic languages, PolyG 𝜈 also includes
+explicit seal and unseal terms in its syntax. In this sense, we can say that F ?
+𝜀 also includes in its
+syntax explicit forms of sealing and unsealing, since for a program with an imprecise type to behave
+in a parametric way, it is necessary to introduce the evidence of sealing and unsealing statically.
+The key novelty of F ?
+𝜀 is to support evidence with multiple sealing justifications, which makes it
+possible to avoid to eagerly choose a sealing strategy when interacting with the unknown type.
+Strict Precision. Igarashi et al . [2017] first proposed using a non-standard notion of precision
+in System F𝐺 to address some problems with the dynamic gradual guarantee when the unknown
+type is allowed to stand for a type variable. Consequently, in System F 𝐺 the unknown type is not
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 26 ===
+70:26 Elizabeth Labrada, Matías Toro, Éric Tanter, and Dominique Devriese
+consistent with any type variable. Here, the source language F ? also restricts precision, but in a
+much less drastic manner: type precision is the standard precision, and only term precision is
+restricted, in order to only relate type applications to types of the same shape. We explain in the
+previous section how this restriction could be lifted. Finally, F ?
+𝜀 has no such restriction, and satisfies
+the gradual guarantees with respect to the standard notion of precision, for both types and terms.
+Proof Terms for Type Precision. PolyG𝜈 , inspired by previous work [ New and Ahmed 2018 ],
+adds a proof term to the type precision relation as a technical intermediate representation for the
+translation from PolyG 𝜈 to PolyC𝜈 , a cast calculus that gives meaning to PolyG 𝜈 programs. It is
+important to note that proof terms in the type precision relation are canonical, i.e. there is at most
+one proof term that proves any given type precision judgment. Likewise, F ?
+𝜀 language indexes the
+type precision relation with proof terms, but contrary to PolyG 𝜈 , proof terms are relevant, i.e. there
+can be multiple proof terms for the same precision judgment. Also, as a difference with PolyG 𝜈 ,
+term precision in F ?
+𝜀 is indexed by a relevant proof term.
+Family of Unknown Types. Devriese et al. [2018] proposed to decorate the unknown type with
+the set of type variables in scope, as we do here, thus limiting the expressiveness of the unknown
+type by forming different families. This proposal aims to potentially reestablish the fully abstract
+embedding property of System F into 𝜆𝐵. Devriese et al . [2018] and more recently Jacobs et al .
+[2021] proposed a new criterion for gradual typing named the fully abstract embedding (FAE)
+property: the embedding from the static to the gradual language should be fully abstract in order
+to preserve the semantics properties of the static languages. We conjecture that this criterion holds
+for the language F ?, being a gradual version of System F that preserves its main semantic property
+(i.e. parametricity), although we leave a proof of FAE as future work.
+Implicit Polymorphism. Several polymorphic gradual languages have explored implicit polymor-
+phism present in languages such as Haskell. Xie et al . [2018] developed a gradual source language
+with implicit polymorphism, where the runtime semantics are given by compilation to 𝜆𝐵. 𝜆𝐵 and
+System F𝐺 , in turn, are languages with explicit polymorphism that accommodate some form of
+implicit polymorphism. F ? and F?
+𝜀, as well as PolyG 𝜈 and GSF, only support explicit polymorphism;
+exploring implicit polymorphism for F ? is an interesting venue for future work, in order to enhance
+interoperability between typed and untyped code.
+Evidence Representation. Evidence has been used in different scenarios, varying its representation
+according to the semantic properties to be preserved in the gradual language. For instance, Lehmann
+and Tanter [2017] develop a gradual language with refinement types, allowing smooth evolution
+and interoperability between simple types and logically refined types. In this case, the evidence
+for consistent subtyping is represented by a triple, where the first component accounts for the
+logical environment, and the second and third are types. Toro et al . [2018] develop a gradual
+language with security types and references, indexing types with gradual security labels. Driven
+by noninterference, types in evidence are indexed with intervals of security labels, representing
+(bounded) ranges of possible static types. Likewise, F ?
+𝜀 represents evidence in a novel way. First, it
+enriches evidence with proof terms relevant that we call span and then generalizes the evidence to a
+set of spans, building evidence with the expressiveness to ensure both graduality and parametricity.
+This theory may be applicable in other complex settings as well. We conjecture, and leave as future
+work, that by representing the evidence of instantiation recursively when imprecise types occur,
+we can lift the restriction on the term precision relation, thus correctly running all programs that
+by graduality must end in a value. In addition, it would be interesting to explore if there is a way to
+systematically derive proof-relevant consistency with AGT.
+Performance. Gradual parametricity is a very challenging topic at the theoretical level, with all
+current efforts trying to figure out how to achieve a good design backed by a strong metatheory.
+This work likewise focuses on the theory of gradual parametricity, contributing a novel approach
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 27 ===
+Plausible Sealing for Gradual Parametricity 70:27
+and technique. We leave the study of the performance and efficiency of a practical implementation
+as an open question to be addressed. Nevertheless, it is worth mentioning that the proposed
+language design satisfies a relevant criterion for space efficiency [ Herman et al . 2010], namely
+associativity of evidence composition, which is known to allow for space efficiency in evidence-
+based semantics [ Bañados Schwerter et al . 2021; Toro and Tanter 2020]. Whether the algorithmic
+definition of consistent transitivity can be efficiently implemented depends on whether evidence can
+be represented in memory in a form that uses space efficiently and allows an efficient implementation
+of evidence composition. All these are open research questions.
+10 CONCLUSION
+Previous work on gradual parametricity has had to compromise on important design goals like
+graduality [Toro et al. 2019] or type-driven sealing [ New et al. 2020]. Rather than accepting these
+compromises, this paper attempts to revisit accepted wisdom like the use of globally scoped sealing
+and contribute new ideas like plausible sealing and the set-of-spans representation of evidence
+for proof-relevant precision. Although the results presented here still have some restrictions, they
+open a new path towards the goal of reconciling parametricity, graduality and type-driven sealing.
+Additionally, some of our novel techniques are potentially reusable in other settings. Finally, our
+use of lexically scoped sealing invalidates the counterexample of fully-abstract embedding put
+forth by Devriese et al . [2018], and thereby offers new hope of constructing a gradual language
+that satisfies the ambitious goal of embedding System F fully abstractly [ Jacobs et al. 2021 ].
+ACKNOWLEDGMENTS
+This work was partially supported by the United States Air Force Office of Scientific Research
+under award number FA9550-21-1-0054, by the Flemish Research Programme Cybersecurity, and
+by ANID FONDECYT projects 1190058 and 3200583, Chile.
+REFERENCES
+Amal Ahmed. 2004. Semantics of Types for Mutable State . Ph.D. Dissertation. Princeton University.
+Amal Ahmed. 2006. Step-Indexed Syntactic Logical Relations for Recursive and Quantified Types. In Proceedings of the 15th
+European Symposium on Programming Languages and Systems (ESOP 2006) (Lecture Notes in Computer Science, Vol. 3924) ,
+Peter Sestoft (Ed.). Springer-Verlag, Vienna, Austria, 69ś83.
+Amal Ahmed, Robert Bruce Findler, Jacob Matthews, and Philip Wadler. 2009. Blame for All. In Workshop on Script to
+Program Evolution (STOP). Genova, Italy.
+Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler. 2017. Theorems for Free for Free: Parametricity, with and
+Without Types. See[ ICFP 2017 2017 ], 39:1ś39:28.
+Andrew W. Appel and David McAllester. 2001. An Indexed Model of Recursive Types for Foundational Proof-carrying Code.
+ACM Transactions on Programming Languages and Systems 23, 5 (Sept. 2001), 657ś683.
+Felipe Bañados Schwerter, Alison M. Clark, and Jafery. 2021. Abstracting Gradual Typing Moving Forward: Precise and
+Space-Efficient. See[ POPL 2021 2021], 61:1ś61:28.
+Rastislav Bodík and Rupak Majumdar (Eds.). 2016. Proceedings of the 43rd ACM SIGPLAN-SIGACT Symposium on Principles
+of Programming Languages (POPL 2016) . ACM Press, St Petersburg, FL, USA.
+Matteo Cimini and Jeremy Siek. 2016. The gradualizer: a methodology and algorithm for generating gradual type systems,
+See [Bodík and Majumdar 2016 ], 443ś455.
+Dominique Devriese, Marco Patrignani, and Frank Piessens. 2018. Parametricity versus the universal type. Proceedings of
+the ACM on Programming Languages 2, POPL (Jan. 2018), 38:1ś38:23.
+Ronald Garcia, Alison M. Clark, and Éric Tanter. 2016. Abstracting Gradual Typing, See [ Bodík and Majumdar 2016 ],
+429ś442. See erratum: https://www.cs.ubc.ca/ rxg/agt-erratum.pdf.
+Jean-Yves Girard. 1972. Interprétation Fonctionnelle et Élimination des Coupures de l’Arithmétique d’Ordre Supérieur . Ph.D.
+Dissertation. Université de Paris VII, Paris, France.
+David Herman, Aaron Tomb, and Cormac Flanagan. 2010. Space-efficient gradual typing. Higher-Order and Sympolic
+Computation 23, 2 (June 2010), 167ś189.
+ICFP 2017 2017.
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.
+
+=== PAGE 28 ===
+70:28 Elizabeth Labrada, Matías Toro, Éric Tanter, and Dominique Devriese
+Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi. 2017. On Polymorphic Gradual Typing. See[ ICFP 2017 2017], 40:1ś40:29.
+Koen Jacobs, Amin Timany, and Dominique Devriese. 2021. Fully abstract from static to gradual. See[ POPL 2021 2021],
+7:1ś7:30.
+Nico Lehmann and Éric Tanter. 2017. Gradual Refinement Types. InProceedings of the 44th ACM SIGPLAN-SIGACT Symposium
+on Principles of Programming Languages (POPL 2017) . ACM Press, Paris, France, 775ś788.
+Jacob Matthews and Amal Ahmed. 2008. Parametric Polymorphism Through Run-Time Sealing, or, Theorems for Low, Low
+Prices!. In Proceedings of the 17th European Symposium on Programming Languages and Systems (ESOP 2008) (Lecture
+Notes in Computer Science, Vol. 4960) , Sophia Drossopoulou (Ed.). Springer-Verlag, Budapest, Hungary, 16ś31.
+James H. Morris. 1973. Protection in Programming Languages. Commun. ACM 16, 1 (Jan. 1973), 15ś21.
+Max S. New and Amal Ahmed. 2018. Graduality from Embedding-Projection Pairs. Proceedings of the ACM on Programming
+Languages 2, ICFP (Sept. 2018), 73:1ś73:30.
+Max S. New, Dustin Jamner, and Amal Ahmed. 2020. Graduality and Parametricity: Together Again for the First Time.
+Proceedings of the ACM on Programming Languages 4, POPL (Jan. 2020), 46:1ś46:32.
+nLab contributors. 2021a. pullback. https://ncatlab.org/nlab/show/pullback
+nLab contributors. 2021b. span. https://ncatlab.org/nlab/show/span
+Benjamin Pierce and Eijiro Sumii. 2000. Relating Cryptography and Polymorphism. Manuscript.
+POPL 2021 2021.
+John C. Reynolds. 1974. Towards a Theory of Type Structure. In Porceedings of the Programming Symposium (Lecture Notes
+in Computer Science, Vol. 19) . Springer-Verlag, 408ś423.
+John C. Reynolds. 1983. Types, abstraction, and parametric polymorphism. In Information Processing 83, R. E. A. Mason (Ed.).
+Elsevier, 513ś523.
+Jeremy Siek and Walid Taha. 2006. Gradual Typing for Functional Languages. In Proceedings of the Scheme and Functional
+Programming Workshop. 81ś92.
+Jeremy Siek and Philip Wadler. 2010. Threesomes, with and without blame. In Proceedings of the 37th annual ACM
+SIGPLAN-SIGACT Symposium on Principles of Programming Languages (POPL 2010) . ACM Press, Madrid, Spain, 365ś376.
+Jeremy G. Siek, Michael M. Vitousek, Matteo Cimini, and John Tang Boyland. 2015. Refined Criteria for Gradual Typing.
+In 1st Summit on Advances in Programming Languages (SNAPL 2015) (Leibniz International Proceedings in Informatics
+(LIPIcs), Vol. 32). Schloss DagstuhlśLeibniz-Zentrum fuer Informatik, Asilomar, California, USA, 274ś293.
+Eijiro Sumii and Benjamin C. Pierce. 2004. A Bisimulation for Dynamic Sealing. In Proceedings of the 31st ACM SIGPLAN-
+SIGACT Symposium on Principles of Programming Languages (POPL 2005) . ACM Press, Venice, Italy, 161ś172.
+Matías Toro, Ronald Garcia, and Éric Tanter. 2018. Type-Driven Gradual Security with References. ACM Transactions on
+Programming Languages and Systems 40, 4 (Nov. 2018), 16:1ś16:55.
+Matías Toro, Elizabeth Labrada, and Éric Tanter. 2019. Gradual Parametricity, Revisited. Proceedings of the ACM on
+Programming Languages 3, POPL (Jan. 2019), 17:1ś17:30.
+Matías Toro and Éric Tanter. 2020. Abstracting Gradual References. Science of Computer Programming 197 (Oct. 2020), 1ś65.
+Ningning Xie, Xuan Bi, and Bruno C. d. S. Oliveira. 2018. Consistent Subtyping for All. In Proceedings of the 27th European
+Symposium on Programming Languages and Systems (ESOP 2018) (Lecture Notes in Computer Science, Vol. 10801) , Amal
+Ahmed (Ed.). Springer-Verlag, Thessaloniki, Greece, 3ś30.
+Proc. ACM Program. Lang., Vol. 6, No. OOPSLA1, Article 70. Publication date: April 2022.

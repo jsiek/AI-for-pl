@@ -1,0 +1,889 @@
+
+
+=== PAGE 1 ===
+Is Space-Efficient Polymorphic Gradual Typing Possible?
+SHOTA OZAKI, Graduate School of Informatics, Kyoto University, Japan
+TARO SEKIYAMA, National Institute of Informatics & SOKENDAI, Japan
+ATSUSHI IGARASHI, Graduate School of Informatics, Kyoto University, Japan
+Gradual typing, proposed by Siek and Taha, is a way to combine static and dynamic typing in a single
+programming language. Since its inception, researchers have studied techniques for efficient implementation. In
+this paper, we study the problem of space-efficient gradual typing in the presence of parametric polymorphism.
+We develop a polymorphic extension of the coercion calculus, an intermediate language for gradual typing.
+Then, we show that it cannot be made space-efficient by following the previous approaches, due to subtle
+interaction with dynamic sealing, a standard technique to ensure parametricity in polymorphic gradual typing.
+1 INTRODUCTION
+1.1 Space-Efficient Gradual Typing
+Gradual typing [Siek and Taha 2006] is a methodology to combine static and dynamic typing and
+allows a single program to involve statically and dynamically typed code. This ability of gradual
+typing not only brings the benefits of both the two typing disciplines, but also enables smooth
+migration between fully dynamic and static typing. Emerging gradually typed languages include,
+for example, Typed Racket [Flatt and PLT 2010], Typed Closure [Bonnaire-Sergeant et al. 2016],
+Hack [Facebook 2021], and TypeScript [Bierman et al. 2014].
+A key ingredient of gradual typing is a special type ★, which is called the dynamic type. The
+dynamic type allows “skipping” the static checking: at compile time, any term can be converted to
+the dynamic type and terms of the dynamic type are optimistically supposed to be convertible to
+arbitrary types. Instead, the skipped checks are performed at run time by monitoring the conversion.
+If conversion to an inconsistent type through the dynamic type is detected, the run-time system
+stops the evaluation of the program and reports an error. For example, let a term 𝑀 be of the
+dynamic type ★. A static type checker accepts calling it with a Boolean argument 𝑀 true and
+applying integer operations𝑀+ 1. However,𝑀 cannot be used as a function nor an integer at run
+time if it is, say, a Boolean value. Then, the run-time system detects that the conversion of𝑀 to a
+function type or the integer type fails and reports the invalid conversion by raising an exception.
+Along with the success of gradual typing in practice, its efficient implementation is gaining
+attention. Recently it has been exposed that the efficiency of gradually typed programs is dominated
+by the efficiency of conversions. For example, even in simple gradual typing, a naive implementation
+of conversions for functions is unexpectedly costly in terms of both time [Takikawa et al. 2016]
+and space [Herman et al. 2007, 2010].
+The space-consuming problem in gradual typing has been recognized first by Herman et al .
+[2007, 2010]. As an intermediate language for simple gradual typing, they proposed a coercion
+calculus where a sequence of conversions—which are called coercions [Henglein 1994] in coercion
+calculi—can be normalized into a simpler conversion. They also proved that coercions emerging at
+run time are collapsed into a coercion of bounded size. This result indicates that simple gradual
+typing can be implemented in a space-efficient manner, that is, the space overhead of a gradually
+typed program is increased only by an expected factor, compared with the space consumed by
+the fully dynamically typed version. Siek et al. [2015] proved correctness of this space-efficient
+Authors’ addresses: Shota Ozaki, Graduate School of Informatics, Kyoto University, Japan, ozaki@fos.kuis.kyoto-u.ac.jp;
+Taro Sekiyama, National Institute of Informatics & SOKENDAI, Japan, sekiyama@nii.ac.jp; Atsushi Igarashi, Graduate
+School of Informatics, Kyoto University, Japan, igarashi@kuis.kyoto-u.ac.jp.
+
+=== PAGE 2 ===
+2 Shota Ozaki, Taro Sekiyama, and Atsushi Igarashi
+implementation by providing a semantics-preserving translation from an unoptimized, non-space-
+efficient coercion calculus𝜆C to an optimized, space-efficient coercion calculus𝜆S. The previous
+work addresses gradual typing with simple types, but support for advanced typing features needs
+more sophisticated implementation of coercions. Efficient implementation of realistic gradual
+typing is, therefore, still challenging [Kuhlenschmidt et al. 2019].
+1.2 Our Work
+This work addresses the space-consuming problem in polymorphic gradual typing. As a tool to
+investigate this problem formally, we introduce a polymorphic (unoptimized) coercion calculus
+𝜆C∀, which is an extension of the coercion calculus𝜆C [Siek et al. 2015] with polymorphism. A
+question for this extension is how universal types are represented and checked at run time. Inspired
+by New et al. [2020]; Toro et al. [2019]; Xie et al. [2018] and motivated by the simplicity, we add the
+universal type∀X.★ and type variables X as new type representations to be checked at run time
+and support new coercions that check consistency for these type representations.
+As our calculus𝜆C∀ is designed for polymorphic gradual typing, we have to consider a common
+issue in it: how parametricity is enforced. Parametricity [Reynolds 1983; Wadler 1989] is a key
+property of polymorphism, guaranteeing the uniform behavior of polymorphic values and enabling
+useful reasoning about them. Unfortunately, a naive introduction of polymorphism to gradual
+typing breaks parametricity because gradual typing can inspect type arguments at run time via
+conversion. To protect type arguments against run-time inspection, Ahmed et al. [2011] proposed
+type encapsulation by dynamic sealing. In their calculus, type application generates fresh symbolic
+names at run time, and type arguments are encapsulated by them. If encapsulated types are inspected
+in a polymorphic context, the run-time system reports an error. Ahmed et al. [2017] proved that
+polymorphic gradual typing with dynamic sealing enjoys parametricity. Following Ahmed et al.,
+𝜆C∀ is also equipped with dynamic sealing.
+Support for dynamic sealing, however, makes it impossible to implement𝜆C∀ space-efficiently.
+The key idea of the space-efficient implementation for simple gradual typing is that a sequence of
+multiple coercions can be simplified into a single, smaller coercion. Dynamic sealing precludes this
+approach because, briefly speaking, a sequence of coercions with dynamically generated names
+cannot be simplified furthermore as all the names are necessary to represent the semantics of the
+coercion sequence. We formally address the problem in a specific coercion calculus𝜆C∀, but for
+the simplicity of its design, we conjecture that other polymorphic gradually typed languages with
+dynamic sealing cannot be made space-efficient either; this will be discussed in Section 5.
+Below is a summary of our contributions.
+• We introduce a type-safe polymorphic coercion calculus𝜆C∀ with run-time type represen-
+tations for universal types and type variables, coercions for them, and dynamic sealing.
+• We show that dynamic sealing allows 𝜆C∀ to have a sequence of coercions such that it
+cannot be normalized into a smaller coercion and the size of the entire sequence cannot be
+bounded.
+The rest of this paper is organized as follows. We review the coercion calculus𝜆C of Siek et al.
+and how space efficiency is achieved in simple gradual typing in Section 2. The definition and basic
+properties, including type safety, of𝜆C∀ are presented in Section 3. We state and prove that𝜆C∀
+cannot become space-efficient in Section 4. We discuss related work in Section 5 and give remarks
+on future directions in Section 6.
+
+=== PAGE 3 ===
+Is Space-Efficient Polymorphic Gradual Typing Possible? 3
+2 BACKGROUND
+This section reviews space efficiency in gradual typing [Herman et al. 2007, 2010; Siek et al. 2015].
+We first informally introduce a coercion calculus𝜆C of Siek et al. [2015] and show how statically and
+dynamically typed code cooperate in𝜆C. We also present that𝜆C allows coercions of unbounded
+size to appear at run time and then review the approach of Herman et al. [2007, 2010] to normalizing
+such undesirable coercions and making the coercion calculus space-efficient.
+2.1 The Coercion Calculus 𝜆C
+Gradual typing can control which parts are statically typed and which are dynamically typed
+by type annotation. To see it, first, let’s recall static typechecking. For example, consider a term
+let x : Int =𝑀 in x+ 1 in static typing. The term𝑀 is checked statically to be an integer because
+it is annotated with the static type Int. Further, the remaining term x+ 1 is typechecked with the
+assumption that the variable x is assigned the type Int. Gradual typing can defer this checking
+process to run time by using the dynamic type ★. For example, consider a term
+let x : ★ =𝑀1 in lety : Int =𝑀2 in x+ y.
+The dynamic type ★ means that𝑀1 can be of an arbitrary type and x can be supposed to be of any
+type during the typechecking of the remaining term let y : Int =𝑀2 in x+ y. Because the operation
++ requires arguments to be integers, we need to check that x is indeed an integer. Gradual typing
+performs this checking at run time. If 𝑀1 is not an integer—say, a Boolean value true—then an
+exception will be raised at run time. It is notable that the typechecking in terms of term𝑀2 and
+variable y is performed statically because they are annotated with the static type Int and thus,𝑀2
+must be evaluated to an integer (if the evaluation terminates). Gradual typing enables a spectrum
+between dynamic and static typing by introducing the dynamic type.
+The coercion calculus𝜆C is an intermediate language for gradual typing, and it exposes where
+run-time checking is performed by coercions. Coercions support injecting values of static types into
+the dynamic type and projecting values of the dynamic type to an arbitrary type with run-time
+checking. Below are coercions in𝜆C (we present only the part necessary to explain the essence of
+𝜆C):
+Coercions c, d ::= G!| G?p| idA| c→ d|···
+Given a coercion c, coercion application𝑀⟨c⟩ checks whether the value of a term𝑀 can be coerced
+by c.
+The first two coercions, injections G! and projections G?p, represent type conversion using the
+dynamic type ★. These coercions are equipped with ground types G and blame labels p. Ground
+types represent type tags attached to dynamic values (i.e., values of the dynamic type) at run time.
+They consist of base types, such as Int and Bool, and the function type ★→ ★, which signifies
+that injected values are functions. A blame label p identifies the run-time checking by projection,
+used for analyzing which part in a source program is the cause of a run-time error [Wadler and
+Findler 2009]. An injection coercion G! produces a dynamic value tagged with type G. For example,
+true⟨Bool!⟩ is a dynamic value tagged with the ground typeBool. A projection coercion G?p checks
+the tag of a given dynamic value. If it is the type G, then the coercion returns the underlying value
+of the dynamic value. In general, 𝜆C accepts the reduction𝑉⟨G!⟩⟨ G?p⟩ ↦−→𝑉 . If the attached
+tag is not equal to G, then the projection coercion raises an exception blame p with label p that
+notifies which run-time checking fails. For example,(true⟨Bool!⟩)⟨ Bool?p⟩ is evaluated to true,
+but(true⟨Bool!⟩)⟨ Int?p⟩ is evaluated to blame p because Bool ≠ Int. Using these coercions, the
+example given at the beginning of this section can be translated to the following term in𝜆C:
+let x : ★ =𝑀1 in lety : Int =𝑀2 in(x⟨Int?p⟩)+ y
+
+=== PAGE 4 ===
+4 Shota Ozaki, Taro Sekiyama, and Atsushi Igarashi
+where the variable x of the type ★ is coerced to Int. If𝑀1 injects an integer value (e.g., 1⟨Int!⟩),
+then the projection would succeed and then an integer value would be produced as a final result.
+However, if𝑀1 injects a non-integer value (e.g., true⟨Bool!⟩), then the projection coercion would
+raise an exception blame p. This translation to𝜆C can be performed automatically [Siek and Taha
+2006; Siek et al. 2015]: we can find where coercions are inserted from typing derivations of a gradual
+type system.
+The calculus𝜆C also supports other forms of coercions such as identity coercions and function
+coercions. An identity coercion idA expresses an identity function of type A→ A; hence, it does
+nothing computationally. A function coercion c→ d wraps given functions so that arguments
+and return values are coerced by coercions c and d, respectively. For example, consider a term
+𝑉⟨Int!→ Bool?p⟩. The application to a value𝑉′ is reduced as follows:
+(𝑉⟨Int!→ Bool?p⟩)𝑉′↦−→ (𝑉(𝑉′⟨Int!⟩))⟨ Bool?p⟩.
+Here, the argument𝑉′ is first coerced to the dynamic type by the argument coercion Int! and then
+passed to the function 𝑉 . Once𝑉 returns a value of the dynamic type, it is coerced to Bool by
+Bool?p. In general, given coercions c from type A2 to type A1 and d from type B1 to type B2, the
+function coercion c→ d coerces functions of type A1→ B1 to type A2→ B2. For example, as Int!
+is from Int to ★ and Bool?p is from ★ to Bool, the term𝑉⟨Int!→ Bool?p⟩ requires the function𝑉
+to be of ★→ ★ and its type is Int→ Bool. Notice that function coercions are contravariant for
+arguments while covariant for return values.
+2.2 Space Efficiency
+Herman et al . [2007, 2010] discovered that a naive implementation of run-time checking may
+consume an unexpectedly huge space. For example, consider the following mutually recursive
+functions𝑒𝑣𝑒𝑛 and𝑜𝑑𝑑 in gradual typing:
+𝑒𝑣𝑒𝑛 : Int→ ★
+def
+= 𝜆x : Int.if x = 0 then true else(𝑜𝑑𝑑(x− 1))
+𝑜𝑑𝑑 : Int→ Bool
+def
+= 𝜆x : Int.if x = 0 then false else(𝑒𝑣𝑒𝑛(x− 1))
+The functions𝑒𝑣𝑒𝑛 and𝑜𝑑𝑑 return a Boolean value that indicates if an argument is even and odd,
+respectively. The results of𝑒𝑣𝑒𝑛 are dynamically typed, while those of 𝑜𝑑𝑑 are statically typed.
+Because these functions are tail-recursive, one might expect that their call only consumes a constant
+space. However, their translation results𝑒𝑣𝑒𝑛 C and𝑜𝑑𝑑 C to𝜆C causes unbounded growth of call
+stack spaces. The functions𝑒𝑣𝑒𝑛 C and𝑜𝑑𝑑 C are given as:
+𝑒𝑣𝑒𝑛 C
+def
+= 𝜆x : Int.if x = 0 then(true⟨Bool!⟩) else((𝑜𝑑𝑑 C(x− 1))⟨ Bool!⟩)
+𝑜𝑑𝑑 C
+def
+= 𝜆x : Int.if x = 0 then false else((𝑒𝑣𝑒𝑛 C(x− 1))⟨ Bool?p⟩)
+Then, for instance, the evaluation of𝑜𝑑𝑑 C 4 proceeds as follows:
+𝑜𝑑𝑑 C 4
+↦−→∗ (𝑒𝑣𝑒𝑛 C 3)⟨ Bool?p⟩
+↦−→∗ (𝑜𝑑𝑑 C 2)⟨ Bool!⟩⟨ Bool?p⟩
+↦−→∗ (𝑒𝑣𝑒𝑛 C 1)⟨ Bool?p⟩⟨ Bool!⟩⟨ Bool?p⟩
+↦−→∗ (𝑜𝑑𝑑 C 0)⟨ Bool!⟩⟨ Bool?p⟩⟨ Bool!⟩⟨ Bool?p⟩
+↦−→∗ false⟨Bool!⟩⟨ Bool?p⟩⟨ Bool!⟩⟨ Bool?p⟩
+↦−→∗ false .
+As the evaluation process indicates, each time𝑒𝑣𝑒𝑛 C and𝑜𝑑𝑑 C are called, a new coercion emerges
+to convert the call result. Such coercions would have to be stored in call stacks because they must
+be applied after the function call finishes and control gets back. As a result, the evaluation needs a
+
+=== PAGE 5 ===
+Is Space-Efficient Polymorphic Gradual Typing Possible? 5
+stack space that cannot be bounded by the program size. Even worse, non-terminating programs
+may consume infinite spaces for storing coercions.
+Herman et al. solved this problem by normalizing nested coercions that emerge at run time. For
+example, we can find that application of coercions𝑉⟨Bool!⟩⟨ Bool?p⟩ is equivalent to𝑉⟨idBool⟩
+because applying projection⟨Bool?p⟩ to values injected by⟨Bool!⟩ always succeeds. Herman et
+al. generalized this idea and defined coercion normalization. Siek et al . [2015] formulated the
+normalization as a meta-level operation c o
+9 d that collapses the composition of c and d into a simpler
+coercion. For example, Bool! o
+9 Bool?p returns idBool and Bool?p o
+9 idBool returns Bool?p (recall that
+idA is a no-op).1 Once we allow the reduction𝑀⟨c⟩⟨ d⟩↦−→ 𝑀⟨c o
+9 d⟩, the above example can be
+evaluated as follows:
+𝑜𝑑𝑑 C 4
+↦−→∗ (𝑒𝑣𝑒𝑛 C 3)⟨ Bool?p⟩
+↦−→∗ (𝑜𝑑𝑑 C(3− 1))⟨ Bool!⟩⟨ Bool?p⟩
+↦−→ (𝑜𝑑𝑑 C(3− 1))⟨ Bool! o
+9 Bool?p⟩ = (𝑜𝑑𝑑 C(3− 1))⟨ idBool⟩
+↦−→∗ (𝑒𝑣𝑒𝑛 C(2− 1))⟨ Bool?p⟩⟨ idBool⟩
+↦−→ (𝑒𝑣𝑒𝑛 C(2− 1))⟨ Bool?p o
+9 idBool⟩ = (𝑒𝑣𝑒𝑛 C(2− 1))⟨ Bool?p⟩
+↦−→∗ (𝑜𝑑𝑑 C(1− 1))⟨ Bool!⟩⟨ Bool?p⟩
+↦−→ (𝑜𝑑𝑑 C(1− 1))⟨ Bool! o
+9 Bool?p⟩ = (𝑜𝑑𝑑 C(1− 1))⟨ idBool⟩
+↦−→∗ false⟨idBool⟩
+↦−→ false .
+Because a consecutive application of coercions is immediately normalized, the number of coercions
+emerging during the evaluation can increase only by a constant factor. Furthermore, Herman et
+al. proved that the size of a normalized coercion is bounded by the size of the original program
+before insertion of coercions. By combining the two results, a coercion calculus with the reduction
+of composing coercions can be proven space-efficient.
+Siek et al. [2015] refined the result of Herman et al. with another space-efficient coercion calculus
+𝜆S and provided a semantics-preserving translation from 𝜆C to𝜆S (notice that𝜆C is not space-
+efficient because it does not support the composition reduction). A key to providing such translation
+is that nested coercions can be normalized into a simpler one. However, it seems quite challenging
+to define coercion normalization satisfying this property for a polymorphic coercion calculus with
+dynamic sealing, as we will see in Section 4.
+3 POLYMORPHIC COERCION CALCULUS 𝜆C∀
+In this section, after presenting an overview of 𝜆C∀, we develop it formally, and state its basic
+properties.
+3.1 Overview
+We extend𝜆C with parametric polymorphism by introducing type abstractions and applications to
+terms, and universal types to types, as in System F. Main issues to consider are how ground types,
+which act as type tags, are extended (or not extended), what kind of coercions are supported for
+universal types, and how parametricity is enforced.
+For the first two, we add the following three things: (1) the type∀X.★ to ground types to support
+injection(∀X.★)!, which is a tagging for type abstractions, and projection(∀X.★)?p, which checks
+whether the value is tagged by(∀X.★)!; (2) type variables to ground type so that conversion between
+type variables and★ is possible by X ! and X ?p; and (3) coercions of the form∀X.c between universal
+types such that, if c is a coercion from A to B, then∀X.c is from∀X.A to∀X.B. For example, a
+1Precisely speaking, Bool! and Bool?p are represented by idBool; Bool! and Bool?p; idBool, respectively, in Siek et al. [2015].
+
+=== PAGE 6 ===
+6 Shota Ozaki, Taro Sekiyama, and Atsushi Igarashi
+coercion from type∀X.★→ ★ to type∀X.X→ X is written∀X.X !→ X ?p. To coerce the value of
+type∀X.X→ X to the dynamic type, we compose three coercions:
+(1)∀X.X ?p→ X !, which is from∀X.X→ X to∀X.★→ ★;
+(2)∀X.(★→ ★)!, which is from∀X.★→ ★ to∀X.★; and
+(3) (∀X.★)!, which is from∀X.★ to ★.
+This design is (partially) based on the separation of gradual typing and polymorphism as orthogonal
+issues—the policy advocated by Xie et al. [2018] and followed by recent calculi [New et al. 2020;
+Toro et al. 2019]. Thus, there is no coercion from a universal type, say ∀X.X→ X, to function
+types, say Int→ Int or ★→ ★; such type conversion is possible only by type application.
+To enforce parametricity, we follow the standard approach [Ahmed et al. 2011, 2017; Igarashi et al.
+2017; Matthews and Ahmed 2008; New et al. 2020; Toro et al. 2019] of using dynamic sealing [Morris
+1973; Pierce and Sumii 2000].2 Instead of usual type-level𝛽-reduction
+(ΛX.𝑉) A↦−→𝑉[A/X]
+that uses type substitution[A/X], the correspondence between X and A is recorded in a global
+store Σ, which decorates the reduction relation, and X in the body𝑉 is left as it is:
+Σ ⊲(ΛX.𝑉) A↦−→ (Σ, X := A) ⊲𝑉
+Inside𝑉 , X acts like a fresh base type. Thus, even when X is bound to Int in the store, injection by
+X ! is canceled only by X ?p, not by Int?p. To see why this is important for parametricity, readers are
+referred to Ahmed et al. [2011, 2017]; Igarashi et al. [2017].
+The semantics of coercions between universal types is slightly subtle. First of all, just as coercions
+c→ d between function types work as wrappers for 𝜆-abstractions, coercions∀X.c work as
+wrappers for Λ-abstractions. Thus, for example, the term
+𝑀 =(ΛX.𝑉)⟨∀ X.X !→ X ?p⟩
+is a value, waiting for a type argument to be passed. Here, we assume that the type of ΛX.𝑉 is
+∀X.★→ ★ and thus that of𝑀 is∀X.X→ X. If𝑀 is applied to a type argument, say Int, and an
+integer, say 42,𝑀 Int 42 is reduced as follows:
+Σ ⊲
+∀X.★→★
+z   }|   {
+(ΛX.𝑉)⟨∀X.X !→ X ?p⟩|                         {z                         }
+∀X.X→X
+Int 42
+↦−→( Σ, X := Int) ⊲(𝑉⟨X !→ X ?p⟩) 42
+↦−→( Σ, X := Int) ⊲(𝑉(42⟨X !⟩))⟨ X ?p⟩
+The projection X ?p succeeds only if𝑉 behaves like∀X.X→ X—that is,𝑉 returns the argument
+42⟨X !⟩ as is.
+Notice that Λ and∀ are removed (and the store is extended) in one step. This is in contrast with
+the behavior of function coercions, which do not cause𝛽-reduction in one step (as is shown in the
+second step above). It may appear that the following reduction rule, which generates a new name
+for a universal coercion, is more reasonable:
+Σ ⊲(𝑉⟨∀X.c⟩) A↦−→ (Σ, X := A) ⊲(𝑉 X)⟨ c⟩.
+2In the literature, there is some confusion about what sealing/unsealing operations are. While Ahmed et al . [2011] call
+casts from dynamically generated type names to the dynamic type sealing, the subsequent work [New et al . 2020] calls
+type-directed coercions from type arguments to dynamically generated type names sealing. The present work follows the
+former terminology because our calculus is closer to the one in [Ahmed et al. 2011] (and conversions from type arguments
+to type names are implicit), but we may say “a type name seals a type” to explain the latter.
+
+=== PAGE 7 ===
+Is Space-Efficient Polymorphic Gradual Typing Possible? 7
+According to this rule, the example above would reduce as follows:
+Σ ⊲(( ΛX.𝑉)⟨∀ X.X !→ X ?p⟩) Int 42
+= Σ ⊲(( ΛX.𝑉)⟨∀ Y.Y !→ Y ?p⟩) Int 42
+↦−→ ( Σ, Y := Int) ⊲((( ΛX.𝑉) Y)⟨ Y !→ Y ?p⟩) 42
+↦−→ (Σ, Y := Int, X := Y) ⊲(𝑉⟨Y !→ Y ?p⟩) 42
+↦−→ (Σ, Y := Int, X := Y) ⊲(𝑉(42⟨Y !⟩))⟨ Y ?p⟩.
+One of the intuitive motivations for our choice is that coercions should not involve computational
+effects (that is, name generation) other than raising blame. In fact, the second choice would cause
+counter-intuitive behavior: coercion∀X.X ?p→ X ! from∀X.X→ X to∀X.★→ ★ followed by
+the opposite one∀X.X !→ X ?p (from∀X.★→ ★ back to∀X.X→ X) would not act as no-op.3 In
+other words, the second choice would break the following equivalence∀X.(c; d) =(∀X.c);(∀X.d),
+which we think should hold. (We conjecture that these coercions are contextually equivalent under
+our semantics, although it has not been proved.) PolyG𝜈 by New et al. [2020] has closely related
+operational semantics, although this rather big computation step is divided into multiple steps.
+3.2 Syntax and Type System
+Figure 1 presents the syntax and type system of𝜆C∀.
+Let𝜄 range over base types, which include at least Int and Bool. Let A, B range over types, which
+are base types𝜄, the dynamic type ★, function types A→ B, universal types∀X.A, or type variables
+X. Unlike recent calculi of polymorphic gradual typing [Ahmed et al. 2017; New et al. 2020; Toro
+et al. 2019], we do not distinguish type variables and type names for simplicity. Let G, H range over
+ground types, which represent type tags. Ground types are base types𝜄, the function type ★→ ★,
+the universal type∀X.★, or type variables X. Let p, q range over blame labels, which represent
+program points to identify where run-time checking fails. Let c, d range over coercions, which
+are identity coercions idA, injections G!, projections G?p, function coercions c→ d, sequential
+compositions c; d, or universal coercions∀X.c. A universal coercion∀X.c binds the type variable
+X in c. Let 𝑀 range over terms, which are: constants k including integers, booleans, and first-
+order primitive functions; variables x; function abstractions𝜆x : A.𝑀; function applications𝑀𝑀 ;
+(recursive) type abstractions fix x = ΛX.𝑉; type applications𝑀 A; coercion applications𝑀⟨c⟩; or
+run-time errors blame p. Let𝑉 range over values, which are constants k, function abstractions
+𝜆x : A.𝑀, type abstractions fix x = ΛX.𝑉, values with a type tag 𝑉⟨G!⟩, values wrapped by a
+function coercion𝑉⟨c→ d⟩, or values wrapped by a universal coercion𝑉⟨∀X.c⟩.
+Although recursive type abstractions do not really add expressive power to the calculus (as they
+could be expressed by using the dynamic type and a fixed-point combinator), we introduce them to
+present some of the examples concisely. blame p stands for a run-time error raised by the failure of
+a projection G?p.
+LetE range over evaluation contexts, which give standard left-to-right call-by-value semantics.
+Let Γ range over type environments, which are a sequence of (1) pairs of a variable and its type
+x : A, (2) type variables X, and (3) type bindings X := A. We assume that all variables (x in Γ, x : A)
+and type variables (X in Γ, X or in Γ, X := A) in a type environment are pair-wise distinct. Let Σ
+range over stores, which are special type environments whose elements are only type bindings. We
+often omit∅ at the head of a type environment and write, e.g., X := Int, x : X for∅, X := Int, x : X.
+Terms𝜆x : A.𝑀 and fix x = ΛX.𝑉 bind variable x in𝑀 and𝑉 , respectively; fix x = ΛX.𝑉,∀X.A,
+and∀X.c bind type variable X in𝑉 , A, and c, respectively. The set of free (type) variables in a
+3We show a more detailed comparison in Appendix.
+
+=== PAGE 8 ===
+8 Shota Ozaki, Taro Sekiyama, and Atsushi Igarashi
+Syntax
+Base Types 𝜄 ::= Int| Bool|···
+Types A, B ::= 𝜄| ★| A→ B|∀ X.A| X
+Ground types G, H ::= 𝜄| ★→ ★|∀ X.★| X
+Coercions c, d ::= idA| G!| G?p| c→ d| c; d|∀ X.c
+Terms 𝑀 ::= k| x|𝜆x : A.𝑀|𝑀𝑀 | fix x = ΛX.𝑉|𝑀 A|𝑀⟨c⟩| blame p
+Values 𝑉 ::= k|𝜆x : A.𝑀| fix x = ΛX.𝑉|𝑉⟨G!⟩| 𝑉⟨c→ d⟩| 𝑉⟨∀X.c⟩
+Evaluation Contexts E ::= □|E[□𝑀]|E[ 𝑉□]|E[ □ A]|E[ □⟨c⟩]
+Type environments Γ ::= ∅| Γ, x : A| Γ, X| Γ, X := A
+Stores Σ ::= ∅| Σ, X := A
+Type well-formedness Γ⊢ A
+Γ⊢𝜄 (Tw_Base) Γ⊢ ★ (Tw_Star) Γ⊢ A Γ⊢ B (Tw_Arrow)Γ⊢ A→ B
+X∈ Γ or X := A∈ Γ (Tw_V ar)Γ⊢ X
+Γ, X⊢ A (Tw_Poly)Γ⊢∀ X.A
+Type environment well-formedness ⊢ Γ
+⊢∅ (Tew_Empty) ⊢ Γ Γ ⊢ A (Tew_V ar)⊢ Γ, x : A
+⊢ Γ (Tew_Tyvar)⊢ Γ, X
+⊢ Γ Γ ⊢ A (Tew_Binding)⊢ Γ, X := A
+Coercion typing Γ⊢𝐶 c : A⇝ B
+⊢ Γ Γ ⊢ A (Ct_Id)Γ⊢𝐶 idA : Γ(A)⇝ Γ(A)
+⊢ Γ Γ ⊢ G (Ct_Inj)Γ⊢𝐶 G! : Γ(G)⇝ ★
+⊢ Γ Γ ⊢ G (Ct_Proj)Γ⊢𝐶 G?p : ★⇝ Γ(G)
+Γ⊢𝐶 c : A′⇝ A Γ⊢𝐶 d : B⇝ B′
+(Ct_Arrow)Γ⊢𝐶 c→ d :(A→ B)⇝(A′→ B′)
+Γ⊢𝐶 c : A⇝ B Γ⊢𝐶 d : B⇝ C (Ct_Seq)Γ⊢𝐶 c; d : A⇝ C
+Γ, X⊢𝐶 c : A⇝ B (Ct_Cabs)Γ⊢𝐶∀X.c :∀X.A⇝∀X.B
+Term typing Γ⊢𝑇 𝑀 : A
+⊢ Γ ty(k) = A (T_Const)Γ⊢𝑇 k : A
+⊢ Γ x : A∈ Γ (T_V ar)Γ⊢𝑇 x : A
+Γ, x : Γ(A)⊢ 𝑇 𝑀 : B (T_Abs)Γ⊢𝑇 𝜆x : A.𝑀 : Γ(A)→ B
+Γ⊢𝑇 𝑀1 : A→ B Γ⊢𝑇 𝑀2 : A (T_App)Γ⊢𝑇 𝑀1𝑀2 : B
+Γ, x :∀X.A, X⊢𝑇 𝑉 : A (T_Tyfix)Γ⊢𝑇 fix x = ΛX.𝑉 :∀X.A
+Γ⊢𝑇 𝑀 :∀X.B Γ⊢ A (T_Tyapp)Γ⊢𝑇 𝑀 A : B[Γ(A)/X]
+⊢ Γ Γ ⊢ A (T_Abort)Γ⊢𝑇 blame p : A
+Γ⊢𝑇 𝑀 : A Γ⊢𝐶 c : A⇝ B (T_Crc)Γ⊢𝑇 𝑀⟨c⟩ : B
+Fig. 1. 𝜆C∀: Polymorphic coercion calculus
+
+=== PAGE 9 ===
+Is Space-Efficient Polymorphic Gradual Typing Possible? 9
+term is defined in a standard manner. We define𝛼-conversion in the standard manner and identify
+𝛼-equivalent terms. We abbreviate fix x = ΛX.𝑉 to ΛX.𝑉 if x does not occur free in𝑉 .
+We write[𝑉/x] for capture-avoiding substitution of𝑉 for x and[A/X] for capture-avoiding type
+substitution of A for X. We also use (type bindings in) a type environment as a type substitution
+and write Γ(A) for the type defined by:
+(∅)( A) = A (Γ, x : B)( A) =(Γ, X)( A) = Γ(A) ( Γ, X := B)( A) = Γ(A[B/X])).
+The type system consists of four judgment forms: type well-formedness Γ⊢ A, which means that
+type A is well formed under type environment Γ; type environment well-formedness⊢ Γ, which
+means that type environment Γ is well formed; coercion typing Γ⊢𝐶 c : A⇝ B, which means that
+c is a well-formed coercion from source type A to target type B; and term typing Γ⊢𝑇 𝑀 : A, which
+means term𝑀 is given type A under type environment Γ.
+The rules for type well-formedness Γ ⊢ A and type environment well-formedness ⊢ Γ are
+mostly straightforward. Since a type environment contains type variables and type bindings, a type
+variable X is well formed under Γ if X∈ Γ or X := A∈ Γ (Tw_Var). If a type binding X := A or
+a (typed) variable x : A is added to Γ, the type A has to be well formed under Γ ((Tew_Var) and
+(Tew_Binding)). For example,⊢ X := Int, Y := X→ X, but not⊢ Y := X→ X, X := Int because
+∅⊢ X→ X does not hold.
+The rules for coercion typing and term typing are a straightforward adaptation of previous
+work on coercions [Henglein 1994; Siek et al . 2015] and polymorphic gradual typing [Ahmed
+et al. 2011; Igarashi et al. 2017]. As in the previous calculi of polymorphic gradual typing, these
+rules take type bindings in a type environment into account. For example, if a store has X := A,
+then 𝜆x : X.x should have type A → A, not X → X; otherwise type preservation breaks in
+Σ ⊲(ΛX.𝜆x : X.x) A↦−→ Σ, X := A ⊲ 𝜆x : X.x. As a rule of thumb, whenever a type annotation
+appearing in a term is mentioned elsewhere in a judgment, the type environment is applied to get
+the “real” type by expanding type bindings.
+An identity coercion idA is a coercion from Γ(A) to itself. An injection is typed as a coercion from
+Γ(G) to ★; conversely, a projection G?p is from ★ to Γ(G). A function coercion c→ d is a coercion
+from A→ B to a function type A′→ B′ if c coerces A′ to A and d coerces B to B′. A composition
+coercion c; d, which applies c and d in this order, is from A to C if c coerces A to B and d coerces B
+to C. Finally, a universal coercion∀X.c is from a universal type∀X.A to a universal type∀X.B if c
+coerces A to B under a type environment augmented with X. In (T_Const), ty is a (meta-level)
+function which maps a constant k to a first-order type of the form𝜄1→𝜄2→···→ 𝜄n(𝑛≥ 1).
+3.3 Operational Semantics
+Figure 2 defines the operational semantics of𝜆C∀. Reduction rules are about basic computation steps
+and evaluation rules are about computation of subterms. As we already explained in Section 3.1,
+the reduction and evaluation relations involve stores and are written Σ ⊲ 𝑀 −→ Σ′ ⊲ 𝑀′ and
+Σ ⊲𝑀 ↦−→ Σ′ ⊲𝑀′, respectively. In the case that the stores are the same on both sides, that isΣ = Σ′,
+we omit them: For example, the rule (R_Beta) is understood as Σ ⊲(𝜆x : A.𝑀)𝑉 −→ Σ ⊲𝑀[𝑉/x].
+(R_Delta) reduces an application of a primitive function. Here,𝛿 is a meta-level partial function
+from two constants to another and is supposed to preserve types in the sense that𝑡𝑦(k1) =𝜄→ A
+and𝑡𝑦(k2) = 𝜄 imply𝑡𝑦(𝛿(k1, k2)) = A. (R_Beta) is standard 𝛽-reduction. (R_Id) means that
+an identity coercion is an identity function. (R_Wrap) reduces a function application where the
+function is wrapped by a function coercion c→ d. The coercion c is applied to the argument and
+the coercion d is applied to the return value. (R_Collapse) and (R_Conflict) represent type tag
+checking. (R_Collapse) is the case that𝑉 passes the check because the ground types in the injection
+and projection are the same; they are removed after reduction. (R_Conflict) is the case that𝑉 does
+
+=== PAGE 10 ===
+10 Shota Ozaki, Taro Sekiyama, and Atsushi Igarashi
+Reduction Σ ⊲𝑀 −→ Σ′ ⊲𝑀′
+k1 k2 −→ 𝛿(k1, k2) (R_Delta)
+(𝜆x : A.𝑀)𝑉 −→ 𝑀[𝑉/x] (R_Beta)
+𝑉⟨idA⟩ −→ 𝑉 (R_Id)
+(𝑉⟨c→ d⟩)𝑉′ −→ (𝑉(𝑉′⟨c⟩))⟨ d⟩ (R_Wrap)
+𝑉⟨G!⟩⟨ G?p⟩ −→ 𝑉 (R_Collapse)
+𝑉⟨G!⟩⟨ H ?p⟩ −→ blame p if G ≠ H (R_Conflict)
+𝑉⟨c; d⟩ −→ 𝑉⟨c⟩⟨ d⟩ (R_Split)
+Σ ⊲(( fix x = ΛX.𝑉)−−−−−→⟨∀X.c⟩) A −→ Σ, X := A ⊲𝑉[fix x = ΛX.𝑉/x]−→⟨c⟩ (R_Tybeta)
+Evaluation Σ ⊲𝑀 ↦−→ Σ′ ⊲𝑀′
+E ≠□ (E_Blame)E[ blame p] ↦−→blame p
+Σ ⊲𝑀 −→ Σ′ ⊲𝑀′
+(E_Evctx)Σ ⊲E[𝑀] ↦−→Σ′ ⊲E[𝑀′]
+Fig. 2. Operational semantics
+not pass because the ground types in the injection and projection are different; the term is reduced
+to blame p. (R_Split) splits a composition coercion into two consecutive coercion applications. In
+(R_Tybeta),−→⟨c⟩ stands for a sequence of 0 or more coercion applications, i.e.,𝑀−→⟨c⟩ =𝑀⟨c1⟩···⟨ cn⟩.
+(R_Tybeta) reduces a type application, in which the type abstraction may be wrapped by universal
+coercions. The reduction generates a fresh type name, extends the store Σ by X := A, instead of
+applying a type substitution, and removes all binders Λ𝑋 and∀𝑋 at once, which means that the
+type variables X bound by them are considered the same. Moreover, since the variable x bound
+by the recursive type abstraction stands for the type abstraction itself, fix x = ΛX.𝑉 is substituted
+for x. (E_Blame) reduces a term containing a run-time type error blame p; the current evaluation
+context is discarded and the whole term is reduced to blame p. (E_Evctx) is standard, which allows
+a subterm to be reduced.
+3.4 Properties
+We state two basic properties of 𝜆C∀: determinacy of evaluation (Theorem 1) and type safety
+(Theorem 4). Determinacy of evaluation is proved via determinacy of reduction. (We extend 𝛼-
+equivalence to Σ ⊲ 𝑀 in a straightforward manner—by considering type variables defined in Σ
+bound in𝑀. For example, X := Int ⊲ 42⟨X !⟩ and Y := Int ⊲ 42⟨Y !⟩ are𝛼-equivalent and, thus,
+identified.)
+Lemma 1 (Determinacy of reduction). If Σ ⊲𝑀 −→ Σ1 ⊲𝑀1 and Σ ⊲𝑀 −→ Σ2 ⊲𝑀2, then
+Σ1 = Σ2 and𝑀1 =𝑀2.
+Proof. By straightforward case analysis on Σ ⊲𝑀 −→ Σ1 ⊲𝑀1. □
+Theorem 1 (Determinacy of evaluation). If Σ ⊲𝑀 ↦−→ Σ1 ⊲𝑀1 and Σ ⊲𝑀 ↦−→ Σ2 ⊲𝑀2,
+then Σ1 = Σ2 and𝑀1 =𝑀2.
+Proof. By case analysis on Σ ⊲𝑀 ↦−→ Σ1 ⊲𝑀1. In the case of (E_Evctx), we use Lemma 1. □
+Type safety follows from progress and preservation [Wright and Felleisen 1994]. We write↦−→∗
+for the reflexive transitive closure of↦−→, and Σ ⊲𝑀↑ if there is an infinite evaluation sequence
+starting from Σ ⊲𝑀.
+Theorem 2 (Progress). If Σ⊢𝑇 𝑀 : A, then one of the followings holds:
+
+=== PAGE 11 ===
+Is Space-Efficient Polymorphic Gradual Typing Possible? 11
+• 𝑀 =𝑉 for some𝑉 ,
+• 𝑀 = blame p for some p, or
+• Σ ⊲𝑀 ↦−→ Σ′ ⊲𝑀′ for some Σ′ and𝑀′.
+Proof. By induction on the derivation of Σ⊢𝑇 𝑀 : A. □
+Lemma 2 (Preservation for reduction). If Σ⊢𝑇 𝑀 : A and Σ ⊲ 𝑀 −→ Σ′ ⊲ 𝑀′, then
+Σ′⊢𝑇 𝑀′ : A.
+Proof. By case analysis on Σ ⊲𝑀 −→ Σ′ ⊲𝑀′. □
+Theorem 3 (Preservation for evaluation). If Σ⊢𝑇 𝑀 : A and Σ ⊲ 𝑀 ↦−→ Σ′ ⊲ 𝑀′, then
+Σ′⊢𝑇 𝑀′ : A.
+Proof. By case analysis on Σ ⊲𝑀 ↦−→ Σ′ ⊲𝑀′. The case for (E_Evctx) is proved by induction
+onE. Use Lemma 2 ifE is□. □
+Theorem 4 (Type safety). If Σ⊢𝑇 𝑀 : A, then one of the followings holds:
+• Σ ⊲𝑀 ↦−→∗ Σ′ ⊲𝑉 for some store Σ′ and value𝑉 ,
+• Σ ⊲𝑀 ↦−→∗ Σ′ ⊲ blame p for some store Σ′ and blame label p, or
+• Σ ⊲𝑀↑.
+Proof. By Theorems 2 and 3. □
+4 𝜆C∀ CANNOT BE MADE SPACE-EFFICIENT BY COERCION NORMALIZATION
+As mentioned at the end of Section 2, a key property to achieve space-efficiency is that nested
+coercions can be normalized into a simpler one. This property (adapted from Theorem 6 of Herman
+et al. [2010]) can be formally stated as follows:
+Proposition 5 (Size of coercions is bounded). For any closed well-typed term 𝑀, there exists a
+natural number𝑛 such that, for any term 𝑀′, sequence of coercion applications ⟨c1⟩···⟨ cn⟩ and store
+Σ, if
+• ∅⊲𝑀 ↦−→∗ Σ ⊲𝑀′ and
+• 𝑀′ contains⟨c1⟩···⟨ cn⟩,
+then there exists a coercion c such that c is contextually equivalent to c1;··· ; cn and size(c)≤ 𝑛.
+This proposition means that (1) any coercion sequence ⟨c1⟩···⟨ cn⟩ that appears during the
+execution of a program 𝑀 can be normalized into a single coercion c in some way, and (2) c
+behaves as c1;··· ; cn and the size of c is bounded by a natural number n depending on only (the
+type derivation of) the program 𝑀. By normalizing all coercions at every evaluation step, the
+fraction of the program state occupied by coercions can be bounded, which is what “space-efficient”
+means in the literature. (To give a concrete space-efficient calculus, we would have to develop an
+effective normalization procedure and an operational semantics that eagerly composes coercion
+sequences—just as Bañados Schwerter et al. [2021]; Herman et al. [2007, 2010]; Siek et al. [2015]
+did.)
+However, Proposition 5 does not hold, that is, it is impossible to derive a space-efficient variant of
+𝜆C∀ (by coercion normalization). This impossibility stems from the fact that a sequenceX1!;··· ; Xn!
+of injection coercions 4 cannot be made smaller and there is a program that creates a growing
+sequence of such injection coercions. In the rest of this section, we disprove Proposition 5 as
+Theorem 6.
+4This coercion is well typed if Xi := ★∈ Σ for any i.
+
+=== PAGE 12 ===
+12 Shota Ozaki, Taro Sekiyama, and Atsushi Igarashi
+We will define contextual equivalence of coercions to formally discuss whether a coercion can
+be replaced by a smaller one without affecting the semantics of programs. However, as in the
+example of𝑒𝑣𝑒𝑛 C/𝑜𝑑𝑑 C in Section 2, what grows large is not a coercion but a sequence of coercion
+applications. Therefore, we define contextual equivalence over sequences of coercion applications.
+First, we define coercion sequences and coercion sequence typing.
+Definition 1 (Coercion seqences). Coercion sequences cs are defined as follows:
+cs ::= ⟨c⟩; cs|⟨ c⟩
+Definition 2 (Coercion seqence typing). Coercion sequence typing rules are defined as follows:
+Γ⊢𝐶 c : A⇝ B (Cs_One)Γ⊢𝐶𝑆⟨c⟩ : A⇝ B
+Γ⊢𝐶 c : A⇝ B Γ⊢𝐶𝑆 cs : B⇝ C (Cs_More)Γ⊢𝐶𝑆⟨c⟩; cs : A⇝ C
+Coercion sequences are sequences of ⟨c⟩’s connected by semicolons. ⟨c⟩ coerces A to B if c
+coerces A to B.⟨c⟩; cs coerces A to C if c coerces A to B and cs coerces B to C.
+Next, we define coercion contexts and contextual equivalence for coercion sequences to discuss
+whether replacement of them affects program semantics.
+Definition 3 (Contexts). ContextsC are defined as follows:
+C ::= □|𝜆x : A.C|C 𝑀|𝑀C| fix x = ΛX.C|C A|C⟨ c⟩
+Definition 4 (Coercion contexts). Coercion contexts are defined as pairs of term 𝑀 and context
+C. Then,(𝑀,C)[ cs] is defined as follows:
+(𝑀,C)[⟨ c⟩; cs] =(𝑀⟨c⟩,C)[ cs]
+(𝑀,C)[⟨ c⟩] =C[𝑀⟨c⟩]
+As usual, a context is a term with a single hole andC[𝑀] represents a term obtained by textually
+substituting𝑀 for the hole inC. If the hole is surrounded by fix x = ΛX.□,C[𝑀] is well defined
+only if𝑀 is a value𝑉 . A coercion context is a pair of a term and a context, (𝑀,C). Intuitively,
+(𝑀,C)[⟨ c1⟩;··· ;⟨cn⟩] represents the termC[𝑀⟨c1⟩···⟨ cn⟩].
+Definition 5 (Contextual eqivalence for coercion seqences). Two coercion sequences
+cs1, cs2 are contextually equivalent, written cs1
+ctx
+= cs2, if, for any coercion context(𝑀,C), type A, and
+store Σ, Σ⊢𝑇(𝑀,C)[ cs1] : A and Σ⊢𝑇(𝑀,C)[ cs2] : A imply one of the followings:
+• Σ ⊲(𝑀,C)[ cs1] ↦−→∗ Σ1 ⊲𝑉1 and Σ ⊲(𝑀,C)[ cs2] ↦−→∗ Σ2 ⊲𝑉2, for some values 𝑉1 and𝑉2,
+and stores Σ1 and Σ2,
+• Σ ⊲(𝑀,C)[ cs1] ↦−→∗ Σ1 ⊲ blame p and Σ ⊲(𝑀,C)[ cs2] ↦−→∗ Σ2 ⊲ blame p, for some
+blame label𝑝 and stores Σ1 and Σ2, or
+• Σ ⊲(𝑀,C)[ cs1]↑ and Σ ⊲(𝑀,C)[ cs2]↑ .
+Contextual equivalence, cs1
+ctx
+= cs2, means that for any coercion context(𝑀,C), if(𝑀,C)[ cs1]
+and(𝑀,C)[ cs2] have the same type, both result in a value, raise the same blame, or diverge.
+Next, we define the sizes of a coercion and a coercion sequence in order to discuss space
+consumption.
+
+=== PAGE 13 ===
+Is Space-Efficient Polymorphic Gradual Typing Possible? 13
+Definition 6 (Size of coercions). The size size(c) of a coercion c is defined as follows:
+size(idA) = 1
+size(G!) = 1
+size(G?p) = 1
+size(c→ d) = size(c)+ size(d)+ 1
+size(c; d) = size(c)+ size(d)+ 1
+size(∀X.c) = size(c)+ 1
+Definition 7 (Size of coercion seqences). The size size(cs) of a coercion sequence cs is defined
+as follows:
+size(⟨c⟩; cs) = size(c)+ size(cs)+ 1
+size(⟨c⟩) = size(c)
+These sizes of a coercion and a coercion sequence are defined as the number of constructors
+included in them. The size of a coercion sequence is defined so that⟨c⟩;⟨d⟩ and c; d has the same
+size.
+Finally, we prove the main theorem: There is a term that generates a coercion sequence of
+unbounded size, which cannot shrink to a single coercion without modifying the program behavior.
+Let CS(𝑀) be the set of coercion sequences in𝑀.
+Theorem 6 (Not space-efficient). There exists a closed well-typed term 𝑀 such that, for any
+natural number n, there exist term 𝑀′ and store Σ such that
+(1) ∅ ⊲𝑀 ↦−→∗ Σ ⊲𝑀′, and
+(2) there exist a coercion sequence cs∈𝐶𝑆(𝑀′), type B1, and type B2 such that
+(a) Σ⊢𝐶𝑆 cs : B1⇝ B2,
+(b) size(cs) >𝑛, and
+(c) there does not exist a coercion c such that Σ⊢𝐶 c : B1⇝ B2, cs
+ctx
+=⟨c⟩, and size(⟨c⟩) <
+size(cs).
+Proof. Let𝑀 =(fix f = ΛX.𝜆x : X.f ★(x⟨X !⟩)) ★(0⟨Int!⟩). Fix𝑛. Let
+𝑀′ =(fix f = ΛX.𝜆x : X.f ★(x⟨X !⟩)) ★(0⟨Int!⟩⟨ X1!⟩···⟨ Xn!⟩), and
+Σ =∅, X1 := ★,..., Xn := ★
+where X1,..., Xn are distinct type variables. (1) can be proved easily, so we omit its proof. We prove
+(2). Let
+cs =⟨Int!⟩;⟨X1!⟩;··· ;⟨Xn!⟩,
+B1 = Int, and
+B2 = ★.
+(a) and (b) can be proved easily, so we omit proofs about them. We prove (c), which is equivalent to
+“for any coercion c, if Σ⊢𝐶 c : B1⇝ B2 and cs
+ctx
+=⟨c⟩, then size(⟨c⟩)≥ size(cs)”. Fix c and suppose
+Σ⊢𝐶 c : B1⇝ B2 and cs
+ctx
+=⟨c⟩. LetC =□⟨Xn?pn⟩···⟨ X1?p1⟩⟨Int?p⟩. Then, we have
+(0,C)[⟨ Int!⟩;⟨X1!⟩;··· ;⟨Xn!⟩] = 0⟨Int!⟩⟨ X1!⟩···⟨ Xn!⟩⟨ Xn?pn⟩···⟨ X1?p1⟩⟨ Int?q⟩ and
+(0,C)[⟨ c⟩] = 0⟨c⟩⟨ Xn?pn⟩···⟨ X1?p1⟩⟨ Int?q⟩.
+Both
+Σ⊢𝑇 0⟨Int!⟩⟨ X1!⟩···⟨ Xn!⟩⟨ Xn?pn⟩···⟨ X1?p1⟩⟨ Int?q⟩ : Int
+
+=== PAGE 14 ===
+14 Shota Ozaki, Taro Sekiyama, and Atsushi Igarashi
+and
+Σ⊢𝑇 0⟨c⟩⟨ Xn?pn⟩···⟨ X1?p1⟩⟨ Int?q⟩ : Int
+are easily proved because Σ⊢𝐶 c : Int⇝ ★. Therefore, by⟨Int!⟩;⟨X1!⟩;··· ;⟨Xn!⟩
+ctx
+= ⟨c⟩, terms
+0⟨Int!⟩⟨ X1!⟩···⟨ Xn!⟩⟨ Xn?pn⟩···⟨ X1?p1⟩⟨ Int?q⟩ and 0⟨c⟩⟨ Xn?pn⟩···⟨ X1?p1⟩⟨ Int?q⟩ have the same
+result (a value, a blame, or divergence). Σ ⊲ 0⟨Int!⟩⟨ X1!⟩···⟨ Xn!⟩⟨ Xn?pn⟩···⟨ X1?p1⟩⟨ Int?q⟩↦−→∗
+Σ ⊲ 0 is clear, so 0⟨c⟩⟨ Xn?pn⟩···⟨ X1?p1⟩⟨ Int?q⟩ is also evaluated to a value, i.e., there exist store
+Σ1 and value𝑉1 such that Σ ⊲ 0⟨c⟩⟨ Xn?pn⟩···⟨ X1?p1⟩⟨ Int?q⟩↦−→∗ Σ1 ⊲𝑉1. Thus, subterm 0⟨c⟩ is
+also evaluated to a value, i.e., there exist store Σ2 and value𝑉2 such that Σ ⊲ 0⟨c⟩ ↦−→∗ Σ2 ⊲𝑉2.
+Hence by Theorem 1,
+Σ ⊲ 0⟨c⟩⟨ Xn?pn⟩···⟨ X1?p1⟩⟨ Int?q⟩↦−→∗ Σ2 ⊲𝑉2⟨Xn?pn⟩···⟨ X1?p1⟩⟨ Int?q⟩↦−→∗ Σ1 ⊲𝑉1.
+To reach𝑉1, the value𝑉2 must be of the form𝑉3⟨Xn!⟩ for some𝑉3 and
+Σ ⊲ 0⟨c⟩⟨ Xn?pn⟩···⟨ X1?p1⟩⟨ Int?q⟩↦−→∗ Σ2 ⊲𝑉3⟨Xn!⟩⟨ Xn?pn⟩···⟨ X1?p1⟩⟨ Int?q⟩.
+Thus, Xn! is a subcoercion of c (this proof is omitted). Because
+Σ2 ⊲𝑉3⟨Xn!⟩⟨ Xn?pn⟩···⟨ X1?p1⟩⟨ Int?q⟩↦−→ Σ2 ⊲𝑉3⟨Xn−1?pn−1⟩···⟨ X1?p1⟩⟨ Int?q⟩,
+we have
+Σ ⊲ 0⟨c⟩⟨ Xn?pn⟩···⟨ X1?p1⟩⟨ Int?q⟩↦−→∗ Σ2 ⊲𝑉3⟨Xn−1?pn−1⟩···⟨ X1?p1⟩⟨ Int?q⟩↦−→∗ Σ1 ⊲𝑉1.
+The same argument can be made for𝑉3. Therefore, by induction on𝑛, Xn!,..., X1! and Int! are all
+subcoercions of c, which means that c has at least (𝑛+ 1) leaves when it is viewed as an abstract
+syntax tree. It is easy to show
+size(c)≥ 2(𝑛+ 1)− 1,
+and
+size(⟨c⟩) = size(c)
+≥ 2(𝑛+ 1)− 1
+= 2𝑛+ 1
+= size(⟨Int!⟩;⟨X1!⟩;··· ;⟨Xn!⟩).
+□
+Remark: In fact, it is impossible to distinguish X1!;··· ; Xn! and X1!;··· ; Xm! unless the context
+has corresponding projections Xi?p for all𝑖. Since the term𝑀 used in the proof does not contain
+projections Xi?p for any𝑖, coercion Int!; X1!;··· ; Xn! can be normalized to a smaller coercion, say
+Int!; X1! without changing the behavior. In general, however, it is not the case because we can write
+a function that, given𝑛, returns 0⟨Int!⟩⟨𝑋1!⟩···⟨ 𝑋𝑛!⟩ and a list of projections⟨𝑋𝑖 ?𝑝⟩. Then, a caller
+can apply Xn?p, . . . ,X1?p to observe if 0⟨Int!⟩ is wrapped by injections⟨X1!⟩···⟨ Xn!⟩ in this order.
+5 RELATED WORK
+Polymorphic Gradual Typing. Protection of type arguments by dynamic sealing is the standard
+approach to enforcing parametricity in gradual typing [Ahmed et al . 2011, 2017; Igarashi et al .
+2017; Matthews and Ahmed 2008; New et al . 2020; Toro et al. 2019]. We, therefore, believe that
+other calculi of polymorphic gradual typing suffer the same problem of accumulated type names
+in a sequence of dynamic checks, as we will informally discuss below. Notice that some previous
+work [Ahmed et al. 2011, 2017; New et al. 2020; Toro et al. 2019] distinguishes between type variables
+and dynamically generated type names, unlike our calculus𝜆C∀. We use𝛼,𝛽,𝛾 for denoting type
+names.
+
+=== PAGE 15 ===
+Is Space-Efficient Polymorphic Gradual Typing Possible? 15
+Dynamic sealing has been introduced first by Ahmed et al . [2011] to polymorphic gradual
+typing—although the general idea of dynamic sealing as an alternative for statically enforced type
+abstraction can date back to [Matthews and Ahmed 2008; Morris 1973; Pierce and Sumii 2000]—and
+their calculus is refined to a polymorphic calculus 𝜆B by Ahmed et al . [2017]. The calculus 𝜆B
+implements run-time coercion (except for sealing and unsealing) by cast 𝑀 : A
+p
+=⇒ B, which
+coerces a value of type A to type B, and dynamic sealing and unsealing by conversion𝑀 : A
+𝜙
+=⇒ B,
+where a conversion label𝜙 signifies that the conversion seals (𝜙 =−𝛼) or unseals (𝜙 =+𝛼) a type
+argument with type name𝛼. Using these constructors, as in our calculus𝜆C∀, the calculus𝜆B also
+allows the accumulation of sealing as:𝑉 : Int
+−𝛼
+=⇒𝛼 :𝛼
+p1
+=⇒ ★ : ★
+−𝛽
+=⇒𝛽 :𝛽
+p2
+=⇒ ★ : ★
+−𝛾
+=⇒𝛾 :··· ,
+where𝛼 seals Int, and𝛽 and𝛾 seal ★. Removing intermediate conversions (e.g., one for𝛽) from this
+accumulated sealing does not preserve the semantics. The calculus System FC proposed by Igarashi
+et al. [2017] also enforces parametricity by the same approach. Thus, the space necessary to run
+programs in𝜆B and those in System FC cannot be bounded in general, as in our calculus𝜆C∀.
+Toro et al. [2019] derived a polymorphic calculus GSF𝜀 by Abstracting Gradual Typing (AGT)
+[Garcia et al . 2016], which is a methodology to design gradually typed calculi systematically.
+Languages derived by AGT use evidence to justify coercion. Evidence is a pair of types⟨A, B⟩ which
+intuitively represents that coercion from A to B might be successful. Evidence is gradually refined
+into more “precise” types [Wadler and Findler 2009] (i.e., types in which there are fewer occurrences
+of the dynamic type) as the program execution proceeds, and if A and B become inconsistent,
+the run-time system reports an error. For parametricity, Toro et al. extended evidence to pairs of
+evidence types which can accumulate type names. For example, an evidence type𝛼𝛽Int
+means that
+𝛼 seals𝛽 and𝛽 seals Int. Thus, we can describe also in GSF𝜀 a sealing sequence that works as a
+counterexample to space-efficiency.
+The calculus PolyC𝜈 proposed by New et al. [2020] supports term-level sealing and unsealing
+operations. Thus, PolyC𝜈 enables us to choose which terms are sealed, unlike other calculi, where
+sealing is controlled by the semantics. It is possible to run programs in PolyC𝜈 space-efficiently if
+no sealing is used, but it results in sacrificing parametricity.
+Space-efficient Gradual Typing. Herman et al. [2007, 2010] pointed out the space consumption
+problem in gradual typing. They defined coercion composition and dynamic semantics for eager
+composition. Moreover, they proved that the space that a program in their calculus consumes is
+bounded. However, an algorithm for composition normalization is not clear in their work because
+it is defined as a set of equations.
+Siek et al. [2015] proposed a space-efficient coercion calculus𝜆S, which also has both coercion
+composition and eagerly composing semantics. They defined space-efficient coercions, which is a
+kind of canonical forms of coercions. Their composition is defined on space-efficient coercions
+as a recursive function so that it can be computed algorithmically. Kuhlenschmidt et al . [2019]
+implemented the Grift compiler for a gradually typed𝜆-calculus, by using space-efficient coercions.
+The Grift compiler does not fully benefit from space-efficient coercions in that coercions at tail
+positions do not normalize. Later, Tsuda et al. [2020] proposed an implementation technique to
+normalize coercions at tail positions by using coercion passing translation.
+As another approach to the space-efficiency problem, Siek and Wadler [2010] introduced three-
+some casts to a cast (rather than coercion) calculus, another common intermediate language for
+gradual typing. More recently, Bañados Schwerter et al. [2021] discussed space-efficiency of AGT
+using Runtime Language (RL) of GTFL≲, which is a gradually typed calculus with records and
+subtyping, proposed by Garcia et al. [2016]. In the AGT setting, type conversion is represented by
+evidence and composition of evidence is called consistent transitivity [Garcia et al. 2016]. Bañados
+
+=== PAGE 16 ===
+16 Shota Ozaki, Taro Sekiyama, and Atsushi Igarashi
+Schwerter et al. proved that a sufficient condition that RL can be made space-efficient is that the
+composition is associative and bounded. As far as we know, all the previous work for space-efficient
+gradual typing has been limited to a simply typed setting (with subtyping).
+Coercions on Polymorphic Types. Coercions are studied as a technical device to give the semantics
+of subtyping [Breazu-Tannen et al. 1991; Mitchell 1984] or more general type conversion [Luo
+1999; Swamy et al. 2009]. A sophisticated coercion language for parametric polymorphism has
+been studied by Cretin and Rémy [2012], who unify previous work [Breazu-Tannen et al . 1991;
+Mitchell 1988; Rémy and Yakobowski 2010] on coercions for parametric polymorphism. Our setting
+does not need such sophistication, though, mainly due to the separation of gradual typing and
+polymorphism.
+6 DISCUSSION
+We have proposed a polymorphic coercion calculus𝜆C∀, a polymorphic extension of the existing
+coercion calculus𝜆C with dynamic sealing to enforce parametricity. We have proved that some
+coercions do not have compact forms due to interaction with dynamic sealing and the dynamic type
+and thus conclude that a space-efficient variant of𝜆C∀ cannot be derived—at least, by following
+the same approach by Herman et al. [2007, 2010]; Siek et al. [2015]. We believe that this result can
+be adapted to other existing calculi for polymorphic gradual typing.
+Theorem 6 relies on the fact that a sequence of injection coercions of the formX ! can be arbitrarily
+large. We conjecture that such sequences are the only obstacle to space-efficient coercions and
+there is a version of𝜆C∀, which is mostly space-efficient. We expect that we can formally show that
+a calculus is mostly space-efficient by using a tweaked size function in which the size of a sequence
+of injections is set to be a constant.
+Another observation about Theorem 6 is that, to form a sequential composition of injections, we
+need an injection whose source type is ★, as the target type of an injection is always ★. Since ★ is
+not a ground type, such an injection has to be of the form𝑋 ! where𝑋 := ★ in the store. Similarly, a
+sequence of projections can be formed only by𝑋 ?𝑝 with𝑋 := ★.
+Thus, we also conjecture that forbidding the dynamic type as a type argument will lead to a space-
+efficient calculus. Although it is theoretically interesting future work to prove such a conjecture,
+we expect that the restriction is too severe in practice—especially when dynamically typed code
+accesses polymorphically typed code through the dynamic type. It is likely that dynamically typed
+code would have no idea what type argument to pass and, as argued by Ahmed et al. [2011], passing
+the dynamic type to polymorphic functions seems to be a reasonable choice.
+It is also an interesting question whether we can strike a balance between (space) efficiency
+and parametricity by reducing the overhead of coercions and dynamic sealing by other means. A
+possible approach is hinted by Igarashi et al. [2017], who suggested that type arguments should be
+sealed only when they interact with the dynamic type.
+ACKNOWLEDGMENTS
+We would like to thank the anonymous reviewers at the 2021 Scheme and Functional Programming
+Workshop for their encouraging comments. This work was supported in part by ERATO HASUO
+Metamathematics for Systems Design Project (No. JPMJER1603) JST, and JSPS KAKENHI Grant
+Numbers JP19K20247 (Sekiyama) and JP20H00582 (Igarashi).
+REFERENCES
+Amal Ahmed, Robert Bruce Findler, Jeremy G. Siek, and Philip Wadler. 2011. Blame for all. In Proceedings of the 38th ACM
+SIGPLAN-SIGACT Symposium on Principles of Programming Languages, POPL 2011, Austin, TX, USA, January 26-28, 2011 ,
+Thomas Ball and Mooly Sagiv (Eds.). ACM, 201–214. https://doi.org/10.1145/1926385.1926409
+
+=== PAGE 17 ===
+Is Space-Efficient Polymorphic Gradual Typing Possible? 17
+Amal Ahmed, Dustin Jamner, Jeremy G. Siek, and Philip Wadler. 2017. Theorems for free for free: parametricity, with and
+without types. PACMPL 1, ICFP (2017), 39:1–39:28. https://doi.org/10.1145/3110283
+Felipe Bañados Schwerter, Alison M. Clark, Khurram A. Jafery, and Ronald Garcia. 2021. Abstracting Gradual Typing
+Moving Forward: Precise and Space-Efficient. Proc. ACM Program. Lang. 5, POPL, Article 61 (Jan. 2021), 28 pages.
+https://doi.org/10.1145/3434342
+Gavin M. Bierman, Martín Abadi, and Mads Torgersen. 2014. Understanding TypeScript. In ECOOP 2014 - Object-Oriented
+Programming - 28th European Conference, Uppsala, Sweden, July 28 - August 1, 2014. Proceedings (Lecture Notes in Computer
+Science, Vol. 8586), Richard E. Jones (Ed.). Springer, 257–281. https://doi.org/10.1007/978-3-662-44202-9_11
+Ambrose Bonnaire-Sergeant, Rowan Davies, and Sam Tobin-Hochstadt. 2016. Practical Optional Types for Clojure. In
+Programming Languages and Systems - 25th European Symposium on Programming, ESOP 2016, Held as Part of the European
+Joint Conferences on Theory and Practice of Software, ETAPS 2016, Eindhoven, The Netherlands, April 2-8, 2016, Proceedings
+(Lecture Notes in Computer Science, Vol. 9632) , Peter Thiemann (Ed.). Springer, 68–94. https://doi.org/10.1007/978-3-662-
+49498-1_4
+Val Breazu-Tannen, Thierry Coquand, Carl A Gunter, and Andre Scedrov. 1991. Inheritance as implicit coercion.Information
+and Computation 93, 1 (July 1991), 172–221. https://doi.org/10.1016/0890-5401(91)90055-7
+Julien Cretin and Didier Rémy. 2012. On the power of coercion abstraction. InProceedings of the 39th ACM SIGPLAN-SIGACT
+Symposium on Principles of Programming Languages, POPL 2012, Philadelphia, Pennsylvania, USA, January 22-28, 2012 ,
+John Field and Michael Hicks (Eds.). ACM, 361–372. https://doi.org/10.1145/2103656.2103699
+Facebook. 2021. Hack. http://hacklang.org
+Matthew Flatt and PLT. 2010.Reference: Racket. Technical Report PLT-TR-2010-1. PLT Design Inc. https://racket-lang.org/tr1/.
+Ronald Garcia, Alison M. Clark, and Éric Tanter. 2016. Abstracting gradual typing. In Proceedings of the 43rd Annual ACM
+SIGPLAN-SIGACT Symposium on Principles of Programming Languages, POPL 2016, St. Petersburg, FL, USA, January 20 -
+22, 2016, Rastislav Bodík and Rupak Majumdar (Eds.). ACM, 429–442. https://doi.org/10.1145/2837614.2837670
+Fritz Henglein. 1994. Dynamic Typing: Syntax and Proof Theory. Sci. Comput. Program. 22, 3 (1994), 197–230. https:
+//doi.org/10.1016/0167-6423(94)00004-2
+David Herman, Aaron Tomb, and Cormac Flanagan. 2007. Space-Efficient Gradual Typing. In Proceedings of the Eighth
+Symposium on Trends in Functional Programming, TFP 2007, New York City, New York, USA, April 2-4. 2007 (Trends in
+Functional Programming, Vol. 8), Marco T. Morazán (Ed.). Intellect, 1–18.
+David Herman, Aaron Tomb, and Cormac Flanagan. 2010. Space-efficient gradual typing. Higher-Order and Symbolic
+Computation 23, 2 (2010), 167–189. https://doi.org/10.1007/s10990-011-9066-z
+Yuu Igarashi, Taro Sekiyama, and Atsushi Igarashi. 2017. On polymorphic gradual typing.PACMPL1, ICFP (2017), 40:1–40:29.
+https://doi.org/10.1145/3110284
+Andre Kuhlenschmidt, Deyaaeldeen Almahallawi, and Jeremy G. Siek. 2019. Toward Efficient Gradual Typing for Struc-
+tural Types via Coercions. In Proceedings of the 40th ACM SIGPLAN Conference on Programming Language Design and
+Implementation (Phoenix, AZ, USA) (PLDI 2019). Association for Computing Machinery, New York, NY, USA, 517–532.
+https://doi.org/10.1145/3314221.3314627
+Zhaohui Luo. 1999. Coercive Subtyping. Journal of Logic and Computation 9, 1 (1999), 105–130.
+Jacob Matthews and Amal Ahmed. 2008. Parametric Polymorphism through Run-Time Sealing or, Theorems for Low,
+Low Prices!. In Proc. of European Symposium on Programming (ESOP’08) . Springer Berlin Heidelberg, 16–31. https:
+//doi.org/10.1007/978-3-540-78739-6_2
+John C Mitchell. 1984. Coercion and type inference. In Proceedings of the 11th ACM SIGACT-SIGPLAN symposium on
+Principles of programming languages (Salt Lake City, Utah, USA) (POPL ’84). Association for Computing Machinery, New
+York, NY, USA, 175–185. https://doi.org/10.1145/800017.800529
+John C. Mitchell. 1988. Polymorphic Type Inference and Containment. Inf. Comput. 76, 2/3 (1988), 211–249. https:
+//doi.org/10.1016/0890-5401(88)90009-0
+James H Morris, Jr. 1973. Protection in programming languages. Commun. ACM 16, 1 (Jan. 1973), 15–21. https://doi.org/10.
+1145/361932.361937
+Max S. New, Dustin Jamner, and Amal Ahmed. 2020. Graduality and parametricity: together again for the first time. Proc.
+ACM Program. Lang. 4, POPL (2020), 46:1–46:32. https://doi.org/10.1145/3371114
+Benjamin Pierce and Eijiro Sumii. 2000. Relating Cryptography and Polymorphism. Manuscript. http://www.kb.ecei.tohoku.
+ac.jp/~sumii/pub/infohide.pdf.
+Didier Rémy and Boris Yakobowski. 2010. A Church-Style Intermediate Language for MLF. In Functional and Logic
+Programming. Springer Berlin Heidelberg, 24–39. https://doi.org/10.1007/978-3-642-12251-4_4
+John C. Reynolds. 1983. Types, Abstraction and Parametric Polymorphism. In IFIP Congress. 513–523.
+Jeremy G. Siek and Walid Taha. 2006. Gradual Typing for Functional Languages. In In Scheme and Functional Programming
+Workshop. 81–92.
+
+=== PAGE 18 ===
+18 Shota Ozaki, Taro Sekiyama, and Atsushi Igarashi
+Jeremy G. Siek, Peter Thiemann, and Philip Wadler. 2015. Blame and coercion: together again for the first time. InProceedings
+of the 36th ACM SIGPLAN Conference on Programming Language Design and Implementation, Portland, OR, USA, June
+15-17, 2015, David Grove and Stephen M. Blackburn (Eds.). ACM, 425–435. https://doi.org/10.1145/2737924.2737968
+Jeremy G Siek and Philip Wadler. 2010. Threesomes, with and without blame. In Proceedings of the 37th annual ACM
+SIGPLAN-SIGACT symposium on Principles of programming languages , Vol. 45. ACM, 365–376. https://doi.org/10.1145/
+1706299.1706342
+Nikhil Swamy, Michael Hicks, and Gavin M Bierman. 2009. A Theory of Typed Coercions and Its Applications. InProceedings
+of the 14th ACM SIGPLAN International Conference on Functional Programming (Edinburgh, Scotland) (ICFP ’09). ACM,
+New York, NY, USA, 329–340. https://doi.org/10.1145/1596550.1596598
+Asumu Takikawa, Daniel Feltey, Ben Greenman, Max S. New, Jan Vitek, and Matthias Felleisen. 2016. Is sound gradual typing
+dead?. In Proceedings of the 43rd Annual ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages,
+POPL 2016, St. Petersburg, FL, USA, January 20 - 22, 2016 , Rastislav Bodík and Rupak Majumdar (Eds.). ACM, 456–468.
+https://doi.org/10.1145/2837614.2837630
+Matías Toro, Elizabeth Labrada, and Éric Tanter. 2019. Gradual parametricity, revisited. Proc. ACM Program. Lang. 3, POPL
+(2019), 17:1–17:30. https://doi.org/10.1145/3290330
+Yuya Tsuda, Atsushi Igarashi, and Tomoya Tabuchi. 2020. Space-Efficient Gradual Typing in Coercion-Passing Style. In34th
+European Conference on Object-Oriented Programming (ECOOP2020) (LIPIcs, Vol. 166) , Robert Hirschfeld and Tobias Pape
+(Eds.). Schloss Dagstuhl - Leibniz-Zentrum für Informatik. https://doi.org/10.4230/LIPIcs.ECOOP.2020.8
+Philip Wadler. 1989. Theorems for free!. In Proceedings of the fourth international conference on Functional programming
+languages and computer architecture - FPCA ’89 (Imperial College, London, United Kingdom). ACM Press, New York,
+New York, USA, 347–359. https://doi.org/10.1145/99370.99404
+Philip Wadler and Robert Bruce Findler. 2009. Well-Typed Programs Can’t Be Blamed. InProgramming Languages and Systems,
+18th European Symposium on Programming, ESOP 2009, Held as Part of the Joint European Conferences on Theory and Practice
+of Software, ETAPS 2009, York, UK, March 22-29, 2009. Proceedings . 1–16. https://doi.org/10.1007/978-3-642-00590-9_1
+A K Wright and M Felleisen. 1994. A Syntactic Approach to Type Soundness. Information and Computation 115, 1 (Nov.
+1994), 38–94. https://doi.org/10.1006/inco.1994.1093
+Ningning Xie, Xuan Bi, and Bruno C d S Oliveira. 2018. Consistent Subtyping for All. In Programming Languages and
+Systems. Springer International Publishing, 3–30. https://doi.org/10.1007/978-3-319-89884-1_1
+A COMPARISON OF TWO SEMANTICS FOR UNIVERSAL COERCIONS
+Let
+𝑉1 = ΛX.𝜆x : X.x
+𝑀2 =𝑉1⟨∀Y.Y ?p1→ Y !⟩⟨∀ Z.Z!→ Z?p2⟩.
+Under our semantics
+Σ ⊲(ΛX.𝑉)⟨∀ X.c1⟩···⟨∀ X.cn⟩ A↦−→ (Σ, X := A) ⊲𝑉⟨c1⟩···⟨ cn⟩
+term𝑀2 Int 0 reduces to 0 as follows.
+∅ ⊲𝑀2 Int 0 = ∅ ⊲(𝑉1⟨∀X.X ?p1→ X !⟩⟨∀ X.X !→ X ?p2⟩) Int 0
+↦−→ X := Int ⊲(𝜆x : X.x)⟨ X ?p1→ X !⟩⟨ X !→ X ?p2⟩ 0
+↦−→ X := Int ⊲((𝜆x : X.x)⟨ X ?p1→ X !⟩( 0⟨X !⟩))⟨ X ?p2⟩
+↦−→ X := Int ⊲((𝜆x : X.x)( 0⟨X !⟩⟨ X ?p1⟩))⟨ X !⟩⟨ X ?p2⟩
+↦−→ X := Int ⊲((𝜆x : X.x) 0)⟨ X !⟩⟨ X ?p2⟩
+↦−→ X := Int ⊲ 0⟨X !⟩⟨ X ?p2⟩
+↦−→ X := Int ⊲ 0
+The same term would reduce to blame p1 under the following reduction rule
+Σ ⊲(𝑉⟨∀X.c⟩) A↦−→ (Σ, X := A) ⊲(𝑉 X)⟨ c⟩
+
+=== PAGE 19 ===
+Is Space-Efficient Polymorphic Gradual Typing Possible? 19
+as follows.
+∅ ⊲𝑀2 Int 0 = ∅ ⊲(𝑉1⟨∀Y.Y ?p1→ Y !⟩⟨∀ Z.Z!→ Z?p2⟩) Int 0
+↦−→ Z := Int ⊲(𝑉1⟨∀Y.Y ?p1→ Y !⟩ Z)⟨ Z!→ Z?p2⟩ 0
+↦−→ Z := Int, Y := Z ⊲(𝑉1 Y)⟨ Y ?p1→ Y !⟩⟨ Z!→ Z?p2⟩ 0
+↦−→ Z := Int, Y := Z, X := Y ⊲(𝜆x : X.x)⟨ Y ?p1→ Y !⟩⟨ Z!→ Z?p2⟩ 0
+↦−→ Z := Int, Y := Z, X := Y ⊲((𝜆x : X.x)⟨ Y ?p1→ Y !⟩( 0⟨Z!⟩))⟨ Z?p2⟩
+↦−→ Z := Int, Y := Z, X := Y ⊲((𝜆x : X.x)( 0⟨Z!⟩⟨ Y ?p1⟩))⟨ Y !⟩⟨ Z?p2⟩
+↦−→ Z := Int, Y := Z, X := Y ⊲ blame p1

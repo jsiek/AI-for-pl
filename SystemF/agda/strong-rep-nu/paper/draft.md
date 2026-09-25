@@ -779,6 +779,11 @@ configurations where the term did not determine the relationship
   semantics (POPL 2007), are term-level boundaries, and "the direction
   of conversion reverses for function arguments" (§2). That is the
   ancestor of `Wrap`'s dual.
+- **`Wrap` is Siek & Chen's `(fun-cast)`.** Their parameterized cast
+  calculus (JFP 2021) reduces an application of a value under an
+  *inert cross cast* as `V⟨c⟩ W ⟶ (V (W⟨dom c⟩))⟨cod c⟩`, taking the
+  cast apart with the structure's `dom` and `cod`. `Wrap` does the same
+  to an inert `c ↦ d` (see Decision 10 for active and inert).
 - **`Wrap` itself** is λB's rule (9),
   `(v : A→B ⇒ A′→B′) v′ → v (v′ : A′ ⇒ A) : B ⇒ B′`, which λB takes from
   Siek & Wadler's space-efficient function casts (λB §2.4). It is also
@@ -1131,8 +1136,12 @@ boundary**: a boundary directly over a value's boundary is a redex of
 conversions (`Δ ⊢ c₁ ⨟ c₂`).
 
 Tightness also keeps reduction deterministic (`det`) and makes the value
-classification syntactic.  Inert tails are values, and the one active
-tail, `id` at a base type, is removed by `Id`.  Without `NoCancel`,
+classification syntactic.  Every typed conversion is **active** or
+**inert** and not both (`act-or-inert`, `act-not-inert`, `Terms.agda`).
+Inert tails are values: a simple value under one boundary with an inert
+tail is again a value.  No inert tail has a base target (`inert-¬base`,
+`proof/Canonical.agda`), so the one active tail is `id` at a base type,
+and `Id` removes it.  Without `NoCancel`,
 `unseal X ; seal X` would be a second spelling of an identity at `X`, and
 composition would have two answers.
 
@@ -1178,6 +1187,23 @@ representations, whereas `Merge` composes name-carrying conversions and
 reads a representation only where `seal Z` meets `unseal Z`, by lookup.)
 
 **Builds on.**
+- **Active and inert are Siek & Chen's.** *Parameterized Cast Calculi and
+  Reusable Meta-theory for Gradually Typed Lambda Calculi* (JFP 2021)
+  splits every cast into "active", one that "needs to be reduced", and
+  "inert", one that "does not need to be reduced, which means that a
+  value with an inert cast around it forms a larger value" (§3.1). The
+  classification is total, `ActiveOrInert`, because "the proof of
+  Progress … needs to know that every cast can be categorized as either
+  active or inert". Two of its structure fields have exact counterparts
+  here:
+  - `baseNotInert`, "a cast whose target is a base type must never be
+    inert", there "to ensure that the canonical forms at base type are
+    just constants", is `inert-¬base`, and it plays the same role here:
+    a value at `ℕ` or `𝔹` is a literal, and `Id` removes an identity
+    boundary around one;
+  - `InertCross→`, "an inert cast whose target is a function type must
+    be a cross cast", is why `Wrap` can always take apart an inert
+    `c ↦ d` (Decision 4).
 - **The normal forms.** The three sorts follow λS∀mp's (and Siek,
   Thiemann & Wadler's) space-efficient schema
   `(G₁?p ;)? (⊥p | (g (; G₂!)?))`: an optional projection, a ground
@@ -1408,8 +1434,12 @@ otherwise.
   (Herman, Tomb & Flanagan, TFP 2007 / HOSC 2010) **(not read)**: normal
   forms and "one coercion per value" (Decision 10).
 - *Parameterized Cast Calculi and Reusable Meta-theory for Gradually
-  Typed Lambda Calculi* (Siek & Chen, JFP 2021) **(read, previously;
-  `notes/ParameterizedCastCalculi.md`)**.
+  Typed Lambda Calculi* (Siek & Chen, JFP 2021) **(read: §3.1 and the
+  reduction rules;
+  `notes/ParameterizedCastCalculi.md`)**: the **active / inert**
+  classification of casts, with `ActiveOrInert` (total, for progress),
+  `baseNotInert` and `InertCross→`, and the `(fun-cast)` rule that `Wrap`
+  follows (Decisions 4 and 10).
 
 **Gradual-parametricity papers for a survey paragraph:**
 - *Gradual Parametricity, Revisited* (Toro, Labrada & Tanter, POPL 2019)

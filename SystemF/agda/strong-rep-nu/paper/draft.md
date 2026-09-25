@@ -834,10 +834,10 @@ otherwise.
   Weirich & Morrisett, ICFP 1998), for the terminology clash on
   "representation".
 
-**Not obtained / not needed:** nothing on your list was missing. The two
-papers that were not in the repo (*On Polymorphic Gradual Typing* and
-*Space-Efficient …*) and *Gradual System F* were downloaded to the
-scratchpad from the authors' pages and arXiv.
+**Where the PDFs are:** every paper marked (read) above, and every
+paper named in the abbreviation list, is in the repo-level `papers/`
+directory (index: `papers/README.md`).  The (not read) ones are listed
+there under "Wanted".
 
 ## Open questions for the draft
 

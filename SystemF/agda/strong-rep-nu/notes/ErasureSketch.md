@@ -54,8 +54,10 @@ exactly the mixed reading `_⊢ᴿ[_]_`: local index `i < n`, free index
 `n + α`.  The checks for this are `alias-concrete`, `alias-abstract` and
 `abstract-numbering`.
 
-The source COUNT of type variables is `countAbs Ξ`, the number of
-abstract cells in the store.
+The source SCOPE is `srcScope Ξ`, the number of abstract cells in the
+store: the number of source type variables the erased term is typed
+with (it is the index of the source judgement `n ∣ Γ ⊢ˢ M : A`, and it
+appears only in `ErasureTyping`; `erase` itself does not use it).
 
 ### 1b. Types
 
@@ -118,17 +120,28 @@ forgets the derivation, and `runˢ` lists the states of a run.
     ErasureTyping                                              (stated)
       WfCtx Δ      Δ ∣ Γₜ ⊢ M : A
       ------------------------------------------------
-      countAbs(Ξ) ∣ ⌊Γₜ⌋_Δ ⊢ˢ ⌊M⌋_Δ : ⌊A⌋_Δ
+      srcScope(Ξ) ∣ ⌊Γₜ⌋_Δ ⊢ˢ ⌊M⌋_Δ : ⌊A⌋_Δ
 
     ErasureSimulation                                          (stated)
       WfCtx Δ      Δ ∣ · ⊢ M : A      Δ ⊢ M -→ M′ ∣ δ
       ------------------------------------------------
       ⌊M⌋_Δ = ⌊M′⌋_(apply δ Δ)   or   ⌊M⌋_Δ ⟶ˢ ⌊M′⌋_(apply δ Δ)
 
-    ErasureSimulationExact                                     (stated)
-      same premises, r the step
+    ErasureStutter                                             (stated)
+      same premises, r the step,   Stutter r
       ------------------------------------------------
-      Matches (ruleKind r) ⌊M⌋_Δ ⌊M′⌋_(apply δ Δ)
+      ⌊M⌋_Δ = ⌊M′⌋_(apply δ Δ)
+
+    ErasureStep                                                (stated)
+      same premises, r the step,   ¬ Stutter r
+      ------------------------------------------------
+      ⌊M⌋_Δ ⟶ˢ ⌊M′⌋_(apply δ Δ)
+
+`Stutter r` (`Stutter r = T (isStutter r)`) holds when `r` is `Wrap`,
+`Merge` or `Id`, or a congruence around one.  The two statements replace
+the earlier `ErasureSimulationExact`, whose `Matches` relation Jeremy
+ruled out for readability (2026-09-25).  The per-step test harness reads
+its prediction off the same `isStutter`.
 
 `ruleKind` names which disjunct each rule takes, looking through the
 congruences:
@@ -178,7 +191,7 @@ How the statements relate:
 ### Deviations from the candidate statements
 
   * **Typing is over a count.**  The source judgement has a count, so
-    the typing statement uses `countAbs(Ξ)`, the abstract cells.  At a
+    the typing statement uses `srcScope(Ξ)`, the abstract cells.  At a
     run's ambient this count is 0: a run's store holds only concrete
     cells.
   * **Simulation assumes `Γₜ = ·`.**  The run-time `Beta` does not
@@ -189,7 +202,7 @@ How the statements relate:
     stuttering equation for `Wrap` needs the dual to restore the name
     map, and the `TyBeta` equation needs well-scoped payloads, so the
     junk values are never read.
-  * **`ErasureSimulationExact`, `ErasureRun`, `ErasureReflection` and
+  * **`ErasureStutter`, `ErasureStep`, `ErasureRun`, `ErasureReflection` and
     `CompiledRunErases` are additions.**
 
 ## 4. Why the simulation should hold (the lemmas a proof needs)
@@ -302,8 +315,8 @@ counterexample to any statement AS STATED was found.
 2. **ASK — abstract cells are numbered by their abstract-only depth.**
    A cell's source index counts only the abstract cells newer than
    it, and concrete cells are transparent.  The source count is
-   therefore `countAbs`, not `length (names Δ)`.  The two differ
-   inside a boundary that unbinds a `Λ`'s name, and `countAbs` is the
+   therefore `srcScope`, not `length (names Δ)`.  The two differ
+   inside a boundary that unbinds a `Λ`'s name, and `srcScope` is the
    one that is invariant across a boundary, since `inside` keeps the
    store.
 3. **ASK — junk for unnamed variables.**  An unnamed ordinary `X`
@@ -317,8 +330,8 @@ counterexample to any statement AS STATED was found.
    statements are accepted?
 5. **ASK — simulation's shape.**  It is BfA's "equal or one step",
    with `Γₜ = ·` and `WfCtx`.  The refinement
-   `ErasureSimulationExact` pins WHICH rules stutter (`Wrap`, `Merge`,
-   `Id`).  Should the refinement replace the disjunction as the
+   `ErasureStutter` / `ErasureStep` pin WHICH rules stutter (`Wrap`,
+   `Merge`, `Id`).  Should the refinement replace the disjunction as the
    headline statement?
 6. **ASK — the converse `ErasureReflection`.**  It is not in BfA.  It
    needs the stutter rules to terminate: a measure on boundary towers
@@ -342,3 +355,18 @@ counterexample to any statement AS STATED was found.
   * Conversions are erasure-identities:
     `Δ ⊢ c ∶ A ⇝ B → ⌊A⌋_Δ ≡ ⌊B⌋_Δ`.  This is the heart of
     `ErasureTyping`'s `boundary` and `⊢ν` cases.
+
+
+## 7. Rulings (Jeremy, 2026-09-25)
+
+1. Erasure stays a function of (Δ, M).
+2. The source scope is `srcScope` (renamed from `countAbs`); it is only the
+   index of the source typing judgement in `ErasureTyping`.
+3. The junk choice is accepted.
+4. `SourceReduction.agda` moved to the top level (`All.agda` imports it).
+5. The exact simulation is two statements, `ErasureStutter` and
+   `ErasureStep`, with no `Matches` relation.
+6. `ErasureReflection` is accepted as stated.
+7. `EraseCompileAt` is accepted, with `EraseCompile` as its instance.
+
+Merge to `main` waits until the proofs are finished.

@@ -5,12 +5,12 @@ module strong-rep-nu.notes.ErasureProbe where
 --     ITS THEOREM STATEMENTS, AND CHECKS OF THEM ON RUNS.  Design and
 --     decision points: notes/ErasureSketch.md.
 --     §1 what a representation variable DENOTES (`env`), read through
---     the store, and the source count (`countAbs`); §2 the erasure of
+--     the store, and the source scope (`srcScope`); §2 the erasure of
 --     types (`nameσ`, `eraseTy`); §3 the interior name map, computed
 --     (`interiorⁿ`, `inside`), and its agreement with `_⊢ⁱ_⇒_`
 --     (`inside-sound`); §4 the erasure of terms (`erase`); §5 the
 --     STATEMENTS, as `Set`s, unproved: `ErasureTyping`,
---     `ErasureSimulation`, `ErasureSimulationExact`, `ErasureRun`,
+--     `ErasureSimulation`, `ErasureStutter`, `ErasureStep`, `ErasureRun`,
 --     `ErasureReflection`, `CompiledRunErases`; §6 `EraseCompileAt`
 --     and `EraseCompile`, PROVED; §7 the example checks, by `refl`.
 --   * NO POSTULATES.  Typing and simulation are STATED, not proved
@@ -20,7 +20,7 @@ module strong-rep-nu.notes.ErasureProbe where
 --     an ordinary type variable needs to be resolved.
 
 open import Data.Nat using (ℕ; zero; suc; _≡ᵇ_)
-open import Data.Bool using (Bool; true; false; _∧_; if_then_else_)
+open import Data.Bool using (Bool; true; false; _∧_; if_then_else_; T)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Maybe using (Maybe; just; nothing)
 import Data.Maybe as Maybe
@@ -28,6 +28,7 @@ open import Data.Product using (Σ-syntax; ∃-syntax; _×_; _,_; proj₁)
 open import Data.Sum using (_⊎_)
 open import Data.String using (String)
 import Data.Nat.Show
+open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; cong; cong₂; trans)
 
@@ -71,10 +72,10 @@ env (abstR ∷ Ξ)   = ` 0 •ᵗ (λ α → ⇑ᵗ (env Ξ α))
 env (bindR R ∷ Ξ) = substᵗ (env Ξ) R •ᵗ env Ξ
 
 -- the number of source type variables in scope: the abstract cells
-countAbs : RepCtx → ℕ
-countAbs []            = zero
-countAbs (abstR ∷ Ξ)   = suc (countAbs Ξ)
-countAbs (bindR R ∷ Ξ) = countAbs Ξ
+srcScope : RepCtx → ℕ
+srcScope []            = zero
+srcScope (abstR ∷ Ξ)   = suc (srcScope Ξ)
+srcScope (bindR R ∷ Ξ) = srcScope Ξ
 
 ------------------------------------------------------------------------
 -- 2. Erasing a type
@@ -183,7 +184,7 @@ ErasureTyping = ∀ {Δ Γ M A}
   → WfCtx Δ
   → Δ ∣ Γ ⊢ M ⦂ A
     ------------------------------------------------------------
-  → countAbs (reps Δ) ∣ eraseCtx Δ Γ ⊢ˢ erase Δ M ⦂ eraseTy Δ A
+  → srcScope (reps Δ) ∣ eraseCtx Δ Γ ⊢ˢ erase Δ M ⦂ eraseTy Δ A
 
 -- SIMULATION (Blame for All, Prop. 1).  The contractum is erased at the
 -- context it lives at, `apply δ Δ`.
@@ -196,37 +197,45 @@ ErasureSimulation = ∀ {Δ M M′ A δ}
   → (erase Δ M ≡ erase (apply δ Δ) M′)
     ⊎ (erase Δ M ⟶ˢ erase (apply δ Δ) M′)
 
--- WHICH disjunct, by rule: the boundary rules stutter, the three
--- β-rules take exactly one source step.  (Implies ErasureSimulation.)
-data Link : Set where
-  same : Link     -- the two erasures are equal
-  src  : Link     -- the second is the source step of the first
-  bad  : Link     -- neither (only produced by the checker below)
+-- WHICH disjunct, by rule.  A STUTTER is a step whose erasure does not
+-- move: `Wrap`, `Merge`, `Id`, and the congruences around them.  Every
+-- other step (`TyBeta`, `Beta`, `TyWrap`, under congruences) takes
+-- exactly one source step.
+isStutter : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ → Bool
+isStutter (TyBeta v a)                     = false
+isStutter (Beta w)                         = false
+isStutter (Wrap v w r₁ r₂ r₃ sc)           = true
+isStutter (TyWrap v r s a)                 = false
+isStutter (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) = true
+isStutter (Id u b)                         = true
+isStutter (ξ-·₁ st)                        = isStutter st
+isStutter (ξ-·₂ v st)                      = isStutter st
+isStutter (ξ-ν st)                         = isStutter st
+isStutter (ξ-⟪⟫ r st)                      = isStutter st
 
-ruleKind : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ → Link
-ruleKind (TyBeta v a)                       = src
-ruleKind (Beta w)                           = src
-ruleKind (Wrap v w r₁ r₂ r₃ sc)             = same
-ruleKind (TyWrap v r s a)                   = src
-ruleKind (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)   = same
-ruleKind (Id u b)                           = same
-ruleKind (ξ-·₁ st)                          = ruleKind st
-ruleKind (ξ-·₂ v st)                        = ruleKind st
-ruleKind (ξ-ν st)                           = ruleKind st
-ruleKind (ξ-⟪⟫ r st)                        = ruleKind st
+Stutter : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ → Set
+Stutter r = T (isStutter r)
 
-Matches : Link → STerm → STerm → Set
-Matches same M N = M ≡ N
-Matches src  M N = M ⟶ˢ N
-Matches bad  M N = M ≡ N    -- unreachable: ruleKind never says bad
-
-ErasureSimulationExact : Set
-ErasureSimulationExact = ∀ {Δ M M′ A δ}
+-- A stutter leaves the erasure unchanged …
+ErasureStutter : Set
+ErasureStutter = ∀ {Δ M M′ A δ}
   → WfCtx Δ
   → Δ ∣ [] ⊢ M ⦂ A
   → (r : Δ ⊢ M -→ M′ ∣ δ)
-    ---------------------------------------------------
-  → Matches (ruleKind r) (erase Δ M) (erase (apply δ Δ) M′)
+  → Stutter r
+    ---------------------------------------
+  → erase Δ M ≡ erase (apply δ Δ) M′
+
+-- … and every other step is exactly one source step.
+-- (Together they imply ErasureSimulation.)
+ErasureStep : Set
+ErasureStep = ∀ {Δ M M′ A δ}
+  → WfCtx Δ
+  → Δ ∣ [] ⊢ M ⦂ A
+  → (r : Δ ⊢ M -→ M′ ∣ δ)
+  → ¬ Stutter r
+    ---------------------------------------
+  → erase Δ M ⟶ˢ erase (apply δ Δ) M′
 
 -- RUNS.  (From ErasureSimulation and preservation.)
 ErasureRun : Set
@@ -376,6 +385,17 @@ _==ˢ_ : STerm → STerm → Bool
 (L [ A ]) ==ˢ (L′ [ A′ ]) = (L ==ˢ L′) ∧ (A ==ᵗ A′)
 _         ==ˢ _           = false
 
+-- The per-step checks below compare a PREDICTED relation with the
+-- OBSERVED one; the prediction is read off `isStutter`, the same function
+-- the statements use.
+data Link : Set where
+  same : Link     -- the two erasures are equal
+  src  : Link     -- the second is the source step of the first
+  bad  : Link     -- neither (only produced by the checker below)
+
+ruleKind : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ → Link
+ruleKind r = if isStutter r then same else src
+
 -- how two consecutive erasures are related, as observed
 link : STerm → STerm → Link
 link M N with M ==ˢ N
@@ -385,7 +405,8 @@ link M N | false | nothing = bad
 link M N | false | just M′ = if M′ ==ˢ N then src else bad
 
 -- 7b. A run-time run, step by step: the rule, what `ruleKind` PREDICTS
--- (ErasureSimulationExact), and what the erasures SHOW.
+-- (`isStutter`: `ErasureStutter` / `ErasureStep`), and what the erasures
+-- SHOW.
 record Row : Set where
   constructor row
   field
@@ -441,7 +462,7 @@ allTyped A (M ∷ Ms) with typeOfˢ M
 allTyped A (M ∷ Ms) | nothing = false
 allTyped A (M ∷ Ms) | just B  = (A ==ᵗ B) ∧ allTyped A Ms
 
--- THE CHECK OF ONE RUN: (i) the rules agree with ErasureSimulationExact,
+-- THE CHECK OF ONE RUN: (i) the rules agree with ErasureStutter / ErasureStep,
 -- (ii) the erased run with its stutters dropped IS the source
 -- evaluator's run from the source program, (iii) every erased state has
 -- the program's type.

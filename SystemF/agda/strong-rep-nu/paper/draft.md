@@ -42,16 +42,16 @@ parametricity says it must not know.
 
 *Term β recolors the argument by adding variables.*
 
-    (λx:ℕ. ΛY. λy:ℕ. x) · 7
-      → ΛY. λy:ℕ. 7                   7 was colored {}; now colored {Y}
+    (λf:ℕ⇒ℕ. ΛY. λy:ℕ. f) · (λz:ℕ. z)
+      → ΛY. λy:ℕ. (λz:ℕ. z)           λz:ℕ.z was colored {}; now colored {Y}
 
-The argument was authored where `Y` did not exist and now sits under
-`ΛY`.  Harmless for `7`, but for a polymorphic argument it is the same
-failure one level up (Decision 4).
-
-[TODO: We're going to ignore color for contants, so we should replace
-the 7 in the example with a slightly larger term, perhaps an identity 
-function on nat.]
+The argument `λz:ℕ. z` was authored where `Y` did not exist and now
+sits under `ΛY`, so it is read with `Y` in scope.  (Constants have no
+color worth tracking, so the example uses the smallest term that does:
+a function, whose annotation is read in a scope.)  Nothing goes wrong
+for this argument, whose annotation `ℕ` mentions no variable, but for
+a polymorphic argument it is the same failure one level up
+(Decision 4).
 
 The rest of the list is what it takes to repair these two recolorings
 without losing type safety.
@@ -85,36 +85,66 @@ except where a row says *(from memory)*.
 | System F | `(ΛX.M)[A] → M[X:=A]` | nowhere | yes, by `A` |
 | STA §5.2 | `[∀1]`: `⟨{Δ}, (Λα.eᵢ)[τ]⟩ → ⟨{Δ} ⊎ᵢ {α=τ}, {τ/α}ᵢ eᵢ⟩` | global knowledge, per agent | yes, but only in `i`-colored subterms |
 | λN | ordinary substitution; `Nγ≈τ.e` generates names separately | local binder, floats outward (scope extrusion) | yes |
+| Matthews & Ahmed (ESOP'08) | ordinary substitution in the ML term, but a *boundary* annotation receives the sealed instance `⟨α; τ⟩` instead of `τ` (§3, `sl(η, κ)`) | on boundary annotations only | yes in terms; boundaries remember `α` |
+| Neis, Dreyer & Rossberg (JFP'11) | `(RINST)`: `σ;(λα.e)τ ↪ σ;e[τ/α]`; names come separately from `new α≈τ in e`, `(RNEW)`: `σ, α≈τ` | global type store `σ` | yes |
 | BfA | `(TYBETA)`: `(ΛX.v)A → νX:=A. v` | local `ν` binder, immobile | **no**, but `NUWRAP` substitutes `A` into `λ` annotations as `ν` moves inward |
 | λB | `Σ ▷ (ΛX.v)[B] → Σ,α:=B ▷ (v[α/X] : A[α/X] =+α⇒ A[B/X])` | global store `Σ` | yes, by a fresh name `α` |
 | F_C | `Σ ▷ (ΛX.w)A → Σ, X≔A ▷ w` | global store, keyed by `X` itself | no (`X` becomes a global name) |
-| GSF | `Σ ⊳ (ΛX.t)[T] → Σ,α:=T ⊳ t[α/X]`, plus outer evidence | global store | yes, by `α` |
+| GSF (and its conference version, Toro et al. POPL'19) | `Σ ⊳ (ΛX.t)[T] → Σ,α:=T ⊳ t[α/X]`, plus outer evidence | global store | yes, by `α` |
+| Funky (Labrada et al. OOPSLA'22) | `(RappG)`: `(ε(ΛX.t) :: ∀X.G)[F] → (schm(ε) t :: G)[F/X]`, instantiation only at base and variable types | *no store*: each unknown type carries an instantiation environment `?^{X:F}` | yes, by `F` |
 | λC∀mp | `R_Tybeta_C`: `…(M⟨c⟩)[X:=α]⟨coerce⁺_α(Aₙ[X:=α])⟩`; at `★`, substitutes `★` | global store | yes, by `α` (or `★`) |
 | PolyGν | `M{X ≅ A}`: brings `X ≅ A` into the *context*, with explicit `seal_X`/`unseal_X` terms | lexical, exported "inside-out" to the continuation | no (in the source) |
 | PolyCν (New's thesis, Fig. 10.11) | `let x = M{X≅B}; N`, ANF: `X ≅ B` is bound in the continuation `N`; at run time `Σ, σ:A`, and `σ` is substituted for the bound variables | lexical in the source, global store `Σ` at run time | yes, by a fresh case `σ` |
 | **strong-rep-nu** | `Nu-Λ`: `νX:=A · (ΛX.V) ⟨c⟩ → V ⟪ ↥X , c ⟫ ∣ new α:=R` | global store for `α := R`; `X ↦ α` in the lexical name map | **no** |
 
 **The framing this suggests for the paper.**
-- **What everyone shares.** Since BfA, every sealing calculus agrees
-  that type application must not write the representation into the
-  body.
-- **Where they differ from us.** Almost all of them still *rename* the
-  body, to a global type name `α`. That changes its color: the body was
-  read with `X` in scope and is now read with a store name it never
-  bound.
-- **The two exceptions.** BfA's local `ν` and PolyGν's lexical
-  `X ≅ A` keep `X`. BfA pays with `NUWRAP`'s annotation substitution and
-  reduction under `Λ`; PolyGν pays with programmer-written seals.
+
+Tone: strong-rep-nu is built on this line of work, and the draft should
+say so plainly. For each decision it records what we take from whom
+(**Builds on**) and what we add (**New here**). The prior calculi were
+designed for parametricity, blame, graduality or space efficiency, not
+for color preservation. Where they substitute a name into a body, that
+is the right choice for their goals, and our difference comes from
+asking for a stronger syntactic invariant, not from a flaw in theirs.
+
+- **What we inherit.** Since BfA, the sealing calculi agree that type
+  application must not write the representation into the body. They
+  generate a fresh name (BfA's `ν`, λN's `N`, Neis et al.'s `new`, the
+  global stores of λB, F_C, GSF and λC∀mp), and they mediate between the
+  name and its representation with conversions (λN's coercions, BfA's
+  static casts, λB's conversions, PolyGν's seals). Strong-rep-nu's
+  boundaries, `seal`/`unseal`, crossings, cancellation, value
+  restriction, global store and merging all have direct ancestors in
+  these papers, cited per decision below.
+- **What color preservation adds.** To keep a body's color, `X` itself
+  must stay in the body. Most of these calculi replace `X` by the fresh
+  name `α`, which is harmless for parametricity but changes which
+  variables the body is read with. BfA's `ν` and PolyGν's `X ≅ A` keep
+  `X`, but there the type variable *is* the name: one sort does both
+  jobs.
+- **The new piece: representation variables reached through a name
+  map.** Strong-rep-nu separates the two jobs, as λB already separates
+  type variables from type names. It then connects them by a *lexical
+  name map* `X ↦ α`, which boundaries edit with `↓X` / `↥X`, instead of
+  by substitution. The name map is what lets the body keep `X`, lets one
+  representation be named differently in different frames (alias cells),
+  and turns color into the checkable equation of `ScopeMapPreservation`.
+  - The nearest relatives are Funky's instantiation environments
+    `?^{X:F}` and Matthews & Ahmed's sealed annotations `⟨α; τ⟩`, both
+    of which pair a lexical label with what it denotes. Neither has a
+    store variable behind a name map. I found nothing closer, but that
+    is a search result, not a proof of novelty.
 - **Convergence.** On three axes strong-rep-nu *moved toward* this
-  literature during its own development:
+  literature during its own development, and gained from doing so:
   - the global store (Decision 8: λB, F_C, GSF, λC∀mp);
   - the value restriction (Decision 7: λB §2.4);
   - one boundary per value with merging (Decision 10: STA `[8]`, λS∀mp).
-- **What is left.** The decisions with no counterpart in any of these
-  papers are 3, 4 and 5 (mask-not-drop scopes, frame-exact `Beta`, and
-  the two universes). These are exactly the decisions color
-  preservation forces. That is a clean story: *strong-rep-nu is the
-  λB/STA design, minus the renaming.*
+- **What is new.** Decisions 3, 4 and 5 (change-list scopes that mask
+  instead of dropping, frame-exact `Beta`, and representation variables
+  behind a name map) have no counterpart I found, and they are the
+  decisions color preservation forces. In one sentence: *strong-rep-nu
+  takes the λB/STA design and adds a name map, so that type application
+  no longer needs to rename.*
 
 ---
 
@@ -153,34 +183,49 @@ at run time*, which is where "strong" in Strong System F comes from
 
 **Where:** `Reduction.agda` `Nu-Λ`; `notes/notes.md` "Reduction".
 
-**Prior work.**
-- **BfA is the origin of this decision.** Its `(TYBETA)` is
-  `(ΛX.v)A → νX:=A. v`, and its erasure `(νX:=A.t)° = t°[X:=A]` (BfA
-  Prop. 1) says outright that `ν` is a *delayed* type substitution.
-  Strong-rep-nu's boundary is BfA's `ν` made explicit:
-  - it carries a conversion, where BfA's static casts are the implicit,
-    non-syntax-directed typing rules `(REVEAL)`/`(CONCEAL)`;
-  - it never moves outward.
-
-  BfA's own binders are also immobile ("our type bindings are
-  immobile, that is, there is no scope extrusion", §1). The contrast is
-  with λN, whose `N`-binders float outward.
-- **Everyone since BfA renames.** λB, GSF, λC∀mp and the λB-style rules
-  PolyG reviews all replace `X` by a fresh `α`. On §1a, λB gives
-  `Σ,α:=ℕ ▷ ((λx:α. x) : α⇒α =+α⇒ ℕ⇒ℕ) 7`. The identity function now
-  reads `α`, a name from the store, where it used to read its own
-  binder `X`. Worth showing side by side with the strong-rep-nu trace
+**Builds on.**
+- **Blame for All introduced this decision.** Its `(TYBETA)`,
+  `(ΛX.v)A → νX:=A. v`, is the first rule we know of that answers type
+  application with a binding instead of a substitution. Its erasure
+  `(νX:=A.t)° = t°[X:=A]` (Prop. 1) shows that `ν` is a delayed type
+  substitution. Strong-rep-nu's boundary is a direct descendant of BfA's
+  `ν`: it keeps BfA's choice of immobile bindings ("our type bindings
+  are immobile, that is, there is no scope extrusion", §1), and makes
+  BfA's implicit static casts, the typing rules `(REVEAL)`/`(CONCEAL)`,
+  into an explicit conversion.
+- **Matthews & Ahmed first let a boundary remember what the body
+  forgets.** Type application still substitutes into their ML terms,
+  but "we can no longer directly substitute types for free type
+  variables on boundary annotations". A boundary annotation receives a
+  sealed instance `⟨α; τ⟩`, recording that the position "was abstract
+  in the original program but has been substituted with a concrete
+  type" (§3). Their observation that "the production of fresh names by
+  capture-avoiding substitution corresponds exactly to the production
+  of fresh seals" is a good epigraph for Decision 5.
+- **λB, GSF and λC∀mp refine the idea with a global store** and a
+  fresh name `α`. On §1a, λB gives
+  `Σ,α:=ℕ ▷ ((λx:α. x) : α⇒α =+α⇒ ℕ⇒ℕ) 7`. That is exactly right for
+  parametricity, and it is the semantics strong-rep-nu's store follows
+  (Decision 8). Worth showing side by side with the strong-rep-nu trace
   above.
-- **STA avoids the problem by coloring.** `[∀1]` substitutes `{τ/α}ᵢ`
-  only into `i`-colored subterms, so a `j`-colored interior keeps the
-  abstract `α` (STA p.1072). But abstraction is then only as strong as
-  the coloring. Under the one-color translation, "type application
-  still substitutes a type for a type variable" (p.1074). Strong-rep-nu
-  installs a boundary at every instantiation, with no coloring needed.
-- **Color is STA's word.** STA's agents are "principals"/"colors"
-  (p.1039, fn. 1). The design law, "the color of a non-boundary term
-  never changes", can be read as STA's colored substitution taken to
-  its limit, where no subterm is ever substituted into.
+- **STA supplies the word and the idea of color.** STA's agents are
+  "principals" or "colors" (p.1039, fn. 1), and its `[∀1]` substitutes
+  `{τ/α}ᵢ` only into `i`-colored subterms, so a `j`-colored interior
+  keeps the abstract `α` (p.1072). The design law, "the color of a
+  non-boundary term never changes", is STA's colored substitution taken
+  to its limit.
+- **Plausible Sealing makes the scope argument from the parametricity
+  side.** "In previous calculi, a seal α can continue to exist when the
+  type variable X for which it was created goes out of scope" (§1). Its
+  Funky answers with lexically scoped seals. That is the closest prior
+  statement of the concern behind color preservation.
+
+**New here.** Nothing is substituted at type application, not even a
+fresh name. `X` stays in the body, and the boundary holds `X ↦ α := R`.
+STA gets this effect only where the coloring (or its translation) puts
+an agent boundary: under its one-color translation "type application
+still substitutes a type for a type variable" (p.1074). Strong-rep-nu
+installs a boundary at every instantiation, so no coloring is needed.
 
 ### 2. A boundary carries a *conversion*, and crossings go inward through the dual
 
@@ -215,32 +260,37 @@ term did not determine the relationship (`notes/BoundarySurvey.md`,
   polarity (`DECISIONS.md` "RULING: polarity dropped", 2026-09-06).  The
   boundary's frames already say, per variable, which side sees what.
 
-**Prior work.**
-- **The word "conversion" is λB's.** λB's conversions `=+α⇒` / `=−α⇒`
-  are what BfA called static casts. λC∀mp calls them concealment `α⁻`
-  and revelation `α⁺`, and says they "correspond to static casts in
-  [BfA], conversions in [λB], and sealing/unsealing operations in [New
-  et al. 2020]" (λC∀mp §3). λN's coercions `{e}⁺_γ` / `{e}⁻_γ` are the
-  earliest version seen here.
-- **`reveal`/`mkId` are type-directed coercion generation.**
-  Strong-rep-nu's `revealₓ(C)` and `mkId` are λN's Fig. 3
-  `{e : τ′}^±_{γ≈τ}` ("coercion polarity is inverted for function
-  arguments"), λB's conversion inserted by type application, and
-  λC∀mp's `coerce^±_α`.
-- **Where strong-rep-nu differs: names, not store names.** Its `seal X`
-  names a *lexical type variable*, and the representation is found
-  through the name map. Every calculus above seals with a *store name*
-  `α`.
-- **`Peel` is the standard wrapped-function rule.** It is λB's rule (9),
+**Builds on.**
+- **Conversions.** The name and the idea are λB's: `=+α⇒` / `=−α⇒`,
+  which BfA called static casts. λC∀mp's concealment `α⁻` / revelation
+  `α⁺` "correspond to static casts in [BfA], conversions in [λB], and
+  sealing/unsealing operations in [New et al. 2020]" (λC∀mp §3). λN's
+  coercions `{e}⁺_γ` / `{e}⁻_γ` are the earliest version in this list.
+- **Generating conversions from types.** `revealₓ(C)` and `mkId` are
+  λN's type-directed `{e : τ′}^±_{γ≈τ}` (Fig. 3; "coercion polarity is
+  inverted for function arguments"), λB's conversion inserted at type
+  application, and λC∀mp's `coerce^±_α`.
+- **Boundaries as terms, and the reversal on arguments.** Matthews &
+  Ahmed's `τMS e` / `SMτ e`, after Matthews & Findler's multi-language
+  semantics (POPL 2007), are term-level boundaries, and "the direction
+  of conversion reverses for function arguments" (§2). That is the
+  ancestor of `Peel`'s dual.
+- **`Peel` itself** is λB's rule (9),
   `(v : A→B ⇒ A′→B′) v′ → v (v′ : A′ ⇒ A) : B ⇒ B′`, which λB takes from
   Siek & Wadler's space-efficient function casts (λB §2.4). It is also
-  λC∀mp's `R_Wrap_C`. What is new is the frame: the argument crosses
-  under `dual Θ`, where STA reverses the agent list, `rev(ℓ)` in its
-  `[9]`.
-- **Polarity.** λB negates the label on the domain, and λN inverts
-  coercion polarity. Strong-rep-nu dropped its polarity index because
-  the frame records direction per variable. That is a real difference
-  worth one sentence.
+  λC∀mp's `R_Wrap_C`, and in spirit STA's `[9]`, which reverses the
+  agent list with `rev(ℓ)`.
+
+**New here.**
+- **`seal X` names a lexical type variable**, and the representation is
+  found through the name map. The calculi above seal with a store name
+  `α`.
+- **The argument crosses under `dual Θ`**, a change list that says
+  exactly which names the argument may use.
+- **No polarity index.** λB negates the label on the domain and λN
+  inverts polarity. Strong-rep-nu's frames record direction per variable,
+  so the conversion judgment needs no polarity (Decision 2's
+  sub-point).
 
 ### 3. A boundary scope is a list of changes, and an unbind masks instead of dropping
 
@@ -282,23 +332,23 @@ to a **well-typed** contractum (Jeremy's tightness test,
 three times the design died of dropping something.  Candidate slogan:
 *nothing may be dropped*.
 
-**Prior work.**
-- **STA also needs order.** Its three-agent counterexample (p.1048)
-  shows that nested embeddings must be flattened to an *ordered* agent
-  list `ℓ`, since a set loses "that agent `i` must have exported the
-  integer at type `t` before `j` could export it at type `s`".
-  Strong-rep-nu's change list `Θ` is the same kind of object, and
-  `Merge`'s `Θ₂ ++ Θ₁` is STA's list append in `[8]`.
-- **But STA has no notion of out of scope.** Its `Θ` is used only for
-  freshness in `[∀intro]` ("Θ is unused by the new version of the old
-  rules", p.1072). Abstraction there is by *opacity* (`t ∉ Dom(δᵢ)`)
-  only; strong-rep-nu has opacity *and* unnameability.
-  `notes/TypeAbstractionComparison.md` §2 and §11 have the details;
-  that note predates the store and `Merge`.
-- **Mask-not-drop has no counterpart that I found.** The global-store
-  calculi (λB, F_C, GSF, λC∀mp) have no lexical scope to drop from.
-  BfA's local bindings are the only other design where a binding sits at
-  a position.
+**Builds on.**
+- **STA showed that the history of crossings must be an ordered list.**
+  Its three-agent counterexample (p.1048) shows that nested embeddings
+  flatten to an *ordered* agent list `ℓ`, since a set loses "that agent
+  `i` must have exported the integer at type `t` before `j` could
+  export it at type `s`". Strong-rep-nu's change list `Θ` is the same
+  kind of object, and `Merge`'s `Θ₂ ++ Θ₁` is STA's list append in `[8]`.
+- **BfA's local bindings sit at a position**, which is what makes a
+  "mask here, keep the rest" discipline meaningful at all.
+
+**New here.**
+- **Unnameability as well as opacity.** STA's abstraction is by opacity
+  (`t ∉ Dom(δᵢ)`), and its `Θ` is used only for freshness ("Θ is unused
+  by the new version of the old rules", p.1072). A change list that
+  masks one name and keeps the rest has no counterpart that I found.
+  `notes/TypeAbstractionComparison.md` §§2, 11 compare the two in
+  detail; that note predates the store and `Merge`.
 
 ### 4. Frame-exact term substitution
 
@@ -337,19 +387,20 @@ boundary around the ΛZ?" (`DECISIONS.md`, "Frame-exact Beta",
 **Cost:** a numeral crossing a `Λ` picks up an `id ℕ` layer, removed by
 one `Drop` (or merged away).
 
-**Prior work.**
-- **No counterpart that I found.** Every calculus above uses ordinary
-  capture-avoiding substitution for term `β`.
-- **Closest analogue: STA's brackets travel with the value.** A
-  substituted embedding `⌈v̂ⱼ⌉` keeps its bracket, and so its color.
-  STA never checks scope, however: `[∀2]` moves an embedding under a
-  `Λ` "discharged by α-freshness alone" (`TypeAbstractionComparison.md`
-  §4).
-- **A second analogue: BfA's `NUWRAP`.** It moves a `ν` under a `λ` and
-  *substitutes* into that `λ`'s annotation (`λy:B[X:=A]`). That is the
-  opposite repair, recoloring the moved binder instead of wrapping the
-  moved value.
-- **Suggested claim for the paper:** frame-exact substitution is new.
+**Builds on.**
+- **STA's brackets travel with the value.** A substituted embedding
+  `⌈v̂ⱼ⌉` keeps its bracket, and with it its color, which is the same
+  instinct as frame-exact substitution.
+- **BfA's `NUWRAP` faces the same situation from the other side.** When
+  a `ν` moves under a `λ`, it substitutes into that `λ`'s annotation
+  (`λy:B[X:=A]`), keeping the moved binding consistent with its new
+  surroundings.
+
+**New here.** Wrapping the substituted value in the crossed binder's
+dual, so the value arrives in its birth frame. All the calculi above
+use ordinary capture-avoiding substitution for term `β`, which suits
+their goals. Suggested claim for the paper: frame-exact substitution is
+new.
 
 ### 5. Two universes: type variables are lexical, representation variables are storage
 
@@ -390,26 +441,41 @@ The one-universe v7 theorem had to count a push/pop balance instead
 **Where:** `Ctx.agda`; `strong-rep-var/notes/PLAN.md` "Goal" (the two
 roles of a type variable, split).
 
-**Prior work.**
-- **The two roles are already separated in λB.** λC∀mp notes that "type
-  names and variables are distinguished in λC∀mp (following Ahmed et al.
+**Builds on.**
+- **λB already separates the two sorts.** λC∀mp notes that "type names
+  and variables are distinguished in λC∀mp (following Ahmed et al.
   [2017])": a type variable `X` is lexical and a type name `α` lives in
-  `Σ`.
-- **The difference is how they are connected.** Those calculi connect
-  the two universes by *substituting* `α` for `X`. Strong-rep-nu keeps
-  both and connects them with a *name map* `X ↦ α`, which boundaries
-  edit with `↓X` / `↥X`. As far as I found, that map is new.
-- **F_C is the one-universe design with a global store.** It keys the
-  store by `X` itself (`Σ, X≔A`, with `X` definitionally equal to `A`),
-  which is the one-universe design strong-rep-var replaced.
-- **GSF has alias chains too.** An evidence type name `αβ^Int` records
-  "that α is bound to β, which is itself bound to Int" (GSF §7.2). These
-  are the alias cells of Example 5b (`β := γ`), and in both calculi they
-  are what makes chains of seals possible.
-- **Terminology clash *(from memory)*.** "Representation" also names
-  the run-time type representations of intensional polymorphism
-  (Crary, Weirich & Morrisett, ICFP 1998). Strong-rep-nu's
-  representations are types in the store, never terms. Say so once.
+  the store. Strong-rep-nu's two universes are this distinction.
+- **Funky pairs a lexical label with what it denotes.** An unknown type
+  carries an instantiation environment: "`?^{X:Int}` expresses that type
+  variable X is in scope and instantiated to Int. … In the type
+  `?^{X:X}`, the two occurrences of X play a different role: the first
+  is merely a label, while the second is an actual occurrence of the
+  type variable X" (§3). That is the name map's split between a lexical
+  label and what it denotes.
+- **Matthews & Ahmed's `⟨α; τ⟩`** pairs the abstract variable with its
+  instance on a boundary annotation.
+- **GSF's evidence type names record alias chains.** `αβ^Int` records
+  "that α is bound to β, which is itself bound to Int" (GSF §7.2).
+  These correspond to the alias cells of Example 5b (`β := γ`).
+- **F_C keys its global store by `X` itself** (`Σ, X≔A`), a clean
+  one-sort design with a store. Strong-rep-var started from the
+  analogous one-universe design.
+
+**New here.** How the two sorts are *connected*. λB, GSF and λC∀mp
+connect them by substituting `α` for `X`. Funky updates its
+environments by substitution (`?^{Y:X, X:X}[Int/X] = ?^{Y:Int,
+X:Int}`), and they live on each `?` rather than in the context.
+Strong-rep-nu connects the sorts by a lexical name map `X ↦ α` in the
+type context, which boundaries edit and nothing substitutes. That is
+what makes color the checkable equation of `ScopeMapPreservation`. I
+found nothing closer, but that is a search result, not a proof of
+novelty.
+
+*Terminology (from memory).* "Representation" also names the run-time
+type representations of intensional polymorphism (Crary, Weirich &
+Morrisett, ICFP 1998). Strong-rep-nu's representations are types in the
+store, never terms; say so once.
 
 ### 6. A representation is stored once and cited by name
 
@@ -440,26 +506,31 @@ stored copy there are not two spellings to disagree.  A candidate
 example for the paper: *you cannot forge an `X` from an `ℕ` unless `X`
 is bound to `ℕ`.*
 
-**Prior work.**
+**Builds on.**
 - **The soundness gate is λN's scoping rule.** λN types `{e}⁺_γ` only
   when `γ≈τ ∈ Γ`: "coercions are only available within the lexical
-  scope of the corresponding type generator, thus the transition across
-  abstraction boundaries can only be triggered from within the
-  abstraction" (§3.2). `conv-seal`'s `Δ ∋ X := A` is the same rule,
-  resolved through the name map.
-- **Explicit conversions vs. equality modulo the store.** F_C and GSF
-  make a store name *equal* to its binding (F_C: "X is definitionally
-  equal to A"; GSF: "a type name α is considered equal to its associated
-  type in the store"), and BfA's `(REVEAL)`/`(CONCEAL)` are
-  non-syntax-directed. Strong-rep-nu, like λB and λC∀mp, has no such
-  equality: every crossing is an explicit conversion. That is what
-  keeps conversions syntactic normal forms (Decision 11) and reduction
-  deterministic.
-- **STA's per-agent knowledge `δᵢ` is a set of copies.** Def. 3.1's
-  *compatibility* ("if `t ∈ Dom(δᵢ) ∩ Dom(δⱼ)` then `δᵢ(t) = δⱼ(t)`") is
-  precisely the "copies agree" invariant whose failure killed v1. Worth
-  a sentence: STA maintains it by construction in a monotone registry,
-  while v1 had to maintain it across boundaries that move.
+  scope of the corresponding type generator" (§3.2). `conv-seal`'s
+  `Δ ∋ X := A` is the same rule, resolved through the name map.
+- **Explicit conversions**, as in λB and λC∀mp, rather than an equality
+  between a name and its binding. F_C ("X is definitionally equal to
+  A"), GSF ("a type name α is considered equal to its associated type in
+  the store") and Neis et al.'s G (α and τ are "equal as classifiers,
+  but not as data", with no "explicit term-level type coercions") show
+  how light the implicit alternative can be. The explicit choice is
+  what lets conversions be syntactic normal forms (Decision 11) and
+  keeps reduction deterministic.
+- **STA's compatible knowledge.** Def. 3.1 requires agents' knowledge
+  to agree where it overlaps ("if `t ∈ Dom(δᵢ) ∩ Dom(δⱼ)` then
+  `δᵢ(t) = δⱼ(t)`"), which STA maintains by construction in a monotone
+  registry. It is the same "copies agree" invariant strong-rep-nu's v1
+  could not maintain once boundaries moved. Storing the representation
+  once is how strong-rep-nu reaches STA's invariant with lexical names.
+
+**New here.** The store is read through the name map. The dynamic
+semantics consults it in one place only: `Merge` meeting `seal Z` with
+`unseal Z`, where `repOf` writes the identity at `Z`'s representation.
+Compare G, where "the representation types in the store are never
+actually inspected by the dynamic semantics".
 
 ### 7. The value restriction: `ΛX.N` requires `N` to be a value, and there is no `ξ-Λ`
 
@@ -483,18 +554,20 @@ a dummy `λ` to make the body a value, and apply it.
 `ΛY. …` that System F would also stop at, instead of reducing under the
 binder.
 
-**Prior work.**
-- **λB made exactly this move, for exactly this reason.** λB §2.4 calls
-  BfA "topsy turvy" because it has to reduce under `Λ`: BfA wanted the
-  value restriction (§5.2) but could not have it, because `(NUTYWRAP)`
-  and `(GENERALIZE)` push non-values under a `Λ`. λB's fix is to make
-  casts to `∀` values and apply them at type application. "With the
-  removal of evaluation under type abstractions, we are free to
-  immediately place generated names in a global store, forgoing the use
-  of ν binders."
-- **So Decisions 7 → 8 are λB's argument, rediscovered.** Cite it.
-- **Others with value-restricted `Λ`.** F_C's values are `ΛX::G. w`.
-  STA's `Λα. eᵢ` is a primval with no reduction under it.
+**Builds on.** This decision is λB's, and the paper should say so.
+- λB §2.4 explains why BfA had to reduce under `Λ`: BfA wanted the value
+  restriction (§5.2), but `(NUTYWRAP)` and `(GENERALIZE)` push non-values
+  under a `Λ`.
+- λB resolves it by making casts to `∀` values that are applied at type
+  application: "With the removal of evaluation under type abstractions,
+  we are free to immediately place generated names in a global store,
+  forgoing the use of ν binders."
+- Strong-rep-nu's Decisions 7 → 8 follow the same argument.
+- Other value-restricted `Λ`s: F_C's values are `ΛX::G. w`, and STA's
+  `Λα. eᵢ` is a primval with no reduction under it.
+
+**New here.** Nothing beyond the recipe for rewriting programs whose
+`Λ` bodies are not values, which is folklore.
 
 ### 8. A global store, with each step reporting its allocation
 
@@ -519,27 +592,38 @@ context and lost lexical unbinding.  This one stores only the
 representations, and unbinding stays lexical in `Γ`: `Ξ` says *what* a
 representation is, and `Γ` says *whether* this position may name it.
 
-**Prior work.**
-- **The global store is the standard choice.** λB, F_C (which follows
-  λB), GSF, λC∀mp, PolyG and Neis, Dreyer & Rossberg's `new`
-  *(from memory)* all use a global store `Σ`.
-- **BfA explains why a global store needs Decision 7.** Its §5.5 example
-  `let f = ΛX.(ΛY.s)X in (f I, f B)` shows that under reduction under
-  `Λ`, "`Y` should really get two different bindings", which a global
-  list cannot give.
-- **λN considered a store and rejected it.** It chose π-calculus-style
-  scope extrusion: "we also considered … an explicit type store or heap
-  as in the λν-calculus, but that choice would produce a more
-  complicated system" (fn. 4).
-- **STA's `{Δ}` is a monotone global knowledge base.**
-- **The difference is what the store holds.** Everyone else stores
-  *names*. Strong-rep-nu stores only *representations* and keeps names
-  lexical. That resolves the D33 fork (`DesignSpace.md`, "a global
-  Σ-store, NOT taken — lexical scope is needed for unbind blocking") by
-  splitting it in two.
-- **De Bruijn bookkeeping.** Reporting the allocation `δ` from each step
-  and shifting siblings is how a de Bruijn development spells "`α`
-  fresh". It is not a design point for the paper.
+**Builds on.**
+- **The global store is the standard design**: λB, F_C (following λB),
+  GSF, λC∀mp, PolyG and Neis et al.'s G (`σ`, with freshness "achieved
+  by α-renaming").
+- **The case for it** is BfA §5.5: under reduction under `Λ`, in
+  `let f = ΛX.(ΛY.s)X in (f I, f B)`, "`Y` should really get two
+  different bindings", which a global list cannot give. That is exactly
+  why the value restriction (Decision 7) comes first.
+- **The alternatives:** λN's scope extrusion ("we also considered … an
+  explicit type store or heap as in the λν-calculus, but that choice
+  would produce a more complicated system", fn. 4), which G also names
+  (§2.2, fn. 3), and STA's monotone global knowledge base `{Δ}`.
+- **Plausible Sealing gives the reason to keep names lexical.** "Global
+  seals have been shown to break equivalences that hold in System F
+  [Devriese et al. 2018]", and earlier proofs therefore use "Kripke
+  worlds containing semantic types for dynamically-allocated seals".
+  Funky instead tracks semantic types "in a lexical environment, similar
+  to traditional formulations of parametricity [Reynolds 1983]" (§1).
+
+**New here.**
+- **What the store holds.** It holds *representations* only, while
+  names stay lexical in the name map. That combines the global store's
+  simplicity with the lexical scoping Plausible Sealing argues for, and
+  it resolves the D33 fork (`DesignSpace.md`, "a global Σ-store, NOT
+  taken — lexical scope is needed for unbind blocking") by splitting it
+  in two.
+- **A conjecture to state.** With no `★` and no type case, a store cell
+  can only be observed through a live name. So a Reynolds-style
+  parametricity theorem, with relations indexed by the name map instead
+  of a Kripke world, may be within reach.
+- **Not a design point.** Reporting the allocation `δ` from each step and
+  shifting siblings is how a de Bruijn development spells "`α` fresh".
 
 ### 9. `ν` replaces type application; the compiler writes the reveal
 
@@ -566,53 +650,44 @@ checks by `refl` that the twenty source programs compile to the corpus.
 well-formed.  At `Γₜ = x : ∀Y.Z` with `Z` out of scope, `x [ℕ]` has a
 source typing but its `ν` has none.
 
-**Prior work.**
-- **New's thesis is where the ν form comes from.** Chapter 10 states
+**Builds on.**
+- **New's thesis is where the ν form comes from.** Chapter 10 identifies
   the problem this decision solves. With System F's syntax, an
   instantiation actually uses "a fresh type α that is merely isomorphic
   to B, not the same as it", and "this results in the need for
   type-directed sealing to mask the difference" (§10.1).
-  - PolyGν's answer is an ANF-restricted instantiation,
-    `let x = M{X≅B}; N`. There, "the continuation N now has an explicit
-    isomorphism in scope, sealX : B → X and unsealX : X → B, allows it
-    to manually seal and unseal inputs and outputs of x as necessary".
-    The POPL paper uses an "inside-out" binding instead.
-  - `ν X:=A · L ⟨c⟩` is that form with the continuation cut down to a
-    *conversion*. `X` is bound in `c` and nowhere else, and the sealing
-    and unsealing are the leaves `seal X` / `unseal X` of `c`, where
-    PolyGν has terms.
-  - `compile` then does, once and at compile time, the type-directed
-    sealing that λB performs at run time and PolyGν leaves to the
-    programmer: `⟦L[A]⟧ = ν X:=A · ⟦L⟧ ⟨revealₓ(C)⟩`.
-  - Suggested one-line claim: *strong-rep-nu's ν is PolyGν's
-    instantiation, with the continuation specialized to a conversion
-    and the sealing written by the compiler.*
-- **PolyCν's `∀ν` casts accumulate.** They build a stack of casts on the
-  `Λν` (`Λν{X.([B⊑↕], M)}`), applied at instantiation. That is the same
-  "casts to ∀ are values, eliminated at type application" discipline as
-  λB and `Nu-⟪Λ⟫`.
-- **Where PolyCν differs.** Its instantiation still substitutes a fresh
-  case `σ` for the bound variables (`M[σ/X]`, `N[σ/Y]`), so it recolors,
-  like λB.
-- **The syntax.** `ν X:=A · L ⟨c⟩` takes its shape from the repo's
-  GTPLC (`ν A · L •⟨ c ⟩`). BfA's `νX:=A. t` and λN's `Nγ≈τ. e` are the
+  - PolyGν's elegant answer is the ANF instantiation `let x = M{X≅B}; N`,
+    in which "the continuation N now has an explicit isomorphism in
+    scope … to manually seal and unseal inputs and outputs of x as
+    necessary". The POPL paper uses an "inside-out" binding instead.
+  - `ν X:=A · L ⟨c⟩` is PolyGν's instantiation with the continuation
+    specialized to a *conversion*: `X` is bound in `c`, and sealing and
+    unsealing are `c`'s leaves `seal X` / `unseal X`.
+- **The shape of `Nu-⟪Λ⟫` is λB's.** λB's third type-application rule,
+  `Σ ▷ (v : ∀X.A =ϕ⇒ ∀X.A′)[B] → Σ,α:=B ▷ ((v[α] : A[α/X] =ϕ⇒
+  A′[α/X]) : A′[α/X] =+α⇒ A′[B/X])`, moves the inner conversion inside
+  and stacks the reveal outside, which is `Nu-⟪Λ⟫`'s stacked contractum.
+  PolyCν's `∀ν` casts accumulate on the `Λν` (`Λν{X.([B⊑↕], M)}`) and
+  are applied at instantiation, the same discipline. λC∀mp's
+  `R_Tybeta_C` fuses a whole sequence of `∀` coercions in one step.
+- **Syntax.** `ν X:=A · L ⟨c⟩` takes its shape from the repo's GTPLC
+  (`ν A · L •⟨ c ⟩`). BfA's `νX:=A. t` and λN's `Nγ≈τ. e` are the
   binder ancestors.
-- **Who writes the reveal.** In λB, λC∀mp and λN the reveal conversion
-  is generated by the *type-application rule*, at run time (`=+α⇒`,
-  `coerce⁺_α`, `{e:τ}^±`). In PolyGν the *programmer* writes `seal_X` /
-  `unseal_X`, and `M{X ≅ A}` exports `X ≅ A` to the continuation.
-  PolyG's argument is that type-directed sealing is the source of
-  graduality failures.
-- **Strong-rep-nu sits between.** The conversion is explicit and
-  arbitrary (`⊢ν` accepts any `c` whose types line up, as in PolyGν),
-  but it is written by the *compiler*, and `X` is bound in `c` only, not
-  exported.
-- **`Nu-⟪Λ⟫` has a direct precedent.** λB's third type-application rule
-  is `Σ ▷ (v : ∀X.A =ϕ⇒ ∀X.A′)[B] → Σ,α:=B ▷ ((v[α] : A[α/X] =ϕ⇒
-  A′[α/X]) : A′[α/X] =+α⇒ A′[B/X])`. It moves the inner conversion
-  inside and stacks the reveal outside, which is `Nu-⟪Λ⟫`'s stacked
-  contractum. λC∀mp's `R_Tybeta_C` fuses a whole sequence of `∀`
-  coercions instead.
+- **Neis, Dreyer & Rossberg map where generative translation is safe.**
+  They show that giving every existential introduction a fresh name
+  (`pack ⟨τ,e⟩ ↝ new α≈τ in pack ⟨α,e⟩`) exposes sharing: `let x =
+  pack ⟨τ,v⟩ in ⟨x,x⟩` and `⟨pack ⟨τ,v⟩, pack ⟨τ,v⟩⟩` become
+  distinguishable. Their type-directed `Wr±`, after Sumii & Pierce's
+  "firewall" and "sandbox", is the fix (§5). `compile` uses only the
+  `∀` half, `e τ ↝ new α≈τ in e α`, so their result is the guide for an
+  `∃` extension.
+
+**New here.** Who writes the reveal. In λB, λC∀mp and λN the
+type-application rule generates it at run time. In PolyGν the
+programmer writes it, which is PolyG's key to graduality. Strong-rep-nu
+keeps PolyGν's explicit, arbitrary conversion (`⊢ν` accepts any `c`
+whose types line up), and has the compiler write it once:
+`⟦L[A]⟧ = ν X:=A · ⟦L⟧ ⟨revealₓ(C)⟩`.
 
 ### 10. One boundary per value, and `Merge` composes conversions
 
@@ -643,27 +718,38 @@ disease.  `Merge` composes *name-carrying* conversions at the merged
 frame, and reads a representation only where `seal Z` meets `unseal Z`,
 by lookup (`repOf`).
 
-**Prior work.**
+**Builds on.**
 - **The invariant is the space-efficiency one.** λS∀mp states it
-  exactly: "a value is wrapped by at most one coercion and the hole in
-  a frame never appears under coercion applications" (§4.2), after
+  exactly: "a value is wrapped by at most one coercion and the hole in a
+  frame never appears under coercion applications" (§4.2), after
   Herman, Tomb & Flanagan and Siek, Thiemann & Wadler's normal-form
   coercions.
-- **The cancellation rules are old.** `Merge`'s `seal Z ⨟ unseal Z`
-  clause is λN's `{{e}⁺_γ}⁻_γ → e`, λB's "two mirror image conversions
-  … reduce to the identity", λC∀mp's `R_Remove_C`
+- **The cancellation rules are well established.** `Merge`'s
+  `seal Z ⨟ unseal Z` clause is λN's `{{e}⁺_γ}⁻_γ → e`, λB's "two mirror
+  image conversions … reduce to the identity", λC∀mp's `R_Remove_C`
   (`V⟨α⁻⟩⟨α⁺⟩ → V`), and GSF's consistent-transitivity rule `(unsl)`.
-- **Composition-based merging is GSF's style.** GSF combines evidence
-  at every step, and it is the closest relative in *how* `Merge` works.
-- **STA's `[8]` merges too**, with an ordered list, but keeps one type
-  annotation instead of composing.
-- **An open question to raise.** Ozaki, Sekiyama & Igarashi (Scheme
-  2021, cited by λC∀mp) show that polymorphic coercion calculi can
-  build unbounded sequences `⟨α₁!⟩⋯⟨αₙ!⟩` that no composition shrinks.
-  Strong-rep-nu's analogue is the seal chain `t ; seal X ; seal Y` built
-  through alias cells. Is the chain length bounded, for example by the
-  alias depth of the store? Without `★` it plausibly is, but it is
-  unproved.
+- **Composing at every step is GSF's style.** GSF combines evidence at
+  every step, and is the closest relative in *how* `Merge` works.
+- **STA's `[8]` merges nested embeddings** with an ordered list.
+
+**New here.** Composition of name-carrying conversions at a merged
+frame, keeping both scopes (`Θ₂ ++ Θ₁`).
+
+**An open question, with a candidate answer.** Ozaki, Sekiyama &
+Igarashi (Scheme 2021) prove that λC∀ is not space-efficient (Thm 6).
+- Their witness is polymorphic recursion at `★`: `M = (fix f = ΛX.
+  λx:X. f ★ (x⟨X!⟩)) ★ (0⟨Int!⟩)` reaches `0⟨Int!⟩⟨X₁!⟩⋯⟨Xₙ!⟩` with
+  `Xᵢ := ★`, which no smaller coercion can replace. They conjecture that
+  forbidding `★` as a type argument restores space efficiency, which
+  λC∀mp then develops.
+- Strong-rep-nu has neither `★` nor recursion. But the role `Xᵢ := ★`
+  plays there, a cell that lets one seal follow another, is played here
+  by *alias* cells `β := α`, which is what seal chains `t ; seal X ;
+  seal Y` are built from (Example 5b). A polymorphically recursive
+  `f [X]` under `ΛX` would mint a new alias cell per round.
+- Conjecture: with `fix`, seal chains grow without bound and Ozaki et
+  al.'s argument transfers. Without `fix`, every run terminates, so
+  chains are bounded, but no bound is proved.
 
 ### 11. Conversions are tight normal forms, in three sorts
 
@@ -683,23 +769,21 @@ second spelling of an identity at `X`.
 **Example:** step 3 of the Merge excerpt, `(seal Z ; seal Y) ⨟ unseal Y =
 seal Z`, which is only well defined because chains associate as above.
 
-**Prior work.**
-- **The three sorts line up with λS∀mp's schema.** λS∀mp's coercions
-  follow `(G₁?p ;)? (⊥p | (g (; G₂!)?))`: an optional projection, a
-  ground middle, and an optional injection. Strong-rep-nu's
-  `c ::= unseal X ; c`, `g`, `t ::= t ; seal X` have the same layout,
-  with **unseals in the projection position and seals in the injection
-  position**. Two differences are worth stating:
-  - chains are possible here (several seals in a row, through aliases),
-    where `★` admits only one tag;
-  - λS∀mp *drops* concealment and revelation from its normal forms
-    ("as we detail later, concealment and revelation make it
-    complicated to discuss space efficiency formally; thus, they are
-    implicit in λS∀mp", §4). Strong-rep-nu keeps seals and unseals
-    explicit in the normal form, which is a small contribution.
-- **Lineage in the repo.** The three sorts come from GTLC's
-  Siek–Thiemann–Wadler normal forms, with GTPLC's chain association
-  (`MergeSketch.md`).
+**Builds on.** The three sorts follow λS∀mp's (and Siek, Thiemann &
+Wadler's) space-efficient schema `(G₁?p ;)? (⊥p | (g (; G₂!)?))`: an
+optional projection, a ground middle, and an optional injection.
+Strong-rep-nu's `c ::= unseal X ; c`, `g` and `t ::= t ; seal X` have
+the same layout, with **unseals in the projection position and seals in
+the injection position**. The repo lineage is GTLC's normal forms with
+GTPLC's chain association (`MergeSketch.md`).
+
+**New here.**
+- Seals and unseals are part of the normal form. λS∀mp chose to leave
+  concealment and revelation implicit, because "concealment and
+  revelation make it complicated to discuss space efficiency formally"
+  (§4).
+- Chains of several seals are possible, through aliases, where `★`
+  admits one tag.
 
 ### 12. Hygiene: one live name per representation variable, and `WfCtx`
 
@@ -715,11 +799,12 @@ demands uniqueness.  With names this is ordinary alpha-hygiene.  With
 duplicates, `X` and `Y` would both spell `α`, and `≈` would not
 determine a spelling (`same-target-unique` needs `Unique`).
 
-**Prior work.** Distinct names are the standard side condition
-everywhere: BfA's implicit `X ∉ Γ`, GSF's "a type name store is
-well-formed if all type names are distinct", STA's global α-conversion.
-Strong-rep-nu's twist is that uniqueness is about *representation
-variables* (at most one live name each), which only exists because of
+**Builds on.** Distinct names are the standard side condition: BfA's
+implicit `X ∉ Γ`, GSF's "a type name store is well-formed if all type
+names are distinct", and STA's global α-conversion.
+
+**New here.** Uniqueness is stated for *representation variables*
+(each has at most one live name). That condition exists only because of
 Decision 5.
 
 ---
@@ -757,12 +842,14 @@ otherwise.
 - *Generativity and Dynamic Opacity for Abstract Types* (Rossberg, PPDP
   2003) **(read)**: λN's coercions, lexical-scope gate and
   type-directed coercion generation (Decisions 2, 6).
-  - It also has a ready-made **color-preservation counterexample**:
-    `P ≡ (Λα. λx:α. {x : α}⁻_{γ≈τ}) γ` has type `γ → γ`, but its
-    β-contractum `λx:γ. {x : γ}⁻_{γ≈τ}` has type `γ → τ` (§3.2).
-  - Substituting into a coercion's annotation changes its meaning, which
-    is Decision 1 in one line. λN repairs it with "unsealed types";
-    strong-rep-nu never substitutes into a conversion.
+  - Rossberg identified, and solved, the effect behind Decision 1: once
+    coercions are reduction rules, substituting into a coercion's
+    annotation changes its meaning. His example is
+    `P ≡ (Λα. λx:α. {x : α}⁻_{γ≈τ}) γ`, typed `γ → γ`, whose
+    β-contractum `λx:γ. {x : γ}⁻_{γ≈τ}` is typed `γ → τ` (§3.2).
+  - λN's solution is "unsealed types", which delay the substitution.
+    Strong-rep-nu's is to never substitute into a conversion. The example
+    is a good one to reuse in the paper, with credit.
 - *Graduality and Parametricity: Together Again for the First Time*
   (New, Jamner & Ahmed, POPL 2020) **(read, in part)**: explicit
   `seal_X` / `unseal_X`, and the inside-out `X ≅ A` binding (Decision 9).
@@ -778,19 +865,27 @@ otherwise.
   Morrisett, ICFP 1999) **(read, previously; `notes/Zdancewic-embeddings.md`)**:
   colored embeddings, the origin of "color".
 - *Parametric Polymorphism through Run-Time Sealing, or, Theorems for
-  Low, Low Prices!* (Matthews & Ahmed, ESOP 2008) **(not read)**.
-  Multi-language *boundaries* between System F and an untyped language,
-  with seals. Boundary terms are its central construct, so it is likely
-  the closest precedent for `M ⟪ Θ , c ⟫` as a *term*. PDF:
-  `ccs.neu.edu/home/amal/papers/parpolyseal.pdf`.
+  Low, Low Prices!* (Matthews & Ahmed, ESOP 2008) **(read, §§1–3)**.
+  Term-level boundaries `τMS e` / `SMτ e` between System F and Scheme,
+  reversing direction on function arguments (Decision 2). At type
+  application, boundary annotations receive sealed instances `⟨α; τ⟩`
+  while ML terms are substituted (Decision 1): the earliest "the
+  boundary remembers the abstract variable" in this list. The text
+  extraction is garbled; read the PDF.
 - *Operational Semantics for Multi-Language Programs* (Matthews &
   Findler, POPL 2007) **(not read)**: the boundary construct itself.
 - *Non-Parametric Parametricity* (Neis, Dreyer & Rossberg, ICFP 2009 /
-  JFP 2011) **(not read)**: `new X ≈ A in e` with a global store σ, the
-  store BfA §5.5 contrasts itself with.
+  JFP 2011) **(read, §§2 and 5)**:
+  - `new α≈τ in e` with a global type store `σ`, the store BfA §5.5
+    contrasts itself with;
+  - implicit isomorphism, "equal as classifiers, but not as data"
+    (Decision 6);
+  - the counterexample to naive generative translation, with the
+    type-directed `Wr±` fix (Decision 9).
 - *Is Space-Efficient Polymorphic Gradual Typing Possible?* (Ozaki,
-  Sekiyama & Igarashi, Scheme 2021) **(not read; cited by λC∀mp)**: the
-  impossibility result behind the seal-chain question in Decision 11.
+  Sekiyama & Igarashi, Scheme 2021) **(read, §§1, 4–5)**: Theorem 6 and
+  its polymorphic-recursion witness, behind the seal-chain conjecture in
+  Decision 11.
 - *Blame and Coercion: Together Again for the First Time* (Siek,
   Thiemann & Wadler, PLDI 2015) and *Space-Efficient Gradual Typing*
   (Herman, Tomb & Flanagan, TFP 2007 / HOSC 2010) **(not read)**: normal
@@ -799,15 +894,27 @@ otherwise.
   Typed Lambda Calculi* (Siek & Chen, JFP 2021) **(read, previously;
   `notes/ParameterizedCastCalculi.md`)**.
 
-**Gradual-parametricity papers you may want in a survey paragraph (not read):**
-- *Gradual Parametricity, Revisited* (Toro, Labrada & Tanter, POPL 2019);
+**Gradual-parametricity papers for a survey paragraph:**
+- *Gradual Parametricity, Revisited* (Toro, Labrada & Tanter, POPL 2019)
+  **(read, §§1, 4–6)**: the conference version of GSF, with the same
+  global type-name store and instantiation by substituting a fresh name.
+  Its headline result, that the dynamic gradual guarantee is
+  incompatible with parametricity, is gradual-specific; cite it alongside
+  GSF rather than separately.
 - *Plausible Sealing for Gradual Parametricity* (Labrada, Toro, Tanter &
-  Devriese, OOPSLA 2022);
-- *Consistent Subtyping for All* (Xie, Bi & Oliveira, ESOP 2018): the
-  "separate gradual typing from polymorphism" policy that λC∀mp and
-  PolyG follow;
-- *Parametricity versus the Universal Type* (Devriese, Patrignani &
-  Piessens, POPL 2018).
+  Devriese, OOPSLA 2022) **(read, §§1–3)**:
+  - the only *lexically scoped* sealing in the gradual line (Funky);
+  - its critique of global seals (Decisions 1 and 8);
+  - its instantiation environments `?^{X:F}`, the nearest analogue of
+    the name map (Decision 5);
+  - its key lemmas are mechanized in Agda.
+- The rest of this group is **not read**:
+  - *Consistent Subtyping for All* (Xie, Bi & Oliveira, ESOP 2018): the
+    "separate gradual typing from polymorphism" policy that λC∀mp and
+    PolyG follow;
+  - *Parametricity versus the Universal Type* (Devriese, Patrignani &
+    Piessens, POPL 2018), the equivalence-breaking result Plausible
+    Sealing cites against global seals.
 
 **Background on sealing (not read):**
 - Morris, *Protection in Programming Languages* (CACM 1973);
@@ -836,10 +943,11 @@ otherwise.
 
 **Where the PDFs are:** every paper marked (read) above, and every
 paper named in the abbreviation list, is in the repo-level `papers/`
-directory (index: `papers/README.md`).  So are the five marked (not
-read) that have a PDF: Matthews & Ahmed ESOP'08, Neis–Dreyer–Rossberg,
+directory (index: `papers/README.md`), including the five read on
+2026-09-25: Matthews & Ahmed ESOP'08, Neis–Dreyer–Rossberg,
 Ozaki et al. Scheme'21, *Gradual Parametricity, Revisited* and
-*Plausible Sealing*.  "Not read" still means not read.
+*Plausible Sealing*.  Everything still marked (not read) has no PDF in
+the repo.
 
 ## Open questions for the draft
 

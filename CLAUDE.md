@@ -20,6 +20,13 @@ When extending or creating a calculus, conform to the AGENTS.md checklists rathe
 
 Repo-wide working agreement (also from AGENTS.md): never read or write files outside `AI-for-pl/`. This is a closed-world repo — prefer direct internal references over compatibility shims, and delete obsolete shims rather than preserving them.
 
+## Word choice
+
+Do not write "mint" / "minted" / "mints" / "minting" in prose, comments,
+notes, or reports: the money connotation reads as greedy.  Use "create"
+(or "introduce", "produce", "allocate" where precise).  See AGENTS.md,
+Working agreements.
+
 ## Building and checking
 
 Each `*/agda/` directory has a `Makefile` with the same shape:

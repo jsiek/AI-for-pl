@@ -11,6 +11,12 @@
   scope- or boundary-related.  In paragraph prose, write conditionals as
   "if P then Q", never "P → Q" — without the "if" keyword, "P" can be
   misread as an assertion that P holds (2026-09-04).
+- **Do not use the word "mint"** (or "minted", "mints", "minting") in
+  prose, comments, notes, or reports; it has a money connotation that reads
+  as greedy.  Say "create" (or "introduce", "produce", "allocate" where that
+  is the precise meaning) instead (Jeremy, 2026-09-25).  Existing uses in
+  older files are history and need not be rewritten unless a file is being
+  edited anyway.
 - This is a closed-world repository: prefer direct internal references and a
   small canonical public surface over compatibility re-exports, aliases, or
   wrapper files. When consolidating APIs, delete obsolete shims instead of

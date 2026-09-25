@@ -1,8 +1,10 @@
 # Erasure to plain System F: design, statements, example checks
 
-2026-09-25.  Agda: `notes/ErasureProbe.agda` (module
-`strong-rep-nu.notes.ErasureProbe`) and `SourceReduction.agda`.
-Both are gated by `notes/All.agda`.
+2026-09-25.  Agda: the definitions are `Erasure.agda`, the
+statements and theorems `ErasureTheorems.agda`, the source reduction
+`SourceReduction.agda` (all top level, gated by `All.agda`); the
+proofs are `proof/Erasure*.agda` (section 8); the example checks are
+`notes/ErasureProbe.agda` (gated by `notes/All.agda`).
 
 The goal is a theorem in the style of Blame for All Prop. 1 (Ahmed,
 Findler, Siek, Wadler 2011, section 5.3) and Syntactic Type Abstraction
@@ -13,9 +15,10 @@ is one source step.
 
 Status:
 
-  * the typing and simulation theorems are STATED as `Set`s and not
-    proved;
-  * `EraseCompileAt` and `EraseCompile` are PROVED;
+  * EVERY statement is PROVED (section 8): `ErasureTyping`,
+    `ErasureStutter`, `ErasureStep`, `ErasureSimulation`,
+    `ErasureRun`, `ErasureReflection`, `CompiledRunErases`,
+    `EraseCompileAt`, `EraseCompile`;
   * all 20 compiled runs, plus `Bg` and the section 9 runs, pass the
     checks by `refl`;
   * no counterexample was found to any stated theorem;
@@ -115,7 +118,7 @@ under `Λ` in the type universe.  `N[X := A]` is `_[_]ᵀ`.
 `stepˢ` is leftmost-outermost and RETURNS the derivation.  `stepToˢ`
 forgets the derivation, and `runˢ` lists the states of a run.
 
-## 3. The statements (`ErasureProbe.agda` §5, §6)
+## 3. The statements (`ErasureTheorems.agda`)
 
     ErasureTyping                                              (stated)
       WfCtx Δ      Δ ∣ Γₜ ⊢ M : A
@@ -205,7 +208,7 @@ How the statements relate:
   * **`ErasureStutter`, `ErasureStep`, `ErasureRun`, `ErasureReflection` and
     `CompiledRunErases` are additions.**
 
-## 4. Why the simulation should hold (the lemmas a proof needs)
+## 4. Why the simulation holds (the proof plan, now carried out)
 
 Each rule has an equation, and each is what a proof would have to
 establish:
@@ -343,7 +346,7 @@ counterexample to any statement AS STATED was found.
    `Δ`, `⌊⟦d⟧⌋_Δ = M[nameσ Δ]`.  `EraseCompile` is its `idCtx`
    instance.  `CompiledRunErases` then needs only the closed case.
 
-## 7. Next, if the statements are accepted
+## 7a. The plan that preceded the proofs
 
   * The `TyBeta` substitution lemma, stated in section 4, and its
     `Λ`-extended form.
@@ -370,3 +373,62 @@ counterexample to any statement AS STATED was found.
 7. `EraseCompileAt` is accepted, with `EraseCompile` as its instance.
 
 Merge to `main` waits until the proofs are finished.
+
+## 8. The proofs (2026-09-25)
+
+All statements are proved, with no postulates, holes or termination
+pragmas.  The statements in `ErasureTheorems.agda` are unchanged from
+the reviewed ones; every theorem there delegates.
+
+| theorem | proof | the key lemma |
+|---|---|---|
+| `erasure-typing` | `proof/ErasureTyping.agda` | `conv-erase` (conversions are erasure-identities) and `nu-type` |
+| `erasure-stutter` | `proof/ErasureSim.agda` | `dual-interior` + `inside-sound` (Wrap), `interiorⁿ-++` (Merge), `literal-erase` (Id) |
+| `erasure-step` | `proof/ErasureSim.agda` | `erase-inst` (TyBeta, TyWrap), `erase-beta` (Beta) |
+| `erasure-simulation`, `erasure-run`, `compiled-run-erases` | `proof/ErasureSim.agda` | `stutter?`, preservation |
+| `erasure-reflection` | `proof/ErasureReflect.agda` | `stutter-weight`, `detˢ`, progress |
+| `erase-compile-at`, `erase-compile` | `proof/ErasureCompile.agda` | `nameσ-underΛ` |
+
+The supporting modules:
+
+  * **`proof/ErasureTypes.agda`**, type-level facts.
+      * `erase-~`: a READ type erases through the store, as
+        `R[env(Ξ)]`.
+      * `erase-≈`, `erase-lookup` and `env-bind`.
+      * `conv-erase` and `conv-scoped`.
+      * `erase-wf` (scoping) and `inside-sound`.
+      * Source weakening and `value-erase`.
+  * **`proof/ErasureRen.agda`**, ONE typed lemma, `erase-ren`.  Rename
+    the representation universe by ρ while the store changes so that
+    each renamed cell denotes τ of what the old one did.  The erasure
+    then changes by the source type substitution τ.  It has three
+    instances:
+      * `erase-↑`, the sibling shift, with τ the identity;
+      * `erase-cross`, the crossing wrapper of frame-exact
+        substitution, with τ = ⇑;
+      * `erase-inst`, the cell `ν` allocates, with ρ the identity and
+        τ = `[X := ⌊A⌋]`.
+  * **`proof/ErasureSubst.agda`**, `erase-beta`.  A value image is
+    closed, so the source's term shift under `λ` is harmless
+    (`closed-ren`).  A boundary is not entered by substitution, and its
+    erasure is closed (`closed-subst`).
+
+Why `erase-ren` is TYPED: the junk law.  An unnamed ordinary variable
+erases to itself, so a change of store or name map commutes with
+erasure only on read types.  Typing guarantees that every type in the
+term is read (`wf-same`).
+
+The reflection split:
+
+  * **(a) Stutters terminate.**  `weight` decreases along every
+    stutter, typed or not (`stutter-weight`).  A boundary weighs 1.  An
+    application weighs 3·(operator) + (operand) + 1.  `Wrap` moves a
+    boundary from operator to operand and wraps the application: net
+    −1.  `Merge` and `Id` each remove a boundary.  The weight reads no
+    type or representation, so the sibling shift keeps it
+    (`weight-ren`).
+  * **(b) The target is reached.**  A source value does not step
+    (`svalue-¬step`), so a typed term whose erasure steps is not a
+    value, and progress gives a step.  If that step stutters, recurse
+    on the weight.  If it does not, `erasure-step` gives a source step,
+    and source determinism (`detˢ`) makes its target the given `N`.

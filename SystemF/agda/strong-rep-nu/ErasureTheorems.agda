@@ -26,6 +26,7 @@ open import strong-rep-nu.Erasure
 import strong-rep-nu.proof.ErasureCompile as EC
 import strong-rep-nu.proof.ErasureTyping as ET
 import strong-rep-nu.proof.ErasureSim as ES
+import strong-rep-nu.proof.ErasureReflect as ER
 
 ------------------------------------------------------------------------
 -- 1. The statements
@@ -131,6 +132,9 @@ erasure-simulation = ES.erasure-sim
 
 erasure-run : ErasureRun
 erasure-run = ES.erasure-run
+
+erasure-reflection : ErasureReflection
+erasure-reflection = ER.erasure-reflection
 
 compiled-run-erases : CompiledRunErases
 compiled-run-erases = ES.compiled-run-erases

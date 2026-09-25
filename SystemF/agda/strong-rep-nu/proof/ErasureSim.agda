@@ -223,4 +223,5 @@ compiled-run-erases : ∀ {M A N}
   → (r : empty ⊢ compile d -→* N)
   → M ⟶ˢ* erase (runCtx r) N
 compiled-run-erases {N = N} d r =
-  subst (_⟶ˢ* erase (runCtx r) N) (erase-compile d) (erasure-run wf-empty (compile-closed d) r)
+  subst (_⟶ˢ* erase (runCtx r) N) (erase-compile d)
+    (erasure-run wf-empty (compile-closed d) r)

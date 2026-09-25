@@ -147,7 +147,7 @@ asking for a stronger syntactic invariant, not from a flaw in theirs.
   literature during its own development, and gained from doing so:
   - the global store (Decision 8: λB, F_C, GSF, λC∀mp);
   - the value restriction (Decision 7: λB §2.4);
-  - one boundary per value with merging (Decision 11: STA `[8]`, λS∀mp).
+  - one boundary per value with merging (Decision 10: STA `[8]`, λS∀mp).
 - **What is new.** Decisions 2, 3 and 5 have no counterpart I found, and
   they are the decisions color preservation forces. The heart of it is
   Decisions 2 and 3, which had to go together:
@@ -174,8 +174,8 @@ asking for a stronger syntactic invariant, not from a flaw in theirs.
 
 In the order a reader needs them: the boundary (1), what it binds (2–3),
 how values cross it (4–5), how the store and names are kept (6–8), the
-run-time language that results (9–12), and how it relates back to
-System F (13).  Every entry has an
+run-time language that results (9–11), and how it relates back to
+System F (12).  Every entry has an
 **example**, with its reduction steps shown; **what goes wrong without
 the decision**, in one line of history; **what the calculus does**; and
 **where to look**, followed by **Builds on** / **New here**.
@@ -701,7 +701,7 @@ type representations of intensional polymorphism (Crary, Weirich &
 Morrisett, ICFP 1998). Strong-rep-nu's representations are types in the
 store, never terms; say so once.
 
-### 4. A boundary carries a *conversion*, and crossings go inward through the dual
+### 4. A boundary carries a coercion-style *conversion*, and crossings go inward through the dual
 
 A boundary relates two types, the interior type (read inside) and the
 exterior type (read outside), by an explicit **conversion**, built leaf
@@ -711,6 +711,34 @@ When a function wrapped in a boundary is applied, the argument
 **crosses** inward, wrapped in the **dual** scope with the domain
 conversion, and the result stays wrapped in the codomain conversion
 (`Wrap`).
+
+**Coercions, not casts.**  The conversions are *coercions* in the sense
+of coercion calculi: a small syntax of combinators with a typing
+judgement `Δ ⊢ c ∶ A ⇝ B`, following the polymorphic coercion calculi of
+Igarashi and colleagues (λC∀, Ozaki, Sekiyama & Igarashi, Scheme 2021;
+λC∀mp, Igarashi, Ozaki, Sekiyama & Tanabe, PLDI 2024):
+
+    λC∀        c, d ::= id_A | G! | G?p | c → d | c ; d | ∀X.c      Γ ⊢C c : A ⇝ B
+    λC∀mp      … plus concealment α⁻ and revelation α⁺
+    here       c, d ::= id A | c ↦ d | ∀X.c | seal X | unseal X     Δ ⊢ c ∶ A ⇝ B
+
+The function coercion is contravariant in its domain in both
+(`(Ct_Arrow)` there, `conv-fun` here), and `∀X.c` is `(Ct_Cabs)`.  What
+differs:
+- **No `★`.** There are no injections or projections; `seal X` and
+  `unseal X` play the roles of `α⁻` and `α⁺`.
+- **Names, not store names.** `seal X` names a lexical type variable,
+  resolved through the name map (Decision 6), where `α⁻` names a store
+  name.
+- **No syntactic sequence.** Composition is a function on normal forms
+  (Decision 10), as in λS's `s # t`, rather than a coercion `c ; d`.
+
+The alternative was a *cast* between two types, `⟨A ⇒ B⟩`, as in BfA
+and λB, or GSF's *evidence*.  A cast names only its two endpoints, so
+it cannot say, leaf by leaf, which variable a position seals or
+unseals, and a boundary's crossings need exactly that.  Coercions are
+also what make normal forms and composition, and so `Merge`,
+possible.
 
 **Example:** the `Wrap` step of §1a above.  `7 : ℕ` must become an `X`
 inside, so it gets `⟪ ↓X , seal X ⟫`: the dual `↓X` of `↥X`, with the
@@ -731,6 +759,12 @@ configurations where the term did not determine the relationship
   (`DECISIONS.md`, 2026-09-06).
 
 **Builds on.**
+- **The coercion calculi of Igarashi and colleagues** supply the
+  grammar and the typing judgement (above): λC∀ (Ozaki, Sekiyama &
+  Igarashi, Scheme 2021), and λC∀mp / λS∀mp (Igarashi, Ozaki, Sekiyama
+  & Tanabe, PLDI 2024). Behind them are Henglein's coercions (1994) and
+  Siek, Thiemann & Wadler's blame-aware coercion calculus λC/λS
+  (PLDI 2015), which the repo's GTLC follows.
 - **Conversions.** The name and the idea are λB's: `=+α⇒` / `=−α⇒`,
   which BfA called static casts. λC∀mp's concealment `α⁻` / revelation
   `α⁺` "correspond to static casts in [BfA], conversions in [λB], and
@@ -1075,7 +1109,10 @@ keeps PolyGν's explicit, arbitrary conversion (`⊢ν` accepts any `c`
 whose types line up), and has the compiler write it once:
 `⟦L[A]⟧ = ν X:=A · ⟦L⟧ ⟨revealₓ(C)⟩`.
 
-### 10. Conversions are tight normal forms, in three sorts
+### 10. One boundary per value: conversions are tight normal forms, and `Merge` composes them
+
+This is one decision in two halves.  Conversions are kept in **normal
+form**, in three sorts:
 
     g ::= id A | c ↦ d | ∀X.c                 middle
     t ::= g | seal X | t ; seal X             tail   (left-associated seal chain)
@@ -1084,36 +1121,20 @@ whose types line up), and has the compiler write it once:
 These come with `NoCancel` (no `unseal X` directly before a bare
 `seal X`) and non-identity chains only.
 
-**Why:** composition must return *the* result, so that reduction stays
-deterministic (`det`), and the value classification must be syntactic.
-Inert tails are values and the one active tail, `id` at a base type, is
-removed by `Id`.  Without `NoCancel`, `unseal X ; seal X` would be a
-second spelling of an identity at `X`.
+The normal forms exist *so that composition is easy to define*.
+`Δ ⊢ c₁ ⨟ c₂` is a total function whose result is again a tight normal
+form, defined by cases on the sorts: a seal chain meets an unseal chain
+at the middle, `seal X` meets `unseal X` and cancels, and identities are
+absorbed.  With composition in hand, a value carries **at most one
+boundary**: a boundary directly over a value's boundary is a redex of
+`Merge`, which concatenates the two scopes and **composes** the two
+conversions (`Δ ⊢ c₁ ⨟ c₂`).
 
-**Example:** step 3 of the Merge excerpt, `(seal Z ; seal Y) ⨟ unseal Y =
-seal Z`, which is only well defined because chains associate as above.
-
-**Builds on.** The three sorts follow λS∀mp's (and Siek, Thiemann &
-Wadler's) space-efficient schema `(G₁?p ;)? (⊥p | (g (; G₂!)?))`: an
-optional projection, a ground middle, and an optional injection.
-Strong-rep-nu's `c ::= unseal X ; c`, `g` and `t ::= t ; seal X` have
-the same layout, with **unseals in the projection position and seals in
-the injection position**. The repo lineage is GTLC's normal forms with
-GTPLC's chain association (`MergeSketch.md`).
-
-**New here.**
-- Seals and unseals are part of the normal form. λS∀mp chose to leave
-  concealment and revelation implicit, because "concealment and
-  revelation make it complicated to discuss space efficiency formally"
-  (§4).
-- Chains of several seals are possible, through aliases, where `★`
-  admits one tag.
-
-### 11. One boundary per value, and `Merge` composes conversions
-
-A value carries at most one boundary.  A boundary directly over a
-value's boundary is a redex of `Merge`, which concatenates the two
-scopes and **composes** the two conversions (`Δ ⊢ c₁ ⨟ c₂`).
+Tightness also keeps reduction deterministic (`det`) and makes the value
+classification syntactic.  Inert tails are values, and the one active
+tail, `id` at a base type, is removed by `Id`.  Without `NoCancel`,
+`unseal X ; seal X` would be a second spelling of an identity at `X`, and
+composition would have two answers.
 
 **Without it:** we tried letting boundaries pile up, with special rules
 for particular pairs (`CancelR`, `IdPush`); the census found up to 11
@@ -1157,6 +1178,14 @@ representations, whereas `Merge` composes name-carrying conversions and
 reads a representation only where `seal Z` meets `unseal Z`, by lookup.)
 
 **Builds on.**
+- **The normal forms.** The three sorts follow λS∀mp's (and Siek,
+  Thiemann & Wadler's) space-efficient schema
+  `(G₁?p ;)? (⊥p | (g (; G₂!)?))`: an optional projection, a ground
+  middle, and an optional injection. Strong-rep-nu's `c ::= unseal X ; c`,
+  `g` and `t ::= t ; seal X` have the same layout, with **unseals in the
+  projection position and seals in the injection position**. The repo
+  lineage is GTLC's normal forms with GTPLC's chain association
+  (`MergeSketch.md`).
 - **The invariant is the space-efficiency one.** λS∀mp states it
   exactly: "a value is wrapped by at most one coercion and the hole in a
   frame never appears under coercion applications" (§4.2), after
@@ -1170,8 +1199,15 @@ reads a representation only where `seal Z` meets `unseal Z`, by lookup.)
   every step, and is the closest relative in *how* `Merge` works.
 - **STA's `[8]` merges nested embeddings** with an ordered list.
 
-**New here.** Composition of name-carrying conversions at a merged
-frame, keeping both scopes (`Θ₂ ++ Θ₁`).
+**New here.**
+- Seals and unseals are part of the normal form. λS∀mp chose to leave
+  concealment and revelation implicit, because "concealment and
+  revelation make it complicated to discuss space efficiency formally"
+  (§4).
+- Chains of several seals are possible, through aliases, where `★`
+  admits one tag.
+- Composition of name-carrying conversions at a merged frame, keeping
+  both scopes (`Θ₂ ++ Θ₁`).
 
 **An open question, with a candidate answer.** Ozaki, Sekiyama &
 Igarashi (Scheme 2021) prove that λC∀ is not space-efficient (Thm 6).
@@ -1190,7 +1226,7 @@ Igarashi (Scheme 2021) prove that λC∀ is not space-efficient (Thm 6).
   al.'s argument transfers. Without `fix`, every run terminates, so
   chains are bounded, but no bound is proved.
 
-### 12. Hygiene: one live name per representation variable, and `WfCtx`
+### 11. Hygiene: one live name per representation variable, and `WfCtx`
 
 A well-formed context has no representation variable with two live
 names (`Unique (names Δ)`).  Preservation takes `WfCtx Δ`.
@@ -1219,7 +1255,7 @@ Decision 3.
 
 ---
 
-### 13. Erasure: a run is a System F run with stutters
+### 12. Erasure: a run is a System F run with stutters
 
 Strong-rep-nu is related back to plain System F by an **erasure**
 `⌊M⌋_Δ`, a function of the context and the term (`Erasure.agda`):
@@ -1370,7 +1406,7 @@ otherwise.
 - *Blame and Coercion: Together Again for the First Time* (Siek,
   Thiemann & Wadler, PLDI 2015) and *Space-Efficient Gradual Typing*
   (Herman, Tomb & Flanagan, TFP 2007 / HOSC 2010) **(not read)**: normal
-  forms and "one coercion per value" (Decisions 10–11).
+  forms and "one coercion per value" (Decision 10).
 - *Parameterized Cast Calculi and Reusable Meta-theory for Gradually
   Typed Lambda Calculi* (Siek & Chen, JFP 2021) **(read, previously;
   `notes/ParameterizedCastCalculi.md`)**.
@@ -1412,7 +1448,7 @@ otherwise.
   BfA's erasure `(νX:=A.t)° = t°[X:=A]` makes the analogy exact.
   - Consequence, now done: strong-rep-nu has the corresponding **erasure
     theorem** into System F, as BfA (Prop. 1) and STA (Lemma 5.8, Thm
-    5.10) do. It is Decision 13.
+    5.10) do. It is Decision 12.
 - **Residual theory** (Lévy's labelled λ-calculus; Huet & Lévy). The
   `Residuals` relation behind `ScopeMapPreservation` is a residual
   tracing, and naming it as such would help readers.

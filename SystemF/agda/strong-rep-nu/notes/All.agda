@@ -41,3 +41,9 @@ open import strong-rep-nu.notes.StackCensus
 -- ported.  Without the `↓U` that `Wrap`'s dual adds, an argument ill
 -- scoped where it was written becomes well typed inside a `↥U` boundary.
 open import strong-rep-nu.notes.DualTightness
+
+-- ERASURE TO THE SOURCE (2026-09-25): the erasure ⌊_⌋ to plain System F,
+-- a source reduction, the typing/simulation statements (unproved),
+-- EraseCompile (proved), and checks on every compiled run
+-- (notes/ErasureSketch.md).
+open import strong-rep-nu.notes.ErasureProbe

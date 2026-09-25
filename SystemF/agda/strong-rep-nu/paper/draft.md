@@ -49,6 +49,10 @@ The argument was authored where `Y` did not exist and now sits under
 `ΛY`.  Harmless for `7`, but for a polymorphic argument it is the same
 failure one level up (Decision 4).
 
+[TODO: We're going to ignore color for contants, so we should replace
+the 7 in the example with a slightly larger term, perhaps an identity 
+function on nat.]
+
 The rest of the list is what it takes to repair these two recolorings
 without losing type safety.
 

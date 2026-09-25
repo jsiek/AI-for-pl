@@ -6,8 +6,9 @@ An in-depth comparison of the FINAL Strong System F design (`Design.md`,
 
 > Dan Grossman, Greg Morrisett and Steve Zdancewic, *Syntactic Type
 > Abstraction*, TOPLAS 22(6), November 2000, pp. 1037–1080.
-> In tree as `p1037-grossman.pdf` (printed page = PDF page + 1036).
-> The ICFP'99 precursor is `p197-zdancewic.pdf`.
+> In tree as `papers/grossman2000-syntactic-type-abstraction.pdf`
+> (printed page = PDF page + 1036).  The ICFP'99 precursor is
+> `papers/zdancewic1999-principals-in-programming-languages.pdf`.
 
 Below, **STA** means that paper.  Page numbers are printed pages.
 

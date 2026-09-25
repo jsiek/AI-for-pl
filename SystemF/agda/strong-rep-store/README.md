@@ -339,9 +339,11 @@ All ten are gated by `notes/All.agda`, which `All.agda` opens last, so
 and `CancelRShiftWall`.  The index above lists the main notes, not
 every file in the directory.
 
-Three PDFs sit at the top level for the digests above:
-`parameterized-cast-calculi-…pdf`, `p197-zdancewic.pdf`,
-`p1037-grossman.pdf`.
+The PDFs for the digests above are in the repo-level `papers/`
+directory (index: `papers/README.md`):
+`siek2021-parameterized-cast-calculi.pdf`,
+`zdancewic1999-principals-in-programming-languages.pdf`,
+`grossman2000-syntactic-type-abstraction.pdf`.
 
 ## Where to go next
 

@@ -51,6 +51,13 @@ The `.codex-*/` worktree and runner-state directories are NOT user-edited workin
 
 When you see `BLOCKED[Wxx][Hyy]: …` or `BLOCKED[Wxx][Ryy]: …` comments inside Agda files, those are reports from per-hole worker runs that gave up on a goal; the runner uses them to triage progress.
 
+## Paper PDFs
+
+PDFs of related work live in the repo-level `papers/`, named
+`firstauthorYEAR-short-title.pdf`; `papers/README.md` is the index
+(citation, license, which notes use each).  Put new paper PDFs there
+rather than next to the development that cites them.
+
 ## Bibliography reference
 
 `/Users/jsiek/bib/all.bib` is the user's PL bib catalog and `/Users/jsiek/bib/Types_and_Programming_Languages.pdf` is referenced by many TODO items as the source for language designs. These live outside the repo — read them only when a task explicitly points at them.

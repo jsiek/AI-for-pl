@@ -1,7 +1,7 @@
 # Digest: Siek & Chen, "Parameterized Cast Calculi and Reusable Meta-theory
 # for Gradually Typed Lambda Calculi" (JFP 31(e30), 2021) — read 2026-09-04
 
-PDF: `strong-rep-var/parameterized-cast-calculi-and-reusable-meta-theory-for-gradually-typed-lambda-calculi.pdf`.
+PDF: `papers/siek2021-parameterized-cast-calculi.pdf`.
 Why we read it: Jeremy pointed at it during Decision 6 — reveals/conceals
 are analogous to casts, and the paper's ACTIVE/INERT classification is the
 principled version of the value-vs-reduction-rule choices we were making ad

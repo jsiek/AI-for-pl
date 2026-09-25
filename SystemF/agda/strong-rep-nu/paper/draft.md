@@ -126,7 +126,9 @@ asking for a stronger syntactic invariant, not from a flaw in theirs.
 - **What color preservation adds.** To keep a body's color, `X` itself
   must stay in the body. Most of these calculi replace `X` by the fresh
   name `α`, which is harmless for parametricity but changes which
-  variables the body is read with. BfA's `ν` and PolyGν's `X ≅ A` keep
+  variables the body is read with. And since their store names may
+  appear in types anywhere, each allocation also adds `α` to the color
+  of every other subterm. BfA's `ν` and PolyGν's `X ≅ A` keep
   `X`, but there the type variable *is* the name: one sort does both
   jobs.
 - **The new piece: representation variables reached through a name
@@ -166,8 +168,9 @@ asking for a stronger syntactic invariant, not from a flaw in theirs.
 ## The design decisions, in narrative order
 
 In the order a reader needs them: the boundary (1), what it binds (2–3),
-how values cross it (4–5), how the store and names are kept (6–8), and
-the run-time language that results (9–12).  Every entry has an
+how values cross it (4–5), how the store and names are kept (6–8), the
+run-time language that results (9–12), and how it relates back to
+System F (13).  Every entry has an
 **example**, with its reduction steps shown; **what goes wrong without
 the decision**, in one line of history; **what the calculus does**; and
 **where to look**, followed by **Builds on** / **New here**.
@@ -424,20 +427,32 @@ outside `ΛX`, so its color is `{}`.
          → Σ,α:=ℕ⇒ℕ ▷ ((λx:α. x) : α⇒α =+α⇒ (ℕ⇒ℕ)⇒(ℕ⇒ℕ)) (λn:ℕ. n)
          → … ((λx:α. x) ((λn:ℕ. n) : ℕ⇒ℕ =−α⇒ α)) : α =+α⇒ ℕ⇒ℕ
 
-   The argument keeps color `{}`, but only because the *body* lost `X`
-   at type application: it is now read with a store name `α` in place
-   of its own binder.
+   A store name is a type variable here: `α` may appear in any type
+   anywhere in the program (λB types terms at `Σ; Δ; Γ`, and GSF's
+   well-formed types are those whose "type names [are] bound in a
+   well-formed type name store").  So the color of a position includes
+   the store names.  Allocating `α` recolors *every* subterm, whether or
+   not it crosses anything:
+   - the body goes from `{X}` to `{α}`: the same size, but it is read
+     with a store name in place of its own binder;
+   - the argument `λn:ℕ. n` goes from `{}` to `{α}`: it gains `α` just by
+     existing after the allocation.
 
 **The dichotomy.**
 
 | design | body at type β | argument crossing in |
 |---|---|---|
-| rename `X` to a store name (λB, GSF, λC∀mp) | recolored | fine: nothing is in `X`'s scope any more |
+| rename `X` to a global store name (λB, GSF, λC∀mp) | recolored, `{X}` → `{α}` | recolored, gains `α` (every allocation recolors every subterm) |
 | keep the binder, no unbinding change (BfA) | keeps `X` (but `NUWRAP` rewrites annotations) | recolored, gains `X` |
 | keep the binder, and `↓X` (strong-rep-nu) | keeps `X` | keeps its color |
 
 So `↓X` is exactly the price of not renaming, and it is the reason the
-change list needs unbinds as well as binds. The same holds for term
+change list needs unbinds as well as binds.  Renaming does not escape
+the problem either, once store names count as type variables: a global
+store of names recolors everything at each allocation.  Strong-rep-nu's
+store is just as global, but its representation variables never appear
+in types (types mention only the lexical names of the name map), so an
+allocation changes no color (Decisions 2 and 8). The same holds for term
 substitution: frame-exact `Beta`'s `↓Y` ends `ΛY`'s scope for a value
 planted under it (Decision 5).
 
@@ -888,6 +903,11 @@ representation is, and `Γ` says *whether* this position may name it.
   to traditional formulations of parametricity [Reynolds 1983]" (§1).
 
 **New here.**
+- **Allocation changes no color.** A representation variable never
+  appears in a type: types mention only the lexical names of the name
+  map. So allocating a cell, which in λB, GSF or λC∀mp would add a new
+  type variable to the color of every subterm, changes no position's
+  color here (Decision 3's worked example).
 - **What the store holds.** It holds *representations* only, while
   names stay lexical in the name map. That combines the global store's
   simplicity with the lexical scoping Plausible Sealing argues for, and
@@ -1154,6 +1174,80 @@ Decision 2.
 
 ---
 
+### 13. Erasure: a run is a System F run with stutters
+
+Strong-rep-nu is related back to plain System F by an **erasure**
+`⌊M⌋_Δ`, a function of the context and the term (`Erasure.agda`):
+
+    ⌊ΛX. N⌋_Δ          = ΛX. ⌊N⌋_under(X,α,Δ)
+    ⌊νX:=A · L ⟨c⟩⌋_Δ  = ⌊L⌋_Δ [⌊A⌋_Δ]
+    ⌊M ⟪ Θ , c ⟫⌋_Δ    = ⌊M⌋_inside(Δ,Θ)          conversions are dropped
+
+A type variable erases to what it denotes. The name map takes it to a
+representation variable, and the store resolves that, alias cells
+included, to either a concrete type or a cell created by a `Λ`. Cells
+created by a `Λ` become source type variables; there are `srcScope Ξ` of
+them.
+
+**Example:** the §1a run of Decision 1 and its erasure, state by state.
+The erasures are computed by hand here; `P-rows` in
+`notes/ErasureProbe.agda` checks the same classification by `refl`.
+
+    run-time step          erasure of the new state
+    ─────────────          ───────────────────────────────
+    (start)                (ΛX. λx:X. x) [ℕ] · 7
+      --[TyBeta]-->        (λx:ℕ. x) · 7                 one source step
+      --[Wrap]-->          (λx:ℕ. x) · 7                 unchanged
+      --[Beta]-->          7                             one source step
+      --[Merge]-->         7                             unchanged
+      --[Id]-->            7                             unchanged
+
+The source run is `(ΛX. λx:X. x) [ℕ] · 7 ⟶ˢ (λx:ℕ. x) · 7 ⟶ˢ 7`. The
+boundary machinery (`Wrap`, `Merge`, `Id`) is invisible after erasure.
+
+**The theorems** (`ErasureTheorems.agda`, all proved, 2026-09-25):
+- **Typing** (`erasure-typing`): if `WfCtx Δ` and `Δ ∣ Γₜ ⊢ M : A`,
+  then `srcScope Ξ ∣ ⌊Γₜ⌋ ⊢ˢ ⌊M⌋ : ⌊A⌋`.
+- **Simulation**, by rule:
+  - a *stutter* (`Wrap`, `Merge`, `Id`, or a congruence around one)
+    leaves the erasure unchanged (`erasure-stutter`);
+  - every other step (`TyBeta`, `Beta`, `TyWrap`) is exactly one source
+    step (`erasure-step`).
+
+  Their consequences are `erasure-simulation`, `erasure-run` and
+  `compiled-run-erases`: a compiled program's run erases to its own
+  source run.
+- **Reflection** (`erasure-reflection`): every source step of an
+  erasure is matched by a run. Stutters terminate: a boundary weighs 1,
+  an application weighs 3·(operator) + (operand) + 1, and `Wrap`,
+  `Merge` and `Id` each strictly decrease the weight.
+- **Compile then erase** (`erase-compile`): `⌊compile d⌋ = M`.
+
+**Without it:** no theorem connects the calculus back to System F. The
+boundaries could, for all the other theorems say, change a program's
+result.
+
+**Builds on.**
+- **Blame for All's Prop. 1** is the model. Its erasure,
+  `(νX:=A.t)° = t°[X:=A]`, preserves types, and "if s ⟼ s′ then either
+  s° = s′° or s° ⟼ s′°". `erasure-simulation` is that statement for
+  strong-rep-nu.
+- **STA's erasure** (Lemma 5.8, Thm 5.10) is what licenses calling its
+  embeddings "only a proof technique" (p.1054). Erasure does the same
+  for strong-rep-nu's boundaries.
+
+**New here.**
+- **The split by rule.** Stutters are exactly `Wrap`, `Merge` and `Id`,
+  and every other step is exactly one source step.
+- **Reflection,** the converse, which Blame for All does not state.
+- **Compile then erase is the identity.** Together with
+  `compiled-run-erases`, this says that compiling System F to
+  strong-rep-nu and running it is running System F, with the boundary
+  steps interleaved.
+- **Erasure through the name map and the store.** A type variable is
+  resolved through its name and an alias chain, never by substitution
+  at run time.
+
 ## Examples still to find or render
 
 * A **single running example** that exercises Decisions 1–5 at once.
@@ -1273,16 +1367,7 @@ otherwise.
   BfA's erasure `(νX:=A.t)° = t°[X:=A]` makes the analogy exact.
   - Consequence, now done: strong-rep-nu has the corresponding **erasure
     theorem** into System F, as BfA (Prop. 1) and STA (Lemma 5.8, Thm
-    5.10) do (`ErasureTheorems.agda`, 2026-09-25). Erasure `⌊M⌋_Δ` drops
-    boundaries and conversions, turns `ν X:=A · L ⟨c⟩` into `⌊L⌋ [⌊A⌋]`,
-    and reads each type variable through the name map and the store. It
-    preserves typing (`erasure-typing`, at `srcScope`, the number of
-    source type variables in scope). A *stutter* step (`Wrap`, `Merge`,
-    `Id`) leaves the erasure unchanged (`erasure-stutter`), and every
-    other step is exactly one source step (`erasure-step`). Every source
-    step of an erasure is matched by a run (`erasure-reflection`), and
-    `⌊compile d⌋ = M` (`erase-compile`). This is a result worth stating
-    in the paper, alongside color preservation.
+    5.10) do. It is Decision 13.
 - **Residual theory** (Lévy's labelled λ-calculus; Huet & Lévy). The
   `Residuals` relation behind `ScopeMapPreservation` is a residual
   tracing, and naming it as such would help readers.

@@ -139,10 +139,18 @@ asking for a stronger syntactic invariant, not from a flaw in theirs.
   - the global store (Decision 8: λB, F_C, GSF, λC∀mp);
   - the value restriction (Decision 7: λB §2.4);
   - one boundary per value with merging (Decision 10: STA `[8]`, λS∀mp).
-- **What is new.** Decisions 3, 4 and 5 (change-list scopes that mask
-  instead of dropping, frame-exact `Beta`, and representation variables
-  behind a name map) have no counterpart I found, and they are the
-  decisions color preservation forces. In one sentence: *strong-rep-nu
+- **What is new.** Decisions 3, 4 and 5 have no counterpart I found, and
+  they are the decisions color preservation forces. The heart of it is
+  Decision 3 together with Decision 5.
+  - **Decision 3:** boundary scopes are change lists in which `↥X` is a
+    *binder* for type variables that names an existing representation,
+    and `↓X` ends a scope. Every type variable therefore has a lexical
+    binder at every point of a run, and every rule moves or inverts
+    binders instead of substituting.
+  - **Decision 5:** representation variables behind a name map, which
+    let a binder name an existing representation at all.
+  - **Decision 4:** frame-exact `Beta`, which is that same principle
+    applied to term substitution. In one sentence: *strong-rep-nu
   takes the λB/STA design and adds a name map, so that type application
   no longer needs to rename.*
 
@@ -299,6 +307,61 @@ A boundary carries a **sequence** `Θ` of changes, `↓X` (unbind) and
 boundary's current position**.  An unbind deletes one name and keeps
 every other one, including names bound *after* `X`.
 
+**Why this decision is central to color preservation: `↥X` is a
+binder.**  A change list is best read as a *scope transformer*. It says
+how the scope inside a boundary is obtained from the scope outside it,
+one change at a time (`Boundary.agda` §3, `_⊢ⁱ_⇒_`):
+
+    ↥X   binds the type variable X, for the boundary's interior, to a
+         representation variable α that has no live name
+    ↓X   ends the scope of X for the interior; α stays in the store
+
+So `↥X` is a **binder for type variables**, on the same footing as
+`ΛX` and `∀X`. The difference is what it binds to: `ΛX` introduces `X`
+together with a *fresh, abstract* α, while `↥X` gives an *existing*
+representation variable a name. `↓X` is its inverse, a binder's scope
+coming to an end at a chosen position. That makes three kinds of
+type-variable binder in strong-rep-nu (`∀X` in types, `ΛX` in terms,
+`↥X` in boundary scopes), plus the `X` that `ν X:=A · L ⟨c⟩` binds in
+`c`.
+
+This is what turns color into a syntactic property. Every occurrence
+of a type variable, at every point in a run, has a lexical binder, and
+the color of a position is computed by walking from the root to that
+position through the `Λ`s and boundary scopes on the way. That walk is
+the frame judgment `Δ ⊢C C ⊣ Δ′` behind `ScopeMapPreservation`.
+Reduction preserves color because each rule *moves a binder* or
+*inserts its inverse*, and never substitutes. Each rule below has a
+frame lemma saying its new frame reads back to the old scope:
+
+- **`TyBeta`** replaces the `ΛX` binder by a `↥X` binder. In the named
+  presentation, `ν X:=A · (ΛX.V) ⟨c⟩ → V ⟪ ↥X , c ⟫`. `V` is still read
+  with `X` in scope, now bound by the boundary to the new cell α := R
+  (`inst-interior`, `TyBeta-interior`).
+- **`Wrap`** sends the argument into the interior under `dual Θ`, the
+  inverse change list, so the argument is read in exactly the scope it
+  came from (`dual-interior`: `Γ ⊢ⁱ Θ ⇒ Γᵢ → Γᵢ ⊢ⁱ dual Θ ⇒ Γ`).
+- **`Beta`** wraps a value it substitutes under `ΛY` in `↓Y`, the
+  inverse of the binder it crossed (Decision 4; `crossΛ-interior`).
+- **`TyWrap`** reads the crossed scope `Θ` one binder in, under the new
+  `↥X` (`liftᴮ-interior`).
+- **`Merge`** concatenates the two scopes, which reads the inner frame
+  after the outer, on the same store (`merged-interior`).
+
+Without change lists there is nothing to move and nothing to invert,
+and the only way to express a new scope is to substitute.
+
+`↥X` also buys two things the other binders cannot express:
+- **Re-naming an existing representation.** `⟪ ↓X , ↥Y ⟫` hides `X` and
+  names the *same* α as `Y` for the interior: a boundary that
+  α-converts. The alias chains of Example 5b (`↥X , ↓Y`) are built this
+  way.
+- **The conversion reads both sides.** The *conversion context* performs
+  every `↥` and skips every `↓` (`conv-bind`, `conv-bind-live`), so a
+  conversion can mention the names of both sides of the boundary.
+  That is why `seal X` / `unseal X` can relate an interior `X` to an
+  exterior representation.
+
 **Example: the pre-boundary counterexample** (Jeremy's trace; `Design.md`
 §1; §5a is today's version):
 
@@ -342,13 +405,37 @@ three times the design died of dropping something.  Candidate slogan:
 - **BfA's local bindings sit at a position**, which is what makes a
   "mask here, keep the rest" discipline meaningful at all.
 
-**New here.**
+**New here.** This is one of the two most novel parts of strong-rep-nu,
+with Decision 5, and the paper should present it as a contribution.
+- **A binder that does not allocate, and an unbinder.** In the calculi
+  above, the construct that binds a type name also creates it:
+  - BfA's `νX:=A. t`, λN's `Nγ≈τ. e`, Neis et al.'s `new α≈τ in e` and
+    PolyGν's `X ≅ A` each bind a name *and* its representation at one
+    place;
+  - the binding then scopes over the whole body;
+  - none can end a name's scope partway through a term, or give an
+    already existing representation a new name.
+
+  `↥X` binds a name to an existing representation variable, which is
+  possible only because names and representations are separate
+  (Decision 5), and `↓X` ends a scope at a chosen position.
+- **Color is read off the binders.** Because every type variable has a
+  lexical binder at every point of a run, and every rule moves or
+  inverts binders, color preservation is a statement about scopes. The
+  proof is one frame lemma per rule, where a proof by substitution would
+  have to reason about what each substitution did.
 - **Unnameability as well as opacity.** STA's abstraction is by opacity
   (`t ∉ Dom(δᵢ)`), and its `Θ` is used only for freshness ("Θ is unused
   by the new version of the old rules", p.1072). A change list that
   masks one name and keeps the rest has no counterpart that I found.
   `notes/TypeAbstractionComparison.md` §§2, 11 compare the two in
   detail; that note predates the store and `Merge`.
+- **A connection worth naming (from memory):** a change list is an
+  explicit *context morphism* between the exterior and interior type
+  contexts. The Agda relation was called `CtxMorph` until 2026-09-21.
+  It is in the spirit of explicit substitutions (λσ's shift `↑` and lift
+  `⇑`), but it acts on the type context and is never pushed into the
+  term.
 
 ### 4. Frame-exact term substitution
 

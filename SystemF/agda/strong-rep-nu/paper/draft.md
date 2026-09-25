@@ -1271,9 +1271,18 @@ otherwise.
 - **Explicit substitutions** (Abadi, Cardelli, Curien & Lévy, λσ, 1991).
   A boundary is a type substitution that is never pushed through, and
   BfA's erasure `(νX:=A.t)° = t°[X:=A]` makes the analogy exact.
-  - Consequence: strong-rep-nu should probably prove the corresponding
-    **erasure theorem** into System F. BfA (Prop. 1) and STA (Lemma 5.8,
-    Thm 5.10) both have one; strong-rep-nu does not.
+  - Consequence, now done: strong-rep-nu has the corresponding **erasure
+    theorem** into System F, as BfA (Prop. 1) and STA (Lemma 5.8, Thm
+    5.10) do (`ErasureTheorems.agda`, 2026-09-25). Erasure `⌊M⌋_Δ` drops
+    boundaries and conversions, turns `ν X:=A · L ⟨c⟩` into `⌊L⌋ [⌊A⌋]`,
+    and reads each type variable through the name map and the store. It
+    preserves typing (`erasure-typing`, at `srcScope`, the number of
+    source type variables in scope). A *stutter* step (`Wrap`, `Merge`,
+    `Id`) leaves the erasure unchanged (`erasure-stutter`), and every
+    other step is exactly one source step (`erasure-step`). Every source
+    step of an erasure is matched by a run (`erasure-reflection`), and
+    `⌊compile d⌋ = M` (`erase-compile`). This is a result worth stating
+    in the paper, alongside color preservation.
 - **Residual theory** (Lévy's labelled λ-calculus; Huet & Lévy). The
   `Residuals` relation behind `ScopeMapPreservation` is a residual
   tracing, and naming it as such would help readers.
@@ -1299,9 +1308,9 @@ the repo.
   example E" per decision.
 * **Decisions 7 and 8** (value restriction, global store) count as design
   decisions.
-* **Erasure theorem:** a design-and-statement pass is under way (statements
-  for review before any proof).
+* **Erasure theorem:** statements reviewed and all proved; merged to `main`
+  (2026-09-25).
 
 ## Open questions for the draft
 
-* **Erasure theorem statements:** to review when the design pass reports.
+None at the moment.

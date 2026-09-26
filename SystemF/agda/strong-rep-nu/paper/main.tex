@@ -1,4 +1,4 @@
-%% PLDI 2027 submission for strong-rep-nu (Strong System F).
+%% PLDI 2027 submission for strong-rep-nu.
 %%
 %% Class options follow the PLDI call for papers (PLDI 2026 wording; the
 %% PLDI 2027 call was not yet posted on 2026-09-25): the PACMPL `acmsmall'
@@ -10,9 +10,168 @@
 %% acmart-v2.20/acmsmall-conf.tex.
 \documentclass[acmsmall,screen,review,anonymous,nonacm]{acmart}
 
+\usepackage{semantic} % defines \inference
+\usepackage{stmaryrd} % defines \fatsemi
+
+\newcommand{\id}[1]{\key{id}(#1)}
+\newcommand{\dual}[1]{#1^\mathrm{op}}
+\newcommand{\seal}[1]{\key{seal}(#1)}
+\newcommand{\unseal}[1]{\key{unseal}(#1)}
+\newcommand{\becomes}{\longrightarrow}
+\newcommand{\of}{{:}}
+\newcommand{\tu}{{\to}}
+\newcommand{\lam}[1]{\lambda #1 \dotspace}
+\newcommand{\Lam}[1]{\Lambda #1 \dotspace}
+\newcommand{\all}[1]{\forall #1 \dotspace}
+\newcommand{\app}{\;}
+\newcommand{\Let}{\key{let}\:}
+\newcommand{\In}{\:\key{in}\:}
+\newcommand{\Int}{\key{Int}}
+\newcommand{\Bool}{\key{Bool}}
+\newcommand{\True}{\key{true}}
+\newcommand{\False}{\key{false}}
+\newcommand{\by}{{:=}}
+\newcommand{\src}[1]{\meta{src}(#1)}
+\newcommand{\trg}[1]{\meta{trg}(#1)}
+\newcommand{\dom}{\key{dom}}
+\newcommand{\rng}{\key{rng}}
+\newcommand{\key}[1]{\mathtt{#1}}
+\newcommand{\op}{\mathit{op}}
+\newcommand{\dotspace}{.\,}
+\newcommand{\comma}{,\,}
+\newcommand{\sem}[1]{[\![#1]\!]}
+\newcommand{\nuinst}[4]{\nu #1\by #2 \dotspace (#3 \app #1) \langle #4 \rangle}
+\newcommand{\boundry}[3]{\left[#2\right] #1 \langle #3 \rangle}
+
+\newcommand{\black}[1]{{\color{black} #1}}
+\newcommand{\gray}[1]{{\color{lightgray} #1}}
+\definecolor{lightgray}{gray}{0.5}
+
+\newcommand{\ba}{\begin{array}}
+\newcommand{\ea}{\end{array}}
+\newenvironment{stack}{\ba{@{}l@{}}}{\ea}
+\newenvironment{branch}{\left\{\ba{@{}l@{\qquad}l@{}}}{\ea\right\}}
+\newenvironment{syntax}{\[\ba{l@{\qquad}lcl}}{\ea\]}
+\newenvironment{example}{\[\ba{l@{\:}l}}{\ea\]}
+
+\newcommand{\labeltag}[1]{\label{#1}\tag{\textsc{#1}}}
+\newcommand{\tagsc}[1]{\tag{\textsc{#1}}}
+
+
+\newcommand{\fignuf}{
+\begin{figure*}[t]
+Syntax
+
+\begin{minipage}[t]{0.5\textwidth}
+\begin{syntax}
+  \text{Variables} & x,y  \\
+  \text{Constants} & k &::=&
+    \key{0} \mid \key{1} \mid \cdots \mid \True \mid \False \mid \cdots \\
+  \text{Operators} & \op &::=& \key{+} \mid \key{\leq} \mid \cdots \\
+  \text{Base types} & K & ::= & \Int \mid \Bool \\
+  \text{Type variables} & X,Y,Z \\
+  \text{Rep. variables} & \alpha,\beta 
+\end{syntax}
+\end{minipage}
+\begin{minipage}[t]{0.5\textwidth}
+\begin{syntax}
+  \text{Types} & A,B,C & ::= &
+     X \mid K \mid A \to B \mid \all{X} A \\
+  \text{Rep. Types} & R,S & ::= &
+    \alpha \mid X \mid K  \mid R \to S \mid \all{X} R \\
+  \text{Type environment} & \Gamma & ::= &
+    \cdot \mid \Gamma \comma x:A \\
+\end{syntax}
+\end{minipage}
+
+\begin{syntax}
+  \text{Conversion} & c,d & ::= & t \mid \unseal{X} \mid \unseal{X} ; c \\
+  \text{Tail}   & t   & ::= & g \mid \seal{X} \mid t ; \seal{X} \\
+  \text{Middle} & g,h & ::= & \id{A} \mid c \tu d \mid \all{X} c \\
+  \text{Inert}  & i   & ::= & \id{X} \mid c \tu d \mid \all{X}c
+    \mid \seal{X} \mid t; \seal{X} \\
+\end{syntax}
+
+\begin{syntax}
+  \text{Scope Change} & \delta & ::= & \cdot \mid \delta,{+X}^\alpha \mid \delta,-X^\alpha \\
+  \text{Terms} & L,M,N & ::= &
+  k \mid \op(\vec{M}) \mid x \mid \lam{x \of A}N \mid L \app M  \\
+  & & & \Lam{X} V \mid \nuinst{X}{A}{L}{c} \mid \boundry{M}{\delta}{c} \\
+  \text{Simples} & U & ::= &
+     k \mid \lam{x \of A}N \mid \Lam{X}V \\
+  \text{Values} & V,W & ::= & U \mid \boundry{U}{\delta}{i} \\
+  \text{Frames} & F & ::= & 
+\end{syntax}
+
+Term typing \hfill \fbox{$\Gamma \vdash M:A$}
+\begin{gather*}
+  \gray{\inference
+   {k:K}
+   {\Gamma \vdash k : K}}
+  \quad
+  \gray{\inference
+   {\Gamma \vdash \vec{M} : \vec{K} & \op : \vec{K} \to K}
+   {\Gamma \vdash \op(\vec{M}\,) : K}}
+  \quad
+  \gray{\inference
+   {x:A \in \Gamma}
+   {\Gamma \vdash x : A}}
+  \\[2ex]
+  \gray{\inference
+   {\Gamma,x:A \vdash N : B}
+   {\Gamma\vdash \lam{x \of A} N : A \tu B}}
+  \quad
+  \gray{\inference
+   {\Gamma \vdash L : A \tu B & \Gamma \vdash M : A }
+   {\Gamma \vdash L \app M : B}}
+  \quad
+  \gray{\inference
+   {\Gamma \vdash L : A \tu B & \Gamma \vdash M : A }
+   {\Gamma \vdash L \app M : B}}
+\end{gather*}
+
+\begin{syntax}
+  \text{Representation Context} & \Xi & ::= & \cdot \mid \Xi, \alpha \by R \\
+  \text{Context Change} & \xi & ::= & \epsilon \mid \alpha := R 
+\end{syntax}
+
+Reduction
+ \hfill \fbox{$\Xi \vdash M \becomes N \dashv \xi $}
+\begin{align}
+  \Xi \vdash \op(\vec{V})
+    & \becomes~ \sem{\op}(\vec{V}) \dashv \epsilon
+    \label{Delta}\tagsc{Delta}  \\
+  \Xi \vdash (\lam{x \of A} N) \app V
+    & \becomes~ N[x \by V] \dashv \epsilon
+    \label{Beta}\tagsc{Beta}  \\
+  \Xi \vdash \boundry{U}{\delta}{c \tu d} \app W &
+    \becomes \boundry{U \app (\boundry{W}{\dual{\delta}}{c})}{\delta}{d}
+    \dashv \epsilon 
+    \label{Wrap}\tagsc{Wrap} \\
+  \Xi \vdash \nuinst{X}{A}{(\Lam{X}V)}{d} &\becomes~
+          \boundry{V}{{+X}^\alpha}{d} \dashv \alpha\by \Xi(A)
+          \label{TyBeta}\tagsc{TyBeta}\\
+   \Xi \vdash \nuinst{X}{A}{\boundry{(\Lam{X}V)}{\delta}{\all{X}c}}{d} &
+       \becomes~ \boundry{(\boundry{V}{\delta}{c})}{{+X}^\alpha}{d}
+        \dashv \alpha\by \Xi(A)
+        \label{TyWrap}\tagsc{TyWrap} \\
+   \Xi \vdash  \boundry{(\boundry{U}{\delta_1}{t_1})}{\delta_2}{c_2} &
+     \becomes~ \boundry{U}{\delta_2 \mathop{++} \delta_1}{\Xi' \vdash t_1 \fatsemi c_2}  \dashv \epsilon \label{Merge}\tagsc{Merge} \\
+     & \text{where } \Xi' = (\delta_2 \mathop{++} \delta_1)(\Xi) \notag \\
+   \Xi \vdash \boundry{U}{\delta}{\id{K}} &\becomes~ U \dashv \epsilon
+     \label{Id}\tagsc{Id}
+\end{align}
+
+
+\caption{System $\nu$F}
+\label{fig:nu-F}
+\end{figure*}
+}
+
+
 \begin{document}
 
-\title{Strong System F}  % working title
+\title{System $\nu$F: Revisiting Syntactic Type Abstraction}  % working title
 
 %% Hidden by the `anonymous' option in the submitted PDF.
 \author{Anonymous Author(s)}
@@ -27,7 +186,9 @@
 \maketitle
 
 \section{Introduction}
-% TODO: see draft.md, section 0 and "The design decisions".
+
+
+\fignuf
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}

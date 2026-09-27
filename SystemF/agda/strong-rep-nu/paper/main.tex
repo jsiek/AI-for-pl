@@ -39,7 +39,7 @@
 \newcommand{\op}{\mathit{op}}
 \newcommand{\dotspace}{.\,}
 \newcommand{\comma}{,\,}
-\newcommand{\sem}[1]{[\![#1]\!]}
+\newcommand{\sem}[1]{\llbracket #1 \rrbracket}
 \newcommand{\nuinst}[4]{\nu #1\by #2 \dotspace (#3 \app #1) \langle #4 \rangle}
 \newcommand{\boundry}[3]{\left[#2\right] #1 \langle #3 \rangle}
 
@@ -57,118 +57,178 @@
 \newcommand{\labeltag}[1]{\label{#1}\tag{\textsc{#1}}}
 \newcommand{\tagsc}[1]{\tag{\textsc{#1}}}
 
-
-\newcommand{\fignuf}{
+\newcommand{\figconv}{
 \begin{figure*}[t]
-Syntax
 
-\begin{minipage}[t]{0.5\textwidth}
+\begin{flushleft}
+Types
 \begin{syntax}
-  \text{Variables} & x,y  \\
-  \text{Constants} & k &::=&
-    \key{0} \mid \key{1} \mid \cdots \mid \True \mid \False \mid \cdots \\
-  \text{Operators} & \op &::=& \key{+} \mid \key{\leq} \mid \cdots \\
-  \text{Base types} & K & ::= & \Int \mid \Bool \\
+  \text{Base types} & K & ::= & \Int \mid \Bool  \\
   \text{Type variables} & X,Y,Z \\
-  \text{Rep. variables} & \alpha,\beta 
-\end{syntax}
-\end{minipage}
-\begin{minipage}[t]{0.5\textwidth}
-\begin{syntax}
-  \text{Types} & A,B,C & ::= &
-     X \mid K \mid A \to B \mid \all{X} A \\
+  \text{Rep. variables} & \alpha,\beta \\
+  \text{Types} & A,B,C & ::= & X \mid K \mid A \to B \mid \all{X} A \\
   \text{Rep. Types} & R,S & ::= &
-    \alpha \mid X \mid K  \mid R \to S \mid \all{X} R \\
-  \text{Type environment} & \Gamma & ::= &
-    \cdot \mid \Gamma \comma x:A \\
+      \alpha \mid X \mid K  \mid R \to S \mid \all{X} R 
 \end{syntax}
-\end{minipage}
 
+Conversions
 \begin{syntax}
   \text{Conversion} & c,d & ::= & t \mid \unseal{X} \mid \unseal{X} ; c \\
   \text{Tail}   & t   & ::= & g \mid \seal{X} \mid t ; \seal{X} \\
   \text{Middle} & g,h & ::= & \id{A} \mid c \tu d \mid \all{X} c \\
   \text{Inert}  & i   & ::= & \id{X} \mid c \tu d \mid \all{X}c
-    \mid \seal{X} \mid t; \seal{X} \\
+    \mid \seal{X} \mid t; \seal{X} 
+\end{syntax}
+\end{flushleft}
+
+\caption{Types and Type Conversions}
+\label{fig:conv}
+\end{figure*}
+}
+
+\newcommand{\fignufstatics}{
+\begin{figure*}[t]
+\begin{flushleft}
+Terms
+\begin{syntax}
+  \text{Variables} & x,y  \\
+  \text{Constants} & k &::=&
+    \key{0} \mid \key{1} \mid \cdots \mid \True \mid \False \mid \cdots \\
+  \text{Operators} & \op &::=& \key{+} \mid \key{\leq} \mid \cdots \\
+  \text{Scope Change} & \delta & ::= & [] \mid \delta,{+X}^\alpha \mid \delta,-X^\alpha \\
+  \text{Terms} & L,M,N & ::= &
+  k \mid \op(\vec{M}) \mid x \mid \lam{x \of A}N \mid L \app M  \\
+  & & & \Lam{X} V \mid \nuinst{X}{A}{L}{c} \mid \boundry{M}{\delta}{c} 
 \end{syntax}
 
 \begin{syntax}
-  \text{Scope Change} & \delta & ::= & \cdot \mid \delta,{+X}^\alpha \mid \delta,-X^\alpha \\
-  \text{Terms} & L,M,N & ::= &
-  k \mid \op(\vec{M}) \mid x \mid \lam{x \of A}N \mid L \app M  \\
-  & & & \Lam{X} V \mid \nuinst{X}{A}{L}{c} \mid \boundry{M}{\delta}{c} \\
-  \text{Simples} & U & ::= &
-     k \mid \lam{x \of A}N \mid \Lam{X}V \\
-  \text{Values} & V,W & ::= & U \mid \boundry{U}{\delta}{i} \\
-  \text{Frames} & F & ::= & 
+  \text{Type Context} & \Delta & ::= & [] \mid \Delta, \alpha \by R \mid \Delta, X \by \alpha \\
+  \text{Type Environment} & \Gamma & ::= &
+    [] \mid \Gamma \comma x:A 
 \end{syntax}
-
-Term typing \hfill \fbox{$\Gamma \vdash M:A$}
+Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
 \begin{gather*}
   \gray{\inference
    {k:K}
-   {\Gamma \vdash k : K}}
+   {\Delta\mid\Gamma \vdash k : K}}
   \quad
   \gray{\inference
-   {\Gamma \vdash \vec{M} : \vec{K} & \op : \vec{K} \to K}
-   {\Gamma \vdash \op(\vec{M}\,) : K}}
+   {\Delta\mid\Gamma \vdash \vec{M} : \vec{K} & \op : \vec{K} \to K}
+   {\Delta\mid\Gamma \vdash \op(\vec{M}\,) : K}}
   \quad
   \gray{\inference
    {x:A \in \Gamma}
-   {\Gamma \vdash x : A}}
+   {\Delta\mid\Gamma \vdash x : A}}
   \\[2ex]
   \gray{\inference
-   {\Gamma,x:A \vdash N : B}
-   {\Gamma\vdash \lam{x \of A} N : A \tu B}}
+   {\Delta\mid\Gamma,x:A \vdash N : B}
+   {\Delta\mid\Gamma\vdash \lam{x \of A} N : A \tu B}}
   \quad
   \gray{\inference
-   {\Gamma \vdash L : A \tu B & \Gamma \vdash M : A }
-   {\Gamma \vdash L \app M : B}}
+   {\Delta\mid\Gamma \vdash L : A \tu B & \Delta\mid\Gamma \vdash M : A }
+   {\Delta\mid\Gamma \vdash L \app M : B}}
   \quad
   \gray{\inference
-   {\Gamma \vdash L : A \tu B & \Gamma \vdash M : A }
-   {\Gamma \vdash L \app M : B}}
+   {\Delta,X \mid \Gamma \vdash V : A}
+   {\Delta \mid \Gamma \vdash \Lam{X}V : \all{X}A}}
+  \\[2ex]
+  \inference
+   {\Delta \vdash A & \Delta \mid \Gamma \vdash L : \all{X} C \\
+    \Delta,\alpha:=\Delta(A),X\by \alpha \vdash c : C \Rightarrow B &
+    \Delta \vdash B}
+   {\Delta \mid \Gamma \vdash \nuinst{X}{A}{L}{c} : B}
+  \quad
+  %BoundaryWf \Delta Θ \Delta_i \Delta_c
+  \inference
+  {\delta(\Delta) \mid [] \vdash M : A \\
+   \delta^{+}(\Delta) \vdash c : A \Rightarrow B &
+   \Delta \vdash B
+  }
+  {\Delta \mid \Gamma \vdash \boundry{M}{\delta}{c} : B}
 \end{gather*}
 
-\begin{syntax}
-  \text{Representation Context} & \Xi & ::= & \cdot \mid \Xi, \alpha \by R \\
-  \text{Context Change} & \xi & ::= & \epsilon \mid \alpha := R 
-\end{syntax}
+\end{flushleft}
 
-Reduction
- \hfill \fbox{$\Xi \vdash M \becomes N \dashv \xi $}
-\begin{align}
-  \Xi \vdash \op(\vec{V})
-    & \becomes~ \sem{\op}(\vec{V}) \dashv \epsilon
-    \label{Delta}\tagsc{Delta}  \\
-  \Xi \vdash (\lam{x \of A} N) \app V
-    & \becomes~ N[x \by V] \dashv \epsilon
-    \label{Beta}\tagsc{Beta}  \\
-  \Xi \vdash \boundry{U}{\delta}{c \tu d} \app W &
-    \becomes \boundry{U \app (\boundry{W}{\dual{\delta}}{c})}{\delta}{d}
-    \dashv \epsilon 
-    \label{Wrap}\tagsc{Wrap} \\
-  \Xi \vdash \nuinst{X}{A}{(\Lam{X}V)}{d} &\becomes~
-          \boundry{V}{{+X}^\alpha}{d} \dashv \alpha\by \Xi(A)
-          \label{TyBeta}\tagsc{TyBeta}\\
-   \Xi \vdash \nuinst{X}{A}{\boundry{(\Lam{X}V)}{\delta}{\all{X}c}}{d} &
-       \becomes~ \boundry{(\boundry{V}{\delta}{c})}{{+X}^\alpha}{d}
-        \dashv \alpha\by \Xi(A)
-        \label{TyWrap}\tagsc{TyWrap} \\
-   \Xi \vdash  \boundry{(\boundry{U}{\delta_1}{t_1})}{\delta_2}{c_2} &
-     \becomes~ \boundry{U}{\delta_2 \mathop{++} \delta_1}{\Xi' \vdash t_1 \fatsemi c_2}  \dashv \epsilon \label{Merge}\tagsc{Merge} \\
-     & \text{where } \Xi' = (\delta_2 \mathop{++} \delta_1)(\Xi) \notag \\
-   \Xi \vdash \boundry{U}{\delta}{\id{K}} &\becomes~ U \dashv \epsilon
-     \label{Id}\tagsc{Id}
-\end{align}
-
-
-\caption{System $\nu$F}
+\caption{System $\nu$F: static semantics}
 \label{fig:nu-F}
 \end{figure*}
 }
 
+\newcommand{\fignufdynamics}{
+\begin{figure*}[t]
+\begin{flushleft}
 
+\begin{syntax}
+  \text{Simples} & U & ::= &
+     k \mid \lam{x \of A}N \mid \Lam{X}V \\
+  \text{Values} & V,W & ::= & U \mid \boundry{U}{\delta}{i} \\
+  \text{Frames} & F & ::= & \Box \app M \mid V \app M \mid \nuinst{X}{A}{\Box}{c}
+     \mid \boundry{\Box}{\delta}{c} \\
+  \text{Rep. Alloc.} & \xi & ::= & \epsilon \mid \alpha := R 
+\end{syntax}
+
+\begin{minipage}[t]{0.4\textwidth}
+\fbox{$\delta^\mathrm{op}$}
+\begin{align*}
+  []^\mathrm{op} &= [] \\
+  (\delta,{+X}^\alpha)^\mathrm{op} &= [{-X}^\alpha]\mathop{++}\delta^\mathrm{op}\\
+  (\delta,{-X}^\alpha)^\mathrm{op} &= [{+X}^\alpha]\mathop{++}\delta^\mathrm{op}
+\end{align*}
+\fbox{$-X(\Delta)$}
+\begin{align*}
+  -X([]) &= [] \\
+  -X(\Delta,X\by \alpha) &= \Delta \\
+  -X(\Delta,Y\by \alpha) &= -X(\Delta),Y\by \alpha \qquad (X \neq Y)  \\
+  -X(\Delta,\alpha\by R) &= -X(\Delta),\alpha\by R
+\end{align*}
+\end{minipage}
+\begin{minipage}[t]{0.4\textwidth}
+\fbox{$\delta(\Delta)$}
+\begin{align*}
+  (\delta,{+X}^\alpha)(\Delta) &= \delta(\Delta),X\by \alpha \\
+  (\delta,{-X}^\alpha)(\Delta) &= \delta(-X(\Delta))
+\end{align*}
+\fbox{$F(\Delta)$}
+\begin{align*}
+  (\Box\app M)(\Delta) &= \Delta \\
+  \cdots \\
+  (\boundry{\Box}{\delta}{c})(\Delta) &= \delta(\Delta) 
+\end{align*}
+\end{minipage}
+
+\vspace{10pt}
+\fbox{$\Delta \vdash M \becomes N \dashv \xi $}
+\begin{align}
+  \Delta \vdash \op(\vec{V})
+    & \becomes~ \sem{\op}(\vec{V}) \dashv \epsilon
+    \label{Delta}\tagsc{Delta}  \\
+  \Delta \vdash (\lam{x \of A} N) \app V
+    & \becomes~ N[x \by V] \dashv \epsilon
+    \label{Beta}\tagsc{Beta}  \\
+  \Delta \vdash \boundry{U}{\delta}{c \tu d} \app W &
+    \becomes \boundry{U \app (\boundry{W}{\dual{\delta}}{c})}{\delta}{d}
+    \dashv \epsilon 
+    \label{Wrap}\tagsc{Wrap} \\
+  \Delta \vdash \nuinst{X}{A}{(\Lam{X}V)}{d} &\becomes~
+          \boundry{V}{{+X}^\alpha}{d} \dashv \alpha\by \Delta(A)
+          \label{TyBeta}\tagsc{TyBeta}\\
+   \Delta \vdash \nuinst{X}{A}{\boundry{(\Lam{X}V)}{\delta}{\all{X}c}}{d} &
+       \becomes~ \boundry{(\boundry{V}{\delta}{c})}{{+X}^\alpha}{d}
+        \dashv \alpha\by \Delta(A)
+        \label{TyWrap}\tagsc{TyWrap} \\
+   \Delta \vdash  \boundry{\boundry{U}{\delta_1}{t_1}}{\delta_2}{c_1} &
+     \becomes~ \boundry{U}{\delta_2 \mathop{++} \delta_1}{d}  \dashv \epsilon \label{Merge}\tagsc{Merge} \\
+     & \text{where } (\delta_2 \mathop{++} \delta_1)(\Delta) \vdash t_1 \fatsemi c_1  = d \notag \\
+   \Delta \vdash \boundry{U}{\delta}{\id{K}} &\becomes~ U \dashv \epsilon
+     \label{Id}\tagsc{Id} \\
+   \Delta \vdash F[M] &\becomes~ F[M'] \dashv \xi \qquad \text{if } F(\Delta) \vdash M \becomes M' \dashv \xi \label{Xi}\tagsc{$\xi$}
+\end{align}
+\end{flushleft}
+
+\caption{System $\nu$F: dynamic semantics}
+\end{figure*}
+}
+  
 \begin{document}
 
 \title{System $\nu$F: Revisiting Syntactic Type Abstraction}  % working title
@@ -187,8 +247,9 @@ Reduction
 
 \section{Introduction}
 
-
-\fignuf
+\figconv
+\fignufstatics
+\fignufdynamics
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}

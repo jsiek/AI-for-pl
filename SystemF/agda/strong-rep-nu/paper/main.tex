@@ -63,12 +63,12 @@
 \begin{flushleft}
 Types
 \begin{syntax}
-  \text{Base types} & K & ::= & \Int \mid \Bool  \\
+  \text{Base types} & \iota & ::= & \Int \mid \Bool  \\
   \text{Type variables} & X,Y,Z \\
   \text{Rep. variables} & \alpha,\beta \\
-  \text{Types} & A,B,C & ::= & X \mid K \mid A \to B \mid \all{X} A \\
+  \text{Types} & A,B,C & ::= & X \mid \iota \mid A \to B \mid \all{X} A \\
   \text{Rep. Types} & R,S & ::= &
-      \alpha \mid X \mid K  \mid R \to S \mid \all{X} R 
+      \alpha \mid X \mid \iota  \mid R \to S \mid \all{X} R 
 \end{syntax}
 
 Conversions
@@ -109,12 +109,12 @@ Terms
 Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
 \begin{gather*}
   \gray{\inference
-   {k:K}
-   {\Delta\mid\Gamma \vdash k : K}}
+   {k:\iota}
+   {\Delta\mid\Gamma \vdash k : \iota}}
   \quad
   \gray{\inference
-   {\Delta\mid\Gamma \vdash \vec{M} : \vec{K} & \op : \vec{K} \to K}
-   {\Delta\mid\Gamma \vdash \op(\vec{M}\,) : K}}
+   {\Delta\mid\Gamma \vdash \vec{M} : \vec{\iota} & \op : \vec{\iota} \to \iota}
+   {\Delta\mid\Gamma \vdash \op(\vec{M}\,) : \iota}}
   \quad
   \gray{\inference
    {x:A \in \Gamma}
@@ -219,7 +219,7 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
    \Delta \vdash  \boundry{\boundry{U}{\delta_1}{t_1}}{\delta_2}{c_1} &
      \becomes~ \boundry{U}{\delta_2 \mathop{++} \delta_1}{d}  \dashv \epsilon \label{Merge}\tagsc{Merge} \\
      & \text{where } (\delta_2 \mathop{++} \delta_1)(\Delta) \vdash t_1 \fatsemi c_1  = d \notag \\
-   \Delta \vdash \boundry{U}{\delta}{\id{K}} &\becomes~ U \dashv \epsilon
+   \Delta \vdash \boundry{U}{\delta}{\id{\iota}} &\becomes~ U \dashv \epsilon
      \label{Id}\tagsc{Id} \\
    \Delta \vdash F[M] &\becomes~ F[M'] \dashv \xi \qquad \text{if } F(\Delta) \vdash M \becomes M' \dashv \xi \label{Xi}\tagsc{$\xi$}
 \end{align}

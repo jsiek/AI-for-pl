@@ -15,8 +15,12 @@
 
 \newcommand{\id}[1]{\key{id}(#1)}
 \newcommand{\dual}[1]{#1^\mathrm{op}}
-\newcommand{\seal}[1]{\key{seal}(#1)}
-\newcommand{\unseal}[1]{\key{unseal}(#1)}
+%% \newcommand{\seal}[1]{\key{seal}(#1)}
+%% \newcommand{\unseal}[1]{\key{unseal}(#1)}
+%% \newcommand{\seal}[1]{#1 \sharp}
+%% \newcommand{\unseal}[1]{#1 \flat}
+\newcommand{\seal}[1]{-#1}
+\newcommand{\unseal}[1]{+#1}
 \newcommand{\becomes}{\longrightarrow}
 \newcommand{\of}{{:}}
 \newcommand{\tu}{{\to}}
@@ -54,12 +58,14 @@
 \newenvironment{syntax}{\[\ba{l@{\qquad}lcl}}{\ea\]}
 \newenvironment{example}{\[\ba{l@{\:}l}}{\ea\]}
 
-\newcommand{\mkid}[1]{\key{id}^{*}(#1)}
+\newcommand{\mkid}[1]{\mathsf{Id}(#1)}
+\newcommand{\isid}[1]{\mathsf{Id?}(#1)}
 \newcommand{\cmp}{\mathbin{\fatsemi}}
-\newcommand{\cmpt}{\mathbin{\fatsemi_{t}}}
-\newcommand{\cmptt}{\mathbin{\fatsemi_{tt}}}
-\newcommand{\cmpg}{\mathbin{\fatsemi_{g}}}
-\newcommand{\sm}{\mathbin{;^{s}}}
+\newcommand{\cmpt}{\mathbin{\fatsemi}}
+\newcommand{\cmptt}{\mathbin{\fatsemi}}
+\newcommand{\cmpg}{\mathbin{\fatsemi}}
+\newcommand{\sm}{\mathbin{\fatsemi}}
+\newcommand{\cancel}[2]{+#1(#2)}
 
 \newcommand{\labeltag}[1]{\label{#1}\tag{\textsc{#1}}}
 \newcommand{\tagsc}[1]{\tag{\textsc{#1}}}
@@ -310,42 +316,44 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
 \newcommand{\figcompose}{
 \begin{figure*}[t]
 \begin{flushleft}
+\small
 \noindent
-\begin{minipage}[t]{0.47\textwidth}
-\fbox{$c \cmp d$} \quad a conversion, then a conversion
+\begin{minipage}[t]{0.45\textwidth}
+\fbox{$\Delta \vdash c \cmp d$} \quad compose conversions
 \begin{align*}
-  \unseal{X} \cmp d &= \unseal{X} \sm d \\
-  (\unseal{X} ; c) \cmp d &= \unseal{X} \sm (c \cmp d) \\
-  t \cmp d &= t \cmpt d
+  \Delta \vdash \unseal{X} \cmp d &= \Delta \vdash \unseal{X} \sm d \\
+  \Delta \vdash (\unseal{X} ; c) \cmp d &= \unseal{X} \sm (\Delta \vdash c \cmp d) \\
+  \Delta \vdash t \cmp d &= \Delta \vdash t \cmpt d
 \end{align*}
-\fbox{$t \cmpt d$} \quad a tail, then a conversion
+\fbox{$\Delta \vdash t \cmpt d$} \quad a tail, then a conversion
 \begin{align*}
-  t \cmpt t' &= t \cmptt t' \\
-  \seal{X} \cmpt \unseal{Y} &= \mkid{A} \quad \text{if } X \by A \in \Delta \\
-  \seal{X} \cmpt (\unseal{Y} ; c) &= c \\
-  (t ; \seal{X}) \cmpt \unseal{Y} &= t \\
-  (t ; \seal{X}) \cmpt (\unseal{Y} ; c) &= t \cmpt c \\
-  g \cmpt \unseal{Y} &= \unseal{Y} \\
-  g \cmpt (\unseal{Y} ; c) &= \unseal{Y} ; c
+  \Delta \vdash t \cmpt t' &= t \cmptt t' \\
+  \Delta \vdash \seal{X} \cmpt \unseal{Y} &= \mkid{A} 
+    \;\; (X \by A \in \Delta) \\
+  \Delta \vdash \seal{X} \cmpt (\unseal{Y} ; c) &= c \\
+  \Delta \vdash (t ; \seal{X}) \cmpt \unseal{Y} &= t \\
+  \Delta \vdash (t ; \seal{X}) \cmpt (\unseal{Y} ; d) &= \Delta \vdash t \cmpt d \\
+  \Delta \vdash g \cmpt \unseal{Y} &= \unseal{Y} \\
+  \Delta \vdash g \cmpt (\unseal{Y} ; d) &= \unseal{Y} ; d
 \end{align*}
-\fbox{$t \sm \seal{X}$, \ $\unseal{X} \sm d$} \quad keeping the result tight
+\fbox{$t \sm \seal{X}$, \ $\unseal{X} \sm d$} 
 \begin{align*}
-  t \sm \seal{X} &= \seal{X} \quad \text{if $t$ is an identity} \\
+  t \sm \seal{X} &= \seal{X} \quad \text{if $\isid{t}$} \\
   t \sm \seal{X} &= t ; \seal{X} \quad \text{otherwise} \\
-  \unseal{X} \sm t &= \unseal{X} \quad \text{if $t$ is an identity} \\
-  \unseal{X} \sm t &= \mathit{cancel}_X(t) \quad \text{otherwise} \\
-  \unseal{X} \sm d &= \unseal{X} ; d \quad \text{if $d$ begins with an unseal}
+  \unseal{X} \sm t &= \unseal{X} \quad \text{if $\isid{t}$} \\
+  \unseal{X} \sm t &= \cancel{X}{t} \quad \text{otherwise} \\
+  \unseal{X} \sm d &= \unseal{X} ; d \\
+  &\text{if $d$ begins with unseal}
 \end{align*}
-\end{minipage}%
-\hfill
-\begin{minipage}[t]{0.47\textwidth}
+\end{minipage}
+\begin{minipage}[t]{0.45\textwidth}
 \fbox{$t \cmptt t'$} \quad a tail, then a tail
 \begin{align*}
   t \cmptt \seal{Y} &= t \sm \seal{Y} \\
   t \cmptt (t' ; \seal{Y}) &= (t \cmptt t') \sm \seal{Y} \\
   g \cmptt h &= g \cmpg h \\
-  \seal{X} \cmptt h &= \seal{X} \\
-  (t ; \seal{X}) \cmptt h &= t ; \seal{X}
+  \seal{X} \cmptt \id{X} &= \seal{X} \\
+  (t ; \seal{X}) \cmptt \id{X} &= t ; \seal{X}
 \end{align*}
 \fbox{$g \cmpg h$} \quad a middle, then a middle
 \begin{align*}
@@ -356,31 +364,26 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
   \all{X} c \cmpg \all{X} c' &= \all{X} (c \cmp c')
     \quad \text{at } \Delta, \alpha, X \by \alpha
 \end{align*}
-\fbox{$\mathit{cancel}_X(t)$}
+\fbox{$\cancel{X}{t}$}
 \begin{align*}
-  \mathit{cancel}_X(g) &= \unseal{X} ; g \\
-  \mathit{cancel}_X(\seal{Y}) &= \id{X} \quad \text{if } X = Y \\
-  \mathit{cancel}_X(\seal{Y}) &= \unseal{X} ; \seal{Y} \quad \text{otherwise} \\
-  \mathit{cancel}_X(t ; \seal{Y}) &= t' \sm \seal{Y}
-    \quad \text{if } \mathit{cancel}_X(t) = t' \text{, a tail} \\
-  \mathit{cancel}_X(t ; \seal{Y}) &= \unseal{X} ; (t ; \seal{Y})
-    \quad \text{otherwise}
+  \cancel{X}{g} &= \unseal{X} ; g \\
+  \cancel{X}{\seal{X}} &= \id{X} \\
+  \cancel{X}{\seal{Y}} &= \unseal{X} ; \seal{Y} \quad \text{if } X \neq Y\\
+  \cancel{X}{t ; \seal{Y}} &= \cancel{X}{t} \sm \seal{Y} \quad \text{if $-X(t)$ a tail} \\
+  \cancel{X}{t ; \seal{Y}} &= \unseal{X} ; (t ; \seal{Y})
+    \; \text{otherwise}
 \end{align*}
 \fbox{$\mkid{A}$} \quad the identity at $A$
 \begin{align*}
-  \mkid{\iota} &= \id{\iota} \qquad \mkid{X} = \id{X} \\
-  \mkid{A \to B} &= \mkid{A} \tu \mkid{B} \qquad
-  \mkid{\all{X} A} = \all{X} \mkid{A}
+  \mkid{\iota} &= \id{\iota} \\
+  \mkid{X} &= \id{X} \\
+  \mkid{A \to B} &= \mkid{A} \tu \mkid{B} \\
+  \mkid{\all{X} A} &= \all{X} \mkid{A}
 \end{align*}
 \end{minipage}
 \end{flushleft}
 
-\caption{Composition of Conversions, $\Delta \vdash c \cmp d$.  One operator
-  per sort; the context $\Delta$ is written only where it is used, where
-  $\seal{X}$ meets $\unseal{Y}$ and under $\forall$, and is otherwise passed
-  on.  Pairs not listed (an arrow against a $\forall$) are ruled out by
-  typing.  Where a seal meets an unseal, typing forces the two names to
-  denote one representation.}
+\caption{Composition of Conversions.}
 \label{fig:compose}
 \end{figure*}
 }
@@ -395,7 +398,7 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
   \text{Rep. Alloc.} & \xi & ::= & \epsilon \mid \alpha := R 
 \end{syntax}
 
-\fbox{$F(\Delta)$} \quad the context at a frame's hole (Figure~\ref{fig:ctx})
+\fbox{$F(\Delta)$} \quad the context at a frame's hole
 \begin{align*}
   (\Box\app M)(\Delta) &= \Delta \\
   \cdots \\
@@ -425,7 +428,7 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
    \Delta \vdash  \boundry{\boundry{U}{\delta_1}{t_1}}{\delta_2}{c_1} &
      \becomes~ \boundry{U}{\delta_2 \mathop{++} \delta_1}{d}  \dashv \epsilon \label{Merge}\tagsc{Merge} \\
      & \text{where } (\delta_2 \mathop{++} \delta_1)(\Delta) \vdash t_1 \cmp c_1  = d
-       \text{ (Figure~\ref{fig:compose})} \notag \\
+       \notag \\
    \Delta \vdash \boundry{U}{\delta}{\id{\iota}} &\becomes~ U \dashv \epsilon
      \label{Id}\tagsc{Id} \\
    \Delta \vdash F[M] &\becomes~ F[M'] \dashv \xi \qquad \text{if } F(\Delta) \vdash M \becomes M' \dashv \xi \label{Xi}\tagsc{$\xi$}

@@ -204,11 +204,11 @@ Conversions
   \isid{\id{A}} &= \mathit{true} \\
   \isid{c \tu d} &= \isid{c} \wedge \isid{d} \\
   \isid{\all{X} c} &= \isid{c} \\
-  \isid{c} &= \mathit{false} \quad \text{otherwise}
+  \isid{c} &= \mathit{false} \\
+  & \quad \text{otherwise}
 \end{align*}
 \end{minipage}%
-\hfill
-\begin{minipage}[t]{0.33\textwidth}
+\begin{minipage}[t]{0.30\textwidth}
 \fbox{$t \sm \seal{X}$, \ $\unseal{X} \sm d$} 
 \begin{align*}
   t \sm \seal{X} &= \seal{X} \quad \text{if $\isid{t}$} \\
@@ -219,8 +219,7 @@ Conversions
   &\text{if $d$ begins with unseal}
 \end{align*}
 \end{minipage}%
-\hfill
-\begin{minipage}[t]{0.33\textwidth}
+\begin{minipage}[t]{0.30\textwidth}
 \fbox{$\cancel{X}{t}$}
 \begin{align*}
   \cancel{X}{g} &= \unseal{X} ; g \\
@@ -228,7 +227,7 @@ Conversions
   \cancel{X}{\seal{Y}} &= \unseal{X} ; \seal{Y} \quad \text{if } X \neq Y\\
   \cancel{X}{t ; \seal{Y}} &= \cancel{X}{t} \sm \seal{Y} \quad \text{if $\cancel{X}{t}$ a tail} \\
   \cancel{X}{t ; \seal{Y}} &= \unseal{X} ; (t ; \seal{Y})
-    \; \text{otherwise}
+    \quad \text{otherwise}
 \end{align*}
 \end{minipage}
 
@@ -248,7 +247,7 @@ Well-typed conversions \hfill \fbox{$\Delta \vdash c : A \Rightarrow B$}
   \quad
   \inference
    {\Delta, \alpha, X \by \alpha \vdash c : A \Rightarrow B}
-   {\Delta \vdash \all{X} c : \all{X} A \Rightarrow \all{X} B}
+   {\Delta \vdash \all{X} c : \all{X} A \Rightarrow \all{X} B}(X,\alpha \notin \Delta)
   \\[2ex]
   \inference
    {X \by A \in \Delta}
@@ -268,11 +267,6 @@ Well-typed conversions \hfill \fbox{$\Delta \vdash c : A \Rightarrow B$}
     \unseal{X} \sm c = \unseal{X} ; c}
    {\Delta \vdash \unseal{X} ; c : X \Rightarrow B}
 \end{gather*}
-A chain is well formed when it is already in normal form: the constructor
-$\sm$ leaves it unchanged.  (This is equivalent to the side conditions of the
-mechanization, ``not an identity'' and ``no cancellation'':
-\texttt{notes/NoCancelProbe.agda}.)  In the $\forall$ rule $\alpha$ is
-fresh.
 \end{flushleft}
 
 \caption{Conversions}

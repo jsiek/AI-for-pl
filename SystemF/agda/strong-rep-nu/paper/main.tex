@@ -71,9 +71,6 @@ Types
   \text{Type Contexts} & \Delta & ::= &
     [] \mid \Delta, \alpha \mid \Delta, \alpha \by R \mid \Delta, X \by \alpha
 \end{syntax}
-$\Delta, \alpha$: an abstract representation variable (created by a
-$\Lambda$).  $X \by \alpha \in \Delta$: $X$ is live and names $\alpha$.
-$\alpha \by R \in \Delta$: $\alpha$ is represented by $R$.
 
 Well-formed types \hfill \fbox{$\Delta \vdash A$}
 \begin{gather*}
@@ -91,10 +88,17 @@ Well-formed types \hfill \fbox{$\Delta \vdash A$}
   \quad
   \inference
    {\Delta, \alpha, X \by \alpha \vdash A}
-   {\Delta \vdash \all{X} A}
+   {\Delta \vdash \all{X} A} (X,\alpha \notin \Delta)
 \end{gather*}
-In the $\forall$ rule $\alpha$ is fresh.
 \end{flushleft}
+
+\hfill \fbox{$X \by A \in \Delta$}
+\[
+X \by A \in \Delta \;\triangleq \;
+  X \by \alpha \in \Delta
+  \text{ and } \alpha \by R \in \Delta
+  \text{ and } \Delta(A) = R
+\]
 
 \caption{Types and Type Contexts}
 \label{fig:types}
@@ -104,40 +108,13 @@ In the $\forall$ rule $\alpha$ is fresh.
 \newcommand{\figctx}{
 \begin{figure*}[t]
 \begin{flushleft}
-\begin{minipage}[t]{0.52\textwidth}
+\begin{minipage}[t]{0.4\textwidth}
 Scope changes
 \[\ba{r@{\;}c@{\;}l}
   \delta & ::= &
     [] \mid \delta,{+X}^\alpha \mid \delta,-X^\alpha
 \ea\]
-$X \by A \in \Delta$ abbreviates $X \by \alpha \in \Delta$,
-$\alpha \by R \in \Delta$ and $\Delta(A) = R$: $X$ names a representation
-that $A$ spells.
 \end{minipage}
-\hfill
-\begin{minipage}[t]{0.44\textwidth}
-\fbox{$\Delta(A)$} \quad the representation of $A$
-\begin{align*}
-  \Delta(X) &= \alpha \quad \text{if } X \by \alpha \in \Delta \\
-  \Delta(X) &= X \quad \text{if } X \by \alpha \notin \Delta \text{ for every } \alpha \\
-  \Delta(\iota) &= \iota \\
-  \Delta(A \to B) &= \Delta(A) \to \Delta(B) \\
-  \Delta(\all{X} A) &= \all{X} (-X(\Delta))(A)
-\end{align*}
-\end{minipage}
-
-\vspace{6pt}
-\begin{minipage}[t]{0.40\textwidth}
-\fbox{$-X(\Delta)$}
-\begin{align*}
-  -X([]) &= [] \\
-  -X(\Delta,X\by \alpha) &= \Delta \\
-  -X(\Delta,Y\by \alpha) &= -X(\Delta),Y\by \alpha \quad (X \neq Y)  \\
-  -X(\Delta,\alpha\by R) &= -X(\Delta),\alpha\by R \\
-  -X(\Delta,\alpha) &= -X(\Delta),\alpha
-\end{align*}
-\end{minipage}
-\hfill
 \begin{minipage}[t]{0.27\textwidth}
 \fbox{$\delta(\Delta)$} \quad interior
 \begin{align*}
@@ -146,7 +123,6 @@ that $A$ spells.
   (\delta,{-X}^\alpha)(\Delta) &= -X(\delta(\Delta))
 \end{align*}
 \end{minipage}
-\hfill
 \begin{minipage}[t]{0.29\textwidth}
 \fbox{$\delta^\mathrm{op}$} \quad inverse
 \begin{align*}
@@ -155,6 +131,29 @@ that $A$ spells.
   (\delta,{-X}^\alpha)^\mathrm{op} &= [{+X}^\alpha]\mathop{++}\delta^\mathrm{op}
 \end{align*}
 \end{minipage}
+
+\vspace{5pt}
+\begin{minipage}[t]{0.44\textwidth}
+\fbox{$-X(\Delta)$} remove $X$
+\begin{align*}
+  -X([]) &= [] \\
+  -X(\Delta,X\by \alpha) &= \Delta \\
+  -X(\Delta,Y\by \alpha) &= -X(\Delta),Y\by \alpha \quad (X \neq Y)  \\
+  -X(\Delta,\alpha\by R) &= -X(\Delta),\alpha\by R \\
+  -X(\Delta,\alpha) &= -X(\Delta),\alpha
+\end{align*}
+\end{minipage}
+\begin{minipage}[t]{0.40\textwidth}
+\fbox{$\Delta(A)$} \quad the representation type of $A$
+\begin{align*}
+  \Delta(X) &= \alpha \quad \text{if } X \by \alpha \in \Delta \\
+  \Delta(X) &= X \quad \text{if } X \by \alpha \notin \Delta \text{ for any } \alpha \\
+  \Delta(\iota) &= \iota \\
+  \Delta(A \to B) &= \Delta(A) \to \Delta(B) \\
+  \Delta(\all{X} A) &= \all{X} (-X(\Delta))(A)
+\end{align*}
+\end{minipage}
+
 
 \vspace{6pt}
 \fbox{$\delta^{+}(\Delta)$} \quad conversion context
@@ -168,10 +167,7 @@ that $A$ spells.
 \end{align*}
 \end{flushleft}
 
-\caption{Context Operations and Scope Changes.  The interior $\delta(\Delta)$
-  performs every change; the conversion context $\delta^{+}(\Delta)$
-  performs the ${+X}$ changes and skips the ${-X}$ changes, so it keeps every
-  name live anywhere along $\delta$.}
+\caption{Context Operations and Scope Changes.}
 \label{fig:ctx}
 \end{figure*}
 }

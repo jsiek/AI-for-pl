@@ -327,6 +327,14 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
   g \cmpt \unseal{Y} &= \unseal{Y} \\
   g \cmpt (\unseal{Y} ; c) &= \unseal{Y} ; c
 \end{align*}
+\fbox{$t \sm \seal{X}$, \ $\unseal{X} \sm d$} \quad keeping the result tight
+\begin{align*}
+  t \sm \seal{X} &= \seal{X} \quad \text{if $t$ is an identity} \\
+  t \sm \seal{X} &= t ; \seal{X} \quad \text{otherwise} \\
+  \unseal{X} \sm t &= \unseal{X} \quad \text{if $t$ is an identity} \\
+  \unseal{X} \sm t &= \mathit{cancel}_X(t) \quad \text{otherwise} \\
+  \unseal{X} \sm d &= \unseal{X} ; d \quad \text{if $d$ begins with an unseal}
+\end{align*}
 \end{minipage}
 \hfill
 \begin{minipage}[t]{0.49\textwidth}
@@ -347,39 +355,23 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
   \all{X} c \cmpg \all{X} c' &= \all{X} (c \cmp c')
     \quad \text{at } \Delta, \alpha, X \by \alpha
 \end{align*}
-\end{minipage}
-
-\vspace{6pt}
-\begin{minipage}[t]{0.55\textwidth}
-\fbox{$t \sm \seal{X}$, \ $\unseal{X} \sm d$} \quad keeping the result tight
-\begin{align*}
-  t \sm \seal{X} &= \seal{X} \quad \text{if $t$ is an identity} \\
-  t \sm \seal{X} &= t ; \seal{X} \quad \text{otherwise} \\
-  \unseal{X} \sm t &= \unseal{X} \quad \text{if $t$ is an identity} \\
-  \unseal{X} \sm t &= \mathit{cancel}_X(t) \quad \text{otherwise} \\
-  \unseal{X} \sm d &= \unseal{X} ; d \quad \text{if $d$ begins with an unseal}
-\end{align*}
-\end{minipage}
-\hfill
-\begin{minipage}[t]{0.43\textwidth}
-\fbox{$\mkid{A}$} \quad the identity at $A$
-\begin{align*}
-  \mkid{\iota} &= \id{\iota} \qquad \mkid{X} = \id{X} \\
-  \mkid{A \to B} &= \mkid{A} \tu \mkid{B} \\
-  \mkid{\all{X} A} &= \all{X} \mkid{A}
-\end{align*}
-\end{minipage}
-
 \fbox{$\mathit{cancel}_X(t)$}
 \begin{align*}
-  \mathit{cancel}_X(g) &= \unseal{X} ; g &
+  \mathit{cancel}_X(g) &= \unseal{X} ; g \\
   \mathit{cancel}_X(\seal{Y}) &= \id{X} \quad \text{if } X = Y \\
+  \mathit{cancel}_X(\seal{Y}) &= \unseal{X} ; \seal{Y} \quad \text{otherwise} \\
   \mathit{cancel}_X(t ; \seal{Y}) &= t' \sm \seal{Y}
-    \quad \text{if } \mathit{cancel}_X(t) = t' \text{, a tail} &
-  \mathit{cancel}_X(\seal{Y}) &= \unseal{X} ; \seal{Y} \quad \text{if } X \neq Y \\
+    \quad \text{if } \mathit{cancel}_X(t) = t' \text{, a tail} \\
   \mathit{cancel}_X(t ; \seal{Y}) &= \unseal{X} ; (t ; \seal{Y})
     \quad \text{otherwise}
 \end{align*}
+\fbox{$\mkid{A}$} \quad the identity at $A$
+\begin{align*}
+  \mkid{\iota} &= \id{\iota} \qquad \mkid{X} = \id{X} \\
+  \mkid{A \to B} &= \mkid{A} \tu \mkid{B} \qquad
+  \mkid{\all{X} A} = \all{X} \mkid{A}
+\end{align*}
+\end{minipage}
 \end{flushleft}
 
 \caption{Composition of Conversions, $\Delta \vdash c \cmp d$.  One operator

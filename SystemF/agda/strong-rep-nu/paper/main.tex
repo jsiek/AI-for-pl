@@ -118,22 +118,20 @@ Well-typed conversions \hfill \fbox{$\Delta \vdash c : A \Rightarrow B$}
    {\Delta \vdash \all{X} c : \all{X} A \Rightarrow \all{X} B}
   \\[2ex]
   \inference
-   {X \by \alpha \in \Delta & \alpha \by R \in \Delta & \Delta(A) = R}
+   {X \by A \in \Delta}
    {\Delta \vdash \seal{X} : A \Rightarrow X}
   \quad
   \inference
-   {\Delta \vdash t : A \Rightarrow B & t \neq_{\mathrm{id}} \\
-    X \by \alpha \in \Delta & \alpha \by R \in \Delta & \Delta(B) = R}
+   {\Delta \vdash t : A \Rightarrow B & t \neq_{\mathrm{id}} & X \by B \in \Delta}
    {\Delta \vdash t ; \seal{X} : A \Rightarrow X}
   \\[2ex]
   \inference
-   {X \by \alpha \in \Delta & \alpha \by R \in \Delta & \Delta(A) = R}
+   {X \by A \in \Delta}
    {\Delta \vdash \unseal{X} : X \Rightarrow A}
   \quad
   \inference
-   {X \by \alpha \in \Delta & \alpha \by R \in \Delta & \Delta(A) = R \\
-    \Delta \vdash c : A \Rightarrow B & c \neq_{\mathrm{id}} &
-    \mathit{NoCancel}(X, c)}
+   {X \by A \in \Delta & \Delta \vdash c : A \Rightarrow B \\
+    c \neq_{\mathrm{id}} & \mathit{NoCancel}(X, c)}
    {\Delta \vdash \unseal{X} ; c : X \Rightarrow B}
 \end{gather*}
 $c \neq_{\mathrm{id}}$: $c$ is not an identity, i.e.\ it is not built from
@@ -141,8 +139,8 @@ $\id{\cdot}$, $\tu$ and $\forall$ alone.
 $\mathit{NoCancel}(X, c)$: the seal chain of $c$ does not begin with a bare
 $\seal{X}$, so $\unseal{X} ; \seal{X}$ is not a second spelling of an
 identity.  The type context $\Delta$, the lookups $X \by \alpha \in \Delta$
-and $\alpha \by R \in \Delta$ and the representation reading $\Delta(A)$ are
-in Figure~\ref{fig:ctx}.  In the $\forall$ rules $\alpha$ is fresh.
+and $X \by A \in \Delta$ and the representation reading $\Delta(A)$ are in
+Figure~\ref{fig:ctx}.  In the $\forall$ rules $\alpha$ is fresh.
 \end{flushleft}
 
 \caption{Types and Type Conversions}
@@ -164,6 +162,9 @@ Type contexts $\Delta$ and scope changes $\delta$
 $\Delta, \alpha$: an abstract representation variable (created by a
 $\Lambda$).  $X \by \alpha \in \Delta$: $X$ is live and names $\alpha$.
 $\alpha \by R \in \Delta$: $\alpha$ is represented by $R$.
+$X \by A \in \Delta$ abbreviates $X \by \alpha \in \Delta$,
+$\alpha \by R \in \Delta$ and $\Delta(A) = R$: $X$ names a representation
+that $A$ spells.
 \end{minipage}
 \hfill
 \begin{minipage}[t]{0.44\textwidth}

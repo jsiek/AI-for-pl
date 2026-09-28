@@ -310,7 +310,8 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
 \newcommand{\figcompose}{
 \begin{figure*}[t]
 \begin{flushleft}
-\begin{minipage}[t]{0.49\textwidth}
+\noindent
+\begin{minipage}[t]{0.47\textwidth}
 \fbox{$c \cmp d$} \quad a conversion, then a conversion
 \begin{align*}
   \unseal{X} \cmp d &= \unseal{X} \sm d \\
@@ -335,9 +336,9 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
   \unseal{X} \sm t &= \mathit{cancel}_X(t) \quad \text{otherwise} \\
   \unseal{X} \sm d &= \unseal{X} ; d \quad \text{if $d$ begins with an unseal}
 \end{align*}
-\end{minipage}
+\end{minipage}%
 \hfill
-\begin{minipage}[t]{0.49\textwidth}
+\begin{minipage}[t]{0.47\textwidth}
 \fbox{$t \cmptt t'$} \quad a tail, then a tail
 \begin{align*}
   t \cmptt \seal{Y} &= t \sm \seal{Y} \\

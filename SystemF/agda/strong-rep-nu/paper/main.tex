@@ -57,9 +57,8 @@
 \newcommand{\labeltag}[1]{\label{#1}\tag{\textsc{#1}}}
 \newcommand{\tagsc}[1]{\tag{\textsc{#1}}}
 
-\newcommand{\figconv}{
+\newcommand{\figtypes}{
 \begin{figure*}[t]
-
 \begin{flushleft}
 Types
 \begin{syntax}
@@ -68,17 +67,13 @@ Types
   \text{Rep. variables} & \alpha,\beta \\
   \text{Types} & A,B,C & ::= & X \mid \iota \mid A \to B \mid \all{X} A \\
   \text{Rep. Types} & R,S & ::= &
-      \alpha \mid X \mid \iota  \mid R \to S \mid \all{X} R 
+      \alpha \mid X \mid \iota  \mid R \to S \mid \all{X} R \\
+  \text{Type Contexts} & \Delta & ::= &
+    [] \mid \Delta, \alpha \mid \Delta, \alpha \by R \mid \Delta, X \by \alpha
 \end{syntax}
-
-Conversions
-\begin{syntax}
-  \text{Conversion} & c,d & ::= & t \mid \unseal{X} \mid \unseal{X} ; c \\
-  \text{Tail}   & t   & ::= & g \mid \seal{X} \mid t ; \seal{X} \\
-  \text{Middle} & g,h & ::= & \id{A} \mid c \tu d \mid \all{X} c \\
-  \text{Inert}  & i   & ::= & \id{X} \mid c \tu d \mid \all{X}c
-    \mid \seal{X} \mid t; \seal{X} 
-\end{syntax}
+$\Delta, \alpha$: an abstract representation variable (created by a
+$\Lambda$).  $X \by \alpha \in \Delta$: $X$ is live and names $\alpha$.
+$\alpha \by R \in \Delta$: $\alpha$ is represented by $R$.
 
 Well-formed types \hfill \fbox{$\Delta \vdash A$}
 \begin{gather*}
@@ -98,53 +93,11 @@ Well-formed types \hfill \fbox{$\Delta \vdash A$}
    {\Delta, \alpha, X \by \alpha \vdash A}
    {\Delta \vdash \all{X} A}
 \end{gather*}
-
-Well-typed conversions \hfill \fbox{$\Delta \vdash c : A \Rightarrow B$}
-\begin{gather*}
-  \inference
-   {}
-   {\Delta \vdash \id{\iota} : \iota \Rightarrow \iota}
-  \quad
-  \inference
-   {X \by \alpha \in \Delta}
-   {\Delta \vdash \id{X} : X \Rightarrow X}
-  \\[2ex]
-  \inference
-   {\Delta \vdash c : A' \Rightarrow A & \Delta \vdash d : B \Rightarrow B'}
-   {\Delta \vdash c \tu d : A \to B \Rightarrow A' \to B'}
-  \quad
-  \inference
-   {\Delta, \alpha, X \by \alpha \vdash c : A \Rightarrow B}
-   {\Delta \vdash \all{X} c : \all{X} A \Rightarrow \all{X} B}
-  \\[2ex]
-  \inference
-   {X \by A \in \Delta}
-   {\Delta \vdash \seal{X} : A \Rightarrow X}
-  \quad
-  \inference
-   {\Delta \vdash t : A \Rightarrow B & t \neq_{\mathrm{id}} & X \by B \in \Delta}
-   {\Delta \vdash t ; \seal{X} : A \Rightarrow X}
-  \\[2ex]
-  \inference
-   {X \by A \in \Delta}
-   {\Delta \vdash \unseal{X} : X \Rightarrow A}
-  \quad
-  \inference
-   {X \by A \in \Delta & \Delta \vdash c : A \Rightarrow B \\
-    c \neq_{\mathrm{id}} & \mathit{NoCancel}(X, c)}
-   {\Delta \vdash \unseal{X} ; c : X \Rightarrow B}
-\end{gather*}
-$c \neq_{\mathrm{id}}$: $c$ is not an identity, i.e.\ it is not built from
-$\id{\cdot}$, $\tu$ and $\forall$ alone.
-$\mathit{NoCancel}(X, c)$: the seal chain of $c$ does not begin with a bare
-$\seal{X}$, so $\unseal{X} ; \seal{X}$ is not a second spelling of an
-identity.  The type context $\Delta$, the lookups $X \by \alpha \in \Delta$
-and $X \by A \in \Delta$ and the representation reading $\Delta(A)$ are in
-Figure~\ref{fig:ctx}.  In the $\forall$ rules $\alpha$ is fresh.
+In the $\forall$ rule $\alpha$ is fresh.
 \end{flushleft}
 
-\caption{Types and Type Conversions}
-\label{fig:conv}
+\caption{Types and Type Contexts}
+\label{fig:types}
 \end{figure*}
 }
 
@@ -152,16 +105,11 @@ Figure~\ref{fig:ctx}.  In the $\forall$ rules $\alpha$ is fresh.
 \begin{figure*}[t]
 \begin{flushleft}
 \begin{minipage}[t]{0.52\textwidth}
-Type contexts $\Delta$ and scope changes $\delta$
+Scope changes
 \[\ba{r@{\;}c@{\;}l}
-  \Delta & ::= &
-    [] \mid \Delta, \alpha \mid \Delta, \alpha \by R \mid \Delta, X \by \alpha \\
   \delta & ::= &
     [] \mid \delta,{+X}^\alpha \mid \delta,-X^\alpha
 \ea\]
-$\Delta, \alpha$: an abstract representation variable (created by a
-$\Lambda$).  $X \by \alpha \in \Delta$: $X$ is live and names $\alpha$.
-$\alpha \by R \in \Delta$: $\alpha$ is represented by $R$.
 $X \by A \in \Delta$ abbreviates $X \by \alpha \in \Delta$,
 $\alpha \by R \in \Delta$ and $\Delta(A) = R$: $X$ names a representation
 that $A$ spells.
@@ -220,11 +168,70 @@ that $A$ spells.
 \end{align*}
 \end{flushleft}
 
-\caption{Type Contexts and Scope Changes.  The interior $\delta(\Delta)$
+\caption{Context Operations and Scope Changes.  The interior $\delta(\Delta)$
   performs every change; the conversion context $\delta^{+}(\Delta)$
   performs the ${+X}$ changes and skips the ${-X}$ changes, so it keeps every
   name live anywhere along $\delta$.}
 \label{fig:ctx}
+\end{figure*}
+}
+
+\newcommand{\figconv}{
+\begin{figure*}[t]
+\begin{flushleft}
+Conversions
+\begin{syntax}
+  \text{Conversion} & c,d & ::= & t \mid \unseal{X} \mid \unseal{X} ; c \\
+  \text{Tail}   & t   & ::= & g \mid \seal{X} \mid t ; \seal{X} \\
+  \text{Middle} & g,h & ::= & \id{A} \mid c \tu d \mid \all{X} c \\
+  \text{Inert}  & i   & ::= & \id{X} \mid c \tu d \mid \all{X}c
+    \mid \seal{X} \mid t; \seal{X} 
+\end{syntax}
+
+Well-typed conversions \hfill \fbox{$\Delta \vdash c : A \Rightarrow B$}
+\begin{gather*}
+  \inference
+   {}
+   {\Delta \vdash \id{\iota} : \iota \Rightarrow \iota}
+  \quad
+  \inference
+   {X \by \alpha \in \Delta}
+   {\Delta \vdash \id{X} : X \Rightarrow X}
+  \\[2ex]
+  \inference
+   {\Delta \vdash c : A' \Rightarrow A & \Delta \vdash d : B \Rightarrow B'}
+   {\Delta \vdash c \tu d : A \to B \Rightarrow A' \to B'}
+  \quad
+  \inference
+   {\Delta, \alpha, X \by \alpha \vdash c : A \Rightarrow B}
+   {\Delta \vdash \all{X} c : \all{X} A \Rightarrow \all{X} B}
+  \\[2ex]
+  \inference
+   {X \by A \in \Delta}
+   {\Delta \vdash \seal{X} : A \Rightarrow X}
+  \quad
+  \inference
+   {\Delta \vdash t : A \Rightarrow B & t \neq_{\mathrm{id}} & X \by B \in \Delta}
+   {\Delta \vdash t ; \seal{X} : A \Rightarrow X}
+  \\[2ex]
+  \inference
+   {X \by A \in \Delta}
+   {\Delta \vdash \unseal{X} : X \Rightarrow A}
+  \quad
+  \inference
+   {X \by A \in \Delta & \Delta \vdash c : A \Rightarrow B \\
+    c \neq_{\mathrm{id}} & \mathit{NoCancel}(X, c)}
+   {\Delta \vdash \unseal{X} ; c : X \Rightarrow B}
+\end{gather*}
+$c \neq_{\mathrm{id}}$: $c$ is not an identity, i.e.\ it is not built from
+$\id{\cdot}$, $\tu$ and $\forall$ alone.
+$\mathit{NoCancel}(X, c)$: the seal chain of $c$ does not begin with a bare
+$\seal{X}$, so $\unseal{X} ; \seal{X}$ is not a second spelling of an
+identity.  In the $\forall$ rule $\alpha$ is fresh.
+\end{flushleft}
+
+\caption{Conversions}
+\label{fig:conv}
 \end{figure*}
 }
 
@@ -365,8 +372,9 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
 
 \section{Introduction}
 
-\figconv
+\figtypes
 \figctx
+\figconv
 \fignufstatics
 \fignufdynamics
 

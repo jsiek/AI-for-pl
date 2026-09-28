@@ -170,11 +170,11 @@ $\alpha \by R \in \Delta$: $\alpha$ is represented by $R$.
 \fbox{$\Delta(A)$} \quad the representation of $A$
 \begin{align*}
   \Delta(X) &= \alpha \quad \text{if } X \by \alpha \in \Delta \\
+  \Delta(X) &= X \quad \text{if } X \by \alpha \notin \Delta \text{ for every } \alpha \\
   \Delta(\iota) &= \iota \\
   \Delta(A \to B) &= \Delta(A) \to \Delta(B) \\
-  \Delta(\all{X} A) &= \all{X} \Delta(A)
+  \Delta(\all{X} A) &= \all{X} (-X(\Delta))(A)
 \end{align*}
-(In $\all{X} A$, $X$ is local: $\Delta(X) = X$.)
 \end{minipage}
 
 \vspace{6pt}

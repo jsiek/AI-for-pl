@@ -95,7 +95,7 @@ Well-formed types \hfill \fbox{$\Delta \vdash A$}
    {\Delta \vdash A \to B}
   \quad
   \inference
-   {\Delta, X \vdash A}
+   {\Delta, \alpha, X \by \alpha \vdash A}
    {\Delta \vdash \all{X} A}
 \end{gather*}
 
@@ -114,7 +114,7 @@ Well-typed conversions \hfill \fbox{$\Delta \vdash c : A \Rightarrow B$}
    {\Delta \vdash c \tu d : A \to B \Rightarrow A' \to B'}
   \quad
   \inference
-   {\Delta, X \vdash c : A \Rightarrow B}
+   {\Delta, \alpha, X \by \alpha \vdash c : A \Rightarrow B}
    {\Delta \vdash \all{X} c : \all{X} A \Rightarrow \all{X} B}
   \\[2ex]
   \inference
@@ -141,8 +141,8 @@ $\id{\cdot}$, $\tu$ and $\forall$ alone.
 $\mathit{NoCancel}(X, c)$: the seal chain of $c$ does not begin with a bare
 $\seal{X}$, so $\unseal{X} ; \seal{X}$ is not a second spelling of an
 identity.  The type context $\Delta$, the lookups $X \by \alpha \in \Delta$
-and $\alpha \by R \in \Delta$, the representation reading $\Delta(A)$ and the
-extension $\Delta, X$ are in Figure~\ref{fig:ctx}.
+and $\alpha \by R \in \Delta$ and the representation reading $\Delta(A)$ are
+in Figure~\ref{fig:ctx}.  In the $\forall$ rules $\alpha$ is fresh.
 \end{flushleft}
 
 \caption{Types and Type Conversions}
@@ -160,8 +160,7 @@ extension $\Delta, X$ are in Figure~\ref{fig:ctx}.
     [] \mid \delta,{+X}^\alpha \mid \delta,-X^\alpha
 \end{syntax}
 $\Delta, \alpha$ is an abstract representation variable (created by a
-$\Lambda$), and $\Delta, X$ abbreviates $\Delta, \alpha, X \by \alpha$ for a
-fresh $\alpha$.  $X \by \alpha \in \Delta$ says that $X$ is live and names
+$\Lambda$).  $X \by \alpha \in \Delta$ says that $X$ is live and names
 $\alpha$; $\alpha \by R \in \Delta$ says that $\alpha$ is represented by $R$.
 
 \begin{minipage}[t]{0.45\textwidth}
@@ -256,7 +255,7 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
    {\Delta\mid\Gamma \vdash L \app M : B}}
   \quad
   \gray{\inference
-   {\Delta,X \mid \Gamma \vdash V : A}
+   {\Delta,\alpha,X \by \alpha \mid \Gamma \vdash V : A}
    {\Delta \mid \Gamma \vdash \Lam{X}V : \all{X}A}}
   \\[2ex]
   \inference

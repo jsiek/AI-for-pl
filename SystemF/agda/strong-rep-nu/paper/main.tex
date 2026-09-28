@@ -332,9 +332,9 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
     \;\; (X \by A \in \Delta) \\
   \Delta \vdash \seal{X} \cmpt (\unseal{Y} ; c) &= c \\
   \Delta \vdash (t ; \seal{X}) \cmpt \unseal{Y} &= t \\
-  \Delta \vdash (t ; \seal{X}) \cmpt (\unseal{Y} ; d) &= \Delta \vdash t \cmpt d \\
-  \Delta \vdash g \cmpt \unseal{Y} &= \unseal{Y} \\
-  \Delta \vdash g \cmpt (\unseal{Y} ; d) &= \unseal{Y} ; d
+  \Delta \vdash (t ; \seal{X}) \cmpt (\unseal{X} ; d) &= \Delta \vdash t \cmpt d \\
+  \Delta \vdash \id{Y} \cmpt \unseal{Y} &= \unseal{Y} \\
+  \Delta \vdash \id{Y} \cmpt (\unseal{Y} ; d) &= \unseal{Y} ; d
 \end{align*}
 \fbox{$t \sm \seal{X}$, \ $\unseal{X} \sm d$} 
 \begin{align*}
@@ -355,14 +355,14 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
   \seal{X} \cmptt \id{X} &= \seal{X} \\
   (t ; \seal{X}) \cmptt \id{X} &= t ; \seal{X}
 \end{align*}
-\fbox{$g \cmpg h$} \quad a middle, then a middle
+\fbox{$\Delta \vdash g \cmpg h$} \quad a middle, then a middle
 \begin{align*}
-  \id{A} \cmpg h &= h \\
-  (c \tu d) \cmpg \id{B} &= c \tu d \\
-  (c \tu d) \cmpg (c' \tu d') &= (c' \cmp c) \tu (d \cmp d') \\
-  \all{X} c \cmpg \id{B} &= \all{X} c \\
-  \all{X} c \cmpg \all{X} c' &= \all{X} (c \cmp c')
-    \quad \text{at } \Delta, \alpha, X \by \alpha
+  \Delta \vdash \id{A} \cmpg h &= h \\
+  \Delta \vdash (c \tu d) \cmpg \id{B} &= c \tu d \\
+  \Delta \vdash (c \tu d) \cmpg (c' \tu d') &= (\Delta \vdash c' \cmp c) \tu (\Delta \vdash d \cmp d') \\
+  \Delta \vdash \all{X} c \cmpg \id{B} &= \all{X} c \\
+  \Delta \vdash \all{X} c \cmpg \all{X} c' &=
+      \all{X} (\Delta, \alpha, X \by \alpha \vdash c \cmp c')
 \end{align*}
 \fbox{$\cancel{X}{t}$}
 \begin{align*}

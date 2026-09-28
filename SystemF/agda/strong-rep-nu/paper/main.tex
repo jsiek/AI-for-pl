@@ -220,7 +220,7 @@ Well-typed conversions \hfill \fbox{$\Delta \vdash c : A \Rightarrow B$}
    {\Delta \vdash \seal{X} : A \Rightarrow X}
   \quad
   \inference
-   {\Delta \vdash t : A \Rightarrow B & t \neq_{\mathrm{id}} & X \by B \in \Delta}
+   {\Delta \vdash t : A \Rightarrow B & \neg \isid{t} & X \by B \in \Delta}
    {\Delta \vdash t ; \seal{X} : A \Rightarrow X}
   \\[2ex]
   \inference
@@ -229,11 +229,9 @@ Well-typed conversions \hfill \fbox{$\Delta \vdash c : A \Rightarrow B$}
   \quad
   \inference
    {X \by A \in \Delta & \Delta \vdash c : A \Rightarrow B \\
-    c \neq_{\mathrm{id}} & \mathit{NoCancel}(X, c)}
+    \neg \isid{c} & \mathit{NoCancel}(X, c)}
    {\Delta \vdash \unseal{X} ; c : X \Rightarrow B}
 \end{gather*}
-$c \neq_{\mathrm{id}}$: $c$ is not an identity, i.e.\ it is not built from
-$\id{\cdot}$, $\tu$ and $\forall$ alone.
 $\mathit{NoCancel}(X, c)$: the seal chain of $c$ does not begin with a bare
 $\seal{X}$, so $\unseal{X} ; \seal{X}$ is not a second spelling of an
 identity.  In the $\forall$ rule $\alpha$ is fresh.

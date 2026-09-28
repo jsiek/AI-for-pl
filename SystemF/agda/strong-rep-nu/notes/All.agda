@@ -47,3 +47,8 @@ open import strong-rep-nu.notes.DualTightness
 -- EraseCompile (proved), and checks on every compiled run
 -- (notes/ErasureSketch.md).
 open import strong-rep-nu.notes.ErasureProbe
+
+-- THE PAPER'S CHAIN RULES (2026-09-28): the side conditions `¬ IsId` and
+-- `NoCancel` are equivalent to "the smart constructor leaves the chain
+-- unchanged", which is how paper/main.tex states them.
+open import strong-rep-nu.notes.NoCancelProbe

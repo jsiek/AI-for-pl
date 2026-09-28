@@ -197,6 +197,41 @@ Conversions
     \mid \seal{X} \mid t; \seal{X} 
 \end{syntax}
 
+\noindent
+\begin{minipage}[t]{0.30\textwidth}
+\fbox{$\isid{c}$} \quad $c$ is an identity
+\begin{align*}
+  \isid{\id{A}} &= \mathit{true} \\
+  \isid{c \tu d} &= \isid{c} \wedge \isid{d} \\
+  \isid{\all{X} c} &= \isid{c} \\
+  \isid{c} &= \mathit{false} \quad \text{otherwise}
+\end{align*}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.33\textwidth}
+\fbox{$t \sm \seal{X}$, \ $\unseal{X} \sm d$} 
+\begin{align*}
+  t \sm \seal{X} &= \seal{X} \quad \text{if $\isid{t}$} \\
+  t \sm \seal{X} &= t ; \seal{X} \quad \text{otherwise} \\
+  \unseal{X} \sm t &= \unseal{X} \quad \text{if $\isid{t}$} \\
+  \unseal{X} \sm t &= \cancel{X}{t} \quad \text{otherwise} \\
+  \unseal{X} \sm d &= \unseal{X} ; d \\
+  &\text{if $d$ begins with unseal}
+\end{align*}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.33\textwidth}
+\fbox{$\cancel{X}{t}$}
+\begin{align*}
+  \cancel{X}{g} &= \unseal{X} ; g \\
+  \cancel{X}{\seal{X}} &= \id{X} \\
+  \cancel{X}{\seal{Y}} &= \unseal{X} ; \seal{Y} \quad \text{if } X \neq Y\\
+  \cancel{X}{t ; \seal{Y}} &= \cancel{X}{t} \sm \seal{Y} \quad \text{if $\cancel{X}{t}$ a tail} \\
+  \cancel{X}{t ; \seal{Y}} &= \unseal{X} ; (t ; \seal{Y})
+    \; \text{otherwise}
+\end{align*}
+\end{minipage}
+
 Well-typed conversions \hfill \fbox{$\Delta \vdash c : A \Rightarrow B$}
 \begin{gather*}
   \inference
@@ -220,7 +255,8 @@ Well-typed conversions \hfill \fbox{$\Delta \vdash c : A \Rightarrow B$}
    {\Delta \vdash \seal{X} : A \Rightarrow X}
   \quad
   \inference
-   {\Delta \vdash t : A \Rightarrow B & \neg \isid{t} & X \by B \in \Delta}
+   {\Delta \vdash t : A \Rightarrow B & X \by B \in \Delta &
+    t \sm \seal{X} = t ; \seal{X}}
    {\Delta \vdash t ; \seal{X} : A \Rightarrow X}
   \\[2ex]
   \inference
@@ -228,13 +264,15 @@ Well-typed conversions \hfill \fbox{$\Delta \vdash c : A \Rightarrow B$}
    {\Delta \vdash \unseal{X} : X \Rightarrow A}
   \quad
   \inference
-   {X \by A \in \Delta & \Delta \vdash c : A \Rightarrow B \\
-    \neg \isid{c} & \mathit{NoCancel}(X, c)}
+   {X \by A \in \Delta & \Delta \vdash c : A \Rightarrow B &
+    \unseal{X} \sm c = \unseal{X} ; c}
    {\Delta \vdash \unseal{X} ; c : X \Rightarrow B}
 \end{gather*}
-$\mathit{NoCancel}(X, c)$: the seal chain of $c$ does not begin with a bare
-$\seal{X}$, so $\unseal{X} ; \seal{X}$ is not a second spelling of an
-identity.  In the $\forall$ rule $\alpha$ is fresh.
+A chain is well formed when it is already in normal form: the constructor
+$\sm$ leaves it unchanged.  (This is equivalent to the side conditions of the
+mechanization, ``not an identity'' and ``no cancellation'':
+\texttt{notes/NoCancelProbe.agda}.)  In the $\forall$ rule $\alpha$ is
+fresh.
 \end{flushleft}
 
 \caption{Conversions}
@@ -334,15 +372,6 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
   \Delta \vdash \id{Y} \cmpt \unseal{Y} &= \unseal{Y} \\
   \Delta \vdash \id{Y} \cmpt (\unseal{Y} ; d) &= \unseal{Y} ; d
 \end{align*}
-\fbox{$t \sm \seal{X}$, \ $\unseal{X} \sm d$} 
-\begin{align*}
-  t \sm \seal{X} &= \seal{X} \quad \text{if $\isid{t}$} \\
-  t \sm \seal{X} &= t ; \seal{X} \quad \text{otherwise} \\
-  \unseal{X} \sm t &= \unseal{X} \quad \text{if $\isid{t}$} \\
-  \unseal{X} \sm t &= \cancel{X}{t} \quad \text{otherwise} \\
-  \unseal{X} \sm d &= \unseal{X} ; d \\
-  &\text{if $d$ begins with unseal}
-\end{align*}
 \end{minipage}
 \begin{minipage}[t]{0.45\textwidth}
 \fbox{$t \cmptt t'$} \quad a tail, then a tail
@@ -361,15 +390,6 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
   \Delta \vdash \all{X} c \cmpg \id{B} &= \all{X} c \\
   \Delta \vdash \all{X} c \cmpg \all{X} c' &=
       \all{X} (\Delta, \alpha, X \by \alpha \vdash c \cmp c')
-\end{align*}
-\fbox{$\cancel{X}{t}$}
-\begin{align*}
-  \cancel{X}{g} &= \unseal{X} ; g \\
-  \cancel{X}{\seal{X}} &= \id{X} \\
-  \cancel{X}{\seal{Y}} &= \unseal{X} ; \seal{Y} \quad \text{if } X \neq Y\\
-  \cancel{X}{t ; \seal{Y}} &= \cancel{X}{t} \sm \seal{Y} \quad \text{if $-X(t)$ a tail} \\
-  \cancel{X}{t ; \seal{Y}} &= \unseal{X} ; (t ; \seal{Y})
-    \; \text{otherwise}
 \end{align*}
 \fbox{$\mkid{A}$} \quad the identity at $A$
 \begin{align*}

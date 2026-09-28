@@ -79,10 +79,139 @@ Conversions
   \text{Inert}  & i   & ::= & \id{X} \mid c \tu d \mid \all{X}c
     \mid \seal{X} \mid t; \seal{X} 
 \end{syntax}
+
+Well-formed types \hfill \fbox{$\Delta \vdash A$}
+\begin{gather*}
+  \inference
+   {X \by \alpha \in \Delta}
+   {\Delta \vdash X}
+  \quad
+  \inference
+   {}
+   {\Delta \vdash \iota}
+  \quad
+  \inference
+   {\Delta \vdash A & \Delta \vdash B}
+   {\Delta \vdash A \to B}
+  \quad
+  \inference
+   {\Delta, X \vdash A}
+   {\Delta \vdash \all{X} A}
+\end{gather*}
+
+Well-typed conversions \hfill \fbox{$\Delta \vdash c : A \Rightarrow B$}
+\begin{gather*}
+  \inference
+   {}
+   {\Delta \vdash \id{\iota} : \iota \Rightarrow \iota}
+  \quad
+  \inference
+   {X \by \alpha \in \Delta}
+   {\Delta \vdash \id{X} : X \Rightarrow X}
+  \quad
+  \inference
+   {\Delta \vdash c : A' \Rightarrow A & \Delta \vdash d : B \Rightarrow B'}
+   {\Delta \vdash c \tu d : A \to B \Rightarrow A' \to B'}
+  \quad
+  \inference
+   {\Delta, X \vdash c : A \Rightarrow B}
+   {\Delta \vdash \all{X} c : \all{X} A \Rightarrow \all{X} B}
+  \\[2ex]
+  \inference
+   {X \by \alpha \in \Delta & \alpha \by R \in \Delta & \Delta(A) = R}
+   {\Delta \vdash \seal{X} : A \Rightarrow X}
+  \quad
+  \inference
+   {\Delta \vdash t : A \Rightarrow B & t \neq_{\mathrm{id}} \\
+    X \by \alpha \in \Delta & \alpha \by R \in \Delta & \Delta(B) = R}
+   {\Delta \vdash t ; \seal{X} : A \Rightarrow X}
+  \\[2ex]
+  \inference
+   {X \by \alpha \in \Delta & \alpha \by R \in \Delta & \Delta(A) = R}
+   {\Delta \vdash \unseal{X} : X \Rightarrow A}
+  \quad
+  \inference
+   {X \by \alpha \in \Delta & \alpha \by R \in \Delta & \Delta(A) = R \\
+    \Delta \vdash c : A \Rightarrow B & c \neq_{\mathrm{id}} &
+    \mathit{NoCancel}(X, c)}
+   {\Delta \vdash \unseal{X} ; c : X \Rightarrow B}
+\end{gather*}
+$c \neq_{\mathrm{id}}$: $c$ is not an identity, i.e.\ it is not built from
+$\id{\cdot}$, $\tu$ and $\forall$ alone.
+$\mathit{NoCancel}(X, c)$: the seal chain of $c$ does not begin with a bare
+$\seal{X}$, so $\unseal{X} ; \seal{X}$ is not a second spelling of an
+identity.  The type context $\Delta$, the lookups $X \by \alpha \in \Delta$
+and $\alpha \by R \in \Delta$, the representation reading $\Delta(A)$ and the
+extension $\Delta, X$ are in Figure~\ref{fig:ctx}.
 \end{flushleft}
 
 \caption{Types and Type Conversions}
 \label{fig:conv}
+\end{figure*}
+}
+
+\newcommand{\figctx}{
+\begin{figure*}[t]
+\begin{flushleft}
+\begin{syntax}
+  \text{Type Context} & \Delta & ::= &
+    [] \mid \Delta, \alpha \mid \Delta, \alpha \by R \mid \Delta, X \by \alpha \\
+  \text{Scope Change} & \delta & ::= &
+    [] \mid \delta,{+X}^\alpha \mid \delta,-X^\alpha
+\end{syntax}
+$\Delta, \alpha$ is an abstract representation variable (created by a
+$\Lambda$), and $\Delta, X$ abbreviates $\Delta, \alpha, X \by \alpha$ for a
+fresh $\alpha$.  $X \by \alpha \in \Delta$ says that $X$ is live and names
+$\alpha$; $\alpha \by R \in \Delta$ says that $\alpha$ is represented by $R$.
+
+\begin{minipage}[t]{0.45\textwidth}
+\fbox{$\Delta(A)$} \quad the representation of $A$
+\begin{align*}
+  \Delta(X) &= \alpha \quad \text{if } X \by \alpha \in \Delta \\
+  \Delta(\iota) &= \iota \\
+  \Delta(A \to B) &= \Delta(A) \to \Delta(B) \\
+  \Delta(\all{X} A) &= \all{X} \Delta(A)
+    \quad \text{($X$ local: } \Delta(X) = X\text{)}
+\end{align*}
+\fbox{$-X(\Delta)$}
+\begin{align*}
+  -X([]) &= [] \\
+  -X(\Delta,X\by \alpha) &= \Delta \\
+  -X(\Delta,Y\by \alpha) &= -X(\Delta),Y\by \alpha \qquad (X \neq Y)  \\
+  -X(\Delta,\alpha\by R) &= -X(\Delta),\alpha\by R \\
+  -X(\Delta,\alpha) &= -X(\Delta),\alpha
+\end{align*}
+\end{minipage}
+\begin{minipage}[t]{0.5\textwidth}
+\fbox{$\delta(\Delta)$} \quad the interior of a boundary
+\begin{align*}
+  [](\Delta) &= \Delta \\
+  (\delta,{+X}^\alpha)(\Delta) &= \delta(\Delta),X\by \alpha \\
+  (\delta,{-X}^\alpha)(\Delta) &= -X(\delta(\Delta))
+\end{align*}
+\fbox{$\delta^{+}(\Delta)$} \quad the conversion context of a boundary
+\begin{align*}
+  []^{+}(\Delta) &= \Delta \\
+  (\delta,{+X}^\alpha)^{+}(\Delta) &= \delta^{+}(\Delta),X\by \alpha
+    \quad \text{if $\alpha$ has no live name in } \delta^{+}(\Delta) \\
+  (\delta,{+X}^\alpha)^{+}(\Delta) &= \delta^{+}(\Delta)
+    \quad \text{if } Y \by \alpha \in \delta^{+}(\Delta) \\
+  (\delta,{-X}^\alpha)^{+}(\Delta) &= \delta^{+}(\Delta)
+\end{align*}
+\fbox{$\delta^\mathrm{op}$} \quad the inverse scope change
+\begin{align*}
+  []^\mathrm{op} &= [] \\
+  (\delta,{+X}^\alpha)^\mathrm{op} &= [{-X}^\alpha]\mathop{++}\delta^\mathrm{op}\\
+  (\delta,{-X}^\alpha)^\mathrm{op} &= [{+X}^\alpha]\mathop{++}\delta^\mathrm{op}
+\end{align*}
+\end{minipage}
+\end{flushleft}
+
+\caption{Type Contexts and Scope Changes.  The interior $\delta(\Delta)$
+  performs every change; the conversion context $\delta^{+}(\Delta)$
+  performs the ${+X}$ changes and skips the ${-X}$ changes, so it keeps every
+  name live anywhere along $\delta$.}
+\label{fig:ctx}
 \end{figure*}
 }
 
@@ -95,14 +224,12 @@ Terms
   \text{Constants} & k &::=&
     \key{0} \mid \key{1} \mid \cdots \mid \True \mid \False \mid \cdots \\
   \text{Operators} & \op &::=& \key{+} \mid \key{\leq} \mid \cdots \\
-  \text{Scope Change} & \delta & ::= & [] \mid \delta,{+X}^\alpha \mid \delta,-X^\alpha \\
   \text{Terms} & L,M,N & ::= &
   k \mid \op(\vec{M}) \mid x \mid \lam{x \of A}N \mid L \app M  \\
   & & & \Lam{X} V \mid \nuinst{X}{A}{L}{c} \mid \boundry{M}{\delta}{c} 
 \end{syntax}
 
 \begin{syntax}
-  \text{Type Context} & \Delta & ::= & [] \mid \Delta, \alpha \by R \mid \Delta, X \by \alpha \\
   \text{Type Environment} & \Gamma & ::= &
     [] \mid \Gamma \comma x:A 
 \end{syntax}
@@ -167,34 +294,12 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
   \text{Rep. Alloc.} & \xi & ::= & \epsilon \mid \alpha := R 
 \end{syntax}
 
-\begin{minipage}[t]{0.4\textwidth}
-\fbox{$\delta^\mathrm{op}$}
-\begin{align*}
-  []^\mathrm{op} &= [] \\
-  (\delta,{+X}^\alpha)^\mathrm{op} &= [{-X}^\alpha]\mathop{++}\delta^\mathrm{op}\\
-  (\delta,{-X}^\alpha)^\mathrm{op} &= [{+X}^\alpha]\mathop{++}\delta^\mathrm{op}
-\end{align*}
-\fbox{$-X(\Delta)$}
-\begin{align*}
-  -X([]) &= [] \\
-  -X(\Delta,X\by \alpha) &= \Delta \\
-  -X(\Delta,Y\by \alpha) &= -X(\Delta),Y\by \alpha \qquad (X \neq Y)  \\
-  -X(\Delta,\alpha\by R) &= -X(\Delta),\alpha\by R
-\end{align*}
-\end{minipage}
-\begin{minipage}[t]{0.4\textwidth}
-\fbox{$\delta(\Delta)$}
-\begin{align*}
-  (\delta,{+X}^\alpha)(\Delta) &= \delta(\Delta),X\by \alpha \\
-  (\delta,{-X}^\alpha)(\Delta) &= \delta(-X(\Delta))
-\end{align*}
-\fbox{$F(\Delta)$}
+\fbox{$F(\Delta)$} \quad the context at a frame's hole (Figure~\ref{fig:ctx})
 \begin{align*}
   (\Box\app M)(\Delta) &= \Delta \\
   \cdots \\
   (\boundry{\Box}{\delta}{c})(\Delta) &= \delta(\Delta) 
 \end{align*}
-\end{minipage}
 
 \vspace{10pt}
 \fbox{$\Delta \vdash M \becomes N \dashv \xi $}
@@ -248,6 +353,7 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
 \section{Introduction}
 
 \figconv
+\figctx
 \fignufstatics
 \fignufdynamics
 

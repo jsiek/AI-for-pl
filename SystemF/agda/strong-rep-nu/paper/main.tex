@@ -153,57 +153,70 @@ in Figure~\ref{fig:ctx}.  In the $\forall$ rules $\alpha$ is fresh.
 \newcommand{\figctx}{
 \begin{figure*}[t]
 \begin{flushleft}
-\begin{syntax}
-  \text{Type Context} & \Delta & ::= &
+\begin{minipage}[t]{0.52\textwidth}
+Type contexts $\Delta$ and scope changes $\delta$
+\[\ba{r@{\;}c@{\;}l}
+  \Delta & ::= &
     [] \mid \Delta, \alpha \mid \Delta, \alpha \by R \mid \Delta, X \by \alpha \\
-  \text{Scope Change} & \delta & ::= &
+  \delta & ::= &
     [] \mid \delta,{+X}^\alpha \mid \delta,-X^\alpha
-\end{syntax}
-$\Delta, \alpha$ is an abstract representation variable (created by a
-$\Lambda$).  $X \by \alpha \in \Delta$ says that $X$ is live and names
-$\alpha$; $\alpha \by R \in \Delta$ says that $\alpha$ is represented by $R$.
-
-\begin{minipage}[t]{0.45\textwidth}
+\ea\]
+$\Delta, \alpha$: an abstract representation variable (created by a
+$\Lambda$).  $X \by \alpha \in \Delta$: $X$ is live and names $\alpha$.
+$\alpha \by R \in \Delta$: $\alpha$ is represented by $R$.
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.44\textwidth}
 \fbox{$\Delta(A)$} \quad the representation of $A$
 \begin{align*}
   \Delta(X) &= \alpha \quad \text{if } X \by \alpha \in \Delta \\
   \Delta(\iota) &= \iota \\
   \Delta(A \to B) &= \Delta(A) \to \Delta(B) \\
   \Delta(\all{X} A) &= \all{X} \Delta(A)
-    \quad \text{($X$ local: } \Delta(X) = X\text{)}
 \end{align*}
+(In $\all{X} A$, $X$ is local: $\Delta(X) = X$.)
+\end{minipage}
+
+\vspace{6pt}
+\begin{minipage}[t]{0.40\textwidth}
 \fbox{$-X(\Delta)$}
 \begin{align*}
   -X([]) &= [] \\
   -X(\Delta,X\by \alpha) &= \Delta \\
-  -X(\Delta,Y\by \alpha) &= -X(\Delta),Y\by \alpha \qquad (X \neq Y)  \\
+  -X(\Delta,Y\by \alpha) &= -X(\Delta),Y\by \alpha \quad (X \neq Y)  \\
   -X(\Delta,\alpha\by R) &= -X(\Delta),\alpha\by R \\
   -X(\Delta,\alpha) &= -X(\Delta),\alpha
 \end{align*}
 \end{minipage}
-\begin{minipage}[t]{0.5\textwidth}
-\fbox{$\delta(\Delta)$} \quad the interior of a boundary
+\hfill
+\begin{minipage}[t]{0.27\textwidth}
+\fbox{$\delta(\Delta)$} \quad interior
 \begin{align*}
   [](\Delta) &= \Delta \\
   (\delta,{+X}^\alpha)(\Delta) &= \delta(\Delta),X\by \alpha \\
   (\delta,{-X}^\alpha)(\Delta) &= -X(\delta(\Delta))
 \end{align*}
-\fbox{$\delta^{+}(\Delta)$} \quad the conversion context of a boundary
-\begin{align*}
-  []^{+}(\Delta) &= \Delta \\
-  (\delta,{+X}^\alpha)^{+}(\Delta) &= \delta^{+}(\Delta),X\by \alpha
-    \quad \text{if $\alpha$ has no live name in } \delta^{+}(\Delta) \\
-  (\delta,{+X}^\alpha)^{+}(\Delta) &= \delta^{+}(\Delta)
-    \quad \text{if } Y \by \alpha \in \delta^{+}(\Delta) \\
-  (\delta,{-X}^\alpha)^{+}(\Delta) &= \delta^{+}(\Delta)
-\end{align*}
-\fbox{$\delta^\mathrm{op}$} \quad the inverse scope change
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.29\textwidth}
+\fbox{$\delta^\mathrm{op}$} \quad inverse
 \begin{align*}
   []^\mathrm{op} &= [] \\
   (\delta,{+X}^\alpha)^\mathrm{op} &= [{-X}^\alpha]\mathop{++}\delta^\mathrm{op}\\
   (\delta,{-X}^\alpha)^\mathrm{op} &= [{+X}^\alpha]\mathop{++}\delta^\mathrm{op}
 \end{align*}
 \end{minipage}
+
+\vspace{6pt}
+\fbox{$\delta^{+}(\Delta)$} \quad conversion context
+\begin{align*}
+  []^{+}(\Delta) &= \Delta &
+  (\delta,{+X}^\alpha)^{+}(\Delta) &= \delta^{+}(\Delta),X\by \alpha
+    \quad \text{if $\alpha$ has no live name in } \delta^{+}(\Delta) \\
+  (\delta,{-X}^\alpha)^{+}(\Delta) &= \delta^{+}(\Delta) &
+  (\delta,{+X}^\alpha)^{+}(\Delta) &= \delta^{+}(\Delta)
+    \quad \text{if } Y \by \alpha \in \delta^{+}(\Delta)
+\end{align*}
 \end{flushleft}
 
 \caption{Type Contexts and Scope Changes.  The interior $\delta(\Delta)$

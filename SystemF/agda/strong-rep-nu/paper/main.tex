@@ -368,13 +368,13 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
 \end{align*}
 \end{minipage}
 \begin{minipage}[t]{0.45\textwidth}
-\fbox{$t \cmptt t'$} \quad a tail, then a tail
+\fbox{$\Delta \vdash t \cmptt t'$} \quad a tail, then a tail
 \begin{align*}
-  t \cmptt \seal{Y} &= t \sm \seal{Y} \\
-  t \cmptt (t' ; \seal{Y}) &= (t \cmptt t') \sm \seal{Y} \\
-  g \cmptt h &= g \cmpg h \\
-  \seal{X} \cmptt \id{X} &= \seal{X} \\
-  (t ; \seal{X}) \cmptt \id{X} &= t ; \seal{X}
+  \Delta \vdash t \cmptt \seal{Y} &= t \sm \seal{Y} \\
+  \Delta \vdash t \cmptt (t' ; \seal{Y}) &= (\Delta \vdash t \cmptt t') \sm \seal{Y} \\
+  \Delta \vdash g \cmptt h &= \Delta \vdash g \cmpg h \\
+  \Delta \vdash \seal{X} \cmptt \id{X} &= \seal{X} \\
+  \Delta \vdash (t ; \seal{X}) \cmptt \id{X} &= t ; \seal{X}
 \end{align*}
 \fbox{$\Delta \vdash g \cmpg h$} \quad a middle, then a middle
 \begin{align*}

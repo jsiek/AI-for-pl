@@ -1,5 +1,5 @@
 # Build the PLDI submission.  Needs a TeX installation with latexmk
-# (none is installed in the Codex/Claude containers).
+# (the Claude container has one).
 main.pdf: main.tex references.bib acmart.cls ACM-Reference-Format.bst
 	latexmk -pdf main.tex
 

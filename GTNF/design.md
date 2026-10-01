@@ -21,7 +21,7 @@ conversion.  (GTSF, GTPLC and PolyBlameI merge the two into one coercion
 language; GTSFImp keeps them apart as `_⟨_⟩` versus `_↑_`/`_↓_`, and
 GTNF follows GTSFImp in that respect.)  The two sorts meet only in the
 reduction rules, and in exactly the following places: the instantiation
-rules (`Inst`, and `TyBeta`/`TyWrap` through `open`) and the two rules
+rules (`Inst`, and `TyBeta` through `inst_X`) and the two rules
 for a `★`-value under a boundary (`IdDyn`, which moves the tag out, and
 `TagUntagBad-⟪⟫`, which checks a tag that cannot move out).
 
@@ -309,9 +309,9 @@ allocation and under weakening by fresh names.
 
 The one structural change to νF is that **a value with an inert cast
 counts as a simple**.  Every boundary rule of νF is stated for a simple
-interior: `Wrap` crosses `[δ] U ⟨c → d⟩`, `TyWrap` crosses
-`[δ] U ⟨∀X. c⟩`, `Merge` fuses `[δ₂]([δ₁] U ⟨t₁⟩)⟨c⟩`, and `Id` drops
-`[δ] U ⟨id(ι)⟩`.  With this change those rules also apply when the
+interior: `Wrap` crosses `[δ] U ⟨c → d⟩`, `TyBeta` crosses
+`[δ] U ⟨∀X. c⟩` (νF's `TyWrap`), `Merge` fuses
+`[δ₂]([δ₁] U ⟨t₁⟩)⟨c⟩`, and `Id` drops `[δ] U ⟨id(ι)⟩`.  With this change those rules also apply when the
 interior is a cast value.  The rules never look inside `U`, so the
 change costs nothing in them.  The boundary invariant of νF, "at most
 one boundary directly around a simple", is unaffected.  A cast value may
@@ -354,20 +354,25 @@ F ::= □ M | V □ | op(V⃗, □, M⃗)
 except that `Merge`'s inner boundary may now also be the new value form
 `[δ₁] (V⟨X!⟩) ⟨id(★)⟩` (`t₁ = id(★)`).  The merged boundary may no
 longer introduce `X`, in which case `IdDyn` fires next (Example 5).
-`TyBeta` and `TyWrap` are generalized from a `Λ` interior to any
-∀-simple, through a meta-operation `open_X(U)` that peels one layer:
+`TyBeta` is generalized from a `Λ` to any ∀-value, through a
+meta-operation `inst_X(V)` that instantiates a ∀-value `V` at the name
+`X` by reaching through all of its layers:
 
 ```
-open_X(ΛX. V)          = V
-open_X(W ⟨gen X. p⟩)  = W ⟨p⟩
-open_X(W ⟨∀X. p⟩)     = (ν Y:=X. (W Y) ⟨reveal_Y(src(p)[Y/X])⟩) ⟨p⟩      (Y fresh)
+inst_X(ΛX. V)            = V
+inst_X(W ⟨gen X. p⟩)     = W ⟨p⟩
+inst_X(W ⟨∀X. p⟩)        = inst_X(W) ⟨p⟩
+inst_X([δ] U ⟨∀X. c⟩)    = [δ] inst_X(U) ⟨c⟩          (X not mentioned by δ)
 ```
 
-The third clause instantiates `W` at the *already allocated* name `X`
-by an alias `ν` (it allocates `β:=α` where `X:=α`).  This is the
-"alias allocation per layer" choice that νF made for nested type
-applications (strong-rep-nu NuSketch, answer (3a)).  GTNF has no
-non-allocating type application.
+These four clauses cover every canonical ∀-value (§5).  The recursion
+is on the structure of the value, and each layer of the value becomes
+one layer of the result: a cast stays a cast, and a boundary stays a
+boundary.  So `inst_X` stacks boundaries, as νF's `TyWrap` does, and
+`Merge` fuses them afterwards.  `inst_X` allocates nothing; the one
+allocation `α:=Δ(A)` is made by `TyBeta` itself, however many layers
+the value has.  (Under the name `inst_X`, the meta-operation is not to
+be confused with the coercion `inst X. p` and its rule `Inst`.)
 
 ```
 Δ ⊢ op(k⃗) ⟶ ⟦op⟧(k⃗) ⊣ ε                                              (Delta)
@@ -376,11 +381,8 @@ non-allocating type application.
 
 Δ ⊢ ([δ] U ⟨c → d⟩) W ⟶ [δ] (U ([−δ] W ⟨c⟩)) ⟨d⟩ ⊣ ε                    (Wrap)
 
-Δ ⊢ ν X:=A. (U X) ⟨d⟩ ⟶ [+X^α] open_X(U) ⟨d⟩ ⊣ α:=Δ(A)                  (TyBeta)
-      U a ∀-simple; α fresh
-
-Δ ⊢ ν X:=A. (([δ] U ⟨∀X. c⟩) X) ⟨d⟩
-      ⟶ [+X^α] ([δ] open_X(U) ⟨c⟩) ⟨d⟩ ⊣ α:=Δ(A)                        (TyWrap)
+Δ ⊢ ν X:=A. (V X) ⟨d⟩ ⟶ [+X^α] inst_X(V) ⟨d⟩ ⊣ α:=Δ(A)                  (TyBeta)
+      V a ∀-value; α fresh
 
 Δ ⊢ [δ₂] ([δ₁] U ⟨t₁⟩) ⟨c₁⟩ ⟶ [δ₂ ++ δ₁] U ⟨d⟩ ⊣ ε                      (Merge)
       where [δ₁] U ⟨t₁⟩ is a value and (δ₂ ++ δ₁)⁺(Δ) ⊢ t₁ ⨟ c₁ = d
@@ -390,19 +392,29 @@ non-allocating type application.
 Δ ⊢ F[M] ⟶ F[M′] ⊣ ξ     if  F(Δ) ⊢ M ⟶ M′ ⊣ ξ                        (ξ)
 ```
 
-As in νF, if the redex's `U` is `ΛX.V`, then `TyBeta` and `TyWrap` are
-the paper's rules.  The `gen` instances are GTSFImp's `β-gen` with a
-boundary in place of `↑ 〖 0 , ⇑ᵗ C ↑ B 〗`.  When the Agda is written,
-the three instances of `open_X` may become three named constructors
-each; this draft states them once.
+νF's two rules are instances of this `TyBeta`.  If `V = ΛX.N`, then it
+is νF's `TyBeta`.  If `V = [δ] (ΛX.N) ⟨∀X.c⟩`, then it is νF's
+`TyWrap`.  The `gen` case is GTSFImp's `β-gen` with a boundary in place
+of `↑ 〖 0 , ⇑ᵗ C ↑ B 〗`.  The `∀X.p` case is GTSFImp's `β-∀`: the
+value under the cast is instantiated, with no further allocation, and
+then cast.  When the Agda is written, `inst_X` may be a function on
+value derivations, or `TyBeta` may be split into one constructor per
+outermost layer; this draft states it once.
 
-Preservation of the `∀X.p` instance of `TyBeta`, informally: let
-`Δ ∣ [] ⊢ W : ∀X. C`, `Δ, α, X:=α ⊢ p : C ⇒ C′` and
-`Δ, α:=Δ(A), X:=α ⊢ d : C′ ⇒ B`.  The interior is `Δ′ = Δ, X:=α`, where
-`Δ` now contains `α:=Δ(A)`.  The alias `ν Y:=X` is well typed at `C`,
-because `Y:=X ∈ (Δ′, β:=α, Y:=β)` and so
-`reveal_Y(C[Y/X]) : C[Y/X] ⇒ C`.  The cast `⟨p⟩` brings the type to
-`C′`, and `d` is typed in `(+X^α)⁺(Δ) = Δ, X:=α`.
+Preservation of `TyBeta` rests on one lemma, proved by induction on the
+∀-value:
+
+```
+if  Δ ∣ [] ⊢ V : ∀X. C,  V a ∀-value,  and  α:=R ∈ Δ  with  X, α fresh,
+then  Δ, X:=α ∣ [] ⊢ inst_X(V) : C
+```
+
+The `Λ` case re-reads the body, typed under an abstract `α`, at the
+allocated `α:=R`, as νF's `TyBeta` does.  The `gen X.p` and `∀X.p`
+cases use the fact that coercion typing does not depend on whether `α`
+is abstract or bound (§3).  In the boundary case, `δ` stays coherent at
+`Δ, X:=α`, because `X` and `α` are fresh.  Its interior is then
+`δ(Δ), X:=α`, and `c` is typed in `δ⁺(Δ), X:=α`.
 
 ### 6.3 Cast rules (new)
 
@@ -430,12 +442,12 @@ because `Y:=X ∈ (Δ′, β:=α, Y:=β)` and so
 These rules correspond to GTSFImp's `β-id`, `β-⇒`, `β-inst`,
 `tag-untag` and `tag-untag-bad`.  GTSFImp's `ground` and `expand` are
 not needed, because a tag through a non-ground type is the sequence
-`p ; G!` and `CastSeq` splits it.  GTSFImp's `β-∀` is replaced by the
-`∀X.p` instance of `open_X`, because GTNF instantiates by `ν` and not by
-a `⦂∀ B [ C ]` type application.
+`p ; G!` and `CastSeq` splits it.  GTSFImp's `β-∀` is the
+`∀X.p` case of `inst_X` (§6.2), because GTNF instantiates by `ν` and not
+by a `⦂∀ B [ C ]` type application.
 
 `Inst` does not allocate by itself.  The `ν X:=★` it creates allocates
-`α:=★` on the next step, by `TyBeta` or `TyWrap`.  Inside the resulting
+`α:=★` on the next step, by `TyBeta`.  Inside the resulting
 boundary, `X:=★` holds, so `reveal_X(src(p))` seals and unseals `X`
 against `★`.  The coercion has already been closed at `★`: each `X!`
 and `X?ℓ` in `p` has become `id(★)`.  As in GTSFImp, the `inst`-bound
@@ -571,7 +583,7 @@ variable, so the coercion is `gen X. (X! → X?ℓ)`.  Write
   (λg:∀X.X→X. (ν X:=ℕ. (g X) ⟨−X → +X⟩) 5) I
 ⟶ (Beta)
   (ν X:=ℕ. (I X) ⟨−X → +X⟩) 5
-⟶ (TyBeta with open_X(… ⟨gen X. p⟩), ⊣ α:=ℕ)
+⟶ (TyBeta, with inst_X(W ⟨gen X. p⟩) = W ⟨p⟩, ⊣ α:=ℕ)
   ([+X^α] ((λx:★. x) ⟨X! → X?ℓ⟩) ⟨−X → +X⟩) 5
 ⟶ (Wrap)
   [+X^α] (((λx:★. x) ⟨X! → X?ℓ⟩) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩
@@ -670,6 +682,41 @@ the outer boundary, where `X` is visible again.  The rule's two forms of
 side condition agree there: `X ∉ fresh(−X^α, +X^α)`, and
 `Δ, X:=α ⊢ X`.
 
+### Example 6 — instantiating a ∀-cast
+
+This cast-calculus term is not the output of compilation.  `∀ᶜ` gives
+its bound variable the mode `X∼X`, so a compiled `∀X.p` never checks a
+`★` against `X`; D6 makes the term well typed anyway.
+
+```
+W = ΛX. λx:X. x⟨X!⟩                    : ∀X. X → ★
+p = id(X) → X?ℓ                        : (X → ★) ⇒ (X → X)
+```
+
+```
+  (ν X:=ℕ. ((W⟨∀X. p⟩) X) ⟨−X → +X⟩) 5
+⟶ (TyBeta, with inst_X(W⟨∀X. p⟩) = (λx:X. x⟨X!⟩) ⟨p⟩, ⊣ α:=ℕ)
+  ([+X^α] ((λx:X. x⟨X!⟩) ⟨id(X) → X?ℓ⟩) ⟨−X → +X⟩) 5
+⟶ (Wrap)
+  [+X^α] (((λx:X. x⟨X!⟩) ⟨id(X) → X?ℓ⟩) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩
+⟶ (CastFun)
+  [+X^α] (((λx:X. x⟨X!⟩) (([−X^α] 5 ⟨−X⟩) ⟨id(X)⟩)) ⟨X?ℓ⟩) ⟨+X⟩
+⟶ (CastId, under ξ)
+  [+X^α] (((λx:X. x⟨X!⟩) ([−X^α] 5 ⟨−X⟩)) ⟨X?ℓ⟩) ⟨+X⟩
+⟶ (Beta, under ξ)
+  [+X^α] (([−X^α] 5 ⟨−X⟩) ⟨X!⟩ ⟨X?ℓ⟩) ⟨+X⟩
+⟶ (TagUntag, under ξ)
+  [+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩
+⟶ (Merge; −X ⨟ +X = Id(ℕ))
+  [+X^α, −X^α] 5 ⟨id(ℕ)⟩
+⟶ (Id)
+  5
+```
+
+Under the earlier alias design (see D5), `W` would have been
+re-instantiated by `ν Y:=X`.  The tag would then have been `Y`, and the
+check `X?ℓ` would have blamed.
+
 ------------------------------------------------------------------------
 
 ## 9. Decisions taken in this draft, and open questions
@@ -679,18 +726,22 @@ Each one can be revisited on its own.
 
 - **D1 (separation).**  Coercions are their own sort and are applied by
   their own term form `M ⟨p⟩`; νF's conversions, `ν` and boundaries
-  are unchanged.  The sorts meet only in `Inst`, `TyBeta`/`TyWrap` (via
-  `open_X`), `IdDyn` and `TagUntagBad-⟪⟫`.
-- **D2 (cast values are simples).**  This lets `Wrap`, `TyWrap`,
+  are unchanged.  The sorts meet only in `Inst`, `TyBeta` (via
+  `inst_X`), `IdDyn` and `TagUntagBad-⟪⟫`.
+- **D2 (cast values are simples).**  This lets `Wrap`, `TyBeta`,
   `Merge` and `Id` apply unchanged when the interior is a cast value.
 - **D3 (tags by name).**  `X` is a ground type, and tags are compared
   syntactically, which coherence makes sound (§6.4).
 - **D4 (inst closes at ★).**  `Inst` instantiates by `ν X:=★` with the
   conversion `reveal_X`, and substitutes `★` for `X` in the coercion,
   as GTSFImp does.
-- **D5 (∀-casts by alias ν).**  `open_X(W⟨∀X.p⟩)` re-instantiates `W`
-  at the existing name by an alias `ν`.  This costs a second allocation
-  per `∀`-cast layer, consistently with νF's answer (3a).
+- **D5 (one allocation per instantiation).**  `TyBeta` instantiates a
+  ∀-value through all of its layers with the meta-operation `inst_X`,
+  which allocates nothing (Jeremy, 2026-10-01).  An earlier draft
+  re-instantiated the value under a `∀X.p` cast by an alias `ν Y:=X`.
+  With D8 that gave the inner tags the alias name `Y`, so a check `X?ℓ`
+  in `p` blamed where GTSFImp's `β-∀` succeeds.  νF's `TyWrap` is now the
+  boundary case of `TyBeta`.
 - **D6 (no modes in the cast calculus).**  Consistency modes remain a
   source-language device.
 - **D7 (tags move out of boundaries).**  `IdDyn` moves a tag out of a
@@ -719,10 +770,9 @@ Each one can be revisited on its own.
 
 Open questions, in roughly the order I would like them settled:
 
-- **Q1.**  D5 versus a non-allocating instantiation at an existing name.
-- **Q2.**  `bot-intro` blames eagerly in GTSFImp (`blame-bot-intro`),
+- **Q1.**  `bot-intro` blames eagerly in GTSFImp (`blame-bot-intro`),
   but `⟦bot-intro⟧ = ∀X. X?ℓ` blames only at instantiation.
-- **Q3.**  Space efficiency (normal forms for coercions and a
+- **Q2.**  Space efficiency (normal forms for coercions and a
   composition `p ⨟ q`, like νF's for conversions) is deferred.
 
 ------------------------------------------------------------------------
@@ -742,5 +792,5 @@ Open questions, in roughly the order I would like them settled:
   ported from GTSFImp's intrinsically scoped `Ty Δ` to νF's extrinsic
   `Ty`, or bridged by an erasure.  This is to be decided once the cast
   calculus is settled.
-- Order: the definitional layer and `Examples` (Examples 1–5 as `refl`
+- Order: the definitional layer and `Examples` (Examples 1–6 as `refl`
   runs), then progress and preservation, then `compile-⊢`.

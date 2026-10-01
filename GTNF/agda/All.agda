@@ -30,5 +30,8 @@ open import Imprecision
 
 open import ImprecisionExamples
 
+-- the term-imprecision examples of papers/cambridge26.lagda.md, run
+open import CambridgeExamples
+
 -- de Bruijn → named rendering (scripts/render_gtnf.sh)
 open import Show

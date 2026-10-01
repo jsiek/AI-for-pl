@@ -1723,8 +1723,34 @@ synchronization (F3).  Findings, smallest first:
   The outer pair needs `(αᴸ, βᴿ)`.  The inner right-only `[+X^αᴿ]`
   must rejoin the same center name, which needs `(αᴸ, αᴿ)`.  Under
   the proposed fix, each right cell has at most one left partner, and
-  a left cell may have several.  With it, C12–C14 go through.  The
-  mirror pair (`inst;gen` on the left) would need the converse.
+  a left cell may have several.  With it, C12–C14 go through.
+
+  *The mirror needs nothing (checked on the existing runs).*  Put
+  `I⟨inst⟩⟨gen⟩` on the left, that is, C12's right program, against
+  three less precise partners:
+
+  - **M1:** `Cf-R` (`I★⟨gen⟩`).  The outer boundaries pair
+    `(βᴸ:=ℕ, αᴿ:=ℕ)`, and the two `gen` unbinds match.  The left's
+    `Inst` boundary `[+X^αᴸ]` (`αᴸ:=★`) is left-only, its name has
+    mark `X⊑★`, and then `λx:X.x ⊑ λx:★.x` holds.
+  - **M4:** Example 1 (`I⟨inst⟩`, with no `gen` and no `[ℕ]`).  The
+    two `Inst`/`TyBeta` pairs match, giving `(αᴸ, αᴿ)`.  The left's
+    `[ℕ]` is a left-only `ν`, and its `[+Y^β]` and `gen` unbind
+    `[−Y^β]` are left-only too.
+  - **M2:** `Cg-R` (`I★⟨gen⟩⟨inst⟩`).  The right's `Inst` cell
+    `α:=★` pairs with the left's `[ℕ]` cell (`ℕ ⊑ ★`), the two `gen`
+    unbinds match, and the left's `Inst` boundary is left-only.
+
+  In all three, `ϱ` stays one-to-one.  The asymmetry comes from type
+  imprecision, which has no rule with a bare variable on the less
+  precise side (the same remark is in GTSFImp's
+  `proof/DGG/CastTermImprecision.agda`).  So an extra left name can
+  stay left-only, with the right seeing `★` (`X⊑★`).  An extra right
+  name cannot stay right-only, because no left type is more precise
+  than it, so it must rejoin a left name.  That rejoin is what forces
+  C12's second pair.  So the fix is needed in one direction only: a
+  right cell has at most one left partner, and a left cell may have
+  several.
 - **F4.**  A one-sided `Merge` also produces a left-only unbind of a
   shared name (§12.5, question 3).
 - **D1.**  `W[δ ∥ δ′]` must say which intermediate worlds of a

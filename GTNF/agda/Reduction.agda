@@ -23,9 +23,10 @@ module Reduction where
 --     - The moved tag's cast carries `exitEnv`: the interior modes read
 --       back at the exterior positions, `X∼X` for exterior names the
 --       interior does not see.
---     - `TyBeta`'s `gen` case weakens the value under `genᵖ` by the new
---       name (`⇑ᴹ 0 suc`, TermSubst §3) and gives the freed variable
---       the mode `★∼X`; the `∀ᵖ` case gives it `X∼X`.
+--     - `TyBeta`'s `gen` case puts the value under `genᵖ` beneath the
+--       binder's dual (`crossΛᴹ`, TermSubst §5) instead of weakening it
+--       by the new name, and gives the freed variable the mode `★∼X`;
+--       the `∀ᵖ` case gives it `X∼X`.
 --     - CastFun's argument cast carries `flipEnv μ` (GTSFImp `β-⇒`:
 --       the domain coercion was typed under the flipped environment).
 --   * THE STORE CHANGE.  A step returns the change `δ : Alloc` it made
@@ -70,10 +71,13 @@ open import TermSubst
 data InstX : Term → Term → Set where
   -- inst_X(ΛX. V) = V
   inst-Λ   : ∀ {N} → Value N → InstX (Λ N) N
-  -- inst_X(W ⟨gen X. p⟩) = W ⟨p⟩: W moves under the new name, and the
-  -- freed variable keeps the gen mode
+  -- inst_X(W ⟨gen X. p⟩) = ([−X^α] W ⟨Id(A)⟩) ⟨p⟩: W does NOT move
+  -- under the new name; it sits under the binder's dual (`crossΛᴹ`), so
+  -- its names keep their spelling and only the representation universe
+  -- shifts for the allocation.  The freed variable keeps the gen mode.
   inst-gen : ∀ {W μ p} → Value W
-    → InstX (W ⟨ μ ∣ genᵖ p ⟩) (⇑ᴹ 0 suc W ⟨ ★∼X ∷ μ ∣ p ⟩)
+    → InstX (W ⟨ μ ∣ genᵖ p ⟩)
+            (crossΛᴹ W (srcᵖ (genᵖ p)) ⟨ ★∼X ∷ μ ∣ p ⟩)
   -- inst_X(W ⟨∀X. p⟩) = inst_X(W) ⟨p⟩, the freed variable strict
   inst-∀   : ∀ {W N μ p} → InstX W N
     → InstX (W ⟨ μ ∣ ∀ᵖ p ⟩) (N ⟨ X∼X ∷ μ ∣ p ⟩)

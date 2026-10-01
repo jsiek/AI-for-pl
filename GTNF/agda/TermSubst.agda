@@ -2,9 +2,8 @@ module TermSubst where
 
 -- File Charter:
 --   * RENAMING AND SUBSTITUTION ON TERMS.  §2 the REPRESENTATION-ONLY
---     traversal `renᴹᴿ` and the sibling shifts `↑ᴹ[_]`/`↑ᴮ[_]`; §3
---     (GTNF) the weakening `⇑ᴹ` by one fresh ORDINARY name, which the
---     `gen` case of `TyBeta`'s `InstX` needs; §5 substitution — `Img`,
+--     traversal `renᴹᴿ` and the sibling shifts `↑ᴹ[_]`/`↑ᴮ[_]`; §5
+--     substitution — `Img`,
 --     `imgTm`, `shiftᴵ`, `crossΛᴹ`, `⇑ᴵ`, `extᴵ`, `substᵐ`, `betaEnv`,
 --     `_[_∶_]ᵐ`.
 --   * FORKED FROM strong-rep-nu.TermSubst.  νF's general paired
@@ -15,8 +14,10 @@ module TermSubst where
 --     environment.  `crossΛᴹ` is now written with `renᴹᴿ suc`.
 --   * CASTS.  `renᴹᴿ` and `substᵐ` pass a cast's mode environment and
 --     coercion through untouched (a coercion mentions no representation
---     variable and no term variable); `⇑ᴹ` inserts the fresh name's
---     mode `X∼X` into it (GTSFImp `renameEnv∼` at a `skip`).
+--     variable and no term variable).
+--   * NO WEAKENING BY AN ORDINARY NAME.  No rule moves a term under a
+--     new name: `TyBeta`'s `gen` case puts the value under the binder's
+--     dual instead (`crossΛᴹ`), so names never change spelling.
 --   * TWO LAWS (νF).  (1) Boundaries are TERM-CLOSED, so `substᵐ` does
 --     NOT descend into `_⟪_,_⟫`.  (2) Beta is FRAME-EXACT: a value image
 --     crossing a `Λ` is wrapped in that binder's DUAL (`crossΛᴹ`).
@@ -66,89 +67,6 @@ renᴹᴿ ρ (blame ℓ)      = blame ℓ
 ↑ᴮ[_] : Alloc → Boundary → Boundary
 ↑ᴮ[ none  ] Θ = Θ
 ↑ᴮ[ new R ] Θ = renᴮᴿ suc Θ
-
-------------------------------------------------------------------------
--- 3. (GTNF) Weakening by one fresh ordinary name
-------------------------------------------------------------------------
-
--- `⇑ᴹ k ρʳ M` reads M in a context with ONE MORE ordinary name, at
--- position k, and with its representation variables renamed by ρʳ.
--- `TyBeta`'s `gen` case uses `⇑ᴹ 0 suc`: the value under `genᵖ` moves
--- under the new boundary's name 0 for the newly allocated cell
--- (design.md §6.2, `inst_X(W ⟨gen X. p⟩) = W ⟨p⟩` with X ∉ W;
--- GTSFImp `β-gen`'s `⇑ᵗᵐ V`).  At k = 0 this is νF's `liftᴮ` lifted to
--- terms.  Under a `Λ` the position grows by one, and under a boundary it
--- is TRACKED through the scope's changes, separately for the interior
--- reading (`kᵢ`, still a position) and for the conversion reading (a
--- renaming `ρᶜ`, since that reading skips unbinds and so can disagree
--- with the interior about which side of the fresh name a bind lands).
--- A `bind` of a representation variable an earlier change mentions is a
--- live re-bind in the conversion reading, which inserts nothing.
-mentions : RVar → Boundary → Bool
-mentions α []               = false
-mentions α (bind X β ∷ Θ) with α ≟ β
-mentions α (bind X β ∷ Θ) | yes _ = true
-mentions α (bind X β ∷ Θ) | no  _ = mentions α Θ
-mentions α (unbind X β ∷ Θ) with α ≟ β
-mentions α (unbind X β ∷ Θ) | yes _ = true
-mentions α (unbind X β ∷ Θ) | no  _ = mentions α Θ
-
--- the conversion reading's correspondence after inserting the original
--- position X, which lands at X′ in the weakened list
-insertRen : ℕ → ℕ → Renameᵗ → Renameᵗ
-insertRen X X′ ρ i with i ≟ X
-insertRen X X′ ρ i | yes _ = X′
-insertRen X X′ ρ i | no  _ with i <? X
-insertRen X X′ ρ i | no  _ | yes _ with ρ i <? X′
-insertRen X X′ ρ i | no  _ | yes _ | yes _ = ρ i
-insertRen X X′ ρ i | no  _ | yes _ | no  _ = suc (ρ i)
-insertRen X X′ ρ i | no  _ | no  _ with ρ (pred i) <? X′
-insertRen X X′ ρ i | no  _ | no  _ | yes _ = ρ (pred i)
-insertRen X X′ ρ i | no  _ | no  _ | no  _ = suc (ρ (pred i))
-
--- a change at original position X, with the fresh name at kᵢ in the
--- interior reading: its weakened position (ties land after the fresh
--- name, as in `liftᴮ`)
-wkPos : ℕ → ℕ → ℕ
-wkPos kᵢ X with X <? kᵢ
-wkPos kᵢ X | yes _ = X
-wkPos kᵢ X | no  _ = suc X
-
-⇑ᴮ : ℕ → Renameᵗ → Boundary → Boundary × ℕ × Renameᵗ
-⇑ᴮ k ρʳ [] = [] , k , extN k suc
-⇑ᴮ k ρʳ (unbind X α ∷ Θ) with ⇑ᴮ k ρʳ Θ
-⇑ᴮ k ρʳ (unbind X α ∷ Θ) | Θ′ , kᵢ , ρᶜ with X <? kᵢ
-⇑ᴮ k ρʳ (unbind X α ∷ Θ) | Θ′ , kᵢ , ρᶜ | yes _ =
-  unbind X (ρʳ α) ∷ Θ′ , pred kᵢ , ρᶜ
-⇑ᴮ k ρʳ (unbind X α ∷ Θ) | Θ′ , kᵢ , ρᶜ | no  _ =
-  unbind (suc X) (ρʳ α) ∷ Θ′ , kᵢ , ρᶜ
-⇑ᴮ k ρʳ (bind X α ∷ Θ) with ⇑ᴮ k ρʳ Θ
-⇑ᴮ k ρʳ (bind X α ∷ Θ) | Θ′ , kᵢ , ρᶜ with X <? kᵢ | mentions α Θ
-⇑ᴮ k ρʳ (bind X α ∷ Θ) | Θ′ , kᵢ , ρᶜ | yes _ | true =
-  bind X (ρʳ α) ∷ Θ′ , suc kᵢ , ρᶜ
-⇑ᴮ k ρʳ (bind X α ∷ Θ) | Θ′ , kᵢ , ρᶜ | yes _ | false =
-  bind X (ρʳ α) ∷ Θ′ , suc kᵢ , insertRen X X ρᶜ
-⇑ᴮ k ρʳ (bind X α ∷ Θ) | Θ′ , kᵢ , ρᶜ | no  _ | true =
-  bind (suc X) (ρʳ α) ∷ Θ′ , kᵢ , ρᶜ
-⇑ᴮ k ρʳ (bind X α ∷ Θ) | Θ′ , kᵢ , ρᶜ | no  _ | false =
-  bind (suc X) (ρʳ α) ∷ Θ′ , kᵢ , insertRen X (suc X) ρᶜ
-
-⇑ᴹ : ℕ → Renameᵗ → Term → Term
-⇑ᴹ k ρʳ (` x)           = ` x
-⇑ᴹ k ρʳ ($ n)           = $ n
-⇑ᴹ k ρʳ `true           = `true
-⇑ᴹ k ρʳ `false          = `false
-⇑ᴹ k ρʳ (ƛ A ∙ N)       = ƛ renameᵗ (extN k suc) A ∙ ⇑ᴹ k ρʳ N
-⇑ᴹ k ρʳ (L · M)         = ⇑ᴹ k ρʳ L · ⇑ᴹ k ρʳ M
-⇑ᴹ k ρʳ (Λ N)           = Λ (⇑ᴹ (suc k) (extᵗ ρʳ) N)
--- `c` is read under the hypothetical name 0 for the cell `ν` allocates
-⇑ᴹ k ρʳ (ν A · L ⟨ c ⟩) =
-  ν renameᵗ (extN k suc) A · ⇑ᴹ k ρʳ L ⟨ renᶜ (extN (suc k) suc) c ⟩
-⇑ᴹ k ρʳ (M ⟪ Θ , c ⟫) with ⇑ᴮ k ρʳ Θ
-⇑ᴹ k ρʳ (M ⟪ Θ , c ⟫) | Θ′ , kᵢ , ρᶜ = ⇑ᴹ kᵢ ρʳ M ⟪ Θ′ , renᶜ ρᶜ c ⟫
-⇑ᴹ k ρʳ (M ⟨ μ ∣ p ⟩)   =
-  ⇑ᴹ k ρʳ M ⟨ insertAt k X∼X μ ∣ renᵖ (extN k suc) p ⟩
-⇑ᴹ k ρʳ (blame ℓ)       = blame ℓ
 
 ------------------------------------------------------------------------
 -- 5. Term substitution

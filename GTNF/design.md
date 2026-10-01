@@ -268,10 +268,11 @@ by the cross environment:
 
 - When an instantiation rule moves a coercion out from under its binder,
   the freed name keeps the binder's mode.  `TyBeta`'s
-  `inst_X(W ⟨gen X.p⟩^μ) = W ⟨p⟩^(μ, X:★∼X)` and
-  `inst_X(W ⟨∀X.p⟩^μ) = inst_X(W) ⟨p⟩^(μ, X:X∼X)`.  These are
-  GTSFImp's `β-gen` contractum `⇑ᵗᵐ V ⟨ c ⟩`, with `c` under `genᵐ μ`,
-  and the analogous `β-∀`.
+  `inst_X(W ⟨gen X.p⟩^μ) = ([−X^α] W ⟨Id(A)⟩) ⟨p⟩^(μ, X:★∼X)` and
+  `inst_X(W ⟨∀X.p⟩^μ) = inst_X(W) ⟨p⟩^(μ, X:X∼X)`.  The modes are
+  those of GTSFImp's `β-gen`, whose contractum is `⇑ᵗᵐ V ⟨ c ⟩` with
+  `c` under `genᵐ μ`, and of the analogous `β-∀`.  GTNF differs from
+  GTSFImp in not shifting `V` (§6.2).
 - `CastFun` casts the argument at `flip(μ)`, because the domain
   coercion was typed there.  This is GTSFImp's `β-⇒`, whose argument
   cast `c` has type `flipᵐ μ ⊢ A′ ∼ A`.
@@ -459,10 +460,28 @@ meta-operation `inst_X(V)` that instantiates a ∀-value `V` at the name
 
 ```
 inst_X(ΛX. V)            = V
-inst_X(W ⟨gen X. p⟩^μ)   = W ⟨p⟩^(μ, X:★∼X)
+inst_X(W ⟨gen X. p⟩^μ)   = ([−X^α] W ⟨Id(A)⟩) ⟨p⟩^(μ, X:★∼X)     (W : A)
 inst_X(W ⟨∀X. p⟩^μ)      = inst_X(W) ⟨p⟩^(μ, X:X∼X)
 inst_X([δ] U ⟨∀X. c⟩)    = [δ] inst_X(U) ⟨c⟩          (X not mentioned by δ)
 ```
+
+Here `α` is the representation variable that `TyBeta` allocates for
+`X`, so `inst_X` is really `inst_X^α`.
+
+**No term moves under a new name.**  In the `gen` case, `W` was typed
+outside `X`'s scope, and only `p` mentions `X`.  Placing `W` directly
+in the interior `Δ, X:=α` would need a weakening, so `W` is put under
+the binder's dual `[−X^α]` instead.  Its interior is
+`−X(Δ, X:=α) = Δ`, which is exactly where `W` was typed, and its
+conversion `Id(A)` is typed in `(−X^α)⁺(Δ, X:=α) = Δ, X:=α`.  So `W`
+keeps its scope ("colour") and needs no weakening, either in the Agda
+(no de Bruijn shift) or in a preservation proof with names (Jeremy,
+2026-10-01).  This is νF's `crossΛᴹ`, the wrapper Beta puts on a value
+that crosses a `Λ`.  It costs extra steps: Example 2 takes 12 steps
+rather than 8, because the wrapper is crossed by `Wrap` and later
+fused by `Merge`.  In the `Λ` and `∀X.p` cases nothing moves under the
+new name: the `Λ` body and `p` were already typed under a binder for
+`X`.
 
 These four clauses cover every canonical ∀-value (§5).  The recursion
 is on the structure of the value, and each layer of the value becomes
@@ -511,7 +530,9 @@ then  Δ, X:=α ∣ [] ⊢ inst_X(V) : C
 The `Λ` case re-reads the body, typed under an abstract `α`, at the
 allocated `α:=R`, as νF's `TyBeta` does.  The `gen X.p` and `∀X.p`
 cases use the fact that coercion typing does not depend on whether `α`
-is abstract or bound (§3).  In the boundary case, `δ` stays coherent at
+is abstract or bound (§3).  The `gen` case types `[−X^α] W ⟨Id(A)⟩`
+with the boundary rule, and `W` is used at exactly its own typing
+`Δ ∣ [] ⊢ W : A`, so no weakening lemma is needed.  In the boundary case, `δ` stays coherent at
 `Δ, X:=α`, because `X` and `α` are fresh.  Its interior is then
 `δ(Δ), X:=α`, and `c` is typed in `δ⁺(Δ), X:=α`.
 
@@ -688,34 +709,52 @@ variable, so the coercion is `gen X. (X! → X?ℓ)`.  Write
   (λg:∀X.X→X. (ν X:=ℕ. (g X) ⟨−X → +X⟩) 5) I
 ⟶ (Beta)
   (ν X:=ℕ. (I X) ⟨−X → +X⟩) 5
-⟶ (TyBeta, with inst_X(W ⟨gen X. p⟩) = W ⟨p⟩, ⊣ α:=ℕ)
-  ([+X^α] ((λx:★. x) ⟨X! → X?ℓ⟩) ⟨−X → +X⟩) 5
+⟶ (TyBeta, with inst_X(I) = ([−X^α] (λx:★. x) ⟨id(★) → id(★)⟩) ⟨X! → X?ℓ⟩, ⊣ α:=ℕ)
+  ([+X^α] (([−X^α] (λx:★. x) ⟨id(★) → id(★)⟩) ⟨X! → X?ℓ⟩) ⟨−X → +X⟩) 5
 ⟶ (Wrap)
-  [+X^α] (((λx:★. x) ⟨X! → X?ℓ⟩) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩
+  [+X^α] ((([−X^α] (λx:★. x) ⟨id(★) → id(★)⟩) ⟨X! → X?ℓ⟩) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩
 ⟶ (CastFun)
-  [+X^α] (((λx:★. x) (([−X^α] 5 ⟨−X⟩) ⟨X!⟩)) ⟨X?ℓ⟩) ⟨+X⟩
-⟶ (Beta)
-  [+X^α] (([−X^α] 5 ⟨−X⟩) ⟨X!⟩ ⟨X?ℓ⟩) ⟨+X⟩
-⟶ (TagUntag)
-  [+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩
+  [+X^α] ((([−X^α] (λx:★. x) ⟨id(★) → id(★)⟩) (([−X^α] 5 ⟨−X⟩) ⟨X!⟩)) ⟨X?ℓ⟩) ⟨+X⟩
+⟶ (Wrap, under ξ)
+  [+X^α] (([−X^α] ((λx:★. x) ([+X^α] (([−X^α] 5 ⟨−X⟩) ⟨X!⟩) ⟨id(★)⟩)) ⟨id(★)⟩) ⟨X?ℓ⟩) ⟨+X⟩
+⟶ (Beta, under ξ)
+  [+X^α] (([−X^α] ([+X^α] (([−X^α] 5 ⟨−X⟩) ⟨X!⟩) ⟨id(★)⟩) ⟨id(★)⟩) ⟨X?ℓ⟩) ⟨+X⟩
+⟶ (Merge, under ξ)
+  [+X^α] (([−X^α, +X^α] (([−X^α] 5 ⟨−X⟩) ⟨X!⟩) ⟨id(★)⟩) ⟨X?ℓ⟩) ⟨+X⟩
+⟶ (IdDyn, under ξ; X ∉ fresh(−X^α, +X^α))
+  [+X^α] ((([−X^α, +X^α] ([−X^α] 5 ⟨−X⟩) ⟨id(X)⟩) ⟨X!⟩) ⟨X?ℓ⟩) ⟨+X⟩
+⟶ (Merge, under ξ; −X ⨟ id(X) = −X)
+  [+X^α] ((([−X^α, +X^α, −X^α] 5 ⟨−X⟩) ⟨X!⟩) ⟨X?ℓ⟩) ⟨+X⟩
+⟶ (TagUntag, under ξ)
+  [+X^α] ([−X^α, +X^α, −X^α] 5 ⟨−X⟩) ⟨+X⟩
 ⟶ (Merge; −X ⨟ +X = Id(ℕ))
-  [+X^α, −X^α] 5 ⟨id(ℕ)⟩
+  [+X^α, −X^α, +X^α, −X^α] 5 ⟨id(ℕ)⟩
 ⟶ (Id)
   5
 ```
+
+The tagged argument enters `W`'s wrapper `[−X^α]`, where `X` is not
+visible.  There it is the fresh-tag value
+`[+X^α] (… ⟨X!⟩) ⟨id(★)⟩`, and the body `λx:★. x` sees only a `★`
+whose tag it cannot name.  When the value comes back out, `Merge` and
+`IdDyn` restore the tag `X`.  The Agda run (`ex2-run`) fires exactly
+these 12 rules.
 
 ### Example 3 — implicit generalization, used non-parametrically
 
 Replace the argument by `λx:★. (λy:ℕ. x) x`, which inspects its
 argument at `ℕ`.  The coercion is again `gen X. (X! → X?ℓ)`; the inner
-application has label `ℓ′`.  After the same first five steps, the body
-reaches `(λy:ℕ. x′) (x′ ⟨ℕ?ℓ′⟩)`, where `x′ = ([−X^α] 5 ⟨−X⟩) ⟨X!⟩`,
-still under the result cast `⟨X?ℓ⟩`.  The check fails because `X ≠ ℕ`:
+application has label `ℓ′`.  The first six steps are those of
+Example 2.  The body then runs inside `W`'s wrapper `[−X^α]`, where `x`
+is the fresh-tag value `x′ = [+X^α] (([−X^α] 5 ⟨−X⟩) ⟨X!⟩) ⟨id(★)⟩`.
+The check `ℕ?ℓ′` fails, because the tag `X` is not visible there:
 
 ```
-  [+X^α] (((λy:ℕ. x′) (([−X^α] 5 ⟨−X⟩) ⟨X!⟩ ⟨ℕ?ℓ′⟩)) ⟨X?ℓ⟩) ⟨+X⟩
-⟶ (TagUntagBad, under ξ)
-  [+X^α] (((λy:ℕ. x′) (blame ℓ′)) ⟨X?ℓ⟩) ⟨+X⟩
+  [+X^α] (([−X^α] ((λy:ℕ. x′) (x′ ⟨ℕ?ℓ′⟩)) ⟨id(★)⟩) ⟨X?ℓ⟩) ⟨+X⟩
+⟶ (TagUntagBad-⟪⟫, under ξ)
+  [+X^α] (([−X^α] ((λy:ℕ. x′) (blame ℓ′)) ⟨id(★)⟩) ⟨X?ℓ⟩) ⟨+X⟩
+⟶ (Blame, under ξ)
+  [+X^α] (([−X^α] (blame ℓ′) ⟨id(★)⟩) ⟨X?ℓ⟩) ⟨+X⟩
 ⟶ (Blame, under ξ)
   [+X^α] ((blame ℓ′) ⟨X?ℓ⟩) ⟨+X⟩
 ⟶ (Blame, under ξ)
@@ -1033,6 +1072,13 @@ Each one can be revisited on its own.
   ⟶ (Blame)
     blame ℓ
   ```
+
+- **D9 (no term moves under a new name).**  No rule weakens a term by
+  an ordinary name, even with names.  The `gen` case of `inst_X` puts
+  the value under the binder's dual `[−X^α]` rather than in the
+  interior that has `X` (§6.2; Jeremy, 2026-10-01).  A weakening lemma
+  in the preservation proof would be the sign of a term changing
+  colour.
 
 No design questions are open at the moment.  The next design item is
 the cast-term imprecision `⊢²` (§9.6).

@@ -145,10 +145,10 @@ cov4-⊢ = tc
 ex1-run : Reaches 16 11 ex1-⊢ ($ 5 ⟨ [] ∣ `ℕ ! ⟩)
 ex1-run = reaches refl (ans-value (V-simple (S-cast (V-simple S-$) I-tag)))
 
-ex2-run : Reaches 13 8 ex2-⊢ ($ 5)
+ex2-run : Reaches 17 12 ex2-⊢ ($ 5)
 ex2-run = reaches refl (ans-value (V-simple S-$))
 
-ex3-run : Reaches 14 9 ex3-⊢ (blame ℓ′)
+ex3-run : Reaches 16 11 ex3-⊢ (blame ℓ′)
 ex3-run = reaches refl (ans-blame)
 
 ex4-run : Reaches 11 6 ex4-⊢ (blame ℓ)

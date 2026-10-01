@@ -260,7 +260,11 @@ the source language.  Two properties need them in the cast calculus:
 environment for the names in scope.  This follows GTSFImp's `⊢⟨⟩`,
 whose `μ` is implicit and unconstrained.  So modes restrict only the
 variables that a coercion binds itself, with `∀X.p`, `inst X.p` and
-`gen X.p`.  Compilation types its casts under `μ` = every name
+`gen X.p`.  Because the cross mode `★∼X∼★` permits everything and
+`flip` fixes it, a coercion that is typed under some `μ` is also typed
+under the environment that gives every name in scope `★∼X∼★`.  The
+term rule (§4) therefore fixes that environment, written `cross(Δ)`, so
+that a type checker never has to guess a mode environment.  Compilation types its casts under `μ` = every name
 `★∼X∼★`, matching the source's `A ∼ B = idᶜ ⊢ A ∼ B`.  When an
 instantiation rule moves a coercion out from under its binder, the
 binder's mode is kept as the mode of the now-free name.  `TyBeta`'s
@@ -330,7 +334,7 @@ application, value-restricted `Λ`, `⊢ν`, boundary):
 New rules:
 
 ```
-  Δ ∣ Γ ⊢ M : A    Δ ; μ ⊢ p : A ⇒ B            Δ ⊢ A
+  Δ ∣ Γ ⊢ M : A    Δ ; cross(Δ) ⊢ p : A ⇒ B     Δ ⊢ A
   ──────────────────────────────── (new)        ───────────────────── (new)
   Δ ∣ Γ ⊢ M ⟨p⟩ : B                            Δ ∣ Γ ⊢ blame ℓ : A
 ```

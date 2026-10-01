@@ -774,15 +774,20 @@ boundary:
   [+X^α] (K ([−X^α, +X^α] (W⟨X!⟩) ⟨id(★)⟩)) ⟨+X⟩
 ⟶ (IdDyn, under ξ; X ∉ fresh(−X^α, +X^α))
   [+X^α] (K (([−X^α, +X^α] W ⟨id(X)⟩) ⟨X!⟩)) ⟨+X⟩
+⟶ (Merge, under ξ; W = [−X^α] 5 ⟨−X⟩, and −X ⨟ id(X) = −X)
+  [+X^α] (K (([−X^α, +X^α, −X^α] 5 ⟨−X⟩) ⟨X!⟩)) ⟨+X⟩
 ⟶ (Beta, under ξ)
-  [+X^α] ((λw:X. w) (([−X^α, +X^α] W ⟨id(X)⟩) ⟨X!⟩ ⟨X?ℓ⟩)) ⟨+X⟩
+  [+X^α] ((λw:X. w) (([−X^α, +X^α, −X^α] 5 ⟨−X⟩) ⟨X!⟩ ⟨X?ℓ⟩)) ⟨+X⟩
 ⟶ (TagUntag, under ξ)
-  [+X^α] ((λw:X. w) ([−X^α, +X^α] W ⟨id(X)⟩)) ⟨+X⟩
+  [+X^α] ((λw:X. w) ([−X^α, +X^α, −X^α] 5 ⟨−X⟩)) ⟨+X⟩
 ```
 
-The remaining steps are `Merge` (which fuses `[−X^α, +X^α]` with `W`'s
-boundary), `Beta`, `Merge` with the outer `[+X^α]`, and `Id`.  The
-result is `5`.  The `IdDyn` step happens at the interior `Δ, X:=α` of
+The `Merge` after `IdDyn` is needed because `IdDyn` leaves a boundary
+directly over the boundary value `W`, which is not a value (§5).  The
+machine-checked run (`GTNF/agda/Examples.agda`, `ex5-run`, 21 steps)
+continues with `Beta`, then `Merge` and `Id` twice.  The second pair
+comes from the two boundary layers around `h`'s call, which the omitted
+prefix creates.  The result is `5`.  The `IdDyn` step happens at the interior `Δ, X:=α` of
 the outer boundary, where `X` is visible again.  The rule's two forms of
 side condition agree there: `X ∉ fresh(−X^α, +X^α)`, and
 `Δ, X:=α ⊢ X`.

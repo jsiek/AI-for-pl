@@ -1644,7 +1644,36 @@ allocate one cell each and the boundaries stay aligned.
      `∀Y.Y→★ ∼ ∀X.X→X`.  Closed types have only `CrossFree` evidence,
      so `∼→∼ᵘ` (`proof/Consistency2.agda`) rules out declarative
      evidence for the latter as well.  So the probe's pair is outside
-     the image of compilation.  Whether a left-only unbind of a shared
-     name can arise from compiled programs is still open; it needs a
-     `gen` whose source is a `∀` on the left against no `gen` on the
-     right.
+     the image of compilation.
+
+     *Compiled programs do not produce it (argument, and a search).*
+     The only producer of a left-only unbind of a shared name is
+     `inst_X`'s `gen` case.  Matched boundaries unbind on both sides;
+     a left-only boundary (a left-only `TyBeta`, its `Wrap` duals)
+     binds and unbinds left-only names only; `Merge` and `IdDyn` reuse
+     existing changes.  So it would need a shared `X`
+     (`∀X.B ⊑ ∀X.B′` by `∀⊑∀`) whose binder the more precise evidence
+     `c : A ∼ ∀X.B` handles by `gen`, while the less precise
+     `c′ : A′ ∼ ∀X.B′` (with `A ⊑ A′`) does not.  Each alternative for
+     `c′` fails:
+
+     - `∀ᶜ` identifies a binder of `A′` with `X`.  Then on the left the
+       corresponding binder of `A` faces `X`, a distinct name, and
+       consistency cannot relate two distinct names.
+     - `inst` leaves `X` in the target, so the same argument applies
+       one level down.
+     - If `A′ = ★`, then `c′ = ？(∀★) ; c″`.  `c″` cannot be `∀ᶜ`,
+       because a strict `X` would face a `★` leaf.  It cannot be
+       `inst` either, because `X ∉ ★`.  So `c″` is `gen`.
+     - `bot-elim` needs `B′ = ★`, which does not contain `X`.
+
+     `notes/detour/left_only_unbind.py`, on the Python model of
+     GTSFImp's consistency and imprecision in `notes/detour/model.py`
+     (validated against Agda in `notes/detour/REPORT.md`), searches
+     every piece of declarative evidence on both sides, not only the
+     canonical one.  It found no counterexample for types of size up
+     to 6: closed (28,697 related pairs with a left `gen`) and with
+     one free cross-mode name (35,649).  A control in which `X` is
+     left-only (`∀⊑`) gives 343 hits, so the search can fire.  So the
+     last row of the table in question 3 does not arise from compiled
+     programs, and `W[δ ∥ δ′]` needs no restriction against it.

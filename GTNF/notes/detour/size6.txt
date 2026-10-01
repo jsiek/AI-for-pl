@@ -1,0 +1,2 @@
+depth=0 size≤6: types=932 source ⊑-pairs=7658 target ∀⊑∀-pairs=1867 squares with a left gen=28697 hits=0 (12.9s)
+depth=1 size≤6: types=1702 source ⊑-pairs=10040 target ∀⊑∀-pairs=2358 squares with a left gen=35649 hits=0 (28.8s)

@@ -14,7 +14,7 @@ The organizing principle is that the two kinds of run-time mediation stay
 | sort | metavariables | job | lives in |
 |---|---|---|---|
 | conversion | `c, d` (tails `t`, middles `g, h`) | type abstraction: `seal`/`unseal` a name `X` against its representation | `ν X:=A.(L X)⟨c⟩` and boundaries `[δ] M ⟨c⟩` (unchanged from νF) |
-| coercion | `p, q, r` | gradual typing: tag into `★`, check out of `★`, and the structural and polymorphic casts | the new cast form `M ⟨⟨p⟩⟩` |
+| coercion | `p, q, r` | gradual typing: tag into `★`, check out of `★`, and the structural and polymorphic casts | the new cast form `M ⟨p⟩` |
 
 A conversion never contains a coercion and a coercion never contains a
 conversion.  (GTSF, GTPLC and PolyBlameI merge the two into one coercion
@@ -29,9 +29,11 @@ Notation.  This document writes variables as names, following the νF
 paper.  The Agda will use de Bruijn indices with parallel renaming and
 substitution, as `strong-rep-nu` does.  Everything marked **(new)** is
 an addition to νF; everything else is νF as in the paper, restated so
-that this file is self-contained.  The cast notation `M ⟨⟨p⟩⟩` is
-provisional (see §9); it is chosen so that it cannot be confused with a
-boundary `[δ] M ⟨c⟩` or with the conversion slot of `ν`.
+that this file is self-contained.  A cast is written `M ⟨p⟩`.
+It is told apart from a boundary `[δ] M ⟨c⟩` by the boundary's leading
+`[δ]`, and from the conversion slot of `ν X:=A. (L X) ⟨c⟩` by the
+enclosing `ν`; the metavariables also differ (`p, q, r` for coercions,
+`c, d` for conversions).
 
 Contents
 
@@ -234,7 +236,7 @@ Terms        L, M, N ::= k | op(M⃗) | x | λx:A. N | L M
                        | ΛX. V
                        | ν X:=A. (L X) ⟨c⟩
                        | [δ] M ⟨c⟩
-                       | M ⟨⟨p⟩⟩                              (new) cast
+                       | M ⟨p⟩                              (new) cast
                        | blame ℓ                              (new)
 Term contexts  Γ ::= [] | Γ, x:A
 ```
@@ -261,7 +263,7 @@ New rules:
 ```
   Δ ∣ Γ ⊢ M : A    Δ ⊢ p : A ⇒ B                Δ ⊢ A
   ──────────────────────────────── (new)        ───────────────────── (new)
-  Δ ∣ Γ ⊢ M ⟨⟨p⟩⟩ : B                            Δ ∣ Γ ⊢ blame ℓ : A
+  Δ ∣ Γ ⊢ M ⟨p⟩ : B                            Δ ∣ Γ ⊢ blame ℓ : A
 ```
 
 ------------------------------------------------------------------------
@@ -269,7 +271,7 @@ New rules:
 ## 5. Values
 
 ```
-Simples   U ::= k | λx:A. N | ΛX. V | V ⟨⟨P⟩⟩            (V⟨⟨P⟩⟩ new)
+Simples   U ::= k | λx:A. N | ΛX. V | V ⟨P⟩            (V⟨P⟩ new)
 Values    V, W ::= U | [δ] U ⟨i⟩
 ```
 
@@ -289,9 +291,9 @@ Canonical forms, by type:
 | type | values |
 |---|---|
 | `ι` | `k` |
-| `A → B` | `λx:A.N`, `V⟨⟨p → q⟩⟩`, `[δ] U ⟨c → d⟩` |
-| `∀X. A` | `ΛX.V`, `V⟨⟨∀X.p⟩⟩`, `V⟨⟨gen X.p⟩⟩`, `[δ] U ⟨∀X. c⟩` |
-| `★` | `V⟨⟨G!⟩⟩`, `[δ] (V⟨⟨G!⟩⟩) ⟨id(★)⟩` |
+| `A → B` | `λx:A.N`, `V⟨p → q⟩`, `[δ] U ⟨c → d⟩` |
+| `∀X. A` | `ΛX.V`, `V⟨∀X.p⟩`, `V⟨gen X.p⟩`, `[δ] U ⟨∀X. c⟩` |
+| `★` | `V⟨G!⟩`, `[δ] (V⟨G!⟩) ⟨id(★)⟩` |
 | `X` | `[δ] U ⟨−X⟩`, `[δ] U ⟨t ; −X⟩` (as in νF; `U` may now be a `★`-value when `X:=★`) |
 
 ------------------------------------------------------------------------
@@ -307,11 +309,11 @@ Canonical forms, by type:
 F ::= □ M | V □ | op(V⃗, □, M⃗)
     | ν X:=A. (□ X) ⟨c⟩
     | [δ] □ ⟨c⟩
-    | □ ⟨⟨p⟩⟩                                   (new)
+    | □ ⟨p⟩                                   (new)
 
 (□ M)(Δ) = (V □)(Δ) = (op(V⃗,□,M⃗))(Δ) = (ν X:=A.(□ X)⟨c⟩)(Δ) = Δ
 ([δ] □ ⟨c⟩)(Δ) = δ(Δ)
-(□ ⟨⟨p⟩⟩)(Δ) = Δ                                (new)
+(□ ⟨p⟩)(Δ) = Δ                                (new)
 ```
 
 ### 6.2 The νF rules
@@ -322,8 +324,8 @@ F ::= □ M | V □ | op(V⃗, □, M⃗)
 
 ```
 open_X(ΛX. V)          = V
-open_X(W ⟨⟨gen X. p⟩⟩)  = W ⟨⟨p⟩⟩
-open_X(W ⟨⟨∀X. p⟩⟩)     = (ν Y:=X. (W Y) ⟨reveal_Y(src(p)[Y/X])⟩) ⟨⟨p⟩⟩      (Y fresh)
+open_X(W ⟨gen X. p⟩)  = W ⟨p⟩
+open_X(W ⟨∀X. p⟩)     = (ν Y:=X. (W Y) ⟨reveal_Y(src(p)[Y/X])⟩) ⟨p⟩      (Y fresh)
 ```
 
 The third clause instantiates `W` at the *already allocated* name `X`
@@ -364,27 +366,27 @@ Preservation of the `∀X.p` instance of `TyBeta`, informally: let
 `Δ, α:=Δ(A), X:=α ⊢ d : C′ ⇒ B`.  The interior is `Δ′ = Δ, X:=α`, where
 `Δ` now contains `α:=Δ(A)`.  The alias `ν Y:=X` is well typed at `C`,
 because `Y:=X ∈ (Δ′, β:=α, Y:=β)` and so
-`reveal_Y(C[Y/X]) : C[Y/X] ⇒ C`.  The cast `⟨⟨p⟩⟩` brings the type to
+`reveal_Y(C[Y/X]) : C[Y/X] ⇒ C`.  The cast `⟨p⟩` brings the type to
 `C′`, and `d` is typed in `(+X^α)⁺(Δ) = Δ, X:=α`.
 
 ### 6.3 Cast rules (new)
 
 ```
-Δ ⊢ V ⟨⟨id(A)⟩⟩ ⟶ V ⊣ ε                                                 (CastId)
+Δ ⊢ V ⟨id(A)⟩ ⟶ V ⊣ ε                                                 (CastId)
 
-Δ ⊢ V ⟨⟨p ; q⟩⟩ ⟶ V ⟨⟨p⟩⟩ ⟨⟨q⟩⟩ ⊣ ε                                       (CastSeq)
+Δ ⊢ V ⟨p ; q⟩ ⟶ V ⟨p⟩ ⟨q⟩ ⊣ ε                                       (CastSeq)
 
-Δ ⊢ (V ⟨⟨p → q⟩⟩) W ⟶ (V (W ⟨⟨p⟩⟩)) ⟨⟨q⟩⟩ ⊣ ε                             (CastFun)
+Δ ⊢ (V ⟨p → q⟩) W ⟶ (V (W ⟨p⟩)) ⟨q⟩ ⊣ ε                             (CastFun)
 
-Δ ⊢ V ⟨⟨inst X. p⟩⟩ ⟶ (ν X:=★. (V X) ⟨reveal_X(src(p))⟩) ⟨⟨p[★/X]⟩⟩ ⊣ ε   (Inst)
+Δ ⊢ V ⟨inst X. p⟩ ⟶ (ν X:=★. (V X) ⟨reveal_X(src(p))⟩) ⟨p[★/X]⟩ ⊣ ε   (Inst)
 
-Δ ⊢ V ⟨⟨G!⟩⟩ ⟨⟨G?ℓ⟩⟩ ⟶ V ⊣ ε                                              (TagUntag)
+Δ ⊢ V ⟨G!⟩ ⟨G?ℓ⟩ ⟶ V ⊣ ε                                              (TagUntag)
 
-Δ ⊢ V ⟨⟨G!⟩⟩ ⟨⟨H?ℓ⟩⟩ ⟶ blame ℓ ⊣ ε        if G ≠ H                         (TagUntagBad)
+Δ ⊢ V ⟨G!⟩ ⟨H?ℓ⟩ ⟶ blame ℓ ⊣ ε        if G ≠ H                         (TagUntagBad)
 
-Δ ⊢ ([δ] (V ⟨⟨G!⟩⟩) ⟨id(★)⟩) ⟨⟨G?ℓ⟩⟩ ⟶ [δ] V ⟨Id(G)⟩ ⊣ ε                   (TagUntag-⟪⟫)
+Δ ⊢ ([δ] (V ⟨G!⟩) ⟨id(★)⟩) ⟨G?ℓ⟩ ⟶ [δ] V ⟨Id(G)⟩ ⊣ ε                   (TagUntag-⟪⟫)
 
-Δ ⊢ ([δ] (V ⟨⟨G!⟩⟩) ⟨id(★)⟩) ⟨⟨H?ℓ⟩⟩ ⟶ blame ℓ ⊣ ε   if G ≠ H             (TagUntagBad-⟪⟫)
+Δ ⊢ ([δ] (V ⟨G!⟩) ⟨id(★)⟩) ⟨H?ℓ⟩ ⟶ blame ℓ ⊣ ε   if G ≠ H             (TagUntagBad-⟪⟫)
 
 Δ ⊢ F[blame ℓ] ⟶ blame ℓ ⊣ ε                                            (Blame)
 ```
@@ -456,12 +458,12 @@ Terms (following GTSFImp's `Compile.agda`, which casts the argument by
 ```
 ⟦x⟧                     = x
 ⟦λx:A. M⟧               = λx:A. ⟦M⟧
-⟦L ·[ℓ] M⟧  (⊢·, c)      = ⟦L⟧ (⟦M⟧ ⟨⟨⟦symᶜ c⟧ℓ⟩⟩)
-⟦L ·[ℓ] M⟧  (⊢·★, c)     = (⟦L⟧ ⟨⟨(★→★)?ℓ⟩⟩) (⟦M⟧ ⟨⟨⟦c⟧ℓ⟩⟩)
+⟦L ·[ℓ] M⟧  (⊢·, c)      = ⟦L⟧ (⟦M⟧ ⟨⟦symᶜ c⟧ℓ⟩)
+⟦L ·[ℓ] M⟧  (⊢·★, c)     = (⟦L⟧ ⟨(★→★)?ℓ⟩) (⟦M⟧ ⟨⟦c⟧ℓ⟩)
 ⟦ΛX. V⟧                 = ΛX. ⟦V⟧
 ⟦M [A]⟧     (M : ∀X.C)   = ν X:=A. (⟦M⟧ X) ⟨reveal_X(C)⟩
 ⟦k⟧                     = k
-⟦L ⊕[op at ℓ] M⟧        = op(⟦L⟧ ⟨⟨⟦c₁⟧ℓ⟩⟩, ⟦M⟧ ⟨⟨⟦c₂⟧ℓ⟩⟩)
+⟦L ⊕[op at ℓ] M⟧        = op(⟦L⟧ ⟨⟦c₁⟧ℓ⟩, ⟦M⟧ ⟨⟦c₂⟧ℓ⟩)
 ```
 
 The intended theorem is the analogue of νF's `compile-⊢`: if
@@ -475,7 +477,7 @@ to values, which needs `⟦gen c⟧ℓ` to be gen-safe and so uses GTSFImp's
 
 ## 8. Examples
 
-The traces omit the identity casts `⟨⟨id(A)⟩⟩` that compilation puts
+The traces omit the identity casts `⟨id(A)⟩` that compilation puts
 on arguments whose types already agree.  Each such cast would be removed
 by one `CastId` step.
 
@@ -488,25 +490,25 @@ argument's coercion is `inst X. (X?ℓ → X!)`, and
 `(X?ℓ → X!)[★/X] = id(★) → id(★)`.  The `5` is cast by `ℕ!`.
 
 ```
-  (λf:★→★. f (5⟨⟨ℕ!⟩⟩)) ((ΛX. λx:X. x) ⟨⟨inst X. (X?ℓ → X!)⟩⟩)
+  (λf:★→★. f (5⟨ℕ!⟩)) ((ΛX. λx:X. x) ⟨inst X. (X?ℓ → X!)⟩)
 ⟶ (Inst; reveal_X(X→X) = −X → +X)
-  (λf:★→★. f (5⟨⟨ℕ!⟩⟩)) ((ν X:=★. ((ΛX. λx:X. x) X) ⟨−X → +X⟩) ⟨⟨id(★) → id(★)⟩⟩)
+  (λf:★→★. f (5⟨ℕ!⟩)) ((ν X:=★. ((ΛX. λx:X. x) X) ⟨−X → +X⟩) ⟨id(★) → id(★)⟩)
 ⟶ (TyBeta, ⊣ α:=★)
-  (λf:★→★. f (5⟨⟨ℕ!⟩⟩)) (([+X^α] (λx:X. x) ⟨−X → +X⟩) ⟨⟨id(★) → id(★)⟩⟩)
+  (λf:★→★. f (5⟨ℕ!⟩)) (([+X^α] (λx:X. x) ⟨−X → +X⟩) ⟨id(★) → id(★)⟩)
 ⟶ (Beta)
-  (([+X^α] (λx:X. x) ⟨−X → +X⟩) ⟨⟨id(★) → id(★)⟩⟩) (5⟨⟨ℕ!⟩⟩)
+  (([+X^α] (λx:X. x) ⟨−X → +X⟩) ⟨id(★) → id(★)⟩) (5⟨ℕ!⟩)
 ⟶ (CastFun)
-  (([+X^α] (λx:X. x) ⟨−X → +X⟩) (5⟨⟨ℕ!⟩⟩⟨⟨id(★)⟩⟩)) ⟨⟨id(★)⟩⟩
+  (([+X^α] (λx:X. x) ⟨−X → +X⟩) (5⟨ℕ!⟩⟨id(★)⟩)) ⟨id(★)⟩
 ⟶ (CastId, under ξ)
-  (([+X^α] (λx:X. x) ⟨−X → +X⟩) (5⟨⟨ℕ!⟩⟩)) ⟨⟨id(★)⟩⟩
+  (([+X^α] (λx:X. x) ⟨−X → +X⟩) (5⟨ℕ!⟩)) ⟨id(★)⟩
 ⟶ (Wrap)
-  ([+X^α] ((λx:X. x) ([−X^α] (5⟨⟨ℕ!⟩⟩) ⟨−X⟩)) ⟨+X⟩) ⟨⟨id(★)⟩⟩
+  ([+X^α] ((λx:X. x) ([−X^α] (5⟨ℕ!⟩) ⟨−X⟩)) ⟨+X⟩) ⟨id(★)⟩
 ⟶ (Beta, under ξ)
-  ([+X^α] ([−X^α] (5⟨⟨ℕ!⟩⟩) ⟨−X⟩) ⟨+X⟩) ⟨⟨id(★)⟩⟩
+  ([+X^α] ([−X^α] (5⟨ℕ!⟩) ⟨−X⟩) ⟨+X⟩) ⟨id(★)⟩
 ⟶ (Merge; −X ⨟ +X = Id(★) = id(★), because X:=★)
-  ([+X^α, −X^α] (5⟨⟨ℕ!⟩⟩) ⟨id(★)⟩) ⟨⟨id(★)⟩⟩
+  ([+X^α, −X^α] (5⟨ℕ!⟩) ⟨id(★)⟩) ⟨id(★)⟩
 ⟶ (CastId)
-  [+X^α, −X^α] (5⟨⟨ℕ!⟩⟩) ⟨id(★)⟩                         -- a value of type ★
+  [+X^α, −X^α] (5⟨ℕ!⟩) ⟨id(★)⟩                         -- a value of type ★
 ```
 
 The answer carries a residual boundary around the tagged `5` (open
@@ -518,20 +520,20 @@ question Q1).  Projecting the answer to `ℕ` uses `TagUntag-⟪⟫`, giving
 Source: `(λg:∀X.X→X. g [ℕ] 5) (λx:★. x)`.  The argument's type `★→★` is
 consistent with `∀X.X→X` by `gen`, with `★∼X` marking the fresh
 variable, so the coercion is `gen X. (X! → X?ℓ)`.  Write
-`I = (λx:★. x) ⟨⟨gen X. (X! → X?ℓ)⟩⟩`, which is a value.
+`I = (λx:★. x) ⟨gen X. (X! → X?ℓ)⟩`, which is a value.
 
 ```
   (λg:∀X.X→X. (ν X:=ℕ. (g X) ⟨−X → +X⟩) 5) I
 ⟶ (Beta)
   (ν X:=ℕ. (I X) ⟨−X → +X⟩) 5
-⟶ (TyBeta with open_X(… ⟨⟨gen X. p⟩⟩), ⊣ α:=ℕ)
-  ([+X^α] ((λx:★. x) ⟨⟨X! → X?ℓ⟩⟩) ⟨−X → +X⟩) 5
+⟶ (TyBeta with open_X(… ⟨gen X. p⟩), ⊣ α:=ℕ)
+  ([+X^α] ((λx:★. x) ⟨X! → X?ℓ⟩) ⟨−X → +X⟩) 5
 ⟶ (Wrap)
-  [+X^α] (((λx:★. x) ⟨⟨X! → X?ℓ⟩⟩) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩
+  [+X^α] (((λx:★. x) ⟨X! → X?ℓ⟩) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩
 ⟶ (CastFun)
-  [+X^α] (((λx:★. x) (([−X^α] 5 ⟨−X⟩) ⟨⟨X!⟩⟩)) ⟨⟨X?ℓ⟩⟩) ⟨+X⟩
+  [+X^α] (((λx:★. x) (([−X^α] 5 ⟨−X⟩) ⟨X!⟩)) ⟨X?ℓ⟩) ⟨+X⟩
 ⟶ (Beta)
-  [+X^α] (([−X^α] 5 ⟨−X⟩) ⟨⟨X!⟩⟩ ⟨⟨X?ℓ⟩⟩) ⟨+X⟩
+  [+X^α] (([−X^α] 5 ⟨−X⟩) ⟨X!⟩ ⟨X?ℓ⟩) ⟨+X⟩
 ⟶ (TagUntag)
   [+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩
 ⟶ (Merge; −X ⨟ +X = Id(ℕ))
@@ -545,8 +547,8 @@ variable, so the coercion is `gen X. (X! → X?ℓ)`.  Write
 Replace the argument by `λx:★. (λy:ℕ. x) x`, which inspects its
 argument at `ℕ`.  The coercion is again `gen X. (X! → X?ℓ)`; the inner
 application has label `ℓ′`.  After the same first five steps, the body
-reaches `(λy:ℕ. x′) (x′ ⟨⟨ℕ?ℓ′⟩⟩)`, where
-`x′ = ([−X^α] 5 ⟨−X⟩) ⟨⟨X!⟩⟩`.  `TagUntagBad` fires because `X ≠ ℕ`,
+reaches `(λy:ℕ. x′) (x′ ⟨ℕ?ℓ′⟩)`, where
+`x′ = ([−X^α] 5 ⟨−X⟩) ⟨X!⟩`.  `TagUntagBad` fires because `X ≠ ℕ`,
 and the result is `blame ℓ′`.  Parametricity is enforced by the tag
 `X`, not by the representation `ℕ`.
 
@@ -554,7 +556,7 @@ and the result is `blame ℓ′`.  Parametricity is enforced by the tag
 
 Source: `(λn:ℕ. n) ((ΛX. λx:X. (λz:★. z) x) [ℕ] 5)`.  The argument
 has type `★`, so the outer application casts it by `ℕ?ℓ`.  The `★`-value that leaves
-the `[+X^α]` boundary is `[+X^α] (W ⟨⟨X!⟩⟩) ⟨id(★)⟩`, where `W` is the
+the `[+X^α]` boundary is `[+X^α] (W ⟨X!⟩) ⟨id(★)⟩`, where `W` is the
 sealed `5`.  The check `ℕ?ℓ` meets the tag `X`, and `TagUntagBad-⟪⟫`
 gives `blame ℓ`.  GTSFImp gives the same answer, because its tag is the
 store variable allocated by `β-Λ`, and so does λB.
@@ -567,7 +569,7 @@ These decisions are complementary: together they make up the draft.
 Each one can be revisited on its own.
 
 - **D1 (separation).**  Coercions are their own sort and are applied by
-  their own term form `M ⟨⟨p⟩⟩`; νF's conversions, `ν` and boundaries
+  their own term form `M ⟨p⟩`; νF's conversions, `ν` and boundaries
   are unchanged.  The sorts meet only in `Inst`, `TyBeta`/`TyWrap` (via
   `open_X`) and `TagUntag(Bad)-⟪⟫`.
 - **D2 (cast values are simples).**  This lets `Wrap`, `TyWrap`,
@@ -577,7 +579,7 @@ Each one can be revisited on its own.
 - **D4 (inst closes at ★).**  `Inst` instantiates by `ν X:=★` with the
   conversion `reveal_X`, and substitutes `★` for `X` in the coercion,
   as GTSFImp does.
-- **D5 (∀-casts by alias ν).**  `open_X(W⟨⟨∀X.p⟩⟩)` re-instantiates `W`
+- **D5 (∀-casts by alias ν).**  `open_X(W⟨∀X.p⟩)` re-instantiates `W`
   at the existing name by an alias `ν`.  This costs a second allocation
   per `∀`-cast layer, consistently with νF's answer (3a).
 - **D6 (no modes in the cast calculus).**  Consistency modes remain a
@@ -586,10 +588,10 @@ Each one can be revisited on its own.
 Open questions, in roughly the order I would like them settled:
 
 - **Q1.**  Should a `★`-value be allowed to keep the boundary it passed
-  through (`[δ] (V⟨⟨G!⟩⟩) ⟨id(★)⟩` is a value), as in Example 1?  The
+  through (`[δ] (V⟨G!⟩) ⟨id(★)⟩` is a value), as in Example 1?  The
   alternative is a rule `IdDyn`:
-  `[δ] (V⟨⟨G!⟩⟩) ⟨id(★)⟩ ⟶ ([δ] V ⟨Id(G)⟩) ⟨⟨G!⟩⟩` when `Δ ⊢ G`.  Under
-  that rule, Example 1 would end at `5⟨⟨ℕ!⟩⟩`.  The residual form would
+  `[δ] (V⟨G!⟩) ⟨id(★)⟩ ⟶ ([δ] V ⟨Id(G)⟩) ⟨G!⟩` when `Δ ⊢ G`.  Under
+  that rule, Example 1 would end at `5⟨ℕ!⟩`.  The residual form would
   still be needed when `G` is a name that is not visible outside
   (Example 4).
 - **Q2.**  Is blame the intended answer when a tag was created under an
@@ -600,8 +602,7 @@ Open questions, in roughly the order I would like them settled:
 - **Q3.**  D5 versus a non-allocating instantiation at an existing name.
 - **Q4.**  `bot-intro` blames eagerly in GTSFImp (`blame-bot-intro`),
   but `⟦bot-intro⟧ = ∀X. X?ℓ` blames only at instantiation.
-- **Q5.**  The cast notation `M ⟨⟨p⟩⟩`.
-- **Q6.**  Space efficiency (normal forms for coercions and a
+- **Q5.**  Space efficiency (normal forms for coercions and a
   composition `p ⨟ q`, like νF's for conversions) is deferred.
 
 ------------------------------------------------------------------------

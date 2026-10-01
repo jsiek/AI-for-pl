@@ -1626,3 +1626,26 @@ allocate one cell each and the boundaries stay aligned.
   3. Whether `W[δ ∥ δ′]` should be restricted (for example, forbid a
      left-only unbind of a both-sided name), or whether such
      restrictions should come from the DGG proof.
+
+     *Finding (probe `notes/LeftOnlyUnbindProbe.agda`).*  Typing does
+     not rule the left-only unbind out.  `∀Y.Y→Y ∼ ∀X.X→X` has two
+     pieces of evidence, and source typing accepts either.  One is
+     `∀ᶜ (id ↦ id)`.  The other is a detour through `★`, which compiles
+     to `gen X. inst Y. ((X! ; Y?ℓ) → (Y! ; X?ℓ))`.  Cast `ΛY.λx:Y.x` by
+     the detour on the left and by `∀X. (id(X) → id(X))` on the right,
+     and use both at `ℕ`.  Both runs return `5`, but after the matched
+     `TyBeta`s the left has a left-only `[−X^α]` of the shared `X`:
+
+     ```
+     L  ([+X^α] ([−X^α] (ΛY. (λx:Y. x)) ⟨∀Y. (id(Y) → id(Y))⟩)⟨inst Z. ((X! ; Z?ℓ0) → (Z! ; X?ℓ0))⟩^[X:★∼X] ⟨−X → +X⟩) 5
+     R  ([+X^α] (λx:X. x)⟨id(X) → id(X)⟩^[X:X∼X] ⟨−X → +X⟩) 5
+     ```
+
+     §12.3 relates the two starting programs (`cast⊑cast` compares the
+     two coercions only by their types), but it relates no state after
+     the matched `TyBeta`.  Inside the boundary pair, the left's term
+     under its last cast has type `∀Y.Y→Y`, and two steps later
+     `★→★`.  The right's term has type `X → X`.  Neither
+     `∀Y.Y→Y ⊑ X→X` nor `★→★ ⊑ X→X` holds.  So the problem is not the
+     unbind alone: `cast⊑cast` is too permissive, because it lets a
+     detour through `★` on the left face a direct cast on the right.

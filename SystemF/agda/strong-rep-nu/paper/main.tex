@@ -14,7 +14,7 @@
 \usepackage{stmaryrd} % defines \fatsemi
 
 \newcommand{\id}[1]{\key{id}(#1)}
-\newcommand{\dual}[1]{#1^\mathrm{op}}
+\newcommand{\dual}[1]{-#1}
 %% \newcommand{\seal}[1]{\key{seal}(#1)}
 %% \newcommand{\unseal}[1]{\key{unseal}(#1)}
 %% \newcommand{\seal}[1]{#1 \sharp}
@@ -137,11 +137,11 @@ Scope changes
 \end{align*}
 \end{minipage}
 \begin{minipage}[t]{0.29\textwidth}
-\fbox{$\delta^\mathrm{op}$} \quad inverse
+\fbox{$\dual{\delta}$} \quad inverse
 \begin{align*}
-  []^\mathrm{op} &= [] \\
-  (\delta,{+X}^\alpha)^\mathrm{op} &= [{-X}^\alpha]\mathop{++}\delta^\mathrm{op}\\
-  (\delta,{-X}^\alpha)^\mathrm{op} &= [{+X}^\alpha]\mathop{++}\delta^\mathrm{op}
+  \dual{[]} &= [] \\
+  \dual{(\delta,{+X}^\alpha)} &= [{-X}^\alpha]\mathop{++}\dual{\delta}\\
+  \dual{(\delta,{-X}^\alpha)} &= [{+X}^\alpha]\mathop{++}\dual{\delta}
 \end{align*}
 \end{minipage}
 

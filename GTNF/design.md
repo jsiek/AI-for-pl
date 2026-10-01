@@ -45,8 +45,9 @@ Contents
 6. Reduction
 7. Compilation from the source language
 8. Examples
-9. Decisions taken in this draft, and open questions
-10. Agda plan
+9. Metatheory goals
+10. Decisions taken in this draft, and open questions
+11. Agda plan
 
 ------------------------------------------------------------------------
 
@@ -159,13 +160,19 @@ Coercions    p, q, r ::= id(A)            identity
                        | inst X. p        instantiate a ∀ at ★ (implicit instantiation)
                        | gen X. p         generalize to a ∀ (implicit generalization)
                        | p ; q            sequencing
+                       | bot-elim         ∀X. X ⇒ ∀X. ★
+                       | bot-intro ℓ      ∀X. ★ ⇒ ∀X. X  (always blames)
 Inert coercions  P ::= G! | p → q | ∀X. p | gen X. p
+Modes            m ::= X∼X | X∼★ | ★∼X | ★∼X∼★
+Mode envs        μ ::= [] | μ, X:m
 Gen-safe         GenSafe(p)  iff  p is  q → r,  ∀X. q,  inst X. q,  or  gen X. q with GenSafe(q)
 ```
 
 The constructor names follow GTSF's `Coercions.agda` (`id`, `_!`, `_？`,
 `_↦_`, `` `∀ ``, `inst`, `gen`, `_︔_`) and GTSFImp's consistency
-constructors (`id`, `_!`, `？_`, `_↦_`, `∀ᶜ_`, `inst_`, `gen_`).
+constructors (`id`, `_!`, `？_`, `_↦_`, `∀ᶜ_`, `inst_`, `gen_`,
+`bot-elim`, `bot-intro`).  The modes are GTSFImp's `Var∼`, and a mode
+environment is its `Env∼`.
 `GenSafe` is GTSFImp's `CastTerms.GenSafe`: the coercion suspended under
 a `gen` must not hide a check that ought to run before the polymorphic
 value exists.  Compilation always produces gen-safe coercions under
@@ -174,40 +181,96 @@ value exists.  Compilation always produces gen-safe coercions under
 `src(p)` and `trg(p)` are computed syntactically (`src(id A) = A`,
 `src(G!) = G`, `src(G?ℓ) = ★`, `src(p → q) = trg(p) → src(q)`,
 `src(∀X.p) = ∀X.src(p)`, `src(inst X.p) = ∀X.src(p)`,
-`src(gen X.p) = src(p)`, `src(p ; q) = src(p)`, and dually for `trg`).
+`src(gen X.p) = src(p)`, `src(p ; q) = src(p)`,
+`src(bot-elim) = ∀X. X`, `src(bot-intro ℓ) = ∀X. ★`, and dually for
+`trg`).
 
-### Typing `Δ ⊢ p : A ⇒ B`
+### Typing `Δ ; μ ⊢ p : A ⇒ B`
+
+Coercion typing carries a **mode environment** `μ`, which gives each
+type variable in scope a mode, exactly as GTSFImp's consistency
+`μ ⊢ A ∼ B` does (`Consistency.agda`).  The mode of `X` says whether a
+coercion may tag a value with `X` and whether it may check a `★`
+against `X`:
+
+| mode | `X!` allowed | `X?ℓ` allowed | given to a variable bound by |
+|---|---|---|---|
+| `X∼X` (strict) | no | no | `∀X. p` (GTSFImp `extᵐ`) |
+| `X∼★` | yes | no | `inst X. p` (GTSFImp `instᵐ`) |
+| `★∼X` | no | yes | `gen X. p` (GTSFImp `genᵐ`) |
+| `★∼X∼★` (cross) | yes | yes | the type context of a source term (GTSFImp `idᶜ`) |
+
+The domain of a function coercion is typed under `flip(μ)`, which swaps
+`X∼★` and `★∼X` and leaves the other two modes alone (GTSFImp `flipᵐ`).
+The side conditions on `inst` and `gen` are GTSFImp's.
 
 ```
-  Δ ⊢ A                    Δ ⊢ G                  Δ ⊢ G
-  ───────────────────      ──────────────         ───────────────
-  Δ ⊢ id(A) : A ⇒ A        Δ ⊢ G! : G ⇒ ★         Δ ⊢ G?ℓ : ★ ⇒ G
+  Δ ⊢ A                         Δ ⊢ G   G ≠ X                Δ ⊢ G   G ≠ X
+  ──────────────────────        ──────────────────           ────────────────────
+  Δ ; μ ⊢ id(A) : A ⇒ A         Δ ; μ ⊢ G! : G ⇒ ★           Δ ; μ ⊢ G?ℓ : ★ ⇒ G
 
-  Δ ⊢ p : A′ ⇒ A    Δ ⊢ q : B ⇒ B′          Δ, α, X:=α ⊢ p : A ⇒ B
-  ────────────────────────────────          ───────────────────────────── (X, α ∉ Δ)
-  Δ ⊢ p → q : A → B ⇒ A′ → B′               Δ ⊢ ∀X. p : ∀X. A ⇒ ∀X. B
+  Δ ⊢ X   μ(X) ∈ {X∼★, ★∼X∼★}         Δ ⊢ X   μ(X) ∈ {★∼X, ★∼X∼★}
+  ───────────────────────────          ───────────────────────────
+  Δ ; μ ⊢ X! : X ⇒ ★                   Δ ; μ ⊢ X?ℓ : ★ ⇒ X
 
-  Δ, α, X:=α ⊢ p : A ⇒ B    Δ ⊢ B          Δ, α, X:=α ⊢ p : A ⇒ B    Δ ⊢ A    GenSafe(p)
-  ─────────────────────────────── (X,α∉Δ)  ──────────────────────────────────────────── (X,α∉Δ)
-  Δ ⊢ inst X. p : ∀X. A ⇒ B                Δ ⊢ gen X. p : A ⇒ ∀X. B
+  Δ ; flip(μ) ⊢ p : A′ ⇒ A    Δ ; μ ⊢ q : B ⇒ B′
+  ─────────────────────────────────────────────
+  Δ ; μ ⊢ p → q : A → B ⇒ A′ → B′
 
-  Δ ⊢ p : A ⇒ B    Δ ⊢ q : B ⇒ C
-  ──────────────────────────────
-  Δ ⊢ p ; q : A ⇒ C
+  Δ, α, X:=α ; μ, X:X∼X ⊢ p : A ⇒ B
+  ─────────────────────────────────────── (X, α ∉ Δ)
+  Δ ; μ ⊢ ∀X. p : ∀X. A ⇒ ∀X. B
+
+  Δ, α, X:=α ; μ, X:X∼★ ⊢ p : A ⇒ B    Δ ⊢ B    A not a variable    X ∈ A    B ≠ ★
+  ──────────────────────────────────────────────────────────────────────────────── (X, α ∉ Δ)
+  Δ ; μ ⊢ inst X. p : ∀X. A ⇒ B
+
+  Δ, α, X:=α ; μ, X:★∼X ⊢ p : A ⇒ B    Δ ⊢ A    B not a variable    X ∈ B    A ≠ ★
+  GenSafe(p)
+  ──────────────────────────────────────────────────────────────────────────────── (X, α ∉ Δ)
+  Δ ; μ ⊢ gen X. p : A ⇒ ∀X. B
+
+  Δ ; μ ⊢ p : A ⇒ B    Δ ; μ ⊢ q : B ⇒ C
+  ──────────────────────────────────────
+  Δ ; μ ⊢ p ; q : A ⇒ C
+
+  ─────────────────────────────────          ───────────────────────────────────
+  Δ ; μ ⊢ bot-elim : ∀X. X ⇒ ∀X. ★           Δ ; μ ⊢ bot-intro ℓ : ∀X. ★ ⇒ ∀X. X
 ```
 
-Coercion typing carries **no consistency modes**.  GTSFImp's
-`Env∼` marks (`X∼X`, `X∼★`, `★∼X`, `★∼X∼★`) restrict which coercions the
-*source* may ask for, and they stay in the source language's
-consistency relation.  The cast calculus types any coercion whose
-endpoints line up, just as νF's `⊢ν` accepts any conversion whose types
-line up and not only the `reveal` that the compiler writes.  One
-consequence is that GTSFImp's `bot-elim`/`bot-intro` need no special
-constructors; they compile to `∀X. X!` and `∀X. X?ℓ` (§7).  A coercion's
-typing does not depend on whether a representation variable is abstract
-(`α`) or bound (`α:=R`).  Instantiation rules use this fact when they
-move a coercion typed under a `Λ`'s `α` to a context where `α:=R` has
-been allocated.
+**Why modes are in the cast calculus.**  An earlier draft left modes to
+the source language.  Two properties need them in the cast calculus:
+
+- **No value has type `∀X. X`.**  In GTSFImp this is the machine-checked
+  lemma `no-bot-value` (`proof/TypeSafety/Progress.agda`).  It goes
+  through a `∀` cast because the cast's bound variable is strict
+  (`X∼X`), so `consistency-to-fresh` forces the value under the cast to
+  have type `∀X. X` as well.  Without modes, `V ⟨∀X. X?ℓ⟩` would be a
+  value of type `∀X. X` for any `V : ∀X. ★`.  It is also why
+  `bot-elim` and `bot-intro` need their own constructors.  `∀X. X!` and
+  `∀X. X?ℓ` are ill typed, because `X` is strict.
+- **The dynamic gradual guarantee.**  GTSFImp's DGG closes its
+  `bot-elim` and `bot-intro` cells with `no-bot-value`
+  (`proof/DGG/Catchup/ExtraCastRightAtProof.agda`;
+  `proof/DGG/notes/LG3TargetCastStepInversionCaseTable.md`).  More
+  generally, the DGG relates cast terms whose casts obey the same
+  modes as source consistency.
+
+**Modes at a cast.**  A cast `M ⟨p⟩` may be typed under any mode
+environment for the names in scope.  This follows GTSFImp's `⊢⟨⟩`,
+whose `μ` is implicit and unconstrained.  So modes restrict only the
+variables that a coercion binds itself, with `∀X.p`, `inst X.p` and
+`gen X.p`.  Compilation types its casts under `μ` = every name
+`★∼X∼★`, matching the source's `A ∼ B = idᶜ ⊢ A ∼ B`.  When an
+instantiation rule moves a coercion out from under its binder, the
+binder's mode is kept as the mode of the now-free name.  `TyBeta`'s
+`inst_X(W ⟨gen X.p⟩) = W ⟨p⟩` types `p` with `X:★∼X`, and
+`inst_X(W ⟨∀X.p⟩)` types `p` with `X:X∼X`.
+
+A coercion's typing does not depend on whether a representation
+variable is abstract (`α`) or bound (`α:=R`).  Instantiation rules use
+this fact when they move a coercion typed under a `Λ`'s `α` to a
+context where `α:=R` has been allocated.
 
 ### Closing at ★: `p[★/X]`
 
@@ -222,9 +285,13 @@ consistency at star"):
   (p → q)[★/X]    = p[★/X] → q[★/X]
   (∀Y. p)[★/X]    = ∀Y. p[★/X]          (inst Y. p)[★/X] = inst Y. p[★/X]
   (gen Y. p)[★/X] = gen Y. p[★/X]       (p ; q)[★/X]     = p[★/X] ; q[★/X]
+  bot-elim[★/X]   = bot-elim            (bot-intro ℓ)[★/X] = bot-intro ℓ
 ```
 
-If `Δ, α, X:=α ⊢ p : A ⇒ B`, then `Δ ⊢ p[★/X] : A[★/X] ⇒ B[★/X]`.
+If `Δ, α, X:=α ; μ, X:m ⊢ p : A ⇒ B` for any mode `m`, then
+`Δ ; μ ⊢ p[★/X] : A[★/X] ⇒ B[★/X]`.  `Inst` uses the lemma at
+`m = X∼★`.  The lemma is stated for every `m` because a function
+coercion's domain flips `X∼★` to `★∼X`.
 
 ------------------------------------------------------------------------
 
@@ -263,7 +330,7 @@ application, value-restricted `Λ`, `⊢ν`, boundary):
 New rules:
 
 ```
-  Δ ∣ Γ ⊢ M : A    Δ ⊢ p : A ⇒ B                Δ ⊢ A
+  Δ ∣ Γ ⊢ M : A    Δ ; μ ⊢ p : A ⇒ B            Δ ⊢ A
   ──────────────────────────────── (new)        ───────────────────── (new)
   Δ ∣ Γ ⊢ M ⟨p⟩ : B                            Δ ∣ Γ ⊢ blame ℓ : A
 ```
@@ -317,6 +384,22 @@ change costs nothing in them.  The boundary invariant of νF, "at most
 one boundary directly around a simple", is unaffected.  A cast value may
 contain boundaries *inside* its `V`, just as `λx:A. N` may contain them
 inside `N`.
+
+The modes give GTSFImp's emptiness lemma, which the progress and DGG
+proofs use (§3):
+
+```
+no-bot-value :  if V is a value, then not (Δ ∣ Γ ⊢ V : ∀X. X)
+```
+
+The proof goes by cases on `V`.  A `Λ` would need a body value of type
+`X` under an abstract `α`, and there is none.  For `W ⟨∀X. p⟩`, `p` is
+strict in `X`, so `p : A ⇒ X` forces `A = X`, and `W` has type `∀X. X`.
+`W ⟨gen X. p⟩` has the target type `∀X. B` with `B` not a variable.  For the
+boundary `[δ] U ⟨∀X. c⟩`, the conversion `c : A′ ⇒ X` is typed with
+`X:=α` for an abstract `α`.  Sealing needs a representation, so `c` can
+only be `id(X)`, and then `U` has type `∀X. X`.  These cases need
+checking when the Agda exists.
 
 Canonical forms, by type:
 
@@ -436,11 +519,15 @@ is abstract or bound (§3).  In the boundary case, `δ` stays coherent at
 
 Δ ⊢ ([δ] (V ⟨X!⟩) ⟨id(★)⟩) ⟨H?ℓ⟩ ⟶ blame ℓ ⊣ ε     if X ∈ fresh(δ)     (TagUntagBad-⟪⟫)
 
+Δ ⊢ V ⟨bot-intro ℓ⟩ ⟶ blame ℓ ⊣ ε                                      (BlameBotIntro)
+
 Δ ⊢ F[blame ℓ] ⟶ blame ℓ ⊣ ε                                            (Blame)
 ```
 
 These rules correspond to GTSFImp's `β-id`, `β-⇒`, `β-inst`,
-`tag-untag` and `tag-untag-bad`.  GTSFImp's `ground` and `expand` are
+`tag-untag`, `tag-untag-bad` and `blame-bot-intro`.  No rule applies
+`bot-elim` to a value, because no value has type `∀X. X` (§5); progress
+dismisses that case, as GTSFImp's `cast-value-progress` does.  GTSFImp's `ground` and `expand` are
 not needed, because a tag through a non-ground type is the sequence
 `p ; G!` and `CastSeq` splits it.  GTSFImp's `β-∀` is the
 `∀X.p` case of `inst_X` (§6.2), because GTNF instantiates by `ν` and not
@@ -501,8 +588,8 @@ label of the enclosing application or operator:
 ⟦？ (id G)⟧ℓ   = G?ℓ                ⟦？ c⟧ℓ  = G?ℓ ; ⟦c⟧ℓ      (c : G ∼ B, otherwise)
 ⟦inst c⟧ℓ      = inst X. ⟦c⟧ℓ
 ⟦gen c⟧ℓ       = gen X. ⟦c⟧ℓ
-⟦bot-elim⟧ℓ    = ∀X. X!
-⟦bot-intro⟧ℓ   = ∀X. X?ℓ
+⟦bot-elim⟧ℓ    = bot-elim
+⟦bot-intro⟧ℓ   = bot-intro ℓ
 ```
 
 Terms (following GTSFImp's `Compile.agda`, which casts the argument by
@@ -521,8 +608,10 @@ Terms (following GTSFImp's `Compile.agda`, which casts the argument by
 
 The intended theorem is the analogue of νF's `compile-⊢`: if
 `Δ ∣ Γ ⊢ M : A` in the source, then `Δ ∣ Γ ⊢ ⟦M⟧ : A`.  Its proof needs
-the facts that `⟦c⟧ℓ` is typed at the endpoints of `c`, which holds
-because coercion typing has no modes, and that `⟦·⟧` maps source values
+the fact that `⟦c⟧ℓ` is typed at the endpoints and modes of `c`
+(if `μ ⊢ c : A ∼ B`, then `Δ ; μ ⊢ ⟦c⟧ℓ : A ⇒ B`, by induction on `c`,
+since each coercion rule mirrors a consistency rule).  It also needs
+the fact that `⟦·⟧` maps source values
 to values, which needs `⟦gen c⟧ℓ` to be gen-safe and so uses GTSFImp's
 `gen-safe`.
 
@@ -684,42 +773,170 @@ side condition agree there: `X ∉ fresh(−X^α, +X^α)`, and
 
 ### Example 6 — instantiating a ∀-cast
 
-This cast-calculus term is not the output of compilation.  `∀ᶜ` gives
-its bound variable the mode `X∼X`, so a compiled `∀X.p` never checks a
-`★` against `X`; D6 makes the term well typed anyway.
+Source: `(λg:∀X. X→★. g [𝔹] true) (ΛX. λx:X. 7)`.  The argument's type
+`∀X. X→ℕ` is consistent with `∀X. X→★` by `∀ᶜ ((id X) ↦ (id ℕ) !)`, so
+the argument's coercion is `∀X. (id(X) → ℕ!)`.  Its bound `X` is strict
+(`X∼X`), and the coercion neither tags nor checks `X`.  Write
+`W = (ΛX. λx:X. 7) ⟨∀X. (id(X) → ℕ!)⟩`, which is a value.
 
 ```
-W = ΛX. λx:X. x⟨X!⟩                    : ∀X. X → ★
-p = id(X) → X?ℓ                        : (X → ★) ⇒ (X → X)
-```
-
-```
-  (ν X:=ℕ. ((W⟨∀X. p⟩) X) ⟨−X → +X⟩) 5
-⟶ (TyBeta, with inst_X(W⟨∀X. p⟩) = (λx:X. x⟨X!⟩) ⟨p⟩, ⊣ α:=ℕ)
-  ([+X^α] ((λx:X. x⟨X!⟩) ⟨id(X) → X?ℓ⟩) ⟨−X → +X⟩) 5
+  (ν X:=𝔹. (W X) ⟨−X → id(★)⟩) true
+⟶ (TyBeta, with inst_X(W) = (λx:X. 7) ⟨id(X) → ℕ!⟩, ⊣ α:=𝔹)
+  ([+X^α] ((λx:X. 7) ⟨id(X) → ℕ!⟩) ⟨−X → id(★)⟩) true
 ⟶ (Wrap)
-  [+X^α] (((λx:X. x⟨X!⟩) ⟨id(X) → X?ℓ⟩) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩
+  [+X^α] (((λx:X. 7) ⟨id(X) → ℕ!⟩) ([−X^α] true ⟨−X⟩)) ⟨id(★)⟩
 ⟶ (CastFun)
-  [+X^α] (((λx:X. x⟨X!⟩) (([−X^α] 5 ⟨−X⟩) ⟨id(X)⟩)) ⟨X?ℓ⟩) ⟨+X⟩
+  [+X^α] (((λx:X. 7) (([−X^α] true ⟨−X⟩) ⟨id(X)⟩)) ⟨ℕ!⟩) ⟨id(★)⟩
 ⟶ (CastId, under ξ)
-  [+X^α] (((λx:X. x⟨X!⟩) ([−X^α] 5 ⟨−X⟩)) ⟨X?ℓ⟩) ⟨+X⟩
+  [+X^α] (((λx:X. 7) ([−X^α] true ⟨−X⟩)) ⟨ℕ!⟩) ⟨id(★)⟩
 ⟶ (Beta, under ξ)
-  [+X^α] (([−X^α] 5 ⟨−X⟩) ⟨X!⟩ ⟨X?ℓ⟩) ⟨+X⟩
-⟶ (TagUntag, under ξ)
-  [+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩
-⟶ (Merge; −X ⨟ +X = Id(ℕ))
-  [+X^α, −X^α] 5 ⟨id(ℕ)⟩
-⟶ (Id)
-  5
+  [+X^α] (7⟨ℕ!⟩) ⟨id(★)⟩
+⟶ (IdDyn; ℕ ∉ fresh(+X^α))
+  ([+X^α] 7 ⟨id(ℕ)⟩) ⟨ℕ!⟩
+⟶ (Id, under ξ)
+  7⟨ℕ!⟩
 ```
 
-Under the earlier alias design (see D5), `W` would have been
-re-instantiated by `ν Y:=X`.  The tag would then have been `Y`, and the
-check `X?ℓ` would have blamed.
+`TyBeta` allocates once.  Under the earlier alias design (see D5), the
+first step would instead have produced
+`[+X^α] ((ν Y:=X. ((ΛX. λx:X. 7) Y) ⟨−Y → id(ℕ)⟩) ⟨id(X) → ℕ!⟩) ⟨−X → id(★)⟩`,
+and a second `TyBeta` would have allocated the alias `β:=α`.
 
 ------------------------------------------------------------------------
 
-## 9. Decisions taken in this draft, and open questions
+## 9. Metatheory goals
+
+GTNF should satisfy the same metatheory as GTSFImp.  Each goal below
+names the GTSFImp statement it mirrors.  The νF-specific invariants
+(`det`, tightness, `ScopeMapPreservation`/`ColorPreservation`) carry over
+from `strong-rep-nu` as well.  Status: nothing is stated in Agda yet.
+
+### 9.1 Type safety of the cast calculus
+
+GTSFImp: `proof/TypeSafety/Progress.agda`, `proof/TypeSafety/Preservation.agda`.
+νF: `strong-rep-nu.TypeSafety`.
+
+```
+progress :      if  Δ ∣ [] ⊢ M : A,  then  M is a value,  or  M = blame ℓ,
+                or  Δ ⊢ M ⟶ N ⊣ ξ  for some N, ξ
+
+preservation :  if  Δ ∣ [] ⊢ M : A  and  Δ ⊢ M ⟶ N ⊣ ξ,  then  ξ(Δ) ∣ [] ⊢ N : A
+
+det :           if  Δ ⊢ M ⟶ N ⊣ ξ  and  Δ ⊢ M ⟶ N′ ⊣ ξ′,  then  N = N′  and  ξ = ξ′
+                (up to the choice of fresh α)
+
+no-bot-value :  if  V is a value,  then not  (Δ ∣ Γ ⊢ V : ∀X. X)
+```
+
+As in νF, preservation may need a well-formedness premise on `Δ`
+(strong-rep-nu's `PreservationWf`/`CtxWf`).  `no-bot-value` is a lemma
+for progress (§5).
+
+### 9.2 Compilation
+
+GTSFImp: `Compile.agda` (`compile`, `compile-value`).
+νF: `strong-rep-nu.CompileTyping` (`compile-⊢`).
+
+```
+compile-⊢ :     if  Δ ∣ Γ ⊢ M : A  (source),  then  Δ ∣ Γ ⊢ ⟦M⟧ : A
+compile-value : if  M is a source value,  then  ⟦M⟧ is a value
+```
+
+The coercion lemma behind `compile-⊢` is mode for mode:
+if `μ ⊢ c : A ∼ B`, then `Δ ; μ ⊢ ⟦c⟧ℓ : A ⇒ B` (§7).
+
+### 9.3 The source type system
+
+GTSFImp: `GradualTypeCheck.agda`, `Consistency2.agda`.
+
+- **A type checker.**  A synthesis function for source terms returns a
+  type together with a typing derivation.  It is sound by construction,
+  as in GTSFImp, where it is positive-only.
+- **Decidable consistency.**  This is GTSFImp's `Consistency2.lower?`.
+
+### 9.4 Type imprecision
+
+GTSFImp: `Imprecision.agda` (`ImpEnv`, modes `X⊑X`/`X⊑★`),
+`proof/Imprecision.agda` (`⊑-unique`), `proof/ImprecisionComposition.agda`
+(`⊑-trans`), `proof/ImprecisionConsistency.agda` (`refl⊑`, and the
+bridges between imprecision and consistency).
+
+```
+refl⊑ :     A ⊑ A
+⊑-trans :   if  A ⊑ B  and  B ⊑ C,  then  A ⊑ C
+⊑-unique :  any two derivations of  A ⊑ B  are equal
+```
+
+GTNF's types are GTSFImp's, so the type-level imprecision can be ported
+unchanged.  The imprecision environment `ImpEnv` is a different lattice
+from the consistency modes `Env∼` of §3.  The two must not be conflated:
+imprecision relates two programs, and consistency types the casts
+within one program.
+
+### 9.5 Static gradual guarantee
+
+```
+sgg :  if  Δ ∣ Γ ⊢ M : A  and  M ⊑ M′  (with  Γ ⊑ Γ′),
+       then  Δ ∣ Γ′ ⊢ M′ : A′  for some  A′  with  A ⊑ A′
+```
+
+GTSFImp's term imprecision `μ ∣ γ ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p`
+(`GradualTermImprecision.agda`) is typed and carries both typings
+(`gradual-term-imprecision-source-typing`/`-target-typing`).  I did not
+find a standalone static gradual guarantee in GTSFImp.  For GTNF, the
+plan is to state `sgg` against an *untyped* syntactic term imprecision,
+and to derive the typed relation from it.  Since the source language is
+GTSFImp's, `sgg` is really a theorem about GTSFImp's source; it could be
+proved there and reused here.
+
+### 9.6 Compilation preserves imprecision
+
+GTSFImp: `proof/DGG/CompilePreservesImprecision2.agda`
+(`compile-preserves-imprecision²`).
+
+```
+compile-⊑ :  if  μ ∣ γ ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p,
+             then  W₀ ∣ γ₀ ⊢² ⟦M⟧ ⊑ ⟦M′⟧ ∶ p₀
+```
+
+Here `⊢²` is a *cast-term* imprecision for GTNF that still has to be
+designed, and `W₀`, `γ₀`, `p₀` are the initial world, context and type
+imprecision.  In GTSFImp the world `W` aligns the two runs' type stores.
+In GTNF it must align the two runs' representation variables (`α`) and
+their names (`X:=α`), and it must relate boundaries `[δ] M ⟨c⟩` on the
+two sides, including one-sided boundaries.  This is the largest new
+design item in the metatheory.
+
+### 9.7 Dynamic gradual guarantee
+
+GTSFImp: `proof/DGG/DynamicGradualGuaranteeDef.agda` (`GradualDGG`), with
+the proof under way in `proof/DGG/`.  For closed source terms with
+`[] ∣ [] ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p`, the four parts are:
+
+```
+1.  if  ⟦M⟧ ⟶* V  (a value),
+    then  ⟦M′⟧ ⟶* V′  (a value)  with  W ∣ [] ⊢² V ⊑ V′ ∶ q  for some world W
+
+2.  if  ⟦M⟧ diverges,  then  ⟦M′⟧ diverges
+
+3.  if  ⟦M′⟧ ⟶* V′  (a value),
+    then  ⟦M⟧ ⟶* V  (a value)  with  W ∣ [] ⊢² V ⊑ V′ ∶ q,   or  ⟦M⟧ ⟶* blame ℓ
+
+4.  if  ⟦M′⟧ diverges,  then  ⟦M⟧ diverges or reaches  blame ℓ
+```
+
+The runs are νF runs, so each `⟶*` carries the allocations it made
+(`runCtx`), and `q` relates the result types at the two final contexts.
+The proof strategy follows GTSFImp: a simulation of the more precise
+side by the less precise side (`sim-left`/`sim-right`), with catch-up
+lemmas for the administrative steps that occur on one side only.  In
+GTNF those steps are `Merge`, `Id`, `IdDyn`, `CastId`, `CastSeq`, and the
+`Inst`/`TyBeta` pair.  The consistency modes (D6) are what make the
+`bot-elim` and `bot-intro` cells vacuous, by `no-bot-value`.
+
+------------------------------------------------------------------------
+
+## 10. Decisions taken in this draft, and open questions
 
 These decisions are complementary: together they make up the draft.
 Each one can be revisited on its own.
@@ -738,12 +955,22 @@ Each one can be revisited on its own.
 - **D5 (one allocation per instantiation).**  `TyBeta` instantiates a
   ∀-value through all of its layers with the meta-operation `inst_X`,
   which allocates nothing (Jeremy, 2026-10-01).  An earlier draft
-  re-instantiated the value under a `∀X.p` cast by an alias `ν Y:=X`.
-  With D8 that gave the inner tags the alias name `Y`, so a check `X?ℓ`
-  in `p` blamed where GTSFImp's `β-∀` succeeds.  νF's `TyWrap` is now the
-  boundary case of `TyBeta`.
-- **D6 (no modes in the cast calculus).**  Consistency modes remain a
-  source-language device.
+  re-instantiated the value under a `∀X.p` cast by an alias `ν Y:=X`,
+  which cost a second allocation per `∀`-cast layer (Example 6).  Under
+  D8, the alias also gave the inner tags the name `Y`, so a check `X?ℓ`
+  in `p` would have blamed where GTSFImp's `β-∀` succeeds.  Since D6,
+  such a check is ill typed, because `p`'s `X` is strict.  `inst_X`
+  matches GTSFImp's `β-∀`, which instantiates the value itself with a
+  single allocation and then casts.  νF's `TyWrap` is now the boundary
+  case of `TyBeta`.
+- **D6 (modes in the cast calculus).**  Coercion typing carries
+  GTSFImp's consistency modes (`X∼X`, `X∼★`, `★∼X`, `★∼X∼★`), and
+  `∀X.p`, `inst X.p` and `gen X.p` give their bound variable the modes
+  of `extᵐ`, `instᵐ` and `genᵐ` (Jeremy, 2026-10-01; this reverses the
+  first draft).  The modes give `no-bot-value` (§5), and the dynamic
+  gradual guarantee needs them.  `bot-elim` and `bot-intro ℓ` are
+  dedicated coercions.  `bot-intro ℓ` blames eagerly, as GTSFImp's
+  `blame-bot-intro` does.
 - **D7 (tags move out of boundaries).**  `IdDyn` moves a tag out of a
   boundary whenever the tag is visible outside it.  A `★`-value keeps
   a boundary only when the tag is in `fresh(δ)` (§5).
@@ -770,14 +997,12 @@ Each one can be revisited on its own.
 
 Open questions, in roughly the order I would like them settled:
 
-- **Q1.**  `bot-intro` blames eagerly in GTSFImp (`blame-bot-intro`),
-  but `⟦bot-intro⟧ = ∀X. X?ℓ` blames only at instantiation.
-- **Q2.**  Space efficiency (normal forms for coercions and a
+- **Q1.**  Space efficiency (normal forms for coercions and a
   composition `p ⨟ q`, like νF's for conversions) is deferred.
 
 ------------------------------------------------------------------------
 
-## 10. Agda plan
+## 11. Agda plan
 
 - `GTNF/agda/`, with its own `Makefile` and `All.agda`, starts as a
   copy of `SystemF/agda/strong-rep-nu`'s definitional layer (`Types`,

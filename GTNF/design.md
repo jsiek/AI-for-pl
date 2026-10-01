@@ -1151,6 +1151,13 @@ Each one can be revisited on its own.
   weakens a mark on the way to a premise, unlike GTSFImp's
   `ImpEnvMono` (§12.2, Example P4; Jeremy, 2026-10-01).
 
+- **D12 (names lexical, cells global).**  In `⊢²`'s worlds, the
+  relation between the two sides' type variables (`Ω`, `η`, `η′`, `μ`)
+  is lexically scoped.  The relation `ϱ` between their representation
+  variables is global: it grows at matched allocations and is read
+  when a boundary rebinds a cell (§12.2, Example P4; Jeremy,
+  2026-10-01).
+
 The open design questions are those of the `⊢²` sketch (§12.5).
 
 Out of scope for now: space efficiency.  Normal forms for coercions,
@@ -1252,6 +1259,12 @@ Well-formedness has two parts:
 - **Paired cells agree.**  If `(α, β) ∈ ϱ`, then either both are
   abstract (bound by a `Λ` on each side), or `α` is abstract and
   `β:=★`, or `α:=R`, `β:=R′`, and `R ⊑ R′` (read through `W`).
+
+**Names are related lexically, cells globally** (D12).  The relation
+between type variables (`Ω`, `η`, `η′`, `μ`) is lexically scoped: it
+is extended and shrunk with the scope, never by a step.  The relation
+between representation variables (`ϱ`) is global, like the stores it
+relates.
 
 The point of the design (§9.6) is that **no part of a world is ever
 rebased.**  `Ω`, `η`, `η′` and `μ` change only lexically: they are
@@ -1608,9 +1621,8 @@ allocate one cell each and the boundaries stay aligned.
   1. *Settled (D11).*  A both-sided name gets the mark `X⊑★` at its
      binder (`W ⊕ X:m`, `W[δ ∥ δ′]`), not by GTSFImp's `ImpEnvMono`
      decay at the cast rules.
-  2. Whether `ϱ` belongs in the relation, or only in a well-formedness
-     condition on worlds.  P4's rebind is the one place the rules read
-     it.
+  2. *Settled (D12).*  `ϱ` stays in the world as a global relation on
+     cells; the relation on names stays lexical.  P4's rebind reads `ϱ`.
   3. Whether `W[δ ∥ δ′]` should be restricted (for example, forbid a
      left-only unbind of a both-sided name), or whether such
      restrictions should come from the DGG proof.

@@ -48,6 +48,7 @@ Contents
 9. Metatheory goals
 10. Decisions taken in this draft, and open questions
 11. Agda plan
+12. Cast-term imprecision `⊢²` (sketch)
 
 ------------------------------------------------------------------------
 
@@ -927,7 +928,7 @@ gets `Y:X∼X` (D10).  At the second `IdDyn`, the tag leaves `F` through
 GTNF should satisfy the same metatheory as GTSFImp.  Each goal below
 names the GTSFImp statement it mirrors.  The νF-specific invariants
 (`det`, tightness, `ScopeMapPreservation`/`ColorPreservation`) carry over
-from `strong-rep-nu` as well.  Status: nothing is stated in Agda yet.
+from `strong-rep-nu` as well.  Status: only the type imprecision of §9.4 is in Agda.
 
 ### 9.1 Type safety of the cast calculus
 
@@ -985,8 +986,8 @@ refl⊑ :     A ⊑ A
 ⊑-unique :  any two derivations of  A ⊑ B  are equal
 ```
 
-GTNF's types are GTSFImp's, so the type-level imprecision can be ported
-unchanged.  The imprecision environment `ImpEnv` is a different lattice
+GTNF's types are GTSFImp's, so the type-level imprecision is ported
+unchanged (`GTNF/agda/Imprecision.agda`, §12.1).  The imprecision environment `ImpEnv` is a different lattice
 from the consistency modes `Env∼` of §3.  The two must not be conflated:
 imprecision relates two programs, and consistency types the casts
 within one program.
@@ -1023,7 +1024,7 @@ imprecision.  In GTSFImp the world `W` aligns the two runs' type stores.
 In GTNF it must align the two runs' representation variables (`α`) and
 their names (`X:=α`), and it must relate boundaries `[δ] M ⟨c⟩` on the
 two sides, including one-sided boundaries.  This is the largest new
-design item in the metatheory.
+design item in the metatheory.  §12 sketches it.
 
 **Why GTNF is shaped for this relation.**  In earlier gradually typed
 polymorphic calculi (GTSF, GTSFImp, PolyBlameI and others), the hardest
@@ -1144,8 +1145,7 @@ Each one can be revisited on its own.
   Example 7; Jeremy, 2026-10-01).  This matches GTSFImp's `extᵐ` at an
   allocation.  The choice may be revisited when `⊢²` is designed.
 
-No design questions are open at the moment.  The next design item is
-the cast-term imprecision `⊢²` (§9.6).
+The open design questions are those of the `⊢²` sketch (§12.5).
 
 Out of scope for now: space efficiency.  Normal forms for coercions,
 and a composition `p ⨟ q` like νF's for conversions, are not a concern
@@ -1171,6 +1171,440 @@ for the time being (Jeremy, 2026-10-01).
 - Status: the definitional layer, `TypeCheck` (a `Maybe` typing
   derivation), `Eval` (a step function that returns the step
   derivation) and `Examples` (Examples 1–7 and D8 as `refl` runs) exist
-  in `GTNF/agda/`, and `make check` passes.  Next: the cast-term
-  imprecision `⊢²` (§9.6), experimented with through `Eval`; then
-  progress and preservation, then `compile-⊢`.
+  in `GTNF/agda/`, and `make check` passes.  Also in place:
+  `Imprecision` (type imprecision, copied from GTSFImp, §12.1),
+  `ImprecisionExamples` (the six pairs of §12.4) and `Show` (a named
+  renderer, `scripts/render_gtnf.sh`).  Next: settle §12.5's open
+  questions, then formalize `⊢²` in Agda; then progress and
+  preservation, then `compile-⊢`.
+
+------------------------------------------------------------------------
+
+## 12. Cast-term imprecision `⊢²` (sketch)
+
+Status: sketch (2026-10-01).  §12.1 is in Agda (`Imprecision.agda`).
+The relation itself (§12.3) is on paper only.  The examples (§12.4)
+are machine-run: each pair of programs is in
+`ImprecisionExamples.agda`, and both of its runs come from `Eval`.
+The left program is always the **more precise** one.
+
+### 12.1 Type imprecision
+
+GTSFImp's `Imprecision.agda`, copied rule for rule into
+`GTNF/agda/Imprecision.agda`.  The marks are `X⊑X` and `X⊑★`, and an
+imprecision environment `μ` gives one mark to each name in scope.  As
+with `ModeEnv`, it is a list parallel to the names (index 0 at the
+head).
+
+```
+                                                        μ(X) = X⊑★
+  ★ ⊑ ★     ι ⊑ ι     X ⊑ X     ι ⊑ ★     ∀X.★ ⊑ ★       ──────────
+                                                         X ⊑ ★
+
+  A ⊑ A′   B ⊑ B′          A ⊑ ★   B ⊑ ★          μ, X:X⊑X ⊢ A ⊑ B
+  ─────────────────        ─────────────          ─────────────────
+  A → B ⊑ A′ → B′          A → B ⊑ ★              μ ⊢ ∀X.A ⊑ ∀X.B
+
+  μ, X:X⊑★ ⊢ A ⊑ ⇑B    A not a variable    X ∈ A     (∀⊑)
+  ───────────────────────────────────────────────
+  μ ⊢ ∀X.A ⊑ B
+
+  μ, X:X⊑X ⊢ A ⊑ ★    A ≠ ★
+  ──────────────────────────     ∀X.X ⊑ ∀X.★  (bot-elim)     ∀X.X ⊑ ★
+  μ ⊢ ∀X.A ⊑ ★
+```
+
+The marks belong to the imprecision lattice.  They are not the
+consistency modes of §3, which type the casts inside one program
+(§9.4).
+
+### 12.2 Worlds
+
+A cast-term imprecision judgment relates a left term typed in `Δ` to a
+right term typed in `Δ′`.  The two runs allocate independently, and a
+`ν`, a `Λ` or a boundary entry may exist on one side only.  A
+**world** says how the two sides' names line up.  It follows GTSFImp's
+`World` (`proof/DGG/CtxImp.agda`), minus the stores:
+
+```
+W = (Δ, Δ′, Ω, η, η′, μ, ϱ)
+
+  Ω              the center: a list of names
+  η  : names(Δ)  ↪ Ω     order-preserving embeddings (GTSFImp ηᴸʷ, ηᴿʷ);
+  η′ : names(Δ′) ↪ Ω     every center name is in the image of at least one
+  μ  : ImpEnv(Ω)         a name in both images is X⊑X or X⊑★;
+                         a name in η's image only (left-only) is X⊑★
+  ϱ  ⊆ cells(Δ) × cells(Δ′)    the cell correspondence, a partial bijection
+
+  A ⊑_W A′   iff   μ ⊢ η(A) ⊑ η′(A′)               (GTSFImp _⊑ᵂ⟨_⟩_)
+```
+
+Well-formedness has two parts:
+
+- **Names name paired cells.**  If a center name `X` is `X:=α` on the
+  left and `X:=β` on the right, then `(α, β) ∈ ϱ`.
+- **Paired cells agree.**  If `(α, β) ∈ ϱ`, then either both are
+  abstract (bound by a `Λ` on each side), or `α` is abstract and
+  `β:=★`, or `α:=R`, `β:=R′`, and `R ⊑ R′` (read through `W`).
+
+The point of the design (§9.6) is that **no part of a world is ever
+rebased.**  `Ω`, `η`, `η′` and `μ` change only lexically: they are
+extended by a binder (`Λ`, a coercion binder, a boundary entry `+X^α`)
+and shrunk by an unbind (`−X^α`), for the subterm under it, exactly as
+the type context is.  The one non-lexical part is `ϱ`, and it only
+grows: a `TyBeta` that the other side matches adds one pair.  An
+unmatched allocation only renumbers the allocating side's cells (de
+Bruijn).
+
+World operations, used by the rules:
+
+```
+W ⊕ X:m          both sides bind X (a new center name in both images, mark m)
+W ⊕ᴸ X           the left side binds X alone (center name in η only, X⊑★)
+W ⊕ᴿ X           the right side binds X alone (center name in η′ only)
+W[δ ∥ δ′]        the interior world of a boundary pair: each side's
+                 changes act on that side's names and embedding.
+                 −X on one side removes X from that side's image; a center
+                 name in neither image is dropped.  +X^α joins the center
+                 name of the cell α is paired with by ϱ, if any, and is
+                 otherwise a new one-sided center name.  A new
+                 both-sided name gets the mark X⊑X or X⊑★; the
+                 derivation chooses (Example P4 needs X⊑★).
+                 (Write W[δ ∥ ·] and W[· ∥ δ′] for a one-sided boundary.)
+```
+
+`W[δ ∥ δ′]` is defined only when it is well formed.  In particular, a
+right-only `−X` of a name in both images leaves `X` left-only, so it
+needs `μ(X) = X⊑★` (Example P4).
+
+### 12.3 Rules
+
+`W ∣ γ ⊢² M ⊑ M′ : A ⊑ A′` with `γ ::= [] | γ, x : B ⊑ B′`.  Every
+rule also assumes the two typings `Δ ∣ γᴸ ⊢ M : A` and
+`Δ′ ∣ γᴿ ⊢ M′ : A′` and `A ⊑_W A′`; the premises below list only what
+is new.  The rules marked "GTSFImp" are GTSFImp's
+`proof/DGG/CastTermImprecision.agda` rules with the same name.
+
+**Congruence** (GTSFImp `x⊑x²`, `κ⊑κ²`, `ƛ⊑ƛ²`, `·⊑·²`, `⊕⊑⊕²`):
+the usual rules, one per term former.  Their types are related
+componentwise.
+
+**Blame** (GTSFImp `blame⊑²`):
+
+```
+  ────────────────────────────── (blame⊑)
+  W ∣ γ ⊢² blame ℓ ⊑ M′ : A ⊑ A′
+```
+
+**Casts** (GTSFImp `cast⊑cast²`, `cast⊑²`, `⊑cast²`).  Each coercion
+is typed on its own side, under the mode environment its cast carries.
+The rules do not compare the two coercions, or the two mode
+environments, except through the types:
+
+```
+  W ∣ γ ⊢² M ⊑ M′ : B ⊑ B′    p : B ⇒ A    p′ : B′ ⇒ A′
+  ────────────────────────────────────────────────── (cast⊑cast)
+  W ∣ γ ⊢² M ⟨p⟩ ⊑ M′ ⟨p′⟩ : A ⊑ A′
+
+  W ∣ γ ⊢² M ⊑ M′ : B ⊑ A′    p : B ⇒ A
+  ────────────────────────────────────── (cast⊑)
+  W ∣ γ ⊢² M ⟨p⟩ ⊑ M′ : A ⊑ A′
+
+  W ∣ γ ⊢² M ⊑ M′ : A ⊑ B′    p′ : B′ ⇒ A′
+  ────────────────────────────────────── (⊑cast)
+  W ∣ γ ⊢² M ⊑ M′ ⟨p′⟩ : A ⊑ A′
+```
+
+**Type abstraction** (GTSFImp `Λ⊑Λ²`, `Λ⊑²`), plus one new rule.
+`Λ⊑` keeps the right term unweakened: the right side does not bind
+`X`, so `η′` simply does not reach the new center name.
+
+```
+  W ⊕ X:X⊑X ∣ ⇑γ ⊢² V ⊑ V′ : A ⊑ A′
+  ────────────────────────────────── (Λ⊑Λ)
+  W ∣ γ ⊢² ΛX.V ⊑ ΛX.V′ : ∀X.A ⊑ ∀X.A′
+
+  W ⊕ᴸ X ∣ ⇑ᴸγ ⊢² V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
+  ──────────────────────────────────────────────────────── (Λ⊑)
+  W ∣ γ ⊢² ΛX.V ⊑ M′ : ∀X.A ⊑ B′
+
+  W ⊕ X:X⊑X ∣ [] ⊢² V ⊑ V′ : A ⊑ A′    β:=★    c′ : A′ ⇒ B′   (new)
+  ──────────────────────────────────────────────────── (Λ⊑⟪+⟫)
+  W ∣ γ ⊢² ΛX.V ⊑ [+X^β] V′ ⟨c′⟩ : ∀X.A ⊑ B′
+```
+
+`Λ⊑⟪+⟫` is for a right side that has already instantiated a value at
+`★` through `Inst`, while the left side still holds the `Λ`
+(Example P3).  The left `Λ`'s abstract cell is paired with the right
+cell `β:=★`.  When the left side later instantiates, its new boundary
+`[+X^α]` meets the right's `[+X^β]`, and `ϱ` gains `(α, β)`.
+
+**Instantiation** (GTSFImp `•⊑•²`, `•⊑²`).  The compiled form of
+`M [A]` is a `ν`, so the two type applications become:
+
+```
+  W ∣ γ ⊢² L ⊑ L′ : ∀X.C ⊑ ∀X.C′    A ⊑_W A′    c : C ⇒ B    c′ : C′ ⇒ B′
+  ─────────────────────────────────────────────────────────────── (ν⊑ν)
+  W ∣ γ ⊢² ν X:=A.(L X)⟨c⟩ ⊑ ν X:=A′.(L′ X)⟨c′⟩ : B ⊑ B′
+
+  W ∣ γ ⊢² L ⊑ M′ : ∀X.C ⊑ B′    A ⊑_W ★    c : C ⇒ B
+  ──────────────────────────────────────────────── (ν⊑)
+  W ∣ γ ⊢² ν X:=A.(L X)⟨c⟩ ⊑ M′ : B ⊑ B′
+```
+
+There is no `⊑ν`.  The only right-only `ν` is the one that `Inst`
+creates, and the right side reduces it by `TyBeta` at once.  So a
+catch-up lemma can take `Inst` and `TyBeta` together, and the
+relation never has to hold in between.
+
+**Boundaries** (new; these replace GTSFImp's eight `reveal`/`conceal`
+rules).  A boundary's interior is term-closed, so the premise has
+`γ = []`.  The conversions are typed on their own sides, and, like the
+coercions, they are not compared with each other:
+
+```
+  W[δ ∥ δ′] ∣ [] ⊢² M ⊑ M′ : Aᵢ ⊑ A′ᵢ    c : Aᵢ ⇒ A    c′ : A′ᵢ ⇒ A′
+  ───────────────────────────────────────────────────────────── (⟪⟫⊑⟪⟫)
+  W ∣ γ ⊢² [δ] M ⟨c⟩ ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
+
+  W[δ ∥ ·] ∣ [] ⊢² M ⊑ M′ : Aᵢ ⊑ A′    c : Aᵢ ⇒ A
+  ───────────────────────────────────────────── (⟪⟫⊑)
+  W ∣ γ ⊢² [δ] M ⟨c⟩ ⊑ M′ : A ⊑ A′
+
+  W[· ∥ δ′] ∣ [] ⊢² M ⊑ M′ : A ⊑ A′ᵢ    c′ : A′ᵢ ⇒ A′
+  ───────────────────────────────────────────── (⊑⟪⟫)
+  W ∣ γ ⊢² M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
+```
+
+In `⟪⟫⊑` and `⊑⟪⟫`, the term without the boundary is in the premise
+at `γ = []`, so it must be term-closed as well.  That holds at run
+time, because every boundary of a run is a closed subterm.
+
+**Count.**  Five congruence rules, `blame⊑`, three cast rules, three
+`Λ` rules, two `ν` rules and three boundary rules: 17 rules.  GTSFImp's
+`⊢²` has 22.
+
+### 12.4 Examples
+
+Six pairs, in `ImprecisionExamples.agda`.  Each run is a `Reaches …
+refl` proof, and the states below are rendered from `evalTerms` by
+`Show.agda` (`scripts/render_gtnf.sh`), not transcribed by hand.  Each
+run names its cells by allocation order, so both runs call their first
+cell `α`.  They are different cells, and `ϱ` pairs them; write `αᴸ`
+and `αᴿ` when the difference matters.
+
+The traces are shown **synchronized**: each block is a pair of states
+that the relation must relate, and between blocks one side takes one
+step while the other takes zero or more steps (the shape of a
+simulation, §9.7).  Under each pair are the rules at the top of its
+derivation and the facts the derivation turns on.
+
+| pair | left (more precise) | right | left answer | right answer |
+|---|---|---|---|---|
+| P1 | `(ΛX.λx:X.x)[ℕ] 5` | `(ΛX.λx:X.x)[★] 5` | `5` (5 steps) | `5⟨ℕ!⟩` (6) |
+| P2 | `(ΛX.λx:X.x)[ℕ] 5` | `(λx:★.x) 5` | `5` (5) | `5⟨ℕ!⟩` (1) |
+| P3 | `(λf:∀X.X→X. f[ℕ] 5)(ΛX.λx:X.x)` | Example 1 | `5` (6) | `5⟨ℕ!⟩` (11) |
+| P4 | as P3 | Example 2 | `5` (6) | `5` (12) |
+| P5 | Example 4 | `(λn:ℕ.n)((λx:★.(λz:★.z) x) 5)` | `blame ℓ` (6) | `5` (4) |
+| P6 | `(λg:∀X.X→ℕ. g[𝔹] true)(ΛX.λx:X.7)` | Example 6 | `7` (5) | `7⟨ℕ!⟩` (8) |
+
+The answers are related in every case: `5 ⊑ 5⟨ℕ!⟩` by `⊑cast`, and in
+P5 the left blames, which `blame⊑` allows.
+
+#### P1 — both sides instantiate, at ℕ and at ★ (aligned boundaries)
+
+```
+L  ((ν X:=ℕ. ((ΛY. (λx:Y. x)) X) ⟨−X → +X⟩) 5)
+R  ((ν X:=★. ((ΛY. (λx:Y. x)) X) ⟨−X → +X⟩) 5⟨ℕ!⟩^[])
+   ·⊑·, ν⊑ν (ℕ ⊑ ★), ⊑cast
+                                         L: TyBeta (α:=ℕ)    R: TyBeta (α:=★)
+L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
+R  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5⟨ℕ!⟩^[])
+   ·⊑·, ⟪⟫⊑⟪⟫: X both-sided, ϱ = {(αᴸ, αᴿ)}, αᴸ:=ℕ ⊑ αᴿ:=★
+                                         L: Wrap             R: Wrap
+L  ([+X^α] ((λx:X. x) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩)
+R  ([+X^α] ((λx:X. x) ([−X^α] 5⟨ℕ!⟩^[] ⟨−X⟩)) ⟨+X⟩)
+   ⟪⟫⊑⟪⟫, ·⊑·, ⟪⟫⊑⟪⟫ (both unbind X), ⊑cast: 5 ⊑ 5⟨ℕ!⟩ at ℕ ⊑ ★
+                                         L: Beta             R: Beta
+                                         L: Merge            R: Merge
+L  ([+X^α, −X^α] 5 ⟨id(ℕ)⟩)
+R  ([+X^α, −X^α] 5⟨ℕ!⟩^[] ⟨id(★)⟩)
+   ⟪⟫⊑⟪⟫, ⊑cast
+                                         L: Id               R: IdDyn, Id
+L  5
+R  5⟨ℕ!⟩^[]
+   ⊑cast
+```
+
+The two `−X` conversions are the same syntax, typed at different
+representations (`ℕ ⇒ X` and `★ ⇒ X`).  The interior types `ℕ ⊑ ★`
+are related because the paired cells are.
+
+#### P2 — the left side alone abstracts and instantiates (one-sided boundaries)
+
+```
+L  ((ν X:=ℕ. ((ΛY. (λx:Y. x)) X) ⟨−X → +X⟩) 5)
+R  ((λx:★. x) 5⟨ℕ!⟩^[])
+   ·⊑·, ν⊑ (ℕ ⊑ ★), Λ⊑: X left-only, λx:X.x ⊑ λx:★.x at X→X ⊑ ★→★
+                                         L: TyBeta (α:=ℕ)    R: —
+L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
+R  ((λx:★. x) 5⟨ℕ!⟩^[])
+   ·⊑·, ⟪⟫⊑: X left-only, interior X→X ⊑ ★→★, exterior ℕ→ℕ ⊑ ★→★
+                                         L: Wrap             R: —
+L  ([+X^α] ((λx:X. x) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩)
+R  ((λx:★. x) 5⟨ℕ!⟩^[])
+   ⟪⟫⊑, ·⊑·, ⟪⟫⊑ (the left unbinds its left-only X; the center drops it)
+                                         L: Beta             R: Beta
+L  ([+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩)
+R  5⟨ℕ!⟩^[]
+   ⟪⟫⊑, ⟪⟫⊑, ⊑cast: [−X^α] 5 ⟨−X⟩ ⊑ 5⟨ℕ!⟩ at X ⊑ ★ (X left-only)
+                                         L: Merge, Id        R: —
+L  5
+R  5⟨ℕ!⟩^[]
+```
+
+The right term crosses the left-only `Λ` and `[+X^α]` unweakened: only
+`η` reaches the new center name.
+
+#### P3 — the right side alone instantiates, by `Inst` (the new rule `Λ⊑⟪+⟫`)
+
+```
+L  ((λx:(∀X. X→X). ((ν X:=ℕ. (x X) ⟨−X → +X⟩) 5)) (ΛY. (λx:Y. x)))
+R  ((λx:★→★. (x 5⟨ℕ!⟩^[])) (ΛX. (λx:X. x))⟨inst Y. (Y?ℓ0 → Y!)⟩^[])
+   ·⊑·, ƛ⊑ƛ (∀X.X→X ⊑ ★→★), ν⊑ in the body; ⊑cast, Λ⊑Λ for the argument
+                                         L: Beta             R: Inst, TyBeta (α:=★), Beta
+L  ((ν X:=ℕ. ((ΛY. (λx:Y. x)) X) ⟨−X → +X⟩) 5)
+R  (([+X^α] (λx:X. x) ⟨−X → +X⟩)⟨id(★) → id(★)⟩^[] 5⟨ℕ!⟩^[])
+   ·⊑·, ν⊑, ⊑cast, Λ⊑⟪+⟫: the left Λ's abstract cell is paired with αᴿ:=★
+                                         L: TyBeta (α:=ℕ)    R: —
+L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
+R  (([+X^α] (λx:X. x) ⟨−X → +X⟩)⟨id(★) → id(★)⟩^[] 5⟨ℕ!⟩^[])
+   ·⊑·, ⊑cast, ⟪⟫⊑⟪⟫: ϱ gains (αᴸ, αᴿ), αᴸ:=ℕ ⊑ αᴿ:=★
+                                         L: Wrap             R: CastFun, CastId, Wrap
+L  ([+X^α] ((λx:X. x) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩)
+R  ([+X^α] ((λx:X. x) ([−X^α] 5⟨ℕ!⟩^[] ⟨−X⟩)) ⟨+X⟩)⟨id(★)⟩^[]
+   ⊑cast, then as P1
+                                         L: Beta             R: Beta
+                                         L: Merge            R: Merge
+                                         L: Id               R: IdDyn, Id, CastId
+L  5
+R  5⟨ℕ!⟩^[]
+```
+
+The `Inst`/`TyBeta` pair runs before the right's `Beta`, because `inst`
+is not inert, so the right holds a boundary while the left still holds
+a `Λ`.  That is the only reason for `Λ⊑⟪+⟫`.
+
+#### P4 — the right side alone generalizes (a both-sided name at `X⊑★`)
+
+```
+L  ((λx:(∀X. X→X). ((ν X:=ℕ. (x X) ⟨−X → +X⟩) 5)) (ΛY. (λx:Y. x)))
+R  ((λx:(∀X. X→X). ((ν X:=ℕ. (x X) ⟨−X → +X⟩) 5)) (λx:★. x)⟨gen Y. (Y! → Y?ℓ0)⟩^[])
+   ·⊑·, ƛ⊑ƛ, ν⊑ν; ⊑cast, Λ⊑ (Y left-only) for the argument
+                                         L: Beta             R: Beta
+                                         L: TyBeta (α:=ℕ)    R: TyBeta (α:=ℕ)
+L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
+R  (([+X^α] ([−X^α] (λx:★. x) ⟨id(★) → id(★)⟩)⟨X! → X?ℓ0⟩^[X:★∼X] ⟨−X → +X⟩) 5)
+   ·⊑·, ⟪⟫⊑⟪⟫ with X both-sided at X⊑★, ⊑cast, ⊑⟪⟫: the right unbinds X,
+   so X is left-only inside, λx:X.x ⊑ λx:★.x at X→X ⊑ ★→★
+                                         L: Wrap             R: Wrap, CastFun
+L  ([+X^α] ((λx:X. x) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩)
+R  ([+X^α] (([−X^α] (λx:★. x) ⟨id(★) → id(★)⟩) ([−X^α] 5 ⟨−X⟩)⟨X!⟩^[X:X∼★])⟨X?ℓ0⟩^[X:★∼X] ⟨+X⟩)
+   ⟪⟫⊑⟪⟫, ⊑cast (X?: X ⊑ ★ to X ⊑ X), ·⊑·, ⊑⟪⟫ for the function,
+   ⊑cast for the argument: [−X^α] 5 ⟨−X⟩ ⊑ ([−X^α] 5 ⟨−X⟩)⟨X!⟩ at X ⊑ ★
+                                         L: Beta             R: Wrap, Beta
+L  ([+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩)
+R  ([+X^α] ([−X^α] ([+X^α] ([−X^α] 5 ⟨−X⟩)⟨X!⟩^[X:X∼★] ⟨id(★)⟩) ⟨id(★)⟩)⟨X?ℓ0⟩^[X:★∼X] ⟨+X⟩)
+   ⟪⟫⊑⟪⟫, ⊑cast, ⊑⟪⟫ (the right unbinds X: X left-only),
+   ⊑⟪⟫ (the right rebinds the cell αᴿ, which ϱ pairs with αᴸ: X is
+   both-sided again), ⊑cast (X!), ⟪⟫⊑⟪⟫
+                                         L: —                R: Merge, IdDyn, Merge, TagUntag
+L  ([+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩)
+R  ([+X^α] ([−X^α, +X^α, −X^α] 5 ⟨−X⟩) ⟨+X⟩)
+   ⟪⟫⊑⟪⟫, ⟪⟫⊑⟪⟫ with δ = (−X), δ′ = (−X, +X, −X): the net effect on
+   names is the same on both sides
+                                         L: Merge, Id        R: Merge, Id
+L  5
+R  5
+```
+
+This pair needs two things that P1–P3 do not.  First, a both-sided
+name at `X⊑★`: inside the `[+X^α]` pair, the left's `λx:X.x` faces the
+right's `λx:★.x`, which `gen` has not yet cast to `X → X`.  Second, `ϱ`
+must survive a right-only unbind: the right's `[−X^α, +X^α]` hides `X`
+and rebinds the same cell, and only `ϱ` says that the rebound name is
+the left's `X` again.
+
+#### P5 — the left side blames on an escaped tag; the right side succeeds
+
+```
+L  ((λx:ℕ. x) ((ν X:=ℕ. ((ΛY. (λx:Y. ((λy:★. y) x⟨Y!⟩^[Y:★∼X∼★]))) X) ⟨−X → id(★)⟩) 5)⟨ℕ?ℓ0⟩^[])
+R  ((λx:ℕ. x) ((λx:★. ((λy:★. y) x)) 5⟨ℕ!⟩^[])⟨ℕ?ℓ0⟩^[])
+   ·⊑·, cast⊑cast, ·⊑·, ν⊑, Λ⊑ (Y left-only); cast⊑ for x⟨Y!⟩ ⊑ x
+                                         L: TyBeta, Wrap     R: —
+                                         L: Beta             R: Beta
+                                         L: Beta             R: Beta
+L  ((λx:ℕ. x) ([+X^α] ([−X^α] 5 ⟨−X⟩)⟨X!⟩^[X:★∼X∼★] ⟨id(★)⟩)⟨ℕ?ℓ0⟩^[])
+R  ((λx:ℕ. x) 5⟨ℕ!⟩^[]⟨ℕ?ℓ0⟩^[])
+   ·⊑·, cast⊑cast, ⟪⟫⊑ (X left-only), cast⊑ (the left's X!),
+   ⟪⟫⊑ (the left unbinds X), ⊑cast: 5 ⊑ 5⟨ℕ!⟩
+                                         L: TagUntagBad-⟪⟫   R: TagUntag
+L  ((λx:ℕ. x) blame ℓ0)
+R  ((λx:ℕ. x) 5)
+   ·⊑·, blame⊑
+```
+
+The fresh-tag value `[+X^α] (… ⟨X!⟩) ⟨id(★)⟩` is related to the
+`ℕ`-tagged `5`.  This is sound because `X` is left-only, so its mark
+is `X⊑★`: the right side sees `★` wherever the left sees `X`, and no
+check on the right can be paired with a check of `X` on the left.
+
+#### P6 — a `∀`-cast on the right, and conversions of different shape
+
+```
+L  ((λx:(∀X. X→ℕ). ((ν X:=𝔹. (x X) ⟨−X → id(ℕ)⟩) true)) (ΛY. (λx:Y. 7)))
+R  ((λx:(∀X. X→★). ((ν X:=𝔹. (x X) ⟨−X → id(★)⟩) true)) (ΛY. (λx:Y. 7))⟨∀Z. (id(Z) → ℕ!)⟩^[])
+   ·⊑·, ƛ⊑ƛ, ν⊑ν; ⊑cast, Λ⊑Λ
+                                         L: Beta             R: Beta
+                                         L: TyBeta (α:=𝔹)    R: TyBeta (α:=𝔹)
+L  (([+X^α] (λx:X. 7) ⟨−X → id(ℕ)⟩) true)
+R  (([+X^α] (λx:X. 7)⟨id(X) → ℕ!⟩^[X:X∼X] ⟨−X → id(★)⟩) true)
+   ·⊑·, ⟪⟫⊑⟪⟫ (the conversions differ: −X → id(ℕ) and −X → id(★)), ⊑cast
+                                         L: Wrap             R: Wrap
+                                         L: Beta             R: CastFun, CastId, Beta
+L  ([+X^α] 7 ⟨id(ℕ)⟩)
+R  ([+X^α] 7⟨ℕ!⟩^[X:X∼X] ⟨id(★)⟩)
+   ⟪⟫⊑⟪⟫, ⊑cast
+                                         L: Id               R: IdDyn, Id
+L  7
+R  7⟨ℕ!⟩^[]
+```
+
+`inst_X` reaches through the right's `∀`-cast, so both `TyBeta`s
+allocate one cell each and the boundaries stay aligned.
+
+### 12.5 What the examples say about the sketch
+
+- **The world never rebases.**  In all six pairs, `Ω`, `η`, `η′` and
+  `μ` change only at a binder or a boundary entry, for the subterm
+  under it.  `ϱ` gains a pair at a matched `TyBeta` (P1, P4, P6) and
+  at the left's catch-up `TyBeta` in P3.
+- **Rules used.**  Every rule of §12.3 is used except `⊕⊑⊕` (no
+  example has an operator).  P2 and P5 need the left-only boundary
+  rule `⟪⟫⊑`.  P4 needs
+  the right-only rule `⊑⟪⟫`, with both an unbind and a rebind.  P3
+  needs `Λ⊑⟪+⟫`.
+- **Not exercised.**  A gen cast on both sides; a gen cast on the left
+  only (its `[−X^α]` is then a left-only unbind of a both-sided name);
+  `bot-elim`/`bot-intro`; an escaped tag that comes back into scope
+  (Example 5) on one side only; two-allocation runs (D8).
+- **Open questions** (to be settled one at a time):
+  1. Where a both-sided name gets the mark `X⊑★` (P4): chosen at the
+     binder, as §12.2 now says, or by GTSFImp's `ImpEnvMono` decay at
+     the cast rules.
+  2. Whether `ϱ` belongs in the relation, or only in a well-formedness
+     condition on worlds.  P4's rebind is the one place the rules read
+     it.
+  3. Whether `W[δ ∥ δ′]` should be restricted (for example, forbid a
+     left-only unbind of a both-sided name), or whether such
+     restrictions should come from the DGG proof.

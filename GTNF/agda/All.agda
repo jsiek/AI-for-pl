@@ -23,3 +23,12 @@ open import Eval
 
 -- design.md §8's examples, run by `refl`
 open import Examples
+
+-- pairs of programs for designing the cast-term imprecision
+-- type imprecision (GTSFImp's, design.md §12.1)
+open import Imprecision
+
+open import ImprecisionExamples
+
+-- de Bruijn → named rendering (scripts/render_gtnf.sh)
+open import Show

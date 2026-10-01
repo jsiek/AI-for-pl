@@ -121,14 +121,14 @@ X \by A \in \Delta \;\triangleq \;
 \newcommand{\figctx}{
 \begin{figure*}[t]
 \begin{flushleft}
-\begin{minipage}[t]{0.4\textwidth}
+\begin{minipage}[t]{0.30\textwidth}
 Scope changes
 \[\ba{r@{\;}c@{\;}l}
   \delta & ::= &
     [] \mid \delta,{+X}^\alpha \mid \delta,-X^\alpha
 \ea\]
 \end{minipage}
-\begin{minipage}[t]{0.27\textwidth}
+\begin{minipage}[t]{0.35\textwidth}
 \fbox{$\delta(\Delta)$} \quad interior
 \begin{align*}
   [](\Delta) &= \Delta \\
@@ -151,7 +151,7 @@ Scope changes
 \begin{align*}
   -X([]) &= [] \\
   -X(\Delta,X\by \alpha) &= \Delta \\
-  -X(\Delta,Y\by \alpha) &= -X(\Delta),Y\by \alpha \quad (X \neq Y)  \\
+  -X(\Delta,Y\by \alpha) &= -X(\Delta),Y\by \alpha \quad \text{if } X \neq Y \\
   -X(\Delta,\alpha\by R) &= -X(\Delta),\alpha\by R \\
   -X(\Delta,\alpha) &= -X(\Delta),\alpha
 \end{align*}

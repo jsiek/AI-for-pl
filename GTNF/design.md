@@ -512,8 +512,15 @@ argument's coercion is `inst X. (X?ℓ → X!)`, and
 ```
 
 The answer carries a residual boundary around the tagged `5` (open
-question Q1).  Projecting the answer to `ℕ` uses `TagUntag-⟪⟫`, giving
-`[+X^α, −X^α] 5 ⟨id(ℕ)⟩`, and then `Id` gives `5`.
+question Q1).  Projecting the answer to `ℕ` takes two more steps:
+
+```
+  ([+X^α, −X^α] (5⟨ℕ!⟩) ⟨id(★)⟩) ⟨ℕ?ℓ⟩
+⟶ (TagUntag-⟪⟫)
+  [+X^α, −X^α] 5 ⟨id(ℕ)⟩
+⟶ (Id)
+  5
+```
 
 ### Example 2 — implicit generalization, used parametrically
 
@@ -547,18 +554,40 @@ variable, so the coercion is `gen X. (X! → X?ℓ)`.  Write
 Replace the argument by `λx:★. (λy:ℕ. x) x`, which inspects its
 argument at `ℕ`.  The coercion is again `gen X. (X! → X?ℓ)`; the inner
 application has label `ℓ′`.  After the same first five steps, the body
-reaches `(λy:ℕ. x′) (x′ ⟨ℕ?ℓ′⟩)`, where
-`x′ = ([−X^α] 5 ⟨−X⟩) ⟨X!⟩`.  `TagUntagBad` fires because `X ≠ ℕ`,
-and the result is `blame ℓ′`.  Parametricity is enforced by the tag
+reaches `(λy:ℕ. x′) (x′ ⟨ℕ?ℓ′⟩)`, where `x′ = ([−X^α] 5 ⟨−X⟩) ⟨X!⟩`,
+still under the result cast `⟨X?ℓ⟩`.  The check fails because `X ≠ ℕ`:
+
+```
+  [+X^α] (((λy:ℕ. x′) (([−X^α] 5 ⟨−X⟩) ⟨X!⟩ ⟨ℕ?ℓ′⟩)) ⟨X?ℓ⟩) ⟨+X⟩
+⟶ (TagUntagBad, under ξ)
+  [+X^α] (((λy:ℕ. x′) (blame ℓ′)) ⟨X?ℓ⟩) ⟨+X⟩
+⟶ (Blame, under ξ)
+  [+X^α] ((blame ℓ′) ⟨X?ℓ⟩) ⟨+X⟩
+⟶ (Blame, under ξ)
+  [+X^α] (blame ℓ′) ⟨+X⟩
+⟶ (Blame)
+  blame ℓ′
+```
+
+Parametricity is enforced by the tag
 `X`, not by the representation `ℕ`.
 
 ### Example 4 — a tag whose name has escaped
 
 Source: `(λn:ℕ. n) ((ΛX. λx:X. (λz:★. z) x) [ℕ] 5)`.  The argument
 has type `★`, so the outer application casts it by `ℕ?ℓ`.  The `★`-value that leaves
-the `[+X^α]` boundary is `[+X^α] (W ⟨X!⟩) ⟨id(★)⟩`, where `W` is the
-sealed `5`.  The check `ℕ?ℓ` meets the tag `X`, and `TagUntagBad-⟪⟫`
-gives `blame ℓ`.  GTSFImp gives the same answer, because its tag is the
+the `[+X^α]` boundary is `[+X^α] (W ⟨X!⟩) ⟨id(★)⟩`, where
+`W = [−X^α] 5 ⟨−X⟩` is the sealed `5`.  The check `ℕ?ℓ` meets the tag
+`X`:
+
+```
+  (λn:ℕ. n) (([+X^α] (W ⟨X!⟩) ⟨id(★)⟩) ⟨ℕ?ℓ⟩)
+⟶ (TagUntagBad-⟪⟫, under ξ)
+  (λn:ℕ. n) (blame ℓ)
+⟶ (Blame)
+  blame ℓ
+```
+  GTSFImp gives the same answer, because its tag is the
 store variable allocated by `β-Λ`, and so does λB.
 
 ------------------------------------------------------------------------
@@ -588,10 +617,19 @@ Each one can be revisited on its own.
 Open questions, in roughly the order I would like them settled:
 
 - **Q1.**  Should a `★`-value be allowed to keep the boundary it passed
-  through (`[δ] (V⟨G!⟩) ⟨id(★)⟩` is a value), as in Example 1?  The
-  alternative is a rule `IdDyn`:
-  `[δ] (V⟨G!⟩) ⟨id(★)⟩ ⟶ ([δ] V ⟨Id(G)⟩) ⟨G!⟩` when `Δ ⊢ G`.  Under
-  that rule, Example 1 would end at `5⟨ℕ!⟩`.  The residual form would
+  through, as in Example 1?  The draft makes this form a value:
+
+  ```
+  [δ] (V⟨G!⟩) ⟨id(★)⟩
+  ```
+
+  The alternative is a rule `IdDyn`:
+
+  ```
+  Δ ⊢ [δ] (V⟨G!⟩) ⟨id(★)⟩ ⟶ ([δ] V ⟨Id(G)⟩) ⟨G!⟩ ⊣ ε      if Δ ⊢ G     (IdDyn)
+  ```
+
+  Under that rule, Example 1 would end at `5⟨ℕ!⟩`.  The residual form would
   still be needed when `G` is a name that is not visible outside
   (Example 4).
 - **Q2.**  Is blame the intended answer when a tag was created under an

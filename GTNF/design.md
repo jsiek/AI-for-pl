@@ -907,6 +907,24 @@ their names (`X:=α`), and it must relate boundaries `[δ] M ⟨c⟩` on the
 two sides, including one-sided boundaries.  This is the largest new
 design item in the metatheory.
 
+**Why GTNF is shaped for this relation.**  In earlier gradually typed
+polymorphic calculi (GTSF, GTSFImp, PolyBlameI and others), the hardest
+part of the DGG was defining a cast-term imprecision that reduction
+preserves.  Within that, the hardest part was discovering the right
+invariant relating the type variables of the two programs.  In
+GTSFImp, for example, the world `W` and its rebasing (`RebaseAt`) evolve
+with the two runs' global type stores.  GTNF was designed to make this
+step more straightforward (Jeremy, 2026-10-01).  It is explicit about
+type variables: every type variable is a name `X:=α`, bound by a `Λ`, a
+coercion binder, or a boundary entry `+X^α`.  It also treats them
+locally, in a lexically scoped way: a name is in scope only inside the
+boundary that binds it, and coherence makes names and representation
+variables correspond one to one within any conversion context.  The
+hope is that the invariant between the two programs' type variables can
+then be stated boundary by boundary, as a relation between matching
+`δ`s and their names, instead of as a global correspondence between two
+stores that grow independently.
+
 ### 9.7 Dynamic gradual guarantee
 
 GTSFImp: `proof/DGG/DynamicGradualGuaranteeDef.agda` (`GradualDGG`), with
@@ -995,10 +1013,12 @@ Each one can be revisited on its own.
     blame ℓ
   ```
 
-Open questions, in roughly the order I would like them settled:
+No design questions are open at the moment.  The next design item is
+the cast-term imprecision `⊢²` (§9.6).
 
-- **Q1.**  Space efficiency (normal forms for coercions and a
-  composition `p ⨟ q`, like νF's for conversions) is deferred.
+Out of scope for now: space efficiency.  Normal forms for coercions,
+and a composition `p ⨟ q` like νF's for conversions, are not a concern
+for the time being (Jeremy, 2026-10-01).
 
 ------------------------------------------------------------------------
 

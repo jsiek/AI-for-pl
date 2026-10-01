@@ -696,18 +696,33 @@ Each one can be revisited on its own.
 - **D7 (tags move out of boundaries).**  `IdDyn` moves a tag out of a
   boundary whenever the tag is visible outside it.  A `★`-value keeps
   a boundary only when the tag is in `fresh(δ)` (§5).
+- **D8 (alias tags are distinct).**  A tag created under an alias name
+  does not match the name it aliases, so the check blames (Jeremy,
+  2026-10-01).  GTSFImp and λB behave the same way.  Consider
+
+  ```
+  ΛX. λx:X. (λw:X. w) (f [X] x)        where  f = ΛY. λy:Y. (λz:★. z) y
+  ```
+
+  `f [X]` allocates the alias `β:=α` under the name `Y`, so the `★` that
+  `f` returns is tagged `Y`, and `Y ∈ fresh(+Y^β)`.  Writing `x₀` for the
+  value of `x` and `ℓ` for the label of the outer application, the end
+  of the run is
+
+  ```
+    (λw:X. w) (([+Y^β] (([−Y^β] x₀ ⟨−Y⟩) ⟨Y!⟩) ⟨id(★)⟩) ⟨X?ℓ⟩)
+  ⟶ (TagUntagBad-⟪⟫, under ξ)
+    (λw:X. w) (blame ℓ)
+  ⟶ (Blame)
+    blame ℓ
+  ```
 
 Open questions, in roughly the order I would like them settled:
 
-- **Q1.**  Is blame the intended answer when a tag was created under an
-  alias?  Consider `ΛX. λx:X. (λw:X. w) (f [X] x)` with
-  `f = ΛY. λy:Y. (λz:★. z) y`.  `f [X]` allocates the alias `β:=α`
-  under the name `Y`, the tag is `Y`, and the check `X?ℓ` blames.
-  GTSFImp behaves the same way.
-- **Q2.**  D5 versus a non-allocating instantiation at an existing name.
-- **Q3.**  `bot-intro` blames eagerly in GTSFImp (`blame-bot-intro`),
+- **Q1.**  D5 versus a non-allocating instantiation at an existing name.
+- **Q2.**  `bot-intro` blames eagerly in GTSFImp (`blame-bot-intro`),
   but `⟦bot-intro⟧ = ∀X. X?ℓ` blames only at instantiation.
-- **Q4.**  Space efficiency (normal forms for coercions and a
+- **Q3.**  Space efficiency (normal forms for coercions and a
   composition `p ⨟ q`, like νF's for conversions) is deferred.
 
 ------------------------------------------------------------------------

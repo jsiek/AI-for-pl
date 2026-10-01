@@ -1646,16 +1646,11 @@ allocate one cell each and the boundaries stay aligned.
      evidence for the latter as well.  So the probe's pair is outside
      the image of compilation.
 
-     *Compiled programs do not produce it (argument, and a search).*
-     The only producer of a left-only unbind of a shared name is
-     `inst_X`'s `gen` case.  Matched boundaries unbind on both sides;
-     a left-only boundary (a left-only `TyBeta`, its `Wrap` duals)
-     binds and unbinds left-only names only; `Merge` and `IdDyn` reuse
-     existing changes.  So it would need a shared `X`
-     (`∀X.B ⊑ ∀X.B′` by `∀⊑∀`) whose binder the more precise evidence
-     `c : A ∼ ∀X.B` handles by `gen`, while the less precise
-     `c′ : A′ ∼ ∀X.B′` (with `A ⊑ A′`) does not.  Each alternative for
-     `c′` fails:
+     *`gen` does not produce it (argument, and a search).*  At a shared
+     `X` (`∀X.B ⊑ ∀X.B′` by `∀⊑∀`), if the more precise evidence
+     `c : A ∼ ∀X.B` handles `X`'s binder by `gen`, then so does the
+     less precise `c′ : A′ ∼ ∀X.B′` (with `A ⊑ A′`).  Each alternative
+     for `c′` fails:
 
      - `∀ᶜ` identifies a binder of `A′` with `X`.  Then on the left the
        corresponding binder of `A` faces `X`, a distinct name, and
@@ -1670,10 +1665,71 @@ allocate one cell each and the boundaries stay aligned.
      `notes/detour/left_only_unbind.py`, on the Python model of
      GTSFImp's consistency and imprecision in `notes/detour/model.py`
      (validated against Agda in `notes/detour/REPORT.md`), searches
-     every piece of declarative evidence on both sides, not only the
-     canonical one.  It found no counterexample for types of size up
-     to 6: closed (28,697 related pairs with a left `gen`) and with
-     one free cross-mode name (35,649).  A control in which `X` is
-     left-only (`∀⊑`) gives 343 hits, so the search can fire.  So the
-     last row of the table in question 3 does not arise from compiled
-     programs, and `W[δ ∥ δ′]` needs no restriction against it.
+     every piece of declarative evidence on both sides.  It found no
+     counterexample for types of size up to 6: closed (28,697 related
+     pairs with a left `gen`) and with one free cross-mode name
+     (35,649).  A control in which `X` is left-only (`∀⊑`) gives 343
+     hits, so the search can fire.
+
+     *But another producer exists (cambridge26 check, finding F4).*
+     `Merge` can fuse two boundaries on one side only, when the other
+     side has a cast between its two boundaries.  `Wrap`'s dual of the
+     fused boundary then unbinds both names on that side alone.  In
+     C23a the left fuses `[+Y^β][+X^α]`, and its `Wrap` dual
+     `[−X^α, −Y^β]` faces the right's `[−X^α]`:
+
+     ```
+     L  (([+Y^β, +X^α] (λx:Y. ([−X^α, −Y^β] 42 ⟨−X⟩)) ⟨−Y → +X⟩) 69)
+     R  (([+Y^β] ([+X^α] (λx:Y. ([−X^α] 42⟨ℕ!⟩^[Y:X∼X] ⟨−X⟩)) ⟨id(Y) → +X⟩)⟨id(Y) → id(★)⟩^[Y:X∼X] ⟨−Y → id(★)⟩) 69)
+     ```
+
+     The shared `Y` is then right-only inside, and nothing there
+     mentions it, so the block is derivable.  So this row of the table
+     does occur.  Restricting `W[δ ∥ δ′]` against it would make C23a
+     underivable, so `W[δ ∥ δ′]` stays unrestricted.
+
+### 12.6 The cambridge26 pairs against §12.3
+
+`notes/cambridge-imprecision-check.md` checks the 22 pairs of
+`CambridgeExamples.agda` block by block, in the format of §12.4.  19
+are derivable as written.  C12, C13 and C14 are not, with any
+synchronization (F3).  Findings, smallest first:
+
+- **F1.**  `Λ⊑⟪+⟫` fixes the new name's mark at `X⊑X`.  It should
+  read `W ⊕ X:m` with the mark chosen at the binder (D11).  Cg's
+  right-led block needs `X⊑★`.
+- **F2.**  `Λ⊑⟪+⟫` covers only a left `Λ`.  A left `gen`-cast
+  ∀-value facing the right's `[+X^β] V′ ⟨c′⟩` needs the same rule,
+  so it should be stated for every ∀-value through `inst_X` at the
+  left's abstract cell (C2's right-led block):
+
+  ```
+    W ⊕ X:m ∣ [] ⊢² inst_X(V) ⊑ V′ : A ⊑ A′    V a ∀-value    β:=★    c′ : A′ ⇒ B′
+    ────────────────────────────────────────────────────────────────── (∀⊑⟪+⟫)
+    W ∣ γ ⊢² V ⊑ [+X^β] V′ ⟨c′⟩ : ∀X.A ⊑ B′
+  ```
+
+- **F3 (open).**  `ϱ` cannot be a partial bijection.  In C12
+  (`I⟨inst⟩⟨gen⟩` on the right), the left's one cell `α:=ℕ` must be
+  paired with two right cells: the right's `β:=ℕ`, from the
+  instantiation that both sides make, and the right's `α:=★`, from
+  `Inst`.  The block is
+
+  ```
+  L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
+  R  (([+Y^β] ([−Y^β] ([+X^α] (λx:X. x) ⟨−X → +X⟩)⟨id(★) → id(★)⟩^[] ⟨id(★) → id(★)⟩)⟨Y! → Y?ℓ0⟩^[Y:★∼X] ⟨−Y → +Y⟩) 5)
+  ```
+
+  The outer pair needs `(αᴸ, βᴿ)`.  The inner right-only `[+X^αᴿ]`
+  must rejoin the same center name, which needs `(αᴸ, αᴿ)`.  Under
+  the proposed fix, each right cell has at most one left partner, and
+  a left cell may have several.  With it, C12–C14 go through.  The
+  mirror pair (`inst;gen` on the left) would need the converse.
+- **F4.**  A one-sided `Merge` also produces a left-only unbind of a
+  shared name (§12.5, question 3).
+- **D1.**  `W[δ ∥ δ′]` must say which intermediate worlds of a
+  multi-entry `δ` have to be well formed, and that a name keeps its
+  mark when it goes one-sided and later rejoins.
+- **D2.**  `Λ⊑⟪+⟫`'s pair involves the left `Λ`'s abstract cell,
+  which is not in `cells(Δ)`.  `ϱ`'s type has to allow it.
+

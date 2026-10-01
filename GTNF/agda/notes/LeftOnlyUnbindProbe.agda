@@ -4,6 +4,8 @@ module notes.LeftOnlyUnbindProbe where
 -- that both sides share arise?  The left casts the polymorphic identity
 -- by a gen/inst detour through ★, the right by the structural ∀-cast;
 -- both coercions have type ∀Y.Y→Y ⟹ ∀X.X→X.
+-- NOTE: the left coercion is NOT the compilation of any consistency
+-- evidence (design.md §12.5), so this pair is outside compile's image.
 
 open import Data.List using ([])
 open import Types

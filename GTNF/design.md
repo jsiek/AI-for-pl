@@ -1627,25 +1627,24 @@ allocate one cell each and the boundaries stay aligned.
      left-only unbind of a both-sided name), or whether such
      restrictions should come from the DGG proof.
 
-     *Finding (probe `notes/LeftOnlyUnbindProbe.agda`).*  Typing does
-     not rule the left-only unbind out.  `∀Y.Y→Y ∼ ∀X.X→X` has two
-     pieces of evidence, and source typing accepts either.  One is
-     `∀ᶜ (id ↦ id)`.  The other is a detour through `★`, which compiles
-     to `gen X. inst Y. ((X! ; Y?ℓ) → (Y! ; X?ℓ))`.  Cast `ΛY.λx:Y.x` by
-     the detour on the left and by `∀X. (id(X) → id(X))` on the right,
-     and use both at `ℕ`.  Both runs return `5`, but after the matched
-     `TyBeta`s the left has a left-only `[−X^α]` of the shared `X`:
-
-     ```
-     L  ([+X^α] ([−X^α] (ΛY. (λx:Y. x)) ⟨∀Y. (id(Y) → id(Y))⟩)⟨inst Z. ((X! ; Z?ℓ0) → (Z! ; X?ℓ0))⟩^[X:★∼X] ⟨−X → +X⟩) 5
-     R  ([+X^α] (λx:X. x)⟨id(X) → id(X)⟩^[X:X∼X] ⟨−X → +X⟩) 5
-     ```
-
-     §12.3 relates the two starting programs (`cast⊑cast` compares the
-     two coercions only by their types), but it relates no state after
-     the matched `TyBeta`.  Inside the boundary pair, the left's term
-     under its last cast has type `∀Y.Y→Y`, and two steps later
-     `★→★`.  The right's term has type `X → X`.  Neither
-     `∀Y.Y→Y ⊑ X→X` nor `★→★ ⊑ X→X` holds.  So the problem is not the
-     unbind alone: `cast⊑cast` is too permissive, because it lets a
-     detour through `★` on the left face a direct cast on the right.
+     *Finding (probe `notes/LeftOnlyUnbindProbe.agda`; corrected).*
+     The probe's left coercion
+     `gen X. inst Y. ((X! ; Y?ℓ) → (Y! ; X?ℓ))` is a well-typed GTNF
+     coercion, and a §12.3 world relates its run to the direct cast's
+     only at the start.  But compilation never produces it.  It is not
+     the image `⟦c⟧ℓ` of any consistency evidence: inside it,
+     `X ∼ Y` would be needed for two distinct names, and consistency
+     is not transitive (`_!` and `？_` only give `A ∼ ★` and
+     `★ ∼ B`).  This agrees with the specification "two types are
+     consistent if and only if they have a common lower bound"
+     (Jeremy, 2026-10-01).  `∀X.X→X`'s only lower bound is itself,
+     so `∀Y.Y→★` (which `∀X.X→X ⋢ ∀Y.Y→★` excludes) is not
+     consistent with it.  GTSFImp's `lower?` agrees, checked by
+     `refl`: it finds a lower bound for `∀Y.Y→Y ∼ ∀X.X→X` and none for
+     `∀Y.Y→★ ∼ ∀X.X→X`.  Closed types have only `CrossFree` evidence,
+     so `∼→∼ᵘ` (`proof/Consistency2.agda`) rules out declarative
+     evidence for the latter as well.  So the probe's pair is outside
+     the image of compilation.  Whether a left-only unbind of a shared
+     name can arise from compiled programs is still open; it needs a
+     `gen` whose source is a `∀` on the left against no `gen` on the
+     right.

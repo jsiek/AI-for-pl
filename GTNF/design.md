@@ -278,6 +278,18 @@ by the cross environment:
   cast `c` has type `flipᵐ μ ⊢ A′ ∼ A`.
 - `CastSeq` keeps `μ` for both halves, and `Inst` closes `X` at `★`, so
   its result cast is at `μ`.
+- `IdDyn` moves a tag cast from a boundary's interior to its exterior.
+  The moved cast keeps the interior mode of every exterior name the
+  interior can see.  It gives `X∼X` to every exterior name that the
+  interior cannot see, because the cast has never seen that name
+  (`exit_δ(μ)`, §6.3; Example 7).  This is what GTSFImp does when a
+  cast first meets a variable: at an allocation, `ξ-⟨⟩` re-indexes the
+  cast's environment by `applyEnv (bind A) μ = extᵐ μ`, which gives the
+  new variable `X∼X`.  The filled-in mode never belongs to a name that
+  the coercion mentions.  If the tag were that name, then the name
+  would be visible in the interior and its mode would be copied.  So
+  the choice does not affect typing or reduction; it is bookkeeping for
+  the cast-term imprecision (§9.6).
 
 The modes of free names are therefore data that the dynamic semantics
 carries along.  The cast-term imprecision relates casts with possibly
@@ -551,8 +563,11 @@ with the boundary rule, and `W` is used at exactly its own typing
 
 Δ ⊢ V ⟨G!⟩ ⟨H?ℓ⟩ ⟶ blame ℓ ⊣ ε        if G ≠ H                         (TagUntagBad)
 
-Δ ⊢ [δ] (V ⟨G!⟩) ⟨id(★)⟩ ⟶ ([δ] V ⟨Id(G)⟩) ⟨G!⟩ ⊣ ε                     (IdDyn)
+Δ ⊢ [δ] (V ⟨G!⟩^μ) ⟨id(★)⟩ ⟶ ([δ] V ⟨Id(G)⟩) ⟨G!⟩^exit_δ(μ) ⊣ ε        (IdDyn)
       if G ∉ fresh(δ)            (equivalently, on well-typed terms, Δ ⊢ G)
+
+exit_δ(μ)(Y) = μ(Y)    if Y is visible in the interior δ(Δ)
+             = X∼X     otherwise
 
 Δ ⊢ ([δ] (V ⟨X!⟩) ⟨id(★)⟩) ⟨H?ℓ⟩ ⟶ blame ℓ ⊣ ε     if X ∈ fresh(δ)     (TagUntagBad-⟪⟫)
 
@@ -862,6 +877,49 @@ first step would instead have produced
 `[+X^α] ((ν Y:=X. ((ΛX. λx:X. 7) Y) ⟨−Y → id(ℕ)⟩) ⟨id(X) → ℕ!⟩) ⟨−X → id(★)⟩`,
 and a second `TyBeta` would have allocated the alias `β:=α`.
 
+### Example 7 — a tag cast enters a scope it has never seen
+
+A polymorphic function receives a `★` that was created outside its
+type variable's scope:
+
+```
+F = ΛY. λz:★. λy:Y. z                       : ∀Y. ★ → Y → ★
+
+(ν Y:=ℕ. (F Y) ⟨id(★) → (−Y → id(★))⟩) (5⟨ℕ!⟩^[]) 3
+```
+
+The cast `5⟨ℕ!⟩^[]` was created at the top level, where there are no
+names, so its mode environment is empty.  The run (`ex7-run`, 9 steps)
+is:
+
+```
+  (ν Y:=ℕ. (F Y) ⟨id(★) → (−Y → id(★))⟩) (5⟨ℕ!⟩^[]) 3
+⟶ (TyBeta, ⊣ β:=ℕ)
+  ([+Y^β] (λz:★. λy:Y. z) ⟨id(★) → (−Y → id(★))⟩) (5⟨ℕ!⟩^[]) 3
+⟶ (Wrap)
+  ([+Y^β] ((λz:★. λy:Y. z) ([−Y^β] (5⟨ℕ!⟩^[]) ⟨id(★)⟩)) ⟨−Y → id(★)⟩) 3
+⟶ (IdDyn, under ξ; ℕ ∉ fresh(−Y^β))
+  ([+Y^β] ((λz:★. λy:Y. z) (([−Y^β] 5 ⟨id(ℕ)⟩) ⟨ℕ!⟩^[Y:X∼X])) ⟨−Y → id(★)⟩) 3
+⟶ (Id, under ξ)
+  ([+Y^β] ((λz:★. λy:Y. z) (5⟨ℕ!⟩^[Y:X∼X])) ⟨−Y → id(★)⟩) 3
+⟶ (Beta, under ξ)
+  ([+Y^β] (λy:Y. 5⟨ℕ!⟩^[Y:X∼X]) ⟨−Y → id(★)⟩) 3
+⟶ (Wrap)
+  [+Y^β] ((λy:Y. 5⟨ℕ!⟩^[Y:X∼X]) ([−Y^β] 3 ⟨−Y⟩)) ⟨id(★)⟩
+⟶ (Beta, under ξ)
+  [+Y^β] (5⟨ℕ!⟩^[Y:X∼X]) ⟨id(★)⟩
+⟶ (IdDyn; ℕ ∉ fresh(+Y^β))
+  ([+Y^β] 5 ⟨id(ℕ)⟩) ⟨ℕ!⟩^[]
+⟶ (Id)
+  5⟨ℕ!⟩^[]
+```
+
+At the first `IdDyn`, the boundary `[−Y^β]` sits in `F`'s body, where
+`Y` is in scope, but its interior does not see `Y`.  So the moved cast
+gets `Y:X∼X` (D10).  At the second `IdDyn`, the tag leaves `F` through
+`[+Y^β]`, whose exterior has no `Y`, and the entry is dropped.
+`ex7-env` in `Examples.agda` checks the state after the first `IdDyn`.
+
 ------------------------------------------------------------------------
 
 ## 9. Metatheory goals
@@ -1080,6 +1138,12 @@ Each one can be revisited on its own.
   in the preservation proof would be the sign of a term changing
   colour.
 
+- **D10 (unseen names get X∼X).**  When `IdDyn` moves a tag cast out of
+  a boundary, every exterior name that the interior cannot see gets the
+  mode `X∼X` in the moved cast's environment (`exit_δ(μ)`, §6.3;
+  Example 7; Jeremy, 2026-10-01).  This matches GTSFImp's `extᵐ` at an
+  allocation.  The choice may be revisited when `⊢²` is designed.
+
 No design questions are open at the moment.  The next design item is
 the cast-term imprecision `⊢²` (§9.6).
 
@@ -1104,5 +1168,9 @@ for the time being (Jeremy, 2026-10-01).
   ported from GTSFImp's intrinsically scoped `Ty Δ` to νF's extrinsic
   `Ty`, or bridged by an erasure.  This is to be decided once the cast
   calculus is settled.
-- Order: the definitional layer and `Examples` (Examples 1–6 as `refl`
-  runs), then progress and preservation, then `compile-⊢`.
+- Status: the definitional layer, `TypeCheck` (a `Maybe` typing
+  derivation), `Eval` (a step function that returns the step
+  derivation) and `Examples` (Examples 1–7 and D8 as `refl` runs) exist
+  in `GTNF/agda/`, and `make check` passes.  Next: the cast-term
+  imprecision `⊢²` (§9.6), experimented with through `Eval`; then
+  progress and preservation, then `compile-⊢`.

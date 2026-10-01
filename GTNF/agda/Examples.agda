@@ -14,14 +14,20 @@ module Examples where
 --   * THE RUNS (k = fuel, n = steps; rules as `evalRules` reports them):
 --       ex1  11  5⟨ℕ!⟩      Inst TyBeta Beta CastFun CastId Wrap Beta
 --                           Merge IdDyn Id CastId          (= design.md)
---       ex2   8  5          Beta TyBeta Wrap CastFun Beta TagUntag
---                           Merge Id                       (= design.md)
---       ex3   9  blame ℓ′   … TagUntagBad Blame Blame Blame (= design.md)
+--       ex2  12  5          Beta TyBeta Wrap CastFun Wrap Beta Merge
+--                           IdDyn Merge TagUntag Merge Id  (= design.md)
+--       ex3  11  blame ℓ′   … Wrap Beta TagUntagBad-⟪⟫ Blame ×4
+--                                                          (= design.md)
 --       ex4   6  blame ℓ    TyBeta Wrap Beta Beta TagUntagBad-⟪⟫ Blame
 --       ex5  21  5          the full program; the k a call goes Wrap
 --                           Merge IdDyn(-var) as in design.md
 --       ex6   8  7⟨ℕ!⟩      Beta TyBeta Wrap CastFun CastId Beta IdDyn
 --                           Id                             (= design.md)
+--       ex7   9  5⟨ℕ!⟩      TyBeta Wrap IdDyn Id Beta Wrap Beta IdDyn
+--                           Id: a tag cast enters a scope it has never
+--                           seen and gets `X∼X` for the new name
+--                           (`ex7-env` pins the state after the first
+--                           IdDyn; design.md Example 7)
 --       d8   11  blame ℓ    D8's alias: … TagUntagBad-⟪⟫ Blame Blame
 --     and four coverage runs: cov1 (CastSeq, TagUntag), cov2
 --     (BlameBotIntro, Blame-ν), cov3 (TagUntagBad, Blame-·₁), cov4
@@ -29,7 +35,7 @@ module Examples where
 --   * Labels: ℓ = 0, ℓ′ = 1.
 
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; head; drop)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (_,_; proj₁)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
@@ -112,6 +118,19 @@ ex6-⊢ = tc
 f8 : Term
 f8 = Λ (ƛ (` 0) ∙ ((ƛ ★ ∙ ` 0) · (` 0 ⟨ μXY ∣ (` 0) ! ⟩)))
 
+-- Example 7: F = ΛY. λz:★. λy:Y. z, applied at ℕ to a ★ made outside
+-- Y's scope.  The tag cast `5⟨ℕ!⟩^[]` is moved by IdDyn out of Wrap's
+-- `[−Y^β]` into F's body, where Y is in scope but the cast has never
+-- seen it: exitEnv gives Y the mode X∼X (GTSFImp `applyEnv (bind A)
+-- μ = extᵐ μ`).  Leaving F through `[+Y^β]`, the entry is dropped.
+ex7 : Term
+ex7 = (ν `ℕ · Λ (ƛ ★ ∙ (ƛ (` 0) ∙ ` 1)) ⟨ reveal 0 (★ ⇒ (` 0 ⇒ ★)) ⟩
+        · ($ 5 ⟨ [] ∣ `ℕ ! ⟩))
+      · $ 3
+
+ex7-⊢ : empty ∣ [] ⊢ ex7 ⦂ ★
+ex7-⊢ = tc
+
 d8 : Term
 d8 = (ν `ℕ · Λ (ƛ (` 0) ∙ ((ƛ (` 0) ∙ ` 0)
         · (((ν (` 0) · f8 ⟨ reveal 0 (` 0 ⇒ ★) ⟩) · ` 0)
@@ -159,6 +178,19 @@ ex5-run = reaches refl (ans-value (V-simple S-$))
 
 ex6-run : Reaches 13 8 ex6-⊢ ($ 7 ⟨ [] ∣ `ℕ ! ⟩)
 ex6-run = reaches refl (ans-value (V-simple (S-cast (V-simple S-$) I-tag)))
+
+ex7-run : Reaches 14 9 ex7-⊢ ($ 5 ⟨ [] ∣ `ℕ ! ⟩)
+ex7-run = reaches refl (ans-value (V-simple (S-cast (V-simple S-$) I-tag)))
+
+-- the state right after the first IdDyn: the moved tag cast carries
+-- `X∼X ∷ []`, the mode of the name Y it has never seen
+ex7-env : head (drop 3 (evalTerms 14 ex7-⊢))
+  ≡ just ((((ƛ ★ ∙ (ƛ (` 0) ∙ ` 1))
+             · (($ 5 ⟪ unbind 0 0 ∷ [] , ⌞ id `ℕ ⌟ ⟫)
+                  ⟨ X∼X ∷ [] ∣ `ℕ ! ⟩))
+            ⟪ bind 0 0 ∷ [] , ⌞ tail (seal 0) ↦ ⌞ id ★ ⌟ ⌟ ⟫)
+          · $ 3)
+ex7-env = refl
 
 d8-run : Reaches 16 11 d8-⊢ (blame ℓ)
 d8-run = reaches refl (ans-blame)

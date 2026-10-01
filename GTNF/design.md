@@ -1,6 +1,6 @@
 # GTNF: a gradual νF — design draft
 
-Status: first draft (2026-10-01).  No Agda yet.
+Status: first draft (2026-10-01).
 
 GTNF is a gradually typed polymorphic lambda calculus whose cast
 calculus is **System νF** (`SystemF/agda/strong-rep-nu/`, presented in

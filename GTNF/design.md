@@ -21,9 +21,9 @@ conversion.  (GTSF, GTPLC and PolyBlameI merge the two into one coercion
 language; GTSFImp keeps them apart as `_⟨_⟩` versus `_↑_`/`_↓_`, and
 GTNF follows GTSFImp in that respect.)  The two sorts meet only in the
 reduction rules, and in exactly the following places: the instantiation
-rules (`Inst`, and `TyBeta`/`TyWrap` through `open`) and the two
-tag-check rules that look through a boundary (`TagUntag-⟪⟫`,
-`TagUntagBad-⟪⟫`).
+rules (`Inst`, and `TyBeta`/`TyWrap` through `open`) and the two rules
+for a `★`-value under a boundary (`IdDyn`, which moves the tag out, and
+`TagUntagBad-⟪⟫`, which checks a tag that cannot move out).
 
 Notation.  This document writes variables as names, following the νF
 paper.  The Agda will use de Bruijn indices with parallel renaming and
@@ -116,8 +116,8 @@ judgment `Δ ⊢ c : A ⇒ B` and the composition `Δ ⊢ c ⨟ d` are those of
 νF.  Three additions concern only `★`:
 
 ```
-  ──────────────────────── (new)        Inert  i ::= id(X) | id(★) | c → d | ∀X.c
-  Δ ⊢ id(★) : ★ ⇒ ★                                | −X | t ; −X           (id(★) new)
+  ──────────────────────── (new)        Inert  i ::= id(X) | c → d | ∀X.c
+  Δ ⊢ id(★) : ★ ⇒ ★                                | −X | t ; −X           (unchanged)
 
   Id(★) = id(★)                         (new clause of Id(A))
 ```
@@ -137,9 +137,11 @@ new clause each for `★`:
 
 If `X:=A ∈ Δ`, then `Δ ⊢ reveal_X(C) : C ⇒ C[A/X]`.
 
-`id(★)` is inert for the same reason `id(X)` is: no rule can discharge
-it, because a boundary around a `★`-value may be the only thing that
-keeps the value's tag in scope (§6.4, and Example 1).
+`id(★)` is not inert.  A boundary `[δ] (V⟨G!⟩) ⟨id(★)⟩` around a
+tagged value is discharged by `IdDyn`, which moves the tag outside,
+except when the tag `G` is a name that only the boundary binds.  In that
+case the boundary is the only thing that keeps the tag in scope, and the
+term is a value (§5, §6.4, Example 4).
 
 ------------------------------------------------------------------------
 
@@ -273,7 +275,37 @@ New rules:
 ```
 Simples   U ::= k | λx:A. N | ΛX. V | V ⟨P⟩            (V⟨P⟩ new)
 Values    V, W ::= U | [δ] U ⟨i⟩
+                 | [δ] (V ⟨X!⟩) ⟨id(★)⟩      if X ∈ fresh(δ)          (new)
+
+fresh(δ) = { X | the first entry of δ that mentions X is +X^α }
 ```
+
+**The new value form** is a `★`-value under a boundary whose tag names
+a variable introduced by the boundary itself.  `IdDyn` (§6.3) moves the
+tag out of every other boundary around a tagged value, so this is the
+only boundary that can remain around a `★`-value.
+
+`fresh(δ)` gives a syntactic form of `IdDyn`'s side condition `Δ ⊢ G`.  If
+`Δ ⊢ δ` and `δ(Δ) ⊢ X`, then
+
+```
+Δ ⊢ X    if and only if    X ∉ fresh(δ)
+```
+
+Proof sketch: suppose that `X ∈ fresh(δ)` and that `X:=β ∈ Δ`.  Before
+the first `X`-entry the interior still contains `X:=β`.  Coherence of
+that first entry `+X^α` (`X = Y ⇔ α = β` on `δ⁺(Δ) ∋ X:=β`) forces
+`α = β`, so `X:=α` is already in the interior, contradicting the premise
+`X:=α ∉ δ(Δ)` of `+X^α`.  Conversely, suppose that `X ∉ Δ`.  Then `X`
+is in `δ(Δ)` only because some entry `+X^α` added it, and the first
+`X`-entry cannot be `−X^α`, because that entry requires `X` in the
+interior.
+
+Using `fresh(δ)` rather than `Δ ⊢ X` keeps `Value` a predicate on terms
+alone, not indexed by the type context, as it is in νF.  This matters
+because a congruence step carries values to other contexts.  The
+syntactic form makes it immediate that a value stays a value under
+allocation and under weakening by fresh names.
 
 The one structural change to νF is that **a value with an inert cast
 counts as a simple**.  Every boundary rule of νF is stated for a simple
@@ -293,7 +325,7 @@ Canonical forms, by type:
 | `ι` | `k` |
 | `A → B` | `λx:A.N`, `V⟨p → q⟩`, `[δ] U ⟨c → d⟩` |
 | `∀X. A` | `ΛX.V`, `V⟨∀X.p⟩`, `V⟨gen X.p⟩`, `[δ] U ⟨∀X. c⟩` |
-| `★` | `V⟨G!⟩`, `[δ] (V⟨G!⟩) ⟨id(★)⟩` |
+| `★` | `V⟨G!⟩`, `[δ] (V⟨X!⟩) ⟨id(★)⟩` with `X ∈ fresh(δ)` |
 | `X` | `[δ] U ⟨−X⟩`, `[δ] U ⟨t ; −X⟩` (as in νF; `U` may now be a `★`-value when `X:=★`) |
 
 ------------------------------------------------------------------------
@@ -318,7 +350,10 @@ F ::= □ M | V □ | op(V⃗, □, M⃗)
 
 ### 6.2 The νF rules
 
-`Delta`, `Beta`, `Wrap`, `Merge`, `Id` and `ξ` are verbatim from νF.
+`Delta`, `Beta`, `Wrap`, `Merge`, `Id` and `ξ` are verbatim from νF,
+except that `Merge`'s inner boundary may now also be the new value form
+`[δ₁] (V⟨X!⟩) ⟨id(★)⟩` (`t₁ = id(★)`).  The merged boundary may no
+longer introduce `X`, in which case `IdDyn` fires next (Example 5).
 `TyBeta` and `TyWrap` are generalized from a `Λ` interior to any
 ∀-simple, through a meta-operation `open_X(U)` that peels one layer:
 
@@ -348,7 +383,7 @@ non-allocating type application.
       ⟶ [+X^α] ([δ] open_X(U) ⟨c⟩) ⟨d⟩ ⊣ α:=Δ(A)                        (TyWrap)
 
 Δ ⊢ [δ₂] ([δ₁] U ⟨t₁⟩) ⟨c₁⟩ ⟶ [δ₂ ++ δ₁] U ⟨d⟩ ⊣ ε                      (Merge)
-      where (δ₂ ++ δ₁)⁺(Δ) ⊢ t₁ ⨟ c₁ = d
+      where [δ₁] U ⟨t₁⟩ is a value and (δ₂ ++ δ₁)⁺(Δ) ⊢ t₁ ⨟ c₁ = d
 
 Δ ⊢ [δ] U ⟨id(ι)⟩ ⟶ U ⊣ ε                                              (Id)
 
@@ -384,9 +419,10 @@ because `Y:=X ∈ (Δ′, β:=α, Y:=β)` and so
 
 Δ ⊢ V ⟨G!⟩ ⟨H?ℓ⟩ ⟶ blame ℓ ⊣ ε        if G ≠ H                         (TagUntagBad)
 
-Δ ⊢ ([δ] (V ⟨G!⟩) ⟨id(★)⟩) ⟨G?ℓ⟩ ⟶ [δ] V ⟨Id(G)⟩ ⊣ ε                   (TagUntag-⟪⟫)
+Δ ⊢ [δ] (V ⟨G!⟩) ⟨id(★)⟩ ⟶ ([δ] V ⟨Id(G)⟩) ⟨G!⟩ ⊣ ε                     (IdDyn)
+      if G ∉ fresh(δ)            (equivalently, on well-typed terms, Δ ⊢ G)
 
-Δ ⊢ ([δ] (V ⟨G!⟩) ⟨id(★)⟩) ⟨H?ℓ⟩ ⟶ blame ℓ ⊣ ε   if G ≠ H             (TagUntagBad-⟪⟫)
+Δ ⊢ ([δ] (V ⟨X!⟩) ⟨id(★)⟩) ⟨H?ℓ⟩ ⟶ blame ℓ ⊣ ε     if X ∈ fresh(δ)     (TagUntagBad-⟪⟫)
 
 Δ ⊢ F[blame ℓ] ⟶ blame ℓ ⊣ ε                                            (Blame)
 ```
@@ -406,25 +442,30 @@ and `X?ℓ` in `p` has become `id(★)`.  As in GTSFImp, the `inst`-bound
 variable is therefore implemented entirely by conversions, and no tag
 names it.
 
-### 6.4 Why a tag by name is well defined across a boundary
+### 6.4 Why a tag by name keeps its meaning across a boundary
 
-`TagUntag-⟪⟫` compares a tag `G`, which is well formed in the interior
-`δ(Δ)`, with a check `H`, which is well formed in the exterior `Δ`, by
-**syntactic equality**.  The comparison is meaningful because of
-coherence.  Suppose that `G = H = X`.  Then `X:=α ∈ δ(Δ) ⊆ δ⁺(Δ)` and
-`X:=β ∈ Δ ⊆ δ⁺(Δ)`, and coherence (`X = Y ⇔ α = β` on `δ⁺(Δ)`) forces
-`α = β`.  So the two occurrences of `X` denote the same representation
-variable, even if `δ` removed `X` (`−X^α`) and later rebound it
-(`+X^α`).  Conversely, if the tag's name is not visible outside the
-boundary, then no `H` that is well formed in `Δ` can be equal to it, and
-the check blames.  This is the "escaping seal" behaviour of GTSFImp and
-of λB (Example 4).
+`IdDyn` moves a tag `G` from the interior `δ(Δ)` to the exterior `Δ`
+without changing it.  If `G` is a name `X`, then this is sound because
+of coherence: `X:=α ∈ δ(Δ) ⊆ δ⁺(Δ)` and `X:=β ∈ Δ ⊆ δ⁺(Δ)`, and
+coherence (`X = Y ⇔ α = β` on `δ⁺(Δ)`) forces `α = β`.  So the two
+occurrences of `X` denote the same representation variable, even if `δ`
+removed `X` (`−X^α`) and later rebound it (`+X^α`).  After the tag is
+outside, the ordinary `TagUntag`/`TagUntagBad` compare it with a check
+`H` by **syntactic equality**.
 
-The contractum `[δ] V ⟨Id(G)⟩` keeps the boundary, because `V` was typed
-in the interior.  If `G = ι`, then `Id` removes the boundary on the next
-step.  If `G = ★ → ★` or `G = ∀X.★`, then the boundary is an inert
-`c → d` or `∀X.c` over `V`, and if `V` is itself a boundary value, then
-`Merge` fuses the two.
+If the tag's name is in `fresh(δ)`, then the tag cannot move out, and no
+check `H` that is well formed in `Δ` can be equal to it.  So
+`TagUntagBad-⟪⟫` blames unconditionally.  This is the "escaping seal"
+behaviour of GTSFImp and of λB (Example 4).  The successful check across
+a boundary, which an earlier draft had as `TagUntag-⟪⟫`, can no longer
+arise: if the tag is visible outside, then `IdDyn` has already moved it.
+
+`IdDyn`'s contractum `[δ] V ⟨Id(G)⟩` keeps the boundary, because `V`
+was typed in the interior.  If `G = ι`, then `Id` removes the boundary
+on the next step.  If `G = ★ → ★` or `G = ∀X.★`, then the boundary is
+an inert `c → d` or `∀X.c` over `V`, and if `V` is itself a boundary
+value, then `Merge` fuses the two.  If `G = X`, then the boundary is
+`[δ] V ⟨id(X)⟩`, an inert boundary over a value of type `X`.
 
 ------------------------------------------------------------------------
 
@@ -507,20 +548,17 @@ argument's coercion is `inst X. (X?ℓ → X!)`, and
   ([+X^α] ([−X^α] (5⟨ℕ!⟩) ⟨−X⟩) ⟨+X⟩) ⟨id(★)⟩
 ⟶ (Merge; −X ⨟ +X = Id(★) = id(★), because X:=★)
   ([+X^α, −X^α] (5⟨ℕ!⟩) ⟨id(★)⟩) ⟨id(★)⟩
+⟶ (IdDyn, under ξ; ℕ ∉ fresh(+X^α, −X^α))
+  (([+X^α, −X^α] 5 ⟨id(ℕ)⟩) ⟨ℕ!⟩) ⟨id(★)⟩
+⟶ (Id, under ξ)
+  5⟨ℕ!⟩⟨id(★)⟩
 ⟶ (CastId)
-  [+X^α, −X^α] (5⟨ℕ!⟩) ⟨id(★)⟩                         -- a value of type ★
+  5⟨ℕ!⟩                                               -- a value of type ★
 ```
 
-The answer carries a residual boundary around the tagged `5` (open
-question Q1).  Projecting the answer to `ℕ` takes two more steps:
-
-```
-  ([+X^α, −X^α] (5⟨ℕ!⟩) ⟨id(★)⟩) ⟨ℕ?ℓ⟩
-⟶ (TagUntag-⟪⟫)
-  [+X^α, −X^α] 5 ⟨id(ℕ)⟩
-⟶ (Id)
-  5
-```
+The `[+X^α, −X^α]` boundary that the tagged `5` acquired by passing
+through the instantiated identity is removed by `IdDyn` and `Id`,
+because the tag `ℕ` does not depend on it.
 
 ### Example 2 — implicit generalization, used parametrically
 
@@ -578,7 +616,8 @@ Source: `(λn:ℕ. n) ((ΛX. λx:X. (λz:★. z) x) [ℕ] 5)`.  The argument
 has type `★`, so the outer application casts it by `ℕ?ℓ`.  The `★`-value that leaves
 the `[+X^α]` boundary is `[+X^α] (W ⟨X!⟩) ⟨id(★)⟩`, where
 `W = [−X^α] 5 ⟨−X⟩` is the sealed `5`.  The check `ℕ?ℓ` meets the tag
-`X`:
+`X`.  `IdDyn` does not apply, because `X ∈ fresh(+X^α)`; the boundary
+is all that keeps `X` in scope, so the term is a value.
 
 ```
   (λn:ℕ. n) (([+X^α] (W ⟨X!⟩) ⟨id(★)⟩) ⟨ℕ?ℓ⟩)
@@ -587,8 +626,49 @@ the `[+X^α]` boundary is `[+X^α] (W ⟨X!⟩) ⟨id(★)⟩`, where
 ⟶ (Blame)
   blame ℓ
 ```
-  GTSFImp gives the same answer, because its tag is the
-store variable allocated by `β-Λ`, and so does λB.
+
+GTSFImp gives the same answer, because its tag is the store variable
+allocated by `β-Λ`, and so does λB.
+
+### Example 5 — an escaped tag comes back into scope
+
+A tagged value that has escaped its boundary can be passed back into the
+same instantiation.  `Merge` then puts it under a boundary that no longer
+introduces its tag, and `IdDyn` moves the tag out.  Source:
+
+```
+F [ℕ] 5 (λa:★. λk:★→ℕ. k a)
+  where F = ΛX. λx:X. λh:★→(★→X)→X. h ((λz:★. z) x) (λy:★. (λw:X. w) y)
+```
+
+`F` exports `x` as a `★` (tag `X`) together with a function that
+projects a `★` back to `X`, and the caller hands one to the other.  The
+answer is `5`.  Write `W = [−X^α] 5 ⟨−X⟩` for the sealed `5` and
+`K = λy:★. (λw:X. w) (y⟨X?ℓ⟩)`.  The prefix of the trace, which allocates
+`α:=ℕ` and passes `h` its two arguments, is omitted.  The prefix reaches
+the call `k a`, where both `k` and `a` were created inside the `[+X^α]`
+boundary:
+
+```
+  ([+X^α] K ⟨id(★) → +X⟩) ([+X^α] (W⟨X!⟩) ⟨id(★)⟩)
+⟶ (Wrap)
+  [+X^α] (K ([−X^α] ([+X^α] (W⟨X!⟩) ⟨id(★)⟩) ⟨id(★)⟩)) ⟨+X⟩
+⟶ (Merge, under ξ)
+  [+X^α] (K ([−X^α, +X^α] (W⟨X!⟩) ⟨id(★)⟩)) ⟨+X⟩
+⟶ (IdDyn, under ξ; X ∉ fresh(−X^α, +X^α))
+  [+X^α] (K (([−X^α, +X^α] W ⟨id(X)⟩) ⟨X!⟩)) ⟨+X⟩
+⟶ (Beta, under ξ)
+  [+X^α] ((λw:X. w) (([−X^α, +X^α] W ⟨id(X)⟩) ⟨X!⟩ ⟨X?ℓ⟩)) ⟨+X⟩
+⟶ (TagUntag, under ξ)
+  [+X^α] ((λw:X. w) ([−X^α, +X^α] W ⟨id(X)⟩)) ⟨+X⟩
+```
+
+The remaining steps are `Merge` (which fuses `[−X^α, +X^α]` with `W`'s
+boundary), `Beta`, `Merge` with the outer `[+X^α]`, and `Id`.  The
+result is `5`.  The `IdDyn` step happens at the interior `Δ, X:=α` of
+the outer boundary, where `X` is visible again.  The rule's two forms of
+side condition agree there: `X ∉ fresh(−X^α, +X^α)`, and
+`Δ, X:=α ⊢ X`.
 
 ------------------------------------------------------------------------
 
@@ -600,11 +680,11 @@ Each one can be revisited on its own.
 - **D1 (separation).**  Coercions are their own sort and are applied by
   their own term form `M ⟨p⟩`; νF's conversions, `ν` and boundaries
   are unchanged.  The sorts meet only in `Inst`, `TyBeta`/`TyWrap` (via
-  `open_X`) and `TagUntag(Bad)-⟪⟫`.
+  `open_X`), `IdDyn` and `TagUntagBad-⟪⟫`.
 - **D2 (cast values are simples).**  This lets `Wrap`, `TyWrap`,
   `Merge` and `Id` apply unchanged when the interior is a cast value.
-- **D3 (tags by name).**  `X` is a ground type, and a tag check across a
-  boundary is a syntactic comparison, made sound by coherence (§6.4).
+- **D3 (tags by name).**  `X` is a ground type, and tags are compared
+  syntactically, which coherence makes sound (§6.4).
 - **D4 (inst closes at ★).**  `Inst` instantiates by `ν X:=★` with the
   conversion `reveal_X`, and substitutes `★` for `X` in the coercion,
   as GTSFImp does.
@@ -613,34 +693,21 @@ Each one can be revisited on its own.
   per `∀`-cast layer, consistently with νF's answer (3a).
 - **D6 (no modes in the cast calculus).**  Consistency modes remain a
   source-language device.
+- **D7 (tags move out of boundaries).**  `IdDyn` moves a tag out of a
+  boundary whenever the tag is visible outside it.  A `★`-value keeps
+  a boundary only when the tag is in `fresh(δ)` (§5).
 
 Open questions, in roughly the order I would like them settled:
 
-- **Q1.**  Should a `★`-value be allowed to keep the boundary it passed
-  through, as in Example 1?  The draft makes this form a value:
-
-  ```
-  [δ] (V⟨G!⟩) ⟨id(★)⟩
-  ```
-
-  The alternative is a rule `IdDyn`:
-
-  ```
-  Δ ⊢ [δ] (V⟨G!⟩) ⟨id(★)⟩ ⟶ ([δ] V ⟨Id(G)⟩) ⟨G!⟩ ⊣ ε      if Δ ⊢ G     (IdDyn)
-  ```
-
-  Under that rule, Example 1 would end at `5⟨ℕ!⟩`.  The residual form would
-  still be needed when `G` is a name that is not visible outside
-  (Example 4).
-- **Q2.**  Is blame the intended answer when a tag was created under an
+- **Q1.**  Is blame the intended answer when a tag was created under an
   alias?  Consider `ΛX. λx:X. (λw:X. w) (f [X] x)` with
   `f = ΛY. λy:Y. (λz:★. z) y`.  `f [X]` allocates the alias `β:=α`
   under the name `Y`, the tag is `Y`, and the check `X?ℓ` blames.
   GTSFImp behaves the same way.
-- **Q3.**  D5 versus a non-allocating instantiation at an existing name.
-- **Q4.**  `bot-intro` blames eagerly in GTSFImp (`blame-bot-intro`),
+- **Q2.**  D5 versus a non-allocating instantiation at an existing name.
+- **Q3.**  `bot-intro` blames eagerly in GTSFImp (`blame-bot-intro`),
   but `⟦bot-intro⟧ = ∀X. X?ℓ` blames only at instantiation.
-- **Q5.**  Space efficiency (normal forms for coercions and a
+- **Q4.**  Space efficiency (normal forms for coercions and a
   composition `p ⨟ q`, like νF's for conversions) is deferred.
 
 ------------------------------------------------------------------------
@@ -660,5 +727,5 @@ Open questions, in roughly the order I would like them settled:
   ported from GTSFImp's intrinsically scoped `Ty Δ` to νF's extrinsic
   `Ty`, or bridged by an erasure.  This is to be decided once the cast
   calculus is settled.
-- Order: the definitional layer and `Examples` (Examples 1–4 as `refl`
+- Order: the definitional layer and `Examples` (Examples 1–5 as `refl`
   runs), then progress and preservation, then `compile-⊢`.

@@ -256,20 +256,32 @@ the source language.  Two properties need them in the cast calculus:
   generally, the DGG relates cast terms whose casts obey the same
   modes as source consistency.
 
-**Modes at a cast.**  A cast `M ⟨p⟩` may be typed under any mode
-environment for the names in scope.  This follows GTSFImp's `⊢⟨⟩`,
-whose `μ` is implicit and unconstrained.  So modes restrict only the
-variables that a coercion binds itself, with `∀X.p`, `inst X.p` and
-`gen X.p`.  Because the cross mode `★∼X∼★` permits everything and
-`flip` fixes it, a coercion that is typed under some `μ` is also typed
-under the environment that gives every name in scope `★∼X∼★`.  The
-term rule (§4) therefore fixes that environment, written `cross(Δ)`, so
-that a type checker never has to guess a mode environment.  Compilation types its casts under `μ` = every name
-`★∼X∼★`, matching the source's `A ∼ B = idᶜ ⊢ A ∼ B`.  When an
-instantiation rule moves a coercion out from under its binder, the
-binder's mode is kept as the mode of the now-free name.  `TyBeta`'s
-`inst_X(W ⟨gen X.p⟩) = W ⟨p⟩` types `p` with `X:★∼X`, and
-`inst_X(W ⟨∀X.p⟩)` types `p` with `X:X∼X`.
+**Modes at a cast.**  A cast carries its mode environment as part of
+the term, written `M ⟨p⟩^μ` when the environment matters and `M ⟨p⟩`
+otherwise.  This follows GTSFImp's `CastTerms`, whose cast constructor
+is `_⟨_⟩ : Term Δ → {μ : Env∼ Δ} … (c : μ ⊢ A ∼ B) → Term Δ`: the `μ`
+is part of the cast's evidence, so a term determines it.  Compilation
+creates every cast at the environment that gives each name in scope
+`★∼X∼★`, matching the source's `A ∼ B = idᶜ ⊢ A ∼ B`.  Reduction then
+**keeps and extends** each cast's environment, and it never replaces it
+by the cross environment:
+
+- When an instantiation rule moves a coercion out from under its binder,
+  the freed name keeps the binder's mode.  `TyBeta`'s
+  `inst_X(W ⟨gen X.p⟩^μ) = W ⟨p⟩^(μ, X:★∼X)` and
+  `inst_X(W ⟨∀X.p⟩^μ) = inst_X(W) ⟨p⟩^(μ, X:X∼X)`.  These are
+  GTSFImp's `β-gen` contractum `⇑ᵗᵐ V ⟨ c ⟩`, with `c` under `genᵐ μ`,
+  and the analogous `β-∀`.
+- `CastFun` casts the argument at `flip(μ)`, because the domain
+  coercion was typed there.  This is GTSFImp's `β-⇒`, whose argument
+  cast `c` has type `flipᵐ μ ⊢ A′ ∼ A`.
+- `CastSeq` keeps `μ` for both halves, and `Inst` closes `X` at `★`, so
+  its result cast is at `μ`.
+
+The modes of free names are therefore data that the dynamic semantics
+carries along.  The cast-term imprecision relates casts with possibly
+different environments on its two sides, as GTSFImp's `cast⊑cast²`
+does (`ν ⊢ C ∼ A`, `ν′ ⊢ C′ ∼ A′`).
 
 A coercion's typing does not depend on whether a representation
 variable is abstract (`α`) or bound (`α:=R`).  Instantiation rules use
@@ -334,9 +346,9 @@ application, value-restricted `Λ`, `⊢ν`, boundary):
 New rules:
 
 ```
-  Δ ∣ Γ ⊢ M : A    Δ ; cross(Δ) ⊢ p : A ⇒ B     Δ ⊢ A
+  Δ ∣ Γ ⊢ M : A    Δ ; μ ⊢ p : A ⇒ B            Δ ⊢ A
   ──────────────────────────────── (new)        ───────────────────── (new)
-  Δ ∣ Γ ⊢ M ⟨p⟩ : B                            Δ ∣ Γ ⊢ blame ℓ : A
+  Δ ∣ Γ ⊢ M ⟨p⟩^μ : B                          Δ ∣ Γ ⊢ blame ℓ : A
 ```
 
 ------------------------------------------------------------------------
@@ -447,8 +459,8 @@ meta-operation `inst_X(V)` that instantiates a ∀-value `V` at the name
 
 ```
 inst_X(ΛX. V)            = V
-inst_X(W ⟨gen X. p⟩)     = W ⟨p⟩
-inst_X(W ⟨∀X. p⟩)        = inst_X(W) ⟨p⟩
+inst_X(W ⟨gen X. p⟩^μ)   = W ⟨p⟩^(μ, X:★∼X)
+inst_X(W ⟨∀X. p⟩^μ)      = inst_X(W) ⟨p⟩^(μ, X:X∼X)
 inst_X([δ] U ⟨∀X. c⟩)    = [δ] inst_X(U) ⟨c⟩          (X not mentioned by δ)
 ```
 
@@ -508,11 +520,11 @@ is abstract or bound (§3).  In the boundary case, `δ` stays coherent at
 ```
 Δ ⊢ V ⟨id(A)⟩ ⟶ V ⊣ ε                                                 (CastId)
 
-Δ ⊢ V ⟨p ; q⟩ ⟶ V ⟨p⟩ ⟨q⟩ ⊣ ε                                       (CastSeq)
+Δ ⊢ V ⟨p ; q⟩^μ ⟶ V ⟨p⟩^μ ⟨q⟩^μ ⊣ ε                                 (CastSeq)
 
-Δ ⊢ (V ⟨p → q⟩) W ⟶ (V (W ⟨p⟩)) ⟨q⟩ ⊣ ε                             (CastFun)
+Δ ⊢ (V ⟨p → q⟩^μ) W ⟶ (V (W ⟨p⟩^flip(μ))) ⟨q⟩^μ ⊣ ε                 (CastFun)
 
-Δ ⊢ V ⟨inst X. p⟩ ⟶ (ν X:=★. (V X) ⟨reveal_X(src(p))⟩) ⟨p[★/X]⟩ ⊣ ε   (Inst)
+Δ ⊢ V ⟨inst X. p⟩^μ ⟶ (ν X:=★. (V X) ⟨reveal_X(src(p))⟩) ⟨p[★/X]⟩^μ ⊣ ε   (Inst)
 
 Δ ⊢ V ⟨G!⟩ ⟨G?ℓ⟩ ⟶ V ⊣ ε                                              (TagUntag)
 

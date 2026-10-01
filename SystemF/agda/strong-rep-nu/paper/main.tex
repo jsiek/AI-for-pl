@@ -339,7 +339,7 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
   \\[2ex]
   \inference
    {\Delta \vdash A & \Delta \mid \Gamma \vdash L : \all{X} C \\
-    \Delta,\alpha:=\Delta(A),X\by \alpha \vdash c : C \Rightarrow B &
+    \Delta,\alpha\by\Delta(A),X\by \alpha \vdash c : C \Rightarrow B &
     \Delta \vdash B}
    {\Delta \mid \Gamma \vdash \nuinst{X}{A}{L}{c} : B}
   \quad

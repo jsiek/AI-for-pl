@@ -1145,6 +1145,12 @@ Each one can be revisited on its own.
   Example 7; Jeremy, 2026-10-01).  This matches GTSFImp's `extᵐ` at an
   allocation.  The choice may be revisited when `⊢²` is designed.
 
+- **D11 (marks are chosen at the binder).**  In `⊢²`, the mark of a
+  name that both sides bind (`X⊑X` or `X⊑★`) is chosen by the rule that
+  binds it, and it is fixed for the subterm under the binder.  No rule
+  weakens a mark on the way to a premise, unlike GTSFImp's
+  `ImpEnvMono` (§12.2, Example P4; Jeremy, 2026-10-01).
+
 The open design questions are those of the `⊢²` sketch (§12.5).
 
 Out of scope for now: space efficiency.  Normal forms for coercions,
@@ -1269,7 +1275,7 @@ W[δ ∥ δ′]        the interior world of a boundary pair: each side's
                  name of the cell α is paired with by ϱ, if any, and is
                  otherwise a new one-sided center name.  A new
                  both-sided name gets the mark X⊑X or X⊑★; the
-                 derivation chooses (Example P4 needs X⊑★).
+                 derivation chooses (Example P4 needs X⊑★; D11).
                  (Write W[δ ∥ ·] and W[· ∥ δ′] for a one-sided boundary.)
 ```
 
@@ -1599,9 +1605,9 @@ allocate one cell each and the boundaries stay aligned.
   `bot-elim`/`bot-intro`; an escaped tag that comes back into scope
   (Example 5) on one side only; two-allocation runs (D8).
 - **Open questions** (to be settled one at a time):
-  1. Where a both-sided name gets the mark `X⊑★` (P4): chosen at the
-     binder, as §12.2 now says, or by GTSFImp's `ImpEnvMono` decay at
-     the cast rules.
+  1. *Settled (D11).*  A both-sided name gets the mark `X⊑★` at its
+     binder (`W ⊕ X:m`, `W[δ ∥ δ′]`), not by GTSFImp's `ImpEnvMono`
+     decay at the cast rules.
   2. Whether `ϱ` belongs in the relation, or only in a well-formedness
      condition on worlds.  P4's rebind is the one place the rules read
      it.

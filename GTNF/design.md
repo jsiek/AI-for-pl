@@ -48,7 +48,7 @@ Contents
 9. Metatheory goals
 10. Decisions taken in this draft, and open questions
 11. Agda plan
-12. Cast-term imprecision `⊢²` (sketch)
+12. Cast-term imprecision `⊢` (sketch)
 
 ------------------------------------------------------------------------
 
@@ -1015,10 +1015,10 @@ GTSFImp: `proof/DGG/CompilePreservesImprecision2.agda`
 
 ```
 compile-⊑ :  if  μ ∣ γ ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p,
-             then  W₀ ∣ γ₀ ⊢² ⟦M⟧ ⊑ ⟦M′⟧ ∶ p₀
+             then  W₀ ∣ γ₀ ⊢ ⟦M⟧ ⊑ ⟦M′⟧ ∶ p₀
 ```
 
-Here `⊢²` is a *cast-term* imprecision for GTNF that still has to be
+Here `⊢` is a *cast-term* imprecision for GTNF that still has to be
 designed, and `W₀`, `γ₀`, `p₀` are the initial world, context and type
 imprecision.  In GTSFImp the world `W` aligns the two runs' type stores.
 In GTNF it must align the two runs' representation variables (`α`) and
@@ -1052,12 +1052,12 @@ the proof under way in `proof/DGG/`.  For closed source terms with
 
 ```
 1.  if  ⟦M⟧ ⟶* V  (a value),
-    then  ⟦M′⟧ ⟶* V′  (a value)  with  W ∣ [] ⊢² V ⊑ V′ ∶ q  for some world W
+    then  ⟦M′⟧ ⟶* V′  (a value)  with  W ∣ [] ⊢ V ⊑ V′ ∶ q  for some world W
 
 2.  if  ⟦M⟧ diverges,  then  ⟦M′⟧ diverges
 
 3.  if  ⟦M′⟧ ⟶* V′  (a value),
-    then  ⟦M⟧ ⟶* V  (a value)  with  W ∣ [] ⊢² V ⊑ V′ ∶ q,   or  ⟦M⟧ ⟶* blame ℓ
+    then  ⟦M⟧ ⟶* V  (a value)  with  W ∣ [] ⊢ V ⊑ V′ ∶ q,   or  ⟦M⟧ ⟶* blame ℓ
 
 4.  if  ⟦M′⟧ diverges,  then  ⟦M⟧ diverges or reaches  blame ℓ
 ```
@@ -1152,22 +1152,22 @@ Each one can be revisited on its own.
   a boundary, every exterior name that the interior cannot see gets the
   mode `X∼X` in the moved cast's environment (`exit_δ(μ)`, §6.3;
   Example 7; Jeremy, 2026-10-01).  This matches GTSFImp's `extᵐ` at an
-  allocation.  The choice may be revisited when `⊢²` is designed.
+  allocation.  The choice may be revisited when `⊢` is designed.
 
-- **D11 (marks are chosen at the binder).**  In `⊢²`, the mark of a
+- **D11 (marks are chosen at the binder).**  In `⊢`, the mark of a
   name that both sides bind (`X⊑X` or `X⊑★`) is chosen by the rule that
   binds it, and it is fixed for the subterm under the binder.  No rule
   weakens a mark on the way to a premise, unlike GTSFImp's
   `ImpEnvMono` (§12.2, Example P4; Jeremy, 2026-10-01).
 
-- **D12 (names lexical, rep. vars global).**  In `⊢²`'s worlds, the
+- **D12 (names lexical, rep. vars global).**  In `⊢`'s worlds, the
   relation between the two sides' type variables (`Ω`, `η`, `η′`, `μ`)
   is lexically scoped.  The relation `ϱ` between their representation
   variables is global: it grows at matched allocations and is read
   when a boundary rebinds a rep. var (§12.2, Example P4; Jeremy,
   2026-10-01).
 
-- **D13 (`ϱ` is many-to-one, toward the left).**  In `⊢²`'s worlds,
+- **D13 (`ϱ` is many-to-one, toward the left).**  In `⊢`'s worlds,
   each right (less precise) rep. var has at most one left partner in `ϱ`,
   and a left rep. var may have several.  So a right-only `+X^β` always has
   a unique left name to rejoin.  The mirror is not needed, because an
@@ -1197,7 +1197,7 @@ Each one can be revisited on its own.
   representation variables are "rep. vars", never "cells" (Jeremy,
   2026-10-02).
 
-The open design questions are those of the `⊢²` sketch (§12.5).
+The open design questions are those of the `⊢` sketch (§12.5).
 
 Out of scope for now: space efficiency.  Normal forms for coercions,
 and a composition `p ⨟ q` like νF's for conversions, are not a concern
@@ -1227,12 +1227,12 @@ for the time being (Jeremy, 2026-10-01).
   `Imprecision` (type imprecision, copied from GTSFImp, §12.1),
   `ImprecisionExamples` (the six pairs of §12.4) and `Show` (a named
   renderer, `scripts/render_gtnf.sh`).  Next: settle §12.5's open
-  questions, then formalize `⊢²` in Agda; then progress and
+  questions, then formalize `⊢` in Agda; then progress and
   preservation, then `compile-⊢`.
 
 ------------------------------------------------------------------------
 
-## 12. Cast-term imprecision `⊢²` (sketch)
+## 12. Cast-term imprecision `⊢` (sketch)
 
 Status: sketch (2026-10-01).  §12.1 is in Agda (`Imprecision.agda`).
 The relation itself (§12.3) is on paper only.  The examples (§12.4)
@@ -1367,7 +1367,7 @@ needs `μ(X) = X⊑★` (Example P4).
 
 ### 12.3 Rules
 
-`W ∣ γ ⊢² M ⊑ M′ : A ⊑ A′` with `γ ::= [] | γ, x : B ⊑ B′`.  Every
+`W ∣ γ ⊢ M ⊑ M′ : A ⊑ A′` with `γ ::= [] | γ, x : B ⊑ B′`.  Every
 rule also assumes the two typings `Δ ∣ γᴸ ⊢ M : A` and
 `Δ′ ∣ γᴿ ⊢ M′ : A′` and `A ⊑_W A′`; the premises below list only what
 is new.  The rules marked "GTSFImp" are GTSFImp's
@@ -1381,7 +1381,7 @@ componentwise.
 
 ```
   ────────────────────────────── (blame⊑)
-  W ∣ γ ⊢² blame ℓ ⊑ M′ : A ⊑ A′
+  W ∣ γ ⊢ blame ℓ ⊑ M′ : A ⊑ A′
 ```
 
 **Casts** (GTSFImp `cast⊑cast²`, `cast⊑²`, `⊑cast²`).  Each coercion
@@ -1390,17 +1390,17 @@ The rules do not compare the two coercions, or the two mode
 environments, except through the types:
 
 ```
-  W ∣ γ ⊢² M ⊑ M′ : B ⊑ B′    p : B ⇒ A    p′ : B′ ⇒ A′
+  W ∣ γ ⊢ M ⊑ M′ : B ⊑ B′    p : B ⇒ A    p′ : B′ ⇒ A′
   ────────────────────────────────────────────────── (cast⊑cast)
-  W ∣ γ ⊢² M ⟨p⟩ ⊑ M′ ⟨p′⟩ : A ⊑ A′
+  W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ ⟨p′⟩ : A ⊑ A′
 
-  W ∣ γ ⊢² M ⊑ M′ : B ⊑ A′    p : B ⇒ A
+  W ∣ γ ⊢ M ⊑ M′ : B ⊑ A′    p : B ⇒ A
   ────────────────────────────────────── (cast⊑)
-  W ∣ γ ⊢² M ⟨p⟩ ⊑ M′ : A ⊑ A′
+  W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ : A ⊑ A′
 
-  W ∣ γ ⊢² M ⊑ M′ : A ⊑ B′    p′ : B′ ⇒ A′
+  W ∣ γ ⊢ M ⊑ M′ : A ⊑ B′    p′ : B′ ⇒ A′
   ────────────────────────────────────── (⊑cast)
-  W ∣ γ ⊢² M ⊑ M′ ⟨p′⟩ : A ⊑ A′
+  W ∣ γ ⊢ M ⊑ M′ ⟨p′⟩ : A ⊑ A′
 ```
 
 **Type abstraction** (GTSFImp `Λ⊑Λ²`, `Λ⊑²`), plus one new rule.
@@ -1408,18 +1408,18 @@ environments, except through the types:
 `X`, so `η′` simply does not reach the new center name.
 
 ```
-  W ⊕ X:X⊑X ∣ ⇑γ ⊢² V ⊑ V′ : A ⊑ A′
+  W ⊕ X:X⊑X ∣ ⇑γ ⊢ V ⊑ V′ : A ⊑ A′
   ────────────────────────────────── (Λ⊑Λ)
-  W ∣ γ ⊢² ΛX.V ⊑ ΛX.V′ : ∀X.A ⊑ ∀X.A′
+  W ∣ γ ⊢ ΛX.V ⊑ ΛX.V′ : ∀X.A ⊑ ∀X.A′
 
-  W ⊕ᴸ X ∣ ⇑ᴸγ ⊢² V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
+  W ⊕ᴸ X ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
   ──────────────────────────────────────────────────────── (Λ⊑)
-  W ∣ γ ⊢² ΛX.V ⊑ M′ : ∀X.A ⊑ B′
+  W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
 
-  W ⊕ X:m ∣ [] ⊢² inst_X(V) ⊑ V′ : A ⊑ A′
+  W ⊕ X:m ∣ [] ⊢ inst_X(V) ⊑ V′ : A ⊑ A′
   V a ∀-value    β:=★    c′ : A′ ⇒ B′                          (new)
   ──────────────────────────────────────────────── (∀⊑⟪+⟫)
-  W ∣ γ ⊢² V ⊑ [+X^β] V′ ⟨c′⟩ : ∀X.A ⊑ B′
+  W ∣ γ ⊢ V ⊑ [+X^β] V′ ⟨c′⟩ : ∀X.A ⊑ B′
 ```
 
 `∀⊑⟪+⟫` is for a right side that has already instantiated a value at
@@ -1438,13 +1438,13 @@ force this rule (§12.6, F2; D14).
 `M [A]` is a `ν`, so the two type applications become:
 
 ```
-  W ∣ γ ⊢² L ⊑ L′ : ∀X.C ⊑ ∀X.C′    A ⊑_W A′    c : C ⇒ B    c′ : C′ ⇒ B′
+  W ∣ γ ⊢ L ⊑ L′ : ∀X.C ⊑ ∀X.C′    A ⊑_W A′    c : C ⇒ B    c′ : C′ ⇒ B′
   ─────────────────────────────────────────────────────────────── (ν⊑ν)
-  W ∣ γ ⊢² ν X:=A.(L X)⟨c⟩ ⊑ ν X:=A′.(L′ X)⟨c′⟩ : B ⊑ B′
+  W ∣ γ ⊢ ν X:=A.(L X)⟨c⟩ ⊑ ν X:=A′.(L′ X)⟨c′⟩ : B ⊑ B′
 
-  W ∣ γ ⊢² L ⊑ M′ : ∀X.C ⊑ B′    A ⊑_W ★    c : C ⇒ B
+  W ∣ γ ⊢ L ⊑ M′ : ∀X.C ⊑ B′    A ⊑_W ★    c : C ⇒ B
   ──────────────────────────────────────────────── (ν⊑)
-  W ∣ γ ⊢² ν X:=A.(L X)⟨c⟩ ⊑ M′ : B ⊑ B′
+  W ∣ γ ⊢ ν X:=A.(L X)⟨c⟩ ⊑ M′ : B ⊑ B′
 ```
 
 There is no `⊑ν`.  The only right-only `ν` is the one that `Inst`
@@ -1458,17 +1458,17 @@ rules).  A boundary's interior is term-closed, so the premise has
 coercions, they are not compared with each other:
 
 ```
-  W[δ ∥ δ′] ∣ [] ⊢² M ⊑ M′ : Aᵢ ⊑ A′ᵢ    c : Aᵢ ⇒ A    c′ : A′ᵢ ⇒ A′
+  W[δ ∥ δ′] ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′ᵢ    c : Aᵢ ⇒ A    c′ : A′ᵢ ⇒ A′
   ───────────────────────────────────────────────────────────── (⟪⟫⊑⟪⟫)
-  W ∣ γ ⊢² [δ] M ⟨c⟩ ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
+  W ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
 
-  W[δ ∥ ·] ∣ [] ⊢² M ⊑ M′ : Aᵢ ⊑ A′    c : Aᵢ ⇒ A
+  W[δ ∥ ·] ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′    c : Aᵢ ⇒ A
   ───────────────────────────────────────────── (⟪⟫⊑)
-  W ∣ γ ⊢² [δ] M ⟨c⟩ ⊑ M′ : A ⊑ A′
+  W ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ M′ : A ⊑ A′
 
-  W[· ∥ δ′] ∣ [] ⊢² M ⊑ M′ : A ⊑ A′ᵢ    c′ : A′ᵢ ⇒ A′
+  W[· ∥ δ′] ∣ [] ⊢ M ⊑ M′ : A ⊑ A′ᵢ    c′ : A′ᵢ ⇒ A′
   ───────────────────────────────────────────── (⊑⟪⟫)
-  W ∣ γ ⊢² M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
+  W ∣ γ ⊢ M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
 ```
 
 In `⟪⟫⊑` and `⊑⟪⟫`, the term without the boundary is in the premise
@@ -1477,7 +1477,7 @@ time, because every boundary of a run is a closed subterm.
 
 **Count.**  Five congruence rules, `blame⊑`, three cast rules, three
 `Λ` rules, two `ν` rules and three boundary rules: 17 rules.  GTSFImp's
-`⊢²` has 22.
+`⊢` has 22.
 
 ### 12.4 Examples
 
@@ -1787,9 +1787,9 @@ synchronization (F3).  Findings, smallest first:
   left's abstract rep. var (C2's right-led block):
 
   ```
-    W ⊕ X:m ∣ [] ⊢² inst_X(V) ⊑ V′ : A ⊑ A′    V a ∀-value    β:=★    c′ : A′ ⇒ B′
+    W ⊕ X:m ∣ [] ⊢ inst_X(V) ⊑ V′ : A ⊑ A′    V a ∀-value    β:=★    c′ : A′ ⇒ B′
     ────────────────────────────────────────────────────────────────── (∀⊑⟪+⟫)
-    W ∣ γ ⊢² V ⊑ [+X^β] V′ ⟨c′⟩ : ∀X.A ⊑ B′
+    W ∣ γ ⊢ V ⊑ [+X^β] V′ ⟨c′⟩ : ∀X.A ⊑ B′
   ```
 
 - **F3 (settled, D13).**  `ϱ` cannot be a partial bijection.  In C12

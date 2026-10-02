@@ -48,7 +48,7 @@ Contents
 9. Metatheory goals
 10. Decisions taken in this draft, and open questions
 11. Agda plan
-12. Cast-term imprecision `⊢` (sketch)
+12. Cast-term imprecision `⊑` (sketch)
 
 ------------------------------------------------------------------------
 
@@ -1232,7 +1232,7 @@ for the time being (Jeremy, 2026-10-01).
 
 ------------------------------------------------------------------------
 
-## 12. Cast-term imprecision `⊢` (sketch)
+## 12. Cast-term imprecision `⊑` (sketch)
 
 Status: sketch (2026-10-01).  §12.1 is in Agda (`Imprecision.agda`).
 The relation itself (§12.3) is on paper only.  The examples (§12.4)

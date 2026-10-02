@@ -1646,7 +1646,7 @@ allocate one cell each and the boundaries stay aligned.
   example has an operator).  P2 and P5 need the left-only boundary
   rule `⟪⟫⊑`.  P4 needs
   the right-only rule `⊑⟪⟫`, with both an unbind and a rebind.  P3
-  needs `∀⊑⟪+⟫` (then `Λ⊑⟪+⟫`).
+  needs `∀⊑⟪+⟫` (at a `Λ`).
 - **Not exercised.**  A gen cast on both sides; a gen cast on the left
   only (its `[−X^α]` is then a left-only unbind of a both-sided name);
   `bot-elim`/`bot-intro`; an escaped tag that comes back into scope

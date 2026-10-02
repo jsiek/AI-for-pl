@@ -1183,6 +1183,11 @@ Each one can be revisited on its own.
   `inst_X`.  GTLC's forward and backward simulation shapes force it
   (§9.7; §12.6, F1, F2; Jeremy, 2026-10-02).
 
+- **D15 (interior worlds).**  For `W[δ ∥ δ′]`, only the final interior
+  world has to be well formed.  A name that goes one-sided inside a
+  multi-entry `δ` and rejoins keeps its earlier mark (§12.2; §12.6,
+  D1; examples P4, Cf, C2, C12, C18b; Jeremy, 2026-10-02).
+
 The open design questions are those of the `⊢²` sketch (§12.5).
 
 Out of scope for now: space efficiency.  Normal forms for coercions,
@@ -1319,7 +1324,11 @@ W[δ ∥ δ′]        the interior world of a boundary pair: each side's
                  (Write W[δ ∥ ·] and W[· ∥ δ′] for a one-sided boundary.)
 ```
 
-`W[δ ∥ δ′]` is defined only when it is well formed.  In particular, a
+`W[δ ∥ δ′]` is defined only when it is well formed.  Only the final
+interior world has to be well formed, not the worlds between the
+entries of a multi-entry `δ`, because no rule reads those.  A name
+that goes one-sided and later rejoins keeps the mark it had before
+(D15).  In particular, a
 right-only `−X` of a name in both images leaves `X` left-only, so it
 needs `μ(X) = X⊑★` (Example P4).
 
@@ -1794,7 +1803,7 @@ synchronization (F3).  Findings, smallest first:
   several.
 - **F4.**  A one-sided `Merge` also produces a left-only unbind of a
   shared name (§12.5, question 3).
-- **D1.**  `W[δ ∥ δ′]` must say which intermediate worlds of a
+- **D1 (settled, D15).**  `W[δ ∥ δ′]` must say which intermediate worlds of a
   multi-entry `δ` have to be well formed, and that a name keeps its
   mark when it goes one-sided and later rejoins.
 - **D2.**  `∀⊑⟪+⟫`'s pair involves the left value's abstract cell,

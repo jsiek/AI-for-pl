@@ -1,0 +1,41 @@
+# GTNF DGG proof tree (input to dashboard.py).
+#
+# One item per line.  Indentation (two spaces per level) gives the
+# hierarchy: an item's children are the lemmas its proof is built from.
+# `uses:` lists further dependencies that live elsewhere in the tree
+# (shared lemmas).  The item name N refers to the files
+#   proof/DGG/NDef.agda     the statement
+#   proof/DGG/NProof.agda   the proof, parameterized at module level
+#   proof/DGG/N.agda        the Lemma module (the instantiation)
+# A `|` and text after the name is the one-line description.
+
+DynamicGradualGuarantee | the theorem (statement at top level, §2)  uses: Progress
+  MultiSim | forward simulation over runs
+    Sim | the more precise side steps, the less precise catches up
+      SimFrame | ξ cases, including boundary frames  uses: AllocImp
+      SimBeta | Beta, Wrap  uses: SubstImp
+      SimTyBeta | TyBeta through InstX  uses: InstXImp AllocImp
+      SimBoundary | Merge, Id, IdDyn  uses: MergeImp
+      SimCast | CastId, CastSeq, CastFun, Inst, TagUntag, TagUntagBad, TagUntagBad-⟪⟫, BlameBotIntro, Blame
+      CatchupRight | a left value: the right reaches a related value
+  MultiSimBack | backward simulation over runs
+    SimBack | the less precise side steps, both catch up
+      SimBackFrame | ξ cases  uses: AllocImp
+      SimBackBeta | Beta, Wrap  uses: SubstImp
+      SimBackTyBeta | TyBeta, Inst  uses: InstXImp AllocImp
+      SimBackBoundary | Merge, Id, IdDyn  uses: MergeImp
+      SimBackCast | the cast rules
+      CatchupLeft | a right value: the left reaches a related value or blame
+
+# shared lemmas
+ImprecisionTyping | a ⊑ derivation gives both typings  uses: Preservation
+AllocImp | allocation preserves ⊑ and WfWorld, commutes with Interior
+SubstImp | substitution of related values preserves ⊑
+InstXImp | inst_X preserves ⊑ (matched and one-sided)
+MergeImp | conversion composition preserves conversion ⊑
+
+# type safety (M1)
+Progress | a closed typed term is a value, blame, or steps
+Preservation | steps preserve typing
+Irreducible | values and blame do not step
+Determinism | steps are deterministic up to the fresh rep. var

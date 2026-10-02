@@ -10,15 +10,16 @@ module ConversionImprecision where
 --     two universals extend the world by a both-sided `X⊑X` binder;
 --     matched seals and unseals name one center name; chains compare
 --     componentwise.
---   * EXTENSIONS REQUIRED BY THE 28 EXAMPLE PAIRS:
---     - DEVIATION `conv-seal⊑id★` and `conv-unseal⊑id★`: C23a B3
---       compares `−X → (−Y → +X)` with
---       `id(★) → (−Y → id(★))`.  Each clause requires the left name's
---       center mark to be `X⊑★`.
---     - DEVIATION `conv-∀⊑`: C23b B0 compares
---       `∀Z.(−Y → (id(Z) → +Y))` with
---       `−X → (id(★) → +X)`.  Its premise is read under a left-only
---       binder, where `Z ⊑ ★`.
+--   * THE ★ CLAUSES (design.md D18), mirroring type imprecision's
+--     `X ⊑ ★` and `∀⊑`.  A seal or unseal of a left name marked `X⊑★`
+--     may be absent on the right: `conv-seal⊑id★`, `conv-unseal⊑id★`
+--     (C23a B3 compares `−X → (−Y → +X)` with
+--     `id(★) → (−Y → id(★))`), and their chain forms
+--     `conv-⨾seal⊑` (`t ⨾seal X ⊑ t′` from `t ⊑ t′`) and
+--     `conv-unseal⨾⊑` (`unseal X ⨾ c ⊑ c′` from `c ⊑ c′`), which a
+--     left-only `Merge` can produce.  `conv-∀⊑` opens a left-only
+--     universal at `X⊑★` (C23b B0 compares
+--     `∀Z.(−Y → (id(Z) → +Y))` with `−X → (id(★) → +X)`).
 --   * DEFINITIONS ONLY.  Conversion typing remains in Conversion;
 --     TermImprecision supplies the independently checked typing side
 --     premises and chooses the conversion-context world.
@@ -82,6 +83,11 @@ mutual
         --------------------------------
       → TailImp W (seal X) (mid (id ★))
 
+    -- the chain form: the last seal of a precise chain is absent
+    conv-⨾seal⊑ : TailImp W t t′ → μʷ W ∋ˡ emb (ηᴸʷ W) X := X⊑★
+        --------------------------------
+      → TailImp W (t ⨾seal X) t′
+
   data ConvImp {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′)
       : Conv → Conv → Set where
     conv-tail⊑tail : TailImp W t t′
@@ -100,6 +106,11 @@ mutual
     conv-unseal⊑id★ : μʷ W ∋ˡ emb (ηᴸʷ W) X := X⊑★
         --------------------------------
       → ConvImp W (unseal X) ⌞ id ★ ⌟
+
+    -- the chain form: the first unseal of a precise chain is absent
+    conv-unseal⨾⊑ : μʷ W ∋ˡ emb (ηᴸʷ W) X := X⊑★ → ConvImp W c c′
+        --------------------------------
+      → ConvImp W (unseal X ⨾ c) c′
 
 _⊢ᵐ_⊑_ : World Δ Δ′ → Mid → Mid → Set
 W ⊢ᵐ g ⊑ g′ = MidImp W g g′

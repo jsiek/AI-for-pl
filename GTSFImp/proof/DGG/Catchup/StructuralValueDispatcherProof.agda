@@ -4,22 +4,27 @@ module proof.DGG.Catchup.StructuralValueDispatcherProof where
 --   * Assembles the structural value-catch-up dispatcher from the checked
 --     base, source-frame, and target-cast rows.
 --   * Exposes the remaining source-Λ and conversion-frame heads as named,
---     syntax-pinned residuals.
+--     syntax-pinned residuals; discharges packaged `seal ★` by D11 route 2.
 --   * Uses direct structural recursion on the CTI derivation; recursive
 --     calls are never passed as higher-order arguments.
 
+open import Data.Empty using (⊥-elim)
+open import Data.Maybe using (just)
 open import Data.Nat using (ℕ; suc; _<_)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (sym)
   renaming (subst to subst≡)
 
 open import Types using (Ty)
+open import TyStore using (TyStore)
 open import Consistency using (Env∼; _⊢_∼_)
 open import Conversion using (Conv↑; Conv↓; seal)
+import Conversion as Conv
 import CastTerms as CT
 open import CastTerms using (Term; Value; _《_》; _↑_; _↓_; Λ_)
 open import Reduction using (applyConsistencies)
 open import proof.Reduction using (castSize-applyConsistencies)
+open import proof.Reduction.ValueIrreducibleProof using (value-no-step)
 
 import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
@@ -34,8 +39,20 @@ open import proof.DGG.Catchup.StructuralCatchupRightDef using
   (StructuralCatchupRightResult; StructuralExtraCastRightAt;
    StructuralValueCatchupRightAt; structural-catchup-refl;
    structural-catchup-source-cast; structural-catchup-source-reveal;
+   structural-catchup-target-conceal; structural-target-conceal-just;
    structural-catchup-compose-target-cast;
    structural-catchup-compose-paired-target-cast)
+open import proof.DGG.Catchup.StructuralFrameOutcomeDef using
+  (structural-frame-value)
+
+
+pivoted-conceal-value : ∀ {Δ} {Σ : TyStore Δ}
+    {X : Types.TyVar Δ} {A B : Ty Δ} {c : Conv↓ Δ A B}
+  → Σ Conv.⊢↓[ just X ] c
+  → CT.ConcealValue c
+pivoted-conceal-value (Conv.⊢↓-sealˣ X∈) = CT.seal
+pivoted-conceal-value (Conv.⊢↓-⇒ˣ join c⊢ d⊢) = CT.fun
+pivoted-conceal-value (Conv.⊢↓-∀ˣ c⊢) = CT.all
 
 
 record StructuralValueCatchupResiduals (fuel : ℕ) : Set₁ where
@@ -111,19 +128,6 @@ record StructuralValueCatchupResiduals (fuel : ℕ) : Set₁ where
       → (rel : W ∣ γ ⊢² M ↓ c ⊑ N ↓ c′ ∶ q)
       → TargetCastBound fuel rel
       → StructuralCatchupRightResult W γ (M ↓ c) (N ↓ c′) q
-
-    packaged-seal-star : ∀ {Δᴸ Δᴿ Δ}
-        {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
-        {M : Term Δᴸ} {N : Term Δᴿ}
-        {Xᴸ : Types.TyVar Δᴸ} {Xᴿ : Types.TyVar Δᴿ}
-        {q : Types.＇ Xᴸ ⊑ᵂ⟨ W ⟩ Types.＇ Xᴿ}
-      → Value (M ↓ seal Xᴸ Types.★)
-      → (rel : W ∣ γ ⊢² M ↓ seal Xᴸ Types.★
-          ⊑ N ↓ seal Xᴿ Types.★ ∶ q)
-      → TargetCastBound fuel rel
-      → StructuralCatchupRightResult W γ
-          (M ↓ seal Xᴸ Types.★) (N ↓ seal Xᴿ Types.★) q
-
 
 structural-value-catchup-right-at : ∀ {fuel}
   → StructuralValueCatchupResiduals fuel
@@ -217,6 +221,25 @@ structural-value-catchup-right-at residuals extra-worker
     vM rel@(CTI2.conceal⊑conceal² _ _ _ _ _ _ _ _) bound =
   StructuralValueCatchupResiduals.paired-conceal residuals vM rel bound
 structural-value-catchup-right-at residuals extra-worker
-    vM rel@(CTI2.packaged-seal-star² _ _ _ _ _ _ _ _ _) bound =
-  StructuralValueCatchupResiduals.packaged-seal-star
-    residuals vM rel bound
+    vM (CTI2.packaged-seal-star² {Xᴿ = Xᴿ}
+      partner mono rb sc c⊢ c′⊢ rel pkg-rel q)
+    (bound , pkg-bound) =
+  structural-catchup-target-conceal mono (CTX.rebase-varᴿ rb) sc c′⊢
+    child (structural-frame-value sealed-value)
+    (λ plan frame-rel step finalV →
+      ⊥-elim (value-no-step sealed-value step))
+  where
+  child = structural-value-catchup-right-at residuals extra-worker
+    vM pkg-rel pkg-bound
+  plan = StructuralCatchupRightResult.structural-ext child
+  premise-c′⊢ =
+    subst≡
+      (λ Σ → Σ Conv.⊢↓[ just Xᴿ ] seal Xᴿ Types.★)
+      (CTX.SameRuntime.targetStore-same
+        (CTX.RebaseAt.sameRuntime rb))
+      c′⊢
+  applied-conceal-value = pivoted-conceal-value
+    (structural-target-conceal-just plan premise-c′⊢)
+  sealed-value =
+    StructuralCatchupRightResult.final-value child CT.↓
+      applied-conceal-value

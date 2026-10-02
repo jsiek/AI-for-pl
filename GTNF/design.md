@@ -1202,8 +1202,15 @@ Each one can be revisited on its own.
   structural conversion imprecision `c ⊑ c′`, not only through their
   types.  The relation is read in the conversion context, where the
   rep. vars bound by the `ν`s (paired in `ϱˡ`) or by the boundaries
-  are in scope.  This is what `ϱˡ`'s `ν` pairs are for (D16).  The
-  clauses are still to be designed (Jeremy, 2026-10-02).
+  are in scope.  This is what `ϱˡ`'s `ν` pairs are for (D16).  Its
+  clauses are in §12.3, with D18 (Jeremy, 2026-10-02).
+
+- **D18 (the ★ clauses of conversion imprecision).**  Besides the
+  structural clauses, a seal or unseal of a left name marked `X⊑★` may
+  be absent on the right (`−X ⊑ id(★)`, `+X ⊑ id(★)`, and the chain
+  forms `t ; −X ⊑ t′`, `+X ; c ⊑ c′`).  A left-only universal is
+  opened at `X⊑★` (`∀X.c ⊑ g′`).  These mirror type imprecision's
+  `X ⊑ ★` and `∀⊑` (§12.3; C23a, C23b; Jeremy, 2026-10-02).
 
 The open design questions are those of the `⊑` sketch (§12.5).
 
@@ -1485,6 +1492,38 @@ coercions, they are not compared with each other:
 In `⟪⟫⊑` and `⊑⟪⟫`, the term without the boundary is in the premise
 at `γ = []`, so it must be term-closed as well.  That holds at run
 time, because every boundary of a run is a closed subterm.
+
+**Conversion imprecision** (D17, D18; `ConversionImprecision.agda`).
+`ν⊑ν` and `⟪⟫⊑⟪⟫` also require `Wᶜ ⊢ c ⊑ c′`, where `Wᶜ` is the world
+over the two conversion contexts.  For `ν⊑ν`, it adds both
+allocations and pairs the two `ν`s' rep. vars in `ϱˡ`.  For a
+boundary pair, it is the conversion-context analogue of `W[δ ∥ δ′]`.
+The one-sided boundary rules have no conversion premise.  The clauses
+follow the conversion grammar:
+
+```
+  A ⊑ A′                 c ⊑ c′    d ⊑ d′          (W ⊕ X:X⊑X) ⊢ c ⊑ c′
+  ───────────────        ────────────────          ─────────────────────
+  id(A) ⊑ id(A′)         c → d ⊑ c′ → d′           ∀X.c ⊑ ∀X.c′
+
+  X, X′ one center name    X, X′ one center name    t ⊑ t′    c ⊑ c′
+  ─────────────────────    ─────────────────────    (chains, componentwise)
+  −X ⊑ −X′                 +X ⊑ +X′
+
+  μ(X) = X⊑★          μ(X) = X⊑★          t ⊑ t′   μ(X) = X⊑★       μ(X) = X⊑★   c ⊑ c′
+  ───────────         ───────────         ──────────────────       ───────────────────
+  −X ⊑ id(★)          +X ⊑ id(★)          t ; −X ⊑ t′              +X ; c ⊑ c′
+
+  (W ⊕ᴸ X) ⊢ c ⊑ g′
+  ─────────────────   (g′ a middle)
+  ∀X.c ⊑ g′
+```
+
+The last row mirrors type imprecision's `X ⊑ ★` and `∀⊑`.  A seal or
+unseal of a left name at `X⊑★` may be absent on the right, and a
+left-only universal is opened at `X⊑★`.  C23a needs the bare forms,
+and C23b needs the `∀` form.  The chain forms are needed because a
+left-only `Merge` builds chains.
 
 **Count.**  Five congruence rules, `blame⊑`, three cast rules, three
 `Λ` rules, two `ν` rules and three boundary rules: 17 rules.  GTSFImp's

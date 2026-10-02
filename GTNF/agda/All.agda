@@ -48,3 +48,6 @@ open import examples.Show
 
 -- the statement of the dynamic gradual guarantee (proof/DGG/PLAN.md §2)
 open import DynamicGradualGuarantee
+
+-- world evolution along two runs, W ⟿[ ξs ∣ ξs′ ] W′ (proof/DGG/PLAN.md §3)
+open import proof.DGG.Evolve

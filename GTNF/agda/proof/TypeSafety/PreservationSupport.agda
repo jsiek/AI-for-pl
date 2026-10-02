@@ -160,7 +160,7 @@ mutual
   coercion-source-wf : ∀ {Δ μ p A B}
     → Δ ∣ μ ⊢ᵖ p ∶ A ⟹ B
     → Δ ⊢ᵗ A
-  coercion-source-wf (⊢id wA) = wA
+  coercion-source-wf (⊢id a wA) = wA
   coercion-source-wf (⊢tag g) = ground-wf g
   coercion-source-wf (⊢tag-var tv mode ok) = wf-var tv
   coercion-source-wf (⊢check g) = wf-★
@@ -180,7 +180,7 @@ mutual
   coercion-target-wf : ∀ {Δ μ p A B}
     → Δ ∣ μ ⊢ᵖ p ∶ A ⟹ B
     → Δ ⊢ᵗ B
-  coercion-target-wf (⊢id wA) = wA
+  coercion-target-wf (⊢id a wA) = wA
   coercion-target-wf (⊢tag g) = wf-★
   coercion-target-wf (⊢tag-var tv mode ok) = wf-★
   coercion-target-wf (⊢check g) = ground-wf g
@@ -556,7 +556,7 @@ coercion-refine : ∀ {Ξ Ξ′ η μ p A B}
   → RepRefines Ξ Ξ′
   → (Ξ ∣ η) ∣ μ ⊢ᵖ p ∶ A ⟹ B
   → (Ξ′ ∣ η) ∣ μ ⊢ᵖ p ∶ A ⟹ B
-coercion-refine rr (⊢id wA) = ⊢id (wf-refine rr wA)
+coercion-refine rr (⊢id a wA) = ⊢id a (wf-refine rr wA)
 coercion-refine rr (⊢tag g) = ⊢tag g
 coercion-refine {Ξ = Ξ} {Ξ′ = Ξ′} rr (⊢tag-var tv mode ok) =
   ⊢tag-var (tv-refine {Ξ = Ξ} {Ξ′ = Ξ′} tv) mode ok

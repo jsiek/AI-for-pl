@@ -281,7 +281,7 @@ B12x-ty : BdyTy ΔR₁₂ (bind 0 1 ∷ []) (ΔR₁₂^ 1) (` 0 ⇒ ` 0) revX (�
 B12x-ty = proj₂ (proj₂ (proj₂ (⟪⟫-inv {Γ = []} (tc {Δ = ΔR₁₂} {M = B12x}))))
 
 id★↦-ty : ∀ {Ξ} → CastTy (Ξ ∣ []) [] id★↦ (★ ⇒ ★) (★ ⇒ ★)
-id★↦-ty = cast-ty (⊢fun (⊢id wf-★) (⊢id wf-★)) refl
+id★↦-ty = cast-ty (⊢fun (⊢id atom-★ wf-★) (⊢id atom-★ wf-★)) refl
 
 -- one gen layer's two inner pieces
 unbTerm tagTerm : RVar → Term → Term
@@ -414,7 +414,7 @@ tagᴿ-ty =
   proj₂ (proj₂ (cast-inv {Γ = []} (tc {Δ = ΔRₓ} {M = I★gen})))
 
 id★↦ᴿ-ty : CastTy ΔR [] id★↦ (★ ⇒ ★) (★ ⇒ ★)
-id★↦ᴿ-ty = cast-ty (⊢fun (⊢id wf-★) (⊢id wf-★)) refl
+id★↦ᴿ-ty = cast-ty (⊢fun (⊢id atom-★ wf-★) (⊢id atom-★ wf-★)) refl
 
 ΛidX-⊢ : empty ∣ [] ⊢ I ⦂ `∀ (` 0 ⇒ ` 0)
 ΛidX-⊢ = tc
@@ -762,7 +762,7 @@ outᴿ-ty = proj₂ (proj₂ (proj₂
   (⟪⟫-inv {Γ = []} (tc {Δ = ΔR} {M = C2-B6 (dyn 5)}))))
 
 id★ᴿ-ty : CastTy ΔR [] (idᵖ ★) ★ ★
-id★ᴿ-ty = cast-ty (⊢id wf-★) refl
+id★ᴿ-ty = cast-ty (⊢id atom-★ wf-★) refl
 
 X⊑X₀ : ` 0 ⊑ᵂ⟨ Wᵢ₁ ⟩ ` 0
 X⊑X₀ = X⊑X

@@ -113,7 +113,7 @@ coercion-renᴿ : ∀ {Ξ Ξ′ η ρ μ p A B}
   → RepWk ρ Ξ Ξ′
   → (Ξ ∣ η) ∣ μ ⊢ᵖ p ∶ A ⟹ B
   → (Ξ′ ∣ map ρ η) ∣ μ ⊢ᵖ p ∶ A ⟹ B
-coercion-renᴿ w (⊢id wA) = ⊢id (wf-ren-rep wA)
+coercion-renᴿ w (⊢id a wA) = ⊢id a (wf-ren-rep wA)
 coercion-renᴿ w (⊢tag g) = ⊢tag g
 coercion-renᴿ {ρ = ρ} w (⊢tag-var tv mode ok) =
   ⊢tag-var (tv-ren ρ tv) mode ok

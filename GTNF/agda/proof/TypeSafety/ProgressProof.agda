@@ -239,7 +239,7 @@ progress-cast : ∀ {Δ V μ p A B}
   → Value (V ⟨ μ ∣ p ⟩)
     ⊎ (Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ]
          (Δ ⊢ V ⟨ μ ∣ p ⟩ -→ M′ ∣ δ))
-progress-cast V⊢ vV (⊢id wA) len = inj₂ (_ , none , CastId vV)
+progress-cast V⊢ vV (⊢id a wA) len = inj₂ (_ , none , CastId vV)
 progress-cast V⊢ vV (⊢tag g) len = inj₁ (V-simple (S-cast vV I-tag))
 progress-cast V⊢ vV (⊢tag-var tv mode ok) len =
   inj₁ (V-simple (S-cast vV I-tag))

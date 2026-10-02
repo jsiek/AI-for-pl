@@ -657,15 +657,25 @@ unshift? k (`∀ A) with unshift? (suc k) A
 unshift? k (`∀ A) | just (A₀ , ea) = just (`∀ A₀ , cong `∀ ea)
 unshift? k (`∀ A) | nothing        = nothing
 
+-- the atoms (design.md D21): identity coercions only at these
+atom? : (A : Ty) → Maybe (Atom A)
+atom? (` X)   = just atom-var
+atom? `ℕ      = just atom-ℕ
+atom? `𝔹      = just atom-𝔹
+atom? ★       = just atom-★
+atom? (A ⇒ B) = nothing
+atom? (`∀ A)  = nothing
+
 CoercionResult : Ctxᵗ → ModeEnv → Coercion → Set
 CoercionResult Δ μ p = Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] (Δ ∣ μ ⊢ᵖ p ∶ A ⟹ B)
 
 -- A coercion determines both of its types.
 coercionTy? : (Δ : Ctxᵗ) (μ : ModeEnv) (p : Coercion)
   → Maybe (CoercionResult Δ μ p)
-coercionTy? Δ μ (idᵖ A) with wfTy? Δ A
-coercionTy? Δ μ (idᵖ A) | just wA = just (A , A , ⊢id wA)
-coercionTy? Δ μ (idᵖ A) | nothing = nothing
+coercionTy? Δ μ (idᵖ A) with atom? A | wfTy? Δ A
+coercionTy? Δ μ (idᵖ A) | just a | just wA = just (A , A , ⊢id a wA)
+coercionTy? Δ μ (idᵖ A) | just a | nothing = nothing
+coercionTy? Δ μ (idᵖ A) | nothing | w = nothing
 coercionTy? Δ μ ((` X) !) with ∋tv? Δ X | lookupˡ? μ X
 coercionTy? Δ μ ((` X) !) | just tv | just (m , lm) with tagOK? m
 coercionTy? Δ μ ((` X) !) | just tv | just (m , lm) | just ok =

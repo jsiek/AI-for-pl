@@ -42,7 +42,7 @@ coercion-to-strict : ∀ {Δ μ p A X}
   → μ ∋ˡ X := X∼X
   → Δ ∣ μ ⊢ᵖ p ∶ A ⟹ ` X
   → A ≡ ` X
-coercion-to-strict strict (⊢id wA) = refl
+coercion-to-strict strict (⊢id a wA) = refl
 coercion-to-strict strict (⊢check-var tv mode ok)
     with ∋ˡ-det mode strict
 coercion-to-strict strict (⊢check-var tv mode ok) | refl with ok

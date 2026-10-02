@@ -118,7 +118,7 @@ preservation wfΔ ⊢M (Wrap u vW rc ri rd sc) =
 preservation wfΔ ⊢M (Merge v ri r₁ r₂ r⋉ sc₁ sc₂) =
   preserve-Merge wfΔ ri r₁ r₂ r⋉ sc₁ sc₂ ⊢M
 preservation wfΔ ⊢M (Id u b) = preserve-Id wfΔ u b ⊢M
-preservation wfΔ (⊢cast ⊢V (⊢id wA) len) (CastId v) = ⊢V
+preservation wfΔ (⊢cast ⊢V (⊢id a wA) len) (CastId v) = ⊢V
 preservation wfΔ (⊢cast ⊢V (⊢seq-tag ⊢p tg ns) len) (CastSeq v) =
   ⊢cast (⊢cast ⊢V ⊢p len) (tag-ground-⊢ tg) len
 preservation wfΔ (⊢cast ⊢V (⊢seq-check cg ⊢p ns) len) (CastSeq? v) =

@@ -30,7 +30,7 @@ mutual
   coercion-src : ∀ {Δ μ p A B}
     → Δ ∣ μ ⊢ᵖ p ∶ A ⟹ B
     → srcᵖ p ≡ A
-  coercion-src (⊢id wA) = refl
+  coercion-src (⊢id a wA) = refl
   coercion-src (⊢tag g) = refl
   coercion-src (⊢tag-var tv mode ok) = refl
   coercion-src (⊢check g) = refl
@@ -49,7 +49,7 @@ mutual
   coercion-trg : ∀ {Δ μ p A B}
     → Δ ∣ μ ⊢ᵖ p ∶ A ⟹ B
     → trgᵖ p ≡ B
-  coercion-trg (⊢id wA) = refl
+  coercion-trg (⊢id a wA) = refl
   coercion-trg (⊢tag g) = refl
   coercion-trg (⊢tag-var tv mode ok) = refl
   coercion-trg (⊢check g) = refl
@@ -169,7 +169,7 @@ nonstar-nonvar-to-var-impossible : ∀ {Δ μ p A X}
   → NonVar A
   → NonStar A
   → ⊥
-nonstar-nonvar-to-var-impossible (⊢id wA) () ns
+nonstar-nonvar-to-var-impossible (⊢id a wA) () ns
 nonstar-nonvar-to-var-impossible (⊢check-var tv mode ok) nv-★ ()
 nonstar-nonvar-to-var-impossible
     (⊢inst ⊢p wB nvA occ nsB) nv-∀ ns =
@@ -191,7 +191,7 @@ var-to-nonstar-nonvar-impossible : ∀ {Δ μ p B X}
   → NonVar B
   → NonStar B
   → ⊥
-var-to-nonstar-nonvar-impossible (⊢id wA) () ns
+var-to-nonstar-nonvar-impossible (⊢id a wA) () ns
 var-to-nonstar-nonvar-impossible (⊢tag-var tv mode ok) nv-★ ()
 var-to-nonstar-nonvar-impossible
     (⊢gen ⊢p wA nvB occ nsA safe) nv-∀ ns =
@@ -211,7 +211,7 @@ gen-from-var-occurs-impossible ⊢p nvB occ =
 coercion-var-to-var : ∀ {Δ μ p X Y}
   → Δ ∣ μ ⊢ᵖ p ∶ ` X ⟹ ` Y
   → X ≡ Y
-coercion-var-to-var (⊢id wA) = refl
+coercion-var-to-var (⊢id a wA) = refl
 
 close-nonvar : ∀ k {A} → NonVar A → NonVar (closeTy k A)
 close-nonvar k nv-ℕ = nv-ℕ
@@ -319,7 +319,7 @@ close-tag-var : ∀ (ν : List Mode) {Δ μ m X n}
       ⊢ᵖ closeTag (length ν) (` X) ∶ closeTy (length ν) (` X) ⟹ ★
 close-tag-var ν tv mode ok with close-var ν tv mode
 close-tag-var ν tv mode ok | cv-closed refl
-  rewrite closeTag-hit (length ν) | closeEnv-hit (length ν) = ⊢id wf-★
+  rewrite closeTag-hit (length ν) | closeEnv-hit (length ν) = ⊢id atom-★ wf-★
 close-tag-var ν tv mode ok | cv-kept ne eq tv′ mode′
   rewrite closeTag-miss ne | eq = ⊢tag-var tv′ mode′ ok
 
@@ -333,7 +333,7 @@ close-check-var : ∀ (ν : List Mode) {Δ μ m X n ℓ}
 close-check-var ν tv mode ok with close-var ν tv mode
 close-check-var ν {ℓ = ℓ} tv mode ok | cv-closed refl
   rewrite closeCheck-hit (length ν) ℓ | closeEnv-hit (length ν) =
-  ⊢id wf-★
+  ⊢id atom-★ wf-★
 close-check-var ν {ℓ = ℓ} tv mode ok | cv-kept ne eq tv′ mode′
   rewrite closeCheck-miss {ℓ = ℓ} ne | eq = ⊢check-var tv′ mode′ ok
 
@@ -506,7 +506,7 @@ closeᵖ-typing-under : ∀ (ν : List Mode) {Δ μ m p A B}
   → underN (length ν) Δ ∣ ν ++ μ
       ⊢ᵖ closeᵖ (length ν) p
         ∶ closeTy (length ν) A ⟹ closeTy (length ν) B
-closeᵖ-typing-under ν (⊢id wA) = ⊢id (wf-close (length ν) wA)
+closeᵖ-typing-under ν (⊢id a wA) = ⊢id (atom-close (length ν) a) (wf-close (length ν) wA)
 closeᵖ-typing-under ν (⊢tag g) = close-tag-ground (length ν) g
 closeᵖ-typing-under ν (⊢tag-var tv mode ok) =
   close-tag-var ν tv mode ok

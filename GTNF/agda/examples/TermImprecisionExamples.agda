@@ -306,7 +306,7 @@ p3-inst =
                          (inst-Λ (V-simple S-ƛ))
                          (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ))
                          r-here bR-ty ∀id⊑★)
-                 (cast-ty (⊢fun (⊢id wf-★) (⊢id wf-★)) refl) ∀id⊑★)
+                 (cast-ty (⊢fun (⊢id atom-★ wf-★) (⊢id atom-★ wf-★)) refl) ∀id⊑★)
           ℕ⊑★ νL-ty (⇒⊑⇒ ℕ⊑★ ℕ⊑★))
       five⊑
 

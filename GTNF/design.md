@@ -153,7 +153,7 @@ term is a value (§5, §6.4, Example 4).
 
 ```
 Labels       ℓ
-Coercions    p, q, r ::= id(A)            identity
+Coercions    p, q, r ::= id(A)            identity, at an atom A ::= X | ι | ★ (D21)
                        | G!               tag (inject into ★)
                        | G?ℓ              check a tag (project out of ★)
                        | p → q            function
@@ -207,7 +207,7 @@ The domain of a function coercion is typed under `flip(μ)`, which swaps
 The side conditions on `inst` and `gen` are GTSFImp's.
 
 ```
-  Δ ⊢ A                         Δ ⊢ G   G ≠ X                Δ ⊢ G   G ≠ X
+  Δ ⊢ A    A an atom            Δ ⊢ G   G ≠ X                Δ ⊢ G   G ≠ X
   ──────────────────────        ──────────────────           ────────────────────
   Δ ; μ ⊢ id(A) : A ⇒ A         Δ ; μ ⊢ G! : G ⇒ ★           Δ ; μ ⊢ G?ℓ : ★ ⇒ G
 
@@ -650,7 +650,7 @@ Consistency evidence compiles to a coercion `⟦c⟧ℓ`, where `ℓ` is the
 label of the enclosing application or operator:
 
 ```
-⟦id A⟧ℓ        = id(A)
+⟦id A⟧ℓ        = id(A)              (A an atom, as in GTSFImp's `id`)
 ⟦c ↦ d⟧ℓ       = ⟦c⟧ℓ → ⟦d⟧ℓ
 ⟦∀ᶜ c⟧ℓ        = ∀X. ⟦c⟧ℓ
 ⟦(id G) !⟧ℓ    = G!                 ⟦c !⟧ℓ   = ⟦c⟧ℓ ; G!       (c : A ∼ G, otherwise)
@@ -1248,6 +1248,13 @@ Each one can be revisited on its own.
   `★` preserve typing: a nested `inst`/`gen` can no longer reach the
   closed variable through `★`.  M1 found the counterexample
   (Jeremy, 2026-10-02).
+
+- **D21 (identities at atoms).**  An identity coercion `id(A)` is
+  formed only at an atom, `A ::= X | ι | ★`, as GTSFImp's `id` is
+  (`Types.Atom`).  Compound identities are written structurally,
+  `id(A) → id(B)` and `∀X. id(A)`.  With D20, GTNF's coercions are
+  exactly the images of GTSFImp's consistency evidence, which is the
+  correspondence the DGG's cast cases rely on (Jeremy, 2026-10-02).
 
 The open design questions are those of the `⊑` sketch (§12.5).
 

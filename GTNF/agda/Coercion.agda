@@ -153,6 +153,15 @@ data _∈ᵗ_ : ℕ → Ty → Set where
   ∈-⇒ʳ  : ∀ {X A B} → X ∈ᵗ B → X ∈ᵗ A ⇒ B
   ∈-∀   : ∀ {X A} → suc X ∈ᵗ A → X ∈ᵗ `∀ A
 
+-- The atoms: the only types at which an identity coercion is formed
+-- (GTSFImp `Atom`; design.md D21).  Compound identities are written
+-- structurally, `id(A) → id(B)` and `∀X. id(A)`.
+data Atom : Ty → Set where
+  atom-var : ∀ {X} → Atom (` X)
+  atom-ℕ   : Atom `ℕ
+  atom-𝔹   : Atom `𝔹
+  atom-★   : Atom ★
+
 -- GTSFImp `CastTerms.GenSafe`, on the syntax
 data GenSafe : Coercion → Set where
   safe-↦    : ∀ {p q} → GenSafe (p ↦ᵖ q)
@@ -275,6 +284,25 @@ closeSeqCheck k ★       ℓ p′ = ★ ？ ℓ ︔ p′
 closeSeqCheck k (A ⇒ B) ℓ p′ = closeTy k (A ⇒ B) ？ ℓ ︔ p′
 closeSeqCheck k (`∀ A)  ℓ p′ = closeTy k (`∀ A) ？ ℓ ︔ p′
 
+-- closing an atom gives an atom
+atom-ren : ∀ {ρ A} → Atom A → Atom (renameᵗ ρ A)
+atom-ren atom-var = atom-var
+atom-ren atom-ℕ   = atom-ℕ
+atom-ren atom-𝔹   = atom-𝔹
+atom-ren atom-★   = atom-★
+
+atom-env : ∀ k X → Atom (closeEnv k X)
+atom-env zero    zero    = atom-★
+atom-env zero    (suc X) = atom-var
+atom-env (suc k) zero    = atom-var
+atom-env (suc k) (suc X) = atom-ren (atom-env k X)
+
+atom-close : ∀ k {A} → Atom A → Atom (closeTy k A)
+atom-close k (atom-var {X}) = atom-env k X
+atom-close k atom-ℕ = atom-ℕ
+atom-close k atom-𝔹 = atom-𝔹
+atom-close k atom-★ = atom-★
+
 -- `closeᵖ 0 p` is design.md's `p[★/X]` (GTSFImp `c [ ★/0 ]ᶜ`)
 closeᵖ : ℕ → Coercion → Coercion
 closeᵖ k (idᵖ A)       = idᵖ (closeTy k A)
@@ -315,7 +343,7 @@ data CheckGround (Δ : Ctxᵗ) (μ : ModeEnv) : Ty → Set where
 infix 4 _∣_⊢ᵖ_∶_⟹_
 data _∣_⊢ᵖ_∶_⟹_ : Ctxᵗ → ModeEnv → Coercion → Ty → Ty → Set where
 
-  ⊢id : Δ ⊢ᵗ A
+  ⊢id : Atom A → Δ ⊢ᵗ A
       ------------------------------
     → Δ ∣ μ ⊢ᵖ idᵖ A ∶ A ⟹ A
 

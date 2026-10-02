@@ -1197,6 +1197,14 @@ Each one can be revisited on its own.
   representation variables are "rep. vars", never "cells" (Jeremy,
   2026-10-02).
 
+- **D17 (conversions are related structurally).**  The two
+  conversions of a `ν⊑ν` pair and of a `⟪⟫⊑⟪⟫` pair are related by a
+  structural conversion imprecision `c ⊑ c′`, not only through their
+  types.  The relation is read in the conversion context, where the
+  rep. vars bound by the `ν`s (paired in `ϱˡ`) or by the boundaries
+  are in scope.  This is what `ϱˡ`'s `ν` pairs are for (D16).  The
+  clauses are still to be designed (Jeremy, 2026-10-02).
+
 The open design questions are those of the `⊑` sketch (§12.5).
 
 Out of scope for now: space efficiency.  Normal forms for coercions,

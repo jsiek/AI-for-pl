@@ -1816,10 +1816,16 @@ synchronization (F3).  Findings, smallest first:
     `(βᴸ:=ℕ, αᴿ:=ℕ)`, and the two `gen` unbinds match.  The left's
     `Inst` boundary `[+X^αᴸ]` (`αᴸ:=★`) is left-only, its name has
     mark `X⊑★`, and then `λx:X.x ⊑ λx:★.x` holds.
-  - **M4:** Example 1 (`I⟨inst⟩`, with no `gen` and no `[ℕ]`).  The
-    two `Inst`/`TyBeta` pairs match, giving `(αᴸ, αᴿ)`.  The left's
-    `[ℕ]` is a left-only `ν`, and its `[+Y^β]` and `gen` unbind
-    `[−Y^β]` are left-only too.
+  - **M4:** Example 1 (`I⟨inst⟩`, with no `gen` and no `[ℕ]`), against
+    the application form `(λf:∀X.X→X. f[ℕ] 5)(I⟨inst⟩⟨gen⟩)` on the
+    left.  The two `Inst`/`TyBeta` pairs match, giving `(αᴸ, αᴿ)`.
+    The left's `[ℕ]` is a left-only `ν`, and its `[+Y^β]` and `gen`
+    unbind `[−Y^β]` are left-only too.  (`C12-R` itself is the bare
+    redex `at-ℕ-5 (I⟨inst⟩⟨gen⟩)`.  Paired directly with Example 1 it
+    is not related at the start, because the function parts have
+    unrelated types.  The re-check, `notes/cambridge-imprecision-check-v2.md`,
+    confirms that the post-`Beta` suffix is derivable with `ϱ`
+    one-to-one.)
   - **M2:** `Cg-R` (`I★⟨gen⟩⟨inst⟩`).  The right's `Inst` rep. var
     `α:=★` pairs with the left's `[ℕ]` rep. var (`ℕ ⊑ ★`), the two `gen`
     unbinds match, and the left's `Inst` boundary is left-only.
@@ -1841,4 +1847,13 @@ synchronization (F3).  Findings, smallest first:
   mark when it goes one-sided and later rejoins.
 - **D2 (settled, D16).**  `∀⊑⟪+⟫`'s pair involves the left value's abstract rep. var,
   which is not in `rv(Δ)`.  `ϱ`'s type has to allow it.
+
+**Re-check under D13–D16** (`notes/cambridge-imprecision-check-v2.md`).
+All 22 pairs support both simulations of §9.7, forward and backward.
+C12, C13 and C14 now go through: one left rep. var has two, two and
+three right partners, as D13 permits.  Cg's and C2's right-led blocks
+go through with `∀⊑⟪+⟫` (D14).  C2's multi-entry boundary goes
+through under D15.  The `Λ`-bound pairs are in `ϱˡ` (D16).  C23a
+confirms that `W[δ ∥ δ′]` must stay unrestricted.  The mirror pairs
+M1 and M2 keep `ϱ` one-to-one, and so does M4's post-`Beta` suffix.
 

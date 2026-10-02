@@ -559,6 +559,8 @@ with the boundary rule, and `W` is used at exactly its own typing
 Δ ⊢ (V ⟨p → q⟩^μ) W ⟶ (V (W ⟨p⟩^flip(μ))) ⟨q⟩^μ ⊣ ε                 (CastFun)
 
 Δ ⊢ V ⟨inst X. p⟩^μ ⟶ (ν X:=★. (V X) ⟨reveal_X(src(p))⟩) ⟨p[★/X]⟩^μ ⊣ ε   (Inst)
+      where  p : A ⇒ B  under  μ, X:X∼★,  with V : ∀X. A,  X ∉ B,
+             A = src(p),  B = trg(p)
 
 Δ ⊢ V ⟨G!⟩ ⟨G?ℓ⟩ ⟶ V ⊣ ε                                              (TagUntag)
 

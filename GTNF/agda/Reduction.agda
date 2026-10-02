@@ -173,7 +173,10 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
         -→ (V · (W ⟨ flipEnv μ ∣ p ⟩)) ⟨ μ ∣ q ⟩ ∣ none
 
   -- instantiate at ★ by a ν X:=★, revealing the source, and close the
-  -- coercion at ★ (no allocation here: the ν's TyBeta allocates)
+  -- coercion at ★ (no allocation here: the ν's TyBeta allocates).
+  -- On a typed redex, V : ∀X. A and `⊢inst` gives
+  --   p : A ⟹ ⇑ᵗ B   under  X∼★ ∷ μ   (A = srcᵖ p, ⇑ᵗ B = trgᵖ p),
+  -- so the contractum is (ν …) : A[★/X], cast by closeᵖ 0 p to B.
   Inst : ∀ {Δ V μ p} → Value V
       ----------------------------------
     → Δ ⊢ V ⟨ μ ∣ instᵖ p ⟩

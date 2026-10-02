@@ -55,6 +55,7 @@ open import TypeSafety
 -- completed M1 proofs
 open import proof.TypeSafety.Progress
 open import proof.TypeSafety.Irreducible
+open import proof.TypeSafety.Determinism
 
 -- world evolution along two runs, W ⟿[ ξs ∣ ξs′ ] W′ (proof/DGG/PLAN.md §3)
 open import proof.DGG.Evolve

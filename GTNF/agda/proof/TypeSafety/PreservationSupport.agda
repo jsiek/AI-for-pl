@@ -1153,7 +1153,7 @@ WrapCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t C}
 
 MergeCase : Set
 MergeCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ₂ᶜ Δ⋉ᶜ U Θ₁ Θ₂ t₁ t₁′ c₂ c₂′ C}
-  → WfCtx Δ → Simple U → InertTail t₁
+  → WfCtx Δ
   → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
   → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
   → Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ

@@ -97,13 +97,14 @@ modeAtExt Θ (m ∷ μ) i j | just j′ with j ≟ j′
 modeAtExt Θ (m ∷ μ) i j | just j′ | yes _ = m
 modeAtExt Θ (m ∷ μ) i j | just j′ | no  _ = modeAtExt Θ μ (suc i) j
 
+-- `exitEnvFrom Θ μ j r`: the modes of exterior positions j, …, j+r-1
+exitEnvFrom : Boundary → ModeEnv → ℕ → ℕ → ModeEnv
+exitEnvFrom Θ μ j zero    = []
+exitEnvFrom Θ μ j (suc r) = modeAtExt Θ μ 0 j ∷ exitEnvFrom Θ μ (suc j) r
+
 -- `exitEnv Θ μ n`: the exterior environment, n names long
 exitEnv : Boundary → ModeEnv → ℕ → ModeEnv
-exitEnv Θ μ n = go 0 n
-  where
-  go : ℕ → ℕ → ModeEnv
-  go j zero    = []
-  go j (suc r) = modeAtExt Θ μ 0 j ∷ go (suc j) r
+exitEnv Θ μ n = exitEnvFrom Θ μ 0 n
 
 ------------------------------------------------------------------------
 -- 1.  The rules

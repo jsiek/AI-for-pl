@@ -40,5 +40,8 @@ open import TermImprecisionExamples
 -- the term-imprecision examples of papers/cambridge26.lagda.md, run
 open import CambridgeExamples
 
+-- term imprecision at the blocks where cambridge26 uses (split)/(extend)
+open import TermImprecisionRebaseExamples
+
 -- de Bruijn → named rendering (scripts/render_gtnf.sh)
 open import Show

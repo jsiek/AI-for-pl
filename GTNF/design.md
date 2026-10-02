@@ -1064,9 +1064,18 @@ the proof under way in `proof/DGG/`.  For closed source terms with
 
 The runs are νF runs, so each `⟶*` carries the allocations it made
 (`runCtx`), and `q` relates the result types at the two final contexts.
-The proof strategy follows GTSFImp: a simulation of the more precise
-side by the less precise side (`sim-left`/`sim-right`), with catch-up
-lemmas for the administrative steps that occur on one side only.  In
+The proof strategy follows GTLC's (`GTLC/agda/proof/
+DynamicGradualGuaranteeCore.agda` `sim`/`sim*`,
+`DynamicGradualGuarantee.agda` `sim-back`/`sim-back*`; GTLC writes the
+less precise term on the left), with catch-up lemmas for the
+administrative steps that occur on one side only.  In GTNF's
+orientation:
+
+- **Forward simulation:** the more precise side takes one step, and
+  then the less precise side takes zero or more steps to restore the
+  relation.
+- **Backward simulation:** the less precise side takes one step, and
+  then both sides take zero or more steps to become related.  In
 GTNF those steps are `Merge`, `Id`, `IdDyn`, `CastId`, `CastSeq`, and the
 `Inst`/`TyBeta` pair.  The consistency modes (D6) are what make the
 `bot-elim` and `bot-intro` cells vacuous, by `no-bot-value`.
@@ -1708,7 +1717,14 @@ synchronization (F3).  Findings, smallest first:
 - **F1.**  `Λ⊑⟪+⟫` fixes the new name's mark at `X⊑X`.  It should
   read `W ⊕ X:m` with the mark chosen at the binder (D11).  Cg's
   right-led block needs `X⊑★`.
-- **F2.**  `Λ⊑⟪+⟫` covers only a left `Λ`.  A left `gen`-cast
+- **F2.**  `Λ⊑⟪+⟫` covers only a left `Λ`.  The block is forced by
+  the simulation shapes of §9.7.  Take `L = Example 2` and
+  `R = (λx:★→★. x 5⟨ℕ!⟩)(I★⟨gen⟩⟨inst⟩)`.  In the forward direction,
+  the left's step `Beta` makes the right catch up through `Inst`,
+  `TyBeta` and `Beta`.  The right cannot `Beta` earlier, because its
+  argument's `inst` cast is not inert.  In the backward direction, the
+  right's first step `Inst` needs either a `⊑ν` rule or a further
+  `TyBeta`, which leads to the same block.  A left `gen`-cast
   ∀-value facing the right's `[+X^β] V′ ⟨c′⟩` needs the same rule,
   so it should be stated for every ∀-value through `inst_X` at the
   left's abstract cell (C2's right-led block):

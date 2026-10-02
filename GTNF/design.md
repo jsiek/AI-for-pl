@@ -1175,6 +1175,14 @@ Each one can be revisited on its own.
   name cannot stay right-only (§12.6, F3; C12–C14; mirror pairs M1,
   M2, M4; Jeremy, 2026-10-02).
 
+- **D14 (`∀⊑⟪+⟫`).**  The rule relating a left ∀-value to a right
+  boundary `[+X^β] V′ ⟨c′⟩` created by `Inst` applies to every
+  ∀-value, not only a `Λ`: its premise is `inst_X(V) ⊑ V′`, at a mark
+  chosen at the binder.  It replaces `Λ⊑⟪+⟫`, and it is not
+  syntax-directed, because the premise uses the meta-operation
+  `inst_X`.  GTLC's forward and backward simulation shapes force it
+  (§9.7; §12.6, F1, F2; Jeremy, 2026-10-02).
+
 The open design questions are those of the `⊢²` sketch (§12.5).
 
 Out of scope for now: space efficiency.  Normal forms for coercions,
@@ -1366,16 +1374,23 @@ environments, except through the types:
   ──────────────────────────────────────────────────────── (Λ⊑)
   W ∣ γ ⊢² ΛX.V ⊑ M′ : ∀X.A ⊑ B′
 
-  W ⊕ X:X⊑X ∣ [] ⊢² V ⊑ V′ : A ⊑ A′    β:=★    c′ : A′ ⇒ B′   (new)
-  ──────────────────────────────────────────────────── (Λ⊑⟪+⟫)
-  W ∣ γ ⊢² ΛX.V ⊑ [+X^β] V′ ⟨c′⟩ : ∀X.A ⊑ B′
+  W ⊕ X:m ∣ [] ⊢² inst_X(V) ⊑ V′ : A ⊑ A′
+  V a ∀-value    β:=★    c′ : A′ ⇒ B′                          (new)
+  ──────────────────────────────────────────────── (∀⊑⟪+⟫)
+  W ∣ γ ⊢² V ⊑ [+X^β] V′ ⟨c′⟩ : ∀X.A ⊑ B′
 ```
 
-`Λ⊑⟪+⟫` is for a right side that has already instantiated a value at
-`★` through `Inst`, while the left side still holds the `Λ`
-(Example P3).  The left `Λ`'s abstract cell is paired with the right
-cell `β:=★`.  When the left side later instantiates, its new boundary
-`[+X^α]` meets the right's `[+X^β]`, and `ϱ` gains `(α, β)`.
+`∀⊑⟪+⟫` is for a right side that has already instantiated a value at
+`★` through `Inst`, while the left side still holds an uninstantiated
+∀-value: a `Λ` (Example P3), a `gen`-cast value, a `∀`-cast value or
+a boundary over one.  The premise opens the left value with the same
+meta-operation that `TyBeta` uses, `inst_X` (§6.2), at the left
+value's abstract cell, which is paired with the right cell `β:=★`.
+For `V = ΛX.V₀`, `inst_X(V) = V₀`.  The mark `m` of the new
+both-sided name is chosen at the binder (D11).  When the left side
+later instantiates, its new boundary `[+X^α]` meets the right's
+`[+X^β]`, and `ϱ` gains `(α, β)`.  The simulation shapes of §9.7
+force this rule (§12.6, F2; D14).
 
 **Instantiation** (GTSFImp `•⊑•²`, `•⊑²`).  The compiled form of
 `M [A]` is a `ν`, so the two type applications become:
@@ -1504,7 +1519,7 @@ R  5⟨ℕ!⟩^[]
 The right term crosses the left-only `Λ` and `[+X^α]` unweakened: only
 `η` reaches the new center name.
 
-#### P3 — the right side alone instantiates, by `Inst` (the new rule `Λ⊑⟪+⟫`)
+#### P3 — the right side alone instantiates, by `Inst` (the new rule `∀⊑⟪+⟫`)
 
 ```
 L  ((λx:(∀X. X→X). ((ν X:=ℕ. (x X) ⟨−X → +X⟩) 5)) (ΛY. (λx:Y. x)))
@@ -1513,7 +1528,7 @@ R  ((λx:★→★. (x 5⟨ℕ!⟩^[])) (ΛX. (λx:X. x))⟨inst Y. (Y?ℓ0 → 
                                          L: Beta             R: Inst, TyBeta (α:=★), Beta
 L  ((ν X:=ℕ. ((ΛY. (λx:Y. x)) X) ⟨−X → +X⟩) 5)
 R  (([+X^α] (λx:X. x) ⟨−X → +X⟩)⟨id(★) → id(★)⟩^[] 5⟨ℕ!⟩^[])
-   ·⊑·, ν⊑, ⊑cast, Λ⊑⟪+⟫: the left Λ's abstract cell is paired with αᴿ:=★
+   ·⊑·, ν⊑, ⊑cast, ∀⊑⟪+⟫: the left Λ's abstract cell is paired with αᴿ:=★
                                          L: TyBeta (α:=ℕ)    R: —
 L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
 R  (([+X^α] (λx:X. x) ⟨−X → +X⟩)⟨id(★) → id(★)⟩^[] 5⟨ℕ!⟩^[])
@@ -1531,7 +1546,7 @@ R  5⟨ℕ!⟩^[]
 
 The `Inst`/`TyBeta` pair runs before the right's `Beta`, because `inst`
 is not inert, so the right holds a boundary while the left still holds
-a `Λ`.  That is the only reason for `Λ⊑⟪+⟫`.
+a `Λ`.  That is the reason for `∀⊑⟪+⟫`.
 
 #### P4 — the right side alone generalizes (a both-sided name at `X⊑★`)
 
@@ -1631,7 +1646,7 @@ allocate one cell each and the boundaries stay aligned.
   example has an operator).  P2 and P5 need the left-only boundary
   rule `⟪⟫⊑`.  P4 needs
   the right-only rule `⊑⟪⟫`, with both an unbind and a rebind.  P3
-  needs `Λ⊑⟪+⟫`.
+  needs `∀⊑⟪+⟫` (then `Λ⊑⟪+⟫`).
 - **Not exercised.**  A gen cast on both sides; a gen cast on the left
   only (its `[−X^α]` is then a left-only unbind of a both-sided name);
   `bot-elim`/`bot-intro`; an escaped tag that comes back into scope
@@ -1714,10 +1729,10 @@ allocate one cell each and the boundaries stay aligned.
 are derivable as written.  C12, C13 and C14 are not, with any
 synchronization (F3).  Findings, smallest first:
 
-- **F1.**  `Λ⊑⟪+⟫` fixes the new name's mark at `X⊑X`.  It should
+- **F1 (settled, D14).**  `Λ⊑⟪+⟫` fixes the new name's mark at `X⊑X`.  It should
   read `W ⊕ X:m` with the mark chosen at the binder (D11).  Cg's
   right-led block needs `X⊑★`.
-- **F2.**  `Λ⊑⟪+⟫` covers only a left `Λ`.  The block is forced by
+- **F2 (settled, D14).**  `Λ⊑⟪+⟫` covers only a left `Λ`.  The block is forced by
   the simulation shapes of §9.7.  Take `L = Example 2` and
   `R = (λx:★→★. x 5⟨ℕ!⟩)(I★⟨gen⟩⟨inst⟩)`.  In the forward direction,
   the left's step `Beta` makes the right catch up through `Inst`,
@@ -1782,6 +1797,6 @@ synchronization (F3).  Findings, smallest first:
 - **D1.**  `W[δ ∥ δ′]` must say which intermediate worlds of a
   multi-entry `δ` have to be well formed, and that a name keeps its
   mark when it goes one-sided and later rejoins.
-- **D2.**  `Λ⊑⟪+⟫`'s pair involves the left `Λ`'s abstract cell,
+- **D2.**  `∀⊑⟪+⟫`'s pair involves the left value's abstract cell,
   which is not in `cells(Δ)`.  `ϱ`'s type has to allow it.
 

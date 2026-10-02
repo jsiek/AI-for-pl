@@ -1,4 +1,4 @@
-module Eval where
+module examples.Eval where
 
 -- File Charter:
 --   * (GTNF) FORKED FROM strong-rep-nu.Eval.  New: every cast and
@@ -45,7 +45,7 @@ open import Coercion
 open import Terms
 open import TermSubst
 open import Reduction
-open import TypeCheck
+open import examples.TypeCheck
   using (interior?; conversion?; ∋:=?; read?; convTy?;
          rebase?; weaken?; weakenᵀ?; check⊢; inert?; inertTail?;
          simple?; value?; groundNV?; fresh-name?)

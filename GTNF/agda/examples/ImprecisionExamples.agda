@@ -1,4 +1,4 @@
-module ImprecisionExamples where
+module examples.ImprecisionExamples where
 
 -- File Charter:
 --   * PAIRS OF PROGRAMS FOR DESIGNING A CAST-TERM IMPRECISION (design.md
@@ -52,9 +52,9 @@ open import Ctx
 open import Conversion
 open import Coercion
 open import Terms
-open import TypeCheck using (tc)
-open import Eval
-open import Examples
+open import examples.TypeCheck using (tc)
+open import examples.Eval
+open import examples.Examples
   using (ℓ; ex1; ex1-⊢; ex1-run; ex2; ex2-⊢; ex2-run; ex4; ex4-⊢; ex4-run;
          ex6; ex6-⊢; ex6-run)
 

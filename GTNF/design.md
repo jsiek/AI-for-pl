@@ -839,7 +839,7 @@ boundary:
 
 The `Merge` after `IdDyn` is needed because `IdDyn` leaves a boundary
 directly over the boundary value `W`, which is not a value (§5).  The
-machine-checked run (`GTNF/agda/Examples.agda`, `ex5-run`, 21 steps)
+machine-checked run (`GTNF/agda/examples/Examples.agda`, `ex5-run`, 21 steps)
 continues with `Beta`, then `Merge` and `Id` twice.  The second pair
 comes from the two boundary layers around `h`'s call, which the omitted
 prefix creates.  The result is `5`.  The `IdDyn` step happens at the interior `Δ, X:=α` of

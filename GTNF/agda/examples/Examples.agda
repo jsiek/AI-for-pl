@@ -1,4 +1,4 @@
-module Examples where
+module examples.Examples where
 
 -- File Charter:
 --   * THE EXAMPLES OF GTNF/design.md §8, hand-compiled per §7 into the
@@ -48,8 +48,8 @@ open import Coercion
 open import Terms
 open import TermSubst
 open import Reduction
-open import TypeCheck using (tc; infer; check⊢)
-open import Eval
+open import examples.TypeCheck using (tc; infer; check⊢)
+open import examples.Eval
 
 ℓ ℓ′ : Label
 ℓ = 0

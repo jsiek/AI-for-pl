@@ -1,4 +1,4 @@
-module TypeCheck where
+module examples.TypeCheck where
 
 -- File Charter:
 --   * (GTNF) FORKED FROM strong-rep-nu.TypeCheck.  New: §7b the

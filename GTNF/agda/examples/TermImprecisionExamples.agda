@@ -1,4 +1,4 @@
-module TermImprecisionExamples where
+module examples.TermImprecisionExamples where
 
 -- File Charter:
 --   * SANITY DERIVATIONS of `W ∣ γ ⊢ M ⊑ M′ ∶ p` (TermImprecision) on
@@ -39,13 +39,13 @@ open import Conversion
 open import Boundary
 open import Coercion
 open import Terms
-open import TypeCheck using (tc; tf)
-open import Eval using (evalTerms)
+open import examples.TypeCheck using (tc; tf)
+open import examples.Eval using (evalTerms)
 open import Imprecision
 open import ImprecisionWorld
 open import ConversionImprecision
 open import TermImprecision
-open import ImprecisionExamples
+open import examples.ImprecisionExamples
   using (L1; R1; L1-⊢; R1-⊢; R2; L3-⊢; R3-⊢;
          L6; R6; L6-⊢; R6-⊢)
 open import Reduction using (inst-Λ)

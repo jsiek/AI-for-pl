@@ -18,33 +18,33 @@ open import TermSubst
 open import Reduction
 
 -- executable, derivation-producing type checking, and the step function
-open import TypeCheck
-open import Eval
+open import examples.TypeCheck
+open import examples.Eval
 
 -- design.md §8's examples, run by `refl`
-open import Examples
+open import examples.Examples
 
 -- pairs of programs for designing the cast-term imprecision
 -- type imprecision (GTSFImp's, design.md §12.1)
 open import Imprecision
 
-open import ImprecisionExamples
+open import examples.ImprecisionExamples
 
 -- cast-term imprecision (design.md §12.2-§12.3): worlds, the relation,
 -- and sanity derivations on the pairs above
 open import ImprecisionWorld
 open import ConversionImprecision
 open import TermImprecision
-open import TermImprecisionExamples
+open import examples.TermImprecisionExamples
 
 -- the term-imprecision examples of papers/cambridge26.lagda.md, run
-open import CambridgeExamples
+open import examples.CambridgeExamples
 
 -- term imprecision at the blocks where cambridge26 uses (split)/(extend)
-open import TermImprecisionRebaseExamples
+open import examples.TermImprecisionRebaseExamples
 
 -- de Bruijn → named rendering (scripts/render_gtnf.sh)
-open import Show
+open import examples.Show
 
 -- the statement of the dynamic gradual guarantee (proof/DGG/PLAN.md §2)
 open import DynamicGradualGuarantee

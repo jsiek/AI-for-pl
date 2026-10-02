@@ -13,8 +13,8 @@ open import Ctx using (empty)
 open import Coercion
 open import Terms
 open import Conversion
-open import TypeCheck using (tc)
-open import Eval
+open import examples.TypeCheck using (tc)
+open import examples.Eval
 
 ℓ : Label
 ℓ = 0

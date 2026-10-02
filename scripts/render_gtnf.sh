@@ -1,10 +1,10 @@
 #!/bin/bash
 # Render a GTNF de Bruijn term/type/coercion/run to NAMED notation.
-# Uses GTNF/agda/Show.agda via the type-error trick: `oops : e ≡ ""` makes
+# Uses GTNF/agda/examples/Show.agda via the type-error trick: `oops : e ≡ ""` makes
 # Agda print e's normal form in the mismatch error.
 #   usage: scripts/render_gtnf.sh '<String expr>' ['<import line>' ...]
 #   example: scripts/render_gtnf.sh 'showRun 16 ex1-⊢' \
-#              'open import Examples'
+#              'open import examples.Examples'
 #   (`showRun k ⊢M` renders every state of a run with its rules;
 #    `showTm M` renders one closed term.)
 set -u
@@ -13,7 +13,7 @@ EXPR="$1"; shift
 { echo "module RenderTmp where"
   echo "open import Relation.Binary.PropositionalEquality using (_≡_)"
   echo "open import Data.String using (String)"
-  echo "open import Show"
+  echo "open import examples.Show"
   for imp in "$@"; do echo "$imp"; done
   echo "oops : ($EXPR) ≡ \"\""
   echo "oops = _≡_.refl"

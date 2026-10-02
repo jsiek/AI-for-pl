@@ -1,4 +1,4 @@
-module Show where
+module examples.Show where
 
 -- File Charter:
 --   * (GTNF) FORKED FROM strong-rep-nu.Show: de Bruijn → NAMED
@@ -60,7 +60,7 @@ open import Terms
   using (Term; `_; $_; `true; `false; ƛ_∙_; _·_; Λ_; ν_·_⟨_⟩; _⟪_,_⟫;
          _⟨_∣_⟩; blame; _∣_⊢_⦂_)
 open import Boundary using (Boundary; Change; unbind; bind)
-open import Eval
+open import examples.Eval
   using (Trace; stop; illtyped; _◅⟨_⟩_; Final; value; blamed; no-redex;
          out-of-fuel; eval; ruleName)
 

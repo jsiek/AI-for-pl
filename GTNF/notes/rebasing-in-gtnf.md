@@ -25,7 +25,7 @@ holds the store pairs and only grows (D12, D16).  A right rep. var has
 one left partner and a left rep. var may have several (D13).
 
 All GTNF blocks below are Agda derivations in
-`GTNF/agda/TermImprecisionRebaseExamples.agda`, each pinned to the
+`GTNF/agda/examples/TermImprecisionRebaseExamples.agda`, each pinned to the
 `evalTerms` states by `refl`.  The states are verbatim from
 `cambridge-traces.md` (L = more precise, R = less precise; `L_i`/`R_j` =
 state i/j of that run).

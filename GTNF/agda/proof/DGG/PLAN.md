@@ -13,7 +13,13 @@ The live status of every item is in `DASHBOARD.md` (generated, §6).
   lives at the top level of `GTNF/agda/` (the language, the type,
   conversion and term imprecision, and the statement modules of §2).
   Proofs, and the statements of internal lemmas, live under
-  `GTNF/agda/proof/`.  Jeremy audits the top level only.
+  `GTNF/agda/proof/`.  Jeremy audits the top level only.  Tools and
+  tests that no statement depends on (the evaluator `Eval`, the checker
+  `TypeCheck`, the renderer `Show`, and every `*Examples` module) live
+  in `GTNF/agda/examples/` (Jeremy, 2026-10-02).  The top level is:
+  `Types`, `Ctx`, `Lookup`, `Boundary`, `Conversion`, `Coercion`,
+  `Terms`, `TermSubst`, `Reduction`; `Imprecision`, `ImprecisionWorld`,
+  `ConversionImprecision`, `TermImprecision`; `DynamicGradualGuarantee`.
 - **Def / Proof / Lemma** (GTSFImp `proof/DGG/*Def.agda`).  For each
   lemma `L`:
   - `proof/DGG/LDef.agda` holds the statement, `L-Statement : Set`.

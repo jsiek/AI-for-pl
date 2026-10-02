@@ -1,6 +1,6 @@
 # cambridge26 examples in GTNF: rendered runs
 
-Rendered by `scripts/render_gtnf.sh 'showRun 60 X-⊢' 'open import CambridgeExamples'` from `GTNF/agda/CambridgeExamples.agda`. L = more precise, R = less precise (the notes' `M ⊒ M′` is `R ⊒ L`). ι = ℕ, c = 5, c★ = 5⟨ℕ!⟩^[].
+Rendered by `scripts/render_gtnf.sh 'showRun 60 X-⊢' 'open import examples.CambridgeExamples'` from `GTNF/agda/examples/CambridgeExamples.agda`. L = more precise, R = less precise (the notes' `M ⊒ M′` is `R ⊒ L`). ι = ℕ, c = 5, c★ = 5⟨ℕ!⟩^[].
 
 ## Cf — (f) l.1246; Ex 7 l.1457; Ex 15 l.2049
 

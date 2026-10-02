@@ -1,4 +1,4 @@
-module TermImprecisionRebaseExamples where
+module examples.TermImprecisionRebaseExamples where
 
 -- File Charter:
 --   * DERIVATIONS OF `W ∣ γ ⊢ M ⊑ M′ ∶ p` (TermImprecision) AT THE
@@ -49,20 +49,20 @@ open import Conversion
 open import Boundary
 open import Coercion
 open import Terms
-open import TypeCheck using (tc; tf)
-open import Eval using (evalTerms)
+open import examples.TypeCheck using (tc; tf)
+open import examples.Eval using (evalTerms)
 open import Imprecision
 open import ImprecisionWorld
 open import ConversionImprecision
 open import TermImprecision
-open import CambridgeExamples
+open import examples.CambridgeExamples
 open import TermSubst using (crossΛᴹ)
 open import Reduction using (inst-Λ; inst-gen)
-open import TermImprecisionExamples
+open import examples.TermImprecisionExamples
   using (idX; revX; ℕ⊑★; five⊑; Θ₀; L1′; ΔL; ΔR; ΔLᵢ; ΔRᵢ;
          W₁; Wᵢ₁; Wᵢ₁-int; Wᵢ₁-conv; Wᵢ₁-wf; bL-ty; bR-ty; bLR-conv; revX⊑revX;
          νL-ty; Wν; Wν-conv; W₃; R3′; p3-inst)
-open import ImprecisionExamples using (L1)
+open import examples.ImprecisionExamples using (L1)
 
 ------------------------------------------------------------------------
 -- Pieces shared by the blocks

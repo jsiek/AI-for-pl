@@ -1,4 +1,4 @@
-module CambridgeExamples where
+module examples.CambridgeExamples where
 
 -- File Charter:
 --   * THE TERM-IMPRECISION EXAMPLES OF papers/cambridge26.lagda.md
@@ -118,10 +118,10 @@ open import Ctx
 open import Conversion
 open import Coercion
 open import Terms
-open import TypeCheck using (tc)
-open import Eval
-open import Examples using (ℓ; ex1; ex1-⊢; ex1-run)
-open import ImprecisionExamples
+open import examples.TypeCheck using (tc)
+open import examples.Eval
+open import examples.Examples using (ℓ; ex1; ex1-⊢; ex1-run)
+open import examples.ImprecisionExamples
   using (L1; L1-⊢; L1-run; R1; R1-⊢; R1-run; R2; R2-⊢; R2-run)
 
 ------------------------------------------------------------------------

@@ -30,6 +30,12 @@ open import Imprecision
 
 open import ImprecisionExamples
 
+-- cast-term imprecision (design.md §12.2-§12.3): worlds, the relation,
+-- and sanity derivations on the pairs above
+open import ImprecisionWorld
+open import TermImprecision
+open import TermImprecisionExamples
+
 -- the term-imprecision examples of papers/cambridge26.lagda.md, run
 open import CambridgeExamples
 

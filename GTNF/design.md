@@ -1226,9 +1226,12 @@ for the time being (Jeremy, 2026-10-01).
   in `GTNF/agda/`, and `make check` passes.  Also in place:
   `Imprecision` (type imprecision, copied from GTSFImp, §12.1),
   `ImprecisionExamples` (the six pairs of §12.4) and `Show` (a named
-  renderer, `scripts/render_gtnf.sh`).  Next: settle §12.5's open
-  questions, then formalize `⊑` in Agda; then progress and
-  preservation, then `compile-⊢`.
+  renderer, `scripts/render_gtnf.sh`).  `⊑` is formalized:
+  `ImprecisionWorld` (worlds, `W[δ ∥ δ′]` as the relation `Interior`,
+  `CtxImp`, `WfWorld`), `TermImprecision` (the 16 rules of §12.3, with
+  no `⊕⊑⊕`) and `TermImprecisionExamples` (P1 at the start and after
+  both `TyBeta`s, P2 after the left's `TyBeta`, P3 at `∀⊑⟪+⟫`).  Next:
+  progress and preservation, then `compile-⊢`.
 
 ------------------------------------------------------------------------
 

@@ -3,7 +3,8 @@ module All where
 -- Aggregate driver for GTNF (GTNF/design.md): type-checking this module
 -- type-checks the whole development.  The definitional layer is forked
 -- from SystemF/agda/strong-rep-nu (System νF) and extended with ★,
--- coercions, casts and blame; there is no metatheory yet.
+-- coercions, casts and blame; the completed M1 type-safety proofs are
+-- imported below.
 
 open import Types
 open import proof.Types
@@ -54,6 +55,7 @@ open import TypeSafety
 
 -- completed M1 proofs
 open import proof.TypeSafety.Progress
+open import proof.TypeSafety.Preservation
 open import proof.TypeSafety.Irreducible
 open import proof.TypeSafety.Determinism
 

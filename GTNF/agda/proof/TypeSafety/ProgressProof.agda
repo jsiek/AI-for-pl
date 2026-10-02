@@ -254,8 +254,10 @@ progress-cast V⊢ vV (⊢inst ⊢p wB nvA z∈A nsB) len =
   inj₂ (_ , none , Inst vV)
 progress-cast V⊢ vV (⊢gen ⊢p wA nvB z∈B nsA safe) len =
   inj₁ (V-simple (S-cast vV I-gen))
-progress-cast V⊢ vV (⊢seq ⊢p ⊢q) len =
+progress-cast V⊢ vV (⊢seq-tag ⊢p tg ns) len =
   inj₂ (_ , none , CastSeq vV)
+progress-cast V⊢ vV (⊢seq-check cg ⊢p ns) len =
+  inj₂ (_ , none , CastSeq? vV)
 progress-cast V⊢ vV ⊢bot-elim len = ⊥-elim (no-bot-value vV V⊢)
 progress-cast V⊢ vV ⊢bot-intro len =
   inj₂ (_ , none , BlameBotIntro vV)

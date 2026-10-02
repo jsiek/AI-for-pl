@@ -5,7 +5,8 @@ module Reduction where
 --     `exitEnv`, the mode environment of a tag `IdDyn` moves out.
 --     §1 `_⊢_-→_∣_`: νF's rules TyBeta (now through `InstX`, which
 --     subsumes νF's TyWrap as its boundary case), Beta, Wrap, Merge,
---     Id; GTNF's cast rules CastId, CastSeq, CastFun, Inst, TagUntag,
+--     Id; GTNF's cast rules CastId, CastSeq, CastSeq?, CastFun, Inst,
+--     TagUntag,
 --     TagUntagBad, IdDyn/IdDyn-var, TagUntagBad-⟪⟫, BlameBotIntro; the
 --     blame rules Blame-·₁, Blame-·₂, Blame-ν, Blame-⟪⟫, Blame-cast (one
 --     per frame of design.md §6.1); and the congruences ξ-·₁, ξ-·₂,
@@ -163,9 +164,14 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
       ----------------------------------
     → Δ ⊢ V ⟨ μ ∣ idᵖ A ⟩ -→ V ∣ none
 
-  CastSeq : ∀ {Δ V μ p q} → Value V
+  -- the two evidence-shaped sequences split into their two casts
+  CastSeq : ∀ {Δ V μ p G} → Value V
       ----------------------------------
-    → Δ ⊢ V ⟨ μ ∣ p ︔ q ⟩ -→ V ⟨ μ ∣ p ⟩ ⟨ μ ∣ q ⟩ ∣ none
+    → Δ ⊢ V ⟨ μ ∣ p ︔ G ! ⟩ -→ V ⟨ μ ∣ p ⟩ ⟨ μ ∣ G ! ⟩ ∣ none
+
+  CastSeq? : ∀ {Δ V μ p G ℓ} → Value V
+      ----------------------------------
+    → Δ ⊢ V ⟨ μ ∣ G ？ ℓ ︔ p ⟩ -→ V ⟨ μ ∣ G ？ ℓ ⟩ ⟨ μ ∣ p ⟩ ∣ none
 
   CastFun : ∀ {Δ V W μ p q} → Value V → Value W
       ----------------------------------
@@ -299,6 +305,7 @@ value-¬step (V-simple S-ƛ) ()
 value-¬step (V-simple (S-Λ v)) ()
 value-¬step (V-simple (S-cast v ())) (CastId _)
 value-¬step (V-simple (S-cast v ())) (CastSeq _)
+value-¬step (V-simple (S-cast v ())) (CastSeq? _)
 value-¬step (V-simple (S-cast v ())) (Inst _)
 value-¬step (V-simple (S-cast v ())) (TagUntag _)
 value-¬step (V-simple (S-cast v ())) (TagUntagBad _ _)

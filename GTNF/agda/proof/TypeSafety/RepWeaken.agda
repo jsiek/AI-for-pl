@@ -133,8 +133,24 @@ coercion-renᴿ {η = η} {ρ = ρ} w (⊢gen ⊢p wA nv occ ns safe) =
   ⊢gen (coercion-ctx-cast (names-underΛ-ren ρ η)
           (coercion-renᴿ (repwk-abst w) ⊢p))
        (wf-ren-rep wA) nv occ ns safe
-coercion-renᴿ w (⊢seq ⊢p ⊢q) =
-  ⊢seq (coercion-renᴿ w ⊢p) (coercion-renᴿ w ⊢q)
+coercion-renᴿ {ρ = ρ} w (⊢seq-tag ⊢p tg ns) =
+  ⊢seq-tag (coercion-renᴿ w ⊢p) (tag-ground-renᴿ ρ tg) ns
+  where
+  tag-ground-renᴿ : ∀ {Ξ Ξ′ η μ G}
+    → (ρ : Renameᵗ)
+    → TagGround (Ξ ∣ η) μ G
+    → TagGround (Ξ′ ∣ map ρ η) μ G
+  tag-ground-renᴿ ρ (tg-nv g) = tg-nv g
+  tag-ground-renᴿ ρ (tg-var tv mode ok) = tg-var (tv-ren ρ tv) mode ok
+coercion-renᴿ {ρ = ρ} w (⊢seq-check cg ⊢p ns) =
+  ⊢seq-check (check-ground-renᴿ ρ cg) (coercion-renᴿ w ⊢p) ns
+  where
+  check-ground-renᴿ : ∀ {Ξ Ξ′ η μ G}
+    → (ρ : Renameᵗ)
+    → CheckGround (Ξ ∣ η) μ G
+    → CheckGround (Ξ′ ∣ map ρ η) μ G
+  check-ground-renᴿ ρ (cg-nv g) = cg-nv g
+  check-ground-renᴿ ρ (cg-var tv mode ok) = cg-var (tv-ren ρ tv) mode ok
 coercion-renᴿ w ⊢bot-elim = ⊢bot-elim
 coercion-renᴿ w ⊢bot-intro = ⊢bot-intro
 

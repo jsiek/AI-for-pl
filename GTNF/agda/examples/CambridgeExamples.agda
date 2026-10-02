@@ -99,7 +99,7 @@ module examples.CambridgeExamples where
 --     CJ   the DGG counterexample at lines 72/81, fixed form (the check
 --          (★→★)? before the gen; the unfixed gen X.((★→★)?; …) is
 --          ill typed in GTNF: GenSafe, and gen's A ≠ ★)
---          L  blame 4   CastSeq TagUntagBad Blame Blame
+--          L  blame 4   CastSeq? TagUntagBad Blame Blame
 --          R  blame 2   TagUntagBad Blame
 --   * NOT TRANSLATED: (a)–(d) are single programs (they are the sides
 --     of Ex 15, Cg and C16b); Ex 23 has no programs (C23a/b are
@@ -359,7 +359,7 @@ C23b-R-⊢ = tc
 -- projection outside the ν (the version GTNF can type)
 CJ-L CJ-R : Term
 CJ-L = (ƛ (`∀ (` 0 ⇒ ` 0)) ∙ ` 0)
-     · ((dyn 0) ⟨ [] ∣ ((★ ⇒ ★) ？ ℓ) ︔ genI ⟩)
+     · ((dyn 0) ⟨ [] ∣ (★ ⇒ ★) ？ ℓ ︔ genI ⟩)
 CJ-R = (ƛ (★ ⇒ ★) ∙ ` 0) · ((dyn 0) ⟨ [] ∣ (★ ⇒ ★) ？ ℓ ⟩)
 
 CJ-L-⊢ : empty ∣ [] ⊢ CJ-L ⦂ `∀ (` 0 ⇒ ` 0)

@@ -574,7 +574,8 @@ genSafe? (genᵖ p) | nothing = nothing
 genSafe? (idᵖ A)       = nothing
 genSafe? (G !)         = nothing
 genSafe? (G ？ ℓ)      = nothing
-genSafe? (p ︔ q)       = nothing
+genSafe? (p ︔ G !)     = nothing
+genSafe? (G ？ ℓ ︔ p)   = nothing
 genSafe? bot-elim      = nothing
 genSafe? (bot-intro ℓ) = nothing
 
@@ -586,7 +587,8 @@ inertC? (genᵖ p)      = just I-gen
 inertC? (idᵖ A)       = nothing
 inertC? (G ？ ℓ)      = nothing
 inertC? (instᵖ p)     = nothing
-inertC? (p ︔ q)       = nothing
+inertC? (p ︔ G !)     = nothing
+inertC? (G ？ ℓ ︔ p)   = nothing
 inertC? bot-elim      = nothing
 inertC? (bot-intro ℓ) = nothing
 
@@ -601,6 +603,32 @@ checkOK? X∼X   = nothing
 checkOK? X∼★   = nothing
 checkOK? ★∼X   = just check-dyn
 checkOK? ★∼X∼★ = just check-cross
+
+tagGround? : (Δ : Ctxᵗ) (μ : ModeEnv) (G : Ty)
+  → Maybe (TagGround Δ μ G)
+tagGround? Δ μ (` X) with ∋tv? Δ X | lookupˡ? μ X
+tagGround? Δ μ (` X) | just tv | just (m , lm) with tagOK? m
+tagGround? Δ μ (` X) | just tv | just (m , lm) | just ok =
+  just (tg-var tv lm ok)
+tagGround? Δ μ (` X) | just tv | just (m , lm) | nothing = nothing
+tagGround? Δ μ (` X) | just tv | nothing = nothing
+tagGround? Δ μ (` X) | nothing | lm = nothing
+tagGround? Δ μ G with groundNV? G
+tagGround? Δ μ G | just g  = just (tg-nv g)
+tagGround? Δ μ G | nothing = nothing
+
+checkGround? : (Δ : Ctxᵗ) (μ : ModeEnv) (G : Ty)
+  → Maybe (CheckGround Δ μ G)
+checkGround? Δ μ (` X) with ∋tv? Δ X | lookupˡ? μ X
+checkGround? Δ μ (` X) | just tv | just (m , lm) with checkOK? m
+checkGround? Δ μ (` X) | just tv | just (m , lm) | just ok =
+  just (cg-var tv lm ok)
+checkGround? Δ μ (` X) | just tv | just (m , lm) | nothing = nothing
+checkGround? Δ μ (` X) | just tv | nothing = nothing
+checkGround? Δ μ (` X) | nothing | lm = nothing
+checkGround? Δ μ G with groundNV? G
+checkGround? Δ μ G | just g  = just (cg-nv g)
+checkGround? Δ μ G | nothing = nothing
 
 -- undoing a shift, with the equation `⊢inst`/`⊢gen` need
 unshiftVar : (k Y : ℕ) → Maybe (Σ[ X ∈ ℕ ] (extN k suc X ≡ Y))
@@ -692,16 +720,22 @@ coercionTy? Δ μ (genᵖ p) | just (A′ , B , ⊢p) | just (A , eq)
                         wA nv oc ns gs)
 coercionTy? Δ μ (genᵖ p) | just (A′ , B , ⊢p) | just (A , eq)
   | wA | nv | oc | ns | gs = nothing
-coercionTy? Δ μ (p ︔ q) with coercionTy? Δ μ p
-coercionTy? Δ μ (p ︔ q) | nothing = nothing
-coercionTy? Δ μ (p ︔ q) | just (A , B , ⊢p) with coercionTy? Δ μ q
-coercionTy? Δ μ (p ︔ q) | just (A , B , ⊢p) | nothing = nothing
-coercionTy? Δ μ (p ︔ q) | just (A , B , ⊢p) | just (B′ , C , ⊢q)
-  with B′ ≟Ty B
-coercionTy? Δ μ (p ︔ q) | just (A , B , ⊢p) | just (B′ , C , ⊢q)
-  | just refl = just (A , C , ⊢seq ⊢p ⊢q)
-coercionTy? Δ μ (p ︔ q) | just (A , B , ⊢p) | just (B′ , C , ⊢q)
-  | nothing = nothing
+coercionTy? Δ μ (p ︔ G !) with coercionTy? Δ μ p
+coercionTy? Δ μ (p ︔ G !) | nothing = nothing
+coercionTy? Δ μ (p ︔ G !) | just (A , G′ , ⊢p)
+  with G′ ≟Ty G | tagGround? Δ μ G | nonStar? A
+coercionTy? Δ μ (p ︔ G !) | just (A , G′ , ⊢p)
+  | just refl | just tg | just ns = just (A , ★ , ⊢seq-tag ⊢p tg ns)
+coercionTy? Δ μ (p ︔ G !) | just (A , G′ , ⊢p)
+  | eq | tg | ns = nothing
+coercionTy? Δ μ (G ？ ℓ ︔ p) with coercionTy? Δ μ p
+coercionTy? Δ μ (G ？ ℓ ︔ p) | nothing = nothing
+coercionTy? Δ μ (G ？ ℓ ︔ p) | just (G′ , B , ⊢p)
+  with G′ ≟Ty G | checkGround? Δ μ G | nonStar? B
+coercionTy? Δ μ (G ？ ℓ ︔ p) | just (G′ , B , ⊢p)
+  | just refl | just cg | just ns = just (★ , B , ⊢seq-check cg ⊢p ns)
+coercionTy? Δ μ (G ？ ℓ ︔ p) | just (G′ , B , ⊢p)
+  | eq | cg | ns = nothing
 coercionTy? Δ μ bot-elim = just (`∀ (` 0) , `∀ ★ , ⊢bot-elim)
 coercionTy? Δ μ (bot-intro ℓ) = just (`∀ ★ , `∀ (` 0) , ⊢bot-intro)
 

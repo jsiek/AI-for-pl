@@ -29,9 +29,10 @@ module examples.Examples where
 --                           (`ex7-env` pins the state after the first
 --                           IdDyn; design.md Example 7)
 --       d8   11  blame ℓ    D8's alias: … TagUntagBad-⟪⟫ Blame Blame
---     and four coverage runs: cov1 (CastSeq, TagUntag), cov2
+--     and six coverage runs: cov1 (TagUntag), cov2
 --     (BlameBotIntro, Blame-ν), cov3 (TagUntagBad, Blame-·₁), cov4
---     (TyBeta's boundary case `inst-⟪⟫`, νF's old TyWrap).
+--     (TyBeta's boundary case `inst-⟪⟫`, νF's old TyWrap), cov5
+--     (CastSeq), and cov6 (CastSeq?).
 --   * Labels: ℓ = 0, ℓ′ = 1.
 
 open import Data.Nat using (ℕ; zero; suc)
@@ -141,13 +142,15 @@ d8-⊢ : empty ∣ [] ⊢ d8 ⦂ `ℕ
 d8-⊢ = tc
 
 
-cov1 cov2 cov3 cov4 : Term
-cov1 = ($ 5 ⟨ [] ∣ `ℕ ! ︔ `ℕ ？ ℓ ⟩)
+cov1 cov2 cov3 cov4 cov5 cov6 : Term
+cov1 = $ 5 ⟨ [] ∣ `ℕ ! ⟩ ⟨ [] ∣ `ℕ ？ ℓ ⟩
 cov2 = ν `ℕ · (Λ ($ 5 ⟨ μX ∣ `ℕ ! ⟩) ⟨ [] ∣ bot-intro ℓ ⟩) ⟨ reveal 0 (` 0) ⟩
 cov3 = ($ 5 ⟨ [] ∣ `ℕ ! ⟩ ⟨ [] ∣ (★ ⇒ ★) ？ ℓ ⟩) · ($ 1 ⟨ [] ∣ `ℕ ! ⟩)
 cov4 = (ν `𝔹 · (ν `ℕ · Λ (Λ (ƛ (` 0) ∙ ` 0))
           ⟨ reveal 0 (`∀ (` 0 ⇒ ` 0)) ⟩) ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩)
        · `true
+cov5 = $ 5 ⟨ [] ∣ idᵖ `ℕ ︔ `ℕ ! ⟩
+cov6 = ($ 5 ⟨ [] ∣ `ℕ ! ⟩) ⟨ [] ∣ `ℕ ？ ℓ ︔ idᵖ `ℕ ⟩
 cov1-⊢ : empty ∣ [] ⊢ cov1 ⦂ `ℕ
 cov1-⊢ = tc
 cov2-⊢ : empty ∣ [] ⊢ cov2 ⦂ `ℕ
@@ -156,6 +159,10 @@ cov3-⊢ : empty ∣ [] ⊢ cov3 ⦂ ★
 cov3-⊢ = tc
 cov4-⊢ : empty ∣ [] ⊢ cov4 ⦂ `𝔹
 cov4-⊢ = tc
+cov5-⊢ : empty ∣ [] ⊢ cov5 ⦂ ★
+cov5-⊢ = tc
+cov6-⊢ : empty ∣ [] ⊢ cov6 ⦂ `ℕ
+cov6-⊢ = tc
 
 ------------------------------------------------------------------------
 -- The runs
@@ -195,7 +202,7 @@ ex7-env = refl
 d8-run : Reaches 16 11 d8-⊢ (blame ℓ)
 d8-run = reaches refl (ans-blame)
 
-cov1-run : Reaches 7 2 cov1-⊢ ($ 5)
+cov1-run : Reaches 6 1 cov1-⊢ ($ 5)
 cov1-run = reaches refl (ans-value (V-simple S-$))
 
 cov2-run : Reaches 7 2 cov2-⊢ (blame ℓ)
@@ -206,3 +213,9 @@ cov3-run = reaches refl (ans-blame)
 
 cov4-run : Reaches 12 7 cov4-⊢ `true
 cov4-run = reaches refl (ans-value (V-simple S-true))
+
+cov5-run : Reaches 7 2 cov5-⊢ ($ 5 ⟨ [] ∣ `ℕ ! ⟩)
+cov5-run = reaches refl (ans-value (V-simple (S-cast (V-simple S-$) I-tag)))
+
+cov6-run : Reaches 8 3 cov6-⊢ ($ 5)
+cov6-run = reaches refl (ans-value (V-simple S-$))

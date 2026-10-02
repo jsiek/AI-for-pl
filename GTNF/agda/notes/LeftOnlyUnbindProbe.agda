@@ -1,45 +1,48 @@
 module notes.LeftOnlyUnbindProbe where
 
--- Probe (design.md §12.5, question 3): can a LEFT-ONLY unbind of a name
--- that both sides share arise?  The left casts the polymorphic identity
--- by a gen/inst detour through ★, the right by the structural ∀-cast;
--- both coercions have type ∀Y.Y→Y ⟹ ∀X.X→X.
--- NOTE: the left coercion is NOT the compilation of any consistency
--- evidence (design.md §12.5), so this pair is outside compile's image.
+-- File Charter:
+--   * REGRESSION PROBE for design.md §12.5, question 3.  The former
+--     left program tried to cast the polymorphic identity through
+--       gen X. inst Y. ((X! ; Y?ℓ) → (Y! ; X?ℓ)).
+--     D20 removes both tag-then-check sequences from coercion syntax.
+--   * `no-X-to-Y` records the semantic reason: evidence-shaped coercions
+--     cannot mediate directly between two distinct names.  Thus this
+--     proposed left-only unbind example is outside GTNF, while the
+--     structural right program remains typed.
 
-open import Data.List using ([])
+open import Data.List using ([]; _∷_)
+open import Relation.Nullary using (¬_)
+
 open import Types
-open import Ctx using (empty)
+open import Ctx using (Ctxᵗ; empty; underΛ)
 open import Coercion
 open import Terms
 open import Conversion
 open import examples.TypeCheck using (tc)
-open import examples.Eval
+open import proof.TypeSafety.CoercionTyping using (coercion-var-to-var)
 
-ℓ : Label
-ℓ = 0
+ΔX ΔXY : Ctxᵗ
+ΔX = underΛ empty
+ΔXY = underΛ ΔX
+
+no-X-to-Y : ∀ {p}
+  → ¬ (ΔXY ∣ X∼★ ∷ ★∼X ∷ [] ⊢ᵖ p ∶ ` 1 ⟹ ` 0)
+no-X-to-Y ⊢p with coercion-var-to-var ⊢p
+no-X-to-Y ⊢p | ()
 
 I : Term
 I = Λ (ƛ (` 0) ∙ ` 0)
 
--- gen X. inst Y. ((X! ; Y?ℓ) → (Y! ; X?ℓ))
-detour : Coercion
-detour = genᵖ (instᵖ (((` 1) ! ︔ (` 0) ？ ℓ) ↦ᵖ ((` 0) ! ︔ (` 1) ？ ℓ)))
-
--- ∀X. (id(X) → id(X))
 struct : Coercion
 struct = ∀ᵖ (idᵖ (` 0) ↦ᵖ idᵖ (` 0))
 
 use : Coercion → Term
-use p = (ƛ (`∀ (` 0 ⇒ ` 0)) ∙ ((ν `ℕ · ` 0 ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩) · $ 5))
+use p = (ƛ (`∀ (` 0 ⇒ ` 0)) ∙
+          ((ν `ℕ · ` 0 ⟨ reveal 0 (` 0 ⇒ ` 0) ⟩) · $ 5))
         · (I ⟨ [] ∣ p ⟩)
 
-Q-L Q-R : Term
-Q-L = use detour
+Q-R : Term
 Q-R = use struct
-
-Q-L-⊢ : empty ∣ [] ⊢ Q-L ⦂ `ℕ
-Q-L-⊢ = tc
 
 Q-R-⊢ : empty ∣ [] ⊢ Q-R ⦂ `ℕ
 Q-R-⊢ = tc

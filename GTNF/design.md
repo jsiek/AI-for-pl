@@ -160,7 +160,8 @@ Coercions    p, q, r ::= id(A)            identity
                        | ∀X. p            under a type binder
                        | inst X. p        instantiate a ∀ at ★ (implicit instantiation)
                        | gen X. p         generalize to a ∀ (implicit generalization)
-                       | p ; q            sequencing
+                       | p ; G!           tag after a coercion   (evidence-shaped, D20)
+                       | G?ℓ ; p          check before a coercion
                        | bot-elim         ∀X. X ⇒ ∀X. ★
                        | bot-intro ℓ      ∀X. ★ ⇒ ∀X. X  (always blames)
 Inert coercions  P ::= G! | p → q | ∀X. p | gen X. p
@@ -182,7 +183,7 @@ value exists.  Compilation always produces gen-safe coercions under
 `src(p)` and `trg(p)` are computed syntactically (`src(id A) = A`,
 `src(G!) = G`, `src(G?ℓ) = ★`, `src(p → q) = trg(p) → src(q)`,
 `src(∀X.p) = ∀X.src(p)`, `src(inst X.p) = ∀X.src(p)`,
-`src(gen X.p) = src(p)`, `src(p ; q) = src(p)`,
+`src(gen X.p) = src(p)`, `src(p ; G!) = src(p)`, `src(G?ℓ ; p) = ★`,
 `src(bot-elim) = ∀X. X`, `src(bot-intro ℓ) = ∀X. ★`, and dually for
 `trg`).
 
@@ -231,9 +232,13 @@ The side conditions on `inst` and `gen` are GTSFImp's.
   ──────────────────────────────────────────────────────────────────────────────── (X, α ∉ Δ)
   Δ ; μ ⊢ gen X. p : A ⇒ ∀X. B
 
-  Δ ; μ ⊢ p : A ⇒ B    Δ ; μ ⊢ q : B ⇒ C
-  ──────────────────────────────────────
-  Δ ; μ ⊢ p ; q : A ⇒ C
+  Δ ; μ ⊢ p : A ⇒ G    G! allowed by μ    A ≠ ★
+  ─────────────────────────────────────────────   (GTSFImp `_!`)
+  Δ ; μ ⊢ p ; G! : A ⇒ ★
+
+  G?ℓ allowed by μ    Δ ; μ ⊢ p : G ⇒ B    B ≠ ★
+  ─────────────────────────────────────────────   (GTSFImp `？_`)
+  Δ ; μ ⊢ G?ℓ ; p : ★ ⇒ B
 
   ─────────────────────────────────          ───────────────────────────────────
   Δ ; μ ⊢ bot-elim : ∀X. X ⇒ ∀X. ★           Δ ; μ ⊢ bot-intro ℓ : ∀X. ★ ⇒ ∀X. X
@@ -314,12 +319,21 @@ consistency at star"):
   (X?ℓ)[★/X]      = id(★)          (G?ℓ)[★/X] = G?ℓ   if G ≠ X
   (p → q)[★/X]    = p[★/X] → q[★/X]
   (∀Y. p)[★/X]    = ∀Y. p[★/X]          (inst Y. p)[★/X] = inst Y. p[★/X]
-  (gen Y. p)[★/X] = gen Y. p[★/X]       (p ; q)[★/X]     = p[★/X] ; q[★/X]
+  (gen Y. p)[★/X] = gen Y. p[★/X]
+  (p ; X!)[★/X]   = p[★/X]         (p ; G!)[★/X]   = p[★/X] ; G!    if G ≠ X
+  (X?ℓ ; p)[★/X]  = p[★/X]         (G?ℓ ; p)[★/X]  = G?ℓ ; p[★/X]   if G ≠ X
   bot-elim[★/X]   = bot-elim            (bot-intro ℓ)[★/X] = bot-intro ℓ
 ```
 
-If `Δ, α, X:=α ; μ, X:m ⊢ p : A ⇒ B` for any mode `m`, then
-`Δ ; μ ⊢ p[★/X] : A[★/X] ⇒ B[★/X]`.  `Inst` uses the lemma at
+Closing a sequence re-normalizes, as GTSFImp's `subst∼` does
+(`subst-to-star-var`, `factor-inst-star`): a tag or check of `X`
+itself disappears.  If `Δ, α, X:=α ; μ, X:m ⊢ p : A ⇒ B` for any mode
+`m`, then `Δ ; μ ⊢ p[★/X] : A[★/X] ⇒ B[★/X]`.  The lemma needs the
+evidence-shaped sequences of D20: with a general `p ; q`, a nested
+`inst Y. q` could reach the target `X` by a detour through `★`, such as
+`… ; (★→★)! ; X?ℓ`, and closing would give it the target `★`, which
+`inst` forbids (M1's counterexample,
+`proof/TypeSafety/notes/InstCloseCounterexample.agda`).  `Inst` uses the lemma at
 `m = X∼★`.  The lemma is stated for every `m` because a function
 coercion's domain flips `X∼★` to `★∼X`.
 
@@ -1223,6 +1237,17 @@ Each one can be revisited on its own.
   two steps, `TyBeta` and `Merge`, so `det` failed.  M1 found this
   (`proof/TypeSafety/notes/InstXDeterminismCounterexample.agda`, now a
   regression test; Jeremy, 2026-10-02).
+
+- **D20 (evidence-shaped coercions).**  Coercions have no general
+  sequencing.  The only sequences are the two that compilation
+  produces, `p ; G!` and `G?ℓ ; p`, typed like GTSFImp's `_!` and `？_`:
+  the tag or check is outside, permitted by the modes, and the inner
+  coercion's other end is not `★`.  This is GTSFImp's normal form
+  (commit c2c020fb added `B ≢ ★` to `inst` and `A ≢ ★` to `gen`, which
+  keeps injections and projections outside them).  It makes closing at
+  `★` preserve typing: a nested `inst`/`gen` can no longer reach the
+  closed variable through `★`.  M1 found the counterexample
+  (Jeremy, 2026-10-02).
 
 The open design questions are those of the `⊑` sketch (§12.5).
 

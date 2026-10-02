@@ -53,10 +53,20 @@ coercion-to-strict {X = X} strict
 coercion-to-strict {X = X} strict
     (⊢inst ⊢p wB nvA z∈A nsB) | refl =
   ⊥-elim (zero-not-in-suc-var z∈A)
-coercion-to-strict strict (⊢seq ⊢p ⊢q)
-    with coercion-to-strict strict ⊢q
-coercion-to-strict strict (⊢seq ⊢p ⊢q) | refl =
-  coercion-to-strict strict ⊢p
+coercion-to-strict strict (⊢seq-check (cg-nv g) ⊢p ns)
+    with coercion-to-strict strict ⊢p
+coercion-to-strict strict (⊢seq-check (cg-nv g) ⊢p ns)
+    | refl with g
+coercion-to-strict strict (⊢seq-check (cg-nv g) ⊢p ns)
+    | refl | ()
+coercion-to-strict strict (⊢seq-check (cg-var tv mode ok) ⊢p ns)
+    with coercion-to-strict strict ⊢p
+coercion-to-strict strict (⊢seq-check (cg-var tv mode ok) ⊢p ns)
+    | refl with ∋ˡ-det mode strict
+coercion-to-strict strict (⊢seq-check (cg-var tv mode ok) ⊢p ns)
+    | refl | refl with ok
+coercion-to-strict strict (⊢seq-check (cg-var tv mode ok) ⊢p ns)
+    | refl | refl | ()
 
 coercion-to-fresh : ∀ {Δ μ p A}
   → underΛ Δ ∣ X∼X ∷ μ ⊢ᵖ p ∶ A ⟹ ` zero

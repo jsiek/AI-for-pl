@@ -118,14 +118,15 @@ flipped; design.md §9.7).
 
 Each `Sim`/`SimBack` proof is by cases on the step.  The redex cases
 (one per reduction rule: `Beta`, `Wrap`, `TyBeta`, `Merge`, `Id`,
-`CastId`, `CastSeq`, `CastFun`, `Inst`, `TagUntag`, `TagUntagBad`,
+`CastId`, `CastSeq`, `CastSeq?`, `CastFun`, `Inst`, `TagUntag`,
+`TagUntagBad`,
 `IdDyn`, `TagUntagBad-⟪⟫`, `BlameBotIntro`, `Blame`) are a separate
 lemma per rule family, so that each is a small file.  The frame cases
 (`ξ`) are one lemma, which uses the IH and `Alloc⊑` for boundary
 frames.
 
-**Prerequisites** (GTNF has no metatheory yet): `Progress`,
-`Preservation` (needed because `⊑` carries both typings), value and
+**Prerequisites**: `Progress`, `Preservation` (needed because `⊑` carries
+both typings), value and
 blame irreducibility, determinism (up to the choice of fresh rep.
 var).  These are type-safety results, and they are also the first
 guard against risk (5).

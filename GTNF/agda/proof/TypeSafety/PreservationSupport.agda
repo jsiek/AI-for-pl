@@ -171,7 +171,8 @@ mutual
   coercion-source-wf (⊢inst ⊢p wB nv occ ns) =
     wf-∀ (coercion-source-wf ⊢p)
   coercion-source-wf (⊢gen ⊢p wA nv occ ns safe) = wA
-  coercion-source-wf (⊢seq ⊢p ⊢q) = coercion-source-wf ⊢p
+  coercion-source-wf (⊢seq-tag ⊢p tg ns) = coercion-source-wf ⊢p
+  coercion-source-wf (⊢seq-check cg ⊢p ns) = wf-★
   coercion-source-wf {Δ = Δ} ⊢bot-elim =
     wf-∀ (wf-var (tv-underΛ-zero {Δ = Δ}))
   coercion-source-wf ⊢bot-intro = wf-∀ wf-★
@@ -190,7 +191,8 @@ mutual
   coercion-target-wf (⊢inst ⊢p wB nv occ ns) = wB
   coercion-target-wf (⊢gen ⊢p wA nv occ ns safe) =
     wf-∀ (coercion-target-wf ⊢p)
-  coercion-target-wf (⊢seq ⊢p ⊢q) = coercion-target-wf ⊢q
+  coercion-target-wf (⊢seq-tag ⊢p tg ns) = wf-★
+  coercion-target-wf (⊢seq-check cg ⊢p ns) = coercion-target-wf ⊢p
   coercion-target-wf ⊢bot-elim = wf-∀ wf-★
   coercion-target-wf {Δ = Δ} ⊢bot-intro =
     wf-∀ (wf-var (tv-underΛ-zero {Δ = Δ}))
@@ -571,8 +573,26 @@ coercion-refine rr (⊢inst ⊢p wB nv occ ns) =
 coercion-refine rr (⊢gen ⊢p wA nv occ ns safe) =
   ⊢gen (coercion-refine (rr-abst rr) ⊢p)
        (wf-refine rr wA) nv occ ns safe
-coercion-refine rr (⊢seq ⊢p ⊢q) =
-  ⊢seq (coercion-refine rr ⊢p) (coercion-refine rr ⊢q)
+coercion-refine rr (⊢seq-tag ⊢p tg ns) =
+  ⊢seq-tag (coercion-refine rr ⊢p) (tag-ground-refine rr tg) ns
+  where
+  tag-ground-refine : ∀ {Ξ Ξ′ η μ G}
+    → RepRefines Ξ Ξ′
+    → TagGround (Ξ ∣ η) μ G
+    → TagGround (Ξ′ ∣ η) μ G
+  tag-ground-refine rr (tg-nv g) = tg-nv g
+  tag-ground-refine {Ξ = Ξ} {Ξ′ = Ξ′} rr (tg-var tv mode ok) =
+    tg-var (tv-refine {Ξ = Ξ} {Ξ′ = Ξ′} tv) mode ok
+coercion-refine rr (⊢seq-check cg ⊢p ns) =
+  ⊢seq-check (check-ground-refine rr cg) (coercion-refine rr ⊢p) ns
+  where
+  check-ground-refine : ∀ {Ξ Ξ′ η μ G}
+    → RepRefines Ξ Ξ′
+    → CheckGround (Ξ ∣ η) μ G
+    → CheckGround (Ξ′ ∣ η) μ G
+  check-ground-refine rr (cg-nv g) = cg-nv g
+  check-ground-refine {Ξ = Ξ} {Ξ′ = Ξ′} rr (cg-var tv mode ok) =
+    cg-var (tv-refine {Ξ = Ξ} {Ξ′ = Ξ′} tv) mode ok
 coercion-refine rr ⊢bot-elim = ⊢bot-elim
 coercion-refine rr ⊢bot-intro = ⊢bot-intro
 

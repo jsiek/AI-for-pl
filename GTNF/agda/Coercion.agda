@@ -24,7 +24,8 @@ module Coercion where
 --       id(A)        idᵖ A          G!           G !
 --       G?ℓ          G ？ ℓ         p → q        p ↦ᵖ q
 --       ∀X. p        ∀ᵖ p           inst X. p    instᵖ p
---       gen X. p     genᵖ p         p ; q        p ︔ q
+--       gen X. p     genᵖ p         p ; G!       p ︔ G !
+--       G?ℓ ; p      G ？ ℓ ︔ p
 --       bot-elim     bot-elim       bot-intro ℓ  bot-intro ℓ
 --     Modes are GTSFImp's `Var∼` constructors verbatim (`X∼X`, `X∼★`,
 --     `★∼X`, `★∼X∼★`), with `flipᵐ` and the list-shaped `flipEnv`.
@@ -55,7 +56,7 @@ Label : Set
 Label = ℕ
 
 infixr 7 _↦ᵖ_
-infixl 6 _︔_
+infix  6 _︔_! _？_︔_
 infix  9 _!
 infix  9 _？_
 infix  8 ∀ᵖ_ instᵖ_ genᵖ_
@@ -68,7 +69,10 @@ data Coercion : Set where
   ∀ᵖ_       : Coercion → Coercion          -- ∀X. p
   instᵖ_    : Coercion → Coercion          -- inst X. p
   genᵖ_     : Coercion → Coercion          -- gen X. p
-  _︔_       : Coercion → Coercion → Coercion   -- p ; q
+  -- EVIDENCE-SHAPED SEQUENCING (design.md D20): only the two forms that
+  -- compilation produces, `⟦c !⟧ = ⟦c⟧ ; G!` and `⟦？ c⟧ = G?ℓ ; ⟦c⟧`
+  _︔_!      : Coercion → Ty → Coercion     -- p ; G!
+  _？_︔_     : Ty → Label → Coercion → Coercion   -- G?ℓ ; p
   bot-elim  : Coercion                     -- ∀X. X ⟹ ∀X. ★
   bot-intro : Label → Coercion             -- ∀X. ★ ⟹ ∀X. X
 
@@ -182,7 +186,8 @@ mutual
   srcᵖ (∀ᵖ p)        = `∀ (srcᵖ p)
   srcᵖ (instᵖ p)     = `∀ (srcᵖ p)
   srcᵖ (genᵖ p)      = lowerᵗ (srcᵖ p)
-  srcᵖ (p ︔ q)       = srcᵖ p
+  srcᵖ (p ︔ G !)     = srcᵖ p
+  srcᵖ (G ？ ℓ ︔ p)   = ★
   srcᵖ bot-elim      = `∀ (` 0)
   srcᵖ (bot-intro ℓ) = `∀ ★
 
@@ -194,7 +199,8 @@ mutual
   trgᵖ (∀ᵖ p)        = `∀ (trgᵖ p)
   trgᵖ (instᵖ p)     = lowerᵗ (trgᵖ p)
   trgᵖ (genᵖ p)      = `∀ (trgᵖ p)
-  trgᵖ (p ︔ q)       = trgᵖ q
+  trgᵖ (p ︔ G !)     = ★
+  trgᵖ (G ？ ℓ ︔ p)   = trgᵖ p
   trgᵖ bot-elim      = `∀ ★
   trgᵖ (bot-intro ℓ) = `∀ (` 0)
 
@@ -211,7 +217,8 @@ renᵖ ρ (p ↦ᵖ q)      = renᵖ ρ p ↦ᵖ renᵖ ρ q
 renᵖ ρ (∀ᵖ p)        = ∀ᵖ renᵖ (extᵗ ρ) p
 renᵖ ρ (instᵖ p)     = instᵖ renᵖ (extᵗ ρ) p
 renᵖ ρ (genᵖ p)      = genᵖ renᵖ (extᵗ ρ) p
-renᵖ ρ (p ︔ q)       = renᵖ ρ p ︔ renᵖ ρ q
+renᵖ ρ (p ︔ G !)     = renᵖ ρ p ︔ renameᵗ ρ G !
+renᵖ ρ (G ？ ℓ ︔ p)   = renameᵗ ρ G ？ ℓ ︔ renᵖ ρ p
 renᵖ ρ bot-elim      = bot-elim
 renᵖ ρ (bot-intro ℓ) = bot-intro ℓ
 
@@ -245,6 +252,29 @@ closeCheck k ★       ℓ = ★ ？ ℓ
 closeCheck k (A ⇒ B) ℓ = closeTy k (A ⇒ B) ？ ℓ
 closeCheck k (`∀ A)  ℓ = closeTy k (`∀ A) ？ ℓ
 
+-- closing a sequence RE-NORMALIZES (GTSFImp's `subst-to-star-var`):
+-- a tag or check on the closed variable itself disappears, leaving the
+-- closed inner coercion, whose own end is now ★
+closeSeqTag : ℕ → Coercion → Ty → Coercion
+closeSeqTag k p′ (` Y) with k ≟ Y
+closeSeqTag k p′ (` Y) | yes _ = p′
+closeSeqTag k p′ (` Y) | no  _ = p′ ︔ closeTy k (` Y) !
+closeSeqTag k p′ `ℕ      = p′ ︔ `ℕ !
+closeSeqTag k p′ `𝔹      = p′ ︔ `𝔹 !
+closeSeqTag k p′ ★       = p′ ︔ ★ !
+closeSeqTag k p′ (A ⇒ B) = p′ ︔ closeTy k (A ⇒ B) !
+closeSeqTag k p′ (`∀ A)  = p′ ︔ closeTy k (`∀ A) !
+
+closeSeqCheck : ℕ → Ty → Label → Coercion → Coercion
+closeSeqCheck k (` Y) ℓ p′ with k ≟ Y
+closeSeqCheck k (` Y) ℓ p′ | yes _ = p′
+closeSeqCheck k (` Y) ℓ p′ | no  _ = closeTy k (` Y) ？ ℓ ︔ p′
+closeSeqCheck k `ℕ      ℓ p′ = `ℕ ？ ℓ ︔ p′
+closeSeqCheck k `𝔹      ℓ p′ = `𝔹 ？ ℓ ︔ p′
+closeSeqCheck k ★       ℓ p′ = ★ ？ ℓ ︔ p′
+closeSeqCheck k (A ⇒ B) ℓ p′ = closeTy k (A ⇒ B) ？ ℓ ︔ p′
+closeSeqCheck k (`∀ A)  ℓ p′ = closeTy k (`∀ A) ？ ℓ ︔ p′
+
 -- `closeᵖ 0 p` is design.md's `p[★/X]` (GTSFImp `c [ ★/0 ]ᶜ`)
 closeᵖ : ℕ → Coercion → Coercion
 closeᵖ k (idᵖ A)       = idᵖ (closeTy k A)
@@ -254,7 +284,8 @@ closeᵖ k (p ↦ᵖ q)      = closeᵖ k p ↦ᵖ closeᵖ k q
 closeᵖ k (∀ᵖ p)        = ∀ᵖ closeᵖ (suc k) p
 closeᵖ k (instᵖ p)     = instᵖ closeᵖ (suc k) p
 closeᵖ k (genᵖ p)      = genᵖ closeᵖ (suc k) p
-closeᵖ k (p ︔ q)       = closeᵖ k p ︔ closeᵖ k q
+closeᵖ k (p ︔ G !)     = closeSeqTag k (closeᵖ k p) G
+closeᵖ k (G ？ ℓ ︔ p)   = closeSeqCheck k G ℓ (closeᵖ k p)
 closeᵖ k bot-elim      = bot-elim
 closeᵖ k (bot-intro ℓ) = bot-intro ℓ
 
@@ -271,6 +302,15 @@ private
     X : ℕ
     ℓ : Label
     p q : Coercion
+
+-- a ground type that a tag (resp. check) may name under μ
+data TagGround (Δ : Ctxᵗ) (μ : ModeEnv) : Ty → Set where
+  tg-nv  : GroundNV G → TagGround Δ μ G
+  tg-var : Δ ∋tv X → μ ∋ˡ X := m → TagOK m → TagGround Δ μ (` X)
+
+data CheckGround (Δ : Ctxᵗ) (μ : ModeEnv) : Ty → Set where
+  cg-nv  : GroundNV G → CheckGround Δ μ G
+  cg-var : Δ ∋tv X → μ ∋ˡ X := m → CheckOK m → CheckGround Δ μ (` X)
 
 infix 4 _∣_⊢ᵖ_∶_⟹_
 data _∣_⊢ᵖ_∶_⟹_ : Ctxᵗ → ModeEnv → Coercion → Ty → Ty → Set where
@@ -314,9 +354,16 @@ data _∣_⊢ᵖ_∶_⟹_ : Ctxᵗ → ModeEnv → Coercion → Ty → Ty → Se
       ------------------------------------
     → Δ ∣ μ ⊢ᵖ genᵖ p ∶ A ⟹ `∀ B
 
-  ⊢seq : Δ ∣ μ ⊢ᵖ p ∶ A ⟹ B → Δ ∣ μ ⊢ᵖ q ∶ B ⟹ C
+  -- the two evidence-shaped sequences (GTSFImp `_!` and `？_`): the
+  -- tag or check sits OUTSIDE, its ground is permitted by the modes, and
+  -- the inner coercion's other end is not ★ (design.md D20)
+  ⊢seq-tag : Δ ∣ μ ⊢ᵖ p ∶ A ⟹ G → TagGround Δ μ G → NonStar A
       ------------------------------------
-    → Δ ∣ μ ⊢ᵖ p ︔ q ∶ A ⟹ C
+    → Δ ∣ μ ⊢ᵖ p ︔ G ! ∶ A ⟹ ★
+
+  ⊢seq-check : CheckGround Δ μ G → Δ ∣ μ ⊢ᵖ p ∶ G ⟹ B → NonStar B
+      ------------------------------------
+    → Δ ∣ μ ⊢ᵖ G ？ ℓ ︔ p ∶ ★ ⟹ B
 
   ⊢bot-elim :
       ------------------------------------

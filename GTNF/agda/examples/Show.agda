@@ -12,7 +12,7 @@ module examples.Show where
 --   * THE NOTATION IS design.md's.  Types `★→★`, `∀X. A`; conversions
 --     `id(A)`, `+X` (unseal), `−X` (seal), `c → d`, `∀X. c`, `t ; −X`,
 --     `+X ; c` (design.md §2); coercions `id(A)`, `G!`, `G?ℓ0`,
---     `p → q`, `∀X. p`, `inst X. p`, `gen X. p`, `p ; q`, `bot-elim`,
+--     `p → q`, `∀X. p`, `inst X. p`, `gen X. p`, `p ; G!`, `G?ℓ ; p`,
 --     `bot-intro ℓ0` (§3; a label prints as ℓ followed by its number);
 --     terms `λx:A. N`, `L M`, `ΛX. V`, `ν X:=A. (L X) ⟨c⟩`,
 --     `[δ] M ⟨c⟩`, `M⟨p⟩^μ`, `blame ℓ0` (§4).
@@ -54,7 +54,9 @@ open import Conversion
   using (Mid; Tail; Conv; id; _↦_; `∀; mid; seal; _⨾seal_; tail; unseal;
          unseal_⨾_)
 open import Coercion
-  using (Coercion; Label; idᵖ; _!; _？_; _↦ᵖ_; ∀ᵖ_; instᵖ_; genᵖ_; _︔_;
+  using (Coercion; Label; idᵖ; _!; _？_; _↦ᵖ_; ∀ᵖ_; instᵖ_;
+         genᵖ_;
+         _︔_!; _？_︔_;
          bot-elim; bot-intro; Mode; X∼X; X∼★; ★∼X; ★∼X∼★; ModeEnv)
 open import Terms
   using (Term; `_; $_; `true; `false; ƛ_∙_; _·_; Λ_; ν_·_⟨_⟩; _⟪_,_⟫;
@@ -324,9 +326,12 @@ mutual
     "inst " ++ tyBinder f ++ ". " ++ sp , f′
   showCo ns f (genᵖ p) with showCoP (tyBinder f ∷ ns) (suc f) p
   showCo ns f (genᵖ p) | sp , f′ = "gen " ++ tyBinder f ++ ". " ++ sp , f′
-  showCo ns f (p ︔ q) with showCoP ns f p
-  showCo ns f (p ︔ q) | sp , f₁ with showCoP ns f₁ q
-  showCo ns f (p ︔ q) | sp , f₁ | sq , f₂ = sp ++ " ; " ++ sq , f₂
+  showCo ns f (p ︔ G !) with showCoP ns f p
+  showCo ns f (p ︔ G !) | sp , f′ =
+    sp ++ " ; " ++ parenTy ns G ++ "!" , f′
+  showCo ns f (G ？ ℓ ︔ p) with showCoP ns f p
+  showCo ns f (G ？ ℓ ︔ p) | sp , f′ =
+    parenTy ns G ++ "?" ++ showLabel ℓ ++ " ; " ++ sp , f′
   showCo ns f bot-elim      = "bot-elim" , f
   showCo ns f (bot-intro ℓ) = "bot-intro " ++ showLabel ℓ , f
 
@@ -341,7 +346,8 @@ mutual
   showCoP ns f (∀ᵖ p)    = parens (showCo ns f (∀ᵖ p))
   showCoP ns f (instᵖ p) = parens (showCo ns f (instᵖ p))
   showCoP ns f (genᵖ p)  = parens (showCo ns f (genᵖ p))
-  showCoP ns f (p ︔ q)   = parens (showCo ns f (p ︔ q))
+  showCoP ns f (p ︔ G !)   = parens (showCo ns f (p ︔ G !))
+  showCoP ns f (G ？ ℓ ︔ p) = parens (showCo ns f (G ？ ℓ ︔ p))
 
   parens : String × ℕ → String × ℕ
   parens (s , f) = "(" ++ s ++ ")" , f

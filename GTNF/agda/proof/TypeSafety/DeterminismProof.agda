@@ -125,6 +125,10 @@ module Impl (irreducible : Irreducible) where
   det ⊢M (CastSeq v) Blame-cast = ⊥-elim (value-not-blame v)
   det ⊢M (CastSeq v) (ξ-cast st) = ⊥-elim (value-no-step v st)
 
+  det ⊢M (CastSeq? v) (CastSeq? v′) = refl , refl
+  det ⊢M (CastSeq? v) Blame-cast = ⊥-elim (value-not-blame v)
+  det ⊢M (CastSeq? v) (ξ-cast st) = ⊥-elim (value-no-step v st)
+
   det ⊢M (CastFun vV vW) (CastFun vV′ vW′) = refl , refl
   det ⊢M (CastFun vV vW) (Blame-·₂ v) = ⊥-elim (value-not-blame vW)
   det ⊢M (CastFun vV vW) (ξ-·₁ st) =
@@ -207,6 +211,7 @@ module Impl (irreducible : Irreducible) where
 
   det ⊢M Blame-cast (CastId v) = ⊥-elim (value-not-blame v)
   det ⊢M Blame-cast (CastSeq v) = ⊥-elim (value-not-blame v)
+  det ⊢M Blame-cast (CastSeq? v) = ⊥-elim (value-not-blame v)
   det ⊢M Blame-cast (Inst v) = ⊥-elim (value-not-blame v)
   det ⊢M Blame-cast (BlameBotIntro v) = ⊥-elim (value-not-blame v)
   det ⊢M Blame-cast Blame-cast = refl , refl
@@ -263,6 +268,7 @@ module Impl (irreducible : Irreducible) where
     refl , refl
   det ⊢M (ξ-cast st) (CastId v) = ⊥-elim (value-no-step v st)
   det ⊢M (ξ-cast st) (CastSeq v) = ⊥-elim (value-no-step v st)
+  det ⊢M (ξ-cast st) (CastSeq? v) = ⊥-elim (value-no-step v st)
   det ⊢M (ξ-cast st) (Inst v) = ⊥-elim (value-no-step v st)
   det ⊢M (ξ-cast st) (TagUntag v) =
     ⊥-elim (value-no-step (V-simple (S-cast v I-tag)) st)

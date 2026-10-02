@@ -281,14 +281,16 @@ bdyRedex Δ U Θ (tail (mid (id A))) | just u  | nothing = nothing
 bdyRedex Δ U Θ (tail (mid (id A))) | nothing | b       = nothing
 bdyRedex Δ M Θ c = nothing
 
--- (GTNF) A cast over a value: CastId, CastSeq, Inst, BlameBotIntro by
+-- (GTNF) A cast over a value: CastId, CastSeq, CastSeq?, Inst,
+-- BlameBotIntro by
 -- the coercion; at a check, TagUntag/TagUntagBad on a tagged value and
 -- TagUntagBad-⟪⟫ on the fresh-tag value.  An inert coercion is a value
 -- (no redex), and `bot-elim` meets no value (design.md §6.3).
 castRedex : (Δ : Ctxᵗ) {M : Term} (μ : ModeEnv) (p : Coercion) → Value M
   → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ M ⟨ μ ∣ p ⟩ -→ N ∣ δ))
 castRedex Δ μ (idᵖ A) vM       = just (_ , none , CastId vM)
-castRedex Δ μ (p ︔ q) vM       = just (_ , none , CastSeq vM)
+castRedex Δ μ (p ︔ G !) vM     = just (_ , none , CastSeq vM)
+castRedex Δ μ (G ？ ℓ ︔ p) vM   = just (_ , none , CastSeq? vM)
 castRedex Δ μ (instᵖ p) vM     = just (_ , none , Inst vM)
 castRedex Δ μ (bot-intro ℓ) vM = just (_ , none , BlameBotIntro vM)
 castRedex Δ μ (H ？ ℓ) (V-simple (S-cast {P = G !} v I-tag)) with G ≟ᵗ H
@@ -613,6 +615,7 @@ ruleName (Merge v ri r₁ r₂ r⋉ s t) = "Merge"
 ruleName (Id u b)                   = "Id"
 ruleName (CastId v)                 = "CastId"
 ruleName (CastSeq v)                = "CastSeq"
+ruleName (CastSeq? v)               = "CastSeq?"
 ruleName (CastFun v w)              = "CastFun"
 ruleName (Inst v)                   = "Inst"
 ruleName (TagUntag v)               = "TagUntag"

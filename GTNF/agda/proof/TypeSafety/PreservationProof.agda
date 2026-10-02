@@ -6,14 +6,15 @@ module proof.TypeSafety.PreservationProof where
 --     siblings a step shifts are re-typed by `⊢↑` (RepWeaken.shift-⊢).
 --   * Also proves context well-formedness preservation (`step-alloc`:
 --     only `TyBeta` allocates) and multi-step preservation.
---   * ONE HOLE IS LEFT, the `Inst` case: it is FALSE as GTNF stands
---     (proof/TypeSafety/notes/InstCloseCounterexample.agda).
+--   * The `Inst` case uses evidence-shaped coercion closing from
+--     CoercionTyping.agda.
 
 open import Data.Nat using (zero; suc)
 open import Data.List using ([]; _∷_; length; map)
 open import Data.List.Properties using (length-map)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; trans)
+open import Relation.Binary.PropositionalEquality using (subst)
 
 open import Types
 open import Ctx
@@ -28,6 +29,8 @@ open import proof.TypeSafety.PreservationSupport
 open import proof.TypeSafety.RepWeaken
   using (shift-⊢; cross-Λ-⊢; coercion-renᴿ)
 open import proof.TypeSafety.InstXTyping using (instX-⊢)
+open import proof.TypeSafety.CoercionTyping
+  using (coercion-src; lower-⇑; wf-close; closeᵖ-typing)
 open import proof.TypeSafety.WrapDual using (preserve-Wrap)
 open import proof.TypeSafety.MoveScope using (preserve-Merge)
 open import proof.TypeSafety.Canonical using (≈-★-source)
@@ -48,6 +51,7 @@ step-alloc wfΔ (Merge v ri r₁ r₂ r⋉ sc₁ sc₂) = aw-none
 step-alloc wfΔ (Id u b) = aw-none
 step-alloc wfΔ (CastId v) = aw-none
 step-alloc wfΔ (CastSeq v) = aw-none
+step-alloc wfΔ (CastSeq? v) = aw-none
 step-alloc wfΔ (CastFun vV vW) = aw-none
 step-alloc wfΔ (Inst v) = aw-none
 step-alloc wfΔ (TagUntag v) = aw-none
@@ -88,6 +92,16 @@ ground-same g-𝔹 = same-𝔹
 ground-same g-⇒ = same-⇒ same-★ same-★
 ground-same g-∀ = same-∀ same-★
 
+tag-ground-⊢ : ∀ {Δ μ G} → TagGround Δ μ G
+  → Δ ∣ μ ⊢ᵖ G ! ∶ G ⟹ ★
+tag-ground-⊢ (tg-nv g) = ⊢tag g
+tag-ground-⊢ (tg-var tv mode ok) = ⊢tag-var tv mode ok
+
+check-ground-⊢ : ∀ {Δ μ G ℓ} → CheckGround Δ μ G
+  → Δ ∣ μ ⊢ᵖ G ？ ℓ ∶ ★ ⟹ G
+check-ground-⊢ (cg-nv g) = ⊢check g
+check-ground-⊢ (cg-var tv mode ok) = ⊢check-var tv mode ok
+
 ------------------------------------------------------------------------
 -- Preservation
 ------------------------------------------------------------------------
@@ -105,12 +119,57 @@ preservation wfΔ ⊢M (Merge v ri r₁ r₂ r⋉ sc₁ sc₂) =
   preserve-Merge wfΔ ri r₁ r₂ r⋉ sc₁ sc₂ ⊢M
 preservation wfΔ ⊢M (Id u b) = preserve-Id wfΔ u b ⊢M
 preservation wfΔ (⊢cast ⊢V (⊢id wA) len) (CastId v) = ⊢V
-preservation wfΔ (⊢cast ⊢V (⊢seq ⊢p ⊢q) len) (CastSeq v) =
-  ⊢cast (⊢cast ⊢V ⊢p len) ⊢q len
+preservation wfΔ (⊢cast ⊢V (⊢seq-tag ⊢p tg ns) len) (CastSeq v) =
+  ⊢cast (⊢cast ⊢V ⊢p len) (tag-ground-⊢ tg) len
+preservation wfΔ (⊢cast ⊢V (⊢seq-check cg ⊢p ns) len) (CastSeq? v) =
+  ⊢cast (⊢cast ⊢V (check-ground-⊢ cg) len) ⊢p len
 preservation wfΔ (⊢· (⊢cast {μ = μ} ⊢V (⊢fun ⊢p ⊢q) len) ⊢W)
     (CastFun vV vW) =
   ⊢cast (⊢· ⊢V (⊢cast ⊢W ⊢p (trans (length-map flipᵐ μ) len))) ⊢q len
-preservation wfΔ ⊢M (Inst v) = {!!}
+preservation {Δ = Δ} wfΔ
+    (⊢cast {M = V} {μ = μ} ⊢V
+      (⊢inst {p = p} {A = A} {B = B} ⊢p wB nvA occ nsB) len)
+    (Inst v) with coercion-src ⊢p
+preservation {Δ = Δ} wfΔ
+    (⊢cast {M = V} {μ = μ} ⊢V
+      (⊢inst {p = p} {A = A} {B = B} ⊢p wB nvA occ nsB) len)
+    (Inst v) | refl =
+  subst (λ C → Δ ∣ [] ⊢
+           (ν ★ · V ⟨ reveal 0 A ⟩) ⟨ μ ∣ closeᵖ 0 p ⟩ ⦂ C)
+        (lower-⇑ B)
+        (⊢cast ν-typed (closeᵖ-typing ⊢p) len)
+  where
+  represented : Ctxᵗ
+  represented = reprCtx ★ Δ
+
+  open-wf : represented ⊢ᵗ A
+  open-wf = wf-refine (rr-represent rr-refl) (coercion-source-wf ⊢p)
+
+  close-wf : Δ ⊢ᵗ closeTy 0 A
+  close-wf = wf-close 0 (coercion-source-wf ⊢p)
+
+  reveal-⊢ : represented ⊢ reveal 0 A
+      ∶ A ⇝ ⇑ᵗ (closeTy 0 A)
+  reveal-⊢ =
+    subst (λ C → represented ⊢ reveal 0 A ∶ A ⇝ C)
+          (subst-at-0 ★ A)
+          (⊢reveal (represented-lookup {Δ = Δ} same-★) open-wf)
+
+  inst-bw : BoundaryWf (allocate ★ Δ) TyBetaBoundary
+              represented represented
+  inst-bw =
+    bw (alloc-wf wfΔ wfᴿ-★)
+       (inst-interior {R = ★} {Γ = Δ} empty-interior)
+       (inst-conversion {R = ★} {Γ = Δ} empty-conversion)
+
+  close-same : allocate ★ Δ ⊢ closeTy 0 A
+      ≈ ⇑ᵗ (closeTy 0 A) ⊣ represented
+  close-same with wf-same close-wf
+  close-same | R , same =
+    ⇑ᵗ R , same-shift-free same , same-weaken same
+
+  ν-typed : Δ ∣ [] ⊢ ν ★ · V ⟨ reveal 0 A ⟩ ⦂ closeTy 0 A
+  ν-typed = ⊢ν wf-★ same-★ ⊢V inst-bw reveal-⊢ close-same close-wf
 preservation wfΔ (⊢cast (⊢cast ⊢V (⊢tag g) len) (⊢check g′) len′)
     (TagUntag v) = ⊢V
 preservation wfΔ (⊢cast (⊢cast ⊢V (⊢tag ()) len) (⊢check-var tv md ok) len′)
@@ -210,6 +269,7 @@ preservation-wf wfΔ ⊢M (Merge v ri r₁ r₂ r⋉ sc₁ sc₂) = wfΔ
 preservation-wf wfΔ ⊢M (Id u b) = wfΔ
 preservation-wf wfΔ ⊢M (CastId v) = wfΔ
 preservation-wf wfΔ ⊢M (CastSeq v) = wfΔ
+preservation-wf wfΔ ⊢M (CastSeq? v) = wfΔ
 preservation-wf wfΔ ⊢M (CastFun vV vW) = wfΔ
 preservation-wf wfΔ ⊢M (Inst v) = wfΔ
 preservation-wf wfΔ ⊢M (TagUntag v) = wfΔ

@@ -45,3 +45,6 @@ open import TermImprecisionRebaseExamples
 
 -- de Bruijn → named rendering (scripts/render_gtnf.sh)
 open import Show
+
+-- the statement of the dynamic gradual guarantee (proof/DGG/PLAN.md §2)
+open import DynamicGradualGuarantee

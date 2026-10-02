@@ -42,7 +42,9 @@ The live status of every item is in `DASHBOARD.md` (generated, §6).
 
 ## 2. The theorem
 
-`GTNF/agda/DynamicGradualGuarantee.agda` (top level, audited).  The
+`GTNF/agda/DynamicGradualGuarantee.agda` (top level, audited).
+**Approved by Jeremy (2026-10-02)**, and now a type-checked
+statement, `DGG : Set`.  The
 cast calculus, at the empty context and the initial world `∅ʷ`.  The
 left term is the more precise one.  Types do not change along a run
 (GTNF's types are name-indexed, and an allocation renames only rep.
@@ -132,8 +134,8 @@ guard against risk (5).
 
 ## 5. Milestones
 
-- **M0.** Review this plan; agree on the DGG statement (§2) and the
-  `Sim`/`SimBack` statements.
+- **M0.** Review this plan.  The DGG statement (§2) is agreed and
+  checked; next, the layout and the `Sim`/`SimBack` statements.
 - **M1.** Type safety: `Progress`, `Preservation`, irreducibility,
   determinism.
 - **M2.** The top-down skeleton: `DGGProof` from `Sim*`, `SimBack*`,

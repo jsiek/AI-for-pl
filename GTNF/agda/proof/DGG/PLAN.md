@@ -102,9 +102,9 @@ flipped; design.md §9.7).
 
 | lemma | draft statement | used by |
 |---|---|---|
-| `Sim` (forward) | `WfWorld W → W ∣ [] ⊢ M ⊑ M′ ∶ p → Δ ⊢ M -→ N ∣ ξ → ∃ N′ (r′ : Δ′ ⊢ M′ -→* N′) ∃ W′ : World (apply ξ Δ) (runCtx r′). WfWorld W′ × W′ ∣ [] ⊢ N ⊑ N′ ∶ q` | `Sim*` |
+| `Sim` (forward) | `WfWorld W → W ∣ [] ⊢ M ⊑ M′ ∶ p → Δ ⊢ M -→ N ∣ ξ → ∃ N′ (r′ : Δ′ ⊢ M′ -→* N′) ∃ W′ : World (apply ξ Δ) (runCtx r′). Evolve W ξ r′ W′ × WfWorld W′ × W′ ∣ [] ⊢ N ⊑ N′ ∶ q` | `Sim*` |
 | `Sim*` | the same over `-→*` on the left | DGG 1, 4 |
-| `SimBack` | `WfWorld W → W ∣ [] ⊢ M ⊑ M′ ∶ p → Δ′ ⊢ M′ -→ N′ ∣ ξ′ → (∃ N₂, N₂′, M -→* N₂, N′ -→* N₂′, W′, WfWorld W′, N₂ ⊑ N₂′) ⊎ (∃ ℓ. M -→* blame ℓ)` | `SimBack*` |
+| `SimBack` | `WfWorld W → W ∣ [] ⊢ M ⊑ M′ ∶ p → Δ′ ⊢ M′ -→ N′ ∣ ξ′ → (∃ N₂, N₂′, r : M -→* N₂, r′ : N′ -→* N₂′, W′, Evolve W r (ξ′ then r′) W′, WfWorld W′, N₂ ⊑ N₂′) ⊎ (∃ ℓ. M -→* blame ℓ)` | `SimBack*` |
 | `SimBack*` | the same over `-→*` on the right | DGG 2, 3 |
 | `CatchupRight` | `Value V → W ∣ [] ⊢ V ⊑ M′ ∶ p → ∃ V′ (M′ -→* V′) Value V′ × V ⊑ V′` (the less precise side finishes its administrative steps) | DGG 1, `Sim` |
 | `CatchupLeft` | `Value V′ → W ∣ [] ⊢ M ⊑ V′ ∶ p → (∃ V (M -→* V) Value V × V ⊑ V′) ⊎ (M -→* blame)` | DGG 3 |
@@ -113,6 +113,8 @@ flipped; design.md §9.7).
 | `Merge⊑` | conversion composition `⨟` preserves `⊑` (both sides, one side) | `Merge` cases |
 | `Alloc⊑` | `allocᴸ`, `allocᴿ`, `alloc²`, `allocᴸ⇔` preserve `⊑` and `WfWorld`, and commute with `Interior` | `Sim` frames under boundaries |
 | `⊑-typing` | a derivation gives both typings | everything |
+| `Evolve⊑` | `Evolve W ρ ρ′ W′` records how `W′` arose from `W` along the two sides' allocations (new rep. vars, new global pairs; never a rebase).  `⊑`, `⊑ᵂ` and `WfWorld` transport along it | frame cases |
+| `CatchupBlame` | `W ∣ [] ⊢ M ⊑ blame ℓ → ∃ ℓ′. M -→* blame ℓ′` | DGG 2 |
 
 Each `Sim`/`SimBack` proof is by cases on the step.  The redex cases
 (one per reduction rule: `Beta`, `Wrap`, `TyBeta`, `Merge`, `Id`,

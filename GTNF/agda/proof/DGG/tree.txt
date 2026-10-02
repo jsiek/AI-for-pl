@@ -9,10 +9,10 @@
 #   proof/DGG/N.agda        the Lemma module (the instantiation)
 # A `|` and text after the name is the one-line description.
 
-DynamicGradualGuarantee | the theorem (statement at top level, §2)  uses: Progress
+DynamicGradualGuarantee | the theorem (statement at top level, §2)  uses: Progress CatchupBlame
   MultiSim | forward simulation over runs
     Sim | the more precise side steps, the less precise catches up
-      SimFrame | ξ cases, including boundary frames  uses: AllocImp
+      SimFrame | ξ cases, including boundary frames  uses: AllocImp EvolveImp
       SimBeta | Beta, Wrap  uses: SubstImp
       SimTyBeta | TyBeta through InstX  uses: InstXImp AllocImp
       SimBoundary | Merge, Id, IdDyn  uses: MergeImp
@@ -20,7 +20,7 @@ DynamicGradualGuarantee | the theorem (statement at top level, §2)  uses: Progr
       CatchupRight | a left value: the right reaches a related value
   MultiSimBack | backward simulation over runs
     SimBack | the less precise side steps, both catch up
-      SimBackFrame | ξ cases  uses: AllocImp
+      SimBackFrame | ξ cases  uses: AllocImp EvolveImp
       SimBackBeta | Beta, Wrap  uses: SubstImp
       SimBackTyBeta | TyBeta, Inst  uses: InstXImp AllocImp
       SimBackBoundary | Merge, Id, IdDyn  uses: MergeImp
@@ -28,6 +28,8 @@ DynamicGradualGuarantee | the theorem (statement at top level, §2)  uses: Progr
       CatchupLeft | a right value: the left reaches a related value or blame
 
 # shared lemmas
+EvolveImp | ⊑ and WfWorld transport along Evolve W W′ (the runs' allocations)
+CatchupBlame | M ⊑ blame: the left reaches blame
 ImprecisionTyping | a ⊑ derivation gives both typings  uses: Preservation
 AllocImp | allocation preserves ⊑ and WfWorld, commutes with Interior
 SubstImp | substitution of related values preserves ⊑

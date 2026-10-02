@@ -23,6 +23,7 @@ open import Imprecision
 open import Conversion using (⊢↓-seal)
 open import CastTerms
 open import TyStore using (_∋_⦂_; Z∋; S-lift∋; S-bind∋)
+open import TyStore using (lookupStore-∋)
 open import Consistency using (Env∼; _⊢_∼_; id; _!; toRenameᵗ)
 open import Primitives using (κℕ; κ𝔹)
 import Conversion as Conv
@@ -33,6 +34,7 @@ import proof.DGG.Inversion.SpineValueDef as SVD
 import proof.DGG.SealPeelToolkit as SPT
 import proof.DGG.TermImpDecay as TD
 import proof.DGG.WorldDecay as WD
+import proof.DGG.WorldInvariants as WI
 open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
 open CTX using
   (World;
@@ -355,7 +357,7 @@ source-star-cast-package-from-source : ∀ {Δᴸ Δᴿ Δ}
     → CTX.TagRebaseAtᴸ Wᵖ W (just X) Xᴿ?
     → CTX.SameCtx γ γᵖ
     → CTX.sourceStoreʷ W ∋ X ⦂ ★
-    → CTX.NoTargetOccupantAtSource W X
+    → WI.WorldInvariants W
     → CTX.Rep★PartnerOK Wᵖ X P Xᴿ? U
     → Inert c
     → Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ p★
@@ -366,14 +368,17 @@ source-star-cast-package-from-source : ∀ {Δᴸ Δᴿ Δ}
         ((P ↓ Conversion.seal X ★) ⟨ c ⟩) ↓ Conversion.seal X ★
         ⊑ U ∶ q)
 source-star-cast-package-from-source {W = W} {X = X}
-      {Xᴿ? = just Y} mono (CTX.tag-rebase-varᴸ rb) sc
-      source∈ no-target partner inert prem sealed =
-  ⊥-elim (no-target (Y , sym (CTX.RebaseAt.pivotAligned rb)))
+      {Xᴿ? = just Y} {q = X⊑★ mark} mono
+      (CTX.tag-rebase-varᴸ rb) sc source∈ inv partner inert prem sealed =
+  ⊥-elim
+    (WI.world-invariants-no-target-at-dynamic-star inv mark
+      (lookupStore-∋ source∈)
+      (Y , sym (CTX.RebaseAt.pivotAligned rb)))
 source-star-cast-package-from-source {W = W} {γ = γ} {X = X}
-      {c = c}
-      {q = q} mono rb@(CTX.tag-rebase-onlyᴸ to-star disaligned
+      {c = c} {q = q} mono
+      rb@(CTX.tag-rebase-onlyᴸ to-star disaligned
         represented)
-      sc source∈ no-target partner
+      sc source∈ inv partner
       (inj ⦃ Gᵍ = ＇ .X ⦄) prem sealed =
   tagged-transfer-output
     (CTI2.cast⊑² c sealed ★⊑★)
@@ -382,7 +387,8 @@ source-star-cast-package-from-source {W = W} {γ = γ} {X = X}
       (CTX.rep★-round-trip
         (transport-rep★-partner-ok-tag rb partner))) ,
     CTI2.conceal⊑²-seal-star-open
-      no-target
+      (WI.world-invariants-see-through-premise inv rb
+        (Conv.⊢↓-sealˣ source∈))
     (impEnvMono-refl {W = W})
     (self-tag-rebase-from-tag-rebase rb)
     (sameCtx-refl {γ = γ})

@@ -295,9 +295,14 @@ example12-left-path-target-store : TyStore 1
 example12-left-path-target-store = store-bind store-empty ★
 
 example12-left-path-imp-env : ImpEnv 3
-example12-left-path-imp-env Fin.zero = X⊑X
-example12-left-path-imp-env (Fin.suc Fin.zero) = X⊑X
-example12-left-path-imp-env (Fin.suc (Fin.suc Fin.zero)) = X⊑X
+example12-left-path-imp-env Fin.zero = X⊑★
+example12-left-path-imp-env (Fin.suc Fin.zero) = X⊑★
+example12-left-path-imp-env (Fin.suc (Fin.suc Fin.zero)) = X⊑★
+
+example12-left-path-Z-imp-env : ImpEnv 3
+example12-left-path-Z-imp-env Fin.zero = X⊑★
+example12-left-path-Z-imp-env (Fin.suc Fin.zero) = X⊑★
+example12-left-path-Z-imp-env (Fin.suc (Fin.suc Fin.zero)) = X⊑X
 
 example12-left-path-ηᴸ : 3 ↪ᵗ 3
 example12-left-path-ηᴸ = keep (keep (keep empty))
@@ -328,7 +333,7 @@ example12-left-path-world-Y =
 example12-left-path-world-Z : World 3 1 3
 example12-left-path-world-Z =
   world example12-left-path-ηᴸ example12-left-path-ηᴿ-Z
-    example12-left-path-imp-env
+    example12-left-path-Z-imp-env
     example12-left-path-source-store
     example12-left-path-target-store
 

@@ -59,6 +59,10 @@ def parse_tree():
 
 
 def path(name, suffix):
+    """Item `N` is proof/DGG/N*.agda; item `Dir/N` is proof/Dir/N*.agda."""
+    if "/" in name:
+        d, base = name.rsplit("/", 1)
+        return os.path.join(ROOT, "proof", d, base + suffix + ".agda")
     return os.path.join(HERE, name + suffix + ".agda")
 
 
@@ -160,12 +164,16 @@ def icon(s):
 def wip():
     """`make wip`: check every skeleton, holes allowed."""
     bad = []
-    for f in sorted(os.listdir(HERE)):
-        if f.endswith("Proof.agda"):
-            ok = agda_ok(os.path.join(HERE, f), allow_holes=True)
-            print(f"{'ok  ' if ok else 'FAIL'} proof/DGG/{f}")
-            if not ok:
-                bad.append(f)
+    proofdir = os.path.join(ROOT, "proof")
+    for dirpath, _, files in sorted(os.walk(proofdir)):
+        for f in sorted(files):
+            if f.endswith("Proof.agda"):
+                full = os.path.join(dirpath, f)
+                ok = agda_ok(full, allow_holes=True)
+                print(f"{'ok  ' if ok else 'FAIL'} "
+                      f"{os.path.relpath(full, ROOT)}")
+                if not ok:
+                    bad.append(f)
     sys.exit(1 if bad else 0)
 
 

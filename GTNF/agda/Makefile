@@ -16,7 +16,7 @@ postulate-check:
 	@$(AGDA) --safe -v0 --dependency-graph=_build/deps.dot All.agda
 	@python3 tools/reachable_hygiene.py
 
-# Type-check the DGG skeletons, holes allowed (proof/DGG/*Proof.agda).
+# Type-check the DGG skeletons, holes allowed (every proof/**/*Proof.agda).
 wip:
 	@python3 proof/DGG/dashboard.py --wip
 

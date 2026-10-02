@@ -12,6 +12,11 @@ module TermImprecisionExamples where
 --       p3-inst   P3 after the right's Inst, TyBeta, Beta: ·⊑·, ν⊑,
 --                 ⊑cast, ∀⊑⟪+⟫ (the left Λ's abstract rep. var paired
 --                 lexically with αᴿ:=★; `inst-Λ`)
+--       p6-init-ν P6's initial ν pair, with `−X → id(ℕ)` related to
+--                 `−X → id(★)` in the ν conversion world
+--       p6-tybeta P6 right after both TyBetas: the same conversion
+--                 comparison in the matched boundaries' conversion
+--                 context
 --     The later states are pinned to `evalTerms` by `refl`
 --     (`*-state`), as Examples.ex7-env does, so they are the run's own
 --     terms, not transcriptions.
@@ -38,9 +43,11 @@ open import TypeCheck using (tc; tf)
 open import Eval using (evalTerms)
 open import Imprecision
 open import ImprecisionWorld
+open import ConversionImprecision
 open import TermImprecision
 open import ImprecisionExamples
-  using (L1; R1; L1-⊢; R1-⊢; R2; L3-⊢; R3-⊢)
+  using (L1; R1; L1-⊢; R1-⊢; R2; L3-⊢; R3-⊢;
+         L6; R6; L6-⊢; R6-⊢)
 open import Reduction using (inst-Λ)
 
 ------------------------------------------------------------------------
@@ -88,14 +95,6 @@ five⊑ = ⊑cast (κ⊑κ lit-$ (ι⊑ι base-ℕ)) (cast-ty (⊢tag g-ℕ) ref
 νR-ty : NuTy empty ★ (` 0 ⇒ ` 0) revX (★ ⇒ ★)
 νR-ty = proj₂ (proj₂ (ν-inv νR-⊢))
 
-p1-init : ∅ʷ ∣ [] ⊢ L1 ⊑ R1 ∶ ℕ⊑★
-p1-init =
-  ·⊑· (ν⊑ν (Λ⊑Λ lift-[] (V-simple S-ƛ) (V-simple S-ƛ)
-              (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ))
-              (∀⊑∀ (⇒⊑⇒ X⊑X X⊑X)))
-           ℕ⊑★ νL-ty νR-ty (⇒⊑⇒ ℕ⊑★ ℕ⊑★))
-      five⊑
-
 ------------------------------------------------------------------------
 -- P1, after both TyBetas
 ------------------------------------------------------------------------
@@ -118,6 +117,53 @@ R1′-state = refl
 ΔR = allocate ★ empty
 ΔLᵢ = (bindR `ℕ ∷ []) ∣ (0 ∷ [])
 ΔRᵢ = (bindR ★ ∷ []) ∣ (0 ∷ [])
+
+ConvCtx₀ : Ty → Ctxᵗ
+ConvCtx₀ R = (bindR R ∷ []) ∣ (0 ∷ [])
+
+conv₀ : ∀ {R} → allocate R empty ⊢ᶜ Θ₀ ⇒ ConvCtx₀ R
+conv₀ = conversion (conv-bind (_ , here) conv[] fresh[] ins-here)
+
+-- The ν-conversion world has one both-sided name and the ν-bound pair
+-- in ϱˡ, not ϱᵍ.
+Wν : ∀ {R R′} → World (ConvCtx₀ R) (ConvCtx₀ R′)
+Wν = world (X⊑X ∷ []) (keep []↪) (keep []↪) [] ((0 , 0) ∷ [])
+
+Wν-conv : ∀ {R R′}
+  → ConversionInterior (underν² R R′ ∅ʷ) Θ₀ Θ₀ Wν
+Wν-conv = record
+  { conv-left       = conv₀
+  ; conv-right      = conv₀
+  ; conv-same-ϱᵍ    = refl
+  ; conv-same-ϱˡ    = refl
+  ; conv-join-cont  = λ { _ _ () _ }
+  ; conv-join-fresh = λ
+      { here here _ → (λ _ → inj₂ here⇔) , (λ _ → refl)
+      ; here (there ()) _
+      ; (there ()) _ _
+      }
+  ; conv-mark-left  = λ { _ () _ }
+  ; conv-mark-right = λ { _ () _ }
+  }
+
+revX⊑revX : ∀ {Δ Δ′} {W : World Δ Δ′}
+  → Joins W 0 0 → ConvImp W revX revX
+revX⊑revX j =
+  conv-tail⊑tail
+    (conv-mid⊑mid
+      (conv-↦⊑↦ (conv-tail⊑tail (conv-seal⊑seal j))
+                 (conv-unseal⊑unseal j)))
+
+νLR-conv : NuConversionImp ∅ʷ νL-ty νR-ty
+νLR-conv = Wν , Wν-conv , revX⊑revX refl
+
+p1-init : ∅ʷ ∣ [] ⊢ L1 ⊑ R1 ∶ ℕ⊑★
+p1-init =
+  ·⊑· (ν⊑ν (Λ⊑Λ lift-[] (V-simple S-ƛ) (V-simple S-ƛ)
+              (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ))
+              (∀⊑∀ (⇒⊑⇒ X⊑X X⊑X)))
+           ℕ⊑★ νL-ty νR-ty νLR-conv (⇒⊑⇒ ℕ⊑★ ℕ⊑★))
+      five⊑
 
 -- the exterior world: no names; the two store rep. vars paired (ϱᵍ)
 W₁ : World ΔL ΔR
@@ -143,6 +189,22 @@ Wᵢ₁-int = record
   ; mark-right = λ { (_ , here) () _ ; (_ , there ()) _ _ }
   }
 
+Wᵢ₁-conv : ConversionInterior W₁ Θ₀ Θ₀ Wᵢ₁
+Wᵢ₁-conv = record
+  { conv-left       = conv₀
+  ; conv-right      = conv₀
+  ; conv-same-ϱᵍ    = refl
+  ; conv-same-ϱˡ    = refl
+  ; conv-join-cont  = λ { _ _ () _ }
+  ; conv-join-fresh = λ
+      { here here _ → (λ _ → inj₁ here⇔) , (λ _ → refl)
+      ; here (there ()) _
+      ; (there ()) _ _
+      }
+  ; conv-mark-left  = λ { _ () _ }
+  ; conv-mark-right = λ { _ () _ }
+  }
+
 bL bR : Term
 bL = idX ⟪ Θ₀ , revX ⟫
 bR = bL
@@ -159,10 +221,13 @@ bL-ty = proj₂ (proj₂ (proj₂ (⟪⟫-inv bL-⊢)))
 bR-ty : BdyTy ΔR Θ₀ ΔRᵢ (` 0 ⇒ ` 0) revX (★ ⇒ ★)
 bR-ty = proj₂ (proj₂ (proj₂ (⟪⟫-inv bR-⊢)))
 
+bLR-conv : BdyConversionImp W₁ bL-ty bR-ty
+bLR-conv = Wᵢ₁ , Wᵢ₁-conv , revX⊑revX refl
+
 p1-tybeta : W₁ ∣ [] ⊢ L1′ ⊑ R1′ ∶ ℕ⊑★
 p1-tybeta =
   ·⊑· (⟪⟫⊑⟪⟫ Wᵢ₁-int (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ)) bL-ty bR-ty
-              (⇒⊑⇒ ℕ⊑★ ℕ⊑★))
+              bLR-conv (⇒⊑⇒ ℕ⊑★ ℕ⊑★))
       five⊑
 
 Wᵢ₁-wf : WfWorld Wᵢ₁
@@ -244,3 +309,148 @@ p3-inst =
                  (cast-ty (⊢fun (⊢id wf-★) (⊢id wf-★)) refl) ∀id⊑★)
           ℕ⊑★ νL-ty (⇒⊑⇒ ℕ⊑★ ℕ⊑★))
       five⊑
+
+------------------------------------------------------------------------
+-- P6, the initial ν pair and the state after both TyBetas
+------------------------------------------------------------------------
+
+∀6L ∀6R : Ty
+∀6L = `∀ (` 0 ⇒ `ℕ)
+∀6R = `∀ (` 0 ⇒ ★)
+
+∀6L⊑∀6R : ∀6L ⊑ᵂ⟨ ∅ʷ ⟩ ∀6R
+∀6L⊑∀6R = ∀⊑∀ (⇒⊑⇒ X⊑X ℕ⊑★)
+
+c6L c6R : Conv
+c6L = reveal 0 (` 0 ⇒ `ℕ)
+c6R = reveal 0 (` 0 ⇒ ★)
+
+ν6L ν6R : Term
+ν6L = ν `𝔹 · ` 0 ⟨ c6L ⟩
+ν6R = ν `𝔹 · ` 0 ⟨ c6R ⟩
+
+ν6L-⊢ : empty ∣ ∀6L ∷ [] ⊢ ν6L ⦂ `𝔹 ⇒ `ℕ
+ν6L-⊢ = tc
+
+ν6R-⊢ : empty ∣ ∀6R ∷ [] ⊢ ν6R ⦂ `𝔹 ⇒ ★
+ν6R-⊢ = tc
+
+ν6L-ty : NuTy empty `𝔹 (` 0 ⇒ `ℕ) c6L (`𝔹 ⇒ `ℕ)
+ν6L-ty = proj₂ (proj₂ (ν-inv ν6L-⊢))
+
+ν6R-ty : NuTy empty `𝔹 (` 0 ⇒ ★) c6R (`𝔹 ⇒ ★)
+ν6R-ty = proj₂ (proj₂ (ν-inv ν6R-⊢))
+
+c6⊑ : ∀ {Δ Δ′} {W : World Δ Δ′}
+  → Joins W 0 0 → ConvImp W c6L c6R
+c6⊑ j =
+  conv-tail⊑tail
+    (conv-mid⊑mid
+      (conv-↦⊑↦ (conv-tail⊑tail (conv-seal⊑seal j))
+                 (conv-tail⊑tail
+                   (conv-mid⊑mid (conv-id⊑id ℕ⊑★)))))
+
+ν6-conv : NuConversionImp ∅ʷ ν6L-ty ν6R-ty
+ν6-conv = Wν , Wν-conv , c6⊑ refl
+
+p6-init-ν : ∅ʷ ∣ ctx-imp ∀6L ∀6R ∀6L⊑∀6R ∷ []
+  ⊢ ν6L ⊑ ν6R ∶ ⇒⊑⇒ (ι⊑ι base-𝔹) ℕ⊑★
+p6-init-ν =
+  ν⊑ν (x⊑x Zʷ) (ι⊑ι base-𝔹) ν6L-ty ν6R-ty ν6-conv
+       (⇒⊑⇒ (ι⊑ι base-𝔹) ℕ⊑★)
+
+Δ6 Δ6ᵢ : Ctxᵗ
+Δ6 = allocate `𝔹 empty
+Δ6ᵢ = ConvCtx₀ `𝔹
+
+W₆ : World Δ6 Δ6
+W₆ = world [] []↪ []↪ ((0 , 0) ∷ []) []
+
+Wᵢ₆ : World Δ6ᵢ Δ6ᵢ
+Wᵢ₆ = world (X⊑X ∷ []) (keep []↪) (keep []↪) ((0 , 0) ∷ []) []
+
+int₆ : Δ6 ⊢ⁱ Θ₀ ⇒ Δ6ᵢ
+int₆ = interior (changes∷ changes[] (step-bind (_ , here) fresh[] ins-here))
+
+Wᵢ₆-int : Interior W₆ Θ₀ Θ₀ Wᵢ₆
+Wᵢ₆-int = record
+  { int-left   = int₆
+  ; int-right  = int₆
+  ; same-ϱᵍ    = refl
+  ; same-ϱˡ    = refl
+  ; join-cont  = λ { (_ , here) _ () _ ; (_ , there ()) _ _ _ }
+  ; join-fresh = λ
+      { here here _ → (λ _ → inj₁ here⇔) , (λ _ → refl)
+      ; here (there ()) _
+      ; (there ()) _ _
+      }
+  ; mark-left  = λ { (_ , here) () _ ; (_ , there ()) _ _ }
+  ; mark-right = λ { (_ , here) () _ ; (_ , there ()) _ _ }
+  }
+
+Wᵢ₆-conv : ConversionInterior W₆ Θ₀ Θ₀ Wᵢ₆
+Wᵢ₆-conv = record
+  { conv-left       = conv₀
+  ; conv-right      = conv₀
+  ; conv-same-ϱᵍ    = refl
+  ; conv-same-ϱˡ    = refl
+  ; conv-join-cont  = λ { _ _ () _ }
+  ; conv-join-fresh = λ
+      { here here _ → (λ _ → inj₁ here⇔) , (λ _ → refl)
+      ; here (there ()) _
+      ; (there ()) _ _
+      }
+  ; conv-mark-left  = λ { _ () _ }
+  ; conv-mark-right = λ { _ () _ }
+  }
+
+body6L body6R : Term
+body6L = ƛ (` 0) ∙ $ 7
+body6R = body6L ⟨ X∼X ∷ [] ∣ idᵖ (` 0) ↦ᵖ (`ℕ !) ⟩
+
+b6L b6R : Term
+b6L = body6L ⟪ Θ₀ , c6L ⟫
+b6R = body6R ⟪ Θ₀ , c6R ⟫
+
+L6′ R6′ : Term
+L6′ = b6L · `true
+R6′ = b6R · `true
+
+L6′-state : head (drop 2 (evalTerms 10 L6-⊢)) ≡ just L6′
+L6′-state = refl
+
+R6′-state : head (drop 2 (evalTerms 13 R6-⊢)) ≡ just R6′
+R6′-state = refl
+
+body6R-⊢ : Δ6ᵢ ∣ [] ⊢ body6R ⦂ ` 0 ⇒ ★
+body6R-⊢ = tc
+
+body6R-ty : CastTy Δ6ᵢ (X∼X ∷ []) (idᵖ (` 0) ↦ᵖ (`ℕ !))
+                         (` 0 ⇒ `ℕ) (` 0 ⇒ ★)
+body6R-ty = proj₂ (proj₂ (cast-inv body6R-⊢))
+
+b6L-⊢ : Δ6 ∣ [] ⊢ b6L ⦂ `𝔹 ⇒ `ℕ
+b6L-⊢ = tc
+
+b6R-⊢ : Δ6 ∣ [] ⊢ b6R ⦂ `𝔹 ⇒ ★
+b6R-⊢ = tc
+
+b6L-ty : BdyTy Δ6 Θ₀ Δ6ᵢ (` 0 ⇒ `ℕ) c6L (`𝔹 ⇒ `ℕ)
+b6L-ty = proj₂ (proj₂ (proj₂ (⟪⟫-inv b6L-⊢)))
+
+b6R-ty : BdyTy Δ6 Θ₀ Δ6ᵢ (` 0 ⇒ ★) c6R (`𝔹 ⇒ ★)
+b6R-ty = proj₂ (proj₂ (proj₂ (⟪⟫-inv b6R-⊢)))
+
+b6-conv : BdyConversionImp W₆ b6L-ty b6R-ty
+b6-conv = Wᵢ₆ , Wᵢ₆-conv , c6⊑ refl
+
+p6-tybeta : W₆ ∣ [] ⊢ L6′ ⊑ R6′ ∶ ℕ⊑★
+p6-tybeta =
+  ·⊑·
+    (⟪⟫⊑⟪⟫ Wᵢ₆-int
+      (⊑cast
+        (ƛ⊑ƛ {pA = X⊑X} {pB = ι⊑ι base-ℕ}
+          tf tf (κ⊑κ lit-$ (ι⊑ι base-ℕ)))
+        body6R-ty (⇒⊑⇒ X⊑X ℕ⊑★))
+      b6L-ty b6R-ty b6-conv (⇒⊑⇒ (ι⊑ι base-𝔹) ℕ⊑★))
+    (κ⊑κ lit-true (ι⊑ι base-𝔹))

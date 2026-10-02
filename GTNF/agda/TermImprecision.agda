@@ -15,13 +15,14 @@ module TermImprecision where
 --     `cast⊑cast`, `cast⊑`, `⊑cast`; `Λ⊑Λ`, `Λ⊑`, `∀⊑⟪+⟫`; `ν⊑ν`,
 --     `ν⊑`; `⟪⟫⊑⟪⟫`, `⟪⟫⊑`, `⊑⟪⟫`.  16 rules: §12.3's 17 minus
 --     `⊕⊑⊕`, since GTNF has no binary operators yet.
---   * COERCIONS AND CONVERSIONS ARE NEVER COMPARED.  Each is typed on
---     its own side: a coercion under the mode environment its cast
---     carries (`CastTy`, as `⊢cast`), a boundary conversion on its
---     boundary's conversion context through `BoundaryWf` (`BdyTy`, as
---     `boundary`), a ν's conversion on `TyBetaBoundary` at the
---     allocated context (`NuTy`, as `⊢ν`).  The two sides meet only
---     through the types, i.e. through `_⊑ᵂ⟨_⟩_`.
+--   * COERCIONS ARE NOT COMPARED.  Each is typed on its own side under
+--     the mode environment its cast carries (`CastTy`, as `⊢cast`).
+--     In contrast, D17 compares the two conversions of `ν⊑ν` and
+--     `⟪⟫⊑⟪⟫` structurally.  `NuConversionImp` reads them in the two
+--     `TyBetaBoundary` conversion contexts, with the ν-bound rep. vars
+--     paired lexically.  `BdyConversionImp` reads them in the two
+--     boundary conversion contexts.  One-sided rules still type their
+--     sole conversion but have no conversion-imprecision premise.
 --   * EXPLICIT CONCLUSION PROOFS.  As in GTSFImp, a rule whose
 --     conclusion type is not built from its premises' proofs by a
 --     constructor takes that proof `q` as an argument: `emb` under a
@@ -52,12 +53,7 @@ module TermImprecision where
 --     - Its premise uses the `InstX` RELATION of Reduction §0, not a
 --       function: `InstX V N` with N read under `underΛ Δ`, the left
 --       value's abstract rep. var at 0 (D16).
---   * DEVIATIONS from design.md §12.3 (each also in the report):
---     - `ν⊑ν` extends no world.  §12.2 says it "pairs the two νs' rep.
---       vars for the premise", but no premise of `ν⊑ν` is read under the
---       allocation relationally (the conversions are typed separately
---       and never compared), so the pair has nothing to act on; it
---       becomes the global pair at a matched TyBeta (`alloc²`).
+--   * DEVIATION from design.md §12.3 (also in the report):
 --     - `Λ⊑` does not repeat the right term's typing (GTSFImp's `Λ⊑²`
 --       does): the premise already types M′ on the unchanged `Δ′` and
 --       `rhs γ′ = rhs γ`.
@@ -77,6 +73,7 @@ open import Terms
 open import Reduction using (InstX)
 open import Imprecision using (VarImp; X⊑X; ⇒⊑⇒)
 open import ImprecisionWorld
+open import ConversionImprecision using (ConvImp)
 
 private
   variable
@@ -121,6 +118,35 @@ data BdyTy (Δ : Ctxᵗ) (Θ : Boundary) (Δᵢ : Ctxᵗ) (Bᵢ : Ty) (c : Conv)
     → Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ
     → Δ ⊢ᵗ Bₑ
     → BdyTy Δ Θ Δᵢ Bᵢ c Bₑ
+
+-- D17's conversion premise, tied to the exact conversion contexts
+-- selected by the two `NuTy` witnesses.  `underν²` puts the two ν-bound
+-- rep. vars in ϱˡ; the two TyBeta boundaries then introduce their
+-- both-sided names in the conversion contexts.
+NuConversionImp : ∀ {Δ Δ′ A A′ C C′ c c′ B B′}
+  → (W : World Δ Δ′)
+  → NuTy Δ A C c B → NuTy Δ′ A′ C′ c′ B′ → Set
+NuConversionImp {c = c} {c′ = c′} W
+  (nu-ty {R = R} {Δᶜ = Δᶜ} wA rA mw ⊢c eq wB)
+  (nu-ty {R = R′} {Δᶜ = Δ′ᶜ} wA′ rA′ mw′ ⊢c′ eq′ wB′) =
+  Σ[ Wᶜ ∈ World Δᶜ Δ′ᶜ ]
+    (ConversionInterior (underν² R R′ W) TyBetaBoundary TyBetaBoundary Wᶜ
+    × ConvImp Wᶜ c c′)
+
+-- D17's boundary case, likewise tied to the conversion contexts in the
+-- two `BdyTy` witnesses.  This is separate from `Interior`, whose worlds
+-- relate the terms inside the boundaries.
+BdyConversionImp : ∀ {Δ Δ′ Δᵢ Δ′ᵢ Θ Θ′}
+    {Aᵢ A′ᵢ c c′ A A′}
+  → (W : World Δ Δ′)
+  → BdyTy Δ Θ Δᵢ Aᵢ c A
+  → BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′
+  → Set
+BdyConversionImp {Θ = Θ} {Θ′ = Θ′} {c = c} {c′ = c′} W
+  (bdy-ty {Δᶜ = Δᶜ} mw ⊢c eqᵢ eqₑ wB)
+  (bdy-ty {Δᶜ = Δ′ᶜ} mw′ ⊢c′ eq′ᵢ eq′ₑ wB′) =
+  Σ[ Wᶜ ∈ World Δᶜ Δ′ᶜ ]
+    (ConversionInterior W Θ Θ′ Wᶜ × ConvImp Wᶜ c c′)
 
 -- Reassembly: each bundle and the subterm's typing give the typing.
 ⊢lit : ∀ {k A} → Lit k A → Δ ∣ Γ ⊢ k ⦂ A
@@ -270,8 +296,9 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′) (γ : CtxImp W)
   ν⊑ν : ∀ {L L′ A A′ C C′ c c′ B B′} {r : `∀ C ⊑ᵂ⟨ W ⟩ `∀ C′}
     → W ∣ γ ⊢ L ⊑ L′ ∶ r
     → A ⊑ᵂ⟨ W ⟩ A′
-    → NuTy Δ A C c B
-    → NuTy Δ′ A′ C′ c′ B′
+    → (n : NuTy Δ A C c B)
+    → (n′ : NuTy Δ′ A′ C′ c′ B′)
+    → NuConversionImp W n n′
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       ---------------------------------------------
     → W ∣ γ ⊢ ν A · L ⟨ c ⟩ ⊑ ν A′ · L′ ⟨ c′ ⟩ ∶ q
@@ -292,8 +319,9 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′) (γ : CtxImp W)
       {M M′ Θ Θ′ c c′ Aᵢ A′ᵢ A A′} {r : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩ A′ᵢ}
     → Interior W Θ Θ′ Wᵢ
     → Wᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
-    → BdyTy Δ Θ Δᵢ Aᵢ c A
-    → BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′
+    → (b : BdyTy Δ Θ Δᵢ Aᵢ c A)
+    → (b′ : BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′)
+    → BdyConversionImp W b b′
     → (q : A ⊑ᵂ⟨ W ⟩ A′)
       ---------------------------------------------
     → W ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ⟪ Θ′ , c′ ⟫ ∶ q

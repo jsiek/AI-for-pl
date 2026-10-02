@@ -7,10 +7,12 @@ module ImprecisionWorld where
 --     center) and their renaming `emb`; §2 the rep. var correspondence
 --     `RepRel` and its renumberings; §3 `World` and `Paired` (ϱ = ϱᵍ ∪
 --     ϱˡ); §4 type imprecision at a world `_⊑ᵂ⟨_⟩_`; §5 the world
---     operations `W ⊕ m`, `W ⊕ᴸ`, `W ⊕ᴿ m`, `W ⊕⁺ m ^ β` and the
---     allocation renumberings; §6 the interior world `Interior W Θ Θ′
---     Wᵢ`, a RELATION; §7 term-context imprecision `CtxImp`; §8
---     well-formedness `WfWorld`, a SEPARATE predicate.
+--     operations `W ⊕ m`, `W ⊕ᴸ`, `W ⊕ᴿ m`, `W ⊕⁺ m ^ β`, the
+--     allocation renumberings, and `underν²`; §6 the term-interior
+--     world `Interior W Θ Θ′ Wᵢ` and conversion-context world
+--     `ConversionInterior W Θ Θ′ Wᶜ`, both RELATIONS; §7 term-context
+--     imprecision `CtxImp`; §8 well-formedness `WfWorld`, a SEPARATE
+--     predicate.
 --   * DEFINITIONS ONLY.  Model: GTSFImp/proof/DGG/CtxImp.agda (`World`,
 --     `ηᴸʷ`/`ηᴿʷ`, `impEnvʷ`, `_⊑ᵂ⟨_⟩_`, `CtxImp`), minus the stores,
 --     `RebaseAt` and `ImpEnvMono` (no part of a world is ever rebased,
@@ -49,6 +51,11 @@ module ImprecisionWorld where
 --       operation: the right side's new name is the boundary entry
 --       `bind 0 β`, not a Λ, so the right context is `reps Δ′ ∣ β ∷
 --       names Δ′`, not `underΛ Δ′`; the lexical pair is (0, β).
+--     - `ConversionInterior`, like `Interior`, does not require
+--       `WfWorld Wᶜ`.  A conversion context is the union of names live
+--       anywhere along a boundary, so continuation/freshness is stated
+--       by whether the name's rep. var already has an exterior name,
+--       rather than by `toExt` on the term-interior context.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_; map)
@@ -59,12 +66,12 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types using (Ty; ★; Renameᵗ; renameᵗ; ⇑ᵗ)
 open import Ctx
-open import Boundary using (Boundary; _⊢ⁱ_⇒_; toExt; Fresh)
+open import Boundary using (Boundary; _⊢ⁱ_⇒_; _⊢ᶜ_⇒_; toExt; Fresh)
 open import Imprecision using (VarImp; X⊑X; X⊑★; ImpEnv; _⊢_⊑_)
 
 private
   variable
-    Δ Δ′ Δᵢ Δ′ᵢ : Ctxᵗ
+    Δ Δ′ Δᵢ Δ′ᵢ Δᶜ Δ′ᶜ : Ctxᵗ
 
 ------------------------------------------------------------------------
 -- 1. Embeddings of name positions into the center
@@ -214,6 +221,15 @@ alloc² R R′ (world μ η η′ ϱᵍ ϱˡ) =
   world μ (relabel suc η) (relabel suc η′)
         ((zero , zero) ∷ shift² ϱᵍ) (shift² ϱˡ)
 
+-- The two ν-bound rep. vars are in scope only while their conversions
+-- are compared.  Unlike `alloc²`, which records matched runtime
+-- allocations globally, this operation records (0, 0) lexically.
+underν² : (R R′ : Ty) → World Δ Δ′
+  → World (allocate R Δ) (allocate R′ Δ′)
+underν² R R′ (world μ η η′ ϱᵍ ϱˡ) =
+  world μ (relabel suc η) (relabel suc η′)
+        (shift² ϱᵍ) ((zero , zero) ∷ shift² ϱˡ)
+
 allocᴸ⇔ : (R : Ty) (β : RVar) → World Δ Δ′ → World (allocate R Δ) Δ′
 allocᴸ⇔ R β (world μ η η′ ϱᵍ ϱˡ) =
   world μ (relabel suc η) η′ ((zero , β) ∷ shiftᴸ ϱᵍ) (shiftᴸ ϱˡ)
@@ -261,6 +277,40 @@ record Interior (W : World Δ Δ′) (Θ Θ′ : Boundary)
       → μʷ W ∋ˡ emb (ηᴿʷ W) X′ₑ := m
       → μʷ Wᵢ ∋ˡ emb (ηᴿʷ Wᵢ) X′ := m
 open Interior public
+
+-- `ConversionInterior W Θ Θ′ Wᶜ`: Wᶜ relates the two contexts in
+-- which the boundary conversions are read.  Those contexts keep every
+-- exterior name and add a name for each newly encountered rep. var;
+-- an unbind never removes a conversion-context name.  Consequently a
+-- name continues exactly when its rep. var already has an exterior
+-- name, and it is fresh exactly when that rep. var has none.
+record ConversionInterior (W : World Δ Δ′) (Θ Θ′ : Boundary)
+    (Wᶜ : World Δᶜ Δ′ᶜ) : Set where
+  constructor conversion-interior-world
+  field
+    conv-left  : Δ ⊢ᶜ Θ ⇒ Δᶜ
+    conv-right : Δ′ ⊢ᶜ Θ′ ⇒ Δ′ᶜ
+    conv-same-ϱᵍ : ϱᵍʷ Wᶜ ≡ ϱᵍʷ W
+    conv-same-ϱˡ : ϱˡʷ Wᶜ ≡ ϱˡʷ W
+    conv-join-cont : ∀ {X X′ Xₑ X′ₑ α β}
+      → Δᶜ ∋ᵗ X := α → Δ′ᶜ ∋ᵗ X′ := β
+      → Δ ∋ᵗ Xₑ := α → Δ′ ∋ᵗ X′ₑ := β
+      → (Joins Wᶜ X X′ → Joins W Xₑ X′ₑ)
+        × (Joins W Xₑ X′ₑ → Joins Wᶜ X X′)
+    conv-join-fresh : ∀ {X X′ α β}
+      → Δᶜ ∋ᵗ X := α → Δ′ᶜ ∋ᵗ X′ := β
+      → (names Δ ∌ʳ α) ⊎ (names Δ′ ∌ʳ β)
+      → (Joins Wᶜ X X′ → Paired W α β)
+        × (Paired W α β → Joins Wᶜ X X′)
+    conv-mark-left : ∀ {X Xₑ α m}
+      → Δᶜ ∋ᵗ X := α → Δ ∋ᵗ Xₑ := α
+      → μʷ W ∋ˡ emb (ηᴸʷ W) Xₑ := m
+      → μʷ Wᶜ ∋ˡ emb (ηᴸʷ Wᶜ) X := m
+    conv-mark-right : ∀ {X′ X′ₑ β m}
+      → Δ′ᶜ ∋ᵗ X′ := β → Δ′ ∋ᵗ X′ₑ := β
+      → μʷ W ∋ˡ emb (ηᴿʷ W) X′ₑ := m
+      → μʷ Wᶜ ∋ˡ emb (ηᴿʷ Wᶜ) X′ := m
+open ConversionInterior public
 
 ------------------------------------------------------------------------
 -- 7. Term-context imprecision (GTSFImp `CtxImp`)

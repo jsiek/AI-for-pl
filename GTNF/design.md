@@ -1018,7 +1018,7 @@ compile-⊑ :  if  μ ∣ γ ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p,
              then  W₀ ∣ γ₀ ⊢ ⟦M⟧ ⊑ ⟦M′⟧ ∶ p₀
 ```
 
-Here `⊢` is a *cast-term* imprecision for GTNF that still has to be
+Here `⊑` is a *cast-term* imprecision for GTNF that still has to be
 designed, and `W₀`, `γ₀`, `p₀` are the initial world, context and type
 imprecision.  In GTSFImp the world `W` aligns the two runs' type stores.
 In GTNF it must align the two runs' representation variables (`α`) and
@@ -1152,22 +1152,22 @@ Each one can be revisited on its own.
   a boundary, every exterior name that the interior cannot see gets the
   mode `X∼X` in the moved cast's environment (`exit_δ(μ)`, §6.3;
   Example 7; Jeremy, 2026-10-01).  This matches GTSFImp's `extᵐ` at an
-  allocation.  The choice may be revisited when `⊢` is designed.
+  allocation.  The choice may be revisited when `⊑` is designed.
 
-- **D11 (marks are chosen at the binder).**  In `⊢`, the mark of a
+- **D11 (marks are chosen at the binder).**  In `⊑`, the mark of a
   name that both sides bind (`X⊑X` or `X⊑★`) is chosen by the rule that
   binds it, and it is fixed for the subterm under the binder.  No rule
   weakens a mark on the way to a premise, unlike GTSFImp's
   `ImpEnvMono` (§12.2, Example P4; Jeremy, 2026-10-01).
 
-- **D12 (names lexical, rep. vars global).**  In `⊢`'s worlds, the
+- **D12 (names lexical, rep. vars global).**  In `⊑`'s worlds, the
   relation between the two sides' type variables (`Ω`, `η`, `η′`, `μ`)
   is lexically scoped.  The relation `ϱ` between their representation
   variables is global: it grows at matched allocations and is read
   when a boundary rebinds a rep. var (§12.2, Example P4; Jeremy,
   2026-10-01).
 
-- **D13 (`ϱ` is many-to-one, toward the left).**  In `⊢`'s worlds,
+- **D13 (`ϱ` is many-to-one, toward the left).**  In `⊑`'s worlds,
   each right (less precise) rep. var has at most one left partner in `ϱ`,
   and a left rep. var may have several.  So a right-only `+X^β` always has
   a unique left name to rejoin.  The mirror is not needed, because an
@@ -1197,7 +1197,7 @@ Each one can be revisited on its own.
   representation variables are "rep. vars", never "cells" (Jeremy,
   2026-10-02).
 
-The open design questions are those of the `⊢` sketch (§12.5).
+The open design questions are those of the `⊑` sketch (§12.5).
 
 Out of scope for now: space efficiency.  Normal forms for coercions,
 and a composition `p ⨟ q` like νF's for conversions, are not a concern
@@ -1227,7 +1227,7 @@ for the time being (Jeremy, 2026-10-01).
   `Imprecision` (type imprecision, copied from GTSFImp, §12.1),
   `ImprecisionExamples` (the six pairs of §12.4) and `Show` (a named
   renderer, `scripts/render_gtnf.sh`).  Next: settle §12.5's open
-  questions, then formalize `⊢` in Agda; then progress and
+  questions, then formalize `⊑` in Agda; then progress and
   preservation, then `compile-⊢`.
 
 ------------------------------------------------------------------------
@@ -1477,7 +1477,7 @@ time, because every boundary of a run is a closed subterm.
 
 **Count.**  Five congruence rules, `blame⊑`, three cast rules, three
 `Λ` rules, two `ν` rules and three boundary rules: 17 rules.  GTSFImp's
-`⊢` has 22.
+`_∣_⊢²_⊑_∶_` has 22.
 
 ### 12.4 Examples
 

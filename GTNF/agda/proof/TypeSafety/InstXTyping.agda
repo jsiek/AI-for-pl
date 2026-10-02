@@ -59,20 +59,20 @@ instX-⊢ {Δ = Δ} wfΔ wR (inst-gen vW)
   where
   crossed = ⊢refine (rr-represent rr-refl) (represented-wfᴿ wfΔ wR)
                     (cross-Λ-⊢ wfΔ wA W⊢)
-instX-⊢ {Δ = Δ} wfΔ wR (inst-∀ inst)
+instX-⊢ {Δ = Δ} wfΔ wR (inst-∀ _ inst)
     (⊢cast W⊢ (⊢all ⊢p) len) =
   ⊢cast (instX-⊢ wfΔ wR inst W⊢)
         (coercion-refine (rr-represent rr-refl) ⊢p)
         (trans (cong suc len)
                (cong suc (sym (length-map suc (names Δ)))))
-instX-⊢ {Δ = Δ} {R = R} wfΔ wR (inst-⟪⟫ inst)
+instX-⊢ {Δ = Δ} {R = R} wfΔ wR (inst-⟪⟫ _ inst)
     (boundary {Δᵢ = Δᵢ} mwΘ U⊢ ⊢allc sameᵢ sameₑ wE)
     with conv-all-inv ⊢allc
-instX-⊢ {Δ = Δ} {R = R} wfΔ wR (inst-⟪⟫ inst)
+instX-⊢ {Δ = Δ} {R = R} wfΔ wR (inst-⟪⟫ _ inst)
     (boundary {Δᵢ = Δᵢ} mwΘ U⊢ ⊢allc sameᵢ sameₑ wE)
     | A₀ , B₀ , refl , refl , ⊢s
     with sameTy-target-∀⁻ sameᵢ
-instX-⊢ {Δ = Δ} {R = R} wfΔ wR (inst-⟪⟫ inst)
+instX-⊢ {Δ = Δ} {R = R} wfΔ wR (inst-⟪⟫ _ inst)
     (boundary {Δᵢ = Δᵢ} mwΘ U⊢ ⊢allc sameᵢ sameₑ wE)
     | A₀ , B₀ , refl , refl , ⊢s | C₀ , refl , sameᵢ′ =
   boundary mw₁ inner

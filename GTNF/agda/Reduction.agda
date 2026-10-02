@@ -79,11 +79,12 @@ data InstX : Term → Term → Set where
     → InstX (W ⟨ μ ∣ genᵖ p ⟩)
             (crossΛᴹ W (srcᵖ (genᵖ p)) ⟨ ★∼X ∷ μ ∣ p ⟩)
   -- inst_X(W ⟨∀X. p⟩) = inst_X(W) ⟨p⟩, the freed variable strict
-  inst-∀   : ∀ {W N μ p} → InstX W N
+  inst-∀   : ∀ {W N μ p} → Value W → InstX W N
     → InstX (W ⟨ μ ∣ ∀ᵖ p ⟩) (N ⟨ X∼X ∷ μ ∣ p ⟩)
   -- inst_X([δ] U ⟨∀X. c⟩) = [δ] inst_X(U) ⟨c⟩ (νF's TyWrap): the scope
   -- is read under the new name (`liftᴮ`), the conversion moves verbatim
-  inst-⟪⟫  : ∀ {U N Θ s} → InstX U N
+  -- U SIMPLE: a boundary over a boundary is a Merge redex, not a value
+  inst-⟪⟫  : ∀ {U N Θ s} → Simple U → InstX U N
     → InstX (U ⟪ Θ , ⌞ `∀ s ⌟ ⟫) (N ⟪ liftᴮ Θ , s ⟫)
 
 -- the mode of exterior position j: the mode of the interior name that
@@ -116,7 +117,7 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
   -- a boundary is BORN: `ν` creates THE BINDER of the event, and the
   -- conversion is the one `ν` carries.  (GTNF) V is any ∀-value, and
   -- `InstX` instantiates it through all of its layers.
-  TyBeta : ∀ {Δ A R V N c} → InstX V N
+  TyBeta : ∀ {Δ A R V N c} → Value V → InstX V N
     → Δ ⊢ᶜ A ~ R
       --------------------------------------------------
     → Δ ⊢ ν A · V ⟨ c ⟩ -→ N ⟪ inst [] , c ⟫ ∣ new R
@@ -259,7 +260,8 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
 -- representation payload `ℕ`, and `inst []` is TyBetaBoundary.
 TyBeta-ℕ : empty ⊢ ν `ℕ · (Λ ($ 7)) ⟨ ⌞ id `ℕ ⌟ ⟩
   -→ ($ 7) ⟪ TyBetaBoundary , ⌞ id `ℕ ⌟ ⟫ ∣ new `ℕ
-TyBeta-ℕ = TyBeta (inst-Λ (V-simple S-$)) same-ℕ
+TyBeta-ℕ = TyBeta (V-simple (S-Λ (V-simple S-$))) (inst-Λ (V-simple S-$))
+  same-ℕ
 
 -- A run needs no store index: each step's change is applied to the
 -- context the tail runs at.

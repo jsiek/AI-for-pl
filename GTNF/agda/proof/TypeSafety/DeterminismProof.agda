@@ -28,7 +28,7 @@ module Impl (irreducible : Irreducible) where
   blame-no-step = proj₂ irreducible
 
   det : Determinism-Statement
-  det ⊢M (TyBeta inst same) st₂ = {!!}
+  det ⊢M (TyBeta v inst same) st₂ = {!!}
   det ⊢M (Beta vW) st₂ = {!!}
   det ⊢M (Wrap u vW rc ri rd sc) st₂ = {!!}
   det ⊢M (Merge v ri r₁ r₂ r⋉ sc₁ sc₂) st₂ = {!!}

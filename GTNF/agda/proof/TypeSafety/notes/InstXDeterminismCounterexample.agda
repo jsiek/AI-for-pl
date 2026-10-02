@@ -1,13 +1,21 @@
 module proof.TypeSafety.notes.InstXDeterminismCounterexample where
 
 -- File Charter:
---   * A checked counterexample to determinism for the current `InstX`.
---   * Applying `inst-⟪⟫` twice admits a non-value with a `Merge` step as
---     a `TyBeta` redex, so the enclosing `ν` has two different changes.
+--   * REGRESSION TEST for a determinism bug found in M1 (2026-10-02).
+--     Before the fix, applying `inst-⟪⟫` twice admitted the non-value
+--     `twice` (a boundary over a boundary, a `Merge` redex) as a `TyBeta`
+--     redex, so `bad-redex` had two steps with different changes
+--     (`new ℕ` by TyBeta, `none` by ξ-ν Merge).
+--   * THE FIX (Jeremy, 2026-10-02; design.md §6.2): `TyBeta` requires
+--     `Value V`, `inst-∀` requires `Value W`, and `inst-⟪⟫` requires
+--     `Simple U` (a `Value U` premise would still admit `twice`, because
+--     `once` is a value).  Below: `twice` is not a value and has no
+--     `InstX`, while the `Merge` step remains.
 
 open import Data.List using ([])
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (_≢_)
+open import Relation.Nullary using (¬_)
 
 open import Types
 open import Ctx
@@ -63,14 +71,13 @@ bad-redex-⊢ =
   ⊢ν wf-ℕ same-ℕ twice-⊢ TyBeta-bw idℕ-⊢
      (`ℕ , same-ℕ , same-ℕ) wf-ℕ
 
-inst-twice : InstX twice (($ 7 ⟪ [] , idℕ ⟫) ⟪ [] , idℕ ⟫)
-inst-twice = inst-⟪⟫ (inst-⟪⟫ (inst-Λ (V-simple S-$)))
+-- the fix: `twice` is not a value, and `InstX` cannot reach through it
+twice-not-value : ¬ Value twice
+twice-not-value (V-simple ())
+twice-not-value (V-⟪⟫ () _)
 
-tybeta-step :
-  empty ⊢ bad-redex
-    -→ (($ 7 ⟪ [] , idℕ ⟫) ⟪ [] , idℕ ⟫)
-         ⟪ TyBetaBoundary , idℕ ⟫ ∣ new `ℕ
-tybeta-step = TyBeta inst-twice same-ℕ
+no-inst-twice : ∀ {N} → ¬ InstX twice N
+no-inst-twice (inst-⟪⟫ () _)
 
 all-idℕ-reading : names empty ⊩ all-idℕ ~ all-idℕ
 all-idℕ-reading =
@@ -83,6 +90,7 @@ all-idℕ-same = all-idℕ , all-idℕ-reading , all-idℕ-reading
 once-value : Value once
 once-value = V-⟪⟫ (S-Λ (V-simple S-$)) I-all
 
+-- the Merge step is still there, and is now the only step
 merge-step :
   empty ⊢ twice
     -→ poly-seven ⟪ [] , empty ⊢ all-idℕ ⨟ all-idℕ ⟫ ∣ none
@@ -96,6 +104,3 @@ frame-step :
     -→ ν `ℕ · (poly-seven ⟪ [] , empty ⊢ all-idℕ ⨟ all-idℕ ⟫)
          ⟨ idℕ ⟩ ∣ none
 frame-step = ξ-ν merge-step
-
-changes-differ : new `ℕ ≢ none
-changes-differ ()

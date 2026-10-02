@@ -1212,6 +1212,16 @@ Each one can be revisited on its own.
   opened at `X⊑★` (`∀X.c ⊑ g′`).  These mirror type imprecision's
   `X ⊑ ★` and `∀⊑` (§12.3; C23a, C23b; Jeremy, 2026-10-02).
 
+- **D19 (`TyBeta` fires only on a ∀-value).**  `TyBeta` has the
+  premise `Value V`.  Every case of `inst_X` requires a value: `inst-Λ`
+  a value body, `inst-gen` and `inst-∀` a value under the cast, and
+  `inst-⟪⟫` a *simple* interior.  `Value U` would not be enough there,
+  because a boundary over a boundary value is a `Merge` redex.  Without
+  these premises, `ν ℕ · ([] ([] Λ7 ⟨∀ id(ℕ)⟩) ⟨∀ id(ℕ)⟩) ⟨id(ℕ)⟩` had
+  two steps, `TyBeta` and `Merge`, so `det` failed.  M1 found this
+  (`proof/TypeSafety/notes/InstXDeterminismCounterexample.agda`, now a
+  regression test; Jeremy, 2026-10-02).
+
 The open design questions are those of the `⊑` sketch (§12.5).
 
 Out of scope for now: space efficiency.  Normal forms for coercions,

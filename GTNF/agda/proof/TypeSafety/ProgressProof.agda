@@ -296,7 +296,7 @@ progress {M = ν A · L ⟨ c ⟩} (⊢ν wA rA ⊢L mw ⊢c same wB)
     | inj₁ vL with canonical-∀ vL ⊢L
 progress {M = ν A · L ⟨ c ⟩} (⊢ν wA rA ⊢L mw ⊢c same wB)
     | inj₁ vL | N , inst =
-  inj₂ (inj₂ (_ , new _ , TyBeta inst rA))
+  inj₂ (inj₂ (_ , new _ , TyBeta vL inst rA))
 progress {M = ν A · L ⟨ c ⟩} (⊢ν wA rA ⊢L mw ⊢c same wB)
     | inj₂ (inj₁ (ℓ , refl)) =
   inj₂ (inj₂ (blame ℓ , none , Blame-ν))

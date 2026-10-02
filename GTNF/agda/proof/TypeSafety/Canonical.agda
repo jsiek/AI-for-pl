@@ -233,7 +233,7 @@ canonical-∀ (V-simple (S-cast v I-↦)) (⊢cast _ () _)
 canonical-∀ (V-simple (S-cast v I-∀ᵖ)) (⊢cast ⊢W (⊢all ⊢p) len)
     with canonical-∀ v ⊢W
 canonical-∀ (V-simple (S-cast v I-∀ᵖ)) (⊢cast ⊢W (⊢all ⊢p) len)
-    | N , inst = _ , inst-∀ inst
+    | N , inst = _ , inst-∀ v inst
 canonical-∀ (V-simple (S-cast v I-gen)) (⊢cast ⊢W (⊢gen _ _ _ _ _ _) _) =
   _ , inst-gen v
 canonical-∀ {Δ = Δ} (V-⟪⟫ u it)
@@ -256,7 +256,7 @@ canonical-∀ {Δ = Δ} (V-⟪⟫ u it)
 canonical-∀ {Δ = Δ} (V-⟪⟫ u it)
     (boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
     | C′ , eq | s , refl | A₀ , B₀ , refl , eqB , ⊢s | D , refl
-    | N , inst = _ , inst-⟪⟫ inst
+    | N , inst = _ , inst-⟪⟫ u inst
 canonical-∀ (V-fresh _ _)
     (boundary _ _ (conv-tail (conv-mid conv-id★)) _
       (_ , same-∀ _ , ()) _)

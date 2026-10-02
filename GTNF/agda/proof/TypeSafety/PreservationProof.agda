@@ -18,7 +18,7 @@ open import Reduction
 open import proof.TypeSafety.PreservationDef
 
 preservation : Preservation-Statement
-preservation wfΔ ⊢M (TyBeta inst same) = {!!}
+preservation wfΔ ⊢M (TyBeta v inst same) = {!!}
 preservation wfΔ ⊢M (Beta vW) = {!!}
 preservation wfΔ ⊢M (Wrap u vW rc ri rd sc) = {!!}
 preservation wfΔ ⊢M (Merge v ri r₁ r₂ r⋉ sc₁ sc₂) = {!!}
@@ -58,7 +58,7 @@ preservation wfΔ (⊢cast ⊢M ⊢p len) (ξ-cast st)
 preservation wfΔ (⊢cast ⊢M ⊢p len) (ξ-cast st) | ⊢M′ = {!!}
 
 preservation-wf : PreservationWf-Statement
-preservation-wf wfΔ ⊢M (TyBeta inst same) = {!!}
+preservation-wf wfΔ ⊢M (TyBeta v inst same) = {!!}
 preservation-wf wfΔ ⊢M (Beta vW) = wfΔ
 preservation-wf wfΔ ⊢M (Wrap u vW rc ri rd sc) = wfΔ
 preservation-wf wfΔ ⊢M (Merge v ri r₁ r₂ r⋉ sc₁ sc₂) = wfΔ

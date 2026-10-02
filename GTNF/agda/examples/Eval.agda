@@ -207,7 +207,7 @@ mutual
   instX? : {V : Term} → Value V → Maybe (∃[ N ] InstX V N)
   instX? (V-simple u) = instXˢ? u
   instX? (V-⟪⟫ u I-all) with instXˢ? u
-  instX? (V-⟪⟫ u I-all) | just (N , i) = just (_ , inst-⟪⟫ i)
+  instX? (V-⟪⟫ u I-all) | just (N , i) = just (_ , inst-⟪⟫ u i)
   instX? (V-⟪⟫ u I-all) | nothing      = nothing
   instX? (V-⟪⟫ u I-idv)      = nothing
   instX? (V-⟪⟫ u I-fun)      = nothing
@@ -219,7 +219,7 @@ mutual
   instXˢ? (S-Λ vN)          = just (_ , inst-Λ vN)
   instXˢ? (S-cast v I-gen)  = just (_ , inst-gen v)
   instXˢ? (S-cast v I-∀ᵖ) with instX? v
-  instXˢ? (S-cast v I-∀ᵖ) | just (N , i) = just (_ , inst-∀ i)
+  instXˢ? (S-cast v I-∀ᵖ) | just (N , i) = just (_ , inst-∀ v i)
   instXˢ? (S-cast v I-∀ᵖ) | nothing      = nothing
   instXˢ? (S-cast v I-tag)  = nothing
   instXˢ? (S-cast v I-↦)    = nothing
@@ -233,7 +233,7 @@ nuRedex : (Δ : Ctxᵗ) {L : Term} (A : Ty) (c : Conv) → Value L
   → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ ν A · L ⟨ c ⟩ -→ N ∣ δ))
 nuRedex Δ A c vL with instX? vL | read? (names Δ) A
 nuRedex Δ A c vL | just (N , i) | just (R , same) =
-  just (_ , new R , TyBeta i same)
+  just (_ , new R , TyBeta vL i same)
 nuRedex Δ A c vL | just (N , i) | nothing = nothing
 nuRedex Δ A c vL | nothing | r = nothing
 
@@ -606,7 +606,7 @@ reaches-⦂ {A = A} {k = k} {⊢M = ⊢M} r =
 ------------------------------------------------------------------------
 
 ruleName : ∀ {Δ M N δ} → Δ ⊢ M -→ N ∣ δ → String
-ruleName (TyBeta i r)               = "TyBeta"
+ruleName (TyBeta v i r)             = "TyBeta"
 ruleName (Beta v)                   = "Beta"
 ruleName (Wrap u v rc ri rd sc)     = "Wrap"
 ruleName (Merge v ri r₁ r₂ r⋉ s t) = "Merge"

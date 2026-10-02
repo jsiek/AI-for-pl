@@ -86,18 +86,32 @@ def agda_ok(file, allow_holes):
 
 
 def clauses(text):
-    """Top-level clause blocks: a non-indented, non-comment line with `=`
-    or `with`, together with its indented continuation lines."""
-    blocks, cur = [], None
-    for line in text.splitlines():
-        if line and not line[0].isspace() and not line.startswith("--"):
+    """Clause blocks: a line that starts (at any indentation) with the
+    name of a declared function (`name :` somewhere in the file) and
+    has `=` or `with`, together with the more indented lines after it."""
+    lines = text.splitlines()
+    sig = re.compile(r"^\s*(\S+)\s+:(\s|$)")
+    names = {m.group(1) for l in lines for m in [sig.match(l)] if m}
+    blocks, cur, ind = [], None, 0
+    for line in lines:
+        code = line.split("--")[0]
+        if not code.strip():
             if cur is not None:
-                blocks.append(cur)
-            head = line.split("--")[0]
-            cur = line if (" = " in head or head.rstrip().endswith("=")
-                           or " with " in head) else None
-        elif cur is not None:
+                cur += "\n" + line
+            continue
+        indent = len(code) - len(code.lstrip())
+        first = code.split()[0]
+        is_head = first in names and (" = " in code
+                                      or code.rstrip().endswith("=")
+                                      or " with " in code)
+        if cur is not None and indent > ind and not is_head:
             cur += "\n" + line
+            continue
+        if cur is not None:
+            blocks.append(cur)
+            cur = None
+        if is_head:
+            cur, ind = line, indent
     if cur is not None:
         blocks.append(cur)
     return blocks

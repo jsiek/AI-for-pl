@@ -1160,16 +1160,16 @@ Each one can be revisited on its own.
   weakens a mark on the way to a premise, unlike GTSFImp's
   `ImpEnvMono` (§12.2, Example P4; Jeremy, 2026-10-01).
 
-- **D12 (names lexical, cells global).**  In `⊢²`'s worlds, the
+- **D12 (names lexical, rep. vars global).**  In `⊢²`'s worlds, the
   relation between the two sides' type variables (`Ω`, `η`, `η′`, `μ`)
   is lexically scoped.  The relation `ϱ` between their representation
   variables is global: it grows at matched allocations and is read
-  when a boundary rebinds a cell (§12.2, Example P4; Jeremy,
+  when a boundary rebinds a rep. var (§12.2, Example P4; Jeremy,
   2026-10-01).
 
 - **D13 (`ϱ` is many-to-one, toward the left).**  In `⊢²`'s worlds,
-  each right (less precise) cell has at most one left partner in `ϱ`,
-  and a left cell may have several.  So a right-only `+X^β` always has
+  each right (less precise) rep. var has at most one left partner in `ϱ`,
+  and a left rep. var may have several.  So a right-only `+X^β` always has
   a unique left name to rejoin.  The mirror is not needed, because an
   extra left name can stay left-only at `X⊑★`, while an extra right
   name cannot stay right-only (§12.6, F3; C12–C14; mirror pairs M1,
@@ -1187,6 +1187,15 @@ Each one can be revisited on its own.
   world has to be well formed.  A name that goes one-sided inside a
   multi-entry `δ` and rejoins keeps its earlier mark (§12.2; §12.6,
   D1; examples P4, Cf, C2, C12, C18b; Jeremy, 2026-10-02).
+
+- **D16 (rep. vars related lexically and globally).**  `ϱ` has a
+  lexical part `ϱˡ`, for the rep. vars that an enclosing `Λ` or `ν`
+  binds (paired by `Λ⊑Λ`, `∀⊑⟪+⟫`, `ν⊑ν` for their premises), and a
+  global part `ϱᵍ`, for store rep. vars (grown by matched `TyBeta`s).
+  A matched `TyBeta` turns the lexical pair of the two `ν`s into a
+  global pair (§12.2; §12.6, D2; Jeremy, 2026-10-02).  Terminology:
+  representation variables are "rep. vars", never "cells" (Jeremy,
+  2026-10-02).
 
 The open design questions are those of the `⊢²` sketch (§12.5).
 
@@ -1277,34 +1286,58 @@ W = (Δ, Δ′, Ω, η, η′, μ, ϱ)
   η′ : names(Δ′) ↪ Ω     every center name is in the image of at least one
   μ  : ImpEnv(Ω)         a name in both images is X⊑X or X⊑★;
                          a name in η's image only (left-only) is X⊑★
-  ϱ  ⊆ cells(Δ) × cells(Δ′)    the cell correspondence: each right cell has at
-                               most one left partner, and a left cell may have
-                               several (D13)
+  ϱ  = ϱᵍ ∪ ϱˡ           the rep. var correspondence, in two parts (D16):
+                         ϱᵍ global, over the two stores' rep. vars;
+                         ϱˡ lexical, over rep. vars bound by an enclosing
+                         Λ or ν.  Each right rep. var has at most one left
+                         partner; a left rep. var may have several (D13)
 
   A ⊑_W A′   iff   μ ⊢ η(A) ⊑ η′(A′)               (GTSFImp _⊑ᵂ⟨_⟩_)
 ```
 
 Well-formedness has two parts:
 
-- **Names name paired cells.**  If a center name `X` is `X:=α` on the
+- **Names name paired rep. vars.**  If a center name `X` is `X:=α` on the
   left and `X:=β` on the right, then `(α, β) ∈ ϱ`.
-- **Paired cells agree.**  If `(α, β) ∈ ϱ`, then either both are
+- **Paired rep. vars agree.**  If `(α, β) ∈ ϱ`, then either both are
   abstract (bound by a `Λ` on each side), or `α` is abstract and
   `β:=★`, or `α:=R`, `β:=R′`, and `R ⊑ R′` (read through `W`).
 
-**Names are related lexically, cells globally** (D12).  The relation
-between type variables (`Ω`, `η`, `η′`, `μ`) is lexically scoped: it
-is extended and shrunk with the scope, never by a step.  The relation
-between representation variables (`ϱ`) is global, like the stores it
-relates.
+**Names are related lexically; rep. vars lexically and globally**
+(D12, D16).  The relation between type variables (`Ω`, `η`, `η′`, `μ`)
+is lexically scoped: it is extended and shrunk with the scope, never
+by a step.  Rep. vars come from two places, so their relation has two
+parts:
+
+- **Lexical, `ϱˡ`.**  A `Λ` binds an abstract rep. var for its body
+  (`⊢Λ` types the body at `underΛ Δ`).  A `ν X:=A` binds the rep. var
+  for its conversion (`⊢ν` types `c` at `allocate R Δ`).  A rule that
+  goes under such binders on both sides pairs their rep. vars for the
+  premise only: `Λ⊑Λ` pairs two abstract rep. vars, `∀⊑⟪+⟫` pairs the
+  left value's abstract rep. var with the right's `β:=★`, and `ν⊑ν`
+  pairs the two `ν`s' rep. vars.
+- **Global, `ϱᵍ`.**  A store rep. var is created by a step (`TyBeta`)
+  and is visible everywhere afterwards.  When the two sides' `TyBeta`s
+  are matched, the lexical pair of the two `ν`s becomes a global
+  pair.  When a left `TyBeta` catches up with a right boundary that
+  `∀⊑⟪+⟫` related, the left's lexical abstract rep. var is replaced by
+  the new store rep. var, which is paired globally with the right's
+  `β`.
+
+Example: in P3's block after the left's `Beta`, the premise of
+`∀⊑⟪+⟫` relates `λx:X.x` (typed under the left `Λ`'s abstract
+`α₀`) to `λx:X.x` (inside the right's `[+X^αᴿ]`, `αᴿ:=★`).  The
+shared name `X` needs `(α₀, αᴿ) ∈ ϱˡ`.  After the left's `TyBeta`,
+the pair is `(αᴸ, αᴿ) ∈ ϱᵍ`, with `αᴸ:=ℕ`.
 
 The point of the design (§9.6) is that **no part of a world is ever
 rebased.**  `Ω`, `η`, `η′` and `μ` change only lexically: they are
 extended by a binder (`Λ`, a coercion binder, a boundary entry `+X^α`)
 and shrunk by an unbind (`−X^α`), for the subterm under it, exactly as
-the type context is.  The one non-lexical part is `ϱ`, and it only
-grows: a `TyBeta` that the other side matches adds one pair.  An
-unmatched allocation only renumbers the allocating side's cells (de
+the type context is.  So is `ϱˡ`.  The one non-lexical part is `ϱᵍ`,
+and it only grows: a `TyBeta` that the other side matches adds one
+pair.  An
+unmatched allocation only renumbers the allocating side's rep. vars (de
 Bruijn).
 
 World operations, used by the rules:
@@ -1317,7 +1350,7 @@ W[δ ∥ δ′]        the interior world of a boundary pair: each side's
                  changes act on that side's names and embedding.
                  −X on one side removes X from that side's image; a center
                  name in neither image is dropped.  +X^α joins the center
-                 name of the cell α is paired with by ϱ, if any, and is
+                 name of the rep. var α is paired with by ϱ, if any, and is
                  otherwise a new one-sided center name.  A new
                  both-sided name gets the mark X⊑X or X⊑★; the
                  derivation chooses (Example P4 needs X⊑★; D11).
@@ -1394,7 +1427,7 @@ environments, except through the types:
 ∀-value: a `Λ` (Example P3), a `gen`-cast value, a `∀`-cast value or
 a boundary over one.  The premise opens the left value with the same
 meta-operation that `TyBeta` uses, `inst_X` (§6.2), at the left
-value's abstract cell, which is paired with the right cell `β:=★`.
+value's abstract rep. var, which is paired with the right rep. var `β:=★`.
 For `V = ΛX.V₀`, `inst_X(V) = V₀`.  The mark `m` of the new
 both-sided name is chosen at the binder (D11).  When the left side
 later instantiates, its new boundary `[+X^α]` meets the right's
@@ -1451,8 +1484,8 @@ time, because every boundary of a run is a closed subterm.
 Six pairs, in `ImprecisionExamples.agda`.  Each run is a `Reaches …
 refl` proof, and the states below are rendered from `evalTerms` by
 `Show.agda` (`scripts/render_gtnf.sh`), not transcribed by hand.  Each
-run names its cells by allocation order, so both runs call their first
-cell `α`.  They are different cells, and `ϱ` pairs them; write `αᴸ`
+run names its rep. vars by allocation order, so both runs call their first
+rep. var `α`.  They are different rep. vars, and `ϱ` pairs them; write `αᴸ`
 and `αᴿ` when the difference matters.
 
 The traces are shown **synchronized**: each block is a pair of states
@@ -1500,7 +1533,7 @@ R  5⟨ℕ!⟩^[]
 
 The two `−X` conversions are the same syntax, typed at different
 representations (`ℕ ⇒ X` and `★ ⇒ X`).  The interior types `ℕ ⊑ ★`
-are related because the paired cells are.
+are related because the paired rep. vars are.
 
 #### P2 — the left side alone abstracts and instantiates (one-sided boundaries)
 
@@ -1537,7 +1570,7 @@ R  ((λx:★→★. (x 5⟨ℕ!⟩^[])) (ΛX. (λx:X. x))⟨inst Y. (Y?ℓ0 → 
                                          L: Beta             R: Inst, TyBeta (α:=★), Beta
 L  ((ν X:=ℕ. ((ΛY. (λx:Y. x)) X) ⟨−X → +X⟩) 5)
 R  (([+X^α] (λx:X. x) ⟨−X → +X⟩)⟨id(★) → id(★)⟩^[] 5⟨ℕ!⟩^[])
-   ·⊑·, ν⊑, ⊑cast, ∀⊑⟪+⟫: the left Λ's abstract cell is paired with αᴿ:=★
+   ·⊑·, ν⊑, ⊑cast, ∀⊑⟪+⟫: the left Λ's abstract rep. var is paired with αᴿ:=★
                                          L: TyBeta (α:=ℕ)    R: —
 L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
 R  (([+X^α] (λx:X. x) ⟨−X → +X⟩)⟨id(★) → id(★)⟩^[] 5⟨ℕ!⟩^[])
@@ -1578,7 +1611,7 @@ R  ([+X^α] (([−X^α] (λx:★. x) ⟨id(★) → id(★)⟩) ([−X^α] 5 ⟨
 L  ([+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩)
 R  ([+X^α] ([−X^α] ([+X^α] ([−X^α] 5 ⟨−X⟩)⟨X!⟩^[X:X∼★] ⟨id(★)⟩) ⟨id(★)⟩)⟨X?ℓ0⟩^[X:★∼X] ⟨+X⟩)
    ⟪⟫⊑⟪⟫, ⊑cast, ⊑⟪⟫ (the right unbinds X: X left-only),
-   ⊑⟪⟫ (the right rebinds the cell αᴿ, which ϱ pairs with αᴸ: X is
+   ⊑⟪⟫ (the right rebinds the rep. var αᴿ, which ϱ pairs with αᴸ: X is
    both-sided again), ⊑cast (X!), ⟪⟫⊑⟪⟫
                                          L: —                R: Merge, IdDyn, Merge, TagUntag
 L  ([+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩)
@@ -1594,7 +1627,7 @@ This pair needs two things that P1–P3 do not.  First, a both-sided
 name at `X⊑★`: inside the `[+X^α]` pair, the left's `λx:X.x` faces the
 right's `λx:★.x`, which `gen` has not yet cast to `X → X`.  Second, `ϱ`
 must survive a right-only unbind: the right's `[−X^α, +X^α]` hides `X`
-and rebinds the same cell, and only `ϱ` says that the rebound name is
+and rebinds the same rep. var, and only `ϱ` says that the rebound name is
 the left's `X` again.
 
 #### P5 — the left side blames on an escaped tag; the right side succeeds
@@ -1643,7 +1676,7 @@ R  7⟨ℕ!⟩^[]
 ```
 
 `inst_X` reaches through the right's `∀`-cast, so both `TyBeta`s
-allocate one cell each and the boundaries stay aligned.
+allocate one rep. var each and the boundaries stay aligned.
 
 ### 12.5 What the examples say about the sketch
 
@@ -1665,7 +1698,7 @@ allocate one cell each and the boundaries stay aligned.
      binder (`W ⊕ X:m`, `W[δ ∥ δ′]`), not by GTSFImp's `ImpEnvMono`
      decay at the cast rules.
   2. *Settled (D12).*  `ϱ` stays in the world as a global relation on
-     cells; the relation on names stays lexical.  P4's rebind reads `ϱ`.
+     rep. vars; the relation on names stays lexical.  P4's rebind reads `ϱ`.
   3. Whether `W[δ ∥ δ′]` should be restricted (for example, forbid a
      left-only unbind of a both-sided name), or whether such
      restrictions should come from the DGG proof.
@@ -1751,7 +1784,7 @@ synchronization (F3).  Findings, smallest first:
   `TyBeta`, which leads to the same block.  A left `gen`-cast
   ∀-value facing the right's `[+X^β] V′ ⟨c′⟩` needs the same rule,
   so it should be stated for every ∀-value through `inst_X` at the
-  left's abstract cell (C2's right-led block):
+  left's abstract rep. var (C2's right-led block):
 
   ```
     W ⊕ X:m ∣ [] ⊢² inst_X(V) ⊑ V′ : A ⊑ A′    V a ∀-value    β:=★    c′ : A′ ⇒ B′
@@ -1760,8 +1793,8 @@ synchronization (F3).  Findings, smallest first:
   ```
 
 - **F3 (settled, D13).**  `ϱ` cannot be a partial bijection.  In C12
-  (`I⟨inst⟩⟨gen⟩` on the right), the left's one cell `α:=ℕ` must be
-  paired with two right cells: the right's `β:=ℕ`, from the
+  (`I⟨inst⟩⟨gen⟩` on the right), the left's one rep. var `α:=ℕ` must be
+  paired with two right rep. vars: the right's `β:=ℕ`, from the
   instantiation that both sides make, and the right's `α:=★`, from
   `Inst`.  The block is
 
@@ -1772,8 +1805,8 @@ synchronization (F3).  Findings, smallest first:
 
   The outer pair needs `(αᴸ, βᴿ)`.  The inner right-only `[+X^αᴿ]`
   must rejoin the same center name, which needs `(αᴸ, αᴿ)`.  Under
-  the proposed fix, each right cell has at most one left partner, and
-  a left cell may have several.  With it, C12–C14 go through.
+  the proposed fix, each right rep. var has at most one left partner, and
+  a left rep. var may have several.  With it, C12–C14 go through.
 
   *The mirror needs nothing (checked on the existing runs).*  Put
   `I⟨inst⟩⟨gen⟩` on the left, that is, C12's right program, against
@@ -1787,8 +1820,8 @@ synchronization (F3).  Findings, smallest first:
     two `Inst`/`TyBeta` pairs match, giving `(αᴸ, αᴿ)`.  The left's
     `[ℕ]` is a left-only `ν`, and its `[+Y^β]` and `gen` unbind
     `[−Y^β]` are left-only too.
-  - **M2:** `Cg-R` (`I★⟨gen⟩⟨inst⟩`).  The right's `Inst` cell
-    `α:=★` pairs with the left's `[ℕ]` cell (`ℕ ⊑ ★`), the two `gen`
+  - **M2:** `Cg-R` (`I★⟨gen⟩⟨inst⟩`).  The right's `Inst` rep. var
+    `α:=★` pairs with the left's `[ℕ]` rep. var (`ℕ ⊑ ★`), the two `gen`
     unbinds match, and the left's `Inst` boundary is left-only.
 
   In all three, `ϱ` stays one-to-one.  The asymmetry comes from type
@@ -1799,13 +1832,13 @@ synchronization (F3).  Findings, smallest first:
   name cannot stay right-only, because no left type is more precise
   than it, so it must rejoin a left name.  That rejoin is what forces
   C12's second pair.  So the fix is needed in one direction only: a
-  right cell has at most one left partner, and a left cell may have
+  right rep. var has at most one left partner, and a left rep. var may have
   several.
 - **F4.**  A one-sided `Merge` also produces a left-only unbind of a
   shared name (§12.5, question 3).
 - **D1 (settled, D15).**  `W[δ ∥ δ′]` must say which intermediate worlds of a
   multi-entry `δ` have to be well formed, and that a name keeps its
   mark when it goes one-sided and later rejoins.
-- **D2.**  `∀⊑⟪+⟫`'s pair involves the left value's abstract cell,
-  which is not in `cells(Δ)`.  `ϱ`'s type has to allow it.
+- **D2 (settled, D16).**  `∀⊑⟪+⟫`'s pair involves the left value's abstract rep. var,
+  which is not in `rv(Δ)`.  `ϱ`'s type has to allow it.
 

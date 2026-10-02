@@ -28,12 +28,12 @@ module Show where
 --     REPRESENTATION variable is a Greek letter (α, β, γ, α′, …) and the
 --     ORDINARY name paired with it is the Latin letter at the same
 --     counter (X, Y, Z, X′, …).
---   * CELLS ARE NAMED BY ALLOCATION ORDER: in a state whose store has n
---     cells, the cell at de Bruijn index i is the (n ∸ suc i)-th
---     allocated, so the first allocated cell is α (named X) in EVERY
+--   * REP. VARS ARE NAMED BY ALLOCATION ORDER: in a state whose store has n
+--     rep. vars, the rep. var at de Bruijn index i is the (n ∸ suc i)-th
+--     allocated, so the first allocated rep. var is α (named X) in EVERY
 --     state of a run.  The binders of a state (Λ, ν, ∀/inst/gen) take
 --     the counters n, n+1, … left to right, so type-binder names are
---     GLOBALLY UNIQUE within a state; a `ν` is named for the cell it is
+--     GLOBALLY UNIQUE within a state; a `ν` is named for the rep. var it is
 --     about to allocate, which TyBeta then names with that same letter
 --     when it is the next allocation.  Binders inside TYPES and
 --     CONVERSIONS are local: the first tyBinder not already in scope.
@@ -153,8 +153,8 @@ count : ℕ → ℕ → List ℕ
 count i zero    = []
 count i (suc n) = i ∷ count (suc i) n
 
--- n-1, n-2, …, 0: the allocation counters of a store's cells, index 0
--- (the newest cell) first
+-- n-1, n-2, …, 0: the allocation counters of a store's rep. vars, index 0
+-- (the newest rep. var) first
 countDown : ℕ → List ℕ
 countDown zero    = []
 countDown (suc n) = n ∷ countDown n
@@ -438,9 +438,9 @@ showTmF e tms f x (L · M) | l , f₁ | m , f₂ =
   "(" ++ l ++ " " ++ m ++ ")" , f₂
 showTmF e tms f x (Λ N) with showTmF (underΛE f e) tms (suc f) x N
 ... | body , f′ = "(Λ" ++ tyBinder f ++ ". " ++ body ++ ")" , f′
--- `ν` names the cell it will allocate (counter `f`), and `c` is read
+-- `ν` names the rep. var it will allocate (counter `f`), and `c` is read
 -- under that fresh name: the conversion reading of `TyBetaBoundary` at
--- the allocated context is `underΛE`'s shape with a bound cell.
+-- the allocated context is `underΛE`'s shape with a bound rep. var.
 showTmF e tms f x (ν A · L ⟨ c ⟩) with showTmF e tms (suc f) x L
 ... | l , f′ =
   "(ν " ++ tyBinder f ++ ":=" ++ showTy (onames e) A ++ ". (" ++ l ++ " "
@@ -461,9 +461,9 @@ showTmF e tms f x (blame ℓ) = "blame " ++ showLabel ℓ , f
 -- 8. Type contexts and states
 ------------------------------------------------------------------------
 
--- the cells of an n-cell store, index 0 first, named by allocation order
-cells : ℕ → Pairs
-cells n = map newPair (countDown n)
+-- the rep. vars of an store of n rep. vars, index 0 first, named by allocation order
+repVars : ℕ → Pairs
+repVars n = map newPair (countDown n)
 
 -- A representation payload is stored OUTSIDE its own binder, so the entry
 -- at index i is read on the names from i+1 on.
@@ -476,12 +476,12 @@ showRepEntries i ps (bindR R ∷ Ξ)  =
      ++ showRep [] (map proj₁ (dropL (suc i) ps)) R)
     ∷ showRepEntries (suc i) ps Ξ
 
--- the renderer for a state: cell i named by allocation order, and the
+-- the renderer for a state: rep. var i named by allocation order, and the
 -- ordinary names exactly the state's name map
 ctxEnv : Ctxᵗ → Env
-ctxEnv Γ = mkEnv (cells (length (reps Γ))) (names Γ)
+ctxEnv Γ = mkEnv (repVars (length (reps Γ))) (names Γ)
 
--- the store, OLDEST cell first
+-- the store, OLDEST rep. var first
 showStore : Ctxᵗ → String
 showStore Γ =
   "Ξ = [" ++ joinC (reverse (showRepEntries zero (eReps (ctxEnv Γ))
@@ -495,7 +495,7 @@ showState Γ M = proj₁ (showTmF (ctxEnv Γ) [] (length (reps Γ)) zero M)
 ------------------------------------------------------------------------
 
 -- the allocation a step made, `⊣ α:=R` as design.md writes it; the new
--- cell is the next one in allocation order
+-- rep. var is the next one in allocation order
 allocNote : Ctxᵗ → Alloc → String
 allocNote Γ none    = ""
 allocNote Γ (new R) =
@@ -527,12 +527,12 @@ showRun : ∀ {Δ A M} → ℕ → Δ ∣ [] ⊢ M ⦂ A → String
 showRun k ⊢M = showTrace (eval k _ ⊢M)
 
 ------------------------------------------------------------------------
--- 10. Entry points — `n` is the number of store cells, all abstract,
--- with ordinary name i for cell i
+-- 10. Entry points — `n` is the number of store rep. vars, all abstract,
+-- with ordinary name i for rep. var i
 ------------------------------------------------------------------------
 
 ambient : ℕ → Env
-ambient n = mkEnv (cells n) (count zero n)
+ambient n = mkEnv (repVars n) (count zero n)
 
 showTyIn : ℕ → Ty → String
 showTyIn n A = showTy (onames (ambient n)) A

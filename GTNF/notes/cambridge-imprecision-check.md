@@ -3,14 +3,14 @@
 Status: paper check, 2026-10-01.  Each of the 22 pairs of
 `agda/CambridgeExamples.agda` (left = more precise) is run against the
 17 rules of §12.3 as written, in the block format of §12.4.  Every
-state is copied by script from `notes/cambridge-traces.md`; cells are
+state is copied by script from `notes/cambridge-traces.md`; rep. vars are
 named per run (`αᴸ`, `αᴿ`).  Between blocks one side takes one step
 and the other zero or more.  The left leads unless a block says
 otherwise.
 
 **Result.**  19 pairs are derivable.  C12, C13 and C14 are not, with
-any synchronization, because `ϱ` must pair one left cell with two (C14:
-three) right cells (F3).  Two other rule gaps, F1 and F2, appear only
+any synchronization, because `ϱ` must pair one left rep. var with two (C14:
+three) right rep. vars (F3).  Two other rule gaps, F1 and F2, appear only
 in blocks where the right leads.  The left-led runs of Cg and C2 avoid
 them, but the variants of Cg and C2 that start with an extra `Beta`
 (in the style of P3) cannot avoid them.
@@ -20,23 +20,23 @@ them, but the variants of Cg and C2 that start with an extra `Beta`
 | pair | derivable? | configurations §12.4 did not use | findings |
 |---|---|---|---|
 | Cf | yes | none: P4 from its second block | — |
-| Cg | yes, with the left leading | a both-sided `X⊑★` name whose cells are `ℕ`/`★`; `⊑cast`(inst) over `⊑cast`(gen) over `Λ⊑` | F1 (block where the right leads) |
+| Cg | yes, with the left leading | a both-sided `X⊑★` name whose rep. vars are `ℕ`/`★`; `⊑cast`(inst) over `⊑cast`(gen) over `Λ⊑` | F1 (block where the right leads) |
 | Ch | yes | none; with the left leading, `Λ⊑⟪+⟫` is not needed | — |
 | Ce | yes | none (= P2) | — |
 | C2 | yes, with the left leading | gen on both sides: `cast⊑cast` gen/gen, `⟪⟫⊑⟪⟫` over both gen wrappers | F2 (block where the right leads), D1 |
 | C5 | yes | `cast⊑` at a function coercion; `TagUntagBad` on the left only | — |
 | C6 | yes | `cast⊑` over `ν⊑` | — |
 | C8 | yes | none (= P1) | — |
-| C10 | yes | inst on the left only: `ν⊑` at `A = ★`, an unpaired left cell `α:=★`, `cast⊑` of `id(★)` casts | — |
+| C10 | yes | inst on the left only: `ν⊑` at `A = ★`, an unpaired left rep. var `α:=★`, `cast⊑` of `id(★)` casts | — |
 | C12 | **no** | — | **F3** |
 | C13 | **no** | — | **F3** |
-| C14 | **no** | — | **F3** (three right cells) |
-| C16 | yes | gen on the left only; a left `+X` of an unpaired cell inside a left `−X` (a new left-only name) | — |
+| C14 | **no** | — | **F3** (three right rep. vars) |
+| C16 | yes | gen on the left only; a left `+X` of an unpaired rep. var inside a left `−X` (a new left-only name) | — |
 | C16b | yes | gen;inst on the left only | — |
 | C17 | yes | two left-only allocations (D8); `⟪⟫⊑` with a two-entry `δ` | — |
-| C18 | yes | two `Inst`s on the right; two both-sided names over `ℕ`/`★` cells | — |
+| C18 | yes | two `Inst`s on the right; two both-sided names over `ℕ`/`★` rep. vars | — |
 | C18b | yes | two both-sided names at `X⊑★` at once; `⊑⟪⟫` with `δ′ = (+X,+Y)` rejoining both | — |
-| C19 | yes | a left-only `ν` at `A =` a left-only name (`A ⊑_W ★` by its mark); a cell `β:=α` | — |
+| C19 | yes | a left-only `ν` at `A =` a left-only name (`A ⊑_W ★` by its mark); a rep. var `β:=α` | — |
 | C22 | yes | reflexivity: only the same-shape rules | — |
 | C23a | yes | `⟪⟫⊑⟪⟫` with `δ ≠ δ′`, and a rejoin inside it; a left-only unbind of a both-sided name | F4 |
 | C23b | yes | the boundaries nest in opposite orders; matched by `⟪⟫⊑`, then a `⊑⟪⟫` rejoin | — |
@@ -53,11 +53,11 @@ through.
   two sides use different letters for one center name, the facts say
   so (C12: the left's `X` is the right's `Y`; that name is called `c`).
 - *Dropped*: removed from both images, so it leaves the center (§12.2).
-- *Rejoin*: a one-sided `+X^α` whose cell `ϱ` pairs with the cell of a
+- *Rejoin*: a one-sided `+X^α` whose rep. var `ϱ` pairs with the rep. var of a
   center name in scope, so it joins that name (§12.2, P4).
 - `κ⊑κ` is the constant case of congruence.
 - Worlds: every block's world is checked against §12.2.  Unless a
-  section says otherwise: each both-sided name's two cells are in `ϱ`,
+  section says otherwise: each both-sided name's two rep. vars are in `ϱ`,
   each pair in `ϱ` agrees (`ℕ ⊑ ℕ`, `ℕ ⊑ ★`, `★ ⊑ ★`), and every
   left-only name is `⊑★`.
 
@@ -154,7 +154,7 @@ has the wrong shape for `·⊑·`.  Letting the right lead hits the same
 `Λ⊑⟪+⟫` premise under `ƛ⊑ƛ`'s argument.
 
 Worlds: `X` is both-sided with `αᴸ:=ℕ ⊑ αᴿ:=★`.  This is the first pair
-whose both-sided `X⊑★` name sits over cells that differ.
+whose both-sided `X⊑★` name sits over rep. vars that differ.
 
 ### Ch: inst on the right only
 
@@ -483,7 +483,7 @@ Letting the right lead gets only as far as this block:
 ```
 L  ((ν X:=ℕ. ((ΛY. (λx:Y. x)) X) ⟨−X → +X⟩) 5)
 R  ((ν Y:=ℕ. (([+X^α] (λx:X. x) ⟨−X → +X⟩)⟨id(★) → id(★)⟩^[]⟨gen Z. (Z! → Z?ℓ0)⟩^[] Y) ⟨−Y → +Y⟩) 5)
-   ·⊑·, ν⊑ν, ⊑cast (gen Z), ⊑cast (id(★) → id(★)), Λ⊑⟪+⟫ (the left Λ's cell paired
+   ·⊑·, ν⊑ν, ⊑cast (gen Z), ⊑cast (id(★) → id(★)), Λ⊑⟪+⟫ (the left Λ's rep. var paired
    with αᴿ:=★).  Derivable.
 ```
 
@@ -536,7 +536,7 @@ R  (([+Z^γ] ([−Z^γ] ([+Y^β] ([−Y^β] ([+X^α] (λx:X. x) ⟨−X → +X�
    [B1] ·⊑·, ⟪⟫⊑⟪⟫ (the left's X and the right's Z are one name c, ⊑★, by (αᴸ, γᴿ)),
    ⊑cast (Z! → Z?ℓ0), ⊑⟪⟫ (−Z), ⊑cast, ⊑⟪⟫ (+Y^βᴿ, βᴿ:=★: must rejoin c),
    ⊑cast (Y! → Y?ℓ0), ⊑⟪⟫ (−Y), ⊑cast, ⊑⟪⟫ (+X^αᴿ, αᴿ:=★: must rejoin c), ƛ⊑ƛ.
-   It needs (αᴸ, γᴿ), (αᴸ, βᴿ) and (αᴸ, αᴿ) in ϱ: one left cell and three right cells.
+   It needs (αᴸ, γᴿ), (αᴸ, βᴿ) and (αᴸ, αᴿ) in ϱ: one left rep. var and three right rep. vars.
    FAILS AS WRITTEN; derivable under F3.
                                          L: Wrap    R: Wrap
 L  ([+X^α] ((λx:X. x) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩)
@@ -1116,7 +1116,7 @@ needs `★→★ ⊑ X→X`.  In C2 the left leads, and the block is never
 needed.  The variant `Example 2 ⊑ (λx:★→★. x 5⟨ℕ!⟩)(I★⟨gen⟩⟨inst⟩)`
 reaches exactly this block, so it is not derivable.  Smallest change,
 which also covers F1: state the rule for every `∀`-value through
-`inst_X`, at the left's abstract cell:
+`inst_X`, at the left's abstract rep. var:
 
 ```
   W ⊕ X:m ∣ [] ⊢² inst_X(V) ⊑ V′ : A ⊑ A′    V a ∀-value    β:=★    c′ : A′ ⇒ B′
@@ -1128,7 +1128,7 @@ For `V = ΛX.V₀` this is `Λ⊑⟪+⟫`.  In C2's block, the premise
 `([−X] (λx:★. x) ⟨…⟩)⟨X! → X?ℓ0⟩ ⊑ ([−X^α] (λx:★. x) ⟨…⟩)⟨X! → X?ℓ0⟩`
 follows by `cast⊑cast` and `⟪⟫⊑⟪⟫`.
 
-**F3.  `ϱ` is a partial bijection, but a left cell needs several right
+**F3.  `ϱ` is a partial bijection, but a left rep. var needs several right
 partners.**  The smallest block is C12 B1:
 
 ```
@@ -1146,11 +1146,11 @@ every block that contains the left's state 1 fails (C12 section).
 
 The cause: inst;gen on the right instantiates the right's own `Λ` at
 `★` (`αᴿ`) under the gen's unbind of the name that faces the left's
-single instantiation (`αᴸ`).  The left has one cell where the right has
+single instantiation (`αᴸ`).  The left has one rep. var where the right has
 two.
 
 Smallest change: drop injectivity on the left.  `ϱ` becomes a relation
-in which each right cell has at most one left partner, so a right
+in which each right rep. var has at most one left partner, so a right
 `+X^α` still has a unique name to rejoin, and every pair must agree.
 Under it, every block of C12, C13 and C14 goes through (their sections
 give the derivations).  Three things to check if it is adopted:
@@ -1161,7 +1161,7 @@ give the derivations).  Three things to check if it is adopted:
   This does not arise in the 22 pairs.
 - The mirror pair, a left `I⟨inst⟩⟨gen⟩[ℕ] 5` against `I[★] 5⟨ℕ!⟩`
   (not among the 22, and not run here), would by the same reasoning
-  need two left partners for one right cell.  If that pair is meant to
+  need two left partners for one right rep. var.  If that pair is meant to
   be related, `ϱ` must be an arbitrary agreeing relation, and a rejoin
   picks the partner whose name is in scope.
 
@@ -1213,9 +1213,9 @@ The derivations above take a rejoined name to keep its earlier mark.
 That is what P4, Cf, C12 and C18b need.
 
 **D2.  `Λ⊑⟪+⟫`'s pair is not in `ϱ`'s type.**  The rule pairs "the
-left `Λ`'s abstract cell" with `β`.  That cell is bound by the `Λ`
-typing rule (`Δ, α, X:=α`) and is not in `cells(Δ)`, so
-`ϱ ⊆ cells(Δ) × cells(Δ′)` cannot hold the pair.  The rule "names name
-paired cells" has to be read with that cell (the same holds for F2's
+left `Λ`'s abstract rep. var" with `β`.  That rep. var is bound by the `Λ`
+typing rule (`Δ, α, X:=α`) and is not in `rep. vars(Δ)`, so
+`ϱ ⊆ rep. vars(Δ) × rep. vars(Δ′)` cannot hold the pair.  The rule "names name
+paired rep. vars" has to be read with that rep. var (the same holds for F2's
 gen case).  It is used in P3, in Ch's right-led block and in C12's
 right-led block.

@@ -1158,6 +1158,14 @@ Each one can be revisited on its own.
   when a boundary rebinds a cell (§12.2, Example P4; Jeremy,
   2026-10-01).
 
+- **D13 (`ϱ` is many-to-one, toward the left).**  In `⊢²`'s worlds,
+  each right (less precise) cell has at most one left partner in `ϱ`,
+  and a left cell may have several.  So a right-only `+X^β` always has
+  a unique left name to rejoin.  The mirror is not needed, because an
+  extra left name can stay left-only at `X⊑★`, while an extra right
+  name cannot stay right-only (§12.6, F3; C12–C14; mirror pairs M1,
+  M2, M4; Jeremy, 2026-10-02).
+
 The open design questions are those of the `⊢²` sketch (§12.5).
 
 Out of scope for now: space efficiency.  Normal forms for coercions,
@@ -1247,7 +1255,9 @@ W = (Δ, Δ′, Ω, η, η′, μ, ϱ)
   η′ : names(Δ′) ↪ Ω     every center name is in the image of at least one
   μ  : ImpEnv(Ω)         a name in both images is X⊑X or X⊑★;
                          a name in η's image only (left-only) is X⊑★
-  ϱ  ⊆ cells(Δ) × cells(Δ′)    the cell correspondence, a partial bijection
+  ϱ  ⊆ cells(Δ) × cells(Δ′)    the cell correspondence: each right cell has at
+                               most one left partner, and a left cell may have
+                               several (D13)
 
   A ⊑_W A′   iff   μ ⊢ η(A) ⊑ η′(A′)               (GTSFImp _⊑ᵂ⟨_⟩_)
 ```
@@ -1709,7 +1719,7 @@ synchronization (F3).  Findings, smallest first:
     W ∣ γ ⊢² V ⊑ [+X^β] V′ ⟨c′⟩ : ∀X.A ⊑ B′
   ```
 
-- **F3 (open).**  `ϱ` cannot be a partial bijection.  In C12
+- **F3 (settled, D13).**  `ϱ` cannot be a partial bijection.  In C12
   (`I⟨inst⟩⟨gen⟩` on the right), the left's one cell `α:=ℕ` must be
   paired with two right cells: the right's `β:=ℕ`, from the
   instantiation that both sides make, and the right's `α:=★`, from

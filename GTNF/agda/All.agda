@@ -61,3 +61,14 @@ open import proof.TypeSafety.Determinism
 
 -- world evolution along two runs, W ⟿[ ξs ∣ ξs′ ] W′ (proof/DGG/PLAN.md §3)
 open import proof.DGG.Evolve
+
+-- the statements of the DGG's major lemmas (proof/DGG/*Def.agda, PLAN.md §3)
+open import proof.DGG.SimDef
+open import proof.DGG.MultiSimDef
+open import proof.DGG.SimBackDef
+open import proof.DGG.MultiSimBackDef
+open import proof.DGG.CatchupRightDef
+open import proof.DGG.CatchupLeftDef
+open import proof.DGG.CatchupBlameDef
+open import proof.DGG.EvolveImpDef
+open import proof.DGG.ImprecisionTypingDef

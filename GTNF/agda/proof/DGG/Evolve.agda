@@ -15,7 +15,9 @@ module proof.DGG.Evolve where
 --     allocate nothing are skipped (`ev-noneᴸ`, `ev-noneᴿ`).  The two
 --     sides may be consumed in any interleaving.
 --   * NEVER A REBASE: no constructor renames a name or changes a mark.
---   * DEFINITIONS ONLY.
+--   * DEFINITIONS, plus `runCtx≡applyˢ`.  Also the run concatenation
+--     `_++ʳ_` and the iterated sibling shift `↑ᴹ*[_]` used by the
+--     statements of SimBack* and EvolveImp.
 
 open import Data.List using (List; []; _∷_)
 open import Data.Product using (∃-syntax)
@@ -25,6 +27,8 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Types using (Ty)
 open import Ctx using (Ctxᵗ; RVar; Alloc; none; new; apply)
 open import Reduction using (_⊢_-→*_; done; _then_; runCtx)
+open import Terms using (Term)
+open import TermSubst using (↑ᴹ[_])
 open import ImprecisionWorld
   using (World; Paired; allocᴸ; allocᴿ; alloc²; allocᴸ⇔)
 
@@ -52,6 +56,19 @@ runCtx≡applyˢ : ∀ {Δ M N} (r : Δ ⊢ M -→* N)
   → runCtx r ≡ applyˢ (allocs r) Δ
 runCtx≡applyˢ done        = refl
 runCtx≡applyˢ (st then r) = runCtx≡applyˢ r
+
+-- a run continued by a run from where it ends (runCtx r)
+infixr 5 _++ʳ_
+_++ʳ_ : ∀ {Δ L M N} (r : Δ ⊢ L -→* M) → runCtx r ⊢ M -→* N
+  → Δ ⊢ L -→* N
+done        ++ʳ r″ = r″
+(st then r) ++ʳ r″ = st then (r ++ʳ r″)
+
+-- a term shifted by a list of allocations, in order (the sibling
+-- shifts `↑ᴹ[ δ ]` of the congruence rules, iterated)
+↑ᴹ*[_] : List Alloc → Term → Term
+↑ᴹ*[ []     ] M = M
+↑ᴹ*[ ξ ∷ ξs ] M = ↑ᴹ*[ ξs ] (↑ᴹ[ ξ ] M)
 
 -- β has no left partner yet (D13)
 NoLeftPartner : World Δ Δ′ → RVar → Set

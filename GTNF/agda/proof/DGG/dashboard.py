@@ -67,13 +67,24 @@ def path(name, suffix):
 
 
 HOLE_ERRORS = {"UnsolvedInteractionMetas", "UnsolvedMetaVariables"}
+# The same, in the untagged message format of Agda versions before 2.8
+HOLE_PHRASES = ("Unsolved interaction metas", "Unsolved metas",
+                "UnsolvedInteractionMetas", "UnsolvedMetaVariables")
+# Errors that Agda reports WITHOUT stopping, so they can sit next to an
+# unsolved-hole report: these still make a skeleton fail
+BAD_PHRASES = ("Incomplete pattern matching", "CoverageIssue",
+               "Missing cases", "Termination checking failed",
+               "TerminationIssue", "NotStrictlyPositive",
+               "Unreachable clause")
 
 
 def agda_ok(file, allow_holes):
     """Type-check FILE.  With allow_holes, a run whose only errors are
     unsolved holes counts as a success: every other error (a missing
-    case is a CoverageIssue) still fails.  (`--allow-unsolved-metas`
-    cannot be used: the library interfaces were built under --safe.)"""
+    case is a coverage error) still fails.  Works with the tagged error
+    format of Agda 2.8 (`error: [UnsolvedInteractionMetas]`) and with
+    the untagged format of earlier versions.  (`--allow-unsolved-metas`
+    cannot be used: the library interfaces are built under --safe.)"""
     args = ["agda", "-v0"] + ([] if allow_holes else ["--safe"])
     args.append(os.path.relpath(file, ROOT))
     r = subprocess.run(args, cwd=ROOT, capture_output=True, text=True)
@@ -81,8 +92,12 @@ def agda_ok(file, allow_holes):
         return True
     if not allow_holes:
         return False
-    errors = set(re.findall(r"error: \[(\w+)\]", r.stdout + r.stderr))
-    return bool(errors) and errors <= HOLE_ERRORS
+    out = r.stdout + r.stderr
+    tags = set(re.findall(r"error: \[(\w+)\]", out))
+    if tags:
+        return tags <= HOLE_ERRORS
+    return (any(h in out for h in HOLE_PHRASES)
+            and not any(b in out for b in BAD_PHRASES))
 
 
 def clauses(text):

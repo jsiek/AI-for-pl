@@ -318,7 +318,7 @@ W₃ = world [] []↪ []↪ [] []
 
 p3-inst : W₃ ∣ [] ⊢ L1 ⊑ R3′ ∶ ℕ⊑★
 p3-inst =
-  ·⊑· (ν⊑ (⊑cast (∀⊑⟪+⟫ {m = X⊑X} (V-simple (S-Λ (V-simple S-ƛ))) ΛidX-⊢
+  ·⊑· (ν⊑ (⊑cast (∀⊑⟪+⟫ {m = X⊑X} nv-⇒ (∈-⇒ˡ ∈-var) (V-simple (S-Λ (V-simple S-ƛ))) ΛidX-⊢
                          (inst-Λ (V-simple S-ƛ))
                          (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ))
                          r-here bR-ty ∀id⊑★)

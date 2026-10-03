@@ -85,9 +85,9 @@ imprecision-typing (Λ⊑Λ l v v′ V⊑V′ q) | ⊢V , ⊢V′ =
 imprecision-typing (Λ⊑ nv occ l v V⊑M′ q) with imprecision-typing V⊑M′
 imprecision-typing (Λ⊑ nv occ l v V⊑M′ q) | ⊢V , ⊢M′ =
   ⊢Λ v (⊢Γ-cast (liftᴸ-lhs l) ⊢V) , ⊢Γ-cast (liftᴸ-rhs l) ⊢M′
-imprecision-typing (∀⊑⟪+⟫ v ⊢V inst N⊑V′ rep b q)
+imprecision-typing (∀⊑⟪+⟫ nvA zA v ⊢V inst N⊑V′ rep b q)
   with imprecision-typing N⊑V′
-imprecision-typing (∀⊑⟪+⟫ v ⊢V inst N⊑V′ rep b q) | ⊢N , ⊢V′ =
+imprecision-typing (∀⊑⟪+⟫ nvA zA v ⊢V inst N⊑V′ rep b q) | ⊢N , ⊢V′ =
   ⊢V , ⊢⟪⟫′ b ⊢V′
 imprecision-typing (ν⊑ν L⊑L′ pA n n′ ci q) with imprecision-typing L⊑L′
 imprecision-typing (ν⊑ν L⊑L′ pA n n′ ci q) | ⊢L , ⊢L′ =

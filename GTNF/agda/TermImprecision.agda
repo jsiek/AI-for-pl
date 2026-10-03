@@ -280,6 +280,11 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′) (γ : CtxImp W)
   -- a left ∀-value against the right boundary `[+X^β] V′ ⟨c′⟩` that
   -- `Inst` created; the mark m of the new name is chosen here (D11)
   ∀⊑⟪+⟫ : ∀ {V N V′ β m c′ A A′ B′} {r : A ⊑ᵂ⟨ W ⊕⁺ m ^ β ⟩ A′}
+    -- the body type is a non-variable mentioning the bound name, as in
+    -- Λ⊑ (Jeremy, 2026-10-03; without these, SimBack is false:
+    -- proof/DGG/notes/ForallBoundaryRisks.md)
+    → NonVar A
+    → 0 ∈ᵗ A
     → Value V
     → Δ ∣ lhs γ ⊢ V ⦂ `∀ A
     → InstX V N

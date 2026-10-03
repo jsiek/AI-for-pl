@@ -13,7 +13,9 @@ module proof.DGG.notes.ForallBoundaryRisks where
 --   * §2 THE COUNTEREXAMPLE TO SimBack (R1 one step earlier, which is
 --     also R2): a ∀-value whose `inst_X` image blames by itself,
 --     `(Λ true⟨𝔹!⟩)⟨∀X. ℕ?ℓ⟩ : ∀X.ℕ`, related by `∀⊑⟪+⟫` to a right
---     boundary whose interior performs that blame.  `simBack-false`.
+--     boundary whose interior performs that blame.  `simBack-false`
+--     held for the rule as it was; with the fix (NonVar A, 0 ∈ᵗ A in
+--     ∀⊑⟪+⟫) the derivation `cex` is gone and both are kept commented.
 --   * §3 PROGRAMS for R2 (L2c/R2c: a Merge inside the right's Inst
 --     boundary, which the stuck left cannot match) and R3 (L3c/R3c: a
 --     duplicated Inst boundary, one copy instantiated on the left);
@@ -105,7 +107,7 @@ inst-¬spine v (inst-⟪⟫ u i) (bs-⟪⟫ b) = inst-¬spine (V-simple u) i b
 ⊑-spine (⊑cast d _ _) (bs-cast b) = ⊑-spine d b
 ⊑-spine (Λ⊑Λ _ _ _ _ _) ()
 ⊑-spine (Λ⊑ _ _ _ v d _) b = ⊥-elim (value-¬spine v (⊑-spine d b))
-⊑-spine (∀⊑⟪+⟫ v _ i d _ _ _) (bs-⟪⟫ b) =
+⊑-spine (∀⊑⟪+⟫ _ _ v _ i d _ _ _) (bs-⟪⟫ b) =
   ⊥-elim (inst-¬spine v i (⊑-spine d b))
 ⊑-spine (ν⊑ν d _ _ _ _ _) (bs-ν b) = bs-ν (⊑-spine d b)
 ⊑-spine (ν⊑ d _ _ _) b = bs-ν (⊑-spine d b)
@@ -224,8 +226,15 @@ Nc⊑Mc =
       (ι⊑ι base-ℕ))
     (cast-ty (⊢tag g-ℕ) refl) (ι⊑★ base-ℕ)
 
+-- FIXED (2026-10-03): under the rule as it was, `cex` below was a
+-- derivation and `simBack-false : SimBack → ⊥` held.  ∀⊑⟪+⟫ now has
+-- the premises `NonVar A` and `0 ∈ᵗ A` (here A = ℕ, and `cex-excluded`
+-- shows `¬ (0 ∈ᵗ ℕ)`), so `cex` is no longer derivable.  The old
+-- construction, kept for the record:
+{-
 cex : W₃ ∣ [] ⊢ Vc ⊑ Rc ∶ qc
 cex = ∀⊑⟪+⟫ {m = X⊑X} vVc Vc-⊢ instVc Nc⊑Mc r-here Rc-ty qc
+-}
 
 -- the right's step: the interior's TagUntagBad, under ξ-⟪⟫ and ξ-cast
 int₀ : ΔR ⊢ⁱ Θ₀ ⇒ ΔRₓ
@@ -242,6 +251,7 @@ wfW₃ : WfWorld W₃
 wfW₃ = wf-world joint[] (λ { (inj₁ ()) ; (inj₂ ()) })
   (λ { (inj₁ ()) _ ; (inj₂ ()) _ })
 
+{-
 -- SimBack fails: the left value cannot step, and every state the right
 -- reaches from Rc₁ is a blame spine, which no value is related to
 simBack-false : SimBack → ⊥
@@ -253,6 +263,7 @@ simBack-false sb | inj₁ (N₂ , N₂′ , r , r″ , W′ , ev , wf′ , q , N
   value-⋢-spine vVc (spine-run (bs-⟪⟫ (bs-cast bs-blame)) r″) N₂⊑N₂′
 simBack-false sb | inj₂ (ℓ , r) with value-run≡ vVc r
 simBack-false sb | inj₂ (ℓ , r) | ()
+-}
 
 ------------------------------------------------------------------------
 -- 3. Programs (hand-compiled as ImprecisionExamples does)

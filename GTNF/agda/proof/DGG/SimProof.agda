@@ -49,7 +49,7 @@ sim wfΔ wfΔ′ wfW (ƛ⊑ƛ wA wA′ d) ()
 sim wfΔ wfΔ′ wfW (blame⊑ wA ⊢M′ p) ()
 sim wfΔ wfΔ′ wfW (Λ⊑Λ lift v v′ d q) ()
 sim wfΔ wfΔ′ wfW (Λ⊑ nv occ lift v d q) ()
-sim wfΔ wfΔ′ wfW (∀⊑⟪+⟫ v ⊢V inst d rβ b′ q) st =
+sim wfΔ wfΔ′ wfW (∀⊑⟪+⟫ nvA zA v ⊢V inst d rβ b′ q) st =
   ⊥-elim (value-¬step v st)
 
 ------------------------------------------------------------------------

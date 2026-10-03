@@ -486,7 +486,7 @@ cg-x0 =
   ·⊑·
     (ν⊑
       (⊑cast
-        (∀⊑⟪+⟫ {m = X⊑★} (V-simple (S-Λ (V-simple S-ƛ))) ΛidX-⊢
+        (∀⊑⟪+⟫ {m = X⊑★} nv-⇒ (∈-⇒ˡ ∈-var) (V-simple (S-Λ (V-simple S-ƛ))) ΛidX-⊢
           (inst-Λ (V-simple S-ƛ))
           (⊑cast
             (⊑⟪⟫ Wg⁻-int Wg⁻-wf
@@ -599,7 +599,7 @@ c2-x0 =
   ·⊑·
     (ν⊑
       (⊑cast
-        (∀⊑⟪+⟫ {m = X⊑X} (V-simple (S-cast (V-simple S-ƛ) I-gen))
+        (∀⊑⟪+⟫ {m = X⊑X} nv-⇒ (∈-⇒ˡ ∈-var) (V-simple (S-cast (V-simple S-ƛ) I-gen))
           I★genI-⊢ (inst-gen (V-simple S-ƛ))
           (cast⊑cast
             (⟪⟫⊑⟪⟫ W2⁻-int W2⁻-wf
@@ -1197,7 +1197,7 @@ c12-x0 =
     (ν⊑ν
       (⊑cast
         (⊑cast
-          (∀⊑⟪+⟫ {m = X⊑X} (V-simple (S-Λ (V-simple S-ƛ))) ΛidX-⊢
+          (∀⊑⟪+⟫ {m = X⊑X} nv-⇒ (∈-⇒ˡ ∈-var) (V-simple (S-Λ (V-simple S-ƛ))) ΛidX-⊢
             (inst-Λ (V-simple S-ƛ))
             (ƛ⊑ƛ {pA = X⊑X {X = 0}} {pB = X⊑X {X = 0}} tf tf (x⊑x Zʷ))
             r-here bR-ty (∀id⊑★ W₃))

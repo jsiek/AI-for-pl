@@ -167,29 +167,29 @@ simBack wfΔ wfΔ′ wfW (Λ⊑ nv occ liftᴸ-[] v d q) st′ | ih =
 ------------------------------------------------------------------------
 -- ∀⊑⟪+⟫: the right boundary `[+X^β]` steps; the left value does not
 
-simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ v ⊢V inst d rβ b′ q)
+simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ nvA zA v ⊢V inst d rβ b′ q)
     (Merge w ri r₁ r₂ r⋉ sc₁ sc₂) =
   {! SimBackBoundary-Merge: simBackMerge pre
-       (∀⊑⟪+⟫ v ⊢V inst d rβ b′ q) w ri r₁ r₂ r⋉ sc₁ sc₂ !}
-simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ v ⊢V inst d rβ b′ q) (Id u base) =
-  {! SimBackBoundary-Id: simBackId pre (∀⊑⟪+⟫ v ⊢V inst d rβ b′ q)
+       (∀⊑⟪+⟫ nvA zA v ⊢V inst d rβ b′ q) w ri r₁ r₂ r⋉ sc₁ sc₂ !}
+simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ nvA zA v ⊢V inst d rβ b′ q) (Id u base) =
+  {! SimBackBoundary-Id: simBackId pre (∀⊑⟪+⟫ nvA zA v ⊢V inst d rβ b′ q)
        u base !}
-simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ v ⊢V inst d rβ b′ q) (IdDyn w g) =
+simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ nvA zA v ⊢V inst d rβ b′ q) (IdDyn w g) =
   {! SimBackBoundary-IdDyn: simBackIdDyn pre
-       (∀⊑⟪+⟫ v ⊢V inst d rβ b′ q) w g !}
-simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ v ⊢V inst d rβ b′ q)
+       (∀⊑⟪+⟫ nvA zA v ⊢V inst d rβ b′ q) w g !}
+simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ nvA zA v ⊢V inst d rβ b′ q)
     (IdDyn-var w eq ri rc same) =
   {! SimBackBoundary-IdDynVar: simBackIdDynVar pre
-       (∀⊑⟪+⟫ v ⊢V inst d rβ b′ q) w eq ri rc same !}
-simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ v ⊢V inst d rβ b′ q) Blame-⟪⟫ =
+       (∀⊑⟪+⟫ nvA zA v ⊢V inst d rβ b′ q) w eq ri rc same !}
+simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ nvA zA v ⊢V inst d rβ b′ q) Blame-⟪⟫ =
   inj₂ {! SimBackCast-ToBlame (but the left is a VALUE, see the notes):
-            simBackToBlame pre (∀⊑⟪+⟫ v ⊢V inst d rβ b′ q) Blame-⟪⟫ !}
-simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ v ⊢V inst d rβ b′ q) (ξ-⟪⟫ ri st′)
+            simBackToBlame pre (∀⊑⟪+⟫ nvA zA v ⊢V inst d rβ b′ q) Blame-⟪⟫ !}
+simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ nvA zA v ⊢V inst d rβ b′ q) (ξ-⟪⟫ ri st′)
     with interior-functional ri (bdy-int b′)
-simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ v ⊢V inst d rβ b′ q) (ξ-⟪⟫ ri st′)
+simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ nvA zA v ⊢V inst d rβ b′ q) (ξ-⟪⟫ ri st′)
     | refl with simBack (wf-underΛ wfΔ) (bdy-wfᵢ b′)
                   {! WfWorld (W ⊕⁺ m ^ β) !} d st′
-simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ v ⊢V inst d rβ b′ q) (ξ-⟪⟫ ri st′)
+simBack wfΔ wfΔ′ wfW (∀⊑⟪+⟫ nvA zA v ⊢V inst d rβ b′ q) (ξ-⟪⟫ ri st′)
     | refl | ih =
   {! SimBackFrame-∀⊑⟪+⟫: simBackFrame-∀⊑⟪+⟫ pre v ⊢V inst rβ b′ q
        ih !}

@@ -1256,6 +1256,16 @@ Each one can be revisited on its own.
   exactly the images of GTSFImp's consistency evidence, which is the
   correspondence the DGG's cast cases rely on (Jeremy, 2026-10-02).
 
+- **D22 (`∀⊑⟪+⟫`'s body type mentions its name).**  `∀⊑⟪+⟫` has the
+  side conditions `A not a variable` and `X ∈ A`, the same as `Λ⊑`.
+  Without them `SimBack` was false.  A left value
+  `(ΛX. true⟨𝔹!⟩)⟨∀Y. ℕ?ℓ⟩ : ∀X.ℕ` could be related to a right `Inst`
+  boundary whose interior blames by itself, which the value can never
+  match.  `Inst` never creates such a state, because its interior's type
+  mentions the bound name (checked:
+  `proof/DGG/notes/ForallBoundaryRisks.{agda,md}`; Jeremy,
+  2026-10-03).
+
 The open design questions are those of the `⊑` sketch (§12.5).
 
 Out of scope for now: space efficiency.  Normal forms for coercions,
@@ -1479,7 +1489,8 @@ environments, except through the types:
   W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
 
   W ⊕ X:m ∣ [] ⊢ inst_X(V) ⊑ V′ : A ⊑ A′
-  V a ∀-value    β:=★    c′ : A′ ⇒ B′                          (new)
+  V a ∀-value    β:=★    c′ : A′ ⇒ B′
+  A not a variable    X ∈ A                                    (new; D22)
   ──────────────────────────────────────────────── (∀⊑⟪+⟫)
   W ∣ γ ⊢ V ⊑ [+X^β] V′ ⟨c′⟩ : ∀X.A ⊑ B′
 ```

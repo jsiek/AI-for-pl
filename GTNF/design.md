@@ -1273,7 +1273,9 @@ Each one can be revisited on its own.
   The relation is `R ⊑ᴿ_W R′` (`ImprecisionWorld.RepImp`), whose rules
   are those of `⊑` (§12.1) over payloads.  A free left rep. var may also
   face `★`, with no condition, because rep. vars carry no marks (marks
-  belong to names).
+  belong to names; confirmed by Jeremy, 2026-10-03).  Strictness is
+  still enforced where world pairs are created: `ν⊑ν`'s premise
+  `A ⊑ A′` compares the type arguments with the names' marks.
   Before, the payloads were read as ordinary types through the names in
   scope.  That broke once interior worlds had to be well formed: inside
   a boundary that hides a name, a payload mentioning that name's rep.

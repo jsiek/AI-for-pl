@@ -9,13 +9,17 @@ module proof.DGG.notes.M2ChildStatements where
 --     the drafts are well typed.  Each draft is the goal of a hole in
 --     proof/DGG/SimProof.agda or proof/DGG/SimBackProof.agda, applied to
 --     the variables those clauses bind.
+--   * The last section holds three short PROOFS that check fits:
+--     SimBackFrame-∀⊑⟪+⟫ from SimBackInstX, SimBackInstX from
+--     SimBackValue, and SimBackValue from CatchupRight + Determinism.
 --   * Orientation: the LEFT term is the more precise one.
 
 open import Data.List using (List; []; _∷_; _++_; length)
-open import Data.Product using (Σ-syntax; ∃-syntax; _×_)
-open import Data.Sum using (_⊎_)
+open import Data.Empty using (⊥-elim)
+open import Data.Product using (Σ-syntax; ∃-syntax; _×_; _,_; proj₁; proj₂)
+open import Data.Sum using (_⊎_; inj₁)
 open import Data.Maybe using (just)
-open import Relation.Binary.PropositionalEquality using (_≡_)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import Types using (Ty; ★; _⇒_; `∀; `_; Base)
 open import Ctx
@@ -29,6 +33,9 @@ open import ImprecisionWorld
 open import Imprecision using (VarImp)
 open import TermImprecision
 open import proof.DGG.Evolve using (_⟿[_∣_]_; applyˢ; allocs)
+open import proof.DGG.CatchupRightDef using (CatchupRight)
+open import proof.DGG.ImprecisionTypingDef using (ImprecisionTyping)
+open import TypeSafety using (Determinism; Irreducible)
 
 ------------------------------------------------------------------------
 -- The two conclusions, as functions (definitionally Sim's and
@@ -55,6 +62,16 @@ SimBackConcl {Δ} {Δ′} W M A A′ ξ′ N′ =
        (W ⟿[ allocs r ∣ ξ′ ∷ allocs r″ ] W′) × WfWorld W′
        × Σ[ q ∈ A ⊑ᵂ⟨ W′ ⟩ A′ ] (W′ ∣ [] ⊢ N₂ ⊑ N₂′ ∶ q))
   ⊎ (∃[ ℓ ] (Δ ⊢ M -→* blame ℓ))
+
+-- SimBack's conclusion with the LEFT UNMOVED: `inj₁`'s body at N₂ = M
+-- and r = done (`allocs done` is `[]`, `applyˢ [] Δ` is Δ)
+SimBackConclᴿ : ∀ {Δ Δ′} (W : World Δ Δ′) (M : Term) (A A′ : Ty)
+  (ξ′ : Alloc) (N′ : Term) → Set
+SimBackConclᴿ {Δ} {Δ′} W M A A′ ξ′ N′ =
+  ∃[ N₂′ ] Σ[ r″ ∈ apply ξ′ Δ′ ⊢ N′ -→* N₂′ ]
+    Σ[ W′ ∈ World Δ (applyˢ (ξ′ ∷ allocs r″) Δ′) ]
+      (W ⟿[ [] ∣ ξ′ ∷ allocs r″ ] W′) × WfWorld W′
+      × Σ[ q ∈ A ⊑ᵂ⟨ W′ ⟩ A′ ] (W′ ∣ [] ⊢ M ⊑ N₂′ ∶ q)
 
 -- CatchupRight's conclusion (the input of SimFrame-·₂)
 CatchupRightConcl : ∀ {Δ Δ′} (W : World Δ Δ′) (V M′ : Term)
@@ -541,18 +558,25 @@ SimBackFrame-Λ⊑ = ∀ {Δ Δ′} {W : World Δ Δ′} {V N′ A B′ ξ′}
   → SimBackConcl (W ⊕ᴸ) V A B′ ξ′ N′
   → SimBackConcl W (Λ V) (`∀ A) B′ ξ′ N′
 
--- ∀⊑⟪+⟫ × ξ-⟪⟫ (the IH is at W ⊕⁺ m ^ β, for N = inst_X V)
+-- ∀⊑⟪+⟫ × ξ-⟪⟫.  NO IH: SimBack's IH on the premise N ⊑ V′ may move
+-- N = inst_X V, while the left V cannot move.  The child takes ALL of
+-- ∀⊑⟪+⟫'s premises (D22's NonVar A, 0 ∈ᵗ A first) and the right's
+-- interior step, and is `inj₁` of SimBackInstX with the left run `done`
+-- (`simBackFrame-∀⊑⟪+⟫` below)
 SimBackFrame-∀⊑⟪+⟫ : Set
 SimBackFrame-∀⊑⟪+⟫ = ∀ {Δ Δ′} {W : World Δ Δ′}
-    {V N M₁′ β c′ A A′ B′ δ′} {m : VarImp}
+    {V N V′ M₁′ β c′ A A′ B′ δ′} {m : VarImp}
+    {r : A ⊑ᵂ⟨ W ⊕⁺ m ^ β ⟩ A′}
   → Pre W
+  → NonVar A → 0 ∈ᵗ A
   → Value V
   → Δ ∣ [] ⊢ V ⦂ `∀ A
   → InstX V N
+  → W ⊕⁺ m ^ β ∣ [] ⊢ N ⊑ V′ ∶ r
   → Δ′ ∋rep β := ★
   → BdyTy Δ′ (bind 0 β ∷ []) (reps Δ′ ∣ (β ∷ names Δ′)) A′ c′ B′
   → `∀ A ⊑ᵂ⟨ W ⟩ B′
-  → SimBackConcl (W ⊕⁺ m ^ β) N A A′ δ′ M₁′
+  → (reps Δ′ ∣ (β ∷ names Δ′)) ⊢ V′ -→ M₁′ ∣ δ′
   → SimBackConcl W V (`∀ A) B′ δ′
       (M₁′ ⟪ ↑ᴮ[ δ′ ] (bind 0 β ∷ []) , c′ ⟫)
 
@@ -589,3 +613,75 @@ SimBackFrame-⊑⟪⟫ = ∀ {Δ Δ′ Δ′ᵢ} {W : World Δ Δ′} {Wᵢ : Wo
   → A ⊑ᵂ⟨ W ⟩ A′
   → SimBackConcl Wᵢ M A A′ᵢ δ′ M₁′
   → SimBackConcl W M A A′ δ′ (M₁′ ⟪ ↑ᴮ[ δ′ ] Θ′ , c′ ⟫)
+
+------------------------------------------------------------------------
+-- SimBackInstX (child of SimBackFrame, tree.txt): inside ∀⊑⟪+⟫'s
+-- premise world W ⊕⁺ m ^ β the right interior V′ steps; the left, the
+-- ∀-value V related through N = inst_X V, never moves.  The answer is
+-- read back at the outer world W: the right continues from the
+-- boundary term `ξ-⟪⟫` produced, W evolves by the right's allocations
+-- only, and V is related to the right's final term at W′.
+------------------------------------------------------------------------
+
+SimBackInstX : Set
+SimBackInstX = ∀ {Δ Δ′} {W : World Δ Δ′}
+    {V N V′ M₁′ β c′ A A′ B′ δ′} {m : VarImp}
+    {r : A ⊑ᵂ⟨ W ⊕⁺ m ^ β ⟩ A′}
+  → Pre W
+  → NonVar A → 0 ∈ᵗ A
+  → Value V
+  → Δ ∣ [] ⊢ V ⦂ `∀ A
+  → InstX V N
+  → W ⊕⁺ m ^ β ∣ [] ⊢ N ⊑ V′ ∶ r
+  → Δ′ ∋rep β := ★
+  → BdyTy Δ′ (bind 0 β ∷ []) (reps Δ′ ∣ (β ∷ names Δ′)) A′ c′ B′
+  → `∀ A ⊑ᵂ⟨ W ⟩ B′
+  → (reps Δ′ ∣ (β ∷ names Δ′)) ⊢ V′ -→ M₁′ ∣ δ′
+  → SimBackConclᴿ W V (`∀ A) B′ δ′
+      (M₁′ ⟪ ↑ᴮ[ δ′ ] (bind 0 β ∷ []) , c′ ⟫)
+
+-- the general form for ANY left value (every SimBack case whose left
+-- term is a value: all of ∀⊑⟪+⟫'s, and Λ⊑'s)
+SimBackValue : Set
+SimBackValue = ∀ {Δ Δ′} {W : World Δ Δ′} {V M′ N′ A A′ ξ′}
+    {p : A ⊑ᵂ⟨ W ⟩ A′}
+  → Pre W
+  → Value V
+  → W ∣ [] ⊢ V ⊑ M′ ∶ p
+  → Δ′ ⊢ M′ -→ N′ ∣ ξ′
+  → SimBackConclᴿ W V A A′ ξ′ N′
+
+------------------------------------------------------------------------
+-- Fit checks (proved): SimBackFrame-∀⊑⟪+⟫ is an application of
+-- SimBackInstX; SimBackInstX is an instance of SimBackValue; and
+-- SimBackValue follows from CatchupRight by determinism (CatchupRight's
+-- run starts with the right's own step, which is not a value step).
+------------------------------------------------------------------------
+
+simBackFrame-∀⊑⟪+⟫ : SimBackInstX → SimBackFrame-∀⊑⟪+⟫
+simBackFrame-∀⊑⟪+⟫ instX {V = V} pre nv occ v ⊢V i d rβ b′ q st′
+    with instX pre nv occ v ⊢V i d rβ b′ q st′
+simBackFrame-∀⊑⟪+⟫ instX {V = V} pre nv occ v ⊢V i d rβ b′ q st′
+    | N₂′ , r″ , W′ , ev , wf′ , q′ , d′ =
+  inj₁ (V , N₂′ , done , r″ , W′ , ev , wf′ , q′ , d′)
+
+bdy-int : ∀ {Δ Θ Δᵢ Bᵢ c Bₑ} → BdyTy Δ Θ Δᵢ Bᵢ c Bₑ → Δ ⊢ⁱ Θ ⇒ Δᵢ
+bdy-int (bdy-ty mw ⊢c eqᵢ eqₑ wB) = bw-interior mw
+
+simBackInstX : SimBackValue → SimBackInstX
+simBackInstX val pre nv occ v ⊢V i d rβ b′ q st′ =
+  val pre v (∀⊑⟪+⟫ nv occ v ⊢V i d rβ b′ q) (ξ-⟪⟫ (bdy-int b′) st′)
+
+simBackValue : CatchupRight → ImprecisionTyping → Determinism
+  → Irreducible → SimBackValue
+simBackValue cr it det irr (wfΔ , wfΔ′ , wfW) v d st′
+    with cr wfΔ wfΔ′ wfW v d
+simBackValue cr it det irr (wfΔ , wfΔ′ , wfW) v d st′
+    | V′ , done , v′ , W′ , ev , wf′ , q , d′ =
+  ⊥-elim (proj₁ irr v′ st′)
+simBackValue cr it det irr (wfΔ , wfΔ′ , wfW) v d st′
+    | V′ , (st₁ then r₁) , v′ , W′ , ev , wf′ , q , d′
+    with det (proj₂ (it d)) st′ st₁
+simBackValue cr it det irr (wfΔ , wfΔ′ , wfW) v d st′
+    | V′ , (st₁ then r₁) , v′ , W′ , ev , wf′ , q , d′ | refl , refl =
+  V′ , r₁ , W′ , ev , wf′ , q , d′

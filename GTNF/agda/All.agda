@@ -28,6 +28,7 @@ open import examples.Examples
 -- pairs of programs for designing the cast-term imprecision
 -- type imprecision (GTSFImp's, design.md §12.1)
 open import Imprecision
+open import proof.Imprecision
 
 open import examples.ImprecisionExamples
 

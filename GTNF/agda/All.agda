@@ -72,3 +72,16 @@ open import proof.DGG.CatchupLeftDef
 open import proof.DGG.CatchupBlameDef
 open import proof.DGG.EvolveImpDef
 open import proof.DGG.ImprecisionTypingDef
+
+-- facts about runs and evolution, and typing along a run (helpers)
+open import proof.DGG.EvolveLemmas
+import proof.DGG.RunTyping
+
+-- hole-free Proof modules, parameterized by the statements they use
+import proof.DGG.DynamicGradualGuaranteeProof
+import proof.DGG.MultiSimProof
+import proof.DGG.MultiSimBackProof
+
+-- finished DGG lemmas (Lemma modules)
+open import proof.DGG.ImprecisionTyping
+open import proof.DGG.CatchupBlame

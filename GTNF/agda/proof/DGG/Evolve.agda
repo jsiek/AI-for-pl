@@ -14,6 +14,11 @@ module proof.DGG.Evolve where
 --     β, which must have no left partner yet: D13).  Steps that
 --     allocate nothing are skipped (`ev-noneᴸ`, `ev-noneᴿ`).  The two
 --     sides may be consumed in any interleaving.
+--   * EACH ALLOCATING CONSTRUCTOR RECORDS what its TyBeta supplies
+--     (2026-10-03, after three counterexamples to EvolveImp): the
+--     payload is well formed (`reps Δ ⊢ᴿ R`); a matched pair's payloads
+--     agree; a catch-up's β is bound to ★ on the right and the new pair
+--     agrees.
 --   * NEVER A REBASE: no constructor renames a name or changes a mark.
 --   * DEFINITIONS, plus `runCtx≡applyˢ`.  Also the run concatenation
 --     `_++ʳ_` and the iterated sibling shift `↑ᴹ*[_]` used by the
@@ -24,13 +29,14 @@ open import Data.Product using (∃-syntax)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
-open import Types using (Ty)
-open import Ctx using (Ctxᵗ; RVar; Alloc; none; new; apply)
+open import Types using (Ty; ★)
+open import Data.Nat using (zero)
+open import Ctx using (Ctxᵗ; RVar; Alloc; none; new; apply; reps; _⊢ᴿ_; _∋rep_:=_)
 open import Reduction using (_⊢_-→*_; done; _then_; runCtx)
 open import Terms using (Term)
 open import TermSubst using (↑ᴹ[_])
 open import ImprecisionWorld
-  using (World; Paired; allocᴸ; allocᴿ; alloc²; allocᴸ⇔)
+  using (World; Paired; Agree; allocᴸ; allocᴿ; alloc²; allocᴸ⇔)
 
 private
   variable
@@ -90,18 +96,22 @@ data _⟿[_∣_]_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′)
 
   -- an unmatched left TyBeta
   ev-L : ∀ {W″}
+    → reps Δ ⊢ᴿ R
     → allocᴸ R W ⟿[ ξs ∣ ξs′ ] W″
       ---------------------------------
     → W ⟿[ new R ∷ ξs ∣ ξs′ ] W″
 
   -- an unmatched right TyBeta (or Inst's)
   ev-R : ∀ {W″}
+    → reps Δ′ ⊢ᴿ R′
     → allocᴿ R′ W ⟿[ ξs ∣ ξs′ ] W″
       ---------------------------------
     → W ⟿[ ξs ∣ new R′ ∷ ξs′ ] W″
 
   -- a matched pair of TyBetas: a new global pair
   ev-2 : ∀ {W″}
+    → reps Δ ⊢ᴿ R → reps Δ′ ⊢ᴿ R′
+    → Agree (alloc² R R′ W) zero zero
     → alloc² R R′ W ⟿[ ξs ∣ ξs′ ] W″
       ------------------------------------------
     → W ⟿[ new R ∷ ξs ∣ new R′ ∷ ξs′ ] W″
@@ -109,7 +119,10 @@ data _⟿[_∣_]_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′)
   -- the left catches up with a right boundary `[+X^β]` that ∀⊑⟪+⟫
   -- related; β has no left partner yet (D13)
   ev-L⇔ : ∀ {W″}
+    → reps Δ ⊢ᴿ R
+    → Δ′ ∋rep β := ★
     → NoLeftPartner W β
+    → Agree (allocᴸ⇔ R β W) zero β
     → allocᴸ⇔ R β W ⟿[ ξs ∣ ξs′ ] W″
       ---------------------------------
     → W ⟿[ new R ∷ ξs ∣ ξs′ ] W″

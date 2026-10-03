@@ -10,8 +10,8 @@
 # and an item named Dir/N refers to proof/Dir/N{Def,Proof,}.agda.
 # A `|` and text after the name is the one-line description.
 
-DynamicGradualGuarantee | the theorem (statement at top level, §2)  uses: TypeSafety/Progress CatchupBlame
-  MultiSim | forward simulation over runs
+DynamicGradualGuarantee | the theorem (statement at top level, §2)  uses: CatchupRight CatchupLeft CatchupBlame ImprecisionTyping TypeSafety/Progress TypeSafety/Preservation TypeSafety/Irreducible
+  MultiSim | forward simulation over runs  uses: ImprecisionTyping TypeSafety/Preservation
     Sim | the more precise side steps, the less precise catches up
       SimFrame | ξ cases, including boundary frames  uses: AllocImp EvolveImp
       SimBeta | Beta, Wrap  uses: SubstImp
@@ -19,7 +19,7 @@ DynamicGradualGuarantee | the theorem (statement at top level, §2)  uses: TypeS
       SimBoundary | Merge, Id, IdDyn  uses: MergeImp
       SimCast | CastId, CastSeq, CastSeq?, CastFun, Inst, TagUntag, TagUntagBad, TagUntagBad-⟪⟫, BlameBotIntro, Blame
       CatchupRight | a left value: the right reaches a related value
-  MultiSimBack | backward simulation over runs
+  MultiSimBack | backward simulation over runs  uses: ImprecisionTyping TypeSafety/Preservation TypeSafety/Determinism
     SimBack | the less precise side steps, both catch up
       SimBackFrame | ξ cases  uses: AllocImp EvolveImp
       SimBackBeta | Beta, Wrap  uses: SubstImp
@@ -29,9 +29,9 @@ DynamicGradualGuarantee | the theorem (statement at top level, §2)  uses: TypeS
       CatchupLeft | a right value: the left reaches a related value or blame
 
 # shared lemmas
-EvolveImp | ⊑ and WfWorld transport along Evolve W W′ (the runs' allocations)
+EvolveImp | ⊑ and WfWorld transport along W ⟿[ ξs ∣ ξs′ ] W′  uses: AllocImp
 CatchupBlame | M ⊑ blame: the left reaches blame
-ImprecisionTyping | a ⊑ derivation gives both typings  uses: TypeSafety/Preservation
+ImprecisionTyping | a ⊑ derivation gives both typings
 AllocImp | allocation preserves ⊑ and WfWorld, commutes with Interior
 SubstImp | substitution of related values preserves ⊑
 InstXImp | inst_X preserves ⊑ (matched and one-sided)

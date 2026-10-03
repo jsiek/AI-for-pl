@@ -27,6 +27,7 @@ EvolveImp : Set
 EvolveImp = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {ξs ξs′ : List Alloc}
               {W′ : World (applyˢ ξs Δ) (applyˢ ξs′ Δ′)}
               {M M′ : Term} {A A′ : Ty} {p : A ⊑ᵂ⟨ W ⟩ A′}
+  → WfCtx Δ → WfCtx Δ′
   → W ⟿[ ξs ∣ ξs′ ] W′
   → WfWorld W
   → W ∣ [] ⊢ M ⊑ M′ ∶ p

@@ -11,7 +11,9 @@ module proof.DGG.Evolve where
 --     their own side), a matched pair (`ev-2`, a new global pair), and
 --     the left's catch-up with a right boundary that `∀⊑⟪+⟫` related
 --     (`ev-L⇔`, pairing the new left rep. var with the existing right
---     β, which must have no left partner yet: D13).  Steps that
+--     β; β may already have left partners, design.md D25, e.g. when
+--     the left instantiates two Beta-copies of one right Inst
+--     boundary, proof/DGG/notes/D25.md).  Steps that
 --     allocate nothing are skipped (`ev-noneᴸ`, `ev-noneᴿ`).  The two
 --     sides may be consumed in any interleaving.
 --   * EACH ALLOCATING CONSTRUCTOR RECORDS what its TyBeta supplies
@@ -26,7 +28,6 @@ module proof.DGG.Evolve where
 
 open import Data.List using (List; []; _∷_)
 open import Data.Product using (∃-syntax)
-open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import Types using (Ty; ★)
@@ -36,7 +37,7 @@ open import Reduction using (_⊢_-→*_; done; _then_; runCtx)
 open import Terms using (Term)
 open import TermSubst using (↑ᴹ[_])
 open import ImprecisionWorld
-  using (World; Paired; Agree; allocᴸ; allocᴿ; alloc²; allocᴸ⇔)
+  using (World; Agree; allocᴸ; allocᴿ; alloc²; allocᴸ⇔)
 
 private
   variable
@@ -76,10 +77,6 @@ done        ++ʳ r″ = r″
 ↑ᴹ*[ []     ] M = M
 ↑ᴹ*[ ξ ∷ ξs ] M = ↑ᴹ*[ ξs ] (↑ᴹ[ ξ ] M)
 
--- β has no left partner yet (D13)
-NoLeftPartner : World Δ Δ′ → RVar → Set
-NoLeftPartner W β = ∀ α → ¬ Paired W α β
-
 ------------------------------------------------------------------------
 -- Evolution
 ------------------------------------------------------------------------
@@ -117,11 +114,10 @@ data _⟿[_∣_]_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′)
     → W ⟿[ new R ∷ ξs ∣ new R′ ∷ ξs′ ] W″
 
   -- the left catches up with a right boundary `[+X^β]` that ∀⊑⟪+⟫
-  -- related; β has no left partner yet (D13)
+  -- related; β may have other left partners (D25)
   ev-L⇔ : ∀ {W″}
     → reps Δ ⊢ᴿ R
     → Δ′ ∋rep β := ★
-    → NoLeftPartner W β
     → Agree (allocᴸ⇔ R β W) zero β
     → allocᴸ⇔ R β W ⟿[ ξs ∣ ξs′ ] W″
       ---------------------------------

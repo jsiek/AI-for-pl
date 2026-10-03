@@ -1,46 +1,49 @@
 module proof.DGG.notes.ForallBoundaryFixes where
 
 -- File Charter:
---   * PROPOSED FIXES for the two open items of ForallBoundaryRisks.md
---     (R3, R2); findings in ForallBoundaryFixes.md.  NOT a Def module,
---     not imported by All.agda.  Works against ∀⊑⟪+⟫ with D22's
---     `NonVar A`/`0 ∈ᵗ A` premises (0f83de9f).
---   * §1 (R3) THE SHADOWING PREMISE WORLD `W ⊕⁺ˢ m ^ β`: as `W ⊕⁺ m ^ β`,
---     but every pair whose right member is β is dropped (from ϱᵍ and
---     ϱˡ) before the lexical pair (0, β) is added.
---   * §2 renaming lemmas: the reading `_⊢_~_` along a renaming of name
---     POSITIONS, and type imprecision along a mark-respecting renaming.
---   * §3 THE WELL-FORMEDNESS LEMMA `wf-⊕⁺ˢ : WfWorld W → names Δ′ ∌ʳ β
---     → Δ′ ∋rep β := ★ → WfWorld (W ⊕⁺ˢ m ^ β)`; both hypotheses come
---     from ∀⊑⟪+⟫'s own premises (`wf-premise`).
+--   * FIXES for the two open items of ForallBoundaryRisks.md (R3, R2);
+--     findings in ForallBoundaryFixes.md, re-evaluated under design.md
+--     D25 in D25.md.  NOT a Def module, not imported by All.agda.
+--     Works against ∀⊑⟪+⟫ with D22's `NonVar A`/`0 ∈ᵗ A` premises,
+--     D23's payload imprecision `RepImp` and D25's `WfWorld` (named
+--     uniqueness, no one-left-partner rule).
+--   * §1 (R3) UNDER D25 THE PLAIN PREMISE WORLD `W ⊕⁺ m ^ β` SUFFICES:
+--     it is well formed whenever W is, β:=★ and β has no left partner
+--     named in Δ (`wf-⊕⁺`, proof/ImprecisionWorld.agda).  The earlier
+--     proposal `W ⊕⁺ˢ m ^ β` (drop every pair of β first) is withdrawn:
+--     under D23 a surviving pair's agreement may read a dropped pair
+--     (`⊕⁺ˢ-breaks-agreement`).
 --   * §4 a LOCAL COPY of the relation, `_∣_⊢_⊑_∶_` with the same
---     constructor names, whose ∀⊑⟪+⟫ reads `W ⊕⁺ˢ m ^ β`.
+--     constructor names as TermImprecision, plus one constructor
+--     `∀⊑⟪+⟫ᵃ` (candidate B of R2).
 --   * §5 (R3, b) the five existing ∀⊑⟪+⟫ derivations (p3-inst = ch-x0,
 --     cg-x0, c2-x0, c12-x0), copied verbatim into the local relation.
 --   * §6 (R3, c) L3c/R3c: the pair before and after the left's TyBeta;
---     the premise world after it is well formed under ⊕⁺ˢ and is not
---     under ⊕⁺.
---   * §7 (R3, beyond) L3d/R3d: BOTH copies instantiated on the left;
---     the second catch-up gives αᴿ a second left partner (D13).
+--     the premise world after it gives αᴿ two left partners, only one
+--     of them named, and is well formed.
+--   * §7 L3d/R3d: BOTH copies instantiated on the left.  The second
+--     catch-up (`ev-L⇔` without D13's premise) gives αᴿ a second left
+--     partner; the evolved world is well formed and the pair after the
+--     second TyBeta is related (`l3d-after`).
 --   * §8 (R2) L2c/R2c: the pair at the right's TyBeta (`r2c-pre`) and
 --     after the right's Merge with the left unmoved, derived twice:
 --     (A) with ∀⊑⟪+⟫ as it is (`r2c-post-A`, premise N ⊑ merged), and
 --     (B) with the candidate `∀⊑⟪+⟫ᵃ` (`r2c-post-B`, premise read after
 --     the left's own administrative Merge).
---   * §9 (R2) the statements: `allocᴿ-⊕⁺ˢ` (proved), `InstExpand`
+--   * §9 (R2) the statements: `allocᴿ-⊕⁺` (proved), `InstExpand`
 --     (left-expansion), `B-admissible` (B follows from A + InstExpand,
 --     proved), and the child `SimBackInstX` (statement only).
 --   * Orientation: the LEFT term is the more precise one.
 
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.Nat using (ℕ; zero; suc; pred)
+open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Properties using (_≟_)
 open import Data.List using (List; []; _∷_; head; drop)
 open import Data.Maybe using (just)
 open import Data.Product using (Σ-syntax; ∃-syntax; _×_; _,_; proj₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; sym; trans; cong; cong₂; subst₂)
+  using (_≡_; refl; cong; cong₂)
 open import Relation.Nullary using (¬_; yes; no)
 
 open import Types
@@ -54,12 +57,12 @@ open import Reduction
 open import Data.Unit using (⊤; tt)
 open import Imprecision
 open import ImprecisionWorld
+open import proof.ImprecisionWorld
+  using (wf-⊕⁺; NoNamedPartner; namedᴸ-≤1; namedᴿ-≤1; ≤1-[]; ≤1-∷[])
 open import ConversionImprecision
 open import TermImprecision
   using (Lit; lit-$; lit-true; lit-false; CastTy; cast-ty; NuTy; BdyTy;
          bdy-ty; NuConversionImp; BdyConversionImp; ⟪⟫-inv; cast-inv; ν-inv)
-open import proof.Ctx using (renameᵗ-fuse; renameᵗ-cong; renameᵗ-⇑;
-  ∋ˡ-ren; ∋ˡ-ren⁻; same-ren)
 open import proof.DGG.Evolve
   using (_⟿[_∣_]_; ev-L⇔; ev-noneᴿ; ev-done; applyˢ; allocs)
 open import examples.TypeCheck using (tc; tf)
@@ -67,8 +70,9 @@ open import examples.Eval using (evalTerms; eval-sound)
 open import examples.CambridgeExamples using (I; instI; genI; C2-L; C12-L)
 open import examples.ImprecisionExamples using (L1)
 open import examples.TermImprecisionExamples
-  using (idX; revX; ℕ⊑★; 5⟨ℕ!⟩; Θ₀; L1′; ΔL; ΔR; W₁; Wᵢ₁; Wᵢ₁-int;
-         Wᵢ₁-wf; bL-ty; bR-ty; bLR-conv; revX⊑revX; νL-ty; W₃; R3′)
+  using (idX; revX; ℕ⊑★; 5⟨ℕ!⟩; Θ₀; L1′; ΔL; ΔR; ΔRᵢ; W₁; Wᵢ₁; Wᵢ₁-int;
+         Wᵢ₁-wf; bL-ty; bR-ty; bLR-conv; revX⊑revX; νL-ty; W₃; R3′; int₀;
+         conv₀)
 open import examples.TermImprecisionRebaseExamples
   using (id★↦; id★→; tagX↦; ∀id⊑★; ∀id⊑∀id; ★⇒★; ℕ⇒ℕ; ℕ⇒ℕ⊑★⇒★; id★→⊑id★→;
          X⇒X⊑★⇒★; Bg-ty; I★⁻ᴿ-ty; tagᴿ-ty; id★↦ᴿ-ty; ΛidX-⊢; Cg-R₂;
@@ -83,18 +87,27 @@ private
     Δ Δ′ : Ctxᵗ
 
 ------------------------------------------------------------------------
--- 1. The shadowing premise world
+-- 1. (R3) The premise world under D25
 ------------------------------------------------------------------------
 
--- drop every pair whose right member is β
+-- ∀⊑⟪+⟫ reads the plain `W ⊕⁺ m ^ β` (ImprecisionWorld §5).  It is well
+-- formed when W is, β:=★ (a premise of the rule) and β has no left
+-- partner named in Δ (`wf-⊕⁺`).  β may keep unnamed left partners: the
+-- premise names only the new left rep. var 0 for β, so a right rejoin
+-- of β inside the premise joins 0 and nothing else.
+wf-premise : ∀ {W : World Δ Δ′} {m β}
+  → WfWorld W → Δ′ ∋rep β := ★ → NoNamedPartner W β
+  → WfWorld (W ⊕⁺ m ^ β)
+wf-premise = wf-⊕⁺
+
+-- THE WITHDRAWN PROPOSAL: drop every pair whose right member is β ...
 dropᴿ : RVar → RepRel → RepRel
 dropᴿ β [] = []
 dropᴿ β ((α , β′) ∷ ϱ) with β′ ≟ β
 dropᴿ β ((α , β′) ∷ ϱ) | yes _ = dropᴿ β ϱ
 dropᴿ β ((α , β′) ∷ ϱ) | no _  = (α , β′) ∷ dropᴿ β ϱ
 
--- the premise world of ∀⊑⟪+⟫, PROPOSED: the boundary's lexical pair
--- (0, β) shadows every pair β had outside
+-- ... before adding the lexical (0, β)
 infixl 6 _⊕⁺ˢ_^_
 _⊕⁺ˢ_^_ : World Δ Δ′ → VarImp → (β : RVar)
   → World (underΛ Δ) (reps Δ′ ∣ (β ∷ names Δ′))
@@ -102,223 +115,57 @@ world μ η η′ ϱᵍ ϱˡ ⊕⁺ˢ m ^ β =
   world (m ∷ μ) (keep (relabel suc η)) (keep η′)
         (dropᴿ β (shiftᴸ ϱᵍ)) ((zero , β) ∷ dropᴿ β (shiftᴸ ϱˡ))
 
-drop-keep : ∀ {β α β′} (ϱ : RepRel) → ϱ ∋ᵨ α ⇔ β′ → β′ ≢ β
-  → dropᴿ β ϱ ∋ᵨ α ⇔ β′
-drop-keep {β} ((a , b) ∷ ϱ) here⇔ ne with b ≟ β
-drop-keep {β} ((a , b) ∷ ϱ) here⇔ ne | yes e = ⊥-elim (ne e)
-drop-keep {β} ((a , b) ∷ ϱ) here⇔ ne | no _  = here⇔
-drop-keep {β} ((a , b) ∷ ϱ) (there⇔ x) ne with b ≟ β
-drop-keep {β} ((a , b) ∷ ϱ) (there⇔ x) ne | yes _ = drop-keep ϱ x ne
-drop-keep {β} ((a , b) ∷ ϱ) (there⇔ x) ne | no _  =
-  there⇔ (drop-keep ϱ x ne)
+-- Why it is withdrawn (D23): payloads mention rep. vars, and a payload
+-- pair may be related THROUGH a pair of β.  In Wd, rep. var 1 is
+-- ℕ on the left and ★ (= β) on the right, paired; rep. var 0 holds
+-- ` 1 on both sides, and (0, 0) agrees by ` 1 ⊑ᴿ ` 1 through (1, 1).
+-- ⊕⁺ˢ at β = 1 drops (1+1, 1), so the shifted (0+1, 0) no longer agrees.
+ΞLd ΞRd : RepCtx
+ΞLd = bindR (` 0) ∷ bindR `ℕ ∷ []
+ΞRd = bindR (` 0) ∷ bindR ★ ∷ []
 
-drop-sound : ∀ {β α β′} (ϱ : RepRel) → dropᴿ β ϱ ∋ᵨ α ⇔ β′
-  → (ϱ ∋ᵨ α ⇔ β′) × (β′ ≢ β)
-drop-sound {β} ((a , b) ∷ ϱ) x with b ≟ β
-drop-sound {β} ((a , b) ∷ ϱ) x | yes _ with drop-sound ϱ x
-drop-sound {β} ((a , b) ∷ ϱ) x | yes _ | y , ne = there⇔ y , ne
-drop-sound {β} ((a , b) ∷ ϱ) here⇔ | no ne = here⇔ , ne
-drop-sound {β} ((a , b) ∷ ϱ) (there⇔ x) | no _ with drop-sound ϱ x
-drop-sound {β} ((a , b) ∷ ϱ) (there⇔ x) | no _ | y , ne = there⇔ y , ne
+Wd : World (ΞLd ∣ []) (ΞRd ∣ [])
+Wd = world [] []↪ []↪ ((0 , 0) ∷ (1 , 1) ∷ []) []
 
-shiftᴸ-∋ : ∀ {ϱ α β′} → ϱ ∋ᵨ α ⇔ β′ → shiftᴸ ϱ ∋ᵨ suc α ⇔ β′
-shiftᴸ-∋ here⇔      = here⇔
-shiftᴸ-∋ (there⇔ x) = there⇔ (shiftᴸ-∋ x)
+Wd-agree : ∀ {α β} → Paired Wd α β → Agree Wd α β
+Wd-agree (inj₁ here⇔) = rep-rep r-here r-here (α⊑β (inj₁ (there⇔ here⇔)))
+Wd-agree (inj₁ (there⇔ here⇔)) =
+  rep-rep (r-there r-here) (r-there r-here) (ι⊑★ base-ℕ)
+Wd-agree (inj₁ (there⇔ (there⇔ ())))
+Wd-agree (inj₂ ())
 
-shiftᴸ-∋⁻ : ∀ {a β′} (ϱ : RepRel) → shiftᴸ ϱ ∋ᵨ a ⇔ β′
-  → ∃[ α ] ((a ≡ suc α) × (ϱ ∋ᵨ α ⇔ β′))
-shiftᴸ-∋⁻ ((α , b) ∷ ϱ) here⇔ = α , refl , here⇔
-shiftᴸ-∋⁻ ((α , b) ∷ ϱ) (there⇔ x) with shiftᴸ-∋⁻ ϱ x
-shiftᴸ-∋⁻ ((α , b) ∷ ϱ) (there⇔ x) | α′ , eq , y = α′ , eq , there⇔ y
+Wd-wf : WfWorld Wd
+Wd-wf = wf-world joint[] Wd-agree (namedᴸ-≤1 Wd ≤1-[])
+  (namedᴿ-≤1 Wd ≤1-[])
 
-module _ {W : World Δ Δ′} {m : VarImp} {β : RVar} where
+-- the plain premise world keeps both pairs, and is well formed ...
+Wd⁺-wf : WfWorld (Wd ⊕⁺ X⊑X ^ 1)
+Wd⁺-wf = wf-premise Wd-wf (r-there r-here) (λ { (_ , ()) })
 
-  -- a pair of W whose right member is not β survives, shifted
-  paired-⊕⁺ˢ : ∀ {α β′} → Paired W α β′ → β′ ≢ β
-    → Paired (W ⊕⁺ˢ m ^ β) (suc α) β′
-  paired-⊕⁺ˢ (inj₁ x) ne = inj₁ (drop-keep (shiftᴸ (ϱᵍʷ W)) (shiftᴸ-∋ x) ne)
-  paired-⊕⁺ˢ (inj₂ x) ne =
-    inj₂ (there⇔ (drop-keep (shiftᴸ (ϱˡʷ W)) (shiftᴸ-∋ x) ne))
+-- ... the shadowing one is not: (1, 0) has payloads ` 2 / ` 1, and
+-- (2, 1) was dropped
+-- the two payload lookups of (1, 0) in the shadowing premise world
+lookupᴸ1 : ∀ {b} → (abstR ∷ ΞLd) ∋ʳ 1 := b → b ≡ bindR (` 2)
+lookupᴸ1 (r-there-abst r-here) = refl
 
-  -- ... and every pair of the premise world is (0, β) or such a pair
-  paired-⊕⁺ˢ⁻ : ∀ {a β′} → Paired (W ⊕⁺ˢ m ^ β) a β′
-    → ((a ≡ zero) × (β′ ≡ β))
-      ⊎ (∃[ α ] ((a ≡ suc α) × Paired W α β′ × (β′ ≢ β)))
-  paired-⊕⁺ˢ⁻ (inj₁ x) with drop-sound (shiftᴸ (ϱᵍʷ W)) x
-  paired-⊕⁺ˢ⁻ (inj₁ x) | y , ne with shiftᴸ-∋⁻ (ϱᵍʷ W) y
-  paired-⊕⁺ˢ⁻ (inj₁ x) | y , ne | α , eq , z = inj₂ (α , eq , inj₁ z , ne)
-  paired-⊕⁺ˢ⁻ (inj₂ here⇔) = inj₁ (refl , refl)
-  paired-⊕⁺ˢ⁻ (inj₂ (there⇔ x)) with drop-sound (shiftᴸ (ϱˡʷ W)) x
-  paired-⊕⁺ˢ⁻ (inj₂ (there⇔ x)) | y , ne with shiftᴸ-∋⁻ (ϱˡʷ W) y
-  paired-⊕⁺ˢ⁻ (inj₂ (there⇔ x)) | y , ne | α , eq , z =
-    inj₂ (α , eq , inj₂ z , ne)
+lookupᴿ0 : ∀ {b} → ΞRd ∋ʳ 0 := b → b ≡ bindR (` 1)
+lookupᴿ0 r-here = refl
+
+no-2⊑1 : ¬ ([] ⊢ ` 2 ⊑ᴿ⟨ Wd ⊕⁺ˢ X⊑X ^ 1 ⟩ ` 1)
+no-2⊑1 (α⊑β (inj₁ (there⇔ ())))
+no-2⊑1 (α⊑β (inj₂ (there⇔ ())))
+
+⊕⁺ˢ-breaks-agreement : ¬ WfWorld (Wd ⊕⁺ˢ X⊑X ^ 1)
+⊕⁺ˢ-breaks-agreement wf with wf-agree wf (inj₁ here⇔)
+⊕⁺ˢ-breaks-agreement wf | abst-abst l _ with lookupᴸ1 l
+⊕⁺ˢ-breaks-agreement wf | abst-abst l _ | ()
+⊕⁺ˢ-breaks-agreement wf | abst-★ l _ with lookupᴸ1 l
+⊕⁺ˢ-breaks-agreement wf | abst-★ l _ | ()
+⊕⁺ˢ-breaks-agreement wf | rep-rep l r p with lookupᴸ1 l | lookupᴿ0 r
+⊕⁺ˢ-breaks-agreement wf | rep-rep l r p | refl | refl = no-2⊑1 p
 
 ------------------------------------------------------------------------
--- 2. Renaming lemmas
-------------------------------------------------------------------------
-
--- the reading of an ordinary type along a renaming of name positions
-PosRen : TyCtx → TyCtx → Renameᵗ → Set
-PosRen η η′ ρ = ∀ {X α} → η ∋ˡ X := α → η′ ∋ˡ ρ X := α
-
-pos-ext : ∀ {η′ ρ} (η : TyCtx) → PosRen η η′ ρ
-  → PosRen (zero ∷ shiftReps η) (zero ∷ shiftReps η′) (extᵗ ρ)
-pos-ext η h here = here
-pos-ext η h (there d) with ∋ˡ-ren⁻ suc η d
-pos-ext η h (there d) | α , d′ , refl = there (∋ˡ-ren suc (h d′))
-
-same-pos : ∀ {η η′ ρ A R} → PosRen η η′ ρ → η ⊢ A ~ R
-  → η′ ⊢ renameᵗ ρ A ~ R
-same-pos h (same-var d)   = same-var (h d)
-same-pos h same-ℕ         = same-ℕ
-same-pos h same-𝔹         = same-𝔹
-same-pos h same-★         = same-★
-same-pos h (same-⇒ p q)   = same-⇒ (same-pos h p) (same-pos h q)
-same-pos {η = η} h (same-∀ p) = same-∀ (same-pos (pos-ext η h) p)
-
--- type imprecision along a renaming that keeps every X⊑★ mark
-MarkRen : ImpEnv → ImpEnv → Renameᵗ → Set
-MarkRen μ μ′ ρ = ∀ {X} → μ ∋ˡ X := X⊑★ → μ′ ∋ˡ ρ X := X⊑★
-
-mark-ext : ∀ {μ μ′ ρ} → MarkRen μ μ′ ρ
-  → MarkRen (extᵐ μ) (extᵐ μ′) (extᵗ ρ)
-mark-ext h (there d) = there (h d)
-
-mark-inst : ∀ {μ μ′ ρ} → MarkRen μ μ′ ρ
-  → MarkRen (instᵐ μ) (instᵐ μ′) (extᵗ ρ)
-mark-inst h here      = here
-mark-inst h (there d) = there (h d)
-
-∈ᵗ-ren : ∀ {X A} (ρ : Renameᵗ) → X ∈ᵗ A → ρ X ∈ᵗ renameᵗ ρ A
-∈ᵗ-ren ρ ∈-var    = ∈-var
-∈ᵗ-ren ρ (∈-⇒ˡ p) = ∈-⇒ˡ (∈ᵗ-ren ρ p)
-∈ᵗ-ren ρ (∈-⇒ʳ p) = ∈-⇒ʳ (∈ᵗ-ren ρ p)
-∈ᵗ-ren ρ (∈-∀ p)  = ∈-∀ (∈ᵗ-ren (extᵗ ρ) p)
-
-nonvar-ren : ∀ {A} (ρ : Renameᵗ) → NonVar A → NonVar (renameᵗ ρ A)
-nonvar-ren ρ nv-ℕ = nv-ℕ
-nonvar-ren ρ nv-𝔹 = nv-𝔹
-nonvar-ren ρ nv-★ = nv-★
-nonvar-ren ρ nv-⇒ = nv-⇒
-nonvar-ren ρ nv-∀ = nv-∀
-
-nonstar-ren : ∀ {A} (ρ : Renameᵗ) → NonStar A → NonStar (renameᵗ ρ A)
-nonstar-ren ρ ns-var = ns-var
-nonstar-ren ρ ns-ℕ   = ns-ℕ
-nonstar-ren ρ ns-𝔹   = ns-𝔹
-nonstar-ren ρ ns-⇒   = ns-⇒
-nonstar-ren ρ ns-∀   = ns-∀
-
-⊑-ren : ∀ {μ μ′ ρ A B} → MarkRen μ μ′ ρ → μ ⊢ A ⊑ B
-  → μ′ ⊢ renameᵗ ρ A ⊑ renameᵗ ρ B
-⊑-ren h ★⊑★            = ★⊑★
-⊑-ren h (ι⊑ι base-ℕ)   = ι⊑ι base-ℕ
-⊑-ren h (ι⊑ι base-𝔹)   = ι⊑ι base-𝔹
-⊑-ren h X⊑X            = X⊑X
-⊑-ren h (⇒⊑⇒ p q)      = ⇒⊑⇒ (⊑-ren h p) (⊑-ren h q)
-⊑-ren h (∀⊑∀ p)        = ∀⊑∀ (⊑-ren (mark-ext h) p)
-⊑-ren h (⇒⊑★ p q)      = ⇒⊑★ (⊑-ren h p) (⊑-ren h q)
-⊑-ren h (ι⊑★ base-ℕ)   = ι⊑★ base-ℕ
-⊑-ren h (ι⊑★ base-𝔹)   = ι⊑★ base-𝔹
-⊑-ren h (X⊑★ d)        = X⊑★ (h d)
-⊑-ren {μ′ = μ′} {ρ = ρ} {A = `∀ A} {B = B} h (∀⊑ nv occ p) =
-  ∀⊑ (nonvar-ren (extᵗ ρ) nv) (∈ᵗ-ren (extᵗ ρ) occ)
-     (subst₂ (instᵐ μ′ ⊢_⊑_) refl (renameᵗ-⇑ ρ B) (⊑-ren (mark-inst h) p))
-⊑-ren h ∀★⊑★           = ∀★⊑★
-⊑-ren {ρ = ρ} h (∀⊑★ ns p) =
-  ∀⊑★ (nonstar-ren (extᵗ ρ) ns) (⊑-ren (mark-ext h) p)
-⊑-ren h bot-elim       = bot-elim
-⊑-ren h bot⊑★          = bot⊑★
-
-emb-relabel : ∀ {η Ω} (f : RVar → RVar) (ι : η ↪ Ω) (X : ℕ)
-  → emb (relabel f ι) X ≡ emb ι X
-emb-relabel f []↪      X       = refl
-emb-relabel f (keep ι) zero    = refl
-emb-relabel f (keep ι) (suc X) = cong suc (emb-relabel f ι X)
-emb-relabel f (skip ι) X       = cong suc (emb-relabel f ι X)
-
-------------------------------------------------------------------------
--- 3. The well-formedness lemma
-------------------------------------------------------------------------
-
-joint-⊕⁺ˢ : ∀ {P Q : RVar → RVar → Set} {β ns ns′ Ω}
-    {ι : ns ↪ Ω} {ι′ : ns′ ↪ Ω}
-  → (∀ {α β′} → P α β′ → β′ ≢ β → Q (suc α) β′)
-  → ns′ ∌ʳ β
-  → Joint P ι ι′
-  → Joint Q (relabel suc ι) ι′
-joint-⊕⁺ˢ h fr joint[] = joint[]
-joint-⊕⁺ˢ h (fresh∷ ne fr) (both p j) =
-  both (h p (λ e → ne (sym e))) (joint-⊕⁺ˢ h fr j)
-joint-⊕⁺ˢ h fr (left-only j) = left-only (joint-⊕⁺ˢ h fr j)
-joint-⊕⁺ˢ h (fresh∷ ne fr) (right-only j) = right-only (joint-⊕⁺ˢ h fr j)
-
-module _ {W : World Δ Δ′} {m : VarImp} {β : RVar} where
-
-  private
-    W⁺ = W ⊕⁺ˢ m ^ β
-
-  ⇑ᴸ-emb : ∀ A
-    → renameᵗ (emb (ηᴸʷ W⁺)) (⇑ᵗ A) ≡ ⇑ᵗ (renameᵗ (emb (ηᴸʷ W)) A)
-  ⇑ᴸ-emb A =
-    trans (renameᵗ-fuse (emb (ηᴸʷ W⁺)) suc A)
-      (trans (renameᵗ-cong (λ X → cong suc (emb-relabel suc (ηᴸʷ W) X)) A)
-             (sym (renameᵗ-fuse suc (emb (ηᴸʷ W)) A)))
-
-  ⇑ᴿ-emb : ∀ A
-    → renameᵗ (emb (ηᴿʷ W⁺)) (⇑ᵗ A) ≡ ⇑ᵗ (renameᵗ (emb (ηᴿʷ W)) A)
-  ⇑ᴿ-emb A =
-    trans (renameᵗ-fuse (emb (ηᴿʷ W⁺)) suc A)
-          (sym (renameᵗ-fuse suc (emb (ηᴿʷ W)) A))
-
-  -- a pair's agreement survives: the left side is under one more Λ,
-  -- the right side has one more name (β's, at position 0)
-  agree-⊕⁺ˢ : ∀ {α β′} → Agree W α β′ → Agree W⁺ (suc α) β′
-  agree-⊕⁺ˢ (abst-abst l r) = abst-abst (r-there-abst l) r
-  agree-⊕⁺ˢ (abst-★ l r)    = abst-★ (r-there-abst l) r
-  agree-⊕⁺ˢ (rep-rep {A = A} {A′ = A′} l r sA sA′ p) =
-    rep-rep (r-there-abst l) r
-      (same-pos there (same-ren suc sA)) (same-pos there sA′)
-      (subst₂ (μʷ W⁺ ⊢_⊑_) (sym (⇑ᴸ-emb A)) (sym (⇑ᴿ-emb A′))
-              (⊑-ren there p))
-
-  wf-⊕⁺ˢ : WfWorld W → names Δ′ ∌ʳ β → Δ′ ∋rep β := ★ → WfWorld W⁺
-  wf-⊕⁺ˢ wf fr hβ = wf-world joint agree uniq
-    where
-    joint : Joint (Paired W⁺) (ηᴸʷ W⁺) (ηᴿʷ W⁺)
-    joint = both (inj₂ here⇔)
-      (joint-⊕⁺ˢ (paired-⊕⁺ˢ {W = W} {m} {β}) fr (wf-joint wf))
-
-    agree : ∀ {a β′} → Paired W⁺ a β′ → Agree W⁺ a β′
-    agree x with paired-⊕⁺ˢ⁻ {W = W} {m} {β} x
-    agree x | inj₁ (refl , refl)     = abst-★ r-here hβ
-    agree x | inj₂ (α , refl , p , _) = agree-⊕⁺ˢ (wf-agree wf p)
-
-    uniq : ∀ {a a′ β′} → Paired W⁺ a β′ → Paired W⁺ a′ β′ → a ≡ a′
-    uniq x y with paired-⊕⁺ˢ⁻ {W = W} {m} {β} x
-      | paired-⊕⁺ˢ⁻ {W = W} {m} {β} y
-    uniq x y | inj₁ (refl , refl) | inj₁ (refl , refl) = refl
-    uniq x y | inj₁ (refl , refl) | inj₂ (_ , _ , _ , ne) = ⊥-elim (ne refl)
-    uniq x y | inj₂ (_ , _ , _ , ne) | inj₁ (refl , refl) = ⊥-elim (ne refl)
-    uniq x y | inj₂ (α , refl , p , _) | inj₂ (α′ , refl , p′ , _) =
-      cong suc (wf-right-unique wf p p′)
-
--- the freshness hypothesis is the boundary's own `bind` premise
-bdy-fresh : ∀ {β Δᵢ A′ c′ B′}
-  → BdyTy Δ′ (bind 0 β ∷ []) Δᵢ A′ c′ B′ → names Δ′ ∌ʳ β
-bdy-fresh (bdy-ty (bw _ (interior (changes∷ changes[]
-  (step-bind _ fr _))) _) _ _ _ _) = fr
-
--- so the premise world of ∀⊑⟪+⟫ is well formed whenever W is: the
--- hypotheses are the rule's premises `Δ′ ∋rep β := ★` and `BdyTy …`
-wf-premise : ∀ {W : World Δ Δ′} {m β A′ c′ B′}
-  → WfWorld W → Δ′ ∋rep β := ★
-  → BdyTy Δ′ (bind 0 β ∷ []) (reps Δ′ ∣ (β ∷ names Δ′)) A′ c′ B′
-  → WfWorld (W ⊕⁺ˢ m ^ β)
-wf-premise wf hβ b = wf-⊕⁺ˢ wf (bdy-fresh b) hβ
-
-------------------------------------------------------------------------
--- 3½. Administrative runs: no step allocates
+-- 3. Administrative runs: no step allocates
 ------------------------------------------------------------------------
 
 Admin : ∀ {Δ M N} → Δ ⊢ M -→* N → Set
@@ -327,7 +174,7 @@ Admin (_then_ {δ = none} st r)  = Admin r
 Admin (_then_ {δ = new R} st r) = ⊥
 
 ------------------------------------------------------------------------
--- 4. A local copy of the relation; only ∀⊑⟪+⟫'s premise world differs
+-- 4. A local copy of the relation, with one extra rule ∀⊑⟪+⟫ᵃ
 ------------------------------------------------------------------------
 
 infix 3 _∣_⊢_⊑_∶_
@@ -381,14 +228,14 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′) (γ : CtxImp W)
     → (q : `∀ A ⊑ᵂ⟨ W ⟩ B′)
     → W ∣ γ ⊢ Λ V ⊑ M′ ∶ q
 
-  -- THE ONLY CHANGE: the premise world is `W ⊕⁺ˢ m ^ β`
-  ∀⊑⟪+⟫ : ∀ {V N V′ β m c′ A A′ B′} {r : A ⊑ᵂ⟨ W ⊕⁺ˢ m ^ β ⟩ A′}
+  -- as in TermImprecision: the premise world is `W ⊕⁺ m ^ β`
+  ∀⊑⟪+⟫ : ∀ {V N V′ β m c′ A A′ B′} {r : A ⊑ᵂ⟨ W ⊕⁺ m ^ β ⟩ A′}
     → NonVar A
     → 0 ∈ᵗ A
     → Value V
     → Δ ∣ lhs γ ⊢ V ⦂ `∀ A
     → InstX V N
-    → W ⊕⁺ˢ m ^ β ∣ [] ⊢ N ⊑ V′ ∶ r
+    → W ⊕⁺ m ^ β ∣ [] ⊢ N ⊑ V′ ∶ r
     → Δ′ ∋rep β := ★
     → BdyTy Δ′ (bind 0 β ∷ []) (reps Δ′ ∣ (β ∷ names Δ′)) A′ c′ B′
     → (q : `∀ A ⊑ᵂ⟨ W ⟩ B′)
@@ -396,14 +243,14 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′) (γ : CtxImp W)
 
   -- (R2, candidate B; §8) the premise may be read after an
   -- administrative (non-allocating) run of the inst_X image
-  ∀⊑⟪+⟫ᵃ : ∀ {V N N₀ V′ β m c′ A A′ B′} {r : A ⊑ᵂ⟨ W ⊕⁺ˢ m ^ β ⟩ A′}
+  ∀⊑⟪+⟫ᵃ : ∀ {V N N₀ V′ β m c′ A A′ B′} {r : A ⊑ᵂ⟨ W ⊕⁺ m ^ β ⟩ A′}
     → NonVar A
     → 0 ∈ᵗ A
     → Value V
     → Δ ∣ lhs γ ⊢ V ⦂ `∀ A
     → InstX V N
     → (ρ : underΛ Δ ⊢ N -→* N₀) → Admin ρ
-    → W ⊕⁺ˢ m ^ β ∣ [] ⊢ N₀ ⊑ V′ ∶ r
+    → W ⊕⁺ m ^ β ∣ [] ⊢ N₀ ⊑ V′ ∶ r
     → Δ′ ∋rep β := ★
     → BdyTy Δ′ (bind 0 β ∷ []) (reps Δ′ ∣ (β ∷ names Δ′)) A′ c′ B′
     → (q : `∀ A ⊑ᵂ⟨ W ⟩ B′)
@@ -442,11 +289,6 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′) (γ : CtxImp W)
 ------------------------------------------------------------------------
 -- 5. (R3, b) The five existing ∀⊑⟪+⟫ derivations still go through
 ------------------------------------------------------------------------
-
--- On W₃ (ϱᵍ = ϱˡ = []) nothing is dropped: the premise worlds coincide
--- definitionally, for every mark.
-W₃-same : ∀ m → W₃ ⊕⁺ˢ m ^ 0 ≡ W₃ ⊕⁺ m ^ 0
-W₃-same m = refl
 
 five⊑ : ∀ {Δ Ξ′} {W : World Δ (Ξ′ ∣ [])} {γ : CtxImp W}
   → W ∣ γ ⊢ $ 5 ⊑ 5⟨ℕ!⟩ ∶ ℕ⊑★
@@ -576,41 +418,35 @@ l3c-post =
 
 -- the world evolution of the step (Evolve's catch-up `ev-L⇔`) and
 -- the well-formedness of both worlds
-no-partner : ∀ α → ¬ Paired W₃ α 0
-no-partner α (inj₁ ())
-no-partner α (inj₂ ())
-
 W₁-agree : ∀ {α β} → Paired W₁ α β → Agree W₁ α β
-W₁-agree (inj₁ here⇔)         = rep-rep r-here r-here same-ℕ same-★ ℕ⊑★
+W₁-agree (inj₁ here⇔)         = rep-rep r-here r-here (ι⊑★ base-ℕ)
 W₁-agree (inj₁ (there⇔ ()))
 W₁-agree (inj₂ ())
 
-W₁-uniq : ∀ {α α′ β} → Paired W₁ α β → Paired W₁ α′ β → α ≡ α′
-W₁-uniq (inj₁ here⇔) (inj₁ here⇔)       = refl
-W₁-uniq (inj₁ here⇔) (inj₁ (there⇔ ()))
-W₁-uniq (inj₁ (there⇔ ())) _
-W₁-uniq (inj₁ here⇔) (inj₂ ())
-W₁-uniq (inj₂ ()) _
-
 W₁-wf : WfWorld W₁
-W₁-wf = wf-world joint[] W₁-agree W₁-uniq
+W₁-wf = wf-world joint[] W₁-agree (namedᴸ-≤1 W₁ ≤1-[])
+  (namedᴿ-≤1 W₁ ≤1-[])
 
 l3c-evolve : W₃ ⟿[ new `ℕ ∷ [] ∣ [] ] W₁
-l3c-evolve = ev-L⇔ wfᴿ-ℕ r-here no-partner (W₁-agree (inj₁ here⇔)) ev-done
+l3c-evolve = ev-L⇔ wfᴿ-ℕ r-here (W₁-agree (inj₁ here⇔)) ev-done
 
--- copy 2's premise world: under ⊕⁺ˢ the global (αᴸ+1, αᴿ) is dropped
--- and the lexical (0, αᴿ) stays ...
-post-premise : W₁ ⊕⁺ˢ X⊑X ^ 0
-  ≡ world (X⊑X ∷ []) (keep []↪) (keep []↪) [] ((0 , 0) ∷ [])
+-- copy 2's premise world keeps the global (αᴸ+1, αᴿ) next to the
+-- lexical (0, αᴿ) ...
+post-premise : W₁ ⊕⁺ X⊑X ^ 0
+  ≡ world (X⊑X ∷ []) (keep []↪) (keep []↪) ((1 , 0) ∷ []) ((0 , 0) ∷ [])
 post-premise = refl
 
-post-premise-wf : WfWorld (W₁ ⊕⁺ˢ X⊑X ^ 0)
-post-premise-wf = wf-premise W₁-wf r-here bR-ty
+two-partners : Paired (W₁ ⊕⁺ X⊑X ^ 0) 1 0 × Paired (W₁ ⊕⁺ X⊑X ^ 0) 0 0
+two-partners = inj₁ here⇔ , inj₂ here⇔
 
--- ... while under ⊕⁺ αᴿ has the two left partners αᴸ+1 and 0 (D13)
-old-premise-¬wf : ¬ WfWorld (W₁ ⊕⁺ X⊑X ^ 0)
-old-premise-¬wf wf with wf-right-unique wf (inj₁ here⇔) (inj₂ here⇔)
-old-premise-¬wf wf | ()
+-- ... but only 0 has a left name, so a rejoin of αᴿ is unambiguous ...
+only-0-named : ∀ {α} → names (underΛ ΔL) ∋ᵅ α → α ≡ 0
+only-0-named (_ , here)     = refl
+only-0-named (_ , there ())
+
+-- ... and the premise world is well formed (D25; under D13 it was not)
+post-premise-wf : WfWorld (W₁ ⊕⁺ X⊑X ^ 0)
+post-premise-wf = wf-premise W₁-wf r-here (λ { (_ , ()) })
 
 ------------------------------------------------------------------------
 -- 7. (R3, beyond) both copies instantiated on the left
@@ -657,22 +493,104 @@ l3d-before =
       five⊑
 
 -- the second catch-up: copy 2's left TyBeta finds αᴿ already paired
--- (with copy 1's αᴸ), so Evolve's `ev-L⇔` is unavailable ...
-no-second-catchup : ¬ (∀ α → ¬ Paired W₁ α 0)
-no-second-catchup h = h 0 (inj₁ here⇔)
-
--- ... `ev-L` leaves the new left rep. var (0) unpaired, so copy 2's
--- ⟪⟫⊑⟪⟫ (whose Interior joins the two fresh names iff Paired) cannot
--- join X with X′ ...
+-- with copy 1's αᴸ.  `ev-L` would leave the new left rep. var (0)
+-- unpaired, so copy 2's ⟪⟫⊑⟪⟫ (whose Interior joins the two fresh
+-- names iff Paired) could not join X with X′ ...
 second-unpaired : ¬ Paired (allocᴸ `ℕ W₁) 0 0
 second-unpaired (inj₁ (there⇔ ()))
 second-unpaired (inj₂ ())
 
--- ... and pairing it anyway gives αᴿ two left partners (D13)
-second-paired-¬wf : ¬ WfWorld (allocᴸ⇔ `ℕ 0 W₁)
-second-paired-¬wf wf with wf-right-unique wf (inj₁ here⇔)
-                                              (inj₁ (there⇔ here⇔))
-second-paired-¬wf wf | ()
+-- ... so the catch-up is `ev-L⇔` again (D25 dropped its no-partner
+-- premise): αᴿ gets the two left partners 0 (copy 2) and 1 (copy 1),
+-- both store rep. vars without a name
+W₂d : World (allocate `ℕ ΔL) ΔR
+W₂d = allocᴸ⇔ `ℕ 0 W₁
+
+W₂d-agree : ∀ {α β} → Paired W₂d α β → Agree W₂d α β
+W₂d-agree (inj₁ here⇔)          = rep-rep r-here r-here (ι⊑★ base-ℕ)
+W₂d-agree (inj₁ (there⇔ here⇔)) =
+  rep-rep (r-there r-here) r-here (ι⊑★ base-ℕ)
+W₂d-agree (inj₁ (there⇔ (there⇔ ())))
+W₂d-agree (inj₂ ())
+
+second-paired-wf : WfWorld W₂d
+second-paired-wf = wf-world joint[] W₂d-agree (namedᴸ-≤1 W₂d ≤1-[])
+  (namedᴿ-≤1 W₂d ≤1-[])
+
+l3d-evolve : W₁ ⟿[ new `ℕ ∷ [] ∣ [] ] W₂d
+l3d-evolve = ev-L⇔ wfᴿ-ℕ r-here (W₂d-agree (inj₁ here⇔)) ev-done
+
+-- AFTER the second TyBeta: copy 2 by ⟪⟫⊑⟪⟫ through the new global pair
+-- (0, αᴿ), as ch-b1 for copy 1.  Inside, X names 0 only: copy 1's
+-- rep. var 1 has no name, so named uniqueness holds
+ΔL₂ᵢ : Ctxᵗ
+ΔL₂ᵢ = (bindR `ℕ ∷ bindR `ℕ ∷ []) ∣ (0 ∷ [])
+
+Wᵢ₂d : World ΔL₂ᵢ ΔRᵢ
+Wᵢ₂d = world (X⊑X ∷ []) (keep []↪) (keep []↪) ((0 , 0) ∷ (1 , 0) ∷ []) []
+
+int₂ : allocate `ℕ ΔL ⊢ⁱ Θ₀ ⇒ ΔL₂ᵢ
+int₂ = interior (changes∷ changes[] (step-bind (_ , here) fresh[] ins-here))
+
+conv₂ : allocate `ℕ ΔL ⊢ᶜ Θ₀ ⇒ ΔL₂ᵢ
+conv₂ = conversion (conv-bind (_ , here) conv[] fresh[] ins-here)
+
+Wᵢ₂d-int : Interior W₂d Θ₀ Θ₀ Wᵢ₂d
+Wᵢ₂d-int = record
+  { int-left   = int₂
+  ; int-right  = int₀
+  ; same-ϱᵍ    = refl
+  ; same-ϱˡ    = refl
+  ; join-cont  = λ { (_ , here) _ () _ ; (_ , there ()) _ _ _ }
+  ; join-fresh = λ { here here _ → (λ _ → inj₁ here⇔) , (λ _ → refl)
+                   ; here (there ()) _ ; (there ()) _ _ }
+  ; mark-left  = λ { (_ , here) () _ ; (_ , there ()) _ _ }
+  ; mark-right = λ { (_ , here) () _ ; (_ , there ()) _ _ }
+  }
+
+Wᵢ₂d-conv : ConversionInterior W₂d Θ₀ Θ₀ Wᵢ₂d
+Wᵢ₂d-conv = record
+  { conv-left       = conv₂
+  ; conv-right      = conv₀
+  ; conv-same-ϱᵍ    = refl
+  ; conv-same-ϱˡ    = refl
+  ; conv-join-cont  = λ { _ _ () _ }
+  ; conv-join-fresh = λ
+      { here here _ → (λ _ → inj₁ here⇔) , (λ _ → refl)
+      ; here (there ()) _
+      ; (there ()) _ _
+      }
+  ; conv-mark-left  = λ { _ () _ }
+  ; conv-mark-right = λ { _ () _ }
+  }
+
+Wᵢ₂d-agree : ∀ {α β} → Paired Wᵢ₂d α β → Agree Wᵢ₂d α β
+Wᵢ₂d-agree (inj₁ here⇔)          = rep-rep r-here r-here (ι⊑★ base-ℕ)
+Wᵢ₂d-agree (inj₁ (there⇔ here⇔)) =
+  rep-rep (r-there r-here) r-here (ι⊑★ base-ℕ)
+Wᵢ₂d-agree (inj₁ (there⇔ (there⇔ ())))
+Wᵢ₂d-agree (inj₂ ())
+
+Wᵢ₂d-wf : WfWorld Wᵢ₂d
+Wᵢ₂d-wf = wf-world (both (inj₁ here⇔) joint[]) Wᵢ₂d-agree
+  (namedᴸ-≤1 Wᵢ₂d ≤1-∷[]) (namedᴿ-≤1 Wᵢ₂d ≤1-∷[])
+
+bL₂-ty : BdyTy (allocate `ℕ ΔL) Θ₀ ΔL₂ᵢ (` 0 ⇒ ` 0) revX (`ℕ ⇒ `ℕ)
+bL₂-ty = proj₂ (proj₂ (proj₂
+  (⟪⟫-inv {Γ = []} (tc {Δ = allocate `ℕ ΔL} {M = idX ⟪ Θ₀ , revX ⟫}))))
+
+bLR₂-conv : BdyConversionImp W₂d bL₂-ty bR-ty
+bLR₂-conv = Wᵢ₂d , Wᵢ₂d-conv , revX⊑revX refl
+
+l3d-after : W₂d ∣ [] ⊢ L1′ ⊑ R3′ ∶ ℕ⊑★
+l3d-after =
+  ·⊑·
+    (⊑cast
+      (⟪⟫⊑⟪⟫ Wᵢ₂d-int Wᵢ₂d-wf
+        (ƛ⊑ƛ {pA = X⊑X {X = 0}} {pB = X⊑X {X = 0}} tf tf (x⊑x Zʷ))
+        bL₂-ty bR-ty bLR₂-conv (ℕ⇒ℕ⊑★⇒★ W₂d))
+      id★↦ᴿ-ty (ℕ⇒ℕ⊑★⇒★ W₂d))
+    five⊑
 
 ------------------------------------------------------------------------
 -- 8. (R2) L2c/R2c: the right's Merge inside its Inst boundary
@@ -739,25 +657,14 @@ module P {nsL nsR : TyCtx} (μ : ImpEnv) (η : nsL ↪ μ) (η′ : nsR ↪ μ) 
   W = world μ η η′ ((1 , 1) ∷ []) ((0 , 0) ∷ [])
 
   agree : ∀ {α β} → Paired W α β → Agree W α β
-  agree (inj₁ here⇔) =
-    rep-rep (r-there-abst r-here) (r-there r-here) same-★ same-★ ★⊑★
+  agree (inj₁ here⇔) = rep-rep (r-there-abst r-here) (r-there r-here) ★⊑★
   agree (inj₁ (there⇔ ()))
   agree (inj₂ here⇔) = abst-★ r-here r-here
   agree (inj₂ (there⇔ ()))
 
-  uniq : ∀ {α α′ β} → Paired W α β → Paired W α′ β → α ≡ α′
-  uniq (inj₁ here⇔) (inj₁ here⇔) = refl
-  uniq (inj₁ here⇔) (inj₁ (there⇔ ()))
-  uniq (inj₁ here⇔) (inj₂ (there⇔ ()))
-  uniq (inj₁ (there⇔ ())) _
-  uniq (inj₂ here⇔) (inj₂ here⇔) = refl
-  uniq (inj₂ here⇔) (inj₁ (there⇔ ()))
-  uniq (inj₂ here⇔) (inj₂ (there⇔ ()))
-  uniq (inj₂ (there⇔ ())) _
-
--- the premise world of ∀⊑⟪+⟫ (nothing dropped: β = 0 has no pair in W4)
+-- the premise world of ∀⊑⟪+⟫
 Pw : World (underΛ ΔR) (ΞR ∣ (0 ∷ []))
-Pw = W4 ⊕⁺ˢ X⊑X ^ 0
+Pw = W4 ⊕⁺ X⊑X ^ 0
 
 Pw-is : Pw ≡ P.W (X⊑X ∷ []) (keep []↪) (keep []↪)
 Pw-is = refl
@@ -767,14 +674,16 @@ Pu : World (ΞL ∣ []) (ΞR ∣ [])
 Pu = P.W [] []↪ []↪
 
 Pu-wf : WfWorld Pu
-Pu-wf = wf-world joint[] agree uniq where open P [] []↪ []↪
+Pu-wf = wf-world joint[] agree (namedᴸ-≤1 W ≤1-[]) (namedᴿ-≤1 W ≤1-[])
+  where open P [] []↪ []↪
 
 -- inside both +X^α: X both-sided at X⊑X
 Pb : World (ΞL ∣ (1 ∷ [])) (ΞR ∣ (1 ∷ []))
 Pb = P.W (X⊑X ∷ []) (keep []↪) (keep []↪)
 
 Pb-wf : WfWorld Pb
-Pb-wf = wf-world (both (inj₁ here⇔) joint[]) agree uniq
+Pb-wf = wf-world (both (inj₁ here⇔) joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[])
   where open P (X⊑X ∷ []) (keep []↪) (keep []↪)
 
 -- the boundary readings
@@ -1022,7 +931,8 @@ Pu′ : World (ΞL ∣ []) (ΞR ∣ (0 ∷ []))
 Pu′ = P.W (X⊑X ∷ []) (skip []↪) (keep []↪)
 
 Pu′-wf : WfWorld Pu′
-Pu′-wf = wf-world (right-only joint[]) agree uniq
+Pu′-wf = wf-world (right-only joint[]) agree
+  (namedᴸ-≤1 W ≤1-[]) (namedᴿ-≤1 W ≤1-∷[])
   where open P (X⊑X ∷ []) (skip []↪) (keep []↪)
 
 Pc′ : World (ΞL ∣ (1 ∷ [])) (ΞR ∣ (1 ∷ 0 ∷ []))
@@ -1098,33 +1008,16 @@ W4-same = ev-noneᴿ ev-done
 ------------------------------------------------------------------------
 
 -- (i) the right's allocations inside the boundary commute with the
--- premise world: the IH's world can be read back as `W′ ⊕⁺ˢ m ^ β′`
-drop-shiftᴿ : ∀ β (ϱ : RepRel)
-  → shiftᴿ (dropᴿ β ϱ) ≡ dropᴿ (suc β) (shiftᴿ ϱ)
-drop-shiftᴿ β [] = refl
-drop-shiftᴿ β ((a , b) ∷ ϱ) with b ≟ β
-drop-shiftᴿ β ((a , b) ∷ ϱ) | yes refl with suc b ≟ suc b
-drop-shiftᴿ β ((a , b) ∷ ϱ) | yes refl | yes _ = drop-shiftᴿ β ϱ
-drop-shiftᴿ β ((a , b) ∷ ϱ) | yes refl | no ne = ⊥-elim (ne refl)
-drop-shiftᴿ β ((a , b) ∷ ϱ) | no ne with suc b ≟ suc β
-drop-shiftᴿ β ((a , b) ∷ ϱ) | no ne | yes e =
-  ⊥-elim (ne (cong pred e))
-drop-shiftᴿ β ((a , b) ∷ ϱ) | no ne | no _ =
-  cong ((a , suc b) ∷_) (drop-shiftᴿ β ϱ)
-
+-- premise world: the IH's world can be read back as `W′ ⊕⁺ m ^ β′`
 shiftᴿᴸ : (ϱ : RepRel) → shiftᴿ (shiftᴸ ϱ) ≡ shiftᴸ (shiftᴿ ϱ)
 shiftᴿᴸ []      = refl
 shiftᴿᴸ (π ∷ ϱ) = cong (_ ∷_) (shiftᴿᴸ ϱ)
 
-allocᴿ-⊕⁺ˢ : ∀ {Δ Δ′} (R′ : Ty) (W : World Δ Δ′) (m : VarImp) (β : RVar)
-  → allocᴿ R′ (W ⊕⁺ˢ m ^ β) ≡ allocᴿ R′ W ⊕⁺ˢ m ^ suc β
-allocᴿ-⊕⁺ˢ R′ (world μ η η′ ϱᵍ ϱˡ) m β =
+allocᴿ-⊕⁺ : ∀ {Δ Δ′} (R′ : Ty) (W : World Δ Δ′) (m : VarImp) (β : RVar)
+  → allocᴿ R′ (W ⊕⁺ m ^ β) ≡ allocᴿ R′ W ⊕⁺ m ^ suc β
+allocᴿ-⊕⁺ R′ (world μ η η′ ϱᵍ ϱˡ) m β =
   cong₂ (world (m ∷ μ) (keep (relabel suc η)) (keep (relabel suc η′)))
-    (trans (drop-shiftᴿ β (shiftᴸ ϱᵍ))
-           (cong (dropᴿ (suc β)) (shiftᴿᴸ ϱᵍ)))
-    (cong ((zero , suc β) ∷_)
-      (trans (drop-shiftᴿ β (shiftᴸ ϱˡ))
-             (cong (dropᴿ (suc β)) (shiftᴿᴸ ϱˡ))))
+    (shiftᴿᴸ ϱᵍ) (cong ((zero , suc β) ∷_) (shiftᴿᴸ ϱˡ))
 
 -- (ii) LEFT-EXPANSION along an administrative run of an inst_X image
 -- (candidate A's lemma; on L2c/R2c it is `N⊑N₀` from `N₀⊑N₀`)
@@ -1141,22 +1034,22 @@ InstExpand = ∀ {Δ Δ′ᵢ} {Wᵢ : World (underΛ Δ) Δ′ᵢ} {V N N₂ M�
 -- one: B adds no derivable pair, it only moves the expansion
 B-admissible : InstExpand
   → ∀ {Δ Δ′} {W : World Δ Δ′} {γ : CtxImp W} {V N N₀ V′ β m c′ A A′ B′}
-      {r : A ⊑ᵂ⟨ W ⊕⁺ˢ m ^ β ⟩ A′}
-  → WfWorld W
+      {r : A ⊑ᵂ⟨ W ⊕⁺ m ^ β ⟩ A′}
+  → WfWorld W → NoNamedPartner W β
   → NonVar A → 0 ∈ᵗ A → Value V → Δ ∣ lhs γ ⊢ V ⦂ `∀ A → InstX V N
   → (ρ : underΛ Δ ⊢ N -→* N₀) → Admin ρ
-  → W ⊕⁺ˢ m ^ β ∣ [] ⊢ N₀ ⊑ V′ ∶ r
+  → W ⊕⁺ m ^ β ∣ [] ⊢ N₀ ⊑ V′ ∶ r
   → Δ′ ∋rep β := ★
   → (b : BdyTy Δ′ (bind 0 β ∷ []) (reps Δ′ ∣ (β ∷ names Δ′)) A′ c′ B′)
   → (q : `∀ A ⊑ᵂ⟨ W ⟩ B′)
   → W ∣ γ ⊢ V ⊑ V′ ⟪ bind 0 β ∷ [] , c′ ⟫ ∶ q
-B-admissible ex wf nv occ v ⊢V i ρ a d hβ b q =
-  ∀⊑⟪+⟫ nv occ v ⊢V i (ex v i ρ a (wf-premise wf hβ b) d) hβ b q
+B-admissible ex wf nn nv occ v ⊢V i ρ a d hβ b q =
+  ∀⊑⟪+⟫ nv occ v ⊢V i (ex v i ρ a (wf-premise wf hβ nn) d) hβ b q
 
 -- (iii) THE CHILD the frame needs: backward simulation INSIDE a
 -- ∀⊑⟪+⟫ premise with the left UNMOVED (the left value V cannot step,
 -- so the IH of SimBack, which may answer with any left run, is too
--- weak).  The right's allocations are read back through allocᴿ-⊕⁺ˢ.
+-- weak).  The right's allocations are read back through allocᴿ-⊕⁺.
 shiftβ : List Alloc → RVar → RVar
 shiftβ []           β = β
 shiftβ (none  ∷ ξs) β = shiftβ ξs β
@@ -1164,14 +1057,14 @@ shiftβ (new R ∷ ξs) β = shiftβ ξs (suc β)
 
 SimBackInstX : Set
 SimBackInstX = ∀ {Δ Δ′} {W : World Δ Δ′} {V N M′ M₁′ β m A A′ δ′}
-    {r : A ⊑ᵂ⟨ W ⊕⁺ˢ m ^ β ⟩ A′}
+    {r : A ⊑ᵂ⟨ W ⊕⁺ m ^ β ⟩ A′}
   → WfCtx Δ → WfCtx Δ′ → WfWorld W
   → NonVar A → 0 ∈ᵗ A → Value V → Δ ∣ [] ⊢ V ⦂ `∀ A → InstX V N
   → Δ′ ∋rep β := ★
-  → W ⊕⁺ˢ m ^ β ∣ [] ⊢ N ⊑ M′ ∶ r
+  → W ⊕⁺ m ^ β ∣ [] ⊢ N ⊑ M′ ∶ r
   → (st′ : (reps Δ′ ∣ (β ∷ names Δ′)) ⊢ M′ -→ M₁′ ∣ δ′)
   → ∃[ M₂′ ] Σ[ r″ ∈ apply δ′ (reps Δ′ ∣ (β ∷ names Δ′)) ⊢ M₁′ -→* M₂′ ]
       Σ[ W′ ∈ World Δ (applyˢ (allocs (st′ then r″)) Δ′) ]
         (W ⟿[ [] ∣ allocs (st′ then r″) ] W′) × WfWorld W′
-        × Σ[ r′ ∈ A ⊑ᵂ⟨ W′ ⊕⁺ˢ m ^ shiftβ (allocs (st′ then r″)) β ⟩ A′ ]
-            (W′ ⊕⁺ˢ m ^ shiftβ (allocs (st′ then r″)) β ∣ [] ⊢ N ⊑ M₂′ ∶ r′)
+        × Σ[ r′ ∈ A ⊑ᵂ⟨ W′ ⊕⁺ m ^ shiftβ (allocs (st′ then r″)) β ⟩ A′ ]
+            (W′ ⊕⁺ m ^ shiftβ (allocs (st′ then r″)) β ∣ [] ⊢ N ⊑ M₂′ ∶ r′)

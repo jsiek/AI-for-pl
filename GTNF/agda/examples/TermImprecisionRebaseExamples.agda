@@ -9,9 +9,9 @@ module examples.TermImprecisionRebaseExamples where
 --     (-v2).md; the correspondence is GTNF/notes/rebasing-in-gtnf.md.
 --       c12-b0, c12-x0, c12-b1   C12 (Ex 12): B0; the right-led (0,2)
 --                                block (ν⊑ν around ∀⊑⟪+⟫); B1, where
---                                αᴸ has two right partners (D13)
+--                                αᴸ has two right partners (D25)
 --       c13-b1, c14-b1           C13/C14 B1 (Ex 13/14): two and three
---                                right partners (D13)
+--                                right partners (D25)
 --       cg-b0, cg-x0             Cg (Ex 1/20): B0; the right-led block,
 --                                ∀⊑⟪+⟫ at mark X⊑★ (D14)
 --       c2-b0, c2-x0             C2 (Ex 2/21): B0; the right-led block,
@@ -26,8 +26,8 @@ module examples.TermImprecisionRebaseExamples where
 --     `evalTerms` state by `refl` (`*-state`).
 --   * TYPING SIDE PREMISES come from `tc` on the subterms, read back by
 --     TermImprecision's inversions (`⟪⟫-inv`, `cast-inv`, `ν-inv`).
---   * WELL-FORMEDNESS (`WfWorld`) is proved for every world with a D13
---     non-injective pairing (C12 B1: W₁₂-wf, W₁₂²-wf, W₁₂ᴸ-wf, W₁₂ˣ-wf;
+--   * WELL-FORMEDNESS (`WfWorld`) is proved for every world with a
+--     non-injective pairing (D25) (C12 B1: W₁₂-wf, W₁₂²-wf, W₁₂ᴸ-wf, W₁₂ˣ-wf;
 --     C14 B1: W₁₄-wf, W₁₄²-wf, W₁₄ᴸ-wf) and every world with a lexical
 --     pair (ΛΛ-wf; Wg⁺-wf, Wg⁻-wf; W2⁺-wf, W2⁻-wf, which is also
 --     ch-x0's premise world).  C2 B6/B7 and Ch B1 use
@@ -53,6 +53,7 @@ open import examples.TypeCheck using (tc; tf)
 open import examples.Eval using (evalTerms)
 open import Imprecision
 open import ImprecisionWorld
+open import proof.ImprecisionWorld using (namedᴸ-≤1; namedᴿ-≤1; ≤1-[]; ≤1-∷[])
 open import ConversionImprecision
 open import TermImprecision
 open import examples.CambridgeExamples
@@ -87,13 +88,13 @@ X⇒X⊑★⇒★ m = ⇒⊑⇒ (X⊑★ m) (X⊑★ m)
 ℕ⇒ℕ W = ⇒⊑⇒ (ι⊑ι base-ℕ) (ι⊑ι base-ℕ)
 
 ------------------------------------------------------------------------
--- D13 worlds: one left name c against a chain of right boundaries
+-- D25 worlds: one left name c against a chain of right boundaries
 ------------------------------------------------------------------------
 
 -- C12–C14 B1.  The left is `[+X^αᴸ] (λx:X. x) ⟨−X → +X⟩` at
 -- ΔL = αᴸ:=ℕ.  The right nests `[+Y^β] ([−Y^β] … ⟨…⟩)⟨Y! → Y?ℓ0⟩` around
 -- the Inst boundary `[+X^αᴿ] (λx:X. x)`.  Every right `+_^β` names a
--- right rep. var paired with αᴸ (D13), so c rejoins at each one; every
+-- right rep. var paired with αᴸ (D25), so c rejoins at each one; every
 -- right `−_^β` leaves c left-only at c⊑★ (D15).  The store pairing ϱ is
 -- global and the same in every world of the derivation.
 
@@ -159,7 +160,7 @@ module _ {Ξ′ : RepCtx} {ϱ : RepRel} where
     ; mark-right = λ { (_ , ()) _ _ }
     }
 
-  -- a right-only +X^β: c rejoins β's unique left partner αᴸ (D13)
+  -- a right-only +X^β: c rejoins αᴸ, β's left partner named in scope (D25)
   Wc-bindᴿ : ∀ {β} → Ξ′ ∋ʳ β → ϱ ∋ᵨ 0 ⇔ β
     → Interior Wcᴸ [] (bind 0 β ∷ []) (Wc² β)
   Wc-bindᴿ v p = record
@@ -248,7 +249,7 @@ outer⊑ {Ξ′} {ϱ} v p W²-wf Wᴸ-wf M⊑ cᵢ bᵤ cₜ b bc q =
     bL-ty b bc q
 
 ------------------------------------------------------------------------
--- C12 B1: one left rep. var, two right partners (D13)
+-- C12 B1: one left rep. var, two right partners (D25)
 ------------------------------------------------------------------------
 
 -- C12's state 3: the right has run Inst, TyBeta (αᴿ:=★) and the source
@@ -310,11 +311,6 @@ W₁₂ = Wc⁰ {Ξ₁₂} {ϱ₁₂}
 -- WfWorld for the four worlds of c12-b1: outside; c both-sided naming
 -- (αᴸ, βᴿ); c left-only; c both-sided naming (αᴸ, αᴿ).  Each has
 -- ϱᵍ = ϱ₁₂ and ϱˡ = ∅.
-left0-ϱ₁₂ : ∀ {α β} → ϱ₁₂ ∋ᵨ α ⇔ β → α ≡ 0
-left0-ϱ₁₂ here⇔ = refl
-left0-ϱ₁₂ (there⇔ here⇔) = refl
-left0-ϱ₁₂ (there⇔ (there⇔ ()))
-
 module Wf₁₂ {nsL nsR : TyCtx} (μ : ImpEnv)
     (η : nsL ↪ μ) (η′ : nsR ↪ μ) where
 
@@ -329,27 +325,23 @@ module Wf₁₂ {nsL nsR : TyCtx} (μ : ImpEnv)
   agree (inj₁ (there⇔ (there⇔ ())))
   agree (inj₂ ())
 
-  -- D13: many-to-one toward the left, so each right rep. var has one
-  -- left partner
-  uniq : ∀ {α α′ β} → Paired W α β → Paired W α′ β → α ≡ α′
-  uniq (inj₁ p) (inj₁ p′) = trans (left0-ϱ₁₂ p) (sym (left0-ϱ₁₂ p′))
-  uniq (inj₁ p) (inj₂ ())
-  uniq (inj₂ ()) _
-
 W₁₂-wf : WfWorld W₁₂
-W₁₂-wf = wf-world joint[] agree uniq
+W₁₂-wf = wf-world joint[] agree (namedᴸ-≤1 W ≤1-[]) (namedᴿ-≤1 W ≤1-[])
   where open Wf₁₂ [] []↪ []↪
 
 W₁₂²-wf : WfWorld (Wc² {Ξ₁₂} {ϱ₁₂} 0)
-W₁₂²-wf = wf-world (both (inj₁ here⇔) joint[]) agree uniq
+W₁₂²-wf = wf-world (both (inj₁ here⇔) joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[])
   where open Wf₁₂ (X⊑★ ∷ []) (keep []↪) (keep []↪)
 
 W₁₂ᴸ-wf : WfWorld (Wcᴸ {Ξ₁₂} {ϱ₁₂})
-W₁₂ᴸ-wf = wf-world (left-only joint[]) agree uniq
+W₁₂ᴸ-wf = wf-world (left-only joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[])
   where open Wf₁₂ (X⊑★ ∷ []) (keep []↪) (skip []↪)
 
 W₁₂ˣ-wf : WfWorld (Wc² {Ξ₁₂} {ϱ₁₂} 1)
-W₁₂ˣ-wf = wf-world (both (inj₁ (there⇔ here⇔)) joint[]) agree uniq
+W₁₂ˣ-wf = wf-world (both (inj₁ (there⇔ here⇔)) joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[])
   where open Wf₁₂ (X⊑★ ∷ []) (keep []↪) (keep []↪)
 
 c12-b1 : W₁₂ ∣ [] ⊢ L1′ ⊑ C12-R₃ ∶ ι⊑ι base-ℕ
@@ -466,19 +458,15 @@ module WfΛ★ {nsL nsR : TyCtx} (μ : ImpEnv)
   agree (inj₂ here⇔) = abst-★ r-here r-here
   agree (inj₂ (there⇔ ()))
 
-  uniq : ∀ {α α′ β} → Paired W α β → Paired W α′ β → α ≡ α′
-  uniq (inj₁ ()) _
-  uniq (inj₂ here⇔) (inj₁ ())
-  uniq (inj₂ here⇔) (inj₂ here⇔) = refl
-  uniq (inj₂ here⇔) (inj₂ (there⇔ ()))
-  uniq (inj₂ (there⇔ ())) _
 
 Wg⁺-wf : WfWorld Wg⁺
-Wg⁺-wf = wf-world (both (inj₂ here⇔) joint[]) agree uniq
+Wg⁺-wf = wf-world (both (inj₂ here⇔) joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[])
   where open WfΛ★ (X⊑★ ∷ []) (keep []↪) (keep []↪)
 
 Wg⁻-wf : WfWorld Wg⁻
-Wg⁻-wf = wf-world (left-only joint[]) agree uniq
+Wg⁻-wf = wf-world (left-only joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[])
   where open WfΛ★ (X⊑★ ∷ []) (keep []↪) (skip []↪)
 
 cg-x0 : W₃ ∣ [] ⊢ L1 ⊑ Cg-R₂ ∶ ℕ⊑★
@@ -587,11 +575,12 @@ tagᴸ-ty =
   proj₂ (proj₂ (cast-inv {Γ = []} (tc {Δ = underΛ empty} {M = I★gen})))
 
 W2⁺-wf : WfWorld W2⁺
-W2⁺-wf = wf-world (both (inj₂ here⇔) joint[]) agree uniq
+W2⁺-wf = wf-world (both (inj₂ here⇔) joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[])
   where open WfΛ★ (X⊑X ∷ []) (keep []↪) (keep []↪)
 
 W2⁻-wf : WfWorld W2⁻
-W2⁻-wf = wf-world joint[] agree uniq
+W2⁻-wf = wf-world joint[] agree (namedᴸ-≤1 W ≤1-[]) (namedᴿ-≤1 W ≤1-[])
   where open WfΛ★ [] []↪ []↪
 
 c2-x0 : W₃ ∣ [] ⊢ C2-L ⊑ Cg-R₂ ∶ ℕ⊑★
@@ -671,22 +660,13 @@ Wᵢ₁-unb = record
   }
 
 W₁-wf : WfWorld W₁
-W₁-wf = wf-world joint[] agree uniq
+W₁-wf = wf-world joint[] agree (namedᴸ-≤1 W₁ ≤1-[]) (namedᴿ-≤1 W₁ ≤1-[])
   where
   agree : ∀ {α β} → Paired W₁ α β → Agree W₁ α β
   agree (inj₁ here⇔) =
     rep-rep r-here r-here (ι⊑★ base-ℕ)
   agree (inj₁ (there⇔ ()))
   agree (inj₂ ())
-  uniq : ∀ {α α′ β}
-    → Paired W₁ α β
-    → Paired W₁ α′ β
-    → α ≡ α′
-  uniq (inj₁ here⇔) (inj₁ here⇔) = refl
-  uniq (inj₁ here⇔) (inj₁ (there⇔ ()))
-  uniq (inj₁ (there⇔ ())) _
-  uniq (inj₂ ()) _
-  uniq (inj₁ here⇔) (inj₂ ())
 
 Θ⁻⁺-int : ∀ {b Ξ} → ((b ∷ Ξ) ∣ (0 ∷ [])) ⊢ⁱ Θ⁻⁺ ⇒ ((b ∷ Ξ) ∣ (0 ∷ []))
 Θ⁻⁺-int = interior (changes∷
@@ -842,7 +822,7 @@ c2-b7 =
     (⟪⟫-inv {Γ = []} (tc {Δ = ΔR} {M = C2-B7 (dyn 5)}))))
 
 ------------------------------------------------------------------------
--- C13 B1 and C14 B1: two and three right partners (D13)
+-- C13 B1 and C14 B1: two and three right partners (D25)
 ------------------------------------------------------------------------
 
 -- C13's state 4: two Inst/TyBeta pairs on the right, βᴿ:=★ (0) and
@@ -891,23 +871,17 @@ module Wf₁₃ {nsL nsR : TyCtx} (μ : ImpEnv)
   agree (inj₁ (there⇔ (there⇔ ())))
   agree (inj₂ ())
 
-  uniq : ∀ {α α′ β}
-    → Paired W α β
-    → Paired W α′ β
-    → α ≡ α′
-  uniq (inj₁ p) (inj₁ p′) =
-    trans (left0-ϱ₁₂ p) (sym (left0-ϱ₁₂ p′))
-  uniq (inj₁ p) (inj₂ ())
-  uniq (inj₂ ()) _
 
 W₁₃²-wf : ∀ {β}
   → ϱ₁₂ ∋ᵨ 0 ⇔ β
   → WfWorld (Wc² {Ξ₁₃} {ϱ₁₂} β)
-W₁₃²-wf p = wf-world (both (inj₁ p) joint[]) agree uniq
+W₁₃²-wf p = wf-world (both (inj₁ p) joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[])
   where open Wf₁₃ (X⊑★ ∷ []) (keep []↪) (keep []↪)
 
 W₁₃ᴸ-wf : WfWorld (Wcᴸ {Ξ₁₃} {ϱ₁₂})
-W₁₃ᴸ-wf = wf-world (left-only joint[]) agree uniq
+W₁₃ᴸ-wf = wf-world (left-only joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[])
   where open Wf₁₃ (X⊑★ ∷ []) (keep []↪) (skip []↪)
 
 c13-b1 : W₁₃ ∣ [] ⊢ L1′ ⊑ C13-R₄ ∶ ℕ⊑★
@@ -979,12 +953,6 @@ W₁₄ = Wc⁰ {Ξ₁₄} {ϱ₁₄}
 
 -- WfWorld for the outer world and the three both-sided worlds of
 -- c14-b1: αᴸ is paired with γᴿ:=ℕ, βᴿ:=★ and αᴿ:=★
-left0-ϱ₁₄ : ∀ {α β} → ϱ₁₄ ∋ᵨ α ⇔ β → α ≡ 0
-left0-ϱ₁₄ here⇔ = refl
-left0-ϱ₁₄ (there⇔ here⇔) = refl
-left0-ϱ₁₄ (there⇔ (there⇔ here⇔)) = refl
-left0-ϱ₁₄ (there⇔ (there⇔ (there⇔ ())))
-
 module Wf₁₄ {nsL nsR : TyCtx} (μ : ImpEnv)
     (η : nsL ↪ μ) (η′ : nsR ↪ μ) where
 
@@ -1000,21 +968,19 @@ module Wf₁₄ {nsL nsR : TyCtx} (μ : ImpEnv)
   agree (inj₁ (there⇔ (there⇔ (there⇔ ()))))
   agree (inj₂ ())
 
-  uniq : ∀ {α α′ β} → Paired W α β → Paired W α′ β → α ≡ α′
-  uniq (inj₁ p) (inj₁ p′) = trans (left0-ϱ₁₄ p) (sym (left0-ϱ₁₄ p′))
-  uniq (inj₁ p) (inj₂ ())
-  uniq (inj₂ ()) _
 
 W₁₄-wf : WfWorld W₁₄
-W₁₄-wf = wf-world joint[] agree uniq
+W₁₄-wf = wf-world joint[] agree (namedᴸ-≤1 W ≤1-[]) (namedᴿ-≤1 W ≤1-[])
   where open Wf₁₄ [] []↪ []↪
 
 W₁₄²-wf : ∀ {β} → ϱ₁₄ ∋ᵨ 0 ⇔ β → WfWorld (Wc² {Ξ₁₄} {ϱ₁₄} β)
-W₁₄²-wf p = wf-world (both (inj₁ p) joint[]) agree uniq
+W₁₄²-wf p = wf-world (both (inj₁ p) joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[])
   where open Wf₁₄ (X⊑★ ∷ []) (keep []↪) (keep []↪)
 
 W₁₄ᴸ-wf : WfWorld (Wcᴸ {Ξ₁₄} {ϱ₁₄})
-W₁₄ᴸ-wf = wf-world (left-only joint[]) agree uniq
+W₁₄ᴸ-wf = wf-world (left-only joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[])
   where open Wf₁₄ (X⊑★ ∷ []) (keep []↪) (skip []↪)
 
 c14-b1 : W₁₄ ∣ [] ⊢ L1′ ⊑ C14-R₅ ∶ ι⊑ι base-ℕ
@@ -1058,19 +1024,13 @@ genI∘instI-ty = proj₂ (proj₂ (cast-inv {Γ = []}
 
 -- the premise world of Λ⊑Λ: (aᴸ_ΛY, aᴿ_ΛX) ∈ ϱˡ, both abstract
 ΛΛ-wf : WfWorld (∅ʷ ⊕ X⊑X)
-ΛΛ-wf = wf-world (both (inj₂ here⇔) joint[]) agree uniq
+ΛΛ-wf = wf-world (both (inj₂ here⇔) joint[]) agree
+  (namedᴸ-≤1 (∅ʷ ⊕ X⊑X) ≤1-∷[]) (namedᴿ-≤1 (∅ʷ ⊕ X⊑X) ≤1-∷[])
   where
   agree : ∀ {α β} → Paired (∅ʷ ⊕ X⊑X) α β → Agree (∅ʷ ⊕ X⊑X) α β
   agree (inj₁ ())
   agree (inj₂ here⇔) = abst-abst r-here r-here
   agree (inj₂ (there⇔ ()))
-  uniq : ∀ {α α′ β} → Paired (∅ʷ ⊕ X⊑X) α β → Paired (∅ʷ ⊕ X⊑X) α′ β
-    → α ≡ α′
-  uniq (inj₁ ()) _
-  uniq (inj₂ here⇔) (inj₁ ())
-  uniq (inj₂ here⇔) (inj₂ here⇔) = refl
-  uniq (inj₂ here⇔) (inj₂ (there⇔ ()))
-  uniq (inj₂ (there⇔ ())) _
 
 -- Ch B0: Λ⊑Λ under the right's inst cast; the left ν is one-sided
 ch-b0 : ∅ʷ ∣ [] ⊢ Ch-L ⊑ Ch-R ∶ ℕ⊑★

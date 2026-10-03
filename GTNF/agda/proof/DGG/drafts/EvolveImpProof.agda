@@ -34,9 +34,9 @@ evolve-imp wΔ wΔ′ (ev-2 wR wR′ ag ev) wf M⊑
   with alloc-2 wR wR′ ag wf M⊑
 evolve-imp wΔ wΔ′ (ev-2 wR wR′ ag ev) wf M⊑ | wf₁ , q , M₁ =
   evolve-imp (alloc-wf wΔ wR) (alloc-wf wΔ′ wR′) ev wf₁ M₁
-evolve-imp wΔ wΔ′ (ev-L⇔ wR β★ nlp ag ev) wf M⊑
-  with alloc-L⇔ wR β★ nlp ag wf M⊑
-evolve-imp wΔ wΔ′ (ev-L⇔ wR β★ nlp ag ev) wf M⊑ | wf₁ , q , M₁ =
+evolve-imp wΔ wΔ′ (ev-L⇔ wR β★ ag ev) wf M⊑
+  with alloc-L⇔ wR β★ ag wf M⊑
+evolve-imp wΔ wΔ′ (ev-L⇔ wR β★ ag ev) wf M⊑ | wf₁ , q , M₁ =
   evolve-imp (alloc-wf wΔ wR) wΔ′ ev wf₁ M₁
 evolve-imp wΔ wΔ′ (ev-noneᴸ ev) wf M⊑ = evolve-imp wΔ wΔ′ ev wf M⊑
 evolve-imp wΔ wΔ′ (ev-noneᴿ ev) wf M⊑ = evolve-imp wΔ wΔ′ ev wf M⊑

@@ -51,7 +51,7 @@ AllocImpL  : reps Δ ⊢ᴿ R → WfWorld W → W ∣ [] ⊢ M ⊑ M′ ∶ p
 AllocImpR  : reps Δ′ ⊢ᴿ R′ → …  (allocᴿ R′ W ∣ [] ⊢ M ⊑ renᴹᴿ suc M′ ∶ q)
 AllocImp2  : reps Δ ⊢ᴿ R → reps Δ′ ⊢ᴿ R′ → Agree (alloc² R R′ W) zero zero → …
              (alloc² R R′ W ∣ [] ⊢ renᴹᴿ suc M ⊑ renᴹᴿ suc M′ ∶ q)
-AllocImpL⇔ : reps Δ ⊢ᴿ R → Δ′ ∋rep β := ★ → NoLeftPartner W β
+AllocImpL⇔ : reps Δ ⊢ᴿ R → Δ′ ∋rep β := ★
            → Agree (allocᴸ⇔ R β W) zero β → …
              (allocᴸ⇔ R β W ∣ [] ⊢ renᴹᴿ suc M ⊑ M′ ∶ q)
 ```

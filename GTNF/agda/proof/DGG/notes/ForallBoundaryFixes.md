@@ -1,5 +1,13 @@
 # Fixes for the open `∀⊑⟪+⟫` items (R3, R2)
 
+> **Revised under design.md D25 (2026-10-03); see `D25.md`.**  The R3
+> proposal `⊕⁺ˢ` below is withdrawn: under D25 the plain `⊕⁺` premise
+> world is well formed (`post-premise-wf`), and under D23 `⊕⁺ˢ` can
+> break agreement (`⊕⁺ˢ-breaks-agreement`).  L3d/R3d now goes through
+> (`l3d-evolve`, `l3d-after`).  The Agda file has been updated to match;
+> the R3 sections of this note describe the earlier, D13 state.  The
+> R2 sections still hold, with `⊕⁺` in place of `⊕⁺ˢ`.
+
 Status: 2026-10-03.  Agda: `ForallBoundaryFixes.agda` (this directory).
 It checks with `agda --safe -v0` against the working tree at 0f83de9f
 (D22: `∀⊑⟪+⟫` has `NonVar A` and `0 ∈ᵗ A`).  It has no holes and no

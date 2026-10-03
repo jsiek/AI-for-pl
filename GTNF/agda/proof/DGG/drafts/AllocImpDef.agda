@@ -31,7 +31,6 @@ open import TermSubst using (renᴹᴿ)
 open import Boundary using (renᴮᴿ)
 open import ImprecisionWorld
 open import TermImprecision using (_∣_⊢_⊑_∶_)
-open import proof.DGG.Evolve using (NoLeftPartner)
 
 private
   variable
@@ -145,7 +144,6 @@ AllocImpL⇔ = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {R : Ty} {β : RVar}
     {M M′ : Term} {A A′ : Ty} {p : A ⊑ᵂ⟨ W ⟩ A′}
   → reps Δ ⊢ᴿ R
   → Δ′ ∋rep β := ★
-  → NoLeftPartner W β
   → Agree (allocᴸ⇔ R β W) zero β
   → WfWorld W
   → W ∣ [] ⊢ M ⊑ M′ ∶ p

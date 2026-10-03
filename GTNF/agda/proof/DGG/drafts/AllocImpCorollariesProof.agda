@@ -21,7 +21,6 @@ open import Terms using (Term)
 open import TermSubst using (renᴹᴿ)
 open import ImprecisionWorld
 open import TermImprecision
-open import proof.DGG.Evolve using (NoLeftPartner)
 open import proof.DGG.drafts.AllocImpDef
 
 private
@@ -65,9 +64,9 @@ wf-alloc² : ∀ {W : World Δ Δ′} {R R′}
 wf-alloc² ag wf = {!!}
 
 wf-allocᴸ⇔ : ∀ {W : World Δ Δ′} {R β}
-  → NoLeftPartner W β → Agree (allocᴸ⇔ R β W) zero β → WfWorld W
+  → Agree (allocᴸ⇔ R β W) zero β → WfWorld W
   → WfWorld (allocᴸ⇔ R β W)
-wf-allocᴸ⇔ nlp ag wf = {!!}
+wf-allocᴸ⇔ ag wf = {!!}
 
 ------------------------------------------------------------------------
 -- The corollaries
@@ -88,7 +87,7 @@ alloc-imp-2 wR wR′ ag wf M⊑ with alloc-imp (wr-alloc² wR wR′) same-[] M�
 alloc-imp-2 wR wR′ ag wf M⊑ | q , M₁ = wf-alloc² ag wf , q , M₁
 
 alloc-imp-L⇔ : AllocImpL⇔
-alloc-imp-L⇔ {β = β} wR β★ nlp ag wf M⊑
+alloc-imp-L⇔ {β = β} wR β★ ag wf M⊑
   with alloc-imp (wr-allocᴸ⇔ {β = β} wR) same-[] M⊑
-alloc-imp-L⇔ {β = β} wR β★ nlp ag wf M⊑ | q , M₁ =
-  wf-allocᴸ⇔ nlp ag wf , q , {!M₁ (renᴹᴿ idʳ M′ ≡ M′)!}
+alloc-imp-L⇔ {β = β} wR β★ ag wf M⊑ | q , M₁ =
+  wf-allocᴸ⇔ ag wf , q , {!M₁ (renᴹᴿ idʳ M′ ≡ M′)!}

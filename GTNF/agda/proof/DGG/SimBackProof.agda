@@ -237,7 +237,7 @@ simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st
     with interior-functional ri (int-right int)
 simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st′)
     | refl with simBack (bdy-wfᵢ b) (bdy-wfᵢ b′)
-                  {! WfWorld Wᵢ: not given by Interior !} d st′
+                  wi d st′
 simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st′)
     | refl | ih =
   {! SimBackFrame-⟪⟫: simBackFrame-⟪⟫ pre int b b′ bc q ih !}
@@ -247,7 +247,7 @@ simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st
 
 simBack wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) st′
     with simBack (bdy-wfᵢ b) wfΔ′
-           {! WfWorld Wᵢ: not given by Interior !} d st′
+           wi d st′
 simBack wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) st′ | ih =
   {! SimBackFrame-⟪⟫⊑: simBackFrame-⟪⟫⊑ pre int b q ih !}
 
@@ -270,6 +270,6 @@ simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) (ξ-⟪⟫ ri st′)
     with interior-functional ri (int-right int)
 simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) (ξ-⟪⟫ ri st′)
     | refl with simBack wfΔ (bdy-wfᵢ b′)
-                  {! WfWorld Wᵢ: not given by Interior !} d st′
+                  wi d st′
 simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) (ξ-⟪⟫ ri st′) | refl | ih =
   {! SimBackFrame-⊑⟪⟫: simBackFrame-⊑⟪⟫ pre int b′ q ih !}

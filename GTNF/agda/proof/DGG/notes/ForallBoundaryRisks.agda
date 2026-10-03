@@ -249,7 +249,8 @@ wfΔR = alloc-wf wf-empty wfᴿ-★
 
 wfW₃ : WfWorld W₃
 wfW₃ = wf-world joint[] (λ { (inj₁ ()) ; (inj₂ ()) })
-  (λ { (inj₁ ()) _ ; (inj₂ ()) _ })
+  (λ { _ _ _ (inj₁ ()) _ ; _ _ _ (inj₂ ()) _ })
+  (λ { _ _ _ (inj₁ ()) _ ; _ _ _ (inj₂ ()) _ })
 
 {-
 -- SimBack fails: the left value cannot step, and every state the right
@@ -328,8 +329,9 @@ existing-A = nv-⇒
 existing-occ : 0 ∈ᵗ (` 0 ⇒ ` 0)
 existing-occ = ∈-⇒ˡ ∈-var
 
--- (R3) `NoLeftPartner W₃ 0`, written out (Evolve's definition is
--- `∀ α → ¬ Paired W α β`): W₃ pairs nothing
+-- (R3) `NoLeftPartner W₃ 0`, written out (`∀ α → ¬ Paired W α β`, a
+-- premise of Evolve's `ev-L⇔` until design.md D25 dropped it): W₃
+-- pairs nothing
 existing-no-partner : ∀ α → ¬ Paired W₃ α 0
 existing-no-partner α (inj₁ ())
 existing-no-partner α (inj₂ ())

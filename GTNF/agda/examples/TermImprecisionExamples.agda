@@ -43,6 +43,7 @@ open import examples.TypeCheck using (tc; tf)
 open import examples.Eval using (evalTerms)
 open import Imprecision
 open import ImprecisionWorld
+open import proof.ImprecisionWorld using (namedᴸ-≤1; namedᴿ-≤1; ≤1-[]; ≤1-∷[])
 open import ConversionImprecision
 open import TermImprecision
 open import examples.ImprecisionExamples
@@ -225,19 +226,14 @@ bLR-conv : BdyConversionImp W₁ bL-ty bR-ty
 bLR-conv = Wᵢ₁ , Wᵢ₁-conv , revX⊑revX refl
 
 Wᵢ₁-wf : WfWorld Wᵢ₁
-Wᵢ₁-wf = wf-world (both (inj₁ here⇔) joint[]) agree uniq
+Wᵢ₁-wf = wf-world (both (inj₁ here⇔) joint[]) agree
+  (namedᴸ-≤1 Wᵢ₁ ≤1-∷[]) (namedᴿ-≤1 Wᵢ₁ ≤1-∷[])
   where
   agree : ∀ {α β} → Paired Wᵢ₁ α β → Agree Wᵢ₁ α β
   agree (inj₁ here⇔) =
     rep-rep r-here r-here (ι⊑★ base-ℕ)
   agree (inj₁ (there⇔ ()))
   agree (inj₂ ())
-  uniq : ∀ {α α′ β} → Paired Wᵢ₁ α β → Paired Wᵢ₁ α′ β → α ≡ α′
-  uniq (inj₁ here⇔) (inj₁ here⇔) = refl
-  uniq (inj₁ here⇔) (inj₁ (there⇔ ()))
-  uniq (inj₁ (there⇔ ())) _
-  uniq (inj₂ ()) _
-  uniq (inj₁ here⇔) (inj₂ ())
 
 p1-tybeta : W₁ ∣ [] ⊢ L1′ ⊑ R1′ ∶ ℕ⊑★
 p1-tybeta =
@@ -273,17 +269,12 @@ Wᵢ₂-int = record
   }
 
 Wᵢ₂-wf : WfWorld Wᵢ₂
-Wᵢ₂-wf = wf-world (left-only joint[]) agree uniq
+Wᵢ₂-wf = wf-world (left-only joint[]) agree
+  (namedᴸ-≤1 Wᵢ₂ ≤1-∷[]) (namedᴿ-≤1 Wᵢ₂ ≤1-[])
   where
   agree : ∀ {α β} → Paired Wᵢ₂ α β → Agree Wᵢ₂ α β
   agree (inj₁ ())
   agree (inj₂ ())
-  uniq : ∀ {α α′ β}
-    → Paired Wᵢ₂ α β
-    → Paired Wᵢ₂ α′ β
-    → α ≡ α′
-  uniq (inj₁ ()) _
-  uniq (inj₂ ()) _
 
 p2-tybeta : W₂ ∣ [] ⊢ L1′ ⊑ R2 ∶ ℕ⊑★
 p2-tybeta =
@@ -405,22 +396,14 @@ Wᵢ₆-int = record
   }
 
 Wᵢ₆-wf : WfWorld Wᵢ₆
-Wᵢ₆-wf = wf-world (both (inj₁ here⇔) joint[]) agree uniq
+Wᵢ₆-wf = wf-world (both (inj₁ here⇔) joint[]) agree
+  (namedᴸ-≤1 Wᵢ₆ ≤1-∷[]) (namedᴿ-≤1 Wᵢ₆ ≤1-∷[])
   where
   agree : ∀ {α β} → Paired Wᵢ₆ α β → Agree Wᵢ₆ α β
   agree (inj₁ here⇔) =
     rep-rep r-here r-here (ι⊑ι base-𝔹)
   agree (inj₁ (there⇔ ()))
   agree (inj₂ ())
-  uniq : ∀ {α α′ β}
-    → Paired Wᵢ₆ α β
-    → Paired Wᵢ₆ α′ β
-    → α ≡ α′
-  uniq (inj₁ here⇔) (inj₁ here⇔) = refl
-  uniq (inj₁ here⇔) (inj₁ (there⇔ ()))
-  uniq (inj₁ (there⇔ ())) _
-  uniq (inj₂ ()) _
-  uniq (inj₁ here⇔) (inj₂ ())
 
 Wᵢ₆-conv : ConversionInterior W₆ Θ₀ Θ₀ Wᵢ₆
 Wᵢ₆-conv = record

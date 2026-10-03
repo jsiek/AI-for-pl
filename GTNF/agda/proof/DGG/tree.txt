@@ -18,7 +18,7 @@ DynamicGradualGuarantee | the theorem (statement at top level, §2)  uses: Catch
       SimTyBeta | TyBeta through InstX  uses: InstXImp AllocImp
       SimBoundary | Merge, Id, IdDyn  uses: MergeImp
       SimCast | CastId, CastSeq, CastSeq?, CastFun, Inst, TagUntag, TagUntagBad, TagUntagBad-⟪⟫, BlameBotIntro, Blame
-      CatchupRight | a left value: the right reaches a related value
+      CatchupRight | a left value: the right reaches a related value  uses: EvolveImp
   MultiSimBack | backward simulation over runs  uses: ImprecisionTyping TypeSafety/Preservation TypeSafety/Determinism
     SimBack | the less precise side steps, both catch up
       SimBackFrame | ξ cases  uses: AllocImp EvolveImp SimBackInstX

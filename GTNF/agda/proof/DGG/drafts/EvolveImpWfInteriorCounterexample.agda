@@ -34,18 +34,12 @@ open import Imprecision
 open import ImprecisionWorld
 open import ConversionImprecision
 open import TermImprecision
+open import proof.ImprecisionWorld using (namedᴸ-≤1; namedᴿ-≤1; ≤1-[]; ≤1-∷[])
 open import proof.DGG.Evolve
 
 -- X names rep. var 0 := ℕ (TyBetaCtx), paired with itself globally
 W₀ : World TyBetaCtx TyBetaCtx
 W₀ = world (X⊑X ∷ []) (keep []↪) (keep []↪) ((0 , 0) ∷ []) []
-
-right-unique₀ : ∀ {α α′ β} → Paired W₀ α β → Paired W₀ α′ β → α ≡ α′
-right-unique₀ (inj₁ here⇔) (inj₁ here⇔) = refl
-right-unique₀ (inj₁ here⇔) (inj₁ (there⇔ ()))
-right-unique₀ (inj₁ (there⇔ ())) _
-right-unique₀ (inj₁ here⇔) (inj₂ ())
-right-unique₀ (inj₂ ()) _
 
 agree-ℕ : ∀ {Δ Δ′} {W : World Δ Δ′} {α β}
   → Δ ∋rep α := `ℕ → Δ′ ∋rep β := `ℕ → Agree W α β
@@ -55,7 +49,7 @@ wf₀ : WfWorld W₀
 wf₀ = wf-world (both (inj₁ here⇔) joint[])
   (λ { (inj₁ here⇔) → agree-ℕ r-here r-here
      ; (inj₁ (there⇔ ())) ; (inj₂ ()) })
-  right-unique₀
+  (namedᴸ-≤1 W₀ ≤1-∷[]) (namedᴿ-≤1 W₀ ≤1-∷[])
 
 -- the boundary hides X
 Θ₀ : Boundary
@@ -90,9 +84,7 @@ wfᵢ₀ : WfWorld Wᵢ₀
 wfᵢ₀ = wf-world joint[]
   (λ { (inj₁ here⇔) → agree-ℕ r-here r-here
      ; (inj₁ (there⇔ ())) ; (inj₂ ()) })
-  (λ { (inj₁ here⇔) (inj₁ here⇔) → refl
-     ; (inj₁ here⇔) (inj₁ (there⇔ ())) ; (inj₁ (there⇔ ())) _
-     ; (inj₁ here⇔) (inj₂ ()) ; (inj₂ ()) _ })
+  (namedᴸ-≤1 Wᵢ₀ ≤1-[]) (namedᴿ-≤1 Wᵢ₀ ≤1-[])
 
 cint₀ : ConversionInterior W₀ Θ₀ Θ₀ W₀
 cint₀ = conversion-interior-world conv₀ conv₀ refl refl
@@ -137,17 +129,9 @@ agree₁ (inj₁ (there⇔ here⇔)) = agree-ℕ (r-there r-here) (r-there r-her
 agree₁ (inj₁ (there⇔ (there⇔ ())))
 agree₁ (inj₂ ())
 
-unique₁ : ∀ {α α′ β} → Paired W₁ α β → Paired W₁ α′ β → α ≡ α′
-unique₁ (inj₁ here⇔) (inj₁ here⇔) = refl
-unique₁ (inj₁ here⇔) (inj₁ (there⇔ (there⇔ ())))
-unique₁ (inj₁ (there⇔ here⇔)) (inj₁ (there⇔ here⇔)) = refl
-unique₁ (inj₁ (there⇔ here⇔)) (inj₁ (there⇔ (there⇔ ())))
-unique₁ (inj₁ (there⇔ (there⇔ ()))) _
-unique₁ (inj₁ _) (inj₂ ())
-unique₁ (inj₂ ()) _
-
 wf₁ : WfWorld W₁
-wf₁ = wf-world (both (inj₁ (there⇔ here⇔)) joint[]) agree₁ unique₁
+wf₁ = wf-world (both (inj₁ (there⇔ here⇔)) joint[]) agree₁
+  (namedᴸ-≤1 W₁ ≤1-∷[]) (namedᴿ-≤1 W₁ ≤1-∷[])
 
 -- the boundary, shifted past the new rep. var, still hides X
 Θ₁ : Boundary
@@ -192,17 +176,9 @@ agreeᵢ₁ (inj₁ (there⇔ here⇔)) = agree-ℕ (r-there r-here) (r-there r-
 agreeᵢ₁ (inj₁ (there⇔ (there⇔ ())))
 agreeᵢ₁ (inj₂ ())
 
-uniqueᵢ₁ : ∀ {α α′ β} → Paired Wᵢ₁ α β → Paired Wᵢ₁ α′ β → α ≡ α′
-uniqueᵢ₁ (inj₁ here⇔) (inj₁ here⇔) = refl
-uniqueᵢ₁ (inj₁ here⇔) (inj₁ (there⇔ (there⇔ ())))
-uniqueᵢ₁ (inj₁ (there⇔ here⇔)) (inj₁ (there⇔ here⇔)) = refl
-uniqueᵢ₁ (inj₁ (there⇔ here⇔)) (inj₁ (there⇔ (there⇔ ())))
-uniqueᵢ₁ (inj₁ (there⇔ (there⇔ ()))) _
-uniqueᵢ₁ (inj₁ _) (inj₂ ())
-uniqueᵢ₁ (inj₂ ()) _
-
 wfᵢ₁ : WfWorld Wᵢ₁
-wfᵢ₁ = wf-world joint[] agreeᵢ₁ uniqueᵢ₁
+wfᵢ₁ = wf-world joint[] agreeᵢ₁ (namedᴸ-≤1 Wᵢ₁ ≤1-[])
+  (namedᴿ-≤1 Wᵢ₁ ≤1-[])
 
 cint₁ : ConversionInterior W₁ Θ₁ Θ₁ W₁
 cint₁ = conversion-interior-world conv₁ conv₁ refl refl

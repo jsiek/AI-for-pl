@@ -35,6 +35,7 @@ open import examples.ImprecisionExamples
 -- cast-term imprecision (design.md §12.2-§12.3): worlds, the relation,
 -- and sanity derivations on the pairs above
 open import ImprecisionWorld
+import proof.ImprecisionWorld
 open import ConversionImprecision
 open import TermImprecision
 open import examples.TermImprecisionExamples

@@ -12,7 +12,23 @@ module ImprecisionWorld where
 --     world `Interior W Θ Θ′ Wᵢ` and conversion-context world
 --     `ConversionInterior W Θ Θ′ Wᶜ`, both RELATIONS; §7 term-context
 --     imprecision `CtxImp`; §8 well-formedness `WfWorld`, a SEPARATE
---     predicate, with payload imprecision `RepImp` (D23).
+--     predicate, with payload imprecision `RepImp` (D23) and named
+--     uniqueness `NamedUniqueᴸ`/`NamedUniqueᴿ` (D25).
+--   * ϱ IS ANY RELATION WHOSE PAIRS AGREE (design.md D25, revising
+--     D13's "a right rep. var has at most one left partner").  What
+--     the rejoin of `Interior` needs instead is NAMED UNIQUENESS: among
+--     the rep. vars named on one side, at most one is paired with a
+--     given rep. var named on the other.  It is the weakest condition
+--     of this form that keeps `Interior` usable: a fresh name must
+--     join every other-side name of a paired rep. var, and an
+--     embedding joins it to at most one, so without it no interior
+--     world exists (both directions: fresh names arise on either
+--     side).  Unnamed rep. vars are free, which admits C12 (one left
+--     rep. var, several right partners, one named at a time) and L3d
+--     (one right rep. var, two left partners, store rep. vars with no
+--     name); allocations never name a rep. var, so every evolution
+--     step preserves it.  Stated over rep. vars, not positions:
+--     coherence (`WfCtx.name-fn`) makes names injective on rep. vars.
 --   * DEFINITIONS ONLY.  Model: GTSFImp/proof/DGG/CtxImp.agda (`World`,
 --     `ηᴸʷ`/`ηᴿʷ`, `impEnvʷ`, `_⊑ᵂ⟨_⟩_`, `CtxImp`), minus the stores,
 --     `RebaseAt` and `ImpEnvMono` (no part of a world is ever rebased,
@@ -34,8 +50,10 @@ module ImprecisionWorld where
 --     - `Interior` is declarative.  A continuing name (one `toExt` sends
 --       to an exterior position) keeps its center partner and its mark;
 --       a name the boundary itself introduces (`Fresh`) joins the other
---       side's name exactly when their rep. vars are paired by ϱ (D13:
---       a right `+X^β` rejoins β's unique left partner); fresh marks are
+--       side's name exactly when their rep. vars are paired by ϱ (D25:
+--       a right `+X^β` rejoins the left partner of β whose name is in
+--       scope; ϱ may give β several partners, named uniqueness in
+--       `WfWorld` keeps the rejoin unique); fresh marks are
 --       unconstrained, so the derivation chooses them (D11).  Nothing
 --       is said about the worlds between the entries (D15).
 --   * PAYLOADS ARE COMPARED IN THE REPRESENTATION UNIVERSE (design.md
@@ -267,8 +285,9 @@ record Interior (W : World Δ Δ′) (Θ Θ′ : Boundary)
       → (Joins Wᵢ X X′ → Joins W Xₑ X′ₑ)
         × (Joins W Xₑ X′ₑ → Joins Wᵢ X X′)
     -- a name the boundary introduces joins exactly the other side's
-    -- name of a paired rep. var (D13: a right `+X^β` rejoins β's
-    -- unique left partner); otherwise it is one-sided
+    -- name of a paired rep. var (D25: a right `+X^β` rejoins the left
+    -- partner of β whose name is in scope; `wf-namedᴸ` of Wᵢ makes it
+    -- unique); otherwise it is one-sided
     join-fresh : ∀ {X X′ α β}
       → Δᵢ ∋ᵗ X := α → Δ′ᵢ ∋ᵗ X′ := β
       → Fresh Θ X ⊎ Fresh Θ′ X′
@@ -427,12 +446,30 @@ data Agree (W : World Δ Δ′) (α β : RVar) : Set where
     → [] ⊢ R ⊑ᴿ⟨ W ⟩ R′
     → Agree W α β
 
+-- Named uniqueness (design.md D25).  ϱ itself may give a rep. var
+-- several partners on either side; but among the rep. vars NAMED on
+-- one side, at most one is paired with a given rep. var named on the
+-- other side.  This is what `Interior`'s rejoin reads: a name a
+-- boundary introduces must join every other-side name in scope whose
+-- rep. var is paired with its own, and an embedding joins a name to at
+-- most one other name.  Rep. vars without a name in scope (store rep.
+-- vars, rep. vars hidden by an unbind) are unconstrained.
+NamedUniqueᴸ : World Δ Δ′ → Set
+NamedUniqueᴸ {Δ} {Δ′} W = ∀ {α α′ β}
+  → names Δ ∋ᵅ α → names Δ ∋ᵅ α′ → names Δ′ ∋ᵅ β
+  → Paired W α β → Paired W α′ β → α ≡ α′
+
+NamedUniqueᴿ : World Δ Δ′ → Set
+NamedUniqueᴿ {Δ} {Δ′} W = ∀ {α β β′}
+  → names Δ ∋ᵅ α → names Δ′ ∋ᵅ β → names Δ′ ∋ᵅ β′
+  → Paired W α β → Paired W α β′ → β ≡ β′
+
 record WfWorld (W : World Δ Δ′) : Set where
   constructor wf-world
   field
     wf-joint : Joint (Paired W) (ηᴸʷ W) (ηᴿʷ W)
     wf-agree : ∀ {α β} → Paired W α β → Agree W α β
-    -- D13: each right rep. var has at most one left partner
-    wf-right-unique : ∀ {α α′ β}
-      → Paired W α β → Paired W α′ β → α ≡ α′
+    -- D25 (replaces D13's one-left-partner rule): named uniqueness
+    wf-namedᴸ : NamedUniqueᴸ W
+    wf-namedᴿ : NamedUniqueᴿ W
 open WfWorld public

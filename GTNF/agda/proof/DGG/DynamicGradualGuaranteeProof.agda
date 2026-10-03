@@ -73,7 +73,8 @@ private
   no-pair (inj₂ ())
 
 wf-∅ʷ : WfWorld ∅ʷ
-wf-∅ʷ = wf-world joint[] (λ π → no-pair π) (λ π π′ → no-pair π)
+wf-∅ʷ = wf-world joint[] (λ π → no-pair π) (λ _ _ _ π _ → no-pair π)
+  (λ _ _ _ π _ → no-pair π)
 
 ------------------------------------------------------------------------
 -- The four parts, for a fixed pair of related closed programs

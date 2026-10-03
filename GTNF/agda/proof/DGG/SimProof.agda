@@ -196,7 +196,7 @@ sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st)
     with interior-functional ri (int-left int)
 sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st)
     | refl with sim (bdy-wfᵢ b) (bdy-wfᵢ b′)
-                    {! WfWorld Wᵢ: not given by Interior !} d st
+                    wi d st
 sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st)
     | refl | N′ , r′ , W′ , ev , wf′ , q′ , dN =
   {! SimFrame-⟪⟫: simFrame-⟪⟫ pre int b b′ bc q
@@ -221,7 +221,7 @@ sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (ξ-⟪⟫ ri st)
     with interior-functional ri (int-left int)
 sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (ξ-⟪⟫ ri st)
     | refl with sim (bdy-wfᵢ b) wfΔ′
-                    {! WfWorld Wᵢ: not given by Interior !} d st
+                    wi d st
 sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (ξ-⟪⟫ ri st)
     | refl | N′ , r′ , W′ , ev , wf′ , q′ , dN =
   {! SimFrame-⟪⟫⊑: simFrame-⟪⟫⊑ pre int b q
@@ -232,7 +232,7 @@ sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (ξ-⟪⟫ ri st)
 
 sim wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) st
     with sim wfΔ (bdy-wfᵢ b′)
-             {! WfWorld Wᵢ: not given by Interior !} d st
+             wi d st
 sim wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) st
     | N′ , r′ , W′ , ev , wf′ , q′ , dN =
   {! SimFrame-⊑⟪⟫: simFrame-⊑⟪⟫ pre int b′ q

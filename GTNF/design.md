@@ -1402,10 +1402,14 @@ W = (Δ, Δ′, Ω, η, η′, μ, ϱ)
   A ⊑_W A′   iff   μ ⊢ η(A) ⊑ η′(A′)               (GTSFImp _⊑ᵂ⟨_⟩_)
 ```
 
-Well-formedness has two parts:
+Well-formedness has three parts:
 
 - **Names name paired rep. vars.**  If a center name `X` is `X:=α` on the
   left and `X:=β` on the right, then `(α, β) ∈ ϱ`.
+- **Named uniqueness** (D25).  Among the names in scope on one side,
+  at most one is paired with the rep. var of a given name on the other
+  side.  A rejoin is therefore unambiguous, although `ϱ` itself may
+  pair a rep. var with several partners.
 - **Paired rep. vars agree.**  If `(α, β) ∈ ϱ`, then either both are
   abstract (bound by a `Λ` on each side), or `α` is abstract and
   `β:=★`, or `α:=R`, `β:=R′`, and `R ⊑ᴿ_W R′`: the payloads are

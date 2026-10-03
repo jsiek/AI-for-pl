@@ -122,8 +122,7 @@ castʷ refl refl W = W
 ⟿-trans (ev-L wR ev₁)    ev₂ = ev-L wR (⟿-trans ev₁ ev₂)
 ⟿-trans (ev-R wR ev₁)    ev₂ = ev-R wR (⟿-trans ev₁ ev₂)
 ⟿-trans (ev-2 wR wR′ ag ev₁) ev₂ = ev-2 wR wR′ ag (⟿-trans ev₁ ev₂)
-⟿-trans (ev-L⇔ wR rβ nl ag ev₁) ev₂ =
-  ev-L⇔ wR rβ nl ag (⟿-trans ev₁ ev₂)
+⟿-trans (ev-L⇔ wR rβ ag ev₁) ev₂ = ev-L⇔ wR rβ ag (⟿-trans ev₁ ev₂)
 ⟿-trans (ev-noneᴸ ev₁)   ev₂ = ev-noneᴸ (⟿-trans ev₁ ev₂)
 ⟿-trans (ev-noneᴿ ev₁)   ev₂ = ev-noneᴿ (⟿-trans ev₁ ev₂)
 

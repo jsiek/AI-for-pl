@@ -6,8 +6,8 @@ module Coercion where
 --     (Conversion.agda): a coercion never contains a conversion and a
 --     conversion never contains a coercion.  §1 `Label` and the syntax;
 --     §2 the consistency MODES and mode environments; §3 the side
---     predicates (`GroundNV`, `NonVar`, `NonStar`, `_∈ᵗ_`, `GenSafe`,
---     `InertC`); §4 `srcᵖ`/`trgᵖ`; §5 renaming `renᵖ` and closing at ★
+--     predicates (`GroundNV`, `NonVar`, `NonStar`, `occurs`, `_∈ᵗ_`,
+--     `GenSafe`, `InertC`); §4 `srcᵖ`/`trgᵖ`; §5 renaming `renᵖ` and closing at ★
 --     `closeᵖ` (design.md's `p[★/X]`); §6 the typing judgement
 --     `Δ ∣ μ ⊢ᵖ p ∶ A ⟹ B`.
 --   * DEFINITIONS ONLY.  The decision procedures (`coercionTy?`,
@@ -39,7 +39,8 @@ module Coercion where
 --     rules, gated by the mode of X (design.md §3's table); every other
 --     ground type is a `GroundNV`.
 
-open import Data.Nat using (ℕ; zero; suc)
+open import Data.Bool using (Bool; true; false; _∨_)
+open import Data.Nat using (ℕ; zero; suc; _≡ᵇ_)
 open import Data.Nat.Properties using (_≟_)
 open import Data.List using (List; []; _∷_; map; length)
 open import Relation.Nullary using (yes; no)
@@ -145,12 +146,25 @@ data NonStar : Ty → Set where
   ns-⇒   : ∀ {A B} → NonStar (A ⇒ B)
   ns-∀   : ∀ {A} → NonStar (`∀ A)
 
--- `X ∈ᵗ A`: the type variable X occurs free in A
+-- `occurs X A`: the Boolean occurrence check, X occurs free in A
+-- (`∀` shifts X)
+occurs : ℕ → Ty → Bool
+occurs X (` Y)   = X ≡ᵇ Y
+occurs X `ℕ      = false
+occurs X `𝔹      = false
+occurs X ★       = false
+occurs X (A ⇒ B) = occurs X A ∨ occurs X B
+occurs X (`∀ A)  = occurs (suc X) A
+
+-- `X ∈ᵗ A`: the type variable X occurs free in A.  Proofs are unique
+-- (design.md D24): the right-of-arrow rule requires X not in the
+-- domain, as GTSFImp's `∈-fun-right` does, so a derivation picks the
+-- leftmost occurrence (proof/Imprecision.agda `∈ᵗ-unique`).
 infix 4 _∈ᵗ_
 data _∈ᵗ_ : ℕ → Ty → Set where
   ∈-var : ∀ {X} → X ∈ᵗ ` X
   ∈-⇒ˡ  : ∀ {X A B} → X ∈ᵗ A → X ∈ᵗ A ⇒ B
-  ∈-⇒ʳ  : ∀ {X A B} → X ∈ᵗ B → X ∈ᵗ A ⇒ B
+  ∈-⇒ʳ  : ∀ {X A B} → occurs X A ≡ false → X ∈ᵗ B → X ∈ᵗ A ⇒ B
   ∈-∀   : ∀ {X A} → suc X ∈ᵗ A → X ∈ᵗ `∀ A
 
 -- The atoms: the only types at which an identity coercion is formed

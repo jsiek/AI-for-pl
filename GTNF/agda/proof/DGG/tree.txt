@@ -21,7 +21,8 @@ DynamicGradualGuarantee | the theorem (statement at top level, §2)  uses: Catch
       CatchupRight | a left value: the right reaches a related value
   MultiSimBack | backward simulation over runs  uses: ImprecisionTyping TypeSafety/Preservation TypeSafety/Determinism
     SimBack | the less precise side steps, both catch up
-      SimBackFrame | ξ cases  uses: AllocImp EvolveImp
+      SimBackFrame | ξ cases  uses: AllocImp EvolveImp SimBackInstX
+      SimBackInstX | inside ∀⊑⟪+⟫'s premise: the right steps, the left (a ∀-value) never moves
       SimBackBeta | Beta, Wrap  uses: SubstImp
       SimBackTyBeta | TyBeta, Inst  uses: InstXImp AllocImp
       SimBackBoundary | Merge, Id, IdDyn  uses: MergeImp

@@ -1266,6 +1266,50 @@ Each one can be revisited on its own.
   `proof/DGG/notes/ForallBoundaryRisks.{agda,md}`; Jeremy,
   2026-10-03).
 
+- **D23 (payloads compared in the representation universe).**  The
+  agreement of two paired rep. vars compares their payloads as
+  representation types.  Free rep. vars inside them correspond through
+  `ϱ`, and local `∀`-bound variables correspond position by position.
+  Before, the payloads were read as ordinary types through the names in
+  scope.  That broke once interior worlds had to be well formed: inside
+  a boundary that hides a name, a payload mentioning that name's rep.
+  var had no reading
+  (`proof/DGG/drafts/EvolveImpWfInteriorCounterexample.agda`; Jeremy,
+  2026-10-03).
+
+- **D24 (unique occurrence proofs).**  `X ∈ᵗ A` has unique proofs, as
+  in GTSFImp: the right-of-arrow rule has the premise
+  `occurs X A ≡ false`, a Boolean occurrence check, rather than
+  GTSFImp's separate `_∉ᵗ_` datatype.  Without it, `∀⊑`'s occurrence
+  premise made type-imprecision derivations non-unique, and the DGG's
+  `·⊑·` cases need uniqueness (`proof/Imprecision.agda`; Jeremy,
+  2026-10-03).
+
+- **D25 (`ϱ` is any agreeing relation; revises D13).**  A rep. var
+  may have several partners on either side.  C12 needs a left rep. var
+  with several right partners.  L3d needs the converse: the right
+  `Inst`s its argument once, a `Beta` duplicates the boundary, and the
+  left instantiates both copies
+  (`proof/DGG/notes/ForallBoundaryFixes.md`; checked:
+  `no-second-catchup`, `second-paired-¬wf`).  A rejoin (`+X^β` on one
+  side) joins the partner whose name is in scope.  Its uniqueness comes
+  from names, which coherence makes injective on rep. vars within a
+  context, not from `ϱ` (Jeremy, 2026-10-03).
+
+- **D23 (payloads are compared in the representation universe).**
+  "Paired rep. vars agree" relates two payloads by representation
+  imprecision `R ⊑ᴿ_W R′` (`ImprecisionWorld.RepImp`), not by reading
+  them as ordinary types through each side's names.  Its rules are
+  those of `⊑` (§12.1) over payloads: local `∀`-bound variables
+  correspond position-wise with marks; a free rep. var `α` on the left
+  faces its partner `β` when `(α, β) ∈ ϱ`, or `★` unconditionally (rep.
+  vars carry no marks; marks belong to names).  The name reading
+  failed once interior worlds must be well formed (§12.2/D15): inside
+  a boundary that hides a name, a payload mentioning that name's rep.
+  var had no reading, and `EvolveImp` was false
+  (`proof/DGG/drafts/EvolveImpWfInteriorCounterexample.agda`, now a
+  regression test; `proof/DGG/notes/RepImp.md`; Jeremy, 2026-10-03).
+
 The open design questions are those of the `⊑` sketch (§12.5).
 
 Out of scope for now: space efficiency.  Normal forms for coercions,
@@ -1358,11 +1402,12 @@ W = (Δ, Δ′, Ω, η, η′, μ, ϱ)
   η′ : names(Δ′) ↪ Ω     every center name is in the image of at least one
   μ  : ImpEnv(Ω)         a name in both images is X⊑X or X⊑★;
                          a name in η's image only (left-only) is X⊑★
-  ϱ  = ϱᵍ ∪ ϱˡ           the rep. var correspondence, in two parts (D16):
+  ϱ  = ϱᵍ ∪ ϱˡ           the rep. var correspondence, in two parts (D16),
+                         any relation whose pairs agree (D25):
                          ϱᵍ global, over the two stores' rep. vars;
                          ϱˡ lexical, over rep. vars bound by an enclosing
-                         Λ or ν.  Each right rep. var has at most one left
-                         partner; a left rep. var may have several (D13)
+                         Λ or ν.  (D13's one-partner rule was dropped
+                         by D25.)
 
   A ⊑_W A′   iff   μ ⊢ η(A) ⊑ η′(A′)               (GTSFImp _⊑ᵂ⟨_⟩_)
 ```
@@ -1373,7 +1418,9 @@ Well-formedness has two parts:
   left and `X:=β` on the right, then `(α, β) ∈ ϱ`.
 - **Paired rep. vars agree.**  If `(α, β) ∈ ϱ`, then either both are
   abstract (bound by a `Λ` on each side), or `α` is abstract and
-  `β:=★`, or `α:=R`, `β:=R′`, and `R ⊑ R′` (read through `W`).
+  `β:=★`, or `α:=R`, `β:=R′`, and `R ⊑ᴿ_W R′`: the payloads are
+  compared in the representation universe, free rep. vars through `ϱ`
+  (D23).
 
 **Names are related lexically; rep. vars lexically and globally**
 (D12, D16).  The relation between type variables (`Ω`, `η`, `η′`, `μ`)

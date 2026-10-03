@@ -20,6 +20,7 @@ open import Types
 open import proof.TypeSubst
 open import Ctx
 open import Coercion
+import proof.Occurs as O
 
 lower-⇑ : (A : Ty) → lowerᵗ (⇑ᵗ A) ≡ A
 lower-⇑ A =
@@ -471,7 +472,9 @@ occurs-close-before lt ∈-var =
   closeEnv-before {suc X} {suc k} (s≤s lt) =
     cong ⇑ᵗ (closeEnv-before lt)
 occurs-close-before lt (∈-⇒ˡ occ) = ∈-⇒ˡ (occurs-close-before lt occ)
-occurs-close-before lt (∈-⇒ʳ occ) = ∈-⇒ʳ (occurs-close-before lt occ)
+occurs-close-before lt (∈-⇒ʳ {A = A} eq occ) =
+  ∈-⇒ʳ (trans (O.occurs-close-before A lt) eq)
+    (occurs-close-before lt occ)
 occurs-close-before lt (∈-∀ occ) =
   ∈-∀ (occurs-close-before (s≤s lt) occ)
 

@@ -3,20 +3,20 @@ module proof.Imprecision where
 -- File Charter:
 --   * UNIQUENESS OF TYPE-IMPRECISION DERIVATIONS, ported from
 --     GTSFImp/proof/Imprecision.agda (`⊑-unique`).
---   * THE PORT DOES NOT GO THROUGH AS STATED.  GTNF's occurrence
---     relation `_∈ᵗ_` (Coercion) has overlapping `∈-⇒ˡ`/`∈-⇒ʳ` (GTSFImp's
---     `∈-fun-right` carries `X ∉ᵗ A`), so `0 ∈ᵗ A` is not a proposition
---     and neither is `∀⊑`'s premise.  `∈ᵗ-not-unique` and
---     `⊑-not-unique` are the checked counterexample
---         `∀X. X → X  ⊑  ★ → ★`
---     derived by `∀⊑` with the witness `∈-⇒ˡ ∈-var` or `∈-⇒ʳ ∈-var`.
---   * WHAT IS PROVED: uniqueness of every other side condition
---     (`∋ˡ-unique`, `Base-unique`, `NonVar-unique`, `NonStar-unique`),
---     the disjointness of the overlapping rules (`∀⊑∀-∀⊑-disjoint`,
---     `occurs-not-star`), and, in the module `Unique` parameterised by
---     irrelevance of `0 ∈ᵗ A`, `⊑-unique` and `⊑ᵂ-unique`.  Once
---     `_∈ᵗ_` (or `∀⊑`'s premise) is made propositional, instantiate
---     `Unique` with its uniqueness lemma.
+--   * MAIN RESULTS, UNCONDITIONAL: `⊑-unique` and `⊑ᵂ-unique`, any
+--     two derivations of `μ ⊢ A ⊑ B` (resp. `A ⊑ᵂ⟨ W ⟩ A′`) are equal.
+--   * OCCURRENCE PROOFS ARE UNIQUE (`∈ᵗ-unique`, design.md D24):
+--     `∈-⇒ʳ` carries `occurs X A ≡ false` (GTSFImp's `∈-fun-right`
+--     carries `X ∉ᵗ A`), so it is disjoint from `∈-⇒ˡ`, whose premise
+--     gives `occurs X A ≡ true` (proof.Occurs `∈→occurs`); equality
+--     proofs on `Bool` are unique (K).  Before D24 the
+--     relation overlapped and `∀X. X → X ⊑ ★ → ★` had two derivations.
+--   * ALSO PROVED: uniqueness of every other side condition
+--     (`∋ˡ-unique`, `Base-unique`, `NonVar-unique`, `NonStar-unique`)
+--     and the disjointness of the overlapping imprecision rules
+--     (`∀⊑∀-∀⊑-disjoint`, `occurs-not-star`).  The module `Unique`,
+--     parameterised by irrelevance of `0 ∈ᵗ A`, holds the induction; it
+--     is instantiated with `∈ᵗ-unique` at the end of the file.
 --   * DISJOINTNESS BY ∀-FREE PATHS (not GTSFImp's WidenPath /
 --     EndpointSpine): an occurrence of an `X⊑X` variable at path π of
 --     the source reaches a variable at π in the target (`occ-same`); an
@@ -24,13 +24,14 @@ module proof.Imprecision where
 --     `★` at π (`occ-star`).  `nodeAt` skips `∀`s, so `B` and
 --     `⇑ᵗ (∀ B)` agree at every path.
 
+open import Data.Bool using (Bool; true; false)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; cong; sym; trans)
+  using (_≡_; refl; cong; cong₂; sym; trans)
 
 open import Types
 open import Ctx using (_∋ˡ_:=_; here; there)
@@ -38,6 +39,7 @@ open import Coercion
   using (NonVar; nv-ℕ; nv-𝔹; nv-★; nv-⇒; nv-∀;
          NonStar; ns-var; ns-ℕ; ns-𝔹; ns-⇒; ns-∀;
          _∈ᵗ_; ∈-var; ∈-⇒ˡ; ∈-⇒ʳ; ∈-∀)
+open import proof.Occurs using (∈→occurs; ∈-⇒ʳ′)
 open import Imprecision
 open import ImprecisionWorld using (World; _⊑ᵂ⟨_⟩_)
 
@@ -83,24 +85,27 @@ NonStar-unique ns-⇒ ns-⇒ = refl
 NonStar-unique ns-∀ ns-∀ = refl
 
 ------------------------------------------------------------------------
--- The counterexample: occurrence evidence is not unique, hence
--- neither is imprecision evidence
+-- Occurrence evidence is unique
 ------------------------------------------------------------------------
 
-∈ᵗ-not-unique : ¬ (∀ {A} (i j : 0 ∈ᵗ A) → i ≡ j)
-∈ᵗ-not-unique irr
-    with irr {A = ` 0 ⇒ ` 0} (∈-⇒ˡ ∈-var) (∈-⇒ʳ ∈-var)
-... | ()
-
--- ∀X. X → X  ⊑  ★ → ★, twice
 private
-  id⊑ : 0 ∈ᵗ (` 0 ⇒ ` 0) → [] ⊢ `∀ (` 0 ⇒ ` 0) ⊑ ★ ⇒ ★
-  id⊑ i = ∀⊑ nv-⇒ i (⇒⊑⇒ (X⊑★ here) (X⊑★ here))
+  true≢false : true ≡ false → ⊥
+  true≢false ()
 
-⊑-not-unique : ¬ (∀ {μ A B} (p q : μ ⊢ A ⊑ B) → p ≡ q)
-⊑-not-unique uniq
-    with uniq (id⊑ (∈-⇒ˡ ∈-var)) (id⊑ (∈-⇒ʳ ∈-var))
-... | ()
+  -- equality proofs are unique (Agda's default K)
+  ≡-Bool-unique : ∀ {b c : Bool} (e e′ : b ≡ c) → e ≡ e′
+  ≡-Bool-unique refl refl = refl
+
+∈ᵗ-unique : (i j : X ∈ᵗ A) → i ≡ j
+∈ᵗ-unique ∈-var ∈-var = refl
+∈ᵗ-unique (∈-⇒ˡ i) (∈-⇒ˡ j) = cong ∈-⇒ˡ (∈ᵗ-unique i j)
+∈ᵗ-unique (∈-⇒ˡ i) (∈-⇒ʳ eq j) =
+  ⊥-elim (true≢false (trans (sym (∈→occurs i)) eq))
+∈ᵗ-unique (∈-⇒ʳ eq i) (∈-⇒ˡ j) =
+  ⊥-elim (true≢false (trans (sym (∈→occurs j)) eq))
+∈ᵗ-unique (∈-⇒ʳ eq i) (∈-⇒ʳ eq′ j) =
+  cong₂ ∈-⇒ʳ (≡-Bool-unique eq eq′) (∈ᵗ-unique i j)
+∈ᵗ-unique (∈-∀ i) (∈-∀ j) = cong ∈-∀ (∈ᵗ-unique i j)
 
 ------------------------------------------------------------------------
 -- Occurrences under renaming
@@ -117,9 +122,9 @@ private
 ∈-renameᵗ ρ (A ⇒ B) (∈-⇒ˡ i)
     with ∈-renameᵗ ρ A i
 ... | Y , eq , j = Y , eq , ∈-⇒ˡ j
-∈-renameᵗ ρ (A ⇒ B) (∈-⇒ʳ i)
+∈-renameᵗ ρ (A ⇒ B) (∈-⇒ʳ _ i)
     with ∈-renameᵗ ρ B i
-... | Y , eq , j = Y , eq , ∈-⇒ʳ j
+... | Y , eq , j = Y , eq , ∈-⇒ʳ′ j
 ∈-renameᵗ ρ (`∀ A) (∈-∀ i)
     with ∈-renameᵗ (extᵗ ρ) A i
 ... | zero , () , j
@@ -156,7 +161,7 @@ data OccAt : ℕ → Ty → Path → Set where
 ∈→OccAt ∈-var = [] , occ-var
 ∈→OccAt (∈-⇒ˡ i) with ∈→OccAt i
 ... | π , o = ←d ∷ π , occ-⇒ˡ o
-∈→OccAt (∈-⇒ʳ i) with ∈→OccAt i
+∈→OccAt (∈-⇒ʳ _ i) with ∈→OccAt i
 ... | π , o = →d ∷ π , occ-⇒ʳ o
 ∈→OccAt (∈-∀ i) with ∈→OccAt i
 ... | π , o = π , occ-∀ o
@@ -237,7 +242,7 @@ occ-star h occ-var fr X⊑X = ⊥-elim (fr ∈-var)
 occ-star h (occ-⇒ˡ o) fr (⇒⊑⇒ p q) =
   occ-star h o (λ i → fr (∈-⇒ˡ i)) p
 occ-star h (occ-⇒ʳ o) fr (⇒⊑⇒ p q) =
-  occ-star h o (λ i → fr (∈-⇒ʳ i)) q
+  occ-star h o (λ i → fr (∈-⇒ʳ′ i)) q
 occ-star h (occ-∀ o) fr (∀⊑∀ p) =
   occ-star (there h) o (λ i → fr (∈-∀ i)) p
 occ-star h o fr (⇒⊑★ p q) = refl
@@ -285,6 +290,7 @@ occurs-not-star h i p
 
 ------------------------------------------------------------------------
 -- Uniqueness, given irrelevance of `∀⊑`'s occurrence premise
+-- (instantiated below)
 ------------------------------------------------------------------------
 
 module Unique (∈ᵗ-irr₀ : ∀ {A} (i j : 0 ∈ᵗ A) → i ≡ j) where
@@ -353,3 +359,15 @@ module Unique (∈ᵗ-irr₀ : ∀ {A} (i j : 0 ∈ᵗ A) → i ≡ j) where
     → (p q : A ⊑ᵂ⟨ W ⟩ A′)
     → p ≡ q
   ⊑ᵂ-unique p q = ⊑-unique p q
+
+------------------------------------------------------------------------
+-- Uniqueness, unconditionally
+------------------------------------------------------------------------
+
+⊑-unique : (p q : μ ⊢ A ⊑ B) → p ≡ q
+⊑-unique p q = Unique.⊑-unique ∈ᵗ-unique p q
+
+⊑ᵂ-unique : ∀ {Δ Δ′} {W : World Δ Δ′} {A A′ : Ty}
+  → (p q : A ⊑ᵂ⟨ W ⟩ A′)
+  → p ≡ q
+⊑ᵂ-unique {W = W} p q = Unique.⊑ᵂ-unique ∈ᵗ-unique {W = W} p q

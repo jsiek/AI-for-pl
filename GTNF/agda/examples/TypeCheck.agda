@@ -30,6 +30,7 @@ open import Data.Nat using (ℕ; zero; suc; _∸_; _<_)
 open import Data.Nat.Properties using (_≟_; _<?_; ≮⇒≥; m+[n∸m]≡n)
 open import Data.List using (List; []; _∷_; length)
 open import Data.Maybe using (Maybe; just; nothing; From-just; from-just)
+open import Data.Bool using (true; false)
 open import Data.Unit using (⊤; tt)
 open import Data.Empty using (⊥)
 open import Data.Product
@@ -555,11 +556,13 @@ occurs? X (` Y) | no  _    = nothing
 occurs? X `ℕ = nothing
 occurs? X `𝔹 = nothing
 occurs? X ★  = nothing
-occurs? X (A ⇒ B) with occurs? X A
-occurs? X (A ⇒ B) | just o  = just (∈-⇒ˡ o)
-occurs? X (A ⇒ B) | nothing with occurs? X B
-occurs? X (A ⇒ B) | nothing | just o  = just (∈-⇒ʳ o)
-occurs? X (A ⇒ B) | nothing | nothing = nothing
+occurs? X (A ⇒ B) with occurs X A in eqA
+occurs? X (A ⇒ B) | true with occurs? X A
+occurs? X (A ⇒ B) | true | just o  = just (∈-⇒ˡ o)
+occurs? X (A ⇒ B) | true | nothing = nothing
+occurs? X (A ⇒ B) | false with occurs? X B
+occurs? X (A ⇒ B) | false | just o  = just (∈-⇒ʳ eqA o)
+occurs? X (A ⇒ B) | false | nothing = nothing
 occurs? X (`∀ A) with occurs? (suc X) A
 occurs? X (`∀ A) | just o  = just (∈-∀ o)
 occurs? X (`∀ A) | nothing = nothing

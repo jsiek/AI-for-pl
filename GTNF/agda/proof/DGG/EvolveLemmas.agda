@@ -119,10 +119,11 @@ castʷ refl refl W = W
   → W ⟿[ xs ++ ys ∣ xs′ ++ ys′ ]
       castʷ (sym (applyˢ-++ xs ys Δ)) (sym (applyˢ-++ xs′ ys′ Δ′)) W₂
 ⟿-trans ev-done          ev₂ = ev₂
-⟿-trans (ev-L ev₁)       ev₂ = ev-L (⟿-trans ev₁ ev₂)
-⟿-trans (ev-R ev₁)       ev₂ = ev-R (⟿-trans ev₁ ev₂)
-⟿-trans (ev-2 ev₁)       ev₂ = ev-2 (⟿-trans ev₁ ev₂)
-⟿-trans (ev-L⇔ nl ev₁)   ev₂ = ev-L⇔ nl (⟿-trans ev₁ ev₂)
+⟿-trans (ev-L wR ev₁)    ev₂ = ev-L wR (⟿-trans ev₁ ev₂)
+⟿-trans (ev-R wR ev₁)    ev₂ = ev-R wR (⟿-trans ev₁ ev₂)
+⟿-trans (ev-2 wR wR′ ag ev₁) ev₂ = ev-2 wR wR′ ag (⟿-trans ev₁ ev₂)
+⟿-trans (ev-L⇔ wR rβ nl ag ev₁) ev₂ =
+  ev-L⇔ wR rβ nl ag (⟿-trans ev₁ ev₂)
 ⟿-trans (ev-noneᴸ ev₁)   ev₂ = ev-noneᴸ (⟿-trans ev₁ ev₂)
 ⟿-trans (ev-noneᴿ ev₁)   ev₂ = ev-noneᴿ (⟿-trans ev₁ ev₂)
 

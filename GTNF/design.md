@@ -1302,6 +1302,22 @@ Each one can be revisited on its own.
   from names, which coherence makes injective on rep. vars within a
   context, not from `ϱ` (Jeremy, 2026-10-03).
 
+- **D26 (one rule for right boundaries; replaces `∀⊑⟪+⟫`).**  The
+  right-only boundary rule `⊑⟪⟫` takes a premise `Opens` that opens the
+  left term zero or more times.  Each opening opens a left ∀-value at a
+  right-only name, bound to `★`, that the right boundary introduces.
+  `∀⊑⟪+⟫` is removed.  It hard-coded the position of the `Inst` entry,
+  and a compiled pair refuted `Sim`, `SimBack` and DGG part 1 for the
+  relation with it: `(λf:∀X.X→X. f)(K[ℕ])` against
+  `(λf:★→★. f)(K[ℕ])`, with `K = ΛY.ΛX.λx:X.x`.  The right's `Inst`
+  lands on a ∀-boundary value and its boundary merges, leaving final
+  values that no rule related
+  (`proof/DGG/notes/RestrictedForallBoundary.md`).  The generalized rule
+  relates them, re-derives every earlier `∀⊑⟪+⟫` block, and does not
+  change type imprecision (`GeneralizedRightBoundary.md`; alternatives
+  considered: `FixA-MergedBoundary.md`, `FixB-BoundaryAbsorbs.md`;
+  Jeremy, 2026-10-03).
+
 The open design questions are those of the `⊑` sketch (§12.5).
 
 Out of scope for now: space efficiency.  Normal forms for coercions,
@@ -1530,25 +1546,11 @@ environments, except through the types:
   W ⊕ᴸ X ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
   ──────────────────────────────────────────────────────── (Λ⊑)
   W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
-
-  W ⊕ X:m ∣ [] ⊢ inst_X(V) ⊑ V′ : A ⊑ A′
-  V a ∀-value    β:=★    c′ : A′ ⇒ B′
-  A not a variable    X ∈ A                                    (new; D22)
-  ──────────────────────────────────────────────── (∀⊑⟪+⟫)
-  W ∣ γ ⊢ V ⊑ [+X^β] V′ ⟨c′⟩ : ∀X.A ⊑ B′
 ```
 
-`∀⊑⟪+⟫` is for a right side that has already instantiated a value at
-`★` through `Inst`, while the left side still holds an uninstantiated
-∀-value: a `Λ` (Example P3), a `gen`-cast value, a `∀`-cast value or
-a boundary over one.  The premise opens the left value with the same
-meta-operation that `TyBeta` uses, `inst_X` (§6.2), at the left
-value's abstract rep. var, which is paired with the right rep. var `β:=★`.
-For `V = ΛX.V₀`, `inst_X(V) = V₀`.  The mark `m` of the new
-both-sided name is chosen at the binder (D11).  When the left side
-later instantiates, its new boundary `[+X^α]` meets the right's
-`[+X^β]`, and `ϱ` gains `(α, β)`.  The simulation shapes of §9.7
-force this rule (§12.6, F2; D14).
+The rule that relates a left ∀-value to a right `Inst` boundary, first
+`∀⊑⟪+⟫` (D14, D22), is now an instance of the generalized `⊑⟪⟫` below
+(D26).
 
 **Instantiation** (GTSFImp `•⊑•²`, `•⊑²`).  The compiled form of
 `M [A]` is a `ν`, so the two type applications become:
@@ -1582,10 +1584,28 @@ coercions, they are not compared with each other:
   ───────────────────────────────────────────── (⟪⟫⊑)
   W ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ M′ : A ⊑ A′
 
-  W[· ∥ δ′] ∣ [] ⊢ M ⊑ M′ : A ⊑ A′ᵢ    c′ : A′ᵢ ⇒ A′
-  ───────────────────────────────────────────── (⊑⟪⟫)
+  Opens(W[· ∥ δ′], M) = (Wᵢ⁺, M₀ : A₀)    Wᵢ⁺ well formed
+  Wᵢ⁺ ∣ [] ⊢ M₀ ⊑ M′ : A₀ ⊑ A′ᵢ    c′ : A′ᵢ ⇒ A′
+  ───────────────────────────────────────────── (⊑⟪⟫, D26)
   W ∣ γ ⊢ M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
+
+  Opens: zero or more openings of the left term, each
+    M a ∀-value ∀X.A₁ (A₁ not a variable, X ∈ A₁)
+    M₀ = inst_X(M), and X joined (ϱˡ) to a right-only name k that δ′
+    introduces, bound to a rep. var := ★
 ```
+
+`⊑⟪⟫` sees the left term from inside the right's boundary.  With no
+opening it is the plain right-only boundary rule.  With one opening it
+relates a left ∀-value to a right `Inst` boundary: the right has
+already instantiated a value at `★` through `Inst`, while the left
+still holds the uninstantiated ∀-value (Example P3).  Because `δ′` is
+arbitrary, the same rule covers an `Inst` boundary that has merged
+with an inner boundary (the counterexample of D26).  The rule never
+looks inside `c′`.  The names to open are determined: exactly those
+that `δ′` introduces, bound to `★`, right-only, and free in the interior
+type, because `X ⊑ X` is the only type rule with a variable on the
+right (`proof/DGG/notes/GeneralizedRightBoundary.md`).
 
 In `⟪⟫⊑` and `⊑⟪⟫`, the term without the boundary is in the premise
 at `γ = []`, so it must be term-closed as well.  That holds at run

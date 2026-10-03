@@ -8,8 +8,7 @@ module proof.DGG.CatchupRightProof (evolveImp : EvolveImp) where
 --     imported by All.agda.
 --   * Only rules whose left term can be a value appear with content:
 --     `κ⊑κ`, `ƛ⊑ƛ`, `Λ⊑Λ` (the right is a value already: `done`),
---     `cast⊑cast`, `cast⊑`, `⊑cast`, `Λ⊑`, `∀⊑⟪+⟫`, `⟪⟫⊑⟪⟫`, `⟪⟫⊑`,
---     `⊑⟪⟫`.  `x⊑x` is impossible at γ = []; `·⊑·`, `blame⊑`, `ν⊑ν`,
+--     `cast⊑cast`, `cast⊑`, `⊑cast`, `Λ⊑`, `⟪⟫⊑⟪⟫`, `⟪⟫⊑`, `⊑⟪⟫`.  `x⊑x` is impossible at γ = []; `·⊑·`, `blame⊑`, `ν⊑ν`,
 --     `ν⊑` relate a left non-value.
 --   * Every IH is written; the holes are glue.  The right catches up by
 --     administrative steps only: the IH runs the right's premise term to
@@ -18,11 +17,12 @@ module proof.DGG.CatchupRightProof (evolveImp : EvolveImp) where
 --     TagUntag) or outer boundary (Merge, Id, IdDyn, IdDyn-var) fires.
 --     Those outer steps, and the transport of the frame's side premises
 --     (CastTy, BdyTy, Interior, q) along the evolution, are the holes.
---   * `∀⊑⟪+⟫` has no IH: its premise relates `N = inst_X V`, which is
---     NOT a value in general (`inst-gen`, `inst-∀` leave a cast with an
---     arbitrary coercion, `inst-⟪⟫` a boundary with an arbitrary
---     conversion), so CatchupRight's own IH does not apply.  It also
---     waits on D25 (`WfWorld (W ⊕⁺ m ^ β)`, the one-partner rule).
+--   * `⊑⟪⟫` with an opening (design.md D26; formerly `∀⊑⟪+⟫`) has no
+--     IH: its premise relates `N = inst_X V`, which is NOT a value in
+--     general (`inst-gen`, `inst-∀` leave a cast with an arbitrary
+--     coercion, `inst-⟪⟫` a boundary with an arbitrary conversion), so
+--     CatchupRight's own IH does not apply.  The opened world's
+--     `WfWorld` is now a premise of the rule.
 --   * `unliftᴸ`: an evolution of `W ⊕ᴸ` with no left allocation is an
 --     evolution of W, lifted (`allocᴿ` commutes with `⊕ᴸ`); this closes
 --     `Λ⊑` but for the IH's premise `WfWorld (W ⊕ᴸ)` (Misfit 3).
@@ -171,13 +171,6 @@ catchup-right wfΔ wfΔ′ wfW v (Λ⊑ nv occ liftᴸ-[] vV d q)
   -- WfWorld W′ and q at W′ (the left allocates nothing)
   e = evolveImp wfΔ wfΔ′ ev′ wfW (Λ⊑ nv occ liftᴸ-[] vV d q)
 
--- no IH: N = inst_X V is not a value in general (see the charter);
--- the right interior V′ runs to a value with N fixed (D22 excludes
--- blame), then the Inst boundary's conversion fires.  Waits on D25.
-catchup-right wfΔ wfΔ′ wfW v (∀⊑⟪+⟫ nvA zA vV ⊢V inst d rβ b′ q) =
-  {! ∀⊑⟪+⟫ (D25 not landed): needs WfWorld (W ⊕⁺ m ^ β) and a
-     catch-up of V′ against the non-value N = inst_X V !}
-
 ------------------------------------------------------------------------
 -- boundaries (the interior is term-closed; IH at Wᵢ, premise wi)
 
@@ -201,14 +194,24 @@ catchup-right wfΔ wfΔ′ wfW v (⟪⟫⊑ int wi d b q)
      Interior W′ Θ [] Wᵢ′ and WfWorld W′ (AllocImp); then
      `⟪⟫⊑ int′ wfᵢ′ d₁ b q′` !}
 
-catchup-right wfΔ wfΔ′ wfW v (⊑⟪⟫ {c′ = c′} int wi d b′ q)
+-- ⊑⟪⟫ (generalized by design.md D26).  No opening: the IH on the
+-- premise.  An opening (the former ∀⊑⟪+⟫): no IH, the premise relates
+-- the opened image `inst_X V`, which is NOT a value in general (see the
+-- charter); the right interior runs to a value with that image fixed
+-- (D22 excludes blame), then the right boundary's conversion fires.
+catchup-right wfΔ wfΔ′ wfW v (⊑⟪⟫ {c′ = c′} int open-none wi d b′ q)
     with catchup-right wfΔ (bdy-wfᵢ b′) wi v d
-catchup-right wfΔ wfΔ′ wfW v (⊑⟪⟫ {c′ = c′} int wi d b′ q)
+catchup-right wfΔ wfΔ′ wfW v (⊑⟪⟫ {c′ = c′} int open-none wi d b′ q)
     | V₁′ , r , v₁′ , Wᵢ′ , ev , wfᵢ′ , q₁ , d₁
     with ξ-⟪⟫* {c = c′} (int-right int) r
-catchup-right wfΔ wfΔ′ wfW v (⊑⟪⟫ {c′ = c′} int wi d b′ q)
+catchup-right wfΔ wfΔ′ wfW v (⊑⟪⟫ {c′ = c′} int open-none wi d b′ q)
     | V₁′ , r , v₁′ , Wᵢ′ , ev , wfᵢ′ , q₁ , d₁ | Θ″ , r⟪⟫ =
   {! BdyTail: lift ev to W ⟿[ [] ∣ allocs r ] W′ with
      Interior W′ [] Θ″ Wᵢ′ (AllocImp), move b′, q; then after r⟪⟫
      the right boundary c′ on the value V₁′ fires (Merge, Id, IdDyn,
      IdDyn-var) !}
+catchup-right wfΔ wfΔ′ wfW v
+    (⊑⟪⟫ int (open-∀ nvA zA vV ⊢V inst fr o os) wi d b′ q) =
+  {! CatchupRightᴳ (GeneralizedRightBoundary §4): a catch-up of the
+     right interior against the non-value opened image N = inst_X V
+     (premise world WfWorld wi is now a premise) !}

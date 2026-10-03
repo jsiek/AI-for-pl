@@ -12,6 +12,12 @@ module proof.DGG.notes.M2ChildStatements where
 --   * The last section holds three short PROOFS that check fits:
 --     SimBackFrame-∀⊑⟪+⟫ from SimBackInstX, SimBackInstX from
 --     SimBackValue, and SimBackValue from CatchupRight + Determinism.
+--   * DESIGN.MD D26 (2026-10-03) removed `∀⊑⟪+⟫`; its instances are
+--     `⊑⟪⟫` with one opening at `bind 0 β`.  `SimBackFrame-∀⊑⟪+⟫` and
+--     `SimBackInstX` keep their names and premises, plus the two that
+--     instance of `⊑⟪⟫` needs (the right-only interior world
+--     `W ⊕ʳ m ^ β` and `WfWorld (W ⊕⁺ m ^ β)`); the SimBack skeleton
+--     now calls `SimBackFrame-⊑⟪⟫` with the openings instead.
 --   * Orientation: the LEFT term is the more precise one.
 
 open import Data.List using (List; []; _∷_; _++_; length)
@@ -575,6 +581,8 @@ SimBackFrame-∀⊑⟪+⟫ = ∀ {Δ Δ′} {W : World Δ Δ′}
   → W ⊕⁺ m ^ β ∣ [] ⊢ N ⊑ V′ ∶ r
   → Δ′ ∋rep β := ★
   → BdyTy Δ′ (bind 0 β ∷ []) (reps Δ′ ∣ (β ∷ names Δ′)) A′ c′ B′
+  → Interior W [] (bind 0 β ∷ []) (W ⊕ʳ m ^ β)
+  → WfWorld (W ⊕⁺ m ^ β)
   → `∀ A ⊑ᵂ⟨ W ⟩ B′
   → (reps Δ′ ∣ (β ∷ names Δ′)) ⊢ V′ -→ M₁′ ∣ δ′
   → SimBackConcl W V (`∀ A) B′ δ′
@@ -635,6 +643,8 @@ SimBackInstX = ∀ {Δ Δ′} {W : World Δ Δ′}
   → W ⊕⁺ m ^ β ∣ [] ⊢ N ⊑ V′ ∶ r
   → Δ′ ∋rep β := ★
   → BdyTy Δ′ (bind 0 β ∷ []) (reps Δ′ ∣ (β ∷ names Δ′)) A′ c′ B′
+  → Interior W [] (bind 0 β ∷ []) (W ⊕ʳ m ^ β)
+  → WfWorld (W ⊕⁺ m ^ β)
   → `∀ A ⊑ᵂ⟨ W ⟩ B′
   → (reps Δ′ ∣ (β ∷ names Δ′)) ⊢ V′ -→ M₁′ ∣ δ′
   → SimBackConclᴿ W V (`∀ A) B′ δ′
@@ -659,9 +669,9 @@ SimBackValue = ∀ {Δ Δ′} {W : World Δ Δ′} {V M′ N′ A A′ ξ′}
 ------------------------------------------------------------------------
 
 simBackFrame-∀⊑⟪+⟫ : SimBackInstX → SimBackFrame-∀⊑⟪+⟫
-simBackFrame-∀⊑⟪+⟫ instX {V = V} pre nv occ v ⊢V i d rβ b′ q st′
-    with instX pre nv occ v ⊢V i d rβ b′ q st′
-simBackFrame-∀⊑⟪+⟫ instX {V = V} pre nv occ v ⊢V i d rβ b′ q st′
+simBackFrame-∀⊑⟪+⟫ instX {V = V} pre nv occ v ⊢V i d rβ b′ int wf q st′
+    with instX pre nv occ v ⊢V i d rβ b′ int wf q st′
+simBackFrame-∀⊑⟪+⟫ instX {V = V} pre nv occ v ⊢V i d rβ b′ int wf q st′
     | N₂′ , r″ , W′ , ev , wf′ , q′ , d′ =
   inj₁ (V , N₂′ , done , r″ , W′ , ev , wf′ , q′ , d′)
 
@@ -669,8 +679,10 @@ bdy-int : ∀ {Δ Θ Δᵢ Bᵢ c Bₑ} → BdyTy Δ Θ Δᵢ Bᵢ c Bₑ → Δ
 bdy-int (bdy-ty mw ⊢c eqᵢ eqₑ wB) = bw-interior mw
 
 simBackInstX : SimBackValue → SimBackInstX
-simBackInstX val pre nv occ v ⊢V i d rβ b′ q st′ =
-  val pre v (∀⊑⟪+⟫ nv occ v ⊢V i d rβ b′ q) (ξ-⟪⟫ (bdy-int b′) st′)
+simBackInstX val pre nv occ v ⊢V i d rβ b′ int wf q st′ =
+  val pre v
+    (⊑⟪⟫ int (open-∀ nv occ v ⊢V i refl (open-⊕ rβ) open-none) wf d b′ q)
+    (ξ-⟪⟫ (bdy-int b′) st′)
 
 simBackValue : CatchupRight → ImprecisionTyping → Determinism
   → Irreducible → SimBackValue

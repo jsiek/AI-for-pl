@@ -1,6 +1,16 @@
 module proof.DGG.notes.GeneralizedRightBoundary where
 
 -- File Charter:
+--   * HISTORICAL: written against the relation before design.md D26
+--     (2026-10-03), which removed `∀⊑⟪+⟫` and generalized `⊑⟪⟫` with
+--     `Opens`.  It no longer type-checks against TermImprecision (it, or
+--     a note it imports, uses the old rule) and is excluded from every
+--     check: All.agda does not import it and it is not a *Proof.agda.
+--     This is the checked LOCAL COPY of the rule that D26 ADOPTED; the
+--     rule now lives in TermImprecision.agda (with `Join↪`/`Open1` in
+--     ImprecisionWorld.agda), its §3 blocks in examples/, and its §4
+--     counterexample K in examples/TermImprecisionRegressionExamples.
+--     It last checked at commit 1281c636.
 --   * THE PROPOSAL CHECKED HERE: one right-only boundary rule ⊑⟪⟫ that
 --     covers plain right-only boundaries, ∀⊑⟪+⟫ and the merged case of
 --     the boundary-Merge counterexample (RestrictedForallBoundary §3).

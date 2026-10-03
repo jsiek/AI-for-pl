@@ -1,6 +1,14 @@
 module proof.DGG.notes.RestrictedForallBoundary where
 
 -- File Charter:
+--   * HISTORICAL: written against the relation before design.md D26
+--     (2026-10-03), which removed `∀⊑⟪+⟫` and generalized `⊑⟪⟫` with
+--     `Opens`.  It no longer type-checks against TermImprecision (it, or
+--     a note it imports, uses the old rule) and is excluded from every
+--     check: All.agda does not import it and it is not a *Proof.agda.
+--     Its §3 refutations (`final-unrelated`, `sim-false`, `simBack-false`,
+--     `dgg1-false`) are about that relation; under D26 the final pair
+--     derives (examples/TermImprecisionRegressionExamples.agda).
 --   * THE PROPOSAL CHECKED HERE: keep ∀⊑⟪+⟫ but restrict its right
 --     interior to a SIMPLE value (a syntactic premise `Simple V′`).
 --     Findings in RestrictedForallBoundary.md.  NOT a Def module, not

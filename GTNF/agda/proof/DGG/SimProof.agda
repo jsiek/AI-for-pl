@@ -49,8 +49,6 @@ sim wfΔ wfΔ′ wfW (ƛ⊑ƛ wA wA′ d) ()
 sim wfΔ wfΔ′ wfW (blame⊑ wA ⊢M′ p) ()
 sim wfΔ wfΔ′ wfW (Λ⊑Λ lift v v′ d q) ()
 sim wfΔ wfΔ′ wfW (Λ⊑ nv occ lift v d q) ()
-sim wfΔ wfΔ′ wfW (∀⊑⟪+⟫ nvA zA v ⊢V inst d rβ b′ q) st =
-  ⊥-elim (value-¬step v st)
 
 ------------------------------------------------------------------------
 -- ·⊑·
@@ -228,12 +226,16 @@ sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (ξ-⟪⟫ ri st)
        (N′ , r′ , W′ , ev , wf′ , q′ , dN) !}
 
 ------------------------------------------------------------------------
--- ⊑⟪⟫: whatever the left step, the IH at the interior world
+-- ⊑⟪⟫ (generalized by design.md D26).  With an opening the left term
+-- is a ∀-value, which does not step (the former ∀⊑⟪+⟫ case); with no
+-- opening, whatever the left step, the IH at the interior world.
 
-sim wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) st
+sim wfΔ wfΔ′ wfW (⊑⟪⟫ int (open-∀ nv occ v ⊢V i fr o os) wi d b′ q) st =
+  ⊥-elim (value-¬step v st)
+sim wfΔ wfΔ′ wfW (⊑⟪⟫ int open-none wi d b′ q) st
     with sim wfΔ (bdy-wfᵢ b′)
              wi d st
-sim wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) st
+sim wfΔ wfΔ′ wfW (⊑⟪⟫ int open-none wi d b′ q) st
     | N′ , r′ , W′ , ev , wf′ , q′ , dN =
   {! SimFrame-⊑⟪⟫: simFrame-⊑⟪⟫ pre int b′ q
        (N′ , r′ , W′ , ev , wf′ , q′ , dN) !}

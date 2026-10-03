@@ -7,8 +7,9 @@ module ImprecisionWorld where
 --     center) and their renaming `emb`; §2 the rep. var correspondence
 --     `RepRel` and its renumberings; §3 `World` and `Paired` (ϱ = ϱᵍ ∪
 --     ϱˡ); §4 type imprecision at a world `_⊑ᵂ⟨_⟩_`; §5 the world
---     operations `W ⊕ m`, `W ⊕ᴸ`, `W ⊕ᴿ m`, `W ⊕⁺ m ^ β`, the
---     allocation renumberings, and `underν²`; §6 the term-interior
+--     operations `W ⊕ m`, `W ⊕ᴸ`, `W ⊕ᴿ m`, `W ⊕⁺ m ^ β`, `W ⊕ʳ m ^ β`,
+--     the OPENINGS `Join↪`/`Open1` of the generalized `⊑⟪⟫` (design.md
+--     D26), the allocation renumberings, and `underν²`; §6 the term-interior
 --     world `Interior W Θ Θ′ Wᵢ` and conversion-context world
 --     `ConversionInterior W Θ Θ′ Wᶜ`, both RELATIONS; §7 term-context
 --     imprecision `CtxImp`; §8 well-formedness `WfWorld`, a SEPARATE
@@ -45,7 +46,7 @@ module ImprecisionWorld where
 --     - ϱ is two lists of pairs (left rep. var, right rep. var) over the
 --       CURRENT de Bruijn rep. vars of the two sides: `ϱᵍʷ` (global,
 --       store rep. vars) and `ϱˡʷ` (lexical, rep. vars bound by an
---       enclosing Λ, or by the right boundary `∀⊑⟪+⟫` reads).  A binder
+--       enclosing Λ, or by an opening of `⊑⟪⟫`, D26).  A binder
 --       or an allocation renumbers the side it acts on.
 --     - `Interior` is declarative.  A continuing name (one `toExt` sends
 --       to an exterior position) keeps its center partner and its mark;
@@ -69,10 +70,15 @@ module ImprecisionWorld where
 --       W[δ ∥ δ′] "is defined only when it is well formed": WfWorld is
 --       kept separate (only the final world Wᵢ would be constrained,
 --       D15), and the rules read only the joins and marks fixed here.
---     - `W ⊕⁺ m ^ β` (the premise world of `∀⊑⟪+⟫`) is its own
---       operation: the right side's new name is the boundary entry
---       `bind 0 β`, not a Λ, so the right context is `reps Δ′ ∣ β ∷
---       names Δ′`, not `underΛ Δ′`; the lexical pair is (0, β).
+--     - `W ⊕⁺ m ^ β` (the premise world of one opening at the right
+--       entry `bind 0 β`, `open-⊕`) is its own operation: the right
+--       side's new name is the boundary entry `bind 0 β`, not a Λ, so
+--       the right context is `reps Δ′ ∣ β ∷ names Δ′`, not `underΛ Δ′`;
+--       the lexical pair is (0, β).
+--   * HISTORY (design.md D26, 2026-10-03).  Before D26 the term
+--     relation had a separate rule `∀⊑⟪+⟫` whose premise world was
+--     `W ⊕⁺ m ^ β`; D26 removed it in favour of the openings of
+--     `⊑⟪⟫` (`Open1`, here; `Opens`, TermImprecision).
 --     - `ConversionInterior`, like `Interior`, does not require
 --       `WfWorld Wᶜ`.  A conversion context is the union of names live
 --       anywhere along a boundary, so continuation/freshness is stated
@@ -217,7 +223,8 @@ world μ η η′ ϱᵍ ϱˡ ⊕ᴿ m =
   world (m ∷ μ) (skip η) (keep (relabel suc η′))
         (shiftᴿ ϱᵍ) (shiftᴿ ϱˡ)
 
--- the premise world of `∀⊑⟪+⟫`: the left opens its ∀-value under a
+-- the premise world of one opening at `bind 0 β` (`open-⊕`; before
+-- D26, of `∀⊑⟪+⟫`): the left opens its ∀-value under a
 -- Λ-like binder (an abstract rep. var at 0), the right is inside its
 -- boundary `bind 0 β`; one new center name with mark m, and the left
 -- abstract rep. var is paired lexically with β (design.md §12.2, D16)
@@ -228,11 +235,52 @@ world μ η η′ ϱᵍ ϱˡ ⊕⁺ m ^ β =
   world (m ∷ μ) (keep (relabel suc η)) (keep η′)
         (shiftᴸ ϱᵍ) ((zero , β) ∷ shiftᴸ ϱˡ)
 
+-- the interior world of `⊑⟪⟫` at a single right entry `bind 0 β`
+-- (`+X^β`): X is a right-only name with mark m (FixB's `_⊕ʳ_^_`)
+infixl 6 _⊕ʳ_^_
+_⊕ʳ_^_ : World Δ Δ′ → VarImp → (β : RVar)
+  → World Δ (reps Δ′ ∣ (β ∷ names Δ′))
+world μ η η′ ϱᵍ ϱˡ ⊕ʳ m ^ β = world (m ∷ μ) (skip η) (keep η′) ϱᵍ ϱˡ
+
+-- OPENINGS (design.md D26).  `⊑⟪⟫` may open the left ∀-value inside
+-- the right boundary: the opened binder (a Λ-like abstract rep. var at
+-- 0, as `underΛ`) joins a right-only name k that the boundary
+-- introduces.  `Join↪ ι ι′ ι⁺ k`: the left's NEW name 0 is kept into
+-- the center name of the right's name k, which is RIGHT-ONLY; the
+-- center names before it are right-only too (the left skips them), so
+-- the left's order is preserved.  `ι⁺` is the left embedding after the
+-- opening (FixB's `JoinΛ`, at any position k).
+data Join↪ {η : TyCtx}
+    : ∀ {η′ μ} → η ↪ μ → η′ ↪ μ → (zero ∷ map suc η) ↪ μ → ℕ → Set where
+  join-here : ∀ {β η′ μ m} {ι : η ↪ μ} {ι′ : η′ ↪ μ}
+    → Join↪ (skip {m = m} ι) (keep {α = β} ι′) (keep (relabel suc ι)) zero
+  join-there : ∀ {β η′ μ m k} {ι : η ↪ μ} {ι′ : η′ ↪ μ}
+      {ι⁺ : (zero ∷ map suc η) ↪ μ}
+    → Join↪ ι ι′ ι⁺ k
+    → Join↪ (skip {m = m} ι) (keep {α = β} ι′) (skip ι⁺) (suc k)
+
+-- One opening at right name k, whose rep. var β is bound to ★; the left
+-- abstract rep. var is paired with β LEXICALLY (D16).  `W ⊕⁺ m ^ β` is
+-- the opening at k = 0 of `W ⊕ʳ m ^ β` (`open-⊕`).
+data Open1 {Δ Δ′ : Ctxᵗ}
+    : World Δ Δ′ → ℕ → World (underΛ Δ) Δ′ → Set where
+  open1 : ∀ {μ ϱᵍ ϱˡ k β} {ι : names Δ ↪ μ} {ι′ : names Δ′ ↪ μ}
+      {ι⁺ : names (underΛ Δ) ↪ μ}
+    → Join↪ ι ι′ ι⁺ k
+    → Δ′ ∋ᵗ k := β
+    → Δ′ ∋rep β := ★
+    → Open1 (world μ ι ι′ ϱᵍ ϱˡ) k
+            (world μ ι⁺ ι′ (shiftᴸ ϱᵍ) ((zero , β) ∷ shiftᴸ ϱˡ))
+
+open-⊕ : ∀ {W : World Δ Δ′} {m β}
+  → Δ′ ∋rep β := ★ → Open1 (W ⊕ʳ m ^ β) 0 (W ⊕⁺ m ^ β)
+open-⊕ hβ = open1 join-here here hβ
+
 -- Renumbering on allocation (for the metatheory; no rule of §12.3
 -- reads a world under an allocation).  An unmatched allocation only
 -- renumbers its own side; a matched pair of TyBetas adds (0, 0) to
 -- ϱᵍ; a left TyBeta catching up with a right boundary `bind 0 β`
--- that `∀⊑⟪+⟫` related adds (0, β) (design.md §12.2, D16).
+-- that an opening of `⊑⟪⟫` related adds (0, β) (design.md §12.2, D16).
 allocᴸ : (R : Ty) → World Δ Δ′ → World (allocate R Δ) Δ′
 allocᴸ R (world μ η η′ ϱᵍ ϱˡ) =
   world μ (relabel suc η) η′ (shiftᴸ ϱᵍ) (shiftᴸ ϱˡ)

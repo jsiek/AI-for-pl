@@ -12,9 +12,33 @@ module TermImprecision where
 --   * THE RULES, design.md §12.3 as updated by D14, one constructor
 --     each: congruence `x⊑x`, `κ⊑κ` (the literals `$ n`, `true`,
 --     `false`, one rule through `Lit`), `ƛ⊑ƛ`, `·⊑·`; `blame⊑`;
---     `cast⊑cast`, `cast⊑`, `⊑cast`; `Λ⊑Λ`, `Λ⊑`, `∀⊑⟪+⟫`; `ν⊑ν`,
---     `ν⊑`; `⟪⟫⊑⟪⟫`, `⟪⟫⊑`, `⊑⟪⟫`.  16 rules: §12.3's 17 minus
---     `⊕⊑⊕`, since GTNF has no binary operators yet.
+--     `cast⊑cast`, `cast⊑`, `⊑cast`; `Λ⊑Λ`, `Λ⊑`; `ν⊑ν`, `ν⊑`;
+--     `⟪⟫⊑⟪⟫`, `⟪⟫⊑`, `⊑⟪⟫`.  15 rules: §12.3's 17 minus `⊕⊑⊕`, since
+--     GTNF has no binary operators yet, and minus `∀⊑⟪+⟫`, removed by
+--     design.md D26.
+--   * THE GENERALIZED RIGHT-ONLY BOUNDARY RULE (design.md D26; Jeremy,
+--     2026-10-03).  `⊑⟪⟫` sees its left term from inside the right
+--     boundary through `Opens Θ′ Wᵢ M A Wᵢ⁺ M₀ A₀` (§2): zero or more
+--     openings of the left ∀-value, each joining its binder lexically
+--     to a right-only name that Θ′ introduces (`Fresh Θ′ k`), bound to
+--     a ★ rep. var (`Open1`, ImprecisionWorld §5), with D22's `NonVar
+--     A`, `0 ∈ᵗ A`, the left `Value`, its typing and `InstX` inside
+--     each opening.  Its `WfWorld` premise is about the OPENED world
+--     `Wᵢ⁺`.  Zero openings is the plain right-only boundary rule; one
+--     opening at the boundary's own `bind 0 β` is the former
+--     `∀⊑⟪+⟫`; an opening at a name of a merged boundary relates the
+--     counterexample K (examples/TermImprecisionRegressionExamples).
+--     Type imprecision is unchanged.  Checked first as a local copy:
+--     proof/DGG/notes/GeneralizedRightBoundary.{agda,md}.
+--   * HISTORY.  Before D26 a separate rule `∀⊑⟪+⟫` (D14, with D22's side
+--     conditions) related a left ∀-value V to the right boundary
+--     `[+X^β] V′ ⟨c′⟩` that `Inst` creates, with premise
+--     `W ⊕⁺ m ^ β ∣ [] ⊢ N ⊑ V′` for `InstX V N`.  Its right boundary
+--     was `bind 0 β ∷ []`: `Inst`'s ν leaves `inst [] = bind 0 0 ∷ []` by
+--     `TyBeta`, and a sibling shift renumbers only the rep. var
+--     (`renᴮᴿ`).  It failed at a Merge of that boundary with an inner
+--     one (proof/DGG/notes/RestrictedForallBoundary.agda); D26 replaces
+--     it by the openings of `⊑⟪⟫`.
 --   * COERCIONS ARE NOT COMPARED.  Each is typed on its own side under
 --     the mode environment its cast carries (`CastTy`, as `⊢cast`).
 --     In contrast, D17 compares the two conversions of `ν⊑ν` and
@@ -36,21 +60,19 @@ module TermImprecision where
 --     - the cast rules: `CastTy` (for `⊢cast`);
 --     - `Λ⊑Λ`, `Λ⊑`: `Value` of the bodies (for `⊢Λ`'s value restriction);
 --     - `ν⊑ν`, `ν⊑`: `NuTy` (for `⊢ν`);
---     - the boundary rules and `∀⊑⟪+⟫`: `BdyTy` (for `boundary`);
---     - `∀⊑⟪+⟫`: also the LEFT typing of the ∀-value V, because V's
---       typing is not recoverable from that of `inst_X(V)` without a
---       strengthening lemma (the `gen` case of `InstX` puts V under
---       `crossΛᴹ`).
---     A premise at `γ = []` (boundary interiors, `∀⊑⟪+⟫`) yields its
+--     - the boundary rules: `BdyTy` (for `boundary`);
+--     - each opening of `⊑⟪⟫` (`open-∀`): also the LEFT typing of the
+--       opened ∀-value V, because V's typing is not recoverable from
+--       that of `inst_X(V)` without a strengthening lemma (the `gen`
+--       case of `InstX` puts V under `crossΛᴹ`).
+--     A premise at `γ = []` (boundary interiors, openings) yields its
 --     typing at `[]`; the conclusion's at `lhs γ`/`rhs γ` then needs the
 --     standard weakening of a term-closed term.
 --   * DE BRUIJN READINGS.
 --     - `ν X:=A.(L X)⟨c⟩` is Terms' `ν A · L ⟨ c ⟩`.
---     - `∀⊑⟪+⟫`'s right boundary is `bind 0 β ∷ []`: `Inst`'s ν leaves
---       `inst [] = bind 0 0 ∷ []` by `TyBeta`, and a sibling shift
---       renumbers only the rep. var (`renᴮᴿ`); "β:=★" is
---       `Δ′ ∋rep β := ★`, and its premise world is `W ⊕⁺ m ^ β`.
---     - Its premise uses the `InstX` RELATION of Reduction §0, not a
+--     - an opening's "β:=★" is `Δ′ ∋rep β := ★`; one opening at the
+--       right entry `bind 0 β` has premise world `W ⊕⁺ m ^ β`.
+--     - An opening uses the `InstX` RELATION of Reduction §0, not a
 --       function: `InstX V N` with N read under `underΛ Δ`, the left
 --       value's abstract rep. var at 0 (D16).
 --   * DEVIATION from design.md §12.3 (also in the report):
@@ -66,7 +88,8 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 open import Types using (Ty; `ℕ; `𝔹; ★; _⇒_; `∀)
 open import Ctx
 open import Conversion using (Conv; _⊢_∶_⇝_)
-open import Boundary using (Boundary; Change; bind; BoundaryWf; TyBetaBoundary)
+open import Boundary
+  using (Boundary; Change; bind; BoundaryWf; TyBetaBoundary; Fresh)
 open import Coercion
   using (Coercion; ModeEnv; _∣_⊢ᵖ_∶_⟹_; NonVar; _∈ᵗ_)
 open import Terms
@@ -183,8 +206,32 @@ cast-inv (⊢cast ⊢M ⊢p len) = _ , ⊢M , cast-ty ⊢p len
   _ , _ , ⊢M , bdy-ty mw ⊢c eqᵢ eqₑ wB
 
 ------------------------------------------------------------------------
--- 2. The relation
+-- 2. Openings (design.md D26) and the relation
 ------------------------------------------------------------------------
+
+-- `Opens Θ′ W M A W⁺ M₀ A₀`: M (at type A, world W) seen from inside
+-- the right boundary Θ′: M itself (no opening), or M a ∀-value whose
+-- binder is opened (`Open1`, ImprecisionWorld §5), M₀ the openings of
+-- `inst_X(M)`, at a name that Θ′ introduces (`Fresh Θ′ k`).  D22's
+-- side conditions (`NonVar A`, `0 ∈ᵗ A`) and the left typing of the
+-- opened value (not recoverable from its InstX image) are premises of
+-- each opening.  The right context does not change.
+data Opens {Δ′ : Ctxᵗ} (Θ′ : Boundary)
+    : ∀ {Δ Δ⁺} → World Δ Δ′ → Term → Ty → World Δ⁺ Δ′ → Term → Ty
+    → Set where
+  open-none : ∀ {Δ} {W : World Δ Δ′} {M A}
+    → Opens Θ′ W M A W M A
+  open-∀ : ∀ {Δ Δ⁺ k} {W : World Δ Δ′} {W₁ : World (underΛ Δ) Δ′}
+      {W⁺ : World Δ⁺ Δ′} {V N M₀ A A₀}
+    → NonVar A
+    → 0 ∈ᵗ A
+    → Value V
+    → Δ ∣ [] ⊢ V ⦂ `∀ A
+    → InstX V N
+    → Fresh Θ′ k
+    → Open1 W k W₁
+    → Opens Θ′ W₁ N A W⁺ M₀ A₀
+    → Opens Θ′ W V (`∀ A) W⁺ M₀ A₀
 
 infix 3 _∣_⊢_⊑_∶_
 
@@ -255,7 +302,7 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′) (γ : CtxImp W)
     → W ∣ γ ⊢ M ⊑ M′ ⟨ μ′ ∣ c′ ⟩ ∶ q
 
   ----------------------------------------------------------------------
-  -- Type abstraction (GTSFImp Λ⊑Λ², Λ⊑²), and ∀⊑⟪+⟫ (D14)
+  -- Type abstraction (GTSFImp Λ⊑Λ², Λ⊑²)
 
   Λ⊑Λ : ∀ {γ′ V V′ A A′} {r : A ⊑ᵂ⟨ W ⊕ X⊑X ⟩ A′}
     → LiftCtx X⊑X γ γ′
@@ -277,23 +324,8 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′) (γ : CtxImp W)
       ---------------------------------------------
     → W ∣ γ ⊢ Λ V ⊑ M′ ∶ q
 
-  -- a left ∀-value against the right boundary `[+X^β] V′ ⟨c′⟩` that
-  -- `Inst` created; the mark m of the new name is chosen here (D11)
-  ∀⊑⟪+⟫ : ∀ {V N V′ β m c′ A A′ B′} {r : A ⊑ᵂ⟨ W ⊕⁺ m ^ β ⟩ A′}
-    -- the body type is a non-variable mentioning the bound name, as in
-    -- Λ⊑ (Jeremy, 2026-10-03; without these, SimBack is false:
-    -- proof/DGG/notes/ForallBoundaryRisks.md)
-    → NonVar A
-    → 0 ∈ᵗ A
-    → Value V
-    → Δ ∣ lhs γ ⊢ V ⦂ `∀ A
-    → InstX V N
-    → W ⊕⁺ m ^ β ∣ [] ⊢ N ⊑ V′ ∶ r
-    → Δ′ ∋rep β := ★
-    → BdyTy Δ′ (bind 0 β ∷ []) (reps Δ′ ∣ (β ∷ names Δ′)) A′ c′ B′
-    → (q : `∀ A ⊑ᵂ⟨ W ⟩ B′)
-      ---------------------------------------------
-    → W ∣ γ ⊢ V ⊑ V′ ⟪ bind 0 β ∷ [] , c′ ⟫ ∶ q
+  -- (∀⊑⟪+⟫ was REMOVED by design.md D26: its instances are `⊑⟪⟫`
+  -- with one opening, below)
 
   ----------------------------------------------------------------------
   -- Instantiation (GTSFImp •⊑•², •⊑²); there is no ⊑ν
@@ -320,7 +352,8 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′) (γ : CtxImp W)
   -- Boundaries (these replace GTSFImp's reveal/conceal rules).  The
   -- interior is term-closed, so each premise has γ = [].  The interior
   -- world must be well formed (design.md §12.2, D15; Jeremy,
-  -- 2026-10-03): `WfWorld Wᵢ` is a premise.
+  -- 2026-10-03): `WfWorld Wᵢ` is a premise (for `⊑⟪⟫`, of the opened
+  -- world Wᵢ⁺, D26).
 
   ⟪⟫⊑⟪⟫ : ∀ {Δᵢ Δ′ᵢ} {Wᵢ : World Δᵢ Δ′ᵢ}
       {M M′ Θ Θ′ c c′ Aᵢ A′ᵢ A A′} {r : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩ A′ᵢ}
@@ -344,11 +377,18 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′) (γ : CtxImp W)
       ---------------------------------------------
     → W ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ∶ q
 
-  ⊑⟪⟫ : ∀ {Δ′ᵢ} {Wᵢ : World Δ Δ′ᵢ}
-      {M M′ Θ′ c′ A A′ᵢ A′} {r : A ⊑ᵂ⟨ Wᵢ ⟩ A′ᵢ}
+  -- THE GENERALIZED RIGHT-ONLY BOUNDARY RULE (design.md D26).  Wᵢ is
+  -- the right boundary's interior world; M is seen from inside through
+  -- `Opens` (zero openings: the plain right-only rule; one opening at
+  -- the boundary's own `bind 0 β`: the former ∀⊑⟪+⟫; an opening at a
+  -- name of a merged boundary: the counterexample K).  The WfWorld
+  -- premise is about the opened world Wᵢ⁺.
+  ⊑⟪⟫ : ∀ {Δ′ᵢ Δ⁺} {Wᵢ : World Δ Δ′ᵢ} {Wᵢ⁺ : World Δ⁺ Δ′ᵢ}
+      {M M₀ M′ Θ′ c′ A A₀ A′ᵢ A′} {r : A₀ ⊑ᵂ⟨ Wᵢ⁺ ⟩ A′ᵢ}
     → Interior W [] Θ′ Wᵢ
-    → WfWorld Wᵢ
-    → Wᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
+    → Opens Θ′ Wᵢ M A Wᵢ⁺ M₀ A₀
+    → WfWorld Wᵢ⁺
+    → Wᵢ⁺ ∣ [] ⊢ M₀ ⊑ M′ ∶ r
     → BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′
     → (q : A ⊑ᵂ⟨ W ⟩ A′)
       ---------------------------------------------

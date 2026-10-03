@@ -20,9 +20,11 @@ module proof.DGG.drafts.InstXImpProof
 --       matched) is NOT AVAILABLE under a cast (coercions are not
 --       compared) nor under a one-sided boundary;
 --     - mixed layers (`inst-gen` against `inst-∀`, either way round,
---       and `∀⊑⟪+⟫` against `inst-⟪⟫`) need forms that are not the IH;
+--       and `⊑⟪⟫` with an opening, formerly `∀⊑⟪+⟫`, against
+--       `inst-⟪⟫`) need forms that are not the IH;
 --     - InstXImpL: the `Λ⊑Λ` case has no rule to conclude with (there is
---       no ⊑Λ), and the `∀⊑⟪+⟫` case belongs to `ev-L⇔`, not to `ev-L`.
+--       no ⊑Λ), and the `⊑⟪⟫`-with-an-opening case (formerly `∀⊑⟪+⟫`,
+--       design.md D26) belongs to `ev-L⇔`, not to `ev-L`.
 --   * Orientation: the LEFT term is the more precise one.
 
 open import Data.List using (List; []; _∷_)
@@ -102,8 +104,6 @@ instx-imp2 pC vV vV′ (inst-Λ vN) iV′ (Λ⊑ nv occ liftᴸ-[] vN₁ V⊑ q)
   with instx-open-r vV′ iV′ V⊑
 instx-imp2 pC vV vV′ (inst-Λ vN) iV′ (Λ⊑ nv occ liftᴸ-[] vN₁ V⊑ q)
   | q′ , N⊑ = X⊑★ , q′ , N⊑
-instx-imp2 pC vV vV′ iV (inst-⟪⟫ uV′ iV′) (∀⊑⟪+⟫ nv occ vV₁ ⊢V iN N⊑ β★ b q) =
-  {!MISSING FORM: the left opened at W ⊕⁺ m ^ β, the right instantiates under its boundary!}
 instx-imp2 pC vV vV′ () iV′ (ν⊑ν L⊑ a n n′ nc q)
 instx-imp2 pC vV vV′ () iV′ (ν⊑ L⊑ a n q)
 -- boundaries: the IH at the interior world, then liftᴮ Θ
@@ -131,17 +131,21 @@ instx-imp2 pC vV vV′ (inst-⟪⟫ uU iU) iV′ (⟪⟫⊑ int wi U⊑ b q)
   m , {!q₀!}
   , ⟪⟫⊑ {!Interior (W ⊕ m) (liftᴮ Θ) [] (Wᵢ ⊕ m)!}
       {!WfWorld (Wᵢ ⊕ m) from wi!} N⊑ {!BdyTy!} {!q₀!}
-instx-imp2 pC vV vV′ iV (inst-⟪⟫ uU′ iU′) (⊑⟪⟫ int wi U⊑ b′ q)
+instx-imp2 pC vV vV′ iV (inst-⟪⟫ uU′ iU′) (⊑⟪⟫ int open-none wi U⊑ b′ q)
   with bdy-∀ b′
-instx-imp2 pC vV vV′ iV (inst-⟪⟫ uU′ iU′) (⊑⟪⟫ int wi U⊑ b′ q)
+instx-imp2 pC vV vV′ iV (inst-⟪⟫ uU′ iU′) (⊑⟪⟫ int open-none wi U⊑ b′ q)
   | C₀′ , refl
   with instx-imp2 {!NOT AVAILABLE: C ⊑ C₀′ across a one-sided boundary!}
          vV (V-simple uU′) iV iU′ U⊑
-instx-imp2 pC vV vV′ iV (inst-⟪⟫ uU′ iU′) (⊑⟪⟫ int wi U⊑ b′ q)
+instx-imp2 pC vV vV′ iV (inst-⟪⟫ uU′ iU′) (⊑⟪⟫ int open-none wi U⊑ b′ q)
   | C₀′ , refl | m , r , N⊑ =
   m , {!q₀!}
-  , ⊑⟪⟫ {!Interior (W ⊕ m) [] (liftᴮ Θ′) (Wᵢ ⊕ m)!}
+  , ⊑⟪⟫ {!Interior (W ⊕ m) [] (liftᴮ Θ′) (Wᵢ ⊕ m)!} open-none
       {!WfWorld (Wᵢ ⊕ m) from wi!} N⊑ {!BdyTy!} {!q₀!}
+-- an opening (the former ∀⊑⟪+⟫, design.md D26)
+instx-imp2 pC vV vV′ iV (inst-⟪⟫ uV′ iV′)
+    (⊑⟪⟫ int (open-∀ nv occ vV₁ ⊢V iN fr o os) wi N⊑ b q) =
+  {!MISSING FORM: the left opened (Opens), the right instantiates under its boundary!}
 
 ------------------------------------------------------------------------
 -- InstXImpL: the left alone instantiates
@@ -171,8 +175,6 @@ instx-impL vV iV (⊑cast M⊑ ct′ q) | r , N⊑ = {!q₀!} , ⊑cast N⊑ ct�
 instx-impL vV (inst-Λ vN) (Λ⊑Λ lift-[] vN₁ vN₁′ V⊑ q) =
   {!MISFIT: N ⊑ Λ N′ at W ⊕ᴸ — no rule (there is no ⊑Λ)!}
 instx-impL vV (inst-Λ vN) (Λ⊑ nv occ liftᴸ-[] vN₁ V⊑ q) = _ , V⊑
-instx-impL vV iV (∀⊑⟪+⟫ nv occ vV₁ ⊢V iN N⊑ β★ b q) =
-  {!MISFIT: this is the ev-L⇔ catch-up (N ⊑ V′ at W ⊕⁺ m ^ β is the premise); W ⊕ᴸ does not pair 0 with β!}
 instx-impL vV () (ν⊑ν L⊑ a n n′ nc q)
 instx-impL vV () (ν⊑ L⊑ a n q)
 instx-impL vV (inst-⟪⟫ uU iU) (⟪⟫⊑⟪⟫ int wi U⊑ b b′ bc q)
@@ -193,8 +195,11 @@ instx-impL vV (inst-⟪⟫ uU iU) (⟪⟫⊑ int wi U⊑ b q) | C₀ , refl
   {!q₀!}
   , ⟪⟫⊑ {!Interior (W ⊕ᴸ) (liftᴮ Θ) [] (Wᵢ ⊕ᴸ)!}
       {!WfWorld (Wᵢ ⊕ᴸ) from wi!} N⊑ {!BdyTy!} {!q₀!}
-instx-impL vV iV (⊑⟪⟫ int wi U⊑ b′ q) with instx-impL vV iV U⊑
-instx-impL vV iV (⊑⟪⟫ int wi U⊑ b′ q) | r , N⊑ =
+instx-impL vV iV (⊑⟪⟫ int open-none wi U⊑ b′ q) with instx-impL vV iV U⊑
+instx-impL vV iV (⊑⟪⟫ int open-none wi U⊑ b′ q) | r , N⊑ =
   {!q₀!}
-  , ⊑⟪⟫ {!Interior (W ⊕ᴸ) [] Θ′ (Wᵢ ⊕ᴸ)!}
+  , ⊑⟪⟫ {!Interior (W ⊕ᴸ) [] Θ′ (Wᵢ ⊕ᴸ)!} open-none
       {!WfWorld (Wᵢ ⊕ᴸ) from wi!} N⊑ b′ {!q₀!}
+-- an opening (the former ∀⊑⟪+⟫, design.md D26)
+instx-impL vV iV (⊑⟪⟫ int (open-∀ nv occ vV₁ ⊢V iN fr o os) wi N⊑ b q) =
+  {!MISFIT: this is the ev-L⇔ catch-up (the premise relates the opened image); W ⊕ᴸ does not pair 0 with the opened name's rep. var!}

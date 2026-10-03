@@ -12,7 +12,9 @@ module proof.ImprecisionWorld where
 --     rep. vars of each side that maps paired rep. vars to paired rep.
 --     vars (`⊑ᴿ-ren`; local ∀-bound variables are untouched, the
 --     renaming acts under `extN (length μ)`).
---   * THE PREMISE WORLD OF ∀⊑⟪+⟫ IS WELL FORMED (`wf-⊕⁺`) when W is,
+--   * THE OPENED WORLD `W ⊕⁺ m ^ β` (one opening of `⊑⟪⟫` at `bind 0 β`,
+--     design.md D26; before D26 the premise world of ∀⊑⟪+⟫) IS WELL
+--     FORMED (`wf-⊕⁺`) when W is,
 --     β:=★, and β has no left partner NAMED in Δ (`NoNamedPartner`,
 --     the scoped form of D13's dropped `NoLeftPartner`).  β may have
 --     unnamed left partners, e.g. a store rep. var of an earlier
@@ -153,7 +155,7 @@ PairedRen W W₁ f g = ∀ {α β} → Paired W α β → Paired W₁ (f α) (g 
 ⊑ᴿ-ren f g h bot⊑★ = bot⊑★
 
 ------------------------------------------------------------------------
--- 4. The premise world of ∀⊑⟪+⟫
+-- 4. The opened world W ⊕⁺ m ^ β (formerly ∀⊑⟪+⟫'s premise world)
 ------------------------------------------------------------------------
 
 -- β has no left partner that is named in Δ (D25's scoped analogue of

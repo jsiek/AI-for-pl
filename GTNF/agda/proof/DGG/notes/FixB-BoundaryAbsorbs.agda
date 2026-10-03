@@ -1,6 +1,12 @@
 module proof.DGG.notes.FixB-BoundaryAbsorbs where
 
 -- File Charter:
+--   * HISTORICAL: written against the relation before design.md D26
+--     (2026-10-03), which removed `∀⊑⟪+⟫` and generalized `⊑⟪⟫` with
+--     `Opens`.  It no longer type-checks against TermImprecision (it, or
+--     a note it imports, uses the old rule) and is excluded from every
+--     check: All.agda does not import it and it is not a *Proof.agda.
+--     FixB (∀⊑ʸ, Λ⊑ʳ) was not adopted; D26 took the generalized `⊑⟪⟫`.
 --   * FIX (b) FOR THE ∀-BOUNDARY MERGE COUNTEREXAMPLE
 --     (RestrictedForallBoundary §3): a left `[+X^α] (ΛY. V) ⟨∀Y. c⟩`
 --     against the right's MERGED `[+Y^β, +X^α] V′ ⟨c′⟩` by the

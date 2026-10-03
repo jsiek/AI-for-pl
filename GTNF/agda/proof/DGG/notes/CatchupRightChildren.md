@@ -13,6 +13,8 @@ is the more precise side.
 CatchupRight's conclusion with the left term `M`, which need not be a
 value.
 
+**Superseded by D26 (2026-10-03):** `∀⊑⟪+⟫` is no longer a rule; its case is the `⊑⟪⟫` case with an opening, and the skeleton's hole is `CatchupRightᴳ` (GeneralizedRightBoundary.md §4).
+
 ## Fit check (done; the copies are deleted)
 
 1. **Every hole is one application of a frame child.**  In a temporary

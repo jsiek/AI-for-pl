@@ -17,6 +17,11 @@ module proof.DGG.notes.CatchupRightChildren where
 --       or a boundary over a value, so the right's outer step is about
 --       to fire; each frame child reduces to a value child and the
 --       transports of §4.
+--   * Since design.md D26 (2026-10-03) `∀⊑⟪+⟫` is not a rule: its
+--     instances are `⊑⟪⟫` with one opening, and the skeleton's hole is
+--     `CatchupRightᴳ` (proof/DGG/notes/GeneralizedRightBoundary.md §4).
+--     `CatchupFrame-∀⊑⟪+⟫` below is kept as written against the
+--     relation before D26 (its premises are those of the old rule).
 --   * Orientation: the LEFT term is the more precise one.
 
 open import Data.List using (List; []; _∷_)

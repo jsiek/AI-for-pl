@@ -156,12 +156,6 @@ alloc-imp wr s (Λ⊑ nv occ l vV V⊑ q) | γ₁′ , l₁ , s′
 alloc-imp wr s (Λ⊑ nv occ l vV V⊑ q) | γ₁′ , l₁ , s′ | r , V₁ =
   ⊑ᵂ-ren wr q
   , Λ⊑ nv occ l₁ (value-ren (wr-left (wr-⊕ᴸ wr)) vV) V₁ (⊑ᵂ-ren wr q)
-alloc-imp wr s (∀⊑⟪+⟫ nv occ vV ⊢V i N⊑ β★ b q)
-  with alloc-imp (wr-⊕⁺ wr) same-[] N⊑
-alloc-imp wr s (∀⊑⟪+⟫ nv occ vV ⊢V i N⊑ β★ b q) | r , N₁ =
-  ⊑ᵂ-ren wr q
-  , ∀⊑⟪+⟫ nv occ (value-ren (wr-left wr) vV) {!⊢renᴿ ⊢V!} (instX-ren i) N₁
-      {!wk-bind of RepWk ρ′ on β★!} {!BdyTy under ρ′!} (⊑ᵂ-ren wr q)
 alloc-imp wr s (ν⊑ν L⊑ a n n′ nc q) with alloc-imp wr s L⊑
 alloc-imp wr s (ν⊑ν L⊑ a n n′ nc q) | r , L₁ =
   ⊑ᵂ-ren wr q
@@ -188,11 +182,27 @@ alloc-imp wr s (⟪⟫⊑ int wi M⊑ b q) | Δᵢ₁ , Δ′ᵢ₁ , Wᵢ₁ , 
   ⊑ᵂ-ren wr q
   , ⟪⟫⊑ {!int₁ (Interior at renᴮᴿ ρ′ [] = [])!} {!MISFIT: WfWorld Wᵢ₁!}
       {!M₁!} {!BdyTy under ρ!} (⊑ᵂ-ren wr q)
-alloc-imp wr s (⊑⟪⟫ int wi M⊑ b′ q) with alloc-interior wr int
-alloc-imp wr s (⊑⟪⟫ int wi M⊑ b′ q) | Δᵢ₁ , Δ′ᵢ₁ , Wᵢ₁ , int₁ , wrᵢ
+-- ⊑⟪⟫ (design.md D26).  No opening: the interior commutation.  With
+-- openings (the former ∀⊑⟪+⟫, whose IH was at `wr-⊕⁺ wr`): the IH is at
+-- the renamed OPENED world, which needs the openings to commute with the
+-- renaming (`OpensRen`, not stated yet)
+alloc-imp wr s (⊑⟪⟫ int open-none wi M⊑ b′ q) with alloc-interior wr int
+alloc-imp wr s (⊑⟪⟫ int open-none wi M⊑ b′ q)
+  | Δᵢ₁ , Δ′ᵢ₁ , Wᵢ₁ , int₁ , wrᵢ
   with alloc-imp wrᵢ same-[] M⊑
-alloc-imp wr s (⊑⟪⟫ int wi M⊑ b′ q) | Δᵢ₁ , Δ′ᵢ₁ , Wᵢ₁ , int₁ , wrᵢ
+alloc-imp wr s (⊑⟪⟫ int open-none wi M⊑ b′ q)
+  | Δᵢ₁ , Δ′ᵢ₁ , Wᵢ₁ , int₁ , wrᵢ | r , M₁ =
+  ⊑ᵂ-ren wr q
+  , ⊑⟪⟫ {!int₁ (Interior at renᴮᴿ ρ [] = [])!} open-none
+      {!MISFIT: WfWorld Wᵢ₁!} {!M₁!} {!BdyTy under ρ′!} (⊑ᵂ-ren wr q)
+alloc-imp wr s (⊑⟪⟫ int (open-∀ nv occ vV ⊢V i fr o os) wi M⊑ b′ q)
+  with alloc-imp {!OpensRen: WorldRen of the opened world (one opening
+                   at k = 0: wr-⊕⁺ wr)!} same-[] M⊑
+alloc-imp wr s (⊑⟪⟫ int (open-∀ nv occ vV ⊢V i fr o os) wi M⊑ b′ q)
   | r , M₁ =
   ⊑ᵂ-ren wr q
-  , ⊑⟪⟫ {!int₁ (Interior at renᴮᴿ ρ [] = [])!} {!MISFIT: WfWorld Wᵢ₁!}
-      {!M₁!} {!BdyTy under ρ′!} (⊑ᵂ-ren wr q)
+  , ⊑⟪⟫ {!Interior under ρ, ρ′ (alloc-interior wr int)!}
+      {!Opens under ρ, ρ′: open-∀ nv occ (value-ren (wr-left wr) vV)
+        (⊢renᴿ ⊢V) (instX-ren i) fr (Open1 under ρ′) (os under ρ)!}
+      {!WfWorld of the renamed opened world!} {!M₁!} {!BdyTy under ρ′!}
+      (⊑ᵂ-ren wr q)

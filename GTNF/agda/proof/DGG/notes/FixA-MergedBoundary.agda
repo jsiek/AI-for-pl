@@ -1,6 +1,12 @@
 module proof.DGG.notes.FixA-MergedBoundary where
 
 -- File Charter:
+--   * HISTORICAL: written against the relation before design.md D26
+--     (2026-10-03), which removed `∀⊑⟪+⟫` and generalized `⊑⟪⟫` with
+--     `Opens`.  It no longer type-checks against TermImprecision (it, or
+--     a note it imports, uses the old rule) and is excluded from every
+--     check: All.agda does not import it and it is not a *Proof.agda.
+--     FixA (`∀⊑⟪+⟫ᴹ`) was not adopted; D26 took the generalized `⊑⟪⟫`.
 --   * FIX (a) FOR THE BOUNDARY-MERGE COUNTEREXAMPLE of
 --     RestrictedForallBoundary §3: a second rule `∀⊑⟪+⟫ᴹ` for a
 --     MERGED right boundary `(θ ∷ Θ′) ++ (bind 0 β ∷ [])`.  Findings

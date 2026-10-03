@@ -8,20 +8,24 @@ module examples.TermImprecisionRebaseExamples where
 --     and schedules are those of GTNF/notes/cambridge-imprecision-check
 --     (-v2).md; the correspondence is GTNF/notes/rebasing-in-gtnf.md.
 --       c12-b0, c12-x0, c12-b1   C12 (Ex 12): B0; the right-led (0,2)
---                                block (ν⊑ν around ∀⊑⟪+⟫); B1, where
+--                                block (ν⊑ν around ⊑⟪⟫ with one
+--                                opening, D26); B1, where
 --                                αᴸ has two right partners (D25)
 --       c13-b1, c14-b1           C13/C14 B1 (Ex 13/14): two and three
 --                                right partners (D25)
 --       cg-b0, cg-x0             Cg (Ex 1/20): B0; the right-led block,
---                                ∀⊑⟪+⟫ at mark X⊑★ (D14)
+--                                ⊑⟪⟫ with one opening at mark X⊑★
+--                                (D14, D26)
 --       c2-b0, c2-x0             C2 (Ex 2/21): B0; the right-led block,
---                                ∀⊑⟪+⟫ on a gen-cast ∀-value (D14)
+--                                ⊑⟪⟫ opening a gen-cast ∀-value
+--                                (D14, D26)
 --       c2-b6, c2-b7             C2 B6/B7: the multi-entry boundary
 --                                (−X, +X) ∥ (−X, +X) with its conversion
 --                                premise (D15, D17)
 --       ch-b0, ch-x0, ch-b1      Ch (Ex 4/11): B0 (Λ⊑Λ, lexical pair);
 --                                the right-led block (= p3-inst, lexical
---                                pair under ∀⊑⟪+⟫, D16); B1 (global pair)
+--                                pair under the opening, D16, D26);
+--                                B1 (global pair)
 --     Every state that is not a source program is pinned to its
 --     `evalTerms` state by `refl` (`*-state`).
 --   * TYPING SIDE PREMISES come from `tc` on the subterms, read back by
@@ -33,7 +37,9 @@ module examples.TermImprecisionRebaseExamples where
 --     ch-x0's premise world).  C2 B6/B7 and Ch B1 use
 --     TermImprecisionExamples' Wᵢ₁ (Wᵢ₁-wf).
 --   * NO RULE WAS CHANGED: every block derives with TermImprecision as
---     it stands.
+--     it stands.  The four right-led X0 blocks were re-derived for
+--     design.md D26 (∀⊑⟪+⟫ removed; ⊑⟪⟫ with one opening, at the
+--     right-only interior world `W₃ ⊕ʳ m ^ 0`, `int-ro₃`).
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_; head; drop)
@@ -62,7 +68,7 @@ open import Reduction using (inst-Λ; inst-gen)
 open import examples.TermImprecisionExamples
   using (idX; revX; ℕ⊑★; five⊑; Θ₀; L1′; ΔL; ΔR; ΔLᵢ; ΔRᵢ;
          W₁; Wᵢ₁; Wᵢ₁-int; Wᵢ₁-conv; Wᵢ₁-wf; bL-ty; bR-ty; bLR-conv; revX⊑revX;
-         νL-ty; Wν; Wν-conv; W₃; R3′; p3-inst)
+         νL-ty; Wν; Wν-conv; W₃; R3′; p3-inst; int-ro₃)
 open import examples.ImprecisionExamples using (L1)
 
 ------------------------------------------------------------------------
@@ -198,7 +204,7 @@ core⊑ : ∀ {Ξ′ ϱ β} → Ξ′ ∋ʳ β → ϱ ∋ᵨ 0 ⇔ β
   → Wcᴸ {Ξ′} {ϱ} ∣ [] ⊢ idX ⊑ idX ⟪ bind 0 β ∷ [] , revX ⟫
       ∶ c⊑★ᴸ Ξ′ ϱ
 core⊑ {Ξ′} {ϱ} v p W²-wf b =
-  ⊑⟪⟫ (Wc-bindᴿ v p) W²-wf
+  ⊑⟪⟫ (Wc-bindᴿ v p) open-none W²-wf
     (ƛ⊑ƛ {pA = X⊑X {X = 0}} {pB = X⊑X {X = 0}} tf tf (x⊑x Zʷ))
     b (c⊑★ᴸ Ξ′ ϱ)
 
@@ -220,9 +226,9 @@ layer⊑ : ∀ {Ξ′ ϱ β M}
   → Wcᴸ {Ξ′} {ϱ} ∣ [] ⊢ idX ⊑ genLayer β M
       ∶ c⊑★ᴸ Ξ′ ϱ
 layer⊑ {Ξ′} {ϱ} {β} v p W²-wf Wᴸ-wf M⊑ cᵢ bᵤ cₜ b =
-  ⊑⟪⟫ (Wc-bindᴿ v p) W²-wf
+  ⊑⟪⟫ (Wc-bindᴿ v p) open-none W²-wf
     (⊑cast {A = ` 0 ⇒ ` 0}
-      (⊑⟪⟫ (Wc-unbindᴿ v) Wᴸ-wf
+      (⊑⟪⟫ (Wc-unbindᴿ v) open-none Wᴸ-wf
         (⊑cast M⊑ cᵢ (c⊑★ᴸ Ξ′ ϱ)) bᵤ (c⊑★² Ξ′ ϱ β))
       cₜ (c⊑c² Ξ′ ϱ β))
     b (c⊑★ᴸ Ξ′ ϱ)
@@ -243,7 +249,7 @@ outer⊑ : ∀ {Ξ′ ϱ M B′}
 outer⊑ {Ξ′} {ϱ} v p W²-wf Wᴸ-wf M⊑ cᵢ bᵤ cₜ b bc q =
   ⟪⟫⊑⟪⟫ (Wc-bind² v p) W²-wf
     (⊑cast {A = ` 0 ⇒ ` 0}
-      (⊑⟪⟫ (Wc-unbindᴿ v) Wᴸ-wf
+      (⊑⟪⟫ (Wc-unbindᴿ v) open-none Wᴸ-wf
         (⊑cast M⊑ cᵢ (c⊑★ᴸ Ξ′ ϱ)) bᵤ (c⊑★² Ξ′ ϱ 0))
       cₜ (c⊑c² Ξ′ ϱ 0))
     bL-ty b bc q
@@ -420,10 +426,10 @@ id★↦ᴿ-ty = cast-ty (⊢fun (⊢id atom-★ wf-★) (⊢id atom-★ wf-★)
 ΛidX-⊢ = tc
 
 ------------------------------------------------------------------------
--- Cg's right-led block X0 (D14: ∀⊑⟪+⟫ at mark X⊑★)
+-- Cg's right-led block X0 (D14, D26: ⊑⟪⟫ with one opening at mark X⊑★)
 ------------------------------------------------------------------------
 
--- the premise world of ∀⊑⟪+⟫: the left Λ's abstract rep. var paired
+-- the opened premise world: the left Λ's abstract rep. var paired
 -- LEXICALLY with αᴿ:=★; the shared name at X⊑★ (chosen here, D11)
 Wg⁺ : World (underΛ empty) ΔRₓ
 Wg⁺ = W₃ ⊕⁺ X⊑★ ^ 0
@@ -474,20 +480,23 @@ cg-x0 =
   ·⊑·
     (ν⊑
       (⊑cast
-        (∀⊑⟪+⟫ {m = X⊑★} nv-⇒ (∈-⇒ˡ ∈-var) (V-simple (S-Λ (V-simple S-ƛ))) ΛidX-⊢
-          (inst-Λ (V-simple S-ƛ))
+        (⊑⟪⟫ int-ro₃
+          (open-∀ nv-⇒ (∈-⇒ˡ ∈-var) (V-simple (S-Λ (V-simple S-ƛ))) ΛidX-⊢
+            (inst-Λ (V-simple S-ƛ)) refl (open-⊕ r-here) open-none)
+          Wg⁺-wf
           (⊑cast
-            (⊑⟪⟫ Wg⁻-int Wg⁻-wf
+            (⊑⟪⟫ Wg⁻-int open-none Wg⁻-wf
               (ƛ⊑ƛ {pA = X⊑★ here} tf wf-★ (x⊑x Zʷ))
               I★⁻ᴿ-ty (X⇒X⊑★⇒★ {W = Wg⁺} here))
             tagᴿ-ty (⇒⊑⇒ X⊑X X⊑X))
-          r-here Bg-ty (∀id⊑★ W₃))
+          Bg-ty (∀id⊑★ W₃))
         id★↦ᴿ-ty (∀id⊑★ W₃))
       ℕ⊑★ νL-ty (ℕ⇒ℕ⊑★⇒★ W₃))
     five⊑
 
 ------------------------------------------------------------------------
--- C2's right-led block X0 (D14: ∀⊑⟪+⟫ with a gen-cast left ∀-value)
+-- C2's right-led block X0 (D14, D26: ⊑⟪⟫ opening a gen-cast left
+-- ∀-value, `inst-gen`)
 ------------------------------------------------------------------------
 
 I★genI : Term
@@ -588,15 +597,18 @@ c2-x0 =
   ·⊑·
     (ν⊑
       (⊑cast
-        (∀⊑⟪+⟫ {m = X⊑X} nv-⇒ (∈-⇒ˡ ∈-var) (V-simple (S-cast (V-simple S-ƛ) I-gen))
-          I★genI-⊢ (inst-gen (V-simple S-ƛ))
+        (⊑⟪⟫ int-ro₃
+          (open-∀ nv-⇒ (∈-⇒ˡ ∈-var)
+            (V-simple (S-cast (V-simple S-ƛ) I-gen)) I★genI-⊢
+            (inst-gen (V-simple S-ƛ)) refl (open-⊕ r-here) open-none)
+          W2⁺-wf
           (cast⊑cast
             (⟪⟫⊑⟪⟫ W2⁻-int W2⁻-wf
               (ƛ⊑ƛ {pA = ★⊑★} tf tf (x⊑x Zʷ))
               I★⁻ᴸ-ty I★⁻ᴿ-ty
               (W2⁺ , W2⁺-conv , id★→⊑id★→) (★⇒★ W2⁺))
             tagᴸ-ty tagᴿ-ty (⇒⊑⇒ X⊑X X⊑X))
-          r-here Bg-ty (∀id⊑★ W₃))
+          Bg-ty (∀id⊑★ W₃))
         id★↦ᴿ-ty (∀id⊑★ W₃))
       ℕ⊑★ C2-L-ν-ty (ℕ⇒ℕ⊑★⇒★ W₃))
     five⊑
@@ -1082,13 +1094,14 @@ c12-b0 =
     (κ⊑κ lit-$ (ι⊑ι base-ℕ))
 
 ------------------------------------------------------------------------
--- Ch's right-led block X0 (= P3's ∀⊑⟪+⟫ block) and Ch B1
+-- Ch's right-led block X0 (= P3's block, ⊑⟪⟫ with one opening) and Ch B1
 ------------------------------------------------------------------------
 
 Ch-R₂-state : head (drop 2 (evalTerms 15 Ch-R-⊢)) ≡ just R3′
 Ch-R₂-state = refl
 
--- ∀⊑⟪+⟫ at X⊑X: (aᴸ_ΛY, αᴿ:=★) ∈ ϱˡ in its premise world W₃ ⊕⁺ X⊑X ^ 0
+-- one opening at X⊑X: (aᴸ_ΛY, αᴿ:=★) ∈ ϱˡ in the opened world
+-- W₃ ⊕⁺ X⊑X ^ 0
 ch-x0 : W₃ ∣ [] ⊢ Ch-L ⊑ R3′ ∶ ℕ⊑★
 ch-x0 = p3-inst
 
@@ -1112,7 +1125,7 @@ ch-b1 =
     five⊑
 
 ------------------------------------------------------------------------
--- C12's right-led block X0: ν⊑ν around ∀⊑⟪+⟫
+-- C12's right-led block X0: ν⊑ν around ⊑⟪⟫ with one opening (D26)
 ------------------------------------------------------------------------
 
 -- C12's state 2: the right's Inst and TyBeta (αᴿ:=★) have run inside
@@ -1157,10 +1170,13 @@ c12-x0 =
     (ν⊑ν
       (⊑cast
         (⊑cast
-          (∀⊑⟪+⟫ {m = X⊑X} nv-⇒ (∈-⇒ˡ ∈-var) (V-simple (S-Λ (V-simple S-ƛ))) ΛidX-⊢
-            (inst-Λ (V-simple S-ƛ))
+          (⊑⟪⟫ int-ro₃
+            (open-∀ nv-⇒ (∈-⇒ˡ ∈-var) (V-simple (S-Λ (V-simple S-ƛ)))
+              ΛidX-⊢ (inst-Λ (V-simple S-ƛ)) refl (open-⊕ r-here)
+              open-none)
+            W2⁺-wf
             (ƛ⊑ƛ {pA = X⊑X {X = 0}} {pB = X⊑X {X = 0}} tf tf (x⊑x Zʷ))
-            r-here bR-ty (∀id⊑★ W₃))
+            bR-ty (∀id⊑★ W₃))
           id★↦ᴿ-ty (∀id⊑★ W₃))
         genIᴿ-ty (∀id⊑∀id W₃))
       (ι⊑ι base-ℕ) νL-ty C12-ν₂-ty (Wν₂ , Wν₂-conv , revX⊑revX refl) (ℕ⇒ℕ W₃))

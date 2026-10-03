@@ -46,6 +46,10 @@ open import examples.CambridgeExamples
 -- term imprecision at the blocks where cambridge26 uses (split)/(extend)
 open import examples.TermImprecisionRebaseExamples
 
+-- regression (design.md D26): the boundary-Merge counterexample K,
+-- related by the generalized ⊑⟪⟫
+open import examples.TermImprecisionRegressionExamples
+
 -- de Bruijn → named rendering (scripts/render_gtnf.sh)
 open import examples.Show
 

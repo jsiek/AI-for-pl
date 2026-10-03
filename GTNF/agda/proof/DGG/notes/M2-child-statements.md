@@ -7,6 +7,8 @@ module is written.  The statements are type-checked in
 All.agda.  That file is the authoritative text; this note gives the
 shapes and the cases that use each statement.
 
+**Superseded by D26 (2026-10-03):** `∀⊑⟪+⟫` is no longer a rule; its cases below are the `⊑⟪⟫` cases with an opening (`Opens`), and `SimBackFrame-∀⊑⟪+⟫`/`SimBackInstX` now also take that instance's `Interior` and `WfWorld` premises.
+
 **Fit check (rerun after the refresh).**  I made temporary copies of
 `proof/DGG/SimProof.agda` and `proof/DGG/SimBackProof.agda`, took the
 drafts as module parameters, and replaced each child hole by its

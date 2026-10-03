@@ -21,6 +21,9 @@ module proof.DGG.notes.ForallBoundaryRisks where
 --     duplicated Inst boundary, one copy instantiated on the left);
 --     §4 the proposed side conditions, checked on the counterexample
 --     and on the existing derivations' arguments; §5 their runs.
+--   * Design.md D26 (2026-10-03) removed `∀⊑⟪+⟫`: its instances are
+--     `⊑⟪⟫` with one opening.  `⊑-spine` covers the openings
+--     (`opens-spine`); the prose about `∀⊑⟪+⟫` is history.
 --   * Orientation: the LEFT term is the more precise one.
 
 open import Data.Empty using (⊥; ⊥-elim)
@@ -92,6 +95,15 @@ inst-¬spine v (inst-∀ w i) (bs-cast b) = inst-¬spine w i b
 inst-¬spine v (inst-⟪⟫ u i) (bs-⟪⟫ b) = inst-¬spine (V-simple u) i b
 
 -- what is related to a blame spine is a blame spine
+-- the openings of `⊑⟪⟫` (design.md D26): an opened image is no blame
+-- spine (the former ∀⊑⟪+⟫ case), so with an opening the spine is absurd
+opens-spine : ∀ {Δ Δ′ Δ⁺ Θ′} {W : World Δ Δ′} {W⁺ : World Δ⁺ Δ′}
+    {M M₀ A A₀}
+  → Opens Θ′ W M A W⁺ M₀ A₀ → BlameSpine M₀ → BlameSpine M
+opens-spine open-none b = b
+opens-spine (open-∀ _ _ v _ i _ _ os) b =
+  ⊥-elim (inst-¬spine v i (opens-spine os b))
+
 ⊑-spine : ∀ {Δ Δ′} {W : World Δ Δ′} {γ : CtxImp W} {M M′ A A′}
     {p : A ⊑ᵂ⟨ W ⟩ A′}
   → W ∣ γ ⊢ M ⊑ M′ ∶ p → BlameSpine M′ → BlameSpine M
@@ -107,13 +119,11 @@ inst-¬spine v (inst-⟪⟫ u i) (bs-⟪⟫ b) = inst-¬spine (V-simple u) i b
 ⊑-spine (⊑cast d _ _) (bs-cast b) = ⊑-spine d b
 ⊑-spine (Λ⊑Λ _ _ _ _ _) ()
 ⊑-spine (Λ⊑ _ _ _ v d _) b = ⊥-elim (value-¬spine v (⊑-spine d b))
-⊑-spine (∀⊑⟪+⟫ _ _ v _ i d _ _ _) (bs-⟪⟫ b) =
-  ⊥-elim (inst-¬spine v i (⊑-spine d b))
 ⊑-spine (ν⊑ν d _ _ _ _ _) (bs-ν b) = bs-ν (⊑-spine d b)
 ⊑-spine (ν⊑ d _ _ _) b = bs-ν (⊑-spine d b)
 ⊑-spine (⟪⟫⊑⟪⟫ _ _ d _ _ _ _) (bs-⟪⟫ b) = bs-⟪⟫ (⊑-spine d b)
 ⊑-spine (⟪⟫⊑ _ _ d _ _) b = bs-⟪⟫ (⊑-spine d b)
-⊑-spine (⊑⟪⟫ _ _ d _ _) (bs-⟪⟫ b) = ⊑-spine d b
+⊑-spine (⊑⟪⟫ _ os _ d _ _) (bs-⟪⟫ b) = opens-spine os (⊑-spine d b)
 
 -- no value is related to a blame spine
 value-⋢-spine : ∀ {Δ Δ′} {W : World Δ Δ′} {γ : CtxImp W} {V M′ A A′}

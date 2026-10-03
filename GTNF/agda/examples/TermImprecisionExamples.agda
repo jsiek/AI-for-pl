@@ -10,8 +10,9 @@ module examples.TermImprecisionExamples where
 --       p2-tybeta P2 after the left's TyBeta: ·⊑·, ⟪⟫⊑ with X left-only
 --                 (X⊑★), X→X ⊑ ★→★ inside, ℕ→ℕ ⊑ ★→★ outside
 --       p3-inst   P3 after the right's Inst, TyBeta, Beta: ·⊑·, ν⊑,
---                 ⊑cast, ∀⊑⟪+⟫ (the left Λ's abstract rep. var paired
---                 lexically with αᴿ:=★; `inst-Λ`)
+--                 ⊑cast, ⊑⟪⟫ with one opening (design.md D26; the
+--                 left Λ's abstract rep. var paired lexically with
+--                 αᴿ:=★; `inst-Λ`)
 --       p6-init-ν P6's initial ν pair, with `−X → id(ℕ)` related to
 --                 `−X → id(★)` in the ν conversion world
 --       p6-tybeta P6 right after both TyBetas: the same conversion
@@ -285,7 +286,8 @@ p2-tybeta =
 
 ------------------------------------------------------------------------
 -- P3, after the right's Inst, TyBeta and Beta, before the left's
--- TyBeta: ∀⊑⟪+⟫ relates the left Λ to the right's Inst boundary
+-- TyBeta: ⊑⟪⟫ with one opening (D26; before D26, ∀⊑⟪+⟫) relates the
+-- left Λ to the right's Inst boundary
 ------------------------------------------------------------------------
 
 R3′ : Term
@@ -307,12 +309,45 @@ W₃ = world [] []↪ []↪ [] []
 ΛidX-⊢ : empty ∣ [] ⊢ Λ idX ⦂ ∀X⇒X
 ΛidX-⊢ = tc
 
+-- the Inst boundary `+X^α` (α:=★ at rep. var 0) alone: X is a
+-- right-only name, with the mark m chosen here (D11)
+int-ro₃ : ∀ {m} → Interior W₃ [] Θ₀ (W₃ ⊕ʳ m ^ 0)
+int-ro₃ = record
+  { int-left   = interior changes[]
+  ; int-right  = int₀
+  ; same-ϱᵍ    = refl
+  ; same-ϱˡ    = refl
+  ; join-cont  = λ { (_ , ()) _ _ _ }
+  ; join-fresh = λ { () _ _ }
+  ; mark-left  = λ { (_ , ()) _ _ }
+  ; mark-right = λ { (_ , here) () _ ; (_ , there ()) _ _ }
+  }
+
+-- the opened world: the left Λ's abstract rep. var paired lexically
+-- with αᴿ:=★ (`abst-★`), the shared name at X⊑X
+W₃⁺-wf : WfWorld (W₃ ⊕⁺ X⊑X ^ 0)
+W₃⁺-wf = wf-world (both (inj₂ here⇔) joint[]) agree
+  (namedᴸ-≤1 (W₃ ⊕⁺ X⊑X ^ 0) ≤1-∷[]) (namedᴿ-≤1 (W₃ ⊕⁺ X⊑X ^ 0) ≤1-∷[])
+  where
+  agree : ∀ {α β} → Paired (W₃ ⊕⁺ X⊑X ^ 0) α β
+    → Agree (W₃ ⊕⁺ X⊑X ^ 0) α β
+  agree (inj₁ ())
+  agree (inj₂ here⇔) = abst-★ r-here r-here
+  agree (inj₂ (there⇔ ()))
+
+-- one opening of the left `ΛX. λx:X. x` at the boundary's name 0
+-- (`inst-Λ`)
+openΛidX : Opens Θ₀ (W₃ ⊕ʳ X⊑X ^ 0) (Λ idX) ∀X⇒X (W₃ ⊕⁺ X⊑X ^ 0) idX
+  (` 0 ⇒ ` 0)
+openΛidX =
+  open-∀ nv-⇒ (∈-⇒ˡ ∈-var) (V-simple (S-Λ (V-simple S-ƛ))) ΛidX-⊢
+    (inst-Λ (V-simple S-ƛ)) refl (open-⊕ r-here) open-none
+
 p3-inst : W₃ ∣ [] ⊢ L1 ⊑ R3′ ∶ ℕ⊑★
 p3-inst =
-  ·⊑· (ν⊑ (⊑cast (∀⊑⟪+⟫ {m = X⊑X} nv-⇒ (∈-⇒ˡ ∈-var) (V-simple (S-Λ (V-simple S-ƛ))) ΛidX-⊢
-                         (inst-Λ (V-simple S-ƛ))
+  ·⊑· (ν⊑ (⊑cast (⊑⟪⟫ int-ro₃ openΛidX W₃⁺-wf
                          (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ))
-                         r-here bR-ty ∀id⊑★)
+                         bR-ty ∀id⊑★)
                  (cast-ty (⊢fun (⊢id atom-★ wf-★) (⊢id atom-★ wf-★)) refl) ∀id⊑★)
           ℕ⊑★ νL-ty (⇒⊑⇒ ℕ⊑★ ℕ⊑★))
       five⊑

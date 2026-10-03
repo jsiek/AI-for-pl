@@ -9,7 +9,8 @@ module proof.DGG.Evolve where
 --   * FOUR WAYS A RUN CHANGES THE REP. VARS, one constructor each: an
 --     unmatched left or right TyBeta (`ev-L`, `ev-R`, which renumber
 --     their own side), a matched pair (`ev-2`, a new global pair), and
---     the left's catch-up with a right boundary that `∀⊑⟪+⟫` related
+--     the left's catch-up with a right boundary that an opening of
+--     `⊑⟪⟫` related (design.md D26; formerly `∀⊑⟪+⟫`)
 --     (`ev-L⇔`, pairing the new left rep. var with the existing right
 --     β; β may already have left partners, design.md D25, e.g. when
 --     the left instantiates two Beta-copies of one right Inst
@@ -113,8 +114,8 @@ data _⟿[_∣_]_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′)
       ------------------------------------------
     → W ⟿[ new R ∷ ξs ∣ new R′ ∷ ξs′ ] W″
 
-  -- the left catches up with a right boundary `[+X^β]` that ∀⊑⟪+⟫
-  -- related; β may have other left partners (D25)
+  -- the left catches up with a right boundary `[+X^β]` that an
+  -- opening of ⊑⟪⟫ related (D26; formerly ∀⊑⟪+⟫); β may have other left partners (D25)
   ev-L⇔ : ∀ {W″}
     → reps Δ ⊢ᴿ R
     → Δ′ ∋rep β := ★

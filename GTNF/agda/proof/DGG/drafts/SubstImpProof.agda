@@ -13,12 +13,13 @@ module proof.DGG.drafts.SubstImpProof
 --     `⟪⟫⊑⟪⟫`/`⟪⟫⊑` over AllocImp at ρ = suc), `ImprecisionTyping`
 --     (the right typing that `blame⊑` carries, after substitution).
 --   * IH FIT.  `ƛ⊑ƛ` (with `ext-env`, complete), the casts, `ν⊑ν`, `ν⊑`,
---     `Λ⊑Λ`, `Λ⊑` call the IH on their premise; boundaries and
---     `∀⊑⟪+⟫` need none (`substᵐ` stops at a boundary; the ∀-value of
---     `∀⊑⟪+⟫` is closed).  Glue that is not the IH:
+--     `Λ⊑Λ`, `Λ⊑` call the IH on their premise; boundaries need none
+--     (`substᵐ` stops at a boundary; the left term of `⊑⟪⟫`, opened or
+--     not, is closed; design.md D26 folded `∀⊑⟪+⟫` into `⊑⟪⟫`).  Glue
+--     that is not the IH:
 --     - `·⊑·`: reindexing, as in AllocImp (`⊑-unique`);
 --     - `x⊑x` at a value image: weakening a `[]`-derivation to γ₁;
---     - `⟪⟫⊑`, `⊑⟪⟫`, `∀⊑⟪+⟫`: the other side's term is related at
+--     - `⟪⟫⊑`, `⊑⟪⟫`: the other side's term is related at
 --       `[]`, hence closed, and `substᵐ` fixes it (needs a
 --       closed-term lemma through `imprecision-typing`).
 --   * Orientation: the LEFT term is the more precise one.
@@ -122,8 +123,6 @@ subst-imp env (Λ⊑ nv occ l vV V⊑ q) | γ₁′ , l₁ , env′
   with subst-imp env′ V⊑
 subst-imp env (Λ⊑ nv occ l vV V⊑ q) | γ₁′ , l₁ , env′ | r , V₁ =
   q , Λ⊑ nv occ l₁ (value-subst vV) V₁ q
-subst-imp env (∀⊑⟪+⟫ nv occ vV ⊢V i N⊑ β★ b q) =
-  q , {!∀⊑⟪+⟫ nv occ vV ⊢V i N⊑ β★ b q, after substᵐ σ V ≡ V (V closed)!}
 subst-imp env (ν⊑ν L⊑ a n n′ nc q) with subst-imp env L⊑
 subst-imp env (ν⊑ν L⊑ a n n′ nc q) | r , L₁ = q , ν⊑ν L₁ a n n′ nc q
 subst-imp env (ν⊑ L⊑ a n q) with subst-imp env L⊑
@@ -133,8 +132,9 @@ subst-imp env (⟪⟫⊑⟪⟫ int wi M⊑ b b′ bc q) =
 -- the other side is closed (related at []), so substᵐ fixes it
 subst-imp env (⟪⟫⊑ int wi M⊑ b q) =
   q , {!⟪⟫⊑ int wi M⊑ b q, after substᵐ σ′ M′ ≡ M′ (M′ closed)!}
-subst-imp env (⊑⟪⟫ int wi M⊑ b′ q) =
-  q , {!⊑⟪⟫ int wi M⊑ b′ q, after substᵐ σ M ≡ M (M closed)!}
+-- (with openings, the former ∀⊑⟪+⟫: the opened ∀-value is closed too)
+subst-imp env (⊑⟪⟫ int os wi M⊑ b′ q) =
+  q , {!⊑⟪⟫ int os wi M⊑ b′ q, after substᵐ σ M ≡ M (M closed)!}
 
 ------------------------------------------------------------------------
 -- The consumer form (complete given subst-imp)

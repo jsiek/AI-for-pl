@@ -177,27 +177,27 @@ sim wfΔ wfΔ′ wfW (ν⊑ d pA n q) (ξ-ν st)
 ------------------------------------------------------------------------
 -- ⟪⟫⊑⟪⟫
 
-sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q)
+sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
     (Merge v ri r₁ r₂ r⋉ sc₁ sc₂) =
-  {! SimBoundary-Merge: simMerge pre (⟪⟫⊑⟪⟫ int d b b′ bc q)
+  {! SimBoundary-Merge: simMerge pre (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
        v ri r₁ r₂ r⋉ sc₁ sc₂ !}
-sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q) (Id u base) =
-  {! SimBoundary-Id: simId pre (⟪⟫⊑⟪⟫ int d b b′ bc q) u base !}
-sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q) (IdDyn v g) =
-  {! SimBoundary-IdDyn: simIdDyn pre (⟪⟫⊑⟪⟫ int d b b′ bc q) v g !}
-sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q)
+sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (Id u base) =
+  {! SimBoundary-Id: simId pre (⟪⟫⊑⟪⟫ int wi d b b′ bc q) u base !}
+sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (IdDyn v g) =
+  {! SimBoundary-IdDyn: simIdDyn pre (⟪⟫⊑⟪⟫ int wi d b b′ bc q) v g !}
+sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
     (IdDyn-var v eq ri rc same) =
-  {! SimBoundary-IdDynVar: simIdDynVar pre (⟪⟫⊑⟪⟫ int d b b′ bc q)
+  {! SimBoundary-IdDynVar: simIdDynVar pre (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
        v eq ri rc same !}
-sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q) Blame-⟪⟫ =
-  {! SimCast-ToBlame: simToBlame pre (⟪⟫⊑⟪⟫ int d b b′ bc q)
+sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) Blame-⟪⟫ =
+  {! SimCast-ToBlame: simToBlame pre (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
        Blame-⟪⟫ !}
-sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q) (ξ-⟪⟫ ri st)
+sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st)
     with interior-functional ri (int-left int)
-sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q) (ξ-⟪⟫ ri st)
+sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st)
     | refl with sim (bdy-wfᵢ b) (bdy-wfᵢ b′)
                     {! WfWorld Wᵢ: not given by Interior !} d st
-sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q) (ξ-⟪⟫ ri st)
+sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st)
     | refl | N′ , r′ , W′ , ev , wf′ , q′ , dN =
   {! SimFrame-⟪⟫: simFrame-⟪⟫ pre int b b′ bc q
        (N′ , r′ , W′ , ev , wf′ , q′ , dN) !}
@@ -205,24 +205,24 @@ sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q) (ξ-⟪⟫ ri st)
 ------------------------------------------------------------------------
 -- ⟪⟫⊑ (the left boundary is one-sided)
 
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int d b q) (Merge v ri r₁ r₂ r⋉ sc₁ sc₂) =
-  {! SimBoundary-Merge: simMerge pre (⟪⟫⊑ int d b q)
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (Merge v ri r₁ r₂ r⋉ sc₁ sc₂) =
+  {! SimBoundary-Merge: simMerge pre (⟪⟫⊑ int wi d b q)
        v ri r₁ r₂ r⋉ sc₁ sc₂ !}
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int d b q) (Id u base) =
-  {! SimBoundary-Id: simId pre (⟪⟫⊑ int d b q) u base !}
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int d b q) (IdDyn v g) =
-  {! SimBoundary-IdDyn: simIdDyn pre (⟪⟫⊑ int d b q) v g !}
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int d b q) (IdDyn-var v eq ri rc same) =
-  {! SimBoundary-IdDynVar: simIdDynVar pre (⟪⟫⊑ int d b q)
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (Id u base) =
+  {! SimBoundary-Id: simId pre (⟪⟫⊑ int wi d b q) u base !}
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (IdDyn v g) =
+  {! SimBoundary-IdDyn: simIdDyn pre (⟪⟫⊑ int wi d b q) v g !}
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (IdDyn-var v eq ri rc same) =
+  {! SimBoundary-IdDynVar: simIdDynVar pre (⟪⟫⊑ int wi d b q)
        v eq ri rc same !}
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int d b q) Blame-⟪⟫ =
-  {! SimCast-ToBlame: simToBlame pre (⟪⟫⊑ int d b q) Blame-⟪⟫ !}
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int d b q) (ξ-⟪⟫ ri st)
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) Blame-⟪⟫ =
+  {! SimCast-ToBlame: simToBlame pre (⟪⟫⊑ int wi d b q) Blame-⟪⟫ !}
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (ξ-⟪⟫ ri st)
     with interior-functional ri (int-left int)
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int d b q) (ξ-⟪⟫ ri st)
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (ξ-⟪⟫ ri st)
     | refl with sim (bdy-wfᵢ b) wfΔ′
                     {! WfWorld Wᵢ: not given by Interior !} d st
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int d b q) (ξ-⟪⟫ ri st)
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (ξ-⟪⟫ ri st)
     | refl | N′ , r′ , W′ , ev , wf′ , q′ , dN =
   {! SimFrame-⟪⟫⊑: simFrame-⟪⟫⊑ pre int b q
        (N′ , r′ , W′ , ev , wf′ , q′ , dN) !}
@@ -230,10 +230,10 @@ sim wfΔ wfΔ′ wfW (⟪⟫⊑ int d b q) (ξ-⟪⟫ ri st)
 ------------------------------------------------------------------------
 -- ⊑⟪⟫: whatever the left step, the IH at the interior world
 
-sim wfΔ wfΔ′ wfW (⊑⟪⟫ int d b′ q) st
+sim wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) st
     with sim wfΔ (bdy-wfᵢ b′)
              {! WfWorld Wᵢ: not given by Interior !} d st
-sim wfΔ wfΔ′ wfW (⊑⟪⟫ int d b′ q) st
+sim wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) st
     | N′ , r′ , W′ , ev , wf′ , q′ , dN =
   {! SimFrame-⊑⟪⟫: simFrame-⊑⟪⟫ pre int b′ q
        (N′ , r′ , W′ , ev , wf′ , q′ , dN) !}

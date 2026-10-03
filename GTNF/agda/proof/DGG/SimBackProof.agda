@@ -216,60 +216,60 @@ simBack wfΔ wfΔ′ wfW (ν⊑ d pA n q) st′ | ih =
 ------------------------------------------------------------------------
 -- ⟪⟫⊑⟪⟫
 
-simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q)
+simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
     (Merge w ri r₁ r₂ r⋉ sc₁ sc₂) =
-  {! SimBackBoundary-Merge: simBackMerge pre (⟪⟫⊑⟪⟫ int d b b′ bc q)
+  {! SimBackBoundary-Merge: simBackMerge pre (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
        w ri r₁ r₂ r⋉ sc₁ sc₂ !}
-simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q) (Id u base) =
-  {! SimBackBoundary-Id: simBackId pre (⟪⟫⊑⟪⟫ int d b b′ bc q)
+simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (Id u base) =
+  {! SimBackBoundary-Id: simBackId pre (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
        u base !}
-simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q) (IdDyn w g) =
-  {! SimBackBoundary-IdDyn: simBackIdDyn pre (⟪⟫⊑⟪⟫ int d b b′ bc q)
+simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (IdDyn w g) =
+  {! SimBackBoundary-IdDyn: simBackIdDyn pre (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
        w g !}
-simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q)
+simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
     (IdDyn-var w eq ri rc same) =
   {! SimBackBoundary-IdDynVar: simBackIdDynVar pre
-       (⟪⟫⊑⟪⟫ int d b b′ bc q) w eq ri rc same !}
-simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q) Blame-⟪⟫ =
+       (⟪⟫⊑⟪⟫ int wi d b b′ bc q) w eq ri rc same !}
+simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) Blame-⟪⟫ =
   inj₂ {! SimBackCast-ToBlame: simBackToBlame pre
-            (⟪⟫⊑⟪⟫ int d b b′ bc q) Blame-⟪⟫ !}
-simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q) (ξ-⟪⟫ ri st′)
+            (⟪⟫⊑⟪⟫ int wi d b b′ bc q) Blame-⟪⟫ !}
+simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st′)
     with interior-functional ri (int-right int)
-simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q) (ξ-⟪⟫ ri st′)
+simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st′)
     | refl with simBack (bdy-wfᵢ b) (bdy-wfᵢ b′)
                   {! WfWorld Wᵢ: not given by Interior !} d st′
-simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int d b b′ bc q) (ξ-⟪⟫ ri st′)
+simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st′)
     | refl | ih =
   {! SimBackFrame-⟪⟫: simBackFrame-⟪⟫ pre int b b′ bc q ih !}
 
 ------------------------------------------------------------------------
 -- ⟪⟫⊑: whatever the right step, the IH at the interior world
 
-simBack wfΔ wfΔ′ wfW (⟪⟫⊑ int d b q) st′
+simBack wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) st′
     with simBack (bdy-wfᵢ b) wfΔ′
            {! WfWorld Wᵢ: not given by Interior !} d st′
-simBack wfΔ wfΔ′ wfW (⟪⟫⊑ int d b q) st′ | ih =
+simBack wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) st′ | ih =
   {! SimBackFrame-⟪⟫⊑: simBackFrame-⟪⟫⊑ pre int b q ih !}
 
 ------------------------------------------------------------------------
 -- ⊑⟪⟫ (the right boundary is one-sided)
 
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int d b′ q) (Merge w ri r₁ r₂ r⋉ sc₁ sc₂) =
-  {! SimBackBoundary-Merge: simBackMerge pre (⊑⟪⟫ int d b′ q)
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) (Merge w ri r₁ r₂ r⋉ sc₁ sc₂) =
+  {! SimBackBoundary-Merge: simBackMerge pre (⊑⟪⟫ int wi d b′ q)
        w ri r₁ r₂ r⋉ sc₁ sc₂ !}
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int d b′ q) (Id u base) =
-  {! SimBackBoundary-Id: simBackId pre (⊑⟪⟫ int d b′ q) u base !}
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int d b′ q) (IdDyn w g) =
-  {! SimBackBoundary-IdDyn: simBackIdDyn pre (⊑⟪⟫ int d b′ q) w g !}
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int d b′ q) (IdDyn-var w eq ri rc same) =
-  {! SimBackBoundary-IdDynVar: simBackIdDynVar pre (⊑⟪⟫ int d b′ q)
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) (Id u base) =
+  {! SimBackBoundary-Id: simBackId pre (⊑⟪⟫ int wi d b′ q) u base !}
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) (IdDyn w g) =
+  {! SimBackBoundary-IdDyn: simBackIdDyn pre (⊑⟪⟫ int wi d b′ q) w g !}
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) (IdDyn-var w eq ri rc same) =
+  {! SimBackBoundary-IdDynVar: simBackIdDynVar pre (⊑⟪⟫ int wi d b′ q)
        w eq ri rc same !}
 -- the premise relates M to blame
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int d b′ q) Blame-⟪⟫ = inj₂ (catchupBlame d)
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int d b′ q) (ξ-⟪⟫ ri st′)
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) Blame-⟪⟫ = inj₂ (catchupBlame d)
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) (ξ-⟪⟫ ri st′)
     with interior-functional ri (int-right int)
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int d b′ q) (ξ-⟪⟫ ri st′)
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) (ξ-⟪⟫ ri st′)
     | refl with simBack wfΔ (bdy-wfᵢ b′)
                   {! WfWorld Wᵢ: not given by Interior !} d st′
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int d b′ q) (ξ-⟪⟫ ri st′) | refl | ih =
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int wi d b′ q) (ξ-⟪⟫ ri st′) | refl | ih =
   {! SimBackFrame-⊑⟪⟫: simBackFrame-⊑⟪⟫ pre int b′ q ih !}

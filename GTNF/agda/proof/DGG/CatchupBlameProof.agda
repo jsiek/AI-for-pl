@@ -35,7 +35,7 @@ catchup-blame (Λ⊑ nv occ liftᴸ-[] (V-simple ()) V⊑ q) | ℓ′ , r | refl
 catchup-blame (ν⊑ L⊑ pA n q) with catchup-blame L⊑
 catchup-blame (ν⊑ L⊑ pA n q) | ℓ′ , r =
   ℓ′ , (ξ-ν* r ++ʳ (Blame-ν then done))
-catchup-blame (⟪⟫⊑ i M⊑ b q) with catchup-blame M⊑
-catchup-blame (⟪⟫⊑ i M⊑ b q) | ℓ′ , r with ξ-⟪⟫* (int-left i) r
-catchup-blame (⟪⟫⊑ i M⊑ b q) | ℓ′ , r | Θ′ , r′ =
+catchup-blame (⟪⟫⊑ i wi M⊑ b q) with catchup-blame M⊑
+catchup-blame (⟪⟫⊑ i wi M⊑ b q) | ℓ′ , r with ξ-⟪⟫* (int-left i) r
+catchup-blame (⟪⟫⊑ i wi M⊑ b q) | ℓ′ , r | Θ′ , r′ =
   ℓ′ , (r′ ++ʳ (Blame-⟪⟫ then done))

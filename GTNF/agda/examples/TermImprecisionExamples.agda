@@ -224,12 +224,6 @@ bR-ty = proj₂ (proj₂ (proj₂ (⟪⟫-inv bR-⊢)))
 bLR-conv : BdyConversionImp W₁ bL-ty bR-ty
 bLR-conv = Wᵢ₁ , Wᵢ₁-conv , revX⊑revX refl
 
-p1-tybeta : W₁ ∣ [] ⊢ L1′ ⊑ R1′ ∶ ℕ⊑★
-p1-tybeta =
-  ·⊑· (⟪⟫⊑⟪⟫ Wᵢ₁-int (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ)) bL-ty bR-ty
-              bLR-conv (⇒⊑⇒ ℕ⊑★ ℕ⊑★))
-      five⊑
-
 Wᵢ₁-wf : WfWorld Wᵢ₁
 Wᵢ₁-wf = wf-world (both (inj₁ here⇔) joint[]) agree uniq
   where
@@ -244,6 +238,13 @@ Wᵢ₁-wf = wf-world (both (inj₁ here⇔) joint[]) agree uniq
   uniq (inj₁ (there⇔ ())) _
   uniq (inj₂ ()) _
   uniq (inj₁ here⇔) (inj₂ ())
+
+p1-tybeta : W₁ ∣ [] ⊢ L1′ ⊑ R1′ ∶ ℕ⊑★
+p1-tybeta =
+  ·⊑· (⟪⟫⊑⟪⟫ Wᵢ₁-int Wᵢ₁-wf
+              (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ)) bL-ty bR-ty bLR-conv
+              (⇒⊑⇒ ℕ⊑★ ℕ⊑★))
+      five⊑
 
 ------------------------------------------------------------------------
 -- P2, after the left's TyBeta (a left-only boundary)
@@ -271,9 +272,24 @@ Wᵢ₂-int = record
   ; mark-right = λ { (_ , ()) _ _ }
   }
 
+Wᵢ₂-wf : WfWorld Wᵢ₂
+Wᵢ₂-wf = wf-world (left-only joint[]) agree uniq
+  where
+  agree : ∀ {α β} → Paired Wᵢ₂ α β → Agree Wᵢ₂ α β
+  agree (inj₁ ())
+  agree (inj₂ ())
+  uniq : ∀ {α α′ β}
+    → Paired Wᵢ₂ α β
+    → Paired Wᵢ₂ α′ β
+    → α ≡ α′
+  uniq (inj₁ ()) _
+  uniq (inj₂ ()) _
+
 p2-tybeta : W₂ ∣ [] ⊢ L1′ ⊑ R2 ∶ ℕ⊑★
 p2-tybeta =
-  ·⊑· (⟪⟫⊑ Wᵢ₂-int (ƛ⊑ƛ {pA = X⊑★ here} tf wf-★ (x⊑x Zʷ)) bL-ty (⇒⊑⇒ ℕ⊑★ ℕ⊑★))
+  ·⊑· (⟪⟫⊑ Wᵢ₂-int Wᵢ₂-wf
+              (ƛ⊑ƛ {pA = X⊑★ here} tf wf-★ (x⊑x Zʷ)) bL-ty
+              (⇒⊑⇒ ℕ⊑★ ℕ⊑★))
       five⊑
 
 ------------------------------------------------------------------------
@@ -388,6 +404,24 @@ Wᵢ₆-int = record
   ; mark-right = λ { (_ , here) () _ ; (_ , there ()) _ _ }
   }
 
+Wᵢ₆-wf : WfWorld Wᵢ₆
+Wᵢ₆-wf = wf-world (both (inj₁ here⇔) joint[]) agree uniq
+  where
+  agree : ∀ {α β} → Paired Wᵢ₆ α β → Agree Wᵢ₆ α β
+  agree (inj₁ here⇔) =
+    rep-rep r-here r-here same-𝔹 same-𝔹 (ι⊑ι base-𝔹)
+  agree (inj₁ (there⇔ ()))
+  agree (inj₂ ())
+  uniq : ∀ {α α′ β}
+    → Paired Wᵢ₆ α β
+    → Paired Wᵢ₆ α′ β
+    → α ≡ α′
+  uniq (inj₁ here⇔) (inj₁ here⇔) = refl
+  uniq (inj₁ here⇔) (inj₁ (there⇔ ()))
+  uniq (inj₁ (there⇔ ())) _
+  uniq (inj₂ ()) _
+  uniq (inj₁ here⇔) (inj₂ ())
+
 Wᵢ₆-conv : ConversionInterior W₆ Θ₀ Θ₀ Wᵢ₆
 Wᵢ₆-conv = record
   { conv-left       = conv₀
@@ -447,7 +481,7 @@ b6-conv = Wᵢ₆ , Wᵢ₆-conv , c6⊑ refl
 p6-tybeta : W₆ ∣ [] ⊢ L6′ ⊑ R6′ ∶ ℕ⊑★
 p6-tybeta =
   ·⊑·
-    (⟪⟫⊑⟪⟫ Wᵢ₆-int
+    (⟪⟫⊑⟪⟫ Wᵢ₆-int Wᵢ₆-wf
       (⊑cast
         (ƛ⊑ƛ {pA = X⊑X} {pB = ι⊑ι base-ℕ}
           tf tf (κ⊑κ lit-$ (ι⊑ι base-ℕ)))

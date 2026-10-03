@@ -313,11 +313,14 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′) (γ : CtxImp W)
 
   ----------------------------------------------------------------------
   -- Boundaries (these replace GTSFImp's reveal/conceal rules).  The
-  -- interior is term-closed, so each premise has γ = [].
+  -- interior is term-closed, so each premise has γ = [].  The interior
+  -- world must be well formed (design.md §12.2, D15; Jeremy,
+  -- 2026-10-03): `WfWorld Wᵢ` is a premise.
 
   ⟪⟫⊑⟪⟫ : ∀ {Δᵢ Δ′ᵢ} {Wᵢ : World Δᵢ Δ′ᵢ}
       {M M′ Θ Θ′ c c′ Aᵢ A′ᵢ A A′} {r : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩ A′ᵢ}
     → Interior W Θ Θ′ Wᵢ
+    → WfWorld Wᵢ
     → Wᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
     → (b : BdyTy Δ Θ Δᵢ Aᵢ c A)
     → (b′ : BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′)
@@ -329,6 +332,7 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′) (γ : CtxImp W)
   ⟪⟫⊑ : ∀ {Δᵢ} {Wᵢ : World Δᵢ Δ′}
       {M M′ Θ c Aᵢ A A′} {r : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩ A′}
     → Interior W Θ [] Wᵢ
+    → WfWorld Wᵢ
     → Wᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
     → BdyTy Δ Θ Δᵢ Aᵢ c A
     → (q : A ⊑ᵂ⟨ W ⟩ A′)
@@ -338,6 +342,7 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′) (γ : CtxImp W)
   ⊑⟪⟫ : ∀ {Δ′ᵢ} {Wᵢ : World Δ Δ′ᵢ}
       {M M′ Θ′ c′ A A′ᵢ A′} {r : A ⊑ᵂ⟨ Wᵢ ⟩ A′ᵢ}
     → Interior W [] Θ′ Wᵢ
+    → WfWorld Wᵢ
     → Wᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
     → BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′
     → (q : A ⊑ᵂ⟨ W ⟩ A′)

@@ -1270,12 +1270,16 @@ Each one can be revisited on its own.
   agreement of two paired rep. vars compares their payloads as
   representation types.  Free rep. vars inside them correspond through
   `ϱ`, and local `∀`-bound variables correspond position by position.
+  The relation is `R ⊑ᴿ_W R′` (`ImprecisionWorld.RepImp`), whose rules
+  are those of `⊑` (§12.1) over payloads.  A free left rep. var may also
+  face `★`, with no condition, because rep. vars carry no marks (marks
+  belong to names).
   Before, the payloads were read as ordinary types through the names in
   scope.  That broke once interior worlds had to be well formed: inside
   a boundary that hides a name, a payload mentioning that name's rep.
   var had no reading
-  (`proof/DGG/drafts/EvolveImpWfInteriorCounterexample.agda`; Jeremy,
-  2026-10-03).
+  (`proof/DGG/drafts/EvolveImpWfInteriorCounterexample.agda`, now a
+  regression test; `proof/DGG/notes/RepImp.md`; Jeremy, 2026-10-03).
 
 - **D24 (unique occurrence proofs).**  `X ∈ᵗ A` has unique proofs, as
   in GTSFImp: the right-of-arrow rule has the premise
@@ -1295,20 +1299,6 @@ Each one can be revisited on its own.
   side) joins the partner whose name is in scope.  Its uniqueness comes
   from names, which coherence makes injective on rep. vars within a
   context, not from `ϱ` (Jeremy, 2026-10-03).
-
-- **D23 (payloads are compared in the representation universe).**
-  "Paired rep. vars agree" relates two payloads by representation
-  imprecision `R ⊑ᴿ_W R′` (`ImprecisionWorld.RepImp`), not by reading
-  them as ordinary types through each side's names.  Its rules are
-  those of `⊑` (§12.1) over payloads: local `∀`-bound variables
-  correspond position-wise with marks; a free rep. var `α` on the left
-  faces its partner `β` when `(α, β) ∈ ϱ`, or `★` unconditionally (rep.
-  vars carry no marks; marks belong to names).  The name reading
-  failed once interior worlds must be well formed (§12.2/D15): inside
-  a boundary that hides a name, a payload mentioning that name's rep.
-  var had no reading, and `EvolveImp` was false
-  (`proof/DGG/drafts/EvolveImpWfInteriorCounterexample.agda`, now a
-  regression test; `proof/DGG/notes/RepImp.md`; Jeremy, 2026-10-03).
 
 The open design questions are those of the `⊑` sketch (§12.5).
 

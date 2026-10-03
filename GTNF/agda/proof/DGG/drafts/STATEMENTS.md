@@ -3,36 +3,20 @@
 Status: DRAFTS for review.  None is approved.  Each statement is a
 type-checked `Def` module in this directory.  Each skeleton
 (`*Proof.agda`) checks with only unsolved-hole errors.
-`EvolveImpProof.agda` and the counterexample check with `--safe`.
+`EvolveImpProof.agda` and the former counterexample (now a regression test) check with `--safe`.
 The LEFT term is the more precise one.
 
-## 0. First: a checked counterexample (`EvolveImpWfInteriorCounterexample.agda`)
+## 0. A former counterexample, now a regression test (`EvolveImpWfInteriorCounterexample.agda`)
 
-With the new premise `WfWorld Wᵢ` on `⟪⟫⊑⟪⟫`, `⟪⟫⊑` and `⊑⟪⟫`,
-`EvolveImp` is false (`not-evolve-imp : ¬ EvolveImp`).  The draft
-`AllocImp2` is false for the same reason (`not-alloc-imp2`).
-
-- The world `W₀` has one name X.  X denotes rep. var 0 := ℕ, and the
-  pair (0, 0) is global.
-- The terms are `$1 ⟪ unbind X , id ℕ ⟫ ⊑ $1 ⟪ unbind X , id ℕ ⟫`.
-  The boundary hides X.
-- The evolution is one `ev-2` with payload `` ` 0 `` (X's rep. var) on
-  both sides.  All of `ev-2`'s premises hold.
-- After the allocation, the new pair (0, 0) has payloads `` ` 1 ``.
-  Inside the shifted boundary no name denotes rep. var 1.  So
-  `Agree Wᵢ 0 0` has no `rep-rep` reading, and no interior world is
-  well formed.  No rule relates the shifted terms.
-
-The same happens for `ev-L⇔` (its new pair's left payload).  `ev-L`
-and `ev-R` add no pair, so they are not affected.  I expect `Sim` to
-fail on the same configuration: a matched TyBeta next to a sibling
-boundary that hides the payload's name.  I have not checked that.
-
-Decision needed (one of these, or another):
-(a) `wf-agree` only for pairs with a name in that world;
-(b) `Agree` compares the payloads in the representation universe,
-    not through names;
-(c) the boundary rules ask only `Joint` and `wf-right-unique` of `Wᵢ`.
+Under the name-reading `Agree`, `EvolveImp` was false on this
+configuration: after a matched TyBeta with payload `` ` 0 `` (X's
+rep. var), the new pair's payloads `` ` 1 `` had no reading inside a
+boundary that hides X, so no interior world was well formed.  With
+design.md D23 (`RepImp`, payloads compared in the representation
+universe; see `../notes/RepImp.md`), `` ` 1 ⊑ ` 1 `` holds by the pair
+(1, 1).  The file now proves the positive fact: the evolved world and
+the shifted boundary's interior world are well formed, and the shifted
+terms are related (`evolved`, EvolveImp's conclusion at this instance).
 
 ## 1. AllocImp (`AllocImpDef.agda`)
 

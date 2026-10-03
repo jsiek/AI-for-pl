@@ -16,10 +16,11 @@ module proof.DGG.drafts.AllocImpProof (alloc-interior : AllocImpInterior) where
 --       `⇒⊑⇒ qM qB` with qM the IH's index for `M` (reindexing; needs
 --       `⊑-unique`, to be ported from GTSFImp/proof/Imprecision);
 --     - the boundary rules: `WfWorld Wᵢ₁` of the renamed interior.
---       Derivable when W₁ adds no pair (the `ev-L`/`ev-R` instances);
---       FALSE when it does (`ev-2`, `ev-L⇔`): the new pair's payload
---       may have no reading through the interior's names, so `Agree`
---       fails (checked: drafts/EvolveImpWfInteriorCounterexample).
+--       Derivable when W₁ adds no pair (the `ev-L`/`ev-R` instances).
+--       When it does (`ev-2`, `ev-L⇔`), `Agree` of the new pair is
+--       `RepImp` of its payloads (design.md D23), which reads no
+--       names; this was FALSE under the earlier name-reading `Agree`
+--       (regression: drafts/EvolveImpWfInteriorCounterexample).
 --   * Orientation: the LEFT term is the more precise one.
 
 open import Data.Nat using (zero; suc)

@@ -1,25 +1,26 @@
 module proof.DGG.drafts.EvolveImpWfInteriorCounterexample where
 
 -- File Charter:
---   * A CHECKED COUNTEREXAMPLE (2026-10-03) to `EvolveImp` (EvolveImpDef)
---     with the premise `WfWorld Wᵢ` that the boundary rules gained the
---     same day.  A PROBE, not part of the development.
---   * The world W₀ has one name X for rep. var 0 := ℕ, paired with
---     itself globally.  The term is `$ 1 ⟪ unbind X , id ℕ ⟫` on both
---     sides: the boundary hides X.  One matched TyBeta (`ev-2`) with
---     payload ` 0 (that is, X's rep. var; all of ev-2's premises hold)
---     adds the global pair (0, 0) with payloads ` 1 / ` 1.  Inside the
---     boundary no name denotes rep. var 1, so the payload has no
---     reading there: no interior world of the shifted boundary has
---     `Agree` for (0, 0), hence none is well formed, and no rule relates
---     the shifted terms.
---   * `not-evolve-imp : ¬ EvolveImp`, and `not-alloc-imp2 : ¬ AllocImp2`
---     (drafts/AllocImpDef) from the same data.  The same happens for
---     `ev-L⇔` (its new pair's left payload).  `ev-L`/`ev-R` add no pair.
+--   * REGRESSION TEST for a counterexample to `EvolveImp` found on
+--     2026-10-03.  The world W₀ has one name X for rep. var 0 := ℕ,
+--     paired with itself globally; the term is `$ 1 ⟪ unbind X , id ℕ ⟫`
+--     on both sides (the boundary hides X).  One matched TyBeta (`ev-2`)
+--     with payload ` 0 (X's rep. var) adds the global pair (0, 0) with
+--     payloads ` 1 / ` 1.  When `Agree` read payloads through each
+--     side's names, ` 1 had no reading inside the boundary, so no
+--     interior world was well formed and the shifted terms were
+--     unrelated (`¬ EvolveImp`, `¬ AllocImp2`).
+--   * THE FIX (Jeremy, 2026-10-03; design.md D23): payloads are compared
+--     in the representation universe (`RepImp`, ImprecisionWorld §8);
+--     ` 1 ⊑ ` 1 holds because (1, 1) is paired.  Below: the evolved
+--     world W₁ and the shifted boundary's interior world Wᵢ₁ are well
+--     formed, and the shifted terms are related (`evolved`, EvolveImp's
+--     conclusion at this instance).
+--   * See proof/DGG/notes/RepImp.md.
 
 open import Data.Nat using (zero; suc)
 open import Data.List using (List; []; _∷_)
-open import Data.Product using (_×_; _,_; proj₁; proj₂)
+open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Data.Sum using (inj₁; inj₂)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; subst)
@@ -34,7 +35,6 @@ open import ImprecisionWorld
 open import ConversionImprecision
 open import TermImprecision
 open import proof.DGG.Evolve
-open import proof.DGG.EvolveImpDef using (EvolveImp)
 
 -- X names rep. var 0 := ℕ (TyBetaCtx), paired with itself globally
 W₀ : World TyBetaCtx TyBetaCtx
@@ -47,9 +47,9 @@ right-unique₀ (inj₁ (there⇔ ())) _
 right-unique₀ (inj₁ here⇔) (inj₂ ())
 right-unique₀ (inj₂ ()) _
 
-agree-ℕ : ∀ {Δ Δ′} {W : World Δ Δ′} → Δ ∋rep 0 := `ℕ → Δ′ ∋rep 0 := `ℕ
-  → Agree W 0 0
-agree-ℕ l r = rep-rep l r same-ℕ same-ℕ (ι⊑ι base-ℕ)
+agree-ℕ : ∀ {Δ Δ′} {W : World Δ Δ′} {α β}
+  → Δ ∋rep α := `ℕ → Δ′ ∋rep β := `ℕ → Agree W α β
+agree-ℕ l r = rep-rep l r (ι⊑ι base-ℕ)
 
 wf₀ : WfWorld W₀
 wf₀ = wf-world (both (inj₁ here⇔) joint[])
@@ -118,67 +118,110 @@ wR₀ : reps TyBetaCtx ⊢ᴿ R₀
 wR₀ = wfᴿ-var (free-ref here)
 
 agree-new : Agree (alloc² R₀ R₀ W₀) 0 0
-agree-new = rep-rep r-here r-here (same-var here) (same-var here) X⊑X
+agree-new = rep-rep r-here r-here (α⊑β (inj₁ (there⇔ here⇔)))
 
 ev₀ : W₀ ⟿[ new R₀ ∷ [] ∣ new R₀ ∷ [] ] alloc² R₀ R₀ W₀
 ev₀ = ev-2 wR₀ wR₀ agree-new ev-done
 
 ------------------------------------------------------------------------
--- No well-formed interior world for the shifted boundary
+-- The evolved world and the shifted boundary are well formed
 ------------------------------------------------------------------------
 
 W₁ : World (allocate R₀ TyBetaCtx) (allocate R₀ TyBetaCtx)
 W₁ = alloc² R₀ R₀ W₀
 
--- the interior of the shifted boundary has no names
+-- rep. var 0 := ` 1 (X's rep. var, renumbered), rep. var 1 := ℕ
+agree₁ : ∀ {α β} → Paired W₁ α β → Agree W₁ α β
+agree₁ (inj₁ here⇔) = agree-new
+agree₁ (inj₁ (there⇔ here⇔)) = agree-ℕ (r-there r-here) (r-there r-here)
+agree₁ (inj₁ (there⇔ (there⇔ ())))
+agree₁ (inj₂ ())
+
+unique₁ : ∀ {α α′ β} → Paired W₁ α β → Paired W₁ α′ β → α ≡ α′
+unique₁ (inj₁ here⇔) (inj₁ here⇔) = refl
+unique₁ (inj₁ here⇔) (inj₁ (there⇔ (there⇔ ())))
+unique₁ (inj₁ (there⇔ here⇔)) (inj₁ (there⇔ here⇔)) = refl
+unique₁ (inj₁ (there⇔ here⇔)) (inj₁ (there⇔ (there⇔ ())))
+unique₁ (inj₁ (there⇔ (there⇔ ()))) _
+unique₁ (inj₁ _) (inj₂ ())
+unique₁ (inj₂ ()) _
+
+wf₁ : WfWorld W₁
+wf₁ = wf-world (both (inj₁ (there⇔ here⇔)) joint[]) agree₁ unique₁
+
+-- the boundary, shifted past the new rep. var, still hides X
 Θ₁ : Boundary
 Θ₁ = unbind 0 1 ∷ []
 
--- Agree for (0, 0) needs a reading of ` 1 through each side's names
-no-agree-left : ∀ {Δ′} {W : World ((bindR R₀ ∷ bindR `ℕ ∷ []) ∣ []) Δ′}
-  → ¬ Agree W 0 0
-no-agree-left (abst-abst () r)
-no-agree-left (abst-★ () r)
-no-agree-left (rep-rep r-here r (same-var ()) s′ p)
+Δ₁ : Ctxᵗ
+Δ₁ = allocate R₀ TyBetaCtx
 
-no-agree-right : ∀ {Δ} {W : World Δ ((bindR R₀ ∷ bindR `ℕ ∷ []) ∣ [])}
-  → ¬ Agree W 0 0
-no-agree-right (abst-abst l ())
-no-agree-right (abst-★ l ())
-no-agree-right (rep-rep l r-here s (same-var ()) p)
+Δ₁-wf : WfCtx Δ₁
+Δ₁-wf = wf-ctx (wf-bindR wR₀ (wf-bindR wfᴿ-ℕ wf-reps[]))
+  (λ { here → _ , there here })
+  (unique∷ fresh[] unique[])
 
-paired₀ : ∀ {Δ Δ′} {W : World Δ Δ′} → ϱᵍʷ W ≡ ϱᵍʷ W₁ → Paired W 0 0
-paired₀ eq = inj₁ (subst (λ ϱ → ϱ ∋ᵨ 0 ⇔ 0) (sym′ eq) here⇔)
-  where
-  sym′ : ∀ {A : Set} {x y : A} → x ≡ y → y ≡ x
-  sym′ refl = refl
+Δᵢ₁ : Ctxᵗ
+Δᵢ₁ = (bindR R₀ ∷ bindR `ℕ ∷ []) ∣ []
 
-shifted-unrelated : ∀ {q : `ℕ ⊑ᵂ⟨ W₁ ⟩ `ℕ}
-  → ¬ (W₁ ∣ [] ⊢ ($ 1) ⟪ Θ₁ , c₀ ⟫ ⊑ ($ 1) ⟪ Θ₁ , c₀ ⟫ ∶ q)
-shifted-unrelated
-  (⟪⟫⊑⟪⟫ {Wᵢ = Wᵢ} (interior-world
-           (interior (changes∷ changes[] (step-unbind v del-here fr)))
-           ir eqᵍ eqˡ jc jf ml mr) wi M⊑ b b′ bc q) =
-  no-agree-left (wf-agree wi (paired₀ {W = Wᵢ} eqᵍ))
-shifted-unrelated
-  (⟪⟫⊑ {Wᵢ = Wᵢ} (interior-world
-         (interior (changes∷ changes[] (step-unbind v del-here fr)))
-         ir eqᵍ eqˡ jc jf ml mr) wi M⊑ b q) =
-  no-agree-left (wf-agree wi (paired₀ {W = Wᵢ} eqᵍ))
-shifted-unrelated
-  (⊑⟪⟫ {Wᵢ = Wᵢ} (interior-world il
-         (interior (changes∷ changes[] (step-unbind v del-here fr)))
-         eqᵍ eqˡ jc jf ml mr) wi M⊑ b′ q) =
-  no-agree-right (wf-agree wi (paired₀ {W = Wᵢ} eqᵍ))
+int₁ : Δ₁ ⊢ⁱ Θ₁ ⇒ Δᵢ₁
+int₁ = interior
+  (changes∷ changes[] (step-unbind (_ , there here) del-here fresh[]))
 
-not-evolve-imp : ¬ EvolveImp
-not-evolve-imp evolve-imp =
-  shifted-unrelated
-    (proj₂ (proj₂ (evolve-imp TyBetaCtx-wf TyBetaCtx-wf ev₀ wf₀ M₀⊑M₀)))
+conv₁ : Δ₁ ⊢ᶜ Θ₁ ⇒ Δ₁
+conv₁ = conversion (conv-unbind (_ , there here) conv[])
 
--- the same data refutes the draft corollary AllocImp2 directly
-open import proof.DGG.drafts.AllocImpDef using (AllocImp2)
+b₁ : BdyTy Δ₁ Θ₁ Δᵢ₁ `ℕ c₀ `ℕ
+b₁ = bdy-ty (bw Δ₁-wf int₁ conv₁)
+  (conv-tail (conv-mid (conv-id base-ℕ)))
+  (`ℕ , same-ℕ , same-ℕ) (`ℕ , same-ℕ , same-ℕ) wf-ℕ
 
-not-alloc-imp2 : ¬ AllocImp2
-not-alloc-imp2 alloc-imp-2 =
-  shifted-unrelated (proj₂ (proj₂ (alloc-imp-2 wR₀ wR₀ agree-new wf₀ M₀⊑M₀)))
+-- no names inside; both global pairs kept
+Wᵢ₁ : World Δᵢ₁ Δᵢ₁
+Wᵢ₁ = world [] []↪ []↪ ((0 , 0) ∷ (1 , 1) ∷ []) []
+
+interior₁ : Interior W₁ Θ₁ Θ₁ Wᵢ₁
+interior₁ = interior-world int₁ int₁ refl refl
+  (λ { (_ , ()) _ _ _ }) (λ { () _ _ })
+  (λ { (_ , ()) _ _ }) (λ { (_ , ()) _ _ })
+
+-- THE REGRESSION: ` 1 ⊑ ` 1 by the pair (1, 1), with no name for 1
+agreeᵢ₁ : ∀ {α β} → Paired Wᵢ₁ α β → Agree Wᵢ₁ α β
+agreeᵢ₁ (inj₁ here⇔) = rep-rep r-here r-here (α⊑β (inj₁ (there⇔ here⇔)))
+agreeᵢ₁ (inj₁ (there⇔ here⇔)) = agree-ℕ (r-there r-here) (r-there r-here)
+agreeᵢ₁ (inj₁ (there⇔ (there⇔ ())))
+agreeᵢ₁ (inj₂ ())
+
+uniqueᵢ₁ : ∀ {α α′ β} → Paired Wᵢ₁ α β → Paired Wᵢ₁ α′ β → α ≡ α′
+uniqueᵢ₁ (inj₁ here⇔) (inj₁ here⇔) = refl
+uniqueᵢ₁ (inj₁ here⇔) (inj₁ (there⇔ (there⇔ ())))
+uniqueᵢ₁ (inj₁ (there⇔ here⇔)) (inj₁ (there⇔ here⇔)) = refl
+uniqueᵢ₁ (inj₁ (there⇔ here⇔)) (inj₁ (there⇔ (there⇔ ())))
+uniqueᵢ₁ (inj₁ (there⇔ (there⇔ ()))) _
+uniqueᵢ₁ (inj₁ _) (inj₂ ())
+uniqueᵢ₁ (inj₂ ()) _
+
+wfᵢ₁ : WfWorld Wᵢ₁
+wfᵢ₁ = wf-world joint[] agreeᵢ₁ uniqueᵢ₁
+
+cint₁ : ConversionInterior W₁ Θ₁ Θ₁ W₁
+cint₁ = conversion-interior-world conv₁ conv₁ refl refl
+  (λ { here here here here → (λ j → j) , (λ j → j) })
+  (λ { here here (inj₁ (fresh∷ ne _)) → ⊥-elim (ne refl)
+     ; here here (inj₂ (fresh∷ ne _)) → ⊥-elim (ne refl) })
+  (λ { here here mk → mk }) (λ { here here mk → mk })
+  where open import Data.Empty using (⊥-elim)
+
+M₁ : Term
+M₁ = ($ 1) ⟪ Θ₁ , c₀ ⟫
+
+M₁⊑M₁ : W₁ ∣ [] ⊢ M₁ ⊑ M₁ ∶ ι⊑ι base-ℕ
+M₁⊑M₁ = ⟪⟫⊑⟪⟫ interior₁ wfᵢ₁ (κ⊑κ lit-$ (ι⊑ι base-ℕ)) b₁ b₁
+  (W₁ , cint₁ , conv-tail⊑tail (conv-mid⊑mid (conv-id⊑id (ι⊑ι base-ℕ))))
+  (ι⊑ι base-ℕ)
+
+-- EvolveImp's conclusion at the former counterexample
+evolved : WfWorld W₁
+  × Σ[ q ∈ `ℕ ⊑ᵂ⟨ W₁ ⟩ `ℕ ]
+      (W₁ ∣ [] ⊢ ↑ᴹ*[ new R₀ ∷ [] ] M₀ ⊑ ↑ᴹ*[ new R₀ ∷ [] ] M₀ ∶ q)
+evolved = wf₁ , ι⊑ι base-ℕ , M₁⊑M₁

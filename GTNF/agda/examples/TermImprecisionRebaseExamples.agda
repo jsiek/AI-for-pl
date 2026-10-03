@@ -323,9 +323,9 @@ module Wf₁₂ {nsL nsR : TyCtx} (μ : ImpEnv)
 
   -- both pairs agree: ℕ ⊑ ℕ and ℕ ⊑ ★
   agree : ∀ {α β} → Paired W α β → Agree W α β
-  agree (inj₁ here⇔) = rep-rep r-here r-here same-ℕ same-ℕ (ι⊑ι base-ℕ)
+  agree (inj₁ here⇔) = rep-rep r-here r-here (ι⊑ι base-ℕ)
   agree (inj₁ (there⇔ here⇔)) =
-    rep-rep r-here (r-there r-here) same-ℕ same-★ ℕ⊑★
+    rep-rep r-here (r-there r-here) (ι⊑★ base-ℕ)
   agree (inj₁ (there⇔ (there⇔ ())))
   agree (inj₂ ())
 
@@ -675,7 +675,7 @@ W₁-wf = wf-world joint[] agree uniq
   where
   agree : ∀ {α β} → Paired W₁ α β → Agree W₁ α β
   agree (inj₁ here⇔) =
-    rep-rep r-here r-here same-ℕ same-★ ℕ⊑★
+    rep-rep r-here r-here (ι⊑★ base-ℕ)
   agree (inj₁ (there⇔ ()))
   agree (inj₂ ())
   uniq : ∀ {α α′ β}
@@ -885,9 +885,9 @@ module Wf₁₃ {nsL nsR : TyCtx} (μ : ImpEnv)
 
   agree : ∀ {α β} → Paired W α β → Agree W α β
   agree (inj₁ here⇔) =
-    rep-rep r-here r-here same-ℕ same-★ ℕ⊑★
+    rep-rep r-here r-here (ι⊑★ base-ℕ)
   agree (inj₁ (there⇔ here⇔)) =
-    rep-rep r-here (r-there r-here) same-ℕ same-★ ℕ⊑★
+    rep-rep r-here (r-there r-here) (ι⊑★ base-ℕ)
   agree (inj₁ (there⇔ (there⇔ ())))
   agree (inj₂ ())
 
@@ -992,11 +992,11 @@ module Wf₁₄ {nsL nsR : TyCtx} (μ : ImpEnv)
   W = world μ η η′ ϱ₁₄ []
 
   agree : ∀ {α β} → Paired W α β → Agree W α β
-  agree (inj₁ here⇔) = rep-rep r-here r-here same-ℕ same-ℕ (ι⊑ι base-ℕ)
+  agree (inj₁ here⇔) = rep-rep r-here r-here (ι⊑ι base-ℕ)
   agree (inj₁ (there⇔ here⇔)) =
-    rep-rep r-here (r-there r-here) same-ℕ same-★ ℕ⊑★
+    rep-rep r-here (r-there r-here) (ι⊑★ base-ℕ)
   agree (inj₁ (there⇔ (there⇔ here⇔))) =
-    rep-rep r-here (r-there (r-there r-here)) same-ℕ same-★ ℕ⊑★
+    rep-rep r-here (r-there (r-there r-here)) (ι⊑★ base-ℕ)
   agree (inj₁ (there⇔ (there⇔ (there⇔ ()))))
   agree (inj₂ ())
 

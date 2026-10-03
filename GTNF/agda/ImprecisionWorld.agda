@@ -12,7 +12,7 @@ module ImprecisionWorld where
 --     world `Interior W Θ Θ′ Wᵢ` and conversion-context world
 --     `ConversionInterior W Θ Θ′ Wᶜ`, both RELATIONS; §7 term-context
 --     imprecision `CtxImp`; §8 well-formedness `WfWorld`, a SEPARATE
---     predicate.
+--     predicate, with payload imprecision `RepImp` (D23).
 --   * DEFINITIONS ONLY.  Model: GTSFImp/proof/DGG/CtxImp.agda (`World`,
 --     `ηᴸʷ`/`ηᴿʷ`, `impEnvʷ`, `_⊑ᵂ⟨_⟩_`, `CtxImp`), minus the stores,
 --     `RebaseAt` and `ImpEnvMono` (no part of a world is ever rebased,
@@ -38,15 +38,19 @@ module ImprecisionWorld where
 --       a right `+X^β` rejoins β's unique left partner); fresh marks are
 --       unconstrained, so the derivation chooses them (D11).  Nothing
 --       is said about the worlds between the entries (D15).
+--   * PAYLOADS ARE COMPARED IN THE REPRESENTATION UNIVERSE (design.md
+--     D23; Jeremy, 2026-10-03).  `Agree.rep-rep` relates two payloads
+--     by `RepImp` (§8, `μ ⊢ R ⊑ᴿ⟨ W ⟩ R′`): free rep. vars correspond
+--     through `Paired W`, local ∀-bound variables position-wise with
+--     marks.  This replaces the earlier deviation that read payloads
+--     as ordinary types through each side's names, which failed for a
+--     payload mentioning a rep. var hidden by a boundary
+--     (proof/DGG/drafts/EvolveImpWfInteriorCounterexample.agda).
 --   * DEVIATIONS from design.md §12.2 (each also in the report):
 --     - `Interior` does not require `WfWorld Wᵢ`, although §12.2 says
 --       W[δ ∥ δ′] "is defined only when it is well formed": WfWorld is
 --       kept separate (only the final world Wᵢ would be constrained,
 --       D15), and the rules read only the joins and marks fixed here.
---     - "Paired rep. vars agree" relates two payloads `R ⊑ R′` by
---       reading them as ordinary types through each side's names
---       (`Agree.rep-rep`), the only reading "through W" available; a
---       payload that mentions an unnamed rep. var cannot be read.
 --     - `W ⊕⁺ m ^ β` (the premise world of `∀⊑⟪+⟫`) is its own
 --       operation: the right side's new name is the boundary entry
 --       `bind 0 β`, not a Λ, so the right context is `reps Δ′ ∣ β ∷
@@ -58,16 +62,20 @@ module ImprecisionWorld where
 --       rather than by `toExt` on the term-interior context.
 
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.List using (List; []; _∷_; map)
+open import Data.List using (List; []; _∷_; map; length)
+open import Data.Nat using (_+_)
 open import Data.Maybe using (just)
 open import Data.Product using (_×_; _,_)
 open import Data.Sum using (_⊎_)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
-open import Types using (Ty; ★; Renameᵗ; renameᵗ; ⇑ᵗ)
+open import Types
+  using (Ty; `_; ★; _⇒_; `∀; Base; Renameᵗ; renameᵗ; ⇑ᵗ)
 open import Ctx
 open import Boundary using (Boundary; _⊢ⁱ_⇒_; _⊢ᶜ_⇒_; toExt; Fresh)
-open import Imprecision using (VarImp; X⊑X; X⊑★; ImpEnv; _⊢_⊑_)
+open import Imprecision
+  using (VarImp; X⊑X; X⊑★; ImpEnv; extᵐ; instᵐ; _⊢_⊑_)
+open import Coercion using (NonVar; NonStar; _∈ᵗ_)
 
 private
   variable
@@ -372,17 +380,51 @@ data Joint (P : RVar → RVar → Set)
     → Joint P ι ι′
     → Joint P (skip {m = m} ι) (keep {α = β} {m = m} ι′)
 
--- "Paired rep. vars agree" (DEVIATION: payloads are read through each
--- side's names, see the charter)
+-- Representation imprecision `μ ⊢ R ⊑ᴿ⟨ W ⟩ R′` (design.md D23): two
+-- payloads compared in the representation universe (Ctx §4).  μ holds
+-- one mark per local ∀-bound variable, shared by both sides as in
+-- `_⊢_⊑_` (index < length μ is local); index `length μ + α` is the
+-- free rep. var α.  The rules are `_⊢_⊑_`'s, with `X⊑X` split into a
+-- local case and a free case (paired through ϱ = ϱᵍ ∪ ϱˡ), and one
+-- extra case: a free left rep. var against ★ (`α⊑★`, no condition:
+-- a rep. var carries no mark; marks belong to names, D11/D12).
+data RepImp (W : World Δ Δ′) : ImpEnv → Ty → Ty → Set
+infix 4 RepImp
+syntax RepImp W μ R R′ = μ ⊢ R ⊑ᴿ⟨ W ⟩ R′
+
+data RepImp W where
+  ★⊑★ : ∀ {μ} → μ ⊢ ★ ⊑ᴿ⟨ W ⟩ ★
+  ι⊑ι : ∀ {μ ι} → Base ι → μ ⊢ ι ⊑ᴿ⟨ W ⟩ ι
+  X⊑X : ∀ {μ X m} → μ ∋ˡ X := m → μ ⊢ ` X ⊑ᴿ⟨ W ⟩ ` X
+  α⊑β : ∀ {μ α β} → Paired W α β
+    → μ ⊢ ` (length μ + α) ⊑ᴿ⟨ W ⟩ ` (length μ + β)
+  ⇒⊑⇒ : ∀ {μ R R′ S S′}
+    → μ ⊢ R ⊑ᴿ⟨ W ⟩ R′ → μ ⊢ S ⊑ᴿ⟨ W ⟩ S′
+    → μ ⊢ R ⇒ S ⊑ᴿ⟨ W ⟩ R′ ⇒ S′
+  ∀⊑∀ : ∀ {μ R R′} → extᵐ μ ⊢ R ⊑ᴿ⟨ W ⟩ R′ → μ ⊢ `∀ R ⊑ᴿ⟨ W ⟩ `∀ R′
+  ⇒⊑★ : ∀ {μ R S}
+    → μ ⊢ R ⊑ᴿ⟨ W ⟩ ★ → μ ⊢ S ⊑ᴿ⟨ W ⟩ ★ → μ ⊢ R ⇒ S ⊑ᴿ⟨ W ⟩ ★
+  ι⊑★ : ∀ {μ ι} → Base ι → μ ⊢ ι ⊑ᴿ⟨ W ⟩ ★
+  X⊑★ : ∀ {μ X} → μ ∋ˡ X := X⊑★ → μ ⊢ ` X ⊑ᴿ⟨ W ⟩ ★
+  α⊑★ : ∀ {μ α} → μ ⊢ ` (length μ + α) ⊑ᴿ⟨ W ⟩ ★
+  ∀⊑  : ∀ {μ R R′} → NonVar R → 0 ∈ᵗ R
+    → instᵐ μ ⊢ R ⊑ᴿ⟨ W ⟩ ⇑ᵗ R′ → μ ⊢ `∀ R ⊑ᴿ⟨ W ⟩ R′
+  ∀★⊑★ : ∀ {μ} → μ ⊢ `∀ ★ ⊑ᴿ⟨ W ⟩ ★
+  ∀⊑★ : ∀ {μ R} → NonStar R → extᵐ μ ⊢ R ⊑ᴿ⟨ W ⟩ ★
+    → μ ⊢ `∀ R ⊑ᴿ⟨ W ⟩ ★
+  bot-elim : ∀ {μ} → μ ⊢ `∀ (` 0) ⊑ᴿ⟨ W ⟩ `∀ ★
+  bot⊑★ : ∀ {μ} → μ ⊢ `∀ (` 0) ⊑ᴿ⟨ W ⟩ ★
+
+-- "Paired rep. vars agree": both abstract; an abstract left rep. var
+-- against β:=★; or two payloads related by `RepImp` (design.md D23)
 data Agree (W : World Δ Δ′) (α β : RVar) : Set where
   abst-abst : reps Δ ∋ʳ α := abstR → reps Δ′ ∋ʳ β := abstR
     → Agree W α β
   abst-★    : reps Δ ∋ʳ α := abstR → Δ′ ∋rep β := ★
     → Agree W α β
-  rep-rep   : ∀ {R R′ A A′}
+  rep-rep   : ∀ {R R′}
     → Δ ∋rep α := R → Δ′ ∋rep β := R′
-    → Δ ⊢ᶜ A ~ R → Δ′ ⊢ᶜ A′ ~ R′
-    → A ⊑ᵂ⟨ W ⟩ A′
+    → [] ⊢ R ⊑ᴿ⟨ W ⟩ R′
     → Agree W α β
 
 record WfWorld (W : World Δ Δ′) : Set where

@@ -229,7 +229,7 @@ Wᵢ₁-wf = wf-world (both (inj₁ here⇔) joint[]) agree uniq
   where
   agree : ∀ {α β} → Paired Wᵢ₁ α β → Agree Wᵢ₁ α β
   agree (inj₁ here⇔) =
-    rep-rep r-here r-here same-ℕ same-★ ℕ⊑★
+    rep-rep r-here r-here (ι⊑★ base-ℕ)
   agree (inj₁ (there⇔ ()))
   agree (inj₂ ())
   uniq : ∀ {α α′ β} → Paired Wᵢ₁ α β → Paired Wᵢ₁ α′ β → α ≡ α′
@@ -409,7 +409,7 @@ Wᵢ₆-wf = wf-world (both (inj₁ here⇔) joint[]) agree uniq
   where
   agree : ∀ {α β} → Paired Wᵢ₆ α β → Agree Wᵢ₆ α β
   agree (inj₁ here⇔) =
-    rep-rep r-here r-here same-𝔹 same-𝔹 (ι⊑ι base-𝔹)
+    rep-rep r-here r-here (ι⊑ι base-𝔹)
   agree (inj₁ (there⇔ ()))
   agree (inj₂ ())
   uniq : ∀ {α α′ β}

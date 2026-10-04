@@ -8,7 +8,9 @@ module examples.Show where
 --     `Env`; §4 types, payloads, conversions; §5 coercions and modes;
 --     §6 boundary scopes; §7 terms; §8 type contexts and states;
 --     §9 runs; §10 the entry points.
---   * DISPLAY ONLY — no theorem, and nothing depends on it.
+--   * DISPLAY ONLY — no theorem, and only display modules depend on it
+--     (examples.ImpLadder prints its names, types, conversions,
+--     coercions, scopes and terms with these printers).
 --   * THE NOTATION IS design.md's.  Types `★→★`, `∀X. A`; conversions
 --     `id(A)`, `+X` (unseal), `−X` (seal), `c → d`, `∀X. c`, `t ; −X`,
 --     `+X ; c` (design.md §2); coercions `id(A)`, `G!`, `G?ℓ0`,

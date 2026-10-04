@@ -7,6 +7,11 @@
 #              'open import examples.Examples'
 #   (`showRun k ⊢M` renders every state of a run with its rules;
 #    `showTm M` renders one closed term.)
+#   ladder: scripts/render_gtnf.sh 'impLadder VL⊑RF' \
+#             'open import examples.TermImprecisionRegressionExamples' \
+#             'open import examples.ImpLadder'
+#   (`impLadder d` renders a term-imprecision derivation d as an
+#    outside-in ladder with its worlds; examples/ImpLadder.agda.)
 set -u
 cd "$(dirname "$0")/../GTNF/agda" || exit 1
 EXPR="$1"; shift

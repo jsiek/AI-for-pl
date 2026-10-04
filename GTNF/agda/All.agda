@@ -53,6 +53,9 @@ open import examples.TermImprecisionRegressionExamples
 -- de Bruijn → named rendering (scripts/render_gtnf.sh)
 open import examples.Show
 
+-- imprecision ladders of term-imprecision derivations (render_gtnf.sh)
+open import examples.ImpLadder
+
 -- the statement of the dynamic gradual guarantee (proof/DGG/PLAN.md §2)
 open import DynamicGradualGuarantee
 

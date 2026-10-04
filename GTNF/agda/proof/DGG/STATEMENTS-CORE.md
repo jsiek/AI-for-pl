@@ -844,7 +844,7 @@ parentheses is itself INLINE.
 5. **The catch-up measure.**  Do you accept the lexicographic measure
    of §0 for CatchupRightᴳ, CatchupCast and CatchupBdy as one
    well-founded induction?
-6. **(new) One world morphism.**  Do you accept `WorldMor` as the
+6. **(new) One world morphism.**  APPROVED by Jeremy, 2026-10-04.  Do you accept `WorldMor` as the
    single transport, in place of `WorldRen`, `WorldRefine` and
    `MarksRaised`?  It covers renaming, refinement and raised marks.
    Do you also accept the merge of the redex children by redex kind

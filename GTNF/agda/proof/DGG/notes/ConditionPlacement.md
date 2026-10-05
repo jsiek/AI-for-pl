@@ -206,6 +206,82 @@ the binder, with no reference to the closing conversion.
   `Merge` (which concatenates two boundaries' entries and composes
   their conversions) and `exitEnv`?
 
+## 8. Invariants on rep. vars instead of names (Jeremy, 2026-10-05)
+
+Rep. vars live longer than names.  A name exists between a boundary's
+`+X^α` and the `−X^α` (or the boundary's exit); `Merge` concatenates
+entries and `exitEnv` renames, so a fact about a name must be carried
+through every such step (this is where InteriorMerge broke under
+HiddenNames).  A rep. var is allocated once by `TyBeta` and never
+renamed or freed.
+
+**What holds of rep. vars along a run** (all directly from the
+reduction rules; none uses the relation):
+
+1. A rep. var's payload never changes after `TyBeta` allocates it.
+2. The store only grows; rep. var numbering only shifts under the
+   allocations `↑ᴹ[ δ ]` of siblings (no rebase, Evolve's charter).
+3. Every name in a term is bound by some boundary entry to exactly one
+   rep. var, so "the rep. var of a name occurrence" is well defined
+   from the enclosing entries.
+4. A seal `−X` and a tag `X!` act on the rep. var of X; `Merge` and
+   `exitEnv` change the names and the entry lists but not which
+   rep. var a seal or tag refers to.
+
+**Where P4 and C2 really differ.**  Right after `CastFun`, the two
+right terms are identical except for two coercions:
+
+```
+P4  ([+X^α] (([−X^α] (λx:★. x) ⟨…⟩) ([−X^α] 5 ⟨−X⟩)⟨X!⟩^[X:X∼★])⟨X?ℓ0⟩^[X:★∼X] ⟨+X⟩)
+C2  ([+X^α] (([−X^α] (λx:★. x) ⟨…⟩) ([−X^α] 5 ⟨−X⟩)⟨X!⟩^[X:X∼★])⟨id(★)⟩^[X:★∼X] ⟨id(★)⟩)
+```
+
+Both relate the left's untagged `[−X^α] 5 ⟨−X⟩` to the right's tagged
+`(…)⟨X!⟩` at `X ⊑ ★`, in the same world.  In P4 that tagged value sits
+under a right check `⟨X?⟩` of the **same rep. var**, so it cannot
+leave untagged-against-tagged; in C2 it sits under `⟨id(★)⟩` and then
+a boundary exit `id(★)`, so it escapes.  C1 and C4 are like C2 (the
+tag `x⟨X!⟩` is under no check).  So the distinguishing fact is not a
+static property of the rep. var pair (P4 and C2 have the same pair,
+`ν X:=ℕ` on both sides): it is whether **an αᴿ-tagged right value that
+faces an untagged left value is still under a right check of αᴿ (or a
+right hiding `−X^αᴿ`)**.
+
+**A candidate invariant, stated on rep. vars:**
+
+```
+a right value tagged by αᴿ faces an untagged left value
+  only under a right check of αᴿ, or inside a right hiding of αᴿ
+```
+
+It mentions names only through the rep. var they denote, so `Merge`
+and `exitEnv` (fact 4) preserve it without re-proving anything about
+marks.  In the relation it would be read top-down: a right check
+`⟨X?⟩` (or a right `−X^α`) grants, to its premise, permission for
+αᴿ-tagged right values to face untagged left ones; `⊑cast` of a right
+tag `X!` at `X ⊑ ★` requires that permission.  Then the marks of
+shared names need not license anything by themselves, which is the
+sidedness rule (SidedMarks) with P4's need supplied by the check.
+
+**Name relation from the rep. var relation.**  A shared name X is bound
+by entries `+X^αᴸ` and `+X^αᴿ`.  Its mark could be read from the pair
+`(αᴸ, αᴿ)` in `ϱ` plus the permission above, instead of being stored on
+the name and chosen at the binder (D11) or kept on a rejoin (D15).
+D23 decided "rep. vars carry no marks; marks belong to names" (Jeremy,
+2026-10-03); this would revisit it: the information moves to `ϱ` (and
+to permissions granted by checks), and names read it.
+
+Open:
+- Function casts: in P4 before `CastFun`, the wrapper `⟨X! → X?⟩` is one
+  arrow coercion; the permission for its domain tag comes from its own
+  codomain check.  The rule for a right arrow cast must grant it
+  per position (a contravariant `X!` is covered by a covariant `X?` of
+  the same rep. var).  C2's `⟨X! → id(★)⟩` grants nothing.
+- Whether "under a check" must also account for a check that may never
+  run (the right diverges first): that only helps SimBackBlame.
+- How the permission interacts with D27 pushes (C4's push has no check
+  above the tag, so C4 dies; does every corpus push have one?).
+
 ## 7. Sources
 
 `PendingOpenings.agda` (`Probes`), `SidedMarks.{agda,md}`,

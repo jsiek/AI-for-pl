@@ -1273,7 +1273,11 @@ Each one can be revisited on its own.
   The relation is `R ⊑ᴿ_W R′` (`ImprecisionWorld.RepImp`), whose rules
   are those of `⊑` (§12.1) over payloads.  A free left rep. var may also
   face `★`, with no condition, because rep. vars carry no marks (marks
-  belong to names; confirmed by Jeremy, 2026-10-03).  Strictness is
+  belong to names; confirmed by Jeremy, 2026-10-03).  Clarified (Jeremy, 2026-10-05): this
+  is not a ban on mark-like information for rep. vars.  Rep. var
+  pairs may carry such information, and the marks of the names bound
+  to them may be derived from it (proof/DGG/notes/ConditionPlacement.md
+  §7).  Strictness is
   still enforced where world pairs are created: `ν⊑ν`'s premise
   `A ⊑ A′` compares the type arguments with the names' marks.
   Before, the payloads were read as ordinary types through the names in

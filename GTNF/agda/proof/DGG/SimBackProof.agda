@@ -20,8 +20,14 @@ module proof.DGG.SimBackProof
 --     interior world's `WfWorld` is a premise of `⊑⟪⟫`, and the former
 --     `∀⊑⟪+⟫` cases, D26's openings, are the `⊑⟪⟫` cases with a push.)
 --   * The statement is at a world with no pending name (`πʷ W ≡ []`,
---     design.md D27): each clause matches it as `refl`, and every IH is
---     at a premise world with no pending name (`refl` again).
+--     design.md D27) and no permission (`κʷ W ≡ []`, D28): each clause
+--     matches both as `refl`, and every IH is at a premise world with
+--     no pending name (`refl` again) and no permission (`same-κ` for
+--     an interior world).  A granting `⊑cast` (D28) has a premise
+--     world with a permission: its ξ-cast case is a separate hole
+--     (`SimBackFrame-⊑castκ`); its redex cases pass the whole
+--     derivation to the child lemma, and its Blame-cast case is
+--     `catchupBlame`, whose statement does not read κ.
 --   * The one-sided LEFT rules (`cast⊑`, `ν⊑`, `⟪⟫⊑`, `Λ⊑`) relate a
 --     left wrapper to an arbitrary right term: every right step goes to
 --     the IH on the premise.  `blame⊑` is finished (the left is blame
@@ -45,7 +51,8 @@ open import Boundary
 open import Terms
 open import Reduction
 open import ImprecisionWorld
-  using (World; πʷ; _⊑ᵂ⟨_⟩_; int-left; int-right; liftᴸ-[]; open1)
+  using (World; πʷ; _⊑ᵂ⟨_⟩_; int-left; int-right; same-κ; liftᴸ-[];
+         raise-[]; open1)
 open import proof.DGG.RunFrames using (value-run≡)
 open import TermImprecision
 open import proof.TypeSafety.PreservationSupport using (wf-underΛ)
@@ -83,180 +90,186 @@ pending-¬⊑blame {π = []} refl
 pending-¬⊑blame {π = _ ∷ _} refl
     (Λ⊑ {A = A} {B′ = B′} (claim-pop (open1 j x h)) nv occ liftᴸ-[] v d q) =
   pending-¬⊑blame {A = A} {A′ = B′} refl d
-pending-¬⊑blame refl (⟪⟫⊑ {Aᵢ = Aᵢ} {A′ = A′} i (bc-∀ s fc) wi d b q) =
+pending-¬⊑blame refl (⟪⟫⊑ {Aᵢ = Aᵢ} {A′ = A′} i ok (bc-∀ s fc) wi d b q) =
   pending-¬⊑blame {A = Aᵢ} {A′ = A′} refl d
 
 simBack : SimBack
 -- no rule relates a variable at γ = []
-simBack wfΔ wfΔ′ wfW refl (x⊑x ()) st′
+simBack wfΔ wfΔ′ wfW refl refl (x⊑x ()) st′
 -- the right term is a value: it does not step
-simBack wfΔ wfΔ′ wfW refl (κ⊑κ lit-$ p) ()
-simBack wfΔ wfΔ′ wfW refl (κ⊑κ lit-true p) ()
-simBack wfΔ wfΔ′ wfW refl (κ⊑κ lit-false p) ()
-simBack wfΔ wfΔ′ wfW refl (ƛ⊑ƛ wA wA′ d) ()
-simBack wfΔ wfΔ′ wfW refl (Λ⊑Λ lift v v′ d q) ()
+simBack wfΔ wfΔ′ wfW refl refl (κ⊑κ lit-$ p) ()
+simBack wfΔ wfΔ′ wfW refl refl (κ⊑κ lit-true p) ()
+simBack wfΔ wfΔ′ wfW refl refl (κ⊑κ lit-false p) ()
+simBack wfΔ wfΔ′ wfW refl refl (ƛ⊑ƛ wA wA′ d) ()
+simBack wfΔ wfΔ′ wfW refl refl (Λ⊑Λ lift v v′ d q) ()
 -- the left is blame already
-simBack wfΔ wfΔ′ wfW refl (blame⊑ {ℓ = ℓ} wA ⊢M′ p) st′ = inj₂ (ℓ , done)
+simBack wfΔ wfΔ′ wfW refl refl (blame⊑ {ℓ = ℓ} wA ⊢M′ p) st′ = inj₂ (ℓ , done)
 
 ------------------------------------------------------------------------
 -- ·⊑·
 
-simBack wfΔ wfΔ′ wfW refl (·⊑· dL dM) (Beta w) =
+simBack wfΔ wfΔ′ wfW refl refl (·⊑· dL dM) (Beta w) =
   {! SimBackBeta-Beta: simBackBeta (wfΔ , wfΔ′ , wfW) (·⊑· dL dM) w !}
-simBack wfΔ wfΔ′ wfW refl (·⊑· dL dM) (Wrap u w ci ri rd sc) =
+simBack wfΔ wfΔ′ wfW refl refl (·⊑· dL dM) (Wrap u w ci ri rd sc) =
   {! SimBackBeta-Wrap: simBackWrap pre (·⊑· dL dM) u w ci ri rd sc !}
-simBack wfΔ wfΔ′ wfW refl (·⊑· dL dM) (CastFun v w) =
+simBack wfΔ wfΔ′ wfW refl refl (·⊑· dL dM) (CastFun v w) =
   {! SimBackCast-CastFun: simBackCastFun pre (·⊑· dL dM) v w !}
-simBack wfΔ wfΔ′ wfW refl (·⊑· dL dM) Blame-·₁ =
+simBack wfΔ wfΔ′ wfW refl refl (·⊑· dL dM) Blame-·₁ =
   inj₂ {! SimBackCast-ToBlame: simBackToBlame pre (·⊑· dL dM)
             Blame-·₁ !}
-simBack wfΔ wfΔ′ wfW refl (·⊑· dL dM) (Blame-·₂ v) =
+simBack wfΔ wfΔ′ wfW refl refl (·⊑· dL dM) (Blame-·₂ v) =
   inj₂ {! SimBackCast-ToBlame: simBackToBlame pre (·⊑· dL dM)
             (Blame-·₂ v) !}
-simBack wfΔ wfΔ′ wfW refl (·⊑· dL dM) (ξ-·₁ st′)
-    with simBack wfΔ wfΔ′ wfW refl dL st′
-simBack wfΔ wfΔ′ wfW refl (·⊑· dL dM) (ξ-·₁ st′) | ih =
+simBack wfΔ wfΔ′ wfW refl refl (·⊑· dL dM) (ξ-·₁ st′)
+    with simBack wfΔ wfΔ′ wfW refl refl dL st′
+simBack wfΔ wfΔ′ wfW refl refl (·⊑· dL dM) (ξ-·₁ st′) | ih =
   {! SimBackFrame-·₁: simBackFrame-·₁ pre dM ih !}
-simBack wfΔ wfΔ′ wfW refl (·⊑· dL dM) (ξ-·₂ v′ st′)
-    with catchupLeft wfΔ wfΔ′ wfW refl v′ dL | simBack wfΔ wfΔ′ wfW refl dM st′
-simBack wfΔ wfΔ′ wfW refl (·⊑· dL dM) (ξ-·₂ v′ st′) | cu | ih =
+simBack wfΔ wfΔ′ wfW refl refl (·⊑· dL dM) (ξ-·₂ v′ st′)
+    with catchupLeft wfΔ wfΔ′ wfW refl refl v′ dL
+       | simBack wfΔ wfΔ′ wfW refl refl dM st′
+simBack wfΔ wfΔ′ wfW refl refl (·⊑· dL dM) (ξ-·₂ v′ st′) | cu | ih =
   {! SimBackFrame-·₂: simBackFrame-·₂ pre v′ cu ih !}
 
 ------------------------------------------------------------------------
 -- cast⊑cast
 
-simBack wfΔ wfΔ′ wfW refl (cast⊑cast d ct ct′ q) (CastId v) =
+simBack wfΔ wfΔ′ wfW refl refl (cast⊑cast d ct ct′ q) (CastId v) =
   {! SimBackCast-CastId: simBackCastId pre (cast⊑cast d ct ct′ q) v !}
-simBack wfΔ wfΔ′ wfW refl (cast⊑cast d ct ct′ q) (CastSeq v) =
+simBack wfΔ wfΔ′ wfW refl refl (cast⊑cast d ct ct′ q) (CastSeq v) =
   {! SimBackCast-CastSeq: simBackCastSeq pre (cast⊑cast d ct ct′ q)
        v !}
-simBack wfΔ wfΔ′ wfW refl (cast⊑cast d ct ct′ q) (CastSeq? v) =
+simBack wfΔ wfΔ′ wfW refl refl (cast⊑cast d ct ct′ q) (CastSeq? v) =
   {! SimBackCast-CastSeq?: simBackCastSeq? pre (cast⊑cast d ct ct′ q)
        v !}
-simBack wfΔ wfΔ′ wfW refl (cast⊑cast d ct ct′ q) (Inst v) =
+simBack wfΔ wfΔ′ wfW refl refl (cast⊑cast d ct ct′ q) (Inst v) =
   {! SimBackCast-Inst: simBackInst pre (cast⊑cast d ct ct′ q) v !}
-simBack wfΔ wfΔ′ wfW refl (cast⊑cast d ct ct′ q) (TagUntag v) =
+simBack wfΔ wfΔ′ wfW refl refl (cast⊑cast d ct ct′ q) (TagUntag v) =
   {! SimBackCast-TagUntag: simBackTagUntag pre (cast⊑cast d ct ct′ q)
        v !}
-simBack wfΔ wfΔ′ wfW refl (cast⊑cast d ct ct′ q) (TagUntagBad v neq) =
+simBack wfΔ wfΔ′ wfW refl refl (cast⊑cast d ct ct′ q) (TagUntagBad v neq) =
   inj₂ {! SimBackCast-ToBlame: simBackToBlame pre
             (cast⊑cast d ct ct′ q) (TagUntagBad v neq) !}
-simBack wfΔ wfΔ′ wfW refl (cast⊑cast d ct ct′ q) (TagUntagBad-⟪⟫ v fr) =
+simBack wfΔ wfΔ′ wfW refl refl (cast⊑cast d ct ct′ q) (TagUntagBad-⟪⟫ v fr) =
   inj₂ {! SimBackCast-ToBlame: simBackToBlame pre
             (cast⊑cast d ct ct′ q) (TagUntagBad-⟪⟫ v fr) !}
-simBack wfΔ wfΔ′ wfW refl (cast⊑cast d ct ct′ q) (BlameBotIntro v) =
+simBack wfΔ wfΔ′ wfW refl refl (cast⊑cast d ct ct′ q) (BlameBotIntro v) =
   inj₂ {! SimBackCast-ToBlame: simBackToBlame pre
             (cast⊑cast d ct ct′ q) (BlameBotIntro v) !}
-simBack wfΔ wfΔ′ wfW refl (cast⊑cast d ct ct′ q) Blame-cast =
+simBack wfΔ wfΔ′ wfW refl refl (cast⊑cast d ct ct′ q) Blame-cast =
   inj₂ {! SimBackCast-ToBlame: simBackToBlame pre
             (cast⊑cast d ct ct′ q) Blame-cast !}
-simBack wfΔ wfΔ′ wfW refl (cast⊑cast d ct ct′ q) (ξ-cast st′)
-    with simBack wfΔ wfΔ′ wfW refl d st′
-simBack wfΔ wfΔ′ wfW refl (cast⊑cast d ct ct′ q) (ξ-cast st′) | ih =
+simBack wfΔ wfΔ′ wfW refl refl (cast⊑cast d ct ct′ q) (ξ-cast st′)
+    with simBack wfΔ wfΔ′ wfW refl refl d st′
+simBack wfΔ wfΔ′ wfW refl refl (cast⊑cast d ct ct′ q) (ξ-cast st′) | ih =
   {! SimBackFrame-cast: simBackFrame-cast pre ct ct′ q ih !}
 
 ------------------------------------------------------------------------
 -- cast⊑: whatever the right step, the IH on the premise
 
-simBack wfΔ wfΔ′ wfW refl (cast⊑ cc-plain d ct q) st′
-    with simBack wfΔ wfΔ′ wfW refl d st′
-simBack wfΔ wfΔ′ wfW refl (cast⊑ cc-plain d ct q) st′ | ih =
+simBack wfΔ wfΔ′ wfW refl refl (cast⊑ cc-plain d ct q) st′
+    with simBack wfΔ wfΔ′ wfW refl refl d st′
+simBack wfΔ wfΔ′ wfW refl refl (cast⊑ cc-plain d ct q) st′ | ih =
   {! SimBackFrame-cast⊑: simBackFrame-cast⊑ pre ct q ih !}
 
 ------------------------------------------------------------------------
 -- ⊑cast (the right cast is one-sided)
 
-simBack wfΔ wfΔ′ wfW refl (⊑cast d ct′ q) (CastId v) =
-  {! SimBackCast-CastId: simBackCastId pre (⊑cast d ct′ q) v !}
-simBack wfΔ wfΔ′ wfW refl (⊑cast d ct′ q) (CastSeq v) =
-  {! SimBackCast-CastSeq: simBackCastSeq pre (⊑cast d ct′ q) v !}
-simBack wfΔ wfΔ′ wfW refl (⊑cast d ct′ q) (CastSeq? v) =
-  {! SimBackCast-CastSeq?: simBackCastSeq? pre (⊑cast d ct′ q) v !}
-simBack wfΔ wfΔ′ wfW refl (⊑cast d ct′ q) (Inst v) =
-  {! SimBackCast-Inst: simBackInst pre (⊑cast d ct′ q) v !}
-simBack wfΔ wfΔ′ wfW refl (⊑cast d ct′ q) (TagUntag v) =
-  {! SimBackCast-TagUntag: simBackTagUntag pre (⊑cast d ct′ q) v !}
-simBack wfΔ wfΔ′ wfW refl (⊑cast d ct′ q) (TagUntagBad v neq) =
-  inj₂ {! SimBackCast-ToBlame: simBackToBlame pre (⊑cast d ct′ q)
+simBack wfΔ wfΔ′ wfW refl refl (⊑cast g raise-[] d ct′ q) (CastId v) =
+  {! SimBackCast-CastId: simBackCastId pre (⊑cast g raise-[] d ct′ q) v !}
+simBack wfΔ wfΔ′ wfW refl refl (⊑cast g raise-[] d ct′ q) (CastSeq v) =
+  {! SimBackCast-CastSeq: simBackCastSeq pre (⊑cast g raise-[] d ct′ q) v !}
+simBack wfΔ wfΔ′ wfW refl refl (⊑cast g raise-[] d ct′ q) (CastSeq? v) =
+  {! SimBackCast-CastSeq?: simBackCastSeq? pre (⊑cast g raise-[] d ct′ q) v !}
+simBack wfΔ wfΔ′ wfW refl refl (⊑cast g raise-[] d ct′ q) (Inst v) =
+  {! SimBackCast-Inst: simBackInst pre (⊑cast g raise-[] d ct′ q) v !}
+simBack wfΔ wfΔ′ wfW refl refl (⊑cast g raise-[] d ct′ q) (TagUntag v) =
+  {! SimBackCast-TagUntag: simBackTagUntag pre (⊑cast g raise-[] d ct′ q) v !}
+simBack wfΔ wfΔ′ wfW refl refl (⊑cast g raise-[] d ct′ q) (TagUntagBad v neq) =
+  inj₂ {! SimBackCast-ToBlame: simBackToBlame pre (⊑cast g raise-[] d ct′ q)
             (TagUntagBad v neq) !}
-simBack wfΔ wfΔ′ wfW refl (⊑cast d ct′ q) (TagUntagBad-⟪⟫ v fr) =
-  inj₂ {! SimBackCast-ToBlame: simBackToBlame pre (⊑cast d ct′ q)
+simBack wfΔ wfΔ′ wfW refl refl (⊑cast g raise-[] d ct′ q) (TagUntagBad-⟪⟫ v fr) =
+  inj₂ {! SimBackCast-ToBlame: simBackToBlame pre (⊑cast g raise-[] d ct′ q)
             (TagUntagBad-⟪⟫ v fr) !}
-simBack wfΔ wfΔ′ wfW refl (⊑cast d ct′ q) (BlameBotIntro v) =
-  inj₂ {! SimBackCast-ToBlame: simBackToBlame pre (⊑cast d ct′ q)
+simBack wfΔ wfΔ′ wfW refl refl (⊑cast g raise-[] d ct′ q) (BlameBotIntro v) =
+  inj₂ {! SimBackCast-ToBlame: simBackToBlame pre (⊑cast g raise-[] d ct′ q)
             (BlameBotIntro v) !}
 -- the premise relates M to blame
-simBack wfΔ wfΔ′ wfW refl (⊑cast d ct′ q) Blame-cast =
+simBack wfΔ wfΔ′ wfW refl refl (⊑cast g raise-[] d ct′ q) Blame-cast =
   inj₂ (catchupBlame refl d)
-simBack wfΔ wfΔ′ wfW refl (⊑cast d ct′ q) (ξ-cast st′)
-    with simBack wfΔ wfΔ′ wfW refl d st′
-simBack wfΔ wfΔ′ wfW refl (⊑cast d ct′ q) (ξ-cast st′) | ih =
+simBack wfΔ wfΔ′ wfW refl refl (⊑cast no-grant raise-[] d ct′ q) (ξ-cast st′)
+    with simBack wfΔ wfΔ′ wfW refl refl d st′
+simBack wfΔ wfΔ′ wfW refl refl (⊑cast no-grant raise-[] d ct′ q) (ξ-cast st′) | ih =
   {! SimBackFrame-⊑cast: simBackFrame-⊑cast pre ct′ q ih !}
+-- a granting right check (design.md D28): the premise world permits
+-- β, outside SimBack's statement (κʷ W ≡ [])
+simBack wfΔ wfΔ′ wfW refl refl (⊑cast (grant gr) raise-[] d ct′ q) (ξ-cast st′) =
+  {! SimBackFrame-⊑castκ: the IH under the grant of β (premise at
+     κ = β ∷ []), then simBackFrame-⊑cast !}
 
 ------------------------------------------------------------------------
 -- Λ⊑: whatever the right step, the IH at W ⊕ᴸ
 
-simBack wfΔ wfΔ′ wfW refl (Λ⊑ claim-fresh nv occ liftᴸ-[] v d q) st′
+simBack wfΔ wfΔ′ wfW refl refl (Λ⊑ claim-fresh nv occ liftᴸ-[] v d q) st′
     with simBack (wf-underΛ wfΔ) wfΔ′
-           {! WfWorld (W ⊕ᴸ): an AllocImp-style lemma !} refl d st′
-simBack wfΔ wfΔ′ wfW refl (Λ⊑ claim-fresh nv occ liftᴸ-[] v d q) st′ | ih =
+           {! WfWorld (W ⊕ᴸ): an AllocImp-style lemma !} refl refl d st′
+simBack wfΔ wfΔ′ wfW refl refl (Λ⊑ claim-fresh nv occ liftᴸ-[] v d q) st′ | ih =
   {! SimBackFrame-Λ⊑: simBackFrame-Λ⊑ pre nv occ v q ih !}
 
 ------------------------------------------------------------------------
 -- ν⊑ν, ν⊑
 
-simBack wfΔ wfΔ′ wfW refl (ν⊑ν d pA n n′ nc q) (TyBeta v inst same) =
+simBack wfΔ wfΔ′ wfW refl refl (ν⊑ν d pA n n′ nc q) (TyBeta v inst same) =
   {! SimBackTyBeta: simBackTyBeta pre (ν⊑ν d pA n n′ nc q)
        v inst same !}
-simBack wfΔ wfΔ′ wfW refl (ν⊑ν d pA n n′ nc q) Blame-ν =
+simBack wfΔ wfΔ′ wfW refl refl (ν⊑ν d pA n n′ nc q) Blame-ν =
   inj₂ {! SimBackCast-ToBlame: simBackToBlame pre (ν⊑ν d pA n n′ nc q)
             Blame-ν !}
-simBack wfΔ wfΔ′ wfW refl (ν⊑ν d pA n n′ nc q) (ξ-ν st′)
-    with simBack wfΔ wfΔ′ wfW refl d st′
-simBack wfΔ wfΔ′ wfW refl (ν⊑ν d pA n n′ nc q) (ξ-ν st′) | ih =
+simBack wfΔ wfΔ′ wfW refl refl (ν⊑ν d pA n n′ nc q) (ξ-ν st′)
+    with simBack wfΔ wfΔ′ wfW refl refl d st′
+simBack wfΔ wfΔ′ wfW refl refl (ν⊑ν d pA n n′ nc q) (ξ-ν st′) | ih =
   {! SimBackFrame-ν: simBackFrame-ν pre pA n n′ nc q ih !}
 
-simBack wfΔ wfΔ′ wfW refl (ν⊑ d pA n q) st′
-    with simBack wfΔ wfΔ′ wfW refl d st′
-simBack wfΔ wfΔ′ wfW refl (ν⊑ d pA n q) st′ | ih =
+simBack wfΔ wfΔ′ wfW refl refl (ν⊑ d pA n q) st′
+    with simBack wfΔ wfΔ′ wfW refl refl d st′
+simBack wfΔ wfΔ′ wfW refl refl (ν⊑ d pA n q) st′ | ih =
   {! SimBackFrame-ν⊑: simBackFrame-ν⊑ pre pA n q ih !}
 
 ------------------------------------------------------------------------
 -- ⟪⟫⊑⟪⟫
 
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
+simBack wfΔ wfΔ′ wfW refl refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
     (Merge w ri r₁ r₂ r⋉ sc₁ sc₂) =
   {! SimBackBoundary-Merge: simBackMerge pre (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
        w ri r₁ r₂ r⋉ sc₁ sc₂ !}
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (Id u base) =
+simBack wfΔ wfΔ′ wfW refl refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (Id u base) =
   {! SimBackBoundary-Id: simBackId pre (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
        u base !}
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (IdDyn w g) =
+simBack wfΔ wfΔ′ wfW refl refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (IdDyn w g) =
   {! SimBackBoundary-IdDyn: simBackIdDyn pre (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
        w g !}
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
+simBack wfΔ wfΔ′ wfW refl refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q)
     (IdDyn-var w eq ri rc same) =
   {! SimBackBoundary-IdDynVar: simBackIdDynVar pre
        (⟪⟫⊑⟪⟫ int wi d b b′ bc q) w eq ri rc same !}
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q) Blame-⟪⟫ =
+simBack wfΔ wfΔ′ wfW refl refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q) Blame-⟪⟫ =
   inj₂ {! SimBackCast-ToBlame: simBackToBlame pre
             (⟪⟫⊑⟪⟫ int wi d b b′ bc q) Blame-⟪⟫ !}
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st′)
+simBack wfΔ wfΔ′ wfW refl refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st′)
     with interior-functional ri (int-right int)
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st′)
+simBack wfΔ wfΔ′ wfW refl refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st′)
     | refl with simBack (bdy-wfᵢ b) (bdy-wfᵢ b′)
-                  wi refl d st′
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st′)
+                  wi refl (same-κ int) d st′
+simBack wfΔ wfΔ′ wfW refl refl (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st′)
     | refl | ih =
   {! SimBackFrame-⟪⟫: simBackFrame-⟪⟫ pre int b b′ bc q ih !}
 
 ------------------------------------------------------------------------
 -- ⟪⟫⊑: whatever the right step, the IH at the interior world
 
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑ int bc-plain wi d b q) st′
+simBack wfΔ wfΔ′ wfW refl refl (⟪⟫⊑ int ok bc-plain wi d b q) st′
     with simBack (bdy-wfᵢ b) wfΔ′
-           wi refl d st′
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑ int bc-plain wi d b q) st′ | ih =
+           wi refl (same-κ int) d st′
+simBack wfΔ wfΔ′ wfW refl refl (⟪⟫⊑ int ok bc-plain wi d b q) st′ | ih =
   {! SimBackFrame-⟪⟫⊑: simBackFrame-⟪⟫⊑ pre int b q ih !}
 
 ------------------------------------------------------------------------
@@ -264,40 +277,40 @@ simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑ int bc-plain wi d b q) st′ | ih =
 -- pending name in (the conclusion has none) and may push new ones,
 -- which subsumes the former ∀⊑⟪+⟫ case and D26's openings)
 
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int pu wi d b′ q)
+simBack wfΔ wfΔ′ wfW refl refl (⊑⟪⟫ int pu wi d b′ q)
     (Merge w ri r₁ r₂ r⋉ sc₁ sc₂) =
   {! SimBackBoundary-Merge (with a push: RightMergePending):
        simBackMerge pre (⊑⟪⟫ int pu wi d b′ q) w ri r₁ r₂ r⋉ sc₁ sc₂ !}
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int pu wi d b′ q) (Id u base) =
+simBack wfΔ wfΔ′ wfW refl refl (⊑⟪⟫ int pu wi d b′ q) (Id u base) =
   {! SimBackBoundary-Id: simBackId pre (⊑⟪⟫ int pu wi d b′ q) u base !}
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int pu wi d b′ q) (IdDyn w g) =
+simBack wfΔ wfΔ′ wfW refl refl (⊑⟪⟫ int pu wi d b′ q) (IdDyn w g) =
   {! SimBackBoundary-IdDyn: simBackIdDyn pre (⊑⟪⟫ int pu wi d b′ q)
        w g !}
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int pu wi d b′ q)
+simBack wfΔ wfΔ′ wfW refl refl (⊑⟪⟫ int pu wi d b′ q)
     (IdDyn-var w eq ri rc same) =
   {! SimBackBoundary-IdDynVar: simBackIdDynVar pre
        (⊑⟪⟫ int pu wi d b′ q) w eq ri rc same !}
 -- no push: the premise relates M to blame
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int (push ca-[] [] nv) wi d b′ q) Blame-⟪⟫ =
+simBack wfΔ wfΔ′ wfW refl refl (⊑⟪⟫ int (push ca-[] [] nv) wi d b′ q) Blame-⟪⟫ =
   inj₂ (catchupBlame refl d)
 -- a push: the premise relates the left VALUE to blame under pending
 -- names, which no derivation does
-simBack wfΔ wfΔ′ wfW refl
+simBack wfΔ wfΔ′ wfW refl refl
     (⊑⟪⟫ {A = A} {A′ᵢ = A′ᵢ} int (push ca-[] (f ∷ fs) v) wi d b′ q)
     Blame-⟪⟫ =
   ⊥-elim (pending-¬⊑blame {A = A} {A′ = A′ᵢ} refl d)
 -- the right interior steps: no push, the IH at the interior world
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int (push ca-[] [] nv) wi d b′ q) (ξ-⟪⟫ ri st′)
+simBack wfΔ wfΔ′ wfW refl refl (⊑⟪⟫ int (push ca-[] [] nv) wi d b′ q) (ξ-⟪⟫ ri st′)
     with interior-functional ri (int-right int)
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int (push ca-[] [] nv) wi d b′ q) (ξ-⟪⟫ ri st′)
+simBack wfΔ wfΔ′ wfW refl refl (⊑⟪⟫ int (push ca-[] [] nv) wi d b′ q) (ξ-⟪⟫ ri st′)
     | refl with simBack wfΔ (bdy-wfᵢ b′)
-                  wi refl d st′
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int (push ca-[] [] nv) wi d b′ q) (ξ-⟪⟫ ri st′)
+                  wi refl (same-κ int) d st′
+simBack wfΔ wfΔ′ wfW refl refl (⊑⟪⟫ int (push ca-[] [] nv) wi d b′ q) (ξ-⟪⟫ ri st′)
     | refl | ih =
   {! SimBackFrame-⊑⟪⟫: simBackFrame-⊑⟪⟫ pre int b′ q ih !}
 -- ... a push: the premise is under pending names, outside SimBack's
 -- statement (PushInstR, CatchupRightπ territory)
-simBack wfΔ wfΔ′ wfW refl
+simBack wfΔ wfΔ′ wfW refl refl
     (⊑⟪⟫ int (push ca-[] (f ∷ fs) v) wi d b′ q) (ξ-⟪⟫ ri st′) =
   {! SimBackFrame-⊑⟪⟫ (with a push: SimBack under pending names,
        PendingOpenings.md §6): simBackFrame-⊑⟪⟫ pre int

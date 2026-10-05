@@ -34,6 +34,46 @@ rewritten; that is the next review.  Per
 Net: 26 → 28 MAJOR.  The top-level DGG statement is unchanged
 (top-level worlds have no pending name: `πʷ W ≡ []`).
 
+**D28 note (2026-10-05).**  design.md D28 adopted permissions: the
+world field `κʷ` (permitted right rep. vars), marks COMPUTED from it
+(`marksʷ`), grants on right checks (`⊑cast` with `CastGrant`), R1 on
+`⟪⟫⊑` (`All (UnbindOK W) Θ`) and R2 on the four ★ conversion clauses
+(`LeftUnpermitted`).  The statements below are NOT yet rewritten.
+Affected (`notes/PermissionsR.md` §7, `notes/Permissions.md` §7):
+
+- `Pre W` (all statements) gains `κʷ W ≡ []` beside `πʷ W ≡ []`, and
+  `WfWorld W` (the check fact of PermissionsR §5 needs `wf-joint`).
+  In Agda the Def statements already take `κʷ W ≡ []` (EvolveLemmas
+  `⟿-κʷ` carries it along an evolution); `CatchupBlame` does not need
+  it and is unchanged.
+- M1 MorSide, M2 MorImp: "marks may rise" (A27 MarkMono) becomes
+  "κ may grow", now `κ-weaken` WITH the side condition `R12` (R1/R2 are
+  anti-monotone in κ); `WorldMor` renames κ by the right rep. var
+  renaming.
+- M3 EvolveMor: κ shifts with the right side (`map suc`).
+- M7 MergeConvWorld and M14 MergeImp must PRESERVE R2: free when an
+  input ★ clause supplies it; a MIXED case that creates a ★ clause
+  needs `LeftUnpermitted` as a new hypothesis.
+- M13 InstXImpL: no mark to raise; an X⊑★ at a joined name needs a
+  grant above.
+- M15 RightMergeOpens/RightMergePending and M18 SimBdy: turning a
+  matched left boundary into a one-sided one (`⟪⟫⊑⟪⟫` → `⟪⟫⊑`) now
+  needs R1 for its unbind entries (fails for P4-B3-like matched seals
+  under a grant).
+- M19 SimBackApp (CastFun) and M24 CatchupCast: `R12 (β ∷ κ)` of the
+  argument (`castfun-grant`).
+- M20 SimBackCast (TagUntag): the drop lemma (PermissionsR §4.3;
+  pieces mechanized, a re-ordering walk missing).
+- M22 SimBackBlame and M26 CastRedexNoBlame: C1–C4g and C5 are no
+  longer counterexamples (`examples/TermImprecisionPermissionExamples`:
+  `C1.c1-unrelated`, `C3.c3-unrelated`, `C5Dead.c5-unrelated`,
+  `C5Dead.c5-redex-unrelated`); no new counterexample is known.
+- The Sim, SimBack and CatchupRight skeletons have a new hole each,
+  the granting `⊑cast` (its premise is at a world with a permission):
+  `SimFrame-⊑castκ`, `SimBackFrame-⊑castκ`, `CatchupRightκ`.
+- Not adopted: the push type premise (redundant under permissions).
+  Open: H1, the push ORDER (`notes/PushTypePremise.md` §7).
+
 ## 0. Overview
 
 **Count.**  26 MAJOR statements.

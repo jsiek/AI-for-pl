@@ -1175,6 +1175,8 @@ Each one can be revisited on its own.
   binds it, and it is fixed for the subterm under the binder.  No rule
   weakens a mark on the way to a premise, unlike GTSFImp's
   `ImpEnvMono` (§12.2, Example P4; Jeremy, 2026-10-01).
+  *Superseded by D28* (2026-10-05): no rule chooses a mark; marks are
+  derived from the world's permissions.
 
 - **D12 (names lexical, rep. vars global).**  In `⊑`'s worlds, the
   relation between the two sides' type variables (`Ω`, `η`, `η′`, `μ`)
@@ -1203,6 +1205,9 @@ Each one can be revisited on its own.
   world has to be well formed.  A name that goes one-sided inside a
   multi-entry `δ` and rejoins keeps its earlier mark (§12.2; §12.6,
   D1; examples P4, Cf, C2, C12, C18b; Jeremy, 2026-10-02).
+  *The keep-on-rejoin part is superseded by D28* (2026-10-05): a
+  boundary keeps `ϱ` and the permissions, so a rejoined name's mark is
+  derived again; the "only the final interior world" part stands.
 
 - **D16 (rep. vars related lexically and globally).**  `ϱ` has a
   lexical part `ϱˡ`, for the rep. vars that an enclosing `Λ` or `ν`
@@ -1349,7 +1354,44 @@ Each one can be revisited on its own.
   to a right program that blames, a pair this relation leaves unrelated
   (`cx-unrelated`).  Checked first as
   `proof/DGG/notes/PendingOpenings.{agda,md}`; the refuted alternative
-  is `StarEmbedding.md` (Jeremy, 2026-10-05).
+  is `StarEmbedding.md` (Jeremy, 2026-10-05).  (D28: a pending name's
+  mark is derived, X⊑X unless its rep. var is permitted.)
+
+- **D28 (permissions; marks are computed; R1/R2).**  A world carries
+  the *permitted* right rep. vars `κ` (`κʷ`), and marks are no longer
+  stored or chosen: a center name the right does not see is `X⊑★`; a
+  center name the right sees is `X⊑★` iff its right rep. var is in `κ`,
+  else `X⊑X` (`marksʷ W = dmarks (ηᴿʷ W) (κʷ W)`; the center is a
+  number).  A right check GRANTS: `⊑cast` may add `β` to its premise
+  world's `κ` when its coercion checks every outflow against the name
+  of `β` (`X?`, `X? ; p`, or `p → q` with `p` first order and `q`
+  granting; `CastGrant`, `Grants`).  A boundary passes `κ` unchanged;
+  top-level worlds have `κ = []`.  Two RULE premises close the
+  remaining route: R1, `⟪⟫⊑` requires every left unbind entry
+  `−X^α` of its boundary to have no permitted right partner
+  (`UnbindOK`, `Unpermitted`); R2, the four `★` conversion clauses
+  require the same of the left name (`LeftUnpermitted`).  Why: with
+  marks chosen at the binder (D11) and kept on rejoin (D15), C1–C4g
+  (`HiddenNames.md`, `ConditionPlacement.md`) relate pairs whose
+  source programs are unrelated, refuting `SimBackBlame` (M22); the
+  permissions world makes them unrelated (`κʷ ≡ []` invariant), but
+  admits C5, where the left's own seal faces a right `5⟨ℕ!⟩` under a
+  grant (refuting M22 and `CastRedexNoBlame`, M26, also at the
+  previous relation).  R1/R2 kill C5 and its hidden variant; no
+  condition on worlds alone can, because the hidden variant uses
+  exactly P4 B3's worlds (`PermissionsR.md` §1.4).  The whole corpus
+  (P1–P4, P6, K, Cg, C2, C12–C14, C18b, Ch) derives.  D11 and D15's
+  keep-on-rejoin are superseded; `PendingOK` loses its fixed `X⊑★`.
+  The push type premise (`PushTypePremise.md`) is not adopted
+  (redundant under permissions); the push ORDER defect H1
+  (`PushTypePremise.md` §7) is open.  Open obligations: CastFun needs
+  κ-weakening with the R1/R2 side condition (`κ-weaken`, `R12`), and
+  TagUntag a drop lemma (`PermissionsR.md` §4).  Notes:
+  `proof/DGG/notes/Permissions.md`, `PermissionsR.md`,
+  `ConditionPlacement.md`, `HiddenNames.md`, `SidedMarks.md`,
+  `ModeCondition.md`, `PushTypePremise.md`; examples
+  `examples/TermImprecisionPermissionExamples.agda` (Jeremy,
+  2026-10-05).
 
 The open design questions are those of the `⊑` sketch (§12.5).
 
@@ -1436,13 +1478,16 @@ right term typed in `Δ′`.  The two runs allocate independently, and a
 `World` (`proof/DGG/CtxImp.agda`), minus the stores:
 
 ```
-W = (Δ, Δ′, Ω, η, η′, μ, ϱ, π)
+W = (Δ, Δ′, Ω, η, η′, ϱ, κ, π)
 
-  Ω              the center: a list of names
+  Ω              the center: a number of names
   η  : names(Δ)  ↪ Ω     order-preserving embeddings (GTSFImp ηᴸʷ, ηᴿʷ);
   η′ : names(Δ′) ↪ Ω     every center name is in the image of at least one
-  μ  : ImpEnv(Ω)         a name in both images is X⊑X or X⊑★;
-                         a name in η's image only (left-only) is X⊑★
+  κ              the permitted right rep. vars (D28); [] at every
+                 top-level world; a right check adds one (⊑cast)
+  μ  = marks(W)          DERIVED (D28): a name in η's image only
+                         (left-only) is X⊑★; a name in η′'s image is
+                         X⊑★ iff its right rep. var is in κ, else X⊑X
   ϱ  = ϱᵍ ∪ ϱˡ           the rep. var correspondence, in two parts (D16),
                          any relation whose pairs agree (D25):
                          ϱᵍ global, over the two stores' rep. vars;
@@ -1458,18 +1503,23 @@ W = (Δ, Δ′, Ω, η, η′, μ, ϱ, π)
              name of each pending name, against A′
 ```
 
-In Agda (`ImprecisionWorld`) `π` is the field `πʷ` of `World`, and the
-index `_⊑ᵂ⟨_⟩_` reads it (`OpenImp`).  Everything that is not about
-pending names reads only the other fields: `Paired`, `Joins`,
-`Interior`, and the term-context imprecision `CtxImp`, whose entries
-hold the plain `μ ⊢ η(A) ⊑ η′(A′)` and are parameterized by `Ω`, `η`,
-`η′` only.  So `W` with its pending names replaced (`record W { πʷ = π
-}`) has the same `CtxImp`, definitionally.  The structural rules are
-stated at a world in constructor form with `π = []`, where the index
-computes to the plain one; the theorems are stated at `W` with
-`πʷ W ≡ []`, and an evolution keeps `π` (an allocation moves no name).
+In Agda (`ImprecisionWorld`) `π` is the field `πʷ` of `World`, `κ`
+the field `κʷ`, and `μ` is computed, `marksʷ W = dmarks (ηᴿʷ W)
+(κʷ W)`; the index `_⊑ᵂ⟨_⟩_` reads `πʷ` (`OpenImp`) and `marksʷ`.
+Everything that is not about pending names reads only the other
+fields: `Paired`, `Joins`, `Interior`, and the term-context imprecision
+`CtxImp`, whose entries hold the plain `μ ⊢ η(A) ⊑ η′(A′)` and are
+parameterized by the marks, `η` and `η′`.  So `W` with its pending
+names replaced (`record W { πʷ = π }`) has the same `CtxImp`,
+definitionally; a grant (`record W { κʷ = β ∷ κʷ W }`) changes the
+marks, and `⊑cast` moves the entries by `RaiseCtx` (same types, proofs
+at the raised marks).  The structural rules are stated at a world in
+constructor form with `π = []`, where the index computes to the plain
+one; the theorems are stated at `W` with `πʷ W ≡ []` and `κʷ W ≡ []`,
+and an evolution keeps `π` and renumbers `κ` with the right side (an
+allocation moves no name).
 
-Well-formedness has four parts:
+Well-formedness has five parts:
 
 - **Names name paired rep. vars.**  If a center name `X` is `X:=α` on the
   left and `X:=β` on the right, then `(α, β) ∈ ϱ`.
@@ -1483,8 +1533,12 @@ Well-formedness has four parts:
   compared in the representation universe, free rep. vars through `ϱ`
   (D23).
 - **Pending names are pending** (D27).  Each name of `π` is bound to a
-  `★` rep. var `β`, is right-only and at `X⊑★`, and `β` has no left
-  partner named in scope; the names of `π` are distinct.
+  `★` rep. var `β`, is right-only, and `β` has no left partner named in
+  scope; the names of `π` are distinct.  (Its mark is derived, D28.)
+- **Permissions are right rep. vars** (D28).  Every rep. var in `κ` is
+  a rep. var of the right store, named or not (a right `−X` keeps its
+  permission, P4 B4).  R1/R2 (§12.3) are rule premises, not parts of
+  well-formedness.
 
 **Names are related lexically; rep. vars lexically and globally**
 (D12, D16).  The relation between type variables (`Ω`, `η`, `η′`, `μ`)
@@ -1514,10 +1568,11 @@ shared name `X` needs `(α₀, αᴿ) ∈ ϱˡ`.  After the left's `TyBeta`,
 the pair is `(αᴸ, αᴿ) ∈ ϱᵍ`, with `αᴸ:=ℕ`.
 
 The point of the design (§9.6) is that **no part of a world is ever
-rebased.**  `Ω`, `η`, `η′` and `μ` change only lexically: they are
+rebased.**  `Ω`, `η`, `η′` and `κ` change only lexically: they are
 extended by a binder (`Λ`, a coercion binder, a boundary entry `+X^α`)
 and shrunk by an unbind (`−X^α`), for the subterm under it, exactly as
-the type context is.  So is `ϱˡ`.  The one non-lexical part is `ϱᵍ`,
+the type context is; `κ` grows at a right check (`⊑cast`) for the
+subterm under it.  So is `ϱˡ`.  The one non-lexical part is `ϱᵍ`,
 and it only grows: a `TyBeta` that the other side matches adds one
 pair.  An
 unmatched allocation only renumbers the allocating side's rep. vars (de
@@ -1526,7 +1581,8 @@ Bruijn).
 World operations, used by the rules:
 
 ```
-W ⊕ X:m          both sides bind X (a new center name in both images, mark m)
+W ⊕²             both sides bind X (a new center name in both images; its
+                 new right rep. var is not permitted, so X⊑X)
 W ⊕ᴸ X           the left side binds X alone (center name in η only, X⊑★)
 W ⊕ᴿ X           the right side binds X alone (center name in η′ only)
 W[δ ∥ δ′]        the interior world of a boundary pair: each side's
@@ -1534,19 +1590,18 @@ W[δ ∥ δ′]        the interior world of a boundary pair: each side's
                  −X on one side removes X from that side's image; a center
                  name in neither image is dropped.  +X^α joins the center
                  name of the rep. var α is paired with by ϱ, if any, and is
-                 otherwise a new one-sided center name.  A new
-                 both-sided name gets the mark X⊑X or X⊑★; the
-                 derivation chooses (Example P4 needs X⊑★; D11).
+                 otherwise a new one-sided center name.  ϱ and κ are
+                 unchanged, so every mark is derived (D28; Example P4's
+                 X⊑★ comes from a right check's grant).
                  (Write W[δ ∥ ·] and W[· ∥ δ′] for a one-sided boundary.)
 ```
 
 `W[δ ∥ δ′]` is defined only when it is well formed.  Only the final
 interior world has to be well formed, not the worlds between the
 entries of a multi-entry `δ`, because no rule reads those.  A name
-that goes one-sided and later rejoins keeps the mark it had before
-(D15).  In particular, a
-right-only `−X` of a name in both images leaves `X` left-only, so it
-needs `μ(X) = X⊑★` (Example P4).
+that goes one-sided and later rejoins gets its derived mark back (D28,
+superseding D15's keep-on-rejoin).  A right-only `−X` of a name in
+both images leaves `X` left-only, hence `X⊑★` (Example P4).
 
 ### 12.3 Rules
 
@@ -1581,10 +1636,23 @@ environments, except through the types:
   ────────────────────────────────────── (cast⊑)
   W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ : A ⊑ A′
 
-  W ∣ γ ⊢ M ⊑ M′ : A ⊑ B′    p′ : B′ ⇒ A′
-  ────────────────────────────────────── (⊑cast)
+  W⁺ ∣ γ⁺ ⊢ M ⊑ M′ : A ⊑ B′    p′ : B′ ⇒ A′
+  W⁺ = W, or W with β added to κ when p′ grants β    γ⁺ = γ raised
+  ──────────────────────────────────────────────────────── (⊑cast, D28)
   W ∣ γ ⊢ M ⊑ M′ ⟨p′⟩ : A ⊑ A′
+
+  p′ grants β  ::=  X?ℓ   |   X?ℓ ; q   |   q₁ → q₂ (q₁ first order, q₂ grants β)
+                    (X the right name of β; first order: id(A), G!, G?ℓ)
 ```
+
+A right check GRANTS (D28): every value that leaves the right's cast
+value through `p′` is checked against the name of `β`, so in the
+premise an X-tagged right value may face an untagged left value of
+that name, i.e. `β`'s name is `X⊑★`.  P4's gen wrapper `X! → X?` and
+its later check `X?` grant `αᴿ`; C2's `X! → id(★)` grants nothing.
+Left casts, `cast⊑cast`, right hides and boundaries grant nothing.  A
+grant covers the whole premise; `γ⁺` has the same types at the raised
+marks (`RaiseCtx`).
 
 With pending names (D27), `⊑cast` carries them unchanged, and `cast⊑`
 has two more forms, for a value `M`:
@@ -1607,7 +1675,7 @@ does not see the binder.  One gen pops one name.
 `X`, so `η′` simply does not reach the new center name.
 
 ```
-  W ⊕ X:X⊑X ∣ ⇑γ ⊢ V ⊑ V′ : A ⊑ A′
+  W ⊕² ∣ ⇑γ ⊢ V ⊑ V′ : A ⊑ A′
   ────────────────────────────────── (Λ⊑Λ)
   W ∣ γ ⊢ ΛX.V ⊑ ΛX.V′ : ∀X.A ⊑ ∀X.A′
 
@@ -1661,7 +1729,8 @@ coercions, they are not compared with each other:
 
   W[δ ∥ ·], π ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′    c : Aᵢ ⇒ A
   π = [] or (M simple and c has a ∀ per name of π)
-  ───────────────────────────────────────────── (⟪⟫⊑, D27)
+  every −X^α in δ: no partner of α in ϱ is in κ          (R1, D28)
+  ───────────────────────────────────────────── (⟪⟫⊑, D27, D28)
   W, π ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ M′ : A ⊑ A′
 
   W[· ∥ δ′], π′ ++ new ∣ [] ⊢ M ⊑ M′ : A ⊑ A′ᵢ    c′ : A′ᵢ ⇒ A′
@@ -1670,9 +1739,9 @@ coercions, they are not compared with each other:
   W, π ∣ γ ⊢ M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
 ```
 
-`⊑⟪⟫` PUSHES names that `δ′` introduces.  Each is right-only, bound to
-a rep. var `:=★`, and at `X⊑★`: the interior world's well-formedness
-says so.  A pending name is a right name position, so `⟪⟫⊑` passes it
+`⊑⟪⟫` PUSHES names that `δ′` introduces.  Each is right-only and
+bound to a rep. var `:=★`: the interior world's well-formedness says
+so; its mark is derived (D28).  A pending name is a right name position, so `⟪⟫⊑` passes it
 into the left boundary unchanged; `⊑⟪⟫` carries it through `δ′` to its
 interior position.  A name that `δ′` unbinds has no interior position,
 so it must be popped first.  With no pending name these are the plain
@@ -1680,6 +1749,16 @@ one-sided boundary rules.  For the right's `Inst` boundary against a
 left ∀-value (Example P3), `⊑⟪⟫` pushes the boundary's name and `Λ⊑`
 pops it.  The left stays the ∀-value: no `inst_X` appears in the
 relation, and under a pending name the left term is a value.
+
+R1 (D28): the left's own seal `[−X^α] V ⟨−X⟩` relates to an arbitrary
+right `★` value (the "payload view", P2), which is right when `X` is
+left-only, but not under a right check that permitted `α`'s partner:
+counterexample C5 relates `[+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩` to
+`[+X^α] 5⟨ℕ!⟩⟨X?ℓ0⟩ ⟨+X⟩`, whose right blames
+(`examples/TermImprecisionPermissionExamples.agda`, `C5Dead`; source
+programs `(ΛY. λx:Y. x) [ℕ] 5` and `(ΛY. λx:★. (x : Y)) [ℕ] (5 : ★)`).
+R1 and R2 are rule premises: no condition on worlds alone separates
+C5's hidden variant from P4 B3 (`PermissionsR.md` §1.4).
 
 The counterexample of D26 is `(λf:∀X.X→X. f)(K[ℕ])` against
 `(λf:★→★. f)(K[ℕ])`, with `K = ΛY.ΛX.λx:X.x`.  After the right's `Inst`
@@ -1693,13 +1772,13 @@ W0 = the conclusion's world
   ⟨⟩
   ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]
 W1 = Interior W0
-  ⟨Y: ─ ⊑[X⊑★] Y^β │ X: ─ ⊑[X⊑X] X^α⟩
+  ⟨Y: ─ ⊑[X⊑X] Y^β │ X: ─ ⊑[X⊑X] X^α⟩
   ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]  πʷ = [Y^β]
 W2 = Interior W1
-  ⟨Y: ─ ⊑[X⊑★] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
+  ⟨Y: ─ ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
   ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]  πʷ = [Y^β]
 W3 = Open1 W2: pop Y^β
-  ⟨Y: Y^β ⊑[X⊑★] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
+  ⟨Y: Y^β ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
   ϱᵍ = {α⇔α}  ϱˡ = {β⇔β}  Ξᴸ = [α:=ℕ, β abst]  Ξᴿ = [α:=ℕ, β:=★]
 W   left term                       A        ηᴸA      ⊑                ηᴿA′  A′   right term
 ──  ──────────────────────────────  ───────  ───────  ───────────────  ────  ───  ────────────────────────
@@ -1712,7 +1791,43 @@ W3  x                               Y        Y        Y⊑Y              Y     Y
 ```
 
 The push is a choice: the rule does not say which introduced names to
-push, and the index decides (`PendingOpenings.md` §6).
+push, and the index decides (`PendingOpenings.md` §6).  No permission
+appears: the pending `Y` is `X⊑X` (D28).
+
+A grant (D28), P4's block B3 (`p4-B3`, pinned in
+`examples/ImpLadder.agda`): the right's check `X?` grants `αᴿ`, so
+inside it the shared `X` is `X⊑★` (W2), stays `X⊑★` as a left-only
+name inside the right's `−X` (W3), and the matched seals `S ⊑ S`
+relate at the index `X ⊑ X` under the grant:
+
+```
+W0 = the conclusion's world
+  ⟨⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]
+W1 = Interior W0
+  ⟨X: X^α ⊑[X⊑X] X^α⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]
+W2 = W1 grant X^α
+  ⟨X: X^α ⊑[X⊑★] X^α⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]  κʷ = {α}
+W3 = Interior W2
+  ⟨X: X^α ⊑[X⊑★] ─⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]  κʷ = {α}
+W4 = Interior W2
+  ⟨⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]  κʷ = {α}
+W   left term        A    ηᴸA  ⊑          ηᴿA′  A′   right term
+──  ───────────────  ───  ───  ─────────  ────  ───  ────────────────────────
+W0  [+X^α] □ ⟨+X⟩    ℕ    ℕ    ℕ⊑ℕ        ℕ     ℕ    [+X^α] □ ⟨+X⟩
+W1  ─ (grant X^α)    X    X    X⊑X        X     X    □⟨X?ℓ0⟩^[X:★∼X]
+W2  □₁ □₂            X    X    X⊑★        ★     ★    □₁ □₂
+W2  ├ ─              X→X  X→X  X⊑★ → X⊑★  ★→★   ★→★  [−X^α] □ ⟨id(★) → id(★)⟩
+W3  │ λx:X. □        X→X  X→X  X⊑★ → X⊑★  ★→★   ★→★  λx:★. □
+W3  │ x              X    X    X⊑★        ★     ★    x
+W2  └ ─              X    X    X⊑★        ★     ★    □⟨X!⟩^[X:X∼★]
+W2    [−X^α] □ ⟨−X⟩  X    X    X⊑X        X     X    [−X^α] □ ⟨−X⟩
+W4    5              ℕ    ℕ    ℕ⊑ℕ        ℕ     ℕ    5
+```
 
 In `⟪⟫⊑` and `⊑⟪⟫`, the term without the boundary is in the premise
 at `γ = []`, so it must be term-closed as well.  That holds at run
@@ -1727,7 +1842,7 @@ The one-sided boundary rules have no conversion premise.  The clauses
 follow the conversion grammar:
 
 ```
-  A ⊑ A′                 c ⊑ c′    d ⊑ d′          (W ⊕ X:X⊑X) ⊢ c ⊑ c′
+  A ⊑ A′                 c ⊑ c′    d ⊑ d′          (W ⊕²) ⊢ c ⊑ c′
   ───────────────        ────────────────          ─────────────────────
   id(A) ⊑ id(A′)         c → d ⊑ c′ → d′           ∀X.c ⊑ ∀X.c′
 
@@ -1735,9 +1850,11 @@ follow the conversion grammar:
   ─────────────────────    ─────────────────────    (chains, componentwise)
   −X ⊑ −X′                 +X ⊑ +X′
 
-  μ(X) = X⊑★          μ(X) = X⊑★          t ⊑ t′   μ(X) = X⊑★       μ(X) = X⊑★   c ⊑ c′
-  ───────────         ───────────         ──────────────────       ───────────────────
-  −X ⊑ id(★)          +X ⊑ id(★)          t ; −X ⊑ t′              +X ; c ⊑ c′
+  μ(X) = X⊑★  U(X)    μ(X) = X⊑★  U(X)    t ⊑ t′  μ(X) = X⊑★  U(X)    μ(X) = X⊑★  U(X)  c ⊑ c′
+  ────────────────    ────────────────    ───────────────────────    ────────────────────────
+  −X ⊑ id(★)          +X ⊑ id(★)          t ; −X ⊑ t′                +X ; c ⊑ c′
+
+  U(X)  =  no partner in ϱ of X's rep. var is in κ          (R2, D28)
 
   (W ⊕ᴸ X) ⊢ c ⊑ g′
   ─────────────────   (g′ a middle)
@@ -1746,7 +1863,10 @@ follow the conversion grammar:
 
 The last row mirrors type imprecision's `X ⊑ ★` and `∀⊑`.  A seal or
 unseal of a left name at `X⊑★` may be absent on the right, and a
-left-only universal is opened at `X⊑★`.  C23a needs the bare forms,
+left-only universal is opened at `X⊑★`.  R2 (D28) adds `U(X)`: with
+"names name paired rep. vars", `μ(X) = X⊑★` and `U(X)` force `X` to
+be left-only in the conversion world (it closes the matched variant
+of C5).  C23a needs the bare forms,
 and C23b needs the `∀` form.  The chain forms are needed because a
 left-only `Merge` builds chains.
 

@@ -42,7 +42,7 @@ open import Ctx using (Ctxᵗ; WfCtx; apply)
 open import Coercion using (Label)
 open import Terms using (Term; blame; _∣_⊢_⦂_)
 open import Reduction using (_⊢_-→*_; done; _then_; runCtx)
-open import ImprecisionWorld using (World; πʷ; WfWorld; _⊑ᵂ⟨_⟩_)
+open import ImprecisionWorld using (World; πʷ; κʷ; WfWorld; _⊑ᵂ⟨_⟩_)
 open import TermImprecision using (_∣_⊢_⊑_∶_)
 open import proof.DGG.MultiSimBackDef using (SimBack*)
 open import proof.DGG.Evolve
@@ -50,7 +50,7 @@ open import proof.DGG.Evolve
 open import proof.DGG.EvolveLemmas
   using (Evolved; len; len-++ʳ; allocs-++ʳ; runCtx-++ʳ; castʳ;
          allocs-castʳ; runCtx-castʳ; _++ʳ′_; allocs-++ʳ′;
-         evolved-trans; evolved-cast; ⟿-πʷ)
+         evolved-trans; evolved-cast; ⟿-πʷ; ⟿-κʷ)
 open import proof.DGG.RunTyping preservation preservationWf using (wfˢ)
 
 private
@@ -94,7 +94,7 @@ private
 
   go : ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {M M′ N′ : Term} {A A′ : Ty}
          {p : A ⊑ᵂ⟨ W ⟩ A′} (n : ℕ)
-    → WfCtx Δ → WfCtx Δ′ → WfWorld W → πʷ W ≡ []
+    → WfCtx Δ → WfCtx Δ′ → WfWorld W → πʷ W ≡ [] → κʷ W ≡ []
     → W ∣ [] ⊢ M ⊑ M′ ∶ p
     → (r′ : Δ′ ⊢ M′ -→* N′)
     → len r′ ≤ n
@@ -102,40 +102,42 @@ private
          Σ[ r″ ∈ runCtx r′ ⊢ N′ -→* N₂′ ]
            Evolved W (allocs r) (allocs (r′ ++ʳ r″)) A A′ N₂ N₂′)
       ⊎ (Σ[ ℓ ∈ Label ] (Δ ⊢ M -→* blame ℓ))
-  go {W = W} {M = M} {M′ = M′} n wfΔ wfΔ′ wfW π[] M⊑M′ done le =
+  go {W = W} {M = M} {M′ = M′} n wfΔ wfΔ′ wfW π[] κ[] M⊑M′ done le =
     inj₁ (M , M′ , done , done , W , ev-done , wfW , _ , M⊑M′)
-  go zero wfΔ wfΔ′ wfW π[] M⊑M′ (st′ then r′₀) ()
-  go (suc n) wfΔ wfΔ′ wfW π[] M⊑M′ (st′ then r′₀) (s≤s le)
-      with simBack wfΔ wfΔ′ wfW π[] M⊑M′ st′
-  go (suc n) wfΔ wfΔ′ wfW π[] M⊑M′ (st′ then r′₀) (s≤s le)
+  go zero wfΔ wfΔ′ wfW π[] κ[] M⊑M′ (st′ then r′₀) ()
+  go (suc n) wfΔ wfΔ′ wfW π[] κ[] M⊑M′ (st′ then r′₀) (s≤s le)
+      with simBack wfΔ wfΔ′ wfW π[] κ[] M⊑M′ st′
+  go (suc n) wfΔ wfΔ′ wfW π[] κ[] M⊑M′ (st′ then r′₀) (s≤s le)
     | inj₂ M↠blame = inj₂ M↠blame
-  go (suc n) wfΔ wfΔ′ wfW π[] M⊑M′ (st′ then r′₀) (s≤s le)
+  go (suc n) wfΔ wfΔ′ wfW π[] κ[] M⊑M′ (st′ then r′₀) (s≤s le)
     | inj₁ (N₂ , N₂′ , r₁ , r₁″ , W₁ , ev₁ , wfW₁ , q₁ , N₂⊑N₂′)
       with prefix (preservationWf wfΔ′ (proj₂ (impTyping M⊑M′)) st′)
                   (preservation wfΔ′ (proj₂ (impTyping M⊑M′)) st′) r₁″ r′₀
   -- r′₀ is a prefix of r₁″: SimBack's pair is the answer
-  go (suc n) wfΔ wfΔ′ wfW π[] M⊑M′ (st′ then r′₀) (s≤s le)
+  go (suc n) wfΔ wfΔ′ wfW π[] κ[] M⊑M′ (st′ then r′₀) (s≤s le)
     | inj₁ (N₂ , N₂′ , r₁ , r₁″ , W₁ , ev₁ , wfW₁ , q₁ , N₂⊑N₂′)
     | inj₂ (s , eq) =
     inj₁ (N₂ , N₂′ , r₁ , s
          , evolved-cast refl (cong (_ ∷_) (sym eq))
              (W₁ , ev₁ , wfW₁ , q₁ , N₂⊑N₂′))
   -- r₁″ is a prefix of r′₀: recurse on the rest s of r′₀
-  go {Δ′ = Δ′} (suc n) wfΔ wfΔ′ wfW π[] M⊑M′ (st′ then r′₀) (s≤s le)
+  go {Δ′ = Δ′} (suc n) wfΔ wfΔ′ wfW π[] κ[] M⊑M′ (st′ then r′₀) (s≤s le)
     | inj₁ (N₂ , N₂′ , r₁ , r₁″ , W₁ , ev₁ , wfW₁ , q₁ , N₂⊑N₂′)
     | inj₁ (s , eq)
       with go n (wfˢ wfΔ (proj₁ (impTyping M⊑M′)) r₁)
                 (wfˢ wfΔ′ (proj₂ (impTyping M⊑M′)) (st′ then r₁″))
-                wfW₁ (trans (⟿-πʷ ev₁) π[]) N₂⊑N₂′ (castʳ (runCtx≡applyˢ r₁″) s)
+                wfW₁ (trans (⟿-πʷ ev₁) π[]) (⟿-κʷ ev₁ κ[]) N₂⊑N₂′
+                (castʳ (runCtx≡applyˢ r₁″) s)
                 (subst (_≤ n)
                        (sym (cong length
                               (allocs-castʳ (runCtx≡applyˢ r₁″) s)))
                        (len-rest r₁″ s r′₀ eq le))
-  go {Δ′ = Δ′} (suc n) wfΔ wfΔ′ wfW π[] M⊑M′ (st′ then r′₀) (s≤s le)
+  go {Δ′ = Δ′} (suc n) wfΔ wfΔ′ wfW π[] κ[] M⊑M′ (st′ then r′₀) (s≤s le)
     | inj₁ (N₂ , N₂′ , r₁ , r₁″ , W₁ , ev₁ , wfW₁ , q₁ , N₂⊑N₂′)
     | inj₁ (s , eq)
     | inj₂ (ℓ , r₂) = inj₂ (ℓ , r₁ ++ʳ′ r₂)
-  go {Δ′ = Δ′} (suc n) wfΔ wfΔ′ wfW π[] M⊑M′ (_then_ {δ = ξ′} st′ r′₀) (s≤s le)
+  go {Δ′ = Δ′} (suc n) wfΔ wfΔ′ wfW π[] κ[] M⊑M′
+      (_then_ {δ = ξ′} st′ r′₀) (s≤s le)
     | inj₁ (N₂ , N₂′ , r₁ , r₁″ , W₁ , ev₁ , wfW₁ , q₁ , N₂⊑N₂′)
     | inj₁ (s , eq)
     | inj₁ (N₃ , N₃′ , r₂ , r₂″ , rest) =
@@ -186,4 +188,5 @@ private
 ------------------------------------------------------------------------
 
 simBack* : SimBack*
-simBack* wfΔ wfΔ′ wfW π[] M⊑M′ r′ = go (len r′) wfΔ wfΔ′ wfW π[] M⊑M′ r′ ≤-refl
+simBack* wfΔ wfΔ′ wfW π[] κ[] M⊑M′ r′ =
+  go (len r′) wfΔ wfΔ′ wfW π[] κ[] M⊑M′ r′ ≤-refl

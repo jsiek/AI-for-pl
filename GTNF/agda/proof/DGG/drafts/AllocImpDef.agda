@@ -17,6 +17,10 @@ module proof.DGG.drafts.AllocImpDef where
 --   * `WorldRen` keeps every position and mark (no rebase), and
 --     relates ϱ only on the image of (ρ, ρ′): `alloc²`/`allocᴸ⇔` add a
 --     global pair whose left rep. var is not in the image of ρ = suc.
+--   * PERMISSIONS (design.md D28, 2026-10-05): the marks are derived
+--     (`marksʷ`), so `WorldRen` states that they agree (`wr-marks`, was
+--     `wr-μ`) and that κ is renamed with the right side (`wr-κ`, which
+--     R1/R2 transport through).
 --   * Orientation: the LEFT term is the more precise one.
 
 open import Data.Nat using (zero; suc)
@@ -58,7 +62,8 @@ record WorldRen (ρ ρ′ : Renameᵗ) (W : World Δ Δ′) (W₁ : World Δ₁ 
   field
     wr-left   : CtxRen ρ Δ Δ₁
     wr-right  : CtxRen ρ′ Δ′ Δ′₁
-    wr-μ      : μʷ W₁ ≡ μʷ W
+    wr-marks  : marksʷ W₁ ≡ marksʷ W
+    wr-κ      : κʷ W₁ ≡ map ρ′ (κʷ W)
     wr-ηᴸ     : ∀ X → emb (ηᴸʷ W₁) X ≡ emb (ηᴸʷ W) X
     wr-ηᴿ     : ∀ X → emb (ηᴿʷ W₁) X ≡ emb (ηᴿʷ W) X
     wr-paired : ∀ {α β}
@@ -68,8 +73,8 @@ open WorldRen public
 
 -- two term-context imprecisions with the same types (the proofs are
 -- at different worlds)
-data SameTys {ns ns′ ns₁ ns′₁ μ μ₁} {ηᴸ : ns ↪ μ} {ηᴿ : ns′ ↪ μ}
-    {ηᴸ₁ : ns₁ ↪ μ₁} {ηᴿ₁ : ns′₁ ↪ μ₁}
+data SameTys {ns ns′ ns₁ ns′₁ n n₁ μ μ₁} {ηᴸ : ns ↪ n} {ηᴿ : ns′ ↪ n}
+    {ηᴸ₁ : ns₁ ↪ n₁} {ηᴿ₁ : ns′₁ ↪ n₁}
     : Entries μ ηᴸ ηᴿ → Entries μ₁ ηᴸ₁ ηᴿ₁ → Set where
   same-[] : SameTys [] []
   same-∷  : ∀ {γ γ₁ A A′ p p₁} → SameTys γ γ₁

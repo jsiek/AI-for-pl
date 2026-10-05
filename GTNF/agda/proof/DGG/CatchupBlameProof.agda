@@ -41,9 +41,9 @@ catchup-blame refl (Λ⊑ claim-fresh nv occ liftᴸ-[] (V-simple ()) V⊑ q)
 catchup-blame refl (ν⊑ L⊑ pA n q) with catchup-blame refl L⊑
 catchup-blame refl (ν⊑ L⊑ pA n q) | ℓ′ , r =
   ℓ′ , (ξ-ν* r ++ʳ (Blame-ν then done))
-catchup-blame refl (⟪⟫⊑ i bc-plain wi M⊑ b q)
+catchup-blame refl (⟪⟫⊑ i ok bc-plain wi M⊑ b q)
   with catchup-blame refl M⊑
-catchup-blame refl (⟪⟫⊑ i bc-plain wi M⊑ b q) | ℓ′ , r
+catchup-blame refl (⟪⟫⊑ i ok bc-plain wi M⊑ b q) | ℓ′ , r
   with ξ-⟪⟫* (int-left i) r
-catchup-blame refl (⟪⟫⊑ i bc-plain wi M⊑ b q) | ℓ′ , r | Θ′ , r′ =
+catchup-blame refl (⟪⟫⊑ i ok bc-plain wi M⊑ b q) | ℓ′ , r | Θ′ , r′ =
   ℓ′ , (r′ ++ʳ (Blame-⟪⟫ then done))

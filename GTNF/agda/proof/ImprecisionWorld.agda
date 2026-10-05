@@ -12,20 +12,27 @@ module proof.ImprecisionWorld where
 --     rep. vars of each side that maps paired rep. vars to paired rep.
 --     vars (`⊑ᴿ-ren`; local ∀-bound variables are untouched, the
 --     renaming acts under `extN (length μ)`).
---   * THE POPPED WORLD `W ⊕⁺ m ^ β` (the pop of the pending name of
+--   * THE POPPED WORLD `W ⊕⁺^ β` (the pop of the pending name of
 --     `bind 0 β`, design.md D27; D26's opening; before D26 the premise
 --     world of ∀⊑⟪+⟫) IS WELL FORMED (`wf-⊕⁺`) when W is,
 --     β:=★, and β has no left partner NAMED in Δ (`NoNamedPartner`,
 --     the scoped form of D13's dropped `NoLeftPartner`).  β may have
 --     unnamed left partners, e.g. a store rep. var of an earlier
 --     catch-up (proof/DGG/notes/D25.md, L3c/R3c).
+--   * PERMISSIONS (design.md D28): `permit-here` (a granted rep. var is
+--     permitted) and `here★`, for the derived marks of example worlds;
+--     R1/R2's condition read as membership (`unpermitted→`,
+--     `→unpermitted`), its failure `HasPermittedPartner`/`r1-fails`, and
+--     its invariance under a boundary (`r1-interior`, `hasPP-int`,
+--     `hasPP-conv`: an interior or conversion world keeps ϱ and κ).
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_; length; map)
-open import Data.List.Relation.Unary.All using (All; [])
+open import Data.List.Relation.Unary.All using (All; []; _∷_)
 open import Data.List.Relation.Unary.AllPairs using (AllPairs; [])
-open import Data.Nat using (ℕ; zero; suc; _+_)
-open import Data.Product using (∃-syntax; _×_; _,_)
+open import Data.Bool using (true; false)
+open import Data.Nat using (ℕ; zero; suc; _+_; _≡ᵇ_)
+open import Data.Product using (Σ-syntax; ∃-syntax; _×_; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality
@@ -33,7 +40,7 @@ open import Relation.Binary.PropositionalEquality
 
 open import Types
 open import Ctx
-open import Imprecision using (VarImp; ImpEnv; extᵐ; instᵐ)
+open import Imprecision using (ImpEnv; X⊑X; X⊑★; extᵐ; instᵐ)
 open import Coercion
   using (NonVar; nv-ℕ; nv-𝔹; nv-★; nv-⇒; nv-∀;
          NonStar; ns-var; ns-ℕ; ns-𝔹; ns-⇒; ns-∀;
@@ -44,7 +51,7 @@ open import proof.Occurs using (∈-⇒ʳ′)
 
 private
   variable
-    Δ Δ′ Δ₁ Δ′₁ : Ctxᵗ
+    Δ Δ′ Δ₁ Δ′₁ Δᵢ Δ′ᵢ Δᶜ Δ′ᶜ : Ctxᵗ
 
 ------------------------------------------------------------------------
 -- 1. Named uniqueness on a side with at most one name
@@ -157,7 +164,7 @@ PairedRen W W₁ f g = ∀ {α β} → Paired W α β → Paired W₁ (f α) (g 
 ⊑ᴿ-ren f g h bot⊑★ = bot⊑★
 
 ------------------------------------------------------------------------
--- 4. The popped world W ⊕⁺ m ^ β (formerly ∀⊑⟪+⟫'s premise world)
+-- 4. The popped world W ⊕⁺^ β (formerly ∀⊑⟪+⟫'s premise world)
 ------------------------------------------------------------------------
 
 shiftᴸ-∋ : ∀ {ϱ α β} → ϱ ∋ᵨ α ⇔ β → shiftᴸ ϱ ∋ᵨ suc α ⇔ β
@@ -182,10 +189,10 @@ named-bind : ∀ {β} (ns : TyCtx) {b} → (β ∷ ns) ∋ᵅ b
 named-bind ns (_ , here)    = inj₁ refl
 named-bind ns (_ , there d) = inj₂ (_ , d)
 
-module _ {W : World Δ Δ′} {m : VarImp} {β : RVar} where
+module _ {W : World Δ Δ′} {β : RVar} where
 
   private
-    W⁺ = W ⊕⁺ m ^ β
+    W⁺ = W ⊕⁺^ β
 
   paired-⊕⁺ : PairedRen W W⁺ suc (λ b → b)
   paired-⊕⁺ (inj₁ x) = inj₁ (shiftᴸ-∋ x)
@@ -209,7 +216,7 @@ module _ {W : World Δ Δ′} {m : VarImp} {β : RVar} where
       (subst (λ T → [] ⊢ _ ⊑ᴿ⟨ W⁺ ⟩ T) (renameᵗ-id R′)
              (⊑ᴿ-ren suc (λ b → b) paired-⊕⁺ p))
 
-  joint-⊕⁺ : ∀ {ns ns′ Ω} {ι : ns ↪ Ω} {ι′ : ns′ ↪ Ω}
+  joint-⊕⁺ : ∀ {ns ns′ n} {ι : ns ↪ n} {ι′ : ns′ ↪ n}
     → Joint (Paired W) ι ι′ → Joint (Paired W⁺) (relabel suc ι) ι′
   joint-⊕⁺ joint[]          = joint[]
   joint-⊕⁺ (both p j)       = both (paired-⊕⁺ p) (joint-⊕⁺ j)
@@ -217,12 +224,12 @@ module _ {W : World Δ Δ′} {m : VarImp} {β : RVar} where
   joint-⊕⁺ (right-only j)   = right-only (joint-⊕⁺ j)
 
   -- at a world with no pending name (design.md D27; the pending names
-  -- of W ⊕⁺ m ^ β are W's, moved one position up)
+  -- of W ⊕⁺^ β are W's, moved one position up)
   wf-⊕⁺ : WfWorld W → Δ′ ∋rep β := ★ → NoNamedPartner W β
     → πʷ W ≡ [] → WfWorld W⁺
   wf-⊕⁺ wf hβ nn e = wf-world (both (inj₂ here⇔) (joint-⊕⁺ (wf-joint wf)))
                               agree namedᴸ namedᴿ (no-pending e)
-                              (no-pending≢ e)
+                              (no-pending≢ e) (wf-permits wf)
     where
     no-pending : ∀ {P : ℕ → Set} {π} → π ≡ [] → All P (map suc π)
     no-pending refl = []
@@ -285,3 +292,127 @@ module _ {W : World Δ Δ′} {m : VarImp} {β : RVar} where
     namedᴿ : NamedUniqueᴿ W⁺
     namedᴿ na nb nb′ x y =
       namedᴿ-pairs na nb nb′ (paired-⊕⁺⁻ x) (paired-⊕⁺⁻ y)
+
+------------------------------------------------------------------------
+-- 5. Permissions (design.md D28)
+------------------------------------------------------------------------
+
+≡ᵇ-refl : ∀ n → (n ≡ᵇ n) ≡ true
+≡ᵇ-refl zero    = refl
+≡ᵇ-refl (suc n) = ≡ᵇ-refl n
+
+-- a granted rep. var is permitted
+permit-here : ∀ β κ → permit β (β ∷ κ) ≡ X⊑★
+permit-here β κ rewrite ≡ᵇ-refl β = refl
+
+-- a lookup at the head whose value is X⊑★ up to an equation
+here★ : ∀ {m} {μ : ImpEnv} → m ≡ X⊑★ → (m ∷ μ) ∋ˡ 0 := X⊑★
+here★ refl = here
+
+-- R1/R2's condition, its two readings, and which world (design.md
+-- D28; checked first in proof/DGG/notes/PermissionsR.agda §6a)
+
+-- membership in a permission list
+infix 4 _∈κ_
+data _∈κ_ (β : RVar) : List RVar → Set where
+  here∈  : ∀ {κ} → β ∈κ (β ∷ κ)
+  there∈ : ∀ {γ κ} → β ∈κ κ → β ∈κ (γ ∷ κ)
+
+T-≡ᵇ : ∀ m n → (m ≡ᵇ n) ≡ true → m ≡ n
+T-≡ᵇ zero    zero    _  = refl
+T-≡ᵇ zero    (suc n) ()
+T-≡ᵇ (suc m) zero    ()
+T-≡ᵇ (suc m) (suc n) e  = cong suc (T-≡ᵇ m n e)
+
+permit-∈ : ∀ β κ → permit β κ ≡ X⊑★ → β ∈κ κ
+permit-∈ β []      ()
+permit-∈ β (γ ∷ κ) h with β ≡ᵇ γ in eq
+permit-∈ β (γ ∷ κ) h | true  rewrite T-≡ᵇ β γ eq = here∈
+permit-∈ β (γ ∷ κ) h | false = there∈ (permit-∈ β κ h)
+
+∈-permit : ∀ {β κ} → β ∈κ κ → permit β κ ≡ X⊑★
+∈-permit {β} {β ∷ κ} here∈ = permit-here β κ
+∈-permit {β} {γ ∷ κ} (there∈ m) with β ≡ᵇ γ
+∈-permit {β} {γ ∷ κ} (there∈ m) | true  = refl
+∈-permit {β} {γ ∷ κ} (there∈ m) | false = ∈-permit m
+
+permit-X⊑X : ∀ β κ → permit β κ ≢ X⊑★ → permit β κ ≡ X⊑X
+permit-X⊑X β κ n with permit β κ
+permit-X⊑X β κ n | X⊑X = refl
+permit-X⊑X β κ n | X⊑★ = ⊥-elim (n refl)
+
+-- `Unpermitted W α` is exactly  ¬ ∃ β. Paired W α β × β ∈ κʷ W
+unpermitted→ : ∀ {W : World Δ Δ′} {α} → Unpermitted W α
+  → ¬ (Σ[ β ∈ RVar ] Paired W α β × β ∈κ κʷ W)
+unpermitted→ u (β , pr , m) with trans (sym (∈-permit m)) (u pr)
+... | ()
+
+→unpermitted : ∀ {W : World Δ Δ′} {α}
+  → ¬ (Σ[ β ∈ RVar ] Paired W α β × β ∈κ κʷ W) → Unpermitted W α
+→unpermitted {W = W} n {β} pr =
+  permit-X⊑X β (κʷ W) (λ h → n (β , pr , permit-∈ β (κʷ W) h))
+
+-- the negation, as the negative proofs use it
+HasPermittedPartner : World Δ Δ′ → RVar → Set
+HasPermittedPartner W α =
+  Σ[ β ∈ RVar ] Paired W α β × (permit β (κʷ W) ≡ X⊑★)
+
+r1-fails : ∀ {W : World Δ Δ′} {α} → HasPermittedPartner W α
+  → ¬ Unpermitted W α
+r1-fails (β , pr , pm) u with trans (sym pm) (u pr)
+... | ()
+
+-- WHICH WORLD: a boundary keeps ϱ and κ, so R1 reads the same in the
+-- conclusion world W and the interior world Wᵢ (and R2 likewise in the
+-- conversion world and the exterior)
+Paired-int : ∀ {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ α β}
+  → Interior W Θ Θ′ Wᵢ → Paired W α β → Paired Wᵢ α β
+Paired-int I (inj₁ h) = inj₁ (subst (λ ϱ → ϱ ∋ᵨ _ ⇔ _) (sym (same-ϱᵍ I)) h)
+Paired-int I (inj₂ h) = inj₂ (subst (λ ϱ → ϱ ∋ᵨ _ ⇔ _) (sym (same-ϱˡ I)) h)
+
+Paired-int⁻ : ∀ {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ α β}
+  → Interior W Θ Θ′ Wᵢ → Paired Wᵢ α β → Paired W α β
+Paired-int⁻ I (inj₁ h) = inj₁ (subst (λ ϱ → ϱ ∋ᵨ _ ⇔ _) (same-ϱᵍ I) h)
+Paired-int⁻ I (inj₂ h) = inj₂ (subst (λ ϱ → ϱ ∋ᵨ _ ⇔ _) (same-ϱˡ I) h)
+
+unpermitted-int : ∀ {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ α}
+  → Interior W Θ Θ′ Wᵢ → Unpermitted W α → Unpermitted Wᵢ α
+unpermitted-int I u {β} pr =
+  subst (λ κ → permit β κ ≡ X⊑X) (sym (same-κ I)) (u (Paired-int⁻ I pr))
+
+unpermitted-int⁻ : ∀ {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ α}
+  → Interior W Θ Θ′ Wᵢ → Unpermitted Wᵢ α → Unpermitted W α
+unpermitted-int⁻ I u {β} pr =
+  subst (λ κ → permit β κ ≡ X⊑X) (same-κ I) (u (Paired-int I pr))
+
+r1-interior : ∀ {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′}
+  → Interior W Θ Θ′ Wᵢ
+  → (All (UnbindOK W) Θ → All (UnbindOK Wᵢ) Θ)
+    × (All (UnbindOK Wᵢ) Θ → All (UnbindOK W) Θ)
+r1-interior I = to , from
+  where
+  to : ∀ {Θ} → All (UnbindOK _) Θ → All (UnbindOK _) Θ
+  to []                  = []
+  to (ok-bind ∷ r)       = ok-bind ∷ to r
+  to (ok-unbind u ∷ r)   = ok-unbind (unpermitted-int I u) ∷ to r
+  from : ∀ {Θ} → All (UnbindOK _) Θ → All (UnbindOK _) Θ
+  from []                = []
+  from (ok-bind ∷ r)     = ok-bind ∷ from r
+  from (ok-unbind u ∷ r) = ok-unbind (unpermitted-int⁻ I u) ∷ from r
+
+hasPP-int : ∀ {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ α}
+  → Interior W Θ Θ′ Wᵢ → HasPermittedPartner W α
+  → HasPermittedPartner Wᵢ α
+hasPP-int I (β , pr , pm) =
+  β , Paired-int I pr , subst (λ κ → permit β κ ≡ X⊑★) (sym (same-κ I)) pm
+
+hasPP-conv : ∀ {W : World Δ Δ′} {Wᶜ : World Δᶜ Δ′ᶜ} {Θ Θ′ α}
+  → ConversionInterior W Θ Θ′ Wᶜ → HasPermittedPartner W α
+  → HasPermittedPartner Wᶜ α
+hasPP-conv ci (β , inj₁ h , pm) =
+  β , inj₁ (subst (λ ϱ → ϱ ∋ᵨ _ ⇔ _) (sym (conv-same-ϱᵍ ci)) h)
+    , subst (λ κ → permit β κ ≡ X⊑★) (sym (conv-same-κ ci)) pm
+hasPP-conv ci (β , inj₂ h , pm) =
+  β , inj₂ (subst (λ ϱ → ϱ ∋ᵨ _ ⇔ _) (sym (conv-same-ϱˡ ci)) h)
+    , subst (λ κ → permit β κ ≡ X⊑★) (sym (conv-same-κ ci)) pm
+

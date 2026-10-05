@@ -20,6 +20,17 @@ RightMergePending, …) are listed in `STATEMENTS-CORE.md`'s D27 note and
 `notes/PendingOpenings.md` §6; where this plan says "opening", read
 "push and pop".
 
+**D28 note (2026-10-05).**  design.md D28 adopted permissions: the
+world field `κʷ`, marks computed from it (`marksʷ`), grants on right
+checks (`⊑cast`), R1 on `⟪⟫⊑` and R2 on the ★ conversion clauses.
+The statements of §2-§3 are unchanged in shape and gain `κʷ W ≡ []`
+next to `πʷ W ≡ []` (an evolution keeps it, EvolveLemmas `⟿-κʷ`; the
+DGG's `RelatedValues` says so; the DGG theorem itself is the same,
+since `∅ʷ` has `κʷ = []`); `CatchupBlame` and `ImprecisionTyping`
+are unchanged.  The affected lemmas (M7, M13–M15, M18–M20, M22, M24,
+M26, `Pre W`) are listed in `STATEMENTS-CORE.md`'s D28 note and
+`notes/PermissionsR.md` §7.
+
 ## 1. Ground rules
 
 - **Audit surface.**  Everything the theorem statements depend on

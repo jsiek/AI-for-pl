@@ -14,8 +14,9 @@ module examples.TermImprecisionRebaseExamples where
 --       c13-b1, c14-b1           C13/C14 B1 (Ex 13/14): two and three
 --                                right partners (D25)
 --       cg-b0, cg-x0             Cg (Ex 1/20): B0; the right-led block,
---                                ⊑⟪⟫ pushing X at mark X⊑★, Λ⊑ popping
---                                it (D14, D27)
+--                                ⊑⟪⟫ pushing X (X⊑X), Λ⊑ popping it
+--                                under the gen wrapper's grant (D14,
+--                                D27, D28)
 --       c2-b0, c2-x0             C2 (Ex 2/21): B0; the right-led block,
 --                                ⊑⟪⟫ pushing X, the left gen cast
 --                                popping it (`cc-gen`; D14, D27)
@@ -40,8 +41,14 @@ module examples.TermImprecisionRebaseExamples where
 --   * The four right-led X0 blocks were re-derived for design.md D26
 --     (∀⊑⟪+⟫ removed; ⊑⟪⟫ with one opening) and again for D27 (pending
 --     names: ⊑⟪⟫ pushes the Inst boundary's name at the right-only
---     interior world `record (W₃ ⊕ʳ X⊑★ ^ 0) { πʷ = 0 ∷ [] }`,
+--     interior world `record (W₃ ⊕ʳ^ 0) { πʷ = 0 ∷ [] }`,
 --     `int-ro₃`, and a left binder pops it).
+--   * PERMISSIONS (design.md D28).  The worlds carry κʷ; every gen
+--     wrapper `X! → X?` GRANTS its rep. var (`tagX↦-grants`, `⊑cast!`),
+--     which is what makes the shared name X⊑★ inside it (`layer⊑`,
+--     `outer⊑`, `cg-body`, `c2-body`); inside the right's own `−X` the
+--     name is left-only.  Ported from the checked local copy
+--     proof/DGG/notes/PermissionsR.agda §8.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_; head; drop)
@@ -61,12 +68,13 @@ open import examples.TypeCheck using (tc; tf)
 open import examples.Eval using (evalTerms)
 open import Imprecision
 open import ImprecisionWorld
-open import proof.ImprecisionWorld using (namedᴸ-≤1; namedᴿ-≤1; ≤1-[]; ≤1-∷[])
+open import proof.ImprecisionWorld
+  using (namedᴸ-≤1; namedᴿ-≤1; ≤1-[]; ≤1-∷[]; permit-here; here★)
 open import ConversionImprecision
 open import TermImprecision
 open import examples.CambridgeExamples
 open import TermSubst using (crossΛᴹ)
-open import Data.List.Relation.Unary.All using ([]; _∷_)
+open import Data.List.Relation.Unary.All using (All; []; _∷_)
 open import Data.List.Relation.Unary.AllPairs using ([])
 open import examples.TermImprecisionExamples
   using (idX; revX; ℕ⊑★; five⊑; Θ₀; L1′; ΔL; ΔR; ΔLᵢ; ΔRᵢ;
@@ -90,11 +98,11 @@ id★→ = tail (mid (tail (mid (id ★)) ↦ tail (mid (id ★))))
 tagX↦ : Coercion
 tagX↦ = (` 0) ! ↦ᵖ (` 0) ？ 0
 
-X⇒X⊑★⇒★ : ∀ {Δ Δ′} {W : World Δ Δ′} → μʷ W ∋ˡ emb (ηᴸʷ W) 0 := X⊑★
-  → μʷ W ⊢ embᴸ W (` 0 ⇒ ` 0) ⊑ embᴿ W (★ ⇒ ★)
+X⇒X⊑★⇒★ : ∀ {Δ Δ′} {W : World Δ Δ′} → marksʷ W ∋ˡ emb (ηᴸʷ W) 0 := X⊑★
+  → marksʷ W ⊢ embᴸ W (` 0 ⇒ ` 0) ⊑ embᴿ W (★ ⇒ ★)
 X⇒X⊑★⇒★ m = ⇒⊑⇒ (X⊑★ m) (X⊑★ m)
 
-ℕ⇒ℕ : ∀ {Δ Δ′} (W : World Δ Δ′) → μʷ W ⊢ embᴸ W (`ℕ ⇒ `ℕ) ⊑ embᴿ W (`ℕ ⇒ `ℕ)
+ℕ⇒ℕ : ∀ {Δ Δ′} (W : World Δ Δ′) → marksʷ W ⊢ embᴸ W (`ℕ ⇒ `ℕ) ⊑ embᴿ W (`ℕ ⇒ `ℕ)
 ℕ⇒ℕ W = ⇒⊑⇒ (ι⊑ι base-ℕ) (ι⊑ι base-ℕ)
 
 ------------------------------------------------------------------------
@@ -105,25 +113,27 @@ X⇒X⊑★⇒★ m = ⇒⊑⇒ (X⊑★ m) (X⊑★ m)
 -- ΔL = αᴸ:=ℕ.  The right nests `[+Y^β] ([−Y^β] … ⟨…⟩)⟨Y! → Y?ℓ0⟩` around
 -- the Inst boundary `[+X^αᴿ] (λx:X. x)`.  Every right `+_^β` names a
 -- right rep. var paired with αᴸ (D25), so c rejoins at each one; every
--- right `−_^β` leaves c left-only at c⊑★ (D15).  The store pairing ϱ is
--- global and the same in every world of the derivation.
+-- right `−_^β` leaves c left-only, hence c⊑★ (derived marks, design.md
+-- D28).  The store pairing ϱ is global and the same in every world of
+-- the derivation.  Each gen wrapper `Y! → Y?` GRANTS β (`tagX↦-grants`),
+-- which makes the joined c X⊑★ inside it (`layer⊑`, `outer⊑`).
 
 module _ {Ξ′ : RepCtx} {ϱ : RepRel} where
 
-  -- outside: no names
+  -- outside: no names, no permission
   Wc⁰ : World ΔL (Ξ′ ∣ [])
-  Wc⁰ = world [] []↪ []↪ ϱ [] []
+  Wc⁰ = world⁰ 0 []↪ []↪ ϱ [] []
 
-  -- c both-sided, its right name at rep. var β
-  Wc² : (β : RVar) → World ΔLᵢ (Ξ′ ∣ (β ∷ []))
-  Wc² β = world (X⊑★ ∷ []) (keep []↪) (keep []↪) ϱ [] []
+  -- c both-sided, its right name at rep. var β, permissions κ
+  Wc² : List RVar → (β : RVar) → World ΔLᵢ (Ξ′ ∣ (β ∷ []))
+  Wc² κ β = world 1 (keep []↪) (keep []↪) ϱ [] κ []
 
-  -- c left-only
-  Wcᴸ : World ΔLᵢ (Ξ′ ∣ [])
-  Wcᴸ = world (X⊑★ ∷ []) (keep []↪) (skip []↪) ϱ [] []
+  -- c left-only (inside a right −X), permissions κ
+  Wcᴸ : List RVar → World ΔLᵢ (Ξ′ ∣ [])
+  Wcᴸ κ = world 1 (keep []↪) (skip []↪) ϱ [] κ []
 
   -- the matched TyBeta boundaries [+X^αᴸ] ∥ [+Y^0]
-  Wc-bind² : Ξ′ ∋ʳ 0 → ϱ ∋ᵨ 0 ⇔ 0 → Interior Wc⁰ Θ₀ Θ₀ (Wc² 0)
+  Wc-bind² : Ξ′ ∋ʳ 0 → ϱ ∋ᵨ 0 ⇔ 0 → Interior Wc⁰ Θ₀ Θ₀ (Wc² [] 0)
   Wc-bind² v p = record
     { int-left   = interior (changes∷ changes[]
                      (step-bind (_ , here) fresh[] ins-here))
@@ -131,86 +141,95 @@ module _ {Ξ′ : RepCtx} {ϱ : RepRel} where
                      (step-bind v fresh[] ins-here))
     ; same-ϱᵍ    = refl
     ; same-ϱˡ    = refl
+    ; same-κ     = refl
     ; join-cont  = λ { (_ , here) _ () _ ; (_ , there ()) _ _ _ }
     ; join-fresh = λ { here here _ → (λ _ → inj₁ p) , (λ _ → refl)
                      ; here (there ()) _ ; (there ()) _ _ }
-    ; mark-left  = λ { (_ , here) () _ ; (_ , there ()) _ _ }
-    ; mark-right = λ { (_ , here) () _ ; (_ , there ()) _ _ }
     }
 
   Wc-bind²-conv : Ξ′ ∋ʳ 0 → ϱ ∋ᵨ 0 ⇔ 0
-    → ConversionInterior Wc⁰ Θ₀ Θ₀ (Wc² 0)
+    → ConversionInterior Wc⁰ Θ₀ Θ₀ (Wc² [] 0)
   Wc-bind²-conv v p = record
     { conv-left       =
         conversion (conv-bind (_ , here) conv[] fresh[] ins-here)
     ; conv-right      = conversion (conv-bind v conv[] fresh[] ins-here)
     ; conv-same-ϱᵍ    = refl
     ; conv-same-ϱˡ    = refl
+    ; conv-same-κ     = refl
     ; conv-join-cont  = λ { _ _ () _ }
     ; conv-join-fresh = λ
         { here here _ → (λ _ → inj₁ p) , (λ _ → refl)
         ; here (there ()) _
         ; (there ()) _ _
         }
-    ; conv-mark-left  = λ { _ () _ }
-    ; conv-mark-right = λ { _ () _ }
     }
 
-  -- a right-only −Y^β: c goes left-only, keeping c⊑★
-  Wc-unbindᴿ : ∀ {β} → Ξ′ ∋ʳ β → Interior (Wc² β) [] (unbind 0 β ∷ []) Wcᴸ
+  -- a right-only −Y^β: c goes left-only (so X⊑★); κ passes through
+  Wc-unbindᴿ : ∀ {κ β} → Ξ′ ∋ʳ β
+    → Interior (Wc² κ β) [] (unbind 0 β ∷ []) (Wcᴸ κ)
   Wc-unbindᴿ v = record
     { int-left   = interior changes[]
     ; int-right  = interior (changes∷ changes[]
                      (step-unbind v del-here fresh[]))
     ; same-ϱᵍ    = refl
     ; same-ϱˡ    = refl
+    ; same-κ     = refl
     ; join-cont  = λ { _ (_ , ()) _ _ }
     ; join-fresh = λ { _ () _ }
-    ; mark-left  = λ { (_ , here) refl here → here ; (_ , there ()) _ _ }
-    ; mark-right = λ { (_ , ()) _ _ }
     }
 
-  -- a right-only +X^β: c rejoins αᴸ, β's left partner named in scope (D25)
-  Wc-bindᴿ : ∀ {β} → Ξ′ ∋ʳ β → ϱ ∋ᵨ 0 ⇔ β
-    → Interior Wcᴸ [] (bind 0 β ∷ []) (Wc² β)
+  -- a right-only +X^β: c rejoins αᴸ (D25); its mark is β's permission
+  Wc-bindᴿ : ∀ {κ β} → Ξ′ ∋ʳ β → ϱ ∋ᵨ 0 ⇔ β
+    → Interior (Wcᴸ κ) [] (bind 0 β ∷ []) (Wc² κ β)
   Wc-bindᴿ v p = record
     { int-left   = interior changes[]
     ; int-right  = interior (changes∷ changes[] (step-bind v fresh[] ins-here))
     ; same-ϱᵍ    = refl
     ; same-ϱˡ    = refl
+    ; same-κ     = refl
     ; join-cont  = λ { _ (_ , here) _ () ; _ (_ , there ()) _ _ }
     ; join-fresh = λ
         { here here _ → (λ _ → inj₁ p) , (λ _ → refl)
         ; here (there ()) _
         ; (there ()) _ _
         }
-    ; mark-left  = λ { (_ , here) refl here → here ; (_ , there ()) _ _ }
-    ; mark-right = λ { (_ , here) () _ ; (_ , there ()) _ _ }
     }
 
--- the types at these worlds
-c⊑★ᴸ : ∀ Ξ′ ϱ → (` 0 ⇒ ` 0) ⊑ᵂ⟨ Wcᴸ {Ξ′} {ϱ} ⟩ (★ ⇒ ★)
-c⊑★ᴸ Ξ′ ϱ = ⇒⊑⇒ (X⊑★ here) (X⊑★ here)
+-- the types at these worlds: left-only c is X⊑★ at any κ; both-sided
+-- c is X⊑★ exactly when its right rep. var β is permitted
+c⊑★ᴸ : ∀ Ξ′ ϱ κ → (` 0 ⇒ ` 0) ⊑ᵂ⟨ Wcᴸ {Ξ′} {ϱ} κ ⟩ (★ ⇒ ★)
+c⊑★ᴸ Ξ′ ϱ κ = ⇒⊑⇒ (X⊑★ here) (X⊑★ here)
 
-c⊑★² : ∀ Ξ′ ϱ β → (` 0 ⇒ ` 0) ⊑ᵂ⟨ Wc² {Ξ′} {ϱ} β ⟩ (★ ⇒ ★)
-c⊑★² Ξ′ ϱ β = ⇒⊑⇒ (X⊑★ here) (X⊑★ here)
+c⊑★² : ∀ Ξ′ ϱ κ β → permit β κ ≡ X⊑★
+  → (` 0 ⇒ ` 0) ⊑ᵂ⟨ Wc² {Ξ′} {ϱ} κ β ⟩ (★ ⇒ ★)
+c⊑★² Ξ′ ϱ κ β pβ = ⇒⊑⇒ (X⊑★ (here★ pβ)) (X⊑★ (here★ pβ))
 
-c⊑c² : ∀ Ξ′ ϱ β → (` 0 ⇒ ` 0) ⊑ᵂ⟨ Wc² {Ξ′} {ϱ} β ⟩ (` 0 ⇒ ` 0)
-c⊑c² Ξ′ ϱ β = ⇒⊑⇒ (X⊑X {X = 0}) (X⊑X {X = 0})
+c⊑c² : ∀ Ξ′ ϱ κ β → (` 0 ⇒ ` 0) ⊑ᵂ⟨ Wc² {Ξ′} {ϱ} κ β ⟩ (` 0 ⇒ ` 0)
+c⊑c² Ξ′ ϱ κ β = ⇒⊑⇒ (X⊑X {X = 0}) (X⊑X {X = 0})
 
--- the core `[+X^αᴿ] (λx:X. x) ⟨−X → +X⟩` against λx:X. x, and one
--- gen layer `[+Y^β] ([−Y^β] M ⟨id(★) → id(★)⟩)⟨Y! → Y?ℓ0⟩` around a
--- right term M, at the right context Ξ′ (the typing bundles are passed
--- in, read off `tc` at each instance)
-core⊑ : ∀ {Ξ′ ϱ β} → Ξ′ ∋ʳ β → ϱ ∋ᵨ 0 ⇔ β
-  → WfWorld (Wc² {Ξ′} {ϱ} β)
+-- THE GRANT of the gen wrapper `X! → X?ℓ0` (X bound to β): the
+-- covariant check covers the contravariant tag
+tagX↦-grants : ∀ {Ξ β} → Grants (Ξ ∣ (β ∷ [])) β tagX↦
+tagX↦-grants = gr-↦ fo-! (gr-? here)
+
+-- the core `[+X^αᴿ] (λx:X. x) ⟨−X → +X⟩` against λx:X. x (no
+-- permission needed: X ⊑ X), at any κ
+core⊑ : ∀ {Ξ′ ϱ κ β} → Ξ′ ∋ʳ β → ϱ ∋ᵨ 0 ⇔ β
+  → WfWorld (Wc² {Ξ′} {ϱ} κ β)
   → BdyTy (Ξ′ ∣ []) (bind 0 β ∷ []) (Ξ′ ∣ (β ∷ [])) (` 0 ⇒ ` 0) revX (★ ⇒ ★)
-  → (Wcᴸ {Ξ′} {ϱ}) ∣ [] ⊢ idX ⊑ idX ⟪ bind 0 β ∷ [] , revX ⟫
-      ∶ c⊑★ᴸ Ξ′ ϱ
-core⊑ {Ξ′} {ϱ} v p W²-wf b =
+  → (Wcᴸ {Ξ′} {ϱ} κ) ∣ [] ⊢ idX ⊑ idX ⟪ bind 0 β ∷ [] , revX ⟫
+      ∶ c⊑★ᴸ Ξ′ ϱ κ
+core⊑ {Ξ′} {ϱ} {κ} v p W²-wf b =
   ⊑⟪⟫ (Wc-bindᴿ v p) push-none (W²-wf)
     (ƛ⊑ƛ {pA = X⊑X {X = 0}} {pB = X⊑X {X = 0}} tf tf (x⊑x Zʷ))
-    b (c⊑★ᴸ Ξ′ ϱ)
+    b (c⊑★ᴸ Ξ′ ϱ κ)
+
+-- permits: rep. var 0, and rep. vars 1 and 0, in a store of size ≥ 2
+p0 : ∀ {b Ξ} → All ((b ∷ Ξ) ∋ʳ_) (0 ∷ [])
+p0 = (_ , here) ∷ []
+
+p10 : ∀ {b b′ Ξ} → All ((b ∷ b′ ∷ Ξ) ∋ʳ_) (1 ∷ 0 ∷ [])
+p10 = (_ , there here) ∷ (_ , here) ∷ []
 
 -- the gen layer's right term, around M
 genLayer : RVar → Term → Term
@@ -218,31 +237,35 @@ genLayer β M =
   (((M ⟨ [] ∣ id★↦ ⟩) ⟪ unbind 0 β ∷ [] , id★→ ⟫) ⟨ ★∼X ∷ [] ∣ tagX↦ ⟩)
     ⟪ bind 0 β ∷ [] , revX ⟫
 
-layer⊑ : ∀ {Ξ′ ϱ β M}
+-- one gen layer: its wrapper GRANTS β, so inside it the rejoined c is
+-- X⊑★ (the `−X^β` then makes c left-only; the inner term M is read at
+-- the larger permissions β ∷ κ)
+layer⊑ : ∀ {Ξ′ ϱ κ β M}
   → Ξ′ ∋ʳ β → ϱ ∋ᵨ 0 ⇔ β
-  → WfWorld (Wc² {Ξ′} {ϱ} β)
-  → WfWorld (Wcᴸ {Ξ′} {ϱ})
-  → (Wcᴸ {Ξ′} {ϱ}) ∣ [] ⊢ idX ⊑ M ∶ c⊑★ᴸ Ξ′ ϱ
+  → WfWorld (Wc² {Ξ′} {ϱ} κ β)
+  → WfWorld (Wcᴸ {Ξ′} {ϱ} (β ∷ κ))
+  → (Wcᴸ {Ξ′} {ϱ} (β ∷ κ)) ∣ [] ⊢ idX ⊑ M ∶ c⊑★ᴸ Ξ′ ϱ (β ∷ κ)
   → CastTy (Ξ′ ∣ []) [] id★↦ (★ ⇒ ★) (★ ⇒ ★)
   → BdyTy (Ξ′ ∣ (β ∷ [])) (unbind 0 β ∷ []) (Ξ′ ∣ []) (★ ⇒ ★) id★→ (★ ⇒ ★)
   → CastTy (Ξ′ ∣ (β ∷ [])) (★∼X ∷ []) tagX↦ (★ ⇒ ★) (` 0 ⇒ ` 0)
   → BdyTy (Ξ′ ∣ []) (bind 0 β ∷ []) (Ξ′ ∣ (β ∷ [])) (` 0 ⇒ ` 0) revX (★ ⇒ ★)
-  → (Wcᴸ {Ξ′} {ϱ}) ∣ [] ⊢ idX ⊑ genLayer β M
-      ∶ c⊑★ᴸ Ξ′ ϱ
-layer⊑ {Ξ′} {ϱ} {β} v p W²-wf Wᴸ-wf M⊑ cᵢ bᵤ cₜ b =
+  → (Wcᴸ {Ξ′} {ϱ} κ) ∣ [] ⊢ idX ⊑ genLayer β M
+      ∶ c⊑★ᴸ Ξ′ ϱ κ
+layer⊑ {Ξ′} {ϱ} {κ} {β} v p W²-wf Wᴸ-wf M⊑ cᵢ bᵤ cₜ b =
   ⊑⟪⟫ (Wc-bindᴿ v p) push-none (W²-wf)
-    (⊑cast {A = ` 0 ⇒ ` 0}
+    (⊑cast! {A = ` 0 ⇒ ` 0} tagX↦-grants
       (⊑⟪⟫ (Wc-unbindᴿ v) push-none (Wᴸ-wf)
-        (⊑cast M⊑ cᵢ (c⊑★ᴸ Ξ′ ϱ)) bᵤ (c⊑★² Ξ′ ϱ β))
-      cₜ (c⊑c² Ξ′ ϱ β))
-    b (c⊑★ᴸ Ξ′ ϱ)
+        (⊑cast₀ M⊑ cᵢ (c⊑★ᴸ Ξ′ ϱ (β ∷ κ))) bᵤ
+        (c⊑★² Ξ′ ϱ (β ∷ κ) β (permit-here β κ)))
+      cₜ (c⊑c² Ξ′ ϱ κ β))
+    b (c⊑★ᴸ Ξ′ ϱ κ)
 
 -- the outermost gen layer, matched with the left's TyBeta boundary
 outer⊑ : ∀ {Ξ′ ϱ M B′}
   → (v : Ξ′ ∋ʳ 0) → (p : ϱ ∋ᵨ 0 ⇔ 0)
-  → WfWorld (Wc² {Ξ′} {ϱ} 0)
-  → WfWorld (Wcᴸ {Ξ′} {ϱ})
-  → (Wcᴸ {Ξ′} {ϱ}) ∣ [] ⊢ idX ⊑ M ∶ c⊑★ᴸ Ξ′ ϱ
+  → WfWorld (Wc² {Ξ′} {ϱ} [] 0)
+  → WfWorld (Wcᴸ {Ξ′} {ϱ} (0 ∷ []))
+  → (Wcᴸ {Ξ′} {ϱ} (0 ∷ [])) ∣ [] ⊢ idX ⊑ M ∶ c⊑★ᴸ Ξ′ ϱ (0 ∷ [])
   → CastTy (Ξ′ ∣ []) [] id★↦ (★ ⇒ ★) (★ ⇒ ★)
   → BdyTy (Ξ′ ∣ (0 ∷ [])) (unbind 0 0 ∷ []) (Ξ′ ∣ []) (★ ⇒ ★) id★→ (★ ⇒ ★)
   → CastTy (Ξ′ ∣ (0 ∷ [])) (★∼X ∷ []) tagX↦ (★ ⇒ ★) (` 0 ⇒ ` 0)
@@ -252,10 +275,11 @@ outer⊑ : ∀ {Ξ′ ϱ M B′}
   → (Wc⁰ {Ξ′} {ϱ}) ∣ [] ⊢ idX ⟪ Θ₀ , revX ⟫ ⊑ genLayer 0 M ∶ q
 outer⊑ {Ξ′} {ϱ} v p W²-wf Wᴸ-wf M⊑ cᵢ bᵤ cₜ b bc q =
   ⟪⟫⊑⟪⟫ (Wc-bind² v p) W²-wf
-    (⊑cast {A = ` 0 ⇒ ` 0}
+    (⊑cast! {A = ` 0 ⇒ ` 0} tagX↦-grants
       (⊑⟪⟫ (Wc-unbindᴿ v) push-none (Wᴸ-wf)
-        (⊑cast M⊑ cᵢ (c⊑★ᴸ Ξ′ ϱ)) bᵤ (c⊑★² Ξ′ ϱ 0))
-      cₜ (c⊑c² Ξ′ ϱ 0))
+        (⊑cast₀ M⊑ cᵢ (c⊑★ᴸ Ξ′ ϱ (0 ∷ []))) bᵤ
+        (c⊑★² Ξ′ ϱ (0 ∷ []) 0 refl))
+      cₜ (c⊑c² Ξ′ ϱ [] 0))
     bL-ty b bc q
 
 ------------------------------------------------------------------------
@@ -321,11 +345,11 @@ W₁₂ = Wc⁰ {Ξ₁₂} {ϱ₁₂}
 -- WfWorld for the four worlds of c12-b1: outside; c both-sided naming
 -- (αᴸ, βᴿ); c left-only; c both-sided naming (αᴸ, αᴿ).  Each has
 -- ϱᵍ = ϱ₁₂ and ϱˡ = ∅.
-module Wf₁₂ {nsL nsR : TyCtx} (μ : ImpEnv)
-    (η : nsL ↪ μ) (η′ : nsR ↪ μ) where
+module Wf₁₂ {nsL nsR : TyCtx} (n : ℕ)
+    (η : nsL ↪ n) (η′ : nsR ↪ n) (κ : List RVar) where
 
   W : World ((bindR `ℕ ∷ []) ∣ nsL) (Ξ₁₂ ∣ nsR)
-  W = world μ η η′ ϱ₁₂ [] []
+  W = world n η η′ ϱ₁₂ [] κ []
 
   -- both pairs agree: ℕ ⊑ ℕ and ℕ ⊑ ★
   agree : ∀ {α β} → Paired W α β → Agree W α β
@@ -336,31 +360,31 @@ module Wf₁₂ {nsL nsR : TyCtx} (μ : ImpEnv)
   agree (inj₂ ())
 
 W₁₂-wf : WfWorld W₁₂
-W₁₂-wf = wf-world joint[] agree (namedᴸ-≤1 W ≤1-[]) (namedᴿ-≤1 W ≤1-[]) [] []
-  where open Wf₁₂ [] []↪ []↪
+W₁₂-wf = wf-world joint[] agree (namedᴸ-≤1 W ≤1-[]) (namedᴿ-≤1 W ≤1-[]) [] [] []
+  where open Wf₁₂ 0 []↪ []↪ []
 
-W₁₂²-wf : WfWorld (Wc² {Ξ₁₂} {ϱ₁₂} 0)
-W₁₂²-wf = wf-world (both (inj₁ here⇔) joint[]) agree
-  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[]) [] []
-  where open Wf₁₂ (X⊑★ ∷ []) (keep []↪) (keep []↪)
+W₁₂²-wf : ∀ {κ} → All (Ξ₁₂ ∋ʳ_) κ → WfWorld (Wc² {Ξ₁₂} {ϱ₁₂} κ 0)
+W₁₂²-wf {κ} ps = wf-world (both (inj₁ here⇔) joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[]) [] [] ps
+  where open Wf₁₂ 1 (keep []↪) (keep []↪) κ
 
-W₁₂ᴸ-wf : WfWorld (Wcᴸ {Ξ₁₂} {ϱ₁₂})
-W₁₂ᴸ-wf = wf-world (left-only joint[]) agree
-  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[]) [] []
-  where open Wf₁₂ (X⊑★ ∷ []) (keep []↪) (skip []↪)
+W₁₂ᴸ-wf : ∀ {κ} → All (Ξ₁₂ ∋ʳ_) κ → WfWorld (Wcᴸ {Ξ₁₂} {ϱ₁₂} κ)
+W₁₂ᴸ-wf {κ} ps = wf-world (left-only joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[]) [] [] ps
+  where open Wf₁₂ 1 (keep []↪) (skip []↪) κ
 
-W₁₂ˣ-wf : WfWorld (Wc² {Ξ₁₂} {ϱ₁₂} 1)
-W₁₂ˣ-wf = wf-world (both (inj₁ (there⇔ here⇔)) joint[]) agree
-  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[]) [] []
-  where open Wf₁₂ (X⊑★ ∷ []) (keep []↪) (keep []↪)
+W₁₂ˣ-wf : ∀ {κ} → All (Ξ₁₂ ∋ʳ_) κ → WfWorld (Wc² {Ξ₁₂} {ϱ₁₂} κ 1)
+W₁₂ˣ-wf {κ} ps = wf-world (both (inj₁ (there⇔ here⇔)) joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[]) [] [] ps
+  where open Wf₁₂ 1 (keep []↪) (keep []↪) κ
 
 c12-b1 : W₁₂ ∣ [] ⊢ L1′ ⊑ C12-R₃ ∶ ι⊑ι base-ℕ
 c12-b1 =
   ·⊑·
-    (outer⊑ (_ , here) here⇔ W₁₂²-wf W₁₂ᴸ-wf
-      (core⊑ (_ , there here) (there⇔ here⇔) W₁₂ˣ-wf B12x-ty)
+    (outer⊑ (_ , here) here⇔ (W₁₂²-wf []) (W₁₂ᴸ-wf p0)
+      (core⊑ (_ , there here) (there⇔ here⇔) (W₁₂ˣ-wf p0) B12x-ty)
       id★↦-ty B12ᵤ-ty B12ₜ-ty B12-ty
-      (Wc² 0 , Wc-bind²-conv (_ , here) here⇔ , revX⊑revX refl)
+      (Wc² [] 0 , Wc-bind²-conv (_ , here) here⇔ , revX⊑revX refl)
       (ℕ⇒ℕ W₁₂))
     (κ⊑κ lit-$ (ι⊑ι base-ℕ))
 
@@ -371,17 +395,17 @@ c12-b1 =
 -- ∀X.X→X ⊑ ★→★, by ∀⊑ (X left-only at X⊑★), in any world (the plain
 -- index, which is `_⊑ᵂ⟨_⟩_` at a world with no pending name)
 ∀id⊑★ : ∀ {Δ Δ′} (W : World Δ Δ′)
-  → μʷ W ⊢ embᴸ W (`∀ (` 0 ⇒ ` 0)) ⊑ embᴿ W (★ ⇒ ★)
+  → marksʷ W ⊢ embᴸ W (`∀ (` 0 ⇒ ` 0)) ⊑ embᴿ W (★ ⇒ ★)
 ∀id⊑★ W = ∀⊑ nv-⇒ (∈-⇒ˡ ∈-var) (⇒⊑⇒ (X⊑★ here) (X⊑★ here))
 
 ∀id⊑∀id : ∀ {Δ Δ′} (W : World Δ Δ′)
-  → μʷ W ⊢ embᴸ W (`∀ (` 0 ⇒ ` 0)) ⊑ embᴿ W (`∀ (` 0 ⇒ ` 0))
+  → marksʷ W ⊢ embᴸ W (`∀ (` 0 ⇒ ` 0)) ⊑ embᴿ W (`∀ (` 0 ⇒ ` 0))
 ∀id⊑∀id W = ∀⊑∀ (⇒⊑⇒ X⊑X X⊑X)
 
-★⇒★ : ∀ {Δ Δ′} (W : World Δ Δ′) → μʷ W ⊢ embᴸ W (★ ⇒ ★) ⊑ embᴿ W (★ ⇒ ★)
+★⇒★ : ∀ {Δ Δ′} (W : World Δ Δ′) → marksʷ W ⊢ embᴸ W (★ ⇒ ★) ⊑ embᴿ W (★ ⇒ ★)
 ★⇒★ W = ⇒⊑⇒ ★⊑★ ★⊑★
 
-ℕ⇒ℕ⊑★⇒★ : ∀ {Δ Δ′} (W : World Δ Δ′) → μʷ W ⊢ embᴸ W (`ℕ ⇒ `ℕ) ⊑ embᴿ W (★ ⇒ ★)
+ℕ⇒ℕ⊑★⇒★ : ∀ {Δ Δ′} (W : World Δ Δ′) → marksʷ W ⊢ embᴸ W (`ℕ ⇒ `ℕ) ⊑ embᴿ W (★ ⇒ ★)
 ℕ⇒ℕ⊑★⇒★ W = ⇒⊑⇒ ℕ⊑★ ℕ⊑★
 
 id★→⊑id★→ : ∀ {Δ Δ′} {W : World Δ Δ′} → ConvImp W id★→ id★→
@@ -432,38 +456,43 @@ id★↦ᴿ-ty = cast-ty (⊢fun (⊢id atom-★ wf-★) (⊢id atom-★ wf-★)
 ΛidX-⊢ = tc
 
 ------------------------------------------------------------------------
--- Cg's right-led block X0 (D27: ⊑⟪⟫ pushes X at mark X⊑★, Λ⊑ pops it)
+-- Cg's right-led block X0 (D27: ⊑⟪⟫ pushes X, Λ⊑ pops it; the gen
+-- wrapper's grant makes the popped X X⊑★)
 ------------------------------------------------------------------------
 
 -- the popped world: the left Λ's abstract rep. var paired
--- LEXICALLY with αᴿ:=★; the shared name at X⊑★ (chosen here, D11)
+-- LEXICALLY with αᴿ:=★; the shared name's mark is αᴿ's permission
 Wg⁺ : World (underΛ empty) ΔRₓ
-Wg⁺ = W₃ ⊕⁺ X⊑★ ^ 0
+Wg⁺ = W₃ ⊕⁺^ 0
+
+-- the popped world with αᴿ permitted (inside the gen wrapper's grant)
+Wg⁺¹ : World (underΛ empty) ΔRₓ
+Wg⁺¹ = record Wg⁺ { κʷ = 0 ∷ [] }
 
 -- inside the right's −X^αᴿ: X is left-only, X⊑★
-Wg⁻ : World (underΛ empty) ΔR
-Wg⁻ = world (X⊑★ ∷ []) (keep []↪) (skip []↪) [] ((0 , 0) ∷ []) []
+Wg⁻ : List RVar → World (underΛ empty) ΔR
+Wg⁻ κ = world 1 (keep []↪) (skip []↪) [] ((0 , 0) ∷ []) κ []
 
-Wg⁻-int : Interior Wg⁺ [] (unbind 0 0 ∷ []) Wg⁻
+Wg⁻-int : ∀ {κ} → Interior (record Wg⁺ { κʷ = κ }) [] (unbind 0 0 ∷ [])
+  (Wg⁻ κ)
 Wg⁻-int = record
   { int-left   = interior changes[]
   ; int-right  = interior (changes∷ changes[]
                    (step-unbind (_ , here) del-here fresh[]))
   ; same-ϱᵍ    = refl
   ; same-ϱˡ    = refl
+  ; same-κ     = refl
   ; join-cont  = λ { _ (_ , ()) _ _ }
   ; join-fresh = λ { _ () _ }
-  ; mark-left  = λ { (_ , here) refl here → here ; (_ , there ()) _ _ }
-  ; mark-right = λ { (_ , ()) _ _ }
   }
 
 -- WfWorld for the worlds of the lexical pair (aᴸ_ΛY, αᴿ:=★): the left
 -- member abstract, the right member at ★ (`abst-★`)
-module WfΛ★ {nsL nsR : TyCtx} (μ : ImpEnv)
-    (η : nsL ↪ μ) (η′ : nsR ↪ μ) where
+module WfΛ★ {nsL nsR : TyCtx} (n : ℕ)
+    (η : nsL ↪ n) (η′ : nsR ↪ n) (κ : List RVar) where
 
   W : World ((abstR ∷ []) ∣ nsL) ((bindR ★ ∷ []) ∣ nsR)
-  W = world μ η η′ [] ((0 , 0) ∷ []) []
+  W = world n η η′ [] ((0 , 0) ∷ []) κ []
 
   agree : ∀ {α β} → Paired W α β → Agree W α β
   agree (inj₁ ())
@@ -473,24 +502,24 @@ module WfΛ★ {nsL nsR : TyCtx} (μ : ImpEnv)
 
 Wg⁺-wf : WfWorld Wg⁺
 Wg⁺-wf = wf-world (both (inj₂ here⇔) joint[]) agree
-  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[]) [] []
-  where open WfΛ★ (X⊑★ ∷ []) (keep []↪) (keep []↪)
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[]) [] [] []
+  where open WfΛ★ 1 (keep []↪) (keep []↪) []
 
-Wg⁻-wf : WfWorld Wg⁻
-Wg⁻-wf = wf-world (left-only joint[]) agree
-  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[]) [] []
-  where open WfΛ★ (X⊑★ ∷ []) (keep []↪) (skip []↪)
+Wg⁻-wf : ∀ {κ} → All ((bindR ★ ∷ []) ∋ʳ_) κ → WfWorld (Wg⁻ κ)
+Wg⁻-wf {κ} ps = wf-world (left-only joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[]) [] [] ps
+  where open WfΛ★ 1 (keep []↪) (skip []↪) κ
 
 -- the pop's premise: the left's λx:X.x against the right's gen value,
 -- at the popped world Wg⁺ (the right's tag cast, then its −X^αᴿ)
-cg-body : record (W₃ ⊕ʳ X⊑★ ^ 0) { πʷ = 0 ∷ [] } ∣ [] ⊢ I ⊑ I★gen
+cg-body : record (W₃ ⊕ʳ^ 0) { πʷ = 0 ∷ [] } ∣ [] ⊢ I ⊑ I★gen
   ∶⟨ `∀ (` 0 ⇒ ` 0) , ` 0 ⇒ ` 0 ⟩ ⇒⊑⇒ X⊑X X⊑X
 cg-body =
   Λ⊑ (claim-pop (open-⊕ r-here)) nv-⇒ (∈-⇒ˡ ∈-var) liftᴸ-[] (V-simple S-ƛ)
-    (⊑cast
-      (⊑⟪⟫ Wg⁻-int push-none (Wg⁻-wf)
+    (⊑cast! tagX↦-grants
+      (⊑⟪⟫ Wg⁻-int push-none (Wg⁻-wf p0)
         (ƛ⊑ƛ {pA = X⊑★ here} tf wf-★ (x⊑x Zʷ))
-        I★⁻ᴿ-ty (X⇒X⊑★⇒★ {W = Wg⁺} here))
+        I★⁻ᴿ-ty (X⇒X⊑★⇒★ {W = Wg⁺¹} here))
       tagᴿ-ty (⇒⊑⇒ X⊑X X⊑X))
     (⇒⊑⇒ X⊑X X⊑X)
 
@@ -499,7 +528,7 @@ cg-x0 : W₃ ∣ [] ⊢ L1 ⊑ Cg-R₂ ∶ ℕ⊑★
 cg-x0 =
   ·⊑·
     (ν⊑
-      (⊑cast
+      (⊑cast₀
         (⊑⟪⟫ int-ro₃ (push ca-[] (refl ∷ []) (inj₂ vΛidX)) Wi₃-wf cg-body
           Bg-ty (∀id⊑★ W₃))
         id★↦ᴿ-ty (∀id⊑★ W₃))
@@ -536,27 +565,28 @@ unbind₀-conv : ∀ {b} {Ξ} → ((b ∷ Ξ) ∣ (0 ∷ [])) ⊢ᶜ (unbind 0 0
 unbind₀-conv = conversion (conv-unbind (_ , here) conv[])
 
 -- the right's `−X^αᴿ` alone: X goes away (the left has no name here)
-IntN : ∀ {m} → Interior (W₃ ⊕ʳ m ^ 0) [] (unbind 0 0 ∷ []) W₃
+IntN : ∀ {κ} → Interior (record (W₃ ⊕ʳ^ 0) { κʷ = κ }) []
+  (unbind 0 0 ∷ []) (record W₃ { κʷ = κ })
 IntN = record
   { int-left   = interior changes[]
   ; int-right  = unbind₀-int
   ; same-ϱᵍ    = refl
   ; same-ϱˡ    = refl
+  ; same-κ     = refl
   ; join-cont  = λ { (_ , ()) _ _ _ }
   ; join-fresh = λ { () _ _ }
-  ; mark-left  = λ { (_ , ()) _ _ }
-  ; mark-right = λ { (_ , ()) _ _ }
   }
 
 -- the conversion contexts skip the unbinds: they are the exterior
 unbind₀-conv-self : ∀ {b b′ Ξ Ξ′}
     {W : World ((b ∷ Ξ) ∣ (0 ∷ [])) ((b′ ∷ Ξ′) ∣ (0 ∷ []))}
   → ConversionInterior W (unbind 0 0 ∷ []) (unbind 0 0 ∷ []) W
-unbind₀-conv-self = record
+unbind₀-conv-self {W = W} = record
   { conv-left       = unbind₀-conv
   ; conv-right      = unbind₀-conv
   ; conv-same-ϱᵍ    = refl
   ; conv-same-ϱˡ    = refl
+  ; conv-same-κ     = refl
   ; conv-join-cont  = λ
       { here here here here → (λ j → j) , (λ j → j)
       ; here here here (there ())
@@ -570,15 +600,11 @@ unbind₀-conv-self = record
       ; here (there ()) _
       ; (there ()) _ _
       }
-  ; conv-mark-left  = λ { here here m → m ; here (there ()) _
-                        ; (there ()) _ _ }
-  ; conv-mark-right = λ { here here m → m ; here (there ()) _
-                        ; (there ()) _ _ }
   }
 
-W₃-wf : WfWorld W₃
-W₃-wf = wf-world joint[] (λ { (inj₁ ()) ; (inj₂ ()) })
-  (namedᴸ-≤1 W₃ ≤1-[]) (namedᴿ-≤1 W₃ ≤1-[]) [] []
+W₃-wf : ∀ {κ} → All (reps ΔR ∋ʳ_) κ → WfWorld (record W₃ { κʷ = κ })
+W₃-wf ps = wf-world joint[] (λ { (inj₁ ()) ; (inj₂ ()) })
+  (λ { (_ , ()) }) (λ { _ (_ , ()) }) [] [] ps
 
 vI★genI : Value I★genI
 vI★genI = V-simple (S-cast (V-simple S-ƛ) I-gen)
@@ -586,16 +612,17 @@ vI★genI = V-simple (S-cast (V-simple S-ƛ) I-gen)
 genIᴸ-ty : CastTy empty [] genI (★ ⇒ ★) (`∀ (` 0 ⇒ ` 0))
 genIᴸ-ty = proj₂ (proj₂ (cast-inv {Γ = []} I★genI-⊢))
 
--- the left gen cast against the right's tag cast: ⊑cast first (Y ⊑ ★
--- by the pending name's X⊑★), then cast⊑ POPS at the gen (`cc-gen`):
+-- the left gen cast against the right's tag cast: the wrapper GRANTS the
+-- pending name's rep. var first (`⊑cast!`, design.md D28; Y ⊑ ★ by its
+-- permission), then cast⊑ POPS at the gen (`cc-gen`):
 -- the left's λx:★.x is related at the UNOPENED world W₃, against the
 -- right's `[−X^αᴿ] λx:★.x`
-c2-body : record (W₃ ⊕ʳ X⊑★ ^ 0) { πʷ = 0 ∷ [] } ∣ [] ⊢ I★genI ⊑ I★gen
+c2-body : record (W₃ ⊕ʳ^ 0) { πʷ = 0 ∷ [] } ∣ [] ⊢ I★genI ⊑ I★gen
   ∶⟨ `∀ (` 0 ⇒ ` 0) , ` 0 ⇒ ` 0 ⟩ ⇒⊑⇒ X⊑X X⊑X
 c2-body =
-  ⊑cast
+  ⊑cast! tagX↦-grants
     (cast⊑ (cc-gen (V-simple S-ƛ))
-      (⊑⟪⟫ IntN push-none (W₃-wf)
+      (⊑⟪⟫ IntN push-none (W₃-wf p0)
         (ƛ⊑ƛ {pA = ★⊑★} tf tf (x⊑x Zʷ)) I★⁻ᴿ-ty (⇒⊑⇒ ★⊑★ ★⊑★))
       genIᴸ-ty (⇒⊑⇒ (X⊑★ here) (X⊑★ here)))
     tagᴿ-ty (⇒⊑⇒ X⊑X X⊑X)
@@ -604,7 +631,7 @@ c2-x0 : W₃ ∣ [] ⊢ C2-L ⊑ Cg-R₂ ∶ ℕ⊑★
 c2-x0 =
   ·⊑·
     (ν⊑
-      (⊑cast
+      (⊑cast₀
         (⊑⟪⟫ int-ro₃ (push ca-[] (refl ∷ []) (inj₂ vI★genI)) Wi₃-wf c2-body
           Bg-ty (∀id⊑★ W₃))
         id★↦ᴿ-ty (∀id⊑★ W₃))
@@ -654,7 +681,7 @@ C2-R₁₀-state : head (drop 10 (evalTerms 21 C2-R-⊢))
 C2-R₁₀-state = refl
 
 -- the worlds: W₁ outside (ϱᵍ = {(αᴸ:=ℕ, αᴿ:=★)}), Wᵢ₁ inside the outer
--- boundaries (X both-sided at X⊑X, chosen at B1); the final interior
+-- boundaries (X both-sided, X⊑X: no permission); the final interior
 -- world of (−X, +X) ∥ (−X, +X) is Wᵢ₁ again (X continues, keeps X⊑X);
 -- inside the two −X, W₁ again (no names)
 Wᵢ₁-unb : Interior Wᵢ₁ unb₀ unb₀ W₁
@@ -663,14 +690,13 @@ Wᵢ₁-unb = record
   ; int-right  = unbind₀-int
   ; same-ϱᵍ    = refl
   ; same-ϱˡ    = refl
+  ; same-κ     = refl
   ; join-cont  = λ { (_ , ()) _ _ _ }
   ; join-fresh = λ { () _ _ }
-  ; mark-left  = λ { (_ , ()) _ _ }
-  ; mark-right = λ { (_ , ()) _ _ }
   }
 
 W₁-wf : WfWorld W₁
-W₁-wf = wf-world joint[] agree (namedᴸ-≤1 W₁ ≤1-[]) (namedᴿ-≤1 W₁ ≤1-[]) [] []
+W₁-wf = wf-world joint[] agree (namedᴸ-≤1 W₁ ≤1-[]) (namedᴿ-≤1 W₁ ≤1-[]) [] [] []
   where
   agree : ∀ {α β} → Paired W₁ α β → Agree W₁ α β
   agree (inj₁ here⇔) =
@@ -688,13 +714,14 @@ W₁-wf = wf-world joint[] agree (namedᴸ-≤1 W₁ ≤1-[]) (namedᴿ-≤1 W�
   (conv-unbind (_ , here) conv[]) here)
 
 -- D15: X goes away and comes back within the entries; only the final
--- interior world is given, and X keeps its mark
+-- interior world is given; X's mark is derived from its join (D28)
 Wᵢ₁-Θ⁻⁺ : Interior Wᵢ₁ Θ⁻⁺ Θ⁻⁺ Wᵢ₁
 Wᵢ₁-Θ⁻⁺ = record
   { int-left   = Θ⁻⁺-int
   ; int-right  = Θ⁻⁺-int
   ; same-ϱᵍ    = refl
   ; same-ϱˡ    = refl
+  ; same-κ     = refl
   ; join-cont  = λ
       { (_ , here) (_ , here) refl refl → (λ j → j) , (λ j → j)
       ; (_ , here) (_ , there ()) _ _
@@ -703,8 +730,6 @@ Wᵢ₁-Θ⁻⁺ = record
   ; join-fresh = λ
       { here here (inj₁ ()) ; here here (inj₂ ())
       ; here (there ()) _ ; (there ()) _ _ }
-  ; mark-left  = λ { (_ , here) refl m → m ; (_ , there ()) _ _ }
-  ; mark-right = λ { (_ , here) refl m → m ; (_ , there ()) _ _ }
   }
 
 Wᵢ₁-Θ⁻⁺-conv : ConversionInterior Wᵢ₁ Θ⁻⁺ Θ⁻⁺ Wᵢ₁
@@ -713,6 +738,7 @@ Wᵢ₁-Θ⁻⁺-conv = record
   ; conv-right      = Θ⁻⁺-conv
   ; conv-same-ϱᵍ    = refl
   ; conv-same-ϱˡ    = refl
+  ; conv-same-κ     = refl
   ; conv-join-cont  = λ
       { here here here here → (λ j → j) , (λ j → j)
       ; here here here (there ())
@@ -726,10 +752,6 @@ Wᵢ₁-Θ⁻⁺-conv = record
       ; here (there ()) _
       ; (there ()) _ _
       }
-  ; conv-mark-left  = λ { here here m → m ; here (there ()) _
-                        ; (there ()) _ _ }
-  ; conv-mark-right = λ { here here m → m ; here (there ()) _
-                        ; (there ()) _ _ }
   }
 
 -- typing side premises
@@ -794,7 +816,7 @@ leaf⊑ =
 
 c2-b6 : W₁ ∣ [] ⊢ C2-B6 ($ 5) ⊑ C2-B6 (dyn 5) ⟨ [] ∣ idᵖ ★ ⟩ ∶ ℕ⊑★
 c2-b6 =
-  ⊑cast
+  ⊑cast₀
     (⟪⟫⊑⟪⟫ Wᵢ₁-int Wᵢ₁-wf
       (cast⊑cast
         (⟪⟫⊑⟪⟫ Wᵢ₁-Θ⁻⁺ Wᵢ₁-wf
@@ -809,7 +831,7 @@ c2-b6 =
 
 c2-b7 : W₁ ∣ [] ⊢ C2-B7 ($ 5) ⊑ C2-B7 (dyn 5) ⟨ [] ∣ idᵖ ★ ⟩ ∶ ℕ⊑★
 c2-b7 =
-  ⊑cast
+  ⊑cast₀
     (⟪⟫⊑⟪⟫ Wᵢ₁-int Wᵢ₁-wf
       (cast⊑cast
         (cast⊑cast
@@ -867,11 +889,11 @@ B13ₜ-ty = proj₂ (proj₂
 W₁₃ : World ΔL (Ξ₁₃ ∣ [])
 W₁₃ = Wc⁰ {Ξ₁₃} {ϱ₁₂}
 
-module Wf₁₃ {nsL nsR : TyCtx} (μ : ImpEnv)
-    (η : nsL ↪ μ) (η′ : nsR ↪ μ) where
+module Wf₁₃ {nsL nsR : TyCtx} (n : ℕ)
+    (η : nsL ↪ n) (η′ : nsR ↪ n) (κ : List RVar) where
 
   W : World ((bindR `ℕ ∷ []) ∣ nsL) (Ξ₁₃ ∣ nsR)
-  W = world μ η η′ ϱ₁₂ [] []
+  W = world n η η′ ϱ₁₂ [] κ []
 
   agree : ∀ {α β} → Paired W α β → Agree W α β
   agree (inj₁ here⇔) =
@@ -882,27 +904,27 @@ module Wf₁₃ {nsL nsR : TyCtx} (μ : ImpEnv)
   agree (inj₂ ())
 
 
-W₁₃²-wf : ∀ {β}
-  → ϱ₁₂ ∋ᵨ 0 ⇔ β
-  → WfWorld (Wc² {Ξ₁₃} {ϱ₁₂} β)
-W₁₃²-wf p = wf-world (both (inj₁ p) joint[]) agree
-  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[]) [] []
-  where open Wf₁₃ (X⊑★ ∷ []) (keep []↪) (keep []↪)
+W₁₃²-wf : ∀ {β κ}
+  → ϱ₁₂ ∋ᵨ 0 ⇔ β → All (Ξ₁₃ ∋ʳ_) κ
+  → WfWorld (Wc² {Ξ₁₃} {ϱ₁₂} κ β)
+W₁₃²-wf {κ = κ} p ps = wf-world (both (inj₁ p) joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[]) [] [] ps
+  where open Wf₁₃ 1 (keep []↪) (keep []↪) κ
 
-W₁₃ᴸ-wf : WfWorld (Wcᴸ {Ξ₁₃} {ϱ₁₂})
-W₁₃ᴸ-wf = wf-world (left-only joint[]) agree
-  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[]) [] []
-  where open Wf₁₃ (X⊑★ ∷ []) (keep []↪) (skip []↪)
+W₁₃ᴸ-wf : ∀ {κ} → All (Ξ₁₃ ∋ʳ_) κ → WfWorld (Wcᴸ {Ξ₁₃} {ϱ₁₂} κ)
+W₁₃ᴸ-wf {κ} ps = wf-world (left-only joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[]) [] [] ps
+  where open Wf₁₃ 1 (keep []↪) (skip []↪) κ
 
 c13-b1 : W₁₃ ∣ [] ⊢ L1′ ⊑ C13-R₄ ∶ ℕ⊑★
 c13-b1 =
   ·⊑·
-    (⊑cast
-      (outer⊑ (_ , here) here⇔ (W₁₃²-wf here⇔) W₁₃ᴸ-wf
+    (⊑cast₀
+      (outer⊑ (_ , here) here⇔ (W₁₃²-wf here⇔ []) (W₁₃ᴸ-wf p0)
         (core⊑ (_ , there here) (there⇔ here⇔)
-          (W₁₃²-wf (there⇔ here⇔)) B13x-ty)
+          (W₁₃²-wf (there⇔ here⇔) p0) B13x-ty)
         id★↦-ty B13ᵤ-ty B13ₜ-ty B13-ty
-        (Wc² 0 , Wc-bind²-conv (_ , here) here⇔ , revX⊑revX refl)
+        (Wc² [] 0 , Wc-bind²-conv (_ , here) here⇔ , revX⊑revX refl)
         (ℕ⇒ℕ⊑★⇒★ W₁₃))
       id★↦-ty (ℕ⇒ℕ⊑★⇒★ W₁₃))
     five⊑
@@ -963,11 +985,11 @@ W₁₄ = Wc⁰ {Ξ₁₄} {ϱ₁₄}
 
 -- WfWorld for the outer world and the three both-sided worlds of
 -- c14-b1: αᴸ is paired with γᴿ:=ℕ, βᴿ:=★ and αᴿ:=★
-module Wf₁₄ {nsL nsR : TyCtx} (μ : ImpEnv)
-    (η : nsL ↪ μ) (η′ : nsR ↪ μ) where
+module Wf₁₄ {nsL nsR : TyCtx} (n : ℕ)
+    (η : nsL ↪ n) (η′ : nsR ↪ n) (κ : List RVar) where
 
   W : World ((bindR `ℕ ∷ []) ∣ nsL) (Ξ₁₄ ∣ nsR)
-  W = world μ η η′ ϱ₁₄ [] []
+  W = world n η η′ ϱ₁₄ [] κ []
 
   agree : ∀ {α β} → Paired W α β → Agree W α β
   agree (inj₁ here⇔) = rep-rep r-here r-here (ι⊑ι base-ℕ)
@@ -980,30 +1002,31 @@ module Wf₁₄ {nsL nsR : TyCtx} (μ : ImpEnv)
 
 
 W₁₄-wf : WfWorld W₁₄
-W₁₄-wf = wf-world joint[] agree (namedᴸ-≤1 W ≤1-[]) (namedᴿ-≤1 W ≤1-[]) [] []
-  where open Wf₁₄ [] []↪ []↪
+W₁₄-wf = wf-world joint[] agree (namedᴸ-≤1 W ≤1-[]) (namedᴿ-≤1 W ≤1-[]) [] [] []
+  where open Wf₁₄ 0 []↪ []↪ []
 
-W₁₄²-wf : ∀ {β} → ϱ₁₄ ∋ᵨ 0 ⇔ β → WfWorld (Wc² {Ξ₁₄} {ϱ₁₄} β)
-W₁₄²-wf p = wf-world (both (inj₁ p) joint[]) agree
-  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[]) [] []
-  where open Wf₁₄ (X⊑★ ∷ []) (keep []↪) (keep []↪)
+W₁₄²-wf : ∀ {β κ} → ϱ₁₄ ∋ᵨ 0 ⇔ β → All (Ξ₁₄ ∋ʳ_) κ
+  → WfWorld (Wc² {Ξ₁₄} {ϱ₁₄} κ β)
+W₁₄²-wf {κ = κ} p ps = wf-world (both (inj₁ p) joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[]) [] [] ps
+  where open Wf₁₄ 1 (keep []↪) (keep []↪) κ
 
-W₁₄ᴸ-wf : WfWorld (Wcᴸ {Ξ₁₄} {ϱ₁₄})
-W₁₄ᴸ-wf = wf-world (left-only joint[]) agree
-  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[]) [] []
-  where open Wf₁₄ (X⊑★ ∷ []) (keep []↪) (skip []↪)
+W₁₄ᴸ-wf : ∀ {κ} → All (Ξ₁₄ ∋ʳ_) κ → WfWorld (Wcᴸ {Ξ₁₄} {ϱ₁₄} κ)
+W₁₄ᴸ-wf {κ} ps = wf-world (left-only joint[]) agree
+  (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[]) [] [] ps
+  where open Wf₁₄ 1 (keep []↪) (skip []↪) κ
 
 c14-b1 : W₁₄ ∣ [] ⊢ L1′ ⊑ C14-R₅ ∶ ι⊑ι base-ℕ
 c14-b1 =
   ·⊑·
-    (outer⊑ (_ , here) here⇔ (W₁₄²-wf here⇔) W₁₄ᴸ-wf
+    (outer⊑ (_ , here) here⇔ (W₁₄²-wf here⇔ []) (W₁₄ᴸ-wf p0)
       (layer⊑ (_ , there here) (there⇔ here⇔)
-        (W₁₄²-wf (there⇔ here⇔)) W₁₄ᴸ-wf
+        (W₁₄²-wf (there⇔ here⇔) p0) (W₁₄ᴸ-wf p10)
         (core⊑ (_ , there (there here)) (there⇔ (there⇔ here⇔))
-          (W₁₄²-wf (there⇔ (there⇔ here⇔))) B14x-ty)
+          (W₁₄²-wf (there⇔ (there⇔ here⇔)) p10) B14x-ty)
         id★↦-ty B14yᵤ-ty B14yₜ-ty B14y-ty)
       id★↦-ty B14ᵤ-ty B14ₜ-ty B14-ty
-      (Wc² 0 , Wc-bind²-conv (_ , here) here⇔ , revX⊑revX refl)
+      (Wc² [] 0 , Wc-bind²-conv (_ , here) here⇔ , revX⊑revX refl)
       (ℕ⇒ℕ W₁₄))
     (κ⊑κ lit-$ (ι⊑ι base-ℕ))
 
@@ -1033,11 +1056,11 @@ genI∘instI-ty = proj₂ (proj₂ (cast-inv {Γ = []}
   (ƛ⊑ƛ {pA = X⊑X {X = 0}} {pB = X⊑X {X = 0}} tf tf (x⊑x Zʷ)) (∀id⊑∀id ∅ʷ)
 
 -- the premise world of Λ⊑Λ: (aᴸ_ΛY, aᴿ_ΛX) ∈ ϱˡ, both abstract
-ΛΛ-wf : WfWorld (∅ʷ ⊕ X⊑X)
+ΛΛ-wf : WfWorld (∅ʷ ⊕²)
 ΛΛ-wf = wf-world (both (inj₂ here⇔) joint[]) agree
-  (namedᴸ-≤1 (∅ʷ ⊕ X⊑X) ≤1-∷[]) (namedᴿ-≤1 (∅ʷ ⊕ X⊑X) ≤1-∷[]) [] []
+  (namedᴸ-≤1 (∅ʷ ⊕²) ≤1-∷[]) (namedᴿ-≤1 (∅ʷ ⊕²) ≤1-∷[]) [] [] []
   where
-  agree : ∀ {α β} → Paired (∅ʷ ⊕ X⊑X) α β → Agree (∅ʷ ⊕ X⊑X) α β
+  agree : ∀ {α β} → Paired (∅ʷ ⊕²) α β → Agree (∅ʷ ⊕²) α β
   agree (inj₁ ())
   agree (inj₂ here⇔) = abst-abst r-here r-here
   agree (inj₂ (there⇔ ()))
@@ -1045,15 +1068,15 @@ genI∘instI-ty = proj₂ (proj₂ (cast-inv {Γ = []}
 -- Ch B0: Λ⊑Λ under the right's inst cast; the left ν is one-sided
 ch-b0 : ∅ʷ ∣ [] ⊢ Ch-L ⊑ Ch-R ∶ ℕ⊑★
 ch-b0 =
-  ·⊑· (ν⊑ (⊑cast ΛI⊑ΛI instI-ty (∀id⊑★ ∅ʷ)) ℕ⊑★ νL-ty (ℕ⇒ℕ⊑★⇒★ ∅ʷ)) five⊑
+  ·⊑· (ν⊑ (⊑cast₀ ΛI⊑ΛI instI-ty (∀id⊑★ ∅ʷ)) ℕ⊑★ νL-ty (ℕ⇒ℕ⊑★⇒★ ∅ʷ)) five⊑
 
 -- Cg B0: Λ⊑ (Y left-only at X⊑★) under the right's gen and inst casts
 cg-b0 : ∅ʷ ∣ [] ⊢ Cg-L ⊑ Cg-R ∶ ℕ⊑★
 cg-b0 =
   ·⊑·
     (ν⊑
-      (⊑cast
-        (⊑cast
+      (⊑cast₀
+        (⊑cast₀
           (Λ⊑ claim-fresh nv-⇒ (∈-⇒ˡ ∈-var) liftᴸ-[] (V-simple S-ƛ)
             (ƛ⊑ƛ {pA = X⊑★ here} tf wf-★ (x⊑x Zʷ)) (∀id⊑★ ∅ʷ))
           genI-ty (∀id⊑∀id ∅ʷ))
@@ -1067,7 +1090,7 @@ c2-b0 : ∅ʷ ∣ [] ⊢ C2-L ⊑ C2-R ∶ ℕ⊑★
 c2-b0 =
   ·⊑·
     (ν⊑
-      (⊑cast
+      (⊑cast₀
         (cast⊑cast (ƛ⊑ƛ {pA = ★⊑★} tf tf (x⊑x Zʷ)) genI-ty genI-ty (∀id⊑∀id ∅ʷ))
         instI∘genI-ty (∀id⊑★ ∅ʷ))
       ℕ⊑★ C2-L-ν-ty (ℕ⇒ℕ⊑★⇒★ ∅ʷ))
@@ -1087,7 +1110,7 @@ C12-ν-ty = proj₂ (proj₂ (ν-inv {Γ = []} (tc {Δ = empty} {M = C12-ν})))
 c12-b0 : ∅ʷ ∣ [] ⊢ C12-L ⊑ C12-R ∶ ι⊑ι base-ℕ
 c12-b0 =
   ·⊑·
-    (ν⊑ν (⊑cast (⊑cast ΛI⊑ΛI instI-ty (∀id⊑★ ∅ʷ)) genI∘instI-ty (∀id⊑∀id ∅ʷ))
+    (ν⊑ν (⊑cast₀ (⊑cast₀ ΛI⊑ΛI instI-ty (∀id⊑★ ∅ʷ)) genI∘instI-ty (∀id⊑∀id ∅ʷ))
       (ι⊑ι base-ℕ) νL-ty C12-ν-ty (Wν , Wν-conv , revX⊑revX refl) (ℕ⇒ℕ ∅ʷ))
     (κ⊑κ lit-$ (ι⊑ι base-ℕ))
 
@@ -1098,13 +1121,13 @@ c12-b0 =
 Ch-R₂-state : head (drop 2 (evalTerms 15 Ch-R-⊢)) ≡ just R3′
 Ch-R₂-state = refl
 
--- a push and a pop at X⊑★: (aᴸ_ΛY, αᴿ:=★) ∈ ϱˡ in the popped world
--- W₃ ⊕⁺ X⊑★ ^ 0
+-- a push and a pop (X⊑X): (aᴸ_ΛY, αᴿ:=★) ∈ ϱˡ in the popped world
+-- W₃ ⊕⁺^ 0
 ch-x0 : W₃ ∣ [] ⊢ Ch-L ⊑ R3′ ∶ ℕ⊑★
 ch-x0 = p3-inst
 
 -- ch-x0's popped world is Wg⁺ (the same world as Cg's X0)
-ch-x0-world : W₃ ⊕⁺ X⊑★ ^ 0 ≡ Wg⁺
+ch-x0-world : W₃ ⊕⁺^ 0 ≡ Wg⁺
 ch-x0-world = refl
 
 -- Ch B1: after the left's TyBeta the lexical pair is global,
@@ -1115,7 +1138,7 @@ Ch-L₁-state = refl
 ch-b1 : W₁ ∣ [] ⊢ L1′ ⊑ R3′ ∶ ℕ⊑★
 ch-b1 =
   ·⊑·
-    (⊑cast
+    (⊑cast₀
       (⟪⟫⊑⟪⟫ Wᵢ₁-int Wᵢ₁-wf
         (ƛ⊑ƛ {pA = X⊑X {X = 0}} {pB = X⊑X {X = 0}} tf tf (x⊑x Zʷ))
         bL-ty bR-ty bLR-conv (ℕ⇒ℕ⊑★⇒★ W₁))
@@ -1144,7 +1167,7 @@ genIᴿ-ty = proj₂ (proj₂ (cast-inv {Γ = []}
 
 -- the ν conversion world: the two ν-bound rep. vars paired lexically
 Wν₂ : World ((bindR `ℕ ∷ []) ∣ (0 ∷ [])) ((bindR `ℕ ∷ reps ΔR) ∣ (0 ∷ []))
-Wν₂ = world (X⊑X ∷ []) (keep []↪) (keep []↪) [] ((0 , 0) ∷ []) []
+Wν₂ = world⁰ 1 (keep []↪) (keep []↪) [] ((0 , 0) ∷ []) []
 
 Wν₂-conv : ConversionInterior (underν² `ℕ `ℕ W₃) Θ₀ Θ₀ Wν₂
 Wν₂-conv = record
@@ -1152,22 +1175,21 @@ Wν₂-conv = record
   ; conv-right      = conversion (conv-bind (_ , here) conv[] fresh[] ins-here)
   ; conv-same-ϱᵍ    = refl
   ; conv-same-ϱˡ    = refl
+  ; conv-same-κ     = refl
   ; conv-join-cont  = λ { _ _ () _ }
   ; conv-join-fresh = λ
       { here here _ → (λ _ → inj₂ here⇔) , (λ _ → refl)
       ; here (there ()) _
       ; (there ()) _ _
       }
-  ; conv-mark-left  = λ { _ () _ }
-  ; conv-mark-right = λ { _ () _ }
   }
 
 c12-x0 : W₃ ∣ [] ⊢ C12-L ⊑ C12-R₂ ∶ ι⊑ι base-ℕ
 c12-x0 =
   ·⊑·
     (ν⊑ν
-      (⊑cast
-        (⊑cast
+      (⊑cast₀
+        (⊑cast₀
           core₃
           id★↦ᴿ-ty (∀id⊑★ W₃))
         genIᴿ-ty (∀id⊑∀id W₃))

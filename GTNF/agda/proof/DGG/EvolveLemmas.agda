@@ -21,9 +21,9 @@ module proof.DGG.EvolveLemmas where
 --     `Related Δ Δ′ A A′ V V′` is the DGG's `RelatedValues` at given
 --     contexts, and `related-cast` moves it along context equations.
 
-open import Data.List using (List; []; _∷_; _++_; length)
+open import Data.List using (List; []; _∷_; _++_; length; map)
 open import Data.List.Properties using (length-++)
-open import Data.Nat using (ℕ; _+_)
+open import Data.Nat using (ℕ; suc; _+_)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; trans; cong)
@@ -32,7 +32,7 @@ open import Types using (Ty)
 open import Ctx using (Ctxᵗ; Alloc; apply)
 open import Terms using (Term)
 open import Reduction using (_⊢_-→*_; done; _then_; runCtx)
-open import ImprecisionWorld using (World; πʷ; WfWorld; _⊑ᵂ⟨_⟩_)
+open import ImprecisionWorld using (World; πʷ; κʷ; WfWorld; _⊑ᵂ⟨_⟩_)
 open import TermImprecision using (_∣_⊢_⊑_∶_)
 open import proof.DGG.Evolve
 
@@ -139,6 +139,18 @@ castʷ refl refl W = W
 ⟿-πʷ (ev-noneᴸ ev)        = ⟿-πʷ ev
 ⟿-πʷ (ev-noneᴿ ev)        = ⟿-πʷ ev
 
+-- no permission before, none after (design.md D28): an allocation
+-- renumbers κ with its right side (`map suc`) and adds nothing
+⟿-κʷ : ∀ {W : World Δ Δ′} {W′ : World (applyˢ xs Δ) (applyˢ xs′ Δ′)}
+  → W ⟿[ xs ∣ xs′ ] W′ → κʷ W ≡ [] → κʷ W′ ≡ []
+⟿-κʷ ev-done              e = e
+⟿-κʷ (ev-L wR ev)         e = ⟿-κʷ ev e
+⟿-κʷ (ev-R wR ev)         e = ⟿-κʷ ev (cong (map suc) e)
+⟿-κʷ (ev-2 wR wR′ ag ev)  e = ⟿-κʷ ev (cong (map suc) e)
+⟿-κʷ (ev-L⇔ wR rβ ag ev)  e = ⟿-κʷ ev e
+⟿-κʷ (ev-noneᴸ ev)        e = ⟿-κʷ ev e
+⟿-κʷ (ev-noneᴿ ev)        e = ⟿-κʷ ev e
+
 ------------------------------------------------------------------------
 -- Packages
 ------------------------------------------------------------------------
@@ -155,7 +167,7 @@ Evolved {Δ} {Δ′} W xs ys A A′ M M′ =
 -- pending name
 Related : Ctxᵗ → Ctxᵗ → Ty → Ty → Term → Term → Set
 Related Δ Δ′ A A′ V V′ =
-  Σ[ W ∈ World Δ Δ′ ] WfWorld W × πʷ W ≡ []
+  Σ[ W ∈ World Δ Δ′ ] WfWorld W × πʷ W ≡ [] × κʷ W ≡ []
     × Σ[ q ∈ A ⊑ᵂ⟨ W ⟩ A′ ] (W ∣ [] ⊢ V ⊑ V′ ∶ q)
 
 related-cast : ∀ {A A′ V V′} → Γ ≡ Γ′ → Δ ≡ Δ′
@@ -164,11 +176,11 @@ related-cast refl refl R = R
 
 -- forget the evolution (from a world with no pending name)
 evolved→related : ∀ {W : World Δ Δ′} {A A′ V V′}
-  → πʷ W ≡ []
+  → πʷ W ≡ [] → κʷ W ≡ []
   → Evolved W xs ys A A′ V V′
   → Related (applyˢ xs Δ) (applyˢ ys Δ′) A A′ V V′
-evolved→related e (W′ , ev , wf , q , d) =
-  W′ , wf , trans (⟿-πʷ ev) e , q , d
+evolved→related e k (W′ , ev , wf , q , d) =
+  W′ , wf , trans (⟿-πʷ ev) e , ⟿-κʷ ev k , q , d
 
 private
   related-castʷ : ∀ {A A′ V V′} (e : Γ ≡ Γ′) (e′ : Δ ≡ Δ′)

@@ -2,7 +2,7 @@ module TermImprecision where
 
 -- File Charter:
 --   * CAST-TERM IMPRECISION `W ∣ γ ⊢ M ⊑ M′ ∶ p` (GTNF/design.md §12.3,
---     with D11-D16 and D27), over the worlds `World` of
+--     with D12-D16, D27 and D28), over the worlds `World` of
 --     ImprecisionWorld.  M is the MORE precise (left) term, typed on
 --     `Δ`; M′ the right one, typed on `Δ′`; `p : A ⊑ᵂ⟨ W ⟩ A′` relates
 --     their types (GTSFImp's index shape, `_∣_⊢²_⊑_∶_`).  §1 the
@@ -10,7 +10,27 @@ module TermImprecision where
 --     exactly the premises of the corresponding typing rule of Terms,
 --     minus the subterm), with their reassembly into a typing; §2 the
 --     pending-name side relations (`Claim`, `CastClaim`, `BdyClaim`,
---     `Push`) and the relation.
+--     `Push`), the grants (`FirstOrder`, `Grants`, `CastGrant`) and
+--     the relation, with `⊑cast₀` (no grant) and `⊑cast!` (a grant at
+--     γ = []).
+--   * PERMISSIONS (design.md D28; Jeremy, 2026-10-05; checked first as
+--     proof/DGG/notes/Permissions.agda and PermissionsR.agda).  The
+--     marks of the index are derived from the world's permitted right
+--     rep. vars κʷ (ImprecisionWorld §1, §3).  Three rules read κ:
+--     - `⊑cast` GRANTS: when the right coercion checks every value
+--       leaving the cast value against the name of β (`Grants`: `X?`,
+--       `X? ︔ p`, or an arrow `p ↦ q` with `p` first order and `q`
+--       granting), the premise world may permit β (`CastGrant`); γ
+--       moves along (`RaiseCtx`).  A grant covers the whole premise.
+--     - R1: `⟪⟫⊑` takes `All (UnbindOK W) Θ`: every left unbind entry
+--       of its boundary names a rep. var with no permitted right
+--       partner (`Unpermitted`).  The left's own seal may face an
+--       arbitrary right ★ value only where no right check of that rep.
+--       var's partner is above (counterexample C5, PermissionsR.md §3).
+--     - R2 is on the ★ conversion clauses (ConversionImprecision).
+--     R1 and R2 are RULE premises: worlds alone cannot separate C5's
+--     hidden variant from P4 B3 (PermissionsR.md §1.4).  Left casts,
+--     `cast⊑cast`, right hides and boundaries grant nothing.
 --   * THE RULES, design.md §12.3 as updated by D14 and D27, one
 --     constructor each: congruence `x⊑x`, `κ⊑κ` (the literals `$ n`, `true`,
 --     `false`, one rule through `Lit`), `ƛ⊑ƛ`, `·⊑·`; `blame⊑`;
@@ -23,7 +43,7 @@ module TermImprecision where
 --     `πʷ` of the world (ImprecisionWorld §3), next pop first.  The
 --     index `A ⊑ᵂ⟨ W ⟩ A′` reads the ACTUAL left type A and opens one
 --     `∀` per pending name; at `πʷ W = []` it is the plain
---     `μʷ W ⊢ embᴸ W A ⊑ embᴿ W A′`.  Four rules
+--     `marksʷ W ⊢ embᴸ W A ⊑ embᴿ W A′`.  Four rules
 --     handle pending names (§2): `⊑⟪⟫` PUSHES right-only names that
 --     its boundary introduces (`Push`; the left must be a value) and
 --     carries the older ones through its boundary; `Λ⊑` POPS the head
@@ -81,7 +101,7 @@ module TermImprecision where
 --   * DE BRUIJN READINGS.
 --     - `ν X:=A.(L X)⟨c⟩` is Terms' `ν A · L ⟨ c ⟩`.
 --     - a pending name's "β:=★" is `Δ′ ∋rep β := ★` (`PendingOK`); the
---       pop of name 0 of `W ⊕ʳ m ^ β` has premise world `W ⊕⁺ m ^ β`
+--       pop of name 0 of `W ⊕ʳ^ β` has premise world `W ⊕⁺^ β`
 --       (`open-⊕`).
 --   * DEVIATION from design.md §12.3 (also in the report):
 --     - `Λ⊑` does not repeat the right term's typing (GTSFImp's `Λ⊑²`
@@ -96,15 +116,16 @@ open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Data.Sum using (_⊎_; inj₁)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
-open import Types using (Ty; `ℕ; `𝔹; ★; _⇒_; `∀)
+open import Types using (Ty; `_; `ℕ; `𝔹; ★; _⇒_; `∀)
 open import Ctx
 open import Conversion using (Conv; _⊢_∶_⇝_; ⌞_⌟; Mid; `∀)
 open import Boundary
   using (Boundary; Change; bind; BoundaryWf; TyBetaBoundary; Fresh; toExt)
 open import Coercion
-  using (Coercion; ModeEnv; _∣_⊢ᵖ_∶_⟹_; NonVar; _∈ᵗ_; ∀ᵖ_; genᵖ_)
+  using (Coercion; ModeEnv; _∣_⊢ᵖ_∶_⟹_; NonVar; _∈ᵗ_; ∀ᵖ_; genᵖ_;
+         idᵖ; _!; _？_; _？_︔_; _↦ᵖ_)
 open import Terms
-open import Imprecision using (VarImp; X⊑X; ⇒⊑⇒)
+open import Imprecision using (⇒⊑⇒)
 open import ImprecisionWorld
 open import ConversionImprecision using (ConvImp)
 
@@ -224,8 +245,8 @@ cast-inv (⊢cast ⊢M ⊢p len) = _ , ⊢M , cast-ty ⊢p len
 -- binder joins the right name k; its abstract rep. var is paired
 -- lexically with k's β:=★)
 data Claim : World Δ Δ′ → World (underΛ Δ) Δ′ → Set where
-  claim-fresh : ∀ {Ω ϱᵍ ϱˡ} {ηᴸ : names Δ ↪ Ω} {ηᴿ : names Δ′ ↪ Ω}
-    → let W = world {Δ} {Δ′} Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in Claim W (W ⊕ᴸ)
+  claim-fresh : ∀ {Ω ϱᵍ ϱˡ κ} {ηᴸ : names Δ ↪ Ω} {ηᴿ : names Δ′ ↪ Ω}
+    → let W = world {Δ} {Δ′} Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in Claim W (W ⊕ᴸ)
   claim-pop   : ∀ {W : World Δ Δ′} {W₁ : World (underΛ Δ) Δ′}
     → Open1 W W₁ → Claim W W₁
 
@@ -270,8 +291,9 @@ data Carried (Θ′ : Boundary) : List ℕ → List ℕ → Set where
 
 -- THE PUSH of `⊑⟪⟫` (conclusion π, interior): the carried names, then
 -- new names that Θ′ introduces (`Fresh`); pushing needs a left value.
--- What a pending name is (bound to a ★ rep. var, right-only, X⊑★) is
--- `WfWorld` of the interior world (ImprecisionWorld §8).
+-- What a pending name is (bound to a ★ rep. var, right-only) is
+-- `WfWorld` of the interior world (ImprecisionWorld §8); its mark is
+-- derived from κ (design.md D28).
 data Push (Θ′ : Boundary) (M : Term) (π : List ℕ) : List ℕ → Set where
   push : ∀ {π′ new}
     → Carried Θ′ π π′
@@ -279,12 +301,37 @@ data Push (Θ′ : Boundary) (M : Term) (π : List ℕ) : List ℕ → Set where
     → (new ≡ [] ⊎ Value M)
     → Push Θ′ M π (π′ ++ new)
 
+-- GRANTS (design.md D28).  A coercion through which nothing flows OUT
+-- of the cast value.
+data FirstOrder : Coercion → Set where
+  fo-id : ∀ {A} → FirstOrder (idᵖ A)
+  fo-!  : ∀ {G} → FirstOrder (G !)
+  fo-?  : ∀ {G ℓ} → FirstOrder (G ？ ℓ)
+
+-- `Grants Δ′ β c′`: every value that leaves the right's cast value
+-- through c′ is checked against the name of rep. var β.  A check of X
+-- (bound to β); an arrow whose codomain grants and whose domain is
+-- first order (a covariant X? covers the contravariant X!, e.g. the
+-- gen wrapper `X! → X?`).  C2's `X! → id(★)` grants nothing.
+data Grants (Δ′ : Ctxᵗ) (β : RVar) : Coercion → Set where
+  gr-?  : ∀ {X ℓ} → Δ′ ∋ᵗ X := β → Grants Δ′ β ((` X) ？ ℓ)
+  gr-?︔ : ∀ {X ℓ p} → Δ′ ∋ᵗ X := β → Grants Δ′ β ((` X) ？ ℓ ︔ p)
+  gr-↦  : ∀ {p q} → FirstOrder p → Grants Δ′ β q → Grants Δ′ β (p ↦ᵖ q)
+
+-- `⊑cast`'s permissions (conclusion κ, premise κₚ): unchanged, or one
+-- more rep. var that the right coercion grants
+data CastGrant (Δ′ : Ctxᵗ) (c′ : Coercion) (κ : List RVar)
+    : List RVar → Set where
+  no-grant : CastGrant Δ′ c′ κ κ
+  grant    : ∀ {β} → Grants Δ′ β c′ → CastGrant Δ′ c′ κ (β ∷ κ)
+
 infix 3 _∣_⊢_⊑_∶_
 
 -- The relation is INDEXED by the world (not parameterized).  The
 -- structural rules are stated at a world in constructor form with no
--- pending name, `world Ω ηᴸ ηᴿ ϱᵍ ϱˡ []` (Ω the center, ImprecisionWorld
--- §3), where the index `_⊑ᵂ⟨_⟩_` computes to the plain `Ω ⊢ … ⊑ …`;
+-- pending name, `world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ []` (Ω the center, κ the
+-- permissions, ImprecisionWorld §3), where the index `_⊑ᵂ⟨_⟩_`
+-- computes to the plain `dmarks ηᴿ κ ⊢ … ⊑ …`;
 -- the rules for pending names relate the `πʷ` of their worlds by
 -- `Claim`, `CastClaim`, `BdyClaim`, `Push`.
 data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ}
@@ -294,20 +341,20 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ}
   ----------------------------------------------------------------------
   -- Congruence (GTSFImp x⊑x², κ⊑κ², ƛ⊑ƛ², ·⊑·²)
 
-  x⊑x : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+  x⊑x : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
       ∀ {γ x A A′} {p : A ⊑ᵂ⟨ W ⟩ A′}
     → γ ∋ʷ x ⦂ ctx-imp A A′ p
       --------------------------------
     → W ∣ γ ⊢ ` x ⊑ ` x ∶ p
 
-  κ⊑κ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+  κ⊑κ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
       ∀ {γ k ι}
     → Lit k ι
     → (p : ι ⊑ᵂ⟨ W ⟩ ι)
       --------------------------------
     → W ∣ γ ⊢ k ⊑ k ∶ p
 
-  ƛ⊑ƛ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+  ƛ⊑ƛ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
       ∀ {γ N N′ A A′ B B′} {pA : A ⊑ᵂ⟨ W ⟩ A′} {pB : B ⊑ᵂ⟨ W ⟩ B′}
     → Δ ⊢ᵗ A
     → Δ′ ⊢ᵗ A′
@@ -315,7 +362,7 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ}
       ---------------------------------------------
     → W ∣ γ ⊢ ƛ A ∙ N ⊑ ƛ A′ ∙ N′ ∶ ⇒⊑⇒ pA pB
 
-  ·⊑· : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+  ·⊑· : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
       ∀ {γ L L′ M M′ A A′ B B′} {pA : A ⊑ᵂ⟨ W ⟩ A′} {pB : B ⊑ᵂ⟨ W ⟩ B′}
     → W ∣ γ ⊢ L ⊑ L′ ∶ ⇒⊑⇒ pA pB
     → W ∣ γ ⊢ M ⊑ M′ ∶ pA
@@ -326,7 +373,7 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ}
   -- Blame (GTSFImp blame⊑²); no pending name (under one the left is a
   -- value)
 
-  blame⊑ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+  blame⊑ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
       ∀ {γ ℓ M′ A A′}
     → Δ ⊢ᵗ A
     → Δ′ ∣ rhs γ ⊢ M′ ⦂ A′
@@ -337,7 +384,7 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ}
   ----------------------------------------------------------------------
   -- Casts (GTSFImp cast⊑cast², cast⊑², ⊑cast²)
 
-  cast⊑cast : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+  cast⊑cast : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
       ∀ {γ M M′ μ μ′ c c′ B B′ A A′} {p : B ⊑ᵂ⟨ W ⟩ B′}
     → W ∣ γ ⊢ M ⊑ M′ ∶ p
     → CastTy Δ μ c B A
@@ -358,10 +405,14 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ}
       ---------------------------------------------
     → W ∣ γ ⊢ M ⟨ μ ∣ c ⟩ ⊑ M′ ∶ q
 
-  -- carries the pending names (the right cast does not touch the left)
-  ⊑cast : ∀ {W : World Δ Δ′} {γ M M′ μ′ c′ A B′ A′}
-      {p : A ⊑ᵂ⟨ W ⟩ B′}
-    → W ∣ γ ⊢ M ⊑ M′ ∶ p
+  -- carries the pending names (the right cast does not touch the left);
+  -- D28: a right coercion that grants β puts β into the premise's
+  -- permissions (`CastGrant`); γ moves along (`RaiseCtx`)
+  ⊑cast : ∀ {W : World Δ Δ′} {κₚ γ γ′ M M′ μ′ c′ A B′ A′}
+      {p : A ⊑ᵂ⟨ record W { κʷ = κₚ } ⟩ B′}
+    → CastGrant Δ′ c′ (κʷ W) κₚ
+    → RaiseCtx γ γ′
+    → record W { κʷ = κₚ } ∣ γ′ ⊢ M ⊑ M′ ∶ p
     → CastTy Δ′ μ′ c′ B′ A′
     → (q : A ⊑ᵂ⟨ W ⟩ A′)
       ---------------------------------------------
@@ -370,12 +421,12 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ}
   ----------------------------------------------------------------------
   -- Type abstraction (GTSFImp Λ⊑Λ², Λ⊑²)
 
-  Λ⊑Λ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
-      ∀ {γ γ′ V V′ A A′} {r : A ⊑ᵂ⟨ W ⊕ X⊑X ⟩ A′}
-    → LiftCtx X⊑X γ γ′
+  Λ⊑Λ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
+      ∀ {γ γ′ V V′ A A′} {r : A ⊑ᵂ⟨ W ⊕² ⟩ A′}
+    → LiftCtx γ γ′
     → Value V
     → Value V′
-    → W ⊕ X⊑X ∣ γ′ ⊢ V ⊑ V′ ∶ r
+    → W ⊕² ∣ γ′ ⊢ V ⊑ V′ ∶ r
     → (q : `∀ A ⊑ᵂ⟨ W ⟩ `∀ A′)
       ---------------------------------------------
     → W ∣ γ ⊢ Λ V ⊑ Λ V′ ∶ q
@@ -400,7 +451,7 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ}
   ----------------------------------------------------------------------
   -- Instantiation (GTSFImp •⊑•², •⊑²); there is no ⊑ν
 
-  ν⊑ν : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+  ν⊑ν : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
       ∀ {γ L L′ A A′ C C′ c c′ B B′} {r : `∀ C ⊑ᵂ⟨ W ⟩ `∀ C′}
     → W ∣ γ ⊢ L ⊑ L′ ∶ r
     → A ⊑ᵂ⟨ W ⟩ A′
@@ -411,7 +462,7 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ}
       ---------------------------------------------
     → W ∣ γ ⊢ ν A · L ⟨ c ⟩ ⊑ ν A′ · L′ ⟨ c′ ⟩ ∶ q
 
-  ν⊑ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+  ν⊑ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
       ∀ {γ L M′ A C c B B′} {r : `∀ C ⊑ᵂ⟨ W ⟩ B′}
     → W ∣ γ ⊢ L ⊑ M′ ∶ r
     → A ⊑ᵂ⟨ W ⟩ ★
@@ -427,9 +478,9 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ}
   -- 2026-10-03): `WfWorld Wᵢ` is a premise (with the conditions on the
   -- interior's pending names, D27).
 
-  ⟪⟫⊑⟪⟫ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
-      ∀ {Δᵢ Δ′ᵢ Ωᵢ ηᴸᵢ ηᴿᵢ ϱᵍᵢ ϱˡᵢ}
-    → let Wᵢ = world {Δᵢ} {Δ′ᵢ} Ωᵢ ηᴸᵢ ηᴿᵢ ϱᵍᵢ ϱˡᵢ [] in
+  ⟪⟫⊑⟪⟫ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
+      ∀ {Δᵢ Δ′ᵢ Ωᵢ ηᴸᵢ ηᴿᵢ ϱᵍᵢ ϱˡᵢ κᵢ}
+    → let Wᵢ = world {Δᵢ} {Δ′ᵢ} Ωᵢ ηᴸᵢ ηᴿᵢ ϱᵍᵢ ϱˡᵢ κᵢ [] in
       ∀ {γ M M′ Θ Θ′ c c′ Aᵢ A′ᵢ A A′} {r : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩ A′ᵢ}
     → Interior W Θ Θ′ Wᵢ
     → WfWorld Wᵢ
@@ -441,10 +492,13 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ}
       ---------------------------------------------
     → W ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ⟪ Θ′ , c′ ⟫ ∶ q
 
-  -- D27: the pending names pass into a ∀-boundary (`BdyClaim`)
+  -- D27: the pending names pass into a ∀-boundary (`BdyClaim`);
+  -- D28 (R1): every left UNBIND entry of Θ names an unpermitted rep.
+  -- var (in W; equivalently in Wᵢ, since a boundary keeps ϱ and κ)
   ⟪⟫⊑ : ∀ {W : World Δ Δ′} {Δᵢ} {Wᵢ : World Δᵢ Δ′}
       {γ M M′ Θ c Aᵢ A A′} {r : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩ A′}
     → Interior W Θ [] Wᵢ
+    → All (UnbindOK W) Θ
     → BdyClaim M c (πʷ W) (πʷ Wᵢ)
     → WfWorld Wᵢ
     → Wᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
@@ -476,3 +530,21 @@ W ∣ γ ⊢ M ⊑ M′ ∶⟨ A , A′ ⟩ p = _∣_⊢_⊑_∶_ W γ M M′ {A
 -- the push of nothing: the plain right-only boundary rule
 push-none : ∀ {Θ′ M} → Push Θ′ M [] []
 push-none = push ca-[] [] (inj₁ refl)
+
+-- `⊑cast` with no grant: the premise world is W itself (record eta)
+⊑cast₀ : ∀ {W : World Δ Δ′} {γ M M′ μ′ c′ A B′ A′} {p : A ⊑ᵂ⟨ W ⟩ B′}
+  → W ∣ γ ⊢ M ⊑ M′ ∶ p
+  → CastTy Δ′ μ′ c′ B′ A′
+  → (q : A ⊑ᵂ⟨ W ⟩ A′)
+  → W ∣ γ ⊢ M ⊑ M′ ⟨ μ′ ∣ c′ ⟩ ∶ q
+⊑cast₀ {γ = γ} d ct q = ⊑cast no-grant (raise-refl γ) d ct q
+
+-- a grant at the empty term context
+⊑cast! : ∀ {W : World Δ Δ′} {β M M′ μ′ c′ A B′ A′}
+    {p : A ⊑ᵂ⟨ record W { κʷ = β ∷ κʷ W } ⟩ B′}
+  → Grants Δ′ β c′
+  → record W { κʷ = β ∷ κʷ W } ∣ [] ⊢ M ⊑ M′ ∶ p
+  → CastTy Δ′ μ′ c′ B′ A′
+  → (q : A ⊑ᵂ⟨ W ⟩ A′)
+  → W ∣ [] ⊢ M ⊑ M′ ⟨ μ′ ∣ c′ ⟩ ∶ q
+⊑cast! g d ct q = ⊑cast (grant g) raise-[] d ct q

@@ -41,7 +41,7 @@ open import proof.DGG.Evolve
 
 -- X names rep. var 0 := ℕ (TyBetaCtx), paired with itself globally
 W₀ : World TyBetaCtx TyBetaCtx
-W₀ = world (X⊑X ∷ []) (keep []↪) (keep []↪) ((0 , 0) ∷ []) [] []
+W₀ = world⁰ 1 (keep []↪) (keep []↪) ((0 , 0) ∷ []) [] []
 
 agree-ℕ : ∀ {Δ Δ′} {W : World Δ Δ′} {α β}
   → Δ ∋rep α := `ℕ → Δ′ ∋rep β := `ℕ → Agree W α β
@@ -51,7 +51,7 @@ wf₀ : WfWorld W₀
 wf₀ = wf-world (both (inj₁ here⇔) joint[])
   (λ { (inj₁ here⇔) → agree-ℕ r-here r-here
      ; (inj₁ (there⇔ ())) ; (inj₂ ()) })
-  (namedᴸ-≤1 W₀ ≤1-∷[]) (namedᴿ-≤1 W₀ ≤1-∷[]) [] []
+  (namedᴸ-≤1 W₀ ≤1-∷[]) (namedᴿ-≤1 W₀ ≤1-∷[]) [] [] []
 
 -- the boundary hides X
 Θ₀ : Boundary
@@ -75,25 +75,23 @@ b₀ = bdy-ty (bw TyBetaCtx-wf int₀ conv₀)
   (`ℕ , same-ℕ , same-ℕ) (`ℕ , same-ℕ , same-ℕ) wf-ℕ
 
 Wᵢ₀ : World Δᵢ Δᵢ
-Wᵢ₀ = world [] []↪ []↪ ((0 , 0) ∷ []) [] []
+Wᵢ₀ = world⁰ 0 []↪ []↪ ((0 , 0) ∷ []) [] []
 
 interior₀ : Interior W₀ Θ₀ Θ₀ Wᵢ₀
-interior₀ = interior-world int₀ int₀ refl refl
+interior₀ = interior-world int₀ int₀ refl refl refl
   (λ { (_ , ()) _ _ _ }) (λ { () _ _ })
-  (λ { (_ , ()) _ _ }) (λ { (_ , ()) _ _ })
 
 wfᵢ₀ : WfWorld Wᵢ₀
 wfᵢ₀ = wf-world joint[]
   (λ { (inj₁ here⇔) → agree-ℕ r-here r-here
      ; (inj₁ (there⇔ ())) ; (inj₂ ()) })
-  (namedᴸ-≤1 Wᵢ₀ ≤1-[]) (namedᴿ-≤1 Wᵢ₀ ≤1-[]) [] []
+  (namedᴸ-≤1 Wᵢ₀ ≤1-[]) (namedᴿ-≤1 Wᵢ₀ ≤1-[]) [] [] []
 
 cint₀ : ConversionInterior W₀ Θ₀ Θ₀ W₀
-cint₀ = conversion-interior-world conv₀ conv₀ refl refl
+cint₀ = conversion-interior-world conv₀ conv₀ refl refl refl
   (λ { here here here here → (λ j → j) , (λ j → j) })
   (λ { here here (inj₁ (fresh∷ ne _)) → ⊥-elim (ne refl)
      ; here here (inj₂ (fresh∷ ne _)) → ⊥-elim (ne refl) })
-  (λ { here here mk → mk }) (λ { here here mk → mk })
   where open import Data.Empty using (⊥-elim)
 
 M₀ : Term
@@ -133,7 +131,7 @@ agree₁ (inj₂ ())
 
 wf₁ : WfWorld W₁
 wf₁ = wf-world (both (inj₁ (there⇔ here⇔)) joint[]) agree₁
-  (namedᴸ-≤1 W₁ ≤1-∷[]) (namedᴿ-≤1 W₁ ≤1-∷[]) [] []
+  (namedᴸ-≤1 W₁ ≤1-∷[]) (namedᴿ-≤1 W₁ ≤1-∷[]) [] [] []
 
 -- the boundary, shifted past the new rep. var, still hides X
 Θ₁ : Boundary
@@ -164,12 +162,11 @@ b₁ = bdy-ty (bw Δ₁-wf int₁ conv₁)
 
 -- no names inside; both global pairs kept
 Wᵢ₁ : World Δᵢ₁ Δᵢ₁
-Wᵢ₁ = world [] []↪ []↪ ((0 , 0) ∷ (1 , 1) ∷ []) [] []
+Wᵢ₁ = world⁰ 0 []↪ []↪ ((0 , 0) ∷ (1 , 1) ∷ []) [] []
 
 interior₁ : Interior W₁ Θ₁ Θ₁ Wᵢ₁
-interior₁ = interior-world int₁ int₁ refl refl
+interior₁ = interior-world int₁ int₁ refl refl refl
   (λ { (_ , ()) _ _ _ }) (λ { () _ _ })
-  (λ { (_ , ()) _ _ }) (λ { (_ , ()) _ _ })
 
 -- THE REGRESSION: ` 1 ⊑ ` 1 by the pair (1, 1), with no name for 1
 agreeᵢ₁ : ∀ {α β} → Paired Wᵢ₁ α β → Agree Wᵢ₁ α β
@@ -180,14 +177,13 @@ agreeᵢ₁ (inj₂ ())
 
 wfᵢ₁ : WfWorld Wᵢ₁
 wfᵢ₁ = wf-world joint[] agreeᵢ₁ (namedᴸ-≤1 Wᵢ₁ ≤1-[])
-  (namedᴿ-≤1 Wᵢ₁ ≤1-[]) [] []
+  (namedᴿ-≤1 Wᵢ₁ ≤1-[]) [] [] []
 
 cint₁ : ConversionInterior W₁ Θ₁ Θ₁ W₁
-cint₁ = conversion-interior-world conv₁ conv₁ refl refl
+cint₁ = conversion-interior-world conv₁ conv₁ refl refl refl
   (λ { here here here here → (λ j → j) , (λ j → j) })
   (λ { here here (inj₁ (fresh∷ ne _)) → ⊥-elim (ne refl)
      ; here here (inj₂ (fresh∷ ne _)) → ⊥-elim (ne refl) })
-  (λ { here here mk → mk }) (λ { here here mk → mk })
   where open import Data.Empty using (⊥-elim)
 
 M₁ : Term

@@ -50,6 +50,10 @@ open import examples.TermImprecisionRebaseExamples
 -- related by the generalized ⊑⟪⟫
 open import examples.TermImprecisionRegressionExamples
 
+-- permissions and R1/R2 (design.md D28): P4 derives under grants, the
+-- counterexamples C1, C3, C5 are not derivable
+open import examples.TermImprecisionPermissionExamples
+
 -- de Bruijn → named rendering (scripts/render_gtnf.sh)
 open import examples.Show
 

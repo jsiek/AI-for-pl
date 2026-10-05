@@ -14,7 +14,8 @@ module examples.TermImprecisionRegressionExamples where
 --       VL⊑idX           THE COMMON PREMISE, Y pending: ⟪⟫⊑ passes Y
 --                        into VL's ∀-boundary, Λ⊑ pops it
 --       lk₁⊑rk₄, VL⊑RF   after the right's Merge: `⊑⟪⟫` at the merged
---                        Θ₂ PUSHES Y (name 0, β:=★, X⊑★)
+--                        Θ₂ PUSHES Y (name 0, β:=★, X⊑X: no
+--                        permission, design.md D28)
 --       lk₁⊑rk₃          before the right's Merge, right-first: `⊑⟪⟫`
 --                        at Θ₀ pushes Y, the inner `⊑⟪⟫` at ΘX carries
 --                        it, then VL⊑idX
@@ -32,6 +33,11 @@ module examples.TermImprecisionRegressionExamples where
 --   * Copied, with the real relation, from the checked local copy
 --     proof/DGG/notes/PendingOpenings.agda §3, §5 (and, for D26,
 --     GeneralizedRightBoundary.agda §4); no notes module is imported.
+--     Ported to permissions (design.md D28) from
+--     proof/DGG/notes/PermissionsR.agda §9: no permission anywhere,
+--     the pending Y and the shared X are X⊑X, and every index of K
+--     uses only X ⊑ X at them; the `⟪⟫⊑` of `VL⊑idX` passes R1 with
+--     `ok-bind ∷ []`.
 --   * Orientation: the LEFT term is the more precise one.
 
 open import Data.Nat using (ℕ; zero; suc)
@@ -157,7 +163,7 @@ stM = justStep refl
 -- 2. The initial pairs (no pending name)
 ------------------------------------------------------------------------
 
-cId⊑cId : ∀ {Δ Δ′} {W : World Δ Δ′} → μʷ W ⊢ embᴸ W (` 0) ⊑ embᴿ W (` 0)
+cId⊑cId : ∀ {Δ Δ′} {W : World Δ Δ′} → marksʷ W ⊢ embᴸ W (` 0) ⊑ embᴿ W (` 0)
   → ConvImp W cId cId
 cId⊑cId x = conv-tail⊑tail (conv-mid⊑mid (conv-↦⊑↦ i i))
   where
@@ -177,7 +183,7 @@ instI₀-ty = proj₂ (proj₂ (cast-inv {Γ = []}
 lk⊑rk : ∅ʷ ∣ [] ⊢ LK ⊑ RK ∶ ∀id⊑★ ∅ʷ
 lk⊑rk =
   ·⊑· (ƛ⊑ƛ {pA = ∀id⊑★ ∅ʷ} tf tf (x⊑x Zʷ))
-    (⊑cast
+    (⊑cast₀
       (ν⊑ν
         (Λ⊑Λ lift-[] (V-simple (S-Λ (V-simple S-ƛ)))
           (V-simple (S-Λ (V-simple S-ƛ)))
@@ -189,14 +195,14 @@ lk⊑rk =
 
 -- after both source TyBetas (α:=ℕ on each side, matched)
 Wk1 : World ΔL ΔL
-Wk1 = world [] []↪ []↪ ((0 , 0) ∷ []) [] []
+Wk1 = world⁰ 0 []↪ []↪ ((0 , 0) ∷ []) [] []
 
 Wk1ᵢ : World ΔLᵢ ΔLᵢ
-Wk1ᵢ = world (X⊑X ∷ []) (keep []↪) (keep []↪) ((0 , 0) ∷ []) [] []
+Wk1ᵢ = world⁰ 1 (keep []↪) (keep []↪) ((0 , 0) ∷ []) [] []
 
 Wk1-wf : WfWorld Wk1
 Wk1-wf = wf-world joint[] agree (namedᴸ-≤1 Wk1 ≤1-[]) (namedᴿ-≤1 Wk1 ≤1-[])
-  [] []
+  [] [] []
   where
   agree : ∀ {α β} → Paired Wk1 α β → Agree Wk1 α β
   agree (inj₁ here⇔)         = rep-rep r-here r-here (ι⊑ι base-ℕ)
@@ -205,7 +211,7 @@ Wk1-wf = wf-world joint[] agree (namedᴸ-≤1 Wk1 ≤1-[]) (namedᴿ-≤1 Wk1 �
 
 Wk1ᵢ-wf : WfWorld Wk1ᵢ
 Wk1ᵢ-wf = wf-world (both (inj₁ here⇔) joint[]) agree
-  (namedᴸ-≤1 Wk1ᵢ ≤1-∷[]) (namedᴿ-≤1 Wk1ᵢ ≤1-∷[]) [] []
+  (namedᴸ-≤1 Wk1ᵢ ≤1-∷[]) (namedᴿ-≤1 Wk1ᵢ ≤1-∷[]) [] [] []
   where
   agree : ∀ {α β} → Paired Wk1ᵢ α β → Agree Wk1ᵢ α β
   agree (inj₁ here⇔)         = rep-rep r-here r-here (ι⊑ι base-ℕ)
@@ -218,11 +224,10 @@ Wk1ᵢ-int = record
   ; int-right  = int₀
   ; same-ϱᵍ    = refl
   ; same-ϱˡ    = refl
+  ; same-κ     = refl
   ; join-cont  = λ { (_ , here) _ () _ ; (_ , there ()) _ _ _ }
   ; join-fresh = λ { here here _ → (λ _ → inj₁ here⇔) , (λ _ → refl)
                    ; here (there ()) _ ; (there ()) _ _ }
-  ; mark-left  = λ { (_ , here) () _ ; (_ , there ()) _ _ }
-  ; mark-right = λ { (_ , here) () _ ; (_ , there ()) _ _ }
   }
 
 Wk1ᵢ-conv : ConversionInterior Wk1 Θ₀ Θ₀ Wk1ᵢ
@@ -231,14 +236,13 @@ Wk1ᵢ-conv = record
   ; conv-right      = conv₀
   ; conv-same-ϱᵍ    = refl
   ; conv-same-ϱˡ    = refl
+  ; conv-same-κ     = refl
   ; conv-join-cont  = λ { _ _ () _ }
   ; conv-join-fresh = λ
       { here here _ → (λ _ → inj₁ here⇔) , (λ _ → refl)
       ; here (there ()) _
       ; (there ()) _ _
       }
-  ; conv-mark-left  = λ { _ () _ }
-  ; conv-mark-right = λ { _ () _ }
   }
 
 cK⊑cK : ConvImp Wk1ᵢ cK cK
@@ -254,7 +258,7 @@ instI-ty =
 lk₁⊑rk₁ : Wk1 ∣ [] ⊢ LK₁ ⊑ RK₁ ∶ ∀id⊑★ Wk1
 lk₁⊑rk₁ =
   ·⊑· (ƛ⊑ƛ {pA = ∀id⊑★ Wk1} tf tf (x⊑x Zʷ))
-    (⊑cast
+    (⊑cast₀
       (⟪⟫⊑⟪⟫ Wk1ᵢ-int Wk1ᵢ-wf
         (Λ⊑Λ lift-[] (V-simple S-ƛ) (V-simple S-ƛ)
           (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ)) (∀⊑∀ (⇒⊑⇒ X⊑X X⊑X)))
@@ -267,10 +271,10 @@ lk₁⊑rk₁ =
 
 -- the world after the right's Inst TyBeta: (αᴸ, αᴿ) global, β unpaired
 Wk : World ΔL ΔRk
-Wk = world [] []↪ []↪ ((0 , 1) ∷ []) [] []
+Wk = world⁰ 0 []↪ []↪ ((0 , 1) ∷ []) [] []
 
 Wk-wf : WfWorld Wk
-Wk-wf = wf-world joint[] agree (namedᴸ-≤1 Wk ≤1-[]) (namedᴿ-≤1 Wk ≤1-[]) [] []
+Wk-wf = wf-world joint[] agree (namedᴸ-≤1 Wk ≤1-[]) (namedᴿ-≤1 Wk ≤1-[]) [] [] []
   where
   agree : ∀ {α β} → Paired Wk α β → Agree Wk α β
   agree (inj₁ here⇔)         = rep-rep r-here (r-there r-here) (ι⊑ι base-ℕ)
@@ -280,18 +284,17 @@ Wk-wf = wf-world joint[] agree (namedᴸ-≤1 Wk ≤1-[]) (namedᴿ-≤1 Wk ≤1
 Θ₀-int : ∀ {b Ξ} → ((b ∷ Ξ) ∣ []) ⊢ⁱ Θ₀ ⇒ ((b ∷ Ξ) ∣ (0 ∷ []))
 Θ₀-int = interior (changes∷ changes[] (step-bind (_ , here) fresh[] ins-here))
 
--- the Inst boundary `+Y^β` alone: Y is introduced right-only, at X⊑★,
--- and pushed (pending, D27)
-IntK-ro : Interior Wk [] Θ₀ (record (Wk ⊕ʳ X⊑★ ^ 0) { πʷ = 0 ∷ [] })
+-- the Inst boundary `+Y^β` alone: Y is introduced right-only (X⊑X: β is
+-- not permitted, design.md D28), and pushed (pending, D27)
+IntK-ro : Interior Wk [] Θ₀ (record (Wk ⊕ʳ^ 0) { πʷ = 0 ∷ [] })
 IntK-ro = record
   { int-left   = interior changes[]
   ; int-right  = Θ₀-int
   ; same-ϱᵍ    = refl
   ; same-ϱˡ    = refl
+  ; same-κ     = refl
   ; join-cont  = λ { (_ , ()) _ _ _ }
   ; join-fresh = λ { () _ _ }
-  ; mark-left  = λ { (_ , ()) _ _ }
-  ; mark-right = λ { (_ , here) () _ ; (_ , there ()) _ _ }
   }
 
 -- inside the inner boundary `+X^α`: Y at 0, X at 1
@@ -332,24 +335,24 @@ id★↦ᴿk-ty : CastTy ΔRk [] id★↦ (★ ⇒ ★) (★ ⇒ ★)
 id★↦ᴿk-ty = cast-ty (⊢fun (⊢id atom-★ wf-★) (⊢id atom-★ wf-★)) refl
 
 -- The worlds of the pending name Y (design.md D27).  Right names inside
--- the merged `+Y^β, +X^αᴿ`: Y at 0 (β:=★, PENDING, X⊑★: `πʷ = 0 ∷ []`),
+-- the merged `+Y^β, +X^αᴿ`: Y at 0 (β:=★, PENDING, X⊑X: `πʷ = 0 ∷ []`),
 -- X at 1 (αᴿ:=ℕ).
 
 -- inside Θ₂ (and inside the Inst boundary's inner `+X^αᴿ`): no left
 -- name, Y pending
 WiR★ : World ΔL ΔRX
-WiR★ = world (X⊑★ ∷ X⊑X ∷ []) (skip (skip []↪)) (keep (keep []↪))
+WiR★ = world⁰ 2 (skip (skip []↪)) (keep (keep []↪))
          ((0 , 1) ∷ []) [] (0 ∷ [])
 
 -- inside the left's `+X^αᴸ` as well: X joined through (αᴸ, αᴿ)
 Wx★ : World ΔLᵢ ΔRX
-Wx★ = world (X⊑★ ∷ X⊑X ∷ []) (skip (keep []↪)) (keep (keep []↪))
+Wx★ = world⁰ 2 (skip (keep []↪)) (keep (keep []↪))
         ((0 , 1) ∷ []) [] (0 ∷ [])
 
 -- after the pop of Y: the left binder Y joins the right's Y, its
 -- abstract rep. var paired lexically with β
 WX★ : World ΔLX ΔRX
-WX★ = world (X⊑★ ∷ X⊑X ∷ []) (keep (keep []↪)) (keep (keep []↪))
+WX★ = world⁰ 2 (keep (keep []↪)) (keep (keep []↪))
         ((1 , 1) ∷ []) ((0 , 0) ∷ []) []
 
 openX★ : Open1 Wx★ WX★
@@ -361,12 +364,9 @@ IntΘ₂★ = record
   ; int-right  = int-Θ₂
   ; same-ϱᵍ    = refl
   ; same-ϱˡ    = refl
+  ; same-κ     = refl
   ; join-cont  = λ { (_ , ()) _ _ _ }
   ; join-fresh = λ { () _ _ }
-  ; mark-left  = λ { (_ , ()) _ _ }
-  ; mark-right = λ
-      { (_ , here) () _ ; (_ , there here) () _
-      ; (_ , there (there ())) _ _ }
   }
 
 Wx-fresh : ∀ {X X′ α β}
@@ -383,17 +383,14 @@ IntX★ = record
   ; int-right  = interior changes[]
   ; same-ϱᵍ    = refl
   ; same-ϱˡ    = refl
+  ; same-κ     = refl
   ; join-cont  = λ { (_ , here) _ () _ ; (_ , there ()) _ _ _ }
   ; join-fresh = λ a b _ → Wx-fresh a b
-  ; mark-left  = λ { (_ , here) () _ ; (_ , there ()) _ _ }
-  ; mark-right = λ
-      { (_ , here) refl m → m ; (_ , there here) refl m → m
-      ; (_ , there (there ())) _ _ }
   }
 
 -- the Inst boundary `+Y^β` alone (before the Merge), Y pending
 WiY★ : World ΔL (reps ΔRk ∣ (0 ∷ []))
-WiY★ = record (Wk ⊕ʳ X⊑★ ^ 0) { πʷ = 0 ∷ [] }
+WiY★ = record (Wk ⊕ʳ^ 0) { πʷ = 0 ∷ [] }
 
 -- the right's inner `+X^αᴿ` carries Y (toExt ΘX 0 = just 0)
 IntXc★ : Interior WiY★ [] ΘX WiR★
@@ -402,12 +399,9 @@ IntXc★ = record
   ; int-right  = bindX-int
   ; same-ϱᵍ    = refl
   ; same-ϱˡ    = refl
+  ; same-κ     = refl
   ; join-cont  = λ { (_ , ()) _ _ _ }
   ; join-fresh = λ { () _ _ }
-  ; mark-left  = λ { (_ , ()) _ _ }
-  ; mark-right = λ
-      { (_ , here) refl here → here ; (_ , there here) () _
-      ; (_ , there (there ())) _ _ }
   }
 
 agreeₖ : ∀ {Δ₀ Δ₀′} {W : World Δ₀ Δ₀′} → Δ₀ ∋rep 0 := `ℕ
@@ -421,8 +415,8 @@ WiR★-wf : WfWorld WiR★
 WiR★-wf = wf-world (right-only (right-only joint[]))
   (agreeₖ r-here (r-there r-here) refl refl)
   (namedᴸ-≤1 WiR★ ≤1-[]) (λ { (_ , ()) _ _ _ _ })
-  ((0 , here , r-here , (λ { (_ , ()) }) , here , (λ { (_ , ()) })) ∷ [])
-  ([] ∷ [])
+  ((0 , here , r-here , (λ { (_ , ()) }) , (λ { (_ , ()) })) ∷ [])
+  ([] ∷ []) []
 
 uniqᴿx : NamedUniqueᴿ Wx★
 uniqᴿx _ _ _ (inj₁ here⇔) (inj₁ here⇔) = refl
@@ -436,17 +430,16 @@ Wx★-wf = wf-world (right-only (both (inj₁ here⇔) joint[]))
   (agreeₖ r-here (r-there r-here) refl refl)
   (namedᴸ-≤1 Wx★ ≤1-∷[]) uniqᴿx
   ((0 , here , r-here , (λ { (_ , here) () ; (_ , there ()) _ }) ,
-    here ,
     (λ { (_ , here) (inj₁ (there⇔ ())) ; (_ , here) (inj₂ ())
        ; (_ , there ()) _ })) ∷ [])
-  ([] ∷ [])
+  ([] ∷ []) []
 
 WiY★-wf : WfWorld WiY★
 WiY★-wf = wf-world (right-only joint[])
   (agreeₖ r-here (r-there r-here) refl refl)
   (namedᴸ-≤1 WiY★ ≤1-[]) (namedᴿ-≤1 WiY★ ≤1-∷[])
-  ((0 , here , r-here , (λ { (_ , ()) }) , here , (λ { (_ , ()) })) ∷ [])
-  ([] ∷ [])
+  ((0 , here , r-here , (λ { (_ , ()) }) , (λ { (_ , ()) })) ∷ [])
+  ([] ∷ []) []
 
 ------------------------------------------------------------------------
 -- 4. The pairs with Y pending: push, pass, pop (design.md D27)
@@ -457,7 +450,7 @@ WiY★-wf = wf-world (right-only joint[])
 VL⊑idX : WiR★ ∣ [] ⊢ VL ⊑ idX
   ∶⟨ ∀X⇒X , ` 0 ⇒ ` 0 ⟩ ⇒⊑⇒ X⊑X X⊑X
 VL⊑idX =
-  ⟪⟫⊑ IntX★ (bc-∀ (S-Λ (V-simple S-ƛ)) (fc-∷ fc-[])) Wx★-wf
+  ⟪⟫⊑ IntX★ (ok-bind ∷ []) (bc-∀ (S-Λ (V-simple S-ƛ)) (fc-∷ fc-[])) Wx★-wf
     (Λ⊑ (claim-pop openX★) nv-⇒ (∈-⇒ˡ ∈-var) liftᴸ-[] (V-simple S-ƛ)
       (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ)) (⇒⊑⇒ X⊑X X⊑X))
     bVL (⇒⊑⇒ X⊑X X⊑X)
@@ -470,7 +463,7 @@ VL⊑Bm =
     (∀id⊑★ Wk)
 
 VL⊑RF : Wk ∣ [] ⊢ VL ⊑ RF ∶ ∀id⊑★ Wk
-VL⊑RF = ⊑cast VL⊑Bm id★↦ᴿk-ty (∀id⊑★ Wk)
+VL⊑RF = ⊑cast₀ VL⊑Bm id★↦ᴿk-ty (∀id⊑★ Wk)
 
 lk₁⊑rk₄ : Wk ∣ [] ⊢ LK₁ ⊑ RK₄ ∶ ∀id⊑★ Wk
 lk₁⊑rk₄ = ·⊑· (ƛ⊑ƛ {pA = ∀id⊑★ Wk} tf tf (x⊑x Zʷ)) VL⊑RF
@@ -485,7 +478,7 @@ VL⊑Nk =
 
 VL⊑Rarg₃ : Wk ∣ [] ⊢ VL ⊑ Rarg₃ ∶ ∀id⊑★ Wk
 VL⊑Rarg₃ =
-  ⊑cast
+  ⊑cast₀
     (⊑⟪⟫ IntK-ro (push ca-[] (refl ∷ []) (inj₂ vVL)) WiY★-wf VL⊑Nk bOutK
       (∀id⊑★ Wk))
     id★↦ᴿk-ty (∀id⊑★ Wk)
@@ -571,7 +564,7 @@ no-ƛℕ⊑ƛX (ƛ⊑ƛ {pA = ()} _ _ _)
 
 cx-unrelated : ∀ {Δ Δ′} {W : World Δ Δ′} {γ A A′} {p : A ⊑ᵂ⟨ W ⟩ A′}
   → ¬ (W ∣ γ ⊢ CX-L ⊑ CX-R₂ ∶ p)
-cx-unrelated (⊑cast (·⊑· (⊑cast (⊑⟪⟫ _ _ _ d _ _) _ _) _) _ _) =
+cx-unrelated (⊑cast _ _ (·⊑· (⊑cast _ _ (⊑⟪⟫ _ _ _ d _ _) _ _) _) _ _) =
   no-ƛℕ⊑ƛX d
 
 -- under a pending name the left term is a value
@@ -592,14 +585,14 @@ pending-value (cast⊑cast _ _ _ _) ne = ⊥-elim (ne refl)
 pending-value (cast⊑ cc-plain _ _ _) ne = ⊥-elim (ne refl)
 pending-value (cast⊑ (cc-∀ v _) _ _ _) ne = V-simple (S-cast v I-∀ᵖ)
 pending-value (cast⊑ (cc-gen v) _ _ _) ne = V-simple (S-cast v I-gen)
-pending-value (⊑cast d _ _) ne = pending-value d ne
+pending-value (⊑cast _ _ d _ _) ne = pending-value d ne
 pending-value (Λ⊑Λ _ _ _ _ _) ne = ⊥-elim (ne refl)
 pending-value (Λ⊑ claim-fresh _ _ _ _ _ _) ne = ⊥-elim (ne refl)
 pending-value (Λ⊑ (claim-pop _) _ _ _ v _ _) ne = V-simple (S-Λ v)
 pending-value (ν⊑ν _ _ _ _ _ _) ne = ⊥-elim (ne refl)
 pending-value (ν⊑ _ _ _ _) ne = ⊥-elim (ne refl)
 pending-value (⟪⟫⊑⟪⟫ _ _ _ _ _ _ _) ne = ⊥-elim (ne refl)
-pending-value (⟪⟫⊑ _ bc-plain _ _ _ _) ne = ⊥-elim (ne refl)
-pending-value (⟪⟫⊑ _ (bc-∀ s (fc-∷ _)) _ _ _ _) ne = V-⟪⟫ s I-all
+pending-value (⟪⟫⊑ _ _ bc-plain _ _ _ _) ne = ⊥-elim (ne refl)
+pending-value (⟪⟫⊑ _ _ (bc-∀ s (fc-∷ _)) _ _ _ _) ne = V-⟪⟫ s I-all
 pending-value (⊑⟪⟫ _ (push {new = ns} ca _ _) _ d _ _) ne =
   pending-value d (++-≢[] ns ca ne)

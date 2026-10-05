@@ -18,7 +18,7 @@ open import Coercion using (Label)
 open import Terms using (Term; Value; blame; _∣_⊢_⦂_)
 open import Reduction using (_⊢_-→_∣_; _⊢_-→*_; _then_; runCtx)
 open import ImprecisionWorld
-  using (World; πʷ; WfWorld; _⊑ᵂ⟨_⟩_; CtxImp; lhs; rhs)
+  using (World; πʷ; κʷ; WfWorld; _⊑ᵂ⟨_⟩_; CtxImp; lhs; rhs)
 open import TermImprecision using (_∣_⊢_⊑_∶_)
 open import proof.DGG.Evolve
   using (_⟿[_∣_]_; applyˢ; allocs; _++ʳ_; ↑ᴹ*[_])
@@ -26,7 +26,7 @@ open import proof.DGG.Evolve
 SimBack* : Set
 SimBack* = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {M M′ N′ : Term} {A A′ : Ty}
              {p : A ⊑ᵂ⟨ W ⟩ A′}
-  → WfCtx Δ → WfCtx Δ′ → WfWorld W → πʷ W ≡ []
+  → WfCtx Δ → WfCtx Δ′ → WfWorld W → πʷ W ≡ [] → κʷ W ≡ []
   → W ∣ [] ⊢ M ⊑ M′ ∶ p
   → (r′ : Δ′ ⊢ M′ -→* N′)
   → (∃[ N₂ ] ∃[ N₂′ ] Σ[ r ∈ Δ ⊢ M -→* N₂ ]

@@ -43,7 +43,7 @@ open import Coercion
 open import proof.Occurs using (∈→occurs; ∈-⇒ʳ′)
 open import Imprecision
 open import ImprecisionWorld
-  using (World; _⊑ᵂ⟨_⟩_; OpenImp; _⊳_; emb; μʷ; ηᴸʷ; ηᴿʷ; πʷ)
+  using (World; _⊑ᵂ⟨_⟩_; OpenImp; _⊳_; emb; marksʷ; ηᴸʷ; ηᴿʷ; πʷ)
 
 private
   variable

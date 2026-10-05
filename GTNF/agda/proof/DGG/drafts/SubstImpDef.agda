@@ -33,11 +33,11 @@ private
 -- values (any index: the proof of the types is not fixed)
 -- (entries are read at the plain index, `CtxImpEntry`, design.md D27)
 data ImgImp {W : World Δ Δ′} (γ₁ : CtxImp W)
-    : Img → Img → CtxImpEntry (μʷ W) (ηᴸʷ W) (ηᴿʷ W) → Set where
-  ivar⊑ivar : ∀ {y A A′} {p q : μʷ W ⊢ embᴸ W A ⊑ embᴿ W A′}
+    : Img → Img → CtxImpEntry (marksʷ W) (ηᴸʷ W) (ηᴿʷ W) → Set where
+  ivar⊑ivar : ∀ {y A A′} {p q : marksʷ W ⊢ embᴸ W A ⊑ embᴿ W A′}
     → γ₁ ∋ʷ y ⦂ ctx-imp A A′ q
     → ImgImp γ₁ (ivar y) (ivar y) (ctx-imp A A′ p)
-  ival⊑ival : ∀ {V V′ A A′} {p : μʷ W ⊢ embᴸ W A ⊑ embᴿ W A′}
+  ival⊑ival : ∀ {V V′ A A′} {p : marksʷ W ⊢ embᴸ W A ⊑ embᴿ W A′}
       {q : A ⊑ᵂ⟨ W ⟩ A′}
     → Value V → Value V′
     → W ∣ [] ⊢ V ⊑ V′ ∶ q
@@ -54,7 +54,7 @@ SubstImp = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {γ γ₁ : CtxImp W}
 SubstImpBeta : Set
 SubstImpBeta = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′}
     {N N′ V V′ : Term} {A A′ B B′ : Ty}
-    {pA : μʷ W ⊢ embᴸ W A ⊑ embᴿ W A′} {pV : A ⊑ᵂ⟨ W ⟩ A′}
+    {pA : marksʷ W ⊢ embᴸ W A ⊑ embᴿ W A′} {pV : A ⊑ᵂ⟨ W ⟩ A′}
     {pB : B ⊑ᵂ⟨ W ⟩ B′}
   → W ∣ ctx-imp A A′ pA ∷ [] ⊢ N ⊑ N′ ∶ pB
   → Value V → Value V′

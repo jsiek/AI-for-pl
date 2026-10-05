@@ -23,14 +23,14 @@ module proof.DGG.drafts.MergeImpProof where
 open import Types using (Ty)
 open import Ctx using (Ctxᵗ; underΛ)
 open import Conversion
-open import Imprecision using (X⊑X; X⊑★)
+open import Imprecision using (X⊑★)
 open import Ctx using (_∋ˡ_:=_)
 open import ImprecisionWorld
 open import ConversionImprecision
 open import proof.DGG.drafts.MergeImpDef
 
 -- WfWorld under the binders of conv-∀⊑∀ / conv-∀⊑ (glue)
-wf-⊕ : ∀ {Δ Δ′} {W : World Δ Δ′} → WfWorld W → WfWorld (W ⊕ X⊑X)
+wf-⊕ : ∀ {Δ Δ′} {W : World Δ Δ′} → WfWorld W → WfWorld (W ⊕²)
 wf-⊕ wf = {!!}
 
 wf-⊕ᴸ : ∀ {Δ Δ′} {W : World Δ Δ′} → WfWorld W → WfWorld (W ⊕ᴸ)
@@ -43,9 +43,10 @@ unseal⨾ˢ⊑ : ∀ {Δ Δ′} {W : World Δ Δ′} {X X′ c c′}
 unseal⨾ˢ⊑ j c⊑ = {!!}
 
 unseal⨾ˢ⊑ᴸ : ∀ {Δ Δ′} {W : World Δ Δ′} {X c c′}
-  → μʷ W ∋ˡ emb (ηᴸʷ W) X := X⊑★ → ConvImp W c c′
+  → marksʷ W ∋ˡ emb (ηᴸʷ W) X := X⊑★ → LeftUnpermitted W X
+  → ConvImp W c c′
   → ConvImp W (unseal X ⨾ˢ c) c′
-unseal⨾ˢ⊑ᴸ mk c⊑ = {!!}
+unseal⨾ˢ⊑ᴸ mk lu c⊑ = {!!}
 
 ⨾sealˢ⊑ : ∀ {Δ Δ′} {W : World Δ Δ′} {X X′ t t′}
   → TailImp W t t′ → Joins W X X′
@@ -53,9 +54,10 @@ unseal⨾ˢ⊑ᴸ mk c⊑ = {!!}
 ⨾sealˢ⊑ t⊑ j = {!!}
 
 ⨾sealˢ⊑ᴸ : ∀ {Δ Δ′} {W : World Δ Δ′} {X t t′}
-  → TailImp W t t′ → μʷ W ∋ˡ emb (ηᴸʷ W) X := X⊑★
+  → TailImp W t t′ → marksʷ W ∋ˡ emb (ηᴸʷ W) X := X⊑★
+  → LeftUnpermitted W X
   → TailImp W (t ⨾sealˢ X) t′
-⨾sealˢ⊑ᴸ t⊑ mk = {!!}
+⨾sealˢ⊑ᴸ t⊑ mk lu = {!!}
 
 mutual
   merge : ∀ {Δ Δ′} {W : World Δ Δ′} {c₁ c₂ c₁′ c₂′ A B C A′ B′ C′}
@@ -75,11 +77,11 @@ mutual
       (conv-unseal⨾⊑unseal⨾ j c⊑) d₂ =
     unseal⨾ˢ⊑ j
       (merge wf ⊢c ⊢2 ⊢c′ ⊢2′ {!source rel. of reps (Agree)!} z c⊑ d₂)
-  merge wf ⊢1 ⊢2 ⊢1′ ⊢2′ a z (conv-unseal⊑id★ mk) d₂ =
+  merge wf ⊢1 ⊢2 ⊢1′ ⊢2′ a z (conv-unseal⊑id★ mk lu) d₂ =
     {!SMART unseal X ⨾ˢ c₂ ⊑ id★ ⨟ c₂′ (mk, d₂)!}
   merge wf (conv-unseal-seq x ⊢c ni nc) ⊢2 ⊢1′ ⊢2′ a z
-      (conv-unseal⨾⊑ mk c⊑) d₂ =
-    unseal⨾ˢ⊑ᴸ mk
+      (conv-unseal⨾⊑ mk lu c⊑) d₂ =
+    unseal⨾ˢ⊑ᴸ mk lu
       (merge wf ⊢c ⊢2 ⊢1′ ⊢2′ {!source rel.!} z c⊑ d₂)
 
   mergeᵀ : ∀ {Δ Δ′} {W : World Δ Δ′} {t c₂ t′ c₂′ A B C A′ B′ C′}
@@ -101,9 +103,9 @@ mutual
     {!mkId (repOf Δ X) ⊑ mkId (repOf Δ′ X′): Agree of the joined names (wf)!}
   mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-⨾seal⊑⨾seal t₀⊑ j₁)
       (conv-unseal⊑unseal j) = conv-tail⊑tail t₀⊑
-  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-seal⊑id★ mk)
+  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-seal⊑id★ mk lu)
       (conv-unseal⊑unseal j) = {!absurd by typing (★ against ` Y′)!}
-  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-⨾seal⊑ t₀⊑ mk)
+  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-⨾seal⊑ t₀⊑ mk lu)
       (conv-unseal⊑unseal j) =
     {!MIXED: left-only seal X, matched unseal Y = X!}
   -- c₂ = unseal Y ⨾ c ⊑ unseal Y′ ⨾ c′
@@ -115,34 +117,34 @@ mutual
       (conv-seal-seq ⊢t₀′ x′ ni′) (conv-unseal-seq y′ ⊢c′ ni₂′ nc′) a z
       (conv-⨾seal⊑⨾seal t₀⊑ j₁) (conv-unseal⨾⊑unseal⨾ j c⊑) =
     mergeᵀ wf ⊢t₀ {!⊢c at the rep. of X = Y!} ⊢t₀′ {!⊢c′!} a z t₀⊑ c⊑
-  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-seal⊑id★ mk)
+  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-seal⊑id★ mk lu)
       (conv-unseal⨾⊑unseal⨾ j c⊑) = {!absurd by typing!}
-  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-⨾seal⊑ t₀⊑ mk)
+  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-⨾seal⊑ t₀⊑ mk lu)
       (conv-unseal⨾⊑unseal⨾ j c⊑) =
     {!MIXED: left-only seal X, matched unseal Y = X!}
   -- c₂ = unseal Y ⊑ id ★ (left only)
-  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-mid⊑mid g⊑) (conv-unseal⊑id★ mk) =
+  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-mid⊑mid g⊑) (conv-unseal⊑id★ mk lu) =
     {!id(` Y) ⊑ g′ forces g′ = id ★ (typing); then conv-unseal⊑id★!}
-  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-seal⊑seal j₁) (conv-unseal⊑id★ mk) =
+  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-seal⊑seal j₁) (conv-unseal⊑id★ mk lu) =
     {!absurd by typing (` X′ against ★)!}
   mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-⨾seal⊑⨾seal t₀⊑ j₁)
-      (conv-unseal⊑id★ mk) = {!absurd by typing!}
-  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-seal⊑id★ mk₁) (conv-unseal⊑id★ mk) =
+      (conv-unseal⊑id★ mk lu) = {!absurd by typing!}
+  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-seal⊑id★ mk₁ lu₁) (conv-unseal⊑id★ mk lu) =
     {!mkId A ⊑ id ★ from a : A ⊑ ★ (the end-type premise)!}
-  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-⨾seal⊑ t₀⊑ mk₁)
-      (conv-unseal⊑id★ mk) = {!tail t₀ ⊑ t′ ⨟ᵀ id★ (= t′ up to typing)!}
+  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-⨾seal⊑ t₀⊑ mk₁ lu₁)
+      (conv-unseal⊑id★ mk lu) = {!tail t₀ ⊑ t′ ⨟ᵀ id★ (= t′ up to typing)!}
   -- c₂ = unseal Y ⨾ c ⊑ c₂′ (left only)
-  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-mid⊑mid g⊑) (conv-unseal⨾⊑ mk c⊑) =
+  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-mid⊑mid g⊑) (conv-unseal⨾⊑ mk lu c⊑) =
     {!unseal Y ⨾ c ⊑ mid g′ ⨟ᵀ c₂′ (g = id(` Y), g′ = id ★ by typing)!}
-  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-seal⊑seal j₁) (conv-unseal⨾⊑ mk c⊑) =
+  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-seal⊑seal j₁) (conv-unseal⨾⊑ mk lu c⊑) =
     {!MIXED: matched seal X, left-only unseal X!}
   mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-⨾seal⊑⨾seal t₀⊑ j₁)
-      (conv-unseal⨾⊑ mk c⊑) =
+      (conv-unseal⨾⊑ mk lu c⊑) =
     {!MIXED: matched seal X, left-only unseal X (the IH's right composite is t₀′ ⨟ᵀ c₂′, the goal's (t₀′ ⨾seal X′) ⨟ᵀ c₂′)!}
-  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-seal⊑id★ mk₁) (conv-unseal⨾⊑ mk c⊑) =
+  mergeᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-seal⊑id★ mk₁ lu₁) (conv-unseal⨾⊑ mk lu c⊑) =
     {!c ⊑ id★ ⨟ c₂′, and id★ ⨟ c₂′ = c₂′ (typing)!}
   mergeᵀ wf (conv-seal-seq ⊢t₀ x ni) (conv-unseal-seq y ⊢c ni₂ nc) ⊢t′ ⊢2′
-      a z (conv-⨾seal⊑ t₀⊑ mk₁) (conv-unseal⨾⊑ mk c⊑) =
+      a z (conv-⨾seal⊑ t₀⊑ mk₁ lu₁) (conv-unseal⨾⊑ mk lu c⊑) =
     -- a left-only seal cancels a left-only unseal: the IH fits
     mergeᵀ wf ⊢t₀ {!⊢c at the rep. of X = Y!} ⊢t′ ⊢2′ a z t₀⊑ c⊑
 
@@ -165,15 +167,15 @@ mutual
     conv-seal⊑seal j
   mergeᵀᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-⨾seal⊑⨾seal t₀⊑ j)
       (conv-mid⊑mid g₂⊑) = conv-⨾seal⊑⨾seal t₀⊑ j
-  mergeᵀᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-seal⊑id★ mk) (conv-mid⊑mid g₂⊑) =
+  mergeᵀᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-seal⊑id★ mk lu) (conv-mid⊑mid g₂⊑) =
     {!g₂′ = id ★ by typing, then conv-seal⊑id★ mk!}
-  mergeᵀᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-⨾seal⊑ t₀⊑ mk) (conv-mid⊑mid g₂⊑) =
+  mergeᵀᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z (conv-⨾seal⊑ t₀⊑ mk lu) (conv-mid⊑mid g₂⊑) =
     {!t′ ⨟ᵀᵀ mid (id ★) = t′ (typing), then conv-⨾seal⊑ t₀⊑ mk!}
-  mergeᵀᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z t⊑ (conv-seal⊑id★ mk) =
+  mergeᵀᵀ wf ⊢t ⊢2 ⊢t′ ⊢2′ a z t⊑ (conv-seal⊑id★ mk lu) =
     {!SMART t ⨾sealˢ Y ⊑ t′ ⨟ᵀᵀ mid (id ★)!}
   mergeᵀᵀ wf ⊢t (conv-seal-seq ⊢t₂ y ni) ⊢t′ ⊢2′ a z t⊑
-      (conv-⨾seal⊑ t₂⊑ mk) =
-    ⨾sealˢ⊑ᴸ (mergeᵀᵀ wf ⊢t ⊢t₂ ⊢t′ ⊢2′ a {!target rel.!} t⊑ t₂⊑) mk
+      (conv-⨾seal⊑ t₂⊑ mk lu) =
+    ⨾sealˢ⊑ᴸ (mergeᵀᵀ wf ⊢t ⊢t₂ ⊢t′ ⊢2′ a {!target rel.!} t⊑ t₂⊑) mk lu
 
   mergeᵐ : ∀ {Δ Δ′} {W : World Δ Δ′} {g g₂ g′ g₂′ A B C A′ B′ C′}
     → WfWorld W
@@ -233,5 +235,6 @@ merge-impL wf (conv-unseal x) ⊢2 ⊢2′ a b z d₂ =
   {!unseal X ⨾ˢ c₂ ⊑ c₂′: a : ` X ⊑ A′ gives X⊑★ (A′ = ★) or a join (A′ = ` X′, then b : rep ⊑ ` X′ forces rep = a name)!}
 merge-impL wf (conv-unseal-seq x ⊢c ni nc) ⊢2 ⊢2′ a b z d₂ =
   unseal⨾ˢ⊑ᴸ {!the mark X⊑★ (from a, as above)!}
+    {!R2 (design.md D28): LeftUnpermitted of X!}
     (merge-impL wf ⊢c ⊢2 ⊢2′
        {!NOT DERIVABLE from a: the IH needs rep(X) ⊑ A′!} b z d₂)

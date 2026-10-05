@@ -16,27 +16,31 @@ module proof.DGG.drafts.EvolveImpProof
 --     (`alloc-wf`); the corollaries do not need them.
 --   * Orientation: the LEFT term is the more precise one.
 
+open import Data.Nat using (suc)
+open import Data.List using (map)
 open import Data.Product using (_,_)
+open import Relation.Binary.PropositionalEquality using (cong)
 
 open import proof.DGG.Evolve
 open import proof.DGG.EvolveImpDef using (EvolveImp)
 open import proof.TypeSafety.PreservationSupport using (alloc-wf)
 
 evolve-imp : EvolveImp
-evolve-imp wΔ wΔ′ ev-done wf e M⊑ = wf , _ , M⊑
-evolve-imp wΔ wΔ′ (ev-L wR ev) wf e M⊑ with alloc-L wR wf M⊑
-evolve-imp wΔ wΔ′ (ev-L wR ev) wf e M⊑ | wf₁ , q , M₁ =
-  evolve-imp (alloc-wf wΔ wR) wΔ′ ev wf₁ e M₁
-evolve-imp wΔ wΔ′ (ev-R wR′ ev) wf e M⊑ with alloc-R wR′ wf M⊑
-evolve-imp wΔ wΔ′ (ev-R wR′ ev) wf e M⊑ | wf₁ , q , M₁ =
-  evolve-imp wΔ (alloc-wf wΔ′ wR′) ev wf₁ e M₁
-evolve-imp wΔ wΔ′ (ev-2 wR wR′ ag ev) wf e M⊑
+evolve-imp wΔ wΔ′ ev-done wf e k M⊑ = wf , _ , M⊑
+evolve-imp wΔ wΔ′ (ev-L wR ev) wf e k M⊑ with alloc-L wR wf M⊑
+evolve-imp wΔ wΔ′ (ev-L wR ev) wf e k M⊑ | wf₁ , q , M₁ =
+  evolve-imp (alloc-wf wΔ wR) wΔ′ ev wf₁ e k M₁
+evolve-imp wΔ wΔ′ (ev-R wR′ ev) wf e k M⊑ with alloc-R wR′ wf M⊑
+evolve-imp wΔ wΔ′ (ev-R wR′ ev) wf e k M⊑ | wf₁ , q , M₁ =
+  evolve-imp wΔ (alloc-wf wΔ′ wR′) ev wf₁ e (cong (map suc) k) M₁
+evolve-imp wΔ wΔ′ (ev-2 wR wR′ ag ev) wf e k M⊑
   with alloc-2 wR wR′ ag wf M⊑
-evolve-imp wΔ wΔ′ (ev-2 wR wR′ ag ev) wf e M⊑ | wf₁ , q , M₁ =
-  evolve-imp (alloc-wf wΔ wR) (alloc-wf wΔ′ wR′) ev wf₁ e M₁
-evolve-imp wΔ wΔ′ (ev-L⇔ wR β★ ag ev) wf e M⊑
+evolve-imp wΔ wΔ′ (ev-2 wR wR′ ag ev) wf e k M⊑ | wf₁ , q , M₁ =
+  evolve-imp (alloc-wf wΔ wR) (alloc-wf wΔ′ wR′) ev wf₁ e
+    (cong (map suc) k) M₁
+evolve-imp wΔ wΔ′ (ev-L⇔ wR β★ ag ev) wf e k M⊑
   with alloc-L⇔ wR β★ ag wf M⊑
-evolve-imp wΔ wΔ′ (ev-L⇔ wR β★ ag ev) wf e M⊑ | wf₁ , q , M₁ =
-  evolve-imp (alloc-wf wΔ wR) wΔ′ ev wf₁ e M₁
-evolve-imp wΔ wΔ′ (ev-noneᴸ ev) wf e M⊑ = evolve-imp wΔ wΔ′ ev wf e M⊑
-evolve-imp wΔ wΔ′ (ev-noneᴿ ev) wf e M⊑ = evolve-imp wΔ wΔ′ ev wf e M⊑
+evolve-imp wΔ wΔ′ (ev-L⇔ wR β★ ag ev) wf e k M⊑ | wf₁ , q , M₁ =
+  evolve-imp (alloc-wf wΔ wR) wΔ′ ev wf₁ e k M₁
+evolve-imp wΔ wΔ′ (ev-noneᴸ ev) wf e k M⊑ = evolve-imp wΔ wΔ′ ev wf e k M⊑
+evolve-imp wΔ wΔ′ (ev-noneᴿ ev) wf e k M⊑ = evolve-imp wΔ wΔ′ ev wf e k M⊑

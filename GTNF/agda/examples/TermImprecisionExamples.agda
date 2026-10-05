@@ -26,6 +26,10 @@ module examples.TermImprecisionExamples where
 --     (`ν-inv`, `⟪⟫-inv`).
 --   * WELL-FORMEDNESS.  `Wᵢ₁-wf` checks `WfWorld` on p1-tybeta's
 --     interior world (X both-sided names the paired αᴸ, αᴿ; ℕ ⊑ ★).
+--   * PERMISSIONS (design.md D28): no world here has a permission
+--     (`world⁰`); the pushed X of p3-inst is X⊑X (its rep. var is not
+--     permitted); P2's `⟪⟫⊑` passes R1 with `ok-bind ∷ []` (a bind
+--     entry).  Ported from proof/DGG/notes/PermissionsR.agda §7.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_; head; drop)
@@ -71,10 +75,10 @@ revX = reveal 0 (` 0 ⇒ ` 0)
 
 -- the argument `5 ⊑ 5⟨ℕ!⟩` at ℕ ⊑ ★, in any world whose right side has
 -- no names (the cast carries `[]`)
-five⊑ : ∀ {Δ Ξ′ Ω ϱᵍ ϱˡ} {ηᴸ : names Δ ↪ Ω} {ηᴿ : [] ↪ Ω}
-  → let W = world {Δ} {Ξ′ ∣ []} Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in ∀ {γ : CtxImp W}
+five⊑ : ∀ {Δ Ξ′ Ω ϱᵍ ϱˡ κ} {ηᴸ : names Δ ↪ Ω} {ηᴿ : [] ↪ Ω}
+  → let W = world {Δ} {Ξ′ ∣ []} Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in ∀ {γ : CtxImp W}
   → W ∣ γ ⊢ $ 5 ⊑ 5⟨ℕ!⟩ ∶ ℕ⊑★
-five⊑ = ⊑cast (κ⊑κ lit-$ (ι⊑ι base-ℕ)) (cast-ty (⊢tag g-ℕ) refl) ℕ⊑★
+five⊑ = ⊑cast₀ (κ⊑κ lit-$ (ι⊑ι base-ℕ)) (cast-ty (⊢tag g-ℕ) refl) ℕ⊑★
 
 ∀X⇒X : Ty
 ∀X⇒X = `∀ (` 0 ⇒ ` 0)
@@ -131,7 +135,7 @@ conv₀ = conversion (conv-bind (_ , here) conv[] fresh[] ins-here)
 -- The ν-conversion world has one both-sided name and the ν-bound pair
 -- in ϱˡ, not ϱᵍ.
 Wν : ∀ {R R′} → World (ConvCtx₀ R) (ConvCtx₀ R′)
-Wν = world (X⊑X ∷ []) (keep []↪) (keep []↪) [] ((0 , 0) ∷ []) []
+Wν = world⁰ 1 (keep []↪) (keep []↪) [] ((0 , 0) ∷ []) []
 
 Wν-conv : ∀ {R R′}
   → ConversionInterior (underν² R R′ ∅ʷ) Θ₀ Θ₀ Wν
@@ -140,14 +144,13 @@ Wν-conv = record
   ; conv-right      = conv₀
   ; conv-same-ϱᵍ    = refl
   ; conv-same-ϱˡ    = refl
+  ; conv-same-κ     = refl
   ; conv-join-cont  = λ { _ _ () _ }
   ; conv-join-fresh = λ
       { here here _ → (λ _ → inj₂ here⇔) , (λ _ → refl)
       ; here (there ()) _
       ; (there ()) _ _
       }
-  ; conv-mark-left  = λ { _ () _ }
-  ; conv-mark-right = λ { _ () _ }
   }
 
 revX⊑revX : ∀ {Δ Δ′} {W : World Δ Δ′}
@@ -171,11 +174,11 @@ p1-init =
 
 -- the exterior world: no names; the two store rep. vars paired (ϱᵍ)
 W₁ : World ΔL ΔR
-W₁ = world [] []↪ []↪ ((0 , 0) ∷ []) [] []
+W₁ = world⁰ 0 []↪ []↪ ((0 , 0) ∷ []) [] []
 
 -- the interior world: X both-sided at X⊑X
 Wᵢ₁ : World ΔLᵢ ΔRᵢ
-Wᵢ₁ = world (X⊑X ∷ []) (keep []↪) (keep []↪) ((0 , 0) ∷ []) [] []
+Wᵢ₁ = world⁰ 1 (keep []↪) (keep []↪) ((0 , 0) ∷ []) [] []
 
 int₀ : ∀ {R} → allocate R empty ⊢ⁱ Θ₀ ⇒ ((bindR R ∷ []) ∣ (0 ∷ []))
 int₀ = interior (changes∷ changes[] (step-bind (_ , here) fresh[] ins-here))
@@ -186,11 +189,10 @@ Wᵢ₁-int = record
   ; int-right  = int₀
   ; same-ϱᵍ    = refl
   ; same-ϱˡ    = refl
+  ; same-κ     = refl
   ; join-cont  = λ { (_ , here) _ () _ ; (_ , there ()) _ _ _ }
   ; join-fresh = λ { here here _ → (λ _ → inj₁ here⇔) , (λ _ → refl)
                    ; here (there ()) _ ; (there ()) _ _ }
-  ; mark-left  = λ { (_ , here) () _ ; (_ , there ()) _ _ }
-  ; mark-right = λ { (_ , here) () _ ; (_ , there ()) _ _ }
   }
 
 Wᵢ₁-conv : ConversionInterior W₁ Θ₀ Θ₀ Wᵢ₁
@@ -199,14 +201,13 @@ Wᵢ₁-conv = record
   ; conv-right      = conv₀
   ; conv-same-ϱᵍ    = refl
   ; conv-same-ϱˡ    = refl
+  ; conv-same-κ     = refl
   ; conv-join-cont  = λ { _ _ () _ }
   ; conv-join-fresh = λ
       { here here _ → (λ _ → inj₁ here⇔) , (λ _ → refl)
       ; here (there ()) _
       ; (there ()) _ _
       }
-  ; conv-mark-left  = λ { _ () _ }
-  ; conv-mark-right = λ { _ () _ }
   }
 
 bL bR : Term
@@ -230,7 +231,7 @@ bLR-conv = Wᵢ₁ , Wᵢ₁-conv , revX⊑revX refl
 
 Wᵢ₁-wf : WfWorld Wᵢ₁
 Wᵢ₁-wf = wf-world (both (inj₁ here⇔) joint[]) agree
-  (namedᴸ-≤1 Wᵢ₁ ≤1-∷[]) (namedᴿ-≤1 Wᵢ₁ ≤1-∷[]) [] []
+  (namedᴸ-≤1 Wᵢ₁ ≤1-∷[]) (namedᴿ-≤1 Wᵢ₁ ≤1-∷[]) [] [] []
   where
   agree : ∀ {α β} → Paired Wᵢ₁ α β → Agree Wᵢ₁ α β
   agree (inj₁ here⇔) =
@@ -253,11 +254,11 @@ R2-state : R2 ≡ (ƛ ★ ∙ ` 0) · 5⟨ℕ!⟩
 R2-state = refl
 
 W₂ : World ΔL empty
-W₂ = world [] []↪ []↪ [] [] []
+W₂ = world⁰ 0 []↪ []↪ [] [] []
 
 -- X is left-only, so its mark is X⊑★
 Wᵢ₂ : World ΔLᵢ empty
-Wᵢ₂ = world (X⊑★ ∷ []) (keep []↪) (skip []↪) [] [] []
+Wᵢ₂ = world⁰ 1 (keep []↪) (skip []↪) [] [] []
 
 Wᵢ₂-int : Interior W₂ Θ₀ [] Wᵢ₂
 Wᵢ₂-int = record
@@ -265,15 +266,14 @@ Wᵢ₂-int = record
   ; int-right  = interior changes[]
   ; same-ϱᵍ    = refl
   ; same-ϱˡ    = refl
+  ; same-κ     = refl
   ; join-cont  = λ { _ (_ , ()) _ _ }
   ; join-fresh = λ { _ () _ }
-  ; mark-left  = λ { (_ , here) () _ ; (_ , there ()) _ _ }
-  ; mark-right = λ { (_ , ()) _ _ }
   }
 
 Wᵢ₂-wf : WfWorld Wᵢ₂
 Wᵢ₂-wf = wf-world (left-only joint[]) agree
-  (namedᴸ-≤1 Wᵢ₂ ≤1-∷[]) (namedᴿ-≤1 Wᵢ₂ ≤1-[]) [] []
+  (namedᴸ-≤1 Wᵢ₂ ≤1-∷[]) (namedᴿ-≤1 Wᵢ₂ ≤1-[]) [] [] []
   where
   agree : ∀ {α β} → Paired Wᵢ₂ α β → Agree Wᵢ₂ α β
   agree (inj₁ ())
@@ -281,7 +281,7 @@ Wᵢ₂-wf = wf-world (left-only joint[]) agree
 
 p2-tybeta : W₂ ∣ [] ⊢ L1′ ⊑ R2 ∶ ℕ⊑★
 p2-tybeta =
-  ·⊑· (⟪⟫⊑ Wᵢ₂-int bc-plain (Wᵢ₂-wf)
+  ·⊑· (⟪⟫⊑ Wᵢ₂-int (ok-bind ∷ []) bc-plain (Wᵢ₂-wf)
               (ƛ⊑ƛ {pA = X⊑★ here} tf wf-★ (x⊑x Zʷ)) bL-ty
               (⇒⊑⇒ ℕ⊑★ ℕ⊑★))
       five⊑
@@ -303,7 +303,7 @@ R3′-state : head (drop 3 (evalTerms 16 R3-⊢)) ≡ just R3′
 R3′-state = refl
 
 W₃ : World empty ΔR
-W₃ = world [] []↪ []↪ [] [] []
+W₃ = world⁰ 0 []↪ []↪ [] [] []
 
 -- ∀X.X→X ⊑ ★→★, by ∀⊑ (X left-only at X⊑★)
 ∀id⊑★ : ∀X⇒X ⊑ᵂ⟨ W₃ ⟩ (★ ⇒ ★)
@@ -313,34 +313,33 @@ W₃ = world [] []↪ []↪ [] [] []
 ΛidX-⊢ = tc
 
 -- the Inst boundary `+X^α` (α:=★ at rep. var 0) alone: X is a
--- right-only name, with the mark m chosen here (D11), and PUSHED: the
--- interior world has the pending name 0 (D27)
-int-ro₃ : ∀ {m} → Interior W₃ [] Θ₀ (record (W₃ ⊕ʳ m ^ 0) { πʷ = 0 ∷ [] })
+-- right-only name (its mark is αᴿ's permission: none, X⊑X), and
+-- PUSHED: the interior world has the pending name 0 (D27)
+int-ro₃ : Interior W₃ [] Θ₀ (record (W₃ ⊕ʳ^ 0) { πʷ = 0 ∷ [] })
 int-ro₃ = record
   { int-left   = interior changes[]
   ; int-right  = int₀
   ; same-ϱᵍ    = refl
   ; same-ϱˡ    = refl
+  ; same-κ     = refl
   ; join-cont  = λ { (_ , ()) _ _ _ }
   ; join-fresh = λ { () _ _ }
-  ; mark-left  = λ { (_ , ()) _ _ }
-  ; mark-right = λ { (_ , here) () _ ; (_ , there ()) _ _ }
   }
 
--- inside the Inst boundary: X right-only at X⊑★, and PENDING (D27): it
+-- inside the Inst boundary: X right-only, and PENDING (D27): it
 -- is bound to the ★ rep. var αᴿ and has no named left partner
-Wi₃-wf : WfWorld (record (W₃ ⊕ʳ X⊑★ ^ 0) { πʷ = 0 ∷ [] })
+Wi₃-wf : WfWorld (record (W₃ ⊕ʳ^ 0) { πʷ = 0 ∷ [] })
 Wi₃-wf = wf-world (right-only joint[]) (λ { (inj₁ ()) ; (inj₂ ()) })
-  (namedᴸ-≤1 (W₃ ⊕ʳ X⊑★ ^ 0) ≤1-[]) (namedᴿ-≤1 (W₃ ⊕ʳ X⊑★ ^ 0) ≤1-∷[])
-  ((0 , here , r-here , (λ { (_ , ()) }) , here , (λ { (_ , ()) })) ∷ [])
-  ([] ∷ [])
+  (namedᴸ-≤1 (W₃ ⊕ʳ^ 0) ≤1-[]) (namedᴿ-≤1 (W₃ ⊕ʳ^ 0) ≤1-∷[])
+  ((0 , here , r-here , (λ { (_ , ()) }) , (λ { (_ , ()) })) ∷ [])
+  ([] ∷ []) []
 
 vΛidX : Value (Λ idX)
 vΛidX = V-simple (S-Λ (V-simple S-ƛ))
 
 -- THE CORE: ⊑⟪⟫ PUSHES the boundary's name X (the left is a value);
 -- Λ⊑ POPS it: the left binder joins X, its abstract rep. var paired
--- lexically with αᴿ:=★ (`open-⊕`: the popped world is `W₃ ⊕⁺ X⊑★ ^ 0`);
+-- lexically with αᴿ:=★ (`open-⊕`: the popped world is `W₃ ⊕⁺^ 0`);
 -- then ƛ⊑ƛ at X ⊑ X
 core₃ : W₃ ∣ [] ⊢ Λ idX ⊑ idX ⟪ Θ₀ , revX ⟫ ∶ ∀id⊑★
 core₃ =
@@ -351,7 +350,7 @@ core₃ =
 
 p3-inst : W₃ ∣ [] ⊢ L1 ⊑ R3′ ∶ ℕ⊑★
 p3-inst =
-  ·⊑· (ν⊑ (⊑cast core₃
+  ·⊑· (ν⊑ (⊑cast₀ core₃
                  (cast-ty (⊢fun (⊢id atom-★ wf-★) (⊢id atom-★ wf-★)) refl)
                  ∀id⊑★)
           ℕ⊑★ νL-ty (⇒⊑⇒ ℕ⊑★ ℕ⊑★))
@@ -411,10 +410,10 @@ p6-init-ν =
 Δ6ᵢ = ConvCtx₀ `𝔹
 
 W₆ : World Δ6 Δ6
-W₆ = world [] []↪ []↪ ((0 , 0) ∷ []) [] []
+W₆ = world⁰ 0 []↪ []↪ ((0 , 0) ∷ []) [] []
 
 Wᵢ₆ : World Δ6ᵢ Δ6ᵢ
-Wᵢ₆ = world (X⊑X ∷ []) (keep []↪) (keep []↪) ((0 , 0) ∷ []) [] []
+Wᵢ₆ = world⁰ 1 (keep []↪) (keep []↪) ((0 , 0) ∷ []) [] []
 
 int₆ : Δ6 ⊢ⁱ Θ₀ ⇒ Δ6ᵢ
 int₆ = interior (changes∷ changes[] (step-bind (_ , here) fresh[] ins-here))
@@ -425,19 +424,18 @@ Wᵢ₆-int = record
   ; int-right  = int₆
   ; same-ϱᵍ    = refl
   ; same-ϱˡ    = refl
+  ; same-κ     = refl
   ; join-cont  = λ { (_ , here) _ () _ ; (_ , there ()) _ _ _ }
   ; join-fresh = λ
       { here here _ → (λ _ → inj₁ here⇔) , (λ _ → refl)
       ; here (there ()) _
       ; (there ()) _ _
       }
-  ; mark-left  = λ { (_ , here) () _ ; (_ , there ()) _ _ }
-  ; mark-right = λ { (_ , here) () _ ; (_ , there ()) _ _ }
   }
 
 Wᵢ₆-wf : WfWorld Wᵢ₆
 Wᵢ₆-wf = wf-world (both (inj₁ here⇔) joint[]) agree
-  (namedᴸ-≤1 Wᵢ₆ ≤1-∷[]) (namedᴿ-≤1 Wᵢ₆ ≤1-∷[]) [] []
+  (namedᴸ-≤1 Wᵢ₆ ≤1-∷[]) (namedᴿ-≤1 Wᵢ₆ ≤1-∷[]) [] [] []
   where
   agree : ∀ {α β} → Paired Wᵢ₆ α β → Agree Wᵢ₆ α β
   agree (inj₁ here⇔) =
@@ -451,14 +449,13 @@ Wᵢ₆-conv = record
   ; conv-right      = conv₀
   ; conv-same-ϱᵍ    = refl
   ; conv-same-ϱˡ    = refl
+  ; conv-same-κ     = refl
   ; conv-join-cont  = λ { _ _ () _ }
   ; conv-join-fresh = λ
       { here here _ → (λ _ → inj₁ here⇔) , (λ _ → refl)
       ; here (there ()) _
       ; (there ()) _ _
       }
-  ; conv-mark-left  = λ { _ () _ }
-  ; conv-mark-right = λ { _ () _ }
   }
 
 body6L body6R : Term
@@ -505,7 +502,7 @@ p6-tybeta : W₆ ∣ [] ⊢ L6′ ⊑ R6′ ∶ ℕ⊑★
 p6-tybeta =
   ·⊑·
     (⟪⟫⊑⟪⟫ Wᵢ₆-int Wᵢ₆-wf
-      (⊑cast
+      (⊑cast₀
         (ƛ⊑ƛ {pA = X⊑X} {pB = ι⊑ι base-ℕ}
           tf tf (κ⊑κ lit-$ (ι⊑ι base-ℕ)))
         body6R-ty (⇒⊑⇒ X⊑X ℕ⊑★))

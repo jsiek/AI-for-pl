@@ -206,7 +206,7 @@ the binder, with no reference to the closing conversion.
   `Merge` (which concatenates two boundaries' entries and composes
   their conversions) and `exitEnv`?
 
-## 8. Invariants on rep. vars instead of names (Jeremy, 2026-10-05)
+## 7. Invariants on rep. vars instead of names (Jeremy, 2026-10-05)
 
 Rep. vars live longer than names.  A name exists between a boundary's
 `+X^α` and the `−X^α` (or the boundary's exit); `Merge` concatenates
@@ -282,7 +282,7 @@ Open:
 - How the permission interacts with D27 pushes (C4's push has no check
   above the tag, so C4 dies; does every corpus push have one?).
 
-## 7. Sources
+## 8. Sources
 
 `PendingOpenings.agda` (`Probes`), `SidedMarks.{agda,md}`,
 `ModeCondition.{agda,md}` (`Esc`), `HiddenNames.{agda,md}` (§2, §5),

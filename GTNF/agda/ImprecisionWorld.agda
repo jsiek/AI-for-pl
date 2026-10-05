@@ -15,12 +15,18 @@ module ImprecisionWorld where
 --     `ConversionInterior W Θ Θ′ Wᶜ`, both RELATIONS; §7 term-context
 --     imprecision `CtxImp`; §8 well-formedness `WfWorld`, a SEPARATE
 --     predicate, with payload imprecision `RepImp` (D23) and named
---     uniqueness `NamedUniqueᴸ`/`NamedUniqueᴿ` (D25); §9 the WORLDS OF
---     THE TERM RELATION `Worldπ` (design.md D27): a world plus its
---     PENDING right names `πʷ`, the opened index `_⊑ᵂπ⟨_⟩_` (at
---     `⌈ W ⌉`, no pending name, it is `_⊑ᵂ⟨_⟩_`), and `WfWorldπ`
---     (each pending name bound to a ★ rep. var, right-only, at X⊑★,
---     with no named left partner; the names distinct).
+--     uniqueness `NamedUniqueᴸ`/`NamedUniqueᴿ` (D25), and the
+--     conditions on pending names (`PendingOK`, design.md D27).
+--   * PENDING NAMES ARE A FIELD OF THE WORLD (design.md D27; Jeremy,
+--     2026-10-05).  `πʷ W` lists the PENDING right names (positions in
+--     `names Δ′`), next pop first: right-only names that a `⊑⟪⟫` pushed
+--     and that a left binder will join.  There is one world type and
+--     one index `_⊑ᵂ⟨_⟩_`, which opens one left `∀` per pending name
+--     (`OpenImp`); at `πʷ W = []` it is `μʷ W ⊢ embᴸ W A ⊑ embᴿ W A′`
+--     definitionally.  Everything that does not concern pending names
+--     reads only the other fields (`Paired`, `Joins`, `Interior`,
+--     `CtxImp`), so updating `πʷ` (`record W { πʷ = π }`) leaves them
+--     unchanged definitionally (record eta), with no transport.
 --   * ϱ IS ANY RELATION WHOSE PAIRS AGREE (design.md D25, revising
 --     D13's "a right rep. var has at most one left partner").  What
 --     the rejoin of `Interior` needs instead is NAMED UNIQUENESS: among
@@ -86,7 +92,7 @@ module ImprecisionWorld where
 --     D26 the term relation had a separate rule `∀⊑⟪+⟫` whose premise
 --     world was `W ⊕⁺ m ^ β`; D26 removed it in favour of the openings
 --     of `⊑⟪⟫` (`Open1`, here; `Opens`, TermImprecision); D27 replaced
---     `Opens` by pending names in the world (§9), popped by `Open1`.
+--     `Opens` by pending names in the world (`πʷ`), popped by `Open1`.
 --     - `ConversionInterior`, like `Interior`, does not require
 --       `WfWorld Wᶜ`.  A conversion context is the union of names live
 --       anywhere along a boundary, so continuation/freshness is stated
@@ -180,6 +186,7 @@ record World (Δ Δ′ : Ctxᵗ) : Set where
     ηᴿʷ : names Δ′ ↪ μʷ         -- the right names
     ϱᵍʷ : RepRel                -- global: store rep. vars (D16)
     ϱˡʷ : RepRel                -- lexical: Λ- and boundary-bound (D16)
+    πʷ  : List ℕ                -- pending right names, next pop first (D27)
 open World public
 
 -- ϱ = ϱᵍ ∪ ϱˡ
@@ -192,7 +199,7 @@ Joins W X X′ = emb (ηᴸʷ W) X ≡ emb (ηᴿʷ W) X′
 
 -- the closed world: no names, no rep. vars paired
 ∅ʷ : World empty empty
-∅ʷ = world [] []↪ []↪ [] []
+∅ʷ = world [] []↪ []↪ [] [] []
 
 ------------------------------------------------------------------------
 -- 4. Type imprecision at a world (GTSFImp `_⊑ᵂ⟨_⟩_`)
@@ -204,36 +211,63 @@ embᴸ W = renameᵗ (emb (ηᴸʷ W))
 embᴿ : World Δ Δ′ → Ty → Ty
 embᴿ W = renameᵗ (emb (ηᴿʷ W))
 
+-- one opened binder in front of a renaming: the bound variable 0 goes
+-- to the center name c
+infixr 5 _⊳_
+_⊳_ : ℕ → Renameᵗ → Renameᵗ
+(c ⊳ ρ) zero    = c
+(c ⊳ ρ) (suc X) = ρ X
+
+-- `OpenImp μ cs ρ A B`: A with its outer binders opened at the center
+-- names cs (outermost first), renamed by ρ, is below B.  A non-∀ type
+-- under a pending name has no index.
+OpenImp : ImpEnv → List ℕ → Renameᵗ → Ty → Ty → Set
+OpenImp μ []       ρ A        B = μ ⊢ renameᵗ ρ A ⊑ B
+OpenImp μ (c ∷ cs) ρ (`∀ A)   B = OpenImp μ cs (c ⊳ ρ) A B
+OpenImp μ (c ∷ cs) ρ (` X)    B = ⊥
+OpenImp μ (c ∷ cs) ρ `ℕ       B = ⊥
+OpenImp μ (c ∷ cs) ρ `𝔹       B = ⊥
+OpenImp μ (c ∷ cs) ρ ★        B = ⊥
+OpenImp μ (c ∷ cs) ρ (A ⇒ A′) B = ⊥
+
+-- THE INDEX of the term relation: the actual left type, opened at the
+-- center names of the pending names (design.md D27).  With no pending
+-- name (`πʷ W = []`) it is `μʷ W ⊢ embᴸ W A ⊑ embᴿ W A′`
+-- (definitionally).
 infix 4 _⊑ᵂ⟨_⟩_
 _⊑ᵂ⟨_⟩_ : Ty → World Δ Δ′ → Ty → Set
-A ⊑ᵂ⟨ W ⟩ A′ = μʷ W ⊢ embᴸ W A ⊑ embᴿ W A′
+A ⊑ᵂ⟨ W ⟩ A′ =
+  OpenImp (μʷ W) (map (emb (ηᴿʷ W)) (πʷ W)) (emb (ηᴸʷ W)) A (embᴿ W A′)
 
 ------------------------------------------------------------------------
 -- 5. World operations (design.md §12.2)
 ------------------------------------------------------------------------
 
+-- A new right name 0 moves every pending name one position up; a new
+-- left name, or an allocation, moves none.
+
 -- W ⊕ X:m — both sides bind X by a Λ: a new center name in both
 -- images with mark m, and the two abstract rep. vars paired lexically
 infixl 6 _⊕_ _⊕ᴿ_
 _⊕_ : World Δ Δ′ → VarImp → World (underΛ Δ) (underΛ Δ′)
-world μ η η′ ϱᵍ ϱˡ ⊕ m =
+world μ η η′ ϱᵍ ϱˡ π ⊕ m =
   world (m ∷ μ) (keep (relabel suc η)) (keep (relabel suc η′))
-        (shift² ϱᵍ) ((zero , zero) ∷ shift² ϱˡ)
+        (shift² ϱᵍ) ((zero , zero) ∷ shift² ϱˡ) (map suc π)
 
 -- W ⊕ᴸ X — the left side alone binds X: in η's image only, at X⊑★;
 -- its abstract rep. var is unpaired
 infixl 6 _⊕ᴸ
 _⊕ᴸ : World Δ Δ′ → World (underΛ Δ) Δ′
-world μ η η′ ϱᵍ ϱˡ ⊕ᴸ =
+world μ η η′ ϱᵍ ϱˡ π ⊕ᴸ =
   world (X⊑★ ∷ μ) (keep (relabel suc η)) (skip η′)
-        (shiftᴸ ϱᵍ) (shiftᴸ ϱˡ)
+        (shiftᴸ ϱᵍ) (shiftᴸ ϱˡ) π
 
 -- W ⊕ᴿ X — the right side alone binds X: in η′'s image only (used by
 -- no rule of §12.3; recorded for completeness)
 _⊕ᴿ_ : World Δ Δ′ → VarImp → World Δ (underΛ Δ′)
-world μ η η′ ϱᵍ ϱˡ ⊕ᴿ m =
+world μ η η′ ϱᵍ ϱˡ π ⊕ᴿ m =
   world (m ∷ μ) (skip η) (keep (relabel suc η′))
-        (shiftᴿ ϱᵍ) (shiftᴿ ϱˡ)
+        (shiftᴿ ϱᵍ) (shiftᴿ ϱˡ) (map suc π)
 
 -- the premise world of the pop of the pending name of `bind 0 β`
 -- (`open-⊕`, design.md D27; before D26, of `∀⊑⟪+⟫`): the left goes
@@ -243,16 +277,17 @@ world μ η η′ ϱᵍ ϱˡ ⊕ᴿ m =
 infixl 6 _⊕⁺_^_
 _⊕⁺_^_ : World Δ Δ′ → VarImp → (β : RVar)
   → World (underΛ Δ) (reps Δ′ ∣ (β ∷ names Δ′))
-world μ η η′ ϱᵍ ϱˡ ⊕⁺ m ^ β =
+world μ η η′ ϱᵍ ϱˡ π ⊕⁺ m ^ β =
   world (m ∷ μ) (keep (relabel suc η)) (keep η′)
-        (shiftᴸ ϱᵍ) ((zero , β) ∷ shiftᴸ ϱˡ)
+        (shiftᴸ ϱᵍ) ((zero , β) ∷ shiftᴸ ϱˡ) (map suc π)
 
 -- the interior world of `⊑⟪⟫` at a single right entry `bind 0 β`
 -- (`+X^β`): X is a right-only name with mark m (FixB's `_⊕ʳ_^_`)
 infixl 6 _⊕ʳ_^_
 _⊕ʳ_^_ : World Δ Δ′ → VarImp → (β : RVar)
   → World Δ (reps Δ′ ∣ (β ∷ names Δ′))
-world μ η η′ ϱᵍ ϱˡ ⊕ʳ m ^ β = world (m ∷ μ) (skip η) (keep η′) ϱᵍ ϱˡ
+world μ η η′ ϱᵍ ϱˡ π ⊕ʳ m ^ β =
+  world (m ∷ μ) (skip η) (keep η′) ϱᵍ ϱˡ (map suc π)
 
 -- POPS (design.md D27; D26's openings).  A left binder (`Λ⊑`, or the
 -- gen layer of `cast⊑`) may join the pending right-only name k that a
@@ -271,21 +306,22 @@ data Join↪ {η : TyCtx}
     → Join↪ ι ι′ ι⁺ k
     → Join↪ (skip {m = m} ι) (keep {α = β} ι′) (skip ι⁺) (suc k)
 
--- The pop of right name k, whose rep. var β is bound to ★; the left
--- abstract rep. var is paired with β LEXICALLY (D16).  `W ⊕⁺ m ^ β` is
--- the pop at k = 0 of `W ⊕ʳ m ^ β` (`open-⊕`).
-data Open1 {Δ Δ′ : Ctxᵗ}
-    : World Δ Δ′ → ℕ → World (underΛ Δ) Δ′ → Set where
-  open1 : ∀ {μ ϱᵍ ϱˡ k β} {ι : names Δ ↪ μ} {ι′ : names Δ′ ↪ μ}
+-- The pop of the head pending name k, whose rep. var β is bound to ★;
+-- the left abstract rep. var is paired with β LEXICALLY (D16).
+-- `W ⊕⁺ m ^ β` is the pop of name 0 of `W ⊕ʳ m ^ β` with 0 pushed
+-- (`open-⊕`).
+data Open1 {Δ Δ′ : Ctxᵗ} : World Δ Δ′ → World (underΛ Δ) Δ′ → Set where
+  open1 : ∀ {μ ϱᵍ ϱˡ k π β} {ι : names Δ ↪ μ} {ι′ : names Δ′ ↪ μ}
       {ι⁺ : names (underΛ Δ) ↪ μ}
     → Join↪ ι ι′ ι⁺ k
     → Δ′ ∋ᵗ k := β
     → Δ′ ∋rep β := ★
-    → Open1 (world μ ι ι′ ϱᵍ ϱˡ) k
-            (world μ ι⁺ ι′ (shiftᴸ ϱᵍ) ((zero , β) ∷ shiftᴸ ϱˡ))
+    → Open1 (world μ ι ι′ ϱᵍ ϱˡ (k ∷ π))
+            (world μ ι⁺ ι′ (shiftᴸ ϱᵍ) ((zero , β) ∷ shiftᴸ ϱˡ) π)
 
 open-⊕ : ∀ {W : World Δ Δ′} {m β}
-  → Δ′ ∋rep β := ★ → Open1 (W ⊕ʳ m ^ β) 0 (W ⊕⁺ m ^ β)
+  → Δ′ ∋rep β := ★
+  → Open1 (record (W ⊕ʳ m ^ β) { πʷ = 0 ∷ map suc (πʷ W) }) (W ⊕⁺ m ^ β)
 open-⊕ hβ = open1 join-here here hβ
 
 -- Renumbering on allocation (for the metatheory; no rule of §12.3
@@ -295,31 +331,31 @@ open-⊕ hβ = open1 join-here here hβ
 -- whose name a left binder popped adds (0, β) (design.md §12.2, D16,
 -- D27).
 allocᴸ : (R : Ty) → World Δ Δ′ → World (allocate R Δ) Δ′
-allocᴸ R (world μ η η′ ϱᵍ ϱˡ) =
-  world μ (relabel suc η) η′ (shiftᴸ ϱᵍ) (shiftᴸ ϱˡ)
+allocᴸ R (world μ η η′ ϱᵍ ϱˡ π) =
+  world μ (relabel suc η) η′ (shiftᴸ ϱᵍ) (shiftᴸ ϱˡ) π
 
 allocᴿ : (R′ : Ty) → World Δ Δ′ → World Δ (allocate R′ Δ′)
-allocᴿ R′ (world μ η η′ ϱᵍ ϱˡ) =
-  world μ η (relabel suc η′) (shiftᴿ ϱᵍ) (shiftᴿ ϱˡ)
+allocᴿ R′ (world μ η η′ ϱᵍ ϱˡ π) =
+  world μ η (relabel suc η′) (shiftᴿ ϱᵍ) (shiftᴿ ϱˡ) π
 
 alloc² : (R R′ : Ty) → World Δ Δ′
   → World (allocate R Δ) (allocate R′ Δ′)
-alloc² R R′ (world μ η η′ ϱᵍ ϱˡ) =
+alloc² R R′ (world μ η η′ ϱᵍ ϱˡ π) =
   world μ (relabel suc η) (relabel suc η′)
-        ((zero , zero) ∷ shift² ϱᵍ) (shift² ϱˡ)
+        ((zero , zero) ∷ shift² ϱᵍ) (shift² ϱˡ) π
 
 -- The two ν-bound rep. vars are in scope only while their conversions
 -- are compared.  Unlike `alloc²`, which records matched runtime
 -- allocations globally, this operation records (0, 0) lexically.
 underν² : (R R′ : Ty) → World Δ Δ′
   → World (allocate R Δ) (allocate R′ Δ′)
-underν² R R′ (world μ η η′ ϱᵍ ϱˡ) =
+underν² R R′ (world μ η η′ ϱᵍ ϱˡ π) =
   world μ (relabel suc η) (relabel suc η′)
-        (shift² ϱᵍ) ((zero , zero) ∷ shift² ϱˡ)
+        (shift² ϱᵍ) ((zero , zero) ∷ shift² ϱˡ) π
 
 allocᴸ⇔ : (R : Ty) (β : RVar) → World Δ Δ′ → World (allocate R Δ) Δ′
-allocᴸ⇔ R β (world μ η η′ ϱᵍ ϱˡ) =
-  world μ (relabel suc η) η′ ((zero , β) ∷ shiftᴸ ϱᵍ) (shiftᴸ ϱˡ)
+allocᴸ⇔ R β (world μ η η′ ϱᵍ ϱˡ π) =
+  world μ (relabel suc η) η′ ((zero , β) ∷ shiftᴸ ϱᵍ) (shiftᴸ ϱˡ) π
 
 ------------------------------------------------------------------------
 -- 6. The interior world W[δ ∥ δ′] (a relation; design.md §12.2)
@@ -404,32 +440,46 @@ open ConversionInterior public
 -- 7. Term-context imprecision (GTSFImp `CtxImp`)
 ------------------------------------------------------------------------
 
-record CtxImpEntry (W : World Δ Δ′) : Set where
+-- An entry reads only the center and the two embeddings (not ϱ, not
+-- the pending names): a variable is typed at the plain index, and
+-- `CtxImp (record W { πʷ = π })` IS `CtxImp W`.  Hence the entry type
+-- is parameterized by those three fields, not by the world.
+record CtxImpEntry {ns ns′ : TyCtx} (μ : ImpEnv) (ηᴸ : ns ↪ μ)
+    (ηᴿ : ns′ ↪ μ) : Set where
   constructor ctx-imp
   field
     tyᴸ  : Ty
     tyᴿ  : Ty
-    impʷ : tyᴸ ⊑ᵂ⟨ W ⟩ tyᴿ
+    impʷ : μ ⊢ renameᵗ (emb ηᴸ) tyᴸ ⊑ renameᵗ (emb ηᴿ) tyᴿ
 open CtxImpEntry public
 
+-- term-context imprecision at μ, ηᴸ, ηᴿ
+Entries : ∀ {ns ns′} (μ : ImpEnv) → ns ↪ μ → ns′ ↪ μ → Set
+Entries μ ηᴸ ηᴿ = List (CtxImpEntry μ ηᴸ ηᴿ)
+
 CtxImp : World Δ Δ′ → Set
-CtxImp W = List (CtxImpEntry W)
+CtxImp W = Entries (μʷ W) (ηᴸʷ W) (ηᴿʷ W)
 
 -- the two term contexts (Terms.Ctx = List Ty)
-lhs : {W : World Δ Δ′} → CtxImp W → List Ty
+lhs : ∀ {ns ns′ μ} {ηᴸ : ns ↪ μ} {ηᴿ : ns′ ↪ μ} → Entries μ ηᴸ ηᴿ → List Ty
 lhs = map tyᴸ
 
-rhs : {W : World Δ Δ′} → CtxImp W → List Ty
+rhs : ∀ {ns ns′ μ} {ηᴸ : ns ↪ μ} {ηᴿ : ns′ ↪ μ} → Entries μ ηᴸ ηᴿ → List Ty
 rhs = map tyᴿ
 
 infix 4 _∋ʷ_⦂_
-data _∋ʷ_⦂_ {W : World Δ Δ′} : CtxImp W → ℕ → CtxImpEntry W → Set where
+data _∋ʷ_⦂_ {ns ns′ μ} {ηᴸ : ns ↪ μ} {ηᴿ : ns′ ↪ μ}
+    : Entries μ ηᴸ ηᴿ → ℕ → CtxImpEntry μ ηᴸ ηᴿ → Set where
   Zʷ : ∀ {γ e} → (e ∷ γ) ∋ʷ zero ⦂ e
   Sʷ : ∀ {γ e e′ x} → γ ∋ʷ x ⦂ e → (e′ ∷ γ) ∋ʷ suc x ⦂ e
 
 -- `⇑γ` for `Λ⊑Λ`: both types shifted, the proof any at the new world
-data LiftCtx {W : World Δ Δ′} (m : VarImp)
-    : CtxImp W → CtxImp (W ⊕ m) → Set where
+-- (`CtxImp W → CtxImp (W ⊕ m)`)
+data LiftCtx {ns ns′ μ} {ηᴸ : ns ↪ μ} {ηᴿ : ns′ ↪ μ} (m : VarImp)
+    : Entries μ ηᴸ ηᴿ
+    → Entries (m ∷ μ) (keep {α = zero} (relabel suc ηᴸ))
+              (keep {α = zero} (relabel suc ηᴿ))
+    → Set where
   lift-[] : LiftCtx m [] []
   lift-∷  : ∀ {γ γ′ A A′ p p′} → LiftCtx m γ γ′
     → LiftCtx m (ctx-imp A A′ p ∷ γ) (ctx-imp (⇑ᵗ A) (⇑ᵗ A′) p′ ∷ γ′)
@@ -437,8 +487,9 @@ data LiftCtx {W : World Δ Δ′} (m : VarImp)
 -- `⇑ᴸγ` for `Λ⊑`: the right types cross unweakened.  The premise world
 -- is any world over `underΛ Δ` (`W ⊕ᴸ` for a fresh left-only binder, or
 -- the `Open1` of a pending name, design.md D27)
-data LiftCtxᴸ {W : World Δ Δ′} {W₁ : World (underΛ Δ) Δ′}
-    : CtxImp W → CtxImp W₁ → Set where
+data LiftCtxᴸ {ns ns′ ns₁ μ μ₁} {ηᴸ : ns ↪ μ} {ηᴿ : ns′ ↪ μ}
+    {ηᴸ₁ : ns₁ ↪ μ₁} {ηᴿ₁ : ns′ ↪ μ₁}
+    : Entries μ ηᴸ ηᴿ → Entries μ₁ ηᴸ₁ ηᴿ₁ → Set where
   liftᴸ-[] : LiftCtxᴸ [] []
   liftᴸ-∷  : ∀ {γ γ′ A A′ p p′} → LiftCtxᴸ γ γ′
     → LiftCtxᴸ (ctx-imp A A′ p ∷ γ) (ctx-imp (⇑ᵗ A) A′ p′ ∷ γ′)
@@ -529,9 +580,21 @@ NamedUniqueᴿ {Δ} {Δ′} W = ∀ {α β β′}
   → Paired W α β → Paired W α β′ → β ≡ β′
 
 -- β has no left partner that is named in Δ (D25's scoped analogue of
--- D13's `NoLeftPartner`; a pending name's rep. var, §9)
+-- D13's `NoLeftPartner`; a pending name's rep. var)
 NoNamedPartner : World Δ Δ′ → RVar → Set
 NoNamedPartner {Δ} W β = ∀ {α} → names Δ ∋ᵅ α → ¬ Paired W α β
+
+-- a right name no left name joins
+RightOnly : World Δ Δ′ → ℕ → Set
+RightOnly {Δ = Δ} W k = ∀ {X} → Δ ∋tv X → ¬ Joins W X k
+
+-- a pending name (design.md D27): bound to a ★ rep. var β, right-only,
+-- at X⊑★ (the mark `∀⊑` gives a left-only binder), and β has no left
+-- partner with a name (so the pop keeps named uniqueness, as `wf-⊕⁺`)
+PendingOK : World Δ Δ′ → ℕ → Set
+PendingOK {Δ′ = Δ′} W k =
+  Σ[ β ∈ RVar ] (Δ′ ∋ᵗ k := β) × (Δ′ ∋rep β := ★) × RightOnly W k
+    × (μʷ W ∋ˡ emb (ηᴿʷ W) k := X⊑★) × NoNamedPartner W β
 
 record WfWorld (W : World Δ Δ′) : Set where
   constructor wf-world
@@ -541,77 +604,7 @@ record WfWorld (W : World Δ Δ′) : Set where
     -- D25 (replaces D13's one-left-partner rule): named uniqueness
     wf-namedᴸ : NamedUniqueᴸ W
     wf-namedᴿ : NamedUniqueᴿ W
+    -- D27: the pending names are pending names, and distinct
+    wf-pending  : All (PendingOK W) (πʷ W)
+    wf-distinct : AllPairs _≢_ (πʷ W)
 open WfWorld public
-
-------------------------------------------------------------------------
--- 9. Worlds with pending names (design.md D27)
-------------------------------------------------------------------------
-
--- The world of the term relation: a world of §3 plus `πʷ`, the PENDING
--- right names (positions in `names Δ′`), the head being the name the
--- OUTERMOST left binder will join (the next pop).  `⊑⟪⟫` pushes them,
--- the left binder rules pop them (TermImprecision).  Everything else
--- (contexts `CtxImp`, `Interior`, `WfWorld`, the world operations,
--- evolution) reads the base world `wᵇ`.
-record Worldπ (Δ Δ′ : Ctxᵗ) : Set where
-  constructor wπ
-  field
-    wᵇ : World Δ Δ′   -- the base world
-    πʷ : List ℕ       -- pending right names, next pop first
-open Worldπ public
-
--- no pending name: every top-level world, and the conclusion world of
--- the structural rules
-⌈_⌉ : World Δ Δ′ → Worldπ Δ Δ′
-⌈ W ⌉ = wπ W []
-
--- one opened binder in front of a renaming: the bound variable 0 goes
--- to the center name c
-infixr 5 _⊳_
-_⊳_ : ℕ → Renameᵗ → Renameᵗ
-(c ⊳ ρ) zero    = c
-(c ⊳ ρ) (suc X) = ρ X
-
--- `OpenImp μ cs ρ A B`: A with its outer binders opened at the center
--- names cs (outermost first), renamed by ρ, is below B.  A non-∀ type
--- under a pending name has no index.
-OpenImp : ImpEnv → List ℕ → Renameᵗ → Ty → Ty → Set
-OpenImp μ []       ρ A        B = μ ⊢ renameᵗ ρ A ⊑ B
-OpenImp μ (c ∷ cs) ρ (`∀ A)   B = OpenImp μ cs (c ⊳ ρ) A B
-OpenImp μ (c ∷ cs) ρ (` X)    B = ⊥
-OpenImp μ (c ∷ cs) ρ `ℕ       B = ⊥
-OpenImp μ (c ∷ cs) ρ `𝔹       B = ⊥
-OpenImp μ (c ∷ cs) ρ ★        B = ⊥
-OpenImp μ (c ∷ cs) ρ (A ⇒ A′) B = ⊥
-
--- THE INDEX of the term relation: the actual left type, opened at the
--- pending names' center names.  At `⌈ W ⌉` it IS `A ⊑ᵂ⟨ W ⟩ A′`
--- (definitionally).
-infix 4 _⊑ᵂπ⟨_⟩_
-_⊑ᵂπ⟨_⟩_ : Ty → Worldπ Δ Δ′ → Ty → Set
-A ⊑ᵂπ⟨ W ⟩ A′ =
-  OpenImp (μʷ (wᵇ W)) (map (emb (ηᴿʷ (wᵇ W))) (πʷ W))
-          (emb (ηᴸʷ (wᵇ W))) A (embᴿ (wᵇ W) A′)
-
--- a right name no left name joins
-RightOnly : World Δ Δ′ → ℕ → Set
-RightOnly {Δ = Δ} W k = ∀ {X} → Δ ∋tv X → ¬ Joins W X k
-
--- a pending name: bound to a ★ rep. var β, right-only, at X⊑★ (the
--- mark `∀⊑` gives a left-only binder), and β has no left partner with a
--- name (so the pop keeps named uniqueness, as `wf-⊕⁺`)
-PendingOK : World Δ Δ′ → ℕ → Set
-PendingOK {Δ′ = Δ′} W k =
-  Σ[ β ∈ RVar ] (Δ′ ∋ᵗ k := β) × (Δ′ ∋rep β := ★) × RightOnly W k
-    × (μʷ W ∋ˡ emb (ηᴿʷ W) k := X⊑★) × NoNamedPartner W β
-
-record WfWorldπ (W : Worldπ Δ Δ′) : Set where
-  constructor wfπ
-  field
-    wfπ-base     : WfWorld (wᵇ W)
-    wfπ-pending  : All (PendingOK (wᵇ W)) (πʷ W)
-    wfπ-distinct : AllPairs _≢_ (πʷ W)
-open WfWorldπ public
-
-wfπ[] : ∀ {W : World Δ Δ′} → WfWorld W → WfWorldπ ⌈ W ⌉
-wfπ[] wf = wfπ wf [] []

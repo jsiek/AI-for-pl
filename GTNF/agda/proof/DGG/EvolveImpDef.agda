@@ -11,6 +11,7 @@ module proof.DGG.EvolveImpDef where
 open import Data.List using (List; []; _∷_)
 open import Data.Product using (Σ-syntax; ∃-syntax; _×_)
 open import Data.Sum using (_⊎_)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types using (Ty)
 open import Ctx using (Ctxᵗ; WfCtx; Alloc; apply)
@@ -18,7 +19,7 @@ open import Coercion using (Label)
 open import Terms using (Term; Value; blame; _∣_⊢_⦂_)
 open import Reduction using (_⊢_-→_∣_; _⊢_-→*_; _then_; runCtx)
 open import ImprecisionWorld
-  using (World; ⌈_⌉; WfWorld; _⊑ᵂ⟨_⟩_; CtxImp; lhs; rhs)
+  using (World; πʷ; WfWorld; _⊑ᵂ⟨_⟩_; CtxImp; lhs; rhs)
 open import TermImprecision using (_∣_⊢_⊑_∶_)
 open import proof.DGG.Evolve
   using (_⟿[_∣_]_; applyˢ; allocs; _++ʳ_; ↑ᴹ*[_])
@@ -29,7 +30,7 @@ EvolveImp = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {ξs ξs′ : List Allo
               {M M′ : Term} {A A′ : Ty} {p : A ⊑ᵂ⟨ W ⟩ A′}
   → WfCtx Δ → WfCtx Δ′
   → W ⟿[ ξs ∣ ξs′ ] W′
-  → WfWorld W
-  → ⌈ W ⌉ ∣ [] ⊢ M ⊑ M′ ∶ p
+  → WfWorld W → πʷ W ≡ []
+  → W ∣ [] ⊢ M ⊑ M′ ∶ p
   → WfWorld W′
-    × Σ[ q ∈ A ⊑ᵂ⟨ W′ ⟩ A′ ] (⌈ W′ ⌉ ∣ [] ⊢ ↑ᴹ*[ ξs ] M ⊑ ↑ᴹ*[ ξs′ ] M′ ∶ q)
+    × Σ[ q ∈ A ⊑ᵂ⟨ W′ ⟩ A′ ] (W′ ∣ [] ⊢ ↑ᴹ*[ ξs ] M ⊑ ↑ᴹ*[ ξs′ ] M′ ∶ q)

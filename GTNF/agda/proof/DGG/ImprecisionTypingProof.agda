@@ -30,34 +30,40 @@ private
   variable
     Δ Δ′ : Ctxᵗ
 
-∋ʷ-lhs : ∀ {W : World Δ Δ′} {γ : CtxImp W} {x A A′ p}
+∋ʷ-lhs : ∀ {ns ns′ μ} {ηᴸ : ns ↪ μ} {ηᴿ : ns′ ↪ μ}
+    {γ : Entries μ ηᴸ ηᴿ} {x A A′ p}
   → γ ∋ʷ x ⦂ ctx-imp A A′ p → lhs γ ∋ x ⦂ A
 ∋ʷ-lhs Zʷ     = here
 ∋ʷ-lhs (Sʷ x) = there (∋ʷ-lhs x)
 
-∋ʷ-rhs : ∀ {W : World Δ Δ′} {γ : CtxImp W} {x A A′ p}
+∋ʷ-rhs : ∀ {ns ns′ μ} {ηᴸ : ns ↪ μ} {ηᴿ : ns′ ↪ μ}
+    {γ : Entries μ ηᴸ ηᴿ} {x A A′ p}
   → γ ∋ʷ x ⦂ ctx-imp A A′ p → rhs γ ∋ x ⦂ A′
 ∋ʷ-rhs Zʷ     = here
 ∋ʷ-rhs (Sʷ x) = there (∋ʷ-rhs x)
 
-lift-lhs : ∀ {W : World Δ Δ′} {m} {γ : CtxImp W} {γ′ : CtxImp (W ⊕ m)}
+lift-lhs : ∀ {ns ns′ μ m} {ηᴸ : ns ↪ μ} {ηᴿ : ns′ ↪ μ}
+    {γ : Entries μ ηᴸ ηᴿ} {γ′}
   → LiftCtx m γ γ′ → lhs γ′ ≡ ⤊ (lhs γ)
 lift-lhs lift-[]    = refl
 lift-lhs (lift-∷ l) = cong (_ ∷_) (lift-lhs l)
 
-lift-rhs : ∀ {W : World Δ Δ′} {m} {γ : CtxImp W} {γ′ : CtxImp (W ⊕ m)}
+lift-rhs : ∀ {ns ns′ μ m} {ηᴸ : ns ↪ μ} {ηᴿ : ns′ ↪ μ}
+    {γ : Entries μ ηᴸ ηᴿ} {γ′}
   → LiftCtx m γ γ′ → rhs γ′ ≡ ⤊ (rhs γ)
 lift-rhs lift-[]    = refl
 lift-rhs (lift-∷ l) = cong (_ ∷_) (lift-rhs l)
 
-liftᴸ-lhs : ∀ {W : World Δ Δ′} {W₁ : World (underΛ Δ) Δ′}
-    {γ : CtxImp W} {γ′ : CtxImp W₁}
+liftᴸ-lhs : ∀ {ns ns′ ns₁ μ μ₁} {ηᴸ : ns ↪ μ} {ηᴿ : ns′ ↪ μ}
+    {ηᴸ₁ : ns₁ ↪ μ₁} {ηᴿ₁ : ns′ ↪ μ₁}
+    {γ : Entries μ ηᴸ ηᴿ} {γ′ : Entries μ₁ ηᴸ₁ ηᴿ₁}
   → LiftCtxᴸ γ γ′ → lhs γ′ ≡ ⤊ (lhs γ)
 liftᴸ-lhs liftᴸ-[]    = refl
 liftᴸ-lhs (liftᴸ-∷ l) = cong (_ ∷_) (liftᴸ-lhs l)
 
-liftᴸ-rhs : ∀ {W : World Δ Δ′} {W₁ : World (underΛ Δ) Δ′}
-    {γ : CtxImp W} {γ′ : CtxImp W₁}
+liftᴸ-rhs : ∀ {ns ns′ ns₁ μ μ₁} {ηᴸ : ns ↪ μ} {ηᴿ : ns′ ↪ μ}
+    {ηᴸ₁ : ns₁ ↪ μ₁} {ηᴿ₁ : ns′ ↪ μ₁}
+    {γ : Entries μ ηᴸ ηᴿ} {γ′ : Entries μ₁ ηᴸ₁ ηᴿ₁}
   → LiftCtxᴸ γ γ′ → rhs γ′ ≡ rhs γ
 liftᴸ-rhs liftᴸ-[]    = refl
 liftᴸ-rhs (liftᴸ-∷ l) = cong (_ ∷_) (liftᴸ-rhs l)

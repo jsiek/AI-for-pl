@@ -17,6 +17,7 @@ open import Data.List using (List; []; _∷_)
 open import Data.Product using (Σ-syntax)
 
 open import Types using (Ty)
+open import Imprecision using (_⊢_⊑_)
 open import Ctx using (Ctxᵗ)
 open import Terms using (Term; Value; Var)
 open import TermSubst using (Img; ivar; ival; substᵐ; _[_∶_]ᵐ)
@@ -30,12 +31,14 @@ private
 -- an image pair for one entry of γ, read in the target context γ₁:
 -- two variables with the entry's types in γ₁, or two related closed
 -- values (any index: the proof of the types is not fixed)
+-- (entries are read at the plain index, `CtxImpEntry`, design.md D27)
 data ImgImp {W : World Δ Δ′} (γ₁ : CtxImp W)
-    : Img → Img → CtxImpEntry W → Set where
-  ivar⊑ivar : ∀ {y A A′} {p q : A ⊑ᵂ⟨ W ⟩ A′}
+    : Img → Img → CtxImpEntry (μʷ W) (ηᴸʷ W) (ηᴿʷ W) → Set where
+  ivar⊑ivar : ∀ {y A A′} {p q : μʷ W ⊢ embᴸ W A ⊑ embᴿ W A′}
     → γ₁ ∋ʷ y ⦂ ctx-imp A A′ q
     → ImgImp γ₁ (ivar y) (ivar y) (ctx-imp A A′ p)
-  ival⊑ival : ∀ {V V′ A A′} {p q : A ⊑ᵂ⟨ W ⟩ A′}
+  ival⊑ival : ∀ {V V′ A A′} {p : μʷ W ⊢ embᴸ W A ⊑ embᴿ W A′}
+      {q : A ⊑ᵂ⟨ W ⟩ A′}
     → Value V → Value V′
     → W ∣ [] ⊢ V ⊑ V′ ∶ q
     → ImgImp γ₁ (ival V A) (ival V′ A′) (ctx-imp A A′ p)
@@ -43,7 +46,7 @@ data ImgImp {W : World Δ Δ′} (γ₁ : CtxImp W)
 SubstImp : Set
 SubstImp = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {γ γ₁ : CtxImp W}
     {σ σ′ : Var → Img} {N N′ : Term} {A A′ : Ty} {p : A ⊑ᵂ⟨ W ⟩ A′}
-  → (∀ {x e} → γ ∋ʷ x ⦂ e → ImgImp γ₁ (σ x) (σ′ x) e)
+  → (∀ {x e} → γ ∋ʷ x ⦂ e → ImgImp {W = W} γ₁ (σ x) (σ′ x) e)
   → W ∣ γ ⊢ N ⊑ N′ ∶ p
   → Σ[ q ∈ A ⊑ᵂ⟨ W ⟩ A′ ] (W ∣ γ₁ ⊢ substᵐ σ N ⊑ substᵐ σ′ N′ ∶ q)
 
@@ -51,7 +54,8 @@ SubstImp = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {γ γ₁ : CtxImp W}
 SubstImpBeta : Set
 SubstImpBeta = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′}
     {N N′ V V′ : Term} {A A′ B B′ : Ty}
-    {pA pV : A ⊑ᵂ⟨ W ⟩ A′} {pB : B ⊑ᵂ⟨ W ⟩ B′}
+    {pA : μʷ W ⊢ embᴸ W A ⊑ embᴿ W A′} {pV : A ⊑ᵂ⟨ W ⟩ A′}
+    {pB : B ⊑ᵂ⟨ W ⟩ B′}
   → W ∣ ctx-imp A A′ pA ∷ [] ⊢ N ⊑ N′ ∶ pB
   → Value V → Value V′
   → W ∣ [] ⊢ V ⊑ V′ ∶ pV

@@ -6,7 +6,10 @@ module ConversionImprecision where
 --     conversion contexts.  The mutually defined `MidImp`, `TailImp`
 --     and `ConvImp` follow Conversion's three-sort normal-form grammar.
 --   * CANDIDATE CLAUSES.  Identities compare their types through the
---     world; arrows compare both components in the same direction;
+--     world's center and embeddings (`μʷ W ⊢ embᴸ W A ⊑ embᴿ W A′`; no
+--     clause reads the pending names `πʷ`, design.md D27: they belong to
+--     the term relation); arrows compare both components in the same
+--     direction;
 --     two universals extend the world by a both-sided `X⊑X` binder;
 --     matched seals and unseals name one center name; chains compare
 --     componentwise.
@@ -30,7 +33,7 @@ open import Types using (Ty; ★)
 open import Conversion
   using (Mid; Tail; Conv; id; _↦_; `∀; mid; seal; _⨾seal_; tail;
          unseal; unseal_⨾_; ⌞_⌟)
-open import Imprecision using (X⊑X; X⊑★)
+open import Imprecision using (X⊑X; X⊑★; _⊢_⊑_)
 open import ImprecisionWorld
 
 private
@@ -47,7 +50,7 @@ infix 4 _⊢ᵐ_⊑_ _⊢ᵀ_⊑_ _⊢ᶜ_⊑_
 mutual
   data MidImp {Δ Δ′ : Ctxᵗ} (W : World Δ Δ′)
       : Mid → Mid → Set where
-    conv-id⊑id : A ⊑ᵂ⟨ W ⟩ A′
+    conv-id⊑id : μʷ W ⊢ embᴸ W A ⊑ embᴿ W A′
         --------------------------------
       → MidImp W (id A) (id A′)
 

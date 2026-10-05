@@ -9,8 +9,8 @@ in `drafts/Statements.agda` as text: nobody reviews them, and each is
 proved in its consumer.  LEFT is the more precise side.
 
 **D27 note (2026-10-05).**  design.md D27 replaced D26's `Opens` by
-pending names in the world (`ImprecisionWorld.Worldπ`; TermImprecision
-§2).  The statements below still mention `Opens` and are NOT yet
+pending names in the world (the field `πʷ` of `ImprecisionWorld.World`;
+TermImprecision §2).  The statements below still mention `Opens` and are NOT yet
 rewritten; that is the next review.  Per
 `notes/PendingOpenings.md` §6 the changes are:
 
@@ -32,7 +32,7 @@ rewritten; that is the next review.  Per
   the current relation (PendingOpenings.md §5d; independent of D27).
 
 Net: 26 → 28 MAJOR.  The top-level DGG statement is unchanged
-(top-level worlds `⌈ W ⌉` have no pending name).
+(top-level worlds have no pending name: `πʷ W ≡ []`).
 
 ## 0. Overview
 

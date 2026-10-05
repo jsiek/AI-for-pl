@@ -1333,8 +1333,13 @@ Each one can be revisited on its own.
   top-level worlds have none.  What changed: `InstX` is out of the
   relation (D26's openings related `inst_X V`, which is not a value),
   and under a pending name the left term stays a value.  Jeremy asked
-  whether the openings could be part of the world; they are
-  (`ImprecisionWorld.Worldπ`).  The counterexample K and every corpus
+  whether the openings could be part of the world; they are: `πʷ` is
+  a field of `ImprecisionWorld.World`, so there is one world type, one
+  index `_⊑ᵂ⟨_⟩_` (which opens the pending names, and is the plain
+  `μ ⊢ η(A) ⊑ η′(A′)` when there are none) and one `WfWorld` (§12.2).
+  A first encoding wrapped the world in a separate record with the
+  pending names beside it; Jeremy rejected it (two world types and
+  coercions between them grow proof complexity; 2026-10-05).  The counterexample K and every corpus
   block derive, K by push, pass and pop.  The alternative,
   ★-embedding the right's name, was refuted: it relates `(λx:ℕ. x) 5`
   to a right program that blames, a pair this relation leaves unrelated
@@ -1427,7 +1432,7 @@ right term typed in `Δ′`.  The two runs allocate independently, and a
 `World` (`proof/DGG/CtxImp.agda`), minus the stores:
 
 ```
-W = (Δ, Δ′, Ω, η, η′, μ, ϱ)
+W = (Δ, Δ′, Ω, η, η′, μ, ϱ, π)
 
   Ω              the center: a list of names
   η  : names(Δ)  ↪ Ω     order-preserving embeddings (GTSFImp ηᴸʷ, ηᴿʷ);
@@ -1440,11 +1445,27 @@ W = (Δ, Δ′, Ω, η, η′, μ, ϱ)
                          ϱˡ lexical, over rep. vars bound by an enclosing
                          Λ or ν.  (D13's one-partner rule was dropped
                          by D25.)
+  π              the pending right names (D27), next pop first: right
+                 name positions that a ⊑⟪⟫ pushed and a left binder will
+                 join; [] at every top-level world
 
-  A ⊑_W A′   iff   μ ⊢ η(A) ⊑ η′(A′)               (GTSFImp _⊑ᵂ⟨_⟩_)
+  A ⊑_W A′   iff   μ ⊢ η(A) ⊑ η′(A′)     when π = []  (GTSFImp _⊑ᵂ⟨_⟩_)
+             and in general A, with one outer ∀ opened at the center
+             name of each pending name, against A′
 ```
 
-Well-formedness has three parts:
+In Agda (`ImprecisionWorld`) `π` is the field `πʷ` of `World`, and the
+index `_⊑ᵂ⟨_⟩_` reads it (`OpenImp`).  Everything that is not about
+pending names reads only the other fields: `Paired`, `Joins`,
+`Interior`, and the term-context imprecision `CtxImp`, whose entries
+hold the plain `μ ⊢ η(A) ⊑ η′(A′)` and are parameterized by `Ω`, `η`,
+`η′` only.  So `W` with its pending names replaced (`record W { πʷ = π
+}`) has the same `CtxImp`, definitionally.  The structural rules are
+stated at a world in constructor form with `π = []`, where the index
+computes to the plain one; the theorems are stated at `W` with
+`πʷ W ≡ []`, and an evolution keeps `π` (an allocation moves no name).
+
+Well-formedness has four parts:
 
 - **Names name paired rep. vars.**  If a center name `X` is `X:=α` on the
   left and `X:=β` on the right, then `(α, β) ∈ ϱ`.
@@ -1457,6 +1478,9 @@ Well-formedness has three parts:
   `β:=★`, or `α:=R`, `β:=R′`, and `R ⊑ᴿ_W R′`: the payloads are
   compared in the representation universe, free rep. vars through `ϱ`
   (D23).
+- **Pending names are pending** (D27).  Each name of `π` is bound to a
+  `★` rep. var `β`, is right-only and at `X⊑★`, and `β` has no left
+  partner named in scope; the names of `π` are distinct.
 
 **Names are related lexically; rep. vars lexically and globally**
 (D12, D16).  The relation between type variables (`Ω`, `η`, `η′`, `μ`)

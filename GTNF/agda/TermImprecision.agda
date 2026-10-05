@@ -2,9 +2,9 @@ module TermImprecision where
 
 -- File Charter:
 --   * CAST-TERM IMPRECISION `W ∣ γ ⊢ M ⊑ M′ ∶ p` (GTNF/design.md §12.3,
---     with D11-D16 and D27), over the worlds `Worldπ` of
+--     with D11-D16 and D27), over the worlds `World` of
 --     ImprecisionWorld.  M is the MORE precise (left) term, typed on
---     `Δ`; M′ the right one, typed on `Δ′`; `p : A ⊑ᵂπ⟨ W ⟩ A′` relates
+--     `Δ`; M′ the right one, typed on `Δ′`; `p : A ⊑ᵂ⟨ W ⟩ A′` relates
 --     their types (GTSFImp's index shape, `_∣_⊢²_⊑_∶_`).  §1 the
 --     side-premise bundles `Lit`, `CastTy`, `NuTy`, `BdyTy` (each is
 --     exactly the premises of the corresponding typing rule of Terms,
@@ -19,11 +19,11 @@ module TermImprecision where
 --     GTNF has no binary operators yet, and minus `∀⊑⟪+⟫`, removed by
 --     design.md D26.
 --   * PENDING NAMES IN THE WORLD (design.md D27; Jeremy, 2026-10-05;
---     replaces D26's `Opens`).  The relation is indexed by a
---     `Worldπ` (ImprecisionWorld §9): a world plus its pending right
---     names `πʷ`, next pop first.  The index `A ⊑ᵂπ⟨ W ⟩ A′` reads the
---     ACTUAL left type A and opens one `∀` per pending name; at
---     `⌈ W ⌉` (no pending name) it is `A ⊑ᵂ⟨ W ⟩ A′`.  Four rules
+--     replaces D26's `Opens`).  The pending right names are the field
+--     `πʷ` of the world (ImprecisionWorld §3), next pop first.  The
+--     index `A ⊑ᵂ⟨ W ⟩ A′` reads the ACTUAL left type A and opens one
+--     `∀` per pending name; at `πʷ W = []` it is the plain
+--     `μʷ W ⊢ embᴸ W A ⊑ embᴿ W A′`.  Four rules
 --     handle pending names (§2): `⊑⟪⟫` PUSHES right-only names that
 --     its boundary introduces (`Push`; the left must be a value) and
 --     carries the older ones through its boundary; `Λ⊑` POPS the head
@@ -31,9 +31,13 @@ module TermImprecision where
 --     `Open1`); `cast⊑` passes them through a `∀ᵖ` cast or pops the
 --     last one at a `genᵖ` cast (`CastClaim`); `⟪⟫⊑` passes them into a
 --     ∀-boundary (`BdyClaim`).  `⊑cast` carries them; every other rule
---     is stated at `⌈ W ⌉`.  No `InstX` in the relation, and the left
---     term stays a value under a pending name.  Type imprecision is
---     unchanged.  Checked first as a local copy:
+--     is stated at a world in constructor form with `πʷ = []`.  The side
+--     relations read only the `πʷ` of their worlds (`Push Θ′ M (πʷ W)
+--     (πʷ Wᵢ)`); `cast⊑`'s premise world is `record W { πʷ = πₚ }`, at
+--     which `CtxImp` (center and embeddings only) is `CtxImp W`, so its
+--     γ is reused with no transport.  No `InstX` in the relation, and
+--     the left term stays a value under a pending name.  Type
+--     imprecision is unchanged.  Checked first as a local copy:
 --     proof/DGG/notes/PendingOpenings.{agda,md}.
 --   * HISTORY.  Before D26 a separate rule `∀⊑⟪+⟫` (D14, with D22's side
 --     conditions) related a left ∀-value V to the right boundary
@@ -219,10 +223,11 @@ cast-inv (⊢cast ⊢M ⊢p len) = _ , ⊢M , cast-ty ⊢p len
 -- of the head pending name k (`Open1`, ImprecisionWorld §5: the left
 -- binder joins the right name k; its abstract rep. var is paired
 -- lexically with k's β:=★)
-data Claim : Worldπ Δ Δ′ → Worldπ (underΛ Δ) Δ′ → Set where
-  claim-fresh : ∀ {W : World Δ Δ′} → Claim ⌈ W ⌉ ⌈ W ⊕ᴸ ⌉
-  claim-pop   : ∀ {W : World Δ Δ′} {W₁ : World (underΛ Δ) Δ′} {k π}
-    → Open1 W k W₁ → Claim (wπ W (k ∷ π)) (wπ W₁ π)
+data Claim : World Δ Δ′ → World (underΛ Δ) Δ′ → Set where
+  claim-fresh : ∀ {Ω ϱᵍ ϱˡ} {ηᴸ : names Δ ↪ Ω} {ηᴿ : names Δ′ ↪ Ω}
+    → let W = world {Δ} {Δ′} Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in Claim W (W ⊕ᴸ)
+  claim-pop   : ∀ {W : World Δ Δ′} {W₁ : World (underΛ Δ) Δ′}
+    → Open1 W W₁ → Claim W W₁
 
 -- `cast⊑`'s pending names (conclusion π, premise πₚ): none; or a `∀ᵖ`
 -- layer passes them to the cast value (as InstX's `inst-∀`); or a
@@ -245,15 +250,15 @@ data ForallConv : Conv → List ℕ → Set where
   fc-[] : ∀ {c} → ForallConv c []
   fc-∷  : ∀ {s k π} → ForallConv s π → ForallConv ⌞ `∀ s ⌟ (k ∷ π)
 
--- `⟪⟫⊑`'s pending names pass into the left boundary unchanged (they are
--- RIGHT name positions, and the right does not move) when the boundary
--- is a ∀-value (as InstX's `inst-⟪⟫`)
-data BdyClaim (M : Term) (c : Conv) : List ℕ → Set where
-  bc-plain : BdyClaim M c []
+-- `⟪⟫⊑`'s pending names (conclusion, interior) pass into the left
+-- boundary unchanged (they are RIGHT name positions, and the right
+-- does not move) when the boundary is a ∀-value (as InstX's `inst-⟪⟫`)
+data BdyClaim (M : Term) (c : Conv) : List ℕ → List ℕ → Set where
+  bc-plain : BdyClaim M c [] []
   bc-∀     : ∀ {k π}
     → Simple M
     → ForallConv c (k ∷ π)
-    → BdyClaim M c (k ∷ π)
+    → BdyClaim M c (k ∷ π) (k ∷ π)
 
 -- a pending name continues through Θ′ (k′ is its interior position)
 data Carried (Θ′ : Boundary) : List ℕ → List ℕ → Set where
@@ -263,10 +268,10 @@ data Carried (Θ′ : Boundary) : List ℕ → List ℕ → Set where
     → Carried Θ′ π π′
     → Carried Θ′ (k ∷ π) (k′ ∷ π′)
 
--- THE PUSH of `⊑⟪⟫`: the carried names, then new names that Θ′
--- introduces (`Fresh`); pushing needs a left value.  What a pending
--- name is (bound to a ★ rep. var, right-only, X⊑★) is `WfWorldπ` of the
--- interior world (ImprecisionWorld §9).
+-- THE PUSH of `⊑⟪⟫` (conclusion π, interior): the carried names, then
+-- new names that Θ′ introduces (`Fresh`); pushing needs a left value.
+-- What a pending name is (bound to a ★ rep. var, right-only, X⊑★) is
+-- `WfWorld` of the interior world (ImprecisionWorld §8).
 data Push (Θ′ : Boundary) (M : Term) (π : List ℕ) : List ℕ → Set where
   push : ∀ {π′ new}
     → Carried Θ′ π π′
@@ -276,108 +281,116 @@ data Push (Θ′ : Boundary) (M : Term) (π : List ℕ) : List ℕ → Set where
 
 infix 3 _∣_⊢_⊑_∶_
 
--- The relation is INDEXED by the world (not parameterized): the
--- structural rules are stated at `⌈ W ⌉` (no pending name), where the
--- index `_⊑ᵂπ⟨_⟩_` is `_⊑ᵂ⟨_⟩_`.
+-- The relation is INDEXED by the world (not parameterized).  The
+-- structural rules are stated at a world in constructor form with no
+-- pending name, `world Ω ηᴸ ηᴿ ϱᵍ ϱˡ []` (Ω the center, ImprecisionWorld
+-- §3), where the index `_⊑ᵂ⟨_⟩_` computes to the plain `Ω ⊢ … ⊑ …`;
+-- the rules for pending names relate the `πʷ` of their worlds by
+-- `Claim`, `CastClaim`, `BdyClaim`, `Push`.
 data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ}
-    : (W : Worldπ Δ Δ′) → CtxImp (wᵇ W) → Term → Term
-    → {A A′ : Ty} → A ⊑ᵂπ⟨ W ⟩ A′ → Set where
+    : (W : World Δ Δ′) → CtxImp W → Term → Term
+    → {A A′ : Ty} → A ⊑ᵂ⟨ W ⟩ A′ → Set where
 
   ----------------------------------------------------------------------
   -- Congruence (GTSFImp x⊑x², κ⊑κ², ƛ⊑ƛ², ·⊑·²)
 
-  x⊑x : ∀ {W : World Δ Δ′} {γ x A A′} {p : A ⊑ᵂ⟨ W ⟩ A′}
+  x⊑x : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+      ∀ {γ x A A′} {p : A ⊑ᵂ⟨ W ⟩ A′}
     → γ ∋ʷ x ⦂ ctx-imp A A′ p
       --------------------------------
-    → ⌈ W ⌉ ∣ γ ⊢ ` x ⊑ ` x ∶ p
+    → W ∣ γ ⊢ ` x ⊑ ` x ∶ p
 
-  κ⊑κ : ∀ {W : World Δ Δ′} {γ k ι}
+  κ⊑κ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+      ∀ {γ k ι}
     → Lit k ι
     → (p : ι ⊑ᵂ⟨ W ⟩ ι)
       --------------------------------
-    → ⌈ W ⌉ ∣ γ ⊢ k ⊑ k ∶ p
+    → W ∣ γ ⊢ k ⊑ k ∶ p
 
-  ƛ⊑ƛ : ∀ {W : World Δ Δ′} {γ N N′ A A′ B B′}
-      {pA : A ⊑ᵂ⟨ W ⟩ A′} {pB : B ⊑ᵂ⟨ W ⟩ B′}
+  ƛ⊑ƛ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+      ∀ {γ N N′ A A′ B B′} {pA : A ⊑ᵂ⟨ W ⟩ A′} {pB : B ⊑ᵂ⟨ W ⟩ B′}
     → Δ ⊢ᵗ A
     → Δ′ ⊢ᵗ A′
-    → ⌈ W ⌉ ∣ ctx-imp A A′ pA ∷ γ ⊢ N ⊑ N′ ∶ pB
+    → W ∣ ctx-imp A A′ pA ∷ γ ⊢ N ⊑ N′ ∶ pB
       ---------------------------------------------
-    → ⌈ W ⌉ ∣ γ ⊢ ƛ A ∙ N ⊑ ƛ A′ ∙ N′ ∶ ⇒⊑⇒ pA pB
+    → W ∣ γ ⊢ ƛ A ∙ N ⊑ ƛ A′ ∙ N′ ∶ ⇒⊑⇒ pA pB
 
-  ·⊑· : ∀ {W : World Δ Δ′} {γ L L′ M M′ A A′ B B′}
-      {pA : A ⊑ᵂ⟨ W ⟩ A′} {pB : B ⊑ᵂ⟨ W ⟩ B′}
-    → ⌈ W ⌉ ∣ γ ⊢ L ⊑ L′ ∶ ⇒⊑⇒ pA pB
-    → ⌈ W ⌉ ∣ γ ⊢ M ⊑ M′ ∶ pA
+  ·⊑· : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+      ∀ {γ L L′ M M′ A A′ B B′} {pA : A ⊑ᵂ⟨ W ⟩ A′} {pB : B ⊑ᵂ⟨ W ⟩ B′}
+    → W ∣ γ ⊢ L ⊑ L′ ∶ ⇒⊑⇒ pA pB
+    → W ∣ γ ⊢ M ⊑ M′ ∶ pA
       ---------------------------------------------
-    → ⌈ W ⌉ ∣ γ ⊢ L · M ⊑ L′ · M′ ∶ pB
+    → W ∣ γ ⊢ L · M ⊑ L′ · M′ ∶ pB
 
   ----------------------------------------------------------------------
   -- Blame (GTSFImp blame⊑²); no pending name (under one the left is a
   -- value)
 
-  blame⊑ : ∀ {W : World Δ Δ′} {γ ℓ M′ A A′}
+  blame⊑ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+      ∀ {γ ℓ M′ A A′}
     → Δ ⊢ᵗ A
     → Δ′ ∣ rhs γ ⊢ M′ ⦂ A′
     → (p : A ⊑ᵂ⟨ W ⟩ A′)
       ---------------------------------------------
-    → ⌈ W ⌉ ∣ γ ⊢ blame ℓ ⊑ M′ ∶ p
+    → W ∣ γ ⊢ blame ℓ ⊑ M′ ∶ p
 
   ----------------------------------------------------------------------
   -- Casts (GTSFImp cast⊑cast², cast⊑², ⊑cast²)
 
-  cast⊑cast : ∀ {W : World Δ Δ′} {γ M M′ μ μ′ c c′ B B′ A A′}
-      {p : B ⊑ᵂ⟨ W ⟩ B′}
-    → ⌈ W ⌉ ∣ γ ⊢ M ⊑ M′ ∶ p
+  cast⊑cast : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+      ∀ {γ M M′ μ μ′ c c′ B B′ A A′} {p : B ⊑ᵂ⟨ W ⟩ B′}
+    → W ∣ γ ⊢ M ⊑ M′ ∶ p
     → CastTy Δ μ c B A
     → CastTy Δ′ μ′ c′ B′ A′
     → (q : A ⊑ᵂ⟨ W ⟩ A′)
       ---------------------------------------------
-    → ⌈ W ⌉ ∣ γ ⊢ M ⟨ μ ∣ c ⟩ ⊑ M′ ⟨ μ′ ∣ c′ ⟩ ∶ q
+    → W ∣ γ ⊢ M ⟨ μ ∣ c ⟩ ⊑ M′ ⟨ μ′ ∣ c′ ⟩ ∶ q
 
   -- D27: plain, a ∀ᵖ layer passes the pending names, or a gen layer
-  -- pops the last one (`CastClaim`)
-  cast⊑ : ∀ {W : World Δ Δ′} {π πₚ γ M M′ μ c B A A′}
-      {p : B ⊑ᵂπ⟨ wπ W πₚ ⟩ A′}
-    → CastClaim M c π πₚ
-    → wπ W πₚ ∣ γ ⊢ M ⊑ M′ ∶ p
+  -- pops the last one (`CastClaim`); the premise world is W with the
+  -- premise's pending names
+  cast⊑ : ∀ {W : World Δ Δ′} {πₚ γ M M′ μ c B A A′}
+      {p : B ⊑ᵂ⟨ record W { πʷ = πₚ } ⟩ A′}
+    → CastClaim M c (πʷ W) πₚ
+    → record W { πʷ = πₚ } ∣ γ ⊢ M ⊑ M′ ∶ p
     → CastTy Δ μ c B A
-    → (q : A ⊑ᵂπ⟨ wπ W π ⟩ A′)
+    → (q : A ⊑ᵂ⟨ W ⟩ A′)
       ---------------------------------------------
-    → wπ W π ∣ γ ⊢ M ⟨ μ ∣ c ⟩ ⊑ M′ ∶ q
+    → W ∣ γ ⊢ M ⟨ μ ∣ c ⟩ ⊑ M′ ∶ q
 
   -- carries the pending names (the right cast does not touch the left)
-  ⊑cast : ∀ {W : Worldπ Δ Δ′} {γ M M′ μ′ c′ A B′ A′}
-      {p : A ⊑ᵂπ⟨ W ⟩ B′}
+  ⊑cast : ∀ {W : World Δ Δ′} {γ M M′ μ′ c′ A B′ A′}
+      {p : A ⊑ᵂ⟨ W ⟩ B′}
     → W ∣ γ ⊢ M ⊑ M′ ∶ p
     → CastTy Δ′ μ′ c′ B′ A′
-    → (q : A ⊑ᵂπ⟨ W ⟩ A′)
+    → (q : A ⊑ᵂ⟨ W ⟩ A′)
       ---------------------------------------------
     → W ∣ γ ⊢ M ⊑ M′ ⟨ μ′ ∣ c′ ⟩ ∶ q
 
   ----------------------------------------------------------------------
   -- Type abstraction (GTSFImp Λ⊑Λ², Λ⊑²)
 
-  Λ⊑Λ : ∀ {W : World Δ Δ′} {γ γ′ V V′ A A′} {r : A ⊑ᵂ⟨ W ⊕ X⊑X ⟩ A′}
+  Λ⊑Λ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+      ∀ {γ γ′ V V′ A A′} {r : A ⊑ᵂ⟨ W ⊕ X⊑X ⟩ A′}
     → LiftCtx X⊑X γ γ′
     → Value V
     → Value V′
-    → ⌈ W ⊕ X⊑X ⌉ ∣ γ′ ⊢ V ⊑ V′ ∶ r
+    → W ⊕ X⊑X ∣ γ′ ⊢ V ⊑ V′ ∶ r
     → (q : `∀ A ⊑ᵂ⟨ W ⟩ `∀ A′)
       ---------------------------------------------
-    → ⌈ W ⌉ ∣ γ ⊢ Λ V ⊑ Λ V′ ∶ q
+    → W ∣ γ ⊢ Λ V ⊑ Λ V′ ∶ q
 
   -- the right term crosses the left binder unweakened; D27: the binder
   -- is fresh and left-only, or it POPS the head pending name (`Claim`)
-  Λ⊑ : ∀ {W : Worldπ Δ Δ′} {W₁ : Worldπ (underΛ Δ) Δ′}
-      {γ γ′ V M′ A B′} {r : A ⊑ᵂπ⟨ W₁ ⟩ B′}
+  Λ⊑ : ∀ {W : World Δ Δ′} {W₁ : World (underΛ Δ) Δ′}
+      {γ γ′ V M′ A B′} {r : A ⊑ᵂ⟨ W₁ ⟩ B′}
     → Claim W W₁
     → NonVar A
     → 0 ∈ᵗ A
     → LiftCtxᴸ γ γ′
     → Value V
     → W₁ ∣ γ′ ⊢ V ⊑ M′ ∶ r
-    → (q : `∀ A ⊑ᵂπ⟨ W ⟩ B′)
+    → (q : `∀ A ⊑ᵂ⟨ W ⟩ B′)
       ---------------------------------------------
     → W ∣ γ ⊢ Λ V ⊑ M′ ∶ q
 
@@ -387,74 +400,77 @@ data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ}
   ----------------------------------------------------------------------
   -- Instantiation (GTSFImp •⊑•², •⊑²); there is no ⊑ν
 
-  ν⊑ν : ∀ {W : World Δ Δ′} {γ L L′ A A′ C C′ c c′ B B′}
-      {r : `∀ C ⊑ᵂ⟨ W ⟩ `∀ C′}
-    → ⌈ W ⌉ ∣ γ ⊢ L ⊑ L′ ∶ r
+  ν⊑ν : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+      ∀ {γ L L′ A A′ C C′ c c′ B B′} {r : `∀ C ⊑ᵂ⟨ W ⟩ `∀ C′}
+    → W ∣ γ ⊢ L ⊑ L′ ∶ r
     → A ⊑ᵂ⟨ W ⟩ A′
     → (n : NuTy Δ A C c B)
     → (n′ : NuTy Δ′ A′ C′ c′ B′)
     → NuConversionImp W n n′
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       ---------------------------------------------
-    → ⌈ W ⌉ ∣ γ ⊢ ν A · L ⟨ c ⟩ ⊑ ν A′ · L′ ⟨ c′ ⟩ ∶ q
+    → W ∣ γ ⊢ ν A · L ⟨ c ⟩ ⊑ ν A′ · L′ ⟨ c′ ⟩ ∶ q
 
-  ν⊑ : ∀ {W : World Δ Δ′} {γ L M′ A C c B B′} {r : `∀ C ⊑ᵂ⟨ W ⟩ B′}
-    → ⌈ W ⌉ ∣ γ ⊢ L ⊑ M′ ∶ r
+  ν⊑ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+      ∀ {γ L M′ A C c B B′} {r : `∀ C ⊑ᵂ⟨ W ⟩ B′}
+    → W ∣ γ ⊢ L ⊑ M′ ∶ r
     → A ⊑ᵂ⟨ W ⟩ ★
     → NuTy Δ A C c B
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       ---------------------------------------------
-    → ⌈ W ⌉ ∣ γ ⊢ ν A · L ⟨ c ⟩ ⊑ M′ ∶ q
+    → W ∣ γ ⊢ ν A · L ⟨ c ⟩ ⊑ M′ ∶ q
 
   ----------------------------------------------------------------------
   -- Boundaries (these replace GTSFImp's reveal/conceal rules).  The
   -- interior is term-closed, so each premise has γ = [].  The interior
   -- world must be well formed (design.md §12.2, D15; Jeremy,
-  -- 2026-10-03): `WfWorld Wᵢ` is a premise (for the one-sided rules
-  -- `WfWorldπ`, with the interior's pending names, D27).
+  -- 2026-10-03): `WfWorld Wᵢ` is a premise (with the conditions on the
+  -- interior's pending names, D27).
 
-  ⟪⟫⊑⟪⟫ : ∀ {W : World Δ Δ′} {Δᵢ Δ′ᵢ} {Wᵢ : World Δᵢ Δ′ᵢ}
-      {γ M M′ Θ Θ′ c c′ Aᵢ A′ᵢ A A′} {r : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩ A′ᵢ}
+  ⟪⟫⊑⟪⟫ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ [] in
+      ∀ {Δᵢ Δ′ᵢ Ωᵢ ηᴸᵢ ηᴿᵢ ϱᵍᵢ ϱˡᵢ}
+    → let Wᵢ = world {Δᵢ} {Δ′ᵢ} Ωᵢ ηᴸᵢ ηᴿᵢ ϱᵍᵢ ϱˡᵢ [] in
+      ∀ {γ M M′ Θ Θ′ c c′ Aᵢ A′ᵢ A A′} {r : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩ A′ᵢ}
     → Interior W Θ Θ′ Wᵢ
     → WfWorld Wᵢ
-    → ⌈ Wᵢ ⌉ ∣ [] ⊢ M ⊑ M′ ∶ r
+    → Wᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
     → (b : BdyTy Δ Θ Δᵢ Aᵢ c A)
     → (b′ : BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′)
     → BdyConversionImp W b b′
     → (q : A ⊑ᵂ⟨ W ⟩ A′)
       ---------------------------------------------
-    → ⌈ W ⌉ ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ⟪ Θ′ , c′ ⟫ ∶ q
+    → W ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ⟪ Θ′ , c′ ⟫ ∶ q
 
   -- D27: the pending names pass into a ∀-boundary (`BdyClaim`)
   ⟪⟫⊑ : ∀ {W : World Δ Δ′} {Δᵢ} {Wᵢ : World Δᵢ Δ′}
-      {π γ M M′ Θ c Aᵢ A A′} {r : Aᵢ ⊑ᵂπ⟨ wπ Wᵢ π ⟩ A′}
+      {γ M M′ Θ c Aᵢ A A′} {r : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩ A′}
     → Interior W Θ [] Wᵢ
-    → BdyClaim M c π
-    → WfWorldπ (wπ Wᵢ π)
-    → wπ Wᵢ π ∣ [] ⊢ M ⊑ M′ ∶ r
+    → BdyClaim M c (πʷ W) (πʷ Wᵢ)
+    → WfWorld Wᵢ
+    → Wᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
     → BdyTy Δ Θ Δᵢ Aᵢ c A
-    → (q : A ⊑ᵂπ⟨ wπ W π ⟩ A′)
+    → (q : A ⊑ᵂ⟨ W ⟩ A′)
       ---------------------------------------------
-    → wπ W π ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ∶ q
+    → W ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ∶ q
 
   -- D27: carry the pending names through Θ′ and push new ones (`Push`)
   ⊑⟪⟫ : ∀ {W : World Δ Δ′} {Δ′ᵢ} {Wᵢ : World Δ Δ′ᵢ}
-      {π πᵢ γ M M′ Θ′ c′ A A′ᵢ A′} {r : A ⊑ᵂπ⟨ wπ Wᵢ πᵢ ⟩ A′ᵢ}
+      {γ M M′ Θ′ c′ A A′ᵢ A′} {r : A ⊑ᵂ⟨ Wᵢ ⟩ A′ᵢ}
     → Interior W [] Θ′ Wᵢ
-    → Push Θ′ M π πᵢ
-    → WfWorldπ (wπ Wᵢ πᵢ)
-    → wπ Wᵢ πᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
+    → Push Θ′ M (πʷ W) (πʷ Wᵢ)
+    → WfWorld Wᵢ
+    → Wᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
     → BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′
-    → (q : A ⊑ᵂπ⟨ wπ W π ⟩ A′)
+    → (q : A ⊑ᵂ⟨ W ⟩ A′)
       ---------------------------------------------
-    → wπ W π ∣ γ ⊢ M ⊑ M′ ⟪ Θ′ , c′ ⟫ ∶ q
+    → W ∣ γ ⊢ M ⊑ M′ ⟪ Θ′ , c′ ⟫ ∶ q
 
--- The relation with its two types explicit.  `_⊑ᵂπ⟨_⟩_` (OpenImp)
+-- The relation with its two types explicit.  `_⊑ᵂ⟨_⟩_` (OpenImp)
 -- cannot be inverted when the pending names are not known, so a
 -- statement over pending names gives A and A′ this way.
 infix 3 _∣_⊢_⊑_∶⟨_,_⟩_
-_∣_⊢_⊑_∶⟨_,_⟩_ : ∀ {Δ Δ′} (W : Worldπ Δ Δ′) → CtxImp (wᵇ W) → Term → Term
-  → (A A′ : Ty) → A ⊑ᵂπ⟨ W ⟩ A′ → Set
+_∣_⊢_⊑_∶⟨_,_⟩_ : ∀ {Δ Δ′} (W : World Δ Δ′) → CtxImp W → Term → Term
+  → (A A′ : Ty) → A ⊑ᵂ⟨ W ⟩ A′ → Set
 W ∣ γ ⊢ M ⊑ M′ ∶⟨ A , A′ ⟩ p = _∣_⊢_⊑_∶_ W γ M M′ {A} {A′} p
 
 -- the push of nothing: the plain right-only boundary rule

@@ -9,7 +9,9 @@ module proof.DGG.EvolveLemmas where
 --     (`castʳ`), which keeps its allocations and end context.
 --   * LISTS OF ALLOCATIONS: `applyˢ (xs ++ ys) Δ ≡ applyˢ ys (applyˢ xs Δ)`.
 --   * EVOLUTION: `⟿-trans`, composition of two evolutions; the final
---     world is moved along `applyˢ-++` by `castʷ`.
+--     world is moved along `applyˢ-++` by `castʷ`.  `⟿-πʷ`: evolution
+--     keeps the pending names (design.md D27; an allocation moves no
+--     name).
 --   * PACKAGES: `Evolved W xs ys A A′ M M′` is the common conclusion of
 --     Sim, Sim*, SimBack, SimBack*, CatchupRight and CatchupLeft (a world
 --     W′ evolved from W, well formed, relating M and M′), written out
@@ -30,7 +32,7 @@ open import Types using (Ty)
 open import Ctx using (Ctxᵗ; Alloc; apply)
 open import Terms using (Term)
 open import Reduction using (_⊢_-→*_; done; _then_; runCtx)
-open import ImprecisionWorld using (World; ⌈_⌉; WfWorld; _⊑ᵂ⟨_⟩_)
+open import ImprecisionWorld using (World; πʷ; WfWorld; _⊑ᵂ⟨_⟩_)
 open import TermImprecision using (_∣_⊢_⊑_∶_)
 open import proof.DGG.Evolve
 
@@ -126,6 +128,17 @@ castʷ refl refl W = W
 ⟿-trans (ev-noneᴸ ev₁)   ev₂ = ev-noneᴸ (⟿-trans ev₁ ev₂)
 ⟿-trans (ev-noneᴿ ev₁)   ev₂ = ev-noneᴿ (⟿-trans ev₁ ev₂)
 
+-- an evolution keeps the pending names
+⟿-πʷ : ∀ {W : World Δ Δ′} {W′ : World (applyˢ xs Δ) (applyˢ xs′ Δ′)}
+  → W ⟿[ xs ∣ xs′ ] W′ → πʷ W′ ≡ πʷ W
+⟿-πʷ ev-done              = refl
+⟿-πʷ (ev-L wR ev)         = ⟿-πʷ ev
+⟿-πʷ (ev-R wR ev)         = ⟿-πʷ ev
+⟿-πʷ (ev-2 wR wR′ ag ev)  = ⟿-πʷ ev
+⟿-πʷ (ev-L⇔ wR rβ ag ev)  = ⟿-πʷ ev
+⟿-πʷ (ev-noneᴸ ev)        = ⟿-πʷ ev
+⟿-πʷ (ev-noneᴿ ev)        = ⟿-πʷ ev
+
 ------------------------------------------------------------------------
 -- Packages
 ------------------------------------------------------------------------
@@ -136,31 +149,34 @@ Evolved : World Δ Δ′ → List Alloc → List Alloc
 Evolved {Δ} {Δ′} W xs ys A A′ M M′ =
   Σ[ W′ ∈ World (applyˢ xs Δ) (applyˢ ys Δ′) ]
     (W ⟿[ xs ∣ ys ] W′) × WfWorld W′
-    × Σ[ q ∈ A ⊑ᵂ⟨ W′ ⟩ A′ ] (⌈ W′ ⌉ ∣ [] ⊢ M ⊑ M′ ∶ q)
+    × Σ[ q ∈ A ⊑ᵂ⟨ W′ ⟩ A′ ] (W′ ∣ [] ⊢ M ⊑ M′ ∶ q)
 
--- the package without the evolution, at given contexts
+-- the package without the evolution, at given contexts, with no
+-- pending name
 Related : Ctxᵗ → Ctxᵗ → Ty → Ty → Term → Term → Set
 Related Δ Δ′ A A′ V V′ =
-  Σ[ W ∈ World Δ Δ′ ] WfWorld W
-    × Σ[ q ∈ A ⊑ᵂ⟨ W ⟩ A′ ] (⌈ W ⌉ ∣ [] ⊢ V ⊑ V′ ∶ q)
+  Σ[ W ∈ World Δ Δ′ ] WfWorld W × πʷ W ≡ []
+    × Σ[ q ∈ A ⊑ᵂ⟨ W ⟩ A′ ] (W ∣ [] ⊢ V ⊑ V′ ∶ q)
 
 related-cast : ∀ {A A′ V V′} → Γ ≡ Γ′ → Δ ≡ Δ′
   → Related Γ Δ A A′ V V′ → Related Γ′ Δ′ A A′ V V′
 related-cast refl refl R = R
 
--- forget the evolution
+-- forget the evolution (from a world with no pending name)
 evolved→related : ∀ {W : World Δ Δ′} {A A′ V V′}
+  → πʷ W ≡ []
   → Evolved W xs ys A A′ V V′
   → Related (applyˢ xs Δ) (applyˢ ys Δ′) A A′ V V′
-evolved→related (W′ , ev , wf , q , d) = W′ , wf , q , d
+evolved→related e (W′ , ev , wf , q , d) =
+  W′ , wf , trans (⟿-πʷ ev) e , q , d
 
 private
   related-castʷ : ∀ {A A′ V V′} (e : Γ ≡ Γ′) (e′ : Δ ≡ Δ′)
     (W : World Γ Δ) → WfWorld W
-    → (q : A ⊑ᵂ⟨ W ⟩ A′) → ⌈ W ⌉ ∣ [] ⊢ V ⊑ V′ ∶ q
+    → (q : A ⊑ᵂ⟨ W ⟩ A′) → W ∣ [] ⊢ V ⊑ V′ ∶ q
     → WfWorld (castʷ e e′ W)
       × Σ[ q′ ∈ A ⊑ᵂ⟨ castʷ e e′ W ⟩ A′ ]
-          (⌈ castʷ e e′ W ⌉ ∣ [] ⊢ V ⊑ V′ ∶ q′)
+          (castʷ e e′ W ∣ [] ⊢ V ⊑ V′ ∶ q′)
   related-castʷ refl refl W wf q d = wf , q , d
 
 -- an evolution followed by a package

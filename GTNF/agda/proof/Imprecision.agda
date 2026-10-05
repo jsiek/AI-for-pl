@@ -4,7 +4,8 @@ module proof.Imprecision where
 --   * UNIQUENESS OF TYPE-IMPRECISION DERIVATIONS, ported from
 --     GTSFImp/proof/Imprecision.agda (`⊑-unique`).
 --   * MAIN RESULTS, UNCONDITIONAL: `⊑-unique` and `⊑ᵂ-unique`, any
---     two derivations of `μ ⊢ A ⊑ B` (resp. `A ⊑ᵂ⟨ W ⟩ A′`) are equal.
+--     two derivations of `μ ⊢ A ⊑ B` (resp. `A ⊑ᵂ⟨ W ⟩ A′`, also under
+--     pending names, `openImp-unique`) are equal.
 --   * OCCURRENCE PROOFS ARE UNIQUE (`∈ᵗ-unique`, design.md D24):
 --     `∈-⇒ʳ` carries `occurs X A ≡ false` (GTSFImp's `∈-fun-right`
 --     carries `X ∉ᵗ A`), so it is disjoint from `∈-⇒ˡ`, whose premise
@@ -26,7 +27,7 @@ module proof.Imprecision where
 
 open import Data.Bool using (Bool; true; false)
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_)
 open import Relation.Nullary using (¬_)
@@ -41,7 +42,8 @@ open import Coercion
          _∈ᵗ_; ∈-var; ∈-⇒ˡ; ∈-⇒ʳ; ∈-∀)
 open import proof.Occurs using (∈→occurs; ∈-⇒ʳ′)
 open import Imprecision
-open import ImprecisionWorld using (World; _⊑ᵂ⟨_⟩_)
+open import ImprecisionWorld
+  using (World; _⊑ᵂ⟨_⟩_; OpenImp; _⊳_; emb; μʷ; ηᴸʷ; ηᴿʷ; πʷ)
 
 private
   variable
@@ -355,10 +357,22 @@ module Unique (∈ᵗ-irr₀ : ∀ {A} (i j : 0 ∈ᵗ A) → i ≡ j) where
     ⊥-elim (occurs-not-star here ∈-var q)
   ⊑-unique bot⊑★ bot⊑★ = refl
 
+  -- the index under pending names (design.md D27) opens binders and
+  -- is otherwise `_⊢_⊑_`
+  openImp-unique : ∀ cs ρ A {B} → (p q : OpenImp μ cs ρ A B) → p ≡ q
+  openImp-unique []       ρ A      p q = ⊑-unique p q
+  openImp-unique (c ∷ cs) ρ (`∀ A) p q = openImp-unique cs (c ⊳ ρ) A p q
+  openImp-unique (c ∷ cs) ρ (` X)  () q
+  openImp-unique (c ∷ cs) ρ `ℕ     () q
+  openImp-unique (c ∷ cs) ρ `𝔹     () q
+  openImp-unique (c ∷ cs) ρ ★      () q
+  openImp-unique (c ∷ cs) ρ (A ⇒ B) () q
+
   ⊑ᵂ-unique : ∀ {Δ Δ′} {W : World Δ Δ′} {A A′ : Ty}
     → (p q : A ⊑ᵂ⟨ W ⟩ A′)
     → p ≡ q
-  ⊑ᵂ-unique p q = ⊑-unique p q
+  ⊑ᵂ-unique {W = W} {A = A} p q =
+    openImp-unique (map (emb (ηᴿʷ W)) (πʷ W)) (emb (ηᴸʷ W)) A p q
 
 ------------------------------------------------------------------------
 -- Uniqueness, unconditionally

@@ -68,8 +68,9 @@ open WorldRen public
 
 -- two term-context imprecisions with the same types (the proofs are
 -- at different worlds)
-data SameTys {W : World Δ Δ′} {W₁ : World Δ₁ Δ′₁}
-    : CtxImp W → CtxImp W₁ → Set where
+data SameTys {ns ns′ ns₁ ns′₁ μ μ₁} {ηᴸ : ns ↪ μ} {ηᴿ : ns′ ↪ μ}
+    {ηᴸ₁ : ns₁ ↪ μ₁} {ηᴿ₁ : ns′₁ ↪ μ₁}
+    : Entries μ ηᴸ ηᴿ → Entries μ₁ ηᴸ₁ ηᴿ₁ → Set where
   same-[] : SameTys [] []
   same-∷  : ∀ {γ γ₁ A A′ p p₁} → SameTys γ γ₁
     → SameTys (ctx-imp A A′ p ∷ γ) (ctx-imp A A′ p₁ ∷ γ₁)

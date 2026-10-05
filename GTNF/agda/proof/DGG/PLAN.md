@@ -8,11 +8,14 @@ Jeremy before its proof starts.
 The live status of every item is in `DASHBOARD.md` (generated, §6).
 
 **D27 note (2026-10-05).**  design.md D27 replaced D26's `Opens` (the
-openings of `⊑⟪⟫`) by pending names in the world: the term relation is
-indexed by `Worldπ` (ImprecisionWorld §9), `⊑⟪⟫` pushes, `Λ⊑` and a
-gen `cast⊑` pop.  The statements of §2-§3 are unchanged at worlds
-`⌈ W ⌉` with no pending name; `ImprecisionTyping` is stated at any
-`Worldπ`.  The lemma changes (CatchupRightπ, PopInstX, PushInstR,
+openings of `⊑⟪⟫`) by pending names in the world: `πʷ` is a field of
+`World` (ImprecisionWorld §3; one world type, one index `_⊑ᵂ⟨_⟩_`, one
+`WfWorld`), `⊑⟪⟫` pushes, `Λ⊑` and a gen `cast⊑` pop.  The statements
+of §2-§3 are unchanged at worlds with no pending name: each takes
+`πʷ W ≡ []` next to `WfWorld W` (an evolution keeps `πʷ`,
+EvolveLemmas `⟿-πʷ`, so the result worlds have none either, and the
+DGG's `RelatedValues` says so); `ImprecisionTyping` is stated at any
+world.  The lemma changes (CatchupRightπ, PopInstX, PushInstR,
 RightMergePending, …) are listed in `STATEMENTS-CORE.md`'s D27 note and
 `notes/PendingOpenings.md` §6; where this plan says "opening", read
 "push and pop".

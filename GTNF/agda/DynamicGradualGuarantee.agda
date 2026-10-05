@@ -10,7 +10,8 @@ module DynamicGradualGuarantee where
 --   * TYPES DO NOT CHANGE ALONG A RUN: GTNF's types are name-indexed and
 --     an allocation renames only rep. vars, so the final values are
 --     related at the original types `A ⊑ A′`, at some well-formed world
---     over the two runs' final contexts (`runCtx`).
+--     over the two runs' final contexts (`runCtx`) with no pending name
+--     (`πʷ W ≡ []`, design.md D27; `∅ʷ` has none).
 --   * STATEMENT ONLY.  The proof is proof/DGG/DynamicGradualGuarantee*;
 --     when it is finished, this module gains the thin wrapper
 --     `dgg : DGG`.  Deferred: the source-level guarantee, a corollary
@@ -27,7 +28,7 @@ open import Ctx using (empty)
 open import Coercion using (Label)
 open import Terms using (Term; Value; blame)
 open import Reduction using (_⊢_-→_∣_; _⊢_-→*_; runCtx)
-open import ImprecisionWorld using (World; ⌈_⌉; ∅ʷ; WfWorld; _⊑ᵂ⟨_⟩_)
+open import ImprecisionWorld using (World; πʷ; ∅ʷ; WfWorld; _⊑ᵂ⟨_⟩_)
 open import TermImprecision using (_∣_⊢_⊑_∶_)
 
 ------------------------------------------------------------------------
@@ -49,12 +50,12 @@ DivergeOrBlame M =
   → (∃[ ℓ ] (N ≡ blame ℓ)) ⊎ (∃[ N′ ] ∃[ ξ ] (runCtx r ⊢ N -→ N′ ∣ ξ))
 
 -- two final values related at the original types, at some well-formed
--- world over the two runs' final contexts
+-- world over the two runs' final contexts, with no pending name
 RelatedValues : ∀ {M M′ V V′} (A A′ : Ty)
   → empty ⊢ M -→* V → empty ⊢ M′ -→* V′ → Set
 RelatedValues {V = V} {V′} A A′ r r′ =
-  Σ[ W ∈ World (runCtx r) (runCtx r′) ] WfWorld W
-    × Σ[ q ∈ A ⊑ᵂ⟨ W ⟩ A′ ] (⌈ W ⌉ ∣ [] ⊢ V ⊑ V′ ∶ q)
+  Σ[ W ∈ World (runCtx r) (runCtx r′) ] WfWorld W × πʷ W ≡ []
+    × Σ[ q ∈ A ⊑ᵂ⟨ W ⟩ A′ ] (W ∣ [] ⊢ V ⊑ V′ ∶ q)
 
 ------------------------------------------------------------------------
 -- The theorem
@@ -62,7 +63,7 @@ RelatedValues {V = V} {V′} A A′ r r′ =
 
 DGG : Set
 DGG = ∀ {M M′ A A′} {p : A ⊑ᵂ⟨ ∅ʷ ⟩ A′}
-  → ⌈ ∅ʷ ⌉ ∣ [] ⊢ M ⊑ M′ ∶ p
+  → ∅ʷ ∣ [] ⊢ M ⊑ M′ ∶ p
     -- 1. if the more precise side reaches a value, the less precise
     --    side reaches a related value
   → (∀ {V} (r : empty ⊢ M -→* V) → Value V

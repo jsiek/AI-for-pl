@@ -21,13 +21,15 @@ module proof.ImprecisionWorld where
 --     catch-up (proof/DGG/notes/D25.md, L3c/R3c).
 
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.List using (List; []; _∷_; length)
+open import Data.List using (List; []; _∷_; length; map)
+open import Data.List.Relation.Unary.All using (All; [])
+open import Data.List.Relation.Unary.AllPairs using (AllPairs; [])
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.Product using (∃-syntax; _×_; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; trans; cong; subst)
+  using (_≡_; _≢_; refl; sym; trans; cong; subst)
 
 open import Types
 open import Ctx
@@ -214,10 +216,20 @@ module _ {W : World Δ Δ′} {m : VarImp} {β : RVar} where
   joint-⊕⁺ (left-only j)    = left-only (joint-⊕⁺ j)
   joint-⊕⁺ (right-only j)   = right-only (joint-⊕⁺ j)
 
-  wf-⊕⁺ : WfWorld W → Δ′ ∋rep β := ★ → NoNamedPartner W β → WfWorld W⁺
-  wf-⊕⁺ wf hβ nn = wf-world (both (inj₂ here⇔) (joint-⊕⁺ (wf-joint wf)))
-                            agree namedᴸ namedᴿ
+  -- at a world with no pending name (design.md D27; the pending names
+  -- of W ⊕⁺ m ^ β are W's, moved one position up)
+  wf-⊕⁺ : WfWorld W → Δ′ ∋rep β := ★ → NoNamedPartner W β
+    → πʷ W ≡ [] → WfWorld W⁺
+  wf-⊕⁺ wf hβ nn e = wf-world (both (inj₂ here⇔) (joint-⊕⁺ (wf-joint wf)))
+                              agree namedᴸ namedᴿ (no-pending e)
+                              (no-pending≢ e)
     where
+    no-pending : ∀ {P : ℕ → Set} {π} → π ≡ [] → All P (map suc π)
+    no-pending refl = []
+
+    no-pending≢ : ∀ {π} → π ≡ [] → AllPairs _≢_ (map suc π)
+    no-pending≢ refl = []
+
     agree : ∀ {a b} → Paired W⁺ a b → Agree W⁺ a b
     agree x with paired-⊕⁺⁻ x
     agree x | inj₁ (refl , refl)     = abst-★ r-here hβ

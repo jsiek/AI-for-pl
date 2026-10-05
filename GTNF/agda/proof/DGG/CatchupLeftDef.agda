@@ -10,6 +10,7 @@ module proof.DGG.CatchupLeftDef where
 open import Data.List using (List; []; _∷_)
 open import Data.Product using (Σ-syntax; ∃-syntax; _×_)
 open import Data.Sum using (_⊎_)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types using (Ty)
 open import Ctx using (Ctxᵗ; WfCtx; Alloc; apply)
@@ -17,7 +18,7 @@ open import Coercion using (Label)
 open import Terms using (Term; Value; blame; _∣_⊢_⦂_)
 open import Reduction using (_⊢_-→_∣_; _⊢_-→*_; _then_; runCtx)
 open import ImprecisionWorld
-  using (World; ⌈_⌉; WfWorld; _⊑ᵂ⟨_⟩_; CtxImp; lhs; rhs)
+  using (World; πʷ; WfWorld; _⊑ᵂ⟨_⟩_; CtxImp; lhs; rhs)
 open import TermImprecision using (_∣_⊢_⊑_∶_)
 open import proof.DGG.Evolve
   using (_⟿[_∣_]_; applyˢ; allocs; _++ʳ_; ↑ᴹ*[_])
@@ -25,11 +26,11 @@ open import proof.DGG.Evolve
 CatchupLeft : Set
 CatchupLeft = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {M V′ : Term} {A A′ : Ty}
                 {p : A ⊑ᵂ⟨ W ⟩ A′}
-  → WfCtx Δ → WfCtx Δ′ → WfWorld W
+  → WfCtx Δ → WfCtx Δ′ → WfWorld W → πʷ W ≡ []
   → Value V′
-  → ⌈ W ⌉ ∣ [] ⊢ M ⊑ V′ ∶ p
+  → W ∣ [] ⊢ M ⊑ V′ ∶ p
   → (∃[ V ] Σ[ r ∈ Δ ⊢ M -→* V ] Value V
        × Σ[ W′ ∈ World (applyˢ (allocs r) Δ) Δ′ ]
          (W ⟿[ allocs r ∣ [] ] W′) × WfWorld W′
-         × Σ[ q ∈ A ⊑ᵂ⟨ W′ ⟩ A′ ] (⌈ W′ ⌉ ∣ [] ⊢ V ⊑ V′ ∶ q))
+         × Σ[ q ∈ A ⊑ᵂ⟨ W′ ⟩ A′ ] (W′ ∣ [] ⊢ V ⊑ V′ ∶ q))
     ⊎ (∃[ ℓ ] (Δ ⊢ M -→* blame ℓ))

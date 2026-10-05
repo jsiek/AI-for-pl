@@ -31,7 +31,7 @@ module examples.ImpLadder where
 --       `─ (carry Y^β)` for ⊑⟪⟫, `─ (pass Y^β)` for ⟪⟫⊑ and a ∀ᵖ
 --       cast⊑, `─ (pop Y^β)` for Λ⊑ and a genᵖ cast⊑.  The ηᴸA and ⊑
 --       columns read the left type OPENED at the pending names (one ∀
---       stripped per name, `_⊑ᵂπ⟨_⟩_`).  A pop's premise world is
+--       stripped per name, `_⊑ᵂ⟨_⟩_`).  A pop's premise world is
 --       `Open1 Wn: pop Y^β`.
 --   * NAMES (unlike GTSFImp's positional supplies).  Each side's names
 --     are read off the context the node is typed in (Show.ctxEnv:
@@ -186,18 +186,6 @@ showReps Δ =
   "[" ++ joinC (reverse (showRepEntries zero (Env.eReps (ctxEnv Δ))
                                              (reps Δ))) ++ "]"
 
--- the two lines after `Wn = …`
-worldSnapshot : ∀ {Δ Δ′} → World Δ Δ′ → String
-worldSnapshot {Δ} {Δ′} W =
-  "  ⟨" ++ joinBar (map (showCEntry ls) es) ++ "⟩\n" ++
-  "  ϱᵍ = " ++ showRepRel eL eR (ϱᵍʷ W) ++
-  "  ϱˡ = " ++ showRepRel eL eR (ϱˡʷ W) ++
-  "  Ξᴸ = " ++ showReps Δ ++ "  Ξᴿ = " ++ showReps Δ′
-  where
-  es = worldEntries W
-  ls = leftCenters es
-  eL = ctxEnv Δ
-  eR = ctxEnv Δ′
 
 -- a right name position k of Δ′ as `Y^β`
 sideName : Ctxᵗ → ℕ → String
@@ -211,12 +199,22 @@ sideName Δ′ k = nth (sideNames Δ′) k
 sideNameList : Ctxᵗ → List ℕ → String
 sideNameList Δ′ ks = joinC (map (sideName Δ′) ks)
 
--- a world with pending names (design.md D27): the base world's two
--- lines, and `πʷ = [Y^β, …]` (next pop first) when there is one
-worldSnapshotπ : ∀ {Δ Δ′} → Worldπ Δ Δ′ → String
-worldSnapshotπ {Δ′ = Δ′} (wπ W [])         = worldSnapshot W
-worldSnapshotπ {Δ′ = Δ′} (wπ W ks@(_ ∷ _)) =
-  worldSnapshot W ++ "  πʷ = [" ++ sideNameList Δ′ ks ++ "]"
+-- the two lines after `Wn = …`, and `πʷ = [Y^β, …]` (next pop first)
+-- when the world has pending names (design.md D27)
+worldSnapshot : ∀ {Δ Δ′} → World Δ Δ′ → String
+worldSnapshot {Δ} {Δ′} W =
+  "  ⟨" ++ joinBar (map (showCEntry ls) es) ++ "⟩\n" ++
+  "  ϱᵍ = " ++ showRepRel eL eR (ϱᵍʷ W) ++
+  "  ϱˡ = " ++ showRepRel eL eR (ϱˡʷ W) ++
+  "  Ξᴸ = " ++ showReps Δ ++ "  Ξᴿ = " ++ showReps Δ′ ++ pending (πʷ W)
+  where
+  es = worldEntries W
+  ls = leftCenters es
+  eL = ctxEnv Δ
+  eR = ctxEnv Δ′
+  pending : List ℕ → String
+  pending []          = ""
+  pending ks@(_ ∷ _)  = "  πʷ = [" ++ sideNameList Δ′ ks ++ "]"
 
 ------------------------------------------------------------------------
 -- 2. Type-imprecision evidence, on the center's names
@@ -258,7 +256,7 @@ mutual
   impP ns p@bot-elim    = showImp ns p
   impP ns p@bot⊑★       = showImp ns p
 
--- the opened left type and the evidence of an index `_⊑ᵂπ⟨_⟩_`
+-- the opened left type and the evidence of an index `_⊑ᵂ⟨_⟩_`
 -- (OpenImp): one `∀` stripped per pending name
 openTy : List ℕ → Renameᵗ → Ty → Ty
 openTy []       ρ A      = renameᵗ ρ A
@@ -371,26 +369,26 @@ pushRow : Row → Acc → Acc
 pushRow r (acc rs ws nw) = acc (r ∷ rs) ws nw
 
 -- a new world: its entry is `Wn = prov` and its snapshot
-pushWorld : ∀ {Δ Δ′} → String → Worldπ Δ Δ′ → Acc → Acc
+pushWorld : ∀ {Δ Δ′} → String → World Δ Δ′ → Acc → Acc
 pushWorld prov W (acc rs ws nw) =
-  acc rs ((label nw ++ " = " ++ prov ++ "\n" ++ worldSnapshotπ W) ∷ ws)
+  acc rs ((label nw ++ " = " ++ prov ++ "\n" ++ worldSnapshot W) ∷ ws)
     (suc nw)
 
 -- the type columns of a node at world W (the left type opened at the
 -- pending names, design.md D27)
-typeCols : ∀ {Δ Δ′} (W : Worldπ Δ Δ′) (A A′ : Ty)
-  → A ⊑ᵂπ⟨ W ⟩ A′ → List String
-typeCols {Δ} {Δ′} (wπ W π) A A′ p =
+typeCols : ∀ {Δ Δ′} (W : World Δ Δ′) (A A′ : Ty)
+  → A ⊑ᵂ⟨ W ⟩ A′ → List String
+typeCols {Δ} {Δ′} W A A′ p =
   showTy (onames (ctxEnv Δ)) A ∷ showTy cn (openTy cs (emb (ηᴸʷ W)) A) ∷
   openEv cn cs (emb (ηᴸʷ W)) A p ∷ showTy cn (embᴿ W A′) ∷
   showTy (onames (ctxEnv Δ′)) A′ ∷ []
   where
   cn = centerNames W
-  cs = map (emb (ηᴿʷ W)) π
+  cs = map (emb (ηᴿʷ W)) (πʷ W)
 
 -- the row of a derivation node
-nodeRow : ∀ {Δ Δ′} {W : Worldπ Δ Δ′} {γ : CtxImp (wᵇ W)} {M M′ A A′}
-    {p : A ⊑ᵂπ⟨ W ⟩ A′}
+nodeRow : ∀ {Δ Δ′} {W : World Δ Δ′} {γ : CtxImp W} {M M′ A A′}
+    {p : A ⊑ᵂ⟨ W ⟩ A′}
   → ℕ → String → String → String
   → W ∣ γ ⊢ M ⊑ M′ ∶ p → Row
 nodeRow {W = W} {A = A} {A′ = A′} {p = p} n pre l r d =
@@ -406,7 +404,7 @@ castNote Δ′ cc-plain                 = "─"
 castNote Δ′ (cc-∀ {k = k} _ _)       = silent "pass" (sideName Δ′ k)
 castNote Δ′ (cc-gen {k = k} _)       = silent "pop" (sideName Δ′ k)
 
-bdyNote : ∀ {M c π} → Ctxᵗ → BdyClaim M c π → String
+bdyNote : ∀ {M c π πᵢ} → Ctxᵗ → BdyClaim M c π πᵢ → String
 bdyNote Δ′ bc-plain              = "─"
 bdyNote Δ′ (bc-∀ {k = k} {π} _ _) = silent "pass" (sideNameList Δ′ (k ∷ π))
 
@@ -422,11 +420,17 @@ pushNote {π = π} Δ′ Δ′ᵢ (push {new = new} _ _ _) = note π new
     "─ (carry " ++ sideNameList Δ′ ks ++ ", push " ++ sideNameList Δ′ᵢ ns
     ++ ")"
 
+-- the world of a derivation (a premise's world, for `pushWorld`)
+worldOf : ∀ {Δ Δ′} {W : World Δ Δ′} {γ : CtxImp W} {M M′ A A′}
+    {p : A ⊑ᵂ⟨ W ⟩ A′}
+  → W ∣ γ ⊢ M ⊑ M′ ∶ p → World Δ Δ′
+worldOf {W = W} _ = W
+
 -- `go a n pre pre′ x tms d`: d's rows, outside in; n is d's world, pre
 -- the tree prefix of d's row and pre′ that of its children, x the
 -- λ-depth and tms the term variables' names
-go : ∀ {Δ Δ′} {W : Worldπ Δ Δ′} {γ : CtxImp (wᵇ W)} {M M′ A A′}
-    {p : A ⊑ᵂπ⟨ W ⟩ A′}
+go : ∀ {Δ Δ′} {W : World Δ Δ′} {γ : CtxImp W} {M M′ A A′}
+    {p : A ⊑ᵂ⟨ W ⟩ A′}
   → Acc → ℕ → String → String → ℕ → List String
   → W ∣ γ ⊢ M ⊑ M′ ∶ p → Acc
 go a n pre pre′ x tms d@(x⊑x {x = y} _) =
@@ -449,31 +453,32 @@ go {Δ} {Δ′} a n pre pre′ x tms
 go {Δ} a n pre pre′ x tms d@(cast⊑ {μ = μ} {c = c} cc-plain M _ _) =
   go (pushRow (nodeRow n pre (castFrag Δ μ c) "─" d) a) n pre′ pre′ x tms M
 go {Δ} {Δ′} a n pre pre′ x tms
-    d@(cast⊑ {W = W} {πₚ = πₚ} {μ = μ} {c = c} cc@(cc-∀ _ _) M _ _) =
-  go (pushWorld (label n ++ " cast " ++ castNote Δ′ cc) (wπ W πₚ) a₁)
+    d@(cast⊑ {μ = μ} {c = c} cc@(cc-∀ _ _) M _ _) =
+  go (pushWorld (label n ++ " cast " ++ castNote Δ′ cc) (worldOf M) a₁)
     (nextW a₁) pre′ pre′ x tms M
   where
   a₁ = pushRow (nodeRow n pre (castFrag Δ μ c) (castNote Δ′ cc) d) a
 go {Δ} {Δ′} a n pre pre′ x tms
-    d@(cast⊑ {W = W} {μ = μ} {c = c} cc@(cc-gen _) M _ _) =
-  go (pushWorld (label n ++ " cast " ++ castNote Δ′ cc) ⌈ W ⌉ a₁)
+    d@(cast⊑ {μ = μ} {c = c} cc@(cc-gen _) M _ _) =
+  go (pushWorld (label n ++ " cast " ++ castNote Δ′ cc) (worldOf M) a₁)
     (nextW a₁) pre′ pre′ x tms M
   where
   a₁ = pushRow (nodeRow n pre (castFrag Δ μ c) (castNote Δ′ cc) d) a
 go {Δ′ = Δ′} a n pre pre′ x tms d@(⊑cast {μ′ = μ′} {c′ = c′} M _ _) =
   go (pushRow (nodeRow n pre "─" (castFrag Δ′ μ′ c′) d) a)
     n pre′ pre′ x tms M
-go {Δ} {Δ′} a n pre pre′ x tms d@(Λ⊑Λ {W = W} _ _ _ V _) =
-  go (pushWorld (label n ++ " ⊕ X⊑X") ⌈ W ⊕ X⊑X ⌉ a₁)
+go {Δ} {Δ′} a n pre pre′ x tms d@(Λ⊑Λ _ _ _ V _) =
+  go (pushWorld (label n ++ " ⊕ X⊑X") (worldOf V) a₁)
     (nextW a₁) pre′ pre′ x tms V
   where a₁ = pushRow (nodeRow n pre (tyLamFrag Δ) (tyLamFrag Δ′) d) a
 go {Δ} {Δ′} a n pre pre′ x tms
-    d@(Λ⊑ {W₁ = W₁} (claim-fresh {W = W}) _ _ _ _ V _) =
-  go (pushWorld (label n ++ " ⊕ᴸ") W₁ a₁) (nextW a₁) pre′ pre′ x tms V
+    d@(Λ⊑ claim-fresh _ _ _ _ V _) =
+  go (pushWorld (label n ++ " ⊕ᴸ") (worldOf V) a₁) (nextW a₁) pre′ pre′ x tms V
   where a₁ = pushRow (nodeRow n pre (tyLamFrag Δ) "─" d) a
 go {Δ} {Δ′} a n pre pre′ x tms
-    d@(Λ⊑ {W₁ = W₁} (claim-pop {k = k} _) _ _ _ _ V _) =
-  go (pushWorld ("Open1 " ++ label n ++ ": pop " ++ sideName Δ′ k) W₁ a₁)
+    d@(Λ⊑ (claim-pop (open1 {k = k} _ _ _)) _ _ _ _ V _) =
+  go (pushWorld ("Open1 " ++ label n ++ ": pop " ++ sideName Δ′ k)
+       (worldOf V) a₁)
     (nextW a₁) pre′ pre′ x tms V
   where
   a₁ = pushRow (nodeRow n pre (tyLamFrag Δ) (silent "pop" (sideName Δ′ k))
@@ -485,21 +490,19 @@ go {Δ} {Δ′} a n pre pre′ x tms
 go {Δ} a n pre pre′ x tms d@(ν⊑ {A = A} {c = c} L _ _ _) =
   go (pushRow (nodeRow n pre (nuFrag Δ A c) "─" d) a) n pre′ pre′ x tms L
 go {Δ} {Δ′} a n pre pre′ x tms
-    d@(⟪⟫⊑⟪⟫ {Wᵢ = Wᵢ} {Θ = Θ} {Θ′ = Θ′} {c = c} {c′ = c′}
-        _ _ M _ _ _ _) =
-  go (pushWorld ("Interior " ++ label n) ⌈ Wᵢ ⌉ a₁) (nextW a₁)
+    d@(⟪⟫⊑⟪⟫ {Θ = Θ} {Θ′ = Θ′} {c = c} {c′ = c′} _ _ M _ _ _ _) =
+  go (pushWorld ("Interior " ++ label n) (worldOf M) a₁) (nextW a₁)
     pre′ pre′ x tms M
   where
   a₁ = pushRow (nodeRow n pre (bdyFrag Δ Θ c) (bdyFrag Δ′ Θ′ c′) d) a
 go {Δ} {Δ′} a n pre pre′ x tms
-    d@(⟪⟫⊑ {Wᵢ = Wᵢ} {π = π} {Θ = Θ} {c = c} _ bc _ M _ _) =
-  go (pushWorld ("Interior " ++ label n) (wπ Wᵢ π) a₁) (nextW a₁)
+    d@(⟪⟫⊑ {Θ = Θ} {c = c} _ bc _ M _ _) =
+  go (pushWorld ("Interior " ++ label n) (worldOf M) a₁) (nextW a₁)
     pre′ pre′ x tms M
   where a₁ = pushRow (nodeRow n pre (bdyFrag Δ Θ c) (bdyNote Δ′ bc) d) a
 go {Δ′ = Δ′} a n pre pre′ x tms
-    d@(⊑⟪⟫ {Δ′ᵢ = Δ′ᵢ} {Wᵢ = Wᵢ} {πᵢ = πᵢ} {Θ′ = Θ′} {c′ = c′}
-        _ pu _ M _ _) =
-  go (pushWorld ("Interior " ++ label n) (wπ Wᵢ πᵢ) a₁) (nextW a₁)
+    d@(⊑⟪⟫ {Δ′ᵢ = Δ′ᵢ} {Θ′ = Θ′} {c′ = c′} _ pu _ M _ _) =
+  go (pushWorld ("Interior " ++ label n) (worldOf M) a₁) (nextW a₁)
     pre′ pre′ x tms M
   where
   a₁ = pushRow (nodeRow n pre (pushNote Δ′ Δ′ᵢ pu) (bdyFrag Δ′ Θ′ c′) d) a
@@ -509,8 +512,8 @@ go {Δ′ = Δ′} a n pre pre′ x tms
 ------------------------------------------------------------------------
 
 -- the whole ladder: worlds, table
-impLadder : ∀ {Δ Δ′} {W : Worldπ Δ Δ′} {γ : CtxImp (wᵇ W)} {M M′ A A′}
-    {p : A ⊑ᵂπ⟨ W ⟩ A′}
+impLadder : ∀ {Δ Δ′} {W : World Δ Δ′} {γ : CtxImp W} {M M′ A A′}
+    {p : A ⊑ᵂ⟨ W ⟩ A′}
   → W ∣ γ ⊢ M ⊑ M′ ∶ p → String
 impLadder {W = W} d =
   joinLines (reverse (worldsA a)) ++ "\n" ++ renderTable (reverse (rowsA a))
@@ -520,8 +523,8 @@ impLadder {W = W} d =
 
 -- GTSFImp's name for the printer (there it fixed the name supplies;
 -- GTNF reads names off the contexts, so the two coincide)
-impLadderDefault : ∀ {Δ Δ′} {W : Worldπ Δ Δ′} {γ : CtxImp (wᵇ W)}
-    {M M′ A A′} {p : A ⊑ᵂπ⟨ W ⟩ A′}
+impLadderDefault : ∀ {Δ Δ′} {W : World Δ Δ′} {γ : CtxImp W}
+    {M M′ A A′} {p : A ⊑ᵂ⟨ W ⟩ A′}
   → W ∣ γ ⊢ M ⊑ M′ ∶ p → String
 impLadderDefault = impLadder
 
@@ -530,7 +533,7 @@ impLadderDefault = impLadder
 ------------------------------------------------------------------------
 
 -- λx:ℕ. x ⊑ λx:★. x
-small-λ : ⌈ ∅ʷ ⌉ ∣ [] ⊢ ƛ `ℕ ∙ ` 0 ⊑ ƛ ★ ∙ ` 0 ∶ ⇒⊑⇒ ℕ⊑★ ℕ⊑★
+small-λ : ∅ʷ ∣ [] ⊢ ƛ `ℕ ∙ ` 0 ⊑ ƛ ★ ∙ ` 0 ∶ ⇒⊑⇒ ℕ⊑★ ℕ⊑★
 small-λ = ƛ⊑ƛ {pA = ℕ⊑★} tf tf (x⊑x Zʷ)
 
 -- the pins: any presentation change must update these expected ladders

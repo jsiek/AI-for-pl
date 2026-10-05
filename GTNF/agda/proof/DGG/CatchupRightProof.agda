@@ -19,7 +19,7 @@ module proof.DGG.CatchupRightProof (evolveImp : EvolveImp) where
 --     (CastTy, BdyTy, Interior, q) along the evolution, are the holes.
 --   * `⊑⟪⟫` with a push (design.md D27; formerly D26's openings and
 --     `∀⊑⟪+⟫`) has no IH: its premise is under pending names, outside
---     CatchupRight's statement at `⌈ W ⌉`.  The left term stays a VALUE
+--     CatchupRight's statement at `πʷ W ≡ []`.  The left term stays a VALUE
 --     there (no InstX image), so the generalization `CatchupRightπ`
 --     (PendingOpenings.md §6) is the obligation.
 --   * `unliftᴸ`: an evolution of `W ⊕ᴸ` with no left allocation is an
@@ -28,6 +28,9 @@ module proof.DGG.CatchupRightProof (evolveImp : EvolveImp) where
 --   * Module parameter: EvolveImp, used only to move `q` (and, in
 --     `Λ⊑`, `WfWorld`) along the IH's evolution (the left allocates
 --     nothing).
+--   * Each clause matches the statement's `πʷ W ≡ []` as `refl`; a
+--     result world from the IH has no pending name by `⟿-πʷ`
+--     (EvolveLemmas), matched `refl` where a rule needs it.
 --   * Orientation: the LEFT term is the more precise one.
 
 open import Data.List using ([]; _∷_)
@@ -43,7 +46,7 @@ open import Reduction
 open import Imprecision using (X⊑★)
 open import ImprecisionWorld
   using (World; world; _⊕ᴸ; allocᴿ; keep; skip; relabel; RepRel;
-         shiftᴸ; shiftᴿ; int-right; liftᴸ-[]; wfπ-base)
+         shiftᴸ; shiftᴿ; int-right; liftᴸ-[])
 open import TermImprecision
 open import proof.TypeSafety.PreservationSupport using (wf-underΛ)
 open import Boundary using (bw-interior-wf)
@@ -51,6 +54,7 @@ open import Ctx using (Ctxᵗ; WfCtx; underΛ)
 open import proof.DGG.Evolve
   using (_⟿[_∣_]_; applyˢ; ev-done; ev-R; ev-noneᴿ)
 open import proof.DGG.RunFrames using (ξ-cast*; ξ-⟪⟫*)
+open import proof.DGG.EvolveLemmas using (⟿-πʷ)
 open import proof.DGG.CatchupRightDef using (CatchupRight)
 
 -- the interior context of a boundary is well formed
@@ -76,8 +80,9 @@ shiftᴿᴸ ((α , β) ∷ ϱ) = cong ((suc α , suc β) ∷_) (shiftᴿᴸ ϱ)
 
 allocᴿ-⊕ᴸ : ∀ {Δ Δ′ : Ctxᵗ} R′ (W : World Δ Δ′)
   → allocᴿ R′ (W ⊕ᴸ) ≡ (allocᴿ R′ W) ⊕ᴸ
-allocᴿ-⊕ᴸ R′ (world μ η η′ ϱᵍ ϱˡ) =
-  cong₂ (world (X⊑★ ∷ μ) (keep (relabel suc η)) (skip (relabel suc η′)))
+allocᴿ-⊕ᴸ R′ (world μ η η′ ϱᵍ ϱˡ π) =
+  cong₂ (λ g l → world (X⊑★ ∷ μ) (keep (relabel suc η))
+                       (skip (relabel suc η′)) g l π)
         (shiftᴿᴸ ϱᵍ) (shiftᴿᴸ ϱˡ)
 
 unliftᴸ : ∀ {Δ Δ′ ξs′} {W : World Δ Δ′} {Wₓ : World (underΛ Δ) Δ′}
@@ -99,35 +104,35 @@ unliftᴸ refl (ev-noneᴿ ev₁) | W′ , ev′ , eq = W′ , ev-noneᴿ ev′ 
 
 catchup-right : CatchupRight
 -- no rule relates a variable at γ = []
-catchup-right wfΔ wfΔ′ wfW v (x⊑x ())
+catchup-right wfΔ wfΔ′ wfW refl v (x⊑x ())
 
 ------------------------------------------------------------------------
 -- the right is a value already
 
-catchup-right wfΔ wfΔ′ wfW v (κ⊑κ lit p) =
+catchup-right wfΔ wfΔ′ wfW refl v (κ⊑κ lit p) =
   _ , done , v , _ , ev-done , wfW , p , κ⊑κ lit p
-catchup-right wfΔ wfΔ′ wfW v (ƛ⊑ƛ wA wA′ d) =
+catchup-right wfΔ wfΔ′ wfW refl v (ƛ⊑ƛ wA wA′ d) =
   _ , done , V-simple S-ƛ , _ , ev-done , wfW , _ , ƛ⊑ƛ wA wA′ d
-catchup-right wfΔ wfΔ′ wfW v (Λ⊑Λ lift vV vV′ d q) =
+catchup-right wfΔ wfΔ′ wfW refl v (Λ⊑Λ lift vV vV′ d q) =
   _ , done , V-simple (S-Λ vV′) , _ , ev-done , wfW , q ,
   Λ⊑Λ lift vV vV′ d q
 
 ------------------------------------------------------------------------
 -- the left is not a value
 
-catchup-right wfΔ wfΔ′ wfW (V-simple ()) (·⊑· dL dM)
-catchup-right wfΔ wfΔ′ wfW (V-simple ()) (blame⊑ wA ⊢M′ p)
-catchup-right wfΔ wfΔ′ wfW (V-simple ()) (ν⊑ν dL pA n n′ nc q)
-catchup-right wfΔ wfΔ′ wfW (V-simple ()) (ν⊑ dL pA n q)
+catchup-right wfΔ wfΔ′ wfW refl (V-simple ()) (·⊑· dL dM)
+catchup-right wfΔ wfΔ′ wfW refl (V-simple ()) (blame⊑ wA ⊢M′ p)
+catchup-right wfΔ wfΔ′ wfW refl (V-simple ()) (ν⊑ν dL pA n n′ nc q)
+catchup-right wfΔ wfΔ′ wfW refl (V-simple ()) (ν⊑ dL pA n q)
 
 ------------------------------------------------------------------------
 -- casts
 
 -- the IH runs M′ inside the right cast, `ξ-cast* r`; then the right
 -- cast c′ on the value V₁′ fires its administrative steps
-catchup-right wfΔ wfΔ′ wfW v (cast⊑cast d ct ct′ q)
-    with catchup-right wfΔ wfΔ′ wfW (cast-value v) d
-catchup-right wfΔ wfΔ′ wfW v (cast⊑cast d ct ct′ q)
+catchup-right wfΔ wfΔ′ wfW refl v (cast⊑cast d ct ct′ q)
+    with catchup-right wfΔ wfΔ′ wfW refl (cast-value v) d
+catchup-right wfΔ wfΔ′ wfW refl v (cast⊑cast d ct ct′ q)
     | V₁′ , r , v₁′ , W₁ , ev , wf₁ , q₁ , d₁ =
   {! CastTail: run `ξ-cast* r`, then the right cast c′ on the value
      V₁′ (CastId, CastSeq, CastSeq?, Inst+TyBeta, TagUntag), against
@@ -135,18 +140,21 @@ catchup-right wfΔ wfΔ′ wfW v (cast⊑cast d ct ct′ q)
      q′ = q at W₁ (evolveImp) !}
 
 -- the left cast is one-sided: the right is the IH's
-catchup-right wfΔ wfΔ′ wfW v (cast⊑ cc-plain d ct q)
-    with catchup-right wfΔ wfΔ′ wfW (cast-value v) d
-catchup-right wfΔ wfΔ′ wfW v (cast⊑ cc-plain d ct q)
-    | V₁′ , r , v₁′ , W₁ , ev , wf₁ , q₁ , d₁ =
+catchup-right wfΔ wfΔ′ wfW refl v (cast⊑ cc-plain d ct q)
+    with catchup-right wfΔ wfΔ′ wfW refl (cast-value v) d
+catchup-right wfΔ wfΔ′ wfW refl v (cast⊑ cc-plain d ct q)
+    | V₁′ , r , v₁′ , W₁ , ev , wf₁ , q₁ , d₁
+    with ⟿-πʷ ev
+catchup-right wfΔ wfΔ′ wfW refl v (cast⊑ cc-plain d ct q)
+    | V₁′ , r , v₁′ , W₁ , ev , wf₁ , q₁ , d₁ | refl =
   V₁′ , r , v₁′ , W₁ , ev , wf₁ , q′ , cast⊑ cc-plain d₁ ct q′
   where
   -- the left allocates nothing, so only q moves
-  q′ = proj₁ (proj₂ (evolveImp wfΔ wfΔ′ ev wfW (cast⊑ cc-plain d ct q)))
+  q′ = proj₁ (proj₂ (evolveImp wfΔ wfΔ′ ev wfW refl (cast⊑ cc-plain d ct q)))
 
-catchup-right wfΔ wfΔ′ wfW v (⊑cast d ct′ q)
-    with catchup-right wfΔ wfΔ′ wfW v d
-catchup-right wfΔ wfΔ′ wfW v (⊑cast d ct′ q)
+catchup-right wfΔ wfΔ′ wfW refl v (⊑cast d ct′ q)
+    with catchup-right wfΔ wfΔ′ wfW refl v d
+catchup-right wfΔ wfΔ′ wfW refl v (⊑cast d ct′ q)
     | V₁′ , r , v₁′ , W₁ , ev , wf₁ , q₁ , d₁ =
   {! CastTail: run `ξ-cast* r`, then the right cast c′ on the value
      V₁′ (CastId, CastSeq, CastSeq?, Inst+TyBeta, TagUntag), against
@@ -157,38 +165,41 @@ catchup-right wfΔ wfΔ′ wfW v (⊑cast d ct′ q)
 
 -- the IH at W ⊕ᴸ; its evolution has no left allocation, so it ends
 -- at `W′ ⊕ᴸ` for an evolution `W ⟿[ [] ∣ allocs r ] W′` (unliftᴸ)
-catchup-right wfΔ wfΔ′ wfW v (Λ⊑ claim-fresh nv occ liftᴸ-[] vV d q)
+catchup-right wfΔ wfΔ′ wfW refl v (Λ⊑ claim-fresh nv occ liftᴸ-[] vV d q)
     with catchup-right (wf-underΛ wfΔ) wfΔ′
-           {! WfWorld (W ⊕ᴸ): an AllocImp-style lemma !} vV d
-catchup-right wfΔ wfΔ′ wfW v (Λ⊑ claim-fresh nv occ liftᴸ-[] vV d q)
+           {! WfWorld (W ⊕ᴸ): an AllocImp-style lemma !} refl vV d
+catchup-right wfΔ wfΔ′ wfW refl v (Λ⊑ claim-fresh nv occ liftᴸ-[] vV d q)
     | V′ , r , v′ , W₁ , ev , wf₁ , q₁ , d₁
     with unliftᴸ refl ev
-catchup-right wfΔ wfΔ′ wfW v (Λ⊑ claim-fresh nv occ liftᴸ-[] vV d q)
-    | V′ , r , v′ , _ , ev , wf₁ , q₁ , d₁ | W′ , ev′ , refl =
+catchup-right wfΔ wfΔ′ wfW refl v (Λ⊑ claim-fresh nv occ liftᴸ-[] vV d q)
+    | V′ , r , v′ , _ , ev , wf₁ , q₁ , d₁ | W′ , ev′ , refl
+    with ⟿-πʷ ev′
+catchup-right wfΔ wfΔ′ wfW refl v (Λ⊑ claim-fresh nv occ liftᴸ-[] vV d q)
+    | V′ , r , v′ , _ , ev , wf₁ , q₁ , d₁ | W′ , ev′ , refl | refl =
   V′ , r , v′ , W′ , ev′ , proj₁ e , proj₁ (proj₂ e) ,
   Λ⊑ claim-fresh nv occ liftᴸ-[] vV d₁ (proj₁ (proj₂ e))
   where
   -- WfWorld W′ and q at W′ (the left allocates nothing)
-  e = evolveImp wfΔ wfΔ′ ev′ wfW (Λ⊑ claim-fresh nv occ liftᴸ-[] vV d q)
+  e = evolveImp wfΔ wfΔ′ ev′ wfW refl (Λ⊑ claim-fresh nv occ liftᴸ-[] vV d q)
 
 ------------------------------------------------------------------------
 -- boundaries (the interior is term-closed; IH at Wᵢ, premise wi)
 
-catchup-right wfΔ wfΔ′ wfW v (⟪⟫⊑⟪⟫ {c′ = c′} int wi d b b′ bc q)
-    with catchup-right (bdy-wfᵢ b) (bdy-wfᵢ b′) wi (⟪⟫-value v) d
-catchup-right wfΔ wfΔ′ wfW v (⟪⟫⊑⟪⟫ {c′ = c′} int wi d b b′ bc q)
+catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑⟪⟫ {c′ = c′} int wi d b b′ bc q)
+    with catchup-right (bdy-wfᵢ b) (bdy-wfᵢ b′) wi refl (⟪⟫-value v) d
+catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑⟪⟫ {c′ = c′} int wi d b b′ bc q)
     | V₁′ , r , v₁′ , Wᵢ′ , ev , wfᵢ′ , q₁ , d₁
     with ξ-⟪⟫* {c = c′} (int-right int) r
-catchup-right wfΔ wfΔ′ wfW v (⟪⟫⊑⟪⟫ {c′ = c′} int wi d b b′ bc q)
+catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑⟪⟫ {c′ = c′} int wi d b b′ bc q)
     | V₁′ , r , v₁′ , Wᵢ′ , ev , wfᵢ′ , q₁ , d₁ | Θ″ , r⟪⟫ =
   {! BdyTail: lift ev to W ⟿[ [] ∣ allocs r ] W′ with
      Interior W′ Θ Θ″ Wᵢ′ (AllocImp), move b′, bc, q; then after
      r⟪⟫ the right boundary c′ on the value V₁′ fires (Merge, Id,
      IdDyn, IdDyn-var) !}
 
-catchup-right wfΔ wfΔ′ wfW v (⟪⟫⊑ int bc-plain wi d b q)
-    with catchup-right (bdy-wfᵢ b) wfΔ′ (wfπ-base wi) (⟪⟫-value v) d
-catchup-right wfΔ wfΔ′ wfW v (⟪⟫⊑ int bc-plain wi d b q)
+catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑ int bc-plain wi d b q)
+    with catchup-right (bdy-wfᵢ b) wfΔ′ wi refl (⟪⟫-value v) d
+catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑ int bc-plain wi d b q)
     | V′ , r , v′ , Wᵢ′ , ev , wfᵢ′ , q₁ , d₁ =
   {! BdyLift: lift ev to W ⟿[ [] ∣ allocs r ] W′ with
      Interior W′ Θ [] Wᵢ′ and WfWorld W′ (AllocImp); then
@@ -198,19 +209,22 @@ catchup-right wfΔ wfΔ′ wfW v (⟪⟫⊑ int bc-plain wi d b q)
 -- former ∀⊑⟪+⟫, D26's openings): no IH, the premise is under pending
 -- names, outside CatchupRight's statement; the left is a VALUE there
 -- (`CatchupRightπ`, proof/DGG/notes/PendingOpenings.md §6).
-catchup-right wfΔ wfΔ′ wfW v (⊑⟪⟫ {c′ = c′} int (push ca-[] [] nv) wi d b′ q)
-    with catchup-right wfΔ (bdy-wfᵢ b′) (wfπ-base wi) v d
-catchup-right wfΔ wfΔ′ wfW v (⊑⟪⟫ {c′ = c′} int (push ca-[] [] nv) wi d b′ q)
+catchup-right wfΔ wfΔ′ wfW refl v (⊑⟪⟫ {c′ = c′} int
+    (push ca-[] [] nv) wi d b′ q)
+    with catchup-right wfΔ (bdy-wfᵢ b′) wi refl v d
+catchup-right wfΔ wfΔ′ wfW refl v (⊑⟪⟫ {c′ = c′} int
+    (push ca-[] [] nv) wi d b′ q)
     | V₁′ , r , v₁′ , Wᵢ′ , ev , wfᵢ′ , q₁ , d₁
     with ξ-⟪⟫* {c = c′} (int-right int) r
-catchup-right wfΔ wfΔ′ wfW v (⊑⟪⟫ {c′ = c′} int (push ca-[] [] nv) wi d b′ q)
+catchup-right wfΔ wfΔ′ wfW refl v (⊑⟪⟫ {c′ = c′} int
+    (push ca-[] [] nv) wi d b′ q)
     | V₁′ , r , v₁′ , Wᵢ′ , ev , wfᵢ′ , q₁ , d₁ | Θ″ , r⟪⟫ =
   {! BdyTail: lift ev to W ⟿[ [] ∣ allocs r ] W′ with
      Interior W′ [] Θ″ Wᵢ′ (AllocImp), move b′, q; then after r⟪⟫
      the right boundary c′ on the value V₁′ fires (Merge, Id, IdDyn,
      IdDyn-var) !}
-catchup-right wfΔ wfΔ′ wfW v
+catchup-right wfΔ wfΔ′ wfW refl v
     (⊑⟪⟫ int (push ca-[] (f ∷ fs) vM) wi d b′ q) =
   {! CatchupRightπ (PendingOpenings.md §6): a catch-up of the right
      interior against the left VALUE under the pushed pending names
-     (premise world WfWorldπ wi) !}
+     (premise world WfWorld wi) !}

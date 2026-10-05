@@ -19,13 +19,13 @@ open import Coercion using (Label)
 open import Terms using (Term; Value; blame; _∣_⊢_⦂_)
 open import Reduction using (_⊢_-→_∣_; _⊢_-→*_; _then_; runCtx)
 open import ImprecisionWorld
-  using (Worldπ; wᵇ; _⊑ᵂπ⟨_⟩_; CtxImp; lhs; rhs)
+  using (World; _⊑ᵂ⟨_⟩_; CtxImp; lhs; rhs)
 open import TermImprecision using (_∣_⊢_⊑_∶_)
 open import proof.DGG.Evolve
   using (_⟿[_∣_]_; applyˢ; allocs; _++ʳ_; ↑ᴹ*[_])
 
 ImprecisionTyping : Set
-ImprecisionTyping = ∀ {Δ Δ′ : Ctxᵗ} {W : Worldπ Δ Δ′} {γ : CtxImp (wᵇ W)}
-                      {M M′ : Term} {A A′ : Ty} {p : A ⊑ᵂπ⟨ W ⟩ A′}
+ImprecisionTyping = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {γ : CtxImp W}
+                      {M M′ : Term} {A A′ : Ty} {p : A ⊑ᵂ⟨ W ⟩ A′}
   → W ∣ γ ⊢ M ⊑ M′ ∶ p
   → (Δ ∣ lhs γ ⊢ M ⦂ A) × (Δ′ ∣ rhs γ ⊢ M′ ⦂ A′)

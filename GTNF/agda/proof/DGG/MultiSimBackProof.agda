@@ -42,7 +42,7 @@ open import Ctx using (Ctxᵗ; WfCtx; apply)
 open import Coercion using (Label)
 open import Terms using (Term; blame; _∣_⊢_⦂_)
 open import Reduction using (_⊢_-→*_; done; _then_; runCtx)
-open import ImprecisionWorld using (World; WfWorld; _⊑ᵂ⟨_⟩_)
+open import ImprecisionWorld using (World; ⌈_⌉; WfWorld; _⊑ᵂ⟨_⟩_)
 open import TermImprecision using (_∣_⊢_⊑_∶_)
 open import proof.DGG.MultiSimBackDef using (SimBack*)
 open import proof.DGG.Evolve
@@ -95,7 +95,7 @@ private
   go : ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {M M′ N′ : Term} {A A′ : Ty}
          {p : A ⊑ᵂ⟨ W ⟩ A′} (n : ℕ)
     → WfCtx Δ → WfCtx Δ′ → WfWorld W
-    → W ∣ [] ⊢ M ⊑ M′ ∶ p
+    → ⌈ W ⌉ ∣ [] ⊢ M ⊑ M′ ∶ p
     → (r′ : Δ′ ⊢ M′ -→* N′)
     → len r′ ≤ n
     → (Σ[ N₂ ∈ Term ] Σ[ N₂′ ∈ Term ] Σ[ r ∈ Δ ⊢ M -→* N₂ ]

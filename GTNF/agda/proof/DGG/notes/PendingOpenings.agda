@@ -1,6 +1,8 @@
 module proof.DGG.notes.PendingOpenings where
 
 -- File Charter:
+--   * ADOPTED as design.md D27 (2026-10-05); this file checked against
+--     the D26 relation and no longer checks (PendingOpenings.md, Status).
 --   * THE PROPOSAL CHECKED HERE ("pending openings"): replace D26's
 --     `Opens` premise of `⊑⟪⟫` (which relates `InstX V` at an opened
 --     world) by PENDING OPENINGS carried in the WORLD.  `⊑⟪⟫` PUSHES

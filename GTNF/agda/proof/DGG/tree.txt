@@ -22,7 +22,7 @@ DynamicGradualGuarantee | the theorem (statement at top level, §2)  uses: Catch
   MultiSimBack | backward simulation over runs  uses: ImprecisionTyping TypeSafety/Preservation TypeSafety/Determinism
     SimBack | the less precise side steps, both catch up
       SimBackFrame | ξ cases  uses: AllocImp EvolveImp SimBackInstX
-      SimBackInstX | inside the opened premise of ⊑⟪⟫ (D26; formerly ∀⊑⟪+⟫): the right steps, the left (a ∀-value) never moves
+      SimBackInstX | under the pending names a ⊑⟪⟫ pushed (D27; formerly D26 openings, ∀⊑⟪+⟫): the right steps, the left (a ∀-value) never moves
       SimBackBeta | Beta, Wrap  uses: SubstImp
       SimBackTyBeta | TyBeta, Inst  uses: InstXImp AllocImp
       SimBackBoundary | Merge, Id, IdDyn  uses: MergeImp

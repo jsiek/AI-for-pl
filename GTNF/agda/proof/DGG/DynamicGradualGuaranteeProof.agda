@@ -52,7 +52,7 @@ open import Coercion using (Label)
 open import Terms using (Term; Value; blame)
 open import Reduction using (_⊢_-→*_; done; _then_; runCtx)
 open import ImprecisionWorld
-  using (World; ∅ʷ; WfWorld; wf-world; Joint; joint[]; Paired;
+  using (World; ⌈_⌉; ∅ʷ; WfWorld; wf-world; Joint; joint[]; Paired;
          _⊑ᵂ⟨_⟩_)
 open import TermImprecision using (_∣_⊢_⊑_∶_)
 open import DynamicGradualGuarantee
@@ -81,7 +81,7 @@ wf-∅ʷ = wf-world joint[] (λ π → no-pair π) (λ _ _ _ π _ → no-pair π
 ------------------------------------------------------------------------
 
 module _ {M M′ : Term} {A A′ : Ty} {p : A ⊑ᵂ⟨ ∅ʷ ⟩ A′}
-    (M⊑M′ : ∅ʷ ∣ [] ⊢ M ⊑ M′ ∶ p) where
+    (M⊑M′ : ⌈ ∅ʷ ⌉ ∣ [] ⊢ M ⊑ M′ ∶ p) where
 
   private
     ⊢M  = proj₁ (impTyping M⊑M′)

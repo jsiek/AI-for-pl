@@ -30,7 +30,7 @@ open import Types using (Ty)
 open import Ctx using (Ctxᵗ; Alloc; apply)
 open import Terms using (Term)
 open import Reduction using (_⊢_-→*_; done; _then_; runCtx)
-open import ImprecisionWorld using (World; WfWorld; _⊑ᵂ⟨_⟩_)
+open import ImprecisionWorld using (World; ⌈_⌉; WfWorld; _⊑ᵂ⟨_⟩_)
 open import TermImprecision using (_∣_⊢_⊑_∶_)
 open import proof.DGG.Evolve
 
@@ -136,13 +136,13 @@ Evolved : World Δ Δ′ → List Alloc → List Alloc
 Evolved {Δ} {Δ′} W xs ys A A′ M M′ =
   Σ[ W′ ∈ World (applyˢ xs Δ) (applyˢ ys Δ′) ]
     (W ⟿[ xs ∣ ys ] W′) × WfWorld W′
-    × Σ[ q ∈ A ⊑ᵂ⟨ W′ ⟩ A′ ] (W′ ∣ [] ⊢ M ⊑ M′ ∶ q)
+    × Σ[ q ∈ A ⊑ᵂ⟨ W′ ⟩ A′ ] (⌈ W′ ⌉ ∣ [] ⊢ M ⊑ M′ ∶ q)
 
 -- the package without the evolution, at given contexts
 Related : Ctxᵗ → Ctxᵗ → Ty → Ty → Term → Term → Set
 Related Δ Δ′ A A′ V V′ =
   Σ[ W ∈ World Δ Δ′ ] WfWorld W
-    × Σ[ q ∈ A ⊑ᵂ⟨ W ⟩ A′ ] (W ∣ [] ⊢ V ⊑ V′ ∶ q)
+    × Σ[ q ∈ A ⊑ᵂ⟨ W ⟩ A′ ] (⌈ W ⌉ ∣ [] ⊢ V ⊑ V′ ∶ q)
 
 related-cast : ∀ {A A′ V V′} → Γ ≡ Γ′ → Δ ≡ Δ′
   → Related Γ Δ A A′ V V′ → Related Γ′ Δ′ A A′ V V′
@@ -157,9 +157,10 @@ evolved→related (W′ , ev , wf , q , d) = W′ , wf , q , d
 private
   related-castʷ : ∀ {A A′ V V′} (e : Γ ≡ Γ′) (e′ : Δ ≡ Δ′)
     (W : World Γ Δ) → WfWorld W
-    → (q : A ⊑ᵂ⟨ W ⟩ A′) → W ∣ [] ⊢ V ⊑ V′ ∶ q
+    → (q : A ⊑ᵂ⟨ W ⟩ A′) → ⌈ W ⌉ ∣ [] ⊢ V ⊑ V′ ∶ q
     → WfWorld (castʷ e e′ W)
-      × Σ[ q′ ∈ A ⊑ᵂ⟨ castʷ e e′ W ⟩ A′ ] (castʷ e e′ W ∣ [] ⊢ V ⊑ V′ ∶ q′)
+      × Σ[ q′ ∈ A ⊑ᵂ⟨ castʷ e e′ W ⟩ A′ ]
+          (⌈ castʷ e e′ W ⌉ ∣ [] ⊢ V ⊑ V′ ∶ q′)
   related-castʷ refl refl W wf q d = wf , q , d
 
 -- an evolution followed by a package

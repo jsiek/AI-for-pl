@@ -8,6 +8,32 @@ from that file by a script.  It replaces, for review,
 in `drafts/Statements.agda` as text: nobody reviews them, and each is
 proved in its consumer.  LEFT is the more precise side.
 
+**D27 note (2026-10-05).**  design.md D27 replaced D26's `Opens` by
+pending names in the world (`ImprecisionWorld.Worldπ`; TermImprecision
+§2).  The statements below still mention `Opens` and are NOT yet
+rewritten; that is the next review.  Per
+`notes/PendingOpenings.md` §6 the changes are:
+
+- M23 CatchupRightᴳ becomes `CatchupRightπ`: CatchupRight at any
+  pending names, with the left a VALUE (no Opens image).
+- M1 MorSide loses (e) (the `Opens` transport, `instX-ren`): pending
+  names are name positions (`PendingMor`, trivial).
+- M2 MorImp becomes `MorImpπ` (the pending names ride along).
+- M15 RightMergeOpens becomes `RightMergePending`, with the INLINE
+  `PushCompose`.
+- NEW MAJOR `PopInstX` (popping is instantiating; the `⊑⟪⟫` case of
+  M13 InstXImpL) and `PushInstR` (the right's Inst + TyBeta against a
+  left ∀-value; replaces B7, B9 and the INLINE B13 InstSyncᴳ).
+- INLINE A25 WfOpens becomes `WfPop` (`wf-⊕⁺` generalized); A26
+  OpensEvolveᴿ goes.
+- M12 InstXImp2: its `open-∀` "MISSING FORM" becomes the `⊑⟪⟫`-push
+  case.
+- M22 SimBackBlame and M26 CastRedexNoBlame are false as stated for
+  the current relation (PendingOpenings.md §5d; independent of D27).
+
+Net: 26 → 28 MAJOR.  The top-level DGG statement is unchanged
+(top-level worlds `⌈ W ⌉` have no pending name).
+
 ## 0. Overview
 
 **Count.**  26 MAJOR statements.

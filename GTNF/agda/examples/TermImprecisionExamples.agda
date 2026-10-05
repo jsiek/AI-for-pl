@@ -10,9 +10,9 @@ module examples.TermImprecisionExamples where
 --       p2-tybeta P2 after the left's TyBeta: ·⊑·, ⟪⟫⊑ with X left-only
 --                 (X⊑★), X→X ⊑ ★→★ inside, ℕ→ℕ ⊑ ★→★ outside
 --       p3-inst   P3 after the right's Inst, TyBeta, Beta: ·⊑·, ν⊑,
---                 ⊑cast, ⊑⟪⟫ with one opening (design.md D26; the
---                 left Λ's abstract rep. var paired lexically with
---                 αᴿ:=★; `inst-Λ`)
+--                 ⊑cast, ⊑⟪⟫ pushing X, Λ⊑ popping it (design.md D27;
+--                 the left Λ's abstract rep. var paired lexically with
+--                 αᴿ:=★)
 --       p6-init-ν P6's initial ν pair, with `−X → id(ℕ)` related to
 --                 `−X → id(★)` in the ν conversion world
 --       p6-tybeta P6 right after both TyBetas: the same conversion
@@ -50,7 +50,8 @@ open import TermImprecision
 open import examples.ImprecisionExamples
   using (L1; R1; L1-⊢; R1-⊢; R2; L3-⊢; R3-⊢;
          L6; R6; L6-⊢; R6-⊢)
-open import Reduction using (inst-Λ)
+open import Data.List.Relation.Unary.All using ([]; _∷_)
+open import Data.List.Relation.Unary.AllPairs using ([]; _∷_)
 
 ------------------------------------------------------------------------
 -- Shared pieces
@@ -71,7 +72,7 @@ revX = reveal 0 (` 0 ⇒ ` 0)
 -- the argument `5 ⊑ 5⟨ℕ!⟩` at ℕ ⊑ ★, in any world whose right side has
 -- no names (the cast carries `[]`)
 five⊑ : ∀ {Δ Ξ′} {W : World Δ (Ξ′ ∣ [])} {γ : CtxImp W}
-  → W ∣ γ ⊢ $ 5 ⊑ 5⟨ℕ!⟩ ∶ ℕ⊑★
+  → ⌈ W ⌉ ∣ γ ⊢ $ 5 ⊑ 5⟨ℕ!⟩ ∶ ℕ⊑★
 five⊑ = ⊑cast (κ⊑κ lit-$ (ι⊑ι base-ℕ)) (cast-ty (⊢tag g-ℕ) refl) ℕ⊑★
 
 ∀X⇒X : Ty
@@ -159,7 +160,7 @@ revX⊑revX j =
 νLR-conv : NuConversionImp ∅ʷ νL-ty νR-ty
 νLR-conv = Wν , Wν-conv , revX⊑revX refl
 
-p1-init : ∅ʷ ∣ [] ⊢ L1 ⊑ R1 ∶ ℕ⊑★
+p1-init : ⌈ ∅ʷ ⌉ ∣ [] ⊢ L1 ⊑ R1 ∶ ℕ⊑★
 p1-init =
   ·⊑· (ν⊑ν (Λ⊑Λ lift-[] (V-simple S-ƛ) (V-simple S-ƛ)
               (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ))
@@ -236,7 +237,7 @@ Wᵢ₁-wf = wf-world (both (inj₁ here⇔) joint[]) agree
   agree (inj₁ (there⇔ ()))
   agree (inj₂ ())
 
-p1-tybeta : W₁ ∣ [] ⊢ L1′ ⊑ R1′ ∶ ℕ⊑★
+p1-tybeta : ⌈ W₁ ⌉ ∣ [] ⊢ L1′ ⊑ R1′ ∶ ℕ⊑★
 p1-tybeta =
   ·⊑· (⟪⟫⊑⟪⟫ Wᵢ₁-int Wᵢ₁-wf
               (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ)) bL-ty bR-ty bLR-conv
@@ -277,17 +278,18 @@ Wᵢ₂-wf = wf-world (left-only joint[]) agree
   agree (inj₁ ())
   agree (inj₂ ())
 
-p2-tybeta : W₂ ∣ [] ⊢ L1′ ⊑ R2 ∶ ℕ⊑★
+p2-tybeta : ⌈ W₂ ⌉ ∣ [] ⊢ L1′ ⊑ R2 ∶ ℕ⊑★
 p2-tybeta =
-  ·⊑· (⟪⟫⊑ Wᵢ₂-int Wᵢ₂-wf
+  ·⊑· (⟪⟫⊑ Wᵢ₂-int bc-plain (wfπ[] Wᵢ₂-wf)
               (ƛ⊑ƛ {pA = X⊑★ here} tf wf-★ (x⊑x Zʷ)) bL-ty
               (⇒⊑⇒ ℕ⊑★ ℕ⊑★))
       five⊑
 
 ------------------------------------------------------------------------
 -- P3, after the right's Inst, TyBeta and Beta, before the left's
--- TyBeta: ⊑⟪⟫ with one opening (D26; before D26, ∀⊑⟪+⟫) relates the
--- left Λ to the right's Inst boundary
+-- TyBeta: ⊑⟪⟫ pushes the Inst boundary's name and Λ⊑ pops it (D27;
+-- before D26, ∀⊑⟪+⟫; D26: an opening) to relate the left Λ to the right's
+-- Inst boundary
 ------------------------------------------------------------------------
 
 R3′ : Term
@@ -323,32 +325,36 @@ int-ro₃ = record
   ; mark-right = λ { (_ , here) () _ ; (_ , there ()) _ _ }
   }
 
--- the opened world: the left Λ's abstract rep. var paired lexically
--- with αᴿ:=★ (`abst-★`), the shared name at X⊑X
-W₃⁺-wf : WfWorld (W₃ ⊕⁺ X⊑X ^ 0)
-W₃⁺-wf = wf-world (both (inj₂ here⇔) joint[]) agree
-  (namedᴸ-≤1 (W₃ ⊕⁺ X⊑X ^ 0) ≤1-∷[]) (namedᴿ-≤1 (W₃ ⊕⁺ X⊑X ^ 0) ≤1-∷[])
-  where
-  agree : ∀ {α β} → Paired (W₃ ⊕⁺ X⊑X ^ 0) α β
-    → Agree (W₃ ⊕⁺ X⊑X ^ 0) α β
-  agree (inj₁ ())
-  agree (inj₂ here⇔) = abst-★ r-here r-here
-  agree (inj₂ (there⇔ ()))
+-- inside the Inst boundary: X right-only at X⊑★, and PENDING (D27): it
+-- is bound to the ★ rep. var αᴿ and has no named left partner
+W₃ʳ-wf : WfWorld (W₃ ⊕ʳ X⊑★ ^ 0)
+W₃ʳ-wf = wf-world (right-only joint[]) (λ { (inj₁ ()) ; (inj₂ ()) })
+  (namedᴸ-≤1 (W₃ ⊕ʳ X⊑★ ^ 0) ≤1-[]) (namedᴿ-≤1 (W₃ ⊕ʳ X⊑★ ^ 0) ≤1-∷[])
 
--- one opening of the left `ΛX. λx:X. x` at the boundary's name 0
--- (`inst-Λ`)
-openΛidX : Opens Θ₀ (W₃ ⊕ʳ X⊑X ^ 0) (Λ idX) ∀X⇒X (W₃ ⊕⁺ X⊑X ^ 0) idX
-  (` 0 ⇒ ` 0)
-openΛidX =
-  open-∀ nv-⇒ (∈-⇒ˡ ∈-var) (V-simple (S-Λ (V-simple S-ƛ))) ΛidX-⊢
-    (inst-Λ (V-simple S-ƛ)) refl (open-⊕ r-here) open-none
+Wi₃-wf : WfWorldπ (wπ (W₃ ⊕ʳ X⊑★ ^ 0) (0 ∷ []))
+Wi₃-wf = wfπ W₃ʳ-wf
+  ((0 , here , r-here , (λ { (_ , ()) }) , here , (λ { (_ , ()) })) ∷ [])
+  ([] ∷ [])
 
-p3-inst : W₃ ∣ [] ⊢ L1 ⊑ R3′ ∶ ℕ⊑★
+vΛidX : Value (Λ idX)
+vΛidX = V-simple (S-Λ (V-simple S-ƛ))
+
+-- THE CORE: ⊑⟪⟫ PUSHES the boundary's name X (the left is a value);
+-- Λ⊑ POPS it: the left binder joins X, its abstract rep. var paired
+-- lexically with αᴿ:=★ (`open-⊕`: the popped world is `W₃ ⊕⁺ X⊑★ ^ 0`);
+-- then ƛ⊑ƛ at X ⊑ X
+core₃ : ⌈ W₃ ⌉ ∣ [] ⊢ Λ idX ⊑ idX ⟪ Θ₀ , revX ⟫ ∶ ∀id⊑★
+core₃ =
+  ⊑⟪⟫ int-ro₃ (push ca-[] (refl ∷ []) (inj₂ vΛidX)) Wi₃-wf
+    (Λ⊑ (claim-pop (open-⊕ r-here)) nv-⇒ (∈-⇒ˡ ∈-var) liftᴸ-[]
+      (V-simple S-ƛ) (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ)) (⇒⊑⇒ X⊑X X⊑X))
+    bR-ty ∀id⊑★
+
+p3-inst : ⌈ W₃ ⌉ ∣ [] ⊢ L1 ⊑ R3′ ∶ ℕ⊑★
 p3-inst =
-  ·⊑· (ν⊑ (⊑cast (⊑⟪⟫ int-ro₃ openΛidX W₃⁺-wf
-                         (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ))
-                         bR-ty ∀id⊑★)
-                 (cast-ty (⊢fun (⊢id atom-★ wf-★) (⊢id atom-★ wf-★)) refl) ∀id⊑★)
+  ·⊑· (ν⊑ (⊑cast core₃
+                 (cast-ty (⊢fun (⊢id atom-★ wf-★) (⊢id atom-★ wf-★)) refl)
+                 ∀id⊑★)
           ℕ⊑★ νL-ty (⇒⊑⇒ ℕ⊑★ ℕ⊑★))
       five⊑
 
@@ -395,7 +401,7 @@ c6⊑ j =
 ν6-conv : NuConversionImp ∅ʷ ν6L-ty ν6R-ty
 ν6-conv = Wν , Wν-conv , c6⊑ refl
 
-p6-init-ν : ∅ʷ ∣ ctx-imp ∀6L ∀6R ∀6L⊑∀6R ∷ []
+p6-init-ν : ⌈ ∅ʷ ⌉ ∣ ctx-imp ∀6L ∀6R ∀6L⊑∀6R ∷ []
   ⊢ ν6L ⊑ ν6R ∶ ⇒⊑⇒ (ι⊑ι base-𝔹) ℕ⊑★
 p6-init-ν =
   ν⊑ν (x⊑x Zʷ) (ι⊑ι base-𝔹) ν6L-ty ν6R-ty ν6-conv
@@ -496,7 +502,7 @@ b6R-ty = proj₂ (proj₂ (proj₂ (⟪⟫-inv b6R-⊢)))
 b6-conv : BdyConversionImp W₆ b6L-ty b6R-ty
 b6-conv = Wᵢ₆ , Wᵢ₆-conv , c6⊑ refl
 
-p6-tybeta : W₆ ∣ [] ⊢ L6′ ⊑ R6′ ∶ ℕ⊑★
+p6-tybeta : ⌈ W₆ ⌉ ∣ [] ⊢ L6′ ⊑ R6′ ∶ ℕ⊑★
 p6-tybeta =
   ·⊑·
     (⟪⟫⊑⟪⟫ Wᵢ₆-int Wᵢ₆-wf

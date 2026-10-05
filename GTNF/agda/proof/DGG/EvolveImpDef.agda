@@ -18,7 +18,7 @@ open import Coercion using (Label)
 open import Terms using (Term; Value; blame; _∣_⊢_⦂_)
 open import Reduction using (_⊢_-→_∣_; _⊢_-→*_; _then_; runCtx)
 open import ImprecisionWorld
-  using (World; WfWorld; _⊑ᵂ⟨_⟩_; CtxImp; lhs; rhs)
+  using (World; ⌈_⌉; WfWorld; _⊑ᵂ⟨_⟩_; CtxImp; lhs; rhs)
 open import TermImprecision using (_∣_⊢_⊑_∶_)
 open import proof.DGG.Evolve
   using (_⟿[_∣_]_; applyˢ; allocs; _++ʳ_; ↑ᴹ*[_])
@@ -30,6 +30,6 @@ EvolveImp = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {ξs ξs′ : List Allo
   → WfCtx Δ → WfCtx Δ′
   → W ⟿[ ξs ∣ ξs′ ] W′
   → WfWorld W
-  → W ∣ [] ⊢ M ⊑ M′ ∶ p
+  → ⌈ W ⌉ ∣ [] ⊢ M ⊑ M′ ∶ p
   → WfWorld W′
-    × Σ[ q ∈ A ⊑ᵂ⟨ W′ ⟩ A′ ] (W′ ∣ [] ⊢ ↑ᴹ*[ ξs ] M ⊑ ↑ᴹ*[ ξs′ ] M′ ∶ q)
+    × Σ[ q ∈ A ⊑ᵂ⟨ W′ ⟩ A′ ] (⌈ W′ ⌉ ∣ [] ⊢ ↑ᴹ*[ ξs ] M ⊑ ↑ᴹ*[ ξs′ ] M′ ∶ q)

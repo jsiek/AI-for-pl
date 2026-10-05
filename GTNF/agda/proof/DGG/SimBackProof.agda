@@ -16,22 +16,24 @@ module proof.DGG.SimBackProof
 --     M2ChildStatements.agda, M2-child-statements.md), where
 --     `pre = wfΔ , wfΔ′ , wfW`.  The remaining holes are the IH's
 --     `WfWorld` premise at the premise worlds (`Wᵢ`, `W ⊕ᴸ`), see
---     M2-child-statements.md §Misfits.  (Since design.md D26 the
---     opened world's `WfWorld` is a premise of `⊑⟪⟫`, and the former
---     `∀⊑⟪+⟫` cases are the `⊑⟪⟫` cases with an opening.)
+--     M2-child-statements.md §Misfits.  (Since design.md D27 the
+--     interior world's `WfWorldπ` is a premise of `⊑⟪⟫`, and the former
+--     `∀⊑⟪+⟫` cases, D26's openings, are the `⊑⟪⟫` cases with a push.)
 --   * The one-sided LEFT rules (`cast⊑`, `ν⊑`, `⟪⟫⊑`, `Λ⊑`) relate a
 --     left wrapper to an arbitrary right term: every right step goes to
 --     the IH on the premise.  `blame⊑` is finished (the left is blame
 --     already), and so are the two right blame steps under a one-sided
---     RIGHT wrapper (`⊑cast` × Blame-cast, `⊑⟪⟫` with no opening ×
+--     RIGHT wrapper (`⊑cast` × Blame-cast, `⊑⟪⟫` with no push ×
 --     Blame-⟪⟫), by
 --     `catchupBlame` on the premise.  `CatchupLeft` is called here, in
 --     the ξ-·₂ case, at the same world as the IH.
 --   * Orientation: the LEFT term is the more precise one.
 
-open import Data.List using ([])
+open import Data.List using ([]; _∷_)
+open import Data.List.Relation.Unary.All using ([]; _∷_)
 open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Relation.Binary.PropositionalEquality using (refl)
 
 open import Ctx using (WfCtx)
@@ -39,7 +41,10 @@ open import Boundary
   using (interior-functional; bw-interior-wf; bw-interior; _⊢ⁱ_⇒_)
 open import Terms
 open import Reduction
-open import ImprecisionWorld using (World; int-left; int-right; liftᴸ-[])
+open import ImprecisionWorld
+  using (World; ⌈_⌉; wπ; _⊑ᵂ⟨_⟩_; _⊑ᵂπ⟨_⟩_; int-left; int-right;
+         liftᴸ-[]; wfπ-base)
+open import proof.DGG.RunFrames using (value-run≡)
 open import TermImprecision
 open import proof.TypeSafety.PreservationSupport using (wf-underΛ)
 open import proof.DGG.SimBackDef using (SimBack)
@@ -52,12 +57,31 @@ bdy-wfᵢ (bdy-ty mw ⊢c eqᵢ eqₑ wB) = bw-interior-wf mw
 bdy-int : ∀ {Δ Θ Δᵢ Bᵢ c Bₑ} → BdyTy Δ Θ Δᵢ Bᵢ c Bₑ → Δ ⊢ⁱ Θ ⇒ Δᵢ
 bdy-int (bdy-ty mw ⊢c eqᵢ eqₑ wB) = bw-interior mw
 
--- the left context after the openings of `⊑⟪⟫` is well formed
-opens-wf : ∀ {Δ Δ′ Δ⁺ Θ′} {W : World Δ Δ′} {W⁺ : World Δ⁺ Δ′}
-    {M M₀ A A₀}
-  → WfCtx Δ → Opens Θ′ W M A W⁺ M₀ A₀ → WfCtx Δ⁺
-opens-wf wfΔ open-none = wfΔ
-opens-wf wfΔ (open-∀ nv occ v ⊢V i fr o os) = opens-wf (wf-underΛ wfΔ) os
+-- a value related to blame with no pending name runs to blame
+-- (CatchupBlame), which a value cannot do
+value-¬⊑blame : ∀ {Δ Δ′} {W : World Δ Δ′} {V ℓ A A′}
+    {p : A ⊑ᵂ⟨ W ⟩ A′}
+  → Value V → ⌈ W ⌉ ∣ [] ⊢ V ⊑ blame ℓ ∶ p → ⊥
+value-¬⊑blame v d with catchupBlame d
+value-¬⊑blame v d | ℓ′ , r with value-run≡ v r
+value-¬⊑blame (V-simple ()) d | ℓ′ , r | refl
+
+-- under a pending name nothing is related to blame: every rule allowed
+-- there has a value on the left, and the last pop leaves a value
+-- related to blame with no pending name (design.md D27)
+pending-¬⊑blame : ∀ {Δ Δ′} {W : World Δ Δ′} {k π M ℓ A A′}
+    {p : A ⊑ᵂπ⟨ wπ W (k ∷ π) ⟩ A′}
+  → wπ W (k ∷ π) ∣ [] ⊢ M ⊑ blame ℓ ∶⟨ A , A′ ⟩ p → ⊥
+pending-¬⊑blame (cast⊑ {B = B} {A′ = A′} (cc-∀ v cc) d ct q) =
+  pending-¬⊑blame {A = B} {A′ = A′} d
+pending-¬⊑blame (cast⊑ (cc-gen v) d ct q) = value-¬⊑blame v d
+pending-¬⊑blame {π = []} (Λ⊑ (claim-pop o) nv occ liftᴸ-[] v d q) =
+  value-¬⊑blame v d
+pending-¬⊑blame {π = _ ∷ _}
+    (Λ⊑ {A = A} {B′ = B′} (claim-pop o) nv occ liftᴸ-[] v d q) =
+  pending-¬⊑blame {A = A} {A′ = B′} d
+pending-¬⊑blame (⟪⟫⊑ {Aᵢ = Aᵢ} {A′ = A′} i (bc-∀ s fc) wi d b q) =
+  pending-¬⊑blame {A = Aᵢ} {A′ = A′} d
 
 simBack : SimBack
 -- no rule relates a variable at γ = []
@@ -131,9 +155,9 @@ simBack wfΔ wfΔ′ wfW (cast⊑cast d ct ct′ q) (ξ-cast st′) | ih =
 ------------------------------------------------------------------------
 -- cast⊑: whatever the right step, the IH on the premise
 
-simBack wfΔ wfΔ′ wfW (cast⊑ d ct q) st′
+simBack wfΔ wfΔ′ wfW (cast⊑ cc-plain d ct q) st′
     with simBack wfΔ wfΔ′ wfW d st′
-simBack wfΔ wfΔ′ wfW (cast⊑ d ct q) st′ | ih =
+simBack wfΔ wfΔ′ wfW (cast⊑ cc-plain d ct q) st′ | ih =
   {! SimBackFrame-cast⊑: simBackFrame-cast⊑ pre ct q ih !}
 
 ------------------------------------------------------------------------
@@ -168,10 +192,10 @@ simBack wfΔ wfΔ′ wfW (⊑cast d ct′ q) (ξ-cast st′) | ih =
 ------------------------------------------------------------------------
 -- Λ⊑: whatever the right step, the IH at W ⊕ᴸ
 
-simBack wfΔ wfΔ′ wfW (Λ⊑ nv occ liftᴸ-[] v d q) st′
+simBack wfΔ wfΔ′ wfW (Λ⊑ claim-fresh nv occ liftᴸ-[] v d q) st′
     with simBack (wf-underΛ wfΔ) wfΔ′
            {! WfWorld (W ⊕ᴸ): an AllocImp-style lemma !} d st′
-simBack wfΔ wfΔ′ wfW (Λ⊑ nv occ liftᴸ-[] v d q) st′ | ih =
+simBack wfΔ wfΔ′ wfW (Λ⊑ claim-fresh nv occ liftᴸ-[] v d q) st′ | ih =
   {! SimBackFrame-Λ⊑: simBackFrame-Λ⊑ pre nv occ v q ih !}
 
 ------------------------------------------------------------------------
@@ -225,46 +249,52 @@ simBack wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st
 ------------------------------------------------------------------------
 -- ⟪⟫⊑: whatever the right step, the IH at the interior world
 
-simBack wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) st′
+simBack wfΔ wfΔ′ wfW (⟪⟫⊑ int bc-plain wi d b q) st′
     with simBack (bdy-wfᵢ b) wfΔ′
-           wi d st′
-simBack wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) st′ | ih =
+           (wfπ-base wi) d st′
+simBack wfΔ wfΔ′ wfW (⟪⟫⊑ int bc-plain wi d b q) st′ | ih =
   {! SimBackFrame-⟪⟫⊑: simBackFrame-⟪⟫⊑ pre int b q ih !}
 
 ------------------------------------------------------------------------
--- ⊑⟪⟫ (the right boundary is one-sided; generalized by design.md D26:
--- `os` opens the left ∀-value zero or more times, which subsumes the
--- former ∀⊑⟪+⟫ case)
+-- ⊑⟪⟫ (the right boundary is one-sided; design.md D27: `pu` carries no
+-- pending name in (the conclusion is at `⌈ W ⌉`) and may push new ones,
+-- which subsumes the former ∀⊑⟪+⟫ case and D26's openings)
 
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int os wi d b′ q)
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int pu wi d b′ q)
     (Merge w ri r₁ r₂ r⋉ sc₁ sc₂) =
-  {! SimBackBoundary-Merge (with openings: RightMergeOpens):
-       simBackMerge pre (⊑⟪⟫ int os wi d b′ q) w ri r₁ r₂ r⋉ sc₁ sc₂ !}
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int os wi d b′ q) (Id u base) =
-  {! SimBackBoundary-Id: simBackId pre (⊑⟪⟫ int os wi d b′ q) u base !}
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int os wi d b′ q) (IdDyn w g) =
-  {! SimBackBoundary-IdDyn: simBackIdDyn pre (⊑⟪⟫ int os wi d b′ q)
+  {! SimBackBoundary-Merge (with a push: RightMergePending):
+       simBackMerge pre (⊑⟪⟫ int pu wi d b′ q) w ri r₁ r₂ r⋉ sc₁ sc₂ !}
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int pu wi d b′ q) (Id u base) =
+  {! SimBackBoundary-Id: simBackId pre (⊑⟪⟫ int pu wi d b′ q) u base !}
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int pu wi d b′ q) (IdDyn w g) =
+  {! SimBackBoundary-IdDyn: simBackIdDyn pre (⊑⟪⟫ int pu wi d b′ q)
        w g !}
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int os wi d b′ q)
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int pu wi d b′ q)
     (IdDyn-var w eq ri rc same) =
   {! SimBackBoundary-IdDynVar: simBackIdDynVar pre
-       (⊑⟪⟫ int os wi d b′ q) w eq ri rc same !}
--- no opening: the premise relates M to blame
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int open-none wi d b′ q) Blame-⟪⟫ =
+       (⊑⟪⟫ int pu wi d b′ q) w eq ri rc same !}
+-- no push: the premise relates M to blame
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int (push ca-[] [] nv) wi d b′ q) Blame-⟪⟫ =
   inj₂ (catchupBlame d)
--- an opening: the premise relates the opened image to blame, the left
--- is a VALUE
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int (open-∀ nv occ v ⊢V i fr o os) wi d b′ q)
+-- a push: the premise relates the left VALUE to blame under pending
+-- names, which no derivation does
+simBack wfΔ wfΔ′ wfW
+    (⊑⟪⟫ {A = A} {A′ᵢ = A′ᵢ} int (push ca-[] (f ∷ fs) v) wi d b′ q)
     Blame-⟪⟫ =
-  inj₂ {! SimBackCast-ToBlame (but the left is a VALUE, see the notes):
-            simBackToBlame pre
-              (⊑⟪⟫ int (open-∀ nv occ v ⊢V i fr o os) wi d b′ q)
-              Blame-⟪⟫ !}
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int os wi d b′ q) (ξ-⟪⟫ ri st′)
+  ⊥-elim (pending-¬⊑blame {A = A} {A′ = A′ᵢ} d)
+-- the right interior steps: no push, the IH at the interior world
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int (push ca-[] [] nv) wi d b′ q) (ξ-⟪⟫ ri st′)
     with interior-functional ri (int-right int)
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int os wi d b′ q) (ξ-⟪⟫ ri st′)
-    | refl with simBack (opens-wf wfΔ os) (bdy-wfᵢ b′)
-                  wi d st′
-simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int os wi d b′ q) (ξ-⟪⟫ ri st′) | refl | ih =
-  {! SimBackFrame-⊑⟪⟫ (with openings: OpensEvolveᴿ, SimBackOpened):
-       simBackFrame-⊑⟪⟫ pre int os b′ q ih !}
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int (push ca-[] [] nv) wi d b′ q) (ξ-⟪⟫ ri st′)
+    | refl with simBack wfΔ (bdy-wfᵢ b′)
+                  (wfπ-base wi) d st′
+simBack wfΔ wfΔ′ wfW (⊑⟪⟫ int (push ca-[] [] nv) wi d b′ q) (ξ-⟪⟫ ri st′)
+    | refl | ih =
+  {! SimBackFrame-⊑⟪⟫: simBackFrame-⊑⟪⟫ pre int b′ q ih !}
+-- ... a push: the premise is under pending names, outside SimBack's
+-- statement (PushInstR, CatchupRightπ territory)
+simBack wfΔ wfΔ′ wfW
+    (⊑⟪⟫ int (push ca-[] (f ∷ fs) v) wi d b′ q) (ξ-⟪⟫ ri st′) =
+  {! SimBackFrame-⊑⟪⟫ (with a push: SimBack under pending names,
+       PendingOpenings.md §6): simBackFrame-⊑⟪⟫ pre int
+       (push ca-[] (f ∷ fs) v) b′ q st′ !}

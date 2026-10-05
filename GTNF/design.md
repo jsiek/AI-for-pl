@@ -1302,7 +1302,8 @@ Each one can be revisited on its own.
   from names, which coherence makes injective on rep. vars within a
   context, not from `ϱ` (Jeremy, 2026-10-03).
 
-- **D26 (one rule for right boundaries; replaces `∀⊑⟪+⟫`).**  The
+- **D26 (one rule for right boundaries; replaces `∀⊑⟪+⟫`;
+  `Opens` superseded by D27).**  The
   right-only boundary rule `⊑⟪⟫` takes a premise `Opens` that opens the
   left term zero or more times.  Each opening opens a left ∀-value at a
   right-only name, bound to `★`, that the right boundary introduces.
@@ -1316,7 +1317,30 @@ Each one can be revisited on its own.
   relates them, re-derives every earlier `∀⊑⟪+⟫` block, and does not
   change type imprecision (`GeneralizedRightBoundary.md`; alternatives
   considered: `FixA-MergedBoundary.md`, `FixB-BoundaryAbsorbs.md`;
-  Jeremy, 2026-10-03).
+  Jeremy, 2026-10-03).  D27 replaced `Opens` by pending names in the
+  world.
+
+- **D27 (pending names in the world; supersedes D26's `Opens`).**  A
+  world of `⊑` also carries its *pending* right names `πʷ`, next pop
+  first.  A pending name is right-only, bound to a `★` rep. var, at
+  `X⊑★`, and introduced by a right boundary that the left has not
+  matched yet.  `⊑⟪⟫` pushes such names (the left term must be a value)
+  and carries the older ones through its boundary.  `Λ⊑` pops the next
+  one: its binder joins that name (`Open1`).  `cast⊑` pops at a `gen`
+  cast and passes them on at a `∀` cast, and `⟪⟫⊑` passes them into a
+  `∀` boundary.  The type index opens one `∀` of the actual left type
+  per pending name.  Every other rule requires no pending name, so
+  top-level worlds have none.  What changed: `InstX` is out of the
+  relation (D26's openings related `inst_X V`, which is not a value),
+  and under a pending name the left term stays a value.  Jeremy asked
+  whether the openings could be part of the world; they are
+  (`ImprecisionWorld.Worldπ`).  The counterexample K and every corpus
+  block derive, K by push, pass and pop.  The alternative,
+  ★-embedding the right's name, was refuted: it relates `(λx:ℕ. x) 5`
+  to a right program that blames, a pair this relation leaves unrelated
+  (`cx-unrelated`).  Checked first as
+  `proof/DGG/notes/PendingOpenings.{agda,md}`; the refuted alternative
+  is `StarEmbedding.md` (Jeremy, 2026-10-05).
 
 The open design questions are those of the `⊑` sketch (§12.5).
 
@@ -1534,6 +1558,22 @@ environments, except through the types:
   W ∣ γ ⊢ M ⊑ M′ ⟨p′⟩ : A ⊑ A′
 ```
 
+With pending names (D27), `⊑cast` carries them unchanged, and `cast⊑`
+has two more forms, for a value `M`:
+
+```
+  W, Y·π ∣ γ ⊢ M ⊑ M′ : B ⊑ A′        p : B ⇒ A
+  ────────────────────────────────────────────── (cast⊑, pass ∀)
+  W, Y·π ∣ γ ⊢ M ⟨∀X.p⟩ ⊑ M′ : A ⊑ A′
+
+  W ∣ γ ⊢ M ⊑ M′ : B ⊑ A′        gen X.p : B ⇒ A
+  ────────────────────────────────────────────── (cast⊑, pop gen)
+  W, Y ∣ γ ⊢ M ⟨gen X.p⟩ ⊑ M′ : A ⊑ A′
+```
+
+The gen pop leaves the base world unchanged: the value under a `gen`
+does not see the binder.  One gen pops one name.
+
 **Type abstraction** (GTSFImp `Λ⊑Λ²`, `Λ⊑²`), plus one new rule.
 `Λ⊑` keeps the right term unweakened: the right side does not bind
 `X`, so `η′` simply does not reach the new center name.
@@ -1544,13 +1584,24 @@ environments, except through the types:
   W ∣ γ ⊢ ΛX.V ⊑ ΛX.V′ : ∀X.A ⊑ ∀X.A′
 
   W ⊕ᴸ X ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
-  ──────────────────────────────────────────────────────── (Λ⊑)
+  ──────────────────────────────────────────────────────── (Λ⊑, fresh)
   W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
+
+  W[X ↦ Y], π ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
+  ───────────────────────────────────────────────────────── (Λ⊑, pop)
+  W, Y·π ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
 ```
 
+Here `W, π` is a world with the pending names `π` (D27), and `W` alone
+means no pending name.  In the pop, `Y` is the next pending name and
+`W[X ↦ Y]` joins the binder `X` to it (`Open1`).  The left's abstract
+rep. var is paired lexically with `Y`'s `β:=★`.  The type `∀X.A ⊑ B′`
+of a world with pending names is read with one `∀` opened per pending
+name.
+
 The rule that relates a left ∀-value to a right `Inst` boundary, first
-`∀⊑⟪+⟫` (D14, D22), is now an instance of the generalized `⊑⟪⟫` below
-(D26).
+`∀⊑⟪+⟫` (D14, D22), then an opening of `⊑⟪⟫` (D26), is now a push of
+`⊑⟪⟫` followed by a pop (D27).
 
 **Instantiation** (GTSFImp `•⊑•²`, `•⊑²`).  The compiled form of
 `M [A]` is a `ν`, so the two type applications become:
@@ -1580,32 +1631,60 @@ coercions, they are not compared with each other:
   ───────────────────────────────────────────────────────────── (⟪⟫⊑⟪⟫)
   W ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
 
-  W[δ ∥ ·] ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′    c : Aᵢ ⇒ A
-  ───────────────────────────────────────────── (⟪⟫⊑)
-  W ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ M′ : A ⊑ A′
+  W[δ ∥ ·], π ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′    c : Aᵢ ⇒ A
+  π = [] or (M simple and c has a ∀ per name of π)
+  ───────────────────────────────────────────── (⟪⟫⊑, D27)
+  W, π ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ M′ : A ⊑ A′
 
-  Opens(W[· ∥ δ′], M) = (Wᵢ⁺, M₀ : A₀)    Wᵢ⁺ well formed
-  Wᵢ⁺ ∣ [] ⊢ M₀ ⊑ M′ : A₀ ⊑ A′ᵢ    c′ : A′ᵢ ⇒ A′
-  ───────────────────────────────────────────── (⊑⟪⟫, D26)
-  W ∣ γ ⊢ M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
-
-  Opens: zero or more openings of the left term, each
-    M a ∀-value ∀X.A₁ (A₁ not a variable, X ∈ A₁)
-    M₀ = inst_X(M), and X joined (ϱˡ) to a right-only name k that δ′
-    introduces, bound to a rep. var := ★
+  W[· ∥ δ′], π′ ++ new ∣ [] ⊢ M ⊑ M′ : A ⊑ A′ᵢ    c′ : A′ᵢ ⇒ A′
+  π′ = π seen inside δ′    new introduced by δ′    new = [] or M a value
+  ───────────────────────────────────────────── (⊑⟪⟫, D27)
+  W, π ∣ γ ⊢ M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
 ```
 
-`⊑⟪⟫` sees the left term from inside the right's boundary.  With no
-opening it is the plain right-only boundary rule.  With one opening it
-relates a left ∀-value to a right `Inst` boundary: the right has
-already instantiated a value at `★` through `Inst`, while the left
-still holds the uninstantiated ∀-value (Example P3).  Because `δ′` is
-arbitrary, the same rule covers an `Inst` boundary that has merged
-with an inner boundary (the counterexample of D26).  The rule never
-looks inside `c′`.  The names to open are determined: exactly those
-that `δ′` introduces, bound to `★`, right-only, and free in the interior
-type, because `X ⊑ X` is the only type rule with a variable on the
-right (`proof/DGG/notes/GeneralizedRightBoundary.md`).
+`⊑⟪⟫` PUSHES names that `δ′` introduces.  Each is right-only, bound to
+a rep. var `:=★`, and at `X⊑★`: the interior world's well-formedness
+says so.  A pending name is a right name position, so `⟪⟫⊑` passes it
+into the left boundary unchanged; `⊑⟪⟫` carries it through `δ′` to its
+interior position.  A name that `δ′` unbinds has no interior position,
+so it must be popped first.  With no pending name these are the plain
+one-sided boundary rules.  For the right's `Inst` boundary against a
+left ∀-value (Example P3), `⊑⟪⟫` pushes the boundary's name and `Λ⊑`
+pops it.  The left stays the ∀-value: no `inst_X` appears in the
+relation, and under a pending name the left term is a value.
+
+The counterexample of D26 is `(λf:∀X.X→X. f)(K[ℕ])` against
+`(λf:★→★. f)(K[ℕ])`, with `K = ΛY.ΛX.λx:X.x`.  After the right's `Inst`
+and `Merge`, its final pair `VL ⊑ RF` is related by a push, a pass and
+a pop.  Its ladder, generated by
+`scripts/render_gtnf.sh 'impLadder VL⊑RF' …` (`examples/ImpLadder.agda`,
+where it is pinned):
+
+```
+W0 = the conclusion's world
+  ⟨⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]
+W1 = Interior W0
+  ⟨Y: ─ ⊑[X⊑★] Y^β │ X: ─ ⊑[X⊑X] X^α⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]  πʷ = [Y^β]
+W2 = Interior W1
+  ⟨Y: ─ ⊑[X⊑★] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]  πʷ = [Y^β]
+W3 = Open1 W2: pop Y^β
+  ⟨Y: Y^β ⊑[X⊑★] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {β⇔β}  Ξᴸ = [α:=ℕ, β abst]  Ξᴿ = [α:=ℕ, β:=★]
+W   left term                       A        ηᴸA      ⊑                ηᴿA′  A′   right term
+──  ──────────────────────────────  ───────  ───────  ───────────────  ────  ───  ────────────────────────
+W0  ─                               ∀X. X→X  ∀X. X→X  ∀X⊑★. X⊑★ → X⊑★  ★→★   ★→★  □⟨id(★) → id(★)⟩^[]
+W0  ─ (push Y^β)                    ∀X. X→X  ∀X. X→X  ∀X⊑★. X⊑★ → X⊑★  ★→★   ★→★  [+Y^β, +X^α] □ ⟨−Y → +Y⟩
+W1  [+X^α] □ ⟨∀Y. (id(Y) → id(Y))⟩  ∀X. X→X  Y→Y      Y⊑Y → Y⊑Y        Y→Y   Y→Y  ─ (pass Y^β)
+W2  ΛY. □                           ∀Y. Y→Y  Y→Y      Y⊑Y → Y⊑Y        Y→Y   Y→Y  ─ (pop Y^β)
+W3  λx:Y. □                         Y→Y      Y→Y      Y⊑Y → Y⊑Y        Y→Y   Y→Y  λx:Y. □
+W3  x                               Y        Y        Y⊑Y              Y     Y    x
+```
+
+The push is a choice: the rule does not say which introduced names to
+push, and the index decides (`PendingOpenings.md` §6).
 
 In `⟪⟫⊑` and `⊑⟪⟫`, the term without the boundary is in the premise
 at `γ = []`, so it must be term-closed as well.  That holds at run

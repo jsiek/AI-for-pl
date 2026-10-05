@@ -1,6 +1,13 @@
 # Pending openings: one relation, the openings carried in the world
 
-Status: 2026-10-04.  Agda: `PendingOpenings.agda` (this directory).  It
+Status: ADOPTED as design.md D27 (Jeremy, 2026-10-05): the relation now
+lives in TermImprecision.agda (world `Worldπ` in ImprecisionWorld §9),
+and K, the corpus and §5's regression facts are in examples/.  The
+prototype below checked against the D26 relation (commit 46f04f4f); its
+§2 `tr` reads D26's `Opens`, so the Agda file no longer checks after
+the adoption.  It is kept as the record of the check.
+
+Original status: 2026-10-04.  Agda: `PendingOpenings.agda` (this directory).  It
 checks with `agda --safe -v0` from `GTNF/agda`, with no holes and no
 postulates.  It is not a Def module, and All.agda does not import it.
 No other file was edited.  LEFT is the more precise side.  Type

@@ -21,7 +21,7 @@ open import Coercion using (Label)
 open import Terms using (Term; Value; blame; _∣_⊢_⦂_)
 open import Reduction using (_⊢_-→_∣_; _⊢_-→*_; _then_; runCtx)
 open import ImprecisionWorld
-  using (World; WfWorld; _⊑ᵂ⟨_⟩_; CtxImp; lhs; rhs)
+  using (World; ⌈_⌉; WfWorld; _⊑ᵂ⟨_⟩_; CtxImp; lhs; rhs)
 open import TermImprecision using (_∣_⊢_⊑_∶_)
 open import proof.DGG.Evolve
   using (_⟿[_∣_]_; applyˢ; allocs; _++ʳ_; ↑ᴹ*[_])
@@ -30,12 +30,12 @@ SimBack : Set
 SimBack = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {M M′ N′ : Term} {A A′ : Ty}
             {p : A ⊑ᵂ⟨ W ⟩ A′} {ξ′ : Alloc}
   → WfCtx Δ → WfCtx Δ′ → WfWorld W
-  → W ∣ [] ⊢ M ⊑ M′ ∶ p
+  → ⌈ W ⌉ ∣ [] ⊢ M ⊑ M′ ∶ p
   → (st′ : Δ′ ⊢ M′ -→ N′ ∣ ξ′)
   → (∃[ N₂ ] ∃[ N₂′ ] Σ[ r ∈ Δ ⊢ M -→* N₂ ]
        Σ[ r″ ∈ apply ξ′ Δ′ ⊢ N′ -→* N₂′ ]
        Σ[ W′ ∈ World (applyˢ (allocs r) Δ)
                      (applyˢ (allocs (st′ then r″)) Δ′) ]
          (W ⟿[ allocs r ∣ allocs (st′ then r″) ] W′) × WfWorld W′
-         × Σ[ q ∈ A ⊑ᵂ⟨ W′ ⟩ A′ ] (W′ ∣ [] ⊢ N₂ ⊑ N₂′ ∶ q))
+         × Σ[ q ∈ A ⊑ᵂ⟨ W′ ⟩ A′ ] (⌈ W′ ⌉ ∣ [] ⊢ N₂ ⊑ N₂′ ∶ q))
     ⊎ (∃[ ℓ ] (Δ ⊢ M -→* blame ℓ))

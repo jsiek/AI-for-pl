@@ -17,12 +17,11 @@ module proof.DGG.CatchupRightProof (evolveImp : EvolveImp) where
 --     TagUntag) or outer boundary (Merge, Id, IdDyn, IdDyn-var) fires.
 --     Those outer steps, and the transport of the frame's side premises
 --     (CastTy, BdyTy, Interior, q) along the evolution, are the holes.
---   * `⊑⟪⟫` with an opening (design.md D26; formerly `∀⊑⟪+⟫`) has no
---     IH: its premise relates `N = inst_X V`, which is NOT a value in
---     general (`inst-gen`, `inst-∀` leave a cast with an arbitrary
---     coercion, `inst-⟪⟫` a boundary with an arbitrary conversion), so
---     CatchupRight's own IH does not apply.  The opened world's
---     `WfWorld` is now a premise of the rule.
+--   * `⊑⟪⟫` with a push (design.md D27; formerly D26's openings and
+--     `∀⊑⟪+⟫`) has no IH: its premise is under pending names, outside
+--     CatchupRight's statement at `⌈ W ⌉`.  The left term stays a VALUE
+--     there (no InstX image), so the generalization `CatchupRightπ`
+--     (PendingOpenings.md §6) is the obligation.
 --   * `unliftᴸ`: an evolution of `W ⊕ᴸ` with no left allocation is an
 --     evolution of W, lifted (`allocᴿ` commutes with `⊕ᴸ`); this closes
 --     `Λ⊑` but for the IH's premise `WfWorld (W ⊕ᴸ)` (Misfit 3).
@@ -32,6 +31,7 @@ module proof.DGG.CatchupRightProof (evolveImp : EvolveImp) where
 --   * Orientation: the LEFT term is the more precise one.
 
 open import Data.List using ([]; _∷_)
+open import Data.List.Relation.Unary.All using ([]; _∷_)
 open import Data.Nat using (suc)
 open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality
@@ -43,7 +43,7 @@ open import Reduction
 open import Imprecision using (X⊑★)
 open import ImprecisionWorld
   using (World; world; _⊕ᴸ; allocᴿ; keep; skip; relabel; RepRel;
-         shiftᴸ; shiftᴿ; int-right; liftᴸ-[])
+         shiftᴸ; shiftᴿ; int-right; liftᴸ-[]; wfπ-base)
 open import TermImprecision
 open import proof.TypeSafety.PreservationSupport using (wf-underΛ)
 open import Boundary using (bw-interior-wf)
@@ -135,14 +135,14 @@ catchup-right wfΔ wfΔ′ wfW v (cast⊑cast d ct ct′ q)
      q′ = q at W₁ (evolveImp) !}
 
 -- the left cast is one-sided: the right is the IH's
-catchup-right wfΔ wfΔ′ wfW v (cast⊑ d ct q)
+catchup-right wfΔ wfΔ′ wfW v (cast⊑ cc-plain d ct q)
     with catchup-right wfΔ wfΔ′ wfW (cast-value v) d
-catchup-right wfΔ wfΔ′ wfW v (cast⊑ d ct q)
+catchup-right wfΔ wfΔ′ wfW v (cast⊑ cc-plain d ct q)
     | V₁′ , r , v₁′ , W₁ , ev , wf₁ , q₁ , d₁ =
-  V₁′ , r , v₁′ , W₁ , ev , wf₁ , q′ , cast⊑ d₁ ct q′
+  V₁′ , r , v₁′ , W₁ , ev , wf₁ , q′ , cast⊑ cc-plain d₁ ct q′
   where
   -- the left allocates nothing, so only q moves
-  q′ = proj₁ (proj₂ (evolveImp wfΔ wfΔ′ ev wfW (cast⊑ d ct q)))
+  q′ = proj₁ (proj₂ (evolveImp wfΔ wfΔ′ ev wfW (cast⊑ cc-plain d ct q)))
 
 catchup-right wfΔ wfΔ′ wfW v (⊑cast d ct′ q)
     with catchup-right wfΔ wfΔ′ wfW v d
@@ -157,19 +157,19 @@ catchup-right wfΔ wfΔ′ wfW v (⊑cast d ct′ q)
 
 -- the IH at W ⊕ᴸ; its evolution has no left allocation, so it ends
 -- at `W′ ⊕ᴸ` for an evolution `W ⟿[ [] ∣ allocs r ] W′` (unliftᴸ)
-catchup-right wfΔ wfΔ′ wfW v (Λ⊑ nv occ liftᴸ-[] vV d q)
+catchup-right wfΔ wfΔ′ wfW v (Λ⊑ claim-fresh nv occ liftᴸ-[] vV d q)
     with catchup-right (wf-underΛ wfΔ) wfΔ′
            {! WfWorld (W ⊕ᴸ): an AllocImp-style lemma !} vV d
-catchup-right wfΔ wfΔ′ wfW v (Λ⊑ nv occ liftᴸ-[] vV d q)
+catchup-right wfΔ wfΔ′ wfW v (Λ⊑ claim-fresh nv occ liftᴸ-[] vV d q)
     | V′ , r , v′ , W₁ , ev , wf₁ , q₁ , d₁
     with unliftᴸ refl ev
-catchup-right wfΔ wfΔ′ wfW v (Λ⊑ nv occ liftᴸ-[] vV d q)
+catchup-right wfΔ wfΔ′ wfW v (Λ⊑ claim-fresh nv occ liftᴸ-[] vV d q)
     | V′ , r , v′ , _ , ev , wf₁ , q₁ , d₁ | W′ , ev′ , refl =
   V′ , r , v′ , W′ , ev′ , proj₁ e , proj₁ (proj₂ e) ,
-  Λ⊑ nv occ liftᴸ-[] vV d₁ (proj₁ (proj₂ e))
+  Λ⊑ claim-fresh nv occ liftᴸ-[] vV d₁ (proj₁ (proj₂ e))
   where
   -- WfWorld W′ and q at W′ (the left allocates nothing)
-  e = evolveImp wfΔ wfΔ′ ev′ wfW (Λ⊑ nv occ liftᴸ-[] vV d q)
+  e = evolveImp wfΔ wfΔ′ ev′ wfW (Λ⊑ claim-fresh nv occ liftᴸ-[] vV d q)
 
 ------------------------------------------------------------------------
 -- boundaries (the interior is term-closed; IH at Wᵢ, premise wi)
@@ -186,32 +186,31 @@ catchup-right wfΔ wfΔ′ wfW v (⟪⟫⊑⟪⟫ {c′ = c′} int wi d b b′ 
      r⟪⟫ the right boundary c′ on the value V₁′ fires (Merge, Id,
      IdDyn, IdDyn-var) !}
 
-catchup-right wfΔ wfΔ′ wfW v (⟪⟫⊑ int wi d b q)
-    with catchup-right (bdy-wfᵢ b) wfΔ′ wi (⟪⟫-value v) d
-catchup-right wfΔ wfΔ′ wfW v (⟪⟫⊑ int wi d b q)
+catchup-right wfΔ wfΔ′ wfW v (⟪⟫⊑ int bc-plain wi d b q)
+    with catchup-right (bdy-wfᵢ b) wfΔ′ (wfπ-base wi) (⟪⟫-value v) d
+catchup-right wfΔ wfΔ′ wfW v (⟪⟫⊑ int bc-plain wi d b q)
     | V′ , r , v′ , Wᵢ′ , ev , wfᵢ′ , q₁ , d₁ =
   {! BdyLift: lift ev to W ⟿[ [] ∣ allocs r ] W′ with
      Interior W′ Θ [] Wᵢ′ and WfWorld W′ (AllocImp); then
-     `⟪⟫⊑ int′ wfᵢ′ d₁ b q′` !}
+     `⟪⟫⊑ int′ bc-plain wfᵢ′ d₁ b q′` !}
 
--- ⊑⟪⟫ (generalized by design.md D26).  No opening: the IH on the
--- premise.  An opening (the former ∀⊑⟪+⟫): no IH, the premise relates
--- the opened image `inst_X V`, which is NOT a value in general (see the
--- charter); the right interior runs to a value with that image fixed
--- (D22 excludes blame), then the right boundary's conversion fires.
-catchup-right wfΔ wfΔ′ wfW v (⊑⟪⟫ {c′ = c′} int open-none wi d b′ q)
-    with catchup-right wfΔ (bdy-wfᵢ b′) wi v d
-catchup-right wfΔ wfΔ′ wfW v (⊑⟪⟫ {c′ = c′} int open-none wi d b′ q)
+-- ⊑⟪⟫ (design.md D27).  No push: the IH on the premise.  A push (the
+-- former ∀⊑⟪+⟫, D26's openings): no IH, the premise is under pending
+-- names, outside CatchupRight's statement; the left is a VALUE there
+-- (`CatchupRightπ`, proof/DGG/notes/PendingOpenings.md §6).
+catchup-right wfΔ wfΔ′ wfW v (⊑⟪⟫ {c′ = c′} int (push ca-[] [] nv) wi d b′ q)
+    with catchup-right wfΔ (bdy-wfᵢ b′) (wfπ-base wi) v d
+catchup-right wfΔ wfΔ′ wfW v (⊑⟪⟫ {c′ = c′} int (push ca-[] [] nv) wi d b′ q)
     | V₁′ , r , v₁′ , Wᵢ′ , ev , wfᵢ′ , q₁ , d₁
     with ξ-⟪⟫* {c = c′} (int-right int) r
-catchup-right wfΔ wfΔ′ wfW v (⊑⟪⟫ {c′ = c′} int open-none wi d b′ q)
+catchup-right wfΔ wfΔ′ wfW v (⊑⟪⟫ {c′ = c′} int (push ca-[] [] nv) wi d b′ q)
     | V₁′ , r , v₁′ , Wᵢ′ , ev , wfᵢ′ , q₁ , d₁ | Θ″ , r⟪⟫ =
   {! BdyTail: lift ev to W ⟿[ [] ∣ allocs r ] W′ with
      Interior W′ [] Θ″ Wᵢ′ (AllocImp), move b′, q; then after r⟪⟫
      the right boundary c′ on the value V₁′ fires (Merge, Id, IdDyn,
      IdDyn-var) !}
 catchup-right wfΔ wfΔ′ wfW v
-    (⊑⟪⟫ int (open-∀ nvA zA vV ⊢V inst fr o os) wi d b′ q) =
-  {! CatchupRightᴳ (GeneralizedRightBoundary §4): a catch-up of the
-     right interior against the non-value opened image N = inst_X V
-     (premise world WfWorld wi is now a premise) !}
+    (⊑⟪⟫ int (push ca-[] (f ∷ fs) vM) wi d b′ q) =
+  {! CatchupRightπ (PendingOpenings.md §6): a catch-up of the right
+     interior against the left VALUE under the pushed pending names
+     (premise world WfWorldπ wi) !}

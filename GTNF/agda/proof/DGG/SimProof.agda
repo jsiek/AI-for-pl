@@ -21,8 +21,10 @@ module proof.DGG.SimProof (catchupRight : CatchupRight) where
 --     argument; the child SimFrame-·₂ combines the two runs).
 --   * Orientation: the LEFT term is the more precise one.
 
-open import Data.List using ([])
+open import Data.List using ([]; _∷_)
+open import Data.List.Relation.Unary.All using ([]; _∷_)
 open import Data.Product using (_,_)
+open import Data.Sum using (inj₁; inj₂)
 open import Data.Empty using (⊥-elim)
 open import Relation.Binary.PropositionalEquality using (refl)
 
@@ -30,7 +32,7 @@ open import Ctx using (WfCtx)
 open import Boundary using (interior-functional; bw-interior-wf)
 open import Terms
 open import Reduction
-open import ImprecisionWorld using (int-left; int-right)
+open import ImprecisionWorld using (int-left; int-right; wfπ-base)
 open import TermImprecision
 open import proof.DGG.SimDef using (Sim)
 
@@ -48,7 +50,7 @@ sim wfΔ wfΔ′ wfW (κ⊑κ lit-false p) ()
 sim wfΔ wfΔ′ wfW (ƛ⊑ƛ wA wA′ d) ()
 sim wfΔ wfΔ′ wfW (blame⊑ wA ⊢M′ p) ()
 sim wfΔ wfΔ′ wfW (Λ⊑Λ lift v v′ d q) ()
-sim wfΔ wfΔ′ wfW (Λ⊑ nv occ lift v d q) ()
+sim wfΔ wfΔ′ wfW (Λ⊑ cl nv occ lift v d q) ()
 
 ------------------------------------------------------------------------
 -- ·⊑·
@@ -110,29 +112,30 @@ sim wfΔ wfΔ′ wfW (cast⊑cast d ct ct′ q) (ξ-cast st)
 -- cast⊑ (the left cast is one-sided; the right stays unless a child
 -- needs it to catch up)
 
-sim wfΔ wfΔ′ wfW (cast⊑ d ct q) (CastId v) =
-  {! SimCast-CastId: simCastId pre (cast⊑ d ct q) v !}
-sim wfΔ wfΔ′ wfW (cast⊑ d ct q) (CastSeq v) =
-  {! SimCast-CastSeq: simCastSeq pre (cast⊑ d ct q) v !}
-sim wfΔ wfΔ′ wfW (cast⊑ d ct q) (CastSeq? v) =
-  {! SimCast-CastSeq?: simCastSeq? pre (cast⊑ d ct q) v !}
-sim wfΔ wfΔ′ wfW (cast⊑ d ct q) (Inst v) =
-  {! SimCast-Inst: simInst pre (cast⊑ d ct q) v !}
-sim wfΔ wfΔ′ wfW (cast⊑ d ct q) (TagUntag v) =
-  {! SimCast-TagUntag: simTagUntag pre (cast⊑ d ct q) v !}
-sim wfΔ wfΔ′ wfW (cast⊑ d ct q) (TagUntagBad v neq) =
-  {! SimCast-ToBlame: simToBlame pre (cast⊑ d ct q)
+sim wfΔ wfΔ′ wfW (cast⊑ cc-plain d ct q) (CastId v) =
+  {! SimCast-CastId: simCastId pre (cast⊑ cc-plain d ct q) v !}
+sim wfΔ wfΔ′ wfW (cast⊑ cc-plain d ct q) (CastSeq v) =
+  {! SimCast-CastSeq: simCastSeq pre (cast⊑ cc-plain d ct q) v !}
+sim wfΔ wfΔ′ wfW (cast⊑ cc-plain d ct q) (CastSeq? v) =
+  {! SimCast-CastSeq?: simCastSeq? pre (cast⊑ cc-plain d ct q) v !}
+sim wfΔ wfΔ′ wfW (cast⊑ cc-plain d ct q) (Inst v) =
+  {! SimCast-Inst: simInst pre (cast⊑ cc-plain d ct q) v !}
+sim wfΔ wfΔ′ wfW (cast⊑ cc-plain d ct q) (TagUntag v) =
+  {! SimCast-TagUntag: simTagUntag pre (cast⊑ cc-plain d ct q) v !}
+sim wfΔ wfΔ′ wfW (cast⊑ cc-plain d ct q) (TagUntagBad v neq) =
+  {! SimCast-ToBlame: simToBlame pre (cast⊑ cc-plain d ct q)
        (TagUntagBad v neq) !}
-sim wfΔ wfΔ′ wfW (cast⊑ d ct q) (TagUntagBad-⟪⟫ v fr) =
-  {! SimCast-ToBlame: simToBlame pre (cast⊑ d ct q)
+sim wfΔ wfΔ′ wfW (cast⊑ cc-plain d ct q) (TagUntagBad-⟪⟫ v fr) =
+  {! SimCast-ToBlame: simToBlame pre (cast⊑ cc-plain d ct q)
        (TagUntagBad-⟪⟫ v fr) !}
-sim wfΔ wfΔ′ wfW (cast⊑ d ct q) (BlameBotIntro v) =
-  {! SimCast-ToBlame: simToBlame pre (cast⊑ d ct q) (BlameBotIntro v) !}
-sim wfΔ wfΔ′ wfW (cast⊑ d ct q) Blame-cast =
-  {! SimCast-ToBlame: simToBlame pre (cast⊑ d ct q) Blame-cast !}
-sim wfΔ wfΔ′ wfW (cast⊑ d ct q) (ξ-cast st)
+sim wfΔ wfΔ′ wfW (cast⊑ cc-plain d ct q) (BlameBotIntro v) =
+  {! SimCast-ToBlame: simToBlame pre (cast⊑ cc-plain d ct q)
+       (BlameBotIntro v) !}
+sim wfΔ wfΔ′ wfW (cast⊑ cc-plain d ct q) Blame-cast =
+  {! SimCast-ToBlame: simToBlame pre (cast⊑ cc-plain d ct q) Blame-cast !}
+sim wfΔ wfΔ′ wfW (cast⊑ cc-plain d ct q) (ξ-cast st)
     with sim wfΔ wfΔ′ wfW d st
-sim wfΔ wfΔ′ wfW (cast⊑ d ct q) (ξ-cast st)
+sim wfΔ wfΔ′ wfW (cast⊑ cc-plain d ct q) (ξ-cast st)
     | N′ , r′ , W′ , ev , wf′ , q′ , dN =
   {! SimFrame-cast⊑: simFrame-cast⊑ pre ct q
        (N′ , r′ , W′ , ev , wf′ , q′ , dN) !}
@@ -203,39 +206,40 @@ sim wfΔ wfΔ′ wfW (⟪⟫⊑⟪⟫ int wi d b b′ bc q) (ξ-⟪⟫ ri st)
 ------------------------------------------------------------------------
 -- ⟪⟫⊑ (the left boundary is one-sided)
 
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (Merge v ri r₁ r₂ r⋉ sc₁ sc₂) =
-  {! SimBoundary-Merge: simMerge pre (⟪⟫⊑ int wi d b q)
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int bc-plain wi d b q) (Merge v ri r₁ r₂ r⋉ sc₁ sc₂) =
+  {! SimBoundary-Merge: simMerge pre (⟪⟫⊑ int bc-plain wi d b q)
        v ri r₁ r₂ r⋉ sc₁ sc₂ !}
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (Id u base) =
-  {! SimBoundary-Id: simId pre (⟪⟫⊑ int wi d b q) u base !}
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (IdDyn v g) =
-  {! SimBoundary-IdDyn: simIdDyn pre (⟪⟫⊑ int wi d b q) v g !}
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (IdDyn-var v eq ri rc same) =
-  {! SimBoundary-IdDynVar: simIdDynVar pre (⟪⟫⊑ int wi d b q)
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int bc-plain wi d b q) (Id u base) =
+  {! SimBoundary-Id: simId pre (⟪⟫⊑ int bc-plain wi d b q) u base !}
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int bc-plain wi d b q) (IdDyn v g) =
+  {! SimBoundary-IdDyn: simIdDyn pre (⟪⟫⊑ int bc-plain wi d b q) v g !}
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int bc-plain wi d b q) (IdDyn-var v eq ri rc same) =
+  {! SimBoundary-IdDynVar: simIdDynVar pre (⟪⟫⊑ int bc-plain wi d b q)
        v eq ri rc same !}
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) Blame-⟪⟫ =
-  {! SimCast-ToBlame: simToBlame pre (⟪⟫⊑ int wi d b q) Blame-⟪⟫ !}
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (ξ-⟪⟫ ri st)
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int bc-plain wi d b q) Blame-⟪⟫ =
+  {! SimCast-ToBlame: simToBlame pre (⟪⟫⊑ int bc-plain wi d b q) Blame-⟪⟫ !}
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int bc-plain wi d b q) (ξ-⟪⟫ ri st)
     with interior-functional ri (int-left int)
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (ξ-⟪⟫ ri st)
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int bc-plain wi d b q) (ξ-⟪⟫ ri st)
     | refl with sim (bdy-wfᵢ b) wfΔ′
-                    wi d st
-sim wfΔ wfΔ′ wfW (⟪⟫⊑ int wi d b q) (ξ-⟪⟫ ri st)
+                    (wfπ-base wi) d st
+sim wfΔ wfΔ′ wfW (⟪⟫⊑ int bc-plain wi d b q) (ξ-⟪⟫ ri st)
     | refl | N′ , r′ , W′ , ev , wf′ , q′ , dN =
   {! SimFrame-⟪⟫⊑: simFrame-⟪⟫⊑ pre int b q
        (N′ , r′ , W′ , ev , wf′ , q′ , dN) !}
 
 ------------------------------------------------------------------------
--- ⊑⟪⟫ (generalized by design.md D26).  With an opening the left term
--- is a ∀-value, which does not step (the former ∀⊑⟪+⟫ case); with no
--- opening, whatever the left step, the IH at the interior world.
+-- ⊑⟪⟫ (design.md D27).  A push makes the left term a value, which does
+-- not step (the former ∀⊑⟪+⟫ case, and D26's openings); with no push,
+-- whatever the left step, the IH at the interior world.
 
-sim wfΔ wfΔ′ wfW (⊑⟪⟫ int (open-∀ nv occ v ⊢V i fr o os) wi d b′ q) st =
+sim wfΔ wfΔ′ wfW (⊑⟪⟫ int (push ca-[] (f ∷ fs) (inj₂ v)) wi d b′ q) st =
   ⊥-elim (value-¬step v st)
-sim wfΔ wfΔ′ wfW (⊑⟪⟫ int open-none wi d b′ q) st
+sim wfΔ wfΔ′ wfW (⊑⟪⟫ int (push ca-[] (f ∷ fs) (inj₁ ())) wi d b′ q) st
+sim wfΔ wfΔ′ wfW (⊑⟪⟫ int (push ca-[] [] nv) wi d b′ q) st
     with sim wfΔ (bdy-wfᵢ b′)
-             wi d st
-sim wfΔ wfΔ′ wfW (⊑⟪⟫ int open-none wi d b′ q) st
+             (wfπ-base wi) d st
+sim wfΔ wfΔ′ wfW (⊑⟪⟫ int (push ca-[] [] nv) wi d b′ q) st
     | N′ , r′ , W′ , ev , wf′ , q′ , dN =
   {! SimFrame-⊑⟪⟫: simFrame-⊑⟪⟫ pre int b′ q
        (N′ , r′ , W′ , ev , wf′ , q′ , dN) !}

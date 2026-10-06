@@ -1974,6 +1974,140 @@ boundary rules.  The side relations are `Claim` (3 cases), `CastClaim`
 (3), `BdyClaim` (2), `Push` with `Carried` (D27), and `CastGrant` (D28).
 GTSFImp's `_∣_⊢²_⊑_∶_` has 22.
 
+### 12.3.1 Open: left values built by `gen` (TwoGen)
+
+Status (2026-10-06): a known defect of §12.3 and a proposed fix, checked
+in `proof/DGG/notes/TwoGen.agda` (`.md`); the fix is not adopted.  Each
+example below has RELATED source programs and related initial cast
+terms, its left is a value, and the right's final value is related to
+it by no derivation of §12.3 in any top-level world.  So each is a
+counterexample to DGG part 1 (`*.not-dgg : ¬ DGG`).
+
+**G0: one `gen` layer.**  Sources (related: the same term, and
+`∀X.X→ℕ ⊑ ★→ℕ`):
+
+```
+L   (λx:★. 5 : ∀X. X→ℕ)
+R   ((λx:★. 5 : ∀X. X→ℕ) : ★→ℕ)
+```
+
+Cast terms (related at the empty world, `G0.init`):
+
+```
+L₀  (λx:★. 5)⟨gen X. (X! → id(ℕ))⟩
+R₀  (λx:★. 5)⟨gen X. (X! → id(ℕ))⟩⟨inst Y. (Y?ℓ0 → id(ℕ))⟩
+```
+
+The left is a value.  The right runs:
+
+```
+  R₀
+⟶ (Inst)
+  (ν X:=★. ((λx:★. 5)⟨gen Y. (Y! → id(ℕ))⟩ X) ⟨−X → id(ℕ)⟩)⟨id(★) → id(ℕ)⟩
+⟶ (TyBeta, ⊣ α:=★)
+  ([+X^α] ([−X^α] (λx:★. 5) ⟨id(★) → id(ℕ)⟩)⟨X! → id(ℕ)⟩^[X:★∼X] ⟨−X → id(ℕ)⟩)⟨id(★) → id(ℕ)⟩
+```
+
+Every attempt at the final pair stops (`G0.g0-unrelated`):
+
+```
+⊑cast  ⟨id(★) → id(ℕ)⟩, grants nothing          ∀X.X→ℕ ⊑ ★→ℕ
+  ⊑⟪⟫  +X^α, push X                            X→ℕ ⊑ X→ℕ   (X is X⊑X)
+    cast⊑ (pop at the left's gen):  premise at the gen's source,  ★→ℕ ⊑ X→ℕ   ✗
+    ⊑cast ⟨X! → id(ℕ)⟩:  premise needs X ⊑ ★, and X! → id(ℕ) grants nothing  ✗
+    cast⊑cast:  needs no pending name  ✗
+```
+
+The cause (O1): a pop at a left `gen` relates the value under the gen
+at the gen's SOURCE type, so the right's cast over the instantiated
+gen body (`⟨X! → id(ℕ)⟩`) must first be peeled by `⊑cast` at
+`X ⊑ ★`, and under D28 that needs a grant, i.e. a covariant check of
+`X`.  G1's body `X! → X?` checks `X`; G0's `X! → id(ℕ)` does not,
+although no `X`-tagged value can flow out of it (`X` occurs only
+contravariantly).
+
+**G2: two `gen` layers, two right casts.**  Sources (related):
+
+```
+L   (λx:★. λy:★. x : ∀X. ∀Y. X→Y→X)
+R   (((λx:★. λy:★. x : ∀X. ∀Y. X→Y→X) : ∀Y. ★→Y→★) : ★→★→★)
+```
+
+The right instantiates twice.  The second `Inst` goes through the first
+boundary and its gen layer, so its boundary `+Y^β` is born OUTSIDE
+`+X^α`, and the `∀`-cast between them blocks the `Merge`.  The right's
+final value:
+
+```
+([+Y^β] ([+X^α] ([−Y^β, −X^α] (λx:★. λy:★. x) ⟨…⟩)⟨X! → (Y! → X?ℓ0)⟩ ⟨−X → (id(Y) → +X)⟩)⟨id(★) → (id(Y) → id(★))⟩ ⟨id(★) → (−Y → id(★))⟩)⟨id(★) → (id(★) → id(★))⟩
+```
+
+Inside `+Y^β` the only right name is `Y`, with interior type
+`★ → Y → ★`.  The left's `∀X.∀Y.X→Y→X` must open its INNER `∀` at `Y`
+while its outer `∀` waits; pending names open the outer one first
+(O2, `G2.g2-unrelated`).  This is H1's problem (D29) for `gen`
+binders, and `claim-rep` cannot help: a `gen` binder scopes over no
+left term, so the left context cannot grow above the right boundaries.
+
+The other five pairs combine these: two gen layers with one right cast
+and a `Merge` (G2m, O1: one pop per gen); a gen under a `∀` over a `Λ`
+(HRm, HR); nested gen casts (N2, merged and with two casts).
+
+**Proposed fix** (a local variant `V2` of §12.3; three changes):
+
+1. **Pop against a right cast.**  `cast⊑cast` may run with pending
+   names and carry a claim on its LEFT coercion, so a left gen layer
+   pops its name against the right's cast without a grant:
+
+   ```
+     W, πₚ ∣ γ ⊢ M ⊑ M′ : B ⊑ B′    c claims π ↦ πₚ    c : B ⇒ A    c′ : B′ ⇒ A′
+     ──────────────────────────────────────────────────────────── (cast⊑cast, (i))
+     W, π ∣ γ ⊢ M ⟨c⟩ ⊑ M′ ⟨c′⟩ : A ⊑ A′
+   ```
+
+   This is the shape the left's own instantiation produces: `inst-gen`
+   turns `V⟨gen X.p⟩` into `([−X^α] V⟨…⟩)⟨p⟩`, the right's term.
+2. **One pop per gen layer.**  The claim continues below a pop:
+   `gen X. gen Y. p` pops `X` then `Y`; `gen X. ∀Y. p` pops `X` and
+   passes `Y` on.
+3. **Skip a waiting `∀`, for gen-cast values only.**  The index may
+   skip a leading left `∀`, which stays left-only at `X⊑★` (as type
+   imprecision's `∀⊑`), before opening the next `∀` at a pending name;
+   and `⊑⟪⟫` may push new names before carried ones.  This is the gen
+   analogue of `claim-rep`: the waiting binder lives in the index,
+   because there is no left term to claim it.
+
+G2 under the fix (`Pos2.g2-final`):
+
+```
+⊑cast  ⟨id(★) → (id(★) → id(★))⟩                         ∀X.∀Y.X→Y→X ⊑ ★→★→★
+  ⊑⟪⟫  +Y^β, push Y;  index: SKIP X (left-only), open Y at Y   X′→Y→X′ ⊑ ★→Y→★
+    ⊑cast  ⟨id(★) → (id(Y) → id(★))⟩
+      ⊑⟪⟫  +X^α, push X BEFORE the carried Y;  pending [X, Y]  X→Y→X ⊑ X→Y→X
+        cast⊑cast  ⟨gen X. gen Y. …⟩ ∥ ⟨X! → (Y! → X?ℓ0)⟩: pop X, pop Y
+          ⊑⟪⟫  −Y^β, −X^α                                    ★→★→★ ⊑ ★→★→★
+            ƛ⊑ƛ, ƛ⊑ƛ, x⊑x
+```
+
+G0 under the fix: push `X`, then `cast⊑cast` pops `X` against
+`⟨X! → id(ℕ)⟩`, then the right's `−X^α`.
+
+**Checks** (mechanized in TwoGen): changes 1–2 alone relate G0, G2m,
+HRm and N2-merged; all three relate all seven final pairs and G2's
+intermediate states, and DGG part 1 holds on each.  §12.3's relation is
+contained in the variant, so the corpus derives; C1–C5 and C4g stay
+not derivable (their left terms contain no gen or `∀` casts, and a
+variant derivation of such a term maps back to a §12.3 derivation).
+
+**Open.**  Sim and SimBack against the new cases are not checked (a
+left `TyBeta` catching up with a `cast⊑cast` pop, instantiating at a
+skipped `∀`, a new-first push), nor whether changes 1 or 3 relate some
+gen-valued pair that should not be.  An alternative for O1 alone:
+count a name that never flows out as checked ("vacuous" grants);
+G2m would still need change 2.  The principled form of change 3 is
+pending rep. vars whose unnamed entries open left-only
+(PushOrder.md, fix (c3)); the skip is its index-only shadow.
+
 ### 12.4 Examples
 
 Six pairs, in `ImprecisionExamples.agda`.  Each run is a `Reaches …

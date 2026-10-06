@@ -1749,7 +1749,20 @@ forbid without a matching left cast.
   a multi-entry boundary and after a `Merge`.
 - The audit (below) may find more dropped invariants.
 
-**Audit (queued).**  For each reduction rule that changes binders or
+**Audit result (2026-10-06, `agda/proof/DGG/notes/ReductionAudit.md`).**
+Correction to the table above: under D28 the matched `TyBeta` does not
+drop the `∀⊑∀` fact, since the derived `X⊑X` re-checks it; it is lost
+only under a later grant, after `Wrap`, or after `Merge`.  Recorded
+interfaces turn out to be neither needed nor checkable (after `Wrap` or
+`Merge` a boundary's interior type is only part of the ∀ body, and
+C5's late states fit a trivial interface, `iface-fake`), so the
+hypothesis about R1/R2 is refuted.  The audit found two `¬ Sim`
+counterexamples from related sources (P4k, P4h) and proposes D28′:
+permissions chosen at the binding rule that joins a name, with an
+`X⊑X` check of its interior types there, no grants at casts, and R1
+refined to unbinds whose rep. var occurs in the exterior type.
+
+**Audit (done; was queued).**  For each reduction rule that changes binders or
 casts (`TyBeta`, `Inst`, `Wrap`, `Merge`, `IdDyn`, `IdDyn-var`,
 `CastFun`, the `inst_X` cases, `TagUntag`, `exitEnv`): the premises
 that relate its redex, what the rules for the contractum check, and

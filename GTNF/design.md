@@ -1648,6 +1648,115 @@ that goes one-sided and later rejoins gets its derived mark back (D28,
 superseding D15's keep-on-rejoin).  A right-only `−X` of a name in
 both images leaves `X` left-only, hence `X⊑★` (Example P4).
 
+### 12.2.1 Sketch: allocation hands the `ν` invariants to the world
+
+Status: sketch (2026-10-06; Jeremy), not adopted, not checked.  The
+problem it addresses: the relation is tight enough on related source
+programs, but it drops invariants as the terms reduce, so states that
+no related start reaches become related (C1–C5,
+`agda/proof/DGG/notes/ConditionPlacement.md` §3).
+
+**What a `ν` pair knows, and what `TyBeta` drops.**  Matched `ν`s are
+the one place where both sides' ∀ types, payloads and conversions meet:
+
+```
+  W ∣ γ ⊢ L ⊑ L′ : ∀X.C ⊑ ∀X.C′    A ⊑_W A′    c ⊑ c′
+  ──────────────────────────────────────────────────── (ν⊑ν)
+  W ∣ γ ⊢ ν X:=A.(L X)⟨c⟩ ⊑ ν X:=A′.(L′ X)⟨c′⟩
+```
+
+After the two `TyBeta`s the `ν`s are gone:
+
+```
+ν X:=A.(L X)⟨c⟩  ⟶ (TyBeta, ⊣ α:=A)  [+X^α] inst_X(L) ⟨c⟩
+```
+
+| what `ν⊑ν` checked | after `TyBeta` |
+|---|---|
+| payloads `A ⊑ A′` | in the stores; paired rep. vars agree (D23) |
+| conversions `c ⊑ c′` | kept by the boundaries; re-checked by `⟪⟫⊑⟪⟫` only |
+| the ∀ types, `C ⊑ C′` with `X` matched at `X⊑X` (`∀⊑∀`) | **dropped** |
+
+C1's sources are `((ΛX. λx:X. x) : ★→★) 5 : ℕ` against
+`((ΛX. λx:X. (x : ★)) : ★→★) 5 : ℕ`.  No `ν` pair relates them, because
+`∀X.X→X ⊑ ∀X.X→★` fails.  After both sides' `Inst` and `TyBeta` the
+boundaries are
+
+```
+[+X^α] (λx:X. x) ⟨−X → +X⟩      against      [+X^α] (λx:X. x⟨X!⟩) ⟨−X → id(★)⟩
+```
+
+and `⟪⟫⊑⟪⟫` never asks whether `X→X` and `X→★`, read as functions of
+the bound `X`, are related with `X` matched.  That is the dropped
+invariant.
+
+**The proposal: each rep. var pair carries an interface.**  A pair
+`(αᴸ, αᴿ)` in `ϱ` records the bodies `(C, C′)` of the two ∀ types whose
+instantiation allocated it, as representation types (names resolved
+to rep. vars, so the record survives renaming, `Merge` and `exitEnv`;
+compared as in D23).
+
+- **Created at allocation.**  A matched pair of `TyBeta`s (Evolve's
+  `ev-2`) creates the pair from the `ν⊑ν` derivation:
+  interface `(C, C′)`.  A right `Inst` against a left ∀-value (the
+  push and pop of D27, or `claim-rep` of D29) creates the pair from the
+  index of the pair before `Inst`.  A left-only `ν⊑` creates a left-only
+  rep. var; its interface is `C` against the right type it faced
+  (`∀⊑`, `X⊑★`).
+- **Well-formedness.**  For every pair, `C ⊑ C′` holds with the bound
+  variable at `X⊑X`, i.e. the `∀⊑∀` that the `ν`s needed.
+- **Read at every binding rule.**  A boundary rule that binds a name
+  `X` to a paired rep. var, matched (`⟪⟫⊑⟪⟫`) or one-sided (`⟪⟫⊑`,
+  `⊑⟪⟫` including a push), and the joins of a pop or a `claim-rep`,
+  require the boundary's interior type, abstracted over `X`, to be the
+  side's recorded interface body.  No cast rule reads or changes it
+  (the world changes only at binders).
+
+**On the examples.**
+
+- **C1.**  A world that pairs the two `α`s must record `(X→X, X→★)`,
+  and `X→X ⊑ X→★` with `X` matched is not derivable.  So no
+  well-formed world relates C1's states: the dropped invariant is back.
+- **C2–C5** (sources in ConditionPlacement §3): their ∀ types are
+  `∀Y.Y→Y` against `∀Y.Y→★` or `∀Y.★→Y`, so their interfaces fail the
+  same way; C4's is the push type premise (`PushTypePremise.md`) as one
+  case of this rule.
+- **K.**  The right's `Inst` of `VL` against the left's `VL`: the pair
+  before `Inst` relates them by `Λ⊑Λ`, interface `(Y→Y, Y→Y)`.
+- **P4.**  The matched `ν`s relate `x ⊑ x` at `∀X.X→X ⊑ ∀X.X→X`, so
+  the interface is `(X→X, X→X)`: it holds.  P4 also needs `X⊑★` inside
+  the right's `gen` wrapper; that is a question about marks, below.
+- **G0** (§12.3.1).  The right instantiates the left's own gen-value:
+  interface `(X→ℕ, X→ℕ)`, which holds.
+
+**Marks.**  If the interface is what C1–C5 violate, the marks may not
+need to carry that burden.  Hypothesis (unchecked): with interfaces
+recorded and checked at every binding rule, a shared name may again
+take `X⊑★` inside (D11's choice, or a status recorded with the pair at
+allocation, e.g. "the left binder faced a right `gen`", as in P4), and
+D28's permissions and R1/R2 may become unnecessary.  The reason to
+expect it: an `X`-tagged right value causes a blame only when a check
+other than `X?` meets it, inside or at the boundary
+(`TagUntagBad-⟪⟫`); a mismatch at the boundary is ruled out by the
+interface (checked at `X⊑X`), and one inside would put a non-`X` check
+on the right where the left has an `X`-typed term, which the types
+forbid without a matching left cast.
+
+**Open.**
+- Whether the hypothesis holds, against C1–C5, C4g, the TwoGen pairs,
+  P4 and the corpus.
+- The exact statement of "the interior type, abstracted over `X`" for
+  a multi-entry boundary and after a `Merge`.
+- The audit (below) may find more dropped invariants.
+
+**Audit (queued).**  For each reduction rule that changes binders or
+casts (`TyBeta`, `Inst`, `Wrap`, `Merge`, `IdDyn`, `IdDyn-var`,
+`CastFun`, the `inst_X` cases, `TagUntag`, `exitEnv`): the premises
+that relate its redex, what the rules for the contractum check, and
+what is dropped in between, each on a concrete pair from related source
+programs.  Every dropped invariant becomes world data created at the
+step and read at a binding rule.
+
 ### 12.3 Rules
 
 `W ∣ γ ⊢ M ⊑ M′ : A ⊑ A′` with `γ ::= [] | γ, x : B ⊑ B′`.  Every

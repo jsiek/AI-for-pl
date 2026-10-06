@@ -2039,7 +2039,7 @@ boundary and its gen layer, so its boundary `+Y^β` is born OUTSIDE
 final value:
 
 ```
-([+Y^β] ([+X^α] ([−Y^β, −X^α] (λx:★. λy:★. x) ⟨…⟩)⟨X! → (Y! → X?ℓ0)⟩ ⟨−X → (id(Y) → +X)⟩)⟨id(★) → (id(Y) → id(★))⟩ ⟨id(★) → (−Y → id(★))⟩)⟨id(★) → (id(★) → id(★))⟩
+([+Y^β] ([+X^α] ([−Y^β, −X^α] (λx:★. (λy:★. x)) ⟨id(★) → (id(★) → id(★))⟩)⟨X! → (Y! → X?ℓ0)⟩^[X:★∼X, Y:★∼X] ⟨−X → (id(Y) → +X)⟩)⟨id(★) → (id(Y) → id(★))⟩^[Y:X∼X] ⟨id(★) → (−Y → id(★))⟩)⟨id(★) → (id(★) → id(★))⟩^[]
 ```
 
 Inside `+Y^β` the only right name is `Y`, with interior type

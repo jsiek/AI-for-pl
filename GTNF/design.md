@@ -1467,10 +1467,13 @@ for the time being (Jeremy, 2026-10-01).
 
 ## 12. Cast-term imprecision `⊑` (sketch)
 
-Status: sketch (2026-10-01).  §12.1 is in Agda (`Imprecision.agda`).
-The relation itself (§12.3) is on paper only.  The examples (§12.4)
-are machine-run: each pair of programs is in
-`ImprecisionExamples.agda`, and both of its runs come from `Eval`.
+Status (2026-10-06): §12.1 is `Imprecision.agda`; the worlds (§12.2)
+are `ImprecisionWorld.agda`; the rules (§12.3) are `TermImprecision.agda`
+and `ConversionImprecision.agda`, current through D29.  Known open
+defect: the gen-value pairs of `proof/DGG/notes/TwoGen.md` (G0 and six
+more, from related sources) are DGG-part-1 counterexamples for these
+rules.  The examples (§12.4) are machine-run: each pair of programs is
+in `examples/`, and both of its runs come from `Eval`.
 The left program is always the **more precise** one.
 
 ### 12.1 Type imprecision
@@ -1517,6 +1520,7 @@ W = (Δ, Δ′, Ω, η, η′, ϱ, κ, π)
   Ω              the center: a number of names
   η  : names(Δ)  ↪ Ω     order-preserving embeddings (GTSFImp ηᴸʷ, ηᴿʷ);
   η′ : names(Δ′) ↪ Ω     every center name is in the image of at least one
+                         of them
   κ              the permitted right rep. vars (D28); [] at every
                  top-level world; a right check adds one (⊑cast)
   μ  = marks(W)          DERIVED (D28): a name in η's image only
@@ -1584,20 +1588,22 @@ parts:
   (`⊢Λ` types the body at `underΛ Δ`).  A `ν X:=A` binds the rep. var
   for its conversion (`⊢ν` types `c` at `allocate R Δ`).  A rule that
   goes under such binders on both sides pairs their rep. vars for the
-  premise only: `Λ⊑Λ` pairs two abstract rep. vars, `∀⊑⟪+⟫` pairs the
-  left value's abstract rep. var with the right's `β:=★`, and `ν⊑ν`
-  pairs the two `ν`s' rep. vars.
+  premise only: `Λ⊑Λ` pairs two abstract rep. vars; `Λ⊑`'s pop pairs
+  the left binder's abstract rep. var with the `β:=★` of the pending
+  name it joins (D27), and its claim-rep with a `β:=★` that has no
+  right name yet (D29); `ν⊑ν` pairs the two `ν`s' rep. vars.
 - **Global, `ϱᵍ`.**  A store rep. var is created by a step (`TyBeta`)
   and is visible everywhere afterwards.  When the two sides' `TyBeta`s
   are matched, the lexical pair of the two `ν`s becomes a global
-  pair.  When a left `TyBeta` catches up with a right boundary that
-  `∀⊑⟪+⟫` related, the left's lexical abstract rep. var is replaced by
-  the new store rep. var, which is paired globally with the right's
-  `β`.
+  pair.  When a left `TyBeta` catches up with a right boundary whose
+  name its binder popped or claimed, the left's lexical abstract rep.
+  var is replaced by the new store rep. var, which is paired globally
+  with the right's `β` (Evolve's `ev-L⇔`).
 
-Example: in P3's block after the left's `Beta`, the premise of
-`∀⊑⟪+⟫` relates `λx:X.x` (typed under the left `Λ`'s abstract
-`α₀`) to `λx:X.x` (inside the right's `[+X^αᴿ]`, `αᴿ:=★`).  The
+Example: in P3's block after the left's `Beta`, `⊑⟪⟫` pushes the
+right `Inst` boundary's name and the left `Λ⊑` pops it, so the premise
+relates `λx:X.x` (typed under the left `Λ`'s abstract `α₀`) to
+`λx:X.x` (inside the right's `[+X^αᴿ]`, `αᴿ:=★`).  The
 shared name `X` needs `(α₀, αᴿ) ∈ ϱˡ`.  After the left's `TyBeta`,
 the pair is `(αᴸ, αᴿ) ∈ ϱᵍ`, with `αᴸ:=ℕ`.
 
@@ -1960,9 +1966,13 @@ of C5).  C23a needs the bare forms,
 and C23b needs the `∀` form.  The chain forms are needed because a
 left-only `Merge` builds chains.
 
-**Count.**  Five congruence rules, `blame⊑`, three cast rules, three
-`Λ` rules, two `ν` rules and three boundary rules: 17 rules.  GTSFImp's
-`_∣_⊢²_⊑_∶_` has 22.
+**Count.**  In Agda, 15 rules: four congruence rules (`x⊑x`, `κ⊑κ`,
+`ƛ⊑ƛ`, `·⊑·`; GTNF has no binary operators, so no `⊕⊑⊕`), `blame⊑`,
+three cast rules, `Λ⊑Λ` and `Λ⊑` (one rule whose `Claim` is fresh, pop
+or claim-rep, displayed above as three), two `ν` rules and three
+boundary rules.  The side relations are `Claim` (3 cases), `CastClaim`
+(3), `BdyClaim` (2), `Push` with `Carried` (D27), and `CastGrant` (D28).
+GTSFImp's `_∣_⊢²_⊑_∶_` has 22.
 
 ### 12.4 Examples
 

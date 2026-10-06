@@ -1472,7 +1472,9 @@ are `ImprecisionWorld.agda`; the rules (§12.3) are `TermImprecision.agda`
 and `ConversionImprecision.agda`, current through D29.  Known open
 defect: the gen-value pairs of `proof/DGG/notes/TwoGen.md` (G0 and six
 more, from related sources) are DGG-part-1 counterexamples for these
-rules.  The examples (§12.4) are machine-run: each pair of programs is
+rules.  The counterexamples C1–C5 that motivated D28 are presented
+from their source programs in
+`agda/proof/DGG/notes/ConditionPlacement.md` §3.  The examples (§12.4) are machine-run: each pair of programs is
 in `examples/`, and both of its runs come from `Eval`.
 The left program is always the **more precise** one.
 

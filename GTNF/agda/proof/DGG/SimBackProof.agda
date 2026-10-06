@@ -215,6 +215,13 @@ simBack wfΔ wfΔ′ wfW refl refl (Λ⊑ claim-fresh nv occ liftᴸ-[] v d q) s
 simBack wfΔ wfΔ′ wfW refl refl (Λ⊑ claim-fresh nv occ liftᴸ-[] v d q) st′ | ih =
   {! SimBackFrame-Λ⊑: simBackFrame-Λ⊑ pre nv occ v q ih !}
 
+-- claim-rep (design.md D29): the IH at W ⊕ᴸ⇔ β, as for claim-fresh
+simBack _ _ _ refl refl (Λ⊑ (claim-rep _ _ _) _ _ liftᴸ-[] _ _ _) _ =
+  {! SimBackFrame-Λ⊑⇔: the IH at W ⊕ᴸ⇔ β (WfWorld: the pair (0, β)
+     agrees by abst-★), then simBackFrame-Λ⊑ with claim-rep (β
+     renumbered by the right's allocation; a right step that names β
+     inside a boundary keeps it unnamed outside) !}
+
 ------------------------------------------------------------------------
 -- ν⊑ν, ν⊑
 

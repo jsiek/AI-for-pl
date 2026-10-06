@@ -8,8 +8,8 @@ module proof.DGG.CatchupBlameProof where
 --     frame's Blame rule), and `Λ⊑`, which is impossible: its body is a
 --     value, and a value that runs to blame is blame, not a value.
 --   * The statement is at a world with no pending name (`πʷ W ≡ []`,
---     design.md D27), so only `cc-plain`, `claim-fresh` and `bc-plain`
---     occur, and every premise is again at a world with no pending name
+--     design.md D27), so only `cc-plain`, `claim-fresh`, `claim-rep`
+--     (D29) and `bc-plain` occur, and every premise is again at a world with no pending name
 --     (`refl`).
 --   * No module parameters: the proof uses no other DGG lemma.
 --   * Orientation: the LEFT term is the more precise one.
@@ -37,6 +37,13 @@ catchup-blame refl (Λ⊑ claim-fresh nv occ liftᴸ-[] v V⊑ q)
 catchup-blame refl (Λ⊑ claim-fresh nv occ liftᴸ-[] v V⊑ q) | ℓ′ , r
   with value-run≡ v r
 catchup-blame refl (Λ⊑ claim-fresh nv occ liftᴸ-[] (V-simple ()) V⊑ q)
+  | ℓ′ , r | refl
+catchup-blame refl (Λ⊑ (claim-rep hβ nβ np) nv occ liftᴸ-[] v V⊑ q)
+  with catchup-blame refl V⊑
+catchup-blame refl (Λ⊑ (claim-rep hβ nβ np) nv occ liftᴸ-[] v V⊑ q)
+  | ℓ′ , r with value-run≡ v r
+catchup-blame refl
+    (Λ⊑ (claim-rep hβ nβ np) nv occ liftᴸ-[] (V-simple ()) V⊑ q)
   | ℓ′ , r | refl
 catchup-blame refl (ν⊑ L⊑ pA n q) with catchup-blame refl L⊑
 catchup-blame refl (ν⊑ L⊑ pA n q) | ℓ′ , r =

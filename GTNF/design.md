@@ -1384,7 +1384,7 @@ Each one can be revisited on its own.
   keep-on-rejoin are superseded; `PendingOK` loses its fixed `X⊑★`.
   The push type premise (`PushTypePremise.md`) is not adopted
   (redundant under permissions); the push ORDER defect H1
-  (`PushTypePremise.md` §7) is open.  Open obligations: CastFun needs
+  (`PushTypePremise.md` §7) is fixed by D29.  Open obligations: CastFun needs
   κ-weakening with the R1/R2 side condition (`κ-weaken`, `R12`), and
   TagUntag a drop lemma (`PermissionsR.md` §4).  Notes:
   `proof/DGG/notes/Permissions.md`, `PermissionsR.md`,
@@ -1392,6 +1392,40 @@ Each one can be revisited on its own.
   `ModeCondition.md`, `PushTypePremise.md`; examples
   `examples/TermImprecisionPermissionExamples.agda` (Jeremy,
   2026-10-05).
+
+- **D29 (claim-rep: a left binder claims an unnamed right rep.
+  var).**  `Λ⊑`'s binder has a third case beside a fresh left-only
+  name and the pop of a pending name.  With no pending name, the
+  binder's abstract rep. var is paired LEXICALLY with a right rep. var
+  `β:=★` that has no right name in scope and no named left partner
+  (`W ⊕ᴸ⇔ β`, TermImprecision `claim-rep`).  The binder is left-only,
+  so `X⊑★`, until a right boundary names `β`.  That boundary's fresh
+  name REJOINS it by `Interior.join-fresh` (D25), and from then on its
+  mark is `β`'s permission (D28): `X⊑X` unless a right check grants
+  `β`.  There is no new world field and no new `WfWorld` field: the
+  pair `(0, β)` agrees by `abst-★`, and named uniqueness ignores `β`
+  while it has no name.  Why: counterexample H1 (`PushOrder.md`).  Its
+  sources are related:
+  `(ΛX.ΛY.λx:X.λy:Y.x : ∀X.∀Y.X→Y→X)` and
+  `((ΛX.ΛY.λx:X.λy:Y.x : ∀Y.★→Y→★) : ★→★→★)`.  The right instantiates
+  twice, through two casts.  Its final value nests `[+Y^β]` outside
+  `[+X^α]`, with a cast between them, so there is no Merge.  D27 and
+  D28 relate it to the left value in no world, which refutes DGG
+  part 1, and no push order fixes it (`NoD27`, `NoFixA`, `NoFixB`,
+  `NoFixS`).  With claim-rep, the left's `ΛX` claims `α` at the top and
+  `+X^α` rejoins it.  See `examples/TermImprecisionH1Examples.agda`:
+  `final` (claim, push, carry, pop), `final-no-push` (two claims), and
+  `dgg1-H1`.  At D27's stored marks, claim-rep revived C4
+  (`C4Revived`).  Under D28's derived marks C4 and C4g stay dead
+  (`TermImprecisionPermissionExamples`: `C4.c4-unrelated`,
+  `C4g.c4g-unrelated`, with the claim-rep cases), and so do C1, C2, C3
+  and C5.  Can pushes now go?  `proof/DGG/notes/NoPush.md` answers:
+  every push popped by a `Λ` can be replaced by a claim (P3 = Ch X0,
+  Cg X0, C12 X0, L3c, L3d, K, H1).  A left GEN ∀-value against a right
+  `Inst` boundary cannot be: C2 X0, R2c, and the DGG part 1 pair G1
+  (`(λx:★.x : ∀X.X→X)` against `((λx:★.x : ∀X.X→X) : ★→★)`) are
+  related only by a push and a `cc-gen` pop.  Pushes are kept
+  (Jeremy, 2026-10-06).
 
 The open design questions are those of the `⊑` sketch (§12.5).
 
@@ -1584,6 +1618,9 @@ World operations, used by the rules:
 W ⊕²             both sides bind X (a new center name in both images; its
                  new right rep. var is not permitted, so X⊑X)
 W ⊕ᴸ X           the left side binds X alone (center name in η only, X⊑★)
+W ⊕ᴸ⇔ β          as W ⊕ᴸ X, and X's abstract rep. var is paired lexically
+                 with the right rep. var β:=★, which has no right name yet;
+                 the boundary that names β rejoins X (claim-rep, D29)
 W ⊕ᴿ X           the right side binds X alone (center name in η′ only)
 W[δ ∥ δ′]        the interior world of a boundary pair: each side's
                  changes act on that side's names and embedding.
@@ -1688,6 +1725,13 @@ does not see the binder.  One gen pops one name.
   W, Y·π ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
 ```
 
+```
+  W ⊕ᴸ⇔ β ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
+  β:=★ in Δ′    no right name of β in scope    no named left partner of β
+  ──────────────────────────────────────────────────────── (Λ⊑, claim-rep, D29)
+  W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
+```
+
 Here `W, π` is a world with the pending names `π` (D27), and `W` alone
 means no pending name.  In the pop, `Y` is the next pending name and
 `W[X ↦ Y]` joins the binder `X` to it (`Open1`).  The left's abstract
@@ -1697,7 +1741,53 @@ name.
 
 The rule that relates a left ∀-value to a right `Inst` boundary, first
 `∀⊑⟪+⟫` (D14, D22), then an opening of `⊑⟪⟫` (D26), is now a push of
-`⊑⟪⟫` followed by a pop (D27).
+`⊑⟪⟫` followed by a pop (D27), or, for a `Λ`, a claim above the
+boundary followed by its rejoin (D29).
+
+In the claim-rep case (D29), the binder `X` claims the right rep. var
+`β`, which has no name yet.  `X` is left-only (`X⊑★`) until a right
+boundary `+Y^β` names `β`.  There `Interior.join-fresh` joins `Y` to
+`X`, because their rep. vars are paired (D25).  From then on the
+shared name's mark is `β`'s permission: `X⊑X` unless a right check of
+`Y` above grants `β`.  So C4's `x ⊑ x⟨X!⟩` still needs a grant.  The
+claim is what H1 needs.  There the right's boundaries name the
+instantiations in the opposite order to the left's binders, and the
+left's first binder must be matched before the right names it.  H1's
+final pair, generated by
+`scripts/render_gtnf.sh 'impLadder final' 'open import examples.TermImprecisionH1Examples' 'open import examples.ImpLadder'`
+(pinned in `examples/ImpLadder.agda`):
+
+```
+W0 = the conclusion's world
+  ⟨⟩
+  ϱᵍ = {}  ϱˡ = {}  Ξᴸ = []  Ξᴿ = [α:=★, β:=★]
+W1 = W0 ⊕ᴸ⇔ α
+  ⟨X: X^α ⊑[X⊑★] ─⟩
+  ϱᵍ = {}  ϱˡ = {α⇔α}  Ξᴸ = [α abst]  Ξᴿ = [α:=★, β:=★]
+W2 = Interior W1
+  ⟨Y: ─ ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑★] ─⟩
+  ϱᵍ = {}  ϱˡ = {α⇔α}  Ξᴸ = [α abst]  Ξᴿ = [α:=★, β:=★]  πʷ = [Y^β]
+W3 = Interior W2
+  ⟨Y: ─ ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
+  ϱᵍ = {}  ϱˡ = {α⇔α}  Ξᴸ = [α abst]  Ξᴿ = [α:=★, β:=★]  πʷ = [Y^β]
+W4 = Open1 W3: pop Y^β
+  ⟨Y: Y^β ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
+  ϱᵍ = {}  ϱˡ = {β⇔β, α⇔α}  Ξᴸ = [α abst, β abst]  Ξᴿ = [α:=★, β:=★]
+W   left term      A              ηᴸA            ⊑                            ηᴿA′   A′     right term
+──  ─────────────  ─────────────  ─────────────  ───────────────────────────  ─────  ─────  ──────────────────────────────────
+W0  ΛX. □          ∀X. ∀Y. X→Y→X  ∀X. ∀Y. X→Y→X  ∀X⊑★. ∀Y⊑★. X⊑★ → Y⊑★ → X⊑★  ★→★→★  ★→★→★  ─ (claim α)
+W1  ─              ∀Y. X→Y→X      ∀Y. X→Y→X      ∀Y⊑★. X⊑★ → Y⊑★ → X⊑★        ★→★→★  ★→★→★  □⟨id(★) → (id(★) → id(★))⟩^[]
+W1  ─ (push Y^β)   ∀Y. X→Y→X      ∀Y. X→Y→X      ∀Y⊑★. X⊑★ → Y⊑★ → X⊑★        ★→★→★  ★→★→★  [+Y^β] □ ⟨id(★) → (−Y → id(★))⟩
+W2  ─              ∀Y. X→Y→X      X→Y→X          X⊑★ → Y⊑Y → X⊑★              ★→Y→★  ★→Y→★  □⟨id(★) → (id(Y) → id(★))⟩^[Y:X∼X]
+W2  ─ (carry Y^β)  ∀Y. X→Y→X      X→Y→X          X⊑★ → Y⊑Y → X⊑★              ★→Y→★  ★→Y→★  [+X^α] □ ⟨−X → (id(Y) → +X)⟩
+W3  ΛY. □          ∀Y. X→Y→X      X→Y→X          X⊑X → Y⊑Y → X⊑X              X→Y→X  X→Y→X  ─ (pop Y^β)
+W4  λx:X. □        X→Y→X          X→Y→X          X⊑X → Y⊑Y → X⊑X              X→Y→X  X→Y→X  λx:X. □
+W4  λy:Y. □        Y→X            Y→X            Y⊑Y → X⊑X                    Y→X    Y→X    λy:Y. □
+W4  x              X              X              X⊑X                          X      X      x
+```
+
+`final-no-push` relates the same pair with two claims, `α` for `ΛX`
+and `β` for `ΛY`, and no push at all.
 
 **Instantiation** (GTSFImp `•⊑•²`, `•⊑²`).  The compiled form of
 `M [A]` is a `ν`, so the two type applications become:

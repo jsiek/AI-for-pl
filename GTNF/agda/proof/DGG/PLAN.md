@@ -31,6 +31,17 @@ are unchanged.  The affected lemmas (M7, M13–M15, M18–M20, M22, M24,
 M26, `Pre W`) are listed in `STATEMENTS-CORE.md`'s D28 note and
 `notes/PermissionsR.md` §7.
 
+**D29 note (2026-10-06).**  design.md D29 added `claim-rep` to `Λ⊑`'s
+`Claim`.  A left binder with nothing pending may claim an unnamed
+right `★` rep. var, and the right boundary that names it rejoins the
+binder.  It fixes the DGG part 1 counterexample H1
+(`notes/PushOrder.md`; `examples/TermImprecisionH1Examples.agda`).
+The statements of §2-§3 are unchanged.  The CatchupRight and SimBack
+skeletons gain one `claim-rep` hole each, and CatchupBlame its case
+(still finished).  The lemma impact is in `STATEMENTS-CORE.md`'s D29
+note.  Pushes stay: `notes/NoPush.md` finds that a left gen ∀-value
+against a right Inst boundary needs one.
+
 ## 1. Ground rules
 
 - **Audit surface.**  Everything the theorem statements depend on

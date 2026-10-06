@@ -1,6 +1,9 @@
 # H1 made concrete: two right instantiations, and the fixes
 
-Status: 2026-10-05.  Agda: `PushOrder.agda` (this directory).  From
+Status: 2026-10-05.  Fix (c2) was ADOPTED as design.md D29 (2026-10-06;
+real relation `claim-rep`, `examples/TermImprecisionH1Examples.agda`;
+whether pushes can go: `NoPush.md`).  Agda: `PushOrder.agda` (this
+directory).  From
 `GTNF/agda` it checks with
 
 ```

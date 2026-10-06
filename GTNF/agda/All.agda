@@ -54,6 +54,8 @@ open import examples.TermImprecisionRegressionExamples
 -- counterexamples C1, C3, C5 are not derivable
 open import examples.TermImprecisionPermissionExamples
 
+open import examples.TermImprecisionH1Examples
+
 -- de Bruijn → named rendering (scripts/render_gtnf.sh)
 open import examples.Show
 

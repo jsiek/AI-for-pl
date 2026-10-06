@@ -31,7 +31,9 @@ module examples.ImpLadder where
 --     - PENDING NAMES (D27) appear in the silent column of the
 --       one-sided rule that moves them: `─ (push Y^β)` and
 --       `─ (carry Y^β)` for ⊑⟪⟫, `─ (pass Y^β)` for ⟪⟫⊑ and a ∀ᵖ
---       cast⊑, `─ (pop Y^β)` for Λ⊑ and a genᵖ cast⊑.  The ηᴸA and ⊑
+--       cast⊑, `─ (pop Y^β)` for Λ⊑ and a genᵖ cast⊑, and
+--       `─ (claim β)` for a Λ⊑ that claims the unnamed right rep. var β
+--       (claim-rep, design.md D29; premise world `Wn ⊕ᴸ⇔ β`).  The ηᴸA and ⊑
 --       columns read the left type OPENED at the pending names (one ∀
 --       stripped per name, `_⊑ᵂ⟨_⟩_`).  A pop's premise world is
 --       `Open1 Wn: pop Y^β`.
@@ -63,7 +65,9 @@ module examples.ImpLadder where
 --   * Pins (by `refl`, §7) a small λ ladder, ΛI⊑ΛI (Λ⊑Λ), the
 --     counterexample K's `lk₁⊑rk₃` (push, carry, pass, pop) and `VL⊑RF`
 --     (push, pass, pop), the rebasing block `c12-b1` (the gen wrapper
---     grants), and P4's block B3 `p4-B3` (the check `X?` grants).
+--     grants), P4's block B3 `p4-B3` (the check `X?` grants), and
+--     H1's final pair `final` and `final-no-push` (claim-rep, design.md
+--     D29: `─ (claim α)`, then the rejoin at `+X^α`).
 
 open import Data.Bool using (if_then_else_)
 open import Data.List using (List; []; _∷_; map; reverse; foldr)
@@ -100,6 +104,7 @@ open import examples.TermImprecisionRegressionExamples
   using (lk₁⊑rk₃; VL⊑RF)
 open import examples.TermImprecisionPermissionExamples using (module P4)
 open P4 using (p4-B3)
+open import examples.TermImprecisionH1Examples using (final; final-no-push)
 
 ------------------------------------------------------------------------
 -- 1. World snapshots
@@ -517,6 +522,15 @@ go {Δ} {Δ′} a n pre pre′ x tms
     d@(Λ⊑ claim-fresh _ _ _ _ V _) =
   go (pushWorld (label n ++ " ⊕ᴸ") (worldOf V) a₁) (nextW a₁) pre′ pre′ x tms V
   where a₁ = pushRow (nodeRow n pre (tyLamFrag Δ) "─" d) a
+-- claim-rep (design.md D29): the binder claims the unnamed right rep.
+-- var β; its premise world is `Wn ⊕ᴸ⇔ β`
+go {Δ} {Δ′} a n pre pre′ x tms
+    d@(Λ⊑ (claim-rep {β = β} _ _ _) _ _ _ _ V _) =
+  go (pushWorld (label n ++ " ⊕ᴸ⇔ " ++ α) (worldOf V) a₁)
+    (nextW a₁) pre′ pre′ x tms V
+  where
+  α = repNm (ctxEnv Δ′) β
+  a₁ = pushRow (nodeRow n pre (tyLamFrag Δ) (silent "claim" α) d) a
 go {Δ} {Δ′} a n pre pre′ x tms
     d@(Λ⊑ (claim-pop (open1 {k = k} _ _ _)) _ _ _ _ V _) =
   go (pushWorld ("Open1 " ++ label n ++ ": pop " ++ sideName Δ′ k)
@@ -780,3 +794,99 @@ p4-B3-ladder-pinned : impLadder p4-B3 ≡
   "X⟩\n" ++
   "W4    5              ℕ    ℕ    ℕ⊑ℕ        ℕ     ℕ    5"
 p4-B3-ladder-pinned = refl
+
+-- H1's FINAL PAIR (design.md D29): the left's ΛX CLAIMS the unnamed
+-- right rep. var α (`─ (claim α)`, W1 = W0 ⊕ᴸ⇔ α: X left-only, X⊑★);
+-- +Y^β pushes Y; inside it +X^α REJOINS X (W3: X^α ⊑[X⊑X] X^α, the
+-- mark now α's permission) and carries Y; ΛY pops Y
+final-ladder-pinned : impLadder final ≡
+  "W0 = the conclusion's world\n" ++
+  "  ⟨⟩\n" ++
+  "  ϱᵍ = {}  ϱˡ = {}  Ξᴸ = []  Ξᴿ = [α:=★, β:=★]\n" ++
+  "W1 = W0 ⊕ᴸ⇔ α\n" ++
+  "  ⟨X: X^α ⊑[X⊑★] ─⟩\n" ++
+  "  ϱᵍ = {}  ϱˡ = {α⇔α}  Ξᴸ = [α abst]  Ξᴿ = [α:=★, β:=★]\n" ++
+  "W2 = Interior W1\n" ++
+  "  ⟨Y: ─ ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑★] ─⟩\n" ++
+  "  ϱᵍ = {}  ϱˡ = {α⇔α}  Ξᴸ = [α abst]  Ξᴿ = [α:=★, β:=★]  πʷ = " ++
+  "[Y^β]\n" ++
+  "W3 = Interior W2\n" ++
+  "  ⟨Y: ─ ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩\n" ++
+  "  ϱᵍ = {}  ϱˡ = {α⇔α}  Ξᴸ = [α abst]  Ξᴿ = [α:=★, β:=★]  πʷ = " ++
+  "[Y^β]\n" ++
+  "W4 = Open1 W3: pop Y^β\n" ++
+  "  ⟨Y: Y^β ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩\n" ++
+  "  ϱᵍ = {}  ϱˡ = {β⇔β, α⇔α}  Ξᴸ = [α abst, β abst]  Ξᴿ = [α:=★," ++
+  " β:=★]\n" ++
+  "W   left term      A              ηᴸA            ⊑            " ++
+  "                ηᴿA′   A′     right term\n" ++
+  "──  ─────────────  ─────────────  ─────────────  ─────────────" ++
+  "──────────────  ─────  ─────  ────────────────────────────────" ++
+  "──\n" ++
+  "W0  ΛX. □          ∀X. ∀Y. X→Y→X  ∀X. ∀Y. X→Y→X  ∀X⊑★. ∀Y⊑★. X" ++
+  "⊑★ → Y⊑★ → X⊑★  ★→★→★  ★→★→★  ─ (claim α)\n" ++
+  "W1  ─              ∀Y. X→Y→X      ∀Y. X→Y→X      ∀Y⊑★. X⊑★ → Y" ++
+  "⊑★ → X⊑★        ★→★→★  ★→★→★  □⟨id(★) → (id(★) → id(★))⟩^[]\n" ++
+  "W1  ─ (push Y^β)   ∀Y. X→Y→X      ∀Y. X→Y→X      ∀Y⊑★. X⊑★ → Y" ++
+  "⊑★ → X⊑★        ★→★→★  ★→★→★  [+Y^β] □ ⟨id(★) → (−Y → id(★))⟩" ++
+  "\n" ++
+  "W2  ─              ∀Y. X→Y→X      X→Y→X          X⊑★ → Y⊑Y → X" ++
+  "⊑★              ★→Y→★  ★→Y→★  □⟨id(★) → (id(Y) → id(★))⟩^[Y:X∼" ++
+  "X]\n" ++
+  "W2  ─ (carry Y^β)  ∀Y. X→Y→X      X→Y→X          X⊑★ → Y⊑Y → X" ++
+  "⊑★              ★→Y→★  ★→Y→★  [+X^α] □ ⟨−X → (id(Y) → +X)⟩\n" ++
+  "W3  ΛY. □          ∀Y. X→Y→X      X→Y→X          X⊑X → Y⊑Y → X" ++
+  "⊑X              X→Y→X  X→Y→X  ─ (pop Y^β)\n" ++
+  "W4  λx:X. □        X→Y→X          X→Y→X          X⊑X → Y⊑Y → X" ++
+  "⊑X              X→Y→X  X→Y→X  λx:X. □\n" ++
+  "W4  λy:Y. □        Y→X            Y→X            Y⊑Y → X⊑X    " ++
+  "                Y→X    Y→X    λy:Y. □\n" ++
+  "W4  x              X              X              X⊑X          " ++
+  "                X      X      x"
+final-ladder-pinned = refl
+
+-- the same pair with no push: both left binders claim (W1, W2), both
+-- right boundaries rejoin (W3, W4)
+final-no-push-ladder-pinned : impLadder final-no-push ≡
+  "W0 = the conclusion's world\n" ++
+  "  ⟨⟩\n" ++
+  "  ϱᵍ = {}  ϱˡ = {}  Ξᴸ = []  Ξᴿ = [α:=★, β:=★]\n" ++
+  "W1 = W0 ⊕ᴸ⇔ α\n" ++
+  "  ⟨X: X^α ⊑[X⊑★] ─⟩\n" ++
+  "  ϱᵍ = {}  ϱˡ = {α⇔α}  Ξᴸ = [α abst]  Ξᴿ = [α:=★, β:=★]\n" ++
+  "W2 = W1 ⊕ᴸ⇔ β\n" ++
+  "  ⟨Y: Y^β ⊑[X⊑★] ─ │ X: X^α ⊑[X⊑★] ─⟩\n" ++
+  "  ϱᵍ = {}  ϱˡ = {β⇔β, α⇔α}  Ξᴸ = [α abst, β abst]  Ξᴿ = [α:=★," ++
+  " β:=★]\n" ++
+  "W3 = Interior W2\n" ++
+  "  ⟨Y: Y^β ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑★] ─⟩\n" ++
+  "  ϱᵍ = {}  ϱˡ = {β⇔β, α⇔α}  Ξᴸ = [α abst, β abst]  Ξᴿ = [α:=★," ++
+  " β:=★]\n" ++
+  "W4 = Interior W3\n" ++
+  "  ⟨Y: Y^β ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩\n" ++
+  "  ϱᵍ = {}  ϱˡ = {β⇔β, α⇔α}  Ξᴸ = [α abst, β abst]  Ξᴿ = [α:=★," ++
+  " β:=★]\n" ++
+  "W   left term  A              ηᴸA            ⊑                " ++
+  "            ηᴿA′   A′     right term\n" ++
+  "──  ─────────  ─────────────  ─────────────  ─────────────────" ++
+  "──────────  ─────  ─────  ──────────────────────────────────\n" ++
+  "W0  ΛX. □      ∀X. ∀Y. X→Y→X  ∀X. ∀Y. X→Y→X  ∀X⊑★. ∀Y⊑★. X⊑★ →" ++
+  " Y⊑★ → X⊑★  ★→★→★  ★→★→★  ─ (claim α)\n" ++
+  "W1  ΛY. □      ∀Y. X→Y→X      ∀Y. X→Y→X      ∀Y⊑★. X⊑★ → Y⊑★ →" ++
+  " X⊑★        ★→★→★  ★→★→★  ─ (claim β)\n" ++
+  "W2  ─          X→Y→X          X→Y→X          X⊑★ → Y⊑★ → X⊑★  " ++
+  "            ★→★→★  ★→★→★  □⟨id(★) → (id(★) → id(★))⟩^[]\n" ++
+  "W2  ─          X→Y→X          X→Y→X          X⊑★ → Y⊑★ → X⊑★  " ++
+  "            ★→★→★  ★→★→★  [+Y^β] □ ⟨id(★) → (−Y → id(★))⟩\n" ++
+  "W3  ─          X→Y→X          X→Y→X          X⊑★ → Y⊑Y → X⊑★  " ++
+  "            ★→Y→★  ★→Y→★  □⟨id(★) → (id(Y) → id(★))⟩^[Y:X∼X]\n" ++
+  "W3  ─          X→Y→X          X→Y→X          X⊑★ → Y⊑Y → X⊑★  " ++
+  "            ★→Y→★  ★→Y→★  [+X^α] □ ⟨−X → (id(Y) → +X)⟩\n" ++
+  "W4  λx:X. □    X→Y→X          X→Y→X          X⊑X → Y⊑Y → X⊑X  " ++
+  "            X→Y→X  X→Y→X  λx:X. □\n" ++
+  "W4  λy:Y. □    Y→X            Y→X            Y⊑Y → X⊑X        " ++
+  "            Y→X    Y→X    λy:Y. □\n" ++
+  "W4  x          X              X              X⊑X              " ++
+  "            X      X      x"
+final-no-push-ladder-pinned = refl
+

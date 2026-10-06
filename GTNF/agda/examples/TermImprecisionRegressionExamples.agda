@@ -588,6 +588,7 @@ pending-value (cast⊑ (cc-gen v) _ _ _) ne = V-simple (S-cast v I-gen)
 pending-value (⊑cast _ _ d _ _) ne = pending-value d ne
 pending-value (Λ⊑Λ _ _ _ _ _) ne = ⊥-elim (ne refl)
 pending-value (Λ⊑ claim-fresh _ _ _ _ _ _) ne = ⊥-elim (ne refl)
+pending-value (Λ⊑ (claim-rep _ _ _) _ _ _ _ _ _) ne = ⊥-elim (ne refl)
 pending-value (Λ⊑ (claim-pop _) _ _ _ v _ _) ne = V-simple (S-Λ v)
 pending-value (ν⊑ν _ _ _ _ _ _) ne = ⊥-elim (ne refl)
 pending-value (ν⊑ _ _ _ _) ne = ⊥-elim (ne refl)

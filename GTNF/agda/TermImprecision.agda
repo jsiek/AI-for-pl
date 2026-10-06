@@ -2,7 +2,7 @@ module TermImprecision where
 
 -- File Charter:
 --   * CAST-TERM IMPRECISION `W ∣ γ ⊢ M ⊑ M′ ∶ p` (GTNF/design.md §12.3,
---     with D12-D16, D27 and D28), over the worlds `World` of
+--     with D12-D16, D27, D28 and D29), over the worlds `World` of
 --     ImprecisionWorld.  M is the MORE precise (left) term, typed on
 --     `Δ`; M′ the right one, typed on `Δ′`; `p : A ⊑ᵂ⟨ W ⟩ A′` relates
 --     their types (GTSFImp's index shape, `_∣_⊢²_⊑_∶_`).  §1 the
@@ -38,6 +38,17 @@ module TermImprecision where
 --     `⟪⟫⊑⟪⟫`, `⟪⟫⊑`, `⊑⟪⟫`.  15 rules: §12.3's 17 minus `⊕⊑⊕`, since
 --     GTNF has no binary operators yet, and minus `∀⊑⟪+⟫`, removed by
 --     design.md D26.
+--   * CLAIM-REP (design.md D29; Jeremy, 2026-10-06; checked first as
+--     proof/DGG/notes/PushOrder.agda fix (c2)).  `Λ⊑`'s `Claim` has a
+--     third case, `claim-rep`: with nothing pending, the left binder
+--     pairs its abstract rep. var lexically with an unnamed right ★
+--     rep. var β (`W ⊕ᴸ⇔ β`); the right boundary that later names β
+--     rejoins it by `Interior.join-fresh` (D25).  It relates a left
+--     ∀-value to a right value whose boundaries name the instantiations
+--     in the opposite order (H1, examples/TermImprecisionH1Examples),
+--     which no push order can (PushOrder.md §2).  Under D28's derived
+--     marks the rejoined name is X⊑X unless β is permitted, so C4 and
+--     C4g stay dead (examples/TermImprecisionPermissionExamples).
 --   * PENDING NAMES IN THE WORLD (design.md D27; Jeremy, 2026-10-05;
 --     replaces D26's `Opens`).  The pending right names are the field
 --     `πʷ` of the world (ImprecisionWorld §3), next pop first.  The
@@ -115,6 +126,7 @@ open import Data.Maybe using (just)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Data.Sum using (_⊎_; inj₁)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Nullary using (¬_)
 
 open import Types using (Ty; `_; `ℕ; `𝔹; ★; _⇒_; `∀)
 open import Ctx
@@ -240,15 +252,25 @@ cast-inv (⊢cast ⊢M ⊢p len) = _ , ⊢M , cast-ty ⊢p len
 -- 2. Pending names (design.md D27) and the relation
 ------------------------------------------------------------------------
 
--- `Λ⊑`'s binder: a fresh left-only name (no pending name), or the POP
--- of the head pending name k (`Open1`, ImprecisionWorld §5: the left
+-- `Λ⊑`'s binder: a fresh left-only name (no pending name); the POP of
+-- the head pending name k (`Open1`, ImprecisionWorld §5: the left
 -- binder joins the right name k; its abstract rep. var is paired
--- lexically with k's β:=★)
+-- lexically with k's β:=★); or (design.md D29) a fresh left-only name
+-- whose abstract rep. var CLAIMS an unnamed right ★ rep. var β
+-- (`W ⊕ᴸ⇔ β`, no pending name): β has no right name in scope and no
+-- named left partner, and the right boundary that later names β
+-- rejoins the binder (`Interior.join-fresh`, D25)
 data Claim : World Δ Δ′ → World (underΛ Δ) Δ′ → Set where
   claim-fresh : ∀ {Ω ϱᵍ ϱˡ κ} {ηᴸ : names Δ ↪ Ω} {ηᴿ : names Δ′ ↪ Ω}
     → let W = world {Δ} {Δ′} Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in Claim W (W ⊕ᴸ)
   claim-pop   : ∀ {W : World Δ Δ′} {W₁ : World (underΛ Δ) Δ′}
     → Open1 W W₁ → Claim W W₁
+  claim-rep   : ∀ {Ω ϱᵍ ϱˡ κ β} {ηᴸ : names Δ ↪ Ω} {ηᴿ : names Δ′ ↪ Ω}
+    → let W = world {Δ} {Δ′} Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
+      Δ′ ∋rep β := ★
+    → ¬ (names Δ′ ∋ᵅ β)
+    → NoNamedPartner W β
+    → Claim W (W ⊕ᴸ⇔ β)
 
 -- `cast⊑`'s pending names (conclusion π, premise πₚ): none; or a `∀ᵖ`
 -- layer passes them to the cast value (as InstX's `inst-∀`); or a

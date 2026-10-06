@@ -3,10 +3,10 @@ module examples.TermImprecisionPermissionExamples where
 -- File Charter:
 --   * PERMISSIONS AND R1/R2 (design.md D28) on concrete programs, with
 --     the real relation (TermImprecision): example P4 derives under the
---     grants of right checks, and the counterexamples C1, C3 and C5 are
+--     grants of right checks, and the counterexamples C1-C5 and C4g are
 --     NOT derivable.  Copied from the checked local copy
---     proof/DGG/notes/PermissionsR.agda (§10-§14, §19, §19a; here
---     §1-§7a); no notes module is imported.
+--     proof/DGG/notes/PermissionsR.agda (§10-§19a; here §1-§7a); no
+--     notes module is imported.
 --       P4.p4-B1 … p4-B6   P4 (= cambridge Cf from its second block),
 --                          every block; the gen wrapper `X! → X?` (B2)
 --                          and the check `X?` (B3, B4) grant αᴿ, under
@@ -18,6 +18,17 @@ module examples.TermImprecisionPermissionExamples where
 --       C1.c1-unrelated    C1 (`L₆ ⊑ R₇`, all three routes of
 --                          HiddenNames §2): not derivable at κʷ ≡ []
 --       C3.c3-unrelated    C3 (`LE₁ ⊑ RE₁`): not derivable at κʷ ≡ []
+--       C2.c2-unrelated    C2 (`LE₃ ⊑ RE₅`, the late pair): not
+--                          derivable at κʷ ≡ [] (PermissionsR §15)
+--       C4.c4-unrelated,   C4 and C4g (the left's initial program
+--       C4g.c4g-unrelated  against the right's state 2; sources
+--                          unrelated, `C4.source-unrelated`): not
+--                          derivable at κʷ ≡ [], WITH claim-rep
+--                          (design.md D29; PermissionsR §16-§18 plus
+--                          the claim-rep cases of the pop walk).  At
+--                          D27's stored marks claim-rep revived C4
+--                          (PushOrder `C4Revived`); D28's derived marks
+--                          make the rejoined name X⊑X
 --       C5.r1-rejects-c5,  C5 (Permissions.md §5; L state 3, R state 5):
 --       C5Dead.c5-unrelated  R1 rejects the payload view under the grant,
 --                          and the pair is unrelated in EVERY world at
@@ -1555,6 +1566,353 @@ module C3 where
   c3-unrelated eκ (cast⊑cast d _ _ _) = no-LAℕ!-RA eκ d
   c3-unrelated eκ (⊑cast g _ d _ _) = no-LE₁-RA (trans (cg-none ng-ℕ? g) eκ) d
   c3-unrelated eκ (cast⊑ _ d _ _) = no-LAℕ!-RE₁ eκ d
+
+------------------------------------------------------------------------
+-- 6a. C2 = ModeCondition's `Esc.esc-cex` (the late pair, P4 B4's own
+-- inner pair `S ⊑ J`): NOT DERIVABLE.  Its right spine reaches the tag
+-- `X!` through `ℕ?`, `id(★)` and three boundaries, none of which grants.
+-- (Copied from proof/DGG/notes/PermissionsR.agda §15.)  Its sources are
+-- C3's (`C3.LE`, `C3.RE`, unrelated: ∀Y.Y→Y ⋢ ∀Y.Y→★).
+------------------------------------------------------------------------
+
+module C2 where
+  open import examples.TypeCheck using (tc; tf)
+  open import examples.Eval using (evalTerms)
+  open import Reduction using (_⊢_-→*_)
+  open Runs
+  open P4 using (nth)
+  open TIE using (ΔL; ΔLᵢ)
+  open C3 using (LE; RE; LE-⊢; RE-⊢)
+
+  unb₀ : Boundary
+  unb₀ = unbind 0 0 ∷ []
+
+  id★ᶜ : Conv
+  id★ᶜ = ⌞ id ★ ⌟
+
+  S₄ LB₄ Lℕ LE₃ RX J RU RI RB₅ RE₅ : Term
+  S₄  = sealed ($ 5)
+  LB₄ = S₄ ⟪ Θ₀ , unseal 0 ⟫
+  Lℕ  = LB₄ ⟨ [] ∣ `ℕ ! ⟩
+  LE₃ = Lℕ ⟨ [] ∣ `ℕ ？ 0 ⟩
+  RX  = S₄ ⟨ X∼★ ∷ [] ∣ (` 0) ! ⟩
+  J   = RX ⟪ Θ₀ , id★ᶜ ⟫
+  RU  = J ⟪ unb₀ , id★ᶜ ⟫
+  RI  = RU ⟨ ★∼X ∷ [] ∣ idᵖ ★ ⟩
+  RB₅ = RI ⟪ Θ₀ , id★ᶜ ⟫
+  RE₅ = RB₅ ⟨ [] ∣ `ℕ ？ 0 ⟩
+
+  LE₃-state : nth (evalTerms 20 LE-⊢) 3 ≡ LE₃
+  LE₃-state = refl
+
+  RE₅-state : nth (evalTerms 30 RE-⊢) 5 ≡ RE₅
+  RE₅-state = refl
+
+  -- J is P4 B4's J verbatim
+  J-is-P4 : J ≡ P4.J
+  J-is-P4 = refl
+
+  LE₃-⊢ : ΔL ∣ [] ⊢ LE₃ ⦂ `ℕ
+  LE₃-⊢ = tc
+
+  RE₅-⊢ : ΔL ∣ [] ⊢ RE₅ ⦂ `ℕ
+  RE₅-⊢ = tc
+
+  RE₅-blames : last (evalTerms 20 RE₅-⊢) ≡ blame 0
+  RE₅-blames = refl
+
+  LE₃-never-blames : ∀ {ℓ} → ¬ (ΔL ⊢ LE₃ -→* blame ℓ)
+  LE₃-never-blames r = all-reach {P = NotBlame} 20 LE₃-⊢ tt
+    ((λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ []) r refl
+
+  bdy-LB₄ : ∀ {Δᵢ Aᵢ A} → BdyTy ΔL Θ₀ Δᵢ Aᵢ (unseal 0) A
+    → (Aᵢ ≡ ` 0) × G A
+  bdy-LB₄ (bdy-ty (bw _ i c) ⊢c eqᵢ eqₑ _)
+    with interior-functional i TIE.int₀ | conversion-functional c TIE.conv₀
+  bdy-LB₄ (bdy-ty _ (conv-unseal (_ , _ , here , r-here , same-ℕ))
+                  (_ , same-var here , same-var here)
+                  (_ , same-ℕ , same-ℕ) _) | refl | refl =
+    refl , gℕ
+
+  open Spine ($ 5) no-$ ΔL bdy-LB₄
+
+  -- C2 IS UNRELATED: every world over (ΔL, ΔL) with no permission
+  c2-unrelated : ∀ {W : World ΔL ΔL} {γ A A′} {q : A ⊑ᵂ⟨ W ⟩ A′}
+    → κʷ W ≡ [] → ¬ (W ∣ γ ⊢ LE₃ ⊑ RE₅ ∶ q)
+  c2-unrelated eκ =
+    no-LO eκ (lo-c gc-ℕ? (lo-c gc-ℕ! lo-B))
+      (r-cast ng-ℕ? (r-⟪⟫ (r-cast ng-id (r-⟪⟫ (r-⟪⟫ r-tag)))))
+
+------------------------------------------------------------------------
+-- 6b. The pop walk for C4 and C4g (PermissionsR.agda §16, with the
+-- claim-rep case of design.md D29).  The left has not instantiated;
+-- the right has (Inst, TyBeta): `[+X^α] Bd ⟨−X → id(★)⟩` under
+-- `id(★) → id(★)`, applied, under `ℕ?`.  No right cast on the way
+-- grants, so every world of a derivation has no permission; the walk
+-- reaches the left's Λ or λ against Bd, whatever was pushed, popped or
+-- CLAIMED, and the instance's lemmas refute that.  A claim-rep binder
+-- that `+X^α` rejoins is X⊑X (α is not permitted), exactly as a popped
+-- one: so the claim-rep cases are the claim-fresh cases.
+------------------------------------------------------------------------
+
+instL : Coercion
+instL = instᵖ (((` 0) ？ 0) ↦ᵖ ((` 0) !))
+
+ct-instL : ∀ {μ B A} → CastTy Δ μ instL B A → A ≡ ★ ⇒ ★
+ct-instL (cast-ty d _) = sym (coercion-trg d)
+
+module PopWalk (Bd : Term)
+  (no-idXBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ idX′ ⊑ Bd ∶ q))
+  (no-ΛBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⊑ Bd ∶ q))
+  (no-FBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⟨ [] ∣ instL ⟩ ⊑ Bd ∶ q))
+  where
+
+  RBd GR F : Term
+  RBd = Bd ⟪ Θ₀ , C3.cE ⟫
+  GR  = RBd ⟨ [] ∣ Rebase.id★↦ ⟩
+  F   = Λ idX′ ⟨ [] ∣ instL ⟩
+
+  w-idX-RB : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ idX′ ⊑ RBd ∶ q)
+  w-idX-RB eκ (⊑⟪⟫ I _ _ d _ _) = no-idXBd (trans (same-κ I) eκ) d
+
+  w-idX-GR : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ idX′ ⊑ GR ∶ q)
+  w-idX-GR eκ (⊑cast g _ d _ _) = w-idX-RB (trans (cg-none ng-id★↦ g) eκ) d
+
+  w-Λ-RB : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⊑ RBd ∶ q)
+  w-Λ-RB eκ (Λ⊑ claim-fresh _ _ _ _ d _) = w-idX-RB eκ d
+  w-Λ-RB eκ (Λ⊑ (claim-pop (open1 _ _ _)) _ _ _ _ d _) = w-idX-RB eκ d
+  w-Λ-RB eκ (Λ⊑ (claim-rep _ _ _) _ _ _ _ d _) = w-idX-RB eκ d
+  w-Λ-RB eκ (⊑⟪⟫ I _ _ d _ _) = no-ΛBd (trans (same-κ I) eκ) d
+
+  w-Λ-GR : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⊑ GR ∶ q)
+  w-Λ-GR eκ (Λ⊑ claim-fresh _ _ _ _ d _) = w-idX-GR eκ d
+  w-Λ-GR eκ (Λ⊑ (claim-pop (open1 _ _ _)) _ _ _ _ d _) = w-idX-GR eκ d
+  w-Λ-GR eκ (Λ⊑ (claim-rep _ _ _) _ _ _ _ d _) = w-idX-GR eκ d
+  w-Λ-GR eκ (⊑cast g _ d _ _) = w-Λ-RB (trans (cg-none ng-id★↦ g) eκ) d
+
+  w-F-RB : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ F ⊑ RBd ∶ q)
+  w-F-RB eκ (cast⊑ cc-plain d _ _) = w-Λ-RB eκ d
+  w-F-RB eκ (⊑⟪⟫ I _ _ d _ _) = no-FBd (trans (same-κ I) eκ) d
+
+  w-F-GR : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ F ⊑ GR ∶ q)
+  w-F-GR eκ (cast⊑cast d _ _ _) = w-Λ-RB eκ d
+  w-F-GR eκ (cast⊑ cc-plain d _ _) = w-Λ-GR eκ d
+  w-F-GR eκ (⊑cast g _ d _ _) = w-F-RB (trans (cg-none ng-id★↦ g) eκ) d
+
+  w-app : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ F · C1.5★ ⊑ GR · C1.5★ ∶ q)
+  w-app eκ (·⊑· f _) = w-F-GR eκ f
+
+  w-L-app : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ (F · C1.5★) ⟨ [] ∣ C1.ℕ? ⟩ ⊑ GR · C1.5★ ∶ q)
+  w-L-app eκ (cast⊑ cc-plain d _ _) = w-app eκ d
+
+  w-app-R : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ F · C1.5★ ⊑ (GR · C1.5★) ⟨ [] ∣ C1.ℕ? ⟩ ∶ q)
+  w-app-R eκ (⊑cast g _ d _ _) = w-app (trans (cg-none ng-ℕ? g) eκ) d
+
+  -- THE WALK: the initial-shaped pair is unrelated with no permission
+  walk : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ []
+    → ¬ (V ∣ γ ⊢ (F · C1.5★) ⟨ [] ∣ C1.ℕ? ⟩
+                 ⊑ (GR · C1.5★) ⟨ [] ∣ C1.ℕ? ⟩ ∶ q)
+  walk eκ (cast⊑cast d _ _ _) = w-app eκ d
+  walk eκ (⊑cast g _ d _ _) = w-L-app (trans (cg-none ng-ℕ? g) eκ) d
+  walk eκ (cast⊑ cc-plain d _ _) = w-app-R eκ d
+
+------------------------------------------------------------------------
+-- 6c. C4 (HiddenNames §5; PushTypePremise §3): NOT DERIVABLE, also with
+-- claim-rep (design.md D29).  Under D27's stored marks claim-rep
+-- REVIVED C4 (PushOrder `C4Revived.c4-related`: the claimed X kept
+-- X⊑★ through the rejoin).  Under D28 the rejoined X is α's
+-- permission, X⊑X, and nothing grants α, so the right's source-scope
+-- tag `x⟨X!⟩` cannot face the left's x (`no-xtag`).
+--
+-- Source programs (UNRELATED: ∀X.X→X ⋢ ∀X.X→★, `source-unrelated`):
+--   L:  ((ΛX. λx:X. x)         : ★→★) 5 : ℕ
+--   R:  ((ΛX. λx:X. (x : ★))   : ★→★) 5 : ℕ
+-- Initial cast terms (C1.L₀, C1.R₀, rendered):
+--   L₀  ((ΛX. λx:X. x)⟨inst Y.(Y?ℓ0 → Y!)⟩ 5⟨ℕ!⟩)⟨ℕ?ℓ0⟩
+--   R₀  ((ΛX. λx:X. x⟨X!⟩)⟨inst Y.(Y?ℓ0 → id(★))⟩ 5⟨ℕ!⟩)⟨ℕ?ℓ0⟩
+-- The pair is (L₀, R₂), R₂ the right's state 2 (after Inst, TyBeta);
+-- the right blames, the left reaches 5.
+------------------------------------------------------------------------
+
+module C4 where
+  open import examples.TypeCheck using (tc; tf)
+  open import examples.Eval using (evalTerms)
+  open import Reduction using (_⊢_-→*_)
+  open Runs
+  open P4 using (nth)
+  open C1 using (5★; ℕ?; L₀; R₀; L₀-⊢; R₀-⊢; ΔR; ΔRᵢ)
+  open Rebase using (id★↦)
+
+  source-unrelated : ∀ {μ} → ¬ (μ ⊢ `∀ (` 0 ⇒ ` 0) ⊑ `∀ (` 0 ⇒ ★))
+  source-unrelated (∀⊑∀ (⇒⊑⇒ _ (X⊑★ ())))
+  source-unrelated (∀⊑ _ _ ())
+
+  bodyR : Term
+  bodyR = ƛ (` 0) ∙ (` 0 ⟨ ★∼X∼★ ∷ [] ∣ (` 0) ! ⟩)
+
+  RBp R₂ : Term
+  RBp = bodyR ⟪ Θ₀ , C3.cE ⟫
+  R₂  = ((RBp ⟨ [] ∣ id★↦ ⟩) · 5★) ⟨ [] ∣ ℕ? ⟩
+
+  R₂-state : nth (evalTerms 30 R₀-⊢) 2 ≡ R₂
+  R₂-state = refl
+
+  R₂-⊢ : ΔR ∣ [] ⊢ R₂ ⦂ `ℕ
+  R₂-⊢ = tc
+
+  R₂-blames : last (evalTerms 20 R₂-⊢) ≡ blame 0
+  R₂-blames = refl
+
+  L₀-never-blames : ∀ {ℓ} → ¬ (empty ⊢ L₀ -→* blame ℓ)
+  L₀-never-blames r = all-reach {P = NotBlame} 30 L₀-⊢ tt
+    ((λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷
+     (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ []) r refl
+
+  -- the body: x against x⟨X!⟩, no permission
+  no-xtag : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {A₀′ p₀ γ μ k A A′}
+      {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ []
+    → ¬ (V ∣ ctx-imp (` 0) A₀′ p₀ ∷ γ ⊢ ` 0 ⊑ (` 0) ⟨ μ ∣ (` k) ! ⟩ ∶ q)
+  no-xtag {V = V} eκ (⊑cast {κₚ = κₚ} {p = p} _ (raise-∷ _) d ct q)
+    with ct-X! ct | lty-x d
+  ... | (_ , rh) , refl , refl | refl = no-tag-at {V = V} {κₚ = κₚ} eκ rh p q
+
+  no-idXBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ idX′ ⊑ bodyR ∶ q)
+  no-idXBd eκ (ƛ⊑ƛ _ _ d) = no-xtag eκ d
+
+  no-ΛBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⊑ bodyR ∶ q)
+  no-ΛBd eκ (Λ⊑ claim-fresh _ _ _ _ d _) = no-idXBd eκ d
+  no-ΛBd eκ (Λ⊑ (claim-pop (open1 _ _ _)) _ _ _ _ d _) = no-idXBd eκ d
+  no-ΛBd eκ (Λ⊑ (claim-rep _ _ _) _ _ _ _ d _) = no-idXBd eκ d
+
+  no-FBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⟨ [] ∣ instL ⟩ ⊑ bodyR ∶ q)
+  no-FBd eκ (cast⊑ cc-plain d _ _) = no-ΛBd eκ d
+
+  open PopWalk bodyR no-idXBd no-ΛBd no-FBd
+
+  -- C4 IS UNRELATED: every world over (empty, ΔR) with no permission
+  c4-unrelated : ∀ {W : World empty ΔR} {γ A A′} {q : A ⊑ᵂ⟨ W ⟩ A′}
+    → κʷ W ≡ [] → ¬ (W ∣ γ ⊢ L₀ ⊑ R₂ ∶ q)
+  c4-unrelated = walk
+
+------------------------------------------------------------------------
+-- 6d. C4g (HiddenNames §19, C4 with a gen-mode tag): NOT DERIVABLE,
+-- also with claim-rep.  The right's body is the gen wrapper
+-- `(…)⟨X! → id(★)⟩^[X:★∼X]`, which grants nothing (its codomain does
+-- not check), so the index `X→X ⊑ X→★` of the left's λx:X.x against
+-- it needs X⊑★ at a joined, unpermitted X.
+--
+-- Source programs (UNRELATED, again ∀X.X→X ⋢ ∀X.X→★):
+--   L:  ((ΛX. λx:X. x)                              : ★→★) 5 : ℕ
+--   R:  (((λx:★. x) : ∀X.X→★  by gen X.(X! → id★)) : ★→★) 5 : ℕ
+-- The pair is (C1.L₀, R2g), R2g the right's state 2.
+------------------------------------------------------------------------
+
+module C4g where
+  open import examples.TypeCheck using (tc; tf)
+  open import examples.Eval using (evalTerms)
+  open import examples.CambridgeExamples using (I★)
+  open import Reduction using (_⊢_-→*_)
+  open Runs
+  open P4 using (nth)
+  open C1 using (5★; ℕ?; L₀; L₀-⊢; ΔR)
+  open C3 using (genE; genE-body; cE; RB₁)
+  open C4 using (L₀-never-blames; source-unrelated)
+  open Rebase using (id★↦; I★⁻)
+
+  R0g R2g Bdg : Term
+  R0g = (((I★ ⟨ [] ∣ genE ⟩) ⟨ [] ∣ instᵖ (((` 0) ？ 0) ↦ᵖ idᵖ ★) ⟩)
+          · 5★) ⟨ [] ∣ ℕ? ⟩
+  R2g = ((RB₁ ⟨ [] ∣ id★↦ ⟩) · 5★) ⟨ [] ∣ ℕ? ⟩
+  Bdg = I★⁻ ⟨ ★∼X ∷ [] ∣ genE-body ⟩
+
+  R0g-⊢ : empty ∣ [] ⊢ R0g ⦂ `ℕ
+  R0g-⊢ = tc
+
+  R2g-state : nth (evalTerms 30 R0g-⊢) 2 ≡ R2g
+  R2g-state = refl
+
+  R2g-⊢ : ΔR ∣ [] ⊢ R2g ⦂ `ℕ
+  R2g-⊢ = tc
+
+  R2g-blames : last (evalTerms 30 R2g-⊢) ≡ blame 0
+  R2g-blames = refl
+
+  ct-genE′ : ∀ {Δ₀ μ B A} → CastTy Δ₀ μ genE-body B A
+    → (Δ₀ ∋tv 0) × (A ≡ ` 0 ⇒ ★)
+  ct-genE′ (cast-ty (⊢fun (⊢tag ()) _) _)
+  ct-genE′ (cast-ty (⊢fun (⊢tag-var tv _ _) (⊢id _ _)) _) = tv , refl
+
+  -- X→X ⊑ X′→★ with no permission (X′ a right name)
+  no-idx-X→★ : ∀ {V : World Δ Δ′} {X′ β} → κʷ V ≡ [] → Δ′ ∋ᵗ X′ := β
+    → ¬ ((` 0 ⇒ ` 0) ⊑ᵂ⟨ V ⟩ (` X′ ⇒ ★))
+  no-idx-X→★ {V = V} {X′} eκ rh q
+    with plain-idx {V = V} {A′ = ` X′ ⇒ ★} nf-⇒ q
+  ... | ⇒⊑⇒ p₁ (X⊑★ h) = no-tag★ {V = V} eκ rh (var⊑var p₁) h
+
+  -- ∀X.X→X ⊑ X′→★ with no permission, at any pending names
+  open-∀id : ∀ {μ} cs {ρ b}
+    → OpenImp μ cs ρ (`∀ (` 0 ⇒ ` 0)) (` b ⇒ ★) → μ ∋ˡ b := X⊑★
+  open-∀id [] (∀⊑ _ _ (⇒⊑⇒ () _))
+  open-∀id (c ∷ []) (⇒⊑⇒ X⊑X (X⊑★ h)) = h
+  open-∀id (c ∷ c′ ∷ cs) ()
+
+  no-idx-∀ : ∀ {V : World Δ Δ′} {X′ β} → κʷ V ≡ [] → Δ′ ∋ᵗ X′ := β
+    → ¬ (`∀ (` 0 ⇒ ` 0) ⊑ᵂ⟨ V ⟩ (` X′ ⇒ ★))
+  no-idx-∀ {V = V} eκ rh q =
+    no★-right {V = V} eκ rh (open-∀id (map (emb (ηᴿʷ V)) (πʷ V)) q)
+
+  no-idXBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ idX′ ⊑ Bdg ∶ q)
+  no-idXBd {V = V} eκ (⊑cast _ _ d ct q) with lty-idX d | ct-genE′ ct
+  ... | refl | (_ , rh) , refl = no-idx-X→★ {V = V} eκ rh q
+
+  no-ΛBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⊑ Bdg ∶ q)
+  no-ΛBd eκ (Λ⊑ claim-fresh _ _ _ _ d _) = no-idXBd eκ d
+  no-ΛBd eκ (Λ⊑ (claim-pop (open1 _ _ _)) _ _ _ _ d _) = no-idXBd eκ d
+  no-ΛBd eκ (Λ⊑ (claim-rep _ _ _) _ _ _ _ d _) = no-idXBd eκ d
+  no-ΛBd {V = V} eκ (⊑cast _ _ d ct q) with lty-ΛidX d | ct-genE′ ct
+  ... | refl | (_ , rh) , refl = no-idx-∀ {V = V} eκ rh q
+
+  no-FBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⟨ [] ∣ instL ⟩ ⊑ Bdg ∶ q)
+  no-FBd eκ (cast⊑ cc-plain d _ _) = no-ΛBd eκ d
+  no-FBd {V = V} eκ (⊑cast _ _ d ct q) with lty-cast d | ct-genE′ ct
+  ... | _ , ct₀ | _ , refl with ct-instL ct₀
+  ... | refl with plain-idx {V = V} {A′ = ` 0 ⇒ ★} nf-⇒ q
+  ... | ⇒⊑⇒ () _
+  no-FBd eκ (cast⊑cast d ct ct′ q) with ct-instL ct | ct-genE′ ct′
+  ... | refl | _ , refl with q
+  ... | ⇒⊑⇒ () _
+
+  open PopWalk Bdg no-idXBd no-ΛBd no-FBd
+
+  -- C4g IS UNRELATED: every world over (empty, ΔR) with no permission
+  c4g-unrelated : ∀ {W : World empty ΔR} {γ A A′} {q : A ⊑ᵂ⟨ W ⟩ A′}
+    → κʷ W ≡ [] → ¬ (W ∣ γ ⊢ L₀ ⊑ R2g ∶ q)
+  c4g-unrelated = walk
+
+  -- the gen wrapper `X! → id(★)` grants nothing (C2's), unlike P4's
+  -- `X! → X?`
+  c2-wrapper-no-grant : NoGrant genE-body
+  c2-wrapper-no-grant = ng-tag↦id★
 
 ------------------------------------------------------------------------
 -- 7. C5 (Permissions.md §5), its programs and runs.  In Permissions'

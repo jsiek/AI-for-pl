@@ -72,7 +72,39 @@ Affected (`notes/PermissionsR.md` §7, `notes/Permissions.md` §7):
   the granting `⊑cast` (its premise is at a world with a permission):
   `SimFrame-⊑castκ`, `SimBackFrame-⊑castκ`, `CatchupRightκ`.
 - Not adopted: the push type premise (redundant under permissions).
-  Open: H1, the push ORDER (`notes/PushTypePremise.md` §7).
+  Open: H1, the push ORDER (`notes/PushTypePremise.md` §7); fixed by
+  D29 below.
+
+**D29 note (2026-10-06).**  design.md D29 added `claim-rep` to `Λ⊑`'s
+`Claim`.  With nothing pending, the binder pairs its abstract rep. var
+lexically with an unnamed right `★` rep. var `β` (`W ⊕ᴸ⇔ β`).  The
+right boundary that later names `β` rejoins it (`Interior.join-fresh`).
+It fixes H1 (`notes/PushOrder.md`, `examples/TermImprecisionH1Examples`).
+The statements below are NOT yet rewritten.  Affected:
+
+- Every lemma by induction on `⊑` gets a `claim-rep` case of `Λ⊑`, like
+  `claim-fresh`'s at the world `W ⊕ᴸ⇔ β`.  The skeletons have one new
+  hole each: `CatchupRight-claim-rep` (CatchupRightProof) and
+  `SimBackFrame-Λ⊑⇔` (SimBackProof).  CatchupBlame has the case and
+  stays finished.
+- INLINE: `WfWorld (W ⊕ᴸ⇔ β)` from `WfWorld W` and the claim's premises
+  (`(0, β)` agrees by `abst-★`; `β` unnamed, so named uniqueness is
+  unaffected).
+- M1 MorSide, M2 MorImp, M3 EvolveMor and AllocImp: `β` is renumbered
+  with the right side, like `κ`.
+- M13 InstXImpL: when the left's `TyBeta` catches up with a claimed
+  binder, the lexical pair `(0, β)` becomes global (`allocᴸ⇔`), as for
+  a pop.
+- `PushInstR`: a SECOND Inst on a ∀-boundary value cannot keep the
+  first Inst's push and pop.  It turns that pop into `claim-rep α`
+  above the new boundary, followed by `push-none` and the rejoin
+  (`notes/PushOrder.md` §5).  SimBack's case for the right's Inst then
+  has no Merge to wait for.
+- If pushes were removed as well (`notes/NoPush.md`; NOT adopted),
+  then `PushInstR` (Λ case), `RightMergePending`, `PushCompose`,
+  `WfPop`, `PendingMor`, `PopInstX` and `CatchupRightπ` would lose
+  their pending-name parts.  But the gen-value case (C2 X0, G1) would
+  then be unrelated, which refutes DGG part 1.
 
 ## 0. Overview
 

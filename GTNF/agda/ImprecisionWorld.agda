@@ -2,7 +2,7 @@ module ImprecisionWorld where
 
 -- File Charter:
 --   * THE WORLDS OF CAST-TERM IMPRECISION (GTNF/design.md §12.2;
---     D12-D16, D25, D27, D28).  §1 order-preserving embeddings of name
+--     D12-D16, D25, D27, D28, D29).  §1 order-preserving embeddings of name
 --     positions `_↪_` into a center of n names (GTSFImp's `_↪ᵗ_` with
 --     `keep`/`skip`) and their renaming `emb`; the PERMISSION `permit`
 --     of a right rep. var and the DERIVED MARKS `dmarks`; §2 the rep.
@@ -10,7 +10,8 @@ module ImprecisionWorld where
 --     `marksʷ`, `Paired` (ϱ = ϱᵍ ∪ ϱˡ) and R1/R2's condition
 --     `Unpermitted`/`LeftUnpermitted`/`UnbindOK` (design.md D28); §4
 --     type imprecision at a world `_⊑ᵂ⟨_⟩_`; §5 the world operations
---     `W ⊕²`, `W ⊕ᴸ`, `W ⊕ᴿ`, `W ⊕⁺^ β`, `W ⊕ʳ^ β`, `Join↪`/`Open1`
+--     `W ⊕²`, `W ⊕ᴸ`, `W ⊕ᴸ⇔ β` (claim-rep, D29), `W ⊕ᴿ`, `W ⊕⁺^ β`,
+--     `W ⊕ʳ^ β`, `Join↪`/`Open1`
 --     (one pending name popped by a left binder, design.md D27), the
 --     allocation renumberings, and `underν²`; §6 the term-interior
 --     world `Interior W Θ Θ′ Wᵢ` and conversion-context world
@@ -34,6 +35,14 @@ module ImprecisionWorld where
 --     and leaves the embeddings, `Paired`, `Joins`, `Interior` and `πʷ`
 --     unchanged definitionally.  This supersedes D11 (marks chosen at
 --     the binder) and D15's "a continuing name keeps its mark".
+--   * CLAIM-REP (design.md D29; Jeremy, 2026-10-06; checked first as
+--     proof/DGG/notes/PushOrder.agda fix (c2)).  With nothing pending,
+--     a left binder may pair its abstract rep. var lexically with an
+--     UNNAMED right ★ rep. var β (`W ⊕ᴸ⇔ β`): it is left-only (X⊑★)
+--     until a right boundary names β, where `Interior.join-fresh`
+--     rejoins it (D25) and its mark becomes β's permission (D28).  No
+--     new world field and no new WfWorld field: the pair (0, β) agrees
+--     by `abst-★`, and named uniqueness ignores β while it is unnamed.
 --   * PENDING NAMES ARE A FIELD OF THE WORLD (design.md D27; Jeremy,
 --     2026-10-05).  `πʷ W` lists the PENDING right names (positions in
 --     `names Δ′`), next pop first: right-only names that a `⊑⟪⟫` pushed
@@ -324,7 +333,7 @@ A ⊑ᵂ⟨ W ⟩ A′ =
 -- W ⊕² — both sides bind X by a Λ: a new center name in both images,
 -- and the two abstract rep. vars paired lexically; the new right rep.
 -- var 0 is not permitted, so X is X⊑X
-infixl 6 _⊕² _⊕ᴸ _⊕ᴿ _⊕⁺^_ _⊕ʳ^_
+infixl 6 _⊕² _⊕ᴸ _⊕ᴸ⇔_ _⊕ᴿ _⊕⁺^_ _⊕ʳ^_
 _⊕² : World Δ Δ′ → World (underΛ Δ) (underΛ Δ′)
 world n η η′ ϱᵍ ϱˡ κ π ⊕² =
   world (suc n) (keep (relabel suc η)) (keep (relabel suc η′))
@@ -336,6 +345,18 @@ _⊕ᴸ : World Δ Δ′ → World (underΛ Δ) Δ′
 world n η η′ ϱᵍ ϱˡ κ π ⊕ᴸ =
   world (suc n) (keep (relabel suc η)) (skip η′)
         (shiftᴸ ϱᵍ) (shiftᴸ ϱˡ) κ π
+
+-- W ⊕ᴸ⇔ β — CLAIM-REP (design.md D29): the left side alone binds X, as
+-- `W ⊕ᴸ` (in η's image only, so X⊑★ while no right name joins it), and
+-- its abstract rep. var is paired LEXICALLY with the right rep. var β,
+-- which has no right name in scope yet.  A right boundary that later
+-- names β (`+X^β`) REJOINS the binder by `Interior.join-fresh` (D25);
+-- from there X's mark is β's permission (`dmarks`, D28), X⊑X unless a
+-- right check of β grants it.  κ is unchanged (no right rep. var moves).
+_⊕ᴸ⇔_ : World Δ Δ′ → RVar → World (underΛ Δ) Δ′
+world n η η′ ϱᵍ ϱˡ κ π ⊕ᴸ⇔ β =
+  world (suc n) (keep (relabel suc η)) (skip η′)
+        (shiftᴸ ϱᵍ) ((zero , β) ∷ shiftᴸ ϱˡ) κ π
 
 -- W ⊕ᴿ — the right side alone binds X: in η′'s image only (used by
 -- no rule of §12.3; recorded for completeness)

@@ -192,6 +192,14 @@ catchup-right wfΔ wfΔ′ wfW refl refl v (Λ⊑ claim-fresh nv occ liftᴸ-[] 
   e = evolveImp wfΔ wfΔ′ ev′ wfW refl refl
         (Λ⊑ claim-fresh nv occ liftᴸ-[] vV d q)
 
+-- claim-rep (design.md D29): the binder claims the unnamed right ★ rep.
+-- var β; the IH at W ⊕ᴸ⇔ β, as for claim-fresh (an evolution with no
+-- left allocation commutes with `⊕ᴸ⇔ β`, renumbering β with the right)
+catchup-right _ _ _ refl refl _ (Λ⊑ (claim-rep _ _ _) _ _ liftᴸ-[] _ _ _) =
+  {! CatchupRight-claim-rep: the IH at W ⊕ᴸ⇔ β (WfWorld: the pair
+     (0, β) agrees by abst-★, β unnamed), then an unliftᴸ⇔ as
+     unliftᴸ, and Λ⊑ (claim-rep …) at W′ with β renumbered !}
+
 ------------------------------------------------------------------------
 -- boundaries (the interior is term-closed; IH at Wᵢ, premise wi)
 

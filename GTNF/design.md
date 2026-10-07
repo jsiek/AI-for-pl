@@ -1426,6 +1426,25 @@ Each one can be revisited on its own.
   (`(λx:★.x : ∀X.X→X)` against `((λx:★.x : ∀X.X→X) : ★→★)`) are
   related only by a push and a `cc-gen` pop.  Pushes are kept
   (Jeremy, 2026-10-06).
+- 🆕 **D28′** **(PROPOSED 2026-10-07, not adopted, not checked:
+  permissions chosen at binders; R1′).**  Changes to D28, marked
+  🆕 **D28′** in §12.2–§12.3 (replaced text is struck through):
+  `⊑cast` no longer grants, so no cast rule changes the world (Jeremy,
+  2026-10-06: the world changes only at binding rules).  Instead, a
+  boundary rule that JOINS a name (a matched fresh pair, a rejoin
+  through `ϱ`, or a pushed name against a left binder) may add that
+  name's right rep. var to `κ` for its premise, and pays by checking
+  its interior index with the joined names at `X⊑X` (κ without the
+  additions).  R1 becomes R1′: only a left unbind whose rep. var occurs
+  in the boundary's EXTERIOR type needs an unpermitted partner.  R2 is
+  unchanged.  `Grants`, `CastGrant` and `RaiseCtx` go, and so do the
+  `CastFun` side condition (R12) and the `TagUntag` drop lemma.  Why:
+  P4k and P4h, both from related sources, refute `Sim` under D28
+  (`proof/DGG/notes/ReductionAudit.md` §1, `P4k.not-sim`,
+  `P4h.not-sim`); TwoGen's G0 is the same failure as P4k.  Argued in
+  ReductionAudit §4; to check: the corpus, C1–C5 and C4g dead, the
+  TwoGen pairs, the `Merge` case of the binder check, and R1′'s
+  safety.
 
 The open design questions are those of the `⊑` sketch (§12.5).
 
@@ -1472,7 +1491,9 @@ are `ImprecisionWorld.agda`; the rules (§12.3) are `TermImprecision.agda`
 and `ConversionImprecision.agda`, current through D29.  Known open
 defect: the gen-value pairs of `proof/DGG/notes/TwoGen.md` (G0 and six
 more, from related sources) are DGG-part-1 counterexamples for these
-rules.  The counterexamples C1–C5 that motivated D28 are presented
+rules.  **Review markers (2026-10-07):** text marked 🆕 **D28′** is the
+PROPOSED D28′ (§10), not adopted and not in Agda; text it replaces is
+~~struck through~~.  The counterexamples C1–C5 that motivated D28 are presented
 from their source programs in
 `agda/proof/DGG/notes/ConditionPlacement.md` §3.  The examples (§12.4) are machine-run: each pair of programs is
 in `examples/`, and both of its runs come from `Eval`.
@@ -1524,7 +1545,9 @@ W = (Δ, Δ′, Ω, η, η′, ϱ, κ, π)
   η′ : names(Δ′) ↪ Ω     every center name is in the image of at least one
                          of them
   κ              the permitted right rep. vars (D28); [] at every
-                 top-level world; a right check adds one (⊑cast)
+                 top-level world; ~~a right check adds one (⊑cast)~~
+                 🆕 **D28′**: a boundary rule that joins a name may add
+                 its right rep. var, for that boundary's interior
   μ  = marks(W)          DERIVED (D28): a name in η's image only
                          (left-only) is X⊑★; a name in η′'s image is
                          X⊑★ iff its right rep. var is in κ, else X⊑X
@@ -1613,8 +1636,9 @@ The point of the design (§9.6) is that **no part of a world is ever
 rebased.**  `Ω`, `η`, `η′` and `κ` change only lexically: they are
 extended by a binder (`Λ`, a coercion binder, a boundary entry `+X^α`)
 and shrunk by an unbind (`−X^α`), for the subterm under it, exactly as
-the type context is; `κ` grows at a right check (`⊑cast`) for the
-subterm under it.  So is `ϱˡ`.  The one non-lexical part is `ϱᵍ`,
+the type context is; ~~`κ` grows at a right check (`⊑cast`) for the
+subterm under it~~ 🆕 **D28′**: `κ` grows only at a boundary rule that
+joins a name, for the boundary's interior.  So is `ϱˡ`.  The one non-lexical part is `ϱᵍ`,
 and it only grows: a `TyBeta` that the other side matches adds one
 pair.  An
 unmatched allocation only renumbers the allocating side's rep. vars (de
@@ -1635,9 +1659,12 @@ W[δ ∥ δ′]        the interior world of a boundary pair: each side's
                  −X on one side removes X from that side's image; a center
                  name in neither image is dropped.  +X^α joins the center
                  name of the rep. var α is paired with by ϱ, if any, and is
-                 otherwise a new one-sided center name.  ϱ and κ are
-                 unchanged, so every mark is derived (D28; Example P4's
-                 X⊑★ comes from a right check's grant).
+                 otherwise a new one-sided center name.  ϱ is
+                 unchanged, and every mark is derived (D28).  ~~κ is
+                 unchanged; Example P4's X⊑★ comes from a right check's
+                 grant.~~  🆕 **D28′**: κ may gain the right rep. vars of
+                 the names this boundary joins (§12.3, boundaries);
+                 Example P4's X⊑★ comes from its outer matched boundary.
                  (Write W[δ ∥ ·] and W[· ∥ δ′] for a one-sided boundary.)
 ```
 
@@ -1812,14 +1839,23 @@ environments, except through the types:
                     (X the right name of β; first order: id(A), G!, G?ℓ)
 ```
 
-A right check GRANTS (D28): every value that leaves the right's cast
+🆕 **D28′** replaces the D28 rule above by the plain GTSFImp rule; no
+cast rule changes the world:
+
+```
+  W ∣ γ ⊢ M ⊑ M′ : A ⊑ B′    p′ : B′ ⇒ A′
+  ───────────────────────────────────── (⊑cast, D28′)
+  W ∣ γ ⊢ M ⊑ M′ ⟨p′⟩ : A ⊑ A′
+```
+
+~~A right check GRANTS (D28): every value that leaves the right's cast
 value through `p′` is checked against the name of `β`, so in the
 premise an X-tagged right value may face an untagged left value of
 that name, i.e. `β`'s name is `X⊑★`.  P4's gen wrapper `X! → X?` and
 its later check `X?` grant `αᴿ`; C2's `X! → id(★)` grants nothing.
 Left casts, `cast⊑cast`, right hides and boundaries grant nothing.  A
 grant covers the whole premise; `γ⁺` has the same types at the raised
-marks (`RaiseCtx`).
+marks (`RaiseCtx`).~~  🆕 **D28′**: no grants; see the boundary rules.
 
 With pending names (D27), `⊑cast` carries them unchanged, and `cast⊑`
 has two more forms, for a value `M`:
@@ -1952,6 +1988,39 @@ coercions, they are not compared with each other:
   every −X^α in δ: no partner of α in ϱ is in κ          (R1, D28)
   ───────────────────────────────────────────── (⟪⟫⊑, D27, D28)
   W, π ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ M′ : A ⊑ A′
+```
+
+🆕 **D28′**: each boundary rule may choose permissions for the names it
+JOINS, and pays at the join.  Written for `⟪⟫⊑⟪⟫`; `⟪⟫⊑` and `⊑⟪⟫`
+take the same two premises (with `W[δ ∥ ·]`, `W[· ∥ δ′]`), and
+`⟪⟫⊑`'s R1 becomes R1′:
+
+```
+  Wᵢ = W[δ ∥ δ′] with K added to κ
+  K ⊆ the right rep. vars of the names this rule JOINS
+      (a matched fresh pair, a rejoin through ϱ, a pushed name)
+  Aᵢ ⊑ A′ᵢ  at W[δ ∥ δ′]  (κ WITHOUT K: the joined names at X⊑X)   (the join pays)
+  Wᵢ ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′ᵢ    c : Aᵢ ⇒ A    c′ : A′ᵢ ⇒ A′
+  ───────────────────────────────────────────────────────── (⟪⟫⊑⟪⟫, D28′)
+  W ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
+
+  R1′:  every −X^α in δ whose α occurs in the boundary's EXTERIOR type A
+        has no partner in ϱ that is in κ                    (replaces R1)
+```
+
+The check reads the interior index before the new permissions, so a
+joined name is `X⊑X` there; inside, it may be `X⊑★`.  It must be at
+the rule that JOINS a name, not one that only introduces it:
+otherwise C1's right-first route revives (a right-only `+X` would pay
+a vacuous `★ ⊑ ★`, and the left's later rejoin would get the loose
+mark for free).  A name the boundary only continues, or rejoins inside
+a region where it is already permitted, pays nothing (P4 B4's `J`).
+R1′ admits P4h's crossΛ hide `[−X^α] (λy:ℕ.y) ⟨id(ℕ) → id(ℕ)⟩`, whose
+exterior `ℕ→ℕ` does not mention `α`, and still rejects C5's seal
+`[−X^α] 5 ⟨−X⟩`, whose exterior is `X`.
+
+```
+  (⊑⟪⟫, D27; under 🆕 D28′ it also takes the K and join-pays premises above:)
 
   W[· ∥ δ′], π′ ++ new ∣ [] ⊢ M ⊑ M′ : A ⊑ A′ᵢ    c′ : A′ᵢ ⇒ A′
   π′ = π seen inside δ′    new introduced by δ′    new = [] or M a value
@@ -1970,7 +2039,7 @@ left ∀-value (Example P3), `⊑⟪⟫` pushes the boundary's name and `Λ⊑`
 pops it.  The left stays the ∀-value: no `inst_X` appears in the
 relation, and under a pending name the left term is a value.
 
-R1 (D28): the left's own seal `[−X^α] V ⟨−X⟩` relates to an arbitrary
+R1 (D28; 🆕 **D28′**: R1′, above): the left's own seal `[−X^α] V ⟨−X⟩` relates to an arbitrary
 right `★` value (the "payload view", P2), which is right when `X` is
 left-only, but not under a right check that permitted `α`'s partner:
 counterexample C5 relates `[+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩` to
@@ -2013,6 +2082,11 @@ W3  x                               Y        Y        Y⊑Y              Y     Y
 The push is a choice: the rule does not say which introduced names to
 push, and the index decides (`PendingOpenings.md` §6).  No permission
 appears: the pending `Y` is `X⊑X` (D28).
+
+🆕 **D28′**: in the ladder below (generated from the D28 Agda), the
+permission for `αᴿ` would come from the outer matched boundary `W0 →
+W1`, which joins `X` and checks `X ⊑ X` there, instead of the grant at
+`W1 → W2`; the rows below `W2` are unchanged.
 
 A grant (D28), P4's block B3 (`p4-B3`, pinned in
 `examples/ImpLadder.agda`): the right's check `X?` grants `αᴿ`, so
@@ -2095,7 +2169,8 @@ left-only `Merge` builds chains.
 three cast rules, `Λ⊑Λ` and `Λ⊑` (one rule whose `Claim` is fresh, pop
 or claim-rep, displayed above as three), two `ν` rules and three
 boundary rules.  The side relations are `Claim` (3 cases), `CastClaim`
-(3), `BdyClaim` (2), `Push` with `Carried` (D27), and `CastGrant` (D28).
+(3), `BdyClaim` (2), `Push` with `Carried` (D27), and ~~`CastGrant`
+(D28)~~ (🆕 **D28′**: removed).
 GTSFImp's `_∣_⊢²_⊑_∶_` has 22.
 
 ### 12.3.1 Open: left values built by `gen` (TwoGen)

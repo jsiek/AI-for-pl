@@ -1861,13 +1861,17 @@ With pending names (D27), `⊑cast` carries them unchanged, and `cast⊑`
 has two more forms, for a value `M`:
 
 ```
-  W, Y·π ∣ γ ⊢ M ⊑ M′ : B ⊑ A′        p : B ⇒ A
-  ────────────────────────────────────────────── (cast⊑, pass ∀)
-  W, Y·π ∣ γ ⊢ M ⟨∀X.p⟩ ⊑ M′ : A ⊑ A′
+  W, Y·π ∣ γ ⊢ M ⊑ M′ : ∀X.B ⊑ A′        ∀X.p : ∀X.B ⇒ ∀X.A
+  ─────────────────────────────────────────────────── (cast⊑, pass ∀)
+  W, Y·π ∣ γ ⊢ M ⟨∀X.p⟩ ⊑ M′ : ∀X.A ⊑ A′
 
-  W ∣ γ ⊢ M ⊑ M′ : B ⊑ A′        gen X.p : B ⇒ A
-  ────────────────────────────────────────────── (cast⊑, pop gen)
-  W, Y ∣ γ ⊢ M ⟨gen X.p⟩ ⊑ M′ : A ⊑ A′
+  W ∣ γ ⊢ M ⊑ M′ : B ⊑ A′        gen X.p : B ⇒ ∀X.A
+  ─────────────────────────────────────────────────── (cast⊑, pop gen)
+  W, Y ∣ γ ⊢ M ⟨gen X.p⟩ ⊑ M′ : ∀X.A ⊑ A′
+
+  (an index ∀X.… ⊑ A′ at a world with pending names is read with its
+   outer ∀ opened at the next pending name; corrected 2026-10-07: the
+   earlier display wrote the bodies B, A for the cast's types)
 ```
 
 The gen pop leaves the base world unchanged: the value under a `gen`

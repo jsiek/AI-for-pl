@@ -35,7 +35,23 @@ It is told apart from a boundary `[δ] M ⟨c⟩` by the boundary's leading
 enclosing `ν`; the metavariables also differ (`p, q, r` for coercions,
 `c, d` for conversions).
 
+**Review markers (2026-10-07):** text marked 🆕 **D28′** is the
+PROPOSED D28′ (§C12), not adopted and not in Agda; text it replaces is
+~~struck through~~.  Text marked 🆕 **D30** is likewise the PROPOSED
+D30 (2026-10-08; §C12).  Part I shows a proposal only as marked
+changes to definitions; its explanation is in Part II (§C9).
+
+The file has two parts.  **Part I** gives the definitions of the
+current adopted design (through D29), tersely.  **Part II** gives the
+commentary: rationale, worked examples and ladders, counterexamples,
+proposals, metatheory discussion, the Agda plan and the history of
+decisions.  A definition links to its commentary as `(…: §Cn.m)`.
+The section map at the end translates the section numbers of earlier
+versions of this file (cited by the Agda and the notes).
+
 Contents
+
+Part I — Definitions
 
 1. Types, representation types, type contexts
 2. Conversions
@@ -44,13 +60,34 @@ Contents
 5. Values
 6. Reduction
 7. Compilation from the source language
-8. Examples
-9. Metatheory goals
-10. Decisions taken in this draft, and open questions
-11. Agda plan
-12. Cast-term imprecision `⊑` (sketch)
+8. Type imprecision
+9. Worlds
+10. Cast-term imprecision rules
+11. Metatheory statements
+
+Part II — Commentary
+
+- C1. Coercions: provenance and modes
+- C2. Values: rationale and proof sketches
+- C3. Reduction: rationale
+- C4. Compilation: the typing theorem
+- C5. Examples of reduction (Examples 1–7)
+- C6. Cast-term imprecision: explanations and ladders
+- C7. Examples of cast-term imprecision (P1–P6)
+- C8. Counterexamples and open defects
+- C9. Sketches and proposals (interfaces, D28′, D30)
+- C10. Metatheory discussion
+- C11. Agda plan
+- C12. Decisions taken in this draft, and open questions
+
+Section map (old → new)
 
 ------------------------------------------------------------------------
+
+# Part I — Definitions
+
+The current adopted design, through D29, with the proposals D28′ and
+D30 shown as marked changes.
 
 ## 1. Types, representation types, type contexts
 
@@ -67,7 +104,7 @@ Ground types (new)  G, H   ::= ι | ★ → ★ | ∀X. ★ | X
 The ground types are those of GTSFImp (`Types.Ground`): `＇ X`, `‵ ι`,
 `★⇒★`, `∀★`.  A type variable is its own ground type, so a value of
 type `X` is tagged with the *name* `X` when it is injected into `★`.
-§6.4 explains why a name, rather than a representation variable, is
+§C3.7 explains why a name, rather than a representation variable, is
 enough to make the tag check well defined.
 
 Well-formed types `Δ ⊢ A` are as in νF, plus `Δ ⊢ ★`:
@@ -143,7 +180,7 @@ If `X:=A ∈ Δ`, then `Δ ⊢ reveal_X(C) : C ⇒ C[A/X]`.
 tagged value is discharged by `IdDyn`, which moves the tag outside,
 except when the tag `G` is a name that only the boundary binds.  In that
 case the boundary is the only thing that keeps the tag in scope, and the
-term is a value (§5, §6.4, Example 4).
+term is a value (§5, §C3.7, Example 4).
 
 ------------------------------------------------------------------------
 
@@ -170,15 +207,7 @@ Mode envs        μ ::= [] | μ, X:m
 Gen-safe         GenSafe(p)  iff  p is  q → r,  ∀X. q,  inst X. q,  or  gen X. q with GenSafe(q)
 ```
 
-The constructor names follow GTSF's `Coercions.agda` (`id`, `_!`, `_？`,
-`_↦_`, `` `∀ ``, `inst`, `gen`, `_︔_`) and GTSFImp's consistency
-constructors (`id`, `_!`, `？_`, `_↦_`, `∀ᶜ_`, `inst_`, `gen_`,
-`bot-elim`, `bot-intro`).  The modes are GTSFImp's `Var∼`, and a mode
-environment is its `Env∼`.
-`GenSafe` is GTSFImp's `CastTerms.GenSafe`: the coercion suspended under
-a `gen` must not hide a check that ought to run before the polymorphic
-value exists.  Compilation always produces gen-safe coercions under
-`gen`, by GTSFImp's `gen-safe` lemma (`proof/Consistency.agda`).
+(Provenance of the names, and what `GenSafe` is for: §C1.1.)
 
 `src(p)` and `trg(p)` are computed syntactically (`src(id A) = A`,
 `src(G!) = G`, `src(G?ℓ) = ★`, `src(p → q) = trg(p) → src(q)`,
@@ -244,63 +273,9 @@ The side conditions on `inst` and `gen` are GTSFImp's.
   Δ ; μ ⊢ bot-elim : ∀X. X ⇒ ∀X. ★           Δ ; μ ⊢ bot-intro ℓ : ∀X. ★ ⇒ ∀X. X
 ```
 
-**Why modes are in the cast calculus.**  An earlier draft left modes to
-the source language.  Two properties need them in the cast calculus:
-
-- **No value has type `∀X. X`.**  In GTSFImp this is the machine-checked
-  lemma `no-bot-value` (`proof/TypeSafety/Progress.agda`).  It goes
-  through a `∀` cast because the cast's bound variable is strict
-  (`X∼X`), so `consistency-to-fresh` forces the value under the cast to
-  have type `∀X. X` as well.  Without modes, `V ⟨∀X. X?ℓ⟩` would be a
-  value of type `∀X. X` for any `V : ∀X. ★`.  It is also why
-  `bot-elim` and `bot-intro` need their own constructors.  `∀X. X!` and
-  `∀X. X?ℓ` are ill typed, because `X` is strict.
-- **The dynamic gradual guarantee.**  GTSFImp's DGG closes its
-  `bot-elim` and `bot-intro` cells with `no-bot-value`
-  (`proof/DGG/Catchup/ExtraCastRightAtProof.agda`;
-  `proof/DGG/notes/LG3TargetCastStepInversionCaseTable.md`).  More
-  generally, the DGG relates cast terms whose casts obey the same
-  modes as source consistency.
-
-**Modes at a cast.**  A cast carries its mode environment as part of
-the term, written `M ⟨p⟩^μ` when the environment matters and `M ⟨p⟩`
-otherwise.  This follows GTSFImp's `CastTerms`, whose cast constructor
-is `_⟨_⟩ : Term Δ → {μ : Env∼ Δ} … (c : μ ⊢ A ∼ B) → Term Δ`: the `μ`
-is part of the cast's evidence, so a term determines it.  Compilation
-creates every cast at the environment that gives each name in scope
-`★∼X∼★`, matching the source's `A ∼ B = idᶜ ⊢ A ∼ B`.  Reduction then
-**keeps and extends** each cast's environment, and it never replaces it
-by the cross environment:
-
-- When an instantiation rule moves a coercion out from under its binder,
-  the freed name keeps the binder's mode.  `TyBeta`'s
-  `inst_X(W ⟨gen X.p⟩^μ) = ([−X^α] W ⟨Id(A)⟩) ⟨p⟩^(μ, X:★∼X)` and
-  `inst_X(W ⟨∀X.p⟩^μ) = inst_X(W) ⟨p⟩^(μ, X:X∼X)`.  The modes are
-  those of GTSFImp's `β-gen`, whose contractum is `⇑ᵗᵐ V ⟨ c ⟩` with
-  `c` under `genᵐ μ`, and of the analogous `β-∀`.  GTNF differs from
-  GTSFImp in not shifting `V` (§6.2).
-- `CastFun` casts the argument at `flip(μ)`, because the domain
-  coercion was typed there.  This is GTSFImp's `β-⇒`, whose argument
-  cast `c` has type `flipᵐ μ ⊢ A′ ∼ A`.
-- `CastSeq` keeps `μ` for both halves, and `Inst` closes `X` at `★`, so
-  its result cast is at `μ`.
-- `IdDyn` moves a tag cast from a boundary's interior to its exterior.
-  The moved cast keeps the interior mode of every exterior name the
-  interior can see.  It gives `X∼X` to every exterior name that the
-  interior cannot see, because the cast has never seen that name
-  (`exit_δ(μ)`, §6.3; Example 7).  This is what GTSFImp does when a
-  cast first meets a variable: at an allocation, `ξ-⟨⟩` re-indexes the
-  cast's environment by `applyEnv (bind A) μ = extᵐ μ`, which gives the
-  new variable `X∼X`.  The filled-in mode never belongs to a name that
-  the coercion mentions.  If the tag were that name, then the name
-  would be visible in the interior and its mode would be copied.  So
-  the choice does not affect typing or reduction; it is bookkeeping for
-  the cast-term imprecision (§9.6).
-
-The modes of free names are therefore data that the dynamic semantics
-carries along.  The cast-term imprecision relates casts with possibly
-different environments on its two sides, as GTSFImp's `cast⊑cast²`
-does (`ν ⊢ C ∼ A`, `ν′ ⊢ C′ ∼ A′`).
+A cast carries its mode environment, written `M ⟨p⟩^μ` (§4).  Why
+modes are in the cast calculus: §C1.2; how compilation and reduction
+set a cast's `μ`: §C1.3.
 
 A coercion's typing does not depend on whether a representation
 variable is abstract (`α`) or bound (`α:=R`).  Instantiation rules use
@@ -328,14 +303,8 @@ consistency at star"):
 Closing a sequence re-normalizes, as GTSFImp's `subst∼` does
 (`subst-to-star-var`, `factor-inst-star`): a tag or check of `X`
 itself disappears.  If `Δ, α, X:=α ; μ, X:m ⊢ p : A ⇒ B` for any mode
-`m`, then `Δ ; μ ⊢ p[★/X] : A[★/X] ⇒ B[★/X]`.  The lemma needs the
-evidence-shaped sequences of D20: with a general `p ; q`, a nested
-`inst Y. q` could reach the target `X` by a detour through `★`, such as
-`… ; (★→★)! ; X?ℓ`, and closing would give it the target `★`, which
-`inst` forbids (M1's counterexample,
-`proof/TypeSafety/notes/InstCloseCounterexample.agda`).  `Inst` uses the lemma at
-`m = X∼★`.  The lemma is stated for every `m` because a function
-coercion's domain flips `X∼★` to `★∼X`.
+`m`, then `Δ ; μ ⊢ p[★/X] : A[★/X] ⇒ B[★/X]`.  (Why it needs the
+evidence-shaped sequences of D20, and why every `m`: §C1.4.)
 
 ------------------------------------------------------------------------
 
@@ -391,10 +360,8 @@ Values    V, W ::= U | [δ] U ⟨i⟩
 fresh(δ) = { X | the first entry of δ that mentions X is +X^α }
 ```
 
-**The new value form** is a `★`-value under a boundary whose tag names
-a variable introduced by the boundary itself.  `IdDyn` (§6.3) moves the
-tag out of every other boundary around a tagged value, so this is the
-only boundary that can remain around a `★`-value.
+(Why the new value form is the only boundary left around a `★`-value:
+§C2.1; why a value with an inert cast counts as a simple: §C2.3, D2.)
 
 `fresh(δ)` gives a syntactic form of `IdDyn`'s side condition `Δ ⊢ G`.  If
 `Δ ⊢ δ` and `δ(Δ) ⊢ X`, then
@@ -403,47 +370,16 @@ only boundary that can remain around a `★`-value.
 Δ ⊢ X    if and only if    X ∉ fresh(δ)
 ```
 
-Proof sketch: suppose that `X ∈ fresh(δ)` and that `X:=β ∈ Δ`.  Before
-the first `X`-entry the interior still contains `X:=β`.  Coherence of
-that first entry `+X^α` (`X = Y ⇔ α = β` on `δ⁺(Δ) ∋ X:=β`) forces
-`α = β`, so `X:=α` is already in the interior, contradicting the premise
-`X:=α ∉ δ(Δ)` of `+X^α`.  Conversely, suppose that `X ∉ Δ`.  Then `X`
-is in `δ(Δ)` only because some entry `+X^α` added it, and the first
-`X`-entry cannot be `−X^α`, because that entry requires `X` in the
-interior.
-
-Using `fresh(δ)` rather than `Δ ⊢ X` keeps `Value` a predicate on terms
-alone, not indexed by the type context, as it is in νF.  This matters
-because a congruence step carries values to other contexts.  The
-syntactic form makes it immediate that a value stays a value under
-allocation and under weakening by fresh names.
-
-The one structural change to νF is that **a value with an inert cast
-counts as a simple**.  Every boundary rule of νF is stated for a simple
-interior: `Wrap` crosses `[δ] U ⟨c → d⟩`, `TyBeta` crosses
-`[δ] U ⟨∀X. c⟩` (νF's `TyWrap`), `Merge` fuses
-`[δ₂]([δ₁] U ⟨t₁⟩)⟨c⟩`, and `Id` drops `[δ] U ⟨id(ι)⟩`.  With this change those rules also apply when the
-interior is a cast value.  The rules never look inside `U`, so the
-change costs nothing in them.  The boundary invariant of νF, "at most
-one boundary directly around a simple", is unaffected.  A cast value may
-contain boundaries *inside* its `V`, just as `λx:A. N` may contain them
-inside `N`.
+(Proof sketch, and why `fresh(δ)` rather than `Δ ⊢ X`: §C2.2.)
 
 The modes give GTSFImp's emptiness lemma, which the progress and DGG
-proofs use (§3):
+proofs use (§C1.2):
 
 ```
 no-bot-value :  if V is a value, then not (Δ ∣ Γ ⊢ V : ∀X. X)
 ```
 
-The proof goes by cases on `V`.  A `Λ` would need a body value of type
-`X` under an abstract `α`, and there is none.  For `W ⟨∀X. p⟩`, `p` is
-strict in `X`, so `p : A ⇒ X` forces `A = X`, and `W` has type `∀X. X`.
-`W ⟨gen X. p⟩` has the target type `∀X. B` with `B` not a variable.  For the
-boundary `[δ] U ⟨∀X. c⟩`, the conversion `c : A′ ⇒ X` is typed with
-`X:=α` for an abstract `α`.  Sealing needs a representation, so `c` can
-only be `id(X)`, and then `U` has type `∀X. X`.  These cases need
-checking when the Agda exists.
+(Proof sketch: §C2.4.)
 
 Canonical forms, by type:
 
@@ -495,29 +431,8 @@ inst_X([δ] U ⟨∀X. c⟩)    = [δ] inst_X(U) ⟨c⟩          (X not mention
 Here `α` is the representation variable that `TyBeta` allocates for
 `X`, so `inst_X` is really `inst_X^α`.
 
-**No term moves under a new name.**  In the `gen` case, `W` was typed
-outside `X`'s scope, and only `p` mentions `X`.  Placing `W` directly
-in the interior `Δ, X:=α` would need a weakening, so `W` is put under
-the binder's dual `[−X^α]` instead.  Its interior is
-`−X(Δ, X:=α) = Δ`, which is exactly where `W` was typed, and its
-conversion `Id(A)` is typed in `(−X^α)⁺(Δ, X:=α) = Δ, X:=α`.  So `W`
-keeps its scope ("colour") and needs no weakening, either in the Agda
-(no de Bruijn shift) or in a preservation proof with names (Jeremy,
-2026-10-01).  This is νF's `crossΛᴹ`, the wrapper Beta puts on a value
-that crosses a `Λ`.  It costs extra steps: Example 2 takes 12 steps
-rather than 8, because the wrapper is crossed by `Wrap` and later
-fused by `Merge`.  In the `Λ` and `∀X.p` cases nothing moves under the
-new name: the `Λ` body and `p` were already typed under a binder for
-`X`.
-
-These four clauses cover every canonical ∀-value (§5).  The recursion
-is on the structure of the value, and each layer of the value becomes
-one layer of the result: a cast stays a cast, and a boundary stays a
-boundary.  So `inst_X` stacks boundaries, as νF's `TyWrap` does, and
-`Merge` fuses them afterwards.  `inst_X` allocates nothing; the one
-allocation `α:=Δ(A)` is made by `TyBeta` itself, however many layers
-the value has.  (Under the name `inst_X`, the meta-operation is not to
-be confused with the coercion `inst X. p` and its rule `Inst`.)
+(No term moves under a new name: §C3.1, D9; how `inst_X` recurses
+and why it allocates nothing: §C3.2.)
 
 ```
 Δ ⊢ op(k⃗) ⟶ ⟦op⟧(k⃗) ⊣ ε                                              (Delta)
@@ -537,14 +452,8 @@ be confused with the coercion `inst X. p` and its rule `Inst`.)
 Δ ⊢ F[M] ⟶ F[M′] ⊣ ξ     if  F(Δ) ⊢ M ⟶ M′ ⊣ ξ                        (ξ)
 ```
 
-νF's two rules are instances of this `TyBeta`.  If `V = ΛX.N`, then it
-is νF's `TyBeta`.  If `V = [δ] (ΛX.N) ⟨∀X.c⟩`, then it is νF's
-`TyWrap`.  The `gen` case is GTSFImp's `β-gen` with a boundary in place
-of `↑ 〖 0 , ⇑ᵗ C ↑ B 〗`.  The `∀X.p` case is GTSFImp's `β-∀`: the
-value under the cast is instantiated, with no further allocation, and
-then cast.  When the Agda is written, `inst_X` may be a function on
-value derivations, or `TyBeta` may be split into one constructor per
-outermost layer; this draft states it once.
+(How this `TyBeta` covers νF's `TyBeta` and `TyWrap` and GTSFImp's
+`β-gen` and `β-∀`: §C3.3.)
 
 Preservation of `TyBeta` rests on one lemma, proved by induction on the
 ∀-value:
@@ -554,14 +463,7 @@ if  Δ ∣ [] ⊢ V : ∀X. C,  V a ∀-value,  and  α:=R ∈ Δ  with  X, α f
 then  Δ, X:=α ∣ [] ⊢ inst_X(V) : C
 ```
 
-The `Λ` case re-reads the body, typed under an abstract `α`, at the
-allocated `α:=R`, as νF's `TyBeta` does.  The `gen X.p` and `∀X.p`
-cases use the fact that coercion typing does not depend on whether `α`
-is abstract or bound (§3).  The `gen` case types `[−X^α] W ⟨Id(A)⟩`
-with the boundary rule, and `W` is used at exactly its own typing
-`Δ ∣ [] ⊢ W : A`, so no weakening lemma is needed.  In the boundary case, `δ` stays coherent at
-`Δ, X:=α`, because `X` and `α` are fresh.  Its interior is then
-`δ(Δ), X:=α`, and `c` is typed in `δ⁺(Δ), X:=α`.
+(Proof sketch: §C3.4.)
 
 ### 6.3 Cast rules (new)
 
@@ -593,47 +495,9 @@ exit_δ(μ)(Y) = μ(Y)    if Y is visible in the interior δ(Δ)
 Δ ⊢ F[blame ℓ] ⟶ blame ℓ ⊣ ε                                            (Blame)
 ```
 
-These rules correspond to GTSFImp's `β-id`, `β-⇒`, `β-inst`,
-`tag-untag`, `tag-untag-bad` and `blame-bot-intro`.  No rule applies
-`bot-elim` to a value, because no value has type `∀X. X` (§5); progress
-dismisses that case, as GTSFImp's `cast-value-progress` does.  GTSFImp's `ground` and `expand` are
-not needed, because a tag through a non-ground type is the sequence
-`p ; G!` and `CastSeq` splits it.  GTSFImp's `β-∀` is the
-`∀X.p` case of `inst_X` (§6.2), because GTNF instantiates by `ν` and not
-by a `⦂∀ B [ C ]` type application.
-
-`Inst` does not allocate by itself.  The `ν X:=★` it creates allocates
-`α:=★` on the next step, by `TyBeta`.  Inside the resulting
-boundary, `X:=★` holds, so `reveal_X(src(p))` seals and unseals `X`
-against `★`.  The coercion has already been closed at `★`: each `X!`
-and `X?ℓ` in `p` has become `id(★)`.  As in GTSFImp, the `inst`-bound
-variable is therefore implemented entirely by conversions, and no tag
-names it.
-
-### 6.4 Why a tag by name keeps its meaning across a boundary
-
-`IdDyn` moves a tag `G` from the interior `δ(Δ)` to the exterior `Δ`
-without changing it.  If `G` is a name `X`, then this is sound because
-of coherence: `X:=α ∈ δ(Δ) ⊆ δ⁺(Δ)` and `X:=β ∈ Δ ⊆ δ⁺(Δ)`, and
-coherence (`X = Y ⇔ α = β` on `δ⁺(Δ)`) forces `α = β`.  So the two
-occurrences of `X` denote the same representation variable, even if `δ`
-removed `X` (`−X^α`) and later rebound it (`+X^α`).  After the tag is
-outside, the ordinary `TagUntag`/`TagUntagBad` compare it with a check
-`H` by **syntactic equality**.
-
-If the tag's name is in `fresh(δ)`, then the tag cannot move out, and no
-check `H` that is well formed in `Δ` can be equal to it.  So
-`TagUntagBad-⟪⟫` blames unconditionally.  This is the "escaping seal"
-behaviour of GTSFImp and of λB (Example 4).  The successful check across
-a boundary, which an earlier draft had as `TagUntag-⟪⟫`, can no longer
-arise: if the tag is visible outside, then `IdDyn` has already moved it.
-
-`IdDyn`'s contractum `[δ] V ⟨Id(G)⟩` keeps the boundary, because `V`
-was typed in the interior.  If `G = ι`, then `Id` removes the boundary
-on the next step.  If `G = ★ → ★` or `G = ∀X.★`, then the boundary is
-an inert `c → d` or `∀X.c` over `V`, and if `V` is itself a boundary
-value, then `Merge` fuses the two.  If `G = X`, then the boundary is
-`[δ] V ⟨id(X)⟩`, an inert boundary over a value of type `X`.
+(Correspondence with GTSFImp's rules: §C3.5; how `Inst` works through
+`ν` and `TyBeta`: §C3.6; why a tag by name keeps its meaning across a
+boundary: §C3.7, D3.)
 
 ------------------------------------------------------------------------
 
@@ -675,6 +539,864 @@ Terms (following GTSFImp's `Compile.agda`, which casts the argument by
 ⟦L ⊕[op at ℓ] M⟧        = op(⟦L⟧ ⟨⟦c₁⟧ℓ⟩, ⟦M⟧ ⟨⟦c₂⟧ℓ⟩)
 ```
 
+(The theorem is `compile-⊢`, §11.2; what its proof needs: §C4.)
+
+------------------------------------------------------------------------
+
+## 8. Type imprecision
+
+Status (2026-10-06): §8 is `Imprecision.agda`; the worlds (§9)
+are `ImprecisionWorld.agda`; the rules (§10) are `TermImprecision.agda`
+and `ConversionImprecision.agda`, current through D29.  Known open
+defect: the gen-value pairs of `proof/DGG/notes/TwoGen.md` (G0 and six
+more, from related sources) are DGG-part-1 counterexamples for these
+rules (§C8.1).
+The left program is always the **more precise** one.
+
+GTSFImp's `Imprecision.agda`, copied rule for rule into
+`GTNF/agda/Imprecision.agda`.  The marks are `X⊑X` and `X⊑★`, and an
+imprecision environment `μ` gives one mark to each name in scope.  As
+with `ModeEnv`, it is a list parallel to the names (index 0 at the
+head).
+
+```
+                                                        μ(X) = X⊑★
+  ★ ⊑ ★     ι ⊑ ι     X ⊑ X     ι ⊑ ★     ∀X.★ ⊑ ★       ──────────
+                                                         X ⊑ ★
+
+  A ⊑ A′   B ⊑ B′          A ⊑ ★   B ⊑ ★          μ, X:X⊑X ⊢ A ⊑ B
+  ─────────────────        ─────────────          ─────────────────
+  A → B ⊑ A′ → B′          A → B ⊑ ★              μ ⊢ ∀X.A ⊑ ∀X.B
+
+  μ, X:X⊑★ ⊢ A ⊑ ⇑B    A not a variable    X ∈ A     (∀⊑)
+  ───────────────────────────────────────────────
+  μ ⊢ ∀X.A ⊑ B
+
+  μ, X:X⊑X ⊢ A ⊑ ★    A ≠ ★
+  ──────────────────────────     ∀X.X ⊑ ∀X.★  (bot-elim)     ∀X.X ⊑ ★
+  μ ⊢ ∀X.A ⊑ ★
+```
+
+The marks belong to the imprecision lattice.  They are not the
+consistency modes of §3, which type the casts inside one program
+(§C10.1).
+
+------------------------------------------------------------------------
+
+## 9. Worlds
+
+A cast-term imprecision judgment relates a left term typed in `Δ` to a
+right term typed in `Δ′`.  The two runs allocate independently, and a
+`ν`, a `Λ` or a boundary entry may exist on one side only.  A
+**world** says how the two sides' names line up.  It follows GTSFImp's
+`World` (`proof/DGG/CtxImp.agda`), minus the stores:
+
+```
+W = (Δ, Δ′, Ω, η, η′, ϱ, κ, π)
+
+  Ω              the center: a number of names
+  η  : names(Δ)  ↪ Ω     order-preserving embeddings (GTSFImp ηᴸʷ, ηᴿʷ);
+  η′ : names(Δ′) ↪ Ω     every center name is in the image of at least one
+                         of them
+  κ              the permitted right rep. vars (D28); [] at every
+                 top-level world; ~~a right check adds one (⊑cast)~~
+                 🆕 **D28′**: a boundary rule that joins a name may add
+                 its right rep. var, for that boundary's interior
+  μ  = marks(W)          DERIVED (D28): a name in η's image only
+                         (left-only) is X⊑★; a name in η′'s image is
+                         X⊑★ iff its right rep. var is in κ, else X⊑X
+  ϱ  = ϱᵍ ∪ ϱˡ           the rep. var correspondence, in two parts (D16),
+                         any relation whose pairs agree (D25):
+                         ϱᵍ global, over the two stores' rep. vars;
+                         ϱˡ lexical, over rep. vars bound by an enclosing
+                         Λ or ν.  (D13's one-partner rule was dropped
+                         by D25.)
+  π              the pending right names (D27), next pop first: right
+                 name positions that a ⊑⟪⟫ pushed and a left binder will
+                 join; [] at every top-level world
+                 🆕 **D30**: ~~π~~ leaves the world; the openings are part
+                 of the index (below and §10.8)
+
+  A ⊑_W A′   iff   μ ⊢ η(A) ⊑ η′(A′)     when π = []  (GTSFImp _⊑ᵂ⟨_⟩_)
+             and in general A, with one outer ∀ opened at the center
+             name of each pending name, against A′
+  🆕 **D30**:  A ⊑_W^O A′  the index with openings O (a list of right
+             names): A with one outer ∀ opened at each name of O,
+             against A′; A ⊑_W A′ is the case O = []
+```
+
+In Agda (`ImprecisionWorld`) `π` is the field `πʷ` of `World`, `κ`
+the field `κʷ`, and `μ` is computed, `marksʷ W = dmarks (ηᴿʷ W)
+(κʷ W)`; the index `_⊑ᵂ⟨_⟩_` reads `πʷ` (`OpenImp`) and `marksʷ`.
+Everything that is not about pending names reads only the other
+fields: `Paired`, `Joins`, `Interior`, and the term-context imprecision
+`CtxImp`, whose entries hold the plain `μ ⊢ η(A) ⊑ η′(A′)` and are
+parameterized by the marks, `η` and `η′`.  So `W` with its pending
+names replaced (`record W { πʷ = π }`) has the same `CtxImp`,
+definitionally; a grant (`record W { κʷ = β ∷ κʷ W }`) changes the
+marks, and `⊑cast` moves the entries by `RaiseCtx` (same types, proofs
+at the raised marks).  The structural rules are stated at a world in
+constructor form with `π = []`, where the index computes to the plain
+one; the theorems are stated at `W` with `πʷ W ≡ []` and `κʷ W ≡ []`,
+and an evolution keeps `π` and renumbers `κ` with the right side (an
+allocation moves no name).
+
+Well-formedness has five parts:
+
+- **Names name paired rep. vars.**  If a center name `X` is `X:=α` on the
+  left and `X:=β` on the right, then `(α, β) ∈ ϱ`.
+- **Named uniqueness** (D25).  Among the names in scope on one side,
+  at most one is paired with the rep. var of a given name on the other
+  side.  A rejoin is therefore unambiguous, although `ϱ` itself may
+  pair a rep. var with several partners.
+- **Paired rep. vars agree.**  If `(α, β) ∈ ϱ`, then either both are
+  abstract (bound by a `Λ` on each side), or `α` is abstract and
+  `β:=★`, or `α:=R`, `β:=R′`, and `R ⊑ᴿ_W R′`: the payloads are
+  compared in the representation universe, free rep. vars through `ϱ`
+  (D23).
+- 🆕 **D30**: this part moves from the world to the index: an index
+  `A ⊑_W^O A′` is well formed when each name of `O` is right-only,
+  bound to a `★` rep. var with no named left partner, and the names are
+  distinct (checked where an opening is created, at `⊑⟪⟫`).
+- ~~**Pending names are pending** (D27).~~  Each name of `π` is bound to a
+  `★` rep. var `β`, is right-only, and `β` has no left partner named in
+  scope; the names of `π` are distinct.  (Its mark is derived, D28.)
+- **Permissions are right rep. vars** (D28).  Every rep. var in `κ` is
+  a rep. var of the right store, named or not (a right `−X` keeps its
+  permission, P4 B4).  R1/R2 (§10.5, §10.6) are rule premises, not parts of
+  well-formedness.
+
+**Names are related lexically; rep. vars lexically and globally**
+(D12, D16).  The relation between type variables (`Ω`, `η`, `η′`, `μ`)
+is lexically scoped: it is extended and shrunk with the scope, never
+by a step.  Rep. vars come from two places, so their relation has two
+parts:
+
+- **Lexical, `ϱˡ`.**  A `Λ` binds an abstract rep. var for its body
+  (`⊢Λ` types the body at `underΛ Δ`).  A `ν X:=A` binds the rep. var
+  for its conversion (`⊢ν` types `c` at `allocate R Δ`).  A rule that
+  goes under such binders on both sides pairs their rep. vars for the
+  premise only: `Λ⊑Λ` pairs two abstract rep. vars; `Λ⊑`'s pop pairs
+  the left binder's abstract rep. var with the `β:=★` of the pending
+  name it joins (D27), and its claim-rep with a `β:=★` that has no
+  right name yet (D29); `ν⊑ν` pairs the two `ν`s' rep. vars.
+- **Global, `ϱᵍ`.**  A store rep. var is created by a step (`TyBeta`)
+  and is visible everywhere afterwards.  When the two sides' `TyBeta`s
+  are matched, the lexical pair of the two `ν`s becomes a global
+  pair.  When a left `TyBeta` catches up with a right boundary whose
+  name its binder popped or claimed, the left's lexical abstract rep.
+  var is replaced by the new store rep. var, which is paired globally
+  with the right's `β` (Evolve's `ev-L⇔`).
+
+(An example, P3's block, and why no part of a world is ever rebased:
+§C6.1.)
+
+World operations, used by the rules:
+
+```
+W ⊕²             both sides bind X (a new center name in both images; its
+                 new right rep. var is not permitted, so X⊑X)
+W ⊕ᴸ X           the left side binds X alone (center name in η only, X⊑★)
+W ⊕ᴸ⇔ β          as W ⊕ᴸ X, and X's abstract rep. var is paired lexically
+                 with the right rep. var β:=★, which has no right name yet;
+                 the boundary that names β rejoins X (claim-rep, D29)
+W ⊕ᴿ X           the right side binds X alone (center name in η′ only)
+W[δ ∥ δ′]        the interior world of a boundary pair: each side's
+                 changes act on that side's names and embedding.
+                 −X on one side removes X from that side's image; a center
+                 name in neither image is dropped.  +X^α joins the center
+                 name of the rep. var α is paired with by ϱ, if any, and is
+                 otherwise a new one-sided center name.  ϱ is
+                 unchanged, and every mark is derived (D28).  ~~κ is
+                 unchanged; Example P4's X⊑★ comes from a right check's
+                 grant.~~  🆕 **D28′**: κ may gain the right rep. vars of
+                 the names this boundary joins (§10.5);
+                 Example P4's X⊑★ comes from its outer matched boundary.
+                 (Write W[δ ∥ ·] and W[· ∥ δ′] for a one-sided boundary.)
+```
+
+`W[δ ∥ δ′]` is defined only when it is well formed.  Only the final
+interior world has to be well formed, not the worlds between the
+entries of a multi-entry `δ`, because no rule reads those.  A name
+that goes one-sided and later rejoins gets its derived mark back (D28,
+superseding D15's keep-on-rejoin).  A right-only `−X` of a name in
+both images leaves `X` left-only, hence `X⊑★` (Example P4).
+
+------------------------------------------------------------------------
+
+## 10. Cast-term imprecision rules
+
+### 10.1 The judgment, congruence and blame
+
+`W ∣ γ ⊢ M ⊑ M′ : A ⊑ A′` with `γ ::= [] | γ, x : B ⊑ B′`.  Every
+rule also assumes the two typings `Δ ∣ γᴸ ⊢ M : A` and
+`Δ′ ∣ γᴿ ⊢ M′ : A′` and `A ⊑_W A′`; the premises below list only what
+is new.  The rules marked "GTSFImp" are GTSFImp's
+`proof/DGG/CastTermImprecision.agda` rules with the same name.
+
+**Congruence** (GTSFImp `x⊑x²`, `κ⊑κ²`, `ƛ⊑ƛ²`, `·⊑·²`, `⊕⊑⊕²`):
+the usual rules, one per term former.  Their types are related
+componentwise.
+
+**Blame** (GTSFImp `blame⊑²`):
+
+```
+  ────────────────────────────── (blame⊑)
+  W ∣ γ ⊢ blame ℓ ⊑ M′ : A ⊑ A′
+```
+
+### 10.2 Casts
+
+**Casts** (GTSFImp `cast⊑cast²`, `cast⊑²`, `⊑cast²`).  Each coercion
+is typed on its own side, under the mode environment its cast carries.
+The rules do not compare the two coercions, or the two mode
+environments, except through the types:
+
+```
+  W ∣ γ ⊢ M ⊑ M′ : B ⊑ B′    p : B ⇒ A    p′ : B′ ⇒ A′
+  ────────────────────────────────────────────────── (cast⊑cast)
+  W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ ⟨p′⟩ : A ⊑ A′
+
+  W ∣ γ ⊢ M ⊑ M′ : B ⊑ A′    p : B ⇒ A
+  ────────────────────────────────────── (cast⊑)
+  W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ : A ⊑ A′
+
+  W⁺ ∣ γ⁺ ⊢ M ⊑ M′ : A ⊑ B′    p′ : B′ ⇒ A′
+  W⁺ = W, or W with β added to κ when p′ grants β    γ⁺ = γ raised
+  ──────────────────────────────────────────────────────── (⊑cast, D28)
+  W ∣ γ ⊢ M ⊑ M′ ⟨p′⟩ : A ⊑ A′
+
+  p′ grants β  ::=  X?ℓ   |   X?ℓ ; q   |   q₁ → q₂ (q₁ first order, q₂ grants β)
+                    (X the right name of β; first order: id(A), G!, G?ℓ)
+```
+
+🆕 **D28′** replaces the D28 rule above by the plain GTSFImp rule; no
+cast rule changes the world:
+
+```
+  W ∣ γ ⊢ M ⊑ M′ : A ⊑ B′    p′ : B′ ⇒ A′
+  ───────────────────────────────────── (⊑cast, D28′)
+  W ∣ γ ⊢ M ⊑ M′ ⟨p′⟩ : A ⊑ A′
+```
+
+(What a grant means: §C6.2.)  🆕 **D28′**: no grants; see the
+boundary rules (§10.5).
+
+(🆕 **D30**: the two forms below become one `cast⊑` rule, §10.8.)
+With pending names (D27), `⊑cast` carries them unchanged, and `cast⊑`
+has two more forms, for a value `M`:
+
+```
+  W, Y·π ∣ γ ⊢ M ⊑ M′ : ∀X.B ⊑ A′        ∀X.p : ∀X.B ⇒ ∀X.A
+  ─────────────────────────────────────────────────── (cast⊑, pass ∀)
+  W, Y·π ∣ γ ⊢ M ⟨∀X.p⟩ ⊑ M′ : ∀X.A ⊑ A′
+
+  W ∣ γ ⊢ M ⊑ M′ : B ⊑ A′        gen X.p : B ⇒ ∀X.A
+  ─────────────────────────────────────────────────── (cast⊑, pop gen)
+  W, Y ∣ γ ⊢ M ⟨gen X.p⟩ ⊑ M′ : ∀X.A ⊑ A′
+
+  (an index ∀X.… ⊑ A′ at a world with pending names is read with its
+   outer ∀ opened at the next pending name; corrected 2026-10-07: the
+   earlier display wrote the bodies B, A for the cast's types)
+```
+
+The gen pop leaves the base world unchanged: the value under a `gen`
+does not see the binder.  One gen pops one name.
+
+### 10.3 Type abstraction
+
+**Type abstraction** (GTSFImp `Λ⊑Λ²`, `Λ⊑²`), plus one new rule.
+`Λ⊑` keeps the right term unweakened: the right side does not bind
+`X`, so `η′` simply does not reach the new center name.
+
+```
+  W ⊕² ∣ ⇑γ ⊢ V ⊑ V′ : A ⊑ A′
+  ────────────────────────────────── (Λ⊑Λ)
+  W ∣ γ ⊢ ΛX.V ⊑ ΛX.V′ : ∀X.A ⊑ ∀X.A′
+
+  W ⊕ᴸ X ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
+  ──────────────────────────────────────────────────────── (Λ⊑, fresh)
+  W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
+
+  W[X ↦ Y], π ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
+  ───────────────────────────────────────────────────────── (Λ⊑, pop)
+  W, Y·π ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
+```
+
+```
+  W ⊕ᴸ⇔ β ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
+  β:=★ in Δ′    no right name of β in scope    no named left partner of β
+  ──────────────────────────────────────────────────────── (Λ⊑, claim-rep, D29)
+  W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
+```
+
+(🆕 **D30**: in the displays below, read `W, π ∣ γ ⊢ … : A ⊑ A′` as
+`W ∣ γ ⊢ … : A ⊑_W^π A′`, an index with openings `π`; §10.8.)
+Here `W, π` is a world with the pending names `π` (D27), and `W` alone
+means no pending name.  In the pop, `Y` is the next pending name and
+`W[X ↦ Y]` joins the binder `X` to it (`Open1`).  The left's abstract
+rep. var is paired lexically with `Y`'s `β:=★`.  The type `∀X.A ⊑ B′`
+of a world with pending names is read with one `∀` opened per pending
+name.
+
+(How the rule for a left ∀-value against a right `Inst` boundary
+evolved, and claim-rep on H1 with its ladder: §C6.3, D29.)
+
+### 10.4 Instantiation
+
+**Instantiation** (GTSFImp `•⊑•²`, `•⊑²`).  The compiled form of
+`M [A]` is a `ν`, so the two type applications become:
+
+```
+  W ∣ γ ⊢ L ⊑ L′ : ∀X.C ⊑ ∀X.C′    A ⊑_W A′    c : C ⇒ B    c′ : C′ ⇒ B′
+  ─────────────────────────────────────────────────────────────── (ν⊑ν)
+  W ∣ γ ⊢ ν X:=A.(L X)⟨c⟩ ⊑ ν X:=A′.(L′ X)⟨c′⟩ : B ⊑ B′
+
+  W ∣ γ ⊢ L ⊑ M′ : ∀X.C ⊑ B′    A ⊑_W ★    c : C ⇒ B
+  ──────────────────────────────────────────────── (ν⊑)
+  W ∣ γ ⊢ ν X:=A.(L X)⟨c⟩ ⊑ M′ : B ⊑ B′
+```
+
+There is no `⊑ν`.  The only right-only `ν` is the one that `Inst`
+creates, and the right side reduces it by `TyBeta` at once.  So a
+catch-up lemma can take `Inst` and `TyBeta` together, and the
+relation never has to hold in between.
+
+### 10.5 Boundaries
+
+**Boundaries** (new; these replace GTSFImp's eight `reveal`/`conceal`
+rules).  A boundary's interior is term-closed, so the premise has
+`γ = []`.  The conversions are typed on their own sides, and, like the
+coercions, they are not compared with each other:
+
+```
+  W[δ ∥ δ′] ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′ᵢ    c : Aᵢ ⇒ A    c′ : A′ᵢ ⇒ A′
+  ───────────────────────────────────────────────────────────── (⟪⟫⊑⟪⟫)
+  W ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
+
+  W[δ ∥ ·], π ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′    c : Aᵢ ⇒ A
+  π = [] or (M simple and c has a ∀ per name of π)
+  every −X^α in δ: no partner of α in ϱ is in κ          (R1, D28)
+  ───────────────────────────────────────────── (⟪⟫⊑, D27, D28)
+  W, π ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ M′ : A ⊑ A′
+```
+
+🆕 **D28′**: each boundary rule may choose permissions for the names it
+JOINS, and pays at the join.  Written for `⟪⟫⊑⟪⟫`; `⟪⟫⊑` and `⊑⟪⟫`
+take the same two premises (with `W[δ ∥ ·]`, `W[· ∥ δ′]`), and
+`⟪⟫⊑`'s R1 becomes R1′:
+
+```
+  Wᵢ = W[δ ∥ δ′] with K added to κ
+  K ⊆ the right rep. vars of the names this rule JOINS
+      (a matched fresh pair, a rejoin through ϱ, a pushed name)
+  Aᵢ ⊑ A′ᵢ  at W[δ ∥ δ′]  (κ WITHOUT K: the joined names at X⊑X)   (the join pays)
+  Wᵢ ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′ᵢ    c : Aᵢ ⇒ A    c′ : A′ᵢ ⇒ A′
+  ───────────────────────────────────────────────────────── (⟪⟫⊑⟪⟫, D28′)
+  W ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
+
+  R1′:  every −X^α in δ whose α occurs in the boundary's EXTERIOR type A
+        has no partner in ϱ that is in κ                    (replaces R1)
+```
+
+(Why the join pays, and what R1′ admits and rejects: §C9.2.)
+
+```
+  (⊑⟪⟫, D27; under 🆕 D28′ it also takes the K and join-pays premises above:)
+
+  W[· ∥ δ′], π′ ++ new ∣ [] ⊢ M ⊑ M′ : A ⊑ A′ᵢ    c′ : A′ᵢ ⇒ A′
+  π′ = π seen inside δ′    new introduced by δ′    new = [] or M a value
+  ───────────────────────────────────────────── (⊑⟪⟫, D27)
+  W, π ∣ γ ⊢ M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
+```
+
+In `⟪⟫⊑` and `⊑⟪⟫`, the term without the boundary is in the premise
+at `γ = []`, so it must be term-closed as well.  That holds at run
+time, because every boundary of a run is a closed subterm.
+
+(What `⊑⟪⟫`'s push, pass and carry do: §C6.4; R1 and counterexample
+C5: §C6.5; the ladders of K's final pair and of P4's block B3: §C6.6,
+§C6.7.)
+
+### 10.6 Conversion imprecision
+
+**Conversion imprecision** (D17, D18; `ConversionImprecision.agda`).
+`ν⊑ν` and `⟪⟫⊑⟪⟫` also require `Wᶜ ⊢ c ⊑ c′`, where `Wᶜ` is the world
+over the two conversion contexts.  For `ν⊑ν`, it adds both
+allocations and pairs the two `ν`s' rep. vars in `ϱˡ`.  For a
+boundary pair, it is the conversion-context analogue of `W[δ ∥ δ′]`.
+The one-sided boundary rules have no conversion premise.  The clauses
+follow the conversion grammar:
+
+```
+  A ⊑ A′                 c ⊑ c′    d ⊑ d′          (W ⊕²) ⊢ c ⊑ c′
+  ───────────────        ────────────────          ─────────────────────
+  id(A) ⊑ id(A′)         c → d ⊑ c′ → d′           ∀X.c ⊑ ∀X.c′
+
+  X, X′ one center name    X, X′ one center name    t ⊑ t′    c ⊑ c′
+  ─────────────────────    ─────────────────────    (chains, componentwise)
+  −X ⊑ −X′                 +X ⊑ +X′
+
+  μ(X) = X⊑★  U(X)    μ(X) = X⊑★  U(X)    t ⊑ t′  μ(X) = X⊑★  U(X)    μ(X) = X⊑★  U(X)  c ⊑ c′
+  ────────────────    ────────────────    ───────────────────────    ────────────────────────
+  −X ⊑ id(★)          +X ⊑ id(★)          t ; −X ⊑ t′                +X ; c ⊑ c′
+
+  U(X)  =  no partner in ϱ of X's rep. var is in κ          (R2, D28)
+
+  (W ⊕ᴸ X) ⊢ c ⊑ g′
+  ─────────────────   (g′ a middle)
+  ∀X.c ⊑ g′
+```
+
+(Why the `★` clauses, R2 and the chain forms: §C6.8, D17, D18.)
+
+### 10.7 Rule count and side relations
+
+**Count.**  In Agda, 15 rules: four congruence rules (`x⊑x`, `κ⊑κ`,
+`ƛ⊑ƛ`, `·⊑·`; GTNF has no binary operators, so no `⊕⊑⊕`), `blame⊑`,
+three cast rules, `Λ⊑Λ` and `Λ⊑` (one rule whose `Claim` is fresh, pop
+or claim-rep, displayed above as three), two `ν` rules and three
+boundary rules.  The side relations are `Claim` (3 cases), `CastClaim`
+(3), `BdyClaim` (2), `Push` with `Carried` (D27), and ~~`CastGrant`
+(D28)~~ (🆕 **D28′**: removed).
+GTSFImp's `_∣_⊢²_⊑_∶_` has 22.
+
+### 10.8 🆕 D30 (proposed): openings in the index
+
+🆕 **D30** (PROPOSED 2026-10-08, not adopted, not checked): the changed
+definitions.  Why, an example, what goes, and what is open: §C9.3.
+
+**The index.**
+
+```
+  A ⊑_W^O A′      O a list of right names (the openings), next first
+
+  A ⊑_W^[]    A′  =  A ⊑_W A′                            (the plain index)
+  ∀X.A ⊑_W^(Y·O) A′  =  A[X:=Y] ⊑_W^O A′                  (open the next ∀ at Y)
+```
+
+(as today's `OpenImp`; `X` and `Y` become one center name for the
+reading).  Well-formedness of an index: each name of `O` is right-only,
+bound to a `★` rep. var with no named left partner, and the names are
+distinct.  The judgment is `W ∣ γ ⊢ M ⊑ M′ : A ⊑_W^O A′`; the world has
+no `π` field.
+
+**Rules that create an opening: only `⊑⟪⟫`** (a right boundary, whose
+entries bind names in its interior):
+
+```
+  W[· ∥ δ′] ∣ [] ⊢ M ⊑ M′ : A ⊑^(O′ ++ new) A′ᵢ    c′ : A′ᵢ ⇒ A′
+  O′ = O seen inside δ′    new ⊆ the ★-bound right-only names δ′ binds
+  new = [] or M a value
+  ────────────────────────────────────────────────────── (⊑⟪⟫, D30)
+  W ∣ γ ⊢ M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑^O A′
+```
+
+**Rules that consume an opening: only `Λ⊑`** (a term binder) changes
+the world:
+
+```
+  W[X ↦ Y] ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑^O B′
+  ──────────────────────────────────────── (Λ⊑, join, D30; was the pop)
+  W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑^(Y·O) B′
+```
+
+`Λ⊑`'s fresh and `claim-rep` forms are unchanged and take the plain
+index (`O = []`).
+
+**Rules that pass openings along the types, with no world change.**
+One `cast⊑` rule: its premise's openings follow from its conclusion's
+and the cast's types.  A cast `p : B ⇒ A` consumes the leading
+openings that `A` has more outer `∀`s for than `B`, and passes the
+rest:
+
+```
+  W ∣ γ ⊢ M ⊑ M′ : B ⊑^(drop k O) A′    p : B ⇒ A
+  k = (outer ∀s of A) − (outer ∀s of B), and O = [] unless M is a value
+  ──────────────────────────────────────────────── (cast⊑, D30)
+  W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ : A ⊑^O A′
+```
+
+For `∀X.p : ∀X.B ⇒ ∀X.A`, `k = 0`: the opening passes to `M`, whose
+type is `∀X.B`.  For `gen X.p : B ⇒ ∀X.A`, `k = 1`: the opening is
+used up by the cast's own type and `M : B` is related at the plain
+index; `X` is bound only in `p`.  For any other cast with `O = []`, it is
+GTSFImp's `cast⊑`.  Likewise `⟪⟫⊑` passes openings into the left
+interior when its conversion has a matching `∀` (D27's pass), `⊑cast`
+keeps them, and every other rule requires `O = []`.
+
+------------------------------------------------------------------------
+
+## 11. Metatheory statements
+
+GTNF should satisfy the same metatheory as GTSFImp.  Each goal below
+names the GTSFImp statement it mirrors.  The νF-specific invariants
+(`det`, tightness, `ScopeMapPreservation`/`ColorPreservation`) carry over
+from `strong-rep-nu` as well.  Status: only the type imprecision of §11.4 is in Agda.
+
+### 11.1 Type safety of the cast calculus
+
+GTSFImp: `proof/TypeSafety/Progress.agda`, `proof/TypeSafety/Preservation.agda`.
+νF: `strong-rep-nu.TypeSafety`.
+
+```
+progress :      if  Δ ∣ [] ⊢ M : A,  then  M is a value,  or  M = blame ℓ,
+                or  Δ ⊢ M ⟶ N ⊣ ξ  for some N, ξ
+
+preservation :  if  Δ ∣ [] ⊢ M : A  and  Δ ⊢ M ⟶ N ⊣ ξ,  then  ξ(Δ) ∣ [] ⊢ N : A
+
+det :           if  Δ ⊢ M ⟶ N ⊣ ξ  and  Δ ⊢ M ⟶ N′ ⊣ ξ′,  then  N = N′  and  ξ = ξ′
+                (up to the choice of fresh α)
+
+no-bot-value :  if  V is a value,  then not  (Δ ∣ Γ ⊢ V : ∀X. X)
+```
+
+As in νF, preservation may need a well-formedness premise on `Δ`
+(strong-rep-nu's `PreservationWf`/`CtxWf`).  `no-bot-value` is a lemma
+for progress (§5).
+
+### 11.2 Compilation
+
+GTSFImp: `Compile.agda` (`compile`, `compile-value`).
+νF: `strong-rep-nu.CompileTyping` (`compile-⊢`).
+
+```
+compile-⊢ :     if  Δ ∣ Γ ⊢ M : A  (source),  then  Δ ∣ Γ ⊢ ⟦M⟧ : A
+compile-value : if  M is a source value,  then  ⟦M⟧ is a value
+```
+
+The coercion lemma behind `compile-⊢` is mode for mode:
+if `μ ⊢ c : A ∼ B`, then `Δ ; μ ⊢ ⟦c⟧ℓ : A ⇒ B` (§7; §C4).
+
+### 11.3 The source type system
+
+GTSFImp: `GradualTypeCheck.agda`, `Consistency2.agda`.
+
+- **A type checker.**  A synthesis function for source terms returns a
+  type together with a typing derivation.  It is sound by construction,
+  as in GTSFImp, where it is positive-only.
+- **Decidable consistency.**  This is GTSFImp's `Consistency2.lower?`.
+
+### 11.4 Type imprecision
+
+GTSFImp: `Imprecision.agda` (`ImpEnv`, modes `X⊑X`/`X⊑★`),
+`proof/Imprecision.agda` (`⊑-unique`), `proof/ImprecisionComposition.agda`
+(`⊑-trans`), `proof/ImprecisionConsistency.agda` (`refl⊑`, and the
+bridges between imprecision and consistency).
+
+```
+refl⊑ :     A ⊑ A
+⊑-trans :   if  A ⊑ B  and  B ⊑ C,  then  A ⊑ C
+⊑-unique :  any two derivations of  A ⊑ B  are equal
+```
+
+(Type imprecision is §8; it must not be conflated with the consistency
+modes of §3: §C10.1.)
+
+### 11.5 Static gradual guarantee
+
+```
+sgg :  if  Δ ∣ Γ ⊢ M : A  and  M ⊑ M′  (with  Γ ⊑ Γ′),
+       then  Δ ∣ Γ′ ⊢ M′ : A′  for some  A′  with  A ⊑ A′
+```
+
+(GTSFImp's typed term imprecision, and the plan for `sgg`: §C10.2.)
+
+### 11.6 Compilation preserves imprecision
+
+GTSFImp: `proof/DGG/CompilePreservesImprecision2.agda`
+(`compile-preserves-imprecision²`).
+
+```
+compile-⊑ :  if  μ ∣ γ ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p,
+             then  W₀ ∣ γ₀ ⊢ ⟦M⟧ ⊑ ⟦M′⟧ ∶ p₀
+```
+
+Here `⊑` is a *cast-term* imprecision for GTNF that still has to be
+designed, and `W₀`, `γ₀`, `p₀` are the initial world, context and type
+imprecision (§9, §10).  Discussion, and why GTNF is shaped for this
+relation: §C10.3.
+
+### 11.7 Dynamic gradual guarantee
+
+GTSFImp: `proof/DGG/DynamicGradualGuaranteeDef.agda` (`GradualDGG`), with
+the proof under way in `proof/DGG/`.  For closed source terms with
+`[] ∣ [] ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p`, the four parts are:
+
+```
+1.  if  ⟦M⟧ ⟶* V  (a value),
+    then  ⟦M′⟧ ⟶* V′  (a value)  with  W ∣ [] ⊢ V ⊑ V′ ∶ q  for some world W
+
+2.  if  ⟦M⟧ diverges,  then  ⟦M′⟧ diverges
+
+3.  if  ⟦M′⟧ ⟶* V′  (a value),
+    then  ⟦M⟧ ⟶* V  (a value)  with  W ∣ [] ⊢ V ⊑ V′ ∶ q,   or  ⟦M⟧ ⟶* blame ℓ
+
+4.  if  ⟦M′⟧ diverges,  then  ⟦M⟧ diverges or reaches  blame ℓ
+```
+
+The runs are νF runs, so each `⟶*` carries the allocations it made
+(`runCtx`), and `q` relates the result types at the two final contexts.
+
+(Proof strategy, forward and backward simulation: §C10.4.)
+
+------------------------------------------------------------------------
+
+# Part II — Commentary
+
+Explanations and rationale, worked examples and ladders,
+counterexamples and open defects, proposals, metatheory discussion,
+the Agda plan, and the history of decisions.  C1–C4 comment on §3,
+§5, §6 and §7; C6 comments on §9 and §10.
+
+------------------------------------------------------------------------
+
+## C1. Coercions: provenance and modes
+
+### C1.1 Names and provenance
+
+The constructor names follow GTSF's `Coercions.agda` (`id`, `_!`, `_？`,
+`_↦_`, `` `∀ ``, `inst`, `gen`, `_︔_`) and GTSFImp's consistency
+constructors (`id`, `_!`, `？_`, `_↦_`, `∀ᶜ_`, `inst_`, `gen_`,
+`bot-elim`, `bot-intro`).  The modes are GTSFImp's `Var∼`, and a mode
+environment is its `Env∼`.
+`GenSafe` is GTSFImp's `CastTerms.GenSafe`: the coercion suspended under
+a `gen` must not hide a check that ought to run before the polymorphic
+value exists.  Compilation always produces gen-safe coercions under
+`gen`, by GTSFImp's `gen-safe` lemma (`proof/Consistency.agda`).
+
+### C1.2 Why modes are in the cast calculus
+
+**Why modes are in the cast calculus.**  An earlier draft left modes to
+the source language.  Two properties need them in the cast calculus:
+
+- **No value has type `∀X. X`.**  In GTSFImp this is the machine-checked
+  lemma `no-bot-value` (`proof/TypeSafety/Progress.agda`).  It goes
+  through a `∀` cast because the cast's bound variable is strict
+  (`X∼X`), so `consistency-to-fresh` forces the value under the cast to
+  have type `∀X. X` as well.  Without modes, `V ⟨∀X. X?ℓ⟩` would be a
+  value of type `∀X. X` for any `V : ∀X. ★`.  It is also why
+  `bot-elim` and `bot-intro` need their own constructors.  `∀X. X!` and
+  `∀X. X?ℓ` are ill typed, because `X` is strict.
+- **The dynamic gradual guarantee.**  GTSFImp's DGG closes its
+  `bot-elim` and `bot-intro` cells with `no-bot-value`
+  (`proof/DGG/Catchup/ExtraCastRightAtProof.agda`;
+  `proof/DGG/notes/LG3TargetCastStepInversionCaseTable.md`).  More
+  generally, the DGG relates cast terms whose casts obey the same
+  modes as source consistency.
+
+### C1.3 Modes at a cast
+
+**Modes at a cast.**  A cast carries its mode environment as part of
+the term, written `M ⟨p⟩^μ` when the environment matters and `M ⟨p⟩`
+otherwise.  This follows GTSFImp's `CastTerms`, whose cast constructor
+is `_⟨_⟩ : Term Δ → {μ : Env∼ Δ} … (c : μ ⊢ A ∼ B) → Term Δ`: the `μ`
+is part of the cast's evidence, so a term determines it.  Compilation
+creates every cast at the environment that gives each name in scope
+`★∼X∼★`, matching the source's `A ∼ B = idᶜ ⊢ A ∼ B`.  Reduction then
+**keeps and extends** each cast's environment, and it never replaces it
+by the cross environment:
+
+- When an instantiation rule moves a coercion out from under its binder,
+  the freed name keeps the binder's mode.  `TyBeta`'s
+  `inst_X(W ⟨gen X.p⟩^μ) = ([−X^α] W ⟨Id(A)⟩) ⟨p⟩^(μ, X:★∼X)` and
+  `inst_X(W ⟨∀X.p⟩^μ) = inst_X(W) ⟨p⟩^(μ, X:X∼X)`.  The modes are
+  those of GTSFImp's `β-gen`, whose contractum is `⇑ᵗᵐ V ⟨ c ⟩` with
+  `c` under `genᵐ μ`, and of the analogous `β-∀`.  GTNF differs from
+  GTSFImp in not shifting `V` (§C3.1).
+- `CastFun` casts the argument at `flip(μ)`, because the domain
+  coercion was typed there.  This is GTSFImp's `β-⇒`, whose argument
+  cast `c` has type `flipᵐ μ ⊢ A′ ∼ A`.
+- `CastSeq` keeps `μ` for both halves, and `Inst` closes `X` at `★`, so
+  its result cast is at `μ`.
+- `IdDyn` moves a tag cast from a boundary's interior to its exterior.
+  The moved cast keeps the interior mode of every exterior name the
+  interior can see.  It gives `X∼X` to every exterior name that the
+  interior cannot see, because the cast has never seen that name
+  (`exit_δ(μ)`, §6.3; Example 7).  This is what GTSFImp does when a
+  cast first meets a variable: at an allocation, `ξ-⟨⟩` re-indexes the
+  cast's environment by `applyEnv (bind A) μ = extᵐ μ`, which gives the
+  new variable `X∼X`.  The filled-in mode never belongs to a name that
+  the coercion mentions.  If the tag were that name, then the name
+  would be visible in the interior and its mode would be copied.  So
+  the choice does not affect typing or reduction; it is bookkeeping for
+  the cast-term imprecision (§11.6).
+
+The modes of free names are therefore data that the dynamic semantics
+carries along.  The cast-term imprecision relates casts with possibly
+different environments on its two sides, as GTSFImp's `cast⊑cast²`
+does (`ν ⊢ C ∼ A`, `ν′ ⊢ C′ ∼ A′`).
+
+### C1.4 Closing at ★ needs evidence-shaped sequences
+
+The closing lemma of §3 needs the
+evidence-shaped sequences of D20: with a general `p ; q`, a nested
+`inst Y. q` could reach the target `X` by a detour through `★`, such as
+`… ; (★→★)! ; X?ℓ`, and closing would give it the target `★`, which
+`inst` forbids (M1's counterexample,
+`proof/TypeSafety/notes/InstCloseCounterexample.agda`).  `Inst` uses the lemma at
+`m = X∼★`.  The lemma is stated for every `m` because a function
+coercion's domain flips `X∼★` to `★∼X`.
+
+------------------------------------------------------------------------
+
+## C2. Values: rationale and proof sketches
+
+### C2.1 The new value form
+
+**The new value form** is a `★`-value under a boundary whose tag names
+a variable introduced by the boundary itself.  `IdDyn` (§6.3) moves the
+tag out of every other boundary around a tagged value, so this is the
+only boundary that can remain around a `★`-value.
+
+### C2.2 `fresh(δ)`
+
+On the lemma of §5: `Δ ⊢ X` if and only if `X ∉ fresh(δ)`.
+
+Proof sketch: suppose that `X ∈ fresh(δ)` and that `X:=β ∈ Δ`.  Before
+the first `X`-entry the interior still contains `X:=β`.  Coherence of
+that first entry `+X^α` (`X = Y ⇔ α = β` on `δ⁺(Δ) ∋ X:=β`) forces
+`α = β`, so `X:=α` is already in the interior, contradicting the premise
+`X:=α ∉ δ(Δ)` of `+X^α`.  Conversely, suppose that `X ∉ Δ`.  Then `X`
+is in `δ(Δ)` only because some entry `+X^α` added it, and the first
+`X`-entry cannot be `−X^α`, because that entry requires `X` in the
+interior.
+
+Using `fresh(δ)` rather than `Δ ⊢ X` keeps `Value` a predicate on terms
+alone, not indexed by the type context, as it is in νF.  This matters
+because a congruence step carries values to other contexts.  The
+syntactic form makes it immediate that a value stays a value under
+allocation and under weakening by fresh names.
+
+### C2.3 Cast values are simples
+
+The one structural change to νF is that **a value with an inert cast
+counts as a simple**.  Every boundary rule of νF is stated for a simple
+interior: `Wrap` crosses `[δ] U ⟨c → d⟩`, `TyBeta` crosses
+`[δ] U ⟨∀X. c⟩` (νF's `TyWrap`), `Merge` fuses
+`[δ₂]([δ₁] U ⟨t₁⟩)⟨c⟩`, and `Id` drops `[δ] U ⟨id(ι)⟩`.  With this change those rules also apply when the
+interior is a cast value.  The rules never look inside `U`, so the
+change costs nothing in them.  The boundary invariant of νF, "at most
+one boundary directly around a simple", is unaffected.  A cast value may
+contain boundaries *inside* its `V`, just as `λx:A. N` may contain them
+inside `N`.
+
+### C2.4 Proof sketch of `no-bot-value`
+
+The proof goes by cases on `V`.  A `Λ` would need a body value of type
+`X` under an abstract `α`, and there is none.  For `W ⟨∀X. p⟩`, `p` is
+strict in `X`, so `p : A ⇒ X` forces `A = X`, and `W` has type `∀X. X`.
+`W ⟨gen X. p⟩` has the target type `∀X. B` with `B` not a variable.  For the
+boundary `[δ] U ⟨∀X. c⟩`, the conversion `c : A′ ⇒ X` is typed with
+`X:=α` for an abstract `α`.  Sealing needs a representation, so `c` can
+only be `id(X)`, and then `U` has type `∀X. X`.  These cases need
+checking when the Agda exists.
+
+------------------------------------------------------------------------
+
+## C3. Reduction: rationale
+
+### C3.1 No term moves under a new name
+
+**No term moves under a new name.**  In the `gen` case of `inst_X`, `W` was typed
+outside `X`'s scope, and only `p` mentions `X`.  Placing `W` directly
+in the interior `Δ, X:=α` would need a weakening, so `W` is put under
+the binder's dual `[−X^α]` instead.  Its interior is
+`−X(Δ, X:=α) = Δ`, which is exactly where `W` was typed, and its
+conversion `Id(A)` is typed in `(−X^α)⁺(Δ, X:=α) = Δ, X:=α`.  So `W`
+keeps its scope ("colour") and needs no weakening, either in the Agda
+(no de Bruijn shift) or in a preservation proof with names (Jeremy,
+2026-10-01).  This is νF's `crossΛᴹ`, the wrapper Beta puts on a value
+that crosses a `Λ`.  It costs extra steps: Example 2 takes 12 steps
+rather than 8, because the wrapper is crossed by `Wrap` and later
+fused by `Merge`.  In the `Λ` and `∀X.p` cases nothing moves under the
+new name: the `Λ` body and `p` were already typed under a binder for
+`X`.
+
+### C3.2 How `inst_X` works
+
+The four `inst_X` clauses of §6.2 cover every canonical ∀-value (§5).  The recursion
+is on the structure of the value, and each layer of the value becomes
+one layer of the result: a cast stays a cast, and a boundary stays a
+boundary.  So `inst_X` stacks boundaries, as νF's `TyWrap` does, and
+`Merge` fuses them afterwards.  `inst_X` allocates nothing; the one
+allocation `α:=Δ(A)` is made by `TyBeta` itself, however many layers
+the value has.  (Under the name `inst_X`, the meta-operation is not to
+be confused with the coercion `inst X. p` and its rule `Inst`.)
+
+### C3.3 `TyBeta` covers νF's rules and GTSFImp's
+
+νF's two rules are instances of §6.2's `TyBeta`.  If `V = ΛX.N`, then it
+is νF's `TyBeta`.  If `V = [δ] (ΛX.N) ⟨∀X.c⟩`, then it is νF's
+`TyWrap`.  The `gen` case is GTSFImp's `β-gen` with a boundary in place
+of `↑ 〖 0 , ⇑ᵗ C ↑ B 〗`.  The `∀X.p` case is GTSFImp's `β-∀`: the
+value under the cast is instantiated, with no further allocation, and
+then cast.  When the Agda is written, `inst_X` may be a function on
+value derivations, or `TyBeta` may be split into one constructor per
+outermost layer; this draft states it once.
+
+### C3.4 Preservation of `TyBeta`
+
+Proof sketch for the lemma of §6.2.
+The `Λ` case re-reads the body, typed under an abstract `α`, at the
+allocated `α:=R`, as νF's `TyBeta` does.  The `gen X.p` and `∀X.p`
+cases use the fact that coercion typing does not depend on whether `α`
+is abstract or bound (§3).  The `gen` case types `[−X^α] W ⟨Id(A)⟩`
+with the boundary rule, and `W` is used at exactly its own typing
+`Δ ∣ [] ⊢ W : A`, so no weakening lemma is needed.  In the boundary case, `δ` stays coherent at
+`Δ, X:=α`, because `X` and `α` are fresh.  Its interior is then
+`δ(Δ), X:=α`, and `c` is typed in `δ⁺(Δ), X:=α`.
+
+### C3.5 The cast rules and GTSFImp's
+
+The rules of §6.3 correspond to GTSFImp's `β-id`, `β-⇒`, `β-inst`,
+`tag-untag`, `tag-untag-bad` and `blame-bot-intro`.  No rule applies
+`bot-elim` to a value, because no value has type `∀X. X` (§5); progress
+dismisses that case, as GTSFImp's `cast-value-progress` does.  GTSFImp's `ground` and `expand` are
+not needed, because a tag through a non-ground type is the sequence
+`p ; G!` and `CastSeq` splits it.  GTSFImp's `β-∀` is the
+`∀X.p` case of `inst_X` (§6.2), because GTNF instantiates by `ν` and not
+by a `⦂∀ B [ C ]` type application.
+
+### C3.6 `Inst` allocates through `ν`
+
+`Inst` does not allocate by itself.  The `ν X:=★` it creates allocates
+`α:=★` on the next step, by `TyBeta`.  Inside the resulting
+boundary, `X:=★` holds, so `reveal_X(src(p))` seals and unseals `X`
+against `★`.  The coercion has already been closed at `★`: each `X!`
+and `X?ℓ` in `p` has become `id(★)`.  As in GTSFImp, the `inst`-bound
+variable is therefore implemented entirely by conversions, and no tag
+names it.
+
+### C3.7 Why a tag by name keeps its meaning across a boundary
+
+`IdDyn` moves a tag `G` from the interior `δ(Δ)` to the exterior `Δ`
+without changing it.  If `G` is a name `X`, then this is sound because
+of coherence: `X:=α ∈ δ(Δ) ⊆ δ⁺(Δ)` and `X:=β ∈ Δ ⊆ δ⁺(Δ)`, and
+coherence (`X = Y ⇔ α = β` on `δ⁺(Δ)`) forces `α = β`.  So the two
+occurrences of `X` denote the same representation variable, even if `δ`
+removed `X` (`−X^α`) and later rebound it (`+X^α`).  After the tag is
+outside, the ordinary `TagUntag`/`TagUntagBad` compare it with a check
+`H` by **syntactic equality**.
+
+If the tag's name is in `fresh(δ)`, then the tag cannot move out, and no
+check `H` that is well formed in `Δ` can be equal to it.  So
+`TagUntagBad-⟪⟫` blames unconditionally.  This is the "escaping seal"
+behaviour of GTSFImp and of λB (Example 4).  The successful check across
+a boundary, which an earlier draft had as `TagUntag-⟪⟫`, can no longer
+arise: if the tag is visible outside, then `IdDyn` has already moved it.
+
+`IdDyn`'s contractum `[δ] V ⟨Id(G)⟩` keeps the boundary, because `V`
+was typed in the interior.  If `G = ι`, then `Id` removes the boundary
+on the next step.  If `G = ★ → ★` or `G = ∀X.★`, then the boundary is
+an inert `c → d` or `∀X.c` over `V`, and if `V` is itself a boundary
+value, then `Merge` fuses the two.  If `G = X`, then the boundary is
+`[δ] V ⟨id(X)⟩`, an inert boundary over a value of type `X`.
+
+------------------------------------------------------------------------
+
+## C4. Compilation: the typing theorem
+
 The intended theorem is the analogue of νF's `compile-⊢`: if
 `Δ ∣ Γ ⊢ M : A` in the source, then `Δ ∣ Γ ⊢ ⟦M⟧ : A`.  Its proof needs
 the fact that `⟦c⟧ℓ` is typed at the endpoints and modes of `c`
@@ -686,7 +1408,7 @@ to values, which needs `⟦gen c⟧ℓ` to be gen-safe and so uses GTSFImp's
 
 ------------------------------------------------------------------------
 
-## 8. Examples
+## C5. Examples of reduction
 
 The traces omit the identity casts `⟨id(A)⟩` that compilation puts
 on arguments whose types already agree.  Each such cast would be removed
@@ -939,81 +1661,935 @@ gets `Y:X∼X` (D10).  At the second `IdDyn`, the tag leaves `F` through
 
 ------------------------------------------------------------------------
 
-## 9. Metatheory goals
+## C6. Cast-term imprecision: explanations and ladders
 
-GTNF should satisfy the same metatheory as GTSFImp.  Each goal below
-names the GTSFImp statement it mirrors.  The νF-specific invariants
-(`det`, tightness, `ScopeMapPreservation`/`ColorPreservation`) carry over
-from `strong-rep-nu` as well.  Status: only the type imprecision of §9.4 is in Agda.
+### C6.1 Worlds: an example, and why nothing is rebased
 
-### 9.1 Type safety of the cast calculus
+Example: in P3's block after the left's `Beta`, `⊑⟪⟫` pushes the
+right `Inst` boundary's name and the left `Λ⊑` pops it, so the premise
+relates `λx:X.x` (typed under the left `Λ`'s abstract `α₀`) to
+`λx:X.x` (inside the right's `[+X^αᴿ]`, `αᴿ:=★`).  The
+shared name `X` needs `(α₀, αᴿ) ∈ ϱˡ`.  After the left's `TyBeta`,
+the pair is `(αᴸ, αᴿ) ∈ ϱᵍ`, with `αᴸ:=ℕ`.
 
-GTSFImp: `proof/TypeSafety/Progress.agda`, `proof/TypeSafety/Preservation.agda`.
-νF: `strong-rep-nu.TypeSafety`.
+The point of the design (§11.6, §C10.3) is that **no part of a world is ever
+rebased.**  `Ω`, `η`, `η′` and `κ` change only lexically: they are
+extended by a binder (`Λ`, a coercion binder, a boundary entry `+X^α`)
+and shrunk by an unbind (`−X^α`), for the subterm under it, exactly as
+the type context is; ~~`κ` grows at a right check (`⊑cast`) for the
+subterm under it~~ 🆕 **D28′**: `κ` grows only at a boundary rule that
+joins a name, for the boundary's interior.  So is `ϱˡ`.  The one non-lexical part is `ϱᵍ`,
+and it only grows: a `TyBeta` that the other side matches adds one
+pair.  An
+unmatched allocation only renumbers the allocating side's rep. vars (de
+Bruijn).
+
+### C6.2 Grants (D28)
+
+Under the adopted D28, `⊑cast` (§10.2) may grant.  The explanation is
+struck through because 🆕 **D28′** would remove grants.
+
+~~A right check GRANTS (D28): every value that leaves the right's cast
+value through `p′` is checked against the name of `β`, so in the
+premise an X-tagged right value may face an untagged left value of
+that name, i.e. `β`'s name is `X⊑★`.  P4's gen wrapper `X! → X?` and
+its later check `X?` grant `αᴿ`; C2's `X! → id(★)` grants nothing.
+Left casts, `cast⊑cast`, right hides and boundaries grant nothing.  A
+grant covers the whole premise; `γ⁺` has the same types at the raised
+marks (`RaiseCtx`).~~
+
+### C6.3 Claim-rep (D29) and H1
+
+The rule that relates a left ∀-value to a right `Inst` boundary, first
+`∀⊑⟪+⟫` (D14, D22), then an opening of `⊑⟪⟫` (D26), is now a push of
+`⊑⟪⟫` followed by a pop (D27), or, for a `Λ`, a claim above the
+boundary followed by its rejoin (D29).
+
+In the claim-rep case (D29), the binder `X` claims the right rep. var
+`β`, which has no name yet.  `X` is left-only (`X⊑★`) until a right
+boundary `+Y^β` names `β`.  There `Interior.join-fresh` joins `Y` to
+`X`, because their rep. vars are paired (D25).  From then on the
+shared name's mark is `β`'s permission: `X⊑X` unless a right check of
+`Y` above grants `β`.  So C4's `x ⊑ x⟨X!⟩` still needs a grant.  The
+claim is what H1 needs.  There the right's boundaries name the
+instantiations in the opposite order to the left's binders, and the
+left's first binder must be matched before the right names it.  H1's
+final pair, generated by
+`scripts/render_gtnf.sh 'impLadder final' 'open import examples.TermImprecisionH1Examples' 'open import examples.ImpLadder'`
+(pinned in `examples/ImpLadder.agda`):
 
 ```
-progress :      if  Δ ∣ [] ⊢ M : A,  then  M is a value,  or  M = blame ℓ,
-                or  Δ ⊢ M ⟶ N ⊣ ξ  for some N, ξ
-
-preservation :  if  Δ ∣ [] ⊢ M : A  and  Δ ⊢ M ⟶ N ⊣ ξ,  then  ξ(Δ) ∣ [] ⊢ N : A
-
-det :           if  Δ ⊢ M ⟶ N ⊣ ξ  and  Δ ⊢ M ⟶ N′ ⊣ ξ′,  then  N = N′  and  ξ = ξ′
-                (up to the choice of fresh α)
-
-no-bot-value :  if  V is a value,  then not  (Δ ∣ Γ ⊢ V : ∀X. X)
+W0 = the conclusion's world
+  ⟨⟩
+  ϱᵍ = {}  ϱˡ = {}  Ξᴸ = []  Ξᴿ = [α:=★, β:=★]
+W1 = W0 ⊕ᴸ⇔ α
+  ⟨X: X^α ⊑[X⊑★] ─⟩
+  ϱᵍ = {}  ϱˡ = {α⇔α}  Ξᴸ = [α abst]  Ξᴿ = [α:=★, β:=★]
+W2 = Interior W1
+  ⟨Y: ─ ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑★] ─⟩
+  ϱᵍ = {}  ϱˡ = {α⇔α}  Ξᴸ = [α abst]  Ξᴿ = [α:=★, β:=★]  πʷ = [Y^β]
+W3 = Interior W2
+  ⟨Y: ─ ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
+  ϱᵍ = {}  ϱˡ = {α⇔α}  Ξᴸ = [α abst]  Ξᴿ = [α:=★, β:=★]  πʷ = [Y^β]
+W4 = Open1 W3: pop Y^β
+  ⟨Y: Y^β ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
+  ϱᵍ = {}  ϱˡ = {β⇔β, α⇔α}  Ξᴸ = [α abst, β abst]  Ξᴿ = [α:=★, β:=★]
+W   left term      A              ηᴸA            ⊑                            ηᴿA′   A′     right term
+──  ─────────────  ─────────────  ─────────────  ───────────────────────────  ─────  ─────  ──────────────────────────────────
+W0  ΛX. □          ∀X. ∀Y. X→Y→X  ∀X. ∀Y. X→Y→X  ∀X⊑★. ∀Y⊑★. X⊑★ → Y⊑★ → X⊑★  ★→★→★  ★→★→★  ─ (claim α)
+W1  ─              ∀Y. X→Y→X      ∀Y. X→Y→X      ∀Y⊑★. X⊑★ → Y⊑★ → X⊑★        ★→★→★  ★→★→★  □⟨id(★) → (id(★) → id(★))⟩^[]
+W1  ─ (push Y^β)   ∀Y. X→Y→X      ∀Y. X→Y→X      ∀Y⊑★. X⊑★ → Y⊑★ → X⊑★        ★→★→★  ★→★→★  [+Y^β] □ ⟨id(★) → (−Y → id(★))⟩
+W2  ─              ∀Y. X→Y→X      X→Y→X          X⊑★ → Y⊑Y → X⊑★              ★→Y→★  ★→Y→★  □⟨id(★) → (id(Y) → id(★))⟩^[Y:X∼X]
+W2  ─ (carry Y^β)  ∀Y. X→Y→X      X→Y→X          X⊑★ → Y⊑Y → X⊑★              ★→Y→★  ★→Y→★  [+X^α] □ ⟨−X → (id(Y) → +X)⟩
+W3  ΛY. □          ∀Y. X→Y→X      X→Y→X          X⊑X → Y⊑Y → X⊑X              X→Y→X  X→Y→X  ─ (pop Y^β)
+W4  λx:X. □        X→Y→X          X→Y→X          X⊑X → Y⊑Y → X⊑X              X→Y→X  X→Y→X  λx:X. □
+W4  λy:Y. □        Y→X            Y→X            Y⊑Y → X⊑X                    Y→X    Y→X    λy:Y. □
+W4  x              X              X              X⊑X                          X      X      x
 ```
 
-As in νF, preservation may need a well-formedness premise on `Δ`
-(strong-rep-nu's `PreservationWf`/`CtxWf`).  `no-bot-value` is a lemma
-for progress (§5).
+`final-no-push` relates the same pair with two claims, `α` for `ΛX`
+and `β` for `ΛY`, and no push at all.
 
-### 9.2 Compilation
+### C6.4 Push, pass and carry (D27)
 
-GTSFImp: `Compile.agda` (`compile`, `compile-value`).
-νF: `strong-rep-nu.CompileTyping` (`compile-⊢`).
+`⊑⟪⟫` PUSHES names that `δ′` introduces.  Each is right-only and
+bound to a rep. var `:=★`: the interior world's well-formedness says
+so; its mark is derived (D28).  A pending name is a right name position, so `⟪⟫⊑` passes it
+into the left boundary unchanged; `⊑⟪⟫` carries it through `δ′` to its
+interior position.  A name that `δ′` unbinds has no interior position,
+so it must be popped first.  With no pending name these are the plain
+one-sided boundary rules.  For the right's `Inst` boundary against a
+left ∀-value (Example P3), `⊑⟪⟫` pushes the boundary's name and `Λ⊑`
+pops it.  The left stays the ∀-value: no `inst_X` appears in the
+relation, and under a pending name the left term is a value.
+
+### C6.5 R1 and counterexample C5
+
+R1 (D28; 🆕 **D28′**: R1′, §10.5): the left's own seal `[−X^α] V ⟨−X⟩` relates to an arbitrary
+right `★` value (the "payload view", P2), which is right when `X` is
+left-only, but not under a right check that permitted `α`'s partner:
+counterexample C5 relates `[+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩` to
+`[+X^α] 5⟨ℕ!⟩⟨X?ℓ0⟩ ⟨+X⟩`, whose right blames
+(`examples/TermImprecisionPermissionExamples.agda`, `C5Dead`; source
+programs `(ΛY. λx:Y. x) [ℕ] 5` and `(ΛY. λx:★. (x : Y)) [ℕ] (5 : ★)`).
+R1 and R2 are rule premises: no condition on worlds alone separates
+C5's hidden variant from P4 B3 (`PermissionsR.md` §1.4).
+
+### C6.6 K: the counterexample of D26, related by push, pass and pop
+
+The counterexample of D26 is `(λf:∀X.X→X. f)(K[ℕ])` against
+`(λf:★→★. f)(K[ℕ])`, with `K = ΛY.ΛX.λx:X.x`.  After the right's `Inst`
+and `Merge`, its final pair `VL ⊑ RF` is related by a push, a pass and
+a pop.  Its ladder, generated by
+`scripts/render_gtnf.sh 'impLadder VL⊑RF' …` (`examples/ImpLadder.agda`,
+where it is pinned):
 
 ```
-compile-⊢ :     if  Δ ∣ Γ ⊢ M : A  (source),  then  Δ ∣ Γ ⊢ ⟦M⟧ : A
-compile-value : if  M is a source value,  then  ⟦M⟧ is a value
+W0 = the conclusion's world
+  ⟨⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]
+W1 = Interior W0
+  ⟨Y: ─ ⊑[X⊑X] Y^β │ X: ─ ⊑[X⊑X] X^α⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]  πʷ = [Y^β]
+W2 = Interior W1
+  ⟨Y: ─ ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]  πʷ = [Y^β]
+W3 = Open1 W2: pop Y^β
+  ⟨Y: Y^β ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {β⇔β}  Ξᴸ = [α:=ℕ, β abst]  Ξᴿ = [α:=ℕ, β:=★]
+W   left term                       A        ηᴸA      ⊑                ηᴿA′  A′   right term
+──  ──────────────────────────────  ───────  ───────  ───────────────  ────  ───  ────────────────────────
+W0  ─                               ∀X. X→X  ∀X. X→X  ∀X⊑★. X⊑★ → X⊑★  ★→★   ★→★  □⟨id(★) → id(★)⟩^[]
+W0  ─ (push Y^β)                    ∀X. X→X  ∀X. X→X  ∀X⊑★. X⊑★ → X⊑★  ★→★   ★→★  [+Y^β, +X^α] □ ⟨−Y → +Y⟩
+W1  [+X^α] □ ⟨∀Y. (id(Y) → id(Y))⟩  ∀X. X→X  Y→Y      Y⊑Y → Y⊑Y        Y→Y   Y→Y  ─ (pass Y^β)
+W2  ΛY. □                           ∀Y. Y→Y  Y→Y      Y⊑Y → Y⊑Y        Y→Y   Y→Y  ─ (pop Y^β)
+W3  λx:Y. □                         Y→Y      Y→Y      Y⊑Y → Y⊑Y        Y→Y   Y→Y  λx:Y. □
+W3  x                               Y        Y        Y⊑Y              Y     Y    x
 ```
 
-The coercion lemma behind `compile-⊢` is mode for mode:
-if `μ ⊢ c : A ∼ B`, then `Δ ; μ ⊢ ⟦c⟧ℓ : A ⇒ B` (§7).
+The push is a choice: the rule does not say which introduced names to
+push, and the index decides (`PendingOpenings.md` §6).  No permission
+appears: the pending `Y` is `X⊑X` (D28).
 
-### 9.3 The source type system
+### C6.7 A grant: P4's block B3
 
-GTSFImp: `GradualTypeCheck.agda`, `Consistency2.agda`.
+🆕 **D28′**: in the ladder below (generated from the D28 Agda), the
+permission for `αᴿ` would come from the outer matched boundary `W0 →
+W1`, which joins `X` and checks `X ⊑ X` there, instead of the grant at
+`W1 → W2`; the rows below `W2` are unchanged.
 
-- **A type checker.**  A synthesis function for source terms returns a
-  type together with a typing derivation.  It is sound by construction,
-  as in GTSFImp, where it is positive-only.
-- **Decidable consistency.**  This is GTSFImp's `Consistency2.lower?`.
-
-### 9.4 Type imprecision
-
-GTSFImp: `Imprecision.agda` (`ImpEnv`, modes `X⊑X`/`X⊑★`),
-`proof/Imprecision.agda` (`⊑-unique`), `proof/ImprecisionComposition.agda`
-(`⊑-trans`), `proof/ImprecisionConsistency.agda` (`refl⊑`, and the
-bridges between imprecision and consistency).
+A grant (D28), P4's block B3 (`p4-B3`, pinned in
+`examples/ImpLadder.agda`): the right's check `X?` grants `αᴿ`, so
+inside it the shared `X` is `X⊑★` (W2), stays `X⊑★` as a left-only
+name inside the right's `−X` (W3), and the matched seals `S ⊑ S`
+relate at the index `X ⊑ X` under the grant:
 
 ```
-refl⊑ :     A ⊑ A
-⊑-trans :   if  A ⊑ B  and  B ⊑ C,  then  A ⊑ C
-⊑-unique :  any two derivations of  A ⊑ B  are equal
+W0 = the conclusion's world
+  ⟨⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]
+W1 = Interior W0
+  ⟨X: X^α ⊑[X⊑X] X^α⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]
+W2 = W1 grant X^α
+  ⟨X: X^α ⊑[X⊑★] X^α⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]  κʷ = {α}
+W3 = Interior W2
+  ⟨X: X^α ⊑[X⊑★] ─⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]  κʷ = {α}
+W4 = Interior W2
+  ⟨⟩
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]  κʷ = {α}
+W   left term        A    ηᴸA  ⊑          ηᴿA′  A′   right term
+──  ───────────────  ───  ───  ─────────  ────  ───  ────────────────────────
+W0  [+X^α] □ ⟨+X⟩    ℕ    ℕ    ℕ⊑ℕ        ℕ     ℕ    [+X^α] □ ⟨+X⟩
+W1  ─ (grant X^α)    X    X    X⊑X        X     X    □⟨X?ℓ0⟩^[X:★∼X]
+W2  □₁ □₂            X    X    X⊑★        ★     ★    □₁ □₂
+W2  ├ ─              X→X  X→X  X⊑★ → X⊑★  ★→★   ★→★  [−X^α] □ ⟨id(★) → id(★)⟩
+W3  │ λx:X. □        X→X  X→X  X⊑★ → X⊑★  ★→★   ★→★  λx:★. □
+W3  │ x              X    X    X⊑★        ★     ★    x
+W2  └ ─              X    X    X⊑★        ★     ★    □⟨X!⟩^[X:X∼★]
+W2    [−X^α] □ ⟨−X⟩  X    X    X⊑X        X     X    [−X^α] □ ⟨−X⟩
+W4    5              ℕ    ℕ    ℕ⊑ℕ        ℕ     ℕ    5
 ```
+
+### C6.8 The `★` clauses of conversion imprecision
+
+The last row of §10.6 mirrors type imprecision's `X ⊑ ★` and `∀⊑`.  A seal or
+unseal of a left name at `X⊑★` may be absent on the right, and a
+left-only universal is opened at `X⊑★`.  R2 (D28) adds `U(X)`: with
+"names name paired rep. vars", `μ(X) = X⊑★` and `U(X)` force `X` to
+be left-only in the conversion world (it closes the matched variant
+of C5).  C23a needs the bare forms,
+and C23b needs the `∀` form.  The chain forms are needed because a
+left-only `Merge` builds chains.
+
+------------------------------------------------------------------------
+
+## C7. Examples of cast-term imprecision (P1–P6)
+
+The examples are machine-run: each pair of programs is
+in `examples/`, and both of its runs come from `Eval`.
+
+Six pairs, in `ImprecisionExamples.agda`.  Each run is a `Reaches …
+refl` proof, and the states below are rendered from `evalTerms` by
+`Show.agda` (`scripts/render_gtnf.sh`), not transcribed by hand.  Each
+run names its rep. vars by allocation order, so both runs call their first
+rep. var `α`.  They are different rep. vars, and `ϱ` pairs them; write `αᴸ`
+and `αᴿ` when the difference matters.
+
+The traces are shown **synchronized**: each block is a pair of states
+that the relation must relate, and between blocks one side takes one
+step while the other takes zero or more steps (the shape of a
+simulation, §C10.4).  Under each pair are the rules at the top of its
+derivation and the facts the derivation turns on.
+
+| pair | left (more precise) | right | left answer | right answer |
+|---|---|---|---|---|
+| P1 | `(ΛX.λx:X.x)[ℕ] 5` | `(ΛX.λx:X.x)[★] 5` | `5` (5 steps) | `5⟨ℕ!⟩` (6) |
+| P2 | `(ΛX.λx:X.x)[ℕ] 5` | `(λx:★.x) 5` | `5` (5) | `5⟨ℕ!⟩` (1) |
+| P3 | `(λf:∀X.X→X. f[ℕ] 5)(ΛX.λx:X.x)` | Example 1 | `5` (6) | `5⟨ℕ!⟩` (11) |
+| P4 | as P3 | Example 2 | `5` (6) | `5` (12) |
+| P5 | Example 4 | `(λn:ℕ.n)((λx:★.(λz:★.z) x) 5)` | `blame ℓ` (6) | `5` (4) |
+| P6 | `(λg:∀X.X→ℕ. g[𝔹] true)(ΛX.λx:X.7)` | Example 6 | `7` (5) | `7⟨ℕ!⟩` (8) |
+
+The answers are related in every case: `5 ⊑ 5⟨ℕ!⟩` by `⊑cast`, and in
+P5 the left blames, which `blame⊑` allows.
+
+### P1 — both sides instantiate, at ℕ and at ★ (aligned boundaries)
+
+```
+L  ((ν X:=ℕ. ((ΛY. (λx:Y. x)) X) ⟨−X → +X⟩) 5)
+R  ((ν X:=★. ((ΛY. (λx:Y. x)) X) ⟨−X → +X⟩) 5⟨ℕ!⟩^[])
+   ·⊑·, ν⊑ν (ℕ ⊑ ★), ⊑cast
+                                         L: TyBeta (α:=ℕ)    R: TyBeta (α:=★)
+L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
+R  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5⟨ℕ!⟩^[])
+   ·⊑·, ⟪⟫⊑⟪⟫: X both-sided, ϱ = {(αᴸ, αᴿ)}, αᴸ:=ℕ ⊑ αᴿ:=★
+                                         L: Wrap             R: Wrap
+L  ([+X^α] ((λx:X. x) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩)
+R  ([+X^α] ((λx:X. x) ([−X^α] 5⟨ℕ!⟩^[] ⟨−X⟩)) ⟨+X⟩)
+   ⟪⟫⊑⟪⟫, ·⊑·, ⟪⟫⊑⟪⟫ (both unbind X), ⊑cast: 5 ⊑ 5⟨ℕ!⟩ at ℕ ⊑ ★
+                                         L: Beta             R: Beta
+                                         L: Merge            R: Merge
+L  ([+X^α, −X^α] 5 ⟨id(ℕ)⟩)
+R  ([+X^α, −X^α] 5⟨ℕ!⟩^[] ⟨id(★)⟩)
+   ⟪⟫⊑⟪⟫, ⊑cast
+                                         L: Id               R: IdDyn, Id
+L  5
+R  5⟨ℕ!⟩^[]
+   ⊑cast
+```
+
+The two `−X` conversions are the same syntax, typed at different
+representations (`ℕ ⇒ X` and `★ ⇒ X`).  The interior types `ℕ ⊑ ★`
+are related because the paired rep. vars are.
+
+### P2 — the left side alone abstracts and instantiates (one-sided boundaries)
+
+```
+L  ((ν X:=ℕ. ((ΛY. (λx:Y. x)) X) ⟨−X → +X⟩) 5)
+R  ((λx:★. x) 5⟨ℕ!⟩^[])
+   ·⊑·, ν⊑ (ℕ ⊑ ★), Λ⊑: X left-only, λx:X.x ⊑ λx:★.x at X→X ⊑ ★→★
+                                         L: TyBeta (α:=ℕ)    R: —
+L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
+R  ((λx:★. x) 5⟨ℕ!⟩^[])
+   ·⊑·, ⟪⟫⊑: X left-only, interior X→X ⊑ ★→★, exterior ℕ→ℕ ⊑ ★→★
+                                         L: Wrap             R: —
+L  ([+X^α] ((λx:X. x) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩)
+R  ((λx:★. x) 5⟨ℕ!⟩^[])
+   ⟪⟫⊑, ·⊑·, ⟪⟫⊑ (the left unbinds its left-only X; the center drops it)
+                                         L: Beta             R: Beta
+L  ([+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩)
+R  5⟨ℕ!⟩^[]
+   ⟪⟫⊑, ⟪⟫⊑, ⊑cast: [−X^α] 5 ⟨−X⟩ ⊑ 5⟨ℕ!⟩ at X ⊑ ★ (X left-only)
+                                         L: Merge, Id        R: —
+L  5
+R  5⟨ℕ!⟩^[]
+```
+
+The right term crosses the left-only `Λ` and `[+X^α]` unweakened: only
+`η` reaches the new center name.
+
+### P3 — the right side alone instantiates, by `Inst` (the new rule `∀⊑⟪+⟫`)
+
+```
+L  ((λx:(∀X. X→X). ((ν X:=ℕ. (x X) ⟨−X → +X⟩) 5)) (ΛY. (λx:Y. x)))
+R  ((λx:★→★. (x 5⟨ℕ!⟩^[])) (ΛX. (λx:X. x))⟨inst Y. (Y?ℓ0 → Y!)⟩^[])
+   ·⊑·, ƛ⊑ƛ (∀X.X→X ⊑ ★→★), ν⊑ in the body; ⊑cast, Λ⊑Λ for the argument
+                                         L: Beta             R: Inst, TyBeta (α:=★), Beta
+L  ((ν X:=ℕ. ((ΛY. (λx:Y. x)) X) ⟨−X → +X⟩) 5)
+R  (([+X^α] (λx:X. x) ⟨−X → +X⟩)⟨id(★) → id(★)⟩^[] 5⟨ℕ!⟩^[])
+   ·⊑·, ν⊑, ⊑cast, ∀⊑⟪+⟫: the left Λ's abstract rep. var is paired with αᴿ:=★
+                                         L: TyBeta (α:=ℕ)    R: —
+L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
+R  (([+X^α] (λx:X. x) ⟨−X → +X⟩)⟨id(★) → id(★)⟩^[] 5⟨ℕ!⟩^[])
+   ·⊑·, ⊑cast, ⟪⟫⊑⟪⟫: ϱ gains (αᴸ, αᴿ), αᴸ:=ℕ ⊑ αᴿ:=★
+                                         L: Wrap             R: CastFun, CastId, Wrap
+L  ([+X^α] ((λx:X. x) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩)
+R  ([+X^α] ((λx:X. x) ([−X^α] 5⟨ℕ!⟩^[] ⟨−X⟩)) ⟨+X⟩)⟨id(★)⟩^[]
+   ⊑cast, then as P1
+                                         L: Beta             R: Beta
+                                         L: Merge            R: Merge
+                                         L: Id               R: IdDyn, Id, CastId
+L  5
+R  5⟨ℕ!⟩^[]
+```
+
+The `Inst`/`TyBeta` pair runs before the right's `Beta`, because `inst`
+is not inert, so the right holds a boundary while the left still holds
+a `Λ`.  That is the reason for `∀⊑⟪+⟫`.
+
+### P4 — the right side alone generalizes (a both-sided name at `X⊑★`)
+
+```
+L  ((λx:(∀X. X→X). ((ν X:=ℕ. (x X) ⟨−X → +X⟩) 5)) (ΛY. (λx:Y. x)))
+R  ((λx:(∀X. X→X). ((ν X:=ℕ. (x X) ⟨−X → +X⟩) 5)) (λx:★. x)⟨gen Y. (Y! → Y?ℓ0)⟩^[])
+   ·⊑·, ƛ⊑ƛ, ν⊑ν; ⊑cast, Λ⊑ (Y left-only) for the argument
+                                         L: Beta             R: Beta
+                                         L: TyBeta (α:=ℕ)    R: TyBeta (α:=ℕ)
+L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
+R  (([+X^α] ([−X^α] (λx:★. x) ⟨id(★) → id(★)⟩)⟨X! → X?ℓ0⟩^[X:★∼X] ⟨−X → +X⟩) 5)
+   ·⊑·, ⟪⟫⊑⟪⟫ with X both-sided at X⊑★, ⊑cast, ⊑⟪⟫: the right unbinds X,
+   so X is left-only inside, λx:X.x ⊑ λx:★.x at X→X ⊑ ★→★
+                                         L: Wrap             R: Wrap, CastFun
+L  ([+X^α] ((λx:X. x) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩)
+R  ([+X^α] (([−X^α] (λx:★. x) ⟨id(★) → id(★)⟩) ([−X^α] 5 ⟨−X⟩)⟨X!⟩^[X:X∼★])⟨X?ℓ0⟩^[X:★∼X] ⟨+X⟩)
+   ⟪⟫⊑⟪⟫, ⊑cast (X?: X ⊑ ★ to X ⊑ X), ·⊑·, ⊑⟪⟫ for the function,
+   ⊑cast for the argument: [−X^α] 5 ⟨−X⟩ ⊑ ([−X^α] 5 ⟨−X⟩)⟨X!⟩ at X ⊑ ★
+                                         L: Beta             R: Wrap, Beta
+L  ([+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩)
+R  ([+X^α] ([−X^α] ([+X^α] ([−X^α] 5 ⟨−X⟩)⟨X!⟩^[X:X∼★] ⟨id(★)⟩) ⟨id(★)⟩)⟨X?ℓ0⟩^[X:★∼X] ⟨+X⟩)
+   ⟪⟫⊑⟪⟫, ⊑cast, ⊑⟪⟫ (the right unbinds X: X left-only),
+   ⊑⟪⟫ (the right rebinds the rep. var αᴿ, which ϱ pairs with αᴸ: X is
+   both-sided again), ⊑cast (X!), ⟪⟫⊑⟪⟫
+                                         L: —                R: Merge, IdDyn, Merge, TagUntag
+L  ([+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩)
+R  ([+X^α] ([−X^α, +X^α, −X^α] 5 ⟨−X⟩) ⟨+X⟩)
+   ⟪⟫⊑⟪⟫, ⟪⟫⊑⟪⟫ with δ = (−X), δ′ = (−X, +X, −X): the net effect on
+   names is the same on both sides
+                                         L: Merge, Id        R: Merge, Id
+L  5
+R  5
+```
+
+This pair needs two things that P1–P3 do not.  First, a both-sided
+name at `X⊑★`: inside the `[+X^α]` pair, the left's `λx:X.x` faces the
+right's `λx:★.x`, which `gen` has not yet cast to `X → X`.  Second, `ϱ`
+must survive a right-only unbind: the right's `[−X^α, +X^α]` hides `X`
+and rebinds the same rep. var, and only `ϱ` says that the rebound name is
+the left's `X` again.
+
+### P5 — the left side blames on an escaped tag; the right side succeeds
+
+```
+L  ((λx:ℕ. x) ((ν X:=ℕ. ((ΛY. (λx:Y. ((λy:★. y) x⟨Y!⟩^[Y:★∼X∼★]))) X) ⟨−X → id(★)⟩) 5)⟨ℕ?ℓ0⟩^[])
+R  ((λx:ℕ. x) ((λx:★. ((λy:★. y) x)) 5⟨ℕ!⟩^[])⟨ℕ?ℓ0⟩^[])
+   ·⊑·, cast⊑cast, ·⊑·, ν⊑, Λ⊑ (Y left-only); cast⊑ for x⟨Y!⟩ ⊑ x
+                                         L: TyBeta, Wrap     R: —
+                                         L: Beta             R: Beta
+                                         L: Beta             R: Beta
+L  ((λx:ℕ. x) ([+X^α] ([−X^α] 5 ⟨−X⟩)⟨X!⟩^[X:★∼X∼★] ⟨id(★)⟩)⟨ℕ?ℓ0⟩^[])
+R  ((λx:ℕ. x) 5⟨ℕ!⟩^[]⟨ℕ?ℓ0⟩^[])
+   ·⊑·, cast⊑cast, ⟪⟫⊑ (X left-only), cast⊑ (the left's X!),
+   ⟪⟫⊑ (the left unbinds X), ⊑cast: 5 ⊑ 5⟨ℕ!⟩
+                                         L: TagUntagBad-⟪⟫   R: TagUntag
+L  ((λx:ℕ. x) blame ℓ0)
+R  ((λx:ℕ. x) 5)
+   ·⊑·, blame⊑
+```
+
+The fresh-tag value `[+X^α] (… ⟨X!⟩) ⟨id(★)⟩` is related to the
+`ℕ`-tagged `5`.  This is sound because `X` is left-only, so its mark
+is `X⊑★`: the right side sees `★` wherever the left sees `X`, and no
+check on the right can be paired with a check of `X` on the left.
+
+### P6 — a `∀`-cast on the right, and conversions of different shape
+
+```
+L  ((λx:(∀X. X→ℕ). ((ν X:=𝔹. (x X) ⟨−X → id(ℕ)⟩) true)) (ΛY. (λx:Y. 7)))
+R  ((λx:(∀X. X→★). ((ν X:=𝔹. (x X) ⟨−X → id(★)⟩) true)) (ΛY. (λx:Y. 7))⟨∀Z. (id(Z) → ℕ!)⟩^[])
+   ·⊑·, ƛ⊑ƛ, ν⊑ν; ⊑cast, Λ⊑Λ
+                                         L: Beta             R: Beta
+                                         L: TyBeta (α:=𝔹)    R: TyBeta (α:=𝔹)
+L  (([+X^α] (λx:X. 7) ⟨−X → id(ℕ)⟩) true)
+R  (([+X^α] (λx:X. 7)⟨id(X) → ℕ!⟩^[X:X∼X] ⟨−X → id(★)⟩) true)
+   ·⊑·, ⟪⟫⊑⟪⟫ (the conversions differ: −X → id(ℕ) and −X → id(★)), ⊑cast
+                                         L: Wrap             R: Wrap
+                                         L: Beta             R: CastFun, CastId, Beta
+L  ([+X^α] 7 ⟨id(ℕ)⟩)
+R  ([+X^α] 7⟨ℕ!⟩^[X:X∼X] ⟨id(★)⟩)
+   ⟪⟫⊑⟪⟫, ⊑cast
+                                         L: Id               R: IdDyn, Id
+L  7
+R  7⟨ℕ!⟩^[]
+```
+
+`inst_X` reaches through the right's `∀`-cast, so both `TyBeta`s
+allocate one rep. var each and the boundaries stay aligned.
+
+------------------------------------------------------------------------
+
+## C8. Counterexamples and open defects
+
+The counterexamples C1–C5 that motivated D28 are presented
+from their source programs in
+`agda/proof/DGG/notes/ConditionPlacement.md` §3.
+
+### C8.1 Open: left values built by `gen` (TwoGen)
+
+Status (2026-10-06): a known defect of §10 and a proposed fix, checked
+in `proof/DGG/notes/TwoGen.agda` (`.md`); the fix is not adopted.  Each
+example below has RELATED source programs and related initial cast
+terms, its left is a value, and the right's final value is related to
+it by no derivation of §10 in any top-level world.  So each is a
+counterexample to DGG part 1 (`*.not-dgg : ¬ DGG`).
+
+**G0: one `gen` layer.**  Sources (related: the same term, and
+`∀X.X→ℕ ⊑ ★→ℕ`):
+
+```
+L   (λx:★. 5 : ∀X. X→ℕ)
+R   ((λx:★. 5 : ∀X. X→ℕ) : ★→ℕ)
+```
+
+Cast terms (related at the empty world, `G0.init`):
+
+```
+L₀  (λx:★. 5)⟨gen X. (X! → id(ℕ))⟩
+R₀  (λx:★. 5)⟨gen X. (X! → id(ℕ))⟩⟨inst Y. (Y?ℓ0 → id(ℕ))⟩
+```
+
+The left is a value.  The right runs:
+
+```
+  R₀
+⟶ (Inst)
+  (ν X:=★. ((λx:★. 5)⟨gen Y. (Y! → id(ℕ))⟩ X) ⟨−X → id(ℕ)⟩)⟨id(★) → id(ℕ)⟩
+⟶ (TyBeta, ⊣ α:=★)
+  ([+X^α] ([−X^α] (λx:★. 5) ⟨id(★) → id(ℕ)⟩)⟨X! → id(ℕ)⟩^[X:★∼X] ⟨−X → id(ℕ)⟩)⟨id(★) → id(ℕ)⟩
+```
+
+Every attempt at the final pair stops (`G0.g0-unrelated`):
+
+```
+⊑cast  ⟨id(★) → id(ℕ)⟩, grants nothing          ∀X.X→ℕ ⊑ ★→ℕ
+  ⊑⟪⟫  +X^α, push X                            X→ℕ ⊑ X→ℕ   (X is X⊑X)
+    cast⊑ (pop at the left's gen):  premise at the gen's source,  ★→ℕ ⊑ X→ℕ   ✗
+    ⊑cast ⟨X! → id(ℕ)⟩:  premise needs X ⊑ ★, and X! → id(ℕ) grants nothing  ✗
+    cast⊑cast:  needs no pending name  ✗
+```
+
+The cause (O1): a pop at a left `gen` relates the value under the gen
+at the gen's SOURCE type, so the right's cast over the instantiated
+gen body (`⟨X! → id(ℕ)⟩`) must first be peeled by `⊑cast` at
+`X ⊑ ★`, and under D28 that needs a grant, i.e. a covariant check of
+`X`.  G1's body `X! → X?` checks `X`; G0's `X! → id(ℕ)` does not,
+although no `X`-tagged value can flow out of it (`X` occurs only
+contravariantly).
+
+**G2: two `gen` layers, two right casts.**  Sources (related):
+
+```
+L   (λx:★. λy:★. x : ∀X. ∀Y. X→Y→X)
+R   (((λx:★. λy:★. x : ∀X. ∀Y. X→Y→X) : ∀Y. ★→Y→★) : ★→★→★)
+```
+
+The right instantiates twice.  The second `Inst` goes through the first
+boundary and its gen layer, so its boundary `+Y^β` is born OUTSIDE
+`+X^α`, and the `∀`-cast between them blocks the `Merge`.  The right's
+final value:
+
+```
+([+Y^β] ([+X^α] ([−Y^β, −X^α] (λx:★. (λy:★. x)) ⟨id(★) → (id(★) → id(★))⟩)⟨X! → (Y! → X?ℓ0)⟩^[X:★∼X, Y:★∼X] ⟨−X → (id(Y) → +X)⟩)⟨id(★) → (id(Y) → id(★))⟩^[Y:X∼X] ⟨id(★) → (−Y → id(★))⟩)⟨id(★) → (id(★) → id(★))⟩^[]
+```
+
+Inside `+Y^β` the only right name is `Y`, with interior type
+`★ → Y → ★`.  The left's `∀X.∀Y.X→Y→X` must open its INNER `∀` at `Y`
+while its outer `∀` waits; pending names open the outer one first
+(O2, `G2.g2-unrelated`).  This is H1's problem (D29) for `gen`
+binders, and `claim-rep` cannot help: a `gen` binder scopes over no
+left term, so the left context cannot grow above the right boundaries.
+
+The other five pairs combine these: two gen layers with one right cast
+and a `Merge` (G2m, O1: one pop per gen); a gen under a `∀` over a `Λ`
+(HRm, HR); nested gen casts (N2, merged and with two casts).
+
+**Proposed fix** (a local variant `V2` of §10; three changes):
+
+1. **Pop against a right cast.**  `cast⊑cast` may run with pending
+   names and carry a claim on its LEFT coercion, so a left gen layer
+   pops its name against the right's cast without a grant:
+
+   ```
+     W, πₚ ∣ γ ⊢ M ⊑ M′ : B ⊑ B′    c claims π ↦ πₚ    c : B ⇒ A    c′ : B′ ⇒ A′
+     ──────────────────────────────────────────────────────────── (cast⊑cast, (i))
+     W, π ∣ γ ⊢ M ⟨c⟩ ⊑ M′ ⟨c′⟩ : A ⊑ A′
+   ```
+
+   This is the shape the left's own instantiation produces: `inst-gen`
+   turns `V⟨gen X.p⟩` into `([−X^α] V⟨…⟩)⟨p⟩`, the right's term.
+2. **One pop per gen layer.**  The claim continues below a pop:
+   `gen X. gen Y. p` pops `X` then `Y`; `gen X. ∀Y. p` pops `X` and
+   passes `Y` on.
+3. **Skip a waiting `∀`, for gen-cast values only.**  The index may
+   skip a leading left `∀`, which stays left-only at `X⊑★` (as type
+   imprecision's `∀⊑`), before opening the next `∀` at a pending name;
+   and `⊑⟪⟫` may push new names before carried ones.  This is the gen
+   analogue of `claim-rep`: the waiting binder lives in the index,
+   because there is no left term to claim it.
+
+G2 under the fix (`Pos2.g2-final`):
+
+```
+⊑cast  ⟨id(★) → (id(★) → id(★))⟩                         ∀X.∀Y.X→Y→X ⊑ ★→★→★
+  ⊑⟪⟫  +Y^β, push Y;  index: SKIP X (left-only), open Y at Y   X′→Y→X′ ⊑ ★→Y→★
+    ⊑cast  ⟨id(★) → (id(Y) → id(★))⟩
+      ⊑⟪⟫  +X^α, push X BEFORE the carried Y;  pending [X, Y]  X→Y→X ⊑ X→Y→X
+        cast⊑cast  ⟨gen X. gen Y. …⟩ ∥ ⟨X! → (Y! → X?ℓ0)⟩: pop X, pop Y
+          ⊑⟪⟫  −Y^β, −X^α                                    ★→★→★ ⊑ ★→★→★
+            ƛ⊑ƛ, ƛ⊑ƛ, x⊑x
+```
+
+G0 under the fix: push `X`, then `cast⊑cast` pops `X` against
+`⟨X! → id(ℕ)⟩`, then the right's `−X^α`.
+
+**Checks** (mechanized in TwoGen): changes 1–2 alone relate G0, G2m,
+HRm and N2-merged; all three relate all seven final pairs and G2's
+intermediate states, and DGG part 1 holds on each.  §10's relation is
+contained in the variant, so the corpus derives; C1–C5 and C4g stay
+not derivable (their left terms contain no gen or `∀` casts, and a
+variant derivation of such a term maps back to a §10 derivation).
+
+**Open.**  Sim and SimBack against the new cases are not checked (a
+left `TyBeta` catching up with a `cast⊑cast` pop, instantiating at a
+skipped `∀`, a new-first push), nor whether changes 1 or 3 relate some
+gen-valued pair that should not be.  An alternative for O1 alone:
+count a name that never flows out as checked ("vacuous" grants);
+G2m would still need change 2.  The principled form of change 3 is
+pending rep. vars whose unnamed entries open left-only
+(PushOrder.md, fix (c3)); the skip is its index-only shadow.
+
+### C8.2 What the examples say about the sketch
+
+- **The world never rebases.**  In all six pairs, `Ω`, `η`, `η′` and
+  `μ` change only at a binder or a boundary entry, for the subterm
+  under it.  `ϱ` gains a pair at a matched `TyBeta` (P1, P4, P6) and
+  at the left's catch-up `TyBeta` in P3.
+- **Rules used.**  Every rule of §10 is used except `⊕⊑⊕` (no
+  example has an operator).  P2 and P5 need the left-only boundary
+  rule `⟪⟫⊑`.  P4 needs
+  the right-only rule `⊑⟪⟫`, with both an unbind and a rebind.  P3
+  needs `∀⊑⟪+⟫` (at a `Λ`).
+- **Not exercised.**  A gen cast on both sides; a gen cast on the left
+  only (its `[−X^α]` is then a left-only unbind of a both-sided name);
+  `bot-elim`/`bot-intro`; an escaped tag that comes back into scope
+  (Example 5) on one side only; two-allocation runs (D8).
+- **Open questions** (to be settled one at a time):
+  1. *Settled (D11).*  A both-sided name gets the mark `X⊑★` at its
+     binder (`W ⊕ X:m`, `W[δ ∥ δ′]`), not by GTSFImp's `ImpEnvMono`
+     decay at the cast rules.
+  2. *Settled (D12).*  `ϱ` stays in the world as a global relation on
+     rep. vars; the relation on names stays lexical.  P4's rebind reads `ϱ`.
+  3. Whether `W[δ ∥ δ′]` should be restricted (for example, forbid a
+     left-only unbind of a both-sided name), or whether such
+     restrictions should come from the DGG proof.
+
+     *Finding (probe `notes/LeftOnlyUnbindProbe.agda`; corrected).*
+     The probe's left coercion
+     `gen X. inst Y. ((X! ; Y?ℓ) → (Y! ; X?ℓ))` is a well-typed GTNF
+     coercion, and a §10 world relates its run to the direct cast's
+     only at the start.  But compilation never produces it.  It is not
+     the image `⟦c⟧ℓ` of any consistency evidence: inside it,
+     `X ∼ Y` would be needed for two distinct names, and consistency
+     is not transitive (`_!` and `？_` only give `A ∼ ★` and
+     `★ ∼ B`).  This agrees with the specification "two types are
+     consistent if and only if they have a common lower bound"
+     (Jeremy, 2026-10-01).  `∀X.X→X`'s only lower bound is itself,
+     so `∀Y.Y→★` (which `∀X.X→X ⋢ ∀Y.Y→★` excludes) is not
+     consistent with it.  GTSFImp's `lower?` agrees, checked by
+     `refl`: it finds a lower bound for `∀Y.Y→Y ∼ ∀X.X→X` and none for
+     `∀Y.Y→★ ∼ ∀X.X→X`.  Closed types have only `CrossFree` evidence,
+     so `∼→∼ᵘ` (`proof/Consistency2.agda`) rules out declarative
+     evidence for the latter as well.  So the probe's pair is outside
+     the image of compilation.
+
+     *`gen` does not produce it (argument, and a search).*  At a shared
+     `X` (`∀X.B ⊑ ∀X.B′` by `∀⊑∀`), if the more precise evidence
+     `c : A ∼ ∀X.B` handles `X`'s binder by `gen`, then so does the
+     less precise `c′ : A′ ∼ ∀X.B′` (with `A ⊑ A′`).  Each alternative
+     for `c′` fails:
+
+     - `∀ᶜ` identifies a binder of `A′` with `X`.  Then on the left the
+       corresponding binder of `A` faces `X`, a distinct name, and
+       consistency cannot relate two distinct names.
+     - `inst` leaves `X` in the target, so the same argument applies
+       one level down.
+     - If `A′ = ★`, then `c′ = ？(∀★) ; c″`.  `c″` cannot be `∀ᶜ`,
+       because a strict `X` would face a `★` leaf.  It cannot be
+       `inst` either, because `X ∉ ★`.  So `c″` is `gen`.
+     - `bot-elim` needs `B′ = ★`, which does not contain `X`.
+
+     `notes/detour/left_only_unbind.py`, on the Python model of
+     GTSFImp's consistency and imprecision in `notes/detour/model.py`
+     (validated against Agda in `notes/detour/REPORT.md`), searches
+     every piece of declarative evidence on both sides.  It found no
+     counterexample for types of size up to 6: closed (28,697 related
+     pairs with a left `gen`) and with one free cross-mode name
+     (35,649).  A control in which `X` is left-only (`∀⊑`) gives 343
+     hits, so the search can fire.
+
+     *But another producer exists (cambridge26 check, finding F4).*
+     `Merge` can fuse two boundaries on one side only, when the other
+     side has a cast between its two boundaries.  `Wrap`'s dual of the
+     fused boundary then unbinds both names on that side alone.  In
+     C23a the left fuses `[+Y^β][+X^α]`, and its `Wrap` dual
+     `[−X^α, −Y^β]` faces the right's `[−X^α]`:
+
+     ```
+     L  (([+Y^β, +X^α] (λx:Y. ([−X^α, −Y^β] 42 ⟨−X⟩)) ⟨−Y → +X⟩) 69)
+     R  (([+Y^β] ([+X^α] (λx:Y. ([−X^α] 42⟨ℕ!⟩^[Y:X∼X] ⟨−X⟩)) ⟨id(Y) → +X⟩)⟨id(Y) → id(★)⟩^[Y:X∼X] ⟨−Y → id(★)⟩) 69)
+     ```
+
+     The shared `Y` is then right-only inside, and nothing there
+     mentions it, so the block is derivable.  So this row of the table
+     does occur.  Restricting `W[δ ∥ δ′]` against it would make C23a
+     underivable, so `W[δ ∥ δ′]` stays unrestricted.
+
+### C8.3 The cambridge26 pairs against §10
+
+`notes/cambridge-imprecision-check.md` checks the 22 pairs of
+`CambridgeExamples.agda` block by block, in the format of §C7.  19
+are derivable as written.  C12, C13 and C14 are not, with any
+synchronization (F3).  Findings, smallest first:
+
+- **F1 (settled, D14).**  `Λ⊑⟪+⟫` fixes the new name's mark at `X⊑X`.  It should
+  read `W ⊕ X:m` with the mark chosen at the binder (D11).  Cg's
+  right-led block needs `X⊑★`.
+- **F2 (settled, D14).**  `Λ⊑⟪+⟫` covers only a left `Λ`.  The block is forced by
+  the simulation shapes of §C10.4.  Take `L = Example 2` and
+  `R = (λx:★→★. x 5⟨ℕ!⟩)(I★⟨gen⟩⟨inst⟩)`.  In the forward direction,
+  the left's step `Beta` makes the right catch up through `Inst`,
+  `TyBeta` and `Beta`.  The right cannot `Beta` earlier, because its
+  argument's `inst` cast is not inert.  In the backward direction, the
+  right's first step `Inst` needs either a `⊑ν` rule or a further
+  `TyBeta`, which leads to the same block.  A left `gen`-cast
+  ∀-value facing the right's `[+X^β] V′ ⟨c′⟩` needs the same rule,
+  so it should be stated for every ∀-value through `inst_X` at the
+  left's abstract rep. var (C2's right-led block):
+
+  ```
+    W ⊕ X:m ∣ [] ⊢ inst_X(V) ⊑ V′ : A ⊑ A′    V a ∀-value    β:=★    c′ : A′ ⇒ B′
+    ────────────────────────────────────────────────────────────────── (∀⊑⟪+⟫)
+    W ∣ γ ⊢ V ⊑ [+X^β] V′ ⟨c′⟩ : ∀X.A ⊑ B′
+  ```
+
+- **F3 (settled, D13).**  `ϱ` cannot be a partial bijection.  In C12
+  (`I⟨inst⟩⟨gen⟩` on the right), the left's one rep. var `α:=ℕ` must be
+  paired with two right rep. vars: the right's `β:=ℕ`, from the
+  instantiation that both sides make, and the right's `α:=★`, from
+  `Inst`.  The block is
+
+  ```
+  L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
+  R  (([+Y^β] ([−Y^β] ([+X^α] (λx:X. x) ⟨−X → +X⟩)⟨id(★) → id(★)⟩^[] ⟨id(★) → id(★)⟩)⟨Y! → Y?ℓ0⟩^[Y:★∼X] ⟨−Y → +Y⟩) 5)
+  ```
+
+  The outer pair needs `(αᴸ, βᴿ)`.  The inner right-only `[+X^αᴿ]`
+  must rejoin the same center name, which needs `(αᴸ, αᴿ)`.  Under
+  the proposed fix, each right rep. var has at most one left partner, and
+  a left rep. var may have several.  With it, C12–C14 go through.
+
+  *The mirror needs nothing (checked on the existing runs).*  Put
+  `I⟨inst⟩⟨gen⟩` on the left, that is, C12's right program, against
+  three less precise partners:
+
+  - **M1:** `Cf-R` (`I★⟨gen⟩`).  The outer boundaries pair
+    `(βᴸ:=ℕ, αᴿ:=ℕ)`, and the two `gen` unbinds match.  The left's
+    `Inst` boundary `[+X^αᴸ]` (`αᴸ:=★`) is left-only, its name has
+    mark `X⊑★`, and then `λx:X.x ⊑ λx:★.x` holds.
+  - **M4:** Example 1 (`I⟨inst⟩`, with no `gen` and no `[ℕ]`), against
+    the application form `(λf:∀X.X→X. f[ℕ] 5)(I⟨inst⟩⟨gen⟩)` on the
+    left.  The two `Inst`/`TyBeta` pairs match, giving `(αᴸ, αᴿ)`.
+    The left's `[ℕ]` is a left-only `ν`, and its `[+Y^β]` and `gen`
+    unbind `[−Y^β]` are left-only too.  (`C12-R` itself is the bare
+    redex `at-ℕ-5 (I⟨inst⟩⟨gen⟩)`.  Paired directly with Example 1 it
+    is not related at the start, because the function parts have
+    unrelated types.  The re-check, `notes/cambridge-imprecision-check-v2.md`,
+    confirms that the post-`Beta` suffix is derivable with `ϱ`
+    one-to-one.)
+  - **M2:** `Cg-R` (`I★⟨gen⟩⟨inst⟩`).  The right's `Inst` rep. var
+    `α:=★` pairs with the left's `[ℕ]` rep. var (`ℕ ⊑ ★`), the two `gen`
+    unbinds match, and the left's `Inst` boundary is left-only.
+
+  In all three, `ϱ` stays one-to-one.  The asymmetry comes from type
+  imprecision, which has no rule with a bare variable on the less
+  precise side (the same remark is in GTSFImp's
+  `proof/DGG/CastTermImprecision.agda`).  So an extra left name can
+  stay left-only, with the right seeing `★` (`X⊑★`).  An extra right
+  name cannot stay right-only, because no left type is more precise
+  than it, so it must rejoin a left name.  That rejoin is what forces
+  C12's second pair.  So the fix is needed in one direction only: a
+  right rep. var has at most one left partner, and a left rep. var may have
+  several.
+- **F4.**  A one-sided `Merge` also produces a left-only unbind of a
+  shared name (§C8.2, question 3).
+- **D1 (settled, D15).**  `W[δ ∥ δ′]` must say which intermediate worlds of a
+  multi-entry `δ` have to be well formed, and that a name keeps its
+  mark when it goes one-sided and later rejoins.
+- **D2 (settled, D16).**  `∀⊑⟪+⟫`'s pair involves the left value's abstract rep. var,
+  which is not in `rv(Δ)`.  `ϱ`'s type has to allow it.
+
+**Re-check under D13–D16** (`notes/cambridge-imprecision-check-v2.md`).
+All 22 pairs support both simulations of §C10.4, forward and backward.
+C12, C13 and C14 now go through: one left rep. var has two, two and
+three right partners, as D13 permits.  Cg's and C2's right-led blocks
+go through with `∀⊑⟪+⟫` (D14).  C2's multi-entry boundary goes
+through under D15.  The `Λ`-bound pairs are in `ϱˡ` (D16).  C23a
+confirms that `W[δ ∥ δ′]` must stay unrestricted.  The mirror pairs
+M1 and M2 keep `ϱ` one-to-one, and so does M4's post-`Beta` suffix.
+
+------------------------------------------------------------------------
+
+## C9. Sketches and proposals
+
+### C9.1 Sketch: allocation hands the `ν` invariants to the world
+
+Status: sketch (2026-10-06; Jeremy), not adopted, not checked.  The
+problem it addresses: the relation is tight enough on related source
+programs, but it drops invariants as the terms reduce, so states that
+no related start reaches become related (C1–C5,
+`agda/proof/DGG/notes/ConditionPlacement.md` §3).
+
+**What a `ν` pair knows, and what `TyBeta` drops.**  Matched `ν`s are
+the one place where both sides' ∀ types, payloads and conversions meet:
+
+```
+  W ∣ γ ⊢ L ⊑ L′ : ∀X.C ⊑ ∀X.C′    A ⊑_W A′    c ⊑ c′
+  ──────────────────────────────────────────────────── (ν⊑ν)
+  W ∣ γ ⊢ ν X:=A.(L X)⟨c⟩ ⊑ ν X:=A′.(L′ X)⟨c′⟩
+```
+
+After the two `TyBeta`s the `ν`s are gone:
+
+```
+ν X:=A.(L X)⟨c⟩  ⟶ (TyBeta, ⊣ α:=A)  [+X^α] inst_X(L) ⟨c⟩
+```
+
+| what `ν⊑ν` checked | after `TyBeta` |
+|---|---|
+| payloads `A ⊑ A′` | in the stores; paired rep. vars agree (D23) |
+| conversions `c ⊑ c′` | kept by the boundaries; re-checked by `⟪⟫⊑⟪⟫` only |
+| the ∀ types, `C ⊑ C′` with `X` matched at `X⊑X` (`∀⊑∀`) | **dropped** |
+
+C1's sources are `((ΛX. λx:X. x) : ★→★) 5 : ℕ` against
+`((ΛX. λx:X. (x : ★)) : ★→★) 5 : ℕ`.  No `ν` pair relates them, because
+`∀X.X→X ⊑ ∀X.X→★` fails.  After both sides' `Inst` and `TyBeta` the
+boundaries are
+
+```
+[+X^α] (λx:X. x) ⟨−X → +X⟩      against      [+X^α] (λx:X. x⟨X!⟩) ⟨−X → id(★)⟩
+```
+
+and `⟪⟫⊑⟪⟫` never asks whether `X→X` and `X→★`, read as functions of
+the bound `X`, are related with `X` matched.  That is the dropped
+invariant.
+
+**The proposal: each rep. var pair carries an interface.**  A pair
+`(αᴸ, αᴿ)` in `ϱ` records the bodies `(C, C′)` of the two ∀ types whose
+instantiation allocated it, as representation types (names resolved
+to rep. vars, so the record survives renaming, `Merge` and `exitEnv`;
+compared as in D23).
+
+- **Created at allocation.**  A matched pair of `TyBeta`s (Evolve's
+  `ev-2`) creates the pair from the `ν⊑ν` derivation:
+  interface `(C, C′)`.  A right `Inst` against a left ∀-value (the
+  push and pop of D27, or `claim-rep` of D29) creates the pair from the
+  index of the pair before `Inst`.  A left-only `ν⊑` creates a left-only
+  rep. var; its interface is `C` against the right type it faced
+  (`∀⊑`, `X⊑★`).
+- **Well-formedness.**  For every pair, `C ⊑ C′` holds with the bound
+  variable at `X⊑X`, i.e. the `∀⊑∀` that the `ν`s needed.
+- **Read at every binding rule.**  A boundary rule that binds a name
+  `X` to a paired rep. var, matched (`⟪⟫⊑⟪⟫`) or one-sided (`⟪⟫⊑`,
+  `⊑⟪⟫` including a push), and the joins of a pop or a `claim-rep`,
+  require the boundary's interior type, abstracted over `X`, to be the
+  side's recorded interface body.  No cast rule reads or changes it
+  (the world changes only at binders).
+
+**On the examples.**
+
+- **C1.**  A world that pairs the two `α`s must record `(X→X, X→★)`,
+  and `X→X ⊑ X→★` with `X` matched is not derivable.  So no
+  well-formed world relates C1's states: the dropped invariant is back.
+- **C2–C5** (sources in ConditionPlacement §3): their ∀ types are
+  `∀Y.Y→Y` against `∀Y.Y→★` or `∀Y.★→Y`, so their interfaces fail the
+  same way; C4's is the push type premise (`PushTypePremise.md`) as one
+  case of this rule.
+- **K.**  The right's `Inst` of `VL` against the left's `VL`: the pair
+  before `Inst` relates them by `Λ⊑Λ`, interface `(Y→Y, Y→Y)`.
+- **P4.**  The matched `ν`s relate `x ⊑ x` at `∀X.X→X ⊑ ∀X.X→X`, so
+  the interface is `(X→X, X→X)`: it holds.  P4 also needs `X⊑★` inside
+  the right's `gen` wrapper; that is a question about marks, below.
+- **G0** (§C8.1).  The right instantiates the left's own gen-value:
+  interface `(X→ℕ, X→ℕ)`, which holds.
+
+**Marks.**  If the interface is what C1–C5 violate, the marks may not
+need to carry that burden.  Hypothesis (unchecked): with interfaces
+recorded and checked at every binding rule, a shared name may again
+take `X⊑★` inside (D11's choice, or a status recorded with the pair at
+allocation, e.g. "the left binder faced a right `gen`", as in P4), and
+D28's permissions and R1/R2 may become unnecessary.  The reason to
+expect it: an `X`-tagged right value causes a blame only when a check
+other than `X?` meets it, inside or at the boundary
+(`TagUntagBad-⟪⟫`); a mismatch at the boundary is ruled out by the
+interface (checked at `X⊑X`), and one inside would put a non-`X` check
+on the right where the left has an `X`-typed term, which the types
+forbid without a matching left cast.
+
+**Open.**
+- Whether the hypothesis holds, against C1–C5, C4g, the TwoGen pairs,
+  P4 and the corpus.
+- The exact statement of "the interior type, abstracted over `X`" for
+  a multi-entry boundary and after a `Merge`.
+- The audit (below) may find more dropped invariants.
+
+**Audit result (2026-10-06, `agda/proof/DGG/notes/ReductionAudit.md`).**
+Correction to the table above: under D28 the matched `TyBeta` does not
+drop the `∀⊑∀` fact, since the derived `X⊑X` re-checks it; it is lost
+only under a later grant, after `Wrap`, or after `Merge`.  Recorded
+interfaces turn out to be neither needed nor checkable (after `Wrap` or
+`Merge` a boundary's interior type is only part of the ∀ body, and
+C5's late states fit a trivial interface, `iface-fake`), so the
+hypothesis about R1/R2 is refuted.  The audit found two `¬ Sim`
+counterexamples from related sources (P4k, P4h) and proposes D28′:
+permissions chosen at the binding rule that joins a name, with an
+`X⊑X` check of its interior types there, no grants at casts, and R1
+refined to unbinds whose rep. var occurs in the exterior type.
+
+**Audit (done; was queued).**  For each reduction rule that changes binders or
+casts (`TyBeta`, `Inst`, `Wrap`, `Merge`, `IdDyn`, `IdDyn-var`,
+`CastFun`, the `inst_X` cases, `TagUntag`, `exitEnv`): the premises
+that relate its redex, what the rules for the contractum check, and
+what is dropped in between, each on a concrete pair from related source
+programs.  Every dropped invariant becomes world data created at the
+step and read at a binding rule.
+
+### C9.2 🆕 D28′: permissions chosen at joining binders
+
+The changed rules are marked 🆕 **D28′** in §9 and §10 (§10.2, §10.5);
+the decision entry is D28′ in §C12.
+
+The check reads the interior index before the new permissions, so a
+joined name is `X⊑X` there; inside, it may be `X⊑★`.  It must be at
+the rule that JOINS a name, not one that only introduces it:
+otherwise C1's right-first route revives (a right-only `+X` would pay
+a vacuous `★ ⊑ ★`, and the left's later rejoin would get the loose
+mark for free).  A name the boundary only continues, or rejoins inside
+a region where it is already permitted, pays nothing (P4 B4's `J`).
+R1′ admits P4h's crossΛ hide `[−X^α] (λy:ℕ.y) ⟨id(ℕ) → id(ℕ)⟩`, whose
+exterior `ℕ→ℕ` does not mention `α`, and still rejects C5's seal
+`[−X^α] 5 ⟨−X⟩`, whose exterior is `X`.
+
+### C9.3 🆕 D30: openings in the index
+
+Status: proposed 2026-10-08; not adopted, not checked.  Everything in
+this subsection is new.
+
+**Why.**  A pending name (D27) says how to read a type: "the left
+type's next outer `∀` binds the right's name `Y`".  It never changed a
+term's context (`CtxImp` never read `πʷ`), and two of the three
+binders that consume it, a `gen X.p` and a `∀X.p` coercion, have no
+term in their scope.  So it belongs to the index of the judgment, not
+to the world.  With it there, the world changes only at term binders
+(`Λ`, boundary entries, `ν`).
+
+The changed definitions (the index and the rules `⊑⟪⟫`, `Λ⊑` and
+`cast⊑`) are in §10.8.
+
+**Example: K's final pair** (§C6.6's ladder), read with D30:
+
+```
+⊑cast                       index ∀X.X→X ⊑ ★→★                 (O = [])
+  ⊑⟪⟫  [+Y^β, +X^α], open at Y   index ∀X.X→X ⊑^[Y] Y→Y  = Y→Y ⊑ Y→Y
+    ⟪⟫⊑  [+X^α] … ⟨∀Y. …⟩, pass   index ∀Y.Y→Y ⊑^[Y] Y→Y
+      Λ⊑  join ΛY to Y             world: Y joined;  index Y→Y ⊑ Y→Y  (O = [])
+        ƛ⊑ƛ, x⊑x
+```
+
+The only world change is at `ΛY`, a term binder; the opening lives in
+the index from `⊑⟪⟫` down to `Λ⊑`.
+
+**What goes.**  `πʷ`; `PendingOK` and `wf-pending`, `wf-distinct` in
+`WfWorld`; the `πʷ W ≡ []` hypotheses of the theorem statements and of
+`RelatedValues`; `CastClaim` (three cases) and the special forms of
+`cast⊑`; the record updates `record W { πʷ = … }`.  What stays:
+`Push`/`Carried` as the side condition of `⊑⟪⟫`, `ForallConv` for
+`⟪⟫⊑`, and the join (`Open1`) at `Λ⊑`.
+
+**Open.**
+- H1's order problem (D29) and TwoGen's O2 are about the order of
+  openings and are unchanged; TwoGen's index skip (change 3 of §C8.1)
+  is an index operation and would fit here.
+- Interaction with D28′ (permissions at joining binders): the join of
+  an opening happens at `Λ⊑`, a term binder, so D28′'s "the join pays"
+  check would sit there.
+- Whether every lemma that today reads `πʷ` (PushInstR, PendingMor, …)
+  becomes simpler or only moves.
+
+------------------------------------------------------------------------
+
+## C10. Metatheory discussion
+
+### C10.1 Type imprecision is not consistency
 
 GTNF's types are GTSFImp's, so the type-level imprecision is ported
-unchanged (`GTNF/agda/Imprecision.agda`, §12.1).  The imprecision environment `ImpEnv` is a different lattice
+unchanged (`GTNF/agda/Imprecision.agda`, §8).  The imprecision environment `ImpEnv` is a different lattice
 from the consistency modes `Env∼` of §3.  The two must not be conflated:
 imprecision relates two programs, and consistency types the casts
 within one program.
 
-### 9.5 Static gradual guarantee
-
-```
-sgg :  if  Δ ∣ Γ ⊢ M : A  and  M ⊑ M′  (with  Γ ⊑ Γ′),
-       then  Δ ∣ Γ′ ⊢ M′ : A′  for some  A′  with  A ⊑ A′
-```
+### C10.2 Static gradual guarantee
 
 GTSFImp's term imprecision `μ ∣ γ ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p`
 (`GradualTermImprecision.agda`) is typed and carries both typings
@@ -1024,23 +2600,13 @@ and to derive the typed relation from it.  Since the source language is
 GTSFImp's, `sgg` is really a theorem about GTSFImp's source; it could be
 proved there and reused here.
 
-### 9.6 Compilation preserves imprecision
+### C10.3 Compilation preserves imprecision
 
-GTSFImp: `proof/DGG/CompilePreservesImprecision2.agda`
-(`compile-preserves-imprecision²`).
-
-```
-compile-⊑ :  if  μ ∣ γ ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p,
-             then  W₀ ∣ γ₀ ⊢ ⟦M⟧ ⊑ ⟦M′⟧ ∶ p₀
-```
-
-Here `⊑` is a *cast-term* imprecision for GTNF that still has to be
-designed, and `W₀`, `γ₀`, `p₀` are the initial world, context and type
-imprecision.  In GTSFImp the world `W` aligns the two runs' type stores.
+In GTSFImp the world `W` aligns the two runs' type stores.
 In GTNF it must align the two runs' representation variables (`α`) and
 their names (`X:=α`), and it must relate boundaries `[δ] M ⟨c⟩` on the
 two sides, including one-sided boundaries.  This is the largest new
-design item in the metatheory.  §12 sketches it.
+design item in the metatheory.  §9–§10 define it.
 
 **Why GTNF is shaped for this relation.**  In earlier gradually typed
 polymorphic calculi (GTSF, GTSFImp, PolyBlameI and others), the hardest
@@ -1060,26 +2626,8 @@ then be stated boundary by boundary, as a relation between matching
 `δ`s and their names, instead of as a global correspondence between two
 stores that grow independently.
 
-### 9.7 Dynamic gradual guarantee
+### C10.4 Dynamic gradual guarantee: proof strategy
 
-GTSFImp: `proof/DGG/DynamicGradualGuaranteeDef.agda` (`GradualDGG`), with
-the proof under way in `proof/DGG/`.  For closed source terms with
-`[] ∣ [] ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p`, the four parts are:
-
-```
-1.  if  ⟦M⟧ ⟶* V  (a value),
-    then  ⟦M′⟧ ⟶* V′  (a value)  with  W ∣ [] ⊢ V ⊑ V′ ∶ q  for some world W
-
-2.  if  ⟦M⟧ diverges,  then  ⟦M′⟧ diverges
-
-3.  if  ⟦M′⟧ ⟶* V′  (a value),
-    then  ⟦M⟧ ⟶* V  (a value)  with  W ∣ [] ⊢ V ⊑ V′ ∶ q,   or  ⟦M⟧ ⟶* blame ℓ
-
-4.  if  ⟦M′⟧ diverges,  then  ⟦M⟧ diverges or reaches  blame ℓ
-```
-
-The runs are νF runs, so each `⟶*` carries the allocations it made
-(`runCtx`), and `q` relates the result types at the two final contexts.
 The proof strategy follows GTLC's (`GTLC/agda/proof/
 DynamicGradualGuaranteeCore.agda` `sim`/`sim*`,
 `DynamicGradualGuarantee.agda` `sim-back`/`sim-back*`; GTLC writes the
@@ -1098,7 +2646,37 @@ GTNF those steps are `Merge`, `Id`, `IdDyn`, `CastId`, `CastSeq`, and the
 
 ------------------------------------------------------------------------
 
-## 10. Decisions taken in this draft, and open questions
+## C11. Agda plan
+
+- `GTNF/agda/`, with its own `Makefile` and `All.agda`, starts as a
+  copy of `SystemF/agda/strong-rep-nu`'s definitional layer (`Types`,
+  `Ctx`, `Boundary`, `Conversion`, `Lookup`, `Terms`, `TermSubst`,
+  `Reduction`).  `★` is added to `Ty`, and `Coercion` is a new module.
+- De Bruijn indices are used throughout, with parallel renaming and
+  substitution.  `inst X.p`, `gen X.p` and `∀X.p` bind a type variable
+  (`underΛ`), and `p[★/X]` is an instance of a coercion substitution
+  `substᶜ`.
+- The source language and its consistency relation are taken from
+  GTSFImp (`GradualTerms`, `Consistency`, `Primitives`).  They are
+  ported from GTSFImp's intrinsically scoped `Ty Δ` to νF's extrinsic
+  `Ty`, or bridged by an erasure.  This is to be decided once the cast
+  calculus is settled.
+- Status: the definitional layer, `TypeCheck` (a `Maybe` typing
+  derivation), `Eval` (a step function that returns the step
+  derivation) and `Examples` (Examples 1–7 and D8 as `refl` runs) exist
+  in `GTNF/agda/`, and `make check` passes.  Also in place:
+  `Imprecision` (type imprecision, copied from GTSFImp, §8),
+  `ImprecisionExamples` (the six pairs of §C7) and `Show` (a named
+  renderer, `scripts/render_gtnf.sh`).  `⊑` is formalized:
+  `ImprecisionWorld` (worlds, `W[δ ∥ δ′]` as the relation `Interior`,
+  `CtxImp`, `WfWorld`), `TermImprecision` (the 16 rules of §10, with
+  no `⊕⊑⊕`) and `TermImprecisionExamples` (P1 at the start and after
+  both `TyBeta`s, P2 after the left's `TyBeta`, P3 at `∀⊑⟪+⟫`).  Next:
+  progress and preservation, then `compile-⊢`.
+
+------------------------------------------------------------------------
+
+## C12. Decisions taken in this draft, and open questions
 
 These decisions are complementary: together they make up the draft.
 Each one can be revisited on its own.
@@ -1110,7 +2688,7 @@ Each one can be revisited on its own.
 - **D2 (cast values are simples).**  This lets `Wrap`, `TyBeta`,
   `Merge` and `Id` apply unchanged when the interior is a cast value.
 - **D3 (tags by name).**  `X` is a ground type, and tags are compared
-  syntactically, which coherence makes sound (§6.4).
+  syntactically, which coherence makes sound (§C3.7).
 - **D4 (inst closes at ★).**  `Inst` instantiates by `ν X:=★` with the
   conversion `reveal_X`, and substitutes `★` for `X` in the coercion,
   as GTSFImp does.
@@ -1174,7 +2752,7 @@ Each one can be revisited on its own.
   name that both sides bind (`X⊑X` or `X⊑★`) is chosen by the rule that
   binds it, and it is fixed for the subterm under the binder.  No rule
   weakens a mark on the way to a premise, unlike GTSFImp's
-  `ImpEnvMono` (§12.2, Example P4; Jeremy, 2026-10-01).
+  `ImpEnvMono` (§9, Example P4; Jeremy, 2026-10-01).
   *Superseded by D28* (2026-10-05): no rule chooses a mark; marks are
   derived from the world's permissions.
 
@@ -1182,7 +2760,7 @@ Each one can be revisited on its own.
   relation between the two sides' type variables (`Ω`, `η`, `η′`, `μ`)
   is lexically scoped.  The relation `ϱ` between their representation
   variables is global: it grows at matched allocations and is read
-  when a boundary rebinds a rep. var (§12.2, Example P4; Jeremy,
+  when a boundary rebinds a rep. var (§9, Example P4; Jeremy,
   2026-10-01).
 
 - **D13 (`ϱ` is many-to-one, toward the left).**  In `⊑`'s worlds,
@@ -1190,7 +2768,7 @@ Each one can be revisited on its own.
   and a left rep. var may have several.  So a right-only `+X^β` always has
   a unique left name to rejoin.  The mirror is not needed, because an
   extra left name can stay left-only at `X⊑★`, while an extra right
-  name cannot stay right-only (§12.6, F3; C12–C14; mirror pairs M1,
+  name cannot stay right-only (§C8.3, F3; C12–C14; mirror pairs M1,
   M2, M4; Jeremy, 2026-10-02).
 
 - **D14 (`∀⊑⟪+⟫`).**  The rule relating a left ∀-value to a right
@@ -1199,11 +2777,11 @@ Each one can be revisited on its own.
   chosen at the binder.  It replaces `Λ⊑⟪+⟫`, and it is not
   syntax-directed, because the premise uses the meta-operation
   `inst_X`.  GTLC's forward and backward simulation shapes force it
-  (§9.7; §12.6, F1, F2; Jeremy, 2026-10-02).
+  (§C10.4; §C8.3, F1, F2; Jeremy, 2026-10-02).
 
 - **D15 (interior worlds).**  For `W[δ ∥ δ′]`, only the final interior
   world has to be well formed.  A name that goes one-sided inside a
-  multi-entry `δ` and rejoins keeps its earlier mark (§12.2; §12.6,
+  multi-entry `δ` and rejoins keeps its earlier mark (§9; §C8.3,
   D1; examples P4, Cf, C2, C12, C18b; Jeremy, 2026-10-02).
   *The keep-on-rejoin part is superseded by D28* (2026-10-05): a
   boundary keeps `ϱ` and the permissions, so a rejoined name's mark is
@@ -1214,7 +2792,7 @@ Each one can be revisited on its own.
   binds (paired by `Λ⊑Λ`, `∀⊑⟪+⟫`, `ν⊑ν` for their premises), and a
   global part `ϱᵍ`, for store rep. vars (grown by matched `TyBeta`s).
   A matched `TyBeta` turns the lexical pair of the two `ν`s into a
-  global pair (§12.2; §12.6, D2; Jeremy, 2026-10-02).  Terminology:
+  global pair (§9; §C8.3, D2; Jeremy, 2026-10-02).  Terminology:
   representation variables are "rep. vars", never "cells" (Jeremy,
   2026-10-02).
 
@@ -1224,14 +2802,14 @@ Each one can be revisited on its own.
   types.  The relation is read in the conversion context, where the
   rep. vars bound by the `ν`s (paired in `ϱˡ`) or by the boundaries
   are in scope.  This is what `ϱˡ`'s `ν` pairs are for (D16).  Its
-  clauses are in §12.3, with D18 (Jeremy, 2026-10-02).
+  clauses are in §10.6, with D18 (Jeremy, 2026-10-02).
 
 - **D18 (the ★ clauses of conversion imprecision).**  Besides the
   structural clauses, a seal or unseal of a left name marked `X⊑★` may
   be absent on the right (`−X ⊑ id(★)`, `+X ⊑ id(★)`, and the chain
   forms `t ; −X ⊑ t′`, `+X ; c ⊑ c′`).  A left-only universal is
   opened at `X⊑★` (`∀X.c ⊑ g′`).  These mirror type imprecision's
-  `X ⊑ ★` and `∀⊑` (§12.3; C23a, C23b; Jeremy, 2026-10-02).
+  `X ⊑ ★` and `∀⊑` (§10.6; C23a, C23b; Jeremy, 2026-10-02).
 
 - **D19 (`TyBeta` fires only on a ∀-value).**  `TyBeta` has the
   premise `Value V`.  Every case of `inst_X` requires a value: `inst-Λ`
@@ -1276,7 +2854,7 @@ Each one can be revisited on its own.
   representation types.  Free rep. vars inside them correspond through
   `ϱ`, and local `∀`-bound variables correspond position by position.
   The relation is `R ⊑ᴿ_W R′` (`ImprecisionWorld.RepImp`), whose rules
-  are those of `⊑` (§12.1) over payloads.  A free left rep. var may also
+  are those of `⊑` (§8) over payloads.  A free left rep. var may also
   face `★`, with no condition, because rep. vars carry no marks (marks
   belong to names; confirmed by Jeremy, 2026-10-03).  Clarified (Jeremy, 2026-10-05): this
   is not a ban on mark-like information for rep. vars.  Rep. var
@@ -1345,7 +2923,7 @@ Each one can be revisited on its own.
   whether the openings could be part of the world; they are: `πʷ` is
   a field of `ImprecisionWorld.World`, so there is one world type, one
   index `_⊑ᵂ⟨_⟩_` (which opens the pending names, and is the plain
-  `μ ⊢ η(A) ⊑ η′(A′)` when there are none) and one `WfWorld` (§12.2).
+  `μ ⊢ η(A) ⊑ η′(A′)` when there are none) and one `WfWorld` (§9).
   A first encoding wrapped the world in a separate record with the
   pending names beside it; Jeremy rejected it (two world types and
   coercions between them grow proof complexity; 2026-10-05).  The counterexample K and every corpus
@@ -1428,7 +3006,7 @@ Each one can be revisited on its own.
   (Jeremy, 2026-10-06).
 - 🆕 **D28′** **(PROPOSED 2026-10-07, not adopted, not checked:
   permissions chosen at binders; R1′).**  Changes to D28, marked
-  🆕 **D28′** in §12.2–§12.3 (replaced text is struck through):
+  🆕 **D28′** in §9–§10 (replaced text is struck through):
   `⊑cast` no longer grants, so no cast rule changes the world (Jeremy,
   2026-10-06: the world changes only at binding rules).  Instead, a
   boundary rule that JOINS a name (a matched fresh pair, a rejoin
@@ -1457,11 +3035,11 @@ Each one can be revisited on its own.
   types (no special forms, no condition on the world).  The world
   changes only at term binders: `Λ⊑` consumes an opening by joining its
   binder (D27's pop), and `⊑⟪⟫` may open its premise index at the names
-  its `δ′` binds (D27's push).  Marked 🆕 **D30** in §12.2–§12.3; the
-  full rule set is §12.3.2 (Jeremy, 2026-10-07/08: the world changes
+  its `δ′` binds (D27's push).  Marked 🆕 **D30** in §9–§10; the
+  full rule set is §10.8 (Jeremy, 2026-10-07/08: the world changes
   only at binders, and a `gen` binder's scope contains no term).
 
-The open design questions are those of the `⊑` sketch (§12.5).
+The open design questions are those of the `⊑` sketch (§C8.2).
 
 Out of scope for now: space efficiency.  Normal forms for coercions,
 and a composition `p ⨟ q` like νF's for conversions, are not a concern
@@ -1469,1352 +3047,44 @@ for the time being (Jeremy, 2026-10-01).
 
 ------------------------------------------------------------------------
 
-## 11. Agda plan
-
-- `GTNF/agda/`, with its own `Makefile` and `All.agda`, starts as a
-  copy of `SystemF/agda/strong-rep-nu`'s definitional layer (`Types`,
-  `Ctx`, `Boundary`, `Conversion`, `Lookup`, `Terms`, `TermSubst`,
-  `Reduction`).  `★` is added to `Ty`, and `Coercion` is a new module.
-- De Bruijn indices are used throughout, with parallel renaming and
-  substitution.  `inst X.p`, `gen X.p` and `∀X.p` bind a type variable
-  (`underΛ`), and `p[★/X]` is an instance of a coercion substitution
-  `substᶜ`.
-- The source language and its consistency relation are taken from
-  GTSFImp (`GradualTerms`, `Consistency`, `Primitives`).  They are
-  ported from GTSFImp's intrinsically scoped `Ty Δ` to νF's extrinsic
-  `Ty`, or bridged by an erasure.  This is to be decided once the cast
-  calculus is settled.
-- Status: the definitional layer, `TypeCheck` (a `Maybe` typing
-  derivation), `Eval` (a step function that returns the step
-  derivation) and `Examples` (Examples 1–7 and D8 as `refl` runs) exist
-  in `GTNF/agda/`, and `make check` passes.  Also in place:
-  `Imprecision` (type imprecision, copied from GTSFImp, §12.1),
-  `ImprecisionExamples` (the six pairs of §12.4) and `Show` (a named
-  renderer, `scripts/render_gtnf.sh`).  `⊑` is formalized:
-  `ImprecisionWorld` (worlds, `W[δ ∥ δ′]` as the relation `Interior`,
-  `CtxImp`, `WfWorld`), `TermImprecision` (the 16 rules of §12.3, with
-  no `⊕⊑⊕`) and `TermImprecisionExamples` (P1 at the start and after
-  both `TyBeta`s, P2 after the left's `TyBeta`, P3 at `∀⊑⟪+⟫`).  Next:
-  progress and preservation, then `compile-⊢`.
-
-------------------------------------------------------------------------
-
-## 12. Cast-term imprecision `⊑` (sketch)
-
-Status (2026-10-06): §12.1 is `Imprecision.agda`; the worlds (§12.2)
-are `ImprecisionWorld.agda`; the rules (§12.3) are `TermImprecision.agda`
-and `ConversionImprecision.agda`, current through D29.  Known open
-defect: the gen-value pairs of `proof/DGG/notes/TwoGen.md` (G0 and six
-more, from related sources) are DGG-part-1 counterexamples for these
-rules.  **Review markers (2026-10-07):** text marked 🆕 **D28′** is the
-PROPOSED D28′ (§10), not adopted and not in Agda; text it replaces is
-~~struck through~~.  The counterexamples C1–C5 that motivated D28 are presented
-from their source programs in
-`agda/proof/DGG/notes/ConditionPlacement.md` §3.  The examples (§12.4) are machine-run: each pair of programs is
-in `examples/`, and both of its runs come from `Eval`.
-The left program is always the **more precise** one.
-
-### 12.1 Type imprecision
-
-GTSFImp's `Imprecision.agda`, copied rule for rule into
-`GTNF/agda/Imprecision.agda`.  The marks are `X⊑X` and `X⊑★`, and an
-imprecision environment `μ` gives one mark to each name in scope.  As
-with `ModeEnv`, it is a list parallel to the names (index 0 at the
-head).
-
-```
-                                                        μ(X) = X⊑★
-  ★ ⊑ ★     ι ⊑ ι     X ⊑ X     ι ⊑ ★     ∀X.★ ⊑ ★       ──────────
-                                                         X ⊑ ★
-
-  A ⊑ A′   B ⊑ B′          A ⊑ ★   B ⊑ ★          μ, X:X⊑X ⊢ A ⊑ B
-  ─────────────────        ─────────────          ─────────────────
-  A → B ⊑ A′ → B′          A → B ⊑ ★              μ ⊢ ∀X.A ⊑ ∀X.B
-
-  μ, X:X⊑★ ⊢ A ⊑ ⇑B    A not a variable    X ∈ A     (∀⊑)
-  ───────────────────────────────────────────────
-  μ ⊢ ∀X.A ⊑ B
-
-  μ, X:X⊑X ⊢ A ⊑ ★    A ≠ ★
-  ──────────────────────────     ∀X.X ⊑ ∀X.★  (bot-elim)     ∀X.X ⊑ ★
-  μ ⊢ ∀X.A ⊑ ★
-```
-
-The marks belong to the imprecision lattice.  They are not the
-consistency modes of §3, which type the casts inside one program
-(§9.4).
-
-### 12.2 Worlds
-
-A cast-term imprecision judgment relates a left term typed in `Δ` to a
-right term typed in `Δ′`.  The two runs allocate independently, and a
-`ν`, a `Λ` or a boundary entry may exist on one side only.  A
-**world** says how the two sides' names line up.  It follows GTSFImp's
-`World` (`proof/DGG/CtxImp.agda`), minus the stores:
-
-```
-W = (Δ, Δ′, Ω, η, η′, ϱ, κ, π)
-
-  Ω              the center: a number of names
-  η  : names(Δ)  ↪ Ω     order-preserving embeddings (GTSFImp ηᴸʷ, ηᴿʷ);
-  η′ : names(Δ′) ↪ Ω     every center name is in the image of at least one
-                         of them
-  κ              the permitted right rep. vars (D28); [] at every
-                 top-level world; ~~a right check adds one (⊑cast)~~
-                 🆕 **D28′**: a boundary rule that joins a name may add
-                 its right rep. var, for that boundary's interior
-  μ  = marks(W)          DERIVED (D28): a name in η's image only
-                         (left-only) is X⊑★; a name in η′'s image is
-                         X⊑★ iff its right rep. var is in κ, else X⊑X
-  ϱ  = ϱᵍ ∪ ϱˡ           the rep. var correspondence, in two parts (D16),
-                         any relation whose pairs agree (D25):
-                         ϱᵍ global, over the two stores' rep. vars;
-                         ϱˡ lexical, over rep. vars bound by an enclosing
-                         Λ or ν.  (D13's one-partner rule was dropped
-                         by D25.)
-  π              the pending right names (D27), next pop first: right
-                 name positions that a ⊑⟪⟫ pushed and a left binder will
-                 join; [] at every top-level world
-                 🆕 **D30**: ~~π~~ leaves the world; the openings are part
-                 of the index (below and §12.3.2)
-
-  A ⊑_W A′   iff   μ ⊢ η(A) ⊑ η′(A′)     when π = []  (GTSFImp _⊑ᵂ⟨_⟩_)
-             and in general A, with one outer ∀ opened at the center
-             name of each pending name, against A′
-  🆕 **D30**:  A ⊑_W^O A′  the index with openings O (a list of right
-             names): A with one outer ∀ opened at each name of O,
-             against A′; A ⊑_W A′ is the case O = []
-```
-
-In Agda (`ImprecisionWorld`) `π` is the field `πʷ` of `World`, `κ`
-the field `κʷ`, and `μ` is computed, `marksʷ W = dmarks (ηᴿʷ W)
-(κʷ W)`; the index `_⊑ᵂ⟨_⟩_` reads `πʷ` (`OpenImp`) and `marksʷ`.
-Everything that is not about pending names reads only the other
-fields: `Paired`, `Joins`, `Interior`, and the term-context imprecision
-`CtxImp`, whose entries hold the plain `μ ⊢ η(A) ⊑ η′(A′)` and are
-parameterized by the marks, `η` and `η′`.  So `W` with its pending
-names replaced (`record W { πʷ = π }`) has the same `CtxImp`,
-definitionally; a grant (`record W { κʷ = β ∷ κʷ W }`) changes the
-marks, and `⊑cast` moves the entries by `RaiseCtx` (same types, proofs
-at the raised marks).  The structural rules are stated at a world in
-constructor form with `π = []`, where the index computes to the plain
-one; the theorems are stated at `W` with `πʷ W ≡ []` and `κʷ W ≡ []`,
-and an evolution keeps `π` and renumbers `κ` with the right side (an
-allocation moves no name).
-
-Well-formedness has five parts:
-
-- **Names name paired rep. vars.**  If a center name `X` is `X:=α` on the
-  left and `X:=β` on the right, then `(α, β) ∈ ϱ`.
-- **Named uniqueness** (D25).  Among the names in scope on one side,
-  at most one is paired with the rep. var of a given name on the other
-  side.  A rejoin is therefore unambiguous, although `ϱ` itself may
-  pair a rep. var with several partners.
-- **Paired rep. vars agree.**  If `(α, β) ∈ ϱ`, then either both are
-  abstract (bound by a `Λ` on each side), or `α` is abstract and
-  `β:=★`, or `α:=R`, `β:=R′`, and `R ⊑ᴿ_W R′`: the payloads are
-  compared in the representation universe, free rep. vars through `ϱ`
-  (D23).
-- 🆕 **D30**: this part moves from the world to the index: an index
-  `A ⊑_W^O A′` is well formed when each name of `O` is right-only,
-  bound to a `★` rep. var with no named left partner, and the names are
-  distinct (checked where an opening is created, at `⊑⟪⟫`).
-- ~~**Pending names are pending** (D27).~~  Each name of `π` is bound to a
-  `★` rep. var `β`, is right-only, and `β` has no left partner named in
-  scope; the names of `π` are distinct.  (Its mark is derived, D28.)
-- **Permissions are right rep. vars** (D28).  Every rep. var in `κ` is
-  a rep. var of the right store, named or not (a right `−X` keeps its
-  permission, P4 B4).  R1/R2 (§12.3) are rule premises, not parts of
-  well-formedness.
-
-**Names are related lexically; rep. vars lexically and globally**
-(D12, D16).  The relation between type variables (`Ω`, `η`, `η′`, `μ`)
-is lexically scoped: it is extended and shrunk with the scope, never
-by a step.  Rep. vars come from two places, so their relation has two
-parts:
-
-- **Lexical, `ϱˡ`.**  A `Λ` binds an abstract rep. var for its body
-  (`⊢Λ` types the body at `underΛ Δ`).  A `ν X:=A` binds the rep. var
-  for its conversion (`⊢ν` types `c` at `allocate R Δ`).  A rule that
-  goes under such binders on both sides pairs their rep. vars for the
-  premise only: `Λ⊑Λ` pairs two abstract rep. vars; `Λ⊑`'s pop pairs
-  the left binder's abstract rep. var with the `β:=★` of the pending
-  name it joins (D27), and its claim-rep with a `β:=★` that has no
-  right name yet (D29); `ν⊑ν` pairs the two `ν`s' rep. vars.
-- **Global, `ϱᵍ`.**  A store rep. var is created by a step (`TyBeta`)
-  and is visible everywhere afterwards.  When the two sides' `TyBeta`s
-  are matched, the lexical pair of the two `ν`s becomes a global
-  pair.  When a left `TyBeta` catches up with a right boundary whose
-  name its binder popped or claimed, the left's lexical abstract rep.
-  var is replaced by the new store rep. var, which is paired globally
-  with the right's `β` (Evolve's `ev-L⇔`).
-
-Example: in P3's block after the left's `Beta`, `⊑⟪⟫` pushes the
-right `Inst` boundary's name and the left `Λ⊑` pops it, so the premise
-relates `λx:X.x` (typed under the left `Λ`'s abstract `α₀`) to
-`λx:X.x` (inside the right's `[+X^αᴿ]`, `αᴿ:=★`).  The
-shared name `X` needs `(α₀, αᴿ) ∈ ϱˡ`.  After the left's `TyBeta`,
-the pair is `(αᴸ, αᴿ) ∈ ϱᵍ`, with `αᴸ:=ℕ`.
-
-The point of the design (§9.6) is that **no part of a world is ever
-rebased.**  `Ω`, `η`, `η′` and `κ` change only lexically: they are
-extended by a binder (`Λ`, a coercion binder, a boundary entry `+X^α`)
-and shrunk by an unbind (`−X^α`), for the subterm under it, exactly as
-the type context is; ~~`κ` grows at a right check (`⊑cast`) for the
-subterm under it~~ 🆕 **D28′**: `κ` grows only at a boundary rule that
-joins a name, for the boundary's interior.  So is `ϱˡ`.  The one non-lexical part is `ϱᵍ`,
-and it only grows: a `TyBeta` that the other side matches adds one
-pair.  An
-unmatched allocation only renumbers the allocating side's rep. vars (de
-Bruijn).
-
-World operations, used by the rules:
-
-```
-W ⊕²             both sides bind X (a new center name in both images; its
-                 new right rep. var is not permitted, so X⊑X)
-W ⊕ᴸ X           the left side binds X alone (center name in η only, X⊑★)
-W ⊕ᴸ⇔ β          as W ⊕ᴸ X, and X's abstract rep. var is paired lexically
-                 with the right rep. var β:=★, which has no right name yet;
-                 the boundary that names β rejoins X (claim-rep, D29)
-W ⊕ᴿ X           the right side binds X alone (center name in η′ only)
-W[δ ∥ δ′]        the interior world of a boundary pair: each side's
-                 changes act on that side's names and embedding.
-                 −X on one side removes X from that side's image; a center
-                 name in neither image is dropped.  +X^α joins the center
-                 name of the rep. var α is paired with by ϱ, if any, and is
-                 otherwise a new one-sided center name.  ϱ is
-                 unchanged, and every mark is derived (D28).  ~~κ is
-                 unchanged; Example P4's X⊑★ comes from a right check's
-                 grant.~~  🆕 **D28′**: κ may gain the right rep. vars of
-                 the names this boundary joins (§12.3, boundaries);
-                 Example P4's X⊑★ comes from its outer matched boundary.
-                 (Write W[δ ∥ ·] and W[· ∥ δ′] for a one-sided boundary.)
-```
-
-`W[δ ∥ δ′]` is defined only when it is well formed.  Only the final
-interior world has to be well formed, not the worlds between the
-entries of a multi-entry `δ`, because no rule reads those.  A name
-that goes one-sided and later rejoins gets its derived mark back (D28,
-superseding D15's keep-on-rejoin).  A right-only `−X` of a name in
-both images leaves `X` left-only, hence `X⊑★` (Example P4).
-
-### 12.2.1 Sketch: allocation hands the `ν` invariants to the world
-
-Status: sketch (2026-10-06; Jeremy), not adopted, not checked.  The
-problem it addresses: the relation is tight enough on related source
-programs, but it drops invariants as the terms reduce, so states that
-no related start reaches become related (C1–C5,
-`agda/proof/DGG/notes/ConditionPlacement.md` §3).
-
-**What a `ν` pair knows, and what `TyBeta` drops.**  Matched `ν`s are
-the one place where both sides' ∀ types, payloads and conversions meet:
-
-```
-  W ∣ γ ⊢ L ⊑ L′ : ∀X.C ⊑ ∀X.C′    A ⊑_W A′    c ⊑ c′
-  ──────────────────────────────────────────────────── (ν⊑ν)
-  W ∣ γ ⊢ ν X:=A.(L X)⟨c⟩ ⊑ ν X:=A′.(L′ X)⟨c′⟩
-```
-
-After the two `TyBeta`s the `ν`s are gone:
-
-```
-ν X:=A.(L X)⟨c⟩  ⟶ (TyBeta, ⊣ α:=A)  [+X^α] inst_X(L) ⟨c⟩
-```
-
-| what `ν⊑ν` checked | after `TyBeta` |
-|---|---|
-| payloads `A ⊑ A′` | in the stores; paired rep. vars agree (D23) |
-| conversions `c ⊑ c′` | kept by the boundaries; re-checked by `⟪⟫⊑⟪⟫` only |
-| the ∀ types, `C ⊑ C′` with `X` matched at `X⊑X` (`∀⊑∀`) | **dropped** |
-
-C1's sources are `((ΛX. λx:X. x) : ★→★) 5 : ℕ` against
-`((ΛX. λx:X. (x : ★)) : ★→★) 5 : ℕ`.  No `ν` pair relates them, because
-`∀X.X→X ⊑ ∀X.X→★` fails.  After both sides' `Inst` and `TyBeta` the
-boundaries are
-
-```
-[+X^α] (λx:X. x) ⟨−X → +X⟩      against      [+X^α] (λx:X. x⟨X!⟩) ⟨−X → id(★)⟩
-```
-
-and `⟪⟫⊑⟪⟫` never asks whether `X→X` and `X→★`, read as functions of
-the bound `X`, are related with `X` matched.  That is the dropped
-invariant.
-
-**The proposal: each rep. var pair carries an interface.**  A pair
-`(αᴸ, αᴿ)` in `ϱ` records the bodies `(C, C′)` of the two ∀ types whose
-instantiation allocated it, as representation types (names resolved
-to rep. vars, so the record survives renaming, `Merge` and `exitEnv`;
-compared as in D23).
-
-- **Created at allocation.**  A matched pair of `TyBeta`s (Evolve's
-  `ev-2`) creates the pair from the `ν⊑ν` derivation:
-  interface `(C, C′)`.  A right `Inst` against a left ∀-value (the
-  push and pop of D27, or `claim-rep` of D29) creates the pair from the
-  index of the pair before `Inst`.  A left-only `ν⊑` creates a left-only
-  rep. var; its interface is `C` against the right type it faced
-  (`∀⊑`, `X⊑★`).
-- **Well-formedness.**  For every pair, `C ⊑ C′` holds with the bound
-  variable at `X⊑X`, i.e. the `∀⊑∀` that the `ν`s needed.
-- **Read at every binding rule.**  A boundary rule that binds a name
-  `X` to a paired rep. var, matched (`⟪⟫⊑⟪⟫`) or one-sided (`⟪⟫⊑`,
-  `⊑⟪⟫` including a push), and the joins of a pop or a `claim-rep`,
-  require the boundary's interior type, abstracted over `X`, to be the
-  side's recorded interface body.  No cast rule reads or changes it
-  (the world changes only at binders).
-
-**On the examples.**
-
-- **C1.**  A world that pairs the two `α`s must record `(X→X, X→★)`,
-  and `X→X ⊑ X→★` with `X` matched is not derivable.  So no
-  well-formed world relates C1's states: the dropped invariant is back.
-- **C2–C5** (sources in ConditionPlacement §3): their ∀ types are
-  `∀Y.Y→Y` against `∀Y.Y→★` or `∀Y.★→Y`, so their interfaces fail the
-  same way; C4's is the push type premise (`PushTypePremise.md`) as one
-  case of this rule.
-- **K.**  The right's `Inst` of `VL` against the left's `VL`: the pair
-  before `Inst` relates them by `Λ⊑Λ`, interface `(Y→Y, Y→Y)`.
-- **P4.**  The matched `ν`s relate `x ⊑ x` at `∀X.X→X ⊑ ∀X.X→X`, so
-  the interface is `(X→X, X→X)`: it holds.  P4 also needs `X⊑★` inside
-  the right's `gen` wrapper; that is a question about marks, below.
-- **G0** (§12.3.1).  The right instantiates the left's own gen-value:
-  interface `(X→ℕ, X→ℕ)`, which holds.
-
-**Marks.**  If the interface is what C1–C5 violate, the marks may not
-need to carry that burden.  Hypothesis (unchecked): with interfaces
-recorded and checked at every binding rule, a shared name may again
-take `X⊑★` inside (D11's choice, or a status recorded with the pair at
-allocation, e.g. "the left binder faced a right `gen`", as in P4), and
-D28's permissions and R1/R2 may become unnecessary.  The reason to
-expect it: an `X`-tagged right value causes a blame only when a check
-other than `X?` meets it, inside or at the boundary
-(`TagUntagBad-⟪⟫`); a mismatch at the boundary is ruled out by the
-interface (checked at `X⊑X`), and one inside would put a non-`X` check
-on the right where the left has an `X`-typed term, which the types
-forbid without a matching left cast.
-
-**Open.**
-- Whether the hypothesis holds, against C1–C5, C4g, the TwoGen pairs,
-  P4 and the corpus.
-- The exact statement of "the interior type, abstracted over `X`" for
-  a multi-entry boundary and after a `Merge`.
-- The audit (below) may find more dropped invariants.
-
-**Audit result (2026-10-06, `agda/proof/DGG/notes/ReductionAudit.md`).**
-Correction to the table above: under D28 the matched `TyBeta` does not
-drop the `∀⊑∀` fact, since the derived `X⊑X` re-checks it; it is lost
-only under a later grant, after `Wrap`, or after `Merge`.  Recorded
-interfaces turn out to be neither needed nor checkable (after `Wrap` or
-`Merge` a boundary's interior type is only part of the ∀ body, and
-C5's late states fit a trivial interface, `iface-fake`), so the
-hypothesis about R1/R2 is refuted.  The audit found two `¬ Sim`
-counterexamples from related sources (P4k, P4h) and proposes D28′:
-permissions chosen at the binding rule that joins a name, with an
-`X⊑X` check of its interior types there, no grants at casts, and R1
-refined to unbinds whose rep. var occurs in the exterior type.
-
-**Audit (done; was queued).**  For each reduction rule that changes binders or
-casts (`TyBeta`, `Inst`, `Wrap`, `Merge`, `IdDyn`, `IdDyn-var`,
-`CastFun`, the `inst_X` cases, `TagUntag`, `exitEnv`): the premises
-that relate its redex, what the rules for the contractum check, and
-what is dropped in between, each on a concrete pair from related source
-programs.  Every dropped invariant becomes world data created at the
-step and read at a binding rule.
-
-### 12.3 Rules
-
-`W ∣ γ ⊢ M ⊑ M′ : A ⊑ A′` with `γ ::= [] | γ, x : B ⊑ B′`.  Every
-rule also assumes the two typings `Δ ∣ γᴸ ⊢ M : A` and
-`Δ′ ∣ γᴿ ⊢ M′ : A′` and `A ⊑_W A′`; the premises below list only what
-is new.  The rules marked "GTSFImp" are GTSFImp's
-`proof/DGG/CastTermImprecision.agda` rules with the same name.
-
-**Congruence** (GTSFImp `x⊑x²`, `κ⊑κ²`, `ƛ⊑ƛ²`, `·⊑·²`, `⊕⊑⊕²`):
-the usual rules, one per term former.  Their types are related
-componentwise.
-
-**Blame** (GTSFImp `blame⊑²`):
-
-```
-  ────────────────────────────── (blame⊑)
-  W ∣ γ ⊢ blame ℓ ⊑ M′ : A ⊑ A′
-```
-
-**Casts** (GTSFImp `cast⊑cast²`, `cast⊑²`, `⊑cast²`).  Each coercion
-is typed on its own side, under the mode environment its cast carries.
-The rules do not compare the two coercions, or the two mode
-environments, except through the types:
-
-```
-  W ∣ γ ⊢ M ⊑ M′ : B ⊑ B′    p : B ⇒ A    p′ : B′ ⇒ A′
-  ────────────────────────────────────────────────── (cast⊑cast)
-  W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ ⟨p′⟩ : A ⊑ A′
-
-  W ∣ γ ⊢ M ⊑ M′ : B ⊑ A′    p : B ⇒ A
-  ────────────────────────────────────── (cast⊑)
-  W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ : A ⊑ A′
-
-  W⁺ ∣ γ⁺ ⊢ M ⊑ M′ : A ⊑ B′    p′ : B′ ⇒ A′
-  W⁺ = W, or W with β added to κ when p′ grants β    γ⁺ = γ raised
-  ──────────────────────────────────────────────────────── (⊑cast, D28)
-  W ∣ γ ⊢ M ⊑ M′ ⟨p′⟩ : A ⊑ A′
-
-  p′ grants β  ::=  X?ℓ   |   X?ℓ ; q   |   q₁ → q₂ (q₁ first order, q₂ grants β)
-                    (X the right name of β; first order: id(A), G!, G?ℓ)
-```
-
-🆕 **D28′** replaces the D28 rule above by the plain GTSFImp rule; no
-cast rule changes the world:
-
-```
-  W ∣ γ ⊢ M ⊑ M′ : A ⊑ B′    p′ : B′ ⇒ A′
-  ───────────────────────────────────── (⊑cast, D28′)
-  W ∣ γ ⊢ M ⊑ M′ ⟨p′⟩ : A ⊑ A′
-```
-
-~~A right check GRANTS (D28): every value that leaves the right's cast
-value through `p′` is checked against the name of `β`, so in the
-premise an X-tagged right value may face an untagged left value of
-that name, i.e. `β`'s name is `X⊑★`.  P4's gen wrapper `X! → X?` and
-its later check `X?` grant `αᴿ`; C2's `X! → id(★)` grants nothing.
-Left casts, `cast⊑cast`, right hides and boundaries grant nothing.  A
-grant covers the whole premise; `γ⁺` has the same types at the raised
-marks (`RaiseCtx`).~~  🆕 **D28′**: no grants; see the boundary rules.
-
-(🆕 **D30**: the two forms below become one `cast⊑` rule, §12.3.2.)
-With pending names (D27), `⊑cast` carries them unchanged, and `cast⊑`
-has two more forms, for a value `M`:
-
-```
-  W, Y·π ∣ γ ⊢ M ⊑ M′ : ∀X.B ⊑ A′        ∀X.p : ∀X.B ⇒ ∀X.A
-  ─────────────────────────────────────────────────── (cast⊑, pass ∀)
-  W, Y·π ∣ γ ⊢ M ⟨∀X.p⟩ ⊑ M′ : ∀X.A ⊑ A′
-
-  W ∣ γ ⊢ M ⊑ M′ : B ⊑ A′        gen X.p : B ⇒ ∀X.A
-  ─────────────────────────────────────────────────── (cast⊑, pop gen)
-  W, Y ∣ γ ⊢ M ⟨gen X.p⟩ ⊑ M′ : ∀X.A ⊑ A′
-
-  (an index ∀X.… ⊑ A′ at a world with pending names is read with its
-   outer ∀ opened at the next pending name; corrected 2026-10-07: the
-   earlier display wrote the bodies B, A for the cast's types)
-```
-
-The gen pop leaves the base world unchanged: the value under a `gen`
-does not see the binder.  One gen pops one name.
-
-**Type abstraction** (GTSFImp `Λ⊑Λ²`, `Λ⊑²`), plus one new rule.
-`Λ⊑` keeps the right term unweakened: the right side does not bind
-`X`, so `η′` simply does not reach the new center name.
-
-```
-  W ⊕² ∣ ⇑γ ⊢ V ⊑ V′ : A ⊑ A′
-  ────────────────────────────────── (Λ⊑Λ)
-  W ∣ γ ⊢ ΛX.V ⊑ ΛX.V′ : ∀X.A ⊑ ∀X.A′
-
-  W ⊕ᴸ X ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
-  ──────────────────────────────────────────────────────── (Λ⊑, fresh)
-  W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
-
-  W[X ↦ Y], π ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
-  ───────────────────────────────────────────────────────── (Λ⊑, pop)
-  W, Y·π ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
-```
-
-```
-  W ⊕ᴸ⇔ β ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
-  β:=★ in Δ′    no right name of β in scope    no named left partner of β
-  ──────────────────────────────────────────────────────── (Λ⊑, claim-rep, D29)
-  W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
-```
-
-(🆕 **D30**: in the displays below, read `W, π ∣ γ ⊢ … : A ⊑ A′` as
-`W ∣ γ ⊢ … : A ⊑_W^π A′`, an index with openings `π`; §12.3.2.)
-Here `W, π` is a world with the pending names `π` (D27), and `W` alone
-means no pending name.  In the pop, `Y` is the next pending name and
-`W[X ↦ Y]` joins the binder `X` to it (`Open1`).  The left's abstract
-rep. var is paired lexically with `Y`'s `β:=★`.  The type `∀X.A ⊑ B′`
-of a world with pending names is read with one `∀` opened per pending
-name.
-
-The rule that relates a left ∀-value to a right `Inst` boundary, first
-`∀⊑⟪+⟫` (D14, D22), then an opening of `⊑⟪⟫` (D26), is now a push of
-`⊑⟪⟫` followed by a pop (D27), or, for a `Λ`, a claim above the
-boundary followed by its rejoin (D29).
-
-In the claim-rep case (D29), the binder `X` claims the right rep. var
-`β`, which has no name yet.  `X` is left-only (`X⊑★`) until a right
-boundary `+Y^β` names `β`.  There `Interior.join-fresh` joins `Y` to
-`X`, because their rep. vars are paired (D25).  From then on the
-shared name's mark is `β`'s permission: `X⊑X` unless a right check of
-`Y` above grants `β`.  So C4's `x ⊑ x⟨X!⟩` still needs a grant.  The
-claim is what H1 needs.  There the right's boundaries name the
-instantiations in the opposite order to the left's binders, and the
-left's first binder must be matched before the right names it.  H1's
-final pair, generated by
-`scripts/render_gtnf.sh 'impLadder final' 'open import examples.TermImprecisionH1Examples' 'open import examples.ImpLadder'`
-(pinned in `examples/ImpLadder.agda`):
-
-```
-W0 = the conclusion's world
-  ⟨⟩
-  ϱᵍ = {}  ϱˡ = {}  Ξᴸ = []  Ξᴿ = [α:=★, β:=★]
-W1 = W0 ⊕ᴸ⇔ α
-  ⟨X: X^α ⊑[X⊑★] ─⟩
-  ϱᵍ = {}  ϱˡ = {α⇔α}  Ξᴸ = [α abst]  Ξᴿ = [α:=★, β:=★]
-W2 = Interior W1
-  ⟨Y: ─ ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑★] ─⟩
-  ϱᵍ = {}  ϱˡ = {α⇔α}  Ξᴸ = [α abst]  Ξᴿ = [α:=★, β:=★]  πʷ = [Y^β]
-W3 = Interior W2
-  ⟨Y: ─ ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
-  ϱᵍ = {}  ϱˡ = {α⇔α}  Ξᴸ = [α abst]  Ξᴿ = [α:=★, β:=★]  πʷ = [Y^β]
-W4 = Open1 W3: pop Y^β
-  ⟨Y: Y^β ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
-  ϱᵍ = {}  ϱˡ = {β⇔β, α⇔α}  Ξᴸ = [α abst, β abst]  Ξᴿ = [α:=★, β:=★]
-W   left term      A              ηᴸA            ⊑                            ηᴿA′   A′     right term
-──  ─────────────  ─────────────  ─────────────  ───────────────────────────  ─────  ─────  ──────────────────────────────────
-W0  ΛX. □          ∀X. ∀Y. X→Y→X  ∀X. ∀Y. X→Y→X  ∀X⊑★. ∀Y⊑★. X⊑★ → Y⊑★ → X⊑★  ★→★→★  ★→★→★  ─ (claim α)
-W1  ─              ∀Y. X→Y→X      ∀Y. X→Y→X      ∀Y⊑★. X⊑★ → Y⊑★ → X⊑★        ★→★→★  ★→★→★  □⟨id(★) → (id(★) → id(★))⟩^[]
-W1  ─ (push Y^β)   ∀Y. X→Y→X      ∀Y. X→Y→X      ∀Y⊑★. X⊑★ → Y⊑★ → X⊑★        ★→★→★  ★→★→★  [+Y^β] □ ⟨id(★) → (−Y → id(★))⟩
-W2  ─              ∀Y. X→Y→X      X→Y→X          X⊑★ → Y⊑Y → X⊑★              ★→Y→★  ★→Y→★  □⟨id(★) → (id(Y) → id(★))⟩^[Y:X∼X]
-W2  ─ (carry Y^β)  ∀Y. X→Y→X      X→Y→X          X⊑★ → Y⊑Y → X⊑★              ★→Y→★  ★→Y→★  [+X^α] □ ⟨−X → (id(Y) → +X)⟩
-W3  ΛY. □          ∀Y. X→Y→X      X→Y→X          X⊑X → Y⊑Y → X⊑X              X→Y→X  X→Y→X  ─ (pop Y^β)
-W4  λx:X. □        X→Y→X          X→Y→X          X⊑X → Y⊑Y → X⊑X              X→Y→X  X→Y→X  λx:X. □
-W4  λy:Y. □        Y→X            Y→X            Y⊑Y → X⊑X                    Y→X    Y→X    λy:Y. □
-W4  x              X              X              X⊑X                          X      X      x
-```
-
-`final-no-push` relates the same pair with two claims, `α` for `ΛX`
-and `β` for `ΛY`, and no push at all.
-
-**Instantiation** (GTSFImp `•⊑•²`, `•⊑²`).  The compiled form of
-`M [A]` is a `ν`, so the two type applications become:
-
-```
-  W ∣ γ ⊢ L ⊑ L′ : ∀X.C ⊑ ∀X.C′    A ⊑_W A′    c : C ⇒ B    c′ : C′ ⇒ B′
-  ─────────────────────────────────────────────────────────────── (ν⊑ν)
-  W ∣ γ ⊢ ν X:=A.(L X)⟨c⟩ ⊑ ν X:=A′.(L′ X)⟨c′⟩ : B ⊑ B′
-
-  W ∣ γ ⊢ L ⊑ M′ : ∀X.C ⊑ B′    A ⊑_W ★    c : C ⇒ B
-  ──────────────────────────────────────────────── (ν⊑)
-  W ∣ γ ⊢ ν X:=A.(L X)⟨c⟩ ⊑ M′ : B ⊑ B′
-```
-
-There is no `⊑ν`.  The only right-only `ν` is the one that `Inst`
-creates, and the right side reduces it by `TyBeta` at once.  So a
-catch-up lemma can take `Inst` and `TyBeta` together, and the
-relation never has to hold in between.
-
-**Boundaries** (new; these replace GTSFImp's eight `reveal`/`conceal`
-rules).  A boundary's interior is term-closed, so the premise has
-`γ = []`.  The conversions are typed on their own sides, and, like the
-coercions, they are not compared with each other:
-
-```
-  W[δ ∥ δ′] ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′ᵢ    c : Aᵢ ⇒ A    c′ : A′ᵢ ⇒ A′
-  ───────────────────────────────────────────────────────────── (⟪⟫⊑⟪⟫)
-  W ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
-
-  W[δ ∥ ·], π ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′    c : Aᵢ ⇒ A
-  π = [] or (M simple and c has a ∀ per name of π)
-  every −X^α in δ: no partner of α in ϱ is in κ          (R1, D28)
-  ───────────────────────────────────────────── (⟪⟫⊑, D27, D28)
-  W, π ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ M′ : A ⊑ A′
-```
-
-🆕 **D28′**: each boundary rule may choose permissions for the names it
-JOINS, and pays at the join.  Written for `⟪⟫⊑⟪⟫`; `⟪⟫⊑` and `⊑⟪⟫`
-take the same two premises (with `W[δ ∥ ·]`, `W[· ∥ δ′]`), and
-`⟪⟫⊑`'s R1 becomes R1′:
-
-```
-  Wᵢ = W[δ ∥ δ′] with K added to κ
-  K ⊆ the right rep. vars of the names this rule JOINS
-      (a matched fresh pair, a rejoin through ϱ, a pushed name)
-  Aᵢ ⊑ A′ᵢ  at W[δ ∥ δ′]  (κ WITHOUT K: the joined names at X⊑X)   (the join pays)
-  Wᵢ ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′ᵢ    c : Aᵢ ⇒ A    c′ : A′ᵢ ⇒ A′
-  ───────────────────────────────────────────────────────── (⟪⟫⊑⟪⟫, D28′)
-  W ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
-
-  R1′:  every −X^α in δ whose α occurs in the boundary's EXTERIOR type A
-        has no partner in ϱ that is in κ                    (replaces R1)
-```
-
-The check reads the interior index before the new permissions, so a
-joined name is `X⊑X` there; inside, it may be `X⊑★`.  It must be at
-the rule that JOINS a name, not one that only introduces it:
-otherwise C1's right-first route revives (a right-only `+X` would pay
-a vacuous `★ ⊑ ★`, and the left's later rejoin would get the loose
-mark for free).  A name the boundary only continues, or rejoins inside
-a region where it is already permitted, pays nothing (P4 B4's `J`).
-R1′ admits P4h's crossΛ hide `[−X^α] (λy:ℕ.y) ⟨id(ℕ) → id(ℕ)⟩`, whose
-exterior `ℕ→ℕ` does not mention `α`, and still rejects C5's seal
-`[−X^α] 5 ⟨−X⟩`, whose exterior is `X`.
-
-```
-  (⊑⟪⟫, D27; under 🆕 D28′ it also takes the K and join-pays premises above:)
-
-  W[· ∥ δ′], π′ ++ new ∣ [] ⊢ M ⊑ M′ : A ⊑ A′ᵢ    c′ : A′ᵢ ⇒ A′
-  π′ = π seen inside δ′    new introduced by δ′    new = [] or M a value
-  ───────────────────────────────────────────── (⊑⟪⟫, D27)
-  W, π ∣ γ ⊢ M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
-```
-
-`⊑⟪⟫` PUSHES names that `δ′` introduces.  Each is right-only and
-bound to a rep. var `:=★`: the interior world's well-formedness says
-so; its mark is derived (D28).  A pending name is a right name position, so `⟪⟫⊑` passes it
-into the left boundary unchanged; `⊑⟪⟫` carries it through `δ′` to its
-interior position.  A name that `δ′` unbinds has no interior position,
-so it must be popped first.  With no pending name these are the plain
-one-sided boundary rules.  For the right's `Inst` boundary against a
-left ∀-value (Example P3), `⊑⟪⟫` pushes the boundary's name and `Λ⊑`
-pops it.  The left stays the ∀-value: no `inst_X` appears in the
-relation, and under a pending name the left term is a value.
-
-R1 (D28; 🆕 **D28′**: R1′, above): the left's own seal `[−X^α] V ⟨−X⟩` relates to an arbitrary
-right `★` value (the "payload view", P2), which is right when `X` is
-left-only, but not under a right check that permitted `α`'s partner:
-counterexample C5 relates `[+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩` to
-`[+X^α] 5⟨ℕ!⟩⟨X?ℓ0⟩ ⟨+X⟩`, whose right blames
-(`examples/TermImprecisionPermissionExamples.agda`, `C5Dead`; source
-programs `(ΛY. λx:Y. x) [ℕ] 5` and `(ΛY. λx:★. (x : Y)) [ℕ] (5 : ★)`).
-R1 and R2 are rule premises: no condition on worlds alone separates
-C5's hidden variant from P4 B3 (`PermissionsR.md` §1.4).
-
-The counterexample of D26 is `(λf:∀X.X→X. f)(K[ℕ])` against
-`(λf:★→★. f)(K[ℕ])`, with `K = ΛY.ΛX.λx:X.x`.  After the right's `Inst`
-and `Merge`, its final pair `VL ⊑ RF` is related by a push, a pass and
-a pop.  Its ladder, generated by
-`scripts/render_gtnf.sh 'impLadder VL⊑RF' …` (`examples/ImpLadder.agda`,
-where it is pinned):
-
-```
-W0 = the conclusion's world
-  ⟨⟩
-  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]
-W1 = Interior W0
-  ⟨Y: ─ ⊑[X⊑X] Y^β │ X: ─ ⊑[X⊑X] X^α⟩
-  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]  πʷ = [Y^β]
-W2 = Interior W1
-  ⟨Y: ─ ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
-  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]  πʷ = [Y^β]
-W3 = Open1 W2: pop Y^β
-  ⟨Y: Y^β ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
-  ϱᵍ = {α⇔α}  ϱˡ = {β⇔β}  Ξᴸ = [α:=ℕ, β abst]  Ξᴿ = [α:=ℕ, β:=★]
-W   left term                       A        ηᴸA      ⊑                ηᴿA′  A′   right term
-──  ──────────────────────────────  ───────  ───────  ───────────────  ────  ───  ────────────────────────
-W0  ─                               ∀X. X→X  ∀X. X→X  ∀X⊑★. X⊑★ → X⊑★  ★→★   ★→★  □⟨id(★) → id(★)⟩^[]
-W0  ─ (push Y^β)                    ∀X. X→X  ∀X. X→X  ∀X⊑★. X⊑★ → X⊑★  ★→★   ★→★  [+Y^β, +X^α] □ ⟨−Y → +Y⟩
-W1  [+X^α] □ ⟨∀Y. (id(Y) → id(Y))⟩  ∀X. X→X  Y→Y      Y⊑Y → Y⊑Y        Y→Y   Y→Y  ─ (pass Y^β)
-W2  ΛY. □                           ∀Y. Y→Y  Y→Y      Y⊑Y → Y⊑Y        Y→Y   Y→Y  ─ (pop Y^β)
-W3  λx:Y. □                         Y→Y      Y→Y      Y⊑Y → Y⊑Y        Y→Y   Y→Y  λx:Y. □
-W3  x                               Y        Y        Y⊑Y              Y     Y    x
-```
-
-The push is a choice: the rule does not say which introduced names to
-push, and the index decides (`PendingOpenings.md` §6).  No permission
-appears: the pending `Y` is `X⊑X` (D28).
-
-🆕 **D28′**: in the ladder below (generated from the D28 Agda), the
-permission for `αᴿ` would come from the outer matched boundary `W0 →
-W1`, which joins `X` and checks `X ⊑ X` there, instead of the grant at
-`W1 → W2`; the rows below `W2` are unchanged.
-
-A grant (D28), P4's block B3 (`p4-B3`, pinned in
-`examples/ImpLadder.agda`): the right's check `X?` grants `αᴿ`, so
-inside it the shared `X` is `X⊑★` (W2), stays `X⊑★` as a left-only
-name inside the right's `−X` (W3), and the matched seals `S ⊑ S`
-relate at the index `X ⊑ X` under the grant:
-
-```
-W0 = the conclusion's world
-  ⟨⟩
-  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]
-W1 = Interior W0
-  ⟨X: X^α ⊑[X⊑X] X^α⟩
-  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]
-W2 = W1 grant X^α
-  ⟨X: X^α ⊑[X⊑★] X^α⟩
-  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]  κʷ = {α}
-W3 = Interior W2
-  ⟨X: X^α ⊑[X⊑★] ─⟩
-  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]  κʷ = {α}
-W4 = Interior W2
-  ⟨⟩
-  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]  κʷ = {α}
-W   left term        A    ηᴸA  ⊑          ηᴿA′  A′   right term
-──  ───────────────  ───  ───  ─────────  ────  ───  ────────────────────────
-W0  [+X^α] □ ⟨+X⟩    ℕ    ℕ    ℕ⊑ℕ        ℕ     ℕ    [+X^α] □ ⟨+X⟩
-W1  ─ (grant X^α)    X    X    X⊑X        X     X    □⟨X?ℓ0⟩^[X:★∼X]
-W2  □₁ □₂            X    X    X⊑★        ★     ★    □₁ □₂
-W2  ├ ─              X→X  X→X  X⊑★ → X⊑★  ★→★   ★→★  [−X^α] □ ⟨id(★) → id(★)⟩
-W3  │ λx:X. □        X→X  X→X  X⊑★ → X⊑★  ★→★   ★→★  λx:★. □
-W3  │ x              X    X    X⊑★        ★     ★    x
-W2  └ ─              X    X    X⊑★        ★     ★    □⟨X!⟩^[X:X∼★]
-W2    [−X^α] □ ⟨−X⟩  X    X    X⊑X        X     X    [−X^α] □ ⟨−X⟩
-W4    5              ℕ    ℕ    ℕ⊑ℕ        ℕ     ℕ    5
-```
-
-In `⟪⟫⊑` and `⊑⟪⟫`, the term without the boundary is in the premise
-at `γ = []`, so it must be term-closed as well.  That holds at run
-time, because every boundary of a run is a closed subterm.
-
-**Conversion imprecision** (D17, D18; `ConversionImprecision.agda`).
-`ν⊑ν` and `⟪⟫⊑⟪⟫` also require `Wᶜ ⊢ c ⊑ c′`, where `Wᶜ` is the world
-over the two conversion contexts.  For `ν⊑ν`, it adds both
-allocations and pairs the two `ν`s' rep. vars in `ϱˡ`.  For a
-boundary pair, it is the conversion-context analogue of `W[δ ∥ δ′]`.
-The one-sided boundary rules have no conversion premise.  The clauses
-follow the conversion grammar:
-
-```
-  A ⊑ A′                 c ⊑ c′    d ⊑ d′          (W ⊕²) ⊢ c ⊑ c′
-  ───────────────        ────────────────          ─────────────────────
-  id(A) ⊑ id(A′)         c → d ⊑ c′ → d′           ∀X.c ⊑ ∀X.c′
-
-  X, X′ one center name    X, X′ one center name    t ⊑ t′    c ⊑ c′
-  ─────────────────────    ─────────────────────    (chains, componentwise)
-  −X ⊑ −X′                 +X ⊑ +X′
-
-  μ(X) = X⊑★  U(X)    μ(X) = X⊑★  U(X)    t ⊑ t′  μ(X) = X⊑★  U(X)    μ(X) = X⊑★  U(X)  c ⊑ c′
-  ────────────────    ────────────────    ───────────────────────    ────────────────────────
-  −X ⊑ id(★)          +X ⊑ id(★)          t ; −X ⊑ t′                +X ; c ⊑ c′
-
-  U(X)  =  no partner in ϱ of X's rep. var is in κ          (R2, D28)
-
-  (W ⊕ᴸ X) ⊢ c ⊑ g′
-  ─────────────────   (g′ a middle)
-  ∀X.c ⊑ g′
-```
-
-The last row mirrors type imprecision's `X ⊑ ★` and `∀⊑`.  A seal or
-unseal of a left name at `X⊑★` may be absent on the right, and a
-left-only universal is opened at `X⊑★`.  R2 (D28) adds `U(X)`: with
-"names name paired rep. vars", `μ(X) = X⊑★` and `U(X)` force `X` to
-be left-only in the conversion world (it closes the matched variant
-of C5).  C23a needs the bare forms,
-and C23b needs the `∀` form.  The chain forms are needed because a
-left-only `Merge` builds chains.
-
-**Count.**  In Agda, 15 rules: four congruence rules (`x⊑x`, `κ⊑κ`,
-`ƛ⊑ƛ`, `·⊑·`; GTNF has no binary operators, so no `⊕⊑⊕`), `blame⊑`,
-three cast rules, `Λ⊑Λ` and `Λ⊑` (one rule whose `Claim` is fresh, pop
-or claim-rep, displayed above as three), two `ν` rules and three
-boundary rules.  The side relations are `Claim` (3 cases), `CastClaim`
-(3), `BdyClaim` (2), `Push` with `Carried` (D27), and ~~`CastGrant`
-(D28)~~ (🆕 **D28′**: removed).
-GTSFImp's `_∣_⊢²_⊑_∶_` has 22.
-
-### 12.3.1 Open: left values built by `gen` (TwoGen)
-
-Status (2026-10-06): a known defect of §12.3 and a proposed fix, checked
-in `proof/DGG/notes/TwoGen.agda` (`.md`); the fix is not adopted.  Each
-example below has RELATED source programs and related initial cast
-terms, its left is a value, and the right's final value is related to
-it by no derivation of §12.3 in any top-level world.  So each is a
-counterexample to DGG part 1 (`*.not-dgg : ¬ DGG`).
-
-**G0: one `gen` layer.**  Sources (related: the same term, and
-`∀X.X→ℕ ⊑ ★→ℕ`):
-
-```
-L   (λx:★. 5 : ∀X. X→ℕ)
-R   ((λx:★. 5 : ∀X. X→ℕ) : ★→ℕ)
-```
-
-Cast terms (related at the empty world, `G0.init`):
-
-```
-L₀  (λx:★. 5)⟨gen X. (X! → id(ℕ))⟩
-R₀  (λx:★. 5)⟨gen X. (X! → id(ℕ))⟩⟨inst Y. (Y?ℓ0 → id(ℕ))⟩
-```
-
-The left is a value.  The right runs:
-
-```
-  R₀
-⟶ (Inst)
-  (ν X:=★. ((λx:★. 5)⟨gen Y. (Y! → id(ℕ))⟩ X) ⟨−X → id(ℕ)⟩)⟨id(★) → id(ℕ)⟩
-⟶ (TyBeta, ⊣ α:=★)
-  ([+X^α] ([−X^α] (λx:★. 5) ⟨id(★) → id(ℕ)⟩)⟨X! → id(ℕ)⟩^[X:★∼X] ⟨−X → id(ℕ)⟩)⟨id(★) → id(ℕ)⟩
-```
-
-Every attempt at the final pair stops (`G0.g0-unrelated`):
-
-```
-⊑cast  ⟨id(★) → id(ℕ)⟩, grants nothing          ∀X.X→ℕ ⊑ ★→ℕ
-  ⊑⟪⟫  +X^α, push X                            X→ℕ ⊑ X→ℕ   (X is X⊑X)
-    cast⊑ (pop at the left's gen):  premise at the gen's source,  ★→ℕ ⊑ X→ℕ   ✗
-    ⊑cast ⟨X! → id(ℕ)⟩:  premise needs X ⊑ ★, and X! → id(ℕ) grants nothing  ✗
-    cast⊑cast:  needs no pending name  ✗
-```
-
-The cause (O1): a pop at a left `gen` relates the value under the gen
-at the gen's SOURCE type, so the right's cast over the instantiated
-gen body (`⟨X! → id(ℕ)⟩`) must first be peeled by `⊑cast` at
-`X ⊑ ★`, and under D28 that needs a grant, i.e. a covariant check of
-`X`.  G1's body `X! → X?` checks `X`; G0's `X! → id(ℕ)` does not,
-although no `X`-tagged value can flow out of it (`X` occurs only
-contravariantly).
-
-**G2: two `gen` layers, two right casts.**  Sources (related):
-
-```
-L   (λx:★. λy:★. x : ∀X. ∀Y. X→Y→X)
-R   (((λx:★. λy:★. x : ∀X. ∀Y. X→Y→X) : ∀Y. ★→Y→★) : ★→★→★)
-```
-
-The right instantiates twice.  The second `Inst` goes through the first
-boundary and its gen layer, so its boundary `+Y^β` is born OUTSIDE
-`+X^α`, and the `∀`-cast between them blocks the `Merge`.  The right's
-final value:
-
-```
-([+Y^β] ([+X^α] ([−Y^β, −X^α] (λx:★. (λy:★. x)) ⟨id(★) → (id(★) → id(★))⟩)⟨X! → (Y! → X?ℓ0)⟩^[X:★∼X, Y:★∼X] ⟨−X → (id(Y) → +X)⟩)⟨id(★) → (id(Y) → id(★))⟩^[Y:X∼X] ⟨id(★) → (−Y → id(★))⟩)⟨id(★) → (id(★) → id(★))⟩^[]
-```
-
-Inside `+Y^β` the only right name is `Y`, with interior type
-`★ → Y → ★`.  The left's `∀X.∀Y.X→Y→X` must open its INNER `∀` at `Y`
-while its outer `∀` waits; pending names open the outer one first
-(O2, `G2.g2-unrelated`).  This is H1's problem (D29) for `gen`
-binders, and `claim-rep` cannot help: a `gen` binder scopes over no
-left term, so the left context cannot grow above the right boundaries.
-
-The other five pairs combine these: two gen layers with one right cast
-and a `Merge` (G2m, O1: one pop per gen); a gen under a `∀` over a `Λ`
-(HRm, HR); nested gen casts (N2, merged and with two casts).
-
-**Proposed fix** (a local variant `V2` of §12.3; three changes):
-
-1. **Pop against a right cast.**  `cast⊑cast` may run with pending
-   names and carry a claim on its LEFT coercion, so a left gen layer
-   pops its name against the right's cast without a grant:
-
-   ```
-     W, πₚ ∣ γ ⊢ M ⊑ M′ : B ⊑ B′    c claims π ↦ πₚ    c : B ⇒ A    c′ : B′ ⇒ A′
-     ──────────────────────────────────────────────────────────── (cast⊑cast, (i))
-     W, π ∣ γ ⊢ M ⟨c⟩ ⊑ M′ ⟨c′⟩ : A ⊑ A′
-   ```
-
-   This is the shape the left's own instantiation produces: `inst-gen`
-   turns `V⟨gen X.p⟩` into `([−X^α] V⟨…⟩)⟨p⟩`, the right's term.
-2. **One pop per gen layer.**  The claim continues below a pop:
-   `gen X. gen Y. p` pops `X` then `Y`; `gen X. ∀Y. p` pops `X` and
-   passes `Y` on.
-3. **Skip a waiting `∀`, for gen-cast values only.**  The index may
-   skip a leading left `∀`, which stays left-only at `X⊑★` (as type
-   imprecision's `∀⊑`), before opening the next `∀` at a pending name;
-   and `⊑⟪⟫` may push new names before carried ones.  This is the gen
-   analogue of `claim-rep`: the waiting binder lives in the index,
-   because there is no left term to claim it.
-
-G2 under the fix (`Pos2.g2-final`):
-
-```
-⊑cast  ⟨id(★) → (id(★) → id(★))⟩                         ∀X.∀Y.X→Y→X ⊑ ★→★→★
-  ⊑⟪⟫  +Y^β, push Y;  index: SKIP X (left-only), open Y at Y   X′→Y→X′ ⊑ ★→Y→★
-    ⊑cast  ⟨id(★) → (id(Y) → id(★))⟩
-      ⊑⟪⟫  +X^α, push X BEFORE the carried Y;  pending [X, Y]  X→Y→X ⊑ X→Y→X
-        cast⊑cast  ⟨gen X. gen Y. …⟩ ∥ ⟨X! → (Y! → X?ℓ0)⟩: pop X, pop Y
-          ⊑⟪⟫  −Y^β, −X^α                                    ★→★→★ ⊑ ★→★→★
-            ƛ⊑ƛ, ƛ⊑ƛ, x⊑x
-```
-
-G0 under the fix: push `X`, then `cast⊑cast` pops `X` against
-`⟨X! → id(ℕ)⟩`, then the right's `−X^α`.
-
-**Checks** (mechanized in TwoGen): changes 1–2 alone relate G0, G2m,
-HRm and N2-merged; all three relate all seven final pairs and G2's
-intermediate states, and DGG part 1 holds on each.  §12.3's relation is
-contained in the variant, so the corpus derives; C1–C5 and C4g stay
-not derivable (their left terms contain no gen or `∀` casts, and a
-variant derivation of such a term maps back to a §12.3 derivation).
-
-**Open.**  Sim and SimBack against the new cases are not checked (a
-left `TyBeta` catching up with a `cast⊑cast` pop, instantiating at a
-skipped `∀`, a new-first push), nor whether changes 1 or 3 relate some
-gen-valued pair that should not be.  An alternative for O1 alone:
-count a name that never flows out as checked ("vacuous" grants);
-G2m would still need change 2.  The principled form of change 3 is
-pending rep. vars whose unnamed entries open left-only
-(PushOrder.md, fix (c3)); the skip is its index-only shadow.
-
-### 12.3.2 Proposal: openings in the index (🆕 **D30**)
-
-Status: proposed 2026-10-08; not adopted, not checked.  Everything in
-this subsection is new.
-
-**Why.**  A pending name (D27) says how to read a type: "the left
-type's next outer `∀` binds the right's name `Y`".  It never changed a
-term's context (`CtxImp` never read `πʷ`), and two of the three
-binders that consume it, a `gen X.p` and a `∀X.p` coercion, have no
-term in their scope.  So it belongs to the index of the judgment, not
-to the world.  With it there, the world changes only at term binders
-(`Λ`, boundary entries, `ν`).
-
-**The index.**
-
-```
-  A ⊑_W^O A′      O a list of right names (the openings), next first
-
-  A ⊑_W^[]    A′  =  A ⊑_W A′                            (the plain index)
-  ∀X.A ⊑_W^(Y·O) A′  =  A[X:=Y] ⊑_W^O A′                  (open the next ∀ at Y)
-```
-
-(as today's `OpenImp`; `X` and `Y` become one center name for the
-reading).  Well-formedness of an index: each name of `O` is right-only,
-bound to a `★` rep. var with no named left partner, and the names are
-distinct.  The judgment is `W ∣ γ ⊢ M ⊑ M′ : A ⊑_W^O A′`; the world has
-no `π` field.
-
-**Rules that create an opening: only `⊑⟪⟫`** (a right boundary, whose
-entries bind names in its interior):
-
-```
-  W[· ∥ δ′] ∣ [] ⊢ M ⊑ M′ : A ⊑^(O′ ++ new) A′ᵢ    c′ : A′ᵢ ⇒ A′
-  O′ = O seen inside δ′    new ⊆ the ★-bound right-only names δ′ binds
-  new = [] or M a value
-  ────────────────────────────────────────────────────── (⊑⟪⟫, D30)
-  W ∣ γ ⊢ M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑^O A′
-```
-
-**Rules that consume an opening: only `Λ⊑`** (a term binder) changes
-the world:
-
-```
-  W[X ↦ Y] ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑^O B′
-  ──────────────────────────────────────── (Λ⊑, join, D30; was the pop)
-  W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑^(Y·O) B′
-```
-
-`Λ⊑`'s fresh and `claim-rep` forms are unchanged and take the plain
-index (`O = []`).
-
-**Rules that pass openings along the types, with no world change.**
-One `cast⊑` rule: its premise's openings follow from its conclusion's
-and the cast's types.  A cast `p : B ⇒ A` consumes the leading
-openings that `A` has more outer `∀`s for than `B`, and passes the
-rest:
-
-```
-  W ∣ γ ⊢ M ⊑ M′ : B ⊑^(drop k O) A′    p : B ⇒ A
-  k = (outer ∀s of A) − (outer ∀s of B), and O = [] unless M is a value
-  ──────────────────────────────────────────────── (cast⊑, D30)
-  W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ : A ⊑^O A′
-```
-
-For `∀X.p : ∀X.B ⇒ ∀X.A`, `k = 0`: the opening passes to `M`, whose
-type is `∀X.B`.  For `gen X.p : B ⇒ ∀X.A`, `k = 1`: the opening is
-used up by the cast's own type and `M : B` is related at the plain
-index; `X` is bound only in `p`.  For any other cast with `O = []`, it is
-GTSFImp's `cast⊑`.  Likewise `⟪⟫⊑` passes openings into the left
-interior when its conversion has a matching `∀` (D27's pass), `⊑cast`
-keeps them, and every other rule requires `O = []`.
-
-**Example: K's final pair** (§12.3's ladder), read with D30:
-
-```
-⊑cast                       index ∀X.X→X ⊑ ★→★                 (O = [])
-  ⊑⟪⟫  [+Y^β, +X^α], open at Y   index ∀X.X→X ⊑^[Y] Y→Y  = Y→Y ⊑ Y→Y
-    ⟪⟫⊑  [+X^α] … ⟨∀Y. …⟩, pass   index ∀Y.Y→Y ⊑^[Y] Y→Y
-      Λ⊑  join ΛY to Y             world: Y joined;  index Y→Y ⊑ Y→Y  (O = [])
-        ƛ⊑ƛ, x⊑x
-```
-
-The only world change is at `ΛY`, a term binder; the opening lives in
-the index from `⊑⟪⟫` down to `Λ⊑`.
-
-**What goes.**  `πʷ`; `PendingOK` and `wf-pending`, `wf-distinct` in
-`WfWorld`; the `πʷ W ≡ []` hypotheses of the theorem statements and of
-`RelatedValues`; `CastClaim` (three cases) and the special forms of
-`cast⊑`; the record updates `record W { πʷ = … }`.  What stays:
-`Push`/`Carried` as the side condition of `⊑⟪⟫`, `ForallConv` for
-`⟪⟫⊑`, and the join (`Open1`) at `Λ⊑`.
-
-**Open.**
-- H1's order problem (D29) and TwoGen's O2 are about the order of
-  openings and are unchanged; TwoGen's index skip (change 3 of §12.3.1)
-  is an index operation and would fit here.
-- Interaction with D28′ (permissions at joining binders): the join of
-  an opening happens at `Λ⊑`, a term binder, so D28′'s "the join pays"
-  check would sit there.
-- Whether every lemma that today reads `πʷ` (PushInstR, PendingMor, …)
-  becomes simpler or only moves.
-
-### 12.4 Examples
-
-Six pairs, in `ImprecisionExamples.agda`.  Each run is a `Reaches …
-refl` proof, and the states below are rendered from `evalTerms` by
-`Show.agda` (`scripts/render_gtnf.sh`), not transcribed by hand.  Each
-run names its rep. vars by allocation order, so both runs call their first
-rep. var `α`.  They are different rep. vars, and `ϱ` pairs them; write `αᴸ`
-and `αᴿ` when the difference matters.
-
-The traces are shown **synchronized**: each block is a pair of states
-that the relation must relate, and between blocks one side takes one
-step while the other takes zero or more steps (the shape of a
-simulation, §9.7).  Under each pair are the rules at the top of its
-derivation and the facts the derivation turns on.
-
-| pair | left (more precise) | right | left answer | right answer |
-|---|---|---|---|---|
-| P1 | `(ΛX.λx:X.x)[ℕ] 5` | `(ΛX.λx:X.x)[★] 5` | `5` (5 steps) | `5⟨ℕ!⟩` (6) |
-| P2 | `(ΛX.λx:X.x)[ℕ] 5` | `(λx:★.x) 5` | `5` (5) | `5⟨ℕ!⟩` (1) |
-| P3 | `(λf:∀X.X→X. f[ℕ] 5)(ΛX.λx:X.x)` | Example 1 | `5` (6) | `5⟨ℕ!⟩` (11) |
-| P4 | as P3 | Example 2 | `5` (6) | `5` (12) |
-| P5 | Example 4 | `(λn:ℕ.n)((λx:★.(λz:★.z) x) 5)` | `blame ℓ` (6) | `5` (4) |
-| P6 | `(λg:∀X.X→ℕ. g[𝔹] true)(ΛX.λx:X.7)` | Example 6 | `7` (5) | `7⟨ℕ!⟩` (8) |
-
-The answers are related in every case: `5 ⊑ 5⟨ℕ!⟩` by `⊑cast`, and in
-P5 the left blames, which `blame⊑` allows.
-
-#### P1 — both sides instantiate, at ℕ and at ★ (aligned boundaries)
-
-```
-L  ((ν X:=ℕ. ((ΛY. (λx:Y. x)) X) ⟨−X → +X⟩) 5)
-R  ((ν X:=★. ((ΛY. (λx:Y. x)) X) ⟨−X → +X⟩) 5⟨ℕ!⟩^[])
-   ·⊑·, ν⊑ν (ℕ ⊑ ★), ⊑cast
-                                         L: TyBeta (α:=ℕ)    R: TyBeta (α:=★)
-L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
-R  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5⟨ℕ!⟩^[])
-   ·⊑·, ⟪⟫⊑⟪⟫: X both-sided, ϱ = {(αᴸ, αᴿ)}, αᴸ:=ℕ ⊑ αᴿ:=★
-                                         L: Wrap             R: Wrap
-L  ([+X^α] ((λx:X. x) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩)
-R  ([+X^α] ((λx:X. x) ([−X^α] 5⟨ℕ!⟩^[] ⟨−X⟩)) ⟨+X⟩)
-   ⟪⟫⊑⟪⟫, ·⊑·, ⟪⟫⊑⟪⟫ (both unbind X), ⊑cast: 5 ⊑ 5⟨ℕ!⟩ at ℕ ⊑ ★
-                                         L: Beta             R: Beta
-                                         L: Merge            R: Merge
-L  ([+X^α, −X^α] 5 ⟨id(ℕ)⟩)
-R  ([+X^α, −X^α] 5⟨ℕ!⟩^[] ⟨id(★)⟩)
-   ⟪⟫⊑⟪⟫, ⊑cast
-                                         L: Id               R: IdDyn, Id
-L  5
-R  5⟨ℕ!⟩^[]
-   ⊑cast
-```
-
-The two `−X` conversions are the same syntax, typed at different
-representations (`ℕ ⇒ X` and `★ ⇒ X`).  The interior types `ℕ ⊑ ★`
-are related because the paired rep. vars are.
-
-#### P2 — the left side alone abstracts and instantiates (one-sided boundaries)
-
-```
-L  ((ν X:=ℕ. ((ΛY. (λx:Y. x)) X) ⟨−X → +X⟩) 5)
-R  ((λx:★. x) 5⟨ℕ!⟩^[])
-   ·⊑·, ν⊑ (ℕ ⊑ ★), Λ⊑: X left-only, λx:X.x ⊑ λx:★.x at X→X ⊑ ★→★
-                                         L: TyBeta (α:=ℕ)    R: —
-L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
-R  ((λx:★. x) 5⟨ℕ!⟩^[])
-   ·⊑·, ⟪⟫⊑: X left-only, interior X→X ⊑ ★→★, exterior ℕ→ℕ ⊑ ★→★
-                                         L: Wrap             R: —
-L  ([+X^α] ((λx:X. x) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩)
-R  ((λx:★. x) 5⟨ℕ!⟩^[])
-   ⟪⟫⊑, ·⊑·, ⟪⟫⊑ (the left unbinds its left-only X; the center drops it)
-                                         L: Beta             R: Beta
-L  ([+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩)
-R  5⟨ℕ!⟩^[]
-   ⟪⟫⊑, ⟪⟫⊑, ⊑cast: [−X^α] 5 ⟨−X⟩ ⊑ 5⟨ℕ!⟩ at X ⊑ ★ (X left-only)
-                                         L: Merge, Id        R: —
-L  5
-R  5⟨ℕ!⟩^[]
-```
-
-The right term crosses the left-only `Λ` and `[+X^α]` unweakened: only
-`η` reaches the new center name.
-
-#### P3 — the right side alone instantiates, by `Inst` (the new rule `∀⊑⟪+⟫`)
-
-```
-L  ((λx:(∀X. X→X). ((ν X:=ℕ. (x X) ⟨−X → +X⟩) 5)) (ΛY. (λx:Y. x)))
-R  ((λx:★→★. (x 5⟨ℕ!⟩^[])) (ΛX. (λx:X. x))⟨inst Y. (Y?ℓ0 → Y!)⟩^[])
-   ·⊑·, ƛ⊑ƛ (∀X.X→X ⊑ ★→★), ν⊑ in the body; ⊑cast, Λ⊑Λ for the argument
-                                         L: Beta             R: Inst, TyBeta (α:=★), Beta
-L  ((ν X:=ℕ. ((ΛY. (λx:Y. x)) X) ⟨−X → +X⟩) 5)
-R  (([+X^α] (λx:X. x) ⟨−X → +X⟩)⟨id(★) → id(★)⟩^[] 5⟨ℕ!⟩^[])
-   ·⊑·, ν⊑, ⊑cast, ∀⊑⟪+⟫: the left Λ's abstract rep. var is paired with αᴿ:=★
-                                         L: TyBeta (α:=ℕ)    R: —
-L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
-R  (([+X^α] (λx:X. x) ⟨−X → +X⟩)⟨id(★) → id(★)⟩^[] 5⟨ℕ!⟩^[])
-   ·⊑·, ⊑cast, ⟪⟫⊑⟪⟫: ϱ gains (αᴸ, αᴿ), αᴸ:=ℕ ⊑ αᴿ:=★
-                                         L: Wrap             R: CastFun, CastId, Wrap
-L  ([+X^α] ((λx:X. x) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩)
-R  ([+X^α] ((λx:X. x) ([−X^α] 5⟨ℕ!⟩^[] ⟨−X⟩)) ⟨+X⟩)⟨id(★)⟩^[]
-   ⊑cast, then as P1
-                                         L: Beta             R: Beta
-                                         L: Merge            R: Merge
-                                         L: Id               R: IdDyn, Id, CastId
-L  5
-R  5⟨ℕ!⟩^[]
-```
-
-The `Inst`/`TyBeta` pair runs before the right's `Beta`, because `inst`
-is not inert, so the right holds a boundary while the left still holds
-a `Λ`.  That is the reason for `∀⊑⟪+⟫`.
-
-#### P4 — the right side alone generalizes (a both-sided name at `X⊑★`)
-
-```
-L  ((λx:(∀X. X→X). ((ν X:=ℕ. (x X) ⟨−X → +X⟩) 5)) (ΛY. (λx:Y. x)))
-R  ((λx:(∀X. X→X). ((ν X:=ℕ. (x X) ⟨−X → +X⟩) 5)) (λx:★. x)⟨gen Y. (Y! → Y?ℓ0)⟩^[])
-   ·⊑·, ƛ⊑ƛ, ν⊑ν; ⊑cast, Λ⊑ (Y left-only) for the argument
-                                         L: Beta             R: Beta
-                                         L: TyBeta (α:=ℕ)    R: TyBeta (α:=ℕ)
-L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
-R  (([+X^α] ([−X^α] (λx:★. x) ⟨id(★) → id(★)⟩)⟨X! → X?ℓ0⟩^[X:★∼X] ⟨−X → +X⟩) 5)
-   ·⊑·, ⟪⟫⊑⟪⟫ with X both-sided at X⊑★, ⊑cast, ⊑⟪⟫: the right unbinds X,
-   so X is left-only inside, λx:X.x ⊑ λx:★.x at X→X ⊑ ★→★
-                                         L: Wrap             R: Wrap, CastFun
-L  ([+X^α] ((λx:X. x) ([−X^α] 5 ⟨−X⟩)) ⟨+X⟩)
-R  ([+X^α] (([−X^α] (λx:★. x) ⟨id(★) → id(★)⟩) ([−X^α] 5 ⟨−X⟩)⟨X!⟩^[X:X∼★])⟨X?ℓ0⟩^[X:★∼X] ⟨+X⟩)
-   ⟪⟫⊑⟪⟫, ⊑cast (X?: X ⊑ ★ to X ⊑ X), ·⊑·, ⊑⟪⟫ for the function,
-   ⊑cast for the argument: [−X^α] 5 ⟨−X⟩ ⊑ ([−X^α] 5 ⟨−X⟩)⟨X!⟩ at X ⊑ ★
-                                         L: Beta             R: Wrap, Beta
-L  ([+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩)
-R  ([+X^α] ([−X^α] ([+X^α] ([−X^α] 5 ⟨−X⟩)⟨X!⟩^[X:X∼★] ⟨id(★)⟩) ⟨id(★)⟩)⟨X?ℓ0⟩^[X:★∼X] ⟨+X⟩)
-   ⟪⟫⊑⟪⟫, ⊑cast, ⊑⟪⟫ (the right unbinds X: X left-only),
-   ⊑⟪⟫ (the right rebinds the rep. var αᴿ, which ϱ pairs with αᴸ: X is
-   both-sided again), ⊑cast (X!), ⟪⟫⊑⟪⟫
-                                         L: —                R: Merge, IdDyn, Merge, TagUntag
-L  ([+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩)
-R  ([+X^α] ([−X^α, +X^α, −X^α] 5 ⟨−X⟩) ⟨+X⟩)
-   ⟪⟫⊑⟪⟫, ⟪⟫⊑⟪⟫ with δ = (−X), δ′ = (−X, +X, −X): the net effect on
-   names is the same on both sides
-                                         L: Merge, Id        R: Merge, Id
-L  5
-R  5
-```
-
-This pair needs two things that P1–P3 do not.  First, a both-sided
-name at `X⊑★`: inside the `[+X^α]` pair, the left's `λx:X.x` faces the
-right's `λx:★.x`, which `gen` has not yet cast to `X → X`.  Second, `ϱ`
-must survive a right-only unbind: the right's `[−X^α, +X^α]` hides `X`
-and rebinds the same rep. var, and only `ϱ` says that the rebound name is
-the left's `X` again.
-
-#### P5 — the left side blames on an escaped tag; the right side succeeds
-
-```
-L  ((λx:ℕ. x) ((ν X:=ℕ. ((ΛY. (λx:Y. ((λy:★. y) x⟨Y!⟩^[Y:★∼X∼★]))) X) ⟨−X → id(★)⟩) 5)⟨ℕ?ℓ0⟩^[])
-R  ((λx:ℕ. x) ((λx:★. ((λy:★. y) x)) 5⟨ℕ!⟩^[])⟨ℕ?ℓ0⟩^[])
-   ·⊑·, cast⊑cast, ·⊑·, ν⊑, Λ⊑ (Y left-only); cast⊑ for x⟨Y!⟩ ⊑ x
-                                         L: TyBeta, Wrap     R: —
-                                         L: Beta             R: Beta
-                                         L: Beta             R: Beta
-L  ((λx:ℕ. x) ([+X^α] ([−X^α] 5 ⟨−X⟩)⟨X!⟩^[X:★∼X∼★] ⟨id(★)⟩)⟨ℕ?ℓ0⟩^[])
-R  ((λx:ℕ. x) 5⟨ℕ!⟩^[]⟨ℕ?ℓ0⟩^[])
-   ·⊑·, cast⊑cast, ⟪⟫⊑ (X left-only), cast⊑ (the left's X!),
-   ⟪⟫⊑ (the left unbinds X), ⊑cast: 5 ⊑ 5⟨ℕ!⟩
-                                         L: TagUntagBad-⟪⟫   R: TagUntag
-L  ((λx:ℕ. x) blame ℓ0)
-R  ((λx:ℕ. x) 5)
-   ·⊑·, blame⊑
-```
-
-The fresh-tag value `[+X^α] (… ⟨X!⟩) ⟨id(★)⟩` is related to the
-`ℕ`-tagged `5`.  This is sound because `X` is left-only, so its mark
-is `X⊑★`: the right side sees `★` wherever the left sees `X`, and no
-check on the right can be paired with a check of `X` on the left.
-
-#### P6 — a `∀`-cast on the right, and conversions of different shape
-
-```
-L  ((λx:(∀X. X→ℕ). ((ν X:=𝔹. (x X) ⟨−X → id(ℕ)⟩) true)) (ΛY. (λx:Y. 7)))
-R  ((λx:(∀X. X→★). ((ν X:=𝔹. (x X) ⟨−X → id(★)⟩) true)) (ΛY. (λx:Y. 7))⟨∀Z. (id(Z) → ℕ!)⟩^[])
-   ·⊑·, ƛ⊑ƛ, ν⊑ν; ⊑cast, Λ⊑Λ
-                                         L: Beta             R: Beta
-                                         L: TyBeta (α:=𝔹)    R: TyBeta (α:=𝔹)
-L  (([+X^α] (λx:X. 7) ⟨−X → id(ℕ)⟩) true)
-R  (([+X^α] (λx:X. 7)⟨id(X) → ℕ!⟩^[X:X∼X] ⟨−X → id(★)⟩) true)
-   ·⊑·, ⟪⟫⊑⟪⟫ (the conversions differ: −X → id(ℕ) and −X → id(★)), ⊑cast
-                                         L: Wrap             R: Wrap
-                                         L: Beta             R: CastFun, CastId, Beta
-L  ([+X^α] 7 ⟨id(ℕ)⟩)
-R  ([+X^α] 7⟨ℕ!⟩^[X:X∼X] ⟨id(★)⟩)
-   ⟪⟫⊑⟪⟫, ⊑cast
-                                         L: Id               R: IdDyn, Id
-L  7
-R  7⟨ℕ!⟩^[]
-```
-
-`inst_X` reaches through the right's `∀`-cast, so both `TyBeta`s
-allocate one rep. var each and the boundaries stay aligned.
-
-### 12.5 What the examples say about the sketch
-
-- **The world never rebases.**  In all six pairs, `Ω`, `η`, `η′` and
-  `μ` change only at a binder or a boundary entry, for the subterm
-  under it.  `ϱ` gains a pair at a matched `TyBeta` (P1, P4, P6) and
-  at the left's catch-up `TyBeta` in P3.
-- **Rules used.**  Every rule of §12.3 is used except `⊕⊑⊕` (no
-  example has an operator).  P2 and P5 need the left-only boundary
-  rule `⟪⟫⊑`.  P4 needs
-  the right-only rule `⊑⟪⟫`, with both an unbind and a rebind.  P3
-  needs `∀⊑⟪+⟫` (at a `Λ`).
-- **Not exercised.**  A gen cast on both sides; a gen cast on the left
-  only (its `[−X^α]` is then a left-only unbind of a both-sided name);
-  `bot-elim`/`bot-intro`; an escaped tag that comes back into scope
-  (Example 5) on one side only; two-allocation runs (D8).
-- **Open questions** (to be settled one at a time):
-  1. *Settled (D11).*  A both-sided name gets the mark `X⊑★` at its
-     binder (`W ⊕ X:m`, `W[δ ∥ δ′]`), not by GTSFImp's `ImpEnvMono`
-     decay at the cast rules.
-  2. *Settled (D12).*  `ϱ` stays in the world as a global relation on
-     rep. vars; the relation on names stays lexical.  P4's rebind reads `ϱ`.
-  3. Whether `W[δ ∥ δ′]` should be restricted (for example, forbid a
-     left-only unbind of a both-sided name), or whether such
-     restrictions should come from the DGG proof.
-
-     *Finding (probe `notes/LeftOnlyUnbindProbe.agda`; corrected).*
-     The probe's left coercion
-     `gen X. inst Y. ((X! ; Y?ℓ) → (Y! ; X?ℓ))` is a well-typed GTNF
-     coercion, and a §12.3 world relates its run to the direct cast's
-     only at the start.  But compilation never produces it.  It is not
-     the image `⟦c⟧ℓ` of any consistency evidence: inside it,
-     `X ∼ Y` would be needed for two distinct names, and consistency
-     is not transitive (`_!` and `？_` only give `A ∼ ★` and
-     `★ ∼ B`).  This agrees with the specification "two types are
-     consistent if and only if they have a common lower bound"
-     (Jeremy, 2026-10-01).  `∀X.X→X`'s only lower bound is itself,
-     so `∀Y.Y→★` (which `∀X.X→X ⋢ ∀Y.Y→★` excludes) is not
-     consistent with it.  GTSFImp's `lower?` agrees, checked by
-     `refl`: it finds a lower bound for `∀Y.Y→Y ∼ ∀X.X→X` and none for
-     `∀Y.Y→★ ∼ ∀X.X→X`.  Closed types have only `CrossFree` evidence,
-     so `∼→∼ᵘ` (`proof/Consistency2.agda`) rules out declarative
-     evidence for the latter as well.  So the probe's pair is outside
-     the image of compilation.
-
-     *`gen` does not produce it (argument, and a search).*  At a shared
-     `X` (`∀X.B ⊑ ∀X.B′` by `∀⊑∀`), if the more precise evidence
-     `c : A ∼ ∀X.B` handles `X`'s binder by `gen`, then so does the
-     less precise `c′ : A′ ∼ ∀X.B′` (with `A ⊑ A′`).  Each alternative
-     for `c′` fails:
-
-     - `∀ᶜ` identifies a binder of `A′` with `X`.  Then on the left the
-       corresponding binder of `A` faces `X`, a distinct name, and
-       consistency cannot relate two distinct names.
-     - `inst` leaves `X` in the target, so the same argument applies
-       one level down.
-     - If `A′ = ★`, then `c′ = ？(∀★) ; c″`.  `c″` cannot be `∀ᶜ`,
-       because a strict `X` would face a `★` leaf.  It cannot be
-       `inst` either, because `X ∉ ★`.  So `c″` is `gen`.
-     - `bot-elim` needs `B′ = ★`, which does not contain `X`.
-
-     `notes/detour/left_only_unbind.py`, on the Python model of
-     GTSFImp's consistency and imprecision in `notes/detour/model.py`
-     (validated against Agda in `notes/detour/REPORT.md`), searches
-     every piece of declarative evidence on both sides.  It found no
-     counterexample for types of size up to 6: closed (28,697 related
-     pairs with a left `gen`) and with one free cross-mode name
-     (35,649).  A control in which `X` is left-only (`∀⊑`) gives 343
-     hits, so the search can fire.
-
-     *But another producer exists (cambridge26 check, finding F4).*
-     `Merge` can fuse two boundaries on one side only, when the other
-     side has a cast between its two boundaries.  `Wrap`'s dual of the
-     fused boundary then unbinds both names on that side alone.  In
-     C23a the left fuses `[+Y^β][+X^α]`, and its `Wrap` dual
-     `[−X^α, −Y^β]` faces the right's `[−X^α]`:
-
-     ```
-     L  (([+Y^β, +X^α] (λx:Y. ([−X^α, −Y^β] 42 ⟨−X⟩)) ⟨−Y → +X⟩) 69)
-     R  (([+Y^β] ([+X^α] (λx:Y. ([−X^α] 42⟨ℕ!⟩^[Y:X∼X] ⟨−X⟩)) ⟨id(Y) → +X⟩)⟨id(Y) → id(★)⟩^[Y:X∼X] ⟨−Y → id(★)⟩) 69)
-     ```
-
-     The shared `Y` is then right-only inside, and nothing there
-     mentions it, so the block is derivable.  So this row of the table
-     does occur.  Restricting `W[δ ∥ δ′]` against it would make C23a
-     underivable, so `W[δ ∥ δ′]` stays unrestricted.
-
-### 12.6 The cambridge26 pairs against §12.3
-
-`notes/cambridge-imprecision-check.md` checks the 22 pairs of
-`CambridgeExamples.agda` block by block, in the format of §12.4.  19
-are derivable as written.  C12, C13 and C14 are not, with any
-synchronization (F3).  Findings, smallest first:
-
-- **F1 (settled, D14).**  `Λ⊑⟪+⟫` fixes the new name's mark at `X⊑X`.  It should
-  read `W ⊕ X:m` with the mark chosen at the binder (D11).  Cg's
-  right-led block needs `X⊑★`.
-- **F2 (settled, D14).**  `Λ⊑⟪+⟫` covers only a left `Λ`.  The block is forced by
-  the simulation shapes of §9.7.  Take `L = Example 2` and
-  `R = (λx:★→★. x 5⟨ℕ!⟩)(I★⟨gen⟩⟨inst⟩)`.  In the forward direction,
-  the left's step `Beta` makes the right catch up through `Inst`,
-  `TyBeta` and `Beta`.  The right cannot `Beta` earlier, because its
-  argument's `inst` cast is not inert.  In the backward direction, the
-  right's first step `Inst` needs either a `⊑ν` rule or a further
-  `TyBeta`, which leads to the same block.  A left `gen`-cast
-  ∀-value facing the right's `[+X^β] V′ ⟨c′⟩` needs the same rule,
-  so it should be stated for every ∀-value through `inst_X` at the
-  left's abstract rep. var (C2's right-led block):
-
-  ```
-    W ⊕ X:m ∣ [] ⊢ inst_X(V) ⊑ V′ : A ⊑ A′    V a ∀-value    β:=★    c′ : A′ ⇒ B′
-    ────────────────────────────────────────────────────────────────── (∀⊑⟪+⟫)
-    W ∣ γ ⊢ V ⊑ [+X^β] V′ ⟨c′⟩ : ∀X.A ⊑ B′
-  ```
-
-- **F3 (settled, D13).**  `ϱ` cannot be a partial bijection.  In C12
-  (`I⟨inst⟩⟨gen⟩` on the right), the left's one rep. var `α:=ℕ` must be
-  paired with two right rep. vars: the right's `β:=ℕ`, from the
-  instantiation that both sides make, and the right's `α:=★`, from
-  `Inst`.  The block is
-
-  ```
-  L  (([+X^α] (λx:X. x) ⟨−X → +X⟩) 5)
-  R  (([+Y^β] ([−Y^β] ([+X^α] (λx:X. x) ⟨−X → +X⟩)⟨id(★) → id(★)⟩^[] ⟨id(★) → id(★)⟩)⟨Y! → Y?ℓ0⟩^[Y:★∼X] ⟨−Y → +Y⟩) 5)
-  ```
-
-  The outer pair needs `(αᴸ, βᴿ)`.  The inner right-only `[+X^αᴿ]`
-  must rejoin the same center name, which needs `(αᴸ, αᴿ)`.  Under
-  the proposed fix, each right rep. var has at most one left partner, and
-  a left rep. var may have several.  With it, C12–C14 go through.
-
-  *The mirror needs nothing (checked on the existing runs).*  Put
-  `I⟨inst⟩⟨gen⟩` on the left, that is, C12's right program, against
-  three less precise partners:
-
-  - **M1:** `Cf-R` (`I★⟨gen⟩`).  The outer boundaries pair
-    `(βᴸ:=ℕ, αᴿ:=ℕ)`, and the two `gen` unbinds match.  The left's
-    `Inst` boundary `[+X^αᴸ]` (`αᴸ:=★`) is left-only, its name has
-    mark `X⊑★`, and then `λx:X.x ⊑ λx:★.x` holds.
-  - **M4:** Example 1 (`I⟨inst⟩`, with no `gen` and no `[ℕ]`), against
-    the application form `(λf:∀X.X→X. f[ℕ] 5)(I⟨inst⟩⟨gen⟩)` on the
-    left.  The two `Inst`/`TyBeta` pairs match, giving `(αᴸ, αᴿ)`.
-    The left's `[ℕ]` is a left-only `ν`, and its `[+Y^β]` and `gen`
-    unbind `[−Y^β]` are left-only too.  (`C12-R` itself is the bare
-    redex `at-ℕ-5 (I⟨inst⟩⟨gen⟩)`.  Paired directly with Example 1 it
-    is not related at the start, because the function parts have
-    unrelated types.  The re-check, `notes/cambridge-imprecision-check-v2.md`,
-    confirms that the post-`Beta` suffix is derivable with `ϱ`
-    one-to-one.)
-  - **M2:** `Cg-R` (`I★⟨gen⟩⟨inst⟩`).  The right's `Inst` rep. var
-    `α:=★` pairs with the left's `[ℕ]` rep. var (`ℕ ⊑ ★`), the two `gen`
-    unbinds match, and the left's `Inst` boundary is left-only.
-
-  In all three, `ϱ` stays one-to-one.  The asymmetry comes from type
-  imprecision, which has no rule with a bare variable on the less
-  precise side (the same remark is in GTSFImp's
-  `proof/DGG/CastTermImprecision.agda`).  So an extra left name can
-  stay left-only, with the right seeing `★` (`X⊑★`).  An extra right
-  name cannot stay right-only, because no left type is more precise
-  than it, so it must rejoin a left name.  That rejoin is what forces
-  C12's second pair.  So the fix is needed in one direction only: a
-  right rep. var has at most one left partner, and a left rep. var may have
-  several.
-- **F4.**  A one-sided `Merge` also produces a left-only unbind of a
-  shared name (§12.5, question 3).
-- **D1 (settled, D15).**  `W[δ ∥ δ′]` must say which intermediate worlds of a
-  multi-entry `δ` have to be well formed, and that a name keeps its
-  mark when it goes one-sided and later rejoins.
-- **D2 (settled, D16).**  `∀⊑⟪+⟫`'s pair involves the left value's abstract rep. var,
-  which is not in `rv(Δ)`.  `ϱ`'s type has to allow it.
-
-**Re-check under D13–D16** (`notes/cambridge-imprecision-check-v2.md`).
-All 22 pairs support both simulations of §9.7, forward and backward.
-C12, C13 and C14 now go through: one left rep. var has two, two and
-three right partners, as D13 permits.  Cg's and C2's right-led blocks
-go through with `∀⊑⟪+⟫` (D14).  C2's multi-entry boundary goes
-through under D15.  The `Λ`-bound pairs are in `ϱˡ` (D16).  C23a
-confirms that `W[δ ∥ δ′]` must stay unrestricted.  The mirror pairs
-M1 and M2 keep `ϱ` one-to-one, and so does M4's post-`Beta` suffix.
-
+## Section map (old → new)
+
+Section numbers of earlier versions of this file (up to 2026-10-08),
+as cited by the Agda comments and the notes, and where that material
+is now.  D-numbers are unchanged.
+
+| old | content | new |
+|---|---|---|
+| §1 | types, rep. types, contexts | §1 (rationale of tags by name: §C3.7) |
+| §2 | conversions | §2 |
+| §3 | coercions: grammar, typing, closing at ★ | §3; names and provenance §C1.1; why modes §C1.2; modes at a cast §C1.3; closing lemma rationale §C1.4 |
+| §4 | terms and typing | §4 |
+| §5 | values | §5; rationale and proof sketches §C2 |
+| §6 | reduction | §6 (6.1–6.3); rationale §C3 |
+| §6.1 | frames | §6.1 |
+| §6.2 | the νF rules, `inst_X` | §6.2; no term moves under a new name §C3.1; `inst_X` §C3.2; νF and GTSFImp instances §C3.3; preservation sketch §C3.4 |
+| §6.3 | cast rules | §6.3; correspondence §C3.5; `Inst` §C3.6 |
+| §6.4 | why a tag by name keeps its meaning | §C3.7 |
+| §7 | compilation | §7; the typing theorem §C4 |
+| §8 | Examples 1–7 | §C5 |
+| §9 | metatheory goals | §11 (statements) and §C10 (discussion) |
+| §9.1 | type safety | §11.1 |
+| §9.2 | compilation | §11.2 |
+| §9.3 | the source type system | §11.3 |
+| §9.4 | type imprecision | §11.4; §C10.1 |
+| §9.5 | static gradual guarantee | §11.5; §C10.2 |
+| §9.6 | compilation preserves imprecision | §11.6; §C10.3 |
+| §9.7 | dynamic gradual guarantee | §11.7 (statement); §C10.4 (simulations) |
+| §10 | decisions D1–D30, open questions | §C12 |
+| §11 | Agda plan | §C11 |
+| §12 | cast-term imprecision | §8–§10 (definitions); §C6–§C9 (commentary) |
+| §12 status | status, review markers, C1–C5 pointer | §8 (status); top of file (markers); §C8 (C1–C5) |
+| §12.1 | type imprecision | §8 |
+| §12.2 | worlds | §9; P3 example and "never rebased" §C6.1 |
+| §12.2.1 | sketch: allocation hands the ν invariants to the world | §C9.1 |
+| §12.3 | rules | §10 (10.1–10.7); grants §C6.2; claim-rep and H1 §C6.3; push §C6.4; R1 and C5 §C6.5; K ladder §C6.6; P4 B3 ladder §C6.7; ★ conversion clauses §C6.8; D28′ rationale §C9.2 |
+| §12.3.1 | TwoGen | §C8.1 |
+| §12.3.2 | D30 proposal | §10.8 (changed rules); §C9.3 (rationale) |
+| §12.4 | Examples P1–P6 | §C7 |
+| §12.5 | what the examples say | §C8.2 |
+| §12.6 | the cambridge26 pairs | §C8.3 |

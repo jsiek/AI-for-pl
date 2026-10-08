@@ -692,36 +692,87 @@ parts:
 (An example, P3's block, and why no part of a world is ever rebased:
 §C6.1.)
 
-World operations, used by the rules:
+### 9.1 World operations
 
-```
-W ⊕²             both sides bind X (a new center name in both images; its
-                 new right rep. var is not permitted, so X⊑X)
-W ⊕ᴸ X           the left side binds X alone (center name in η only, X⊑★)
-W ⊕ᴸ⇔ β          as W ⊕ᴸ X, and X's abstract rep. var is paired lexically
-                 with the right rep. var β:=★, which has no right name yet;
-                 the boundary that names β rejoins X (claim-rep, D29)
-W ⊕ᴿ X           the right side binds X alone (center name in η′ only)
-W[δ ∥ δ′]        the interior world of a boundary pair: each side's
-                 changes act on that side's names and embedding.
-                 −X on one side removes X from that side's image; a center
-                 name in neither image is dropped.  +X^α joins the center
-                 name of the rep. var α is paired with by ϱ, if any, and is
-                 otherwise a new one-sided center name.  ϱ is
-                 unchanged, and every mark is derived (D28).  ~~κ is
-                 unchanged; Example P4's X⊑★ comes from a right check's
-                 grant.~~  🆕 **D28′**: κ may gain the right rep. vars of
-                 the names this boundary joins (§10.5);
-                 Example P4's X⊑★ comes from its outer matched boundary.
-                 (Write W[δ ∥ ·] and W[· ∥ δ′] for a one-sided boundary.)
-```
+Every operation is given by what it does to each component of
+`W = (Ω, η, η′, ϱᵍ, ϱˡ, κ, π)`; a component not mentioned is unchanged.
+The marks `μ` are never set: they are recomputed from `η′` and `κ`
+(D28).  In this account names are names: "`X ↦ C`" means the name `X`
+is embedded as the center name `C`.  (In the Agda the same operations
+also renumber de Bruijn positions; that renumbering moves no name.)
 
-`W[δ ∥ δ′]` is defined only when it is well formed.  Only the final
-interior world has to be well formed, not the worlds between the
-entries of a multi-entry `δ`, because no rule reads those.  A name
-that goes one-sided and later rejoins gets its derived mark back (D28,
-superseding D15's keep-on-rejoin).  A right-only `−X` of a name in
-both images leaves `X` left-only, hence `X⊑★` (Example P4).
+**Binders on one or both sides** (`Λ⊑Λ`, `Λ⊑`; Agda `_⊕²`, `_⊕ᴸ`,
+`_⊕ᴸ⇔_`, `_⊕ᴿ`).  The binder `X` comes with a fresh abstract rep. var:
+`αᴸ` on the left, `αᴿ` on the right.
+
+| op | `Ω` | `η` | `η′` | `ϱˡ` |
+|---|---|---|---|---|
+| `W ⊕²` | add `C` | `X ↦ C` | `X ↦ C` | add `(αᴸ, αᴿ)` |
+| `W ⊕ᴸ` | add `C` | `X ↦ C` | — | — |
+| `W ⊕ᴸ⇔ β` | add `C` | `X ↦ C` | — | add `(αᴸ, β)` |
+| `W ⊕ᴿ` | add `C` | — | `X ↦ C` | — |
+
+- `W ⊕²`: `C` is shared; `αᴿ` is not in `κ`, so `C` is `X⊑X`.
+- `W ⊕ᴸ`: `C` is left-only, so `X⊑★`; `αᴸ` is unpaired.
+- `W ⊕ᴸ⇔ β` (claim-rep, D29): as `W ⊕ᴸ`, and `αᴸ` is paired with the
+  right rep. var `β:=★`, which no right name binds yet.  A later right
+  boundary entry `+Y^β` joins `Y` to `C` (`W[δ ∥ δ′]` below).
+- `W ⊕ᴿ`: `C` is right-only (no rule of §10 uses it).
+
+**Allocation** (Evolve, between steps; Agda `allocᴸ`, `allocᴿ`,
+`alloc²`, `allocᴸ⇔`).  A `TyBeta` adds a store rep. var; no name
+moves, so `Ω`, `η`, `η′`, `π` are unchanged.
+
+| op | the new rep. var(s) | `ϱᵍ` |
+|---|---|---|
+| `allocᴸ R` | left `αᴸ:=R` | — |
+| `allocᴿ R′` | right `αᴿ:=R′` | — |
+| `alloc² R R′` | both | add `(αᴸ, αᴿ)` |
+| `allocᴸ⇔ R β` | left `αᴸ:=R` | add `(αᴸ, β)` |
+
+`alloc²` is a matched pair of `TyBeta`s; `allocᴸ⇔` is a left `TyBeta`
+catching up with a right boundary `+Y^β` whose name a left binder
+popped or claimed.  The `ν⊑ν` premise world `underν² R R′` is
+`alloc² R R′` with the pair added to `ϱˡ` instead of `ϱᵍ`.
+
+**The interior world `W[δ ∥ δ′]`** (all boundary rules; Agda
+`Interior`, a relation).  `δ` acts on the left names, `δ′` on the
+right names; `ϱᵍ`, `ϱˡ` and `κ` are unchanged.  Each entry, on its own
+side:
+
+| entry | effect |
+|---|---|
+| `−X^α` | `X` leaves that side's embedding; a center name in neither embedding is dropped |
+| `+X^α`, rejoin | if a name `X′` on the other side, in scope inside, is bound to a rep. var paired with `α` in `ϱ`: `X ↦` the center name of `X′` |
+| `+X^α`, fresh | otherwise: add a center name `C`, `X ↦ C`, one-sided |
+| a name no entry touches | keeps its center name; two continuing names are joined inside iff they are joined outside |
+
+- `π` (D27): a pending name continues to its position inside; a
+  pending name that `δ′` unbinds must have been popped before.
+- Named uniqueness (D25) makes the rejoin unambiguous.
+- `W[δ ∥ ·]` and `W[· ∥ δ′]` are the one-sided cases.
+- Only the final interior world must be well formed, not the worlds
+  between the entries of a multi-entry `δ`.
+- 🆕 **D28′**: `κ` may gain the right rep. vars of the names this
+  boundary joins (§10.5).
+
+The marks follow: a name that goes one-sided and later rejoins gets
+its derived mark back (D28, superseding D15); a right-only `−X` of a
+shared name leaves `X` left-only, hence `X⊑★` (Example P4).
+
+**Pops** (D27; Agda `Open1`, `Join↪`).  `W[X ↦ Y]`, for the next
+pending name `Y` (bound to `β:=★`) and a left binder `X` with abstract
+rep. var `αᴸ`:
+
+| `Ω` | `η` | `η′` | `ϱˡ` | `π` |
+|---|---|---|---|---|
+| — | `X ↦` the center name of `Y` | — | add `(αᴸ, β)` | remove `Y` |
+
+The center name of `Y` was right-only and becomes shared.  (Agda
+`W ⊕⁺^ β` is a push of `+Y^β`'s name followed by this pop.)
+
+**Grants** (D28; `⊑cast`, §10.2).  `W` with `β` added to `κ`; nothing
+else changes, so the marks of the names bound to `β` become `X⊑★`.
 
 ------------------------------------------------------------------------
 
@@ -748,27 +799,49 @@ componentwise.
 
 ### 10.2 Casts
 
+**Grants** (D28).  A right coercion `p′` *grants* a right rep. var
+`β` when every value that leaves a cast through `p′` is checked
+against the name of `β`.  Inductively (Agda `Grants`):
+
+```
+  X the right name of β
+  ──────────────────── (gr-?)
+  X?ℓ grants β
+
+  X the right name of β
+  ──────────────────── (gr-?;)
+  (X?ℓ ; q) grants β
+
+  q₁ first order    q₂ grants β
+  ───────────────────────────── (gr-→)
+  q₁ → q₂ grants β
+
+  first order:  id(A),  G!,  G?ℓ
+```
+
+So P4's gen wrapper `X! → X?` grants `X`'s rep. var (its codomain
+checks `X`), and C2's `X! → id(★)` grants nothing.  (Why: §C6.2.)
+
 **Casts** (GTSFImp `cast⊑cast²`, `cast⊑²`, `⊑cast²`).  Each coercion
 is typed on its own side, under the mode environment its cast carries.
 The rules do not compare the two coercions, or the two mode
 environments, except through the types:
 
 ```
-  W ∣ γ ⊢ M ⊑ M′ : B ⊑ B′    p : B ⇒ A    p′ : B′ ⇒ A′
-  ────────────────────────────────────────────────── (cast⊑cast)
+  W ∣ γ ⊢ M ⊑ M′ : B ⊑ B′
+  p : B ⇒ A    p′ : B′ ⇒ A′
+  ──────────────────────────────── (cast⊑cast)
   W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ ⟨p′⟩ : A ⊑ A′
 
   W ∣ γ ⊢ M ⊑ M′ : B ⊑ A′    p : B ⇒ A
-  ────────────────────────────────────── (cast⊑)
+  ───────────────────────────────── (cast⊑)
   W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ : A ⊑ A′
 
   W⁺ ∣ γ⁺ ⊢ M ⊑ M′ : A ⊑ B′    p′ : B′ ⇒ A′
-  W⁺ = W, or W with β added to κ when p′ grants β    γ⁺ = γ raised
-  ──────────────────────────────────────────────────────── (⊑cast, D28)
+  W⁺ = W, or W with β added to κ, if p′ grants β
+  γ⁺ = γ at the marks of W⁺
+  ──────────────────────────────── (⊑cast, D28)
   W ∣ γ ⊢ M ⊑ M′ ⟨p′⟩ : A ⊑ A′
-
-  p′ grants β  ::=  X?ℓ   |   X?ℓ ; q   |   q₁ → q₂ (q₁ first order, q₂ grants β)
-                    (X the right name of β; first order: id(A), G!, G?ℓ)
 ```
 
 🆕 **D28′** replaces the D28 rule above by the plain GTSFImp rule; no

@@ -556,9 +556,9 @@ The left program is always the **more precise** one.
 
 GTSFImp's `Imprecision.agda`, copied rule for rule into
 `GTNF/agda/Imprecision.agda`.  The marks are `X⊑X` and `X⊑★`, and an
-imprecision environment `μ` gives one mark to each name in scope.  As
-with `ModeEnv`, it is a list parallel to the names (index 0 at the
-head).
+imprecision environment `μ` gives one mark to each name in scope
+(a map from names to marks; `μ, X:m` extends it with a fresh `X`).
+In the Agda it is a list parallel to the names, index 0 at the head.
 
 ```
                                                         μ(X) = X⊑★
@@ -569,7 +569,8 @@ head).
   ─────────────────        ─────────────          ─────────────────
   A → B ⊑ A′ → B′          A → B ⊑ ★              μ ⊢ ∀X.A ⊑ ∀X.B
 
-  μ, X:X⊑★ ⊢ A ⊑ ⇑B    A not a variable    X ∈ A     (∀⊑)
+  μ, X:X⊑★ ⊢ A ⊑ B    A not a variable    X ∈ A     (∀⊑)
+  X not free in B
   ───────────────────────────────────────────────
   μ ⊢ ∀X.A ⊑ B
 
@@ -595,10 +596,11 @@ right term typed in `Δ′`.  The two runs allocate independently, and a
 ```
 W = (Δ, Δ′, Ω, η, η′, ϱ, κ, π)
 
-  Ω              the center: a number of names
-  η  : names(Δ)  ↪ Ω     order-preserving embeddings (GTSFImp ηᴸʷ, ηᴿʷ);
-  η′ : names(Δ′) ↪ Ω     every center name is in the image of at least one
-                         of them
+  Ω              the center: a finite set of center names
+  η  : names(Δ)  ↪ Ω     injective maps from each side's names in
+  η′ : names(Δ′) ↪ Ω     scope to center names (GTSFImp ηᴸʷ, ηᴿʷ);
+                         every center name is in the image of at least
+                         one of them
   κ              the permitted right rep. vars (D28); [] at every
                  top-level world; ~~a right check adds one (⊑cast)~~
                  🆕 **D28′**: a boundary rule that joins a name may add
@@ -613,8 +615,8 @@ W = (Δ, Δ′, Ω, η, η′, ϱ, κ, π)
                          Λ or ν.  (D13's one-partner rule was dropped
                          by D25.)
   π              the pending right names (D27), next pop first: right
-                 name positions that a ⊑⟪⟫ pushed and a left binder will
-                 join; [] at every top-level world
+                 names that a ⊑⟪⟫ pushed and a left binder will join;
+                 [] at every top-level world
                  🆕 **D30**: ~~π~~ leaves the world; the openings are part
                  of the index (below and §10.8)
 
@@ -710,65 +712,68 @@ where it is defined:
 | `W, π` | `W` with its pending list set to `π` | here |
 | `W, Y·π` | pending list `π` with `Y` in front (the next pop) | here |
 | `W, Y` | `W, Y·[]`: exactly one pending name | here |
-| `W ⊕²` | both sides bind the binder | binders, below |
-| `W ⊕ᴸ`, `W ⊕ᴸ X` | the left side alone binds `X` (same operation; `X` names the binder) | binders, below |
-| `W ⊕ᴸ⇔ β` | as `W ⊕ᴸ X`, claiming the right rep. var `β` | binders, below |
-| `W ⊕ᴿ` | the right side alone binds | binders, below |
+| `W ⊕ (X:α ∥ X′:α′)` | both sides bind (left `X` with abstract rep. var `α`, right `X′` with `α′`) | binders, below |
+| `W ⊕ (X:α ∥ ·)` | the left side alone binds `X` | binders, below |
+| `W ⊕ (X:α⇔β ∥ ·)` | as `W ⊕ (X:α ∥ ·)`, claiming the right rep. var `β` | binders, below |
+| `W ⊕ (· ∥ X′:α′)` | the right side alone binds `X′` | binders, below |
 | `W[δ ∥ δ′]` | the interior world of a boundary pair | interior, below |
 | `W[δ ∥ ·]`, `W[· ∥ δ′]` | the interior world of a left-only / right-only boundary | interior, below |
 | `W[δ ∥ ·], π` | that interior world, with pending list `π` | combines the rows above |
 | `W[· ∥ δ′], π′ ++ new` | that interior world, with the carried names `π′` then the pushed names `new` | §10.5 (`⊑⟪⟫`) |
-| `W[X ↦ Y]` | the pop of `Y` by the left binder `X` | pops, below |
-| `W[X ↦ Y], π` | that pop, with the remaining pending list `π` | combines the rows above |
-| `W⁺` | `W`, or `W` with `β` added to `κ` (a grant) | grants, below; §10.2 |
+| `W[X:α ↦ Y]` | the pop of `Y` by the left binder `X` (abstract rep. var `α`) | pops, below |
+| `W[X:α ↦ Y], π` | that pop, with the remaining pending list `π` | combines the rows above |
+| `W +κ β` | `W` with `β` added to `κ` (a grant) | grants, below; §10.2 |
 | `Wᶜ` | the world over the two conversion contexts | conversion worlds, below |
-| `underν² R R′` | the conversion world of `ν⊑ν` | allocation, below |
-| `allocᴸ`, `allocᴿ`, `alloc²`, `allocᴸ⇔` | allocation by `TyBeta` (Evolve, between steps) | allocation, below |
+| `W +ˡ (α, α′)` | `W` with `(α, α′)` added to `ϱˡ` (the conversion world of `ν⊑ν`) | allocation, below |
+| `W +ᵍ (α, α′)` | `W` with `(α, α′)` added to `ϱᵍ` (a matched allocation) | allocation, below |
 | 🆕 **D28′** `Wᵢ` | `W[δ ∥ δ′]` with the joined names' rep. vars `K` added to `κ` | §10.5 |
 
 In the Agda, `W, π` is `record W { πʷ = π }`, and a grant is
 `record W { κʷ = β ∷ κʷ W }`.  🆕 **D30**: `W, π` goes away; `π`
 becomes the openings `O` of the index `A ⊑_W^O A′` (§10.8).
 
-The term context `γ` has its own operations, which keep its entries
-and only re-read them in the new world: `γ, x : B ⊑ B′` (extend, in
-`ƛ⊑ƛ`), `⇑γ` (`Λ⊑Λ`: both sides' types moved under the binder),
-`⇑ᴸγ` (`Λ⊑`: the left types moved under the binder), `γ⁺` (`⊑cast`
-under a grant: the same entries at the new marks).
+The term context `γ` has one operation, `γ, x : B ⊑ B′` (extend, in
+`ƛ⊑ƛ`).  With names, `γ` is used unchanged under a binder and under a
+grant: a binder's name and rep. var are fresh, so no entry mentions
+them, and a grant only raises marks from `X⊑X` to `X⊑★`, which keeps
+every entry's `B ⊑ B′` (the de Bruijn version needs `⇑γ`, `⇑ᴸγ` and
+`RaiseCtx` for these).
 
 **Binders on one or both sides** (`Λ⊑Λ`, `Λ⊑`; Agda `_⊕²`, `_⊕ᴸ`,
-`_⊕ᴸ⇔_`, `_⊕ᴿ`).  The binder `X` comes with a fresh abstract rep. var:
-`αᴸ` on the left, `αᴿ` on the right.
+`_⊕ᴸ⇔_`, `_⊕ᴿ`).  A `Λ` binds a type variable together with a fresh
+abstract rep. var (`⊢Λ` types the body at `Δ, X:α`).  The operation
+names both: `X:α` on the left, `X′:α′` on the right.  `C` is a center
+name not in `Ω`.
 
 | op | `Ω` | `η` | `η′` | `ϱˡ` |
 |---|---|---|---|---|
-| `W ⊕²` | add `C` | `X ↦ C` | `X ↦ C` | add `(αᴸ, αᴿ)` |
-| `W ⊕ᴸ` | add `C` | `X ↦ C` | — | — |
-| `W ⊕ᴸ⇔ β` | add `C` | `X ↦ C` | — | add `(αᴸ, β)` |
-| `W ⊕ᴿ` | add `C` | — | `X ↦ C` | — |
+| `W ⊕ (X:α ∥ X′:α′)` | add `C` | add `X ↦ C` | add `X′ ↦ C` | add `(α, α′)` |
+| `W ⊕ (X:α ∥ ·)` | add `C` | add `X ↦ C` | — | — |
+| `W ⊕ (X:α⇔β ∥ ·)` | add `C` | add `X ↦ C` | — | add `(α, β)` |
+| `W ⊕ (· ∥ X′:α′)` | add `C` | — | add `X′ ↦ C` | — |
 
-- `W ⊕²`: `C` is shared; `αᴿ` is not in `κ`, so `C` is `X⊑X`.
-- `W ⊕ᴸ`: `C` is left-only, so `X⊑★`; `αᴸ` is unpaired.
-- `W ⊕ᴸ⇔ β` (claim-rep, D29): as `W ⊕ᴸ`, and `αᴸ` is paired with the
-  right rep. var `β:=★`, which no right name binds yet.  A later right
-  boundary entry `+Y^β` joins `Y` to `C` (`W[δ ∥ δ′]` below).
-- `W ⊕ᴿ`: `C` is right-only (no rule of §10 uses it).
+- Both sides: `C` is shared; `α′` is not in `κ`, so `C` is `X⊑X`.
+- Left only: `C` is left-only, so `X⊑★`; `α` is unpaired.
+- Claim-rep (D29): as left only, and `α` is paired with the right rep.
+  var `β:=★`, which no right name binds yet.  A later right boundary
+  entry `+Y^β` joins `Y` to `C` (`W[δ ∥ δ′]` below).
+- Right only: `C` is right-only (no rule of §10 uses it).
+- (Agda: `W ⊕²`, `W ⊕ᴸ`, `W ⊕ᴸ⇔ β`, `W ⊕ᴿ`; with de Bruijn indices
+  the binder and its rep. var are position 0 and need no name.)
 
-**Allocation** (Evolve, between steps; Agda `allocᴸ`, `allocᴿ`,
-`alloc²`, `allocᴸ⇔`).  A `TyBeta` adds a store rep. var; no name
-moves, so `Ω`, `η`, `η′`, `π` are unchanged.
+**Rep. var pairs** (allocation, between steps, and the conversion
+world of `ν⊑ν`).  A world holds no stores, so a new rep. var changes
+no component by itself; the only world change is a new pair:
 
-| op | the new rep. var(s) | `ϱᵍ` |
-|---|---|---|
-| `allocᴸ R` | left `αᴸ:=R` | — |
-| `allocᴿ R′` | right `αᴿ:=R′` | — |
-| `alloc² R R′` | both | add `(αᴸ, αᴿ)` |
-| `allocᴸ⇔ R β` | left `αᴸ:=R` | add `(αᴸ, β)` |
+| op | `ϱᵍ` | `ϱˡ` | used for |
+|---|---|---|---|
+| `W +ᵍ (α, α′)` | add `(α, α′)` | — | a matched pair of `TyBeta`s allocating `α:=R`, `α′:=R′` |
+| `W +ᵍ (α, β)` | add `(α, β)` | — | a left `TyBeta` (`α:=R`) catching up with a right boundary `+Y^β` whose name a left binder popped or claimed |
+| `W +ˡ (α, α′)` | — | add `(α, α′)` | the conversion world of `ν⊑ν`: the two `ν`s' rep. vars |
 
-`alloc²` is a matched pair of `TyBeta`s; `allocᴸ⇔` is a left `TyBeta`
-catching up with a right boundary `+Y^β` whose name a left binder
-popped or claimed.  The `ν⊑ν` premise world `underν² R R′` is
-`alloc² R R′` with the pair added to `ϱˡ` instead of `ϱᵍ`.
+An unmatched `TyBeta` (one side only) leaves `W` unchanged; only that
+side's context grows.  (Agda: `alloc²`, `allocᴸ⇔`, `underν²`, and
+`allocᴸ`, `allocᴿ`, which only renumber de Bruijn indices.)
 
 **The interior world `W[δ ∥ δ′]`** (all boundary rules; Agda
 `Interior`, a relation).  `δ` acts on the left names, `δ′` on the
@@ -782,8 +787,8 @@ side:
 | `+X^α`, fresh | otherwise: add a center name `C`, `X ↦ C`, one-sided |
 | a name no entry touches | keeps its center name; two continuing names are joined inside iff they are joined outside |
 
-- `π` (D27): a pending name continues to its position inside; a
-  pending name that `δ′` unbinds must have been popped before.
+- `π` (D27): a pending name stays pending inside, under the same name;
+  a pending name that `δ′` unbinds must have been popped before.
 - Named uniqueness (D25) makes the rejoin unambiguous.
 - `W[δ ∥ ·]` and `W[· ∥ δ′]` are the one-sided cases.
 - Only the final interior world must be well formed, not the worlds
@@ -795,13 +800,13 @@ The marks follow: a name that goes one-sided and later rejoins gets
 its derived mark back (D28, superseding D15); a right-only `−X` of a
 shared name leaves `X` left-only, hence `X⊑★` (Example P4).
 
-**Pops** (D27; Agda `Open1`, `Join↪`).  `W[X ↦ Y]`, for the next
+**Pops** (D27; Agda `Open1`, `Join↪`).  `W[X:α ↦ Y]`, for the next
 pending name `Y` (bound to `β:=★`) and a left binder `X` with abstract
-rep. var `αᴸ`:
+rep. var `α`:
 
 | `Ω` | `η` | `η′` | `ϱˡ` | `π` |
 |---|---|---|---|---|
-| — | `X ↦` the center name of `Y` | — | add `(αᴸ, β)` | remove `Y` |
+| — | add `X ↦ η′(Y)` | — | add `(α, β)` | remove `Y` |
 
 The center name of `Y` was right-only and becomes shared.  (Agda
 `W ⊕⁺^ β` is a push of `+Y^β`'s name followed by this pop.)
@@ -815,12 +820,13 @@ removes no name.
 | for | `Ω`, `η`, `η′` | `ϱᵍ`, `ϱˡ`, `κ` |
 |---|---|---|
 | `⟪⟫⊑⟪⟫` | as `W`, plus one center name per newly named rep. var, shared iff the two rep. vars are paired in `ϱ` | unchanged |
-| `ν⊑ν` (`underν² R R′`) | as `W` | the two `ν`s' rep. vars added, paired in `ϱˡ` |
+| `ν⊑ν` (`W +ˡ (α, α′)`) | as `W` | the two `ν`s' rep. vars added, paired in `ϱˡ` |
 
-The conversion clauses then go under binders with `Wᶜ ⊕²` (both
-sides' `∀X.c`) and `Wᶜ ⊕ᴸ X` (a left-only `∀X.c`).
+The conversion clauses then go under binders with
+`Wᶜ ⊕ (X:α ∥ X′:α′)` (both sides' `∀`) and `Wᶜ ⊕ (X:α ∥ ·)` (a
+left-only `∀`).
 
-**Grants** (D28; `⊑cast`, §10.2).  `W` with `β` added to `κ`; nothing
+**Grants** (D28; `⊑cast`, §10.2).  `W +κ β` adds `β` to `κ`; nothing
 else changes, so the marks of the names bound to `β` become `X⊑★`.
 
 ------------------------------------------------------------------------
@@ -886,9 +892,8 @@ environments, except through the types:
   ───────────────────────────────── (cast⊑)
   W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ : A ⊑ A′
 
-  W⁺ ∣ γ⁺ ⊢ M ⊑ M′ : A ⊑ B′    p′ : B′ ⇒ A′
-  W⁺ = W, or W with β added to κ, if p′ grants β
-  γ⁺ = γ at the marks of W⁺
+  W⁺ ∣ γ ⊢ M ⊑ M′ : A ⊑ B′    p′ : B′ ⇒ A′
+  W⁺ = W,  or  W⁺ = W +κ β  if p′ grants β
   ──────────────────────────────── (⊑cast, D28)
   W ∣ γ ⊢ M ⊑ M′ ⟨p′⟩ : A ⊑ A′
 ```
@@ -933,21 +938,25 @@ does not see the binder.  One gen pops one name.
 `X`, so `η′` simply does not reach the new center name.
 
 ```
-  W ⊕² ∣ ⇑γ ⊢ V ⊑ V′ : A ⊑ A′
-  ────────────────────────────────── (Λ⊑Λ)
-  W ∣ γ ⊢ ΛX.V ⊑ ΛX.V′ : ∀X.A ⊑ ∀X.A′
+  W ⊕ (X:α ∥ X′:α′) ∣ γ ⊢ V ⊑ V′ : A ⊑ A′
+  α, α′ fresh
+  ───────────────────────────────────── (Λ⊑Λ)
+  W ∣ γ ⊢ ΛX.V ⊑ ΛX′.V′ : ∀X.A ⊑ ∀X′.A′
 
-  W ⊕ᴸ X ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
-  ──────────────────────────────────────────────────────── (Λ⊑, fresh)
+  W ⊕ (X:α ∥ ·) ∣ γ ⊢ V ⊑ M′ : A ⊑ B′
+  α fresh    A not a variable    X ∈ A
+  ───────────────────────────────── (Λ⊑, fresh)
   W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
 
-  W[X ↦ Y], π ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
-  ───────────────────────────────────────────────────────── (Λ⊑, pop)
+  W[X:α ↦ Y], π ∣ γ ⊢ V ⊑ M′ : A ⊑ B′
+  α fresh    A not a variable    X ∈ A
+  ───────────────────────────────── (Λ⊑, pop)
   W, Y·π ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
 ```
 
 ```
-  W ⊕ᴸ⇔ β ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑ B′    A not a variable    X ∈ A
+  W ⊕ (X:α⇔β ∥ ·) ∣ γ ⊢ V ⊑ M′ : A ⊑ B′
+  α fresh    A not a variable    X ∈ A
   β:=★ in Δ′    no right name of β in scope    no named left partner of β
   ──────────────────────────────────────────────────────── (Λ⊑, claim-rep, D29)
   W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
@@ -957,7 +966,7 @@ does not see the binder.  One gen pops one name.
 `W ∣ γ ⊢ … : A ⊑_W^π A′`, an index with openings `π`; §10.8.)
 Here `W, π` is a world with the pending names `π` (D27), and `W` alone
 means no pending name.  In the pop, `Y` is the next pending name and
-`W[X ↦ Y]` joins the binder `X` to it (`Open1`).  The left's abstract
+`W[X:α ↦ Y]` joins the binder `X` to it (`Open1`).  The left's abstract
 rep. var is paired lexically with `Y`'s `β:=★`.  The type `∀X.A ⊑ B′`
 of a world with pending names is read with one `∀` opened per pending
 name.
@@ -1052,9 +1061,9 @@ The one-sided boundary rules have no conversion premise.  The clauses
 follow the conversion grammar:
 
 ```
-  A ⊑ A′                 c ⊑ c′    d ⊑ d′          (W ⊕²) ⊢ c ⊑ c′
+  A ⊑ A′                 c ⊑ c′    d ⊑ d′          W ⊕ (X:α ∥ X′:α′) ⊢ c ⊑ c′
   ───────────────        ────────────────          ─────────────────────
-  id(A) ⊑ id(A′)         c → d ⊑ c′ → d′           ∀X.c ⊑ ∀X.c′
+  id(A) ⊑ id(A′)         c → d ⊑ c′ → d′           ∀X.c ⊑ ∀X′.c′
 
   X, X′ one center name    X, X′ one center name    t ⊑ t′    c ⊑ c′
   ─────────────────────    ─────────────────────    (chains, componentwise)
@@ -1066,7 +1075,7 @@ follow the conversion grammar:
 
   U(X)  =  no partner in ϱ of X's rep. var is in κ          (R2, D28)
 
-  (W ⊕ᴸ X) ⊢ c ⊑ g′
+  W ⊕ (X:α ∥ ·) ⊢ c ⊑ g′
   ─────────────────   (g′ a middle)
   ∀X.c ⊑ g′
 ```
@@ -1119,7 +1128,7 @@ entries bind names in its interior):
 the world:
 
 ```
-  W[X ↦ Y] ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑^O B′
+  W[X:α ↦ Y] ∣ γ ⊢ V ⊑ M′ : A ⊑^O B′
   ──────────────────────────────────────── (Λ⊑, join, D30; was the pop)
   W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑^(Y·O) B′
 ```

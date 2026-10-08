@@ -1445,6 +1445,21 @@ Each one can be revisited on its own.
   ReductionAudit §4; to check: the corpus, C1–C5 and C4g dead, the
   TwoGen pairs, the `Merge` case of the binder check, and R1′'s
   safety.
+- 🆕 **D30** **(PROPOSED 2026-10-08, not adopted, not checked:
+  openings in the index, not the world).**  The pending names of D27
+  only ever changed how the type index is read, and the binders that
+  consume them (`gen`, a `∀` coercion) have no term in their scope, so
+  they belong to the index.  The list `π` leaves the world (`πʷ`, the
+  `PendingOK` part of well-formedness, the `πʷ W ≡ []` hypotheses) and
+  becomes part of the index: `A ⊑_W^O A′`, the left type with its outer
+  ∀s opened at the right names `O`.  `cast⊑` becomes one rule whose
+  premise openings follow from its conclusion openings and the cast's
+  types (no special forms, no condition on the world).  The world
+  changes only at term binders: `Λ⊑` consumes an opening by joining its
+  binder (D27's pop), and `⊑⟪⟫` may open its premise index at the names
+  its `δ′` binds (D27's push).  Marked 🆕 **D30** in §12.2–§12.3; the
+  full rule set is §12.3.2 (Jeremy, 2026-10-07/08: the world changes
+  only at binders, and a `gen` binder's scope contains no term).
 
 The open design questions are those of the `⊑` sketch (§12.5).
 
@@ -1560,10 +1575,15 @@ W = (Δ, Δ′, Ω, η, η′, ϱ, κ, π)
   π              the pending right names (D27), next pop first: right
                  name positions that a ⊑⟪⟫ pushed and a left binder will
                  join; [] at every top-level world
+                 🆕 **D30**: ~~π~~ leaves the world; the openings are part
+                 of the index (below and §12.3.2)
 
   A ⊑_W A′   iff   μ ⊢ η(A) ⊑ η′(A′)     when π = []  (GTSFImp _⊑ᵂ⟨_⟩_)
              and in general A, with one outer ∀ opened at the center
              name of each pending name, against A′
+  🆕 **D30**:  A ⊑_W^O A′  the index with openings O (a list of right
+             names): A with one outer ∀ opened at each name of O,
+             against A′; A ⊑_W A′ is the case O = []
 ```
 
 In Agda (`ImprecisionWorld`) `π` is the field `πʷ` of `World`, `κ`
@@ -1595,7 +1615,11 @@ Well-formedness has five parts:
   `β:=★`, or `α:=R`, `β:=R′`, and `R ⊑ᴿ_W R′`: the payloads are
   compared in the representation universe, free rep. vars through `ϱ`
   (D23).
-- **Pending names are pending** (D27).  Each name of `π` is bound to a
+- 🆕 **D30**: this part moves from the world to the index: an index
+  `A ⊑_W^O A′` is well formed when each name of `O` is right-only,
+  bound to a `★` rep. var with no named left partner, and the names are
+  distinct (checked where an opening is created, at `⊑⟪⟫`).
+- ~~**Pending names are pending** (D27).~~  Each name of `π` is bound to a
   `★` rep. var `β`, is right-only, and `β` has no left partner named in
   scope; the names of `π` are distinct.  (Its mark is derived, D28.)
 - **Permissions are right rep. vars** (D28).  Every rep. var in `κ` is
@@ -1857,6 +1881,7 @@ Left casts, `cast⊑cast`, right hides and boundaries grant nothing.  A
 grant covers the whole premise; `γ⁺` has the same types at the raised
 marks (`RaiseCtx`).~~  🆕 **D28′**: no grants; see the boundary rules.
 
+(🆕 **D30**: the two forms below become one `cast⊑` rule, §12.3.2.)
 With pending names (D27), `⊑cast` carries them unchanged, and `cast⊑`
 has two more forms, for a value `M`:
 
@@ -1902,6 +1927,8 @@ does not see the binder.  One gen pops one name.
   W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
 ```
 
+(🆕 **D30**: in the displays below, read `W, π ∣ γ ⊢ … : A ⊑ A′` as
+`W ∣ γ ⊢ … : A ⊑_W^π A′`, an index with openings `π`; §12.3.2.)
 Here `W, π` is a world with the pending names `π` (D27), and `W` alone
 means no pending name.  In the pop, `Y` is the next pending name and
 `W[X ↦ Y]` joins the binder `X` to it (`Open1`).  The left's abstract
@@ -2310,6 +2337,108 @@ count a name that never flows out as checked ("vacuous" grants);
 G2m would still need change 2.  The principled form of change 3 is
 pending rep. vars whose unnamed entries open left-only
 (PushOrder.md, fix (c3)); the skip is its index-only shadow.
+
+### 12.3.2 Proposal: openings in the index (🆕 **D30**)
+
+Status: proposed 2026-10-08; not adopted, not checked.  Everything in
+this subsection is new.
+
+**Why.**  A pending name (D27) says how to read a type: "the left
+type's next outer `∀` binds the right's name `Y`".  It never changed a
+term's context (`CtxImp` never read `πʷ`), and two of the three
+binders that consume it, a `gen X.p` and a `∀X.p` coercion, have no
+term in their scope.  So it belongs to the index of the judgment, not
+to the world.  With it there, the world changes only at term binders
+(`Λ`, boundary entries, `ν`).
+
+**The index.**
+
+```
+  A ⊑_W^O A′      O a list of right names (the openings), next first
+
+  A ⊑_W^[]    A′  =  A ⊑_W A′                            (the plain index)
+  ∀X.A ⊑_W^(Y·O) A′  =  A[X:=Y] ⊑_W^O A′                  (open the next ∀ at Y)
+```
+
+(as today's `OpenImp`; `X` and `Y` become one center name for the
+reading).  Well-formedness of an index: each name of `O` is right-only,
+bound to a `★` rep. var with no named left partner, and the names are
+distinct.  The judgment is `W ∣ γ ⊢ M ⊑ M′ : A ⊑_W^O A′`; the world has
+no `π` field.
+
+**Rules that create an opening: only `⊑⟪⟫`** (a right boundary, whose
+entries bind names in its interior):
+
+```
+  W[· ∥ δ′] ∣ [] ⊢ M ⊑ M′ : A ⊑^(O′ ++ new) A′ᵢ    c′ : A′ᵢ ⇒ A′
+  O′ = O seen inside δ′    new ⊆ the ★-bound right-only names δ′ binds
+  new = [] or M a value
+  ────────────────────────────────────────────────────── (⊑⟪⟫, D30)
+  W ∣ γ ⊢ M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑^O A′
+```
+
+**Rules that consume an opening: only `Λ⊑`** (a term binder) changes
+the world:
+
+```
+  W[X ↦ Y] ∣ ⇑ᴸγ ⊢ V ⊑ M′ : A ⊑^O B′
+  ──────────────────────────────────────── (Λ⊑, join, D30; was the pop)
+  W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑^(Y·O) B′
+```
+
+`Λ⊑`'s fresh and `claim-rep` forms are unchanged and take the plain
+index (`O = []`).
+
+**Rules that pass openings along the types, with no world change.**
+One `cast⊑` rule: its premise's openings follow from its conclusion's
+and the cast's types.  A cast `p : B ⇒ A` consumes the leading
+openings that `A` has more outer `∀`s for than `B`, and passes the
+rest:
+
+```
+  W ∣ γ ⊢ M ⊑ M′ : B ⊑^(drop k O) A′    p : B ⇒ A
+  k = (outer ∀s of A) − (outer ∀s of B), and O = [] unless M is a value
+  ──────────────────────────────────────────────── (cast⊑, D30)
+  W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ : A ⊑^O A′
+```
+
+For `∀X.p : ∀X.B ⇒ ∀X.A`, `k = 0`: the opening passes to `M`, whose
+type is `∀X.B`.  For `gen X.p : B ⇒ ∀X.A`, `k = 1`: the opening is
+used up by the cast's own type and `M : B` is related at the plain
+index; `X` is bound only in `p`.  For any other cast with `O = []`, it is
+GTSFImp's `cast⊑`.  Likewise `⟪⟫⊑` passes openings into the left
+interior when its conversion has a matching `∀` (D27's pass), `⊑cast`
+keeps them, and every other rule requires `O = []`.
+
+**Example: K's final pair** (§12.3's ladder), read with D30:
+
+```
+⊑cast                       index ∀X.X→X ⊑ ★→★                 (O = [])
+  ⊑⟪⟫  [+Y^β, +X^α], open at Y   index ∀X.X→X ⊑^[Y] Y→Y  = Y→Y ⊑ Y→Y
+    ⟪⟫⊑  [+X^α] … ⟨∀Y. …⟩, pass   index ∀Y.Y→Y ⊑^[Y] Y→Y
+      Λ⊑  join ΛY to Y             world: Y joined;  index Y→Y ⊑ Y→Y  (O = [])
+        ƛ⊑ƛ, x⊑x
+```
+
+The only world change is at `ΛY`, a term binder; the opening lives in
+the index from `⊑⟪⟫` down to `Λ⊑`.
+
+**What goes.**  `πʷ`; `PendingOK` and `wf-pending`, `wf-distinct` in
+`WfWorld`; the `πʷ W ≡ []` hypotheses of the theorem statements and of
+`RelatedValues`; `CastClaim` (three cases) and the special forms of
+`cast⊑`; the record updates `record W { πʷ = … }`.  What stays:
+`Push`/`Carried` as the side condition of `⊑⟪⟫`, `ForallConv` for
+`⟪⟫⊑`, and the join (`Open1`) at `Λ⊑`.
+
+**Open.**
+- H1's order problem (D29) and TwoGen's O2 are about the order of
+  openings and are unchanged; TwoGen's index skip (change 3 of §12.3.1)
+  is an index operation and would fit here.
+- Interaction with D28′ (permissions at joining binders): the join of
+  an opening happens at `Λ⊑`, a term binder, so D28′'s "the join pays"
+  check would sit there.
+- Whether every lemma that today reads `πʷ` (PushInstR, PendingMor, …)
+  becomes simpler or only moves.
 
 ### 12.4 Examples
 

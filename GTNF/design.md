@@ -110,8 +110,8 @@ enough to make the tag check well defined.
 Well-formed types `Δ ⊢ A` are as in νF, plus `Δ ⊢ ★`:
 
 ```
-  X:=α ∈ Δ                         Δ ⊢ A   Δ ⊢ B      Δ, α, X:=α ⊢ A
-  ────────   ─────   ─────(new)   ──────────────     ──────────────── (X, α ∉ Δ)
+  X:=α ∈ Δ                         Δ ⊢ A   Δ ⊢ B      Δ,α,X:=α ⊢ A
+  ────────   ─────   ─────(new)   ──────────────     ────────────── (X, α ∉ Δ)
   Δ ⊢ X      Δ ⊢ ι   Δ ⊢ ★         Δ ⊢ A → B          Δ ⊢ ∀X. A
 ```
 
@@ -236,9 +236,9 @@ The domain of a function coercion is typed under `flip(μ)`, which swaps
 The side conditions on `inst` and `gen` are GTSFImp's.
 
 ```
-  Δ ⊢ A    A an atom            Δ ⊢ G   G ≠ X                Δ ⊢ G   G ≠ X
-  ──────────────────────        ──────────────────           ────────────────────
-  Δ ; μ ⊢ id(A) : A ⇒ A         Δ ; μ ⊢ G! : G ⇒ ★           Δ ; μ ⊢ G?ℓ : ★ ⇒ G
+  Δ ⊢ A    A an atom            Δ ⊢ G   G ≠ X              Δ ⊢ G   G ≠ X
+  ──────────────────────        ──────────────────         ────────────────────
+  Δ ; μ ⊢ id(A) : A ⇒ A         Δ ; μ ⊢ G! : G ⇒ ★         Δ ; μ ⊢ G?ℓ : ★ ⇒ G
 
   Δ ⊢ X   μ(X) ∈ {X∼★, ★∼X∼★}         Δ ⊢ X   μ(X) ∈ {★∼X, ★∼X∼★}
   ───────────────────────────          ───────────────────────────
@@ -252,13 +252,13 @@ The side conditions on `inst` and `gen` are GTSFImp's.
   ─────────────────────────────────────── (X, α ∉ Δ)
   Δ ; μ ⊢ ∀X. p : ∀X. A ⇒ ∀X. B
 
-  Δ, α, X:=α ; μ, X:X∼★ ⊢ p : A ⇒ B    Δ ⊢ B    A not a variable    X ∈ A    B ≠ ★
-  ──────────────────────────────────────────────────────────────────────────────── (X, α ∉ Δ)
+  Δ,α,X:=α ; μ,X:X∼★ ⊢ p : A ⇒ B  Δ ⊢ B  A not a var.  X ∈ A  B ≠ ★
+  ────────────────────────────────────────────────────────────────── (X, α ∉ Δ)
   Δ ; μ ⊢ inst X. p : ∀X. A ⇒ B
 
-  Δ, α, X:=α ; μ, X:★∼X ⊢ p : A ⇒ B    Δ ⊢ A    B not a variable    X ∈ B    A ≠ ★
-  GenSafe(p)
-  ──────────────────────────────────────────────────────────────────────────────── (X, α ∉ Δ)
+  Δ,α,X:=α ; μ,X:★∼X ⊢ p : A ⇒ B
+  Δ ⊢ A   B not a var.   X ∈ B   A ≠ ★   GenSafe(p)
+  ───────────────────────────────────────────────── (X, α ∉ Δ)
   Δ ; μ ⊢ gen X. p : A ⇒ ∀X. B
 
   Δ ; μ ⊢ p : A ⇒ G    G! allowed by μ    A ≠ ★
@@ -269,8 +269,8 @@ The side conditions on `inst` and `gen` are GTSFImp's.
   ─────────────────────────────────────────────   (GTSFImp `？_`)
   Δ ; μ ⊢ G?ℓ ; p : ★ ⇒ B
 
-  ─────────────────────────────────          ───────────────────────────────────
-  Δ ; μ ⊢ bot-elim : ∀X. X ⇒ ∀X. ★           Δ ; μ ⊢ bot-intro ℓ : ∀X. ★ ⇒ ∀X. X
+  ─────────────────────────────────      ───────────────────────────────────
+  Δ ; μ ⊢ bot-elim : ∀X. X ⇒ ∀X. ★      Δ ; μ ⊢ bot-intro ℓ : ∀X. ★ ⇒ ∀X. X
 ```
 
 A cast carries its mode environment, written `M ⟨p⟩^μ` (§4).  Why
@@ -293,7 +293,7 @@ consistency at star"):
   (X!)[★/X]       = id(★)          (G!)[★/X]  = G!    if G ≠ X
   (X?ℓ)[★/X]      = id(★)          (G?ℓ)[★/X] = G?ℓ   if G ≠ X
   (p → q)[★/X]    = p[★/X] → q[★/X]
-  (∀Y. p)[★/X]    = ∀Y. p[★/X]          (inst Y. p)[★/X] = inst Y. p[★/X]
+  (∀Y. p)[★/X]    = ∀Y. p[★/X]     (inst Y. p)[★/X] = inst Y. p[★/X]
   (gen Y. p)[★/X] = gen Y. p[★/X]
   (p ; X!)[★/X]   = p[★/X]         (p ; G!)[★/X]   = p[★/X] ; G!    if G ≠ X
   (X?ℓ ; p)[★/X]  = p[★/X]         (G?ℓ ; p)[★/X]  = G?ℓ ; p[★/X]   if G ≠ X
@@ -328,15 +328,15 @@ application, value-restricted `Λ`, `⊢ν`, boundary):
 
 ```
   Δ, α, X:=α ∣ Γ ⊢ V : A
-  ──────────────────────────
+  ────────────────────────── (TyAbs)
   Δ ∣ Γ ⊢ ΛX. V : ∀X. A
 
   Δ ⊢ A    Δ ∣ Γ ⊢ L : ∀X. C    Δ, α:=Δ(A), X:=α ⊢ c : C ⇒ B    Δ ⊢ B
-  ──────────────────────────────────────────────────────────────────────
+  ────────────────────────────────────────────────────────────────────── (Inst)
   Δ ∣ Γ ⊢ ν X:=A. (L X) ⟨c⟩ : B
 
   Δ ⊢ δ    δ(Δ) ∣ [] ⊢ M : A    δ⁺(Δ) ⊢ c : A ⇒ B    Δ ⊢ B
-  ─────────────────────────────────────────────────────────
+  ───────────────────────────────────────────────────────── (Boundary)
   Δ ∣ Γ ⊢ [δ] M ⟨c⟩ : B
 ```
 
@@ -344,7 +344,7 @@ New rules:
 
 ```
   Δ ∣ Γ ⊢ M : A    Δ ; μ ⊢ p : A ⇒ B            Δ ⊢ A
-  ──────────────────────────────── (new)        ───────────────────── (new)
+  ────────────────────────────────── (Cast)    ─────────────────── (Blame)
   Δ ∣ Γ ⊢ M ⟨p⟩^μ : B                          Δ ∣ Γ ⊢ blame ℓ : A
 ```
 
@@ -411,7 +411,7 @@ F ::= □ M | V □ | op(V⃗, □, M⃗)
 (□ ⟨p⟩)(Δ) = Δ                                (new)
 ```
 
-### 6.2 The νF rules
+### 6.2 The reduction rules from νF
 
 `Delta`, `Beta`, `Wrap`, `Merge`, `Id` and `ξ` are verbatim from νF,
 except that `Merge`'s inner boundary may now also be the new value form
@@ -435,16 +435,16 @@ Here `α` is the representation variable that `TyBeta` allocates for
 and why it allocates nothing: §C3.2.)
 
 ```
-Δ ⊢ op(k⃗) ⟶ ⟦op⟧(k⃗) ⊣ ε                                              (Delta)
+Δ ⊢ op(k̅) ⟶ ⟦op⟧(k̅) ⊣ ε                                                (Delta)
 
-Δ ⊢ (λx:A. N) V ⟶ N[x:=V] ⊣ ε                                          (Beta)
+Δ ⊢ (λx:A. N) V ⟶ N[x:=V] ⊣ ε                                           (Beta)
 
 Δ ⊢ ([δ] U ⟨c → d⟩) W ⟶ [δ] (U ([−δ] W ⟨c⟩)) ⟨d⟩ ⊣ ε                    (Wrap)
 
-Δ ⊢ ν X:=A. (V X) ⟨d⟩ ⟶ [+X^α] inst_X(V) ⟨d⟩ ⊣ α:=Δ(A)                  (TyBeta)
+Δ ⊢ ν X:=A. (V X) ⟨d⟩ ⟶ [+X^α] inst_X(V) ⟨d⟩ ⊣ α:=Δ(A)                (TyBeta)
       V a ∀-value; α fresh
 
-Δ ⊢ [δ₂] ([δ₁] U ⟨t₁⟩) ⟨c₁⟩ ⟶ [δ₂ ++ δ₁] U ⟨d⟩ ⊣ ε                      (Merge)
+Δ ⊢ [δ₂] ([δ₁] U ⟨t₁⟩) ⟨c₁⟩ ⟶ [δ₂ ++ δ₁] U ⟨d⟩ ⊣ ε                    (Merge)
       where [δ₁] U ⟨t₁⟩ is a value and (δ₂ ++ δ₁)⁺(Δ) ⊢ t₁ ⨟ c₁ = d
 
 Δ ⊢ [δ] U ⟨id(ι)⟩ ⟶ U ⊣ ε                                              (Id)
@@ -468,7 +468,7 @@ then  Δ, X:=α ∣ [] ⊢ inst_X(V) : C
 ### 6.3 Cast rules (new)
 
 ```
-Δ ⊢ V ⟨id(A)⟩ ⟶ V ⊣ ε                                                 (CastId)
+Δ ⊢ V ⟨id(A)⟩ ⟶ V ⊣ ε                                                (CastId)
 
 Δ ⊢ V ⟨p ; q⟩^μ ⟶ V ⟨p⟩^μ ⟨q⟩^μ ⊣ ε                                 (CastSeq)
 
@@ -478,9 +478,9 @@ then  Δ, X:=α ∣ [] ⊢ inst_X(V) : C
       where  p : A ⇒ B  under  μ, X:X∼★,  with V : ∀X. A,  X ∉ B,
              A = src(p),  B = trg(p)
 
-Δ ⊢ V ⟨G!⟩ ⟨G?ℓ⟩ ⟶ V ⊣ ε                                              (TagUntag)
+Δ ⊢ V ⟨G!⟩ ⟨G?ℓ⟩ ⟶ V ⊣ ε                                            (TagUntag)
 
-Δ ⊢ V ⟨G!⟩ ⟨H?ℓ⟩ ⟶ blame ℓ ⊣ ε        if G ≠ H                         (TagUntagBad)
+Δ ⊢ V ⟨G!⟩ ⟨H?ℓ⟩ ⟶ blame ℓ ⊣ ε        if G ≠ H                   (TagUntagBad)
 
 Δ ⊢ [δ] (V ⟨G!⟩^μ) ⟨id(★)⟩ ⟶ ([δ] V ⟨Id(G)⟩) ⟨G!⟩^exit_δ(μ) ⊣ ε        (IdDyn)
       if G ∉ fresh(δ)            (equivalently, on well-typed terms, Δ ⊢ G)
@@ -488,11 +488,12 @@ then  Δ, X:=α ∣ [] ⊢ inst_X(V) : C
 exit_δ(μ)(Y) = μ(Y)    if Y is visible in the interior δ(Δ)
              = X∼X     otherwise
 
-Δ ⊢ ([δ] (V ⟨X!⟩) ⟨id(★)⟩) ⟨H?ℓ⟩ ⟶ blame ℓ ⊣ ε     if X ∈ fresh(δ)     (TagUntagBad-⟪⟫)
+Δ ⊢ ([δ] (V ⟨X!⟩) ⟨id(★)⟩) ⟨H?ℓ⟩ ⟶ blame ℓ ⊣ ε                (TagUntagBad-⟪⟫)
+      if X ∈ fresh(δ)
 
-Δ ⊢ V ⟨bot-intro ℓ⟩ ⟶ blame ℓ ⊣ ε                                      (BlameBotIntro)
+Δ ⊢ V ⟨bot-intro ℓ⟩ ⟶ blame ℓ ⊣ ε                              (BlameBotIntro)
 
-Δ ⊢ F[blame ℓ] ⟶ blame ℓ ⊣ ε                                            (Blame)
+Δ ⊢ F[blame ℓ] ⟶ blame ℓ ⊣ ε                                           (Blame)
 ```
 
 (Correspondence with GTSFImp's rules: §C3.5; how `Inst` works through

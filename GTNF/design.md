@@ -701,6 +701,41 @@ The marks `μ` are never set: they are recomputed from `η′` and `κ`
 is embedded as the center name `C`.  (In the Agda the same operations
 also renumber de Bruijn positions; that renumbering moves no name.)
 
+**Notation used in the rules.**  Every way §10 writes a world, with
+where it is defined:
+
+| written | meaning | defined |
+|---|---|---|
+| `W` | a world whose pending list `π` is empty | §9 |
+| `W, π` | `W` with its pending list set to `π` | here |
+| `W, Y·π` | pending list `π` with `Y` in front (the next pop) | here |
+| `W, Y` | `W, Y·[]`: exactly one pending name | here |
+| `W ⊕²` | both sides bind the binder | binders, below |
+| `W ⊕ᴸ`, `W ⊕ᴸ X` | the left side alone binds `X` (same operation; `X` names the binder) | binders, below |
+| `W ⊕ᴸ⇔ β` | as `W ⊕ᴸ X`, claiming the right rep. var `β` | binders, below |
+| `W ⊕ᴿ` | the right side alone binds | binders, below |
+| `W[δ ∥ δ′]` | the interior world of a boundary pair | interior, below |
+| `W[δ ∥ ·]`, `W[· ∥ δ′]` | the interior world of a left-only / right-only boundary | interior, below |
+| `W[δ ∥ ·], π` | that interior world, with pending list `π` | combines the rows above |
+| `W[· ∥ δ′], π′ ++ new` | that interior world, with the carried names `π′` then the pushed names `new` | §10.5 (`⊑⟪⟫`) |
+| `W[X ↦ Y]` | the pop of `Y` by the left binder `X` | pops, below |
+| `W[X ↦ Y], π` | that pop, with the remaining pending list `π` | combines the rows above |
+| `W⁺` | `W`, or `W` with `β` added to `κ` (a grant) | grants, below; §10.2 |
+| `Wᶜ` | the world over the two conversion contexts | conversion worlds, below |
+| `underν² R R′` | the conversion world of `ν⊑ν` | allocation, below |
+| `allocᴸ`, `allocᴿ`, `alloc²`, `allocᴸ⇔` | allocation by `TyBeta` (Evolve, between steps) | allocation, below |
+| 🆕 **D28′** `Wᵢ` | `W[δ ∥ δ′]` with the joined names' rep. vars `K` added to `κ` | §10.5 |
+
+In the Agda, `W, π` is `record W { πʷ = π }`, and a grant is
+`record W { κʷ = β ∷ κʷ W }`.  🆕 **D30**: `W, π` goes away; `π`
+becomes the openings `O` of the index `A ⊑_W^O A′` (§10.8).
+
+The term context `γ` has its own operations, which keep its entries
+and only re-read them in the new world: `γ, x : B ⊑ B′` (extend, in
+`ƛ⊑ƛ`), `⇑γ` (`Λ⊑Λ`: both sides' types moved under the binder),
+`⇑ᴸγ` (`Λ⊑`: the left types moved under the binder), `γ⁺` (`⊑cast`
+under a grant: the same entries at the new marks).
+
 **Binders on one or both sides** (`Λ⊑Λ`, `Λ⊑`; Agda `_⊕²`, `_⊕ᴸ`,
 `_⊕ᴸ⇔_`, `_⊕ᴿ`).  The binder `X` comes with a fresh abstract rep. var:
 `αᴸ` on the left, `αᴿ` on the right.
@@ -770,6 +805,20 @@ rep. var `αᴸ`:
 
 The center name of `Y` was right-only and becomes shared.  (Agda
 `W ⊕⁺^ β` is a push of `+Y^β`'s name followed by this pop.)
+
+**Conversion worlds `Wᶜ`** (`ν⊑ν`, `⟪⟫⊑⟪⟫`, §10.6; Agda
+`ConversionInterior`, `underν²`).  A conversion is read in its own
+context, which keeps every exterior name and adds one name for each
+rep. var its boundary binds that has no exterior name yet; an unbind
+removes no name.
+
+| for | `Ω`, `η`, `η′` | `ϱᵍ`, `ϱˡ`, `κ` |
+|---|---|---|
+| `⟪⟫⊑⟪⟫` | as `W`, plus one center name per newly named rep. var, shared iff the two rep. vars are paired in `ϱ` | unchanged |
+| `ν⊑ν` (`underν² R R′`) | as `W` | the two `ν`s' rep. vars added, paired in `ϱˡ` |
+
+The conversion clauses then go under binders with `Wᶜ ⊕²` (both
+sides' `∀X.c`) and `Wᶜ ⊕ᴸ X` (a left-only `∀X.c`).
 
 **Grants** (D28; `⊑cast`, §10.2).  `W` with `β` added to `κ`; nothing
 else changes, so the marks of the names bound to `β` become `X⊑★`.

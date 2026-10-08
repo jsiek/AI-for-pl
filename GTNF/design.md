@@ -721,27 +721,27 @@ where it is defined:
 | written | meaning | defined |
 |---|---|---|
 | `W` | a world whose pending list `π` is empty | §9 |
-| `W, π` | `W` with its pending list set to `π` | here |
-| `W, Y·π` | pending list `π` with `Y` in front (the next pop) | here |
-| `W, Y` | `W, Y·[]`: exactly one pending type variable | here |
+| `W.π := π′` | `W` with its pending list set to `π′` (field update) | here |
+| `W.π := Y·π′` | the pending list `π′` with `Y` in front (the next pop) | here |
+| `W.π := [Y]` | exactly one pending type variable | here |
 | `W ⊕ (X:α ∥ X′:α′)` | both sides bind (left `X` with abstract rep. var `α`, right `X′` with `α′`) | binders, below |
 | `W ⊕ (X:α ∥ ·)` | the left side alone binds `X` | binders, below |
 | `W ⊕ (X:α⇔β ∥ ·)` | as `W ⊕ (X:α ∥ ·)`, claiming the right rep. var `β` | binders, below |
 | `W ⊕ (· ∥ X′:α′)` | the right side alone binds `X′` | binders, below |
 | `W[δ ∥ δ′]` | the interior world of a boundary pair | interior, below |
 | `W[δ ∥ ·]`, `W[· ∥ δ′]` | the interior world of a left-only / right-only boundary | interior, below |
-| `W[δ ∥ ·], π` | that interior world, with pending list `π` | combines the rows above |
-| `W[· ∥ δ′], π′ ++ new` | that interior world, with the carried type variables `π′` then the pushed type variables `new` | §10.5 (`⊑⟪⟫`) |
+| `W[δ ∥ ·].π := π′` | that interior world, with pending list `π′` | combines the rows above |
+| `W[· ∥ δ′].π := π′ ++ new` | that interior world, with the carried type variables `π′` then the pushed type variables `new` | §10.5 (`⊑⟪⟫`) |
 | `W[X:α ↦ Y]` | the pop of `Y` by the left binder `X` (abstract rep. var `α`) | pops, below |
-| `W[X:α ↦ Y], π` | that pop, with the remaining pending list `π` | combines the rows above |
+| `W[X:α ↦ Y].π := π′` | that pop, with the remaining pending list `π′` | combines the rows above |
 | `W +κ β` | `W` with `β` added to `κ` (a grant) | grants, below; §10.2 |
 | `Wᶜ` | the world over the two conversion contexts | conversion worlds, below |
 | `W +ˡ (α, α′)` | `W` with `(α, α′)` added to `ϱˡ` (the conversion world of `ν⊑ν`) | allocation, below |
 | `W +ᵍ (α, α′)` | `W` with `(α, α′)` added to `ϱᵍ` (a matched allocation) | allocation, below |
 | 🆕 **D28′** `Wᵢ` | `W[δ ∥ δ′]` with the joined type variables' rep. vars `K` added to `κ` | §10.5 |
 
-In the Agda, `W, π` is `record W { πʷ = π }`, and a grant is
-`record W { κʷ = β ∷ κʷ W }`.  🆕 **D30**: `W, π` goes away; `π`
+In the Agda, `W.π := π′` is `record W { πʷ = π′ }`, and a grant is
+`record W { κʷ = β ∷ κʷ W }`.  🆕 **D30**: `W.π := π′` goes away; `π`
 becomes the openings `O` of the index `A ⊑_W^O A′` (§10.8).
 
 The term context `γ` has one operation, `γ, x : B ⊑ B′` (extend, in
@@ -932,13 +932,13 @@ With pending type variables (D27), `⊑cast` carries them unchanged, and
 `cast⊑` has two more forms, for a value `M`:
 
 ```
-  W, Y·π ∣ γ ⊢ M ⊑ M′ : ∀X.B ⊑ A′        ∀X.p : ∀X.B ⇒ ∀X.A
+  W.π := Y·π ∣ γ ⊢ M ⊑ M′ : ∀X.B ⊑ A′        ∀X.p : ∀X.B ⇒ ∀X.A
   ─────────────────────────────────────────────────── (cast⊑, pass ∀)
-  W, Y·π ∣ γ ⊢ M ⟨∀X.p⟩ ⊑ M′ : ∀X.A ⊑ A′
+  W.π := Y·π ∣ γ ⊢ M ⟨∀X.p⟩ ⊑ M′ : ∀X.A ⊑ A′
 
   W ∣ γ ⊢ M ⊑ M′ : B ⊑ A′        gen X.p : B ⇒ ∀X.A
   ─────────────────────────────────────────────────── (cast⊑, pop gen)
-  W, Y ∣ γ ⊢ M ⟨gen X.p⟩ ⊑ M′ : ∀X.A ⊑ A′
+  W.π := [Y] ∣ γ ⊢ M ⟨gen X.p⟩ ⊑ M′ : ∀X.A ⊑ A′
 
   (an index ∀X.… ⊑ A′ at a world with pending type variables is read
    with its outer ∀ opened at the next pending type variable;
@@ -966,10 +966,10 @@ does not see the binder.  One gen pops one pending type variable.
   ───────────────────────────────── (Λ⊑, fresh)
   W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
 
-  W[X:α ↦ Y], π ∣ γ ⊢ V ⊑ M′ : A ⊑ B′
+  W[X:α ↦ Y].π := π ∣ γ ⊢ V ⊑ M′ : A ⊑ B′
   α fresh    A not a variable    X ∈ A
   ───────────────────────────────── (Λ⊑, pop)
-  W, Y·π ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
+  W.π := Y·π ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
 ```
 
 ```
@@ -981,9 +981,9 @@ does not see the binder.  One gen pops one pending type variable.
   W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
 ```
 
-(🆕 **D30**: in the displays below, read `W, π ∣ γ ⊢ … : A ⊑ A′` as
+(🆕 **D30**: in the displays below, read `W.π := π ∣ γ ⊢ … : A ⊑ A′` as
 `W ∣ γ ⊢ … : A ⊑_W^π A′`, an index with openings `π`; §10.8.)
-Here `W, π` is a world with the pending type variables `π` (D27), and
+Here `W.π := π` is a world with the pending type variables `π` (D27), and
 `W` alone means no pending type variable.  In the pop, `Y` is the next
 pending type variable and `W[X:α ↦ Y]` joins the binder `X` to it
 (`Open1`).  The left's abstract rep. var is paired lexically with
@@ -1025,11 +1025,11 @@ coercions, they are not compared with each other:
   ───────────────────────────────────────────────────────────── (⟪⟫⊑⟪⟫)
   W ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
 
-  W[δ ∥ ·], π ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′    c : Aᵢ ⇒ A
+  W[δ ∥ ·].π := π ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′    c : Aᵢ ⇒ A
   π = [] or (M simple and c has a ∀ per type variable of π)
   every −X^α in δ: no partner of α in ϱ is in κ          (R1, D28)
   ───────────────────────────────────────────── (⟪⟫⊑, D27, D28)
-  W, π ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ M′ : A ⊑ A′
+  W.π := π ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ M′ : A ⊑ A′
 ```
 
 🆕 **D28′**: each boundary rule may choose permissions for the type
@@ -1056,10 +1056,12 @@ and `⟪⟫⊑`'s R1 becomes R1′:
 ```
   (⊑⟪⟫, D27; under 🆕 D28′ it also takes the K and join-pays premises above:)
 
-  W[· ∥ δ′], π′ ++ new ∣ [] ⊢ M ⊑ M′ : A ⊑ A′ᵢ    c′ : A′ᵢ ⇒ A′
-  π′ = π seen inside δ′    new introduced by δ′    new = [] or M a value
+  W[· ∥ δ′].π := π′ ++ new ∣ [] ⊢ M ⊑ M′ : A ⊑ A′ᵢ
+  c′ : A′ᵢ ⇒ A′
+  π′ = π seen inside δ′    new introduced by δ′
+  new = [] or M a value
   ───────────────────────────────────────────── (⊑⟪⟫, D27)
-  W, π ∣ γ ⊢ M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
+  W.π := π ∣ γ ⊢ M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
 ```
 
 In `⟪⟫⊑` and `⊑⟪⟫`, the term without the boundary is in the premise
@@ -2319,9 +2321,10 @@ and a `Merge` (G2m, O1: one pop per gen); a gen under a `∀` over a `Λ`
    grant:
 
    ```
-     W, πₚ ∣ γ ⊢ M ⊑ M′ : B ⊑ B′    c claims π ↦ πₚ    c : B ⇒ A    c′ : B′ ⇒ A′
+     W.π := πₚ ∣ γ ⊢ M ⊑ M′ : B ⊑ B′    c claims π ↦ πₚ
+     c : B ⇒ A    c′ : B′ ⇒ A′
      ──────────────────────────────────────────────────────────── (cast⊑cast, (i))
-     W, π ∣ γ ⊢ M ⟨c⟩ ⊑ M′ ⟨c′⟩ : A ⊑ A′
+     W.π := π ∣ γ ⊢ M ⟨c⟩ ⊑ M′ ⟨c′⟩ : A ⊑ A′
    ```
 
    This is the shape the left's own instantiation produces: `inst-gen`

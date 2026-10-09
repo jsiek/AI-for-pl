@@ -1176,7 +1176,7 @@ this boundary (a matched fresh pair, or a rejoin through `ϱ`).
   δ′ unbinds no opening of O
   N new slots for δ′ and M
   N = [] or M a value
-  Oᵢ = fill(O, N)
+  fill N with O into Oᵢ
   Oᵢ well formed at Wᵢ
   K ⊆ joined(· ∥ δ′) ∪ newreps(N)
   A ⊑_Wᵢ^Oᵢ A′ᵢ                          (the join pays)
@@ -1201,22 +1201,26 @@ The side relations of `⟪⟫⊑` and `⊑⟪⟫` under D31:
   skip only when `M` is a gen-cast value (`GenCastValue`).
   `newreps(N)` is the set of rep. vars `β` with `Y:=β`, `Y` an opening
   of `N` (`jr-open`).
-- **`fill`**: the new openings fill the carried skips from left to
-  right, and the remaining new slots go last:
+- **`fill N with O into N′`** (Agda `Fill`, `PushD`), a relation:
+  the carried slots `O` keep their order, a new opening of `N` may
+  fill a carried skip (left to right), and the remaining new slots go
+  last:
 
   ```
-    fill([],   N)     = N
-    fill(Y·O,  N)     = Y · fill(O, N)
-    fill(_·O,  Y·N)   = Y · fill(O, N)
-    fill(_·O,  _·N)   = _ · fill(O, _·N)
-    fill(_·O,  [])    = _ · fill(O, [])
+    ─────────────────────────── (f-end)
+    fill N with [] into N
+
+    fill N with O into N′
+    ─────────────────────────── (f-keep)
+    fill N with s·O into s·N′
+
+    fill N with O into N′
+    ─────────────────────────── (f-fill)
+    fill Y·N with _·O into Y·N′
   ```
 
-  The Agda `Fill` (`PushD`; cases `f-end`, `f-keep`, `f-fill`) is a
-  relation that may also KEEP a carried skip while a new opening goes
-  last; `fill` fixes the left-to-right choice.  Every mechanized
-  derivation in `notes/D28pD30.agda` fills this way (unchecked claim:
-  to confirm when D31 is mechanized).
+  It is a relation because a carried skip may also be kept (`f-keep`
+  with `s = _`) while a new opening goes last.
 - **Well-formed slots** (Agda `SlotOK`, `SlotNe`): §9.
 
 `Wᶜ ⊢ c ⊑ c′` is D17/D18's (§10.6) and reads the EXTERIOR `κ`, so R2

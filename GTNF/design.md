@@ -1080,27 +1080,101 @@ over the two conversion contexts.  For `ν⊑ν`, it adds both
 allocations and pairs the two `ν`s' rep. vars in `ϱˡ`.  For a
 boundary pair, it is the conversion-context analogue of `W[δ ∥ δ′]`.
 The one-sided boundary rules have no conversion premise.  The clauses
-follow the conversion grammar:
+follow the conversion grammar (§2): middles `g`, tails `t` and
+conversions `c`.  One rule per block; every premise is on its own
+line.  "Shared" means `X` and `X′` are embedded as the same center type
+variable.
+
+**Middles** `Wᶜ ⊢ g ⊑ g′`:
 
 ```
-  A ⊑ A′               c ⊑ c′    d ⊑ d′        W ⊕ (X:α ∥ X′:α′) ⊢ c ⊑ c′
-  ───────────────      ────────────────        ──────────────────────────
-  id(A) ⊑ id(A′)       c → d ⊑ c′ → d′         ∀X.c ⊑ ∀X′.c′
+  A ⊑ A′
+  ──────────────── (id⊑id)
+  id(A) ⊑ id(A′)
 
-  X, X′ one center type var.    X, X′ one center type var.    t ⊑ t′    c ⊑ c′
-  ──────────────────────────    ──────────────────────────    (chains, componentwise)
-  −X ⊑ −X′                          +X ⊑ +X′
+  c ⊑ c′
+  d ⊑ d′
+  ──────────────── (→⊑→)
+  c → d ⊑ c′ → d′
 
-  μ(X) = X⊑★  U(X)    μ(X) = X⊑★  U(X)    t ⊑ t′  μ(X) = X⊑★  U(X)    μ(X) = X⊑★  U(X)  c ⊑ c′
-  ────────────────    ────────────────    ───────────────────────    ────────────────────────
-  −X ⊑ id(★)          +X ⊑ id(★)          t ; −X ⊑ t′                +X ; c ⊑ c′
+  Wᶜ ⊕ (X:α ∥ X′:α′) ⊢ c ⊑ c′
+  α, α′ fresh
+  ─────────────────────────── (∀⊑∀)
+  ∀X.c ⊑ ∀X′.c′
 
-  U(X)  =  no partner in ϱ of X's rep. var is in κ          (R2, D28)
-
-  W ⊕ (X:α ∥ ·) ⊢ c ⊑ g′
-  ─────────────────   (g′ a middle)
+  Wᶜ ⊕ (X:α ∥ ·) ⊢ c ⊑ g′
+  α fresh
+  ─────────────────────────── (∀⊑)
   ∀X.c ⊑ g′
 ```
+
+**Tails** `Wᶜ ⊢ t ⊑ t′`:
+
+```
+  g ⊑ g′
+  ──────────────── (mid⊑mid)
+  g ⊑ g′  (as tails)
+
+  X, X′ shared
+  ──────────────── (seal⊑seal)
+  −X ⊑ −X′
+
+  t ⊑ t′
+  X, X′ shared
+  ──────────────── (;seal⊑;seal)
+  t ; −X ⊑ t′ ; −X′
+
+  μ(X) = X⊑★
+  U(X)
+  ──────────────── (seal⊑id★)
+  −X ⊑ id(★)
+
+  t ⊑ t′
+  μ(X) = X⊑★
+  U(X)
+  ──────────────── (;seal⊑)
+  t ; −X ⊑ t′
+```
+
+**Conversions** `Wᶜ ⊢ c ⊑ c′`:
+
+```
+  t ⊑ t′
+  ──────────────── (tail⊑tail)
+  t ⊑ t′  (as conversions)
+
+  X, X′ shared
+  ──────────────── (unseal⊑unseal)
+  +X ⊑ +X′
+
+  X, X′ shared
+  c ⊑ c′
+  ──────────────── (unseal;⊑unseal;)
+  +X ; c ⊑ +X′ ; c′
+
+  μ(X) = X⊑★
+  U(X)
+  ──────────────── (unseal⊑id★)
+  +X ⊑ id(★)
+
+  μ(X) = X⊑★
+  U(X)
+  c ⊑ c′
+  ──────────────── (unseal;⊑)
+  +X ; c ⊑ c′
+```
+
+where
+
+```
+  U(X)  =  no partner in ϱ of X's rep. var
+           is in κ                        (R2, D28)
+```
+
+(Agda: `conv-id⊑id`, `conv-↦⊑↦`, `conv-∀⊑∀`, `conv-∀⊑`;
+`conv-mid⊑mid`, `conv-seal⊑seal`, `conv-⨾seal⊑⨾seal`, `conv-seal⊑id★`,
+`conv-⨾seal⊑`; `conv-tail⊑tail`, `conv-unseal⊑unseal`,
+`conv-unseal⨾⊑unseal⨾`, `conv-unseal⊑id★`, `conv-unseal⨾⊑`.)
 
 (Why the `★` clauses, R2 and the chain forms: §C6.8, D17, D18.)
 

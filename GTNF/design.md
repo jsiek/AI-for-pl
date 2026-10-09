@@ -1083,12 +1083,12 @@ The one-sided boundary rules have no conversion premise.  The clauses
 follow the conversion grammar:
 
 ```
-  A ⊑ A′                 c ⊑ c′    d ⊑ d′          W ⊕ (X:α ∥ X′:α′) ⊢ c ⊑ c′
-  ───────────────        ────────────────          ─────────────────────
-  id(A) ⊑ id(A′)         c → d ⊑ c′ → d′           ∀X.c ⊑ ∀X′.c′
+  A ⊑ A′               c ⊑ c′    d ⊑ d′        W ⊕ (X:α ∥ X′:α′) ⊢ c ⊑ c′
+  ───────────────      ────────────────        ──────────────────────────
+  id(A) ⊑ id(A′)       c → d ⊑ c′ → d′         ∀X.c ⊑ ∀X′.c′
 
-  X, X′ one center type variable    X, X′ one center type variable    t ⊑ t′    c ⊑ c′
-  ──────────────────────────────    ──────────────────────────────    (chains, componentwise)
+  X, X′ one center type var.    X, X′ one center type var.    t ⊑ t′    c ⊑ c′
+  ──────────────────────────    ──────────────────────────    (chains, componentwise)
   −X ⊑ −X′                          +X ⊑ +X′
 
   μ(X) = X⊑★  U(X)    μ(X) = X⊑★  U(X)    t ⊑ t′  μ(X) = X⊑★  U(X)    μ(X) = X⊑★  U(X)  c ⊑ c′

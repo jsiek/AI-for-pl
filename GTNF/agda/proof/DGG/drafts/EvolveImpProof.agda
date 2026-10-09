@@ -26,21 +26,21 @@ open import proof.DGG.EvolveImpDef using (EvolveImp)
 open import proof.TypeSafety.PreservationSupport using (alloc-wf)
 
 evolve-imp : EvolveImp
-evolve-imp wΔ wΔ′ ev-done wf e k M⊑ = wf , _ , M⊑
-evolve-imp wΔ wΔ′ (ev-L wR ev) wf e k M⊑ with alloc-L wR wf M⊑
-evolve-imp wΔ wΔ′ (ev-L wR ev) wf e k M⊑ | wf₁ , q , M₁ =
-  evolve-imp (alloc-wf wΔ wR) wΔ′ ev wf₁ e k M₁
-evolve-imp wΔ wΔ′ (ev-R wR′ ev) wf e k M⊑ with alloc-R wR′ wf M⊑
-evolve-imp wΔ wΔ′ (ev-R wR′ ev) wf e k M⊑ | wf₁ , q , M₁ =
-  evolve-imp wΔ (alloc-wf wΔ′ wR′) ev wf₁ e (cong (map suc) k) M₁
-evolve-imp wΔ wΔ′ (ev-2 wR wR′ ag ev) wf e k M⊑
+evolve-imp wΔ wΔ′ ev-done wf k M⊑ = wf , _ , M⊑
+evolve-imp wΔ wΔ′ (ev-L wR ev) wf k M⊑ with alloc-L wR wf M⊑
+evolve-imp wΔ wΔ′ (ev-L wR ev) wf k M⊑ | wf₁ , q , M₁ =
+  evolve-imp (alloc-wf wΔ wR) wΔ′ ev wf₁ k M₁
+evolve-imp wΔ wΔ′ (ev-R wR′ ev) wf k M⊑ with alloc-R wR′ wf M⊑
+evolve-imp wΔ wΔ′ (ev-R wR′ ev) wf k M⊑ | wf₁ , q , M₁ =
+  evolve-imp wΔ (alloc-wf wΔ′ wR′) ev wf₁ (cong (map suc) k) M₁
+evolve-imp wΔ wΔ′ (ev-2 wR wR′ ag ev) wf k M⊑
   with alloc-2 wR wR′ ag wf M⊑
-evolve-imp wΔ wΔ′ (ev-2 wR wR′ ag ev) wf e k M⊑ | wf₁ , q , M₁ =
-  evolve-imp (alloc-wf wΔ wR) (alloc-wf wΔ′ wR′) ev wf₁ e
+evolve-imp wΔ wΔ′ (ev-2 wR wR′ ag ev) wf k M⊑ | wf₁ , q , M₁ =
+  evolve-imp (alloc-wf wΔ wR) (alloc-wf wΔ′ wR′) ev wf₁
     (cong (map suc) k) M₁
-evolve-imp wΔ wΔ′ (ev-L⇔ wR β★ ag ev) wf e k M⊑
+evolve-imp wΔ wΔ′ (ev-L⇔ wR β★ ag ev) wf k M⊑
   with alloc-L⇔ wR β★ ag wf M⊑
-evolve-imp wΔ wΔ′ (ev-L⇔ wR β★ ag ev) wf e k M⊑ | wf₁ , q , M₁ =
-  evolve-imp (alloc-wf wΔ wR) wΔ′ ev wf₁ e k M₁
-evolve-imp wΔ wΔ′ (ev-noneᴸ ev) wf e k M⊑ = evolve-imp wΔ wΔ′ ev wf e k M⊑
-evolve-imp wΔ wΔ′ (ev-noneᴿ ev) wf e k M⊑ = evolve-imp wΔ wΔ′ ev wf e k M⊑
+evolve-imp wΔ wΔ′ (ev-L⇔ wR β★ ag ev) wf k M⊑ | wf₁ , q , M₁ =
+  evolve-imp (alloc-wf wΔ wR) wΔ′ ev wf₁ k M₁
+evolve-imp wΔ wΔ′ (ev-noneᴸ ev) wf k M⊑ = evolve-imp wΔ wΔ′ ev wf k M⊑
+evolve-imp wΔ wΔ′ (ev-noneᴿ ev) wf k M⊑ = evolve-imp wΔ wΔ′ ev wf k M⊑

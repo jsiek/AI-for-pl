@@ -7,10 +7,10 @@ module proof.DGG.CatchupBlameProof where
 --     subterm to blame inside the frame, RunFrames, then fires that
 --     frame's Blame rule), and `Λ⊑`, which is impossible: its body is a
 --     value, and a value that runs to blame is blame, not a value.
---   * The statement is at a world with no pending name (`πʷ W ≡ []`,
---     design.md D27), so only `cc-plain`, `claim-fresh`, `claim-rep`
---     (D29) and `bc-plain` occur, and every premise is again at a world with no pending name
---     (`refl`).
+--   * The statement is at O = [] (no slot, design.md D31), so only
+--     `co-plain`, `b-fresh`, `b-rep` (D29) and `bo-plain` occur, and
+--     every premise is again at O = []; a boundary's permissions K do
+--     not matter (the statement does not read κ).
 --   * No module parameters: the proof uses no other DGG lemma.
 --   * Orientation: the LEFT term is the more precise one.
 
@@ -27,30 +27,30 @@ open import proof.DGG.RunFrames
 open import proof.DGG.CatchupBlameDef using (CatchupBlame)
 
 catchup-blame : CatchupBlame
-catchup-blame refl (κ⊑κ () p)
-catchup-blame refl (blame⊑ {ℓ = ℓ} wA ⊢M′ p) = ℓ , done
-catchup-blame refl (cast⊑ cc-plain M⊑ ct q) with catchup-blame refl M⊑
-catchup-blame refl (cast⊑ cc-plain M⊑ ct q) | ℓ′ , r =
+catchup-blame (κ⊑κ () p)
+catchup-blame (blame⊑ {ℓ = ℓ} wA ⊢M′ p) = ℓ , done
+catchup-blame (cast⊑ co-plain M⊑ ct q) with catchup-blame M⊑
+catchup-blame (cast⊑ co-plain M⊑ ct q) | ℓ′ , r =
   ℓ′ , (ξ-cast* r ++ʳ (Blame-cast then done))
-catchup-blame refl (Λ⊑ claim-fresh nv occ liftᴸ-[] v V⊑ q)
-  with catchup-blame refl V⊑
-catchup-blame refl (Λ⊑ claim-fresh nv occ liftᴸ-[] v V⊑ q) | ℓ′ , r
+catchup-blame (Λ⊑ b-fresh nv occ liftᴸ-[] v V⊑ q)
+  with catchup-blame V⊑
+catchup-blame (Λ⊑ b-fresh nv occ liftᴸ-[] v V⊑ q) | ℓ′ , r
   with value-run≡ v r
-catchup-blame refl (Λ⊑ claim-fresh nv occ liftᴸ-[] (V-simple ()) V⊑ q)
+catchup-blame (Λ⊑ b-fresh nv occ liftᴸ-[] (V-simple ()) V⊑ q)
   | ℓ′ , r | refl
-catchup-blame refl (Λ⊑ (claim-rep hβ nβ np) nv occ liftᴸ-[] v V⊑ q)
-  with catchup-blame refl V⊑
-catchup-blame refl (Λ⊑ (claim-rep hβ nβ np) nv occ liftᴸ-[] v V⊑ q)
+catchup-blame (Λ⊑ (b-rep hβ nβ np) nv occ liftᴸ-[] v V⊑ q)
+  with catchup-blame V⊑
+catchup-blame (Λ⊑ (b-rep hβ nβ np) nv occ liftᴸ-[] v V⊑ q)
   | ℓ′ , r with value-run≡ v r
-catchup-blame refl
-    (Λ⊑ (claim-rep hβ nβ np) nv occ liftᴸ-[] (V-simple ()) V⊑ q)
+catchup-blame
+    (Λ⊑ (b-rep hβ nβ np) nv occ liftᴸ-[] (V-simple ()) V⊑ q)
   | ℓ′ , r | refl
-catchup-blame refl (ν⊑ L⊑ pA n q) with catchup-blame refl L⊑
-catchup-blame refl (ν⊑ L⊑ pA n q) | ℓ′ , r =
+catchup-blame (ν⊑ L⊑ pA n q) with catchup-blame L⊑
+catchup-blame (ν⊑ L⊑ pA n q) | ℓ′ , r =
   ℓ′ , (ξ-ν* r ++ʳ (Blame-ν then done))
-catchup-blame refl (⟪⟫⊑ i ok bc-plain wi M⊑ b q)
-  with catchup-blame refl M⊑
-catchup-blame refl (⟪⟫⊑ i ok bc-plain wi M⊑ b q) | ℓ′ , r
+catchup-blame (⟪⟫⊑ i ok bo-plain ks wi pay M⊑ b q)
+  with catchup-blame M⊑
+catchup-blame (⟪⟫⊑ i ok bo-plain ks wi pay M⊑ b q) | ℓ′ , r
   with ξ-⟪⟫* (int-left i) r
-catchup-blame refl (⟪⟫⊑ i ok bc-plain wi M⊑ b q) | ℓ′ , r | Θ′ , r′ =
+catchup-blame (⟪⟫⊑ i ok bo-plain ks wi pay M⊑ b q) | ℓ′ , r | Θ′ , r′ =
   ℓ′ , (r′ ++ʳ (Blame-⟪⟫ then done))

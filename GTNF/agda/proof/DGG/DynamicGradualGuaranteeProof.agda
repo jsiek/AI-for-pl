@@ -61,8 +61,7 @@ open import DynamicGradualGuarantee
   using (DGG; Converges; Diverges; DivergeOrBlame; RelatedValues)
 open import proof.DGG.Evolve using (applyˢ; allocs; runCtx≡applyˢ; _++ʳ_)
 open import proof.DGG.EvolveLemmas
-  using (_++ʳ′_; runCtx-++ʳ; runCtx-++ʳ′; related-cast; ⟿-πʷ;
-         ⟿-κʷ)
+  using (_++ʳ′_; runCtx-++ʳ; runCtx-++ʳ′; related-cast; ⟿-κʷ)
 open import proof.DGG.RunTyping preservation preservationWf
   using (⊢*; wfˢ)
 
@@ -77,7 +76,7 @@ private
 
 wf-∅ʷ : WfWorld ∅ʷ
 wf-∅ʷ = wf-world joint[] (λ π → no-pair π) (λ _ _ _ π _ → no-pair π)
-  (λ _ _ _ π _ → no-pair π) [] [] []
+  (λ _ _ _ π _ → no-pair π) []
 
 ------------------------------------------------------------------------
 -- The four parts, for a fixed pair of related closed programs
@@ -95,16 +94,15 @@ module _ {M M′ : Term} {A A′ : Ty} {p : A ⊑ᵂ⟨ ∅ʷ ⟩ A′}
     → ∃[ V′ ] Σ[ r′ ∈ empty ⊢ M′ -→* V′ ]
         (Value V′ × RelatedValues A A′ r r′)
   forward r v
-      with sim* wf-empty wf-empty wf-∅ʷ refl refl M⊑M′ r
+      with sim* wf-empty wf-empty wf-∅ʷ refl M⊑M′ r
   ... | N′ , r′ , W′ , ev , wfW′ , q , N⊑N′
       with catchupRight (wfˢ wf-empty ⊢M r) (wfˢ wf-empty ⊢M′ r′)
-                        wfW′ (⟿-πʷ ev) (⟿-κʷ ev refl) v N⊑N′
+                        wfW′ (⟿-κʷ ev refl) v N⊑N′
   ... | V′ , r″ , v′ , W″ , ev′ , wfW″ , q′ , V⊑V′ =
     V′ , r′ ++ʳ′ r″ , v′
     , related-cast (sym (runCtx≡applyˢ r))
         (sym (trans (runCtx-++ʳ′ r′ r″) (runCtx≡applyˢ r″)))
-        (W″ , wfW″ , trans (⟿-πʷ ev′) (⟿-πʷ ev)
-        , ⟿-κʷ ev′ (⟿-κʷ ev refl) , q′ , V⊑V′)
+        (W″ , wfW″ , ⟿-κʷ ev′ (⟿-κʷ ev refl) , q′ , V⊑V′)
 
   -- part 3
   backward : ∀ {V′} (r′ : empty ⊢ M′ -→* V′) → Value V′
@@ -112,13 +110,13 @@ module _ {M M′ : Term} {A A′ : Ty} {p : A ⊑ᵂ⟨ ∅ʷ ⟩ A′}
          (Value V × RelatedValues A A′ r r′))
       ⊎ (∃[ ℓ ] (empty ⊢ M -→* blame ℓ))
   backward r′ v′
-      with simBack* wf-empty wf-empty wf-∅ʷ refl refl M⊑M′ r′
+      with simBack* wf-empty wf-empty wf-∅ʷ refl M⊑M′ r′
   backward r′ v′ | inj₂ M↠blame = inj₂ M↠blame
   backward r′ v′ | inj₁ (N₂ , _ , r , (st then r″) , rest) =
     ⊥-elim (proj₁ irreducible v′ st)
   backward r′ v′ | inj₁ (N₂ , _ , r , done , W′ , ev , wfW′ , q , N₂⊑V′)
       with catchupLeft (wfˢ wf-empty ⊢M r)
-                       (wfˢ wf-empty ⊢M′ (r′ ++ʳ done)) wfW′ (⟿-πʷ ev)
+                       (wfˢ wf-empty ⊢M′ (r′ ++ʳ done)) wfW′
                        (⟿-κʷ ev refl) v′ N₂⊑V′
   backward r′ v′ | inj₁ (N₂ , _ , r , done , W′ , ev , wfW′ , q , N₂⊑V′)
     | inj₁ (V , r₂ , v , W″ , ev′ , wfW″ , q′ , V⊑V′) =
@@ -127,8 +125,7 @@ module _ {M M′ : Term} {A A′ : Ty} {p : A ⊑ᵂ⟨ ∅ʷ ⟩ A′}
              (sym (trans (runCtx-++ʳ′ r r₂) (runCtx≡applyˢ r₂)))
              (trans (sym (runCtx≡applyˢ (r′ ++ʳ done)))
                     (runCtx-++ʳ r′ done))
-             (W″ , wfW″ , trans (⟿-πʷ ev′) (⟿-πʷ ev)
-             , ⟿-κʷ ev′ (⟿-κʷ ev refl) , q′ , V⊑V′))
+             (W″ , wfW″ , ⟿-κʷ ev′ (⟿-κʷ ev refl) , q′ , V⊑V′))
   backward r′ v′ | inj₁ (N₂ , _ , r , done , W′ , ev , wfW′ , q , N₂⊑V′)
     | inj₂ (ℓ , r₂) =
     inj₂ (ℓ , r ++ʳ′ r₂)
@@ -141,7 +138,7 @@ module _ {M M′ : Term} {A A′ : Ty} {p : A ⊑ᵂ⟨ ∅ʷ ⟩ A′}
   converge-back (V′ , r′ , inj₁ v′) | inj₂ (ℓ , r) =
     blame ℓ , r , inj₂ (ℓ , refl)
   converge-back (_ , r′ , inj₂ (ℓ , refl))
-      with simBack* wf-empty wf-empty wf-∅ʷ refl refl M⊑M′ r′
+      with simBack* wf-empty wf-empty wf-∅ʷ refl M⊑M′ r′
   converge-back (_ , r′ , inj₂ (ℓ , refl)) | inj₂ (ℓ′ , r) =
     blame ℓ′ , r , inj₂ (ℓ′ , refl)
   converge-back (_ , r′ , inj₂ (ℓ , refl))
@@ -149,7 +146,7 @@ module _ {M M′ : Term} {A A′ : Ty} {p : A ⊑ᵂ⟨ ∅ʷ ⟩ A′}
     ⊥-elim (proj₂ irreducible st)
   converge-back (_ , r′ , inj₂ (ℓ , refl))
     | inj₁ (N₂ , _ , r , done , W′ , ev , wfW′ , q , N₂⊑blame)
-      with catchupBlame (⟿-πʷ ev) N₂⊑blame
+      with catchupBlame N₂⊑blame
   converge-back (_ , r′ , inj₂ (ℓ , refl))
     | inj₁ (N₂ , _ , r , done , W′ , ev , wfW′ , q , N₂⊑blame)
     | ℓ′ , r₂ =

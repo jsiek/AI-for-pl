@@ -28,19 +28,18 @@ open import ImprecisionWorld using (World)
 open import proof.DGG.MultiSimDef using (Sim*)
 open import proof.DGG.Evolve using (_⟿[_∣_]_; ev-done)
 open import proof.DGG.EvolveLemmas
-  using (_++ʳ′_; allocs-++ʳ′; evolved-trans; evolved-cast; ⟿-πʷ;
-         ⟿-κʷ)
+  using (_++ʳ′_; allocs-++ʳ′; evolved-trans; evolved-cast; ⟿-κʷ)
 open import proof.DGG.RunTyping preservation preservationWf using (wfˢ)
 
 sim* : Sim*
-sim* {W = W} {M′ = M′} wfΔ wfΔ′ wfW π[] κ[] M⊑M′ done =
+sim* {W = W} {M′ = M′} wfΔ wfΔ′ wfW κ[] M⊑M′ done =
   M′ , done , W , ev-done , wfW , _ , M⊑M′
-sim* wfΔ wfΔ′ wfW π[] κ[] M⊑M′ (st then r)
-    with sim wfΔ wfΔ′ wfW π[] κ[] M⊑M′ st
+sim* wfΔ wfΔ′ wfW κ[] M⊑M′ (st then r)
+    with sim wfΔ wfΔ′ wfW κ[] M⊑M′ st
 ... | N₁′ , r₁′ , W₁ , ev₁ , wfW₁ , q₁ , N₁⊑N₁′
     with sim* (preservationWf wfΔ (proj₁ (impTyping M⊑M′)) st)
               (wfˢ wfΔ′ (proj₂ (impTyping M⊑M′)) r₁′)
-              wfW₁ (trans (⟿-πʷ ev₁) π[]) (⟿-κʷ ev₁ κ[]) N₁⊑N₁′ r
+              wfW₁ (⟿-κʷ ev₁ κ[]) N₁⊑N₁′ r
 ... | N₂′ , r₂′ , rest =
   N₂′ , r₁′ ++ʳ′ r₂′
   , evolved-cast refl (sym (allocs-++ʳ′ r₁′ r₂′))

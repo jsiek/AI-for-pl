@@ -8,7 +8,7 @@ module ConversionImprecision where
 --   * CANDIDATE CLAUSES.  Identities compare their types through the
 --     world's derived marks and embeddings
 --     (`marksʷ W ⊢ embᴸ W A ⊑ embᴿ W A′`, design.md D28; no
---     clause reads the pending names `πʷ`, design.md D27: they belong to
+--     clause reads the slots of the index, design.md D31: they belong to
 --     the term relation); arrows compare both components in the same
 --     direction;
 --     two universals extend the world by a both-sided binder (`W ⊕²`,

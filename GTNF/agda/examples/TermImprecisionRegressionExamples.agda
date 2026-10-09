@@ -7,25 +7,25 @@ module examples.TermImprecisionRegressionExamples where
 --     the value's own boundary.  Before D26 its final pair `VL ⊑ RF`
 --     was related by no rule (`final-unrelated` there), which refuted
 --     Sim, SimBack and DGG part 1.  Here every synchronization pair of
---     K derives with the real relation (D27: pending names in the
---     world, TermImprecision §2):
+--     K derives with the real relation (D31: openings are slots of the
+--     index, TermImprecision §2):
 --       lk⊑rk, lk₁⊑rk₁   the initial pair and the pair after both
---                        source TyBetas (no pending name)
---       VL⊑idX           THE COMMON PREMISE, Y pending: ⟪⟫⊑ passes Y
---                        into VL's ∀-boundary, Λ⊑ pops it
+--                        source TyBetas (no slot)
+--       VL⊑idX           THE COMMON PREMISE, Y opened: ⟪⟫⊑ passes the
+--                        slot into VL's ∀-boundary, Λ⊑ joins it
 --       lk₁⊑rk₄, VL⊑RF   after the right's Merge: `⊑⟪⟫` at the merged
---                        Θ₂ PUSHES Y (name 0, β:=★, X⊑X: no
+--                        Θ₂ OPENS Y (type variable 0, β:=★, X⊑X: no
 --                        permission, design.md D28)
 --       lk₁⊑rk₃          before the right's Merge, right-first: `⊑⟪⟫`
---                        at Θ₀ pushes Y, the inner `⊑⟪⟫` at ΘX carries
---                        it, then VL⊑idX
+--                        at Θ₀ opens Y, the inner `⊑⟪⟫` at ΘX carries
+--                        the slot, then VL⊑idX
 --     and the obligations the old relation refuted are met on K:
 --     `sim-K` (Sim at the left's Beta), `simBack-K-merge` (SimBack at
 --     the right's Merge: both sides stop), `dgg1-K` (DGG part 1).
---     `no-push-K`: without the push the premise index is empty.
---   * §6 D27's regression facts: the ★-embedding counterexample pair is
---     unrelated (`cx-unrelated`, any world), and under a pending name
---     the left term is a value (`pending-value`).
+--     `no-push-K`: without the opening the premise index is empty.
+--   * §6 regression facts: the ★-embedding counterexample pair is
+--     unrelated (`cx-unrelated`, any world), and under a slot the left
+--     term is a value (`slot-value`, design.md D31).
 --   * THE RUNS (pinned to `evalTerms` by `refl`):
 --       L:  LK —→ (TyBeta) LK₁ —→ (Beta) VL
 --       R:  RK —→ (TyBeta) RK₁ —→ (Inst) RK₂ —→ (TyBeta) RK₃
@@ -33,11 +33,9 @@ module examples.TermImprecisionRegressionExamples where
 --   * Copied, with the real relation, from the checked local copy
 --     proof/DGG/notes/PendingOpenings.agda §3, §5 (and, for D26,
 --     GeneralizedRightBoundary.agda §4); no notes module is imported.
---     Ported to permissions (design.md D28) from
---     proof/DGG/notes/PermissionsR.agda §9: no permission anywhere,
---     the pending Y and the shared X are X⊑X, and every index of K
---     uses only X ⊑ X at them; the `⟪⟫⊑` of `VL⊑idX` passes R1 with
---     `ok-bind ∷ []`.
+--     No permission anywhere (design.md D28, D31): the opened Y and the
+--     shared X are X⊑X, and every index of K uses only X ⊑ X at them;
+--     the `⟪⟫⊑` of `VL⊑idX` passes R1′ with `ok-bind ∷ []`.
 --   * Orientation: the LEFT term is the more precise one.
 
 open import Data.Nat using (ℕ; zero; suc)
@@ -48,7 +46,7 @@ open import Data.Sum using (inj₁; inj₂)
 open import Data.Empty using (⊥-elim)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 open import Relation.Nullary using (¬_)
-open import Data.List.Relation.Unary.All using ([]; _∷_)
+open import Data.List.Relation.Unary.All using (All; []; _∷_)
 open import Data.List.Relation.Unary.AllPairs using ([]; _∷_)
 
 open import Types
@@ -160,7 +158,7 @@ stM : ΔRk ⊢ Rarg₃ -→ RF ∣ none
 stM = justStep refl
 
 ------------------------------------------------------------------------
--- 2. The initial pairs (no pending name)
+-- 2. The initial pairs (no slot)
 ------------------------------------------------------------------------
 
 cId⊑cId : ∀ {Δ Δ′} {W : World Δ Δ′} → marksʷ W ⊢ embᴸ W (` 0) ⊑ embᴿ W (` 0)
@@ -183,7 +181,7 @@ instI₀-ty = proj₂ (proj₂ (cast-inv {Γ = []}
 lk⊑rk : ∅ʷ ∣ [] ⊢ LK ⊑ RK ∶ ∀id⊑★ ∅ʷ
 lk⊑rk =
   ·⊑· (ƛ⊑ƛ {pA = ∀id⊑★ ∅ʷ} tf tf (x⊑x Zʷ))
-    (⊑cast₀
+    (⊑cast
       (ν⊑ν
         (Λ⊑Λ lift-[] (V-simple (S-Λ (V-simple S-ƛ)))
           (V-simple (S-Λ (V-simple S-ƛ)))
@@ -195,14 +193,14 @@ lk⊑rk =
 
 -- after both source TyBetas (α:=ℕ on each side, matched)
 Wk1 : World ΔL ΔL
-Wk1 = world⁰ 0 []↪ []↪ ((0 , 0) ∷ []) [] []
+Wk1 = world⁰ 0 []↪ []↪ ((0 , 0) ∷ []) []
 
 Wk1ᵢ : World ΔLᵢ ΔLᵢ
-Wk1ᵢ = world⁰ 1 (keep []↪) (keep []↪) ((0 , 0) ∷ []) [] []
+Wk1ᵢ = world⁰ 1 (keep []↪) (keep []↪) ((0 , 0) ∷ []) []
 
 Wk1-wf : WfWorld Wk1
 Wk1-wf = wf-world joint[] agree (namedᴸ-≤1 Wk1 ≤1-[]) (namedᴿ-≤1 Wk1 ≤1-[])
-  [] [] []
+  []
   where
   agree : ∀ {α β} → Paired Wk1 α β → Agree Wk1 α β
   agree (inj₁ here⇔)         = rep-rep r-here r-here (ι⊑ι base-ℕ)
@@ -211,7 +209,7 @@ Wk1-wf = wf-world joint[] agree (namedᴸ-≤1 Wk1 ≤1-[]) (namedᴿ-≤1 Wk1 �
 
 Wk1ᵢ-wf : WfWorld Wk1ᵢ
 Wk1ᵢ-wf = wf-world (both (inj₁ here⇔) joint[]) agree
-  (namedᴸ-≤1 Wk1ᵢ ≤1-∷[]) (namedᴿ-≤1 Wk1ᵢ ≤1-∷[]) [] [] []
+  (namedᴸ-≤1 Wk1ᵢ ≤1-∷[]) (namedᴿ-≤1 Wk1ᵢ ≤1-∷[]) []
   where
   agree : ∀ {α β} → Paired Wk1ᵢ α β → Agree Wk1ᵢ α β
   agree (inj₁ here⇔)         = rep-rep r-here r-here (ι⊑ι base-ℕ)
@@ -258,8 +256,8 @@ instI-ty =
 lk₁⊑rk₁ : Wk1 ∣ [] ⊢ LK₁ ⊑ RK₁ ∶ ∀id⊑★ Wk1
 lk₁⊑rk₁ =
   ·⊑· (ƛ⊑ƛ {pA = ∀id⊑★ Wk1} tf tf (x⊑x Zʷ))
-    (⊑cast₀
-      (⟪⟫⊑⟪⟫ Wk1ᵢ-int Wk1ᵢ-wf
+    (⊑cast
+      (⟪⟫⊑⟪⟫₀ Wk1ᵢ-int Wk1ᵢ-wf
         (Λ⊑Λ lift-[] (V-simple S-ƛ) (V-simple S-ƛ)
           (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ)) (∀⊑∀ (⇒⊑⇒ X⊑X X⊑X)))
         bVL bVL (Wk1ᵢ , Wk1ᵢ-conv , cK⊑cK) (∀id⊑∀id Wk1))
@@ -271,10 +269,10 @@ lk₁⊑rk₁ =
 
 -- the world after the right's Inst TyBeta: (αᴸ, αᴿ) global, β unpaired
 Wk : World ΔL ΔRk
-Wk = world⁰ 0 []↪ []↪ ((0 , 1) ∷ []) [] []
+Wk = world⁰ 0 []↪ []↪ ((0 , 1) ∷ []) []
 
 Wk-wf : WfWorld Wk
-Wk-wf = wf-world joint[] agree (namedᴸ-≤1 Wk ≤1-[]) (namedᴿ-≤1 Wk ≤1-[]) [] [] []
+Wk-wf = wf-world joint[] agree (namedᴸ-≤1 Wk ≤1-[]) (namedᴿ-≤1 Wk ≤1-[]) []
   where
   agree : ∀ {α β} → Paired Wk α β → Agree Wk α β
   agree (inj₁ here⇔)         = rep-rep r-here (r-there r-here) (ι⊑ι base-ℕ)
@@ -285,8 +283,9 @@ Wk-wf = wf-world joint[] agree (namedᴸ-≤1 Wk ≤1-[]) (namedᴿ-≤1 Wk ≤1
 Θ₀-int = interior (changes∷ changes[] (step-bind (_ , here) fresh[] ins-here))
 
 -- the Inst boundary `+Y^β` alone: Y is introduced right-only (X⊑X: β is
--- not permitted, design.md D28), and pushed (pending, D27)
-IntK-ro : Interior Wk [] Θ₀ (record (Wk ⊕ʳ^ 0) { πʷ = 0 ∷ [] })
+-- not permitted, design.md D28); the boundary OPENS the left's ∀ at Y
+-- (a slot of the index, design.md D31)
+IntK-ro : Interior Wk [] Θ₀ (Wk ⊕ʳ^ 0)
 IntK-ro = record
   { int-left   = interior changes[]
   ; int-right  = Θ₀-int
@@ -334,29 +333,29 @@ bBm = proj₂ (proj₂ (proj₂ (⟪⟫-inv {Γ = []} (tc {Δ = ΔRk} {M = Bm}))
 id★↦ᴿk-ty : CastTy ΔRk [] id★↦ (★ ⇒ ★) (★ ⇒ ★)
 id★↦ᴿk-ty = cast-ty (⊢fun (⊢id atom-★ wf-★) (⊢id atom-★ wf-★)) refl
 
--- The worlds of the pending name Y (design.md D27).  Right names inside
--- the merged `+Y^β, +X^αᴿ`: Y at 0 (β:=★, PENDING, X⊑X: `πʷ = 0 ∷ []`),
--- X at 1 (αᴿ:=ℕ).
+-- The worlds of the opened type variable Y (design.md D31).  Right type
+-- variables inside the merged `+Y^β, +X^αᴿ`: Y at 0 (β:=★, OPENED,
+-- X⊑X: the slot `opn 0`), X at 1 (αᴿ:=ℕ).
 
 -- inside Θ₂ (and inside the Inst boundary's inner `+X^αᴿ`): no left
--- name, Y pending
+-- type variable, Y opened
 WiR★ : World ΔL ΔRX
 WiR★ = world⁰ 2 (skip (skip []↪)) (keep (keep []↪))
-         ((0 , 1) ∷ []) [] (0 ∷ [])
+         ((0 , 1) ∷ []) []
 
 -- inside the left's `+X^αᴸ` as well: X joined through (αᴸ, αᴿ)
 Wx★ : World ΔLᵢ ΔRX
 Wx★ = world⁰ 2 (skip (keep []↪)) (keep (keep []↪))
-        ((0 , 1) ∷ []) [] (0 ∷ [])
+        ((0 , 1) ∷ []) []
 
--- after the pop of Y: the left binder Y joins the right's Y, its
+-- after the join of Y: the left binder Y joins the right's Y, its
 -- abstract rep. var paired lexically with β
 WX★ : World ΔLX ΔRX
 WX★ = world⁰ 2 (keep (keep []↪)) (keep (keep []↪))
-        ((1 , 1) ∷ []) ((0 , 0) ∷ []) []
+        ((1 , 1) ∷ []) ((0 , 0) ∷ [])
 
-openX★ : Open1 Wx★ WX★
-openX★ = open1 join-here here r-here
+openX★ : Join1 Wx★ 0 WX★
+openX★ = join1 join-here here r-here
 
 IntΘ₂★ : Interior Wk [] Θ₂ WiR★
 IntΘ₂★ = record
@@ -388,9 +387,9 @@ IntX★ = record
   ; join-fresh = λ a b _ → Wx-fresh a b
   }
 
--- the Inst boundary `+Y^β` alone (before the Merge), Y pending
+-- the Inst boundary `+Y^β` alone (before the Merge), Y opened
 WiY★ : World ΔL (reps ΔRk ∣ (0 ∷ []))
-WiY★ = record (Wk ⊕ʳ^ 0) { πʷ = 0 ∷ [] }
+WiY★ = Wk ⊕ʳ^ 0
 
 -- the right's inner `+X^αᴿ` carries Y (toExt ΘX 0 = just 0)
 IntXc★ : Interior WiY★ [] ΘX WiR★
@@ -415,8 +414,15 @@ WiR★-wf : WfWorld WiR★
 WiR★-wf = wf-world (right-only (right-only joint[]))
   (agreeₖ r-here (r-there r-here) refl refl)
   (namedᴸ-≤1 WiR★ ≤1-[]) (λ { (_ , ()) _ _ _ _ })
-  ((0 , here , r-here , (λ { (_ , ()) }) , (λ { (_ , ()) })) ∷ [])
-  ([] ∷ []) []
+  []
+
+-- Y's opening is well formed (design.md D31), inside Θ₂ (or ΘX) and
+-- inside the Inst boundary alone
+okR★ : All (SlotOK WiR★) (opn 0 ∷ [])
+okR★ = (0 , here , r-here , (λ { (_ , ()) }) , (λ { (_ , ()) })) ∷ []
+
+okY★ : All (SlotOK WiY★) (opn 0 ∷ [])
+okY★ = (0 , here , r-here , (λ { (_ , ()) }) , (λ { (_ , ()) })) ∷ []
 
 uniqᴿx : NamedUniqueᴿ Wx★
 uniqᴿx _ _ _ (inj₁ here⇔) (inj₁ here⇔) = refl
@@ -429,66 +435,63 @@ Wx★-wf : WfWorld Wx★
 Wx★-wf = wf-world (right-only (both (inj₁ here⇔) joint[]))
   (agreeₖ r-here (r-there r-here) refl refl)
   (namedᴸ-≤1 Wx★ ≤1-∷[]) uniqᴿx
-  ((0 , here , r-here , (λ { (_ , here) () ; (_ , there ()) _ }) ,
-    (λ { (_ , here) (inj₁ (there⇔ ())) ; (_ , here) (inj₂ ())
-       ; (_ , there ()) _ })) ∷ [])
-  ([] ∷ []) []
+  []
 
 WiY★-wf : WfWorld WiY★
 WiY★-wf = wf-world (right-only joint[])
   (agreeₖ r-here (r-there r-here) refl refl)
   (namedᴸ-≤1 WiY★ ≤1-[]) (namedᴿ-≤1 WiY★ ≤1-∷[])
-  ((0 , here , r-here , (λ { (_ , ()) }) , (λ { (_ , ()) })) ∷ [])
-  ([] ∷ []) []
+  []
 
 ------------------------------------------------------------------------
--- 4. The pairs with Y pending: push, pass, pop (design.md D27)
+-- 4. The pairs with Y opened: open, pass, join (design.md D31)
 ------------------------------------------------------------------------
 
--- THE COMMON PREMISE: inside the right boundary, Y pending.  ⟪⟫⊑ passes
--- Y into VL's boundary (cK = ∀Y.cId), Λ⊑ pops it, ƛ⊑ƛ at Y ⊑ Y
+-- THE COMMON PREMISE: inside the right boundary, Y opened.  ⟪⟫⊑ passes
+-- the slot into VL's boundary (cK = ∀Y.cId), Λ⊑ joins it, ƛ⊑ƛ at Y ⊑ Y
 VL⊑idX : WiR★ ∣ [] ⊢ VL ⊑ idX
-  ∶⟨ ∀X⇒X , ` 0 ⇒ ` 0 ⟩ ⇒⊑⇒ X⊑X X⊑X
+  ∶⟨ ∀X⇒X , ` 0 ⇒ ` 0 ⟩[ opn 0 ∷ [] ] ⇒⊑⇒ X⊑X X⊑X
 VL⊑idX =
-  ⟪⟫⊑ IntX★ (ok-bind ∷ []) (bc-∀ (S-Λ (V-simple S-ƛ)) (fc-∷ fc-[])) Wx★-wf
-    (Λ⊑ (claim-pop openX★) nv-⇒ (∈-⇒ˡ ∈-var) liftᴸ-[] (V-simple S-ƛ)
+  ⟪⟫⊑ IntX★ (ok-bind ∷ []) (bo-∀ (S-Λ (V-simple S-ƛ)) (fc-∷ fc-[])) []
+    Wx★-wf (⇒⊑⇒ X⊑X X⊑X)
+    (Λ⊑ (b-join openX★) nv-⇒ (∈-⇒ˡ ∈-var) liftᴸ-[] (V-simple S-ƛ)
       (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ)) (⇒⊑⇒ X⊑X X⊑X))
     bVL (⇒⊑⇒ X⊑X X⊑X)
 
--- after the right's Merge (RK₄, RF): ⊑⟪⟫ at the merged Θ₂ PUSHES Y.
+-- after the right's Merge (RK₄, RF): ⊑⟪⟫ at the merged Θ₂ OPENS Y.
 -- THE FINAL ARGUMENT PAIR (unrelated before D26)
 VL⊑Bm : Wk ∣ [] ⊢ VL ⊑ Bm ∶ ∀id⊑★ Wk
 VL⊑Bm =
-  ⊑⟪⟫ IntΘ₂★ (push ca-[] (refl ∷ []) (inj₂ vVL)) WiR★-wf VL⊑idX bBm
-    (∀id⊑★ Wk)
+  ⊑⟪⟫ IntΘ₂★ (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vVL)) okR★
+    ([] ∷ []) [] WiR★-wf (⇒⊑⇒ X⊑X X⊑X) VL⊑idX bBm (∀id⊑★ Wk)
 
 VL⊑RF : Wk ∣ [] ⊢ VL ⊑ RF ∶ ∀id⊑★ Wk
-VL⊑RF = ⊑cast₀ VL⊑Bm id★↦ᴿk-ty (∀id⊑★ Wk)
+VL⊑RF = ⊑cast VL⊑Bm id★↦ᴿk-ty (∀id⊑★ Wk)
 
 lk₁⊑rk₄ : Wk ∣ [] ⊢ LK₁ ⊑ RK₄ ∶ ∀id⊑★ Wk
 lk₁⊑rk₄ = ·⊑· (ƛ⊑ƛ {pA = ∀id⊑★ Wk} tf tf (x⊑x Zʷ)) VL⊑RF
 
--- before the Merge (RK₃), RIGHT-FIRST: ⊑⟪⟫ at Θ₀ pushes Y, the inner
--- ⊑⟪⟫ at ΘX CARRIES it; the premise is VL⊑idX again
+-- before the Merge (RK₃), RIGHT-FIRST: ⊑⟪⟫ at Θ₀ opens Y, the inner
+-- ⊑⟪⟫ at ΘX CARRIES the slot; the premise is VL⊑idX again
 VL⊑Nk : WiY★ ∣ [] ⊢ VL ⊑ Nk
-  ∶⟨ ∀X⇒X , ` 0 ⇒ ` 0 ⟩ ⇒⊑⇒ X⊑X X⊑X
+  ∶⟨ ∀X⇒X , ` 0 ⇒ ` 0 ⟩[ opn 0 ∷ [] ] ⇒⊑⇒ X⊑X X⊑X
 VL⊑Nk =
-  ⊑⟪⟫ IntXc★ (push (ca-∷ refl ca-[]) [] (inj₁ refl)) WiR★-wf VL⊑idX bNR
-    (⇒⊑⇒ X⊑X X⊑X)
+  ⊑⟪⟫ IntXc★ (push (ca-opn refl ca-[]) (f-keep f-end) [] (inj₁ refl))
+    okR★ ([] ∷ []) [] WiR★-wf (⇒⊑⇒ X⊑X X⊑X) VL⊑idX bNR (⇒⊑⇒ X⊑X X⊑X)
 
 VL⊑Rarg₃ : Wk ∣ [] ⊢ VL ⊑ Rarg₃ ∶ ∀id⊑★ Wk
 VL⊑Rarg₃ =
-  ⊑cast₀
-    (⊑⟪⟫ IntK-ro (push ca-[] (refl ∷ []) (inj₂ vVL)) WiY★-wf VL⊑Nk bOutK
-      (∀id⊑★ Wk))
+  ⊑cast
+    (⊑⟪⟫ IntK-ro (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vVL)) okY★
+      ([] ∷ []) [] WiY★-wf (⇒⊑⇒ X⊑X X⊑X) VL⊑Nk bOutK (∀id⊑★ Wk))
     id★↦ᴿk-ty (∀id⊑★ Wk)
 
 lk₁⊑rk₃ : Wk ∣ [] ⊢ LK₁ ⊑ RK₃ ∶ ∀id⊑★ Wk
 lk₁⊑rk₃ = ·⊑· (ƛ⊑ƛ {pA = ∀id⊑★ Wk} tf tf (x⊑x Zʷ)) VL⊑Rarg₃
 
--- K NEEDS its push: with no pending name, the premise index of
--- `VL ⊑ Bm` inside Θ₂ is empty (Y is right-only)
-no-push-K : ¬ (∀X⇒X ⊑ᵂ⟨ record WiR★ { πʷ = [] } ⟩ (` 0 ⇒ ` 0))
+-- K NEEDS its opening: with no slot, the premise index of `VL ⊑ Bm`
+-- inside Θ₂ is empty (Y is right-only)
+no-push-K : ¬ (∀X⇒X ⊑ᵂ⟨ WiR★ ⟩ (` 0 ⇒ ` 0))
 no-push-K (∀⊑ _ _ (⇒⊑⇒ () _))
 
 ------------------------------------------------------------------------
@@ -508,8 +511,8 @@ sim-K =
   Wk-wf , ∀id⊑★ Wk , VL⊑RF
 
 -- SimBack at the right's Merge (VL ⊑ Rarg₃, Rarg₃ —→ RF): both sides
--- stop; the premise `VL⊑idX` does not change (the two pushes at Θ₀ and
--- ΘX compose into the push at the merged Θ₂)
+-- stop; the premise `VL⊑idX` does not change (the opening at Θ₀ and the
+-- carry at ΘX compose into the opening at the merged Θ₂)
 simBack-K-merge :
   Σ[ r ∈ ΔL ⊢ VL -→* VL ] Σ[ r″ ∈ ΔRk ⊢ RF -→* RF ]
     Σ[ W′ ∈ World (applyˢ (allocs r) ΔL)
@@ -529,16 +532,16 @@ dgg1-K =
   Wk , ∀id⊑★ Wk , VL⊑RF
 
 ------------------------------------------------------------------------
--- 6. Regression facts of design.md D27 (proof/DGG/notes/PendingOpenings
---    §5): the ★-embedding counterexample pair is unrelated, and under a
---    pending name the left term is a value
+-- 6. Regression facts of design.md D27 and D31 (proof/DGG/notes/
+--    PendingOpenings §5): the ★-embedding counterexample pair is
+--    unrelated, and under a slot the left term is a value
 ------------------------------------------------------------------------
 
 -- The ★-embedding counterexample (proof/DGG/notes/StarEmbedding.md):
 --   L  (λx:ℕ. x) 5                     —→* 5
 --   R  ((ΛY. λx:Y. x⟨Y!⟩)⟨inst Y.(Y?ℓ0 → id(★))⟩ 5⟨ℕ!⟩)⟨ℕ?ℓ0⟩  —→* blame
 -- CX-R₂ is R after its Inst and TyBeta.  The ★-embedded relation
--- related (CX-L, CX-R₂); D27's relation does not, in any world.
+-- related (CX-L, CX-R₂); D31's relation does not, in any world.
 CX-tagY CX-BdY CX-L CX-R CX-R₂ : Term
 CX-tagY = ` 0 ⟨ ★∼X∼★ ∷ [] ∣ (` 0) ! ⟩
 CX-BdY  = (ƛ (` 0) ∙ CX-tagY) ⟪ Θ₀ , reveal 0 (` 0 ⇒ ★) ⟫
@@ -555,45 +558,51 @@ CX-R₂-state : Data.List.head (Data.List.drop 2 (evalTerms 30 CX-R-⊢))
 CX-R₂-state = refl
 
 -- the only way down is ⊑cast, ·⊑·, ⊑cast, ⊑⟪⟫, and then
--- `λx:ℕ.x ⊑ λx:Y.x⟨Y!⟩`: under a pending name no rule has a λ on the
--- left; with none, ƛ⊑ƛ needs `ℕ ⊑ Y` in a world, which `_⊢_⊑_` lacks
-no-ƛℕ⊑ƛX : ∀ {Δ Δ′} {W : World Δ Δ′} {γ N N′ X A A′}
-    {p : A ⊑ᵂ⟨ W ⟩ A′}
-  → ¬ (W ∣ γ ⊢ ƛ `ℕ ∙ N ⊑ ƛ (` X) ∙ N′ ∶ p)
+-- `λx:ℕ.x ⊑ λx:Y.x⟨Y!⟩` at any slots: only ƛ⊑ƛ has a λ on the left (at
+-- no slot), and it needs `ℕ ⊑ Y` in a world, which `_⊢_⊑_` lacks
+no-ƛℕ⊑ƛX : ∀ {Δ Δ′} {W : World Δ Δ′} {γ N N′ X O A A′}
+    {p : A ⊑ᵂ⟨ W ⟩[ O ] A′}
+  → ¬ (W ∣ γ ⊢ ƛ `ℕ ∙ N ⊑ ƛ (` X) ∙ N′ ∶[ O ] p)
 no-ƛℕ⊑ƛX (ƛ⊑ƛ {pA = ()} _ _ _)
 
 cx-unrelated : ∀ {Δ Δ′} {W : World Δ Δ′} {γ A A′} {p : A ⊑ᵂ⟨ W ⟩ A′}
   → ¬ (W ∣ γ ⊢ CX-L ⊑ CX-R₂ ∶ p)
-cx-unrelated (⊑cast _ _ (·⊑· (⊑cast _ _ (⊑⟪⟫ _ _ _ d _ _) _ _) _) _ _) =
+cx-unrelated
+  (⊑cast (·⊑· (⊑cast (⊑⟪⟫ _ _ _ _ _ _ _ d _ _) _ _) _) _ _) =
   no-ƛℕ⊑ƛX d
 
--- under a pending name the left term is a value
-++-≢[] : ∀ {Θ′ π π′} (ns : List ℕ) → Carried Θ′ π π′ → π ≢ []
-  → π′ Data.List.++ ns ≢ []
-++-≢[] ns ca-[]       ne = λ _ → ne refl
-++-≢[] ns (ca-∷ _ _) ne = λ ()
+-- under a slot the left term is a value (design.md D31)
+carried-≢[] : ∀ {Θ′ O O′} → Carried Θ′ O O′ → O ≢ [] → O′ ≢ []
+carried-≢[] ca-[]         ne = λ _ → ne refl
+carried-≢[] (ca-opn _ _)  ne = λ ()
+carried-≢[] (ca-skp _)    ne = λ ()
 
-pending-value : ∀ {Δ Δ′} {W : World Δ Δ′} {γ M M′ A A′}
-    {p : A ⊑ᵂ⟨ W ⟩ A′}
-  → W ∣ γ ⊢ M ⊑ M′ ∶ p → πʷ W ≢ [] → Value M
-pending-value (x⊑x _) ne = ⊥-elim (ne refl)
-pending-value (κ⊑κ _ _) ne = ⊥-elim (ne refl)
-pending-value (ƛ⊑ƛ _ _ _) ne = ⊥-elim (ne refl)
-pending-value (·⊑· _ _) ne = ⊥-elim (ne refl)
-pending-value (blame⊑ _ _ _) ne = ⊥-elim (ne refl)
-pending-value (cast⊑cast _ _ _ _) ne = ⊥-elim (ne refl)
-pending-value (cast⊑ cc-plain _ _ _) ne = ⊥-elim (ne refl)
-pending-value (cast⊑ (cc-∀ v _) _ _ _) ne = V-simple (S-cast v I-∀ᵖ)
-pending-value (cast⊑ (cc-gen v) _ _ _) ne = V-simple (S-cast v I-gen)
-pending-value (⊑cast _ _ d _ _) ne = pending-value d ne
-pending-value (Λ⊑Λ _ _ _ _ _) ne = ⊥-elim (ne refl)
-pending-value (Λ⊑ claim-fresh _ _ _ _ _ _) ne = ⊥-elim (ne refl)
-pending-value (Λ⊑ (claim-rep _ _ _) _ _ _ _ _ _) ne = ⊥-elim (ne refl)
-pending-value (Λ⊑ (claim-pop _) _ _ _ v _ _) ne = V-simple (S-Λ v)
-pending-value (ν⊑ν _ _ _ _ _ _) ne = ⊥-elim (ne refl)
-pending-value (ν⊑ _ _ _ _) ne = ⊥-elim (ne refl)
-pending-value (⟪⟫⊑⟪⟫ _ _ _ _ _ _ _) ne = ⊥-elim (ne refl)
-pending-value (⟪⟫⊑ _ _ bc-plain _ _ _ _) ne = ⊥-elim (ne refl)
-pending-value (⟪⟫⊑ _ _ (bc-∀ s (fc-∷ _)) _ _ _ _) ne = V-⟪⟫ s I-all
-pending-value (⊑⟪⟫ _ (push {new = ns} ca _ _) _ d _ _) ne =
-  pending-value d (++-≢[] ns ca ne)
+fill-≢[] : ∀ {O′ N Oᵢ} → Fill O′ N Oᵢ → O′ ≢ [] → Oᵢ ≢ []
+fill-≢[] f-end      ne = λ _ → ne refl
+fill-≢[] (f-keep _) ne = λ ()
+fill-≢[] (f-fill _) ne = λ ()
+
+slot-value : ∀ {Δ Δ′} {W : World Δ Δ′} {γ M M′ O A A′}
+    {p : A ⊑ᵂ⟨ W ⟩[ O ] A′}
+  → W ∣ γ ⊢ M ⊑ M′ ∶[ O ] p → O ≢ [] → Value M
+slot-value (x⊑x _) ne = ⊥-elim (ne refl)
+slot-value (κ⊑κ _ _) ne = ⊥-elim (ne refl)
+slot-value (ƛ⊑ƛ _ _ _) ne = ⊥-elim (ne refl)
+slot-value (·⊑· _ _) ne = ⊥-elim (ne refl)
+slot-value (blame⊑ _ _ _) ne = ⊥-elim (ne refl)
+slot-value (cast⊑cast _ _ _ _) ne = ⊥-elim (ne refl)
+slot-value (cast⊑ co-plain _ _ _) ne = ⊥-elim (ne refl)
+slot-value (cast⊑ (co-∀ v _) _ _ _) ne = V-simple (S-cast v I-∀ᵖ)
+slot-value (cast⊑ (co-gen v _) _ _ _) ne = V-simple (S-cast v I-gen)
+slot-value (⊑cast d _ _) ne = slot-value d ne
+slot-value (Λ⊑Λ _ _ _ _ _) ne = ⊥-elim (ne refl)
+slot-value (Λ⊑ b-fresh _ _ _ _ _ _) ne = ⊥-elim (ne refl)
+slot-value (Λ⊑ (b-rep _ _ _) _ _ _ _ _ _) ne = ⊥-elim (ne refl)
+slot-value (Λ⊑ (b-join _) _ _ _ v _ _) ne = V-simple (S-Λ v)
+slot-value (ν⊑ν _ _ _ _ _ _) ne = ⊥-elim (ne refl)
+slot-value (ν⊑ _ _ _ _) ne = ⊥-elim (ne refl)
+slot-value (⟪⟫⊑⟪⟫ _ _ _ _ _ _ _ _ _) ne = ⊥-elim (ne refl)
+slot-value (⟪⟫⊑ _ _ bo-plain _ _ _ _ _ _) ne = ⊥-elim (ne refl)
+slot-value (⟪⟫⊑ _ _ (bo-∀ s (fc-∷ _)) _ _ _ _ _ _) ne = V-⟪⟫ s I-all
+slot-value (⊑⟪⟫ _ (push ca f _ _) _ _ _ _ _ d _ _) ne =
+  slot-value d (fill-≢[] f (carried-≢[] ca ne))

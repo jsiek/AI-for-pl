@@ -6,10 +6,11 @@ module proof.DGG.ImprecisionTypingProof where
 --     Each rule carries exactly the side premises the typing rule needs
 --     (TermImprecision's charter); the one-sided boundary rules type a
 --     term-closed interior at `[]`, which `⊢closed` (CtxWeaken) moves to
---     the conclusion's term context.  Pending names (design.md D27)
---     change no typing: a pop's premise types the body at `underΛ Δ`,
---     as `Λ⊑`'s fresh binder does, and the push premise of `⊑⟪⟫` types
---     the left term itself.
+--     the conclusion's term context.  Slots (design.md D31) change no
+--     typing: a join's premise types the body at `underΛ Δ`, as `Λ⊑`'s
+--     fresh binder does, and the premise of `⊑⟪⟫` with new slots types
+--     the left term itself; a boundary's permissions K change only
+--     marks.
 --   * No module parameters: the proof uses no other DGG lemma.
 --   * Orientation: the LEFT term is the more precise one.
 
@@ -70,19 +71,6 @@ liftᴸ-rhs : ∀ {ns ns′ n μ ns₁ n₁ μ₁} {ηᴸ : ns ↪ n} {ηᴿ : n
 liftᴸ-rhs liftᴸ-[]    = refl
 liftᴸ-rhs (liftᴸ-∷ l) = cong (_ ∷_) (liftᴸ-rhs l)
 
--- a grant (design.md D28) keeps the types of the entries
-raise-lhs : ∀ {ns ns′ n μ μ₁} {ηᴸ : ns ↪ n} {ηᴿ : ns′ ↪ n}
-    {γ : Entries μ ηᴸ ηᴿ} {γ′ : Entries μ₁ ηᴸ ηᴿ}
-  → RaiseCtx γ γ′ → lhs γ′ ≡ lhs γ
-raise-lhs raise-[]    = refl
-raise-lhs (raise-∷ r) = cong (_ ∷_) (raise-lhs r)
-
-raise-rhs : ∀ {ns ns′ n μ μ₁} {ηᴸ : ns ↪ n} {ηᴿ : ns′ ↪ n}
-    {γ : Entries μ ηᴸ ηᴿ} {γ′ : Entries μ₁ ηᴸ ηᴿ}
-  → RaiseCtx γ γ′ → rhs γ′ ≡ rhs γ
-raise-rhs raise-[]    = refl
-raise-rhs (raise-∷ r) = cong (_ ∷_) (raise-rhs r)
-
 ⊢Γ-cast : ∀ {Δ Γ Γ′ M A} → Γ ≡ Γ′ → Δ ∣ Γ ⊢ M ⦂ A → Δ ∣ Γ′ ⊢ M ⦂ A
 ⊢Γ-cast refl ⊢M = ⊢M
 
@@ -103,26 +91,28 @@ imprecision-typing (cast⊑cast M⊑M′ ct ct′ q) | ⊢M , ⊢M′ =
   ⊢cast′ ct ⊢M , ⊢cast′ ct′ ⊢M′
 imprecision-typing (cast⊑ cc M⊑M′ ct q) with imprecision-typing M⊑M′
 imprecision-typing (cast⊑ cc M⊑M′ ct q) | ⊢M , ⊢M′ = ⊢cast′ ct ⊢M , ⊢M′
-imprecision-typing (⊑cast g rc M⊑M′ ct′ q) with imprecision-typing M⊑M′
-imprecision-typing (⊑cast g rc M⊑M′ ct′ q) | ⊢M , ⊢M′ =
-  ⊢Γ-cast (raise-lhs rc) ⊢M , ⊢cast′ ct′ (⊢Γ-cast (raise-rhs rc) ⊢M′)
+imprecision-typing (⊑cast M⊑M′ ct′ q) with imprecision-typing M⊑M′
+imprecision-typing (⊑cast M⊑M′ ct′ q) | ⊢M , ⊢M′ = ⊢M , ⊢cast′ ct′ ⊢M′
 imprecision-typing (Λ⊑Λ l v v′ V⊑V′ q) with imprecision-typing V⊑V′
 imprecision-typing (Λ⊑Λ l v v′ V⊑V′ q) | ⊢V , ⊢V′ =
   ⊢Λ v (⊢Γ-cast (lift-lhs l) ⊢V) , ⊢Λ v′ (⊢Γ-cast (lift-rhs l) ⊢V′)
-imprecision-typing (Λ⊑ cl nv occ l v V⊑M′ q) with imprecision-typing V⊑M′
-imprecision-typing (Λ⊑ cl nv occ l v V⊑M′ q) | ⊢V , ⊢M′ =
+imprecision-typing (Λ⊑ bd nv occ l v V⊑M′ q) with imprecision-typing V⊑M′
+imprecision-typing (Λ⊑ bd nv occ l v V⊑M′ q) | ⊢V , ⊢M′ =
   ⊢Λ v (⊢Γ-cast (liftᴸ-lhs l) ⊢V) , ⊢Γ-cast (liftᴸ-rhs l) ⊢M′
 imprecision-typing (ν⊑ν L⊑L′ pA n n′ ci q) with imprecision-typing L⊑L′
 imprecision-typing (ν⊑ν L⊑L′ pA n n′ ci q) | ⊢L , ⊢L′ =
   ⊢ν′ n ⊢L , ⊢ν′ n′ ⊢L′
 imprecision-typing (ν⊑ L⊑M′ pA n q) with imprecision-typing L⊑M′
 imprecision-typing (ν⊑ L⊑M′ pA n q) | ⊢L , ⊢M′ = ⊢ν′ n ⊢L , ⊢M′
-imprecision-typing (⟪⟫⊑⟪⟫ i wi M⊑M′ b b′ ci q) with imprecision-typing M⊑M′
-imprecision-typing (⟪⟫⊑⟪⟫ i wi M⊑M′ b b′ ci q) | ⊢M , ⊢M′ =
+imprecision-typing (⟪⟫⊑⟪⟫ i ks wi pay M⊑M′ b b′ ci q)
+  with imprecision-typing M⊑M′
+imprecision-typing (⟪⟫⊑⟪⟫ i ks wi pay M⊑M′ b b′ ci q) | ⊢M , ⊢M′ =
   ⊢⟪⟫′ b ⊢M , ⊢⟪⟫′ b′ ⊢M′
-imprecision-typing (⟪⟫⊑ i ok bc wi M⊑M′ b q) with imprecision-typing M⊑M′
-imprecision-typing (⟪⟫⊑ i ok bc wi M⊑M′ b q) | ⊢M , ⊢M′ =
+imprecision-typing (⟪⟫⊑ i ok bo ks wi pay M⊑M′ b q)
+  with imprecision-typing M⊑M′
+imprecision-typing (⟪⟫⊑ i ok bo ks wi pay M⊑M′ b q) | ⊢M , ⊢M′ =
   ⊢⟪⟫′ b ⊢M , ⊢closed ⊢M′
-imprecision-typing (⊑⟪⟫ i pu wi M⊑M′ b′ q) with imprecision-typing M⊑M′
-imprecision-typing (⊑⟪⟫ i pu wi M⊑M′ b′ q) | ⊢M , ⊢M′ =
+imprecision-typing (⊑⟪⟫ i pu so sn ks wi pay M⊑M′ b′ q)
+  with imprecision-typing M⊑M′
+imprecision-typing (⊑⟪⟫ i pu so sn ks wi pay M⊑M′ b′ q) | ⊢M , ⊢M′ =
   ⊢closed ⊢M , ⊢⟪⟫′ b′ ⊢M′

@@ -12,22 +12,25 @@ module proof.ImprecisionWorld where
 --     rep. vars of each side that maps paired rep. vars to paired rep.
 --     vars (`⊑ᴿ-ren`; local ∀-bound variables are untouched, the
 --     renaming acts under `extN (length μ)`).
---   * THE POPPED WORLD `W ⊕⁺^ β` (the pop of the pending name of
---     `bind 0 β`, design.md D27; D26's opening; before D26 the premise
---     world of ∀⊑⟪+⟫) IS WELL FORMED (`wf-⊕⁺`) when W is,
---     β:=★, and β has no left partner NAMED in Δ (`NoNamedPartner`,
---     the scoped form of D13's dropped `NoLeftPartner`).  β may have
---     unnamed left partners, e.g. a store rep. var of an earlier
---     catch-up (proof/DGG/notes/D25.md, L3c/R3c).
---   * PERMISSIONS (design.md D28): `permit-here` (a granted rep. var is
---     permitted) and `here★`, for the derived marks of example worlds;
+--   * THE JOINED WORLD `W ⊕⁺^ β` (the join of the opening of
+--     `bind 0 β`, design.md D31; history: D26's opening, D27's pop;
+--     before D26 the premise world of ∀⊑⟪+⟫) IS WELL FORMED (`wf-⊕⁺`)
+--     when W is, β:=★, and β has no left partner to which a type
+--     variable of Δ is bound (`NoNamedPartner`, the scoped form of
+--     D13's dropped `NoLeftPartner`).  β may have other left partners,
+--     e.g. a store rep. var of an earlier catch-up
+--     (proof/DGG/notes/D25.md, L3c/R3c).
+--   * PERMISSIONS (design.md D28, D31): `permit-here` (a permitted
+--     rep. var at the head) and `here★`, for the derived marks of
+--     example worlds; a boundary's permissions keep well-formedness
+--     (`wf+κ`) and keep a permission (`permit-++`, `hasPP-+κ`);
 --     R1/R2's condition read as membership (`unpermitted→`,
 --     `→unpermitted`), its failure `HasPermittedPartner`/`r1-fails`, and
---     its invariance under a boundary (`r1-interior`, `hasPP-int`,
+--     its invariance under a boundary (`unpermitted-int`, `hasPP-int`,
 --     `hasPP-conv`: an interior or conversion world keeps ϱ and κ).
 
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.List using (List; []; _∷_; length; map)
+open import Data.List using (List; []; _∷_; length; map; _++_)
 open import Data.List.Relation.Unary.All using (All; []; _∷_)
 open import Data.List.Relation.Unary.AllPairs using (AllPairs; [])
 open import Data.Bool using (true; false)
@@ -164,7 +167,7 @@ PairedRen W W₁ f g = ∀ {α β} → Paired W α β → Paired W₁ (f α) (g 
 ⊑ᴿ-ren f g h bot⊑★ = bot⊑★
 
 ------------------------------------------------------------------------
--- 4. The popped world W ⊕⁺^ β (formerly ∀⊑⟪+⟫'s premise world)
+-- 4. The joined world W ⊕⁺^ β (formerly ∀⊑⟪+⟫'s premise world)
 ------------------------------------------------------------------------
 
 shiftᴸ-∋ : ∀ {ϱ α β} → ϱ ∋ᵨ α ⇔ β → shiftᴸ ϱ ∋ᵨ suc α ⇔ β
@@ -223,20 +226,11 @@ module _ {W : World Δ Δ′} {β : RVar} where
   joint-⊕⁺ (left-only j)    = left-only (joint-⊕⁺ j)
   joint-⊕⁺ (right-only j)   = right-only (joint-⊕⁺ j)
 
-  -- at a world with no pending name (design.md D27; the pending names
-  -- of W ⊕⁺^ β are W's, moved one position up)
   wf-⊕⁺ : WfWorld W → Δ′ ∋rep β := ★ → NoNamedPartner W β
-    → πʷ W ≡ [] → WfWorld W⁺
-  wf-⊕⁺ wf hβ nn e = wf-world (both (inj₂ here⇔) (joint-⊕⁺ (wf-joint wf)))
-                              agree namedᴸ namedᴿ (no-pending e)
-                              (no-pending≢ e) (wf-permits wf)
+    → WfWorld W⁺
+  wf-⊕⁺ wf hβ nn = wf-world (both (inj₂ here⇔) (joint-⊕⁺ (wf-joint wf)))
+                            agree namedᴸ namedᴿ (wf-permits wf)
     where
-    no-pending : ∀ {P : ℕ → Set} {π} → π ≡ [] → All P (map suc π)
-    no-pending refl = []
-
-    no-pending≢ : ∀ {π} → π ≡ [] → AllPairs _≢_ (map suc π)
-    no-pending≢ refl = []
-
     agree : ∀ {a b} → Paired W⁺ a b → Agree W⁺ a b
     agree x with paired-⊕⁺⁻ x
     agree x | inj₁ (refl , refl)     = abst-★ r-here hβ
@@ -301,7 +295,7 @@ module _ {W : World Δ Δ′} {β : RVar} where
 ≡ᵇ-refl zero    = refl
 ≡ᵇ-refl (suc n) = ≡ᵇ-refl n
 
--- a granted rep. var is permitted
+-- a rep. var at the head of κ is permitted
 permit-here : ∀ β κ → permit β (β ∷ κ) ≡ X⊑★
 permit-here β κ rewrite ≡ᵇ-refl β = refl
 
@@ -385,21 +379,6 @@ unpermitted-int⁻ : ∀ {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ 
 unpermitted-int⁻ I u {β} pr =
   subst (λ κ → permit β κ ≡ X⊑X) (same-κ I) (u (Paired-int I pr))
 
-r1-interior : ∀ {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′}
-  → Interior W Θ Θ′ Wᵢ
-  → (All (UnbindOK W) Θ → All (UnbindOK Wᵢ) Θ)
-    × (All (UnbindOK Wᵢ) Θ → All (UnbindOK W) Θ)
-r1-interior I = to , from
-  where
-  to : ∀ {Θ} → All (UnbindOK _) Θ → All (UnbindOK _) Θ
-  to []                  = []
-  to (ok-bind ∷ r)       = ok-bind ∷ to r
-  to (ok-unbind u ∷ r)   = ok-unbind (unpermitted-int I u) ∷ to r
-  from : ∀ {Θ} → All (UnbindOK _) Θ → All (UnbindOK _) Θ
-  from []                = []
-  from (ok-bind ∷ r)     = ok-bind ∷ from r
-  from (ok-unbind u ∷ r) = ok-unbind (unpermitted-int⁻ I u) ∷ from r
-
 hasPP-int : ∀ {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ α}
   → Interior W Θ Θ′ Wᵢ → HasPermittedPartner W α
   → HasPermittedPartner Wᵢ α
@@ -416,3 +395,57 @@ hasPP-conv ci (β , inj₂ h , pm) =
   β , inj₂ (subst (λ ϱ → ϱ ∋ᵨ _ ⇔ _) (sym (conv-same-ϱˡ ci)) h)
     , subst (λ κ → permit β κ ≡ X⊑★) (sym (conv-same-κ ci)) pm
 
+------------------------------------------------------------------------
+-- 6. The permissions a boundary adds (design.md D31)
+------------------------------------------------------------------------
+
+private
+  ++All : ∀ {A : Set} {P : A → Set} {xs ys}
+    → All P xs → All P ys → All P (xs ++ ys)
+  ++All []       qs = qs
+  ++All (p ∷ ps) qs = p ∷ ++All ps qs
+
+-- payload imprecision and agreement read only ϱ: a world with the
+-- same pairs (e.g. `W +κ K`) has the same ones
+module _ {W : World Δ Δ′} {W′ : World Δ Δ′}
+    (pp : ∀ {α β} → Paired W α β → Paired W′ α β) where
+  repW : ∀ {μ R R′} → RepImp W μ R R′ → RepImp W′ μ R R′
+  repW ★⊑★          = ★⊑★
+  repW (ι⊑ι b)      = ι⊑ι b
+  repW (X⊑X h)      = X⊑X h
+  repW (α⊑β p)      = α⊑β (pp p)
+  repW (⇒⊑⇒ a b)    = ⇒⊑⇒ (repW a) (repW b)
+  repW (∀⊑∀ a)      = ∀⊑∀ (repW a)
+  repW (⇒⊑★ a b)    = ⇒⊑★ (repW a) (repW b)
+  repW (ι⊑★ b)      = ι⊑★ b
+  repW (X⊑★ h)      = X⊑★ h
+  repW α⊑★          = α⊑★
+  repW (∀⊑ nv o a)  = ∀⊑ nv o (repW a)
+  repW ∀★⊑★         = ∀★⊑★
+  repW (∀⊑★ ns a)   = ∀⊑★ ns (repW a)
+  repW bot-elim     = bot-elim
+  repW bot⊑★        = bot⊑★
+
+  agreeW : ∀ {α β} → Agree W α β → Agree W′ α β
+  agreeW (abst-abst a b) = abst-abst a b
+  agreeW (abst-★ a b)    = abst-★ a b
+  agreeW (rep-rep a b r) = rep-rep a b (repW r)
+
+-- a world with permissions added is well formed when the added rep.
+-- vars are right rep. vars
+wf+κ : ∀ {W : World Δ Δ′} {K} → WfWorld W → All (reps Δ′ ∋ʳ_) K
+  → WfWorld (W +κ K)
+wf+κ {W = W} {K} wf ps = wf-world (wf-joint wf)
+  (λ pr → agreeW {W = W} {W′ = W +κ K} (λ p → p) (wf-agree wf pr))
+  (wf-namedᴸ wf) (wf-namedᴿ wf) (++All ps (wf-permits wf))
+
+-- more permissions keep a permission
+permit-++ : ∀ β K κ → permit β κ ≡ X⊑★ → permit β (K ++ κ) ≡ X⊑★
+permit-++ β []      κ p = p
+permit-++ β (γ ∷ K) κ p with β ≡ᵇ γ
+... | true  = refl
+... | false = permit-++ β K κ p
+
+hasPP-+κ : ∀ {W : World Δ Δ′} {K α} → HasPermittedPartner W α
+  → HasPermittedPartner (W +κ K) α
+hasPP-+κ {W = W} {K} (β , pr , pm) = β , pr , permit-++ β K (κʷ W) pm

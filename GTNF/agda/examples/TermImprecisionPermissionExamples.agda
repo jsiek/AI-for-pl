@@ -1,46 +1,53 @@
 module examples.TermImprecisionPermissionExamples where
 
 -- File Charter:
---   * PERMISSIONS AND R1/R2 (design.md D28) on concrete programs, with
---     the real relation (TermImprecision): example P4 derives under the
---     grants of right checks, and the counterexamples C1-C5 and C4g are
---     NOT derivable.  Copied from the checked local copy
---     proof/DGG/notes/PermissionsR.agda (§10-§19a; here §1-§7a); no
---     notes module is imported.
+--   * PERMISSIONS, R1′ AND R2 (design.md D28, D31) on concrete programs,
+--     with the real relation (TermImprecision): example P4 derives with
+--     its permissions chosen at JOINING boundaries, and the
+--     counterexamples C1-C5, C4g and the hunt's gen-valued C4 are NOT
+--     derivable.  Checked first as proof/DGG/notes/D28pD30.agda
+--     (CorpusB, CorpusD, C1ᴰ-C5ᴰ, Hunt); no notes module is imported.
 --       P4.p4-B1 … p4-B6   P4 (= cambridge Cf from its second block),
---                          every block; the gen wrapper `X! → X?` (B2)
---                          and the check `X?` (B3, B4) grant αᴿ, under
---                          which the shared X is X⊑★ (`W₄²¹`)
---       CgB1.cg-b1,        Cg B1 and C18b B7 (two names; only X's rep.
---       C18bB7.c18b-b7     var is granted)
+--                          every block; the matched TyBeta boundary
+--                          `+X ∥ +X` permits αᴿ for its interior (B2,
+--                          B3, B4; K = [0], `jr₀`), paying with its
+--                          interior index at X⊑X, so inside it the
+--                          shared X is X⊑★ (`W₄²¹`) and the gen wrapper
+--                          `X! → X?` (B2) and the check `X?` (B3, B4)
+--                          are plain ⊑casts
+--       CgB1.cg-b1,        Cg B1 and C18b B7 (two type variables; the
+--       C18bB7.c18b-b7     matched boundary permits only X's rep. var)
 --       P4c.p4-R7 … p4-R10 the right's Merge, IdDyn, Merge, TagUntag
 --                          against B4's left (reduction closure)
 --       C1.c1-unrelated    C1 (`L₆ ⊑ R₇`, all three routes of
 --                          HiddenNames §2): not derivable at κʷ ≡ []
 --       C3.c3-unrelated    C3 (`LE₁ ⊑ RE₁`): not derivable at κʷ ≡ []
 --       C2.c2-unrelated    C2 (`LE₃ ⊑ RE₅`, the late pair): not
---                          derivable at κʷ ≡ [] (PermissionsR §15)
+--                          derivable at κʷ ≡ []
 --       C4.c4-unrelated,   C4 and C4g (the left's initial program
 --       C4g.c4g-unrelated  against the right's state 2; sources
 --                          unrelated, `C4.source-unrelated`): not
---                          derivable at κʷ ≡ [], WITH claim-rep
---                          (design.md D29; PermissionsR §16-§18 plus
---                          the claim-rep cases of the pop walk).  At
---                          D27's stored marks claim-rep revived C4
---                          (PushOrder `C4Revived`); D28's derived marks
---                          make the rejoined name X⊑X
+--                          derivable at κʷ ≡ [], with claim-rep
+--                          (design.md D29), openings, skips and
+--                          permissions (D31)
+--       Hunt.c4gen-unrelated  a gen-VALUED left against C4's right:
+--                          every new freedom of D31 at once; not
+--                          derivable at κʷ ≡ []
 --       C5.r1-rejects-c5,  C5 (Permissions.md §5; L state 3, R state 5):
---       C5Dead.c5-unrelated  R1 rejects the payload view under the grant,
---                          and the pair is unrelated in EVERY world at
---                          ANY κ; so is its failing redex against the
---                          left value (M26's shape,
---                          `c5-redex-unrelated`) and its hidden variant
---                          (`hidden-unrelated`, which needs R1 after the
---                          right hide or R2 at the matched hides)
---   * THE INVARIANT of the negative proofs is `κʷ ≡ []` (§3): a
---     top-level world has no permission; a permission enters only at a
---     granting right cast, and a boundary passes κ unchanged.  C5 needs
---     no hypothesis at all.
+--       C5Dead.c5-unrelated  R1′ rejects the payload view (the seal's
+--                          exterior type is X, so R1′ is R1), and the
+--                          pair is unrelated in EVERY world at ANY κ;
+--                          so is its failing redex against the left
+--                          value (M26's shape, `c5-redex-unrelated`)
+--                          and its hidden variant (`hidden-unrelated`,
+--                          which needs R1′ after the right hide or R2
+--                          at the matched hides)
+--   * THE NEGATIVE PROOFS quantify over every slot list O and read the
+--     PAYMENT of each boundary: a permission enters only at a boundary
+--     that joins a type variable, and that boundary pays with its
+--     interior index read without the permission (`K-pay`, `pay-RBd`);
+--     a top-level world has no permission (`κʷ ≡ []`).  C5 needs no
+--     hypothesis at all.
 --   * Orientation: the LEFT term is the more precise one.
 
 open import Data.Bool using (Bool; true; false; if_then_else_)
@@ -70,6 +77,7 @@ open import ConversionImprecision
 open import TermImprecision
 open import proof.ImprecisionWorld
 open import proof.TypeSafety.CoercionTyping using (coercion-trg)
+open import proof.DGG.ImprecisionTyping using (imprecision-typing)
 import examples.TermImprecisionExamples as TIE
 import examples.TermImprecisionRebaseExamples as Rebase
 
@@ -79,11 +87,11 @@ private
 
 ------------------------------------------------------------------------
 -- 1. Example P4 (= cambridge Cf from its second block), every block.
--- The shared X is X⊑X (`W₄²`) until a right coercion grants αᴿ: the gen
--- wrapper `X! → X?` before CastFun (B2), the check `X?` after it (B3,
--- B4).  Under the grant X is X⊑★ (`W₄²¹`); inside the right's own `−X`
+-- The shared X is X⊑X (`W₄²`) unless the matched TyBeta boundary
+-- `+X ∥ +X` permits αᴿ for its interior (design.md D31; B2, B3, B4).
+-- With the permission X is X⊑★ (`W₄²¹`); inside the right's own `−X`
 -- it is left-only (`W₄ᴸ`), and the right's `+X` rejoins it at αᴿ, which
--- is still permitted (κ passes through every boundary)
+-- is still permitted (κ passes through every inner boundary)
 ------------------------------------------------------------------------
 
 module P4 where
@@ -104,7 +112,7 @@ module P4 where
   open Rebase
     using (Wc⁰; Wc²; Wcᴸ; Wc-bind²; Wc-bind²-conv; Wc-unbindᴿ; Wc-bindᴿ;
            c⊑★ᴸ; c⊑★²; c⊑c²; ℕ⇒ℕ; ∀id⊑★; ∀id⊑∀id; I★⁻; I★gen; Bg; tagX↦;
-           id★→; tagX↦-grants)
+           id★→; jr₀)
   open import examples.CambridgeExamples using (I★)
 
   νbody : Term
@@ -123,10 +131,11 @@ module P4 where
 
   ---------------------------------------------------------------------
   -- The worlds.  Both sides allocate αᴸ:=ℕ, αᴿ:=ℕ (rep. var 0); the
-  -- matched TyBetas pair them globally.  The boundary name X is
-  -- both-sided, X⊑X without permission (`W₄²`) and X⊑★ under the grant
-  -- of αᴿ (`W₄²¹`), left-only after a right `−X` (`W₄ᴸ`), and rejoined
-  -- at the right's `+X` with αᴿ still permitted.
+  -- matched TyBetas pair them globally.  The boundary type variable X is
+  -- both-sided, X⊑X without permission (`W₄²`) and X⊑★ where the matched
+  -- TyBeta boundary permits αᴿ (`W₄²¹`, design.md D31), left-only after
+  -- a right `−X` (`W₄ᴸ`), and rejoined at the right's `+X` with αᴿ
+  -- still permitted.
 
   Ξ₄ : RepCtx
   Ξ₄ = bindR `ℕ ∷ []
@@ -141,7 +150,7 @@ module P4 where
   W₄² : World ΔLᵢ ΔLᵢ
   W₄² = Wc² {Ξ₄} {ϱ₄} [] 0
 
-  -- X both-sided, αᴿ PERMITTED (under a grant): X⊑★
+  -- X both-sided, αᴿ PERMITTED (inside the permitting boundary): X⊑★
   W₄²¹ : World ΔLᵢ ΔLᵢ
   W₄²¹ = Wc² {Ξ₄} {ϱ₄} (0 ∷ []) 0
 
@@ -151,9 +160,10 @@ module P4 where
 
   -- no name, permissions κ
   W₄⁰ : List RVar → World ΔL ΔL
-  W₄⁰ κ = world 0 []↪ []↪ ϱ₄ [] κ []
+  W₄⁰ κ = world 0 []↪ []↪ ϱ₄ [] κ
 
-  -- without a grant the shared X is X⊑X: B3's premise index is empty
+  -- without a permission the shared X is X⊑X: B3's premise index is
+  -- empty
   no-X⊑★-W₄² : ¬ (marksʷ W₄² ∋ˡ 0 := X⊑★)
   no-X⊑★-W₄² ()
 
@@ -161,7 +171,7 @@ module P4 where
       (η : nsL ↪ n) (η′ : nsR ↪ n) (κ : List RVar) where
 
     W : World (Ξ₄ ∣ nsL) (Ξ₄ ∣ nsR)
-    W = world n η η′ ϱ₄ [] κ []
+    W = world n η η′ ϱ₄ [] κ
 
     agree : ∀ {α β} → Paired W α β → Agree W α β
     agree (inj₁ here⇔) = rep-rep r-here r-here (ι⊑ι base-ℕ)
@@ -173,7 +183,7 @@ module P4 where
 
   W₄⁰-wf : ∀ {κ} → All (Ξ₄ ∋ʳ_) κ → WfWorld (W₄⁰ κ)
   W₄⁰-wf {κ} ps = wf-world joint[] agree (namedᴸ-≤1 W ≤1-[])
-    (namedᴿ-≤1 W ≤1-[]) [] [] ps
+    (namedᴿ-≤1 W ≤1-[]) ps
     where open Wf₄ 0 []↪ []↪ κ
 
   W₄-wf : WfWorld W₄
@@ -181,7 +191,7 @@ module P4 where
 
   W₄²κ-wf : ∀ {κ} → All (Ξ₄ ∋ʳ_) κ → WfWorld (Wc² {Ξ₄} {ϱ₄} κ 0)
   W₄²κ-wf {κ} ps = wf-world (both (inj₁ here⇔) joint[]) agree
-    (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[]) [] [] ps
+    (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[]) ps
     where open Wf₄ 1 (keep []↪) (keep []↪) κ
 
   W₄²-wf : WfWorld W₄²
@@ -192,7 +202,7 @@ module P4 where
 
   W₄ᴸ-wf : WfWorld W₄ᴸ
   W₄ᴸ-wf = wf-world (left-only joint[]) agree
-    (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[]) [] [] p0
+    (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[]) p0
     where open Wf₄ 1 (keep []↪) (skip []↪) (0 ∷ [])
 
   v₀ : Ξ₄ ∋ʳ 0
@@ -251,7 +261,7 @@ module P4 where
 
   -- the sealed literals, at any permissions
   S⊑Sκ : ∀ {κ} → All (Ξ₄ ∋ʳ_) κ → Wc² {Ξ₄} {ϱ₄} κ 0 ∣ [] ⊢ S ⊑ S ∶ X⊑X
-  S⊑Sκ ps = ⟪⟫⊑⟪⟫ unb-int (W₄⁰-wf ps) (κ⊑κ lit-$ (ι⊑ι base-ℕ)) bS bS
+  S⊑Sκ ps = ⟪⟫⊑⟪⟫₀ unb-int (W₄⁰-wf ps) (κ⊑κ lit-$ (ι⊑ι base-ℕ)) bS bS
     (_ , unb-conv , conv-tail⊑tail (conv-seal⊑seal refl)) X⊑X
 
   S⊑S : W₄²¹ ∣ [] ⊢ S ⊑ S ∶ X⊑X
@@ -265,9 +275,9 @@ module P4 where
   bI★⁻ = proj₂ (proj₂ (proj₂ (⟪⟫-inv {Γ = []} (tc {Δ = ΔLᵢ} {M = I★⁻}))))
 
   -- idX ⊑ [−X^α] (λx:★. x) ⟨id(★) → id(★)⟩ at X→X ⊑ ★→★ (X both-sided
-  -- and PERMITTED: this index needs the grant)
+  -- and PERMITTED: this index needs the permission)
   idX⊑I★⁻ : W₄²¹ ∣ [] ⊢ idX ⊑ I★⁻ ∶ c⊑★² Ξ₄ ϱ₄ (0 ∷ []) 0 refl
-  idX⊑I★⁻ = ⊑⟪⟫ (Wc-unbindᴿ v₀) push-none W₄ᴸ-wf idX⊑I★ bI★⁻
+  idX⊑I★⁻ = ⊑⟪⟫₀ (Wc-unbindᴿ v₀) W₄ᴸ-wf idX⊑I★ bI★⁻
     (c⊑★² Ξ₄ ϱ₄ (0 ∷ []) 0 refl)
 
   tagᵍ-ty : CastTy ΔLᵢ (★∼X ∷ []) tagX↦ (★ ⇒ ★) (` 0 ⇒ ` 0)
@@ -285,8 +295,8 @@ module P4 where
             (Wν , Wν-conv , revX⊑revX refl)
             (⇒⊑⇒ (ι⊑ι base-ℕ) (ι⊑ι base-ℕ)))
           (κ⊑κ lit-$ (ι⊑ι base-ℕ))))
-      (⊑cast₀
-        (Λ⊑ claim-fresh nv-⇒ (∈-⇒ˡ ∈-var) liftᴸ-[] (V-simple S-ƛ)
+      (⊑cast
+        (Λ⊑ b-fresh nv-⇒ (∈-⇒ˡ ∈-var) liftᴸ-[] (V-simple S-ƛ)
           (ƛ⊑ƛ {pA = X⊑★ here} tf wf-★ (x⊑x Zʷ)) (∀id⊑★ ∅ʷ))
         genArg-ty (∀id⊑∀id ∅ʷ))
 
@@ -303,8 +313,8 @@ module P4 where
   p4-B1′ =
     ·⊑·
       (ν⊑ν
-        (⊑cast₀
-          (Λ⊑ claim-fresh nv-⇒ (∈-⇒ˡ ∈-var) liftᴸ-[] (V-simple S-ƛ)
+        (⊑cast
+          (Λ⊑ b-fresh nv-⇒ (∈-⇒ˡ ∈-var) liftᴸ-[] (V-simple S-ƛ)
             (ƛ⊑ƛ {pA = X⊑★ here} tf wf-★ (x⊑x Zʷ)) (∀id⊑★ ∅ʷ))
           genArg-ty (∀id⊑∀id ∅ʷ))
         (ι⊑ι base-ℕ) νL-ty νR₁-ty
@@ -313,10 +323,11 @@ module P4 where
       (κ⊑κ lit-$ (ι⊑ι base-ℕ))
 
   ---------------------------------------------------------------------
-  -- B2 (2, 2): after both TyBetas, BEFORE CastFun.  The right's gen
-  -- wrapper `X! → X?` at `^[X:★∼X]` is ONE arrow coercion; its
-  -- covariant `X?` GRANTS αᴿ (`tagX↦-grants`), so its premise reads
-  -- X→X ⊑ ★→★ at X⊑★
+  -- B2 (2, 2): after both TyBetas, BEFORE CastFun.  The matched TyBeta
+  -- boundary `+X ∥ +X` JOINS its fresh pair and PERMITS αᴿ for its
+  -- interior (K = [0], `jr₀`, design.md D31), paying with X→X ⊑ X→X at
+  -- X⊑X; inside, the right's gen wrapper `X! → X?` at `^[X:★∼X]` (ONE
+  -- arrow coercion) is peeled by a plain ⊑cast at X→X ⊑ ★→★
 
   bBg : BdyTy ΔL Θ₀ ΔLᵢ (` 0 ⇒ ` 0) revX (`ℕ ⇒ `ℕ)
   bBg = proj₂ (proj₂ (proj₂ (⟪⟫-inv {Γ = []} (tc {Δ = ΔL} {M = Bg}))))
@@ -324,8 +335,8 @@ module P4 where
   p4-B2 : W₄ ∣ [] ⊢ nth Ls 2 ⊑ nth Rs 2 ∶ ι⊑ι base-ℕ
   p4-B2 =
     ·⊑·
-      (⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) W₄²-wf
-        (⊑cast! tagX↦-grants idX⊑I★⁻ tagᵍ-ty (c⊑c² Ξ₄ ϱ₄ [] 0))
+      (⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf (c⊑c² Ξ₄ ϱ₄ [] 0)
+        (⊑cast idX⊑I★⁻ tagᵍ-ty (c⊑c² Ξ₄ ϱ₄ (0 ∷ []) 0))
         bL-ty bBg (W₄² , Wc-bind²-conv v₀ here⇔ , revX⊑revX refl)
         (ℕ⇒ℕ W₄))
       (κ⊑κ lit-$ (ι⊑ι base-ℕ))
@@ -333,8 +344,9 @@ module P4 where
   ---------------------------------------------------------------------
   -- B3 (3, 4): after the left's Wrap and the right's Wrap, CastFun.
   -- The right's X? at `^[X:★∼X]` and its argument's X! at `^[X:X∼★]`
-  -- (CastFun flipped the environment).  The check GRANTS αᴿ (`gr-?`);
-  -- the tag below it reads X ⊑ ★ at the permitted X
+  -- (CastFun flipped the environment).  The matched `+X ∥ +X` permits
+  -- αᴿ (pays X ⊑ X); the check is a plain ⊑cast, and the tag below it
+  -- reads X ⊑ ★ at the permitted X
 
   tagX : Coercion
   tagX = (` 0) !
@@ -364,12 +376,12 @@ module P4 where
   bUnsealR₄ = proj₂ (proj₂ (proj₂ (⟪⟫-inv {Γ = []} (tc {Δ = ΔL} {M = nth Rs 4}))))
 
   S⊑S! : W₄²¹ ∣ [] ⊢ S ⊑ S ⟨ X∼★ ∷ [] ∣ tagX ⟩ ∶ X⊑★ here
-  S⊑S! = ⊑cast₀ S⊑S tagˣ-ty (X⊑★ here)
+  S⊑S! = ⊑cast S⊑S tagˣ-ty (X⊑★ here)
 
   p4-B3 : W₄ ∣ [] ⊢ nth Ls 3 ⊑ nth Rs 4 ∶ ι⊑ι base-ℕ
   p4-B3 =
-    ⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) W₄²-wf
-      (⊑cast! {p = X⊑★ here} (gr-? here) (·⊑· idX⊑I★⁻ S⊑S!) chkᵍ-ty X⊑X)
+    ⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf X⊑X
+      (⊑cast {p = X⊑★ here} (·⊑· idX⊑I★⁻ S⊑S!) chkᵍ-ty X⊑X)
       bUnsealL₃ bUnsealR₄
       (W₄² , Wc-bind²-conv v₀ here⇔ , conv-unseal⊑unseal refl)
       (ι⊑ι base-ℕ)
@@ -378,7 +390,8 @@ module P4 where
   -- B4 (4, 6): after the left's Beta and the right's Wrap, Beta.  THE
   -- "J" PAIR (SidedMarks.md §4) is the premise `S ⊑ J`: X left-only
   -- after the right's −X, rejoined at the right's +X; αᴿ is still
-  -- permitted (the check above granted it; κ passes both boundaries)
+  -- permitted (the matched boundary above permits it; κ passes both
+  -- inner boundaries, and the rejoin pays nothing)
 
   J : Term
   J = (S ⟨ X∼★ ∷ [] ∣ tagX ⟩) ⟪ Θ₀ , id★ᶜ ⟫
@@ -392,13 +405,13 @@ module P4 where
 
   -- the J pair (index X ⊑ ★, X left-only)
   S⊑J : W₄ᴸ ∣ [] ⊢ S ⊑ J ∶ X⊑★ here
-  S⊑J = ⊑⟪⟫ (Wc-bindᴿ v₀ here⇔) push-none W₄²¹-wf S⊑S! bJ (X⊑★ here)
+  S⊑J = ⊑⟪⟫₀ (Wc-bindᴿ v₀ here⇔) W₄²¹-wf S⊑S! bJ (X⊑★ here)
 
   p4-B4 : W₄ ∣ [] ⊢ nth Ls 4 ⊑ nth Rs 6 ∶ ι⊑ι base-ℕ
   p4-B4 =
-    ⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) W₄²-wf
-      (⊑cast! {p = X⊑★ here} (gr-? here)
-        (⊑⟪⟫ (Wc-unbindᴿ v₀) push-none W₄ᴸ-wf S⊑J bJ⁻ (X⊑★ here))
+    ⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf X⊑X
+      (⊑cast {p = X⊑★ here}
+        (⊑⟪⟫₀ (Wc-unbindᴿ v₀) W₄ᴸ-wf S⊑J bJ⁻ (X⊑★ here))
         chkᵍ-ty X⊑X)
       bUnsealL bUnsealR
       (W₄² , Wc-bind²-conv v₀ here⇔ , conv-unseal⊑unseal refl)
@@ -432,7 +445,7 @@ module P4 where
     }
 
   p4-B5 : W₄ ∣ [] ⊢ nth Ls 5 ⊑ nth Rs 11 ∶ ι⊑ι base-ℕ
-  p4-B5 = ⟪⟫⊑⟪⟫ int5 W₄-wf (κ⊑κ lit-$ (ι⊑ι base-ℕ)) b5L b5R
+  p4-B5 = ⟪⟫⊑⟪⟫₀ int5 W₄-wf (κ⊑κ lit-$ (ι⊑ι base-ℕ)) b5L b5R
     (W₄² , conv5 , conv-tail⊑tail (conv-mid⊑mid (conv-id⊑id (ι⊑ι base-ℕ))))
     (ι⊑ι base-ℕ)
     where
@@ -460,9 +473,10 @@ module P4 where
 ------------------------------------------------------------------------
 -- 1a. Cg B1 (cambridge Ex 1/20 after the left's catch-up TyBeta):
 -- matched `+X` boundaries (αᴸ:=ℕ against the right's Inst αᴿ:=★, paired
--- globally), X both-sided at X⊑X; the right's gen wrapper `X! → X?`
--- GRANTS αᴿ; inside its own `−X` X is left-only, where λx:X.x ⊑ λx:★.x
--- reads X ⊑ ★
+-- globally), X both-sided; the matched boundary PERMITS αᴿ (design.md
+-- D31), paying with X→X ⊑ X→X; inside it the right's gen wrapper
+-- `X! → X?` is a plain ⊑cast; inside its own `−X` X is left-only, where
+-- λx:X.x ⊑ λx:★.x reads X ⊑ ★
 ------------------------------------------------------------------------
 
 module CgB1 where
@@ -473,7 +487,7 @@ module CgB1 where
   open Rebase
     using (Wc⁰; Wc²; Wcᴸ; Wc-bind²; Wc-bind²-conv; Wc-unbindᴿ;
            c⊑★ᴸ; c⊑★²; c⊑c²; Cg-R₂; Cg-R₂-state; Bg-ty; I★⁻ᴿ-ty; tagᴿ-ty;
-           id★↦ᴿ-ty; ℕ⇒ℕ⊑★⇒★; tagX↦-grants; p0)
+           id★↦ᴿ-ty; ℕ⇒ℕ⊑★⇒★; p0; jr₀)
 
   Ξg : RepCtx
   Ξg = bindR ★ ∷ []
@@ -488,7 +502,7 @@ module CgB1 where
       (η : nsL ↪ n) (η′ : nsR ↪ n) (κ : List RVar) where
 
     W : World ((bindR `ℕ ∷ []) ∣ nsL) (Ξg ∣ nsR)
-    W = world n η η′ ϱg [] κ []
+    W = world n η η′ ϱg [] κ
 
     agree : ∀ {α β} → Paired W α β → Agree W α β
     agree (inj₁ here⇔) = rep-rep r-here r-here (ι⊑★ base-ℕ)
@@ -497,12 +511,12 @@ module CgB1 where
 
   Wg²-wf : WfWorld (Wc² {Ξg} {ϱg} [] 0)
   Wg²-wf = wf-world (both (inj₁ here⇔) joint[]) agree
-    (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[]) [] [] []
+    (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-∷[]) []
     where open Wfg 1 (keep []↪) (keep []↪) []
 
   Wgᴴ-wf : WfWorld (Wcᴸ {Ξg} {ϱg} (0 ∷ []))
   Wgᴴ-wf = wf-world (left-only joint[]) agree
-    (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[]) [] [] p0
+    (namedᴸ-≤1 W ≤1-∷[]) (namedᴿ-≤1 W ≤1-[]) p0
     where open Wfg 1 (keep []↪) (skip []↪) (0 ∷ [])
 
   idX⊑I★ : Wcᴸ {Ξg} {ϱg} (0 ∷ []) ∣ [] ⊢ idX ⊑ I★ ∶ c⊑★ᴸ Ξg ϱg (0 ∷ [])
@@ -511,12 +525,13 @@ module CgB1 where
   cg-b1 : Wc⁰ {Ξg} {ϱg} ∣ [] ⊢ L1′ ⊑ Cg-R₂ ∶ ι⊑★ base-ℕ
   cg-b1 =
     ·⊑·
-      (⊑cast₀
-        (⟪⟫⊑⟪⟫ (Wc-bind² (_ , here) here⇔) Wg²-wf
-          (⊑cast! {A = ` 0 ⇒ ` 0} tagX↦-grants
-            (⊑⟪⟫ (Wc-unbindᴿ (_ , here)) push-none Wgᴴ-wf idX⊑I★ I★⁻ᴿ-ty
+      (⊑cast
+        (⟪⟫⊑⟪⟫ (Wc-bind² (_ , here) here⇔) (jr₀ ∷ [])
+          (wf+κ Wg²-wf ((_ , here) ∷ [])) (c⊑c² Ξg ϱg [] 0)
+          (⊑cast {A = ` 0 ⇒ ` 0}
+            (⊑⟪⟫₀ (Wc-unbindᴿ (_ , here)) Wgᴴ-wf idX⊑I★ I★⁻ᴿ-ty
               (c⊑★² Ξg ϱg (0 ∷ []) 0 refl))
-            tagᴿ-ty (c⊑c² Ξg ϱg [] 0))
+            tagᴿ-ty (c⊑c² Ξg ϱg (0 ∷ []) 0))
           bL-ty Bg-ty
           (Wc² [] 0 , Wc-bind²-conv (_ , here) here⇔ , revX⊑revX refl)
           (ℕ⇒ℕ⊑★⇒★ (Wc⁰ {Ξg} {ϱg})))
@@ -525,9 +540,10 @@ module CgB1 where
 
 ------------------------------------------------------------------------
 -- 1b. C18b B7 (cambridge Ex 18b, block (7,12)): TWO names at once.
--- Matched outer `(+Y,+X)`, both both-sided at X⊑X; the right's `X?`
--- GRANTS X's rep. var 1; the right's `(−Y,−X)` makes both left-only;
--- its `(+X,+Y)` rejoins both, X still permitted (κ = [1] passes both
+-- Matched outer `(+Y,+X)`, both both-sided; it PERMITS X's rep. var 1
+-- only (K = [1], design.md D31), paying with X ⊑ X; the right's `X?` is
+-- a plain ⊑cast; the right's `(−Y,−X)` makes both left-only; its
+-- `(+X,+Y)` rejoins both, X still permitted (κ = [1] passes both
 -- boundaries); the right's `X!` reads X ⊑ ★.  Center 0 is Y (rep. var
 -- 0 = β), center 1 is X (rep. var 1 = α).
 ------------------------------------------------------------------------
@@ -569,22 +585,22 @@ module C18bB7 where
   ϱ = (0 , 0) ∷ (1 , 1) ∷ []
 
   W₀ : List RVar → World Δ₀ Δ₀
-  W₀ κ = world 0 []↪ []↪ ϱ [] κ []
+  W₀ κ = world 0 []↪ []↪ ϱ [] κ
 
   -- both both-sided, X⊑★
   Wb : List RVar → World Δ₂ Δ₂
-  Wb κ = world 2 (keep (keep []↪)) (keep (keep []↪)) ϱ [] κ []
+  Wb κ = world 2 (keep (keep []↪)) (keep (keep []↪)) ϱ [] κ
 
   -- both left-only (inside the right's (−Y,−X))
   Wh : List RVar → World Δ₂ Δ₀
-  Wh κ = world 2 (keep (keep []↪)) (skip (skip []↪)) ϱ [] κ []
+  Wh κ = world 2 (keep (keep []↪)) (skip (skip []↪)) ϱ [] κ
 
   module Wf {nsL nsR : TyCtx} (n : ℕ)
       (η : nsL ↪ n) (η′ : nsR ↪ n) (κ : List RVar) where
 
     W : World ((bindR `ℕ ∷ bindR `ℕ ∷ []) ∣ nsL)
               ((bindR `ℕ ∷ bindR `ℕ ∷ []) ∣ nsR)
-    W = world n η η′ ϱ [] κ []
+    W = world n η η′ ϱ [] κ
 
     agree : ∀ {α β} → Paired W α β → Agree W α β
     agree (inj₁ here⇔) = rep-rep r-here r-here (ι⊑ι base-ℕ)
@@ -612,18 +628,18 @@ module C18bB7 where
   p1 = (_ , there here) ∷ []
 
   W₀-wf : ∀ {κ} → All (Rs₂ ∋ʳ_) κ → WfWorld (W₀ κ)
-  W₀-wf {κ} ps = wf-world joint[] agree uniqᴸ uniqᴿ [] [] ps
+  W₀-wf {κ} ps = wf-world joint[] agree uniqᴸ uniqᴿ ps
     where open Wf 0 []↪ []↪ κ
 
   Wb-wf : ∀ {κ} → All (Rs₂ ∋ʳ_) κ → WfWorld (Wb κ)
   Wb-wf {κ} ps =
     wf-world (both (inj₁ here⇔) (both (inj₁ (there⇔ here⇔)) joint[]))
-      agree uniqᴸ uniqᴿ [] [] ps
+      agree uniqᴸ uniqᴿ ps
     where open Wf 2 (keep (keep []↪)) (keep (keep []↪)) κ
 
   Wh-wf : ∀ {κ} → All (Rs₂ ∋ʳ_) κ → WfWorld (Wh κ)
   Wh-wf {κ} ps =
-    wf-world (left-only (left-only joint[])) agree uniqᴸ uniqᴿ [] [] ps
+    wf-world (left-only (left-only joint[])) agree uniqᴸ uniqᴿ ps
     where open Wf 2 (keep (keep []↪)) (skip (skip []↪)) κ
 
   -- the boundaries' interior contexts
@@ -780,20 +796,24 @@ module C18bB7 where
   X★ = there here
 
   S2⊑S2 : Wb (1 ∷ []) ∣ [] ⊢ S2 ⊑ S2 ∶ X⊑X
-  S2⊑S2 = ⟪⟫⊑⟪⟫ IntS (W₀-wf p1) (κ⊑κ lit-$ (ι⊑ι base-ℕ)) bS bS
+  S2⊑S2 = ⟪⟫⊑⟪⟫₀ IntS (W₀-wf p1) (κ⊑κ lit-$ (ι⊑ι base-ℕ)) bS bS
     (Wb (1 ∷ []) , ConvS , conv-tail⊑tail (conv-seal⊑seal refl)) X⊑X
 
   -- inside the rejoin: the right's X! at the rejoined, permitted X
   inner : Wb (1 ∷ []) ∣ [] ⊢ S2 ⊑ S2 ⟨ flipᵐ ★∼X ∷ X∼★ ∷ [] ∣ (` 1) ! ⟩
     ∶ X⊑★ X★
-  inner = ⊑cast₀ S2⊑S2 tag-ty (X⊑★ X★)
+  inner = ⊑cast S2⊑S2 tag-ty (X⊑★ X★)
+
+  -- the matched outer boundary joins X (its fresh pair through ϱ)
+  jr₁ : JoinRep (Wb []) Θo Θo [] 1
+  jr₁ = jr-join (_ , there here) (there here) (inj₁ refl) refl
 
   c18b-b7 : W₀ [] ∣ [] ⊢ L7 ⊑ R12 ∶ ι⊑ι base-ℕ
   c18b-b7 =
-    ⟪⟫⊑⟪⟫ IntO (Wb-wf [])
-      (⊑cast! {p = X⊑★ X★} (gr-? (there here))
-        (⊑⟪⟫ IntH push-none (Wh-wf p1)
-          (⊑⟪⟫ IntJ push-none (Wb-wf p1) inner bJ2 (X⊑★ (there here)))
+    ⟪⟫⊑⟪⟫ IntO (jr₁ ∷ []) (Wb-wf p1) X⊑X
+      (⊑cast {p = X⊑★ X★}
+        (⊑⟪⟫₀ IntH (Wh-wf p1)
+          (⊑⟪⟫₀ IntJ (Wb-wf p1) inner bJ2 (X⊑★ (there here)))
           bRH (X⊑★ X★))
         chk-ty X⊑X)
       bL7 bR12 (Wb [] , ConvO , conv-unseal⊑unseal refl) (ι⊑ι base-ℕ)
@@ -804,9 +824,9 @@ module C18bB7 where
 -- Merge, TagUntag steps produce (right states 7-10).  The merged
 -- `[−X, +X]` is an unbind then a bind of X in ONE boundary: `toExt`
 -- makes X continuing on both sides, so X stays joined, and αᴿ stays
--- permitted (the check above it); after IdDyn the tag `X!` is outside,
--- still under the check.  (State 11, the final Merge, needs the left's own Merge:
--- B5.)
+-- permitted (the matched boundary above permits it, design.md D31);
+-- after IdDyn the tag `X!` is outside, still under the check.  (State
+-- 11, the final Merge, needs the left's own Merge: B5.)
 ------------------------------------------------------------------------
 
 module P4c where
@@ -814,7 +834,7 @@ module P4c where
   open P4 using (nth; Ls; Rs; S; unb₀; id★ᶜ; tagX; chkX; tagˣ-ty; chkᵍ-ty;
                  bUnsealL; W₄; W₄²; W₄-wf; W₄²-wf; v₀; S⊑S; bS; bdy-wf;
                  Ξ₄; ϱ₄; W₄²¹; W₄²¹-wf; W₄⁰; W₄⁰-wf; p0)
-  open Rebase using (Wc²)
+  open Rebase using (Wc²; jr₀)
   open TIE using (ΔL; ΔLᵢ; Θ₀)
   open Rebase using (Θ⁻⁺; Θ⁻⁺-int; Wc-bind²; Wc-bind²-conv; unbind₀-int;
                      unbind₀-conv)
@@ -919,51 +939,65 @@ module P4c where
 
   S⊑S3 : ∀ {κ} → All (Ξ₄ ∋ʳ_) κ
     → Wc² {Ξ₄} {ϱ₄} κ 0 ∣ [] ⊢ S ⊑ S3 ∶ X⊑X
-  S⊑S3 ps = ⟪⟫⊑⟪⟫ Int3 (W₄⁰-wf ps) (κ⊑κ lit-$ (ι⊑ι base-ℕ)) bS bS3
+  S⊑S3 ps = ⟪⟫⊑⟪⟫₀ Int3 (W₄⁰-wf ps) (κ⊑κ lit-$ (ι⊑ι base-ℕ)) bS bS3
     (_ , Conv3 , conv-tail⊑tail (conv-seal⊑seal refl)) X⊑X
 
+  -- the left's B4 boundary against the right's matched `+X`: it permits
+  -- αᴿ (K = [0], design.md D31; paying X ⊑ X) while the right's check
+  -- is still there (states 7-9), and permits nothing after TagUntag
+  -- (state 10)
   outer : ∀ {M′} → (b′ : BdyTy ΔL Θ₀ ΔLᵢ (` 0) (unseal 0) `ℕ)
+    → BdyConversionImp W₄ bUnsealL b′
+    → W₄²¹ ∣ [] ⊢ S ⊑ M′ ∶ X⊑X
+    → W₄ ∣ [] ⊢ nth Ls 4 ⊑ M′ ⟪ Θ₀ , unseal 0 ⟫ ∶ ι⊑ι base-ℕ
+  outer b′ bc d =
+    ⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf X⊑X d bUnsealL b′ bc
+      (ι⊑ι base-ℕ)
+
+  outer₀ : ∀ {M′} → (b′ : BdyTy ΔL Θ₀ ΔLᵢ (` 0) (unseal 0) `ℕ)
     → BdyConversionImp W₄ bUnsealL b′
     → W₄² ∣ [] ⊢ S ⊑ M′ ∶ X⊑X
     → W₄ ∣ [] ⊢ nth Ls 4 ⊑ M′ ⟪ Θ₀ , unseal 0 ⟫ ∶ ι⊑ι base-ℕ
-  outer b′ bc d =
-    ⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) W₄²-wf d bUnsealL b′ bc (ι⊑ι base-ℕ)
-
+  outer₀ b′ bc d =
+    ⟪⟫⊑⟪⟫₀ (Wc-bind² v₀ here⇔) W₄²-wf d bUnsealL b′ bc (ι⊑ι base-ℕ)
 
   p4-R7 : W₄ ∣ [] ⊢ nth Ls 4 ⊑ R7 ∶ ι⊑ι base-ℕ
   p4-R7 = outer bR7
     (W₄² , Wc-bind²-conv v₀ here⇔ , conv-unseal⊑unseal refl)
-    (⊑cast! {p = X⊑★ here} (gr-? here)
-      (⊑⟪⟫ IntRR push-none W₄²¹-wf (⊑cast₀ S⊑S tagˣ-ty (X⊑★ here)) bBm7
+    (⊑cast {p = X⊑★ here}
+      (⊑⟪⟫₀ IntRR W₄²¹-wf (⊑cast S⊑S tagˣ-ty (X⊑★ here)) bBm7
         (X⊑★ here))
       chkᵍ-ty X⊑X)
 
   p4-R8 : W₄ ∣ [] ⊢ nth Ls 4 ⊑ R8 ∶ ι⊑ι base-ℕ
   p4-R8 = outer bR8
     (W₄² , Wc-bind²-conv v₀ here⇔ , conv-unseal⊑unseal refl)
-    (⊑cast! {p = X⊑★ here} (gr-? here)
-      (⊑cast₀ {p = X⊑X} (⊑⟪⟫ IntRR push-none W₄²¹-wf S⊑S bBi8 X⊑X)
+    (⊑cast {p = X⊑★ here}
+      (⊑cast {p = X⊑X} (⊑⟪⟫₀ IntRR W₄²¹-wf S⊑S bBi8 X⊑X)
         tagˣ-ty (X⊑★ here))
       chkᵍ-ty X⊑X)
 
   p4-R9 : W₄ ∣ [] ⊢ nth Ls 4 ⊑ R9 ∶ ι⊑ι base-ℕ
   p4-R9 = outer bR9
     (W₄² , Wc-bind²-conv v₀ here⇔ , conv-unseal⊑unseal refl)
-    (⊑cast! {p = X⊑★ here} (gr-? here)
-      (⊑cast₀ {p = X⊑X} (S⊑S3 p0) tagˣ-ty (X⊑★ here))
+    (⊑cast {p = X⊑★ here}
+      (⊑cast {p = X⊑X} (S⊑S3 p0) tagˣ-ty (X⊑★ here))
       chkᵍ-ty X⊑X)
 
   p4-R10 : W₄ ∣ [] ⊢ nth Ls 4 ⊑ R10 ∶ ι⊑ι base-ℕ
-  p4-R10 = outer bR10
+  p4-R10 = outer₀ bR10
     (W₄² , Wc-bind²-conv v₀ here⇔ , conv-unseal⊑unseal refl) (S⊑S3 [])
 
 
 ------------------------------------------------------------------------
--- 3. Facts for the non-derivability proofs.  THE INVARIANT IS κʷ ≡ []:
--- a top-level world has no permission (like `πʷ ≡ []`); a permission
--- enters only at a granting right cast; a boundary passes κ unchanged.
--- Under κʷ ≡ [] a center name the right sees is X⊑X (`no★-right`), so a
--- right tag `X!` can face no untagged left value (`no-tag★`).
+-- 3. Facts for the non-derivability proofs (design.md D31).  A
+-- top-level world has no permission (κʷ ≡ []); a permission enters
+-- only at a boundary that JOINS a type variable (`JoinRep`), and that
+-- boundary pays with its interior index read without it.  Under κʷ ≡ []
+-- a center type variable the right sees is X⊑X (`no★-right`), so a
+-- right tag `X!` can face no untagged left value (`no-tag★`), and a
+-- boundary whose payment puts the joined type variable against ★ can
+-- permit nothing (`K-pay`).  The proofs quantify over every slot list.
 ------------------------------------------------------------------------
 
 lookup-unique : ∀ {A : Set} {xs : List A} {k a b}
@@ -971,14 +1005,14 @@ lookup-unique : ∀ {A : Set} {xs : List A} {k a b}
 lookup-unique here      here       = refl
 lookup-unique (there h) (there h′) = lookup-unique h h′
 
--- the derived mark of a right name is its permission
+-- the derived mark of a right type variable is its permission
 dmarks-emb : ∀ {ns n X β} (ι : ns ↪ n) (κ : List RVar) → ns ∋ˡ X := β
   → dmarks ι κ ∋ˡ emb ι X := permit β κ
 dmarks-emb (keep ι) κ here      = here
 dmarks-emb (keep ι) κ (there h) = there (dmarks-emb ι κ h)
 dmarks-emb (skip ι) κ h         = there (dmarks-emb ι κ h)
 
--- NO PERMISSION, NO X⊑★ AT A NAME THE RIGHT SEES
+-- NO PERMISSION, NO X⊑★ AT A TYPE VARIABLE THE RIGHT SEES
 no★-right : ∀ {V : World Δ Δ′} {X′ β} → κʷ V ≡ [] → Δ′ ∋ᵗ X′ := β
   → ¬ (marksʷ V ∋ˡ emb (ηᴿʷ V) X′ := X⊑★)
 no★-right {V = V} {β = β} eκ rh h
@@ -986,13 +1020,13 @@ no★-right {V = V} {β = β} eκ rh h
              (cong (permit β) eκ)
 ... | ()
 
--- ... so a left name joined to a right name is not X⊑★
+-- ... so a left type variable joined to a right one is not X⊑★
 no-tag★ : ∀ {V : World Δ Δ′} {X X′ β} → κʷ V ≡ [] → Δ′ ∋ᵗ X′ := β
   → Joins V X X′ → ¬ (marksʷ V ∋ˡ emb (ηᴸʷ V) X := X⊑★)
 no-tag★ {V = V} eκ rh j h =
   no★-right {V = V} eκ rh (subst (λ c → marksʷ V ∋ˡ c := X⊑★) j h)
 
--- the index of a non-∀ left type has no pending name
+-- the index of a non-∀ left type has no slot
 data NonForall : Ty → Set where
   nf-var : ∀ {X} → NonForall (` X)
   nf-ℕ   : NonForall `ℕ
@@ -1000,29 +1034,24 @@ data NonForall : Ty → Set where
   nf-★   : NonForall ★
   nf-⇒   : ∀ {A B} → NonForall (A ⇒ B)
 
-openImp-[] : ∀ {μ cs ρ A B} → NonForall A → OpenImp μ cs ρ A B → cs ≡ []
-openImp-[] {cs = []}    _      _  = refl
-openImp-[] {cs = c ∷ cs} nf-var ()
-openImp-[] {cs = c ∷ cs} nf-ℕ   ()
-openImp-[] {cs = c ∷ cs} nf-𝔹   ()
-openImp-[] {cs = c ∷ cs} nf-★   ()
-openImp-[] {cs = c ∷ cs} nf-⇒   ()
+nfO : ∀ {μ e O ρ A B} → NonForall A → OpenO μ e O ρ A B → O ≡ []
+nfO {O = []}        _      _  = refl
+nfO {O = opn _ ∷ _} nf-var ()
+nfO {O = opn _ ∷ _} nf-ℕ   ()
+nfO {O = opn _ ∷ _} nf-𝔹   ()
+nfO {O = opn _ ∷ _} nf-★   ()
+nfO {O = opn _ ∷ _} nf-⇒   ()
+nfO {O = skp ∷ _}   nf-var ()
+nfO {O = skp ∷ _}   nf-ℕ   ()
+nfO {O = skp ∷ _}   nf-𝔹   ()
+nfO {O = skp ∷ _}   nf-★   ()
+nfO {O = skp ∷ _}   nf-⇒   ()
 
-map-[] : ∀ {A B : Set} {f : A → B} (xs : List A) → map f xs ≡ [] → xs ≡ []
-map-[] []       _  = refl
-map-[] (x ∷ xs) ()
-
-π[] : ∀ {V : World Δ Δ′} {A A′} → NonForall A → A ⊑ᵂ⟨ V ⟩ A′ → πʷ V ≡ []
-π[] {V = V} {A} {A′} nf q =
-  map-[] (πʷ V)
-    (openImp-[] {μ = marksʷ V} {ρ = emb (ηᴸʷ V)} {A = A} {B = embᴿ V A′} nf q)
-
-plain-idx : ∀ {V : World Δ Δ′} {A A′} → NonForall A → A ⊑ᵂ⟨ V ⟩ A′
+plain-idx : ∀ {V : World Δ Δ′} {O A A′} → NonForall A → A ⊑ᵂ⟨ V ⟩[ O ] A′
   → marksʷ V ⊢ embᴸ V A ⊑ embᴿ V A′
-plain-idx {V = V} {A} {A′} nf q =
-  subst (λ π → OpenImp (marksʷ V) (map (emb (ηᴿʷ V)) π) (emb (ηᴸʷ V)) A
-                 (embᴿ V A′))
-        (π[] {V = V} {A′ = A′} nf q) q
+plain-idx {V = V} {O} {A} {A′} nf q =
+  subst (λ O → A ⊑ᵂ⟨ V ⟩[ O ] A′) (nfO {μ = marksʷ V} {e = emb (ηᴿʷ V)}
+    {O = O} {ρ = emb (ηᴸʷ V)} {A = A} {B = embᴿ V A′} nf q) q
 
 var⊑var : ∀ {μ a b} → μ ⊢ ` a ⊑ ` b → a ≡ b
 var⊑var X⊑X = refl
@@ -1030,85 +1059,35 @@ var⊑var X⊑X = refl
 var⊑★ : ∀ {μ a} → μ ⊢ ` a ⊑ ★ → μ ∋ˡ a := X⊑★
 var⊑★ (X⊑★ h) = h
 
-no-ℕ⊑var : ∀ {V : World Δ Δ′} {X} → ¬ (`ℕ ⊑ᵂ⟨ V ⟩ ` X)
-no-ℕ⊑var {V = V} {X} q with plain-idx {V = V} {A′ = ` X} nf-ℕ q
-... | ()
-
-no-★⊑var : ∀ {V : World Δ Δ′} {X} → ¬ (★ ⊑ᵂ⟨ V ⟩ ` X)
-no-★⊑var {V = V} {X} q with plain-idx {V = V} {A′ = ` X} nf-★ q
-... | ()
-
-no-var⊑ℕ : ∀ {V : World Δ Δ′} {X} → ¬ (` X ⊑ᵂ⟨ V ⟩ `ℕ)
-no-var⊑ℕ {V = V} {X} q with plain-idx {V = V} {A′ = `ℕ} nf-var q
-... | ()
-
 no-plain-ℕ⊑var : ∀ {μ : ImpEnv} {a} → ¬ (μ ⊢ `ℕ ⊑ ` a)
 no-plain-ℕ⊑var ()
 
 no-plain-★⊑var : ∀ {μ : ImpEnv} {a} → ¬ (μ ⊢ ★ ⊑ ` a)
 no-plain-★⊑var ()
 
--- THE DECISIVE INDEX: a left name against a right name in one world,
--- against ★ in another with the same embeddings and no permission
-no-tag-at : ∀ {V : World Δ Δ′} {κₚ a X′ β} → κʷ V ≡ [] → Δ′ ∋ᵗ X′ := β
-  → ` a ⊑ᵂ⟨ record V { κʷ = κₚ } ⟩ ` X′ → ` a ⊑ᵂ⟨ V ⟩ ★ → ⊥
-no-tag-at {V = V} {κₚ} {X′ = X′} eκ rh p q =
-  no-tag★ {V = V} eκ rh
-    (var⊑var (plain-idx {V = record V { κʷ = κₚ }} {A′ = ` X′} nf-var p))
-    (var⊑★ (plain-idx {V = V} {A′ = ★} nf-var q))
+-- the two typings of a derivation (proof/DGG/ImprecisionTyping)
+ltyD : ∀ {V : World Δ Δ′} {γ M M′ O A A′} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+  → V ∣ γ ⊢ M ⊑ M′ ∶⟨ A , A′ ⟩[ O ] q → Δ ∣ lhs γ ⊢ M ⦂ A
+ltyD d = proj₁ (imprecision-typing d)
 
--- the left type of a cast, a boundary, a literal (right rules keep it)
-lty-cast : ∀ {V : World Δ Δ′} {γ M M′ μ c A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-  → V ∣ γ ⊢ M ⟨ μ ∣ c ⟩ ⊑ M′ ∶ q → Σ[ B ∈ Ty ] CastTy Δ μ c B A
-lty-cast (cast⊑cast _ ct _ _) = _ , ct
-lty-cast (cast⊑ _ _ ct _)     = _ , ct
-lty-cast (⊑cast _ _ d _ _)    = lty-cast d
-lty-cast (⊑⟪⟫ _ _ _ d _ _)    = lty-cast d
+rtyD : ∀ {V : World Δ Δ′} {γ M M′ O A A′} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+  → V ∣ γ ⊢ M ⊑ M′ ∶⟨ A , A′ ⟩[ O ] q → Δ′ ∣ rhs γ ⊢ M′ ⦂ A′
+rtyD d = proj₂ (imprecision-typing d)
 
-lty-bdy : ∀ {V : World Δ Δ′} {γ M M′ Θ c A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-  → V ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ∶ q
-  → Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Aᵢ ∈ Ty ] BdyTy Δ Θ Δᵢ Aᵢ c A
-lty-bdy (⟪⟫⊑⟪⟫ _ _ _ b _ _ _) = _ , _ , b
-lty-bdy (⟪⟫⊑ _ _ _ _ _ b _)   = _ , _ , b
-lty-bdy (⊑cast _ _ d _ _)     = lty-bdy d
-lty-bdy (⊑⟪⟫ _ _ _ d _ _)     = lty-bdy d
+-- typing inversions
+ty-cast : ∀ {Γ M μ p A} → Δ ∣ Γ ⊢ M ⟨ μ ∣ p ⟩ ⦂ A → A ≡ trgᵖ p
+ty-cast (⊢cast _ ⊢p _) = sym (coercion-trg ⊢p)
 
-lty-$ : ∀ {V : World Δ Δ′} {γ n M′ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-  → V ∣ γ ⊢ $ n ⊑ M′ ∶ q → A ≡ `ℕ
-lty-$ (κ⊑κ lit-$ _)       = refl
-lty-$ (⊑cast _ _ d _ _)   = lty-$ d
-lty-$ (⊑⟪⟫ _ _ _ d _ _)   = lty-$ d
+ty-ƛ : ∀ {Γ A₀ N A} → Δ ∣ Γ ⊢ ƛ A₀ ∙ N ⦂ A
+  → Σ[ B ∈ Ty ] (A ≡ A₀ ⇒ B) × (Δ ∣ A₀ ∷ Γ ⊢ N ⦂ B)
+ty-ƛ (⊢ƛ _ ⊢N) = _ , refl , ⊢N
 
--- a variable at the empty term context is related to nothing
-no-var-[] : ∀ {V : World Δ Δ′} {x M′ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-  → ¬ (V ∣ [] ⊢ ` x ⊑ M′ ∶ q)
-no-var-[] (x⊑x ())
-no-var-[] (⊑cast _ raise-[] d _ _) = no-var-[] d
-no-var-[] (⊑⟪⟫ _ _ _ d _ _) = no-var-[] d
+ty-$ : ∀ {Γ n A} → Δ ∣ Γ ⊢ $ n ⦂ A → A ≡ `ℕ
+ty-$ ⊢$ = refl
 
--- the left type of the variable 0 is its entry's
-lty-x : ∀ {V : World Δ Δ′} {A₀ A₀′ p₀ γ M′ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-  → V ∣ ctx-imp A₀ A₀′ p₀ ∷ γ ⊢ ` 0 ⊑ M′ ∶ q → A ≡ A₀
-lty-x (x⊑x Zʷ) = refl
-lty-x (⊑cast _ (raise-∷ _) d _ _) = lty-x d
-lty-x (⊑⟪⟫ _ _ _ d _ _) = ⊥-elim (no-var-[] d)
-
--- the left types of λx:X. x and of ΛX. λx:X. x
+-- the left types of λx:X. x
 idX′ : Term
 idX′ = ƛ (` 0) ∙ ` 0
-
-lty-idX : ∀ {V : World Δ Δ′} {γ M′ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-  → V ∣ γ ⊢ idX′ ⊑ M′ ∶ q → A ≡ ` 0 ⇒ ` 0
-lty-idX (ƛ⊑ƛ _ _ d) rewrite lty-x d = refl
-lty-idX (⊑cast _ _ d _ _) = lty-idX d
-lty-idX (⊑⟪⟫ _ _ _ d _ _) = lty-idX d
-
-lty-ΛidX : ∀ {V : World Δ Δ′} {γ M′ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-  → V ∣ γ ⊢ Λ idX′ ⊑ M′ ∶ q → A ≡ `∀ (` 0 ⇒ ` 0)
-lty-ΛidX (Λ⊑Λ _ _ _ d _) rewrite lty-idX d = refl
-lty-ΛidX (Λ⊑ _ _ _ _ _ d _) rewrite lty-idX d = refl
-lty-ΛidX (⊑cast _ _ d _ _) = lty-ΛidX d
-lty-ΛidX (⊑⟪⟫ _ _ _ d _ _) = lty-ΛidX d
 
 -- coercion typings of the casts that occur
 ct-id★ : ∀ {μ B A} → CastTy Δ μ (idᵖ ★) B A → (B ≡ ★) × (A ≡ ★)
@@ -1125,29 +1104,57 @@ ct-X! : ∀ {μ X B A} → CastTy Δ μ ((` X) !) B A
 ct-X! (cast-ty (⊢tag ()) _)
 ct-X! (cast-ty (⊢tag-var tv _ _) _) = tv , refl , refl
 
--- coercions that grant nothing
-NoGrant : Coercion → Set
-NoGrant c = ∀ {Δ′ β} → ¬ Grants Δ′ β c
-
-ng-ℕ? : ∀ {ℓ} → NoGrant (`ℕ ？ ℓ)
-ng-ℕ? ()
-
-ng-id : ∀ {A} → NoGrant (idᵖ A)
-ng-id ()
-
-ng-id★↦ : NoGrant (idᵖ ★ ↦ᵖ idᵖ ★)
-ng-id★↦ (gr-↦ _ ())
-
-ng-tag↦id★ : ∀ {X} → NoGrant (((` X) !) ↦ᵖ idᵖ ★)
-ng-tag↦id★ (gr-↦ _ ())
-
-cg-none : ∀ {Δ′ c κ κₚ} → NoGrant c → CastGrant Δ′ c κ κₚ → κₚ ≡ κ
-cg-none ng no-grant  = refl
-cg-none ng (grant g) = ⊥-elim (ng g)
-
--- the bind entry `+X^0` from a context with no name
+-- the bind entry `+X^0` from a context with no type variable
 Θ₀ : Boundary
 Θ₀ = bind 0 0 ∷ []
+
+-- a new opening makes the interior's slots nonempty
+fill-∋ᵒ : ∀ {O′ N Oᵢ k} → Fill O′ N Oᵢ → N ∋ᵒ k → Oᵢ ≢ []
+fill-∋ᵒ f-end      oh ()
+fill-∋ᵒ f-end      (ot _) ()
+fill-∋ᵒ (f-keep _) _ ()
+fill-∋ᵒ (f-fill _) _ ()
+
+push-∋ᵒ : ∀ {Θ′ M O N Oᵢ k} → Push Θ′ M O N Oᵢ → N ∋ᵒ k → Oᵢ ≢ []
+push-∋ᵒ (push _ f _ _) n = fill-∋ᵒ f n
+
+-- no permission can be added
+K-none : ∀ {Δᵢ Δ′ᵢ} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ N K}
+  → (∀ {β} → ¬ JoinRep Wᵢ Θ Θ′ N β) → All (JoinRep Wᵢ Θ Θ′ N) K → K ≡ []
+K-none no []      = refl
+K-none no (j ∷ _) = ⊥-elim (no j)
+
+κ-keep : ∀ {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ K}
+  → Interior W Θ Θ′ Wᵢ → K ≡ [] → κʷ W ≡ [] → κʷ (Wᵢ +κ K) ≡ []
+κ-keep I refl eκ = trans (same-κ I) eκ
+
+-- the left variable 0, facing ★ at a world without permissions, joins
+-- no right variable (THE PAYMENT'S CONSEQUENCE)
+no-join★ : ∀ {V : World Δ Δ′} → κʷ V ≡ [] → (` 0) ⊑ᵂ⟨ V ⟩ ★
+  → ∀ {X′ β} → Δ′ ∋ᵗ X′ := β → ¬ Joins V 0 X′
+no-join★ {V = V} eκ q rh j = no-tag★ {V = V} eκ rh j (var⊑★ q)
+
+-- the left context has the one type variable 0
+OnlyZero : Ctxᵗ → Set
+OnlyZero Δ = ∀ {X} → Δ ∋tv X → X ≡ 0
+
+-- ... so a boundary whose payment puts it against ★ joins nothing
+K-pay : ∀ {Δᵢ Δ′ᵢ} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ K}
+  → OnlyZero Δᵢ → κʷ Wᵢ ≡ [] → (` 0) ⊑ᵂ⟨ Wᵢ ⟩ ★
+  → All (JoinRep Wᵢ Θ Θ′ []) K → K ≡ []
+K-pay {Wᵢ = Wᵢ} {Θ} {Θ′} oz eκ q = K-none no
+  where
+  no : ∀ {β} → ¬ JoinRep Wᵢ Θ Θ′ [] β
+  no (jr-join tv rh _ j) with oz tv
+  ... | refl = no-join★ {V = Wᵢ} eκ q rh j
+  no (jr-open () _)
+
+-- the exterior and interior types of an `id(★)` boundary
+bdy-id★ : ∀ {Δ₀ Θ Δᵢ Aᵢ A} → BdyTy Δ₀ Θ Δᵢ Aᵢ ⌞ id ★ ⌟ A
+  → (Aᵢ ≡ ★) × (A ≡ ★)
+bdy-id★ (bdy-ty _ (conv-tail (conv-mid (conv-id ()))) _ _ _)
+bdy-id★ (bdy-ty _ (conv-tail (conv-mid conv-id★)) (_ , same-★ , same-★)
+  (_ , same-★ , same-★) _) = refl , refl
 
 -- runs (HiddenNames.Runs, copied): every reachable state is a state of
 -- the evalTerms run (determinism)
@@ -1203,49 +1210,9 @@ module Runs where
   last (x ∷ [])     = x
   last (x ∷ y ∷ xs) = last (y ∷ xs)
 
-------------------------------------------------------------------------
--- 4. The spine argument for C1 and C2.  A RIGHT spine (casts,
--- boundaries) that reaches a name tag `X!` through casts that grant
--- nothing (`Reach`); a LEFT term outside its own `[+X^α] (sealed m)
--- ⟨+X⟩` boundary under ground casts (`LO`).  Under κʷ ≡ [] they are
--- never related: inside the left boundary the decisive step `⊑cast` of
--- the tag needs X⊑★ at a name the right sees (`no-tag-at`).
-------------------------------------------------------------------------
-
-data Reach : Term → Set where
-  r-tag  : ∀ {U μ k} → Reach (U ⟨ μ ∣ (` k) ! ⟩)
-  r-cast : ∀ {R μ c} → NoGrant c → Reach R → Reach (R ⟨ μ ∣ c ⟩)
-  r-⟪⟫   : ∀ {R Θ d} → Reach R → Reach (R ⟪ Θ , d ⟫)
-
--- left literals against a Reach spine (by types alone)
-no-$ : ∀ {V : World Δ Δ′} {γ n R A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-  → Reach R → ¬ (V ∣ γ ⊢ $ n ⊑ R ∶ q)
-no-$ {V = V} r-tag (⊑cast {κₚ = κₚ} {p = p} _ _ d ct _)
-  with ct-X! ct | lty-$ d
-... | _ , refl , refl | refl = no-ℕ⊑var {V = record V { κʷ = κₚ }} p
-no-$ (r-cast _ r) (⊑cast _ _ d _ _) = no-$ r d
-no-$ (r-⟪⟫ r) (⊑⟪⟫ _ _ _ d _ _) = no-$ r d
-
-no-n★ : ∀ {V : World Δ Δ′} {γ n μ R A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-  → Reach R → ¬ (V ∣ γ ⊢ $ n ⟨ μ ∣ `ℕ ! ⟩ ⊑ R ∶ q)
-no-n★ {V = V} r-tag (⊑cast {κₚ = κₚ} {p = p} _ _ d ct _)
-  with ct-X! ct | lty-cast d
-... | _ , refl , refl | _ , ct₀ with ct-ℕ! ct₀
-... | refl , refl = no-★⊑var {V = record V { κʷ = κₚ }} p
-no-n★ r-tag (cast⊑cast {p = p} d ct ct′ _) with ct-ℕ! ct | ct-X! ct′
-... | refl , refl | _ , refl , refl = no-plain-ℕ⊑var p
-no-n★ (r-cast _ r) (cast⊑cast d _ _ _) = no-$ r d
-no-n★ (r-cast _ r) (⊑cast _ _ d _ _) = no-n★ r d
-no-n★ r (cast⊑ _ d _ _) = no-$ r d
-no-n★ (r-⟪⟫ r) (⊑⟪⟫ _ _ _ d _ _) = no-n★ r d
-
 data G : Ty → Set where
   gℕ : G `ℕ
   g★ : G ★
-
-no-G⊑var : ∀ {V : World Δ Δ′} {A X} → G A → ¬ (A ⊑ᵂ⟨ V ⟩ ` X)
-no-G⊑var {V = V} gℕ = no-ℕ⊑var {V = V}
-no-G⊑var {V = V} g★ = no-★⊑var {V = V}
 
 no-G⊑varᵖ : ∀ {μ : ImpEnv} {ρ A a} → G A → ¬ (μ ⊢ renameᵗ ρ A ⊑ ` a)
 no-G⊑varᵖ gℕ = no-plain-ℕ⊑var
@@ -1275,25 +1242,114 @@ gtrg gc-id★ ct with ct-id★ ct
 sealed : Term → Term
 sealed m = m ⟪ unbind 0 0 ∷ [] , tail (seal 0) ⟫
 
+G-nf : ∀ {A} → G A → NonForall A
+G-nf gℕ = nf-ℕ
+G-nf g★ = nf-★
+
+------------------------------------------------------------------------
+-- 4. The spine argument for C1 and C2.  A right spine of ground casts
+-- and `id(★)` boundaries reaching a tag `X!` (`Reach`); a left term
+-- outside its own `[+X^α] (sealed m) ⟨+X⟩` under ground casts (`LO`).
+-- Every boundary on the way is entered with no permission: outside the
+-- left boundary nothing left is bound to a type variable (no join); at
+-- the left boundary and inside it, the payment reads the left's X
+-- against ★ (`K-pay`), so X joins no right type variable and no
+-- permission is added; the decisive ⊑cast of the tag then needs
+-- X ⊑ X′ and X ⊑ ★ at κ = [] (`no-tag★`).
+------------------------------------------------------------------------
+
+data Reach : Term → Set where
+  r-tag  : ∀ {U μ k} → Reach (U ⟨ μ ∣ (` k) ! ⟩)
+  r-cast : ∀ {R μ c} → GCast c → Reach R → Reach (R ⟨ μ ∣ c ⟩)
+  r-⟪⟫   : ∀ {R Θ} → Reach R → Reach (R ⟪ Θ , ⌞ id ★ ⌟ ⟫)
+
+gc-trg : ∀ {c} → GCast c → G (trgᵖ c)
+gc-trg gc-ℕ! = g★
+gc-trg gc-ℕ? = gℕ
+gc-trg gc-id★ = g★
+
+reach-G : ∀ {Γ R A′} → Reach R → Δ′ ∣ Γ ⊢ R ⦂ A′ → G A′
+reach-G r-tag ⊢R with ty-cast ⊢R
+... | refl = g★
+reach-G (r-cast gc _) ⊢R with ty-cast ⊢R
+... | refl = gc-trg gc
+reach-G (r-⟪⟫ _) ⊢R with ⟪⟫-inv ⊢R
+... | _ , _ , _ , b = G-from (proj₂ (bdy-id★ b))
+  where
+  G-from : ∀ {A} → A ≡ ★ → G A
+  G-from refl = g★
+
+-- left literals against a spine (by types alone)
+no-$ : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ n R O A A′} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+  → Reach R → ¬ (V ∣ γ ⊢ $ n ⊑ R ∶⟨ A , A′ ⟩[ O ] q)
+no-$ {V = V} {O = O} r-tag (⊑cast {A = A} {B′ = B′} {p = p} d ct _)
+  with ct-X! ct | ty-$ (ltyD d)
+... | _ , refl , refl | refl
+  with plain-idx {V = V} {O = O} {A = A} {A′ = B′} nf-ℕ p
+... | ()
+no-$ (r-cast _ r) (⊑cast d _ _) = no-$ r d
+no-$ (r-⟪⟫ r) (⊑⟪⟫ _ _ _ _ _ _ _ d _ _) = no-$ r d
+
+no-n★ : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ n μ R O A A′}
+    {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+  → Reach R → ¬ (V ∣ γ ⊢ $ n ⟨ μ ∣ `ℕ ! ⟩ ⊑ R ∶⟨ A , A′ ⟩[ O ] q)
+no-n★ {V = V} {O = O} r-tag (⊑cast {A = A} {B′ = B′} {p = p} d ct _)
+  with ct-X! ct | ty-cast (ltyD d)
+... | _ , refl , refl | refl
+  with plain-idx {V = V} {O = O} {A = A} {A′ = B′} nf-★ p
+... | ()
+no-n★ r-tag (cast⊑cast {p = p} d ct ct′ _) with ct-ℕ! ct | ct-X! ct′
+... | refl , refl | _ , refl , refl with p
+... | ()
+no-n★ (r-cast _ r) (cast⊑cast d _ _ _) = no-$ r d
+no-n★ (r-cast _ r) (⊑cast d _ _) = no-n★ r d
+no-n★ r (cast⊑ co-plain d _ _) = no-$ r d
+no-n★ (r-⟪⟫ r) (⊑⟪⟫ _ _ _ _ _ _ _ d _ _) = no-n★ r d
+
+-- the type variables of the left boundary's interior: just X
+oz₀ : ∀ {R} → OnlyZero ((bindR R ∷ []) ∣ (0 ∷ []))
+oz₀ (_ , here) = refl
+oz₀ (_ , there ())
+
 module Spine (m : Term)
-  (no-leaf : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ R A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → Reach R → ¬ (V ∣ γ ⊢ m ⊑ R ∶ q))
+  (no-leaf : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ R O A A′}
+     {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+     → Reach R → ¬ (V ∣ γ ⊢ m ⊑ R ∶⟨ A , A′ ⟩[ O ] q))
   (Δ₀ : Ctxᵗ)
-  (bdy : ∀ {Δᵢ Aᵢ A} → BdyTy Δ₀ Θ₀ Δᵢ Aᵢ (unseal 0) A → (Aᵢ ≡ ` 0) × G A)
+  (no-tvs : ∀ {X} → ¬ (Δ₀ ∋tv X))
+  (bdy : ∀ {Δᵢ Aᵢ A} → BdyTy Δ₀ Θ₀ Δᵢ Aᵢ (unseal 0) A
+     → (Aᵢ ≡ ` 0) × G A × OnlyZero Δᵢ)
   where
 
-  -- THE INSIDE LEMMA: the left's sealed leaf (type X) against a spine
-  -- reaching a tag, with no permission
-  no-S : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ R A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → A ≡ ` 0 → Reach R → ¬ (V ∣ γ ⊢ sealed m ⊑ R ∶ q)
-  no-S {V = V} eκ refl r-tag (⊑cast {κₚ = κₚ} {p = p} _ _ d ct q)
+  -- INSIDE the left boundary: the sealed leaf (type X) against the spine
+  no-S : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ R O A A′} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+    → OnlyZero Δ₁ → κʷ V ≡ [] → A ≡ ` 0 → Reach R
+    → ¬ (V ∣ γ ⊢ sealed m ⊑ R ∶⟨ A , A′ ⟩[ O ] q)
+  no-S {V = V} {O = O} oz eκ refl r-tag (⊑cast {B′ = B′} {p = p} d ct q)
     with ct-X! ct
-  ... | (_ , rh) , refl , refl = no-tag-at {V = V} {κₚ = κₚ} eκ rh p q
-  no-S eκ eA (r-cast ng r) (⊑cast g _ d _ _) =
-    no-S (trans (cg-none ng g) eκ) eA r d
-  no-S eκ eA (r-⟪⟫ r) (⊑⟪⟫ I _ _ d _ _) = no-S (trans (same-κ I) eκ) eA r d
-  no-S eκ eA (r-⟪⟫ r) (⟪⟫⊑⟪⟫ _ _ d _ _ _ _) = no-leaf r d
-  no-S eκ eA r (⟪⟫⊑ _ _ _ _ d _ _) = no-leaf r d
+  ... | (_ , rh) , refl , refl =
+    no-tag★ {V = V} eκ rh
+      (var⊑var (plain-idx {V = V} {O = O} {A′ = B′} nf-var p))
+      (var⊑★ (plain-idx {V = V} {O = O} {A′ = ★} nf-var q))
+  no-S oz eκ eA (r-cast _ r) (⊑cast d _ _) = no-S oz eκ eA r d
+  no-S {Δ₁} {V = V} oz eκ refl (r-⟪⟫ r)
+    (⊑⟪⟫ {Wᵢ = Vi} {K = K} {A′ᵢ = A′ᵢ} {Oᵢ = Oᵢ} I pu _ _ ks _ pay d b _)
+    with bdy-id★ b
+  ... | refl , _ with nfO {O = Oᵢ} nf-var pay
+  ... | refl =
+    no-S oz (κ-keep I (K-none no ks) eκ) refl r d
+    where
+    eκᵢ : κʷ Vi ≡ []
+    eκᵢ = trans (same-κ I) eκ
+    no : ∀ {β} → ¬ JoinRep Vi [] _ _ β
+    no (jr-join tv rh _ j) with oz tv
+    ... | refl = no-join★ {V = Vi} eκᵢ pay rh j
+    no (jr-open n _) = push-∋ᵒ pu n refl
+  no-S oz eκ eA r (⟪⟫⊑⟪⟫ _ _ _ _ d _ _ _ _) = no-leaf (r-inner r) d
+    where
+    r-inner : ∀ {R′ Θ′ c′} → Reach (R′ ⟪ Θ′ , c′ ⟫) → Reach R′
+    r-inner (r-⟪⟫ r′) = r′
+  no-S oz eκ eA r (⟪⟫⊑ _ _ _ _ _ _ d _ _) = no-leaf r d
 
   B : Term
   B = sealed m ⟪ Θ₀ , unseal 0 ⟫
@@ -1302,38 +1358,63 @@ module Spine (m : Term)
     lo-B : LO B
     lo-c : ∀ {M c} → GCast c → LO M → LO (M ⟨ [] ∣ c ⟩)
 
-  lo-ty : ∀ {Δ₂} {V : World Δ₀ Δ₂} {γ M R A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → LO M → V ∣ γ ⊢ M ⊑ R ∶ q → G A
-  lo-ty lo-B d with lty-bdy d
-  ... | _ , _ , b = proj₂ (bdy b)
-  lo-ty (lo-c gc _) d with lty-cast d
-  ... | _ , ct = gtrg gc ct
+  lo-ty : ∀ {Γ M A} → LO M → Δ₀ ∣ Γ ⊢ M ⦂ A → G A
+  lo-ty lo-B ⊢M with ⟪⟫-inv ⊢M
+  ... | _ , _ , _ , b = proj₁ (proj₂ (bdy b))
+  lo-ty (lo-c gc _) ⊢M with ty-cast ⊢M
+  ... | refl = gc-trg gc
 
-  -- THE OUTSIDE LEMMA: the left outside its boundary
-  no-LO : ∀ {Δ₂} {V : World Δ₀ Δ₂} {γ M R A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → LO M → Reach R → ¬ (V ∣ γ ⊢ M ⊑ R ∶ q)
-  no-LO {V = V} eκ lo r-tag (⊑cast {κₚ = κₚ} {p = p} _ _ d ct _)
-    with ct-X! ct
-  ... | _ , refl , refl = no-G⊑var {V = record V { κʷ = κₚ }} (lo-ty lo d) p
-  no-LO eκ lo (r-cast ng r) (⊑cast g _ d _ _) =
-    no-LO (trans (cg-none ng g) eκ) lo r d
+  -- OUTSIDE: the left under its ground casts
+  no-LO : ∀ {Δ₂} {V : World Δ₀ Δ₂} {γ M R O A A′} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+    → κʷ V ≡ [] → LO M → Reach R
+    → ¬ (V ∣ γ ⊢ M ⊑ R ∶⟨ A , A′ ⟩[ O ] q)
+  no-LO {V = V} {O = O} eκ lo r-tag
+    (⊑cast {A = A} {B′ = B′} {p = p} d ct _) with ct-X! ct
+  ... | _ , refl , refl with lo-ty lo (ltyD d)
+  ... | g = no-G⊑varᵖ g (plain-idx {V = V} {O = O} {A = A} {A′ = B′}
+                           (G-nf g) p)
+  no-LO eκ lo (r-cast _ r) (⊑cast d _ _) = no-LO eκ lo r d
   no-LO eκ (lo-c gc lo) r-tag (cast⊑cast {p = p} d ct ct′ _)
     with ct-X! ct′
   ... | _ , refl , refl = no-G⊑varᵖ (gsrc gc ct) p
   no-LO eκ (lo-c gc lo) (r-cast _ r) (cast⊑cast d _ _ _) = no-LO eκ lo r d
-  no-LO eκ (lo-c gc lo) r (cast⊑ _ d _ _) = no-LO eκ lo r d
-  no-LO eκ lo (r-⟪⟫ r) (⊑⟪⟫ I _ _ d _ _) = no-LO (trans (same-κ I) eκ) lo r d
-  no-LO eκ lo-B r (⟪⟫⊑ I _ _ _ d b _) =
-    no-S (trans (same-κ I) eκ) (proj₁ (bdy b)) r d
-  no-LO eκ lo-B (r-⟪⟫ r) (⟪⟫⊑⟪⟫ I _ d b _ _ _) =
-    no-S (trans (same-κ I) eκ) (proj₁ (bdy b)) r d
+  no-LO eκ (lo-c gc lo) r (cast⊑ co-plain d _ _) = no-LO eκ lo r d
+  no-LO {V = V} eκ lo (r-⟪⟫ r)
+    (⊑⟪⟫ {Wᵢ = Vi} {K = K} {A = A} {A′ᵢ = A′ᵢ} {Oᵢ = Oᵢ} I pu _ _ ks _ pay
+      d b _) =
+    no-LO (κ-keep I (K-none no ks) eκ) lo r d
+    where
+    no : ∀ {β} → ¬ JoinRep Vi [] _ _ β
+    no (jr-join tv _ _ _) = no-tvs tv
+    no (jr-open n _) = push-∋ᵒ pu n
+      (nfO {O = Oᵢ} (G-nf (lo-ty lo (ltyD d))) pay)
+  no-LO {V = V} eκ lo-B r
+    (⟪⟫⊑ {Wᵢ = Vi} {K = K} {A′ = A′} {O = O} I _ _ ks _ pay d b _)
+    with bdy b | reach-G r (rtyD d)
+  ... | refl , _ , oz | g with nfO {O = O} nf-var pay
+  ... | refl with g
+  ...   | gℕ with pay
+  ...     | ()
+  no-LO {V = V} eκ lo-B r
+    (⟪⟫⊑ {Wᵢ = Vi} {K = K} {A′ = A′} {O = O} I _ _ ks _ pay d b _)
+    | refl , _ , oz | g | refl | g★ =
+    no-S oz (κ-keep I (K-pay oz (trans (same-κ I) eκ) pay ks) eκ) refl r d
+  no-LO {V = V} eκ lo-B (r-⟪⟫ r)
+    (⟪⟫⊑⟪⟫ {Wᵢ = Vi} {K = K} I ks _ pay d b b′ _ _)
+    with bdy b | bdy-id★ b′
+  ... | refl , _ , oz | refl , _ =
+    no-S oz (κ-keep I (K-pay oz (trans (same-κ I) eκ) pay ks) eκ) refl r d
 
 ------------------------------------------------------------------------
 -- 5. C1 = the SimBackBlame counterexample L₆ ⊑ R₇ (PendingOpenings
 -- §5d): NOT DERIVABLE in any world over its contexts with no
--- permission, at any index.  All three routes of HiddenNames §2
+-- permission, at any slots.  All three routes of HiddenNames §2
 -- (matched, left-first, right-first) end at the right's tag against
--- the left's sealed value with no right check above it: `no-tag-at`.
+-- the left's sealed value: every boundary that could join the left's X
+-- pays with `X ⊑ ★` at κ = [], so X stays left-only (`K-pay`), and the
+-- right's tag `X!` then needs `X ⊑ X′` (`no-tag★`).  On the right-first
+-- route the right's `+X` joins nothing (the left has no type variable
+-- there), so it cannot permit (design.md D31: "joins, not introduces").
 ------------------------------------------------------------------------
 
 module C1 where
@@ -1401,27 +1482,29 @@ module C1 where
     ((λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ []) r refl
 
   bdy-LB : ∀ {Δᵢ Aᵢ A} → BdyTy ΔR Θ₀ Δᵢ Aᵢ (unseal 0) A
-    → (Aᵢ ≡ ` 0) × G A
+    → (Aᵢ ≡ ` 0) × G A × OnlyZero Δᵢ
   bdy-LB (bdy-ty (bw _ i c) ⊢c eqᵢ eqₑ _)
     with interior-functional i TIE.int₀ | conversion-functional c TIE.conv₀
   bdy-LB (bdy-ty _ (conv-unseal (_ , _ , here , r-here , same-★))
                  (_ , same-var here , same-var here)
                  (_ , same-★ , same-★) _) | refl | refl =
-    refl , g★
+    refl , g★ , oz₀ {★}
 
-  open Spine 5★ no-n★ ΔR bdy-LB
+  open Spine 5★ no-n★ ΔR (λ { (_ , ()) }) bdy-LB
 
-  -- C1 IS UNRELATED: every world over (ΔR, ΔR) with no permission
-  c1-unrelated : ∀ {W : World ΔR ΔR} {γ A A′} {q : A ⊑ᵂ⟨ W ⟩ A′}
-    → κʷ W ≡ [] → ¬ (W ∣ γ ⊢ L₆ ⊑ R₇ ∶ q)
+  -- C1 IS UNRELATED: every world over (ΔR, ΔR) with no permission, any
+  -- slots; all routes (matched, left first, right first)
+  c1-unrelated : ∀ {W : World ΔR ΔR} {γ A A′ O} {q : A ⊑ᵂ⟨ W ⟩[ O ] A′}
+    → κʷ W ≡ [] → ¬ (W ∣ γ ⊢ L₆ ⊑ R₇ ∶⟨ A , A′ ⟩[ O ] q)
   c1-unrelated eκ =
-    no-LO eκ (lo-c gc-ℕ? (lo-c gc-id★ lo-B)) (r-cast ng-ℕ? (r-⟪⟫ r-tag))
+    no-LO eκ (lo-c gc-ℕ? (lo-c gc-id★ lo-B)) (r-cast gc-ℕ? (r-⟪⟫ r-tag))
 
 ------------------------------------------------------------------------
 -- 6. C3 = ModeCondition's `Esc.esc-cex-early` (both after TyBeta):
 -- NOT DERIVABLE.  Matched boundaries compare `−X → +X` with
 -- `−X → id(★)`: the seal joins X, so the ★ clause `+X ⊑ id(★)` needs X
--- permitted; each one-sided order meets `X ⊑ ℕ` or `ℕ ⊑ X`.
+-- permitted in the EXTERIOR conversion world (R2, unchanged by D31);
+-- each one-sided order meets `X ⊑ ℕ` or `ℕ ⊑ X`.
 ------------------------------------------------------------------------
 
 module C3 where
@@ -1497,81 +1580,59 @@ module C3 where
   ct-genE-body (cast-ty (⊢fun (⊢tag ()) _) _)
   ct-genE-body (cast-ty (⊢fun (⊢tag-var _ _ _) (⊢id _ _)) _) = refl
 
-  lty-ƛ : ∀ {V : World Δ Δ′} {γ A₀ N M′ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → V ∣ γ ⊢ ƛ A₀ ∙ N ⊑ M′ ∶ q → Σ[ B ∈ Ty ] A ≡ A₀ ⇒ B
-  lty-ƛ (ƛ⊑ƛ _ _ _)       = _ , refl
-  lty-ƛ (⊑cast _ _ d _ _) = lty-ƛ d
-  lty-ƛ (⊑⟪⟫ _ _ _ d _ _) = lty-ƛ d
-
-  rty-cast : ∀ {V : World Δ Δ′} {γ M M′ μ′ c′ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → V ∣ γ ⊢ M ⊑ M′ ⟨ μ′ ∣ c′ ⟩ ∶ q → Σ[ B′ ∈ Ty ] CastTy Δ′ μ′ c′ B′ A′
-  rty-cast (cast⊑cast _ _ ct′ _) = _ , ct′
-  rty-cast (⊑cast _ _ _ ct _)    = _ , ct
-  rty-cast (cast⊑ _ d _ _)       = rty-cast d
-  rty-cast (⟪⟫⊑ _ _ _ _ d _ _)   = rty-cast d
-  rty-cast (Λ⊑ _ _ _ _ _ d _)    = rty-cast d
-  rty-cast (ν⊑ d _ _ _)          = rty-cast d
-  rty-cast (blame⊑ _ ⊢M′ _) with cast-inv ⊢M′
-  ... | _ , _ , ct = _ , ct
-
-  no-var⇒⊑ℕ⇒ : ∀ {V : World Δ Δ′} {X B B′} → ¬ ((` X ⇒ B) ⊑ᵂ⟨ V ⟩ (`ℕ ⇒ B′))
-  no-var⇒⊑ℕ⇒ {V = V} {X} {B} {B′} q
-    with plain-idx {V = V} {A′ = `ℕ ⇒ B′} (nf-⇒ {A = ` X} {B = B}) q
-  ... | ⇒⊑⇒ () _
-
-  no-ℕ⇒⊑var⇒ : ∀ {V : World Δ Δ′} {X B B′} → ¬ ((`ℕ ⇒ B) ⊑ᵂ⟨ V ⟩ (` X ⇒ B′))
-  no-ℕ⇒⊑var⇒ {V = V} {X} {B} {B′} q
-    with plain-idx {V = V} {A′ = ` X ⇒ B′} (nf-⇒ {A = `ℕ} {B = B}) q
-  ... | ⇒⊑⇒ () _
-
-  idx : ∀ {Δ₁ Δ₂} {V′ : World Δ₁ Δ₂} {γ M M′ A₁ A₂} {r : A₁ ⊑ᵂ⟨ V′ ⟩ A₂}
-    → V′ ∣ γ ⊢ M ⊑ M′ ∶ r → A₁ ⊑ᵂ⟨ V′ ⟩ A₂
-  idx {r = r} _ = r
-
   no-fun : ∀ {V : World ΔL ΔL} {γ A A′ B B′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → A ≡ `ℕ ⇒ B → A′ ≡ `ℕ ⇒ B′ → ¬ (V ∣ γ ⊢ LB₁ ⊑ RB₁ ∶ q)
-  no-fun eκ _ _ (⟪⟫⊑⟪⟫ _ _ _ b b′ bc _) = matched-conv eκ b b′ bc
-  no-fun eκ eA refl (⟪⟫⊑ {Wᵢ = Vi} _ _ _ _ d _ _) with lty-ƛ d
-  ... | _ , refl = no-var⇒⊑ℕ⇒ {V = Vi} (idx d)
-  no-fun eκ refl _ (⊑⟪⟫ {Wᵢ = Vi} _ _ _ d _ _) with rty-cast d
-  ... | _ , ct with ct-genE-body ct
-  ... | refl = no-ℕ⇒⊑var⇒ {V = Vi} (idx d)
+    → κʷ V ≡ [] → A ≡ `ℕ ⇒ B → A′ ≡ `ℕ ⇒ B′
+    → ¬ (V ∣ γ ⊢ LB₁ ⊑ RB₁ ∶⟨ A , A′ ⟩ q)
+  no-fun eκ _ _ (⟪⟫⊑⟪⟫ _ _ _ _ _ b b′ bc _) = matched-conv eκ b b′ bc
+  no-fun eκ eA refl
+    (⟪⟫⊑ {Wᵢ = Vi} {K = K} {Aᵢ = Aᵢ} {A′ = A′} {O = O} {r = r}
+      _ _ _ _ _ _ d _ _)
+    with ty-ƛ (ltyD d)
+  ... | _ , refl , _
+    with plain-idx {V = Vi +κ K} {O = O} {A = Aᵢ} {A′ = A′} nf-⇒ r
+  ... | ⇒⊑⇒ () _
+  no-fun eκ refl _
+    (⊑⟪⟫ {Wᵢ = Vi} {K = K} {A = A} {A′ᵢ = A′ᵢ} {Oᵢ = Oᵢ} {r = r}
+      _ _ _ _ _ _ _ d _ _)
+    with ty-cast (rtyD d)
+  ... | refl with plain-idx {V = Vi +κ K} {O = Oᵢ} {A = A} {A′ = A′ᵢ} nf-⇒ r
+  ... | ⇒⊑⇒ () _
 
-  no-app : ∀ {V : World ΔL ΔL} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ LA ⊑ RA ∶ q)
+  no-app : ∀ {V : World ΔL ΔL} {γ A A′ O} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ LA ⊑ RA ∶⟨ A , A′ ⟩[ O ] q)
   no-app eκ (·⊑· f (κ⊑κ lit-$ _)) = no-fun eκ refl refl f
 
-  no-LAℕ!-RA : ∀ {V : World ΔL ΔL} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ LA ⟨ [] ∣ `ℕ ! ⟩ ⊑ RA ∶ q)
-  no-LAℕ!-RA eκ (cast⊑ _ d _ _) = no-app eκ d
+  no-LAℕ!-RA : ∀ {V : World ΔL ΔL} {γ A A′ O} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ LA ⟨ [] ∣ `ℕ ! ⟩ ⊑ RA ∶⟨ A , A′ ⟩[ O ] q)
+  no-LAℕ!-RA eκ (cast⊑ co-plain d _ _) = no-app eκ d
 
-  no-LE₁-RA : ∀ {V : World ΔL ΔL} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ LE₁ ⊑ RA ∶ q)
-  no-LE₁-RA eκ (cast⊑ _ d _ _) = no-LAℕ!-RA eκ d
+  no-LE₁-RA : ∀ {V : World ΔL ΔL} {γ A A′ O} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ LE₁ ⊑ RA ∶⟨ A , A′ ⟩[ O ] q)
+  no-LE₁-RA eκ (cast⊑ co-plain d _ _) = no-LAℕ!-RA eκ d
 
-  no-LA-RE₁ : ∀ {V : World ΔL ΔL} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ LA ⊑ RE₁ ∶ q)
-  no-LA-RE₁ eκ (⊑cast g _ d _ _) = no-app (trans (cg-none ng-ℕ? g) eκ) d
+  no-LA-RE₁ : ∀ {V : World ΔL ΔL} {γ A A′ O} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ LA ⊑ RE₁ ∶⟨ A , A′ ⟩[ O ] q)
+  no-LA-RE₁ eκ (⊑cast d _ _) = no-app eκ d
 
-  no-LAℕ!-RE₁ : ∀ {V : World ΔL ΔL} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ LA ⟨ [] ∣ `ℕ ! ⟩ ⊑ RE₁ ∶ q)
+  no-LAℕ!-RE₁ : ∀ {V : World ΔL ΔL} {γ A A′ O} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ LA ⟨ [] ∣ `ℕ ! ⟩ ⊑ RE₁ ∶⟨ A , A′ ⟩[ O ] q)
   no-LAℕ!-RE₁ eκ (cast⊑cast d _ _ _) = no-app eκ d
-  no-LAℕ!-RE₁ eκ (⊑cast g _ d _ _) =
-    no-LAℕ!-RA (trans (cg-none ng-ℕ? g) eκ) d
-  no-LAℕ!-RE₁ eκ (cast⊑ _ d _ _) = no-LA-RE₁ eκ d
+  no-LAℕ!-RE₁ eκ (⊑cast d _ _) = no-LAℕ!-RA eκ d
+  no-LAℕ!-RE₁ eκ (cast⊑ co-plain d _ _) = no-LA-RE₁ eκ d
 
-  -- C3 IS UNRELATED: every world over (ΔL, ΔL) with no permission
-  c3-unrelated : ∀ {W : World ΔL ΔL} {γ A A′} {q : A ⊑ᵂ⟨ W ⟩ A′}
-    → κʷ W ≡ [] → ¬ (W ∣ γ ⊢ LE₁ ⊑ RE₁ ∶ q)
+  -- C3 IS UNRELATED: every world over (ΔL, ΔL) with no permission, any
+  -- slots
+  c3-unrelated : ∀ {W : World ΔL ΔL} {γ A A′ O} {q : A ⊑ᵂ⟨ W ⟩[ O ] A′}
+    → κʷ W ≡ [] → ¬ (W ∣ γ ⊢ LE₁ ⊑ RE₁ ∶⟨ A , A′ ⟩[ O ] q)
   c3-unrelated eκ (cast⊑cast d _ _ _) = no-LAℕ!-RA eκ d
-  c3-unrelated eκ (⊑cast g _ d _ _) = no-LE₁-RA (trans (cg-none ng-ℕ? g) eκ) d
-  c3-unrelated eκ (cast⊑ _ d _ _) = no-LAℕ!-RE₁ eκ d
+  c3-unrelated eκ (⊑cast d _ _) = no-LE₁-RA eκ d
+  c3-unrelated eκ (cast⊑ co-plain d _ _) = no-LAℕ!-RE₁ eκ d
 
 ------------------------------------------------------------------------
 -- 6a. C2 = ModeCondition's `Esc.esc-cex` (the late pair, P4 B4's own
 -- inner pair `S ⊑ J`): NOT DERIVABLE.  Its right spine reaches the tag
--- `X!` through `ℕ?`, `id(★)` and three boundaries, none of which grants.
--- (Copied from proof/DGG/notes/PermissionsR.agda §15.)  Its sources are
+-- `X!` through `ℕ?`, `id(★)` and three `id(★)` boundaries, so every
+-- payment reads `X ⊑ ★` (the spine argument, §4).  Its sources are
 -- C3's (`C3.LE`, `C3.RE`, unrelated: ∀Y.Y→Y ⋢ ∀Y.Y→★).
 ------------------------------------------------------------------------
 
@@ -1626,116 +1687,176 @@ module C2 where
     ((λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ []) r refl
 
   bdy-LB₄ : ∀ {Δᵢ Aᵢ A} → BdyTy ΔL Θ₀ Δᵢ Aᵢ (unseal 0) A
-    → (Aᵢ ≡ ` 0) × G A
+    → (Aᵢ ≡ ` 0) × G A × OnlyZero Δᵢ
   bdy-LB₄ (bdy-ty (bw _ i c) ⊢c eqᵢ eqₑ _)
     with interior-functional i TIE.int₀ | conversion-functional c TIE.conv₀
   bdy-LB₄ (bdy-ty _ (conv-unseal (_ , _ , here , r-here , same-ℕ))
                   (_ , same-var here , same-var here)
                   (_ , same-ℕ , same-ℕ) _) | refl | refl =
-    refl , gℕ
+    refl , gℕ , oz₀ {`ℕ}
 
-  open Spine ($ 5) no-$ ΔL bdy-LB₄
+  open Spine ($ 5) no-$ ΔL (λ { (_ , ()) }) bdy-LB₄
 
-  -- C2 IS UNRELATED: every world over (ΔL, ΔL) with no permission
-  c2-unrelated : ∀ {W : World ΔL ΔL} {γ A A′} {q : A ⊑ᵂ⟨ W ⟩ A′}
-    → κʷ W ≡ [] → ¬ (W ∣ γ ⊢ LE₃ ⊑ RE₅ ∶ q)
+  -- C2 IS UNRELATED: every world over (ΔL, ΔL) with no permission, any
+  -- slots
+  c2-unrelated : ∀ {W : World ΔL ΔL} {γ A A′ O} {q : A ⊑ᵂ⟨ W ⟩[ O ] A′}
+    → κʷ W ≡ [] → ¬ (W ∣ γ ⊢ LE₃ ⊑ RE₅ ∶⟨ A , A′ ⟩[ O ] q)
   c2-unrelated eκ =
     no-LO eκ (lo-c gc-ℕ? (lo-c gc-ℕ! lo-B))
-      (r-cast ng-ℕ? (r-⟪⟫ (r-cast ng-id (r-⟪⟫ (r-⟪⟫ r-tag)))))
+      (r-cast gc-ℕ? (r-⟪⟫ (r-cast gc-id★ (r-⟪⟫ (r-⟪⟫ r-tag)))))
 
 ------------------------------------------------------------------------
--- 6b. The pop walk for C4 and C4g (PermissionsR.agda §16, with the
--- claim-rep case of design.md D29).  The left has not instantiated;
--- the right has (Inst, TyBeta): `[+X^α] Bd ⟨−X → id(★)⟩` under
--- `id(★) → id(★)`, applied, under `ℕ?`.  No right cast on the way
--- grants, so every world of a derivation has no permission; the walk
--- reaches the left's Λ or λ against Bd, whatever was pushed, popped or
--- CLAIMED, and the instance's lemmas refute that.  A claim-rep binder
--- that `+X^α` rejoins is X⊑X (α is not permitted), exactly as a popped
--- one: so the claim-rep cases are the claim-fresh cases.
+-- 6b. THE WALK for C4, C4g and the hunt's gen-valued C4 (design.md D31).
+-- The left has not instantiated; the right's Inst boundary
+-- `[+X^α] Bd ⟨−X → id(★)⟩` holds a body of type X → ★.  Whatever the
+-- left offers it (λx:X.x, ΛX.λx:X.x, the inst cast, or the gen value
+-- λx:★.x⟨gen X.(X! → X?)⟩), possibly OPENED at X and PERMITTING α, or
+-- skipped, the boundary's payment reads that left type against X → ★ at
+-- κ = [] (`pay-RBd`): the codomain needs X ⊑ ★ at a type variable the
+-- right sees (or the domain fails).  Claim-rep and joins keep κ.
 ------------------------------------------------------------------------
 
 instL : Coercion
 instL = instᵖ (((` 0) ？ 0) ↦ᵖ ((` 0) !))
 
-ct-instL : ∀ {μ B A} → CastTy Δ μ instL B A → A ≡ ★ ⇒ ★
-ct-instL (cast-ty d _) = sym (coercion-trg d)
+genL : Coercion
+genL = genᵖ (((` 0) !) ↦ᵖ ((` 0) ？ 0))
+
+data LeftT : Term → Set where
+  l-id  : LeftT idX′
+  l-Λ   : LeftT (Λ idX′)
+  l-F   : LeftT (Λ idX′ ⟨ [] ∣ instL ⟩)
+  -- the gen-valued left (the hunt): ((λx:★.x : ∀X.X→X) : ★→★)
+  l-I★  : LeftT (ƛ ★ ∙ ` 0)
+  l-g   : LeftT ((ƛ ★ ∙ ` 0) ⟨ [] ∣ genL ⟩)
+  l-gF  : LeftT (((ƛ ★ ∙ ` 0) ⟨ [] ∣ genL ⟩) ⟨ [] ∣ instL ⟩)
+
+-- ∀X.X→X against X′→★, opened, skipped or not, at κ = []
+pay-∀ : ∀ {Δᵢ Δ′ᵢ} {Vᵢ : World Δᵢ Δ′ᵢ} {Oᵢ k β}
+  → κʷ Vᵢ ≡ [] → All (SlotOK Vᵢ) Oᵢ → Δ′ᵢ ∋ᵗ k := β
+  → ¬ (`∀ (` 0 ⇒ ` 0) ⊑ᵂ⟨ Vᵢ ⟩[ Oᵢ ] (` k ⇒ ★))
+pay-∀ {Oᵢ = []} eκ so rh (∀⊑ _ _ (⇒⊑⇒ p₁ _)) with var⊑var p₁
+... | ()
+pay-∀ {Vᵢ = Vᵢ} {Oᵢ = opn j ∷ []} eκ ((β , rj , _) ∷ []) rh (⇒⊑⇒ _ p₂) =
+  no★-right {V = Vᵢ} eκ rj (var⊑★ p₂)
+pay-∀ {Oᵢ = skp ∷ []} eκ so rh (_ , _ , ⇒⊑⇒ p₁ _) with var⊑var p₁
+... | ()
+pay-∀ {Oᵢ = opn _ ∷ opn _ ∷ _} eκ so rh ()
+pay-∀ {Oᵢ = opn _ ∷ skp ∷ _} eκ so rh ()
+pay-∀ {Oᵢ = skp ∷ opn _ ∷ _} eκ so rh (_ , _ , ())
+pay-∀ {Oᵢ = skp ∷ skp ∷ _} eκ so rh (_ , _ , ())
+
+-- ★→★ against X′→★: ★ ⊑ X′
+pay-★ : ∀ {Δᵢ Δ′ᵢ} {Vᵢ : World Δᵢ Δ′ᵢ} {Oᵢ k}
+  → ¬ ((★ ⇒ ★) ⊑ᵂ⟨ Vᵢ ⟩[ Oᵢ ] (` k ⇒ ★))
+pay-★ {Vᵢ = Vᵢ} {Oᵢ} {k} pay
+  with plain-idx {V = Vᵢ} {O = Oᵢ} {A = ★ ⇒ ★} {A′ = ` k ⇒ ★} nf-⇒ pay
+... | ⇒⊑⇒ () _
+
+-- the payment at the right's Inst boundary is impossible
+pay-RBd : ∀ {Δᵢ Δ′ᵢ} {Vᵢ : World Δᵢ Δ′ᵢ} {Oᵢ M A k β}
+  → κʷ Vᵢ ≡ [] → All (SlotOK Vᵢ) Oᵢ → LeftT M → Δᵢ ∣ [] ⊢ M ⦂ A
+  → Δ′ᵢ ∋ᵗ k := β → ¬ (A ⊑ᵂ⟨ Vᵢ ⟩[ Oᵢ ] (` k ⇒ ★))
+pay-RBd {Vᵢ = Vᵢ} {Oᵢ} eκ so l-id (⊢ƛ _ (⊢` here)) rh pay
+  with plain-idx {V = Vᵢ} {O = Oᵢ} {A = ` 0 ⇒ ` 0} nf-⇒ pay
+... | ⇒⊑⇒ p₁ p₂ = no-tag★ {V = Vᵢ} eκ rh (var⊑var p₁) (var⊑★ p₂)
+pay-RBd eκ so l-Λ (⊢Λ _ (⊢ƛ _ (⊢` here))) rh pay = pay-∀ eκ so rh pay
+pay-RBd eκ so l-g ⊢g rh pay with ty-cast ⊢g
+... | refl = pay-∀ eκ so rh pay
+pay-RBd {Vᵢ = Vᵢ} {Oᵢ} {k = k} eκ so l-F ⊢F rh pay with ty-cast ⊢F
+... | refl = pay-★ {Vᵢ = Vᵢ} {Oᵢ = Oᵢ} {k = k} pay
+pay-RBd {Vᵢ = Vᵢ} {Oᵢ} {k = k} eκ so l-gF ⊢F rh pay with ty-cast ⊢F
+... | refl = pay-★ {Vᵢ = Vᵢ} {Oᵢ = Oᵢ} {k = k} pay
+pay-RBd {Vᵢ = Vᵢ} {Oᵢ} {k = k} eκ so l-I★ (⊢ƛ _ (⊢` here)) rh pay =
+  pay-★ {Vᵢ = Vᵢ} {Oᵢ = Oᵢ} {k = k} pay
+
+bind-κ : ∀ {W : World Δ Δ′} {W₁ O O₁} → Bind W O W₁ O₁ → κʷ W₁ ≡ κʷ W
+bind-κ b-fresh                = refl
+bind-κ (b-join (join1 _ _ _)) = refl
+bind-κ (b-rep _ _ _)          = refl
+
+-- the left function: ΛX.λx:X.x (C4, C4g) or the gen value (the hunt)
+data LeftF : Term → Term → Set where
+  lf-Λ : LeftF (Λ idX′) (Λ idX′ ⟨ [] ∣ instL ⟩)
+  lf-g : LeftF ((ƛ ★ ∙ ` 0) ⟨ [] ∣ genL ⟩)
+               (((ƛ ★ ∙ ` 0) ⟨ [] ∣ genL ⟩) ⟨ [] ∣ instL ⟩)
+
+lf-v : ∀ {Lv F} → LeftF Lv F → LeftT Lv
+lf-v lf-Λ = l-Λ
+lf-v lf-g = l-g
+
+lf-F : ∀ {Lv F} → LeftF Lv F → LeftT F
+lf-F lf-Λ = l-F
+lf-F lf-g = l-gF
 
 module PopWalk (Bd : Term)
-  (no-idXBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ idX′ ⊑ Bd ∶ q))
-  (no-ΛBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⊑ Bd ∶ q))
-  (no-FBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⟨ [] ∣ instL ⟩ ⊑ Bd ∶ q))
+  (bd-ty : ∀ {Δ′ Γ A′} → Δ′ ∣ Γ ⊢ Bd ⦂ A′
+     → Σ[ k ∈ ℕ ] (A′ ≡ ` k ⇒ ★) × (Δ′ ∋tv k))
   where
 
-  RBd GR F : Term
+  RBd GR : Term
   RBd = Bd ⟪ Θ₀ , C3.cE ⟫
   GR  = RBd ⟨ [] ∣ Rebase.id★↦ ⟩
-  F   = Λ idX′ ⟨ [] ∣ instL ⟩
 
-  w-idX-RB : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ idX′ ⊑ RBd ∶ q)
-  w-idX-RB eκ (⊑⟪⟫ I _ _ d _ _) = no-idXBd (trans (same-κ I) eκ) d
+  w-RB : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ M O A A′} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+    → κʷ V ≡ [] → LeftT M → ¬ (V ∣ γ ⊢ M ⊑ RBd ∶⟨ A , A′ ⟩[ O ] q)
+  w-RB {V = V} eκ l (⊑⟪⟫ I _ so _ _ _ pay d _ _)
+    with bd-ty (rtyD d)
+  ... | k , refl , (β , rh) =
+    pay-RBd (trans (same-κ I) eκ) so l (ltyD d) rh pay
+  w-RB eκ l-Λ (Λ⊑ bd _ _ _ _ d _) = w-RB (trans (bind-κ bd) eκ) l-id d
+  w-RB eκ l-F (cast⊑ co-plain d _ _) = w-RB eκ l-Λ d
+  w-RB eκ l-gF (cast⊑ co-plain d _ _) = w-RB eκ l-g d
+  w-RB eκ l-g (cast⊑ co-plain d _ _) = w-RB eκ l-I★ d
+  w-RB eκ l-g (cast⊑ (co-gen _ co-plain) d _ _) = w-RB eκ l-I★ d
 
-  w-idX-GR : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ idX′ ⊑ GR ∶ q)
-  w-idX-GR eκ (⊑cast g _ d _ _) = w-idX-RB (trans (cg-none ng-id★↦ g) eκ) d
+  w-GR : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ M O A A′} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+    → κʷ V ≡ [] → LeftT M → ¬ (V ∣ γ ⊢ M ⊑ GR ∶⟨ A , A′ ⟩[ O ] q)
+  w-GR eκ l (⊑cast d _ _) = w-RB eκ l d
+  w-GR eκ l-Λ (Λ⊑ bd _ _ _ _ d _) = w-GR (trans (bind-κ bd) eκ) l-id d
+  w-GR eκ l-F (cast⊑ co-plain d _ _) = w-GR eκ l-Λ d
+  w-GR eκ l-F (cast⊑cast d _ _ _) = w-RB eκ l-Λ d
+  w-GR eκ l-gF (cast⊑ co-plain d _ _) = w-GR eκ l-g d
+  w-GR eκ l-gF (cast⊑cast d _ _ _) = w-RB eκ l-g d
+  w-GR eκ l-g (cast⊑ co-plain d _ _) = w-GR eκ l-I★ d
+  w-GR eκ l-g (cast⊑ (co-gen _ co-plain) d _ _) = w-GR eκ l-I★ d
+  w-GR eκ l-g (cast⊑cast d _ _ _) = w-RB eκ l-I★ d
 
-  w-Λ-RB : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⊑ RBd ∶ q)
-  w-Λ-RB eκ (Λ⊑ claim-fresh _ _ _ _ d _) = w-idX-RB eκ d
-  w-Λ-RB eκ (Λ⊑ (claim-pop (open1 _ _ _)) _ _ _ _ d _) = w-idX-RB eκ d
-  w-Λ-RB eκ (Λ⊑ (claim-rep _ _ _) _ _ _ _ d _) = w-idX-RB eκ d
-  w-Λ-RB eκ (⊑⟪⟫ I _ _ d _ _) = no-ΛBd (trans (same-κ I) eκ) d
+  module _ {Lv F : Term} (lf : LeftF Lv F) where
+    w-app : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ O A A′} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+      → κʷ V ≡ []
+      → ¬ (V ∣ γ ⊢ F · C1.5★ ⊑ GR · C1.5★ ∶⟨ A , A′ ⟩[ O ] q)
+    w-app eκ (·⊑· f _) = w-GR eκ (lf-F lf) f
 
-  w-Λ-GR : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⊑ GR ∶ q)
-  w-Λ-GR eκ (Λ⊑ claim-fresh _ _ _ _ d _) = w-idX-GR eκ d
-  w-Λ-GR eκ (Λ⊑ (claim-pop (open1 _ _ _)) _ _ _ _ d _) = w-idX-GR eκ d
-  w-Λ-GR eκ (Λ⊑ (claim-rep _ _ _) _ _ _ _ d _) = w-idX-GR eκ d
-  w-Λ-GR eκ (⊑cast g _ d _ _) = w-Λ-RB (trans (cg-none ng-id★↦ g) eκ) d
+    w-L-app : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ O A A′}
+        {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+      → κʷ V ≡ []
+      → ¬ (V ∣ γ ⊢ (F · C1.5★) ⟨ [] ∣ C1.ℕ? ⟩ ⊑ GR · C1.5★
+             ∶⟨ A , A′ ⟩[ O ] q)
+    w-L-app eκ (cast⊑ co-plain d _ _) = w-app eκ d
 
-  w-F-RB : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ F ⊑ RBd ∶ q)
-  w-F-RB eκ (cast⊑ cc-plain d _ _) = w-Λ-RB eκ d
-  w-F-RB eκ (⊑⟪⟫ I _ _ d _ _) = no-FBd (trans (same-κ I) eκ) d
+    w-app-R : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ O A A′}
+        {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+      → κʷ V ≡ []
+      → ¬ (V ∣ γ ⊢ F · C1.5★ ⊑ (GR · C1.5★) ⟨ [] ∣ C1.ℕ? ⟩
+             ∶⟨ A , A′ ⟩[ O ] q)
+    w-app-R eκ (⊑cast d _ _) = w-app eκ d
 
-  w-F-GR : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ F ⊑ GR ∶ q)
-  w-F-GR eκ (cast⊑cast d _ _ _) = w-Λ-RB eκ d
-  w-F-GR eκ (cast⊑ cc-plain d _ _) = w-Λ-GR eκ d
-  w-F-GR eκ (⊑cast g _ d _ _) = w-F-RB (trans (cg-none ng-id★↦ g) eκ) d
-
-  w-app : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ F · C1.5★ ⊑ GR · C1.5★ ∶ q)
-  w-app eκ (·⊑· f _) = w-F-GR eκ f
-
-  w-L-app : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ (F · C1.5★) ⟨ [] ∣ C1.ℕ? ⟩ ⊑ GR · C1.5★ ∶ q)
-  w-L-app eκ (cast⊑ cc-plain d _ _) = w-app eκ d
-
-  w-app-R : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ F · C1.5★ ⊑ (GR · C1.5★) ⟨ [] ∣ C1.ℕ? ⟩ ∶ q)
-  w-app-R eκ (⊑cast g _ d _ _) = w-app (trans (cg-none ng-ℕ? g) eκ) d
-
-  -- THE WALK: the initial-shaped pair is unrelated with no permission
-  walk : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ []
-    → ¬ (V ∣ γ ⊢ (F · C1.5★) ⟨ [] ∣ C1.ℕ? ⟩
-                 ⊑ (GR · C1.5★) ⟨ [] ∣ C1.ℕ? ⟩ ∶ q)
-  walk eκ (cast⊑cast d _ _ _) = w-app eκ d
-  walk eκ (⊑cast g _ d _ _) = w-L-app (trans (cg-none ng-ℕ? g) eκ) d
-  walk eκ (cast⊑ cc-plain d _ _) = w-app-R eκ d
+    -- THE WALK: the initial-shaped pair is unrelated with no permission
+    walk : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ O A A′} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+      → κʷ V ≡ []
+      → ¬ (V ∣ γ ⊢ (F · C1.5★) ⟨ [] ∣ C1.ℕ? ⟩
+             ⊑ (GR · C1.5★) ⟨ [] ∣ C1.ℕ? ⟩ ∶⟨ A , A′ ⟩[ O ] q)
+    walk eκ (cast⊑cast d _ _ _) = w-app eκ d
+    walk eκ (⊑cast d _ _) = w-L-app eκ d
+    walk eκ (cast⊑ co-plain d _ _) = w-app-R eκ d
 
 ------------------------------------------------------------------------
 -- 6c. C4 (HiddenNames §5; PushTypePremise §3): NOT DERIVABLE, also with
--- claim-rep (design.md D29).  Under D27's stored marks claim-rep
--- REVIVED C4 (PushOrder `C4Revived.c4-related`: the claimed X kept
--- X⊑★ through the rejoin).  Under D28 the rejoined X is α's
--- permission, X⊑X, and nothing grants α, so the right's source-scope
--- tag `x⟨X!⟩` cannot face the left's x (`no-xtag`).
+-- claim-rep (design.md D29), D31's openings and its permissions.  At
+-- the right's Inst boundary (body type `X→★`) the payment reads the
+-- left's `X→X`, `∀X.X→X` (opened, skipped or not) or `★→★` against
+-- `X→★` at κ = [].
 --
 -- Source programs (UNRELATED: ∀X.X→X ⋢ ∀X.X→★, `source-unrelated`):
 --   L:  ((ΛX. λx:X. x)         : ★→★) 5 : ℕ
@@ -1781,42 +1902,23 @@ module C4 where
     ((λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷
      (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ []) r refl
 
-  -- the body: x against x⟨X!⟩, no permission
-  no-xtag : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {A₀′ p₀ γ μ k A A′}
-      {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ []
-    → ¬ (V ∣ ctx-imp (` 0) A₀′ p₀ ∷ γ ⊢ ` 0 ⊑ (` 0) ⟨ μ ∣ (` k) ! ⟩ ∶ q)
-  no-xtag {V = V} eκ (⊑cast {κₚ = κₚ} {p = p} _ (raise-∷ _) d ct q)
-    with ct-X! ct | lty-x d
-  ... | (_ , rh) , refl , refl | refl = no-tag-at {V = V} {κₚ = κₚ} eκ rh p q
+  bd-ty : ∀ {Δ′ Γ A′} → Δ′ ∣ Γ ⊢ bodyR ⦂ A′
+    → Σ[ k ∈ ℕ ] (A′ ≡ ` k ⇒ ★) × (Δ′ ∋tv k)
+  bd-ty (⊢ƛ (wf-var tv) ⊢b) with ty-cast ⊢b
+  ... | refl = 0 , refl , tv
 
-  no-idXBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ idX′ ⊑ bodyR ∶ q)
-  no-idXBd eκ (ƛ⊑ƛ _ _ d) = no-xtag eκ d
+  open PopWalk bodyR bd-ty
 
-  no-ΛBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⊑ bodyR ∶ q)
-  no-ΛBd eκ (Λ⊑ claim-fresh _ _ _ _ d _) = no-idXBd eκ d
-  no-ΛBd eκ (Λ⊑ (claim-pop (open1 _ _ _)) _ _ _ _ d _) = no-idXBd eκ d
-  no-ΛBd eκ (Λ⊑ (claim-rep _ _ _) _ _ _ _ d _) = no-idXBd eκ d
-
-  no-FBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⟨ [] ∣ instL ⟩ ⊑ bodyR ∶ q)
-  no-FBd eκ (cast⊑ cc-plain d _ _) = no-ΛBd eκ d
-
-  open PopWalk bodyR no-idXBd no-ΛBd no-FBd
-
-  -- C4 IS UNRELATED: every world over (empty, ΔR) with no permission
-  c4-unrelated : ∀ {W : World empty ΔR} {γ A A′} {q : A ⊑ᵂ⟨ W ⟩ A′}
-    → κʷ W ≡ [] → ¬ (W ∣ γ ⊢ L₀ ⊑ R₂ ∶ q)
-  c4-unrelated = walk
+  -- C4 IS UNRELATED: every world over (empty, ΔR) with no permission,
+  -- any slots
+  c4-unrelated : ∀ {W : World empty ΔR} {γ A A′ O} {q : A ⊑ᵂ⟨ W ⟩[ O ] A′}
+    → κʷ W ≡ [] → ¬ (W ∣ γ ⊢ L₀ ⊑ R₂ ∶⟨ A , A′ ⟩[ O ] q)
+  c4-unrelated = walk lf-Λ
 
 ------------------------------------------------------------------------
 -- 6d. C4g (HiddenNames §19, C4 with a gen-mode tag): NOT DERIVABLE,
--- also with claim-rep.  The right's body is the gen wrapper
--- `(…)⟨X! → id(★)⟩^[X:★∼X]`, which grants nothing (its codomain does
--- not check), so the index `X→X ⊑ X→★` of the left's λx:X.x against
--- it needs X⊑★ at a joined, unpermitted X.
+-- also with claim-rep and D31.  The right's body is the gen wrapper
+-- `(…)⟨X! → id(★)⟩^[X:★∼X]`, of type X → ★; the walk applies.
 --
 -- Source programs (UNRELATED, again ∀X.X→X ⋢ ∀X.X→★):
 --   L:  ((ΛX. λx:X. x)                              : ★→★) 5 : ℕ
@@ -1859,67 +1961,73 @@ module C4g where
   ct-genE′ (cast-ty (⊢fun (⊢tag ()) _) _)
   ct-genE′ (cast-ty (⊢fun (⊢tag-var tv _ _) (⊢id _ _)) _) = tv , refl
 
-  -- X→X ⊑ X′→★ with no permission (X′ a right name)
-  no-idx-X→★ : ∀ {V : World Δ Δ′} {X′ β} → κʷ V ≡ [] → Δ′ ∋ᵗ X′ := β
-    → ¬ ((` 0 ⇒ ` 0) ⊑ᵂ⟨ V ⟩ (` X′ ⇒ ★))
-  no-idx-X→★ {V = V} {X′} eκ rh q
-    with plain-idx {V = V} {A′ = ` X′ ⇒ ★} nf-⇒ q
-  ... | ⇒⊑⇒ p₁ (X⊑★ h) = no-tag★ {V = V} eκ rh (var⊑var p₁) h
+  bd-ty : ∀ {Δ′ Γ A′} → Δ′ ∣ Γ ⊢ Bdg ⦂ A′
+    → Σ[ k ∈ ℕ ] (A′ ≡ ` k ⇒ ★) × (Δ′ ∋tv k)
+  bd-ty (⊢cast _ ⊢p len) with ct-genE′ (cast-ty ⊢p len)
+  ... | tv , refl = 0 , refl , tv
 
-  -- ∀X.X→X ⊑ X′→★ with no permission, at any pending names
-  open-∀id : ∀ {μ} cs {ρ b}
-    → OpenImp μ cs ρ (`∀ (` 0 ⇒ ` 0)) (` b ⇒ ★) → μ ∋ˡ b := X⊑★
-  open-∀id [] (∀⊑ _ _ (⇒⊑⇒ () _))
-  open-∀id (c ∷ []) (⇒⊑⇒ X⊑X (X⊑★ h)) = h
-  open-∀id (c ∷ c′ ∷ cs) ()
+  open PopWalk Bdg bd-ty
 
-  no-idx-∀ : ∀ {V : World Δ Δ′} {X′ β} → κʷ V ≡ [] → Δ′ ∋ᵗ X′ := β
-    → ¬ (`∀ (` 0 ⇒ ` 0) ⊑ᵂ⟨ V ⟩ (` X′ ⇒ ★))
-  no-idx-∀ {V = V} eκ rh q =
-    no★-right {V = V} eκ rh (open-∀id (map (emb (ηᴿʷ V)) (πʷ V)) q)
+  -- C4g IS UNRELATED: every world over (empty, ΔR) with no permission,
+  -- any slots
+  c4g-unrelated : ∀ {W : World empty ΔR} {γ A A′ O}
+      {q : A ⊑ᵂ⟨ W ⟩[ O ] A′}
+    → κʷ W ≡ [] → ¬ (W ∣ γ ⊢ L₀ ⊑ R2g ∶⟨ A , A′ ⟩[ O ] q)
+  c4g-unrelated = walk lf-Λ
 
-  no-idXBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ idX′ ⊑ Bdg ∶ q)
-  no-idXBd {V = V} eκ (⊑cast _ _ d ct q) with lty-idX d | ct-genE′ ct
-  ... | refl | (_ , rh) , refl = no-idx-X→★ {V = V} eκ rh q
+------------------------------------------------------------------------
+-- 6e. THE HUNT (D28pD30.md §6).  A gen-VALUED left against C4's right
+-- exercises every new freedom of design.md D31 at once: ⊑⟪⟫ may OPEN the
+-- left's ∀ at the right's Inst type variable X and PERMIT α, the left's
+-- gen layer may CONSUME the opening (cast⊑, no world change), and the
+-- left may SKIP (it is a gen-cast value).  Sources UNRELATED
+-- (∀X.X→X ⋢ ∀X.X→★, `C4.source-unrelated`):
+--   L:  ((λx:★. x : ∀X.X→X) : ★→★) 5 : ℕ          (gen, then inst)
+--   R:  ((ΛX. λx:X. (x : ★))  : ★→★) 5 : ℕ        (C4's right)
+-- The left answers 5; the right blames (`C4.R₂-blames`).  The left's
+-- initial term against the right's state 2 is NOT related (`walk lf-g`).
+------------------------------------------------------------------------
 
-  no-ΛBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⊑ Bdg ∶ q)
-  no-ΛBd eκ (Λ⊑ claim-fresh _ _ _ _ d _) = no-idXBd eκ d
-  no-ΛBd eκ (Λ⊑ (claim-pop (open1 _ _ _)) _ _ _ _ d _) = no-idXBd eκ d
-  no-ΛBd eκ (Λ⊑ (claim-rep _ _ _) _ _ _ _ d _) = no-idXBd eκ d
-  no-ΛBd {V = V} eκ (⊑cast _ _ d ct q) with lty-ΛidX d | ct-genE′ ct
-  ... | refl | (_ , rh) , refl = no-idx-∀ {V = V} eκ rh q
+module Hunt where
+  open import examples.TypeCheck using (tc)
+  open import examples.Eval using (evalTerms)
+  open import Reduction using (_⊢_-→*_)
+  open Runs using (all-reach; NotBlame; last)
+  open C4 using (bodyR; R₂; R₂-blames; source-unrelated; bd-ty)
+  open C1 using (5★; ℕ?; ΔR)
 
-  no-FBd : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → κʷ V ≡ [] → ¬ (V ∣ γ ⊢ Λ idX′ ⟨ [] ∣ instL ⟩ ⊑ Bdg ∶ q)
-  no-FBd eκ (cast⊑ cc-plain d _ _) = no-ΛBd eκ d
-  no-FBd {V = V} eκ (⊑cast _ _ d ct q) with lty-cast d | ct-genE′ ct
-  ... | _ , ct₀ | _ , refl with ct-instL ct₀
-  ... | refl with plain-idx {V = V} {A′ = ` 0 ⇒ ★} nf-⇒ q
-  ... | ⇒⊑⇒ () _
-  no-FBd eκ (cast⊑cast d ct ct′ q) with ct-instL ct | ct-genE′ ct′
-  ... | refl | _ , refl with q
-  ... | ⇒⊑⇒ () _
+  Lg₀ : Term
+  Lg₀ = ((((ƛ ★ ∙ ` 0) ⟨ [] ∣ genL ⟩) ⟨ [] ∣ instL ⟩) · 5★) ⟨ [] ∣ ℕ? ⟩
 
-  open PopWalk Bdg no-idXBd no-ΛBd no-FBd
+  Lg₀-⊢ : empty ∣ [] ⊢ Lg₀ ⦂ `ℕ
+  Lg₀-⊢ = tc
 
-  -- C4g IS UNRELATED: every world over (empty, ΔR) with no permission
-  c4g-unrelated : ∀ {W : World empty ΔR} {γ A A′} {q : A ⊑ᵂ⟨ W ⟩ A′}
-    → κʷ W ≡ [] → ¬ (W ∣ γ ⊢ L₀ ⊑ R2g ∶ q)
-  c4g-unrelated = walk
+  -- the left answers 5 and never blames
+  Lg₀-answers : last (evalTerms 30 Lg₀-⊢) ≡ $ 5
+  Lg₀-answers = refl
 
-  -- the gen wrapper `X! → id(★)` grants nothing (C2's), unlike P4's
-  -- `X! → X?`
-  c2-wrapper-no-grant : NoGrant genE-body
-  c2-wrapper-no-grant = ng-tag↦id★
+  Lg₀-never-blames : ∀ {ℓ} → ¬ (empty ⊢ Lg₀ -→* blame ℓ)
+  Lg₀-never-blames r = all-reach {P = NotBlame} 30 Lg₀-⊢ tt
+    ((λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷
+     (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷
+     (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ (λ ()) ∷ []) r refl
+
+  open PopWalk bodyR bd-ty
+
+  -- NOT DERIVABLE: every world over (empty, ΔR) with no permission, any
+  -- slots
+  c4gen-unrelated : ∀ {W : World empty ΔR} {γ A A′ O}
+      {q : A ⊑ᵂ⟨ W ⟩[ O ] A′}
+    → κʷ W ≡ [] → ¬ (W ∣ γ ⊢ Lg₀ ⊑ R₂ ∶⟨ A , A′ ⟩[ O ] q)
+  c4gen-unrelated = walk lf-g
 
 ------------------------------------------------------------------------
 -- 7. C5 (Permissions.md §5), its programs and runs.  In Permissions'
 -- relation the pair (L state 3, R state 5) is related through the
--- left's payload view `⟪⟫⊑` under the grant of the right's `X?`
--- (`Permissions.C5.c5`).  HERE R1 rejects that step (`r1-rejects-c5`)
--- and §7a proves the pair unrelated in every world.
+-- left's payload view `⟪⟫⊑` under a permission of the right's X
+-- (`Permissions.C5.c5`).  HERE R1′ rejects that step (`r1-rejects-c5`:
+-- the seal's exterior type is X, so R1′ is R1) and §7a proves the pair
+-- unrelated in every world.
 --
 -- Source programs (unrelated: ∀Y.Y→Y ⋢ ∀Y.★→Y, the shared Y is X⊑X):
 --   L  (ΛY. λx:Y. x) [ℕ] 5
@@ -1974,26 +2082,6 @@ module C5 where
   C5L-never-blames r = all-reach {P = NotBlame} 10 C5L-⊢ tt
     ((λ ()) ∷ (λ ()) ∷ (λ ()) ∷ []) r refl
 
-  -- the left's `−X` alone, under the grant: X right-only, αᴿ permitted
-  WU : World ΔL ΔLᵢ
-  WU = world 1 (skip []↪) (keep []↪) ϱ₄ [] (0 ∷ []) []
-
-  IntU : Interior W₄²¹ unb₀ [] WU
-  IntU = record
-    { int-left   = unbind₀-int
-    ; int-right  = interior changes[]
-    ; same-ϱᵍ    = refl
-    ; same-ϱˡ    = refl
-    ; same-κ     = refl
-    ; join-cont  = λ { (_ , ()) _ _ _ }
-    ; join-fresh = λ { () _ _ }
-    }
-
-  WU-wf : WfWorld WU
-  WU-wf = wf-world (right-only joint[]) agree
-    (namedᴸ-≤1 W ≤1-[]) (namedᴿ-≤1 W ≤1-∷[]) [] [] p0
-    where open Wf₄ 1 (skip []↪) (keep []↪) (0 ∷ [])
-
   ℕ!ˣ-ty : CastTy ΔLᵢ (X∼X ∷ []) (`ℕ !) `ℕ ★
   ℕ!ˣ-ty = cast-ty (⊢tag g-ℕ) refl
 
@@ -2010,27 +2098,28 @@ module C5 where
   no-early-idx (⇒⊑⇒ (X⊑★ ()) _)
 
 
-  -- R1 REJECTS the step Permissions.C5.c5 used: the left's `−X^0` under
-  -- the grant of αᴿ = 0, which is paired with αᴸ = 0
-  r1-rejects-c5 : ¬ All (UnbindOK W₄²¹) unb₀
+  -- R1′ REJECTS the step Permissions.C5.c5 used: the left's `−X^0`, of
+  -- exterior type X, inside the matched boundary that permits αᴿ = 0,
+  -- which is paired with αᴸ = 0
+  r1-rejects-c5 : ¬ All (UnbindOK W₄²¹ (` 0)) unb₀
+  r1-rejects-c5 (ok-hidden f ∷ []) with f here
+  ... | ()
   r1-rejects-c5 (ok-unbind u ∷ []) with u (inj₁ here⇔)
   ... | ()
 
 ------------------------------------------------------------------------
--- 7a. C5 IS DEAD under R1/R2: not derivable in ANY world over its
--- contexts, at any κ (no `κʷ ≡ []`, no WfWorld hypothesis at the top).
--- Also its hidden variant (the left's payload view inside the right's own
--- hide `[−X^α] 5⟨ℕ!⟩ ⟨id(★)⟩`), which needs R1 after the right hide or
--- R2 at the matched hides.
+-- 7a. C5 IS DEAD under R1′/R2: not derivable in ANY world over its
+-- contexts, at any κ, at any slots.  Also its hidden variant (the
+-- left's payload view inside the right's own hide
+-- `[−X^α] 5⟨ℕ!⟩ ⟨id(★)⟩`), which needs R1′ after the right hide or R2
+-- at the matched hides.
 --
--- The argument: the only way to put the left's sealed `S : X` against a
--- right ★ value that is not X-tagged is the payload view (`⟪⟫⊑` with
--- the left's `−X^0`) or the ★ clause `−X ⊑ id(★)`.  Both sit below the
--- right check `X?`, whose conclusion index `X ⊑ X` joins the left X to
--- the right X (so, by `wf-joint`, rep. var 0 is paired with the right X's
--- rep. var β) and whose premise index `X ⊑ ★` reads X⊑★ at that joined
--- name (so β is permitted).  `HasPermittedPartner _ 0` then refutes R1
--- or R2.  The routes that avoid the check meet `ℕ ⊑ X` or `X ⊑ ℕ`.
+-- The argument: below the right's check `X?` the left's X is joined
+-- and `X⊑★` in ONE world (no cast rule changes the world, design.md
+-- D31), so its rep. var has a permitted partner (`hasPP-chk`).  The
+-- left's seal `[−X^α] 5 ⟨−X⟩` has exterior type X, so R1′ is R1
+-- (`r1′-fails`); the matched hides fail R2.  The routes that avoid the
+-- check meet `ℕ ⊑ X` or `X ⊑ ℕ`.
 ------------------------------------------------------------------------
 
 suc-inj : ∀ {m n} → suc m ≡ suc n → m ≡ n
@@ -2053,25 +2142,6 @@ joint-pair (left-only j)   (there h) h′        e  =
 joint-pair (right-only j)  h        here       ()
 joint-pair (right-only j)  h        (there h′) e  =
   joint-pair j h h′ (suc-inj e)
-
--- THE CHECK FACT: under a right check of X′ (rep. var β), a left name a
--- (rep. var α) whose conclusion index is `a ⊑ X′` and whose premise
--- index is `a ⊑ ★` has α paired with β, and β permitted in the premise
-HasPP-chk : ∀ {V : World Δ Δ′} {κₚ a X′ α β}
-  → WfWorld V → Δ ∋ᵗ a := α → Δ′ ∋ᵗ X′ := β
-  → ` a ⊑ᵂ⟨ V ⟩ ` X′ → ` a ⊑ᵂ⟨ record V { κʷ = κₚ } ⟩ ★
-  → HasPermittedPartner (record V { κʷ = κₚ }) α
-HasPP-chk {V = V} {κₚ} {a} {X′} {β = β} wf lh rh q p =
-  β , joint-pair (wf-joint wf) lh rh j , sym (lookup-unique h′ hβ)
-  where
-  j : Joins V a X′
-  j = var⊑var (plain-idx {V = V} {A′ = ` X′} nf-var q)
-  h : marksʷ (record V { κʷ = κₚ }) ∋ˡ emb (ηᴸʷ V) a := X⊑★
-  h = var⊑★ (plain-idx {V = record V { κʷ = κₚ }} {A′ = ★} nf-var p)
-  h′ : dmarks (ηᴿʷ V) κₚ ∋ˡ emb (ηᴿʷ V) X′ := X⊑★
-  h′ = subst (λ c → dmarks (ηᴿʷ V) κₚ ∋ˡ c := X⊑★) j h
-  hβ : dmarks (ηᴿʷ V) κₚ ∋ˡ emb (ηᴿʷ V) X′ := permit β κₚ
-  hβ = dmarks-emb (ηᴿʷ V) κₚ rh
 
 -- the name and rep. var of a one-entry unbind, read off its interior or
 -- its conversion context
@@ -2112,11 +2182,33 @@ module C5Dead where
   open C5 using (5★ˣ; C5L; C5R; C5L-⊢; C5L-never-blames)
   open C1 using (5★)
 
-  -- a literal against a right check of a name: `ℕ ⊑ X`
-  no-$-chk : ∀ {V : World Δ Δ′} {γ n M′ μ′ X ℓ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-    → ¬ (V ∣ γ ⊢ $ n ⊑ M′ ⟨ μ′ ∣ (` X) ？ ℓ ⟩ ∶ q)
-  no-$-chk {V = V} (⊑cast _ _ d ct q) with ct-X? ct | lty-$ d
-  ... | _ , refl , refl | refl = no-ℕ⊑var {V = V} q
+  HP0 : World Δ Δ′ → Set
+  HP0 {Δ = Δ} U = ∀ {α} → Δ ∋ᵗ 0 := α → HasPermittedPartner U α
+
+  -- THE CHECK FACT, in one world: `a ⊑ X′` and `a ⊑ ★`
+  hasPP-chk : ∀ {V : World Δ Δ′} {a X′ α β}
+    → WfWorld V → Δ ∋ᵗ a := α → Δ′ ∋ᵗ X′ := β
+    → marksʷ V ⊢ embᴸ V (` a) ⊑ embᴿ V (` X′)
+    → marksʷ V ⊢ embᴸ V (` a) ⊑ ★
+    → HasPermittedPartner V α
+  hasPP-chk {V = V} {a} {X′} {β = β} wf lh rh q p =
+    β , joint-pair (wf-joint wf) lh rh j , sym (lookup-unique h′ hβ)
+    where
+    j : Joins V a X′
+    j = var⊑var q
+    h′ : marksʷ V ∋ˡ emb (ηᴿʷ V) X′ := X⊑★
+    h′ = subst (λ c → marksʷ V ∋ˡ c := X⊑★) j (var⊑★ p)
+    hβ : marksʷ V ∋ˡ emb (ηᴿʷ V) X′ := permit β (κʷ V)
+    hβ = dmarks-emb (ηᴿʷ V) (κʷ V) rh
+
+  no-$-chk : ∀ {V : World Δ Δ′} {γ n M′ μ′ X ℓ O A A′}
+      {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+    → ¬ (V ∣ γ ⊢ $ n ⊑ M′ ⟨ μ′ ∣ (` X) ？ ℓ ⟩ ∶⟨ A , A′ ⟩[ O ] q)
+  no-$-chk {V = V} {O = O} (⊑cast {A = A} {A′ = A′} d ct q)
+    with ct-X? ct | ty-$ (ltyD d)
+  ... | _ , refl , refl | refl
+    with plain-idx {V = V} {O = O} {A = `ℕ} {A′ = A′} nf-ℕ q
+  ... | ()
 
   -- the right cores under the check: C5's `5⟨ℕ!⟩` and the hidden
   -- variant's `[−X^α] 5⟨ℕ!⟩ ⟨id(★)⟩`
@@ -2124,93 +2216,105 @@ module C5Dead where
     c-5   : ∀ {n μ} → Core ($ n ⟨ μ ∣ `ℕ ! ⟩)
     c-hid : Core (5★ ⟪ unb₀ , id★ᶜ ⟫)
 
-  -- "the left name 0's rep. var has a permitted partner"
-  HP0 : World Δ Δ′ → Set
-  HP0 {Δ = Δ} U = ∀ {α} → Δ ∋ᵗ 0 := α → HasPermittedPartner U α
+  -- R1′ at the left's seal: α occurs in its exterior type X
+  r1′-fails : ∀ {U : World Δ Δ′} {α} → HasPermittedPartner U α
+    → Δ ∋ᵗ 0 := α → ¬ UnbindOK U (` 0) (unbind 0 α)
+  r1′-fails hp lh (ok-hidden f) with f lh
+  ... | ()
+  r1′-fails {U = U} hp lh (ok-unbind u) = r1-fails {W = U} hp u
 
-  hp0-int : ∀ {U : World Δ Δ′} {Uᵢ : World Δ Δ′ᵢ} {Θ′}
-    → Interior U [] Θ′ Uᵢ → HP0 U → HP0 Uᵢ
-  hp0-int I hp lh = hasPP-int I (hp lh)
-
-  -- S against an ℕ-tagged literal: X ⊑ ℕ, or the payload view (R1)
-  no-S-5 : ∀ {U : World Δ Δ′} {γ n μ A A′} {q : A ⊑ᵂ⟨ U ⟩ A′}
-    → A ≡ ` 0 → HP0 U → ¬ (U ∣ γ ⊢ S ⊑ $ n ⟨ μ ∣ `ℕ ! ⟩ ∶ q)
-  no-S-5 {U = U} refl hp (⊑cast {κₚ = κₚ} _ _ d ct _) with ct-ℕ! ct
-  ... | refl , refl = no-var⊑ℕ {V = record U { κʷ = κₚ }} (C3.idx d)
-  no-S-5 {U = U} eA hp (⟪⟫⊑ I (ok-unbind u ∷ []) _ _ _ _ _) =
-    r1-fails {W = U} (hp (unb1-lookup (int-left I))) u
-
-  -- S against the hidden core: the right hide keeps HP0 (then no-S-5),
-  -- the payload view fails R1, the matched hides fail R2
-  no-S-core : ∀ {U : World Δ Δ′} {γ Q A A′} {q : A ⊑ᵂ⟨ U ⟩ A′}
-    → Core Q → A ≡ ` 0 → HP0 U → ¬ (U ∣ γ ⊢ S ⊑ Q ∶ q)
-  no-S-core c-5 eA hp d = no-S-5 eA hp d
-  no-S-core c-hid eA hp (⊑⟪⟫ I _ _ d _ _) = no-S-5 eA (hp0-int I hp) d
-  no-S-core {U = U} c-hid eA hp (⟪⟫⊑ I (ok-unbind u ∷ []) _ _ _ _ _) =
-    r1-fails {W = U} (hp (unb1-lookup (int-left I))) u
-  no-S-core c-hid eA hp
-    (⟪⟫⊑⟪⟫ I _ _ (bdy-ty _ _ _ _ _) (bdy-ty _ _ _ _ _)
-      (Wᶜ , ci , conv-tail⊑tail (conv-seal⊑id★ _ lu)) _) =
-    r1-fails {W = Wᶜ} (hasPP-conv ci (hp lh)) (lu (unb1-conv (conv-left ci) lh))
+  no-S-5 : ∀ {U : World Δ Δ′} {γ n μ O A A′} {q : A ⊑ᵂ⟨ U ⟩[ O ] A′}
+    → A ≡ ` 0 → HP0 U
+    → ¬ (U ∣ γ ⊢ S ⊑ $ n ⟨ μ ∣ `ℕ ! ⟩ ∶⟨ A , A′ ⟩[ O ] q)
+  no-S-5 {U = U} {O = O} refl hp (⊑cast {B′ = B′} {p = p} d ct _)
+    with ct-ℕ! ct
+  ... | refl , refl
+    with plain-idx {V = U} {O = O} {A = ` 0} {A′ = `ℕ} nf-var p
+  ... | ()
+  no-S-5 refl hp (⟪⟫⊑ I (ok ∷ []) _ _ _ _ _ _ _) =
+    r1′-fails (hp lh) lh ok
     where lh = unb1-lookup (int-left I)
 
-  -- S against a core under the right check `X?`: THE CHECK FACT gives
-  -- HP0 in the premise world
-  no-S-chk : ∀ {V : World Δ Δ′} {γ Q μ′ X ℓ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
+  no-S-core : ∀ {U : World Δ Δ′} {γ Q O A A′} {q : A ⊑ᵂ⟨ U ⟩[ O ] A′}
+    → Core Q → A ≡ ` 0 → HP0 U → ¬ (U ∣ γ ⊢ S ⊑ Q ∶⟨ A , A′ ⟩[ O ] q)
+  no-S-core c-5 eA hp d = no-S-5 eA hp d
+  no-S-core c-hid eA hp (⊑⟪⟫ {Wᵢ = Ui} {K = K} I _ _ _ _ _ _ d _ _) =
+    no-S-5 eA (λ lh → hasPP-+κ {W = Ui} {K = K} (hasPP-int I (hp lh))) d
+  no-S-core c-hid refl hp (⟪⟫⊑ I (ok ∷ []) _ _ _ _ _ _ _) =
+    r1′-fails (hp lh) lh ok
+    where lh = unb1-lookup (int-left I)
+  no-S-core c-hid eA hp
+    (⟪⟫⊑⟪⟫ I _ _ _ _ (bdy-ty _ _ _ _ _) (bdy-ty _ _ _ _ _)
+      (Wᶜ , ci , conv-tail⊑tail (conv-seal⊑id★ _ lu)) _) =
+    r1-fails {W = Wᶜ} (hasPP-conv ci (hp lh))
+      (lu (unb1-conv (conv-left ci) lh))
+    where lh = unb1-lookup (int-left I)
+
+  -- S against a core under the right check `X?`
+  no-S-chk : ∀ {V : World Δ Δ′} {γ Q μ′ X ℓ O A A′}
+      {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
     → Core Q → WfWorld V → A ≡ ` 0
-    → ¬ (V ∣ γ ⊢ S ⊑ Q ⟨ μ′ ∣ (` X) ？ ℓ ⟩ ∶ q)
-  no-S-chk {V = V} core wf refl (⊑cast {κₚ = κₚ} {p = p} _ _ d ct q)
-    with ct-X? ct
+    → ¬ (V ∣ γ ⊢ S ⊑ Q ⟨ μ′ ∣ (` X) ？ ℓ ⟩ ∶⟨ A , A′ ⟩[ O ] q)
+  no-S-chk {V = V} {O = O} core wf refl
+    (⊑cast {B′ = B′} {A′ = A′} {p = p} d ct q) with ct-X? ct
   ... | (_ , rh) , refl , refl =
     no-S-core core refl
-      (λ lh → HasPP-chk {V = V} {κₚ = κₚ} wf lh rh q p) d
-  no-S-chk core wf eA (⟪⟫⊑ _ _ _ _ d _ _) = no-$-chk d
+      (λ lh → hasPP-chk {V = V} wf lh rh
+        (plain-idx {V = V} {O = O} {A = ` 0} {A′ = A′} nf-var q)
+        (plain-idx {V = V} {O = O} {A = ` 0} {A′ = ★} nf-var p))
+      d
+  no-S-chk core wf eA (⟪⟫⊑ _ _ _ _ _ _ d _ _) = no-$-chk d
 
   module Outer (Q : Term) (core : Core Q) where
     RinQ RQ : Term
     RinQ = Q ⟨ ★∼X∼★ ∷ [] ∣ (` 0) ？ 0 ⟩
     RQ   = RinQ ⟪ Θ₀ , unseal 0 ⟫
 
-    -- a literal against RQ: its right type is ℕ
-    rty-$RQ : ∀ {Δ₁} {V : World Δ₁ ΔL} {γ n A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-      → V ∣ γ ⊢ $ n ⊑ RQ ∶ q → A′ ≡ `ℕ
-    rty-$RQ (⊑⟪⟫ _ _ _ _ b _) = proj₂ (bdy-C5 b)
+    no-S-RQ : ∀ {Δ₁} {V : World Δ₁ ΔL} {γ O A A′} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+      → A ≡ ` 0 → ¬ (V ∣ γ ⊢ S ⊑ RQ ∶⟨ A , A′ ⟩[ O ] q)
+    no-S-RQ eA (⊑⟪⟫ _ _ _ _ _ wf _ d _ _) = no-S-chk core wf eA d
+    no-S-RQ {V = V} {O = O} refl (⟪⟫⊑ {A′ = A′} _ _ _ _ _ _ d _ q)
+      with ty-$ (ltyD d) | proj₂ (bdy-C5 (proj₂ (proj₂ (proj₂
+             (⟪⟫-inv (rtyD d))))))
+    ... | refl | refl
+      with plain-idx {V = V} {O = O} {A = ` 0} {A′ = `ℕ} nf-var q
+    ... | ()
+    no-S-RQ eA (⟪⟫⊑⟪⟫ _ _ _ _ d _ _ _ _) = no-$-chk d
 
-    no-S-RQ : ∀ {Δ₁} {V : World Δ₁ ΔL} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-      → A ≡ ` 0 → ¬ (V ∣ γ ⊢ S ⊑ RQ ∶ q)
-    no-S-RQ eA (⊑⟪⟫ _ _ wf d _ _) = no-S-chk core wf eA d
-    no-S-RQ {V = V} refl (⟪⟫⊑ _ _ _ _ d _ q) with rty-$RQ d
-    ... | refl = no-var⊑ℕ {V = V} q
-    no-S-RQ eA (⟪⟫⊑⟪⟫ _ _ d _ _ _ _) = no-$-chk d
+    no-L-RinQ : ∀ {Δ₂} {V : World ΔL Δ₂} {γ O A A′}
+        {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
+      → ¬ (V ∣ γ ⊢ C5L ⊑ RinQ ∶⟨ A , A′ ⟩[ O ] q)
+    no-L-RinQ {V = V} {O = O} (⊑cast {A = A} d ct q) with ct-X? ct
+      | ⟪⟫-inv (ltyD d)
+    ... | _ , refl , refl | _ , _ , _ , b with bdy-C5 b
+    ... | _ , refl
+      with plain-idx {V = V} {O = O} {A = `ℕ} {A′ = ` 0} nf-ℕ q
+    ... | ()
+    no-L-RinQ (⟪⟫⊑ _ _ _ _ wf _ d b _) =
+      no-S-chk core wf (proj₁ (bdy-C5 b)) d
 
-    no-L-RinQ : ∀ {Δ₂} {V : World ΔL Δ₂} {γ A A′} {q : A ⊑ᵂ⟨ V ⟩ A′}
-      → ¬ (V ∣ γ ⊢ C5L ⊑ RinQ ∶ q)
-    no-L-RinQ {V = V} (⊑cast _ _ d ct q) with ct-X? ct | lty-bdy d
-    ... | _ , refl , refl | _ , _ , b with bdy-C5 b
-    ...   | _ , refl = no-ℕ⊑var {V = V} q
-    no-L-RinQ (⟪⟫⊑ _ _ _ wf d b _) = no-S-chk core wf (proj₁ (bdy-C5 b)) d
-
-    -- THE TOP: every world over (ΔL, ΔL), any κ
-    no-top : ∀ {W : World ΔL ΔL} {γ A A′} {q : A ⊑ᵂ⟨ W ⟩ A′}
-      → ¬ (W ∣ γ ⊢ C5L ⊑ RQ ∶ q)
-    no-top (⟪⟫⊑⟪⟫ _ wf d b _ _ _) = no-S-chk core wf (proj₁ (bdy-C5 b)) d
-    no-top (⟪⟫⊑ _ _ _ _ d b _)    = no-S-RQ (proj₁ (bdy-C5 b)) d
-    no-top (⊑⟪⟫ _ _ _ d _ _)      = no-L-RinQ d
+    -- THE TOP: every world over (ΔL, ΔL), ANY κ, any slots
+    no-top : ∀ {W : World ΔL ΔL} {γ O A A′} {q : A ⊑ᵂ⟨ W ⟩[ O ] A′}
+      → ¬ (W ∣ γ ⊢ C5L ⊑ RQ ∶⟨ A , A′ ⟩[ O ] q)
+    no-top (⟪⟫⊑⟪⟫ _ _ wf _ d b _ _ _) =
+      no-S-chk core wf (proj₁ (bdy-C5 b)) d
+    no-top (⟪⟫⊑ _ _ _ _ _ _ d b _)    = no-S-RQ (proj₁ (bdy-C5 b)) d
+    no-top (⊑⟪⟫ _ _ _ _ _ _ _ d _ _)  = no-L-RinQ d
 
   -- C5 IS UNRELATED (L state 3, R state 5), in every world, at any κ
   C5R-is : C5R ≡ Outer.RQ (5★ˣ) c-5
   C5R-is = refl
 
-  c5-unrelated : ∀ {W : World ΔL ΔL} {γ A A′} {q : A ⊑ᵂ⟨ W ⟩ A′}
-    → ¬ (W ∣ γ ⊢ C5L ⊑ C5R ∶ q)
+  c5-unrelated : ∀ {W : World ΔL ΔL} {γ O A A′} {q : A ⊑ᵂ⟨ W ⟩[ O ] A′}
+    → ¬ (W ∣ γ ⊢ C5L ⊑ C5R ∶⟨ A , A′ ⟩[ O ] q)
   c5-unrelated = Outer.no-top 5★ˣ c-5
 
   -- the failing redex `5⟨ℕ!⟩⟨X?⟩` against the left VALUE S (M26's shape)
   -- is unrelated in every well-formed world, at any κ
-  c5-redex-unrelated : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ A A′}
-      {q : A ⊑ᵂ⟨ V ⟩ A′}
+  c5-redex-unrelated : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ O A A′}
+      {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
     → WfWorld V → A ≡ ` 0
-    → ¬ (V ∣ γ ⊢ S ⊑ 5★ˣ ⟨ ★∼X∼★ ∷ [] ∣ (` 0) ？ 0 ⟩ ∶ q)
+    → ¬ (V ∣ γ ⊢ S ⊑ 5★ˣ ⟨ ★∼X∼★ ∷ [] ∣ (` 0) ？ 0 ⟩ ∶⟨ A , A′ ⟩[ O ] q)
   c5-redex-unrelated = no-S-chk c-5
 
   -- THE HIDDEN VARIANT: right `[+X^α] (([−X^α] 5⟨ℕ!⟩ ⟨id(★)⟩)⟨X?ℓ0⟩) ⟨+X⟩`
@@ -2225,6 +2329,6 @@ module C5Dead where
   RH-blames : last (evalTerms 10 RH-⊢) ≡ blame 0
   RH-blames = refl
 
-  hidden-unrelated : ∀ {W : World ΔL ΔL} {γ A A′} {q : A ⊑ᵂ⟨ W ⟩ A′}
-    → ¬ (W ∣ γ ⊢ C5L ⊑ RH ∶ q)
+  hidden-unrelated : ∀ {W : World ΔL ΔL} {γ O A A′} {q : A ⊑ᵂ⟨ W ⟩[ O ] A′}
+    → ¬ (W ∣ γ ⊢ C5L ⊑ RH ∶⟨ A , A′ ⟩[ O ] q)
   hidden-unrelated = Outer.no-top Hid c-hid

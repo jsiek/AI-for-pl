@@ -4,8 +4,8 @@ module proof.Imprecision where
 --   * UNIQUENESS OF TYPE-IMPRECISION DERIVATIONS, ported from
 --     GTSFImp/proof/Imprecision.agda (`⊑-unique`).
 --   * MAIN RESULTS, UNCONDITIONAL: `⊑-unique` and `⊑ᵂ-unique`, any
---     two derivations of `μ ⊢ A ⊑ B` (resp. `A ⊑ᵂ⟨ W ⟩ A′`, also under
---     pending names, `openImp-unique`) are equal.
+--     two derivations of `μ ⊢ A ⊑ B` (resp. `A ⊑ᵂ⟨ W ⟩[ O ] A′`, at any
+--     slots O, design.md D31, `openO-unique`) are equal.
 --   * OCCURRENCE PROOFS ARE UNIQUE (`∈ᵗ-unique`, design.md D24):
 --     `∈-⇒ʳ` carries `occurs X A ≡ false` (GTSFImp's `∈-fun-right`
 --     carries `X ∉ᵗ A`), so it is disjoint from `∈-⇒ˡ`, whose premise
@@ -43,7 +43,8 @@ open import Coercion
 open import proof.Occurs using (∈→occurs; ∈-⇒ʳ′)
 open import Imprecision
 open import ImprecisionWorld
-  using (World; _⊑ᵂ⟨_⟩_; OpenImp; _⊳_; emb; marksʷ; ηᴸʷ; ηᴿʷ; πʷ)
+  using (World; _⊑ᵂ⟨_⟩[_]_; OpenO; Slot; opn; skp; _⊳_; emb; marksʷ;
+         ηᴸʷ; ηᴿʷ)
 
 private
   variable
@@ -357,22 +358,32 @@ module Unique (∈ᵗ-irr₀ : ∀ {A} (i j : 0 ∈ᵗ A) → i ≡ j) where
     ⊥-elim (occurs-not-star here ∈-var q)
   ⊑-unique bot⊑★ bot⊑★ = refl
 
-  -- the index under pending names (design.md D27) opens binders and
+  -- the index with slots (design.md D31) opens or skips binders and
   -- is otherwise `_⊢_⊑_`
-  openImp-unique : ∀ cs ρ A {B} → (p q : OpenImp μ cs ρ A B) → p ≡ q
-  openImp-unique []       ρ A      p q = ⊑-unique p q
-  openImp-unique (c ∷ cs) ρ (`∀ A) p q = openImp-unique cs (c ⊳ ρ) A p q
-  openImp-unique (c ∷ cs) ρ (` X)  () q
-  openImp-unique (c ∷ cs) ρ `ℕ     () q
-  openImp-unique (c ∷ cs) ρ `𝔹     () q
-  openImp-unique (c ∷ cs) ρ ★      () q
-  openImp-unique (c ∷ cs) ρ (A ⇒ B) () q
+  openO-unique : ∀ {μ} e O ρ A {B} → (p q : OpenO μ e O ρ A B) → p ≡ q
+  openO-unique e []          ρ A      p q = ⊑-unique p q
+  openO-unique e (opn k ∷ O) ρ (`∀ A) p q = openO-unique e O (e k ⊳ ρ) A p q
+  openO-unique e (skp ∷ O)   ρ (`∀ A) (nv , i , p) (nv′ , i′ , q)
+      rewrite NonVar-unique nv nv′
+            | ∈ᵗ-irr₀ i i′
+            | openO-unique (λ k → suc (e k)) O (extᵗ ρ) A p q =
+    refl
+  openO-unique e (opn k ∷ O) ρ (` X)   () q
+  openO-unique e (opn k ∷ O) ρ `ℕ      () q
+  openO-unique e (opn k ∷ O) ρ `𝔹      () q
+  openO-unique e (opn k ∷ O) ρ ★       () q
+  openO-unique e (opn k ∷ O) ρ (A ⇒ B) () q
+  openO-unique e (skp ∷ O)   ρ (` X)   () q
+  openO-unique e (skp ∷ O)   ρ `ℕ      () q
+  openO-unique e (skp ∷ O)   ρ `𝔹      () q
+  openO-unique e (skp ∷ O)   ρ ★       () q
+  openO-unique e (skp ∷ O)   ρ (A ⇒ B) () q
 
-  ⊑ᵂ-unique : ∀ {Δ Δ′} {W : World Δ Δ′} {A A′ : Ty}
-    → (p q : A ⊑ᵂ⟨ W ⟩ A′)
+  ⊑ᵂ-unique : ∀ {Δ Δ′} {W : World Δ Δ′} {O A A′}
+    → (p q : A ⊑ᵂ⟨ W ⟩[ O ] A′)
     → p ≡ q
-  ⊑ᵂ-unique {W = W} {A = A} p q =
-    openImp-unique (map (emb (ηᴿʷ W)) (πʷ W)) (emb (ηᴸʷ W)) A p q
+  ⊑ᵂ-unique {W = W} {O} {A} p q =
+    openO-unique (emb (ηᴿʷ W)) O (emb (ηᴸʷ W)) A p q
 
 ------------------------------------------------------------------------
 -- Uniqueness, unconditionally
@@ -381,7 +392,7 @@ module Unique (∈ᵗ-irr₀ : ∀ {A} (i j : 0 ∈ᵗ A) → i ≡ j) where
 ⊑-unique : (p q : μ ⊢ A ⊑ B) → p ≡ q
 ⊑-unique p q = Unique.⊑-unique ∈ᵗ-unique p q
 
-⊑ᵂ-unique : ∀ {Δ Δ′} {W : World Δ Δ′} {A A′ : Ty}
-  → (p q : A ⊑ᵂ⟨ W ⟩ A′)
+⊑ᵂ-unique : ∀ {Δ Δ′} {W : World Δ Δ′} {O A A′}
+  → (p q : A ⊑ᵂ⟨ W ⟩[ O ] A′)
   → p ≡ q
-⊑ᵂ-unique {W = W} p q = Unique.⊑ᵂ-unique ∈ᵗ-unique {W = W} p q
+⊑ᵂ-unique {W = W} {O} p q = Unique.⊑ᵂ-unique ∈ᵗ-unique {W = W} {O} p q

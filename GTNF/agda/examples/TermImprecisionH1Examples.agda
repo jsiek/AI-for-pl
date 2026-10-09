@@ -9,24 +9,25 @@ module examples.TermImprecisionH1Examples where
 --     through the first Inst boundary, so the right's final value nests
 --     `[+Y^β]` OUTSIDE `[+X^α]`, with a cast between them (no Merge).
 --     The left's binders are peeled X first; the right's boundaries
---     are entered Y first.  With pending names alone (D27) the pair is
---     unrelated in every world (PushOrder `NoD27.unrelated`); with
---     claim-rep the left's ΛX claims α at the top, and `+X^α` rejoins
---     it inside `+Y^β`.
+--     are entered Y first.  With openings alone (D27's pending names;
+--     D31's slots without a skip) the pair is unrelated in every world
+--     (PushOrder `NoD27.unrelated`); with claim-rep the left's ΛX claims
+--     α at the top, and `+X^α` rejoins it inside `+Y^β`.
 --       src-1, src-2      the source ascriptions are related
 --       init              the initial pair, at ∅ʷ (no claim)
---       st2               the right's state 2: P3's push and pop
+--       st2               the right's state 2: P3's opening and join
 --       final             THE FINAL PAIR: ΛX claims α (claim-rep), +Y^β
---                         pushes Y, +X^α rejoins X and carries Y, ΛY
---                         pops Y
---       final-no-push     the same pair with no push at all: both left
+--                         opens the left's next ∀ at Y, +X^α rejoins X
+--                         and carries the slot, ΛY joins Y (design.md
+--                         D31)
+--       final-no-push     the same pair with no opening at all: both left
 --                         binders claim (X ↦ α, Y ↦ β), both right
 --                         boundaries rejoin
 --       dgg1-H1           DGG part 1 on the initial pair: the right's
 --                         run reaches its value R₄, related to the left
 --                         value
 --     The right's run is pinned to `evalTerms` by `refl`.
---   * PERMISSIONS (design.md D28): no world has a permission.  The
+--   * PERMISSIONS (design.md D28, D31): no world has a permission.  The
 --     claimed X is left-only (X⊑★) until `+X^α` rejoins it; from there
 --     it is α's permission, X⊑X, and the bodies need only X ⊑ X, Y ⊑ Y.
 --   * Ported from proof/DGG/notes/PushOrder.agda §3-§5 (`Ex`, `Pos`,
@@ -41,7 +42,7 @@ open import Data.Product
 open import Data.Sum using (inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Relation.Nullary using (¬_)
-open import Data.List.Relation.Unary.All using ([]; _∷_)
+open import Data.List.Relation.Unary.All using (All; []; _∷_)
 open import Data.List.Relation.Unary.AllPairs using ([]; _∷_)
 
 open import Types
@@ -240,8 +241,8 @@ idK = ∀⊑∀ (⇒⊑⇒ X⊑X (⇒⊑⇒ X⊑X X⊑X))
 -- the initial pair, at ∅ʷ: ⊑cast twice, then KL ⊑ KL by Λ⊑Λ twice
 init : ∅ʷ ∣ [] ⊢ L₀ ⊑ R₀ ∶ q-top
 init =
-  ⊑cast₀
-    (⊑cast₀
+  ⊑cast
+    (⊑cast
       (Λ⊑Λ lift-[] vL1 vL1
         (Λ⊑Λ lift-[] vNL vNL
           (ƛ⊑ƛ {pA = X⊑X} tf tf
@@ -251,13 +252,14 @@ init =
       instX∀-ty q-src1)
     instY-ty₀ q-top
 
--- state 2: the push and pop of P3 (the right's first Inst boundary
--- +X^α pushes X, the left's ΛX pops it), then Λ⊑Λ for Y
+-- state 2: the opening and join of P3 (the right's first Inst boundary
+-- +X^α opens the left's ∀ at X, the left's ΛX joins it), then Λ⊑Λ for
+-- Y
 W₂ : World empty ΔT1
-W₂ = world⁰ 0 []↪ []↪ [] [] []
+W₂ = world⁰ 0 []↪ []↪ [] []
 
 WA : World empty ΔA
-WA = world⁰ 1 (skip []↪) (keep []↪) [] [] (0 ∷ [])
+WA = world⁰ 1 (skip []↪) (keep []↪) [] []
 
 intA : Interior W₂ [] ΘA WA
 intA = record
@@ -274,15 +276,19 @@ intA = record
 wfA : WfWorld WA
 wfA = wf-world (right-only joint[]) (λ { (inj₁ ()) ; (inj₂ ()) })
   (λ { (_ , ()) _ _ _ _ }) (λ { _ _ _ (inj₁ ()) _ ; _ _ _ (inj₂ ()) _ })
-  ((0 , here , r-here , (λ { (_ , ()) }) , (λ { (_ , ()) })) ∷ [])
-  ([] ∷ []) []
+  []
+
+-- X's opening is well formed (design.md D31)
+okA : All (SlotOK WA) (opn 0 ∷ [])
+okA = (0 , here , r-here , (λ { (_ , ()) }) , (λ { (_ , ()) })) ∷ []
 
 st2 : W₂ ∣ [] ⊢ L₀ ⊑ R₂ ∶ q-top
 st2 =
-  ⊑cast₀
-    (⊑cast₀
-      (⊑⟪⟫ intA (push ca-[] (refl ∷ []) (inj₂ vKL)) wfA
-        (Λ⊑ (claim-pop (open1 join-here here r-here))
+  ⊑cast
+    (⊑cast
+      (⊑⟪⟫ intA (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vKL)) okA
+        ([] ∷ []) [] wfA idK
+        (Λ⊑ (b-join (join1 join-here here r-here))
           nv-∀ (∈-∀ (∈-⇒ˡ ∈-var)) liftᴸ-[] vL1
           (Λ⊑Λ lift-[] vNL vNL
             (ƛ⊑ƛ {pA = X⊑X} tf tf
@@ -296,28 +302,29 @@ st2 =
 ------------------------------------------------------------------------
 -- 3. THE FINAL PAIR (L₀, R₄), related by claim-rep (design.md D29).
 -- The left's ΛX claims α (rep. var 1 of ΔT2, no right name yet) at the
--- top; +Y^β pushes Y (D27); the inner +X^α names α, so its fresh X
--- REJOINS the left X (Interior.join-fresh, D25) and carries Y; the
--- left's ΛY pops Y; then the bodies at X ⊑ X, Y ⊑ Y.
+-- top; +Y^β opens the left's next ∀ at Y (design.md D31); the inner
+-- +X^α binds X to α, so its fresh X REJOINS the left X
+-- (Interior.join-fresh, D25) and carries the slot; the left's ΛY joins
+-- Y; then the bodies at X ⊑ X, Y ⊑ Y.
 ------------------------------------------------------------------------
 
 W₄ : World empty ΔT2
-W₄ = world⁰ 0 []↪ []↪ [] [] []
+W₄ = world⁰ 0 []↪ []↪ [] []
 
 -- after the claim: left X at center 0 (left-only, X⊑★), paired with α
 W₄₁ : World Δ1 ΔT2
 W₄₁ = W₄ ⊕ᴸ⇔ 1
 
--- inside +Y^β: Y at center 0, pending; left X at center 1
+-- inside +Y^β: Y at center 0, opened; left X at center 1
 WY : World Δ1 ΔY
-WY = world⁰ 2 (skip (keep []↪)) (keep (skip []↪)) [] ((0 , 1) ∷ []) (0 ∷ [])
+WY = world⁰ 2 (skip (keep []↪)) (keep (skip []↪)) [] ((0 , 1) ∷ [])
 
--- inside +X^α: X rejoins the left X at center 1; Y still pending
+-- inside +X^α: X rejoins the left X at center 1; Y still opened
 WX : World Δ1 ΔXY
-WX = world⁰ 2 (skip (keep []↪)) (keep (keep []↪)) [] ((0 , 1) ∷ []) (0 ∷ [])
+WX = world⁰ 2 (skip (keep []↪)) (keep (keep []↪)) [] ((0 , 1) ∷ [])
 
-claimX : Claim W₄ W₄₁
-claimX = claim-rep (r-there r-here) (λ { (_ , ()) }) (λ { (_ , ()) })
+claimX : Bind W₄ [] W₄₁ []
+claimX = b-rep (r-there r-here) (λ { (_ , ()) }) (λ { (_ , ()) })
 
 intY : Interior W₄₁ [] ΘY WY
 intY = record
@@ -362,9 +369,16 @@ wfY = wf-world (right-only (left-only joint[]))
      ; (_ , there ()) _ _ _ _ ; _ (_ , there ()) _ _ _ })
   (λ { _ (_ , here) (_ , here) _ _ → refl
      ; _ (_ , there ()) _ _ _ ; _ _ (_ , there ()) _ _ })
-  ((0 , here , r-here , (λ { (_ , here) () ; (_ , there ()) }) ,
-    (λ { _ (inj₁ ()) ; _ (inj₂ (there⇔ ())) })) ∷ [])
-  ([] ∷ []) []
+  []
+
+-- Y's opening is well formed inside +Y^β and, carried, inside +X^α
+okY : All (SlotOK WY) (opn 0 ∷ [])
+okY = (0 , here , r-here , (λ { (_ , here) () ; (_ , there ()) }) ,
+        (λ { _ (inj₁ ()) ; _ (inj₂ (there⇔ ())) })) ∷ []
+
+okX : All (SlotOK WX) (opn 0 ∷ [])
+okX = (0 , here , r-here , (λ { (_ , here) () ; (_ , there ()) }) ,
+        (λ { _ (inj₁ ()) ; _ (inj₂ (there⇔ ())) })) ∷ []
 
 wfX : WfWorld WX
 wfX = wf-world (right-only (both (inj₂ here⇔) joint[]))
@@ -375,9 +389,7 @@ wfX = wf-world (right-only (both (inj₂ here⇔) joint[]))
   (λ { _ _ _ (inj₂ here⇔) (inj₂ here⇔) → refl
      ; _ _ _ (inj₁ ()) _ ; _ _ _ _ (inj₁ ())
      ; _ _ _ (inj₂ (there⇔ ())) _ ; _ _ _ _ (inj₂ (there⇔ ())) })
-  ((0 , here , r-here , (λ { (_ , here) () ; (_ , there ()) }) ,
-    (λ { _ (inj₁ ()) ; _ (inj₂ (there⇔ ())) })) ∷ [])
-  ([] ∷ []) []
+  []
 
 rK★ : ∀ {μ} → (X⊑★ ∷ μ) ⊢ `∀ (` 1 ⇒ (` 0 ⇒ ` 1)) ⊑ (★ ⇒ (★ ⇒ ★))
 rK★ = ∀⊑ nv-⇒ (∈-⇒ʳ refl (∈-⇒ˡ ∈-var))
@@ -386,15 +398,17 @@ rK★ = ∀⊑ nv-⇒ (∈-⇒ʳ refl (∈-⇒ˡ ∈-var))
 qXY : ∀ {μ} → (X⊑X ∷ X⊑★ ∷ μ) ⊢ ` 1 ⇒ (` 0 ⇒ ` 1) ⊑ ★ ⇒ (` 0 ⇒ ★)
 qXY = ⇒⊑⇒ (X⊑★ (there here)) (⇒⊑⇒ X⊑X (X⊑★ (there here)))
 
--- THE FINAL PAIR, related (claim-rep for X, push and pop for Y)
+-- THE FINAL PAIR, related (claim-rep for X, opening and join for Y)
 final : W₄ ∣ [] ⊢ L₀ ⊑ R₄ ∶ q-top
 final =
   Λ⊑ claimX nv-∀ (∈-∀ (∈-⇒ˡ ∈-var)) liftᴸ-[] vL1
-    (⊑cast₀
-      (⊑⟪⟫ intY (push ca-[] (refl ∷ []) (inj₂ vL1)) wfY
-        (⊑cast₀
-          (⊑⟪⟫ intX (push (ca-∷ refl ca-[]) [] (inj₁ refl)) wfX
-            (Λ⊑ (claim-pop (open1 join-here here r-here))
+    (⊑cast
+      (⊑⟪⟫ intY (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vL1)) okY
+        ([] ∷ []) [] wfY qXY
+        (⊑cast
+          (⊑⟪⟫ intX (push (ca-opn refl ca-[]) (f-keep f-end) [] (inj₁ refl))
+            okX ([] ∷ []) [] wfX (⇒⊑⇒ X⊑X (⇒⊑⇒ X⊑X X⊑X))
+            (Λ⊑ (b-join (join1 join-here here r-here))
               nv-⇒ (∈-⇒ʳ refl (∈-⇒ˡ ∈-var)) liftᴸ-[] vNL
               (ƛ⊑ƛ {pA = X⊑X} tf tf
                 (ƛ⊑ƛ {pA = X⊑X} {pB = X⊑X} tf tf (x⊑x (Sʷ Zʷ))))
@@ -405,21 +419,21 @@ final =
       cf-ty rK★)
     q-top
 
--- claim-rep needs NO push here: both left binders claim their rep.
+-- claim-rep needs NO opening here: both left binders claim their rep.
 -- vars at the top (X ↦ α, Y ↦ β), and both right boundaries rejoin
 W₄₂ : World Δ2 ΔT2      -- Y_L at center 0 ↦ β, X_L at center 1 ↦ α
 W₄₂ = W₄₁ ⊕ᴸ⇔ 0
 
 WY2 : World Δ2 ΔY
 WY2 = world⁰ 2 (keep (keep []↪)) (keep (skip []↪))
-        [] ((0 , 0) ∷ (1 , 1) ∷ []) []
+        [] ((0 , 0) ∷ (1 , 1) ∷ [])
 
 WX2 : World Δ2 ΔXY
 WX2 = world⁰ 2 (keep (keep []↪)) (keep (keep []↪))
-        [] ((0 , 0) ∷ (1 , 1) ∷ []) []
+        [] ((0 , 0) ∷ (1 , 1) ∷ [])
 
-claimY : Claim W₄₁ W₄₂
-claimY = claim-rep r-here (λ { (_ , ()) })
+claimY : Bind W₄₁ [] W₄₂ []
+claimY = b-rep r-here (λ { (_ , ()) })
   (λ { _ (inj₁ ()) ; _ (inj₂ (there⇔ ())) })
 
 intY2 : Interior W₄₂ [] ΘY WY2
@@ -494,14 +508,14 @@ wfY2 = wf-world (both (inj₂ here⇔) (left-only joint[]))
   (agree2 r-here (r-there r-here) refl refl)
   (λ _ _ _ p p′ → proj₂ (uniq2 {W = WY2} refl refl p p′) refl)
   (λ _ _ _ p p′ → proj₁ (uniq2 {W = WY2} refl refl p p′) refl)
-  [] [] []
+  []
 
 wfX2 : WfWorld WX2
 wfX2 = wf-world (both (inj₂ here⇔) (both (inj₂ (there⇔ here⇔)) joint[]))
   (agree2 r-here (r-there r-here) refl refl)
   (λ _ _ _ p p′ → proj₂ (uniq2 {W = WX2} refl refl p p′) refl)
   (λ _ _ _ p p′ → proj₁ (uniq2 {W = WX2} refl refl p p′) refl)
-  [] [] []
+  []
 
 qF : (X⊑★ ∷ X⊑★ ∷ []) ⊢ ` 1 ⇒ (` 0 ⇒ ` 1) ⊑ ★ ⇒ (★ ⇒ ★)
 qF = ⇒⊑⇒ (X⊑★ (there here)) (⇒⊑⇒ (X⊑★ here) (X⊑★ (there here)))
@@ -513,10 +527,10 @@ final-no-push : W₄ ∣ [] ⊢ L₀ ⊑ R₄ ∶ q-top
 final-no-push =
   Λ⊑ claimX nv-∀ (∈-∀ (∈-⇒ˡ ∈-var)) liftᴸ-[] vL1
     (Λ⊑ claimY nv-⇒ (∈-⇒ʳ refl (∈-⇒ˡ ∈-var)) liftᴸ-[] vNL
-      (⊑cast₀
-        (⊑⟪⟫ intY2 push-none wfY2
-          (⊑cast₀
-            (⊑⟪⟫ intX2 push-none wfX2
+      (⊑cast
+        (⊑⟪⟫₀ intY2 wfY2
+          (⊑cast
+            (⊑⟪⟫₀ intX2 wfX2
               (ƛ⊑ƛ {pA = X⊑X} tf tf
                 (ƛ⊑ƛ {pA = X⊑X} {pB = X⊑X} tf tf (x⊑x (Sʷ Zʷ))))
               bX qC)
@@ -529,7 +543,7 @@ final-no-push =
 -- the DGG's `RelatedValues` side conditions hold at W₄
 W₄-wf : WfWorld W₄
 W₄-wf = wf-world joint[] (λ { (inj₁ ()) ; (inj₂ ()) })
-  (λ { (_ , ()) _ _ _ _ }) (λ { _ (_ , ()) _ _ _ }) [] [] []
+  (λ { (_ , ()) _ _ _ _ }) (λ { _ (_ , ()) _ _ _ }) []
 
 ------------------------------------------------------------------------
 -- 4. DGG part 1 on the initial pair (design.md D29's obligation): the
@@ -563,8 +577,8 @@ st₃ = justStep refl
 dgg1-H1 :
   ∃[ V′ ] Σ[ r′ ∈ empty ⊢ R₀ -→* V′ ] Value V′
     × Σ[ W′ ∈ World empty (applyˢ (allocs r′) empty) ]
-        WfWorld W′ × (πʷ W′ ≡ []) × (κʷ W′ ≡ [])
+        WfWorld W′ × (κʷ W′ ≡ [])
         × Σ[ q ∈ K2 ⊑ᵂ⟨ W′ ⟩ (★ ⇒ (★ ⇒ ★)) ] (W′ ∣ [] ⊢ L₀ ⊑ V′ ∶ q)
 dgg1-H1 =
   R₄ , (st₀ then st₁ then st₂ then st₃ then done) , vR₄ ,
-  W₄ , W₄-wf , refl , refl , q-top , final
+  W₄ , W₄-wf , refl , q-top , final

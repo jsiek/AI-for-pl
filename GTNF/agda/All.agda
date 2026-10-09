@@ -50,9 +50,14 @@ open import examples.TermImprecisionRebaseExamples
 -- related by the generalized ⊑⟪⟫
 open import examples.TermImprecisionRegressionExamples
 
--- permissions and R1/R2 (design.md D28): P4 derives under grants, the
--- counterexamples C1, C3, C5 are not derivable
+-- permissions and R1′/R2 (design.md D28, D31): P4 derives with the
+-- permissions of its joining boundaries; the counterexamples C1-C5, C4g
+-- and the hunt's gen-valued C4 are not derivable
 open import examples.TermImprecisionPermissionExamples
+
+-- regression examples of design.md D31: P4k, P4h, TwoGen's seven pairs
+-- (skips and fills), DGG part 1 witnesses, P5, R2c
+open import examples.TermImprecisionD31Examples
 
 open import examples.TermImprecisionH1Examples
 

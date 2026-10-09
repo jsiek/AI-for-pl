@@ -8,6 +8,33 @@ from that file by a script.  It replaces, for review,
 in `drafts/Statements.agda` as text: nobody reviews them, and each is
 proved in its consumer.  LEFT is the more precise side.
 
+**D31 note (2026-10-09; supersedes the D27 and D28 notes below where
+they differ).**  design.md D31 (adopted) replaced the pending list
+`πʷ` by SLOTS of the index (`A ⊑ᵂ⟨ W ⟩[ O ] A′`, `OpenO`; judgment
+`W ∣ γ ⊢ M ⊑ M′ ∶[ O ] p`) and D28's grants by permissions chosen at
+joining boundaries (`JoinRep`, `Wᵢ +κ K`, "the join pays").  The
+statements below still mention `πʷ` and grants and are NOT yet
+rewritten; the changes (D28pD30.md §8) are:
+
+- `Pre W` (all statements) loses `πʷ W ≡ []`; it keeps `κʷ W ≡ []`
+  and `WfWorld W`.  Every statement is at `O = []`.
+- `CatchupRightπ` becomes `CatchupRightO` (CatchupRight with slots,
+  the left a VALUE) and gains `CatchupRightκ` (at a world with
+  permissions, the premise of a permitting boundary).
+- M1 MorSide, M2 MorImp, M3 EvolveMor: the `PendingMor` parts go
+  (openings are right positions in the index, renamed with the right
+  side).  "κ may grow" remains, now only at boundaries.
+- `PushInstR`, `RightMergePending`, `PushCompose`, `WfPop`,
+  `PopInstX`: their π bookkeeping becomes slot bookkeeping (`Carried`,
+  `Fill`, `NewSlot`); `WfPop` becomes the `SlotOK` premise of `⊑⟪⟫`.
+- M19 SimBackApp, M24 CatchupCast (CastFun): no grant moves, so
+  `castfun-grant` and R12 go.  M20 SimBackCast (TagUntag): the drop
+  lemma goes.
+- NEW: a κ-weakening at Wrap into a permitting boundary (M16, M19), and
+  the permission of a merged rejoin (M14, M6, M15); both argued, open.
+- M22 SimBackBlame, M26 CastRedexNoBlame: C1-C5, C4g and the hunt's
+  gen-valued C4 stay dead (examples/TermImprecisionPermissionExamples).
+
 **D27 note (2026-10-05).**  design.md D27 replaced D26's `Opens` by
 pending names in the world (the field `πʷ` of `ImprecisionWorld.World`;
 TermImprecision §2).  The statements below still mention `Opens` and are NOT yet

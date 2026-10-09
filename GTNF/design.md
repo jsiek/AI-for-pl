@@ -37,15 +37,13 @@ It is told apart from a boundary `[δ] M ⟨c⟩` by the boundary's leading
 enclosing `ν`; the metavariables also differ (`p, q, r` for coercions,
 `c, d` for conversions).
 
-**Review markers (2026-10-09):** text marked 🆕 **D31** is the
-PROPOSED D31 (§C12): D28′ and D30 combined, with three adjustments.
-It is not adopted; its rule set is checked in the notes
-(`agda/proof/DGG/notes/D28pD30.agda`), not in the main Agda.  Text it
-replaces is ~~struck through~~.  Part I shows the proposal only as
-marked changes to definitions; its explanation is in Part II (§C9.2).
+**Review markers:** none.  No proposal is pending: D31 (D28′ and D30
+combined, with three adjustments) was ADOPTED on 2026-10-09 (§C12) and
+is now part of Part I and of the main Agda (`ImprecisionWorld.agda`,
+`TermImprecision.agda`); its rationale is §C9.2.
 
 The file has two parts.  **Part I** gives the definitions of the
-current adopted design (through D29), tersely.  **Part II** gives the
+current adopted design (through D31), tersely.  **Part II** gives the
 commentary: rationale, worked examples and ladders, counterexamples,
 proposals, metatheory discussion, the Agda plan and the history of
 decisions.  A definition links to its commentary as `(…: §Cn.m)`.
@@ -78,7 +76,7 @@ Part II — Commentary
 - C6. Cast-term imprecision: explanations and ladders
 - C7. Examples of cast-term imprecision (P1–P6)
 - C8. Counterexamples and open defects
-- C9. Sketches and proposals (interfaces, D31)
+- C9. Sketches and proposals (interfaces; D31, adopted)
 - C10. Metatheory discussion
 - C11. Agda plan
 - C12. Decisions taken in this draft, and open questions
@@ -89,8 +87,7 @@ Section map (old → new)
 
 # Part I — Definitions
 
-The current adopted design, through D29, with the proposal D31 shown
-as marked changes.
+The current adopted design, through D31.
 
 ## 1. Types, representation types, type contexts
 
@@ -549,12 +546,12 @@ Terms (following GTSFImp's `Compile.agda`, which casts the argument by
 
 ## 8. Type imprecision
 
-Status (2026-10-06): §8 is `Imprecision.agda`; the worlds (§9)
+Status (2026-10-09): §8 is `Imprecision.agda`; the worlds (§9)
 are `ImprecisionWorld.agda`; the rules (§10) are `TermImprecision.agda`
-and `ConversionImprecision.agda`, current through D29.  Known open
-defect: the gen-value pairs of `proof/DGG/notes/TwoGen.md` (G0 and six
-more, from related sources) are DGG-part-1 counterexamples for these
-rules (§C8.1).  🆕 **D31** relates all seven (§C9.2).
+and `ConversionImprecision.agda`, current through D31.  The gen-value
+pairs of `proof/DGG/notes/TwoGen.md` (G0 and six more, from related
+sources), which were DGG-part-1 counterexamples for the D27/D28 rules
+(§C8.1), are related (D31; `examples/TermImprecisionD31Examples`).
 The left program is always the **more precise** one.
 
 GTSFImp's `Imprecision.agda`, copied rule for rule into
@@ -598,7 +595,7 @@ right term typed in `Δ′`.  The two runs allocate independently, and a
 GTSFImp's `World` (`proof/DGG/CtxImp.agda`), minus the stores:
 
 ```
-W = (Δ, Δ′, Ω, η, η′, ϱ, κ, π)      🆕 D31: no π
+W = (Δ, Δ′, Ω, η, η′, ϱ, κ)
 
   Ω              the center: a finite set of center type variables
   η  : tyvars(Δ)  ↪ Ω    injective maps from each side's type
@@ -607,10 +604,9 @@ W = (Δ, Δ′, Ω, η, η′, ϱ, κ, π)      🆕 D31: no π
                          variable is in the image of at least one
                          of them
   κ              the permitted right rep. vars (D28); [] at every
-                 top-level world; ~~a right check adds one (⊑cast)~~
-                 🆕 **D31**: only a boundary rule adds to κ, for
-                 its interior: rep. vars of type variables it
-                 JOINS (W +κ K, §10.5)
+                 top-level world; only a boundary rule adds to κ,
+                 for its interior: rep. vars of type variables it
+                 JOINS (W +κ K, §10.5; D31)
   μ  = marks(W)          DERIVED (D28): a type variable in η's image
                          only (left-only) is X⊑★; a type variable in
                          η′'s image is X⊑★ iff its right rep. var is
@@ -621,21 +617,13 @@ W = (Δ, Δ′, Ω, η, η′, ϱ, κ, π)      🆕 D31: no π
                          ϱˡ lexical, over rep. vars bound by an enclosing
                          Λ or ν.  (D13's one-partner rule was dropped
                          by D25.)
-  ~~π~~          ~~the pending right type variables (D27), next pop
-                 first: right type variables that a ⊑⟪⟫ pushed and a
-                 left binder will join; [] at every top-level world~~
-                 🆕 **D31**: π leaves the world; its type variables
-                 become the slots of the index (below)
-
-  A ⊑_W A′   iff   μ ⊢ η(A) ⊑ η′(A′)     when π = []  (GTSFImp _⊑ᵂ⟨_⟩_)
-             and in general A, with one outer ∀ opened at the center
-             type variable of each pending type variable, against A′
 ```
 
-🆕 **D31**: **the index with slots** `A ⊑_W^O A′` (Agda `OpenO`,
-`_⊑ᴰ⟨_∣_⟩_`).  `O` is a list of slots, next first.  A slot opens the
-next left outer `∀` at a right type variable `Y`, or SKIPS it (`_`):
-the `∀` stays left-only, `X⊑★`.  (why: §C9.2)
+**The index with slots** `A ⊑_W^O A′` (D31; Agda `OpenO`,
+`A ⊑ᵂ⟨ W ⟩[ O ] A′`).  `O` is a list of slots, next first.  A slot
+opens the next left outer `∀` at a right type variable `Y`, or SKIPS
+it (`_`): the `∀` stays left-only, `X⊑★`.  (Why: §C9.2; history: D27
+kept the openings as a pending list `π` in the world, §C12.)
 
 ```
   O ::= [] | s·O          s ::= Y | _
@@ -649,32 +637,23 @@ the `∀` stays left-only, `X⊑★`.  (why: §C9.2)
 ```
 
 In `A[X:=Y]`, `X` is read as `Y`'s center type variable.  `A ⊑_W A′`
-is the case `O = []`.  Only `⊑⟪⟫` creates slots; `Λ⊑` and the gen
-layers of a left cast consume them (§10.2, §10.3, §10.5).
+(GTSFImp `_⊑ᵂ⟨_⟩_`) is the case `O = []`.  Only `⊑⟪⟫` creates slots;
+`Λ⊑` and the gen layers of a left cast consume them (§10.2, §10.3,
+§10.5).
 
-In Agda (`ImprecisionWorld`) `π` is the field `πʷ` of `World`, `κ`
-the field `κʷ`, and `μ` is computed, `marksʷ W = dmarks (ηᴿʷ W)
-(κʷ W)`; the index `_⊑ᵂ⟨_⟩_` reads `πʷ` (`OpenImp`) and `marksʷ`.
-Everything that is not about pending type variables reads only the
-other fields: `Paired`, `Joins`, `Interior`, and the term-context
-imprecision `CtxImp`, whose entries hold the plain `μ ⊢ η(A) ⊑ η′(A′)`
-and are parameterized by the marks, `η` and `η′`.  So `W` with its
-pending type variables replaced (`record W { πʷ = π }`) has the same
-`CtxImp`, definitionally; a grant (`record W { κʷ = β ∷ κʷ W }`)
-changes the marks, and `⊑cast` moves the entries by `RaiseCtx` (same
-types, proofs at the raised marks).  The structural rules are stated
-at a world in constructor form with `π = []`, where the index computes
-to the plain one; the theorems are stated at `W` with `πʷ W ≡ []` and
-`κʷ W ≡ []`, and an evolution keeps `π` and renumbers `κ` with the
-right side (an allocation moves no type variable).
+In Agda (`ImprecisionWorld`) `κ` is the field `κʷ` of `World` (there is
+no other field for the openings), and `μ` is computed, `marksʷ W =
+dmarks (ηᴿʷ W) (κʷ W)`; the index `_⊑ᵂ⟨_⟩[_]_` reads `marksʷ` and the
+slots, and `_⊑ᵂ⟨_⟩_` is its `O = []` case.  The term-context
+imprecision `CtxImp` holds the plain `μ ⊢ η(A) ⊑ η′(A′)` and is
+parameterized by the marks, `η` and `η′`.  `κ` changes only at a
+boundary's interior world, `Wᵢ +κ K` (`record Wᵢ { κʷ = K ++ κʷ Wᵢ }`),
+whose premise is term-closed.  The theorems are stated at `O = []` and
+at `W` with `κʷ W ≡ []`; an evolution renumbers `κ` with the right side
+(an allocation moves no type variable).
 
-🆕 **D31**: no rule reads `πʷ` (the D31 Agda keeps the field, always
-`[]`), the theorems keep only `κʷ W ≡ []`, there are no grants (so no
-`RaiseCtx`), and `κ` changes only at a boundary's interior world,
-`Wᵢ +κ K` (`record Wᵢ { κʷ = K ++ κʷ Wᵢ }`).
-
-Well-formedness has five parts (🆕 **D31**: four; the pending part
-becomes a condition on the index):
+Well-formedness has four parts (D31; history: D27's pending part, now
+a condition on the index):
 
 - **Shared type variables have paired rep. vars.**  If a center type
   variable `X` is `X:=α` on the left and `X:=β` on the right, then
@@ -689,20 +668,17 @@ becomes a condition on the index):
   `β:=★`, or `α:=R`, `β:=R′`, and `R ⊑ᴿ_W R′`: the payloads are
   compared in the representation universe, free rep. vars through `ϱ`
   (D23).
-- ~~**Pending type variables are pending** (D27).  Each type variable
-  of `π` is bound to a `★` rep. var `β`, is right-only, and `β` has no
-  left partner bound to a type variable in scope; the type variables of
-  `π` are distinct.  (Its mark is derived, D28.)~~
-  🆕 **D31**: **well-formed slots.**  Each opened `Y` of an index
-  `A ⊑_W^O A′` is right-only and bound to a `★` rep. var that has no
-  left partner bound to a type variable in scope, and the opened type
-  variables are distinct.  It is checked where a slot is created, at
-  `⊑⟪⟫` (Agda `SlotOK`, `SlotNe`; `WfWorldᴰ` is `WfWorld` without
-  `wf-pending`, `wf-distinct`).
 - **Permissions are right rep. vars** (D28).  Every rep. var in `κ` is
   a rep. var of the right store, whether or not a type variable in
   scope is bound to it (a right `−X` keeps its permission, P4 B4).
-  R1/R2 (§10.5, §10.6) are rule premises, not parts of well-formedness.
+  R1′/R2 (§10.5, §10.6) are rule premises, not parts of
+  well-formedness.
+
+**Well-formed slots** (D31; Agda `SlotOK`, `SlotNe`).  Each opened `Y`
+of an index `A ⊑_W^O A′` is right-only and bound to a `★` rep. var that
+has no left partner bound to a type variable in scope, and the opened
+type variables are distinct.  It is checked where a slot is created or
+carried, at `⊑⟪⟫` (§10.5).
 
 **Type variables are related lexically; rep. vars lexically and
 globally** (D12, D16).  The relation between type variables (`Ω`, `η`,
@@ -714,17 +690,15 @@ relation has two parts:
   (`⊢Λ` types the body at `underΛ Δ`).  A `ν X:=A` binds the rep. var
   for its conversion (`⊢ν` types `c` at `allocate R Δ`).  A rule that
   goes under such binders on both sides pairs their rep. vars for the
-  premise only: `Λ⊑Λ` pairs two abstract rep. vars; `Λ⊑`'s pop pairs
-  the left binder's abstract rep. var with the `β:=★` of the pending
-  type variable it joins (D27; 🆕 **D31**: of the opening it joins),
-  and its claim-rep with a `β:=★` to
-  which no right type variable is bound yet (D29); `ν⊑ν` pairs the two
-  `ν`s' rep. vars.
+  premise only: `Λ⊑Λ` pairs two abstract rep. vars; `Λ⊑`'s join pairs
+  the left binder's abstract rep. var with the `β:=★` of the opening
+  it joins, and its claim-rep with a `β:=★` to which no right type
+  variable is bound yet (D29); `ν⊑ν` pairs the two `ν`s' rep. vars.
 - **Global, `ϱᵍ`.**  A store rep. var is created by a step (`TyBeta`)
   and is visible everywhere afterwards.  When the two sides' `TyBeta`s
   are matched, the lexical pair of the two `ν`s becomes a global pair.
   When a left `TyBeta` catches up with a right boundary whose type
-  variable its binder popped or claimed, the left's lexical abstract
+  variable its binder joined or claimed, the left's lexical abstract
   rep. var is replaced by the new store rep. var, which is paired
   globally with the right's `β` (Evolve's `ev-L⇔`).
 
@@ -734,8 +708,7 @@ relation has two parts:
 ### 9.1 World operations
 
 Every operation is given by what it does to each component of
-`W = (Ω, η, η′, ϱᵍ, ϱˡ, κ, π)` (🆕 **D31**: no `π`); a component not
-mentioned is unchanged.
+`W = (Ω, η, η′, ϱᵍ, ϱˡ, κ)`; a component not mentioned is unchanged.
 The marks `μ` are never set: they are recomputed from `η′` and `κ`
 (D28).  In this account variables have names: "`X ↦ Z`" means that
 the type variable `X` is embedded as the center type variable `Z`.  (In
@@ -747,37 +720,29 @@ where it is defined:
 
 | written | meaning | defined |
 |---|---|---|
-| `W` | a world whose pending list `π` is empty (🆕 **D31**: a world; there is no `π`) | §9 |
-| ~~`W.π := π′`~~ | ~~`W` with its pending list set to `π′` (field update)~~ | here |
-| ~~`W.π := Y·π′`~~ | ~~the pending list `π′` with `Y` in front (the next pop)~~ | here |
-| ~~`W.π := [Y]`~~ | ~~exactly one pending type variable~~ | here |
-| 🆕 **D31** `A ⊑_W^O A′` | the index with slots `O` (`Y` opens, `_` skips); `A ⊑_W A′` is `O = []` | §9 |
+| `W` | a world | §9 |
+| `A ⊑_W^O A′` | the index with slots `O` (`Y` opens, `_` skips); `A ⊑_W A′` is `O = []` (D31) | §9 |
 | `W ⊕ (X:α ∥ X′:α′)` | both sides bind (left `X` with abstract rep. var `α`, right `X′` with `α′`) | binders, below |
 | `W ⊕ (X:α ∥ ·)` | the left side alone binds `X` | binders, below |
 | `W ⊕ (X:α⇔β ∥ ·)` | as `W ⊕ (X:α ∥ ·)`, claiming the right rep. var `β` | binders, below |
 | `W ⊕ (· ∥ X′:α′)` | the right side alone binds `X′` | binders, below |
 | `W[δ ∥ δ′]` | the interior world of a boundary pair | interior, below |
 | `W[δ ∥ ·]`, `W[· ∥ δ′]` | the interior world of a left-only / right-only boundary | interior, below |
-| ~~`W[δ ∥ ·].π := π′`~~ | ~~that interior world, with pending list `π′`~~ | combines the rows above |
-| ~~`W[· ∥ δ′].π := π′ ++ new`~~ | ~~that interior world, with the carried type variables `π′` then the pushed type variables `new`~~ | §10.5 (`⊑⟪⟫`) |
-| `W[X:α ↦ Y]` | the pop of `Y` by the left binder `X` (abstract rep. var `α`); 🆕 **D31**: the join of the opening `Y` | pops, below |
-| ~~`W[X:α ↦ Y].π := π′`~~ | ~~that pop, with the remaining pending list `π′`~~ | combines the rows above |
-| ~~`W +κ β`~~ | ~~`W` with `β` added to `κ` (a grant)~~ | grants, below; §10.2 |
-| 🆕 **D31** `Wᵢ +κ K` | the interior world `Wᵢ` with the rep. vars `K` added to `κ`; only at a boundary rule, `K` ⊆ the rep. vars of type variables it joins | §10.5 |
+| `W[X:α ↦ Y]` | the join of the opening `Y` by the left binder `X` (abstract rep. var `α`) | joins, below |
+| `Wᵢ +κ K` | the interior world `Wᵢ` with the rep. vars `K` added to `κ`; only at a boundary rule, `K` ⊆ the rep. vars of type variables it joins (D31) | permissions, below; §10.5 |
 | `Wᶜ` | the world over the two conversion contexts | conversion worlds, below |
 | `W +ˡ (α, α′)` | `W` with `(α, α′)` added to `ϱˡ` (the conversion world of `ν⊑ν`) | allocation, below |
 | `W +ᵍ (α, α′)` | `W` with `(α, α′)` added to `ϱᵍ` (a matched allocation) | allocation, below |
 
-In the Agda, `W.π := π′` is `record W { πʷ = π′ }`, and a grant is
-`record W { κʷ = β ∷ κʷ W }`.  🆕 **D31**: neither exists; `π`
-becomes the slots `O` of the index, and `Wᵢ +κ K` is `_+κ_`.
+In the Agda, `Wᵢ +κ K` is `_+κ_`.  (History: D27's `W.π := π′`, a
+field update of the pending list, and D28's grant `W +κ β` are gone,
+D31; §C12.)
 
 The term context `γ` has one operation, `γ, x : B ⊑ B′` (extend, in
-`ƛ⊑ƛ`).  With named variables, `γ` is used unchanged under a binder and
-under a grant: a binder's type variable and rep. var are fresh, so no
-entry mentions them, and a grant only raises marks from `X⊑X` to `X⊑★`,
-which keeps every entry's `B ⊑ B′` (the de Bruijn version needs `⇑γ`,
-`⇑ᴸγ` and `RaiseCtx` for these).
+`ƛ⊑ƛ`).  With named variables, `γ` is used unchanged under a binder: a
+binder's type variable and rep. var are fresh, so no entry mentions
+them (the de Bruijn version needs `⇑γ` and `⇑ᴸγ`).  A permission is
+added only for a boundary's term-closed interior, at `γ = []`.
 
 **Binders on one or both sides** (`Λ⊑Λ`, `Λ⊑`; Agda `_⊕²`, `_⊕ᴸ`,
 `_⊕ᴸ⇔_`, `_⊕ᴿ`).  A `Λ` binds a type variable together with a fresh
@@ -808,7 +773,7 @@ no component by itself; the only world change is a new pair:
 | op | `ϱᵍ` | `ϱˡ` | used for |
 |---|---|---|---|
 | `W +ᵍ (α, α′)` | add `(α, α′)` | — | a matched pair of `TyBeta`s allocating `α:=R`, `α′:=R′` |
-| `W +ᵍ (α, β)` | add `(α, β)` | — | a left `TyBeta` (`α:=R`) catching up with a right boundary `+Y^β` whose type variable a left binder popped or claimed |
+| `W +ᵍ (α, β)` | add `(α, β)` | — | a left `TyBeta` (`α:=R`) catching up with a right boundary `+Y^β` whose type variable a left binder joined or claimed |
 | `W +ˡ (α, α′)` | — | add `(α, α′)` | the conversion world of `ν⊑ν`: the two `ν`s' rep. vars |
 
 An unmatched `TyBeta` (one side only) leaves `W` unchanged; only that
@@ -827,37 +792,31 @@ own side:
 | `+X^α`, fresh | otherwise: add `Z`, `X ↦ Z`, one-sided, with `Z` fresh |
 | a type variable no entry touches | keeps its center type variable; two continuing type variables are joined inside iff they are joined outside |
 
-- ~~`π` (D27): a pending type variable stays pending inside, under the
-  same type variable; a pending type variable that `δ′` unbinds must
-  have been popped before.~~  🆕 **D31**: the world has no `π`; the
-  slots of the index are carried by `⊑⟪⟫` (§10.5).
+- The world has no openings: the slots of the index are carried by
+  `⊑⟪⟫` (§10.5; D31).
 - Uniqueness among type variables in scope (D25) makes the rejoin
   unambiguous.
 - `W[δ ∥ ·]` and `W[· ∥ δ′]` are the one-sided cases.
 - Only the final interior world must be well formed, not the worlds
   between the entries of a multi-entry `δ`.
-- 🆕 **D31**: the boundary rule may then add `K` to `κ`, the right
-  rep. vars of type variables this boundary joins (`Wᵢ +κ K`, §10.5).
+- The boundary rule may then add `K` to `κ`, the right rep. vars of
+  type variables this boundary joins (`Wᵢ +κ K`, §10.5; D31).
 
 The marks follow: a type variable that goes one-sided and later rejoins
 gets its derived mark back (D28, superseding D15); a right-only `−X` of
 a shared type variable leaves `X` left-only, hence `X⊑★` (Example P4).
 
-**Pops** (D27; Agda `Open1`, `Join↪`).  `W[X:α ↦ Y]`, for the next
-pending type variable `Y` (bound to `β:=★`) and a left binder `X` with
-abstract rep. var `α`:
+**Joins** (D31; Agda `Join1`, `Join↪`; history: D27's pops).
+`W[X:α ↦ Y]`, for the next opening `Y` of the index (bound to `β:=★`)
+and a left binder `X` with abstract rep. var `α`:
 
-| `Ω` | `η` | `η′` | `ϱˡ` | `π` |
-|---|---|---|---|---|
-| — | add `X ↦ η′(Y)` | — | add `(α, β)` | remove `Y` (🆕 **D31**: no `π`) |
+| `Ω` | `η` | `η′` | `ϱˡ` |
+|---|---|---|---|
+| — | add `X ↦ η′(Y)` | — | add `(α, β)` |
 
-🆕 **D31**: the same operation is the JOIN of the next opening `Y` of
-the index (Agda `Join1`, `Open1` without the `π` update); `Λ⊑` takes
-`Y` off the index itself (§10.3).
-
-The center type variable of `Y` was right-only and becomes shared.
-(Agda `W ⊕⁺^ β` is a push of `+Y^β`'s type variable followed by this
-pop.)
+`Λ⊑` takes `Y` off the index itself (§10.3).  The center type variable
+of `Y` was right-only and becomes shared.  (Agda `W ⊕⁺^ β` is the
+opening of `+Y^β`'s type variable followed by this join, `join-⊕`.)
 
 **Conversion worlds `Wᶜ`** (`ν⊑ν`, `⟪⟫⊑⟪⟫`, §10.6; Agda
 `ConversionInterior`, `underν²`).  A conversion is read in its own
@@ -874,10 +833,11 @@ The conversion clauses then go under binders with
 `Wᶜ ⊕ (X:α ∥ X′:α′)` (both sides' `∀`) and `Wᶜ ⊕ (X:α ∥ ·)` (a
 left-only `∀`).
 
-**Grants** (D28; `⊑cast`, §10.2).  `W +κ β` adds `β` to `κ`; nothing
-else changes, so the marks of the type variables bound to `β` become
-`X⊑★`.  🆕 **D31**: ~~grants~~ go; the same addition happens only at
-a boundary rule, as `Wᵢ +κ K` for its interior (§10.5).
+**Permissions** (D31; history: D28's grants at right checks).
+`Wᵢ +κ K` adds the rep. vars `K` to `κ`; nothing else changes, so the
+marks of the type variables bound to them become `X⊑★`.  It happens
+only at a boundary rule, for its interior, and only for rep. vars of
+type variables that boundary joins (§10.5).
 
 ------------------------------------------------------------------------
 
@@ -885,12 +845,13 @@ a boundary rule, as `Wᵢ +κ K` for its interior (§10.5).
 
 ### 10.1 The judgment, congruence and blame
 
-`W ∣ γ ⊢ M ⊑ M′ : A ⊑ A′` with `γ ::= [] | γ, x : B ⊑ B′`.  Every
-rule also assumes the two typings `Δ ∣ γᴸ ⊢ M : A` and
-`Δ′ ∣ γᴿ ⊢ M′ : A′` and `A ⊑_W A′`; the premises below list only what
-is new.  🆕 **D31**: the judgment is `W ∣ γ ⊢ M ⊑ M′ : A ⊑_W^O A′`;
-writing no `O` means `O = []`.  The congruence rules, `blame⊑`,
-`cast⊑cast`, `Λ⊑Λ`, the `ν` rules and `⟪⟫⊑⟪⟫` are stated at `O = []`.
+`W ∣ γ ⊢ M ⊑ M′ : A ⊑_W^O A′` with `γ ::= [] | γ, x : B ⊑ B′`
+(D31; Agda `W ∣ γ ⊢ M ⊑ M′ ∶[ O ] p`); writing no `O` means `O = []`
+(Agda `W ∣ γ ⊢ M ⊑ M′ ∶ p`).  Every rule also assumes the two typings
+`Δ ∣ γᴸ ⊢ M : A` and `Δ′ ∣ γᴿ ⊢ M′ : A′` and `A ⊑_W^O A′`; the
+premises below list only what is new.  The congruence rules,
+`blame⊑`, `cast⊑cast`, `Λ⊑Λ`, the `ν` rules and `⟪⟫⊑⟪⟫` are stated at
+`O = []`.
 The rules marked "GTSFImp" are GTSFImp's
 `proof/DGG/CastTermImprecision.agda` rules with the same name.
 
@@ -907,96 +868,38 @@ componentwise.
 
 ### 10.2 Casts
 
-🆕 **D31**: ~~grants~~ go: no cast rule changes the world.  The
-`Grants` definition below is D28's.
-
-**Grants** (D28).  A right coercion `p′` *grants* a right rep. var
-`β` when every value that leaves a cast through `p′` is checked
-against the right type variable bound to `β`.  Inductively (Agda
-`Grants`):
-
-```
-  X the right type variable of β
-  ─────────────────────────────── (gr-?)
-  X?ℓ grants β
-
-  X the right type variable of β
-  ─────────────────────────────── (gr-?;)
-  (X?ℓ ; q) grants β
-
-  q₁ first order    q₂ grants β
-  ───────────────────────────── (gr-→)
-  q₁ → q₂ grants β
-
-  first order:  id(A),  G!,  G?ℓ
-```
-
-So P4's gen wrapper `X! → X?` grants `X`'s rep. var (its codomain
-checks `X`), and C2's `X! → id(★)` grants nothing.  (Why: §C6.2.)
-
 **Casts** (GTSFImp `cast⊑cast²`, `cast⊑²`, `⊑cast²`).  Each coercion
 is typed on its own side, under the mode environment its cast carries.
 The rules do not compare the two coercions, or the two mode
-environments, except through the types:
+environments, except through the types.  No cast rule changes the
+world (D31; history: D28's grants, §C12).
 
 ```
   W ∣ γ ⊢ M ⊑ M′ : B ⊑ B′
-  p : B ⇒ A    p′ : B′ ⇒ A′
+  p : B ⇒ A
+  p′ : B′ ⇒ A′
   ──────────────────────────────── (cast⊑cast)
   W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ ⟨p′⟩ : A ⊑ A′
-
-  W ∣ γ ⊢ M ⊑ M′ : B ⊑ A′    p : B ⇒ A
-  ───────────────────────────────── (cast⊑)
-  W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ : A ⊑ A′
-
-  W⁺ ∣ γ ⊢ M ⊑ M′ : A ⊑ B′    p′ : B′ ⇒ A′
-  W⁺ = W,  or  W⁺ = W +κ β  if p′ grants β
-  ──────────────────────────────── (⊑cast, D28)
-  W ∣ γ ⊢ M ⊑ M′ ⟨p′⟩ : A ⊑ A′
 ```
-
-(What a grant means: §C6.2.)
-
-With pending type variables (D27), `⊑cast` carries them unchanged, and
-`cast⊑` has two more forms, for a value `M`:
-
-```
-  W.π := Y·π ∣ γ ⊢ M ⊑ M′ : ∀X.B ⊑ A′        ∀X.p : ∀X.B ⇒ ∀X.A
-  ─────────────────────────────────────────────────── (cast⊑, pass ∀)
-  W.π := Y·π ∣ γ ⊢ M ⟨∀X.p⟩ ⊑ M′ : ∀X.A ⊑ A′
-
-  W ∣ γ ⊢ M ⊑ M′ : B ⊑ A′        gen X.p : B ⇒ ∀X.A
-  ─────────────────────────────────────────────────── (cast⊑, pop gen)
-  W.π := [Y] ∣ γ ⊢ M ⟨gen X.p⟩ ⊑ M′ : ∀X.A ⊑ A′
-
-  (an index ∀X.… ⊑ A′ at a world with pending type variables is read
-   with its outer ∀ opened at the next pending type variable;
-   corrected 2026-10-07: the earlier display wrote the bodies B, A for
-   the cast's types)
-```
-
-The gen pop leaves the base world unchanged: the value under a `gen`
-does not see the binder.  One gen pops one pending type variable.
-
-🆕 **D31** replaces D28's `⊑cast` and the three forms of `cast⊑` by
-the two rules below.  `⊑cast` is GTSFImp's plain rule and keeps the
-slots; `cast⊑` is one rule whose premise slots follow the coercion's
-binder layers (`CastOpen`).  `cast⊑cast` is unchanged.  (why: §C9.2)
 
 ```
   W ∣ γ ⊢ M ⊑ M′ : A ⊑_W^O B′
   p′ : B′ ⇒ A′
-  ──────────────────────────────── (⊑cast, D31)
+  ──────────────────────────────── (⊑cast)
   W ∣ γ ⊢ M ⊑ M′ ⟨p′⟩ : A ⊑_W^O A′
+```
 
+```
   W ∣ γ ⊢ M ⊑ M′ : B ⊑_W^Oₚ A′
   p : B ⇒ A
   opens(p, O) = Oₚ
   M a value, unless O = []
-  ──────────────────────────────── (cast⊑, D31)
+  ──────────────────────────────── (cast⊑)
   W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ : A ⊑_W^O A′
 ```
 
+`⊑cast` is GTSFImp's plain rule and keeps the slots; `cast⊑`'s
+premise slots follow the coercion's binder layers (why: §C9.2).
 `opens` (Agda `CastOpen`) is the partial function
 
 ```
@@ -1007,53 +910,28 @@ binder layers (`CastOpen`).  `cast⊑cast` is unchanged.  (why: §C9.2)
 
 undefined otherwise (a coercion with no binder layer, given a slot).
 `s` is any slot, an opening or a skip.  (Agda cases: `co-plain`,
-`co-∀`, `co-gen`.)
+`co-∀`, `co-gen`.)  The value under a `gen` does not see the binder,
+so a gen layer uses its slot up with no world change.
 
 ### 10.3 Type abstraction
 
-**Type abstraction** (GTSFImp `Λ⊑Λ²`, `Λ⊑²`), plus one new rule.
-`Λ⊑` keeps the right term unweakened: the right side does not bind
-`X`, so `η′` simply does not reach the new center type variable.
+**Type abstraction** (GTSFImp `Λ⊑Λ²`, `Λ⊑²`).  `Λ⊑` keeps the right
+term unweakened: the right side does not bind `X`, so `η′` simply does
+not reach the new center type variable.
 
 ```
   W ⊕ (X:α ∥ X′:α′) ∣ γ ⊢ V ⊑ V′ : A ⊑ A′
   α, α′ fresh
   ───────────────────────────────────── (Λ⊑Λ)
   W ∣ γ ⊢ ΛX.V ⊑ ΛX′.V′ : ∀X.A ⊑ ∀X′.A′
-
-  W ⊕ (X:α ∥ ·) ∣ γ ⊢ V ⊑ M′ : A ⊑ B′
-  α fresh    A not a variable    X ∈ A
-  ───────────────────────────────── (Λ⊑, fresh)
-  W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
-
-  W[X:α ↦ Y].π := π ∣ γ ⊢ V ⊑ M′ : A ⊑ B′
-  α fresh    A not a variable    X ∈ A
-  ───────────────────────────────── (Λ⊑, pop)
-  W.π := Y·π ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
 ```
 
-```
-  W ⊕ (X:α⇔β ∥ ·) ∣ γ ⊢ V ⊑ M′ : A ⊑ B′
-  α fresh    A not a variable    X ∈ A
-  β:=★ in Δ′    no right type variable bound to β in scope
-  no left partner of β bound to a type variable in scope
-  ──────────────────────────────────────────────────────── (Λ⊑, claim-rep, D29)
-  W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑ B′
-```
-
-Here `W.π := π` is a world with the pending type variables `π` (D27), and
-`W` alone means no pending type variable.  In the pop, `Y` is the next
-pending type variable and `W[X:α ↦ Y]` joins the binder `X` to it
-(`Open1`).  The left's abstract rep. var is paired lexically with
-`Y`'s `β:=★`.  The type `∀X.A ⊑ B′` of a world with pending type
-variables is read with one `∀` opened per pending type variable.
-
-🆕 **D31** replaces the three `Λ⊑` forms by one rule whose binder is
-fresh, a JOIN, or claim-rep (the function `bind` below; Agda `Bind`).  Fresh and claim-rep are
-the forms above, at `O = []`.  The join is the old pop: it consumes
-the next opening of the index, and the world changes there, at a term
-binder.  It takes no permission (the permission of an opening is
-chosen where the opening is created, at `⊑⟪⟫`, §10.5).
+`Λ⊑`'s binder is fresh, a JOIN, or claim-rep (the function `bind`
+below; Agda `Bind`).  The join consumes the next opening of the index,
+and the world changes there, at a term binder.  It takes no
+permission: the permission of an opening is chosen where the opening
+is created, at `⊑⟪⟫` (§10.5).  (D31; history: D27's three forms, with
+the pop, §C12.)
 
 ```
   bind(b, W, O) = (W₁, O₁)
@@ -1061,7 +939,7 @@ chosen where the opening is created, at `⊑⟪⟫`, §10.5).
   b = X:α or X:α⇔β,  α fresh
   A not a variable
   X ∈ A
-  ──────────────────────────────── (Λ⊑, D31)
+  ──────────────────────────────── (Λ⊑)
   W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑_W^O B′
 ```
 
@@ -1112,38 +990,16 @@ relation never has to hold in between.
 
 **Boundaries** (new; these replace GTSFImp's eight `reveal`/`conceal`
 rules).  A boundary's interior is term-closed, so the premise has
-`γ = []`.  The conversions are typed on their own sides, and, like the
-coercions, they are not compared with each other:
+`γ = []`.  The conversions are typed on their own sides; only the
+matched rule compares them (§10.6).
 
-```
-  W[δ ∥ δ′] ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′ᵢ    c : Aᵢ ⇒ A    c′ : A′ᵢ ⇒ A′
-  ───────────────────────────────────────────────────────────── (⟪⟫⊑⟪⟫)
-  W ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
-
-  W[δ ∥ ·].π := π ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′    c : Aᵢ ⇒ A
-  π = [] or (M simple and c has a ∀ per type variable of π)
-  every −X^α in δ: no partner of α in ϱ is in κ          (R1, D28)
-  ───────────────────────────────────────────── (⟪⟫⊑, D27, D28)
-  W.π := π ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ M′ : A ⊑ A′
-```
-
-```
-  W[· ∥ δ′].π := π′ ++ new ∣ [] ⊢ M ⊑ M′ : A ⊑ A′ᵢ
-  c′ : A′ᵢ ⇒ A′
-  π′ = π seen inside δ′    new introduced by δ′
-  new = [] or M a value
-  ───────────────────────────────────────────── (⊑⟪⟫, D27)
-  W.π := π ∣ γ ⊢ M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
-```
-
-🆕 **D31** replaces the three boundary rules by the three below.
-Each may add a set `K` of right rep. vars to `κ` for its interior,
-limited to rep. vars of type variables this boundary JOINS, and
-PAYS: its interior index holds at `Wᵢ`, without `K`, so the joined
-type variables are read there at `X⊑X`.  `⊑⟪⟫` is the only rule that
-creates slots, and the permission of a new opening is chosen there.
-`⟪⟫⊑`'s R1 becomes R1′.  Every boundary rule also takes `Wᵢ +κ K`
-well formed.  (why: §C9.2)
+Each boundary rule may add a set `K` of right rep. vars to `κ` for its
+interior, limited to rep. vars of type variables this boundary JOINS,
+and PAYS: its interior index holds at `Wᵢ`, without `K`, so the
+joined type variables are read there at `X⊑X`.  `⊑⟪⟫` is the only
+rule that creates slots, and the permission of a new opening is
+chosen there.  Every boundary rule also takes `Wᵢ +κ K` well formed.
+(D31; why: §C9.2; history: D27's push and D28's grants, §C12.)
 
 `joined(δ ∥ δ′)` (Agda `JoinRep`, `jr-join`): the right rep. vars `β`
 such that, in `Wᵢ = W[δ ∥ δ′]`, a right type variable bound to `β` is
@@ -1158,9 +1014,11 @@ this boundary (a matched fresh pair, or a rejoin through `ϱ`).
   c : Aᵢ ⇒ A
   c′ : A′ᵢ ⇒ A′
   Wᶜ ⊢ c ⊑ c′
-  ──────────────────────────────────────── (⟪⟫⊑⟪⟫, D31)
+  ──────────────────────────────────────── (⟪⟫⊑⟪⟫)
   W ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ [δ′] M′ ⟨c′⟩ : A ⊑ A′
+```
 
+```
   Wᵢ = W[δ ∥ ·]
   K ⊆ joined(δ ∥ ·)
   Aᵢ ⊑_Wᵢ^O A′                           (the join pays)
@@ -1169,9 +1027,11 @@ this boundary (a matched fresh pair, or a rejoin through `ϱ`).
   O = [] or (M simple and c has a ∀ per slot of O)
   for every −X^α in δ:                       (R1′)
     X ∉ A, or no partner of α in ϱ is in κ
-  ──────────────────────────────────────── (⟪⟫⊑, D31)
+  ──────────────────────────────────────── (⟪⟫⊑)
   W ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ M′ : A ⊑_W^O A′
+```
 
+```
   Wᵢ = W[· ∥ δ′]
   δ′ unbinds no opening of O
   N new slots for δ′ and M
@@ -1182,17 +1042,17 @@ this boundary (a matched fresh pair, or a rejoin through `ϱ`).
   A ⊑_Wᵢ^Oᵢ A′ᵢ                          (the join pays)
   Wᵢ +κ K ∣ [] ⊢ M ⊑ M′ : A ⊑^Oᵢ A′ᵢ
   c′ : A′ᵢ ⇒ A′
-  ──────────────────────────────────────── (⊑⟪⟫, D31)
+  ──────────────────────────────────────── (⊑⟪⟫)
   W ∣ γ ⊢ M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑_W^O A′
 ```
 
-The side relations of `⟪⟫⊑` and `⊑⟪⟫` under D31:
+The side relations of `⟪⟫⊑` and `⊑⟪⟫`:
 
-- **R1′** (Agda `UnbindOK′`, cases `ok-hidden` for `X ∉ A` and
-  `ok-unbind′` for the unpermitted partner).  Only a left unbind whose
+- **R1′** (Agda `UnbindOK W A`, cases `ok-hidden` for `X ∉ A` and
+  `ok-unbind` for the unpermitted partner; history: D28's R1).  Only a left unbind whose
   type variable occurs in the boundary's EXTERIOR type `A` needs an
   unpermitted partner.
-- **Openings inside `δ′`** (Agda `CarriedS`).  With named type
+- **Openings inside `δ′`** (Agda `Carried`).  With named type
   variables an opening `Y` continues inside as `Y` itself, and a skip
   as a skip, so the interior keeps `O`; `δ′` must not unbind an
   opening.
@@ -1201,7 +1061,7 @@ The side relations of `⟪⟫⊑` and `⊑⟪⟫` under D31:
   skip only when `M` is a gen-cast value (`GenCastValue`).
   `newreps(N)` is the set of rep. vars `β` with `Y:=β`, `Y` an opening
   of `N` (`jr-open`).
-- **`fill N with O into N′`** (Agda `Fill`, `PushD`), a relation:
+- **`fill N with O into N′`** (Agda `Fill`, inside `Push`), a relation:
   the carried slots `O` keep their order, a new opening of `N` may
   fill a carried skip (left to right), and the remaining new slots go
   last:
@@ -1230,9 +1090,10 @@ In `⟪⟫⊑` and `⊑⟪⟫`, the term without the boundary is in the premise
 at `γ = []`, so it must be term-closed as well.  That holds at run
 time, because every boundary of a run is a closed subterm.
 
-(What `⊑⟪⟫`'s push, pass and carry do: §C6.4; R1 and counterexample
-C5: §C6.5; the ladders of K's final pair and of P4's block B3: §C6.6,
-§C6.7.)
+(What `⊑⟪⟫`'s openings, passes and carries do: §C6.4, written for
+D27's push and pop; R1 and counterexample C5: §C6.5; the ladders of
+K's final pair and of P4's block B3: §C6.6, §C6.7, pinned in
+`examples/ImpLadder.agda`.)
 
 ### 10.6 Conversion imprecision
 
@@ -1344,28 +1205,26 @@ where
 
 **Count.**  In Agda, 15 rules: four congruence rules (`x⊑x`, `κ⊑κ`,
 `ƛ⊑ƛ`, `·⊑·`; GTNF has no binary operators, so no `⊕⊑⊕`), `blame⊑`,
-three cast rules, `Λ⊑Λ` and `Λ⊑` (one rule whose `Claim` is fresh, pop
-or claim-rep, displayed above as three), two `ν` rules and three
-boundary rules.  The side relations are `Claim` (3 cases), `CastClaim`
-(3), `BdyClaim` (2), `Push` with `Carried` (D27), and `CastGrant`
-(D28; 🆕 **D31**: removed).
-GTSFImp's `_∣_⊢²_⊑_∶_` has 22.
+three cast rules, `Λ⊑Λ` and `Λ⊑` (one rule whose `Bind` is fresh, join
+or claim-rep), two `ν` rules and three boundary rules.  GTSFImp's
+`_∣_⊢²_⊑_∶_` has 22.  `Imprecision.agda` (`_⊢_⊑_`) is GTSFImp's.
 
-🆕 **D31**: still 15 rules, one per rule above (`_∣_⊢_⊑ᴰ_∶[_]_` in
-`proof/DGG/notes/D28pD30.agda`); `Imprecision.agda` (`_⊢_⊑_`) is
-unchanged.  Its side relations, against today's:
+The side relations (D31; the right column is what each replaced,
+history in §C12):
 
-| D31 | what it does | replaces |
+| Agda | what it does | replaced (D27, D28) |
 |---|---|---|
 | `Slot`, `OpenO` | the index with slots (opening `opn`, skip `skp`), §9 | `πʷ`, `OpenImp` |
 | `CastOpen` (3) | `cast⊑`'s slots along the coercion's layers | `CastClaim` (3) |
 | `Bind` (3), `Join1` | `Λ⊑`'s binder: fresh, join, claim-rep | `Claim` (3), `Open1` |
-| `BdyOpen` (2), `ForallConvS` | `⟪⟫⊑` passes slots into a `∀` boundary | `BdyClaim` (2), `ForallConv` |
-| `PushD`: `CarriedS`, `NewSlot`, `Fill` | `⊑⟪⟫` carries, creates and fills slots | `Push`, `Carried` |
-| `SlotOK`, `SlotNe` | well-formed slots, at `⊑⟪⟫` | `PendingOK`, `wf-pending`, `wf-distinct` |
-| `JoinRep` | the `K` a boundary may add to `κ` | `CastGrant`, `Grants` |
-| `UnbindOK′` (R1′) | `⟪⟫⊑`'s unbind condition | `UnbindOK` (R1) |
-| `WfWorldᴰ` | `WfWorld` without its pending parts | `WfWorld` |
+| `BdyOpen` (2), `ForallConv` | `⟪⟫⊑` passes slots into a `∀` boundary | `BdyClaim` (2) |
+| `Push`: `Carried`, `NewSlot`, `Fill` | `⊑⟪⟫` carries, creates and fills slots | `Push`, `Carried` |
+| `SlotOK` (`OpeningOK`), `SlotNe` | well-formed slots, at `⊑⟪⟫` | `PendingOK`, `wf-pending`, `wf-distinct` |
+| `JoinRep`, `_+κ_` | the `K` a boundary may add to `κ` | `CastGrant`, `Grants`, `FirstOrder`, `RaiseCtx` |
+| `UnbindOK W A` (R1′) | `⟪⟫⊑`'s unbind condition | `UnbindOK W` (R1) |
+
+The derived rules `⊑⟪⟫₀`, `⟪⟫⊑₀` and `⟪⟫⊑⟪⟫₀` are the boundary rules
+with no slot and no permission (the interior index is the payment).
 
 ------------------------------------------------------------------------
 
@@ -2018,17 +1877,17 @@ The point of the design (§11.6, §C10.3) is that **no part of a world is
 ever rebased.**  `Ω`, `η`, `η′` and `κ` change only lexically: they are
 extended by a binder (`Λ`, a coercion binder, a boundary entry `+X^α`)
 and shrunk by an unbind (`−X^α`), for the subterm under it, exactly as
-the type context is; ~~`κ` grows at a right check (`⊑cast`) for the
-subterm under it~~ 🆕 **D31**: `κ` grows only at a boundary rule that
-joins a type variable, for the boundary's interior.  So is `ϱˡ`.  The
+the type context is; `κ` grows only at a boundary rule that joins a
+type variable, for the boundary's interior (D31; under D28 it grew at
+a right check, `⊑cast`, for the subterm under it).  So is `ϱˡ`.  The
 one non-lexical part is `ϱᵍ`, and it only grows: a `TyBeta` that the
 other side matches adds one pair.  An unmatched allocation only
 renumbers the allocating side's rep. vars (de Bruijn).
 
 ### C6.2 Grants (D28)
 
-Under the adopted D28, `⊑cast` (§10.2) may grant.  The explanation is
-struck through because 🆕 **D31** would remove grants.
+Under D28, `⊑cast` could grant.  D31 (adopted 2026-10-09) removed
+grants; the explanation is kept, struck through, as history.
 
 ~~A right check GRANTS (D28): every value that leaves the right's cast
 value through `p′` is checked against the right type variable bound to
@@ -2107,14 +1966,14 @@ and `Λ⊑` pops it.  The left stays the ∀-value: no `inst_X` appears in
 the relation, and under a pending type variable the left term is a
 value.
 
-🆕 **D31**: the push creates an opening in the index (`PushD`), the
-carry is `CarriedS`, the pass is `BdyOpen` (and `co-∀` at a left
-`∀`-cast), and the pop is `Λ⊑`'s join or a gen layer's `co-gen`.  The
-world itself changes only at the join.
+Under D31 (adopted): the push creates an opening in the index
+(`Push`, `NewSlot`), the carry is `Carried`, the pass is `BdyOpen` (and
+`co-∀` at a left `∀`-cast), and the pop is `Λ⊑`'s join or a gen layer's
+`co-gen`.  The world itself changes only at the join.
 
 ### C6.5 R1 and counterexample C5
 
-R1 (D28; 🆕 **D31**: R1′, §10.5): the left's own seal `[−X^α] V ⟨−X⟩` relates to an arbitrary
+R1 (D28; under D31, R1′, §10.5): the left's own seal `[−X^α] V ⟨−X⟩` relates to an arbitrary
 right `★` value (the "payload view", P2), which is right when `X` is
 left-only, but not under a right check that permitted `α`'s partner:
 counterexample C5 relates `[+X^α] ([−X^α] 5 ⟨−X⟩) ⟨+X⟩` to
@@ -2124,12 +1983,13 @@ programs `(ΛY. λx:Y. x) [ℕ] 5` and `(ΛY. λx:★. (x : Y)) [ℕ] (5 : ★)`
 R1 and R2 are rule premises: no condition on worlds alone separates
 C5's hidden variant from P4 B3 (`PermissionsR.md` §1.4).
 
-### C6.6 K: the counterexample of D26, related by push, pass and pop
+### C6.6 K: the counterexample of D26, related by an opening, a pass and a join
 
 The counterexample of D26 is `(λf:∀X.X→X. f)(K[ℕ])` against
 `(λf:★→★. f)(K[ℕ])`, with `K = ΛY.ΛX.λx:X.x`.  After the right's `Inst`
-and `Merge`, its final pair `VL ⊑ RF` is related by a push, a pass and
-a pop.  Its ladder, generated by
+and `Merge`, its final pair `VL ⊑ RF` is related by an opening, a pass
+and a join (D31; under D27 the same derivation was a push, a pass and
+a pop of a pending type variable).  Its ladder, generated by
 `scripts/render_gtnf.sh 'impLadder VL⊑RF' …` (`examples/ImpLadder.agda`,
 where it is pinned):
 
@@ -2139,69 +1999,63 @@ W0 = the conclusion's world
   ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]
 W1 = Interior W0
   ⟨Y: ─ ⊑[X⊑X] Y^β │ X: ─ ⊑[X⊑X] X^α⟩
-  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]  πʷ = [Y^β]
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]
 W2 = Interior W1
   ⟨Y: ─ ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
-  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]  πʷ = [Y^β]
-W3 = Open1 W2: pop Y^β
+  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ, β:=★]
+W3 = Join1 W2: join Y^β
   ⟨Y: Y^β ⊑[X⊑X] Y^β │ X: X^α ⊑[X⊑X] X^α⟩
   ϱᵍ = {α⇔α}  ϱˡ = {β⇔β}  Ξᴸ = [α:=ℕ, β abst]  Ξᴿ = [α:=ℕ, β:=★]
 W   left term                       A        ηᴸA      ⊑                ηᴿA′  A′   right term
 ──  ──────────────────────────────  ───────  ───────  ───────────────  ────  ───  ────────────────────────
 W0  ─                               ∀X. X→X  ∀X. X→X  ∀X⊑★. X⊑★ → X⊑★  ★→★   ★→★  □⟨id(★) → id(★)⟩^[]
-W0  ─ (push Y^β)                    ∀X. X→X  ∀X. X→X  ∀X⊑★. X⊑★ → X⊑★  ★→★   ★→★  [+Y^β, +X^α] □ ⟨−Y → +Y⟩
+W0  ─ (open Y^β)                    ∀X. X→X  ∀X. X→X  ∀X⊑★. X⊑★ → X⊑★  ★→★   ★→★  [+Y^β, +X^α] □ ⟨−Y → +Y⟩
 W1  [+X^α] □ ⟨∀Y. (id(Y) → id(Y))⟩  ∀X. X→X  Y→Y      Y⊑Y → Y⊑Y        Y→Y   Y→Y  ─ (pass Y^β)
-W2  ΛY. □                           ∀Y. Y→Y  Y→Y      Y⊑Y → Y⊑Y        Y→Y   Y→Y  ─ (pop Y^β)
+W2  ΛY. □                           ∀Y. Y→Y  Y→Y      Y⊑Y → Y⊑Y        Y→Y   Y→Y  ─ (join Y^β)
 W3  λx:Y. □                         Y→Y      Y→Y      Y⊑Y → Y⊑Y        Y→Y   Y→Y  λx:Y. □
 W3  x                               Y        Y        Y⊑Y              Y     Y    x
 ```
 
-The push is a choice: the rule does not say which introduced type
-variables to push, and the index decides (`PendingOpenings.md` §6).  No
-permission appears: the pending `Y` is `X⊑X` (D28).  🆕 **D31**: the
-same derivation with `K = []` at every boundary (`CorpusA.VL⊑RF`).
+The opening is a choice: the rule does not say which introduced type
+variables to open, and the index decides (`PendingOpenings.md` §6).  No
+permission appears: the opened `Y` is `X⊑X`, and every boundary has
+`K = []`.
 
-### C6.7 A grant: P4's block B3
+### C6.7 A permitting boundary: P4's block B3
 
-🆕 **D31**: in the ladder below (generated from the D28 Agda), the
-permission for `αᴿ` would come from the outer matched boundary `W0 →
-W1`, which joins `X` and pays `X ⊑ X` there (`K = [αᴿ]`), instead of
-the grant at `W1 → W2`; the rows below `W2` are unchanged
-(`CorpusB.p4-B3` in `notes/D28pD30.agda`).
-
-A grant (D28), P4's block B3 (`p4-B3`, pinned in
-`examples/ImpLadder.agda`): the right's check `X?` grants `αᴿ`, so
-inside it the shared `X` is `X⊑★` (W2), stays `X⊑★` as a left-only type
-variable inside the right's `−X` (W3), and the matched seals `S ⊑ S`
-relate at the index `X ⊑ X` under the grant:
+P4's block B3 (`p4-B3`, pinned in `examples/ImpLadder.agda`).  The
+matched TyBeta boundary `+X ∥ +X` joins `X` (its fresh pair, through
+`ϱᵍ`), PERMITS `αᴿ` for its interior and pays with its interior index
+`X ⊑ X` (W1 = `Interior W0 +κ {α}`).  So inside it the shared `X` is
+`X⊑★`; the right's check `X?` is a plain `⊑cast`; `X` stays `X⊑★` as a
+left-only type variable inside the right's `−X` (W2); and the matched
+seals `S ⊑ S` relate at the index `X ⊑ X`.  (Under D28 the permission
+came from a grant at the check, `W1 grant X^α`; history: §C6.2, §C12.)
 
 ```
 W0 = the conclusion's world
   ⟨⟩
   ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]
-W1 = Interior W0
-  ⟨X: X^α ⊑[X⊑X] X^α⟩
-  ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]
-W2 = W1 grant X^α
+W1 = Interior W0 +κ {α}, pays X⊑X
   ⟨X: X^α ⊑[X⊑★] X^α⟩
   ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]  κʷ = {α}
-W3 = Interior W2
+W2 = Interior W1
   ⟨X: X^α ⊑[X⊑★] ─⟩
   ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]  κʷ = {α}
-W4 = Interior W2
+W3 = Interior W1
   ⟨⟩
   ϱᵍ = {α⇔α}  ϱˡ = {}  Ξᴸ = [α:=ℕ]  Ξᴿ = [α:=ℕ]  κʷ = {α}
 W   left term        A    ηᴸA  ⊑          ηᴿA′  A′   right term
 ──  ───────────────  ───  ───  ─────────  ────  ───  ────────────────────────
-W0  [+X^α] □ ⟨+X⟩    ℕ    ℕ    ℕ⊑ℕ        ℕ     ℕ    [+X^α] □ ⟨+X⟩
-W1  ─ (grant X^α)    X    X    X⊑X        X     X    □⟨X?ℓ0⟩^[X:★∼X]
-W2  □₁ □₂            X    X    X⊑★        ★     ★    □₁ □₂
-W2  ├ ─              X→X  X→X  X⊑★ → X⊑★  ★→★   ★→★  [−X^α] □ ⟨id(★) → id(★)⟩
-W3  │ λx:X. □        X→X  X→X  X⊑★ → X⊑★  ★→★   ★→★  λx:★. □
-W3  │ x              X    X    X⊑★        ★     ★    x
-W2  └ ─              X    X    X⊑★        ★     ★    □⟨X!⟩^[X:X∼★]
-W2    [−X^α] □ ⟨−X⟩  X    X    X⊑X        X     X    [−X^α] □ ⟨−X⟩
-W4    5              ℕ    ℕ    ℕ⊑ℕ        ℕ     ℕ    5
+W0  [+X^α] □ ⟨+X⟩    ℕ    ℕ    ℕ⊑ℕ        ℕ     ℕ    [+X^α] □ ⟨+X⟩ (permit α)
+W1  ─                X    X    X⊑X        X     X    □⟨X?ℓ0⟩^[X:★∼X]
+W1  □₁ □₂            X    X    X⊑★        ★     ★    □₁ □₂
+W1  ├ ─              X→X  X→X  X⊑★ → X⊑★  ★→★   ★→★  [−X^α] □ ⟨id(★) → id(★)⟩
+W2  │ λx:X. □        X→X  X→X  X⊑★ → X⊑★  ★→★   ★→★  λx:★. □
+W2  │ x              X    X    X⊑★        ★     ★    x
+W1  └ ─              X    X    X⊑★        ★     ★    □⟨X!⟩^[X:X∼★]
+W1    [−X^α] □ ⟨−X⟩  X    X    X⊑X        X     X    [−X^α] □ ⟨−X⟩
+W3    5              ℕ    ℕ    ℕ⊑ℕ        ℕ     ℕ    5
 ```
 
 ### C6.8 The `★` clauses of conversion imprecision
@@ -2427,7 +2281,7 @@ The counterexamples C1–C5 that motivated D28 are presented
 from their source programs in
 `agda/proof/DGG/notes/ConditionPlacement.md` §3.
 
-### C8.1 Open: left values built by `gen` (TwoGen)
+### C8.1 Left values built by `gen` (TwoGen; resolved by D31)
 
 Status (2026-10-06): a known defect of §10 and a proposed fix, checked
 in `proof/DGG/notes/TwoGen.agda` (`.md`); the fix is not adopted.  Each
@@ -2436,7 +2290,7 @@ terms, its left is a value, and the right's final value is related to
 it by no derivation of §10 in any top-level world.  So each is a
 counterexample to DGG part 1 (`*.not-dgg : ¬ DGG`).
 
-🆕 **D31** subsumes the fix below: (i) is not needed (the permission
+D31 (adopted 2026-10-09) subsumes the fix below: (i) is not needed (the permission
 of an opening sits at `⊑⟪⟫`), (ii) is `CastOpen` (§10.2), and (iii)
 is the skip slot of the index (§9, §10.5).  D31 relates all seven
 final pairs, with DGG part 1 witnesses (§C9.2).
@@ -2874,14 +2728,16 @@ what is dropped in between, each on a concrete pair from related source
 programs.  Every dropped invariant becomes world data created at the
 step and read at a binding rule.
 
-### C9.2 🆕 D31: D28′ + D30 combined
+### C9.2 D31: D28′ + D30 combined
 
-Status: PROPOSED 2026-10-09 (Jeremy approved the write-up); not
-adopted.  The rule set is checked in
+Status: ADOPTED 2026-10-09 (§C12).  It was checked first in
 `agda/proof/DGG/notes/D28pD30.agda` (`.md`), a local variant
-`_∣_⊢_⊑ᴰ_∶[_]_` of `TermImprecision`; the main Agda and
-`Imprecision.agda` are unchanged.  The changed definitions are marked
-🆕 **D31** in §9 and §10 (§10.2, §10.3, §10.5, §10.7).  D31 is the two
+`_∣_⊢_⊑ᴰ_∶[_]_` of `TermImprecision` (that notes file is now
+superseded and no longer checks: it imports the D27/D28 relation); the
+main Agda now has it (`ImprecisionWorld.agda`, `TermImprecision.agda`;
+`Imprecision.agda` unchanged), and its definitions are §9 and §10
+(§10.2, §10.3, §10.5, §10.7).  The text below is the rationale as
+written for the proposal.  D31 is the two
 earlier proposals D28′ (permissions chosen at joining binders,
 2026-10-07) and D30 (openings in the index, 2026-10-08), checked
 together, with three adjustments.
@@ -3536,8 +3392,23 @@ Each one can be revisited on its own.
   variables its `δ′` binds (D27's push).  (Jeremy, 2026-10-07/08: the
   world changes only at binders, and a `gen` binder's scope contains
   no term.)
-- 🆕 **D31** **(PROPOSED 2026-10-09, not adopted: D28′ + D30
-  combined, with three adjustments).**  The world has no `π` and no
+- **D31** **(ADOPTED 2026-10-09: D28′ + D30 combined, with three
+  adjustments; proposed the same day).**  Supersedes, of D27: the
+  pending list `πʷ` in the world, `PendingOK` and the pending part of
+  `WfWorld`, the push/pop forms of `⊑⟪⟫`, `Λ⊑` (`Open1`) and `cast⊑`
+  (`CastClaim`), `BdyClaim`, and the `πʷ W ≡ []` hypotheses of the
+  theorems; of D28: grants (`CastGrant`, `Grants`, `FirstOrder`,
+  `RaiseCtx`; a right check no longer permits) and R1, which becomes
+  R1′.  D28's derived marks, `κʷ`, R2 and `κʷ W ≡ []` at top-level
+  worlds stay; D29's claim-rep stays (`Bind`'s `b-rep`).  In the main
+  Agda: `ImprecisionWorld.agda` (`Slot`, `OpenO`, `_⊑ᵂ⟨_⟩[_]_`,
+  `_+κ_`, `Join1`, `JoinRep`, `SlotOK`, `UnbindOK W A`),
+  `TermImprecision.agda` (`_∣_⊢_⊑_∶[_]_`, `Bind`, `CastOpen`,
+  `BdyOpen`, `Push` with `Carried`, `NewSlot`, `Fill`), the examples
+  ported (grant users re-derived with the permission on the enclosing
+  joining boundary; C1–C5, C4g re-proved dead; new regression module
+  `examples/TermImprecisionD31Examples.agda`).  The proposal as
+  written: The world has no `π` and no
   grants; `κ` changes only at boundary rules.  The index is
   `A ⊑_W^O A′`, `O` a list of slots: a slot opens the next left outer
   `∀` at a right type variable, or skips it (left-only, `X⊑★`).  15
@@ -3610,8 +3481,8 @@ is now.  D-numbers are unchanged.
 | §12.2.1 | sketch: allocation hands the ν invariants to the world | §C9.1 |
 | §12.3 | rules | §10 (10.1–10.7); grants §C6.2; claim-rep and H1 §C6.3; push §C6.4; R1 and C5 §C6.5; K ladder §C6.6; P4 B3 ladder §C6.7; ★ conversion clauses §C6.8; D28′ rationale §C9.2 (now D31) |
 | §12.3.1 | TwoGen | §C8.1 |
-| §12.3.2 | D30 proposal | 🆕 D31 marks in §9, §10.2–§10.7 (changed rules); §C9.2 (rationale) |
-| §10.8, §C9.3 (2026-10-08) | D30 proposal | 🆕 D31 marks in §9, §10.2–§10.7; §C9.2 |
+| §12.3.2 | D30 proposal | D31 (adopted): §9, §10.2–§10.7 (rules); §C9.2 (rationale) |
+| §10.8, §C9.3 (2026-10-08) | D30 proposal | D31 (adopted): §9, §10.2–§10.7; §C9.2 |
 | §C9.2 (2026-10-08) | D28′ rationale | §C9.2 (D31) |
 | §12.4 | Examples P1–P6 | §C7 |
 | §12.5 | what the examples say | §C8.2 |

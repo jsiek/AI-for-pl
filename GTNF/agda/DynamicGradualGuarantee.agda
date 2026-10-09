@@ -10,9 +10,9 @@ module DynamicGradualGuarantee where
 --   * TYPES DO NOT CHANGE ALONG A RUN: GTNF's types are name-indexed and
 --     an allocation renames only rep. vars, so the final values are
 --     related at the original types `A ⊑ A′`, at some well-formed world
---     over the two runs' final contexts (`runCtx`) with no pending name
---     (`πʷ W ≡ []`, design.md D27) and no permission (`κʷ W ≡ []`,
---     D28); `∅ʷ` has neither.
+--     over the two runs' final contexts (`runCtx`), with no permission
+--     (`κʷ W ≡ []`, design.md D28, D31) and no slot (the index
+--     `A ⊑ᵂ⟨ W ⟩ A′` has O = [], D31); `∅ʷ` has no permission.
 --   * STATEMENT ONLY.  The proof is proof/DGG/DynamicGradualGuarantee*;
 --     when it is finished, this module gains the thin wrapper
 --     `dgg : DGG`.  Deferred: the source-level guarantee, a corollary
@@ -29,7 +29,7 @@ open import Ctx using (empty)
 open import Coercion using (Label)
 open import Terms using (Term; Value; blame)
 open import Reduction using (_⊢_-→_∣_; _⊢_-→*_; runCtx)
-open import ImprecisionWorld using (World; πʷ; κʷ; ∅ʷ; WfWorld; _⊑ᵂ⟨_⟩_)
+open import ImprecisionWorld using (World; κʷ; ∅ʷ; WfWorld; _⊑ᵂ⟨_⟩_)
 open import TermImprecision using (_∣_⊢_⊑_∶_)
 
 ------------------------------------------------------------------------
@@ -51,12 +51,12 @@ DivergeOrBlame M =
   → (∃[ ℓ ] (N ≡ blame ℓ)) ⊎ (∃[ N′ ] ∃[ ξ ] (runCtx r ⊢ N -→ N′ ∣ ξ))
 
 -- two final values related at the original types, at some well-formed
--- world over the two runs' final contexts, with no pending name and no
--- permission (design.md D27, D28)
+-- world over the two runs' final contexts, with no permission and no
+-- slot (design.md D28, D31)
 RelatedValues : ∀ {M M′ V V′} (A A′ : Ty)
   → empty ⊢ M -→* V → empty ⊢ M′ -→* V′ → Set
 RelatedValues {V = V} {V′} A A′ r r′ =
-  Σ[ W ∈ World (runCtx r) (runCtx r′) ] WfWorld W × πʷ W ≡ [] × κʷ W ≡ []
+  Σ[ W ∈ World (runCtx r) (runCtx r′) ] WfWorld W × κʷ W ≡ []
     × Σ[ q ∈ A ⊑ᵂ⟨ W ⟩ A′ ] (W ∣ [] ⊢ V ⊑ V′ ∶ q)
 
 ------------------------------------------------------------------------

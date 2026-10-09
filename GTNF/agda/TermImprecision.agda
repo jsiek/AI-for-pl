@@ -1,130 +1,102 @@
 module TermImprecision where
 
 -- File Charter:
---   * CAST-TERM IMPRECISION `W ∣ γ ⊢ M ⊑ M′ ∶ p` (GTNF/design.md §12.3,
---     with D12-D16, D27, D28 and D29), over the worlds `World` of
+--   * CAST-TERM IMPRECISION `W ∣ γ ⊢ M ⊑ M′ ∶[ O ] p` (GTNF/design.md
+--     §10, with D12-D16, D28, D29 and D31), over the worlds `World` of
 --     ImprecisionWorld.  M is the MORE precise (left) term, typed on
---     `Δ`; M′ the right one, typed on `Δ′`; `p : A ⊑ᵂ⟨ W ⟩ A′` relates
---     their types (GTSFImp's index shape, `_∣_⊢²_⊑_∶_`).  §1 the
---     side-premise bundles `Lit`, `CastTy`, `NuTy`, `BdyTy` (each is
---     exactly the premises of the corresponding typing rule of Terms,
---     minus the subterm), with their reassembly into a typing; §2 the
---     pending-name side relations (`Claim`, `CastClaim`, `BdyClaim`,
---     `Push`), the grants (`FirstOrder`, `Grants`, `CastGrant`) and
---     the relation, with `⊑cast₀` (no grant) and `⊑cast!` (a grant at
---     γ = []).
---   * PERMISSIONS (design.md D28; Jeremy, 2026-10-05; checked first as
---     proof/DGG/notes/Permissions.agda and PermissionsR.agda).  The
---     marks of the index are derived from the world's permitted right
---     rep. vars κʷ (ImprecisionWorld §1, §3).  Three rules read κ:
---     - `⊑cast` GRANTS: when the right coercion checks every value
---       leaving the cast value against the name of β (`Grants`: `X?`,
---       `X? ︔ p`, or an arrow `p ↦ q` with `p` first order and `q`
---       granting), the premise world may permit β (`CastGrant`); γ
---       moves along (`RaiseCtx`).  A grant covers the whole premise.
---     - R1: `⟪⟫⊑` takes `All (UnbindOK W) Θ`: every left unbind entry
---       of its boundary names a rep. var with no permitted right
---       partner (`Unpermitted`).  The left's own seal may face an
---       arbitrary right ★ value only where no right check of that rep.
---       var's partner is above (counterexample C5, PermissionsR.md §3).
---     - R2 is on the ★ conversion clauses (ConversionImprecision).
---     R1 and R2 are RULE premises: worlds alone cannot separate C5's
---     hidden variant from P4 B3 (PermissionsR.md §1.4).  Left casts,
---     `cast⊑cast`, right hides and boundaries grant nothing.
---   * THE RULES, design.md §12.3 as updated by D14 and D27, one
---     constructor each: congruence `x⊑x`, `κ⊑κ` (the literals `$ n`, `true`,
---     `false`, one rule through `Lit`), `ƛ⊑ƛ`, `·⊑·`; `blame⊑`;
---     `cast⊑cast`, `cast⊑`, `⊑cast`; `Λ⊑Λ`, `Λ⊑`; `ν⊑ν`, `ν⊑`;
---     `⟪⟫⊑⟪⟫`, `⟪⟫⊑`, `⊑⟪⟫`.  15 rules: §12.3's 17 minus `⊕⊑⊕`, since
---     GTNF has no binary operators yet, and minus `∀⊑⟪+⟫`, removed by
---     design.md D26.
---   * CLAIM-REP (design.md D29; Jeremy, 2026-10-06; checked first as
---     proof/DGG/notes/PushOrder.agda fix (c2)).  `Λ⊑`'s `Claim` has a
---     third case, `claim-rep`: with nothing pending, the left binder
---     pairs its abstract rep. var lexically with an unnamed right ★
---     rep. var β (`W ⊕ᴸ⇔ β`); the right boundary that later names β
---     rejoins it by `Interior.join-fresh` (D25).  It relates a left
---     ∀-value to a right value whose boundaries name the instantiations
---     in the opposite order (H1, examples/TermImprecisionH1Examples),
---     which no push order can (PushOrder.md §2).  Under D28's derived
---     marks the rejoined name is X⊑X unless β is permitted, so C4 and
---     C4g stay dead (examples/TermImprecisionPermissionExamples).
---   * PENDING NAMES IN THE WORLD (design.md D27; Jeremy, 2026-10-05;
---     replaces D26's `Opens`).  The pending right names are the field
---     `πʷ` of the world (ImprecisionWorld §3), next pop first.  The
---     index `A ⊑ᵂ⟨ W ⟩ A′` reads the ACTUAL left type A and opens one
---     `∀` per pending name; at `πʷ W = []` it is the plain
---     `marksʷ W ⊢ embᴸ W A ⊑ embᴿ W A′`.  Four rules
---     handle pending names (§2): `⊑⟪⟫` PUSHES right-only names that
---     its boundary introduces (`Push`; the left must be a value) and
---     carries the older ones through its boundary; `Λ⊑` POPS the head
---     name (`Claim`: `claim-pop` joins the left binder to it by
---     `Open1`); `cast⊑` passes them through a `∀ᵖ` cast or pops the
---     last one at a `genᵖ` cast (`CastClaim`); `⟪⟫⊑` passes them into a
---     ∀-boundary (`BdyClaim`).  `⊑cast` carries them; every other rule
---     is stated at a world in constructor form with `πʷ = []`.  The side
---     relations read only the `πʷ` of their worlds (`Push Θ′ M (πʷ W)
---     (πʷ Wᵢ)`); `cast⊑`'s premise world is `record W { πʷ = πₚ }`, at
---     which `CtxImp` (center and embeddings only) is `CtxImp W`, so its
---     γ is reused with no transport.  No `InstX` in the relation, and
---     the left term stays a value under a pending name.  Type
---     imprecision is unchanged.  Checked first as a local copy:
---     proof/DGG/notes/PendingOpenings.{agda,md}.
---   * HISTORY.  Before D26 a separate rule `∀⊑⟪+⟫` (D14, with D22's side
---     conditions) related a left ∀-value V to the right boundary
---     `[+X^β] V′ ⟨c′⟩` that `Inst` creates, with premise
---     `W ⊕⁺ m ^ β ∣ [] ⊢ N ⊑ V′` for `InstX V N`.  Its right boundary
---     was `bind 0 β ∷ []`: `Inst`'s ν leaves `inst [] = bind 0 0 ∷ []` by
---     `TyBeta`, and a sibling shift renumbers only the rep. var
---     (`renᴮᴿ`).  It failed at a Merge of that boundary with an inner
---     one (proof/DGG/notes/RestrictedForallBoundary.agda); D26 replaces
---     it by the openings of `⊑⟪⟫` (`Opens`: zero or more openings of
---     the left ∀-value, each relating `inst_X V` at an opened world).
---     D27 replaced `Opens` by pending names: `Opens` related the
---     ★-embedding counterexample (proof/DGG/notes/StarEmbedding.md is
---     the alternative D27 rejected), and its openings related InstX
---     images, which are not values.
+--     `Δ`; M′ the right one, typed on `Δ′`; `p : A ⊑ᵂ⟨ W ⟩[ O ] A′`
+--     relates their types, the left type opened at the SLOTS O
+--     (ImprecisionWorld §4; GTSFImp's index shape, `_∣_⊢²_⊑_∶_`).
+--     `W ∣ γ ⊢ M ⊑ M′ ∶ p` is the O = [] case, the form of every
+--     top-level statement.  §1 the side-premise bundles `Lit`,
+--     `CastTy`, `NuTy`, `BdyTy` (each is exactly the premises of the
+--     corresponding typing rule of Terms, minus the subterm), with their
+--     reassembly into a typing; §2 the slot side relations (`Bind`,
+--     `CastOpen`, `BdyOpen`, `Carried`, `NewSlot`, `Fill`, `Push`) and
+--     the relation.
+--   * THE INDEX CARRIES THE OPENINGS (design.md D31, adopted
+--     2026-10-09; checked first as proof/DGG/notes/D28pD30.agda).  A
+--     slot `opn k` opens the next left ∀ at the right type variable k;
+--     a slot `skp` skips it (left-only, X⊑★).  Only `⊑⟪⟫` creates slots
+--     (`Push`: openings of type variables its boundary introduces, and
+--     skips, only for a left gen-cast value; a new opening may FILL a
+--     carried skip); only `Λ⊑` consumes one by changing the world
+--     (`Bind`, `b-join`: the left binder joins the opening, `Join1`);
+--     `cast⊑` passes or consumes them along the coercion's binder
+--     layers, with no world change (`CastOpen`: a ∀ layer passes its
+--     slot to the cast value, a gen layer consumes its slot); `⟪⟫⊑`
+--     passes them into a ∀-boundary (`BdyOpen`).  `⊑cast` keeps them;
+--     every other rule is at O = [].
+--   * PERMISSIONS ARE CHOSEN AT JOINING BOUNDARIES (design.md D31;
+--     history: D28's grants at right checks).  Each boundary rule may add
+--     to κ, for its interior only, the right rep. vars K of type
+--     variables it JOINS (`All (JoinRep …) K`; the premise world is
+--     `Wᵢ +κ K`), and pays with its interior index read at Wᵢ, WITHOUT
+--     K (`pay`, "the join pays").  No cast rule changes the world.
+--     - R1′: `⟪⟫⊑` takes `All (UnbindOK W A) Θ`, A its exterior type:
+--       a left unbind whose rep. var's type variable occurs in A (a
+--       seal) needs α unpermitted (R1, counterexample C5); a pure hide
+--       needs nothing (P4h).
+--     - R2 is on the ★ conversion clauses (ConversionImprecision),
+--       read in the EXTERIOR conversion world (unchanged by K).
+--   * THE RULES, design.md §10, one constructor each: congruence `x⊑x`,
+--     `κ⊑κ` (the literals `$ n`, `true`, `false`, one rule through
+--     `Lit`), `ƛ⊑ƛ`, `·⊑·`; `blame⊑`; `cast⊑cast`, `cast⊑`, `⊑cast`;
+--     `Λ⊑Λ`, `Λ⊑`; `ν⊑ν`, `ν⊑`; `⟪⟫⊑⟪⟫`, `⟪⟫⊑`, `⊑⟪⟫`.  15 rules:
+--     GTSFImp's 17 minus `⊕⊑⊕` (GTNF has no binary operators yet) and
+--     minus `∀⊑⟪+⟫` (removed by D26).
+--   * CLAIM-REP (design.md D29).  `Λ⊑`'s `Bind` has a third case,
+--     `b-rep`: with no slot, the left binder pairs its abstract rep. var
+--     lexically with an unnamed right ★ rep. var β (`W ⊕ᴸ⇔ β`); the
+--     right boundary that later binds a type variable to β rejoins it
+--     by `Interior.join-fresh` (D25).  It relates a left ∀-value to a
+--     right value whose boundaries instantiate in the opposite order
+--     (H1).
 --   * COERCIONS ARE NOT COMPARED.  Each is typed on its own side under
 --     the mode environment its cast carries (`CastTy`, as `⊢cast`).
 --     In contrast, D17 compares the two conversions of `ν⊑ν` and
---     `⟪⟫⊑⟪⟫` structurally.  `NuConversionImp` reads them in the two
---     `TyBetaBoundary` conversion contexts, with the ν-bound rep. vars
---     paired lexically.  `BdyConversionImp` reads them in the two
---     boundary conversion contexts.  One-sided rules still type their
---     sole conversion but have no conversion-imprecision premise.
+--     `⟪⟫⊑⟪⟫` structurally (`NuConversionImp`, `BdyConversionImp`, in
+--     the exterior world).  One-sided rules still type their sole
+--     conversion but have no conversion-imprecision premise.
 --   * EXPLICIT CONCLUSION PROOFS.  As in GTSFImp, a rule whose
 --     conclusion type is not built from its premises' proofs by a
 --     constructor takes that proof `q` as an argument: `emb` under a
 --     binder is only extensionally `extᵗ`, so `∀⊑∀`-style proofs cannot
 --     be computed from the premise's.
 --   * TYPING SIDE PREMISES.  Both typings `Δ ∣ lhs γ ⊢ M ⦂ A` and
---     `Δ′ ∣ rhs γ ⊢ M′ ⦂ A′` are meant to follow from a derivation (not
---     proved here).  The premises that serve that purpose only:
+--     `Δ′ ∣ rhs γ ⊢ M′ ⦂ A′` follow from a derivation
+--     (proof/DGG/ImprecisionTyping), at the ACTUAL left type A whatever
+--     the slots.  The premises that serve that purpose only:
 --     - `ƛ⊑ƛ`: the two annotations' `_⊢ᵗ_` (for `⊢ƛ`);
 --     - `blame⊑`: `Δ ⊢ᵗ A` (for `⊢blame`) and the whole right typing;
 --     - the cast rules: `CastTy` (for `⊢cast`);
---     - `Λ⊑Λ`, `Λ⊑`: `Value` of the bodies (for `⊢Λ`'s value restriction);
+--     - `Λ⊑Λ`, `Λ⊑`: `Value` of the bodies (for `⊢Λ`'s value
+--       restriction);
 --     - `ν⊑ν`, `ν⊑`: `NuTy` (for `⊢ν`);
---     - the boundary rules: `BdyTy` (for `boundary`);
---     A premise at `γ = []` (boundary interiors) yields its
---     typing at `[]`; the conclusion's at `lhs γ`/`rhs γ` then needs the
---     standard weakening of a term-closed term.
+--     - the boundary rules: `BdyTy` (for `boundary`).
 --   * DE BRUIJN READINGS.
 --     - `ν X:=A.(L X)⟨c⟩` is Terms' `ν A · L ⟨ c ⟩`.
---     - a pending name's "β:=★" is `Δ′ ∋rep β := ★` (`PendingOK`); the
---       pop of name 0 of `W ⊕ʳ^ β` has premise world `W ⊕⁺^ β`
---       (`open-⊕`).
---   * DEVIATION from design.md §12.3 (also in the report):
+--     - an opening's "β:=★" is `Δ′ ∋rep β := ★` (`OpeningOK`); the join
+--       of type variable 0 of `W ⊕ʳ^ β` has premise world `W ⊕⁺^ β`
+--       (`join-⊕`).
+--   * DEVIATION from design.md §10 (also in the report):
 --     - `Λ⊑` does not repeat the right term's typing (GTSFImp's `Λ⊑²`
 --       does): the premise already types M′ on the unchanged `Δ′` and
 --       `rhs γ′ = rhs γ`.
+--   * HISTORY (design.md §C12).  D26 replaced GTSFImp's `∀⊑⟪+⟫` by
+--     openings of `⊑⟪⟫`; D27 kept them as a pending list in the world,
+--     popped by `Λ⊑` and gen casts; D28 added grants (`⊑cast` permitted
+--     β under a right check of β's type variable); D31 replaced both:
+--     the openings are slots of the index, and permissions are chosen
+--     at joining boundaries.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_; _++_; length)
 open import Data.List.Relation.Unary.All using (All; [])
+open import Data.List.Relation.Unary.AllPairs using (AllPairs; [])
 open import Data.Maybe using (just)
 open import Data.Product using (Σ-syntax; _×_; _,_)
-open import Data.Sum using (_⊎_; inj₁)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Relation.Nullary using (¬_)
 
@@ -134,8 +106,7 @@ open import Conversion using (Conv; _⊢_∶_⇝_; ⌞_⌟; Mid; `∀)
 open import Boundary
   using (Boundary; Change; bind; BoundaryWf; TyBetaBoundary; Fresh; toExt)
 open import Coercion
-  using (Coercion; ModeEnv; _∣_⊢ᵖ_∶_⟹_; NonVar; _∈ᵗ_; ∀ᵖ_; genᵖ_;
-         idᵖ; _!; _？_; _？_︔_; _↦ᵖ_)
+  using (Coercion; ModeEnv; _∣_⊢ᵖ_∶_⟹_; NonVar; _∈ᵗ_; ∀ᵖ_; genᵖ_)
 open import Terms
 open import Imprecision using (⇒⊑⇒)
 open import ImprecisionWorld
@@ -249,324 +220,327 @@ cast-inv (⊢cast ⊢M ⊢p len) = _ , ⊢M , cast-ty ⊢p len
   _ , _ , ⊢M , bdy-ty mw ⊢c eqᵢ eqₑ wB
 
 ------------------------------------------------------------------------
--- 2. Pending names (design.md D27) and the relation
+-- 2. Slots (design.md D31) and the relation
 ------------------------------------------------------------------------
 
--- `Λ⊑`'s binder: a fresh left-only name (no pending name); the POP of
--- the head pending name k (`Open1`, ImprecisionWorld §5: the left
--- binder joins the right name k; its abstract rep. var is paired
--- lexically with k's β:=★); or (design.md D29) a fresh left-only name
--- whose abstract rep. var CLAIMS an unnamed right ★ rep. var β
--- (`W ⊕ᴸ⇔ β`, no pending name): β has no right name in scope and no
--- named left partner, and the right boundary that later names β
--- rejoins the binder (`Interior.join-fresh`, D25)
-data Claim : World Δ Δ′ → World (underΛ Δ) Δ′ → Set where
-  claim-fresh : ∀ {Ω ϱᵍ ϱˡ κ} {ηᴸ : names Δ ↪ Ω} {ηᴿ : names Δ′ ↪ Ω}
-    → let W = world {Δ} {Δ′} Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in Claim W (W ⊕ᴸ)
-  claim-pop   : ∀ {W : World Δ Δ′} {W₁ : World (underΛ Δ) Δ′}
-    → Open1 W W₁ → Claim W W₁
-  claim-rep   : ∀ {Ω ϱᵍ ϱˡ κ β} {ηᴸ : names Δ ↪ Ω} {ηᴿ : names Δ′ ↪ Ω}
-    → let W = world {Δ} {Δ′} Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
-      Δ′ ∋rep β := ★
+-- `Λ⊑`'s binder (conclusion slots, premise slots): fresh and left-only
+-- (no slot); the JOIN of the next opening k (`Join1`, ImprecisionWorld
+-- §5: the left binder joins the right type variable k; its abstract
+-- rep. var is paired lexically with k's β:=★); or (design.md D29)
+-- claim-rep, a fresh left-only binder whose abstract rep. var claims an
+-- unnamed right ★ rep. var β (`W ⊕ᴸ⇔ β`, no slot): no right type
+-- variable in scope is bound to β and β has no left partner bound to a
+-- type variable; the right boundary that later binds a type variable to
+-- β rejoins the binder (`Interior.join-fresh`, D25)
+data Bind {Δ Δ′ : Ctxᵗ}
+    : World Δ Δ′ → List Slot → World (underΛ Δ) Δ′ → List Slot → Set where
+  b-fresh : ∀ {W} → Bind W [] (W ⊕ᴸ) []
+  b-join  : ∀ {W W₁ k O} → Join1 W k W₁ → Bind W (opn k ∷ O) W₁ O
+  b-rep   : ∀ {W β}
+    → Δ′ ∋rep β := ★
     → ¬ (names Δ′ ∋ᵅ β)
     → NoNamedPartner W β
-    → Claim W (W ⊕ᴸ⇔ β)
+    → Bind W [] (W ⊕ᴸ⇔ β) []
 
--- `cast⊑`'s pending names (conclusion π, premise πₚ): none; or a `∀ᵖ`
--- layer passes them to the cast value (as InstX's `inst-∀`); or a
--- `genᵖ` layer pops the LAST pending name (as InstX's `inst-gen`: the
--- value under a gen does not see the binder, so its premise has none).
--- One gen pops one name: `inst-gen`'s result is no value, so InstX
--- cannot open a second gen layer either.
-data CastClaim (M : Term) : Coercion → List ℕ → List ℕ → Set where
-  cc-plain : ∀ {c} → CastClaim M c [] []
-  cc-∀     : ∀ {c k π πₚ}
-    → Value M
-    → CastClaim M c π πₚ
-    → CastClaim M (∀ᵖ c) (k ∷ π) (k ∷ πₚ)
-  cc-gen   : ∀ {c k}
-    → Value M
-    → CastClaim M (genᵖ c) (k ∷ []) []
+-- `cast⊑`'s slots (conclusion, premise), along the coercion's binder
+-- layers: a `∀ᵖ` layer passes its slot to the cast value, a `genᵖ`
+-- layer consumes its slot (the value under a gen does not see the
+-- binder); every other cast has none.  Not `drop k O` (design.md D31:
+-- for `∀Y. gen Z. p` the slot of the ∀ layer must reach the value).
+data CastOpen (M : Term) : Coercion → List Slot → List Slot → Set where
+  co-plain : ∀ {c} → CastOpen M c [] []
+  co-∀     : ∀ {c s O Oₚ} → Value M → CastOpen M c O Oₚ
+    → CastOpen M (∀ᵖ c) (s ∷ O) (s ∷ Oₚ)
+  co-gen   : ∀ {c s O Oₚ} → Value M → CastOpen M c O Oₚ
+    → CastOpen M (genᵖ c) (s ∷ O) Oₚ
 
--- `ForallConv c π`: c has a `∀` layer for each name of π
-data ForallConv : Conv → List ℕ → Set where
+-- `ForallConv c O`: c has a `∀` layer for each slot of O
+data ForallConv : Conv → List Slot → Set where
   fc-[] : ∀ {c} → ForallConv c []
-  fc-∷  : ∀ {s k π} → ForallConv s π → ForallConv ⌞ `∀ s ⌟ (k ∷ π)
+  fc-∷  : ∀ {s c O} → ForallConv s O → ForallConv ⌞ `∀ s ⌟ (c ∷ O)
 
--- `⟪⟫⊑`'s pending names (conclusion, interior) pass into the left
--- boundary unchanged (they are RIGHT name positions, and the right
--- does not move) when the boundary is a ∀-value (as InstX's `inst-⟪⟫`)
-data BdyClaim (M : Term) (c : Conv) : List ℕ → List ℕ → Set where
-  bc-plain : BdyClaim M c [] []
-  bc-∀     : ∀ {k π}
-    → Simple M
-    → ForallConv c (k ∷ π)
-    → BdyClaim M c (k ∷ π) (k ∷ π)
+-- `⟪⟫⊑`'s slots pass into the left boundary unchanged (they are RIGHT
+-- positions, and the right does not move) when the boundary is a
+-- ∀-value (as InstX's `inst-⟪⟫`)
+data BdyOpen (M : Term) (c : Conv) : List Slot → Set where
+  bo-plain : BdyOpen M c []
+  bo-∀     : ∀ {s O} → Simple M → ForallConv c (s ∷ O) → BdyOpen M c (s ∷ O)
 
--- a pending name continues through Θ′ (k′ is its interior position)
-data Carried (Θ′ : Boundary) : List ℕ → List ℕ → Set where
-  ca-[] : Carried Θ′ [] []
-  ca-∷  : ∀ {k k′ π π′}
-    → toExt Θ′ k′ ≡ just k
-    → Carried Θ′ π π′
-    → Carried Θ′ (k ∷ π) (k′ ∷ π′)
+-- `⊑⟪⟫`: the carried slots (an opening continues through Θ′; k′ is its
+-- interior position; a skip continues) ...
+data Carried (Θ′ : Boundary) : List Slot → List Slot → Set where
+  ca-[]  : Carried Θ′ [] []
+  ca-opn : ∀ {k k′ O O′} → toExt Θ′ k′ ≡ just k → Carried Θ′ O O′
+    → Carried Θ′ (opn k ∷ O) (opn k′ ∷ O′)
+  ca-skp : ∀ {O O′} → Carried Θ′ O O′ → Carried Θ′ (skp ∷ O) (skp ∷ O′)
 
--- THE PUSH of `⊑⟪⟫` (conclusion π, interior): the carried names, then
--- new names that Θ′ introduces (`Fresh`); pushing needs a left value.
--- What a pending name is (bound to a ★ rep. var, right-only) is
--- `WfWorld` of the interior world (ImprecisionWorld §8); its mark is
--- derived from κ (design.md D28).
-data Push (Θ′ : Boundary) (M : Term) (π : List ℕ) : List ℕ → Set where
-  push : ∀ {π′ new}
-    → Carried Θ′ π π′
-    → All (Fresh Θ′) new
-    → (new ≡ [] ⊎ Value M)
-    → Push Θ′ M π (π′ ++ new)
+-- ... the new slots: an opening of a type variable Θ′ introduces, or a
+-- skip, only for a left gen-cast value (a value under a cast whose
+-- coercion has a gen layer under its ∀ layers) ...
+data GenLayer : Coercion → Set where
+  gl-gen : ∀ {c} → GenLayer (genᵖ c)
+  gl-∀   : ∀ {c} → GenLayer c → GenLayer (∀ᵖ c)
 
--- GRANTS (design.md D28).  A coercion through which nothing flows OUT
--- of the cast value.
-data FirstOrder : Coercion → Set where
-  fo-id : ∀ {A} → FirstOrder (idᵖ A)
-  fo-!  : ∀ {G} → FirstOrder (G !)
-  fo-?  : ∀ {G ℓ} → FirstOrder (G ？ ℓ)
+data GenCastValue : Term → Set where
+  gcv : ∀ {V μ c} → Value V → GenLayer c → GenCastValue (V ⟨ μ ∣ c ⟩)
 
--- `Grants Δ′ β c′`: every value that leaves the right's cast value
--- through c′ is checked against the name of rep. var β.  A check of X
--- (bound to β); an arrow whose codomain grants and whose domain is
--- first order (a covariant X? covers the contravariant X!, e.g. the
--- gen wrapper `X! → X?`).  C2's `X! → id(★)` grants nothing.
-data Grants (Δ′ : Ctxᵗ) (β : RVar) : Coercion → Set where
-  gr-?  : ∀ {X ℓ} → Δ′ ∋ᵗ X := β → Grants Δ′ β ((` X) ？ ℓ)
-  gr-?︔ : ∀ {X ℓ p} → Δ′ ∋ᵗ X := β → Grants Δ′ β ((` X) ？ ℓ ︔ p)
-  gr-↦  : ∀ {p q} → FirstOrder p → Grants Δ′ β q → Grants Δ′ β (p ↦ᵖ q)
+data NewSlot (Θ′ : Boundary) (M : Term) : Slot → Set where
+  ns-opn : ∀ {k} → Fresh Θ′ k → NewSlot Θ′ M (opn k)
+  ns-skp : GenCastValue M → NewSlot Θ′ M skp
 
--- `⊑cast`'s permissions (conclusion κ, premise κₚ): unchanged, or one
--- more rep. var that the right coercion grants
-data CastGrant (Δ′ : Ctxᵗ) (c′ : Coercion) (κ : List RVar)
-    : List RVar → Set where
-  no-grant : CastGrant Δ′ c′ κ κ
-  grant    : ∀ {β} → Grants Δ′ β c′ → CastGrant Δ′ c′ κ (β ∷ κ)
+-- ... merged: the carried slots keep their order; a new opening may
+-- FILL a carried skip (left to right); the remaining new slots go last
+-- (`Fill O′ N Oᵢ`, "fill O′ with N into Oᵢ")
+data Fill : List Slot → List Slot → List Slot → Set where
+  f-end  : ∀ {N} → Fill [] N N
+  f-keep : ∀ {s O N Oᵢ} → Fill O N Oᵢ → Fill (s ∷ O) N (s ∷ Oᵢ)
+  f-fill : ∀ {k O N Oᵢ} → Fill O N Oᵢ
+    → Fill (skp ∷ O) (opn k ∷ N) (opn k ∷ Oᵢ)
 
-infix 3 _∣_⊢_⊑_∶_
+-- THE PUSH of `⊑⟪⟫` (conclusion slots O, new slots N, interior slots
+-- Oᵢ); new slots need a left value
+data Push (Θ′ : Boundary) (M : Term) (O : List Slot)
+    : List Slot → List Slot → Set where
+  push : ∀ {O′ N Oᵢ}
+    → Carried Θ′ O O′
+    → Fill O′ N Oᵢ
+    → All (NewSlot Θ′ M) N
+    → (N ≡ [] ⊎ Value M)
+    → Push Θ′ M O N Oᵢ
 
--- The relation is INDEXED by the world (not parameterized).  The
--- structural rules are stated at a world in constructor form with no
--- pending name, `world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ []` (Ω the center, κ the
--- permissions, ImprecisionWorld §3), where the index `_⊑ᵂ⟨_⟩_`
--- computes to the plain `dmarks ηᴿ κ ⊢ … ⊑ …`;
--- the rules for pending names relate the `πʷ` of their worlds by
--- `Claim`, `CastClaim`, `BdyClaim`, `Push`.
-data _∣_⊢_⊑_∶_ {Δ Δ′ : Ctxᵗ}
-    : (W : World Δ Δ′) → CtxImp W → Term → Term
-    → {A A′ : Ty} → A ⊑ᵂ⟨ W ⟩ A′ → Set where
+infix 3 _∣_⊢_⊑_∶[_]_
+
+-- The relation is INDEXED by the world (not parameterized) and by the
+-- slots O of its index.
+data _∣_⊢_⊑_∶[_]_ {Δ Δ′ : Ctxᵗ}
+    : (W : World Δ Δ′) → CtxImp W → Term → Term → (O : List Slot)
+    → {A A′ : Ty} → A ⊑ᵂ⟨ W ⟩[ O ] A′ → Set where
 
   ----------------------------------------------------------------------
-  -- Congruence (GTSFImp x⊑x², κ⊑κ², ƛ⊑ƛ², ·⊑·²)
+  -- Congruence (GTSFImp x⊑x², κ⊑κ², ƛ⊑ƛ², ·⊑·²); no slot
 
-  x⊑x : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
-      ∀ {γ x A A′} {p : A ⊑ᵂ⟨ W ⟩ A′}
+  x⊑x : ∀ {W γ x A A′} {p : A ⊑ᵂ⟨ W ⟩ A′}
     → γ ∋ʷ x ⦂ ctx-imp A A′ p
       --------------------------------
-    → W ∣ γ ⊢ ` x ⊑ ` x ∶ p
+    → W ∣ γ ⊢ ` x ⊑ ` x ∶[ [] ] p
 
-  κ⊑κ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
-      ∀ {γ k ι}
+  κ⊑κ : ∀ {W γ k ι}
     → Lit k ι
     → (p : ι ⊑ᵂ⟨ W ⟩ ι)
       --------------------------------
-    → W ∣ γ ⊢ k ⊑ k ∶ p
+    → W ∣ γ ⊢ k ⊑ k ∶[ [] ] p
 
-  ƛ⊑ƛ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
-      ∀ {γ N N′ A A′ B B′} {pA : A ⊑ᵂ⟨ W ⟩ A′} {pB : B ⊑ᵂ⟨ W ⟩ B′}
+  ƛ⊑ƛ : ∀ {W γ N N′ A A′ B B′} {pA : A ⊑ᵂ⟨ W ⟩ A′} {pB : B ⊑ᵂ⟨ W ⟩ B′}
     → Δ ⊢ᵗ A
     → Δ′ ⊢ᵗ A′
-    → W ∣ ctx-imp A A′ pA ∷ γ ⊢ N ⊑ N′ ∶ pB
+    → W ∣ ctx-imp A A′ pA ∷ γ ⊢ N ⊑ N′ ∶[ [] ] pB
       ---------------------------------------------
-    → W ∣ γ ⊢ ƛ A ∙ N ⊑ ƛ A′ ∙ N′ ∶ ⇒⊑⇒ pA pB
+    → W ∣ γ ⊢ ƛ A ∙ N ⊑ ƛ A′ ∙ N′ ∶[ [] ] ⇒⊑⇒ pA pB
 
-  ·⊑· : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
-      ∀ {γ L L′ M M′ A A′ B B′} {pA : A ⊑ᵂ⟨ W ⟩ A′} {pB : B ⊑ᵂ⟨ W ⟩ B′}
-    → W ∣ γ ⊢ L ⊑ L′ ∶ ⇒⊑⇒ pA pB
-    → W ∣ γ ⊢ M ⊑ M′ ∶ pA
+  ·⊑· : ∀ {W γ L L′ M M′ A A′ B B′}
+      {pA : A ⊑ᵂ⟨ W ⟩ A′} {pB : B ⊑ᵂ⟨ W ⟩ B′}
+    → W ∣ γ ⊢ L ⊑ L′ ∶[ [] ] ⇒⊑⇒ pA pB
+    → W ∣ γ ⊢ M ⊑ M′ ∶[ [] ] pA
       ---------------------------------------------
-    → W ∣ γ ⊢ L · M ⊑ L′ · M′ ∶ pB
+    → W ∣ γ ⊢ L · M ⊑ L′ · M′ ∶[ [] ] pB
 
   ----------------------------------------------------------------------
-  -- Blame (GTSFImp blame⊑²); no pending name (under one the left is a
-  -- value)
+  -- Blame (GTSFImp blame⊑²); no slot (under one the left is a value)
 
-  blame⊑ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
-      ∀ {γ ℓ M′ A A′}
+  blame⊑ : ∀ {W γ ℓ M′ A A′}
     → Δ ⊢ᵗ A
     → Δ′ ∣ rhs γ ⊢ M′ ⦂ A′
     → (p : A ⊑ᵂ⟨ W ⟩ A′)
       ---------------------------------------------
-    → W ∣ γ ⊢ blame ℓ ⊑ M′ ∶ p
+    → W ∣ γ ⊢ blame ℓ ⊑ M′ ∶[ [] ] p
 
   ----------------------------------------------------------------------
-  -- Casts (GTSFImp cast⊑cast², cast⊑², ⊑cast²)
+  -- Casts (GTSFImp cast⊑cast², cast⊑², ⊑cast²); no cast rule changes
+  -- the world
 
-  cast⊑cast : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
-      ∀ {γ M M′ μ μ′ c c′ B B′ A A′} {p : B ⊑ᵂ⟨ W ⟩ B′}
-    → W ∣ γ ⊢ M ⊑ M′ ∶ p
+  cast⊑cast : ∀ {W γ M M′ μ μ′ c c′ B B′ A A′} {p : B ⊑ᵂ⟨ W ⟩ B′}
+    → W ∣ γ ⊢ M ⊑ M′ ∶[ [] ] p
     → CastTy Δ μ c B A
     → CastTy Δ′ μ′ c′ B′ A′
     → (q : A ⊑ᵂ⟨ W ⟩ A′)
       ---------------------------------------------
-    → W ∣ γ ⊢ M ⟨ μ ∣ c ⟩ ⊑ M′ ⟨ μ′ ∣ c′ ⟩ ∶ q
+    → W ∣ γ ⊢ M ⟨ μ ∣ c ⟩ ⊑ M′ ⟨ μ′ ∣ c′ ⟩ ∶[ [] ] q
 
-  -- D27: plain, a ∀ᵖ layer passes the pending names, or a gen layer
-  -- pops the last one (`CastClaim`); the premise world is W with the
-  -- premise's pending names
-  cast⊑ : ∀ {W : World Δ Δ′} {πₚ γ M M′ μ c B A A′}
-      {p : B ⊑ᵂ⟨ record W { πʷ = πₚ } ⟩ A′}
-    → CastClaim M c (πʷ W) πₚ
-    → record W { πʷ = πₚ } ∣ γ ⊢ M ⊑ M′ ∶ p
+  -- the premise slots follow the coercion's binder layers (`CastOpen`)
+  cast⊑ : ∀ {W γ M M′ μ c B A A′ O Oₚ} {p : B ⊑ᵂ⟨ W ⟩[ Oₚ ] A′}
+    → CastOpen M c O Oₚ
+    → W ∣ γ ⊢ M ⊑ M′ ∶[ Oₚ ] p
     → CastTy Δ μ c B A
-    → (q : A ⊑ᵂ⟨ W ⟩ A′)
+    → (q : A ⊑ᵂ⟨ W ⟩[ O ] A′)
       ---------------------------------------------
-    → W ∣ γ ⊢ M ⟨ μ ∣ c ⟩ ⊑ M′ ∶ q
+    → W ∣ γ ⊢ M ⟨ μ ∣ c ⟩ ⊑ M′ ∶[ O ] q
 
-  -- carries the pending names (the right cast does not touch the left);
-  -- D28: a right coercion that grants β puts β into the premise's
-  -- permissions (`CastGrant`); γ moves along (`RaiseCtx`)
-  ⊑cast : ∀ {W : World Δ Δ′} {κₚ γ γ′ M M′ μ′ c′ A B′ A′}
-      {p : A ⊑ᵂ⟨ record W { κʷ = κₚ } ⟩ B′}
-    → CastGrant Δ′ c′ (κʷ W) κₚ
-    → RaiseCtx γ γ′
-    → record W { κʷ = κₚ } ∣ γ′ ⊢ M ⊑ M′ ∶ p
+  -- GTSFImp's plain rule; keeps the slots
+  ⊑cast : ∀ {W γ M M′ μ′ c′ A B′ A′ O} {p : A ⊑ᵂ⟨ W ⟩[ O ] B′}
+    → W ∣ γ ⊢ M ⊑ M′ ∶[ O ] p
     → CastTy Δ′ μ′ c′ B′ A′
-    → (q : A ⊑ᵂ⟨ W ⟩ A′)
+    → (q : A ⊑ᵂ⟨ W ⟩[ O ] A′)
       ---------------------------------------------
-    → W ∣ γ ⊢ M ⊑ M′ ⟨ μ′ ∣ c′ ⟩ ∶ q
+    → W ∣ γ ⊢ M ⊑ M′ ⟨ μ′ ∣ c′ ⟩ ∶[ O ] q
 
   ----------------------------------------------------------------------
   -- Type abstraction (GTSFImp Λ⊑Λ², Λ⊑²)
 
-  Λ⊑Λ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
-      ∀ {γ γ′ V V′ A A′} {r : A ⊑ᵂ⟨ W ⊕² ⟩ A′}
+  Λ⊑Λ : ∀ {W γ γ′ V V′ A A′} {r : A ⊑ᵂ⟨ W ⊕² ⟩ A′}
     → LiftCtx γ γ′
     → Value V
     → Value V′
-    → W ⊕² ∣ γ′ ⊢ V ⊑ V′ ∶ r
+    → W ⊕² ∣ γ′ ⊢ V ⊑ V′ ∶[ [] ] r
     → (q : `∀ A ⊑ᵂ⟨ W ⟩ `∀ A′)
       ---------------------------------------------
-    → W ∣ γ ⊢ Λ V ⊑ Λ V′ ∶ q
+    → W ∣ γ ⊢ Λ V ⊑ Λ V′ ∶[ [] ] q
 
-  -- the right term crosses the left binder unweakened; D27: the binder
-  -- is fresh and left-only, or it POPS the head pending name (`Claim`)
-  Λ⊑ : ∀ {W : World Δ Δ′} {W₁ : World (underΛ Δ) Δ′}
-      {γ γ′ V M′ A B′} {r : A ⊑ᵂ⟨ W₁ ⟩ B′}
-    → Claim W W₁
+  -- the right term crosses the left binder unweakened; the binder is
+  -- fresh, the JOIN of the next opening (the only consumption of a slot
+  -- that changes the world: a term binder), or claim-rep (`Bind`)
+  Λ⊑ : ∀ {W W₁ γ γ′ V M′ A B′ O O₁} {r : A ⊑ᵂ⟨ W₁ ⟩[ O₁ ] B′}
+    → Bind W O W₁ O₁
     → NonVar A
     → 0 ∈ᵗ A
     → LiftCtxᴸ γ γ′
     → Value V
-    → W₁ ∣ γ′ ⊢ V ⊑ M′ ∶ r
-    → (q : `∀ A ⊑ᵂ⟨ W ⟩ B′)
+    → W₁ ∣ γ′ ⊢ V ⊑ M′ ∶[ O₁ ] r
+    → (q : `∀ A ⊑ᵂ⟨ W ⟩[ O ] B′)
       ---------------------------------------------
-    → W ∣ γ ⊢ Λ V ⊑ M′ ∶ q
-
-  -- (∀⊑⟪+⟫ was REMOVED by design.md D26; its instances are now a push
-  -- of `⊑⟪⟫` followed by a pop of `Λ⊑` or `cast⊑`, D27)
+    → W ∣ γ ⊢ Λ V ⊑ M′ ∶[ O ] q
 
   ----------------------------------------------------------------------
   -- Instantiation (GTSFImp •⊑•², •⊑²); there is no ⊑ν
 
-  ν⊑ν : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
-      ∀ {γ L L′ A A′ C C′ c c′ B B′} {r : `∀ C ⊑ᵂ⟨ W ⟩ `∀ C′}
-    → W ∣ γ ⊢ L ⊑ L′ ∶ r
+  ν⊑ν : ∀ {W γ L L′ A A′ C C′ c c′ B B′} {r : `∀ C ⊑ᵂ⟨ W ⟩ `∀ C′}
+    → W ∣ γ ⊢ L ⊑ L′ ∶[ [] ] r
     → A ⊑ᵂ⟨ W ⟩ A′
     → (n : NuTy Δ A C c B)
     → (n′ : NuTy Δ′ A′ C′ c′ B′)
     → NuConversionImp W n n′
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       ---------------------------------------------
-    → W ∣ γ ⊢ ν A · L ⟨ c ⟩ ⊑ ν A′ · L′ ⟨ c′ ⟩ ∶ q
+    → W ∣ γ ⊢ ν A · L ⟨ c ⟩ ⊑ ν A′ · L′ ⟨ c′ ⟩ ∶[ [] ] q
 
-  ν⊑ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
-      ∀ {γ L M′ A C c B B′} {r : `∀ C ⊑ᵂ⟨ W ⟩ B′}
-    → W ∣ γ ⊢ L ⊑ M′ ∶ r
+  ν⊑ : ∀ {W γ L M′ A C c B B′} {r : `∀ C ⊑ᵂ⟨ W ⟩ B′}
+    → W ∣ γ ⊢ L ⊑ M′ ∶[ [] ] r
     → A ⊑ᵂ⟨ W ⟩ ★
     → NuTy Δ A C c B
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       ---------------------------------------------
-    → W ∣ γ ⊢ ν A · L ⟨ c ⟩ ⊑ M′ ∶ q
+    → W ∣ γ ⊢ ν A · L ⟨ c ⟩ ⊑ M′ ∶[ [] ] q
 
   ----------------------------------------------------------------------
   -- Boundaries (these replace GTSFImp's reveal/conceal rules).  The
-  -- interior is term-closed, so each premise has γ = [].  The interior
-  -- world must be well formed (design.md §12.2, D15; Jeremy,
-  -- 2026-10-03): `WfWorld Wᵢ` is a premise (with the conditions on the
-  -- interior's pending names, D27).
+  -- interior is term-closed, so each premise has γ = [].  Each rule may
+  -- PERMIT, for its interior only, the right rep. vars K of type
+  -- variables it joins (`JoinRep`; premise world `Wᵢ +κ K`, well formed),
+  -- and PAYS with its interior index read at Wᵢ, without K (design.md
+  -- D31).
 
-  ⟪⟫⊑⟪⟫ : ∀ {Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ} → let W = world Ω ηᴸ ηᴿ ϱᵍ ϱˡ κ [] in
-      ∀ {Δᵢ Δ′ᵢ Ωᵢ ηᴸᵢ ηᴿᵢ ϱᵍᵢ ϱˡᵢ κᵢ}
-    → let Wᵢ = world {Δᵢ} {Δ′ᵢ} Ωᵢ ηᴸᵢ ηᴿᵢ ϱᵍᵢ ϱˡᵢ κᵢ [] in
-      ∀ {γ M M′ Θ Θ′ c c′ Aᵢ A′ᵢ A A′} {r : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩ A′ᵢ}
+  ⟪⟫⊑⟪⟫ : ∀ {W : World Δ Δ′} {Δᵢ Δ′ᵢ} {Wᵢ : World Δᵢ Δ′ᵢ} {K}
+      {γ M M′ Θ Θ′ c c′ Aᵢ A′ᵢ A A′} {r : Aᵢ ⊑ᵂ⟨ Wᵢ +κ K ⟩ A′ᵢ}
     → Interior W Θ Θ′ Wᵢ
-    → WfWorld Wᵢ
-    → Wᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
+    → All (JoinRep Wᵢ Θ Θ′ []) K
+    → WfWorld (Wᵢ +κ K)
+    → (pay : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩ A′ᵢ)
+    → Wᵢ +κ K ∣ [] ⊢ M ⊑ M′ ∶[ [] ] r
     → (b : BdyTy Δ Θ Δᵢ Aᵢ c A)
     → (b′ : BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′)
     → BdyConversionImp W b b′
     → (q : A ⊑ᵂ⟨ W ⟩ A′)
       ---------------------------------------------
-    → W ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ⟪ Θ′ , c′ ⟫ ∶ q
+    → W ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ⟪ Θ′ , c′ ⟫ ∶[ [] ] q
 
-  -- D27: the pending names pass into a ∀-boundary (`BdyClaim`);
-  -- D28 (R1): every left UNBIND entry of Θ names an unpermitted rep.
-  -- var (in W; equivalently in Wᵢ, since a boundary keeps ϱ and κ)
-  ⟪⟫⊑ : ∀ {W : World Δ Δ′} {Δᵢ} {Wᵢ : World Δᵢ Δ′}
-      {γ M M′ Θ c Aᵢ A A′} {r : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩ A′}
+  -- the slots pass into a ∀-boundary (`BdyOpen`); R1′: every left
+  -- unbind entry of Θ whose type variable occurs in the exterior type A
+  -- has an unpermitted rep. var (`UnbindOK W A`)
+  ⟪⟫⊑ : ∀ {W : World Δ Δ′} {Δᵢ} {Wᵢ : World Δᵢ Δ′} {K}
+      {γ M M′ Θ c Aᵢ A A′ O} {r : Aᵢ ⊑ᵂ⟨ Wᵢ +κ K ⟩[ O ] A′}
     → Interior W Θ [] Wᵢ
-    → All (UnbindOK W) Θ
-    → BdyClaim M c (πʷ W) (πʷ Wᵢ)
-    → WfWorld Wᵢ
-    → Wᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
+    → All (UnbindOK W A) Θ
+    → BdyOpen M c O
+    → All (JoinRep Wᵢ Θ [] []) K
+    → WfWorld (Wᵢ +κ K)
+    → (pay : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩[ O ] A′)
+    → Wᵢ +κ K ∣ [] ⊢ M ⊑ M′ ∶[ O ] r
     → BdyTy Δ Θ Δᵢ Aᵢ c A
-    → (q : A ⊑ᵂ⟨ W ⟩ A′)
+    → (q : A ⊑ᵂ⟨ W ⟩[ O ] A′)
       ---------------------------------------------
-    → W ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ∶ q
+    → W ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ∶[ O ] q
 
-  -- D27: carry the pending names through Θ′ and push new ones (`Push`)
-  ⊑⟪⟫ : ∀ {W : World Δ Δ′} {Δ′ᵢ} {Wᵢ : World Δ Δ′ᵢ}
-      {γ M M′ Θ′ c′ A A′ᵢ A′} {r : A ⊑ᵂ⟨ Wᵢ ⟩ A′ᵢ}
+  -- the only rule that creates slots: carry the slots through Θ′, add
+  -- the new slots N (`Push`); the interior slots are well formed
+  ⊑⟪⟫ : ∀ {W : World Δ Δ′} {Δ′ᵢ} {Wᵢ : World Δ Δ′ᵢ} {K}
+      {γ M M′ Θ′ c′ A A′ᵢ A′ O N Oᵢ} {r : A ⊑ᵂ⟨ Wᵢ +κ K ⟩[ Oᵢ ] A′ᵢ}
     → Interior W [] Θ′ Wᵢ
-    → Push Θ′ M (πʷ W) (πʷ Wᵢ)
-    → WfWorld Wᵢ
-    → Wᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
+    → Push Θ′ M O N Oᵢ
+    → All (SlotOK Wᵢ) Oᵢ
+    → AllPairs SlotNe Oᵢ
+    → All (JoinRep Wᵢ [] Θ′ N) K
+    → WfWorld (Wᵢ +κ K)
+    → (pay : A ⊑ᵂ⟨ Wᵢ ⟩[ Oᵢ ] A′ᵢ)
+    → Wᵢ +κ K ∣ [] ⊢ M ⊑ M′ ∶[ Oᵢ ] r
     → BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′
-    → (q : A ⊑ᵂ⟨ W ⟩ A′)
+    → (q : A ⊑ᵂ⟨ W ⟩[ O ] A′)
       ---------------------------------------------
-    → W ∣ γ ⊢ M ⊑ M′ ⟪ Θ′ , c′ ⟫ ∶ q
+    → W ∣ γ ⊢ M ⊑ M′ ⟪ Θ′ , c′ ⟫ ∶[ O ] q
 
--- The relation with its two types explicit.  `_⊑ᵂ⟨_⟩_` (OpenImp)
--- cannot be inverted when the pending names are not known, so a
--- statement over pending names gives A and A′ this way.
-infix 3 _∣_⊢_⊑_∶⟨_,_⟩_
+-- THE TOP-LEVEL FORM: no slot
+infix 3 _∣_⊢_⊑_∶_
+_∣_⊢_⊑_∶_ : ∀ {Δ Δ′} (W : World Δ Δ′) → CtxImp W → Term → Term
+  → {A A′ : Ty} → A ⊑ᵂ⟨ W ⟩ A′ → Set
+W ∣ γ ⊢ M ⊑ M′ ∶ p = W ∣ γ ⊢ M ⊑ M′ ∶[ [] ] p
+
+-- The relation with its two types explicit.  `_⊑ᵂ⟨_⟩[_]_` (OpenO)
+-- cannot be inverted for A, A′, so a statement over them gives A and A′
+-- this way.
+infix 3 _∣_⊢_⊑_∶⟨_,_⟩[_]_ _∣_⊢_⊑_∶⟨_,_⟩_
+_∣_⊢_⊑_∶⟨_,_⟩[_]_ : ∀ {Δ Δ′} (W : World Δ Δ′) → CtxImp W → Term → Term
+  → (A A′ : Ty) → (O : List Slot) → A ⊑ᵂ⟨ W ⟩[ O ] A′ → Set
+W ∣ γ ⊢ M ⊑ M′ ∶⟨ A , A′ ⟩[ O ] p = _∣_⊢_⊑_∶[_]_ W γ M M′ O {A} {A′} p
+
 _∣_⊢_⊑_∶⟨_,_⟩_ : ∀ {Δ Δ′} (W : World Δ Δ′) → CtxImp W → Term → Term
   → (A A′ : Ty) → A ⊑ᵂ⟨ W ⟩ A′ → Set
-W ∣ γ ⊢ M ⊑ M′ ∶⟨ A , A′ ⟩ p = _∣_⊢_⊑_∶_ W γ M M′ {A} {A′} p
+W ∣ γ ⊢ M ⊑ M′ ∶⟨ A , A′ ⟩ p = _∣_⊢_⊑_∶[_]_ W γ M M′ [] {A} {A′} p
 
--- the push of nothing: the plain right-only boundary rule
-push-none : ∀ {Θ′ M} → Push Θ′ M [] []
-push-none = push ca-[] [] (inj₁ refl)
+-- the push of nothing: the plain right-only boundary
+push-none : ∀ {Θ′ M} → Push Θ′ M [] [] []
+push-none = push ca-[] f-end [] (inj₁ refl)
 
--- `⊑cast` with no grant: the premise world is W itself (record eta)
-⊑cast₀ : ∀ {W : World Δ Δ′} {γ M M′ μ′ c′ A B′ A′} {p : A ⊑ᵂ⟨ W ⟩ B′}
-  → W ∣ γ ⊢ M ⊑ M′ ∶ p
-  → CastTy Δ′ μ′ c′ B′ A′
+-- `⊑⟪⟫` with no slot and no permission (the interior index is the
+-- payment)
+⊑⟪⟫₀ : ∀ {W : World Δ Δ′} {Δ′ᵢ} {Wᵢ : World Δ Δ′ᵢ} {γ M M′ Θ′ c′ A A′ᵢ A′}
+    {r : A ⊑ᵂ⟨ Wᵢ ⟩ A′ᵢ}
+  → Interior W [] Θ′ Wᵢ
+  → WfWorld Wᵢ
+  → Wᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
+  → BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′
   → (q : A ⊑ᵂ⟨ W ⟩ A′)
-  → W ∣ γ ⊢ M ⊑ M′ ⟨ μ′ ∣ c′ ⟩ ∶ q
-⊑cast₀ {γ = γ} d ct q = ⊑cast no-grant (raise-refl γ) d ct q
+  → W ∣ γ ⊢ M ⊑ M′ ⟪ Θ′ , c′ ⟫ ∶ q
+⊑⟪⟫₀ {r = r} I wf d b q = ⊑⟪⟫ I push-none [] [] [] wf r d b q
 
--- a grant at the empty term context
-⊑cast! : ∀ {W : World Δ Δ′} {β M M′ μ′ c′ A B′ A′}
-    {p : A ⊑ᵂ⟨ record W { κʷ = β ∷ κʷ W } ⟩ B′}
-  → Grants Δ′ β c′
-  → record W { κʷ = β ∷ κʷ W } ∣ [] ⊢ M ⊑ M′ ∶ p
-  → CastTy Δ′ μ′ c′ B′ A′
+-- `⟪⟫⊑` with no slot and no permission
+⟪⟫⊑₀ : ∀ {W : World Δ Δ′} {Δᵢ} {Wᵢ : World Δᵢ Δ′} {γ M M′ Θ c Aᵢ A A′}
+    {r : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩ A′}
+  → Interior W Θ [] Wᵢ
+  → All (UnbindOK W A) Θ
+  → WfWorld Wᵢ
+  → Wᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
+  → BdyTy Δ Θ Δᵢ Aᵢ c A
   → (q : A ⊑ᵂ⟨ W ⟩ A′)
-  → W ∣ [] ⊢ M ⊑ M′ ⟨ μ′ ∣ c′ ⟩ ∶ q
-⊑cast! g d ct q = ⊑cast (grant g) raise-[] d ct q
+  → W ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ∶ q
+⟪⟫⊑₀ {r = r} I ok wf d b q = ⟪⟫⊑ I ok bo-plain [] wf r d b q
+
+-- `⟪⟫⊑⟪⟫` with no permission
+⟪⟫⊑⟪⟫₀ : ∀ {W : World Δ Δ′} {Δᵢ Δ′ᵢ} {Wᵢ : World Δᵢ Δ′ᵢ}
+    {γ M M′ Θ Θ′ c c′ Aᵢ A′ᵢ A A′} {r : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩ A′ᵢ}
+  → Interior W Θ Θ′ Wᵢ
+  → WfWorld Wᵢ
+  → Wᵢ ∣ [] ⊢ M ⊑ M′ ∶ r
+  → (b : BdyTy Δ Θ Δᵢ Aᵢ c A)
+  → (b′ : BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′)
+  → BdyConversionImp W b b′
+  → (q : A ⊑ᵂ⟨ W ⟩ A′)
+  → W ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ⟪ Θ′ , c′ ⟫ ∶ q
+⟪⟫⊑⟪⟫₀ {r = r} I wf d b b′ bc q = ⟪⟫⊑⟪⟫ I [] wf r d b b′ bc q

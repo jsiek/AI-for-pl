@@ -7,6 +7,22 @@ Jeremy before its proof starts.
 
 The live status of every item is in `DASHBOARD.md` (generated, §6).
 
+**D31 note (2026-10-09; supersedes the D27 and D28 notes below where
+they differ).**  design.md D31 (adopted) removed the pending list:
+the world has no `πʷ` (only `κʷ`), and the openings are SLOTS of the
+index, `A ⊑ᵂ⟨ W ⟩[ O ] A′` (ImprecisionWorld §4, `OpenO`); the
+judgment is `W ∣ γ ⊢ M ⊑ M′ ∶[ O ] p`, and `W ∣ γ ⊢ M ⊑ M′ ∶ p` is its
+`O = []` case.  Grants are gone: κ grows only at a boundary that joins
+a type variable (`JoinRep`), for its interior (`Wᵢ +κ K`), paying with
+its interior index read without K.  Every statement of §2-§3 drops its
+`πʷ W ≡ []` hypothesis and is stated at `O = []` (the DGG's
+`RelatedValues`, `Pre W`, Sim, SimBack, CatchupRight/Left, EvolveImp
+keep `κʷ W ≡ []`; CatchupBlame has no hypothesis left);
+`ImprecisionTyping` is stated at any `O`.  The DGG theorem is the same
+theorem.  The lemma changes are in `STATEMENTS-CORE.md`'s D31 note;
+read "pending name" as "opening (slot)", "push" as "open", "pop" as
+"join" (Λ⊑) or "consume" (a gen layer of `cast⊑`).
+
 **D27 note (2026-10-05).**  design.md D27 replaced D26's `Opens` (the
 openings of `⊑⟪⟫`) by pending names in the world: `πʷ` is a field of
 `World` (ImprecisionWorld §3; one world type, one index `_⊑ᵂ⟨_⟩_`, one

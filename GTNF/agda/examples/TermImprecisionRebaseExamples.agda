@@ -265,7 +265,7 @@ layer⊑ : ∀ {Ξ′ ϱ κ β M}
   → (Wcᴸ {Ξ′} {ϱ} κ) ∣ [] ⊢ idX ⊑ genLayer β M
       ∶ c⊑★ᴸ Ξ′ ϱ κ
 layer⊑ {Ξ′} {ϱ} {κ} {β} v p W²-wf Wᴸ-wf M⊑ cᵢ bᵤ cₜ b =
-  ⊑⟪⟫ (Wc-bindᴿ v p) push-none [] [] (jrR ∷ []) W²-wf (c⊑c² Ξ′ ϱ κ β)
+  ⊑⟪⟫ rv-none (Wc-bindᴿ v p) push-none [] [] (jrR ∷ []) W²-wf (c⊑c² Ξ′ ϱ κ β)
     (⊑cast {A = ` 0 ⇒ ` 0}
       (⊑⟪⟫₀ (Wc-unbindᴿ v) Wᴸ-wf
         (⊑cast M⊑ cᵢ (c⊑★ᴸ Ξ′ ϱ (β ∷ κ))) bᵤ
@@ -288,7 +288,7 @@ outer⊑ : ∀ {Ξ′ ϱ M B′}
   → (q : (`ℕ ⇒ `ℕ) ⊑ᵂ⟨ Wc⁰ {Ξ′} {ϱ} ⟩ B′)
   → (Wc⁰ {Ξ′} {ϱ}) ∣ [] ⊢ idX ⟪ Θ₀ , revX ⟫ ⊑ genLayer 0 M ∶ q
 outer⊑ {Ξ′} {ϱ} v p W²-wf Wᴸ-wf M⊑ cᵢ bᵤ cₜ b bc q =
-  ⟪⟫⊑⟪⟫ (Wc-bind² v p) (jr₀ ∷ []) W²-wf (c⊑c² Ξ′ ϱ [] 0)
+  ⟪⟫⊑⟪⟫ rv-none (Wc-bind² v p) (jr₀ ∷ []) W²-wf (c⊑c² Ξ′ ϱ [] 0)
     (⊑cast {A = ` 0 ⇒ ` 0}
       (⊑⟪⟫₀ (Wc-unbindᴿ v) Wᴸ-wf
         (⊑cast M⊑ cᵢ (c⊑★ᴸ Ξ′ ϱ (0 ∷ []))) bᵤ
@@ -574,7 +574,7 @@ cg-body =
 -- and −X
 cg-core : W₃ ∣ [] ⊢ Λ idX ⊑ Bg ∶ ∀id⊑★ W₃
 cg-core =
-  ⊑⟪⟫ int-ro₃ (push₀ vΛidX) ok₃ ne₀ (jo₀ ∷ []) wf¹ pay₀ cg-body
+  ⊑⟪⟫ rv-none int-ro₃ (push₀ vΛidX) ok₃ ne₀ (jo₀ ∷ []) wf¹ pay₀ cg-body
     Bg-ty (∀id⊑★ W₃)
 
 cg-x0 : W₃ ∣ [] ⊢ L1 ⊑ Cg-R₂ ∶ ℕ⊑★
@@ -677,7 +677,7 @@ c2-body =
 
 c2-core : W₃ ∣ [] ⊢ I★genI ⊑ Bg ∶ ∀id⊑★ W₃
 c2-core =
-  ⊑⟪⟫ int-ro₃ (push₀ vI★genI) ok₃ ne₀ (jo₀ ∷ []) wf¹ pay₀ c2-body
+  ⊑⟪⟫ rv-none int-ro₃ (push₀ vI★genI) ok₃ ne₀ (jo₀ ∷ []) wf¹ pay₀ c2-body
     Bg-ty (∀id⊑★ W₃)
 
 c2-x0 : W₃ ∣ [] ⊢ C2-L ⊑ Cg-R₂ ∶ ℕ⊑★

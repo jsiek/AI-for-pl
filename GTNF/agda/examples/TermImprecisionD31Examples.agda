@@ -257,7 +257,7 @@ module P4k where
   post : W₄ ∣ [] ⊢ L₂ ⊑ R₂ ∶ ι
   post =
     ·⊑·
-      (⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf (⇒⊑⇒ X⊑X ι) fun
+      (⟪⟫⊑⟪⟫ rv-none (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf (⇒⊑⇒ X⊑X ι) fun
         bLB bRB (W₄² , Wc-bind²-conv v₀ here⇔ , cK⊑cK refl) ℕ⇒ℕ)
       (κ⊑κ lit-$ ι)
 
@@ -300,14 +300,15 @@ module P4k where
   -- Wrap against Wrap: the matched seals inside the permitting boundary
   wrap : W₄ ∣ [] ⊢ L₃ ⊑ R₃ ∶ ι
   wrap =
-    ⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf ι (·⊑· {pA = X⊑X} fun S⊑S)
+    ⟪⟫⊑⟪⟫ rv-none (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf ι
+      (·⊑· {pA = X⊑X} fun S⊑S)
       bL₃ bR₃ (W₄² , Wc-bind²-conv v₀ here⇔ , idℕ⊑) ι
 
   -- Wrap against CastFun: the right's X! on its dual is peeled at X ⊑ ★
   -- under the boundary's permission
   castfun : W₄ ∣ [] ⊢ L₃ ⊑ R₄ ∶ ι
   castfun =
-    ⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf ι
+    ⟪⟫⊑⟪⟫ rv-none (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf ι
       (⊑cast (·⊑· {pA = X⊑★ here} body (⊑cast S⊑S tagˣ-ty (X⊑★ here)))
         idℕ-ty ι)
       bL₃ bR₄ (W₄² , Wc-bind²-conv v₀ here⇔ , idℕ⊑) ι
@@ -549,7 +550,7 @@ module P4h where
   post : W₄ ∣ [] ⊢ L₃ ⊑ R₃ ∶ ι
   post =
     ·⊑·
-      (⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf (c⊑c² Ξ₄ ϱ₄ [] 0)
+      (⟪⟫⊑⟪⟫ rv-none (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf (c⊑c² Ξ₄ ϱ₄ [] 0)
         (⊑cast {A = ` 0 ⇒ ` 0}
           (⊑⟪⟫₀ (Wc-unbindᴿ v₀) W₄ᴸ-wf body⊑ bUF
             (c⊑★² Ξ₄ ϱ₄ (0 ∷ []) 0 refl))
@@ -1109,7 +1110,7 @@ module TwoGen where
   g0-final : W₃ ∣ [] ⊢ FL ⊑ FR₂ ∶ q0
   g0-final =
     ⊑cast
-      (⊑⟪⟫ int-ro₃ (push₀ vFL) ok₃ ne₀ (jo₀ ∷ []) wf¹ (⇒⊑⇒ X⊑X ι)
+      (⊑⟪⟫ rv-none int-ro₃ (push₀ vFL) ok₃ ne₀ (jo₀ ∷ []) wf¹ (⇒⊑⇒ X⊑X ι)
         (⊑cast {A = `∀ (` 0 ⇒ `ℕ)}
           (cast⊑ (co-gen (V-simple S-ƛ) co-plain)
             (⊑⟪⟫₀ IntN (W₃-wf p0)
@@ -1129,7 +1130,8 @@ module TwoGen where
     → BdyTy ΔT2 ΘXY ΔXY A′ᵢ c′ (★ ⇒ (★ ⇒ ★))
     → W4 [] ∣ [] ⊢ M ⊑ M′ ⟪ ΘXY , c′ ⟫ ∶⟨ K2 , ★ ⇒ (★ ⇒ ★) ⟩ q-top
   merged v pay d b =
-    ⊑⟪⟫ intXYW (push ca-[] f-end (ns-opn refl ∷ ns-opn refl ∷ []) (inj₂ v))
+    ⊑⟪⟫ rv-none intXYW
+      (push ca-[] f-end (ns-opn refl ∷ ns-opn refl ∷ []) (inj₂ v))
       okm nem jrXY (wfm p10) pay d b q-top
 
   -- G2m's (and G2's) gen body: ⊑cast `X! → Y! → X?` at the permitted
@@ -1192,7 +1194,8 @@ module TwoGen where
   bodyN =
     ⊑cast
       (cast⊑ (co-gen vNL₁ (co-∀ vNL₁ co-plain))
-        (⊑⟪⟫ intUX (push (ca-opn refl ca-[]) (f-keep f-end) [] (inj₁ refl))
+        (⊑⟪⟫ rv-none intUX
+          (push (ca-opn refl ca-[]) (f-keep f-end) [] (inj₁ refl))
           okUX ([] ∷ []) [] (wfYg p10) (qXY κ10) inner UX-ty qXYm)
         genX∀-ty qX★)
       pX-ty (qm κ10)
@@ -1209,10 +1212,10 @@ module TwoGen where
     → W4 [] ∣ [] ⊢ M ⊑ ((M′ ⟪ ΘX , cX ⟫) ⟨ X∼X ∷ [] ∣ ci ⟩) ⟪ ΘY , cY ⟫
         ∶⟨ K2 , ★ ⇒ (★ ⇒ ★) ⟩ q-top
   twoCast v g d =
-    ⊑⟪⟫ intYg (push ca-[] f-end (ns-skp g ∷ ns-opn refl ∷ []) (inj₂ v))
+    ⊑⟪⟫ rv-none intYg (push ca-[] f-end (ns-skp g ∷ ns-opn refl ∷ []) (inj₂ v))
       okY neY (jr-open (ot oh) here ∷ []) (wfYg p0) (qY [])
       (⊑cast
-        (⊑⟪⟫ intXg
+        (⊑⟪⟫ rv-none intXg
           (push (ca-skp (ca-opn refl ca-[])) (f-fill (f-keep f-end))
             (ns-opn refl ∷ []) (inj₂ v))
           okm nem (jr-open oh (there here) ∷ []) (wfm p10) (qm (0 ∷ [])) d bX
@@ -1608,7 +1611,7 @@ module R2c where
     → W4 ∣ [] ⊢ V2 ⊑ (M′ ⟪ Θ₀ , revX ⟫) ⟨ [] ∣ id★↦ ⟩ ∶ ∀id⊑★ W4
   instB d b =
     ⊑cast
-      (⊑⟪⟫ intY (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vV2)) okY
+      (⊑⟪⟫ rv-none intY (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vV2)) okY
         ([] ∷ []) (jr-open oh here ∷ []) wfY¹ (⇒⊑⇒ X⊑X X⊑X) d b
         (∀id⊑★ W4))
       id★↦-ty (∀id⊑★ W4)

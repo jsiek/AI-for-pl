@@ -510,6 +510,12 @@ interiorProv n Δ′ Wᵢ K@(_ ∷ _) O A A′ pay =
   "Interior " ++ label n ++ " +κ {" ++ showRVars Δ′ K ++ "}, pays " ++
   indexEv Wᵢ O A A′ pay
 
+-- a boundary's revocation (design.md D32), if any
+revNote : ∀ {Δ Δ′ Δᵢ Δ′ᵢ} {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {O A A′ κ₁}
+  → Revoke W Wᵢ O A A′ κ₁ → String
+revNote rv-none       = ""
+revNote (rv-drop _ _) = ", revokes (the unjoin pays)"
+
 -- the world of a derivation (a premise's world, for `pushWorld`)
 worldOf : ∀ {Δ Δ′} {W : World Δ Δ′} {γ : CtxImp W} {M M′ O A A′}
     {p : A ⊑ᵂ⟨ W ⟩[ O ] A′}
@@ -580,9 +586,10 @@ go {Δ} {Δ′} a n pre pre′ x tms
 go {Δ} a n pre pre′ x tms d@(ν⊑ {A = A} {c = c} L _ _ _) =
   go (pushRow (nodeRow n pre (nuFrag Δ A c) "─" d) a) n pre′ pre′ x tms L
 go {Δ} {Δ′} a n pre pre′ x tms
-    d@(⟪⟫⊑⟪⟫ {Wᵢ = Wᵢ} {K = K} {Θ = Θ} {Θ′ = Θ′} {c = c} {c′ = c′}
-         {Aᵢ = Aᵢ} {A′ᵢ = A′ᵢ} _ _ _ pay M _ _ _ _) =
-  go (pushWorld (interiorProv n Δ′ Wᵢ K [] Aᵢ A′ᵢ pay) (worldOf M) a₁)
+    d@(⟪⟫⊑⟪⟫ {Wᵢ = Wᵢ} {κ₁ = κ₁} {K = K} {Θ = Θ} {Θ′ = Θ′} {c = c}
+         {c′ = c′} {Aᵢ = Aᵢ} {A′ᵢ = A′ᵢ} rv _ _ _ pay M _ _ _ _) =
+  go (pushWorld (interiorProv n Δ′ (Wᵢ ⇂κ κ₁) K [] Aᵢ A′ᵢ pay
+                  ++ revNote rv) (worldOf M) a₁)
     (nextW a₁) pre′ pre′ x tms M
   where
   permits : List String → String
@@ -591,17 +598,19 @@ go {Δ} {Δ′} a n pre pre′ x tms
   a₁ = pushRow (nodeRow n pre (bdyFrag Δ Θ c)
                  (bdyFrag Δ′ Θ′ c′ ++ permits (permitNotes Δ′ K)) d) a
 go {Δ} {Δ′} a n pre pre′ x tms
-    d@(⟪⟫⊑ {Wᵢ = Wᵢ} {K = K} {Θ = Θ} {c = c} {Aᵢ = Aᵢ} {A′ = A′} {O = O}
-         _ _ bo _ _ pay M _ _) =
-  go (pushWorld (interiorProv n Δ′ Wᵢ K O Aᵢ A′ pay) (worldOf M) a₁)
+    d@(⟪⟫⊑ {Wᵢ = Wᵢ} {κ₁ = κ₁} {K = K} {Θ = Θ} {c = c} {Aᵢ = Aᵢ}
+         {A′ = A′} {O = O} rv _ _ bo _ _ pay M _ _) =
+  go (pushWorld (interiorProv n Δ′ (Wᵢ ⇂κ κ₁) K O Aᵢ A′ pay
+                  ++ revNote rv) (worldOf M) a₁)
     (nextW a₁) pre′ pre′ x tms M
   where
   a₁ = pushRow (nodeRow n pre (bdyFrag Δ Θ c)
                  (notes (bdyNotes Δ′ bo Data.List.++ permitNotes Δ′ K)) d) a
 go {Δ′ = Δ′} a n pre pre′ x tms
-    d@(⊑⟪⟫ {Δ′ᵢ = Δ′ᵢ} {Wᵢ = Wᵢ} {K = K} {Θ′ = Θ′} {c′ = c′} {A = A}
-         {A′ᵢ = A′ᵢ} {Oᵢ = Oᵢ} _ pu _ _ _ _ pay M _ _) =
-  go (pushWorld (interiorProv n Δ′ Wᵢ K Oᵢ A A′ᵢ pay) (worldOf M) a₁)
+    d@(⊑⟪⟫ {Δ′ᵢ = Δ′ᵢ} {Wᵢ = Wᵢ} {κ₁ = κ₁} {K = K} {Θ′ = Θ′} {c′ = c′}
+         {A = A} {A′ᵢ = A′ᵢ} {Oᵢ = Oᵢ} rv _ pu _ _ _ _ pay M _ _) =
+  go (pushWorld (interiorProv n Δ′ (Wᵢ ⇂κ κ₁) K Oᵢ A A′ᵢ pay
+                  ++ revNote rv) (worldOf M) a₁)
     (nextW a₁) pre′ pre′ x tms M
   where
   a₁ = pushRow (nodeRow n pre

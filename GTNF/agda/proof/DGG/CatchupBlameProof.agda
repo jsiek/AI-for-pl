@@ -48,9 +48,9 @@ catchup-blame
 catchup-blame (ν⊑ L⊑ pA n q) with catchup-blame L⊑
 catchup-blame (ν⊑ L⊑ pA n q) | ℓ′ , r =
   ℓ′ , (ξ-ν* r ++ʳ (Blame-ν then done))
-catchup-blame (⟪⟫⊑ i ok bo-plain ks wi pay M⊑ b q)
+catchup-blame (⟪⟫⊑ rv i ok bo-plain ks wi pay M⊑ b q)
   with catchup-blame M⊑
-catchup-blame (⟪⟫⊑ i ok bo-plain ks wi pay M⊑ b q) | ℓ′ , r
+catchup-blame (⟪⟫⊑ rv i ok bo-plain ks wi pay M⊑ b q) | ℓ′ , r
   with ξ-⟪⟫* (int-left i) r
-catchup-blame (⟪⟫⊑ i ok bo-plain ks wi pay M⊑ b q) | ℓ′ , r | Θ′ , r′ =
+catchup-blame (⟪⟫⊑ rv i ok bo-plain ks wi pay M⊑ b q) | ℓ′ , r | Θ′ , r′ =
   ℓ′ , (r′ ++ʳ (Blame-⟪⟫ then done))

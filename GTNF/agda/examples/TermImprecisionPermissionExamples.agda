@@ -42,6 +42,12 @@ module examples.TermImprecisionPermissionExamples where
 --                          and its hidden variant (`hidden-unrelated`,
 --                          which needs R1′ after the right hide or R2
 --                          at the matched hides)
+--   * D32 (revocations, rebinds): a rebind (`jr-rebind`) is handled
+--     like a join; a boundary entered with no permission revokes
+--     nothing (`κ₁-keep`); C5's hidden variant stays dead under a
+--     revocation at the right hide, because the hide pays with its
+--     exterior index X ⊑ ★ at the joined X, which keeps X's partner
+--     permitted (`no-S-core`, case `rv-drop`).
 --   * THE NEGATIVE PROOFS quantify over every slot list O and read the
 --     PAYMENT of each boundary: a permission enters only at a boundary
 --     that joins a type variable, and that boundary pays with its
@@ -335,7 +341,7 @@ module P4 where
   p4-B2 : W₄ ∣ [] ⊢ nth Ls 2 ⊑ nth Rs 2 ∶ ι⊑ι base-ℕ
   p4-B2 =
     ·⊑·
-      (⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf (c⊑c² Ξ₄ ϱ₄ [] 0)
+      (⟪⟫⊑⟪⟫ rv-none (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf (c⊑c² Ξ₄ ϱ₄ [] 0)
         (⊑cast idX⊑I★⁻ tagᵍ-ty (c⊑c² Ξ₄ ϱ₄ (0 ∷ []) 0))
         bL-ty bBg (W₄² , Wc-bind²-conv v₀ here⇔ , revX⊑revX refl)
         (ℕ⇒ℕ W₄))
@@ -380,7 +386,7 @@ module P4 where
 
   p4-B3 : W₄ ∣ [] ⊢ nth Ls 3 ⊑ nth Rs 4 ∶ ι⊑ι base-ℕ
   p4-B3 =
-    ⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf X⊑X
+    ⟪⟫⊑⟪⟫ rv-none (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf X⊑X
       (⊑cast {p = X⊑★ here} (·⊑· idX⊑I★⁻ S⊑S!) chkᵍ-ty X⊑X)
       bUnsealL₃ bUnsealR₄
       (W₄² , Wc-bind²-conv v₀ here⇔ , conv-unseal⊑unseal refl)
@@ -409,7 +415,7 @@ module P4 where
 
   p4-B4 : W₄ ∣ [] ⊢ nth Ls 4 ⊑ nth Rs 6 ∶ ι⊑ι base-ℕ
   p4-B4 =
-    ⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf X⊑X
+    ⟪⟫⊑⟪⟫ rv-none (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf X⊑X
       (⊑cast {p = X⊑★ here}
         (⊑⟪⟫₀ (Wc-unbindᴿ v₀) W₄ᴸ-wf S⊑J bJ⁻ (X⊑★ here))
         chkᵍ-ty X⊑X)
@@ -526,7 +532,7 @@ module CgB1 where
   cg-b1 =
     ·⊑·
       (⊑cast
-        (⟪⟫⊑⟪⟫ (Wc-bind² (_ , here) here⇔) (jr₀ ∷ [])
+        (⟪⟫⊑⟪⟫ rv-none (Wc-bind² (_ , here) here⇔) (jr₀ ∷ [])
           (wf+κ Wg²-wf ((_ , here) ∷ [])) (c⊑c² Ξg ϱg [] 0)
           (⊑cast {A = ` 0 ⇒ ` 0}
             (⊑⟪⟫₀ (Wc-unbindᴿ (_ , here)) Wgᴴ-wf idX⊑I★ I★⁻ᴿ-ty
@@ -810,7 +816,7 @@ module C18bB7 where
 
   c18b-b7 : W₀ [] ∣ [] ⊢ L7 ⊑ R12 ∶ ι⊑ι base-ℕ
   c18b-b7 =
-    ⟪⟫⊑⟪⟫ IntO (jr₁ ∷ []) (Wb-wf p1) X⊑X
+    ⟪⟫⊑⟪⟫ rv-none IntO (jr₁ ∷ []) (Wb-wf p1) X⊑X
       (⊑cast {p = X⊑★ X★}
         (⊑⟪⟫₀ IntH (Wh-wf p1)
           (⊑⟪⟫₀ IntJ (Wb-wf p1) inner bJ2 (X⊑★ (there here)))
@@ -951,7 +957,7 @@ module P4c where
     → W₄²¹ ∣ [] ⊢ S ⊑ M′ ∶ X⊑X
     → W₄ ∣ [] ⊢ nth Ls 4 ⊑ M′ ⟪ Θ₀ , unseal 0 ⟫ ∶ ι⊑ι base-ℕ
   outer b′ bc d =
-    ⟪⟫⊑⟪⟫ (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf X⊑X d bUnsealL b′ bc
+    ⟪⟫⊑⟪⟫ rv-none (Wc-bind² v₀ here⇔) (jr₀ ∷ []) W₄²¹-wf X⊑X d bUnsealL b′ bc
       (ι⊑ι base-ℕ)
 
   outer₀ : ∀ {M′} → (b′ : BdyTy ΔL Θ₀ ΔLᵢ (` 0) (unseal 0) `ℕ)
@@ -1124,9 +1130,16 @@ K-none : ∀ {Δᵢ Δ′ᵢ} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ N K}
 K-none no []      = refl
 K-none no (j ∷ _) = ⊥-elim (no j)
 
-κ-keep : ∀ {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ K}
-  → Interior W Θ Θ′ Wᵢ → K ≡ [] → κʷ W ≡ [] → κʷ (Wᵢ +κ K) ≡ []
-κ-keep I refl eκ = trans (same-κ I) eκ
+-- a boundary entered with no permission revokes nothing (design.md
+-- D32): its interior permissions are its own K
+κ₁-keep : ∀ {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ O A A′ κ₁}
+  → Interior W Θ Θ′ Wᵢ → Revoke W Wᵢ O A A′ κ₁ → κʷ W ≡ [] → κ₁ ≡ []
+κ₁-keep I rv eκ = revoke-[] rv (trans (same-κ I) eκ)
+
+κ-keep : ∀ {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ O A A′ κ₁ K}
+  → Interior W Θ Θ′ Wᵢ → Revoke W Wᵢ O A A′ κ₁ → K ≡ [] → κʷ W ≡ []
+  → κʷ (Wᵢ ⇂κ κ₁ +κ K) ≡ []
+κ-keep I rv refl eκ = κ₁-keep I rv eκ
 
 -- the left variable 0, facing ★ at a world without permissions, joins
 -- no right variable (THE PAYMENT'S CONSEQUENCE)
@@ -1139,14 +1152,16 @@ OnlyZero : Ctxᵗ → Set
 OnlyZero Δ = ∀ {X} → Δ ∋tv X → X ≡ 0
 
 -- ... so a boundary whose payment puts it against ★ joins nothing
-K-pay : ∀ {Δᵢ Δ′ᵢ} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ K}
-  → OnlyZero Δᵢ → κʷ Wᵢ ≡ [] → (` 0) ⊑ᵂ⟨ Wᵢ ⟩ ★
+K-pay : ∀ {Δᵢ Δ′ᵢ} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ K κ₁}
+  → OnlyZero Δᵢ → κ₁ ≡ [] → (` 0) ⊑ᵂ⟨ Wᵢ ⇂κ κ₁ ⟩ ★
   → All (JoinRep Wᵢ Θ Θ′ []) K → K ≡ []
-K-pay {Wᵢ = Wᵢ} {Θ} {Θ′} oz eκ q = K-none no
+K-pay {Wᵢ = Wᵢ} {Θ} {Θ′} {κ₁ = κ₁} oz eκ q = K-none no
   where
   no : ∀ {β} → ¬ JoinRep Wᵢ Θ Θ′ [] β
   no (jr-join tv rh _ j) with oz tv
-  ... | refl = no-join★ {V = Wᵢ} eκ q rh j
+  ... | refl = no-join★ {V = Wᵢ ⇂κ κ₁} eκ q rh j
+  no (jr-rebind tv rh _ j) with oz tv
+  ... | refl = no-join★ {V = Wᵢ ⇂κ κ₁} eκ q rh j
   no (jr-open () _)
 
 -- the exterior and interior types of an `id(★)` boundary
@@ -1288,7 +1303,7 @@ no-$ {V = V} {O = O} r-tag (⊑cast {A = A} {B′ = B′} {p = p} d ct _)
   with plain-idx {V = V} {O = O} {A = A} {A′ = B′} nf-ℕ p
 ... | ()
 no-$ (r-cast _ r) (⊑cast d _ _) = no-$ r d
-no-$ (r-⟪⟫ r) (⊑⟪⟫ _ _ _ _ _ _ _ d _ _) = no-$ r d
+no-$ (r-⟪⟫ r) (⊑⟪⟫ _ _ _ _ _ _ _ _ d _ _) = no-$ r d
 
 no-n★ : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ n μ R O A A′}
     {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
@@ -1304,7 +1319,7 @@ no-n★ r-tag (cast⊑cast {p = p} d ct ct′ _) with ct-ℕ! ct | ct-X! ct′
 no-n★ (r-cast _ r) (cast⊑cast d _ _ _) = no-$ r d
 no-n★ (r-cast _ r) (⊑cast d _ _) = no-n★ r d
 no-n★ r (cast⊑ co-plain d _ _) = no-$ r d
-no-n★ (r-⟪⟫ r) (⊑⟪⟫ _ _ _ _ _ _ _ d _ _) = no-n★ r d
+no-n★ (r-⟪⟫ r) (⊑⟪⟫ _ _ _ _ _ _ _ _ d _ _) = no-n★ r d
 
 -- the type variables of the left boundary's interior: just X
 oz₀ : ∀ {R} → OnlyZero ((bindR R ∷ []) ∣ (0 ∷ []))
@@ -1333,23 +1348,26 @@ module Spine (m : Term)
       (var⊑★ (plain-idx {V = V} {O = O} {A′ = ★} nf-var q))
   no-S oz eκ eA (r-cast _ r) (⊑cast d _ _) = no-S oz eκ eA r d
   no-S {Δ₁} {V = V} oz eκ refl (r-⟪⟫ r)
-    (⊑⟪⟫ {Wᵢ = Vi} {K = K} {A′ᵢ = A′ᵢ} {Oᵢ = Oᵢ} I pu _ _ ks _ pay d b _)
+    (⊑⟪⟫ {Wᵢ = Vi} {κ₁ = κ₁} {K = K} {A′ᵢ = A′ᵢ} {Oᵢ = Oᵢ} rv I pu _ _ ks _
+      pay d b _)
     with bdy-id★ b
   ... | refl , _ with nfO {O = Oᵢ} nf-var pay
   ... | refl =
-    no-S oz (κ-keep I (K-none no ks) eκ) refl r d
+    no-S oz (κ-keep I rv (K-none no ks) eκ) refl r d
     where
-    eκᵢ : κʷ Vi ≡ []
-    eκᵢ = trans (same-κ I) eκ
+    eκᵢ : κ₁ ≡ []
+    eκᵢ = κ₁-keep I rv eκ
     no : ∀ {β} → ¬ JoinRep Vi [] _ _ β
     no (jr-join tv rh _ j) with oz tv
-    ... | refl = no-join★ {V = Vi} eκᵢ pay rh j
+    ... | refl = no-join★ {V = Vi ⇂κ κ₁} eκᵢ pay rh j
+    no (jr-rebind tv rh _ j) with oz tv
+    ... | refl = no-join★ {V = Vi ⇂κ κ₁} eκᵢ pay rh j
     no (jr-open n _) = push-∋ᵒ pu n refl
-  no-S oz eκ eA r (⟪⟫⊑⟪⟫ _ _ _ _ d _ _ _ _) = no-leaf (r-inner r) d
+  no-S oz eκ eA r (⟪⟫⊑⟪⟫ _ _ _ _ _ d _ _ _ _) = no-leaf (r-inner r) d
     where
     r-inner : ∀ {R′ Θ′ c′} → Reach (R′ ⟪ Θ′ , c′ ⟫) → Reach R′
     r-inner (r-⟪⟫ r′) = r′
-  no-S oz eκ eA r (⟪⟫⊑ _ _ _ _ _ _ d _ _) = no-leaf r d
+  no-S oz eκ eA r (⟪⟫⊑ _ _ _ _ _ _ _ d _ _) = no-leaf r d
 
   B : Term
   B = sealed m ⟪ Θ₀ , unseal 0 ⟫
@@ -1380,30 +1398,31 @@ module Spine (m : Term)
   no-LO eκ (lo-c gc lo) (r-cast _ r) (cast⊑cast d _ _ _) = no-LO eκ lo r d
   no-LO eκ (lo-c gc lo) r (cast⊑ co-plain d _ _) = no-LO eκ lo r d
   no-LO {V = V} eκ lo (r-⟪⟫ r)
-    (⊑⟪⟫ {Wᵢ = Vi} {K = K} {A = A} {A′ᵢ = A′ᵢ} {Oᵢ = Oᵢ} I pu _ _ ks _ pay
+    (⊑⟪⟫ {Wᵢ = Vi} {K = K} {A = A} {A′ᵢ = A′ᵢ} {Oᵢ = Oᵢ} rv I pu _ _ ks _ pay
       d b _) =
-    no-LO (κ-keep I (K-none no ks) eκ) lo r d
+    no-LO (κ-keep I rv (K-none no ks) eκ) lo r d
     where
     no : ∀ {β} → ¬ JoinRep Vi [] _ _ β
     no (jr-join tv _ _ _) = no-tvs tv
+    no (jr-rebind tv _ _ _) = no-tvs tv
     no (jr-open n _) = push-∋ᵒ pu n
       (nfO {O = Oᵢ} (G-nf (lo-ty lo (ltyD d))) pay)
   no-LO {V = V} eκ lo-B r
-    (⟪⟫⊑ {Wᵢ = Vi} {K = K} {A′ = A′} {O = O} I _ _ ks _ pay d b _)
+    (⟪⟫⊑ {Wᵢ = Vi} {K = K} {A′ = A′} {O = O} rv I _ _ ks _ pay d b _)
     with bdy b | reach-G r (rtyD d)
   ... | refl , _ , oz | g with nfO {O = O} nf-var pay
   ... | refl with g
   ...   | gℕ with pay
   ...     | ()
   no-LO {V = V} eκ lo-B r
-    (⟪⟫⊑ {Wᵢ = Vi} {K = K} {A′ = A′} {O = O} I _ _ ks _ pay d b _)
+    (⟪⟫⊑ {Wᵢ = Vi} {K = K} {A′ = A′} {O = O} rv I _ _ ks _ pay d b _)
     | refl , _ , oz | g | refl | g★ =
-    no-S oz (κ-keep I (K-pay oz (trans (same-κ I) eκ) pay ks) eκ) refl r d
+    no-S oz (κ-keep I rv (K-pay oz (κ₁-keep I rv eκ) pay ks) eκ) refl r d
   no-LO {V = V} eκ lo-B (r-⟪⟫ r)
-    (⟪⟫⊑⟪⟫ {Wᵢ = Vi} {K = K} I ks _ pay d b b′ _ _)
+    (⟪⟫⊑⟪⟫ {Wᵢ = Vi} {K = K} rv I ks _ pay d b b′ _ _)
     with bdy b | bdy-id★ b′
   ... | refl , _ , oz | refl , _ =
-    no-S oz (κ-keep I (K-pay oz (trans (same-κ I) eκ) pay ks) eκ) refl r d
+    no-S oz (κ-keep I rv (K-pay oz (κ₁-keep I rv eκ) pay ks) eκ) refl r d
 
 ------------------------------------------------------------------------
 -- 5. C1 = the SimBackBlame counterexample L₆ ⊑ R₇ (PendingOpenings
@@ -1583,19 +1602,20 @@ module C3 where
   no-fun : ∀ {V : World ΔL ΔL} {γ A A′ B B′} {q : A ⊑ᵂ⟨ V ⟩ A′}
     → κʷ V ≡ [] → A ≡ `ℕ ⇒ B → A′ ≡ `ℕ ⇒ B′
     → ¬ (V ∣ γ ⊢ LB₁ ⊑ RB₁ ∶⟨ A , A′ ⟩ q)
-  no-fun eκ _ _ (⟪⟫⊑⟪⟫ _ _ _ _ _ b b′ bc _) = matched-conv eκ b b′ bc
+  no-fun eκ _ _ (⟪⟫⊑⟪⟫ _ _ _ _ _ _ b b′ bc _) = matched-conv eκ b b′ bc
   no-fun eκ eA refl
-    (⟪⟫⊑ {Wᵢ = Vi} {K = K} {Aᵢ = Aᵢ} {A′ = A′} {O = O} {r = r}
-      _ _ _ _ _ _ d _ _)
+    (⟪⟫⊑ {Wᵢ = Vi} {κ₁ = κ₁} {K = K} {Aᵢ = Aᵢ} {A′ = A′} {O = O} {r = r}
+      _ _ _ _ _ _ _ d _ _)
     with ty-ƛ (ltyD d)
   ... | _ , refl , _
-    with plain-idx {V = Vi +κ K} {O = O} {A = Aᵢ} {A′ = A′} nf-⇒ r
+    with plain-idx {V = Vi ⇂κ κ₁ +κ K} {O = O} {A = Aᵢ} {A′ = A′} nf-⇒ r
   ... | ⇒⊑⇒ () _
   no-fun eκ refl _
-    (⊑⟪⟫ {Wᵢ = Vi} {K = K} {A = A} {A′ᵢ = A′ᵢ} {Oᵢ = Oᵢ} {r = r}
-      _ _ _ _ _ _ _ d _ _)
+    (⊑⟪⟫ {Wᵢ = Vi} {κ₁ = κ₁} {K = K} {A = A} {A′ᵢ = A′ᵢ} {Oᵢ = Oᵢ} {r = r}
+      _ _ _ _ _ _ _ _ d _ _)
     with ty-cast (rtyD d)
-  ... | refl with plain-idx {V = Vi +κ K} {O = Oᵢ} {A = A} {A′ = A′ᵢ} nf-⇒ r
+  ... | refl
+    with plain-idx {V = Vi ⇂κ κ₁ +κ K} {O = Oᵢ} {A = A} {A′ = A′ᵢ} nf-⇒ r
   ... | ⇒⊑⇒ () _
 
   no-app : ∀ {V : World ΔL ΔL} {γ A A′ O} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
@@ -1732,13 +1752,13 @@ data LeftT : Term → Set where
   l-gF  : LeftT (((ƛ ★ ∙ ` 0) ⟨ [] ∣ genL ⟩) ⟨ [] ∣ instL ⟩)
 
 -- ∀X.X→X against X′→★, opened, skipped or not, at κ = []
-pay-∀ : ∀ {Δᵢ Δ′ᵢ} {Vᵢ : World Δᵢ Δ′ᵢ} {Oᵢ k β}
-  → κʷ Vᵢ ≡ [] → All (SlotOK Vᵢ) Oᵢ → Δ′ᵢ ∋ᵗ k := β
-  → ¬ (`∀ (` 0 ⇒ ` 0) ⊑ᵂ⟨ Vᵢ ⟩[ Oᵢ ] (` k ⇒ ★))
+pay-∀ : ∀ {Δᵢ Δ′ᵢ} {Vᵢ : World Δᵢ Δ′ᵢ} {κ₁ Oᵢ k β}
+  → κ₁ ≡ [] → All (SlotOK Vᵢ) Oᵢ → Δ′ᵢ ∋ᵗ k := β
+  → ¬ (`∀ (` 0 ⇒ ` 0) ⊑ᵂ⟨ Vᵢ ⇂κ κ₁ ⟩[ Oᵢ ] (` k ⇒ ★))
 pay-∀ {Oᵢ = []} eκ so rh (∀⊑ _ _ (⇒⊑⇒ p₁ _)) with var⊑var p₁
 ... | ()
-pay-∀ {Vᵢ = Vᵢ} {Oᵢ = opn j ∷ []} eκ ((β , rj , _) ∷ []) rh (⇒⊑⇒ _ p₂) =
-  no★-right {V = Vᵢ} eκ rj (var⊑★ p₂)
+pay-∀ {Vᵢ = Vᵢ} {κ₁} {Oᵢ = opn j ∷ []} eκ ((β , rj , _) ∷ []) rh
+  (⇒⊑⇒ _ p₂) = no★-right {V = Vᵢ ⇂κ κ₁} eκ rj (var⊑★ p₂)
 pay-∀ {Oᵢ = skp ∷ []} eκ so rh (_ , _ , ⇒⊑⇒ p₁ _) with var⊑var p₁
 ... | ()
 pay-∀ {Oᵢ = opn _ ∷ opn _ ∷ _} eκ so rh ()
@@ -1754,21 +1774,21 @@ pay-★ {Vᵢ = Vᵢ} {Oᵢ} {k} pay
 ... | ⇒⊑⇒ () _
 
 -- the payment at the right's Inst boundary is impossible
-pay-RBd : ∀ {Δᵢ Δ′ᵢ} {Vᵢ : World Δᵢ Δ′ᵢ} {Oᵢ M A k β}
-  → κʷ Vᵢ ≡ [] → All (SlotOK Vᵢ) Oᵢ → LeftT M → Δᵢ ∣ [] ⊢ M ⦂ A
-  → Δ′ᵢ ∋ᵗ k := β → ¬ (A ⊑ᵂ⟨ Vᵢ ⟩[ Oᵢ ] (` k ⇒ ★))
-pay-RBd {Vᵢ = Vᵢ} {Oᵢ} eκ so l-id (⊢ƛ _ (⊢` here)) rh pay
-  with plain-idx {V = Vᵢ} {O = Oᵢ} {A = ` 0 ⇒ ` 0} nf-⇒ pay
-... | ⇒⊑⇒ p₁ p₂ = no-tag★ {V = Vᵢ} eκ rh (var⊑var p₁) (var⊑★ p₂)
+pay-RBd : ∀ {Δᵢ Δ′ᵢ} {Vᵢ : World Δᵢ Δ′ᵢ} {κ₁ Oᵢ M A k β}
+  → κ₁ ≡ [] → All (SlotOK Vᵢ) Oᵢ → LeftT M → Δᵢ ∣ [] ⊢ M ⦂ A
+  → Δ′ᵢ ∋ᵗ k := β → ¬ (A ⊑ᵂ⟨ Vᵢ ⇂κ κ₁ ⟩[ Oᵢ ] (` k ⇒ ★))
+pay-RBd {Vᵢ = Vᵢ} {κ₁} {Oᵢ} eκ so l-id (⊢ƛ _ (⊢` here)) rh pay
+  with plain-idx {V = Vᵢ ⇂κ κ₁} {O = Oᵢ} {A = ` 0 ⇒ ` 0} nf-⇒ pay
+... | ⇒⊑⇒ p₁ p₂ = no-tag★ {V = Vᵢ ⇂κ κ₁} eκ rh (var⊑var p₁) (var⊑★ p₂)
 pay-RBd eκ so l-Λ (⊢Λ _ (⊢ƛ _ (⊢` here))) rh pay = pay-∀ eκ so rh pay
 pay-RBd eκ so l-g ⊢g rh pay with ty-cast ⊢g
 ... | refl = pay-∀ eκ so rh pay
-pay-RBd {Vᵢ = Vᵢ} {Oᵢ} {k = k} eκ so l-F ⊢F rh pay with ty-cast ⊢F
-... | refl = pay-★ {Vᵢ = Vᵢ} {Oᵢ = Oᵢ} {k = k} pay
-pay-RBd {Vᵢ = Vᵢ} {Oᵢ} {k = k} eκ so l-gF ⊢F rh pay with ty-cast ⊢F
-... | refl = pay-★ {Vᵢ = Vᵢ} {Oᵢ = Oᵢ} {k = k} pay
-pay-RBd {Vᵢ = Vᵢ} {Oᵢ} {k = k} eκ so l-I★ (⊢ƛ _ (⊢` here)) rh pay =
-  pay-★ {Vᵢ = Vᵢ} {Oᵢ = Oᵢ} {k = k} pay
+pay-RBd {Vᵢ = Vᵢ} {κ₁} {Oᵢ} {k = k} eκ so l-F ⊢F rh pay with ty-cast ⊢F
+... | refl = pay-★ {Vᵢ = Vᵢ ⇂κ κ₁} {Oᵢ = Oᵢ} {k = k} pay
+pay-RBd {Vᵢ = Vᵢ} {κ₁} {Oᵢ} {k = k} eκ so l-gF ⊢F rh pay with ty-cast ⊢F
+... | refl = pay-★ {Vᵢ = Vᵢ ⇂κ κ₁} {Oᵢ = Oᵢ} {k = k} pay
+pay-RBd {Vᵢ = Vᵢ} {κ₁} {Oᵢ} {k = k} eκ so l-I★ (⊢ƛ _ (⊢` here)) rh pay =
+  pay-★ {Vᵢ = Vᵢ ⇂κ κ₁} {Oᵢ = Oᵢ} {k = k} pay
 
 bind-κ : ∀ {W : World Δ Δ′} {W₁ O O₁} → Bind W O W₁ O₁ → κʷ W₁ ≡ κʷ W
 bind-κ b-fresh                = refl
@@ -1800,10 +1820,10 @@ module PopWalk (Bd : Term)
 
   w-RB : ∀ {Δ₁ Δ₂} {V : World Δ₁ Δ₂} {γ M O A A′} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
     → κʷ V ≡ [] → LeftT M → ¬ (V ∣ γ ⊢ M ⊑ RBd ∶⟨ A , A′ ⟩[ O ] q)
-  w-RB {V = V} eκ l (⊑⟪⟫ I _ so _ _ _ pay d _ _)
+  w-RB {V = V} eκ l (⊑⟪⟫ rv I _ so _ _ _ pay d _ _)
     with bd-ty (rtyD d)
   ... | k , refl , (β , rh) =
-    pay-RBd (trans (same-κ I) eκ) so l (ltyD d) rh pay
+    pay-RBd (κ₁-keep I rv eκ) so l (ltyD d) rh pay
   w-RB eκ l-Λ (Λ⊑ bd _ _ _ _ d _) = w-RB (trans (bind-κ bd) eκ) l-id d
   w-RB eκ l-F (cast⊑ co-plain d _ _) = w-RB eκ l-Λ d
   w-RB eκ l-gF (cast⊑ co-plain d _ _) = w-RB eκ l-g d
@@ -2231,20 +2251,45 @@ module C5Dead where
   ... | refl , refl
     with plain-idx {V = U} {O = O} {A = ` 0} {A′ = `ℕ} nf-var p
   ... | ()
-  no-S-5 refl hp (⟪⟫⊑ I (ok ∷ []) _ _ _ _ _ _ _) =
+  no-S-5 refl hp (⟪⟫⊑ rv I (ok ∷ []) _ _ _ _ _ _ _) =
     r1′-fails (hp lh) lh ok
     where lh = unb1-lookup (int-left I)
 
+  -- the check's join: the left's 0 is joined to a right type variable
+  J0 : World Δ Δ′ → Set
+  J0 {Δ′ = Δ′} U =
+    Σ[ X′ ∈ ℕ ] Σ[ β ∈ RVar ] (Δ′ ∋ᵗ X′ := β) × Joins U 0 X′
+
   no-S-core : ∀ {U : World Δ Δ′} {γ Q O A A′} {q : A ⊑ᵂ⟨ U ⟩[ O ] A′}
-    → Core Q → A ≡ ` 0 → HP0 U → ¬ (U ∣ γ ⊢ S ⊑ Q ∶⟨ A , A′ ⟩[ O ] q)
-  no-S-core c-5 eA hp d = no-S-5 eA hp d
-  no-S-core c-hid eA hp (⊑⟪⟫ {Wᵢ = Ui} {K = K} I _ _ _ _ _ _ d _ _) =
+    → Core Q → A ≡ ` 0 → HP0 U → WfWorld U → J0 U
+    → ¬ (U ∣ γ ⊢ S ⊑ Q ∶⟨ A , A′ ⟩[ O ] q)
+  no-S-core c-5 eA hp wf jn d = no-S-5 eA hp d
+  no-S-core c-hid eA hp wf jn
+    (⊑⟪⟫ {Wᵢ = Ui} {K = K} rv-none I _ _ _ _ _ _ d _ _) =
     no-S-5 eA (λ lh → hasPP-+κ {W = Ui} {K = K} (hasPP-int I (hp lh))) d
-  no-S-core c-hid refl hp (⟪⟫⊑ I (ok ∷ []) _ _ _ _ _ _ _) =
+  -- the right hide REVOKES (design.md D32): it pays with its exterior
+  -- index X ⊑ ★ read without the revoked rep. vars, and X is joined
+  -- there, so X's partner is still permitted (the check fact again)
+  no-S-core {U = U} {O = O} c-hid refl hp wf (X′ , β , rh , j)
+    (⊑⟪⟫ {Wᵢ = Ui} {κ₁ = κ₁} {K = K} {A′ = A′} (rv-drop dr rpay) I _ _ _ _ _
+      _ d b′ _)
+    with bdy-id★ b′
+  ... | _ , refl =
+    no-S-5 refl
+      (λ lh → hasPP-+κ {W = Ui ⇂κ κ₁} {K = K}
+        (hasPP-int⇂ {κ₁ = κ₁} I
+          (hasPP-chk {V = U ⇂κ κ₁}
+            (wf⇂κ {W = U} wf (dropped-All dr
+              (subst (All _) (sym (same-κ I)) (wf-permits wf)))) lh rh
+            (subst (λ c → marksʷ (U ⇂κ κ₁) ⊢ ` (emb (ηᴸʷ U) 0) ⊑ ` c) j X⊑X)
+            (plain-idx {V = U ⇂κ κ₁} {O = O} {A = ` 0} {A′ = ★} nf-var
+              rpay))))
+      d
+  no-S-core c-hid refl hp wf jn (⟪⟫⊑ rv I (ok ∷ []) _ _ _ _ _ _ _) =
     r1′-fails (hp lh) lh ok
     where lh = unb1-lookup (int-left I)
-  no-S-core c-hid eA hp
-    (⟪⟫⊑⟪⟫ I _ _ _ _ (bdy-ty _ _ _ _ _) (bdy-ty _ _ _ _ _)
+  no-S-core c-hid eA hp wf jn
+    (⟪⟫⊑⟪⟫ rv I _ _ _ _ (bdy-ty _ _ _ _ _) (bdy-ty _ _ _ _ _)
       (Wᶜ , ci , conv-tail⊑tail (conv-seal⊑id★ _ lu)) _) =
     r1-fails {W = Wᶜ} (hasPP-conv ci (hp lh))
       (lu (unb1-conv (conv-left ci) lh))
@@ -2262,8 +2307,10 @@ module C5Dead where
       (λ lh → hasPP-chk {V = V} wf lh rh
         (plain-idx {V = V} {O = O} {A = ` 0} {A′ = A′} nf-var q)
         (plain-idx {V = V} {O = O} {A = ` 0} {A′ = ★} nf-var p))
+      wf (_ , _ , rh ,
+          var⊑var (plain-idx {V = V} {O = O} {A = ` 0} {A′ = A′} nf-var q))
       d
-  no-S-chk core wf eA (⟪⟫⊑ _ _ _ _ _ _ d _ _) = no-$-chk d
+  no-S-chk core wf eA (⟪⟫⊑ _ _ _ _ _ _ _ d _ _) = no-$-chk d
 
   module Outer (Q : Term) (core : Core Q) where
     RinQ RQ : Term
@@ -2272,14 +2319,14 @@ module C5Dead where
 
     no-S-RQ : ∀ {Δ₁} {V : World Δ₁ ΔL} {γ O A A′} {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
       → A ≡ ` 0 → ¬ (V ∣ γ ⊢ S ⊑ RQ ∶⟨ A , A′ ⟩[ O ] q)
-    no-S-RQ eA (⊑⟪⟫ _ _ _ _ _ wf _ d _ _) = no-S-chk core wf eA d
-    no-S-RQ {V = V} {O = O} refl (⟪⟫⊑ {A′ = A′} _ _ _ _ _ _ d _ q)
+    no-S-RQ eA (⊑⟪⟫ _ _ _ _ _ _ wf _ d _ _) = no-S-chk core wf eA d
+    no-S-RQ {V = V} {O = O} refl (⟪⟫⊑ {A′ = A′} _ _ _ _ _ _ _ d _ q)
       with ty-$ (ltyD d) | proj₂ (bdy-C5 (proj₂ (proj₂ (proj₂
              (⟪⟫-inv (rtyD d))))))
     ... | refl | refl
       with plain-idx {V = V} {O = O} {A = ` 0} {A′ = `ℕ} nf-var q
     ... | ()
-    no-S-RQ eA (⟪⟫⊑⟪⟫ _ _ _ _ d _ _ _ _) = no-$-chk d
+    no-S-RQ eA (⟪⟫⊑⟪⟫ _ _ _ _ _ d _ _ _ _) = no-$-chk d
 
     no-L-RinQ : ∀ {Δ₂} {V : World ΔL Δ₂} {γ O A A′}
         {q : A ⊑ᵂ⟨ V ⟩[ O ] A′}
@@ -2290,16 +2337,16 @@ module C5Dead where
     ... | _ , refl
       with plain-idx {V = V} {O = O} {A = `ℕ} {A′ = ` 0} nf-ℕ q
     ... | ()
-    no-L-RinQ (⟪⟫⊑ _ _ _ _ wf _ d b _) =
+    no-L-RinQ (⟪⟫⊑ _ _ _ _ _ wf _ d b _) =
       no-S-chk core wf (proj₁ (bdy-C5 b)) d
 
     -- THE TOP: every world over (ΔL, ΔL), ANY κ, any slots
     no-top : ∀ {W : World ΔL ΔL} {γ O A A′} {q : A ⊑ᵂ⟨ W ⟩[ O ] A′}
       → ¬ (W ∣ γ ⊢ C5L ⊑ RQ ∶⟨ A , A′ ⟩[ O ] q)
-    no-top (⟪⟫⊑⟪⟫ _ _ wf _ d b _ _ _) =
+    no-top (⟪⟫⊑⟪⟫ _ _ _ wf _ d b _ _ _) =
       no-S-chk core wf (proj₁ (bdy-C5 b)) d
-    no-top (⟪⟫⊑ _ _ _ _ _ _ d b _)    = no-S-RQ (proj₁ (bdy-C5 b)) d
-    no-top (⊑⟪⟫ _ _ _ _ _ _ _ d _ _)  = no-L-RinQ d
+    no-top (⟪⟫⊑ _ _ _ _ _ _ _ d b _)    = no-S-RQ (proj₁ (bdy-C5 b)) d
+    no-top (⊑⟪⟫ _ _ _ _ _ _ _ _ d _ _)  = no-L-RinQ d
 
   -- C5 IS UNRELATED (L state 3, R state 5), in every world, at any κ
   C5R-is : C5R ≡ Outer.RQ (5★ˣ) c-5

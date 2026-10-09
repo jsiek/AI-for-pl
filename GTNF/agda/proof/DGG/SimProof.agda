@@ -39,6 +39,7 @@ open import Boundary using (interior-functional; bw-interior-wf)
 open import Terms
 open import Reduction
 open import ImprecisionWorld using (int-left; int-right; same-κ)
+open import proof.ImprecisionWorld using (revoke-[])
 open import TermImprecision
 open import proof.DGG.SimDef using (Sim)
 
@@ -185,58 +186,58 @@ sim wfΔ wfΔ′ wfW refl (ν⊑ d pA n q) (ξ-ν st)
 ------------------------------------------------------------------------
 -- ⟪⟫⊑⟪⟫
 
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q) (Merge v ri r₁ r₂ r⋉ sc₁ sc₂) =
-  {! SimBoundary-Merge: simMerge pre (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q)
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q) (Merge v ri r₁ r₂ r⋉ sc₁ sc₂) =
+  {! SimBoundary-Merge: simMerge pre (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q)
        v ri r₁ r₂ r⋉ sc₁ sc₂ !}
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q) (Id u base) =
-  {! SimBoundary-Id: simId pre (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q) u base !}
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q) (IdDyn v g) =
-  {! SimBoundary-IdDyn: simIdDyn pre (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q) v g !}
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q) (IdDyn-var v eq ri rc same) =
-  {! SimBoundary-IdDynVar: simIdDynVar pre (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q)
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q) (Id u base) =
+  {! SimBoundary-Id: simId pre (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q) u base !}
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q) (IdDyn v g) =
+  {! SimBoundary-IdDyn: simIdDyn pre (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q) v g !}
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q) (IdDyn-var v eq ri rc same) =
+  {! SimBoundary-IdDynVar: simIdDynVar pre (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q)
        v eq ri rc same !}
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q) Blame-⟪⟫ =
-  {! SimCast-ToBlame: simToBlame pre (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q)
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q) Blame-⟪⟫ =
+  {! SimCast-ToBlame: simToBlame pre (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q)
        Blame-⟪⟫ !}
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int [] wi pay d b b′ bc q) (ξ-⟪⟫ ri st)
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int [] wi pay d b b′ bc q) (ξ-⟪⟫ ri st)
     with interior-functional ri (int-left int)
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int [] wi pay d b b′ bc q) (ξ-⟪⟫ ri st)
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int [] wi pay d b b′ bc q) (ξ-⟪⟫ ri st)
     | refl with sim (bdy-wfᵢ b) (bdy-wfᵢ b′)
-                    wi (same-κ int) d st
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int [] wi pay d b b′ bc q) (ξ-⟪⟫ ri st)
+                    wi (revoke-[] rv (same-κ int)) d st
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int [] wi pay d b b′ bc q) (ξ-⟪⟫ ri st)
     | refl | N′ , r′ , W′ , ev , wf′ , q′ , dN =
   {! SimFrame-⟪⟫: simFrame-⟪⟫ pre int b b′ bc pay q
        (N′ , r′ , W′ , ev , wf′ , q′ , dN) !}
 -- a permitting boundary (design.md D31): the premise world has
 -- permissions, outside Sim's statement (κʷ W ≡ [])
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int (j ∷ ks) wi pay d b b′ bc q) (ξ-⟪⟫ ri st) =
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int (j ∷ ks) wi pay d b b′ bc q) (ξ-⟪⟫ ri st) =
   {! SimFrame-⟪⟫κ: the IH at Wᵢ +κ K (K ≠ []), then simFrame-⟪⟫ !}
 
 ------------------------------------------------------------------------
 -- ⟪⟫⊑ (the left boundary is one-sided)
 
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ int ok bo-plain ks wi pay d b q) (Merge v ri r₁ r₂ r⋉ s₁ s₂) =
-  {! SimBoundary-Merge: simMerge pre (⟪⟫⊑ int ok bo-plain ks wi pay d b q)
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ rv int ok bo-plain ks wi pay d b q) (Merge v ri r₁ r₂ r⋉ s₁ s₂) =
+  {! SimBoundary-Merge: simMerge pre (⟪⟫⊑ rv int ok bo-plain ks wi pay d b q)
        v ri r₁ r₂ r⋉ s₁ s₂ !}
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ int ok bo-plain ks wi pay d b q) (Id u base) =
-  {! SimBoundary-Id: simId pre (⟪⟫⊑ int ok bo-plain ks wi pay d b q) u base !}
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ int ok bo-plain ks wi pay d b q) (IdDyn v g) =
-  {! SimBoundary-IdDyn: simIdDyn pre (⟪⟫⊑ int ok bo-plain ks wi pay d b q) v g !}
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ int ok bo-plain ks wi pay d b q) (IdDyn-var v eq ri rc same) =
-  {! SimBoundary-IdDynVar: simIdDynVar pre (⟪⟫⊑ int ok bo-plain ks wi pay d b q)
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ rv int ok bo-plain ks wi pay d b q) (Id u base) =
+  {! SimBoundary-Id: simId pre (⟪⟫⊑ rv int ok bo-plain ks wi pay d b q) u base !}
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ rv int ok bo-plain ks wi pay d b q) (IdDyn v g) =
+  {! SimBoundary-IdDyn: simIdDyn pre (⟪⟫⊑ rv int ok bo-plain ks wi pay d b q) v g !}
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ rv int ok bo-plain ks wi pay d b q) (IdDyn-var v eq ri rc same) =
+  {! SimBoundary-IdDynVar: simIdDynVar pre (⟪⟫⊑ rv int ok bo-plain ks wi pay d b q)
        v eq ri rc same !}
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ int ok bo-plain ks wi pay d b q) Blame-⟪⟫ =
-  {! SimCast-ToBlame: simToBlame pre (⟪⟫⊑ int ok bo-plain ks wi pay d b q) Blame-⟪⟫ !}
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ int ok bo-plain [] wi pay d b q) (ξ-⟪⟫ ri st)
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ rv int ok bo-plain ks wi pay d b q) Blame-⟪⟫ =
+  {! SimCast-ToBlame: simToBlame pre (⟪⟫⊑ rv int ok bo-plain ks wi pay d b q) Blame-⟪⟫ !}
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ rv int ok bo-plain [] wi pay d b q) (ξ-⟪⟫ ri st)
     with interior-functional ri (int-left int)
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ int ok bo-plain [] wi pay d b q) (ξ-⟪⟫ ri st)
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ rv int ok bo-plain [] wi pay d b q) (ξ-⟪⟫ ri st)
     | refl with sim (bdy-wfᵢ b) wfΔ′
-                    wi (same-κ int) d st
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ int ok bo-plain [] wi pay d b q) (ξ-⟪⟫ ri st)
+                    wi (revoke-[] rv (same-κ int)) d st
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ rv int ok bo-plain [] wi pay d b q) (ξ-⟪⟫ ri st)
     | refl | N′ , r′ , W′ , ev , wf′ , q′ , dN =
   {! SimFrame-⟪⟫⊑: simFrame-⟪⟫⊑ pre int ok b pay q
        (N′ , r′ , W′ , ev , wf′ , q′ , dN) !}
-sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ int ok bo-plain (j ∷ ks) wi pay d b q) (ξ-⟪⟫ ri st) =
+sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ rv int ok bo-plain (j ∷ ks) wi pay d b q) (ξ-⟪⟫ ri st) =
   {! SimFrame-⟪⟫⊑κ: the IH at Wᵢ +κ K (K ≠ []), then
      simFrame-⟪⟫⊑ !}
 
@@ -246,18 +247,18 @@ sim wfΔ wfΔ′ wfW refl (⟪⟫⊑ int ok bo-plain (j ∷ ks) wi pay d b q) (�
 -- with no new slot and no permission, whatever the left step, the IH
 -- at the interior world.
 
-sim wfΔ wfΔ′ wfW refl (⊑⟪⟫ int (push ca-[] f-end (n ∷ ns) (inj₂ v)) so sn ks wi pay d b′ q) st =
+sim wfΔ wfΔ′ wfW refl (⊑⟪⟫ rv int (push ca-[] f-end (n ∷ ns) (inj₂ v)) so sn ks wi pay d b′ q) st =
   ⊥-elim (value-¬step v st)
-sim wfΔ wfΔ′ wfW refl (⊑⟪⟫ int (push ca-[] f-end (n ∷ ns) (inj₁ ())) so sn ks wi pay d b′ q) st
-sim wfΔ wfΔ′ wfW refl (⊑⟪⟫ int (push ca-[] f-end [] nv) so sn [] wi pay d b′ q) st
+sim wfΔ wfΔ′ wfW refl (⊑⟪⟫ rv int (push ca-[] f-end (n ∷ ns) (inj₁ ())) so sn ks wi pay d b′ q) st
+sim wfΔ wfΔ′ wfW refl (⊑⟪⟫ rv int (push ca-[] f-end [] nv) so sn [] wi pay d b′ q) st
     with sim wfΔ (bdy-wfᵢ b′)
-             wi (same-κ int) d st
-sim wfΔ wfΔ′ wfW refl (⊑⟪⟫ int (push ca-[] f-end [] nv) so sn [] wi pay d b′ q) st
+             wi (revoke-[] rv (same-κ int)) d st
+sim wfΔ wfΔ′ wfW refl (⊑⟪⟫ rv int (push ca-[] f-end [] nv) so sn [] wi pay d b′ q) st
     | N′ , r′ , W′ , ev , wf′ , q′ , dN =
   {! SimFrame-⊑⟪⟫: simFrame-⊑⟪⟫ pre int b′ pay q
        (N′ , r′ , W′ , ev , wf′ , q′ , dN) !}
 -- a permitting right boundary (a rejoin, design.md D31): the premise
 -- world has permissions, outside Sim's statement (κʷ W ≡ [])
-sim wfΔ wfΔ′ wfW refl (⊑⟪⟫ int (push ca-[] f-end [] nv) so sn (j ∷ ks) wi pay d b′ q) st =
+sim wfΔ wfΔ′ wfW refl (⊑⟪⟫ rv int (push ca-[] f-end [] nv) so sn (j ∷ ks) wi pay d b′ q) st =
   {! SimFrame-⊑⟪⟫κ: the IH at Wᵢ +κ K (K ≠ []), then
      simFrame-⊑⟪⟫ !}

@@ -286,7 +286,7 @@ st2 : W₂ ∣ [] ⊢ L₀ ⊑ R₂ ∶ q-top
 st2 =
   ⊑cast
     (⊑cast
-      (⊑⟪⟫ intA (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vKL)) okA
+      (⊑⟪⟫ rv-none intA (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vKL)) okA
         ([] ∷ []) [] wfA idK
         (Λ⊑ (b-join (join1 join-here here r-here))
           nv-∀ (∈-∀ (∈-⇒ˡ ∈-var)) liftᴸ-[] vL1
@@ -403,10 +403,11 @@ final : W₄ ∣ [] ⊢ L₀ ⊑ R₄ ∶ q-top
 final =
   Λ⊑ claimX nv-∀ (∈-∀ (∈-⇒ˡ ∈-var)) liftᴸ-[] vL1
     (⊑cast
-      (⊑⟪⟫ intY (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vL1)) okY
+      (⊑⟪⟫ rv-none intY (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vL1)) okY
         ([] ∷ []) [] wfY qXY
         (⊑cast
-          (⊑⟪⟫ intX (push (ca-opn refl ca-[]) (f-keep f-end) [] (inj₁ refl))
+          (⊑⟪⟫ rv-none intX
+            (push (ca-opn refl ca-[]) (f-keep f-end) [] (inj₁ refl))
             okX ([] ∷ []) [] wfX (⇒⊑⇒ X⊑X (⇒⊑⇒ X⊑X X⊑X))
             (Λ⊑ (b-join (join1 join-here here r-here))
               nv-⇒ (∈-⇒ʳ refl (∈-⇒ˡ ∈-var)) liftᴸ-[] vNL

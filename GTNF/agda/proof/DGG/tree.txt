@@ -14,7 +14,7 @@ DynamicGradualGuarantee | the theorem (statement at top level, §2)  uses: Catch
   MultiSim | forward simulation over runs  uses: ImprecisionTyping TypeSafety/Preservation
     Sim | the more precise side steps, the less precise catches up
       SimFrame | ξ cases, including boundary frames  uses: AllocImp EvolveImp
-      SimBeta | Beta, Wrap  uses: SubstImp
+      SimBeta | Beta, Wrap  uses: SubstImp KappaWeaken
       SimTyBeta | TyBeta through InstX  uses: InstXImp AllocImp
       SimBoundary | Merge, Id, IdDyn  uses: MergeImp
       SimCast | CastId, CastSeq, CastSeq?, CastFun, Inst, TagUntag, TagUntagBad, TagUntagBad-⟪⟫, BlameBotIntro, Blame
@@ -23,7 +23,7 @@ DynamicGradualGuarantee | the theorem (statement at top level, §2)  uses: Catch
     SimBack | the less precise side steps, both catch up
       SimBackFrame | ξ cases  uses: AllocImp EvolveImp SimBackInstX
       SimBackInstX | under the slots a ⊑⟪⟫ opened (D31; formerly D27 pending names, D26 openings, ∀⊑⟪+⟫): the right steps, the left (a ∀-value) never moves
-      SimBackBeta | Beta, Wrap  uses: SubstImp
+      SimBackBeta | Beta, Wrap  uses: SubstImp KappaWeaken
       SimBackTyBeta | TyBeta, Inst  uses: InstXImp AllocImp
       SimBackBoundary | Merge, Id, IdDyn  uses: MergeImp
       SimBackCast | the cast rules
@@ -37,6 +37,7 @@ AllocImp | allocation preserves ⊑ and WfWorld, commutes with Interior
 SubstImp | substitution of related values preserves ⊑
 InstXImp | inst_X preserves ⊑ (matched and one-sided)
 MergeImp | conversion composition preserves conversion ⊑
+KappaWeaken | κ-weakening at rep. vars bound to joined type variables (Wrap's moved argument; D32 draft statement, not approved)
 
 # type safety (M1), in proof/TypeSafety/; statements in TypeSafety.agda
 TypeSafety/Progress | a closed typed term is a value, blame, or steps

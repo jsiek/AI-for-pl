@@ -54,6 +54,7 @@ open import ImprecisionWorld
   using (World; _⊑ᵂ⟨_⟩_; _⊑ᵂ⟨_⟩[_]_; int-left; int-right; same-κ;
          liftᴸ-[])
 open import proof.DGG.RunFrames using (value-run≡)
+open import proof.ImprecisionWorld using (revoke-[])
 open import TermImprecision
 open import proof.TypeSafety.PreservationSupport using (wf-underΛ)
 open import proof.DGG.SimBackDef using (SimBack)
@@ -91,7 +92,7 @@ slot-¬⊑blame (Λ⊑ {O₁ = []} (b-join j) nv occ liftᴸ-[] v d q) =
 slot-¬⊑blame (Λ⊑ {A = A} {B′ = B′} {O₁ = _ ∷ _} (b-join j) nv occ liftᴸ-[]
     v d q) =
   slot-¬⊑blame {A = A} {A′ = B′} d
-slot-¬⊑blame (⟪⟫⊑ {Aᵢ = Aᵢ} {A′ = A′} i ok (bo-∀ sm fc) ks wi pay d b q) =
+slot-¬⊑blame (⟪⟫⊑ {Aᵢ = Aᵢ} {A′ = A′} rv i ok (bo-∀ sm fc) ks wi pay d b q) =
   slot-¬⊑blame {A = Aᵢ} {A′ = A′} d
 
 simBack : SimBack
@@ -240,45 +241,45 @@ simBack wfΔ wfΔ′ wfW refl (ν⊑ d pA n q) st′ | ih =
 ------------------------------------------------------------------------
 -- ⟪⟫⊑⟪⟫
 
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q) (Merge w ri r₁ r₂ r⋉ sc₁ sc₂) =
-  {! SimBackBoundary-Merge: simBackMerge pre (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q)
+simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q) (Merge w ri r₁ r₂ r⋉ sc₁ sc₂) =
+  {! SimBackBoundary-Merge: simBackMerge pre (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q)
        w ri r₁ r₂ r⋉ sc₁ sc₂ !}
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q) (Id u base) =
-  {! SimBackBoundary-Id: simBackId pre (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q)
+simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q) (Id u base) =
+  {! SimBackBoundary-Id: simBackId pre (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q)
        u base !}
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q) (IdDyn w g) =
-  {! SimBackBoundary-IdDyn: simBackIdDyn pre (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q)
+simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q) (IdDyn w g) =
+  {! SimBackBoundary-IdDyn: simBackIdDyn pre (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q)
        w g !}
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q) (IdDyn-var w eq ri rc same) =
+simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q) (IdDyn-var w eq ri rc same) =
   {! SimBackBoundary-IdDynVar: simBackIdDynVar pre
-       (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q) w eq ri rc same !}
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q) Blame-⟪⟫ =
+       (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q) w eq ri rc same !}
+simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q) Blame-⟪⟫ =
   inj₂ {! SimBackCast-ToBlame: simBackToBlame pre
-            (⟪⟫⊑⟪⟫ int ks wi pay d b b′ bc q) Blame-⟪⟫ !}
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int [] wi pay d b b′ bc q) (ξ-⟪⟫ ri st′)
+            (⟪⟫⊑⟪⟫ rv int ks wi pay d b b′ bc q) Blame-⟪⟫ !}
+simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int [] wi pay d b b′ bc q) (ξ-⟪⟫ ri st′)
     with interior-functional ri (int-right int)
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int [] wi pay d b b′ bc q) (ξ-⟪⟫ ri st′)
+simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int [] wi pay d b b′ bc q) (ξ-⟪⟫ ri st′)
     | refl with simBack (bdy-wfᵢ b) (bdy-wfᵢ b′)
-                  wi (same-κ int) d st′
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int [] wi pay d b b′ bc q) (ξ-⟪⟫ ri st′)
+                  wi (revoke-[] rv (same-κ int)) d st′
+simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int [] wi pay d b b′ bc q) (ξ-⟪⟫ ri st′)
     | refl | ih =
   {! SimBackFrame-⟪⟫: simBackFrame-⟪⟫ pre int b b′ bc pay q ih !}
 -- a permitting boundary (design.md D31): the premise world has
 -- permissions, outside SimBack's statement (κʷ W ≡ [])
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ int (j ∷ ks) wi pay d b b′ bc q) (ξ-⟪⟫ ri st′) =
+simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑⟪⟫ rv int (j ∷ ks) wi pay d b b′ bc q) (ξ-⟪⟫ ri st′) =
   {! SimBackFrame-⟪⟫κ: the IH at Wᵢ +κ K (K ≠ []), then
      simBackFrame-⟪⟫ !}
 
 ------------------------------------------------------------------------
 -- ⟪⟫⊑: whatever the right step, the IH at the interior world
 
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑ int ok bo-plain [] wi pay d b q) st′
+simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑ rv int ok bo-plain [] wi pay d b q) st′
     with simBack (bdy-wfᵢ b) wfΔ′
-           wi (same-κ int) d st′
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑ int ok bo-plain [] wi pay d b q) st′ | ih =
+           wi (revoke-[] rv (same-κ int)) d st′
+simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑ rv int ok bo-plain [] wi pay d b q) st′ | ih =
   {! SimBackFrame-⟪⟫⊑: simBackFrame-⟪⟫⊑ pre int ok b pay q ih !}
 -- a permitting boundary (design.md D31): outside SimBack's statement
-simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑ int ok bo-plain (j ∷ ks) wi pay d b q) st′ =
+simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑ rv int ok bo-plain (j ∷ ks) wi pay d b q) st′ =
   {! SimBackFrame-⟪⟫⊑κ: the IH at Wᵢ +κ K (K ≠ []), then
      simBackFrame-⟪⟫⊑ !}
 
@@ -287,42 +288,42 @@ simBack wfΔ wfΔ′ wfW refl (⟪⟫⊑ int ok bo-plain (j ∷ ks) wi pay d b q
 -- slot in (the conclusion has none) and may add new ones, which
 -- subsumes the former ∀⊑⟪+⟫ case, D26's openings and D27's push)
 
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int pu so sn ks wi pay d b′ q) (Merge w ri r₁ r₂ r⋉ sc₁ sc₂) =
+simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ rv int pu so sn ks wi pay d b′ q) (Merge w ri r₁ r₂ r⋉ sc₁ sc₂) =
   {! SimBackBoundary-Merge (with a push: RightMergePending):
-       simBackMerge pre (⊑⟪⟫ int pu so sn ks wi pay d b′ q) w ri r₁ r₂ r⋉ sc₁ sc₂ !}
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int pu so sn ks wi pay d b′ q) (Id u base) =
-  {! SimBackBoundary-Id: simBackId pre (⊑⟪⟫ int pu so sn ks wi pay d b′ q) u base !}
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int pu so sn ks wi pay d b′ q) (IdDyn w g) =
-  {! SimBackBoundary-IdDyn: simBackIdDyn pre (⊑⟪⟫ int pu so sn ks wi pay d b′ q)
+       simBackMerge pre (⊑⟪⟫ rv int pu so sn ks wi pay d b′ q) w ri r₁ r₂ r⋉ sc₁ sc₂ !}
+simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ rv int pu so sn ks wi pay d b′ q) (Id u base) =
+  {! SimBackBoundary-Id: simBackId pre (⊑⟪⟫ rv int pu so sn ks wi pay d b′ q) u base !}
+simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ rv int pu so sn ks wi pay d b′ q) (IdDyn w g) =
+  {! SimBackBoundary-IdDyn: simBackIdDyn pre (⊑⟪⟫ rv int pu so sn ks wi pay d b′ q)
        w g !}
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int pu so sn ks wi pay d b′ q) (IdDyn-var w eq ri rc same) =
+simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ rv int pu so sn ks wi pay d b′ q) (IdDyn-var w eq ri rc same) =
   {! SimBackBoundary-IdDynVar: simBackIdDynVar pre
-       (⊑⟪⟫ int pu so sn ks wi pay d b′ q) w eq ri rc same !}
+       (⊑⟪⟫ rv int pu so sn ks wi pay d b′ q) w eq ri rc same !}
 -- no new slot: the premise relates M to blame (CatchupBlame reads no κ)
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int (push ca-[] f-end [] nv) so sn ks wi pay d b′ q) Blame-⟪⟫ =
+simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ rv int (push ca-[] f-end [] nv) so sn ks wi pay d b′ q) Blame-⟪⟫ =
   inj₂ (catchupBlame d)
 -- new slots: the premise relates the left VALUE to blame under slots,
 -- which no derivation does
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ {A = A} {A′ᵢ = A′ᵢ} int (push ca-[] f-end (n ∷ ns) v) so sn ks wi pay d b′ q) Blame-⟪⟫ =
+simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ {A = A} {A′ᵢ = A′ᵢ} rv int (push ca-[] f-end (n ∷ ns) v) so sn ks wi pay d b′ q) Blame-⟪⟫ =
   ⊥-elim (slot-¬⊑blame {A = A} {A′ = A′ᵢ} d)
 -- the right interior steps: no new slot and no permission, the IH at
 -- the interior world
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int (push ca-[] f-end [] nv) so sn [] wi pay d b′ q) (ξ-⟪⟫ ri st′)
+simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ rv int (push ca-[] f-end [] nv) so sn [] wi pay d b′ q) (ξ-⟪⟫ ri st′)
     with interior-functional ri (int-right int)
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int (push ca-[] f-end [] nv) so sn [] wi pay d b′ q) (ξ-⟪⟫ ri st′)
+simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ rv int (push ca-[] f-end [] nv) so sn [] wi pay d b′ q) (ξ-⟪⟫ ri st′)
     | refl with simBack wfΔ (bdy-wfᵢ b′)
-                  wi (same-κ int) d st′
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int (push ca-[] f-end [] nv) so sn [] wi pay d b′ q) (ξ-⟪⟫ ri st′)
+                  wi (revoke-[] rv (same-κ int)) d st′
+simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ rv int (push ca-[] f-end [] nv) so sn [] wi pay d b′ q) (ξ-⟪⟫ ri st′)
     | refl | ih =
   {! SimBackFrame-⊑⟪⟫: simBackFrame-⊑⟪⟫ pre int b′ pay q ih !}
 -- ... a permitting right boundary (a rejoin, design.md D31): the
 -- premise world has permissions, outside SimBack's statement
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int (push ca-[] f-end [] nv) so sn (j ∷ ks) wi pay d b′ q) (ξ-⟪⟫ ri st′) =
+simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ rv int (push ca-[] f-end [] nv) so sn (j ∷ ks) wi pay d b′ q) (ξ-⟪⟫ ri st′) =
   {! SimBackFrame-⊑⟪⟫κ: the IH at Wᵢ +κ K (K ≠ []), then
      simBackFrame-⊑⟪⟫ !}
 -- ... new slots: the premise has slots, outside SimBack's statement
 -- (PushInstR, CatchupRightO territory)
-simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ int (push ca-[] f-end (n ∷ ns) v) so sn ks wi pay d b′ q) (ξ-⟪⟫ ri st′) =
+simBack wfΔ wfΔ′ wfW refl (⊑⟪⟫ rv int (push ca-[] f-end (n ∷ ns) v) so sn ks wi pay d b′ q) (ξ-⟪⟫ ri st′) =
   {! SimBackFrame-⊑⟪⟫ (with new slots: SimBack under slots,
        PendingOpenings.md §6): simBackFrame-⊑⟪⟫ pre int
        (push ca-[] f-end (n ∷ ns) v) b′ pay q st′ !}

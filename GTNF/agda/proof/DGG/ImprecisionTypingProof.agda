@@ -104,15 +104,15 @@ imprecision-typing (ν⊑ν L⊑L′ pA n n′ ci q) | ⊢L , ⊢L′ =
   ⊢ν′ n ⊢L , ⊢ν′ n′ ⊢L′
 imprecision-typing (ν⊑ L⊑M′ pA n q) with imprecision-typing L⊑M′
 imprecision-typing (ν⊑ L⊑M′ pA n q) | ⊢L , ⊢M′ = ⊢ν′ n ⊢L , ⊢M′
-imprecision-typing (⟪⟫⊑⟪⟫ i ks wi pay M⊑M′ b b′ ci q)
+imprecision-typing (⟪⟫⊑⟪⟫ rv i ks wi pay M⊑M′ b b′ ci q)
   with imprecision-typing M⊑M′
-imprecision-typing (⟪⟫⊑⟪⟫ i ks wi pay M⊑M′ b b′ ci q) | ⊢M , ⊢M′ =
+imprecision-typing (⟪⟫⊑⟪⟫ rv i ks wi pay M⊑M′ b b′ ci q) | ⊢M , ⊢M′ =
   ⊢⟪⟫′ b ⊢M , ⊢⟪⟫′ b′ ⊢M′
-imprecision-typing (⟪⟫⊑ i ok bo ks wi pay M⊑M′ b q)
+imprecision-typing (⟪⟫⊑ rv i ok bo ks wi pay M⊑M′ b q)
   with imprecision-typing M⊑M′
-imprecision-typing (⟪⟫⊑ i ok bo ks wi pay M⊑M′ b q) | ⊢M , ⊢M′ =
+imprecision-typing (⟪⟫⊑ rv i ok bo ks wi pay M⊑M′ b q) | ⊢M , ⊢M′ =
   ⊢⟪⟫′ b ⊢M , ⊢closed ⊢M′
-imprecision-typing (⊑⟪⟫ i pu so sn ks wi pay M⊑M′ b′ q)
+imprecision-typing (⊑⟪⟫ rv i pu so sn ks wi pay M⊑M′ b′ q)
   with imprecision-typing M⊑M′
-imprecision-typing (⊑⟪⟫ i pu so sn ks wi pay M⊑M′ b′ q) | ⊢M , ⊢M′ =
+imprecision-typing (⊑⟪⟫ rv i pu so sn ks wi pay M⊑M′ b′ q) | ⊢M , ⊢M′ =
   ⊢closed ⊢M , ⊢⟪⟫′ b′ ⊢M′

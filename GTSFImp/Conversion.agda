@@ -4,14 +4,14 @@ module Conversion where
 --   * Intrinsically endpoint-typed reveal and conceal conversions.
 --   * Structural conversion generation records the representation type in
 --     each unseal/seal and computes both conversion endpoints.
---   * Store validity checks that recorded representations agree with the
---     current type store; renaming preserves intrinsic endpoints.
+--   * Generator-indexed validity tracks the one store variable and direct
+--     representation from which a structural conversion was generated.
+--   * Renaming preserves intrinsic endpoints.
 
 import Data.Fin as Fin
 open import Data.Fin.Properties using (_≟_)
-open import Data.Maybe using (Maybe; just; nothing)
 import Data.Nat as Nat
-open import Relation.Binary.PropositionalEquality using (refl)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 open import Relation.Nullary using (yes; no)
 
 open import Types
@@ -119,134 +119,89 @@ mutual
   rename↓ rho (id↓ A) = id↓ (renameᵗ rho A)
 
 ------------------------------------------------------------------------
--- Store validity
+-- Generator-indexed store validity
 ------------------------------------------------------------------------
 
-infix 4 _⊢↑_ _⊢↓_
+-- A valid conversion has one generator `X` with direct representation `R`.
+-- Its syntax is exactly the structural conversion generated at `X`: arrows
+-- use the same generator in both halves, and universals shift that generator
+-- beneath the binder.  Identity leaves are permitted only where the generator
+-- cannot occur.  The explicit equality in each universal rule keeps the
+-- representation index in constructor form.
+
+infix 4 _⊢↑[_⦂_]_ _⊢↓[_⦂_]_
 
 mutual
-  data _⊢↑_ {Δ : TyCtx} (Σ : TyStore Δ) :
+  data _⊢↑[_⦂_]_ {Δ : TyCtx} (Σ : TyStore Δ)
+      (X : TyVar Δ) (R : Ty Δ) :
       ∀ {A B} → Conv↑ Δ A B → Set where
-    ⊢↑-unseal : ∀ {X R}
-      → Σ ∋ X ⦂ R
-      → Σ ⊢↑ unseal X R
+    ⊢↑-unseal :
+        Σ ∋ X ⦂ R
+        ----------------------------
+      → Σ ⊢↑[ X ⦂ R ] unseal X R
 
     ⊢↑-⇒ : ∀ {A A′ B B′}
         {c : Conv↓ Δ A′ A} {d : Conv↑ Δ B B′}
-      → Σ ⊢↓ c
-      → Σ ⊢↑ d
-      → Σ ⊢↑ c ↦↑ d
+      → Σ ⊢↓[ X ⦂ R ] c
+      → Σ ⊢↑[ X ⦂ R ] d
+        -------------------------
+      → Σ ⊢↑[ X ⦂ R ] c ↦↑ d
 
-    ⊢↑-∀ : ∀ {A B} {c : Conv↑ (Nat.suc Δ) A B}
-      → store-lift Σ ⊢↑ c
-      → Σ ⊢↑ `∀↑ c
+    ⊢↑-∀ : ∀ {R′ A B} {c : Conv↑ (Nat.suc Δ) A B}
+      → R′ ≡ ⇑ᵗ R
+      → store-lift Σ ⊢↑[ Fin.suc X ⦂ R′ ] c
+        -------------------------
+      → Σ ⊢↑[ X ⦂ R ] `∀↑ c
 
-    ⊢↑-id : ∀ {A}
-      → Σ ⊢↑ id↑ A
-
-  data _⊢↓_ {Δ : TyCtx} (Σ : TyStore Δ) :
-      ∀ {A B} → Conv↓ Δ A B → Set where
-    ⊢↓-seal : ∀ {X R}
+    ⊢↑-id-var : ∀ {Y}
       → Σ ∋ X ⦂ R
-      → Σ ⊢↓ seal X R
+      → X ≢ Y
+        ---------------------------
+      → Σ ⊢↑[ X ⦂ R ] id↑ (＇ Y)
+
+    ⊢↑-id-base : ∀ {ι}
+      → Σ ∋ X ⦂ R
+        ---------------------------
+      → Σ ⊢↑[ X ⦂ R ] id↑ (‵ ι)
+
+    ⊢↑-id-star :
+        Σ ∋ X ⦂ R
+        -------------------------
+      → Σ ⊢↑[ X ⦂ R ] id↑ ★
+
+  data _⊢↓[_⦂_]_ {Δ : TyCtx} (Σ : TyStore Δ)
+      (X : TyVar Δ) (R : Ty Δ) :
+      ∀ {A B} → Conv↓ Δ A B → Set where
+    ⊢↓-seal :
+        Σ ∋ X ⦂ R
+        --------------------------
+      → Σ ⊢↓[ X ⦂ R ] seal X R
 
     ⊢↓-⇒ : ∀ {A A′ B B′}
         {c : Conv↑ Δ A′ A} {d : Conv↓ Δ B B′}
-      → Σ ⊢↑ c
-      → Σ ⊢↓ d
-      → Σ ⊢↓ c ↦↓ d
+      → Σ ⊢↑[ X ⦂ R ] c
+      → Σ ⊢↓[ X ⦂ R ] d
+        -------------------------
+      → Σ ⊢↓[ X ⦂ R ] c ↦↓ d
 
-    ⊢↓-∀ : ∀ {A B} {c : Conv↓ (Nat.suc Δ) A B}
-      → store-lift Σ ⊢↓ c
-      → Σ ⊢↓ `∀↓ c
+    ⊢↓-∀ : ∀ {R′ A B} {c : Conv↓ (Nat.suc Δ) A B}
+      → R′ ≡ ⇑ᵗ R
+      → store-lift Σ ⊢↓[ Fin.suc X ⦂ R′ ] c
+        -------------------------
+      → Σ ⊢↓[ X ⦂ R ] `∀↓ c
 
-    ⊢↓-id : ∀ {A}
-      → Σ ⊢↓ id↓ A
-
-------------------------------------------------------------------------
--- Conversion typing indexed by an optional converted variable
-------------------------------------------------------------------------
-
--- The pivot of a composite conversion is the join of the pivots of its
--- halves: an identity half contributes nothing, and two variable halves
--- must agree.  An all-identity conversion therefore has pivot nothing
--- and cannot be retyped at an arbitrary variable.
-
-data PivotJoin {Δ : TyCtx} :
-    Maybe (TyVar Δ) → Maybe (TyVar Δ) → Maybe (TyVar Δ) → Set where
-  join-none :
-      ----------------------------------
-      PivotJoin nothing nothing nothing
-
-  join-left : ∀ {X}
-      ------------------------------------
-    → PivotJoin (just X) nothing (just X)
-
-  join-right : ∀ {X}
-      ------------------------------------
-    → PivotJoin nothing (just X) (just X)
-
-  join-both : ∀ {X}
-      -------------------------------------
-    → PivotJoin (just X) (just X) (just X)
-
-infix 4 _⊢↑[_]_ _⊢↓[_]_
-
-mutual
-  data _⊢↑[_]_ {Δ : TyCtx} (Σ : TyStore Δ) :
-      Maybe (TyVar Δ) → ∀ {A B} → Conv↑ Δ A B → Set where
-    ⊢↑-unsealˣ : ∀ {X R}
+    ⊢↓-id-var : ∀ {Y}
       → Σ ∋ X ⦂ R
-        ----------------------------
-      → Σ ⊢↑[ just X ] unseal X R
+      → X ≢ Y
+        ---------------------------
+      → Σ ⊢↓[ X ⦂ R ] id↓ (＇ Y)
 
-    ⊢↑-⇒ˣ : ∀ {p q r A A′ B B′}
-        {c : Conv↓ Δ A′ A} {d : Conv↑ Δ B B′}
-      → PivotJoin p q r
-      → Σ ⊢↓[ p ] c
-      → Σ ⊢↑[ q ] d
-        -----------------
-      → Σ ⊢↑[ r ] c ↦↑ d
-
-    ⊢↑-∀ˣ : ∀ {X A B} {c : Conv↑ (Nat.suc Δ) A B}
-      → store-lift Σ ⊢↑[ just (Fin.suc X) ] c
-        -------------------------
-      → Σ ⊢↑[ just X ] `∀↑ c
-
-    ⊢↑-∀-idˣ : ∀ {A B} {c : Conv↑ (Nat.suc Δ) A B}
-      → store-lift Σ ⊢↑[ nothing ] c
-        -------------------------
-      → Σ ⊢↑[ nothing ] `∀↑ c
-
-    ⊢↑-idˣ : ∀ {A}
-        -----------------------
-      → Σ ⊢↑[ nothing ] id↑ A
-
-  data _⊢↓[_]_ {Δ : TyCtx} (Σ : TyStore Δ) :
-      Maybe (TyVar Δ) → ∀ {A B} → Conv↓ Δ A B → Set where
-    ⊢↓-sealˣ : ∀ {X R}
+    ⊢↓-id-base : ∀ {ι}
       → Σ ∋ X ⦂ R
-        --------------------------
-      → Σ ⊢↓[ just X ] seal X R
+        ---------------------------
+      → Σ ⊢↓[ X ⦂ R ] id↓ (‵ ι)
 
-    ⊢↓-⇒ˣ : ∀ {p q r A A′ B B′}
-        {c : Conv↑ Δ A′ A} {d : Conv↓ Δ B B′}
-      → PivotJoin p q r
-      → Σ ⊢↑[ p ] c
-      → Σ ⊢↓[ q ] d
-        -----------------
-      → Σ ⊢↓[ r ] c ↦↓ d
-
-    ⊢↓-∀ˣ : ∀ {X A B} {c : Conv↓ (Nat.suc Δ) A B}
-      → store-lift Σ ⊢↓[ just (Fin.suc X) ] c
+    ⊢↓-id-star :
+        Σ ∋ X ⦂ R
         -------------------------
-      → Σ ⊢↓[ just X ] `∀↓ c
-
-    ⊢↓-∀-idˣ : ∀ {A B} {c : Conv↓ (Nat.suc Δ) A B}
-      → store-lift Σ ⊢↓[ nothing ] c
-        -------------------------
-      → Σ ⊢↓[ nothing ] `∀↓ c
-
-    ⊢↓-idˣ : ∀ {A}
-        -----------------------
-      → Σ ⊢↓[ nothing ] id↓ A
+      → Σ ⊢↓[ X ⦂ R ] id↓ ★

@@ -283,19 +283,16 @@ rank-map-rename χ ρ vV spine =
     (spineLength-map χ spine)
 
 
-lambda-rank-decreases : ∀ {Δ} {B : Ty (suc Δ)}
+lambda-ready-rank-decreases : ∀ {Δ} {B : Ty (suc Δ)}
     {E : Ty Δ} {V : CT.Term (suc Δ)} {X : TyVar Δ}
     (vV : CT.Value V)
-    (vChild : CT.Value
-      (V CT.↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗))
     (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
-  → pendingRank vChild
-      (type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
-        mapInstantiationSpine (bind (＇ X)) spine)
+  → pendingRank vV
+      (lambda-ready-child-spine {B = B} {X = X} spine)
       <ʳ
       pendingRank (CT.Λ vV)
         (name-type-app-frame B X refl refl ▻ⁱ spine)
-lambda-rank-decreases {X = X} vV vChild spine
+lambda-ready-rank-decreases {X = X} vV spine
     rewrite nameFrames-map (bind (＇ X)) spine =
   rank-name< (n<1+n (nameFrames spine))
 

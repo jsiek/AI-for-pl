@@ -991,29 +991,23 @@ binder layers (`CastOpen`).  `cast⊑cast` is unchanged.  (why: §C9.2)
 
   W ∣ γ ⊢ M ⊑ M′ : B ⊑_W^Oₚ A′
   p : B ⇒ A
-  p opens O to Oₚ over M
+  opens(p, O) = Oₚ
+  M a value, unless O = []
   ──────────────────────────────── (cast⊑, D31)
   W ∣ γ ⊢ M ⟨p⟩ ⊑ M′ : A ⊑_W^O A′
 ```
 
-`p opens O to Oₚ over M` (Agda `CastOpen`): a `∀` layer passes its
-slot to `M`, a `gen` layer uses its slot up (any slot, an opening or
-a skip); every other coercion takes no slot.
+`opens` (Agda `CastOpen`) is the partial function
 
 ```
-  ─────────────────────────────── (co-plain)
-  p opens [] to [] over M
-
-  M a value
-  p opens O to Oₚ over M
-  ─────────────────────────────── (co-∀)
-  ∀X.p opens s·O to s·Oₚ over M
-
-  M a value
-  p opens O to Oₚ over M
-  ─────────────────────────────── (co-gen)
-  gen X.p opens s·O to Oₚ over M
+  opens(p,       [])   = []                 any p
+  opens(∀X.p,    s·O)  = s · opens(p, O)    the ∀ layer passes s
+  opens(gen X.p, s·O)  = opens(p, O)        the gen layer uses s up
 ```
+
+undefined otherwise (a coercion with no binder layer, given a slot).
+`s` is any slot, an opening or a skip.  (Agda cases: `co-plain`,
+`co-∀`, `co-gen`.)
 
 ### 10.3 Type abstraction
 
@@ -1088,7 +1082,7 @@ bound to a type variable is in scope.  (Agda: `Bind`, with cases
 `b-fresh`, `b-join`, `b-rep`.)
 
 `bind` has no case for a skip slot: a skip is used up only by a gen
-layer of `cast⊑` (`co-gen`, §10.2), or filled by a later `⊑⟪⟫`
+layer of `cast⊑` (`opens`, §10.2), or filled by a later `⊑⟪⟫`
 (§10.5).
 
 (How the rule for a left ∀-value against a right `Inst` boundary

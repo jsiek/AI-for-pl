@@ -1,316 +1,220 @@
-# DGG: the MAJOR statements, consolidated
+# DGG: the MAJOR statements, consolidated (D31)
 
-Status: 2026-10-04, for review.  None of these statements is approved.
-The Agda text is `proof/DGG/drafts/StatementsCore.agda`, which checks
-with `agda --safe -v0` (from `GTNF/agda`).  Each block below is copied
-from that file by a script.  It replaces, for review,
-`STATEMENTS-REVIEW.md` (108 statements).  The INLINE statements stay
-in `drafts/Statements.agda` as text: nobody reviews them, and each is
-proved in its consumer.  LEFT is the more precise side.
+Status: 2026-10-09, for review.  The 26 MAJOR statements of the
+2026-10-04 consolidation are re-derived for design.md **D31** (adopted
+2026-10-09, commit 075c0a81): no `πʷ`; the openings are SLOTS of the
+index `A ⊑ᵂ⟨ W ⟩[ O ] A′`; one `cast⊑` with `CastOpen`; `Λ⊑` with
+`Bind` (fresh, join, claim-rep); boundary permissions `K ⊆ JoinRep`,
+"the join pays"; R1′; no grants.  None of these statements is
+approved.  The Agda text is `proof/DGG/drafts/StatementsCore.agda`,
+which checks with `agda --safe -v0` (from `GTNF/agda`).  Each block
+below is copied from that file.  LEFT is the more precise side.  The
+INLINE statements of `drafts/Statements.agda` are NOT updated to D31
+(they are text; §6 lists the D31 INLINE helpers).
 
-**D31 note (2026-10-09; supersedes the D27 and D28 notes below where
-they differ).**  design.md D31 (adopted) replaced the pending list
-`πʷ` by SLOTS of the index (`A ⊑ᵂ⟨ W ⟩[ O ] A′`, `OpenO`; judgment
-`W ∣ γ ⊢ M ⊑ M′ ∶[ O ] p`) and D28's grants by permissions chosen at
-joining boundaries (`JoinRep`, `Wᵢ +κ K`, "the join pays").  The
-statements below still mention `πʷ` and grants and are NOT yet
-rewritten; the changes (D28pD30.md §8) are:
-
-- `Pre W` (all statements) loses `πʷ W ≡ []`; it keeps `κʷ W ≡ []`
-  and `WfWorld W`.  Every statement is at `O = []`.
-- `CatchupRightπ` becomes `CatchupRightO` (CatchupRight with slots,
-  the left a VALUE) and gains `CatchupRightκ` (at a world with
-  permissions, the premise of a permitting boundary).
-- M1 MorSide, M2 MorImp, M3 EvolveMor: the `PendingMor` parts go
-  (openings are right positions in the index, renamed with the right
-  side).  "κ may grow" remains, now only at boundaries.
-- `PushInstR`, `RightMergePending`, `PushCompose`, `WfPop`,
-  `PopInstX`: their π bookkeeping becomes slot bookkeeping (`Carried`,
-  `Fill`, `NewSlot`); `WfPop` becomes the `SlotOK` premise of `⊑⟪⟫`.
-- M19 SimBackApp, M24 CatchupCast (CastFun): no grant moves, so
-  `castfun-grant` and R12 go.  M20 SimBackCast (TagUntag): the drop
-  lemma goes.
-- NEW: a κ-weakening at Wrap into a permitting boundary (M16, M19), and
-  the permission of a merged rejoin (M14, M6, M15); both argued, open.
-- M22 SimBackBlame, M26 CastRedexNoBlame: C1-C5, C4g and the hunt's
-  gen-valued C4 stay dead (examples/TermImprecisionPermissionExamples).
-
-**D27 note (2026-10-05).**  design.md D27 replaced D26's `Opens` by
-pending names in the world (the field `πʷ` of `ImprecisionWorld.World`;
-TermImprecision §2).  The statements below still mention `Opens` and are NOT yet
-rewritten; that is the next review.  Per
-`notes/PendingOpenings.md` §6 the changes are:
-
-- M23 CatchupRightᴳ becomes `CatchupRightπ`: CatchupRight at any
-  pending names, with the left a VALUE (no Opens image).
-- M1 MorSide loses (e) (the `Opens` transport, `instX-ren`): pending
-  names are name positions (`PendingMor`, trivial).
-- M2 MorImp becomes `MorImpπ` (the pending names ride along).
-- M15 RightMergeOpens becomes `RightMergePending`, with the INLINE
-  `PushCompose`.
-- NEW MAJOR `PopInstX` (popping is instantiating; the `⊑⟪⟫` case of
-  M13 InstXImpL) and `PushInstR` (the right's Inst + TyBeta against a
-  left ∀-value; replaces B7, B9 and the INLINE B13 InstSyncᴳ).
-- INLINE A25 WfOpens becomes `WfPop` (`wf-⊕⁺` generalized); A26
-  OpensEvolveᴿ goes.
-- M12 InstXImp2: its `open-∀` "MISSING FORM" becomes the `⊑⟪⟫`-push
-  case.
-- M22 SimBackBlame and M26 CastRedexNoBlame are false as stated for
-  the current relation (PendingOpenings.md §5d; independent of D27).
-
-Net: 26 → 28 MAJOR.  The top-level DGG statement is unchanged
-(top-level worlds have no pending name: `πʷ W ≡ []`).
-
-**D28 note (2026-10-05).**  design.md D28 adopted permissions: the
-world field `κʷ` (permitted right rep. vars), marks COMPUTED from it
-(`marksʷ`), grants on right checks (`⊑cast` with `CastGrant`), R1 on
-`⟪⟫⊑` (`All (UnbindOK W) Θ`) and R2 on the four ★ conversion clauses
-(`LeftUnpermitted`).  The statements below are NOT yet rewritten.
-Affected (`notes/PermissionsR.md` §7, `notes/Permissions.md` §7):
-
-- `Pre W` (all statements) gains `κʷ W ≡ []` beside `πʷ W ≡ []`, and
-  `WfWorld W` (the check fact of PermissionsR §5 needs `wf-joint`).
-  In Agda the Def statements already take `κʷ W ≡ []` (EvolveLemmas
-  `⟿-κʷ` carries it along an evolution); `CatchupBlame` does not need
-  it and is unchanged.
-- M1 MorSide, M2 MorImp: "marks may rise" (A27 MarkMono) becomes
-  "κ may grow", now `κ-weaken` WITH the side condition `R12` (R1/R2 are
-  anti-monotone in κ); `WorldMor` renames κ by the right rep. var
-  renaming.
-- M3 EvolveMor: κ shifts with the right side (`map suc`).
-- M7 MergeConvWorld and M14 MergeImp must PRESERVE R2: free when an
-  input ★ clause supplies it; a MIXED case that creates a ★ clause
-  needs `LeftUnpermitted` as a new hypothesis.
-- M13 InstXImpL: no mark to raise; an X⊑★ at a joined name needs a
-  grant above.
-- M15 RightMergeOpens/RightMergePending and M18 SimBdy: turning a
-  matched left boundary into a one-sided one (`⟪⟫⊑⟪⟫` → `⟪⟫⊑`) now
-  needs R1 for its unbind entries (fails for P4-B3-like matched seals
-  under a grant).
-- M19 SimBackApp (CastFun) and M24 CatchupCast: `R12 (β ∷ κ)` of the
-  argument (`castfun-grant`).
-- M20 SimBackCast (TagUntag): the drop lemma (PermissionsR §4.3;
-  pieces mechanized, a re-ordering walk missing).
-- M22 SimBackBlame and M26 CastRedexNoBlame: C1–C4g and C5 are no
-  longer counterexamples (`examples/TermImprecisionPermissionExamples`:
-  `C1.c1-unrelated`, `C3.c3-unrelated`, `C5Dead.c5-unrelated`,
-  `C5Dead.c5-redex-unrelated`); no new counterexample is known.
-- The Sim, SimBack and CatchupRight skeletons have a new hole each,
-  the granting `⊑cast` (its premise is at a world with a permission):
-  `SimFrame-⊑castκ`, `SimBackFrame-⊑castκ`, `CatchupRightκ`.
-- Not adopted: the push type premise (redundant under permissions).
-  Open: H1, the push ORDER (`notes/PushTypePremise.md` §7); fixed by
-  D29 below.
-
-**D29 note (2026-10-06).**  design.md D29 added `claim-rep` to `Λ⊑`'s
-`Claim`.  With nothing pending, the binder pairs its abstract rep. var
-lexically with an unnamed right `★` rep. var `β` (`W ⊕ᴸ⇔ β`).  The
-right boundary that later names `β` rejoins it (`Interior.join-fresh`).
-It fixes H1 (`notes/PushOrder.md`, `examples/TermImprecisionH1Examples`).
-The statements below are NOT yet rewritten.  Affected:
-
-- Every lemma by induction on `⊑` gets a `claim-rep` case of `Λ⊑`, like
-  `claim-fresh`'s at the world `W ⊕ᴸ⇔ β`.  The skeletons have one new
-  hole each: `CatchupRight-claim-rep` (CatchupRightProof) and
-  `SimBackFrame-Λ⊑⇔` (SimBackProof).  CatchupBlame has the case and
-  stays finished.
-- INLINE: `WfWorld (W ⊕ᴸ⇔ β)` from `WfWorld W` and the claim's premises
-  (`(0, β)` agrees by `abst-★`; `β` unnamed, so named uniqueness is
-  unaffected).
-- M1 MorSide, M2 MorImp, M3 EvolveMor and AllocImp: `β` is renumbered
-  with the right side, like `κ`.
-- M13 InstXImpL: when the left's `TyBeta` catches up with a claimed
-  binder, the lexical pair `(0, β)` becomes global (`allocᴸ⇔`), as for
-  a pop.
-- `PushInstR`: a SECOND Inst on a ∀-boundary value cannot keep the
-  first Inst's push and pop.  It turns that pop into `claim-rep α`
-  above the new boundary, followed by `push-none` and the rejoin
-  (`notes/PushOrder.md` §5).  SimBack's case for the right's Inst then
-  has no Merge to wait for.
-- If pushes were removed as well (`notes/NoPush.md`; NOT adopted),
-  then `PushInstR` (Λ case), `RightMergePending`, `PushCompose`,
-  `WfPop`, `PendingMor`, `PopInstX` and `CatchupRightπ` would lose
-  their pending-name parts.  But the gen-value case (C2 X0, G1) would
-  then be unrelated, which refutes DGG part 1.
+The Wrap- and Merge-specific statements are PLACEHOLDERS (§5): another
+worker is changing the relation for them (JoinRep for rebound type
+variables; κ-weakening at Wrap).
 
 ## 0. Overview
 
-**Count.**  26 MAJOR statements.
+### 0.1 The table
 
-| group | MAJOR |
-|---|---|
-| transports and worlds (§2) | 10 |
-| substitution, instantiation, merge (§3) | 5 |
-| redex lemmas of Sim and SimBack (§4) | 7 |
-| CatchupRight (§5) | 4 |
+| # | statement | D31 | why |
+|---|---|---|---|
+| M1 | `MorSide` | REVISE | (a) at any slots; (e) `Opens` gone; new (e) `Bind`, (f) `JoinRep`, (g) `SlotOK`, (h) R1′ `UnbindOK` |
+| M2 | `MorImp` | REVISE | at any slots `O` (its induction goes under slotted premises) |
+| M3 | `EvolveMor` | KEEP | text unchanged; `WorldMor` now carries κ exactly (`mor-κ`), no raised marks |
+| M4 | `EvolveInterior` | KEEP | `Wᵢ +κ K` evolves as `Wᵢ` (INLINE `+κ-evolve`) |
+| M5 | `WfWorld-bind` | REVISE | `W ⊕ m` is gone: `W ⊕²` and the three `Bind` cases |
+| M6 | `InteriorMerge` | REVISE | the inner boundary sits in the outer's premise world `Wᵢ +κ K` |
+| M7 | `MergeConvWorld` | KEEP | conversions read the exterior world |
+| M8 | `PayloadImp` | KEEP | |
+| M9 | `RunReplay` | KEEP | |
+| M10 | `EvolveReplay` | KEEP | |
+| M11 | `SubstImp` | KEEP | substitution stops at (closed) boundaries |
+| M12 | `InstXImp2` | REVISE | `W ⊕ m` → `W ⊕²` (no mark to choose) |
+| M13 | `InstXImpL` → `InstXBind` | REVISE | at any slots; the outcome is a `Bind` (or a skip used up, `W ⊕ᴸ`); absorbs D27's `PopInstX` |
+| M14 | `MergeImp` | KEEP | (R2 in the MIXED cases, D28 note) |
+| M15 | `RightMergeOpens` → `RightMergeSlots` | REVISE | `Opens` → `Push`/`SlotOK`/`JoinRep`/pay, as `⊑⟪⟫`'s premises |
+| M16 | `SimApp` | KEEP | Wrap needs P1 (κ-weakening) |
+| M17 | `SimCast` | KEEP | |
+| M18 | `SimBdy` | KEEP | Merge needs P2 |
+| M19 | `SimBackApp` | KEEP | `castfun-grant` gone; Wrap needs P1 |
+| M20 | `SimBackCast` | KEEP | Inst through PushInstR; TagUntag's drop lemma gone |
+| M21 | `SimBackBdy` | KEEP | ⊑⟪⟫ × Merge through RightMergeSlots |
+| M22 | `SimBackBlame` | KEEP | C1–C5, C4g dead at κ = [] |
+| M23 | `CatchupRightᴳ` | DROP | the left of CatchupRight is always a VALUE now (no `Opens` image); replaced by `CatchupRightO` |
+| M24 | `CatchupCast` | REVISE | at any slots and permissions (a frame of CatchupRightO) |
+| M25 | `CatchupBdy` | REVISE | at any slots and permissions |
+| M26 | `CastRedexNoBlame` | REVISE | at any slots and permissions (Q1) |
+| N1 | `CatchupRightO` | NEW | CatchupRight at any slots and permissions; replaces M23 and D27's `CatchupRightπ` |
+| N2 | `PushInstR` | NEW | the right's Inst + TyBeta against a left value: a new opening, K ⊆ [0], the join pays |
+| G1–G3 | `Simκ`, `SimBackκ`, `CatchupLeftκ` | NEW (Def generalization) | the `…κ` holes are the IH at `Wᵢ +κ K`, K ≠ [] (Q1) |
+| P1 | `KappaWeaken` | PLACEHOLDER | the Wrap work (other worker) |
+| P2 | `MergePermit` | PLACEHOLDER | the Merge/JoinRep work (other worker) |
 
-Of the 108 old statements, 54 are folded into these 26, 11 are
-corollaries of the generic transports or are no longer needed, and 43
-are INLINE (§7).
+**Count.**  26 − 1 (M23) + 2 (N1, N2) = 27 MAJOR, plus three Def
+generalizations (G1–G3, pending Q1) and two placeholders (P1, P2).
 
-**The rule.**  A statement is MAJOR when it does real work (an
-induction, or a non-trivial case analysis) and either has at least two
-consumers or is the induction behind one skeleton hole.  Everything
-else is INLINE.
+**Dropped with D31 (beyond M23).**  Everything about `Opens` and
+pending type variables: MorSide (e) (`instX-ren`), `PendingMor`, `MorImpπ`,
+`CatchupRightπ`, `PopInstX` (now InstXBind's join outcome),
+`RightMergePending` (now RightMergeSlots), `WfPop` (the `SlotOK`
+premise of `⊑⟪⟫`), `PushCompose` (INLINE in RightMergeSlots), MarkMono
+and the raised marks of `WorldMor` (marks are computed from κ; κ moves
+exactly), `castfun-grant`/R12 at CastFun, and TagUntag's drop lemma.
 
-**The generic transports.**  One world morphism, `WorldMor ρ ρ′ W W₁`,
-covers three things:
+### 0.2 What changed in the definitions
 
-- a rep. var renaming on either side (`RepMor.rm-ren`: an allocation or
-  a binder insertion);
-- a representation in place (`rm-refine`: `abstR → bindR R`);
-- raised marks (`mor-μ`: X⊑X to X⊑★).
+- `Pre W` = `WfCtx Δ × WfCtx Δ′ × WfWorld W × κʷ W ≡ []` (no `πʷ`).
+  `Preκ W` drops `κʷ W ≡ []`; the catch-up family is stated at `Preκ`
+  (Q1).
+- `WorldMor ρ ρ′`: the field `mor-μ` (raised marks) is replaced by
+  `mor-κ : κʷ W₁ ≡ map ρ′ (κʷ W)`.  Growing κ is not a morphism: R1′
+  and R2 are anti-monotone in κ.  It is P1.
+- Slots are positions of the RIGHT context's type variables; rep. var
+  renamings and allocations move none, so every transport keeps `O`.
+- `CatchupRightConclO … O`: CatchupRight's conclusion at slots `O`.
 
-Three statements are stated over it:
+### 0.3 Dependency tree
 
-- `MorSide` moves the world-level side premises: `⊑ᵂ`, `Interior`, the
-  two conversion premises and `Opens`;
-- `MorImp` moves the relation;
-- `EvolveMor` says that an evolution *is* a world morphism.
-
-Together they replace eleven transports (A6–A9, A12–A19), three
-inductions on `⊑` (A1, B8, A27) and the four allocation corollaries
-(A2–A5).
-
-- EvolveImp, which is approved, becomes `EvolveMor` followed by
-  `MorImp`.
-- The typing side premises move by the existing lemmas, used on each
-  side of the morphism: `coercion-renᴿ`/`coercion-refine`,
-  `⊢renᴿ`/`⊢refine`, `interior-ren`, `conversion-ren` and `wfctx-ren`.
-  No substitution or renaming lemma is restated.
-
-**Shared forms between Sim and SimBack.**
-
-- *What is shared.*  Everything at the world level is shared: the
-  transports, `EvolveReplay` (A29 and A30 merged into one two-sided
-  statement), `PayloadImp` (A31 and A32 merged), `TyBetaSync2` (an
-  INLINE helper used by both TyBeta holes), and the merge lemmas.
-- *What is not shared.*  The redex lemmas themselves are not merged
-  into one statement parameterized by direction.  The relation has no
-  flip: `ν⊑` has no `⊑ν`, and `⊑⟪⟫` has openings that `⟪⟫⊑` lacks.
-  The two conclusions also differ.  SimConcl is one left step against a
-  right run; SimBackConcl is one right step against a left run or
-  blame.  So a statement indexed by direction would just be the pair
-  of the two.
-- *What was merged instead.*  Each side's redex lemmas are merged by
-  redex kind, which takes 24 statements down to 6: `SimApp`, `SimCast`
-  and `SimBdy`, with their mirrors.
-
-**Dependency tree.**  `→` means "its proof uses".  Approved or proved
-statements are in brackets, and INLINE glue is in parentheses.  `↺`
-marks a recursive call on a derivation that is not a subderivation.
+`→` means "its proof uses"; brackets: approved; parentheses: INLINE;
+`↺`: a recursive call on a derivation that is not a subderivation.
 
 ```
-[DGG] → [Sim*] → [Sim] → SimApp, SimCast, SimBdy, [CatchupRight]
-                         (SimTyBeta, SimCast-ToBlame, frames)
-        [SimBack*] → [SimBack] → SimBackApp, SimBackCast, SimBackBdy,
-                                 SimBackBlame, WfWorld-bind,
-                                 [CatchupLeft], [CatchupBlame]
-                                 (SimBackTyBeta, frames,
-                                  SimBackValue → [CatchupRight])
+[DGG] → [Sim*] → [Sim]=Simκ → SimApp, SimCast, SimBdy, [CatchupRight]
+                    (SimTyBeta, SimCast-ToBlame, frames)
+        [SimBack*] → [SimBack]=SimBackκ → SimBackApp, SimBackCast,
+                    SimBackBdy, SimBackBlame, WfWorld-bind,
+                    [CatchupLeft]=CatchupLeftκ, [CatchupBlame]
+                    (SimBackTyBeta, frames, SimBackValueO → CatchupRightO)
 
-SimApp, SimBackApp → SubstImp, [CatchupRight] / [CatchupLeft]
-SimCast, SimBackCast → [CatchupRight] / [CatchupLeft], (InstSyncᴳ)
-SimBdy, SimBackBdy → InteriorMerge, MergeConvWorld, MergeImp,
-                     RightMergeOpens (SimBackBdy)
+SimApp, SimBackApp → SubstImp, [CatchupRight] / [CatchupLeft], P1 (Wrap)
+SimCast → [CatchupRight]
+SimBackCast → [CatchupLeft], PushInstR, (TyBetaSync2)
+SimBdy, SimBackBdy → InteriorMerge, MergeConvWorld, MergeImp, P2,
+                     RightMergeSlots (SimBackBdy)
 SimBackBlame → [CatchupBlame], [CatchupLeft], CastRedexNoBlame
-(SimTyBeta, SimBackTyBeta) → InstXImp2, InstXImpL, MorImp, PayloadImp
-(frames) → EvolveMor, MorSide, EvolveInterior, [EvolveImp];
-           ·₂ also RunReplay, EvolveReplay, MorImp
+(SimTyBeta, SimBackTyBeta) → InstXImp2, InstXBind, MorImp, PayloadImp
+(frames) → EvolveMor, MorSide, EvolveInterior, MorImp;
+           ·₂ also RunReplay, EvolveReplay
 
 [EvolveImp] → EvolveMor, MorImp
 MorImp → MorSide, WfWorld-bind
-SubstImp → MorImp, WfWorld-bind, [ImprecisionTyping]
-InstXImp2, InstXImpL → MorImp, WfWorld-bind
-MergeImp → WfWorld-bind          RightMergeOpens → InteriorMerge
+SubstImp → MorImp, [ImprecisionTyping]
+InstXImp2, InstXBind → MorImp, WfWorld-bind
+MergeImp → WfWorld-bind          RightMergeSlots → InteriorMerge, P2
 
-[CatchupRight] = CatchupRightᴳ at zero openings
-CatchupRightᴳ → CatchupCast, CatchupBdy, WfWorld-bind, EvolveMor,
-                MorSide, EvolveInterior, [EvolveImp]   (frames E2–E8)
+[CatchupRight] = CatchupRightO at O = [], κ = []
+CatchupRightO → CatchupCast, CatchupBdy, WfWorld-bind, EvolveMor,
+                MorSide, MorImp, EvolveInterior   (frames)
 CatchupCast → CastRedexNoBlame, ↺CatchupCast, CatchupBdy,
-              (InstSyncᴳ: InstXImp2, MorImp) then ↺CatchupRightᴳ
+              PushInstR then ↺CatchupRightO
 CatchupBdy → MergeImp, InteriorMerge, MergeConvWorld,
-             RightMergeOpens, ↺CatchupBdy
+             RightMergeSlots, P2, ↺CatchupBdy
 ```
 
-**The catch-up cycle.**  It is unchanged in substance.
+**The catch-up cycle** is the old one with `CatchupRightᴳ` replaced:
 
 ```
-CatchupRightᴳ → (cast frames) → CatchupCast →(Inst, InstSyncᴳ) CatchupRightᴳ on a derivation InstSyncᴳ creates
+CatchupRightO → (cast frames) → CatchupCast →(Inst, PushInstR) CatchupRightO
 ```
 
-There are also the self-loops `CatchupCast ↺` and `CatchupBdy ↺`.
-There is no other cycle: Sim and SimBack call CatchupRight (SimBack
-through SimBackValue), and nothing calls back.
-
-A measure that would break the cycle is defined on the RIGHT term
-only.  Its components are compared lexicographically, and then the
-derivation:
-
-1. `ι`, the number of `instᵖ` nodes in the right term's coercions.
-   Inst consumes one, and no administrative step creates one.
-2. `κ`, the total size of the right term's coercions, counting the `︔`
-   node.  CastId, CastSeq, CastSeq? and TagUntag decrease it.
-3. `β`, the number of boundaries, plus, for each tag cast, the number
-   of boundaries around it.  Merge, Id and IdDyn decrease it.
-4. The size of the derivation, for the structural calls.
-
-A catch-up runs only administrative steps.  The only TyBeta follows an
-Inst, and each re-entry is compared with the term before that Inst,
-where `ι` has already dropped.  I have not checked this in Agda.
+on the slotted premise that PushInstR creates (the InstX image under
+the new opening), plus the self-loops `CatchupCast ↺` and
+`CatchupBdy ↺`.  The measure is unchanged (§0 of the 2026-10-04
+version): `ι` (the `instᵖ` nodes of the right term's coercions), then
+the coercion size, then the boundary count, then the derivation.  The
+re-entry after Inst is compared with the term before the Inst, where
+`ι` has dropped.  Not checked in Agda.
 
 ## 1. Fit check
 
-The method: for each skeleton, I made a temporary copy and took the
-MAJOR statements (from StatementsCore) and the INLINE statements (from
-drafts/Statements) as module parameters.  Then I replaced every hole.
-Each old redex child became a one-line adapter over its MAJOR
-statement, for example:
+Against the skeletons as they are now (each checks with holes
+allowed): SimProof 50 holes, SimBackProof 50, CatchupRightProof 11.
+Checked in Agda: `notes/D31StatementsFit.agda` (no holes, no
+postulates) derives the approved CatchupRight, Sim, SimBack and
+CatchupLeft from G1–G3/N1, closes the argument of the three
+`CatchupRightκ` holes and of the `CatchupRightO` hole as calls of
+`CatchupRightO` (with the INLINE `slotOK-+κ`: `SlotOK` reads no κ, but
+not definitionally), the two `WfWorld (W ⊕ᴸ)` holes and claim-rep's
+`WfWorld (W ⊕ᴸ⇔ β)` by `WfWorld-bind`, and builds PushInstR's
+evolution `W ⟿[ [] ∣ none ∷ new ★ ∷ [] ] allocᴿ ★ W`.  The rest of
+the mapping is by reading (the 2026-10-04 adapters were not re-run).
 
-```agda
-simWrap pre d u w ci ri rd sc =
-  simApp pre d (V-⟪⟫ u I-fun) w (Wrap u w ci ri rd sc)
-```
+### SimProof (50)
 
-So the adapters also check that the old statements are instances.
-Each copy was checked with `agda --safe -v0`, and all the copies are
-deleted.
+| holes | n | closed by |
+|---|---|---|
+| SimBeta-Beta, SimBeta-Wrap, SimCast-CastFun | 3 | SimApp (Wrap into a permitting boundary: P1) |
+| SimCast-{CastId, CastSeq, CastSeq?, Inst, TagUntag} × {cast⊑cast, cast⊑} | 10 | SimCast |
+| SimBoundary-{Merge, Id, IdDyn, IdDynVar} × {⟪⟫⊑⟪⟫, ⟪⟫⊑} | 8 | SimBdy (Merge of a permitting boundary: P2) |
+| SimCast-ToBlame | 14 | INLINE C14 |
+| SimFrame-{·₁, ·₂, cast, cast⊑, ⊑cast, ν, ν⊑, ⟪⟫, ⟪⟫⊑, ⊑⟪⟫} | 10 | INLINE frames |
+| SimTyBeta (ν⊑ν, ν⊑) | 2 | INLINE: ν⊑ν by InstXImp2, PayloadImp, MorImp, TyBetaSync2 (K ≠ []: P1); ν⊑ by InstXBind, PayloadImp, MorImp |
+| **SimFrame-⟪⟫κ, -⟪⟫⊑κ, -⊑⟪⟫κ** | 3 | **uncovered without G1 `Simκ` (Q1)**; with it, the frame plus `+κ-evolve`, MorSide (f) |
 
-| file | holes | MAJOR | INLINE | not covered |
-|---|---|---|---|---|
-| SimProof | 47 | 21 (SimApp 3, SimCast 10, SimBdy 8) | 26 (ToBlame 14, frames 10, SimTyBeta 2) | 0 |
-| SimBackProof | 46 | 32 (SimBackApp 3, SimBackCast 10, SimBackBdy 8, SimBackBlame 10, WfWorld-bind 1) | 14 (frames 11, SimBackTyBeta 1, SimBackValue 2) | 0 |
-| CatchupRightProof | 7 | 1 (WfWorld-bind) + CatchupRightᴳ as the argument of one | 6 (E2, E3, E6, E7, E8 ×2) | 0 |
+### SimBackProof (50)
 
-- **SimBackProof clause changes.**  The two clause changes of
-  STATEMENTS-REVIEW.md §1 are still needed: the `⊑⟪⟫ (open-∀ …)` ×
-  `ξ-⟪⟫` and × `Blame-⟪⟫` clauses become `inj₁` through SimBackValue,
-  because the left is a value.  With them, the copy checks with no
-  holes left.
-- **Corollaries.**  A second temporary module derives A12–A15, A18,
-  A19 and EvolveImp from `MorSide`, `MorImp` and `EvolveMor`.  It also
-  uses four INLINE helpers: `fusionᴹ`, `wfctx-mor`, `castTy-mor` and
-  `nuTy-mor`.  That module checks too.  A16 and A17 are the same
-  pattern, plus `fusionᴮ` and `interior-functional`; I did not check
-  them in Agda.
-- **Not re-run: the draft proofs of MAJOR statements**
-  (drafts/{AllocImp,SubstImp,InstXImp,MergeImp}Proof).
-  - The holes they left uncovered are unchanged: InstXImpProof has 14
-    (Q3) and MergeImpProof has 10 (B15's generalization).
-  - AllocImpProof becomes MorImp's proof.  Its 3 routine `BdyTy`
-    holes are `bdyTy-mor`.
-  - EvolveImpProof is replaced by the corollary above.
+| holes | n | closed by |
+|---|---|---|
+| SimBackBeta-Beta, -Wrap, SimBackCast-CastFun | 3 | SimBackApp (Wrap: P1) |
+| SimBackCast-{CastId, CastSeq, CastSeq?, Inst, TagUntag} × {cast⊑cast, ⊑cast} | 10 | SimBackCast (Inst: PushInstR, or TyBetaSync2 when the left also Insts) |
+| SimBackBoundary-{Merge, Id, IdDyn, IdDynVar} × {⟪⟫⊑⟪⟫, ⊑⟪⟫} | 8 | SimBackBdy (⊑⟪⟫ × Merge: RightMergeSlots; P2) |
+| SimBackCast-ToBlame | 11 | SimBackBlame |
+| SimBackFrame-{·₁, ·₂, cast, cast⊑, ⊑cast, Λ⊑, ν, ν⊑, ⟪⟫, ⟪⟫⊑, ⊑⟪⟫} | 11 | INLINE frames |
+| SimBackFrame-Λ⊑⇔ (claim-rep) | 1 | INLINE: WfWorld-bind (`b-rep`, checked), `unliftᴸ⇔`, EvolveMor |
+| SimBackFrame-⊑⟪⟫ with new slots | 1 | INLINE SimBackValueO: the left is a value, so CatchupRightO on the slotted premise, Determinism, EvolveInterior, rebuild `⊑⟪⟫` (MorSide (a), (f), (g)) |
+| SimBackTyBeta | 1 | INLINE: CatchupLeft, the left's TyBeta, TyBetaSync2 (K ≠ []: P1) |
+| WfWorld (W ⊕ᴸ) | 1 | WfWorld-bind (checked) |
+| **SimBackFrame-⟪⟫κ, -⟪⟫⊑κ, -⊑⟪⟫κ** | 3 | **uncovered without G2 `SimBackκ` (Q1)** |
+
+### CatchupRightProof (11)
+
+| holes | n | closed by |
+|---|---|---|
+| CastTail (cast⊑cast, ⊑cast) | 2 | CatchupCast, after `ξ-cast*`; CastTy and q by EvolveMor, MorSide (a) |
+| BdyTail (⟪⟫⊑⟪⟫, ⊑⟪⟫) | 2 | EvolveInterior, MorSide (a)–(c), then CatchupBdy |
+| BdyLift (⟪⟫⊑) | 1 | EvolveInterior, MorSide (a), (b), (h) |
+| WfWorld (W ⊕ᴸ) | 1 | WfWorld-bind (checked) |
+| CatchupRight-claim-rep | 1 | WfWorld-bind (`b-rep`, checked), INLINE `unliftᴸ⇔`, EvolveMor + MorImp |
+| CatchupRightκ (×3) | 3 | CatchupRightO as the IH (checked), then BdyTail/BdyLift with `+κ-evolve`, MorSide (f) |
+| CatchupRightO (⊑⟪⟫ with new slots) | 1 | CatchupRightO as the IH (checked), EvolveInterior, rebuild `⊑⟪⟫` (Push unchanged, MorSide (a), (f), (g)), then CatchupBdy at slots |
+
+So CatchupRightProof is closed only as the proof of **CatchupRightO**
+(Q3): its κ and slot holes are its own IH, and its module parameter
+EvolveImp (stated at κ = []) is replaced by EvolveMor and MorImp.
+
+### Gaps
+
+1. **The six `…κ` holes of Sim and SimBack** need the Defs at any κ
+   (G1, G2, and G3 for SimBack's ·₂ frame).  That is Q1.
+2. **P1** (Wrap into a permitting boundary; a K ≠ [] chosen by the
+   matched TyBeta).  PushInstR may avoid it (Q2).
+3. **P2** (Merge when a boundary permits; the merged boundary's payment
+   needs the inner interior index without the outer K).
+4. **INLINE `SlotOK-⟪⟫⊑`**: a slot that `⟪⟫⊑ bo-∀` passes into the
+   left boundary's interior must stay `SlotOK` there (needed by
+   WfWorld-bind for a join under a pass, in InstXBind and
+   CatchupRightO).  Argued, not checked: `RightOnly` and
+   `NoNamedPartner` could fail only if the left boundary rejoined the
+   opening's β, and then `Join1`'s `skip` contradicts
+   `Interior.join-fresh`.
+5. **CastRedexNoBlame and SimBackBlame at κ ≠ []**: C1–C4g are proved
+   dead at κ = [] only (`notes/D28pD30.md` §5).  CatchupRightO uses
+   CastRedexNoBlame at any κ (Q1).
 
 ## 2. Transports and worlds
 
-### M1 `MorSide`
+### M1 `MorSide` — REVISE
 ```agda
 MorSide : Set
 MorSide = ∀ {Δ Δ′ Δ₁ Δ′₁ : Ctxᵗ} {ρ ρ′ : Renameᵗ}
     {W : World Δ Δ′} {W₁ : World Δ₁ Δ′₁}
   → WorldMor ρ ρ′ W W₁
-    -- (a) type imprecision
-  → (∀ {A A′} → A ⊑ᵂ⟨ W ⟩ A′ → A ⊑ᵂ⟨ W₁ ⟩ A′)
+    -- (a) the index, at any slots
+  → (∀ {A A′ O} → A ⊑ᵂ⟨ W ⟩[ O ] A′ → A ⊑ᵂ⟨ W₁ ⟩[ O ] A′)
     -- (b) interior worlds (the boundary rules)
     × (∀ {Δᵢ Δ′ᵢ} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′}
          → WfWorld W₁
@@ -319,7 +223,7 @@ MorSide = ∀ {Δ Δ′ Δ₁ Δ′₁ : Ctxᵗ} {ρ ρ′ : Renameᵗ}
              Interior W₁ (renᴮᴿ ρ Θ) (renᴮᴿ ρ′ Θ′) Wᵢ₁
              × WorldMor ρ ρ′ Wᵢ Wᵢ₁ × AllAgree Wᵢ₁
              × (WfWorld Wᵢ → WfWorld Wᵢ₁))
-    -- (c) the conversion premise of ⟪⟫⊑⟪⟫
+    -- (c) the conversion premise of ⟪⟫⊑⟪⟫ (R2 reads κ and ϱ: exact)
     × (∀ {Δᵢ Δ′ᵢ Θ Θ′ c c′ Aᵢ A′ᵢ A A′}
          (b : BdyTy Δ Θ Δᵢ Aᵢ c A) (b′ : BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′)
          → BdyConversionImp W b b′
@@ -333,58 +237,63 @@ MorSide = ∀ {Δ Δ′ Δ₁ Δ′₁ : Ctxᵗ} {ρ ρ′ : Renameᵗ}
          → NuConversionImp W n n′
          → Σ[ n₁ ∈ NuTy Δ₁ A C c B ] Σ[ n₁′ ∈ NuTy Δ′₁ A′ C′ c′ B′ ]
              NuConversionImp W₁ n₁ n₁′)
-    -- (e) the openings of ⊑⟪⟫ (W read as an interior world); under
-    -- each opening the left is renamed by one more `extᵗ`
-    × (∀ {Δ⁺} {W⁺ : World Δ⁺ Δ′} {Θ′ M A M₀ A₀}
-         → AllAgree W₁
-         → Opens Θ′ W M A W⁺ M₀ A₀
-         → WfWorld W⁺
-         → Σ[ ρ⁺ ∈ Renameᵗ ] Σ[ Δ₁⁺ ∈ Ctxᵗ ] Σ[ W₁⁺ ∈ World Δ₁⁺ Δ′₁ ]
-             Opens (renᴮᴿ ρ′ Θ′) W₁ (renᴹᴿ ρ M) A W₁⁺ (renᴹᴿ ρ⁺ M₀) A₀
-             × WorldMor ρ⁺ ρ′ W⁺ W₁⁺ × WfWorld W₁⁺)
+    -- (e) Λ⊑'s binder (fresh, join, claim-rep); the left's new rep.
+    -- var 0 is renamed by `extᵗ ρ`, claim-rep's β by ρ′
+    × (∀ {W⁺ : World (underΛ Δ) Δ′} {O O₁}
+         → Bind W O W⁺ O₁
+         → Σ[ W₁⁺ ∈ World (underΛ Δ₁) Δ′₁ ]
+             Bind W₁ O W₁⁺ O₁ × WorldMor (extᵗ ρ) ρ′ W⁺ W₁⁺)
+    -- (f) the permissions a boundary may choose (W read as its
+    -- interior world)
+    × (∀ {Θ Θ′ N β}
+         → JoinRep W Θ Θ′ N β
+         → JoinRep W₁ (renᴮᴿ ρ Θ) (renᴮᴿ ρ′ Θ′) N (ρ′ β))
+    -- (g) well-formed slots
+    × (∀ {s} → SlotOK W s → SlotOK W₁ s)
+    -- (h) R1′
+    × (∀ {A Θ} → All (UnbindOK W A) Θ → All (UnbindOK W₁ A) (renᴮᴿ ρ Θ))
 ```
 - **Intent.**  The world-level side premises move along any world
-  morphism.  These are `⊑ᵂ`, the interior world, the conversion
-  premises of `⟪⟫⊑⟪⟫` and `ν⊑ν`, and the openings.  Under each opening
-  the left is renamed by one more `extᵗ` (ρ⁺).
+  morphism: the index at any slots, the interior world, the two
+  conversion premises (R2 reads κ and ϱ, which move exactly), Λ⊑'s
+  `Bind`, a boundary's `JoinRep`, `SlotOK`, and R1′'s `UnbindOK`.
 - **Consumers.**  MorImp (every rule with a side premise).  Through
-  EvolveMor, every frame of Sim, SimBack and CatchupRight.
-- **Plan.**  The parts in order:
-  - (a) is `renameᵗ-cong` on `mor-ηᴸ`/`mor-ηᴿ`, with monotonicity of
-    `_⊢_⊑_` in the marks.
-  - (b) works field by field, with `toExt-renᴮᴿ` for continuation and
-    `mor-paired` for `join-fresh`.
-  - (c) and (d) use `ConvImp`, which reads only `μ`/`emb`, so it moves
-    unchanged.
-  - (e) is an induction on `Opens`, with `instX-ren`.
+  EvolveMor, every frame of Sim, SimBack and CatchupRightO, including
+  the rebuilt `⊑⟪⟫` with new slots (f, g) and the `…κ` frames (f).
+- **Plan.**  (a) induction on `O` (`OpenO`), at the end
+  `renameᵗ-cong` on `mor-ηᴸ`/`mor-ηᴿ` and `permit (ρ′ β) (map ρ′ κ) =
+  permit β κ` (ρ′ injective, from `RepWk`).  (b) as before.  (e) by
+  cases on `Bind`: `b-join` maps `Join↪` unchanged (positions) and
+  `Δ′ ∋ᵗ k := β` to `ρ′ β`; `b-rep` renames β.  (f) `jr-join` by (b)'s
+  `Joins`, `jr-open` by positions.  (g) `OpeningOK` field by field.
+  (h) `Unpermitted` by `mor-paired` and `mor-κ`.
 
-### M2 `MorImp`
+### M2 `MorImp` — REVISE
 ```agda
 MorImp : Set
 MorImp = ∀ {Δ Δ′ Δ₁ Δ′₁ : Ctxᵗ} {ρ ρ′ : Renameᵗ}
     {W : World Δ Δ′} {W₁ : World Δ₁ Δ′₁}
     {γ : CtxImp W} {γ₁ : CtxImp W₁}
-    {M M′ : Term} {A A′ : Ty} {p : A ⊑ᵂ⟨ W ⟩ A′}
+    {M M′ : Term} {A A′ : Ty} {O : List Slot} {p : A ⊑ᵂ⟨ W ⟩[ O ] A′}
   → WorldMor ρ ρ′ W W₁
   → WfWorld W₁
-  → SameTys γ γ₁
-  → W ∣ γ ⊢ M ⊑ M′ ∶ p
-  → Σ[ q ∈ A ⊑ᵂ⟨ W₁ ⟩ A′ ] (W₁ ∣ γ₁ ⊢ renᴹᴿ ρ M ⊑ renᴹᴿ ρ′ M′ ∶ q)
+  → SameTys W W₁ γ γ₁
+  → W ∣ γ ⊢ M ⊑ M′ ∶⟨ A , A′ ⟩[ O ] p
+  → Σ[ q ∈ A ⊑ᵂ⟨ W₁ ⟩[ O ] A′ ]
+      (W₁ ∣ γ₁ ⊢ renᴹᴿ ρ M ⊑ renᴹᴿ ρ′ M′ ∶⟨ A , A′ ⟩[ O ] q)
 ```
-- **Intent.**  `⊑` moves along a world morphism.
-  - At an allocation it is A1 (AllocImp).
-  - At `rm-refine` it is B8 (RefineImp: an InstX result moved into the
-    represented interior of `inst []`).
-  - At raised marks it is A27 (MarkMono).
-- **Consumers.**  EvolveImp (now a corollary).  SubstImp's `lift-env`
-  (`crossΛᴹ`).  InstXImp2 and InstXImpL (`inst-gen`, raised marks).
-  The INLINE TyBeta helpers (refinement).  The `·₂` frames (the
-  argument under the function's allocations).
-- **Plan.**  Induction on `⊑`.  Binders use `extᵗ ρ` and WfWorld-bind,
-  side premises use MorSide and the existing typing lemmas, and
-  `blame⊑` uses `⊢renᴿ`/`⊢refine`.
+- **Intent.**  `⊑` moves along a world morphism, at any slots.  At an
+  allocation it is A1 (AllocImp), at `rm-refine` B8 (RefineImp).
+- **Consumers.**  EvolveImp (a corollary).  SubstImp (`crossΛᴹ`).
+  InstXImp2, InstXBind (refinement into the TyBeta interior).  The
+  `·₂` frames.  CatchupRightO's frames (in place of EvolveImp).
+- **Plan.**  Induction on `⊑`.  Binders: `Bind` by MorSide (e), `⊕²`
+  by `extᵗ`; boundaries: MorSide (b), (f), (h), and `Wᵢ +κ K` ↦
+  `Wᵢ₁ +κ map ρ′ K` (INLINE `mor-+κ`); `cast⊑`'s `CastOpen` and
+  `⊑⟪⟫`'s `Push` do not mention rep. vars (unchanged); `blame⊑` by
+  `⊢renᴿ`/`⊢refine`.
 
-### M3 `EvolveMor`
+### M3 `EvolveMor` — KEEP
 ```agda
 EvolveMor : Set
 EvolveMor = ∀ {Δ Δ′} {W : World Δ Δ′} {ξs ξs′ : List Alloc}
@@ -392,16 +301,14 @@ EvolveMor = ∀ {Δ Δ′} {W : World Δ Δ′} {ξs ξs′ : List Alloc}
   → W ⟿[ ξs ∣ ξs′ ] W′
   → WorldMor (nnew ξs +_) (nnew ξs′ +_) W W′ × (WfWorld W → WfWorld W′)
 ```
-- **Intent.**  An evolution is a world morphism, `(nnew ξs +_)` on the
-  left and `(nnew ξs′ +_)` on the right, and it keeps `WfWorld`.  The
-  new pairs of `ev-2` and `ev-L⇔` are off the image.
-- **Consumers.**  EvolveImp.  Every frame (A13–A19 are corollaries:
-  §1).  CatchupRightᴳ.
-- **Plan.**  Induction on `⟿`.  Each step is a morphism (`repwk-alloc`
-  with the recorded payload premise), and morphisms compose.
-  `WfWorld` uses the recorded `Agree`, moved by `⊑ᴿ-ren`.
+- **Intent.**  An evolution is a world morphism and keeps `WfWorld`.
+  κ is renamed by the right's allocations (`map suc`), which is
+  `mor-κ`.
+- **Consumers.**  EvolveImp, every frame, CatchupRightO.
+- **Plan.**  Induction on `⟿`; each step is a morphism; morphisms
+  compose.
 
-### M4 `EvolveInterior`
+### M4 `EvolveInterior` — KEEP
 ```agda
 EvolveInterior : Set
 EvolveInterior = ∀ {Δ Δ′ Δᵢ Δ′ᵢ} {ξs ξs′ : List Alloc}
@@ -413,40 +320,51 @@ EvolveInterior = ∀ {Δ Δ′ Δᵢ Δ′ᵢ} {ξs ξs′ : List Alloc}
       (W ⟿[ ξs ∣ ξs′ ] W′) × Interior W′ (↑ᴮ*[ ξs ] Θ) (↑ᴮ*[ ξs′ ] Θ′) Wᵢ′
 ```
 - **Intent.**  The IH's evolution of an interior world lifts to the
-  outer world, with the boundary renumbered as `ξ-⟪⟫*` renumbers it.
-- **Consumers.**  The boundary frames of Sim (3), SimBack (3) and
-  CatchupRight (3).
-- **Plan.**  Induction on `⟿`, with InteriorAlloc (A20) at each step.
-  The interior reps are the exterior reps.
+  outer world.  For a permitting boundary the IH runs at `Wᵢ +κ K`; its
+  evolution is `Wᵢ`'s with `K` renamed (INLINE `+κ-evolve`), so this
+  statement applies to `Wᵢ`.
+- **Consumers.**  The boundary frames of Sim (3 + 3 κ), SimBack
+  (3 + 3 κ + slotted ⊑⟪⟫) and CatchupRightO.
+- **Plan.**  Induction on `⟿`, InteriorAlloc at each step.
 
-### M5 `WfWorld-bind`
+### M5 `WfWorld-bind` — REVISE
 ```agda
 WfWorld-bind : Set
-WfWorld-bind = ∀ {Δ Δ′} {W : World Δ Δ′} {m : VarImp}
-  → WfWorld W → WfWorld (W ⊕ m) × WfWorld (W ⊕ᴸ)
+WfWorld-bind = ∀ {Δ Δ′} {W : World Δ Δ′}
+  → WfWorld W
+  → WfWorld (W ⊕²)
+    × (∀ {W₁ : World (underΛ Δ) Δ′} {O O₁}
+         → All (SlotOK W) O → Bind W O W₁ O₁ → WfWorld W₁)
 ```
-- **Intent.**  The premise worlds of `Λ⊑Λ` and `Λ⊑` are well formed.
-- **Consumers.**  The `Λ⊑` holes of CatchupRightProof and SimBackProof.
-  Also MorImp, SubstImp, InstXImp2, InstXImpL and MergeImp.
-- **Plan.**  As the existing `wf-⊕⁺`.  `⊕ m` adds the lexical pair
-  `(0, 0)` (`abst-abst`), and `⊕ᴸ` is `left-only` at X⊑★.  Old pairs
-  shift by `⊑ᴿ-ren`.
+- **Intent.**  The premise worlds of `Λ⊑Λ` (`W ⊕²`) and `Λ⊑` (fresh,
+  join, claim-rep) are well formed.
+- **Consumers.**  The two `WfWorld (W ⊕ᴸ)` holes, claim-rep's holes
+  (CatchupRight-claim-rep, SimBackFrame-Λ⊑⇔), MorImp, SubstImp,
+  InstXImp2, InstXBind, CatchupRightO (join under a slot).
+- **Plan.**  As `wf-⊕⁺`.  `⊕²`: `(0, 0)` agrees by `abst-abst`.  Fresh:
+  `left-only`.  Claim-rep: `(0, β)` by `abst-★`, named uniqueness by
+  `¬ names Δ′ ∋ᵅ β` and `NoNamedPartner`.  Join: `Join↪` turns the
+  right-only `skip`/`keep` into `both`, `(0, β)` by `abst-★`, named
+  uniqueness by `OpeningOK`'s `NoNamedPartner`.
 
-### M6 `InteriorMerge`
+### M6 `InteriorMerge` — REVISE
 ```agda
 InteriorMerge : Set
 InteriorMerge = ∀ {Δ Δ′ Δᵢ Δ′ᵢ Δᵢᵢ Δ′ᵢᵢ} {W : World Δ Δ′}
-    {Wᵢ : World Δᵢ Δ′ᵢ} {Wᵢᵢ : World Δᵢᵢ Δ′ᵢᵢ} {Θ₁ Θ₂ Θ₁′ Θ₂′}
+    {Wᵢ : World Δᵢ Δ′ᵢ} {Wᵢᵢ : World Δᵢᵢ Δ′ᵢᵢ} {Θ₁ Θ₂ Θ₁′ Θ₂′ K}
   → Interior W Θ₂ Θ₂′ Wᵢ
-  → Interior Wᵢ Θ₁ Θ₁′ Wᵢᵢ
-  → Interior W (Θ₁ ++ Θ₂) (Θ₁′ ++ Θ₂′) Wᵢᵢ
+  → Interior (Wᵢ +κ K) Θ₁ Θ₁′ Wᵢᵢ
+  → Interior W (Θ₁ ++ Θ₂) (Θ₁′ ++ Θ₂′) (Wᵢᵢ ⟨κ≔ κʷ W ⟩)
 ```
-- **Intent.**  Interior worlds compose across a Merge.
-- **Consumers.**  SimBdy, SimBackBdy, CatchupBdy, RightMergeOpens.
-- **Plan.**  `toExt (Θ₁ ++ Θ₂)` composes.  A name fresh in the
-  composite is fresh in Θ₁, or fresh in Θ₂ and continuing through Θ₁.
+- **Intent.**  Interior worlds compose across a Merge.  The inner
+  boundary lives in the outer boundary's premise world `Wᵢ +κ K`; the
+  merged interior is the inner interior with the exterior κ, and its
+  premise world with `K₁ ++ K` is the inner premise world.
+- **Consumers.**  SimBdy, SimBackBdy, CatchupBdy, RightMergeSlots.
+- **Plan.**  `toExt (Θ₁ ++ Θ₂)` composes; `same-κ` by the record
+  update; `join-fresh` as before.
 
-### M7 `MergeConvWorld`
+### M7 `MergeConvWorld` — KEEP
 ```agda
 MergeConvWorld : Set
 MergeConvWorld = ∀ {Δ Δ′ Δᵢ Δ′ᵢ Δ₂ᶜ Δ′₂ᶜ Δ⋉ᶜ Δ′⋉ᶜ} {W : World Δ Δ′}
@@ -468,13 +386,10 @@ MergeConvWorld = ∀ {Δ Δ′ Δᵢ Δ′ᵢ Δ₂ᶜ Δ′₂ᶜ Δ⋉ᶜ Δ�
            → SameConv Δ⋉ᶜ r Δ₁ᶜ s → SameConv Δ′⋉ᶜ r′ Δ′₁ᶜ s′
            → ConvImp W₁ᶜ s s′ → ConvImp W⋉ᶜ r r′)
 ```
-- **Intent.**  This gives the merged pair's conversion world, and
-  carries conversion imprecision along Merge's `SameConv` respellings.
-- **Consumers.**  SimBdy, SimBackBdy, CatchupBdy.
-- **Plan.**  Build `W⋉ᶜ` from W and the conversion names of `Θ₁ ++ Θ₂`.
-  Then induct on the shared spelling.
+- **Intent, consumers, plan.**  Unchanged: conversions are read in the
+  EXTERIOR conversion world, which K does not touch.
 
-### M8 `PayloadImp`
+### M8 `PayloadImp` — KEEP
 ```agda
 PayloadImp : Set
 PayloadImp = ∀ {Δ Δ′} {W : World Δ Δ′} {A A′ R R′}
@@ -483,17 +398,10 @@ PayloadImp = ∀ {Δ Δ′} {W : World Δ Δ′} {A A′ R R′}
   → Δ ⊢ᶜ A ~ R → Δ′ ⊢ᶜ A′ ~ R′
   → [] ⊢ R ⊑ᴿ⟨ W ⟩ R′
 ```
-- **Intent.**  Imprecise type arguments have imprecise payloads.  The
-  `Agree` premise of `ev-2` is `rep-rep` of PayloadImp.  The premise of
-  `ev-L⇔` is its instance at `A′ = ★` (`same-★`), which also gives
-  "★ is top" for these payloads.
-- **Consumers.**  The matched TyBeta (TyBetaSync2: SimTyBeta,
-  SimBackTyBeta) and the left TyBeta (TyBetaCatchUpᴸ: SimTyBeta).
-- **Plan.**  Induction on `A ⊑ᵂ A′` with `A ~ R`.  A joined name's rep.
-  vars are paired (`Joint`), which gives `α⊑β`.  An X⊑★ name against ★
-  gives `α⊑★`.
+- Unchanged.  Consumers: the matched TyBeta (`ev-2`) and the left
+  TyBeta (`ev-L⇔`).
 
-### M9 `RunReplay`
+### M9 `RunReplay` — KEEP
 ```agda
 RunReplay : Set
 RunReplay = ∀ {Δ : Ctxᵗ} {M N : Term} (xs : List Alloc)
@@ -502,14 +410,8 @@ RunReplay = ∀ {Δ : Ctxᵗ} {M N : Term} (xs : List Alloc)
               -→* renᴹᴿ (extN (nnew (allocs r)) (nnew xs +_)) N ]
       (allocs r₁ ≡ replayAllocs (nnew xs) zero (allocs r))
 ```
-- **Intent.**  A run replays when extra rep. vars are allocated below
-  it.
-- **Consumers.**  The `·₂` frames of Sim and SimBack.
-- **Plan.**  Induction on the run, with a one-step lemma: every rule
-  commutes with a rep. var renaming (`renᴹᴿ`, `renᴮᴿ`, TyBeta's `~`).
-  It may need `WfCtx`.
 
-### M10 `EvolveReplay`
+### M10 `EvolveReplay` — KEEP
 ```agda
 EvolveReplay : Set
 EvolveReplay = ∀ {Δ Δ′} {W : World Δ Δ′} {xs xs′ ys ys′ : List Alloc}
@@ -525,71 +427,72 @@ EvolveReplay = ∀ {Δ Δ′} {W : World Δ Δ′} {xs xs′ ys ys′ : List All
       × WorldMor (extN (nnew ys) (nnew xs +_))
                  (extN (nnew ys′) (nnew xs′ +_)) W₂ W₃
 ```
-- **Intent.**  Two evolutions from one world commute.  The second
-  replays after the first, and its world embeds by a morphism.  A29 is
-  the instance `xs = []`, and A30 the instance `xs′ = []`.
-- **Consumers.**  The `·₂` frames of Sim (A29) and SimBack (A30).
-- **Plan.**  Induction on the second evolution.  Each recorded payload
-  and `Agree` shifts by `⊑ᴿ-ren`.
 
 ## 3. Substitution, instantiation, merge
 
-### M11 `SubstImp`
+### M11 `SubstImp` — KEEP
 ```agda
 SubstImp : Set
 SubstImp = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {γ γ₁ : CtxImp W}
     {σ σ′ : Var → Img} {N N′ : Term} {A A′ : Ty} {p : A ⊑ᵂ⟨ W ⟩ A′}
   → Pre W
-  → (∀ {x e} → γ ∋ʷ x ⦂ e → ImgImp γ₁ (σ x) (σ′ x) e)
+  → (∀ {x e} → γ ∋ʷ x ⦂ e → ImgImp {W = W} γ₁ (σ x) (σ′ x) e)
   → W ∣ γ ⊢ N ⊑ N′ ∶ p
   → Σ[ q ∈ A ⊑ᵂ⟨ W ⟩ A′ ] (W ∣ γ₁ ⊢ substᵐ σ N ⊑ substᵐ σ′ N′ ∶ q)
 ```
-- **Intent.**  Related images substituted into related terms stay
-  related.
-- **Consumers.**  Through SubstImpBeta: SimApp and SimBackApp (Beta).
-  It is a real induction (drafts/SubstImpProof).
-- **Plan.**  Induction on `⊑`.  It uses MorImp for `crossΛᴹ`, and
-  WeakenClosedImp and ClosedSubstFixed as private helpers.
+- Unchanged.  Substitution stops at boundaries (their interiors are
+  closed), so it never enters a permitting premise world.
 
-### M12 `InstXImp2`
+### M12 `InstXImp2` — REVISE
 ```agda
 InstXImp2 : Set
 InstXImp2 = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {V V′ N N′ : Term}
-    {C C′ : Ty} {m : VarImp} {r : `∀ C ⊑ᵂ⟨ W ⟩ `∀ C′}
-  → C ⊑ᵂ⟨ W ⊕ m ⟩ C′
+    {C C′ : Ty} {r : `∀ C ⊑ᵂ⟨ W ⟩ `∀ C′}
+  → WfWorld W
+  → C ⊑ᵂ⟨ W ⊕² ⟩ C′
   → Value V → Value V′ → InstX V N → InstX V′ N′
   → W ∣ [] ⊢ V ⊑ V′ ∶ r
-  → ∃[ m′ ] Σ[ q ∈ C ⊑ᵂ⟨ W ⊕ m′ ⟩ C′ ] (W ⊕ m′ ∣ [] ⊢ N ⊑ N′ ∶ q)
+  → Σ[ q ∈ C ⊑ᵂ⟨ W ⊕² ⟩ C′ ] (W ⊕² ∣ [] ⊢ N ⊑ N′ ∶ q)
 ```
-- **Intent.**  When the binders correspond, both InstX images are
-  related at the `Λ⊑Λ` world.
-- **Consumers.**  The matched TyBeta (SimTyBeta, SimBackTyBeta).  Inst
-  (InstSyncᴳ: CatchupCast, SimBackCast).
-- **Plan.**  Induction on `⊑`, with `InstX` inverted
-  (drafts/InstXImpProof).  14 holes are open (Q3).
+- **Intent.**  Both sides instantiate; the binders correspond.  With
+  computed marks there is no mark to choose: the matched binder is
+  `X⊑X` in `W ⊕²`.
+- **Consumers.**  The matched TyBeta (SimTyBeta, SimBackTyBeta) and
+  SimBackCast's Inst when the left also Insts.  If the rebuilt
+  `⟪⟫⊑⟪⟫` must choose `K = [αᴿ]` (P4k, P4h), the image is re-read at
+  the larger κ: P1.
+- **Plan.**  Induction on `⊑`, `InstX` inverted (drafts/InstXImpProof,
+  14 holes, Q3 of the 2026-10-04 version).
 
-### M13 `InstXImpL`
+### M13 `InstXBind` — REVISE (was `InstXImpL`)
 ```agda
-InstXImpL : Set
-InstXImpL = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {V N M′ : Term}
-    {C B′ : Ty} {r : `∀ C ⊑ᵂ⟨ W ⟩ B′}
-  → WfWorld W
-  → C ⊑ᵂ⟨ W ⊕ᴸ ⟩ B′
+InstXBind : Set
+InstXBind = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {V N M′ : Term}
+    {C B′ : Ty} {O : List Slot} {r : `∀ C ⊑ᵂ⟨ W ⟩[ O ] B′}
+  → WfWorld W → All (SlotOK W) O
   → Value V → InstX V N
-  → W ∣ [] ⊢ V ⊑ M′ ∶ r
-  → (Σ[ q ∈ C ⊑ᵂ⟨ W ⊕ᴸ ⟩ B′ ] (W ⊕ᴸ ∣ [] ⊢ N ⊑ M′ ∶ q))
-    ⊎ (∃[ β ] (Δ′ ∋rep β := ★) × (names Δ′ ∌ʳ β)
-        × Σ[ q ∈ C ⊑ᵂ⟨ W ⊕ᴸ⇔ β ⟩ B′ ] (W ⊕ᴸ⇔ β ∣ [] ⊢ N ⊑ M′ ∶ q))
+  → W ∣ [] ⊢ V ⊑ M′ ∶⟨ `∀ C , B′ ⟩[ O ] r
+  → Σ[ W₁ ∈ World (underΛ Δ) Δ′ ] Σ[ O₁ ∈ List Slot ]
+      (Bind W O W₁ O₁ ⊎ ((O ≡ skp ∷ O₁) × (W₁ ≡ W ⊕ᴸ)))
+      × Σ[ q ∈ C ⊑ᵂ⟨ W₁ ⟩[ O₁ ] B′ ] (W₁ ∣ [] ⊢ N ⊑ M′ ∶⟨ C , B′ ⟩[ O₁ ] q)
 ```
-- **Intent.**  The left alone instantiates.  The second outcome,
-  `W ⊕ᴸ⇔ β`, comes from an opening found under the right spine.
-- **Consumers.**  The left TyBeta (SimTyBeta at `ν⊑`).  It is a real
-  induction.
-- **Plan.**  Induction on `⊑`.  An opened `⊑⟪⟫` gives the second
-  outcome, with its mark raised by MorImp.  `Λ⊑Λ` is still open
-  (`MISFIT`).
+- **Intent.**  The left alone instantiates, at any slots.  Its new type
+  variable is bound as `Λ⊑` would bind it: fresh or claim-rep at
+  `O = []`, the join of the first slot, or left-only when a gen layer
+  uses up a skip.  At `O = []` this is the old InstXImpL, its second
+  outcome `W ⊕ᴸ⇔ β` being `b-rep`; the slotted case is D27's
+  `PopInstX`.
+- **Consumers.**  The left TyBeta (SimTyBeta at `ν⊑`; the left's run in
+  SimBackTyBeta).  Its own `⊑⟪⟫`-with-new-slots case.
+- **Plan.**  Induction on `⊑` with `InstX` inverted.  `Λ⊑`: the binder
+  is the outcome.  `cast⊑ co-∀`: pass; `co-gen`: `inst-gen`'s
+  `crossΛᴹ` (a hide, `ok-hidden`), the slot used up.  `⟪⟫⊑ bo-∀`:
+  `inst-⟪⟫`, InteriorLift.  `⊑⟪⟫` with new slots: the IH under the
+  slots; a join of a new opening inside becomes `b-rep` outside (the
+  opening's β is unnamed there), rejoined by `Interior.join-fresh`.
+  `⊑cast`: the IH.
 
-### M14 `MergeImp`
+### M14 `MergeImp` — KEEP
 ```agda
 MergeImp : Set
 MergeImp =
@@ -619,45 +522,46 @@ MergeImp =
     → ConvImp W c₂ c₂′
     → ConvImp W c₂ (Δ′ ⊢ c₁′ ⨟ c₂′))
 ```
-- **Intent.**  `⨟` preserves conversion imprecision when both sides
-  merge, the left alone merges, or the right alone merges.  The three
-  are one mutual induction, so they are one statement.
-- **Consumers.**  SimBdy (both, left), SimBackBdy (both, right),
-  CatchupBdy (right).
-- **Plan.**  Mutual induction following `⨟` (drafts/MergeImpProof).
-  6 `MIXED` cases are open, and the left-only conjunct needs
-  `rep(X) ⊑ A′`.
+- Unchanged.  6 `MIXED` cases open (drafts/MergeImpProof); R2 must be
+  preserved where a MIXED case creates a ★ clause.
 
-### M15 `RightMergeOpens`
+### M15 `RightMergeSlots` — REVISE (was `RightMergeOpens`)
 ```agda
-RightMergeOpens : Set
-RightMergeOpens = ∀ {Δ Δ′ Δ′ᵢ Δ⁺} {W : World Δ Δ′} {Wᵢ : World Δ Δ′ᵢ}
-    {Wᵢ⁺ : World Δ⁺ Δ′ᵢ} {Θ₁′ Θ₂′ M M₀ U′ t₁′ A A₀ A′ᵢ}
-    {r : A₀ ⊑ᵂ⟨ Wᵢ⁺ ⟩ A′ᵢ}
-  → WfWorld W
+RightMergeSlots : Set
+RightMergeSlots = ∀ {Δ Δ′ Δ′ᵢ} {W : World Δ Δ′} {Wᵢ : World Δ Δ′ᵢ}
+    {K : List RVar} {M U′ N′ : Term} {Θ₁′ Θ₂′ : Boundary} {t₁′ : Tail}
+    {c₂′ : Conv} {A A′ᵢ A′ : Ty} {O N Oᵢ : List Slot}
+    {r : A ⊑ᵂ⟨ Wᵢ +κ K ⟩[ Oᵢ ] A′ᵢ}
+  → Preκ W → All (SlotOK W) O
   → Interior W [] Θ₂′ Wᵢ
-  → Opens Θ₂′ Wᵢ M A Wᵢ⁺ M₀ A₀
-  → WfWorld Wᵢ⁺
-  → Wᵢ⁺ ∣ [] ⊢ M₀ ⊑ U′ ⟪ Θ₁′ , t₁′ ⟫ ∶ r
-  → ∃[ Δ″ ] Σ[ Wₘ ∈ World Δ Δ″ ] Σ[ Wₘ⁺ ∈ World Δ⁺ Δ″ ]
-      Interior W [] (Θ₁′ ++ Θ₂′) Wₘ
-      × Opens (Θ₁′ ++ Θ₂′) Wₘ M A Wₘ⁺ M₀ A₀ × WfWorld Wₘ⁺
-      × ∃[ A″ ] Σ[ r′ ∈ A₀ ⊑ᵂ⟨ Wₘ⁺ ⟩ A″ ] (Wₘ⁺ ∣ [] ⊢ M₀ ⊑ U′ ∶ r′)
+  → Push Θ₂′ M O N Oᵢ
+  → All (SlotOK Wᵢ) Oᵢ → AllPairs SlotNe Oᵢ
+  → All (JoinRep Wᵢ [] Θ₂′ N) K → WfWorld (Wᵢ +κ K)
+  → A ⊑ᵂ⟨ Wᵢ ⟩[ Oᵢ ] A′ᵢ
+  → Wᵢ +κ K ∣ [] ⊢ M ⊑ U′ ⟪ Θ₁′ , tail t₁′ ⟫ ∶⟨ A , A′ᵢ ⟩[ Oᵢ ] r
+  → BdyTy Δ′ Θ₂′ Δ′ᵢ A′ᵢ c₂′ A′
+  → (q : A ⊑ᵂ⟨ W ⟩[ O ] A′)
+  → Δ′ ⊢ (U′ ⟪ Θ₁′ , tail t₁′ ⟫) ⟪ Θ₂′ , c₂′ ⟫ -→ N′ ∣ none
+  → W ∣ [] ⊢ M ⊑ N′ ∶⟨ A , A′ ⟩[ O ] q
 ```
-- **Intent.**  The right merges under a right-only outer boundary, and
-  the openings stay.
-- **Consumers.**  SimBackBdy and CatchupBdy (`⊑⟪⟫` × Merge).
-- **Plan.**  InteriorMerge for the merged interior, and an induction on
-  `Opens` through Θ₁′.  An inner `⟪⟫⊑⟪⟫` becomes `⟪⟫⊑`, and an inner
-  `⊑⟪⟫` is unwrapped.
+- **Intent.**  A right Merge under a right-only outer boundary, at any
+  slots.  The premises are `⊑⟪⟫`'s, exactly as the skeleton holes hold
+  them.  The merged boundary carries the slots through `Θ₁′ ++ Θ₂′`.
+- **Consumers.**  SimBackBdy (`⊑⟪⟫` × Merge, with or without new
+  slots) and CatchupBdy.
+- **Plan.**  Inversion of the inner derivation.  Inner `⊑⟪⟫`:
+  InteriorMerge, INLINE PushCompose (`Carried`/`Fill` through
+  `Θ₁′ ++ Θ₂′`), its K₁ by P2.  Inner `⟪⟫⊑⟪⟫`: becomes `⟪⟫⊑` under the
+  merged right boundary (R1′ for its unbinds: the exterior type is the
+  same).  Left one-sided rules over the inner boundary: induction.
 
-## 4. Redex lemmas of Sim and SimBack
+## 4. Redex lemmas of Sim and SimBack (KEEP)
 
-A redex lemma takes the whole derivation and a head step: the step's
-immediate subterms are values.  This excludes the congruences and the
-blame propagations, which are the IH and INLINE glue.
+A redex lemma takes the whole derivation and a head step.  The texts
+are unchanged; `Pre W` now reads `κʷ W ≡ []` (if Q1 is accepted, these
+take `Preκ`).
 
-### M16 `SimApp`
+### M16 `SimApp` — KEEP
 ```agda
 SimApp : Set
 SimApp = ∀ {Δ Δ′} {W : World Δ Δ′} {L M M′ N A A′ ξ}
@@ -668,15 +572,11 @@ SimApp = ∀ {Δ Δ′} {W : World Δ Δ′} {L M M′ N A A′ ξ}
   → Δ ⊢ L · M -→ N ∣ ξ
   → SimConcl W ξ M′ A A′ N
 ```
-- **Intent.**  The left's Beta, Wrap or CastFun is simulated.
-- **Consumers.**  `·⊑·` × Beta, Wrap, CastFun (3 holes).  Each case
-  needs an induction on the right function value's wrappers.
-- **Plan.**  CatchupRight brings the function and the argument to
-  values.  Induct on the right function's casts and boundaries, which
-  the right peels by CastFun and Wrap, with the argument caught up each
-  time.  At the λ, SubstImpBeta.
+- Beta, Wrap, CastFun.  Wrap puts the argument into the dual inside
+  the function's boundary, whose interior carries that boundary's K:
+  P1.
 
-### M17 `SimCast`
+### M17 `SimCast` — KEEP
 ```agda
 SimCast : Set
 SimCast = ∀ {Δ Δ′} {W : World Δ Δ′} {V M′ N μ c A A′ ξ}
@@ -687,14 +587,10 @@ SimCast = ∀ {Δ Δ′} {W : World Δ Δ′} {V M′ N μ c A A′ ξ}
   → Δ ⊢ V ⟨ μ ∣ c ⟩ -→ N ∣ ξ
   → SimConcl W ξ M′ A A′ N
 ```
-- **Intent.**  The left's cast redex is simulated: CastId, CastSeq,
-  CastSeq?, Inst and TagUntag, and also the blaming ones.
-- **Consumers.**  `cast⊑cast` and `cast⊑` × 5 steps (10 holes).
-- **Plan.**  For `cast⊑`, the right stays and the left wrapper is
-  rebuilt.  For `cast⊑cast`, CatchupRight on the premise, then the
-  right's matching step.  Inst rebuilds `ν⊑ν` or `ν⊑` at ★.
+- At `O = []`, `cast⊑` is `co-plain` only.  Inst rebuilds `ν⊑ν` or
+  `ν⊑` at ★.
 
-### M18 `SimBdy`
+### M18 `SimBdy` — KEEP
 ```agda
 SimBdy : Set
 SimBdy = ∀ {Δ Δ′} {W : World Δ Δ′} {M M′ N Θ c A A′ ξ}
@@ -705,14 +601,10 @@ SimBdy = ∀ {Δ Δ′} {W : World Δ Δ′} {M M′ N Θ c A A′ ξ}
   → Δ ⊢ M ⟪ Θ , c ⟫ -→ N ∣ ξ
   → SimConcl W ξ M′ A A′ N
 ```
-- **Intent.**  The left's boundary redex is simulated: Merge, Id, IdDyn
-  and IdDyn-var.
-- **Consumers.**  `⟪⟫⊑⟪⟫` and `⟪⟫⊑` × 4 steps (8 holes).
-- **Plan.**  CatchupRight inside, then the right's matching step, or
-  `⟪⟫⊑` is peeled.  Merge uses InteriorMerge, MergeConvWorld and
-  MergeImp.
+- Merge: InteriorMerge, MergeConvWorld, MergeImp, and P2 when a
+  boundary permits.
 
-### M19 `SimBackApp`
+### M19 `SimBackApp` — KEEP
 ```agda
 SimBackApp : Set
 SimBackApp = ∀ {Δ Δ′} {W : World Δ Δ′} {M L′ M′ N′ A A′ ξ′}
@@ -723,13 +615,9 @@ SimBackApp = ∀ {Δ Δ′} {W : World Δ Δ′} {M L′ M′ N′ A A′ ξ′}
   → Δ′ ⊢ L′ · M′ -→ N′ ∣ ξ′
   → SimBackConcl W M A A′ ξ′ N′
 ```
-- **Intent.**  The right's Beta, Wrap or CastFun is matched.
-- **Consumers.**  `·⊑·` × 3 steps (3 holes).  It is the mirror of
-  SimApp, with the left peeling its wrappers, or blame.
-- **Plan.**  CatchupLeft on both parts.  Induct on the left function's
-  wrappers, which the left steps away.  At the λ, SubstImpBeta.
+- No grant moves at CastFun (`castfun-grant` gone).  Wrap: P1.
 
-### M20 `SimBackCast`
+### M20 `SimBackCast` — KEEP
 ```agda
 SimBackCast : Set
 SimBackCast = ∀ {Δ Δ′} {W : World Δ Δ′} {M V′ N′ μ c A A′ ξ′}
@@ -740,13 +628,10 @@ SimBackCast = ∀ {Δ Δ′} {W : World Δ Δ′} {M V′ N′ μ c A A′ ξ′
   → Δ′ ⊢ V′ ⟨ μ ∣ c ⟩ -→ N′ ∣ ξ′
   → SimBackConcl W M A A′ ξ′ N′
 ```
-- **Intent.**  The right's cast redex is matched.
-- **Consumers.**  `cast⊑cast` and `⊑cast` × 5 steps (10 holes).
-- **Plan.**  CatchupLeft on the premise.  Under `⊑cast` the left is
-  then a value, and SimBackValue applies.  Under `cast⊑cast` the left
-  cast is matched or administrative.  Inst uses InstSyncᴳ.
+- Inst: CatchupLeft on the premise, then PushInstR (the left a value)
+  or TyBetaSync2 (the left Insts too).  TagUntag: no drop lemma.
 
-### M21 `SimBackBdy`
+### M21 `SimBackBdy` — KEEP
 ```agda
 SimBackBdy : Set
 SimBackBdy = ∀ {Δ Δ′} {W : World Δ Δ′} {M M′ N′ Θ c A A′ ξ′}
@@ -757,14 +642,10 @@ SimBackBdy = ∀ {Δ Δ′} {W : World Δ Δ′} {M M′ N′ Θ c A A′ ξ′}
   → Δ′ ⊢ M′ ⟪ Θ , c ⟫ -→ N′ ∣ ξ′
   → SimBackConcl W M A A′ ξ′ N′
 ```
-- **Intent.**  The right's boundary redex is matched, under `⊑⟪⟫` with
-  any number of openings.
-- **Consumers.**  `⟪⟫⊑⟪⟫` and `⊑⟪⟫` × 4 steps (8 holes).
-- **Plan.**  For `⊑⟪⟫`, RightMergeOpens, or the right's step alone.
-  For `⟪⟫⊑⟪⟫`, CatchupLeft, then InteriorMerge, MergeConvWorld and
-  MergeImp.
+- `⊑⟪⟫` × Merge: RightMergeSlots.  `⟪⟫⊑⟪⟫`: CatchupLeft, then
+  InteriorMerge, MergeConvWorld, MergeImp, P2.
 
-### M22 `SimBackBlame`
+### M22 `SimBackBlame` — KEEP
 ```agda
 SimBackBlame : Set
 SimBackBlame = ∀ {Δ Δ′} {W : World Δ Δ′} {M M′ A A′ ℓ}
@@ -774,123 +655,234 @@ SimBackBlame = ∀ {Δ Δ′} {W : World Δ Δ′} {M M′ A A′ ℓ}
   → Δ′ ⊢ M′ -→ blame ℓ ∣ none
   → ∃[ ℓ′ ] (Δ ⊢ M -→* blame ℓ′)
 ```
-- **Intent.**  A right step to blame is matched by a left run to blame.
-- **Consumers.**  Every right blame step that the skeleton does not
-  close with `catchupBlame` (10 holes).
-- **Plan.**  Induction on `⊑`.  Propagations use CatchupBlame on the
-  blamed premise (after CatchupLeft on the siblings).  Failing cast
-  redexes use the left's catch-up, where CastRedexNoBlame excludes a
-  left value.
+- C1–C5, C4g stay dead at κ = [] (`examples/…`, `notes/D28pD30.md`
+  §5).
 
-## 5. CatchupRight
+## 5. CatchupRight, PushInstR, generalizations, placeholders
 
-### M23 `CatchupRightᴳ`
+### N1 `CatchupRightO` — NEW (replaces M23 `CatchupRightᴳ`)
 ```agda
-CatchupRightᴳ : Set
-CatchupRightᴳ = ∀ {Δ Δ⁺ Δ′ Θ′} {W₀ : World Δ Δ′} {W : World Δ⁺ Δ′}
-    {V M M′ A₀ A A′} {p : A ⊑ᵂ⟨ W ⟩ A′}
-  → WfCtx Δ⁺ → WfCtx Δ′ → WfWorld W
-  → Value V → Opens Θ′ W₀ V A₀ W M A
-  → W ∣ [] ⊢ M ⊑ M′ ∶ p
-  → CatchupRightConcl W M M′ A A′
+CatchupRightO : Set
+CatchupRightO = ∀ {Δ Δ′} {W : World Δ Δ′} {V M′ A A′ O}
+    {p : A ⊑ᵂ⟨ W ⟩[ O ] A′}
+  → Preκ W → All (SlotOK W) O
+  → Value V
+  → W ∣ [] ⊢ V ⊑ M′ ∶⟨ A , A′ ⟩[ O ] p
+  → CatchupRightConclO W V M′ A A′ O
 ```
-- **Intent.**  CatchupRight with the left an Opens image of a value.
-  CatchupRight is its zero-opening instance.
-- **Consumers.**  CatchupRightProof's `⊑⟪⟫`-with-opening hole, and
-  CatchupCast's Inst case (`↺`).
+- **Intent.**  CatchupRight at any slots and permissions.  The left is
+  a VALUE in every case: D31 keeps the left of a slotted premise a
+  value (no InstX image as in D26's `Opens`).
+- **Consumers.**  CatchupRightProof's `CatchupRightO` and three
+  `CatchupRightκ` holes (checked as calls), CatchupCast's Inst case
+  (`↺`), SimBackValueO (SimBack's slotted `⊑⟪⟫`).  CatchupRight is its
+  instance (checked).
 - **Plan.**  The skeleton's cases, by induction, with the measure of
-  §0.
+  §0.3; `Λ⊑ b-join` by WfWorld-bind; `cast⊑ co-∀/co-gen` and `⟪⟫⊑ bo-∀`
+  are frames whose slots do not move.
 
-### M24 `CatchupCast`
+### M24 `CatchupCast` — REVISE
 ```agda
 CatchupCast : Set
-CatchupCast = ∀ {Δ Δ′} {W : World Δ Δ′} {V V′ μ′ c′ A A′}
-    {p : A ⊑ᵂ⟨ W ⟩ A′}
-  → Pre W
+CatchupCast = ∀ {Δ Δ′} {W : World Δ Δ′} {V V′ μ′ c′ A A′ O}
+    {p : A ⊑ᵂ⟨ W ⟩[ O ] A′}
+  → Preκ W → All (SlotOK W) O
   → Value V → Value V′
-  → W ∣ [] ⊢ V ⊑ V′ ⟨ μ′ ∣ c′ ⟩ ∶ p
-  → CatchupRightConcl W V (V′ ⟨ μ′ ∣ c′ ⟩) A A′
+  → W ∣ [] ⊢ V ⊑ V′ ⟨ μ′ ∣ c′ ⟩ ∶⟨ A , A′ ⟩[ O ] p
+  → CatchupRightConclO W V (V′ ⟨ μ′ ∣ c′ ⟩) A A′ O
 ```
-- **Intent.**  The right's outer cast fires against a left value.
-- **Consumers.**  The cast frames E2 and E3 (INLINE in CatchupRightᴳ).
-- **Plan.**  The measure of §0:
-  - inert: `done`;
-  - CastId, CastSeq, CastSeq?, TagUntag: `↺`;
-  - blame: CastRedexNoBlame;
-  - Inst + TyBeta: InstSyncᴳ, then `↺`CatchupRightᴳ, then CatchupBdy,
-    then `↺` on `closeᵖ 0 p`.
+- Inert: `done`.  CastId, CastSeq, CastSeq?, TagUntag: `↺`.  Blame:
+  CastRedexNoBlame.  Inst + TyBeta: PushInstR, then `↺`CatchupRightO
+  on the slotted interior, CatchupBdy, `↺` on the `closeᵖ` cast.
 
-### M25 `CatchupBdy`
+### M25 `CatchupBdy` — REVISE
 ```agda
 CatchupBdy : Set
-CatchupBdy = ∀ {Δ Δ′} {W : World Δ Δ′} {V V′ Θ′ c′ A A′}
-    {p : A ⊑ᵂ⟨ W ⟩ A′}
-  → Pre W
+CatchupBdy = ∀ {Δ Δ′} {W : World Δ Δ′} {V V′ Θ′ c′ A A′ O}
+    {p : A ⊑ᵂ⟨ W ⟩[ O ] A′}
+  → Preκ W → All (SlotOK W) O
   → Value V → Value V′
-  → W ∣ [] ⊢ V ⊑ V′ ⟪ Θ′ , c′ ⟫ ∶ p
-  → CatchupRightConcl W V (V′ ⟪ Θ′ , c′ ⟫) A A′
+  → W ∣ [] ⊢ V ⊑ V′ ⟪ Θ′ , c′ ⟫ ∶⟨ A , A′ ⟩[ O ] p
+  → CatchupRightConclO W V (V′ ⟪ Θ′ , c′ ⟫) A A′ O
 ```
-- **Intent.**  The right's outer boundary fires against a left value.
-- **Consumers.**  The boundary frames E6, E7 and E8.
-- **Plan.**
-  - Merge: MergeImp with InteriorMerge and MergeConvWorld, or
-    RightMergeOpens; then `↺`.
-  - Id: the left is the same literal.
-  - IdDyn: `exitEnv`.
+- Merge: MergeImp with InteriorMerge and MergeConvWorld, or
+  RightMergeSlots; P2; then `↺`.  Id: the same literal.  IdDyn:
+  `exitEnv`.
 
-### M26 `CastRedexNoBlame`
+### M26 `CastRedexNoBlame` — REVISE
 ```agda
 CastRedexNoBlame : Set
-CastRedexNoBlame = ∀ {Δ Δ′} {W : World Δ Δ′} {V V′ μ′ c′ A A′ ℓ}
-    {ξ′ : Alloc} {p : A ⊑ᵂ⟨ W ⟩ A′}
-  → Pre W
+CastRedexNoBlame = ∀ {Δ Δ′} {W : World Δ Δ′} {V V′ μ′ c′ A A′ O ℓ}
+    {ξ′ : Alloc} {p : A ⊑ᵂ⟨ W ⟩[ O ] A′}
+  → Preκ W → All (SlotOK W) O
   → Value V → Value V′
-  → W ∣ [] ⊢ V ⊑ V′ ⟨ μ′ ∣ c′ ⟩ ∶ p
+  → W ∣ [] ⊢ V ⊑ V′ ⟨ μ′ ∣ c′ ⟩ ∶⟨ A , A′ ⟩[ O ] p
   → ¬ (Δ′ ⊢ V′ ⟨ μ′ ∣ c′ ⟩ -→ blame ℓ ∣ ξ′)
 ```
-- **Intent.**  Against a left value, the right's cast redex does not
-  blame.
-- **Consumers.**  CatchupCast and SimBackBlame.
-- **Plan.**  By types: the two grounds agree, and no value has type
-  `∀X.X` (NoBotValue).
+- By types, as before.  At κ ≠ [] it inherits Q1's risk.
 
-## 6. INLINE
+### N2 `PushInstR` — NEW
+```agda
+PushInstR : Set
+PushInstR = ∀ {Δ Δ′} {W : World Δ Δ′} {V V′ M₁′ N′ μ′ p′ A A′}
+    {q : A ⊑ᵂ⟨ W ⟩ A′}
+  → Preκ W
+  → Value V → Value V′
+  → W ∣ [] ⊢ V ⊑ V′ ⟨ μ′ ∣ instᵖ p′ ⟩ ∶ q
+  → Δ′ ⊢ V′ ⟨ μ′ ∣ instᵖ p′ ⟩ -→ M₁′ ∣ none
+  → Δ′ ⊢ M₁′ -→ N′ ∣ new ★
+  → Σ[ q₁ ∈ A ⊑ᵂ⟨ allocᴿ ★ W ⟩ A′ ] (allocᴿ ★ W ∣ [] ⊢ V ⊑ N′ ∶ q₁)
+```
+- **Intent.**  The right's Inst, then its TyBeta under the cast,
+  against a left value.  The result is
 
-Old statements now INLINE, and new helpers.  A "consumer" in
-parentheses is itself INLINE.
+  ```
+  ⊑cast ⟨closeᵖ 0 p′⟩
+    ⊑⟪⟫ [+X^0]: new slot opn X, K ⊆ [0], pays ∀C ⊑^[X] C′ at X⊑X
+      (the left value's spine at slot [X]:
+       cast⊑ co-∀ passes, cast⊑ co-gen uses up, ⟪⟫⊑ bo-∀ passes,
+       Λ⊑ b-join joins)
+  ```
+
+  at `allocᴿ ★ W` (checked to be the world of the two right steps).
+- **Consumers.**  SimBackCast's two Inst holes, CatchupCast's Inst case.
+- **Plan.**  Inversion of the derivation down the left value's spine
+  (`⊑cast` below, then the left wrappers), pushing the new `⊑⟪⟫` below
+  them; at the `Λ`, MorImp at `rm-ren`/`rm-refine` from the old `⊕²`
+  (Λ⊑Λ) to the `Join1` world.  The choice of K: Q2.
+
+### G1–G3 `Simκ`, `SimBackκ`, `CatchupLeftκ` — NEW (Def generalization)
+```agda
+Simκ : Set
+Simκ = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {M M′ N : Term} {A A′ : Ty}
+    {p : A ⊑ᵂ⟨ W ⟩ A′} {ξ : Alloc}
+  → Preκ W
+  → W ∣ [] ⊢ M ⊑ M′ ∶ p
+  → Δ ⊢ M -→ N ∣ ξ
+  → SimConcl W ξ M′ A A′ N
+```
+```agda
+SimBackκ : Set
+SimBackκ = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {M M′ N′ : Term} {A A′ : Ty}
+    {p : A ⊑ᵂ⟨ W ⟩ A′} {ξ′ : Alloc}
+  → Preκ W
+  → W ∣ [] ⊢ M ⊑ M′ ∶ p
+  → Δ′ ⊢ M′ -→ N′ ∣ ξ′
+  → SimBackConcl W M A A′ ξ′ N′
+```
+```agda
+CatchupLeftκ : Set
+CatchupLeftκ = ∀ {Δ Δ′ : Ctxᵗ} {W : World Δ Δ′} {M V′ : Term} {A A′ : Ty}
+    {p : A ⊑ᵂ⟨ W ⟩ A′}
+  → Preκ W
+  → Value V′
+  → W ∣ [] ⊢ M ⊑ V′ ∶ p
+  → CatchupLeftConcl W M V′ A A′
+```
+- **Intent.**  The approved Defs at any permissions.  Each approved
+  Def is an instance (checked in `notes/D31StatementsFit.agda`).
+- **Consumers.**  The six `…κ` holes of SimProof and SimBackProof (the
+  IH at `Wᵢ +κ K`, K ≠ []); CatchupLeftκ for SimBack's `·₂` frame at
+  that world.
+
+### P1 `KappaWeaken` — PLACEHOLDER (the Wrap work)
+```agda
+KappaWeaken : (∀ {Δ Δ′} → World Δ Δ′ → List RVar → Term → Term → Set)
+  → Set
+KappaWeaken Side = ∀ {Δ Δ′} {W : World Δ Δ′} {K M M′ A A′}
+    {p : A ⊑ᵂ⟨ W ⟩ A′}
+  → WfWorld (W +κ K) → Side W K M M′
+  → W ∣ [] ⊢ M ⊑ M′ ∶ p
+  → Σ[ q ∈ A ⊑ᵂ⟨ W +κ K ⟩ A′ ] (W +κ K ∣ [] ⊢ M ⊑ M′ ∶ q)
+```
+- False without a side condition (R1′ and R2 are anti-monotone in κ);
+  `Side` is the other worker's.  Consumers: SimApp/SimBackApp (Wrap),
+  the matched TyBeta choosing K ≠ [] (P4k, P4h), possibly PushInstR
+  (Q2).
+
+### P2 `MergePermit` — PLACEHOLDER (the Merge/JoinRep work)
+```agda
+MergePermit : Set
+MergePermit = ∀ {Δ Δ′ Δᵢ Δ′ᵢ Δᵢᵢ Δ′ᵢᵢ} {W : World Δ Δ′}
+    {Wᵢ : World Δᵢ Δ′ᵢ} {Wᵢᵢ : World Δᵢᵢ Δ′ᵢᵢ} {Θ₁ Θ₂ Θ₁′ Θ₂′ K₁ K₂}
+    {Aᵢᵢ A′ᵢᵢ}
+  → WfWorld W
+  → Interior W Θ₂ Θ₂′ Wᵢ → All (JoinRep Wᵢ Θ₂ Θ₂′ []) K₂
+  → Interior (Wᵢ +κ K₂) Θ₁ Θ₁′ Wᵢᵢ → All (JoinRep Wᵢᵢ Θ₁ Θ₁′ []) K₁
+  → Aᵢᵢ ⊑ᵂ⟨ Wᵢᵢ ⟩ A′ᵢᵢ
+  → All (JoinRep (Wᵢᵢ ⟨κ≔ κʷ W ⟩) (Θ₁ ++ Θ₂) (Θ₁′ ++ Θ₂′) []) (K₁ ++ K₂)
+    × Aᵢᵢ ⊑ᵂ⟨ Wᵢᵢ ⟨κ≔ κʷ W ⟩ ⟩ A′ᵢᵢ
+```
+- False for the current `JoinRep` at a merged rejoin (`[−X^α]` over
+  `[+X^α]`: X continues).  The payment needs the inner interior index
+  without the outer K.  Consumers: SimBdy, SimBackBdy, CatchupBdy,
+  RightMergeSlots.
+
+## 6. INLINE (D31 additions and changes)
 
 | name | consumer | one-line proof idea |
 |---|---|---|
-| `castTy-mor`, `nuTy-mor`, `bdyTy-mor`, `wfctx-mor`, `⊢-mor` (new) | MorImp, frames | existing: `coercion-renᴿ`/`coercion-refine`, `⊢renᴿ`'s ν and boundary cases (`ν-boundary-ren`, `interior-ren`, `conversion-ren`), `wfctx-ren`, `⊢refine`, by the `RepMor` constructor |
-| `fusionᴹ`, `fusionᴮ` (new) | EvolveImp, frames | `↑ᴹ*[ ξs ] M ≡ renᴹᴿ (nnew ξs +_) M` (and the same for `↑ᴮ*`): induction on ξs with `renᴹᴿ`/`renᴮᴿ` composition, which is missing from proof/TermSubst (routine) |
-| `renᴹᴿ-id` (new) | MorImp at `rm-refine` | `renᴹᴿ ρ M ≡ M` for ρ pointwise the identity; induction on M, `extᵗ` congruence |
-| `instX-ren` (new) | MorSide (e) | induction on `InstX`; `crossΛᴹ` commutes with `renᴹᴿ` (needs composition) |
-| `step-mor`, `mor-∘` (new) | EvolveMor | each evolution step is a morphism (definitional and `repwk-alloc`); morphisms compose |
-| A20 InteriorAlloc | EvolveInterior | its step: `toExt (↑ᴮ[ new R ] Θ) = toExt Θ`, `Paired` shifts |
-| A22 InteriorLift | InstXImp2, InstXImpL (one module) | field by field; `toExt (liftᴮ Θ) (suc X)` |
-| A25 WfOpens | (InstSyncᴳ) | one opening only: the existing `wf-⊕⁺`; `NoNamedPartner` of the fresh rep. var 0 of `allocᴿ ★ W` is vacuous |
-| A26 OpensEvolveᴿ | (CatchupFrame-⊑⟪⟫) | induction on `Opens`; allocations renumber rep. vars, not names |
-| A29, A30 | (·₂ frames) | EvolveReplay at `xs = []` / `xs′ = []`; `replayAllocs 0 0 ys ≡ ys` by `renameᵗ-cong`, `renameᵗ-id` |
-| B2 SubstImpBeta | SimApp, SimBackApp | SubstImp at the one-image environment (complete in the draft) |
-| B3 WeakenClosedImp | SubstImp | routine induction on `⊑`; `blame⊑` by `⊢weakenⁿ` |
-| B4 ClosedSubstFixed | SubstImp | induction on the typing; `substᵐ` stops at boundaries |
-| B7 InstXImpOpenR | InstXImp2 (`Λ⊑`) | induction on the right's `InstX` |
-| B9 InstXImp⁺ | (InstSyncᴳ) | InstXImp2, then MorImp at `rm-refine` on the right |
-| B10 NuBdyConvImp | (TyBetaSync2) | `underν²`'s conversion world is `alloc²`'s at `inst []`: the same names, conversions untouched |
-| B11 TyBetaSync2 | (SimTyBeta), (SimBackTyBeta) | InstXImp2; MorImp (refine into `alloc²`'s interior); B10; rebuild `⟪⟫⊑⟪⟫`; `ev-2` with PayloadImp |
-| B12 TyBetaCatchUpᴸ | (SimTyBeta) | the premise from `r`; InstXImpL; MorImp (refine); rebuild `⟪⟫⊑`; `ev-L` or `ev-L⇔` with PayloadImp |
-| B13 InstSyncᴳ | CatchupCast, SimBackCast | B9, `open-⊕`, `wf-⊕⁺`, rebuild `⊑⟪⟫` |
-| C3 SimTyBeta | Sim (2 holes) | `ν⊑ν`: CatchupRight, the right's TyBeta, B11; `ν⊑`: B12 |
-| C14 SimCast-ToBlame | Sim (14 holes) | `blame⊑` with the right typing from ImprecisionTyping, `r′ = done` |
-| C15–C24 Sim frames | Sim (1 hole each) | lift the IH's run (RunFrames; `ξ-·₁*`, `ξ-·₂*` to add); side premises by EvolveMor, MorSide and the `*-mor` helpers; interiors by EvolveInterior; ·₁ moves the sibling by EvolveImp; ·₂ uses RunReplay, EvolveReplay, MorImp |
-| D3 SimBackTyBeta | SimBack (1 hole) | CatchupLeft (or blame), the left's TyBeta, B11 |
-| D15–D25 SimBack frames | SimBack (1 hole each) | as C15–C24; D22 is `unliftᴸ` and EvolveImp, as in CatchupRightProof's `Λ⊑` |
-| D26 SimBackValue | SimBack (2 clauses) | proved (notes/M2ChildStatements): CatchupRight, Determinism, Irreducible |
-| E2, E3 CatchupFrame-cast, -⊑cast | CatchupRightᴳ | rebuild at the IH's world (EvolveMor, MorSide (a), `castTy-mor`), then CatchupCast; concatenate the runs |
-| E6, E7 CatchupFrame-⟪⟫, -⟪⟫⊑ | CatchupRightᴳ | EvolveInterior, MorSide (c) or `bdyTy-mor`, rebuild, then CatchupBdy |
-| E8 CatchupFrame-⊑⟪⟫ | CatchupRightᴳ (2 holes) | A26, EvolveInterior, rebuild `⊑⟪⟫`, then CatchupBdy |
+| `slotOK-+κ` (new, checked) | CatchupRightO, SimBackValueO | `SlotOK` reads no κ; by cases on the slot |
+| `+κ-evolve` (new) | the `…κ` frames | an evolution of `Wᵢ +κ K` is `Wᵢ`'s with `map (n +_) K`; `map` over `++` |
+| `mor-+κ` (new) | MorImp | `WorldMor ρ ρ′ W W₁ → WorldMor ρ ρ′ (W +κ K) (W₁ +κ map ρ′ K)` |
+| `SlotOK-⟪⟫⊑` (new) | InstXBind, CatchupRightO | §1 gap 4 |
+| `unliftᴸ⇔` (new) | CatchupRight-claim-rep, SimBackFrame-Λ⊑⇔ | as `unliftᴸ`: `allocᴿ R′ (W ⊕ᴸ⇔ β) ≡ allocᴿ R′ W ⊕ᴸ⇔ suc β` |
+| `castOpen-value` (new) | the slotted frames | `CastOpen M c (s ∷ O) Oₚ → Value M` |
+| SimBackValueO (was D26 SimBackValue) | SimBack (slotted `⊑⟪⟫`) | CatchupRightO, Determinism, Irreducible |
+| PushCompose (D27) | RightMergeSlots | `Carried`/`Fill` compose through `Θ₁′ ++ Θ₂′` |
+| B11 TyBetaSync2 | SimTyBeta, SimBackTyBeta, SimBackCast | InstXImp2; MorImp (refine); rebuild `⟪⟫⊑⟪⟫` with K = [] (or [αᴿ] by P1); `ev-2` with PayloadImp |
+| B12 TyBetaCatchUpᴸ | SimTyBeta | InstXBind; MorImp (refine); rebuild `⟪⟫⊑`; `ev-L` or `ev-L⇔` with PayloadImp |
+| B13 InstSyncᴳ, B7, B9, A25 WfOpens, A26 OpensEvolveᴿ | — | DROPPED (PushInstR; slots do not move) |
+| frames, C14, D-frames, E-frames | as in the 2026-10-04 version | unchanged, with `cast⊑` at `co-plain` and the boundary rules' `K`/`pay` moved by MorSide (a), (f) |
 
-## 7. Fate of the 108
+## 7. Questions for Jeremy
+
+1. **Permissions in the induction.**  Generalize Sim, SimBack,
+   CatchupRight and CatchupLeft to any κ (G1–G3, N1)?  Example: P4k
+   after both TyBetas (design.md §C9.2), with
+   `V′ = [−X^α] (λx:★. 5) ⟨id(★) → id(ℕ)⟩`:
+
+   ```
+   R  ([+X^α] V′ ⟨X! → id(ℕ)⟩ ⟨−X → id(ℕ)⟩) 5
+   ```
+
+   is related by `⟪⟫⊑⟪⟫` with `K = [αᴿ]`.  The right's Wrap gives
+
+   ```
+   R  [+X^α] ((V′ ⟨X! → id(ℕ)⟩) ([−X^α] 5 ⟨…⟩)) ⟨id(ℕ)⟩
+   ```
+
+   and its next step, `CastFun` on `⟨X! → id(ℕ)⟩`, is INSIDE that
+   boundary: SimBack's IH runs at `Wᵢ +κ [αᴿ]` (`P4kᴰ.wrap`,
+   `P4kᴰ.castfun` relate the states around it).  The risk: C1–C4g are
+   proved dead only at κ = []; if C1's pair is derivable at a world
+   with `κ = [αᴿ]`, SimBackBlame and CastRedexNoBlame at any κ are
+   false.  Proposal: first check C1–C4g at a world with one permitted
+   rep. var (as `notes/D28pD30.agda`'s dead-pair proofs), then
+   generalize.
+
+2. **PushInstR's permission.**  Should PushInstR choose `K = [0]`
+   exactly when a gen layer uses the new slot up, and `K = []` when a
+   `Λ` joins it?  Example: G0 (`TwoGenᴰ.G0ᴰ.g0-final`) has
+   `⊑⟪⟫ +X^α: open at X, K = [α]` because `⟨X! → id(ℕ)⟩` under the
+   opening needs `X⊑★`, and the left's `gen` layer (`co-gen`) uses X
+   up, so nothing on the left sees α; K's final pair has `Λ⊑ join ΛY
+   to Y` with `K = []`, and the old `Λ⊑Λ` read Y at `Y⊑Y`, which is
+   what `K = []` gives.  If yes, PushInstR needs no κ-weakening (P1).
+3. **CatchupRightO as the proved Def.**  Restate CatchupRightProof
+   over CatchupRightO (CatchupRight its corollary, checked), with
+   EvolveImp (stated at κ = []) replaced by EvolveMor + MorImp as
+   module parameters?  Example: the `⊑⟪⟫` with new slots of K's final
+   pair, `⊑⟪⟫ [+Y^β, +X^α], open at Y`, whose interior
+   `⟪⟫⊑ [+X^α] … ⟨∀Y. …⟩` is caught up at slots `[Y]`.
+4. **InstXBind.**  Accept one statement at any slots whose outcome is a
+   `Bind` (fresh, claim-rep, join) or a used-up skip (`W ⊕ᴸ`), in place
+   of InstXImpL and D27's PopInstX?  Example: the left's TyBeta on K's
+   `ΛY` value under `⊑⟪⟫ [+Y^β, +X^α]` (open at Y): inside, the new
+   type variable joins Y (`b-join`); outside, where β is unnamed, it is
+   `b-rep β`, and the right boundary rejoins it by `join-fresh`.
+
+## 8. Appendix: fate of the 108 (2026-10-04 consolidation)
 
 | old | fate |
 |---|---|
@@ -949,28 +941,4 @@ parentheses is itself INLINE.
 | E5 CastRedexNoBlame | MAJOR CastRedexNoBlame |
 | E9 CatchupBdy | MAJOR CatchupBdy |
 
-## 8. Questions for the reviewer
 
-1. **SimBack with a left value.**  Do you approve SimBackValue (D26,
-   INLINE, proved) for the two `⊑⟪⟫`-with-opening clauses?  Each needs
-   a clause change in SimBackProof (§1).  It adds the edge
-   SimBack → CatchupRight.  Should `Λ⊑` also go through it?  That would
-   drop SimBackFrame-Λ⊑ and that use of WfWorld-bind.
-2. **CatchupRight's induction.**  Should CatchupRightᴳ become the Def
-   that is proved, with CatchupRight as its zero-opening corollary?
-3. **Binder correspondence for InstX.**  InstXImp2 and InstXImpL take
-   it as a type premise.  It is not inherited under a cast or a
-   one-sided boundary (5 holes), and mixed layers need forms that are
-   not stated (5 holes).  Should we keep the premises and add the
-   missing forms, or carry the correspondence in the relation?
-4. **The left's TyBeta against an opening.**  Do you accept
-   InstXImpL's second outcome `W ⊕ᴸ⇔ β`, with its mark raised by
-   MorImp (formerly MarkMono), in place of OpenCatchUp?
-5. **The catch-up measure.**  Do you accept the lexicographic measure
-   of §0 for CatchupRightᴳ, CatchupCast and CatchupBdy as one
-   well-founded induction?
-6. **(new) One world morphism.**  APPROVED by Jeremy, 2026-10-04.  Do you accept `WorldMor` as the
-   single transport, in place of `WorldRen`, `WorldRefine` and
-   `MarksRaised`?  It covers renaming, refinement and raised marks.
-   Do you also accept the merge of the redex children by redex kind
-   (SimApp, SimCast, SimBdy and their mirrors)?

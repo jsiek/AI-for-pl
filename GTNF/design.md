@@ -1055,39 +1055,39 @@ pending type variable and `W[X:α ↦ Y]` joins the binder `X` to it
 variables is read with one `∀` opened per pending type variable.
 
 🆕 **D31** replaces the three `Λ⊑` forms by one rule whose binder is
-fresh, a JOIN, or claim-rep (Agda `Bind`).  Fresh and claim-rep are
+fresh, a JOIN, or claim-rep (the function `bind` below; Agda `Bind`).  Fresh and claim-rep are
 the forms above, at `O = []`.  The join is the old pop: it consumes
 the next opening of the index, and the world changes there, at a term
 binder.  It takes no permission (the permission of an opening is
 chosen where the opening is created, at `⊑⟪⟫`, §10.5).
 
 ```
-  Bind(X:α) : W, O ⇝ W₁, O₁
+  bind(b, W, O) = (W₁, O₁)
   W₁ ∣ γ ⊢ V ⊑ M′ : A ⊑_W₁^O₁ B′
-  α fresh
+  b = X:α or X:α⇔β,  α fresh
   A not a variable
   X ∈ A
   ──────────────────────────────── (Λ⊑, D31)
   W ∣ γ ⊢ ΛX.V ⊑ M′ : ∀X.A ⊑_W^O B′
 ```
 
+The binder `b` is `X:α` (fresh or join) or `X:α⇔β` (claim-rep), and
+`bind` is the partial function
+
 ```
-  ──────────────────────────────────── (b-fresh)
-  Bind(X:α) : W, [] ⇝ W ⊕ (X:α ∥ ·), []
-
-  Y right-only, bound to β:=★
-  ──────────────────────────────────── (b-join)
-  Bind(X:α) : W, Y·O ⇝ W[X:α ↦ Y], O
-
-  β:=★ in Δ′
-  no right type variable bound to β in scope
-  no left partner of β bound to a type
-    variable in scope
-  ──────────────────────────────────────── (b-rep, D29)
-  Bind(X:α) : W, [] ⇝ W ⊕ (X:α⇔β ∥ ·), []
+  bind(X:α,   W, [])   = (W ⊕ (X:α ∥ ·), [])          fresh
+  bind(X:α,   W, Y·O)  = (W[X:α ↦ Y], O)              join
+  bind(X:α⇔β, W, [])   = (W ⊕ (X:α⇔β ∥ ·), [])        claim-rep, D29
 ```
 
-`Bind` has no case for a skip slot: a skip is used up only by a gen
+undefined otherwise (a claim with openings, or a skip slot first).
+Side conditions: for the join, `Y` is right-only and bound to `β:=★`
+(well-formedness of the index); for claim-rep, `β:=★` in `Δ′`, no right
+type variable bound to `β` is in scope, and no left partner of `β`
+bound to a type variable is in scope.  (Agda: `Bind`, with cases
+`b-fresh`, `b-join`, `b-rep`.)
+
+`bind` has no case for a skip slot: a skip is used up only by a gen
 layer of `cast⊑` (`co-gen`, §10.2), or filled by a later `⊑⟪⟫`
 (§10.5).
 

@@ -1167,15 +1167,16 @@ this boundary (a matched fresh pair, or a rejoin through `ϱ`).
   Wᵢ +κ K ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑^O A′
   c : Aᵢ ⇒ A
   O = [] or (M simple and c has a ∀ per slot of O)
-  every −X^α in δ is unbind-OK for A in W     (R1′)
+  for every −X^α in δ:                       (R1′)
+    X ∉ A, or no partner of α in ϱ is in κ
   ──────────────────────────────────────── (⟪⟫⊑, D31)
   W ∣ γ ⊢ [δ] M ⟨c⟩ ⊑ M′ : A ⊑_W^O A′
 
   Wᵢ = W[· ∥ δ′]
-  O seen inside δ′ is O′
+  δ′ unbinds no opening of O
   N new slots for δ′ and M
   N = [] or M a value
-  Fill O′ N Oᵢ
+  Oᵢ = fill(O, N)
   Oᵢ well formed at Wᵢ
   K ⊆ joined(· ∥ δ′) ∪ newreps(N)
   A ⊑_Wᵢ^Oᵢ A′ᵢ                          (the join pays)
@@ -1187,35 +1188,35 @@ this boundary (a matched fresh pair, or a rejoin through `ϱ`).
 
 The side relations of `⟪⟫⊑` and `⊑⟪⟫` under D31:
 
-- **R1′** (Agda `UnbindOK′`).  `−X^α` is unbind-OK for `A` in `W` iff
-  `X ∉ A` (`ok-hidden`) or no partner of `α` in `ϱ` is in `W`'s `κ`
-  (`ok-unbind′`, R1).  So only a left unbind whose type variable
-  occurs in the boundary's EXTERIOR type needs an unpermitted partner.
-- **The `O` seen inside `δ′`** (Agda `CarriedS`).  An opening `Y`
-  continues as its interior type variable (`δ′` must not unbind it); a
-  skip continues as a skip.
+- **R1′** (Agda `UnbindOK′`, cases `ok-hidden` for `X ∉ A` and
+  `ok-unbind′` for the unpermitted partner).  Only a left unbind whose
+  type variable occurs in the boundary's EXTERIOR type `A` needs an
+  unpermitted partner.
+- **Openings inside `δ′`** (Agda `CarriedS`).  With named type
+  variables an opening `Y` continues inside as `Y` itself, and a skip
+  as a skip, so the interior keeps `O`; `δ′` must not unbind an
+  opening.
 - **New slots** (Agda `NewSlot`).  Each slot of `N` is an opening of a
   type variable `δ′` introduces (`Y` fresh in `δ′`), or a skip, and a
   skip only when `M` is a gen-cast value (`GenCastValue`).
   `newreps(N)` is the set of rep. vars `β` with `Y:=β`, `Y` an opening
   of `N` (`jr-open`).
-- **`Fill`** (Agda `Fill`, `PushD`).  The carried slots keep their
-  order; a new opening may fill a carried skip (left to right); the
-  remaining new slots go last:
+- **`fill`**: the new openings fill the carried skips from left to
+  right, and the remaining new slots go last:
 
   ```
-    ─────────────── (f-end)
-    Fill [] N N
-
-    Fill O N Oᵢ
-    ───────────────────────── (f-keep)
-    Fill (s·O) N (s·Oᵢ)
-
-    Fill O N Oᵢ
-    ───────────────────────── (f-fill)
-    Fill (_·O) (Y·N) (Y·Oᵢ)
+    fill([],   N)     = N
+    fill(Y·O,  N)     = Y · fill(O, N)
+    fill(_·O,  Y·N)   = Y · fill(O, N)
+    fill(_·O,  _·N)   = _ · fill(O, _·N)
+    fill(_·O,  [])    = _ · fill(O, [])
   ```
 
+  The Agda `Fill` (`PushD`; cases `f-end`, `f-keep`, `f-fill`) is a
+  relation that may also KEEP a carried skip while a new opening goes
+  last; `fill` fixes the left-to-right choice.  Every mechanized
+  derivation in `notes/D28pD30.agda` fills this way (unchecked claim:
+  to confirm when D31 is mechanized).
 - **Well-formed slots** (Agda `SlotOK`, `SlotNe`): §9.
 
 `Wᶜ ⊢ c ⊑ c′` is D17/D18's (§10.6) and reads the EXTERIOR `κ`, so R2

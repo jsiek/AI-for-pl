@@ -17,6 +17,8 @@ open import Data.Sum.Base using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
 open import Types using (TyCtx; Ty; TyVar; NonVar; _∈ᵗ_; ＇_; ★; ⇑ᵗ)
+open import TyStore using (lookupStore)
+open import Imprecision using (X⊑★)
 open import Consistency using
   (Env∼; _⊢_∼_; instᵐ; genᵐ; inst_; gen_; ↑ᶜ_; close-instᶜ;
    toRenameᵗ)
@@ -26,6 +28,7 @@ open import Conversion using (〖_,_↑_〗)
 open import Reduction using
   (bind; applyBody; _—→[_]_; β-inst; β-gen)
 import proof.DGG.CtxImp as CTI2
+import proof.DGG.WorldInvariants as WI
 open import proof.DGG.Occupancy using
   ( β-inst-allocation-occupies-targetᴼ
   ; β-gen-allocation-occupies-targetᴼ
@@ -102,11 +105,13 @@ open import proof.DGG.Occupancy using
 occupied-see-through-empty : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
   → (X : TyVar Δᴸ)
+  → WI.WorldInvariants W
+  → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) X) ≡ X⊑★
+  → lookupStore (CTI2.sourceStoreʷ W) X ≡ ★
   → CTI2.Occupied W (toRenameᵗ (CTI2.ηᴸʷ W) X)
-  → CTI2.NoTargetOccupantAtSource W X
   → ⊥
-occupied-see-through-empty X occupied no-target =
-  no-target occupied
+occupied-see-through-empty X inv mark entry occupied =
+  WI.world-invariants-d17c-occupancy inv mark entry occupied
 
 record RelatedReductionGroundingKnot : Set₁ where
   field
@@ -118,7 +123,9 @@ record RelatedReductionGroundingKnot : Set₁ where
           → CTI2.Occupied W′ (toRenameᵗ (CTI2.ηᴸʷ W′) X))
       → (X : TyVar Δᴸ)
       → CTI2.Occupied W (toRenameᵗ (CTI2.ηᴸʷ W) X)
-      → CTI2.NoTargetOccupantAtSource W′ X
+      → WI.WorldInvariants W′
+      → CTI2.impEnvʷ W′ (toRenameᵗ (CTI2.ηᴸʷ W′) X) ≡ X⊑★
+      → lookupStore (CTI2.sourceStoreʷ W′) X ≡ ★
       → ⊥
 
     β-inst-new-cell-grounded :
@@ -169,8 +176,9 @@ record RelatedReductionGroundingKnot : Set₁ where
 grounding-preservation-knot : RelatedReductionGroundingKnot
 grounding-preservation-knot = record
   { preserves-old-occupied-see-through-empty =
-      λ occ-at-source-forward X occupied no-target′ →
-        no-target′ (occ-at-source-forward X occupied)
+      λ occ-at-source-forward X occupied inv′ mark′ entry′ →
+        WI.world-invariants-d17c-occupancy inv′ mark′ entry′
+          (occ-at-source-forward X occupied)
   ; β-inst-new-cell-grounded =
       λ {Δᴸ} {Δᴿ} {Δ} {W} {V} {μ} {A} {B} {c}
           ⦃ Anv ⦄ ⦃ z∈A ⦄ vV B≢★ →

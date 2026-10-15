@@ -36,6 +36,7 @@ import proof.DGG.CastConsistencyViews
 import proof.DGG.Inversion.SpineValueProof
 import proof.DGG.Parked.ParkedWorldLemma
 import proof.DGG.Parked.ParkedD4CheckpointLemma
+import proof.DGG.WorldInvariants
 
 ------------------------------------------------------------------------
 -- Current frontier (M4/M5: catch-up lemmas, higher-order)

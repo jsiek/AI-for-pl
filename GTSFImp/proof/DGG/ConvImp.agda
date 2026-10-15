@@ -1,37 +1,29 @@
 module proof.DGG.ConvImp where
 
 -- File Charter:
---   * Occurrence transport along the pivot-indexed conversion typing
---     _⊢↑[_]_ / _⊢↓[_]_ of proof.DGG.CastTermImprecision.
---   * A conversion pivoted at just X only rewrites occurrences of X,
---     so any other variable Y occurs in one endpoint iff it occurs in
---     the other, provided Y avoids the store representation of the
---     pivot.  A conversion with pivot nothing is identity-shaped and
---     its endpoints are equal outright.
---   * Transports both the occurrence relation _∈ᵗ_ and its complement
---     _∉ᵗ_, in both directions, because _∈ᵗ_'s function-range
---     constructor carries a _∉ᵗ_ witness for the domain and because
---     the domain component of an arrow conversion flips direction.
---   * Arrow conversions join their components' pivots with PivotJoin;
---     a component at pivot nothing transports by its endpoint equality
---     instead of by recursion.
---   * Specializes the transport to the ∀-binder, where the pivot is a
---     shifted variable and the transported variable is zero.
+--   * Occurrence transport along generator-indexed conversion typing.
+--   * A conversion generated at X with representation R only rewrites
+--     occurrences of X. Any other variable Y occurs in one endpoint iff it
+--     occurs in the other, provided Y is absent from R.
+--   * Transports both _∈ᵗ_ and _∉ᵗ_ in both directions because an arrow
+--     conversion reverses its domain component.
+--   * Recovers direct store membership for a conversion's generator.
+--   * Specializes transport to a universal binder, where the generator is
+--     shifted and the transported variable is zero.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
-open import Data.Maybe using (just; nothing)
 import Data.Nat as Nat
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; sym; cong; cong₂)
+  using (_≡_; _≢_; refl; sym; trans)
 
 open import Types
 open import TyStore using (TyStore; store-lift; _∋_⦂_; S-lift∋)
-open import Conversion using
-  (Conv↑; Conv↓; unseal; _↦↑_; `∀↑_; id↑; seal; _↦↓_; `∀↓_; id↓)
+open import Conversion using (Conv↑; Conv↓)
 import Conversion as Conv
 open import proof.ImprecisionConsistency using
-  (fin-suc-injective; shift-not-occurs; zero-absent-shift)
+  (fin-suc-injective; shift-injectiveᵗ; shift-not-occurs;
+   zero-absent-shift)
 
 ------------------------------------------------------------------------
 -- Occurrence and non-occurrence are contradictory
@@ -50,428 +42,363 @@ occurs-absent-⊥ (∈-fun-right X∉A′ X∈B) (∉-fun X∉A X∉B) =
 occurs-absent-⊥ (∈-all X∈A) (∉-all X∉A) =
   occurs-absent-⊥ X∈A X∉A
 
-occurs-cast : ∀ {Δ} {Y : TyVar Δ} {A B : Ty Δ}
-  → A ≡ B
-  → Y ∈ᵗ A
-    -------
-  → Y ∈ᵗ B
-occurs-cast refl Y∈A = Y∈A
-
-absent-cast : ∀ {Δ} {Y : TyVar Δ} {A B : Ty Δ}
-  → A ≡ B
-  → Y ∉ᵗ A
-    -------
-  → Y ∉ᵗ B
-absent-cast refl Y∉A = Y∉A
-
 ------------------------------------------------------------------------
--- Identity-pivot conversions do not change the type
+-- Generator membership
 ------------------------------------------------------------------------
 
-pivot-id-endpoints↑ : ∀ {Δ} {Σ : TyStore Δ} {A B : Ty Δ}
-    {c : Conv↑ Δ A B}
-  → Σ Conv.⊢↑[ nothing ] c
-    ------------------
-  → A ≡ B
+mutual
+  conv↑-generator∈ : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
+      {R A B : Ty Δ} {c : Conv↑ Δ A B}
+    → Σ Conv.⊢↑[ X ⦂ R ] c
+      --------------------
+    → Σ ∋ X ⦂ R
+  conv↑-generator∈ (Conv.⊢↑-unseal X∈) = X∈
+  conv↑-generator∈ (Conv.⊢↑-⇒ c⊢ d⊢) = conv↓-generator∈ c⊢
+  conv↑-generator∈ (Conv.⊢↑-∀ eq c⊢)
+      with conv↑-generator∈ c⊢
+  conv↑-generator∈ (Conv.⊢↑-∀ eq c⊢) | S-lift∋ X∈ eq′
+      with shift-injectiveᵗ (trans (sym eq′) eq)
+  conv↑-generator∈ (Conv.⊢↑-∀ eq c⊢) | S-lift∋ X∈ eq′ | refl =
+    X∈
+  conv↑-generator∈ (Conv.⊢↑-id-var X∈ X≢Y) = X∈
+  conv↑-generator∈ (Conv.⊢↑-id-base X∈) = X∈
+  conv↑-generator∈ (Conv.⊢↑-id-star X∈) = X∈
 
-pivot-id-endpoints↓ : ∀ {Δ} {Σ : TyStore Δ} {A B : Ty Δ}
-    {c : Conv↓ Δ A B}
-  → Σ Conv.⊢↓[ nothing ] c
-    ------------------
-  → A ≡ B
-
-pivot-id-endpoints↑ (Conv.⊢↑-⇒ˣ Conv.join-none ⊢c ⊢d) =
-  cong₂ _⇒_ (sym (pivot-id-endpoints↓ ⊢c)) (pivot-id-endpoints↑ ⊢d)
-pivot-id-endpoints↑ (Conv.⊢↑-∀-idˣ ⊢c) =
-  cong `∀ (pivot-id-endpoints↑ ⊢c)
-pivot-id-endpoints↑ Conv.⊢↑-idˣ = refl
-
-pivot-id-endpoints↓ (Conv.⊢↓-⇒ˣ Conv.join-none ⊢c ⊢d) =
-  cong₂ _⇒_ (sym (pivot-id-endpoints↑ ⊢c)) (pivot-id-endpoints↓ ⊢d)
-pivot-id-endpoints↓ (Conv.⊢↓-∀-idˣ ⊢c) =
-  cong `∀ (pivot-id-endpoints↓ ⊢c)
-pivot-id-endpoints↓ Conv.⊢↓-idˣ = refl
+  conv↓-generator∈ : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
+      {R A B : Ty Δ} {c : Conv↓ Δ A B}
+    → Σ Conv.⊢↓[ X ⦂ R ] c
+      --------------------
+    → Σ ∋ X ⦂ R
+  conv↓-generator∈ (Conv.⊢↓-seal X∈) = X∈
+  conv↓-generator∈ (Conv.⊢↓-⇒ c⊢ d⊢) = conv↑-generator∈ c⊢
+  conv↓-generator∈ (Conv.⊢↓-∀ eq c⊢)
+      with conv↓-generator∈ c⊢
+  conv↓-generator∈ (Conv.⊢↓-∀ eq c⊢) | S-lift∋ X∈ eq′
+      with shift-injectiveᵗ (trans (sym eq′) eq)
+  conv↓-generator∈ (Conv.⊢↓-∀ eq c⊢) | S-lift∋ X∈ eq′ | refl =
+    X∈
+  conv↓-generator∈ (Conv.⊢↓-id-var X∈ X≢Y) = X∈
+  conv↓-generator∈ (Conv.⊢↓-id-base X∈) = X∈
+  conv↓-generator∈ (Conv.⊢↓-id-star X∈) = X∈
 
 ------------------------------------------------------------------------
--- Freshness for the pivot's representation, under a type binder
+-- Freshness beneath a type binder
 ------------------------------------------------------------------------
 
--- The freshness side condition of the transport lemmas is
---   ∀ {R} → Σ ∋ X ⦂ R → Y ∉ᵗ R,
--- read as: the transported variable Y avoids every representation the
--- store assigns to the pivot X.  Under a ∀ binder the pivot becomes
--- suc X and the store becomes store-lift Σ, so the side condition has
--- to be shifted along with them.
-
-lift-pivot-fresh : ∀ {Δ} {Σ : TyStore Δ} {X Y : TyVar Δ}
-  → (∀ {R} → Σ ∋ X ⦂ R → Y ∉ᵗ R)
-  → ∀ {R′} → store-lift Σ ∋ Fin.suc X ⦂ R′
-    -----------------------------------------
+lift-generator-fresh : ∀ {Δ} {Y : TyVar Δ} {R : Ty Δ}
+    {R′ : Ty (Nat.suc Δ)}
+  → R′ ≡ ⇑ᵗ R
+  → Y ∉ᵗ R
+    --------------
   → Fin.suc Y ∉ᵗ R′
-lift-pivot-fresh fresh (S-lift∋ ∋X refl) = shift-not-occurs (fresh ∋X)
+lift-generator-fresh refl Y∉R = shift-not-occurs Y∉R
 
 ------------------------------------------------------------------------
--- Occurrence transport along a pivoted conversion
+-- Occurrence transport along a generated conversion
 ------------------------------------------------------------------------
 
 mutual
   conv↑-occurs-pre : ∀ {Δ} {Σ : TyStore Δ} {X Y : TyVar Δ}
-      {A B : Ty Δ} {c : Conv↑ Δ A B}
-    → Σ Conv.⊢↑[ just X ] c
+      {R A B : Ty Δ} {c : Conv↑ Δ A B}
+    → Σ Conv.⊢↑[ X ⦂ R ] c
     → Y ≢ X
-    → (∀ {R} → Σ ∋ X ⦂ R → Y ∉ᵗ R)
+    → Y ∉ᵗ R
     → Y ∈ᵗ A
       -------
     → Y ∈ᵗ B
-  conv↑-occurs-pre (Conv.⊢↑-unsealˣ ∋X) Y≢X fresh var-∈ =
+  conv↑-occurs-pre (Conv.⊢↑-unseal X∈) Y≢X Y∉R var-∈ =
     ⊥-elim (Y≢X refl)
-  conv↑-occurs-pre (Conv.⊢↑-⇒ˣ Conv.join-both ⊢c ⊢d) Y≢X fresh
+  conv↑-occurs-pre (Conv.⊢↑-⇒ c⊢ d⊢) Y≢X Y∉R
       (∈-fun-left Y∈A) =
-    ∈-fun-left (conv↓-occurs-post ⊢c Y≢X fresh Y∈A)
-  conv↑-occurs-pre (Conv.⊢↑-⇒ˣ Conv.join-both ⊢c ⊢d) Y≢X fresh
+    ∈-fun-left (conv↓-occurs-post c⊢ Y≢X Y∉R Y∈A)
+  conv↑-occurs-pre (Conv.⊢↑-⇒ c⊢ d⊢) Y≢X Y∉R
       (∈-fun-right Y∉A Y∈B) =
-    ∈-fun-right (conv↓-absent-post ⊢c Y≢X fresh Y∉A)
-      (conv↑-occurs-pre ⊢d Y≢X fresh Y∈B)
-  conv↑-occurs-pre (Conv.⊢↑-⇒ˣ Conv.join-left ⊢c ⊢d) Y≢X fresh
-      (∈-fun-left Y∈A) =
-    ∈-fun-left (conv↓-occurs-post ⊢c Y≢X fresh Y∈A)
-  conv↑-occurs-pre (Conv.⊢↑-⇒ˣ Conv.join-left ⊢c ⊢d) Y≢X fresh
-      (∈-fun-right Y∉A Y∈B) =
-    ∈-fun-right (conv↓-absent-post ⊢c Y≢X fresh Y∉A)
-      (occurs-cast (pivot-id-endpoints↑ ⊢d) Y∈B)
-  conv↑-occurs-pre (Conv.⊢↑-⇒ˣ Conv.join-right ⊢c ⊢d) Y≢X fresh
-      (∈-fun-left Y∈A) =
-    ∈-fun-left (occurs-cast (sym (pivot-id-endpoints↓ ⊢c)) Y∈A)
-  conv↑-occurs-pre (Conv.⊢↑-⇒ˣ Conv.join-right ⊢c ⊢d) Y≢X fresh
-      (∈-fun-right Y∉A Y∈B) =
-    ∈-fun-right (absent-cast (sym (pivot-id-endpoints↓ ⊢c)) Y∉A)
-      (conv↑-occurs-pre ⊢d Y≢X fresh Y∈B)
-  conv↑-occurs-pre (Conv.⊢↑-∀ˣ ⊢c) Y≢X fresh (∈-all Y∈A) =
-    ∈-all (conv↑-occurs-pre ⊢c (λ eq → Y≢X (fin-suc-injective eq))
-             (lift-pivot-fresh fresh) Y∈A)
+    ∈-fun-right (conv↓-absent-post c⊢ Y≢X Y∉R Y∉A)
+      (conv↑-occurs-pre d⊢ Y≢X Y∉R Y∈B)
+  conv↑-occurs-pre (Conv.⊢↑-∀ eq c⊢) Y≢X Y∉R (∈-all Y∈A) =
+    ∈-all
+      (conv↑-occurs-pre c⊢
+        (λ eq′ → Y≢X (fin-suc-injective eq′))
+        (lift-generator-fresh eq Y∉R) Y∈A)
+  conv↑-occurs-pre (Conv.⊢↑-id-var X∈ X≢Z) Y≢X Y∉R Y∈Z = Y∈Z
+  conv↑-occurs-pre (Conv.⊢↑-id-base X∈) Y≢X Y∉R ()
+  conv↑-occurs-pre (Conv.⊢↑-id-star X∈) Y≢X Y∉R ()
 
   conv↑-occurs-post : ∀ {Δ} {Σ : TyStore Δ} {X Y : TyVar Δ}
-      {A B : Ty Δ} {c : Conv↑ Δ A B}
-    → Σ Conv.⊢↑[ just X ] c
+      {R A B : Ty Δ} {c : Conv↑ Δ A B}
+    → Σ Conv.⊢↑[ X ⦂ R ] c
     → Y ≢ X
-    → (∀ {R} → Σ ∋ X ⦂ R → Y ∉ᵗ R)
+    → Y ∉ᵗ R
     → Y ∈ᵗ B
       -------
     → Y ∈ᵗ A
-  conv↑-occurs-post (Conv.⊢↑-unsealˣ ∋X) Y≢X fresh Y∈R =
-    ⊥-elim (occurs-absent-⊥ Y∈R (fresh ∋X))
-  conv↑-occurs-post (Conv.⊢↑-⇒ˣ Conv.join-both ⊢c ⊢d) Y≢X fresh
+  conv↑-occurs-post (Conv.⊢↑-unseal X∈) Y≢X Y∉R Y∈R =
+    ⊥-elim (occurs-absent-⊥ Y∈R Y∉R)
+  conv↑-occurs-post (Conv.⊢↑-⇒ c⊢ d⊢) Y≢X Y∉R
       (∈-fun-left Y∈A′) =
-    ∈-fun-left (conv↓-occurs-pre ⊢c Y≢X fresh Y∈A′)
-  conv↑-occurs-post (Conv.⊢↑-⇒ˣ Conv.join-both ⊢c ⊢d) Y≢X fresh
+    ∈-fun-left (conv↓-occurs-pre c⊢ Y≢X Y∉R Y∈A′)
+  conv↑-occurs-post (Conv.⊢↑-⇒ c⊢ d⊢) Y≢X Y∉R
       (∈-fun-right Y∉A′ Y∈B′) =
-    ∈-fun-right (conv↓-absent-pre ⊢c Y≢X fresh Y∉A′)
-      (conv↑-occurs-post ⊢d Y≢X fresh Y∈B′)
-  conv↑-occurs-post (Conv.⊢↑-⇒ˣ Conv.join-left ⊢c ⊢d) Y≢X fresh
-      (∈-fun-left Y∈A′) =
-    ∈-fun-left (conv↓-occurs-pre ⊢c Y≢X fresh Y∈A′)
-  conv↑-occurs-post (Conv.⊢↑-⇒ˣ Conv.join-left ⊢c ⊢d) Y≢X fresh
-      (∈-fun-right Y∉A′ Y∈B′) =
-    ∈-fun-right (conv↓-absent-pre ⊢c Y≢X fresh Y∉A′)
-      (occurs-cast (sym (pivot-id-endpoints↑ ⊢d)) Y∈B′)
-  conv↑-occurs-post (Conv.⊢↑-⇒ˣ Conv.join-right ⊢c ⊢d) Y≢X fresh
-      (∈-fun-left Y∈A′) =
-    ∈-fun-left (occurs-cast (pivot-id-endpoints↓ ⊢c) Y∈A′)
-  conv↑-occurs-post (Conv.⊢↑-⇒ˣ Conv.join-right ⊢c ⊢d) Y≢X fresh
-      (∈-fun-right Y∉A′ Y∈B′) =
-    ∈-fun-right (absent-cast (pivot-id-endpoints↓ ⊢c) Y∉A′)
-      (conv↑-occurs-post ⊢d Y≢X fresh Y∈B′)
-  conv↑-occurs-post (Conv.⊢↑-∀ˣ ⊢c) Y≢X fresh (∈-all Y∈B) =
-    ∈-all (conv↑-occurs-post ⊢c (λ eq → Y≢X (fin-suc-injective eq))
-             (lift-pivot-fresh fresh) Y∈B)
+    ∈-fun-right (conv↓-absent-pre c⊢ Y≢X Y∉R Y∉A′)
+      (conv↑-occurs-post d⊢ Y≢X Y∉R Y∈B′)
+  conv↑-occurs-post (Conv.⊢↑-∀ eq c⊢) Y≢X Y∉R (∈-all Y∈B) =
+    ∈-all
+      (conv↑-occurs-post c⊢
+        (λ eq′ → Y≢X (fin-suc-injective eq′))
+        (lift-generator-fresh eq Y∉R) Y∈B)
+  conv↑-occurs-post (Conv.⊢↑-id-var X∈ X≢Z) Y≢X Y∉R Y∈Z = Y∈Z
+  conv↑-occurs-post (Conv.⊢↑-id-base X∈) Y≢X Y∉R ()
+  conv↑-occurs-post (Conv.⊢↑-id-star X∈) Y≢X Y∉R ()
 
   conv↓-occurs-pre : ∀ {Δ} {Σ : TyStore Δ} {X Y : TyVar Δ}
-      {A B : Ty Δ} {c : Conv↓ Δ A B}
-    → Σ Conv.⊢↓[ just X ] c
+      {R A B : Ty Δ} {c : Conv↓ Δ A B}
+    → Σ Conv.⊢↓[ X ⦂ R ] c
     → Y ≢ X
-    → (∀ {R} → Σ ∋ X ⦂ R → Y ∉ᵗ R)
+    → Y ∉ᵗ R
     → Y ∈ᵗ A
       -------
     → Y ∈ᵗ B
-  conv↓-occurs-pre (Conv.⊢↓-sealˣ ∋X) Y≢X fresh Y∈R =
-    ⊥-elim (occurs-absent-⊥ Y∈R (fresh ∋X))
-  conv↓-occurs-pre (Conv.⊢↓-⇒ˣ Conv.join-both ⊢c ⊢d) Y≢X fresh
+  conv↓-occurs-pre (Conv.⊢↓-seal X∈) Y≢X Y∉R Y∈R =
+    ⊥-elim (occurs-absent-⊥ Y∈R Y∉R)
+  conv↓-occurs-pre (Conv.⊢↓-⇒ c⊢ d⊢) Y≢X Y∉R
       (∈-fun-left Y∈A) =
-    ∈-fun-left (conv↑-occurs-post ⊢c Y≢X fresh Y∈A)
-  conv↓-occurs-pre (Conv.⊢↓-⇒ˣ Conv.join-both ⊢c ⊢d) Y≢X fresh
+    ∈-fun-left (conv↑-occurs-post c⊢ Y≢X Y∉R Y∈A)
+  conv↓-occurs-pre (Conv.⊢↓-⇒ c⊢ d⊢) Y≢X Y∉R
       (∈-fun-right Y∉A Y∈B) =
-    ∈-fun-right (conv↑-absent-post ⊢c Y≢X fresh Y∉A)
-      (conv↓-occurs-pre ⊢d Y≢X fresh Y∈B)
-  conv↓-occurs-pre (Conv.⊢↓-⇒ˣ Conv.join-left ⊢c ⊢d) Y≢X fresh
-      (∈-fun-left Y∈A) =
-    ∈-fun-left (conv↑-occurs-post ⊢c Y≢X fresh Y∈A)
-  conv↓-occurs-pre (Conv.⊢↓-⇒ˣ Conv.join-left ⊢c ⊢d) Y≢X fresh
-      (∈-fun-right Y∉A Y∈B) =
-    ∈-fun-right (conv↑-absent-post ⊢c Y≢X fresh Y∉A)
-      (occurs-cast (pivot-id-endpoints↓ ⊢d) Y∈B)
-  conv↓-occurs-pre (Conv.⊢↓-⇒ˣ Conv.join-right ⊢c ⊢d) Y≢X fresh
-      (∈-fun-left Y∈A) =
-    ∈-fun-left (occurs-cast (sym (pivot-id-endpoints↑ ⊢c)) Y∈A)
-  conv↓-occurs-pre (Conv.⊢↓-⇒ˣ Conv.join-right ⊢c ⊢d) Y≢X fresh
-      (∈-fun-right Y∉A Y∈B) =
-    ∈-fun-right (absent-cast (sym (pivot-id-endpoints↑ ⊢c)) Y∉A)
-      (conv↓-occurs-pre ⊢d Y≢X fresh Y∈B)
-  conv↓-occurs-pre (Conv.⊢↓-∀ˣ ⊢c) Y≢X fresh (∈-all Y∈A) =
-    ∈-all (conv↓-occurs-pre ⊢c (λ eq → Y≢X (fin-suc-injective eq))
-             (lift-pivot-fresh fresh) Y∈A)
+    ∈-fun-right (conv↑-absent-post c⊢ Y≢X Y∉R Y∉A)
+      (conv↓-occurs-pre d⊢ Y≢X Y∉R Y∈B)
+  conv↓-occurs-pre (Conv.⊢↓-∀ eq c⊢) Y≢X Y∉R (∈-all Y∈A) =
+    ∈-all
+      (conv↓-occurs-pre c⊢
+        (λ eq′ → Y≢X (fin-suc-injective eq′))
+        (lift-generator-fresh eq Y∉R) Y∈A)
+  conv↓-occurs-pre (Conv.⊢↓-id-var X∈ X≢Z) Y≢X Y∉R Y∈Z = Y∈Z
+  conv↓-occurs-pre (Conv.⊢↓-id-base X∈) Y≢X Y∉R ()
+  conv↓-occurs-pre (Conv.⊢↓-id-star X∈) Y≢X Y∉R ()
 
   conv↓-occurs-post : ∀ {Δ} {Σ : TyStore Δ} {X Y : TyVar Δ}
-      {A B : Ty Δ} {c : Conv↓ Δ A B}
-    → Σ Conv.⊢↓[ just X ] c
+      {R A B : Ty Δ} {c : Conv↓ Δ A B}
+    → Σ Conv.⊢↓[ X ⦂ R ] c
     → Y ≢ X
-    → (∀ {R} → Σ ∋ X ⦂ R → Y ∉ᵗ R)
+    → Y ∉ᵗ R
     → Y ∈ᵗ B
       -------
     → Y ∈ᵗ A
-  conv↓-occurs-post (Conv.⊢↓-sealˣ ∋X) Y≢X fresh var-∈ =
+  conv↓-occurs-post (Conv.⊢↓-seal X∈) Y≢X Y∉R var-∈ =
     ⊥-elim (Y≢X refl)
-  conv↓-occurs-post (Conv.⊢↓-⇒ˣ Conv.join-both ⊢c ⊢d) Y≢X fresh
+  conv↓-occurs-post (Conv.⊢↓-⇒ c⊢ d⊢) Y≢X Y∉R
       (∈-fun-left Y∈A′) =
-    ∈-fun-left (conv↑-occurs-pre ⊢c Y≢X fresh Y∈A′)
-  conv↓-occurs-post (Conv.⊢↓-⇒ˣ Conv.join-both ⊢c ⊢d) Y≢X fresh
+    ∈-fun-left (conv↑-occurs-pre c⊢ Y≢X Y∉R Y∈A′)
+  conv↓-occurs-post (Conv.⊢↓-⇒ c⊢ d⊢) Y≢X Y∉R
       (∈-fun-right Y∉A′ Y∈B′) =
-    ∈-fun-right (conv↑-absent-pre ⊢c Y≢X fresh Y∉A′)
-      (conv↓-occurs-post ⊢d Y≢X fresh Y∈B′)
-  conv↓-occurs-post (Conv.⊢↓-⇒ˣ Conv.join-left ⊢c ⊢d) Y≢X fresh
-      (∈-fun-left Y∈A′) =
-    ∈-fun-left (conv↑-occurs-pre ⊢c Y≢X fresh Y∈A′)
-  conv↓-occurs-post (Conv.⊢↓-⇒ˣ Conv.join-left ⊢c ⊢d) Y≢X fresh
-      (∈-fun-right Y∉A′ Y∈B′) =
-    ∈-fun-right (conv↑-absent-pre ⊢c Y≢X fresh Y∉A′)
-      (occurs-cast (sym (pivot-id-endpoints↓ ⊢d)) Y∈B′)
-  conv↓-occurs-post (Conv.⊢↓-⇒ˣ Conv.join-right ⊢c ⊢d) Y≢X fresh
-      (∈-fun-left Y∈A′) =
-    ∈-fun-left (occurs-cast (pivot-id-endpoints↑ ⊢c) Y∈A′)
-  conv↓-occurs-post (Conv.⊢↓-⇒ˣ Conv.join-right ⊢c ⊢d) Y≢X fresh
-      (∈-fun-right Y∉A′ Y∈B′) =
-    ∈-fun-right (absent-cast (pivot-id-endpoints↑ ⊢c) Y∉A′)
-      (conv↓-occurs-post ⊢d Y≢X fresh Y∈B′)
-  conv↓-occurs-post (Conv.⊢↓-∀ˣ ⊢c) Y≢X fresh (∈-all Y∈B) =
-    ∈-all (conv↓-occurs-post ⊢c (λ eq → Y≢X (fin-suc-injective eq))
-             (lift-pivot-fresh fresh) Y∈B)
+    ∈-fun-right (conv↑-absent-pre c⊢ Y≢X Y∉R Y∉A′)
+      (conv↓-occurs-post d⊢ Y≢X Y∉R Y∈B′)
+  conv↓-occurs-post (Conv.⊢↓-∀ eq c⊢) Y≢X Y∉R (∈-all Y∈B) =
+    ∈-all
+      (conv↓-occurs-post c⊢
+        (λ eq′ → Y≢X (fin-suc-injective eq′))
+        (lift-generator-fresh eq Y∉R) Y∈B)
+  conv↓-occurs-post (Conv.⊢↓-id-var X∈ X≢Z) Y≢X Y∉R Y∈Z = Y∈Z
+  conv↓-occurs-post (Conv.⊢↓-id-base X∈) Y≢X Y∉R ()
+  conv↓-occurs-post (Conv.⊢↓-id-star X∈) Y≢X Y∉R ()
 
   conv↑-absent-pre : ∀ {Δ} {Σ : TyStore Δ} {X Y : TyVar Δ}
-      {A B : Ty Δ} {c : Conv↑ Δ A B}
-    → Σ Conv.⊢↑[ just X ] c
+      {R A B : Ty Δ} {c : Conv↑ Δ A B}
+    → Σ Conv.⊢↑[ X ⦂ R ] c
     → Y ≢ X
-    → (∀ {R} → Σ ∋ X ⦂ R → Y ∉ᵗ R)
+    → Y ∉ᵗ R
     → Y ∉ᵗ A
       -------
     → Y ∉ᵗ B
-  conv↑-absent-pre (Conv.⊢↑-unsealˣ ∋X) Y≢X fresh Y∉X = fresh ∋X
-  conv↑-absent-pre (Conv.⊢↑-⇒ˣ Conv.join-both ⊢c ⊢d) Y≢X fresh
+  conv↑-absent-pre (Conv.⊢↑-unseal X∈) Y≢X Y∉R Y∉X = Y∉R
+  conv↑-absent-pre (Conv.⊢↑-⇒ c⊢ d⊢) Y≢X Y∉R
       (∉-fun Y∉A Y∉B) =
-    ∉-fun (conv↓-absent-post ⊢c Y≢X fresh Y∉A)
-      (conv↑-absent-pre ⊢d Y≢X fresh Y∉B)
-  conv↑-absent-pre (Conv.⊢↑-⇒ˣ Conv.join-left ⊢c ⊢d) Y≢X fresh
-      (∉-fun Y∉A Y∉B) =
-    ∉-fun (conv↓-absent-post ⊢c Y≢X fresh Y∉A)
-      (absent-cast (pivot-id-endpoints↑ ⊢d) Y∉B)
-  conv↑-absent-pre (Conv.⊢↑-⇒ˣ Conv.join-right ⊢c ⊢d) Y≢X fresh
-      (∉-fun Y∉A Y∉B) =
-    ∉-fun (absent-cast (sym (pivot-id-endpoints↓ ⊢c)) Y∉A)
-      (conv↑-absent-pre ⊢d Y≢X fresh Y∉B)
-  conv↑-absent-pre (Conv.⊢↑-∀ˣ ⊢c) Y≢X fresh (∉-all Y∉A) =
-    ∉-all (conv↑-absent-pre ⊢c (λ eq → Y≢X (fin-suc-injective eq))
-             (lift-pivot-fresh fresh) Y∉A)
+    ∉-fun (conv↓-absent-post c⊢ Y≢X Y∉R Y∉A)
+      (conv↑-absent-pre d⊢ Y≢X Y∉R Y∉B)
+  conv↑-absent-pre (Conv.⊢↑-∀ eq c⊢) Y≢X Y∉R (∉-all Y∉A) =
+    ∉-all
+      (conv↑-absent-pre c⊢
+        (λ eq′ → Y≢X (fin-suc-injective eq′))
+        (lift-generator-fresh eq Y∉R) Y∉A)
+  conv↑-absent-pre (Conv.⊢↑-id-var X∈ X≢Z) Y≢X Y∉R Y∉Z = Y∉Z
+  conv↑-absent-pre (Conv.⊢↑-id-base X∈) Y≢X Y∉R Y∉ι = Y∉ι
+  conv↑-absent-pre (Conv.⊢↑-id-star X∈) Y≢X Y∉R Y∉★ = Y∉★
 
   conv↑-absent-post : ∀ {Δ} {Σ : TyStore Δ} {X Y : TyVar Δ}
-      {A B : Ty Δ} {c : Conv↑ Δ A B}
-    → Σ Conv.⊢↑[ just X ] c
+      {R A B : Ty Δ} {c : Conv↑ Δ A B}
+    → Σ Conv.⊢↑[ X ⦂ R ] c
     → Y ≢ X
-    → (∀ {R} → Σ ∋ X ⦂ R → Y ∉ᵗ R)
+    → Y ∉ᵗ R
     → Y ∉ᵗ B
       -------
     → Y ∉ᵗ A
-  conv↑-absent-post (Conv.⊢↑-unsealˣ ∋X) Y≢X fresh Y∉R =
+  conv↑-absent-post (Conv.⊢↑-unseal X∈) Y≢X Y∉R Y∉R′ =
     ∉-var (≢→≢ᶠ Y≢X)
-  conv↑-absent-post (Conv.⊢↑-⇒ˣ Conv.join-both ⊢c ⊢d) Y≢X fresh
+  conv↑-absent-post (Conv.⊢↑-⇒ c⊢ d⊢) Y≢X Y∉R
       (∉-fun Y∉A′ Y∉B′) =
-    ∉-fun (conv↓-absent-pre ⊢c Y≢X fresh Y∉A′)
-      (conv↑-absent-post ⊢d Y≢X fresh Y∉B′)
-  conv↑-absent-post (Conv.⊢↑-⇒ˣ Conv.join-left ⊢c ⊢d) Y≢X fresh
-      (∉-fun Y∉A′ Y∉B′) =
-    ∉-fun (conv↓-absent-pre ⊢c Y≢X fresh Y∉A′)
-      (absent-cast (sym (pivot-id-endpoints↑ ⊢d)) Y∉B′)
-  conv↑-absent-post (Conv.⊢↑-⇒ˣ Conv.join-right ⊢c ⊢d) Y≢X fresh
-      (∉-fun Y∉A′ Y∉B′) =
-    ∉-fun (absent-cast (pivot-id-endpoints↓ ⊢c) Y∉A′)
-      (conv↑-absent-post ⊢d Y≢X fresh Y∉B′)
-  conv↑-absent-post (Conv.⊢↑-∀ˣ ⊢c) Y≢X fresh (∉-all Y∉B) =
-    ∉-all (conv↑-absent-post ⊢c (λ eq → Y≢X (fin-suc-injective eq))
-             (lift-pivot-fresh fresh) Y∉B)
+    ∉-fun (conv↓-absent-pre c⊢ Y≢X Y∉R Y∉A′)
+      (conv↑-absent-post d⊢ Y≢X Y∉R Y∉B′)
+  conv↑-absent-post (Conv.⊢↑-∀ eq c⊢) Y≢X Y∉R (∉-all Y∉B) =
+    ∉-all
+      (conv↑-absent-post c⊢
+        (λ eq′ → Y≢X (fin-suc-injective eq′))
+        (lift-generator-fresh eq Y∉R) Y∉B)
+  conv↑-absent-post (Conv.⊢↑-id-var X∈ X≢Z) Y≢X Y∉R Y∉Z = Y∉Z
+  conv↑-absent-post (Conv.⊢↑-id-base X∈) Y≢X Y∉R Y∉ι = Y∉ι
+  conv↑-absent-post (Conv.⊢↑-id-star X∈) Y≢X Y∉R Y∉★ = Y∉★
 
   conv↓-absent-pre : ∀ {Δ} {Σ : TyStore Δ} {X Y : TyVar Δ}
-      {A B : Ty Δ} {c : Conv↓ Δ A B}
-    → Σ Conv.⊢↓[ just X ] c
+      {R A B : Ty Δ} {c : Conv↓ Δ A B}
+    → Σ Conv.⊢↓[ X ⦂ R ] c
     → Y ≢ X
-    → (∀ {R} → Σ ∋ X ⦂ R → Y ∉ᵗ R)
+    → Y ∉ᵗ R
     → Y ∉ᵗ A
       -------
     → Y ∉ᵗ B
-  conv↓-absent-pre (Conv.⊢↓-sealˣ ∋X) Y≢X fresh Y∉R =
+  conv↓-absent-pre (Conv.⊢↓-seal X∈) Y≢X Y∉R Y∉R′ =
     ∉-var (≢→≢ᶠ Y≢X)
-  conv↓-absent-pre (Conv.⊢↓-⇒ˣ Conv.join-both ⊢c ⊢d) Y≢X fresh
+  conv↓-absent-pre (Conv.⊢↓-⇒ c⊢ d⊢) Y≢X Y∉R
       (∉-fun Y∉A Y∉B) =
-    ∉-fun (conv↑-absent-post ⊢c Y≢X fresh Y∉A)
-      (conv↓-absent-pre ⊢d Y≢X fresh Y∉B)
-  conv↓-absent-pre (Conv.⊢↓-⇒ˣ Conv.join-left ⊢c ⊢d) Y≢X fresh
-      (∉-fun Y∉A Y∉B) =
-    ∉-fun (conv↑-absent-post ⊢c Y≢X fresh Y∉A)
-      (absent-cast (pivot-id-endpoints↓ ⊢d) Y∉B)
-  conv↓-absent-pre (Conv.⊢↓-⇒ˣ Conv.join-right ⊢c ⊢d) Y≢X fresh
-      (∉-fun Y∉A Y∉B) =
-    ∉-fun (absent-cast (sym (pivot-id-endpoints↑ ⊢c)) Y∉A)
-      (conv↓-absent-pre ⊢d Y≢X fresh Y∉B)
-  conv↓-absent-pre (Conv.⊢↓-∀ˣ ⊢c) Y≢X fresh (∉-all Y∉A) =
-    ∉-all (conv↓-absent-pre ⊢c (λ eq → Y≢X (fin-suc-injective eq))
-             (lift-pivot-fresh fresh) Y∉A)
+    ∉-fun (conv↑-absent-post c⊢ Y≢X Y∉R Y∉A)
+      (conv↓-absent-pre d⊢ Y≢X Y∉R Y∉B)
+  conv↓-absent-pre (Conv.⊢↓-∀ eq c⊢) Y≢X Y∉R (∉-all Y∉A) =
+    ∉-all
+      (conv↓-absent-pre c⊢
+        (λ eq′ → Y≢X (fin-suc-injective eq′))
+        (lift-generator-fresh eq Y∉R) Y∉A)
+  conv↓-absent-pre (Conv.⊢↓-id-var X∈ X≢Z) Y≢X Y∉R Y∉Z = Y∉Z
+  conv↓-absent-pre (Conv.⊢↓-id-base X∈) Y≢X Y∉R Y∉ι = Y∉ι
+  conv↓-absent-pre (Conv.⊢↓-id-star X∈) Y≢X Y∉R Y∉★ = Y∉★
 
   conv↓-absent-post : ∀ {Δ} {Σ : TyStore Δ} {X Y : TyVar Δ}
-      {A B : Ty Δ} {c : Conv↓ Δ A B}
-    → Σ Conv.⊢↓[ just X ] c
+      {R A B : Ty Δ} {c : Conv↓ Δ A B}
+    → Σ Conv.⊢↓[ X ⦂ R ] c
     → Y ≢ X
-    → (∀ {R} → Σ ∋ X ⦂ R → Y ∉ᵗ R)
+    → Y ∉ᵗ R
     → Y ∉ᵗ B
       -------
     → Y ∉ᵗ A
-  conv↓-absent-post (Conv.⊢↓-sealˣ ∋X) Y≢X fresh Y∉X = fresh ∋X
-  conv↓-absent-post (Conv.⊢↓-⇒ˣ Conv.join-both ⊢c ⊢d) Y≢X fresh
+  conv↓-absent-post (Conv.⊢↓-seal X∈) Y≢X Y∉R Y∉X = Y∉R
+  conv↓-absent-post (Conv.⊢↓-⇒ c⊢ d⊢) Y≢X Y∉R
       (∉-fun Y∉A′ Y∉B′) =
-    ∉-fun (conv↑-absent-pre ⊢c Y≢X fresh Y∉A′)
-      (conv↓-absent-post ⊢d Y≢X fresh Y∉B′)
-  conv↓-absent-post (Conv.⊢↓-⇒ˣ Conv.join-left ⊢c ⊢d) Y≢X fresh
-      (∉-fun Y∉A′ Y∉B′) =
-    ∉-fun (conv↑-absent-pre ⊢c Y≢X fresh Y∉A′)
-      (absent-cast (sym (pivot-id-endpoints↓ ⊢d)) Y∉B′)
-  conv↓-absent-post (Conv.⊢↓-⇒ˣ Conv.join-right ⊢c ⊢d) Y≢X fresh
-      (∉-fun Y∉A′ Y∉B′) =
-    ∉-fun (absent-cast (pivot-id-endpoints↑ ⊢c) Y∉A′)
-      (conv↓-absent-post ⊢d Y≢X fresh Y∉B′)
-  conv↓-absent-post (Conv.⊢↓-∀ˣ ⊢c) Y≢X fresh (∉-all Y∉B) =
-    ∉-all (conv↓-absent-post ⊢c (λ eq → Y≢X (fin-suc-injective eq))
-             (lift-pivot-fresh fresh) Y∉B)
+    ∉-fun (conv↑-absent-pre c⊢ Y≢X Y∉R Y∉A′)
+      (conv↓-absent-post d⊢ Y≢X Y∉R Y∉B′)
+  conv↓-absent-post (Conv.⊢↓-∀ eq c⊢) Y≢X Y∉R (∉-all Y∉B) =
+    ∉-all
+      (conv↓-absent-post c⊢
+        (λ eq′ → Y≢X (fin-suc-injective eq′))
+        (lift-generator-fresh eq Y∉R) Y∉B)
+  conv↓-absent-post (Conv.⊢↓-id-var X∈ X≢Z) Y≢X Y∉R Y∉Z = Y∉Z
+  conv↓-absent-post (Conv.⊢↓-id-base X∈) Y≢X Y∉R Y∉ι = Y∉ι
+  conv↓-absent-post (Conv.⊢↓-id-star X∈) Y≢X Y∉R Y∉★ = Y∉★
 
 ------------------------------------------------------------------------
--- Corollaries for the ∀-binder
+-- Corollaries for the universal binder
 ------------------------------------------------------------------------
-
--- Under a ∀ binder the pivot is a shifted variable suc X, so the bound
--- variable zero is neither the pivot nor present in any lifted store
--- representation.  Hence zero's occurrences survive the conversion.
 
 zero-pivot-fresh : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
     {R : Ty (Nat.suc Δ)}
   → store-lift Σ ∋ Fin.suc X ⦂ R
     -----------------------------
   → Fin.zero ∉ᵗ R
-zero-pivot-fresh (S-lift∋ ∋X refl) = zero-absent-shift _
+zero-pivot-fresh (S-lift∋ X∈ refl) = zero-absent-shift _
 
 conv↑-zero-pre : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
-    {A B : Ty (Nat.suc Δ)} {c : Conv↑ (Nat.suc Δ) A B}
-  → store-lift Σ Conv.⊢↑[ just (Fin.suc X) ] c
+    {R A B : Ty (Nat.suc Δ)} {c : Conv↑ (Nat.suc Δ) A B}
+  → store-lift Σ Conv.⊢↑[ Fin.suc X ⦂ R ] c
   → Fin.zero ∈ᵗ A
     --------------
   → Fin.zero ∈ᵗ B
-conv↑-zero-pre ⊢c = conv↑-occurs-pre ⊢c (λ ()) zero-pivot-fresh
+conv↑-zero-pre c⊢ =
+  conv↑-occurs-pre c⊢ (λ ())
+    (zero-pivot-fresh (conv↑-generator∈ c⊢))
 
 conv↑-zero-post : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
-    {A B : Ty (Nat.suc Δ)} {c : Conv↑ (Nat.suc Δ) A B}
-  → store-lift Σ Conv.⊢↑[ just (Fin.suc X) ] c
+    {R A B : Ty (Nat.suc Δ)} {c : Conv↑ (Nat.suc Δ) A B}
+  → store-lift Σ Conv.⊢↑[ Fin.suc X ⦂ R ] c
   → Fin.zero ∈ᵗ B
     --------------
   → Fin.zero ∈ᵗ A
-conv↑-zero-post ⊢c = conv↑-occurs-post ⊢c (λ ()) zero-pivot-fresh
+conv↑-zero-post c⊢ =
+  conv↑-occurs-post c⊢ (λ ())
+    (zero-pivot-fresh (conv↑-generator∈ c⊢))
 
 conv↓-zero-pre : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
-    {A B : Ty (Nat.suc Δ)} {c : Conv↓ (Nat.suc Δ) A B}
-  → store-lift Σ Conv.⊢↓[ just (Fin.suc X) ] c
+    {R A B : Ty (Nat.suc Δ)} {c : Conv↓ (Nat.suc Δ) A B}
+  → store-lift Σ Conv.⊢↓[ Fin.suc X ⦂ R ] c
   → Fin.zero ∈ᵗ A
     --------------
   → Fin.zero ∈ᵗ B
-conv↓-zero-pre ⊢c = conv↓-occurs-pre ⊢c (λ ()) zero-pivot-fresh
+conv↓-zero-pre c⊢ =
+  conv↓-occurs-pre c⊢ (λ ())
+    (zero-pivot-fresh (conv↓-generator∈ c⊢))
 
 conv↓-zero-post : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
-    {A B : Ty (Nat.suc Δ)} {c : Conv↓ (Nat.suc Δ) A B}
-  → store-lift Σ Conv.⊢↓[ just (Fin.suc X) ] c
+    {R A B : Ty (Nat.suc Δ)} {c : Conv↓ (Nat.suc Δ) A B}
+  → store-lift Σ Conv.⊢↓[ Fin.suc X ⦂ R ] c
   → Fin.zero ∈ᵗ B
     --------------
   → Fin.zero ∈ᵗ A
-conv↓-zero-post ⊢c = conv↓-occurs-post ⊢c (λ ()) zero-pivot-fresh
+conv↓-zero-post c⊢ =
+  conv↓-occurs-post c⊢ (λ ())
+    (zero-pivot-fresh (conv↓-generator∈ c⊢))
 
 ------------------------------------------------------------------------
 -- Non-variable transport away from the bound variable
 ------------------------------------------------------------------------
 
--- A conversion pivoted at suc X cannot turn a zero-containing non-variable
--- type into a variable, or conversely.  These small inversion lemmas are the
--- shape component used alongside the occurrence transport above.
-
 conv↑-nonvar-pre-zero : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
-    {A B : Ty (Nat.suc Δ)} {c : Conv↑ (Nat.suc Δ) A B}
-  → store-lift Σ Conv.⊢↑[ just (Fin.suc X) ] c
+    {R A B : Ty (Nat.suc Δ)} {c : Conv↑ (Nat.suc Δ) A B}
+  → store-lift Σ Conv.⊢↑[ Fin.suc X ⦂ R ] c
   → NonVar B
   → Fin.zero ∈ᵗ A
     ----------------
   → NonVar A
-conv↑-nonvar-pre-zero (Conv.⊢↑-unsealˣ ∋X) Bnv ()
-conv↑-nonvar-pre-zero (Conv.⊢↑-⇒ˣ Conv.join-both ⊢c ⊢d) Bnv zero∈A =
-  nonvar-fun
-conv↑-nonvar-pre-zero (Conv.⊢↑-⇒ˣ Conv.join-left ⊢c ⊢d) Bnv zero∈A =
-  nonvar-fun
-conv↑-nonvar-pre-zero (Conv.⊢↑-⇒ˣ Conv.join-right ⊢c ⊢d) Bnv zero∈A =
-  nonvar-fun
-conv↑-nonvar-pre-zero (Conv.⊢↑-∀ˣ ⊢c) Bnv zero∈A = nonvar-all
+conv↑-nonvar-pre-zero (Conv.⊢↑-unseal X∈) Bnv ()
+conv↑-nonvar-pre-zero (Conv.⊢↑-⇒ c⊢ d⊢) Bnv zero∈A = nonvar-fun
+conv↑-nonvar-pre-zero (Conv.⊢↑-∀ eq c⊢) Bnv zero∈A = nonvar-all
+conv↑-nonvar-pre-zero (Conv.⊢↑-id-var X∈ X≢Y) () zero∈A
+conv↑-nonvar-pre-zero (Conv.⊢↑-id-base X∈) Bnv ()
+conv↑-nonvar-pre-zero (Conv.⊢↑-id-star X∈) Bnv ()
 
 conv↑-nonvar-post-zero : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
-    {A B : Ty (Nat.suc Δ)} {c : Conv↑ (Nat.suc Δ) A B}
-  → store-lift Σ Conv.⊢↑[ just (Fin.suc X) ] c
+    {R A B : Ty (Nat.suc Δ)} {c : Conv↑ (Nat.suc Δ) A B}
+  → store-lift Σ Conv.⊢↑[ Fin.suc X ⦂ R ] c
   → NonVar A
   → Fin.zero ∈ᵗ B
     ----------------
   → NonVar B
-conv↑-nonvar-post-zero (Conv.⊢↑-unsealˣ ∋X) () zero∈B
-conv↑-nonvar-post-zero (Conv.⊢↑-⇒ˣ Conv.join-both ⊢c ⊢d) Anv zero∈B =
-  nonvar-fun
-conv↑-nonvar-post-zero (Conv.⊢↑-⇒ˣ Conv.join-left ⊢c ⊢d) Anv zero∈B =
-  nonvar-fun
-conv↑-nonvar-post-zero (Conv.⊢↑-⇒ˣ Conv.join-right ⊢c ⊢d) Anv zero∈B =
-  nonvar-fun
-conv↑-nonvar-post-zero (Conv.⊢↑-∀ˣ ⊢c) Anv zero∈B = nonvar-all
+conv↑-nonvar-post-zero (Conv.⊢↑-unseal X∈) () zero∈B
+conv↑-nonvar-post-zero (Conv.⊢↑-⇒ c⊢ d⊢) Anv zero∈B = nonvar-fun
+conv↑-nonvar-post-zero (Conv.⊢↑-∀ eq c⊢) Anv zero∈B = nonvar-all
+conv↑-nonvar-post-zero (Conv.⊢↑-id-var X∈ X≢Y) () zero∈B
+conv↑-nonvar-post-zero (Conv.⊢↑-id-base X∈) Anv ()
+conv↑-nonvar-post-zero (Conv.⊢↑-id-star X∈) Anv ()
 
 conv↓-nonvar-pre-zero : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
-    {A B : Ty (Nat.suc Δ)} {c : Conv↓ (Nat.suc Δ) A B}
-  → store-lift Σ Conv.⊢↓[ just (Fin.suc X) ] c
+    {R A B : Ty (Nat.suc Δ)} {c : Conv↓ (Nat.suc Δ) A B}
+  → store-lift Σ Conv.⊢↓[ Fin.suc X ⦂ R ] c
   → NonVar B
   → Fin.zero ∈ᵗ A
     ----------------
   → NonVar A
-conv↓-nonvar-pre-zero (Conv.⊢↓-sealˣ ∋X) () zero∈A
-conv↓-nonvar-pre-zero (Conv.⊢↓-⇒ˣ Conv.join-both ⊢c ⊢d) Bnv zero∈A =
-  nonvar-fun
-conv↓-nonvar-pre-zero (Conv.⊢↓-⇒ˣ Conv.join-left ⊢c ⊢d) Bnv zero∈A =
-  nonvar-fun
-conv↓-nonvar-pre-zero (Conv.⊢↓-⇒ˣ Conv.join-right ⊢c ⊢d) Bnv zero∈A =
-  nonvar-fun
-conv↓-nonvar-pre-zero (Conv.⊢↓-∀ˣ ⊢c) Bnv zero∈A = nonvar-all
+conv↓-nonvar-pre-zero (Conv.⊢↓-seal X∈) () zero∈A
+conv↓-nonvar-pre-zero (Conv.⊢↓-⇒ c⊢ d⊢) Bnv zero∈A = nonvar-fun
+conv↓-nonvar-pre-zero (Conv.⊢↓-∀ eq c⊢) Bnv zero∈A = nonvar-all
+conv↓-nonvar-pre-zero (Conv.⊢↓-id-var X∈ X≢Y) () zero∈A
+conv↓-nonvar-pre-zero (Conv.⊢↓-id-base X∈) Bnv ()
+conv↓-nonvar-pre-zero (Conv.⊢↓-id-star X∈) Bnv ()
 
 conv↓-nonvar-post-zero : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
-    {A B : Ty (Nat.suc Δ)} {c : Conv↓ (Nat.suc Δ) A B}
-  → store-lift Σ Conv.⊢↓[ just (Fin.suc X) ] c
+    {R A B : Ty (Nat.suc Δ)} {c : Conv↓ (Nat.suc Δ) A B}
+  → store-lift Σ Conv.⊢↓[ Fin.suc X ⦂ R ] c
   → NonVar A
   → Fin.zero ∈ᵗ B
     ----------------
   → NonVar B
-conv↓-nonvar-post-zero (Conv.⊢↓-sealˣ ∋X) Anv ()
-conv↓-nonvar-post-zero (Conv.⊢↓-⇒ˣ Conv.join-both ⊢c ⊢d) Anv zero∈B =
-  nonvar-fun
-conv↓-nonvar-post-zero (Conv.⊢↓-⇒ˣ Conv.join-left ⊢c ⊢d) Anv zero∈B =
-  nonvar-fun
-conv↓-nonvar-post-zero (Conv.⊢↓-⇒ˣ Conv.join-right ⊢c ⊢d) Anv zero∈B =
-  nonvar-fun
-conv↓-nonvar-post-zero (Conv.⊢↓-∀ˣ ⊢c) Anv zero∈B = nonvar-all
+conv↓-nonvar-post-zero (Conv.⊢↓-seal X∈) Anv ()
+conv↓-nonvar-post-zero (Conv.⊢↓-⇒ c⊢ d⊢) Anv zero∈B = nonvar-fun
+conv↓-nonvar-post-zero (Conv.⊢↓-∀ eq c⊢) Anv zero∈B = nonvar-all
+conv↓-nonvar-post-zero (Conv.⊢↓-id-var X∈ X≢Y) () zero∈B
+conv↓-nonvar-post-zero (Conv.⊢↓-id-base X∈) Anv ()
+conv↓-nonvar-post-zero (Conv.⊢↓-id-star X∈) Anv ()

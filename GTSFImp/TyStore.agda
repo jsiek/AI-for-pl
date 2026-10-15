@@ -4,9 +4,10 @@ module TyStore where
 --   * Intrinsically well-scoped type stores.
 --   * Makes type-binder lifting and fresh runtime allocation the only ways to
 --     extend a store.
---   * Relates type variables to their representation types in a store.
+--   * Exposes direct total lookup and relates type variables to their
+--     representation types in a store.
 
-open import Agda.Builtin.Equality using (_≡_)
+open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Nat using (zero; suc)
 open import Data.Fin using (zero; suc)
 
@@ -26,6 +27,16 @@ data TyStore : TyCtx → Set where
     → Ty Δ
       -------------------
     → TyStore (suc Δ)
+
+-- The direct entry for every store variable.  A structural lift represents
+-- its fresh variable by that variable itself; a runtime bind exposes exactly
+-- the bound type and does not follow variable indirection.
+
+lookupStore : ∀ {Δ} → TyStore Δ → TyVar Δ → Ty Δ
+lookupStore (store-lift Σ) zero = ＇ zero
+lookupStore (store-lift Σ) (suc X) = ⇑ᵗ (lookupStore Σ X)
+lookupStore (store-bind Σ A) zero = ⇑ᵗ A
+lookupStore (store-bind Σ A) (suc X) = ⇑ᵗ (lookupStore Σ X)
 
 infix 4 _∋_⦂_
 
@@ -49,3 +60,10 @@ data _∋_⦂_ : ∀ {Δ} → TyStore Δ → TyVar Δ → Ty Δ → Set where
     → B ≡ ⇑ᵗ A
       ----------------------------------
     → store-bind Σ C ∋ suc X ⦂ B
+
+lookupStore-∋ : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ} {A : Ty Δ}
+  → Σ ∋ X ⦂ A
+  → lookupStore Σ X ≡ A
+lookupStore-∋ (Z∋ refl) = refl
+lookupStore-∋ (S-lift∋ X∈ refl) rewrite lookupStore-∋ X∈ = refl
+lookupStore-∋ (S-bind∋ X∈ refl) rewrite lookupStore-∋ X∈ = refl

@@ -146,12 +146,6 @@ erase-~ : ∀ {Δ A R} → names Δ ⊢ A ~ R
   → eraseTy Δ A ≡ substᵗ (env (reps Δ)) R
 erase-~ {Δ = Δ} p = erase-~gen (nameσ Δ) (env (reps Δ)) (nameσ-live {Δ = Δ}) p
 
-erase-≈ : ∀ {Δ₁ Δ₂ A B} → reps Δ₁ ≡ reps Δ₂ → Δ₁ ⊢ A ≈ B ⊣ Δ₂
-  → eraseTy Δ₁ A ≡ eraseTy Δ₂ B
-erase-≈ {Δ₁} {Δ₂} eq (R , p , q) =
-  trans (erase-~ {Δ = Δ₁} p)
-    (trans (cong (λ Ξ → substᵗ (env Ξ) R) eq) (sym (erase-~ {Δ = Δ₂} q)))
-
 -- the lookup square: X denotes what A denotes
 erase-lookup : ∀ {Δ X A} → Δ ∋ X := A → eraseTy Δ (` X) ≡ eraseTy Δ A
 erase-lookup {Δ = Δ} (α , R , nm , rp , sm) =
@@ -179,61 +173,39 @@ eraseCtx-⤊ Δ (A ∷ Γ) = cong₂ _∷_ (erase-⇑ Δ A) (eraseCtx-⤊ Δ Γ)
 -- 5. Conversions are erasure-identities
 ------------------------------------------------------------------------
 
+-- A conversion's two types are REPRESENTATION types, so they erase
+-- through the store alone.
+erasureᴿ : RepCtx → Ty → Ty
+erasureᴿ Ξ R = substᵗ (env Ξ) R
+
+env-abst : ∀ Ξ X → env (abstR ∷ Ξ) X ≡ extsᵗ (env Ξ) X
+env-abst Ξ zero    = refl
+env-abst Ξ (suc X) = refl
+
 mutual
-  convᵐ-erase : ∀ {Δ g A B} → Δ ⊢ᵐ g ∶ A ⇝ B → eraseTy Δ A ≡ eraseTy Δ B
+  convᵐ-erase : ∀ {Δ Θ p g A B} → Δ ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B
+    → erasureᴿ (reps Δ) A ≡ erasureᴿ (reps Δ) B
   convᵐ-erase (conv-id b) = refl
-  convᵐ-erase (conv-idv tv) = refl
+  convᵐ-erase (conv-idv d) = refl
   convᵐ-erase (conv-fun s c) =
     cong₂ _⇒_ (sym (conv-erase s)) (conv-erase c)
   convᵐ-erase {Δ = Δ} (conv-all {A = A} {B = B} s) =
-    trans (erase-∀ Δ A) (trans (cong `∀ (conv-erase s)) (sym (erase-∀ Δ B)))
+    cong `∀ (trans (sym (subst-cong (env-abst (reps Δ)) A))
+              (trans (conv-erase s) (subst-cong (env-abst (reps Δ)) B)))
 
-  convᵀ-erase : ∀ {Δ t A B} → Δ ⊢ᵀ t ∶ A ⇝ B → eraseTy Δ A ≡ eraseTy Δ B
+  convᵀ-erase : ∀ {Δ Θ p t A B} → Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
+    → erasureᴿ (reps Δ) A ≡ erasureᴿ (reps Δ) B
   convᵀ-erase (conv-mid g) = convᵐ-erase g
-  convᵀ-erase (conv-seal lk) = sym (erase-lookup lk)
-  convᵀ-erase (conv-seal-seq t lk n) =
-    trans (convᵀ-erase t) (sym (erase-lookup lk))
+  convᵀ-erase (conv-seal {A = A} (nm , rp , _) ok) = sym (env-bind rp A refl)
+  convᵀ-erase (conv-seal-seq {B = B} t (nm , rp , _) ok n) =
+    trans (convᵀ-erase t) (sym (env-bind rp B refl))
 
-  conv-erase : ∀ {Δ c A B} → Δ ⊢ c ∶ A ⇝ B → eraseTy Δ A ≡ eraseTy Δ B
+  conv-erase : ∀ {Δ Θ p c A B} → Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B
+    → erasureᴿ (reps Δ) A ≡ erasureᴿ (reps Δ) B
   conv-erase (conv-tail t) = convᵀ-erase t
-  conv-erase (conv-unseal lk) = erase-lookup lk
-  conv-erase (conv-unseal-seq lk c n m) =
-    trans (erase-lookup lk) (conv-erase c)
-
--- a conversion's endpoints are read at its context
-Read : Ctxᵗ → Ty → Set
-Read Δ A = ∃[ R ] (names Δ ⊢ A ~ R)
-
-mutual
-  convᵐ-scoped : ∀ {Δ g A B} → Δ ⊢ᵐ g ∶ A ⇝ B → Read Δ A × Read Δ B
-  convᵐ-scoped (conv-id base-ℕ) = (`ℕ , same-ℕ) , (`ℕ , same-ℕ)
-  convᵐ-scoped (conv-id base-𝔹) = (`𝔹 , same-𝔹) , (`𝔹 , same-𝔹)
-  convᵐ-scoped (conv-idv (α , d)) = (` α , same-var d) , (` α , same-var d)
-  convᵐ-scoped (conv-fun s c) with conv-scoped s | conv-scoped c
-  convᵐ-scoped (conv-fun s c) | (R₁ , p₁) , (R₂ , p₂)
-                              | (S₁ , q₁) , (S₂ , q₂) =
-    (R₂ ⇒ S₁ , same-⇒ p₂ q₁) , (R₁ ⇒ S₂ , same-⇒ p₁ q₂)
-  convᵐ-scoped (conv-all s) with conv-scoped s
-  convᵐ-scoped (conv-all s) | (R₁ , p₁) , (R₂ , p₂) =
-    (`∀ R₁ , same-∀ p₁) , (`∀ R₂ , same-∀ p₂)
-
-  convᵀ-scoped : ∀ {Δ t A B} → Δ ⊢ᵀ t ∶ A ⇝ B → Read Δ A × Read Δ B
-  convᵀ-scoped (conv-mid g) = convᵐ-scoped g
-  convᵀ-scoped (conv-seal (α , R , nm , rp , sm)) =
-    (R , sm) , (` α , same-var nm)
-  convᵀ-scoped (conv-seal-seq t (α , R , nm , rp , sm) n)
-    with convᵀ-scoped t
-  convᵀ-scoped (conv-seal-seq t (α , R , nm , rp , sm) n) | rA , rB =
-    rA , (` α , same-var nm)
-
-  conv-scoped : ∀ {Δ c A B} → Δ ⊢ c ∶ A ⇝ B → Read Δ A × Read Δ B
-  conv-scoped (conv-tail t) = convᵀ-scoped t
-  conv-scoped (conv-unseal (α , R , nm , rp , sm)) =
-    (` α , same-var nm) , (R , sm)
-  conv-scoped (conv-unseal-seq (α , R , nm , rp , sm) c n m)
-    with conv-scoped c
-  conv-scoped (conv-unseal-seq (α , R , nm , rp , sm) c n m) | rA , rB =
-    (` α , same-var nm) , rB
+  conv-erase (conv-unseal {A = A} (nm , rp , _) ok) = env-bind rp A refl
+  conv-erase (conv-unseal-seq {A = A} (nm , rp , _) ok c n m) =
+    trans (env-bind rp A refl) (conv-erase c)
 
 ------------------------------------------------------------------------
 -- 7. Scoping

@@ -38,7 +38,7 @@ open import strong-rep-nu.TermSubst
 open import strong-rep-nu.Reduction
 open import strong-rep-nu.TypeCheck
   using (interior?; conversion?; ∋:=?; read?; convTy?;
-         rebase?; weaken?; weakenᵀ?; check⊢; inert?; inertTail?;
+         weaken?; weakenᵀ?; check⊢; inert?; inertTail?;
          simple?; value?)
 
 ------------------------------------------------------------------------
@@ -60,25 +60,6 @@ base? (`∀ A)  = nothing
 ------------------------------------------------------------------------
 
 -- Commentary.md § Eval.agda / §1–§2
-WrapPremises : Ctxᵗ → Boundary → Conv → Ty → Set
-WrapPremises Δ Θ s A =
-  Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Bᵢ ∈ Ty ] Σ[ Bₑ ∈ Ty ] Σ[ R ∈ Ty ]
-    ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ)
-      × (Δ ⊢ᶜ A ~ R))
-
-wrapPremises? : (Δ : Ctxᵗ) (Θ : Boundary) (s : Conv) (A : Ty)
-  → Maybe (WrapPremises Δ Θ s A)
-wrapPremises? Δ Θ s A with conversion? Δ Θ
-wrapPremises? Δ Θ s A | nothing = nothing
-wrapPremises? Δ Θ s A | just (Δᶜ , rel) with convTy? (underΛ Δᶜ) s
-wrapPremises? Δ Θ s A | just (Δᶜ , rel) | nothing = nothing
-wrapPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
-  with read? (names Δ) A
-wrapPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
-  | nothing = nothing
-wrapPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
-  | just (R , same) = just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
-
 -- `Merge`'s premises: the three readings, and both conversions
 -- weakened onto the merged frame's conversion context.
 MergePremises : Ctxᵗ → Boundary → Boundary → Tail → Conv → Set
@@ -180,10 +161,9 @@ nuRedex Δ A c (V-simple (S-Λ vN)) | just (R , same) =
   just (_ , new R , TyBeta vN same)
 nuRedex Δ A c (V-simple (S-Λ vN)) | nothing = nothing
 nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (S-Λ vN) (I-all {s}))
-  with wrapPremises? Δ Θ s A
+  with read? (names Δ) A
 nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (S-Λ vN) (I-all {s}))
-  | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same) =
-  just (_ , new R , TyWrap vN rel ⊢s same)
+  | just (R , same) = just (_ , new R , TyWrap vN same)
 nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (S-Λ vN) (I-all {s})) | nothing = nothing
 nuRedex Δ A c _ = nothing
 

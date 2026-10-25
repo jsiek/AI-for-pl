@@ -309,7 +309,7 @@ residual-frame wfΔ (residual-Wrap-arg vV vW rc ri rd sc) (frame-·R h) =
 
 -- The two stacked layers read, in turn, `inst []` and the crossed
 -- frame under the new name: together exactly `inst Θ`'s interior.
-residual-frame {Δ = Δ} wfΔ (residual-TyWrap {R = R} vN rc ⊢s pA)
+residual-frame {Δ = Δ} wfΔ (residual-TyWrap {R = R} vN pA)
     (frame-ν (frame-⟪⟫ (interior csᶠ) (frame-Λ h))) =
   let (Ξ₂ , d , _) = ⊢C-len (bindR R ∷ reps Δ) refl h
   in _ , frame-⟪⟫ (inst-interior {R = R} empty-interior)

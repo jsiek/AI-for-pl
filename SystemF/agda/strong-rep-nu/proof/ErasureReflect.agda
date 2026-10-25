@@ -97,7 +97,7 @@ stutter-weight : ∀ {Δ M M′ δ} (r : Δ ⊢ M -→ M′ ∣ δ)
   → Stutter r → weight M′ < weight M
 stutter-weight (TyBeta v p) ()
 stutter-weight (Beta v) ()
-stutter-weight (TyWrap v rc ⊢s p) ()
+stutter-weight (TyWrap v p) ()
 stutter-weight (Wrap {V = V} {W = W} v w rc ri rd sc) s =
   wrap-arith (weight V) (weight W)
 stutter-weight (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) s = s≤s ≤-refl

@@ -76,14 +76,14 @@ det _ (ξ-·₂ u′ st) (Wrap v w rc ri rd sc) =
   ⊥-elim (value-¬step w st)
 
 -- TyWrap (ν over a boundary) — determined by the redex outright.
-det _ (TyWrap v rel ⊢s same)
-    (TyWrap v′ rel′ ⊢s′ same′)
+det _ (TyWrap v same)
+    (TyWrap v′ same′)
   with same-rep-unique same same′
-det _ (TyWrap v rel ⊢s same)
-    (TyWrap v′ rel′ ⊢s′ same′) | refl = refl , refl
-det _ (TyWrap v rel ⊢s same) (ξ-ν st) =
+det _ (TyWrap v same)
+    (TyWrap v′ same′) | refl = refl , refl
+det _ (TyWrap v same) (ξ-ν st) =
   ⊥-elim (value-¬step (V-⟪⟫ (S-Λ v) I-all) st)
-det _ (ξ-ν st) (TyWrap v rel ⊢s same) =
+det _ (ξ-ν st) (TyWrap v same) =
   ⊥-elim (value-¬step (V-⟪⟫ (S-Λ v) I-all) st)
 
 -- Merge — the three readings are functions of the scopes, and the two
@@ -128,8 +128,8 @@ det _ (ξ-·₁ st) (ξ-·₂ v st′) = ⊥-elim (value-¬step v st)
 det _ (ξ-·₂ v st) (ξ-·₁ st′) = ⊥-elim (value-¬step v st′)
 det (⊢· ⊢L ⊢M) (ξ-·₂ v st) (ξ-·₂ u st′) with det ⊢M st st′
 det (⊢· ⊢L ⊢M) (ξ-·₂ v st) (ξ-·₂ u st′) | refl , refl = refl , refl
-det (⊢ν wA rA ⊢L mw ⊢c same wB) (ξ-ν st) (ξ-ν st′) with det ⊢L st st′
-det (⊢ν wA rA ⊢L mw ⊢c same wB) (ξ-ν st) (ξ-ν st′) | refl , refl = refl , refl
+det (⊢ν wA rA ⊢L mw ⊢c smC same wB) (ξ-ν st) (ξ-ν st′) with det ⊢L st st′
+det (⊢ν wA rA ⊢L mw ⊢c smC same wB) (ξ-ν st) (ξ-ν st′) | refl , refl = refl , refl
 det (boundary mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
   with interior-functional rel rel′
 det (boundary mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)

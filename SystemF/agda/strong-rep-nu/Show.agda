@@ -374,7 +374,7 @@ ruleName : ∀ {Δ M N δ} → Δ ⊢ M -→ N ∣ δ → String
 ruleName (TyBeta v same)               = "TyBeta"
 ruleName (Beta v)                    = "Beta"
 ruleName (Wrap v w rc ri rd sc)      = "Wrap"
-ruleName (TyWrap v rel ⊢s same)      = "TyWrap"
+ruleName (TyWrap v same)      = "TyWrap"
 ruleName (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) = "Merge"
 ruleName (Id u b)                  = "Id"
 ruleName (ξ-·₁ st)                  = ruleName st

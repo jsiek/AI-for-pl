@@ -46,9 +46,9 @@ private
 -- 1. Local inversions and representation readings
 ------------------------------------------------------------------------
 
-sameTy-base-src : Base A → Δ ⊢ B ≈ A ⊣ Δ′ → B ≡ A
-sameTy-base-src base-ℕ (`ℕ , same-ℕ , same-ℕ) = refl
-sameTy-base-src base-𝔹 (`𝔹 , same-𝔹 , same-𝔹) = refl
+same-base-src : ∀ {η} → Base A → η ⊢ B ~ A → B ≡ A
+same-base-src base-ℕ same-ℕ = refl
+same-base-src base-𝔹 same-𝔹 = refl
 
 ------------------------------------------------------------------------
 -- 2. The merged frame's readings and the carried spellings
@@ -63,7 +63,7 @@ merge-redex : ∀ {Δ Δᵢ Δ₂ᶜ U Θ₁ Θ₂ t₁ c₂ B C D}
   → Simple U → InertTail t₁
   → BoundaryWf Δ Θ₂ Δᵢ Δ₂ᶜ
   → Δᵢ ∣ [] ⊢ U ⟪ Θ₁ , tail t₁ ⟫ ⦂ B
-  → Δ₂ᶜ ⊢ c₂ ∶ C ⇝ D
+  → Δ₂ᶜ ∣ Θ₂ ⊢[ ⁺ ] c₂ ∶ C ⇝ D
   → Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ]
       (Δ ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫ -→ M′ ∣ δ)
 merge-redex u it mw₂ (boundary mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c₂
@@ -112,8 +112,8 @@ module Impl where
     → Value M
     → BoundaryWf Δ Θ Δᵢ Δᶜ
     → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
-    → Δᶜ ⊢ c ∶ Cᵢ ⇝ Cₑ
-    → Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ
+    → Δᶜ ∣ Θ ⊢[ ⁺ ] c ∶ Cᵢ ⇝ Cₑ
+    → names Δᵢ ⊢ Bᵢ ~ Cᵢ
     → Value (M ⟪ Θ , c ⟫)
       ⊎ (Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ]
            (Δ ⊢ M ⟪ Θ , c ⟫ -→ M′ ∣ δ))
@@ -127,18 +127,16 @@ module Impl where
   progress-boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} (V-simple u) mwΘ ⊢M ⊢c sameᵢ
     | inj₁ (A-idb b) | refl =
     inj₂ (progress-id-base (V-simple u) b
-      (⊢ty≡ (sameTy-base-src {Δ = Δᵢ} {Δ′ = Δᶜ} b sameᵢ) ⊢M))
-  progress-boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} (V-simple u) mwΘ ⊢M
-    (conv-unseal d) sameᵢ | inj₁ A-unseal
-    with ≈-var-source {Δ = Δᵢ} {Δ′ = Δᶜ} sameᵢ
-  progress-boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} (V-simple u) mwΘ ⊢M
-    (conv-unseal d) sameᵢ | inj₁ A-unseal | Y , refl =
-    ⊥-elim (simple-¬var u ⊢M)
-  progress-boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} (V-simple u) mwΘ ⊢M
-    (conv-unseal-seq d ⊢c n m) sameᵢ | inj₁ A-unseal-seq
-    with ≈-var-source {Δ = Δᵢ} {Δ′ = Δᶜ} sameᵢ
-  progress-boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} (V-simple u) mwΘ ⊢M
-    (conv-unseal-seq d ⊢c n m) sameᵢ | inj₁ A-unseal-seq | Y , refl =
+      (⊢ty≡ (same-base-src b sameᵢ) ⊢M))
+  progress-boundary (V-simple u) mwΘ ⊢M (conv-unseal d ok) sameᵢ
+    | inj₁ A-unseal with same-var-target sameᵢ
+  progress-boundary (V-simple u) mwΘ ⊢M (conv-unseal d ok) sameᵢ
+    | inj₁ A-unseal | Y , refl = ⊥-elim (simple-¬var u ⊢M)
+  progress-boundary (V-simple u) mwΘ ⊢M
+    (conv-unseal-seq d ok ⊢c n m) sameᵢ | inj₁ A-unseal-seq
+    with same-var-target sameᵢ
+  progress-boundary (V-simple u) mwΘ ⊢M
+    (conv-unseal-seq d ok ⊢c n m) sameᵢ | inj₁ A-unseal-seq | Y , refl =
     ⊥-elim (simple-¬var u ⊢M)
 
   -- A function-conversion wrapper carries its own BoundaryWf and the domain
@@ -157,20 +155,15 @@ module Impl where
     | Δᵈ , s′ , rd , sc =
     _ , _ , Wrap u vM (bw-conversion mwΘ) (bw-interior mwΘ) rd sc
 
-  -- `ν` over a Λ under a ∀ middle: the middle's body typing is the
-  -- rule's premise.
+  -- `ν` over a Λ under a ∀ middle: always a `TyWrap` redex.
   progress-ν-∀conv : ∀ {Δ N Θ s c A C}
     → Value N
     → Δ ∣ [] ⊢ ν A · ((Λ N) ⟪ Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩ ⦂ C
     → Σ[ M ∈ Term ] Σ[ δ ∈ Alloc ]
         (Δ ⊢ ν A · ((Λ N) ⟪ Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩ -→ M ∣ δ)
   progress-ν-∀conv vN
-    (⊢ν wA rA (boundary mwΘ ⊢V ⊢c sameᵢ sameₑ wE) mwν ⊢cν sameν wB)
-    with conv-all-inv ⊢c
-  progress-ν-∀conv vN
-    (⊢ν wA rA (boundary mwΘ ⊢V ⊢c sameᵢ sameₑ wE) mwν ⊢cν sameν wB)
-    | A₀ , B₀ , refl , eqₑ , ⊢s =
-    _ , _ , TyWrap vN (bw-conversion mwΘ) ⊢s rA
+    (⊢ν wA rA (boundary mwΘ ⊢V ⊢c sameᵢ sameₑ wE) mwν ⊢cν smC sameν wB) =
+    _ , _ , TyWrap vN rA
 
   ----------------------------------------------------------------------
   -- 5. The induction
@@ -197,15 +190,15 @@ module Impl where
   progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₁ vM
     | inj₂ (U , Θ , s , t , u , refl) =
     inj₂ (progress-wrap u vM ⊢L)
-  progress (⊢ν wA rA ⊢L mw ⊢c same wB) with progress ⊢L
-  progress (⊢ν wA rA ⊢L mw ⊢c same wB) | inj₂ (L′ , δ , st) =
+  progress (⊢ν wA rA ⊢L mw ⊢c smC same wB) with progress ⊢L
+  progress (⊢ν wA rA ⊢L mw ⊢c smC same wB) | inj₂ (L′ , δ , st) =
     inj₂ (ν _ · L′ ⟨ _ ⟩ , δ , ξ-ν st)
-  progress (⊢ν wA rA ⊢L mw ⊢c same wB) | inj₁ vL with canon-∀ vL ⊢L
-  progress (⊢ν wA rA ⊢L mw ⊢c same wB) | inj₁ vL
+  progress (⊢ν wA rA ⊢L mw ⊢c smC same wB) | inj₁ vL with canon-∀ vL ⊢L
+  progress (⊢ν wA rA ⊢L mw ⊢c smC same wB) | inj₁ vL
     | inj₁ (N , vN , refl) = inj₂ (_ , _ , TyBeta vN rA)
-  progress (⊢ν wA rA ⊢L mw ⊢c same wB) | inj₁ vL
+  progress (⊢ν wA rA ⊢L mw ⊢c smC same wB) | inj₁ vL
     | inj₂ (N , Θ , s , vN , refl) =
-    inj₂ (progress-ν-∀conv vN (⊢ν wA rA ⊢L mw ⊢c same wB))
+    inj₂ (progress-ν-∀conv vN (⊢ν wA rA ⊢L mw ⊢c smC same wB))
   progress (boundary mwΘ ⊢M ⊢c sameᵢ sameₑ wE) with progress ⊢M
   progress (boundary mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | inj₂ (M′ , δ , st) =
     inj₂ (M′ ⟪ ↑ᴮ[ δ ] _ , _ ⟫ , δ , ξ-⟪⟫ (bw-interior mwΘ) st)

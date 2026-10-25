@@ -121,7 +121,7 @@ residual-source (residual-Beta-body vW st)       = refl
 residual-source (residual-Beta-arg vW cr)        = refl
 residual-source (residual-Wrap-fun vV vW rc ri rd sc) = refl
 residual-source (residual-Wrap-arg vV vW rc ri rd sc) = refl
-residual-source (residual-TyWrap vN rc ⊢s pA)   = refl
+residual-source (residual-TyWrap vN pA)   = refl
 residual-source
   (residual-Merge u it ri rc₁ rc₂ rc⋉ sc₁ sc₂) = refl
 residual-source (residual-ξ-·₁ r)      = cong (_· _) (residual-source r)
@@ -140,7 +140,7 @@ residual-sound (residual-Beta-body {W = W} {A = A} {C = C} {M = M} vW st) =
 residual-sound (residual-Beta-arg vW cr) = copy-sound cr
 residual-sound (residual-Wrap-fun vV vW rc ri rd sc) = refl
 residual-sound (residual-Wrap-arg vV vW rc ri rd sc) = refl
-residual-sound (residual-TyWrap vN rc ⊢s pA) = refl
+residual-sound (residual-TyWrap vN pA) = refl
 residual-sound
   (residual-Merge u it ri rc₁ rc₂ rc⋉ sc₁ sc₂) = refl
 residual-sound (residual-ξ-·₁ r)      = cong (_· _) (residual-sound r)

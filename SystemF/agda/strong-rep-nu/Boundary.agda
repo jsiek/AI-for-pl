@@ -29,7 +29,7 @@ open import Relation.Nullary using (¬_; Dec; yes; no)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; trans; cong; subst)
 
-open import strong-rep-nu.Types using (Ty; `ℕ; Renameᵗ; renameᵗ)
+open import strong-rep-nu.Types using (Ty; `ℕ; Renameᵗ; renameᵗ; extᵗ)
 open import strong-rep-nu.Ctx
 open import strong-rep-nu.proof.Ctx
 
@@ -694,6 +694,90 @@ dual→unbinds (bind X β ∷ χ) ib
   with in-binds-++-inv (dual χ) ib
 dual→unbinds (bind X β ∷ χ) ib | inj₁ a = iu-there (dual→unbinds χ a)
 dual→unbinds (bind X β ∷ χ) ib | inj₂ (ib-there ())
+
+-- PERMISSIONS (2026-10-25, the Δ ∣ Θ experiment): membership of a
+-- representation variable among a scope's binds or unbinds survives
+-- every operation a reduction applies to a scope.
+in-unbinds-++ˡ : ∀ {χ₂} → InUnbinds α χ → InUnbinds α (χ ++ χ₂)
+in-unbinds-++ˡ iu-here = iu-here
+in-unbinds-++ˡ (iu-there iu) = iu-there (in-unbinds-++ˡ iu)
+
+in-unbinds-++ʳ : ∀ {χ₂} (χ₁ : List Change)
+  → InUnbinds α χ₂ → InUnbinds α (χ₁ ++ χ₂)
+in-unbinds-++ʳ [] iu = iu
+in-unbinds-++ʳ (δ ∷ χ₁) iu = iu-there (in-unbinds-++ʳ χ₁ iu)
+
+in-unbinds-++-inv : ∀ {χ₂} (χ₁ : List Change)
+  → InUnbinds α (χ₁ ++ χ₂)
+  → InUnbinds α χ₁ ⊎ InUnbinds α χ₂
+in-unbinds-++-inv [] iu = inj₂ iu
+in-unbinds-++-inv (unbind X β ∷ χ₁) iu-here = inj₁ iu-here
+in-unbinds-++-inv (δ ∷ χ₁) (iu-there iu)
+  with in-unbinds-++-inv χ₁ iu
+in-unbinds-++-inv (δ ∷ χ₁) (iu-there iu) | inj₁ a = inj₁ (iu-there a)
+in-unbinds-++-inv (δ ∷ χ₁) (iu-there iu) | inj₂ b = inj₂ b
+
+binds→dual : (χ : List Change) → InBinds α χ → InUnbinds α (dual χ)
+binds→dual (bind X β ∷ χ) ib-here
+  rewrite unfold-reverse (bind X β) χ
+        | map-++ dualChange (reverse χ) (bind X β ∷ []) =
+  in-unbinds-++ʳ (dual χ) iu-here
+binds→dual (bind X β ∷ χ) (ib-there ib)
+  rewrite unfold-reverse (bind X β) χ
+        | map-++ dualChange (reverse χ) (bind X β ∷ []) =
+  in-unbinds-++ˡ (binds→dual χ ib)
+binds→dual (unbind X β ∷ χ) (ib-there ib)
+  rewrite unfold-reverse (unbind X β) χ
+        | map-++ dualChange (reverse χ) (unbind X β ∷ []) =
+  in-unbinds-++ˡ (binds→dual χ ib)
+
+in-unbinds-ren : (ρ : Renameᵗ) → InUnbinds α χ
+  → InUnbinds (ρ α) (renᴮᴿ ρ χ)
+in-unbinds-ren ρ iu-here = iu-here
+in-unbinds-ren ρ (iu-there iu) = iu-there (in-unbinds-ren ρ iu)
+
+in-binds-ren : (ρ : Renameᵗ) → InBinds α χ → InBinds (ρ α) (renᴮᴿ ρ χ)
+in-binds-ren ρ ib-here = ib-here
+in-binds-ren ρ (ib-there ib) = ib-there (in-binds-ren ρ ib)
+
+in-unbinds-liftᴮ : InUnbinds α χ → InUnbinds (suc α) (liftᴮ χ)
+in-unbinds-liftᴮ (iu-here {X = X}) = iu-here
+in-unbinds-liftᴮ (iu-there iu) = iu-there (in-unbinds-liftᴮ iu)
+
+in-binds-liftᴮ : InBinds α χ → InBinds (suc α) (liftᴮ χ)
+in-binds-liftᴮ ib-here = ib-here
+in-binds-liftᴮ (ib-there ib) = ib-there (in-binds-liftᴮ ib)
+
+in-unbinds-liftᴮ⁻ : (χ : List Change) → InUnbinds (suc α) (liftᴮ χ)
+  → InUnbinds α χ
+in-unbinds-liftᴮ⁻ (unbind X β ∷ χ) iu-here = iu-here
+in-unbinds-liftᴮ⁻ (δ ∷ χ) (iu-there iu) =
+  iu-there (in-unbinds-liftᴮ⁻ χ iu)
+
+in-binds-liftᴮ⁻ : (χ : List Change) → InBinds (suc α) (liftᴮ χ)
+  → InBinds α χ
+in-binds-liftᴮ⁻ (bind X β ∷ χ) ib-here = ib-here
+in-binds-liftᴮ⁻ (δ ∷ χ) (ib-there ib) =
+  ib-there (in-binds-liftᴮ⁻ χ ib)
+
+liftᴮ-no-unbind-zero : (χ : List Change) → ¬ InUnbinds zero (liftᴮ χ)
+liftᴮ-no-unbind-zero (unbind X β ∷ χ) (iu-there iu) =
+  liftᴮ-no-unbind-zero χ iu
+liftᴮ-no-unbind-zero (bind X β ∷ χ) (iu-there iu) =
+  liftᴮ-no-unbind-zero χ iu
+
+liftᴮ-no-bind-zero : (χ : List Change) → ¬ InBinds zero (liftᴮ χ)
+liftᴮ-no-bind-zero (unbind X β ∷ χ) (ib-there ib) =
+  liftᴮ-no-bind-zero χ ib
+liftᴮ-no-bind-zero (bind X β ∷ χ) (ib-there ib) =
+  liftᴮ-no-bind-zero χ ib
+
+-- representation-only renaming commutes with lifting a scope
+renᴮᴿ-liftᴮ : (ρ : Renameᵗ) (χ : List Change)
+  → renᴮᴿ (extᵗ ρ) (liftᴮ χ) ≡ liftᴮ (renᴮᴿ ρ χ)
+renᴮᴿ-liftᴮ ρ [] = refl
+renᴮᴿ-liftᴮ ρ (unbind X α ∷ χ) = cong (_ ∷_) (renᴮᴿ-liftᴮ ρ χ)
+renᴮᴿ-liftᴮ ρ (bind X α ∷ χ) = cong (_ ∷_) (renᴮᴿ-liftᴮ ρ χ)
 
 Q-changes : (χ : List Change)
   → Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ

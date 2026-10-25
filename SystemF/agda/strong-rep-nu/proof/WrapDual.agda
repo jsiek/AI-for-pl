@@ -23,7 +23,8 @@ open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; trans; subst)
 
-open import strong-rep-nu.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; ⇑ᵗ)
+open import strong-rep-nu.Types
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; ⇑ᵗ; base-ℕ; base-𝔹)
 open import strong-rep-nu.Ctx
 open import strong-rep-nu.proof.Ctx
 open import strong-rep-nu.Conversion
@@ -34,17 +35,6 @@ open import strong-rep-nu.proof.Preserve using (WrapCase; same-wf)
 ------------------------------------------------------------------------
 -- §1  Weakening a TYPED conversion
 ------------------------------------------------------------------------
-
-sameTy-⇒ : ∀ (Γ Γ′ : Ctxᵗ) {A B C D : Ty}
-  → Γ ⊢ A ≈ B ⊣ Γ′ → Γ ⊢ C ≈ D ⊣ Γ′
-  → Γ ⊢ A ⇒ C ≈ B ⇒ D ⊣ Γ′
-sameTy-⇒ Γ Γ′ (R , p , q) (S , p′ , q′) =
-  R ⇒ S , same-⇒ p p′ , same-⇒ q q′
-
-sameTy-∀ : ∀ (Γ Γ′ : Ctxᵗ) {A B : Ty}
-  → underΛ Γ ⊢ A ≈ B ⊣ underΛ Γ′
-  → Γ ⊢ `∀ A ≈ `∀ B ⊣ Γ′
-sameTy-∀ Γ Γ′ (R , p , q) = `∀ R , same-∀ p , same-∀ q
 
 -- A weakening keeps the SHAPE, so it keeps identity and the
 -- cancellation side condition (the latter because names are unique).
@@ -101,152 +91,97 @@ noCancel-~ uq d d′ (sameᶜ-unseal e) (sameᶜ-unseal e′) nc = tt
 noCancel-~ uq d d′ (sameᶜ-unseal-seq e p) (sameᶜ-unseal-seq e′ p′) nc = tt
 
 -- `weaken` (strong-rep-nu.Conversion §2c) produces a conversion's
--- other spelling; this produces its TYPING.  The two contexts share a
--- representation context and differ only in their ordinary name map;
--- the source context's names are unique, so `NoCancel` survives.
+-- other spelling; this produces its TYPING, at the SAME representation
+-- types, under any scope that grants at least the same permissions
+-- (`PermMap`).  The two contexts share a representation context; the
+-- source context's names are unique, so `NoCancel` survives.
 -- Commentary.md § proof/WrapDual.agda / §1
--- the lookup square, re-read on the second name map
-lookup-~ : ∀ {Γ Γ′ : Ctxᵗ} {X X′ α A}
+leaf-~ : ∀ {Γ Γ′ : Ctxᵗ} {X X′ α β A}
   → reps Γ′ ≡ reps Γ → names Γ ⊆ᵃ names Γ′
   → names Γ ∋ˡ X := α → names Γ′ ∋ˡ X′ := α
-  → Γ ∋ X := A
-  → Σ[ A′ ∈ Ty ] ((Γ′ ∋ X′ := A′) × (Γ′ ⊢ A′ ≈ A ⊣ Γ))
-lookup-~ {Γ′ = Γ′} eq f d d′ (α , R , dn , dr , pA)
-  with weaken-ty f pA
-lookup-~ {Γ′ = Γ′} eq f d d′ (α , R , dn , dr , pA) | A′ , qA′ =
-  A′
-  , (α , R
-    , subst (λ a → names Γ′ ∋ˡ _ := a) (∋ˡ-det d dn) d′
-    , subst (λ Ξ → Ξ ∋ʳ α := bindR R) (sym eq) dr
-    , qA′)
-  , (R , qA′ , pA)
-
--- the same, when the representation's second spelling is already known
-lookup-~′ : ∀ {Γ Γ′ : Ctxᵗ} {X X′ α A A′}
-  → reps Γ′ ≡ reps Γ
-  → names Γ ∋ˡ X := α → names Γ′ ∋ˡ X′ := α
-  → Γ ∋ X := A → Γ′ ⊢ A′ ≈ A ⊣ Γ
-  → Γ′ ∋ X′ := A′
-lookup-~′ {Γ′ = Γ′} eq d d′ (α , R , dn , dr , pA) (S , q′ , q) =
-  α , R
-  , subst (λ a → names Γ′ ∋ˡ _ := a) (∋ˡ-det d dn) d′
-  , subst (λ Ξ → Ξ ∋ʳ α := bindR R) (sym eq) dr
-  , subst (λ T → names Γ′ ⊢ _ ~ T) (same-rep-unique q pA) q′
+  → Γ ∋ X ⊸ β := A → Γ′ ∋ X′ ⊸ α := A
+leaf-~ eq f d d′ (e , rd , B , q) with ∋ˡ-det d e
+leaf-~ eq f d d′ (e , rd , B , q) | refl =
+  d′ , subst (λ Ξ → Ξ ∋ʳ _ := bindR _) (sym eq) rd , weaken-ty f q
 
 mutual
-  weakenᵐ-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {g g′ r} {A B : Ty}
-    → reps Γ′ ≡ reps Γ → Unique (names Γ)
-    → (names Γ) ⊆ᵃ (names Γ′)
+  weakenᵐ-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {Θ Θ′ p p′ g g′ r} {A B : Ty}
+    → reps Γ′ ≡ reps Γ → Unique (names Γ) → names Γ ⊆ᵃ names Γ′
+    → PermMap Θ p Θ′ p′
     → names Γ ⊩ᵐ g ~ r → names Γ′ ⊩ᵐ g′ ~ r
-    → Γ ⊢ᵐ g ∶ A ⇝ B
-    → Σ[ A′ ∈ Ty ] Σ[ B′ ∈ Ty ]
-        ((Γ′ ⊢ᵐ g′ ∶ A′ ⇝ B′)
-          × (Γ′ ⊢ A′ ≈ A ⊣ Γ) × (Γ′ ⊢ B′ ≈ B ⊣ Γ))
-  weakenᵐ-⊢ eq uq f (sameᶜ-id same-ℕ) (sameᶜ-id same-ℕ) (conv-id base-ℕ) =
-    `ℕ , `ℕ , conv-id base-ℕ
-    , (`ℕ , same-ℕ , same-ℕ) , (`ℕ , same-ℕ , same-ℕ)
-  weakenᵐ-⊢ eq uq f (sameᶜ-id same-𝔹) (sameᶜ-id same-𝔹) (conv-id base-𝔹) =
-    `𝔹 , `𝔹 , conv-id base-𝔹
-    , (`𝔹 , same-𝔹 , same-𝔹) , (`𝔹 , same-𝔹 , same-𝔹)
-  weakenᵐ-⊢ eq uq f (sameᶜ-id (same-var d)) (sameᶜ-id (same-var d′))
-            (conv-idv tv) =
-    _ , _ , conv-idv (_ , d′)
-    , (` _ , same-var d′ , same-var d) , (` _ , same-var d′ , same-var d)
-  weakenᵐ-⊢ {Γ = Γ} {Γ′ = Γ′} eq uq f (sameᶜ-fun a b) (sameᶜ-fun a′ b′)
-            (conv-fun ⊢x ⊢y)
-    with weaken-⊢ eq uq f a a′ ⊢x | weaken-⊢ eq uq f b b′ ⊢y
-  weakenᵐ-⊢ {Γ = Γ} {Γ′ = Γ′} eq uq f (sameᶜ-fun a b) (sameᶜ-fun a′ b′)
-            (conv-fun ⊢x ⊢y)
-    | P₁ , Q₁ , ⊢x′ , smP₁ , smQ₁ | P₂ , Q₂ , ⊢y′ , smP₂ , smQ₂ =
-    Q₁ ⇒ P₂ , P₁ ⇒ Q₂ , conv-fun ⊢x′ ⊢y′
-    , sameTy-⇒ Γ′ Γ smQ₁ smP₂ , sameTy-⇒ Γ′ Γ smP₁ smQ₂
-  weakenᵐ-⊢ {Γ = Γ} {Γ′ = Γ′} eq uq f (sameᶜ-all a) (sameᶜ-all a′)
-            (conv-all ⊢x)
-    with weaken-⊢ {Γ = underΛ Γ} {Γ′ = underΛ Γ′}
-                   (cong (abstR ∷_) eq) (unique-underΛ {Γ = Γ} uq)
-                   (⊆ᵃ-underΛ f) a a′ ⊢x
-  weakenᵐ-⊢ {Γ = Γ} {Γ′ = Γ′} eq uq f (sameᶜ-all a) (sameᶜ-all a′)
-            (conv-all ⊢x)
-    | A₀ , B₀ , ⊢x′ , smA , smB =
-    `∀ A₀ , `∀ B₀ , conv-all ⊢x′
-    , sameTy-∀ Γ′ Γ smA , sameTy-∀ Γ′ Γ smB
+    → Γ ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B
+    → Γ′ ∣ Θ′ ⊢ᵐ[ p′ ] g′ ∶ A ⇝ B
+  weakenᵐ-⊢ eq uq f m (sameᶜ-id same-ℕ) (sameᶜ-id same-ℕ) (conv-id base-ℕ) =
+    conv-id base-ℕ
+  weakenᵐ-⊢ eq uq f m (sameᶜ-id same-𝔹) (sameᶜ-id same-𝔹) (conv-id base-𝔹) =
+    conv-id base-𝔹
+  weakenᵐ-⊢ eq uq f m (sameᶜ-id (same-var d)) (sameᶜ-id (same-var d′))
+            (conv-idv e) with ∋ˡ-det d e
+  ... | refl = conv-idv d′
+  weakenᵐ-⊢ eq uq f m (sameᶜ-fun a b) (sameᶜ-fun a′ b′) (conv-fun ⊢x ⊢y) =
+    conv-fun (weaken-⊢ eq uq f (pm-flip m) a a′ ⊢x)
+             (weaken-⊢ eq uq f m b b′ ⊢y)
+  weakenᵐ-⊢ {Γ = Γ} eq uq f m (sameᶜ-all a) (sameᶜ-all a′) (conv-all ⊢x) =
+    conv-all (weaken-⊢ (cong (abstR ∷_) eq) (unique-underΛ {Γ = Γ} uq)
+                       (⊆ᵃ-underΛ f) (pm-lift m) a a′ ⊢x)
 
-  weakenᵀ-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {t t′ r} {A B : Ty}
-    → reps Γ′ ≡ reps Γ → Unique (names Γ)
-    → (names Γ) ⊆ᵃ (names Γ′)
+  weakenᵀ-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {Θ Θ′ p p′ t t′ r} {A B : Ty}
+    → reps Γ′ ≡ reps Γ → Unique (names Γ) → names Γ ⊆ᵃ names Γ′
+    → PermMap Θ p Θ′ p′
     → names Γ ⊩ᵀ t ~ r → names Γ′ ⊩ᵀ t′ ~ r
-    → Γ ⊢ᵀ t ∶ A ⇝ B
-    → Σ[ A′ ∈ Ty ] Σ[ B′ ∈ Ty ]
-        ((Γ′ ⊢ᵀ t′ ∶ A′ ⇝ B′)
-          × (Γ′ ⊢ A′ ≈ A ⊣ Γ) × (Γ′ ⊢ B′ ≈ B ⊣ Γ))
-  weakenᵀ-⊢ eq uq f (sameᶜ-mid a) (sameᶜ-mid a′) (conv-mid ⊢g)
-    with weakenᵐ-⊢ eq uq f a a′ ⊢g
-  weakenᵀ-⊢ eq uq f (sameᶜ-mid a) (sameᶜ-mid a′) (conv-mid ⊢g)
-    | A′ , B′ , ⊢g′ , smA , smB = A′ , B′ , conv-mid ⊢g′ , smA , smB
-  weakenᵀ-⊢ eq uq f (sameᶜ-seal d) (sameᶜ-seal d′) (conv-seal dX)
-    with lookup-~ eq f d d′ dX
-  weakenᵀ-⊢ eq uq f (sameᶜ-seal d) (sameᶜ-seal d′) (conv-seal dX)
-    | A′ , dX′ , smA =
-    A′ , _ , conv-seal dX′ , smA , (` _ , same-var d′ , same-var d)
-  weakenᵀ-⊢ eq uq f (sameᶜ-seal-seq a d) (sameᶜ-seal-seq a′ d′)
-            (conv-seal-seq ⊢t dX n)
-    with weakenᵀ-⊢ eq uq f a a′ ⊢t
-  weakenᵀ-⊢ eq uq f (sameᶜ-seal-seq a d) (sameᶜ-seal-seq a′ d′)
-            (conv-seal-seq ⊢t dX n)
-    | A′ , R′ , ⊢t′ , smA , smR =
-    A′ , _
-    , conv-seal-seq ⊢t′ (lookup-~′ eq d d′ dX smR) (¬isIdᵀ-~ a a′ n)
-    , smA , (` _ , same-var d′ , same-var d)
+    → Γ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
+    → Γ′ ∣ Θ′ ⊢ᵀ[ p′ ] t′ ∶ A ⇝ B
+  weakenᵀ-⊢ eq uq f m (sameᶜ-mid a) (sameᶜ-mid a′) (conv-mid ⊢g) =
+    conv-mid (weakenᵐ-⊢ eq uq f m a a′ ⊢g)
+  weakenᵀ-⊢ eq uq f m (sameᶜ-seal d) (sameᶜ-seal d′) (conv-seal dX ok)
+    with leaf-~ eq f d d′ dX | ∋ˡ-det d (proj₁ dX)
+  ... | dX′ | refl = conv-seal dX′ (pm-seal m ok)
+  weakenᵀ-⊢ eq uq f m (sameᶜ-seal-seq a d) (sameᶜ-seal-seq a′ d′)
+            (conv-seal-seq ⊢t dX ok n)
+    with leaf-~ eq f d d′ dX | ∋ˡ-det d (proj₁ dX)
+  ... | dX′ | refl =
+    conv-seal-seq (weakenᵀ-⊢ eq uq f m a a′ ⊢t) dX′ (pm-seal m ok)
+                  (¬isIdᵀ-~ a a′ n)
 
-  weaken-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {s s′ r : Conv} {A B : Ty}
-    → reps Γ′ ≡ reps Γ → Unique (names Γ)
-    → (names Γ) ⊆ᵃ (names Γ′)
+  weaken-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {Θ Θ′ p p′} {s s′ r : Conv} {A B : Ty}
+    → reps Γ′ ≡ reps Γ → Unique (names Γ) → names Γ ⊆ᵃ names Γ′
+    → PermMap Θ p Θ′ p′
     → names Γ ⊩ s ~ r
     → names Γ′ ⊩ s′ ~ r
-    → Γ ⊢ s ∶ A ⇝ B
-    → Σ[ A′ ∈ Ty ] Σ[ B′ ∈ Ty ]
-        ((Γ′ ⊢ s′ ∶ A′ ⇝ B′)
-          × (Γ′ ⊢ A′ ≈ A ⊣ Γ) × (Γ′ ⊢ B′ ≈ B ⊣ Γ))
-  weaken-⊢ eq uq f (sameᶜ-tail a) (sameᶜ-tail a′) (conv-tail ⊢t)
-    with weakenᵀ-⊢ eq uq f a a′ ⊢t
-  weaken-⊢ eq uq f (sameᶜ-tail a) (sameᶜ-tail a′) (conv-tail ⊢t)
-    | A′ , B′ , ⊢t′ , smA , smB = A′ , B′ , conv-tail ⊢t′ , smA , smB
-  weaken-⊢ eq uq f (sameᶜ-unseal d) (sameᶜ-unseal d′) (conv-unseal dX)
-    with lookup-~ eq f d d′ dX
-  weaken-⊢ eq uq f (sameᶜ-unseal d) (sameᶜ-unseal d′) (conv-unseal dX)
-    | B′ , dX′ , smB =
-    _ , B′ , conv-unseal dX′ , (` _ , same-var d′ , same-var d) , smB
-  weaken-⊢ eq uq f (sameᶜ-unseal-seq d a) (sameᶜ-unseal-seq d′ a′)
-            (conv-unseal-seq dX ⊢c n m)
-    with weaken-⊢ eq uq f a a′ ⊢c
-  weaken-⊢ eq uq f (sameᶜ-unseal-seq d a) (sameᶜ-unseal-seq d′ a′)
-            (conv-unseal-seq dX ⊢c n m)
-    | R′ , B′ , ⊢c′ , smR , smB =
-    _ , B′
-    , conv-unseal-seq (lookup-~′ eq d d′ dX smR) ⊢c′ (¬isIdᶜ-~ a a′ n)
-                      (noCancel-~ uq d d′ a a′ m)
-    , (` _ , same-var d′ , same-var d) , smB
+    → Γ ∣ Θ ⊢[ p ] s ∶ A ⇝ B
+    → Γ′ ∣ Θ′ ⊢[ p′ ] s′ ∶ A ⇝ B
+  weaken-⊢ eq uq f m (sameᶜ-tail a) (sameᶜ-tail a′) (conv-tail ⊢t) =
+    conv-tail (weakenᵀ-⊢ eq uq f m a a′ ⊢t)
+  weaken-⊢ eq uq f m (sameᶜ-unseal d) (sameᶜ-unseal d′) (conv-unseal dX ok)
+    with leaf-~ eq f d d′ dX | ∋ˡ-det d (proj₁ dX)
+  ... | dX′ | refl = conv-unseal dX′ (pm-unseal m ok)
+  weaken-⊢ eq uq f m (sameᶜ-unseal-seq d a) (sameᶜ-unseal-seq d′ a′)
+           (conv-unseal-seq dX ok ⊢c n nc)
+    with leaf-~ eq f d d′ dX | ∋ˡ-det d (proj₁ dX)
+  ... | dX′ | refl =
+    conv-unseal-seq dX′ (pm-unseal m ok) (weaken-⊢ eq uq f m a a′ ⊢c)
+                    (¬isIdᶜ-~ a a′ n) (noCancel-~ uq d d′ a a′ nc)
 
 ------------------------------------------------------------------------
 -- §2  Splitting the redex's premises at the arrow
 ------------------------------------------------------------------------
 
 -- The interior type of a `_↦_` boundary is an arrow, because its
--- reading is.  Since the store this ONE inversion serves BOTH `boundary`
--- premises.
-sameTy-⇒⁻ : ∀ {η η′ : TyCtx} {B A₁ B₁ : Ty}
-  → ∃[ R ] ((η ⊢ B ~ R) × (η′ ⊢ A₁ ⇒ B₁ ~ R))
-  → Σ[ Aᵢ ∈ Ty ] Σ[ Bᵢ ∈ Ty ] ((B ≡ Aᵢ ⇒ Bᵢ)
-      × (∃[ R ] ((η ⊢ Aᵢ ~ R) × (η′ ⊢ A₁ ~ R)))
-      × (∃[ S ] ((η ⊢ Bᵢ ~ S) × (η′ ⊢ B₁ ~ S))))
-sameTy-⇒⁻ (R ⇒ S , same-⇒ p q , same-⇒ p′ q′) =
-  _ , _ , refl , (R , p , p′) , (S , q , q′)
+-- representation is.
+same-⇒⁻ : ∀ {η : TyCtx} {B R S : Ty}
+  → η ⊢ B ~ R ⇒ S
+  → Σ[ B₁ ∈ Ty ] Σ[ B₂ ∈ Ty ]
+      ((B ≡ B₁ ⇒ B₂) × (η ⊢ B₁ ~ R) × (η ⊢ B₂ ~ S))
+same-⇒⁻ (same-⇒ p q) = _ , _ , refl , p , q
 
 ------------------------------------------------------------------------
 -- §3  The crossing
 ------------------------------------------------------------------------
 
--- THE ARGUMENT DOES NOT MOVE ANY MORE: `⊢W` is reused verbatim.
+-- THE ARGUMENT DOES NOT MOVE, AND NEITHER DO THE TYPES: `⊢W` is reused
+-- verbatim, and the crossed `s` is respelled at the SAME representation
+-- types.  Its permissions move by `pm-dual`: checked at `⁻` under `Θ`,
+-- it is checked at `⁺` under `dual Θ`.
 -- Commentary.md § proof/WrapDual.agda / §3
 preserve-Wrap : WrapCase
 preserve-Wrap {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
@@ -262,12 +197,7 @@ preserve-Wrap {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} 
               (⊢· (boundary mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
                        sameᵢ sameₑ (wf-⇒ wA wC)) ⊢W)
   | refl | refl
-  with sameTy-⇒⁻ sameᵢ | sameTy-⇒⁻ sameₑ
-     | weaken-⊢ (trans (conversion-reps rd)
-                   (trans (interior-reps ri)
-                          (sym (conversion-reps rc))))
-                 (name-fn (bw-conversion-wf mwΘ))
-                 (Q ri rc rd) rcᶜ rdᶜ ⊢s
+  with same-⇒⁻ sameᵢ | same-⇒⁻ sameₑ
 preserve-Wrap {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
               {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
               wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
@@ -275,31 +205,18 @@ preserve-Wrap {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} 
                        sameᵢ sameₑ (wf-⇒ wA wC)) ⊢W)
   | refl | refl
   | Aᵢ , Bᵢ , refl , smAᵢ , smBᵢ
-  | Aₑ , Cₑ , refl , smAₑ , smCₑ
-  | P′ , Q′ , ⊢s′ , smP , smQ =
+  | Aₑ , Cₑ , refl , smAₑ , smCₑ =
   boundary mwΘ (⊢· ⊢V arg) ⊢t smBᵢ smCₑ wC
   where
   -- the dual's frame: the exterior itself
   mwD : BoundaryWf Δᵢ (dual Θ) Δ Δᵈ
   mwD = bw (bw-interior-wf mwΘ) (dual-interior ri) rd
 
-  -- the crossing argument's own exterior reading is the source spelling
-  -- the dual's conversion wants
-  sameᵢ-d : Δ ⊢ _ ≈ P′ ⊣ Δᵈ
-  sameᵢ-d =
-    proj₁ smAₑ , proj₁ (proj₂ smAₑ)
-    , subst (λ T → names Δᵈ ⊢ P′ ~ T)
-            (same-rep-unique (proj₂ (proj₂ smP)) (proj₂ (proj₂ smAₑ)))
-            (proj₁ (proj₂ smP))
-
-  sameₑ-d : Δᵢ ⊢ Aᵢ ≈ Q′ ⊣ Δᵈ
-  sameₑ-d =
-    proj₁ smAᵢ , proj₁ (proj₂ smAᵢ)
-    , subst (λ T → names Δᵈ ⊢ Q′ ~ T)
-            (same-rep-unique (proj₂ (proj₂ smQ))
-                             (proj₂ (proj₂ smAᵢ)))
-            (proj₁ (proj₂ smQ))
+  ⊢s′ = weaken-⊢ (trans (conversion-reps rd)
+                    (trans (interior-reps ri)
+                           (sym (conversion-reps rc))))
+                 (name-fn (bw-conversion-wf mwΘ))
+                 (Q ri rc rd) pm-dual rcᶜ rdᶜ ⊢s
 
   arg : Δᵢ ∣ [] ⊢ (W ⟪ dual Θ , s′ ⟫) ⦂ Aᵢ
-  arg = boundary mwD ⊢W ⊢s′ sameᵢ-d sameₑ-d
-            (same-wf (proj₁ (proj₂ smAᵢ)))
+  arg = boundary mwD ⊢W ⊢s′ smAₑ smAᵢ (same-wf smAᵢ)

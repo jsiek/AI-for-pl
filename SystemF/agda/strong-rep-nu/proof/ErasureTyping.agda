@@ -25,7 +25,7 @@ open import strong-rep-nu.Source
 open import strong-rep-nu.Erasure
 open import strong-rep-nu.proof.TypeSubst using (sub-sub; subst-cong)
 open import strong-rep-nu.proof.Preserve
-  using (wf-underΛ; empty-conversion)
+  using (wf-underΛ; empty-conversion; empty-interior)
 open import strong-rep-nu.proof.ErasureTypes
 
 ------------------------------------------------------------------------
@@ -55,25 +55,28 @@ nu-read Ξ η R C Rc p =
   where
   a = substᵗ (env Ξ) R
 
-nu-type : ∀ {Δ Δᵢ Δᶜ A R C Cₑ B c}
+nu-type : ∀ {Δ Δᵢ Δᶜ A R C B c Rᵢ Rₑ}
   → Δ ⊢ᶜ A ~ R
   → BoundaryWf (allocate R Δ) TyBetaBoundary Δᵢ Δᶜ
-  → Δᶜ ⊢ c ∶ C ⇝ Cₑ
-  → allocate R Δ ⊢ B ≈ Cₑ ⊣ Δᶜ
+  → Δᶜ ∣ TyBetaBoundary ⊢[ ⁺ ] c ∶ Rᵢ ⇝ Rₑ
+  → names Δᵢ ⊢ C ~ Rᵢ
+  → names (allocate R Δ) ⊢ B ~ Rₑ
   → (substᵗ (extsᵗ (nameσ Δ)) C) [ eraseTy Δ A ]ᵗ ≡ eraseTy Δ B
-nu-type {Δ = Ξ ∣ η} {A = A} {R = R} {C = C} {Cₑ = Cₑ} {B = B}
-        rA mw ⊢c same
-  with conversion-functional (bw-conversion mw)
+nu-type {Δ = Ξ ∣ η} {A = A} {R = R} {C = C} {B = B} {Rᵢ = Rᵢ}
+        rA mw ⊢c qC qB
+  with interior-functional (bw-interior mw)
+         (inst-interior {R = R} {Θ = []} (empty-interior {Δ = Ξ ∣ η}))
+     | conversion-functional (bw-conversion mw)
          (inst-conversion {R = R} {Θ = []} (empty-conversion {Δ = Ξ ∣ η}))
-nu-type {Δ = Ξ ∣ η} {A = A} {R = R} {C = C} {Cₑ = Cₑ} {B = B}
-        rA mw ⊢c same | refl =
+nu-type {Δ = Ξ ∣ η} {A = A} {R = R} {C = C} {B = B} {Rᵢ = Rᵢ}
+        rA mw ⊢c qC qB | refl | refl =
   trans (cong (λ a → (substᵗ (extsᵗ (nameσ (Ξ ∣ η))) C) [ a ]ᵗ)
               (erase-~ {Δ = Ξ ∣ η} rA))
-    (trans (sym (nu-read Ξ η R C (proj₁ (proj₁ (conv-scoped ⊢c)))
-                         (proj₂ (proj₁ (conv-scoped ⊢c)))))
-      (trans (conv-erase ⊢c)
-        (trans (sym (erase-≈ refl same))
-               (subst-cong (nameσ-alloc R (Ξ ∣ η)) B))))
+    (trans (sym (nu-read Ξ η R C Rᵢ qC))
+      (trans (erase-~ {Δ = (bindR R ∷ Ξ) ∣ (zero ∷ shiftReps η)} qC)
+        (trans (conv-erase ⊢c)
+          (trans (sym (erase-~ {Δ = allocate R (Ξ ∣ η)} qB))
+                 (subst-cong (nameσ-alloc R (Ξ ∣ η)) B)))))
 
 ------------------------------------------------------------------------
 -- The theorem
@@ -96,14 +99,14 @@ erasure-typing {Δ} {Γ} w (⊢Λ {C = C} {N = N} vN ⊢N) =
                          ⊢ˢ erase (underΛ Δ) N ⦂ C′)
             (eraseCtx-⤊ Δ Γ) (erase-underΛ Δ C)
             (erasure-typing (wf-underΛ w) ⊢N))
-erasure-typing {Δ} {Γ} w (⊢ν {A = A} {L = L} wA rA ⊢L mw ⊢c same wB) =
+erasure-typing {Δ} {Γ} w (⊢ν {A = A} {L = L} wA rA ⊢L mw ⊢c smC same wB) =
   subst (λ B′ → srcScope (reps Δ) ∣ eraseCtx Δ Γ
                   ⊢ˢ erase Δ L [ eraseTy Δ A ] ⦂ B′)
-        (nu-type rA mw ⊢c same)
+        (nu-type rA mw ⊢c smC same)
         (⊢ˢ[] (erasure-typing w ⊢L) (erase-wf w wA))
 erasure-typing {Δ} {Γ} w
     (boundary {Δᵢ = Δᵢ} {Θ = Θ} {M = M} {Bᵢ = Bᵢ} {Bₑ = Bₑ}
-              mw ⊢M ⊢c sameᵢ sameₑ wE) =
+              {Rᵢ = Rᵢ} {Rₑ = Rₑ} mw ⊢M ⊢c sameᵢ sameₑ wE) =
   subst₂ (λ n T → n ∣ eraseCtx Δ Γ ⊢ˢ T ⦂ eraseTy Δ Bₑ)
     (cong srcScope (interior-reps (bw-interior mw)))
     (cong (λ Δ′ → erase Δ′ M) (sym (inside-sound (bw-interior mw))))
@@ -113,8 +116,11 @@ erasure-typing {Δ} {Γ} w
   where
   ty-eq : eraseTy Δᵢ Bᵢ ≡ eraseTy Δ Bₑ
   ty-eq =
-    trans (erase-≈ (trans (interior-reps (bw-interior mw))
-                          (sym (conversion-reps (bw-conversion mw))))
-                   sameᵢ)
-      (trans (conv-erase ⊢c)
-        (sym (erase-≈ (sym (conversion-reps (bw-conversion mw))) sameₑ)))
+    trans (erase-~ {Δ = Δᵢ} sameᵢ)
+      (trans (cong (λ Ξ → substᵗ (env Ξ) Rᵢ)
+                   (trans (interior-reps (bw-interior mw))
+                          (sym (conversion-reps (bw-conversion mw)))))
+        (trans (conv-erase ⊢c)
+          (trans (cong (λ Ξ → substᵗ (env Ξ) Rₑ)
+                       (conversion-reps (bw-conversion mw)))
+                 (sym (erase-~ {Δ = Δ} sameₑ)))))

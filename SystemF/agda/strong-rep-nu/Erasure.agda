@@ -141,7 +141,7 @@ isStutter : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ → Bool
 isStutter (TyBeta v a)                     = false
 isStutter (Beta w)                         = false
 isStutter (Wrap v w r₁ r₂ r₃ sc)           = true
-isStutter (TyWrap v r s a)                 = false
+isStutter (TyWrap v a)                 = false
 isStutter (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) = true
 isStutter (Id u b)                         = true
 isStutter (ξ-·₁ st)                        = isStutter st

@@ -46,49 +46,28 @@ private
 -- spellings at EQUAL representation depth, so these inversions are
 -- direct.  Commentary.md § proof/Canonical.agda / §1
 
-same-base-target : η ⊢ A ~ R → Base R → Base A
-same-base-target same-ℕ base-ℕ = base-ℕ
-same-base-target same-𝔹 base-𝔹 = base-𝔹
-
-same-⇒-target : η ⊢ A ~ (R ⇒ S)
-  → Σ[ B ∈ Ty ] Σ[ C ∈ Ty ] (A ≡ B ⇒ C)
-same-⇒-target (same-⇒ p q) = _ , _ , refl
-
 same-∀-target : η ⊢ A ~ `∀ R → Σ[ B ∈ Ty ] (A ≡ `∀ B)
 same-∀-target (same-∀ p) = _ , refl
 
 same-var-target : η ⊢ A ~ ` α → Σ[ X ∈ ℕ ] (A ≡ ` X)
 same-var-target (same-var d) = _ , refl
 
-≈-base-target : ∀ {Δ Δ′ A B}
-  → Base A → Δ ⊢ A ≈ B ⊣ Δ′
-  → Base B
-≈-base-target base-ℕ (`ℕ , same-ℕ , q) =
-  same-base-target q base-ℕ
-≈-base-target base-𝔹 (`𝔹 , same-𝔹 , q) =
-  same-base-target q base-𝔹
+-- A reading keeps the head constructor of the ordinary type
+-- (`boundary` now relates the exterior type to the conversion's
+-- REPRESENTATION target by `~` directly).
+~-base : η ⊢ A ~ R → Base A → Base R
+~-base same-ℕ base-ℕ = base-ℕ
+~-base same-𝔹 base-𝔹 = base-𝔹
 
-≈-⇒-target : ∀ {Δ Δ′ A B C}
-  → Δ ⊢ (A ⇒ B) ≈ C ⊣ Δ′
-  → Σ[ A′ ∈ Ty ] Σ[ B′ ∈ Ty ] (C ≡ A′ ⇒ B′)
-≈-⇒-target (_ , same-⇒ p q , r) =
-  same-⇒-target r
+~-⇒ : η ⊢ (A ⇒ B) ~ R → Σ[ R₁ ∈ Ty ] Σ[ R₂ ∈ Ty ] (R ≡ R₁ ⇒ R₂)
+~-⇒ (same-⇒ p q) = _ , _ , refl
 
-≈-∀-target : ∀ {Δ Δ′ A B}
-  → Δ ⊢ `∀ A ≈ B ⊣ Δ′
-  → Σ[ A′ ∈ Ty ] (B ≡ `∀ A′)
-≈-∀-target (_ , same-∀ p , q) =
-  same-∀-target q
-
-≈-var-target : ∀ {Δ Δ′ X A}
-  → Δ ⊢ ` X ≈ A ⊣ Δ′
-  → Σ[ Y ∈ ℕ ] (A ≡ ` Y)
-≈-var-target (_ , same-var {α = α} d , q) =
-  same-var-target q
+~-∀ : η ⊢ `∀ A ~ R → Σ[ R₀ ∈ Ty ] (R ≡ `∀ R₀)
+~-∀ (same-∀ p) = _ , refl
 
 -- Retype a conversion along an equality of its target type.
-conv-tgt≡ : ∀ {B′} → B ≡ B′
-  → Δ ⊢ c ∶ A ⇝ B → Δ ⊢ c ∶ A ⇝ B′
+conv-tgt≡ : ∀ {Θ p B′} → B ≡ B′
+  → Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B → Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B′
 conv-tgt≡ refl ⊢c = ⊢c
 
 -- Retype a term along an equality of its type — used to move an
@@ -98,17 +77,6 @@ conv-tgt≡ refl ⊢c = ⊢c
   → A ≡ B → Δ ∣ Γ ⊢ M ⦂ A → Δ ∣ Γ ⊢ M ⦂ B
 ⊢ty≡ refl ⊢M = ⊢M
 
--- The SOURCE side, for the interior of a ∀-conversion.
-≈-∀-source : ∀ {Δ Δ′ A B}
-  → Δ ⊢ B ≈ `∀ A ⊣ Δ′
-  → Σ[ B′ ∈ Ty ] (B ≡ `∀ B′)
-≈-∀-source (_ , p , same-∀ q) = same-∀-target p
-
-≈-var-source : ∀ {Δ Δ′ X B}
-  → Δ ⊢ B ≈ ` X ⊣ Δ′
-  → Σ[ Y ∈ ℕ ] (B ≡ ` Y)
-≈-var-source (_ , p , same-var d) = same-var-target p
-
 ------------------------------------------------------------------------
 -- §2  What an INERT tail can look like, read off its TARGET type
 ------------------------------------------------------------------------
@@ -117,21 +85,24 @@ conv-tgt≡ refl ⊢c = ⊢c
 -- its source is not a variable).  No inert tail has a base target:
 -- `id A` at a base type is ACTIVE (A-idb), so `V-⟪⟫` never builds a
 -- value at a base type.
-inert-¬base : ∀ {t} → InertTail t → Δ ⊢ tail t ∶ A ⇝ B → ¬ Base B
+inert-¬base : ∀ {t Θ p} → InertTail t → Δ ∣ Θ ⊢[ p ] tail t ∶ A ⇝ B
+  → ¬ Base B
 inert-¬base I-idv (conv-tail (conv-mid (conv-id ())))
 inert-¬base I-idv (conv-tail (conv-mid (conv-idv _))) ()
 inert-¬base I-fun (conv-tail (conv-mid (conv-fun _ _))) ()
 inert-¬base I-all (conv-tail (conv-mid (conv-all _))) ()
-inert-¬base I-seal (conv-tail (conv-seal _)) ()
-inert-¬base I-seal-seq (conv-tail (conv-seal-seq _ _ _)) ()
+inert-¬base I-seal (conv-tail (conv-seal _ _)) ()
+inert-¬base I-seal-seq (conv-tail (conv-seal-seq _ _ _ _)) ()
 
 -- An ARROW target forces a function middle; a ∀ target a ∀ middle.
-inert-fun-conv : ∀ {t} → InertTail t → Δ ⊢ tail t ∶ A ⇝ (B ⇒ C)
+inert-fun-conv : ∀ {t Θ p} → InertTail t
+  → Δ ∣ Θ ⊢[ p ] tail t ∶ A ⇝ (B ⇒ C)
   → Σ[ s ∈ Conv ] Σ[ u ∈ Conv ] (t ≡ mid (s ↦ u))
 inert-fun-conv I-fun (conv-tail (conv-mid (conv-fun ⊢s ⊢t))) =
   _ , _ , refl
 
-inert-all-conv : ∀ {t} → InertTail t → Δ ⊢ tail t ∶ A ⇝ `∀ B
+inert-all-conv : ∀ {t Θ p} → InertTail t
+  → Δ ∣ Θ ⊢[ p ] tail t ∶ A ⇝ `∀ B
   → Σ[ s ∈ Conv ] (t ≡ mid (`∀ s))
 inert-all-conv I-all (conv-tail (conv-mid (conv-all ⊢s))) = _ , refl
 
@@ -167,10 +138,7 @@ canon-base (V-simple S-ƛ)     ()     (⊢ƛ _ _)
 canon-base (V-simple (S-Λ _)) ()     (⊢Λ _ _)
 canon-base {Δ = Δ} (V-⟪⟫ u it) b
     (boundary {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _) =
-  ⊥-elim
-    (inert-¬base it ⊢c
-      (≈-base-target {Δ = Δ} {Δ′ = Δᶜ}
-        b sameₑ))
+  ⊥-elim (inert-¬base it ⊢c (~-base sameₑ b))
 
 canon-ℕ : ∀ {V}
   → Value V → Δ ∣ [] ⊢ V ⦂ `ℕ → Σ[ n ∈ ℕ ] (V ≡ $ n)
@@ -190,17 +158,12 @@ canon-⇒ (V-simple S-true)  ()
 canon-⇒ (V-simple S-false) ()
 canon-⇒ (V-simple S-ƛ)     (⊢ƛ _ _) = inj₁ (_ , refl)
 canon-⇒ (V-simple (S-Λ _)) ()
-canon-⇒ {Δ = Δ} (V-⟪⟫ u it)
-    (boundary {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
-  with ≈-⇒-target {Δ = Δ} {Δ′ = Δᶜ} sameₑ
-canon-⇒ {Δ = Δ} (V-⟪⟫ u it)
-    (boundary {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
-  | A′ , B′ , eq
-  with inert-fun-conv it (conv-tgt≡ eq ⊢c)
-canon-⇒ {Δ = Δ} (V-⟪⟫ u it)
-    (boundary {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
-  | A′ , B′ , eq | s , t , refl =
-  inj₂ (_ , _ , s , t , u , refl)
+canon-⇒ {Δ = Δ} (V-⟪⟫ u it) (boundary _ _ ⊢c _ sameₑ _)
+  with ~-⇒ sameₑ
+canon-⇒ {Δ = Δ} (V-⟪⟫ u it) (boundary _ _ ⊢c _ sameₑ _)
+  | R₁ , R₂ , eq with inert-fun-conv it (conv-tgt≡ eq ⊢c)
+canon-⇒ {Δ = Δ} (V-⟪⟫ u it) (boundary _ _ ⊢c _ sameₑ _)
+  | R₁ , R₂ , eq | s , t , refl = inj₂ (_ , _ , s , t , u , refl)
 
 -- ∀.  A closed value at a ∀ type is a Λ over a VALUE (TyBeta's premise)
 -- or a Λ under a ∀ middle (TyWrap's): the one-boundary invariant
@@ -214,25 +177,18 @@ canon-∀ (V-simple S-true)   ()
 canon-∀ (V-simple S-false)  ()
 canon-∀ (V-simple S-ƛ)      ()
 canon-∀ (V-simple (S-Λ vN)) (⊢Λ _ _) = inj₁ (_ , vN , refl)
-canon-∀ {Δ = Δ} (V-⟪⟫ u it)
-    (boundary {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
-  with ≈-∀-target {Δ = Δ} {Δ′ = Δᶜ} sameₑ
-canon-∀ {Δ = Δ} (V-⟪⟫ u it)
-    (boundary {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
-  | C′ , eq
-  with inert-all-conv it (conv-tgt≡ eq ⊢c)
-canon-∀ {Δ = Δ} (V-⟪⟫ u it)
-    (boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
-  | C′ , eq | s , refl with conv-all-inv ⊢c
-canon-∀ {Δ = Δ} (V-⟪⟫ u it)
-    (boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
-  | C′ , eq | s , refl | A₀ , B₀ , refl , eqB , ⊢s
-  with ≈-∀-source {Δ = Δᵢ} {Δ′ = Δᶜ} sameᵢ
-canon-∀ {Δ = Δ} (V-⟪⟫ u it)
-    (boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
-  | C′ , eq | s , refl | A₀ , B₀ , refl , eqB , ⊢s | D , refl
+canon-∀ {Δ = Δ} (V-⟪⟫ u it) (boundary _ ⊢U ⊢c sameᵢ sameₑ _)
+  with ~-∀ sameₑ
+canon-∀ {Δ = Δ} (V-⟪⟫ u it) (boundary _ ⊢U ⊢c sameᵢ sameₑ _)
+  | R₀ , eq with inert-all-conv it (conv-tgt≡ eq ⊢c)
+canon-∀ {Δ = Δ} (V-⟪⟫ u it) (boundary _ ⊢U ⊢c sameᵢ sameₑ _)
+  | R₀ , eq | s , refl with conv-all-inv ⊢c
+canon-∀ {Δ = Δ} (V-⟪⟫ u it) (boundary _ ⊢U ⊢c sameᵢ sameₑ _)
+  | R₀ , eq | s , refl | A₀ , B₀ , refl , eqB , ⊢s
+  with same-∀-target sameᵢ
+canon-∀ {Δ = Δ} (V-⟪⟫ u it) (boundary _ ⊢U ⊢c sameᵢ sameₑ _)
+  | R₀ , eq | s , refl | A₀ , B₀ , refl , eqB , ⊢s | D , refl
   with canon-simple-∀ u ⊢U
-canon-∀ {Δ = Δ} (V-⟪⟫ u it)
-    (boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} _ ⊢U ⊢c sameᵢ sameₑ _)
-  | C′ , eq | s , refl | A₀ , B₀ , refl , eqB , ⊢s | D , refl
+canon-∀ {Δ = Δ} (V-⟪⟫ u it) (boundary _ ⊢U ⊢c sameᵢ sameₑ _)
+  | R₀ , eq | s , refl | A₀ , B₀ , refl , eqB , ⊢s | D , refl
   | N , vN , refl = inj₂ (_ , _ , s , vN , refl)

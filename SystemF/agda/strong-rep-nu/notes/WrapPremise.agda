@@ -93,4 +93,4 @@ mixed-Q = Q mixed-interior mixed-conversion mixed-dual-conversion
 mixed-premise : ∃[ s′ ] SameConv Γᵈ s′ Γᶜ (unseal 0)
 mixed-premise = premise-exists mixed-interior mixed-conversion
                                mixed-dual-conversion
-                               (proj₂ (proj₂ (cv! Γᶜ (unseal 0))))
+                               (proj₂ (proj₂ (cv! Γᶜ Mixed ⁺ (unseal 0))))

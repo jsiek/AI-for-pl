@@ -24,6 +24,8 @@ open import strong-rep-nu.Terms
 open import strong-rep-nu.Source
 open import strong-rep-nu.Compile
 open import strong-rep-nu.proof.Preserve
+open import strong-rep-nu.proof.Ctx using (unique-underΛ)
+open import Relation.Binary.PropositionalEquality using (subst)
 
 ------------------------------------------------------------------------
 -- 1.  Source formation
@@ -53,7 +55,10 @@ swf→wf {Δ = Δ} eq (swf-∀ wA) =
 -- 2.  compile preserves typing
 ------------------------------------------------------------------------
 
--- the `ν` case: every premise of `⊢ν` for `ν A · L ⟨ reveal 0 C ⟩`
+-- the `ν` case: every premise of `⊢ν` for `ν A · L ⟨ reveal 0 C ⟩`.
+-- The scope `inst []` BINDS the new cell, which is exactly the
+-- permission `reveal 0 C` needs: its unseals at `⁺`, its seals in the
+-- flipped domains.
 compile-ν : ∀ {Δ Γ A C L}
   → WfCtx Δ → CtxWf Δ Γ → Δ ⊢ᵗ A
   → Δ ∣ Γ ⊢ L ⦂ `∀ C
@@ -61,25 +66,26 @@ compile-ν : ∀ {Δ Γ A C L}
 compile-ν {Δ = Δ} {A = A} {C = C} wfΔ h wA ⊢L
   with wf-same wA | ⊢ᵗ-of h ⊢L
 compile-ν {Δ = Δ} {A = A} {C = C} wfΔ h wA ⊢L
-  | R , p | wf-∀ wC =
-  ⊢ν wA p ⊢L mwβ conv sameₑ wE₀
+  | R , p | wf-∀ wC with wf-same wC
+compile-ν {Δ = Δ} {A = A} {C = C} wfΔ h wA ⊢L
+  | R , p | wf-∀ wC | S , qC =
+  ⊢ν wA p ⊢L mwβ conv qC qB wE₀
   where
   ΔR : Ctxᵗ
   ΔR = (bindR R ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ))
 
-  refine : RepRefines (reps (underΛ Δ)) (reps ΔR)
-  refine = rr-represent rr-refl
+  leaf : ΔR ∋ 0 ⊸ 0 := ⇑ᵗ R
+  leaf = here , r-here , ⇑ᵗ A , same-weaken p
 
-  conv : ΔR ⊢ reveal 0 C ∶ C ⇝ ⇑ᵗ (C [ A ]ᵗ)
-  conv rewrite sym (subst-at-0 A C) =
-    ⊢reveal (represented-lookup p) (wf-refine refine wC)
+  conv : ΔR ∣ TyBetaBoundary ⊢[ ⁺ ] reveal 0 C ∶ S ⇝ S [ 0 := ⇑ᵗ R ]ᵗ
+  conv = ⊢reveal (unique-underΛ {Γ = Δ} (name-fn wfΔ)) leaf ib-here qC
+
+  qB : names (allocate R Δ) ⊢ C [ A ]ᵗ ~ S [ 0 := ⇑ᵗ R ]ᵗ
+  qB = subst (λ T → names (allocate R Δ) ⊢ C [ A ]ᵗ ~ T)
+             (sym (subst-at-0 R S)) (same-shift-free (same-[] qC p))
 
   wE₀ : Δ ⊢ᵗ C [ A ]ᵗ
   wE₀ = wf-[]ᵗ wC wA
-
-  sameₑ : allocate R Δ ⊢ C [ A ]ᵗ ≈ ⇑ᵗ (C [ A ]ᵗ) ⊣ ΔR
-  sameₑ with wf-same wE₀
-  sameₑ | S , q = ⇑ᵗ S , same-shift-free q , same-weaken q
 
   mwβ : BoundaryWf (allocate R Δ) TyBetaBoundary ΔR ΔR
   mwβ =

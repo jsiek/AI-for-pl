@@ -58,23 +58,23 @@ open import strong-rep-nu.proof.Preserve
 ⊢renᴿ {η = η} {ρ = ρ} w (⊢Λ vN ⊢N) =
   ⊢Λ (value-renᴹᴿ (extᵗ ρ) vN)
      (⊢cast (names-underΛ-ren ρ η) (⊢renᴿ (repwk-abst w) ⊢N))
-⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} w (⊢ν wA rA ⊢L mw ⊢c same wB)
-  with ν-boundary-ren w rA mw ⊢c same
-⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} w (⊢ν wA rA ⊢L mw ⊢c same wB)
-  | Δ′ , mw′ , ⊢c′ , same′ =
+⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} w (⊢ν wA rA ⊢L mw ⊢c smC same wB)
+  with ν-boundary-ren w rA mw ⊢c smC same
+⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} w (⊢ν wA rA ⊢L mw ⊢c smC same wB)
+  | Δ′ , mw′ , ⊢c′ , smC′ , same′ =
   ⊢ν (wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} wA) (same-ren ρ rA)
-     (⊢renᴿ w ⊢L) mw′ ⊢c′ same′
+     (⊢renᴿ w ⊢L) mw′ ⊢c′ smC′ same′
      (wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} wB)
 ⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {η = η} {ρ = ρ} w
       (boundary (bw wΔ (interior cs) (conversion csᶜ))
-           ⊢M ⊢c (Rᵢ , pᵢ , qᵢ) (Rₑ , pₑ , qₑ) wE) =
+           ⊢M ⊢c pᵢ pₑ wE) =
   boundary (bw (wfctx-ren w wΔ)
           (interior-ren w (interior cs))
           (conversion-ren w (conversion csᶜ)))
       (⊢renᴿ w ⊢M)
       (conv-ren w ⊢c)
-      (renameᵗ ρ Rᵢ , same-ren ρ pᵢ , same-ren ρ qᵢ)
-      (renameᵗ ρ Rₑ , same-ren ρ pₑ , same-ren ρ qₑ)
+      (same-ren ρ pᵢ)
+      (same-ren ρ pₑ)
       (wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} wE)
 
 ------------------------------------------------------------------------
@@ -94,7 +94,7 @@ shift-⊢ wR ⊢M = ⊢renᴿ (repwk-alloc wR) ⊢M
 cross-Λ-⊢ : CrossΛTyping
 cross-Λ-⊢ {Δ = Ξ ∣ η} {W = W} {A = A} wfΔ wA ⊢W =
   subst (λ M → underΛ (Ξ ∣ η) ∣ [] ⊢ M ⦂ ⇑ᵗ A) (sym term-eq)
-        (boundary mwΛ inner (mkId-⊢ w↑) sameᵢ sameₑ w↑)
+        (boundary mwΛ inner (mkId-⊢ sameₑ) sameᵢ sameₑ w↑)
   where
   Δᵢ : Ctxᵗ
   Δᵢ = (abstR ∷ Ξ) ∣ shiftReps η
@@ -113,13 +113,16 @@ cross-Λ-⊢ {Δ = Ξ ∣ η} {W = W} {A = A} wfΔ wA ⊢W =
   inner : Δᵢ ∣ [] ⊢ renᴹᴿ suc W ⦂ A
   inner = ⊢renᴿ repwk-abst₀ ⊢W
 
-  sameᵢ : Δᵢ ⊢ A ≈ ⇑ᵗ A ⊣ underΛ (Ξ ∣ η)
-  sameᵢ with wf-same wA
-  sameᵢ | R , p = ⇑ᵗ R , same-ren suc p , same-weaken p
+  R : Ty
+  R = proj₁ (wf-same wA)
 
-  sameₑ : underΛ (Ξ ∣ η) ⊢ ⇑ᵗ A ≈ ⇑ᵗ A ⊣ underΛ (Ξ ∣ η)
-  sameₑ with wf-same w↑
-  sameₑ | R , p = R , p , p
+  -- the crossing value's type and the wrapper's are ONE
+  -- representation, shifted past the new cell
+  sameᵢ : names Δᵢ ⊢ A ~ ⇑ᵗ R
+  sameᵢ = same-ren suc (proj₂ (wf-same wA))
+
+  sameₑ : names (underΛ (Ξ ∣ η)) ⊢ ⇑ᵗ A ~ ⇑ᵗ R
+  sameₑ = same-weaken (proj₂ (wf-same wA))
 
   term-eq : crossΛᴹ W A
     ≡ renᴹᴿ suc W ⟪ (unbind 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫

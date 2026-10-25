@@ -78,9 +78,7 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
   -- the new name (`liftᴮ Θ`) with the crossed conversion `s` moved
   -- VERBATIM; `Merge` fuses them on the next step.
   -- Commentary.md § Reduction.agda / TyWrap
-  TyWrap : ∀ {Δ Δᶜ N Θ s c A R Bᵢ Bₑ} → Value N
-    → Δ ⊢ᶜ Θ ⇒ Δᶜ
-    → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
+  TyWrap : ∀ {Δ N Θ s c A R} → Value N
     → Δ ⊢ᶜ A ~ R
       ------------------------------------------------
     → Δ ⊢ ν A · ((Λ N) ⟪ Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩

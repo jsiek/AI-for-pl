@@ -250,11 +250,11 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
 
   -- TyWrap: as TyBeta, one boundary in — the body's `Λ` slot becomes
   -- the allocated cell, and the crossed boundary is the middle layer.
-  residual-TyWrap : ∀ {Δᶜ C M s R Bᵢ Bₑ}
+  residual-TyWrap : ∀ {C M s R}
     (vN : Value (plug C M))
-    (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (⊢s : underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ)
     (pA : Δ ⊢ᶜ A ~ R)
-    → Residual (TyWrap {N = plug C M} {c = c} vN rc ⊢s pA)
+    → Residual (TyWrap {Δ = Δ} {N = plug C M} {Θ = Θ} {s = s} {c = c}
+                       {A = A} vN pA)
         (νC A · ((ΛC C) ⟪C Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩) M idᵗ
         ((C ⟪C liftᴮ Θ , s ⟫) ⟪C inst [] , c ⟫) M
 

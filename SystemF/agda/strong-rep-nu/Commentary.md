@@ -606,25 +606,35 @@ innermost unseal, because an outer one could cancel only after the inner
 one did.  A non-identity middle blocks the cancel (`NoCancelᵀ X (mid g)
 = ⊤`).
 
-### §2 — `Δ ⊢ c ∶ A ⇝ B`
+### §2 — `Γ ∣ Θ ⊢[ p ] c ∶ R ⇝ S`
 
-ONE JUDGEMENT PER SORT: `_⊢ᵐ_∶_⇝_` (`conv-id`, `conv-idv`, `conv-fun`,
-`conv-all`), `_⊢ᵀ_∶_⇝_` (`conv-mid`, `conv-seal`, `conv-seal-seq`) and
-`_⊢_∶_⇝_` (`conv-tail`, `conv-unseal`, `conv-unseal-seq`).  The two
-chain rules carry the tightness premises of §1b.
+ONE JUDGEMENT PER SORT: `_∣_⊢ᵐ[_]_∶_⇝_` (`conv-id`, `conv-idv`,
+`conv-fun`, `conv-all`), `_∣_⊢ᵀ[_]_∶_⇝_` (`conv-mid`, `conv-seal`,
+`conv-seal-seq`) and `_∣_⊢[_]_∶_⇝_` (`conv-tail`, `conv-unseal`,
+`conv-unseal-seq`).  The two chain rules carry the tightness premises of
+§1b.  (The Δ ∣ Θ experiment, 2026-10-25; `notes/DECISIONS.md`.)
 
-`c` converts the SOURCE type `A` to the TARGET type `B`, both read on
-the type context `Δ` — the CONVERSION CONTEXT, the type context at
-which the boundary's binders are live (§ Boundary.agda, law (1)).
-Every representation is read by NAME from `Δ`.  `conv-fun` is
-CONTRAVARIANT in its domain — that is the only trace the retired
-polarity index leaves.
+`c` converts the SOURCE representation `R` to the TARGET representation
+`S`.  The scope `Θ` is a PARAMETER: it grants permissions.  At polarity
+`⁺` (a boundary's own conversion) a `seal` needs an UNBIND of its
+representation variable in `Θ`, and an `unseal` a BIND; at `⁻` (a
+function domain, where `conv-fun` flips the polarity) the two swap.
+`Γ` is the CONVERSION CONTEXT, and it only resolves the names a
+conversion mentions: the leaf `Γ ∋ X ⊸ α := R` says X names α, α is
+represented by R, and R has a reading on `Γ`.  The types need no
+context, which matters for a seal chain whose intermediate type is live
+on neither side of a merged boundary.
 
 * `conv-unseal` is the REVEAL: the interior sees the abstract name, the
   exterior its representation.
 * `conv-seal` is the CONCEAL: the interior sees the representation, the
   exterior the abstract name.  THE SOUNDNESS GATE: a seal must cite a
-  LIVE BINDER on its type context (`proof/Adversary.agda`).
+  LIVE, REPRESENTED binder that its scope lets it seal
+  (`proof/Adversary.agda`).
+
+`PermMap Θ p Θ′ p′` says `(Θ′, p′)` grants everything `(Θ, p)` does; it
+passes through `_↦_` (`pm-flip`) and `∀` (`pm-lift`), and the crossings
+use `pm-dual` (`Wrap`) and `pm-++ˡ`/`pm-++ʳ` (`Merge`).
 
 ### §2b — `SameConv`, two spellings of one conversion
 

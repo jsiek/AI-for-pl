@@ -5220,3 +5220,77 @@ names.  Entries above this one, and the other files in `notes/`, keep
 the names of their date.  Caution when reading them: before 2026-09-24
 `TyBeta` named strong-rep-store's rule, which minted its reveal at run
 time; today's `TyBeta` carries the compiler-written conversion.
+
+## 2026-10-25 — the Δ ∣ Θ experiment: conversions typed under the boundary scope (Jeremy's sketch; branch `nu-conv-delta`)
+
+Jeremy's sketch made the boundary scope a separate parameter of the
+conversion judgement instead of applying it to the context:
+
+    Δ | δ ⊢ id(ι) : ι ⇒ ι          X:=α ∈ Δ ⟹ Δ | δ ⊢ id(X) : X ⇒ X
+    Δ | -δ ⊢ c : A′ ⇒ A,  Δ | δ ⊢ d : B ⇒ B′ ⟹ Δ | δ ⊢ c → d : A → B ⇒ A′ → B′
+    Δ,α,X:=α | δ ⊢ c : A ⇒ B ⟹ Δ | δ ⊢ ∀X.c : ∀X.A ⇒ ∀X.B
+    -Xᵅ ∈ δ, α:=A ∈ Δ ⟹ Δ | δ ⊢ -X : A ⇒ X
+    +Xᵅ ∈ δ, α:=A ∈ Δ ⟹ Δ | δ ⊢ +X : X ⇒ A
+
+with δ the scope Θ (`+Xᵅ` a `bind`, `−Xᵅ` an `unbind`).  Rulings, in
+the order they were made:
+
+1. **Spellings stay.**  Every de Bruijn index in `id`/`seal`/`unseal`
+   is the old one, so names still resolve through the conversion
+   context (the union reading of Θ).  It is used for NOTHING else.
+   Consequence, accepted: `Wrap`'s `s′`, `Merge`'s `t₁′`/`c₂′`,
+   `SameConv` and (Q) all stay.
+2. **Types are representations.**  A seal chain's intermediate type can
+   be live on NEITHER side of a merged boundary (a `Merge` whose outer
+   scope binds what the inner one unbinds), so no context can spell
+   it; representation types need no spelling.
+3. **`−δ` is the same Θ with the signs flipped**, i.e. a polarity
+   bit `p` on the judgement that `_↦_` flips for its domain.  This is
+   "one polarity per type variable" (2026-09-06), not the single
+   polarity of a conversion that was ruled out then: the counterexample
+   `seal Y ↦ seal X` under `↥Y, ↓X` now types.
+
+Implemented as `Γ ∣ Θ ⊢[ p ] c ∶ R ⇝ S` (Conversion §2):
+
+* `seal X` needs the leaf `Γ ∋ X ⊸ α := R` and `SealOK p Θ α`
+  (an unbind of α at `⁺`, a bind at `⁻`); `unseal X` needs
+  `UnsealOK p Θ α`, the flipped permission.  Permission is
+  MEMBERSHIP of α among Θ's binds or unbinds.
+* The leaf includes a READING `∃ A. names Γ ⊢ A ~ R` (the sketch's
+  `α:=A ∈ Δ`): `Merge`'s cancellation writes `mkId (repOf Δ X)`,
+  which needs R spelled on the merged conversion context.
+* `id (` X)` needs only the name.  I had proposed requiring α live on
+  BOTH sides; I dropped it before implementing because an `id` leaf
+  between an `unseal` and a later `seal` appears in neither endpoint
+  type, so no premise of `boundary` keeps it live on a side, and
+  `Merge`'s composite would have to re-establish liveness it cannot
+  see.  That is an argument, not a machine-checked counterexample;
+  the both-sides rule is the natural next tightening to try.
+* `boundary` and `⊢ν` relate the interior and exterior types to the
+  conversion's representations by `~` directly; `_⊢_≈_⊣_` is gone from
+  both rules.  `⊢ν` gains the premise `names Δᵢ ⊢ C ~ Rᵢ`.
+* `TyWrap` loses its premise `underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ` (and the reading
+  `Δ ⊢ᶜ Θ ⇒ Δᶜ` it needed): no proof used it.
+
+What happened to the metatheory (`make check` passes):
+
+* **Preservation goes through unchanged in shape.**  The crossings move
+  a conversion by a PERMISSION MAP at the SAME representation types:
+  `Wrap` by `pm-dual` (`(Θ, ⁻)` to `(dual Θ, ⁺)`, from
+  `binds→dual`/`unbinds→dual`), `TyWrap` verbatim under `liftᴮ`
+  (`pm-lift`), `Merge` by `pm-++ˡ`/`pm-++ʳ` and then composition at one
+  scope.  The `≈` gluing in `WrapDual`/`MoveScope` disappeared.
+* `conv-types-unique` needs no `Unique` premise any more.
+* The compiler's `reveal 0 C` types under `inst [] = [bind 0 0]`: the
+  bind is exactly the permission it needs (`compile-ν`).
+* **Examples.**  Every run of §§1–8 and §10 keeps its endpoint and step
+  count, and every state still types.  The §9 hand-built boundaries
+  `⟪ [] , seal 0 ⟫` / `⟪ [] , unseal 0 ⟫` were ILL-TYPED under the new
+  rules (the empty scope grants nothing); they now start at the
+  nameless ambient `Δ₉` and carry `unbind 0 0` / `bind 0 0`.
+  `proof/Adversary.agda` §2c records the refusal.
+* Erasure: a conversion is an erasure-identity on representations
+  (`conv-erase`, through the store's `env`).
+
+Not revisited: `paper/draft.md` Decision 4's sub-point "No polarity
+index" and `Commentary.md` beyond § Conversion.agda §2.

@@ -10,9 +10,10 @@ module strong-rep-nu.Terms where
 --   * NO OPERATIONS AND NO METATHEORY: see strong-rep-nu.TermSubst,
 --     .Reduction, .TypeCheck and the proof/ tree.
 --   * FOUR LAWS.  (1) `boundary` TAKES `BoundaryWf Δ Θ Δᵢ Δᶜ`; the two
---     induced contexts are its outputs, never computed.  (2) It
---     compares all three sides by the REPRESENTATION each denotes
---     (`_⊢_≈_⊣_`), and a boundary's interior is TERM-CLOSED.
+--     induced contexts are its outputs, never computed.  (2) Its
+--     conversion is checked under the scope `Θ` at polarity `⁺`
+--     between REPRESENTATION types, which the interior and exterior
+--     types read by `_⊢_~_`; a boundary's interior is TERM-CLOSED.
 --     (3) Classification is by the CONVERSION CONSTRUCTOR alone.
 --     (4) THE VALUE RESTRICTION: `⊢Λ` requires `Value N`, and there is
 --     no ξ-Λ.

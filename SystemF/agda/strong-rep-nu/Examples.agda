@@ -739,7 +739,7 @@ S-run = reaches-run S-eval
 
 -- Every run above starts at `empty`.  These three start at an ambient
 -- store that already has a representation cell, and their boundaries
--- are WRITTEN DOWN rather than minted.  The ambient `Δ₉` is the
+-- are WRITTEN DOWN rather than created by a rule.  The ambient `Δ₉` is the
 -- smallest interesting one: one concrete representation cell with NO
 -- ordinary name; the outer boundary `⟪ bind 0 0 , unseal 0 ⟫` names it
 -- `0` for its interior `Δ₆`, and the inner `⟪ unbind 0 0 , seal 0 ⟫`

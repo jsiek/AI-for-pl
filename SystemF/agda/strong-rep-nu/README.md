@@ -1,5 +1,16 @@
 # Strong System F — `SystemF/agda/strong-rep-nu/`
 
+## The Δ ∣ Θ experiment (2026-10-25, branch `nu-conv-delta`)
+
+A conversion is checked UNDER its boundary's scope:
+`Γ ∣ Θ ⊢[ p ] c ∶ R ⇝ S` (`Conversion.agda` §2).  The scope grants the
+permissions — at polarity `⁺` a `seal` needs an unbind of its
+representation variable and an `unseal` a bind, and `c ↦ d` flips the
+polarity for `c` — and both types are representation types, which
+`boundary` and `⊢ν` relate to the interior and exterior types by `~`.
+Spellings are unchanged.  Rationale, rulings and results:
+`notes/DECISIONS.md`, 2026-10-25.
+
 ## strong-rep-nu (2026-09-24)
 
 **Rule names (2026-09-25).**  The reduction rules were renamed to match

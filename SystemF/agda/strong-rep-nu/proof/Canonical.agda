@@ -1,13 +1,13 @@
 module strong-rep-nu.proof.Canonical where
 
 -- File Charter:
---   * CANONICAL FORMS.  §1 `≈` preserves the exterior type's head
+--   * CANONICAL FORMS.  §1 `~` preserves the exterior type's head
 --     constructor; §2 what an INERT tail can look like, read off its
 --     TARGET type; §3 `simple-¬var`, `canon-simple-∀`, `canon-base`,
 --     `canon-ℕ`, `canon-⇒`, `canon-∀`.
 --   * ONE OBSERVATION DRIVES THE SUITE: for a wrapper value
---     `U ⟪ Θ , tail t ⟫`, `boundary` relates the EXTERIOR type and the
---     TARGET type of `t` by `_⊢_≈_⊣_`, and an INERT `t` determines that
+--     `U ⟪ Θ , tail t ⟫`, `boundary` reads the EXTERIOR type as the
+--     TARGET representation of `t` by `_⊢_~_`, and an INERT `t` determines that
 --     target's head constructor outright (`id (` X)` and the seals ⇝ a
 --     variable, `s ↦ u` ⇝ an arrow, `` `∀ s `` ⇝ a `∀`).  So no inert
 --     tail has a BASE target, and — with ONE boundary per value — the

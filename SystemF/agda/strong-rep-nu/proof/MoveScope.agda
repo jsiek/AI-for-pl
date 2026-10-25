@@ -4,16 +4,16 @@ module strong-rep-nu.proof.MoveScope where
 --   * THE SCOPE MOVE — the ONE-LAYER contractum `Merge` builds, and the
 --     preservation case it owes (`preserve-Merge : MergeCase`).  §1 the
 --     merged frame's conversion context retains BOTH old ones
---     (`merged-keeps₁`, `merged-keeps₂`); §2 gluing two readings of one
---     representation; §3 MERGE, PROVED.
+--     (`merged-keeps₁`, `merged-keeps₂`); §2 MERGE, PROVED.
 --   * THE MOVE.  The merged boundary presents the outer boundary's
 --     exterior and the inner boundary's interior, so the frames merge
 --     too: `Θ₁ ++ Θ₂`.  Both conversions are weakened onto the merged
---     conversion context (`weaken-⊢`, the Wrap lemma) and composed
---     there (`⊢⨟`, strong-rep-nu.proof.Compose).
---   * THE MIDDLE TYPE AGREES: the target of `t₁′` and the source of
---     `c₂′` weaken ONE representation (the redex's middle type) at
---     ONE context with unique names (`same-target-unique`).
+--     conversion context and scope (`weaken-⊢`, the Wrap lemma, with
+--     `pm-++ˡ`/`pm-++ʳ`) and composed there (`⊢⨟`,
+--     strong-rep-nu.proof.Compose).
+--   * THE MIDDLE TYPE AGREES: both boundaries read the redex's middle
+--     type at ONE context, so their representations are equal
+--     (`same-rep-unique`).
 -- Commentary: Commentary.md § proof/MoveScope.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_)

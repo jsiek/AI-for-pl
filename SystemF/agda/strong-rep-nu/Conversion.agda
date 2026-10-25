@@ -6,16 +6,24 @@ module strong-rep-nu.Conversion where
 --     a structural middle `Mid`, a seal chain `Tail` (associates
 --     LEFT), an unseal chain `Conv` (associates RIGHT) — with renaming,
 --     §1b the syntactic identity `IsId` and the `NoCancel` side
---     condition, §2 the three typing judgements with NO polarity
---     index, §2b the weakening relation `SameConv`, §2c weakening
---     across a crossing, §2d representation renaming, §3 `mkId`,
---     §4 `reveal`/`conceal`, §4b COMPOSITION `Δ ⊢ c₁ ⨟ c₂`, §5 the
---     inversions, §6 `conv-types-unique`, §7 concrete checks.
+--     condition, §2 the three typing judgements
+--     `Γ ∣ Θ ⊢[ p ] c ∶ R ⇝ S`, the permissions they read off the
+--     scope, and the permission maps `PermMap`, §2b the weakening
+--     relation `SameConv`, §2c weakening across a crossing, §2d
+--     representation renaming, §3 `mkId`, §4 `reveal`/`conceal`,
+--     §4b COMPOSITION `Δ ⊢ c₁ ⨟ c₂`, §5 the inversions, §6
+--     `conv-types-unique`, §7 concrete checks.
+--   * THE SCOPE IS A PARAMETER (the Δ ∣ Θ experiment, 2026-10-25).
+--     A boundary's scope `Θ` grants PERMISSIONS: at polarity `⁺` a
+--     `seal` needs an unbind of its representation variable and an
+--     `unseal` a bind; `c ↦ d` flips the polarity for `c`.  The two
+--     types are REPRESENTATION types, so no context spells them.
 --   * CONVERSIONS ARE REP-FREE.  `seal` and `unseal` carry an ordinary
---     type-variable NAME, never a representation spelling; the lookup
---     square `Δ ∋ X := A` follows that name to its representation.
---     Composition reads that square too (`repOf`), which is why it
---     takes the context.
+--     type-variable NAME, never a representation spelling; the leaf
+--     `Γ ∋ X ⊸ α := R` follows that name to its representation, and
+--     `Γ` (the conversion context) is used for nothing else.
+--     Composition reads the lookup square too (`repOf`), which is why
+--     it takes the context.
 --   * TIGHT.  A bare `seal X`/`unseal X` stands for an identity
 --     middle; a chain extends only a NON-identity (`¬ IsId`); and
 --     `NoCancel` forbids `unseal X` directly before a bare `seal X`.

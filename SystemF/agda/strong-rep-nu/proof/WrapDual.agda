@@ -13,6 +13,9 @@ module strong-rep-nu.proof.WrapDual where
 --   * THE DUAL'S CONVERSION CONTEXT is not free: (P) is FALSE here,
 --     (Q) is what survives, and `Wrap` therefore carries the dual's
 --     own spelling `s′` with a `SameConv`.
+--   * THE TYPES DO NOT MOVE (the Δ ∣ Θ experiment): `s′` has `s`'s
+--     REPRESENTATION types, and its permissions move by `pm-dual` —
+--     checked at `⁻` under `Θ`, it is checked at `⁺` under `dual Θ`.
 -- Commentary: Commentary.md § proof/WrapDual.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_)

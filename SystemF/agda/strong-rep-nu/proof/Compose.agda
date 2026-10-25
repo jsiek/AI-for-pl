@@ -2,16 +2,18 @@ module strong-rep-nu.proof.Compose where
 
 -- File Charter:
 --   * COMPOSITION IS WELL TYPED: `⊢⨟` — if `c₁ : A ⇝ B` and
---     `c₂ : B ⇝ C` at one conversion context with unique names, then
---     `Δ ⊢ c₁ ⨟ c₂ : A ⇝ C` (strong-rep-nu.Conversion §4b).  Typing is
+--     `c₂ : B ⇝ C` at one conversion context with unique names, under
+--     one scope and at one polarity, then `Δ ⊢ c₁ ⨟ c₂ : A ⇝ C`
+--     (strong-rep-nu.Conversion §4b).  Typing is
 --     also what makes the result TIGHT: the chain premises `¬ IsId`
 --     and `NoCancel` are rebuilt, never assumed.
 --   * §1 an identity has equal endpoints (`isIdᶜ-types`); §2 the
 --     lookup functions are complete, so `repOf` IS the lookup square
 --     (`repOf-sound`); §3 the smart constructors (`⊢⨾sealˢ`,
 --     `⊢cancelᵀ`, `⊢unseal⨾ˢ`); §4 `⊢⨟`, one lemma per sort.
---   * `Unique (names Δ)` is all it needs: `∋:=-det` at the cancelled
---     seal/unseal pair and at `repOf`.
+--   * `Unique (names Δ)` is all it needs, at `repOf`.  The cancelled
+--     pair agrees on its representation by `leaf-rep`, and the
+--     composite needs no permission its parts did not have.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Properties using (_≟_)

@@ -270,24 +270,24 @@ Well-typed conversions \hfill \fbox{$\Delta \mid \delta \vdash c : R \Rightarrow
   \\[2ex]
   \inference
    {X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta &
-    {-Y}^\alpha \in \delta}
+    {-X}^\alpha \in \delta}
    {\Delta \mid \delta \vdash \seal{X} : \Delta(A) \Rightarrow \alpha}
   \quad
   \inference
    {\Delta \mid \delta \vdash t : R \Rightarrow \Delta(A) \\
     X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta \\
-    {-Y}^\alpha \in \delta &
+    {-X}^\alpha \in \delta &
     t \sm \seal{X} = t ; \seal{X}}
    {\Delta \mid \delta \vdash t ; \seal{X} : R \Rightarrow \alpha}
   \\[2ex]
   \inference
    {X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta &
-    {+Y}^\alpha \in \delta}
+    {+X}^\alpha \in \delta}
    {\Delta \mid \delta \vdash \unseal{X} : \alpha \Rightarrow \Delta(A)}
   \quad
   \inference
    {X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta \\
-    {+Y}^\alpha \in \delta &
+    {+X}^\alpha \in \delta &
     \unseal{X} \sm c = \unseal{X} ; c \\
     \Delta \mid \delta \vdash c : \Delta(A) \Rightarrow S}
    {\Delta \mid \delta \vdash \unseal{X} ; c : \alpha \Rightarrow S}
@@ -520,8 +520,8 @@ A boundary $\boundry{M}{\delta}{c}$ checks its conversion $c$ under its
 scope change $\delta$ (Figure~\ref{fig:nu-F}), and $\delta$ grants
 \emph{permissions}: a seal $\seal{X}$ may conceal the representation
 variable $\alpha$ only if $\delta$ removes it from the interior's view
-(an entry ${-Y}^\alpha$ for some $Y$), and an unseal $\unseal{X}$ may reveal $\alpha$
-only if $\delta$ binds it there (an entry ${+Y}^\alpha$).  The
+(an entry ${-X}^\alpha$), and an unseal $\unseal{X}$ may reveal $\alpha$
+only if $\delta$ binds it there (an entry ${+X}^\alpha$).  The
 permissions keep a conversion from sealing at an arbitrary type
 variable that happens to be in scope: every seal and unseal must cite
 the scope change that makes its variable abstract on one side of the
@@ -551,10 +551,10 @@ on its way in, but the only entry that mentions $\alpha$ is
 ${+X}^\alpha$, not ${-X}^\alpha$.  If the domain were checked under
 $\delta$ like the codomain, the most basic instantiation conversion
 would be ill-typed.  Under the inverse it is fine: inverting a scope
-flips the sign of every entry, so ${-Y}^\alpha \in \dual{\delta}$
-exactly when ${+Y}^\alpha \in \delta$, and ${+Y}^\alpha \in \dual{\delta}$
-exactly when ${-Y}^\alpha \in \delta$.  The domain seal needs an entry
-${-Y}^\alpha$ in $\dual{[{+X}^\alpha]} = [{-X}^\alpha]$, which is
+flips the sign of every entry, so ${-X}^\alpha \in \dual{\delta}$
+exactly when ${+X}^\alpha \in \delta$, and ${+X}^\alpha \in \dual{\delta}$
+exactly when ${-X}^\alpha \in \delta$.  The domain seal needs the entry
+${-X}^\alpha$ in $\dual{[{+X}^\alpha]} = [{-X}^\alpha]$, which is
 there.  The type variables a conversion mentions are still
 resolved in the same context $\delta^{+}(\Delta)$; only the source of
 the permissions changes.
@@ -592,10 +592,10 @@ conceals the argument as $Y$ on its way in and the result as $X$ on its
 way out, and no single direction describes both.  Checking the domain
 under the inverse records nothing about the direction of the
 conversion; the direction of each type variable comes from its own
-entry in $\delta$.  The example is well typed: the domain seal needs
-an entry ${-Z}^\beta \in \dual{\delta}$, and ${-Y}^\beta$ is one, and
-the codomain seal needs an entry ${-Z}^\alpha \in \delta$, and
-${-X}^\alpha$ is one.
+entry in $\delta$.  The example is well typed: the domain seal
+$\seal{Y}$ needs ${-Y}^\beta \in \dual{\delta}$, which holds because
+${+Y}^\beta \in \delta$, and the codomain seal $\seal{X}$ needs
+${-X}^\alpha \in \delta$.
 
 \paragraph{Mechanization note.}  The first mechanization carried a
 polarity bit on the judgement instead, reading $\delta$ at $+$ and
@@ -604,7 +604,14 @@ Checking under the inverse needs two small lemmas the bit avoids
 (membership in an inverse scope, and the fact that renaming
 representation variables commutes with inversion), and in exchange
 it removes the polarities, their flipping lemmas, and the permission
-map \textsc{Wrap} needed.
+map \textsc{Wrap} needed.  With de Bruijn indices the mechanization
+checks only the representation variable of a permission (some entry
+${-Y}^\alpha$ for a seal), because the index in a scope entry and the
+index in the conversion live in different contexts and cannot be
+compared.  With names nothing is lost: the conversion context names each
+representation variable at most once (the coherence condition on
+${+X}^\alpha$), and every entry's binding is in it, so an entry for
+$\alpha$ always carries the name $X$ that the conversion uses.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}

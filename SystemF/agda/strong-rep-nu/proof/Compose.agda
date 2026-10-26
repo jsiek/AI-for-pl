@@ -3,7 +3,7 @@ module strong-rep-nu.proof.Compose where
 -- File Charter:
 --   * COMPOSITION IS WELL TYPED: `⊢⨟` — if `c₁ : A ⇝ B` and
 --     `c₂ : B ⇝ C` at one conversion context with unique names, under
---     one scope and at one polarity, then `Δ ⊢ c₁ ⨟ c₂ : A ⇝ C`
+--     one scope, then `Δ ⊢ c₁ ⨟ c₂ : A ⇝ C`
 --     (strong-rep-nu.Conversion §4b).  Typing is
 --     also what makes the result TIGHT: the chain premises `¬ IsId`
 --     and `NoCancel` are rebuilt, never assumed.
@@ -39,7 +39,6 @@ private
   variable
     Δ : Ctxᵗ
     Θ : Boundary
-    p : Pol
     A B C R : Ty
     X Y : ℕ
     α β : RVar
@@ -52,29 +51,29 @@ private
 ------------------------------------------------------------------------
 
 mutual
-  isIdᵐ-types : IsIdᵐ g → Δ ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B → A ≡ B
+  isIdᵐ-types : IsIdᵐ g → Δ ∣ Θ ⊢ᵐ g ∶ A ⇝ B → A ≡ B
   isIdᵐ-types i (conv-id b) = refl
   isIdᵐ-types i (conv-idv d) = refl
   isIdᵐ-types (i , j) (conv-fun p q) =
     cong₂ _⇒_ (sym (isIdᶜ-types i p)) (isIdᶜ-types j q)
   isIdᵐ-types i (conv-all p) = cong `∀ (isIdᶜ-types i p)
 
-  isIdᵀ-types : IsIdᵀ t → Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B → A ≡ B
+  isIdᵀ-types : IsIdᵀ t → Δ ∣ Θ ⊢ᵀ t ∶ A ⇝ B → A ≡ B
   isIdᵀ-types i (conv-mid p) = isIdᵐ-types i p
   isIdᵀ-types () (conv-seal d ok)
   isIdᵀ-types () (conv-seal-seq p d ok n)
 
-  isIdᶜ-types : IsIdᶜ c → Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B → A ≡ B
+  isIdᶜ-types : IsIdᶜ c → Δ ∣ Θ ⊢ c ∶ A ⇝ B → A ≡ B
   isIdᶜ-types i (conv-tail p) = isIdᵀ-types i p
   isIdᶜ-types () (conv-unseal d ok)
   isIdᶜ-types () (conv-unseal-seq d ok p n m)
 
 -- A middle whose source or target is a variable is `id` at it.
-mid-var-tgt : Δ ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ ` β → A ≡ ` β
+mid-var-tgt : Δ ∣ Θ ⊢ᵐ g ∶ A ⇝ ` β → A ≡ ` β
 mid-var-tgt (conv-id ())
 mid-var-tgt (conv-idv d) = refl
 
-mid-var-src : Δ ∣ Θ ⊢ᵐ[ p ] g ∶ ` α ⇝ B → B ≡ ` α
+mid-var-src : Δ ∣ Θ ⊢ᵐ g ∶ ` α ⇝ B → B ≡ ` α
 mid-var-src (conv-id ())
 mid-var-src (conv-idv d) = refl
 
@@ -168,11 +167,11 @@ repOf-sound {Δ = Δ} {X = X} uq (nm , rp , A , sm) | nothing | q , ()
 -- §3  The smart constructors
 ------------------------------------------------------------------------
 
-⊢⨾sealˢ : Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ R → Δ ∋ Y ⊸ β := R → SealOK p Θ β
-  → Δ ∣ Θ ⊢ᵀ[ p ] t ⨾sealˢ Y ∶ A ⇝ ` β
+⊢⨾sealˢ : Δ ∣ Θ ⊢ᵀ t ∶ A ⇝ R → Δ ∋ Y ⊸ β := R → SealOK Θ β
+  → Δ ∣ Θ ⊢ᵀ t ⨾sealˢ Y ∶ A ⇝ ` β
 ⊢⨾sealˢ {t = t} ⊢t d ok with isIdᵀ? t
 ⊢⨾sealˢ {t = t} ⊢t d ok | yes i =
-  subst (λ T → _ ∣ _ ⊢ᵀ[ _ ] seal _ ∶ T ⇝ ` _) (sym (isIdᵀ-types i ⊢t))
+  subst (λ T → _ ∣ _ ⊢ᵀ seal _ ∶ T ⇝ ` _) (sym (isIdᵀ-types i ⊢t))
         (conv-seal d ok)
 ⊢⨾sealˢ {t = t} ⊢t d ok | no n = conv-seal-seq ⊢t d ok n
 
@@ -190,11 +189,11 @@ cancel-view X (t ⨾seal Y) | unseal Z | inj₂ nc = inj₂ nc
 cancel-view X (t ⨾seal Y) | unseal Z ⨾ c | inj₁ (t′ , ())
 cancel-view X (t ⨾seal Y) | unseal Z ⨾ c | inj₂ nc = inj₂ nc
 
-conv-tail⁻ : Δ ∣ Θ ⊢[ p ] tail t ∶ A ⇝ B → Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
+conv-tail⁻ : Δ ∣ Θ ⊢ tail t ∶ A ⇝ B → Δ ∣ Θ ⊢ᵀ t ∶ A ⇝ B
 conv-tail⁻ (conv-tail q) = q
 
-⊢cancelᵀ : Δ ∋ X ⊸ α := R → UnsealOK p Θ α → Δ ∣ Θ ⊢ᵀ[ p ] t ∶ R ⇝ C
-  → ¬ IsIdᵀ t → Δ ∣ Θ ⊢[ p ] cancelᵀ X t ∶ ` α ⇝ C
+⊢cancelᵀ : Δ ∋ X ⊸ α := R → UnsealOK Θ α → Δ ∣ Θ ⊢ᵀ t ∶ R ⇝ C
+  → ¬ IsIdᵀ t → Δ ∣ Θ ⊢ cancelᵀ X t ∶ ` α ⇝ C
 ⊢cancelᵀ d ok (conv-mid q) n =
   conv-unseal-seq d ok (conv-tail (conv-mid q)) n tt
 ⊢cancelᵀ {X = X} d ok (conv-seal {X = Y} dY okY) n with X ≟ Y
@@ -218,11 +217,11 @@ conv-tail⁻ (conv-tail q) = q
   | unseal Z ⨾ c | ⊢r | inj₂ nc =
   conv-unseal-seq d ok (conv-tail (conv-seal-seq q dY okY m)) (λ ()) nc
 
-⊢unseal⨾ˢ : Δ ∋ X ⊸ α := R → UnsealOK p Θ α → Δ ∣ Θ ⊢[ p ] c ∶ R ⇝ C
-  → Δ ∣ Θ ⊢[ p ] unseal X ⨾ˢ c ∶ ` α ⇝ C
+⊢unseal⨾ˢ : Δ ∋ X ⊸ α := R → UnsealOK Θ α → Δ ∣ Θ ⊢ c ∶ R ⇝ C
+  → Δ ∣ Θ ⊢ unseal X ⨾ˢ c ∶ ` α ⇝ C
 ⊢unseal⨾ˢ d ok (conv-tail {t = t} q) with isIdᵀ? t
 ⊢unseal⨾ˢ d ok (conv-tail {t = t} q) | yes i =
-  subst (λ T → _ ∣ _ ⊢[ _ ] unseal _ ∶ ` _ ⇝ T) (isIdᵀ-types i q)
+  subst (λ T → _ ∣ _ ⊢ unseal _ ∶ ` _ ⇝ T) (isIdᵀ-types i q)
         (conv-unseal d ok)
 ⊢unseal⨾ˢ d ok (conv-tail {t = t} q) | no n = ⊢cancelᵀ d ok q n
 ⊢unseal⨾ˢ d ok (conv-unseal dY okY) =
@@ -239,22 +238,22 @@ leaf-rep : Δ ∋ X ⊸ α := A → Δ ∋ Y ⊸ α := B → A ≡ B
 leaf-rep (_ , rd , _) (_ , rd′ , _) with ∋ʳ-det rd rd′
 ... | refl = refl
 
--- Jeremy's statement, now at one scope and one polarity.  Each clause
+-- Jeremy's statement, now at one scope.  Each clause
 -- of `Δ ⊢ c₁ ⨟ c₂` is justified by the types; the pairs typing rules
 -- out never arise.  Permissions need no argument: the composite's
 -- seals and unseals are among its parts'.
 mutual
-  ⊢⨟ : Unique (names Δ) → Δ ∣ Θ ⊢[ p ] c₁ ∶ A ⇝ B
-    → Δ ∣ Θ ⊢[ p ] c₂ ∶ B ⇝ C
-    → Δ ∣ Θ ⊢[ p ] (Δ ⊢ c₁ ⨟ c₂) ∶ A ⇝ C
+  ⊢⨟ : Unique (names Δ) → Δ ∣ Θ ⊢ c₁ ∶ A ⇝ B
+    → Δ ∣ Θ ⊢ c₂ ∶ B ⇝ C
+    → Δ ∣ Θ ⊢ (Δ ⊢ c₁ ⨟ c₂) ∶ A ⇝ C
   ⊢⨟ uq (conv-tail q) ⊢c₂ = ⊢⨟ᵀ uq q ⊢c₂
   ⊢⨟ uq (conv-unseal d ok) ⊢c₂ = ⊢unseal⨾ˢ d ok ⊢c₂
   ⊢⨟ uq (conv-unseal-seq d ok q n m) ⊢c₂ =
     ⊢unseal⨾ˢ d ok (⊢⨟ uq q ⊢c₂)
 
-  ⊢⨟ᵀ : Unique (names Δ) → Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
-    → Δ ∣ Θ ⊢[ p ] c₂ ∶ B ⇝ C
-    → Δ ∣ Θ ⊢[ p ] (Δ ⊢ t ⨟ᵀ c₂) ∶ A ⇝ C
+  ⊢⨟ᵀ : Unique (names Δ) → Δ ∣ Θ ⊢ᵀ t ∶ A ⇝ B
+    → Δ ∣ Θ ⊢ c₂ ∶ B ⇝ C
+    → Δ ∣ Θ ⊢ (Δ ⊢ t ⨟ᵀ c₂) ∶ A ⇝ C
   ⊢⨟ᵀ uq ⊢t (conv-tail q) = conv-tail (⊢⨟ᵀᵀ uq ⊢t q)
   -- the cancelled pair: CancelR
   ⊢⨟ᵀ uq (conv-seal dX okX) (conv-unseal dY okY)
@@ -272,9 +271,9 @@ mutual
   ⊢⨟ᵀ uq (conv-mid p) (conv-unseal-seq dY okY q n m) | refl =
     conv-unseal-seq dY okY q n m
 
-  ⊢⨟ᵀᵀ : Unique (names Δ) → Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
-    → Δ ∣ Θ ⊢ᵀ[ p ] t₂ ∶ B ⇝ C
-    → Δ ∣ Θ ⊢ᵀ[ p ] (Δ ⊢ t ⨟ᵀᵀ t₂) ∶ A ⇝ C
+  ⊢⨟ᵀᵀ : Unique (names Δ) → Δ ∣ Θ ⊢ᵀ t ∶ A ⇝ B
+    → Δ ∣ Θ ⊢ᵀ t₂ ∶ B ⇝ C
+    → Δ ∣ Θ ⊢ᵀ (Δ ⊢ t ⨟ᵀᵀ t₂) ∶ A ⇝ C
   ⊢⨟ᵀᵀ uq ⊢t (conv-seal dY okY) = ⊢⨾sealˢ ⊢t dY okY
   ⊢⨟ᵀᵀ uq ⊢t (conv-seal-seq q dY okY n) =
     ⊢⨾sealˢ (⊢⨟ᵀᵀ uq ⊢t q) dY okY
@@ -286,9 +285,9 @@ mutual
   ⊢⨟ᵀᵀ uq (conv-seal-seq p dX okX n) (conv-mid q) | refl =
     conv-seal-seq p dX okX n
 
-  ⊢⨟ᵐ : Unique (names Δ) → Δ ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B
-    → Δ ∣ Θ ⊢ᵐ[ p ] g₂ ∶ B ⇝ C
-    → Δ ∣ Θ ⊢ᵐ[ p ] (Δ ⊢ g ⨟ᵐ g₂) ∶ A ⇝ C
+  ⊢⨟ᵐ : Unique (names Δ) → Δ ∣ Θ ⊢ᵐ g ∶ A ⇝ B
+    → Δ ∣ Θ ⊢ᵐ g₂ ∶ B ⇝ C
+    → Δ ∣ Θ ⊢ᵐ (Δ ⊢ g ⨟ᵐ g₂) ∶ A ⇝ C
   ⊢⨟ᵐ uq (conv-id b) q = q
   ⊢⨟ᵐ uq (conv-idv d) q = q
   ⊢⨟ᵐ uq (conv-fun p₁ p₂) (conv-id ())

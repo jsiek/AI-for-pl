@@ -606,19 +606,22 @@ innermost unseal, because an outer one could cancel only after the inner
 one did.  A non-identity middle blocks the cancel (`NoCancelᵀ X (mid g)
 = ⊤`).
 
-### §2 — `Γ ∣ Θ ⊢[ p ] c ∶ R ⇝ S`
+### §2 — `Γ ∣ Θ ⊢ c ∶ R ⇝ S`
 
-ONE JUDGEMENT PER SORT: `_∣_⊢ᵐ[_]_∶_⇝_` (`conv-id`, `conv-idv`,
-`conv-fun`, `conv-all`), `_∣_⊢ᵀ[_]_∶_⇝_` (`conv-mid`, `conv-seal`,
-`conv-seal-seq`) and `_∣_⊢[_]_∶_⇝_` (`conv-tail`, `conv-unseal`,
+ONE JUDGEMENT PER SORT: `_∣_⊢ᵐ_∶_⇝_` (`conv-id`, `conv-idv`,
+`conv-fun`, `conv-all`), `_∣_⊢ᵀ_∶_⇝_` (`conv-mid`, `conv-seal`,
+`conv-seal-seq`) and `_∣_⊢_∶_⇝_` (`conv-tail`, `conv-unseal`,
 `conv-unseal-seq`).  The two chain rules carry the tightness premises of
 §1b.  (The Δ ∣ Θ experiment, 2026-10-25; `notes/DECISIONS.md`.)
 
 `c` converts the SOURCE representation `R` to the TARGET representation
-`S`.  The scope `Θ` is a PARAMETER: it grants permissions.  At polarity
-`⁺` (a boundary's own conversion) a `seal` needs an UNBIND of its
-representation variable in `Θ`, and an `unseal` a BIND; at `⁻` (a
-function domain, where `conv-fun` flips the polarity) the two swap.
+`S`.  The scope `Θ` is a PARAMETER: it grants permissions.  A `seal`
+needs an UNBIND of its representation variable in `Θ`, and an `unseal`
+a BIND.  A function domain carries its argument inward, so `conv-fun`
+checks it under the DUAL scope `dual Θ`, which grants a seal where `Θ`
+binds and an unseal where `Θ` unbinds.  (2026-10-25 to 2026-10-26 this
+was a polarity index `p` that `conv-fun` flipped; the dual-scope variant
+replaced it, `notes/DECISIONS.md` 2026-10-26d.)
 `Γ` is the CONVERSION CONTEXT, and it only resolves the names a
 conversion mentions: the leaf `Γ ∋ X ⊸ α := R` says X names α, α is
 represented by R, and R has a reading on `Γ`.  The types need no
@@ -632,9 +635,13 @@ on neither side of a merged boundary.
   LIVE, REPRESENTED binder that its scope lets it seal
   (`proof/Adversary.agda`).
 
-`PermMap Θ p Θ′ p′` says `(Θ′, p′)` grants everything `(Θ, p)` does; it
-passes through `_↦_` (`pm-flip`) and `∀` (`pm-lift`), and the crossings
-use `pm-dual` (`Wrap`) and `pm-++ˡ`/`pm-++ʳ` (`Merge`).
+`PermMap Θ Θ′` says `Θ′` grants everything `Θ` does; it passes through
+`_↦_` (`pm-dual-map`, from the four membership lemmas between a scope
+and its dual) and `∀` (`pm-lift`).  `Merge` uses `pm-++ˡ`/`pm-++ʳ`;
+`Wrap` uses `pm-id`, because the crossed domain was already checked
+under `dual Θ`, the scope of the boundary it becomes.  The one new
+obligation is that a representation renaming commutes with the dual
+(`renᴮᴿ-dual`, `Boundary.agda`), for `conv-ren`'s `conv-fun` case.
 
 ### §2b — `SameConv`, two spellings of one conversion; respelling
 

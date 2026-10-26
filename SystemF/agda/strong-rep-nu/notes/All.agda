@@ -11,6 +11,7 @@ open import strong-rep-nu.notes.WrapPremise
 open import strong-rep-nu.notes.RepresentationVariablesProbe
 open import strong-rep-nu.notes.RepWeakenBindsWall
 open import strong-rep-nu.notes.CoherenceProbe
+open import strong-rep-nu.notes.SideProbe
 
 -- DROPPED IN THE `ν` PORT (strong-rep-nu, 2026-09-24): three historical
 -- wall records whose checked content is exact states of runs through the

@@ -15,6 +15,7 @@ open import strong-rep-nu.notes.SideProbe
 open import strong-rep-nu.notes.EntryProbe
 open import strong-rep-nu.notes.EntryStress
 open import strong-rep-nu.notes.IdProbe
+open import strong-rep-nu.notes.RespellProbe
 
 -- DROPPED IN THE `ν` PORT (strong-rep-nu, 2026-09-24): three historical
 -- wall records whose checked content is exact states of runs through the

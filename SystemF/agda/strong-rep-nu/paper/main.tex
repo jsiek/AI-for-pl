@@ -247,41 +247,61 @@ Conversions
 \end{align*}
 \end{minipage}
 
-Well-typed conversions \hfill \fbox{$\Delta \vdash c : A \Rightarrow B$}
+Polarities \quad $p ::= + \mid -$ \qquad
+\fbox{$\mathsf{seal}^{p}(\delta)$, \ $\mathsf{unseal}^{p}(\delta)$}
+\quad permissions granted by a scope
+\begin{gather*}
+  \mathsf{seal}^{+}(\delta) = \{ \alpha \mid {-X}^\alpha \in \delta \text{ for some } X \}
+  \qquad
+  \mathsf{seal}^{-}(\delta) = \{ \alpha \mid {+X}^\alpha \in \delta \text{ for some } X \}
+  \\
+  \mathsf{unseal}^{p}(\delta) = \mathsf{seal}^{-p}(\delta)
+\end{gather*}
+
+Well-typed conversions \hfill \fbox{$\Delta \mid \delta \vdash^{p} c : R \Rightarrow S$}
 \begin{gather*}
   \inference
    {}
-   {\Delta \vdash \id{\iota} : \iota \Rightarrow \iota}
+   {\Delta \mid \delta \vdash^{p} \id{\iota} : \iota \Rightarrow \iota}
   \quad
   \inference
    {X \by \alpha \in \Delta}
-   {\Delta \vdash \id{X} : X \Rightarrow X}
+   {\Delta \mid \delta \vdash^{p} \id{X} : \alpha \Rightarrow \alpha}
   \\[2ex]
   \inference
-   {\Delta \vdash c : A' \Rightarrow A & \Delta \vdash d : B \Rightarrow B'}
-   {\Delta \vdash c \tu d : A \to B \Rightarrow A' \to B'}
-  \quad
-  \inference
-   {\Delta, \alpha, X \by \alpha \vdash c : A \Rightarrow B}
-   {\Delta \vdash \all{X} c : \all{X} A \Rightarrow \all{X} B}(X,\alpha \notin \Delta)
+   {\Delta \mid \delta \vdash^{-p} c : R' \Rightarrow R &
+    \Delta \mid \delta \vdash^{p} d : S \Rightarrow S'}
+   {\Delta \mid \delta \vdash^{p} c \tu d : R \to S \Rightarrow R' \to S'}
   \\[2ex]
   \inference
-   {X \by A \in \Delta}
-   {\Delta \vdash \seal{X} : A \Rightarrow X}
+   {\Delta, \alpha, X \by \alpha \mid \delta \vdash^{p} c :
+      R[X \mapsto \alpha] \Rightarrow S[X \mapsto \alpha]}
+   {\Delta \mid \delta \vdash^{p} \all{X} c : \all{X} R \Rightarrow \all{X} S}
+   (X,\alpha \notin \Delta)
+  \\[2ex]
+  \inference
+   {X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta &
+    \alpha \in \mathsf{seal}^{p}(\delta)}
+   {\Delta \mid \delta \vdash^{p} \seal{X} : \Delta(A) \Rightarrow \alpha}
   \quad
   \inference
-   {\Delta \vdash t : A \Rightarrow B & X \by B \in \Delta &
+   {\Delta \mid \delta \vdash^{p} t : R \Rightarrow \Delta(A) \\
+    X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta \\
+    \alpha \in \mathsf{seal}^{p}(\delta) &
     t \sm \seal{X} = t ; \seal{X}}
-   {\Delta \vdash t ; \seal{X} : A \Rightarrow X}
+   {\Delta \mid \delta \vdash^{p} t ; \seal{X} : R \Rightarrow \alpha}
   \\[2ex]
   \inference
-   {X \by A \in \Delta}
-   {\Delta \vdash \unseal{X} : X \Rightarrow A}
+   {X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta &
+    \alpha \in \mathsf{unseal}^{p}(\delta)}
+   {\Delta \mid \delta \vdash^{p} \unseal{X} : \alpha \Rightarrow \Delta(A)}
   \quad
   \inference
-   {X \by A \in \Delta & \Delta \vdash c : A \Rightarrow B &
-    \unseal{X} \sm c = \unseal{X} ; c}
-   {\Delta \vdash \unseal{X} ; c : X \Rightarrow B}
+   {X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta \\
+    \alpha \in \mathsf{unseal}^{p}(\delta) &
+    \unseal{X} \sm c = \unseal{X} ; c \\
+    \Delta \mid \delta \vdash^{p} c : \Delta(A) \Rightarrow S}
+   {\Delta \mid \delta \vdash^{p} \unseal{X} ; c : \alpha \Rightarrow S}
 \end{gather*}
 \end{flushleft}
 
@@ -339,15 +359,17 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
   \\[2ex]
   \inference
    {\Delta \vdash A & \Delta \mid \Gamma \vdash L : \all{X} C \\
-    \Delta,\alpha\by\Delta(A),X\by \alpha \vdash c : C \Rightarrow B &
+    \Delta' \mid [{+X}^\alpha] \vdash^{+} c : \Delta'(C) \Rightarrow \Delta(B) &
     \Delta \vdash B}
    {\Delta \mid \Gamma \vdash \nuinst{X}{A}{L}{c} : B}
-  \quad
+   (\Delta' = \Delta,\alpha\by\Delta(A),X\by \alpha)
+  \\[2ex]
   %BoundaryWf \Delta Θ \Delta_i \Delta_c
   \inference
   {\Delta \vdash \delta &
    \delta(\Delta) \mid [] \vdash M : A \\
-   \delta^{+}(\Delta) \vdash c : A \Rightarrow B &
+   \delta^{+}(\Delta) \mid \delta \vdash^{+} c :
+     \delta(\Delta)(A) \Rightarrow \Delta(B) &
    \Delta \vdash B
   }
   {\Delta \mid \Gamma \vdash \boundry{M}{\delta}{c} : B}
@@ -456,12 +478,20 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
         \label{TyWrap}\tagsc{TyWrap} \\
    \Delta \vdash  \boundry{\boundry{U}{\delta_1}{t_1}}{\delta_2}{c_1} &
      \becomes~ \boundry{U}{\delta_2 \mathop{++} \delta_1}{d}  \dashv \epsilon \label{Merge}\tagsc{Merge} \\
-     & \text{where } (\delta_2 \mathop{++} \delta_1)(\Delta) \vdash t_1 \cmp c_1  = d
+     & \text{where } (\delta_2 \mathop{++} \delta_1)^{+}(\Delta) \vdash t_1 \cmp c_1  = d
        \notag \\
    \Delta \vdash \boundry{U}{\delta}{\id{\iota}} &\becomes~ U \dashv \epsilon
      \label{Id}\tagsc{Id} \\
    \Delta \vdash F[M] &\becomes~ F[M'] \dashv \xi \qquad \text{if } F(\Delta) \vdash M \becomes M' \dashv \xi \label{Xi}\tagsc{$\xi$}
 \end{align}
+
+\noindent{\small With de Bruijn indices (the mechanization), the
+conversions that \textsc{Wrap} and \textsc{Merge} move to another
+boundary are renamed there, each type variable to the new position's
+name for the same representation variable.  The renaming is computed
+from the scopes alone, so \textsc{Wrap} reads no context and
+\textsc{Merge} reads only $(\delta_2 \mathop{++} \delta_1)^{+}(\Delta)$.
+With names, as here, no renaming is needed.}
 \end{flushleft}
 
 \caption{System $\nu$F: Dynamic Semantics}

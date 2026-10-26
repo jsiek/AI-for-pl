@@ -22,6 +22,14 @@ module strong-rep-nu.notes.RespellProbe where
 --     `renᶜ ρ₁ (tail t₁) ≡ tail t₁′` and `renᶜ ρ₂ c₂ ≡ c₂′`.  Every
 --     state of the 21 compiled runs and of the stress programs
 --     (notes/EntryStress.agda) is stepped and each base rule inspected.
+--   * PER NAME (§3b, 2026-10-26): the same renamings computed one name
+--     at a time from the scopes ALONE — no length, no context: decode
+--     the name back through the reading it was written in, encode the
+--     result forward through the target reading.  They also agree at
+--     every site.  The first version disagreed at two inner-`Merge`
+--     sites (S4 step 18, S7 step 26): a name the inner scope binds for
+--     an α the outer scope had UNBOUND sits at α's exterior position in
+--     the merged reading (`settle`/`exteriorOf`).
 --   * RESULT (§5): every carried respelling equals the computed one —
 --     318 checks over 30 runs, 55 of them a real renaming.  The
 --     computation reads the scopes and the exterior's LENGTH, never a
@@ -29,7 +37,7 @@ module strong-rep-nu.notes.RespellProbe where
 -- Read with
 -- scripts/render_term.sh 'everything' 'open import strong-rep-nu.notes.RespellProbe'
 
-open import Data.Nat using (ℕ; zero; suc; _+_; _≡ᵇ_; _<ᵇ_)
+open import Data.Nat using (ℕ; zero; suc; _+_; pred; _≡ᵇ_; _<ᵇ_)
 open import Data.Nat.Show using () renaming (show to showℕ)
 open import Data.Bool using (Bool; true; false; if_then_else_; _∧_; _∨_)
 open import Data.List using (List; []; _∷_; _++_; length; reverse)
@@ -213,6 +221,109 @@ mutual
   eqM (`∀ s)  (_ ↦ _)   = false
 
 ------------------------------------------------------------------------
+-- 3b. The same renamings PER NAME, from the scopes alone (no length)
+--
+-- A name is traced as a TOKEN: a position, or "the name for α" while α
+-- has none.  DECODE runs a name backward through the reading it was
+-- written in, peeling the last-acting entry first; ENCODE runs a token
+-- forward through the target reading.  A bind of β in a conversion
+-- reading inserts nothing exactly when β occurs in an entry acting
+-- earlier (a well-formed scope binds a name the context already has
+-- only after unbinding it), so liveness reads the scope alone.
+
+_≤ᵇ_ : ℕ → ℕ → Bool
+m ≤ᵇ n = (m <ᵇ n) ∨ (m ≡ᵇ n)
+
+data Tok : Set where
+  pos  : ℕ → Tok
+  gone : RVar → Tok
+
+occurs : RVar → Boundary → Bool
+occurs α []                = false
+occurs α (bind Y β ∷ Θ)   = (α ≡ᵇ β) ∨ occurs α Θ
+occurs α (unbind Y β ∷ Θ) = (α ≡ᵇ β) ∨ occurs α Θ
+
+-- back through a conversion reading
+decodeU : Boundary → ℕ → Tok
+decodeU []                X = pos X
+decodeU (unbind Y β ∷ Θ) X = decodeU Θ X
+decodeU (bind Y β ∷ Θ)   X =
+  if occurs β Θ then decodeU Θ X
+  else (if X ≡ᵇ Y then gone β
+        else (if Y <ᵇ X then decodeU Θ (pred X) else decodeU Θ X))
+
+-- back through an interior reading
+decodeI : Boundary → ℕ → Tok
+decodeI []                X = pos X
+decodeI (unbind Y β ∷ Θ) X = decodeI Θ (if Y ≤ᵇ X then suc X else X)
+decodeI (bind Y β ∷ Θ)   X =
+  if X ≡ᵇ Y then gone β else decodeI Θ (if Y <ᵇ X then pred X else X)
+
+-- forward through an interior reading
+stepI : Change → Tok → Tok
+stepI (unbind Y β) (pos p) =
+  if p ≡ᵇ Y then gone β else pos (if Y <ᵇ p then pred p else p)
+stepI (unbind Y β) (gone α) = gone α
+stepI (bind Y β)   (pos p)  = pos (if Y ≤ᵇ p then suc p else p)
+stepI (bind Y β)   (gone α) = if α ≡ᵇ β then pos Y else gone α
+
+encodeI : Boundary → Tok → Tok
+encodeI []       t = t
+encodeI (e ∷ Θ) t = stepI e (encodeI Θ t)
+
+-- forward through a conversion reading
+encodeU : Boundary → Tok → Tok
+encodeU []                t = t
+encodeU (unbind Y β ∷ Θ) t = encodeU Θ t
+encodeU (bind Y β ∷ Θ)   t with encodeU Θ t
+encodeU (bind Y β ∷ Θ)   t | pos p =
+  pos (if occurs β Θ then p else (if Y ≤ᵇ p then suc p else p))
+encodeU (bind Y β ∷ Θ)   t | gone α =
+  if α ≡ᵇ β then pos Y else gone α
+
+finish : Tok → ℕ
+finish (pos q)  = q
+finish (gone α) = far
+
+-- Wrap: from Θ's conversion reading to the dual's, over the interior
+ρWrap : Boundary → Renameᵗ
+ρWrap Θ X = finish (encodeU (dual Θ) (encodeI Θ (decodeU Θ X)))
+
+-- Merge's inner part: from Θ₁'s reading over Θ₂'s interior, back to the
+-- exterior, then into the merged reading.  A name for α that Θ₂ had
+-- UNBOUND keeps its exterior position in the merged reading (the unbind
+-- is skipped there), so a token for α resolves to that position: the
+-- earliest-acting entry of Θ₂ for α, if an unbind, traced back.
+exteriorOf : RVar → Boundary → Maybe ℕ
+exteriorOf α []                = nothing
+exteriorOf α (e ∷ Θ) with exteriorOf α Θ
+exteriorOf α (e ∷ Θ) | just p = just p
+exteriorOf α (bind Y β ∷ Θ)   | nothing = nothing
+exteriorOf α (unbind Y β ∷ Θ) | nothing with α ≡ᵇ β
+exteriorOf α (unbind Y β ∷ Θ) | nothing | false = nothing
+exteriorOf α (unbind Y β ∷ Θ) | nothing | true with decodeI Θ Y
+exteriorOf α (unbind Y β ∷ Θ) | nothing | true | pos p  = just p
+exteriorOf α (unbind Y β ∷ Θ) | nothing | true | gone γ = nothing
+
+settle : Boundary → Tok → Tok
+settle Θ₂ (pos p)  = pos p
+settle Θ₂ (gone α) with exteriorOf α Θ₂
+settle Θ₂ (gone α) | just p  = pos p
+settle Θ₂ (gone α) | nothing = gone α
+
+toExterior : Boundary → Tok → Tok
+toExterior Θ₂ (pos p)  = settle Θ₂ (decodeI Θ₂ p)
+toExterior Θ₂ (gone α) = settle Θ₂ (gone α)
+
+ρMerge₁ : Boundary → Boundary → Renameᵗ
+ρMerge₁ Θ₁ Θ₂ X =
+  finish (encodeU (Θ₁ ++ Θ₂) (toExterior Θ₂ (decodeU Θ₁ X)))
+
+-- Merge's outer part: from Θ₂'s reading into the merged one
+ρMerge₂ : Boundary → Boundary → Renameᵗ
+ρMerge₂ Θ₁ Θ₂ X = finish (encodeU (Θ₁ ++ Θ₂) (decodeU Θ₂ X))
+
+------------------------------------------------------------------------
 -- 4. The checks at Wrap and Merge
 
 -- a check: was it a real renaming (source ≠ target), and did it hold
@@ -228,16 +339,19 @@ nil = tally 0 0 []
 _⊕_ : Tally → Tally → Tally
 tally a b xs ⊕ tally c d ys = tally (a + c) (b + d) (xs ++ ys)
 
-one : String → Conv → Conv → Conv → Tally
-one what src tgt computed =
+-- `computed` uses the slots (and the length), `perName` the scopes alone
+one : String → Conv → Conv → Conv → Conv → Tally
+one what src tgt computed perName =
   tally 1 (if eqC src tgt then 0 else 1)
-    (if eqC computed tgt then [] else (what +++ " MISMATCH") ∷ [])
+    ((if eqC computed tgt then [] else (what +++ " MISMATCH") ∷ [])
+     ++ (if eqC perName tgt then [] else (what +++ " PER-NAME MISMATCH") ∷ []))
 
 wrapCheck : ℕ → Boundary → Conv → Conv → Tally
 wrapCheck n Θ s s′ with interiorS Θ (slots n , [])
 wrapCheck n Θ s s′ | I , k =
   one "Wrap" s s′
     (renᶜ (renameS k (unionS k Θ (slots n)) (unionS k (dual Θ) I)) s)
+    (renᶜ (ρWrap Θ) s)
 
 mergeCheck : ℕ → Boundary → Boundary → Tail → Tail → Conv → Conv → Tally
 mergeCheck n Θ₁ Θ₂ t₁ t₁′ c₂ c₂′ with interiorS Θ₂ (slots n , [])
@@ -245,8 +359,10 @@ mergeCheck n Θ₁ Θ₂ t₁ t₁′ c₂ c₂′ | I₂ , k₂ with interiorS 
 mergeCheck n Θ₁ Θ₂ t₁ t₁′ c₂ c₂′ | I₂ , k₂ | I₁ , k =
   one "Merge t1" (tail t₁) (tail t₁′)
     (renᶜ (renameS k (unionS k Θ₁ I₂) merged) (tail t₁))
+    (renᶜ (ρMerge₁ Θ₁ Θ₂) (tail t₁))
   ⊕ one "Merge c2" c₂ c₂′
     (renᶜ (renameS k (unionS k Θ₂ (slots n)) merged) c₂)
+    (renᶜ (ρMerge₂ Θ₁ Θ₂) c₂)
   where
   merged : List Sym
   merged = unionS k (Θ₁ ++ Θ₂) (slots n)

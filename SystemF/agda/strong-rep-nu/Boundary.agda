@@ -505,25 +505,6 @@ conv-valid vn (conv-unbind v cs) = conv-valid vn cs
 conv-valid vn (conv-bind v cs fr i) = ins-valid i v (conv-valid vn cs)
 conv-valid vn (conv-bind-live v cs d) = conv-valid vn cs
 
--- The lifted readings preserve name-map functionality independently of the
--- other two `WfCtx` fields.  `dual-unique` is the instance needed when a
--- crossed argument is wrapped in a boundary scope's dual.
-interior-unique : ∀ {Θ : Boundary}
-  → Unique (names Γ) → Γ ⊢ⁱ Θ ⇒ Γᵢ → Unique (names Γᵢ)
-interior-unique uq (interior cs) = int-unique uq cs
-
-conversion-unique : ∀ {Θ : Boundary}
-  → Unique (names Γ) → Γ ⊢ᶜ Θ ⇒ Γᶜ → Unique (names Γᶜ)
-conversion-unique uq (conversion cs) = conv-unique uq cs
-
-dual-unique : ∀ {Γ Γᵢ Γᵈ : Ctxᵗ} {Θ : Boundary}
-  → Unique (names Γ)
-  → Γ ⊢ⁱ Θ ⇒ Γᵢ
-  → Γᵢ ⊢ᶜ dual Θ ⇒ Γᵈ
-  → Unique (names Γᵈ)
-dual-unique uq int dconv =
-  conversion-unique (interior-unique uq int) dconv
-
 ------------------------------------------------------------------------
 -- 3b. The name-set invariant for a crossed boundary scope
 ------------------------------------------------------------------------

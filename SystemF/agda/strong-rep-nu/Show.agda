@@ -373,9 +373,9 @@ showState Γ M =
 ruleName : ∀ {Δ M N δ} → Δ ⊢ M -→ N ∣ δ → String
 ruleName (TyBeta v same)               = "TyBeta"
 ruleName (Beta v)                    = "Beta"
-ruleName (Wrap v w rc ri rd sc)      = "Wrap"
+ruleName (Wrap v w rc ri rd)      = "Wrap"
 ruleName (TyWrap v same)      = "TyWrap"
-ruleName (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) = "Merge"
+ruleName (Merge u it ri r₁ r₂ r⋉) = "Merge"
 ruleName (Id u b)                  = "Id"
 ruleName (ξ-·₁ st)                  = ruleName st
 ruleName (ξ-·₂ v st)                = ruleName st

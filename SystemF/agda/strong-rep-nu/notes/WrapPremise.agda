@@ -9,12 +9,12 @@ module strong-rep-nu.notes.WrapPremise where
 -- two
 --     sides of a crossing name the same representation variables;
 --   * strong-rep-nu.Boundary §3c constructs the dual's conversion context;
---   * strong-rep-nu.Conversion §2c weakens a well-typed conversion and
--- exports
---     `wrap-premises` / `wrap-premises-boundary`.
+--   * strong-rep-nu.Conversion §2b respells a conversion at the dual's
+--     position (`respellᶜ`, branch `nu-respell`), and (Q) is what makes
+--     the respelling read as the original (`respell-same`).
 --
 -- This note retains the concrete mixed-frame witness that motivated (Q) and
--- checks that the moved package constructs exactly the premise `Wrap` needs.
+-- checks that the respelling computes exactly the spelling `Wrap` needs.
 
 open import Data.Nat using (ℕ)
 open import Data.List using ([]; _∷_)
@@ -88,9 +88,7 @@ mixed-Q : (names Γᵈ) ∋ᵅ 2
 mixed-Q = Q mixed-interior mixed-conversion mixed-dual-conversion
             (0 , here)
 
--- The conversion weakening theorem consumes the same readings and returns
--- the premise carried by `Wrap`.
-mixed-premise : ∃[ s′ ] SameConv Γᵈ s′ Γᶜ (unseal 0)
-mixed-premise = premise-exists mixed-interior mixed-conversion
-                               mixed-dual-conversion
-                               (proj₂ (proj₂ (cv! Γᶜ Mixed ⁺ (unseal 0))))
+-- `Wrap` respells the crossed conversion at the dual's position: source
+-- name 0 and dual name 1 are the same representation variable, 2.
+mixed-respelled : respellᶜ Γᶜ Γᵈ (unseal 0) ≡ unseal 1
+mixed-respelled = refl

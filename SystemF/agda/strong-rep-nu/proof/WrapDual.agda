@@ -11,9 +11,11 @@ module strong-rep-nu.proof.WrapDual where
 --     block, so it is the exterior ON THE NOSE — `⊢W` is reused
 --     verbatim.
 --   * THE DUAL'S CONVERSION CONTEXT is not free: (P) is FALSE here,
---     (Q) is what survives, and `Wrap` therefore carries the dual's
---     own spelling `s′` with a `SameConv`.
---   * THE TYPES DO NOT MOVE (the Δ ∣ Θ experiment): `s′` has `s`'s
+--     (Q) is what survives, and `Wrap` therefore RESPELLS `s` at the
+--     dual's position (`respellᶜ`); (Q) is what makes the respelling
+--     read as `s` does (`respell-same`).
+--   * THE TYPES DO NOT MOVE (the Δ ∣ Θ experiment): `s`'s respelling
+--     has `s`'s
 --     REPRESENTATION types, and its permissions move by `pm-dual` —
 --     checked at `⁻` under `Θ`, it is checked at `⁺` under `dual Θ`.
 -- Commentary: Commentary.md § proof/WrapDual.agda
@@ -188,22 +190,22 @@ same-⇒⁻ (same-⇒ p q) = _ , _ , refl , p , q
 -- Commentary.md § proof/WrapDual.agda / §3
 preserve-Wrap : WrapCase
 preserve-Wrap {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
-              {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
-              wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
+              {Θ = Θ} {s = s} {t = t} {C = C}
+              wfΔ v w rc ri rd
               (⊢· (boundary mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
                        sameᵢ sameₑ (wf-⇒ wA wC)) ⊢W)
   with interior-functional (bw-interior mwΘ) ri
      | conversion-functional (bw-conversion mwΘ) rc
 preserve-Wrap {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
-              {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
-              wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
+              {Θ = Θ} {s = s} {t = t} {C = C}
+              wfΔ v w rc ri rd
               (⊢· (boundary mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
                        sameᵢ sameₑ (wf-⇒ wA wC)) ⊢W)
   | refl | refl
   with same-⇒⁻ sameᵢ | same-⇒⁻ sameₑ
 preserve-Wrap {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
-              {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
-              wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
+              {Θ = Θ} {s = s} {t = t} {C = C}
+              wfΔ v w rc ri rd
               (⊢· (boundary mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
                        sameᵢ sameₑ (wf-⇒ wA wC)) ⊢W)
   | refl | refl
@@ -215,11 +217,16 @@ preserve-Wrap {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} 
   mwD : BoundaryWf Δᵢ (dual Θ) Δ Δᵈ
   mwD = bw (bw-interior-wf mwΘ) (dual-interior ri) rd
 
+  -- `s` reads as some r at its own position; respelled at the dual's,
+  -- it reads as the same r, because every name it uses survives (Q)
+  rd⊢s = readable ⊢s
+
   ⊢s′ = weaken-⊢ (trans (conversion-reps rd)
                     (trans (interior-reps ri)
                            (sym (conversion-reps rc))))
                  (name-fn (bw-conversion-wf mwΘ))
-                 (Q ri rc rd) pm-dual rcᶜ rdᶜ ⊢s
+                 (Q ri rc rd) pm-dual (proj₂ rd⊢s)
+                 (respell-same {Γ = Δᶜ} {Γ′ = Δᵈ} (Q ri rc rd) (proj₂ rd⊢s)) ⊢s
 
-  arg : Δᵢ ∣ [] ⊢ (W ⟪ dual Θ , s′ ⟫) ⦂ Aᵢ
+  arg : Δᵢ ∣ [] ⊢ (W ⟪ dual Θ , respellᶜ Δᶜ Δᵈ s ⟫) ⦂ Aᵢ
   arg = boundary mwD ⊢W ⊢s′ smAₑ smAᵢ (same-wf smAᵢ)

@@ -96,25 +96,23 @@ Ex₁ = (F ⟪ Θ₀ , ⌞ s ↦ t ⌟ ⟫) · W
 
 -- Wrap's premises, decided by the evaluator's own procedure — at the
 -- ALLOCATED ambient, which is where the Wrap fires.
-cross : CrossPremises Δ₁ Θ₀ s
-cross = force (crossPremises? Δ₁ Θ₀ s) tt
+cross : CrossPremises Δ₁ Θ₀
+cross = force (crossPremises? Δ₁ Θ₀) tt
 
 Δᶜ Δᵢ Δᵈ : Ctxᵗ
 Δᶜ = proj₁ cross
 Δᵢ = proj₁ (proj₂ cross)
 Δᵈ = proj₁ (proj₂ (proj₂ cross))
 
-s′ : Conv
-s′ = proj₁ (proj₂ (proj₂ (proj₂ cross)))
+s′ : Conv                      -- the dual's spelling, computed
+s′ = respellᶜ Δᶜ Δᵈ s
 
 rc : Δ₁ ⊢ᶜ Θ₀ ⇒ Δᶜ
-rc = proj₁ (proj₂ (proj₂ (proj₂ (proj₂ cross))))
+rc = proj₁ (proj₂ (proj₂ (proj₂ cross)))
 ri : Δ₁ ⊢ⁱ Θ₀ ⇒ Δᵢ
-ri = proj₁ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ cross)))))
+ri = proj₁ (proj₂ (proj₂ (proj₂ (proj₂ cross))))
 rd : Δᵢ ⊢ᶜ dual Θ₀ ⇒ Δᵈ
-rd = proj₁ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ cross))))))
-sc : SameConv Δᵈ s′ Δᶜ s
-sc = proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ cross))))))
+rd = proj₂ (proj₂ (proj₂ (proj₂ (proj₂ cross))))
 
 W′ : Term                      -- the argument, moved: wrapped in the
                                -- dual, and moved VERBATIM
@@ -131,7 +129,7 @@ pA = same-var here
 
 run : Δ₀ ⊢ Ex -→* Ex₃
 run = ξ-·₁ (TyBeta (V-simple S-ƛ) pA)
-      then Wrap S-ƛ (V-simple S-ƛ) rc ri rd sc
+      then Wrap S-ƛ (V-simple S-ƛ) rc ri rd
       then ξ-⟪⟫ ri (Beta (V-⟪⟫ S-ƛ I-fun))
       then done
 
@@ -159,7 +157,7 @@ res : Residuals run C₀ W ρ★ C₃ W
 res = residuals-step
         (residual-ξ-·₁-sib (TyBeta (V-simple S-ƛ) pA))
       (residuals-step
-        (residual-Wrap-arg S-ƛ (V-simple S-ƛ) rc ri rd sc)
+        (residual-Wrap-arg S-ƛ (V-simple S-ƛ) rc ri rd)
       (residuals-step
         (residual-ξ-⟪⟫ ri
           (residual-Beta-arg (V-⟪⟫ S-ƛ I-fun) (copy-var image-here)))

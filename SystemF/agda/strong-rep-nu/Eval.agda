@@ -38,7 +38,7 @@ open import strong-rep-nu.TermSubst
 open import strong-rep-nu.Reduction
 open import strong-rep-nu.TypeCheck
   using (interior?; conversion?; ∋:=?; read?; convTy?;
-         weaken?; weakenᵀ?; check⊢; inert?; inertTail?;
+         check⊢; inert?; inertTail?;
          simple?; value?)
 
 ------------------------------------------------------------------------
@@ -60,71 +60,49 @@ base? (`∀ A)  = nothing
 ------------------------------------------------------------------------
 
 -- Commentary.md § Eval.agda / §1–§2
--- `Merge`'s premises: the three readings, and both conversions
--- weakened onto the merged frame's conversion context.
-MergePremises : Ctxᵗ → Boundary → Boundary → Tail → Conv → Set
-MergePremises Δ Θ₁ Θ₂ t₁ c₂ =
+-- `Merge`'s premises: the four readings.  The two spellings the
+-- contractum needs are computed from them by `respellᶜ`.
+MergePremises : Ctxᵗ → Boundary → Boundary → Set
+MergePremises Δ Θ₁ Θ₂ =
   Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ Δ₂ᶜ ∈ Ctxᵗ ] Σ[ Δ⋉ᶜ ∈ Ctxᵗ ]
-    Σ[ t₁′ ∈ Tail ] Σ[ c₂′ ∈ Conv ]
-      ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ) × (Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ)
-        × (Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ)
-        × SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ (tail t₁)
-        × SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂)
+    ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ) × (Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ)
+      × (Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ))
 
-mergePremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : Boundary) (t₁ : Tail) (c₂ : Conv)
-  → Maybe (MergePremises Δ Θ₁ Θ₂ t₁ c₂)
-mergePremises? Δ Θ₁ Θ₂ t₁ c₂ with interior? Δ Θ₂
-mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | nothing = nothing
-mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) with conversion? Δᵢ Θ₁
-mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | nothing = nothing
-mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+mergePremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : Boundary)
+  → Maybe (MergePremises Δ Θ₁ Θ₂)
+mergePremises? Δ Θ₁ Θ₂ with interior? Δ Θ₂
+mergePremises? Δ Θ₁ Θ₂ | nothing = nothing
+mergePremises? Δ Θ₁ Θ₂ | just (Δᵢ , ri) with conversion? Δᵢ Θ₁
+mergePremises? Δ Θ₁ Θ₂ | just (Δᵢ , ri) | nothing = nothing
+mergePremises? Δ Θ₁ Θ₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   with conversion? Δ Θ₂
-mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+mergePremises? Δ Θ₁ Θ₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | nothing = nothing
-mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+mergePremises? Δ Θ₁ Θ₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | just (Δ₂ᶜ , r₂) with conversion? Δ (Θ₁ ++ Θ₂)
-mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+mergePremises? Δ Θ₁ Θ₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | just (Δ₂ᶜ , r₂) | nothing = nothing
-mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ₂ᶜ , r₂) | just (Δ⋉ᶜ , r⋉)
-  with weakenᵀ? (names Δ₁ᶜ) (names Δ⋉ᶜ) t₁
-     | weaken? (names Δ₂ᶜ) (names Δ⋉ᶜ) c₂
-mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ₂ᶜ , r₂) | just (Δ⋉ᶜ , r⋉)
-  | just (t₁′ , r , p , q) | just (c₂′ , sc₂) =
-  just (Δᵢ , Δ₁ᶜ , Δ₂ᶜ , Δ⋉ᶜ , t₁′ , c₂′ , ri , r₁ , r₂ , r⋉
-       , (tail r , sameᶜ-tail p , sameᶜ-tail q) , sc₂)
-mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ₂ᶜ , r₂) | just (Δ⋉ᶜ , r⋉)
-  | just (t₁′ , r , p , q) | nothing = nothing
-mergePremises? Δ Θ₁ Θ₂ t₁ c₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ₂ᶜ , r₂) | just (Δ⋉ᶜ , r⋉)
-  | nothing | m = nothing
+mergePremises? Δ Θ₁ Θ₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+  | just (Δ₂ᶜ , r₂) | just (Δ⋉ᶜ , r⋉) =
+  just (Δᵢ , Δ₁ᶜ , Δ₂ᶜ , Δ⋉ᶜ , ri , r₁ , r₂ , r⋉)
 
--- `Wrap`'s crossing premises (2026-09-18).  The redex fixes only Δ, Θ
--- and `s`; the dual's conversion context is built here.
-CrossPremises : Ctxᵗ → Boundary → Conv → Set
-CrossPremises Δ Θ s =
-  Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δᵈ ∈ Ctxᵗ ] Σ[ s′ ∈ Conv ]
-    ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (Δ ⊢ⁱ Θ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ)
-      × SameConv Δᵈ s′ Δᶜ s)
+-- `Wrap`'s crossing premises (2026-09-18): the three readings.  The
+-- redex fixes only Δ and Θ; the dual's spelling of `s` is computed.
+CrossPremises : Ctxᵗ → Boundary → Set
+CrossPremises Δ Θ =
+  Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δᵈ ∈ Ctxᵗ ]
+    ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (Δ ⊢ⁱ Θ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ))
 
-crossPremises? : (Δ : Ctxᵗ) (Θ : Boundary) (s : Conv)
-  → Maybe (CrossPremises Δ Θ s)
-crossPremises? Δ Θ s with conversion? Δ Θ
-crossPremises? Δ Θ s | nothing = nothing
-crossPremises? Δ Θ s | just (Δᶜ , rc) with interior? Δ Θ
-crossPremises? Δ Θ s | just (Δᶜ , rc) | nothing = nothing
-crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri)
+crossPremises? : (Δ : Ctxᵗ) (Θ : Boundary) → Maybe (CrossPremises Δ Θ)
+crossPremises? Δ Θ with conversion? Δ Θ
+crossPremises? Δ Θ | nothing = nothing
+crossPremises? Δ Θ | just (Δᶜ , rc) with interior? Δ Θ
+crossPremises? Δ Θ | just (Δᶜ , rc) | nothing = nothing
+crossPremises? Δ Θ | just (Δᶜ , rc) | just (Δᵢ , ri)
   with conversion? Δᵢ (dual Θ)
-crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri)
-  | nothing = nothing
-crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
-  with weaken? (names Δᶜ) (names Δᵈ) s
-crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
-  | nothing = nothing
-crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
-  | just (s′ , sc) = just (Δᶜ , Δᵢ , Δᵈ , s′ , rc , ri , rd , sc)
+crossPremises? Δ Θ | just (Δᶜ , rc) | just (Δᵢ , ri) | nothing = nothing
+crossPremises? Δ Θ | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd) =
+  just (Δᶜ , Δᵢ , Δᵈ , rc , ri , rd)
 
 ------------------------------------------------------------------------
 -- 3. The redexes, by the shape of the head
@@ -137,10 +115,10 @@ appRedex : (Δ : Ctxᵗ) {L M : Term} → Value L → Value M
   → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ L · M -→ N ∣ δ))
 appRedex Δ (V-simple S-ƛ) vM = just (_ , none , Beta vM)
 appRedex Δ (V-⟪⟫ {Θ = Θ} u (I-fun {s = s})) vM
-  with crossPremises? Δ Θ s
+  with crossPremises? Δ Θ
 appRedex Δ (V-⟪⟫ {Θ = Θ} u (I-fun {s = s})) vM
-  | just (Δᶜ , Δᵢ , Δᵈ , s′ , rc , ri , rd , sc) =
-  just (_ , none , Wrap u vM rc ri rd sc)
+  | just (Δᶜ , Δᵢ , Δᵈ , rc , ri , rd) =
+  just (_ , none , Wrap u vM rc ri rd)
 appRedex Δ (V-⟪⟫ {Θ = Θ} u (I-fun {s = s})) vM | nothing = nothing
 appRedex Δ (V-⟪⟫ u I-idv)      vM = nothing
 appRedex Δ (V-⟪⟫ u I-all)      vM = nothing
@@ -168,17 +146,17 @@ nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (S-Λ vN) (I-all {s})) | nothing = nothing
 nuRedex Δ A c _ = nothing
 
 -- A boundary.  `Id` fires at a literal under an identity at a base
--- type; `Merge` fires at ANY boundary over a boundary value, computing
--- the two carried spellings and the merged frame's reading.  Everything
+-- type; `Merge` fires at ANY boundary over a boundary value whose four
+-- readings exist.  Everything
 -- else is either a congruence or stuck, which is the caller's business.
 bdyRedex : (Δ : Ctxᵗ) (M : Term) (Θ : Boundary) (c : Conv)
   → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ M ⟪ Θ , c ⟫ -→ N ∣ δ))
 bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ with simple? U | inertTail? t₁
 bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | just it
-  with mergePremises? Δ Θ₁ Θ t₁ c₂
+  with mergePremises? Δ Θ₁ Θ
 bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | just it
-  | just (Δᵢ , Δ₁ᶜ , Δ₂ᶜ , Δ⋉ᶜ , t₁′ , c₂′ , ri , r₁ , r₂ , r⋉ , sc₁ , sc₂)
-  = just (_ , none , Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
+  | just (Δᵢ , Δ₁ᶜ , Δ₂ᶜ , Δ⋉ᶜ , ri , r₁ , r₂ , r⋉)
+  = just (_ , none , Merge u it ri r₁ r₂ r⋉)
 bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | just it | nothing =
   nothing
 bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | nothing = nothing

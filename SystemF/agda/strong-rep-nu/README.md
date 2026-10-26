@@ -11,6 +11,17 @@ polarity for `c` — and both types are representation types, which
 Spellings are unchanged.  Rationale, rulings and results:
 `notes/DECISIONS.md`, 2026-10-25.
 
+## Computed respellings (2026-10-26, branch `nu-respell`)
+
+`Wrap` and `Merge` no longer CARRY the spellings of the conversions they
+move (`s′`, `t₁′`, `c₂′`, each pinned by a `SameConv` premise).  They
+COMPUTE them: `respellᶜ Γ Γ′ c` renames each name of `c` to `Γ′`'s
+name for the same representation variable (`Conversion.agda` §2b).
+`respell-same` is the `SameConv` the rules used to carry, proved from
+(Q) and `merged-keeps₁`/`merged-keeps₂`; determinism of `Wrap` and
+`Merge` no longer needs typing.  Rationale and the probes behind it:
+`notes/DECISIONS.md`, 2026-10-26 and 2026-10-26b.
+
 ## strong-rep-nu (2026-09-24)
 
 **Rule names (2026-09-25).**  The reduction rules were renamed to match

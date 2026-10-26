@@ -140,9 +140,9 @@ erase Δ (M ⟪ Θ , c ⟫)   = erase (inside Δ Θ) M
 isStutter : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ → Bool
 isStutter (TyBeta v a)                     = false
 isStutter (Beta w)                         = false
-isStutter (Wrap v w r₁ r₂ r₃ sc)           = true
+isStutter (Wrap v w r₁ r₂ r₃)           = true
 isStutter (TyWrap v a)                 = false
-isStutter (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) = true
+isStutter (Merge u it ri r₁ r₂ r⋉) = true
 isStutter (Id u b)                         = true
 isStutter (ξ-·₁ st)                        = isStutter st
 isStutter (ξ-·₂ v st)                      = isStutter st

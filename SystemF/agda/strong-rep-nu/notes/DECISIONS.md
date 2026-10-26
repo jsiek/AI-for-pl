@@ -5373,3 +5373,55 @@ under `SameConv`; the lemma owed is that the computed renaming is a
 `SameConv`.  Not pursued, recorded: removing alias cells (`ν` at a type
 variable re-binding the existing cell instead of allocating `β := α`)
 would remove every seal chain probe 1 found.
+
+## 2026-10-26b — computed respellings, stage 1 (branch `nu-respell`)
+
+The prototype planned above.  `Wrap` and `Merge` no longer carry the
+spellings of the conversions they move; they compute them.
+
+    Wrap  : … → Δ ⊢ᶜ Θ ⇒ Δᶜ → Δ ⊢ⁱ Θ ⇒ Δᵢ → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ
+          → Δ ⊢ (V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · W
+              -→ (V · (W ⟪ dual Θ , respellᶜ Δᶜ Δᵈ s ⟫)) ⟪ Θ , t ⟫ ∣ none
+    Merge : … (the four readings)
+          → Δ ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫
+              -→ U ⟪ Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ respellᶜ Δ₁ᶜ Δ⋉ᶜ (tail t₁)
+                                     ⨟ respellᶜ Δ₂ᶜ Δ⋉ᶜ c₂ ⟫ ∣ none
+
+* `respell η η′` (`Lookup.agda`) sends a name of η to η′'s name for the
+  same representation variable; `respellᶜ Γ Γ′ = renᶜ (respell (names Γ)
+  (names Γ′))`.  The crossing is still BY THE REPRESENTATION, as the
+  crossing-spelling law always required; only who produces the spelling
+  changed.
+* The `SameConv` the rules carried is now a lemma, `respell-same`
+  (`Conversion.agda` §2b): a renaming that RESPECTS two name maps keeps
+  a conversion's reading (`sameᶜ-respects`), and `respell` respects any
+  two maps whose second keeps the first's representation variables
+  (`respell-respects`, from `lookupˡ?-complete`/`find?-complete`).
+  `preserve-Wrap` feeds it (Q); `preserve-Merge` feeds it
+  `merged-keeps₁`/`merged-keeps₂`.
+* Determinism of `Wrap` and `Merge` is now `refl` once the readings are
+  identified; it no longer reads the typing derivation.
+* Progress builds `Wrap` from `dual-conversion-exists` and `Merge` from
+  `merged-conversion-exists` alone.
+* DELETED as dead: `sameConv-src-unique`, the `same*-rep-unique` and
+  `same*-target-unique` families, `sameConv-∀`, the proof-level
+  `weaken`/`weakenᵀ`/`weakenᵐ`, `premise-exists`, `wrap-premises`,
+  `wrap-premises-boundary` (`Conversion.agda`); `conversion-unique`,
+  `dual-unique`, `interior-unique` (`Boundary.agda`); the conversion
+  deciders `readᶜ?`/`unreadᶜ?` (all sorts) and `weaken?`/`weakenᵀ?`
+  (`TypeCheck.agda`).  `notes/WrapPremise.agda` now checks the
+  computed spelling (`mixed-respelled`).
+* The evaluator no longer checks that a moved conversion is readable
+  before stepping: on a typed term it always is, and an ill-typed step
+  is still reported by the per-state type check.
+
+Results: `make check` passes; every run keeps its endpoint and step
+count.  `notes/RespellProbe.agda`'s pinned result is UNCHANGED (318
+checks, 55 real renamings, no mismatch), so on every corpus and stress
+run `respell` reproduces exactly the spellings the old rules carried.
+
+Stage 2, not started: replace `respell (names Δᶜ) (names Δᵈ)` by the
+renaming RespellProbe computes from the scopes and the exterior's length
+alone.  The obligation is that it `Respects` the two maps; then `Wrap`
+no longer needs the dual's reading `Δᵈ` to step, and `Merge` needs only
+the readings its composition reads (`Δ⋉ᶜ`, for `repOf`).

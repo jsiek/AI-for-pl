@@ -8,8 +8,9 @@ module strong-rep-nu.Conversion where
 --     §1b the syntactic identity `IsId` and the `NoCancel` side
 --     condition, §2 the three typing judgements
 --     `Γ ∣ Θ ⊢[ p ] c ∶ R ⇝ S`, the permissions they read off the
---     scope, and the permission maps `PermMap`, §2b the weakening
---     relation `SameConv`, §2c weakening across a crossing, §2d
+--     scope, and the permission maps `PermMap`, §2b `SameConv` (two
+--     spellings of one conversion) and RESPELLING (`respellᶜ`), §2c
+--     reading a typed conversion and weakening a type, §2d
 --     representation renaming, §3 `mkId`, §4 `reveal`/`conceal`,
 --     §4b COMPOSITION `Δ ⊢ c₁ ⨟ c₂`, §5 the inversions, §6
 --     `conv-types-unique`, §7 concrete checks.
@@ -45,7 +46,8 @@ open import strong-rep-nu.Types
 open import strong-rep-nu.Ctx
 open import strong-rep-nu.proof.Ctx
 open import strong-rep-nu.Boundary
-open import strong-rep-nu.Lookup using (∋:=?)
+open import strong-rep-nu.Lookup
+  using (∋:=?; lookupˡ?; find?; respell; lookupˡ?-complete; find?-complete)
 
 private
   variable
@@ -386,81 +388,83 @@ mutual
 SameConv : Ctxᵗ → Conv → Ctxᵗ → Conv → Set
 SameConv Γ s Γ′ s′ = ∃[ r ] ((names Γ ⊩ s ~ r) × (names Γ′ ⊩ s′ ~ r))
 
--- It determines the spelling, so a rule carrying it stays a function.
+-- RESPELLING.  A crossing moves a conversion to another position, where
+-- other scopes overlap; it is RENAMED there, by `respell` (Lookup): each
+-- name to the new position's name for the same representation variable.
+-- A renaming that RESPECTS the two name maps keeps the reading, so the
+-- respelled conversion is a `SameConv` of the original.
+-- Commentary.md § Conversion.agda / §2b
+
+respellᶜ : Ctxᵗ → Ctxᵗ → Conv → Conv
+respellᶜ Γ Γ′ = renᶜ (respell (names Γ) (names Γ′))
+
+Respects : Renameᵗ → TyCtx → TyCtx → Set
+Respects ρ η η′ = ∀ {X α} → η ∋ˡ X := α → η′ ∋ˡ ρ X := α
+
+∋ˡ-shift⁻ : ∀ {η : TyCtx} {X α} → shiftReps η ∋ˡ X := α
+  → ∃[ β ] ((α ≡ suc β) × (η ∋ˡ X := β))
+∋ˡ-shift⁻ {η = []} ()
+∋ˡ-shift⁻ {η = β ∷ η} here = β , refl , here
+∋ˡ-shift⁻ {η = β ∷ η} (there d) with ∋ˡ-shift⁻ d
+∋ˡ-shift⁻ {η = β ∷ η} (there d) | γ , eq , d′ = γ , eq , there d′
+
+respects-ext : Respects ρ η η′
+  → Respects (extᵗ ρ) (zero ∷ shiftReps η) (zero ∷ shiftReps η′)
+respects-ext r here = here
+respects-ext r (there d) with ∋ˡ-shift⁻ d
+respects-ext r (there d) | β , refl , d′ = there (∋ˡ-ren suc (r d′))
+
+same-respects : Respects ρ η η′ → η ⊢ A ~ R → η′ ⊢ renameᵗ ρ A ~ R
+same-respects r (same-var d) = same-var (r d)
+same-respects r same-ℕ = same-ℕ
+same-respects r same-𝔹 = same-𝔹
+same-respects r (same-⇒ a b) = same-⇒ (same-respects r a) (same-respects r b)
+same-respects r (same-∀ a) = same-∀ (same-respects (respects-ext r) a)
+
 mutual
-  sameᵐ-rep-unique : ∀ {g₁ g₂} → η ⊩ᵐ g ~ g₁ → η ⊩ᵐ g ~ g₂ → g₁ ≡ g₂
-  sameᵐ-rep-unique (sameᶜ-id a) (sameᶜ-id a′) =
-    cong id (same-rep-unique a a′)
-  sameᵐ-rep-unique (sameᶜ-fun a b) (sameᶜ-fun a′ b′) =
-    cong₂ _↦_ (sameᶜ-rep-unique a a′) (sameᶜ-rep-unique b b′)
-  sameᵐ-rep-unique (sameᶜ-all a) (sameᶜ-all a′) =
-    cong `∀ (sameᶜ-rep-unique a a′)
+  sameᵐ-respects : Respects ρ η η′ → η ⊩ᵐ g ~ g′ → η′ ⊩ᵐ renᵐ ρ g ~ g′
+  sameᵐ-respects r (sameᶜ-id a) = sameᶜ-id (same-respects r a)
+  sameᵐ-respects r (sameᶜ-fun a b) =
+    sameᶜ-fun (sameᶜ-respects r a) (sameᶜ-respects r b)
+  sameᵐ-respects r (sameᶜ-all a) =
+    sameᶜ-all (sameᶜ-respects (respects-ext r) a)
 
-  sameᵀ-rep-unique : ∀ {t₁ t₂} → η ⊩ᵀ t ~ t₁ → η ⊩ᵀ t ~ t₂ → t₁ ≡ t₂
-  sameᵀ-rep-unique (sameᶜ-mid a) (sameᶜ-mid a′) =
-    cong mid (sameᵐ-rep-unique a a′)
-  sameᵀ-rep-unique (sameᶜ-seal d) (sameᶜ-seal d′) =
-    cong seal (∋ˡ-det d d′)
-  sameᵀ-rep-unique (sameᶜ-seal-seq a d) (sameᶜ-seal-seq a′ d′) =
-    cong₂ _⨾seal_ (sameᵀ-rep-unique a a′) (∋ˡ-det d d′)
+  sameᵀ-respects : Respects ρ η η′ → η ⊩ᵀ t ~ t′ → η′ ⊩ᵀ renᵀ ρ t ~ t′
+  sameᵀ-respects r (sameᶜ-mid a) = sameᶜ-mid (sameᵐ-respects r a)
+  sameᵀ-respects r (sameᶜ-seal d) = sameᶜ-seal (r d)
+  sameᵀ-respects r (sameᶜ-seal-seq a d) =
+    sameᶜ-seal-seq (sameᵀ-respects r a) (r d)
 
-  sameᶜ-rep-unique : ∀ {c₁ c₂} → η ⊩ c ~ c₁ → η ⊩ c ~ c₂ → c₁ ≡ c₂
-  sameᶜ-rep-unique (sameᶜ-tail a) (sameᶜ-tail a′) =
-    cong tail (sameᵀ-rep-unique a a′)
-  sameᶜ-rep-unique (sameᶜ-unseal d) (sameᶜ-unseal d′) =
-    cong unseal (∋ˡ-det d d′)
-  sameᶜ-rep-unique (sameᶜ-unseal-seq d a) (sameᶜ-unseal-seq d′ a′) =
-    cong₂ unseal_⨾_ (∋ˡ-det d d′) (sameᶜ-rep-unique a a′)
+  sameᶜ-respects : Respects ρ η η′ → η ⊩ s ~ s′ → η′ ⊩ renᶜ ρ s ~ s′
+  sameᶜ-respects r (sameᶜ-tail a) = sameᶜ-tail (sameᵀ-respects r a)
+  sameᶜ-respects r (sameᶜ-unseal d) = sameᶜ-unseal (r d)
+  sameᶜ-respects r (sameᶜ-unseal-seq d a) =
+    sameᶜ-unseal-seq (r d) (sameᶜ-respects r a)
 
-mutual
-  sameᵐ-target-unique : ∀ {g₁ g₂} → Unique η
-    → η ⊩ᵐ g₁ ~ g → η ⊩ᵐ g₂ ~ g → g₁ ≡ g₂
-  sameᵐ-target-unique uq (sameᶜ-id a) (sameᶜ-id a′) =
-    cong id (same-target-unique uq a a′)
-  sameᵐ-target-unique uq (sameᶜ-fun a b) (sameᶜ-fun a′ b′) =
-    cong₂ _↦_ (sameᶜ-target-unique uq a a′)
-              (sameᶜ-target-unique uq b b′)
-  sameᵐ-target-unique uq (sameᶜ-all a) (sameᶜ-all a′) =
-    cong `∀ (sameᶜ-target-unique
-               (unique∷ fresh-zero-shift (unique-shift uq)) a a′)
+-- `respell` respects any two name maps whose second keeps the first's
+-- representation variables
+respell-respects : η ⊆ᵃ η′ → Respects (respell η η′) η η′
+respell-respects {η = η} {η′ = η′} f {X} {α} d with lookupˡ? η X in e
+respell-respects {η = η} {η′ = η′} f {X} {α} d | nothing =
+  ⊥-elim (lookupˡ?-complete η X d e)
+respell-respects {η = η} {η′ = η′} f {X} {α} d | just (β , d′)
+  with ∋ˡ-det d d′
+respell-respects {η = η} {η′ = η′} f {X} {α} d | just (β , d′) | refl
+  with find? η′ α in e′
+respell-respects {η = η} {η′ = η′} f {X} {α} d | just (β , d′) | refl
+  | just (Y , d″) = d″
+respell-respects {η = η} {η′ = η′} f {X} {α} d | just (β , d′) | refl
+  | nothing with f (X , d)
+respell-respects {η = η} {η′ = η′} f {X} {α} d | just (β , d′) | refl
+  | nothing | Y , d″ = ⊥-elim (find?-complete η′ α d″ e′)
 
-  sameᵀ-target-unique : ∀ {t₁ t₂} → Unique η
-    → η ⊩ᵀ t₁ ~ t → η ⊩ᵀ t₂ ~ t → t₁ ≡ t₂
-  sameᵀ-target-unique uq (sameᶜ-mid a) (sameᶜ-mid a′) =
-    cong mid (sameᵐ-target-unique uq a a′)
-  sameᵀ-target-unique uq (sameᶜ-seal d) (sameᶜ-seal d′) =
-    cong seal (unique-lookup uq d d′)
-  sameᵀ-target-unique uq (sameᶜ-seal-seq a d) (sameᶜ-seal-seq a′ d′) =
-    cong₂ _⨾seal_ (sameᵀ-target-unique uq a a′) (unique-lookup uq d d′)
-
-  sameᶜ-target-unique : ∀ {c₁ c₂} → Unique η
-    → η ⊩ c₁ ~ c → η ⊩ c₂ ~ c → c₁ ≡ c₂
-  sameᶜ-target-unique uq (sameᶜ-tail a) (sameᶜ-tail a′) =
-    cong tail (sameᵀ-target-unique uq a a′)
-  sameᶜ-target-unique uq (sameᶜ-unseal d) (sameᶜ-unseal d′) =
-    cong unseal (unique-lookup uq d d′)
-  sameᶜ-target-unique uq (sameᶜ-unseal-seq d a) (sameᶜ-unseal-seq d′ a′) =
-    cong₂ unseal_⨾_ (unique-lookup uq d d′) (sameᶜ-target-unique uq a a′)
-
--- `Wrap`'s determinism case, in the shape `sameTy-src-unique` has.
-sameConv-src-unique : Unique η
-  → ∃[ r ] ((η ⊩ s ~ r) × (η′ ⊩ c ~ r))
-  → ∃[ r ] ((η ⊩ s′ ~ r) × (η′ ⊩ c ~ r))
-  → s ≡ s′
-sameConv-src-unique uq (r , p , q) (r′ , p′ , q′)
-  with sameᶜ-rep-unique q q′
-sameConv-src-unique uq (r , p , q) (r′ , p′ , q′) | refl =
-  sameᶜ-target-unique uq p p′
-
-sameConv-∀ : ∀ {Γ Γ′ : Ctxᵗ}
-  → SameConv (underΛ Γ) s (underΛ Γ′) s′
-  → SameConv Γ ⌞ `∀ s ⌟ Γ′ ⌞ `∀ s′ ⌟
-sameConv-∀ (r , p , q) =
-  ⌞ `∀ r ⌟ , sameᶜ-tail (sameᶜ-mid (sameᶜ-all p))
-           , sameᶜ-tail (sameᶜ-mid (sameᶜ-all q))
+-- the respelled conversion reads as the original did
+respell-same : ∀ {Γ Γ′ : Ctxᵗ} → names Γ ⊆ᵃ names Γ′
+  → names Γ ⊩ s ~ r → names Γ′ ⊩ respellᶜ Γ Γ′ s ~ r
+respell-same f p = sameᶜ-respects (respell-respects f) p
 
 ------------------------------------------------------------------------
--- 2c. Weakening a conversion across a boundary scope crossing
+-- 2c. Reading a typed conversion; weakening a type
 ------------------------------------------------------------------------
 
 -- `Q` and `dual-conversion-exists` live with the relational context
@@ -481,35 +485,6 @@ weaken-ty f (same-⇒ a b) | A′ , a′ | B′ , b′ =
 weaken-ty f (same-∀ a) with weaken-ty (⊆ᵃ-underΛ f) a
 weaken-ty f (same-∀ a) | A′ , a′ = `∀ A′ , same-∀ a′
 
-
-mutual
-  weakenᵐ : ∀ {g₀} → η ⊆ᵃ η′ → η ⊩ᵐ g ~ g₀ → ∃[ g′ ] (η′ ⊩ᵐ g′ ~ g₀)
-  weakenᵐ f (sameᶜ-id a) with weaken-ty f a
-  weakenᵐ f (sameᶜ-id a) | A′ , a′ = id A′ , sameᶜ-id a′
-  weakenᵐ f (sameᶜ-fun a b) with weaken f a
-  weakenᵐ f (sameᶜ-fun a b) | s₁ , a′ with weaken f b
-  weakenᵐ f (sameᶜ-fun a b) | s₁ , a′ | s₂ , b′ =
-    s₁ ↦ s₂ , sameᶜ-fun a′ b′
-  weakenᵐ f (sameᶜ-all a) with weaken (⊆ᵃ-underΛ f) a
-  weakenᵐ f (sameᶜ-all a) | s₁ , a′ = `∀ s₁ , sameᶜ-all a′
-
-  weakenᵀ : ∀ {t₀} → η ⊆ᵃ η′ → η ⊩ᵀ t ~ t₀ → ∃[ t′ ] (η′ ⊩ᵀ t′ ~ t₀)
-  weakenᵀ f (sameᶜ-mid a) with weakenᵐ f a
-  weakenᵀ f (sameᶜ-mid a) | g′ , a′ = mid g′ , sameᶜ-mid a′
-  weakenᵀ f (sameᶜ-seal d) with f (_ , d)
-  weakenᵀ f (sameᶜ-seal d) | X , d′ = seal X , sameᶜ-seal d′
-  weakenᵀ f (sameᶜ-seal-seq a d) with weakenᵀ f a | f (_ , d)
-  weakenᵀ f (sameᶜ-seal-seq a d) | t′ , a′ | X , d′ =
-    t′ ⨾seal X , sameᶜ-seal-seq a′ d′
-
-  weaken : ∀ {c₀} → η ⊆ᵃ η′ → η ⊩ c ~ c₀ → ∃[ c′ ] (η′ ⊩ c′ ~ c₀)
-  weaken f (sameᶜ-tail a) with weakenᵀ f a
-  weaken f (sameᶜ-tail a) | t′ , a′ = tail t′ , sameᶜ-tail a′
-  weaken f (sameᶜ-unseal d) with f (_ , d)
-  weaken f (sameᶜ-unseal d) | X , d′ = unseal X , sameᶜ-unseal d′
-  weaken f (sameᶜ-unseal-seq d a) with f (_ , d) | weaken f a
-  weaken f (sameᶜ-unseal-seq d a) | X , d′ | c′ , a′ =
-    unseal X ⨾ c′ , sameᶜ-unseal-seq d′ a′
 
 mutual
   readableᵐ : Δ ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B → ∃[ r ] (names Δ ⊩ᵐ g ~ r)
@@ -538,40 +513,6 @@ mutual
   readable (conv-unseal-seq (d , rd , _) ok a ¬id nc) with readable a
   readable (conv-unseal-seq (d , rd , _) ok a ¬id nc) | r , a′ =
     unseal _ ⨾ r , sameᶜ-unseal-seq d a′
-
-premise-exists : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ Θ′ : Boundary} {p : Pol}
-  → Γ ⊢ⁱ Θ ⇒ Γᵢ
-  → Γ ⊢ᶜ Θ ⇒ Γᶜ
-  → Γᵢ ⊢ᶜ dual Θ ⇒ Γᵈ
-  → Γᶜ ∣ Θ′ ⊢[ p ] s ∶ A ⇝ B
-  → ∃[ s′ ] SameConv Γᵈ s′ Γᶜ s
-premise-exists int conv dconv ⊢s with readable ⊢s
-premise-exists int conv dconv ⊢s | r , rd
-  with weaken (Q int conv dconv) rd
-premise-exists int conv dconv ⊢s | r , rd | s′ , rd′ =
-  s′ , (r , rd′ , rd)
-
-wrap-premises : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ Θ′ : Boundary} {p : Pol}
-  → Unique (names Γ)
-  → Γ ⊢ⁱ Θ ⇒ Γᵢ
-  → Γ ⊢ᶜ Θ ⇒ Γᶜ
-  → Γᶜ ∣ Θ′ ⊢[ p ] s ∶ A ⇝ B
-  → ∃[ Γᵈ ] ∃[ s′ ]
-      ((Γᵢ ⊢ᶜ dual Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
-wrap-premises uq int conv ⊢s with dual-conversion-exists uq int
-wrap-premises uq int conv ⊢s | Γᵈ , dconv
-  with premise-exists int conv dconv ⊢s
-wrap-premises uq int conv ⊢s | Γᵈ , dconv | s′ , sc =
-  Γᵈ , s′ , dconv , sc
-
-wrap-premises-boundary : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ Θ′ : Boundary} {p : Pol}
-  → BoundaryWf Γ Θ Γᵢ Γᶜ
-  → Γᶜ ∣ Θ′ ⊢[ p ] s ∶ A ⇝ B
-  → ∃[ Γᵈ ] ∃[ s′ ]
-      ((Γᵢ ⊢ᶜ dual Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
-wrap-premises-boundary mwΘ ⊢s =
-  wrap-premises (name-fn (bw-exterior mwΘ)) (bw-interior mwΘ)
-                (bw-conversion mwΘ) ⊢s
 
 ------------------------------------------------------------------------
 -- 2d. Renaming the representation universe

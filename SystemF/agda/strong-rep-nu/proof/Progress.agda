@@ -3,7 +3,7 @@ module strong-rep-nu.proof.Progress where
 -- File Charter:
 --   * PROGRESS for the two-universe conversion-boundary calculus.
 --     §1 local inversions and representation readings; §2 the
---     `Merge` redex and its carried spellings (`merge-redex`); §3 base
+--     `Merge` redex (`merge-redex`); §3 base
 --     identities; §4 the boundary cases; §5 the induction.
 --   * The ordinary cases are the standard induction over
 --     strong-rep-nu.proof.Canonical; the boundary cases additionally
@@ -51,35 +51,26 @@ same-base-src base-ℕ same-ℕ = refl
 same-base-src base-𝔹 same-𝔹 = refl
 
 ------------------------------------------------------------------------
--- 2. The merged frame's readings and the carried spellings
+-- 2. The merged frame's readings
 ------------------------------------------------------------------------
 
 -- `Merge`'s premises exist whenever a boundary sits over a value's
--- boundary: the merged conversion reading (`merged-conversion-exists`)
--- retains both old conversion contexts' names, so `weaken` moves each
--- conversion there.
+-- boundary: the merged conversion reading exists
+-- (`merged-conversion-exists`), and the spellings are computed.
 -- Commentary.md § proof/Progress.agda / §2
-merge-redex : ∀ {Δ Δᵢ Δ₂ᶜ U Θ₁ Θ₂ t₁ c₂ B C D}
+merge-redex : ∀ {Δ Δᵢ Δ₂ᶜ U Θ₁ Θ₂ t₁ c₂ B}
   → Simple U → InertTail t₁
   → BoundaryWf Δ Θ₂ Δᵢ Δ₂ᶜ
   → Δᵢ ∣ [] ⊢ U ⟪ Θ₁ , tail t₁ ⟫ ⦂ B
-  → Δ₂ᶜ ∣ Θ₂ ⊢[ ⁺ ] c₂ ∶ C ⇝ D
   → Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ]
       (Δ ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫ -→ M′ ∣ δ)
-merge-redex u it mw₂ (boundary mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c₂
+merge-redex u it mw₂ (boundary mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
   with merged-conversion-exists mw₂ mw₁
-merge-redex u it mw₂ (boundary mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c₂
-  | Δ⋉ᶜ , r⋉ , keep₁ with readableᵀ ⊢t₁ | readable ⊢c₂
-merge-redex u it mw₂ (boundary mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c₂
-  | Δ⋉ᶜ , r⋉ , keep₁ | r₁ , rd₁ | r₂ , rd₂
-  with weakenᵀ keep₁ rd₁
-     | weaken (merged-keeps₂ (bw-conversion mw₂) r⋉) rd₂
-merge-redex u it mw₂ (boundary mw₁ ⊢U (conv-tail ⊢t₁) sm₁ se₁ wB) ⊢c₂
-  | Δ⋉ᶜ , r⋉ , keep₁ | r₁ , rd₁ | r₂ , rd₂ | t₁′ , rd₁′ | c₂′ , rd₂′ =
+merge-redex u it mw₂ (boundary mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
+  | Δ⋉ᶜ , r⋉ , keep₁ =
   _ , none
   , Merge u it (bw-interior mw₂) (bw-conversion mw₁) (bw-conversion mw₂)
-          r⋉ (tail r₁ , sameᶜ-tail rd₁′ , sameᶜ-tail rd₁)
-          (r₂ , rd₂′ , rd₂)
+          r⋉
 
 ------------------------------------------------------------------------
 -- 3. Base identities
@@ -118,7 +109,7 @@ module Impl where
       ⊎ (Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ]
            (Δ ⊢ M ⟪ Θ , c ⟫ -→ M′ ∣ δ))
   progress-boundary (V-⟪⟫ u it) mwΘ ⊢M ⊢c sameᵢ =
-    inj₂ (merge-redex u it mwΘ ⊢M ⊢c)
+    inj₂ (merge-redex u it mwΘ ⊢M)
   progress-boundary (V-simple u) mwΘ ⊢M ⊢c sameᵢ with act-or-inert ⊢c
   progress-boundary (V-simple u) mwΘ ⊢M ⊢c sameᵢ | inj₂ (I-tail it) =
     inj₁ (V-⟪⟫ u it)
@@ -139,8 +130,8 @@ module Impl where
     (conv-unseal-seq d ok ⊢c n m) sameᵢ | inj₁ A-unseal-seq | Y , refl =
     ⊥-elim (simple-¬var u ⊢M)
 
-  -- A function-conversion wrapper carries its own BoundaryWf and the domain
-  -- conversion typing needed by the core `wrap-premises-boundary` theorem.
+  -- A function-conversion wrapper carries its own BoundaryWf, and the
+  -- dual's conversion reading exists (`dual-conversion-exists`).
   progress-wrap : ∀ {Δ U M Θ s t A B}
     → Simple U
     → Value M
@@ -149,11 +140,11 @@ module Impl where
         (Δ ⊢ (U ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · M -→ N ∣ δ)
   progress-wrap u vM
     (boundary mwΘ ⊢U (conv-tail (conv-mid (conv-fun ⊢s ⊢t))) sameᵢ sameₑ wE)
-    with wrap-premises-boundary mwΘ ⊢s
+    with dual-conversion-exists (name-fn (bw-exterior mwΘ)) (bw-interior mwΘ)
   progress-wrap u vM
     (boundary mwΘ ⊢U (conv-tail (conv-mid (conv-fun ⊢s ⊢t))) sameᵢ sameₑ wE)
-    | Δᵈ , s′ , rd , sc =
-    _ , _ , Wrap u vM (bw-conversion mwΘ) (bw-interior mwΘ) rd sc
+    | Δᵈ , rd =
+    _ , _ , Wrap u vM (bw-conversion mwΘ) (bw-interior mwΘ) rd
 
   -- `ν` over a Λ under a ∀ middle: always a `TyWrap` redex.
   progress-ν-∀conv : ∀ {Δ N Θ s c A C}

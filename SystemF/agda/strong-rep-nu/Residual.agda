@@ -231,22 +231,22 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
         ((ƛ A ∙ P) ·R C) M ρ D N
 
   -- Wrap, the function: it keeps its frame.
-  residual-Wrap-fun : ∀ {Δᶜ Δᵈ C M s s′ t}
+  residual-Wrap-fun : ∀ {Δᶜ Δᵈ C M s t}
     (vV : Simple (plug C M)) (vW : Value W)
     (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ)
-    (rd : Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ) (sc : SameConv Δᵈ s′ Δᶜ s)
-    → Residual (Wrap {V = plug C M} {W = W} {t = t} vV vW rc ri rd sc)
+    (rd : Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ)
+    → Residual (Wrap {V = plug C M} {W = W} {s = s} {t = t} vV vW rc ri rd)
         ((C ⟪C Θ , ⌞ s ↦ t ⌟ ⟫) ·L W) M idᵗ
-        ((C ·L (W ⟪ dual Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
+        ((C ·L (W ⟪ dual Θ , respellᶜ Δᶜ Δᵈ s ⟫)) ⟪C Θ , t ⟫) M
 
   -- Wrap, the argument: it crosses into the dual VERBATIM.
-  residual-Wrap-arg : ∀ {Δᶜ Δᵈ V C M s s′ t}
+  residual-Wrap-arg : ∀ {Δᶜ Δᵈ V C M s t}
     (vV : Simple V) (vW : Value (plug C M))
     (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ)
-    (rd : Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ) (sc : SameConv Δᵈ s′ Δᶜ s)
-    → Residual (Wrap {V = V} {W = plug C M} {t = t} vV vW rc ri rd sc)
+    (rd : Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ)
+    → Residual (Wrap {V = V} {W = plug C M} {s = s} {t = t} vV vW rc ri rd)
         ((V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) ·R C) M idᵗ
-        ((V ·R (C ⟪C dual Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
+        ((V ·R (C ⟪C dual Θ , respellᶜ Δᶜ Δᵈ s ⟫)) ⟪C Θ , t ⟫) M
 
   -- TyWrap: as TyBeta, one boundary in — the body's `Λ` slot becomes
   -- the allocated cell, and the crossed boundary is the middle layer.
@@ -260,15 +260,14 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
 
   -- Merge: the simple value keeps its frame under the merged scope,
   -- the one layer the contractum has (proof/ShiftAudit §6).
-  residual-Merge : ∀ {Δ₁ᶜ Δ₂ᶜ Δ⋉ᶜ C M Θ₁ Θ₂ t₁ t₁′ c₂ c₂′}
+  residual-Merge : ∀ {Δ₁ᶜ Δ₂ᶜ Δ⋉ᶜ C M Θ₁ Θ₂ t₁ c₂}
     (u : Simple (plug C M)) (it : InertTail t₁)
     (ri : Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) (rc₁ : Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
     (rc₂ : Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ) (rc⋉ : Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ)
-    (sc₁ : SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ (tail t₁))
-    (sc₂ : SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂)
-    → Residual (Merge {U = plug C M} u it ri rc₁ rc₂ rc⋉ sc₁ sc₂)
+    → Residual (Merge {U = plug C M} {c₂ = c₂} u it ri rc₁ rc₂ rc⋉)
         ((C ⟪C Θ₁ , tail t₁ ⟫) ⟪C Θ₂ , c₂ ⟫) M idᵗ
-        (C ⟪C Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′ ⟫) M
+        (C ⟪C Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ respellᶜ Δ₁ᶜ Δ⋉ᶜ (tail t₁)
+                              ⨟ respellᶜ Δ₂ᶜ Δ⋉ᶜ c₂ ⟫) M
 
   -- (Id: no residual — the literal is consumed
   -- with its boundary.)

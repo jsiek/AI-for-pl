@@ -636,11 +636,11 @@ on neither side of a merged boundary.
 passes through `_↦_` (`pm-flip`) and `∀` (`pm-lift`), and the crossings
 use `pm-dual` (`Wrap`) and `pm-++ˡ`/`pm-++ʳ` (`Merge`).
 
-### §2b — `SameConv`, two spellings of one conversion
+### §2b — `SameConv`, two spellings of one conversion; respelling
 
 `_⊢_≈_⊣_` (`Ctx.agda` §5) relates two ordinary spellings of ONE
 representation-universe type.  `SameConv` is the same thing for a
-CONVERSION, and it exists for the same reason: a rule that carries a
+CONVERSION, and it exists for the same reason: a rule that moves a
 conversion from one name map to another cannot reuse the spelling,
 because the two maps can reorder relative to each other (§ Reduction.agda
 / The crossing-spelling law).
@@ -649,12 +649,22 @@ A conversion mentions ordinary names at exactly three kinds of leaf —
 `seal` (bare or chained), `unseal` (bare or chained), and the type under
 `id` — so the judgement is `_⊢_~_` one universe up, structural
 everywhere else, one relation per sort (`_⊩ᵐ_~_`, `_⊩ᵀ_~_`,
-`_⊩_~_`).  `sameᶜ-rep-unique` determines
-the spelling, so a rule carrying it stays a function;
-`sameConv-src-unique` is `Wrap`'s and `Merge`'s determinism case, in
-the shape `sameTy-src-unique` has.
+`_⊩_~_`).
 
-### §2c — weakening across a crossing
+RESPELLING (2026-10-26, branch `nu-respell`).  The rules no longer carry
+the moved spelling; they compute it.  `respell η η′` (`Lookup.agda`)
+sends each name of η to η′'s name for the same representation variable,
+and `respellᶜ Γ Γ′ = renᶜ (respell (names Γ) (names Γ′))`.  A renaming
+that RESPECTS two name maps (`Respects`: each name to a name of the
+same representation variable) keeps a conversion's reading
+(`sameᶜ-respects`, through `respects-ext` under `∀`), and `respell`
+respects any two maps whose second keeps the first's representation
+variables (`respell-respects`, from the completeness of `lookupˡ?` and
+`find?`).  Together they give `respell-same`: the respelled conversion
+reads as the original did — exactly the `SameConv` the rules used to
+carry.
+
+### §2c — reading a typed conversion
 
 These facts were proved first in `notes/WrapPremise.agda`.  They are
 core infrastructure now because progress must construct every premise
@@ -1030,16 +1040,17 @@ procedures that DISCHARGE these rules' side conditions are
 This is the one law a reader of the rules must know, and it is the
 reason `Wrap` and `Merge` carry premises that look redundant.
 
-> When a rule MOVES a subterm between two name maps, the moved spelling
-> is CARRIED by the rule as a named premise and PINNED by a `Same…`
-> relation — `SameConv` (`Conversion.agda`) for a conversion,
-> `_⊢_≈_⊣_` (`Ctx.agda` §5) for a type or a bare name — and is NEVER
-> computed by a fixed renaming.  The crossing is by the
-> REPRESENTATION a name denotes, never by arithmetic on its position,
+> When a rule MOVES a conversion to another boundary's position, it is
+> RESPELLED there by `respellᶜ` (`Conversion.agda` §2b): each name to the
+> new position's name for the SAME REPRESENTATION VARIABLE.  The crossing
+> is by the representation a name denotes, never by a fixed renaming,
 > because the two contexts can reorder relative to each other.
 
-THREE such spellings are carried today: `Wrap`'s `s′` and `Merge`'s
-`t₁′` and `c₂′` (the rule's charter says so).  The table is the history
+Three conversions move today: `Wrap`'s `s` and `Merge`'s `t₁` and `c₂`.
+Until 2026-10-26 the law said the moved spelling was CARRIED as a named
+premise (`s′`, `t₁′`, `c₂′`) and pinned by a `Same…` relation;
+`notes/RespellProbe.agda` found every carried spelling equal to a
+computed one, and `nu-respell` computes them.  The table is the history
 of the five installed before the merge port, each only after a
 machine-checked defect; `Merge`'s pair replaces the `X′` and `A′` rows
 and keeps their lesson (the inner conversion is weakened FROM Θ₁'s
@@ -1068,8 +1079,8 @@ unbinds, so a later `bind` can meet a name that is already live.  That
 is the clause `conv-bind-live` (2026-09-17, `strong-rep-store/notes/ReUnlockWall.agda`,
 `Boundary.agda` §3; see § Boundary.agda / `_∣_⊢χᶜ_⇒_`).
 
-Determinism for the carried premises is `sameConv-src-unique` (both
-`Wrap`'s and `Merge`'s) and `same-rep-unique` (the ν cells).
+Determinism needs nothing for the respellings, which are functions of
+the readings, and `same-rep-unique` for the ν cells.
 
 ### The repairs the rule set carries (history)
 
@@ -1176,13 +1187,14 @@ taken at the interior — a different name map, and not merely a
 renumbering of the same one: the invariant that would have made the two
 agree, `conv(dual Θ, int(Θ,Δ)) ≡ conv(Θ,Δ)`, is FALSE here, and `_++_`
 is what breaks it (`notes/CrossingAudit.agda` §§4–6).  So the rule
-NAMES the dual's spelling `s′` and carries a `SameConv` relating it to
-`s`, exactly as `Merge` carries `t₁′` and `c₂′`.
+RESPELLS `s` at the dual's position, `respellᶜ Δᶜ Δᵈ s`, exactly as
+`Merge` respells `t₁` and `c₂`.  (Until 2026-10-26 it carried the
+respelling `s′` under a `SameConv` premise.)
 
-The premise never blocks a reduction.  The two contexts name the same
-representation variables — that is (Q), `notes/WrapPremise.agda` §5 —
-and a well-typed conversion always has a reading to transport, so a
-witness always exists (`wrap-premises-boundary`, `Conversion.agda` §2c).
+The respelling is faithful because the two contexts name the same
+representation variables — that is (Q), `notes/WrapPremise.agda` — so
+every name of `s` has a counterpart (`respell-same`, used by
+`preserve-Wrap`).
 `t` needs no premise: it stays on the same boundary, at `Δᶜ`, where it
 was read.
 
@@ -1291,16 +1303,16 @@ THE TWO CARRIED SPELLINGS.  `t₁` is read at Θ₁'s OWN conversion context
 Θ₁), and `c₂` at Θ₂'s conversion context `Δ₂ᶜ`.  Both are used at the
 merged frame's conversion context `Δ⋉ᶜ`, read at the PLAIN EXTERIOR `Δ`
 since both scopes were spelled at the same store.  Those are different
-name maps, so by the crossing-spelling law the rule NAMES the merged
-spellings `t₁′` and `c₂′` and pins them by `SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ
-(tail t₁)` and `SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂`.  Reading the inner spelling
-FROM `Δ₁ᶜ` is the lesson of the 2026-09-19 `CancelR` repair (below).  A
-witness always exists: the merged conversion reading retains both old
-contexts' names (`merged-conversion-exists`, `merged-keeps₂`), so
-`weaken` moves each conversion there (`merge-redex`,
-`proof/Progress.agda`).
+name maps, so by the crossing-spelling law the rule RESPELLS both
+there: `respellᶜ Δ₁ᶜ Δ⋉ᶜ (tail t₁)` and `respellᶜ Δ₂ᶜ Δ⋉ᶜ c₂` (until
+2026-10-26 it carried them as `t₁′`, `c₂′` under `SameConv`).  Reading
+the inner spelling FROM `Δ₁ᶜ` is the lesson of the 2026-09-19 `CancelR`
+repair (below).  The respellings are faithful: the merged conversion
+reading retains both old contexts' names (`merged-keeps₁`,
+`merged-keeps₂`), so `respell-same` applies (`preserve-Merge`).
 
-THE MIDDLE TYPE AGREES.  That `t₁′`'s target and `c₂′`'s source are the
+THE MIDDLE TYPE AGREES.  That the respelled `t₁`'s target and `c₂`'s
+source are the
 same type at `Δ⋉ᶜ` is a LEMMA, not a premise: both weaken the redex's
 one middle type at one context whose names are unique
 (`same-target-unique`, in `preserve-Merge`, `proof/MoveScope.agda`).
@@ -1385,8 +1397,8 @@ name-map `Unique`ness off it through `bw-exterior`, `bw-interior-wf`
 and `bw-conversion-wf`; NO rule carries a `Unique` premise any more.
 It concludes `M₁ ≡ M₂ × δ₁ ≡ δ₂`.
 
-* `Wrap`: the dual's spelling is pinned by `sameConv-src-unique`, once
-  the three readings have been identified.
+* `Wrap`: once the three readings have been identified the dual's
+  spelling is computed from them, so the case needs no typing.
 * `TyBeta`: determined by the redex outright (`same-rep-unique` for the
   cell).  The two ν rules' patterns are DISJOINT (a `Λ` is not a
   boundary), and each is disjoint from `ξ-ν` because its operator is a
@@ -1394,10 +1406,8 @@ It concludes `M₁ ≡ M₂ × δ₁ ≡ δ₂`.
 * `TyWrap`: determined by the redex OUTRIGHT — its contractum does not
   mention `Bᵢ`, so `conv-src-unique` is not needed at all.
 * `Merge`: the four readings are functional (`interior-functional`,
-  `conversion-functional`), and the two carried spellings `t₁′`, `c₂′`
-  are pinned by `sameConv-src-unique` at the merged conversion
-  context, whose `Unique` map is recovered from the redex typing.
-  Composition is a function, so the composites agree.  `Merge` is
+  `conversion-functional`), and the two respellings are computed from
+  them.  Composition is a function, so the composites agree.  `Merge` is
   disjoint from `ξ-⟪⟫` because its interior is a value, and from the
   drops because a literal is not a boundary.
 * The congruences: the sibling shift is a function of the store change,
@@ -1445,8 +1455,7 @@ change-list readings (`runδ`, `runχ`, `runχᶜ`); §4 representation
 payloads and context well-formedness (`wfᴿ?`, `wfRepCtx?`,
 `validNames?`, `unique?`, `wfCtx?`); §5 the two induced contexts
 `interior?` / `conversion?` and the complete witness `boundaryWf?`;
-§6 the readings between the universes (`read?`, `sameTy?`, `rebase?`,
-`weaken?`, `weakenᵀ?`); §7 the lookup square `∋:=?` (re-exported
+§6 the reading between the universes, `read?`; §7 the lookup square `∋:=?` (re-exported
 from `Lookup.agda`), type formation `wfTy?`, conversion typing `convTy?`
 and `noCancel?`; §8 `infer`; §9 the checking forms
 `check⊢`, `checkConv`, `check~`; §10 the forcing family `IsJ`/`force`
@@ -1559,11 +1568,9 @@ other, so no arithmetic on positions would do
 not name everything `η` does — which is why the rules that cross carry
 this as a premise rather than computing it.
 
-`readᶜ?` is the same thing for a CONVERSION, which is what `Wrap`
-needs: a conversion mentions ordinary names at three kinds of leaf only,
-so both directions are `read?`/`unread?` with those cases added.
-`weaken? η η′ s` is `rebase?` one universe up, and `weakenᵀ?` the
-same for a tail — `Merge` weakens its inner tail with it.
+The conversion deciders `readᶜ?`/`unreadᶜ?`/`weaken?`/`weakenᵀ?`
+were deleted on 2026-10-26: `Wrap` and `Merge` compute their
+respellings (`respellᶜ`), so nothing decides one any more.
 
 The lookup functions `find?`, `unread?` and the square `∋:=?` live in
 `Lookup.agda` since 2026-09-24, BELOW `Conversion.agda` (composition
@@ -1694,9 +1701,8 @@ re-exported here.
   and the argument's representation.
 * `MergePremises` — `Merge`'s four readings (the outer interior, the
   inner conversion context, the outer conversion context and the merged
-  one, read at the plain exterior) and both conversions weakened onto
-  the merged conversion context, `t₁′` by `weakenᵀ?` and `c₂′` by
-  `weaken?`.
+  one, read at the plain exterior).  The two respellings are computed
+  by the rule itself.
 * `CrossPremises` — `Wrap`'s crossing premises (2026-09-18): the
   boundary scope's two readings, the DUAL's conversion context (which
   the redex typing does not supply, so it is built here) and the dual's
@@ -2909,9 +2915,9 @@ It is not `convCtx Θ Δ` renumbered: (P), the identity
 FALSE here, because deleting a name from a SEQUENCE renumbers the rest
 (`notes/CrossingAudit.agda` §§4–6).  What survives is (Q) — the two
 contexts name the same representation VARIABLES (`Q`, `Boundary.agda`
-§3b) — and `Wrap` therefore carries the dual's own spelling `s′`
-together with a `SameConv` relating it to `s`.  §1 is what turns that
-premise into the dual boundary's conversion typing.
+§3b) — and `Wrap` therefore respells `s` at the dual's position
+(`respellᶜ`), with `respell-same` relating the two spellings.  §1 is
+what turns that into the dual boundary's conversion typing.
 
 ```
   §1  weakening a TYPED conversion across the crossing
@@ -3045,15 +3051,17 @@ FOUR MOVES, one per premise of the contractum's `boundary`:
               (`merged-interior`) and whose conversion context the rule
               carries.
   INTERIOR    `U`, retyped EXACTLY where it was.
-  CONVERSION  `Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′`, typed by `⊢⨟` from the two
-              weakened typings, with `Unique (names Δ⋉ᶜ)` from the
+  CONVERSION  the composite of the two respellings, typed by `⊢⨟`
+              from the two weakened typings, with `Unique (names Δ⋉ᶜ)`
+              from the
               merged reading's well-formedness.
   EXTERIOR    the redex's own exterior type `C`, related to `c₂′`'s
               target by gluing the outer `boundary`'s comparison to the
               weakening.
 ```
 
-THE MIDDLE TYPE AGREES: `t₁′`'s target and `c₂′`'s source both weaken
+THE MIDDLE TYPE AGREES: the respelled `t₁`'s target and `c₂`'s source
+both weaken
 the redex's one middle type at `Δ⋉ᶜ`, so `same-both`/`same-glue` put
 them over one representation and `same-target-unique` identifies them —
 the lemma the proposal promised in place of a premise.
@@ -3174,9 +3182,9 @@ PROGRESS for the two-universe conversion-boundary calculus.
 
 The ordinary cases are the standard induction, using
 `proof/Canonical.agda`.  Boundary reductions additionally construct the
-relational context readings and weakenings the rules carry.  `Wrap`'s
-package is proved in `Boundary.agda` / `Conversion.agda`
-(`wrap-premises-boundary`); `Merge`'s is `merge-redex` here.  Nothing is a
+relational context readings the rules carry.  `Wrap`'s dual reading
+exists by `dual-conversion-exists` (`Boundary.agda`); `Merge`'s
+readings are `merge-redex` here.  Nothing is a
 parameter.
 
 ONE BOUNDARY PER VALUE: a boundary over a boundary value is ALWAYS a
@@ -3192,11 +3200,9 @@ whatever the premise returned while shifting the sibling by `↑ᴹ[ δ ]`.
 `merge-redex`: `Merge`'s premises exist whenever a boundary sits over a
 value's boundary.  The merged conversion reading exists and retains the
 inner conversion context's names (`Boundary.merged-conversion-exists`),
-and the outer one's by `merged-keeps₂`; `readableᵀ`/`readable` read the
-two conversions, and `weakenᵀ`/`weaken` move them onto the merged
-context, which supplies `t₁′`, `c₂′` and their `SameConv`s.
-`_⊆ᵃ_` states only NAME AVAILABILITY; the weakening functions then
-construct the premise at the exact conversion being moved.  Since the
+and the outer one's by `merged-keeps₂`; the rule computes the two
+respellings itself, and `_⊆ᵃ_` (NAME AVAILABILITY) is what
+`preserve-Merge` needs to show they are faithful.  Since the
 store experiment the merged reading is read over `Δ` ITSELF — Θ₂ has no
 binds to push first.  `merged-conversion-exists` is what made progress
 unconditional on 2026-09-21 (then for `CancelR` and `IdPush`, as

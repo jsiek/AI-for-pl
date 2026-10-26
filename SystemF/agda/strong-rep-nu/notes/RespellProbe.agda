@@ -1,8 +1,11 @@
 module strong-rep-nu.notes.RespellProbe where
 
 -- File Charter:
---   * THE RESPELLING PROBE (2026-10-26).  Wrap carries `s′` and Merge
---     carries `t₁′` and `c₂′`, each pinned by `SameConv`.  Moving a
+--   * THE RESPELLING PROBE (2026-10-26).  Wrap respells `s` and Merge
+--     respells `t₁` and `c₂` (branch `nu-respell`: by `respellᶜ`, which
+--     reads the two conversion contexts' names; before it, the rules
+--     carried the spellings under `SameConv`, and this probe's results
+--     were the same).  Moving a
 --     conversion to another boundary changes which variables' scopes
 --     overlap at its position, so the indices must be renamed, like
 --     shifting under a binder.  Can that renaming be COMPUTED from the
@@ -39,6 +42,7 @@ open import strong-rep-nu.Types
 open import strong-rep-nu.Ctx
 open import strong-rep-nu.Boundary
 open import strong-rep-nu.Conversion
+open import strong-rep-nu.Lookup using (respell)
 open import strong-rep-nu.Terms
 open import strong-rep-nu.Reduction
 open import strong-rep-nu.Eval using (step)
@@ -252,12 +256,13 @@ mergeCheck n Θ₁ Θ₂ t₁ t₁′ c₂ c₂′ | I₂ , k₂ | I₁ , k =
 base : ∀ {Δ M N δ} → Δ ⊢ M -→ N ∣ δ → Tally
 base (TyBeta v same) = nil
 base (Beta v) = nil
-base {Δ = Δ} (Wrap {Θ = Θ} {s = s} {s′ = s′} v w rc ri rd sc) =
-  wrapCheck (length (names Δ)) Θ s s′
+base {Δ = Δ} (Wrap {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {Θ = Θ} {s = s} v w rc ri rd) =
+  wrapCheck (length (names Δ)) Θ s (respellᶜ Δᶜ Δᵈ s)
 base (TyWrap v same) = nil
-base {Δ = Δ} (Merge {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁} {t₁′ = t₁′} {c₂ = c₂}
-                    {c₂′ = c₂′} u it ri r₁ r₂ r⋉ sc₁ sc₂) =
-  mergeCheck (length (names Δ)) Θ₁ Θ₂ t₁ t₁′ c₂ c₂′
+base {Δ = Δ} (Merge {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Θ₁ = Θ₁}
+                    {Θ₂ = Θ₂} {t₁ = t₁} {c₂ = c₂} u it ri r₁ r₂ r⋉) =
+  mergeCheck (length (names Δ)) Θ₁ Θ₂ t₁
+    (renᵀ (respell (names Δ₁ᶜ) (names Δ⋉ᶜ)) t₁) c₂ (respellᶜ Δ₂ᶜ Δ⋉ᶜ c₂)
 base (Id u b) = nil
 base (ξ-·₁ st) = base st
 base (ξ-·₂ v st) = base st

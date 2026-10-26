@@ -84,7 +84,7 @@ erasure-stutter w ⊢M (TyBeta v p) ()
 erasure-stutter w ⊢M (Beta v) ()
 erasure-stutter w ⊢M (TyWrap v p) ()
 erasure-stutter {Δ} w ⊢M
-    (Wrap {V = V} {W = W} {Θ = Θ} v wv rc ri rd sc) s =
+    (Wrap {V = V} {W = W} {Θ = Θ} v wv rc ri rd) s =
   cong (S._·_ (erase (inside Δ Θ) V))
        (cong (λ D → erase D W) (sym back))
   where
@@ -92,7 +92,7 @@ erasure-stutter {Δ} w ⊢M
   back = trans (cong (λ D → inside D (dual Θ)) (inside-sound ri))
                (inside-sound (dual-interior ri))
 erasure-stutter {Ξ ∣ η} w ⊢M
-    (Merge {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} u it ri r₁ r₂ r⋉ sc₁ sc₂) s =
+    (Merge {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} u it ri r₁ r₂ r⋉) s =
   cong (λ η′ → erase (Ξ ∣ η′) U) (sym (interiorⁿ-++ Θ₁ Θ₂ η))
 erasure-stutter {Δ} w
     (boundary mw ⊢U (conv-tail (conv-mid (conv-id b′))) pᵢ sₑ wE)
@@ -154,8 +154,8 @@ erasure-step {Ξ ∣ η} w
   ⊢N′ : underΛ (inside (Ξ ∣ η) Θ) ∣ [] ⊢ N ⦂ _
   ⊢N′ = subst (λ D → underΛ D ∣ [] ⊢ N ⦂ _)
               (sym (inside-sound (bw-interior mw))) ⊢N
-erasure-step w ⊢M (Wrap v wv rc ri rd sc) ns = ⊥-elim (ns tt)
-erasure-step w ⊢M (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) ns = ⊥-elim (ns tt)
+erasure-step w ⊢M (Wrap v wv rc ri rd) ns = ⊥-elim (ns tt)
+erasure-step w ⊢M (Merge u it ri r₁ r₂ r⋉) ns = ⊥-elim (ns tt)
 erasure-step w ⊢M (Id u b) ns = ⊥-elim (ns tt)
 erasure-step {Δ} w (⊢· ⊢L ⊢M) (ξ-·₁ {L′ = L′} {δ = δ} st) ns =
   subst (λ T → _ ⟶ˢ S._·_ (erase (apply δ Δ) L′) T)

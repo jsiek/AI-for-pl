@@ -67,11 +67,11 @@ Wrap-frame : ∀ {Γᵢ : Ctxᵗ} (Θ : Boundary) (Γ : Ctxᵗ)
 Wrap-frame Θ Γ = dual-interior
 
 -- … and Wrap allocates nothing, so its siblings do not move either.
-Wrap-no-alloc : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Simple V → Value W
+Wrap-no-alloc : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s t} → Simple V → Value W
   → Δ ⊢ᶜ Θ ⇒ Δᶜ → Δ ⊢ⁱ Θ ⇒ Δᵢ
-  → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
+  → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ
   → Δ ⊢ (V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · W
-      -→ (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ∣ none
+      -→ (V · (W ⟪ dual Θ , respellᶜ Δᶜ Δᵈ s ⟫)) ⟪ Θ , t ⟫ ∣ none
 Wrap-no-alloc = Wrap
 
 ------------------------------------------------------------------------
@@ -281,9 +281,9 @@ Id-only-simple : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ
   → (∀ {U Θ A} → Simple U → M ≡ U ⟪ Θ , ⌞ id A ⌟ ⟫ → M′ ≡ U)
 Id-only-simple (TyBeta v p)              u ()
 Id-only-simple (Beta w)                u ()
-Id-only-simple (Wrap v w rc ri rd sc)  u ()
+Id-only-simple (Wrap v w rc ri rd)  u ()
 Id-only-simple (TyWrap v p)      u ()
-Id-only-simple (Merge u′ it ri r₁ r₂ r⋉ sc₁ sc₂) () refl
+Id-only-simple (Merge u′ it ri r₁ r₂ r⋉) () refl
 Id-only-simple (Id u′ b)             u refl = refl
 Id-only-simple (ξ-·₁ st)              u ()
 Id-only-simple (ξ-·₂ v st)            u ()

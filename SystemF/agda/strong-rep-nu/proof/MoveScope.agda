@@ -84,26 +84,26 @@ merged-keeps₁ mw₂ mw₁ r⋉ | Γ⋉ , r⋉′ , keep | refl = keep
 -- Commentary.md § proof/MoveScope.agda / §3
 preserve-Merge : MergeCase
 preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ}
-               {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁} {t₁′ = t₁′}
-               {c₂ = c₂} {c₂′ = c₂′} {C = C}
-               wfΔ u it ri r₁ r₂ r⋉ (r₁ʳ , p⋉₁ , p₁) (r₂ʳ , p⋉₂ , p₂)
+               {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁}
+               {c₂ = c₂} {C = C}
+               wfΔ u it ri r₁ r₂ r⋉
                (boundary mw₂ (boundary {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
                     ⊢c₂ sm₂ se₂ wE)
   with interior-functional (bw-interior mw₂) ri
      | conversion-functional (bw-conversion mw₂) r₂
 preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ}
-               {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁} {t₁′ = t₁′}
-               {c₂ = c₂} {c₂′ = c₂′} {C = C}
-               wfΔ u it ri r₁ r₂ r⋉ (r₁ʳ , p⋉₁ , p₁) (r₂ʳ , p⋉₂ , p₂)
+               {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁}
+               {c₂ = c₂} {C = C}
+               wfΔ u it ri r₁ r₂ r⋉
                (boundary mw₂ (boundary {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
                     ⊢c₂ sm₂ se₂ wE)
   | refl | refl
   with conversion-functional (bw-conversion mw₁) r₁
      | same-rep-unique se₁ sm₂
 preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ}
-               {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁} {t₁′ = t₁′}
-               {c₂ = c₂} {c₂′ = c₂′} {C = C}
-               wfΔ u it ri r₁ r₂ r⋉ (r₁ʳ , p⋉₁ , p₁) (r₂ʳ , p⋉₂ , p₂)
+               {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁}
+               {c₂ = c₂} {C = C}
+               wfΔ u it ri r₁ r₂ r⋉
                (boundary mw₂ (boundary {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
                     ⊢c₂ sm₂ se₂ wE)
   | refl | refl | refl | refl =
@@ -112,15 +112,22 @@ preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂
   mw⋉ : BoundaryWf Δ (Θ₁ ++ Θ₂) Δ₁ᵢ Δ⋉ᶜ
   mw⋉ = bw wfΔ (merged-interior (bw-interior mw₂) (bw-interior mw₁)) r⋉
 
+  -- each part reads as some r at its own position, and its respelling
+  -- at the merged one as the same r (every name it uses survives)
+  p₁ = proj₂ (readable ⊢t₁)
+  p₂ = proj₂ (readable ⊢c₂)
+
   ⊢t₁′ = weaken-⊢ {Γ = Δ₁ᶜ} {Γ′ = Δ⋉ᶜ}
            (trans (conversion-reps r⋉)
                   (sym (trans (conversion-reps r₁) (interior-reps ri))))
            (name-fn (bw-conversion-wf mw₁))
-           (merged-keeps₁ mw₂ mw₁ r⋉) (pm-++ˡ Θ₂) p₁ p⋉₁ ⊢t₁
+           (merged-keeps₁ mw₂ mw₁ r⋉) (pm-++ˡ Θ₂) p₁
+           (respell-same {Γ = Δ₁ᶜ} {Γ′ = Δ⋉ᶜ} (merged-keeps₁ mw₂ mw₁ r⋉) p₁) ⊢t₁
 
   ⊢c₂′ = weaken-⊢ {Γ = Δ₂ᶜ} {Γ′ = Δ⋉ᶜ}
            (trans (conversion-reps r⋉) (sym (conversion-reps r₂)))
            (name-fn (bw-conversion-wf mw₂))
-           (merged-keeps₂ r₂ r⋉) (pm-++ʳ Θ₁) p₂ p⋉₂ ⊢c₂
+           (merged-keeps₂ r₂ r⋉) (pm-++ʳ Θ₁) p₂
+           (respell-same {Γ = Δ₂ᶜ} {Γ′ = Δ⋉ᶜ} (merged-keeps₂ r₂ r⋉) p₂) ⊢c₂
 
   ⊢merged = ⊢⨟ (name-fn (conversion-wf wfΔ r⋉)) ⊢t₁′ ⊢c₂′

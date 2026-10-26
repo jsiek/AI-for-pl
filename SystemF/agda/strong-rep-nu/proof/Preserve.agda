@@ -979,25 +979,24 @@ preserve-Beta cross wfΔ (⊢· (⊢ƛ w ⊢N) ⊢W) =
 -- Commentary.md § proof/Preserve.agda / §4b
 
 WrapCase : Set
-WrapCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t C}
+WrapCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s t C}
   → WfCtx Δ → Simple V → Value W
   → Δ ⊢ᶜ Θ ⇒ Δᶜ → Δ ⊢ⁱ Θ ⇒ Δᵢ
-  → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
+  → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ
   → Δ ∣ [] ⊢ (V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · W ⦂ C
   → Δ ∣ [] ⊢
-      (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ⦂ C
+      (V · (W ⟪ dual Θ , respellᶜ Δᶜ Δᵈ s ⟫)) ⟪ Θ , t ⟫ ⦂ C
 
 MergeCase : Set
-MergeCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ₂ᶜ Δ⋉ᶜ U Θ₁ Θ₂ t₁ t₁′ c₂ c₂′ C}
+MergeCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ₂ᶜ Δ⋉ᶜ U Θ₁ Θ₂ t₁ c₂ C}
   → WfCtx Δ → Simple U → InertTail t₁
   → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
   → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
   → Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ
   → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
-  → SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ (tail t₁)
-  → SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂
   → Δ ∣ [] ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫ ⦂ C
-  → Δ ∣ [] ⊢ U ⟪ Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′ ⟫ ⦂ C
+  → Δ ∣ [] ⊢ U ⟪ Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ respellᶜ Δ₁ᶜ Δ⋉ᶜ (tail t₁)
+                                ⨟ respellᶜ Δ₂ᶜ Δ⋉ᶜ c₂ ⟫ ⦂ C
 
 ------------------------------------------------------------------------
 -- §5. What a step did to the store
@@ -1009,9 +1008,9 @@ MergeCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ₂ᶜ Δ⋉ᶜ U Θ₁ Θ₂ t₁ t₁′ 
 step-alloc : ∀ {Δ M M′ δ} → WfCtx Δ → Δ ⊢ M -→ M′ ∣ δ → AllocWf δ Δ
 step-alloc wfΔ (TyBeta v p) = aw-new (same-wfᴿ wfΔ p)
 step-alloc wfΔ (Beta w) = aw-none
-step-alloc wfΔ (Wrap v w rc ri rd sc) = aw-none
+step-alloc wfΔ (Wrap v w rc ri rd) = aw-none
 step-alloc wfΔ (TyWrap v p) = aw-new (same-wfᴿ wfΔ p)
-step-alloc wfΔ (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) = aw-none
+step-alloc wfΔ (Merge u it ri r₁ r₂ r⋉) = aw-none
 step-alloc wfΔ (Id u b) = aw-none
 step-alloc wfΔ (ξ-·₁ st) = step-alloc wfΔ st
 step-alloc wfΔ (ξ-·₂ v st) = step-alloc wfΔ st
@@ -1037,11 +1036,11 @@ module Impl
     → Δ ⊢ M -→ M′ ∣ δ → apply δ Δ ∣ [] ⊢ M′ ⦂ A
   preserve wfΔ ⊢M (TyBeta v p) = preserve-TyBeta wfΔ p ⊢M
   preserve wfΔ ⊢M (Beta v) = preserve-Beta crossΛ wfΔ ⊢M
-  preserve wfΔ ⊢M (Wrap v w rc ri rd sc) =
-    wrap wfΔ v w rc ri rd sc ⊢M
+  preserve wfΔ ⊢M (Wrap v w rc ri rd) =
+    wrap wfΔ v w rc ri rd ⊢M
   preserve wfΔ ⊢M (TyWrap v p) = preserve-TyWrap wfΔ p ⊢M
-  preserve wfΔ ⊢M (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) =
-    merge wfΔ u it ri r₁ r₂ r⋉ sc₁ sc₂ ⊢M
+  preserve wfΔ ⊢M (Merge u it ri r₁ r₂ r⋉) =
+    merge wfΔ u it ri r₁ r₂ r⋉ ⊢M
   preserve wfΔ ⊢M (Id u b) = preserve-Id wfΔ u b ⊢M
   preserve wfΔ (⊢· ⊢L ⊢M) (ξ-·₁ st) =
     ⊢· (preserve wfΔ ⊢L st) (⊢↑ shift (step-alloc wfΔ st) ⊢M)

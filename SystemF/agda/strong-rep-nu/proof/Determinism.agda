@@ -5,9 +5,9 @@ module strong-rep-nu.proof.Determinism where
 --     DERIVATION and concludes `M₁ ≡ M₂ × δ₁ ≡ δ₂`: uniqueness of the
 --     contractum AND of the store change.  Name-map uniqueness is read
 --     off the typing through `bw-exterior`; the carried readings are
---     identified by `interior-functional`/`conversion-functional`, the
---     weakenings (Wrap's `s′`, Merge's `t₁′` and `c₂′`) by
---     `sameConv-src-unique`.  The public statement is
+--     identified by `interior-functional`/`conversion-functional`.
+--     The respellings (Wrap's, Merge's two) are computed from the
+--     scopes alone, so Wrap and Merge need no typing at all.  The public statement is
 --     strong-rep-nu.TypeSafety.
 --   * Commentary: Commentary.md § Reduction.agda / det.
 
@@ -50,76 +50,44 @@ det _ (Beta w)     (ξ-·₂ v st) = ⊥-elim (value-¬step w st)
 det _ (ξ-·₁ st)   (Beta w)     = ⊥-elim (value-¬step (V-simple S-ƛ) st)
 det _ (ξ-·₂ v st) (Beta w)     = ⊥-elim (value-¬step w st)
 
--- Wrap
--- the dual's spelling is pinned by `sameConv-src-unique`
-det (⊢· (boundary mwΘ _ _ _ _ _) _)
-    (Wrap v w rc ri rd sc) (Wrap v′ w′ rc′ ri′ rd′ sc′)
-  with conversion-functional rc rc′ | interior-functional ri ri′
-det (⊢· (boundary mwΘ _ _ _ _ _) _)
-    (Wrap v w rc ri rd sc) (Wrap v′ w′ rc′ ri′ rd′ sc′)
-  | refl | refl with conversion-functional rd rd′
-det (⊢· (boundary mwΘ _ _ _ _ _) _)
-    (Wrap v w rc ri rd sc) (Wrap v′ w′ rc′ ri′ rd′ sc′)
-  | refl | refl | refl
-  with sameConv-src-unique
-         (dual-unique (name-fn (bw-exterior mwΘ)) ri rd) sc sc′
-det (⊢· (boundary mwΘ _ _ _ _ _) _)
-    (Wrap v w rc ri rd sc) (Wrap v′ w′ rc′ ri′ rd′ sc′)
-  | refl | refl | refl | refl = refl , refl
-det _ (Wrap v w rc ri rd sc) (ξ-·₁ st) =
+-- Wrap — the dual's spelling is computed from the scope alone.
+det _ (Wrap v w) (Wrap v′ w′) = refl , refl
+det _ (Wrap v w) (ξ-·₁ st) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
-det _ (Wrap v w rc ri rd sc) (ξ-·₂ u′ st) =
+det _ (Wrap v w) (ξ-·₂ u′ st) =
   ⊥-elim (value-¬step w st)
-det _ (ξ-·₁ st) (Wrap v w rc ri rd sc) =
+det _ (ξ-·₁ st) (Wrap v w) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
-det _ (ξ-·₂ u′ st) (Wrap v w rc ri rd sc) =
+det _ (ξ-·₂ u′ st) (Wrap v w) =
   ⊥-elim (value-¬step w st)
 
 -- TyWrap (ν over a boundary) — determined by the redex outright.
-det _ (TyWrap v rel ⊢s same)
-    (TyWrap v′ rel′ ⊢s′ same′)
+det _ (TyWrap v same)
+    (TyWrap v′ same′)
   with same-rep-unique same same′
-det _ (TyWrap v rel ⊢s same)
-    (TyWrap v′ rel′ ⊢s′ same′) | refl = refl , refl
-det _ (TyWrap v rel ⊢s same) (ξ-ν st) =
+det _ (TyWrap v same)
+    (TyWrap v′ same′) | refl = refl , refl
+det _ (TyWrap v same) (ξ-ν st) =
   ⊥-elim (value-¬step (V-⟪⟫ (S-Λ v) I-all) st)
-det _ (ξ-ν st) (TyWrap v rel ⊢s same) =
+det _ (ξ-ν st) (TyWrap v same) =
   ⊥-elim (value-¬step (V-⟪⟫ (S-Λ v) I-all) st)
 
--- Merge — the three readings are functions of the scopes, and the two
--- carried spellings are pinned at the merged conversion context.
-det (boundary mwΘ₂ _ _ _ _ _)
-    (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
-    (Merge u′ it′ ri′ r₁′ r₂′ r⋉′ sc₁′ sc₂′)
-  with interior-functional ri ri′
-det (boundary mwΘ₂ _ _ _ _ _)
-    (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
-    (Merge u′ it′ ri′ r₁′ r₂′ r⋉′ sc₁′ sc₂′) | refl
-  with conversion-functional r₁ r₁′ | conversion-functional r₂ r₂′
-     | conversion-functional r⋉ r⋉′
-det (boundary mwΘ₂ _ _ _ _ _)
-    (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
-    (Merge u′ it′ ri′ r₁′ r₂′ r⋉′ sc₁′ sc₂′)
-    | refl | refl | refl | refl
-  with sameConv-src-unique
-         (conversion-unique (name-fn (bw-exterior mwΘ₂)) r⋉) sc₁ sc₁′
-     | sameConv-src-unique
-         (conversion-unique (name-fn (bw-exterior mwΘ₂)) r⋉) sc₂ sc₂′
-det (boundary mwΘ₂ _ _ _ _ _)
-    (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
-    (Merge u′ it′ ri′ r₁′ r₂′ r⋉′ sc₁′ sc₂′)
-    | refl | refl | refl | refl | refl | refl = refl , refl
-det _ (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) (ξ-⟪⟫ frame st) =
+-- Merge — the merged reading is a function of the scope, and the two
+-- spellings are computed from the scopes alone.
+det _ (Merge u it r⋉) (Merge u′ it′ r⋉′)
+  with conversion-functional r⋉ r⋉′
+det _ (Merge u it r⋉) (Merge u′ it′ r⋉′) | refl = refl , refl
+det _ (Merge u it r⋉) (ξ-⟪⟫ frame st) =
   ⊥-elim (value-¬step (V-⟪⟫ u it) st)
-det _ (ξ-⟪⟫ frame st) (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) =
+det _ (ξ-⟪⟫ frame st) (Merge u it r⋉) =
   ⊥-elim (value-¬step (V-⟪⟫ u it) st)
 
 -- Id
 det _ (Id u b) (Id u′ b′) = refl , refl
 det _ (Id u b) (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step (V-simple u) st)
 det _ (ξ-⟪⟫ frame st) (Id u b) = ⊥-elim (value-¬step (V-simple u) st)
-det _ (Id () b) (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂)
-det _ (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) (Id () b)
+det _ (Id () b) (Merge u it r⋉)
+det _ (Merge u it r⋉) (Id () b)
 
 -- the congruences: the sibling shift is a function of the store change
 det (⊢· ⊢L ⊢M) (ξ-·₁ st) (ξ-·₁ st′) with det ⊢L st st′
@@ -128,8 +96,8 @@ det _ (ξ-·₁ st) (ξ-·₂ v st′) = ⊥-elim (value-¬step v st)
 det _ (ξ-·₂ v st) (ξ-·₁ st′) = ⊥-elim (value-¬step v st′)
 det (⊢· ⊢L ⊢M) (ξ-·₂ v st) (ξ-·₂ u st′) with det ⊢M st st′
 det (⊢· ⊢L ⊢M) (ξ-·₂ v st) (ξ-·₂ u st′) | refl , refl = refl , refl
-det (⊢ν wA rA ⊢L mw ⊢c same wB) (ξ-ν st) (ξ-ν st′) with det ⊢L st st′
-det (⊢ν wA rA ⊢L mw ⊢c same wB) (ξ-ν st) (ξ-ν st′) | refl , refl = refl , refl
+det (⊢ν wA rA ⊢L mw ⊢c smC same wB) (ξ-ν st) (ξ-ν st′) with det ⊢L st st′
+det (⊢ν wA rA ⊢L mw ⊢c smC same wB) (ξ-ν st) (ξ-ν st′) | refl , refl = refl , refl
 det (boundary mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
   with interior-functional rel rel′
 det (boundary mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)

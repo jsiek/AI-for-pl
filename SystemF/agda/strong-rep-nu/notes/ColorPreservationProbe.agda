@@ -94,27 +94,19 @@ t = ⌞ ⌞ id (` 1) ⌟ ↦ ⌞ id (` 1) ⌟ ⌟
 Ex₁ : Term
 Ex₁ = (F ⟪ Θ₀ , ⌞ s ↦ t ⌟ ⟫) · W
 
--- Wrap's premises, decided by the evaluator's own procedure — at the
--- ALLOCATED ambient, which is where the Wrap fires.
-cross : CrossPremises Δ₁ Θ₀ s
-cross = force (crossPremises? Δ₁ Θ₀ s) tt
+-- The scope's interior reading, decided by the type checker's own
+-- procedure at the ALLOCATED ambient, where the Wrap fires.  `Wrap`
+-- itself reads no context; the residual and the congruence after it
+-- need this reading.
+Δᵢ : Ctxᵗ
+Δᵢ = proj₁ (force (interior? Δ₁ Θ₀) tt)
 
-Δᶜ Δᵢ Δᵈ : Ctxᵗ
-Δᶜ = proj₁ cross
-Δᵢ = proj₁ (proj₂ cross)
-Δᵈ = proj₁ (proj₂ (proj₂ cross))
-
-s′ : Conv
-s′ = proj₁ (proj₂ (proj₂ (proj₂ cross)))
-
-rc : Δ₁ ⊢ᶜ Θ₀ ⇒ Δᶜ
-rc = proj₁ (proj₂ (proj₂ (proj₂ (proj₂ cross))))
 ri : Δ₁ ⊢ⁱ Θ₀ ⇒ Δᵢ
-ri = proj₁ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ cross)))))
-rd : Δᵢ ⊢ᶜ dual Θ₀ ⇒ Δᵈ
-rd = proj₁ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ cross))))))
-sc : SameConv Δᵈ s′ Δᶜ s
-sc = proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ cross))))))
+ri = proj₂ (force (interior? Δ₁ Θ₀) tt)
+
+s′ : Conv                      -- the dual's spelling, computed from
+                               -- the scope alone
+s′ = respellᶜ Θ₀ Θ₀ (dual Θ₀) s
 
 W′ : Term                      -- the argument, moved: wrapped in the
                                -- dual, and moved VERBATIM
@@ -131,7 +123,7 @@ pA = same-var here
 
 run : Δ₀ ⊢ Ex -→* Ex₃
 run = ξ-·₁ (TyBeta (V-simple S-ƛ) pA)
-      then Wrap S-ƛ (V-simple S-ƛ) rc ri rd sc
+      then Wrap S-ƛ (V-simple S-ƛ)
       then ξ-⟪⟫ ri (Beta (V-⟪⟫ S-ƛ I-fun))
       then done
 
@@ -159,7 +151,7 @@ res : Residuals run C₀ W ρ★ C₃ W
 res = residuals-step
         (residual-ξ-·₁-sib (TyBeta (V-simple S-ƛ) pA))
       (residuals-step
-        (residual-Wrap-arg S-ƛ (V-simple S-ƛ) rc ri rd sc)
+        (residual-Wrap-arg S-ƛ (V-simple S-ƛ) ri)
       (residuals-step
         (residual-ξ-⟪⟫ ri
           (residual-Beta-arg (V-⟪⟫ S-ƛ I-fun) (copy-var image-here)))

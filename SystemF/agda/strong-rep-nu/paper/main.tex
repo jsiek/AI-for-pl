@@ -247,41 +247,61 @@ Conversions
 \end{align*}
 \end{minipage}
 
-Well-typed conversions \hfill \fbox{$\Delta \vdash c : A \Rightarrow B$}
+Polarities \quad $p ::= + \mid -$ \qquad
+\fbox{$\mathsf{seal}^{p}(\delta)$, \ $\mathsf{unseal}^{p}(\delta)$}
+\quad permissions granted by a scope
+\begin{gather*}
+  \mathsf{seal}^{+}(\delta) = \{ \alpha \mid {-X}^\alpha \in \delta \text{ for some } X \}
+  \qquad
+  \mathsf{seal}^{-}(\delta) = \{ \alpha \mid {+X}^\alpha \in \delta \text{ for some } X \}
+  \\
+  \mathsf{unseal}^{p}(\delta) = \mathsf{seal}^{-p}(\delta)
+\end{gather*}
+
+Well-typed conversions \hfill \fbox{$\Delta \mid \delta \vdash^{p} c : R \Rightarrow S$}
 \begin{gather*}
   \inference
    {}
-   {\Delta \vdash \id{\iota} : \iota \Rightarrow \iota}
+   {\Delta \mid \delta \vdash^{p} \id{\iota} : \iota \Rightarrow \iota}
   \quad
   \inference
    {X \by \alpha \in \Delta}
-   {\Delta \vdash \id{X} : X \Rightarrow X}
+   {\Delta \mid \delta \vdash^{p} \id{X} : \alpha \Rightarrow \alpha}
   \\[2ex]
   \inference
-   {\Delta \vdash c : A' \Rightarrow A & \Delta \vdash d : B \Rightarrow B'}
-   {\Delta \vdash c \tu d : A \to B \Rightarrow A' \to B'}
-  \quad
-  \inference
-   {\Delta, \alpha, X \by \alpha \vdash c : A \Rightarrow B}
-   {\Delta \vdash \all{X} c : \all{X} A \Rightarrow \all{X} B}(X,\alpha \notin \Delta)
+   {\Delta \mid \delta \vdash^{-p} c : R' \Rightarrow R &
+    \Delta \mid \delta \vdash^{p} d : S \Rightarrow S'}
+   {\Delta \mid \delta \vdash^{p} c \tu d : R \to S \Rightarrow R' \to S'}
   \\[2ex]
   \inference
-   {X \by A \in \Delta}
-   {\Delta \vdash \seal{X} : A \Rightarrow X}
+   {\Delta, \alpha, X \by \alpha \mid \delta \vdash^{p} c :
+      R[X \mapsto \alpha] \Rightarrow S[X \mapsto \alpha]}
+   {\Delta \mid \delta \vdash^{p} \all{X} c : \all{X} R \Rightarrow \all{X} S}
+   (X,\alpha \notin \Delta)
+  \\[2ex]
+  \inference
+   {X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta &
+    \alpha \in \mathsf{seal}^{p}(\delta)}
+   {\Delta \mid \delta \vdash^{p} \seal{X} : \Delta(A) \Rightarrow \alpha}
   \quad
   \inference
-   {\Delta \vdash t : A \Rightarrow B & X \by B \in \Delta &
+   {\Delta \mid \delta \vdash^{p} t : R \Rightarrow \Delta(A) \\
+    X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta \\
+    \alpha \in \mathsf{seal}^{p}(\delta) &
     t \sm \seal{X} = t ; \seal{X}}
-   {\Delta \vdash t ; \seal{X} : A \Rightarrow X}
+   {\Delta \mid \delta \vdash^{p} t ; \seal{X} : R \Rightarrow \alpha}
   \\[2ex]
   \inference
-   {X \by A \in \Delta}
-   {\Delta \vdash \unseal{X} : X \Rightarrow A}
+   {X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta &
+    \alpha \in \mathsf{unseal}^{p}(\delta)}
+   {\Delta \mid \delta \vdash^{p} \unseal{X} : \alpha \Rightarrow \Delta(A)}
   \quad
   \inference
-   {X \by A \in \Delta & \Delta \vdash c : A \Rightarrow B &
-    \unseal{X} \sm c = \unseal{X} ; c}
-   {\Delta \vdash \unseal{X} ; c : X \Rightarrow B}
+   {X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta \\
+    \alpha \in \mathsf{unseal}^{p}(\delta) &
+    \unseal{X} \sm c = \unseal{X} ; c \\
+    \Delta \mid \delta \vdash^{p} c : \Delta(A) \Rightarrow S}
+   {\Delta \mid \delta \vdash^{p} \unseal{X} ; c : \alpha \Rightarrow S}
 \end{gather*}
 \end{flushleft}
 
@@ -339,15 +359,17 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
   \\[2ex]
   \inference
    {\Delta \vdash A & \Delta \mid \Gamma \vdash L : \all{X} C \\
-    \Delta,\alpha\by\Delta(A),X\by \alpha \vdash c : C \Rightarrow B &
+    \Delta' \mid [{+X}^\alpha] \vdash^{+} c : \Delta'(C) \Rightarrow \Delta(B) &
     \Delta \vdash B}
    {\Delta \mid \Gamma \vdash \nuinst{X}{A}{L}{c} : B}
-  \quad
+   (\Delta' = \Delta,\alpha\by\Delta(A),X\by \alpha)
+  \\[2ex]
   %BoundaryWf \Delta Θ \Delta_i \Delta_c
   \inference
   {\Delta \vdash \delta &
    \delta(\Delta) \mid [] \vdash M : A \\
-   \delta^{+}(\Delta) \vdash c : A \Rightarrow B &
+   \delta^{+}(\Delta) \mid \delta \vdash^{+} c :
+     \delta(\Delta)(A) \Rightarrow \Delta(B) &
    \Delta \vdash B
   }
   {\Delta \mid \Gamma \vdash \boundry{M}{\delta}{c} : B}
@@ -456,15 +478,24 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
         \label{TyWrap}\tagsc{TyWrap} \\
    \Delta \vdash  \boundry{\boundry{U}{\delta_1}{t_1}}{\delta_2}{c_1} &
      \becomes~ \boundry{U}{\delta_2 \mathop{++} \delta_1}{d}  \dashv \epsilon \label{Merge}\tagsc{Merge} \\
-     & \text{where } (\delta_2 \mathop{++} \delta_1)(\Delta) \vdash t_1 \cmp c_1  = d
+     & \text{where } (\delta_2 \mathop{++} \delta_1)^{+}(\Delta) \vdash t_1 \cmp c_1  = d
        \notag \\
    \Delta \vdash \boundry{U}{\delta}{\id{\iota}} &\becomes~ U \dashv \epsilon
      \label{Id}\tagsc{Id} \\
    \Delta \vdash F[M] &\becomes~ F[M'] \dashv \xi \qquad \text{if } F(\Delta) \vdash M \becomes M' \dashv \xi \label{Xi}\tagsc{$\xi$}
 \end{align}
+
+\noindent{\small With de Bruijn indices (the mechanization), the
+conversions that \textsc{Wrap} and \textsc{Merge} move to another
+boundary are renamed there, each type variable to the new position's
+name for the same representation variable.  The renaming is computed
+from the scopes alone, so \textsc{Wrap} reads no context and
+\textsc{Merge} reads only $(\delta_2 \mathop{++} \delta_1)^{+}(\Delta)$.
+With names, as here, no renaming is needed.}
 \end{flushleft}
 
 \caption{System $\nu$F: Dynamic Semantics}
+\label{fig:dynamics}
 \end{figure*}
 }
   
@@ -492,6 +523,96 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
 \fignufstatics
 \figcompose
 \fignufdynamics
+
+\section{Why Conversion Typing Has a Polarity}
+\label{sec:polarity}
+
+A boundary $\boundry{M}{\delta}{c}$ checks its conversion $c$ under its
+scope change $\delta$ (Figure~\ref{fig:nu-F}), and $\delta$ grants
+\emph{permissions}: a seal $\seal{X}$ may conceal the representation
+variable $\alpha$ only if $\delta$ removes it from the interior's view
+(an entry ${-X}^\alpha$), and an unseal $\unseal{X}$ may reveal $\alpha$
+only if $\delta$ binds it there (an entry ${+X}^\alpha$).  The
+permissions keep a conversion from sealing at an arbitrary type
+variable that happens to be in scope: every seal and unseal must cite
+the scope change that makes its variable abstract on one side of the
+boundary and concrete on the other.  The conversion judgement
+(Figure~\ref{fig:conv}) carries a polarity $p$ so that it can read
+these permissions correctly.  This section explains why one is needed
+and what it means.
+
+\paragraph{The domain of a function conversion runs the other way.}
+In $c \tu d$, the codomain conversion $d$ carries a result from the
+interior of the boundary to its exterior, but the domain conversion $c$
+carries an argument from the exterior to the interior.  So in $c$ the
+roles of concealing and revealing are swapped.  The simplest
+instantiation already shows this.  Instantiating the identity at
+$\Int$,
+\[
+  \Delta \vdash \nuinst{X}{\Int}{(\Lam{X}\lam{x \of X} x)}{\seal{X} \tu \unseal{X}}
+  \;\becomes\;
+  \boundry{(\lam{x \of X} x)}{{+X}^\alpha}{\seal{X} \tu \unseal{X}}
+  \dashv \alpha \by \Int ,
+\]
+gives a boundary whose scope has a single entry, ${+X}^\alpha$.  The
+codomain $\unseal{X}$ reveals $\alpha$ to the exterior, and ${+X}^\alpha$
+grants that.  The domain $\seal{X}$ conceals the incoming $\Int$ as $X$
+on its way in, but the only entry that mentions $\alpha$ is
+${+X}^\alpha$, not ${-X}^\alpha$.  If the domain read the scope the way
+the codomain does, the most basic instantiation conversion would be
+ill-typed.  The domain must read the scope with its signs flipped,
+that is, read the inverse $\dual{\delta}$.  Rather than carry a second
+scope, the judgement carries the polarity: at $+$ it reads $\delta$, at
+$-$ it reads $\dual{\delta}$, which is what $\mathsf{seal}^{p}(\delta)$
+and $\mathsf{unseal}^{p}(\delta)$ say, and the rule for $c \tu d$ flips
+$p$ for $c$.  With it, $\seal{X} \tu \unseal{X}$ checks at $+$ under
+$[{+X}^\alpha]$: the domain seal at $-$ needs
+$\alpha \in \mathsf{seal}^{-}([{+X}^\alpha])$, and the codomain unseal at
+$+$ needs $\alpha \in \mathsf{unseal}^{+}([{+X}^\alpha])$, which are the
+same set.
+
+\paragraph{The polarity is exactly what \textsc{Wrap} needs.}
+The rule
+$\boundry{U}{\delta}{c \tu d} \app W \becomes
+ \boundry{U \app (\boundry{W}{\dual{\delta}}{c})}{\delta}{d}$
+(Figure~\ref{fig:dynamics}) moves the domain $c$ out of the function
+conversion and makes it the conversion of a new boundary with scope
+$\dual{\delta}$, where it is checked at $+$.  Before the step, $c$ was
+checked under $\delta$ at $-$.  Inverting a scope flips the sign of
+every entry, so
+\[
+  \mathsf{seal}^{-}(\delta) = \mathsf{seal}^{+}(\dual{\delta})
+  \qquad
+  \mathsf{unseal}^{-}(\delta) = \mathsf{unseal}^{+}(\dual{\delta}),
+\]
+and $c$ keeps its typing as it is: the same representation types and
+the same permissions.  \textsc{Merge} is the same story with no flip:
+$\delta_2 \mathop{++} \delta_1$ contains every entry of $\delta_1$ and
+of $\delta_2$, so both conversions keep their permissions at their own
+polarity, and they are composed under one scope.  In this reading, the
+polarity of a subconversion records how the scope must be read at that
+position, which is also the polarity it will have if a reduction makes
+it the conversion of a boundary of its own.
+
+\paragraph{One polarity per position, not per conversion.}
+One might instead give a whole conversion a single polarity, recording
+the direction in which it converts.  That does not work, because one
+conversion may seal one type variable in its domain and another in its
+codomain.  For instance
+\[
+  \seal{Y} \tu \seal{X}
+  \quad\text{under}\quad
+  [{+Y}^\beta, {-X}^\alpha]
+\]
+conceals the argument as $Y$ on its way in and the result as $X$ on its
+way out, and no single direction describes both.  The polarity here
+records nothing about the direction of the conversion.  It only says
+whether the scope is read as $\delta$ or as $\dual{\delta}$ at the
+current position.  The direction of each type variable comes from its
+own entry in $\delta$.  The example checks at $+$: the domain seal at
+$-$ needs $\beta \in \mathsf{seal}^{-}(\delta)$, granted by
+${+Y}^\beta$, and the codomain seal at $+$ needs
+$\alpha \in \mathsf{seal}^{+}(\delta)$, granted by ${-X}^\alpha$.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}

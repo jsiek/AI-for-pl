@@ -156,7 +156,7 @@ CtxWf-⤊ {Δ = Δ} h d | A , refl , q =
 ⊢ᵗ-of h (⊢· ⊢L ⊢M) with ⊢ᵗ-of h ⊢L
 ⊢ᵗ-of h (⊢· ⊢L ⊢M) | wf-⇒ wA wB = wB
 ⊢ᵗ-of h (⊢Λ _ ⊢N) = wf-∀ (⊢ᵗ-of (CtxWf-⤊ h) ⊢N)
-⊢ᵗ-of h (⊢ν wA rA ⊢L mw ⊢c same wB) = wB
+⊢ᵗ-of h (⊢ν wA rA ⊢L mw ⊢c smC same wB) = wB
 ⊢ᵗ-of h (boundary _ _ _ _ _ wE) = wE
 
 wf-same : Δ ⊢ᵗ A → ∃[ R ] names Δ ⊢ A ~ R
@@ -260,11 +260,6 @@ rep-lookup-refine (rr-represent rr)
                   (r-there-abst {b = bindR S} d) refl =
   r-there (rep-lookup-refine rr d refl)
 
-lookup-square-refine : RepRefines Ξ Ξ′
-  → (Ξ ∣ η) ∋ X := A → (Ξ′ ∣ η) ∋ X := A
-lookup-square-refine rr (α , R , name , rep , same) =
-  α , R , name , rep-lookup-refine rr rep refl , same
-
 tv-refine : (Ξ ∣ η) ∋tv X → (Ξ′ ∣ η) ∋tv X
 tv-refine (α , name) = α , name
 
@@ -278,30 +273,36 @@ wf-refine rr wf-𝔹 = wf-𝔹
 wf-refine rr (wf-⇒ wA wB) = wf-⇒ (wf-refine rr wA) (wf-refine rr wB)
 wf-refine rr (wf-∀ wA) = wf-∀ (wf-refine (rr-abst rr) wA)
 
+leaf-refine : RepRefines Ξ Ξ′
+  → (Ξ ∣ η) ∋ X ⊸ α := A → (Ξ′ ∣ η) ∋ X ⊸ α := A
+leaf-refine rr (d , rd , q) = d , rep-lookup-refine rr rd refl , q
+
 mutual
-  convᵐ-refine : ∀ {g} → RepRefines Ξ Ξ′ → (Ξ ∣ η) ⊢ᵐ g ∶ A ⇝ B
-    → (Ξ′ ∣ η) ⊢ᵐ g ∶ A ⇝ B
+  convᵐ-refine : ∀ {g Θ p} → RepRefines Ξ Ξ′
+    → (Ξ ∣ η) ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B
+    → (Ξ′ ∣ η) ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B
   convᵐ-refine rr (conv-id b) = conv-id b
-  convᵐ-refine {Ξ = Ξ} {Ξ′ = Ξ′} rr (conv-idv tv) =
-    conv-idv (tv-refine {Ξ = Ξ} {Ξ′ = Ξ′} tv)
+  convᵐ-refine rr (conv-idv d) = conv-idv d
   convᵐ-refine rr (conv-fun p q) =
     conv-fun (conv-refine rr p) (conv-refine rr q)
   convᵐ-refine rr (conv-all p) = conv-all (conv-refine (rr-abst rr) p)
 
-  convᵀ-refine : ∀ {t} → RepRefines Ξ Ξ′ → (Ξ ∣ η) ⊢ᵀ t ∶ A ⇝ B
-    → (Ξ′ ∣ η) ⊢ᵀ t ∶ A ⇝ B
+  convᵀ-refine : ∀ {t Θ p} → RepRefines Ξ Ξ′
+    → (Ξ ∣ η) ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
+    → (Ξ′ ∣ η) ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
   convᵀ-refine rr (conv-mid p) = conv-mid (convᵐ-refine rr p)
-  convᵀ-refine rr (conv-seal d) = conv-seal (lookup-square-refine rr d)
-  convᵀ-refine rr (conv-seal-seq p d n) =
-    conv-seal-seq (convᵀ-refine rr p) (lookup-square-refine rr d) n
+  convᵀ-refine rr (conv-seal d ok) = conv-seal (leaf-refine rr d) ok
+  convᵀ-refine rr (conv-seal-seq p d ok n) =
+    conv-seal-seq (convᵀ-refine rr p) (leaf-refine rr d) ok n
 
-  conv-refine : RepRefines Ξ Ξ′ → (Ξ ∣ η) ⊢ s ∶ A ⇝ B
-    → (Ξ′ ∣ η) ⊢ s ∶ A ⇝ B
+  conv-refine : ∀ {Θ p} → RepRefines Ξ Ξ′
+    → (Ξ ∣ η) ∣ Θ ⊢[ p ] s ∶ A ⇝ B
+    → (Ξ′ ∣ η) ∣ Θ ⊢[ p ] s ∶ A ⇝ B
   conv-refine rr (conv-tail p) = conv-tail (convᵀ-refine rr p)
-  conv-refine rr (conv-unseal d) =
-    conv-unseal (lookup-square-refine rr d)
-  conv-refine rr (conv-unseal-seq d p n m) =
-    conv-unseal-seq (lookup-square-refine rr d) (conv-refine rr p) n m
+  conv-refine rr (conv-unseal d ok) =
+    conv-unseal (leaf-refine rr d) ok
+  conv-refine rr (conv-unseal-seq d ok p n m) =
+    conv-unseal-seq (leaf-refine rr d) ok (conv-refine rr p) n m
 
 ------------------------------------------------------------------------
 -- §2. The allocation, and the conversion a reveal mints
@@ -521,9 +522,9 @@ repwk-alloc {R = R} wR = repwk-cons₀ (bindR R) (wf-bindR wR)
     valid (there d) | α , refl , d′ with vn d′
     valid (there d) | α , refl , d′ | b , db = b , there db
 ⊢refine rr w′
-        (⊢ν wA rA ⊢L (bw w (interior cs) (conversion csᶜ)) ⊢c same wB) =
+        (⊢ν wA rA ⊢L (bw w (interior cs) (conversion csᶜ)) ⊢c smC same wB) =
   ⊢ν (wf-refine rr wA) rA (⊢refine rr w′ ⊢L) mw′
-     (conv-refine (rr-bind rr) ⊢c) same (wf-refine rr wB)
+     (conv-refine (rr-bind rr) ⊢c) smC same (wf-refine rr wB)
   where
   mw′ = bw (alloc-wf w′ (same-wfᴿ w′ rA))
            (interior (changes-refine (rr-bind rr) cs))
@@ -561,22 +562,28 @@ inst-boundarywf (bw wΔ (interior cs) (conversion csᶜ)) p =
 -- (`repwk-bind`), and the conversion and both readings move with it.
 -- Consumed by `⊢renᴿ` (strong-rep-nu.proof.RepWeaken) and by the
 -- `ξ-ν` congruence of `preserve`.
-ν-boundary-ren : ∀ {ρ Ξ′ Δ A R Δᵢ Δᶜ c C Cₑ B}
+ν-boundary-ren : ∀ {ρ Ξ′ Δ A R Δᵢ Δᶜ c C B Rᵢ Rₑ}
   → RepWk ρ (reps Δ) Ξ′
   → Δ ⊢ᶜ A ~ R
   → BoundaryWf (allocate R Δ) TyBetaBoundary Δᵢ Δᶜ
-  → Δᶜ ⊢ c ∶ C ⇝ Cₑ
-  → allocate R Δ ⊢ B ≈ Cₑ ⊣ Δᶜ
+  → Δᶜ ∣ TyBetaBoundary ⊢[ ⁺ ] c ∶ Rᵢ ⇝ Rₑ
+  → names Δᵢ ⊢ C ~ Rᵢ
+  → names (allocate R Δ) ⊢ B ~ Rₑ
   → Σ[ Δ′ ∈ Ctxᵗ ]
       (BoundaryWf (allocate (renameᵗ ρ R) (Ξ′ ∣ map ρ (names Δ)))
                   TyBetaBoundary Δ′ Δ′
-      × (Δ′ ⊢ c ∶ C ⇝ Cₑ)
-      × (allocate (renameᵗ ρ R) (Ξ′ ∣ map ρ (names Δ)) ⊢ B ≈ Cₑ ⊣ Δ′))
-ν-boundary-ren {ρ = ρ} {Ξ′ = Ξ′} {Δ = Δ} {R = R} w p mw ⊢c (Rₑ , q₁ , q₂)
-  with conversion-functional (bw-conversion mw)
+      × (Δ′ ∣ TyBetaBoundary ⊢[ ⁺ ] c
+           ∶ renameᵗ (extᵗ ρ) Rᵢ ⇝ renameᵗ (extᵗ ρ) Rₑ)
+      × (names Δ′ ⊢ C ~ renameᵗ (extᵗ ρ) Rᵢ)
+      × (names (allocate (renameᵗ ρ R) (Ξ′ ∣ map ρ (names Δ)))
+           ⊢ B ~ renameᵗ (extᵗ ρ) Rₑ))
+ν-boundary-ren {ρ = ρ} {Ξ′ = Ξ′} {Δ = Δ} {R = R} w p mw ⊢c qC qB
+  with interior-functional (bw-interior mw)
+         (inst-interior {R = R} {Γ = Δ} (interior changes[]))
+     | conversion-functional (bw-conversion mw)
          (inst-conversion {R = R} {Γ = Δ} (conversion conv[]))
-ν-boundary-ren {ρ = ρ} {Ξ′ = Ξ′} {Δ = Δ} {R = R} w p mw ⊢c (Rₑ , q₁ , q₂)
-  | refl = _ , mw′ , ⊢c′ , same′
+ν-boundary-ren {ρ = ρ} {Ξ′ = Ξ′} {Δ = Δ} {R = R} w p mw ⊢c qC qB
+  | refl | refl = _ , mw′ , ⊢c′ , qC′ , qB′
   where
   η₀ = names Δ
 
@@ -593,22 +600,11 @@ inst-boundarywf (bw wΔ (interior cs) (conversion csᶜ)) p =
            (inst-conversion {R = renameᵗ ρ R} {Γ = Ξ′ ∣ map ρ η₀}
                             (conversion conv[]))
 
-  ⊢c′ = conv-cast (names-underΛ-ren ρ η₀) (conv-ren w⁺ ⊢c)
+  ⊢c′ = conv-cast (names-underΛ-ren ρ η₀) refl (conv-ren w⁺ ⊢c)
 
-  same′ = renameᵗ (extᵗ ρ) Rₑ
-        , same-cast (shiftReps-ren ρ η₀) (same-ren (extᵗ ρ) q₁)
-        , same-cast (names-underΛ-ren ρ η₀) (same-ren (extᵗ ρ) q₂)
+  qC′ = same-cast (names-underΛ-ren ρ η₀) (same-ren (extᵗ ρ) qC)
 
-represented-lookup : names Δ ⊢ A ~ R
-  → ((bindR R ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ)))
-      ∋ zero := ⇑ᵗ A
-represented-lookup {R = R} p =
-  zero , ⇑ᵗ R , here , r-here , same-weaken p
-
-lookup-underΛ : Δ ∋ X := A → underΛ Δ ∋ suc X := ⇑ᵗ A
-lookup-underΛ (α , R , name , rep , same) =
-  suc α , ⇑ᵗ R , there (shiftReps-∋ name) , r-there-abst rep ,
-  same-weaken same
+  qB′ = same-cast (shiftReps-ren ρ η₀) (same-ren (extᵗ ρ) qB)
 
 reveal-hit : (X : ℕ) → reveal X (` X) ≡ unseal X
 reveal-hit X with X ≟ X
@@ -630,38 +626,69 @@ conceal-miss X Y ne with X ≟ Y
 conceal-miss X Y ne | yes eq = ⊥-elim (ne eq)
 conceal-miss X Y ne | no _ = refl
 
-mutual
-  ⊢reveal : Δ ∋ X := A → Δ ⊢ᵗ B
-    → Δ ⊢ reveal X B ∶ B ⇝ B [ X := A ]ᵗ
-  ⊢reveal {X = X} {A = A} {B = ` Y} d (wf-var tv) with X ≟ℕ Y
-  ⊢reveal {X = X} {A = A} {B = ` Y} d (wf-var tv) | yes refl
-    rewrite reveal-hit X | single-at-hit X A = conv-unseal d
-  ⊢reveal {X = X} {A = A} {B = ` Y} d (wf-var tv) | no ne
-    rewrite reveal-miss X Y ne | single-at-miss X Y A ne =
-    conv-tail (conv-mid (conv-idv tv))
-  ⊢reveal d wf-ℕ = conv-tail (conv-mid (conv-id base-ℕ))
-  ⊢reveal d wf-𝔹 = conv-tail (conv-mid (conv-id base-𝔹))
-  ⊢reveal d (wf-⇒ wA wB) =
-    conv-tail (conv-mid (conv-fun (⊢conceal d wA) (⊢reveal d wB)))
-  ⊢reveal {X = X} {A = A} {B = `∀ B} d (wf-∀ wB)
-    rewrite subst-at-∀ X A B =
-    conv-tail (conv-mid (conv-all (⊢reveal (lookup-underΛ d) wB)))
+-- the leaf under a type binder, and the permission under `liftᴮ`
+leaf-underΛ : Δ ∋ X ⊸ α := A → underΛ Δ ∋ suc X ⊸ suc α := ⇑ᵗ A
+leaf-underΛ (name , rep , A , q) =
+  there (shiftReps-∋ name) , r-there-abst rep , ⇑ᵗ A , same-weaken q
 
-  ⊢conceal : Δ ∋ X := A → Δ ⊢ᵗ B
-    → Δ ⊢ conceal X B ∶ B [ X := A ]ᵗ ⇝ B
-  ⊢conceal {X = X} {A = A} {B = ` Y} d (wf-var tv) with X ≟ℕ Y
-  ⊢conceal {X = X} {A = A} {B = ` Y} d (wf-var tv) | yes refl
-    rewrite conceal-hit X | single-at-hit X A = conv-tail (conv-seal d)
-  ⊢conceal {X = X} {A = A} {B = ` Y} d (wf-var tv) | no ne
-    rewrite conceal-miss X Y ne | single-at-miss X Y A ne =
-    conv-tail (conv-mid (conv-idv tv))
-  ⊢conceal d wf-ℕ = conv-tail (conv-mid (conv-id base-ℕ))
-  ⊢conceal d wf-𝔹 = conv-tail (conv-mid (conv-id base-𝔹))
-  ⊢conceal d (wf-⇒ wA wB) =
-    conv-tail (conv-mid (conv-fun (⊢reveal d wA) (⊢conceal d wB)))
-  ⊢conceal {X = X} {A = A} {B = `∀ B} d (wf-∀ wB)
-    rewrite subst-at-∀ X A B =
-    conv-tail (conv-mid (conv-all (⊢conceal (lookup-underΛ d) wB)))
+
+-- `reveal X B` unseals every covariant occurrence of X's representation
+-- variable and seals every contravariant one, so it needs the
+-- permission to unseal at its own polarity — which is the permission
+-- to seal at the flipped one.  `Unique` separates X from every other
+-- name.
+mutual
+  ⊢reveal : ∀ {Θ p} → Unique (names Δ) → Δ ∋ X ⊸ α := A
+    → UnsealOK p Θ α → names Δ ⊢ B ~ S
+    → Δ ∣ Θ ⊢[ p ] reveal X B ∶ S ⇝ S [ α := A ]ᵗ
+  ⊢reveal {X = X} {α = α} {A = A} uq (d , rd , q) ok (same-var {X = Y} {α = β} e)
+    with X ≟ℕ Y
+  ⊢reveal {X = X} {α = α} {A = A} uq (d , rd , q) ok (same-var {X = Y} {α = β} e)
+    | yes refl with ∋ˡ-det d e
+  ... | refl rewrite reveal-hit X | single-at-hit α A =
+    conv-unseal (d , rd , q) ok
+  ⊢reveal {X = X} {α = α} {A = A} uq (d , rd , q) ok (same-var {X = Y} {α = β} e)
+    | no ne rewrite reveal-miss X Y ne
+                  | single-at-miss α β A
+                      (λ { refl → ne (unique-lookup uq d e) }) =
+    conv-tail (conv-mid (conv-idv e))
+  ⊢reveal uq d ok same-ℕ = conv-tail (conv-mid (conv-id base-ℕ))
+  ⊢reveal uq d ok same-𝔹 = conv-tail (conv-mid (conv-id base-𝔹))
+  ⊢reveal uq d ok (same-⇒ a b) =
+    conv-tail (conv-mid (conv-fun (⊢conceal uq d ok a) (⊢reveal uq d ok b)))
+  ⊢reveal {Δ = Δ} {α = α} {A = A} {p = p} uq d ok
+          (same-∀ {R = S} a)
+    rewrite subst-at-∀ α A S =
+    conv-tail (conv-mid (conv-all
+      (⊢reveal (unique-underΛ {Γ = Δ} uq) (leaf-underΛ d)
+               (sealOK-liftᴮ (flipᵖ p) ok) a)))
+
+  ⊢conceal : ∀ {Θ p} → Unique (names Δ) → Δ ∋ X ⊸ α := A
+    → SealOK p Θ α → names Δ ⊢ B ~ S
+    → Δ ∣ Θ ⊢[ p ] conceal X B ∶ S [ α := A ]ᵗ ⇝ S
+  ⊢conceal {X = X} {α = α} {A = A} uq (d , rd , q) ok (same-var {X = Y} {α = β} e)
+    with X ≟ℕ Y
+  ⊢conceal {X = X} {α = α} {A = A} uq (d , rd , q) ok (same-var {X = Y} {α = β} e)
+    | yes refl with ∋ˡ-det d e
+  ... | refl rewrite conceal-hit X | single-at-hit α A =
+    conv-tail (conv-seal (d , rd , q) ok)
+  ⊢conceal {X = X} {α = α} {A = A} uq (d , rd , q) ok (same-var {X = Y} {α = β} e)
+    | no ne rewrite conceal-miss X Y ne
+                  | single-at-miss α β A
+                      (λ { refl → ne (unique-lookup uq d e) }) =
+    conv-tail (conv-mid (conv-idv e))
+  ⊢conceal uq d ok same-ℕ = conv-tail (conv-mid (conv-id base-ℕ))
+  ⊢conceal uq d ok same-𝔹 = conv-tail (conv-mid (conv-id base-𝔹))
+  ⊢conceal {Θ = Θ} {p = p} uq d ok (same-⇒ a b) =
+    conv-tail (conv-mid (conv-fun
+      (⊢reveal uq d (subst (λ q → SealOK q Θ _) (sym (flipᵖ-flipᵖ p)) ok) a)
+      (⊢conceal uq d ok b)))
+  ⊢conceal {Δ = Δ} {α = α} {A = A} {p = p} uq d ok
+           (same-∀ {R = S} a)
+    rewrite subst-at-∀ α A S =
+    conv-tail (conv-mid (conv-all
+      (⊢conceal (unique-underΛ {Γ = Δ} uq) (leaf-underΛ d)
+                (sealOK-liftᴮ p ok) a)))
 
 rr-refl : RepRefines Ξ Ξ
 rr-refl {Ξ = []} = rr[]
@@ -678,19 +705,6 @@ empty-interior = interior changes[]
 empty-conversion : Δ ⊢ᶜ [] ⇒ Δ
 empty-conversion = conversion conv[]
 
-sameTy-∀⁻ : ∀ {η η′ A B}
-  → ∃[ R ] ((η ⊢ `∀ A ~ R) × (η′ ⊢ `∀ B ~ R))
-  → ∃[ R ] (((zero ∷ shiftReps η) ⊢ A ~ R) ×
-             ((zero ∷ shiftReps η′) ⊢ B ~ R))
-sameTy-∀⁻ (`∀ R , same-∀ p , same-∀ q) = R , p , q
-
-sameTy-target-∀⁻ : ∀ {η η′ A B}
-  → ∃[ R ] ((η ⊢ A ~ R) × (η′ ⊢ `∀ B ~ R))
-  → Σ[ A₀ ∈ Ty ] ((A ≡ `∀ A₀) ×
-       (∃[ R ] (((zero ∷ shiftReps η) ⊢ A₀ ~ R) ×
-          ((zero ∷ shiftReps η′) ⊢ B ~ R))))
-sameTy-target-∀⁻ (`∀ R , same-∀ p , same-∀ q) =
-  _ , refl , (R , p , q)
 wf-∀⁻ : Δ ⊢ᵗ `∀ A → underΛ Δ ⊢ᵗ A
 wf-∀⁻ (wf-∀ w) = w
 
@@ -701,27 +715,22 @@ reprCtx : Ty → Ctxᵗ → Ctxᵗ
 reprCtx R Δ = (bindR R ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ))
 
 -- THE OUTER LAYER OF EVERY ν CONTRACTUM is `⊢ν`'s own boundary:
--- the scope witness, the conversion and the exterior reading are `⊢ν`'s
+-- the scope witness, the conversion and both readings are `⊢ν`'s
 -- premises verbatim, once the scope's readings are pinned.
-nu-outer : ∀ {Δ R Δᵢ Δᶜ M c C Cₑ B}
+nu-outer : ∀ {Δ R Δᵢ Δᶜ M c C B Rᵢ Rₑ}
   → BoundaryWf (allocate R Δ) TyBetaBoundary Δᵢ Δᶜ
   → reprCtx R Δ ∣ [] ⊢ M ⦂ C
-  → Δᶜ ⊢ c ∶ C ⇝ Cₑ
-  → allocate R Δ ⊢ B ≈ Cₑ ⊣ Δᶜ
+  → Δᶜ ∣ TyBetaBoundary ⊢[ ⁺ ] c ∶ Rᵢ ⇝ Rₑ
+  → names Δᵢ ⊢ C ~ Rᵢ
+  → names (allocate R Δ) ⊢ B ~ Rₑ
   → Δ ⊢ᵗ B
   → allocate R Δ ∣ [] ⊢ M ⟪ inst [] , c ⟫ ⦂ B
-nu-outer {Δ = Δ} {R = R} mw ⊢M ⊢c same wB
+nu-outer {Δ = Δ} {R = R} mw ⊢M ⊢c qC qB wB
   with interior-functional (bw-interior mw)
          (inst-interior {R = R} {Γ = Δ} (interior changes[]))
-     | conversion-functional (bw-conversion mw)
-         (inst-conversion {R = R} {Γ = Δ} (conversion conv[]))
-nu-outer {Δ = Δ} {R = R} mw ⊢M ⊢c same wB | refl | refl =
-  boundary mw ⊢M ⊢c sameᵢ same
+nu-outer {Δ = Δ} {R = R} mw ⊢M ⊢c qC qB wB | refl =
+  boundary mw ⊢M ⊢c qC qB
       (wf-ren-rep {Ξ = reps Δ} {Ξ′ = bindR R ∷ reps Δ} {ρ = suc} wB)
-  where
-  sameᵢ : reprCtx R Δ ⊢ _ ≈ _ ⊣ reprCtx R Δ
-  sameᵢ with wf-same (⊢ᵗ-of CtxWf-[] ⊢M)
-  sameᵢ | S , q = S , q , q
 
 -- `TyBeta`: the body, refined at the new cell, is the interior.
 preserve-TyBeta : ∀ {Δ N A R c C}
@@ -729,27 +738,31 @@ preserve-TyBeta : ∀ {Δ N A R c C}
   → Δ ⊢ᶜ A ~ R
   → Δ ∣ [] ⊢ ν A · (Λ N) ⟨ c ⟩ ⦂ C
   → allocate R Δ ∣ [] ⊢ N ⟪ inst [] , c ⟫ ⦂ C
-preserve-TyBeta wfΔ p (⊢ν wA rA (⊢Λ vN ⊢N) mw ⊢c same wB)
+preserve-TyBeta wfΔ p (⊢ν wA rA (⊢Λ vN ⊢N) mw ⊢c qC same wB)
   with same-rep-unique rA p
-preserve-TyBeta wfΔ p (⊢ν wA rA (⊢Λ vN ⊢N) mw ⊢c same wB) | refl =
+preserve-TyBeta wfΔ p (⊢ν wA rA (⊢Λ vN ⊢N) mw ⊢c qC same wB) | refl =
   nu-outer mw (⊢refine (rr-represent rr-refl) (represented-wf wfΔ p) ⊢N)
-           ⊢c same wB
+           ⊢c qC same wB
+
+same-∀⁻ : ∀ {η A R} → η ⊢ `∀ A ~ `∀ R → (zero ∷ shiftReps η) ⊢ A ~ R
+same-∀⁻ (same-∀ q) = q
 
 -- `TyWrap`: the middle layer is the crossed boundary read under the new
 -- name, and every one of its premises is the crossed `boundary`'s, refined
--- at the new cell (`liftᴮ-interior`, `liftᴮ-conversion`).
+-- at the new cell (`liftᴮ-interior`, `liftᴮ-conversion`).  The crossed
+-- conversion `s` keeps its permissions: it was checked under `liftᴮ Θ`.
 preserve-TyWrap : ∀ {Δ N Θ s c A R C}
   → WfCtx Δ
   → Δ ⊢ᶜ A ~ R
   → Δ ∣ [] ⊢ ν A · ((Λ N) ⟪ Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩ ⦂ C
   → allocate R Δ ∣ [] ⊢ (N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫ ⦂ C
 preserve-TyWrap wfΔ p
-    (⊢ν wA rA (boundary mwΘ (⊢Λ vN ⊢N) ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
+    (⊢ν wA rA (boundary mwΘ (⊢Λ vN ⊢N) ⊢c₀ sameᵢ sameₑ wE) mw ⊢c qC same wB)
   with same-rep-unique rA p | conv-all-inv ⊢c₀
 preserve-TyWrap wfΔ p
-    (⊢ν wA rA (boundary mwΘ (⊢Λ vN ⊢N) ⊢c₀ sameᵢ sameₑ wE) mw ⊢c same wB)
+    (⊢ν wA rA (boundary mwΘ (⊢Λ vN ⊢N) ⊢c₀ sameᵢ sameₑ wE) mw ⊢c qC same wB)
   | refl | A₀ , B₀ , refl , refl , ⊢s₀ =
-  nu-outer mw middle ⊢c same wB
+  nu-outer mw middle ⊢c qC same wB
   where
   mw₁ = bw (represented-wf wfΔ p)
            (liftᴮ-interior (bw-interior mwΘ))
@@ -758,37 +771,8 @@ preserve-TyWrap wfΔ p
   middle =
     boundary mw₁ (⊢refine (rr-represent rr-refl) (bw-interior-wf mw₁) ⊢N)
         (conv-refine (rr-represent rr-refl) ⊢s₀)
-        (sameTy-∀⁻ sameᵢ) (sameTy-∀⁻ sameₑ)
+        (same-∀⁻ sameᵢ) (same-∀⁻ sameₑ)
         (wf-refine (rr-represent rr-refl) (wf-∀⁻ wE))
-
-same-ℕ-rep : η ⊢ `ℕ ~ R → R ≡ `ℕ
-same-ℕ-rep same-ℕ = refl
-
-same-𝔹-rep : η ⊢ `𝔹 ~ R → R ≡ `𝔹
-same-𝔹-rep same-𝔹 = refl
-
-sameTy-ℕ-𝔹-absurd : ∀ {η η′}
-  → ∃[ R ] ((η ⊢ `ℕ ~ R) × (η′ ⊢ `𝔹 ~ R))
-  → ⊥
-sameTy-ℕ-𝔹-absurd (`ℕ , same-ℕ , ())
-
--- The exterior comparison is now at EQUAL depth — a boundary carries no
--- bind block — so a base conversion type pins the exterior type outright.
-sameTy-ℕ : ∀ {Δ A η′}
-  → WfCtx Δ
-  → ∃[ R ] ((names Δ ⊢ A ~ R) × (η′ ⊢ `ℕ ~ R))
-  → A ≡ `ℕ
-sameTy-ℕ wfΔ (R , p , q) with same-ℕ-rep q
-sameTy-ℕ wfΔ (R , p , q) | refl =
-  same-target-unique (name-fn wfΔ) p same-ℕ
-
-sameTy-𝔹 : ∀ {Δ A η′}
-  → WfCtx Δ
-  → ∃[ R ] ((names Δ ⊢ A ~ R) × (η′ ⊢ `𝔹 ~ R))
-  → A ≡ `𝔹
-sameTy-𝔹 wfΔ (R , p , q) with same-𝔹-rep q
-sameTy-𝔹 wfΔ (R , p , q) | refl =
-  same-target-unique (name-fn wfΔ) p same-𝔹
 
 -- `Id`: typing makes the simple value a literal at the base type,
 -- and a literal types at every context.
@@ -798,40 +782,23 @@ preserve-Id : ∀ {Δ U Θ A C}
   → Base A
   → Δ ∣ [] ⊢ U ⟪ Θ , ⌞ id A ⌟ ⟫ ⦂ C
   → Δ ∣ [] ⊢ U ⦂ C
-preserve-Id wfΔ u base-ℕ
-  (boundary mwΘ ⊢$ (conv-tail (conv-mid (conv-id base-ℕ)))
-       sameᵢ sameₑ wE)
-  rewrite sameTy-ℕ wfΔ sameₑ = ⊢$
-preserve-Id wfΔ u base-𝔹
-  (boundary mwΘ ⊢$ (conv-tail (conv-mid (conv-id base-𝔹)))
-       sameᵢ sameₑ wE) =
-  ⊥-elim (sameTy-ℕ-𝔹-absurd sameᵢ)
-preserve-Id wfΔ u base-𝔹
-  (boundary mwΘ ⊢true (conv-tail (conv-mid (conv-id base-𝔹)))
-       sameᵢ sameₑ wE)
-  rewrite sameTy-𝔹 wfΔ sameₑ = ⊢true
-preserve-Id wfΔ u base-ℕ
-  (boundary mwΘ ⊢true (conv-tail (conv-mid (conv-id base-ℕ)))
-       (_ , same-𝔹 , ()) sameₑ wE)
-preserve-Id wfΔ u base-𝔹
-  (boundary mwΘ ⊢false (conv-tail (conv-mid (conv-id base-𝔹)))
-       sameᵢ sameₑ wE)
-  rewrite sameTy-𝔹 wfΔ sameₑ = ⊢false
-preserve-Id wfΔ u base-ℕ
-  (boundary mwΘ ⊢false (conv-tail (conv-mid (conv-id base-ℕ)))
-       (_ , same-𝔹 , ()) sameₑ wE)
-preserve-Id wfΔ u base-ℕ
-  (boundary mwΘ (⊢ƛ w ⊢N) (conv-tail (conv-mid (conv-id base-ℕ)))
-       (_ , same-⇒ _ _ , ()) sameₑ wE)
-preserve-Id wfΔ u base-𝔹
-  (boundary mwΘ (⊢ƛ w ⊢N) (conv-tail (conv-mid (conv-id base-𝔹)))
-       (_ , same-⇒ _ _ , ()) sameₑ wE)
-preserve-Id wfΔ u base-ℕ
-  (boundary mwΘ (⊢Λ v ⊢N) (conv-tail (conv-mid (conv-id base-ℕ)))
-       (_ , same-∀ _ , ()) sameₑ wE)
-preserve-Id wfΔ u base-𝔹
-  (boundary mwΘ (⊢Λ v ⊢N) (conv-tail (conv-mid (conv-id base-𝔹)))
-       (_ , same-∀ _ , ()) sameₑ wE)
+preserve-Id wfΔ u b
+  (boundary mwΘ ⊢U (conv-tail (conv-mid (conv-id b′))) sameᵢ sameₑ wE) =
+  literal b′ u ⊢U sameᵢ sameₑ
+  where
+  literal : ∀ {Δᵢ U A Bᵢ C} → Base A → Simple U
+    → Δᵢ ∣ [] ⊢ U ⦂ Bᵢ → names Δᵢ ⊢ Bᵢ ~ A → names Δ ⊢ C ~ A
+    → Δ ∣ [] ⊢ U ⦂ C
+  literal base-ℕ S-$ ⊢$ same-ℕ same-ℕ = ⊢$
+  literal base-𝔹 S-$ ⊢$ () _
+  literal base-ℕ S-true ⊢true () _
+  literal base-𝔹 S-true ⊢true same-𝔹 same-𝔹 = ⊢true
+  literal base-ℕ S-false ⊢false () _
+  literal base-𝔹 S-false ⊢false same-𝔹 same-𝔹 = ⊢false
+  literal base-ℕ S-ƛ (⊢ƛ w ⊢N) () _
+  literal base-𝔹 S-ƛ (⊢ƛ w ⊢N) () _
+  literal base-ℕ (S-Λ v) (⊢Λ v′ ⊢N) () _
+  literal base-𝔹 (S-Λ v) (⊢Λ v′ ⊢N) () _
 
 ------------------------------------------------------------------------
 -- §4. The representation-only transports, and the store bookkeeping
@@ -889,27 +856,27 @@ apply-wf w (aw-new wR) = alloc-wf w wR
 -- THE BOUNDARY CASE OF THE CONGRUENCE: the new boundary's reading at
 -- `apply δ Δ` has interior `apply δ Δᵢ`, because a boundary keeps the
 -- store.  Commentary.md § proof/Preserve.agda / §4
-boundary-apply : ∀ {Δ Δᵢ Δᶜ Γ Θ c M′ Bᵢ Cᵢ Cₑ Bₑ} {δ : Alloc}
+boundary-apply : ∀ {Δ Δᵢ Δᶜ Γ Θ c M′ Bᵢ Bₑ Rᵢ Rₑ} {δ : Alloc}
   → AllocWf δ Δ
   → BoundaryWf Δ Θ Δᵢ Δᶜ
   → apply δ Δᵢ ∣ [] ⊢ M′ ⦂ Bᵢ
-  → Δᶜ ⊢ c ∶ Cᵢ ⇝ Cₑ
-  → Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ
-  → Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ
+  → Δᶜ ∣ Θ ⊢[ ⁺ ] c ∶ Rᵢ ⇝ Rₑ
+  → names Δᵢ ⊢ Bᵢ ~ Rᵢ
+  → names Δ ⊢ Bₑ ~ Rₑ
   → Δ ⊢ᵗ Bₑ
   → apply δ Δ ∣ Γ ⊢ M′ ⟪ ↑ᴮ[ δ ] Θ , c ⟫ ⦂ Bₑ
 boundary-apply aw-none mwΘ ⊢M′ ⊢c sameᵢ sameₑ wE =
   boundary mwΘ ⊢M′ ⊢c sameᵢ sameₑ wE
 boundary-apply {Δ = Δ} {δ = new R} (aw-new wR)
           (bw wΔ (interior cs) (conversion csᶜ))
-          ⊢M′ ⊢c (Rᵢ , pᵢ , qᵢ) (Rₑ , pₑ , qₑ) wE =
+          ⊢M′ ⊢c pᵢ pₑ wE =
   boundary (bw (alloc-wf wΔ wR)
           (interior-ren w (interior cs))
           (conversion-ren w (conversion csᶜ)))
       ⊢M′
       (conv-ren w ⊢c)
-      (renameᵗ suc Rᵢ , same-ren suc pᵢ , same-ren suc qᵢ)
-      (renameᵗ suc Rₑ , same-ren suc pₑ , same-ren suc qₑ)
+      (same-ren suc pᵢ)
+      (same-ren suc pₑ)
       (wf-ren-rep {Ξ = reps Δ} {Ξ′ = bindR R ∷ reps Δ} {ρ = suc} wE)
   where
   w : RepWk suc (reps Δ) (bindR R ∷ reps Δ)
@@ -917,22 +884,24 @@ boundary-apply {Δ = Δ} {δ = new R} (aw-new wR)
 
 -- THE `ν` CASE OF THE CONGRUENCE: `ν`'s own boundary is re-read at
 -- `apply δ Δ` by `ν-boundary-ren` at the allocation's weakening.
-nu-apply : ∀ {Δ Δᵢ Δᶜ Γ A R L′ C Cₑ B c} {δ : Alloc}
+nu-apply : ∀ {Δ Δᵢ Δᶜ Γ A R L′ C B c Rᵢ Rₑ} {δ : Alloc}
   → AllocWf δ Δ
   → Δ ⊢ᵗ A
   → Δ ⊢ᶜ A ~ R
   → apply δ Δ ∣ Γ ⊢ L′ ⦂ `∀ C
   → BoundaryWf (allocate R Δ) TyBetaBoundary Δᵢ Δᶜ
-  → Δᶜ ⊢ c ∶ C ⇝ Cₑ
-  → allocate R Δ ⊢ B ≈ Cₑ ⊣ Δᶜ
+  → Δᶜ ∣ TyBetaBoundary ⊢[ ⁺ ] c ∶ Rᵢ ⇝ Rₑ
+  → names Δᵢ ⊢ C ~ Rᵢ
+  → names (allocate R Δ) ⊢ B ~ Rₑ
   → Δ ⊢ᵗ B
   → apply δ Δ ∣ Γ ⊢ ν A · L′ ⟨ c ⟩ ⦂ B
-nu-apply aw-none wA rA ⊢L′ mw ⊢c same wB = ⊢ν wA rA ⊢L′ mw ⊢c same wB
-nu-apply {δ = new S} (aw-new wS) wA rA ⊢L′ mw ⊢c same wB
-  with ν-boundary-ren (repwk-alloc wS) rA mw ⊢c same
-nu-apply {δ = new S} (aw-new wS) wA rA ⊢L′ mw ⊢c same wB
-  | Δ′ , mw′ , ⊢c′ , same′ =
-  ⊢ν (⊢ᵗ-apply (new S) wA) (same-ren suc rA) ⊢L′ mw′ ⊢c′ same′
+nu-apply aw-none wA rA ⊢L′ mw ⊢c qC same wB =
+  ⊢ν wA rA ⊢L′ mw ⊢c qC same wB
+nu-apply {δ = new S} (aw-new wS) wA rA ⊢L′ mw ⊢c qC same wB
+  with ν-boundary-ren (repwk-alloc wS) rA mw ⊢c qC same
+nu-apply {δ = new S} (aw-new wS) wA rA ⊢L′ mw ⊢c qC same wB
+  | Δ′ , mw′ , ⊢c′ , qC′ , same′ =
+  ⊢ν (⊢ᵗ-apply (new S) wA) (same-ren suc rA) ⊢L′ mw′ ⊢c′ qC′ same′
      (⊢ᵗ-apply (new S) wB)
 
 wf-underΛ : WfCtx Δ → WfCtx (underΛ Δ)
@@ -978,8 +947,8 @@ wf-underΛ {Δ = Δ} (wf-ctx wr vn uq) =
 ⊢substᴹ cross wfΔ h (⊢Λ vN ⊢N) =
   ⊢Λ (value-substᵐ vN)
      (⊢substᴹ cross (wf-underΛ wfΔ) (⇑ᴵ-⊢ cross wfΔ h) ⊢N)
-⊢substᴹ cross wfΔ h (⊢ν wA rA ⊢L mw ⊢c same wB) =
-  ⊢ν wA rA (⊢substᴹ cross wfΔ h ⊢L) mw ⊢c same wB
+⊢substᴹ cross wfΔ h (⊢ν wA rA ⊢L mw ⊢c smC same wB) =
+  ⊢ν wA rA (⊢substᴹ cross wfΔ h ⊢L) mw ⊢c smC same wB
 ⊢substᴹ cross wfΔ h (boundary mwᵥ ⊢M ⊢c sameᵢ sameₑ wE) =
   boundary mwᵥ ⊢M ⊢c sameᵢ sameₑ wE
 
@@ -1010,25 +979,20 @@ preserve-Beta cross wfΔ (⊢· (⊢ƛ w ⊢N) ⊢W) =
 -- Commentary.md § proof/Preserve.agda / §4b
 
 WrapCase : Set
-WrapCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t C}
+WrapCase = ∀ {Δ V W Θ s t C}
   → WfCtx Δ → Simple V → Value W
-  → Δ ⊢ᶜ Θ ⇒ Δᶜ → Δ ⊢ⁱ Θ ⇒ Δᵢ
-  → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
   → Δ ∣ [] ⊢ (V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · W ⦂ C
   → Δ ∣ [] ⊢
-      (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ⦂ C
+      (V · (W ⟪ dual Θ , respellᶜ Θ Θ (dual Θ) s ⟫)) ⟪ Θ , t ⟫ ⦂ C
 
 MergeCase : Set
-MergeCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ₂ᶜ Δ⋉ᶜ U Θ₁ Θ₂ t₁ t₁′ c₂ c₂′ C}
+MergeCase = ∀ {Δ Δ⋉ᶜ U Θ₁ Θ₂ t₁ c₂ C}
   → WfCtx Δ → Simple U → InertTail t₁
-  → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
-  → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
-  → Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ
   → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
-  → SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ (tail t₁)
-  → SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂
   → Δ ∣ [] ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫ ⦂ C
-  → Δ ∣ [] ⊢ U ⟪ Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′ ⟫ ⦂ C
+  → Δ ∣ [] ⊢ U ⟪ Θ₁ ++ Θ₂ ,
+                 Δ⋉ᶜ ⊢ respellᶜ Θ₁ (dual Θ₂) (Θ₁ ++ Θ₂) (tail t₁)
+                     ⨟ respellᶜ Θ₂ [] (Θ₁ ++ Θ₂) c₂ ⟫ ⦂ C
 
 ------------------------------------------------------------------------
 -- §5. What a step did to the store
@@ -1040,9 +1004,9 @@ MergeCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ₂ᶜ Δ⋉ᶜ U Θ₁ Θ₂ t₁ t₁′ 
 step-alloc : ∀ {Δ M M′ δ} → WfCtx Δ → Δ ⊢ M -→ M′ ∣ δ → AllocWf δ Δ
 step-alloc wfΔ (TyBeta v p) = aw-new (same-wfᴿ wfΔ p)
 step-alloc wfΔ (Beta w) = aw-none
-step-alloc wfΔ (Wrap v w rc ri rd sc) = aw-none
-step-alloc wfΔ (TyWrap v rc ⊢s p) = aw-new (same-wfᴿ wfΔ p)
-step-alloc wfΔ (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) = aw-none
+step-alloc wfΔ (Wrap v w) = aw-none
+step-alloc wfΔ (TyWrap v p) = aw-new (same-wfᴿ wfΔ p)
+step-alloc wfΔ (Merge u it r⋉) = aw-none
 step-alloc wfΔ (Id u b) = aw-none
 step-alloc wfΔ (ξ-·₁ st) = step-alloc wfΔ st
 step-alloc wfΔ (ξ-·₂ v st) = step-alloc wfΔ st
@@ -1068,18 +1032,17 @@ module Impl
     → Δ ⊢ M -→ M′ ∣ δ → apply δ Δ ∣ [] ⊢ M′ ⦂ A
   preserve wfΔ ⊢M (TyBeta v p) = preserve-TyBeta wfΔ p ⊢M
   preserve wfΔ ⊢M (Beta v) = preserve-Beta crossΛ wfΔ ⊢M
-  preserve wfΔ ⊢M (Wrap v w rc ri rd sc) =
-    wrap wfΔ v w rc ri rd sc ⊢M
-  preserve wfΔ ⊢M (TyWrap v rc ⊢s p) = preserve-TyWrap wfΔ p ⊢M
-  preserve wfΔ ⊢M (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) =
-    merge wfΔ u it ri r₁ r₂ r⋉ sc₁ sc₂ ⊢M
+  preserve wfΔ ⊢M (Wrap v w) = wrap wfΔ v w ⊢M
+  preserve wfΔ ⊢M (TyWrap v p) = preserve-TyWrap wfΔ p ⊢M
+  preserve wfΔ ⊢M (Merge u it r⋉) = merge wfΔ u it r⋉ ⊢M
   preserve wfΔ ⊢M (Id u b) = preserve-Id wfΔ u b ⊢M
   preserve wfΔ (⊢· ⊢L ⊢M) (ξ-·₁ st) =
     ⊢· (preserve wfΔ ⊢L st) (⊢↑ shift (step-alloc wfΔ st) ⊢M)
   preserve wfΔ (⊢· ⊢L ⊢M) (ξ-·₂ v st) =
     ⊢· (⊢↑ shift (step-alloc wfΔ st) ⊢L) (preserve wfΔ ⊢M st)
-  preserve wfΔ (⊢ν wA rA ⊢L mw ⊢c same wB) (ξ-ν st) =
-    nu-apply (step-alloc wfΔ st) wA rA (preserve wfΔ ⊢L st) mw ⊢c same wB
+  preserve wfΔ (⊢ν wA rA ⊢L mw ⊢c smC same wB) (ξ-ν st) =
+    nu-apply (step-alloc wfΔ st) wA rA (preserve wfΔ ⊢L st) mw ⊢c smC
+             same wB
   preserve wfΔ (boundary mwΘ ⊢M ⊢c sameᵢ sameₑ wE) (ξ-⟪⟫ ri st)
     with interior-functional ri (bw-interior mwΘ)
   preserve wfΔ (boundary mwΘ ⊢M ⊢c sameᵢ sameₑ wE) (ξ-⟪⟫ ri st)

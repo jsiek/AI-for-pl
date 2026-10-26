@@ -139,7 +139,7 @@ erase-substᵐ {Δ} {σ = σ} {σˢ} w h (⊢Λ vN ⊢N) =
   where
   h′ : ∀ x → ImgE (underΛ Δ) (⇑ᴵ (σ x)) (renameˢᵗ suc (σˢ x))
   h′ x = cross-ie w (h x)
-erase-substᵐ {Δ} w h (⊢ν {A = A} wA rA ⊢L mw ⊢c same wB) =
+erase-substᵐ {Δ} w h (⊢ν {A = A} wA rA ⊢L mw ⊢c smC same wB) =
   cong (S._[ eraseTy Δ A ]) (erase-substᵐ w h ⊢L)
 erase-substᵐ {Δ} {σˢ = σˢ} w h
     (boundary {Θ = Θ} {M = M} mw ⊢M ⊢c sᵢ sₑ wE) =

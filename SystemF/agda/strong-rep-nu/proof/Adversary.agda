@@ -14,7 +14,7 @@ module strong-rep-nu.proof.Adversary where
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
-open import Data.Product using (_×_; _,_; ∃-syntax)
+open import Data.Product using (_×_; _,_; ∃-syntax; proj₂)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
@@ -30,24 +30,28 @@ open import strong-rep-nu.Boundary
 -- 1.  The gate
 ------------------------------------------------------------------------
 
-seal-cites-binder : ∀ {Δ X A B c}
-  → Δ ⊢ c ∶ A ⇝ B → c ≡ tail (seal X) → Δ ∋ X := A
-seal-cites-binder (conv-tail (conv-seal d)) refl = d
+seal-cites-binder : ∀ {Δ Θ p X A B c}
+  → Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B → c ≡ tail (seal X)
+  → ∃[ α ] ((Δ ∋ X ⊸ α := A) × SealOK p Θ α)
+seal-cites-binder (conv-tail (conv-seal d ok)) refl = _ , d , ok
 
 -- Spelled out: the cited ordinary name is LIVE, the representation
--- variable it names is REPRESENTED, and the seal's source type is that
--- representation read on the conversion context.  No other premise exists.
-seal-cites-representation : ∀ {Δ X A B} → Δ ⊢ tail (seal X) ∶ A ⇝ B
-  → ∃[ α ] ∃[ R ]
-      ((Δ ∋ᵗ X := α) × (Δ ∋rep α := R) × (Δ ⊢ᶜ A ~ R))
-seal-cites-representation (conv-tail (conv-seal d)) = d
+-- variable it names is REPRESENTED — and the seal's source type IS that
+-- representation, readable on the conversion context — and the scope
+-- GRANTS the seal.  No other premise exists.
+seal-cites-representation : ∀ {Δ Θ p X A B}
+  → Δ ∣ Θ ⊢[ p ] tail (seal X) ∶ A ⇝ B
+  → ∃[ α ] ((Δ ∋ᵗ X := α) × (Δ ∋rep α := A)
+             × (∃[ A′ ] (Δ ⊢ᶜ A′ ~ A)) × SealOK p Θ α)
+seal-cites-representation (conv-tail (conv-seal (nm , rp , rd) ok)) =
+  _ , nm , rp , rd , ok
 
 ------------------------------------------------------------------------
 -- 2.  THE ADVERSARY (the old ⊢3n-adv): a conceal asserting false knowledge
 ------------------------------------------------------------------------
 
 -- Ordinary name 0 names an ABSTRACT representation variable, so
--- `seal 0` asks `abstR` to be a `bindR`: the boundary is UNMINTABLE.
+-- `seal 0` asks `abstR` to be a `bindR`: the boundary cannot be created.
 -- Commentary.md § proof/Adversary.agda / §2
 
 Δadv : Ctxᵗ
@@ -57,15 +61,16 @@ seal-cites-representation (conv-tail (conv-seal d)) = d
 ¬rep-adv : ∀ {R} → Δadv ∋rep zero := R → ⊥
 ¬rep-adv ()
 
-¬know-adv : ∀ {A} → Δadv ∋ 0 := A → ⊥
-¬know-adv (α , R , here , rep , same) = ¬rep-adv rep
+¬know-adv : ∀ {α A} → Δadv ∋ 0 ⊸ α := A → ⊥
+¬know-adv (here , rep , _) = ¬rep-adv rep
 
-¬seal-adv : ∀ {A B} → Δadv ⊢ tail (seal 0) ∶ A ⇝ B → ⊥
-¬seal-adv (conv-tail (conv-seal d)) = ¬know-adv d
+¬seal-adv : ∀ {Θ p A B} → Δadv ∣ Θ ⊢[ p ] tail (seal 0) ∶ A ⇝ B → ⊥
+¬seal-adv (conv-tail (conv-seal d ok)) = ¬know-adv d
 
--- The boundary scope the adversary used to hide behind: it unbinds the very name
--- its conversion cites.  A conversion context SKIPS an unbind, so the unbind
--- buys nothing — the seal is still read where the slot is abstract.
+-- The boundary scope the adversary used to hide behind: it unbinds the
+-- very name its conversion cites.  That grants the PERMISSION, but a
+-- conversion context SKIPS an unbind, so the seal is still read where
+-- the slot is abstract.
 Θadv : Boundary
 Θadv = (unbind 0 zero ∷ [])
 
@@ -78,11 +83,11 @@ conv-Θadv (conversion (conv-unbind valid conv[])) = refl
 ... | refl = ¬seal-adv ⊢c
 
 ------------------------------------------------------------------------
--- 2b.  THE SECOND GATE, NEW ON THIS BRANCH: a conceal at a UNBOUND name
+-- 2b.  THE SECOND GATE: a conceal at an UNBOUND name
 ------------------------------------------------------------------------
 
 -- An unbind DELETES the ordinary name, so a seal at a name the interior
--- lost is refused by the NAME half of the square.
+-- lost is refused by the NAME half of the leaf.
 
 Δlk : Ctxᵗ
 Δlk = (bindR `ℕ ∷ []) ∣ []
@@ -90,9 +95,31 @@ conv-Θadv (conversion (conv-unbind valid conv[])) = refl
 ¬name-lk : ∀ {α} → Δlk ∋ᵗ 0 := α → ⊥
 ¬name-lk ()
 
-¬seal-lk : ∀ {A B} → Δlk ⊢ tail (seal 0) ∶ A ⇝ B → ⊥
-¬seal-lk (conv-tail (conv-seal (α , R , name , rep , same))) =
-  ¬name-lk name
+¬seal-lk : ∀ {Θ p A B} → Δlk ∣ Θ ⊢[ p ] tail (seal 0) ∶ A ⇝ B → ⊥
+¬seal-lk (conv-tail (conv-seal (name , rep , _) ok)) = ¬name-lk name
+
+------------------------------------------------------------------------
+-- 2c.  THE THIRD GATE, NEW WITH THE Δ ∣ Θ EXPERIMENT: the permission
+------------------------------------------------------------------------
+
+-- Before 2026-10-25 a seal needed only a live, represented name, so
+-- `($ 7) ⟪ [] , seal 0 ⟫` typed at an ambient that names a cell.  The
+-- empty scope unbinds nothing, so it grants no seal.
+
+Δnm : Ctxᵗ
+Δnm = (bindR `ℕ ∷ []) ∣ (zero ∷ [])
+
+¬seal-empty : ∀ {p A B} → Δnm ∣ [] ⊢[ p ] tail (seal 0) ∶ A ⇝ B → ⊥
+¬seal-empty {⁺} (conv-tail (conv-seal d ()))
+¬seal-empty {⁻} (conv-tail (conv-seal d ()))
+
+empty-conv : ∀ {Δᶜ} → Δnm ⊢ᶜ [] ⇒ Δᶜ → Δᶜ ≡ Δnm
+empty-conv (conversion conv[]) = refl
+
+¬⊢empty : ∀ {Γ} → ¬ (Δnm ∣ Γ ⊢ ($ 7) ⟪ [] , tail (seal 0) ⟫ ⦂ ` 0)
+¬⊢empty (boundary mwᵥ ⊢M ⊢c smᵢ smₑ wE)
+  with empty-conv (bw-conversion mwᵥ)
+... | refl = ¬seal-empty ⊢c
 
 ------------------------------------------------------------------------
 -- 3.  `bad`: two spellings of one fact — inexpressible
@@ -113,45 +140,38 @@ conv-Θadv (conversion (conv-unbind valid conv[])) = refl
 bad-lookup : Δbad ∋rep zero := ∀ZZ
 bad-lookup = r-here
 
--- … and ∀ZZ has exactly one ordinary reading on `names Δbad`.
-bad-reading : Δbad ⊢ᶜ ∀ZZ ~ ∀ZZ
-bad-reading = same-∀ (same-⇒ (same-var here) (same-var here))
-
-seal-bad-conv : ∀ {A B} → Δbad ⊢ tail (seal 0) ∶ A ⇝ B → A ≡ ∀ZZ
-seal-bad-conv (conv-tail (conv-seal (α , R , here , rep , same)))
+seal-bad-conv : ∀ {Θ p A B} → Δbad ∣ Θ ⊢[ p ] tail (seal 0) ∶ A ⇝ B
+  → A ≡ ∀ZZ
+seal-bad-conv (conv-tail (conv-seal (here , rep , _) ok))
   with ∋ʳ-det rep bad-lookup
-... | refl =
-  same-target-unique (unique∷ fresh[] unique[]) same bad-reading
+... | refl = refl
 
 -- The adversary's term is `7` behind that conceal, presented at `` ` 0 ``.
--- It is refused by the seal's SOURCE type alone: `boundary` makes the boundary's
--- interior type and the conversion's source two spellings of one
--- representation, and `7 : ℕ` cannot spell ∀Z.Z→Z.
-¬same-ℕ-∀ : ∀ {η η′ R} → η ⊢ `ℕ ~ R → η′ ⊢ ∀ZZ ~ R → ⊥
-¬same-ℕ-∀ same-ℕ ()
+-- It is refused by the seal's SOURCE type alone: `boundary` reads the
+-- boundary's interior type as the conversion's source representation,
+-- and `7 : ℕ` does not denote ∀Z.Z→Z.
+¬same-ℕ-∀ : ∀ {η} → η ⊢ `ℕ ~ ∀ZZ → ⊥
+¬same-ℕ-∀ ()
 
 ¬⊢bad : ∀ {Γ Θ} → Δbad ⊢ᶜ Θ ⇒ Δbad
   → ¬ (Δbad ∣ Γ ⊢ ($ 7) ⟪ Θ , tail (seal 0) ⟫ ⦂ ` 0)
-¬⊢bad rc (boundary mwᵥ ⊢$ ⊢c (R , pᵢ , qᵢ) smₑ wE)
+¬⊢bad rc (boundary mwᵥ ⊢$ ⊢c pᵢ smₑ wE)
   with conversion-functional (bw-conversion mwᵥ) rc
-¬⊢bad rc (boundary mwᵥ ⊢$ ⊢c (R , pᵢ , qᵢ) smₑ wE) | refl
+¬⊢bad rc (boundary mwᵥ ⊢$ ⊢c pᵢ smₑ wE) | refl
   with seal-bad-conv ⊢c
-¬⊢bad rc (boundary mwᵥ ⊢$ ⊢c (R , pᵢ , qᵢ) smₑ wE) | refl | refl =
-  ¬same-ℕ-∀ pᵢ qᵢ
+¬⊢bad rc (boundary mwᵥ ⊢$ ⊢c pᵢ smₑ wE) | refl | refl = ¬same-ℕ-∀ pᵢ
 
 ------------------------------------------------------------------------
 -- 4.  THE CANCELLED PAIR'S TYPE EQUATION (composition's seal ⨟ unseal)
 ------------------------------------------------------------------------
 
 -- The inner conceal's SOURCE and the outer reveal's TARGET are the SAME
--- lookup square on the SAME conversion context, hence equal — once the
--- name map is a function, which every `BoundaryWf` supplies.
-cancel-types-agree : ∀ {Δ X A B A′ B′}
-  → Unique (names Δ)
-  → Δ ⊢ tail (seal X) ∶ A ⇝ B       -- the inner conceal
-  → Δ ⊢ unseal X ∶ A′ ⇝ B′   -- the binder it names
+-- leaf on the SAME conversion context, hence equal.  With
+-- representation types no `Unique` premise is needed.
+cancel-types-agree : ∀ {Δ Θ Θ′ p p′ X A B A′ B′}
+  → Δ ∣ Θ ⊢[ p ] tail (seal X) ∶ A ⇝ B       -- the inner conceal
+  → Δ ∣ Θ′ ⊢[ p′ ] unseal X ∶ A′ ⇝ B′   -- the binder it names
     ---------------------------
   → A ≡ B′
-cancel-types-agree uq cs cu =
-  ∋:=-det uq (seal-source-is-rep cs)
-             (unseal-target-is-rep cu)
+cancel-types-agree cs cu with seal-source-is-rep cs | unseal-target-is-rep cu
+... | α , d , _ | α′ , d′ , _ = proj₂ (leaf-det d d′)

@@ -297,19 +297,19 @@ residual-frame wfΔ (residual-Beta-body {W = W} {A = A} vW st)
 residual-frame wfΔ (residual-Beta-arg vW cr) (frame-·R h) =
   copy-frame cr h
 
-residual-frame wfΔ (residual-Wrap-fun vV vW rc ri rd sc)
+residual-frame wfΔ (residual-Wrap-fun vV vW)
     (frame-·L (frame-⟪⟫ riᶠ h)) =
   _ , frame-⟪⟫ riᶠ (frame-·L h) , sym (map-idᵗ _)
 
 -- The crossing argument moves VERBATIM: `dual-interior` says the dual's
 -- interior IS the exterior the argument was already read at.
-residual-frame wfΔ (residual-Wrap-arg vV vW rc ri rd sc) (frame-·R h) =
+residual-frame wfΔ (residual-Wrap-arg vV vW ri) (frame-·R h) =
   _ , frame-⟪⟫ ri (frame-·R (frame-⟪⟫ (dual-interior ri) h))
     , sym (map-idᵗ _)
 
 -- The two stacked layers read, in turn, `inst []` and the crossed
 -- frame under the new name: together exactly `inst Θ`'s interior.
-residual-frame {Δ = Δ} wfΔ (residual-TyWrap {R = R} vN rc ⊢s pA)
+residual-frame {Δ = Δ} wfΔ (residual-TyWrap {R = R} vN pA)
     (frame-ν (frame-⟪⟫ (interior csᶠ) (frame-Λ h))) =
   let (Ξ₂ , d , _) = ⊢C-len (bindR R ∷ reps Δ) refl h
   in _ , frame-⟪⟫ (inst-interior {R = R} empty-interior)
@@ -317,7 +317,7 @@ residual-frame {Δ = Δ} wfΔ (residual-TyWrap {R = R} vN rc ⊢s pA)
        , sym (map-idᵗ _)
 
 -- Merge: the two frames read in turn are the merged frame's interior.
-residual-frame wfΔ (residual-Merge u it ri rc₁ rc₂ rc⋉ sc₁ sc₂)
+residual-frame wfΔ (residual-Merge u it rc⋉)
     (frame-⟪⟫ ri₂ᶠ (frame-⟪⟫ ri₁ᶠ h)) =
   _ , frame-⟪⟫ (merged-interior ri₂ᶠ ri₁ᶠ) h
     , sym (map-idᵗ _)

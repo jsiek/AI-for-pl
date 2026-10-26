@@ -143,7 +143,7 @@ erase-ren ρ τ eq h (⊢· ⊢L ⊢M) =
 erase-ren {Δ₁} ρ τ refl h (⊢Λ vN ⊢N) =
   cong S.Λ_ (erase-ren (extᵗ ρ) (extsᵗ τ)
              (sym (names-underΛ-ren ρ (names Δ₁))) (EnvRel-ext h) ⊢N)
-erase-ren ρ τ eq h (⊢ν wA rA ⊢L mw ⊢c same wB) =
+erase-ren ρ τ eq h (⊢ν wA rA ⊢L mw ⊢c smC same wB) =
   cong₂ S._[_] (erase-ren ρ τ eq h ⊢L) (erase-ren-ty ρ τ eq h wA)
 erase-ren {Δ₁} {Ξ₂} ρ τ refl h
           (boundary {Δᵢ = Δᵢ} {Θ = Θ} {M = M} mw ⊢M ⊢c sᵢ sₑ wE) =

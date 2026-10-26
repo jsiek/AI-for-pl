@@ -28,26 +28,19 @@ open import strong-rep-nu.proof.Ctx
 open import strong-rep-nu.Conversion
 open import strong-rep-nu.Terms
 open import strong-rep-nu.Boundary
-open import strong-rep-nu.proof.Canonical
-  using (same-base-target; ≈-base-target)
 
 ------------------------------------------------------------------------
 -- §1  THE NAMES ARE FORCED
 ------------------------------------------------------------------------
 
--- The heart of both cases, on the two `boundary` premises alone.  Stated on
--- NAME MAPS, because the judgement reaches a context only through the
--- `names` projection, which does not determine it.
+-- The heart of both cases, on the two `boundary` premises alone: the
+-- inner conversion's TARGET representation and the outer's SOURCE
+-- representation both read the one middle type.
 -- Commentary.md § proof/IdLayer.agda / §1
-push-rep : {ηᵢ η₁ᶜ ηᶜ : TyCtx} {B : Ty} {X Y : ℕ}
-  → ∃[ R ] ((ηᵢ ⊢ B ~ R) × (η₁ᶜ ⊢ ` X ~ R))
-  → ∃[ R ] ((ηᵢ ⊢ B ~ R) × (ηᶜ ⊢ ` Y ~ R))
-    ---------------------------------------------------------------
-  → Σ[ α ∈ RVar ] ((ηᶜ ∋ˡ Y := α) × (η₁ᶜ ∋ˡ X := α))
-push-rep (R , p , q) (R′ , p′ , same-var d)
-  with same-rep-unique p p′
-push-rep (R , p , same-var d′) (R′ , p′ , same-var d) | refl =
-  _ , d , d′
+push-rep : {ηᵢ : TyCtx} {B : Ty} {α β : RVar}
+  → ηᵢ ⊢ B ~ ` α → ηᵢ ⊢ B ~ ` β → α ≡ β
+push-rep p q with same-rep-unique p q
+push-rep p q | refl = refl
 
 -- In any typed id-layer under an `unseal`, the inner `id (` X)`'s variable
 -- NAMES the pushed conversion's binder.  IdPush therefore invents no
@@ -60,20 +53,17 @@ idpush-name : ∀ {Δ Γ V Θ₁ Θ₂ X Y C}
         × (Δᶜ ∋ᵗ Y := α)
         × (Δ₁ᶜ ∋ᵗ X := α))
 idpush-name
-    (boundary mw₂ (boundary mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX))) sm₁ se₁ wB)
-         (conv-unseal dY) sm₂ se₂ wE)
+    (boundary mw₂ (boundary mw₁ ⊢V (conv-tail (conv-mid (conv-idv d′))) sm₁ se₁ wB)
+         (conv-unseal (d , _) ok) sm₂ se₂ wE)
   with push-rep se₁ sm₂
-idpush-name
-    (boundary mw₂ (boundary mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX))) sm₁ se₁ wB)
-         (conv-unseal dY) sm₂ se₂ wE)
-  | α , d , d′ =
-  _ , _ , _ , α
+... | refl =
+  _ , _ , _ , _
   , bw-interior mw₂ , bw-conversion mw₂ , bw-conversion mw₁
   , d , d′
 
 -- THE SAME FACT FOR CANCEL.  The inner `seal X` has the same TARGET
--- spelling `` ` X ``, so the same two premises settle it, and CancelR
--- needs no premise relating its two names either.
+-- representation `` ` α ``, so the same two premises settle it, and
+-- CancelR needs no premise relating its two names either.
 cancel-name : ∀ {Δ Γ V Θ₁ Θ₂ X Y C}
   → Δ ∣ Γ ⊢ (V ⟪ Θ₁ , tail (seal X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
     --------------------------------------------------------------------
@@ -82,14 +72,11 @@ cancel-name : ∀ {Δ Γ V Θ₁ Θ₂ X Y C}
         × (Δᶜ ∋ᵗ Y := α)
         × (Δ₁ᶜ ∋ᵗ X := α))
 cancel-name
-    (boundary mw₂ (boundary mw₁ ⊢V (conv-tail (conv-seal dX)) sm₁ se₁ wB)
-         (conv-unseal dY) sm₂ se₂ wE)
+    (boundary mw₂ (boundary mw₁ ⊢V (conv-tail (conv-seal (d′ , _) okX)) sm₁ se₁ wB)
+         (conv-unseal (d , _) ok) sm₂ se₂ wE)
   with push-rep se₁ sm₂
-cancel-name
-    (boundary mw₂ (boundary mw₁ ⊢V (conv-tail (conv-seal dX)) sm₁ se₁ wB)
-         (conv-unseal dY) sm₂ se₂ wE)
-  | α , d , d′ =
-  _ , _ , _ , α
+... | refl =
+  _ , _ , _ , _
   , bw-interior mw₂ , bw-conversion mw₂ , bw-conversion mw₁
   , d , d′
 
@@ -97,29 +84,25 @@ cancel-name
 -- §2  THE ONLY ACTIVE CONVERSION AN ID-LAYER MEETS IS `unseal`
 ------------------------------------------------------------------------
 
--- A base ordinary type denotes a base representation type.
-same-base-source : ∀ {η A R} → η ⊢ A ~ R → Base A → Base R
-same-base-source same-ℕ base-ℕ = base-ℕ
-same-base-source same-𝔹 base-𝔹 = base-𝔹
-
 -- A wrapper whose conversion is `id (` X)` has a VARIABLE exterior
--- type, and an outer `id A` at a BASE type demands a base interior — so
--- the id-base branch of `Active` is unreachable over this LHS.
+-- representation, and an outer `id A` at a BASE type demands a base
+-- one — so the id-base branch of `Active` is unreachable over this LHS.
 -- Commentary.md § proof/IdLayer.agda / §2
 outer-id-base-untypeable : ∀ {Δ Γ V Θ₁ Θ₂ X A C} → Base A
   → ¬ (Δ ∣ Γ ⊢ (V ⟪ Θ₁ , ⌞ id (` X) ⌟ ⟫) ⟪ Θ₂ , ⌞ id A ⌟ ⟫ ⦂ C)
 outer-id-base-untypeable bA
-    (boundary {Δᵢ = Δᵢ} mw₂
-         (boundary {Δᶜ = Δ₁ᶜ} mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX)))
-              sm₁ se₁ wB)
-         (conv-tail (conv-mid (conv-id bA′))) (R , p , q) se₂ wE)
-  with ≈-base-target {Δ = Δᵢ} {Δ′ = Δ₁ᶜ}
-         (same-base-target p (same-base-source q bA′)) se₁
-outer-id-base-untypeable bA
-    (boundary {Δᵢ = Δᵢ} mw₂
-         (boundary {Δᶜ = Δ₁ᶜ} mw₁ ⊢V (conv-tail (conv-mid (conv-idv tvX)))
-              sm₁ se₁ wB)
-         (conv-tail (conv-mid (conv-id bA′))) (R , p , q) se₂ wE) | ()
+    (boundary mw₂
+         (boundary mw₁ ⊢V (conv-tail (conv-mid (conv-idv d))) sm₁ se₁ wB)
+         (conv-tail (conv-mid (conv-id bA′))) sm₂ se₂ wE)
+  with same-rep-unique se₁ sm₂
+outer-id-base-untypeable base-ℕ
+    (boundary mw₂
+         (boundary mw₁ ⊢V (conv-tail (conv-mid (conv-idv d))) sm₁ se₁ wB)
+         (conv-tail (conv-mid (conv-id bA′))) sm₂ se₂ wE) | ()
+outer-id-base-untypeable base-𝔹
+    (boundary mw₂
+         (boundary mw₁ ⊢V (conv-tail (conv-mid (conv-idv d))) sm₁ se₁ wB)
+         (conv-tail (conv-mid (conv-id bA′))) sm₂ se₂ wE) | ()
 outer-id-base-untypeable ()
   (boundary _ (boundary _ _ (conv-tail (conv-mid (conv-idv _))) _ _ _)
        (conv-tail (conv-mid (conv-idv _))) _ _ _)
@@ -146,7 +129,7 @@ naked-drop-trap : ∀ {C} →
 naked-drop-trap (boundary mwᵥ ⊢$ ⊢c smᵢ smₑ wE)
   with bw-conversion mwᵥ
 naked-drop-trap
-  (boundary mwᵥ ⊢$ (conv-tail (conv-seal (α , R , name , rep , same)))
+  (boundary mwᵥ ⊢$ (conv-tail (conv-seal (name , rep , _) ok))
        smᵢ smₑ wE)
   | conversion conv[] = Δₑ-no-1 name
 
@@ -167,15 +150,11 @@ drop-empty-frame : ∀ {Δ Γ V A B}
   → Δ ∣ Γ ⊢ V ⟪ [] , ⌞ id A ⌟ ⟫ ⦂ B
     ------------------------------------
   → Δ ∣ [] ⊢ V ⦂ B
-drop-empty-frame {Δ = Δ} {V = V} (boundary mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE)
+drop-empty-frame {Δ = Δ} {V = V} (boundary mwᵥ ⊢V ⊢c pᵢ pₑ wE)
   with interior-functional (bw-interior mwᵥ) (empty-interior Δ)
-     | conversion-functional (bw-conversion mwᵥ) (empty-conversion Δ)
-drop-empty-frame {Δ = Δ} {V = V}
-  (boundary mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE) | refl | refl
-  with same-rep-unique qᵢ (subst (λ T → names Δ ⊢ T ~ S)
-                                 (sym (conv-id-refl ⊢c)) qₑ)
-drop-empty-frame {Δ = Δ} {V = V}
-  (boundary mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE) | refl | refl | refl =
+     | conv-id-refl ⊢c
+drop-empty-frame {Δ = Δ} {V = V} (boundary mwᵥ ⊢V ⊢c pᵢ pₑ wE)
+  | refl | refl =
   subst (λ T → Δ ∣ [] ⊢ V ⦂ T)
         (same-target-unique (name-fn (bw-exterior mwᵥ)) pᵢ pₑ)
         ⊢V

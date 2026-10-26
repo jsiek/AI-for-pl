@@ -67,11 +67,9 @@ Wrap-frame : ∀ {Γᵢ : Ctxᵗ} (Θ : Boundary) (Γ : Ctxᵗ)
 Wrap-frame Θ Γ = dual-interior
 
 -- … and Wrap allocates nothing, so its siblings do not move either.
-Wrap-no-alloc : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Simple V → Value W
-  → Δ ⊢ᶜ Θ ⇒ Δᶜ → Δ ⊢ⁱ Θ ⇒ Δᵢ
-  → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
+Wrap-no-alloc : ∀ {Δ V W Θ s t} → Simple V → Value W
   → Δ ⊢ (V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · W
-      -→ (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ∣ none
+      -→ (V · (W ⟪ dual Θ , respellᶜ Θ Θ (dual Θ) s ⟫)) ⟪ Θ , t ⟫ ∣ none
 Wrap-no-alloc = Wrap
 
 ------------------------------------------------------------------------
@@ -187,23 +185,23 @@ progress-Λ-at-0 : ∀ {Δ Δᶜ V Θ s c A R C} → Value V
        × (Δ ⊢ ν A · (V ⟪ Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩
             -→ (N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫ ∣ new R))
 progress-Λ-at-0 v
-    (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
+    (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν smC sm wB) rc pA eq
   with conv-all-inv ⊢c
 progress-Λ-at-0 v
-    (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
+    (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν smC sm wB) rc pA eq
   | A₀ , B₀ , refl , eqₑ , ⊢s with smᵢ
 progress-Λ-at-0 v
-    (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
-  | A₀ , B₀ , refl , eqₑ , ⊢s | _ , same-∀ pᵢ , same-∀ qᵢ
+    (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν smC sm wB) rc pA eq
+  | A₀ , B₀ , refl , eqₑ , ⊢s | same-∀ pᵢ
   with conversion-functional (bw-conversion mwᵥ) rc
 progress-Λ-at-0 v
-    (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
-  | A₀ , B₀ , refl , eqₑ , ⊢s | _ , same-∀ pᵢ , same-∀ qᵢ | refl
+    (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν smC sm wB) rc pA eq
+  | A₀ , B₀ , refl , eqₑ , ⊢s | same-∀ pᵢ | refl
   with canon-∀-height v ⊢V eq
 progress-Λ-at-0 v
-    (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν sm wB) rc pA eq
-  | A₀ , B₀ , refl , eqₑ , ⊢s | _ , same-∀ pᵢ , same-∀ qᵢ | refl
-  | N , vN , refl = N , refl , TyWrap vN rc ⊢s pA
+    (⊢ν wA rA (boundary mwᵥ ⊢V ⊢c smᵢ smₑ wE) mw ⊢cν smC sm wB) rc pA eq
+  | A₀ , B₀ , refl , eqₑ , ⊢s | same-∀ pᵢ | refl
+  | N , vN , refl = N , refl , TyWrap vN pA
 
 ------------------------------------------------------------------------
 -- §5  BETA — the two crossings do not interfere
@@ -281,9 +279,9 @@ Id-only-simple : ∀ {Δ M M′ δ} → Δ ⊢ M -→ M′ ∣ δ
   → (∀ {U Θ A} → Simple U → M ≡ U ⟪ Θ , ⌞ id A ⌟ ⟫ → M′ ≡ U)
 Id-only-simple (TyBeta v p)              u ()
 Id-only-simple (Beta w)                u ()
-Id-only-simple (Wrap v w rc ri rd sc)  u ()
-Id-only-simple (TyWrap v rc ⊢s p)      u ()
-Id-only-simple (Merge u′ it ri r₁ r₂ r⋉ sc₁ sc₂) () refl
+Id-only-simple (Wrap v w)  u ()
+Id-only-simple (TyWrap v p)      u ()
+Id-only-simple (Merge u′ it r⋉) () refl
 Id-only-simple (Id u′ b)             u refl = refl
 Id-only-simple (ξ-·₁ st)              u ()
 Id-only-simple (ξ-·₂ v st)            u ()

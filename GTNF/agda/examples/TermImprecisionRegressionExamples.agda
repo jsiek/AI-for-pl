@@ -452,7 +452,7 @@ WiY★-wf = wf-world (right-only joint[])
 VL⊑idX : WiR★ ∣ [] ⊢ VL ⊑ idX
   ∶⟨ ∀X⇒X , ` 0 ⇒ ` 0 ⟩[ opn 0 ∷ [] ] ⇒⊑⇒ X⊑X X⊑X
 VL⊑idX =
-  ⟪⟫⊑ IntX★ (ok-bind ∷ []) (bo-∀ (S-Λ (V-simple S-ƛ)) (fc-∷ fc-[])) []
+  ⟪⟫⊑ rv-none IntX★ (ok-bind ∷ []) (bo-∀ (S-Λ (V-simple S-ƛ)) (fc-∷ fc-[])) []
     Wx★-wf (⇒⊑⇒ X⊑X X⊑X)
     (Λ⊑ (b-join openX★) nv-⇒ (∈-⇒ˡ ∈-var) liftᴸ-[] (V-simple S-ƛ)
       (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ)) (⇒⊑⇒ X⊑X X⊑X))
@@ -462,7 +462,7 @@ VL⊑idX =
 -- THE FINAL ARGUMENT PAIR (unrelated before D26)
 VL⊑Bm : Wk ∣ [] ⊢ VL ⊑ Bm ∶ ∀id⊑★ Wk
 VL⊑Bm =
-  ⊑⟪⟫ IntΘ₂★ (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vVL)) okR★
+  ⊑⟪⟫ rv-none IntΘ₂★ (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vVL)) okR★
     ([] ∷ []) [] WiR★-wf (⇒⊑⇒ X⊑X X⊑X) VL⊑idX bBm (∀id⊑★ Wk)
 
 VL⊑RF : Wk ∣ [] ⊢ VL ⊑ RF ∶ ∀id⊑★ Wk
@@ -476,13 +476,13 @@ lk₁⊑rk₄ = ·⊑· (ƛ⊑ƛ {pA = ∀id⊑★ Wk} tf tf (x⊑x Zʷ)) VL⊑R
 VL⊑Nk : WiY★ ∣ [] ⊢ VL ⊑ Nk
   ∶⟨ ∀X⇒X , ` 0 ⇒ ` 0 ⟩[ opn 0 ∷ [] ] ⇒⊑⇒ X⊑X X⊑X
 VL⊑Nk =
-  ⊑⟪⟫ IntXc★ (push (ca-opn refl ca-[]) (f-keep f-end) [] (inj₁ refl))
+  ⊑⟪⟫ rv-none IntXc★ (push (ca-opn refl ca-[]) (f-keep f-end) [] (inj₁ refl))
     okR★ ([] ∷ []) [] WiR★-wf (⇒⊑⇒ X⊑X X⊑X) VL⊑idX bNR (⇒⊑⇒ X⊑X X⊑X)
 
 VL⊑Rarg₃ : Wk ∣ [] ⊢ VL ⊑ Rarg₃ ∶ ∀id⊑★ Wk
 VL⊑Rarg₃ =
   ⊑cast
-    (⊑⟪⟫ IntK-ro (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vVL)) okY★
+    (⊑⟪⟫ rv-none IntK-ro (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vVL)) okY★
       ([] ∷ []) [] WiY★-wf (⇒⊑⇒ X⊑X X⊑X) VL⊑Nk bOutK (∀id⊑★ Wk))
     id★↦ᴿk-ty (∀id⊑★ Wk)
 
@@ -568,7 +568,7 @@ no-ƛℕ⊑ƛX (ƛ⊑ƛ {pA = ()} _ _ _)
 cx-unrelated : ∀ {Δ Δ′} {W : World Δ Δ′} {γ A A′} {p : A ⊑ᵂ⟨ W ⟩ A′}
   → ¬ (W ∣ γ ⊢ CX-L ⊑ CX-R₂ ∶ p)
 cx-unrelated
-  (⊑cast (·⊑· (⊑cast (⊑⟪⟫ _ _ _ _ _ _ _ d _ _) _ _) _) _ _) =
+  (⊑cast (·⊑· (⊑cast (⊑⟪⟫ _ _ _ _ _ _ _ _ d _ _) _ _) _) _ _) =
   no-ƛℕ⊑ƛX d
 
 -- under a slot the left term is a value (design.md D31)
@@ -601,8 +601,8 @@ slot-value (Λ⊑ (b-rep _ _ _) _ _ _ _ _ _) ne = ⊥-elim (ne refl)
 slot-value (Λ⊑ (b-join _) _ _ _ v _ _) ne = V-simple (S-Λ v)
 slot-value (ν⊑ν _ _ _ _ _ _) ne = ⊥-elim (ne refl)
 slot-value (ν⊑ _ _ _ _) ne = ⊥-elim (ne refl)
-slot-value (⟪⟫⊑⟪⟫ _ _ _ _ _ _ _ _ _) ne = ⊥-elim (ne refl)
-slot-value (⟪⟫⊑ _ _ bo-plain _ _ _ _ _ _) ne = ⊥-elim (ne refl)
-slot-value (⟪⟫⊑ _ _ (bo-∀ s (fc-∷ _)) _ _ _ _ _ _) ne = V-⟪⟫ s I-all
-slot-value (⊑⟪⟫ _ (push ca f _ _) _ _ _ _ _ d _ _) ne =
+slot-value (⟪⟫⊑⟪⟫ _ _ _ _ _ _ _ _ _ _) ne = ⊥-elim (ne refl)
+slot-value (⟪⟫⊑ _ _ _ bo-plain _ _ _ _ _ _) ne = ⊥-elim (ne refl)
+slot-value (⟪⟫⊑ _ _ _ (bo-∀ s (fc-∷ _)) _ _ _ _ _ _) ne = V-⟪⟫ s I-all
+slot-value (⊑⟪⟫ _ _ (push ca f _ _) _ _ _ _ _ d _ _) ne =
   slot-value d (fill-≢[] f (carried-≢[] ca ne))

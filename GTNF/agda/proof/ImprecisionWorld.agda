@@ -28,6 +28,10 @@ module proof.ImprecisionWorld where
 --     `→unpermitted`), its failure `HasPermittedPartner`/`r1-fails`, and
 --     its invariance under a boundary (`unpermitted-int`, `hasPP-int`,
 --     `hasPP-conv`: an interior or conversion world keeps ϱ and κ).
+--   * REVOCATIONS (design.md D32): a boundary entered with no
+--     permission revokes nothing (`revoke-[]`); revoked permissions are
+--     still right rep. vars (`dropped-All`, `wf⇂κ`); a permitted partner
+--     at the revoked permissions passes inside (`hasPP-int⇂`).
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_; length; map; _++_)
@@ -449,3 +453,40 @@ permit-++ β (γ ∷ K) κ p with β ≡ᵇ γ
 hasPP-+κ : ∀ {W : World Δ Δ′} {K α} → HasPermittedPartner W α
   → HasPermittedPartner (W +κ K) α
 hasPP-+κ {W = W} {K} (β , pr , pm) = β , pr , permit-++ β K (κʷ W) pm
+
+------------------------------------------------------------------------
+-- 7. The permissions a boundary revokes (design.md D32)
+------------------------------------------------------------------------
+
+-- nothing is revoked from no permission
+dropped-[] : ∀ {P : RVar → Set} {κ₁} → Dropped P [] κ₁ → κ₁ ≡ []
+dropped-[] dr-[] = refl
+
+-- ... so a boundary entered with no permission reads its interior
+-- with none (every top-level world has κʷ ≡ [])
+revoke-[] : ∀ {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {O A A′ κ₁}
+  → Revoke W Wᵢ O A A′ κ₁ → κʷ Wᵢ ≡ [] → κ₁ ≡ []
+revoke-[] rv-none     eκ = eκ
+revoke-[] {W = W} {Wᵢ = Wᵢ} {κ₁ = κ₁} (rv-drop d _) eκ =
+  dropped-[] (subst (λ κ → Dropped (Unjoins W Wᵢ) κ κ₁) eκ d)
+
+-- a revocation keeps only permitted right rep. vars
+dropped-All : ∀ {P : RVar → Set} {Q : RVar → Set} {κ κ₁}
+  → Dropped P κ κ₁ → All Q κ → All Q κ₁
+dropped-All dr-[]        []       = []
+dropped-All (dr-keep d)  (q ∷ qs) = q ∷ dropped-All d qs
+dropped-All (dr-drop _ d) (_ ∷ qs) = dropped-All d qs
+
+-- a world with permissions replaced is well formed when they are right
+-- rep. vars
+wf⇂κ : ∀ {W : World Δ Δ′} {κ₁} → WfWorld W → All (reps Δ′ ∋ʳ_) κ₁
+  → WfWorld (W ⇂κ κ₁)
+wf⇂κ {W = W} {κ₁} wf ps = wf-world (wf-joint wf)
+  (λ pr → agreeW {W = W} {W′ = W ⇂κ κ₁} (λ p → p) (wf-agree wf pr))
+  (wf-namedᴸ wf) (wf-namedᴿ wf) ps
+
+-- a permitted partner at revoked permissions passes into the interior
+hasPP-int⇂ : ∀ {W : World Δ Δ′} {Wᵢ : World Δᵢ Δ′ᵢ} {Θ Θ′ α κ₁}
+  → Interior W Θ Θ′ Wᵢ → HasPermittedPartner (W ⇂κ κ₁) α
+  → HasPermittedPartner (Wᵢ ⇂κ κ₁) α
+hasPP-int⇂ I (β , pr , pm) = β , Paired-int I pr , pm

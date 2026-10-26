@@ -40,10 +40,15 @@ enclosing `ν`; the metavariables also differ (`p, q, r` for coercions,
 **Review markers:** none.  No proposal is pending: D31 (D28′ and D30
 combined, with three adjustments) was ADOPTED on 2026-10-09 (§C12) and
 is now part of Part I and of the main Agda (`ImprecisionWorld.agda`,
-`TermImprecision.agda`); its rationale is §C9.2.
+`TermImprecision.agda`); its rationale is §C9.2.  D32 (a boundary may
+permit a type variable it REBINDS, and may REVOKE a permission of a
+type variable it UNJOINS, paying with its exterior index) was adopted
+the same day (Jeremy: "updating Wrap and Merge"; §C12, §C9.2).  One
+new open defect: a one-sided `Merge` can lose a join, so `Sim` is
+false as stated (§C9.2, MG).
 
 The file has two parts.  **Part I** gives the definitions of the
-current adopted design (through D31), tersely.  **Part II** gives the
+current adopted design (through D32), tersely.  **Part II** gives the
 commentary: rationale, worked examples and ladders, counterexamples,
 proposals, metatheory discussion, the Agda plan and the history of
 decisions.  A definition links to its commentary as `(…: §Cn.m)`.
@@ -604,9 +609,11 @@ W = (Δ, Δ′, Ω, η, η′, ϱ, κ)
                          variable is in the image of at least one
                          of them
   κ              the permitted right rep. vars (D28); [] at every
-                 top-level world; only a boundary rule adds to κ,
-                 for its interior: rep. vars of type variables it
-                 JOINS (W +κ K, §10.5; D31)
+                 top-level world; only a boundary rule changes κ,
+                 for its interior: it may remove rep. vars of type
+                 variables it UNJOINS (W −κ R, D32) and add rep.
+                 vars of type variables it JOINS (+κ K, §10.5;
+                 D31, D32)
   μ  = marks(W)          DERIVED (D28): a type variable in η's image
                          only (left-only) is X⊑★; a type variable in
                          η′'s image is X⊑★ iff its right rep. var is
@@ -647,10 +654,12 @@ dmarks (ηᴿʷ W) (κʷ W)`; the index `_⊑ᵂ⟨_⟩[_]_` reads `marksʷ` and
 slots, and `_⊑ᵂ⟨_⟩_` is its `O = []` case.  The term-context
 imprecision `CtxImp` holds the plain `μ ⊢ η(A) ⊑ η′(A′)` and is
 parameterized by the marks, `η` and `η′`.  `κ` changes only at a
-boundary's interior world, `Wᵢ +κ K` (`record Wᵢ { κʷ = K ++ κʷ Wᵢ }`),
-whose premise is term-closed.  The theorems are stated at `O = []` and
-at `W` with `κʷ W ≡ []`; an evolution renumbers `κ` with the right side
-(an allocation moves no type variable).
+boundary's interior world, `Wᵢ −κ R +κ K` (Agda
+`Wᵢ ⇂κ κ₁ +κ K`: `record Wᵢ { κʷ = κ₁ }`, κ₁ the permissions kept,
+then `K ++ κ₁`; D31, D32), whose premise is term-closed.  The theorems
+are stated at `O = []` and at `W` with `κʷ W ≡ []`; an evolution
+renumbers `κ` with the right side (an allocation moves no type
+variable).
 
 Well-formedness has four parts (D31; history: D27's pending part, now
 a condition on the index):
@@ -729,7 +738,8 @@ where it is defined:
 | `W[δ ∥ δ′]` | the interior world of a boundary pair | interior, below |
 | `W[δ ∥ ·]`, `W[· ∥ δ′]` | the interior world of a left-only / right-only boundary | interior, below |
 | `W[X:α ↦ Y]` | the join of the opening `Y` by the left binder `X` (abstract rep. var `α`) | joins, below |
-| `Wᵢ +κ K` | the interior world `Wᵢ` with the rep. vars `K` added to `κ`; only at a boundary rule, `K` ⊆ the rep. vars of type variables it joins (D31) | permissions, below; §10.5 |
+| `Wᵢ +κ K` | the interior world `Wᵢ` with the rep. vars `K` added to `κ`; only at a boundary rule, `K` ⊆ the rep. vars of type variables it joins or rebinds (D31, D32) | permissions, below; §10.5 |
+| `W −κ R` | `W` with the rep. vars `R` removed from `κ`; only at a boundary rule, for its interior, `R` ⊆ the rep. vars of type variables it unjoins (D32; Agda `W ⇂κ κ₁`, κ₁ the kept ones) | revocations, below; §10.5 |
 | `Wᶜ` | the world over the two conversion contexts | conversion worlds, below |
 | `W +ˡ (α, α′)` | `W` with `(α, α′)` added to `ϱˡ` (the conversion world of `ν⊑ν`) | allocation, below |
 | `W +ᵍ (α, α′)` | `W` with `(α, α′)` added to `ϱᵍ` (a matched allocation) | allocation, below |
@@ -837,7 +847,14 @@ left-only `∀`).
 `Wᵢ +κ K` adds the rep. vars `K` to `κ`; nothing else changes, so the
 marks of the type variables bound to them become `X⊑★`.  It happens
 only at a boundary rule, for its interior, and only for rep. vars of
-type variables that boundary joins (§10.5).
+type variables that boundary joins or rebinds (§10.5; D32).
+
+**Revocations** (D32).  `W −κ R` removes the rep. vars `R` from `κ`;
+nothing else changes.  It happens only at a boundary rule, for its
+interior, and only for rep. vars of type variables that boundary
+unjoins: outside, a left type variable is joined to a right one bound
+to the rep. var, and inside one of the two is no longer in scope
+(§10.5).
 
 ------------------------------------------------------------------------
 
@@ -993,24 +1010,39 @@ rules).  A boundary's interior is term-closed, so the premise has
 `γ = []`.  The conversions are typed on their own sides; only the
 matched rule compares them (§10.6).
 
-Each boundary rule may add a set `K` of right rep. vars to `κ` for its
-interior, limited to rep. vars of type variables this boundary JOINS,
-and PAYS: its interior index holds at `Wᵢ`, without `K`, so the
-joined type variables are read there at `X⊑X`.  `⊑⟪⟫` is the only
-rule that creates slots, and the permission of a new opening is
-chosen there.  Every boundary rule also takes `Wᵢ +κ K` well formed.
-(D31; why: §C9.2; history: D27's push and D28's grants, §C12.)
+Each boundary rule may first REMOVE from `κ`, for its interior, a set
+`R` of rep. vars of type variables this boundary UNJOINS, and then
+PAYS: its exterior index holds at `W −κ R` (D32, "the unjoin pays").
+It may then add a set `K` of right rep. vars to `κ` for its interior,
+limited to rep. vars of type variables this boundary JOINS or
+REBINDS, and PAYS: its interior index holds at `Wᵢ −κ R`, without
+`K`, so the joined type variables are read there at `X⊑X` (D31, "the
+join pays").  `⊑⟪⟫` is the only rule that creates slots, and the
+permission of a new opening is chosen there.  Every boundary rule also
+takes `Wᵢ −κ R +κ K` well formed.  With `R = []` and `K = []` the
+premise world is `Wᵢ`.  (D31, D32; why: §C9.2; history: D27's push
+and D28's grants, §C12.)
 
-`joined(δ ∥ δ′)` (Agda `JoinRep`, `jr-join`): the right rep. vars `β`
-such that, in `Wᵢ = W[δ ∥ δ′]`, a right type variable bound to `β` is
-joined to a left type variable, and one of the two is introduced by
-this boundary (a matched fresh pair, or a rejoin through `ϱ`).
+`unjoined(δ ∥ δ′)` (Agda `Unjoins`, inside `Revoke`): the right rep.
+vars `β` such that, in `W`, a right type variable bound to `β` is
+joined to a left type variable, and in `Wᵢ = W[δ ∥ δ′]` one of the two
+rep. vars is bound to no type variable (a hide or seal of either side,
+or the dual that `Wrap` puts on its argument).
+
+`joined(δ ∥ δ′)` (Agda `JoinRep`, `jr-join`, `jr-rebind`): the right
+rep. vars `β` such that, in `Wᵢ`, a right type variable bound to `β`
+is joined to a left type variable, and one of the two is introduced by
+this boundary (a matched fresh pair, or a rejoin through `ϱ`), or is
+REBOUND by it: an entry unbinds its rep. var and a later entry binds
+it again (`[−X, +X]`, the Merge of a hide over a rejoin; D32).
 
 ```
   Wᵢ = W[δ ∥ δ′]
+  R ⊆ unjoined(δ ∥ δ′)
+  A ⊑_(W −κ R) A′                        (the unjoin pays)
   K ⊆ joined(δ ∥ δ′)
-  Aᵢ ⊑_Wᵢ A′ᵢ                            (the join pays)
-  Wᵢ +κ K ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′ᵢ
+  Aᵢ ⊑_(Wᵢ −κ R) A′ᵢ                     (the join pays)
+  Wᵢ −κ R +κ K ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑ A′ᵢ
   c : Aᵢ ⇒ A
   c′ : A′ᵢ ⇒ A′
   Wᶜ ⊢ c ⊑ c′
@@ -1020,9 +1052,11 @@ this boundary (a matched fresh pair, or a rejoin through `ϱ`).
 
 ```
   Wᵢ = W[δ ∥ ·]
+  R ⊆ unjoined(δ ∥ ·)
+  A ⊑_(W −κ R)^O A′                      (the unjoin pays)
   K ⊆ joined(δ ∥ ·)
-  Aᵢ ⊑_Wᵢ^O A′                           (the join pays)
-  Wᵢ +κ K ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑^O A′
+  Aᵢ ⊑_(Wᵢ −κ R)^O A′                    (the join pays)
+  Wᵢ −κ R +κ K ∣ [] ⊢ M ⊑ M′ : Aᵢ ⊑^O A′
   c : Aᵢ ⇒ A
   O = [] or (M simple and c has a ∀ per slot of O)
   for every −X^α in δ:                       (R1′)
@@ -1038,9 +1072,11 @@ this boundary (a matched fresh pair, or a rejoin through `ϱ`).
   N = [] or M a value
   fill N with O into Oᵢ
   Oᵢ well formed at Wᵢ
+  R ⊆ unjoined(· ∥ δ′)
+  A ⊑_(W −κ R)^O A′                      (the unjoin pays)
   K ⊆ joined(· ∥ δ′) ∪ newreps(N)
-  A ⊑_Wᵢ^Oᵢ A′ᵢ                          (the join pays)
-  Wᵢ +κ K ∣ [] ⊢ M ⊑ M′ : A ⊑^Oᵢ A′ᵢ
+  A ⊑_(Wᵢ −κ R)^Oᵢ A′ᵢ                   (the join pays)
+  Wᵢ −κ R +κ K ∣ [] ⊢ M ⊑ M′ : A ⊑^Oᵢ A′ᵢ
   c′ : A′ᵢ ⇒ A′
   ──────────────────────────────────────── (⊑⟪⟫)
   W ∣ γ ⊢ M ⊑ [δ′] M′ ⟨c′⟩ : A ⊑_W^O A′
@@ -1049,9 +1085,16 @@ this boundary (a matched fresh pair, or a rejoin through `ϱ`).
 The side relations of `⟪⟫⊑` and `⊑⟪⟫`:
 
 - **R1′** (Agda `UnbindOK W A`, cases `ok-hidden` for `X ∉ A` and
-  `ok-unbind` for the unpermitted partner; history: D28's R1).  Only a left unbind whose
-  type variable occurs in the boundary's EXTERIOR type `A` needs an
-  unpermitted partner.
+  `ok-unbind` for the unpermitted partner; history: D28's R1).  Only a
+  left unbind whose type variable occurs in the boundary's EXTERIOR
+  type `A` needs an unpermitted partner.  It reads `W`, the exterior
+  world, before the boundary's own revocation (which acts on the
+  interior only).
+- **Revocations** (Agda `Revoke W Wᵢ O A A′ κ₁`: `rv-none`, κ₁ the
+  whole `κ`; `rv-drop`, with `Dropped (Unjoins W Wᵢ)` and the payment
+  `A ⊑ᵂ⟨ W ⇂κ κ₁ ⟩[ O ] A′`; D32).  The payment keeps C5's hidden
+  variant dead: a right hide whose exterior puts the left's `X`
+  against `★` needs `X`'s permission outside, so it cannot revoke it.
 - **Openings inside `δ′`** (Agda `Carried`).  With named type
   variables an opening `Y` continues inside as `Y` itself, and a skip
   as a skip, so the interior keeps `O`; `δ′` must not unbind an
@@ -1209,7 +1252,7 @@ three cast rules, `Λ⊑Λ` and `Λ⊑` (one rule whose `Bind` is fresh, join
 or claim-rep), two `ν` rules and three boundary rules.  GTSFImp's
 `_∣_⊢²_⊑_∶_` has 22.  `Imprecision.agda` (`_⊢_⊑_`) is GTSFImp's.
 
-The side relations (D31; the right column is what each replaced,
+The side relations (D31, D32; the right column is what each replaced,
 history in §C12):
 
 | Agda | what it does | replaced (D27, D28) |
@@ -1220,11 +1263,14 @@ history in §C12):
 | `BdyOpen` (2), `ForallConv` | `⟪⟫⊑` passes slots into a `∀` boundary | `BdyClaim` (2) |
 | `Push`: `Carried`, `NewSlot`, `Fill` | `⊑⟪⟫` carries, creates and fills slots | `Push`, `Carried` |
 | `SlotOK` (`OpeningOK`), `SlotNe` | well-formed slots, at `⊑⟪⟫` | `PendingOK`, `wf-pending`, `wf-distinct` |
-| `JoinRep`, `_+κ_` | the `K` a boundary may add to `κ` | `CastGrant`, `Grants`, `FirstOrder`, `RaiseCtx` |
+| `JoinRep` (3), `Rebinds`, `_+κ_` | the `K` a boundary may add to `κ` (join, rebind, opening; D31, D32) | `CastGrant`, `Grants`, `FirstOrder`, `RaiseCtx` |
+| `Revoke` (2), `Unjoins`, `Dropped`, `_⇂κ_` | the `R` a boundary may remove from `κ` for its interior, and its payment (D32) | — |
 | `UnbindOK W A` (R1′) | `⟪⟫⊑`'s unbind condition | `UnbindOK W` (R1) |
 
 The derived rules `⊑⟪⟫₀`, `⟪⟫⊑₀` and `⟪⟫⊑⟪⟫₀` are the boundary rules
-with no slot and no permission (the interior index is the payment).
+with no slot, no revocation and no permission (the interior index is
+the payment).  In Agda each boundary rule takes its `Revoke` as its
+first premise.
 
 ------------------------------------------------------------------------
 
@@ -2903,27 +2949,107 @@ P5 and R2c had no Agda derivation before; both are derived from their
 programs.  Every D28 grant of the corpus is re-derived as a permission
 at the enclosing joining boundary (D28pD30.md §3).
 
-**Open obligations** (argued, not checked; D28pD30.md §8):
+**Open obligations** (D28pD30.md §8; updated 2026-10-09 by D32,
+examples in `agda/examples/TermImprecisionD32Examples.agda`):
 
-- **`Wrap` needs κ-weakening.**  `Wrap` puts the argument into the
-  dual `[−δ] W ⟨c⟩` INSIDE the function's boundary, whose interior
-  carries that boundary's `K`; R1′ and R2 are anti-monotone in `κ`.
-  D28's R12 moves from `CastFun` to `Wrap`; it does not disappear.
-  When the payload view is at the argument's top, the pair can be
-  re-related matched (seal ⊑ seal), as in `P4kᴰ.wrap`.  A general
-  lemma is open.
-- **`Merge` can lose a rejoin's permission.**  A right hide `[−X^α]`
-  merged with an inner rejoin `[+X^α]` makes `X` continuing, and
-  `JoinRep` admits only type variables the boundary introduces.  In
-  every corpus `Merge` (P4c R7–R10, R2c) the permission comes from an
-  outer join, so nothing is lost.  A possible fix: `JoinRep` also
-  accepts a type variable that an entry of the boundary rebinds and
-  that is joined inside (the merged `[−X, +X]`), paying the same index.
+- **`Wrap` needs κ-weakening: answered by D32's revocations, with one
+  statement left to prove.**  Unrestricted κ-weakening is false.  At a
+  world where the left's `X` is left-only and its rep. var `α` is
+  paired with `αᴿ`:
+
+  ```
+  [−X^α] 5 ⟨−X⟩  ⊑  5⟨ℕ!⟩           related, αᴿ unpermitted
+  [−X^α] 5 ⟨−X⟩  ⋢  5⟨ℕ!⟩           with αᴿ permitted (R1′)
+  ```
+
+  (`KW.kw-left-only`).  `Wrap` moves exactly such a value: a seal
+  under a λ is out of reach of the dual's matched seal.  At `Wh` (left
+  `X` left-only, nothing permitted) the right applies its rejoin
+  `[+X^αᴿ] V′ ⟨…⟩` to `λy:ℕ. 5⟨ℕ!⟩`, the left applies `λf:ℕ→X. 7` to
+  `λy:ℕ. [−X^α] 5 ⟨−X⟩`.  The rejoin permits `αᴿ` (V′ peels `X!`).
+  The right's `Wrap` puts the argument under the dual `[−X^αᴿ]`
+  inside the rejoin, at `αᴿ` permitted:
+
+  ```
+  L   (λf:ℕ→X. 7) (λy:ℕ. [−X^α] 5 ⟨−X⟩)
+  R   ([+X^αᴿ] (λf:ℕ→★. 7)⟨(id(ℕ) → X!) → id(ℕ)⟩
+        ([−X^αᴿ] (λy:ℕ. 5⟨ℕ!⟩) ⟨id(ℕ) → −X⟩)) ⟨id(ℕ)⟩
+  ```
+
+  The pair is related only because the dual REVOKES `αᴿ`, paying with
+  its exterior index `ℕ→X ⊑ ℕ→X` read without it
+  (`KW.post⊑`; every derivation revokes, `KW.post-uses-drop`).  In
+  general the dual unjoins what the function boundary joined, so it
+  revokes those permissions (paying with the domain half of that
+  boundary's payment), and rejoins what that boundary unjoined, so it
+  may permit again what that boundary revoked (paying with the domain
+  half of that boundary's revocation payment).  What remains are
+  permissions of rebinds, whose type variables continue and are joined
+  in the argument's world: the draft statement `KappaWeaken`
+  (`agda/proof/DGG/KappaWeakenDef.agda`, NOT approved, NOT proved:
+  κ-weakening at rep. vars bound to joined type variables; the
+  revocations it needs are the original derivation's own exterior
+  indices, `KW.kw-joined-uses-drop`).  P4k's `Wrap` (`P4k.wrap`) and
+  P4's `Wrap` states derive unchanged (`rv-none`): their moved
+  arguments are re-related matched (seal ⊑ seal).
+- **`Merge` can lose a rejoin's permission: fixed by D32's
+  `jr-rebind`.**  RB2 (`TermImprecisionD32Examples`, sources
+  unrelated, related from the TyBeta on):
+
+  ```
+  L  (ΛX. λk:(X→ℕ)→X→ℕ. k (λy:X. 5))[ℕ] (λq:ℕ→ℕ. q) 7
+  R  (ΛX. λk:(X→ℕ)→X→ℕ. k ((λy:★. 5) : X→ℕ))[ℕ] (λq:ℕ→ℕ. q) 7
+  ```
+
+  At state 5 both sides have, inside the TyBeta boundary, the hide of
+  `k`'s Wrap over the rejoin of its argument's Wrap dual; the rejoins
+  permit `αᴿ`.  State 6 merges them into `[−X, +X]`, where `X`
+  continues.  At the TyBeta interior with no permission every
+  derivation of the merged pair permits by a rebind
+  (`RB2.post-uses-rebind`); the whole states are related
+  (`RB2.top5`, `top6`).  With related sources (RB3, the right
+  generalizing as P4) the same Merge happens on the left at step 6,
+  and the permission also comes from the TyBeta boundary, which must
+  permit for the gen wrapper; so every corpus Merge keeps its
+  permission without `jr-rebind`, and `jr-rebind` is what keeps the
+  Merge lemma (M14/M15/M18/M21) LOCAL: at a world with no permission
+  the merged pair needs it.  Still open: when the OUTER boundary of a
+  Merge also permits (`K₂ ≠ []`), the merged boundary pays its
+  interior index without `K₁ ++ K₂`, while the inner boundary paid
+  with `K₂`; MergeImp must show the stronger payment, or the
+  payment must be read per part.
+- **NEW (open defect, MG): a one-sided `Merge` can lose a JOIN; `Sim`
+  is false as stated.**  A rejoin over a hide, `[+X^α] ([−X^α] V)`,
+  merges into `[+X^α, −X^α] V`, where `X` is in scope neither outside
+  nor inside.  When the other side still has its rejoin, with casts at
+  `X` between the rejoin and its hide, no right state relates to the
+  merged left:
+
+  ```
+  L  (ΛX. λk:(X→ℕ)→X→ℕ. λg:X→ℕ. k g)[ℕ] (λq:ℕ→ℕ. q) (λz:ℕ. z) 5
+  R  (ΛX. λk:(X→ℕ)→X→ℕ. λg:X→ℕ. k ((g : ★→ℕ) : X→ℕ))[ℕ]
+       (λq:ℕ→ℕ. q) (λz:ℕ. z) 5
+  ```
+
+  (sources unrelated: `X ⋢ ★` at a type variable both sides bind;
+  related from the TyBeta on).  State 6 is related (`MG.mg6`, the
+  matched rejoins of `g` permit `αᴿ`); the left's Merge at step 7
+  gives a state related to no right state reachable from state 6, in
+  any world (`MG.sim-fails`: the right's `Gs⟨X?→id⟩⟨X!→id⟩ : X→ℕ`
+  faces the left's `ℕ→ℕ`), so `MG.not-sim : ¬ Sim`.  D32 does not
+  help.  Candidate fixes, for decision: (a) close the relation under
+  Merge: a merged boundary `[δ₁ ++ δ₂] U ⟨c⟩` may be related as the
+  nesting that Merges to it (two rules, `⟪⟫⊑-merge` and `⊑⟪⟫-merge`,
+  with Merge's own premises); this would also subsume `jr-rebind`;
+  (b) a stuttering `Sim` that lets the left take its administrative
+  steps (Merge, then Beta, Merge) before the pair is related again
+  (here, argued: the left's state 9 against the right's state 8, by a
+  rebind).  Whether related sources reach MG is not known.
 - **Not ported:** G2's intermediate states 2 and 4 (TwoGen
   `G2st.InV2`).
 - **Sim/SimBack** for the new cases: `co-gen` with a continuation, the
-  `K`/payment premises of the three boundary rules, and a `K` chosen by
-  a matched `TyBeta` or by `PushInstR`.
+  `K`/payment premises of the three boundary rules, the revocations,
+  and a `K` chosen by a matched `TyBeta` or by `PushInstR`.
 
 ------------------------------------------------------------------------
 
@@ -3435,6 +3561,34 @@ Each one can be revisited on its own.
   rebound type variable); G2's states 2 and 4 not ported.  Pointers:
   `proof/DGG/notes/D28pD30.{md,agda}`, `ReductionAudit.md` §4,
   `TwoGen.md` §3; §C9.2 (Jeremy, 2026-10-09).
+- **D32** **(ADOPTED 2026-10-09; Jeremy approved "updating Wrap and
+  Merge").**  Two changes to the three boundary rules, for D31's open
+  obligations.  (1) REBINDS: `JoinRep` gains `jr-rebind`: a boundary
+  whose entries unbind a type variable's rep. var and bind it again
+  (the merged `[−X, +X]` of a hide over a rejoin, where the type
+  variable continues) may permit it, and pays as a join does (its
+  interior index read without `K`).  (2) REVOCATIONS: each boundary
+  rule first takes `Revoke W Wᵢ O A A′ κ₁`: it may drop, for its
+  interior, permissions of rep. vars it UNJOINS (`Unjoins`: joined
+  outside, one of the two rep. vars bound to no type variable inside),
+  and pays with its exterior index read without them (`rv-drop`, "the
+  unjoin pays"); the premise world is `Wᵢ ⇂κ κ₁ +κ K` (`rv-none`:
+  D31's `Wᵢ +κ K`).  Why: RB2, a Merge of a hide over a rejoin needs
+  the rejoin's permission at a world with none
+  (`RB2.post-uses-rebind`); KW, unrestricted κ-weakening is false
+  (`KW.kw-left-only`) and `Wrap`'s moved argument is related only
+  through the dual's revocation (`KW.post-uses-drop`).  Checked: the
+  corpus derives unchanged (`rv-none`); C1–C5, C4g and the hunt's C4
+  are re-proved dead (C5's hidden variant: a revocation at the right
+  hide must pay with `X ⊑ ★` at the joined `X`, which keeps `X`'s
+  partner permitted); the dashboard is unchanged.  In the main Agda:
+  `ImprecisionWorld.agda` (`Rebinds`, `jr-rebind`, `_⇂κ_`, `Unjoins`,
+  `Dropped`, `Revoke`), `TermImprecision.agda` (the boundary rules),
+  `proof/ImprecisionWorld.agda` §7, `examples/TermImprecisionD32Examples`
+  (RB2, KW, MG).  Draft statement (not approved, not proved):
+  `proof/DGG/KappaWeakenDef.agda`.  Found while checking, open: MG, a
+  one-sided Merge of a rejoin over a hide loses a JOIN, so `Sim` is
+  false as stated (`MG.not-sim`; §C9.2).
 
 The open design questions are those of the `⊑` sketch (§C8.2).
 
@@ -3472,7 +3626,7 @@ is now.  D-numbers are unchanged.
 | §9.5 | static gradual guarantee | §11.5; §C10.2 |
 | §9.6 | compilation preserves imprecision | §11.6; §C10.3 |
 | §9.7 | dynamic gradual guarantee | §11.7 (statement); §C10.4 (simulations) |
-| §10 | decisions D1–D31, open questions | §C12 |
+| §10 | decisions D1–D32, open questions | §C12 |
 | §11 | Agda plan | §C11 |
 | §12 | cast-term imprecision | §8–§10 (definitions); §C6–§C9 (commentary) |
 | §12 status | status, review markers, C1–C5 pointer | §8 (status); top of file (markers); §C8 (C1–C5) |

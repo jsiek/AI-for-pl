@@ -49,6 +49,7 @@ open import Reduction
 open import ImprecisionWorld
   using (World; world; _⊕ᴸ; allocᴿ; keep; skip; relabel; RepRel;
          shiftᴸ; shiftᴿ; int-right; same-κ; liftᴸ-[])
+open import proof.ImprecisionWorld using (revoke-[])
 open import TermImprecision
 open import proof.TypeSafety.PreservationSupport using (wf-underΛ)
 open import Boundary using (bw-interior-wf)
@@ -191,13 +192,13 @@ catchup-right _ _ _ refl _ (Λ⊑ (b-rep _ _ _) _ _ liftᴸ-[] _ _ _) =
 -- boundaries (the interior is term-closed; IH at Wᵢ, premise wi, when
 -- the boundary permits nothing: `Wᵢ +κ []` is Wᵢ)
 
-catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑⟪⟫ {c′ = c′} int [] wi pay d b b′ bc q)
-    with catchup-right (bdy-wfᵢ b) (bdy-wfᵢ b′) wi (same-κ int)
+catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑⟪⟫ {c′ = c′} rv int [] wi pay d b b′ bc q)
+    with catchup-right (bdy-wfᵢ b) (bdy-wfᵢ b′) wi (revoke-[] rv (same-κ int))
            (⟪⟫-value v) d
-catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑⟪⟫ {c′ = c′} int [] wi pay d b b′ bc q)
+catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑⟪⟫ {c′ = c′} rv int [] wi pay d b b′ bc q)
     | V₁′ , r , v₁′ , Wᵢ′ , ev , wfᵢ′ , q₁ , d₁
     with ξ-⟪⟫* {c = c′} (int-right int) r
-catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑⟪⟫ {c′ = c′} int [] wi pay d b b′ bc q)
+catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑⟪⟫ {c′ = c′} rv int [] wi pay d b b′ bc q)
     | V₁′ , r , v₁′ , Wᵢ′ , ev , wfᵢ′ , q₁ , d₁ | Θ″ , r⟪⟫ =
   {! BdyTail: lift ev to W ⟿[ [] ∣ allocs r ] W′ with
      Interior W′ Θ Θ″ Wᵢ′ (AllocImp), move b′, bc, pay, q; then after
@@ -205,18 +206,18 @@ catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑⟪⟫ {c′ = c′} int [] wi p
      IdDyn, IdDyn-var) !}
 -- a permitting matched boundary (design.md D31): the premise world has
 -- permissions, outside the statement (κʷ W ≡ [])
-catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑⟪⟫ int (j ∷ ks) wi pay d b b′ bc q) =
+catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑⟪⟫ rv int (j ∷ ks) wi pay d b b′ bc q) =
   {! CatchupRightκ: the IH at Wᵢ +κ K (K ≠ []), then BdyTail !}
 
-catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑ int ok bo-plain [] wi pay d b q)
-    with catchup-right (bdy-wfᵢ b) wfΔ′ wi (same-κ int)
+catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑ rv int ok bo-plain [] wi pay d b q)
+    with catchup-right (bdy-wfᵢ b) wfΔ′ wi (revoke-[] rv (same-κ int))
            (⟪⟫-value v) d
-catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑ int ok bo-plain [] wi pay d b q)
+catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑ rv int ok bo-plain [] wi pay d b q)
     | V′ , r , v′ , Wᵢ′ , ev , wfᵢ′ , q₁ , d₁ =
   {! BdyLift: lift ev to W ⟿[ [] ∣ allocs r ] W′ with
      Interior W′ Θ [] Wᵢ′ and WfWorld W′ (AllocImp); then
      `⟪⟫⊑ int′ ok′ bo-plain [] wfᵢ′ pay′ d₁ b q′` !}
-catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑ int ok bo-plain (j ∷ ks) wi pay d b q) =
+catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑ rv int ok bo-plain (j ∷ ks) wi pay d b q) =
   {! CatchupRightκ: the IH at Wᵢ +κ K (K ≠ []), then BdyLift !}
 
 -- ⊑⟪⟫ (design.md D31).  No new slot and no permission: the IH on the
@@ -224,24 +225,24 @@ catchup-right wfΔ wfΔ′ wfW refl v (⟪⟫⊑ int ok bo-plain (j ∷ ks) wi p
 -- no IH, the premise has slots, outside CatchupRight's statement; the
 -- left is a VALUE there (`CatchupRightO`,
 -- proof/DGG/notes/PendingOpenings.md §6).
-catchup-right wfΔ wfΔ′ wfW refl v (⊑⟪⟫ {c′ = c′} int
+catchup-right wfΔ wfΔ′ wfW refl v (⊑⟪⟫ {c′ = c′} rv int
     (push ca-[] f-end [] nv) so sn [] wi pay d b′ q)
-    with catchup-right wfΔ (bdy-wfᵢ b′) wi (same-κ int) v d
-catchup-right wfΔ wfΔ′ wfW refl v (⊑⟪⟫ {c′ = c′} int
+    with catchup-right wfΔ (bdy-wfᵢ b′) wi (revoke-[] rv (same-κ int)) v d
+catchup-right wfΔ wfΔ′ wfW refl v (⊑⟪⟫ {c′ = c′} rv int
     (push ca-[] f-end [] nv) so sn [] wi pay d b′ q)
     | V₁′ , r , v₁′ , Wᵢ′ , ev , wfᵢ′ , q₁ , d₁
     with ξ-⟪⟫* {c = c′} (int-right int) r
-catchup-right wfΔ wfΔ′ wfW refl v (⊑⟪⟫ {c′ = c′} int
+catchup-right wfΔ wfΔ′ wfW refl v (⊑⟪⟫ {c′ = c′} rv int
     (push ca-[] f-end [] nv) so sn [] wi pay d b′ q)
     | V₁′ , r , v₁′ , Wᵢ′ , ev , wfᵢ′ , q₁ , d₁ | Θ″ , r⟪⟫ =
   {! BdyTail: lift ev to W ⟿[ [] ∣ allocs r ] W′ with
      Interior W′ [] Θ″ Wᵢ′ (AllocImp), move b′, pay, q; then after r⟪⟫
      the right boundary c′ on the value V₁′ fires (Merge, Id, IdDyn,
      IdDyn-var) !}
-catchup-right wfΔ wfΔ′ wfW refl v (⊑⟪⟫ int (push ca-[] f-end [] nv) so sn (j ∷ ks) wi pay d b′ q) =
+catchup-right wfΔ wfΔ′ wfW refl v (⊑⟪⟫ rv int (push ca-[] f-end [] nv) so sn (j ∷ ks) wi pay d b′ q) =
   {! CatchupRightκ: the IH at Wᵢ +κ K (a rejoin permits, K ≠ []),
      then BdyTail !}
-catchup-right wfΔ wfΔ′ wfW refl v (⊑⟪⟫ int (push ca-[] f-end (n ∷ ns) vM) so sn ks wi pay d b′ q) =
+catchup-right wfΔ wfΔ′ wfW refl v (⊑⟪⟫ rv int (push ca-[] f-end (n ∷ ns) vM) so sn ks wi pay d b′ q) =
   {! CatchupRightO (PendingOpenings.md §6): a catch-up of the right
      interior against the left VALUE under the new slots (premise
      world WfWorld wi, permissions K) !}

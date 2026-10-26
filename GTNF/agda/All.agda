@@ -59,6 +59,12 @@ open import examples.TermImprecisionPermissionExamples
 -- (skips and fills), DGG part 1 witnesses, P5, R2c
 open import examples.TermImprecisionD31Examples
 
+-- examples of design.md D32: a Merge's rebind keeps its permission
+-- (RB2), κ-weakening and the Wrap dual's revocation (KW); and the open
+-- defect MG: a one-sided Merge can lose a join, so Sim is false as
+-- stated (`MG.not-sim`)
+open import examples.TermImprecisionD32Examples
+
 open import examples.TermImprecisionH1Examples
 
 -- de Bruijn → named rendering (scripts/render_gtnf.sh)
@@ -92,6 +98,7 @@ open import proof.DGG.CatchupLeftDef
 open import proof.DGG.CatchupBlameDef
 open import proof.DGG.EvolveImpDef
 open import proof.DGG.ImprecisionTypingDef
+open import proof.DGG.KappaWeakenDef
 
 -- facts about runs and evolution, and typing along a run (helpers)
 open import proof.DGG.EvolveLemmas

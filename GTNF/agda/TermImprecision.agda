@@ -39,6 +39,15 @@ module TermImprecision where
 --       needs nothing (P4h).
 --     - R2 is on the ★ conversion clauses (ConversionImprecision),
 --       read in the EXTERIOR conversion world (unchanged by K).
+--   * REVOCATIONS AND REBINDS (design.md D32, adopted 2026-10-09).
+--     Each boundary rule first takes `Revoke W Wᵢ O A A′ κ₁`: its
+--     interior permissions κ₁ are κʷ Wᵢ (`rv-none`, D31's premise world
+--     `Wᵢ +κ K` definitionally) or κʷ Wᵢ without rep. vars it UNJOINS,
+--     paying with its exterior index read without them (`rv-drop`).  The
+--     premise world is `Wᵢ ⇂κ κ₁ +κ K` and the payment of K is read at
+--     `Wᵢ ⇂κ κ₁`.  `JoinRep` admits a REBOUND type variable
+--     (`jr-rebind`), so a Merge of a hide over a rejoin keeps the
+--     rejoin's permission.
 --   * THE RULES, design.md §10, one constructor each: congruence `x⊑x`,
 --     `κ⊑κ` (the literals `$ n`, `true`, `false`, one rule through
 --     `Lit`), `ƛ⊑ƛ`, `·⊑·`; `blame⊑`; `cast⊑cast`, `cast⊑`, `⊑cast`;
@@ -433,18 +442,23 @@ data _∣_⊢_⊑_∶[_]_ {Δ Δ′ : Ctxᵗ}
   ----------------------------------------------------------------------
   -- Boundaries (these replace GTSFImp's reveal/conceal rules).  The
   -- interior is term-closed, so each premise has γ = [].  Each rule may
+  -- first REVOKE, for its interior only, permissions of rep. vars it
+  -- unjoins, and then pays with its exterior index read without them
+  -- (`Revoke`, design.md D32: the interior permissions are κ₁); it may
   -- PERMIT, for its interior only, the right rep. vars K of type
-  -- variables it joins (`JoinRep`; premise world `Wᵢ +κ K`, well formed),
-  -- and PAYS with its interior index read at Wᵢ, without K (design.md
-  -- D31).
+  -- variables it joins (`JoinRep`; premise world `Wᵢ ⇂κ κ₁ +κ K`, well
+  -- formed), and PAYS with its interior index read at `Wᵢ ⇂κ κ₁`,
+  -- without K (design.md D31).  With `rv-none`, κ₁ is κʷ Wᵢ and the
+  -- premise world is D31's `Wᵢ +κ K`.
 
-  ⟪⟫⊑⟪⟫ : ∀ {W : World Δ Δ′} {Δᵢ Δ′ᵢ} {Wᵢ : World Δᵢ Δ′ᵢ} {K}
-      {γ M M′ Θ Θ′ c c′ Aᵢ A′ᵢ A A′} {r : Aᵢ ⊑ᵂ⟨ Wᵢ +κ K ⟩ A′ᵢ}
+  ⟪⟫⊑⟪⟫ : ∀ {W : World Δ Δ′} {Δᵢ Δ′ᵢ} {Wᵢ : World Δᵢ Δ′ᵢ} {κ₁ K}
+      {γ M M′ Θ Θ′ c c′ Aᵢ A′ᵢ A A′} {r : Aᵢ ⊑ᵂ⟨ Wᵢ ⇂κ κ₁ +κ K ⟩ A′ᵢ}
+    → Revoke W Wᵢ [] A A′ κ₁
     → Interior W Θ Θ′ Wᵢ
     → All (JoinRep Wᵢ Θ Θ′ []) K
-    → WfWorld (Wᵢ +κ K)
-    → (pay : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩ A′ᵢ)
-    → Wᵢ +κ K ∣ [] ⊢ M ⊑ M′ ∶[ [] ] r
+    → WfWorld (Wᵢ ⇂κ κ₁ +κ K)
+    → (pay : Aᵢ ⊑ᵂ⟨ Wᵢ ⇂κ κ₁ ⟩ A′ᵢ)
+    → Wᵢ ⇂κ κ₁ +κ K ∣ [] ⊢ M ⊑ M′ ∶[ [] ] r
     → (b : BdyTy Δ Θ Δᵢ Aᵢ c A)
     → (b′ : BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′)
     → BdyConversionImp W b b′
@@ -455,15 +469,16 @@ data _∣_⊢_⊑_∶[_]_ {Δ Δ′ : Ctxᵗ}
   -- the slots pass into a ∀-boundary (`BdyOpen`); R1′: every left
   -- unbind entry of Θ whose type variable occurs in the exterior type A
   -- has an unpermitted rep. var (`UnbindOK W A`)
-  ⟪⟫⊑ : ∀ {W : World Δ Δ′} {Δᵢ} {Wᵢ : World Δᵢ Δ′} {K}
-      {γ M M′ Θ c Aᵢ A A′ O} {r : Aᵢ ⊑ᵂ⟨ Wᵢ +κ K ⟩[ O ] A′}
+  ⟪⟫⊑ : ∀ {W : World Δ Δ′} {Δᵢ} {Wᵢ : World Δᵢ Δ′} {κ₁ K}
+      {γ M M′ Θ c Aᵢ A A′ O} {r : Aᵢ ⊑ᵂ⟨ Wᵢ ⇂κ κ₁ +κ K ⟩[ O ] A′}
+    → Revoke W Wᵢ O A A′ κ₁
     → Interior W Θ [] Wᵢ
     → All (UnbindOK W A) Θ
     → BdyOpen M c O
     → All (JoinRep Wᵢ Θ [] []) K
-    → WfWorld (Wᵢ +κ K)
-    → (pay : Aᵢ ⊑ᵂ⟨ Wᵢ ⟩[ O ] A′)
-    → Wᵢ +κ K ∣ [] ⊢ M ⊑ M′ ∶[ O ] r
+    → WfWorld (Wᵢ ⇂κ κ₁ +κ K)
+    → (pay : Aᵢ ⊑ᵂ⟨ Wᵢ ⇂κ κ₁ ⟩[ O ] A′)
+    → Wᵢ ⇂κ κ₁ +κ K ∣ [] ⊢ M ⊑ M′ ∶[ O ] r
     → BdyTy Δ Θ Δᵢ Aᵢ c A
     → (q : A ⊑ᵂ⟨ W ⟩[ O ] A′)
       ---------------------------------------------
@@ -471,16 +486,17 @@ data _∣_⊢_⊑_∶[_]_ {Δ Δ′ : Ctxᵗ}
 
   -- the only rule that creates slots: carry the slots through Θ′, add
   -- the new slots N (`Push`); the interior slots are well formed
-  ⊑⟪⟫ : ∀ {W : World Δ Δ′} {Δ′ᵢ} {Wᵢ : World Δ Δ′ᵢ} {K}
-      {γ M M′ Θ′ c′ A A′ᵢ A′ O N Oᵢ} {r : A ⊑ᵂ⟨ Wᵢ +κ K ⟩[ Oᵢ ] A′ᵢ}
+  ⊑⟪⟫ : ∀ {W : World Δ Δ′} {Δ′ᵢ} {Wᵢ : World Δ Δ′ᵢ} {κ₁ K}
+      {γ M M′ Θ′ c′ A A′ᵢ A′ O N Oᵢ} {r : A ⊑ᵂ⟨ Wᵢ ⇂κ κ₁ +κ K ⟩[ Oᵢ ] A′ᵢ}
+    → Revoke W Wᵢ O A A′ κ₁
     → Interior W [] Θ′ Wᵢ
     → Push Θ′ M O N Oᵢ
     → All (SlotOK Wᵢ) Oᵢ
     → AllPairs SlotNe Oᵢ
     → All (JoinRep Wᵢ [] Θ′ N) K
-    → WfWorld (Wᵢ +κ K)
-    → (pay : A ⊑ᵂ⟨ Wᵢ ⟩[ Oᵢ ] A′ᵢ)
-    → Wᵢ +κ K ∣ [] ⊢ M ⊑ M′ ∶[ Oᵢ ] r
+    → WfWorld (Wᵢ ⇂κ κ₁ +κ K)
+    → (pay : A ⊑ᵂ⟨ Wᵢ ⇂κ κ₁ ⟩[ Oᵢ ] A′ᵢ)
+    → Wᵢ ⇂κ κ₁ +κ K ∣ [] ⊢ M ⊑ M′ ∶[ Oᵢ ] r
     → BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′
     → (q : A ⊑ᵂ⟨ W ⟩[ O ] A′)
       ---------------------------------------------
@@ -518,7 +534,7 @@ push-none = push ca-[] f-end [] (inj₁ refl)
   → BdyTy Δ′ Θ′ Δ′ᵢ A′ᵢ c′ A′
   → (q : A ⊑ᵂ⟨ W ⟩ A′)
   → W ∣ γ ⊢ M ⊑ M′ ⟪ Θ′ , c′ ⟫ ∶ q
-⊑⟪⟫₀ {r = r} I wf d b q = ⊑⟪⟫ I push-none [] [] [] wf r d b q
+⊑⟪⟫₀ {r = r} I wf d b q = ⊑⟪⟫ rv-none I push-none [] [] [] wf r d b q
 
 -- `⟪⟫⊑` with no slot and no permission
 ⟪⟫⊑₀ : ∀ {W : World Δ Δ′} {Δᵢ} {Wᵢ : World Δᵢ Δ′} {γ M M′ Θ c Aᵢ A A′}
@@ -530,7 +546,7 @@ push-none = push ca-[] f-end [] (inj₁ refl)
   → BdyTy Δ Θ Δᵢ Aᵢ c A
   → (q : A ⊑ᵂ⟨ W ⟩ A′)
   → W ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ∶ q
-⟪⟫⊑₀ {r = r} I ok wf d b q = ⟪⟫⊑ I ok bo-plain [] wf r d b q
+⟪⟫⊑₀ {r = r} I ok wf d b q = ⟪⟫⊑ rv-none I ok bo-plain [] wf r d b q
 
 -- `⟪⟫⊑⟪⟫` with no permission
 ⟪⟫⊑⟪⟫₀ : ∀ {W : World Δ Δ′} {Δᵢ Δ′ᵢ} {Wᵢ : World Δᵢ Δ′ᵢ}
@@ -543,4 +559,4 @@ push-none = push ca-[] f-end [] (inj₁ refl)
   → BdyConversionImp W b b′
   → (q : A ⊑ᵂ⟨ W ⟩ A′)
   → W ∣ γ ⊢ M ⟪ Θ , c ⟫ ⊑ M′ ⟪ Θ′ , c′ ⟫ ∶ q
-⟪⟫⊑⟪⟫₀ {r = r} I wf d b b′ bc q = ⟪⟫⊑⟪⟫ I [] wf r d b b′ bc q
+⟪⟫⊑⟪⟫₀ {r = r} I wf d b b′ bc q = ⟪⟫⊑⟪⟫ rv-none I [] wf r d b b′ bc q

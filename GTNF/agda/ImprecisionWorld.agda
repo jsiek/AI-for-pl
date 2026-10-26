@@ -21,7 +21,16 @@ module ImprecisionWorld where
 --     with payload imprecision `RepImp` (D23) and named uniqueness
 --     `NamedUniqueᴸ`/`NamedUniqueᴿ` (D25); the well-formed openings
 --     `SlotOK`/`SlotNe` and `JoinRep`, the rep. vars a boundary may
---     permit (D31).
+--     permit (D31; D32 adds `jr-rebind`, `Rebinds`); `Unjoins`,
+--     `Dropped` and `Revoke`, the permissions a boundary may revoke for
+--     its interior, paying with its exterior index (D32).
+--   * REVOCATIONS (design.md D32, adopted 2026-10-09).  The dual of a
+--     permission: a boundary that UNJOINS a type variable (one of a
+--     joined pair is no longer bound inside) may drop its rep. var's
+--     permission for its interior (`W ⇂κ κ₁`, κ₁ ⊆ κ), and pays with
+--     its exterior index read without it.  Wrap's dual needs it; C5's
+--     hidden variant stays dead because its right hide's exterior puts
+--     X against ★.
 --   * MARKS ARE COMPUTED, NOT STORED (design.md D28; Jeremy,
 --     2026-10-05).  A world has a field `κʷ`, the PERMITTED right rep.
 --     vars, and the mark of a center type variable is
@@ -34,8 +43,9 @@ module ImprecisionWorld where
 --     proof/DGG/notes/D28pD30.agda).  κ changes ONLY at the boundary
 --     rules of TermImprecision: a boundary may add, for its interior
 --     only, the right rep. vars `K` of type variables it JOINS
---     (`JoinRep`: a matched fresh pair or a rejoin through ϱ, or a new
---     opening), `Wᵢ +κ K = record Wᵢ { κʷ = K ++ κʷ Wᵢ }`, and it pays
+--     (`JoinRep`: a matched fresh pair or a rejoin through ϱ, a rebind
+--     (D32), or a new opening),
+--     `Wᵢ +κ K = record Wᵢ { κʷ = K ++ κʷ Wᵢ }`, and it pays
 --     with its interior index read at Wᵢ (without K).  D28's grants
 --     at right checks are gone.
 --   * OPENINGS ARE IN THE INDEX, NOT THE WORLD (design.md D31; history:
@@ -137,7 +147,7 @@ open import Types
   using (Ty; `_; `ℕ; `𝔹; ★; _⇒_; `∀; Base; Renameᵗ; renameᵗ; ⇑ᵗ; extᵗ)
 open import Ctx
 open import Boundary using (Boundary; Change; bind; unbind;
-  _⊢ⁱ_⇒_; _⊢ᶜ_⇒_; toExt; Fresh)
+  _⊢ⁱ_⇒_; _⊢ᶜ_⇒_; toExt; Fresh; InUnbinds; InBinds)
 open import Imprecision
   using (VarImp; X⊑X; X⊑★; ImpEnv; extᵐ; instᵐ; _⊢_⊑_)
 open import Coercion using (NonVar; NonStar; _∈ᵗ_; occurs)
@@ -255,6 +265,15 @@ world⁰ n η η′ ϱᵍ ϱˡ = world n η η′ ϱᵍ ϱˡ []
 infixl 6 _+κ_
 _+κ_ : World Δ Δ′ → List RVar → World Δ Δ′
 W +κ K = record W { κʷ = K ++ κʷ W }
+
+-- THE WORLD WITH ITS PERMISSIONS REPLACED (design.md D32): the premise
+-- world of a boundary rule is `Wᵢ ⇂κ κ₁ +κ K`, where κ₁ is κʷ Wᵢ with
+-- the REVOKED rep. vars removed (`Revoke`, §9).  `Wᵢ ⇂κ κʷ Wᵢ` is Wᵢ
+-- definitionally (record eta), so a boundary that revokes nothing has
+-- D31's premise world `Wᵢ +κ K`.
+infixl 6 _⇂κ_
+_⇂κ_ : World Δ Δ′ → List RVar → World Δ Δ′
+W ⇂κ κ = record W { κʷ = κ }
 
 -- R1/R2's CONDITION (design.md D28): the LEFT rep. var α has no
 -- PERMITTED right partner (stated through `permit`, which the derived
@@ -729,12 +748,22 @@ data _∋ᵒ_ : List Slot → ℕ → Set where
   oh : ∀ {k N} → (opn k ∷ N) ∋ᵒ k
   ot : ∀ {s k N} → N ∋ᵒ k → (s ∷ N) ∋ᵒ k
 
+-- `Rebinds Θ α`: an entry of Θ unbinds α and a later entry binds it
+-- again (the merged `[−X, +X]` of a hide over a rejoin, design.md D32);
+-- with a type variable bound to α inside, that type variable CONTINUES
+-- (`toExt` finds the unbind through `seekUnbind`), so it is not `Fresh`
+Rebinds : Boundary → RVar → Set
+Rebinds Θ α = InUnbinds α Θ × InBinds α Θ
+
 -- `JoinRep Wᵢ Θ Θ′ N β`: the boundary pair `[Θ] ⊑ [Θ′]` with new slots
 -- N JOINS a type variable bound to the right rep. var β, so it may
 -- permit β for its interior (design.md D31, "K ⊆ joined"): inside, a
 -- left type variable is joined to a right one bound to β, and one of
 -- the two is introduced by this boundary (a matched fresh pair, or a
--- rejoin through ϱ); or β's type variable is a new opening
+-- rejoin through ϱ), or REBOUND by it (D32: an entry unbinds its rep.
+-- var and a later entry binds it again, so a Merge of a hide over a
+-- rejoin keeps the rejoin's permission); or β's type variable is a new
+-- opening
 data JoinRep {Δᵢ Δ′ᵢ : Ctxᵗ} (Wᵢ : World Δᵢ Δ′ᵢ) (Θ Θ′ : Boundary)
     (N : List Slot) (β : RVar) : Set where
   jr-join : ∀ {X X′}
@@ -742,4 +771,43 @@ data JoinRep {Δᵢ Δ′ᵢ : Ctxᵗ} (Wᵢ : World Δᵢ Δ′ᵢ) (Θ Θ′ :
     → Fresh Θ X ⊎ Fresh Θ′ X′
     → Joins Wᵢ X X′
     → JoinRep Wᵢ Θ Θ′ N β
+  jr-rebind : ∀ {X X′}
+    → Δᵢ ∋tv X → Δ′ᵢ ∋ᵗ X′ := β
+    → (Σ[ α ∈ RVar ] (Δᵢ ∋ᵗ X := α) × Rebinds Θ α) ⊎ Rebinds Θ′ β
+    → Joins Wᵢ X X′
+    → JoinRep Wᵢ Θ Θ′ N β
   jr-open : ∀ {k} → N ∋ᵒ k → Δ′ᵢ ∋ᵗ k := β → JoinRep Wᵢ Θ Θ′ N β
+
+-- THE REVOCATIONS OF A BOUNDARY (design.md D32, the dual of D31's
+-- permissions).  `Unjoins W Wᵢ β`: outside, a left type variable is
+-- joined to a right one bound to β, and inside one of the two rep.
+-- vars is no longer bound to a type variable: the boundary UNJOINS
+-- them (a hide, a seal, or the dual a Wrap puts on its argument).
+data Unjoins {Δ Δ′ Δᵢ Δ′ᵢ : Ctxᵗ} (W : World Δ Δ′) (Wᵢ : World Δᵢ Δ′ᵢ)
+    (β : RVar) : Set where
+  unjoin : ∀ {X X′ α}
+    → Δ ∋ᵗ X := α → Δ′ ∋ᵗ X′ := β
+    → Joins W X X′
+    → ¬ (names Δᵢ ∋ᵅ α) ⊎ ¬ (names Δ′ᵢ ∋ᵅ β)
+    → Unjoins W Wᵢ β
+
+-- `Dropped P κ κ₁`: κ₁ is κ with some entries satisfying P removed
+data Dropped (P : RVar → Set) : List RVar → List RVar → Set where
+  dr-[]   : Dropped P [] []
+  dr-keep : ∀ {β κ κ₁} → Dropped P κ κ₁ → Dropped P (β ∷ κ) (β ∷ κ₁)
+  dr-drop : ∀ {β κ κ₁} → P β → Dropped P κ κ₁ → Dropped P (β ∷ κ) κ₁
+
+-- `Revoke W Wᵢ O A A′ κ₁`: the boundary with exterior index
+-- `A ⊑_W^O A′` and interior world Wᵢ reads its interior at the
+-- permissions κ₁: all of κʷ Wᵢ (`rv-none`), or κʷ Wᵢ without some
+-- rep. vars it UNJOINS, and then it PAYS with its exterior index read
+-- without them (`rv-drop`, "the unjoin pays").  The payment keeps
+-- C5's hidden variant dead: a right hide whose exterior puts the left's
+-- X against ★ needs X's permission outside, so it cannot revoke it.
+data Revoke {Δ Δ′ Δᵢ Δ′ᵢ : Ctxᵗ} (W : World Δ Δ′) (Wᵢ : World Δᵢ Δ′ᵢ)
+    (O : List Slot) (A A′ : Ty) : List RVar → Set where
+  rv-none : Revoke W Wᵢ O A A′ (κʷ Wᵢ)
+  rv-drop : ∀ {κ₁}
+    → Dropped (Unjoins W Wᵢ) (κʷ Wᵢ) κ₁
+    → A ⊑ᵂ⟨ W ⇂κ κ₁ ⟩[ O ] A′
+    → Revoke W Wᵢ O A A′ κ₁

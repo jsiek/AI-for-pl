@@ -348,7 +348,7 @@ vΛidX = V-simple (S-Λ (V-simple S-ƛ))
 -- αᴿ:=★ (`join-⊕`: the joined world is `W₃ ⊕⁺^ 0`); then ƛ⊑ƛ at X ⊑ X
 core₃ : W₃ ∣ [] ⊢ Λ idX ⊑ idX ⟪ Θ₀ , revX ⟫ ∶ ∀id⊑★
 core₃ =
-  ⊑⟪⟫ int-ro₃ (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vΛidX)) ok₃
+  ⊑⟪⟫ rv-none int-ro₃ (push ca-[] f-end (ns-opn refl ∷ []) (inj₂ vΛidX)) ok₃
     ([] ∷ []) [] Wi₃-wf (⇒⊑⇒ X⊑X X⊑X)
     (Λ⊑ (b-join (join-⊕ r-here)) nv-⇒ (∈-⇒ˡ ∈-var) liftᴸ-[]
       (V-simple S-ƛ) (ƛ⊑ƛ {pA = X⊑X} tf tf (x⊑x Zʷ)) (⇒⊑⇒ X⊑X X⊑X))

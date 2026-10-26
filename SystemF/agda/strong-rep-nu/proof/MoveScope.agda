@@ -32,6 +32,8 @@ open import strong-rep-nu.Boundary
 open import strong-rep-nu.proof.Preserve using (MergeCase)
 open import strong-rep-nu.proof.WrapDual using (weaken-⊢)
 open import strong-rep-nu.proof.Compose using (⊢⨟)
+open import strong-rep-nu.proof.Respell
+  using (respects-Merge₁; respects-Merge₂)
 
 ------------------------------------------------------------------------
 -- §1  The merged conversion context keeps both old ones
@@ -83,37 +85,37 @@ merged-keeps₁ mw₂ mw₁ r⋉ | Γ⋉ , r⋉′ , keep | refl = keep
 -- both boundaries read ONE type (the inner boundary's) at ONE context.
 -- Commentary.md § proof/MoveScope.agda / §3
 preserve-Merge : MergeCase
-preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ}
-               {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁}
-               {c₂ = c₂} {C = C}
-               wfΔ u it ri r₁ r₂ r⋉
-               (boundary mw₂ (boundary {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
-                    ⊢c₂ sm₂ se₂ wE)
-  with interior-functional (bw-interior mw₂) ri
-     | conversion-functional (bw-conversion mw₂) r₂
-preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ}
-               {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁}
-               {c₂ = c₂} {C = C}
-               wfΔ u it ri r₁ r₂ r⋉
-               (boundary mw₂ (boundary {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
-                    ⊢c₂ sm₂ se₂ wE)
-  | refl | refl
-  with conversion-functional (bw-conversion mw₁) r₁
-     | same-rep-unique se₁ sm₂
-preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ}
-               {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {t₁ = t₁}
-               {c₂ = c₂} {C = C}
-               wfΔ u it ri r₁ r₂ r⋉
-               (boundary mw₂ (boundary {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
-                    ⊢c₂ sm₂ se₂ wE)
-  | refl | refl | refl | refl =
+preserve-Merge {Δ = Δ} {Δ⋉ᶜ = Δ⋉ᶜ} {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂}
+               {t₁ = t₁} {c₂ = c₂} {C = C}
+               wfΔ u it r⋉
+               (boundary {Δᵢ = Δᵢ} {Δᶜ = Δ₂ᶜ} mw₂
+                  (boundary {Δᵢ = Δ₁ᵢ} {Δᶜ = Δ₁ᶜ} {Bᵢ = B₁}
+                     mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
+                  ⊢c₂ sm₂ se₂ wE)
+  with same-rep-unique se₁ sm₂
+preserve-Merge {Δ = Δ} {Δ⋉ᶜ = Δ⋉ᶜ} {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂}
+               {t₁ = t₁} {c₂ = c₂} {C = C}
+               wfΔ u it r⋉
+               (boundary {Δᵢ = Δᵢ} {Δᶜ = Δ₂ᶜ} mw₂
+                  (boundary {Δᵢ = Δ₁ᵢ} {Δᶜ = Δ₁ᶜ} {Bᵢ = B₁}
+                     mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
+                  ⊢c₂ sm₂ se₂ wE)
+  | refl =
   boundary mw⋉ ⊢U ⊢merged sm₁ se₂ wE
   where
+  ri = bw-interior mw₂
+  r₂ = bw-conversion mw₂
+  ri₁ = bw-interior mw₁
+  r₁ = bw-conversion mw₁
+
   mw⋉ : BoundaryWf Δ (Θ₁ ++ Θ₂) Δ₁ᵢ Δ⋉ᶜ
-  mw⋉ = bw wfΔ (merged-interior (bw-interior mw₂) (bw-interior mw₁)) r⋉
+  mw⋉ = bw wfΔ (merged-interior ri ri₁) r⋉
+
+  keep₁ = merged-keeps₁ mw₂ mw₁ r⋉
+  keep₂ = merged-keeps₂ r₂ r⋉
 
   -- each part reads as some r at its own position, and its respelling
-  -- at the merged one as the same r (every name it uses survives)
+  -- at the merged one as the same r (strong-rep-nu.proof.Respell)
   p₁ = proj₂ (readable ⊢t₁)
   p₂ = proj₂ (readable ⊢c₂)
 
@@ -121,13 +123,13 @@ preserve-Merge {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ₂ᶜ = Δ₂
            (trans (conversion-reps r⋉)
                   (sym (trans (conversion-reps r₁) (interior-reps ri))))
            (name-fn (bw-conversion-wf mw₁))
-           (merged-keeps₁ mw₂ mw₁ r⋉) (pm-++ˡ Θ₂) p₁
-           (respell-same {Γ = Δ₁ᶜ} {Γ′ = Δ⋉ᶜ} (merged-keeps₁ mw₂ mw₁ r⋉) p₁) ⊢t₁
+           keep₁ (pm-++ˡ Θ₂) p₁
+           (sameᶜ-respects (respects-Merge₁ ri ri₁ r₁ r⋉ keep₁) p₁) ⊢t₁
 
   ⊢c₂′ = weaken-⊢ {Γ = Δ₂ᶜ} {Γ′ = Δ⋉ᶜ}
            (trans (conversion-reps r⋉) (sym (conversion-reps r₂)))
            (name-fn (bw-conversion-wf mw₂))
-           (merged-keeps₂ r₂ r⋉) (pm-++ʳ Θ₁) p₂
-           (respell-same {Γ = Δ₂ᶜ} {Γ′ = Δ⋉ᶜ} (merged-keeps₂ r₂ r⋉) p₂) ⊢c₂
+           keep₂ (pm-++ʳ Θ₁) p₂
+           (sameᶜ-respects (respects-Merge₂ ri ri₁ r₂ r⋉ keep₂) p₂) ⊢c₂
 
   ⊢merged = ⊢⨟ (name-fn (conversion-wf wfΔ r⋉)) ⊢t₁′ ⊢c₂′

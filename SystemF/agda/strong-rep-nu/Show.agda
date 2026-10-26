@@ -371,16 +371,16 @@ showState Γ M =
 -- The rule that actually fired: a congruence reports the rule inside it,
 -- which is what a reader of a trace wants to see.
 ruleName : ∀ {Δ M N δ} → Δ ⊢ M -→ N ∣ δ → String
-ruleName (TyBeta v same)               = "TyBeta"
-ruleName (Beta v)                    = "Beta"
-ruleName (Wrap v w rc ri rd)      = "Wrap"
-ruleName (TyWrap v same)      = "TyWrap"
-ruleName (Merge u it ri r₁ r₂ r⋉) = "Merge"
-ruleName (Id u b)                  = "Id"
-ruleName (ξ-·₁ st)                  = ruleName st
-ruleName (ξ-·₂ v st)                = ruleName st
-ruleName (ξ-ν st)                    = ruleName st
-ruleName (ξ-⟪⟫ rel st)               = ruleName st
+ruleName (TyBeta v same) = "TyBeta"
+ruleName (Beta v)        = "Beta"
+ruleName (Wrap v w)      = "Wrap"
+ruleName (TyWrap v same) = "TyWrap"
+ruleName (Merge u it r⋉) = "Merge"
+ruleName (Id u b)        = "Id"
+ruleName (ξ-·₁ st)       = ruleName st
+ruleName (ξ-·₂ v st)     = ruleName st
+ruleName (ξ-ν st)        = ruleName st
+ruleName (ξ-⟪⟫ rel st)   = ruleName st
 
 finalName : ∀ {M} → Final M → String
 finalName (value v)  = "VALUE"

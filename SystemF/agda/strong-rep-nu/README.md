@@ -15,12 +15,19 @@ Spellings are unchanged.  Rationale, rulings and results:
 
 `Wrap` and `Merge` no longer CARRY the spellings of the conversions they
 move (`s′`, `t₁′`, `c₂′`, each pinned by a `SameConv` premise).  They
-COMPUTE them: `respellᶜ Γ Γ′ c` renames each name of `c` to `Γ′`'s
-name for the same representation variable (`Conversion.agda` §2b).
-`respell-same` is the `SameConv` the rules used to carry, proved from
-(Q) and `merged-keeps₁`/`merged-keeps₂`; determinism of `Wrap` and
-`Merge` no longer needs typing.  Rationale and the probes behind it:
-`notes/DECISIONS.md`, 2026-10-26 and 2026-10-26b.
+COMPUTE them, per name and from the scopes alone: `respellᶜ Θₛ Π Θₜ c`
+decodes each name of `c` back through `Θₛ`'s conversion reading,
+carries it along the interior reading of the path `Π`, and encodes it
+into `Θₜ`'s conversion reading (`Conversion.agda` §2b).  `Wrap` uses
+`respellᶜ Θ Θ (dual Θ)` and has no premises left beyond `Simple`/
+`Value`; `Merge` uses `respellᶜ Θ₁ (dual Θ₂) (Θ₁ ++ Θ₂)` and
+`respellᶜ Θ₂ [] (Θ₁ ++ Θ₂)` and keeps one premise, the merged
+conversion reading its composition reads.  `proof/Respell.agda` proves
+the renaming sends each name to the target's name for the same
+representation variable (`respell-respects`), so the respelled
+conversion reads as the original; preservation reads the other
+contexts off the typing derivation.  Rationale and the probes behind
+it: `notes/DECISIONS.md`, 2026-10-26, 2026-10-26b and 2026-10-26c.
 
 ## strong-rep-nu (2026-09-24)
 

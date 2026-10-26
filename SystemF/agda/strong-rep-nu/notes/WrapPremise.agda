@@ -10,8 +10,9 @@ module strong-rep-nu.notes.WrapPremise where
 --     sides of a crossing name the same representation variables;
 --   * strong-rep-nu.Boundary §3c constructs the dual's conversion context;
 --   * strong-rep-nu.Conversion §2b respells a conversion at the dual's
---     position (`respellᶜ`, branch `nu-respell`), and (Q) is what makes
---     the respelling read as the original (`respell-same`).
+--     position per name from the scope alone (`respellᶜ Θ Θ (dual Θ)`),
+--     and strong-rep-nu.proof.Respell proves, with (Q), that the
+--     respelling reads as the original (`respects-Wrap`).
 --
 -- This note retains the concrete mixed-frame witness that motivated (Q) and
 -- checks that the respelling computes exactly the spelling `Wrap` needs.
@@ -89,6 +90,7 @@ mixed-Q = Q mixed-interior mixed-conversion mixed-dual-conversion
             (0 , here)
 
 -- `Wrap` respells the crossed conversion at the dual's position: source
--- name 0 and dual name 1 are the same representation variable, 2.
-mixed-respelled : respellᶜ Γᶜ Γᵈ (unseal 0) ≡ unseal 1
+-- name 0 and dual name 1 are the same representation variable, 2.  The
+-- respelling reads only the scope.
+mixed-respelled : respellᶜ Mixed Mixed (dual Mixed) (unseal 0) ≡ unseal 1
 mixed-respelled = refl

@@ -6,10 +6,6 @@ module strong-rep-nu.Lookup where
 --     `∋:=?`.  They sit BELOW strong-rep-nu.Conversion, whose
 --     composition `Δ ⊢ c₁ ⨟ c₂` reads a sealed name's representation
 --     through `∋:=?`; strong-rep-nu.TypeCheck re-exports them.
---   * `respell η η′`, the renaming a crossing applies to a conversion:
---     each name of η to η′'s name for the same representation variable.
---     `lookupˡ?-complete` and `find?-complete` say the two searches it
---     runs miss nothing.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Properties using (_≟_)
@@ -18,7 +14,6 @@ open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
 open import Relation.Nullary using (yes; no)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
-open import Data.Empty using (⊥)
 
 open import strong-rep-nu.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong-rep-nu.Ctx
@@ -80,36 +75,3 @@ unread? η (`∀ R) | nothing      = nothing
 ∋:=? Γ X | just (α , nm) | just (bindR R , rp) | nothing = nothing
 ∋:=? Γ X | just (α , nm) | just (bindR R , rp) | just (A , sm) =
   just (A , α , R , nm , rp , sm)
-
-------------------------------------------------------------------------
--- Respelling, and the completeness of the two searches it runs
-------------------------------------------------------------------------
-
--- each name of η to η′'s name for the same representation variable; a
--- name η or η′ lacks is left alone (a typed conversion has none)
-respell : TyCtx → TyCtx → ℕ → ℕ
-respell η η′ X with lookupˡ? η X
-respell η η′ X | just (α , _) with find? η′ α
-respell η η′ X | just (α , _) | just (Y , _) = Y
-respell η η′ X | just (α , _) | nothing      = X
-respell η η′ X | nothing = X
-
-lookupˡ?-complete : ∀ {A : Set} (xs : List A) (i : ℕ) {x}
-  → xs ∋ˡ i := x → lookupˡ? xs i ≡ nothing → ⊥
-lookupˡ?-complete (x ∷ xs) zero here ()
-lookupˡ?-complete (y ∷ xs) (suc i) (there d) eq with lookupˡ? xs i in e
-lookupˡ?-complete (y ∷ xs) (suc i) (there d) () | just _
-lookupˡ?-complete (y ∷ xs) (suc i) (there d) eq | nothing =
-  lookupˡ?-complete xs i d e
-
-find?-complete : (η : TyCtx) (α : RVar) {Y : ℕ}
-  → η ∋ˡ Y := α → find? η α ≡ nothing → ⊥
-find?-complete (α ∷ η) α here eq with α ≟ α
-find?-complete (α ∷ η) α here () | yes refl
-find?-complete (α ∷ η) α here eq | no ne = ne refl
-find?-complete (β ∷ η) α (there d) eq with α ≟ β
-find?-complete (β ∷ η) α (there d) () | yes refl
-find?-complete (β ∷ η) α (there d) eq | no ne with find? η α in e
-find?-complete (β ∷ η) α (there d) () | no ne | just _
-find?-complete (β ∷ η) α (there d) eq | no ne | nothing =
-  find?-complete η α d e

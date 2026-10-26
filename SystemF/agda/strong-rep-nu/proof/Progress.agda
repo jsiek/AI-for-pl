@@ -54,9 +54,9 @@ same-base-src base-𝔹 same-𝔹 = refl
 -- 2. The merged frame's readings
 ------------------------------------------------------------------------
 
--- `Merge`'s premises exist whenever a boundary sits over a value's
+-- `Merge`'s one premise exists whenever a boundary sits over a value's
 -- boundary: the merged conversion reading exists
--- (`merged-conversion-exists`), and the spellings are computed.
+-- (`merged-conversion-exists`); the spellings are computed.
 -- Commentary.md § proof/Progress.agda / §2
 merge-redex : ∀ {Δ Δᵢ Δ₂ᶜ U Θ₁ Θ₂ t₁ c₂ B}
   → Simple U → InertTail t₁
@@ -68,9 +68,7 @@ merge-redex u it mw₂ (boundary mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
   with merged-conversion-exists mw₂ mw₁
 merge-redex u it mw₂ (boundary mw₁ ⊢U ⊢t₁ sm₁ se₁ wB)
   | Δ⋉ᶜ , r⋉ , keep₁ =
-  _ , none
-  , Merge u it (bw-interior mw₂) (bw-conversion mw₁) (bw-conversion mw₂)
-          r⋉
+  _ , none , Merge u it r⋉
 
 ------------------------------------------------------------------------
 -- 3. Base identities
@@ -130,21 +128,15 @@ module Impl where
     (conv-unseal-seq d ok ⊢c n m) sameᵢ | inj₁ A-unseal-seq | Y , refl =
     ⊥-elim (simple-¬var u ⊢M)
 
-  -- A function-conversion wrapper carries its own BoundaryWf, and the
-  -- dual's conversion reading exists (`dual-conversion-exists`).
+  -- A function-conversion wrapper applied to a value is always a `Wrap`
+  -- redex: the rule reads no context.
   progress-wrap : ∀ {Δ U M Θ s t A B}
     → Simple U
     → Value M
     → Δ ∣ [] ⊢ U ⟪ Θ , ⌞ s ↦ t ⌟ ⟫ ⦂ (A ⇒ B)
     → Σ[ N ∈ Term ] Σ[ δ ∈ Alloc ]
         (Δ ⊢ (U ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · M -→ N ∣ δ)
-  progress-wrap u vM
-    (boundary mwΘ ⊢U (conv-tail (conv-mid (conv-fun ⊢s ⊢t))) sameᵢ sameₑ wE)
-    with dual-conversion-exists (name-fn (bw-exterior mwΘ)) (bw-interior mwΘ)
-  progress-wrap u vM
-    (boundary mwΘ ⊢U (conv-tail (conv-mid (conv-fun ⊢s ⊢t))) sameᵢ sameₑ wE)
-    | Δᵈ , rd =
-    _ , _ , Wrap u vM (bw-conversion mwΘ) (bw-interior mwΘ) rd
+  progress-wrap u vM ⊢U = _ , _ , Wrap u vM
 
   -- `ν` over a Λ under a ∀ middle: always a `TyWrap` redex.
   progress-ν-∀conv : ∀ {Δ N Θ s c A C}

@@ -5425,3 +5425,56 @@ renaming RespellProbe computes from the scopes and the exterior's length
 alone.  The obligation is that it `Respects` the two maps; then `Wrap`
 no longer needs the dual's reading `Δᵈ` to step, and `Merge` needs only
 the readings its composition reads (`Δ⋉ᶜ`, for `repOf`).
+
+## 2026-10-26c — computed respellings, stage 2: per name, from the scopes alone (branch `nu-respell`)
+
+Stage 1's `respell (names Δᶜ) (names Δᵈ)` is replaced by a renaming
+computed per name from the scopes alone, which the probe of 2026-10-26
+(RespellProbe §3b, ddb85d7e) found to agree at every site.
+
+    Wrap  : Simple V → Value W
+          → Δ ⊢ (V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · W
+              -→ (V · (W ⟪ dual Θ , respellᶜ Θ Θ (dual Θ) s ⟫)) ⟪ Θ , t ⟫
+               ∣ none
+    Merge : Simple U → InertTail t₁ → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
+          → Δ ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫
+              -→ U ⟪ Θ₁ ++ Θ₂ ,
+                     Δ⋉ᶜ ⊢ respellᶜ Θ₁ (dual Θ₂) (Θ₁ ++ Θ₂) (tail t₁)
+                         ⨟ respellᶜ Θ₂ [] (Θ₁ ++ Θ₂) c₂ ⟫ ∣ none
+
+* `respell Θₛ Π Θₜ X` decodes X back through `Θₛ`'s conversion reading,
+  carries the token along `Π`'s interior reading, and encodes it into
+  `Θₜ`'s conversion reading (`Conversion.agda` §2b).  A token is a
+  position or `gone α`.  Whether a bind finds its name live is read off
+  the scope (`Mentions`, `Boundary.agda` §3b).
+* WHAT THE RULES READ.  `Wrap` reads no context.  `Merge` reads only
+  the merged conversion reading, for composition's `repOf`.  The other
+  readings (`Δᵢ`, `Δ₁ᶜ`, `Δ₂ᶜ`, `Δᶜ`, `Δᵈ`) are needed only by the
+  preservation proof, which reads them off the redex's typing — the
+  split between reduction and preservation asked for on 2026-10-26.
+* THE PROOF (`proof/Respell.agda`): `respell-respects` — the renaming
+  sends each name to the target's name for the same representation
+  variable whenever the target keeps the source's variables.  It needs
+  the INTERIOR reading of both scopes alongside the conversion reading:
+  that is the well-formedness behind the liveness test (a scope binds a
+  name the context has only after unbinding it).
+* ONE CHANGE FROM THE PROBE.  The probe's Merge inner part decoded back
+  through Θ₂'s interior and then repaired the case where Θ₁ re-binds an
+  α Θ₂ had unbound (`settle`/`exteriorOf`).  The rule instead runs the
+  path as the INTERIOR READING OF `dual Θ₂`, forward — the same
+  `encodeI` Wrap uses — which re-binds α at its exterior position by
+  construction.  RespellProbe confirms it agrees.
+* `respell` and its completeness lemmas left `Lookup.agda` (back to its
+  pre-stage-1 form); `respell-respects`/`respell-same` of stage 1 are
+  replaced by `proof/Respell.agda`.  `int⇒conv-live` (`Boundary.agda`)
+  became public.  `Eval.agda` lost `MergePremises`/`CrossPremises`.
+  The residual `residual-Wrap-arg` now carries the interior reading its
+  frame needs (the rule no longer does); `erasure-stutter`'s `Wrap` case
+  reads it off the typing.
+* `notes/RespellProbe.agda` now checks the RULE's spelling against the
+  slot computation and against stage 1's context-reading respelling,
+  kept there as an oracle (`byLookup`).  The pinned result is unchanged:
+  318 checks, 55 real renamings, no mismatch.
+
+Results: `make check` passes (no postulates); every run keeps its
+endpoint and step count.

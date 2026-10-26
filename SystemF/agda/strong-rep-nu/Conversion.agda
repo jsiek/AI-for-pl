@@ -9,7 +9,8 @@ module strong-rep-nu.Conversion where
 --     condition, §2 the three typing judgements
 --     `Γ ∣ Θ ⊢[ p ] c ∶ R ⇝ S`, the permissions they read off the
 --     scope, and the permission maps `PermMap`, §2b `SameConv` (two
---     spellings of one conversion) and RESPELLING (`respellᶜ`), §2c
+--     spellings of one conversion) and RESPELLING (`respellᶜ`, per
+--     name, from the scopes alone), §2c
 --     reading a typed conversion and weakening a type, §2d
 --     representation renaming, §3 `mkId`, §4 `reveal`/`conceal`,
 --     §4b COMPOSITION `Δ ⊢ c₁ ⨟ c₂`, §5 the inversions, §6
@@ -46,8 +47,7 @@ open import strong-rep-nu.Types
 open import strong-rep-nu.Ctx
 open import strong-rep-nu.proof.Ctx
 open import strong-rep-nu.Boundary
-open import strong-rep-nu.Lookup
-  using (∋:=?; lookupˡ?; find?; respell; lookupˡ?-complete; find?-complete)
+open import strong-rep-nu.Lookup using (∋:=?)
 
 private
   variable
@@ -389,14 +389,90 @@ SameConv : Ctxᵗ → Conv → Ctxᵗ → Conv → Set
 SameConv Γ s Γ′ s′ = ∃[ r ] ((names Γ ⊩ s ~ r) × (names Γ′ ⊩ s′ ~ r))
 
 -- RESPELLING.  A crossing moves a conversion to another position, where
--- other scopes overlap; it is RENAMED there, by `respell` (Lookup): each
--- name to the new position's name for the same representation variable.
--- A renaming that RESPECTS the two name maps keeps the reading, so the
--- respelled conversion is a `SameConv` of the original.
+-- other scopes overlap; it is RENAMED there, PER NAME and from the
+-- scopes alone: each name is DECODED back through the conversion
+-- reading it was written in, carried along the crossing's PATH (an
+-- interior reading), and ENCODED into the target conversion reading.
+-- A name is traced as a TOKEN: a position, or "the name for α" while α
+-- has none.  Whether a `bind` finds its name already live is read off
+-- the scope too (`Mentions`): a well-formed scope binds a name the
+-- context has only after unbinding it.  A renaming that RESPECTS the
+-- two name maps keeps the reading (`sameᶜ-respects`); that this one
+-- does is strong-rep-nu.proof.Respell.
 -- Commentary.md § Conversion.agda / §2b
 
-respellᶜ : Ctxᵗ → Ctxᵗ → Conv → Conv
-respellᶜ Γ Γ′ = renᶜ (respell (names Γ) (names Γ′))
+data Tok : Set where
+  pos  : ℕ → Tok
+  gone : RVar → Tok
+
+-- inserting a name at Y moves the positions at or above Y up one
+punchIn : ℕ → ℕ → ℕ
+punchIn zero    p       = suc p
+punchIn (suc Y) zero    = zero
+punchIn (suc Y) (suc p) = suc (punchIn Y p)
+
+upTok : Tok → Tok
+upTok (pos p)  = pos (suc p)
+upTok (gone α) = gone α
+
+-- removing the name at Y, which names α: position Y becomes α's token,
+-- the positions above it move down one
+peel : ℕ → RVar → ℕ → Tok
+peel zero    α zero    = gone α
+peel zero    α (suc X) = pos X
+peel (suc Y) α zero    = pos zero
+peel (suc Y) α (suc X) = upTok (peel Y α X)
+
+thenTok : Tok → (ℕ → Tok) → Tok
+thenTok (pos p)  k = k p
+thenTok (gone α) k = gone α
+
+-- one change, forward, as the interior reading performs it
+stepTok : Change → Tok → Tok
+stepTok (unbind Y β) (pos p)  = peel Y β p
+stepTok (unbind Y β) (gone α) = gone α
+stepTok (bind Y β)   (pos p)  = pos (punchIn Y p)
+stepTok (bind Y β)   (gone α) with α ≟ β
+stepTok (bind Y β)   (gone α) | yes eq = pos Y
+stepTok (bind Y β)   (gone α) | no ne  = gone α
+
+-- forward through an interior reading (the tail acts first)
+encodeI : Boundary → Tok → Tok
+encodeI []      t = t
+encodeI (δ ∷ χ) t = stepTok δ (encodeI χ t)
+
+-- forward through a conversion reading: unbinds are skipped, and a bind
+-- whose name an earlier-acting change mentions finds it live
+encodeU : Boundary → Tok → Tok
+encodeU []               t = t
+encodeU (unbind Y β ∷ χ) t = encodeU χ t
+encodeU (bind Y β ∷ χ)   t with mentions? β χ
+encodeU (bind Y β ∷ χ)   t | yes m  = encodeU χ t
+encodeU (bind Y β ∷ χ)   t | no nm = stepTok (bind Y β) (encodeU χ t)
+
+-- backward through a conversion reading, the last-acting change first
+decodeU : Boundary → ℕ → Tok
+decodeU []               X = pos X
+decodeU (unbind Y β ∷ χ) X = decodeU χ X
+decodeU (bind Y β ∷ χ)   X with mentions? β χ
+decodeU (bind Y β ∷ χ)   X | yes m  = decodeU χ X
+decodeU (bind Y β ∷ χ)   X | no nm = thenTok (peel Y β X) (decodeU χ)
+
+-- a token that ends without a position was no name of the source, and
+-- keeps its spelling (a typed conversion has none)
+finish : ℕ → Tok → ℕ
+finish X (pos q)  = q
+finish X (gone α) = X
+
+-- `respell Θₛ Π Θₜ`: from `Θₛ`'s conversion reading back to its
+-- exterior, along the interior reading of `Π`, into `Θₜ`'s conversion
+-- reading.  Wrap's is `respell Θ Θ (dual Θ)`; Merge's are
+-- `respell Θ₁ (dual Θ₂) (Θ₁ ++ Θ₂)` and `respell Θ₂ [] (Θ₁ ++ Θ₂)`.
+respell : Boundary → Boundary → Boundary → Renameᵗ
+respell Θₛ Π Θₜ X = finish X (encodeU Θₜ (encodeI Π (decodeU Θₛ X)))
+
+respellᶜ : Boundary → Boundary → Boundary → Conv → Conv
+respellᶜ Θₛ Π Θₜ = renᶜ (respell Θₛ Π Θₜ)
 
 Respects : Renameᵗ → TyCtx → TyCtx → Set
 Respects ρ η η′ = ∀ {X α} → η ∋ˡ X := α → η′ ∋ˡ ρ X := α
@@ -440,28 +516,6 @@ mutual
   sameᶜ-respects r (sameᶜ-unseal d) = sameᶜ-unseal (r d)
   sameᶜ-respects r (sameᶜ-unseal-seq d a) =
     sameᶜ-unseal-seq (r d) (sameᶜ-respects r a)
-
--- `respell` respects any two name maps whose second keeps the first's
--- representation variables
-respell-respects : η ⊆ᵃ η′ → Respects (respell η η′) η η′
-respell-respects {η = η} {η′ = η′} f {X} {α} d with lookupˡ? η X in e
-respell-respects {η = η} {η′ = η′} f {X} {α} d | nothing =
-  ⊥-elim (lookupˡ?-complete η X d e)
-respell-respects {η = η} {η′ = η′} f {X} {α} d | just (β , d′)
-  with ∋ˡ-det d d′
-respell-respects {η = η} {η′ = η′} f {X} {α} d | just (β , d′) | refl
-  with find? η′ α in e′
-respell-respects {η = η} {η′ = η′} f {X} {α} d | just (β , d′) | refl
-  | just (Y , d″) = d″
-respell-respects {η = η} {η′ = η′} f {X} {α} d | just (β , d′) | refl
-  | nothing with f (X , d)
-respell-respects {η = η} {η′ = η′} f {X} {α} d | just (β , d′) | refl
-  | nothing | Y , d″ = ⊥-elim (find?-complete η′ α d″ e′)
-
--- the respelled conversion reads as the original did
-respell-same : ∀ {Γ Γ′ : Ctxᵗ} → names Γ ⊆ᵃ names Γ′
-  → names Γ ⊩ s ~ r → names Γ′ ⊩ respellᶜ Γ Γ′ s ~ r
-respell-same f p = sameᶜ-respects (respell-respects f) p
 
 ------------------------------------------------------------------------
 -- 2c. Reading a typed conversion; weakening a type

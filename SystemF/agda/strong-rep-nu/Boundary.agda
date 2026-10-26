@@ -292,31 +292,34 @@ private
           (changes-++ (changes∷ changes[] (dual-step st))
                       (dual-changes cs))
 
-  int⇒conv-live : ∀ {Ξ Δ Δᵢ Δᶜ χ α}
-    → Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ
-    → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δᶜ
-    → Δᵢ ∋ᵅ α
-    → Δᶜ ∋ᵅ α
-  int⇒conv-live changes[] conv[] lv = lv
-  int⇒conv-live (changes∷ cs (step-unbind v dl fr))
-                (conv-unbind v′ csᶜ) lv =
-    int⇒conv-live cs csᶜ (del-inv dl lv)
-  int⇒conv-live (changes∷ cs (step-bind v fr i))
-                (conv-bind v′ csᶜ fr′ i′) lv with ins-inv i lv
-  int⇒conv-live (changes∷ cs (step-bind v fr i))
-                (conv-bind v′ csᶜ fr′ i′) lv | inj₁ refl =
-    ins-live i′
-  int⇒conv-live (changes∷ cs (step-bind v fr i))
-                (conv-bind v′ csᶜ fr′ i′) lv | inj₂ lv′ =
-    ins-mono i′ (int⇒conv-live cs csᶜ lv′)
-  int⇒conv-live (changes∷ cs (step-bind v fr i))
-                (conv-bind-live v′ csᶜ d) lv with ins-inv i lv
-  int⇒conv-live (changes∷ cs (step-bind v fr i))
-                (conv-bind-live v′ csᶜ d) lv | inj₁ refl = _ , d
-  int⇒conv-live (changes∷ cs (step-bind v fr i))
-                (conv-bind-live v′ csᶜ d) lv | inj₂ lv′ =
-    int⇒conv-live cs csᶜ lv′
+-- Every name the interior reading leaves live, the conversion reading
+-- has too (public: strong-rep-nu.proof.Respell reads liveness off it).
+int⇒conv-live : ∀ {Ξ Δ Δᵢ Δᶜ χ α}
+  → Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ
+  → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δᶜ
+  → Δᵢ ∋ᵅ α
+  → Δᶜ ∋ᵅ α
+int⇒conv-live changes[] conv[] lv = lv
+int⇒conv-live (changes∷ cs (step-unbind v dl fr))
+              (conv-unbind v′ csᶜ) lv =
+  int⇒conv-live cs csᶜ (del-inv dl lv)
+int⇒conv-live (changes∷ cs (step-bind v fr i))
+              (conv-bind v′ csᶜ fr′ i′) lv with ins-inv i lv
+int⇒conv-live (changes∷ cs (step-bind v fr i))
+              (conv-bind v′ csᶜ fr′ i′) lv | inj₁ refl =
+  ins-live i′
+int⇒conv-live (changes∷ cs (step-bind v fr i))
+              (conv-bind v′ csᶜ fr′ i′) lv | inj₂ lv′ =
+  ins-mono i′ (int⇒conv-live cs csᶜ lv′)
+int⇒conv-live (changes∷ cs (step-bind v fr i))
+              (conv-bind-live v′ csᶜ d) lv with ins-inv i lv
+int⇒conv-live (changes∷ cs (step-bind v fr i))
+              (conv-bind-live v′ csᶜ d) lv | inj₁ refl = _ , d
+int⇒conv-live (changes∷ cs (step-bind v fr i))
+              (conv-bind-live v′ csᶜ d) lv | inj₂ lv′ =
+  int⇒conv-live cs csᶜ lv′
 
+private
   conv-dual-id : ∀ {Ξ Δ Δᵢ Δᶜ Δ₀ χ}
     → Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ
     → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δᶜ
@@ -534,6 +537,31 @@ inUnbinds? α (unbind X β ∷ χ) | no ne | yes iu = yes (iu-there iu)
 inUnbinds? α (unbind X β ∷ χ) | no ne | no nl =
   no (λ where iu-here → ne refl
               (iu-there iu) → nl iu)
+
+-- `Mentions α χ`: some change of χ, bind or unbind, carries α.  Read
+-- off the scope alone, it decides whether a `bind` in a conversion
+-- reading finds its name already live (strong-rep-nu.Conversion §2b).
+data Mentions (α : RVar) : List Change → Set where
+  m-unbind : ∀ {X χ} → Mentions α (unbind X α ∷ χ)
+  m-bind   : ∀ {X χ} → Mentions α (bind X α ∷ χ)
+  m-there  : ∀ {δ χ} → Mentions α χ → Mentions α (δ ∷ χ)
+
+mentions? : (α : RVar) (χ : List Change) → Dec (Mentions α χ)
+mentions? α [] = no (λ ())
+mentions? α (unbind X β ∷ χ) with α ≟ β
+mentions? α (unbind X β ∷ χ) | yes refl = yes m-unbind
+mentions? α (unbind X β ∷ χ) | no ne with mentions? α χ
+mentions? α (unbind X β ∷ χ) | no ne | yes m = yes (m-there m)
+mentions? α (unbind X β ∷ χ) | no ne | no nm =
+  no (λ where m-unbind → ne refl
+              (m-there m) → nm m)
+mentions? α (bind X β ∷ χ) with α ≟ β
+mentions? α (bind X β ∷ χ) | yes refl = yes m-bind
+mentions? α (bind X β ∷ χ) | no ne with mentions? α χ
+mentions? α (bind X β ∷ χ) | no ne | yes m = yes (m-there m)
+mentions? α (bind X β ∷ χ) | no ne | no nm =
+  no (λ where m-bind → ne refl
+              (m-there m) → nm m)
 
 conv-mono : Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′ → Δ ∋ᵅ α → Δ′ ∋ᵅ α
 conv-mono conv[] lv = lv

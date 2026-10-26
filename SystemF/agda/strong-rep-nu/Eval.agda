@@ -2,8 +2,9 @@ module strong-rep-nu.Eval where
 
 -- File Charter:
 --   * THE STEP FUNCTION AND THE EVALUATOR BUILT ON IT.  §1 decides the
---     classifications the rules guard on; §2 assembles each boundary
---     rule's side conditions; §3 is the redex search by head shape;
+--     classifications the rules guard on; §2 records that the boundary
+--     rules have one side condition left (`Merge`'s merged reading);
+--     §3 is the redex search by head shape;
 --     §4 `step`, leftmost-outermost, returning the contractum, the
 --     allocation and the step derivation; §5 `stepTo`/`Steps`;
 --     §6–§7 `Trace` and `eval`; §8–§9 reading a trace; §10 `Report`
@@ -60,49 +61,9 @@ base? (`∀ A)  = nothing
 ------------------------------------------------------------------------
 
 -- Commentary.md § Eval.agda / §1–§2
--- `Merge`'s premises: the four readings.  The two spellings the
--- contractum needs are computed from them by `respellᶜ`.
-MergePremises : Ctxᵗ → Boundary → Boundary → Set
-MergePremises Δ Θ₁ Θ₂ =
-  Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ Δ₂ᶜ ∈ Ctxᵗ ] Σ[ Δ⋉ᶜ ∈ Ctxᵗ ]
-    ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ) × (Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ)
-      × (Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ))
-
-mergePremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : Boundary)
-  → Maybe (MergePremises Δ Θ₁ Θ₂)
-mergePremises? Δ Θ₁ Θ₂ with interior? Δ Θ₂
-mergePremises? Δ Θ₁ Θ₂ | nothing = nothing
-mergePremises? Δ Θ₁ Θ₂ | just (Δᵢ , ri) with conversion? Δᵢ Θ₁
-mergePremises? Δ Θ₁ Θ₂ | just (Δᵢ , ri) | nothing = nothing
-mergePremises? Δ Θ₁ Θ₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  with conversion? Δ Θ₂
-mergePremises? Δ Θ₁ Θ₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | nothing = nothing
-mergePremises? Δ Θ₁ Θ₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ₂ᶜ , r₂) with conversion? Δ (Θ₁ ++ Θ₂)
-mergePremises? Δ Θ₁ Θ₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ₂ᶜ , r₂) | nothing = nothing
-mergePremises? Δ Θ₁ Θ₂ | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ₂ᶜ , r₂) | just (Δ⋉ᶜ , r⋉) =
-  just (Δᵢ , Δ₁ᶜ , Δ₂ᶜ , Δ⋉ᶜ , ri , r₁ , r₂ , r⋉)
-
--- `Wrap`'s crossing premises (2026-09-18): the three readings.  The
--- redex fixes only Δ and Θ; the dual's spelling of `s` is computed.
-CrossPremises : Ctxᵗ → Boundary → Set
-CrossPremises Δ Θ =
-  Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δᵈ ∈ Ctxᵗ ]
-    ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (Δ ⊢ⁱ Θ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ))
-
-crossPremises? : (Δ : Ctxᵗ) (Θ : Boundary) → Maybe (CrossPremises Δ Θ)
-crossPremises? Δ Θ with conversion? Δ Θ
-crossPremises? Δ Θ | nothing = nothing
-crossPremises? Δ Θ | just (Δᶜ , rc) with interior? Δ Θ
-crossPremises? Δ Θ | just (Δᶜ , rc) | nothing = nothing
-crossPremises? Δ Θ | just (Δᶜ , rc) | just (Δᵢ , ri)
-  with conversion? Δᵢ (dual Θ)
-crossPremises? Δ Θ | just (Δᶜ , rc) | just (Δᵢ , ri) | nothing = nothing
-crossPremises? Δ Θ | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd) =
-  just (Δᶜ , Δᵢ , Δᵈ , rc , ri , rd)
+-- Since the respellings are computed from the scopes alone, the only
+-- side condition left is `Merge`'s merged conversion reading, which
+-- `bdyRedex` reads with `conversion?` directly; `Wrap` has none.
 
 ------------------------------------------------------------------------
 -- 3. The redexes, by the shape of the head
@@ -114,12 +75,7 @@ crossPremises? Δ Θ | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
 appRedex : (Δ : Ctxᵗ) {L M : Term} → Value L → Value M
   → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ L · M -→ N ∣ δ))
 appRedex Δ (V-simple S-ƛ) vM = just (_ , none , Beta vM)
-appRedex Δ (V-⟪⟫ {Θ = Θ} u (I-fun {s = s})) vM
-  with crossPremises? Δ Θ
-appRedex Δ (V-⟪⟫ {Θ = Θ} u (I-fun {s = s})) vM
-  | just (Δᶜ , Δᵢ , Δᵈ , rc , ri , rd) =
-  just (_ , none , Wrap u vM rc ri rd)
-appRedex Δ (V-⟪⟫ {Θ = Θ} u (I-fun {s = s})) vM | nothing = nothing
+appRedex Δ (V-⟪⟫ u I-fun)      vM = just (_ , none , Wrap u vM)
 appRedex Δ (V-⟪⟫ u I-idv)      vM = nothing
 appRedex Δ (V-⟪⟫ u I-all)      vM = nothing
 appRedex Δ (V-⟪⟫ u I-seal)     vM = nothing
@@ -146,17 +102,17 @@ nuRedex Δ A c (V-⟪⟫ {Θ = Θ} (S-Λ vN) (I-all {s})) | nothing = nothing
 nuRedex Δ A c _ = nothing
 
 -- A boundary.  `Id` fires at a literal under an identity at a base
--- type; `Merge` fires at ANY boundary over a boundary value whose four
--- readings exist.  Everything
+-- type; `Merge` fires at ANY boundary over a boundary value whose
+-- merged conversion reading exists.  Everything
 -- else is either a congruence or stuck, which is the caller's business.
 bdyRedex : (Δ : Ctxᵗ) (M : Term) (Θ : Boundary) (c : Conv)
   → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ M ⟪ Θ , c ⟫ -→ N ∣ δ))
 bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ with simple? U | inertTail? t₁
 bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | just it
-  with mergePremises? Δ Θ₁ Θ
+  with conversion? Δ (Θ₁ ++ Θ)
 bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | just it
-  | just (Δᵢ , Δ₁ᶜ , Δ₂ᶜ , Δ⋉ᶜ , ri , r₁ , r₂ , r⋉)
-  = just (_ , none , Merge u it ri r₁ r₂ r⋉)
+  | just (Δ⋉ᶜ , r⋉)
+  = just (_ , none , Merge u it r⋉)
 bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | just it | nothing =
   nothing
 bdyRedex Δ (U ⟪ Θ₁ , tail t₁ ⟫) Θ c₂ | just u | nothing = nothing

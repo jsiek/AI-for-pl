@@ -12,8 +12,10 @@ module strong-rep-nu.proof.WrapDual where
 --     verbatim.
 --   * THE DUAL'S CONVERSION CONTEXT is not free: (P) is FALSE here,
 --     (Q) is what survives, and `Wrap` therefore RESPELLS `s` at the
---     dual's position (`respellᶜ`); (Q) is what makes the respelling
---     read as `s` does (`respell-same`).
+--     dual's position (`respellᶜ Θ Θ (dual Θ)`, from the scope
+--     alone).  The rule reads no context; the readings come from the
+--     typing here, and the respelling reads as `s` does because it
+--     respects the two name maps (`respects-Wrap`, with (Q)).
 --   * THE TYPES DO NOT MOVE (the Δ ∣ Θ experiment): `s`'s respelling
 --     has `s`'s
 --     REPRESENTATION types, and its permissions move by `pm-dual` —
@@ -36,6 +38,7 @@ open import strong-rep-nu.Conversion
 open import strong-rep-nu.Terms
 open import strong-rep-nu.Boundary
 open import strong-rep-nu.proof.Preserve using (WrapCase; same-wf)
+open import strong-rep-nu.proof.Respell using (respects-Wrap)
 
 ------------------------------------------------------------------------
 -- §1  Weakening a TYPED conversion
@@ -189,36 +192,33 @@ same-⇒⁻ (same-⇒ p q) = _ , _ , refl , p , q
 -- it is checked at `⁺` under `dual Θ`.
 -- Commentary.md § proof/WrapDual.agda / §3
 preserve-Wrap : WrapCase
-preserve-Wrap {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
-              {Θ = Θ} {s = s} {t = t} {C = C}
-              wfΔ v w rc ri rd
-              (⊢· (boundary mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
-                       sameᵢ sameₑ (wf-⇒ wA wC)) ⊢W)
-  with interior-functional (bw-interior mwΘ) ri
-     | conversion-functional (bw-conversion mwΘ) rc
-preserve-Wrap {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
-              {Θ = Θ} {s = s} {t = t} {C = C}
-              wfΔ v w rc ri rd
-              (⊢· (boundary mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
-                       sameᵢ sameₑ (wf-⇒ wA wC)) ⊢W)
-  | refl | refl
+preserve-Wrap {Δ = Δ} {V = V} {W = W} {Θ = Θ} {s = s} {t = t} {C = C}
+              wfΔ v w
+              (⊢· (boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} mwΘ ⊢V
+                     (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
+                     sameᵢ sameₑ (wf-⇒ wA wC)) ⊢W)
   with same-⇒⁻ sameᵢ | same-⇒⁻ sameₑ
-preserve-Wrap {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
-              {Θ = Θ} {s = s} {t = t} {C = C}
-              wfΔ v w rc ri rd
-              (⊢· (boundary mwΘ ⊢V (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
-                       sameᵢ sameₑ (wf-⇒ wA wC)) ⊢W)
-  | refl | refl
+     | dual-conversion-exists (name-fn (bw-exterior mwΘ)) (bw-interior mwΘ)
+preserve-Wrap {Δ = Δ} {V = V} {W = W} {Θ = Θ} {s = s} {t = t} {C = C}
+              wfΔ v w
+              (⊢· (boundary {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} mwΘ ⊢V
+                     (conv-tail (conv-mid (conv-fun ⊢s ⊢t)))
+                     sameᵢ sameₑ (wf-⇒ wA wC)) ⊢W)
   | Aᵢ , Bᵢ , refl , smAᵢ , smBᵢ
-  | Aₑ , Cₑ , refl , smAₑ , smCₑ =
+  | Aₑ , Cₑ , refl , smAₑ , smCₑ
+  | Δᵈ , rd =
   boundary mwΘ (⊢· ⊢V arg) ⊢t smBᵢ smCₑ wC
   where
+  ri = bw-interior mwΘ
+  rc = bw-conversion mwΘ
+
   -- the dual's frame: the exterior itself
   mwD : BoundaryWf Δᵢ (dual Θ) Δ Δᵈ
   mwD = bw (bw-interior-wf mwΘ) (dual-interior ri) rd
 
   -- `s` reads as some r at its own position; respelled at the dual's,
-  -- it reads as the same r, because every name it uses survives (Q)
+  -- it reads as the same r, because the respelling respects the two
+  -- name maps (strong-rep-nu.proof.Respell)
   rd⊢s = readable ⊢s
 
   ⊢s′ = weaken-⊢ (trans (conversion-reps rd)
@@ -226,7 +226,7 @@ preserve-Wrap {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} 
                            (sym (conversion-reps rc))))
                  (name-fn (bw-conversion-wf mwΘ))
                  (Q ri rc rd) pm-dual (proj₂ rd⊢s)
-                 (respell-same {Γ = Δᶜ} {Γ′ = Δᵈ} (Q ri rc rd) (proj₂ rd⊢s)) ⊢s
+                 (sameᶜ-respects (respects-Wrap ri rc rd) (proj₂ rd⊢s)) ⊢s
 
-  arg : Δᵢ ∣ [] ⊢ (W ⟪ dual Θ , respellᶜ Δᶜ Δᵈ s ⟫) ⦂ Aᵢ
+  arg : Δᵢ ∣ [] ⊢ (W ⟪ dual Θ , respellᶜ Θ Θ (dual Θ) s ⟫) ⦂ Aᵢ
   arg = boundary mwD ⊢W ⊢s′ smAₑ smAᵢ (same-wf smAᵢ)

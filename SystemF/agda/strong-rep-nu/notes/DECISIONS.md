@@ -5294,3 +5294,82 @@ What happened to the metatheory (`make check` passes):
 
 Not revisited: `paper/draft.md` Decision 4's sub-point "No polarity
 index" and `Commentary.md` beyond § Conversion.agda §2.
+
+## 2026-10-26 — how a conversion names its type variables: four probes (branch `nu-side-probe`)
+
+Follow-up to the Δ ∣ Θ experiment, asking whether the conversion context
+can go and, if not, what the crossings really need.  The probes are
+gated notes modules (`notes/All.agda`); every result below is pinned by
+`refl` on the 21 compiled runs and, where stated, on nine stress
+programs (`notes/EntryStress.agda`, S1–S9: values sent back and forth
+across one type variable's scope).
+
+**The audit (no code).**  Classifying every reduction premise of
+strong-rep-nu (`main` and `nu-conv-delta`) and of GTNF as a guard, as
+building the contractum, or as preservation-only: no OBSERVABLE decision
+reads the type context.  GTNF's blame is decided by syntactic tag
+comparison or by `toExt`/`Fresh`, which read Θ alone.  Every context read
+builds syntax: the store payload (TyBeta/TyWrap's `A ~ R`), a respelling
+on the conversion context (Wrap's `s′`, Merge's `t₁′`/`c₂′`, IdDyn-var's
+`Xᶜ`), or typing data (`repOf`, `exitEnv`).  `main`'s TyWrap carried the
+one preservation-only premise (its evaluator ran `convTy?` to step); the
+experiment had already dropped it.  Correction made along the way:
+composition DOES compare names once, in `cancelᵀ` (`unseal X` against a
+bare `seal Y` cancels only if `X ≟ Y`).
+
+**1. Per-side names (`notes/SideProbe.agda`) — REFUTED.**  Spelling a
+`seal`/`unseal` on the side where the scope names it (`seal` at `⁺`
+outside, `unseal` at `⁺` inside, swapped at `⁻`) fails: 5 of the 21 runs
+(K, J, Eb, V, C) reach a boundary whose seal chain passes through a type
+variable NEITHER side names, each first at a `Merge`.  The witness is
+Examples §1b, typeset from source to the failing state in
+`notes/MergeWitness.tex`: at state 6 the merged scope is
+`+X^α, +Y^β, −X^α`, the domain is `−X ; −Y` (Bool → X → Y), and X has a
+name only between the scope's entries.  All failures need an ALIAS cell
+(`β := α`, from `ν` at a type variable: `f [X]`); only such cells make a
+seal chain type.  No `id` leaf ever failed.
+
+**2. Pointers to scope entries (`notes/EntryProbe.agda`) — REJECTED.**
+Every `seal`/`unseal` has a permission entry of the right kind (the
+typing already demands it), unique in all 21 runs, but NOT unique under
+repeated instantiation at one variable (stress S3, S4, S6, S7: up to four
+unbind entries for one α), so pointers would have to be carried, never
+recomputed.  Jeremy rejected the idea itself: an entry position indexes
+the scope, not a set of type variables, which is a separate de Bruijn
+universe for seals and unseals alone.
+
+**3. `id` leaves (`notes/IdProbe.agda`).**  Every `id (` X)` leaf is
+named on both sides, GTNF's `toExt Θ` (ported) maps its interior name to
+its exterior name, and where the scope has entries for its α (only in
+S8 and S9, whose round trips make `cancelᵀ` create `id X` inside a
+domain) both names are recovered from those entries by Θ alone.
+
+**4. Marking unbinds — REJECTED (Jeremy).**  Making the interior keep
+unbound names, marked, would give the interior and the conversion
+context one list (the "structural option" of the 2026-09-18 entry).
+"We don't want masks/marking of unbinds."
+
+**RULING — what a scope is (Jeremy).**  A scope is a RANGE OF PROGRAM
+POSITIONS in which a variable may occur, not a particular Δ.  δ⁺(Δ) does
+not introduce a scope: at a conversion's position the scopes of several
+variables OVERLAP (the exterior's, and every variable an entry binds),
+and the conversion's de Bruijn indices count exactly those.  So the
+conversion context is the right place for `seal`/`unseal`/`id` names,
+probe 1's restriction was too strict (X's scope covers the conversion's
+position though not either side), and the respellings are ordinary
+renaming: moving a conversion to another boundary's position changes
+which scopes overlap there, like shifting a term under a binder.
+
+**5. Computed respellings (`notes/RespellProbe.agda`).**  Replaying the
+scopes over OPAQUE exterior slots (only the exterior's length is read;
+a slot's representation is learnt only when the scope unbinds it) gives
+a renaming ρ with `renᶜ ρ s ≡ s′` at every Wrap and `renᶜ ρ₁ (tail t₁)
+≡ tail t₁′`, `renᶜ ρ₂ c₂ ≡ c₂′` at every Merge: 318 checks over the 21
+runs and S1–S9, 55 of them a real renaming, no mismatch.
+
+**Next: the prototype (branch `nu-respell`).**  Wrap and Merge compute
+their respellings by `renᶜ ρ` from the scopes instead of carrying them
+under `SameConv`; the lemma owed is that the computed renaming is a
+`SameConv`.  Not pursued, recorded: removing alias cells (`ν` at a type
+variable re-binding the existing cell instead of allocating `β := α`)
+would remove every seal chain probe 1 found.

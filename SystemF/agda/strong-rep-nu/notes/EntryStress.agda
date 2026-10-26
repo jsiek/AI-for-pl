@@ -82,6 +82,21 @@ S7 = (Λ (ƛ (`∀ (` 0 ⇒ ` 0))
        [ `ℕ ]
      · (Λ (ƛ ` 0 ∙ ` 0)) · $ 7
 
+-- S8  a function made in X's scope goes OUT and comes BACK:
+--     (ΛX. λh:(X⇒ℕ)⇒(X⇒ℕ). λx:X. h (λy:X. 5) x) [ℕ] (λk:ℕ⇒ℕ. k) 7
+S8 : STerm
+S8 = (Λ (ƛ ((` 0 ⇒ `ℕ) ⇒ (` 0 ⇒ `ℕ))
+          ∙ (ƛ ` 0 ∙ ((` 1 · (ƛ ` 0 ∙ $ 5)) · ` 0)))) [ `ℕ ]
+     · (ƛ (`ℕ ⇒ `ℕ) ∙ ` 0) · $ 7
+
+-- S9  the same round trip through a polymorphic helper instantiated at X:
+--     (ΛX. λf:∀Y.(Y⇒ℕ)⇒(Y⇒ℕ). λx:X. f[X] (λy:X. 5) x) [ℕ]
+--       (ΛZ. λk:Z⇒ℕ. k) 7
+S9 : STerm
+S9 = (Λ (ƛ (`∀ ((` 0 ⇒ `ℕ) ⇒ (` 0 ⇒ `ℕ)))
+          ∙ (ƛ ` 0 ∙ (((` 1 [ ` 0 ]) · (ƛ ` 0 ∙ $ 5)) · ` 0)))) [ `ℕ ]
+     · (Λ (ƛ (` 0 ⇒ `ℕ) ∙ ` 0)) · $ 7
+
 showFirst : Maybe (ℕ Data.Product.× String) → String
 showFirst nothing        = "side ok"
 showFirst (just (n , r)) =

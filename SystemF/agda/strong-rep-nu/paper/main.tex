@@ -632,6 +632,90 @@ condition on ${+X}^\alpha$), and every entry's binding is in it, so an
 entry for $\alpha$ always carries the name $X$ that the conversion
 uses.
 
+\section{Why a Conversion Is Checked in the Conversion Context}
+\label{sec:conversion-context}
+
+The boundary rule (Figure~\ref{fig:nu-F}) checks its conversion in the
+conversion context $\delta^{+}(\Delta)$, not in the exterior $\Delta$,
+although the judgement is also given $\delta$.  This section explains
+why, how the choice interacts with checking a function domain under
+the inverse scope, and which of the reasons depend on representing
+type variables by de Bruijn indices.
+
+\paragraph{A conversion mentions names from both sides.}
+A conversion relates the interior type to the exterior type, so the
+type variables it mentions are drawn from both sides of the boundary:
+names of the exterior $\Delta$, including those that $\delta$ hides
+from the interior with an entry ${-X}^\alpha$, and names that $\delta$
+brings into scope only in the interior with an entry ${+X}^\alpha$.
+The context a conversion is checked in must therefore contain both, and
+$\delta^{+}(\Delta)$ is exactly that union: $\Delta$ together with
+every binding that $\delta$ adds.  It does not introduce a new region
+in which a variable may occur; it lets the regions of the variables
+visible on either side of the boundary overlap at the conversion's
+position.  Checking in $\Delta$ alone would reject a leaf such as
+$\id{X}$ for a name $X$ that only $\delta$ binds; such leaves arise, for
+instance, when \textsc{Merge}'s cancellation writes an identity at a
+representation.  The seal and unseal rules need no lookup at all,
+because their scope entry names the variable
+(Section~\ref{sec:inverse-scope}), but $\id{X}$ has no entry, and
+neither does composition, which reads $X \by A$ when it cancels
+$\seal{X}$ against $\unseal{X}$.
+
+\paragraph{The context is fixed at the boundary, not recomputed per position.}
+The judgement $\Delta \mid \delta \vdash c$ carries the context and the
+scope separately, and the rule for $c \tu d$ changes only the scope: the
+domain is checked under $\dual{\delta}$ in the \emph{same} context.
+That separation is what makes the inverse scope work.  If the context
+were recomputed from whatever scope is current, the domain would be
+checked in $(\dual{\delta})^{+}(\Delta)$, the exterior together with
+the bindings that $\dual{\delta}$ adds.  The bindings $\dual{\delta}$
+adds are the ones $\delta$ removes, which are already in $\Delta$, so
+that context loses every name that $\delta$ binds only in the interior.
+In the identity's instantiation, with $\delta = [{+X}^\alpha]$ and
+$\Delta$ the exterior, $(\dual{\delta})^{+}(\Delta) = \Delta$, which
+does not name $X$ at all.  So the context is computed once, at the
+boundary, from the boundary's own scope, and held fixed while the
+permissions follow the position: $\delta$ in a codomain, $\dual{\delta}$
+in a domain.
+
+\paragraph{What \textsc{Wrap} sees.}
+\textsc{Wrap} makes the domain $c$ the conversion of a new boundary
+$\boundry{W}{\dual{\delta}}{c}$, whose exterior is the old boundary's
+interior $\delta(\Delta)$.  That boundary's conversion context is
+$(\dual{\delta})^{+}(\delta(\Delta))$, the interior together with the
+bindings $\dual{\delta}$ adds, which are the ones $\delta$ removed.
+With names it is the same set of bindings as $\delta^{+}(\Delta)$:
+both are the exterior's bindings together with $\delta$'s.  So with
+names $c$ is checked in the same context before and after the step, as
+well as under the same scope $\dual{\delta}$, and \textsc{Wrap} needs no
+argument about names either.
+
+\paragraph{Named variables and de Bruijn indices.}
+The first two reasons hold for both representations.  Any presentation
+must give a conversion access to the names of both sides, and any
+presentation that checks a domain under $\dual{\delta}$ must not take
+the domain's names from $\dual{\delta}$.  With names, though, both
+reasons are about presentation rather than necessity: the union can be
+written as a lookup instead of a context, ``$X \by \alpha \in \Delta$ or
+${\pm X}^\alpha \in \delta$'', and because that lookup ignores the sign
+of an entry, it gives the same answer under $\delta$ and under
+$\dual{\delta}$.  With de Bruijn indices the conversion context is
+essential.  A type variable is a position, and a position is only
+meaningful in a particular context; the conversion's positions are
+positions in $\delta^{+}(\Delta)$.  The sign-blind lookup is not
+available either, because the positions recorded in a scope's entries
+are relative to the context at that point of the scope, and inverting a
+scope reverses the order of its entries.  The third observation is where
+the two representations part ways.  The two conversion contexts
+\textsc{Wrap} straddles contain the same bindings, but with de Bruijn
+indices they may list them in different orders, so the same variable can
+have different positions in them.  The mechanization therefore renames
+the moved conversion, sending each index to the new context's index for
+the same representation variable, and computes that renaming from the
+scopes alone; \textsc{Merge}'s two conversions are renamed in the same
+way.  With names the renaming is the identity.
+
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}
 

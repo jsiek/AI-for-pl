@@ -422,7 +422,7 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
 \begin{flushleft}
 
 \begin{syntax}
-  \text{Frames} & F & ::= & \Box \app M \mid V \app M \mid \nuinst{X}{A}{\Box}{c}
+  \text{Frames} & F & ::= & \Box \app M \mid V \app \Box \mid \nuinst{X}{A}{\Box}{c}
      \mid \boundry{\Box}{\delta}{c} \\
   \text{Rep. Alloc.} & \xi & ::= & \epsilon \mid \alpha := R 
 \end{syntax}
@@ -443,14 +443,14 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
   \Delta \vdash (\lam{x \of A} N) \app V
     & \becomes~ N[x \by V] \dashv \epsilon
     \label{Beta}\tagsc{Beta}  \\
-  \Delta \vdash \boundry{U}{\delta}{c \tu d} \app W &
+  \Delta \vdash (\boundry{U}{\delta}{c \tu d}) \app W &
     \becomes \boundry{U \app (\boundry{W}{\dual{\delta}}{c})}{\delta}{d}
     \dashv \epsilon 
     \label{Wrap}\tagsc{Wrap} \\
   \Delta \vdash \nuinst{X}{A}{(\Lam{X}V)}{d} &\becomes~
           \boundry{V}{{+X}^\alpha}{d} \dashv \alpha\by \Delta(A)
           \label{TyBeta}\tagsc{TyBeta}\\
-   \Delta \vdash \nuinst{X}{A}{\boundry{(\Lam{X}V)}{\delta}{\all{X}c}}{d} &
+   \Delta \vdash \nuinst{X}{A}{(\boundry{(\Lam{X}V)}{\delta}{\all{X}c})}{d} &
        \becomes~ \boundry{(\boundry{V}{\delta}{c})}{{+X}^\alpha}{d}
         \dashv \alpha\by \Delta(A)
         \label{TyWrap}\tagsc{TyWrap} \\
@@ -458,7 +458,7 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
      \becomes~ \boundry{U}{\delta_2 \mathop{++} \delta_1}{d}  \dashv \epsilon \label{Merge}\tagsc{Merge} \\
      & \text{where } (\delta_2 \mathop{++} \delta_1)(\Delta) \vdash t_1 \cmp c_1  = d
        \notag \\
-   \Delta \vdash \boundry{U}{\delta}{\id{\iota}} &\becomes~ U \dashv \epsilon
+   \Delta \vdash \boundry{k}{\delta}{\id{\iota}} &\becomes~ k \dashv \epsilon
      \label{Id}\tagsc{Id} \\
    \Delta \vdash F[M] &\becomes~ F[M'] \dashv \xi \qquad \text{if } F(\Delta) \vdash M \becomes M' \dashv \xi \label{Xi}\tagsc{$\xi$}
 \end{align}

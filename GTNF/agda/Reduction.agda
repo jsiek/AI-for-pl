@@ -72,6 +72,7 @@ open import TermSubst
 data InstX : Term → Term → Set where
   -- inst_X(ΛX. V) = V
   inst-Λ   : ∀ {N} → Value N → InstX (Λ N) N
+  
   -- inst_X(W ⟨gen X. p⟩) = ([−X^α] W ⟨Id(A)⟩) ⟨p⟩: W does NOT move
   -- under the new name; it sits under the binder's dual (`crossΛᴹ`), so
   -- its names keep their spelling and only the representation universe
@@ -79,9 +80,11 @@ data InstX : Term → Term → Set where
   inst-gen : ∀ {W μ p} → Value W
     → InstX (W ⟨ μ ∣ genᵖ p ⟩)
             (crossΛᴹ W (srcᵖ (genᵖ p)) ⟨ ★∼X ∷ μ ∣ p ⟩)
+            
   -- inst_X(W ⟨∀X. p⟩) = inst_X(W) ⟨p⟩, the freed variable strict
   inst-∀   : ∀ {W N μ p} → Value W → InstX W N
     → InstX (W ⟨ μ ∣ ∀ᵖ p ⟩) (N ⟨ X∼X ∷ μ ∣ p ⟩)
+    
   -- inst_X([δ] U ⟨∀X. c⟩) = [δ] inst_X(U) ⟨c⟩ (νF's TyWrap): the scope
   -- is read under the new name (`liftᴮ`), the conversion moves verbatim
   -- U SIMPLE: a boundary over a boundary is a Merge redex, not a value

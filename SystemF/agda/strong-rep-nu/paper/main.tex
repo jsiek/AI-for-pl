@@ -269,25 +269,21 @@ Well-typed conversions \hfill \fbox{$\Delta \mid \delta \vdash c : R \Rightarrow
    (X,\alpha \notin \Delta)
   \\[2ex]
   \inference
-   {X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta &
-    {-X}^\alpha \in \delta}
+   {\alpha \by \Delta(A) \in \Delta & {-X}^\alpha \in \delta}
    {\Delta \mid \delta \vdash \seal{X} : \Delta(A) \Rightarrow \alpha}
   \quad
   \inference
    {\Delta \mid \delta \vdash t : R \Rightarrow \Delta(A) \\
-    X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta \\
-    {-X}^\alpha \in \delta &
+    \alpha \by \Delta(A) \in \Delta & {-X}^\alpha \in \delta &
     t \sm \seal{X} = t ; \seal{X}}
    {\Delta \mid \delta \vdash t ; \seal{X} : R \Rightarrow \alpha}
   \\[2ex]
   \inference
-   {X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta &
-    {+X}^\alpha \in \delta}
+   {\alpha \by \Delta(A) \in \Delta & {+X}^\alpha \in \delta}
    {\Delta \mid \delta \vdash \unseal{X} : \alpha \Rightarrow \Delta(A)}
   \quad
   \inference
-   {X \by \alpha \in \Delta & \alpha \by \Delta(A) \in \Delta \\
-    {+X}^\alpha \in \delta &
+   {\alpha \by \Delta(A) \in \Delta & {+X}^\alpha \in \delta &
     \unseal{X} \sm c = \unseal{X} ; c \\
     \Delta \mid \delta \vdash c : \Delta(A) \Rightarrow S}
    {\Delta \mid \delta \vdash \unseal{X} ; c : \alpha \Rightarrow S}
@@ -531,6 +527,26 @@ the domain of a function conversion is checked under the inverse
 $\dual{\delta}$.  This section explains why, and why the inverse is the
 right scope rather than an approximation of one.
 
+\paragraph{The entry names the variable.}
+The seal and unseal rules do not look $X$ up in the context: the entry
+${-X}^\alpha$ or ${+X}^\alpha$ already links $X$ to $\alpha$.  This is
+sound because the judgement is only ever entered as
+$\delta^{+}(\Delta) \mid \delta \vdash c$ with $\Delta \vdash \delta$
+(the boundary and $\nu$ rules), and a coherent $\delta$ puts the binding
+of every entry into $\delta^{+}(\Delta)$: a bind ${+X}^\alpha$ adds
+$X \by \alpha$ itself, and an unbind ${-X}^\alpha$ requires
+$X \by \alpha$ in the interior at that point, which is contained in the
+union.  So $X \by \alpha \in \delta^{+}(\Delta)$ is implied.  The fact
+survives the rules that recurse: a domain checked under $\dual{\delta}$
+keeps the context, and $\dual{\delta}$ has the same entries with the
+signs flipped; the body of $\all{X} c$ only extends the context.  A
+proof about conversion typing that needs the name lookup, for instance
+that a conversion's types are unique or that composition is well
+typed, can therefore simply include a premise that the scope is
+coherent: the context is $\delta^{+}(\Delta)$ for some $\Delta$ with
+$\Delta \vdash \delta$.  (The rule for $\id{X}$ keeps its lookup
+$X \by \alpha \in \Delta$, since there is no entry to supply the name.)
+
 \paragraph{The domain of a function conversion runs the other way.}
 In $c \tu d$, the codomain conversion $d$ carries a result from the
 interior of the boundary to its exterior, but the domain conversion $c$
@@ -608,10 +624,13 @@ map \textsc{Wrap} needed.  With de Bruijn indices the mechanization
 checks only the representation variable of a permission (some entry
 ${-Y}^\alpha$ for a seal), because the index in a scope entry and the
 index in the conversion live in different contexts and cannot be
-compared.  With names nothing is lost: the conversion context names each
-representation variable at most once (the coherence condition on
-${+X}^\alpha$), and every entry's binding is in it, so an entry for
-$\alpha$ always carries the name $X$ that the conversion uses.
+compared; for the same reason its seal and unseal leaves keep the
+lookup of $X$ in the conversion context, which is the only link from
+the index to $\alpha$.  With names nothing is lost: the conversion
+context names each representation variable at most once (the coherence
+condition on ${+X}^\alpha$), and every entry's binding is in it, so an
+entry for $\alpha$ always carries the name $X$ that the conversion
+uses.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}

@@ -249,19 +249,53 @@ Kripke closures, consistency on the set side), with these changes:
 
 ## 8. Risks and open questions
 
-1. **Monotonicity of the selected lower bound** (Section 7).
-   * Elaboration preserving precision needs `lower?` to be monotone in
-     both arguments.
-   * GTSFImp compares `∀` types structurally (`∀ᶜ`), so the binder
-     permutations behind GTSF's counterexample may not arise.
-   * But `inst` and `gen` give alternative routes between two `∀` types,
-     so this must be checked.
-   * If `lower?` is not monotone, there are two fallbacks:
-     * choose a different, monotone selector (the type checker picks the
-       bound);
-     * keep a two-sided cast rule whose premise is the needed bound
-       inequality, and have elaboration establish it.
-   * **This is the first thing to check.**
+1. **Monotonicity of the selected lower bound: checked, it fails.**
+   * **How it was checked.** A brute-force search: `lowerAcc` and type
+     imprecision ported faithfully to Python, over all 126 closed types of
+     size ≤ 5 and the 1,888 consistent pairs among them.
+   * **What it found.** Six violations, all of one shape: the binder-order
+     problem GTSF met.  The smallest:
+
+         C  = ∀X.★→X   A  = ∀X.∀Y.X→Y   lower? C A   = ∀X.∀Y.X→Y
+         C′ = ∀X.★→X   A′ = ∀X.X→★      lower? C′ A′ = ∀X.∀Y.Y→X
+
+     Here `C ⊑ C′` and `A ⊑ A′`, but the two bounds differ only in binder
+     order and are unrelated by `⊑`.
+   * **Why `lower?` picks this way.** For `∀` against `∀` it tries `∀ᶜ`,
+     then `inst`, then `gen`.  Here `∀ᶜ` fails, because it would need
+     `★ ∼ X` with mode `X∼X`.  So the choice falls to the `inst`/`gen`
+     order, and that order is not preserved when `A` loses precision.
+   * **Is it semantic?** Probably not.  Declaratively, `C′ ∼ A′` has two
+     derivations:
+     * `inst` then `gen`: create `α` for `X` at cast time, wrap in `gen`
+       for `Y`;
+     * `gen` then `inst`: `gen` outermost, and `α` created when `Y` is
+       instantiated.
+
+     They differ only in *when* `α` is created, not in which seals and tags
+     are checked:
+     * the input is concealed at `Y`'s seal and tagged with it;
+     * the result is sealed at `α` and unsealed to `★`.
+
+     Instantiation is administrative, so the two casts should behave the
+     same.  Then the failure is an artifact of factoring each cast
+     through the *selected* bound, not a violation of the gradual
+     guarantee.
+   * **Consequences for the design** (Section 7):
+     * Elaboration cannot establish the "right down, right up" route
+       through `lower?`.
+     * Options:
+       * (a) give `Λ`-binder order a canonical choice that is monotone, for
+         example always `gen` before `inst`, or by binder position;
+       * (b) replace the one-sided right cast rule by a two-sided cast rule
+         for casts at related types, proved semantically: monotonicity of
+         consistency casts, with no factorization;
+       * (c) let the cast-calculus precision carry its own lower-bound
+         witnesses, related by a permutation-aware precision on bounds.
+     * Option (b) is closest to the semantic proof and avoids choosing
+       bounds altogether.  Its cast lemma is then about two derivations
+       at related types, and the `inst`/`gen` order question above
+       becomes one of its cases.
 2. **The GSF counterexample: checked, excluded by precision.**
    * The counterexample (Labrada, Toro and Tanter, Section 8.1) is
      `idX = ΛX.λx:X.x :: X` against `id? = ΛX.λx:?.x :: X`.
@@ -312,7 +346,8 @@ Kripke closures, consistency on the set side), with these changes:
 
 ## 9. Plan
 
-1. Check risk 1: is `lower?` monotone?  (Risks 2 and 4 are checked.)
+1. Risk 1 is checked: `lower?` is not monotone.  Choose among options
+   (a)–(c).  (Risks 2 and 4 are checked too.)
    Define the cast-calculus term precision (Section 7), and prove that
    elaboration preserves it.
 2. Port the PolyG model (`GraphModel`, `Denotation`) to GTSFImp's terms:

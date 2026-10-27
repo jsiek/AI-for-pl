@@ -209,35 +209,32 @@ Kripke closures, consistency on the set side), with these changes:
   * It has structural rules, the one-sided `Λ` and type-application rules
     (left `Λ` or `[T]`, right nothing, through a left-only variable), and
     one-sided cast rules.
-* **The one-sided cast rules.** By `proof/ImprecisionConsistency.agda`,
-  consistency means having a common lower bound.  `Consistency2.agda`
-  selects one, `lower? A B`, with unique evidence.  Read a cast
-  `c : A ∼ B` semantically as "down from `A` to `D = lower? A B`, then up
-  to `B`".  The PolyG rules then give, for the right side at type `C`:
-  * **left cast** `M ⟨c⟩ ⊑ M′`: from `M ⊑ M′` at `A ⊑ C`, given `B ⊑ C`;
-  * **right cast** `M ⊑ M′ ⟨c′⟩` with `c′ : B ∼ C`: from `M ⊑ M′` at
-    `A ⊑ B`, given `A ⊑ lower? B C`.  The left type must lie below the
-    *selected* bound, not merely below `B` and `C`, because lower bounds
-    are not unique.
-* **The cast lemmas** are proved per rule, as in PolyG, through two
-  pieces:
-  * a factorization lemma: `⟦c⟧` equals down-to-`D` followed by up-to-`B`;
-  * the PolyG up and down cast lemmas, extended with `inst`, `gen`, seal
-    tags and the `bot` rules.
-* **Elaboration preserves precision.** `compile` puts a cast on each side
-  of a source application: `c : C ∼ A` on the left and `c′ : C′ ∼ A′` on
-  the right, with `C ⊑ C′` and `A ⊑ A′`.  With `D = lower? C A` and
-  `D′ = lower? C′ A′`, the derivation is:
-  1. down on the left (to `D`);
-  2. down on the right (to `D′`, needs `D ⊑ D′`);
-  3. up on the right (to `A′`, needs `D ⊑ A′`, which holds);
-  4. up on the left (to `A`, needs `A ⊑ A′`, which holds).
-
-  So **monotonicity of the selected lower bound**,
-  `C ⊑ C′ → A ⊑ A′ → lower? C A ⊑ lower? C′ A′`, is exactly what
-  elaboration needs.  This is where the choice of a minimal bound
-  matters.  GTSF met the same question as its non-monotone MLB problem
-  (`∀Y.∀X.X→Y` against `∀X.∀Y.X→Y`, `GTSF/notes.md`).
+* **Cast rules (decision: no factorization).** Factoring a cast through
+  a selected lower bound fails, because `lower?` is not monotone (risk 1).
+  So casts are related directly, as in an earlier treatment of the same
+  problem.
+  * **Two-sided cast rule.** From `M ⊑ M′` at `C ⊑ C′`, with consistency
+    derivations `c : C ∼ A` and `c′ : C′ ∼ A′` and with `A ⊑ A′`,
+    conclude `M ⟨c⟩ ⊑ M′ ⟨c′⟩` at `A ⊑ A′`.  The premise names no bound.
+  * **One-sided right cast**, for the projection `★ ∼ ★ ⇒ ★` that
+    `compile` inserts on the right of `·⊑·★ᴳ` when the left has a
+    function type: from `M ⊑ M′` at `A ⊑ B`, with `c′ : B ∼ C` and
+    `A ⊑ C`, conclude `M ⊑ M′ ⟨c′⟩` at `A ⊑ C`.  A matching one-sided
+    left rule is added only if `compile` needs one.
+* **The cast lemma** is *monotonicity of consistency casts*.  It is
+  proved semantically, by induction on the two derivations, for both
+  relations, at the level of computations, because `inst` and `gen`
+  create seals.
+  * The cases where the two sides choose differently are the core: for
+    example `inst` then `gen` on one side and `gen` then `inst` on the
+    other, as in the counterexample of risk 1.
+  * They rely on instantiation being administrative: *when* a seal is
+    created does not matter, only which seals and tags are checked.
+  * The one-sided right rule is the special case with no cast on the
+    left.
+* **Elaboration preserves precision.** This becomes direct: at each
+  source application, the source typing supplies `c` and `c′` at related
+  types, which is exactly the premise of the two-sided rule.
 * **Conversion lemma.** The reveal and conceal conversions
   `〖α , R ↑ B〗` and `makeConceal` relate the two forms of a seal:
   * a shared pairing of `α` seen through the conversions;
@@ -292,8 +289,8 @@ Kripke closures, consistency on the set side), with these changes:
          consistency casts, with no factorization;
        * (c) let the cast-calculus precision carry its own lower-bound
          witnesses, related by a permutation-aware precision on bounds.
-     * Option (b) is closest to the semantic proof and avoids choosing
-       bounds altogether.  Its cast lemma is then about two derivations
+     * **Decision: option (b).** It is closest to the semantic proof
+       and avoids choosing bounds altogether.  Its cast lemma is then about two derivations
        at related types, and the `inst`/`gen` order question above
        becomes one of its cases.
 2. **The GSF counterexample: checked, excluded by precision.**
@@ -346,8 +343,12 @@ Kripke closures, consistency on the set side), with these changes:
 
 ## 9. Plan
 
-1. Risk 1 is checked: `lower?` is not monotone.  Choose among options
-   (a)–(c).  (Risks 2 and 4 are checked too.)
+1. Risks 1, 2 and 4 are checked.  Decision for risk 1: option (b), a
+   two-sided cast rule with a semantic monotonicity lemma.
+   * Define the cast-calculus term precision (Section 7).
+   * Prove that elaboration preserves it.
+   * Sketch on paper the cases of the cast monotonicity lemma where the
+     two sides' derivations choose differently (`inst`/`gen` order).
    Define the cast-calculus term precision (Section 7), and prove that
    elaboration preserves it.
 2. Port the PolyG model (`GraphModel`, `Denotation`) to GTSFImp's terms:

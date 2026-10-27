@@ -54,6 +54,6 @@ postulates and holes).
   - `DenotFundamental`: the fundamental lemma;
   - `DenotGraduality`: the theorem.
 
-The files directly under `PolyG/` (`PolyC.agda`, `PolyG.agda`, …) are an
-earlier port of the POPL 2020 paper's version and are not part of this
+`PolyG/popl2020/` holds an earlier port of the POPL 2020 paper's version
+(with `hide` and inside-out instantiation).  It is not part of this
 development.

@@ -78,7 +78,7 @@ A cast at `∀ν X.A⊑` on a proxy pushes `A⊑` onto its stack.  It neither
 creates a seal nor runs anything.
 
 This replaces the `hide` form and the inside-out `M {X ≅ A}` of the
-POPL paper, which the existing `PolyG/*.agda` files follow.  The only
+POPL paper, which the existing `PolyG/popl2020/*.agda` files follow.  The only
 rule that creates a seal is instantiation, and no cast rule creates
 one.  Term precision is structural apart from casts (Section 7), so two
 related programs reach their instantiations in the same order until the
@@ -429,7 +429,7 @@ exactly the thesis's.
 
 ## 9. The new development
 
-The existing files `PolyG/*.agda` follow the POPL paper, with `hide`
+The existing files `PolyG/popl2020/*.agda` follow the POPL paper, with `hide`
 and an instantiation that only names an existing type variable.
 Reading them showed three problems:
 

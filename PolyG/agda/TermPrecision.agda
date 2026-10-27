@@ -110,12 +110,11 @@ data _∣_⊢_⊑_⦂_ (Δ⊑ : PEnv) : PCtx → Term → Term → Prec → Set 
     (absᵖ ∷ Δ⊑) ∣ ⤊ᵖ Γ⊑ ⊢ M ⊑ M′ ⦂ p →
     Δ⊑ ∣ Γ⊑ ⊢ Λν [] M ⊑ Λν [] M′ ⦂ ∀⊑ p
 
-  -- the labels ℓ and ℓ′ are arbitrary
-  ⊑inst : ∀ {Γ⊑ M M′ B B′ ℓ ℓ′ N N′ p q r} →
+  ⊑inst : ∀ {Γ⊑ M M′ B B′ N N′ p q r} →
     Δ⊑ ∣ Γ⊑ ⊢ M ⊑ M′ ⦂ ∀⊑ p →
     psize Δ⊑ ⊢ q ⦂ B ⊑ B′ →
     (knownᵖ q ∷ Δ⊑) ∣ (p ∷ ⤊ᵖ Γ⊑) ⊢ N ⊑ N′ ⦂ ⇑ᵖ r →
-    Δ⊑ ∣ Γ⊑ ⊢ inst M B ℓ N ⊑ inst M′ B′ ℓ′ N′ ⦂ r
+    Δ⊑ ∣ Γ⊑ ⊢ inst M B N ⊑ inst M′ B′ N′ ⦂ r
 
   -- the four cast rules: AC = BC ∘ AB, with A ⊑ B ⊑ C
   ⊑upL : ∀ {Γ⊑ M M′ AB BC AC A B C} →

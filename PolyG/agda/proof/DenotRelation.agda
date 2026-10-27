@@ -2,30 +2,39 @@ module proof.DenotRelation where
 
 -- File Charter:
 --   * The two relations between denotations used in the denotational
---     proof of graduality (PolyG/notes/denotational-graduality.md).  The
---     more precise program is on the left.
---       θ ⊢ p ⊢ r ▹ R′   reflection: a left result is matched by the
---                         right set (an error on the left is fine);
---       θ ⊢ p ⊢ R ◃ r′   preservation: a right result is matched by the
---                         left set, or the left set errs.
---   * θ maps the type variables of p to seals.  The two programs create
---     seals in lockstep and label corresponding instantiations alike, so
---     a seal on the left is the same seal (number and label) on the
---     right, and its label is the precision derivation that relates its
---     contents.  There are no worlds.
---   * Each relation is defined by recursion on its element, and then on
---     the precision derivation (the `tag` clause keeps the element).
---     Functions are related through application to whole argument sets.
+--     proof of graduality (PolyG/notes/denotational-graduality.md,
+--     Sections 5 and 6).  The more precise program is on the left.
+--       reflection   (▹): a finite list of left values is matched,
+--                         jointly and under one world, by a right set;
+--       preservation (◃): a finite list of right values is matched by a
+--                         left set (or the left errs).
+--   * A world is a list of closed precision derivations: entry σ relates
+--     the contents of seal σ on the two sides.  Seals are created in
+--     lockstep, so a seal has the same number on both sides.  A
+--     computation's world is existential; closures quantify over future
+--     worlds.
+--   * Lists, not single elements: an existential world must cover every
+--     element that a later step uses together.  The relations are
+--     defined by recursion on a fuel bound on the total size of the list
+--     (`suc (sizeᴸ L)` suffices), and then on the precision derivation
+--     (the `tag` clause of ▹ keeps the list).
+--   * What a value carries (the ground of an injection, the derivation
+--     of a seal) is closed and is read at the fixed seal environment θ₀.
 
+open import Data.Empty using (⊥)
 open import Data.Empty.Polymorphic using () renaming (⊥ to ⊥₁)
-open import Data.List using (List; []; _∷_)
-open import Data.Nat using (ℕ; zero)
-open import Data.Product using (_×_; _,_)
+open import Data.List using (List; []; _∷_; _++_; length)
+open import Data.List.Relation.Unary.All using (All)
+open import Data.List.Relation.Unary.Any using (Any)
+open import Data.Nat using (ℕ; zero; suc; _+_; _<_)
+open import Data.Nat.Properties using () renaming (_≟_ to _≟ℕ_)
+open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Data.Sum using (_⊎_)
 open import Data.Unit.Polymorphic using () renaming (⊤ to ⊤₁)
 import Level
 open import Level using (Lift)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
+open import Relation.Nullary using (¬_; yes; no)
 
 open import Types
 open import GraphModel
@@ -34,12 +43,23 @@ open import Denotation
 Lift₁ : Set → Set₁
 Lift₁ = Lift (Level.suc Level.zero)
 
--- the seal environment used for what a value carries (the label of a
--- seal, the ground of an injection): these are closed, and reading them
--- at a fixed environment makes the relations invariant under
--- substitution
-θ₀ : SEnv
-θ₀ i = zero
+------------------------------------------------------------------------
+-- Worlds
+------------------------------------------------------------------------
+
+World : Set
+World = List Prec
+
+infix 4 _∋ʷ_⦂_ _⊑ʷ_
+
+-- W ∋ʷ σ ⦂ q: seal σ's contents are related by the closed derivation q
+data _∋ʷ_⦂_ : World → Seal → Prec → Set where
+  Zʷ : ∀ {W q} → (q ∷ W) ∋ʷ zero ⦂ q
+  Sʷ : ∀ {W q q′ σ} → W ∋ʷ σ ⦂ q → (q′ ∷ W) ∋ʷ suc σ ⦂ q
+
+-- a future world
+_⊑ʷ_ : World → World → Set
+W ⊑ʷ W′ = Σ[ X ∈ World ] (W′ ≡ W ++ X)
 
 -- the reflexive derivation of a ground type: how the payloads of two
 -- values in ★ with the same tag are related
@@ -47,122 +67,231 @@ gp : Ground → Prec
 gp G = idᵖ (groundTy G)
 
 ------------------------------------------------------------------------
--- Reflection: a left element justified by a right set
+-- Sizes and list helpers
 ------------------------------------------------------------------------
-
-infix 4 _⊢_⊢_▹_ _⊢_⊢_▹ᵛ_ _⊢_⊢_▹*_
 
 mutual
-  _⊢_⊢_▹_ : SEnv → Prec → Res → ℛ → Set₁
-  θ ⊢ p ⊢ ret v m ▹ R′ = θ ⊢ p ⊢ v ▹ᵛ ⌊ R′ ⌋ m
-  θ ⊢ p ⊢ err ▹ R′ = ⊤₁
+  sizeᵛ : Val → ℕ
+  sizeᵛ vtrue = 1
+  sizeᵛ vfalse = 1
+  sizeᵛ (sealᵛ σ u) = suc (sizeᵛ u)
+  sizeᵛ (injᵛ G u) = suc (sizeᵛ u)
+  sizeᵛ (U ⟼ r at m) = suc (sizeᴸ U + sizeᴿ r)
+  sizeᵛ (σ ⟼∀ r) = suc (sizeᴿ r)
+  sizeᵛ νλ = 1
+  sizeᵛ ν∀ = 1
 
-  _⊢_⊢_▹ᵛ_ : SEnv → Prec → Val → 𝒱 → Set₁
-  θ ⊢ ★⊑ ⊢ vtrue ▹ᵛ D′ = ⊥₁
-  θ ⊢ ★⊑ ⊢ vfalse ▹ᵛ D′ = ⊥₁
-  θ ⊢ ★⊑ ⊢ sealᵛ σ ℓ u ▹ᵛ D′ = ⊥₁
-  θ ⊢ ★⊑ ⊢ injᵛ G u ▹ᵛ D′ = θ₀ ⊢ gp G ⊢ u ▹ᵛ untag G D′
-  θ ⊢ ★⊑ ⊢ U ⟼ r at m ▹ᵛ D′ = ⊥₁
-  θ ⊢ ★⊑ ⊢ σℓ ⟼∀ r ▹ᵛ D′ = ⊥₁
-  θ ⊢ ★⊑ ⊢ ν ▹ᵛ D′ = ⊥₁
-  θ ⊢ tag G p ⊢ u ▹ᵛ D′ = θ ⊢ p ⊢ u ▹ᵛ untag (⟦ G ⟧ᴳ θ) D′
-  θ ⊢ ‵⊑ α ⊢ vtrue ▹ᵛ D′ = ⊥₁
-  θ ⊢ ‵⊑ α ⊢ vfalse ▹ᵛ D′ = ⊥₁
-  θ ⊢ ‵⊑ α ⊢ sealᵛ σ ℓ u ▹ᵛ D′ =
-    Lift₁ (σ ≡ ⟦ α ⟧# θ) × θ₀ ⊢ ℓ ⊢ u ▹ᵛ unsealᴾ σ ℓ D′
-  θ ⊢ ‵⊑ α ⊢ injᵛ G u ▹ᵛ D′ = ⊥₁
-  θ ⊢ ‵⊑ α ⊢ U ⟼ r at m ▹ᵛ D′ = ⊥₁
-  θ ⊢ ‵⊑ α ⊢ σℓ ⟼∀ r ▹ᵛ D′ = ⊥₁
-  θ ⊢ ‵⊑ α ⊢ ν ▹ᵛ D′ = ⊥₁
-  θ ⊢ 𝔹⊑ ⊢ vtrue ▹ᵛ D′ = Lift₁ (vtrue ∈ D′)
-  θ ⊢ 𝔹⊑ ⊢ vfalse ▹ᵛ D′ = Lift₁ (vfalse ∈ D′)
-  θ ⊢ 𝔹⊑ ⊢ sealᵛ σ ℓ u ▹ᵛ D′ = ⊥₁
-  θ ⊢ 𝔹⊑ ⊢ injᵛ G u ▹ᵛ D′ = ⊥₁
-  θ ⊢ 𝔹⊑ ⊢ U ⟼ r at m ▹ᵛ D′ = ⊥₁
-  θ ⊢ 𝔹⊑ ⊢ σℓ ⟼∀ r ▹ᵛ D′ = ⊥₁
-  θ ⊢ 𝔹⊑ ⊢ ν ▹ᵛ D′ = ⊥₁
-  θ ⊢ p ⇒⊑ q ⊢ vtrue ▹ᵛ D′ = ⊥₁
-  θ ⊢ p ⇒⊑ q ⊢ vfalse ▹ᵛ D′ = ⊥₁
-  θ ⊢ p ⇒⊑ q ⊢ sealᵛ σ ℓ u ▹ᵛ D′ = ⊥₁
-  θ ⊢ p ⇒⊑ q ⊢ injᵛ G u ▹ᵛ D′ = ⊥₁
-  θ ⊢ p ⇒⊑ q ⊢ U ⟼ r at m ▹ᵛ D′ =
-    Lift₁ (ν ∈ D′)
-    × (∀ E′ → U ≢ [] → θ ⊢ p ⊢ U ▹* E′ → θ ⊢ q ⊢ r ▹ (D′ ●[ m ] E′))
-  θ ⊢ p ⇒⊑ q ⊢ σℓ ⟼∀ r ▹ᵛ D′ = ⊥₁
-  θ ⊢ p ⇒⊑ q ⊢ ν ▹ᵛ D′ = Lift₁ (ν ∈ D′)
-  θ ⊢ ∀⊑ p ⊢ vtrue ▹ᵛ D′ = ⊥₁
-  θ ⊢ ∀⊑ p ⊢ vfalse ▹ᵛ D′ = ⊥₁
-  θ ⊢ ∀⊑ p ⊢ sealᵛ σ ℓ u ▹ᵛ D′ = ⊥₁
-  θ ⊢ ∀⊑ p ⊢ injᵛ G u ▹ᵛ D′ = ⊥₁
-  θ ⊢ ∀⊑ p ⊢ U ⟼ r at m ▹ᵛ D′ = ⊥₁
-  θ ⊢ ∀⊑ p ⊢ (σ , ℓ) ⟼∀ r ▹ᵛ D′ =
-    Lift₁ (ν ∈ D′) × (σ •ᵗ θ) ⊢ p ⊢ r ▹ (D′ ◆ (σ , ℓ))
-  θ ⊢ ∀⊑ p ⊢ ν ▹ᵛ D′ = Lift₁ (ν ∈ D′)
+  sizeᴿ : Res → ℕ
+  sizeᴿ (ret v m) = sizeᵛ v
+  sizeᴿ err = 1
 
-  _⊢_⊢_▹*_ : SEnv → Prec → List Val → 𝒱 → Set₁
-  θ ⊢ p ⊢ [] ▹* D′ = ⊤₁
-  θ ⊢ p ⊢ (u ∷ U) ▹* D′ = θ ⊢ p ⊢ u ▹ᵛ D′ × θ ⊢ p ⊢ U ▹* D′
+  sizeᴸ : List Val → ℕ
+  sizeᴸ [] = zero
+  sizeᴸ (v ∷ L) = sizeᵛ v + sizeᴸ L
+
+sizeᴿᴸ : List Res → ℕ
+sizeᴿᴸ [] = zero
+sizeᴿᴸ (r ∷ Rs) = sizeᴿ r + sizeᴿᴸ Rs
+
+-- the shape of each element, for each kind of precision derivation
+IsBool : 𝒱 → Val → Set
+IsBool D vtrue = vtrue ∈ D
+IsBool D vfalse = vfalse ∈ D
+IsBool D (sealᵛ σ u) = ⊥
+IsBool D (injᵛ G u) = ⊥
+IsBool D (U ⟼ r at m) = ⊥
+IsBool D (σ ⟼∀ r) = ⊥
+IsBool D νλ = ⊥
+IsBool D ν∀ = ⊥
+
+data IsInj : Val → Set where
+  is-inj : ∀ {G u} → IsInj (injᵛ G u)
+
+data IsInjAt (G : Ground) : Val → Set where
+  is-inj-at : ∀ {u} → IsInjAt G (injᵛ G u)
+
+data IsSealAt (σ : Seal) : Val → Set where
+  is-seal-at : ∀ {u} → IsSealAt σ (sealᵛ σ u)
+
+data IsFun : Val → Set where
+  is-entry : ∀ {U r m} → IsFun (U ⟼ r at m)
+  is-νλ : IsFun νλ
+
+data IsPoly : Val → Set where
+  is-pentry : ∀ {σ r} → IsPoly (σ ⟼∀ r)
+  is-ν∀ : IsPoly ν∀
+
+-- the payloads tagged G
+untagᴸ : Ground → List Val → List Val
+untagᴸ G [] = []
+untagᴸ G (injᵛ H u ∷ L) with G ≟G H
+... | yes _ = u ∷ untagᴸ G L
+... | no _ = untagᴸ G L
+untagᴸ G (vtrue ∷ L) = untagᴸ G L
+untagᴸ G (vfalse ∷ L) = untagᴸ G L
+untagᴸ G (sealᵛ σ u ∷ L) = untagᴸ G L
+untagᴸ G ((U ⟼ r at m) ∷ L) = untagᴸ G L
+untagᴸ G ((σ ⟼∀ r) ∷ L) = untagᴸ G L
+untagᴸ G (νλ ∷ L) = untagᴸ G L
+untagᴸ G (ν∀ ∷ L) = untagᴸ G L
+
+-- the contents sealed at σ
+unsealᴸ : Seal → List Val → List Val
+unsealᴸ σ [] = []
+unsealᴸ σ (sealᵛ σ′ u ∷ L) with σ ≟ℕ σ′
+... | yes _ = u ∷ unsealᴸ σ L
+... | no _ = unsealᴸ σ L
+unsealᴸ σ (vtrue ∷ L) = unsealᴸ σ L
+unsealᴸ σ (vfalse ∷ L) = unsealᴸ σ L
+unsealᴸ σ (injᵛ G u ∷ L) = unsealᴸ σ L
+unsealᴸ σ ((U ⟼ r at m) ∷ L) = unsealᴸ σ L
+unsealᴸ σ ((σ′ ⟼∀ r) ∷ L) = unsealᴸ σ L
+unsealᴸ σ (νλ ∷ L) = unsealᴸ σ L
+unsealᴸ σ (ν∀ ∷ L) = unsealᴸ σ L
+
+-- the arguments and results of the function entries at counter m
+argsAt : ℕ → List Val → List Val
+argsAt m [] = []
+argsAt m ((U ⟼ r at m′) ∷ L) with m ≟ℕ m′
+... | yes _ = U ++ argsAt m L
+... | no _ = argsAt m L
+argsAt m (vtrue ∷ L) = argsAt m L
+argsAt m (vfalse ∷ L) = argsAt m L
+argsAt m (sealᵛ σ u ∷ L) = argsAt m L
+argsAt m (injᵛ G u ∷ L) = argsAt m L
+argsAt m ((σ ⟼∀ r) ∷ L) = argsAt m L
+argsAt m (νλ ∷ L) = argsAt m L
+argsAt m (ν∀ ∷ L) = argsAt m L
+
+resultsAt : ℕ → List Val → List Res
+resultsAt m [] = []
+resultsAt m ((U ⟼ r at m′) ∷ L) with m ≟ℕ m′
+... | yes _ = r ∷ resultsAt m L
+... | no _ = resultsAt m L
+resultsAt m (vtrue ∷ L) = resultsAt m L
+resultsAt m (vfalse ∷ L) = resultsAt m L
+resultsAt m (sealᵛ σ u ∷ L) = resultsAt m L
+resultsAt m (injᵛ G u ∷ L) = resultsAt m L
+resultsAt m ((σ ⟼∀ r) ∷ L) = resultsAt m L
+resultsAt m (νλ ∷ L) = resultsAt m L
+resultsAt m (ν∀ ∷ L) = resultsAt m L
+
+-- the results of the Λν entries at seal σ
+bodiesAt : Seal → List Val → List Res
+bodiesAt σ [] = []
+bodiesAt σ ((σ′ ⟼∀ r) ∷ L) with σ ≟ℕ σ′
+... | yes _ = r ∷ bodiesAt σ L
+... | no _ = bodiesAt σ L
+bodiesAt σ (vtrue ∷ L) = bodiesAt σ L
+bodiesAt σ (vfalse ∷ L) = bodiesAt σ L
+bodiesAt σ (sealᵛ σ′ u ∷ L) = bodiesAt σ L
+bodiesAt σ (injᵛ G u ∷ L) = bodiesAt σ L
+bodiesAt σ ((U ⟼ r at m) ∷ L) = bodiesAt σ L
+bodiesAt σ (νλ ∷ L) = bodiesAt σ L
+bodiesAt σ (ν∀ ∷ L) = bodiesAt σ L
+
+-- the values a list of results returns at counter m
+valuesAt : ℕ → List Res → List Val
+valuesAt m [] = []
+valuesAt m (ret v m′ ∷ Rs) with m ≟ℕ m′
+... | yes _ = v ∷ valuesAt m Rs
+... | no _ = valuesAt m Rs
+valuesAt m (err ∷ Rs) = valuesAt m Rs
+
+HasErr : List Res → Set
+HasErr Rs = Any (_≡ err) Rs
 
 ------------------------------------------------------------------------
--- Preservation: a right element justified by a left set
+-- Reflection: a list of left values justified by a right set
 ------------------------------------------------------------------------
-
-infix 4 _⊢_⊢_◃_ _⊢_⊢_◃ᵛ_ _⊢_⊢_◃*_
 
 mutual
-  _⊢_⊢_◃_ : SEnv → Prec → ℛ → Res → Set₁
-  θ ⊢ p ⊢ R ◃ ret v′ m = Lift₁ (err ∈ᴿ R) ⊎ θ ⊢ p ⊢ ⌊ R ⌋ m ◃ᵛ v′
-  θ ⊢ p ⊢ R ◃ err = Lift₁ (err ∈ᴿ R)
+  -- the relation at fuel k (meaningful when sizeᴸ L < k)
+  Rel▹ : ℕ → World → SEnv → Prec → List Val → 𝒱 → Set₁
+  Rel▹ k W θ p [] D′ = ⊤₁
+  Rel▹ zero W θ p (v ∷ L) D′ = ⊥₁
+  Rel▹ (suc k) W θ ★⊑ L@(v ∷ _) D′ =
+    Lift₁ (All IsInj L)
+    × (∀ G → Rel▹ k W θ₀ (gp G) (untagᴸ G L) (untag G D′))
+  Rel▹ (suc k) W θ (tag G p) L@(v ∷ _) D′ =
+    Rel▹ (suc k) W θ p L (untag (⟦ G ⟧ᴳ θ) D′)
+  Rel▹ (suc k) W θ (‵⊑ α) L@(v ∷ _) D′ =
+    Lift₁ (All (IsSealAt (⟦ α ⟧ₙ θ)) L)
+    × Σ[ q ∈ Prec ] (Lift₁ (W ∋ʷ ⟦ α ⟧ₙ θ ⦂ q)
+        × Rel▹ k W θ₀ q (unsealᴸ (⟦ α ⟧ₙ θ) L)
+                        (unsealᴾ (⟦ α ⟧ₙ θ) D′))
+  Rel▹ (suc k) W θ 𝔹⊑ L@(v ∷ _) D′ = Lift₁ (All (IsBool D′) L)
+  Rel▹ (suc k) W θ (p ⇒⊑ q) L@(v ∷ _) D′ =
+    Lift₁ (All IsFun L) × Lift₁ (νλ ∈ D′)
+    × (∀ m W′ → W ⊑ʷ W′ → length W′ ≡ m → ∀ E′ → Consistent E′
+         → Rel▹ k W′ θ p (argsAt m L) E′
+         → Rel▹ᶜ k W′ θ q (resultsAt m L) (D′ ●[ m ] E′))
+  Rel▹ (suc k) W θ (∀⊑ p) L@(v ∷ _) D′ =
+    Lift₁ (All IsPoly L) × Lift₁ (ν∀ ∈ D′)
+    × (∀ σ W′ q′ → W ⊑ʷ W′ → length W′ ≡ σ
+         → Rel▹ᶜ k (W′ ++ (q′ ∷ [])) (σ •ᵗ θ) p (bodiesAt σ L) (D′ ◆ σ))
 
-  _⊢_⊢_◃ᵛ_ : SEnv → Prec → 𝒱 → Val → Set₁
-  θ ⊢ ★⊑ ⊢ D ◃ᵛ vtrue = ⊥₁
-  θ ⊢ ★⊑ ⊢ D ◃ᵛ vfalse = ⊥₁
-  θ ⊢ ★⊑ ⊢ D ◃ᵛ sealᵛ σ ℓ u′ = ⊥₁
-  θ ⊢ ★⊑ ⊢ D ◃ᵛ injᵛ G u′ = θ₀ ⊢ gp G ⊢ untag G D ◃ᵛ u′
-  θ ⊢ ★⊑ ⊢ D ◃ᵛ U′ ⟼ r′ at m = ⊥₁
-  θ ⊢ ★⊑ ⊢ D ◃ᵛ σℓ ⟼∀ r′ = ⊥₁
-  θ ⊢ ★⊑ ⊢ D ◃ᵛ ν = ⊥₁
-  θ ⊢ tag G p ⊢ D ◃ᵛ vtrue = ⊥₁
-  θ ⊢ tag G p ⊢ D ◃ᵛ vfalse = ⊥₁
-  θ ⊢ tag G p ⊢ D ◃ᵛ sealᵛ σ ℓ u′ = ⊥₁
-  θ ⊢ tag G p ⊢ D ◃ᵛ injᵛ H u′ =
-    Lift₁ (H ≡ ⟦ G ⟧ᴳ θ) × θ ⊢ p ⊢ D ◃ᵛ u′
-  θ ⊢ tag G p ⊢ D ◃ᵛ U′ ⟼ r′ at m = ⊥₁
-  θ ⊢ tag G p ⊢ D ◃ᵛ σℓ ⟼∀ r′ = ⊥₁
-  θ ⊢ tag G p ⊢ D ◃ᵛ ν = ⊥₁
-  θ ⊢ ‵⊑ α ⊢ D ◃ᵛ vtrue = ⊥₁
-  θ ⊢ ‵⊑ α ⊢ D ◃ᵛ vfalse = ⊥₁
-  θ ⊢ ‵⊑ α ⊢ D ◃ᵛ sealᵛ σ ℓ u′ =
-    Lift₁ (σ ≡ ⟦ α ⟧# θ) × θ₀ ⊢ ℓ ⊢ unsealᴾ σ ℓ D ◃ᵛ u′
-  θ ⊢ ‵⊑ α ⊢ D ◃ᵛ injᵛ G u′ = ⊥₁
-  θ ⊢ ‵⊑ α ⊢ D ◃ᵛ U′ ⟼ r′ at m = ⊥₁
-  θ ⊢ ‵⊑ α ⊢ D ◃ᵛ σℓ ⟼∀ r′ = ⊥₁
-  θ ⊢ ‵⊑ α ⊢ D ◃ᵛ ν = ⊥₁
-  θ ⊢ 𝔹⊑ ⊢ D ◃ᵛ vtrue = Lift₁ (vtrue ∈ D)
-  θ ⊢ 𝔹⊑ ⊢ D ◃ᵛ vfalse = Lift₁ (vfalse ∈ D)
-  θ ⊢ 𝔹⊑ ⊢ D ◃ᵛ sealᵛ σ ℓ u′ = ⊥₁
-  θ ⊢ 𝔹⊑ ⊢ D ◃ᵛ injᵛ G u′ = ⊥₁
-  θ ⊢ 𝔹⊑ ⊢ D ◃ᵛ U′ ⟼ r′ at m = ⊥₁
-  θ ⊢ 𝔹⊑ ⊢ D ◃ᵛ σℓ ⟼∀ r′ = ⊥₁
-  θ ⊢ 𝔹⊑ ⊢ D ◃ᵛ ν = ⊥₁
-  θ ⊢ p ⇒⊑ q ⊢ D ◃ᵛ vtrue = ⊥₁
-  θ ⊢ p ⇒⊑ q ⊢ D ◃ᵛ vfalse = ⊥₁
-  θ ⊢ p ⇒⊑ q ⊢ D ◃ᵛ sealᵛ σ ℓ u′ = ⊥₁
-  θ ⊢ p ⇒⊑ q ⊢ D ◃ᵛ injᵛ G u′ = ⊥₁
-  θ ⊢ p ⇒⊑ q ⊢ D ◃ᵛ U′ ⟼ r′ at m =
-    Lift₁ (ν ∈ D)
-    × (∀ E → U′ ≢ [] → θ ⊢ p ⊢ E ◃* U′ → θ ⊢ q ⊢ (D ●[ m ] E) ◃ r′)
-  θ ⊢ p ⇒⊑ q ⊢ D ◃ᵛ σℓ ⟼∀ r′ = ⊥₁
-  θ ⊢ p ⇒⊑ q ⊢ D ◃ᵛ ν = Lift₁ (ν ∈ D)
-  θ ⊢ ∀⊑ p ⊢ D ◃ᵛ vtrue = ⊥₁
-  θ ⊢ ∀⊑ p ⊢ D ◃ᵛ vfalse = ⊥₁
-  θ ⊢ ∀⊑ p ⊢ D ◃ᵛ sealᵛ σ ℓ u′ = ⊥₁
-  θ ⊢ ∀⊑ p ⊢ D ◃ᵛ injᵛ G u′ = ⊥₁
-  θ ⊢ ∀⊑ p ⊢ D ◃ᵛ U′ ⟼ r′ at m = ⊥₁
-  θ ⊢ ∀⊑ p ⊢ D ◃ᵛ (σ , ℓ) ⟼∀ r′ =
-    Lift₁ (ν ∈ D) × (σ •ᵗ θ) ⊢ p ⊢ (D ◆ (σ , ℓ)) ◃ r′
-  θ ⊢ ∀⊑ p ⊢ D ◃ᵛ ν = Lift₁ (ν ∈ D)
+  -- a list of left results: for each counter at which it returns
+  -- values, one future world relates them all
+  Rel▹ᶜ : ℕ → World → SEnv → Prec → List Res → ℛ → Set₁
+  Rel▹ᶜ k W θ p Rs R′ =
+    ∀ m → valuesAt m Rs ≢ []
+    → Σ[ W′ ∈ World ] (Lift₁ (W ⊑ʷ W′) × Lift₁ (length W′ ≡ m)
+        × Rel▹ k W′ θ p (valuesAt m Rs) (⌊ R′ ⌋ m))
 
-  _⊢_⊢_◃*_ : SEnv → Prec → 𝒱 → List Val → Set₁
-  θ ⊢ p ⊢ D ◃* [] = ⊤₁
-  θ ⊢ p ⊢ D ◃* (u′ ∷ U′) = θ ⊢ p ⊢ D ◃ᵛ u′ × θ ⊢ p ⊢ D ◃* U′
+infix 4 _∣_⊢_⊢_▹_ _∣_⊢_⊢_▹ᶜ_
+
+_∣_⊢_⊢_▹_ : World → SEnv → Prec → List Val → 𝒱 → Set₁
+W ∣ θ ⊢ p ⊢ L ▹ D′ = Rel▹ (suc (sizeᴸ L)) W θ p L D′
+
+_∣_⊢_⊢_▹ᶜ_ : World → SEnv → Prec → List Res → ℛ → Set₁
+W ∣ θ ⊢ p ⊢ Rs ▹ᶜ R′ = Rel▹ᶜ (suc (sizeᴿᴸ Rs)) W θ p Rs R′
+
+------------------------------------------------------------------------
+-- Preservation: a list of right values justified by a left set
+------------------------------------------------------------------------
+
+mutual
+  Rel◃ : ℕ → World → SEnv → Prec → 𝒱 → List Val → Set₁
+  Rel◃ k W θ p D [] = ⊤₁
+  Rel◃ zero W θ p D (v′ ∷ L′) = ⊥₁
+  Rel◃ (suc k) W θ ★⊑ D L′@(v′ ∷ _) =
+    Lift₁ (All IsInj L′)
+    × (∀ G → Rel◃ k W θ₀ (gp G) (untag G D) (untagᴸ G L′))
+  Rel◃ (suc k) W θ (tag G p) D L′@(v′ ∷ _) =
+    Lift₁ (All (IsInjAt (⟦ G ⟧ᴳ θ)) L′)
+    × Rel◃ k W θ p D (untagᴸ (⟦ G ⟧ᴳ θ) L′)
+  Rel◃ (suc k) W θ (‵⊑ α) D L′@(v′ ∷ _) =
+    Lift₁ (All (IsSealAt (⟦ α ⟧ₙ θ)) L′)
+    × Σ[ q ∈ Prec ] (Lift₁ (W ∋ʷ ⟦ α ⟧ₙ θ ⦂ q)
+        × Rel◃ k W θ₀ q (unsealᴾ (⟦ α ⟧ₙ θ) D)
+                        (unsealᴸ (⟦ α ⟧ₙ θ) L′))
+  Rel◃ (suc k) W θ 𝔹⊑ D L′@(v′ ∷ _) = Lift₁ (All (IsBool D) L′)
+  Rel◃ (suc k) W θ (p ⇒⊑ q) D L′@(v′ ∷ _) =
+    Lift₁ (All IsFun L′) × Lift₁ (νλ ∈ D)
+    × (∀ m W′ → W ⊑ʷ W′ → length W′ ≡ m → ∀ E → Consistent E
+         → Rel◃ k W′ θ p E (argsAt m L′)
+         → Rel◃ᶜ k W′ θ q (D ●[ m ] E) (resultsAt m L′))
+  Rel◃ (suc k) W θ (∀⊑ p) D L′@(v′ ∷ _) =
+    Lift₁ (All IsPoly L′) × Lift₁ (ν∀ ∈ D)
+    × (∀ σ W′ q′ → W ⊑ʷ W′ → length W′ ≡ σ
+         → Rel◃ᶜ k (W′ ++ (q′ ∷ [])) (σ •ᵗ θ) p (D ◆ σ) (bodiesAt σ L′))
+
+  -- a list of right results: the left errs, or the list has no error
+  -- and, for each counter at which it returns values, one future world
+  -- relates them all
+  Rel◃ᶜ : ℕ → World → SEnv → Prec → ℛ → List Res → Set₁
+  Rel◃ᶜ k W θ p R Rs′ =
+    Lift₁ (err ∈ᴿ R)
+    ⊎ (Lift₁ (¬ HasErr Rs′)
+       × (∀ m → valuesAt m Rs′ ≢ []
+          → Σ[ W′ ∈ World ] (Lift₁ (W ⊑ʷ W′) × Lift₁ (length W′ ≡ m)
+              × Rel◃ k W′ θ p (⌊ R ⌋ m) (valuesAt m Rs′))))
+
+infix 4 _∣_⊢_⊢_◃_ _∣_⊢_⊢_◃ᶜ_
+
+_∣_⊢_⊢_◃_ : World → SEnv → Prec → 𝒱 → List Val → Set₁
+W ∣ θ ⊢ p ⊢ D ◃ L′ = Rel◃ (suc (sizeᴸ L′)) W θ p D L′
+
+_∣_⊢_⊢_◃ᶜ_ : World → SEnv → Prec → ℛ → List Res → Set₁
+W ∣ θ ⊢ p ⊢ R ◃ᶜ Rs′ = Rel◃ᶜ (suc (sizeᴿᴸ Rs′)) W θ p R Rs′

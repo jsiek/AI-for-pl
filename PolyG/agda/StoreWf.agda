@@ -16,4 +16,4 @@ open import Types
 
 data StoreWf : Store → Set where
   wfˢ[] : StoreWf []
-  wfˢ∷  : ∀ {A ℓ Σ} → WfTy 0 A → StoreWf Σ → StoreWf ((A , ℓ) ∷ Σ)
+  wfˢ∷  : ∀ {A Σ} → WfTy 0 A → StoreWf Σ → StoreWf (A ∷ Σ)

@@ -75,7 +75,7 @@ preservation : ∀ {Σ Σ′ M N A}
   → Σ ▷ M —→ Σ′ ▷ N
   → Σ′ ∣ [] ∣ [] ⊢ N ⦂ A
     × StoreWf Σ′
-    × (Σ′ ≡ Σ ⊎ ∃[ B ] ∃[ ℓ ] (Σ′ ≡ Σ ++ ((B , ℓ) ∷ [])))
+    × (Σ′ ≡ Σ ⊎ ∃[ B ] (Σ′ ≡ Σ ++ (B ∷ [])))
 preservation wfΣ ⊢M s with Pr.preserve wfΣ ⊢M s
 preservation wfΣ ⊢M s | ⊢N , wfΣ′ = ⊢N , wfΣ′ , Pr.step-extends s
 

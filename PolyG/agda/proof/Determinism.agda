@@ -34,7 +34,7 @@ data Plug : Frame → Term → Term → Set where
   p-is     : ∀ {G M} → Plug (is□ G) M (is G M)
   p-inj    : ∀ {G M} → Plug (inj□ G) M (inj G M)
   p-cast   : ∀ {d p M} → Plug (cast□ d p) M (cast d p M)
-  p-inst   : ∀ {B ℓ N M} → Plug (inst□ B ℓ N) M (inst M B ℓ N)
+  p-inst   : ∀ {B N M} → Plug (inst□ B N) M (inst M B N)
 
 plug-Plug : ∀ F M → Plug F M (plug F M)
 plug-Plug (if□ M N) L = p-if
@@ -46,7 +46,7 @@ plug-Plug (unseal□ α) M = p-unseal
 plug-Plug (is□ G) M = p-is
 plug-Plug (inj□ G) M = p-inj
 plug-Plug (cast□ d p) M = p-cast
-plug-Plug (inst□ B ℓ N) M = p-inst
+plug-Plug (inst□ B N) M = p-inst
 
 ≡-Plug : ∀ {T M} F → T ≡ plug F M → Plug F M T
 ≡-Plug F refl = plug-Plug F _

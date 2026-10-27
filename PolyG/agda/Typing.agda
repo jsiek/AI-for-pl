@@ -6,8 +6,8 @@ module Typing where
 --   * Σ ∣ Δ ∣ Γ ⊢ M ⦂ A: Σ types the seals created so far, Δ records the
 --     abstract and known type variables, Γ types the term variables.
 --   * A proxy Λν cs M is typed by typing the stack of casts applied to
---     its body.  In `inst M B ℓ N` the result type is not allowed to
---     mention the new type variable; the label ℓ is unconstrained.
+--     its body.  In `inst M B N` the result type is not allowed to
+--     mention the new type variable.
 
 open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (ℕ; zero; suc)
@@ -114,8 +114,8 @@ data _∣_∣_⊢_⦂_ (Σ : Store) (Δ : TyEnv) : Ctx → Term → Ty → Set w
     Σ ∣ (abs ∷ Δ) ∣ ⤊ Γ ⊢ stack cs M ⦂ A →
     Σ ∣ Δ ∣ Γ ⊢ Λν cs M ⦂ ∀ν A
 
-  ⊢inst : ∀ {Γ M B ℓ N A C} →
+  ⊢inst : ∀ {Γ M B N A C} →
     Σ ∣ Δ ∣ Γ ⊢ M ⦂ ∀ν A →
     WfTy (tsize Δ) B →
     Σ ∣ (known B ∷ Δ) ∣ (A ∷ ⤊ Γ) ⊢ N ⦂ ⇑ᵗ C →
-    Σ ∣ Δ ∣ Γ ⊢ inst M B ℓ N ⦂ C
+    Σ ∣ Δ ∣ Γ ⊢ inst M B N ⦂ C

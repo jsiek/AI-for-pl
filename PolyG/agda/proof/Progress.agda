@@ -157,8 +157,8 @@ progress (⊢down p⊢ ⊢M) =
                 (progress ⊢M)
 progress (⊢Λν ⊢M) = done V-Λν
 progress (⊢inst ⊢M wfB ⊢N) =
-  progress-plug (inst□ _ _ _) k (progress ⊢M)
+  progress-plug (inst□ _ _) k (progress ⊢M)
   where
-  k : Value _ → Progress _ (inst _ _ _ _)
+  k : Value _ → Progress _ (inst _ _ _)
   k v with canonical-∀ v ⊢M
   k v | c-Λν = step β-inst

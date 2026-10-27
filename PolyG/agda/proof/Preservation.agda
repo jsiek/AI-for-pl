@@ -31,7 +31,7 @@ open import proof.Determinism using (Plug; plug-Plug; p-if; p-□·; p-app;
 
 step-extends : ∀ {Σ Σ′ M N}
   → Σ ▷ M —→ Σ′ ▷ N
-  → Σ′ ≡ Σ ⊎ ∃[ B ] ∃[ ℓ ] (Σ′ ≡ Σ ++ ((B , ℓ) ∷ []))
+  → Σ′ ≡ Σ ⊎ ∃[ B ] (Σ′ ≡ Σ ++ (B ∷ []))
 step-extends (ξξ F refl refl s) = step-extends s
 step-extends (ξξ-℧ F refl) = inj₁ refl
 step-extends (β-letv v) = inj₁ refl
@@ -42,7 +42,7 @@ step-extends β-if-true = inj₁ refl
 step-extends β-if-false = inj₁ refl
 step-extends (β-ƛ v) = inj₁ refl
 step-extends (β-cast⇒ v w) = inj₁ refl
-step-extends (β-inst {B = B} {ℓ = ℓ}) = inj₂ (B , ℓ , refl)
+step-extends (β-inst {B = B}) = inj₂ (B , refl)
 step-extends (β-id a v) = inj₁ refl
 step-extends (β-tag-up v) = inj₁ refl
 step-extends (β-tag-down v) = inj₁ refl
@@ -52,7 +52,7 @@ step-extends β-cast∀ = inj₁ refl
 step-⊆ : ∀ {Σ Σ′ M N} → Σ ▷ M —→ Σ′ ▷ N → Σ ⊆ˢ Σ′
 step-⊆ s with step-extends s
 step-⊆ s | inj₁ refl = λ h → h
-step-⊆ s | inj₂ (B , ℓ , refl) = ∋ˢ-++ ((B , ℓ) ∷ [])
+step-⊆ s | inj₂ (B , refl) = ∋ˢ-++ (B ∷ [])
 
 ------------------------------------------------------------------------
 -- Casts that are the identity relate equal types

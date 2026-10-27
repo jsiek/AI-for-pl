@@ -49,8 +49,8 @@ storeWf-lookup : ∀ {Σ s A} → StoreWf Σ → Σ ∋ˢ s ⦂ A → WfTy 0 A
 storeWf-lookup (wfˢ∷ wfA wfΣ) Zˢ = wfA
 storeWf-lookup (wfˢ∷ wfA wfΣ) (Sˢ h) = storeWf-lookup wfΣ h
 
-storeWf-snoc : ∀ {Σ B ℓ}
-  → StoreWf Σ → WfTy 0 B → StoreWf (Σ ++ ((B , ℓ) ∷ []))
+storeWf-snoc : ∀ {Σ B}
+  → StoreWf Σ → WfTy 0 B → StoreWf (Σ ++ (B ∷ []))
 storeWf-snoc wfˢ[] wfB = wfˢ∷ wfB wfˢ[]
 storeWf-snoc (wfˢ∷ wfA wfΣ) wfB = wfˢ∷ wfA (storeWf-snoc wfΣ wfB)
 
@@ -267,13 +267,13 @@ NameTy-subst wfΣ ok (nt-seal h) =
     }
 
 -- the body of a proxy, instantiated with the new seal
-⊢-inst-body : ∀ {Σ B ℓ M A}
+⊢-inst-body : ∀ {Σ B M A}
   → StoreWf Σ
   → WfTy 0 B
   → Σ ∣ (abs ∷ []) ∣ [] ⊢ M ⦂ A
-  → (Σ ++ ((B , ℓ) ∷ [])) ∣ [] ∣ [] ⊢ M [ tseal (length Σ) ]ᵀ
+  → (Σ ++ (B ∷ [])) ∣ [] ∣ [] ⊢ M [ tseal (length Σ) ]ᵀ
       ⦂ A [ tseal (length Σ) ]ᵗ
-⊢-inst-body {Σ} {B} {ℓ} wfΣ wfB =
+⊢-inst-body {Σ} {B} wfΣ wfB =
   ⊢-substᵀ wfΣ (storeWf-snoc wfΣ wfB) ok
   where
   wf : ∀ {i} → i < 1 → WfName 0 (singleₙ (tseal (length Σ)) i)
@@ -281,23 +281,23 @@ NameTy-subst wfΣ ok (nt-seal h) =
   wf {suc i} (s≤s ())
 
   var : ∀ {i A} → (abs ∷ []) ∋ i ≅ A
-    → NameTy (Σ ++ ((B , ℓ) ∷ [])) [] (singleₙ (tseal (length Σ)) i)
+    → NameTy (Σ ++ (B ∷ [])) [] (singleₙ (tseal (length Σ)) i)
         (A [ tseal (length Σ) ]ᵗ)
   var (S≅ ())
 
-  ok : TySubstOK Σ (Σ ++ ((B , ℓ) ∷ [])) (abs ∷ []) []
+  ok : TySubstOK Σ (Σ ++ (B ∷ [])) (abs ∷ []) []
          (singleₙ (tseal (length Σ)))
-  ok = record { ok-wf = wf ; ok-var = var ; ok-seal = ∋ˢ-++ ((B , ℓ) ∷ []) }
+  ok = record { ok-wf = wf ; ok-var = var ; ok-seal = ∋ˢ-++ (B ∷ []) }
 
 -- the continuation of an instantiation, with X ≅ B replaced by the new
 -- seal
-⊢-inst-cont : ∀ {Σ B ℓ N A C}
+⊢-inst-cont : ∀ {Σ B N A C}
   → StoreWf Σ
   → WfTy 0 B
   → Σ ∣ (known B ∷ []) ∣ (A ∷ []) ⊢ N ⦂ ⇑ᵗ C
-  → (Σ ++ ((B , ℓ) ∷ [])) ∣ [] ∣ (A [ tseal (length Σ) ]ᵗ ∷ [])
+  → (Σ ++ (B ∷ [])) ∣ [] ∣ (A [ tseal (length Σ) ]ᵗ ∷ [])
       ⊢ N [ tseal (length Σ) ]ᵀ ⦂ C
-⊢-inst-cont {Σ} {B} {ℓ} {C = C} wfΣ wfB ⊢N =
+⊢-inst-cont {Σ} {B} {C = C} wfΣ wfB ⊢N =
   cong-⊢ refl refl (⇑ᵗ-[]ᵗ C (tseal (length Σ)))
     (⊢-substᵀ wfΣ (storeWf-snoc wfΣ wfB) ok ⊢N)
   where
@@ -306,16 +306,16 @@ NameTy-subst wfΣ ok (nt-seal h) =
   wf {suc i} (s≤s ())
 
   var : ∀ {i A} → (known B ∷ []) ∋ i ≅ A
-    → NameTy (Σ ++ ((B , ℓ) ∷ [])) [] (singleₙ (tseal (length Σ)) i)
+    → NameTy (Σ ++ (B ∷ [])) [] (singleₙ (tseal (length Σ)) i)
         (A [ tseal (length Σ) ]ᵗ)
   var Z≅ =
-    nt-seal (substEq (λ T → (Σ ++ ((B , ℓ) ∷ [])) ∋ˢ length Σ ⦂ T)
+    nt-seal (substEq (λ T → (Σ ++ (B ∷ [])) ∋ˢ length Σ ⦂ T)
                      (sym (⇑ᵗ-[]ᵗ B (tseal (length Σ)))) (∋ˢ-length Σ))
   var (S≅ ())
 
-  ok : TySubstOK Σ (Σ ++ ((B , ℓ) ∷ [])) (known B ∷ []) []
+  ok : TySubstOK Σ (Σ ++ (B ∷ [])) (known B ∷ []) []
          (singleₙ (tseal (length Σ)))
-  ok = record { ok-wf = wf ; ok-var = var ; ok-seal = ∋ˢ-++ ((B , ℓ) ∷ []) }
+  ok = record { ok-wf = wf ; ok-var = var ; ok-seal = ∋ˢ-++ (B ∷ []) }
 
 ------------------------------------------------------------------------
 -- Term substitution

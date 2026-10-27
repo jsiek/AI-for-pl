@@ -13,7 +13,6 @@ module Types where
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc; _<_)
 open import Data.Nat.Properties using () renaming (_≟_ to _≟ℕ_)
-open import Data.Product using (_×_; _,_)
 open import Data.Unit using (⊤)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 open import Relation.Nullary using (Dec; yes; no)
@@ -263,15 +262,14 @@ data WfTyEnv : TyEnv → Set where
   wf-known : ∀ {Δ A} → WfTy (tsize Δ) A → WfTyEnv Δ → WfTyEnv (known A ∷ Δ)
 
 ------------------------------------------------------------------------
--- Stores: the seals created so far, each with its type and the label of
--- the instantiation that created it (labels do not affect evaluation)
+-- Stores: the types of the seals created so far
 ------------------------------------------------------------------------
 
 Store : Set
-Store = List (Ty × Prec)
+Store = List Ty
 
 infix 4 _∋ˢ_⦂_
 
 data _∋ˢ_⦂_ : Store → Seal → Ty → Set where
-  Zˢ : ∀ {Σ A ℓ} → ((A , ℓ) ∷ Σ) ∋ˢ zero ⦂ A
-  Sˢ : ∀ {Σ A s e} → Σ ∋ˢ s ⦂ A → (e ∷ Σ) ∋ˢ suc s ⦂ A
+  Zˢ : ∀ {Σ A} → (A ∷ Σ) ∋ˢ zero ⦂ A
+  Sˢ : ∀ {Σ A B s} → Σ ∋ˢ s ⦂ A → (B ∷ Σ) ∋ˢ suc s ⦂ A

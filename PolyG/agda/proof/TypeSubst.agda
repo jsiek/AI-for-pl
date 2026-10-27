@@ -237,7 +237,7 @@ stack-subst σ ((d , p) ∷ cs) M = cong (cast d p) (stack-subst σ cs M)
 ∋ˢ-++ Θ Zˢ = Zˢ
 ∋ˢ-++ Θ (Sˢ h) = Sˢ (∋ˢ-++ Θ h)
 
-∋ˢ-length : ∀ Σ {B ℓ} → (Σ ++ ((B , ℓ) ∷ [])) ∋ˢ length Σ ⦂ B
+∋ˢ-length : ∀ Σ {B} → (Σ ++ (B ∷ [])) ∋ˢ length Σ ⦂ B
 ∋ˢ-length [] = Zˢ
 ∋ˢ-length (e ∷ Σ) = Sˢ (∋ˢ-length Σ)
 

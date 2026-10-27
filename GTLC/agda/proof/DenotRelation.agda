@@ -23,7 +23,7 @@ open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Unit.Polymorphic using () renaming (⊤ to ⊤₁; tt to tt₁)
 import Level
 open import Level using (Lift; lift; lower)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl; sym)
 
 open import Types
 open import GraphModel
@@ -76,7 +76,8 @@ mutual
   ⊑-⇒ p q ⊢ nat n ◃ᵛ D′ = ⊥₁
   ⊑-⇒ p q ⊢ U ⟼ w ◃ᵛ D′ =
     Lift₁ (ν ∈ D′)
-    × (∀ E′ → ValSet E′ → p ⊢ U ◃* E′ → q ⊢ w ◃ (⌊ D′ ⌋ ● E′))
+    × (∀ E′ → ValSet E′ → U ≢ [] → p ⊢ U ◃* E′
+         → q ⊢ w ◃ (⌊ D′ ⌋ ● E′))
   ⊑-⇒ p q ⊢ ν ◃ᵛ D′ = Lift₁ (ν ∈ D′)
   ⊑-⇒ p q ⊢ ω ◃ᵛ D′ = ⊥₁
   ⊑-⇒ p q ⊢ tag t u ◃ᵛ D′ = ⊥₁
@@ -114,7 +115,7 @@ mutual
   (⊑-★ {A ⇒ B}) ⊢ D ▹ᵛ nat n = ⊥₁
   (⊑-★ {A ⇒ B}) ⊢ D ▹ᵛ V′ ⟼ w′ =
     Lift₁ (tag ⇒ᵗ ν ∈ D)
-    × (∀ E → ValSet E → ⊑-★ {A} ⊢ E ▹* V′
+    × (∀ E → ValSet E → V′ ≢ [] → NoErr V′ → ⊑-★ {A} ⊢ E ▹* V′
          → ⊑-★ {B} ⊢ (⌊ untag ⇒ᵗ D ⌋ ● E) ▹ w′)
   (⊑-★ {A ⇒ B}) ⊢ D ▹ᵛ ν = Lift₁ (tag ⇒ᵗ ν ∈ D)
   (⊑-★ {A ⇒ B}) ⊢ D ▹ᵛ ω = ⊥₁
@@ -122,7 +123,8 @@ mutual
   ⊑-⇒ p q ⊢ D ▹ᵛ nat n = ⊥₁
   ⊑-⇒ p q ⊢ D ▹ᵛ V′ ⟼ w′ =
     Lift₁ (ν ∈ D)
-    × (∀ E → ValSet E → p ⊢ E ▹* V′ → q ⊢ (⌊ D ⌋ ● E) ▹ w′)
+    × (∀ E → ValSet E → V′ ≢ [] → NoErr V′ → p ⊢ E ▹* V′
+         → q ⊢ (⌊ D ⌋ ● E) ▹ w′)
   ⊑-⇒ p q ⊢ D ▹ᵛ ν = Lift₁ (ν ∈ D)
   ⊑-⇒ p q ⊢ D ▹ᵛ ω = ⊥₁
   ⊑-⇒ p q ⊢ D ▹ᵛ tag t u′ = ⊥₁
@@ -199,7 +201,7 @@ mutual
   ◃ᵛ-mono (⊑-⇒ p q) (nat n) sub ()
   ◃ᵛ-mono (⊑-⇒ p q) (U ⟼ w) sub (lift ν∈ , f) =
     lift (sub ν ν∈)
-    , λ E′ vE′ rU → ◃-mono q w (●-monoˡ (⌊⌋-mono sub)) (f E′ vE′ rU)
+    , λ E′ vE′ U≢ rU → ◃-mono q w (●-monoˡ (⌊⌋-mono sub)) (f E′ vE′ U≢ rU)
   ◃ᵛ-mono (⊑-⇒ p q) ν sub (lift ν∈) = lift (sub ν ν∈)
   ◃ᵛ-mono (⊑-⇒ p q) ω sub ()
   ◃ᵛ-mono (⊑-⇒ p q) (tag t u) sub ()
@@ -231,15 +233,15 @@ mutual
   ▹ᵛ-mono (⊑-★ {A ⇒ B}) (nat n) sub ()
   ▹ᵛ-mono (⊑-★ {A ⇒ B}) (V ⟼ w) sub (lift m , f) =
     lift (sub _ m)
-    , λ E vE rV → ▹-mono (⊑-★ {B}) w
-        (●-monoˡ (⌊⌋-mono (λ v → sub (tag ⇒ᵗ v)))) (f E vE rV)
+    , λ E vE V≢ ne rV → ▹-mono (⊑-★ {B}) w
+        (●-monoˡ (⌊⌋-mono (λ v → sub (tag ⇒ᵗ v)))) (f E vE V≢ ne rV)
   ▹ᵛ-mono (⊑-★ {A ⇒ B}) ν sub (lift m) = lift (sub _ m)
   ▹ᵛ-mono (⊑-★ {A ⇒ B}) ω sub ()
   ▹ᵛ-mono (⊑-★ {A ⇒ B}) (tag t u) sub ()
   ▹ᵛ-mono (⊑-⇒ p q) (nat n) sub ()
   ▹ᵛ-mono (⊑-⇒ p q) (V ⟼ w) sub (lift m , f) =
     lift (sub _ m)
-    , λ E vE rV → ▹-mono q w (●-monoˡ (⌊⌋-mono sub)) (f E vE rV)
+    , λ E vE V≢ ne rV → ▹-mono q w (●-monoˡ (⌊⌋-mono sub)) (f E vE V≢ ne rV)
   ▹ᵛ-mono (⊑-⇒ p q) ν sub (lift m) = lift (sub _ m)
   ▹ᵛ-mono (⊑-⇒ p q) ω sub ()
   ▹ᵛ-mono (⊑-⇒ p q) (tag t u) sub ()
@@ -342,7 +344,7 @@ mutual
 ◃ᵛ-vals (⊑-⇒ p q) (nat n) ()
 ◃ᵛ-vals (⊑-⇒ p q) (U ⟼ w) {D′} (lift ν∈ , f) =
   lift (ν∈ , λ ())
-  , λ E′ vE′ rU → ◃-mono q w (●-monoˡ (⌊⌋-idem {D′})) (f E′ vE′ rU)
+  , λ E′ vE′ U≢ rU → ◃-mono q w (●-monoˡ (⌊⌋-idem {D′})) (f E′ vE′ U≢ rU)
 ◃ᵛ-vals (⊑-⇒ p q) ν (lift ν∈) = lift (ν∈ , λ ())
 ◃ᵛ-vals (⊑-⇒ p q) ω ()
 ◃ᵛ-vals (⊑-⇒ p q) (tag t u) ()
@@ -368,15 +370,15 @@ mutual
 ▹ᵛ-vals (⊑-★ {A ⇒ B}) (nat n) ()
 ▹ᵛ-vals (⊑-★ {A ⇒ B}) (V ⟼ w) {D} (lift m , f) =
   lift (m , λ ())
-  , λ E vE rV → ▹-mono (⊑-★ {B}) w
-      (●-monoˡ (⌊⌋-mono (untag-⌊⌋ {⇒ᵗ} {D}))) (f E vE rV)
+  , λ E vE V≢ ne rV → ▹-mono (⊑-★ {B}) w
+      (●-monoˡ (⌊⌋-mono (untag-⌊⌋ {⇒ᵗ} {D}))) (f E vE V≢ ne rV)
 ▹ᵛ-vals (⊑-★ {A ⇒ B}) ν (lift m) = lift (m , λ ())
 ▹ᵛ-vals (⊑-★ {A ⇒ B}) ω ()
 ▹ᵛ-vals (⊑-★ {A ⇒ B}) (tag t u) ()
 ▹ᵛ-vals (⊑-⇒ p q) (nat n) ()
 ▹ᵛ-vals (⊑-⇒ p q) (V ⟼ w) {D} (lift m , f) =
   lift (m , λ ())
-  , λ E vE rV → ▹-mono q w (●-monoˡ (⌊⌋-idem {D})) (f E vE rV)
+  , λ E vE V≢ ne rV → ▹-mono q w (●-monoˡ (⌊⌋-idem {D})) (f E vE V≢ ne rV)
 ▹ᵛ-vals (⊑-⇒ p q) ν (lift m) = lift (m , λ ())
 ▹ᵛ-vals (⊑-⇒ p q) ω ()
 ▹ᵛ-vals (⊑-⇒ p q) (tag t u) ()
@@ -400,7 +402,7 @@ mutual
 -- against a value set, preservation has no escape
 ◃-val : ∀ {A A′} (p : A ⊑ A′) d {D′}
   → ValSet D′ → p ⊢ d ◃ D′ → p ⊢ d ◃ᵛ D′
-◃-val p d vD′ (inj₁ (lift ω∈)) = ⊥-elim (vD′ ω∈)
+◃-val p d vD′ (inj₁ (lift ω∈)) = ⊥-elim (ω∉ vD′ ω∈)
 ◃-val p d vD′ (inj₂ r) = r
 
 -- a right value needs a left value
@@ -448,3 +450,133 @@ all◃ p (u ∷ U) f with f u (here refl)
   → U ≢ [] → ValSet D′ → p ⊢ U ◃* D′ → Conv D′
 ◃*-conv p [] U≢ vD′ rs = ⊥-elim (U≢ refl)
 ◃*-conv p (u ∷ U) U≢ vD′ (r , rs) = ◃ᵛ-conv p u (◃-val p u vD′ r)
+
+-- a list justified against a value set holds no error
+◃*-noerr : ∀ {A A′} (p : A ⊑ A′) U {D′}
+  → ValSet D′ → p ⊢ U ◃* D′ → NoErr U
+◃*-noerr p (u ∷ U) vD′ (r , rs) (here refl) = ω∉ vD′ (◃-ω p r)
+◃*-noerr p (u ∷ U) vD′ (r , rs) (there ω∈) = ◃*-noerr p U vD′ rs ω∈
+
+-- a nonempty list of values justified by E makes E converge
+▹*-conv : ∀ {A A′} (p : A ⊑ A′) V′ {E}
+  → V′ ≢ [] → NoErr V′ → p ⊢ E ▹* V′ → Conv E
+▹*-conv p [] V′≢ ne rs = ⊥-elim (V′≢ refl)
+▹*-conv p (v′ ∷ V′) V′≢ ne (r , rs) =
+  ▹ᵛ-conv p v′ (▹-val p v′ (λ eq → ne (here (sym eq))) r)
+
+▹-vals : ∀ {A A′} (p : A ⊑ A′) d′ {D} → p ⊢ D ▹ d′ → p ⊢ ⌊ D ⌋ ▹ d′
+▹-vals p d′ (inj₁ eq) = inj₁ eq
+▹-vals p d′ (inj₂ r) = inj₂ (▹ᵛ-vals p d′ r)
+
+------------------------------------------------------------------------
+-- Finite lists, function sets, and type precision
+------------------------------------------------------------------------
+
+list-conv : ∀ U → U ≢ [] → NoErr U → Conv (mem U)
+list-conv [] U≢ ne = ⊥-elim (U≢ refl)
+list-conv (u ∷ U) U≢ ne = u , here refl , λ eq → ne (here (sym eq))
+
+●-⌊⌋ : ∀ {D E} → (D ● E) ⊆ (⌊ D ⌋ ● E)
+●-⌊⌋ w (V , e∈ , V⊆ , V≢) = V , (e∈ , λ ()) , V⊆ , V≢
+
+Λ≢ω : ∀ {F} e → e ∈ Λ F → e ≢ ω
+Λ≢ω (nat n) () eq
+Λ≢ω (V ⟼ w) e∈ ()
+Λ≢ω ν e∈ ()
+Λ≢ω ω () eq
+Λ≢ω (tag t d) () eq
+
+-- a function justified on the left or on the right has ν on the other side
+◃ᵛ⇒-ν : ∀ {A A′ B B′} (p : A ⊑ A′) (q : B ⊑ B′) d {D′}
+  → ⊑-⇒ p q ⊢ d ◃ᵛ D′ → ν ∈ D′
+◃ᵛ⇒-ν p q (nat n) ()
+◃ᵛ⇒-ν p q (U ⟼ w) (lift ν∈ , _) = ν∈
+◃ᵛ⇒-ν p q ν (lift ν∈) = ν∈
+◃ᵛ⇒-ν p q ω ()
+◃ᵛ⇒-ν p q (tag t u) ()
+
+▹ᵛ⇒-ν : ∀ {A A′ B B′} (p : A ⊑ A′) (q : B ⊑ B′) d′ {D}
+  → ⊑-⇒ p q ⊢ D ▹ᵛ d′ → ν ∈ D
+▹ᵛ⇒-ν p q (nat n) ()
+▹ᵛ⇒-ν p q (V′ ⟼ w′) (lift ν∈ , _) = ν∈
+▹ᵛ⇒-ν p q ν (lift ν∈) = ν∈
+▹ᵛ⇒-ν p q ω ()
+▹ᵛ⇒-ν p q (tag t u) ()
+
+⊑-unique : ∀ {A A′} (p q : A ⊑ A′) → p ≡ q
+⊑-unique ⊑-ℕ ⊑-ℕ = refl
+⊑-unique ⊑-★ ⊑-★ = refl
+⊑-unique (⊑-⇒ p₁ q₁) (⊑-⇒ p₂ q₂)
+    with ⊑-unique p₁ p₂ | ⊑-unique q₁ q₂
+... | refl | refl = refl
+
+-- the tag of a ground type
+gtag : ∀ {G} → Ground G → Tag
+gtag G-ℕ = ℕᵗ
+gtag G-⇒ = ⇒ᵗ
+
+gtag-ty : ∀ {G} (g : Ground G) → tagTy (gtag g) ≡ G
+gtag-ty G-ℕ = refl
+gtag-ty G-⇒ = refl
+
+------------------------------------------------------------------------
+-- Unfolding ★ ⊑ A′ (A′ ≠ ★) into the ground below A′
+------------------------------------------------------------------------
+
+★▹-unfold : ∀ {G A′} (g : Ground G) (pG : G ⊑ A′) d′ {D}
+  → ⊑-★ {A′} ⊢ D ▹ᵛ d′ → pG ⊢ untag (gtag g) D ▹ᵛ d′
+★▹-unfold G-ℕ ⊑-ℕ (nat n) r = r
+★▹-unfold G-ℕ ⊑-ℕ (V ⟼ w) ()
+★▹-unfold G-ℕ ⊑-ℕ ν ()
+★▹-unfold G-ℕ ⊑-ℕ ω ()
+★▹-unfold G-ℕ ⊑-ℕ (tag t u) ()
+★▹-unfold G-⇒ (⊑-⇒ ⊑-★ ⊑-★) (nat n) ()
+★▹-unfold G-⇒ (⊑-⇒ ⊑-★ ⊑-★) (V ⟼ w) r = r
+★▹-unfold G-⇒ (⊑-⇒ ⊑-★ ⊑-★) ν r = r
+★▹-unfold G-⇒ (⊑-⇒ ⊑-★ ⊑-★) ω ()
+★▹-unfold G-⇒ (⊑-⇒ ⊑-★ ⊑-★) (tag t u) ()
+
+★▹-fold : ∀ {G A′} (g : Ground G) (pG : G ⊑ A′) d′ {D}
+  → pG ⊢ untag (gtag g) D ▹ᵛ d′ → ⊑-★ {A′} ⊢ D ▹ᵛ d′
+★▹-fold G-ℕ ⊑-ℕ (nat n) r = r
+★▹-fold G-ℕ ⊑-ℕ (V ⟼ w) ()
+★▹-fold G-ℕ ⊑-ℕ ν ()
+★▹-fold G-ℕ ⊑-ℕ ω ()
+★▹-fold G-ℕ ⊑-ℕ (tag t u) ()
+★▹-fold G-⇒ (⊑-⇒ ⊑-★ ⊑-★) (nat n) ()
+★▹-fold G-⇒ (⊑-⇒ ⊑-★ ⊑-★) (V ⟼ w) r = r
+★▹-fold G-⇒ (⊑-⇒ ⊑-★ ⊑-★) ν r = r
+★▹-fold G-⇒ (⊑-⇒ ⊑-★ ⊑-★) ω ()
+★▹-fold G-⇒ (⊑-⇒ ⊑-★ ⊑-★) (tag t u) ()
+
+-- a left element at ★ ⊑ A′ (A′ ≠ ★) is tagged with the ground below A′
+★◃-elim : ∀ {G A′} (g : Ground G) (pG : G ⊑ A′) d {D′}
+  → ⊑-★ {A′} ⊢ d ◃ᵛ D′
+  → Σ[ u ∈ Val ] (d ≡ tag (gtag g) u × pG ⊢ u ◃ᵛ D′)
+★◃-elim G-ℕ ⊑-ℕ (nat n) ()
+★◃-elim G-ℕ ⊑-ℕ (V ⟼ w) ()
+★◃-elim G-ℕ ⊑-ℕ ν ()
+★◃-elim G-ℕ ⊑-ℕ ω ()
+★◃-elim G-ℕ ⊑-ℕ (tag ℕᵗ u) r = u , refl , r
+★◃-elim G-ℕ ⊑-ℕ (tag ⇒ᵗ u) ()
+★◃-elim G-⇒ (⊑-⇒ ⊑-★ ⊑-★) (nat n) ()
+★◃-elim G-⇒ (⊑-⇒ ⊑-★ ⊑-★) (V ⟼ w) ()
+★◃-elim G-⇒ (⊑-⇒ ⊑-★ ⊑-★) ν ()
+★◃-elim G-⇒ (⊑-⇒ ⊑-★ ⊑-★) ω ()
+★◃-elim G-⇒ (⊑-⇒ ⊑-★ ⊑-★) (tag ℕᵗ u) ()
+★◃-elim G-⇒ (⊑-⇒ ⊑-★ ⊑-★) (tag ⇒ᵗ u) r = u , refl , r
+
+★◃-intro : ∀ {G A′} (g : Ground G) (pG : G ⊑ A′) u {D′}
+  → pG ⊢ u ◃ᵛ D′ → ⊑-★ {A′} ⊢ tag (gtag g) u ◃ᵛ D′
+★◃-intro G-ℕ ⊑-ℕ u r = r
+★◃-intro G-⇒ (⊑-⇒ ⊑-★ ⊑-★) u r = r
+
+-- a left element at ★ ⊑ ★ is tagged
+★★◃-elim : ∀ d {D′}
+  → ⊑-★ {★} ⊢ d ◃ᵛ D′
+  → Σ[ t ∈ Tag ] Σ[ u ∈ Val ] (d ≡ tag t u × tag⊑ t ⊢ u ◃ᵛ untag t D′)
+★★◃-elim (nat n) ()
+★★◃-elim (V ⟼ w) ()
+★★◃-elim ν ()
+★★◃-elim ω ()
+★★◃-elim (tag t u) r = t , u , refl , r

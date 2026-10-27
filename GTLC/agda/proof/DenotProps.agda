@@ -438,7 +438,7 @@ wrapₑ-fin {f = f} fm ff i =
   incl zero d d∈ = there d∈
   incl (suc x) = proj₁ (proj₂ r) (suc x)
   noerrU : NoErr U
-  noerrU ω∈ = noω (U⊆ ω ω∈)
+  noerrU ω∈ = ω∉ noω (U⊆ ω ω∈)
 
 Λ-β : ∀ N ρ {E} → ValSet E → Conv E
   → ⟦ N ⟧ (E • ρ) ⊆ Λ (λ Y → ⟦ N ⟧ (Y • ρ)) ● E

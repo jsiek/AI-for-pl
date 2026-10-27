@@ -72,9 +72,12 @@ mem V d = d ⋵ V
 Conv : 𝒫 → Set
 Conv D = ∃[ d ] (d ∈ D × d ≢ ω)
 
--- D holds no error
-ValSet : 𝒫 → Set
-ValSet D = ¬ (ω ∈ D)
+-- D holds no error (a record, so that D can be inferred from it)
+record ValSet (D : 𝒫) : Set where
+  constructor valset
+  field
+    ω∉ : ¬ (ω ∈ D)
+open ValSet public
 
 ------------------------------------------------------------------------
 -- The error monad

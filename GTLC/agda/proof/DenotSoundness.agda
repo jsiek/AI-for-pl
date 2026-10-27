@@ -38,16 +38,16 @@ open import proof.DenotProps
 ω? (tag t d) = inj₂ (λ ())
 
 valset-⌊⌋ : ∀ {D} → ValSet D → D ⊆ ⌊ D ⌋
-valset-⌊⌋ noω d d∈ = d∈ , λ { refl → noω d∈ }
+valset-⌊⌋ noω d d∈ = d∈ , λ { refl → ω∉ noω d∈ }
 
 Conv-⌊⌋ : ∀ {D} → Conv D → Conv ⌊ D ⌋
 Conv-⌊⌋ (d , d∈ , d≢) = d , (d∈ , d≢) , d≢
 
 ⌊⌋-valset : ∀ {D} → ValSet ⌊ D ⌋
-⌊⌋-valset (ω∈ , ω≢) = ω≢ refl
+⌊⌋-valset = valset λ { (ω∈ , ω≢) → ω≢ refl }
 
 Λ-valset : ∀ {F} → ValSet (Λ F)
-Λ-valset ()
+Λ-valset = valset λ ()
 
 Λ-≢ : ∀ {F e} → e ∈ Λ F → e ≢ ω
 Λ-≢ e∈ refl = e∈
@@ -56,7 +56,7 @@ Conv-⌊⌋ (d , d∈ , d≢) = d , (d∈ , d≢) , d≢
 ≫=-conv c w w∈ = inj₂ (c , w∈)
 
 ≫=-val : ∀ {D F} → ValSet D → (D ≫= F) ⊆ F ⌊ D ⌋
-≫=-val noω w (inj₁ (eq , ω∈)) = ⊥-elim (noω ω∈)
+≫=-val noω w (inj₁ (eq , ω∈)) = ⊥-elim (ω∉ noω ω∈)
 ≫=-val noω w (inj₂ (c , w∈)) = w∈
 
 ≫=-unit : ∀ {D} → D ⊆ (D ≫= λ X → X)
@@ -96,7 +96,7 @@ ground-tag G-⇒ = ⇒ᵗ , refl
 value-denot : ∀ {V A} ρ → [] ⊢ᶜ V ⦂ A → (v : Valueᶜ V)
   → ValSet (⟦ V ⟧ ρ)
     × Σ[ d ∈ Val ] (d ∈ ⟦ V ⟧ ρ × d ≢ ω × obs d ≡ observe v)
-value-denot ρ ⊢$ (V-$ {n = n}) = (λ ()) , nat n , refl , (λ ()) , refl
+value-denot ρ ⊢$ (V-$ {n = n}) = valset (λ ()) , nat n , refl , (λ ()) , refl
 value-denot ρ (⊢ƛ {N = N} N⦂) V-ƛ =
   Λ-valset {F = λ Y → ⟦ N ⟧ (Y • ρ)} , ν , tt , (λ ()) , refl
 value-denot ρ (⊢cast {M = W} W⦂ (⊢! {G = G} g)) (V-cast! vW) =
@@ -110,8 +110,8 @@ value-denot ρ (⊢cast {M = W} W⦂ (⊢! {G = G} g)) (V-cast! vW) =
   d≢ = proj₁ (proj₂ (proj₂ (proj₂ r)))
   obs≡ = proj₂ (proj₂ (proj₂ (proj₂ r)))
   noω : ValSet (⟦ W ⟧ ρ ≫= inj G)
-  noω (inj₁ (_ , ω∈)) = proj₁ r ω∈
-  noω (inj₂ (_ , ()))
+  noω = valset λ { (inj₁ (_ , ω∈)) → ω∉ (proj₁ r) ω∈
+                 ; (inj₂ (_ , ())) }
 value-denot ρ (⊢cast {M = W} W⦂ (⊢↦ {c = c} {d = d} c⦂ d⦂)) (V-cast↦ vW) =
   noω , ν , inj₂ (cW , Conv-⌊⌋ cW , tt) , (λ ()) , refl
   where
@@ -120,8 +120,8 @@ value-denot ρ (⊢cast {M = W} W⦂ (⊢↦ {c = c} {d = d} c⦂ d⦂)) (V-cast
   cW = proj₁ (proj₂ r) , proj₁ (proj₂ (proj₂ r)) ,
        proj₁ (proj₂ (proj₂ (proj₂ r)))
   noω : ValSet (⟦ W ⟧ ρ ≫= ⟦ c ↦ d ⟧ᶜ)
-  noω (inj₁ (_ , ω∈)) = proj₁ r ω∈
-  noω (inj₂ (_ , _ , ()))
+  noω = valset λ { (inj₁ (_ , ω∈)) → ω∉ (proj₁ r) ω∈
+                 ; (inj₂ (_ , _ , ())) }
 
 value-conv : ∀ {V A} ρ → [] ⊢ᶜ V ⦂ A → Valueᶜ V → Conv (⟦ V ⟧ ρ)
 value-conv ρ V⦂ v =

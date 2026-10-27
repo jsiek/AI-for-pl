@@ -37,6 +37,23 @@ proves PolyImp type safe.
 PolyConvert - Similar to PolyImp, but splits out the "conversion" aspect
 into a separate relation.
 
+PolyG - PolyGν, the gradually typed language with polymorphism and dynamic
+sealing from Max New's PhD thesis (Ch. 10), and its cast calculus PolyCν,
+restricted to the ∀ν fragment (no pairs or existentials). Instantiation
+`let x = M {X ≅ B}; N` creates a fresh seal. The Agda development
+(`PolyG/agda`) proves:
+* type safety and determinism of PolyCν;
+* that elaboration from PolyGν to PolyCν preserves typing and term
+  precision;
+* the dynamic gradual guarantee (graduality) for PolyGν, by a
+  denotational method.
+
+The proof uses a graph model with a seal counter and consistency.
+Its relations use Kripke worlds, as in New, Jamner, and Ahmed's
+logical relation, and relate finite lists of elements jointly.
+The design is in `PolyG/notes/denotational-graduality.md`.
+An earlier port of the POPL 2020 paper's version is in `PolyG/popl2020`.
+
 PolyBlameI - A failed attempt at a polymorphic cast calculus that uses
 imprecision. This design is not type safe because type substitution does not
 preserve imprecision typing.

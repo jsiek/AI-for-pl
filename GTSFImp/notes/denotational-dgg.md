@@ -2,7 +2,9 @@
 
 Status: design on paper; nothing is mechanized.  Revised after review:
 the fundamental lemma is on cast-calculus precision, and the GSF and
-`Catchup` counterexamples are checked (Section 8).
+`Catchup` counterexamples are checked (Section 8).  Revised again after
+the paper proof of the world-change lemma (Section 8b), which moved seal
+relations out of the world (Section 4).
 
 This builds on the PolyG warm-up:
 * `PolyG/notes/denotational-graduality.md`;
@@ -26,12 +28,14 @@ is the *more* precise one.
 * **What is new**, all caused by GTSFImp's implicit polymorphism (the
   `inst` and `gen` casts) and its one-sided precision rules:
   1. **Seals are not created in lockstep.** The two programs keep separate
-     counters, and a world relates left seals to right seals, Max's
-     partial bijection `η`.
+     counters.  A relational environment says how each left type
+     variable's seal relates to the right (paired with a right seal, or
+     left-only), and the world says how each left seal's *tag* relates
+     (Section 4).
   2. **One-sided seals.** A seal created only on the left, by a left-only
      type application or a left `inst`, is related to *unsealed* values on
      the right, at a derivation `R ⊑ ★` (an `X ⊑ ★` mark).  The relation
-     for `★` looks through a left tag on such a seal.
+     for `★` reads how a left tag on such a seal relates from the world.
   3. **Seals created by casts.**
      * `inst` creates a seal when the cast is applied.
      * `gen` creates one when its result is instantiated, and uses it as
@@ -66,9 +70,13 @@ is the *more* precise one.
   | rule | redex | seal created |
   |---|---|---|
   | `β-Λ` | `(Λ V) ⦂∀ B [A]` | `α := A`, then the reveal `V ↑ 〖α , A ↑ B〗` |
-  | `β-inst` | `V ⟨inst c⟩`, at the cast | `α := ★`; reveal; then `↑ᶜ (c[★/0])` |
+  | `β-inst` | `V ⟨inst c⟩`, at the cast | `α := ★`; then `V [α]`, which creates a second seal `β := α` when `V` is a `Λ` or `gen` value; reveal `α`; then `↑ᶜ (c[★/0])` |
   | `β-gen` | `(V ⟨gen c⟩) ⦂∀ B [C]` | `α := C`; inside `c`, `α` has mode `★∼X` and is used as a ground tag |
   | `β-reveal-∀`, `β-conceal-∀` | conversions at `∀` when instantiated | a seal, as `β-Λ` |
+  | `β-∀` | `(V ⟨∀ᶜ c⟩) ⦂∀ B [C]` | none: becomes `(V [C]) ⟨c[C]⟩`, so `V` creates the seal |
+
+  So the seal of a type application is created by the innermost `Λ` or
+  `gen` value it reaches, and for a `gen` value that seal is the tag.
 
 * **Instantiation is administrative.** `Λ` bodies are values and `GenSafe`
   keeps failing checks out of suspended `gen` casts (`Rationale.md`).  So
@@ -114,19 +122,47 @@ is the *more* precise one.
   So the left side has every shared seal plus left-only ones, and the
   right side has every shared seal plus invisible right-only ones.
 
-## 4. Worlds
+## 4. Descriptors, environments and worlds
 
-A world is a pair of lists, extended independently:
-* **Left entries, by left seal:**
-  * `shared σ′ q`, paired with right seal `σ′`, contents related at the
-    closed derivation `q`;
-  * `left q`, a left-only seal, contents related to right unsealed
-    values at `q : R ⊑ ★`.
-* **Right entries, by right seal:** `shared σ` or `right` (right-only,
-  never consulted by the relations).
+Revised after the paper proof of the world-change lemma (Section 8b).
+The first version kept each seal's relation in the world; that made the
+lemma false (Section 8b explains why).
 
-`W ⊑ W′` when both lists are prefixes.  The left counter is the left
-list's length; the right counter is the right list's.
+* **Descriptors.** Closed precision derivations become *descriptors*:
+
+      r ::= ι | ★ | r ⇒ r | tag G r | ∀⊑∀ r | ∀⊑ r | ∀⊑★ r | X
+          | ◁σ r | ▷σ′ r
+
+  * `◁σ r`: the left values are `seal σ u`, and their contents are
+    related at `r`.
+  * `▷σ′ r`: the right values are unsealed at `σ′` first.
+  * `tag G r`: the right values are untagged at `G` first.  `G` may be a
+    right seal.
+  * Seals appear as numbers, so a descriptor means the same in every
+    world, except at `★` (below).
+  * A typing derivation becomes a descriptor by erasing the right type at
+    variable leaves: `X ⊑ X′` and `X ⊑ ★` both become `X`.
+* **Environments.** A relational environment `η` maps each left type
+  variable to a closed descriptor, its *leaf relation*:
+  * `X` paired, instantiated at seals `σ`, `σ′` with contents relation
+    `q`: `◁σ ▷σ′ q`;
+  * `X` left-only, instantiated at `σ`: `◁σ q`.
+
+  This is Reynolds' relational environment.  The leaf relation is not
+  in the world.
+* **Worlds.** A world is a list of *tag relations*, one per left seal,
+  plus the right counter.
+  * The tag relation of `σ` is a closed descriptor.  It says how a left
+    value tagged `σ` in `★` is related to right values.  Only seals
+    created by `gen` are ever used as tags, but every seal gets one.
+  * Shared, when the right tags with its own seal `σ′`:
+    `tag σ′ (◁σ ▷σ′ q)`.
+  * Transparent, when the right never tags: `◁σ q`.
+  * Time-shifted, when the right instantiated earlier (Section 8b):
+    `tag β′ (◁σ ▷β′ ▷α′ q)`.
+  * Right seals have no entries; no clause consults them.
+* `W ⊑ W′` when the list is a prefix and the right counter is `≤`.  The
+  left counter is the list's length.
 
 ## 5. The relations
 
@@ -137,31 +173,36 @@ Kripke closures, consistency on the set side), with these changes:
   there is a future world with left length `m` and some right length
   `m′` under which its values are related to the right set at `m′`.
   With consistency, the right set has one counter.
-* **Seal clause at `‵⊑ X`.** Take a left value `seal σ u` with
-  `σ = θ X`:
-  * if `W σ = shared σ′ q`: the contents are related at `q` to
-    `unseal σ′ D′`;
-  * if `W σ = left q`: the contents are related at `q` to `D′` itself.
-    This is the clause the `X ⊑ ★` derivation `＇X ⊑ ★` uses.
-* **Clause for `★ ⊑ ★`.** For a left value `inj σ u` whose tag is a seal:
-  * if `W σ = shared σ′ q`: the payload is related to `untag σ′ D′`;
-  * if `W σ = left q`: the payload `u` (sealed at `σ`) is related through
-    the left-only seal clause to `D′` itself.  The right program never
-    tagged the value with `σ`, since it never created `σ`.
-
-  The `gen` worked example in Section 6 shows why.
-* **The `∀` clauses:**
-  * `∀⊑∀ p`: a left entry at a fresh left seal `σ` against the right
-    entries at a fresh right seal `σ′`, for every future world and every
-    closed `q′`, in the world extended with `shared σ′ q′` and `shared σ`.
-  * `∀⊑ p` (left `∀`, right not): a left entry at fresh `σ` against the
-    right *value set itself* at the current right counter, in the world
-    extended with `left q′`.  The right does not instantiate.
-  * `∀⊑★ p`: against the right's `∀★`-tagged values, as `∀⊑∀`.
+* **Leaf `X`.** Relate at the leaf relation `η X`.
+* **The seal descriptors.** `◁σ r`, `▷σ′ r` and `tag G r` as in
+  Section 4.
+* **Clause for `★`.** Every left element is an injection.
+  * A left element tagged with a ground that is not a seal: as in PolyG.
+  * The left elements tagged with a seal `σ`: their payloads are related
+    to `D′` itself at the tag relation `W σ`.
+* **The `∀` clauses.** Each quantifies over every future world and
+  every closed contents relation `q`, and *chooses* a tag relation `t`
+  for the new left seal:
+  * `∀⊑∀ p`: for `W′` with lengths `σ` and `σ′` and every `q`, there is
+    a `t` such that the bodies at `σ` are related to `D′ ◆ σ′` at `p`,
+    under `η[X ↦ ◁σ ▷σ′ q]`, in `W′` extended with `t` (and the right
+    counter `σ′ + 1`).
+  * `∀⊑ p` (left `∀`, right not): for `W′` with left length `σ`, any
+    right counter `n′`, and every `q`, there is a `t` such that the
+    bodies are related to the right set *itself* at `n′`, under
+    `η[X ↦ ◁σ q]`, in `W′` extended with `t`.  The right does not
+    instantiate.
+  * `∀⊑★ p`: as `∀⊑∀`, against `untag ∀★ D′`.
+  * The tag relation is existential because it depends on the right
+    value, which may have created its tag seal earlier (Section 8b).
 * **Ground grammar.** Function and `∀` entries and the empty closures are
   as in PolyG.  The ground tag grammar adds `ℕ` (constants) and seals.
 
 ## 6. Paper checks of the new cases
+
+These were written before the revision of Section 4.  Read `left q` as
+the leaf relation `◁σ q` with a transparent tag relation, and
+`shared σ′ q` as the leaf relation `◁σ ▷σ′ q` with a shared tag relation.
 
 * **A left-only `Λ` (`Λ⊑ᴳ`).** Left `(Λ X. λx:X. x) [𝔹] true`, right
   `(λx:★. x) (true⟨𝔹!⟩)`, at `∀X.X→X ⊑ ★→★` then `𝔹 ⊑ ★`.
@@ -390,40 +431,48 @@ and `bot-intro`.  The cases:
    * If `A′ = ★`, the right is `(…)!` with a ground.  The canonical-route
      check below shows the grounds agree.
 5. **Left `gen`, right not.** `C ⊑ C′` with `C` non-`∀` forces `C′`
-   non-`∀`, and `A ⊑ A′` with `A = ∀…` forces `A′` to be a `∀` or `★`.
-   * If `A′` is a `∀`, the right is also `gen`: same head.
-   * If `A′ = ★`, the right's `!` injects at `∀★`.  The left `gen` value
-     is related to it through the `∀⊑★` clause, by the induction
-     hypothesis on `gen`'s body.
+   non-`∀`.  `A = ∀…` allows three shapes of `A′` (corrected; the first
+   version missed the third):
+   * `A′` is a `∀`: the right is also `gen`, the same head.
+   * `A′ = ★` through `∀⊑★`: the right's `!` injects at `∀★`.  The left
+     `gen` value is related to it through the `∀⊑★` clause, by the
+     induction hypothesis on `gen`'s body.
+   * `A′` any other type, through `∀⊑` (for example `∀X.X→X ⊑ ★→★`,
+     right cast `id`, as in Section 6's `gen` example).  The left
+     instantiates alone.  Choose the transparent tag relation `◁σ q`:
+     the right never tags.  The induction hypothesis on `gen`'s body
+     then needs the left's `X!` and `?X` against nothing on the right,
+     which is the transparent case of the `★` clause.
 6. **Left `∀ᶜ`, right `inst`** (the right instantiates first).
    `C = ∀C₀ ⊑ C′ = ∀C₀′`, and `A` is a `∀` against a non-`∀` `A′`.
-   * The right creates `α′` now; the left creates `σ` only when it is
-     later instantiated.
-   * Use the hypothesis's `∀⊑∀` clause in the world that extends only
-     the left list up to `σ`.  This is legal: the right made no
-     allocation between `α′` and its own counter at the cast.
-   * Pair `σ` with `α′` there.  The induction hypothesis relates the
-     bodies.
-   * Then a **world-change lemma** turns "`σ` shared with `α′`, seen
-     through the right's reveal `〖α′ , ★ ↑ C₀′〗`" into "`σ` left-only"
-     under the conclusion's `∀⊑` clause.
+   * The right creates `α′ := ★` at the cast, and `β′ := α′` when it
+     instantiates its value at `α′`.  The left creates `σ` only when it
+     is later instantiated.
+   * Use the hypothesis's `∀⊑∀` clause at a world whose left list is
+     extended up to `σ`.  Pair `σ` with `β′` at the contents relation
+     `▷α′ q₀`.
+   * The world-change lemma (Section 8b) goes through the right's
+     reveals: from the leaf relation `◁σ ▷β′ ▷α′ q₀` to the left-only
+     `◁σ q₀`.
+   * The tag relation of `σ` is the one the hypothesis chose.  It may be
+     time-shifted (Section 8b's example).
    * Instantiation being administrative makes the different timing
      harmless: the right's instantiated body is an effect-free value.
 7. **Left `∀ᶜ`, right `gen`** (the right becomes polymorphic).
    `C = ∀C₀ ⊑ C′` (non-`∀`, through `∀⊑`), and `A = ∀A₀ ⊑ A′ = ∀A₀′`
    (shared).
    * Both sides instantiate at the shared type application, creating
-     `σ` and `σ′`.
-   * The hypothesis's `∀⊑` clause relates the left body at `σ`, with `σ`
-     left-only, to the right's *unwrapped* value.
-   * The right's `gen` wrapper conceals at `σ′`, tags with `σ′` (`X!`),
-     projects `?σ′`, and unseals.
-   * The same world-change lemma, in the other direction, turns
-     "`σ` left-only against the raw right value" into "`σ` shared with
-     `σ′` against the `gen`-wrapped right value".
+     `σ` and `α′`.
+   * Use the hypothesis's `∀⊑` clause at the contents relation
+     `tag α′ (▷α′ q)`.  It relates the left body at `σ` to the right's
+     *unwrapped* value, which sees the left's `σ`-sealed contents as
+     values tagged and sealed at `α′`.
+   * `gen`'s body cast projects `?α′` and injects `α′!` at the `X`
+     positions.  The world-change lemma's leaf conditions, used inside
+     the cast lemma, turn this into `σ` paired with `α′` at `q`.
    * Example: left `ΛX.λx:X.x`, right `(λx:★.x) ⟨gen (X! ↦ ?X)⟩`.  Both
      return the argument; a right `★→★` function that returns another
-     tag fails the right `?σ′`.  The hypothesis rules that out: such a
+     tag fails the right `?α′`.  The hypothesis rules that out: such a
      function is not related to the polymorphic identity at
      `∀X.X→X ⊑ ★→★`.
 8. **Different routes between the same types** (the counterexample of
@@ -439,21 +488,10 @@ and `bot-intro`.  The cases:
    * This needs no bound to be chosen, which is why option (b) works
      where factorization does not.
 
-**The world-change lemma** (cases 6 and 7) is the one genuinely new lemma.
-Relate two worlds that differ only in the entry for one left seal `σ`:
-* `left q`, where `σ`'s contents are related to raw right values;
-* `shared σ′ q`, where they are related to right values sealed at `σ′`,
-  or tagged and sealed at `σ′`.
-
-The lemma: a left list is related to a right set `D′` in the first world
-if and only if it is related to `wrap D′` in the second.  Here `wrap` is
-the right's boundary wrapper:
-* the reveal or conceal conversion at `σ′`, for a right `inst`;
-* `gen`'s tag/project plus the reveal, for a right `gen`.
-
-The proof is by induction on the precision derivation.  The wrappers are
-structural in the type, sealing in negative positions and unsealing in
-positive ones, so each clause lines up.
+**The world-change lemma** (cases 6 and 7) is stated and proved in
+Section 8b.  The version first sketched here compared two worlds that
+differ in one seal's entry.  That version is false, and fixing it
+changed the design of worlds; Section 8b explains why.
 
 **Coherence of derivations.** The two-sided rule takes *any* pair of
 derivations `c`, `c′` at related types.  So the lemma needs any two
@@ -473,31 +511,206 @@ derivations of the same judgement to agree semantically.
 
 **Status.**
 * Cases 1–3: the GTLC arguments, extended with left-only seals.
-* Cases 4 and 5: impossible, or reduce to case 1.
-* Cases 6–8: need the world-change lemma and the timing argument.
+* Cases 4 and 5: impossible, reduce to case 1, or use the transparent
+  tag relation (the third shape in case 5).
+* Cases 6 and 7: checked on paper with the world-change lemma
+  (Section 8b).
+* Case 8: to be redone with the revised design.
 
-The sketch finds no counterexample.  What it finds is the world-change
-lemma, which needs a precise statement and a paper proof before
-mechanization.
+## 8b. The world-change lemma, on paper
+
+**Outcome.** The lemma holds, but not in the form Section 8a first
+sketched.  Writing out its proof found two problems with keeping a
+seal's relation in the world.  The fix changes the design (Sections 4
+and 5 are revised):
+1. leaf relations move from the world to a relational environment `η`;
+2. the world keeps one *tag relation* per left seal, chosen
+   existentially when the seal is created.
+
+After the fix the lemma no longer changes the world.  It changes `η` at
+one variable, and it is the right-hand half of Section 7's conversion
+lemma.
+
+**Problem 1: later entries mention `σ`.**
+* In the first design a world entry was a closed derivation whose seal
+  leaves read the world, as in PolyG.
+* A later seal's contents can mention `σ`.  For example, the left body
+  runs `M [X]` after `σ` exists, creating `σ₂` with contents type `σ`.
+* Changing `σ`'s entry then changes the meaning of `σ₂`'s entry, while
+  the right values stored for `σ₂` are the same in both worlds.  So
+  "related in `W₁` iff related to `wrap D′` in `W₂`" fails at `σ₂`.
+* **Fix:** descriptors name seals by number (`◁σ`, `▷σ′`), so they
+  mean the same in every world.  A future of one world is then a
+  future of the other with the same entries.
+
+**Problem 2: the `★` clause read `σ`'s entry, and neither reading is
+right.**
+* At `★` the first design looked up whether `σ` is shared (the right
+  tags with `σ′`) or left-only (transparent).  Case 6 changes `σ` from
+  shared to left-only, which changes the `★` clause at `σ`-tags.
+* Neither reading relates the following programs, though they are
+  related.
+  * Let `f = λy:★. y` and `V = f ⟨gen (X! ↦ id)⟩ : ∀X.X→★`.  `V` tags
+    its argument with its instantiation seal and returns it.
+  * Left `V`, right `V ⟨inst c′⟩ : ★→★` with `c′ = ？X ↦ id`.  They are
+    related at `∀X.X→★ ⊑ ★→★` (`∀⊑`) by the one-sided right cast rule.
+  * Context: left `□ [𝔹] true`, right `□ (true⟨𝔹!⟩)`.
+  * The left creates `σ := 𝔹` and returns `inj σ (seal σ true)`.
+  * The right creates `α′ := ★` at the cast, then `V [α′]` creates
+    `β′ := α′`.  It returns `inj β′ (seal β′ (seal α′ (inj 𝔹 true)))`.
+  * Both results are opaque at `★`: any projection fails on both
+    sides, so the gradual guarantee is not at stake.
+  * The shared reading would need `σ` paired with `β′`, but `σ` is
+    left-only: the right did not instantiate when the left did.  The
+    transparent reading compares `true` with the right's `β′`-tagged
+    value at `𝔹 ⊑ ★`, and fails.
+* **Fix:** a tag relation per left seal, separate from the leaf
+  relation, chosen by the `∀` clause that creates the seal.  Here it is
+  `tag β′ (◁σ ▷β′ ▷α′ (tag 𝔹 ι))`.  The right's tag seal `β′` belongs
+  to the right value, so only the clause that sees that value can name
+  it.
+* The tag relation must be a descriptor, valid in any world, because
+  cases 6 and 7 reuse the hypothesis's tag relation in the conclusion.
+
+**Statement.** Fix a derivation `p` and a variable `X` of `p` that
+occurs only at leaves against a right variable: never under `★`, `tag`
+or `∀⊑★`.
+* A *right conversion at `X`* is a pair `(u, s)` of operations on right
+  value sets, for the positive and the negative leaves of `X`.  Each is
+  `𝒱 → ℛ`, may err, and keeps the counter.
+* `Conv_p^{u,s}` extends it along `p`:
+  * at `X`: `u`;
+  * at `ι`, `★`, `tag G r` and other variables: the identity;
+  * at `p₁ ⇒ p₂`: the function proxy.  Arguments go through
+    `Conv_{p₁}^{s,u}`, then the entries of `D′`, then results go through
+    `Conv_{p₂}^{u,s}`.  It contains `νλ` when `D′` does;
+  * at `∀⊑∀ r`: the `∀` proxy whose entries at `σ′` are
+    `D′ ◆ σ′ ≫= Conv_r`;
+  * at `∀⊑ r`: `Conv_r`, since the right has no binder there.
+* **Leaf conditions** for closed descriptors `ℓ₁`, `ℓ₂`, at every world
+  `W` (`L ▹ R` for a computation `R` means `L ▹` its values at the
+  right counter):
+  * `(u▹)`: `W ⊢ ℓ₁ ⊢ L ▹ D′` implies `W ⊢ ℓ₂ ⊢ L ▹ u D′`;
+  * `(s▹)`: `W ⊢ ℓ₂ ⊢ L ▹ E′` implies `W ⊢ ℓ₁ ⊢ L ▹ s E′`;
+  * `(u◃)`, `(s◃)`: the mirror for preservation.  If every finite list
+    from `D′` is `◃`-related to `D` at `ℓ₁`, then `u D′` does not err and
+    every finite list of its values is `◃`-related to `D` at `ℓ₂`.
+    Likewise for `s`.
+
+**Lemma.** If `(u, s)` satisfies the leaf conditions for `ℓ₁`, `ℓ₂`, then
+for every `W`, `η`, `L` and `D′`:
+
+    W ⊢ η[X ↦ ℓ₁] ⊢ p ⊢ L ▹ D′
+      implies   W ⊢ η[X ↦ ℓ₂] ⊢ p ⊢ L ▹ Conv_p^{u,s} D′
+
+and the mirror statement holds for preservation.
+
+The leaf conditions are symmetric under swapping `(ℓ₁, u)` with
+`(ℓ₂, s)`.  So the lemma for `(u, s)` and for `(s, u)` is proved
+together, as PolyG's cast cases are generic in the direction (`L▹⇒`,
+…).
+
+**Proof.** By induction on the fuel and on `p`, for both directions and
+both relations at once.
+* **Leaf `X`:** the leaf condition `(u▹)`.
+* **`ι`, `★`, `tag G r`, other variables:** `X` does not occur.  The two
+  environments agree on the free variables, and `Conv` is the identity.
+  The `★` clause reads only tag relations, which the lemma does not
+  change.
+* **`p₁ ⇒ p₂`.** Take a sublist `L₀`, a counter `m`, a future `W′`, and a
+  consistent `E′` with the arguments `▹ E′` at `p₁` under
+  `η[X ↦ ℓ₂]`.
+  * The swapped lemma on `p₁`: the arguments are related to `E₁`, the
+    values of `Conv_{p₁}^{s,u} E′`, at `p₁` under `η[X ↦ ℓ₁]`.  `E₁` is
+    consistent, because conversions preserve consistency.
+  * `L`'s function clause: the results `▹ᶜ D′ ● E₁` at `p₂`.
+  * The lemma on `p₂`, counter by counter, in the worlds that `▹ᶜ`
+    provides: the results `▹ᶜ (D′ ● E₁ ≫= Conv_{p₂})`.
+  * By finite support, that set is contained in
+    `(Conv_{p₁⇒p₂} D′) ● E′`.  Monotonicity in the set side finishes
+    the case.
+* **`∀⊑∀ r`** (bound `Z ≠ X`).  Given `W′`, `σ`, `σ′` and `q`, the
+  hypothesis provides a tag relation `t`.  It also gives the bodies
+  `▹ᶜ D′ ◆ σ′` at `r` under `η[X ↦ ℓ₁][Z ↦ ◁σ ▷σ′ q]`.
+  * Choose the same `t`.  It is a descriptor, so it means the same in
+    the conclusion.
+  * Apply the lemma to `r` counter by counter:
+    `(Conv D′) ◆ σ′ = D′ ◆ σ′ ≫= Conv_r`.
+* **`∀⊑ r`:** the same, against the right set itself, with `Conv_r`.
+* **Preservation:** the mirror.  A right error can come only from `u`
+  or `s` (for example `gen`'s projection), and the leaf condition
+  `(u◃)` rules it out.
+
+The proof never compares two worlds.  The change is all in `η` at `X`,
+and both sides extend the world in the same way.
+
+**Instances.**
+1. **Case 6** (left `∀ᶜ`, right `inst`), at the right's reveals:
+   * the descriptors are `ℓ₁ = ◁σ ▷β′ ▷α′ q₀` and `ℓ₂ = ◁σ q₀`;
+   * the conversions are `u` = unseal `β′` then unseal `α′`, and
+     `s` = seal `α′` then seal `β′`;
+   * the leaf conditions hold by definition, since unsealing after
+     sealing is the identity, and unsealing never errs.
+
+   The case, with its timing:
+   * The conclusion's `∀⊑` clause provides `W′` (left length `σ`) and
+     `q₀`, and asks for a `t`.
+   * Apply the hypothesis's `∀⊑∀` clause at the world with `W′`'s left
+     list and right counter `β′ = n′ + 1`, with `q′ = ▷α′ q₀`.  The cast
+     created `α′ = n′`.  The clause provides `t_h` and the bodies at
+     `◁σ ▷β′ ▷α′ q₀`.
+   * Then apply this lemma.
+   * Then apply the cast lemma's induction hypothesis for `c₀[σ]`
+     against `c′[★]`, with `X` left-only on both sides.
+   * Then Kripke monotonicity up to `W′`'s right counter.
+   * Choose `t = t_h`.
+2. **Case 7** (left `∀ᶜ`, right `gen`):
+   * `ℓ₁ = ◁σ (tag α′ (▷α′ q))`, the hypothesis's contents relation.  We
+     choose it, since the hypothesis's `∀⊑` clause is universal in its
+     contents relation.
+   * `ℓ₂ = ◁σ ▷α′ q`, the conclusion's.
+   * `u` projects `α′` (`?X`) and `s` injects it (`X!`).
+   * `(u▹)`: both sides say that the payloads are related at `q` to
+     `unseal α′ (untag α′ D′)`.
+   * `(u◃)`: `◃` at `ℓ₁` requires every right element to be tagged
+     `α′`, so the projection does not err.
+   * Here the conversion is not separate from the cast, because `gen`'s
+     body cast `c′` also acts at other positions.  So the cast lemma is
+     generalized:
+     * it takes a source and a target environment, `η_s` and `η_t`,
+       which differ at the variables bound by `gen` on the right;
+     * the leaf conditions hold at those variables;
+     * this lemma's leaf case is that induction's leaf case.
+   * Choose `t = t_h`.
+3. **The fundamental lemma's type application.** Both sides reveal:
+   `σ → T` on the left and `σ′ → T′` on the right.  The reveals take
+   `η[X ↦ ◁σ ▷σ′ q̂]` to the substituted derivation `p[q/X]`.  This is
+   the two-sided conversion lemma of Section 7.  It is proved the same
+   way, with the left conversion handled as in PolyG's left cast lemmas.
+
+**Still open.**
+* Case 8 (different routes) has to be redone in this design.  The left's
+  `inst`-then-`gen` route meets the right's `gen`-then-`inst` route, so
+  the environment changes at a different variable on each side.
+* The coherence obligation of Section 8a is unchanged.
 
 ## 9. Plan
 
 1. Risks 1, 2 and 4 are checked.  Decision for risk 1: option (b), a
    two-sided cast rule with a semantic monotonicity lemma.
-   * Define the cast-calculus term precision (Section 7).
-   * Prove that elaboration preserves it.
-   * The paper sketch of the cast monotonicity lemma is in Section 8a.
-     It found no counterexample.  Next: state and prove on paper the
-     world-change lemma it needs.
-   Define the cast-calculus term precision (Section 7), and prove that
-   elaboration preserves it.
+   * The paper sketch of the cast monotonicity lemma is in Section 8a,
+     and the world-change lemma is proved on paper in Section 8b.
+   * Next: redo case 8 in the revised design, then define the
+     cast-calculus term precision (Section 7) and prove that
+     elaboration preserves it.
 2. Port the PolyG model (`GraphModel`, `Denotation`) to GTSFImp's terms:
    * conversions;
    * consistency casts with modes;
    * `inst` and `gen` creating seals;
    * primitives.
 3. Consistency, soundness and adequacy (reusing GTSFImp's type safety).
-4. Two-counter worlds; the relations (Section 5); their properties.
+4. Descriptors, environments and worlds (Section 4); the relations
+   (Section 5); their properties.
 5. The conversion lemma; monotonicity of consistency casts.
 6. The fundamental lemma on cast-calculus precision; the theorem, in the
    form of

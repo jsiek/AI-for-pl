@@ -1,6 +1,8 @@
 # A Denotational Proof of the Dynamic Gradual Guarantee for GTLC
 
-Status: design on paper, not mechanized.  The graph model with errors is
+Status: mechanized in `GTLC/agda/` (checked with `agda --safe`); the
+theorem is `dynamic-gradual-guarantee-observational` in `MetaTheory.agda`.
+Section 13 records where the mechanization departs from this design.  The graph model with errors is
 that of `denotational_semantics` (`Framework/GraphModel/`,
 `Semantics/GraphErr/`); the cast calculus, coercions and precision are
 those of `GTLC/agda/` (`CastCalculus.agda`, `Coercions.agda`).
@@ -60,7 +62,6 @@ Notation, for sets `D`, `E` of values:
 * `D ≫= F`: `ω` when `ω ∈ D`, and `F ⌊D⌋` when `Conv D`
   (`Framework/GraphModel/ErrorMonad.agda`);
 * `guard X D = D` when `Conv X`, and `∅` otherwise;
-* `Con D`: the elements of `D` are pairwise consistent (`~`).
 
 ## 3. Semantics of the cast calculus
 
@@ -86,10 +87,8 @@ Coercions, as functions on value sets `X`:
     ⟦ ⊥ A ⇨ B at ℓ ⟧X    = guard X { ω }
 
 Recall `⊢ c ↦ d ⦂ (A ⇒ B) ⇨ (C ⇒ D)` when `⊢ c ⦂ C ⇨ A` and
-`⊢ d ⦂ B ⇨ D`.  Every `⟦ c ⟧` is strict (`⟦ c ⟧∅ = ∅`), monotone,
-continuous, and preserves consistency (on a consistent `X` all tags
-agree, since `left x ~ right y` is false, so `⟦ G ?ℓ ⟧X` either
-untags or errs, never both).
+`⊢ d ⦂ B ⇨ D`.  Every `⟦ c ⟧` is strict (`⟦ c ⟧∅ = ∅`), monotone and
+continuous (finitary).
 
 Each cast reduction holds as an equation.  For example, by `Λ-β`
 (Section 6),
@@ -113,7 +112,7 @@ Both relations are indexed by a type precision `A ⊑ A′`.  Write
     tag G u ◃ᵛ D′ : ★ ⊑ A′   (A′ ≠ ★)   iff  G ⊑ A′  and  u ◃ᵛ D′ : G ⊑ A′
     ν ◃ᵛ D′ : A ⇒ B ⊑ A′ ⇒ B′           iff  ν ∈ D′
     (U ↦ w) ◃ᵛ D′ : A ⇒ B ⊑ A′ ⇒ B′     iff  ν ∈ D′  and
-        for every consistent value set E′,
+        for every value set E′,
           if  u ◃ E′ : A ⊑ A′  for every u ∈ U
           then  w ◃ (⌊D′⌋ ● E′) : B ⊑ B′
     otherwise                            false
@@ -129,7 +128,7 @@ Both relations are indexed by a type precision `A ⊑ A′`.  Write
                                               where G ⊑ A′
     D ▹ᵛ ν : A ⇒ B ⊑ A′ ⇒ B′             iff  ν ∈ D
     D ▹ᵛ (V′ ↦ w′) : A ⇒ B ⊑ A′ ⇒ B′     iff  ν ∈ D  and
-        for every consistent value set E,
+        for every value set E,
           if  E ▹ v′ : A ⊑ A′  for every v′ ∈ V′
           then  (⌊D⌋ ● E) ▹ w′ : B ⊑ B′
     otherwise                             false
@@ -217,15 +216,13 @@ quantify over sets, so they live in `Set₁`.
 * *Monotonicity.*  If `d ◃ D′` and `D′ ⊆ D″`, then `d ◃ D″`.  If
   `D ▹ d′` and `D ⊆ D″`, then `D″ ▹ d′`.  Also `D ▹ᵛ d′` iff
   `⌊D⌋ ▹ᵛ d′`.
-* *Λ-β.*  If `E` is a nonempty consistent value set and `F` is monotone
-  and continuous, then `Λᵐ F ● E = F E`.
-* *Consistency.*  If `ρ` is consistent, then `⟦ M ⟧ρ` is consistent,
-  and each `⟦ c ⟧` preserves consistency.
+* *Λ-β.*  If `E` is a nonempty value set and `F` is monotone
+  and continuous, then `F E ⊆ Λᵐ F ● E`.
 * *Bind.*  If `D ◃ D′`, and `F X ◃ F′ X′` whenever `X ◃ X′` are
-  consistent value sets, then `(D ≫= F) ◃ (D′ ≫= F′)`.  Likewise
+  value sets, then `(D ≫= F) ◃ (D′ ≫= F′)`.  Likewise
   for `▹`.
 * *Application.*  If `X ◃ X′ : A ⇒ B ⊑ A′ ⇒ B′` and `Y ◃ Y′ : A ⊑ A′`,
-  with `Y′` consistent, then `(X ● Y) ◃ (X′ ● Y′) : B ⊑ B′`.  Likewise
+  with `Y′` a value set, then `(X ● Y) ◃ (X′ ● Y′) : B ⊑ B′`.  Likewise
   for `▹`.
 
 Proof of *Application* for `◃`.  Let `w ∈ X ● Y` by `U ↦ w ∈ X`,
@@ -248,7 +245,7 @@ and `w ∈ F ⌊D⌋`.  If `ω ∈ D′`, then `ω ∈ D′ ≫= F′`.  Otherwi
 ## 7. Fundamental lemma
 
 **Lemma.**  If `ρ ⊑ᵉ ρ′ ⊢ M ⦂ A ⊑ᶜᵀ M′ ⦂ A′` and `ρ ◃ ρ′`
-(consistent value sets), then `⟦ M ⟧ρ ◃ ⟦ M′ ⟧ρ′ : A ⊑ A′`.  Likewise
+(value sets), then `⟦ M ⟧ρ ◃ ⟦ M′ ⟧ρ′ : A ⊑ A′`.  Likewise
 for `▹`.
 
 By induction on the precision derivation.
@@ -265,7 +262,7 @@ By the environment relation.
 
 For `◃`: `ν` is in both.  Let `(U ↦ w) ∈ ⟦ ƛ A ⇒ N ⟧ρ`, so
 `w ∈ ⟦ N ⟧ρ[x ↦ mem U]` and `U` is a nonempty list of values.  Let `E′`
-be a consistent value set with `u ◃ E′` for each `u ∈ U`.  `E′` is
+be a value set with `u ◃ E′` for each `u ∈ U`.  `E′` is
 nonempty by convergence transfer, so by `Λ-β`
 
     ⟦ ƛ A′ ⇒ N′ ⟧ρ′ ● E′ = ⟦ N′ ⟧ρ′[x ↦ E′].
@@ -301,7 +298,7 @@ The right side is `{ ω }`: `d ◃ { ω }` for every `d`, and
 ## 8. Coercion lemma
 
 Say `c ◃ c′` (at `⊢ c ⦂ A ⇨ B`, `⊢ c′ ⦂ A′ ⇨ B′`, `A ⊑ A′`,
-`B ⊑ B′`) when, for all consistent value sets `X`, `X′`, if
+`B ⊑ B′`) when, for all value sets `X`, `X′`, if
 `X ◃ X′ : A ⊑ A′` then `⟦ c ⟧X ◃ ⟦ c′ ⟧X′ : B ⊑ B′`; likewise
 `c ▹ c′`.
 
@@ -463,7 +460,7 @@ blames, as clause 3 allows.
 Replacing `5` by `λz:★. z` (tagged into `★`) makes the projection
 succeed.  The right result is then a function at `ℕ ⇒ ℕ` with entries
 `[n] ↦ n`, and `D ▹ ([n] ↦ n) : ★ ⊑ ℕ ⇒ ℕ` unfolds to: for every
-consistent `E` with `tag ℕ n ∈ E`,
+value set `E` with `tag ℕ n ∈ E`,
 `(untag_{★⇒★} D ● E) ▹ n : ★ ⊑ ℕ`, that is,
 `tag ℕ n ∈ untag_{★⇒★} D ● E`, which holds because the left function
 is the identity.
@@ -472,8 +469,8 @@ is the identity.
 
 To build:
 
-1. the semantics of Section 3, with strictness, monotonicity,
-   continuity and consistency;
+1. the semantics of Section 3, with strictness, monotonicity and
+   continuity;
 2. the relations and the lemmas of Section 6;
 3. the coercion lemma (15 rules, two directions);
 4. the fundamental lemma (8 rules, two directions);
@@ -498,3 +495,44 @@ arguments for the divergence clauses in
 * Transitivity of `◃` and `▹` along a chain of three programs is not
   needed for the guarantee and is not obvious: the function clause does
   not name an intermediate argument set.
+
+## 13. The mechanization
+
+Modules (in `GTLC/agda/`): `GraphModel`, `Denotation` (public);
+`proof/DenotProps` (monotonicity, finite support, `Λ-β`),
+`proof/DenotSoundness`, `proof/CastDeterminism`, `proof/DenotAdequacy`,
+`proof/DenotRelation` (`◃`, `▹`), `proof/DenotCompat` (bind,
+application), `proof/DenotCoercion` (Section 8), `proof/DenotFundamental`
+(Section 7), `proof/DenotGradualGuarantee` (Section 9).  About 3,400
+lines in all, against about 2,450 for the operational proof
+(`proof/DynamicGradualGuarantee*.agda`); the denotational count includes
+the graph model, soundness, adequacy and determinism of reduction, which
+the operational proof does not need.
+
+Where it departs from Sections 3–9:
+
+* *No consistency.*  `Λ` here has no `V ≈ V` side condition, so `Λ-β`
+  needs only a nonempty value set, and no lemma about consistent sets is
+  needed anywhere.
+* *Constructive escapes.*  Whether a set holds `ω` cannot be decided.  The
+  right side of `◃` may hold both `ω` and values, so bind for `◃`
+  (`fbind◃`) works one element at a time: an element of `F ⌊ D ⌋` depends
+  on a finite list of elements of `D` (the operators are finitary), and on
+  a finite list either some element is justified only by `ω ∈ D′` (then
+  the whole right side errs) or every element is justified by the values
+  of `D′`.  The coercion lemma is stated on value sets on both sides
+  (`Coe◃`, `Coe▹` in `proof/DenotCompat.agda`).
+* *Two harmless hypotheses in the function clauses.*  The clause of `◃`
+  for `U ⟼ w` assumes `U ≢ []`; that of `▹` for `V′ ⟼ w′` assumes
+  `V′ ≢ []` and that `V′` holds no `ω`.  Every entry made by `Λ` or used
+  by `●` satisfies them; without the second, `D ▹ ω` (which always holds)
+  would make the clause hold for every `E`, including the empty set.
+* *Termination.*  Both relations are structurally recursive on the
+  element (the `★ ⊑ A′` clause of `▹` is unfolded inline); no fuel was
+  needed.
+* *Determinism.*  Adequacy uses determinism of reduction, so that every
+  element of an argument set is realized by the same syntactic value.
+  The guarantee itself does not use determinacy of the denotation.
+* *Inference.*  `ValSet` is a record, so that Agda can recover the set
+  from it; the relations are functions, so set arguments are often given
+  explicitly.

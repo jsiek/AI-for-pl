@@ -1,6 +1,8 @@
 # A Denotational Proof of the Dynamic Gradual Guarantee for GTSFImp
 
-Status: design on paper; nothing is mechanized.
+Status: design on paper; nothing is mechanized.  Revised after review:
+the fundamental lemma is on cast-calculus precision, and the GSF and
+`Catchup` counterexamples are checked (Section 8).
 
 This builds on the PolyG warm-up:
 * `PolyG/notes/denotational-graduality.md`;
@@ -38,11 +40,18 @@ is the *more* precise one.
        programs, so worlds only count it.
   4. **Conversions.** Sealing and unsealing (`↓ seal`, `↑ unseal`) are
      inserted by allocation; they get their own lemma.
-  5. **The fundamental lemma is on source precision.** It goes by
-     induction on `GradualTermImprecision` through `compile`.  The
-     existing target relation (`proof/DGG/CastTermImprecision`, `⊢²`) is
-     not used.  The cast lemma becomes *monotonicity of consistency
-     casts*: two casts, one on each side, at related types.
+  5. **The fundamental lemma is on cast-calculus precision.** It uses a
+     new, simplified term precision for the cast calculus (Section 7)
+     with one-sided cast rules, as in PolyG, and elaboration must
+     preserve it.  The existing target relation
+     (`proof/DGG/CastTermImprecision`, `⊢²`) is not used.
+  6. **Two type contexts in precision.** Type precision relates a left
+     context and a right context through a variable correspondence: each
+     left variable is either paired with a right variable or left-only.
+     `X ⊑ Y` needs a pair, and `X ⊑ ★` needs a left-only `X`.  GTSFImp's
+     single-context type precision, where `X ⊑ X` is derivable
+     unconditionally, is what admits the `Catchup` counterexample
+     (Section 8).
 
 ## 2. The language, as far as the proof is concerned
 
@@ -193,16 +202,42 @@ Kripke closures, consistency on the set side), with these changes:
 
 ## 7. The lemmas
 
-* **Monotonicity of consistency casts.** This replaces PolyG's eight
-  one-sided cast lemmas, because `compile` inserts a cast on both sides
-  at corresponding places.
-  * Statement: for `c : μ ⊢ C ∼ A` (left) and `c′ : μ ⊢ C′ ∼ A′` (right),
-    with `C ⊑ C′` and `A ⊑ A′`, inputs related at `C ⊑ C′` give outputs
-    related at `A ⊑ A′`, in both relations.
-  * The proof is by induction on `c` and `c′`, with cases for `id`, `↦`,
-    `∀ᶜ`, `!`, `？`, `inst`, `gen`, `bot-elim` and `bot-intro`.
-  * `inst` and `gen` create seals, so the lemma lives at the level of
-    computations, with world extensions.
+* **Cast-calculus term precision.** This replaces the use of
+  `GradualTermImprecision` in the fundamental lemma.
+  * It is a new relation between cast terms over two type contexts with
+    a variable correspondence (summary item 6).
+  * It has structural rules, the one-sided `Λ` and type-application rules
+    (left `Λ` or `[T]`, right nothing, through a left-only variable), and
+    one-sided cast rules.
+* **The one-sided cast rules.** By `proof/ImprecisionConsistency.agda`,
+  consistency means having a common lower bound.  `Consistency2.agda`
+  selects one, `lower? A B`, with unique evidence.  Read a cast
+  `c : A ∼ B` semantically as "down from `A` to `D = lower? A B`, then up
+  to `B`".  The PolyG rules then give, for the right side at type `C`:
+  * **left cast** `M ⟨c⟩ ⊑ M′`: from `M ⊑ M′` at `A ⊑ C`, given `B ⊑ C`;
+  * **right cast** `M ⊑ M′ ⟨c′⟩` with `c′ : B ∼ C`: from `M ⊑ M′` at
+    `A ⊑ B`, given `A ⊑ lower? B C`.  The left type must lie below the
+    *selected* bound, not merely below `B` and `C`, because lower bounds
+    are not unique.
+* **The cast lemmas** are proved per rule, as in PolyG, through two
+  pieces:
+  * a factorization lemma: `⟦c⟧` equals down-to-`D` followed by up-to-`B`;
+  * the PolyG up and down cast lemmas, extended with `inst`, `gen`, seal
+    tags and the `bot` rules.
+* **Elaboration preserves precision.** `compile` puts a cast on each side
+  of a source application: `c : C ∼ A` on the left and `c′ : C′ ∼ A′` on
+  the right, with `C ⊑ C′` and `A ⊑ A′`.  With `D = lower? C A` and
+  `D′ = lower? C′ A′`, the derivation is:
+  1. down on the left (to `D`);
+  2. down on the right (to `D′`, needs `D ⊑ D′`);
+  3. up on the right (to `A′`, needs `D ⊑ A′`, which holds);
+  4. up on the left (to `A`, needs `A ⊑ A′`, which holds).
+
+  So **monotonicity of the selected lower bound**,
+  `C ⊑ C′ → A ⊑ A′ → lower? C A ⊑ lower? C′ A′`, is exactly what
+  elaboration needs.  This is where the choice of a minimal bound
+  matters.  GTSF met the same question as its non-monotone MLB problem
+  (`∀Y.∀X.X→Y` against `∀X.∀Y.X→Y`, `GTSF/notes.md`).
 * **Conversion lemma.** The reveal and conceal conversions
   `〖α , R ↑ B〗` and `makeConceal` relate the two forms of a seal:
   * a shared pairing of `α` seen through the conversions;
@@ -214,39 +249,72 @@ Kripke closures, consistency on the set side), with these changes:
 
 ## 8. Risks and open questions
 
-1. **Monotonicity for arbitrary consistency derivations.**
-   * Source precision allows *any* derivations `A ∼ C` and `A′ ∼ C′` in
-     its application rules.
-   * If two derivations of the same consistency judgement behave
-     differently, the lemma could fail for mismatched choices.
-   * Mitigation: check uniqueness of consistency derivations up to
-     behaviour, or restrict the rules to the derivations `compile`
-     uses.
-   * The first mechanization step should be a paper or Agda check of
-     this lemma on `inst`, `gen` and the variable-ground cases.
-2. **The GSF counterexample** (Toro, Labrada and Tanter, POPL 2019).
-   * Design-level graduality failures were found in GSF-like languages.
-   * Before investing, check on paper that GTSFImp's `X ⊑ ★` marks and
-     `gen` tags avoid that shape: a `∀X.X→X` at `[ℕ]` versus `[★]`, and a
-     sealed value escaping through `★`.
-   * The relation in Section 5 would also expose a failure, as an
-     unprovable `★` case.
+1. **Monotonicity of the selected lower bound** (Section 7).
+   * Elaboration preserving precision needs `lower?` to be monotone in
+     both arguments.
+   * GTSFImp compares `∀` types structurally (`∀ᶜ`), so the binder
+     permutations behind GTSF's counterexample may not arise.
+   * But `inst` and `gen` give alternative routes between two `∀` types,
+     so this must be checked.
+   * If `lower?` is not monotone, there are two fallbacks:
+     * choose a different, monotone selector (the type checker picks the
+       bound);
+     * keep a two-sided cast rule whose premise is the needed bound
+       inequality, and have elaboration establish it.
+   * **This is the first thing to check.**
+2. **The GSF counterexample: checked, excluded by precision.**
+   * The counterexample (Labrada, Toro and Tanter, Section 8.1) is
+     `idX = ΛX.λx:X.x :: X` against `id? = ΛX.λx:?.x :: X`.
+     `idX [Int] 1` gives `1`, but `id? [Int] 1` errors.
+   * In GTSFImp the two are not related.
+     * `Λ⊑Λᴳ` checks the body under `extᵐ`, where `X ⊑ X` only, so
+       `λx:X ⊑ λx:★` is not derivable.  `X ⊑ ★` exists only for
+       `instᵐ` variables.
+     * Those come from `∀⊑` (`Λ⊑ᴳ`), where the right side has no `Λ` and
+       no type application at all.
+   * This is GSF's *strict* precision for `Λ`-bound variables.  The
+     cause of their failure is non-monotone consistent transitivity
+     (`⟨Int, α⟩ ∘ ⟨α, Int⟩` against `⟨Int, α⟩ ∘ ⟨?, ?⟩`).  That needs a
+     *shared* seal related to `?`, which strict precision forbids.
+   * The `X ⊑ ★` that GTSFImp does allow is one-sided: the right program
+     never seals.  The relation's left-only seal clause handles it, and
+     the related variant checks on paper:
+     * left `idX [Int] 1` against right `(λx:★. x) 1`, through `Λ⊑ᴳ` and
+       `[]⊑ᴳ`;
+     * both give `1`, related at `Int ⊑ ★`.
 3. **The `bot` rules.**
    * `bot-intro` blames eagerly, which is fine on the left (an error is
      allowed) and must be matched on the right.
    * `bot-elim` relates the empty universal, which has no closed value.
-4. **The known `Catchup` counterexample** (`Catchup/ExtraCastRightLemma`).
-   It refuted one lemma of the *operational* relation, a sealed left
-   value against an unsealed right value at `★`.  The left-only seal
-   clause is exactly the semantic statement of that case, so the case
-   should go through here.  Checking it is a good early test.
+4. **The `Catchup` counterexample: checked, excluded by two-context
+   precision.**
+   * `Catchup/ExtraCastRightLemma.agda.pending` relates a left sealed
+     value to a right raw `★` value at `＇X ⊑ ★`:
+     `(($ 0) ⟨ℕ!⟩) ↓ seal X ★` against `($ 0) ⟨ℕ!⟩`.
+   * It then asks for an extra right projection `★ ∼ ＇Y` with
+     `＇X ⊑ ＇Y`.  The right term blames, so the operational lemma is
+     false.
+   * In the semantic design the first pair *is* related: `X` is a
+     left-only seal represented by `★`, and its contents `($ 0) ⟨ℕ!⟩` are
+     related to the right value at `★ ⊑ ★`.
+   * But the extra cast cannot be stated, because `X` is left-only:
+     * a left-only `X` has no right partner;
+     * so `＇X ⊑ ＇Y` is not derivable in a two-context type precision;
+     * so the one-sided right cast rule does not apply.
+   * The counterexample exists only because GTSFImp's type precision has
+     one shared context, where `X ⊑ X` holds unconditionally even for a
+     variable the right program never binds.
+   * **Lesson for the new precision:** `X ⊑ Y` must require a paired
+     variable.
 5. **De Bruijn store shifting.** Allocation shifts the whole term
    (`⇑ᵗᵐ`).  The denotation with seal numbers sidesteps this, but
    soundness needs a renaming lemma for intrinsically scoped terms.
 
 ## 9. Plan
 
-1. Paper-check risks 1, 2 and 4.
+1. Check risk 1: is `lower?` monotone?  (Risks 2 and 4 are checked.)
+   Define the cast-calculus term precision (Section 7), and prove that
+   elaboration preserves it.
 2. Port the PolyG model (`GraphModel`, `Denotation`) to GTSFImp's terms:
    * conversions;
    * consistency casts with modes;
@@ -255,7 +323,8 @@ Kripke closures, consistency on the set side), with these changes:
 3. Consistency, soundness and adequacy (reusing GTSFImp's type safety).
 4. Two-counter worlds; the relations (Section 5); their properties.
 5. The conversion lemma; monotonicity of consistency casts.
-6. The fundamental lemma on source precision; the theorem, in the form of
+6. The fundamental lemma on cast-calculus precision; the theorem, in the
+   form of
    `proof/DGG/DynamicGradualGuaranteeDef.agda`.
 
 Estimate: larger than PolyG's denotational part, 12,000–16,000 lines,

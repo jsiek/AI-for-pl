@@ -34,8 +34,10 @@ open import Denotation
 Lift₁ : Set → Set₁
 Lift₁ = Lift (Level.suc Level.zero)
 
--- the relation of a closed label does not depend on the seal
--- environment; this is the one used for it
+-- the seal environment used for what a value carries (the label of a
+-- seal, the ground of an injection): these are closed, and reading them
+-- at a fixed environment makes the relations invariant under
+-- substitution
 θ₀ : SEnv
 θ₀ i = zero
 
@@ -59,7 +61,7 @@ mutual
   θ ⊢ ★⊑ ⊢ vtrue ▹ᵛ D′ = ⊥₁
   θ ⊢ ★⊑ ⊢ vfalse ▹ᵛ D′ = ⊥₁
   θ ⊢ ★⊑ ⊢ sealᵛ σ ℓ u ▹ᵛ D′ = ⊥₁
-  θ ⊢ ★⊑ ⊢ injᵛ G u ▹ᵛ D′ = θ ⊢ gp G ⊢ u ▹ᵛ untag G D′
+  θ ⊢ ★⊑ ⊢ injᵛ G u ▹ᵛ D′ = θ₀ ⊢ gp G ⊢ u ▹ᵛ untag G D′
   θ ⊢ ★⊑ ⊢ U ⟼ r at m ▹ᵛ D′ = ⊥₁
   θ ⊢ ★⊑ ⊢ σℓ ⟼∀ r ▹ᵛ D′ = ⊥₁
   θ ⊢ ★⊑ ⊢ ν ▹ᵛ D′ = ⊥₁
@@ -116,7 +118,7 @@ mutual
   θ ⊢ ★⊑ ⊢ D ◃ᵛ vtrue = ⊥₁
   θ ⊢ ★⊑ ⊢ D ◃ᵛ vfalse = ⊥₁
   θ ⊢ ★⊑ ⊢ D ◃ᵛ sealᵛ σ ℓ u′ = ⊥₁
-  θ ⊢ ★⊑ ⊢ D ◃ᵛ injᵛ G u′ = θ ⊢ gp G ⊢ untag G D ◃ᵛ u′
+  θ ⊢ ★⊑ ⊢ D ◃ᵛ injᵛ G u′ = θ₀ ⊢ gp G ⊢ untag G D ◃ᵛ u′
   θ ⊢ ★⊑ ⊢ D ◃ᵛ U′ ⟼ r′ at m = ⊥₁
   θ ⊢ ★⊑ ⊢ D ◃ᵛ σℓ ⟼∀ r′ = ⊥₁
   θ ⊢ ★⊑ ⊢ D ◃ᵛ ν = ⊥₁

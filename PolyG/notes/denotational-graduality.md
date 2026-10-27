@@ -1,6 +1,7 @@
 # A Denotational Proof of Graduality for PolyGν
 
-Status: design on paper; nothing here is mechanized yet.  This is the
+Status: design on paper (revised: worlds, consistency, joint lists).
+The substrate (Section 9) is mechanized; the denotational part is not.  This is the
 warm-up for GTSFImp (Section 11).  It follows the GTLC design,
 `GTLC/notes/denotational-gg.md`, and the GTLC mechanization in
 `GTLC/agda/` (`GraphModel.agda`, `Denotation.agda`, `proof/Denot*.agda`).
@@ -24,40 +25,37 @@ precise one (`tag_G(A⊑) : A ⊑ ?`).
 
 ## 1. Summary
 
-* **Seals are created in lockstep.** The more precise and the less
-  precise program create seals together (Section 2), so one counter
-  serves both sides and related seals are equal.  The paper's partial
-  bijection between the two stores is the identity.
-* **The denotation threads that counter.** A term denotes, for each
-  starting counter `n`, a set of results `ret v n′` and `err`.
-  Divergence is the empty set, as in GTLC.  The store's types are not
-  part of the denotation, since reduction never reads them.
-* **A `Λν` denotes a graph** from the fresh seal its instantiation
-  creates to the result of its body.  This is the thesis's reading:
-  instantiation creates the seal.
-* **Seals carry their precision; there are no worlds.** (This replaces
-  the world-based design of the first draft; Section 5 explains why
-  worlds fail here.)  Each instantiation carries a label, a precision
-  derivation that does not affect evaluation.
-  * The two related programs are relabeled so that corresponding
-    instantiations carry the same label, namely the derivation `B⊑`
-    that term precision gives for their instantiating types.
-  * A seal in the model is a number with the closed label of the
-    instantiation that created it.
-  * So a sealed value carries the derivation that relates its contents
-    on the two sides.
-* **The relations are indexed only by a precision derivation and a seal
-  environment.** They are the two relations of GTLC (reflection `▹` and
-  preservation `◃`), each defined by recursion on its element.  There
-  is no world, no Kripke quantification, no step indexing, and no
-  typing in the relation.
+* **Seals are created in lockstep** (Section 2).  One counter serves
+  both programs, and a seal has the same number on both sides.  The
+  paper's partial bijection between the two stores is the identity.
+* **The model is a graph model with a seal counter and consistency.**
+  * A term denotes, for each starting counter, a set of results
+    `ret v m` and `err`; divergence is the empty set.
+  * As in the compiler-correctness development, the binders take only
+    consistent argument lists.  So a denotation under a consistent
+    environment is a consistent set: its elements are approximations of
+    one outcome along one evaluation path.
+  * A `Λν` denotes a graph from the fresh seal its instantiation
+    creates to the result of its body.
+* **The relations use Max's worlds.**
+  * A world gives, for each seal created so far, the precision
+    derivation that relates its contents on the two sides.
+  * A computation's world is existential, extended at each
+    instantiation, and closures quantify over future worlds.
+* **The relations relate finite lists jointly, not single elements.**
+  * An existential world must cover every element that a later step
+    uses together: an entry and its argument list, or a group of
+    results passed to a continuation.
+  * So the relations relate a finite list of elements on one side to a
+    set on the other, under one world (Section 5).
+  * They are defined by recursion on the total size of the list, and
+    then on the precision derivation.
 * **The proof has the GTLC shape.**
   * The fundamental lemma is two independent inductions on PolyCν term
-    precision, with eight cast lemmas: up and down casts on either side,
-    for each relation.
+    precision, with eight cast lemmas.
   * Elaboration preserves term precision (the thesis's Lemma 218), so
     the theorem is stated for PolyGν.
-  * The theorem follows from soundness, adequacy and type safety.
+  * It follows from soundness, adequacy and type safety.
 
 ## 2. Instantiation, and why seals are created in lockstep
 
@@ -96,25 +94,42 @@ one side only (Section 11).
 
 ## 3. The model
 
-A seal is a natural number together with a *label*: a closed precision
-derivation, the label of the instantiation that created it (Section 5).
-A type environment `δ` maps type variables to labelled seals; `θ` is
-its seal-number part, which is all that casts and tags need.
+Seals are natural numbers.  A seal environment `θ` maps type variables
+to seals; `θ̂` extends it to names (`θ̂ X = θ X`, `θ̂ σ = σ`) and to
+grounds.
 
 Values and results:
 
-    v ::= true | false | seal σ ℓ v | inj G v
+    v ::= true | false | seal σ v | inj G v
         | (U , m) ⟼ r        function entry: arguments U at counter m
-        | (σ , ℓ) ⟼∀ r       Λν entry: instantiated at labelled seal (σ , ℓ)
-        | ν                  the empty closure
+        | σ ⟼∀ r             Λν entry: instantiated at the fresh seal σ
+        | νλ | ν∀            the empty function and the empty Λν
     r ::= ret v m | err
 
 * `U` is a finite nonempty list of values.
 * `G` is a closed ground: `σ`, `Bool`, `? → ?` or `∀ν X.?`.
 * Values never contain `err`, so GTLC's `ValSet` and `NoErr` bookkeeping
   disappears.
-* A computation denotes, for each starting counter, a set of results.
-  An environment holds sets of values, as in GTLC.
+* There are two empty closures, so that a cast at `⇒` or `∀ν` applied to
+  the wrong kind of value denotes nothing, like the stuck term it is.
+  With a single `ν`, `cast up (∀⊑ ★⊑) true` would denote a `Λν` and
+  adequacy would fail.
+
+**Consistency**, as in the compiler-correctness development:
+
+    b ~ b
+    seal σ u ~ seal σ′ u′          iff σ = σ′ and u ~ u′
+    inj G u ~ inj H u′             iff G = H and u ~ u′
+    (U , m) ⟼ r ~ (U′ , m′) ⟼ r′   iff m = m′ and U ≈ U′ imply r ~ r′
+    σ ⟼∀ r ~ σ′ ⟼∀ r′              iff σ = σ′ implies r ~ r′
+    νλ ~ νλ, and νλ ~ any function entry (both ways)
+    ν∀ ~ ν∀, and ν∀ ~ any Λν entry (both ways)
+    ret v m ~ ret v′ m′            iff m = m′ and v ~ v′
+    err ~ err
+    anything else                  inconsistent
+
+Here `U ≈ U′` holds when every element of `U` is consistent with every
+element of `U′`.
 
 For a set of results `R`:
 
@@ -122,138 +137,170 @@ For a set of results `R`:
     R ≫= K = { err | err ∈ R }
            ∪ ⋃ₘ { r | ⌊R⌋ₘ ≠ ∅ , r ∈ K ⌊R⌋ₘ m }
 
-The guard `⌊R⌋ₘ ≠ ∅` is GTLC's `Conv`.  Grouping results by their final
-counter is the only new thing about bind.
+Closures bind only finite, nonempty, consistent lists:
 
-Closures, as GTLC's `Λ` and `●`, with the counter carried in the entry:
-
-    Λ F      = { (U , m) ⟼ r | r ∈ F (mem U) m , U ≠ [] } ∪ {ν}
+    Λ F      = { (U , m) ⟼ r | r ∈ F (mem U) m , U ≠ [] , U ≈ U } ∪ {νλ}
     F ●ₘ E   = { r | (U , m) ⟼ r ∈ F , mem U ⊆ E }
-    Λν F     = { σℓ ⟼∀ r | r ∈ F σℓ } ∪ {ν}
-    F ◆ σℓ   = { r | σℓ ⟼∀ r ∈ F }
+    Λν F     = { σ ⟼∀ r | r ∈ F σ } ∪ {ν∀}
+    F ◆ σ    = { r | σ ⟼∀ r ∈ F }
 
 The body of a `Λν` entry for seal `σ` starts from counter `σ + 1`,
 because instantiation creates seal `σ` from counter `σ`.
 
+**Consistency theorem.** If every set in the environment is consistent,
+so is every denotation.  The proof is by induction on terms, as in the
+compiler-correctness development.  As a consequence, all values in a
+denotation end at the same counter, because `ret v m ~ ret v′ m′` needs
+`m = m′`.
+
 ## 4. The denotation
 
-`⟦M⟧ S δ ρ n`, for PolyCν, where `S` gives the labels of the seals that
-exist before evaluation starts (runtime terms name them as `tseal σ`).
-`ret D n` is `{ ret v n | v ∈ D }`.  Selected clauses:
+`⟦M⟧ θ ρ n` for PolyCν; a runtime name `tseal σ` denotes `σ`.  `ret D n`
+is `{ ret v n | v ∈ D }`.  Selected clauses:
 
     ⟦x⟧                   = ret (ρ x) n
     ⟦℧⟧                   = {err}
-    ⟦λx:A. M⟧             = ret (Λ (λ E m → ⟦M⟧ δ (E • ρ) m)) n
+    ⟦λx:A. M⟧             = ret (Λ (λ E m → ⟦M⟧ θ (E • ρ) m)) n
     ⟦M N⟧                 = ⟦M⟧ n ≫= λ F n₁ → ⟦N⟧ n₁ ≫= λ E n₂ → F ●ₙ₂ E
-    ⟦Λν{X.(cs, M)}⟧       = ret (Λν (λ σℓ → ⟦cs⟧ (⟦M⟧ (σℓ • δ) ρ (σ + 1)))) n
-    ⟦let x = M{X≅B|ℓ}; N⟧ = ⟦M⟧ n ≫= λ F n₁ →
-                            F ◆ (n₁ , ⟦ℓ⟧θ) ≫= λ E n₂ →
-                            ⟦N⟧ ((n₁ , ⟦ℓ⟧θ) • δ) (E • ρ) n₂
-    ⟦seal α M⟧            = ⟦M⟧ n ≫= λ E n₁ → ret (seal (δ̂ α) E) n₁
-    ⟦unseal α M⟧          = ⟦M⟧ n ≫= λ E n₁ → ret (unseal (δ̂ α) E) n₁
+    ⟦Λν{X.(cs, M)}⟧       = ret (Λν (λ σ → ⟦cs⟧ (⟦M⟧ (σ • θ) ρ (σ + 1)))) n
+    ⟦let x = M{X≅B}; N⟧   = ⟦M⟧ n ≫= λ F n₁ → F ◆ n₁ ≫= λ E n₂ →
+                            ⟦N⟧ (n₁ • θ) (E • ρ) n₂
+    ⟦seal α M⟧            = ⟦M⟧ n ≫= λ E n₁ → ret (seal (θ̂ α) E) n₁
+    ⟦unseal α M⟧          = ⟦M⟧ n ≫= λ E n₁ → ret (unseal (θ̂ α) E) n₁
     ⟦is(G)? M⟧            = ⟦M⟧ n ≫= λ E n₁ → ret (test (θ̂ G) E) n₁
     ⟦⟨A⊑⟩↕ M⟧             = ⟦M⟧ n ≫= ⟦↕ , A⊑⟧ θ
 
-* `⟦ℓ⟧θ` closes the label by replacing its type variables with their
-  seals.
-* `⟦cs⟧` applies a cast stack, innermost first.
-* Casts never change the counter.  `⟦↕ , A⊑⟧ θ E m` is defined by
-  recursion on `A⊑`:
+`⟦cs⟧` applies a cast stack, innermost first.  Casts never change the
+counter.  `⟦↕ , A⊑⟧ θ E m` is defined by recursion on `A⊑`:
 
     ?, Bool, α          ret E m
     A⊑ → B⊑             ret (Λ (λ E′ m′ → ⟦↕⁻ , A⊑⟧ E′ m′ ≫= λ E₁ m₁ →
-                                  E ●_{m₁} E₁ ≫= ⟦↕ , B⊑⟧)) m,  guarded by E ≠ ∅
-    ∀ν X. A⊑            ret (Λν (λ σℓ → E ◆ σℓ ≫= ⟦↕ , A⊑⟧ (σ • θ))) m,  guarded
+                                  E ●_{m₁} E₁ ≫= ⟦↕ , B⊑⟧)) m,  if νλ ∈ E
+    ∀ν X. A⊑            ret (Λν (λ σ → E ◆ σ ≫= ⟦↕ , A⊑⟧ (σ • θ))) m,  if ν∀ ∈ E
     ↑ tag_G(A⊑)         ⟦↑ , A⊑⟧ E m ≫= λ E₁ m₁ → ret (inj (θ̂ G) E₁) m₁
     ↓ tag_G(A⊑)         the payloads tagged θ̂ G, cast down by A⊑,
                         and err if some element has another tag
 
 The tag clause is GTLC's `proj`.  The `∀ν` clause is the thesis's proxy
-rule read as a graph: the pushed cast runs after the body, at the seal
-the instantiation creates.
+rule read as a graph.
 
-## 5. Labels instead of worlds
+## 5. Worlds, and why the relations relate lists
 
-The first draft related seals through a *world*: for each seal, the
-precision derivation relating its contents on the two sides, chosen
-existentially when the seal is created, with Kripke quantification in
-the closure clauses.  That design fails in a set-based graph model.
+A **world** `W` is a list of closed precision derivations: `W σ` relates
+the contents of seal `σ` on the two sides.  `W ⊑ W′` when `W` is a
+prefix of `W′`.  As in Max's relation, a computation's world is
+existential, and closures quantify over future worlds.  A world also
+links the environment to seals.  When a value sealed at `X` is hidden
+in `?`, then cast back to `X` and unsealed, the relation for `?`
+reads the seal's derivation from the world, and the environment
+invariant says the world's entry for `θ X` is `X`'s derivation.
 
-* **Where it fails.** A set of results at one counter can contain
-  elements from different evaluation paths.  For example, a function's
-  graph has entries for every list of arguments, including lists that
-  mix `true` and `false`.
-  * Two paths can create the same seal number at different
-    instantiations, whose right-hand types differ.
-  * The relation then picks a different world for each element, and
-    the worlds cannot be merged.
-  * Merging is needed wherever several elements are consumed together:
-    bind over a group, and application of an entry to a list of
-    arguments.
-* **Two repairs that do not work.**
-  * Putting the instantiating type in each seal only moves the problem:
-    the right-hand type is still existential.
-  * When a seal hidden in `?` is projected back and unsealed, the type
-    has to match the environment's, and nothing links the two.
+**Why single elements are not enough.** If each element had its own
+existential world, a step that uses several elements together would
+need to merge their worlds.
+* Two such steps: application, which uses an entry together with an
+  argument list, and bind, whose continuation uses a whole group of
+  results.
+* Two worlds of the same length need not agree.  An element can mention
+  a seal only in the argument positions of its function entries, where
+  nothing pins that seal's derivation.
 
-**The fix.** Make the relating derivation part of the seal itself.
-* Each instantiation `let x = M{X≅B|ℓ}; N` carries a label `ℓ`, a
-  precision derivation that evaluation ignores.  It is stored with the
-  seal and copied into the seal's identity in the model.
-* For the proof, the two related programs are relabeled from the
-  precision derivation, so that both sides of each `⊑inst` rule carry
-  its `B⊑ : Bₗ ⊑ Bᵣ`.
-* A seal then has the same number *and* label on both sides (lockstep),
-  and the label says how its contents are related.  The relations need
-  no world and no Kripke quantification.
-* Elaborated programs carry the reflexive label `idᵖ B`.  The theorem
-  transfers from the relabeled programs to the elaborated ones by a
-  lockstep simulation: labels do not affect evaluation.
+**Why not sets with a depth index.** Relating whole sets needs an index
+for well-foundedness, because the clause for `?` recurses at `? → ?`.
+Element depth does not work as that index.
+* Elimination produces shallow elements from deep ones: an
+  application's result is a sub-element of the entry it uses.
+* So a subterm must be related at a higher index than its context.
+* That conflicts with an existential world chosen at each index.
+
+**Joint lists.** The relations relate a *finite list* of elements on
+one side to a set on the other, jointly, under one world.
+* A computation relation gives one existential world per list.
+* A function clause takes the arguments of a list of entries jointly,
+  and gives one world for their results.
+* The recursion is on the total size of the list, which shrinks from a
+  list of entries to their arguments and results.  The index is
+  determined by the list, so nothing is quantified over indices.
+* The fundamental lemma reaches finite lists through finite support:
+  each result depends on finitely many elements of its inputs.
+
+**Where consistency is needed.** Consistency is what makes the joint
+statements true: one world can serve a list only if the list does not
+mix two evaluation paths.
+* **On the set side only.** Each relation needs consistency of its
+  *set* side only:
+  * for reflection, the right (less precise) side;
+  * for preservation, the left side.
+
+  A list related to a consistent set cannot mix paths.
+  * A list of booleans related to a consistent set contains `true`
+    only or `false` only.
+  * A list of values in `?` related to a consistent set carries a
+    single tag.
+* **Where the proof uses it.** At branching: `if`, `is(G)?`, and
+  projections.  It also gives a single counter, because a list of
+  results related to a consistent set ends at one counter.
+* **Not on the list side.** The list side need not be consistent.  It
+  could not be required anyway: function entries whose arguments have
+  no counterpart are related vacuously, so relatedness does not imply
+  consistency.
 
 ## 6. The relations
 
-There are two relations:
-* reflection, `θ ⊢ A⊑ ⊢ r ▹ R′`: a left (more precise) result is
-  matched by the right set;
-* preservation, `θ ⊢ A⊑ ⊢ R ◃ r′`: a right (less precise) result is
-  matched by the left set, or the left fails.
+Reflection relates a finite list `L` of left (more precise) values to a
+right set: `W ∣ θ ⊢ A⊑ ⊢ L ▹ D′`.  For a finite list `Rs` of left
+results:
 
-Reflection, on results:
+    W ∣ θ ⊢ A⊑ ⊢ Rs ▹ᶜ R′  =  for each counter m, there is W′ ⊒ W with
+                               |W′| = m and
+                               W′ ∣ θ ⊢ A⊑ ⊢ (values of Rs at m) ▹ ⌊R′⌋ₘ
 
-    θ ⊢ A⊑ ⊢ err ▹ R′          = ⊤
-    θ ⊢ A⊑ ⊢ ret v m ▹ R′      = θ ⊢ A⊑ ⊢ v ▹ᵛ ⌊R′⌋ₘ
+Errors in `Rs` need nothing.  On value lists, by recursion on the total
+size of `L` and then on `A⊑`:
 
-On values, by recursion on the left element `v` and then on `A⊑`:
+    Bool        every element is a boolean b with b ∈ D′
+    ?           every element is inj G u, and for each G:
+                (payloads tagged G) ▹ untag G D′ at G⊑ (closed)
+    tag_G(A⊑)   L ▹ untag (θ̂ G) D′ at A⊑
+    α           every element is seal σ u with σ = θ̂ α < |W|, and
+                (payloads) ▹ unseal σ D′ at W σ (closed)
+    A⊑ → B⊑     every element is a function entry or νλ; νλ ∈ D′ if L ≠ [];
+                for each counter m, with Lₘ the entries of L at m:
+                for every W′ ⊒ W with |W′| = m and every consistent E′,
+                if (all arguments of Lₘ) ▹ E′ at A⊑ under W′, then
+                (results of Lₘ) ▹ᶜ D′ ●ₘ E′ at B⊑ under W′
+    ∀ν X. A⊑    every element is a Λν entry or ν∀; ν∀ ∈ D′ if L ≠ [];
+                for each seal σ, with L_σ the entries of L at σ:
+                for every W′ ⊒ W with |W′| = σ and every closed B⊑,
+                (results of L_σ) ▹ᶜ D′ ◆ σ at A⊑, under W′ ++ [B⊑] and σ • θ
 
-    Bool         b                 b ∈ D′
-    ?            inj G u           G⊑ ⊢ u ▹ᵛ { u′ | inj G u′ ∈ D′ }
-    tag_G(A⊑)    u                 A⊑ ⊢ u ▹ᵛ { u′ | inj (θ̂ G) u′ ∈ D′ }
-    α            seal σ ℓ u        σ ≡ θ̂ α ,
-                                   ℓ ⊢ u ▹ᵛ { u′ | seal σ ℓ u′ ∈ D′ }
-    A⊑ → B⊑      (U , m) ⟼ r       ν ∈ D′ × ∀ E′ , U ≠ [] →
-                                   A⊑ ⊢ U ▹* E′ → B⊑ ⊢ r ▹ (D′ ●ₘ E′)
-    ∀ν X. A⊑     (σ , ℓ) ⟼∀ r      ν ∈ D′ ×
-                                   (σ • θ) ⊢ A⊑ ⊢ r ▹ (D′ ◆ (σ , ℓ))
-    A⊑ → B⊑, ∀ν X. A⊑     ν        ν ∈ D′
-    anything else                  ⊥
+* **Ground derivations.** `G⊑` is the reflexive derivation of the
+  ground `G`.  Closed derivations, whether from grounds or from the
+  world, are read at a fixed seal environment `θ₀`.
+* **Preservation.** It is the mirror image on lists of right elements:
+  * a list of right results `Rs′` is related to `R` if `err ∈ R`;
+  * otherwise `Rs′` must contain no `err`, and for each counter its
+    values must be matched, under one world, by the left set at that
+    counter.
 
-* `G⊑` is the reflexive derivation of the ground `G`, which relates the
-  payloads of two values in `?`.
-* The seal clause reads the label from the value and interprets it as
-  a closed derivation.
-* Preservation is the mirror image, by recursion on the right element.
-  Its error clause is `err ∈ R` (the more precise side may fail).
-* `▹*` and `◃*` are the pointwise extensions to argument lists, as in
-  GTLC.
+  Because `Rs′` is a finite list, the case split is constructive, and
+  GTLC's element-by-element escape (`fbind◃`) is no longer needed.
+* **Termination.** Every clause shrinks the total size of the list
+  except `tag_G`, which keeps the list and shrinks `A⊑`.
+* **Basic properties:**
+  * monotonicity in the set side;
+  * Kripke monotonicity in the world;
+  * downward closure under sublists;
+  * a list of booleans or of injections related to a consistent set is
+    uniform.
 
-Termination: the `tag_G` clause keeps the element and shrinks `A⊑`, and
-every other clause shrinks the element.  So the order is lexicographic,
-element first (Agda accepts it).
-
-The environment relation for the fundamental lemma pairs related value
-sets for term variables.  For a known `X ≅ B⊑` it requires that `δ X`
-carry the label `⟦B⊑⟧θ`; the closing lemma (`θ ⊢ p` iff `θ₀ ⊢ ⟦p⟧θ`)
-connects the label to the open derivation in the seal and unseal cases.
+**Environments.**
+* For reflection, each `ρ′ x` is consistent, and every finite sublist
+  of `ρ x` is related to `ρ′ x` at `x`'s derivation, under `W`.
+* For preservation, `ρ x` is consistent instead.
+* For a known `X ≅ q`: `θ X < |W|` and `W (θ X) = ⟦q⟧θ`, the closed form
+  of `q`.
+* The closing lemma (`θ ⊢ q` iff `θ₀ ⊢ ⟦q⟧θ`) connects the two.
 
 ## 7. Term precision
 
@@ -283,45 +330,98 @@ coherence side condition.  Gradual meet is the greatest lower bound
 
 ## 8. The proof
 
-* **Fundamental lemma**: one induction per relation, on PolyCν term
-  precision.  The environment relation is described at the end of Section 6.  The
-  cases:
-  * instantiation: both sides instantiate at seal `n` with label
-    `⟦B⊑⟧θ` and continue at counter `n + 1`;
-  * `Λν`: the `∀ν` clause, with the body's induction hypothesis at
-    `(σ , ℓ) • δ` for every labelled seal;
-  * `seal` and `unseal`: the seal clause and the environment's
-    `X ≅ B⊑`;
-  * `is(G)?`: tags agree on `?`;
-  * casts: the cast lemmas.
-* **Cast lemmas**, by induction on derivations, for each relation:
-  * an up cast on the left or right moves `AC⊑` to `BC⊑` or `AB⊑`;
-  * a down cast moves it back.
+**Fundamental lemma** (reflection; preservation is analogous).  Assume:
+* `M ⊑ M′` at `A⊑`;
+* related environments at `W`, with `|W| = n`;
+* a finite list `Rs` of left results of `⟦M⟧ θ ρ n`.
 
-  These are GTLC's coercion lemma, organised by the thesis's four rules.
-  * The `tag_G` cases are GTLC's `inj`/`proj` cases.
-  * The `∀ν` case follows the closure clause, at the same seal.
-* **Soundness** (a step `Σ ▷ M ↦ Σ′ ▷ N` gives
-  `⟦N⟧ |Σ′| ⊆ ⟦M⟧ |Σ|`) needs:
-  * the type-substitution lemma `⟦M[σ/X]⟧ δ = ⟦M⟧ (σ • δ)`;
-  * the term-substitution lemma.
+Then `Rs ▹ᶜ ⟦M′⟧ θ ρ′ n` at `A⊑`.  The proof is by induction on term
+precision.  The cases that sank the earlier designs, checked on paper:
 
-  It does not need typing: each cast clause is defined to match its
-  reduct.
-* **Adequacy**: an element `ret v m ∈ ⟦M⟧ |Σ|` comes from a reduction to
-  a value with the same observation, ending in a store of length `m`.
-  As in GTLC, it uses determinism of reduction.
-* **Theorem** (observational form, as in GTLC): for closed PolyGν terms
-  `Mₗ ⊑ Mᵣ`, with elaborations run from the empty store:
-  * if `Mₗ` reaches a value, `Mᵣ` reaches one with the same observation;
-  * if `Mᵣ` reaches a value, `Mₗ` reaches one with the same observation
-    or fails;
-  * if `Mᵣ` fails, so does `Mₗ`;
-  * if `Mₗ` diverges, `Mᵣ` diverges, and if `Mᵣ` diverges, `Mₗ` diverges
-    or fails.
+* **`let` (bind).** Each result in `Rs` lies in `⟦N⟧ (mem Lᵢ • ρ) m` for
+  a finite `Lᵢ` of values of `M`, by finite support.  There is a single
+  `m`.  Left values at two counters would need right counterparts at
+  both, but the right denotation is consistent, so it ends at one
+  counter.  Let `L = ⋃ Lᵢ`.
+  * The induction hypothesis for `M` on `L` gives `W₁`.
+  * The induction hypothesis for `N`, with `x ↦ (mem L , ⌊⟦M′⟧⌋ₘ)` at
+    `W₁`, gives `W₂` for all of `Rs`, by monotonicity in `Lᵢ ⊆ L`.
+  * The right-hand results of `N′` under that environment are among the
+    right results of the `let`.
+* **Application.** Each result comes from an entry `eᵢ` of the
+  function's values, used with arguments `Uᵢ` drawn from the argument's
+  values.
+  * The induction hypothesis for the function on `[eᵢ]` gives `W₁`.
+  * The induction hypothesis for the argument on `⋃ Uᵢ`, at `W₁`
+    (environments are Kripke monotone), gives `W₂`.
+  * The function clause, at `W₂` and the argument's counter, relates
+    all the results jointly to `F′ ●ₘ E′`.
+* **`λ`.** Fix a counter `m`, a world `W′` and a consistent `E′`, with
+  the arguments `A = concat Uᵢ` related to `E′`.
+  * The entries' results lie in `⟦N⟧ (mem A • ρ) m`, by monotonicity.
+  * The left environment need not be consistent; the right one is,
+    because `E′` is.
+  * The induction hypothesis for `N` gives the world.
+  * On the right, `⟦N′⟧ (E′ • ρ′) m ⊆ Λ F′ ●ₘ E′` by `Λ-β`, using finite
+    support and the consistency of `E′`.
+* **`Λν` and instantiation.**
+  * `Λν`: for each seal `σ`, the induction hypothesis for the body at
+    `σ • θ` and `W′ ++ [B⊑]`.  An abstract `X` asks nothing of the
+    world.
+  * Instantiation: the induction hypothesis for `M` gives `W₁` with
+    `|W₁| = n₁`.  The `∀ν` clause at `W₁` with `B⊑ = ⟦q⟧θ` gives
+    `W₂ ⊒ W₁ ++ [⟦q⟧θ]`.  The induction hypothesis for `N`, with
+    `X ≅ q`, needs `W₂ n₁ = ⟦q⟧θ = ⟦⇑q⟧(n₁ • θ)`.
+* **A seal through `?` and back.** Left values `inj σ (seal σ wᵢ)` are
+  related at `?`, so the contents `wᵢ` are related at `W σ`.
+  * The down-cast lemma at `tag_X` turns this into the relation at `X`.
+  * Unseal uses the environment invariant `W (θ X) = ⟦q_X⟧θ` and the
+    closing lemma.
 
-  The divergence clauses use type safety.  An observation is `bool b` or
-  `other`, with `inj` and `seal` stripped.
+  The world is the link that typed seals lacked.
+* **Branching.** The condition's left values are related to the right
+  condition's values, which are consistent.  So the left values contain
+  `true` only or `false` only, and all of `Rs` comes from one branch.
+  Tag tests and projections are similar.
+* **Casts.** These follow the cast lemmas.
+
+**Cast lemmas**, by induction on the derivations, for each relation:
+* an up cast on the left or right moves `AC⊑` to `BC⊑` or `AB⊑`;
+* a down cast moves it back.
+
+These are GTLC's coercion lemma, organised by the thesis's four rules.
+* The function case pulls the wrapper's arguments through the flipped
+  lemma, applies the original entries jointly, and pushes the results
+  through, all under the world the function clause provides.
+* The `∀ν` case keeps the seal and passes the instantiation's `B⊑`
+  through.
+* The `tag_G` cases are GTLC's `inj`/`proj` cases.  A projection's
+  error on the right is matched on the left because related values
+  carry the same tag.
+
+**Soundness.** A step `Σ ▷ M ↦ Σ′ ▷ N` gives `⟦N⟧ |Σ′| ⊆ ⟦M⟧ |Σ|`.  This
+needs the type-substitution lemma `⟦M[σ/X]⟧ θ = ⟦M⟧ (σ • θ)` and the
+term-substitution lemma, but no typing.
+
+**Adequacy.** An element `ret v m ∈ ⟦M⟧ |Σ|` comes from a reduction to a
+value with the same observation, ending in a store of length `m`.  It
+uses determinism.  With separate empty closures (`νλ`, `ν∀`), stuck
+casts denote nothing, so no typing is needed.
+
+**Theorem** (observational form, as in GTLC).  Take closed PolyGν terms
+`Mₗ ⊑ Mᵣ`, with their elaborations run from the empty store:
+* if `Mₗ` reaches a value, `Mᵣ` reaches one with the same observation;
+* if `Mᵣ` reaches a value, `Mₗ` reaches one with the same observation
+  or fails;
+* if `Mᵣ` fails, so does `Mₗ`;
+* if `Mₗ` diverges, so does `Mᵣ`;
+* if `Mᵣ` diverges, every term `Mₗ` reaches can step or is `℧`.
+
+The divergence clauses use type safety.
+
+**What is retired.** The instantiation labels, relabeling and the
+label-irrelevance simulation are no longer needed.  The language is
+exactly the thesis's.
 
 ## 9. The new development
 
@@ -356,35 +456,37 @@ AGENTS.md, following the thesis:
   `proof/Denot*` (properties, soundness, adequacy, relations, cast
   lemmas, fundamental lemma, theorem) and `MetaTheory`.
 
-The old flat files become obsolete once this is in place.
+The definitions and these proofs are mechanized.  The old flat files
+become obsolete once the denotational part is in place.  The
+instantiation labels added for the abandoned label design (Section 8)
+are to be removed.
 
 ## 10. Size
 
-The GTLC denotational development is about 3,400 lines.  The fragment
-has roughly twice GTLC's term formers, plus the counter and the labels;
-estimate 6,000–8,000 lines for the denotational part.  The substrate
-(types, terms, typing, reduction, type safety, surface language,
-elaboration, both precisions and their lemmas) is another 4,000–6,000.
+The GTLC denotational development is about 3,400 lines.  Here there are:
+* roughly twice GTLC's term formers;
+* a seal counter;
+* consistency, with its preservation theorem;
+* joint lists and worlds in the relations.
+
+Estimate: 7,000–10,000 lines for the denotational part.  The substrate
+(Section 9) is mechanized: about 3,500 lines.
 
 ## 11. What carries over to GTSFImp
 
 * **Carries over:**
-  * the counter-threaded graph model;
-  * `Λν` graphs indexed by the labelled seal the instantiation creates;
-  * relational labels on seal-creating forms in place of worlds;
-  * recursion on elements;
+  * the counter-threaded graph model with consistency;
+  * `Λν` graphs indexed by the seal the instantiation creates;
+  * worlds;
+  * joint-list relations;
   * cast lemmas organised by up/down and left/right.
 * **Does not carry over: lockstep.** GTSFImp's `inst` casts create seals
   on one side only (`β-inst` allocates `bind ★`), and its `gen` casts
-  use a fresh name as a runtime tag.  So results on the two sides end
-  at different counters.
-  * A seal created on one side only can carry a label saying how its
-    contents relate to the unsealed value on the other side (an
-    `X ⊑ ★` mark).
-  * Shared seals must still be named the same on both sides.  One way to
-    do that is to number shared and one-sided seals separately.
-  * This must be done without existential worlds, for the reason given
-    in Section 5.
+  use a fresh name as a runtime tag.  So:
+  * results on the two sides end at different counters;
+  * a world becomes the paper's partial bijection `η` between left and
+    right seals, plus one-sided seals marked `X ⊑ ★`.
 
-  This is the main new difficulty for GTSFImp; the warm-up does not
-  exercise it.
+  With existential worlds per joint list, this is a change to what a
+  world is, not to how the relations use it.  It is the main new
+  difficulty for GTSFImp, and the warm-up does not exercise it.

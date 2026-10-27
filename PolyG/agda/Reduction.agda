@@ -43,7 +43,7 @@ data Frame : Set where
   is□     : Ground → Frame
   inj□    : Ground → Frame
   cast□   : Dir → Prec → Frame
-  inst□   : Ty → Term → Frame
+  inst□   : Ty → Prec → Term → Frame
 
 plug : Frame → Term → Term
 plug (if□ M N) L = if L M N
@@ -55,7 +55,7 @@ plug (unseal□ α) M = unseal α M
 plug (is□ G) M = is G M
 plug (inj□ G) M = inj G M
 plug (cast□ d p) M = cast d p M
-plug (inst□ B N) M = inst M B N
+plug (inst□ B ℓ N) M = inst M B ℓ N
 
 ------------------------------------------------------------------------
 -- Reduction
@@ -112,10 +112,10 @@ data _▷_—→_▷_ : Store → Term → Store → Term → Set where
     Value W →
     Σ ▷ cast d (p ⇒⊑ q) V · W —→ Σ ▷ cast d q (V · cast (flip d) p W)
 
-  -- instantiation creates the seal `length Σ` with type B
-  β-inst : ∀ {Σ cs M B N} →
-    Σ ▷ inst (Λν cs M) B N
-      —→ (Σ ++ (B ∷ [])) ▷
+  -- instantiation creates the seal `length Σ` with type B and label ℓ
+  β-inst : ∀ {Σ cs M B ℓ N} →
+    Σ ▷ inst (Λν cs M) B ℓ N
+      —→ (Σ ++ ((B , ℓ) ∷ [])) ▷
          letv (stack cs M [ tseal (length Σ) ]ᵀ) (N [ tseal (length Σ) ]ᵀ)
 
   β-id : ∀ {Σ d p V} →

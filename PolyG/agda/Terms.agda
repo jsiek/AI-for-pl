@@ -5,8 +5,13 @@ module Terms where
 --   * `Λν cs M` is the polymorphic function proxy Λν{X.([cs], M)}: the
 --     casts in `cs` (outermost first) are run on the body when the proxy
 --     is instantiated.  A source Λν X.M is `Λν [] M`.
---   * `inst M B N` is the instantiation form `let x = M {X ≅ B}; N`; in
---     N, type variable 0 is X and term variable 0 is x.
+--   * `inst M B ℓ N` is the instantiation form `let x = M {X ≅ B}; N`; in
+--     N, type variable 0 is X and term variable 0 is x.  The label ℓ is a
+--     precision derivation that does not affect evaluation; the
+--     denotational proof of graduality uses it to give corresponding
+--     instantiations of two related programs the same label
+--     (PolyG/notes/denotational-graduality.md).  Elaboration uses the
+--     reflexive derivation of B.
 --   * `inj G V` is the thesis's injection ⟨tag_G(G)⟩↑ V.
 --   * Term-level substitution of names for type variables, and
 --     substitution of terms for term variables.
@@ -50,7 +55,7 @@ data Term : Set where
   inj    : Ground → Term → Term
   cast   : Dir → Prec → Term → Term
   Λν     : Stack → Term → Term
-  inst   : Term → Ty → Term → Term
+  inst   : Term → Ty → Prec → Term → Term
 
 -- the term obtained by running a stack of casts on M
 stack : Stack → Term → Term
@@ -80,8 +85,8 @@ substᵀ σ (is G M) = is (substG σ G) (substᵀ σ M)
 substᵀ σ (inj G M) = inj (substG σ G) (substᵀ σ M)
 substᵀ σ (cast d p M) = cast d (substᵖ σ p) (substᵀ σ M)
 substᵀ σ (Λν cs M) = Λν (substˢ (extₙ σ) cs) (substᵀ (extₙ σ) M)
-substᵀ σ (inst M B N) =
-  inst (substᵀ σ M) (substᵗ σ B) (substᵀ (extₙ σ) N)
+substᵀ σ (inst M B ℓ N) =
+  inst (substᵀ σ M) (substᵗ σ B) (substᵖ σ ℓ) (substᵀ (extₙ σ) N)
 
 ⇑ᵀ : Term → Term
 ⇑ᵀ = substᵀ ↑ₙ
@@ -120,7 +125,7 @@ rename ρ (is G M) = is G (rename ρ M)
 rename ρ (inj G M) = inj G (rename ρ M)
 rename ρ (cast d p M) = cast d p (rename ρ M)
 rename ρ (Λν cs M) = Λν cs (rename ρ M)
-rename ρ (inst M B N) = inst (rename ρ M) B (rename (ext ρ) N)
+rename ρ (inst M B ℓ N) = inst (rename ρ M) B ℓ (rename (ext ρ) N)
 
 exts : Subst → Subst
 exts σ zero = ` zero
@@ -145,7 +150,7 @@ subst σ (is G M) = is G (subst σ M)
 subst σ (inj G M) = inj G (subst σ M)
 subst σ (cast d p M) = cast d p (subst σ M)
 subst σ (Λν cs M) = Λν cs (subst (⇑ˢ σ) M)
-subst σ (inst M B N) = inst (subst σ M) B (subst (exts (⇑ˢ σ)) N)
+subst σ (inst M B ℓ N) = inst (subst σ M) B ℓ (subst (exts (⇑ˢ σ)) N)
 
 single : Term → Subst
 single V zero = V

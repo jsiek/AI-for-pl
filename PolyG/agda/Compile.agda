@@ -71,4 +71,4 @@ elab (⊢· {A = A} {A₁ = A₁} {B = B} ⊢L shp ⊢M B∼A₁) =
 elab (⊢letv ⊢M ⊢N) = letv (elab ⊢M) (elab ⊢N)
 elab (⊢Λν ⊢M) = Λν [] (elab ⊢M)
 elab (⊢inst {A = A} {B = B} ⊢M shp wfB ⊢N wfC) =
-  inst (⇓ G∀ A (elab ⊢M)) B (elab ⊢N)
+  inst (⇓ G∀ A (elab ⊢M)) B (idᵖ B) (elab ⊢N)

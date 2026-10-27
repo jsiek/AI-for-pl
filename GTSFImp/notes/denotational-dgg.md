@@ -113,11 +113,12 @@ is the *more* precise one.
     `Rationale.md`).
   * So `α′`-sealed values exist only inside the right value's graph,
     never at the boundary.
-* **Left before right.** The left can never instantiate before the right
-  on a shared polymorphic value.
-  * If the right keeps a `∀` type, precision forces the left to have one
-    too (`∀⊑∀` is the only rule with `∀` on the right), so the left has
-    no `inst` there.
+* **Left before right.** The left never instantiates a paired variable
+  before the right does.
+  * This holds only for casts in the eager normal form of Section 8a,
+    case 8.  The first version of this note argued it from types alone,
+    and that argument was wrong: `inst` may produce a `∀` type.
+  * Without the normal form there is a counterexample (case 8).
 
   So the left side has every shared seal plus left-only ones, and the
   right side has every shared seal plus invisible right-only ones.
@@ -257,6 +258,8 @@ the leaf relation `◁σ q` with a transparent tag relation, and
   * **Two-sided cast rule.** From `M ⊑ M′` at `C ⊑ C′`, with consistency
     derivations `c : C ∼ A` and `c′ : C′ ∼ A′` and with `A ⊑ A′`,
     conclude `M ⟨c⟩ ⊑ M′ ⟨c′⟩` at `A ⊑ A′`.  The premise names no bound.
+    `c` and `c′` must be in eager normal form, with no `gen` directly
+    over `inst` (Section 8a, case 8).
   * **One-sided right cast**, for the projection `★ ∼ ★ ⇒ ★` that
     `compile` inserts on the right of `·⊑·★ᴳ` when the left has a
     function type: from `M ⊑ M′` at `A ⊑ B`, with `c′ : B ∼ C` and
@@ -424,12 +427,20 @@ and `bot-intro`.  The cases:
    * In that case the left cast fails first.  This is the GTLC argument,
      plus the left-only case: if a left value tagged with a left-only
      seal reaches a left `？`, the left fails, which both relations allow.
-4. **Left `inst`, right not.**
-   * If the right keeps a `∀` type (`C′ = ∀…`, `A′ = ∀…`), then `A` must
-     be a `∀` too, since `A ⊑ ∀` forces it.  But `inst` produces a
-     non-`∀`, so the case is **impossible**.
-   * If `A′ = ★`, the right is `(…)!` with a ground.  The canonical-route
-     check below shows the grounds agree.
+4. **Left `inst`, right not** (corrected: `inst` may produce a `∀`, so
+   the first version's "impossible" was wrong).  `C = ∀X.C₀`.
+   * If `X` is paired with the right's `X′`, the timing lemma of case 8
+     says the right is an `inst` too: case 1.
+   * If `X` is left-only (`C′` is not a `∀`): the left creates `α := ★`,
+     and `V [α]` creates `β`.
+     * Use the hypothesis's `∀⊑` clause now, at seal `β`, with contents
+       relation `◁α ★`.
+     * The left's reveals (unseal `β`, then `α`) take the leaf relation
+       `◁β ◁α ★` to `★`.  This is the left-hand counterpart of the
+       world-change lemma.
+     * Then the induction hypothesis for `c₁[★]` against the whole
+       right cast, whatever its head.  The tag relation of `β` is the
+       one the hypothesis chose.
 5. **Left `gen`, right not.** `C ⊑ C′` with `C` non-`∀` forces `C′`
    non-`∀`.  `A = ∀…` allows three shapes of `A′` (corrected; the first
    version missed the third):
@@ -475,18 +486,106 @@ and `bot-intro`.  The cases:
      tag fails the right `?α′`.  The hypothesis rules that out: such a
      function is not related to the polymorphic identity at
      `∀X.X→X ⊑ ★→★`.
-8. **Different routes between the same types** (the counterexample of
-   risk 1).  For example, the left uses `inst` then `gen` while the right
-   uses `gen` then `inst`, at `∀X.★→X ∼ ∀Y.Y→★` or more precise pairs.
-   * The routes differ in *when* the `X` seal is created (at the cast,
-     or at each instantiation of `Y`), not in which seals and tags are
-     checked:
-     * the input is concealed at `Y`'s seal and tagged with it;
-     * the output is sealed at `X`'s seal and unsealed to `★`.
-   * By case 6's timing argument, the induction goes through on the
-     pair of routes.
-   * This needs no bound to be chosen, which is why option (b) works
-     where factorization does not.
+8. **Different routes** (redone in the revised design).  The first
+   sketch said that routes differing only in *when* a seal is created
+   always behave alike.  That is true of the programs, but the relation
+   cannot always express it, so the cast rule needs a normal form.
+
+   **Counterexample without a normal form.**  The left creates a seal
+   early and the right late.
+   * Take `V = f ⟨gen (X! ↦ id)⟩ : ∀X. X→★→★` with
+     `f = λx:★. λy:★. x`.  `V` tags its first argument with its
+     instantiation seal and returns it.
+   * The judgement `∀X. X→★→★ ∼ ∀Y. ★→Y→★` has two derivations:
+     * `inst (gen d)`, with `d = ？X ↦ (Y! ↦ id)`, which instantiates `X`
+       at the cast;
+     * `gen (inst d̃)`, with `d̃` the same as `d` with the two variables
+       exchanged, which instantiates `X` again at each instantiation of
+       `Y`.
+   * Left `V ⟨inst (gen d)⟩`, right `V ⟨gen (inst d̃)⟩`, related by the
+     reflexive two-sided cast rule.
+   * The left creates `α := ★` and `V`'s seal `β` once, at the cast.
+     Each instantiation of `Y` and application returns the first
+     argument tagged with `β`.
+   * The right creates `α′_i`, `β′_i` at its `i`-th instantiation, and
+     returns the argument tagged with `β′_i`.
+   * Both results are opaque at `★`, so the programs are equivalent.
+     But the relation at `★` needs the tag relation of `β` to name the
+     right's tag seal, and that seal differs from one instantiation to
+     the next.  The tag relation of `β` is fixed when `β` is created,
+     so no world works.
+   * The mirror image, the right creating a seal early and the left late,
+     is harmless (case 6): the right side has no world entries, so a
+     right seal created once can be paired with many left seals.
+
+   **The eager normal form.** No `gen` directly over `inst`.
+   * **Swap lemma.** `gen (inst d)` and `inst (gen d̃)` derive the same
+     judgement, with `d̃` the same as `d` with the two variables
+     exchanged.
+     * The side conditions carry over: `C₀` is not a variable and
+       contains `X`, `B` is not a variable and contains `Y`, and neither
+       is `★`.
+     * The new `gen` needs `GenSafe d̃`.  This holds because `d̃` relates
+       two non-variable, non-`★` types, one of which contains `Y`.  So
+       its head is `↦`, `∀ᶜ`, `inst` or `gen`, never `!`, `？`, `id` or
+       a `bot` rule.
+   * Swapping pushes `inst` outward, so every derivable judgement has a
+     derivation in normal form.
+   * The two-sided cast rule requires both casts in normal form.  Only
+     the right cast needs it, but requiring both is simpler.
+     Elaboration must produce normal forms.
+   * `Consistency2`'s `lower?` tries `inst` before `gen`, the same
+     preference.  Whether the casts read off its evidence are already in
+     normal form is not yet checked.
+
+   **Timing lemma.** Let `c : C ∼ A` and `c′ : C′ ∼ A′` be in normal
+   form, with `C ⊑ C′` and `A ⊑ A′`.  Suppose `c = inst c₁` instantiates
+   `C`'s binder `X`, and `X` is paired with `C′`'s binder `X′`.  Then
+   `c′ = inst c′₁`.
+
+   *Proof.* `X` occurs in `C₀` (a side condition of `inst`).  Being
+   paired, `X` is never under `★`, so `X′` occurs at exactly `X`'s
+   positions.  By cases on the head of `c′`:
+   * **`∀ᶜ`:** `X′` stays in `A′`, so `A` has a variable `Z ⊑ X′` at
+     those positions.  The left cast then needs `X ∼ Z` there, with `X`
+     in mode `X∼★`, and no consistency rule derives it: casts do not
+     compose through `★`.
+   * **`gen`:** follow the chain of `gen`s.  It ends in a cast whose
+     source is a `∀` and whose target is neither a variable nor `★`, so
+     its head is `∀ᶜ`, `inst` or a `bot` rule:
+     * `∀ᶜ` is excluded as above;
+     * `inst` directly under `gen` is excluded by the normal form;
+     * the `bot` rules are excluded by their types.
+   * **`!`:** the ground is either:
+     * `★→★`, reached through `inst`: the claim;
+     * `∀★`, reached through `∀ᶜ`: excluded, because `X′` occurs and
+       mode `X∼X` cannot reach `★`.
+   * **`bot-elim`, `bot-intro`:** `C` would be `∀X.X` (and `inst` needs a
+     non-variable body), or `X` would not occur.
+
+   So with normal forms the left never creates a paired variable's seal
+   before the right.
+
+   **The case itself.** Peel the two casts one head at a time.
+   * Each step is one of:
+     * case 1 (the same head);
+     * case 4 (a left `inst` of a left-only variable, against any
+       right cast);
+     * case 6 (the right instantiates first);
+     * case 7 (a right `gen` against a left `∀ᶜ`).
+   * Case 6 may reach through left `gen`s: the left instantiates the
+     kept variable one type application later.  The time shift is the
+     same, because the hypothesis's `∀⊑∀` clause allows any later left
+     world.
+   * Example, risk 1's pair:
+     * left `gen (∀ᶜ (X_A! ↦ id)) : ∀X.★→X ∼ ∀X.∀Y.X→Y`;
+     * right `inst (gen (X_A! ↦ X!)) : ∀X.★→X ∼ ∀X.X→★`.
+     * The right's `inst` comes first: case 6, reached through the left's
+       `gen`.
+     * The two `gen`s pair up: case 1.
+     * The left's `Y` against the right's nothing: the `∀⊑` clause.
+   * No bound is chosen, which is why option (b) works where
+     factorization does not.
 
 **The world-change lemma** (cases 6 and 7) is stated and proved in
 Section 8b.  The version first sketched here compared two worlds that
@@ -511,11 +610,14 @@ derivations of the same judgement to agree semantically.
 
 **Status.**
 * Cases 1–3: the GTLC arguments, extended with left-only seals.
-* Cases 4 and 5: impossible, reduce to case 1, or use the transparent
-  tag relation (the third shape in case 5).
+* Case 4: case 1 by the timing lemma, or a left-only instantiation
+  through the hypothesis's `∀⊑` clause.
+* Case 5: case 1, the `∀⊑★` clause, or the transparent tag relation.
 * Cases 6 and 7: checked on paper with the world-change lemma
   (Section 8b).
-* Case 8: to be redone with the revised design.
+* Case 8: needs the eager normal form.  Without it there is a
+  counterexample.  With it, the timing lemma reduces case 8 to cases 1,
+  4, 6 and 7.
 
 ## 8b. The world-change lemma, on paper
 
@@ -689,10 +791,10 @@ and both sides extend the world in the same way.
    way, with the left conversion handled as in PolyG's left cast lemmas.
 
 **Still open.**
-* Case 8 (different routes) has to be redone in this design.  The left's
-  `inst`-then-`gen` route meets the right's `gen`-then-`inst` route, so
-  the environment changes at a different variable on each side.
-* The coherence obligation of Section 8a is unchanged.
+* Case 8 is redone in Section 8a.  It needs the eager normal form for
+  casts.
+* The coherence obligation of Section 8a remains, now for derivations
+  in normal form.
 
 ## 9. Plan
 
@@ -700,9 +802,14 @@ and both sides extend the world in the same way.
    two-sided cast rule with a semantic monotonicity lemma.
    * The paper sketch of the cast monotonicity lemma is in Section 8a,
      and the world-change lemma is proved on paper in Section 8b.
-   * Next: redo case 8 in the revised design, then define the
-     cast-calculus term precision (Section 7) and prove that
-     elaboration preserves it.
+   * Case 8 is redone (Section 8a).  It needs casts in eager normal
+     form: no `gen` directly over `inst`.
+   * Next:
+     * check whether the casts read off `Consistency2`'s evidence are in
+       normal form;
+     * define the cast-calculus term precision (Section 7), with the
+       normal form in the two-sided cast rule;
+     * prove that elaboration preserves it.
 2. Port the PolyG model (`GraphModel`, `Denotation`) to GTSFImp's terms:
    * conversions;
    * consistency casts with modes;

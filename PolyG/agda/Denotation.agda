@@ -20,6 +20,7 @@ open import Data.Product using (_×_; _,_; proj₁; proj₂)
 open import Types
 open import Terms
 open import GraphModel
+open import GradualityDefinitions using (Observation; bool-obs; other-obs)
 
 ------------------------------------------------------------------------
 -- Environments
@@ -145,10 +146,6 @@ _•_ : 𝒱 → Env → Env
 ------------------------------------------------------------------------
 -- Observations of denotational values
 ------------------------------------------------------------------------
-
-data Observation : Set where
-  bool-obs  : Bool → Observation
-  other-obs : Observation
 
 obs : Val → Observation
 obs vtrue = bool-obs true

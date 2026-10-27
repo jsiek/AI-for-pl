@@ -310,6 +310,27 @@ conditions as in `Consistency.agda`):
 * `g` is `GenSafe` without its `inst` case.  `gen` already requires
   `GenSafe` of its body, and the normal form removes one of the four
   heads `GenSafe` allows.
+* **Relation to `GenSafe`** (GTSFImp `CastTerms`, GTNF `Coercion.agda`,
+  identical in both).
+  * Both are restrictions on the head of a `gen` body, and both keep
+    something out of the suspended cast:
+    * `GenSafe` keeps out *failing checks* (`!`, `？`, `id`, `bot`), so
+      that errors happen on time;
+    * the normal form also keeps out *allocation*, so that seals are
+      created on time.
+  * `Rationale.md` admits `gen (inst c)` on purpose: delaying an `inst`
+    cannot delay an error.  That is true operationally.  Semantically,
+    though, delaying an `inst` replaces one seal shared by all
+    instantiations with a fresh seal per instantiation.  The relation
+    sees the difference, because a left seal's tag relation is fixed
+    when the seal is created (case 8's counterexample).
+  * The remaining `gen` bodies, `↦`, `∀ᶜ` and `gen`, are GTNF's inert
+    coercions without `G!`.  A `gen` body is then a value-forming cast
+    that neither fails nor allocates until applied or instantiated.
+  * The opposite choice, a lazy normal form with no `inst` over `gen`,
+    does not work.  `inst (∀ᶜ …)` on the left has no lazy alternative
+    (the binder order is fixed), but a right `gen (inst …)` would be
+    allowed, and that is again the left creating a seal early.
 * Read along a `∀`-prefix, a cast first eliminates the source's binders
   (`inst`), then introduces the target's (`gen`).  Seals are created as
   early as possible.

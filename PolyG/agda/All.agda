@@ -23,3 +23,6 @@ open import TypeSafety
 open import CompileMeta
 open import DenotationMeta
 open import MetaTheory
+open import Eval
+open import Examples
+open import ExamplesCoverage

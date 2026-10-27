@@ -35,6 +35,19 @@ postulates and holes).
   - `GradualityDefinitions`: observations, convergence, failure,
     divergence.
   - `MetaTheory`: the graduality theorem `graduality`.
+- **Running programs:**
+  - `Eval`: a one-step function `step` (value, ℧, a step with its
+    derivation, or stuck) and a fuel-bounded evaluator `eval` that
+    returns the final configuration with its `—↠` derivation.  Both
+    compute on closed terms.
+  - `Examples`: closed PolyGν programs (the thesis's §10.2.1 examples:
+    the identity at 𝔹 with seal/unseal, with a ? input, without the
+    seal; `const`; nested instantiation; tag tests; casts at ? and at
+    function types; let and if) and PolyCν programs, each with a typing
+    derivation and a run to true, false or ℧ checked by computation;
+    two instances of the graduality theorem.
+  - `ExamplesCoverage`: a checked catalog showing that the example
+    runs use every reduction rule.
 
 ## Proofs (`proof/`)
 

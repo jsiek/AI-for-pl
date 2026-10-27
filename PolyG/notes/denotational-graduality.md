@@ -265,10 +265,10 @@ size of `L` and then on `A⊑`:
     α           every element is seal σ u with σ = θ̂ α < |W|, and
                 (payloads) ▹ unseal σ D′ at W σ (closed)
     A⊑ → B⊑     every element is a function entry or νλ; νλ ∈ D′ if L ≠ [];
-                for each counter m, with Lₘ the entries of L at m:
-                for every W′ ⊒ W with |W′| = m and every consistent E′,
-                if (all arguments of Lₘ) ▹ E′ at A⊑ under W′, then
-                (results of Lₘ) ▹ᶜ D′ ●ₘ E′ at B⊑ under W′
+                for every sublist L₀ of L and counter m, with L₀ₘ the
+                entries of L₀ at m: for every W′ ⊒ W with |W′| = m and
+                every consistent E′, if (all arguments of L₀ₘ) ▹ E′ at A⊑
+                under W′, then (results of L₀ₘ) ▹ᶜ D′ ●ₘ E′ at B⊑ under W′
     ∀ν X. A⊑    every element is a Λν entry or ν∀; ν∀ ∈ D′ if L ≠ [];
                 for each seal σ, with L_σ the entries of L at σ:
                 for every W′ ⊒ W with |W′| = σ and every closed B⊑,
@@ -285,6 +285,10 @@ size of `L` and then on `A⊑`:
 
   Because `Rs′` is a finite list, the case split is constructive, and
   GTLC's element-by-element escape (`fbind◃`) is no longer needed.
+* **Sublists.** The function clause quantifies over sublists so that the
+  relations are closed under sublists.  Without it, a sublist's entries
+  would get nothing whenever the other entries' arguments fail to match.
+  Environments need this closure.
 * **Termination.** Every clause shrinks the total size of the list
   except `tag_G`, which keeps the list and shrinks `A⊑`.
 * **Basic properties:**

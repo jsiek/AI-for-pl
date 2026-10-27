@@ -18,6 +18,10 @@ module proof.DenotRelation where
 --     defined by recursion on a fuel bound on the total size of the list
 --     (`suc (sizeᴸ L)` suffices), and then on the precision derivation
 --     (the `tag` clause of ▹ keeps the list).
+--   * The function clause quantifies over sublists of the entries: a
+--     sublist's entries are applied jointly to arguments that match, even
+--     when the other entries' arguments do not.  This makes the relations
+--     closed under sublists, which environments need.
 --   * What a value carries (the ground of an injection, the derivation
 --     of a seal) is closed and is read at the fixed seal environment θ₀.
 
@@ -26,6 +30,8 @@ open import Data.Empty.Polymorphic using () renaming (⊥ to ⊥₁)
 open import Data.List using (List; []; _∷_; _++_; length)
 open import Data.List.Relation.Unary.All using (All)
 open import Data.List.Relation.Unary.Any using (Any)
+open import Data.List.Relation.Binary.Sublist.Propositional using ()
+  renaming (_⊆_ to _⊑ˢ_)
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_)
 open import Data.Nat.Properties using () renaming (_≟_ to _≟ℕ_)
 open import Data.Product using (Σ-syntax; _×_; _,_)
@@ -223,9 +229,10 @@ mutual
   Rel▹ (suc k) W θ 𝔹⊑ L@(v ∷ _) D′ = Lift₁ (All (IsBool D′) L)
   Rel▹ (suc k) W θ (p ⇒⊑ q) L@(v ∷ _) D′ =
     Lift₁ (All IsFun L) × Lift₁ (νλ ∈ D′)
-    × (∀ m W′ → W ⊑ʷ W′ → length W′ ≡ m → ∀ E′ → Consistent E′
-         → Rel▹ k W′ θ p (argsAt m L) E′
-         → Rel▹ᶜ k W′ θ q (resultsAt m L) (D′ ●[ m ] E′))
+    × (∀ L₀ → L₀ ⊑ˢ L → ∀ m W′ → W ⊑ʷ W′ → length W′ ≡ m
+         → ∀ E′ → Consistent E′
+         → Rel▹ k W′ θ p (argsAt m L₀) E′
+         → Rel▹ᶜ k W′ θ q (resultsAt m L₀) (D′ ●[ m ] E′))
   Rel▹ (suc k) W θ (∀⊑ p) L@(v ∷ _) D′ =
     Lift₁ (All IsPoly L) × Lift₁ (ν∀ ∈ D′)
     × (∀ σ W′ q′ → W ⊑ʷ W′ → length W′ ≡ σ
@@ -269,9 +276,10 @@ mutual
   Rel◃ (suc k) W θ 𝔹⊑ D L′@(v′ ∷ _) = Lift₁ (All (IsBool D) L′)
   Rel◃ (suc k) W θ (p ⇒⊑ q) D L′@(v′ ∷ _) =
     Lift₁ (All IsFun L′) × Lift₁ (νλ ∈ D)
-    × (∀ m W′ → W ⊑ʷ W′ → length W′ ≡ m → ∀ E → Consistent E
-         → Rel◃ k W′ θ p E (argsAt m L′)
-         → Rel◃ᶜ k W′ θ q (D ●[ m ] E) (resultsAt m L′))
+    × (∀ L₀′ → L₀′ ⊑ˢ L′ → ∀ m W′ → W ⊑ʷ W′ → length W′ ≡ m
+         → ∀ E → Consistent E
+         → Rel◃ k W′ θ p E (argsAt m L₀′)
+         → Rel◃ᶜ k W′ θ q (D ●[ m ] E) (resultsAt m L₀′))
   Rel◃ (suc k) W θ (∀⊑ p) D L′@(v′ ∷ _) =
     Lift₁ (All IsPoly L′) × Lift₁ (ν∀ ∈ D)
     × (∀ σ W′ q′ → W ⊑ʷ W′ → length W′ ≡ σ

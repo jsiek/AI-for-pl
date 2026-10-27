@@ -122,3 +122,149 @@ forget {Φ = Φ} (∀⊑★ Ans p) =
   I.∀⊑★ Ans (imp-transport (impEnv-dead Φ) (forget p))
 forget bot-elim = I.bot-elim
 forget bot⊑★ = I.bot⊑★
+
+------------------------------------------------------------------------
+-- The converse
+------------------------------------------------------------------------
+
+-- The right type is the embedding of a type B″ of the right context, so
+-- it never mentions a left-only variable.  `back` reads an Imprecision
+-- derivation as a two-context one, rule by rule.  Its structural clauses
+-- use the equation only through projections, so they compute on any
+-- equation proof.
+
+pair-from-embed : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {X Y}
+  → embed Φ Y ≡ X → Φ ∋ X ↔ Y
+pair-from-embed {Φ = pair Φ} {Y = zero} refl = ↔-here
+pair-from-embed {Φ = pair Φ} {Y = suc Y} refl = ↔-pair (pair-from-embed refl)
+pair-from-embed {Φ = only Φ} refl = ↔-only (pair-from-embed refl)
+pair-from-embed {Φ = dead Φ} refl = ↔-dead (pair-from-embed refl)
+
+only-from-env : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {X}
+  → impEnvᶜ Φ X ≡ I.X⊑★ → Φ ∋ X only
+only-from-env {Φ = pair Φ} {X = zero} ()
+only-from-env {Φ = pair Φ} {X = suc X} e = only-pair (only-from-env e)
+only-from-env {Φ = only Φ} {X = zero} e = only-here
+only-from-env {Φ = only Φ} {X = suc X} e = only-only (only-from-env e)
+only-from-env {Φ = dead Φ} {X = zero} ()
+only-from-env {Φ = dead Φ} {X = suc X} e = only-dead (only-from-env e)
+
+⇒-inj₁ : ∀ {Δ} {A B A′ B′ : Ty Δ} → A ⇒ B ≡ A′ ⇒ B′ → A ≡ A′
+⇒-inj₁ refl = refl
+
+⇒-inj₂ : ∀ {Δ} {A B A′ B′ : Ty Δ} → A ⇒ B ≡ A′ ⇒ B′ → B ≡ B′
+⇒-inj₂ refl = refl
+
+var-inj : ∀ {Δ} {X Y : TyVar Δ} → _≡_ {A = Ty Δ} (＇ X) (＇ Y) → X ≡ Y
+var-inj refl = refl
+
+∀-inj : ∀ {Δ} {A B : Ty (sucℕ Δ)} → `∀ A ≡ `∀ B → A ≡ B
+∀-inj refl = refl
+
+-- equations for the embedding under binders
+embed-under-pair : ∀ {Δ Δ′} (Φ : Corr Δ Δ′) {B : Ty (sucℕ Δ)}
+    (B″ : Ty (sucℕ Δ′))
+  → `∀ B ≡ renameᵗ (embed Φ) (`∀ B″)
+  → B ≡ renameᵗ (embed (pair Φ)) B″
+embed-under-pair Φ B″ eq = trans (∀-inj eq) (sym (embed-keep Φ B″))
+
+embed-under-only : ∀ {Δ Δ′} (Φ : Corr Δ Δ′) {B : Ty Δ} (B″ : Ty Δ′)
+  → B ≡ renameᵗ (embed Φ) B″
+  → ⇑ᵗ B ≡ renameᵗ (embed (only Φ)) B″
+embed-under-only Φ B″ eq =
+  trans (cong ⇑ᵗ eq)
+    (trans (renameᵗ-comp (embed Φ) suc B″)
+      (renameᵗ-cong B″ (λ X → refl)))
+
+env-pair : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {μ : I.ImpEnv Δ}
+  → (∀ X → μ X ≡ impEnvᶜ Φ X)
+  → ∀ X → I.extᵐ μ X ≡ impEnvᶜ (pair Φ) X
+env-pair eqμ zero = refl
+env-pair eqμ (suc X) = eqμ X
+
+env-only : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {μ : I.ImpEnv Δ}
+  → (∀ X → μ X ≡ impEnvᶜ Φ X)
+  → ∀ X → I.instᵐ μ X ≡ impEnvᶜ (only Φ) X
+env-only eqμ zero = refl
+env-only eqμ (suc X) = eqμ X
+
+env-dead : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {μ : I.ImpEnv Δ}
+  → (∀ X → μ X ≡ impEnvᶜ Φ X)
+  → ∀ X → I.extᵐ μ X ≡ impEnvᶜ (dead Φ) X
+env-dead eqμ zero = refl
+env-dead eqμ (suc X) = eqμ X
+
+back : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {μ : I.ImpEnv Δ} {A B : Ty Δ}
+  → (∀ X → μ X ≡ impEnvᶜ Φ X)
+  → μ I.⊢ A ⊑ B
+  → (B″ : Ty Δ′)
+  → B ≡ renameᵗ (embed Φ) B″
+  → Φ ⊢ A ⊑ B″
+back eqμ I.★⊑★ ★ eq = ★⊑★
+back eqμ I.★⊑★ (＇ Y) ()
+back eqμ I.★⊑★ (‵ ι) ()
+back eqμ I.★⊑★ (B₁ ⇒ B₂) ()
+back eqμ I.★⊑★ (`∀ B₀) ()
+back eqμ I.ι⊑ι (‵ ι) refl = ι⊑ι
+back eqμ I.ι⊑ι (＇ Y) ()
+back eqμ I.ι⊑ι ★ ()
+back eqμ I.ι⊑ι (B₁ ⇒ B₂) ()
+back eqμ I.ι⊑ι (`∀ B₀) ()
+back eqμ I.X⊑X (＇ Y) eq = X⊑Y (pair-from-embed (sym (var-inj eq)))
+back eqμ I.X⊑X (‵ ι) ()
+back eqμ I.X⊑X ★ ()
+back eqμ I.X⊑X (B₁ ⇒ B₂) ()
+back eqμ I.X⊑X (`∀ B₀) ()
+back eqμ (I.⇒⊑⇒ p q) (B₁ ⇒ B₂) eq =
+  ⇒⊑⇒ (back eqμ p B₁ (⇒-inj₁ eq)) (back eqμ q B₂ (⇒-inj₂ eq))
+back eqμ (I.⇒⊑⇒ p q) (＇ Y) ()
+back eqμ (I.⇒⊑⇒ p q) (‵ ι) ()
+back eqμ (I.⇒⊑⇒ p q) ★ ()
+back eqμ (I.⇒⊑⇒ p q) (`∀ B₀) ()
+back {Φ = Φ} eqμ (I.∀⊑∀ p) (`∀ B₀) eq =
+  ∀⊑∀ (back (env-pair eqμ) p B₀ (embed-under-pair Φ B₀ eq))
+back eqμ (I.∀⊑∀ p) (＇ Y) ()
+back eqμ (I.∀⊑∀ p) (‵ ι) ()
+back eqμ (I.∀⊑∀ p) ★ ()
+back eqμ (I.∀⊑∀ p) (B₁ ⇒ B₂) ()
+back eqμ (I.⇒⊑★ p q) ★ eq = ⇒⊑★ (back eqμ p ★ refl) (back eqμ q ★ refl)
+back eqμ (I.⇒⊑★ p q) (＇ Y) ()
+back eqμ (I.⇒⊑★ p q) (‵ ι) ()
+back eqμ (I.⇒⊑★ p q) (B₁ ⇒ B₂) ()
+back eqμ (I.⇒⊑★ p q) (`∀ B₀) ()
+back eqμ I.ι⊑★ ★ eq = ι⊑★
+back eqμ I.ι⊑★ (＇ Y) ()
+back eqμ I.ι⊑★ (‵ ι) ()
+back eqμ I.ι⊑★ (B₁ ⇒ B₂) ()
+back eqμ I.ι⊑★ (`∀ B₀) ()
+back eqμ (I.X⊑★ {X = X} e) ★ eq = X⊑★ (only-from-env (trans (sym (eqμ X)) e))
+back eqμ (I.X⊑★ e) (＇ Y) ()
+back eqμ (I.X⊑★ e) (‵ ι) ()
+back eqμ (I.X⊑★ e) (B₁ ⇒ B₂) ()
+back eqμ (I.X⊑★ e) (`∀ B₀) ()
+back {Φ = Φ} eqμ (I.∀⊑ Anv z p) B″ eq =
+  ∀⊑ Anv z (back (env-only eqμ) p B″ (embed-under-only Φ B″ eq))
+back eqμ I.∀★⊑★ ★ eq = ∀★⊑★
+back eqμ I.∀★⊑★ (＇ Y) ()
+back eqμ I.∀★⊑★ (‵ ι) ()
+back eqμ I.∀★⊑★ (B₁ ⇒ B₂) ()
+back eqμ I.∀★⊑★ (`∀ B₀) ()
+back eqμ (I.∀⊑★ Ans p) ★ eq = ∀⊑★ Ans (back (env-dead eqμ) p ★ refl)
+back eqμ (I.∀⊑★ Ans p) (＇ Y) ()
+back eqμ (I.∀⊑★ Ans p) (‵ ι) ()
+back eqμ (I.∀⊑★ Ans p) (B₁ ⇒ B₂) ()
+back eqμ (I.∀⊑★ Ans p) (`∀ B₀) ()
+back eqμ I.bot-elim (`∀ ★) eq = bot-elim
+back eqμ I.bot-elim (`∀ (＇ Y)) ()
+back eqμ I.bot-elim (`∀ (‵ ι)) ()
+back eqμ I.bot-elim (`∀ (B₁ ⇒ B₂)) ()
+back eqμ I.bot-elim (`∀ (`∀ B₀)) ()
+back eqμ I.bot-elim (＇ Y) ()
+back eqμ I.bot-elim (‵ ι) ()
+back eqμ I.bot-elim ★ ()
+back eqμ I.bot-elim (B₁ ⇒ B₂) ()
+back eqμ I.bot⊑★ ★ eq = bot⊑★
+back eqμ I.bot⊑★ (＇ Y) ()
+back eqμ I.bot⊑★ (‵ ι) ()
+back eqμ I.bot⊑★ (B₁ ⇒ B₂) ()
+back eqμ I.bot⊑★ (`∀ B₀) ()

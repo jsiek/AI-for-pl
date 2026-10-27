@@ -150,6 +150,12 @@ import proof.DGG.CatchupToLessPreciseProof
 import proof.DGG.DynamicGradualGuaranteeProof
 
 ------------------------------------------------------------------------
+-- Denotational DGG (notes/denotational-dgg.md): the syntactic layer
+------------------------------------------------------------------------
+
+import Denot.Meta
+
+------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked
 ------------------------------------------------------------------------
 

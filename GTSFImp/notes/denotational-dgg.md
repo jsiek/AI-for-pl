@@ -154,8 +154,10 @@ lemma false (Section 8b explains why).
 * **Worlds.** A world is a list of *tag relations*, one per left seal,
   plus the right counter.
   * The tag relation of `σ` is a closed descriptor.  It says how a left
-    value tagged `σ` in `★` is related to right values.  Only seals
-    created by `gen` are ever used as tags, but every seal gets one.
+    value tagged `σ` in `★` is related to right values.  Every seal
+    gets one: `gen` seals are tags, and so are `Λ` seals, because
+    compiled casts use `idᶜ`, where every type variable has the cross
+    mode and may be tagged.
   * Shared, when the right tags with its own seal `σ′`:
     `tag σ′ (◁σ ▷σ′ q)`.
   * Transparent, when the right never tags: `◁σ q`.
@@ -1018,13 +1020,17 @@ and both sides extend the world in the same way.
      * the two-context type precision and the cast-calculus term
        precision;
      * a paper proof that elaboration preserves precision.
-   * Next: mechanize, starting with the syntactic layer:
-     * the normal form and `eager`;
-     * two-context precision, with uniqueness and substitution;
-     * the term precision;
-     * the elaboration theorem.
-
-     None of it needs the model, so it checks the definitions early.
+   * **Mechanized** (`Denot/`, `proof/Denot/`, public statements in
+     `Denot/Meta.agda`, checked by `All.agda`):
+     * the normal form and `eager`, with `eager c` in normal form;
+     * two-context precision, contained in `Imprecision` (`forget`),
+       and the converse for embedded right types (`back`);
+     * the cast-calculus term precision;
+     * eager elaboration (`ElabE`, `compileᴱ`) and the theorem that it
+       preserves precision.
+   * Not yet mechanized: uniqueness of two-context derivations and
+     two-context substitution.  The elaboration theorem did not need
+     them, because its term rules carry the substituted derivation.
 2. Port the PolyG model (`GraphModel`, `Denotation`) to GTSFImp's terms:
    * conversions;
    * consistency casts with modes;

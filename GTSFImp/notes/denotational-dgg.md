@@ -341,14 +341,154 @@ Kripke closures, consistency on the set side), with these changes:
    (`⇑ᵗᵐ`).  The denotation with seal numbers sidesteps this, but
    soundness needs a renaming lemma for intrinsically scoped terms.
 
+## 8a. Paper sketch: monotonicity of consistency casts
+
+**Statement** (reflection; preservation is the mirror image).  Let:
+* `c : C ∼ A` be the left cast and `c′ : C′ ∼ A′` the right cast;
+* `C ⊑ C′` and `A ⊑ A′` hold in a two-context type precision;
+* `L` be a finite list of left values related to the right set `D′` at
+  `C ⊑ C′`, under a world `W`.
+
+Then every finite list of left results of `⟦c⟧ L` is related to
+`⟦c′⟧ D′` at `A ⊑ A′`, under an extension of `W` (casts may create
+seals).
+
+**Shapes.** Type precision relates a left type to a right type in one of
+four ways:
+* the same head;
+* the right is `★`;
+* left `∀` against right non-`∀` (`∀⊑`, which makes the bound variable
+  left-only);
+* a left variable against `★` (`X ⊑ ★`, with that variable left-only).
+
+The cast heads are `id`, `↦`, `∀ᶜ`, `!`, `？`, `inst`, `gen`, `bot-elim`
+and `bot-intro`.  The cases:
+
+1. **Same head on both sides** (including `inst`/`inst` and `gen`/`gen`):
+   by the induction hypothesis on the parts.
+   * When both sides create a seal at the same step (`inst`/`inst` at the
+     cast; `gen`/`gen` at the shared type application), the world gets a
+     *shared* entry pairing the two new seals.
+2. **Right `!`** (`A′ = ★`): the left result is related at `A ⊑ ★`.
+   * The right injects with the ground of `C′`.
+   * The relation needs the left's ground to match.  Where `A` is a `∀`
+     or a left-only variable, the `∀⊑` and left-only clauses apply
+     instead.
+3. **Right `？`** (`C′ = ★`): the right projects a tag `G`.
+   * Need: if the right projection fails, the left fails too
+     (preservation), and if it succeeds, the payloads are related.
+   * Related values at `C ⊑ ★` carry the tag of `C`'s ground, or are
+     transparent for a left-only seal.  So the right tag differs from
+     `G` only when `C`'s ground is incompatible with `A ⊑ A′`.
+   * In that case the left cast fails first.  This is the GTLC argument,
+     plus the left-only case: if a left value tagged with a left-only
+     seal reaches a left `？`, the left fails, which both relations allow.
+4. **Left `inst`, right not.**
+   * If the right keeps a `∀` type (`C′ = ∀…`, `A′ = ∀…`), then `A` must
+     be a `∀` too, since `A ⊑ ∀` forces it.  But `inst` produces a
+     non-`∀`, so the case is **impossible**.
+   * If `A′ = ★`, the right is `(…)!` with a ground.  The canonical-route
+     check below shows the grounds agree.
+5. **Left `gen`, right not.** `C ⊑ C′` with `C` non-`∀` forces `C′`
+   non-`∀`, and `A ⊑ A′` with `A = ∀…` forces `A′` to be a `∀` or `★`.
+   * If `A′` is a `∀`, the right is also `gen`: same head.
+   * If `A′ = ★`, the right's `!` injects at `∀★`.  The left `gen` value
+     is related to it through the `∀⊑★` clause, by the induction
+     hypothesis on `gen`'s body.
+6. **Left `∀ᶜ`, right `inst`** (the right instantiates first).
+   `C = ∀C₀ ⊑ C′ = ∀C₀′`, and `A` is a `∀` against a non-`∀` `A′`.
+   * The right creates `α′` now; the left creates `σ` only when it is
+     later instantiated.
+   * Use the hypothesis's `∀⊑∀` clause in the world that extends only
+     the left list up to `σ`.  This is legal: the right made no
+     allocation between `α′` and its own counter at the cast.
+   * Pair `σ` with `α′` there.  The induction hypothesis relates the
+     bodies.
+   * Then a **world-change lemma** turns "`σ` shared with `α′`, seen
+     through the right's reveal `〖α′ , ★ ↑ C₀′〗`" into "`σ` left-only"
+     under the conclusion's `∀⊑` clause.
+   * Instantiation being administrative makes the different timing
+     harmless: the right's instantiated body is an effect-free value.
+7. **Left `∀ᶜ`, right `gen`** (the right becomes polymorphic).
+   `C = ∀C₀ ⊑ C′` (non-`∀`, through `∀⊑`), and `A = ∀A₀ ⊑ A′ = ∀A₀′`
+   (shared).
+   * Both sides instantiate at the shared type application, creating
+     `σ` and `σ′`.
+   * The hypothesis's `∀⊑` clause relates the left body at `σ`, with `σ`
+     left-only, to the right's *unwrapped* value.
+   * The right's `gen` wrapper conceals at `σ′`, tags with `σ′` (`X!`),
+     projects `?σ′`, and unseals.
+   * The same world-change lemma, in the other direction, turns
+     "`σ` left-only against the raw right value" into "`σ` shared with
+     `σ′` against the `gen`-wrapped right value".
+   * Example: left `ΛX.λx:X.x`, right `(λx:★.x) ⟨gen (X! ↦ ?X)⟩`.  Both
+     return the argument; a right `★→★` function that returns another
+     tag fails the right `?σ′`.  The hypothesis rules that out: such a
+     function is not related to the polymorphic identity at
+     `∀X.X→X ⊑ ★→★`.
+8. **Different routes between the same types** (the counterexample of
+   risk 1).  For example, the left uses `inst` then `gen` while the right
+   uses `gen` then `inst`, at `∀X.★→X ∼ ∀Y.Y→★` or more precise pairs.
+   * The routes differ in *when* the `X` seal is created (at the cast,
+     or at each instantiation of `Y`), not in which seals and tags are
+     checked:
+     * the input is concealed at `Y`'s seal and tagged with it;
+     * the output is sealed at `X`'s seal and unsealed to `★`.
+   * By case 6's timing argument, the induction goes through on the
+     pair of routes.
+   * This needs no bound to be chosen, which is why option (b) works
+     where factorization does not.
+
+**The world-change lemma** (cases 6 and 7) is the one genuinely new lemma.
+Relate two worlds that differ only in the entry for one left seal `σ`:
+* `left q`, where `σ`'s contents are related to raw right values;
+* `shared σ′ q`, where they are related to right values sealed at `σ′`,
+  or tagged and sealed at `σ′`.
+
+The lemma: a left list is related to a right set `D′` in the first world
+if and only if it is related to `wrap D′` in the second.  Here `wrap` is
+the right's boundary wrapper:
+* the reveal or conceal conversion at `σ′`, for a right `inst`;
+* `gen`'s tag/project plus the reveal, for a right `gen`.
+
+The proof is by induction on the precision derivation.  The wrappers are
+structural in the type, sealing in negative positions and unsealing in
+positive ones, so each clause lines up.
+
+**Coherence of derivations.** The two-sided rule takes *any* pair of
+derivations `c`, `c′` at related types.  So the lemma needs any two
+derivations of the same judgement to agree semantically.
+* Case 8 is the known instance.
+* A candidate counterexample was `∀X.X→X ∼ ★` derived either by `∀ᶜ`
+  then `!` at `∀★`, or by `inst` then `!` at `★→★`.  With the first,
+  a `★` application on the right would blame where the left succeeds.
+  But it is **not derivable**: `∀ᶜ` would need `X→X ∼ ★` under mode
+  `X∼X`, and `X∼X` cannot reach `★`.  This is the same strictness as in
+  risk 2.
+* So far, every pair of distinct derivations of the same judgement
+  differs only in the timing of seal creation.
+* If one turns out not to, the fallback is to require canonical
+  derivations (`Consistency2`'s unique evidence) in both the cast rule
+  and the source typing.
+
+**Status.**
+* Cases 1–3: the GTLC arguments, extended with left-only seals.
+* Cases 4 and 5: impossible, or reduce to case 1.
+* Cases 6–8: need the world-change lemma and the timing argument.
+
+The sketch finds no counterexample.  What it finds is the world-change
+lemma, which needs a precise statement and a paper proof before
+mechanization.
+
 ## 9. Plan
 
 1. Risks 1, 2 and 4 are checked.  Decision for risk 1: option (b), a
    two-sided cast rule with a semantic monotonicity lemma.
    * Define the cast-calculus term precision (Section 7).
    * Prove that elaboration preserves it.
-   * Sketch on paper the cases of the cast monotonicity lemma where the
-     two sides' derivations choose differently (`inst`/`gen` order).
+   * The paper sketch of the cast monotonicity lemma is in Section 8a.
+     It found no counterexample.  Next: state and prove on paper the
+     world-change lemma it needs.
    Define the cast-calculus term precision (Section 7), and prove that
    elaboration preserves it.
 2. Port the PolyG model (`GraphModel`, `Denotation`) to GTSFImp's terms:

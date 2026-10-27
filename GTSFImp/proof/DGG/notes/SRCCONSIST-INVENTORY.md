@@ -171,7 +171,7 @@ This was exactly the old gate block for `★ ∼ ＇0` under `idᶜ`, where
 - `GTSF/Consistency.agda:112-122` admits forall-vs-nonforall consistency by
   extending the context with `0 ~ᶜ★` or `★~ᶜ 0`, i.e. by switching the bound
   variable to a dynamic-side assumption.
-- `PolyG/PolyG.agda:38-56` uses a simple surface consistency relation:
+- `PolyG/popl2020/PolyG.agda:38-56` uses a simple surface consistency relation:
   `TDyn ∼ A` and `A ∼ TDyn` are always available, while names are consistent
   only with the same name. There is no `Var∼` mode environment.
 - `PolyBlameI` has no separate `Consistency.agda`; casts are `up`/`down`

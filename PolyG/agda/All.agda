@@ -22,3 +22,4 @@ open import DenotInvariants
 open import TypeSafety
 open import CompileMeta
 open import DenotationMeta
+open import MetaTheory

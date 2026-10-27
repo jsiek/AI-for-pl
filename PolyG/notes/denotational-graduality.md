@@ -1,7 +1,7 @@
 # A Denotational Proof of Graduality for PolyGν
 
-Status: design on paper (revised: worlds, consistency, joint lists).
-The substrate (Section 9) is mechanized; the denotational part is not.  This is the
+Status: mechanized in `PolyG/agda/` (`make check`: `agda --safe`, no
+postulates).  The theorem is `graduality` in `MetaTheory.agda`.  This is the
 warm-up for GTSFImp (Section 11).  It follows the GTLC design,
 `GTLC/notes/denotational-gg.md`, and the GTLC mechanization in
 `GTLC/agda/` (`GraphModel.agda`, `Denotation.agda`, `proof/Denot*.agda`).
@@ -467,14 +467,22 @@ are to be removed.
 
 ## 10. Size
 
-The GTLC denotational development is about 3,400 lines.  Here there are:
-* roughly twice GTLC's term formers;
-* a seal counter;
-* consistency, with its preservation theorem;
-* joint lists and worlds in the relations.
+As mechanized, the whole development is about 13,700 lines.
+* The substrate is about 4,300: types, terms, reduction, typing, type
+  safety, the surface language, elaboration, and both precisions with
+  their lemmas.
+* The denotational part is about 9,400.
 
-Estimate: 7,000–10,000 lines for the denotational part.  The substrate
-(Section 9) is mechanized: about 3,500 lines.
+The denotational part breaks down as:
+
+| Part | Lines |
+|---|---|
+| model, denotation, monotonicity, finite support, substitution | ~2,000 |
+| consistency, soundness, adequacy | ~1,600 |
+| relation properties | ~1,700 |
+| cast lemmas and their supporting properties | ~2,300 |
+| fundamental lemma | ~1,400 |
+| theorem | ~300 |
 
 ## 11. What carries over to GTSFImp
 

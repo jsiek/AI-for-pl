@@ -2,12 +2,14 @@ module GradualityDefinitions where
 
 -- File Charter:
 --   * The vocabulary of the graduality theorem for PolyCν: observations
---     of values, convergence, failure, and divergence of a closed term
---     run from the empty store.
+--     of values, convergence, failure, and divergence (also divergence
+--     or failure) of a closed term run from the empty store.
 
 open import Data.Bool using (Bool; true; false)
 open import Data.List using ([])
 open import Data.Product using (∃-syntax; _×_)
+open import Data.Sum using (_⊎_)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
 open import Terms
@@ -47,3 +49,9 @@ Fails M = ∃[ Σ ] ([] ▷ M —↠ Σ ▷ ℧)
 Diverges : Term → Set
 Diverges M =
   ∀ {Σ N} → [] ▷ M —↠ Σ ▷ N → ∃[ Σ′ ] ∃[ N′ ] (Σ ▷ N —→ Σ′ ▷ N′)
+
+-- every term M reaches can take a step or is ℧
+DivergesOrFails : Term → Set
+DivergesOrFails M =
+  ∀ {Σ N} → [] ▷ M —↠ Σ ▷ N
+  → ∃[ Σ′ ] ∃[ N′ ] (Σ ▷ N —→ Σ′ ▷ N′) ⊎ N ≡ ℧

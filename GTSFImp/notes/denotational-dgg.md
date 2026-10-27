@@ -278,7 +278,8 @@ the leaf relation `◁σ q` with a transparent tag relation, and
     left.
 * **Elaboration preserves precision.** This becomes direct: at each
   source application, the source typing supplies `c` and `c′` at related
-  types, which is exactly the premise of the two-sided rule.
+  types, which is exactly the premise of the two-sided rule.  Elaboration
+  must put its casts in normal form first (Section 7a).
 * **Conversion lemma.** The reveal and conceal conversions
   `〖α , R ↑ B〗` and `makeConceal` relate the two forms of a seal:
   * a shared pairing of `α` seen through the conversions;
@@ -287,6 +288,191 @@ the leaf relation `◁σ q` with a transparent tag relation, and
   consistency theorem, monotonicity, finite support and the
   substitution lemmas.  New cases: conversions, primitives (`⊕`, `ℕ`),
   and allocation at casts.
+
+## 7a. The normal form, cast-calculus precision, and elaboration
+
+### The eager normal form
+
+A cast is in *eager normal form* when no `gen` has an `inst` directly
+as its body.  As a grammar of consistency derivations (types and side
+conditions as in `Consistency.agda`):
+
+    c ::= id ι | id ★ | id X          atoms
+        | c ↦ c                       functions
+        | ∀ᶜ c                        both sides keep the binder
+        | c !  | ？ c                 to and from ★, through a ground
+        | inst c                      eliminate the source's binder
+        | gen g                       introduce the target's binder
+        | bot-elim | bot-intro
+
+    g ::= c ↦ c | ∀ᶜ c | gen g        bodies of gen
+
+* `g` is `GenSafe` without its `inst` case.  `gen` already requires
+  `GenSafe` of its body, and the normal form removes one of the four
+  heads `GenSafe` allows.
+* Read along a `∀`-prefix, a cast first eliminates the source's binders
+  (`inst`), then introduces the target's (`gen`).  Seals are created as
+  early as possible.
+* **Normalization.** `eager c` swaps every `gen (inst d)` to
+  `inst (gen d̃)` (Section 8a, case 8) until none is left.
+  * Each swap moves one `inst` above one `gen`, so the number of such
+    inversions decreases.
+  * `eager c` derives the same judgement as `c`.
+  * The swap needs an exchange lemma for consistency: exchanging the two
+    innermost variables, whose modes are `X∼★` and `★∼X`.
+
+### Where elaboration's casts come from
+
+* The source typing stores declarative consistency evidence: `⊢·` holds
+  `A ∼ A′` (parameter against argument), and `⊢⊕` holds `A ∼ arg`.
+  * The evidence is arbitrary in a typing derivation.
+  * From the checker it is `lower?`'s.
+* **`lower?`'s evidence is eager.**
+  * The cast read off a lower bound follows the bound's binders
+    (`lower-bounds-consistentᵐ`):
+    * a binder paired on both sides gives `∀ᶜ`;
+    * one paired with the source only gives `inst`;
+    * one paired with the target only gives `gen`.
+  * `lower?` tries `inst` before `gen`.
+  * A brute-force check confirms that no `gen` lands directly over an
+    `inst`: all 450 closed types of size ≤ 6, all 13,980 consistent
+    pairs.  As a control, trying `gen` first gives 14 violations already
+    at size 5.
+  * Not covered by the check: the helpers for `★` and for binders
+    dropped on both sides (`factor-*-star-lower`, `close-*`).
+* **But `compile` flips it.** At an application `compile` inserts
+  `symᶜ A∼A′`, and `sym∼` turns `inst` into `gen` and back.  So it
+  turns `lower?`'s eager `inst (gen d)` into `gen (inst d′)`, the
+  opposite of the normal form.
+* **Decision:** `compile` inserts `eager (symᶜ A∼A′)` at applications
+  and `eager (A∼arg)` at primitives.
+  * This works for any typing derivation, not only the checker's.
+  * The cast at `★ ∼ ★ ⇒ ★` is already in normal form.
+  * The development has its own `compile` for this, so that the
+    operational proof in `proof/DGG` is not disturbed.
+
+### Two-context type precision
+
+* `Φ` relates a left context `Δ` to a right context `Δ′`.  Each left
+  variable is marked:
+  * `pair Y`: paired with a right variable;
+  * `only`: left-only;
+  * `dead`: occurs nowhere.
+* Every right variable is paired exactly once.  Extending: `Φ ,pair`
+  (both sides), `Φ ,only` and `Φ ,dead` (left only).
+* `Φ ⊢ A ⊑ A′`, for `A : Ty Δ` and `A′ : Ty Δ′`:
+
+      ★ ⊑ ★     ι ⊑ ι     ι ⊑ ★     X ⊑ Y  if Φ X = pair Y
+      X ⊑ ★  if Φ X = only
+      A ⇒ B ⊑ A′ ⇒ B′   from A ⊑ A′ and B ⊑ B′
+      A ⇒ B ⊑ ★          from A ⊑ ★ and B ⊑ ★
+      ∀A ⊑ ∀A′           from Φ ,pair ⊢ A ⊑ A′
+      ∀A ⊑ B             from Φ ,only ⊢ A ⊑ B, A not a variable,
+                         and 0 occurring in A
+      ∀A ⊑ ★             from Φ ,dead ⊢ A ⊑ ★, A not ★
+      ∀★ ⊑ ★     ∀X.X ⊑ ∀★     ∀X.X ⊑ ★
+
+* These are `Imprecision`'s rules, with these differences:
+  * the right type lives in its own context, so `∀⊑` needs no shift;
+  * `X ⊑ X` needs a pair;
+  * `∀⊑★` marks its binder `dead`, which is what `Imprecision`'s `extᵐ`
+    there amounts to, since its body is `⊑ ★`.
+* Derivations should be unique, as in PolyG (to be checked).  The
+  `[]⊑[]` rule below relies on it.
+
+### Cast-calculus term precision
+
+`Φ ∣ Γ⊑ ⊢ M ⊑ M′ ⦂ p`, with `p : Φ ⊢ A ⊑ A′` and `Γ⊑` a list of type
+precisions for the term variables.  The rules cover the terms that
+elaboration produces: no conversions, no `blame`, no runtime seals.
+* Every cast is at the identity mode environment, as `compile`
+  produces.
+* Every cast is in normal form.
+
+    x ⊑ x                      at Γ⊑ x
+    ƛ N ⊑ ƛ N′                 at p₁ ⇒ p₂,  from N ⊑ N′ at p₂ with p₁
+                                 added to Γ⊑
+    L · M ⊑ L′ · M′            at p₂,  from L ⊑ L′ at p₁ ⇒ p₂ and
+                                 M ⊑ M′ at p₁
+    $κ ⊑ $κ,  L ⊕ M ⊑ L′ ⊕ M′  structural
+    Λ V ⊑ Λ V′                 at ∀ p,  from Φ ,pair ⊢ V ⊑ V′ at p
+                                 (V, V′ values)
+    Λ V ⊑ N′                   at ∀⊑ p,  from Φ ,only ⊢ V ⊑ N′ at p
+                                 (V a value; N′ any term, unshifted)
+    M ⦂∀ A [T] ⊑ M′ ⦂∀ A′ [T′] at p[q],  from M ⊑ M′ at ∀ p and
+                                 q : Φ ⊢ T ⊑ T′
+    M ⦂∀ A [T] ⊑ M′            at p[q],  from M ⊑ M′ at ∀⊑ p and
+                                 q : Φ ⊢ T ⊑ ★
+    M ⟨c⟩ ⊑ M′ ⟨c′⟩            at r,  from M ⊑ M′ at p : C ⊑ C′,
+                                 c : C ∼ A, c′ : C′ ∼ A′,
+                                 r : A ⊑ A′
+    M ⊑ M′ ⟨c′⟩                at r,  from M ⊑ M′ at p : A ⊑ C′,
+                                 c′ : C′ ∼ A′, r : A ⊑ A′
+
+* `p[q]` substitutes `q` for the bound variable's leaves.  The
+  two-context substitution lemma says `p[q]` derives `A[T] ⊑ A′[T′]`
+  (and `A[T] ⊑ A′` for `∀⊑`).
+* No rule relates the casts `c` and `c′` to each other.  The cast
+  monotonicity lemma (Section 8a) is what makes the two cast rules sound.
+* There is no one-sided left cast rule, because `compile` never needs
+  one.
+* Compared with `proof/DGG/CastTermImprecision` (`⊢²`), there are no
+  conversion, `blame`, or seal rules.  Those are needed only for terms
+  after reduction, and the denotational proof never relates such terms.
+
+### Elaboration preserves precision
+
+**Theorem.** If `μ ∣ γ ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p` then
+`Φμ ∣ γ̂ ⊢ compile M ⊑ ⌊compile M′⌋ ⦂ p̂`.
+
+* `Φμ` marks each `X⊑X` variable of `μ` as paired and each `X⊑★`
+  variable as left-only.
+* `⌊·⌋` strengthens a right term or type from `Δ` to `Δ′`, the
+  context without the left-only variables.
+* `p̂` is `p` in two-context form.
+
+**Why the right side can be strengthened.** In the source relation, the
+right term never mentions a left-only variable:
+* `Λ⊑ᴳ` checks its body against `⇑ᵗᴳ N′`;
+* `[]⊑ᴳ` keeps `M′`.
+
+This is an invariant, proved by induction on the source derivation.
+
+**Translating type precision.** `p̂` exists because, under the
+invariant, `μ ⊢ A ⊑ ⇑B` converts to `Φμ ⊢ A ⊑ B`:
+* the leaf `X ⊑ X` occurs only with `X` paired, since the right type
+  cannot mention a left-only `X`;
+* `X ⊑ ★` occurs only with `X` left-only.
+
+So the single-context source relation already behaves like the
+two-context one, which is why the `Catchup` counterexample (risk 4) does
+not affect the source.
+
+**Proof.** By induction on the source derivation.
+* **`x⊑xᴳ`, `ƛ⊑ƛᴳ`, `κ⊑κᴳ`:** structural.
+* **`·⊑·ᴳ`:** the function part is structural.
+  * The arguments get `eager (symᶜ A∼C)` and `eager (symᶜ A′∼C′)`, at
+    `C ⊑ C′` and `A ⊑ A′`.
+  * Both are in normal form, so the two-sided cast rule applies.
+* **`·⊑·★ᴳ`:**
+  * The right function gets `？(id ★ ↦ id ★)`, related to the left
+    function by the one-sided right rule at `A ⇒ B ⊑ ★ ⇒ ★`.  The
+    premises `A ⊑ ★` and `B ⊑ ★` come from `⇒⊑★`.
+  * The arguments are related by the two-sided rule.
+* **`·★⊑·★ᴳ`, `⊕⊑⊕ᴳ`:** two-sided cast rules.
+* **`Λ⊑Λᴳ`:** the `Λ ⊑ Λ` rule.
+* **`Λ⊑ᴳ`:** the `Λ V ⊑ N′` rule.  The source's `⇑ᵗᴳ N′` strengthens back
+  to `N′`, so `compile` must commute with renaming.
+* **`[]⊑[]ᴳ`:** the source's `r` equals `p[q]` by uniqueness of
+  derivations.
+* **`[]⊑ᴳ`:** the same, with `q : T ⊑ ★`.
+
+**Supporting lemmas:**
+* `eager` preserves the judgement;
+* `compile` commutes with type renaming;
+* the strengthening invariant;
+* two-context substitution;
+* uniqueness of two-context derivations.
 
 ## 8. Risks and open questions
 
@@ -804,12 +990,20 @@ and both sides extend the world in the same way.
      and the world-change lemma is proved on paper in Section 8b.
    * Case 8 is redone (Section 8a).  It needs casts in eager normal
      form: no `gen` directly over `inst`.
-   * Next:
-     * check whether the casts read off `Consistency2`'s evidence are in
-       normal form;
-     * define the cast-calculus term precision (Section 7), with the
-       normal form in the two-sided cast rule;
-     * prove that elaboration preserves it.
+   * Section 7a gives:
+     * the normal form's grammar;
+     * the finding that `lower?`'s evidence is eager but `compile`'s
+       `symᶜ` flips it, so `compile` must apply `eager`;
+     * the two-context type precision and the cast-calculus term
+       precision;
+     * a paper proof that elaboration preserves precision.
+   * Next: mechanize, starting with the syntactic layer:
+     * the normal form and `eager`;
+     * two-context precision, with uniqueness and substitution;
+     * the term precision;
+     * the elaboration theorem.
+
+     None of it needs the model, so it checks the definitions early.
 2. Port the PolyG model (`GraphModel`, `Denotation`) to GTSFImp's terms:
    * conversions;
    * consistency casts with modes;

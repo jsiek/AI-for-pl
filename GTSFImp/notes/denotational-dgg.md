@@ -1,10 +1,9 @@
 # A Denotational Proof of the Dynamic Gradual Guarantee for GTSFImp
 
-Status: design on paper; nothing is mechanized.  Revised after review:
-the fundamental lemma is on cast-calculus precision, and the GSF and
-`Catchup` counterexamples are checked (Section 8).  Revised again after
-the paper proof of the world-change lemma (Section 8b), which moved seal
-relations out of the world (Section 4).
+Status: plan steps 1 and 2 are mechanized, and step 3 is partly
+mechanized (Section 9).  Soundness as subject expansion fails for `β-∀`
+(Section 8c, mechanized counterexample), so steps 3–6 wait on a decision
+about how to prove soundness and adequacy.
 
 This builds on the PolyG warm-up:
 * `PolyG/notes/denotational-graduality.md`;
@@ -1024,6 +1023,121 @@ and both sides extend the world in the same way.
 * The coherence obligation of Section 8a remains, now for derivations
   in normal form.
 
+## 8c. Soundness and exact allocation: `β-∀` breaks subject expansion
+
+Found while starting soundness (plan step 3).  Mechanized in
+`proof/Denot/BetaAllCounterProbe.agda`.
+
+### The counterexample
+
+* **The terms.** `V = ΛY. ΛX. λx. x : ∀Y.∀X. X ⇒ X`, and the cast
+  `c = inst d : ∀X.(X ⇒ X) ∼ ★ ⇒ ★` under `∀ᶜ`, with
+  `d = ？X ↦ X!` (X read as `★`).
+
+      redex  = (V ⟨ ∀ᶜ c ⟩) ⦂∀ (★ ⇒ ★) [ 𝔹 ]
+      reduct = (V ⦂∀ ∀X.(X ⇒ X) [ 𝔹 ]) ⟨ c [ 𝔹 ]ᶜ ⟩
+
+  `redex —→ reduct` by `β-∀`, a pure step.
+* **The denotations, from counter 0.**
+  * Redex: the cast value is instantiated at seal 0, which instantiates
+    `V` at 0.  Then `inst` creates `α = 1` and instantiates `V`'s body at
+    2.  Every result ends at counter **3** (`redex-at-3`).
+  * Reduct: the type application instantiates `V` at 0 and reveals on
+    `∀X.(X ⇒ X)`.  That reveal is a ∀-conversion,
+    `` `∀↑ 〖 1 , 𝔹 ↑ X ⇒ X 〗 ``.  Then `inst` creates `α = 1` and
+    instantiates the *conversion* at 2, which instantiates `V`'s body at
+    3, as `β-reveal-∀` does.  `ret νλ 4` is a result (`reduct∈`).
+  * So `⟦ reduct ⟧ ⊄ ⟦ redex ⟧` (`no-expansion`).
+
+### Why this is not a defect of this particular denotation
+
+* The extra seal is real.  Operationally, instantiating a value wrapped in
+  a ∀-conversion takes one more seal than instantiating the value itself
+  (`β-reveal-∀` creates the proxy's variable, and the inner type
+  application creates another).  The reduct's denotation mirrors that,
+  as it should.
+* A pure `β-∀` step changes *where* the reveal happens:
+  * the redex casts with `c` first and reveals on the target `B` after;
+  * the reduct reveals on the source `A` first and casts with `c[C]`
+    after.
+* The number of seals therefore depends on the order, in both
+  directions:
+  * an `inst` inside `c` consumes a ∀ of `A`, and in the reduct that ∀
+    is wrapped in a conversion, so the reduct pays one more seal (the
+    example above);
+  * a `gen` inside `c` produces a ∀ of `B`, and in the redex the reveal
+    on `B` wraps it in a conversion, so the redex pays one more seal.
+* A compositional denotation of the redex sees the value `V ⟨ ∀ᶜ c ⟩`
+  before the type application that supplies `C`.  It cannot pay for
+  conversions that exist only after the step.  So I expect no
+  compositional denotation with exactly mirrored counters to satisfy
+  subject expansion for `β-∀`.  This is an argument, not a proof.
+* Two fixes I tried on paper fail:
+  * **Reusing the seal when instantiating at a variable** (so that
+    conversions cost nothing).  This is unsound: the inner variable and
+    the outer one then share a seal, so a value tagged with the inner
+    variable inside the body would pass a projection at the outer one,
+    where reduction blames.
+  * **Passing the instantiation's types into polymorphic entries**, so
+    that a `∀ᶜ` value can reveal on its own source type, as the reduct
+    does.  The final reveal then happens at a type that is only known at
+    run time, and in the set model the definition of that reveal is not
+    structurally recursive.
+
+### A second, smaller problem: identity proxies
+
+* `ground`, `expand` and `β-∀` (through `refl∼ C` in `c [ C ]ᶜ`)
+  introduce identity casts at function types.  An identity function proxy
+  adds entries with larger argument lists.
+* Exact inclusion needs the proxy's set to be contained in the original.
+  * This holds for sets of the form `Λᶠ F` with `F` monotone, which
+    covers `ground` and `expand`.
+  * It fails for a finite argument set `mem U` that the proxy wraps and
+    the body returns, which `β-∀` can produce.
+* I expect this to break exact inclusion as well.  It is not mechanized.
+
+### What it means for the plan
+
+Soundness as subject expansion with exact counters (PolyG's
+`DenotSoundness`) is not available.  The current plan for adequacy has
+the same problem, because it states that the final store size equals the
+counter.  Both need to relate seals to store variables *up to a
+correspondence*, not by equality.  Options:
+
+* **(A) Keep the denotation; prove soundness and adequacy with a logical
+  relation between closed terms and denotations.**
+  * The worlds are Kripke worlds: a store, a counter, and a map from
+    store variables to seals, extended at each instantiation.  Store
+    variables that only reduction creates, such as a proxy's variable in
+    the example, need not have a seal.
+  * At `∀` types the relation quantifies over the instantiation's
+    behaviour, so the two sides may create different numbers of seals.
+  * At function types the relation for an entry `U ⟼ r` assumes the
+    argument is related to *every* element of `U`.  Larger argument lists
+    then only make the relation easier, so identity proxies need no
+    up-closure lemma.
+  * The `β-∀` case becomes a lemma by induction on the cast: a semantic
+    cast at the seal, followed by the reveal on `B`, is related to the
+    reduct's reveal on `A` followed by `c[C]`.
+  * Everything mechanized so far is reused: the model, monotonicity,
+    finite support, the bind laws, renaming, substitution and
+    consistency.  Steps 4–6 are unchanged.
+  * Cost: a second logical relation, typed and Kripke, of roughly the
+    size of the step-6 cast lemma.  The semantic side is inductive, so
+    no step indexing.
+* **(B) Leave the denotational route**: a binary step-indexed Kripke
+  logical relation on the operational semantics, as in New, Jamner and
+  Ahmed's graduality-and-parametricity proof for PolyGν.  One relation
+  instead of two, but steps 2–3 are discarded.  The paper work in
+  Sections 8a and 8b transfers in spirit, since it is about relating
+  seals and tags.
+* **(C) Change the operational semantics** so that allocation is
+  compositional, for example by making `β-∀` push the type application
+  under the cast differently.  This changes the language, so I have not
+  pursued it.
+
+My recommendation is (A).
+
 ## 9. Plan
 
 1. Risks 1, 2 and 4 are checked.  Decision for risk 1: option (b), a
@@ -1096,18 +1210,15 @@ and both sides extend the world in the same way.
    * `DenotConsistency`: every denotation is consistent when the
      environment is.
 
-   **Remaining:**
-   * **Soundness**: subject expansion, rule by rule.  The obligations
-     beyond PolyG's are:
-     * identity proxies are the identity on denotations of function
-       values, which are closed under larger argument lists, and on
-       those of polymorphic values (`ground`, `expand`, `β-∀`);
-     * casts under type substitution, for `β-∀` (`c [ C ]ᶜ`) and
-       `β-inst` (`c [ ★/0 ]ᶜ`);
-     * `revV` agrees with `〖 X , ＇Y ↑ C 〗`, for `β-reveal-∀`,
-       `β-conceal-∀` and `β-inst`;
-     * typed values denote nonempty sets.
-   * **Adequacy.**
+   **Blocked: soundness as subject expansion fails** for `β-∀`
+   (Section 8c; mechanized counterexample in
+   `proof/Denot/BetaAllCounterProbe.agda`).  The redex and the reduct
+   create different numbers of seals, so the exact-counter inclusion
+   `⟦ N ⟧ ⊆ ⟦ M ⟧` does not hold.  Adequacy's "final store size equals
+   the counter" has the same problem.  Proposed replacement, option (A)
+   of Section 8c: one Kripke logical relation between closed terms and
+   denotations, giving soundness and adequacy together.  **Waiting for a
+   decision** between options (A), (B) and (C).
 4. Descriptors, environments and worlds (Section 4); the relations
    (Section 5); their properties.
 5. The conversion lemma; monotonicity of consistency casts.

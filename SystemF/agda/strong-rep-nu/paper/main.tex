@@ -347,7 +347,7 @@ Term typing \hfill \fbox{$\Delta\mid\Gamma \vdash M:A$}
     \Delta' \mid [{+X}^\alpha] \vdash c : \Delta'(C) \Rightarrow \Delta(B) &
     \Delta \vdash B}
    {\Delta \mid \Gamma \vdash \nuinst{X}{A}{L}{c} : B}
-   (\Delta' = \Delta,\alpha\by\Delta(A),X\by \alpha)
+   (\Delta' = \Delta,\alpha\by\Delta(A),X\by \alpha;\; X,\alpha \notin \Delta)
   \\[2ex]
   %BoundaryWf \Delta Θ \Delta_i \Delta_c
   \inference

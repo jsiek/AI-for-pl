@@ -5522,3 +5522,24 @@ rather than a failure.  It works.
 Results: `make check` passes (no postulates); every example run keeps
 its endpoint and step count; RespellProbe's pinned result is unchanged.
 
+
+## 2026-10-28 — sketch: single-entry boundaries, towers, no `Merge` (branch `nu-single-entry`)
+
+On paper only: `notes/SingleEntrySketch.md`.  Jeremy asked whether νF
+needs multi-entry scopes and `Merge` now that a hide removes only `X`
+(no truncation) and a type argument is recorded, never pushed in.  The
+sketch, νF₁, keeps everything else from `paper/main.tex` and lets values
+be towers of one-entry boundaries.  Its rules: Wrap and TyBeta
+generalised to towers (TyBeta absorbs TyWrap), Id, and three new tidying
+rules — Cancel (an adjacent inverse pair `[ε] [−ε]` disappears), Hide (a
+`−Y` layer with an identity conversion disappears) and Reach (an unseal
+meets its seal through `+` layers carrying `id(X)`).  No `Merge`, no
+run-time composition, no chain longer than one.
+
+The motivating run is `K` with an argument that returns its input: the
+naive "cancel at a distance" contractum is ill typed there, because an
+intermediate `[−X^α]` layer's interior cannot name the payload of the
+variable being cancelled; Cancel (on the inverse pair beneath it) is
+what gets it through.  Hand traces of three runs, six open obligations
+(O1–O6), and a table placing νF₁ beside D02, D07, pre-`Merge`
+strong-rep-nu and νF.  Nothing is mechanized; no Agda changed.

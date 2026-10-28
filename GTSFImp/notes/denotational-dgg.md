@@ -1164,7 +1164,9 @@ correspondence*, not by equality.  Options:
 Section 8d checks repair (D) on paper.  As stated it fails, but a
 refinement, (D′), passes.  (D′) keeps exact counters and the planned
 subject-expansion proof, at the cost of reworking the model and steps
-3a–3d.  I now recommend (D′) over (A).
+3a–3d.  Section 8e then shows that (D′) still does not give exact
+subject expansion, because of identity casts at `∀` types.  I recommend
+(A).
 
 ## 8d. Paper check of repair (D)
 
@@ -1267,6 +1269,59 @@ Result: (D) as stated in Section 8c fails in two places.  A refinement,
 * **Compared with (A).**  (D′) changes the model and keeps the simpler
   proof plan.  (A) keeps the model and adds a Kripke logical relation.
   Both stay within the denotational route.
+
+## 8e. (D′) does not give exact subject expansion: identity casts at `∀` types
+
+Found while planning the (D′) rework, before any proof changed.  Section
+8d's claim that `β-∀`'s identity casts need no inclusion argument under
+(D′) is wrong.
+
+* **What `β-∀` needs.**
+  * The reduct casts with `c [ C ]ᶜ`, which turns each `id (＇ Y)`
+    into `refl∼ C` (`Consistency.agda:1401`).
+  * The redex reads `Y` at `tyʳ ⌊ C ⌋`.  Exact subject expansion needs
+    `id (＇ Y)` at `tyʳ S` to denote exactly what `refl∼ C` denotes.
+* **That denotation is not structural at `∀`.**
+  * `refl∼ (∀ Z. T)` is `∀ᶜ (refl∼ T)`.  An entry at `(σ , S′)`
+    instantiates the inner value, reveals on `T`, and casts with
+    `refl∼ T`, reading `Z` at `tyʳ S′`.
+  * At the `Z` leaves this again needs the identity cast at `S′`.
+    `S′` is a run-time argument, not a subterm of `S`.
+  * This is the same termination problem as in Section 8d, and the
+    flag trick does not apply, because the recursion is in the cast,
+    not in a reveal.
+* **The two simple choices both break inclusion.**
+  * Read the leaf as plain identity.  Then the flag differs:
+    * the reduct's `∀ᶜ (refl∼ T)` proxy reveals on `T` itself and
+      returns *done*;
+    * the redex's bare value returns *pending*, and its caller later
+      reveals on the same `T`.
+    * The results agree once the caller has revealed.  But the entries
+      differ in the flag, so `⟦ reduct ⟧ ⊄ ⟦ redex ⟧`.
+  * Unfold one level (a `reflS` that mimics `∀ᶜ` once, then
+    identity).  This only moves the mismatch one instantiation deeper.
+  * Example:
+    * `V = Λ ƛx. x : ∀Y. Y ⇒ Y`, `c = id (＇ Y) ↦ id (＇ Y)`,
+      `C = ∀Z. Z ⇒ Z`;
+    * apply the result to a polymorphic argument and instantiate what
+      comes back.  At the next depth, use `C`'s instance at a `∀` type.
+* **Function types have the related problem from Section 8c.**
+  * An identity function proxy has entries with larger argument lists
+    than the value it wraps.
+  * So inclusion needs up-closure, which fails for variables bound to a
+    finite list of arguments (`mem U`).
+* **The conclusion is about the method, not about counters.**  Two
+  values that differ only by identity casts are observationally equal.
+  But their graphs differ, and at `∀` they differ in a way that only the
+  *type* the caller will reveal on can reconcile.  So soundness for
+  `β-∀` needs a relation that is coarser than set inclusion and knows
+  types, which is option (A).
+* **(D′) is not needed for (A).**  (A) relates store variables to seals
+  up to a correspondence, so exact counters buy nothing essential.
+  (D′) would only make that correspondence a bijection.
+
+Recommendation: back to (A), on the current model.  `GraphModelD.agda`
+(the (D′) model, uncommitted) is not used.
 
 ## 9. Plan
 

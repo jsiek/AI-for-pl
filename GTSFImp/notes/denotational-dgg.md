@@ -1049,29 +1049,54 @@ Found while starting soundness (plan step 3).  Mechanized in
     3, as `β-reveal-∀` does.  `ret νλ 4` is a result (`reduct∈`).
   * So `⟦ reduct ⟧ ⊄ ⟦ redex ⟧` (`no-expansion`).
 
-### Why this is not a defect of this particular denotation
+### Where the mismatch is
 
-* The extra seal is real.  Operationally, instantiating a value wrapped in
-  a ∀-conversion takes one more seal than instantiating the value itself
-  (`β-reveal-∀` creates the proxy's variable, and the inner type
-  application creates another).  The reduct's denotation mirrors that,
-  as it should.
-* A pure `β-∀` step changes *where* the reveal happens:
-  * the redex casts with `c` first and reveals on the target `B` after;
-  * the reduct reveals on the source `A` first and casts with `c[C]`
-    after.
-* The number of seals therefore depends on the order, in both
-  directions:
-  * an `inst` inside `c` consumes a ∀ of `A`, and in the reduct that ∀
-    is wrapped in a conversion, so the reduct pays one more seal (the
-    example above);
-  * a `gen` inside `c` produces a ∀ of `B`, and in the redex the reveal
-    on `B` wraps it in a conversion, so the redex pays one more seal.
-* A compositional denotation of the redex sees the value `V ⟨ ∀ᶜ c ⟩`
-  before the type application that supplies `C`.  It cannot pay for
-  conversions that exist only after the step.  So I expect no
-  compositional denotation with exactly mirrored counters to satisfy
-  subject expansion for `β-∀`.  This is an argument, not a proof.
+Checked clause by clause against `Reduction.agda`:
+
+* **`inst` is faithful to `β-inst`.**  It creates `α` at `m`,
+  instantiates at `m + 1`, reveals with exactly the reduct's two
+  conversions, and casts with `c` read at `★` (the reduct's
+  `↑ᶜ (c [ ★/0 ]ᶜ)`).  The `gen`, `Λ` and type-application clauses match
+  `β-gen` and `β-Λ` the same way.
+* **Counter threading is consistent.**  `≫=` passes the counter along,
+  and `◆` ignores it; every caller instantiates at the next free seal:
+  * the type application at `n₁`;
+  * `∀ᶜ` at the same seal as its own instantiation, since `β-∀` is pure;
+  * `inst` at `m + 1`, after `α = m`;
+  * a conversion proxy at `σ + 1`.
+* **Reduction creates 4 seals on both sides.**  `β-∀` creates none, and
+  the reduct creates 4 (`β-Λ`, `β-inst`, `β-reveal-∀`, `β-Λ`).  So
+  it is the *redex's* denotation that disagrees with reduction: it ends
+  at 3.
+* **The faulty clause is `∀ᶜ`, together with the type application's
+  reveal.**
+  * The denotation instantiates the inner value at `σ`, casts with `c`
+    at `σ`, and lets the type application reveal on the target `B`.
+  * Reduction reveals on the *source* `A` and then casts with `c[C]`.
+  * The number of seals depends on that order, in both directions:
+    * an `inst` inside `c` consumes a ∀ of `A`, and in the reduct that
+      ∀ is wrapped in a conversion, so the reduct pays one more seal
+      (the example above);
+    * a `gen` inside `c` produces a ∀ of `B`, and in the redex the
+      reveal on `B` wraps it in a conversion, so the redex pays one more
+      seal.
+* **A candidate repair, (D), not yet checked.**  Let the type
+  application pass its argument `C` and its reveal target `B` into the
+  polymorphic entry, instead of revealing on `B` itself.  Each value
+  form then does what its rule does:
+  * `Λ` reveals on the given `B`;
+  * `gen c` casts and then reveals on `B`;
+  * `∀ᶜ c` passes its own source `A` inward and casts with `c` read at
+    `C`;
+  * a conversion proxy passes its own source inward.
+
+  This changes the model: entries carry (closed, sealed) types.  The
+  second rejected fix below is a cruder form of this idea.  I rejected
+  it on a termination argument that may not apply here, because every
+  reveal recurses on a type it is given.  Whether casting with `c` at a
+  run-time type `C` (for example, a tag at `C`) can be defined by
+  structural recursion is the open point.
+
 * Two fixes I tried on paper fail:
   * **Reusing the seal when instantiating at a variable** (so that
     conversions cost nothing).  This is unsound: the inner variable and
@@ -1136,7 +1161,9 @@ correspondence*, not by equality.  Options:
   under the cast differently.  This changes the language, so I have not
   pursued it.
 
-My recommendation is (A).
+My recommendation is (A), unless repair (D) above survives a paper
+check.  (D) would keep exact counters and the planned subject-expansion
+proof, at the cost of reworking the model and steps 3a–3d.
 
 ## 9. Plan
 

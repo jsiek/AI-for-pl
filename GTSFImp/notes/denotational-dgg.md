@@ -400,16 +400,17 @@ conditions as in `Consistency.agda`):
   * `X ⊑ X` needs a pair;
   * `∀⊑★` marks its binder `dead`, which is what `Imprecision`'s `extᵐ`
     there amounts to, since its body is `⊑ ★`.
-* Derivations should be unique, as in PolyG (to be checked).  The
-  `[]⊑[]` rule below relies on it.
+* Derivations should be unique, as `Imprecision`'s are (not yet
+  proved).  Only the semantic substitution lemma of the type-application
+  cases needs it (below).
 
 ### Cast-calculus term precision
 
 `Φ ∣ Γ⊑ ⊢ M ⊑ M′ ⦂ p`, with `p : Φ ⊢ A ⊑ A′` and `Γ⊑` a list of type
 precisions for the term variables.  The rules cover the terms that
 elaboration produces: no conversions, no `blame`, no runtime seals.
-* Every cast is at the identity mode environment, as `compile`
-  produces.
+* Casts may be at any mode environment, as in `proof/DGG/Elab`:
+  renaming a cast changes the mode of a skipped variable.
 * Every cast is in normal form.
 
     x ⊑ x                      at Γ⊑ x
@@ -422,19 +423,22 @@ elaboration produces: no conversions, no `blame`, no runtime seals.
                                  (V, V′ values)
     Λ V ⊑ N′                   at ∀⊑ p,  from Φ ,only ⊢ V ⊑ N′ at p
                                  (V a value; N′ any term, unshifted)
-    M ⦂∀ A [T] ⊑ M′ ⦂∀ A′ [T′] at p[q],  from M ⊑ M′ at ∀ p and
-                                 q : Φ ⊢ T ⊑ T′
-    M ⦂∀ A [T] ⊑ M′            at p[q],  from M ⊑ M′ at ∀⊑ p and
-                                 q : Φ ⊢ T ⊑ ★
+    M ⦂∀ A [T] ⊑ M′ ⦂∀ A′ [T′] at r,  from M ⊑ M′ at ∀ p,
+                                 q : Φ ⊢ T ⊑ T′ and
+                                 r : Φ ⊢ A[T] ⊑ A′[T′]
+    M ⦂∀ A [T] ⊑ M′            at r,  from M ⊑ M′ at ∀⊑ p : ∀A ⊑ B,
+                                 q : Φ ⊢ T ⊑ ★ and r : Φ ⊢ A[T] ⊑ B
     M ⟨c⟩ ⊑ M′ ⟨c′⟩            at r,  from M ⊑ M′ at p : C ⊑ C′,
                                  c : C ∼ A, c′ : C′ ∼ A′,
                                  r : A ⊑ A′
     M ⊑ M′ ⟨c′⟩                at r,  from M ⊑ M′ at p : A ⊑ C′,
                                  c′ : C′ ∼ A′, r : A ⊑ A′
 
-* `p[q]` substitutes `q` for the bound variable's leaves.  The
-  two-context substitution lemma says `p[q]` derives `A[T] ⊑ A′[T′]`
-  (and `A[T] ⊑ A′` for `∀⊑`).
+* As mechanized (`Denot/CastPrecision.agda`), the two type-application
+  rules carry their result derivation `r : A[T] ⊑ A′[T′]` (or
+  `A[T] ⊑ A′`) instead of computing a substituted `p[q]`, as the source
+  rules `[]⊑[]ᴳ` and `[]⊑ᴳ` do.  So no syntactic substitution lemma is
+  needed.
 * No rule relates the casts `c` and `c′` to each other.  The cast
   monotonicity lemma (Section 8a) is what makes the two cast rules sound.
 * There is no one-sided left cast rule, because `compile` never needs
@@ -486,16 +490,31 @@ not affect the source.
 * **`Λ⊑Λᴳ`:** the `Λ ⊑ Λ` rule.
 * **`Λ⊑ᴳ`:** the `Λ V ⊑ N′` rule.  The source's `⇑ᵗᴳ N′` strengthens back
   to `N′`, so `compile` must commute with renaming.
-* **`[]⊑[]ᴳ`:** the source's `r` equals `p[q]` by uniqueness of
-  derivations.
+* **`[]⊑[]ᴳ`:** the source's `q` and `r` are carried over by `back`.
 * **`[]⊑ᴳ`:** the same, with `q : T ⊑ ★`.
 
-**Supporting lemmas:**
-* `eager` preserves the judgement;
-* `compile` commutes with type renaming;
-* the strengthening invariant;
-* two-context substitution;
-* uniqueness of two-context derivations.
+**Supporting lemmas, as mechanized:**
+* `eager` puts a cast in normal form;
+* `back`, the converse of `forget`;
+* elaboration as a relation (`ElabE`), so that typing derivations do not
+  matter, with types aligned by uniqueness of source typing;
+* the right program as a renaming of a term of the right context, as in
+  `proof/DGG/CompilePreservesImprecision2`, which avoids strengthening.
+
+**Where uniqueness and substitution are needed.** Only in the two
+type-application cases of the fundamental lemma.  What is needed there
+is a *semantic* substitution lemma, not a syntactic one:
+* relating at `p` with `X ↦ q̂` (the contents relation from
+  `q : T ⊑ T′`) is the same as relating at `r`, for any
+  `r : A[T] ⊑ B[T′]`;
+* it is proved by induction on `p`, inverting `r`, and is the
+  type-application half of the conversion lemma;
+* at an `X` leaf the corresponding part of `r` is some derivation of
+  `T ⊑ T′`, and the relation there agrees with the one at `q` only by
+  uniqueness of two-context derivations.  This is the one use of
+  uniqueness: the cast lemma quantifies over its derivations, and the
+  other term rules fix their premises' derivations syntactically.
+* Uniqueness should mirror `⊑-unique` in `proof/Imprecision.agda`.
 
 ## 8. Risks and open questions
 
@@ -1028,9 +1047,9 @@ and both sides extend the world in the same way.
      * the cast-calculus term precision;
      * eager elaboration (`ElabE`, `compileᴱ`) and the theorem that it
        preserves precision.
-   * Not yet mechanized: uniqueness of two-context derivations and
-     two-context substitution.  The elaboration theorem did not need
-     them, because its term rules carry the substituted derivation.
+   * Deferred to the type-application cases of the fundamental lemma:
+     uniqueness of two-context derivations and the semantic substitution
+     lemma (Section 7a).  No syntactic substitution lemma is needed.
 2. Port the PolyG model (`GraphModel`, `Denotation`) to GTSFImp's terms:
    * conversions;
    * consistency casts with modes;

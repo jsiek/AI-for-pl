@@ -5578,3 +5578,21 @@ is dropped: an unseal directly over its seal is Reach with `k = 0`, and
 any other such pair is a value.  Runs get longer (5b 11 → 15, 5d
 12 → 19) because identity layers are peeled by Id instead of removed in
 pairs.
+
+**Addendum: progress was false, and the fourth version.**  Progress is
+about every well-typed term, so the open obligation O2 was not a
+reachability question.  A hand-written well-typed term is stuck with
+named runtime types (sketch 5e):
+`[+X^α] [−Y^β] [+Z^β] [−X^α] ([−Z^β] 3 ⟨−Z⟩) ⟨−X⟩ ⟨id(X)⟩ ⟨id(X)⟩ ⟨+X⟩`
+— Reach's premise needs `[−Y^β]`'s interior {X:α} to name `β`.  The
+sketch now types runtime terms at REPRESENTATION types (named types
+survive in annotations) and makes `id` untyped.  Reach loses its
+premise and matches by representation variable, progress holds, and
+Cancel is no longer needed; the rule set is Delta, Beta, Wrap (with an
+`id` clause), TyBeta (on towers), Id and Reach.  §6 proves progress,
+preservation, determinism and color preservation on paper, and an
+embedding of the named type system.  Open: whether types that mention
+unnamed representation variables are acceptable (sketch §6.8, against
+the 2026-09-04 tightness ruling).  Design-space finding: under the
+color law, named runtime types need multi-entry scopes and `Merge`;
+representation runtime types do not.

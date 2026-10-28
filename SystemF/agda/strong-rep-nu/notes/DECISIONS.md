@@ -5534,7 +5534,8 @@ generalised to towers (TyBeta absorbs TyWrap), Id, and two new tidying
 rules — Cancel (an adjacent inverse pair `[ε] [−ε]` disappears) and
 Reach (an unseal meets its seal through layers carrying `id(X)`, each of
 whose interiors can spell `X`'s payload).  No `Merge`, no run-time
-composition, no chain longer than one.
+composition, no chains: conversions are one sort,
+`id(A) | c → d | ∀X. c | −X | +X`, since only `⨟` ever built a chain.
 
 A first draft also had Hide (a `−Y` layer with an identity conversion
 disappears).  Jeremy objected that it would break color preservation,

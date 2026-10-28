@@ -51,18 +51,20 @@ A **scope entry** replaces the scope list:
 
     −ε:   −(+X^α) = −X^α        −(−X^α) = +X^α
 
-Conversions are the paper's three sorts.  With one entry, a chain can
-cite only one variable, and a chain citing the same variable twice
-would need `α`'s payload to be `α`; so every chain has length one:
+Conversions are ONE sort, with no chains:
 
-    g,h  ::=  id(A) | c → d | ∀X. c                  middle
-    t    ::=  g | −X | g ; −X                        tail
-    c,d  ::=  t | +X | +X ; t                        conversion
+    c,d  ::=  id(A) | c → d | ∀X. c | −X | +X
 
-with the paper's side conditions: `g ; −X` requires `g` not an
-identity, and `+X ; t` requires that `t` neither is an identity nor
-ends in `−X` (both would have been simplified by `t ⨾ −X` /
-`+X ⨾ t`, written `⨾` below for the simplifying constructors).
+The paper's three sorts (middle, tail, conversion) and its chains
+`t ; −X` and `+X ; c` exist because `Merge` composes conversions: the
+compiler's `reveal`/`conceal` (`Conversion.agda` §4) write only bare
+seals and unseals, and `⨟` is what builds a chain.  νF₁ has no `Merge`
+and no rule that builds a conversion from pieces — Wrap and TyBeta give
+a boundary a SUB-conversion (a domain, a codomain, a `∀` body), Cancel
+and Id delete layers, and Reach writes identities — so no reachable term
+has a chain, and the grammar drops them along with the simplifying
+constructors `⨾`, `Id?` and `+X(t)`.  What is lost is expressiveness for
+hand-written boundaries: `(c → d) ; −X` must be written as two layers.
 
 Terms:
 
@@ -70,7 +72,7 @@ Terms:
               | ΛX. V | ν X:=A. (L X)⟨c⟩ | [ε] M ⟨c⟩
 
     Simples  U    ::=  k | λx:A. N | ΛX. V
-    Inert    i    ::=  id(X) | c → d | ∀X. c | −X | g ; −X
+    Inert    i    ::=  id(X) | c → d | ∀X. c | −X
     Values   V,W  ::=  U | [ε] V ⟨i⟩      if Tidy(ε, V, i)
 
 `Tidy(ε, V, i)` excludes the one value-shaped redex of §4:
@@ -115,16 +117,10 @@ interior for a `+` entry, the exterior for a `−` entry.
     ─────────────────────────── (seal)      ─────────────────────────── (unseal)
     Δ ∣ −X^α ⊢ −X : Δ(A) ⇒ α                Δ ∣ +X^α ⊢ +X : α ⇒ Δ(A)
 
-    Δ ∣ −X^α ⊢ g : R ⇒ Δ(A)    α:=Δ(A) ∈ Δ    g ⨾ −X = g ; −X
-    ──────────────────────────────────────────────────────── (seal-seq)
-    Δ ∣ −X^α ⊢ g ; −X : R ⇒ α
 
-    α:=Δ(A) ∈ Δ    +X ⨾ t = +X ; t    Δ ∣ +X^α ⊢ t : Δ(A) ⇒ S
-    ──────────────────────────────────────────────────────── (unseal-seq)
-    Δ ∣ +X^α ⊢ +X ; t : α ⇒ S
-
-The only change from the paper is that the premise `±X^α ∈ δ` becomes
-"the entry IS `±X^α`".  In a domain the entry is inverted, so a
+The changes from the paper: the premise `±X^α ∈ δ` becomes "the entry
+IS `±X^α`", and the two chain rules (`seal-seq`, `unseal-seq`) are
+gone.  In a domain the entry is inverted, so a
 boundary `[+X^α]` may unseal `X` in covariant positions and seal it in
 contravariant ones, and `[−X^α]` the other way round.
 
@@ -160,11 +156,11 @@ Frames are the paper's, with `[ε] □ ⟨c⟩` in place of `[δ] □ ⟨c⟩`, 
 
     Δ ⊢ [ε] ([−ε] V ⟨c₁⟩) ⟨c₂⟩  ⟶  V                                 (Cancel)
 
-    Δ ⊢ [+X^α] [ε₁ … εₖ] [−X^α] V ⟨t ⨾ −X⟩ ⟨id(X) … id(X)⟩ ⟨+X ⨾ c⟩
-      ⟶ [+X^α] [ε₁ … εₖ] [−X^α] V ⟨t⟩ ⟨Id(A₁) … Id(Aₖ)⟩ ⟨c⟩            (Reach)
-        if k ≥ 1 and, for each i, Aᵢ is a type with Δᵢ ⊢ Aᵢ and
-        Δᵢ(Aᵢ) = R, where Δᵢ is the i-th layer's interior and
-        α:=R ∈ Δ (Id(A) is the paper's identity at A)
+    Δ ⊢ [+X^α] [ε₁ … εₖ] [−X^α] V ⟨−X⟩ ⟨id(X) … id(X)⟩ ⟨+X⟩
+      ⟶ [+X^α] [ε₁ … εₖ] [−X^α] V ⟨Id(A)⟩ ⟨Id(A) … Id(A)⟩ ⟨Id(A)⟩       (Reach)
+        if k ≥ 1, α:=R ∈ Δ, and Δᵢ ⊢ A with Δᵢ(A) = R for the outer
+        layer's interior Δ₀ and every intermediate interior Δ₁ … Δₖ
+        (Id(A) is the paper's identity at A)
 
     Δ ⊢ F[M]  ⟶  F[M′] ⊣ ξ      if F(Δ) ⊢ M ⟶ M′ ⊣ ξ                (ξ)
 
@@ -189,11 +185,10 @@ What each rule replaces in νF:
   intermediate interior can spell it.  A `+` layer always can (it only
   adds names, and a `+` entry cannot re-bind a name already in scope);
   a `−Y^β` layer can unless the payload needs `β`, the representation
-  it hides.  It needs `k ≥ 1` (at `k = 0` the two layers are a Cancel
-  pair).
+  it hides.  One type `A` serves every layer (O4).  It needs `k ≥ 1`
+  (at `k = 0` the two layers are a Cancel pair).
 
-There is no `Merge`, no conversion composition `⨟`, and no chain longer
-than one.
+There is no `Merge`, no conversion composition `⨟`, and no chain.
 
 **No rule removes a layer that is not an inverse pair or a constant's
 identity.**  An earlier draft of this sketch had a rule `Hide`,
@@ -288,13 +283,13 @@ and cannot be crossed by pushing `+X` inward (its entry licenses only
   cannot name `X`; for `[−X^α]` outside, both sides do and the two
   spellings agree); a normal conversion between `X`-free endpoints
   under a scope that licenses only `X` has no seal or unseal (every
-  seal or unseal of `X` puts `X` at an endpoint, since chains have
-  length one), so it is all `id` leaves, i.e. an identity.  To check:
+  seal or unseal of `X` puts `X` at an endpoint, since there are no
+  chains), so it is all `id` leaves, i.e. an identity.  To check:
   the `∀` case, and that the `[−X^α][+X^α]` order needs only exchange
   (the interior `−X(Δ), X:=α` reorders `Δ`).
 * **O2 — THE GAP: an unseal blocked by a hiding layer.**  Reach does
   not apply to
-  `[+X^α] [ε₁ … εₖ] [−X^α] V ⟨t ⨾ −X⟩ ⟨id(X) … id(X)⟩ ⟨+X ⨾ c⟩`
+  `[+X^α] [ε₁ … εₖ] [−X^α] V ⟨−X⟩ ⟨id(X) … id(X)⟩ ⟨+X⟩`
   when some εᵢ is `−Y^β`, `X`'s payload needs `β`, and the layer is not
   half of a Cancel pair.  No other rule applies either, so such a
   state is STUCK.  Either show it unreachable from a closed source
@@ -304,21 +299,25 @@ and cannot be crossed by pushing `+X` inward (its entry licenses only
   ingredients (layer 3 is `[−X^α]` carrying `id(Y)`, and `Y`'s payload
   is `X`) but there the layer is half of a Cancel pair.
 * **O3 — progress at an active top layer.**  The active conversions are
-  `id(ι)` (Id) and `+X ⨾ c`.  For `[+X^α] V ⟨+X ⨾ c⟩`, `V` is a tower
+  `id(ι)` (Id) and `+X`.  For `[+X^α] V ⟨+X⟩`, `V` is a tower
   at type `X`; its top inert conversion has target `X`, so it is
-  `t ⨾ −X` under `[−X^α]` (Cancel), or `id(X)` under some `[±Y^β]`,
+  `−X` under `[−X^α]` (Cancel), or `id(X)` under some `[±Y^β]`,
   `Y ≠ X` (a `±X` layer cannot carry `id(X)`: `+X` would make `X`
   unnameable outside, `−X` inside).  Walking down, every layer to the
   seal carries `id(X)`, and Reach applies unless a `−Y` layer cannot
   spell the payload — the gap O2.  This case analysis is the whole
   progress argument for unseals.
-* **O4 — Reach preserves types.**  Each intermediate layer's interior
-  type becomes `Aᵢ` and its exterior type the next layer's `Aᵢ₋₁`;
-  both spell `R`, so `Id(Aᵢ)` types at `R ⇒ R`.  The premise supplies
-  the spellings; for `+` layers they always exist, because a `+` layer
-  only adds names and coherence forbids it to re-bind a name already
-  in scope.  The inner layer's new target type is `t`'s, read in its
-  exterior.
+* **O4 — Reach preserves types, with ONE type `A`.**  After the step
+  every layer from the inner `[−X^α]` out to the outer `[+X^α]` has
+  interior and exterior type spelling `R`, so each `Id(A)` types at
+  `R ⇒ R`; the outer layer's exterior type is `A` read in `Δ`, which
+  is legitimate because `R`, a payload of `α`, does not contain `α`,
+  so `A` does not mention `X`.  Why one `A` suffices: coherence gives
+  each representation variable at most one name in a context; a `+`
+  layer cannot re-bind a name already in scope, so it renames nothing
+  `A` uses; and a `−` layer that removed a name `A` uses would make
+  `R` unspellable there, failing the premise.  So whenever the premise
+  holds, every layer spells `R` the same way.
 * **O5 — determinism.**  Reach requires `k ≥ 1`; Cancel takes `k = 0`.
   A Cancel pair strictly inside a Reach redex makes the enclosing
   layer's body a non-value, so the Reach redex is not one (its layers

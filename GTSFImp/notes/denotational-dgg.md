@@ -1081,6 +1081,33 @@ and both sides extend the world in the same way.
      which holds for sets of the form `Λᶠ F` with `F` monotone and for
      `Λᴾ G`.
 3. Consistency, soundness and adequacy (reusing GTSFImp's type safety).
+   **Done so far** (`proof/Denot/`):
+   * `DenotProps`: monotonicity, finite support, the bind laws, and the
+     β law.  Transformers (`𝒱 → ℕ → ℛ`) are handled generically:
+     sequencing, function and ∀ proxies, and gen values each get one
+     lemma, and reveals, conversions, casts and terms follow by
+     induction.
+   * `DenotRename`: invariance under injective renaming of type
+     variables, including the shift `⇑ᵗᵐ` that allocation applies.  It
+     covers the type application's built conversions `〖 0 , ⇑ᵗ A ↑ B 〗`
+     with an arbitrary representation, using the syntactic lemma that
+     renaming commutes with `replaceTy`.
+   * `DenotSubst`: term renaming and substitution, for β.
+   * `DenotConsistency`: every denotation is consistent when the
+     environment is.
+
+   **Remaining:**
+   * **Soundness**: subject expansion, rule by rule.  The obligations
+     beyond PolyG's are:
+     * identity proxies are the identity on denotations of function
+       values, which are closed under larger argument lists, and on
+       those of polymorphic values (`ground`, `expand`, `β-∀`);
+     * casts under type substitution, for `β-∀` (`c [ C ]ᶜ`) and
+       `β-inst` (`c [ ★/0 ]ᶜ`);
+     * `revV` agrees with `〖 X , ＇Y ↑ C 〗`, for `β-reveal-∀`,
+       `β-conceal-∀` and `β-inst`;
+     * typed values denote nonempty sets.
+   * **Adequacy.**
 4. Descriptors, environments and worlds (Section 4); the relations
    (Section 5); their properties.
 5. The conversion lemma; monotonicity of consistency casts.

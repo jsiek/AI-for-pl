@@ -154,6 +154,7 @@ import proof.DGG.DynamicGradualGuaranteeProof
 ------------------------------------------------------------------------
 
 import Denot.Meta
+import Denot.Denotation
 
 ------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked

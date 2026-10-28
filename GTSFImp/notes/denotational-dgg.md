@@ -1050,11 +1050,36 @@ and both sides extend the world in the same way.
    * Deferred to the type-application cases of the fundamental lemma:
      uniqueness of two-context derivations and the semantic substitution
      lemma (Section 7a).  No syntactic substitution lemma is needed.
-2. Port the PolyG model (`GraphModel`, `Denotation`) to GTSFImp's terms:
-   * conversions;
-   * consistency casts with modes;
-   * `inst` and `gen` creating seals;
-   * primitives.
+2. Port the PolyG model (`GraphModel`, `Denotation`) to GTSFImp's terms.
+   **Done** (`Denot/GraphModel.agda`, `Denot/Denotation.agda`):
+   * **Values.** Values gain constants, and closed grounds include
+     seals.
+   * **Allocation is mirrored exactly**, since soundness is subject
+     expansion and results carry their final counter:
+     * a type application creates one seal;
+     * an `inst` cast creates two (`α := ★`, then the value's own
+       instantiation at `α`);
+     * an instantiation through a ∀-conversion creates two (the
+       proxy's, then the inner value's instantiation at it).
+   * **Reveals.** The type application reveals with the very conversion
+     term that reduction produces, `〖 0 , ⇑ᵗ A ↑ B 〗`.  Its conceal
+     parts traverse `A`'s structure through the source types of the
+     inner ∀-conversions, as reduction does.
+   * **The one type-directed piece.** A ∀-conversion's inner
+     instantiation reveals on its source body type, which is not a
+     subterm of the conversion.  `revV`/`conV` give that reveal by
+     recursion on the type.  Its representation is always a type
+     variable, so replacing it keeps the type's shape and the recursion
+     is structural.  Soundness needs
+     `⟦ 〖 X , ＇Y ↑ C 〗 ⟧↑ ≡ revV C X`.
+   * **Casts.** Inside an `inst` cast the instantiated variable is
+     represented by `★`, and a tag or projection at it is the identity,
+     as `c [ ★/0 ]ᶜ` makes it.
+   * **`β-∀` and soundness.** `β-∀` substitutes the instantiation type
+     into the cast, so identity casts at that type appear as proxies.
+     Soundness needs identity proxies to be the identity on closures,
+     which holds for sets of the form `Λᶠ F` with `F` monotone and for
+     `Λᴾ G`.
 3. Consistency, soundness and adequacy (reusing GTSFImp's type safety).
 4. Descriptors, environments and worlds (Section 4); the relations
    (Section 5); their properties.

@@ -1161,9 +1161,112 @@ correspondence*, not by equality.  Options:
   under the cast differently.  This changes the language, so I have not
   pursued it.
 
-My recommendation is (A), unless repair (D) above survives a paper
-check.  (D) would keep exact counters and the planned subject-expansion
-proof, at the cost of reworking the model and steps 3a–3d.
+Section 8d checks repair (D) on paper.  As stated it fails, but a
+refinement, (D′), passes.  (D′) keeps exact counters and the planned
+subject-expansion proof, at the cost of reworking the model and steps
+3a–3d.  I now recommend (D′) over (A).
+
+## 8d. Paper check of repair (D)
+
+Result: (D) as stated in Section 8c fails in two places.  A refinement,
+(D′), passes the paper check.  It is not mechanized.
+
+### Two problems with (D) as stated
+
+* **The cast needs `C` itself, not just a seal.**
+  * The `∀ᶜ`-bound variable has mode `X∼X`, so `c` never tags or
+    projects it (`_!` needs `X∼★` or `★∼X∼★`).
+  * `c [ C ]ᶜ` (`Consistency.agda:1401`) replaces each `id (＇ X)` with
+    `refl∼ C` and substitutes `C` into every type in `c`.
+  * The substituted types matter for counting.  `〖_,_↑_〗` is not smart
+    at `∀` (`Conversion.agda:86`), so a reveal inside `c` (from `inst`
+    or `gen`) that passes through an `X` position builds a `` `∀↑ ``
+    proxy at each `∀` of `C`.  Each such proxy costs a seal per
+    instantiation.  Read at a seal, the same reveal builds none.
+* **Passing the reveal target into the entry is not structural.**
+  * A conversion proxy's entry would end with a reveal on the target it
+    was given.  `revV` at `∀` builds such a proxy, so `revV` would call
+    itself on a type from the run-time argument.  This is the
+    termination problem from Section 8c.
+  * Passing a syntactic continuation instead only moves the problem:
+    `gen` has nothing to pass it to and must run it, and the
+    continuation can contain `gen`.
+
+### The refinement (D′)
+
+* **Entries carry the type argument; results carry one flag.**
+  * An entry instantiates at a seal `σ` and is given the type argument
+    `C`, as a sealed closed type (`θ` substituted into `C`).
+  * Each result carries a flag: either *reveal pending* or *done*.
+  * Whoever calls `◆` knows its static source type.  When the flag is
+    *reveal pending*, the caller reveals on that type.
+* **Every caller of `◆` has a static type to reveal on:**
+  * the type application `M ⦂∀ B [ C ]` reveals on `B`;
+  * `inst` reveals on `A` (the first reveal of the `β-inst` reduct);
+  * `∀ᶜ c : ∀A ∼ ∀B` reveals on `A`;
+  * a conversion proxy reveals on its own source.
+* **Each value form follows its rule:**
+
+  | value | entry at `σ`, given `C` | flag |
+  |---|---|---|
+  | `Λ M` | `⟦ M ⟧` at `σ` | pending (`β-Λ`) |
+  | `V ⟨ gen c ⟩` | `⟦ c ⟧` with the variable at `σ` | pending (`β-gen`) |
+  | `V ↑ ∀↑ c`, `V ↓ ∀↓ c`, `revV`/`conV` proxies | inner at `σ+1`; reveal on own source if pending; convert | pending (`β-reveal-∀`, `β-conceal-∀`) |
+  | `V ⟨ ∀ᶜ c ⟩` | inner at the *same* `σ`, given `C`; reveal on `A` if pending; `⟦ c ⟧` with the variable at `C` | done (`β-∀`) |
+
+* **A type variable can be represented by a type.**  A new `Rep` case,
+  `tyʳ S`, is used only for `∀ᶜ` variables.
+  * `id (＇ X)` at `tyʳ S` is the identity proxy of `S`, matching
+    `refl∼ C`.
+  * A reveal that meets `X` at `tyʳ S` continues as a reveal on `S` in
+    which the target does not occur, matching `〖 X , R ↑ C 〗`.
+  * Tags and projections never meet `tyʳ`, by the mode argument above.
+* **Termination.**
+  * Every reveal is on a static type, or on the `S` inside a `tyʳ`.
+    The second case is handled by a separate function defined by
+    recursion on sealed types, before `revV`.
+  * Sealed types are first-order: seal and `★` leaves, plus bound
+    variables.  So nothing recurses on a closure.
+  * Every clause is structural.
+* **Counting.**
+  * The counterexample of Section 8c now gives 4 on both sides.  The
+    `∀ᶜ` entry reveals `V`'s body on `∀X.(X ⇒ X)`, which builds the
+    proxy.  `inst` then pays for that proxy.
+  * The `gen` direction: `∀ᶜ` returns *done*, so the type application
+    no longer wraps the `gen`'s `∀` in a reveal on `B`.
+  * Stacked `∀ᶜ`s: the outer one sees *done* and skips its reveal, as
+    `β-∀` applied twice does.
+  * `β-∀` creates no seal, and the `∀ᶜ` entry reuses `σ`.
+  * The other rules are unchanged from the current denotation.
+* **Subject expansion for `β-∀`** reduces to a cast substitution lemma:
+
+      ⟦ c ⟧ᶜ (tyʳ ⌊ C ⌋θ •ʳ θ)  =  ⟦ c [ C ]ᶜ ⟧ᶜ θ
+
+  It holds by induction on `c`, given two commuting lemmas: one for the
+  identity proxy and one for the target-free reveal.  It is an
+  equality, so `β-∀`'s identity proxies (Section 8c) no longer need an
+  inclusion argument.  `ground` and `expand` still need the up-closure
+  argument for `Λᶠ` of monotone `F`.
+* **Not checked:**
+  * `bot-elim` needs a clause under the new entries.  It is never
+    observed, so any choice that keeps 3a–3d's lemmas will do.
+  * `ground` and `expand` inclusion was argued, not mechanized
+    (Section 8c).
+
+### Cost
+
+* **Model and denotation.**  `Val` entries gain the sealed type and
+  the flag.  `Rep` gains `tyʳ`.  Six clauses change: `Λ`, type
+  application, `∀ᶜ`, `gen`, `inst`, and the two proxy builders.
+  `id` gains a case.
+* **Proofs.**  Steps 3a–3d (`DenotProps`, `DenotRename`, `DenotSubst`,
+  `DenotConsistency`; about 2,400 lines) must be revised.  Most changes
+  are in the `∀` cases.  The structure should stay the same.
+* **New lemmas.**  The cast substitution lemma above, then soundness
+  as subject expansion and adequacy as planned, with exact counters.
+* **Compared with (A).**  (D′) changes the model and keeps the simpler
+  proof plan.  (A) keeps the model and adds a Kripke logical relation.
+  Both stay within the denotational route.
 
 ## 9. Plan
 

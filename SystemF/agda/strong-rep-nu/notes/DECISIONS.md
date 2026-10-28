@@ -5553,3 +5553,19 @@ variable being cancelled; Cancel (on the inverse pair beneath it) is
 what gets it through.  Hand traces of three runs, seven open obligations
 (O1–O7), and a table placing νF₁ beside D02, D07, pre-`Merge`
 strong-rep-nu and νF.  Nothing is mechanized; no Agda changed.
+
+**Addendum (same day): the obligations, proved on paper.**
+`notes/SingleEntrySketch.md` §6 now proves O3–O7 by hand, on six
+supporting lemmas (well-named contexts, injective spelling, exchange,
+refinement/renaming, the identity conversion, canonical forms).  O1
+split: an inverse pair with `+X^α` OUTSIDE always composes to an
+identity (by an induction on the pair over the middle type), but with
+`−X^α` outside it can compose to an unseal.  Example 5d,
+`((ΛX. λx:X. λg:(Int→X)→(Int→Int). g (λn:Int. x)) [Int] 5 (λh. h)) 0`,
+reaches `[−X^α] [+X^α] (λn. W) ⟨id(Int) → +X⟩ ⟨id(Int) → id(Int)⟩`
+(νF's run, rendered, has this state; its Merge makes the two-entry scope
+`[−X^α, +X^α]`).  Cancel now requires, in that order, that the pair's
+interior and exterior types agree; a pair that fails it may sit in a
+value.  O2 stays open, with a conjectured invariant: a value inside a
+`[−Y^β]` layer whose type needs `β` still carries the `[+Y^β]` wrapper
+it entered with, beneath layers that cancel.

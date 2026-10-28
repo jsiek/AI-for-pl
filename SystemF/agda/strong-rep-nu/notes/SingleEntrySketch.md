@@ -1,7 +1,9 @@
 # Single-entry boundaries — an on-paper sketch (2026-10-28)
 
 Status: SKETCH, not mechanized.  Nothing here is checked in Agda; every
-trace below is derived by hand unless it says otherwise.  The purpose is
+trace below is derived by hand unless it says otherwise.  §6 proves the
+obligations on paper, except O2 (open); proving O1 refuted one order of
+the first Cancel rule, which now carries a premise.  The purpose is
 to locate νF (`paper/main.tex`) in the design space by building its
 nearest neighbour: the same calculus with every boundary restricted to
 ONE scope entry, values allowed to be towers of boundaries, and no
@@ -77,10 +79,12 @@ Terms:
 
 `Tidy(ε, V, i)` excludes the one value-shaped redex of §4:
 
-    Tidy(ε, V, i)  =  ¬ (V = [−ε] W ⟨i′⟩)                 (no Cancel pair)
+    Tidy(ε, V, i)  =  ¬ ([ε] V ⟨i⟩ is a Cancel redex)
 
 So a value is a TOWER: a simple value under any number of inert
-boundaries, no two adjacent ones inverse.
+boundaries, with no adjacent inverse pair that Cancel would remove.  A
+pair `[−X^α] [+X^α]` whose interior and exterior types differ is NOT a
+Cancel redex (§6, O1) and may sit inside a value.
 
 ## 3. Type system
 
@@ -155,11 +159,15 @@ Frames are the paper's, with `[ε] □ ⟨c⟩` in place of `[δ] □ ⟨c⟩`, 
     Δ ⊢ [ε] k ⟨id(ι)⟩  ⟶  k                                          (Id)
 
     Δ ⊢ [ε] ([−ε] V ⟨c₁⟩) ⟨c₂⟩  ⟶  V                                 (Cancel)
+        if [−ε] V ⟨c₁⟩ is a value, and either ε is a `+` entry, or
+        ε = −X^α and the pair's interior and exterior types agree:
+        Δ₂(A) = Δ(B), where Δ₂ = −X(Δ), X:=α, V : A, and the redex : B
 
     Δ ⊢ [+X^α] [ε₁ … εₖ] [−X^α] V ⟨−X⟩ ⟨id(X) … id(X)⟩ ⟨+X⟩
       ⟶ [+X^α] [ε₁ … εₖ] [−X^α] V ⟨Id(A)⟩ ⟨Id(A) … Id(A)⟩ ⟨Id(A)⟩       (Reach)
-        if k ≥ 1, α:=R ∈ Δ, and Δᵢ ⊢ A with Δᵢ(A) = R for the outer
-        layer's interior Δ₀ and every intermediate interior Δ₁ … Δₖ
+        if k ≥ 1, the tower under the outer layer is a value, α:=R ∈ Δ,
+        and Δᵢ ⊢ A with Δᵢ(A) = R for the outer layer's interior Δ₀
+        and every intermediate interior Δ₁ … Δₖ
         (Id(A) is the paper's identity at A)
 
     Δ ⊢ F[M]  ⟶  F[M′] ⊣ ξ      if F(Δ) ⊢ M ⟶ M′ ⊣ ξ                (ξ)
@@ -178,7 +186,10 @@ What each rule replaces in νF:
   nothing moves.)
 * **Id** is νF's.
 * **Cancel** is new, and is what replaces `Merge` for inverse pairs.  It
-  needs no composition at run time: see obligation O1.
+  needs no composition at run time.  With `+X^α` outside the pair's
+  conversions always compose to an identity; with `−X^α` outside they
+  may compose to an unseal, so that order needs the types-agree
+  premise (O1, and example 5d).
 * **Reach** is new: an unseal that meets its seal through `k` layers
   carrying `id(X)`.  Each intermediate layer's type changes from `X` to
   a spelling of `X`'s payload, so the premise asks that every
@@ -272,70 +283,313 @@ and cannot be crossed by pushing `+X` inward (its entry licenses only
 `Y`), so some rule of Reach's kind is needed.  Its interior {X, Y} spells
 `X`'s payload as `Int`.
 
-## 6. Obligations (none discharged)
+### 5d. An inverse pair that must NOT cancel
 
-* **O1 — an inverse pair composes to an identity.**  For
-  `[ε] ([−ε] V ⟨c₁⟩) ⟨c₂⟩` well typed, the composite of `c₁` and `c₂`
-  is an identity, so the pair's interior type equals its exterior type
-  and Cancel preserves types.  Argument: the pair's exterior and
-  interior contexts have the same bindings, so the composite's two
-  endpoint types do not mention `X` (for `[+X^α]` outside, the exterior
-  cannot name `X`; for `[−X^α]` outside, both sides do and the two
-  spellings agree); a normal conversion between `X`-free endpoints
-  under a scope that licenses only `X` has no seal or unseal (every
-  seal or unseal of `X` puts `X` at an endpoint, since there are no
-  chains), so it is all `id` leaves, i.e. an identity.  To check:
-  the `∀` case, and that the `[−X^α][+X^α]` order needs only exchange
-  (the interior `−X(Δ), X:=α` reorders `Δ`).
-* **O2 — THE GAP: an unseal blocked by a hiding layer.**  Reach does
-  not apply to
-  `[+X^α] [ε₁ … εₖ] [−X^α] V ⟨−X⟩ ⟨id(X) … id(X)⟩ ⟨+X⟩`
-  when some εᵢ is `−Y^β`, `X`'s payload needs `β`, and the layer is not
-  half of a Cancel pair.  No other rule applies either, so such a
-  state is STUCK.  Either show it unreachable from a closed source
-  program, or exhibit one — which would separate νF₁ from νF, whose
-  `Merge` keeps the `−Y^β` entry in the merged scope and needs no
-  spelling of the payload at that layer.  5b reaches the shape's
-  ingredients (layer 3 is `[−X^α]` carrying `id(Y)`, and `Y`'s payload
-  is `X`) but there the layer is half of a Cancel pair.
-* **O3 — progress at an active top layer.**  The active conversions are
-  `id(ι)` (Id) and `+X`.  For `[+X^α] V ⟨+X⟩`, `V` is a tower
-  at type `X`; its top inert conversion has target `X`, so it is
-  `−X` under `[−X^α]` (Cancel), or `id(X)` under some `[±Y^β]`,
-  `Y ≠ X` (a `±X` layer cannot carry `id(X)`: `+X` would make `X`
-  unnameable outside, `−X` inside).  Walking down, every layer to the
-  seal carries `id(X)`, and Reach applies unless a `−Y` layer cannot
-  spell the payload — the gap O2.  This case analysis is the whole
-  progress argument for unseals.
-* **O4 — Reach preserves types, with ONE type `A`.**  After the step
-  every layer from the inner `[−X^α]` out to the outer `[+X^α]` has
-  interior and exterior type spelling `R`, so each `Id(A)` types at
-  `R ⇒ R`; the outer layer's exterior type is `A` read in `Δ`, which
-  is legitimate because `R`, a payload of `α`, does not contain `α`,
-  so `A` does not mention `X`.  Why one `A` suffices: coherence gives
-  each representation variable at most one name in a context; a `+`
-  layer cannot re-bind a name already in scope, so it renames nothing
-  `A` uses; and a `−` layer that removed a name `A` uses would make
-  `R` unspellable there, failing the premise.  So whenever the premise
-  holds, every layer spells `R` the same way.
-* **O5 — determinism.**  Reach requires `k ≥ 1`; Cancel takes `k = 0`.
-  A Cancel pair strictly inside a Reach redex makes the enclosing
-  layer's body a non-value, so the Reach redex is not one (its layers
-  must be values) until the pair is gone.
-* **O6 — TyBeta on towers.**  `V • X` is well typed at the new interior:
-  each layer's conversion `∀X. c` was checked with `X` bound by its own
-  `∀` (rule `all`) and is now checked with `X` bound by the outer
-  `+X^α`.  Needs: the representation variable of the `∀` rule and `α`
-  play the same role for `c`, which is the substitution lemma the paper
-  already relies on for TyWrap.
-* **O7 — color preservation.**  `ColorPreservation.agda`'s statement
-  should transfer rule by rule.  Wrap and TyBeta make νF's moves.
-  Reach and Id change conversions only (Id's body is a constant, with no
-  holes).  Cancel with `[+X^α]` outside leaves `V` at `−X(Δ, X:=α) = Δ`
-  on both sides of the step; with `[−X^α]` outside, `V` moves from
-  `−X(Δ), X:=α` to `Δ`, the same names in another order — fine for the
-  length form, and for the positional `ScopeMapPreservation` it needs
-  the reordering (which matters only in de Bruijn form).
+    ((ΛX. λx:X. λg:(Int→X)→(Int→Int). g (λn:Int. x)) [Int] 5 (λh:Int→Int. h)) 0     : Int
+
+νF: 14 steps, three Merges (rendered with `showRun` on a scratch
+module).  Its seventh state is the tower
+
+    [+X^α] [−X^α] [+X^α] (λn:Int. W) ⟨id(Int) → +X⟩ ⟨id(Int) → id(Int)⟩ ⟨id(Int) → id(Int)⟩ 0
+
+with `W = [−X^α] 5 ⟨−X⟩` and α:=Int — the same in νF₁, whose first
+seven steps (TyBeta, Wrap, Beta, Wrap, Beta, Wrap, Beta) match νF's.
+Layers 2–3 are a `[−X^α] [+X^α]` pair: the inner value has type
+`Int → X`, the pair's exterior type is `Int → Int`, and its conversions
+compose to `id(Int) → +X`.  νF's first Merge turns layers 2–3 into ONE
+boundary with scope `[−X^α, +X^α]` and conversion `id(Int) → +X`.
+
+With Cancel WITHOUT the types-agree premise, layers 2–3 are a redex,
+so layer 2's boundary is not a value and ξ reduces it first, to
+`[+X^α] (λn:Int. W) ⟨id(Int) → id(Int)⟩`: a body of type `Int → X`
+under a conversion whose source is `Int → Int` — ill typed (O1).
+
+With the premise, layers 2–3 are a value, and layers 1–2 (`+` outside)
+are the redex.  The run finishes in 12 steps:
+
+    → Cancel   (layers 1–2)   [+X^α] (λn:Int. W) ⟨id(Int) → +X⟩ 0
+    → Wrap                    [+X^α] ((λn:Int. W) ([−X^α] 0 ⟨id(Int)⟩)) ⟨+X⟩
+    → Id                      [+X^α] ((λn:Int. W) 0) ⟨+X⟩
+    → Beta                    [+X^α] [−X^α] 5 ⟨−X⟩ ⟨+X⟩
+    → Cancel                  5
+
+## 6. Obligations, proved on paper (2026-10-28)
+
+Summary.  O3–O7 are proved below; O1 is proved for one order of the
+pair and REFUTED for the other, which changed the Cancel rule (§4); O2
+is a reachability question and stays open.  Everything here is by hand.
+
+### 6.0 Conventions and supporting lemmas
+
+A context is **well named** if each name `X` has at most one binding
+`X:=α` and each representation variable `α` is named by at most one
+`X`.  Runtime contexts are well named, and the type system keeps them
+so:
+
+* **L1 (scopes keep contexts well named).**  If `Δ` is well named and
+  `Δ ⊢ ε`, then `ε(Δ)` and `ε⁺(Δ)` are well named.  For `+X^α`,
+  coherence says neither `X` nor `α` is named in `Δ`; for `−X^α`, a
+  binding is removed.  The `all` and `Λ` rules add `X:=α` with both
+  fresh.
+* **L2 (spelling is injective).**  If `Γ` is well named, `Γ ⊢ A`,
+  `Γ ⊢ B` and `Γ(A) = Γ(B)`, then `A = B` (up to renaming of bound
+  variables).  Induction on `A`: at a variable, the two names denote the
+  same representation and `Γ` names it once; the other cases are
+  structural (under `∀X`, `X` is unnamed and maps to itself).
+  Consequently a representation type `R` has at most one SPELLING in a
+  well-named `Γ`, written `sp_Γ(R)` when it exists.
+* **L3 (exchange).**  Typing depends on a context's name bindings only
+  through the map `X ↦ α`, so moving a binding `X:=α` to another
+  position (keeping it after the entry that allocates `α`) preserves
+  every judgement.
+* **L4 (refinement and renaming).**  Replacing an abstract `α` by
+  `α:=R`, or renaming a representation variable to a fresh one,
+  preserves every judgement.  No rule needs `α` to be abstract; `seal`
+  and `unseal` need a payload, so adding one only enables them.
+* **L5 (identity).**  If `Γ ⊢ A` then `Γ ∣ ε ⊢ Id(A) : Γ(A) ⇒ Γ(A)` for
+  either entry `ε`.  `Id(A)` contains no seal or unseal; at `∀X. A` the
+  `all` rule's body context `Γ, α′, X:=α′` spells `A` as
+  `Γ(∀X.A)`'s body with `X ↦ α′`.
+* **L6 (canonical forms).**  An inert conversion's target is a
+  representation variable (`id(X)`, `−X`), an arrow (`c → d`) or a `∀`
+  (`∀X. c`); never a base type.  A simple value has a base, arrow or
+  `∀` type.  Hence, for a value `V` with `Γ ⊢ V : A`:
+  * `A = ι`: `V` is a constant;
+  * `A = A₁ → A₂`: `V` is a `λ`, or a tower whose top conversion is
+    `c → d`;
+  * `A = ∀X. C`: `V` is a `Λ`, or a tower whose top conversion is
+    `∀X. c` over a value of `∀` type (by induction every layer has a
+    `∀` conversion, so `V • X` is defined);
+  * `A = X` with `X:=α ∈ Γ`: `V` is a tower whose top conversion has
+    target `α` — `id(X)`, or `−X` under the entry `−X^α` (the only
+    name for `α` in a well-named context is `X`).
+
+### O1 — Cancel preserves types (one order proved, the other refuted)
+
+**Lemma (inverse pair).**  Let `ε` be `+X^α` or `−X^α`.  If
+`Γ ∣ ε ⊢ c₁ : R ⇒ T` and `Γ ∣ −ε ⊢ c₂ : T ⇒ S`, and `α` occurs free in
+neither `R` nor `S`, then `R = S`.
+
+*Proof.*  Induction on `c₁`, by cases on `T`.
+* `T = ι`.  `c₁` has target `ι`: `id(ι)`, or `+X` (with source `α`,
+  excluded).  So `R = ι`.  Symmetrically `c₂` is `id(ι)` or `−X` (target
+  `α`, excluded), so `S = ι`.
+* `T = α`.  `c₁` is `id(X)` (then `R = α`, excluded) or `−X`, which
+  needs `ε = −X^α` and gives `R = P` where `α:=P`.  Then `−ε = +X^α`,
+  and `c₂` is `id(X)` (`S = α`, excluded) or `+X`, giving `S = P`.
+* `T = γ ≠ α`.  Only `id(Y)` with `Y:=γ` has target or source `γ` (a
+  seal or unseal mentions `α`), so `R = γ = S`.
+* `T = T₁ → T₂`.  `c₁` is a function conversion (`+X` has source `α`):
+  `c₁ = a₁ → b₁` with `Γ ∣ −ε ⊢ a₁ : T₁ ⇒ R₁` and
+  `Γ ∣ ε ⊢ b₁ : R₂ ⇒ T₂`.  Likewise `c₂ = a₂ → b₂` with
+  `Γ ∣ ε ⊢ a₂ : S₁ ⇒ T₁` and `Γ ∣ −ε ⊢ b₂ : T₂ ⇒ S₂`.  The IH on
+  `(a₂, a₁)` — the same lemma with the roles of the pair swapped —
+  gives `S₁ = R₁`, and on `(b₁, b₂)` gives `R₂ = S₂`.
+* `T = ∀Z. T′`.  Both are `∀Z.` conversions, checked in
+  `Γ, α′, Z:=α′` with `α′ ≠ α` fresh; the IH gives the bodies equal
+  after `Z ↦ α′`, hence `R = S`.  ∎
+
+**Case `[+X^α]` outside: proved.**  Redex `[+X^α] ([−X^α] V ⟨c₁⟩) ⟨c₂⟩ : B`
+at `Δ`.  The outer interior is `Δ₁ = Δ, X:=α`; the inner layer's
+interior is `−X(Δ₁) = Δ` (coherence: `X` was unnamed in `Δ`), so
+`Δ ⊢ V : A`.  Both conversions are checked in `Δ₁` (a `+` entry's
+conversion context is its interior, a `−` entry's its exterior):
+`Δ₁ ∣ −X^α ⊢ c₁ : Δ(A) ⇒ T` and `Δ₁ ∣ +X^α ⊢ c₂ : T ⇒ Δ(B)`.  `A` and
+`B` are spelled in `Δ`, which does not name `α`, so neither rep type
+contains `α`.  The lemma gives `Δ(A) = Δ(B)`, L2 gives `A = B`, and the
+contractum `V` has type `B` at `Δ`.
+
+**Case `[−X^α]` outside: FALSE without a premise.**  Here `V` sits at
+`−X(Δ), X:=α` and may have a type mentioning `X`, so the lemma's
+hypothesis fails — and so does the claim.  Counterexample, reached from
+a closed program (5d):
+
+    [−X^α] ([+X^α] (λn:Int. W) ⟨id(Int) → +X⟩) ⟨id(Int) → id(Int)⟩
+
+with `W = [−X^α] 5 ⟨−X⟩`.  The inner value has type `Int → X`; the
+pair's exterior type is `Int → Int`; the conversions compose to
+`id(Int) → +X`, an unseal, not an identity.  Cancelling gives a term of
+the wrong type.
+
+**Repair (adopted in §4).**  Cancel with `[−X^α]` outside requires the
+pair's interior and exterior types to agree: `Δ₂(A) = Δ(B)`, where `Δ₂`
+is the inner interior.  Then L3 moves `V` to `Δ` and L2 gives `A = B`.
+A pair that fails the premise is not a redex, and is allowed in values
+(Tidy, §2).  What νF does instead is visible in its run of 5d: `Merge`
+produces the scope `[−X^α, +X^α]` with conversion `id(Int) → +X` — a
+boundary that hides `X` and reveals it again in ONE scope.  A single
+entry cannot say that, so νF₁ keeps both layers.
+
+### O2 — the gap: an unseal blocked by a hiding layer (OPEN)
+
+Reach does not apply to
+`[+X^α] [ε₁ … εₖ] [−X^α] V ⟨−X⟩ ⟨id(X) … id(X)⟩ ⟨+X⟩` when some
+`εᵢ = −Y^β` hides a representation `β` that `X`'s payload needs, and
+the layer is not half of a Cancel pair.  By O3 nothing else applies, so
+such a state is stuck.  This is not a property of single reduction
+steps but of reachable terms, so it needs an invariant or a
+counterexample.  What is known:
+
+* **Where hiding layers come from.**  A `−Y^β` layer is created only by
+  Wrap, as the argument wrapper directly inside a `+Y^β` layer (or,
+  in the de Bruijn development, by `crossΛᴹ` when Beta substitutes
+  under a `Λ`).  TyBeta can later put a NEW `+Z` layer outside an
+  existing `−Y` layer, which is how 5b's layer 3 (`[−X^α]` carrying
+  `id(Y)`, with `Y`'s payload `X`) arises.
+* **Why 5b is not stuck.**  The values of type `Y` inside layer 3 are
+  the function's arguments, and each entered through layer 3's domain
+  wearing the dual layer `[+X^α] … ⟨id(Y)⟩`.  When such a value leaves
+  through layer 3's codomain, the two layers meet as a `[−X^α][+X^α]`
+  pair whose types agree (`Y` and `Y`), and Cancel removes them before
+  Reach is needed.
+* **Conjectured invariant.**  Inside a `[−Y^β]` layer, every value
+  whose type needs `β` carries, beneath only layers that themselves
+  cancel, the `[+Y^β]` wrapper it received on entering — because code
+  inside the layer cannot create such a value (it cannot name `β`).  If
+  true, every hiding layer that O2 would need to cross is half of a
+  Cancel pair by the time the unseal reaches it.  The step that needs
+  care is TyBeta, which inserts `+` layers into the middle of a tower.
+
+### O3 — progress (proved, modulo the gap O2)
+
+**Claim.**  If `Δ ∣ [] ⊢ M : A` with `Δ` well named, then `M` is a
+value, or `M` steps, or `M` contains an O2 configuration in evaluation
+position.
+
+*Proof.*  Induction on the typing derivation; the frames are the
+evaluation positions, so by the IH an immediate subterm in a frame is a
+value or steps (ξ) or is stuck at O2.  Remaining cases, all subterms
+values:
+* `op(V⃗)`: Delta, by L6 (base-typed values are constants).
+* `V W`: by L6, `V` is `λ` (Beta) or a tower with top `c → d` (Wrap).
+* `ν X:=A. (V X)⟨d⟩`: by L6, `V • X` is defined; TyBeta allocates
+  `α:=Δ(A)` (`Δ ⊢ A` is a premise of `ν`).
+* `[ε] V ⟨c⟩`.  If `c` is inert, the term is a value unless it is a
+  Cancel redex.  Otherwise `c` is active: `id(ι)` or `+X` (the only
+  conversions with no inert form; there are no chains).
+  * `id(ι)`: `V` has base type, so by L6 it is a constant — Id.
+  * `+X`, so `ε = +X^α`, and `V` is a value at type `X` in
+    `Δ₀ = Δ, X:=α`.  By L6 its top layer carries `−X` under `−X^α` —
+    a Cancel pair, `+` outside, always a redex — or `id(X)` under some
+    `εᵢ`.  That `εᵢ` is not `±X^α` (`+X^α` needs `X` unnamed outside;
+    under `−X^α` the interior has no name for `α`, so no interior type
+    has rep `α`), so it is `±Y^β` with `Y ≠ X`, and `X` still names
+    `α` in its interior.  Repeat on the body.  The walk ends, because
+    the bottom of a tower is simple and no simple value has a variable
+    type, at a layer carrying `−X` under `−X^α`.  This is exactly
+    Reach's left-hand side with `k ≥ 1` (adjacent inverse pairs
+    carrying `id(X)` twice agree on types, so they would be Cancel
+    redexes and are not in a value).  Reach fires if every
+    intermediate interior spells `X`'s payload; otherwise this is O2.
+    ∎
+
+### O4 — Reach preserves types (proved)
+
+Write the redex's layers from the outside: `[+X^α]` at exterior `Δ`
+with interior `Δ₀ = Δ, X:=α`; `εᵢ` with exterior `Δᵢ₋₁` and interior
+`Δᵢ` (`1 ≤ i ≤ k`); `[−X^α]` with exterior `Δₖ` and interior
+`Δₖ₊₁ = −X(Δₖ)`.  By the redex's typing: `Δₖ₊₁ ⊢ V : A_V` with
+`Δₖ₊₁(A_V) = R` where `α:=R` (rule `seal`); every intermediate type is
+`X`; and the whole term has type `B` with `Δ(B) = R` (rule `unseal`).
+The premise gives `A` with `Δᵢ ⊢ A` and `Δᵢ(A) = R` for `0 ≤ i ≤ k`.
+
+* Inner layer: body `V : A_V`; conversion `Id(A)` in context `Δₖ`
+  types at `R ⇒ R` (L5), which is `Δₖ₊₁(A_V) ⇒ Δₖ(A)`; exterior type
+  `A`, well formed in `Δₖ`.
+* Layer `i`: body of type `A`; conversion context `εᵢ⁺(Δᵢ₋₁)` is the
+  larger of `Δᵢ₋₁` and `Δᵢ`, so it spells `A`, and `Id(A)` types at
+  `R ⇒ R = Δᵢ(A) ⇒ Δᵢ₋₁(A)` (L5); exterior type `A`, well formed in
+  `Δᵢ₋₁`.
+* Outer layer: body of type `A` in `Δ₀`; `Id(A)` types at
+  `R ⇒ R = Δ₀(A) ⇒ Δ(B)`, so the exterior type is still `B`.
+
+The store and `V` are untouched.  **One `A` suffices:** by L2 each
+`Δᵢ` has at most one spelling of `R`.  The spellings agree because a
+representation variable of `R` keeps its name down the tower: a `+`
+layer cannot re-bind a name already in scope or name an `α` already
+named (L1), and a `−` layer that removed the name of a representation
+variable of `R` would leave its interior without a spelling, failing
+the premise.  ∎
+
+### O5 — determinism (proved, up to the choice of fresh `α`)
+
+**Values do not step.**  A simple value has no frame position that
+reduces (no ξ under `λ` or `Λ`).  A tower `[ε] V ⟨i⟩` has an inert
+`i`, so Id (needs `id(ι)`) and Reach (needs `+X` on top) do not apply,
+and Tidy excludes Cancel; its body is a value, by induction.
+
+**At most one rule at the root.**  The left-hand sides are pairwise
+disjoint: Delta (`op`), Beta (application of a `λ`), Wrap (application
+of a boundary), TyBeta (`ν`), and on boundaries: Id (body a constant,
+conversion `id(ι)`), Cancel (body a boundary with the inverse entry,
+itself a value), Reach (conversion `+X`, `k ≥ 1`, so the next entry is
+`±Y^β` with `Y ≠ X` — not the inverse `−X^α` — and the tower under the
+outer layer is a value).  Id and Cancel differ on the body (constant
+versus boundary); Id and Reach on the conversion (`id(ι)` versus
+`+X`); Cancel and Reach on the second entry.
+
+**At most one frame decomposition.**  Every rule's left-hand side has
+values in all its frame positions, and values do not step, so ξ and a
+root rule never both apply; within ξ, the frames are the paper's
+left-to-right order.  TyBeta's `α` is any fresh variable; results agree
+up to renaming it (L4).  ∎
+
+### O6 — TyBeta on towers preserves types (proved)
+
+**Lemma (instantiation).**  If `Γ ⊢ V : ∀X. C` for a value `V`, `Γ` well
+named, and `X`, `α` fresh, then for any `P`,
+`Γ, α:=P, X:=α ⊢ V • X : C`.
+
+*Proof.*  Induction on `V` (L6: a `Λ` or a tower of `∀` layers).
+* `V = ΛX. N`: the `Λ` rule gives `Γ, α′, X:=α′ ⊢ N : C`; rename `α′`
+  to `α` and refine it to `α:=P` (L4).
+* `V = [ε] V′ ⟨∀X. c⟩`, with `ε(Γ) ⊢ V′ : ∀X. C′` (the `all` rule's
+  source is a `∀`, and L2 fixes its spelling) and
+  `ε⁺(Γ), α′, X:=α′ ∣ ε ⊢ c : ε(Γ)(C′)[X↦α′] ⇒ Γ(C)[X↦α′]`.  Let
+  `Γ″ = Γ, α:=P, X:=α`.  Coherence `Γ″ ⊢ ε`: for `+Y^β`, `Y ≠ X` and
+  `β ≠ α` by freshness; for `−Y^β`, `Y:=β ∈ Γ`.  Since `ε` touches
+  only `Y`, `ε(Γ″) = ε(Γ), α:=P, X:=α` up to L3, so the IH types
+  `V′ • X : C′` there; and `ε⁺(Γ″)` is the `all` premise's context
+  with `α′` renamed and refined (L4), where `[X↦α′]` becomes reading
+  `X` through `X:=α`.  So `Γ″ ⊢ [ε] (V′ • X) ⟨c⟩ : C`.  ∎
+
+**TyBeta.**  The redex `ν X:=A. (V X)⟨d⟩ : B` at `Δ` has `Δ ⊢ V : ∀X. C`
+and `Δ′ ∣ +X^α ⊢ d : Δ′(C) ⇒ Δ(B)` with `Δ′ = Δ, α:=Δ(A), X:=α`.  After
+the step the context is `Δ⁺ = Δ, α:=Δ(A)`.  `Δ⁺ ⊢ +X^α` holds (`α`
+allocated, `X` and `α` unnamed), its interior is `Δ′`, the lemma (with
+`P = Δ(A)`) gives `Δ′ ⊢ V • X : C`, `d` is unchanged, and
+`Δ⁺(B) = Δ(B)`.  So `[+X^α] (V • X) ⟨d⟩ : B` at `Δ⁺`.  ∎
+
+### O7 — color preservation (proved, with one inherited caveat)
+
+The color of a hole is the name map of its context (`Residual.agda`
+§2); residuals are as in `Residual.agda` §5, with the redex's own nodes
+consumed.  Rule by rule, a residual hole's map before and after:
+
+* **Wrap.**  Holes in `V` stay at `ε(Δ)`.  Holes in `W` move from `Δ`
+  to `(−ε)(ε(Δ))`: for `+X^α`, `−X(Δ, X:=α) = Δ`; for `−X^α`,
+  `−X(Δ), X:=α`, the same map (positions differ only in de Bruijn
+  form — the same situation as νF's Wrap).
+* **TyBeta.**  Holes in `V` keep their maps up to renaming the `Λ`'s
+  (and each layer's `all`) bound representation to the allocated `α`
+  — the residual's ρ, as for νF's TyWrap.
+* **Id.**  The constant is consumed with its boundary (no residual), as
+  in νF.
+* **Cancel.**  `V`'s holes: for `+X^α` outside, `Δ` before and after;
+  for `−X^α` outside, `−X(Δ), X:=α` before and `Δ` after — the same
+  map.
+* **Reach.**  No layer moves; conversions only.  Every hole keeps its
+  context.
+* **Beta.**  Holes of `N` keep their contexts.  The CAVEAT: an argument
+  copy substituted under a `Λ` inside `N` sees that `Λ`'s variable.
+  The Agda's Beta wraps such a copy in a hiding boundary (`crossΛᴹ`,
+  `TermSubst.agda`) so its map is unchanged; the paper's named
+  `N[x := V]` does not.  νF₁ inherits whichever νF adopts, and in the
+  `crossΛᴹ` form those hiding layers are among the ones Reach crosses
+  (O2).
+
+So νF₁ satisfies the color law exactly when νF does; deleting Hide
+(§4) is what made that true.  ∎
 
 ## 7. Where this puts νF in the design space
 
@@ -363,6 +617,11 @@ only the entry count, so it isolates what lists and `Merge` buy:
   one side of the boundary, never a union.  The price is two
   tower-tidying rules, one of them non-local (Reach), a progress
   argument (O3) that walks down a tower, and the gap O2.
+* **One scope can hide and reveal the same variable.**  νF's run of
+  5d builds `[−X^α, +X^α] (λn:Int. W) ⟨id(Int) → +X⟩`: hide `X`, then
+  reveal it again, with a conversion that unseals.  With one entry per
+  boundary that is two layers that cannot cancel each other (in 5d an
+  enclosing `+X^α` layer happens to cancel the outer one first).
 * **Color preservation is where lists earn their keep.**  Under the
   design law a layer may disappear only if no hole beneath it would see
   a different set of names.  With one entry per boundary that leaves
@@ -380,8 +639,8 @@ and `IdPush`).
 
 ## 8. Next steps
 
-1. Run the corpus and the stress programs through a νF₁ evaluator (a
-   checker for `Tidy` towers and the rules of §4), looking for a stuck
-   state — the cheapest test of O2 and O3.
-2. If none is stuck, prove O1 on paper, then decide whether to
-   mechanize.
+1. Settle O2: run the corpus and the stress programs through a νF₁
+   evaluator (a checker for `Tidy` towers and the rules of §4), looking
+   for a stuck state, and try to prove the conjectured invariant.
+2. If O2 holds, decide whether to mechanize; the proofs of §6 are the
+   plan (L1–L6, then O1, O3–O7).

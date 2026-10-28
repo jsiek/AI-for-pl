@@ -183,7 +183,7 @@ env-abst Ξ zero    = refl
 env-abst Ξ (suc X) = refl
 
 mutual
-  convᵐ-erase : ∀ {Δ Θ p g A B} → Δ ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B
+  convᵐ-erase : ∀ {Δ Θ g A B} → Δ ∣ Θ ⊢ᵐ g ∶ A ⇝ B
     → erasureᴿ (reps Δ) A ≡ erasureᴿ (reps Δ) B
   convᵐ-erase (conv-id b) = refl
   convᵐ-erase (conv-idv d) = refl
@@ -193,14 +193,14 @@ mutual
     cong `∀ (trans (sym (subst-cong (env-abst (reps Δ)) A))
               (trans (conv-erase s) (subst-cong (env-abst (reps Δ)) B)))
 
-  convᵀ-erase : ∀ {Δ Θ p t A B} → Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
+  convᵀ-erase : ∀ {Δ Θ t A B} → Δ ∣ Θ ⊢ᵀ t ∶ A ⇝ B
     → erasureᴿ (reps Δ) A ≡ erasureᴿ (reps Δ) B
   convᵀ-erase (conv-mid g) = convᵐ-erase g
   convᵀ-erase (conv-seal {A = A} (nm , rp , _) ok) = sym (env-bind rp A refl)
   convᵀ-erase (conv-seal-seq {B = B} t (nm , rp , _) ok n) =
     trans (convᵀ-erase t) (sym (env-bind rp B refl))
 
-  conv-erase : ∀ {Δ Θ p c A B} → Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B
+  conv-erase : ∀ {Δ Θ c A B} → Δ ∣ Θ ⊢ c ∶ A ⇝ B
     → erasureᴿ (reps Δ) A ≡ erasureᴿ (reps Δ) B
   conv-erase (conv-tail t) = convᵀ-erase t
   conv-erase (conv-unseal {A = A} (nm , rp , _) ok) = env-bind rp A refl

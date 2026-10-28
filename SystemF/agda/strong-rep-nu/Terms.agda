@@ -11,7 +11,7 @@ module strong-rep-nu.Terms where
 --     .Reduction, .TypeCheck and the proof/ tree.
 --   * FOUR LAWS.  (1) `boundary` TAKES `BoundaryWf Δ Θ Δᵢ Δᶜ`; the two
 --     induced contexts are its outputs, never computed.  (2) Its
---     conversion is checked under the scope `Θ` at polarity `⁺`
+--     conversion is checked under the scope `Θ`
 --     between REPRESENTATION types, which the interior and exterior
 --     types read by `_⊢_~_`; a boundary's interior is TERM-CLOSED.
 --     (3) Classification is by the CONVERSION CONSTRUCTOR alone.
@@ -101,7 +101,7 @@ data Active : Conv → Set where
 
 -- Totality over TYPED conversions: the payload restriction on `id`
 -- makes classification a match on the TYPING derivation.
-act-or-inert : ∀ {Δ Θ p c A B} → Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B → Active c ⊎ Inert c
+act-or-inert : ∀ {Δ Θ c A B} → Δ ∣ Θ ⊢ c ∶ A ⇝ B → Active c ⊎ Inert c
 act-or-inert (conv-tail (conv-mid (conv-id b)))   = inj₁ (A-idb b)
 act-or-inert (conv-tail (conv-mid (conv-idv d)))  = inj₂ (I-tail I-idv)
 act-or-inert (conv-tail (conv-mid (conv-fun s t))) = inj₂ (I-tail I-fun)
@@ -178,7 +178,7 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
      → Δ ⊢ᶜ A ~ R
      → Δ ∣ Γ ⊢ L ⦂ `∀ C
      → BoundaryWf (allocate R Δ) TyBetaBoundary Δᵢ Δᶜ
-     → Δᶜ ∣ TyBetaBoundary ⊢[ ⁺ ] c ∶ Rᵢ ⇝ Rₑ
+     → Δᶜ ∣ TyBetaBoundary ⊢ c ∶ Rᵢ ⇝ Rₑ
      → names Δᵢ ⊢ C ~ Rᵢ
      → names (allocate R Δ) ⊢ B ~ Rₑ
      → Δ ⊢ᵗ B
@@ -193,7 +193,7 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
   boundary : ∀ {Δ Δᵢ Δᶜ Γ Θ c M Bᵢ Bₑ Rᵢ Rₑ}
       → BoundaryWf Δ Θ Δᵢ Δᶜ
       → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
-      → Δᶜ ∣ Θ ⊢[ ⁺ ] c ∶ Rᵢ ⇝ Rₑ
+      → Δᶜ ∣ Θ ⊢ c ∶ Rᵢ ⇝ Rₑ
       → names Δᵢ ⊢ Bᵢ ~ Rᵢ
       → names Δ ⊢ Bₑ ~ Rₑ
       → Δ ⊢ᵗ Bₑ

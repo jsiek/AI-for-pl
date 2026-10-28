@@ -278,26 +278,26 @@ leaf-refine : RepRefines Ξ Ξ′
 leaf-refine rr (d , rd , q) = d , rep-lookup-refine rr rd refl , q
 
 mutual
-  convᵐ-refine : ∀ {g Θ p} → RepRefines Ξ Ξ′
-    → (Ξ ∣ η) ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B
-    → (Ξ′ ∣ η) ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B
+  convᵐ-refine : ∀ {g Θ} → RepRefines Ξ Ξ′
+    → (Ξ ∣ η) ∣ Θ ⊢ᵐ g ∶ A ⇝ B
+    → (Ξ′ ∣ η) ∣ Θ ⊢ᵐ g ∶ A ⇝ B
   convᵐ-refine rr (conv-id b) = conv-id b
   convᵐ-refine rr (conv-idv d) = conv-idv d
   convᵐ-refine rr (conv-fun p q) =
     conv-fun (conv-refine rr p) (conv-refine rr q)
   convᵐ-refine rr (conv-all p) = conv-all (conv-refine (rr-abst rr) p)
 
-  convᵀ-refine : ∀ {t Θ p} → RepRefines Ξ Ξ′
-    → (Ξ ∣ η) ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
-    → (Ξ′ ∣ η) ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
+  convᵀ-refine : ∀ {t Θ} → RepRefines Ξ Ξ′
+    → (Ξ ∣ η) ∣ Θ ⊢ᵀ t ∶ A ⇝ B
+    → (Ξ′ ∣ η) ∣ Θ ⊢ᵀ t ∶ A ⇝ B
   convᵀ-refine rr (conv-mid p) = conv-mid (convᵐ-refine rr p)
   convᵀ-refine rr (conv-seal d ok) = conv-seal (leaf-refine rr d) ok
   convᵀ-refine rr (conv-seal-seq p d ok n) =
     conv-seal-seq (convᵀ-refine rr p) (leaf-refine rr d) ok n
 
-  conv-refine : ∀ {Θ p} → RepRefines Ξ Ξ′
-    → (Ξ ∣ η) ∣ Θ ⊢[ p ] s ∶ A ⇝ B
-    → (Ξ′ ∣ η) ∣ Θ ⊢[ p ] s ∶ A ⇝ B
+  conv-refine : ∀ {Θ} → RepRefines Ξ Ξ′
+    → (Ξ ∣ η) ∣ Θ ⊢ s ∶ A ⇝ B
+    → (Ξ′ ∣ η) ∣ Θ ⊢ s ∶ A ⇝ B
   conv-refine rr (conv-tail p) = conv-tail (convᵀ-refine rr p)
   conv-refine rr (conv-unseal d ok) =
     conv-unseal (leaf-refine rr d) ok
@@ -566,13 +566,13 @@ inst-boundarywf (bw wΔ (interior cs) (conversion csᶜ)) p =
   → RepWk ρ (reps Δ) Ξ′
   → Δ ⊢ᶜ A ~ R
   → BoundaryWf (allocate R Δ) TyBetaBoundary Δᵢ Δᶜ
-  → Δᶜ ∣ TyBetaBoundary ⊢[ ⁺ ] c ∶ Rᵢ ⇝ Rₑ
+  → Δᶜ ∣ TyBetaBoundary ⊢ c ∶ Rᵢ ⇝ Rₑ
   → names Δᵢ ⊢ C ~ Rᵢ
   → names (allocate R Δ) ⊢ B ~ Rₑ
   → Σ[ Δ′ ∈ Ctxᵗ ]
       (BoundaryWf (allocate (renameᵗ ρ R) (Ξ′ ∣ map ρ (names Δ)))
                   TyBetaBoundary Δ′ Δ′
-      × (Δ′ ∣ TyBetaBoundary ⊢[ ⁺ ] c
+      × (Δ′ ∣ TyBetaBoundary ⊢ c
            ∶ renameᵗ (extᵗ ρ) Rᵢ ⇝ renameᵗ (extᵗ ρ) Rₑ)
       × (names Δ′ ⊢ C ~ renameᵗ (extᵗ ρ) Rᵢ)
       × (names (allocate (renameᵗ ρ R) (Ξ′ ∣ map ρ (names Δ)))
@@ -634,13 +634,13 @@ leaf-underΛ (name , rep , A , q) =
 
 -- `reveal X B` unseals every covariant occurrence of X's representation
 -- variable and seals every contravariant one, so it needs the
--- permission to unseal at its own polarity — which is the permission
--- to seal at the flipped one.  `Unique` separates X from every other
+-- permission to unseal under its scope — which is the permission to
+-- seal under the dual.  `Unique` separates X from every other
 -- name.
 mutual
-  ⊢reveal : ∀ {Θ p} → Unique (names Δ) → Δ ∋ X ⊸ α := A
-    → UnsealOK p Θ α → names Δ ⊢ B ~ S
-    → Δ ∣ Θ ⊢[ p ] reveal X B ∶ S ⇝ S [ α := A ]ᵗ
+  ⊢reveal : ∀ {Θ} → Unique (names Δ) → Δ ∋ X ⊸ α := A
+    → UnsealOK Θ α → names Δ ⊢ B ~ S
+    → Δ ∣ Θ ⊢ reveal X B ∶ S ⇝ S [ α := A ]ᵗ
   ⊢reveal {X = X} {α = α} {A = A} uq (d , rd , q) ok (same-var {X = Y} {α = β} e)
     with X ≟ℕ Y
   ⊢reveal {X = X} {α = α} {A = A} uq (d , rd , q) ok (same-var {X = Y} {α = β} e)
@@ -654,18 +654,19 @@ mutual
     conv-tail (conv-mid (conv-idv e))
   ⊢reveal uq d ok same-ℕ = conv-tail (conv-mid (conv-id base-ℕ))
   ⊢reveal uq d ok same-𝔹 = conv-tail (conv-mid (conv-id base-𝔹))
-  ⊢reveal uq d ok (same-⇒ a b) =
-    conv-tail (conv-mid (conv-fun (⊢conceal uq d ok a) (⊢reveal uq d ok b)))
-  ⊢reveal {Δ = Δ} {α = α} {A = A} {p = p} uq d ok
+  ⊢reveal {Θ = Θ} uq d ok (same-⇒ a b) =
+    conv-tail (conv-mid (conv-fun (⊢conceal uq d (binds→dual Θ ok) a)
+                                  (⊢reveal uq d ok b)))
+  ⊢reveal {Δ = Δ} {α = α} {A = A} uq d ok
           (same-∀ {R = S} a)
     rewrite subst-at-∀ α A S =
     conv-tail (conv-mid (conv-all
       (⊢reveal (unique-underΛ {Γ = Δ} uq) (leaf-underΛ d)
-               (sealOK-liftᴮ (flipᵖ p) ok) a)))
+               (in-binds-liftᴮ ok) a)))
 
-  ⊢conceal : ∀ {Θ p} → Unique (names Δ) → Δ ∋ X ⊸ α := A
-    → SealOK p Θ α → names Δ ⊢ B ~ S
-    → Δ ∣ Θ ⊢[ p ] conceal X B ∶ S [ α := A ]ᵗ ⇝ S
+  ⊢conceal : ∀ {Θ} → Unique (names Δ) → Δ ∋ X ⊸ α := A
+    → SealOK Θ α → names Δ ⊢ B ~ S
+    → Δ ∣ Θ ⊢ conceal X B ∶ S [ α := A ]ᵗ ⇝ S
   ⊢conceal {X = X} {α = α} {A = A} uq (d , rd , q) ok (same-var {X = Y} {α = β} e)
     with X ≟ℕ Y
   ⊢conceal {X = X} {α = α} {A = A} uq (d , rd , q) ok (same-var {X = Y} {α = β} e)
@@ -679,16 +680,16 @@ mutual
     conv-tail (conv-mid (conv-idv e))
   ⊢conceal uq d ok same-ℕ = conv-tail (conv-mid (conv-id base-ℕ))
   ⊢conceal uq d ok same-𝔹 = conv-tail (conv-mid (conv-id base-𝔹))
-  ⊢conceal {Θ = Θ} {p = p} uq d ok (same-⇒ a b) =
+  ⊢conceal {Θ = Θ} uq d ok (same-⇒ a b) =
     conv-tail (conv-mid (conv-fun
-      (⊢reveal uq d (subst (λ q → SealOK q Θ _) (sym (flipᵖ-flipᵖ p)) ok) a)
+      (⊢reveal uq d (unbinds→dual Θ ok) a)
       (⊢conceal uq d ok b)))
-  ⊢conceal {Δ = Δ} {α = α} {A = A} {p = p} uq d ok
+  ⊢conceal {Δ = Δ} {α = α} {A = A} uq d ok
            (same-∀ {R = S} a)
     rewrite subst-at-∀ α A S =
     conv-tail (conv-mid (conv-all
       (⊢conceal (unique-underΛ {Γ = Δ} uq) (leaf-underΛ d)
-                (sealOK-liftᴮ p ok) a)))
+                (in-unbinds-liftᴮ ok) a)))
 
 rr-refl : RepRefines Ξ Ξ
 rr-refl {Ξ = []} = rr[]
@@ -720,7 +721,7 @@ reprCtx R Δ = (bindR R ∷ reps Δ) ∣ (zero ∷ shiftReps (names Δ))
 nu-outer : ∀ {Δ R Δᵢ Δᶜ M c C B Rᵢ Rₑ}
   → BoundaryWf (allocate R Δ) TyBetaBoundary Δᵢ Δᶜ
   → reprCtx R Δ ∣ [] ⊢ M ⦂ C
-  → Δᶜ ∣ TyBetaBoundary ⊢[ ⁺ ] c ∶ Rᵢ ⇝ Rₑ
+  → Δᶜ ∣ TyBetaBoundary ⊢ c ∶ Rᵢ ⇝ Rₑ
   → names Δᵢ ⊢ C ~ Rᵢ
   → names (allocate R Δ) ⊢ B ~ Rₑ
   → Δ ⊢ᵗ B
@@ -860,7 +861,7 @@ boundary-apply : ∀ {Δ Δᵢ Δᶜ Γ Θ c M′ Bᵢ Bₑ Rᵢ Rₑ} {δ : All
   → AllocWf δ Δ
   → BoundaryWf Δ Θ Δᵢ Δᶜ
   → apply δ Δᵢ ∣ [] ⊢ M′ ⦂ Bᵢ
-  → Δᶜ ∣ Θ ⊢[ ⁺ ] c ∶ Rᵢ ⇝ Rₑ
+  → Δᶜ ∣ Θ ⊢ c ∶ Rᵢ ⇝ Rₑ
   → names Δᵢ ⊢ Bᵢ ~ Rᵢ
   → names Δ ⊢ Bₑ ~ Rₑ
   → Δ ⊢ᵗ Bₑ
@@ -890,7 +891,7 @@ nu-apply : ∀ {Δ Δᵢ Δᶜ Γ A R L′ C B c Rᵢ Rₑ} {δ : Alloc}
   → Δ ⊢ᶜ A ~ R
   → apply δ Δ ∣ Γ ⊢ L′ ⦂ `∀ C
   → BoundaryWf (allocate R Δ) TyBetaBoundary Δᵢ Δᶜ
-  → Δᶜ ∣ TyBetaBoundary ⊢[ ⁺ ] c ∶ Rᵢ ⇝ Rₑ
+  → Δᶜ ∣ TyBetaBoundary ⊢ c ∶ Rᵢ ⇝ Rₑ
   → names Δᵢ ⊢ C ~ Rᵢ
   → names (allocate R Δ) ⊢ B ~ Rₑ
   → Δ ⊢ᵗ B

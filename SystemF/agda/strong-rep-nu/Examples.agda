@@ -463,8 +463,9 @@ G-run = reaches-run G-eval
 --
 -- §2's programs send the `∀` INWARD, as an argument; here it goes OUTWARD,
 -- as the result, so the conversion the `ν` carries reveals on the codomain
--- where §2's conceals on the domain.  Under the retired polarity index
--- that difference decided TYPEABILITY; now it decides only which binder
+-- where §2's conceals on the domain.  Under the polarity index retired
+-- on 2026-09-06 that difference decided TYPEABILITY; now it decides only
+-- which binder
 -- each minted leaf cites, and the mirror runs to the same numeral.
 
 HB : Ty                                  -- the ΛX body type

@@ -5569,3 +5569,12 @@ interior and exterior types agree; a pair that fails it may sit in a
 value.  O2 stays open, with a conjectured invariant: a value inside a
 `[−Y^β]` layer whose type needs `β` still carries the `[+Y^β]` wrapper
 it entered with, beneath layers that cancel.
+
+**Addendum: the minimal rule set.**  Progress needs Cancel only for the
+`[−X^α] [+X^α]` order (5b: layer 3 hides the payload, so only removing
+the pair lets the unseal through), and that is the order that needs the
+types-agree premise.  The `[+X^α] [−X^α]` order, sound with no premise,
+is dropped: an unseal directly over its seal is Reach with `k = 0`, and
+any other such pair is a value.  Runs get longer (5b 11 → 15, 5d
+12 → 19) because identity layers are peeled by Id instead of removed in
+pairs.

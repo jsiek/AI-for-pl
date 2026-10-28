@@ -3,7 +3,9 @@
 Status: SKETCH, not mechanized.  Nothing here is checked in Agda; every
 trace below is derived by hand unless it says otherwise.  §6 proves the
 obligations on paper, except O2 (open); proving O1 refuted one order of
-the first Cancel rule, which now carries a premise.  The purpose is
+the first Cancel rule, which now carries a premise.  The rule set is
+MINIMAL for progress: Cancel only for `[−X^α] [+X^α]` pairs, and Reach
+from `k = 0` (§4).  The purpose is
 to locate νF (`paper/main.tex`) in the design space by building its
 nearest neighbour: the same calculus with every boundary restricted to
 ONE scope entry, values allowed to be towers of boundaries, and no
@@ -82,9 +84,10 @@ Terms:
     Tidy(ε, V, i)  =  ¬ ([ε] V ⟨i⟩ is a Cancel redex)
 
 So a value is a TOWER: a simple value under any number of inert
-boundaries, with no adjacent inverse pair that Cancel would remove.  A
-pair `[−X^α] [+X^α]` whose interior and exterior types differ is NOT a
-Cancel redex (§6, O1) and may sit inside a value.
+boundaries, with no `[−X^α] [+X^α]` pair that Cancel would remove.  A
+`[+X^α] [−X^α]` pair is never a redex, and a `[−X^α] [+X^α]` pair whose
+interior and exterior types differ is not one either (§6, O1); both may
+sit inside a value.
 
 ## 3. Type system
 
@@ -158,14 +161,14 @@ Frames are the paper's, with `[ε] □ ⟨c⟩` in place of `[δ] □ ⟨c⟩`, 
 
     Δ ⊢ [ε] k ⟨id(ι)⟩  ⟶  k                                          (Id)
 
-    Δ ⊢ [ε] ([−ε] V ⟨c₁⟩) ⟨c₂⟩  ⟶  V                                 (Cancel)
-        if [−ε] V ⟨c₁⟩ is a value, and either ε is a `+` entry, or
-        ε = −X^α and the pair's interior and exterior types agree:
-        Δ₂(A) = Δ(B), where Δ₂ = −X(Δ), X:=α, V : A, and the redex : B
+    Δ ⊢ [−X^α] ([+X^α] V ⟨c₁⟩) ⟨c₂⟩  ⟶  V                           (Cancel)
+        if [+X^α] V ⟨c₁⟩ is a value and the pair's interior and
+        exterior types agree: Δ₂(A) = Δ(B), where Δ₂ = −X(Δ), X:=α,
+        V : A, and the redex : B
 
     Δ ⊢ [+X^α] [ε₁ … εₖ] [−X^α] V ⟨−X⟩ ⟨id(X) … id(X)⟩ ⟨+X⟩
       ⟶ [+X^α] [ε₁ … εₖ] [−X^α] V ⟨Id(A)⟩ ⟨Id(A) … Id(A)⟩ ⟨Id(A)⟩       (Reach)
-        if k ≥ 1, the tower under the outer layer is a value, α:=R ∈ Δ,
+        if k ≥ 0, the tower under the outer layer is a value, α:=R ∈ Δ,
         and Δᵢ ⊢ A with Δᵢ(A) = R for the outer layer's interior Δ₀
         and every intermediate interior Δ₁ … Δₖ
         (Id(A) is the paper's identity at A)
@@ -185,19 +188,24 @@ What each rule replaces in νF:
   respelled reveal — 2026-09-20 in `notes/DECISIONS.md`.  With names
   nothing moves.)
 * **Id** is νF's.
-* **Cancel** is new, and is what replaces `Merge` for inverse pairs.  It
-  needs no composition at run time.  With `+X^α` outside the pair's
-  conversions always compose to an identity; with `−X^α` outside they
-  may compose to an unseal, so that order needs the types-agree
-  premise (O1, and example 5d).
+* **Cancel** is new: it removes a `[−X^α] [+X^α]` pair whose two
+  sides have the same type, with no composition at run time.  Only this
+  order is needed, and only for progress: in 5b such a pair blocks
+  Reach.  The pair's conversions may compose to an unseal rather than
+  an identity, hence the types-agree premise (O1, example 5d).  The
+  other order, `[+X^α] [−X^α]`, would be sound without a premise (O1's
+  lemma) but progress never needs it: an unseal directly over its seal
+  is Reach with `k = 0`, and any other such pair is a value.
 * **Reach** is new: an unseal that meets its seal through `k` layers
   carrying `id(X)`.  Each intermediate layer's type changes from `X` to
   a spelling of `X`'s payload, so the premise asks that every
   intermediate interior can spell it.  A `+` layer always can (it only
   adds names, and a `+` entry cannot re-bind a name already in scope);
   a `−Y^β` layer can unless the payload needs `β`, the representation
-  it hides.  One type `A` serves every layer (O4).  It needs `k ≥ 1`
-  (at `k = 0` the two layers are a Cancel pair).
+  it hides.  One type `A` serves every layer (O4).  At `k = 0` the
+  premise always holds, since the seal's source is already spelled in
+  `Δ`; the step keeps both layers with identity conversions, which Id
+  later peels at a base type.
 
 There is no `Merge`, no conversion composition `⨟`, and no chain.
 
@@ -237,7 +245,7 @@ three Ids peel `true ⟨id(Bool)⟩ ⟨id(Bool)⟩ ⟨id(Bool)⟩`.
 module; the last Merge produces
 `[+X^α, +Y^β, −X^α, +X^α, −Y^β, −X^α] false ⟨id(Bool)⟩`).
 
-νF₁, 11 steps.  The first eight are as in 5a (with `+Y`/`+X` codomains
+νF₁, 15 steps.  The first eight are as in 5a (with `+Y`/`+X` codomains
 in place of `id(Bool)`) and end at the six-layer tower
 
     [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id(Y)⟩ ⟨id(Y)⟩ ⟨+Y⟩ ⟨+X⟩
@@ -245,9 +253,13 @@ in place of `id(Bool)`) and end at the six-layer tower
 with interiors {X}, {X,Y}, {Y}, {X,Y}, {X}, ∅ (outermost first) and
 store α:=Bool, β:=α.  Then
 
-    → Cancel   (layers 3–4)    [+X^α] [+Y^β] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨+Y⟩ ⟨+X⟩
-    → Cancel   (layers 2–3)    [+X^α] [−X^α] false ⟨−X⟩ ⟨+X⟩
-    → Cancel                   false
+    → Cancel        (layers 3–4)   [+X^α] [+Y^β] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨+Y⟩ ⟨+X⟩
+    → Reach, k = 0  (layers 2–3)   [+X^α] [+Y^β] [−Y^β] [−X^α] false ⟨−X⟩ ⟨id(X)⟩ ⟨id(X)⟩ ⟨+X⟩
+    → Reach, k = 2  (layers 1–4)   [+X^α] [+Y^β] [−Y^β] [−X^α] false ⟨id(Bool)⟩ ⟨id(Bool)⟩ ⟨id(Bool)⟩ ⟨id(Bool)⟩
+    → Id × 4                       false
+
+The `k = 2` Reach crosses `[+Y^β]` (interior {X, Y}) and `[−Y^β]`
+(interior {X}); both spell `X`'s payload as `Bool`.
 
 This is the run that motivated the sketch.  Without Cancel the term is
 stuck: the unseal `+Y` (layer 2) must meet the seal `−Y` (layer 5), and
@@ -256,9 +268,10 @@ layer 3's `id(Y)` into an identity at `Y`'s payload `X`, and layer 3
 is `[−X^α]`, whose interior {Y} cannot name `X`.  Here a variable (`Y`)
 is bound to another (`X`) that has gone out of scope, which is exactly
 the case Reach's premise excludes: layer 3's interior cannot spell `Y`'s
-payload, so Reach does not apply.  Cancel on layers 3–4 is what fires;
-the layer-2 boundary's body is then not a value (it is not Tidy), so
-`ξ` reaches it first.
+payload, so Reach does not apply.  Cancel on layers 3–4 is what fires
+(their types agree: `Y` on both sides); the layer-2 boundary's body is
+then not a value (it is not Tidy), so `ξ` reaches it first.  This is why
+progress needs the `[−X^α] [+X^α]` order of Cancel.
 
 ### 5c. An unseal reaching its seal through a later reveal
 
@@ -304,20 +317,23 @@ so layer 2's boundary is not a value and ξ reduces it first, to
 `[+X^α] (λn:Int. W) ⟨id(Int) → id(Int)⟩`: a body of type `Int → X`
 under a conversion whose source is `Int → Int` — ill typed (O1).
 
-With the premise, layers 2–3 are a value, and layers 1–2 (`+` outside)
-are the redex.  The run finishes in 12 steps:
+With the premise, the whole tower is a value (layers 1–2 are a
+`[+X^α] [−X^α]` pair, which is never a redex), and the run finishes in
+19 steps:
 
-    → Cancel   (layers 1–2)   [+X^α] (λn:Int. W) ⟨id(Int) → +X⟩ 0
-    → Wrap                    [+X^α] ((λn:Int. W) ([−X^α] 0 ⟨id(Int)⟩)) ⟨+X⟩
-    → Id                      [+X^α] ((λn:Int. W) 0) ⟨+X⟩
-    → Beta                    [+X^α] [−X^α] 5 ⟨−X⟩ ⟨+X⟩
-    → Cancel                  5
+    → Wrap, Id          0 crosses layer 1; its [−X^α] 0 ⟨id(Int)⟩ wrapper drops
+    → Wrap, Id          … layer 2
+    → Wrap, Id          … layer 3, whose codomain is +X
+    → Beta              [+X^α] [−X^α] [+X^α] [−X^α] 5 ⟨−X⟩ ⟨+X⟩ ⟨id(Int)⟩ ⟨id(Int)⟩
+    → Reach, k = 0      [+X^α] [−X^α] [+X^α] [−X^α] 5 ⟨id(Int)⟩ ⟨id(Int)⟩ ⟨id(Int)⟩ ⟨id(Int)⟩
+    → Id × 4            5
 
 ## 6. Obligations, proved on paper (2026-10-28)
 
-Summary.  O3–O7 are proved below; O1 is proved for one order of the
-pair and REFUTED for the other, which changed the Cancel rule (§4); O2
-is a reachability question and stays open.  Everything here is by hand.
+Summary.  O1 and O3–O7 are proved below for the minimal rule set of
+§4.  Proving O1 found that a `[−X^α] [+X^α]` pair can compose to an
+unseal, which is why Cancel carries a premise.  O2 is a reachability
+question and stays open.  Everything here is by hand.
 
 ### 6.0 Conventions and supporting lemmas
 
@@ -364,7 +380,35 @@ so:
     target `α` — `id(X)`, or `−X` under the entry `−X^α` (the only
     name for `α` in a well-named context is `X`).
 
-### O1 — Cancel preserves types (one order proved, the other refuted)
+### O1 — Cancel preserves types (proved, given its premise)
+
+**Proof.**  Redex `[−X^α] ([+X^α] V ⟨c₁⟩) ⟨c₂⟩ : B` at `Δ`, with
+`X:=α ∈ Δ`.  The outer interior is `−X(Δ)`; the inner layer's interior
+is `Δ₂ = −X(Δ), X:=α`, and `Δ₂ ⊢ V : A`.  `Δ₂` has the same name map
+as `Δ` (only the position of `X:=α` differs), so L3 gives
+`Δ ⊢ V : A` and `Δ₂(A) = Δ(A)`.  The premise `Δ₂(A) = Δ(B)` then gives
+`Δ(A) = Δ(B)`, and L2 gives `A = B`.  So the contractum `V` has type
+`B` at `Δ`.  ∎
+
+**Why the premise.**  Without it the step is not type-preserving.  `V`
+sits where `X` is named, so its type may mention `X`, and the two
+conversions need not compose to an identity.  Counterexample, reached
+from a closed program (5d):
+
+    [−X^α] ([+X^α] (λn:Int. W) ⟨id(Int) → +X⟩) ⟨id(Int) → id(Int)⟩
+
+with `W = [−X^α] 5 ⟨−X⟩`.  The inner value has type `Int → X`; the
+pair's exterior type is `Int → Int`; the conversions compose to
+`id(Int) → +X`, an unseal.  Cancelling gives a term of the wrong type.
+A pair that fails the premise is not a redex and may sit in a value
+(Tidy, §2).  What νF does instead is visible in its run of 5d: `Merge`
+produces the scope `[−X^α, +X^α]` with conversion `id(Int) → +X` — a
+boundary that hides `X` and reveals it again in ONE scope.  A single
+entry cannot say that, so νF₁ keeps both layers.
+
+**The other order, `[+X^α] [−X^α]`, is not in the rule set.**  It
+would be sound with no premise, by the following lemma, but progress
+does not need it (O3).
 
 **Lemma (inverse pair).**  Let `ε` be `+X^α` or `−X^α`.  If
 `Γ ∣ ε ⊢ c₁ : R ⇒ T` and `Γ ∣ −ε ⊢ c₂ : T ⇒ S`, and `α` occurs free in
@@ -389,36 +433,12 @@ neither `R` nor `S`, then `R = S`.
   `Γ, α′, Z:=α′` with `α′ ≠ α` fresh; the IH gives the bodies equal
   after `Z ↦ α′`, hence `R = S`.  ∎
 
-**Case `[+X^α]` outside: proved.**  Redex `[+X^α] ([−X^α] V ⟨c₁⟩) ⟨c₂⟩ : B`
-at `Δ`.  The outer interior is `Δ₁ = Δ, X:=α`; the inner layer's
-interior is `−X(Δ₁) = Δ` (coherence: `X` was unnamed in `Δ`), so
-`Δ ⊢ V : A`.  Both conversions are checked in `Δ₁` (a `+` entry's
-conversion context is its interior, a `−` entry's its exterior):
-`Δ₁ ∣ −X^α ⊢ c₁ : Δ(A) ⇒ T` and `Δ₁ ∣ +X^α ⊢ c₂ : T ⇒ Δ(B)`.  `A` and
-`B` are spelled in `Δ`, which does not name `α`, so neither rep type
-contains `α`.  The lemma gives `Δ(A) = Δ(B)`, L2 gives `A = B`, and the
-contractum `V` has type `B` at `Δ`.
-
-**Case `[−X^α]` outside: FALSE without a premise.**  Here `V` sits at
-`−X(Δ), X:=α` and may have a type mentioning `X`, so the lemma's
-hypothesis fails — and so does the claim.  Counterexample, reached from
-a closed program (5d):
-
-    [−X^α] ([+X^α] (λn:Int. W) ⟨id(Int) → +X⟩) ⟨id(Int) → id(Int)⟩
-
-with `W = [−X^α] 5 ⟨−X⟩`.  The inner value has type `Int → X`; the
-pair's exterior type is `Int → Int`; the conversions compose to
-`id(Int) → +X`, an unseal, not an identity.  Cancelling gives a term of
-the wrong type.
-
-**Repair (adopted in §4).**  Cancel with `[−X^α]` outside requires the
-pair's interior and exterior types to agree: `Δ₂(A) = Δ(B)`, where `Δ₂`
-is the inner interior.  Then L3 moves `V` to `Δ` and L2 gives `A = B`.
-A pair that fails the premise is not a redex, and is allowed in values
-(Tidy, §2).  What νF does instead is visible in its run of 5d: `Merge`
-produces the scope `[−X^α, +X^α]` with conversion `id(Int) → +X` — a
-boundary that hides `X` and reveals it again in ONE scope.  A single
-entry cannot say that, so νF₁ keeps both layers.
+For `[+X^α] ([−X^α] V ⟨c₁⟩) ⟨c₂⟩ : B` at `Δ`: the inner interior is
+`−X(Δ, X:=α) = Δ`, both conversions are checked in `Δ, X:=α`, and `A`,
+`B` are spelled in `Δ`, which does not name `α`; the lemma gives
+`Δ(A) = Δ(B)`.  In the other order the lemma's hypothesis fails —
+`A` is spelled where `X` names `α` — which is exactly the
+counterexample above.
 
 ### O2 — the gap: an unseal blocked by a hiding layer (OPEN)
 
@@ -470,18 +490,28 @@ values:
   * `id(ι)`: `V` has base type, so by L6 it is a constant — Id.
   * `+X`, so `ε = +X^α`, and `V` is a value at type `X` in
     `Δ₀ = Δ, X:=α`.  By L6 its top layer carries `−X` under `−X^α` —
-    a Cancel pair, `+` outside, always a redex — or `id(X)` under some
+    Reach with `k = 0`, whose premise always holds (the seal's source
+    is spelled in `−X(Δ₀) = Δ`, part of `Δ₀`) — or `id(X)` under some
     `εᵢ`.  That `εᵢ` is not `±X^α` (`+X^α` needs `X` unnamed outside;
     under `−X^α` the interior has no name for `α`, so no interior type
     has rep `α`), so it is `±Y^β` with `Y ≠ X`, and `X` still names
     `α` in its interior.  Repeat on the body.  The walk ends, because
     the bottom of a tower is simple and no simple value has a variable
     type, at a layer carrying `−X` under `−X^α`.  This is exactly
-    Reach's left-hand side with `k ≥ 1` (adjacent inverse pairs
-    carrying `id(X)` twice agree on types, so they would be Cancel
-    redexes and are not in a value).  Reach fires if every
-    intermediate interior spells `X`'s payload; otherwise this is O2.
-    ∎
+    Reach's left-hand side.  The walk may pass `[+Z^γ] [−Z^γ]` pairs
+    (values, which Reach crosses like any other layers), but no
+    `[−Z^γ] [+Z^γ]` pair: both of its layers carry `id(X)`, so its
+    types agree and it is a Cancel redex, not part of a value.  Reach
+    fires if every intermediate interior spells `X`'s payload;
+    otherwise this is O2.  ∎
+
+    **Which rules progress uses.**  Cancel appears in this proof only
+    through Tidy: it clears `[−Z^γ] [+Z^γ]` pairs from the walk.  That
+    is necessary — in 5b layer 3 is `[−X^α]` with interior {Y}, which
+    cannot spell `Y`'s payload `X`, so Reach cannot cross it, and
+    after any unsealing the type between layers 3 and 4 would be that
+    payload, so no rule could keep the pair either.  The other order is
+    not used: an unseal over its seal is Reach with `k = 0`.
 
 ### O4 — Reach preserves types (proved)
 
@@ -521,12 +551,11 @@ and Tidy excludes Cancel; its body is a value, by induction.
 **At most one rule at the root.**  The left-hand sides are pairwise
 disjoint: Delta (`op`), Beta (application of a `λ`), Wrap (application
 of a boundary), TyBeta (`ν`), and on boundaries: Id (body a constant,
-conversion `id(ι)`), Cancel (body a boundary with the inverse entry,
-itself a value), Reach (conversion `+X`, `k ≥ 1`, so the next entry is
-`±Y^β` with `Y ≠ X` — not the inverse `−X^α` — and the tower under the
-outer layer is a value).  Id and Cancel differ on the body (constant
+conversion `id(ι)`), Cancel (outer entry `−X^α`, body a value boundary
+with entry `+X^α`), Reach (outer entry `+X^α`, conversion `+X`, the
+tower beneath a value).  Id and Cancel differ on the body (constant
 versus boundary); Id and Reach on the conversion (`id(ι)` versus
-`+X`); Cancel and Reach on the second entry.
+`+X`); Cancel and Reach on the sign of the outer entry.
 
 **At most one frame decomposition.**  Every rule's left-hand side has
 values in all its frame positions, and values do not step, so ξ and a
@@ -575,8 +604,7 @@ consumed.  Rule by rule, a residual hole's map before and after:
   — the residual's ρ, as for νF's TyWrap.
 * **Id.**  The constant is consumed with its boundary (no residual), as
   in νF.
-* **Cancel.**  `V`'s holes: for `+X^α` outside, `Δ` before and after;
-  for `−X^α` outside, `−X(Δ), X:=α` before and `Δ` after — the same
+* **Cancel.**  `V`'s holes move from `−X(Δ), X:=α` to `Δ` — the same
   map.
 * **Reach.**  No layer moves; conversions only.  Every hole keeps its
   context.
@@ -601,7 +629,7 @@ The axes, with the points that have been built or sketched:
 | D07 v1 combined boundary (2026-09-03) | list | `⊕` | truncates at the deepest conceal | copied types | records it as a reveal |
 | strong-rep-nu before 2026-09-24 | list | `CancelR`, `IdPush` (stacks otherwise) | does not truncate (D34 onward) | representation variables | records it |
 | **νF** (`paper/main.tex`) | list | `Merge` (one boundary per value) | removes `X` only | representation variables | records it |
-| **νF₁** (this sketch) | one | `Cancel`, `Reach` (towers) | removes `X` only | representation variables | records it |
+| **νF₁** (this sketch) | one | `Cancel` (`[−X][+X]` only), `Reach` (towers) | removes `X` only | representation variables | records it |
 
 D02 failed because of its truncation and its instantiation rule, not
 because it had one entry per boundary (`notes/old/notes-v1.md`,
@@ -616,16 +644,19 @@ only the entry count, so it isolates what lists and `Merge` buy:
   permission check is "the entry is `±X^α`"; the conversion context is
   one side of the boundary, never a union.  The price is two
   tower-tidying rules, one of them non-local (Reach), a progress
-  argument (O3) that walks down a tower, and the gap O2.
+  argument (O3) that walks down a tower, longer runs (5b: 15 against
+  11; 5d: 19 against 14), identity layers left in values at non-base
+  types, and the gap O2.
 * **One scope can hide and reveal the same variable.**  νF's run of
   5d builds `[−X^α, +X^α] (λn:Int. W) ⟨id(Int) → +X⟩`: hide `X`, then
   reveal it again, with a conversion that unseals.  With one entry per
-  boundary that is two layers that cannot cancel each other (in 5d an
-  enclosing `+X^α` layer happens to cancel the outer one first).
+  boundary that is two layers that cannot cancel each other, and they
+  stay in the value until the run ends.
 * **Color preservation is where lists earn their keep.**  Under the
   design law a layer may disappear only if no hole beneath it would see
   a different set of names.  With one entry per boundary that leaves
-  inverse pairs (Cancel) and constants (Id); every other hiding layer
+  `[−X^α] [+X^α]` pairs with agreeing types (Cancel) and constants
+  (Id); every other hiding layer
   stays in the tower for good, and an unseal that must pass one whose
   interior cannot spell the payload is stuck (O2).  νF's `Merge` never
   deletes an entry, so it can fuse such a layer into its neighbours

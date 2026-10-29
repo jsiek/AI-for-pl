@@ -9,17 +9,19 @@ module proof.LR.PrecisionSubst where
 --     variables to left-only ones.  The weakenings under `pair`, `only`
 --     and `dead` are instances.
 --   * A substitution maps each paired variable `X ↔ Y` to a derivation
---     of `σl X ⊑ σr Y`, and each left-only variable to a left-only
---     variable.  So the rule at every node is kept, except at the
---     paired variables.  This is the case of the type applications:
---     `•⊑•` substitutes for a paired variable.
+--     of `σl X ⊑ σr Y`, and each left-only variable `X` to a derivation
+--     of `σl X ⊑ ★`.  So the rule at every node is kept, except at the
+--     variables, and at `∀⊑★` over a left-only variable sent to `★`,
+--     which becomes `∀★⊑★`.  The type applications are instances:
+--     `•⊑•` substitutes for a paired variable, `•⊑` for a left-only
+--     one.
 --   * Precision into a variable relates a paired variable only.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Fin using (zero; suc)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; cong; subst)
+  using (_≡_; refl; subst)
 
 open import Types
 open import Consistency using (subst-∈ᵗ)
@@ -131,9 +133,7 @@ record PSub (Ψ : Corr Δ₁ Δ₁′) (Ψ′ : Corr Δ₂ Δ₂′) : Set where
     σl : Δ₁ ⇒ˢ Δ₂
     σr : Δ₁′ ⇒ˢ Δ₂′
     σ↔ : ∀ {X Y} → Ψ ∋ X ↔ Y → Ψ′ ⊢ σl X ⊑ σr Y
-    σvar : ∀ {X} → Ψ ∋ X only → TyVar Δ₂
-    σvar-only : ∀ {X} (x : Ψ ∋ X only) → Ψ′ ∋ σvar x only
-    σvar≡ : ∀ {X} (x : Ψ ∋ X only) → ＇ σvar x ≡ σl X
+    σo : ∀ {X} → Ψ ∋ X only → Ψ′ ⊢ σl X ⊑ ★
 
 open PSub public
 
@@ -144,37 +144,32 @@ module _ {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} (S : PSub Ψ �
   σr exts-pairˢ = extsᵗ (σr S)
   σ↔ exts-pairˢ ↔-here = X⊑Y ↔-here
   σ↔ exts-pairˢ (↔-pair x) = renᵖ wk-pairᴿ (σ↔ S x)
-  σvar exts-pairˢ (only-pair x) = suc (σvar S x)
-  σvar-only exts-pairˢ (only-pair x) = only-pair (σvar-only S x)
-  σvar≡ exts-pairˢ (only-pair x) = cong ⇑ᵗ (σvar≡ S x)
+  σo exts-pairˢ (only-pair x) = renᵖ wk-pairᴿ (σo S x)
 
   exts-onlyˢ : PSub (only Ψ) (only Ψ′)
   σl exts-onlyˢ = extsᵗ (σl S)
   σr exts-onlyˢ = σr S
   σ↔ exts-onlyˢ (↔-only x) = wk-onlyᵖ (σ↔ S x)
-  σvar exts-onlyˢ only-here = zero
-  σvar exts-onlyˢ (only-only x) = suc (σvar S x)
-  σvar-only exts-onlyˢ only-here = only-here
-  σvar-only exts-onlyˢ (only-only x) = only-only (σvar-only S x)
-  σvar≡ exts-onlyˢ only-here = refl
-  σvar≡ exts-onlyˢ (only-only x) = cong ⇑ᵗ (σvar≡ S x)
+  σo exts-onlyˢ only-here = X⊑★ only-here
+  σo exts-onlyˢ (only-only x) = wk-onlyᵖ (σo S x)
 
   exts-deadˢ : PSub (dead Ψ) (dead Ψ′)
   σl exts-deadˢ = extsᵗ (σl S)
   σr exts-deadˢ = σr S
   σ↔ exts-deadˢ (↔-dead x) = wk-deadᵖ (σ↔ S x)
-  σvar exts-deadˢ (only-dead x) = suc (σvar S x)
-  σvar-only exts-deadˢ (only-dead x) = only-dead (σvar-only S x)
-  σvar≡ exts-deadˢ (only-dead x) = cong ⇑ᵗ (σvar≡ S x)
+  σo exts-deadˢ (only-dead x) = wk-deadᵖ (σo S x)
 
-  -- the body of `∀⊑★` stays a non-`★`: a variable there is left-only
-  substNonStar : ∀ {A} → NonStar A → dead Ψ ⊢ A ⊑ ★
-    → NonStar (substᵗ (extsᵗ (σl S)) A)
-  substNonStar nonstar-X (X⊑★ (only-dead x)) =
-    subst NonStar (cong ⇑ᵗ (σvar≡ S x)) nonstar-X
-  substNonStar nonstar-ι p = nonstar-ι
-  substNonStar nonstar-⇒ p = nonstar-⇒
-  substNonStar nonstar-∀ p = nonstar-∀
+-- `∀⊑★` over a left-only variable sent to C: the body stays a
+-- non-`★`, except that `∀X.★` is `∀★⊑★`
+∀★ᵖ : ∀ {Ψ : Corr Δ₁ Δ₁′} {C} → Ψ ⊢ C ⊑ ★ → Ψ ⊢ `∀ (⇑ᵗ C) ⊑ ★
+∀★ᵖ ★⊑★ = ∀★⊑★
+∀★ᵖ q@(⇒⊑★ p₁ p₂) = ∀⊑★ nonstar-⇒ (wk-deadᵖ q)
+∀★ᵖ q@ι⊑★ = ∀⊑★ nonstar-ι (wk-deadᵖ q)
+∀★ᵖ q@(X⊑★ x) = ∀⊑★ nonstar-X (wk-deadᵖ q)
+∀★ᵖ q@(∀⊑ a z p) = ∀⊑★ nonstar-∀ (wk-deadᵖ q)
+∀★ᵖ q@∀★⊑★ = ∀⊑★ nonstar-∀ (wk-deadᵖ q)
+∀★ᵖ q@(∀⊑★ ns p) = ∀⊑★ nonstar-∀ (wk-deadᵖ q)
+∀★ᵖ q@bot⊑★ = ∀⊑★ nonstar-∀ (wk-deadᵖ q)
 
 substᵖ : ∀ {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} (S : PSub Ψ Ψ′) {A B}
   → Ψ ⊢ A ⊑ B → Ψ′ ⊢ substᵗ (σl S) A ⊑ substᵗ (σr S) B
@@ -185,24 +180,32 @@ substᵖ S (⇒⊑⇒ p q) = ⇒⊑⇒ (substᵖ S p) (substᵖ S q)
 substᵖ S (∀⊑∀ p) = ∀⊑∀ (substᵖ (exts-pairˢ S) p)
 substᵖ S (⇒⊑★ p q) = ⇒⊑★ (substᵖ S p) (substᵖ S q)
 substᵖ S ι⊑★ = ι⊑★
-substᵖ S (X⊑★ x) =
-  subst (λ C → _ ⊢ C ⊑ ★) (σvar≡ S x) (X⊑★ (σvar-only S x))
+substᵖ S (X⊑★ x) = σo S x
 substᵖ S (∀⊑ a z p) =
   ∀⊑ (substNonVar _ a) (subst-∈ᵗ z var-∈) (substᵖ (exts-onlyˢ S) p)
 substᵖ S ∀★⊑★ = ∀★⊑★
-substᵖ S (∀⊑★ ns p) = ∀⊑★ (substNonStar S ns p) (substᵖ (exts-deadˢ S) p)
+substᵖ S (∀⊑★ nonstar-X (X⊑★ (only-dead x))) = ∀★ᵖ (σo S x)
+substᵖ S (∀⊑★ nonstar-ι p) = ∀⊑★ nonstar-ι (substᵖ (exts-deadˢ S) p)
+substᵖ S (∀⊑★ nonstar-⇒ p) = ∀⊑★ nonstar-⇒ (substᵖ (exts-deadˢ S) p)
+substᵖ S (∀⊑★ nonstar-∀ p) = ∀⊑★ nonstar-∀ (substᵖ (exts-deadˢ S) p)
 substᵖ S bot-elim = bot-elim
 substᵖ S bot⊑★ = bot⊑★
 
--- substituting for the outermost paired variable
+-- substituting for the outermost paired variable (`•⊑•`)
 singleˢ : ∀ {Ψ : Corr Δ₁ Δ₁′} {T T′} → Ψ ⊢ T ⊑ T′ → PSub (pair Ψ) Ψ
 σl (singleˢ {T = T} q) = singleSubᵗ T
 σr (singleˢ {T′ = T′} q) = singleSubᵗ T′
 σ↔ (singleˢ q) ↔-here = q
 σ↔ (singleˢ q) (↔-pair x) = X⊑Y x
-σvar (singleˢ q) (only-pair {X = X} x) = X
-σvar-only (singleˢ q) (only-pair x) = x
-σvar≡ (singleˢ q) (only-pair x) = refl
+σo (singleˢ q) (only-pair x) = X⊑★ x
+
+-- substituting for the outermost left-only variable (`•⊑`)
+singleOˢ : ∀ {Ψ : Corr Δ₁ Δ₁′} {T} → Ψ ⊢ T ⊑ ★ → PSub (only Ψ) Ψ
+σl (singleOˢ {T = T} q) = singleSubᵗ T
+σr (singleOˢ q) Y = ＇ Y
+σ↔ (singleOˢ q) (↔-only x) = X⊑Y x
+σo (singleOˢ q) only-here = q
+σo (singleOˢ q) (only-only x) = X⊑★ x
 
 ------------------------------------------------------------------------
 -- Precision into a variable

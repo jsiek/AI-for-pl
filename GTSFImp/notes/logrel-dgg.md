@@ -479,7 +479,7 @@ only strengthens the clauses.
 | `proof/LR/Expression.agda` | values and left blame are related expressions; backward reduction; the bind lemma |
 | `proof/LR/PrecisionUnique.agda` | two-context precision derivations are unique |
 | `proof/LR/PrecisionSubst.agda` | renaming and substitution of precision derivations |
-| `proof/LR/SubstLemma.agda` | the renaming and substitution lemmas for `𝒱`; the `•⊑•` instance `𝒱-tyapp` |
+| `proof/LR/SubstLemma.agda` | the renaming and substitution lemmas for `𝒱`; the instances `𝒱-tyapp` (`•⊑•`) and `𝒱-tyappO` (`•⊑`) |
 
 **Renaming terms: how it is done.**
 * Mode environments are vectors, `Env∼ Δ = Vec Var∼ Δ`, read with
@@ -566,52 +566,59 @@ only strengthens the clauses.
 * Derivations are renamed (`renᵖ`) and substituted (`substᵖ`)
   structurally.  A renaming keeps pairs and left-only variables.  A
   substitution sends each paired `X ↔ Y` to a derivation of
-  `σl X ⊑ σr Y` and each left-only variable to a left-only variable.
-  So every rule is kept except at the paired variables.  `∀⊑` never has
-  a variable on the right (`∀⊑-var⊥`), so the right type of a
-  substituted `∀⊑` is `★` exactly when it was.
+  `σl X ⊑ σr Y`, and each left-only `X` to a derivation of `σl X ⊑ ★`.
+  So every rule is kept except at the variables, with one more
+  exception: `∀⊑★` over a left-only variable sent to `★` becomes
+  `∀★⊑★` (`∀★ᵖ`), since `∀⊑★` needs a non-`★` body.  `∀⊑` never has a
+  variable on the right (`∀⊑-var⊥`), so the right type of a substituted
+  `∀⊑` is `★` exactly when it was.
 * The renaming lemma (`𝒱-ren`): `𝒱` at `renᵖ R p` under `δ₂` is `𝒱` at
   `p` under `δ₁`, when `δ₁` agrees with `δ₂` along the renaming.  The
   substitution lemma uses it for the weakenings under binders.
 * The substitution lemma (`𝒱-subst`): `𝒱` at `substᵖ S p` under `δ₂` is
-  `𝒱` at `p` under `δ₁`, below a stage bound `N`, when `δ₁` agrees with
-  `δ₂` (`SubI`):
+  `𝒱` at `p` under `δ₁`, at positive stages below a bound `N`, when
+  `δ₁` agrees with `δ₂` (`SubI`):
   * on the types, through the substitution;
-  * on the left-only variables, as leaves;
-  * at every paired `X ↔ Y`, in every future world and below `N`:
-    the leaf of `X` under `δ₁` is `𝒱` at the substituted derivation
-    under `δ₂`.
+  * at every variable, in every future world and below `N` (positive
+    stages only, for a left-only variable): the leaf of `X` under `δ₁`
+    is `𝒱` at the substituted derivation under `δ₂`.
 
   The bound is needed because the bound variable's semantic leaf
   (`leafBelow`) is empty from the clause's stage on.  Both lemmas are
   one induction mirroring `𝒱-resp`, giving both directions at once
   (`_⇔_`).
-* The `•⊑•` instance (`𝒱-tyapp`): let `δ ≈ᴵ envI env envR` (the
-  fundamental lemma's interpretations), and let the descriptor be
-  `desc q env envR`.  Then, below the `∀⊑∀` clause's stage `n′` and in
-  every future world, the body at `p` with the clause's extension is
-  related exactly when it is related at the premise `r` of `•⊑•`.
-  Uniqueness turns `substᵖ (singleˢ q) p` into `r`.
-* **Not covered: `•⊑`** (left-only type application).  It substitutes
-  the left-only bound variable with a type `T ⊑ ★`, not a variable, so
-  `SubI` does not apply.  The rule at that position can change from
-  `X⊑★` to the rule of `q`.  By the cases of `G`, the two sides should
-  then differ in `≻` at stage 0 only (checked on paper, not
-  mechanized): the leaf `leafG` is `G 0 = ⊤`, while `𝒱 ≻ 0` at a left-only
-  store variable needs a seal.  Stage-0 values are never needed, since
-  a right side that reaches a value in `n` steps also `Runs` `n` steps.
-  So the variant should be stated for stages `≥ 1` in `≻`, with
-  left-only variables sent to derivations `q : T ⊑ ★`.
+* **Stage 0.**  In `≻` a left-only variable's guarded leaf (`leafG`) is
+  `G 0 = ⊤`, while `𝒱 ≻ 0` at its substitute may be empty (a left-only
+  store variable needs a seal).  So the lemma is stated at positive
+  stages.  This costs nothing: the expression relation at stage 0 holds
+  outright (`ℰᵍ-zero`: every term runs 0 steps), and a value reached
+  at stage 0 took all the counted steps, which is the first disjunct
+  (`ℰᵍ-map⁺`: value relations need to agree at positive stages only).
+  The function clause uses `ℰᵍ-pos` to get a positive stage for its
+  argument.  The `G` and `∀` helpers hold at every stage.
+* The instances, for `δ ≈ᴵ envI env envR` (the fundamental lemma's
+  interpretations) and the descriptor `desc q env envR`; in every
+  future world, at positive stages, the body at `p` with the clause's
+  extension is related exactly when it is related at the rule's premise
+  `r`, and uniqueness turns the substituted derivation into `r`:
+  * `•⊑•` (`𝒱-tyapp`, `singleˢ`): below the `∀⊑∀` clause's stage `n′`.
+  * `•⊑` (`𝒱-tyappO`, `singleOˢ`): below `n′` in `≺` (`leafBelow`),
+    up to `n′` in `≻` (`leafG`); `onlyBound` gives the bound.  The
+    right substitution is the identity, so the derivation is moved
+    along `substᵗ-id`.
 
-**Next, in order:**
-1. **The `•⊑` variant of the substitution lemma** (above), then items
-   5–9 of Section 6.9:
-   * conversions;
-   * identity casts;
-   * the cast lemma, with the world-change lemma;
-   * compatibility lemmas;
-   * the fundamental lemma;
-   * the guarantee.
+  In `≺` the bound `n′` is strict, so the compatibility lemma has to
+  use that the left takes the type application's step before its value
+  is read; the plan is to get that from backward reduction
+  (`ℰ-anti-≺`).
+
+**Next, in order** (items 5–9 of Section 6.9):
+1. conversions;
+2. identity casts;
+3. the cast lemma, with the world-change lemma;
+4. compatibility lemmas;
+5. the fundamental lemma;
+6. the guarantee.
 
 **Not yet checked against the definitions** (they were checked on paper
 against Section 6.5, before the switch to descriptors):

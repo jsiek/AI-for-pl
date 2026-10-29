@@ -460,3 +460,58 @@ fundamental lemma instantiates them with `𝒱⟦ q ⟧`.
 **Identity closure** is now a lemma about descriptors (lemma 6), not a
 side condition of the `∀` clauses.  Quantifying over every descriptor
 only strengthens the clauses.
+
+## 7. Mechanization status and next steps
+
+**Done** (all checked with `--safe` through `All.agda`):
+
+| file | content |
+|---|---|
+| `LR/Steps.agda` | counted reduction `M —→^ k [ χs ] N`; the store embedding of a reduction |
+| `LR/Desc.agda` | descriptors, entries, tags; their types; renaming |
+| `LR/World.agda` | worlds, extension, store-relative relations `RelΩ` |
+| `LR/Relation.agda` | interpretations; `𝒱`, `G`, the `★` relation, entries; `ℰᵍ` and `ℰ`, in both directions |
+| `proof/LR/WorldProps.agda` | renaming laws for descriptors and tags; extension is reflexive and transitive |
+
+**Next, in order:**
+1. **Renaming terms.**
+   * Needed: `renameᵗᵐ π (renameᵗᵐ η M) ≡ renameᵗᵐ (π ∘↪ η) M`, and
+     the identity law.
+   * Casts carry their mode environments `Env∼ Δ = TyVar Δ → Var∼` as
+     functions, so equality of renamed terms needs function
+     extensionality.  `AGENTS.md` allows it, localized.
+   * Under `--safe` it has to be a module parameter
+     (`Axiom.Extensionality.Propositional`), not a postulate.
+   * The cast case is equality-heavy: the cast's types change by
+     `renameᵗ-comp`, and the inner equality proofs need uniqueness of
+     identity proofs, which Agda's default K provides.
+   * The conversions `rename↑`/`rename↓` and `renameᵗ` on the type
+     annotations are routine.
+2. **Interpretations.**
+   * Transporting an interpretation twice equals transporting it once,
+     *pointwise*.
+   * `𝒱` respects pointwise-equal interpretations.  This is proved by
+     induction, which keeps funext out of the relation itself.
+3. **Kripke monotonicity** of `𝒱`, `G`, `star`, the entries and `ℰᵍ`,
+   including downward closure in the stage.
+   * The semantic leaves are empty above their bound, so they are
+     downward closed.
+   * The hypothesis is that leaves are monotone.  Descriptor-built
+     leaves are, by the lemma itself, so this is a mutual induction.
+4. **Expression lemmas** (Section 6.9, item 3), then items 4–9:
+   * uniqueness of precision and the substitution lemma;
+   * conversions;
+   * identity casts;
+   * the cast lemma, with the world-change lemma;
+   * compatibility lemmas;
+   * the fundamental lemma;
+   * the guarantee.
+
+**Not yet checked against the definitions** (they were checked on paper
+against Section 6.5, before the switch to descriptors):
+* the fundamental lemma's `Λ` cases;
+* the shared type application;
+* the cast lemma's cases 4–8.
+
+The descriptor version should not change them, because every leaf the
+paper proofs use is a descriptor (Section 6.11).

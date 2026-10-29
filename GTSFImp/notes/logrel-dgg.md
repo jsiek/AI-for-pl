@@ -472,33 +472,38 @@ only strengthens the clauses.
 | `LR/World.agda` | worlds, extension, store-relative relations `RelΩ` |
 | `LR/Relation.agda` | interpretations; `𝒱`, `G`, the `★` relation, entries; `ℰᵍ` and `ℰ`, in both directions |
 | `proof/LR/WorldProps.agda` | renaming laws for descriptors and tags; extension is reflexive and transitive |
+| `proof/TermRename.agda` | `renameᵗᵐ π (renameᵗᵐ η M) ≡ renameᵗᵐ (π ∘↪ η) M` and `renameᵗᵐ id↪ᵗ M ≡ M`, without funext |
+
+**Renaming terms: how it is done.**
+* Mode environments are vectors, `Env∼ Δ = Vec Var∼ Δ`, read with
+  `μ ‼ X`, so terms are first-order data.  The only functions left in
+  a cast are the `B ≢ ★` arguments of `inst` and `gen`, and these are
+  definitionally equal because the library's `⊥` is proof irrelevant.
+* `renameEnv∼` gives the variables outside the embedding's image the
+  mode `X∼X` for `empty` as well as for `skip`.  It used to give
+  `★∼X∼★` for `empty`, and then renaming environments did not respect
+  composition: `skip empty ∘↪ empty = empty`, yet the two sides gave
+  `[X∼X]` and `[★∼X∼★]`.  Those variables never occur in a renamed cast,
+  so the change is one of representation only.
+* Casts with different endpoint types are compared by packing each with
+  its endpoints (`⟪ c ⟫`) and using `_≡_`, at one fixed environment;
+  no heterogeneous equality.  The gate evidence (`Ground`, `NonStar`,
+  `NonVar`, `_∈ᵗ_`, `_⊢_∼★`, `_⊢★∼_`) is unique, so it does not matter
+  which proof each side carries.
 
 **Next, in order:**
-1. **Renaming terms.**
-   * Needed: `renameᵗᵐ π (renameᵗᵐ η M) ≡ renameᵗᵐ (π ∘↪ η) M`, and
-     the identity law.
-   * Mode environments are vectors, `Env∼ Δ = Vec Var∼ Δ`, read with
-     `μ ‼ X`.  They used to be functions `TyVar Δ → Var∼`, so equality
-     of renamed terms needed function extensionality; as vectors,
-     terms are first-order data and it does not.  The change is one
-     of representation only: the same modes, the same rules.
-   * The cast case is equality-heavy: the cast's types change by
-     `renameᵗ-comp`, and the inner equality proofs need uniqueness of
-     identity proofs, which Agda's default K provides.
-   * The conversions `rename↑`/`rename↓` and `renameᵗ` on the type
-     annotations are routine.
-2. **Interpretations.**
+1. **Interpretations.**
    * Transporting an interpretation twice equals transporting it once,
      *pointwise*.
    * `𝒱` respects pointwise-equal interpretations.  This is proved by
      induction, which keeps funext out of the relation itself.
-3. **Kripke monotonicity** of `𝒱`, `G`, `star`, the entries and `ℰᵍ`,
+2. **Kripke monotonicity** of `𝒱`, `G`, `star`, the entries and `ℰᵍ`,
    including downward closure in the stage.
    * The semantic leaves are empty above their bound, so they are
      downward closed.
    * The hypothesis is that leaves are monotone.  Descriptor-built
      leaves are, by the lemma itself, so this is a mutual induction.
-4. **Expression lemmas** (Section 6.9, item 3), then items 4–9:
+3. **Expression lemmas** (Section 6.9, item 3), then items 4–9:
    * uniqueness of precision and the substitution lemma;
    * conversions;
    * identity casts;

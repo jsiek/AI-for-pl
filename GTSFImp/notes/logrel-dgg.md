@@ -123,6 +123,11 @@ Written in the first design session.  Notation: `d ∈ {≺, ≻}` is the
 direction.  `≺` counts the left program's steps, `≻` the right
 program's, as in New–Jamner–Ahmed.  `n` is the stage (the step index).
 
+**Superseded in part.**  Section 6.11 replaces semantic relations with
+descriptors, because Agda with `--safe` has no impredicative universe
+for them.  This affects 6.1, 6.3, the staged worlds of 6.10, and the
+type of `R` in 6.5.  The rest stands.
+
 ### 6.1 Why semantic relations, and why staged worlds
 
 * **Two kinds of relation are needed** (Section 3 above, and
@@ -385,3 +390,72 @@ take any number of steps.
   * So every call is structural.
 * **Directions** are a parameter `d`.  The clauses that differ are the
   `▷` guards of Section 6.5 and the step-counting side in `ℰ`.
+
+### 6.11 Revision during mechanization: descriptors, not semantic relations
+
+Found when writing the definitions in Agda.  It supersedes Sections 6.1
+and 6.3, the staged worlds of 6.10, and the semantic `R` of the `∀`
+clauses in 6.5.  The mechanized definitions are in `LR/Desc.agda`,
+`LR/World.agda` and `LR/Relation.agda`, and they pass `--safe`,
+including the termination check.
+
+**The obstacle.**  The `∀` clauses quantify over relations, and the
+fundamental lemma instantiates them with `𝒱⟦ q ⟧`.
+* A relation valued in `Set`, quantified inside a definition of type
+  `Set`, lands in `Set₁`.  So `𝒱⟦ q ⟧` is not one of the relations
+  quantified over.
+* PolyGν's proof is on paper, in set theory, where this does not arise.
+* Agda with `--safe` has no impredicative universe to put the relations
+  in.  Worlds that hold semantic relations about worlds would have the
+  same problem.
+
+**The fix: quantify over syntax, interpret below the stage.**
+* **Descriptors** (`LR.Desc`).  A descriptor is a two-context precision
+  derivation with an environment.
+  * The environment gives each left variable an *entry*: a nonempty
+    list of left seals, a list of right seals, and a descriptor for the
+    contents.
+  * Descriptors are first-order syntax in `Set`.
+  * They express everything the old note's descriptors did (`◁σ`,
+    `▷σ′`, `tag`), for example the case-6 leaf `seals σ [] [β′, α′] q₀`.
+* **The `∀` clauses quantify over descriptors.**  The new variable's
+  leaf is *semantic*: the clause builds it from the descriptor, by calls
+  at stages below the clause's own, and it is trivial at the stages
+  above.  It is never read there, because the counted side steps before
+  the body is compared.
+* **Interpretations** give each left variable either:
+  * a syntactic entry, read on demand: the program's store variables,
+    and the variables inside descriptors;
+  * a semantic leaf: a type application's bound variable after its
+    reveal.
+* **Worlds are unstaged** (`LR.World`).  A world has the two store sizes
+  and a *tag descriptor* per left store variable: the right tag
+  variable, if the right tags too, and an entry for the payloads.
+  `World : Set`.
+* **Leaves are store-relative.**  A semantic leaf built in one world is
+  read in a later one through the embeddings of the stores (`RelΩ`).
+
+**Well-foundedness** (the order Agda's termination checker accepts):
+* Every entry has a left seal.  So it is read one stage down, or, in
+  `≻` with no right seal (a left-only variable), by `G` at the same
+  stage *after peeling the left term*.
+* `G` (`≻` at a precision whose right type is `★`) reads stage `n − 1`,
+  except through tags and entries, which peel the left term.  So the
+  same-stage cycles among `G`, `star`, `entry` and the peeling functions
+  shrink the left term.
+* Within one stage, `𝒱` recurses on the precision derivation.  The
+  generic expression closure `ℰᵍ` takes the value relation as an
+  argument, so these calls are visible to the checker.
+* The semantic leaves and the stage-bounded helpers (`𝒱≤`, `𝒱<`, `G≤`,
+  `starAt`) recurse on `≤′` proofs.
+
+**What stays the same:**
+* the clauses of Section 6.5, except the type of `R`;
+* the guard convention of Section 6.6, where `G` is the guarded
+  relation;
+* the expression relations of 6.7, the theorems of 6.8 and the lemma
+  list of 6.9.
+
+**Identity closure** is now a lemma about descriptors (lemma 6), not a
+side condition of the `∀` clauses.  Quantifying over every descriptor
+only strengthens the clauses.

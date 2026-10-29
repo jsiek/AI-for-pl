@@ -5616,3 +5616,8 @@ considered and not taken: Reach would have to rewrite every layer of
 **Addendum: renamed.**  The unseal-meets-seal rule Reach is now called
 **Cancel**; the earlier pair-removing Cancel is called **PairCancel** in
 the sketch.  Entries above use the old names.
+
+**Addendum: Cancel-□.**  `[+X^α] ([−X^α] V ⟨−X⟩) ⟨+X⟩ ⟶ V`, with
+Cancel restricted to a non-empty identity tower.  Sound and color-safe
+because `−X(Δ, X:=α) = Δ`; only this order of the pair can be a redex.
+It saves the identity layers Cancel left (5d: 19 → 17 steps).

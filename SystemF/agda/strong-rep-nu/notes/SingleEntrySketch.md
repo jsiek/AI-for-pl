@@ -18,8 +18,8 @@ choices distinguish it from νF beyond the entry count:
 * **`id` carries no type.**  One identity conversion, `id : R ⇒ R` for
   every `R`, so the reduction rules never have to spell a type.
 
-With both, the rule set is Delta, Beta, Wrap, TyBeta, Id and one new
-rule, **Cancel**, with no premise.  §6 proves progress, preservation,
+With both, the rule set is Delta, Beta, Wrap, TyBeta, Id and two new
+rules, **Cancel** and its special case **Cancel-□**, with no premise.  §6 proves progress, preservation,
 determinism and color preservation on paper, with no open obligation
 of its own (one inherited caveat, Beta under `Λ`, and one design
 question, abstraction, are recorded).
@@ -102,8 +102,9 @@ hole at the bottom; `I[M]` plugs `M` into the hole:
 
 So a value is a TOWER: a simple value under any number of boundaries
 with inert conversions.  There is no side condition on adjacent layers:
-no rule removes a pair of layers (§4).  `[ε] k ⟨id⟩` is the one active
-form with an `id`, and Id removes it.
+the one rule that removes a pair of layers, Cancel-□, needs an active
+unseal on top (§4).  `[ε] k ⟨id⟩` is the one active form with an `id`,
+and Id removes it.
 
 ## 3. Type system
 
@@ -212,7 +213,9 @@ Frames are the paper's, with `[ε] □ ⟨c⟩` in place of `[δ] □ ⟨c⟩`, 
     Δ ⊢ [ε] k ⟨id⟩  ⟶  k                                             (Id)
 
     Δ ⊢ [+X^α] I[[−X^α] V ⟨−X⟩] ⟨+X⟩  ⟶  [+X^α] I[[−X^α] V ⟨id⟩] ⟨id⟩    (Cancel)
-        if I[[−X^α] V ⟨−X⟩] is a value
+        if I ≠ □ and I[[−X^α] V ⟨−X⟩] is a value
+
+    Δ ⊢ [+X^α] ([−X^α] V ⟨−X⟩) ⟨+X⟩  ⟶  V                              (Cancel-□)
 
     Δ ⊢ F[M]  ⟶  F[M′] ⊣ ξ      if F(Δ) ⊢ M ⟶ M′ ⊣ ξ                (ξ)
 
@@ -241,9 +244,19 @@ What each rule does, against νF:
   decomposition (O6).  (Earlier drafts called this rule Reach, and used
   the name Cancel for removing an adjacent inverse pair; that rule is
   called PairCancel here.)
+* **Cancel-□** is Cancel with an empty `I`: the seal sits directly under
+  its unseal, and both layers go, leaving `V`.  It is color-safe where
+  Hide was not, because the two entries cancel exactly on the name map:
+  `V`'s context is `−X(Δ, X:=α) = Δ` before the step and `Δ` after it.
+  Cancel is restricted to `I ≠ □` so the two rules do not overlap.  Only
+  this order of the pair is a redex: in `[−X^α] ([+X^α] V ⟨+X⟩) ⟨−X⟩`
+  the inner unseal is active, so the inner boundary is not a value.  It
+  saves the identity layers Cancel would leave, which Id cannot remove
+  at a non-base type.
 
-There is no `Merge`, no conversion composition, no chain, and no rule
-that removes a layer other than Id.
+There is no `Merge`, no conversion composition and no chain.  The only
+rules that remove layers are Id (one, over a constant) and Cancel-□
+(an unseal and its seal).
 
 **Two rules that are NOT here, and why** (§9 has the details):
 
@@ -364,14 +377,14 @@ Layers 2–3 are a `[−X^α] [+X^α]` pair whose inner value has type
 conversions compose to `id → +X`, an unseal, so removing the pair would
 be ill typed.  νF's first Merge turns layers 2–3 into ONE boundary with
 scope `[−X^α, +X^α]` and conversion `id → +X`.  In νF₁ the tower is a
-value and the run finishes in 19 steps:
+value and the run finishes in 17 steps:
 
     → Wrap, Id          0 crosses layer 1; its [−X^α] 0 ⟨id⟩ wrapper drops
     → Wrap, Id          … layer 2
     → Wrap, Id          … layer 3, whose codomain is +X
     → Beta              [+X^α] [−X^α] [+X^α] [−X^α] 5 ⟨−X⟩ ⟨+X⟩ ⟨id⟩ ⟨id⟩
-    → Cancel, I = □    [+X^α] [−X^α] [+X^α] [−X^α] 5 ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
-    → Id × 4            5
+    → Cancel-□          [+X^α] [−X^α] 5 ⟨id⟩ ⟨id⟩
+    → Id × 2            5
 
 ### 5e. A term that is stuck with named runtime types
 
@@ -496,8 +509,8 @@ value or steps (ξ).  Remaining cases, all subterms values:
   body.  The walk ends, because the bottom of a tower is simple and no
   simple value has a variable type, at a layer carrying `−X` under
   `−X^α`.  The layers passed form an identity tower `I`, so `V` is
-  `I[[−X^α] V′ ⟨−X⟩]`: Cancel's left-hand side, a value.  Cancel has no
-  other premise, so it fires.  ∎
+  `I[[−X^α] V′ ⟨−X⟩]`, a value: Cancel-□'s left-hand side if `I = □`,
+  Cancel's otherwise.  Neither has another premise, so one fires.  ∎
 
 ### O3 — Cancel preserves types (proved)
 
@@ -510,6 +523,12 @@ In the contractum the seal layer's `id : P ⇒ P` gives it exterior type
 interior and exterior type `P`, and its `id : P ⇒ P` is well formed at
 that layer by L5; the outer layer's `id : P ⇒ P` gives exterior type
 `P = S`.  The store, the scopes and `V` are unchanged.  ∎
+
+**Cancel-□.**  Redex `[+X^α] ([−X^α] V ⟨−X⟩) ⟨+X⟩ : S` at `Δ`, with
+`α^X:=P ∈ Δ`.  The outer interior is `Δ, X:=α`; the inner interior is
+`−X(Δ, X:=α) = Δ`, since coherence of `+X^α` means `X` is unnamed in
+`Δ`.  So `Δ ⊢ V : P` (rule `seal`), and `S = P` (rule `unseal`): the
+contractum `V` has type `S` at `Δ`.  ∎
 
 ### O4 — Wrap preserves types (proved)
 
@@ -568,8 +587,9 @@ on top; its body is a value, by induction.
 
 **At most one rule at the root.**  Delta (`op`), Beta (application of a
 `λ`), Wrap and Wrap-id (application of a boundary, told apart by the
-conversion), TyBeta (`ν`), Id (`id` over a constant) and Cancel (`+X`)
-have disjoint left-hand sides.
+conversion), TyBeta (`ν`), Id (`id` over a constant), Cancel (`+X`
+over a non-empty `I`) and Cancel-□ (`+X` directly over its seal) have
+disjoint left-hand sides.
 
 **Cancel decomposes one way.**  A Cancel redex is `[+X^α] M ⟨+X⟩` with
 `M = I[[−X^α] V ⟨−X⟩]`.  `I` matches only layers that carry `id`, so
@@ -599,6 +619,8 @@ consumed.  Rule by rule, a residual hole's map before and after:
 * **Id.**  The constant is consumed with its boundary, as in νF.
 * **Cancel.**  No layer moves; conversions only.  Every hole keeps its
   context.
+* **Cancel-□.**  `V`'s holes move from `−X(Δ, X:=α) = Δ` to `Δ`: the
+  same map, on the nose.
 * **Beta.**  Holes of `N` keep their contexts.  The CAVEAT: an argument
   copy substituted under a `Λ` inside `N` sees that `Λ`'s variable.
   The Agda's Beta wraps such a copy in a hiding boundary (`crossΛᴹ`,
@@ -642,7 +664,7 @@ the entry count, which isolates what lists and `Merge` buy:
 
 * **For νF:** values are one boundary deep, so canonical forms, Wrap and
   TyWrap look at one boundary; runs are shorter (5a: 9 against 11; 5b:
-  11 against 16; 5d: 14 against 19); a seal chain records a path
+  11 against 16; 5d: 14 against 17); a seal chain records a path
   through several variables (`−X ; −Y`) in one conversion; and every
   intermediate type has a NAME in its context.
 * **For νF₁:** no composition, no chains, no respelling, and each
@@ -692,6 +714,8 @@ existing representation indices move up; entries `bind X β` /
   entries' representation indices, since ordinary positions differ
   between layers; the naming condition makes that the same match as
   the named one.
+* **Cancel-□** needs no shift: `bind X β` then `unbind X β` inserts and
+  deletes at the same position, so `V`'s name list is the redex's.
 * **Conversions contain no representation indices** (`id` is untyped;
   seals and unseals cite names), so `↑ᴹ` and `crossΛᴹ` stay out of
   conversions, as today.  Runtime types in the typing judgement carry
@@ -724,7 +748,9 @@ the drafts' Cancel (removing an adjacent inverse pair) is **PairCancel**.
    condition (each representation variable has one name for its whole
    life) lets the seal be written `−X`.  Restricting `id` to atomic
    types was considered and not taken: Cancel would then have to
-   rewrite every layer of `I` to an identity at the payload.
+   rewrite every layer of `I` to an identity at the payload.  Last,
+   Cancel-□ removes an unseal and the seal directly under it, instead
+   of leaving two identity layers (5d: 19 → 17 steps).
 
 **Lemma (inverse pair), kept for reference.**  Let `ε` be `+X^α` or
 `−X^α`.  If `Γ ∣ ε ⊢ c₁ : R ⇒ T` and `Γ ∣ −ε ⊢ c₂ : T ⇒ S`, and `α`

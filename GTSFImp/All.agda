@@ -155,6 +155,7 @@ import proof.DGG.DynamicGradualGuaranteeProof
 
 import LR.Meta
 import LR.Relation
+import proof.LR.WorldProps
 
 ------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked

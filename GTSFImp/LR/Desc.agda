@@ -19,9 +19,13 @@ module LR.Desc where
 --   * Descriptors are syntax, so the relations can quantify over them
 --     without leaving `Set`.  Quantifying over semantic relations, as
 --     PolyGν does on paper, needs an impredicative universe.
+--   * Environments are vectors, so equal descriptors are equal as data
+--     (no function extensionality).
 --   * Renaming along order-preserving embeddings of the stores.
 
 open import Data.List using (List; []; _∷_; map)
+open import Data.Vec using (Vec; lookup) renaming ([] to []ᵛ; _∷_ to _∷ᵛ_)
+import Data.Vec as Vec
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (_×_; _,_)
 
@@ -37,8 +41,8 @@ mutual
   data Desc (ΔL ΔR : TyCtx) : Set where
     desc : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A A′}
       → Φ ⊢ A ⊑ A′
-      → (TyVar Δ → Entry ΔL ΔR)
-      → (Δ′ ⇒ˢ ΔR)
+      → Vec (Entry ΔL ΔR) Δ
+      → Vec (Ty ΔR) Δ′
       → Desc ΔL ΔR
 
   data Entry (ΔL ΔR : TyCtx) : Set where
@@ -59,10 +63,10 @@ entryTy : ∀ {ΔL ΔR} → Entry ΔL ΔR → Ty ΔL
 entryTy (seals X Xs Ys c) = ＇ X
 
 leftTy : ∀ {ΔL ΔR} → Desc ΔL ΔR → Ty ΔL
-leftTy (desc {A = A} p env envR) = substᵗ (λ X → entryTy (env X)) A
+leftTy (desc {A = A} p env envR) = substᵗ (λ X → entryTy (lookup env X)) A
 
 rightTy : ∀ {ΔL ΔR} → Desc ΔL ΔR → Ty ΔR
-rightTy (desc {A′ = A′} p env envR) = substᵗ envR A′
+rightTy (desc {A′ = A′} p env envR) = substᵗ (lookup envR) A′
 
 ------------------------------------------------------------------------
 -- Renaming
@@ -75,8 +79,14 @@ mutual
   renameDesc : ∀ {ΔL ΔL′ ΔR ΔR′}
     → ΔL ↪ᵗ ΔL′ → ΔR ↪ᵗ ΔR′ → Desc ΔL ΔR → Desc ΔL′ ΔR′
   renameDesc σL σR (desc p env envR) =
-    desc p (λ X → renameEntry σL σR (env X))
-      (λ Y → renameᵗ (toRenameᵗ σR) (envR Y))
+    desc p (renameEntries σL σR env)
+      (Vec.map (renameᵗ (toRenameᵗ σR)) envR)
+
+  renameEntries : ∀ {ΔL ΔL′ ΔR ΔR′ k}
+    → ΔL ↪ᵗ ΔL′ → ΔR ↪ᵗ ΔR′ → Vec (Entry ΔL ΔR) k → Vec (Entry ΔL′ ΔR′) k
+  renameEntries σL σR []ᵛ = []ᵛ
+  renameEntries σL σR (e ∷ᵛ es) =
+    renameEntry σL σR e ∷ᵛ renameEntries σL σR es
 
   renameEntry : ∀ {ΔL ΔL′ ΔR ΔR′}
     → ΔL ↪ᵗ ΔL′ → ΔR ↪ᵗ ΔR′ → Entry ΔL ΔR → Entry ΔL′ ΔR′

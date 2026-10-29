@@ -39,6 +39,7 @@ open import Data.Nat.Properties using (≤⇒≤′)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Data.Sum using (_⊎_)
 open import Data.Unit using (⊤)
+open import Data.Vec using (Vec; lookup)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 open import Relation.Nullary using (yes; no)
 
@@ -119,8 +120,9 @@ extDeadI T δ = extOnlyI T (sem ⊤Ω) δ
 
 -- the interpretation of a descriptor's own variables
 envI : ∀ {Δ Δ′ ΔL ΔR}
-  → (TyVar Δ → Entry ΔL ΔR) → (Δ′ ⇒ˢ ΔR) → Interp Δ Δ′ ΔL ΔR
-envI env envR = interp (λ X → entryTy (env X)) envR (λ X → syn (env X))
+  → Vec (Entry ΔL ΔR) Δ → Vec (Ty ΔR) Δ′ → Interp Δ Δ′ ΔL ΔR
+envI env envR =
+  interp (λ X → entryTy (lookup env X)) (lookup envR) (λ X → syn (lookup env X))
 
 -- the empty interpretation, for closed precision derivations
 closedI : ∀ {ΔL ΔR} → Interp zero zero ΔL ΔR

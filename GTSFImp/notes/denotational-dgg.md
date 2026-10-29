@@ -1323,6 +1323,80 @@ Found while planning the (D′) rework, before any proof changed.  Section
 Recommendation: back to (A), on the current model.  `GraphModelD.agda`
 (the (D′) model, uncommitted) is not used.
 
+## 8f. Option (A) worked out: two relations, one step-indexed
+
+Written when starting (A), before any mechanization.
+
+### Shape
+
+* **Operational facts used.**
+  * Reduction never reads the contents of the store, only how many
+    variables it has.
+  * The only value of a variable type `X` is `V ↓ seal X R`.
+  * Every value form appears in `Value` (`CastTerms.agda`).
+* **Reynolds environments.**
+  * The relations are indexed by a type `T` and an environment `η` for
+    `T`'s variables.  Each entry is one of:
+    * a store variable `X` paired with a seal `σ`;
+    * a store variable read as `★` (an `inst` variable);
+    * a type `C` paired with a seal `σ`.  This is the bound variable of
+      a type application at `C` *after* its reveal: the operational
+      values are `C`-values, and the denotational ones are
+      `sealᵛ σ x`.
+  * This is how the `∀` clause relates the denotation's entry (before
+    the reveal) to the operational type application (after it).  The
+    entry's result is a subterm of the entry, so the clause stays
+    structural.
+* **Worlds.**
+  * A world is the store size plus a partial injection `π` from store
+    variables to seals.  `π` is used only for tags.
+  * `π` is extended at `β-Λ` and `β-gen`, the only rules that create a
+    variable a cast may tag.
+  * Proxy variables (`β-reveal-∀`, `β-conceal-∀`) and `inst` variables
+    get no seal.  Their layers are handled locally by `η`, so counts
+    may differ.
+
+### The correction: soundness needs its own relation
+
+Section 8c said that one relation gives both soundness and adequacy.
+It does not.
+
+* **Adequacy** (a denotational result is reached by reduction).
+  * `𝕍 v T η V` is defined by recursion on the denotational value `v`,
+    as in PolyG's `DenotAdequacy`.  No step indexing is needed.
+  * Function entries quantify over related arguments.
+  * `∀` entries `σ ⟼∀ r` quantify over the type argument `C`, and
+    relate the type application to `r` under `η[0 ↦ (C , σ)]`.
+  * The lemma for `refl∼ C` is by recursion on `v`, because recursion
+    on the type fails at `∀`.
+* **Soundness** (a reduction to a value has a denotational result).
+  * The relation must say that the denotation *contains* a result for
+    every future use of a value, for example an entry for the argument
+    of a later application.
+  * Recursion on a single denotational value cannot express that.  The
+    natural measure is the length of the reduction, so this relation is
+    step-indexed.
+  * Finiteness is not a problem: `⟦⟧-fin` and `Λᶠ-β-gen` turn "the body
+    has a result in `E • ρ`" into an entry for a finite argument list.
+  * The impredicative `∀` uses the relation at a smaller index for the
+    sealed contents.
+* **Each relation needs its own fundamental lemma** over terms, casts,
+  conversions, reveals and the identity cast.
+
+### Consequence for the comparison with (B)
+
+* **(A):**
+  * a backward relation (recursion on values);
+  * a forward relation (step-indexed);
+  * the planned denotational gradual guarantee relation and its
+    fundamental lemma (steps 4–6).
+* **(B):**
+  * one binary step-indexed operational relation.  The gradual
+    guarantee is its fundamental lemma.
+* The denotational route was chosen because exact soundness
+  (subject expansion) was cheap and adequacy was PolyG's.  Neither
+  holds any more, and (A) brings step indexing back for soundness.
+
 ## 9. Plan
 
 1. Risks 1, 2 and 4 are checked.  Decision for risk 1: option (b), a

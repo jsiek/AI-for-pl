@@ -335,6 +335,8 @@ module; the last Merge produces
 
     → Beta
        [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩ ⟨id⟩ ⟨+Y⟩ ⟨+X⟩
+                                                     -|   -|   -|   -|   -|   -|   -|
+                                                     Bool  X    Y    Y    Y    X   Bool
 
     → Cancel, |I| = 2   (ξ into layer 1; layer 2's +Y meets layer 5's −Y)
        [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
@@ -342,6 +344,8 @@ module; the last Merge produces
                                                      Bool  X    X    α    X    X   Bool
     → Cancel, |I| = 4   (layer 1's +X meets layer 6's −X)
        [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
+                                                     -|   -|   -|   -|   -|   -|   -|
+                                                     Bool Bool Bool Bool Bool Bool Bool
 
     → Id     [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] false ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
     → Id     [+X^α] [+Y^β] [−X^α] [+X^α] false ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩

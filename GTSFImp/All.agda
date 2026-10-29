@@ -150,6 +150,12 @@ import proof.DGG.CatchupToLessPreciseProof
 import proof.DGG.DynamicGradualGuaranteeProof
 
 ------------------------------------------------------------------------
+-- Logical-relation DGG (notes/logrel-dgg.md): the syntactic layer
+------------------------------------------------------------------------
+
+import LR.Meta
+
+------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked
 ------------------------------------------------------------------------
 

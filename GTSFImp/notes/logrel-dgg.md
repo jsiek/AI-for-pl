@@ -477,6 +477,9 @@ only strengthens the clauses.
 | `proof/LR/Monotone.agda` | world monotonicity and downward closure of `𝒱`, `G` and their helpers; the relation's own semantic leaves are good |
 | `LR/Frame.agda`, `proof/LR/FrameProps.agda` | evaluation frames; reduction under a frame carries the frame along the store embedding |
 | `proof/LR/Expression.agda` | values and left blame are related expressions; backward reduction; the bind lemma |
+| `proof/LR/PrecisionUnique.agda` | two-context precision derivations are unique |
+| `proof/LR/PrecisionSubst.agda` | renaming and substitution of precision derivations |
+| `proof/LR/SubstLemma.agda` | the renaming and substitution lemmas for `𝒱`; the `•⊑•` instance `𝒱-tyapp` |
 
 **Renaming terms: how it is done.**
 * Mode environments are vectors, `Env∼ Δ = Vec Var∼ Δ`, read with
@@ -554,9 +557,55 @@ only strengthens the clauses.
   the plugged term uses that step plus one more to blame, so it is in
   the "runs out" case instead.
 
+**Uniqueness and substitution: how it is done.**
+* Uniqueness (`⊑-unique`): induction on both derivations.  Two pairs
+  of rules derive the same types: `∀⊑∀`/`∀⊑` (right type a `∀`) and
+  `∀⊑`/`∀⊑★` (right type `★`).  `forget` maps them to different
+  `Imprecision` rules, so `Imprecision`'s `⊑-unique` refutes them; no
+  new disjointness argument was needed.
+* Derivations are renamed (`renᵖ`) and substituted (`substᵖ`)
+  structurally.  A renaming keeps pairs and left-only variables.  A
+  substitution sends each paired `X ↔ Y` to a derivation of
+  `σl X ⊑ σr Y` and each left-only variable to a left-only variable.
+  So every rule is kept except at the paired variables.  `∀⊑` never has
+  a variable on the right (`∀⊑-var⊥`), so the right type of a
+  substituted `∀⊑` is `★` exactly when it was.
+* The renaming lemma (`𝒱-ren`): `𝒱` at `renᵖ R p` under `δ₂` is `𝒱` at
+  `p` under `δ₁`, when `δ₁` agrees with `δ₂` along the renaming.  The
+  substitution lemma uses it for the weakenings under binders.
+* The substitution lemma (`𝒱-subst`): `𝒱` at `substᵖ S p` under `δ₂` is
+  `𝒱` at `p` under `δ₁`, below a stage bound `N`, when `δ₁` agrees with
+  `δ₂` (`SubI`):
+  * on the types, through the substitution;
+  * on the left-only variables, as leaves;
+  * at every paired `X ↔ Y`, in every future world and below `N`:
+    the leaf of `X` under `δ₁` is `𝒱` at the substituted derivation
+    under `δ₂`.
+
+  The bound is needed because the bound variable's semantic leaf
+  (`leafBelow`) is empty from the clause's stage on.  Both lemmas are
+  one induction mirroring `𝒱-resp`, giving both directions at once
+  (`_⇔_`).
+* The `•⊑•` instance (`𝒱-tyapp`): let `δ ≈ᴵ envI env envR` (the
+  fundamental lemma's interpretations), and let the descriptor be
+  `desc q env envR`.  Then, below the `∀⊑∀` clause's stage `n′` and in
+  every future world, the body at `p` with the clause's extension is
+  related exactly when it is related at the premise `r` of `•⊑•`.
+  Uniqueness turns `substᵖ (singleˢ q) p` into `r`.
+* **Not covered: `•⊑`** (left-only type application).  It substitutes
+  the left-only bound variable with a type `T ⊑ ★`, not a variable, so
+  `SubI` does not apply.  The rule at that position can change from
+  `X⊑★` to the rule of `q`.  By the cases of `G`, the two sides should
+  then differ in `≻` at stage 0 only (checked on paper, not
+  mechanized): the leaf `leafG` is `G 0 = ⊤`, while `𝒱 ≻ 0` at a left-only
+  store variable needs a seal.  Stage-0 values are never needed, since
+  a right side that reaches a value in `n` steps also `Runs` `n` steps.
+  So the variant should be stated for stages `≥ 1` in `≻`, with
+  left-only variables sent to derivations `q : T ⊑ ★`.
+
 **Next, in order:**
-1. **Uniqueness of precision and the substitution lemma** (Section 6.9,
-   item 4), then items 5–9:
+1. **The `•⊑` variant of the substitution lemma** (above), then items
+   5–9 of Section 6.9:
    * conversions;
    * identity casts;
    * the cast lemma, with the world-change lemma;

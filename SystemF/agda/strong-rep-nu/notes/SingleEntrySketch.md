@@ -290,7 +290,7 @@ three Ids peel `true ⟨id⟩ ⟨id⟩ ⟨id⟩`.
 
 ### 5b. `K` returning its argument — an unseal through a hiding layer
 
-    ((ΛX. λf:∀Y. Y→Y. f [X]) [Bool] (ΛZ. λz:Z. z)) false        : Bool
+    ((ΛX. λf:(∀Y.Y→Y). f [X]) [Bool] (ΛZ. λz:Z. z)) false        : Bool
 
 νF: 11 steps, three Merges (rendered with `showRun` on a scratch
 module; the last Merge produces
@@ -298,16 +298,16 @@ module; the last Merge produces
 
 νF₁, 16 steps (hand-derived, not machine-checked):
 
-       (ν X:=Bool. ((ΛX. λf:∀Y. Y→Y. ν Y:=X. (f Y)⟨−Y → +Y⟩) X)
+       (ν X:=Bool. ((ΛX. λf:(∀Y. Y→Y). ν Y:=X. (f Y)⟨−Y → +Y⟩) X)
             ⟨(∀Y. id → id) → (−X → +X)⟩)
          (ΛZ. λz:Z. z) false
 
-    → TyBeta                                                         ⊣ α^X:=Bool
-       [+X^α] (λf:∀Y. Y→Y. ν Y:=X. (f Y)⟨−Y → +Y⟩) ⟨(∀Y. id → id) → (−X → +X)⟩
+    → TyBeta                                                         ⊣ α:=Bool
+       [+X^α] (λf:(∀Y. Y→Y). ν Y:=X. (f Y)⟨−Y → +Y⟩) ⟨(∀Y. id → id) → (−X → +X)⟩
          (ΛZ. λz:Z. z) false
 
     → Wrap
-       [+X^α] ((λf:∀Y. Y→Y. ν Y:=X. (f Y)⟨−Y → +Y⟩)
+       [+X^α] ((λf:(∀Y. Y→Y). ν Y:=X. (f Y)⟨−Y → +Y⟩)
                  ([−X^α] (ΛZ. λz:Z. z) ⟨∀Y. id → id⟩))
          ⟨−X → +X⟩ false
 
@@ -315,7 +315,7 @@ module; the last Merge produces
        [+X^α] (ν Y:=X. (([−X^α] (ΛZ. λz:Z. z) ⟨∀Y. id → id⟩) Y)⟨−Y → +Y⟩)
          ⟨−X → +X⟩ false
 
-    → TyBeta                                                         ⊣ β^Y:=α
+    → TyBeta                                                         ⊣ β:=α
        [+X^α] [+Y^β] [−X^α] (λz:Y. z) ⟨id → id⟩ ⟨−Y → +Y⟩ ⟨−X → +X⟩ false
 
     → Wrap   (layer [+X^α]: false enters sealed as X)
@@ -338,7 +338,8 @@ module; the last Merge produces
 
     → Cancel, |I| = 2   (ξ into layer 1; layer 2's +Y meets layer 5's −Y)
        [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
-
+                                                     -|   -|   -|   -|   -|   -|   -|
+                                                     Bool  X    ?    ?    ?    X   Bool
     → Cancel, |I| = 4   (layer 1's +X meets layer 6's −X)
        [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
 

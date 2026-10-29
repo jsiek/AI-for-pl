@@ -30,7 +30,7 @@ open import TyStore using
   (TyStore; store-empty; store-bind; _∋_⦂_; Z∋; S-bind∋)
 open import TermCtx using (Z)
 open import Consistency using
-  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; keep; skip; id; _↦_; _!)
+  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; ε↪ᵗ; keep; skip; id; _↦_; _!)
 open import Conversion using (seal; _⊢↓_; ⊢↓-seal)
 open import CastTerms
 open import Imprecision
@@ -106,7 +106,7 @@ module InstanceA where
   env Fin.zero = X⊑★
 
   η-id : 1 ↪ᵗ 1
-  η-id = keep empty
+  η-id = keep ε↪ᵗ
 
   -- Placement table:
   --
@@ -242,13 +242,13 @@ module InstanceB where
   env (Fin.suc Fin.zero) = X⊑★
 
   η-X-Y : 1 ↪ᵗ 2
-  η-X-Y = keep (skip empty)
+  η-X-Y = keep (skip ε↪ᵗ)
 
   η-X-Y₂ : 1 ↪ᵗ 2
-  η-X-Y₂ = skip (keep empty)
+  η-X-Y₂ = skip (keep ε↪ᵗ)
 
   η-target : 2 ↪ᵗ 2
-  η-target = keep (keep empty)
+  η-target = keep (keep ε↪ᵗ)
 
   -- Placement table:
   --

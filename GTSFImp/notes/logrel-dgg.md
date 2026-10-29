@@ -473,18 +473,20 @@ only strengthens the clauses.
 | `LR/Relation.agda` | interpretations; `𝒱`, `G`, the `★` relation, entries; `ℰᵍ` and `ℰ`, in both directions |
 | `proof/LR/WorldProps.agda` | renaming laws for descriptors and tags; extension is reflexive and transitive |
 | `proof/TermRename.agda` | `renameᵗᵐ π (renameᵗᵐ η M) ≡ renameᵗᵐ (π ∘↪ η) M` and `renameᵗᵐ id↪ᵗ M ≡ M`, without funext |
+| `proof/LR/InterpProps.agda` | equivalence of interpretations `≈ᴵ`; transport along `⊒-refl` and `⊒-trans`; `𝒱`, `G` and `ℰ` respect `≈ᴵ` |
 
 **Renaming terms: how it is done.**
 * Mode environments are vectors, `Env∼ Δ = Vec Var∼ Δ`, read with
   `μ ‼ X`, so terms are first-order data.  The only functions left in
   a cast are the `B ≢ ★` arguments of `inst` and `gen`, and these are
   definitionally equal because the library's `⊥` is proof irrelevant.
-* `renameEnv∼` gives the variables outside the embedding's image the
-  mode `X∼X` for `empty` as well as for `skip`.  It used to give
-  `★∼X∼★` for `empty`, and then renaming environments did not respect
-  composition: `skip empty ∘↪ empty = empty`, yet the two sides gave
-  `[X∼X]` and `[★∼X∼★]`.  Those variables never occur in a renamed cast,
-  so the change is one of representation only.
+* Embeddings are canonical: `empty : zero ↪ᵗ zero`, and the embedding
+  of the empty context into `Δ` is `ε↪ᵗ`, all skips.  It used to be
+  `empty : zero ↪ᵗ Δ`, so `empty` and `skip empty` were two embeddings
+  `0 ↪ᵗ 1` with the same action, and the laws failed on the nose:
+  `skip empty ∘↪ empty = empty`, so `τ ∘↪ id↪ᵗ ≢ τ`, and renamed
+  environments disagreed (`[X∼X]` against `[★∼X∼★]`).  With canonical
+  embeddings `∘↪` is associative with unit `id↪ᵗ` (`proof/LR/WorldProps`).
 * Casts with different endpoint types are compared by packing each with
   its endpoints (`⟪ c ⟫`) and using `_≡_`, at one fixed environment;
   no heterogeneous equality.  The gate evidence (`Ground`, `NonStar`,
@@ -492,18 +494,24 @@ only strengthens the clauses.
   which proof each side carries.
 
 **Next, in order:**
-1. **Interpretations.**
-   * Transporting an interpretation twice equals transporting it once,
-     *pointwise*.
-   * `𝒱` respects pointwise-equal interpretations.  This is proved by
-     induction, which keeps funext out of the relation itself.
-2. **Kripke monotonicity** of `𝒱`, `G`, `star`, the entries and `ℰᵍ`,
+**Interpretations: how it is done.**
+* `δ ≈ᴵ δ′`: the types agree pointwise; entry leaves are equal; semantic
+  leaves imply each other at every stage, world and pair of embeddings.
+* `(δ ↑ᴵ e) ↑ᴵ e′ ≈ᴵ δ ↑ᴵ ⊒-trans e′ e` and `δ ↑ᴵ ⊒-refl w ≈ᴵ δ`.  The
+  semantic leaves need associativity and right unit of `∘↪`, which is
+  why embeddings had to be canonical.
+* `𝒱-resp` and its helpers: one mutual induction mirroring `𝒱` and `G`,
+  on the precision derivation and the stage.  Function arguments flip
+  the equivalence (`≈ᴵ-sym`).  `ℰᵍ-map` shows the expression closure
+  is monotone in its value relation.
+
+1. **Kripke monotonicity** of `𝒱`, `G`, `star`, the entries and `ℰᵍ`,
    including downward closure in the stage.
    * The semantic leaves are empty above their bound, so they are
      downward closed.
    * The hypothesis is that leaves are monotone.  Descriptor-built
      leaves are, by the lemma itself, so this is a mutual induction.
-3. **Expression lemmas** (Section 6.9, item 3), then items 4–9:
+2. **Expression lemmas** (Section 6.9, item 3), then items 4–9:
    * uniqueness of precision and the substitution lemma;
    * conversions;
    * identity casts;

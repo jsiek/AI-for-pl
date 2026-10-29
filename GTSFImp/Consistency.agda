@@ -613,7 +613,7 @@ renameEnvᶜ = rename∼
 infix 4 _↪ᵗ_
 
 data _↪ᵗ_ : TyCtx → TyCtx → Set where
-  empty : ∀ {Δ} → zero ↪ᵗ Δ
+  empty : zero ↪ᵗ zero
   keep : ∀ {Δ Δ′} → Δ ↪ᵗ Δ′ → suc Δ ↪ᵗ suc Δ′
   skip : ∀ {Δ Δ′} → Δ ↪ᵗ Δ′ → Δ ↪ᵗ suc Δ′
 
@@ -630,12 +630,13 @@ id↪ᵗ {suc Δ} = keep id↪ᵗ
 wk↪ᵗ : ∀ {Δ} → Δ ↪ᵗ suc Δ
 wk↪ᵗ = skip id↪ᵗ
 
--- Variables outside the image never occur in a renamed cast; they get
--- mode X∼X, the same for empty as for skip, so that renaming the
--- environment respects composition of embeddings.
+-- the embedding of the empty context
+ε↪ᵗ : ∀ {Δ} → zero ↪ᵗ Δ
+ε↪ᵗ {zero} = empty
+ε↪ᵗ {suc Δ} = skip ε↪ᵗ
+
 renameEnv∼ : ∀ {Δ Δ′} → Δ ↪ᵗ Δ′ → Env∼ Δ → Env∼ Δ′
-renameEnv∼ {Δ′ = zero} empty μ = []
-renameEnv∼ {Δ′ = suc Δ′} empty μ = X∼X ∷ renameEnv∼ empty μ
+renameEnv∼ empty μ = []
 renameEnv∼ (keep ρ) (v ∷ μ) = v ∷ renameEnv∼ ρ μ
 renameEnv∼ (skip ρ) μ = X∼X ∷ renameEnv∼ ρ μ
 

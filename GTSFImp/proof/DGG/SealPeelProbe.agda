@@ -21,7 +21,7 @@ open import Types
 open import TyStore using
   (TyStore; store-empty; store-bind; _∋_⦂_; Z∋; S-bind∋)
 open import Consistency using
-  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; keep; skip; _!; id)
+  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; ε↪ᵗ; keep; skip; _!; id)
 open import Imprecision
 open import Conversion using (seal)
 open import CastTerms
@@ -74,19 +74,19 @@ probe-μ (Fin.suc Fin.zero) = X⊑★
 probe-μ (Fin.suc (Fin.suc Fin.zero)) = X⊑★
 
 ηᴸ-main : 2 ↪ᵗ 3
-ηᴸ-main = keep (keep (skip empty))
+ηᴸ-main = keep (keep (skip ε↪ᵗ))
 
 ηᴸ-moved : 2 ↪ᵗ 3
-ηᴸ-moved = keep (skip (keep empty))
+ηᴸ-moved = keep (skip (keep ε↪ᵗ))
 
 ηᴿ-c0 : 1 ↪ᵗ 3
-ηᴿ-c0 = keep (skip (skip empty))
+ηᴿ-c0 = keep (skip (skip ε↪ᵗ))
 
 ηᴿ-c1 : 1 ↪ᵗ 3
-ηᴿ-c1 = skip (keep (skip empty))
+ηᴿ-c1 = skip (keep (skip ε↪ᵗ))
 
 ηᴿ-c2 : 1 ↪ᵗ 3
-ηᴿ-c2 = skip (skip (keep empty))
+ηᴿ-c2 = skip (skip (keep ε↪ᵗ))
 
 probe-W : World 2 1 3
 probe-W =

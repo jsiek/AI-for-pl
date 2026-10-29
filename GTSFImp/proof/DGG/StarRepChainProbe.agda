@@ -22,7 +22,7 @@ open import Types
 open import TyStore using
   (TyStore; store-empty; store-bind; _∋_⦂_; Z∋; S-bind∋)
 open import Consistency using
-  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; keep; skip; toRenameᵗ;
+  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; ε↪ᵗ; keep; skip; toRenameᵗ;
    id; _!)
 open import Conversion using (seal)
 open import CastTerms using (Term; _⟨_⟩; _↓_; $)
@@ -67,10 +67,10 @@ probe-μ (Fin.suc Fin.zero) = X⊑★
 probe-μ (Fin.suc (Fin.suc Fin.zero)) = X⊑★
 
 ηᴸ-ab : 2 ↪ᵗ 3
-ηᴸ-ab = keep (keep (skip empty))
+ηᴸ-ab = keep (keep (skip ε↪ᵗ))
 
 ηᴿ-a : 1 ↪ᵗ 3
-ηᴿ-a = keep (skip (skip empty))
+ηᴿ-a = keep (skip (skip ε↪ᵗ))
 
 -- Placement table (a = 0, b = 1, c = 2):
 --

@@ -19,7 +19,7 @@ open import Types
 open import TyStore using
   (TyStore; store-empty; store-bind; _∋_⦂_; Z∋; S-bind∋)
 open import Consistency using
-  (_∼_; _↪ᵗ_; empty; keep; skip; toRenameᵗ; id; _!)
+  (_∼_; _↪ᵗ_; empty; ε↪ᵗ; keep; skip; toRenameᵗ; id; _!)
 open import Conversion using
   (Conv↑; _⊢↑_; `∀↑_; id↑; ⊢↑-∀; ⊢↑-id;
    _⊢↑[_]_; ⊢↑-∀-idˣ; ⊢↑-idˣ)
@@ -50,16 +50,16 @@ example12-imp-env (Fin.suc Fin.zero) = X⊑★
 example12-imp-env (Fin.suc (Fin.suc Fin.zero)) = X⊑★
 
 example12-ηᴿ : 3 ↪ᵗ 3
-example12-ηᴿ = keep (keep (keep empty))
+example12-ηᴿ = keep (keep (keep ε↪ᵗ))
 
 example12-ηᴸ-X : 1 ↪ᵗ 3
-example12-ηᴸ-X = keep (skip (skip empty))
+example12-ηᴸ-X = keep (skip (skip ε↪ᵗ))
 
 example12-ηᴸ-Y : 1 ↪ᵗ 3
-example12-ηᴸ-Y = skip (keep empty)
+example12-ηᴸ-Y = skip (keep ε↪ᵗ)
 
 example12-ηᴸ-Z : 1 ↪ᵗ 3
-example12-ηᴸ-Z = skip (skip (keep empty))
+example12-ηᴸ-Z = skip (skip (keep ε↪ᵗ))
 
 example12-ηᴸ-X-maps : toRenameᵗ example12-ηᴸ-X Fin.zero ≡ Fin.zero
 example12-ηᴸ-X-maps = refl
@@ -208,13 +208,13 @@ example12-nat-chain-imp-env Fin.zero = X⊑X
 example12-nat-chain-imp-env (Fin.suc Fin.zero) = X⊑X
 
 example12-nat-chain-ηᴿ : 2 ↪ᵗ 2
-example12-nat-chain-ηᴿ = keep (keep empty)
+example12-nat-chain-ηᴿ = keep (keep ε↪ᵗ)
 
 example12-nat-chain-ηᴸ-X : 1 ↪ᵗ 2
-example12-nat-chain-ηᴸ-X = skip (keep empty)
+example12-nat-chain-ηᴸ-X = skip (keep ε↪ᵗ)
 
 example12-nat-chain-ηᴸ-Y : 1 ↪ᵗ 2
-example12-nat-chain-ηᴸ-Y = keep empty
+example12-nat-chain-ηᴸ-Y = keep ε↪ᵗ
 
 example12-nat-chain-world-X : World 1 2 2
 example12-nat-chain-world-X =
@@ -300,16 +300,16 @@ example12-left-path-imp-env (Fin.suc Fin.zero) = X⊑X
 example12-left-path-imp-env (Fin.suc (Fin.suc Fin.zero)) = X⊑X
 
 example12-left-path-ηᴸ : 3 ↪ᵗ 3
-example12-left-path-ηᴸ = keep (keep (keep empty))
+example12-left-path-ηᴸ = keep (keep (keep ε↪ᵗ))
 
 example12-left-path-ηᴿ-X : 1 ↪ᵗ 3
-example12-left-path-ηᴿ-X = keep (skip (skip empty))
+example12-left-path-ηᴿ-X = keep (skip (skip ε↪ᵗ))
 
 example12-left-path-ηᴿ-Y : 1 ↪ᵗ 3
-example12-left-path-ηᴿ-Y = skip (keep empty)
+example12-left-path-ηᴿ-Y = skip (keep ε↪ᵗ)
 
 example12-left-path-ηᴿ-Z : 1 ↪ᵗ 3
-example12-left-path-ηᴿ-Z = skip (skip (keep empty))
+example12-left-path-ηᴿ-Z = skip (skip (keep ε↪ᵗ))
 
 example12-left-path-world-X : World 3 1 3
 example12-left-path-world-X =

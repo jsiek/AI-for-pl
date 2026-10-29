@@ -341,15 +341,9 @@ mutual
 -- Environments
 ------------------------------------------------------------------------
 
-renameEnv∼-empty : ∀ {Δ₂ Δ₃} (π : Δ₂ ↪ᵗ Δ₃) (μ : Env∼ 0)
-  → renameEnv∼ π (renameEnv∼ {Δ′ = Δ₂} empty μ) ≡ renameEnv∼ empty μ
-renameEnv∼-empty empty [] = refl
-renameEnv∼-empty (keep π) [] = cong (X∼X ∷_) (renameEnv∼-empty π [])
-renameEnv∼-empty (skip π) [] = cong (X∼X ∷_) (renameEnv∼-empty π [])
-
 renameEnv∼-∘ : (π : Δ₂ ↪ᵗ Δ₃) (η : Δ₁ ↪ᵗ Δ₂) (μ : Env∼ Δ₁)
   → renameEnv∼ π (renameEnv∼ η μ) ≡ renameEnv∼ (π ∘↪ η) μ
-renameEnv∼-∘ π empty μ = renameEnv∼-empty π μ
+renameEnv∼-∘ π empty [] = refl
 renameEnv∼-∘ (skip π) (keep η) (v ∷ μ) =
   cong (X∼X ∷_) (renameEnv∼-∘ π (keep η) (v ∷ μ))
 renameEnv∼-∘ (skip π) (skip η) μ =

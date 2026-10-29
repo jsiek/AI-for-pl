@@ -157,6 +157,7 @@ import LR.Meta
 import LR.Relation
 import proof.LR.WorldProps
 import proof.TermRename
+import proof.LR.InterpProps
 
 ------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked

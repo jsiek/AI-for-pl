@@ -5,9 +5,12 @@ module proof.LR.WorldProps where
 --     renaming descriptors, entries and tags along store embeddings is
 --     the identity at the identity embedding and respects composition,
 --     so world extension is reflexive and transitive.
+--   * Composition of embeddings is associative with the identity as
+--     unit; this holds on the nose because embeddings are canonical.
 
 open import Data.List using (List; []; _∷_; map)
 open import Data.Maybe using (just; nothing)
+open import Data.Nat using (zero; suc)
 open import Data.Product using (_,_)
 open import Data.Vec using (Vec) renaming ([] to []ᵛ; _∷_ to _∷ᵛ_)
 import Data.Vec as Vec
@@ -15,11 +18,43 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; trans; cong; cong₂)
 
 open import Types
-open import Consistency using (_↪ᵗ_; toRenameᵗ; id↪ᵗ)
+open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ; id↪ᵗ)
 open import proof.DGG.CenterRename using (_∘↪_; toRenameᵗ-∘)
 open import proof.TypeInTermSubst using (toRename-id-eq; renameᵗ-id)
 open import LR.Desc
 open import LR.World
+
+------------------------------------------------------------------------
+-- Embeddings
+------------------------------------------------------------------------
+
+∘↪-idʳ : ∀ {Δ Δ′} (π : Δ ↪ᵗ Δ′) → π ∘↪ id↪ᵗ ≡ π
+∘↪-idʳ empty = refl
+∘↪-idʳ (keep π) = cong keep (∘↪-idʳ π)
+∘↪-idʳ {Δ = zero} (skip π) = refl
+∘↪-idʳ {Δ = suc Δ} (skip π) = cong skip (∘↪-idʳ π)
+
+∘↪-idˡ : ∀ {Δ Δ′} (η : Δ ↪ᵗ Δ′) → id↪ᵗ ∘↪ η ≡ η
+∘↪-idˡ empty = refl
+∘↪-idˡ (keep η) = cong keep (∘↪-idˡ η)
+∘↪-idˡ (skip η) = cong skip (∘↪-idˡ η)
+
+∘↪-assoc : ∀ {Δ₁ Δ₂ Δ₃ Δ₄}
+    (π : Δ₃ ↪ᵗ Δ₄) (η : Δ₂ ↪ᵗ Δ₃) (θ : Δ₁ ↪ᵗ Δ₂)
+  → (π ∘↪ η) ∘↪ θ ≡ π ∘↪ (η ∘↪ θ)
+∘↪-assoc π η empty = refl
+∘↪-assoc (skip π) (keep η) (keep θ) =
+  cong skip (∘↪-assoc π (keep η) (keep θ))
+∘↪-assoc (skip π) (keep η) (skip θ) =
+  cong skip (∘↪-assoc π (keep η) (skip θ))
+∘↪-assoc (skip π) (skip η) (keep θ) =
+  cong skip (∘↪-assoc π (skip η) (keep θ))
+∘↪-assoc (skip π) (skip η) (skip θ) =
+  cong skip (∘↪-assoc π (skip η) (skip θ))
+∘↪-assoc (keep π) (keep η) (keep θ) = cong keep (∘↪-assoc π η θ)
+∘↪-assoc (keep π) (keep η) (skip θ) = cong skip (∘↪-assoc π η θ)
+∘↪-assoc (keep π) (skip η) (keep θ) = cong skip (∘↪-assoc π η (keep θ))
+∘↪-assoc (keep π) (skip η) (skip θ) = cong skip (∘↪-assoc π η (skip θ))
 
 ------------------------------------------------------------------------
 -- Variables, lists and types

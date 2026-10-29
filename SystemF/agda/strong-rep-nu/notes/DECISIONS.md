@@ -5596,3 +5596,19 @@ unnamed representation variables are acceptable (sketch §6.8, against
 the 2026-09-04 tightness ruling).  Design-space finding: under the
 color law, named runtime types need multi-entry scopes and `Merge`;
 representation runtime types do not.
+
+**Addendum: Reach by an identity-tower grammar; one name per
+representation variable.**  Reach is now stated without ellipses:
+`I ::= □ | [ε] I ⟨id⟩`, and
+`[+X^α] I[[−X^α] V ⟨−X⟩] ⟨+X⟩ ⟶ [+X^α] I[[−X^α] V ⟨id⟩] ⟨id⟩`.  With
+the untyped `id`, `I` is copied unchanged — only the seal and the
+unseal become `id` — and `I`'s hole is at the first non-`id` layer, so
+a redex decomposes one way (determinism).  A naming condition (an
+allocation records its name; an entry `±X^α` must use it) means a
+representation variable is hidden and revealed only under one name, so
+the seal is written `−X`.  The third version's stuck example (hide `β`
+as `Y`, reveal as `Z`) is now ill-formed; a same-name example (sketch
+5e) is still stuck with named runtime types, so representation runtime
+types are still needed.  Restricting `id` to atomic types was
+considered and not taken: Reach would have to rewrite every layer of
+`I`.

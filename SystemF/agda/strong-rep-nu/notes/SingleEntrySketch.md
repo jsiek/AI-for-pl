@@ -60,7 +60,7 @@ Runtime types are the paper's representation types:
     ι      ::=  Int | Bool
     A,B,C  ::=  X | ι | A → B | ∀X. A                 named types (annotations)
     R,S,T  ::=  α | X | ι | R → S | ∀X. R             runtime types (X bound by an enclosing ∀)
-    Δ      ::=  [] | Δ, α | Δ, α:=R | Δ, X:=α
+    Δ      ::=  [] | Δ, α^X | Δ, α^X:=R | Δ, X:=α     (an allocation records its name X)
 
 A **scope entry** replaces the scope list:
 
@@ -95,6 +95,11 @@ Terms:
     Values   V,W  ::=  U | [ε] V ⟨i⟩
     Inert    i    ::=  c → d | ∀X. c | −X | id      (id only over a non-constant)
 
+**Identity towers** are stacks of layers that all carry `id`, with a
+hole at the bottom; `I[M]` plugs `M` into the hole:
+
+    I  ::=  □  |  [ε] I ⟨id⟩
+
 So a value is a TOWER: a simple value under any number of boundaries
 with inert conversions.  There is no side condition on adjacent layers:
 no rule removes a pair of layers (§4).  `[ε] k ⟨id⟩` is the one active
@@ -110,6 +115,14 @@ paper's `δ(Δ)`, `δ⁺(Δ)` and `Δ ⊢ δ`:
 
     Δ ⊢ +X^α   if  α ∈ Δ,  X:=β ∉ Δ for every β,  Y:=α ∉ Δ for every Y
     Δ ⊢ −X^α   if  X:=α ∈ Δ
+
+and, for both, the NAMING CONDITION: `α`'s allocation records the name
+`X` (`α^X ∈ Δ`).  A representation variable has one name for its whole
+life, so it can be hidden and revealed again, but only under that name;
+two names never denote one representation variable, even at different
+times.  Names are fresh at allocation (TyBeta renames the `Λ`'s binder
+to a fresh `X`), so the condition costs nothing for compiled programs
+(§6, L1).
 
 A scope changes only NAME bindings; the representation variables, and
 so the meaning of every runtime type, are the same on both sides.
@@ -129,11 +142,11 @@ variable that no name in scope denotes.
     ──────────────────────────────────────────── (fun)
     Δ ∣ ε ⊢ c → d : R → S ⇒ R′ → S′
 
-    Δ, α, X:=α ∣ ε ⊢ c : R[X↦α] ⇒ S[X↦α]          X, α ∉ Δ
+    Δ, α^X, X:=α ∣ ε ⊢ c : R[X↦α] ⇒ S[X↦α]        X, α ∉ Δ
     ──────────────────────────────────────────── (all)
     Δ ∣ ε ⊢ ∀X. c : ∀X. R ⇒ ∀X. S
 
-    α:=P ∈ Δ                                α:=P ∈ Δ
+    α^X:=P ∈ Δ                              α^X:=P ∈ Δ
     ─────────────────────────── (seal)      ─────────────────────────── (unseal)
     Δ ∣ −X^α ⊢ −X : P ⇒ α                   Δ ∣ +X^α ⊢ +X : α ⇒ P
 
@@ -158,13 +171,13 @@ types:
     ──────────────────────────────────── (app)    R compared syntactically
     Δ ∣ Γ ⊢ L M : S
 
-    Δ, α, X:=α ∣ Γ ⊢ V : R      X, α ∉ Δ
+    Δ, α^X, X:=α ∣ Γ ⊢ V : R    X, α ∉ Δ
     ──────────────────────────────────── (Lam)
     Δ ∣ Γ ⊢ ΛX. V : ∀X. R[α ↦ X]
 
     Δ ⊢ A    Δ ∣ Γ ⊢ L : ∀X. R    Δ′ ∣ +X^α ⊢ c : R[X ↦ α] ⇒ S    Δ ⊢ S
     ───────────────────────────────────────────────────────────────── (ν)
-    Δ ∣ Γ ⊢ ν X:=A. (L X)⟨c⟩ : S       where Δ′ = Δ, α:=Δ(A), X:=α;  X, α ∉ Δ
+    Δ ∣ Γ ⊢ ν X:=A. (L X)⟨c⟩ : S       where Δ′ = Δ, α^X:=Δ(A), X:=α;  X, α ∉ Δ
 
     Δ ⊢ ε    ε(Δ) ∣ [] ⊢ M : R    ε⁺(Δ) ∣ ε ⊢ c : R ⇒ S
     ──────────────────────────────────────────────────── (boundary)
@@ -191,16 +204,15 @@ Frames are the paper's, with `[ε] □ ⟨c⟩` in place of `[δ] □ ⟨c⟩`, 
     Δ ⊢ [ε] V ⟨c → d⟩ W  ⟶  [ε] (V ([−ε] W ⟨c⟩)) ⟨d⟩                (Wrap)
     Δ ⊢ [ε] V ⟨id⟩ W     ⟶  [ε] (V ([−ε] W ⟨id⟩)) ⟨id⟩              (Wrap-id)
 
-    Δ ⊢ ν X:=A. (V X)⟨d⟩  ⟶  [+X^α] (V • X) ⟨d⟩   ⊣ α:=Δ(A)         (TyBeta)
+    Δ ⊢ ν X:=A. (V X)⟨d⟩  ⟶  [+X^α] (V • X) ⟨d⟩   ⊣ α^X:=Δ(A)       (TyBeta)
         where  (ΛX. N) • X          =  N
                ([ε] V ⟨∀X. c⟩) • X  =  [ε] (V • X) ⟨c⟩
                ([ε] V ⟨id⟩) • X     =  [ε] (V • X) ⟨id⟩
 
     Δ ⊢ [ε] k ⟨id⟩  ⟶  k                                             (Id)
 
-    Δ ⊢ [+X^α] [ε₁ … εₖ] [−W^α] V ⟨−W⟩ ⟨id … id⟩ ⟨+X⟩
-      ⟶ [+X^α] [ε₁ … εₖ] [−W^α] V ⟨id⟩ ⟨id … id⟩ ⟨id⟩                  (Reach)
-        if k ≥ 0 and the tower under the outer layer is a value
+    Δ ⊢ [+X^α] I[[−X^α] V ⟨−X⟩] ⟨+X⟩  ⟶  [+X^α] I[[−X^α] V ⟨id⟩] ⟨id⟩    (Reach)
+        if I[[−X^α] V ⟨−X⟩] is a value
 
     Δ ⊢ F[M]  ⟶  F[M′] ⊣ ξ      if F(Δ) ⊢ M ⟶ M′ ⊣ ξ                (ξ)
 
@@ -216,13 +228,17 @@ What each rule does, against νF:
   through every layer.
 * **Id** is νF's, for the untyped `id`: it fires only over a constant,
   which typing puts at a base type.
-* **Reach** is new: an unseal `+X` meets the seal of the SAME
-  representation variable, `−W` under `[−W^α]`, through `k` layers
-  carrying `id`.  It matches by representation variable, so `W` and `X`
-  may be different names for `α`.  Every conversion from the seal to
-  the unseal becomes `id`, and every type between them becomes `α`'s
-  payload — which need not be nameable at an intermediate layer, and
-  does not have to be (runtime types).  No layer moves.
+* **Reach** is new: an unseal `+X` meets its seal `−X` through an
+  identity tower `I`.  Only the two ends change, both to `id`; `I` is
+  copied unchanged, because its layers carry the untyped `id` both
+  before the step (at `α`) and after it (at `α`'s payload).  The types
+  inside `I` become the payload, which need not be nameable at an
+  intermediate layer, and does not have to be (runtime types).  No layer
+  moves.  The naming condition makes the seal's name the unseal's name,
+  `X`; `I` may contain layers whose entry is `−X^α` or `+X^α` (5b's
+  second Reach crosses both).  The hole of `I` is at the FIRST layer
+  below the unseal that does not carry `id`, so a redex has one
+  decomposition (O6).
 
 There is no `Merge`, no conversion composition, no chain, and no rule
 that removes a layer other than Id.
@@ -273,8 +289,8 @@ and end at the six-layer tower
 with interiors {X}, {X,Y}, {Y}, {X,Y}, {X}, ∅ (outermost first) and
 store α:=Bool, β:=α.  Then
 
-    → Reach, k = 2  (layers 2–5)   [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
-    → Reach, k = 4  (layers 1–6)   [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
+    → Reach, |I| = 2 (layers 2–5)  [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
+    → Reach, |I| = 4 (layers 1–6)  [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
     → Id × 6                       false
 
 The first Reach is the step the named-type versions could not take: it
@@ -322,7 +338,7 @@ Merges.  νF₁, 11 steps:
     → Wrap              [+X^α] [+Y^β] ((λ_:Int. …) ([−Y^β] 0 ⟨id⟩)) ⟨id⟩ ⟨+X⟩
     → Id                [+X^α] [+Y^β] ((λ_:Int. [−X^α] 3 ⟨−X⟩) 0) ⟨id⟩ ⟨+X⟩
     → Beta              [+X^α] [+Y^β] [−X^α] 3 ⟨−X⟩ ⟨id⟩ ⟨+X⟩
-    → Reach, k = 1      [+X^α] [+Y^β] [−X^α] 3 ⟨id⟩ ⟨id⟩ ⟨id⟩
+    → Reach, |I| = 1  [+X^α] [+Y^β] [−X^α] 3 ⟨id⟩ ⟨id⟩ ⟨id⟩
     → Id × 3            3
 
 The `[+Y^β]` layer cannot be dropped (its interior is larger than its
@@ -352,31 +368,37 @@ value and the run finishes in 19 steps:
     → Wrap, Id          … layer 2
     → Wrap, Id          … layer 3, whose codomain is +X
     → Beta              [+X^α] [−X^α] [+X^α] [−X^α] 5 ⟨−X⟩ ⟨+X⟩ ⟨id⟩ ⟨id⟩
-    → Reach, k = 0      [+X^α] [−X^α] [+X^α] [−X^α] 5 ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
+    → Reach, I = □    [+X^α] [−X^α] [+X^α] [−X^α] 5 ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
     → Id × 4            5
 
-### 5e. The term that was stuck with named runtime types
+### 5e. A term that is stuck with named runtime types
 
-At the store β:=Int, α:=β with one name, `Y:=β`:
+At the store β^Y:=Int, γ^W:=Int, α^X:=β with one name, `Y:=β`:
 
-    S  =  [+X^α] [−Y^β] [+Z^β] [−X^α] V ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩       V = [−Z^β] 3 ⟨−Z⟩
+    S  =  [+X^α] [−Y^β] [+W^γ] [+Y^β] [−X^α] V ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩       V = [−Y^β] 3 ⟨−Y⟩
 
-Interiors from the outside: {Y:β, X:α}, {X:α}, {X:α, Z:β}, {Z:β}.
-Types: `V : β`; the seal `−X : β ⇒ α`; the two `id` layers at `α`; the
-unseal `+X : α ⇒ β`; so `S : β`.  (Wrap it as `[+Y^β] S ⟨+Y⟩ : Int` for
-a context with no names.)  This is a hand-written well-typed term, not
-a reachable one — but progress is about every well-typed term.
+Interiors from the outside: {Y:β, X:α}, {X:α}, {X:α, W:γ},
+{X:α, W:γ, Y:β}, {W:γ, Y:β}.  Every entry uses its variable's recorded
+name, so `S` satisfies the naming condition.  Types: `V : β`; the seal
+`−X : β ⇒ α`; the three `id` layers at `α`; the unseal `+X : α ⇒ β`; so
+`S : β`.  (Wrap it as `[+Y^β] S ⟨+Y⟩ : Int` for a context with no names.)
+This is a hand-written well-typed term, not one known to be reachable —
+but progress is about every well-typed term.
 
-With named runtime types `S` was stuck: Reach had a premise that every
-intermediate interior can NAME the payload `β`, and `[−Y^β]`'s interior
-{X:α} cannot.  Now:
+With NAMED runtime types `S` is stuck.  Reach would make the types
+inside `I` the payload `β`, and `[−Y^β]`'s interior {X:α} and
+`[+W^γ]`'s interior {X:α, W:γ} have no name for `β`; no other rule
+applies.  (The hide `[−Y^β]` and its re-reveal `[+Y^β]` are not
+adjacent, so not even a Cancel would help.)  With runtime types:
 
-    → Reach, k = 2      [+X^α] [−Y^β] [+Z^β] [−X^α] V ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
+    → Reach             [+X^α] [−Y^β] [+W^γ] [+Y^β] [−X^α] V ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
 
-a value of type `β`, whose `[−Y^β]` layer has interior type `β`.  Note
-that Reach matched the unseal `+X` with the seal `−X` by representation
-variable; the same would hold if the inner seal were written under a
-different name for `α`.
+a value of type `β`, whose `[−Y^β]` and `[+W^γ]` layers have interior
+type `β`.
+
+(The third version's stuck example hid `β` as `Y` and revealed it as
+`Z`; the naming condition now rejects it.  The example above survives
+the condition, which is why runtime types are still needed.)
 
 ## 6. Proofs, on paper
 
@@ -397,7 +419,12 @@ so:
   `Δ ⊢ ε`, then `ε(Δ)` and `ε⁺(Δ)` are well named.  For `+X^α`,
   coherence says neither `X` nor `α` is named in `Δ`; for `−X^α`, a
   binding is removed.  The `all` and `Lam` rules add `X:=α` with both
-  fresh.
+  fresh.  Reduction keeps the naming condition: entries are created
+  only by TyBeta (`+X^α` for the fresh `α^X` it allocates), by Wrap
+  (`−ε`, the same name and variable as `ε`), and by `crossΛᴹ` in Beta
+  (hiding a `Λ`'s own variable under its own binder name), and TyBeta's
+  renaming of the `Λ`'s binder renames the hiding layers inside its
+  body with it.
 * **L2 (spelling is injective).**  If `Γ` is well named, `Γ ⊢ A`,
   `Γ ⊢ B` and `Γ(A) = Γ(B)`, then `A = B` (up to renaming of bound
   variables).  Induction on `A`: at a variable, the two names denote the
@@ -425,7 +452,8 @@ so:
   * `R = ∀X. R′`: `V` is a `Λ`, or a tower whose top conversion is
     `∀X. c` or `id`, over a value of `∀` type, so `V • X` is defined;
   * `R = α`: `V` is a tower whose top conversion is `id` (over a value
-    of type `α`) or `−W` under the entry `−W^α`.
+    of type `α`) or `−X` under the entry `−X^α`, where `X` is `α`'s
+    recorded name (naming condition).
 
 ### O1 — the named type system embeds (proved)
 
@@ -458,27 +486,28 @@ value or steps (ξ).  Remaining cases, all subterms values:
 * `V W`: by L6, `V` is a `λ` (Beta) or a tower with top `c → d` (Wrap)
   or `id` (Wrap-id).
 * `ν X:=A. (V X)⟨d⟩`: by L6, `V • X` is defined; TyBeta allocates
-  `α:=Δ(A)` (`Δ ⊢ A` is a premise of `ν`).
+  `α^X:=Δ(A)` (`Δ ⊢ A` is a premise of `ν`).
 * `[ε] V ⟨c⟩`.  If `c` is inert the term is a value.  Otherwise `c` is
   `id` over a constant — Id — or `+X`.  For `+X`, `ε = +X^α` and `V` is
   a value of type `α` (rule `unseal`).  By L6 its top layer carries
-  `−W` under `−W^α`, or `id` over a value of type `α`; repeat on the
+  `−X` under `−X^α`, or `id` over a value of type `α`; repeat on the
   body.  The walk ends, because the bottom of a tower is simple and no
-  simple value has a variable type, at a layer carrying `−W` under
-  `−W^α`.  The layers passed all carry `id`: this is Reach's left-hand
-  side, with the tower under the outer layer a value.  Reach has no
+  simple value has a variable type, at a layer carrying `−X` under
+  `−X^α`.  The layers passed form an identity tower `I`, so `V` is
+  `I[[−X^α] V′ ⟨−X⟩]`: Reach's left-hand side, a value.  Reach has no
   other premise, so it fires.  ∎
 
 ### O3 — Reach preserves types (proved)
 
-Redex `[+X^α] [ε₁ … εₖ] [−W^α] V ⟨−W⟩ ⟨id … id⟩ ⟨+X⟩ : S` at `Δ`.  Let
-`α:=P ∈ Δ`.  By `unseal`, the outer layer's interior type is `α` and
-`S = P`.  Each `id` layer has interior and exterior type `α`.  By
-`seal`, `V : P` (the payload of `α` is unique).  In the contractum every
-conversion is `id`, and every type between `V` and the outside is `P`:
-`V : P`; each `id : P ⇒ P`, which is well formed at every layer by L5;
-the outer exterior type is `P = S`.  The store, the scopes and `V` are
-unchanged.  ∎
+Redex `[+X^α] I[[−X^α] V ⟨−X⟩] ⟨+X⟩ : S` at `Δ`.  Let `α^X:=P ∈ Δ`.
+By `unseal`, the outer layer's interior type is `α` and `S = P`.  By
+induction on `I`, each of its layers carries `id` and has interior and
+exterior type `α`.  By `seal`, `V : P` (the payload of `α` is unique).
+In the contractum the seal layer's `id : P ⇒ P` gives it exterior type
+`P`; by induction on `I`, each layer of `I`, unchanged, now has
+interior and exterior type `P`, and its `id : P ⇒ P` is well formed at
+that layer by L5; the outer layer's `id : P ⇒ P` gives exterior type
+`P = S`.  The store, the scopes and `V` are unchanged.  ∎
 
 ### O4 — Wrap preserves types (proved)
 
@@ -499,17 +528,17 @@ the same with `c = d = id`, `R′ = R`, `S′ = S`.  ∎
 
 **Lemma (instantiation).**  If `Γ ⊢ V : ∀X. R` for a value `V`, `Γ`
 well named, and `X`, `α` fresh, then for any `P`,
-`Γ, α:=P, X:=α ⊢ V • X : R[X ↦ α]`.
+`Γ, α^X:=P, X:=α ⊢ V • X : R[X ↦ α]`.
 
 *Proof.*  Induction on `V` (L6: a `Λ`, or a tower whose layers carry
 `∀X. c` or `id`).
-* `V = ΛX. N`: the `Lam` rule gives `Γ, α′, X:=α′ ⊢ N : R[X ↦ α′]`;
-  rename `α′` to `α` and refine it to `α:=P` (L4).
+* `V = ΛX. N`: the `Lam` rule gives `Γ, α′^X, X:=α′ ⊢ N : R[X ↦ α′]`;
+  rename `α′` to `α` and refine it to `α^X:=P` (L4).
 * `V = [ε] V′ ⟨∀X. c⟩`, with `ε(Γ) ⊢ V′ : ∀X. R″` and
-  `ε⁺(Γ), α′, X:=α′ ∣ ε ⊢ c : R″[X↦α′] ⇒ R[X↦α′]`.  Let
-  `Γ″ = Γ, α:=P, X:=α`.  Coherence `Γ″ ⊢ ε`: for `+Y^β`, `Y ≠ X` and
+  `ε⁺(Γ), α′^X, X:=α′ ∣ ε ⊢ c : R″[X↦α′] ⇒ R[X↦α′]`.  Let
+  `Γ″ = Γ, α^X:=P, X:=α`.  Coherence `Γ″ ⊢ ε`: for `+Y^β`, `Y ≠ X` and
   `β ≠ α` by freshness; for `−Y^β`, `Y:=β ∈ Γ`.  Since `ε` touches
-  only `Y`, `ε(Γ″) = ε(Γ), α:=P, X:=α` up to L3, so the IH types
+  only `Y`, `ε(Γ″) = ε(Γ), α^X:=P, X:=α` up to L3, so the IH types
   `V′ • X : R″[X↦α]` there; and `ε⁺(Γ″)` is the `all` premise's
   context with `α′` renamed and refined (L4).  So
   `Γ″ ⊢ [ε] (V′ • X) ⟨c⟩ : R[X↦α]`.
@@ -517,8 +546,8 @@ well named, and `X`, `α` fresh, then for any `P`,
   `R″ = R`.  ∎
 
 **TyBeta.**  The redex `ν X:=A. (V X)⟨d⟩ : S` at `Δ` has `Δ ⊢ V : ∀X. R`
-and `Δ′ ∣ +X^α ⊢ d : R[X↦α] ⇒ S` with `Δ′ = Δ, α:=Δ(A), X:=α`.  After
-the step the context is `Δ⁺ = Δ, α:=Δ(A)`.  `Δ⁺ ⊢ +X^α` holds (`α`
+and `Δ′ ∣ +X^α ⊢ d : R[X↦α] ⇒ S` with `Δ′ = Δ, α^X:=Δ(A), X:=α`.  After
+the step the context is `Δ⁺ = Δ, α^X:=Δ(A)`.  `Δ⁺ ⊢ +X^α` holds (`α`
 allocated, `X` and `α` unnamed), its interior is `Δ′`, the lemma (with
 `P = Δ(A)`) gives `Δ′ ⊢ V • X : R[X↦α]`, `d` is unchanged, and
 `Δ⁺ ⊢ S`.  So `[+X^α] (V • X) ⟨d⟩ : S` at `Δ⁺`.  ∎
@@ -539,6 +568,13 @@ on top; its body is a value, by induction.
 `λ`), Wrap and Wrap-id (application of a boundary, told apart by the
 conversion), TyBeta (`ν`), Id (`id` over a constant) and Reach (`+X`)
 have disjoint left-hand sides.
+
+**Reach decomposes one way.**  A Reach redex is `[+X^α] M ⟨+X⟩` with
+`M = I[[−X^α] V ⟨−X⟩]`.  `I` matches only layers that carry `id`, so
+its hole is at the first layer of `M` whose conversion is not `id`;
+that layer must be the seal.  So `I`, and with it the contractum, is
+determined by `M`.  A deeper seal cannot be chosen instead, because the
+first non-`id` layer would sit between it and the unseal.
 
 **At most one frame decomposition.**  Every rule's left-hand side has
 values in all its frame positions, and values do not step, so ξ and a
@@ -647,9 +683,13 @@ existing representation indices move up; entries `bind X β` /
   reverse), so the argument's context and the crossed conversion's
   context are unchanged.  νF's Wrap needs `respellᶜ` only because a
   multi-entry scope and its dual can order the names differently.
-* **Reach** writes untyped `id`: no spelling, no indices, nothing to
-  shift.  It reads `α` in the outer entry and the inner entry and
-  compares them.
+* **Reach** is an inductive judgement over `I` (`[−X^α] V ⟨−X⟩` steps
+  its conversion to `id`; `[ε] M ⟨id⟩` passes the step to `M`), and it
+  writes untyped `id`: no spelling, no indices, nothing to shift.  With
+  de Bruijn names the seal and the unseal are matched by comparing the
+  entries' representation indices, since ordinary positions differ
+  between layers; the naming condition makes that the same match as
+  the named one.
 * **Conversions contain no representation indices** (`id` is untyped;
   seals and unseals cite names), so `↑ᴹ` and `crossΛᴹ` stay out of
   conversions, as today.  Runtime types in the typing judgement carry
@@ -674,7 +714,12 @@ existing representation indices move up; entries `bind X β` /
    term, and 5e is well typed and stuck: **progress was false**.
 4. **This version:** runtime types are representation types and `id` is
    untyped.  Reach loses its premise, progress holds (O2), and Cancel
-   is no longer needed.
+   is no longer needed.  Later in the same version: Reach is stated with
+   an identity-tower grammar `I` instead of ellipses, and a naming
+   condition (each representation variable has one name for its whole
+   life) lets the seal be written `−X`.  Restricting `id` to atomic
+   types was considered and not taken: Reach would then have to
+   rewrite every layer of `I` to an identity at the payload.
 
 **Lemma (inverse pair), kept for reference.**  Let `ε` be `+X^α` or
 `−X^α`.  If `Γ ∣ ε ⊢ c₁ : R ⇒ T` and `Γ ∣ −ε ⊢ c₂ : T ⇒ S`, and `α`

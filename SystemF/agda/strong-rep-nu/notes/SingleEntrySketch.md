@@ -339,7 +339,7 @@ module; the last Merge produces
     → Cancel, |I| = 2   (ξ into layer 1; layer 2's +Y meets layer 5's −Y)
        [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
                                                      -|   -|   -|   -|   -|   -|   -|
-                                                     Bool  X    ?    ?    ?    X   Bool
+                                                     Bool  X    X    α    X    X   Bool
     → Cancel, |I| = 4   (layer 1's +X meets layer 6's −X)
        [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
 

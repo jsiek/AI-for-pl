@@ -474,6 +474,7 @@ only strengthens the clauses.
 | `proof/LR/WorldProps.agda` | renaming laws for descriptors and tags; extension is reflexive and transitive |
 | `proof/TermRename.agda` | `renameᵗᵐ π (renameᵗᵐ η M) ≡ renameᵗᵐ (π ∘↪ η) M` and `renameᵗᵐ id↪ᵗ M ≡ M`, without funext |
 | `proof/LR/InterpProps.agda` | equivalence of interpretations `≈ᴵ`; transport along `⊒-refl` and `⊒-trans`; `𝒱`, `G` and `ℰ` respect `≈ᴵ` |
+| `proof/LR/Monotone.agda` | world monotonicity and downward closure of `𝒱`, `G` and their helpers; the relation's own semantic leaves are good |
 
 **Renaming terms: how it is done.**
 * Mode environments are vectors, `Env∼ Δ = Vec Var∼ Δ`, read with
@@ -493,7 +494,6 @@ only strengthens the clauses.
   `NonVar`, `_∈ᵗ_`, `_⊢_∼★`, `_⊢★∼_`) is unique, so it does not matter
   which proof each side carries.
 
-**Next, in order:**
 **Interpretations: how it is done.**
 * `δ ≈ᴵ δ′`: the types agree pointwise; entry leaves are equal; semantic
   leaves imply each other at every stage, world and pair of embeddings.
@@ -505,13 +505,31 @@ only strengthens the clauses.
   the equivalence (`≈ᴵ-sym`).  `ℰᵍ-map` shows the expression closure
   is monotone in its value relation.
 
-1. **Kripke monotonicity** of `𝒱`, `G`, `star`, the entries and `ℰᵍ`,
-   including downward closure in the stage.
-   * The semantic leaves are empty above their bound, so they are
-     downward closed.
-   * The hypothesis is that leaves are monotone.  Descriptor-built
-     leaves are, by the lemma itself, so this is a mutual induction.
-2. **Expression lemmas** (Section 6.9, item 3), then items 4–9:
+**Monotonicity: how it is done** (`proof/LR/Monotone.agda`).
+* World monotonicity: `𝒱 d n p w δ Vl Vr` gives
+  `𝒱 d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)`; the
+  same for `G`, `star`, tags, entries and contents.
+* Downward closure: `n′ ≤ n` and `𝒱 d n p …` give `𝒱 d n′ p …`.
+* The function and `∀` clauses need no induction: they quantify over
+  futures and stages already, and composing extensions (`⊒-trans`,
+  `↑ᴵ-trans`, `renameᵗᵐ-∘`) or re-proving the stage bound (the `≤′`
+  proofs are irrelevant: `𝒱≤-cast`, `leafBelow-≈`) does the rest.
+* The rest is one mutual induction on the stage and the left term,
+  mirroring the termination argument of the definitions (Section 6.11).
+* Hypothesis `GoodI δ`: every semantic leaf of `δ` is monotone and
+  downward closed.  The leaves the relation builds (`leafBelow`,
+  `leafG`, `⊤Ω`) are good, by the two lemmas on the descriptors' own
+  interpretations, which have only entry leaves; so this is not a
+  mutual induction after all.  `GoodI` is kept by transport and by
+  the `ext*I` extensions.
+* Not done: world monotonicity of `ℰᵍ`.  It needs renaming of
+  reductions (`M —→^k [χs] N` along a store embedding), which
+  `Reduction` does not have yet.  The fundamental lemma should not need
+  it: it re-applies the lemma at the later world, using monotonicity of
+  the value relation for the substitution.
+
+**Next, in order:**
+1. **Expression lemmas** (Section 6.9, item 3), then items 4–9:
    * uniqueness of precision and the substitution lemma;
    * conversions;
    * identity casts;

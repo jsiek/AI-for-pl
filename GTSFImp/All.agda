@@ -158,6 +158,7 @@ import LR.Relation
 import proof.LR.WorldProps
 import proof.TermRename
 import proof.LR.InterpProps
+import proof.LR.Monotone
 
 ------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked

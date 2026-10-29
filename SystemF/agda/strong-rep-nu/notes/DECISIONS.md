@@ -5612,3 +5612,7 @@ as `Y`, reveal as `Z`) is now ill-formed; a same-name example (sketch
 types are still needed.  Restricting `id` to atomic types was
 considered and not taken: Reach would have to rewrite every layer of
 `I`.
+
+**Addendum: renamed.**  The unseal-meets-seal rule Reach is now called
+**Cancel**; the earlier pair-removing Cancel is called **PairCancel** in
+the sketch.  Entries above use the old names.

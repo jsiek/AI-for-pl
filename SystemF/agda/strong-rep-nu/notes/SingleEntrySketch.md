@@ -19,7 +19,7 @@ choices distinguish it from νF beyond the entry count:
   every `R`, so the reduction rules never have to spell a type.
 
 With both, the rule set is Delta, Beta, Wrap, TyBeta, Id and one new
-rule, **Reach**, with no premise.  §6 proves progress, preservation,
+rule, **Cancel**, with no premise.  §6 proves progress, preservation,
 determinism and color preservation on paper, with no open obligation
 of its own (one inherited caveat, Beta under `Λ`, and one design
 question, abstraction, are recorded).
@@ -79,7 +79,7 @@ compiler's `reveal`/`conceal` (`Conversion.agda` §4) write only bare
 seals and unseals, and `⨟` is what builds a chain.  νF₁ has no `Merge`
 and no rule that builds a conversion from pieces — Wrap and TyBeta give
 a boundary a SUB-conversion (a domain, a codomain, a `∀` body), Id
-deletes a layer, and Reach writes `id` — so no reachable term has a
+deletes a layer, and Cancel writes `id` — so no reachable term has a
 chain.  What is lost is expressiveness for hand-written boundaries:
 `(c → d) ; −X` must be written as two layers.  The compiler's identity
 leaves `id(Y)` and `id(ι)` become `id`; whether structural identities
@@ -211,7 +211,7 @@ Frames are the paper's, with `[ε] □ ⟨c⟩` in place of `[δ] □ ⟨c⟩`, 
 
     Δ ⊢ [ε] k ⟨id⟩  ⟶  k                                             (Id)
 
-    Δ ⊢ [+X^α] I[[−X^α] V ⟨−X⟩] ⟨+X⟩  ⟶  [+X^α] I[[−X^α] V ⟨id⟩] ⟨id⟩    (Reach)
+    Δ ⊢ [+X^α] I[[−X^α] V ⟨−X⟩] ⟨+X⟩  ⟶  [+X^α] I[[−X^α] V ⟨id⟩] ⟨id⟩    (Cancel)
         if I[[−X^α] V ⟨−X⟩] is a value
 
     Δ ⊢ F[M]  ⟶  F[M′] ⊣ ξ      if F(Δ) ⊢ M ⟶ M′ ⊣ ξ                (ξ)
@@ -228,7 +228,7 @@ What each rule does, against νF:
   through every layer.
 * **Id** is νF's, for the untyped `id`: it fires only over a constant,
   which typing puts at a base type.
-* **Reach** is new: an unseal `+X` meets its seal `−X` through an
+* **Cancel** is new: an unseal `+X` meets its seal `−X` through an
   identity tower `I`.  Only the two ends change, both to `id`; `I` is
   copied unchanged, because its layers carry the untyped `id` both
   before the step (at `α`) and after it (at `α`'s payload).  The types
@@ -236,9 +236,11 @@ What each rule does, against νF:
   intermediate layer, and does not have to be (runtime types).  No layer
   moves.  The naming condition makes the seal's name the unseal's name,
   `X`; `I` may contain layers whose entry is `−X^α` or `+X^α` (5b's
-  second Reach crosses both).  The hole of `I` is at the FIRST layer
+  second Cancel crosses both).  The hole of `I` is at the FIRST layer
   below the unseal that does not carry `id`, so a redex has one
-  decomposition (O6).
+  decomposition (O6).  (Earlier drafts called this rule Reach, and used
+  the name Cancel for removing an adjacent inverse pair; that rule is
+  called PairCancel here.)
 
 There is no `Merge`, no conversion composition, no chain, and no rule
 that removes a layer other than Id.
@@ -247,8 +249,8 @@ that removes a layer other than Id.
 
 * **Hide**, `[−Y^β] V ⟨id⟩ ⟶ V`, breaks color preservation: every hole
   in `V` would gain `Y`.
-* **Cancel**, removing an inverse pair `[−X^α] [+X^α]`, is not needed
-  for progress once Reach has no premise.  If added to shorten towers,
+* **PairCancel**, removing an inverse pair `[−X^α] [+X^α]`, is not needed
+  for progress once Cancel has no premise.  If added to shorten towers,
   it needs a premise that the pair's interior and exterior types agree:
   5d reaches a pair whose conversions compose to an unseal.
 
@@ -289,19 +291,19 @@ and end at the six-layer tower
 with interiors {X}, {X,Y}, {Y}, {X,Y}, {X}, ∅ (outermost first) and
 store α:=Bool, β:=α.  Then
 
-    → Reach, |I| = 2 (layers 2–5)  [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
-    → Reach, |I| = 4 (layers 1–6)  [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
+    → Cancel, |I| = 2 (layers 2–5)  [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
+    → Cancel, |I| = 4 (layers 1–6)  [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
     → Id × 6                       false
 
-The first Reach is the step the named-type versions could not take: it
+The first Cancel is the step the named-type versions could not take: it
 crosses layer 3, `[−X^α]` with interior {Y}, and makes the type there
 `Y`'s payload, `α` — which layer 3 cannot name.  As a runtime type that
 is fine.
 
-**The problem, concretely.**  Here is the first Reach's contractum
+**The problem, concretely.**  Here is the first Cancel's contractum
 again, layer by layer, with the type each layer's body would need:
 
-| layer | entry | interior names | conversion after Reach | body's type, named / runtime |
+| layer | entry | interior names | conversion after Cancel | body's type, named / runtime |
 |---|---|---|---|---|
 | 2 | `+Y^β` | {X:α, Y:β} | `id` | `X` / `α` |
 | 3 | `−X^α` | {Y:β} | `id` | **none** / `α` |
@@ -320,7 +322,7 @@ There is no such `A`, so the contractum has no derivation.  This is the
 shape behind the trouble: `Y` is bound to `X` (β:=α), and the unseal of
 `Y` has to carry `Y`'s payload through a layer where `X` is out of
 scope.  The second version's premise refused the step; the first and
-second versions got through 5b anyway with Cancel on layers 3–4 (their
+second versions got through 5b anyway with PairCancel on layers 3–4 (their
 types agree), but 5e has no such pair and is stuck.  With runtime types
 the rule asks only `{Y:β} ⊢ α`, which holds because `α` is allocated.
 
@@ -338,13 +340,13 @@ Merges.  νF₁, 11 steps:
     → Wrap              [+X^α] [+Y^β] ((λ_:Int. …) ([−Y^β] 0 ⟨id⟩)) ⟨id⟩ ⟨+X⟩
     → Id                [+X^α] [+Y^β] ((λ_:Int. [−X^α] 3 ⟨−X⟩) 0) ⟨id⟩ ⟨+X⟩
     → Beta              [+X^α] [+Y^β] [−X^α] 3 ⟨−X⟩ ⟨id⟩ ⟨+X⟩
-    → Reach, |I| = 1  [+X^α] [+Y^β] [−X^α] 3 ⟨id⟩ ⟨id⟩ ⟨id⟩
+    → Cancel, |I| = 1  [+X^α] [+Y^β] [−X^α] 3 ⟨id⟩ ⟨id⟩ ⟨id⟩
     → Id × 3            3
 
 The `[+Y^β]` layer cannot be dropped (its interior is larger than its
 exterior, and the term beneath it may mention `Y`) and cannot be
 crossed by pushing `+X` inward (its entry licenses only `Y`), so a rule
-of Reach's kind is needed.
+of Cancel's kind is needed.
 
 ### 5d. An inverse pair whose conversions compose to an unseal
 
@@ -368,7 +370,7 @@ value and the run finishes in 19 steps:
     → Wrap, Id          … layer 2
     → Wrap, Id          … layer 3, whose codomain is +X
     → Beta              [+X^α] [−X^α] [+X^α] [−X^α] 5 ⟨−X⟩ ⟨+X⟩ ⟨id⟩ ⟨id⟩
-    → Reach, I = □    [+X^α] [−X^α] [+X^α] [−X^α] 5 ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
+    → Cancel, I = □    [+X^α] [−X^α] [+X^α] [−X^α] 5 ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
     → Id × 4            5
 
 ### 5e. A term that is stuck with named runtime types
@@ -385,13 +387,13 @@ name, so `S` satisfies the naming condition.  Types: `V : β`; the seal
 This is a hand-written well-typed term, not one known to be reachable —
 but progress is about every well-typed term.
 
-With NAMED runtime types `S` is stuck.  Reach would make the types
+With NAMED runtime types `S` is stuck.  Cancel would make the types
 inside `I` the payload `β`, and `[−Y^β]`'s interior {X:α} and
 `[+W^γ]`'s interior {X:α, W:γ} have no name for `β`; no other rule
 applies.  (The hide `[−Y^β]` and its re-reveal `[+Y^β]` are not
-adjacent, so not even a Cancel would help.)  With runtime types:
+adjacent, so not even a PairCancel would help.)  With runtime types:
 
-    → Reach             [+X^α] [−Y^β] [+W^γ] [+Y^β] [−X^α] V ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
+    → Cancel             [+X^α] [−Y^β] [+W^γ] [+Y^β] [−X^α] V ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
 
 a value of type `β`, whose `[−Y^β]` and `[+W^γ]` layers have interior
 type `β`.
@@ -471,7 +473,7 @@ premise `c : ε(Δ)(A) ⇒ Δ(B)` is this sketch's premise with `R = ε(Δ)(A)`
 and `S = Δ(B)`.  Conversions: `id(ι)` and `id(X)` become `id`; `seal`
 and `unseal` read `α:=Δ(A)` as `α:=P`.  ∎
 
-The converse fails, by design: Reach's contracta (5b's layer 3, 5e) have
+The converse fails, by design: Cancel's contracta (5b's layer 3, 5e) have
 runtime types that no context names.
 
 ### O2 — progress (proved)
@@ -494,10 +496,10 @@ value or steps (ξ).  Remaining cases, all subterms values:
   body.  The walk ends, because the bottom of a tower is simple and no
   simple value has a variable type, at a layer carrying `−X` under
   `−X^α`.  The layers passed form an identity tower `I`, so `V` is
-  `I[[−X^α] V′ ⟨−X⟩]`: Reach's left-hand side, a value.  Reach has no
+  `I[[−X^α] V′ ⟨−X⟩]`: Cancel's left-hand side, a value.  Cancel has no
   other premise, so it fires.  ∎
 
-### O3 — Reach preserves types (proved)
+### O3 — Cancel preserves types (proved)
 
 Redex `[+X^α] I[[−X^α] V ⟨−X⟩] ⟨+X⟩ : S` at `Δ`.  Let `α^X:=P ∈ Δ`.
 By `unseal`, the outer layer's interior type is `α` and `S = P`.  By
@@ -561,15 +563,15 @@ weakening of the siblings by the allocated cell.
 
 **Values do not step.**  A simple value has no frame position that
 reduces (no ξ under `λ` or `Λ`).  A tower `[ε] V ⟨i⟩` has an inert `i`:
-Id needs `id` over a constant, which is not inert, and Reach needs `+X`
+Id needs `id` over a constant, which is not inert, and Cancel needs `+X`
 on top; its body is a value, by induction.
 
 **At most one rule at the root.**  Delta (`op`), Beta (application of a
 `λ`), Wrap and Wrap-id (application of a boundary, told apart by the
-conversion), TyBeta (`ν`), Id (`id` over a constant) and Reach (`+X`)
+conversion), TyBeta (`ν`), Id (`id` over a constant) and Cancel (`+X`)
 have disjoint left-hand sides.
 
-**Reach decomposes one way.**  A Reach redex is `[+X^α] M ⟨+X⟩` with
+**Cancel decomposes one way.**  A Cancel redex is `[+X^α] M ⟨+X⟩` with
 `M = I[[−X^α] V ⟨−X⟩]`.  `I` matches only layers that carry `id`, so
 its hole is at the first layer of `M` whose conversion is not `id`;
 that layer must be the seal.  So `I`, and with it the contractum, is
@@ -595,7 +597,7 @@ consumed.  Rule by rule, a residual hole's map before and after:
   (and each layer's `all`) bound representation to the allocated `α`
   — the residual's ρ, as for νF's TyWrap.
 * **Id.**  The constant is consumed with its boundary, as in νF.
-* **Reach.**  No layer moves; conversions only.  Every hole keeps its
+* **Cancel.**  No layer moves; conversions only.  Every hole keeps its
   context.
 * **Beta.**  Holes of `N` keep their contexts.  The CAVEAT: an argument
   copy substituted under a `Λ` inside `N` sees that `Λ`'s variable.
@@ -630,8 +632,8 @@ The axes, with the points that have been built or sketched:
 | D07 v1 combined boundary (2026-09-03) | list | `⊕` | truncates at the deepest conceal | copied types | named | records it as a reveal |
 | strong-rep-nu before 2026-09-24 | list | `CancelR`, `IdPush` (stacks otherwise) | does not truncate (D34 onward) | representation variables | named | records it |
 | **νF** (`paper/main.tex`) | list | `Merge` (one boundary per value) | removes `X` only | representation variables | named | records it |
-| νF₁, third version (§9) | one | Cancel, Reach with a premise | removes `X` only | representation variables | named | records it — NOT type safe (5e) |
-| **νF₁** (this sketch) | one | none; Reach (towers) | removes `X` only | representation variables | representation types | records it |
+| νF₁, third version (§9) | one | PairCancel, Cancel with a premise | removes `X` only | representation variables | named | records it — NOT type safe (5e) |
+| **νF₁** (this sketch) | one | none; Cancel (towers) | removes `X` only | representation variables | representation types | records it |
 
 D02 failed because of its truncation and its instantiation rule, not
 because it had one entry per boundary (`notes/old/notes-v1.md`,
@@ -645,14 +647,14 @@ the entry count, which isolates what lists and `Merge` buy:
   intermediate type has a NAME in its context.
 * **For νF₁:** no composition, no chains, no respelling, and each
   permission check is "the entry is `±X^α`"; the rule set is Wrap,
-  TyBeta, Id and Reach.  The price is towers, a progress argument that
+  TyBeta, Id and Cancel.  The price is towers, a progress argument that
   walks down a tower, identity layers left in values at non-base
   types, and runtime types that mention unnamed representation
   variables (§6.8).
 * **The deciding axis is runtime types.**  With named runtime types and
   the color law, single-entry boundaries are not type safe: 5e is
   well typed and stuck, and the repairs either break color (Hide) or
-  reason about several scope entries at once (a non-local Cancel —
+  reason about several scope entries at once (a non-local PairCancel —
   `Merge` in disguise).  Optional conversions typed as a run, the other
   idea tried, are exactly νF's multi-entry scope.  So under the color
   law: **named runtime types need multi-entry scopes and `Merge`;
@@ -683,7 +685,7 @@ existing representation indices move up; entries `bind X β` /
   reverse), so the argument's context and the crossed conversion's
   context are unchanged.  νF's Wrap needs `respellᶜ` only because a
   multi-entry scope and its dual can order the names differently.
-* **Reach** is an inductive judgement over `I` (`[−X^α] V ⟨−X⟩` steps
+* **Cancel** is an inductive judgement over `I` (`[−X^α] V ⟨−X⟩` steps
   its conversion to `id`; `[ε] M ⟨id⟩` passes the step to `M`), and it
   writes untyped `id`: no spelling, no indices, nothing to shift.  With
   de Bruijn names the seal and the unseal are matched by comparing the
@@ -697,28 +699,31 @@ existing representation indices move up; entries `bind X β` /
 
 ## 9. History of this sketch
 
-1. **First version** (named runtime types): Cancel for both orders of an
-   inverse pair, Hide (`[−Y^β] V ⟨id⟩ ⟶ V`), and Reach crossing only
+Names below are the current ones: the drafts' Reach is **Cancel**, and
+the drafts' Cancel (removing an adjacent inverse pair) is **PairCancel**.
+
+1. **First version** (named runtime types): PairCancel for both orders of an
+   inverse pair, Hide (`[−Y^β] V ⟨id⟩ ⟶ V`), and Cancel crossing only
    `+` layers.  **Hide was deleted** because it breaks color
    preservation: every hole in `V` gains `Y`.
-2. **Second version:** Reach generalised to cross `−` layers, with a
+2. **Second version:** Cancel generalised to cross `−` layers, with a
    premise that every intermediate interior can NAME the payload.
-   Proving Cancel type-preserving found that a `[−X^α] [+X^α]` pair can
+   Proving PairCancel type-preserving found that a `[−X^α] [+X^α]` pair can
    compose to an unseal (5d), so that order gained a types-agree
    premise; the other order is sound by the lemma below but unneeded
-   (an unseal over its seal is Reach with `k = 0`), so the minimal set
-   kept Cancel only for `[−X^α] [+X^α]`.
+   (an unseal over its seal is Cancel with `k = 0`), so the minimal set
+   kept PairCancel only for `[−X^α] [+X^α]`.
 3. **Third version:** chains and annotated identities removed.  Progress
    was proved modulo one obligation, O2, at first treated as a
    reachability question.  But progress is about every well-typed
    term, and 5e is well typed and stuck: **progress was false**.
 4. **This version:** runtime types are representation types and `id` is
-   untyped.  Reach loses its premise, progress holds (O2), and Cancel
-   is no longer needed.  Later in the same version: Reach is stated with
+   untyped.  Cancel loses its premise, progress holds (O2), and PairCancel
+   is no longer needed.  Later in the same version: Cancel is stated with
    an identity-tower grammar `I` instead of ellipses, and a naming
    condition (each representation variable has one name for its whole
    life) lets the seal be written `−X`.  Restricting `id` to atomic
-   types was considered and not taken: Reach would then have to
+   types was considered and not taken: Cancel would then have to
    rewrite every layer of `I` to an identity at the payload.
 
 **Lemma (inverse pair), kept for reference.**  Let `ε` be `+X^α` or

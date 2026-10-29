@@ -234,8 +234,8 @@ X∼★≢X∼X ()
 
 no-to-distinct-variable : ∀ {Δ} {μ : Env∼ Δ}
     {A : Ty Δ} {X Y : TyVar Δ}
-  → μ Y ≡ X∼★
-  → μ X ≡ X∼X
+  → μ ‼ Y ≡ X∼★
+  → μ ‼ X ≡ X∼X
   → μ ⊢ A ∼ ＇ X
   → Y ∈ᵗ A
   → ⊥

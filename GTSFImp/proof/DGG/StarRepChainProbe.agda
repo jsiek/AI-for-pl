@@ -11,6 +11,7 @@ module proof.DGG.StarRepChainProbe where
 --     target tag only in the input derivation.
 
 import Data.Fin as Fin
+import Data.Vec as Vec
 open import Data.List using ([])
 open import Data.Maybe using (just; nothing)
 open import Data.Product using (_,_)
@@ -106,11 +107,10 @@ target-Y-seal-⊢ = Conv.⊢↓-sealˣ Y∈
 
 private
   source-env : Env∼ 2
-  source-env Fin.zero = X∼★
-  source-env (Fin.suc Fin.zero) = X∼★
+  source-env = X∼★ Vec.∷ X∼★ Vec.∷ Vec.[]
 
   target-env : Env∼ 1
-  target-env Fin.zero = X∼★
+  target-env = X∼★ Vec.∷ Vec.[]
 
   ℕ!ᴸ : source-env ⊢ (‵ `ℕ) ∼ ★
   ℕ!ᴸ = id (‵ `ℕ) !

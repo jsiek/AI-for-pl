@@ -18,6 +18,7 @@ module proof.DGG.TerminusRebuildProbe where
 --     at the target-chain terminus instead of against a right variable.
 
 import Data.Fin as Fin
+import Data.Vec as Vec
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([])
 open import Data.Maybe using (just)
@@ -52,7 +53,7 @@ open CTI2 using (_∣_⊢²_⊑_∶_)
 ------------------------------------------------------------------------
 
 dyn-env : ∀ {Δ} → Env∼ Δ
-dyn-env _ = X∼★
+dyn-env = Vec.replicate _ X∼★
 
 fun! : ∀ {Δ} → dyn-env {Δ} ⊢ ★ ⇒ ★ ∼ ★
 fun! = (id ★ ↦ id ★) !
@@ -122,7 +123,7 @@ module InstanceA where
   Y∈ = Z∋ refl
 
   target-env : Env∼ 1
-  target-env Fin.zero = X∼★
+  target-env = X∼★ Vec.∷ Vec.[]
 
   Y! : target-env ⊢ ＇ Y ∼ ★
   Y! = id (＇ Y) !
@@ -271,11 +272,10 @@ module InstanceB where
   Y₂∈ = S-bind∋ (Z∋ refl) refl
 
   source-env : Env∼ 1
-  source-env Fin.zero = X∼★
+  source-env = X∼★ Vec.∷ Vec.[]
 
   target-env : Env∼ 2
-  target-env Fin.zero = X∼★
-  target-env (Fin.suc Fin.zero) = X∼★
+  target-env = X∼★ Vec.∷ X∼★ Vec.∷ Vec.[]
 
   X! : source-env ⊢ ＇ X ∼ ★
   X! = id (＇ X) !

@@ -16,7 +16,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; trans; cong)
 
 open import Types
-open import Consistency using (Env∼; genᵐ; instᵐ; X∼★; ★∼X)
+open import Consistency using (Env∼; _‼_; genᵐ; instᵐ; X∼★; ★∼X)
 open import proof.ImprecisionConsistency
   using (fin-suc-injective; ext-injective; rename-preimage; found)
 
@@ -88,8 +88,8 @@ liftSwap-target ρ B =
 -- the modes: `gen`'s variable is ★∼X and the instantiated one X∼★
 liftSwap-env : ∀ {Δ Δ′} {ν : Env∼ Δ} {μ : Env∼ Δ′}
   → (ρ : Δ ⇒ʳ sucℕ Δ′)
-  → (∀ X → genᵐ μ (ρ X) ≡ ν X)
-  → ∀ X → genᵐ (instᵐ μ) (liftSwap ρ X) ≡ instᵐ ν X
+  → (∀ X → genᵐ μ ‼ (ρ X) ≡ ν ‼ X)
+  → ∀ X → genᵐ (instᵐ μ) ‼ liftSwap ρ X ≡ instᵐ ν ‼ X
 liftSwap-env ρ eq zero = refl
 liftSwap-env ρ eq (suc X) with ρ X | eq X
 liftSwap-env ρ eq (suc X) | zero | e = e

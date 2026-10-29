@@ -45,7 +45,7 @@ notInst-subst-right refl n = n
 ------------------------------------------------------------------------
 
 rename-notInst : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′} {A B : Ty Δ}
-  → (ρ : Δ ⇒ʳ Δ′) (eq : ∀ X → μ′ (ρ X) ≡ μ X)
+  → (ρ : Δ ⇒ʳ Δ′) (eq : ∀ X → μ′ ‼ (ρ X) ≡ μ ‼ X)
   → (c : μ ⊢ A ∼ B)
   → NotInst c → NotInst (rename∼ {μ = μ} {μ′ = μ′} ρ eq c)
 rename-notInst ρ eq (id ★) n = tt
@@ -61,7 +61,7 @@ rename-notInst ρ eq bot-elim n = tt
 rename-notInst ρ eq bot-intro n = tt
 
 rename-eager : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′} {A B : Ty Δ}
-  → (ρ : Δ ⇒ʳ Δ′) (eq : ∀ X → μ′ (ρ X) ≡ μ X)
+  → (ρ : Δ ⇒ʳ Δ′) (eq : ∀ X → μ′ ‼ (ρ X) ≡ μ ‼ X)
   → {c : μ ⊢ A ∼ B}
   → Eager c → Eager (rename∼ {μ = μ} {μ′ = μ′} ρ eq c)
 rename-eager ρ eq (e-id {a = ★}) = e-id
@@ -99,7 +99,7 @@ rename-eager ρ eq e-bot-intro = e-bot-intro
 
 -- the plain case: a gen over the renamed body
 plain : ∀ {Δ Δ′} {ν : Env∼ Δ} {μ : Env∼ Δ′} {C B : Ty Δ}
-  → (ρ : Δ ⇒ʳ _) (eq : ∀ X → genᵐ μ (ρ X) ≡ ν X)
+  → (ρ : Δ ⇒ʳ _) (eq : ∀ X → genᵐ μ ‼ (ρ X) ≡ ν ‼ X)
   → (c : ν ⊢ C ∼ B) (A : Ty Δ′) (eC : renameᵗ ρ C ≡ ⇑ᵗ A)
   → Eager c → NotInst c
   → Eager (subst-left-∼ eC (rename∼ {μ = ν} {μ′ = genᵐ μ} ρ eq c))
@@ -110,7 +110,7 @@ plain {ν = ν} {μ = μ} ρ eq c A eC Ec n =
 
 genᴱ-eager : ∀ {Δ Δ′} {ν : Env∼ Δ} {μ : Env∼ Δ′} {C B : Ty Δ}
   → (ρ : Δ ⇒ʳ _) (inj : ∀ {X Y} → ρ X ≡ ρ Y → X ≡ Y)
-  → (eq : ∀ X → genᵐ μ (ρ X) ≡ ν X)
+  → (eq : ∀ X → genᵐ μ ‼ (ρ X) ≡ ν ‼ X)
   → (c : ν ⊢ C ∼ B) (A : Ty Δ′) (eC : renameᵗ ρ C ≡ ⇑ᵗ A)
   → (A≢★ : A ≢ ★) (nv : NonVar (renameᵗ ρ B))
   → (z : _ ∈ᵗ renameᵗ ρ B)

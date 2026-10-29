@@ -11,6 +11,7 @@ open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; z≤n; s≤s)
 open import Data.Nat.Properties using
   (≤-refl; ≤-trans; +-mono-≤)
 open import Data.Fin using (zero; suc)
+open import Data.Vec using (Vec; []; _∷_; lookup)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong; cong₂; sym; trans)
 open import Relation.Nullary using (no; yes)
@@ -63,52 +64,82 @@ flipVar∼-to-★∼X∼★ {X∼★} ()
 flipVar∼-to-★∼X∼★ {★∼X} ()
 flipVar∼-to-★∼X∼★ {★∼X∼★} refl = refl
 
+-- the mode of each type variable; a vector rather than a function, so
+-- that equal environments are equal as data (no function extensionality)
 Env∼ : TyCtx → Set
-Env∼ Δ = TyVar Δ → Var∼
+Env∼ Δ = Vec Var∼ Δ
 
-Env∼Eq : ∀ {Δ} → Env∼ Δ → Env∼ Δ → Set
-Env∼Eq μ ν = ∀ X → μ X ≡ ν X
+infixl 9 _‼_
+
+_‼_ : Env∼ Δ → TyVar Δ → Var∼
+_‼_ = lookup
+
+-- pointwise equality; a record, so that unification can recover the
+-- environments from its type
+record Env∼Eq {Δ} (μ ν : Env∼ Δ) : Set where
+  constructor env∼-eq
+  field
+    pointwise : ∀ X → μ ‼ X ≡ ν ‼ X
+
+open Env∼Eq public
 
 idᶜ : ∀ {Δ} → Env∼ Δ
-idᶜ X = ★∼X∼★
+idᶜ {zero} = []
+idᶜ {suc Δ} = ★∼X∼★ ∷ idᶜ
+
+idᶜ-‼ : ∀ {Δ} (X : TyVar Δ) → idᶜ ‼ X ≡ ★∼X∼★
+idᶜ-‼ zero = refl
+idᶜ-‼ (suc X) = idᶜ-‼ X
+
+idᶜ-≡ : ∀ {Δ Δ′} (X : TyVar Δ) (Y : TyVar Δ′) → idᶜ ‼ X ≡ idᶜ ‼ Y
+idᶜ-≡ X Y = trans (idᶜ-‼ X) (sym (idᶜ-‼ Y))
 
 extᵐ : Env∼ Δ → Env∼ (suc Δ)
-extᵐ μ zero = X∼X
-extᵐ μ (suc X) = μ X
+extᵐ μ = X∼X ∷ μ
 
 instᵐ : Env∼ Δ → Env∼ (suc Δ)
-instᵐ μ zero = X∼★
-instᵐ μ (suc X) = μ X
+instᵐ μ = X∼★ ∷ μ
 
 genᵐ : Env∼ Δ → Env∼ (suc Δ)
-genᵐ μ zero = ★∼X
-genᵐ μ (suc X) = μ X
+genᵐ μ = ★∼X ∷ μ
 
 flipᵐ : Env∼ Δ → Env∼ Δ
-flipᵐ μ X = flipVar∼ (μ X)
+flipᵐ [] = []
+flipᵐ (v ∷ μ) = flipVar∼ v ∷ flipᵐ μ
+
+flipᵐ-‼ : ∀ {Δ} (μ : Env∼ Δ) X → flipᵐ μ ‼ X ≡ flipVar∼ (μ ‼ X)
+flipᵐ-‼ (v ∷ μ) zero = refl
+flipᵐ-‼ (v ∷ μ) (suc X) = flipᵐ-‼ μ X
+
+flipᵐ-‼⁻ : ∀ {Δ} (μ : Env∼ Δ) X {v}
+  → flipᵐ μ ‼ X ≡ v
+  → flipVar∼ (μ ‼ X) ≡ v
+flipᵐ-‼⁻ μ X eq = trans (sym (flipᵐ-‼ μ X)) eq
 
 flipEnv∼Eq : ∀ {Δ} {μ ν : Env∼ Δ}
   → Env∼Eq μ ν
   → Env∼Eq (flipᵐ μ) (flipᵐ ν)
-flipEnv∼Eq eq X = cong flipVar∼ (eq X)
+pointwise (flipEnv∼Eq {μ = μ} {ν} eq) X =
+  trans (flipᵐ-‼ μ X)
+    (trans (cong flipVar∼ (pointwise eq X)) (sym (flipᵐ-‼ ν X)))
 
 extEnv∼Eq : ∀ {Δ} {μ ν : Env∼ Δ}
   → Env∼Eq μ ν
   → Env∼Eq (extᵐ μ) (extᵐ ν)
-extEnv∼Eq eq zero = refl
-extEnv∼Eq eq (suc X) = eq X
+pointwise (extEnv∼Eq eq) zero = refl
+pointwise (extEnv∼Eq eq) (suc X) = pointwise eq X
 
 instEnv∼Eq : ∀ {Δ} {μ ν : Env∼ Δ}
   → Env∼Eq μ ν
   → Env∼Eq (instᵐ μ) (instᵐ ν)
-instEnv∼Eq eq zero = refl
-instEnv∼Eq eq (suc X) = eq X
+pointwise (instEnv∼Eq eq) zero = refl
+pointwise (instEnv∼Eq eq) (suc X) = pointwise eq X
 
 genEnv∼Eq : ∀ {Δ} {μ ν : Env∼ Δ}
   → Env∼Eq μ ν
   → Env∼Eq (genᵐ μ) (genᵐ ν)
-genEnv∼Eq eq zero = refl
-genEnv∼Eq eq (suc X) = eq X
+pointwise (genEnv∼Eq eq) zero = refl
+pointwise (genEnv∼Eq eq) (suc X) = pointwise eq X
 
 ----------------------------------------------------------------------
 -- Consistency
@@ -120,11 +151,11 @@ data _⊢_∼★ {Δ : TyCtx} (μ : Env∼ Δ) : Ty Δ → Set where
   ⇒∼★ : μ ⊢ (★ ⇒ ★) ∼★
   ι∼★ : ∀ {ι} → μ ⊢ ‵ ι ∼★
   X∼★ᵍ : ∀ {X}
-    → μ X ≡ X∼★
+    → μ ‼ X ≡ X∼★
       ---------------
     → μ ⊢ ＇ X ∼★
   X∼★ᶜ : ∀ {X}
-    → μ X ≡ ★∼X∼★
+    → μ ‼ X ≡ ★∼X∼★
       ---------------
     → μ ⊢ ＇ X ∼★
   ∀∼★ : μ ⊢ (`∀ ★) ∼★
@@ -133,11 +164,11 @@ data _⊢★∼_ {Δ : TyCtx} (μ : Env∼ Δ) : Ty Δ → Set where
   ★∼⇒ : μ ⊢★∼ (★ ⇒ ★)
   ★∼ι : ∀ {ι} → μ ⊢★∼ ‵ ι
   ★∼Xᵍ : ∀ {X}
-    → μ X ≡ ★∼X
+    → μ ‼ X ≡ ★∼X
       ---------------
     → μ ⊢★∼ ＇ X
   ★∼Xᶜ : ∀ {X}
-    → μ X ≡ ★∼X∼★
+    → μ ‼ X ≡ ★∼X∼★
       ---------------
     → μ ⊢★∼ ＇ X
   ★∼∀ : μ ⊢★∼ (`∀ ★)
@@ -151,14 +182,14 @@ data ★ToVar : Var∼ → Set where
   from★-cross : ★ToVar ★∼X∼★
 
 var-to★-gate : ∀ {Δ} {μ : Env∼ Δ} {X} {v}
-  → μ X ≡ v
+  → μ ‼ X ≡ v
   → VarTo★ v
   → μ ⊢ ＇ X ∼★
 var-to★-gate eq to★-dynamic = X∼★ᵍ eq
 var-to★-gate eq to★-cross = X∼★ᶜ eq
 
 ★-to-var-gate : ∀ {Δ} {μ : Env∼ Δ} {X} {v}
-  → μ X ≡ v
+  → μ ‼ X ≡ v
   → ★ToVar v
   → μ ⊢★∼ ＇ X
 ★-to-var-gate eq from★-dynamic = ★∼Xᵍ eq
@@ -182,7 +213,7 @@ instance
   to★-cross-instance = to★-cross
 
   ∼★-X-instance : ∀ {Δ} {μ : Env∼ Δ} {X}
-    → ⦃ mode : VarTo★ (μ X) ⦄
+    → ⦃ mode : VarTo★ (μ ‼ X) ⦄
     → μ ⊢ ＇ X ∼★
   ∼★-X-instance ⦃ mode ⦄ = var-to★-gate refl mode
 
@@ -202,7 +233,7 @@ instance
   from★-cross-instance = from★-cross
 
   ★∼-X-instance : ∀ {Δ} {μ : Env∼ Δ} {X}
-    → ⦃ mode : ★ToVar (μ X) ⦄
+    → ⦃ mode : ★ToVar (μ ‼ X) ⦄
     → μ ⊢★∼ ＇ X
   ★∼-X-instance ⦃ mode ⦄ = ★-to-var-gate refl mode
 
@@ -315,8 +346,8 @@ flip-∼★ : ∀ {Δ} {G : Ty Δ} {μ : Env∼ Δ}
   → flipᵐ μ ⊢★∼ G
 flip-∼★ ⇒∼★ = ★∼⇒
 flip-∼★ ι∼★ = ★∼ι
-flip-∼★ (X∼★ᵍ eq) = ★∼Xᵍ (cong flipVar∼ eq)
-flip-∼★ (X∼★ᶜ eq) = ★∼Xᶜ (cong flipVar∼ eq)
+flip-∼★ {μ = μ} (X∼★ᵍ eq) = ★∼Xᵍ (trans (flipᵐ-‼ μ _) (cong flipVar∼ eq))
+flip-∼★ {μ = μ} (X∼★ᶜ eq) = ★∼Xᶜ (trans (flipᵐ-‼ μ _) (cong flipVar∼ eq))
 flip-∼★ ∀∼★ = ★∼∀
 
 flip-★∼ : ∀ {Δ} {G : Ty Δ} {μ : Env∼ Δ}
@@ -324,8 +355,8 @@ flip-★∼ : ∀ {Δ} {G : Ty Δ} {μ : Env∼ Δ}
   → flipᵐ μ ⊢ G ∼★
 flip-★∼ ★∼⇒ = ⇒∼★
 flip-★∼ ★∼ι = ι∼★
-flip-★∼ (★∼Xᵍ eq) = X∼★ᵍ (cong flipVar∼ eq)
-flip-★∼ (★∼Xᶜ eq) = X∼★ᶜ (cong flipVar∼ eq)
+flip-★∼ {μ = μ} (★∼Xᵍ eq) = X∼★ᵍ (trans (flipᵐ-‼ μ _) (cong flipVar∼ eq))
+flip-★∼ {μ = μ} (★∼Xᶜ eq) = X∼★ᶜ (trans (flipᵐ-‼ μ _) (cong flipVar∼ eq))
 flip-★∼ ★∼∀ = ∀∼★
 
 transport-∼★ : ∀ {Δ} {μ ν : Env∼ Δ} {G : Ty Δ}
@@ -334,8 +365,8 @@ transport-∼★ : ∀ {Δ} {μ ν : Env∼ Δ} {G : Ty Δ}
   → ν ⊢ G ∼★
 transport-∼★ eq ⇒∼★ = ⇒∼★
 transport-∼★ eq ι∼★ = ι∼★
-transport-∼★ eq (X∼★ᵍ mode) = X∼★ᵍ (trans (sym (eq _)) mode)
-transport-∼★ eq (X∼★ᶜ mode) = X∼★ᶜ (trans (sym (eq _)) mode)
+transport-∼★ eq (X∼★ᵍ mode) = X∼★ᵍ (trans (sym (pointwise eq _)) mode)
+transport-∼★ eq (X∼★ᶜ mode) = X∼★ᶜ (trans (sym (pointwise eq _)) mode)
 transport-∼★ eq ∀∼★ = ∀∼★
 
 transport-★∼ : ∀ {Δ} {μ ν : Env∼ Δ} {G : Ty Δ}
@@ -344,29 +375,30 @@ transport-★∼ : ∀ {Δ} {μ ν : Env∼ Δ} {G : Ty Δ}
   → ν ⊢★∼ G
 transport-★∼ eq ★∼⇒ = ★∼⇒
 transport-★∼ eq ★∼ι = ★∼ι
-transport-★∼ eq (★∼Xᵍ mode) = ★∼Xᵍ (trans (sym (eq _)) mode)
-transport-★∼ eq (★∼Xᶜ mode) = ★∼Xᶜ (trans (sym (eq _)) mode)
+transport-★∼ eq (★∼Xᵍ mode) = ★∼Xᵍ (trans (sym (pointwise eq _)) mode)
+transport-★∼ eq (★∼Xᶜ mode) = ★∼Xᶜ (trans (sym (pointwise eq _)) mode)
 transport-★∼ eq ★∼∀ = ★∼∀
 
 flip-extᵐ : ∀ {Δ} {μ : Env∼ Δ}
   → Env∼Eq (flipᵐ (extᵐ μ)) (extᵐ (flipᵐ μ))
-flip-extᵐ zero = refl
-flip-extᵐ (suc X) = refl
+pointwise flip-extᵐ zero = refl
+pointwise flip-extᵐ (suc X) = refl
 
 flip-instᵐ : ∀ {Δ} {μ : Env∼ Δ}
   → Env∼Eq (flipᵐ (instᵐ μ)) (genᵐ (flipᵐ μ))
-flip-instᵐ zero = refl
-flip-instᵐ (suc X) = refl
+pointwise flip-instᵐ zero = refl
+pointwise flip-instᵐ (suc X) = refl
 
 flip-genᵐ : ∀ {Δ} {μ : Env∼ Δ}
   → Env∼Eq (flipᵐ (genᵐ μ)) (instᵐ (flipᵐ μ))
-flip-genᵐ zero = refl
-flip-genᵐ (suc X) = refl
+pointwise flip-genᵐ zero = refl
+pointwise flip-genᵐ (suc X) = refl
 
 private
 
   flip-idᵐ : ∀ {Δ} → Env∼Eq (flipᵐ (idᶜ {Δ})) idᶜ
-  flip-idᵐ X = refl
+  pointwise flip-idᵐ X =
+    trans (flipᵐ-‼ idᶜ X) (trans (cong flipVar∼ (idᶜ-‼ X)) (sym (idᶜ-‼ X)))
 
 transport-env∼ : ∀ {Δ} {μ ν : Env∼ Δ} {A B : Ty Δ}
   → Env∼Eq μ ν
@@ -444,22 +476,22 @@ private
 
 extᵐ-rename : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
   → (ρ : Δ ⇒ʳ Δ′)
-  → (∀ X → μ′ (ρ X) ≡ μ X)
-  → ∀ X → extᵐ μ′ (extᵗ ρ X) ≡ extᵐ μ X
+  → (∀ X → μ′ ‼ (ρ X) ≡ μ ‼ X)
+  → ∀ X → extᵐ μ′ ‼ (extᵗ ρ X) ≡ extᵐ μ ‼ X
 extᵐ-rename ρ eq zero = refl
 extᵐ-rename ρ eq (suc X) = eq X
 
 instᵐ-rename : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
   → (ρ : Δ ⇒ʳ Δ′)
-  → (∀ X → μ′ (ρ X) ≡ μ X)
-  → ∀ X → instᵐ μ′ (extᵗ ρ X) ≡ instᵐ μ X
+  → (∀ X → μ′ ‼ (ρ X) ≡ μ ‼ X)
+  → ∀ X → instᵐ μ′ ‼ (extᵗ ρ X) ≡ instᵐ μ ‼ X
 instᵐ-rename ρ eq zero = refl
 instᵐ-rename ρ eq (suc X) = eq X
 
 genᵐ-rename : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
   → (ρ : Δ ⇒ʳ Δ′)
-  → (∀ X → μ′ (ρ X) ≡ μ X)
-  → ∀ X → genᵐ μ′ (extᵗ ρ X) ≡ genᵐ μ X
+  → (∀ X → μ′ ‼ (ρ X) ≡ μ ‼ X)
+  → ∀ X → genᵐ μ′ ‼ (extᵗ ρ X) ≡ genᵐ μ ‼ X
 genᵐ-rename ρ eq zero = refl
 genᵐ-rename ρ eq (suc X) = eq X
 
@@ -487,7 +519,7 @@ renameGround ρ ∀★ = ∀★
 rename∼★ : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
     {G : Ty Δ}
   → (ρ : Δ ⇒ʳ Δ′)
-  → (∀ X → μ′ (ρ X) ≡ μ X)
+  → (∀ X → μ′ ‼ (ρ X) ≡ μ ‼ X)
   → μ ⊢ G ∼★
   → μ′ ⊢ renameᵗ ρ G ∼★
 rename∼★ ρ eq ⇒∼★ = ⇒∼★
@@ -501,7 +533,7 @@ rename∼★ ρ eq ∀∼★ = ∀∼★
 rename★∼ : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
     {G : Ty Δ}
   → (ρ : Δ ⇒ʳ Δ′)
-  → (∀ X → μ′ (ρ X) ≡ μ X)
+  → (∀ X → μ′ ‼ (ρ X) ≡ μ ‼ X)
   → μ ⊢★∼ G
   → μ′ ⊢★∼ renameᵗ ρ G
 rename★∼ ρ eq ★∼⇒ = ★∼⇒
@@ -514,14 +546,16 @@ rename★∼ ρ eq ★∼∀ = ★∼∀
 
 flip-rename-env : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
   → (ρ : Δ ⇒ʳ Δ′)
-  → (∀ X → μ′ (ρ X) ≡ μ X)
-  → ∀ X → flipᵐ μ′ (ρ X) ≡ flipᵐ μ X
-flip-rename-env ρ eq X = cong flipVar∼ (eq X)
+  → (∀ X → μ′ ‼ (ρ X) ≡ μ ‼ X)
+  → ∀ X → flipᵐ μ′ ‼ (ρ X) ≡ flipᵐ μ ‼ X
+flip-rename-env {μ = μ} {μ′} ρ eq X =
+  trans (flipᵐ-‼ μ′ (ρ X))
+    (trans (cong flipVar∼ (eq X)) (sym (flipᵐ-‼ μ X)))
 
 rename∼ : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
     {A B : Ty Δ}
   → (ρ : Δ ⇒ʳ Δ′)
-  → (∀ X → μ′ (ρ X) ≡ μ X)
+  → (∀ X → μ′ ‼ (ρ X) ≡ μ ‼ X)
   → μ ⊢ A ∼ B
   → μ′ ⊢ renameᵗ ρ A ∼ renameᵗ ρ B
 rename∼ ρ eq (id ★) = id ★
@@ -562,12 +596,12 @@ renameᶜ : ∀ {Δ Δ′} {A B : Ty Δ}
   → (ρ : Δ ⇒ʳ Δ′)
   → A ∼ B
   → renameᵗ ρ A ∼ renameᵗ ρ B
-renameᶜ ρ c = rename∼ ρ (λ X → refl) c
+renameᶜ ρ c = rename∼ ρ (λ X → idᶜ-≡ (ρ X) X) c
 
 renameEnvᶜ : ∀ {Δ Δ′} {μ : Env∼ Δ} {ν : Env∼ Δ′}
     {A B : Ty Δ}
   → (ρ : Δ ⇒ʳ Δ′)
-  → (∀ X → ν (ρ X) ≡ μ X)
+  → (∀ X → ν ‼ (ρ X) ≡ μ ‼ X)
   → μ ⊢ A ∼ B
   → ν ⊢ renameᵗ ρ A ∼ renameᵗ ρ B
 renameEnvᶜ = rename∼
@@ -598,17 +632,14 @@ wk↪ᵗ = skip id↪ᵗ
 
 renameEnv∼ : ∀ {Δ Δ′} → Δ ↪ᵗ Δ′ → Env∼ Δ → Env∼ Δ′
 renameEnv∼ empty μ = idᶜ
-renameEnv∼ (keep ρ) μ zero = μ zero
-renameEnv∼ (keep ρ) μ (suc X) =
-  renameEnv∼ ρ (λ Y → μ (suc Y)) X
-renameEnv∼ (skip ρ) μ zero = X∼X
-renameEnv∼ (skip ρ) μ (suc X) = renameEnv∼ ρ μ X
+renameEnv∼ (keep ρ) (v ∷ μ) = v ∷ renameEnv∼ ρ μ
+renameEnv∼ (skip ρ) μ = X∼X ∷ renameEnv∼ ρ μ
 
 renameEnv∼-preserves : ∀ {Δ Δ′} (ρ : Δ ↪ᵗ Δ′) (μ : Env∼ Δ)
-  → ∀ X → renameEnv∼ ρ μ (toRenameᵗ ρ X) ≡ μ X
-renameEnv∼-preserves (keep ρ) μ zero = refl
-renameEnv∼-preserves (keep ρ) μ (suc X) =
-  renameEnv∼-preserves ρ (λ Y → μ (suc Y)) X
+  → ∀ X → renameEnv∼ ρ μ ‼ toRenameᵗ ρ X ≡ μ ‼ X
+renameEnv∼-preserves (keep ρ) (v ∷ μ) zero = refl
+renameEnv∼-preserves (keep ρ) (v ∷ μ) (suc X) =
+  renameEnv∼-preserves ρ μ X
 renameEnv∼-preserves (skip ρ) μ X = renameEnv∼-preserves ρ μ X
 
 renameᵐᶜ : ∀ {Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
@@ -640,10 +671,10 @@ refl∼ (`∀ A) = ∀ᶜ (refl∼ A)
 mutual
   data To★OK {Δ : TyCtx} (μ : Env∼ Δ) : Ty Δ → Set where
     to★-X∼★ : ∀ {X}
-      → μ X ≡ X∼★
+      → μ ‼ X ≡ X∼★
       → To★OK μ (＇ X)
     to★-★∼X∼★ : ∀ {X}
-      → μ X ≡ ★∼X∼★
+      → μ ‼ X ≡ ★∼X∼★
       → To★OK μ (＇ X)
     to★-ι : ∀ {ι} → To★OK μ (‵ ι)
     to★-★ : To★OK μ ★
@@ -657,10 +688,10 @@ mutual
 
   data From★OK {Δ : TyCtx} (μ : Env∼ Δ) : Ty Δ → Set where
     from★-★∼X : ∀ {X}
-      → μ X ≡ ★∼X
+      → μ ‼ X ≡ ★∼X
       → From★OK μ (＇ X)
     from★-★∼X∼★ : ∀ {X}
-      → μ X ≡ ★∼X∼★
+      → μ ‼ X ≡ ★∼X∼★
       → From★OK μ (＇ X)
     from★-ι : ∀ {ι} → From★OK μ (‵ ι)
     from★-★ : From★OK μ ★
@@ -711,10 +742,10 @@ record SubstEnv∼ {Δ Δ′ : TyCtx}
   constructor subst-env∼
   field
     self : ∀ X → ν ⊢ σ X ∼ σ X
-    to-★ : ∀ X → μ X ≡ X∼★ → ν ⊢ σ X ∼ ★
-    from-★ : ∀ X → μ X ≡ ★∼X → ν ⊢ ★ ∼ σ X
-    cross-to-★ : ∀ X → μ X ≡ ★∼X∼★ → ν ⊢ σ X ∼ ★
-    cross-from-★ : ∀ X → μ X ≡ ★∼X∼★ → ν ⊢ ★ ∼ σ X
+    to-★ : ∀ X → μ ‼ X ≡ X∼★ → ν ⊢ σ X ∼ ★
+    from-★ : ∀ X → μ ‼ X ≡ ★∼X → ν ⊢ ★ ∼ σ X
+    cross-to-★ : ∀ X → μ ‼ X ≡ ★∼X∼★ → ν ⊢ σ X ∼ ★
+    cross-from-★ : ∀ X → μ ‼ X ≡ ★∼X∼★ → ν ⊢ ★ ∼ σ X
 
 open SubstEnv∼
 
@@ -732,27 +763,27 @@ ext-SubstEnv∼
   self′ (suc X) = rename∼ suc (λ Y → refl) (self X)
 
   to-★′ : ∀ X
-    → extᵐ _ X ≡ X∼★
+    → extᵐ _ ‼ X ≡ X∼★
     → extᵐ _ ⊢ extsᵗ _ X ∼ ★
   to-★′ zero ()
   to-★′ (suc X) eq = rename∼ suc (λ Y → refl) (to-★ X eq)
 
   from-★′ : ∀ X
-    → extᵐ _ X ≡ ★∼X
+    → extᵐ _ ‼ X ≡ ★∼X
     → extᵐ _ ⊢ ★ ∼ extsᵗ _ X
   from-★′ zero ()
   from-★′ (suc X) eq =
     rename∼ suc (λ Y → refl) (from-★ X eq)
 
   cross-to-★′ : ∀ X
-    → extᵐ _ X ≡ ★∼X∼★
+    → extᵐ _ ‼ X ≡ ★∼X∼★
     → extᵐ _ ⊢ extsᵗ _ X ∼ ★
   cross-to-★′ zero ()
   cross-to-★′ (suc X) eq =
     rename∼ suc (λ Y → refl) (cross-to-★ X eq)
 
   cross-from-★′ : ∀ X
-    → extᵐ _ X ≡ ★∼X∼★
+    → extᵐ _ ‼ X ≡ ★∼X∼★
     → extᵐ _ ⊢ ★ ∼ extsᵗ _ X
   cross-from-★′ zero ()
   cross-from-★′ (suc X) eq =
@@ -771,28 +802,28 @@ inst-SubstEnv∼ {ν = ν}
   self′ (suc X) = rename∼ suc (λ Y → refl) (self X)
 
   to-★′ : ∀ X
-    → instᵐ _ X ≡ X∼★
+    → instᵐ _ ‼ X ≡ X∼★
     → instᵐ _ ⊢ extsᵗ _ X ∼ ★
   to-★′ zero eq =
     _! ⦃ G∼★ = X∼★ᵍ refl ⦄ (id (＇ zero))
   to-★′ (suc X) eq = rename∼ suc (λ Y → refl) (to-★ X eq)
 
   from-★′ : ∀ X
-    → instᵐ _ X ≡ ★∼X
+    → instᵐ _ ‼ X ≡ ★∼X
     → instᵐ _ ⊢ ★ ∼ extsᵗ _ X
   from-★′ zero ()
   from-★′ (suc X) eq =
     rename∼ suc (λ Y → refl) (from-★ X eq)
 
   cross-to-★′ : ∀ X
-    → instᵐ _ X ≡ ★∼X∼★
+    → instᵐ _ ‼ X ≡ ★∼X∼★
     → instᵐ _ ⊢ extsᵗ _ X ∼ ★
   cross-to-★′ zero ()
   cross-to-★′ (suc X) eq =
     rename∼ suc (λ Y → refl) (cross-to-★ X eq)
 
   cross-from-★′ : ∀ X
-    → instᵐ _ X ≡ ★∼X∼★
+    → instᵐ _ ‼ X ≡ ★∼X∼★
     → instᵐ _ ⊢ ★ ∼ extsᵗ _ X
   cross-from-★′ zero ()
   cross-from-★′ (suc X) eq =
@@ -811,13 +842,13 @@ gen-SubstEnv∼ {ν = ν}
   self′ (suc X) = rename∼ suc (λ Y → refl) (self X)
 
   to-★′ : ∀ X
-    → genᵐ _ X ≡ X∼★
+    → genᵐ _ ‼ X ≡ X∼★
     → genᵐ _ ⊢ extsᵗ _ X ∼ ★
   to-★′ zero ()
   to-★′ (suc X) eq = rename∼ suc (λ Y → refl) (to-★ X eq)
 
   from-★′ : ∀ X
-    → genᵐ _ X ≡ ★∼X
+    → genᵐ _ ‼ X ≡ ★∼X
     → genᵐ _ ⊢ ★ ∼ extsᵗ _ X
   from-★′ zero eq =
     ？_ ⦃ ★∼G = ★∼Xᵍ refl ⦄ (id (＇ zero))
@@ -825,14 +856,14 @@ gen-SubstEnv∼ {ν = ν}
     rename∼ suc (λ Y → refl) (from-★ X eq)
 
   cross-to-★′ : ∀ X
-    → genᵐ _ X ≡ ★∼X∼★
+    → genᵐ _ ‼ X ≡ ★∼X∼★
     → genᵐ _ ⊢ extsᵗ _ X ∼ ★
   cross-to-★′ zero ()
   cross-to-★′ (suc X) eq =
     rename∼ suc (λ Y → refl) (cross-to-★ X eq)
 
   cross-from-★′ : ∀ X
-    → genᵐ _ X ≡ ★∼X∼★
+    → genᵐ _ ‼ X ≡ ★∼X∼★
     → genᵐ _ ⊢ ★ ∼ extsᵗ _ X
   cross-from-★′ zero ()
   cross-from-★′ (suc X) eq =
@@ -850,26 +881,30 @@ flip-SubstEnv∼ {μ = μ} {ν = ν} {σ = σ}
   self′ X = sym∼ (self X)
 
   to-★′ : ∀ X
-    → flipᵐ μ X ≡ X∼★
+    → flipᵐ μ ‼ X ≡ X∼★
     → flipᵐ ν ⊢ σ X ∼ ★
-  to-★′ X eq = sym∼ (from-★ X (flipVar∼-to-X∼★ eq))
+  to-★′ X eq = sym∼ (from-★ X (flipVar∼-to-X∼★
+      (flipᵐ-‼⁻ μ X eq)))
 
   from-★′ : ∀ X
-    → flipᵐ μ X ≡ ★∼X
+    → flipᵐ μ ‼ X ≡ ★∼X
     → flipᵐ ν ⊢ ★ ∼ σ X
-  from-★′ X eq = sym∼ (to-★ X (flipVar∼-to-★∼X eq))
+  from-★′ X eq = sym∼ (to-★ X (flipVar∼-to-★∼X
+      (flipᵐ-‼⁻ μ X eq)))
 
   cross-to-★′ : ∀ X
-    → flipᵐ μ X ≡ ★∼X∼★
+    → flipᵐ μ ‼ X ≡ ★∼X∼★
     → flipᵐ ν ⊢ σ X ∼ ★
   cross-to-★′ X eq =
-    sym∼ (cross-from-★ X (flipVar∼-to-★∼X∼★ eq))
+    sym∼ (cross-from-★ X (flipVar∼-to-★∼X∼★
+      (flipᵐ-‼⁻ μ X eq)))
 
   cross-from-★′ : ∀ X
-    → flipᵐ μ X ≡ ★∼X∼★
+    → flipᵐ μ ‼ X ≡ ★∼X∼★
     → flipᵐ ν ⊢ ★ ∼ σ X
   cross-from-★′ X eq =
-    sym∼ (cross-to-★ X (flipVar∼-to-★∼X∼★ eq))
+    sym∼ (cross-to-★ X (flipVar∼-to-★∼X∼★
+      (flipᵐ-‼⁻ μ X eq)))
 
 subst-∈ᵗ : ∀ {Δ Δ′} {σ : Δ ⇒ˢ Δ′} {X : TyVar Δ}
     {Y : TyVar Δ′} {A : Ty Δ}
@@ -999,7 +1034,7 @@ subst-to-star-var : ∀ {Δ Δ′} {μ : Env∼ Δ} {ν : Env∼ Δ′}
     {σ : Δ ⇒ˢ Δ′} {A : Ty Δ} {X}
   → SubstEnv∼ μ ν σ
   → μ ⊢ A ∼ ＇ X
-  → μ X ≡ X∼★
+  → μ ‼ X ≡ X∼★
   → NonStar A
   → ν ⊢ substᵗ σ A ∼ ★
 subst-to-star-var s (id (＇ X)) eq Ans = to-★ s X eq
@@ -1011,7 +1046,7 @@ subst-cross-to-star-var : ∀ {Δ Δ′} {μ : Env∼ Δ} {ν : Env∼ Δ′}
     {σ : Δ ⇒ˢ Δ′} {A : Ty Δ} {X}
   → SubstEnv∼ μ ν σ
   → μ ⊢ A ∼ ＇ X
-  → μ X ≡ ★∼X∼★
+  → μ ‼ X ≡ ★∼X∼★
   → NonStar A
   → ν ⊢ substᵗ σ A ∼ ★
 subst-cross-to-star-var s (id (＇ X)) eq Ans = cross-to-★ s X eq
@@ -1024,7 +1059,7 @@ subst-from-star-var : ∀ {Δ Δ′} {μ : Env∼ Δ} {ν : Env∼ Δ′}
     {σ : Δ ⇒ˢ Δ′} {B : Ty Δ} {X}
   → SubstEnv∼ μ ν σ
   → μ ⊢ ＇ X ∼ B
-  → μ X ≡ ★∼X
+  → μ ‼ X ≡ ★∼X
   → NonStar B
   → ν ⊢ ★ ∼ substᵗ σ B
 subst-from-star-var s (id (＇ X)) eq Bns = from-★ s X eq
@@ -1036,7 +1071,7 @@ subst-cross-from-star-var : ∀ {Δ Δ′} {μ : Env∼ Δ}
     {ν : Env∼ Δ′} {σ : Δ ⇒ˢ Δ′} {B : Ty Δ} {X}
   → SubstEnv∼ μ ν σ
   → μ ⊢ ＇ X ∼ B
-  → μ X ≡ ★∼X∼★
+  → μ ‼ X ≡ ★∼X∼★
   → NonStar B
   → ν ⊢ ★ ∼ substᵗ σ B
 subst-cross-from-star-var s (id (＇ X)) eq Bns =
@@ -1061,7 +1096,7 @@ private
 inst-to-var-occurs-impossible : ∀ {Δ} {μ : Env∼ Δ}
     {A : Ty (suc Δ)} {X}
   → instᵐ μ ⊢ A ∼ ＇ X
-  → instᵐ μ X ≡ X∼★
+  → instᵐ μ ‼ X ≡ X∼★
   → NonVar A
   → X ∈ᵗ A
   → ⊥
@@ -1075,7 +1110,7 @@ inst-to-var-occurs-impossible
 gen-from-var-occurs-impossible : ∀ {Δ} {μ : Env∼ Δ}
     {B : Ty (suc Δ)} {X}
   → genᵐ μ ⊢ ＇ X ∼ B
-  → genᵐ μ X ≡ ★∼X
+  → genᵐ μ ‼ X ≡ ★∼X
   → NonVar B
   → X ∈ᵗ B
   → ⊥
@@ -1265,7 +1300,7 @@ close-inst-self : ∀ {Δ} {μ : Env∼ Δ} (X : TyVar (suc Δ))
 close-inst-self X = refl∼ (singleSubᵗ ★ X)
 
 close-inst-to-★ : ∀ {Δ} {μ : Env∼ Δ} (X : TyVar (suc Δ))
-  → instᵐ μ X ≡ X∼★
+  → instᵐ μ ‼ X ≡ X∼★
   → μ ⊢ singleSubᵗ ★ X ∼ ★
 close-inst-to-★ zero eq = id ★
 close-inst-to-★ {μ = μ} (suc X) eq =
@@ -1273,7 +1308,7 @@ close-inst-to-★ {μ = μ} (suc X) eq =
     ⦃ nonstar-X ⦄
 
 close-inst-from-★ : ∀ {Δ} {μ : Env∼ Δ} (X : TyVar (suc Δ))
-  → instᵐ μ X ≡ ★∼X
+  → instᵐ μ ‼ X ≡ ★∼X
   → μ ⊢ ★ ∼ singleSubᵗ ★ X
 close-inst-from-★ zero ()
 close-inst-from-★ {μ = μ} (suc X) eq =
@@ -1282,7 +1317,7 @@ close-inst-from-★ {μ = μ} (suc X) eq =
 
 close-inst-cross-to-★ : ∀ {Δ} {μ : Env∼ Δ}
     (X : TyVar (suc Δ))
-  → instᵐ μ X ≡ ★∼X∼★
+  → instᵐ μ ‼ X ≡ ★∼X∼★
   → μ ⊢ singleSubᵗ ★ X ∼ ★
 close-inst-cross-to-★ zero ()
 close-inst-cross-to-★ {μ = μ} (suc X) eq =
@@ -1290,11 +1325,16 @@ close-inst-cross-to-★ {μ = μ} (suc X) eq =
 
 close-inst-cross-from-★ : ∀ {Δ} {μ : Env∼ Δ}
     (X : TyVar (suc Δ))
-  → instᵐ μ X ≡ ★∼X∼★
+  → instᵐ μ ‼ X ≡ ★∼X∼★
   → μ ⊢ ★ ∼ singleSubᵗ ★ X
 close-inst-cross-from-★ zero ()
 close-inst-cross-from-★ {μ = μ} (suc X) eq =
   ？_ ⦃ ★∼G = ★∼Xᶜ eq ⦄ (id (＇ X)) ⦃ nonstar-X ⦄
+
+close-inst-env : ∀ {Δ} {μ : Env∼ Δ}
+  → SubstEnv∼ (instᵐ μ) μ (singleSubᵗ ★)
+close-inst-env = subst-env∼ close-inst-self close-inst-to-★
+  close-inst-from-★ close-inst-cross-to-★ close-inst-cross-from-★
 
 close-instᶜ : ∀ {Δ} {μ : Env∼ Δ} {A : Ty (suc Δ)} {B : Ty Δ}
   → instᵐ μ ⊢ A ∼ ⇑ᵗ B
@@ -1315,7 +1355,7 @@ private
   close-gen-self X = refl∼ (singleSubᵗ ★ X)
 
   close-gen-to-★ : ∀ {Δ} {μ : Env∼ Δ} (X : TyVar (suc Δ))
-    → genᵐ μ X ≡ X∼★
+    → genᵐ μ ‼ X ≡ X∼★
     → μ ⊢ singleSubᵗ ★ X ∼ ★
   close-gen-to-★ zero ()
   close-gen-to-★ {μ = μ} (suc X) eq =
@@ -1323,7 +1363,7 @@ private
       ⦃ nonstar-X ⦄
 
   close-gen-from-★ : ∀ {Δ} {μ : Env∼ Δ} (X : TyVar (suc Δ))
-    → genᵐ μ X ≡ ★∼X
+    → genᵐ μ ‼ X ≡ ★∼X
     → μ ⊢ ★ ∼ singleSubᵗ ★ X
   close-gen-from-★ zero eq = id ★
   close-gen-from-★ {μ = μ} (suc X) eq =
@@ -1332,7 +1372,7 @@ private
 
   close-gen-cross-to-★ : ∀ {Δ} {μ : Env∼ Δ}
       (X : TyVar (suc Δ))
-    → genᵐ μ X ≡ ★∼X∼★
+    → genᵐ μ ‼ X ≡ ★∼X∼★
     → μ ⊢ singleSubᵗ ★ X ∼ ★
   close-gen-cross-to-★ zero ()
   close-gen-cross-to-★ {μ = μ} (suc X) eq =
@@ -1340,7 +1380,7 @@ private
 
   close-gen-cross-from-★ : ∀ {Δ} {μ : Env∼ Δ}
       (X : TyVar (suc Δ))
-    → genᵐ μ X ≡ ★∼X∼★
+    → genᵐ μ ‼ X ≡ ★∼X∼★
     → μ ⊢ ★ ∼ singleSubᵗ ★ X
   close-gen-cross-from-★ zero ()
   close-gen-cross-from-★ {μ = μ} (suc X) eq =
@@ -1365,7 +1405,7 @@ private
 
   open-to-★ : ∀ {Δ} {μ : Env∼ Δ} (C : Ty Δ)
       (X : TyVar (suc Δ))
-    → extᵐ μ X ≡ X∼★
+    → extᵐ μ ‼ X ≡ X∼★
     → μ ⊢ singleSubᵗ C X ∼ ★
   open-to-★ C zero ()
   open-to-★ {μ = μ} C (suc X) eq =
@@ -1374,7 +1414,7 @@ private
 
   open-from-★ : ∀ {Δ} {μ : Env∼ Δ} (C : Ty Δ)
       (X : TyVar (suc Δ))
-    → extᵐ μ X ≡ ★∼X
+    → extᵐ μ ‼ X ≡ ★∼X
     → μ ⊢ ★ ∼ singleSubᵗ C X
   open-from-★ C zero ()
   open-from-★ {μ = μ} C (suc X) eq =
@@ -1383,7 +1423,7 @@ private
 
   open-cross-to-★ : ∀ {Δ} {μ : Env∼ Δ} (C : Ty Δ)
       (X : TyVar (suc Δ))
-    → extᵐ μ X ≡ ★∼X∼★
+    → extᵐ μ ‼ X ≡ ★∼X∼★
     → μ ⊢ singleSubᵗ C X ∼ ★
   open-cross-to-★ C zero ()
   open-cross-to-★ {μ = μ} C (suc X) eq =
@@ -1391,7 +1431,7 @@ private
 
   open-cross-from-★ : ∀ {Δ} {μ : Env∼ Δ} (C : Ty Δ)
       (X : TyVar (suc Δ))
-    → extᵐ μ X ≡ ★∼X∼★
+    → extᵐ μ ‼ X ≡ ★∼X∼★
     → μ ⊢ ★ ∼ singleSubᵗ C X
   open-cross-from-★ C zero ()
   open-cross-from-★ {μ = μ} C (suc X) eq =

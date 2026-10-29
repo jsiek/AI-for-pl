@@ -10,6 +10,7 @@ module proof.DGG.ReachabilityScreen where
 
 open import Data.Bool using (Bool; false; true; _∧_; _∨_)
 open import Data.Fin using (Fin)
+import Data.Vec as Vec
 import Data.Fin as Fin
 open import Data.List using (List; []; _∷_; _++_)
 open import Data.Maybe using (Maybe; just; nothing)
@@ -253,7 +254,7 @@ crossing-suspect e =
 ------------------------------------------------------------------------
 
 tag-env : Env∼ 1
-tag-env Fin.zero = X∼★
+tag-env = X∼★ Vec.∷ Vec.[]
 
 tag-var! : tag-env ⊢ ＇ Fin.zero ∼ ★
 tag-var! = id (＇ Fin.zero) !

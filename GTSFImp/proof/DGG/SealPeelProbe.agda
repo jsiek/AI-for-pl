@@ -10,6 +10,7 @@ module proof.DGG.SealPeelProbe where
 
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
+import Data.Vec as Vec
 open import Data.List using ([])
 open import Data.Maybe using (just)
 open import Data.Product using (_,_)
@@ -143,11 +144,10 @@ probe-Y-seal-⊢ = Conv.⊢↓-sealˣ probe-tgt-Y∋
 
 private
   probe-src-env : Env∼ 2
-  probe-src-env Fin.zero = X∼★
-  probe-src-env (Fin.suc Fin.zero) = X∼★
+  probe-src-env = X∼★ Vec.∷ X∼★ Vec.∷ Vec.[]
 
   probe-tgt-env : Env∼ 1
-  probe-tgt-env Fin.zero = X∼★
+  probe-tgt-env = X∼★ Vec.∷ Vec.[]
 
   probe-ℕ!ᴸ : probe-src-env ⊢ (‵ `ℕ) ∼ ★
   probe-ℕ!ᴸ = id (‵ `ℕ) !

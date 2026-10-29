@@ -10,6 +10,7 @@ module proof.DGG.ChainRideProbe where
 
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
+import Data.Vec as Vec
 open import Data.List using ([])
 open import Data.Maybe using (just)
 open import Data.Product using (Σ-syntax; _×_; _,_)
@@ -122,11 +123,10 @@ probe-Z₃-seal-⊢ = Conv.⊢↓-sealˣ probe-Z₃∋
 
 private
   probe-source-env : Env∼ 2
-  probe-source-env Fin.zero = X∼★
-  probe-source-env (Fin.suc Fin.zero) = X∼★
+  probe-source-env = X∼★ Vec.∷ X∼★ Vec.∷ Vec.[]
 
   probe-target-env : Env∼ 1
-  probe-target-env Fin.zero = X∼★
+  probe-target-env = X∼★ Vec.∷ Vec.[]
 
   probe-ℕ!ᴸ : probe-source-env ⊢ (‵ `ℕ) ∼ ★
   probe-ℕ!ᴸ = id (‵ `ℕ) !

@@ -137,7 +137,7 @@ swap-target-occurs ρ B z =
 genᴱ : ∀ {Δ Δ′} {ν : Env∼ Δ} {μ : Env∼ Δ′} {C B : Ty Δ}
   → (ρ : Δ ⇒ʳ sucℕ Δ′)
   → (∀ {X Y} → ρ X ≡ ρ Y → X ≡ Y)
-  → (∀ X → genᵐ μ (ρ X) ≡ ν X)
+  → (∀ X → genᵐ μ ‼ (ρ X) ≡ ν ‼ X)
   → ν ⊢ C ∼ B
   → (A : Ty Δ′)
   → renameᵗ ρ C ≡ ⇑ᵗ A

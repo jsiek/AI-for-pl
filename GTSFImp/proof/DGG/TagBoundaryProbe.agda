@@ -10,6 +10,7 @@ module proof.DGG.TagBoundaryProbe where
 
 open import Data.Empty using (⊥-elim)
 import Data.Fin as Fin
+import Data.Vec as Vec
 open import Data.List using ([])
 open import Data.Maybe using (just)
 open import Relation.Binary.PropositionalEquality
@@ -125,11 +126,10 @@ probe-Y′-seal-⊢ = Conv.⊢↓-sealˣ probe-tgt-Y′∋
 
 private
   probe-src-env : Env∼ 1
-  probe-src-env Fin.zero = X∼★
+  probe-src-env = X∼★ Vec.∷ Vec.[]
 
   probe-tgt-env : Env∼ 2
-  probe-tgt-env Fin.zero = X∼★
-  probe-tgt-env (Fin.suc Fin.zero) = X∼★
+  probe-tgt-env = X∼★ Vec.∷ X∼★ Vec.∷ Vec.[]
 
   probe-ℕ!ᴸ : probe-src-env ⊢ (‵ `ℕ) ∼ ★
   probe-ℕ!ᴸ = id (‵ `ℕ) !

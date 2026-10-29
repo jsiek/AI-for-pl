@@ -31,14 +31,14 @@ import Imprecision as I
 ------------------------------------------------------------------------
 
 leftᵐ : ∀ {Δ} → C.Env∼ Δ → I.ImpEnv Δ
-leftᵐ μ X with μ X
+leftᵐ μ X with μ C.‼ X
 leftᵐ μ X | C.X∼X = I.X⊑X
 leftᵐ μ X | C.★∼X∼★ = I.X⊑X
 leftᵐ μ X | C.X∼★ = I.X⊑X
 leftᵐ μ X | C.★∼X = I.X⊑★
 
 rightᵐ : ∀ {Δ} → C.Env∼ Δ → I.ImpEnv Δ
-rightᵐ μ X with μ X
+rightᵐ μ X with μ C.‼ X
 rightᵐ μ X | C.X∼X = I.X⊑X
 rightᵐ μ X | C.★∼X∼★ = I.X⊑X
 rightᵐ μ X | C.X∼★ = I.X⊑★

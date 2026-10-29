@@ -477,11 +477,11 @@ only strengthens the clauses.
 1. **Renaming terms.**
    * Needed: `renameᵗᵐ π (renameᵗᵐ η M) ≡ renameᵗᵐ (π ∘↪ η) M`, and
      the identity law.
-   * Casts carry their mode environments `Env∼ Δ = TyVar Δ → Var∼` as
-     functions, so equality of renamed terms needs function
-     extensionality.  `AGENTS.md` allows it, localized.
-   * Under `--safe` it has to be a module parameter
-     (`Axiom.Extensionality.Propositional`), not a postulate.
+   * Mode environments are vectors, `Env∼ Δ = Vec Var∼ Δ`, read with
+     `μ ‼ X`.  They used to be functions `TyVar Δ → Var∼`, so equality
+     of renamed terms needed function extensionality; as vectors,
+     terms are first-order data and it does not.  The change is one
+     of representation only: the same modes, the same rules.
    * The cast case is equality-heavy: the cast's types change by
      `renameᵗ-comp`, and the inner equality proofs need uniqueness of
      identity proofs, which Agda's default K provides.

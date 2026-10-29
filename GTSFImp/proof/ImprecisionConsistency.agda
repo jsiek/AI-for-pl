@@ -36,40 +36,42 @@ data VarLower : Var∼ → I.VarImp → I.VarImp → Set where
   var-from-star : VarLower ★∼X I.X⊑★ I.X⊑X
   both-to-star : VarLower X∼X I.X⊑★ I.X⊑★
 
-LowerEnv : ∀ {Δ}
-  → Env∼ Δ
-  → I.ImpEnv Δ
-  → I.ImpEnv Δ
-  → Set
-LowerEnv μ φ ψ = ∀ X → VarLower (μ X) (φ X) (ψ X)
+-- a record, so that unification can recover μ from a LowerEnv type
+record LowerEnv {Δ} (μ : Env∼ Δ) (φ ψ : I.ImpEnv Δ) : Set where
+  constructor lower-env
+  field
+    lowerAt : ∀ X → VarLower (μ ‼ X) (φ X) (ψ X)
+
+open LowerEnv public
 
 extend-lower-env : ∀ {μ : Env∼ Δ} {φ ψ}
   → LowerEnv μ φ ψ
   → LowerEnv (extᵐ μ) (I.extᵐ φ) (I.extᵐ ψ)
-extend-lower-env h zero = var-refl
-extend-lower-env h (suc X) = h X
+lowerAt (extend-lower-env h) zero = var-refl
+lowerAt (extend-lower-env h) (suc X) = lowerAt h X
 
 instantiate-right-lower-env : ∀ {μ : Env∼ Δ} {φ ψ}
   → LowerEnv μ φ ψ
   → LowerEnv (instᵐ μ) (I.extᵐ φ) (I.instᵐ ψ)
-instantiate-right-lower-env h zero = var-to-star
-instantiate-right-lower-env h (suc X) = h X
+lowerAt (instantiate-right-lower-env h) zero = var-to-star
+lowerAt (instantiate-right-lower-env h) (suc X) = lowerAt h X
 
 instantiate-left-lower-env : ∀ {μ : Env∼ Δ} {φ ψ}
   → LowerEnv μ φ ψ
   → LowerEnv (genᵐ μ) (I.instᵐ φ) (I.extᵐ ψ)
-instantiate-left-lower-env h zero = var-from-star
-instantiate-left-lower-env h (suc X) = h X
+lowerAt (instantiate-left-lower-env h) zero = var-from-star
+lowerAt (instantiate-left-lower-env h) (suc X) = lowerAt h X
 
 instantiate-both-lower-env : ∀ {μ : Env∼ Δ} {φ ψ}
   → LowerEnv μ φ ψ
   → LowerEnv (extᵐ μ) (I.instᵐ φ) (I.instᵐ ψ)
-instantiate-both-lower-env h zero = both-to-star
-instantiate-both-lower-env h (suc X) = h X
+lowerAt (instantiate-both-lower-env h) zero = both-to-star
+lowerAt (instantiate-both-lower-env h) (suc X) = lowerAt h X
 
 identity-lower-env : ∀ {Δ}
   → LowerEnv (idᶜ {Δ}) (I.idᵐ {Δ}) (I.idᵐ {Δ})
-identity-lower-env X = cross-refl
+lowerAt identity-lower-env X =
+  subst (λ r → VarLower r _ _) (sym (idᶜ-‼ X)) cross-refl
 
 flip-var-lower : ∀ {r φ ψ}
   → VarLower r φ ψ
@@ -83,7 +85,9 @@ flip-var-lower both-to-star = both-to-star
 flip-lower-env : ∀ {μ : Env∼ Δ} {φ ψ}
   → LowerEnv μ φ ψ
   → LowerEnv (flipᵐ μ) ψ φ
-flip-lower-env h X = flip-var-lower (h X)
+lowerAt (flip-lower-env {μ = μ} h) X =
+  subst (λ r → VarLower r _ _) (sym (flipᵐ-‼ μ X))
+    (flip-var-lower (lowerAt h X))
 
 right-star-from-var-lower : ∀ {r l u}
   → VarLower r l u
@@ -359,11 +363,11 @@ base-right-to-star h (I.∀⊑ Anv z∈A p) =
 var-right-to-star : ∀ {Δ} {μ : Env∼ Δ} {φ ψ} {D : Ty Δ}
     {X}
   → LowerEnv μ φ ψ
-  → μ X ≡ X∼★
+  → μ ‼ X ≡ X∼★
   → I._⊢_⊑_ ψ D (＇ X)
   → I._⊢_⊑_ ψ D ★
 var-right-to-star {X = X} h eq I.X⊑X =
-  I.X⊑★ (right-star-from-var-lower (h X) eq)
+  I.X⊑★ (right-star-from-var-lower (lowerAt h X) eq)
 var-right-to-star h eq (I.∀⊑ Anv z∈A p) =
   I.∀⊑ Anv z∈A
     (var-right-to-star (instantiate-right-lower-env h) eq p)
@@ -390,11 +394,11 @@ base-left-to-star h (I.∀⊑ Anv z∈A p) =
 var-left-to-star : ∀ {Δ} {μ : Env∼ Δ} {φ ψ} {D : Ty Δ}
     {X}
   → LowerEnv μ φ ψ
-  → μ X ≡ ★∼X
+  → μ ‼ X ≡ ★∼X
   → I._⊢_⊑_ φ D (＇ X)
   → I._⊢_⊑_ φ D ★
 var-left-to-star {X = X} h eq I.X⊑X =
-  I.X⊑★ (left-star-from-var-lower (h X) eq)
+  I.X⊑★ (left-star-from-var-lower (lowerAt h X) eq)
 var-left-to-star h eq (I.∀⊑ Anv z∈A p) =
   I.∀⊑ Anv z∈A
     (var-left-to-star (instantiate-left-lower-env h) eq p)
@@ -430,7 +434,7 @@ data CrossFree∼★ : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {G : Ty Δ}
     → CrossFree∼★ (⇒∼★ {μ = μ})
   cf-ι∼★ : ∀ {Δ} {μ : Env∼ Δ} {ι}
     → CrossFree∼★ (ι∼★ {μ = μ} {ι = ι})
-  cf-X∼★ᵍ : ∀ {Δ} {μ : Env∼ Δ} {X} {eq : μ X ≡ X∼★}
+  cf-X∼★ᵍ : ∀ {Δ} {μ : Env∼ Δ} {X} {eq : μ ‼ X ≡ X∼★}
     → CrossFree∼★ (X∼★ᵍ {μ = μ} {X = X} eq)
   cf-∀∼★ : ∀ {Δ} {μ : Env∼ Δ}
     → CrossFree∼★ (∀∼★ {μ = μ})
@@ -441,7 +445,7 @@ data CrossFree★∼ : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {G : Ty Δ}
     → CrossFree★∼ (★∼⇒ {μ = μ})
   cf-★∼ι : ∀ {Δ} {μ : Env∼ Δ} {ι}
     → CrossFree★∼ (★∼ι {μ = μ} {ι = ι})
-  cf-★∼Xᵍ : ∀ {Δ} {μ : Env∼ Δ} {X} {eq : μ X ≡ ★∼X}
+  cf-★∼Xᵍ : ∀ {Δ} {μ : Env∼ Δ} {X} {eq : μ ‼ X ≡ ★∼X}
     → CrossFree★∼ (★∼Xᵍ {μ = μ} {X = X} eq)
   cf-★∼∀ : ∀ {Δ} {μ : Env∼ Δ}
     → CrossFree★∼ (★∼∀ {μ = μ})
@@ -694,18 +698,19 @@ consistency-var-self-not-cross : X∼X ≡ ★∼X∼★ → ⊥
 consistency-var-self-not-cross ()
 
 flip-self-mode : ∀ {Δ : TyCtx} {ν : Env∼ Δ} {X : TyVar Δ}
-  → ν X ≡ X∼X
-  → flipᵐ ν X ≡ X∼X
-flip-self-mode same = cong flipVar∼ same
+  → ν ‼ X ≡ X∼X
+  → flipᵐ ν ‼ X ≡ X∼X
+flip-self-mode {ν = ν} {X} same = trans (flipᵐ-‼ ν X) (cong flipVar∼ same)
 
 flip-flip-self-mode : ∀ {Δ : TyCtx} {ν : Env∼ Δ} {X : TyVar Δ}
-  → ν X ≡ X∼X
-  → flipᵐ (flipᵐ ν) X ≡ X∼X
-flip-flip-self-mode same = cong flipVar∼ (cong flipVar∼ same)
+  → ν ‼ X ≡ X∼X
+  → flipᵐ (flipᵐ ν) ‼ X ≡ X∼X
+flip-flip-self-mode {ν = ν} {X} same =
+  flip-self-mode {ν = flipᵐ ν} (flip-self-mode {ν = ν} same)
 
 ground-self-occurs⊥ : ∀ {Δ : TyCtx} {ν : Env∼ Δ} {X : TyVar Δ}
     {G : Ty Δ}
-  → ν X ≡ X∼X
+  → ν ‼ X ≡ X∼X
   → ν ⊢ G ∼★
   → X ∈ᵗ G
   → ⊥
@@ -720,7 +725,7 @@ ground-self-occurs⊥ same ∀∼★ (∈-all ())
 
 ground-self-occurs★∼⊥ : ∀ {Δ : TyCtx} {ν : Env∼ Δ} {X : TyVar Δ}
     {G : Ty Δ}
-  → ν X ≡ X∼X
+  → ν ‼ X ≡ X∼X
   → ν ⊢★∼ G
   → X ∈ᵗ G
   → ⊥
@@ -736,7 +741,7 @@ ground-self-occurs★∼⊥ same ★∼∀ (∈-all ())
 mutual
   consistency-source-occurs-target : ∀ {Δ : TyCtx} {ν : Env∼ Δ}
       {X : TyVar Δ} {A B : Ty Δ}
-    → ν X ≡ X∼X
+    → ν ‼ X ≡ X∼X
     → ν ⊢ A ∼ B
     → X ∈ᵗ A
     → X ∈ᵗ B
@@ -782,7 +787,7 @@ mutual
 
   consistency-target-occurs-source : ∀ {Δ : TyCtx} {ν : Env∼ Δ}
       {X : TyVar Δ} {A B : Ty Δ}
-    → ν X ≡ X∼X
+    → ν ‼ X ≡ X∼X
     → ν ⊢ A ∼ B
     → X ∈ᵗ B
     → X ∈ᵗ A
@@ -1103,7 +1108,7 @@ zero-not-consistent-shift-ground ∀★
 
 consistent-self-var-nonvar-occurs⊥ : ∀ {Δ} {ν : Env∼ Δ}
     {X : TyVar Δ} {B : Ty Δ}
-  → ν X ≡ X∼X
+  → ν ‼ X ≡ X∼X
   → ν ⊢ ＇ X ∼ B
   → NonVar B
   → X ∈ᵗ B
@@ -1635,13 +1640,13 @@ avoid-under-inst-both safe (suc X) eqL eqR | X∉A , X∉B =
   shift-not-occurs X∉A , shift-not-occurs X∉B
 
 variable-to-star : ∀ {Δ} {μ : Env∼ Δ} {X : TyVar Δ}
-  → μ X ≡ X∼★
+  → μ ‼ X ≡ X∼★
   → μ ⊢ ＇ X ∼ ★
 variable-to-star eq =
   _! ⦃ G∼★ = X∼★ᵍ eq ⦄ (id (＇ _)) ⦃ nonstar-X ⦄
 
 star-to-variable : ∀ {Δ} {μ : Env∼ Δ} {X : TyVar Δ}
-  → μ X ≡ ★∼X
+  → μ ‼ X ≡ ★∼X
   → μ ⊢ ★ ∼ ＇ X
 star-to-variable eq =
   ？_ ⦃ ★∼G = ★∼Xᵍ eq ⦄ (id (＇ _)) ⦃ nonstar-X ⦄
@@ -1759,12 +1764,12 @@ lower-bounds-consistentᵐ {D = ＇ X} h safe I.X⊑X I.X⊑X =
 lower-bounds-consistentᵐ {D = ＇ X} h safe
     I.X⊑X (I.X⊑★ eqR) =
   variable-to-star
-    (right-variable-relation (h X)
+    (right-variable-relation (lowerAt h X)
       (left-variable-env-not-star safe eqR) eqR)
 lower-bounds-consistentᵐ {D = ＇ X} h safe
     (I.X⊑★ eqL) I.X⊑X =
   star-to-variable
-    (left-variable-relation (h X)
+    (left-variable-relation (lowerAt h X)
       (right-variable-env-not-star safe eqL) eqL)
 lower-bounds-consistentᵐ h safe (I.X⊑★ eqL) (I.X⊑★ eqR) =
   id ★

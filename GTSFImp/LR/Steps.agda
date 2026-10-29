@@ -8,7 +8,6 @@ module LR.Steps where
 --     contents.  The store changes of a reduction give an
 --     order-preserving embedding of the old store into the new one
 --     (`embedᶜˢ`), along which a world is extended.
---   * Composition of order-preserving embeddings (`_∘ᵉ_`).
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (Σ-syntax)
@@ -17,20 +16,11 @@ open import Types
 open import Consistency using (_↪ᵗ_; empty; keep; skip; id↪ᵗ; wk↪ᵗ)
 open import CastTerms
 open import Reduction
+open import proof.DGG.CenterRename using (_∘↪_)
 
 ------------------------------------------------------------------------
--- Order-preserving embeddings
+-- Embeddings of stores
 ------------------------------------------------------------------------
-
-infixr 9 _∘ᵉ_
-
--- `ρ′ ∘ᵉ ρ` first embeds by ρ, then by ρ′
-_∘ᵉ_ : ∀ {Δ₁ Δ₂ Δ₃} → Δ₂ ↪ᵗ Δ₃ → Δ₁ ↪ᵗ Δ₂ → Δ₁ ↪ᵗ Δ₃
-ρ′ ∘ᵉ empty = empty
-keep ρ′ ∘ᵉ keep ρ = keep (ρ′ ∘ᵉ ρ)
-skip ρ′ ∘ᵉ keep ρ = skip (ρ′ ∘ᵉ keep ρ)
-keep ρ′ ∘ᵉ skip ρ = skip (ρ′ ∘ᵉ ρ)
-skip ρ′ ∘ᵉ skip ρ = skip (ρ′ ∘ᵉ skip ρ)
 
 -- the embedding of a store into the store after one change
 embedᶜ : ∀ {Δ Δ′} → StoreChange Δ Δ′ → Δ ↪ᵗ Δ′
@@ -40,7 +30,7 @@ embedᶜ (bind A) = wk↪ᵗ
 -- the embedding of a store into the store after a sequence of changes
 embedᶜˢ : ∀ {Δ Δ′} → StoreChanges Δ Δ′ → Δ ↪ᵗ Δ′
 embedᶜˢ [] = id↪ᵗ
-embedᶜˢ (χ ∷ χs) = embedᶜˢ χs ∘ᵉ embedᶜ χ
+embedᶜˢ (χ ∷ χs) = embedᶜˢ χs ∘↪ embedᶜ χ
 
 ------------------------------------------------------------------------
 -- Counted reduction

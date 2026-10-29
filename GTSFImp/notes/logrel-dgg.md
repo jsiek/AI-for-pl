@@ -420,9 +420,10 @@ fundamental lemma instantiates them with `𝒱⟦ q ⟧`.
     `▷σ′`, `tag`), for example the case-6 leaf `seals σ [] [β′, α′] q₀`.
 * **The `∀` clauses quantify over descriptors.**  The new variable's
   leaf is *semantic*: the clause builds it from the descriptor, by calls
-  at stages below the clause's own, and it is trivial at the stages
-  above.  It is never read there, because the counted side steps before
-  the body is compared.
+  at stages below the clause's own, and it is empty at the stages above.
+  It is never read there, because the counted side steps before the body
+  is compared.  Empty rather than trivial keeps the relation downward
+  closed in the stage.
 * **Interpretations** give each left variable either:
   * a syntactic entry, read on demand: the program's store variables,
     and the variables inside descriptors;

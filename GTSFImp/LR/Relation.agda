@@ -378,7 +378,7 @@ mutual
   leafBelow d {n′} le c m w τL τR V V′ with suc m ≤? n′
   ... | yes lt =
     descBelow d (≤′-trans (≤⇒≤′ lt) le) w (renameDesc τL τR c) V V′
-  ... | no _ = ⊤
+  ... | no _ = ⊥
 
   descBelow : Dir → ∀ {m n} → suc m ≤′ n → (w : World)
     → Desc (ΔL w) (ΔR w) → Term (ΔL w) → Term (ΔR w) → Set
@@ -388,7 +388,7 @@ mutual
   leafG : ∀ {n′ n} → n′ ≤′ n → ∀ {ΔL ΔR} → Desc ΔL ΔR → RelΩ ΔL ΔR
   leafG {n′} le c m w τL τR V V′ with m ≤? n′
   ... | yes le′ = descG (≤′-trans (≤⇒≤′ le′) le) w (renameDesc τL τR c) V V′
-  ... | no _ = ⊤
+  ... | no _ = ⊥
 
   descG : ∀ {m n} → m ≤′ n → (w : World)
     → Desc (ΔL w) (ΔR w) → Term (ΔL w) → Term (ΔR w) → Set

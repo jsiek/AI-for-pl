@@ -20,7 +20,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 open import Types
 open import Consistency using (_↪ᵗ_; toRenameᵗ; id↪ᵗ)
 open import CastTerms using (Term)
-open import LR.Steps using (_∘ᵉ_)
+open import proof.DGG.CenterRename using (_∘↪_)
 open import LR.Desc
 
 ------------------------------------------------------------------------
@@ -62,7 +62,7 @@ RelΩ ΔL₀ ΔR₀ = (k : ℕ) (w : World)
 -- moving a relation to a larger store
 transportΩ : ∀ {ΔL₀ ΔR₀ ΔL₁ ΔR₁}
   → ΔL₀ ↪ᵗ ΔL₁ → ΔR₀ ↪ᵗ ΔR₁ → RelΩ ΔL₀ ΔR₀ → RelΩ ΔL₁ ΔR₁
-transportΩ σL σR R k w τL τR = R k w (τL ∘ᵉ σL) (τR ∘ᵉ σR)
+transportΩ σL σR R k w τL τR = R k w (τL ∘↪ σL) (τR ∘↪ σR)
 
 -- the trivial relation
 ⊤Ω : ∀ {ΔL₀ ΔR₀} → RelΩ ΔL₀ ΔR₀

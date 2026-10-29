@@ -1,0 +1,215 @@
+module proof.LR.Expression where
+
+-- File Charter:
+--   * Expression lemmas (notes/logrel-dgg.md, Section 6.9, item 3).
+--   * Related values are related expressions; blame on the left is
+--     related to anything.
+--   * Backward reduction: if the two sides reduce, and the results are
+--     related at the world of those reductions, then the originals are
+--     related, at a stage larger by the counted side's steps.
+--   * The bind lemma: related expressions under evaluation frames whose
+--     plugs are related at every related pair of values.
+
+open import Data.Nat using (zero; suc; _+_; _≤_; s≤s; z≤n; _≤′_;
+  ≤′-refl; ≤′-step)
+open import Data.Nat.Properties using (≤⇒≤′; ≤′⇒≤; +-assoc; m≤n+m;
+  +-monoʳ-<)
+open import Data.Product using (_,_)
+open import Data.Sum using (inj₁; inj₂)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; sym; trans; cong; subst; subst₂)
+
+open import Types
+open import Consistency using (toRenameᵗ)
+open import CastTerms using (Term; Value; blame)
+open import Reduction using (StoreChanges; []; _∷_; keep; _—↠[_]_;
+  ↠-refl; ↠-step)
+open import proof.Reduction using (_++χ_; composeReduction)
+open import LR.Precision
+open import LR.Desc
+open import LR.World
+open import LR.Steps
+open import LR.Relation
+open import LR.Frame
+open import proof.LR.WorldProps
+open import proof.LR.InterpProps
+open import proof.LR.Monotone using (𝒱≤-cast)
+open import proof.LR.FrameProps
+
+------------------------------------------------------------------------
+-- The extension made by two reductions
+------------------------------------------------------------------------
+
+stepExt : ∀ {w : World} {ΔL₁ ΔR₁}
+    (χsL : StoreChanges (ΔL w) ΔL₁) (χsR : StoreChanges (ΔR w) ΔR₁)
+    (tags : TyVar ΔL₁ → Tag ΔL₁ ΔR₁)
+  → (∀ X → tags (toRenameᵗ (embedᶜˢ χsL) X)
+         ≡ renameTag (embedᶜˢ χsL) (embedᶜˢ χsR) (tag w X))
+  → world ΔL₁ ΔR₁ tags ⊒ w
+stepExt χsL χsR tags ok = ext (embedᶜˢ χsL) (embedᶜˢ χsR) ok
+
+------------------------------------------------------------------------
+-- Values and blame
+------------------------------------------------------------------------
+
+ℰ-value : ∀ d n {Δ Δ′} {Φ : Corr Δ Δ′} {A A′} (p : Φ ⊢ A ⊑ A′) w
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+  → Value Vl → Value Vr → 𝒱 d n p w δ Vl Vr → ℰ d n p w δ Vl Vr
+ℰ-value ≺ n p w {δ} {Vl} {Vr} vl vr r =
+  inj₂ (inj₂ (zero , n , ≤′-refl , ΔL w , [] , Vl , ΔR w , [] , Vr ,
+    refl , none , ↠-refl , vl , vr , tag w , tags≡ (⊒-refl w) ,
+    𝒱-resp ≺ n p w (≈ᴵ-sym (↑ᴵ-refl {w = w} δ)) r))
+ℰ-value ≻ n p w {δ} {Vl} {Vr} vl vr r =
+  inj₂ (inj₂ (zero , n , ≤′-refl , ΔL w , [] , Vl , ΔR w , [] , Vr ,
+    refl , ↠-refl , none , vl , vr , tag w , tags≡ (⊒-refl w) ,
+    𝒱-resp ≻ n p w (≈ᴵ-sym (↑ᴵ-refl {w = w} δ)) r))
+
+ℰᵍ-blame : ∀ d n w {VR : VRel n w} {Mr} → ℰᵍ d n w VR blame Mr
+ℰᵍ-blame ≺ zero w = inj₁ (ΔL w , [] , blame , none)
+ℰᵍ-blame ≺ (suc n) w = inj₂ (inj₁ (zero , ΔL w , [] , s≤s z≤n , none))
+ℰᵍ-blame ≻ n w = inj₂ (inj₁ (ΔL w , [] , ↠-refl))
+
+------------------------------------------------------------------------
+-- Backward reduction
+------------------------------------------------------------------------
+
+private
+  -- an arrival after the second reductions is an arrival after both
+  arrive-back : ∀ d {n₁ n n′} (le₁ : n₁ ≤′ n) {Δ Δ′} {Φ : Corr Δ Δ′}
+      {A A′} (p : Φ ⊢ A ⊑ A′) {w : World}
+      {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {ΔL₁ ΔR₁ ΔL₂ ΔR₂}
+      {χsL : StoreChanges (ΔL w) ΔL₁} {χsR : StoreChanges (ΔR w) ΔR₁}
+      {χsL′ : StoreChanges ΔL₁ ΔL₂} {χsR′ : StoreChanges ΔR₁ ΔR₂}
+      (tags : TyVar ΔL₁ → Tag ΔL₁ ΔR₁)
+      (ok : ∀ X → tags (toRenameᵗ (embedᶜˢ χsL) X)
+                ≡ renameTag (embedᶜˢ χsL) (embedᶜˢ χsR) (tag w X))
+      {le : n′ ≤′ n₁} {Vl Vr}
+    → Arrive n₁ n′ (world ΔL₁ ΔR₁ tags) χsL′ χsR′
+        (λ le′ w′ e′ → 𝒱≤ d le′ p w′
+          ((δ ↑ᴵ stepExt χsL χsR tags ok) ↑ᴵ e′))
+        le Vl Vr
+    → Arrive n n′ w (χsL ++χ χsL′) (χsR ++χ χsR′)
+        (λ le′ w′ e′ → 𝒱≤ d le′ p w′ (δ ↑ᴵ e′))
+        (≤′-trans le le₁) Vl Vr
+  arrive-back d le₁ p {w} {δ} {χsL = χsL} {χsR} {χsL′} {χsR′} tags ok
+      {le} (tags′ , ok′ , r) =
+    tags′ , ok₂ , 𝒱≤-cast d le (≤′-trans le le₁) p _ (𝒱≤-resp d le p _ h r)
+    where
+    e₁ = stepExt χsL χsR tags ok
+    e′ = stepExt χsL′ χsR′ tags′ ok′
+
+    ok₂ : ∀ X → tags′ (toRenameᵗ (embedᶜˢ (χsL ++χ χsL′)) X)
+      ≡ renameTag (embedᶜˢ (χsL ++χ χsL′)) (embedᶜˢ (χsR ++χ χsR′))
+          (tag w X)
+    ok₂ X =
+      subst₂ (λ a b → tags′ (toRenameᵗ a X) ≡ renameTag a b (tag w X))
+        (sym (embedᶜˢ-++ χsL χsL′)) (sym (embedᶜˢ-++ χsR χsR′))
+        (tags≡ (⊒-trans e′ e₁) X)
+
+    h : (δ ↑ᴵ e₁) ↑ᴵ e′
+      ≈ᴵ δ ↑ᴵ stepExt (χsL ++χ χsL′) (χsR ++χ χsR′) tags′ ok₂
+    h = ≈ᴵ-trans (↑ᴵ-trans δ e′ e₁)
+          (transportI-≡ (sym (embedᶜˢ-++ χsL χsL′))
+            (sym (embedᶜˢ-++ χsR χsR′)) δ)
+
+-- `≺`: the left takes j counted steps, the right any number
+ℰ-anti-≺ : ∀ {j n₁} {Δ Δ′} {Φ : Corr Δ Δ′} {A A′} (p : Φ ⊢ A ⊑ A′)
+    {w : World} {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {ΔL₁ ΔR₁}
+    {Ml : Term (ΔL w)} {Ml′ : Term ΔL₁} {Mr : Term (ΔR w)}
+    {Mr′ : Term ΔR₁}
+    {χsL : StoreChanges (ΔL w) ΔL₁} {χsR : StoreChanges (ΔR w) ΔR₁}
+  → Ml —→^ j [ χsL ] Ml′
+  → Mr —↠[ χsR ] Mr′
+  → (tags : TyVar ΔL₁ → Tag ΔL₁ ΔR₁)
+  → (ok : ∀ X → tags (toRenameᵗ (embedᶜˢ χsL) X)
+            ≡ renameTag (embedᶜˢ χsL) (embedᶜˢ χsR) (tag w X))
+  → ℰ ≺ n₁ p (world ΔL₁ ΔR₁ tags)
+      (δ ↑ᴵ stepExt χsL χsR tags ok) Ml′ Mr′
+  → ℰ ≺ (j + n₁) p w δ Ml Mr
+ℰ-anti-≺ p sl sr tags ok (inj₁ (Δ″ , χs , N , ss)) =
+  inj₁ (Δ″ , _ , N , steps-++ sl ss)
+ℰ-anti-≺ {j} p sl sr tags ok (inj₂ (inj₁ (k , Δ″ , χs , k<n₁ , ss))) =
+  inj₂ (inj₁ (j + k , Δ″ , _ , +-monoʳ-< j k<n₁ , steps-++ sl ss))
+ℰ-anti-≺ {j} {n₁} p {χsL = χsL} {χsR} sl sr tags ok
+    (inj₂ (inj₂ (k , n′ , le , ΔL₂ , χsL′ , Vl , ΔR₂ , χsR′ , Vr ,
+      eq , sl′ , sr′ , vl , vr , a))) =
+  inj₂ (inj₂ (j + k , n′ , ≤′-trans le (≤⇒≤′ (m≤n+m n₁ j)) ,
+    ΔL₂ , _ , Vl , ΔR₂ , _ , Vr ,
+    trans (+-assoc j k n′) (cong (j +_) eq) ,
+    steps-++ sl sl′ , composeReduction sr sr′ , vl , vr ,
+    arrive-back ≺ (≤⇒≤′ (m≤n+m n₁ j)) p
+      {χsL = χsL} {χsR} {χsL′} {χsR′} tags ok a))
+
+-- `≻`: the right takes j counted steps, the left any number
+ℰ-anti-≻ : ∀ {j n₁} {Δ Δ′} {Φ : Corr Δ Δ′} {A A′} (p : Φ ⊢ A ⊑ A′)
+    {w : World} {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {ΔL₁ ΔR₁}
+    {Ml : Term (ΔL w)} {Ml′ : Term ΔL₁} {Mr : Term (ΔR w)}
+    {Mr′ : Term ΔR₁}
+    {χsL : StoreChanges (ΔL w) ΔL₁} {χsR : StoreChanges (ΔR w) ΔR₁}
+  → Ml —↠[ χsL ] Ml′
+  → Mr —→^ j [ χsR ] Mr′
+  → (tags : TyVar ΔL₁ → Tag ΔL₁ ΔR₁)
+  → (ok : ∀ X → tags (toRenameᵗ (embedᶜˢ χsL) X)
+            ≡ renameTag (embedᶜˢ χsL) (embedᶜˢ χsR) (tag w X))
+  → ℰ ≻ n₁ p (world ΔL₁ ΔR₁ tags)
+      (δ ↑ᴵ stepExt χsL χsR tags ok) Ml′ Mr′
+  → ℰ ≻ (j + n₁) p w δ Ml Mr
+ℰ-anti-≻ p sl sr tags ok (inj₁ (Δ″ , χs , N , ss)) =
+  inj₁ (Δ″ , _ , N , steps-++ sr ss)
+ℰ-anti-≻ p sl sr tags ok (inj₂ (inj₁ (Δ″ , χs , b))) =
+  inj₂ (inj₁ (Δ″ , _ , composeReduction sl b))
+ℰ-anti-≻ {j} {n₁} p {χsL = χsL} {χsR} sl sr tags ok
+    (inj₂ (inj₂ (k , n′ , le , ΔL₂ , χsL′ , Vl , ΔR₂ , χsR′ , Vr ,
+      eq , sl′ , sr′ , vl , vr , a))) =
+  inj₂ (inj₂ (j + k , n′ , ≤′-trans le (≤⇒≤′ (m≤n+m n₁ j)) ,
+    ΔL₂ , _ , Vl , ΔR₂ , _ , Vr ,
+    trans (+-assoc j k n′) (cong (j +_) eq) ,
+    composeReduction sl sl′ , steps-++ sr sr′ , vl , vr ,
+    arrive-back ≻ (≤⇒≤′ (m≤n+m n₁ j)) p
+      {χsL = χsL} {χsR} {χsL′} {χsR′} tags ok a))
+
+------------------------------------------------------------------------
+-- The bind lemma
+------------------------------------------------------------------------
+
+ℰ-bind : ∀ d n {Δ Δ′} {Φ : Corr Δ Δ′} {A A′ B B′}
+    (p : Φ ⊢ A ⊑ A′) (q : Φ ⊢ B ⊑ B′) w
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)}
+    (Fl : Frame (ΔL w)) (Fr : Frame (ΔR w)) {Ml Mr}
+  → ℰ d n p w δ Ml Mr
+  → (∀ {w′} (e : w′ ⊒ w) {n′} → n′ ≤ n → ∀ {Vl Vr}
+       → Value Vl → Value Vr → 𝒱 d n′ p w′ (δ ↑ᴵ e) Vl Vr
+       → ℰ d n′ q w′ (δ ↑ᴵ e)
+           (plug (renameFrame (ρL e) Fl) Vl)
+           (plug (renameFrame (ρR e) Fr) Vr))
+  → ℰ d n q w δ (plug Fl Ml) (plug Fr Mr)
+ℰ-bind ≺ n p q w Fl Fr (inj₁ (Δ″ , χs , N , ss)) K =
+  inj₁ (Δ″ , χs , _ , frame-steps Fl ss)
+ℰ-bind ≺ n p q w Fl Fr (inj₂ (inj₁ (k , Δ″ , χs , k<n , ss))) K
+    with ≤⇒≤′ k<n
+... | ≤′-refl =
+  inj₁ (Δ″ , _ , blame , steps-snoc (frame-steps Fl ss) (frame-blame _))
+... | ≤′-step lt =
+  inj₂ (inj₁ (suc k , Δ″ , _ , s≤s (≤′⇒≤ lt) ,
+    steps-snoc (frame-steps Fl ss) (frame-blame _)))
+ℰ-bind ≺ n p q w {δ} Fl Fr {Ml} {Mr}
+    (inj₂ (inj₂ (k , n′ , le , ΔL₁ , χsL , Vl , ΔR₁ , χsR , Vr ,
+      eq , sl , sr , vl , vr , tags , ok , r))) K =
+  subst (λ m → ℰ ≺ m q w δ (plug Fl Ml) (plug Fr Mr)) eq
+    (ℰ-anti-≺ q (frame-steps Fl sl) (frame-↠ Fr sr) tags ok
+      (K (stepExt χsL χsR tags ok)
+        (subst (n′ ≤_) eq (m≤n+m n′ k)) vl vr
+        (𝒱≤-cast ≺ le ≤′-refl p _ r)))
+ℰ-bind ≻ n p q w Fl Fr (inj₁ (Δ″ , χs , N , ss)) K =
+  inj₁ (Δ″ , χs , _ , frame-steps Fr ss)
+ℰ-bind ≻ n p q w Fl Fr (inj₂ (inj₁ (Δ″ , χs , b))) K =
+  inj₂ (inj₁ (Δ″ , _ ,
+    composeReduction (frame-↠ Fl b) (↠-step (frame-blame _) ↠-refl)))
+ℰ-bind ≻ n p q w {δ} Fl Fr {Ml} {Mr}
+    (inj₂ (inj₂ (k , n′ , le , ΔL₁ , χsL , Vl , ΔR₁ , χsR , Vr ,
+      eq , sl , sr , vl , vr , tags , ok , r))) K =
+  subst (λ m → ℰ ≻ m q w δ (plug Fl Ml) (plug Fr Mr)) eq
+    (ℰ-anti-≻ q (frame-↠ Fl sl) (frame-steps Fr sr) tags ok
+      (K (stepExt χsL χsR tags ok)
+        (subst (n′ ≤_) eq (m≤n+m n′ k)) vl vr
+        (𝒱≤-cast ≻ le ≤′-refl p _ r)))

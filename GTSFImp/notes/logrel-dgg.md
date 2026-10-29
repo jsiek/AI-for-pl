@@ -475,6 +475,8 @@ only strengthens the clauses.
 | `proof/TermRename.agda` | `renameᵗᵐ π (renameᵗᵐ η M) ≡ renameᵗᵐ (π ∘↪ η) M` and `renameᵗᵐ id↪ᵗ M ≡ M`, without funext |
 | `proof/LR/InterpProps.agda` | equivalence of interpretations `≈ᴵ`; transport along `⊒-refl` and `⊒-trans`; `𝒱`, `G` and `ℰ` respect `≈ᴵ` |
 | `proof/LR/Monotone.agda` | world monotonicity and downward closure of `𝒱`, `G` and their helpers; the relation's own semantic leaves are good |
+| `LR/Frame.agda`, `proof/LR/FrameProps.agda` | evaluation frames; reduction under a frame carries the frame along the store embedding |
+| `proof/LR/Expression.agda` | values and left blame are related expressions; backward reduction; the bind lemma |
 
 **Renaming terms: how it is done.**
 * Mode environments are vectors, `Env∼ Δ = Vec Var∼ Δ`, read with
@@ -528,9 +530,33 @@ only strengthens the clauses.
   it: it re-applies the lemma at the later world, using monotonicity of
   the value relation for the substitution.
 
+**Expression lemmas: how it is done.**
+* `ℰ-value`: related values are related expressions, by zero steps
+  and the reflexive extension.  `ℰᵍ-blame`: left blame is related to
+  anything (at stage 0 because the left has taken its 0 steps).
+* Backward reduction (`ℰ-anti-≺`, `ℰ-anti-≻`): if the counted side
+  takes `j` steps and the other side any number, and the results are
+  related at stage `n₁` in the world of those reductions (any choice of
+  tags `tags` satisfying the extension condition, `stepExt`), the
+  originals are related at stage `j + n₁`.  The world of the composite
+  reductions is the composite extension, up to `embedᶜˢ-++`.
+* Frames (`LR.Frame`): one-layer evaluation contexts with `plug` and
+  `renameFrame`.  A step under a frame carries the frame along the
+  step's embedding (`frame-step`).  The reduction rules carry a frame's
+  parts with the store-change functions (`applyTerm`,
+  `applyConsistency`, ...); these agree, as terms, with renaming along
+  the embedding (`applyConsistency-rename` and friends, using
+  `rename∼-cong` and `cast-cong` from `proof/TermRename`).
+* The bind lemma (`ℰ-bind`): `ℰ` for `Ml, Mr` at `p`, and for every
+  future world and lower stage, related values give related plugs at
+  `q`; then the plugs are related at `q`.  The two frames are
+  independent.  When the left blames in exactly its last counted step,
+  the plugged term uses that step plus one more to blame, so it is in
+  the "runs out" case instead.
+
 **Next, in order:**
-1. **Expression lemmas** (Section 6.9, item 3), then items 4–9:
-   * uniqueness of precision and the substitution lemma;
+1. **Uniqueness of precision and the substitution lemma** (Section 6.9,
+   item 4), then items 5–9:
    * conversions;
    * identity casts;
    * the cast lemma, with the world-change lemma;

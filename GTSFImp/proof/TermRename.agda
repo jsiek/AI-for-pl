@@ -113,7 +113,7 @@ X∼★≢★∼X∼★ ()
 
 private
   variable
-    Δ Δ₁ Δ₂ Δ₃ : TyCtx
+    Δ Δ′ Δ₁ Δ₂ Δ₃ : TyCtx
 
 id-var-≈ : ∀ {μ : Env∼ Δ} {X Y : TyVar Δ}
   → X ≡ Y → id {μ = μ} (＇ X) ≈ᶜ id (＇ Y)
@@ -360,52 +360,51 @@ renameEnv∼-id (v ∷ μ) = cong (v ∷_) (renameEnv∼-id μ)
 -- Terms
 ------------------------------------------------------------------------
 
-private
-  castPacked : ∀ {μ : Env∼ Δ} → Term Δ → Packed (μ ⊢_∼_) → Term Δ
-  castPacked M ⟪ c ⟫ = M ⟨ c ⟩
+castPacked : ∀ {μ : Env∼ Δ} → Term Δ → Packed (μ ⊢_∼_) → Term Δ
+castPacked M ⟪ c ⟫ = M ⟨ c ⟩
 
-  cast-∘ : ∀ {μ₁ : Env∼ Δ₁} {μ₂ : Env∼ Δ₂} {ν ν′ : Env∼ Δ₃} {A B}
-      {M M′ : Term Δ₃}
-      (ρ₁ : Δ₁ ⇒ʳ Δ₂) (ρ₂ : Δ₂ ⇒ʳ Δ₃) (ρ : Δ₁ ⇒ʳ Δ₃)
-      (eq₁ : ∀ X → μ₂ ‼ (ρ₁ X) ≡ μ₁ ‼ X)
-      (eq₂ : ∀ X → ν ‼ (ρ₂ X) ≡ μ₂ ‼ X)
-      (eq : ∀ X → ν′ ‼ (ρ X) ≡ μ₁ ‼ X)
-    → M ≡ M′
-    → ν ≡ ν′
-    → (∀ X → ρ₂ (ρ₁ X) ≡ ρ X)
-    → (c : μ₁ ⊢ A ∼ B)
-    → M ⟨ rename∼ {μ′ = ν} ρ₂ eq₂ (rename∼ {μ′ = μ₂} ρ₁ eq₁ c) ⟩
-      ≡ M′ ⟨ rename∼ {μ′ = ν′} ρ eq c ⟩
-  cast-∘ {ν = ν} {M = M} ρ₁ ρ₂ ρ eq₁ eq₂ eq refl refl h c =
-    cong (castPacked {μ = ν} M) (rename∼-∘ ρ₁ ρ₂ ρ eq₁ eq₂ eq h c)
+cast-∘ : ∀ {μ₁ : Env∼ Δ₁} {μ₂ : Env∼ Δ₂} {ν ν′ : Env∼ Δ₃} {A B}
+    {M M′ : Term Δ₃}
+    (ρ₁ : Δ₁ ⇒ʳ Δ₂) (ρ₂ : Δ₂ ⇒ʳ Δ₃) (ρ : Δ₁ ⇒ʳ Δ₃)
+    (eq₁ : ∀ X → μ₂ ‼ (ρ₁ X) ≡ μ₁ ‼ X)
+    (eq₂ : ∀ X → ν ‼ (ρ₂ X) ≡ μ₂ ‼ X)
+    (eq : ∀ X → ν′ ‼ (ρ X) ≡ μ₁ ‼ X)
+  → M ≡ M′
+  → ν ≡ ν′
+  → (∀ X → ρ₂ (ρ₁ X) ≡ ρ X)
+  → (c : μ₁ ⊢ A ∼ B)
+  → M ⟨ rename∼ {μ′ = ν} ρ₂ eq₂ (rename∼ {μ′ = μ₂} ρ₁ eq₁ c) ⟩
+    ≡ M′ ⟨ rename∼ {μ′ = ν′} ρ eq c ⟩
+cast-∘ {ν = ν} {M = M} ρ₁ ρ₂ ρ eq₁ eq₂ eq refl refl h c =
+  cong (castPacked {μ = ν} M) (rename∼-∘ ρ₁ ρ₂ ρ eq₁ eq₂ eq h c)
 
-  cast-id : ∀ {μ ν : Env∼ Δ} {A B} {M M′ : Term Δ}
-      (ρ : Δ ⇒ʳ Δ) (eq : ∀ X → ν ‼ (ρ X) ≡ μ ‼ X)
-    → M ≡ M′
-    → ν ≡ μ
-    → (∀ X → ρ X ≡ X)
-    → (c : μ ⊢ A ∼ B)
-    → M ⟨ rename∼ {μ′ = ν} ρ eq c ⟩ ≡ M′ ⟨ c ⟩
-  cast-id {μ = μ} {M = M} ρ eq refl refl h c =
-    cong (castPacked {μ = μ} M) (rename∼-id ρ eq h c)
+cast-id : ∀ {μ ν : Env∼ Δ} {A B} {M M′ : Term Δ}
+    (ρ : Δ ⇒ʳ Δ) (eq : ∀ X → ν ‼ (ρ X) ≡ μ ‼ X)
+  → M ≡ M′
+  → ν ≡ μ
+  → (∀ X → ρ X ≡ X)
+  → (c : μ ⊢ A ∼ B)
+  → M ⟨ rename∼ {μ′ = ν} ρ eq c ⟩ ≡ M′ ⟨ c ⟩
+cast-id {μ = μ} {M = M} ρ eq refl refl h c =
+  cong (castPacked {μ = μ} M) (rename∼-id ρ eq h c)
 
-  ⦂∀-cong : ∀ {L L′ : Term Δ} {C C′ : Ty (suc Δ)} {A A′ : Ty Δ}
-    → L ≡ L′ → C ≡ C′ → A ≡ A′ → (L ⦂∀ C [ A ]) ≡ (L′ ⦂∀ C′ [ A′ ])
-  ⦂∀-cong refl refl refl = refl
+⦂∀-cong : ∀ {L L′ : Term Δ} {C C′ : Ty (suc Δ)} {A A′ : Ty Δ}
+  → L ≡ L′ → C ≡ C′ → A ≡ A′ → (L ⦂∀ C [ A ]) ≡ (L′ ⦂∀ C′ [ A′ ])
+⦂∀-cong refl refl refl = refl
 
-  ↑-cong : ∀ {M M′ : Term Δ} {A B A′ B′}
-      {c : Conv↑ Δ A B} {c′ : Conv↑ Δ A′ B′}
-    → M ≡ M′ → c ≈↑ c′ → (M ↑ c) ≡ (M′ ↑ c′)
-  ↑-cong refl refl = refl
+↑-cong : ∀ {M M′ : Term Δ} {A B A′ B′}
+    {c : Conv↑ Δ A B} {c′ : Conv↑ Δ A′ B′}
+  → M ≡ M′ → c ≈↑ c′ → (M ↑ c) ≡ (M′ ↑ c′)
+↑-cong refl refl = refl
 
-  ↓-cong : ∀ {M M′ : Term Δ} {A B A′ B′}
-      {c : Conv↓ Δ A B} {c′ : Conv↓ Δ A′ B′}
-    → M ≡ M′ → c ≈↓ c′ → (M ↓ c) ≡ (M′ ↓ c′)
-  ↓-cong refl refl = refl
+↓-cong : ∀ {M M′ : Term Δ} {A B A′ B′}
+    {c : Conv↓ Δ A B} {c′ : Conv↓ Δ A′ B′}
+  → M ≡ M′ → c ≈↓ c′ → (M ↓ c) ≡ (M′ ↓ c′)
+↓-cong refl refl = refl
 
-  toRenameᵗ-∘′ : (π : Δ₂ ↪ᵗ Δ₃) (η : Δ₁ ↪ᵗ Δ₂)
-    → ∀ X → toRenameᵗ π (toRenameᵗ η X) ≡ toRenameᵗ (π ∘↪ η) X
-  toRenameᵗ-∘′ π η X = sym (toRenameᵗ-∘ π η X)
+toRenameᵗ-∘′ : (π : Δ₂ ↪ᵗ Δ₃) (η : Δ₁ ↪ᵗ Δ₂)
+  → ∀ X → toRenameᵗ π (toRenameᵗ η X) ≡ toRenameᵗ (π ∘↪ η) X
+toRenameᵗ-∘′ π η X = sym (toRenameᵗ-∘ π η X)
 
 renameᵗᵐ-∘ : (π : Δ₂ ↪ᵗ Δ₃) (η : Δ₁ ↪ᵗ Δ₂) (M : Term Δ₁)
   → renameᵗᵐ π (renameᵗᵐ η M) ≡ renameᵗᵐ (π ∘↪ η) M
@@ -453,3 +452,62 @@ renameᵗᵐ-id (M ↑ c) =
 renameᵗᵐ-id (M ↓ c) =
   ↓-cong (renameᵗᵐ-id M) (rename↓-id toRename-id-eq c)
 renameᵗᵐ-id blame = refl
+
+------------------------------------------------------------------------
+-- Renaming along pointwise-equal renamings
+------------------------------------------------------------------------
+
+rename∼-≈ : ∀ {μ : Env∼ Δ₁} {μ′ : Env∼ Δ₂} {A B A′ B′ : Ty Δ₁}
+    (ρ : Δ₁ ⇒ʳ Δ₂) (eq : ∀ X → μ′ ‼ (ρ X) ≡ μ ‼ X)
+    {c : μ ⊢ A ∼ B} {c′ : μ ⊢ A′ ∼ B′}
+  → c ≈ᶜ c′ → rename∼ {μ′ = μ′} ρ eq c ≈ᶜ rename∼ {μ′ = μ′} ρ eq c′
+rename∼-≈ ρ eq refl = refl
+
+rename∼-cong : ∀ {μ : Env∼ Δ₁} {μ′ : Env∼ Δ₂} {A B}
+    (ρ ρ′ : Δ₁ ⇒ʳ Δ₂)
+    (eq : ∀ X → μ′ ‼ (ρ X) ≡ μ ‼ X) (eq′ : ∀ X → μ′ ‼ (ρ′ X) ≡ μ ‼ X)
+  → (∀ X → ρ X ≡ ρ′ X)
+  → (c : μ ⊢ A ∼ B)
+  → rename∼ {μ′ = μ′} ρ eq c ≈ᶜ rename∼ {μ′ = μ′} ρ′ eq′ c
+rename∼-cong {μ = μ} ρ ρ′ eq eq′ h c =
+  trans
+    (sym (rename∼-≈ ρ eq
+      (rename∼-id (λ X → X) (λ X → refl) (λ X → refl) c)))
+    (rename∼-∘ {μ₂ = μ} (λ X → X) ρ ρ′ (λ X → refl) eq eq′ h c)
+
+cast-cong : ∀ {μ : Env∼ Δ₁} {ν ν′ : Env∼ Δ₂} {A B} {M M′ : Term Δ₂}
+    (ρ ρ′ : Δ₁ ⇒ʳ Δ₂)
+    (eq : ∀ X → ν ‼ (ρ X) ≡ μ ‼ X) (eq′ : ∀ X → ν′ ‼ (ρ′ X) ≡ μ ‼ X)
+  → M ≡ M′
+  → ν ≡ ν′
+  → (∀ X → ρ X ≡ ρ′ X)
+  → (c : μ ⊢ A ∼ B)
+  → M ⟨ rename∼ {μ′ = ν} ρ eq c ⟩ ≡ M′ ⟨ rename∼ {μ′ = ν′} ρ′ eq′ c ⟩
+cast-cong {ν = ν} {M = M} ρ ρ′ eq eq′ refl refl h c =
+  cong (castPacked {μ = ν} M) (rename∼-cong ρ ρ′ eq eq′ h c)
+
+ext-cong : ∀ {ρ ρ′ : Δ ⇒ʳ Δ′}
+  → (∀ X → ρ X ≡ ρ′ X) → ∀ X → extᵗ ρ X ≡ extᵗ ρ′ X
+ext-cong h Fin.zero = refl
+ext-cong h (Fin.suc X) = cong Fin.suc (h X)
+
+mutual
+  rename↑-cong : ∀ {A B : Ty Δ} {ρ ρ′ : Δ ⇒ʳ Δ′}
+    → (∀ X → ρ X ≡ ρ′ X)
+    → (c : Conv↑ Δ A B)
+    → rename↑ ρ c ≈↑ rename↑ ρ′ c
+  rename↑-cong h (unseal X R) =
+    cong₂ (λ Y S → ⟪ unseal Y S ⟫) (h X) (renameᵗ-cong R h)
+  rename↑-cong h (c ↦↑ d) = ↦↑-≈ (rename↓-cong h c) (rename↑-cong h d)
+  rename↑-cong h (`∀↑ c) = ∀↑-≈ (rename↑-cong (ext-cong h) c)
+  rename↑-cong h (id↑ A) = cong (λ T → ⟪ id↑ T ⟫) (renameᵗ-cong A h)
+
+  rename↓-cong : ∀ {A B : Ty Δ} {ρ ρ′ : Δ ⇒ʳ Δ′}
+    → (∀ X → ρ X ≡ ρ′ X)
+    → (c : Conv↓ Δ A B)
+    → rename↓ ρ c ≈↓ rename↓ ρ′ c
+  rename↓-cong h (seal X R) =
+    cong₂ (λ Y S → ⟪ seal Y S ⟫) (h X) (renameᵗ-cong R h)
+  rename↓-cong h (c ↦↓ d) = ↦↓-≈ (rename↑-cong h c) (rename↓-cong h d)
+  rename↓-cong h (`∀↓ c) = ∀↓-≈ (rename↓-cong (ext-cong h) c)
+  rename↓-cong h (id↓ A) = cong (λ T → ⟪ id↓ T ⟫) (renameᵗ-cong A h)

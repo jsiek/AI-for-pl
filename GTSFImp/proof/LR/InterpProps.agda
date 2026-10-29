@@ -17,7 +17,7 @@ open import Data.Nat using (ℕ; zero; suc; _≤′_; ≤′-refl; ≤′-step)
 open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; cong; subst₂)
+  using (_≡_; refl; sym; trans; cong; subst₂)
 
 open import Types
 open import Consistency using (_↪ᵗ_; toRenameᵗ; id↪ᵗ)
@@ -73,6 +73,17 @@ leaf≈ ≈ᴵ-refl X = ≈ˡ-refl
 δl≡ (≈ᴵ-sym h) X = sym (δl≡ h X)
 δr≡ (≈ᴵ-sym h) Y = sym (δr≡ h Y)
 leaf≈ (≈ᴵ-sym h) X = ≈ˡ-sym (leaf≈ h X)
+
+≈ˡ-trans : ∀ {l l′ l″ : Leaf ΘL ΘR} → l ≈ˡ l′ → l′ ≈ˡ l″ → l ≈ˡ l″
+≈ˡ-trans (syn≈ e) (syn≈ e′) = syn≈ (trans e e′)
+≈ˡ-trans (sem≈ to from) (sem≈ to′ from′) =
+  sem≈ (λ k w τL τR V V′ r → to′ k w τL τR V V′ (to k w τL τR V V′ r))
+       (λ k w τL τR V V′ r → from k w τL τR V V′ (from′ k w τL τR V V′ r))
+
+≈ᴵ-trans : ∀ {δ δ′ δ″ : Interp Δ Δ′ ΘL ΘR} → δ ≈ᴵ δ′ → δ′ ≈ᴵ δ″ → δ ≈ᴵ δ″
+δl≡ (≈ᴵ-trans h h′) X = trans (δl≡ h X) (δl≡ h′ X)
+δr≡ (≈ᴵ-trans h h′) Y = trans (δr≡ h Y) (δr≡ h′ Y)
+leaf≈ (≈ᴵ-trans h h′) X = ≈ˡ-trans (leaf≈ h X) (leaf≈ h′ X)
 
 ------------------------------------------------------------------------
 -- Transport
@@ -130,6 +141,11 @@ transportI-∘ : (πL : ΔL₂ ↪ᵗ ΔL₃) (ηL : ΔL₁ ↪ᵗ ΔL₂)
 δr≡ (transportI-∘ πL ηL πR ηR δ) Y = renameTy-∘ πR ηR (δr δ Y)
 leaf≈ (transportI-∘ πL ηL πR ηR δ) X =
   transportLeaf-∘ πL ηL πR ηR (leaf δ X)
+
+transportI-≡ : ∀ {σL σL′ : ΔL₁ ↪ᵗ ΔL₂} {σR σR′ : ΔR₁ ↪ᵗ ΔR₂}
+  → σL ≡ σL′ → σR ≡ σR′ → (δ : Interp Δ Δ′ ΔL₁ ΔR₁)
+  → transportI σL σR δ ≈ᴵ transportI σL′ σR′ δ
+transportI-≡ refl refl δ = ≈ᴵ-refl
 
 -- along world extensions
 ↑ᴵ-resp : ∀ {w w′ : World} {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)}

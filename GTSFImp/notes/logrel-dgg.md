@@ -1,7 +1,7 @@
 # The dynamic gradual guarantee for GTSFImp by a logical relation
 
-Status: started.  The syntactic layer is carried over and checked; the
-relation is not yet designed in detail.
+Status: the syntactic layer is carried over and checked.  The relation
+is designed on paper (Section 6), and its mechanization has started.
 
 ## 1. Goal and route
 
@@ -108,10 +108,280 @@ carries.
 ## 5. Open points
 
 * **The `inst` variable.**  It is read as `★`: reduction substitutes
-  `★` for it in the cast.  Does it need a world entry at all, or only
-  a leaf relation?
+  `★` for it in the cast.  It is never tagged, so its world entry is
+  irrelevant (the empty relation will do).  In the cast lemma it is a
+  substitution-kind entry at `★` (Section 6.4).
 * **Blame on the left.**  The left may blame where the right does not.
   This is the asymmetry the two expression relations encode.
 * **Mixed indexing.**  Section 8a's monotonicity argument was by
   induction on the cast.  In the step-indexed setting the induction is
   on the cast, nested inside the step index.
+
+## 6. The relation (paper design)
+
+Written in the first design session.  Notation: `d ∈ {≺, ≻}` is the
+direction.  `≺` counts the left program's steps, `≻` the right
+program's, as in New–Jamner–Ahmed.  `n` is the stage (the step index).
+
+### 6.1 Why semantic relations, and why staged worlds
+
+* **Two kinds of relation are needed** (Section 3 above, and
+  `notes/denotational-dgg.md`, Section 8b):
+  * a *leaf relation* for each type variable of the precision
+    derivation, in a Reynolds environment `δ`;
+  * a *tag relation* for each left store variable, in the world, read
+    by the `★` clause.
+* **Both are semantic**, as in PolyGν: families of sets of
+  world–term–term triples.
+* **The syntactic alternative fails.** Making both closed descriptors
+  (the old note's `◁σ`, `▷σ′`, `tag G`) does not give a well-founded
+  definition:
+  * a `∀⊑` clause in `≻` relates a left-only instantiation while the
+    right takes no step, so the stage does not drop;
+  * the body's leaf for the new variable would then be interpreted at
+    the same stage by a descriptor of arbitrary size.
+* **With semantic leaves**, the value relation is defined by recursion
+  on the precision derivation.  The stage drops only at the `★`
+  clause's function and `∀★` grounds, which are guarded.
+* **Worlds are staged.**  Semantic tag relations make worlds contain
+  relations about worlds.  As in PolyGν, a world of stage `n` holds
+  tag relations only at stages `k < n`.
+
+### 6.2 Steps
+
+* `M —→ᵏ[ χs ] N`: exactly `k` steps of `_—→[_]_`, every step counted,
+  pure or store-changing.  `χs` composes into an order-preserving
+  embedding of the old store into the new one.
+* Reduction never reads the store's contents (`Reduction.agda`), so a
+  store is just its size `Δ`.
+
+### 6.3 Worlds
+
+* `W n`, a world of stage `n`:
+  * the two store sizes `ΔL`, `ΔR`;
+  * `tag : TyVar ΔL → Tags n`, where `Tags n` is a relation at each
+    stage `k < n`, and a relation at stage `k` is
+    `Rel k = (w : W k) → Term (ΔL w) → Term (ΔR w) → Set`.
+* Right store variables have no entries: no clause consults them.
+* **Restriction.**  `⌊ w ⌋ₖ` for `k ≤ n` drops the tag relations at
+  stages `≥ k`.
+* **Extension.**  For `w′ : W n′` and `w : W n`, `w′ ⊒ w` holds when:
+  * `n′ ≤ n`;
+  * there are order-preserving embeddings `ρL : ΔL ↪ ΔL′` and
+    `ρR : ΔR ↪ ΔR′`;
+  * `tag w′ (ρL X) = ⌊ tag w X ⌋ₙ′` for every `X`.
+
+  Strict extension `w′ ⊐ w` adds `n′ < n`.
+* **`RelΩ`** is a relation at every stage, `(k : ℕ) → Rel k`.  It is
+  *monotone* when it is closed under extension, with the terms renamed
+  by `ρL`, `ρR`.  Every leaf and tag relation is required to be
+  monotone.
+* **Later.**  `(▷ R)` at stage `0` is everything, and at stage `k + 1`
+  in world `w` it is `R` at stage `k` in `⌊ w ⌋ₖ`.
+
+### 6.4 Interpretations
+
+For `Φ : Corr Δ Δ′` and a world with stores `ΔL`, `ΔR`, an
+interpretation `δ` has:
+* `δl : TyVar Δ → Ty ΔL` and `δr : TyVar Δ′ → Ty ΔR`;
+* `ρ : TyVar Δ → RelΩ`, the leaf relation of each left variable.  It
+  is ignored for `dead` variables.
+
+An entry is of one of two kinds; the kind matters only for validity:
+* **Store-variable kind**: `δl X = ＇ Xl` (and `δr Y = ＇ Xr` when `X`
+  is paired with `Y`).  Values at `X` are sealed: `V ↓ seal Xl _`.
+* **Substitution kind**: `δl X = T` for any type.  Values at `X` are
+  `T`-values.  This is the bound variable of a type application after
+  its reveal.
+
+**Validity of `δ` in `w`** ties store-variable entries to the world's
+tag relations, so that projections at those variables read the leaf
+relation back:
+* **paired `X ↔ Y`:** `tag Xl` relates `(Wl , Vr)` exactly when
+  `Vr = Wr ⟨ (＇ Xr) ! ⟩` and `ρ X` relates `(Wl , Wr)`;
+* **left-only `X`, in `≺`:** `tag Xl = ρ X`;
+* **left-only `X`, in `≻`:** `ρ X = ▷ (tag Xl)`.  The leaf is guarded
+  (Section 6.6).
+
+The fundamental lemma is stated for interpretations of store-variable
+kind that are valid.  Its `δl` and `δr` are then order-preserving
+embeddings into the store: the term's type variables are the store
+variables of the `Λ`s that enclose it, allocated outermost first.  So
+the term is closed by `renameᵗᵐ`, and no type substitution of terms is
+needed.  Substitution-kind entries occur only in the `∀` clauses and
+in the cast lemma under `∀ᶜ` and `inst`.
+
+### 6.5 The value relation `𝒱ᵈₙ⟦ p ⟧ δ w Vl Vr`
+
+By recursion on `p : Φ ⊢ A ⊑ A′`.  `↑` transports along an
+extension; `δ[0 ↦ e]` extends the interpretation.
+
+* **`ι⊑ι`:** `Vl = Vr = $ κ`.
+* **`X⊑Y`, `X⊑★`:** the leaf, `ρ X n w Vl Vr`.
+* **`★⊑★`:** both are ground injections, `Vl = Wl ⟨ Gl ! ⟩` and
+  `Vr = Wr ⟨ Gr ! ⟩`, and by `Gl`:
+  * `‵ ι`: `Gr = ‵ ι` and `Wl = Wr = $ κ`;
+  * `★⇒★`: `Gr = ★⇒★` and `▷ 𝒱⟦ ★⇒★ ⊑ ★⇒★ ⟧ (Wl , Wr)`;
+  * `∀★`: `Gr = ∀★` and `▷ 𝒱⟦ ∀★ ⊑ ∀★ ⟧ (Wl , Wr)`;
+  * `＇ Xl`: `tag Xl`, at stage `n − 1` in `⌊ w ⌋`, relates `(Wl , Vr)`.
+* **`⇒⊑⇒ p₁ p₂`:** for every `w′ ⊒ w` and every `Wl`, `Wr` with
+  `𝒱⟦ p₁ ⟧ δ↑ w′ Wl Wr`:
+  `ℰ⟦ p₂ ⟧ δ↑ w′ (Vl↑ · Wl) (Vr↑ · Wr)`.
+* **`⇒⊑★ p₁ p₂`:** `Vr = Wr ⟨ (★⇒★) ! ⟩`, and the `⇒⊑⇒` clause on
+  `p₁`, `p₂` relates `(Vl , Wr)`.  In `≻`, under `▷`.
+* **`ι⊑★`:** `Vr = $ κ ⟨ ι ! ⟩` and `Vl = $ κ`.  In `≻`, under `▷`.
+* **`∀⊑∀ p`:** for every `w′ ⊒ w`, types `T` and `T′`, and monotone,
+  identity-closed `R`:
+  `ℰ⟦ p ⟧ δ↑[0 ↦ (T , T′ , R)] w′ (Vl↑ ⦂∀ _ [ T ]) (Vr↑ ⦂∀ _ [ T′ ])`.
+* **`∀⊑ p`** (`∀A ⊑ B`): for every `w′ ⊒ w`, type `T` and relation `R`:
+  `ℰ⟦ p ⟧ δ↑[0 ↦ (T , R)] w′ (Vl↑ ⦂∀ _ [ T ]) Vr↑`.  In `≻`:
+  * `R` ranges over guarded relations `▷ R′`;
+  * when `B = ★`, the extension is strict.
+* **`∀★⊑★` and `∀⊑★ p`:** `Vr = Wr ⟨ ∀★ ! ⟩`, and the `∀⊑∀` clause
+  (with a `dead` variable for `∀⊑★`) relates `(Vl , Wr)`.  In `≻`,
+  under `▷`.
+* **`bot-elim`, `bot⊑★`:** empty, because no closed value has type
+  `∀X.X`.
+
+Two side conditions:
+
+* **Identity-closed `R`.**  If `R` relates `(V , V′)`, then
+  `V ⟨ refl∼ T ⟩` and `V′ ⟨ refl∼ T′ ⟩` are related by the expression
+  relation at `R`.
+  * The cast lemma under `∀ᶜ` needs this: `β-∀` substitutes `refl∼ T`
+    for `id (＇ X)` (`Consistency.agda`, `_[_]ᶜ`).
+  * The fundamental lemma instantiates `R = 𝒱⟦ q ⟧`, which is
+    identity-closed by the identity-cast lemma.
+* **Well-founded.**
+  * The recursion is structural in `p`, except at the `★⊑★` grounds
+    `★⇒★` and `∀★`, which go to stage `n − 1`.
+  * The function and `∀` clauses reach `ℰ`, which reaches `𝒱` on a
+    subterm of `p` at a stage `n′ ≤ n`.
+  * So the order is lexicographic in `(n , p)`.  Section 6.10 gives the
+    Agda encoding.
+
+### 6.6 The guard convention for `≻`
+
+**Rule.**  In `≻`, every relation whose right type is `★` is guarded:
+its stage-`n` content depends only on stage `n − 1`.
+
+**Why.**  In `≻` the left's steps are not counted.  Left-only
+operations happen at precisions whose right type is `★`, and they leave
+the right side unchanged: a left-only projection `?X`, a reveal, or an
+instantiation.  So they must take a related pair at stage `n` to a
+related pair at stage `n`.
+
+**Checked on paper:** the `gen` example of the old note's Section 6.
+* Left `(f ⟨ gen (X! ↦ ?X) ⟩) [C]` against right `f : ★ → ★`, related
+  by `∀⊑` and `•⊑`, with `q : C ⊑ ★`.
+* The left creates a left-only `Xl` and chooses `tag Xl = R′`, where
+  `R′` is the guarded core of `R = 𝒱≻⟦ q ⟧ = ▷ R′`.  The leaf of `X`
+  is `R` (validity in `≻`).
+* An argument related at the leaf, in stage `n`, is tagged by the left
+  alone with `X!`.  The `★⊑★` clause at stage `n` reads `tag Xl` at
+  `n − 1`, that is `R′` at `n − 1`, which is `R` at `n`: the same.  No
+  step was needed.
+* `f` runs on both sides (the right's steps lower the stage).  The
+  left's `?X` turns the `★⊑★` relation at some `m` back into the leaf
+  at `m`, again without a step.  The left's reveal leaves the leaf
+  unchanged.
+* If `f` returns some other `★` value, the left's `?X` blames, which
+  `ℰ≻` allows.
+
+**`R = 𝒱≻⟦ q ⟧` is guarded for every `q : T ⊑ ★`**, case by case:
+* `★⊑★`: every ground reads stage `n − 1`; constants have no content;
+* `ι⊑★`, `⇒⊑★`, `∀★⊑★`, `∀⊑★`: guarded by Section 6.5;
+* `X⊑★`: the leaf is guarded by validity, or quantified guarded;
+* `∀⊑` into `★`: strict extension, by Section 6.5;
+* `bot⊑★`: empty.
+
+**In `≺`** nothing extra is needed.  Left-only operations are counted
+there, and right-only operations (a right `inst` while the left stays
+`∀`) are not counted but need no guard, because `≺` lets the right
+take any number of steps.
+
+### 6.7 The expression relations
+
+* `ℰ≺ₙ⟦ p ⟧ δ w Ml Mr` holds when one of these does:
+  * `Ml` takes `n` steps (it runs out);
+  * `Ml` reaches `blame` in fewer than `n` steps;
+  * `Ml` reaches a value `Vl` in `k ≤ n` steps and `Mr` reaches a value
+    `Vr` in any number of steps, and there is a world
+    `w′ : W (n − k)` with `w′ ⊒ w`, whose stores and embeddings are
+    those of the two reductions, such that `𝒱≺ₙ₋ₖ⟦ p ⟧ δ↑ w′ Vl Vr`.
+* `ℰ≻ₙ` is the mirror, with two differences:
+  * it counts the right's steps;
+  * `Ml` reaching `blame` in *any* number of steps is always allowed.
+* A right `blame` is allowed in neither relation unless the left also
+  blames.
+* At stage `0` both relations hold trivially, because the counted side
+  has taken zero steps.
+
+### 6.8 The theorems
+
+* **Fundamental lemma.**  Let `Φ ∣ γ ⊢ M ⊑ M′ ⦂ A ⊑ A′ ∶ p`.  Then for
+  every direction, stage `n`, world `w`, valid store-variable-kind `δ`
+  and pair of closing substitutions related at `γ`:
+
+      ℰᵈₙ⟦ p ⟧ δ w (M closed on the left) (M′ closed on the right)
+
+  Here "closed" means renamed by `δl` (or `δr`), then substituted.
+* **The dynamic gradual guarantee** for closed programs.  Instantiate
+  at `Φ = []`, `γ = []`, the empty world, and every `n`:
+  * `ℰ≺ₙ` for `n` larger than the left's step count: if the left
+    reduces to a value, the right reduces to a related value;
+  * `ℰ≻ₙ` the same way: if the right reduces to a value, the left
+    reduces to a related value or to `blame`.
+
+  The two divergence clauses are the contrapositives.  Source programs
+  reach this through `elaboration-preserves-precision`
+  (`LR/Meta.agda`).  Whether the divergence clauses need determinism
+  of reduction is still to be checked.
+
+### 6.9 Lemmas, in dependency order
+
+1. **Worlds:** restriction composes; extension is reflexive and
+   transitive.
+2. **Monotonicity:** `𝒱` and `ℰ` are Kripke-monotone (including
+   downward closure in the stage), given monotone leaf and tag
+   relations.
+3. **Expression lemmas:**
+   * values are expressions;
+   * backward reduction, with stage bookkeeping;
+   * the bind lemma for evaluation contexts.
+4. **Uniqueness** of two-context precision derivations, and the
+   **substitution lemma**:
+   `𝒱⟦ p ⟧ δ[0 ↦ (T , T′ , 𝒱⟦ q ⟧ δ)] = 𝒱⟦ r ⟧ δ` for the
+   `r : A [ T ] ⊑ B [ T′ ]` that `•⊑•` carries.
+5. **Conversions.**  A reveal turns a store-variable entry into a
+   substitution entry; a conceal turns it back.  This is the two-sided
+   conversion lemma of the old note's Section 7, with one-sided
+   variants.
+6. **The identity-cast lemma** (`refl∼ T` is related to the identity).
+7. **The cast lemma** (cast monotonicity, old note Section 8a, cases
+   1–8), with the world-change lemma (old note Section 8b) as its
+   `∀ᶜ`/`inst` and `∀ᶜ`/`gen` cases.
+8. **Compatibility lemmas** for each rule of `LR.CastPrecision`.
+9. **The fundamental lemma**, then the guarantee.
+
+### 6.10 The Agda encoding
+
+* **Staged worlds**, by mutual recursion on the stage:
+
+      W n          = Σ ΔL ΔR . (TyVar ΔL → Tags n)
+      Tags zero    = ⊤
+      Tags (suc n) = Tags n × Rel n
+      Rel n        = (w : W n) → Term (ΔL w) → Term (ΔR w) → Set
+
+  The calls are `W n → Tags n` and `Tags (suc n) → W n`, `Tags n`.
+  Every cycle drops the stage.
+* **The relations.**  `𝒱` and `ℰ` are mutual, by lexicographic
+  recursion on the stage and the derivation.
+  * `ℰ`'s future world lives at a stage `n′` given with a proof of
+    `n′ ≤′ n`.
+  * A helper defined by recursion on that proof calls `𝒱` at `n` (on
+    a smaller derivation) for `≤′-refl`, and steps down the stage for
+    `≤′-step`.
+  * So every call is structural.
+* **Directions** are a parameter `d`.  The clauses that differ are the
+  `▷` guards of Section 6.5 and the step-counting side in `ℰ`.

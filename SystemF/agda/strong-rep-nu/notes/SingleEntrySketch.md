@@ -296,17 +296,82 @@ three Ids peel `true ⟨id⟩ ⟨id⟩ ⟨id⟩`.
 module; the last Merge produces
 `[+X^α, +Y^β, −X^α, +X^α, −Y^β, −X^α] false ⟨id(Bool)⟩`).
 
-νF₁, 16 steps.  The first eight are as in 5a (with `+Y`/`+X` codomains)
-and end at the six-layer tower
+νF₁, 16 steps (hand-derived, not machine-checked):
 
-    [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩ ⟨id⟩ ⟨+Y⟩ ⟨+X⟩
+       (ν X:=Bool. ((ΛX. λf:∀Y. Y→Y. ν Y:=X. (f Y)⟨−Y → +Y⟩) X)
+            ⟨(∀Y. id → id) → (−X → +X)⟩)
+         (ΛZ. λz:Z. z) false
 
-with interiors {X}, {X,Y}, {Y}, {X,Y}, {X}, ∅ (outermost first) and
-store α:=Bool, β:=α.  Then
+    → TyBeta                                                         ⊣ α^X:=Bool
+       [+X^α] (λf:∀Y. Y→Y. ν Y:=X. (f Y)⟨−Y → +Y⟩) ⟨(∀Y. id → id) → (−X → +X)⟩
+         (ΛZ. λz:Z. z) false
 
-    → Cancel, |I| = 2 (layers 2–5)  [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
-    → Cancel, |I| = 4 (layers 1–6)  [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
-    → Id × 6                       false
+    → Wrap
+       [+X^α] ((λf:∀Y. Y→Y. ν Y:=X. (f Y)⟨−Y → +Y⟩)
+                 ([−X^α] (ΛZ. λz:Z. z) ⟨∀Y. id → id⟩))
+         ⟨−X → +X⟩ false
+
+    → Beta
+       [+X^α] (ν Y:=X. (([−X^α] (ΛZ. λz:Z. z) ⟨∀Y. id → id⟩) Y)⟨−Y → +Y⟩)
+         ⟨−X → +X⟩ false
+
+    → TyBeta                                                         ⊣ β^Y:=α
+       [+X^α] [+Y^β] [−X^α] (λz:Y. z) ⟨id → id⟩ ⟨−Y → +Y⟩ ⟨−X → +X⟩ false
+
+    → Wrap   (layer [+X^α]: false enters sealed as X)
+       [+X^α] (([+Y^β] [−X^α] (λz:Y. z) ⟨id → id⟩ ⟨−Y → +Y⟩)
+                 ([−X^α] false ⟨−X⟩))
+         ⟨+X⟩
+
+    → Wrap   (layer [+Y^β]: the argument is sealed again, as Y)
+       [+X^α] [+Y^β] (([−X^α] (λz:Y. z) ⟨id → id⟩)
+                        ([−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩))
+         ⟨+Y⟩ ⟨+X⟩
+
+    → Wrap   (layer [−X^α]: the argument gets the inverse entry, with id)
+       [+X^α] [+Y^β] [−X^α] ((λz:Y. z)
+                               ([+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩))
+         ⟨id⟩ ⟨+Y⟩ ⟨+X⟩
+
+    → Beta
+       [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩ ⟨id⟩ ⟨+Y⟩ ⟨+X⟩
+
+    → Cancel, |I| = 2   (ξ into layer 1; layer 2's +Y meets layer 5's −Y)
+       [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
+
+    → Cancel, |I| = 4   (layer 1's +X meets layer 6's −X)
+       [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
+
+    → Id     [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] false ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
+    → Id     [+X^α] [+Y^β] [−X^α] [+X^α] false ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩
+    → Id     [+X^α] [+Y^β] [−X^α] false ⟨id⟩ ⟨id⟩ ⟨id⟩
+    → Id     [+X^α] [+Y^β] false ⟨id⟩ ⟨id⟩
+    → Id     [+X^α] false ⟨id⟩
+    → Id     false
+
+Notes on the steps:
+
+* **The second TyBeta** runs in the interior of `[+X^α]`, where `X`
+  names `α`, so `Y:=X` allocates `β` with payload `α`.  `•` renames the
+  argument's `ΛZ` and the conversion's `∀Y` to the fresh `Y`, strips the
+  `∀Y.` from the `[−X^α]` layer's conversion, and puts `[+Y^β]` OUTSIDE
+  that layer.
+* **The three Wraps** push `false` through one layer each; the argument
+  takes the inverse of that layer's entry, with the layer's domain
+  conversion: `−X`, then `−Y`, then `id`.
+* **The Beta** returns the argument, which lands directly under layer 3.
+  The six-layer tower has interiors {X}, {X,Y}, {Y}, {X,Y}, {X}, ∅
+  (outermost first) and store α^X:=Bool, β^Y:=α.
+* **The first Cancel.**  Layer 1's unseal cannot fire yet: its body,
+  layer 2, has an active `+Y` and is not a value, so ξ reaches layer 2.
+  Layers 3 and 4 carry `id`, so they form `I`, and its hole is at layer
+  5, the seal `−Y` under `[−Y^β]`.  Only layer 2's `+Y` and layer 5's
+  `−Y` change.
+* **The second Cancel** crosses layers 2–5, all now carrying `id` —
+  among them `[−X^α]` (layer 3) and `[+X^α]` (layer 4) — to the seal
+  `−X` at layer 6.
+* **The Ids** peel the tower from the inside: each fires on a constant
+  under an `id`.
 
 The first Cancel is the step the named-type versions could not take: it
 crosses layer 3, `[−X^α]` with interior {Y}, and makes the type there

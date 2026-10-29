@@ -150,6 +150,15 @@ import proof.DGG.CatchupToLessPreciseProof
 import proof.DGG.DynamicGradualGuaranteeProof
 
 ------------------------------------------------------------------------
+-- Denotational DGG (notes/denotational-dgg.md): the syntactic layer
+------------------------------------------------------------------------
+
+import Denot.Meta
+import Denot.Denotation
+import proof.Denot.DenotConsistency
+import proof.Denot.DenotSubst
+
+------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked
 ------------------------------------------------------------------------
 
@@ -177,6 +186,7 @@ import proof.DGG.LambdaImpProbe
 import proof.DGG.MovedLinkProbe
 import proof.DGG.ChainRideProbe
 import proof.DGG.TagBoundaryProbe
+import proof.Denot.BetaAllCounterProbe
 
 -- Checked libraries currently without consumers (candidates for M7+)
 import proof.DGG.CenterRename

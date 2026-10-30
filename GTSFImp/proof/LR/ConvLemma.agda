@@ -3025,3 +3025,192 @@ module PairRevL (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
               (pk-〖〗 refl (shift-ty Tl Tl) (open0 Tl (δl δt) A)))))
           refl
           (rev (ConvI-↑ e₃ hβ) k≤s ql qr q)
+
+------------------------------------------------------------------------
+-- `∀⊑∀`, the conceal, when the right converts too
+------------------------------------------------------------------------
+
+ConB-just : ∀ {Θ} d {c : TyVar Θ × Ty Θ} {k N} → k < N → ConB d (just c) k N
+ConB-just ≺ lt = lt
+ConB-just ≻ lt = lt
+
+module PairCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
+    (p : pair Φ ⊢ A ⊑ B)
+    (rev : ∀ {N′ rk w X′} {m : CMode (pair Φ) X′ (ΔL w) (ΔR w)}
+       {α δs δt} → ConvI d N′ rk w m α δs δt → ∀ {k} → k ≤ N′
+       → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d k p w δs Vl Vr
+       → ℰ d k p w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) A 〗)
+           (revM (rconv m (δr δt)) (substᵗ (δr δs) B) Vr))
+    (con : ∀ {N′ rk w X′} {m : CMode (pair Φ) X′ (ΔL w) (ΔR w)}
+       {α δs δt} → ConvI d N′ rk w m α δs δt → ∀ {k}
+       → ConB d (rconv m (δr δt)) k N′
+       → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k p w δt Wl Wr
+       → ℰ d k p w δs
+           (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) A))
+           (conM (rconv m (δr δt)) (substᵗ (δr δs) B) Wr))
+    where
+
+  pairCon : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt}
+      (h : ConvI d N both w m α δs δt) → n ≤ N
+    → ∀ {α′ R′} → rconv m (δr δt) ≡ just (α′ , R′)
+    → ∀ {Wl Wr} → Value Wl → Value Wr → allPair d n p w δt Wl Wr
+    → ∀ Xs Ys c
+    → ℰ d n p w (extPairI (repL Xs c) (repR Ys c)
+          (sem (leafBelowS d (≤′-refl {n}) (sdesc Xs Ys c))) δs)
+        ((Wl ↓ `∀↓ makeConceal (suc α) (⇑ᵗ (repM m (δl δt)))
+                    (substᵗ (extsᵗ (δl δs)) A))
+           ⦂∀ substᵗ (extsᵗ (δl δs)) A [ repL Xs c ])
+        ((Wr ↓ `∀↓ makeConceal (suc α′) (⇑ᵗ R′)
+                    (substᵗ (extsᵗ (δr δs)) B))
+           ⦂∀ substᵗ (extsᵗ (δr δs)) B [ repR Ys c ])
+  pairCon {zero} w h le eq wl wr r Xs Ys c = ℰ-zero d p w
+  pairCon {suc s} w {X} {m} {α} {δs} {δt} h le {α′} {R′} eq {Wl} {Wr}
+      wl wr r Xs Ys c =
+    anti₁₁ d p stepL stepR (tagsLR w) (okBindLR w Tl Tr) inner
+    where
+    Tl = repL Xs c
+    Tr = repR Ys c
+    R = repM m (δl δt)
+    BsL = substᵗ (extsᵗ (δl δs)) A
+    BsR = substᵗ (extsᵗ (δr δs)) B
+    cL = makeConceal (suc α) (⇑ᵗ R) BsL
+    cR = makeConceal (suc α′) (⇑ᵗ R′) BsR
+
+    tyR′ : ∀ Y → replaceTy α′ R′ (δr δs Y) ≡ δr δt Y
+    tyR′ = subst (λ rc → ∀ Y → replaceRC rc (δr δs Y) ≡ δr δt Y) eq (tyR h)
+
+    tgtL : replaceTy (suc α) (⇑ᵗ R) BsL ≡ substᵗ (extsᵗ (δl δt)) A
+    tgtL = tgt-body α R (δl δs) (δl δt) (tyL h) A
+
+    tgtR : replaceTy (suc α′) (⇑ᵗ R′) BsR ≡ substᵗ (extsᵗ (δr δt)) B
+    tgtR = tgt-body α′ R′ (δr δs) (δr δt) tyR′ B
+
+    stepL = conInst {T = Tl} cL wl refl
+    stepR = conInst {T = Tr} cR wr refl
+
+    e₁ = stepExt (bind Tl ∷ []) (bind Tr ∷ []) (tagsLR w) (okBindLR w Tl Tr)
+    w₁ = world (suc (ΔL w)) (suc (ΔR w)) (tagsLR w)
+    ρL₁ = ρL e₁
+    ρR₁ = ρR e₁
+    Xs₁ = map (renameVar ρL₁) Xs
+    Ys₁ = map (renameVar ρR₁) Ys
+    c₁ = renameDesc ρL₁ ρR₁ c
+    c″ = sdesc (zero ∷ Xs₁) (zero ∷ Ys₁) c₁
+    le_s : s ≤′ suc s
+    le_s = ≤′-step ≤′-refl
+    s≤N : s ≤ N
+    s≤N = ≤-trans (n≤1+n s) le
+    Ls = sem (leafBelowS d le_s c″)
+    Lt = sem (leafBelowS d (≤′-refl {suc s}) (sdesc Xs Ys c))
+    gLs = leafBelowS-good d le_s c″
+    δsβ = extPairI (＇ zero) (＇ zero) Ls (δs ↑ᴵ e₁)
+    δtβ = extPairI (＇ zero) (＇ zero) Ls (δt ↑ᴵ e₁)
+    δsg = extPairI Tl Tr Lt δs ↑ᴵ e₁
+    m₁ = CMode-pair (CMode-↑ ρL₁ ρR₁ m)
+    α₁ = toRenameᵗ ρL₁ α
+
+    rc↑ : rconv (CMode-↑ ρL₁ ρR₁ m) (δr (δt ↑ᴵ e₁))
+      ≡ just (toRenameᵗ ρR₁ α′ , renameᵗ (toRenameᵗ ρR₁) R′)
+    rc↑ = trans (rconv-↑ ρL₁ ρR₁ m (δr δt)) (cong (renRConv ρR₁) eq)
+
+    hα : ConvI d N both w₁ m₁ α₁ δsβ δtβ
+    hα = ConvI-extPair {β = zero} {l = Ls} gLs
+      (λ e′ → new-bind Tl α (sym e′))
+      (subst (λ rc → replaceRC rc (＇ zero) ≡ ＇ zero) (sym rc↑)
+        (replaceTy-other (renameᵗ (toRenameᵗ ρR₁) R′)
+          (λ e′ → new-bind Tr α′ (sym e′))))
+      (subst (λ rc → ConvLeafP d N w₁ R₁ rc α₁ Ls Ls (＇ zero) (＇ zero))
+        (sym rc↑)
+        (storeConvP gLs R₁
+          (just (toRenameᵗ ρR₁ α′ , renameᵗ (toRenameᵗ ρR₁) R′))
+          (λ e′ → new-bind Tl α (sym e′))
+          (λ e′ → new-bind Tr α′ (sym e′))))
+      (storeFreshP {N = N} gLs {γ = zero} {γ′ = zero} {rk = both})
+      (ConvI-↑ e₁ h)
+      where
+      R₁ = repM (CMode-↑ ρL₁ ρR₁ m) (δl (δt ↑ᴵ e₁))
+
+    hβ : ConvI d s both w₁ (m-pair {Φ = pair Φ} ↔-here zero) zero δsβ δsg
+    hβ = ConvI-newP e₁ (new-bind Tl) {Ls = Ls} {Lt = Lt} {Tl = Tl}
+      {Tr = Tr} (new-bind Tr) s≤N (freshS h) gLs
+      (leafBelowS-good d (≤′-refl {suc s}) (sdesc Xs Ys c))
+      (proj₁ (oracle h) (≤′-refl {suc s}) le (sdesc Xs Ys c))
+      (SealNewP.sealNewP d le_s (≤′-refl {suc s}) (n≤1+n s) e₁ Xs Ys c zero
+        {Φ = Φ} {δt = δs} zero)
+
+    clause : ℰ d s p w₁ δtβ
+      (⇑ᵗᵐ Wl ⦂∀ (bind Tl ▷ᵇ replaceTy (suc α) (⇑ᵗ R) BsL) [ ＇ zero ])
+      (⇑ᵗᵐ Wr ⦂∀ (bind Tr ▷ᵇ replaceTy (suc α′) (⇑ᵗ R′) BsR) [ ＇ zero ])
+    clause =
+      ℰᵍ-≡
+        (cong₂ (λ M C → M ⦂∀ C [ ＇ zero ]) (shift-term Tl Wl)
+          (trans (annot Tl (δl δt) A)
+            (cong (renameᵗ (extᵗ suc)) (sym tgtL))))
+        (cong₂ (λ M C → M ⦂∀ C [ ＇ zero ]) (shift-term Tr Wr)
+          (trans (annot Tr (δr δt) B)
+            (cong (renameᵗ (extᵗ suc)) (sym tgtR))))
+        (ℰᵍ-map d s w₁
+          (λ le′ w″ e″ V V′ → 𝒱≤-cast d (≤′-trans le′ le_s) le′ p w″)
+          (r e₁ le_s c″))
+
+    R≡ : repM m₁ (δl δtβ) ≡ ⇑ᵗ R
+    R≡ = trans (repM-pair (CMode-↑ ρL₁ ρR₁ m) (δl (δt ↑ᴵ e₁)) (＇ zero))
+      (trans (repM-↑ ρL₁ ρR₁ m (δl δt)) (shift-ty Tl R))
+
+    rc₁≡ : rconv m₁ (δr δtβ) ≡ just (suc α′ , ⇑ᵗ R′)
+    rc₁≡ = trans (rconv-pair (CMode-↑ ρL₁ ρR₁ m) (δr (δt ↑ᴵ e₁)) (＇ zero))
+      (trans rc↑
+        (cong₂ (λ a b → just (a , b)) (embed-var Tr α′) (shift-ty Tr R′)))
+
+    K₁ : ∀ {w₂} (e₂ : w₂ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
+      → Value Ql → Value Qr → 𝒱 d k p w₂ (δtβ ↑ᴵ e₂) Ql Qr
+      → ℰ d k p w₂ (δsβ ↑ᴵ e₂)
+          (mplug (renameMFrame (ρL e₂) (just (conceal cL))) Ql)
+          (mplug (renameMFrame (ρR e₂) (just (conceal cR))) Qr)
+    K₁ e₂ {k} k≤s {Ql} {Qr} ql qr q =
+      ℰᵍ-≡
+        (trans (conRen e₂ m₁ α₁ δsβ δtβ Ql A)
+          (↓-pk (pk-ren↓ (toRenameᵗ (ρL e₂))
+            (pk-mc (embed-var Tl α) R≡ (open0 Tl (δl δs) A)))))
+        (trans (ccRen e₂ m₁ δsβ δtβ Qr B)
+          (trans (cong (λ rc → mplug (renameMFrame (ρR e₂)
+                          (conFrame rc (substᵗ (δr δsβ) B))) Qr) rc₁≡)
+            (↓-pk (pk-ren↓ (toRenameᵗ (ρR e₂))
+              (pk-mc refl refl (open0 Tr (δr δs) B))))))
+        (con (ConvI-↑ e₂ hα) cb ql qr q)
+      where
+      cb : ConB d (rconv (CMode-↑ (ρL e₂) (ρR e₂) m₁) (δr (δtβ ↑ᴵ e₂))) k N
+      cb = subst (λ rc → ConB d rc k N)
+        (sym (trans (rconv-↑ (ρL e₂) (ρR e₂) m₁ (δr δtβ))
+          (cong (renRConv (ρR e₂)) rc₁≡)))
+        (ConB-just d (≤-trans (s≤s k≤s) le))
+
+    K₂ : ∀ {w₃} (e₃ : w₃ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
+      → Value Ql → Value Qr → 𝒱 d k p w₃ (δsβ ↑ᴵ e₃) Ql Qr
+      → ℰ d k p w₃ (δsg ↑ᴵ e₃)
+          (mplug (renameMFrame (ρL e₃)
+            (just (reveal 〖 zero , ⇑ᵗ Tl ↑ BsL 〗))) Ql)
+          (mplug (renameMFrame (ρR e₃)
+            (just (reveal 〖 zero , ⇑ᵗ Tr ↑ BsR 〗))) Qr)
+    K₂ e₃ {k} k≤s {Ql} {Qr} ql qr q =
+      ℰᵍ-≡
+        (trans (revRen e₃ (m-pair {Φ = pair Φ} ↔-here zero) zero δsβ δsg Ql A)
+          (↑-pk (pk-ren↑ (toRenameᵗ (ρL e₃))
+            (pk-〖〗 refl (shift-ty Tl Tl) (open0 Tl (δl δs) A)))))
+        (trans (rcRen e₃ (m-pair {Φ = pair Φ} ↔-here zero) δsβ δsg Qr B)
+          (↑-pk (pk-ren↑ (toRenameᵗ (ρR e₃))
+            (pk-〖〗 refl (shift-ty Tr Tr) (open0 Tr (δr δs) B)))))
+        (rev (ConvI-↑ e₃ hβ) k≤s ql qr q)
+
+    inner : ℰ d s p w₁ δsg
+      ((⇑ᵗᵐ Wl ⦂∀ (bind Tl ▷ᵇ replaceTy (suc α) (⇑ᵗ R) BsL) [ ＇ zero ])
+         ↓ cL ↑ 〖 zero , ⇑ᵗ Tl ↑ BsL 〗)
+      ((⇑ᵗᵐ Wr ⦂∀ (bind Tr ▷ᵇ replaceTy (suc α′) (⇑ᵗ R′) BsR) [ ＇ zero ])
+         ↓ cR ↑ 〖 zero , ⇑ᵗ Tr ↑ BsR 〗)
+    inner =
+      ℰ-bind₂ d s p p w₁ {δ₁ = δsβ} {δ₂ = δsg}
+        (just (reveal 〖 zero , ⇑ᵗ Tl ↑ BsL 〗))
+        (just (reveal 〖 zero , ⇑ᵗ Tr ↑ BsR 〗))
+        (ℰ-bind₂ d s p p w₁ {δ₁ = δtβ} {δ₂ = δsβ}
+          (just (conceal cL)) (just (conceal cR)) clause K₁)
+        K₂

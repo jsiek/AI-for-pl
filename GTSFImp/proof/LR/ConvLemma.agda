@@ -2165,3 +2165,93 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
       (genO h z)
   sealI (ConvI-newD le h) = tt
   oracle (ConvI-newD le h) = Oracle-down le (oracle h)
+
+-- a larger bound keeps the leaf
+leafBelow-up : ∀ d {n₁ a₁ n₂ a₂} (le₁ : n₁ ≤′ a₁) (le₂ : n₂ ≤′ a₂)
+    (c : Desc ΘL ΘR) → n₁ ≤ n₂ → ∀ {k} w τL τR {V V′}
+  → leafBelow d le₁ c k w τL τR V V′ → leafBelow d le₂ c k w τL τR V V′
+leafBelow-up d {n₁} {n₂ = n₂} le₁ le₂ c n₁≤n₂ {k} w τL τR r
+    with suc k ≤? n₁ | suc k ≤? n₂
+leafBelow-up d le₁ le₂ (desc p env envR) n₁≤n₂ {k} w τL τR r
+    | yes lt₁ | yes lt₂ =
+  𝒱→𝒱< d (≤′-trans (≤⇒≤′ lt₂) le₂) p w
+    (𝒱<→𝒱 d (≤′-trans (≤⇒≤′ lt₁) le₁) p w r)
+leafBelow-up d le₁ le₂ c n₁≤n₂ {k} w τL τR r | yes lt₁ | no ¬lt₂ =
+  ⊥-elim (¬lt₂ (≤-trans lt₁ n₁≤n₂))
+leafBelow-up d le₁ le₂ c n₁≤n₂ {k} w τL τR () | no ¬lt₁ | _
+
+leafBelowS-up : ∀ d {n₁ a₁ n₂ a₂} (le₁ : n₁ ≤′ a₁) (le₂ : n₂ ≤′ a₂)
+    (c : SDesc ΘL ΘR) → n₁ ≤ n₂ → ∀ {k} w τL τR {V V′}
+  → leafBelowS d le₁ c k w τL τR V V′ → leafBelowS d le₂ c k w τL τR V V′
+leafBelowS-up d le₁ le₂ c n₁≤n₂ w τL τR =
+  peelS-map c (leafBelow-up d le₁ le₂ (core c) n₁≤n₂ w τL τR)
+
+-- the stage of a left-only leaf is at most the stage
+onlyStage-≤ : ∀ d k → onlyStage d k ≤ k
+onlyStage-≤ ≺ zero = z≤n
+onlyStage-≤ ≺ (suc k) = n≤1+n k
+onlyStage-≤ ≻ k = ≤-refl
+
+------------------------------------------------------------------------
+-- The seal hypotheses for a type application's bound variable
+------------------------------------------------------------------------
+
+-- V's clause, used at the new store variables: the leaf of the prefixed
+-- descriptor, with bound s, against the target's leaf, with bound n
+module SealNew (d : Dir) {s n a b} (le_s : s ≤′ a) (le_n : n ≤′ b)
+    (s≤n : s ≤ n) {w w₁ : World} (e₁ : w₁ ⊒ w)
+    (Xs : List (TyVar (ΔL w))) (Ys : List (TyVar (ΔR w)))
+    (c : Desc (ΔL w) (ΔR w)) (β : TyVar (ΔL w₁)) where
+
+  private
+    c₀ = sdesc Xs Ys c
+    c₁ = renameSDesc (ρL e₁) (ρR e₁) c₀
+    Lt = sem (leafBelowS d le_n c₀)
+
+  -- the target leaf, read in a future of w₁
+  readT : ∀ {w′} (e : w′ ⊒ w₁) k {V V′}
+    → leafBelowS d le_s c₁ k w′ (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e) V V′
+    → leafRel d k w′ (transportLeaf (ρL e) (ρR e)
+        (transportLeaf (ρL e₁) (ρR e₁) Lt)) V V′
+  readT e k r =
+    leafBelowS-up d le_s le_n c₀ s≤n _ _ _
+      (to (leafBelowS-ren d le_s (ρL e₁) (ρR e₁) c₀ k _ _ _) r)
+
+  writeS : ∀ {w′} (e : w′ ⊒ w₁) k → suc k ≤ s → ∀ {V V′}
+    → leafRel d k w′ (transportLeaf (ρL e) (ρR e)
+        (transportLeaf (ρL e₁) (ρR e₁) Lt)) V V′
+    → leafBelowS d le_s c₁ k w′ (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e) V V′
+  writeS e k lt r =
+    from (leafBelowS-ren d le_s (ρL e₁) (ρR e₁) c₀ k _ _ _)
+      (leafBelowS-bound d le_n le_s c₀ lt _ _ _ r)
+
+  -- the representation of the new seal
+  repβ : ∀ {w′} (e : w′ ⊒ w₁)
+    → repL (map (renameVar (id↪ᵗ ∘↪ ρL e)) (sealsL c₁))
+        (renameDesc (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e) (core c₁))
+      ≡ renameᵗ (toRenameᵗ (ρL e)) (renameᵗ (toRenameᵗ (ρL e₁)) (repL Xs c))
+  repβ e =
+    trans (repL-rename (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e) (sealsL c₁) (core c₁))
+      (trans (cong (λ σ → renameᵗ (toRenameᵗ σ) (repL (sealsL c₁) (core c₁)))
+               (∘↪-idˡ (ρL e)))
+        (cong (renameᵗ (toRenameᵗ (ρL e)))
+          (repL-rename (ρL e₁) (ρR e₁) Xs c)))
+
+  repβ′ : ∀ {w′} (e : w′ ⊒ w₁)
+    → repR (map (renameVar (id↪ᵗ ∘↪ ρR e)) (sealsR c₁))
+        (renameDesc (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e) (core c₁))
+      ≡ renameᵗ (toRenameᵗ (ρR e)) (renameᵗ (toRenameᵗ (ρR e₁)) (repR Ys c))
+  repβ′ e =
+    trans (repR-rename (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e) (sealsR c₁) (core c₁))
+      (trans (cong (λ σ → renameᵗ (toRenameᵗ σ) (repR (sealsR c₁) (core c₁)))
+               (∘↪-idˡ (ρR e)))
+        (cong (renameᵗ (toRenameᵗ (ρR e)))
+          (repR-rename (ρL e₁) (ρR e₁) Ys c)))
+
+  varβ : ∀ {w′} (e : w′ ⊒ w₁) (X : TyVar (ΔL w₁))
+    → renameVar (id↪ᵗ ∘↪ ρL e) X ≡ toRenameᵗ (ρL e) X
+  varβ e X = cong (λ σ → toRenameᵗ σ X) (∘↪-idˡ (ρL e))
+
+  varβR : ∀ {w′} (e : w′ ⊒ w₁) (Y : TyVar (ΔR w₁))
+    → renameVar (id↪ᵗ ∘↪ ρR e) Y ≡ toRenameᵗ (ρR e) Y
+  varβR e Y = cong (λ σ → toRenameᵗ σ Y) (∘↪-idˡ (ρR e))

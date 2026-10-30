@@ -704,24 +704,51 @@ only strengthens the clauses.
   * The fundamental lemma's `Λ⊑Λ` case already handles prefixes: the
     bound variable's entry is `seals α Xs (α′ ∷ Ys) c`, since entries
     carry seal lists.
-* **Status** (`proof/LR/ConvBase.agda`, `proof/LR/ConvLemma.agda`, not
-  yet in `All.agda`). Done:
+* **Status** (`proof/LR/ConvBase.agda`, `proof/LR/ConvLemma.agda`,
+  `proof/LR/ConvMain.agda`, not yet in `All.agda`). Done:
   * the hypotheses (`ConvI`), their transport (`ConvI-↑`) and their
-    extension under binders;
+    extension under binders. The hypotheses carry fresh-conversion
+    closure for both interpretations (`genP`/`genO` for the target,
+    `genPS`/`genOS` for the source), because a conceal's instantiation
+    reveals its new variable under the source interpretation;
   * the variable cases (`rev★-var`, `con★-var`, `rev-var`, `con-var`);
   * the function cases (`FunConv`);
   * the bound variable's hypotheses (`ConvI-newP`, `-newL`, `-newO`,
-    `-newD`) and seal hypotheses (`SealNewP`);
-  * the `∀⊑∀` reveal, both when the right converts (`PairRev`) and when
-    it does not (`PairRevL`).
-  * `allOnly` now also quantifies over sealed descriptors (left seals
-    only), for the left-only binder's conversion.
+    `-newD`, from a `FreshI` interpretation) and seal hypotheses
+    (`SealNewP`, and `SealNewO` for a left-only binder);
+  * every `∀` case, reveal and conceal, per descriptor
+    (`PairRev`, `PairRevL`, `PairCon`, `PairConL`, `OnlyRev`, `OnlyCon`,
+    `DeadConv`), and at the value level (`PairV`, `OnlyV`, `DeadV`).
+    `∀★⊑★` is `∀⊑★` at `★⊑★`, through `allDeadStar-★`;
+  * the two lemmas, by induction on the precision derivation: at `★`
+    (`rev★`, `con★`, the right not converted) and the main one
+    (`revC`, `conC`; into `★` it is the lemma at `★` followed by the
+    right's identity step). Both pass the termination checker.
 
   To do:
-  * the other `∀` cases: the `∀⊑∀` conceal, `∀⊑`, `∀⊑★` and `∀★⊑★`;
-  * the two lemmas' dispatch;
-  * the closure oracle by strong induction (`ConvClose`);
+  * the closure oracle (`ConvClose`), see the gap below;
   * the instances for the fundamental lemma's `Λ` cases.
+* **Gap in the oracle: right-only closure.** The oracle must close every
+  descriptor leaf `leafBelowS d le (sdesc Xs Ys c)` under fresh
+  conversions on both sides (`FreshP d both`).
+  * With both seal lists empty, this is the main lemma in mode none.
+    With both nonempty, both sides take an identity step.
+  * With right seals only, the right takes an identity step and the left
+    converts the core: the main lemma in mode none, with no right
+    conversion.
+  * With left seals only (from `PairRevL`'s instantiation, `sealSL`),
+    the left takes an identity step at its store variable and the
+    right converts the core's right type. This needs the core relation
+    closed under a conversion of the right alone. Neither lemma
+    provides that: both always convert the left.
+  * It is needed: in `ConvI-newP`, every other paired leaf meets the new
+    pair conversion (`fresh→convP` from `genP`), and a left-sealed leaf
+    there has a structural right type.
+  * Ways out: a third lemma where only the right converts (the mirror
+    of the main lemma's cases); or making the left conversion optional
+    in the main lemma, like the right one; or the language change
+    (identity conversions where the variable does not occur), which
+    removes the closure hypotheses altogether.
 * **Plan for a `∀` case** (`∀⊑∀`, reveal; the others are alike).
   * Work at the function's world with an instantiating sealed descriptor
     `c₀`, then move to the clause's futures with `ConvI-↑`,

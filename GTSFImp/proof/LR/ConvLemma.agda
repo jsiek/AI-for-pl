@@ -1013,3 +1013,236 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ} {rk 
   sealI (ConvI-extDead {m = m} ne h) =
     SealI-dead {T = ＇ β} {l = sem ⊤Ω} m (sealI h)
   oracle (ConvI-extDead ne h) = oracle h
+
+------------------------------------------------------------------------
+-- The hypotheses, in the current world
+------------------------------------------------------------------------
+
+renRConv-id : ∀ {Θ} (rc : RConv Θ) → renRConv id↪ᵗ rc ≡ rc
+renRConv-id nothing = refl
+renRConv-id (just (α′ , R′)) =
+  cong₂ (λ a b → just (a , b)) (toRename-id-eq α′) (renameTy-id R′)
+
+module Now {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
+    {rk : RK} {w : World} {δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)}
+    {α : TyVar (ΔL w)} {m : CMode Φ X (ΔL w) (ΔR w)}
+    (h : ConvI d N rk w m α δs δt) where
+
+  private
+    ≈s = ↑ᴵ-refl {w = w} δs
+    ≈t = ↑ᴵ-refl {w = w} δt
+
+  revP : ∀ {Z Y′} (z : Φ ∋ Z ↔ Y′) → Other m Z → ∀ {k} → k ≤ N
+    → ∀ {Vl Vr} → Value Vl → Value Vr → leafRel d k w (leaf δs Z) Vl Vr
+    → ℰ d k (X⊑Y z) w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ δl δs Z 〗)
+        (revM (rconv m (δr δt)) (δr δs Y′) Vr)
+  revP {Z} {Y′} z o {k} le {Vl} {Vr} vl vr r =
+    ℰL→XY d k z w
+      (ℰL-resp d k w (leaf≈ ≈t Z)
+        (ℰL-≡ d k w (leaf (δt ↑ᴵ ⊒-refl w) Z)
+          (↑〖〗-≡ (toRename-id-eq α) (renameTy-id (repM m (δl δt)))
+            (renameTy-id (δl δs Z)))
+          (revM-≡ (renRConv-id (rconv m (δr δt))) (renameTy-id (δr δs Y′)))
+          (proj₁ (convP h z o (⊒-refl w) le) vl vr
+            (leafRel-resp d k w (≈ˡ-sym (leaf≈ ≈s Z)) r))))
+
+  conP : ∀ {Z Y′} (z : Φ ∋ Z ↔ Y′) → Other m Z → ∀ {k} → k ≤ N
+    → ∀ {Wl Wr} → Value Wl → Value Wr → leafRel d k w (leaf δt Z) Wl Wr
+    → ℰ d k (X⊑Y z) w δs
+        (Wl ↓ makeConceal α (repM m (δl δt)) (δl δs Z))
+        (conM (rconv m (δr δt)) (δr δs Y′) Wr)
+  conP {Z} {Y′} z o {k} le {Wl} {Wr} wl wr r =
+    ℰL→XY d k z w
+      (ℰL-resp d k w (leaf≈ ≈s Z)
+        (ℰL-≡ d k w (leaf (δs ↑ᴵ ⊒-refl w) Z)
+          (↓mc-≡ (toRename-id-eq α) (renameTy-id (repM m (δl δt)))
+            (renameTy-id (δl δs Z)))
+          (conM-≡ (renRConv-id (rconv m (δr δt))) (renameTy-id (δr δs Y′)))
+          (proj₂ (convP h z o (⊒-refl w) le) wl wr
+            (leafRel-resp d k w (≈ˡ-sym (leaf≈ ≈t Z)) r))))
+
+  revO : ∀ {Z} (z : Φ ∋ Z only) → Other m Z → ∀ {k} → k ≤ N
+    → ∀ {Vl Vr} → Value Vl → Value Vr → leafRel d k w (leaf δs Z) Vl Vr
+    → ℰ d k (X⊑★ z) w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ δl δs Z 〗) Vr
+  revO {Z} z o {k} le {Vl} {Vr} vl vr r =
+    ℰL→X★ d k z w
+      (ℰL-resp d k w (leaf≈ ≈t Z)
+        (ℰL-≡ d k w (leaf (δt ↑ᴵ ⊒-refl w) Z)
+          (↑〖〗-≡ (toRename-id-eq α) (renameTy-id (repM m (δl δt)))
+            (renameTy-id (δl δs Z)))
+          refl
+          (proj₁ (convO h z o (⊒-refl w) le) vl vr
+            (leafRel-resp d k w (≈ˡ-sym (leaf≈ ≈s Z)) r))))
+
+  conO : ∀ {Z} (z : Φ ∋ Z only) → Other m Z → ∀ {k} → k ≤ N
+    → ∀ {Wl Vr} → Value Wl → Value Vr → leafRel d k w (leaf δt Z) Wl Vr
+    → ℰ d k (X⊑★ z) w δs
+        (Wl ↓ makeConceal α (repM m (δl δt)) (δl δs Z)) Vr
+  conO {Z} z o {k} le {Wl} {Vr} wl vr r =
+    ℰL→X★ d k z w
+      (ℰL-resp d k w (leaf≈ ≈s Z)
+        (ℰL-≡ d k w (leaf (δs ↑ᴵ ⊒-refl w) Z)
+          (↓mc-≡ (toRename-id-eq α) (renameTy-id (repM m (δl δt)))
+            (renameTy-id (δl δs Z)))
+          refl
+          (proj₂ (convO h z o (⊒-refl w) le) wl vr
+            (leafRel-resp d k w (≈ˡ-sym (leaf≈ ≈t Z)) r))))
+
+-- X's own leaves, now
+module NowX {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
+    {w : World} {δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)} {α : TyVar (ΔL w)}
+    where
+
+  private
+    ≈s = ↑ᴵ-refl {w = w} δs
+    ≈t = ↑ᴵ-refl {w = w} δt
+
+  pairRev : ∀ {Y} {x : Φ ∋ X ↔ Y} {α′}
+    → SealI d N w (m-pair x α′) α δs δt → ∀ {k} → 0 < k → k ≤ N
+    → ∀ {Vl Vr} → leafRel d k w (leaf δs X) Vl Vr
+    → sealedL α (δl δt X) (sealedR α′ (δr δt Y)
+        (leafRel d (pred k) w (leaf δt X))) Vl Vr
+  pairRev {Y} {α′ = α′} si {k} pos le r =
+    sealedL-map (toRename-id-eq α) (δl≡ ≈t X)
+      (sealedR-map (toRename-id-eq α′) (δr≡ ≈t Y)
+        (leafRel-resp d (pred k) w (leaf≈ ≈t X)))
+      (proj₁ si (⊒-refl w) pos le
+        (leafRel-resp d k w (≈ˡ-sym (leaf≈ ≈s X)) r))
+
+  pairCon : ∀ {Y} {x : Φ ∋ X ↔ Y} {α′}
+    → SealI d N w (m-pair x α′) α δs δt → ∀ {k} → 0 < k → k < N
+    → ∀ {Wl Wr} → leafRel d k w (leaf δt X) Wl Wr
+    → leafRel d k w (leaf δs X)
+        (Wl ↓ seal α (δl δt X)) (Wr ↓ seal α′ (δr δt Y))
+  pairCon {Y} {α′ = α′} si {k} pos lt {Wl} {Wr} r =
+    leafRel-resp d k w (leaf≈ ≈s X)
+      (subst₂ (leafRel d k w (leaf (δs ↑ᴵ ⊒-refl w) X))
+        (cong₂ (λ a R → Wl ↓ seal a R) (toRename-id-eq α) (δl≡ ≈t X))
+        (cong₂ (λ a R → Wr ↓ seal a R) (toRename-id-eq α′) (δr≡ ≈t Y))
+        (proj₂ si (⊒-refl w) pos lt
+          (leafRel-resp d k w (≈ˡ-sym (leaf≈ ≈t X)) r)))
+
+  leftRev : SealI d N w (m-left {Φ = Φ} {X = X}) α δs δt
+    → ∀ {k} → 0 < k → k ≤ N
+    → ∀ {Vl Vr} → leafRel d k w (leaf δs X) Vl Vr
+    → sealedL α (δl δt X) (leafRel d (onlyStage d k) w (leaf δt X)) Vl Vr
+  leftRev si {k} pos le r =
+    sealedL-map (toRename-id-eq α) (δl≡ ≈t X)
+      (leafRel-resp d (onlyStage d k) w (leaf≈ ≈t X))
+      (proj₁ si (⊒-refl w) pos le
+        (leafRel-resp d k w (≈ˡ-sym (leaf≈ ≈s X)) r))
+
+  leftCon : SealI d N w (m-left {Φ = Φ} {X = X}) α δs δt
+    → ∀ {k} → 0 < k → onlyBelow d k N
+    → ∀ {Wl Vr} → leafRel d k w (leaf δt X) Wl Vr
+    → leafRel d k w (leaf δs X) (Wl ↓ seal α (δl δt X)) Vr
+  leftCon si {k} pos lt {Wl} {Vr} r =
+    leafRel-resp d k w (leaf≈ ≈s X)
+      (subst (λ V → leafRel d k w (leaf (δs ↑ᴵ ⊒-refl w) X) V Vr)
+        (cong₂ (λ a R → Wl ↓ seal a R) (toRename-id-eq α) (δl≡ ≈t X))
+        (proj₂ si (⊒-refl w) pos lt
+          (leafRel-resp d k w (≈ˡ-sym (leaf≈ ≈t X)) r)))
+
+------------------------------------------------------------------------
+-- Variables
+------------------------------------------------------------------------
+
+-- X itself, left-only, at `★`
+rev★-left : ∀ d n {Φ : Corr Δ Δ′} {X} (z : Φ ∋ X only) w {N rk α δs δt}
+  → ConvI d N rk w (m-left {Φ = Φ} {X = X}) α δs δt → n ≤ N
+  → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d n (X⊑★ z) w δs Vl Vr
+  → ℰ d n (X⊑★ z) w δt (Vl ↑ 〖 α , δl δt X ↑ δl δs X 〗) Vr
+rev★-left d zero z w h le vl vr r = ℰ-zero d (X⊑★ z) w
+rev★-left d (suc k) {Φ = Φ} {X = X} z w {N} {α = α} {δs} {δt} h le vl vr r
+    with sealedL-inv
+      (NowX.leftRev {Φ = Φ} {X = X} {d = d} {N = N} {w = w} {δs = δs} {δt = δt}
+        {α = α} (sealI h) (s≤s z≤n) le
+        (from (𝒱-X★ d (suc k) z w {δ = δs}) r))
+rev★-left ≺ (suc k) {Φ = Φ} {X = X} z w {N} {α = α} {δs} {δt} h le vl vr r
+    | W , refl , r′ =
+  ℰ-≡ ≺ (suc k) (X⊑★ z) w δt (sym (↑-pk (〖〗-self α (δl δt X) (selfI h))))
+    refl
+    (ℰ-stepL ≺ k (X⊑★ z) w (conceal-reveal (value-sealed vl))
+      (ℰ-value ≺ k (X⊑★ z) w (value-sealed vl) vr
+        (to (𝒱-X★ ≺ k z w {δ = δt}) r′)))
+rev★-left ≻ (suc k) {Φ = Φ} {X = X} z w {N} {α = α} {δs} {δt} h le vl vr r
+    | W , refl , r′ =
+  ℰ-≡ ≻ (suc k) (X⊑★ z) w δt (sym (↑-pk (〖〗-self α (δl δt X) (selfI h))))
+    refl
+    (ℰ-stepL ≻ (suc k) (X⊑★ z) w (conceal-reveal (value-sealed vl))
+      (ℰ-value ≻ (suc k) (X⊑★ z) w (value-sealed vl) vr
+        (to (𝒱-X★ ≻ (suc k) z w {δ = δt}) r′)))
+
+con★-left : ∀ d n {Φ : Corr Δ Δ′} {X} (z : Φ ∋ X only) w {N rk α δs δt}
+  → ConvI d N rk w (m-left {Φ = Φ} {X = X}) α δs δt
+  → ConB {ΔR w} d nothing n N
+  → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d n (X⊑★ z) w δt Wl Wr
+  → ℰ d n (X⊑★ z) w δs (Wl ↓ makeConceal α (δl δt X) (δl δs X)) Wr
+con★-left d zero z w h cb wl wr r = ℰ-zero d (X⊑★ z) w
+con★-left ≺ (suc k) {Φ = Φ} {X = X} z w {N} {α = α} {δs} {δt} h cb wl wr r =
+  ℰ-≡ ≺ (suc k) (X⊑★ z) w δs
+    (sym (↓-pk (makeConceal-self α (δl δt X) (selfI h)))) refl
+    (ℰ-value ≺ (suc k) (X⊑★ z) w (wl CT.↓ CT.seal) wr
+      (to (𝒱-X★ ≺ (suc k) z w {δ = δs})
+        (NowX.leftCon {Φ = Φ} {X = X} {d = ≺} {N = N} {w = w} {δs = δs}
+          {δt = δt}
+          {α = α} (sealI h) (s≤s z≤n) cb
+          (from (𝒱-X★ ≺ (suc k) z w {δ = δt}) r))))
+con★-left ≻ (suc k) {Φ = Φ} {X = X} z w {N} {α = α} {δs} {δt} h cb wl wr r =
+  ℰ-≡ ≻ (suc k) (X⊑★ z) w δs
+    (sym (↓-pk (makeConceal-self α (δl δt X) (selfI h)))) refl
+    (ℰ-value ≻ (suc k) (X⊑★ z) w (wl CT.↓ CT.seal) wr
+      (to (𝒱-X★ ≻ (suc k) z w {δ = δs})
+        (NowX.leftCon {Φ = Φ} {X = X} {d = ≻} {N = N} {w = w} {δs = δs}
+          {δt = δt}
+          {α = α} (sealI h) (s≤s z≤n) cb
+          (from (𝒱-X★ ≻ (suc k) z w {δ = δt}) r))))
+
+-- a left-only variable, at `★`
+rev★-var : ∀ d n {Φ : Corr Δ Δ′} {Z} (z : Φ ∋ Z only) w {X} {N rk}
+    {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt}
+  → ConvI d N rk w m α δs δt → n ≤ N
+  → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d n (X⊑★ z) w δs Vl Vr
+  → ℰ d n (X⊑★ z) w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ δl δs Z 〗) Vr
+rev★-var d n z w {m = m-none R rc} h le vl vr r =
+  Now.revO h z tt le vl vr (from (𝒱-X★ d n z w) r)
+rev★-var d n {Z = Z} z w {X} {m = m-pair x α′} h le vl vr r with Z ≟ X
+rev★-var d n {Z = Z} z w {X} {m = m-pair x α′} h le vl vr r | no ne =
+  Now.revO h z ne le vl vr (from (𝒱-X★ d n z w) r)
+rev★-var d n {Z = .X} z w {X} {m = m-pair x α′} h le vl vr r | yes refl =
+  ⊥-elim (↔-only-⊥ x z)
+rev★-var d n {Z = Z} z w {X} {m = m-dead x} h le vl vr r with Z ≟ X
+rev★-var d n {Z = Z} z w {X} {m = m-dead x} h le vl vr r | no ne =
+  Now.revO h z ne le vl vr (from (𝒱-X★ d n z w) r)
+rev★-var d n {Z = .X} z w {X} {m = m-dead x} h le vl vr r | yes refl =
+  ⊥-elim (only-dead-⊥ z x)
+rev★-var d n {Z = Z} z w {X} {m = m-left} h le vl vr r with Z ≟ X
+rev★-var d n {Z = Z} z w {X} {m = m-left} h le vl vr r | no ne =
+  Now.revO h z ne le vl vr (from (𝒱-X★ d n z w) r)
+rev★-var d n {Z = .X} z w {X} {m = m-left} h le vl vr r | yes refl =
+  rev★-left d n z w h le vl vr r
+
+con★-var : ∀ d n {Φ : Corr Δ Δ′} {Z} (z : Φ ∋ Z only) w {X} {N rk}
+    {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt}
+  → ConvI d N rk w m α δs δt → n ≤ N → ConB {ΔR w} d nothing n N
+  → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d n (X⊑★ z) w δt Wl Wr
+  → ℰ d n (X⊑★ z) w δs
+      (Wl ↓ makeConceal α (repM m (δl δt)) (δl δs Z)) Wr
+con★-var d n z w {m = m-none R rc} h le cb wl wr r =
+  Now.conO h z tt le wl wr (from (𝒱-X★ d n z w) r)
+con★-var d n {Z = Z} z w {X} {m = m-pair x α′} h le cb wl wr r with Z ≟ X
+con★-var d n {Z = Z} z w {X} {m = m-pair x α′} h le cb wl wr r | no ne =
+  Now.conO h z ne le wl wr (from (𝒱-X★ d n z w) r)
+con★-var d n {Z = .X} z w {X} {m = m-pair x α′} h le cb wl wr r
+    | yes refl =
+  ⊥-elim (↔-only-⊥ x z)
+con★-var d n {Z = Z} z w {X} {m = m-dead x} h le cb wl wr r with Z ≟ X
+con★-var d n {Z = Z} z w {X} {m = m-dead x} h le cb wl wr r | no ne =
+  Now.conO h z ne le wl wr (from (𝒱-X★ d n z w) r)
+con★-var d n {Z = .X} z w {X} {m = m-dead x} h le cb wl wr r | yes refl =
+  ⊥-elim (only-dead-⊥ z x)
+con★-var d n {Z = Z} z w {X} {m = m-left} h le cb wl wr r with Z ≟ X
+con★-var d n {Z = Z} z w {X} {m = m-left} h le cb wl wr r | no ne =
+  Now.conO h z ne le wl wr (from (𝒱-X★ d n z w) r)
+con★-var d n {Z = .X} z w {X} {m = m-left} h le cb wl wr r | yes refl =
+  con★-left d n z w h cb wl wr r

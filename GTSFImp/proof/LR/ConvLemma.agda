@@ -1790,6 +1790,16 @@ module _ (d : Dir) {n′ n} (le : n′ ≤′ n) {ΘL ΘR}
   sealS← r | W , refl , q =
     proj₁ r , peelSL-map Xs′ c′ peelSR← (sealedR-peelSL Xs′ c′ q)
 
+-- a left prefix
+module _ (d : Dir) {n′ n} (le : n′ ≤′ n) {ΘL ΘR}
+    (Xs : List (TyVar ΘL)) (Ys : List (TyVar ΘR)) (c : Desc ΘL ΘR)
+    (β : TyVar ΘL) (k : ℕ) (w : World)
+    (τL : ΘL ↪ᵗ ΔL w) (τR : ΘR ↪ᵗ ΔR w) where
+
+  private
+    c′ = renameDesc τL τR c
+    Xs′ = map (renameVar τL) Xs
+
   sealSL→ : ∀ {V V′}
     → leafBelowS d le (sealSL β (sdesc Xs Ys c)) k w τL τR V V′
     → sealedL (renameVar τL β) (repL Xs′ c′)
@@ -2255,3 +2265,121 @@ module SealNew (d : Dir) {s n a b} (le_s : s ≤′ a) (le_n : n ≤′ b)
   varβR : ∀ {w′} (e : w′ ⊒ w₁) (Y : TyVar (ΔR w₁))
     → renameVar (id↪ᵗ ∘↪ ρR e) Y ≡ toRenameᵗ (ρR e) Y
   varβR e Y = cong (λ σ → toRenameᵗ σ Y) (∘↪-idˡ (ρR e))
+
+-- whether a left-only conversion's stage may reach the target's bound
+UpB : Dir → ℕ → ℕ → Set
+UpB ≺ s n = ⊤
+UpB ≻ s n = n ≤ s
+
+-- the target leaf, written into the prefixed descriptor's core, at the
+-- stages a left-only conceal needs
+writeUp : ∀ d {s n a b} (le_s : s ≤′ a) (le_n : n ≤′ b) {w w₁ : World}
+    (e₁ : w₁ ⊒ w) (c₀ : SDesc (ΔL w) (ΔR w)) {w′} (e : w′ ⊒ w₁) k
+  → UpB d s n → onlyBelow d k s → ∀ {V V′}
+  → leafRel d k w′ (transportLeaf (ρL e) (ρR e)
+      (transportLeaf (ρL e₁) (ρR e₁) (sem (leafBelowS d le_n c₀)))) V V′
+  → leafBelowS d le_s (renameSDesc (ρL e₁) (ρR e₁) c₀) k w′
+      (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e) V V′
+writeUp ≺ le_s le_n e₁ c₀ e k up lt r =
+  from (leafBelowS-ren ≺ le_s (ρL e₁) (ρR e₁) c₀ k _ _ _)
+    (leafBelowS-bound ≺ le_n le_s c₀ lt _ _ _ r)
+writeUp ≻ le_s le_n e₁ c₀ e k up lt r =
+  from (leafBelowS-ren ≻ le_s (ρL e₁) (ρR e₁) c₀ k _ _ _)
+    (leafBelowS-up ≻ le_n le_s c₀ up _ _ _ r)
+
+module SealNewP (d : Dir) {s n a b} (le_s : s ≤′ a) (le_n : n ≤′ b)
+    (s≤n : s ≤ n) {w w₁ : World} (e₁ : w₁ ⊒ w)
+    (Xs : List (TyVar (ΔL w))) (Ys : List (TyVar (ΔR w)))
+    (c : Desc (ΔL w) (ΔR w)) (β : TyVar (ΔL w₁)) where
+
+  open SealNew d le_s le_n s≤n e₁ Xs Ys c β
+
+  private
+    Xs₁ = map (renameVar (ρL e₁)) Xs
+    Ys₁ = map (renameVar (ρR e₁)) Ys
+    c₁ = renameDesc (ρL e₁) (ρR e₁) c
+    c₀ = sdesc Xs Ys c
+    Lt = sem (leafBelowS d le_n c₀)
+
+  -- a paired binder whose right converts at β′
+  sealNewP : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {δt : Interp Δ Δ′ (ΔL w) (ΔR w)}
+      (β′ : TyVar (ΔR w₁))
+    → SealI d s w₁ (m-pair {Φ = pair Φ} {X = zero} ↔-here β′) β
+        (extPairI (＇ β) (＇ β′)
+          (sem (leafBelowS d le_s (sdesc (β ∷ Xs₁) (β′ ∷ Ys₁) c₁)))
+          (δt ↑ᴵ e₁))
+        (extPairI (repL Xs c) (repR Ys c) Lt δt ↑ᴵ e₁)
+  sealNewP β′ = rev , con
+    where
+    rev : ∀ {w′} (e : w′ ⊒ w₁) {k} → 0 < k → k ≤ s → ∀ {Vl Vr}
+      → leafBelowS d le_s (sdesc (β ∷ Xs₁) (β′ ∷ Ys₁) c₁) k w′
+          (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e) Vl Vr
+      → sealedL (toRenameᵗ (ρL e) β)
+          (renameᵗ (toRenameᵗ (ρL e))
+            (renameᵗ (toRenameᵗ (ρL e₁)) (repL Xs c)))
+          (sealedR (toRenameᵗ (ρR e) β′)
+            (renameᵗ (toRenameᵗ (ρR e))
+              (renameᵗ (toRenameᵗ (ρR e₁)) (repR Ys c)))
+            (leafRel d (pred k) w′ (transportLeaf (ρL e) (ρR e)
+              (transportLeaf (ρL e₁) (ρR e₁) Lt)))) Vl Vr
+    rev {w′} e {k} pos le r =
+      sealedL-map (varβ e β) (repβ e)
+        (sealedR-map (varβR e β′) (repβ′ e)
+          (λ q → leafBelowS-down d le_n c₀ (onlyStage-≤ ≺ k) w′ _ _
+                   (readT e k q)))
+        (sealS→ d le_s Xs₁ Ys₁ c₁ β β′ k w′ (id↪ᵗ ∘↪ ρL e)
+          (id↪ᵗ ∘↪ ρR e) r)
+
+    con : ∀ {w′} (e : w′ ⊒ w₁) {k} → 0 < k → k < s → ∀ {Wl Wr}
+      → leafRel d k w′ (transportLeaf (ρL e) (ρR e)
+          (transportLeaf (ρL e₁) (ρR e₁) Lt)) Wl Wr
+      → leafBelowS d le_s (sdesc (β ∷ Xs₁) (β′ ∷ Ys₁) c₁) k w′
+          (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e)
+          (Wl ↓ seal (toRenameᵗ (ρL e) β)
+            (renameᵗ (toRenameᵗ (ρL e))
+              (renameᵗ (toRenameᵗ (ρL e₁)) (repL Xs c))))
+          (Wr ↓ seal (toRenameᵗ (ρR e) β′)
+            (renameᵗ (toRenameᵗ (ρR e))
+              (renameᵗ (toRenameᵗ (ρR e₁)) (repR Ys c))))
+    con {w′} e {k} pos lt r =
+      sealS← d le_s Xs₁ Ys₁ c₁ β β′ k w′ (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e)
+        ((sym (varβ e β) , sym (repβ e)) ,
+          (sym (varβR e β′) , sym (repβ′ e)) , writeS e k lt r)
+
+  -- a paired binder whose right does not convert
+  sealNewL : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {δt : Interp Δ Δ′ (ΔL w) (ΔR w)}
+    → UpB d s n
+    → SealI d s w₁ (m-left {Φ = pair Φ} {X = zero}) β
+        (extPairI (＇ β) (renameᵗ (toRenameᵗ (ρR e₁)) (repR Ys c))
+          (sem (leafBelowS d le_s (sdesc (β ∷ Xs₁) Ys₁ c₁)))
+          (δt ↑ᴵ e₁))
+        (extPairI (repL Xs c) (repR Ys c) Lt δt ↑ᴵ e₁)
+  sealNewL up = rev , con
+    where
+    rev : ∀ {w′} (e : w′ ⊒ w₁) {k} → 0 < k → k ≤ s → ∀ {Vl Vr}
+      → leafBelowS d le_s (sdesc (β ∷ Xs₁) Ys₁ c₁) k w′
+          (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e) Vl Vr
+      → sealedL (toRenameᵗ (ρL e) β)
+          (renameᵗ (toRenameᵗ (ρL e))
+            (renameᵗ (toRenameᵗ (ρL e₁)) (repL Xs c)))
+          (leafRel d (onlyStage d k) w′ (transportLeaf (ρL e) (ρR e)
+            (transportLeaf (ρL e₁) (ρR e₁) Lt))) Vl Vr
+    rev {w′} e {k} pos le r =
+      sealedL-map (varβ e β) (repβ e)
+        (λ q → leafBelowS-down d le_n c₀ (onlyStage-≤ d k) w′ _ _
+                 (readT e k q))
+        (sealSL→ d le_s Xs₁ Ys₁ c₁ β k w′ (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e) r)
+
+    con : ∀ {w′} (e : w′ ⊒ w₁) {k} → 0 < k → onlyBelow d k s
+      → ∀ {Wl Vr}
+      → leafRel d k w′ (transportLeaf (ρL e) (ρR e)
+          (transportLeaf (ρL e₁) (ρR e₁) Lt)) Wl Vr
+      → leafBelowS d le_s (sdesc (β ∷ Xs₁) Ys₁ c₁) k w′
+          (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e)
+          (Wl ↓ seal (toRenameᵗ (ρL e) β)
+            (renameᵗ (toRenameᵗ (ρL e))
+              (renameᵗ (toRenameᵗ (ρL e₁)) (repL Xs c)))) Vr
+    con {w′} e {k} pos lt r =
+      sealSL← d le_s Xs₁ Ys₁ c₁ β k w′ (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e)
+        ((sym (varβ e β) , sym (repβ e)) ,
+          writeUp d le_s le_n e₁ c₀ e k up lt r)

@@ -25,7 +25,7 @@ open import Data.Fin using (zero; suc)
 open import Data.Fin.Properties using (_≟_)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc; pred; _≤_; _<_; s≤s; z≤n;
-  _≤′_; ≤′-refl; ≤′-step)
+  _≤′_; ≤′-refl; ≤′-step; _≤?_)
 open import Data.Nat.Properties using (n≤1+n; ≤-refl; ≤⇒≤′; ≤′⇒≤; ≤-trans;
   ≤-<-trans; <⇒≤)
 open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
@@ -60,7 +60,8 @@ open import proof.LR.WorldProps
 open import proof.LR.InterpProps
 open import proof.LR.Monotone
 open import proof.LR.Expression
-open import proof.LR.SubstLemma using (ℰᵍ-zero; _⇔_; to; from; 𝒱-XY; 𝒱-X★)
+open import proof.LR.SubstLemma using (ℰᵍ-zero; _⇔_; iff; to; from; 𝒱-XY;
+  𝒱-X★)
 open import proof.LR.ConvSyntax
 open import proof.LR.ConvBase
 open import proof.LR.PrecisionUnique using (↔-unique)
@@ -1811,3 +1812,101 @@ module _ (d : Dir) {n′ n} (le : n′ ≤′ n) {ΘL ΘR}
     → leafBelowS d le (sealSL β (sdesc Xs Ys c)) k w τL τR V V′
   sealSL← r with sealedL-inv r
   sealSL← r | W , refl , q = r
+
+------------------------------------------------------------------------
+-- Clause leaves under other bounds and renamings
+------------------------------------------------------------------------
+
+-- below both bounds, the bound does not matter
+leafBelow-bound : ∀ d {n₁ a₁ n₂ a₂} (le₁ : n₁ ≤′ a₁) (le₂ : n₂ ≤′ a₂)
+    (c : Desc ΘL ΘR) {k} → suc k ≤ n₂ → ∀ w τL τR {V V′}
+  → leafBelow d le₁ c k w τL τR V V′ → leafBelow d le₂ c k w τL τR V V′
+leafBelow-bound d {n₁} {n₂ = n₂} le₁ le₂ c {k} lt w τL τR r
+    with suc k ≤? n₁ | suc k ≤? n₂
+leafBelow-bound d le₁ le₂ (desc p env envR) {k} lt w τL τR r
+    | yes lt₁ | yes lt₂ =
+  𝒱→𝒱< d (≤′-trans (≤⇒≤′ lt₂) le₂) p w
+    (𝒱<→𝒱 d (≤′-trans (≤⇒≤′ lt₁) le₁) p w r)
+leafBelow-bound d le₁ le₂ c {k} lt w τL τR r | yes lt₁ | no ¬lt₂ =
+  ⊥-elim (¬lt₂ lt)
+leafBelow-bound d le₁ le₂ c {k} lt w τL τR () | no ¬lt₁ | _
+
+leafBelowS-bound : ∀ d {n₁ a₁ n₂ a₂} (le₁ : n₁ ≤′ a₁) (le₂ : n₂ ≤′ a₂)
+    (c : SDesc ΘL ΘR) {k} → suc k ≤ n₂ → ∀ w τL τR {V V′}
+  → leafBelowS d le₁ c k w τL τR V V′ → leafBelowS d le₂ c k w τL τR V V′
+leafBelowS-bound d le₁ le₂ c lt w τL τR =
+  peelS-map c (leafBelow-bound d le₁ le₂ (core c) lt w τL τR)
+
+-- a renamed descriptor's leaf is the leaf at the composite embeddings
+leafBelow-ren : ∀ d {n′ n} (le : n′ ≤′ n) {ΘL′ ΘR′}
+    (σL : ΘL ↪ᵗ ΘL′) (σR : ΘR ↪ᵗ ΘR′) (c : Desc ΘL ΘR) k w τL τR {V V′}
+  → leafBelow d le (renameDesc σL σR c) k w τL τR V V′
+    ⇔ leafBelow d le c k w (τL ∘↪ σL) (τR ∘↪ σR) V V′
+leafBelow-ren d {n′} le σL σR c k w τL τR with suc k ≤? n′
+leafBelow-ren d {n′} le σL σR c k w τL τR | yes lt =
+  iff (subst (λ c′ → descBelow d _ w c′ _ _) (renameDesc-∘ τL σL τR σR c))
+      (subst (λ c′ → descBelow d _ w c′ _ _)
+        (sym (renameDesc-∘ τL σL τR σR c)))
+leafBelow-ren d {n′} le σL σR c k w τL τR | no ¬lt = iff (λ r → r) (λ r → r)
+
+leafBelowS-ren : ∀ d {n′ n} (le : n′ ≤′ n) {ΘL′ ΘR′}
+    (σL : ΘL ↪ᵗ ΘL′) (σR : ΘR ↪ᵗ ΘR′) (c : SDesc ΘL ΘR) k w τL τR {V V′}
+  → leafBelowS d le (renameSDesc σL σR c) k w τL τR V V′
+    ⇔ leafBelowS d le c k w (τL ∘↪ σL) (τR ∘↪ σR) V V′
+leafBelowS-ren d le σL σR (sdesc Xs Ys c) k w τL τR {V} {V′} =
+  iff
+    (λ r → subst (λ c′ → F Xs₂ Ys₂ c′) eqc
+             (subst (λ Ys′ → F Xs₂ Ys′ c₁) eqY
+               (subst (λ Xs′ → F Xs′ Ys₁ c₁) eqX
+                 (peelSL-map Xs₁ c₁
+                   (peelSR-map Ys₁ c₁
+                     (to (leafBelow-ren d le σL σR c k w τL τR))) r))))
+    (λ r → peelSL-map Xs₁ c₁
+             (peelSR-map Ys₁ c₁
+               (from (leafBelow-ren d le σL σR c k w τL τR)))
+             (subst (λ Xs′ → F Xs′ Ys₁ c₁) (sym eqX)
+               (subst (λ Ys′ → F Xs₂ Ys′ c₁) (sym eqY)
+                 (subst (λ c′ → F Xs₂ Ys₂ c′) (sym eqc) r))))
+  where
+  Xs₁ = map (renameVar τL) (map (renameVar σL) Xs)
+  Xs₂ = map (renameVar (τL ∘↪ σL)) Xs
+  Ys₁ = map (renameVar τR) (map (renameVar σR) Ys)
+  Ys₂ = map (renameVar (τR ∘↪ σR)) Ys
+  c₁ = renameDesc τL τR (renameDesc σL σR c)
+  eqX = map-renameVar-∘ τL σL Xs
+  eqY = map-renameVar-∘ τR σR Ys
+  eqc = renameDesc-∘ τL σL τR σR c
+  F : List (TyVar (ΔL w)) → List (TyVar (ΔR w)) → Desc (ΔL w) (ΔR w)
+    → Set
+  F Xs′ Ys′ c′ =
+    peelSL Xs′ c′
+      (peelSR Ys′ c′ (leafBelow d le c k w (τL ∘↪ σL) (τR ∘↪ σR))) V V′
+
+-- the oracle at a lower bound
+Oracle-down : ∀ {d N N′} → N′ ≤ N → Oracle d N → Oracle d N′
+Oracle-down le (op , oo) =
+  (λ l b c → op l (≤-trans b le) c) , (λ l b c → oo l (≤-trans b le) c)
+
+------------------------------------------------------------------------
+-- The store variable an allocation creates
+------------------------------------------------------------------------
+
+-- the new variable is not the image of an old one
+new-bind : ∀ {Θ} (T : Ty Θ) X → toRenameᵗ (embedᶜˢ (bind T ∷ [])) X ≢ zero
+new-bind T X eq with trans (sym (embed-var T X)) eq
+new-bind T X eq | ()
+
+-- and stays new in later futures
+NewL-after : ∀ {w w₁ w′ : World} (e₁ : w₁ ⊒ w) (e′ : w′ ⊒ w₁) {β}
+  → (∀ X → toRenameᵗ (ρL e₁) X ≢ β)
+  → NewL (⊒-trans e′ e₁) (toRenameᵗ (ρL e′) β)
+NewL-after e₁ e′ nb X eq =
+  nb X (toRenameᵗ-injective (ρL e′)
+    (trans (sym (toRenameᵗ-∘ (ρL e′) (ρL e₁) X)) eq))
+
+NewR-after : ∀ {w w₁ w′ : World} (e₁ : w₁ ⊒ w) (e′ : w′ ⊒ w₁) {β′}
+  → (∀ Y → toRenameᵗ (ρR e₁) Y ≢ β′)
+  → ∀ Y → toRenameᵗ (ρR (⊒-trans e′ e₁)) Y ≢ toRenameᵗ (ρR e′) β′
+NewR-after e₁ e′ nb Y eq =
+  nb Y (toRenameᵗ-injective (ρR e′)
+    (trans (sym (toRenameᵗ-∘ (ρR e′) (ρR e₁) Y)) eq))

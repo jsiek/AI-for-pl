@@ -3949,3 +3949,204 @@ module OnlyCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (cong (λ c′ → revM c′ (substᵗ (δr (δsβ ↑ᴵ e₃)) B) Qr)
             (RF-left (δr (δsg ↑ᴵ e₃))))
           (rev (ConvI-↑ e₃ hβ) k≤s ql qr q)
+
+------------------------------------------------------------------------
+-- `∀⊑★`, in the `★` lemma: the left instantiates, the bound variable is
+-- dead, and the right is the `∀★` payload, instantiated as it is
+------------------------------------------------------------------------
+
+module DeadConv (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A}
+    (p : dead Φ ⊢ A ⊑ ★)
+    (rev : ∀ {N′ rk w X′} {m : CMode (dead Φ) X′ (ΔL w) (ΔR w)}
+       {α δs δt} → ConvI d N′ rk w m α δs δt → ∀ {k} → k ≤ N′
+       → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d k p w δs Vl Vr
+       → ℰ d k p w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) A 〗)
+           Vr)
+    (con : ∀ {N′ rk w X′} {m : CMode (dead Φ) X′ (ΔL w) (ΔR w)}
+       {α δs δt} → ConvI d N′ rk w m α δs δt → ∀ {k}
+       → ConB {ΔR w} d nothing k N′
+       → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k p w δt Wl Wr
+       → ℰ d k p w δs
+           (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) A)) Wr)
+    where
+
+  module Step (w : World) (T : Ty (ΔL w)) where
+    e₁ = stepExt (bind T ∷ []) [] (tagsL w) (okBindL w T)
+    w₁ = world (suc (ΔL w)) (ΔR w) (tagsL w)
+    ρL₁ = ρL e₁
+    ρR₁ = ρR e₁
+
+  deadRev : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt} {rk}
+      (h : ConvI d N rk w m α δs δt) → n ≤ N
+    → ∀ {Vl Wr} → Value Vl → allDead d n p w δs Vl Wr
+    → ∀ (T : Ty (ΔL w)) (T′ : Ty (ΔR w))
+    → ℰ d n p w (extDeadI T δt)
+        ((Vl ↑ `∀↑ 〖 suc α , ⇑ᵗ (repM m (δl δt))
+                    ↑ substᵗ (extsᵗ (δl δs)) A 〗)
+           ⦂∀ substᵗ (extsᵗ (δl δt)) A [ T ])
+        (Wr ⦂∀ ★ [ T′ ])
+  deadRev {n} w {X} {m} {α} {δs} {δt} {rk} h le {Vl} {Wr} vl r T T′ =
+    antiL₁ d p le stepL (tagsL w) (okBindL w T) inner
+    where
+    open Step w T
+    R = repM m (δl δt)
+    cL = 〖 suc α , ⇑ᵗ R ↑ substᵗ (extsᵗ (δl δs)) A 〗
+    BtL = substᵗ (extsᵗ (δl δt)) A
+    stepL = revInst cL vl (tgt-body α R (δl δs) (δl δt) (tyL h) A)
+    m₁ = CMode-dead (CMode-↑ ρL₁ ρR₁ m)
+    α₁ = toRenameᵗ ρL₁ α
+    δsβ = extDeadI (＇ zero) (δs ↑ᴵ e₁)
+    δtβ = extDeadI (＇ zero) (δt ↑ᴵ e₁)
+    δtg = extDeadI T δt ↑ᴵ e₁
+
+    R≡ : repM m₁ (δl δtβ) ≡ ⇑ᵗ R
+    R≡ = trans (repM-dead (CMode-↑ ρL₁ ρR₁ m) (δl (δt ↑ᴵ e₁)) (＇ zero))
+      (trans (repM-↑ ρL₁ ρR₁ m (δl δt)) (shift-ty T R))
+
+    hα : ConvI d N rk w₁ m₁ α₁ δsβ δtβ
+    hα = ConvI-extDead {β = zero} (λ e′ → new-bind T α (sym e′))
+      (ConvI-↑ e₁ h)
+
+    inner : ∀ {s} → s ≤′ n → s ≤ N → UpB d s n
+      → ℰ d s p w₁ δtg
+          ((⇑ᵗᵐ Vl ⦂∀ (bind T ▷ᵇ substᵗ (extsᵗ (δl δs)) A) [ ＇ zero ])
+             ↑ cL ↑ 〖 zero , ⇑ᵗ T ↑ BtL 〗)
+          (Wr ⦂∀ ★ [ T′ ])
+    inner {s} le_s s≤N up =
+      ℰ-bind₂ d s p p w₁ {δ₁ = δtβ} {δ₂ = δtg}
+        (just (reveal 〖 zero , ⇑ᵗ T ↑ BtL 〗)) nothing
+        (ℰ-bind₂ d s p p w₁ {δ₁ = δsβ} {δ₂ = δtβ}
+          (just (reveal cL)) nothing clause K₁)
+        K₂
+      where
+      hβ : ConvI d s rk w₁ (m-dead {Φ = dead Φ} dead-here) zero δtβ δtg
+      hβ = ConvI-newD e₁ (new-bind T) {Ls = sem ⊤Ω} {Lt = sem ⊤Ω} {Tl = T}
+        s≤N (freshT h)
+
+      clause : ℰ d s p w₁ δsβ
+        (⇑ᵗᵐ Vl ⦂∀ (bind T ▷ᵇ substᵗ (extsᵗ (δl δs)) A) [ ＇ zero ])
+        (Wr ⦂∀ ★ [ T′ ])
+      clause =
+        ℰᵍ-≡
+          (cong₂ (λ M C → M ⦂∀ C [ ＇ zero ]) (shift-term T Vl)
+            (annot T (δl δs) A))
+          (cong (λ M → M ⦂∀ ★ [ T′ ]) (renameᵗᵐ-id Wr))
+          (ℰᵍ-map d s w₁
+            (λ le′ w″ e″ V V′ → 𝒱≤-cast d (≤′-trans le′ le_s) le′ p w″)
+            (r e₁ le_s (＇ zero) T′))
+
+      K₁ : ∀ {w₂} (e₂ : w₂ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
+        → Value Ql → Value Qr → 𝒱 d k p w₂ (δsβ ↑ᴵ e₂) Ql Qr
+        → ℰ d k p w₂ (δtβ ↑ᴵ e₂)
+            (mplug (renameMFrame (ρL e₂) (just (reveal cL))) Ql) Qr
+      K₁ e₂ {k} k≤s {Ql} {Qr} ql qr q =
+        ℰᵍ-≡
+          (trans (revRen e₂ m₁ α₁ δsβ δtβ Ql A)
+            (↑-pk (pk-ren↑ (toRenameᵗ (ρL e₂))
+              (pk-〖〗 (embed-var T α) R≡ (open0 T (δl δs) A)))))
+          refl
+          (rev (ConvI-↑ e₂ hα) (≤-trans k≤s s≤N) ql qr q)
+
+      K₂ : ∀ {w₃} (e₃ : w₃ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
+        → Value Ql → Value Qr → 𝒱 d k p w₃ (δtβ ↑ᴵ e₃) Ql Qr
+        → ℰ d k p w₃ (δtg ↑ᴵ e₃)
+            (mplug (renameMFrame (ρL e₃)
+              (just (reveal 〖 zero , ⇑ᵗ T ↑ BtL 〗))) Ql) Qr
+      K₂ e₃ {k} k≤s {Ql} {Qr} ql qr q =
+        ℰᵍ-≡
+          (trans (revRen e₃ (m-dead {Φ = dead Φ} dead-here) zero δtβ δtg Ql A)
+            (↑-pk (pk-ren↑ (toRenameᵗ (ρL e₃))
+              (pk-〖〗 refl (shift-ty T T) (open0 T (δl δt) A)))))
+          refl
+          (rev (ConvI-↑ e₃ hβ) k≤s ql qr q)
+
+  deadCon : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt} {rk}
+      (h : ConvI d N rk w m α δs δt) → ConB {ΔR w} d nothing n N
+    → ∀ {Wl Wr} → Value Wl → allDead d n p w δt Wl Wr
+    → ∀ (T : Ty (ΔL w)) (T′ : Ty (ΔR w))
+    → ℰ d n p w (extDeadI T δs)
+        ((Wl ↓ `∀↓ makeConceal (suc α) (⇑ᵗ (repM m (δl δt)))
+                    (substᵗ (extsᵗ (δl δs)) A))
+           ⦂∀ substᵗ (extsᵗ (δl δs)) A [ T ])
+        (Wr ⦂∀ ★ [ T′ ])
+  deadCon {n} w {X} {m} {α} {δs} {δt} {rk} h cbn {Wl} {Wr} wl r T T′ =
+    antiL₁ d p n≤N stepL (tagsL w) (okBindL w T) inner
+    where
+    open Step w T
+    n≤N : n ≤ N
+    n≤N = ConB-≤ d nothing cbn
+    R = repM m (δl δt)
+    BsL = substᵗ (extsᵗ (δl δs)) A
+    cL = makeConceal (suc α) (⇑ᵗ R) BsL
+    tgtL : replaceTy (suc α) (⇑ᵗ R) BsL ≡ substᵗ (extsᵗ (δl δt)) A
+    tgtL = tgt-body α R (δl δs) (δl δt) (tyL h) A
+    stepL = conInst {T = T} cL wl refl
+    m₁ = CMode-dead (CMode-↑ ρL₁ ρR₁ m)
+    α₁ = toRenameᵗ ρL₁ α
+    δsβ = extDeadI (＇ zero) (δs ↑ᴵ e₁)
+    δtβ = extDeadI (＇ zero) (δt ↑ᴵ e₁)
+    δsg = extDeadI T δs ↑ᴵ e₁
+
+    R≡ : repM m₁ (δl δtβ) ≡ ⇑ᵗ R
+    R≡ = trans (repM-dead (CMode-↑ ρL₁ ρR₁ m) (δl (δt ↑ᴵ e₁)) (＇ zero))
+      (trans (repM-↑ ρL₁ ρR₁ m (δl δt)) (shift-ty T R))
+
+    hα : ConvI d N rk w₁ m₁ α₁ δsβ δtβ
+    hα = ConvI-extDead {β = zero} (λ e′ → new-bind T α (sym e′))
+      (ConvI-↑ e₁ h)
+
+    inner : ∀ {s} → s ≤′ n → s ≤ N → UpB d s n
+      → ℰ d s p w₁ δsg
+          ((⇑ᵗᵐ Wl ⦂∀ (bind T ▷ᵇ replaceTy (suc α) (⇑ᵗ R) BsL) [ ＇ zero ])
+             ↓ cL ↑ 〖 zero , ⇑ᵗ T ↑ BsL 〗)
+          (Wr ⦂∀ ★ [ T′ ])
+    inner {s} le_s s≤N up =
+      ℰ-bind₂ d s p p w₁ {δ₁ = δsβ} {δ₂ = δsg}
+        (just (reveal 〖 zero , ⇑ᵗ T ↑ BsL 〗)) nothing
+        (ℰ-bind₂ d s p p w₁ {δ₁ = δtβ} {δ₂ = δsβ}
+          (just (conceal cL)) nothing clause K₁)
+        K₂
+      where
+      hβ : ConvI d s rk w₁ (m-dead {Φ = dead Φ} dead-here) zero δsβ δsg
+      hβ = ConvI-newD e₁ (new-bind T) {Ls = sem ⊤Ω} {Lt = sem ⊤Ω} {Tl = T}
+        s≤N (freshS h)
+
+      clause : ℰ d s p w₁ δtβ
+        (⇑ᵗᵐ Wl ⦂∀ (bind T ▷ᵇ replaceTy (suc α) (⇑ᵗ R) BsL) [ ＇ zero ])
+        (Wr ⦂∀ ★ [ T′ ])
+      clause =
+        ℰᵍ-≡
+          (cong₂ (λ M C → M ⦂∀ C [ ＇ zero ]) (shift-term T Wl)
+            (trans (annot T (δl δt) A)
+              (cong (renameᵗ (extᵗ suc)) (sym tgtL))))
+          (cong (λ M → M ⦂∀ ★ [ T′ ]) (renameᵗᵐ-id Wr))
+          (ℰᵍ-map d s w₁
+            (λ le′ w″ e″ V V′ → 𝒱≤-cast d (≤′-trans le′ le_s) le′ p w″)
+            (r e₁ le_s (＇ zero) T′))
+
+      K₁ : ∀ {w₂} (e₂ : w₂ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
+        → Value Ql → Value Qr → 𝒱 d k p w₂ (δtβ ↑ᴵ e₂) Ql Qr
+        → ℰ d k p w₂ (δsβ ↑ᴵ e₂)
+            (mplug (renameMFrame (ρL e₂) (just (conceal cL))) Ql) Qr
+      K₁ e₂ {k} k≤s {Ql} {Qr} ql qr q =
+        ℰᵍ-≡
+          (trans (conRen e₂ m₁ α₁ δsβ δtβ Ql A)
+            (↓-pk (pk-ren↓ (toRenameᵗ (ρL e₂))
+              (pk-mc (embed-var T α) R≡ (open0 T (δl δs) A)))))
+          refl
+          (con (ConvI-↑ e₂ hα)
+            (ConB-cast d (ConB-down d nothing (≤-trans k≤s (≤′⇒≤ le_s)) cbn))
+            ql qr q)
+
+      K₂ : ∀ {w₃} (e₃ : w₃ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
+        → Value Ql → Value Qr → 𝒱 d k p w₃ (δsβ ↑ᴵ e₃) Ql Qr
+        → ℰ d k p w₃ (δsg ↑ᴵ e₃)
+            (mplug (renameMFrame (ρL e₃)
+              (just (reveal 〖 zero , ⇑ᵗ T ↑ BsL 〗))) Ql) Qr
+      K₂ e₃ {k} k≤s {Ql} {Qr} ql qr q =
+        ℰᵍ-≡
+          (trans (revRen e₃ (m-dead {Φ = dead Φ} dead-here) zero δsβ δsg Ql A)
+            (↑-pk (pk-ren↑ (toRenameᵗ (ρL e₃))
+              (pk-〖〗 refl (shift-ty T T) (open0 T (δl δs) A)))))
+          refl
+          (rev (ConvI-↑ e₃ hβ) k≤s ql qr q)

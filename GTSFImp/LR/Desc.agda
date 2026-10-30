@@ -8,7 +8,10 @@ module LR.Desc where
 --   * An entry describes a variable's values: the left values are
 --     sealed by a nonempty list of left store variables (outermost
 --     first), the right values by a list of right store variables, and
---     the contents are related by a descriptor.
+--     the contents are related by a descriptor.  Each seal records its
+--     representation type, the next seal's variable or, for the
+--     innermost one, the contents' type (`repL`, `repR`); a reveal
+--     only unseals a seal with the representation it expects.
 --       - shared variable:      seals Xl [] [ Xr ] c
 --       - left-only variable:   seals Xl [] [] c
 --       - after a right `inst` (notes/denotational-dgg.md, 8b):
@@ -67,6 +70,16 @@ leftTy (desc {A = A} p env envR) = substᵗ (λ X → entryTy (lookup env X)) A
 
 rightTy : ∀ {ΔL ΔR} → Desc ΔL ΔR → Ty ΔR
 rightTy (desc {A′ = A′} p env envR) = substᵗ (lookup envR) A′
+
+-- the representation type of a seal: the next seal's variable, or the
+-- contents' type for the innermost seal
+repL : ∀ {ΔL ΔR} → List (TyVar ΔL) → Desc ΔL ΔR → Ty ΔL
+repL [] c = leftTy c
+repL (X ∷ Xs) c = ＇ X
+
+repR : ∀ {ΔL ΔR} → List (TyVar ΔR) → Desc ΔL ΔR → Ty ΔR
+repR [] c = rightTy c
+repR (Y ∷ Ys) c = ＇ Y
 
 ------------------------------------------------------------------------
 -- Renaming

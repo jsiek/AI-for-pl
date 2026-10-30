@@ -132,12 +132,12 @@ closedI = interp (λ ()) (λ ()) (λ ())
 -- Shapes of values
 ------------------------------------------------------------------------
 
--- the conversion seals with X
-IsSeal : ∀ {Δ A B} → TyVar Δ → Conv↓ Δ A B → Set
-IsSeal X (seal X′ R) = X′ ≡ X
-IsSeal X (c ↦↓ d) = ⊥
-IsSeal X (`∀↓ c) = ⊥
-IsSeal X (id↓ A) = ⊥
+-- the conversion seals with X, at the representation type R
+IsSeal : ∀ {Δ A B} → TyVar Δ → Ty Δ → Conv↓ Δ A B → Set
+IsSeal X R (seal X′ R′) = X′ ≡ X × R′ ≡ R
+IsSeal X R (c ↦↓ d) = ⊥
+IsSeal X R (`∀↓ c) = ⊥
+IsSeal X R (id↓ A) = ⊥
 
 -- the cast injects at a given ground
 IsInjVar : ∀ {Δ} {μ} {A B : Ty Δ} → TyVar Δ → μ ⊢ A ∼ B → Set
@@ -300,7 +300,7 @@ mutual
   entry : Dir → ℕ → (w : World) → Entry (ΔL w) (ΔR w)
     → Term (ΔL w) → Term (ΔR w) → Set
   entry d n w (seals X Xs Ys c) (V ↓ s) Vr =
-    IsSeal X s × peelL d n w (modeOf d Ys) Xs Ys c V Vr
+    IsSeal X (repL Xs c) s × peelL d n w (modeOf d Ys) Xs Ys c V Vr
   entry d n w (seals X Xs Ys c) Vl Vr = ⊥
 
   peelL : Dir → ℕ → (w : World) → Mode → List (TyVar (ΔL w))
@@ -308,7 +308,7 @@ mutual
     → Term (ΔL w) → Term (ΔR w) → Set
   peelL d n w g [] Ys c V Vr = peelR d n w g Ys c V Vr
   peelL d n w g (X ∷ Xs) Ys c (V ↓ s) Vr =
-    IsSeal X s × peelL d n w g Xs Ys c V Vr
+    IsSeal X (repL Xs c) s × peelL d n w g Xs Ys c V Vr
   peelL d n w g (X ∷ Xs) Ys c V Vr = ⊥
 
   peelR : Dir → ℕ → (w : World) → Mode
@@ -316,7 +316,7 @@ mutual
     → Term (ΔL w) → Term (ΔR w) → Set
   peelR d n w g [] c V V′ = contents d n w g c V V′
   peelR d n w g (Y ∷ Ys) c V (V′ ↓ s) =
-    IsSeal Y s × peelR d n w g Ys c V V′
+    IsSeal Y (repR Ys c) s × peelR d n w g Ys c V V′
   peelR d n w g (Y ∷ Ys) c V V′ = ⊥
 
   contents : Dir → ℕ → (w : World) → Mode → Desc (ΔL w) (ΔR w)
@@ -357,12 +357,13 @@ mutual
     IsInj∀ c × 𝒱 d k (∀⊑∀ {Φ = []} ★⊑★) w closedI W Wr
   starAll d k w W Vr = ⊥
 
-  -- functions: related arguments in any future give related results
+  -- functions: related argument values in any future give related
+  -- results
   funRel : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A A′ B B′}
     → Φ ⊢ A ⊑ A′ → Φ ⊢ B ⊑ B′ → (w : World)
     → Interp Δ Δ′ (ΔL w) (ΔR w) → Term (ΔL w) → Term (ΔR w) → Set
   funRel d n p q w δ Vl Vr =
-    ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n) Wl Wr
+    ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n) Wl Wr → Value Wl → Value Wr
     → 𝒱≤ d le p w′ (δ ↑ᴵ e) Wl Wr
     → ℰᵍ d n′ w′
         (λ le′ w″ e′ → 𝒱≤ d (≤′-trans le′ le) q w″ ((δ ↑ᴵ e) ↑ᴵ e′))

@@ -9,11 +9,13 @@ module proof.LR.WorldProps where
 --     unit; this holds on the nose because embeddings are canonical.
 
 open import Data.List using (List; []; _∷_; map)
+import Data.Fin as Fin
 open import Data.Maybe using (just; nothing)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_,_)
 open import Data.Vec using (Vec) renaming ([] to []ᵛ; _∷_ to _∷ᵛ_)
 import Data.Vec as Vec
+open import Data.Vec.Properties using (lookup-map)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; trans; cong; cong₂)
 
@@ -152,6 +154,57 @@ mutual
   renameEntry-∘ πL ηL πR ηR (seals X Xs Ys c)
     rewrite renameVar-∘ πL ηL X | map-renameVar-∘ πL ηL Xs
           | map-renameVar-∘ πR ηR Ys | renameDesc-∘ πL ηL πR ηR c = refl
+
+------------------------------------------------------------------------
+-- The types a descriptor relates, renamed
+------------------------------------------------------------------------
+
+lookup-renameEntries : ∀ {ΔL ΔL′ ΔR ΔR′ k}
+    (σL : ΔL ↪ᵗ ΔL′) (σR : ΔR ↪ᵗ ΔR′) (es : Vec (Entry ΔL ΔR) k) X
+  → Vec.lookup (renameEntries σL σR es) X
+    ≡ renameEntry σL σR (Vec.lookup es X)
+lookup-renameEntries σL σR (e ∷ᵛ es) Fin.zero = refl
+lookup-renameEntries σL σR (e ∷ᵛ es) (Fin.suc X) =
+  lookup-renameEntries σL σR es X
+
+entryTy-rename : ∀ {ΔL ΔL′ ΔR ΔR′} (σL : ΔL ↪ᵗ ΔL′) (σR : ΔR ↪ᵗ ΔR′)
+    (e : Entry ΔL ΔR)
+  → entryTy (renameEntry σL σR e) ≡ renameᵗ (toRenameᵗ σL) (entryTy e)
+entryTy-rename σL σR (seals X Xs Ys c) = refl
+
+leftTy-rename : ∀ {ΔL ΔL′ ΔR ΔR′} (σL : ΔL ↪ᵗ ΔL′) (σR : ΔR ↪ᵗ ΔR′)
+    (c : Desc ΔL ΔR)
+  → leftTy (renameDesc σL σR c) ≡ renameᵗ (toRenameᵗ σL) (leftTy c)
+leftTy-rename σL σR (desc {A = A} p env envR) =
+  trans (substᵗ-cong A eq)
+    (sym (renameᵗ-subst (toRenameᵗ σL)
+      (λ X → entryTy (Vec.lookup env X)) A))
+  where
+  eq : ∀ X → entryTy (Vec.lookup (renameEntries σL σR env) X)
+    ≡ renameᵗ (toRenameᵗ σL) (entryTy (Vec.lookup env X))
+  eq X = trans (cong entryTy (lookup-renameEntries σL σR env X))
+    (entryTy-rename σL σR (Vec.lookup env X))
+
+rightTy-rename : ∀ {ΔL ΔL′ ΔR ΔR′} (σL : ΔL ↪ᵗ ΔL′) (σR : ΔR ↪ᵗ ΔR′)
+    (c : Desc ΔL ΔR)
+  → rightTy (renameDesc σL σR c) ≡ renameᵗ (toRenameᵗ σR) (rightTy c)
+rightTy-rename σL σR (desc {A′ = A′} p env envR) =
+  trans (substᵗ-cong A′ (λ X → lookup-map X (renameᵗ (toRenameᵗ σR)) envR))
+    (sym (renameᵗ-subst (toRenameᵗ σR) (Vec.lookup envR) A′))
+
+repL-rename : ∀ {ΔL ΔL′ ΔR ΔR′} (σL : ΔL ↪ᵗ ΔL′) (σR : ΔR ↪ᵗ ΔR′)
+    (Xs : List (TyVar ΔL)) (c : Desc ΔL ΔR)
+  → repL (map (renameVar σL) Xs) (renameDesc σL σR c)
+    ≡ renameᵗ (toRenameᵗ σL) (repL Xs c)
+repL-rename σL σR [] c = leftTy-rename σL σR c
+repL-rename σL σR (X ∷ Xs) c = refl
+
+repR-rename : ∀ {ΔL ΔL′ ΔR ΔR′} (σL : ΔL ↪ᵗ ΔL′) (σR : ΔR ↪ᵗ ΔR′)
+    (Ys : List (TyVar ΔR)) (c : Desc ΔL ΔR)
+  → repR (map (renameVar σR) Ys) (renameDesc σL σR c)
+    ≡ renameᵗ (toRenameᵗ σR) (repR Ys c)
+repR-rename σL σR [] c = rightTy-rename σL σR c
+repR-rename σL σR (Y ∷ Ys) c = refl
 
 renameTag-id : ∀ {ΔL ΔR} (t : Tag ΔL ΔR) → renameTag id↪ᵗ id↪ᵗ t ≡ t
 renameTag-id (just Y , e)

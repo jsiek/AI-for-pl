@@ -58,12 +58,12 @@ private
 -- Shapes under renaming
 ------------------------------------------------------------------------
 
-IsSeal-rename : ∀ {A B : Ty Δ} (σ : Δ ⇒ʳ Δ′) {X} (s : Conv↓ Δ A B)
-  → IsSeal X s → IsSeal (σ X) (rename↓ σ s)
-IsSeal-rename σ (seal X′ R) refl = refl
-IsSeal-rename σ (c ↦↓ d) ()
-IsSeal-rename σ (`∀↓ c) ()
-IsSeal-rename σ (id↓ A) ()
+IsSeal-rename : ∀ {A B : Ty Δ} (σ : Δ ⇒ʳ Δ′) {X R R′} (s : Conv↓ Δ A B)
+  → R′ ≡ renameᵗ σ R → IsSeal X R s → IsSeal (σ X) R′ (rename↓ σ s)
+IsSeal-rename σ (seal X′ R₀) eq (refl , refl) = refl , sym eq
+IsSeal-rename σ (c ↦↓ d) eq ()
+IsSeal-rename σ (`∀↓ c) eq ()
+IsSeal-rename σ (id↓ A) eq ()
 
 IsInjVar-rename : ∀ {μ : Env∼ Δ} {μ′ : Env∼ Δ′} {A B : Ty Δ}
     (ρ : Δ ⇒ʳ Δ′) (eq : ∀ X → μ′ ‼ (ρ X) ≡ μ ‼ X) {X} (c : μ ⊢ A ∼ B)
@@ -138,18 +138,6 @@ modeOf-map ≻ f (Y ∷ Ys) = refl
 ------------------------------------------------------------------------
 -- The interpretations of descriptors and of closed derivations
 ------------------------------------------------------------------------
-
-lookup-renameEntries : ∀ {ΘL′ ΘR′ k} (σL : ΘL ↪ᵗ ΘL′) (σR : ΘR ↪ᵗ ΘR′)
-    (env : Vec (Entry ΘL ΘR) k) (X : Fin.Fin k)
-  → lookup (renameEntries σL σR env) X ≡ renameEntry σL σR (lookup env X)
-lookup-renameEntries σL σR (en ∷ᵛ env) Fin.zero = refl
-lookup-renameEntries σL σR (en ∷ᵛ env) (Fin.suc X) =
-  lookup-renameEntries σL σR env X
-
-entryTy-rename : ∀ {ΘL′ ΘR′} (σL : ΘL ↪ᵗ ΘL′) (σR : ΘR ↪ᵗ ΘR′)
-    (en : Entry ΘL ΘR)
-  → entryTy (renameEntry σL σR en) ≡ renameᵗ (toRenameᵗ σL) (entryTy en)
-entryTy-rename σL σR (seals X Xs Ys c) = refl
 
 envI-transport : ∀ {ΘL′ ΘR′} (σL : ΘL ↪ᵗ ΘL′) (σR : ΘR ↪ᵗ ΘR′)
     (env : Vec (Entry ΘL ΘR) Δ) (envR : Vec (Ty ΘR) Δ′)
@@ -291,14 +279,14 @@ funRel-mono : ∀ d n {Φ : Corr Δ Δ′} {A A′ B B′}
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → funRel d n p q w δ Vl Vr
   → funRel d n p q w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
-funRel-mono d n p q e {δ} {Vl} {Vr} f e′ le Wl Wr a =
+funRel-mono d n p q e {δ} {Vl} {Vr} f e′ le Wl Wr vl vr a =
   ℰᵍ-≡ (cong (_· Wl) (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl)))
     (cong (_· Wr) (sym (renameᵗᵐ-∘ (ρR e′) (ρR e) Vr)))
     (ℰᵍ-map d _ _
       (λ le′ w″ e″ V V′ →
         𝒱≤-resp d (≤′-trans le′ le) q w″
           (↑ᴵ-resp (≈ᴵ-sym (↑ᴵ-trans δ e′ e)) e″))
-      (f (⊒-trans e′ e) le Wl Wr
+      (f (⊒-trans e′ e) le Wl Wr vl vr
         (𝒱≤-resp d le p _ (↑ᴵ-trans δ e′ e) a)))
 
 allPair-mono : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : pair Φ ⊢ A ⊑ B)
@@ -584,7 +572,7 @@ mutual
     → entry d n w′ (renameEntry (ρL e) (ρR e) en)
         (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
   entry-mono d n {w′ = w′} e (seals X Xs Ys c) {Vl = V ↓ s} {Vr} (is , r) =
-    IsSeal-rename (toRenameᵗ (ρL e)) s is ,
+    IsSeal-rename (toRenameᵗ (ρL e)) s (repL-rename (ρL e) (ρR e) Xs c) is ,
     subst (λ m → peelL d n w′ m (map (renameVar (ρL e)) Xs)
                    (map (renameVar (ρR e)) Ys) (renameDesc (ρL e) (ρR e) c)
                    (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρR e) Vr))
@@ -609,7 +597,8 @@ mutual
         (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
   peelL-mono d n e m [] Ys c r = peelR-mono d n e m Ys c r
   peelL-mono d n e m (X ∷ Xs) Ys c {Vl = V ↓ s} (is , r) =
-    IsSeal-rename (toRenameᵗ (ρL e)) s is , peelL-mono d n e m Xs Ys c r
+    IsSeal-rename (toRenameᵗ (ρL e)) s (repL-rename (ρL e) (ρR e) Xs c) is ,
+    peelL-mono d n e m Xs Ys c r
   peelL-mono d n e m (X ∷ Xs) Ys c {Vl = ` x₀} ()
   peelL-mono d n e m (X ∷ Xs) Ys c {Vl = ƛ M₀} ()
   peelL-mono d n e m (X ∷ Xs) Ys c {Vl = L₀ · M₀} ()
@@ -629,7 +618,8 @@ mutual
         (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
   peelR-mono d n e m [] c r = contents-mono d n e m c r
   peelR-mono d n e m (Y ∷ Ys) c {Vr = V′ ↓ s} (is , r) =
-    IsSeal-rename (toRenameᵗ (ρR e)) s is , peelR-mono d n e m Ys c r
+    IsSeal-rename (toRenameᵗ (ρR e)) s (repR-rename (ρL e) (ρR e) Ys c) is ,
+    peelR-mono d n e m Ys c r
   peelR-mono d n e m (Y ∷ Ys) c {Vr = ` x₀} ()
   peelR-mono d n e m (Y ∷ Ys) c {Vr = ƛ M₀} ()
   peelR-mono d n e m (Y ∷ Ys) c {Vr = L₀ · M₀} ()
@@ -719,11 +709,11 @@ funRel-down : ∀ d {n n′} (le : n′ ≤ n) {Φ : Corr Δ Δ′} {A A′ B B�
     (p : Φ ⊢ A ⊑ A′) (q : Φ ⊢ B ⊑ B′) w
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → funRel d n p q w δ Vl Vr → funRel d n′ p q w δ Vl Vr
-funRel-down d le p q w f e le₁ Wl Wr a =
+funRel-down d le p q w f e le₁ Wl Wr vl vr a =
   ℰᵍ-map d _ _
     (λ le′ w″ e′ V V′ →
       𝒱≤-cast d (≤′-trans le′ le₂) (≤′-trans le′ le₁) q w″)
-    (f e le₂ Wl Wr (𝒱≤-cast d le₁ le₂ p _ a))
+    (f e le₂ Wl Wr vl vr (𝒱≤-cast d le₁ le₂ p _ a))
   where le₂ = ≤′-trans le₁ (≤⇒≤′ le)
 
 allPair-down : ∀ d {n n′} (le : n′ ≤ n) {Φ : Corr Δ Δ′} {A B}

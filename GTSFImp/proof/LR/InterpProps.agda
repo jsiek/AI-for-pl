@@ -302,11 +302,11 @@ mutual
       (p : Φ ⊢ A ⊑ A′) (q : Φ ⊢ B ⊑ B′) w
       {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
     → δ ≈ᴵ δ′ → funRel d n p q w δ Vl Vr → funRel d n p q w δ′ Vl Vr
-  funRel-resp d n p q w h r e le Wl Wr a =
+  funRel-resp d n p q w h r e le Wl Wr vl vr a =
     ℰᵍ-map d _ _
       (λ le′ w″ e′ V V′ →
         𝒱≤-resp d (≤′-trans le′ le) q w″ (↑ᴵ-resp (↑ᴵ-resp h e) e′))
-      (r e le Wl Wr (𝒱≤-resp d le p _ (↑ᴵ-resp (≈ᴵ-sym h) e) a))
+      (r e le Wl Wr vl vr (𝒱≤-resp d le p _ (↑ᴵ-resp (≈ᴵ-sym h) e) a))
 
   funStar-resp : ∀ d n {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       (p : Φ ⊢ A ⊑ ★) (q : Φ ⊢ B ⊑ ★) w

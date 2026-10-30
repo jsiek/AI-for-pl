@@ -448,18 +448,18 @@ mutual
     → ∀ {Vl Vr} → funRel d n p q w δ₁ Vl Vr
         ⇔ funRel d n (renᵖ R p) (renᵖ R q) w δ₂ Vl Vr
   funRel-ren d n R p q w h =
-    iff (λ r e le Wl Wr a →
+    iff (λ r e le Wl Wr vl vr a →
            ℰᵍ-map d _ _
              (λ le′ w″ e′ V V′ →
                to (𝒱≤-ren d (≤′-trans le′ le) R q w″
                     (RenI-↑ (RenI-↑ h e) e′)))
-             (r e le Wl Wr (from (𝒱≤-ren d le R p _ (RenI-↑ h e)) a)))
-        (λ r e le Wl Wr a →
+             (r e le Wl Wr vl vr (from (𝒱≤-ren d le R p _ (RenI-↑ h e)) a)))
+        (λ r e le Wl Wr vl vr a →
            ℰᵍ-map d _ _
              (λ le′ w″ e′ V V′ →
                from (𝒱≤-ren d (≤′-trans le′ le) R q w″
                       (RenI-↑ (RenI-↑ h e) e′)))
-             (r e le Wl Wr (to (𝒱≤-ren d le R p _ (RenI-↑ h e)) a)))
+             (r e le Wl Wr vl vr (to (𝒱≤-ren d le R p _ (RenI-↑ h e)) a)))
 
   funStar-ren : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′}
       (R : CRen Ψ Ψ′) {A B} (p : Ψ ⊢ A ⊑ ★) (q : Ψ ⊢ B ⊑ ★) w
@@ -839,24 +839,24 @@ mutual
     → ∀ {Vl Vr} → funRel d n p q w δ₁ Vl Vr
         ⇔ funRel d n (substᵖ S p) (substᵖ S q) w δ₂ Vl Vr
   funRel-subst d n S p q w h lt =
-    iff (λ r e le Wl Wr a →
+    iff (λ r e le Wl Wr vl vr a →
            ℰᵍ-pos d _ _ λ pos →
              ℰᵍ-map⁺ d _ _
                (λ le′ pos′ w″ e′ V V′ →
                  to (𝒱≤-subst d (≤′-trans le′ le) S q w″
                       (SubI-↑ (SubI-↑ h e) e′) pos′
                       (below (≤′-trans le′ le) lt)))
-               (r e le Wl Wr
+               (r e le Wl Wr vl vr
                  (from (𝒱≤-subst d le S p _ (SubI-↑ h e) pos
                          (below le lt)) a)))
-        (λ r e le Wl Wr a →
+        (λ r e le Wl Wr vl vr a →
            ℰᵍ-pos d _ _ λ pos →
              ℰᵍ-map⁺ d _ _
                (λ le′ pos′ w″ e′ V V′ →
                  from (𝒱≤-subst d (≤′-trans le′ le) S q w″
                         (SubI-↑ (SubI-↑ h e) e′) pos′
                         (below (≤′-trans le′ le) lt)))
-               (r e le Wl Wr
+               (r e le Wl Wr vl vr
                  (to (𝒱≤-subst d le S p _ (SubI-↑ h e) pos
                        (below le lt)) a)))
 

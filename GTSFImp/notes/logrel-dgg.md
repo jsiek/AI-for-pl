@@ -612,6 +612,64 @@ only strengthens the clauses.
   is read; the plan is to get that from backward reduction
   (`ℰ-anti-≺`).
 
+**Conversions: design (in progress).**
+* Two fixes to the definitions, found while designing the lemma:
+  * `IsSeal X R s` checks the seal's representation type as well as its
+    variable. `conceal-reveal` needs `(V ↓ seal X R) ↑ unseal X R`, so
+    an entry that ignored `R` would relate sealed values on which the
+    reveal gets stuck. An entry's representations are the next seal's
+    variable, or the contents' type for the innermost seal (`repL`,
+    `repR` in `LR.Desc`).
+  * `funRel` takes `Value` premises for the arguments. A converted
+    function only steps (`β-reveal-⇒`) on a value argument, and the
+    fundamental lemma only applies functions to values.
+* The lemma (`proof/LR/ConvLemma.agda`):
+  * The reveal turns values related under `δs` into values related
+    under `δt`. Under `δs` the converted variable X is a store variable
+    `α`; under `δt` it is its representation `R`. The conceal goes the
+    other way.
+  * X is paired (the right converts at its own store variable `α′`),
+    left-only, or dead. A fourth mode, none, converts a store variable
+    that no variable of `Φ` stands for.
+  * Two mutual lemmas:
+    * at derivations into `★`, where the right is not converted;
+    * at the others. At a right type `★`, the right takes an identity
+      step and the first lemma takes over.
+  * Hypotheses (`ConvI`): `SealI` ties X's two leaves. A sealed value
+    is read below the bound; a value is sealed below the bound, or up
+    to it in `≻` for a left-only X. The conceal needs the strict bound
+    exactly when the counted side converts (`ConB`).
+  * The function cases are shared (`FunConv`): two binds around the
+    application (`app-core`). The induction hypotheses are passed as
+    closures over every world and hypothesis record.
+* **Fresh conversions.** A generated conversion walks the whole type,
+  so it builds identity proxies where the variable does not occur:
+  `〖 β , ℕ ↑ (ι→ι)→(ι→ι) 〗 = (id↑ ι ↦↓ id↓ ι) ↦↑ …`. This happens at
+  run time: in `(Λα. Λβ. λx:α. x) [ι→ι] [ℕ]` the second instantiation
+  reveals β over the first one's representation. In the lemma's `∀`
+  cases, the bound variable's reveal passes over X's representation
+  `R`, so a variable other than the converted one can have any type.
+  * So every leaf other than X's carries a closure hypothesis: it is
+    closed under conversions at store variables fresh for its type.
+    X's target leaf carries one too, for the conversions of variables
+    bound inside.
+  * A store-variable leaf is closed by one identity step. A descriptor
+    leaf (`leafBelow`, `leafG`) is closed by the lemma itself, in mode
+    none, on the descriptor's derivation under its own interpretation,
+    at a lower stage.
+  * Well-foundedness: the lemma at stage `n` takes as an argument the
+    closure of descriptor relations at every stage below `n` (an
+    oracle), and the closure at all stages comes from strong
+    induction on the stage (`<-rec`).
+    * `leafBelow` is read strictly below its clause's stage.
+    * `leafG` (`≻`, left-only) is read up to the clause's stage. `G`
+      at stage `k + 1` reads its clauses at stage `k`, except at `★`,
+      at a base type and at variables, where the conversion is an
+      identity step. So closing `G` at stage `n` needs the oracle
+      below `n` only.
+  * The user chose this over changing `〖_,_↑_〗` to generate
+    identities where the variable does not occur (a language change).
+
 **Next, in order** (items 5–9 of Section 6.9):
 1. conversions;
 2. identity casts;

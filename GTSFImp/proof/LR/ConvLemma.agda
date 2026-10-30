@@ -1407,3 +1407,174 @@ con-var d n {Z = Z} z w {X} {m = m-left} h le cb wl wr r | no ne =
   Now.conP h z ne le wl wr (from (𝒱-XY d n z w) r)
 con-var d n {Z = .X} z w {X} {m = m-left} h le cb wl wr r | yes refl =
   con-leftX d n z w h cb wl wr r
+
+------------------------------------------------------------------------
+-- Functions
+------------------------------------------------------------------------
+
+-- the right side's conversion of a mode, and how it moves to futures:
+-- by the mode in the main lemma, none in the lemma at `★`
+module FunConv {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} (d : Dir) (N : ℕ)
+    (rk : RK) {A A′ B B′} (p : Φ ⊢ A ⊑ A′) (q : Φ ⊢ B ⊑ B′)
+    (RF : ∀ {ΘL ΘR} → CMode Φ X ΘL ΘR → (Δ′ ⇒ˢ ΘR) → RConv ΘR)
+    (RF-↑ : ∀ {ΘL ΘR ΘL′ ΘR′} (ρL : ΘL ↪ᵗ ΘL′) (ρR : ΘR ↪ᵗ ΘR′)
+       (m : CMode Φ X ΘL ΘR) σ
+       → RF (CMode-↑ ρL ρR m) (λ Y → renameᵗ (toRenameᵗ ρR) (σ Y))
+         ≡ renRConv ρR (RF m σ))
+    (revp : ∀ {w m α δs δt} → ConvI d N rk w m α δs δt → ∀ {k} → k ≤ N
+       → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d k p w δs Vl Vr
+       → ℰ d k p w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) A 〗)
+           (revM (RF m (δr δt)) (substᵗ (δr δs) A′) Vr))
+    (conp : ∀ {w m α δs δt} → ConvI d N rk w m α δs δt → ∀ {k}
+       → ConB d (RF m (δr δt)) k N
+       → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k p w δt Wl Wr
+       → ℰ d k p w δs
+           (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) A))
+           (conM (RF m (δr δt)) (substᵗ (δr δs) A′) Wr))
+    (revq : ∀ {w m α δs δt} → ConvI d N rk w m α δs δt → ∀ {k} → k ≤ N
+       → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d k q w δs Vl Vr
+       → ℰ d k q w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) B 〗)
+           (revM (RF m (δr δt)) (substᵗ (δr δs) B′) Vr))
+    (conq : ∀ {w m α δs δt} → ConvI d N rk w m α δs δt → ∀ {k}
+       → ConB d (RF m (δr δt)) k N
+       → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k q w δt Wl Wr
+       → ℰ d k q w δs
+           (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) B))
+           (conM (RF m (δr δt)) (substᵗ (δr δs) B′) Wr))
+    where
+
+  -- the conversion of a result, renamed into a future
+  private
+    rev-ren : ∀ {w w′} (e : w′ ⊒ w) (m : CMode Φ X (ΔL w) (ΔR w)) α
+        (δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)) (Q : Term (ΔL w′)) C
+      → Q ↑ 〖 toRenameᵗ (ρL e) α
+            , repM (CMode-↑ (ρL e) (ρR e) m) (δl (δt ↑ᴵ e))
+            ↑ substᵗ (δl (δs ↑ᴵ e)) C 〗
+        ≡ Q ↑ rename↑ (toRenameᵗ (ρL e))
+              〖 α , repM m (δl δt) ↑ substᵗ (δl δs) C 〗
+    rev-ren e m α δs δt Q C =
+      trans (↑〖〗-≡ refl (repM-↑ (ρL e) (ρR e) m (δl δt)) refl)
+        (sym (↑-pk (〖〗-ren (ρL e) α (repM m (δl δt)) (δl δs) C)))
+
+    con-ren : ∀ {w w′} (e : w′ ⊒ w) (m : CMode Φ X (ΔL w) (ΔR w)) α
+        (δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)) (Q : Term (ΔL w′)) C
+      → Q ↓ makeConceal (toRenameᵗ (ρL e) α)
+              (repM (CMode-↑ (ρL e) (ρR e) m) (δl (δt ↑ᴵ e)))
+              (substᵗ (δl (δs ↑ᴵ e)) C)
+        ≡ Q ↓ rename↓ (toRenameᵗ (ρL e))
+              (makeConceal α (repM m (δl δt)) (substᵗ (δl δs) C))
+    con-ren e m α δs δt Q C =
+      trans (↓mc-≡ refl (repM-↑ (ρL e) (ρR e) m (δl δt)) refl)
+        (sym (↓-pk (makeConceal-ren (ρL e) α (repM m (δl δt)) (δl δs) C)))
+
+    rc-ren : ∀ {w w′} (e : w′ ⊒ w) (m : CMode Φ X (ΔL w) (ΔR w))
+        (δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)) (Q : Term (ΔR w′)) C
+      → revM (RF (CMode-↑ (ρL e) (ρR e) m) (δr (δt ↑ᴵ e)))
+          (substᵗ (δr (δs ↑ᴵ e)) C) Q
+        ≡ mplug (renameMFrame (ρR e)
+            (revFrame (RF m (δr δt)) (substᵗ (δr δs) C))) Q
+    rc-ren e m δs δt Q C =
+      trans (cong (λ c → revM c _ Q) (RF-↑ (ρL e) (ρR e) m (δr δt)))
+        (sym (revFrame-ren (ρR e) (RF m (δr δt)) (δr δs) C Q))
+
+    cc-ren : ∀ {w w′} (e : w′ ⊒ w) (m : CMode Φ X (ΔL w) (ΔR w))
+        (δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)) (Q : Term (ΔR w′)) C
+      → conM (RF (CMode-↑ (ρL e) (ρR e) m) (δr (δt ↑ᴵ e)))
+          (substᵗ (δr (δs ↑ᴵ e)) C) Q
+        ≡ mplug (renameMFrame (ρR e)
+            (conFrame (RF m (δr δt)) (substᵗ (δr δs) C))) Q
+    cc-ren e m δs δt Q C =
+      trans (cong (λ c → conM c _ Q) (RF-↑ (ρL e) (ρR e) m (δr δt)))
+        (sym (conFrame-ren (ρR e) (RF m (δr δt)) (δr δs) C Q))
+
+  -- a converted function applied, in the world of the function
+  rev-at : ∀ {n} w {m α δs δt} (h : ConvI d N rk w m α δs δt) → n ≤ N
+    → ∀ {Vl Vr} → Value Vl → Value Vr → funRel d n p q w δs Vl Vr
+    → ∀ {Ul Ur} → Value Ul → Value Ur → 𝒱 d n p w δt Ul Ur
+    → ℰ d n q w δt
+        ((Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) (A ⇒ B) 〗) · Ul)
+        (revM (RF m (δr δt)) (substᵗ (δr δs) (A′ ⇒ B′)) Vr · Ur)
+  rev-at w {m} {α} {δs} {δt} h le {Vl} {Vr} vl vr f {Ul} {Ur} ul ur a =
+    ℰ-app-steps d q w (RF m (δr δt)) le (β-reveal-⇒ vl ul)
+      (rightApp (RF m (δr δt)) vr ur)
+      (λ {s} s≤n cb →
+        app-core d s p q w vl vr
+          (just (reveal 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) B 〗))
+          (revFrame (RF m (δr δt)) (substᵗ (δr δs) B′))
+          (conp h cb ul ur (𝒱-down d s≤n p w (goodT h) a))
+          (funRel-down d s≤n p q w f)
+          (λ e₂ {k} k≤s {Ql} {Qr} ql qr r →
+            ℰᵍ-≡ (rev-ren e₂ m α δs δt Ql B) (rc-ren e₂ m δs δt Qr B′)
+              (revq (ConvI-↑ e₂ h) (≤-trans k≤s (≤-trans s≤n le)) ql qr r)))
+
+  con-at : ∀ {n} w {m α δs δt} (h : ConvI d N rk w m α δs δt)
+    → ConB d (RF m (δr δt)) n N
+    → ∀ {Wl Wr} → Value Wl → Value Wr → funRel d n p q w δt Wl Wr
+    → ∀ {Ul Ur} → Value Ul → Value Ur → 𝒱 d n p w δs Ul Ur
+    → ℰ d n q w δs
+        ((Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) (A ⇒ B)))
+          · Ul)
+        (conM (RF m (δr δt)) (substᵗ (δr δs) (A′ ⇒ B′)) Wr · Ur)
+  con-at w {m} {α} {δs} {δt} h cb {Wl} {Wr} wl wr f {Ul} {Ur} ul ur a =
+    ℰ-app-steps d q w (RF m (δr δt)) (ConB-≤ d (RF m (δr δt)) cb)
+      (β-conceal-⇒ wl ul) (rightAppC (RF m (δr δt)) wr ur)
+      (λ {s} s≤n cb′ →
+        app-core d s p q w wl wr
+          (just (conceal
+            (makeConceal α (repM m (δl δt)) (substᵗ (δl δs) B))))
+          (conFrame (RF m (δr δt)) (substᵗ (δr δs) B′))
+          (revp h (≤-trans s≤n (ConB-≤ d (RF m (δr δt)) cb)) ul ur
+            (𝒱-down d s≤n p w (goodS h) a))
+          (funRel-down d s≤n p q w f)
+          (λ e₂ {k} k≤s {Ql} {Qr} ql qr r →
+            ℰᵍ-≡ (con-ren e₂ m α δs δt Ql B) (cc-ren e₂ m δs δt Qr B′)
+              (conq (ConvI-↑ e₂ h)
+                (subst (λ c → ConB d c k N)
+                  (sym (RF-↑ (ρL e₂) (ρR e₂) m (δr δt)))
+                  (ConB-ren d (ρR e₂) (RF m (δr δt))
+                    (ConB-down d (RF m (δr δt)) (≤-trans k≤s s≤n) cb)))
+                ql qr r)))
+
+  fun-rev : ∀ {n w m α δs δt} (h : ConvI d N rk w m α δs δt) → n ≤ N
+    → ∀ {Vl Vr} → Value Vl → Value Vr → funRel d n p q w δs Vl Vr
+    → funRel d n p q w δt
+        (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) (A ⇒ B) 〗)
+        (revM (RF m (δr δt)) (substᵗ (δr δs) (A′ ⇒ B′)) Vr)
+  fun-rev {n} {w} {m} {α} {δs} {δt} h le {Vl} {Vr} vl vr f
+      {w′} e {n′} le′ Ul Ur ul ur a =
+    ℰᵍ-map d n′ w′ (λ le″ w″ e″ V V′ → 𝒱≤-cast d le″ (≤′-trans le″ le′) q w″)
+      (ℰᵍ-≡
+        (cong (_· Ul) (rev-ren e m α δs δt (renameᵗᵐ (ρL e) Vl) (A ⇒ B)))
+        (cong (_· Ur) (trans
+          (cong (λ c → revM c _ (renameᵗᵐ (ρR e) Vr))
+            (RF-↑ (ρL e) (ρR e) m (δr δt)))
+          (sym (revM-ren (ρR e) (RF m (δr δt)) (δr δs) (A′ ⇒ B′) Vr))))
+        (rev-at w′ (ConvI-↑ e h) (≤-trans (≤′⇒≤ le′) le)
+          (renameᵗᵐ-preserves-Value (ρL e) vl)
+          (renameᵗᵐ-preserves-Value (ρR e) vr)
+          (funRel-down d (≤′⇒≤ le′) p q w′ (funRel-mono d n p q e f))
+          ul ur (𝒱≤-cast d le′ ≤′-refl p w′ a)))
+
+  fun-con : ∀ {n w m α δs δt} (h : ConvI d N rk w m α δs δt)
+    → ConB d (RF m (δr δt)) n N
+    → ∀ {Wl Wr} → Value Wl → Value Wr → funRel d n p q w δt Wl Wr
+    → funRel d n p q w δs
+        (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) (A ⇒ B)))
+        (conM (RF m (δr δt)) (substᵗ (δr δs) (A′ ⇒ B′)) Wr)
+  fun-con {n} {w} {m} {α} {δs} {δt} h cb {Wl} {Wr} wl wr f
+      {w′} e {n′} le′ Ul Ur ul ur a =
+    ℰᵍ-map d n′ w′ (λ le″ w″ e″ V V′ → 𝒱≤-cast d le″ (≤′-trans le″ le′) q w″)
+      (ℰᵍ-≡
+        (cong (_· Ul) (con-ren e m α δs δt (renameᵗᵐ (ρL e) Wl) (A ⇒ B)))
+        (cong (_· Ur) (trans
+          (cong (λ c → conM c _ (renameᵗᵐ (ρR e) Wr))
+            (RF-↑ (ρL e) (ρR e) m (δr δt)))
+          (sym (conM-ren (ρR e) (RF m (δr δt)) (δr δs) (A′ ⇒ B′) Wr))))
+        (con-at w′ (ConvI-↑ e h)
+          (subst (λ c → ConB d c n′ N) (sym (RF-↑ (ρL e) (ρR e) m (δr δt)))
+            (ConB-ren d (ρR e) (RF m (δr δt))
+              (ConB-down d (RF m (δr δt)) (≤′⇒≤ le′) cb)))
+          (renameᵗᵐ-preserves-Value (ρL e) wl)
+          (renameᵗᵐ-preserves-Value (ρR e) wr)
+          (funRel-down d (≤′⇒≤ le′) p q w′ (funRel-mono d n p q e f))
+          ul ur (𝒱≤-cast d le′ ≤′-refl p w′ a)))

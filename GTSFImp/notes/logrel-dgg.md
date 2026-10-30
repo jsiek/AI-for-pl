@@ -695,6 +695,38 @@ only strengthens the clauses.
   * The fundamental lemma's `Λ⊑Λ` case already handles prefixes: the
     bound variable's entry is `seals α Xs (α′ ∷ Ys) c`, since entries
     carry seal lists.
+* **Status** (`proof/LR/ConvBase.agda`, `proof/LR/ConvLemma.agda`, not
+  yet in `All.agda`). Done:
+  * the hypotheses (`ConvI`), their transport (`ConvI-↑`) and their
+    extension under binders;
+  * the variable cases (`rev★-var`, `con★-var`, `rev-var`, `con-var`);
+  * the function cases (`FunConv`).
+
+  To do:
+  * the `∀` cases;
+  * the two lemmas' dispatch;
+  * the closure oracle by strong induction (`ConvClose`);
+  * the instances for the fundamental lemma's `Λ` cases.
+* **Plan for a `∀` case** (`∀⊑∀`, reveal; the others are alike).
+  * Work at the function's world with an instantiating sealed descriptor
+    `c₀`, then move to the clause's futures with `ConvI-↑`,
+    `allPair-mono` and `allPair-down`.
+  * The left steps `β-reveal-∀` to `((⇑V ⦂∀ C [＇0]) ↑ c) ↑ 〖0 , ⇑Tl ↑ Bt〗`.
+    The annotation `Bt` must equal `c`'s target, which follows from
+    `tyL` and `replaceTy-subst`.
+  * The right steps the same way when it converts. Otherwise it is
+    `Vr ⦂∀ … [Tr]` and does not move.
+  * Use V's clause at the world `w₁` after the step (new store variable
+    `β = 0`). The descriptor is `c₀` with `β` prepended to its left
+    seals, and `β′` to its right seals when the right converts.
+    * Inner bind: the α-conversion, from `ConvI-↑ (ConvI-extPair …)`.
+    * Outer bind: the β-conversion, mode `m-pair ↔-here β′` or `m-left`.
+      Its other variables' closure comes from `genP`/`genO`, using that β
+      is new; its target leaf's closure comes from the oracle.
+  * When the right does not convert, first weaken the record to
+    `rk = left`, because the new leaf's right type `Tr` is arbitrary.
+  * Finish by backward reduction (`ℰ-anti-≺`/`ℰ-anti-≻`) with the new
+    tags.
 * **Seal hypotheses, uniformly.**
   * Reveal: X's converted leaf at stage k gives sealed values whose
     contents are related by its target leaf at k − 1 when the counted

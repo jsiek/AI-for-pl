@@ -6,13 +6,17 @@ module proof.LR.ConvMain where
 --     per-descriptor cases of `proof.LR.ConvLemma`.
 --   * The lemma at `★` (`rev★`, `con★`), where the right is not
 --     converted, by induction on the precision derivation.
+--   * The main lemma (`revC`, `conC`), where the right converts as the
+--     mode says, by induction on the precision derivation; into `★` it
+--     is the lemma at `★` followed by the right's identity step.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Fin using (zero; suc)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc; pred; _≤_; _<_; s≤s; z≤n;
   _≤′_; ≤′-refl; ≤′-step)
-open import Data.Nat.Properties using (n≤1+n; ≤-refl; ≤⇒≤′; ≤′⇒≤; ≤-trans)
+open import Data.Nat.Properties using (n≤1+n; ≤-refl; ≤⇒≤′; ≤′⇒≤; ≤-trans;
+  <⇒≤)
 open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
 open import Data.Unit using (⊤; tt)
 open import Relation.Binary.PropositionalEquality
@@ -36,7 +40,8 @@ open import proof.LR.Expression
 open import proof.LR.ConvSyntax
 open import proof.LR.ConvBase
 open import proof.LR.ConvLemma
-open import proof.LR.SubstLemma using (allDeadStar-★; to; from)
+open import proof.LR.SubstLemma using (allDeadStar-★; _⇔_; ⇔-id; to;
+  from)
 open import Reduction using (id-reveal; id-conceal)
 
 private
@@ -538,3 +543,220 @@ mutual
   con★ ≺ bot⊑★ h cb wl wr ()
   con★ ≻ bot⊑★ h {zero} cb wl wr r = ℰ-zero ≻ bot⊑★ _
   con★ ≻ bot⊑★ h {suc k} cb wl wr ()
+
+------------------------------------------------------------------------
+-- The main lemma: the right converts as the mode says
+------------------------------------------------------------------------
+
+RevC : Dir → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A B} → Φ ⊢ A ⊑ B → Set₁
+RevC d {Φ = Φ} {A} {B} p =
+  ∀ {N rk w X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt}
+  → ConvI d N rk w m α δs δt → ∀ {k} → k ≤ N
+  → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d k p w δs Vl Vr
+  → ℰ d k p w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) A 〗)
+      (revM (rconv m (δr δt)) (substᵗ (δr δs) B) Vr)
+
+ConC : Dir → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A B} → Φ ⊢ A ⊑ B → Set₁
+ConC d {Φ = Φ} {A} {B} p =
+  ∀ {N rk w X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt}
+  → ConvI d N rk w m α δs δt → ∀ {k} → ConB d (rconv m (δr δt)) k N
+  → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k p w δt Wl Wr
+  → ℰ d k p w δs
+      (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) A))
+      (conM (rconv m (δr δt)) (substᵗ (δr δs) B) Wr)
+
+-- the right side's conversion of a value
+revM-fun : ∀ {Θ} (rc : RConv Θ) {C D} {V : Term Θ}
+  → Value V → Value (revM rc (C ⇒ D) V)
+revM-fun nothing v = v
+revM-fun (just (α′ , R)) v = v CT.↑ CT.fun
+
+revM-all : ∀ {Θ} (rc : RConv Θ) {C} {V : Term Θ}
+  → Value V → Value (revM rc (`∀ C) V)
+revM-all nothing v = v
+revM-all (just (α′ , R)) v = v CT.↑ CT.all
+
+conM-fun : ∀ {Θ} (rc : RConv Θ) {C D} {V : Term Θ}
+  → Value V → Value (conM rc (C ⇒ D) V)
+conM-fun nothing v = v
+conM-fun (just (α′ , R)) v = v CT.↓ CT.fun
+
+conM-all : ∀ {Θ} (rc : RConv Θ) {C} {V : Term Θ}
+  → Value V → Value (conM rc (`∀ C) V)
+conM-all nothing v = v
+conM-all (just (α′ , R)) v = v CT.↓ CT.all
+
+-- at a base type, the right side's conversion is an identity step
+rstepι : ∀ {Θ} (rc : RConv Θ) {ι} {V : Term Θ}
+  → Value V → revM rc (‵ ι) V —→? V
+rstepι nothing v = stay
+rstepι (just (α′ , R)) v = step (id-reveal v)
+
+cstepι : ∀ {Θ} (rc : RConv Θ) {ι} {V : Term Θ}
+  → Value V → conM rc (‵ ι) V —→? V
+cstepι nothing v = stay
+cstepι (just (α′ , R)) v = step (id-conceal v)
+
+-- the clauses at a generic direction
+𝒱-⇒ : ∀ d n {Φ : Corr Δ Δ′} {A A′ B B′} (p : Φ ⊢ A ⊑ A′)
+    (q : Φ ⊢ B ⊑ B′) w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {V V′}
+  → funRel d n p q w δ V V′ ⇔ 𝒱 d n (⇒⊑⇒ p q) w δ V V′
+𝒱-⇒ ≺ n p q w = ⇔-id
+𝒱-⇒ ≻ n p q w = ⇔-id
+
+𝒱-∀ : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : pair Φ ⊢ A ⊑ B) w
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {V V′}
+  → allPair d n p w δ V V′ ⇔ 𝒱 d n (∀⊑∀ p) w δ V V′
+𝒱-∀ ≺ n p w = ⇔-id
+𝒱-∀ ≻ n p w = ⇔-id
+
+𝒱-∀⊑⇒ : ∀ d n {Φ : Corr Δ Δ′} {A B₁ B₂} (Anv : NonVar A) (z : zero ∈ᵗ A)
+    (p : only Φ ⊢ A ⊑ B₁ ⇒ B₂) w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {V V′}
+  → allOnly d n p w δ V V′ ⇔ 𝒱 d n (∀⊑ Anv z p) w δ V V′
+𝒱-∀⊑⇒ ≺ n Anv z p w = ⇔-id
+𝒱-∀⊑⇒ ≻ n Anv z p w = ⇔-id
+
+𝒱-∀⊑∀ : ∀ d n {Φ : Corr Δ Δ′} {A B} (Anv : NonVar A) (z : zero ∈ᵗ A)
+    (p : only Φ ⊢ A ⊑ `∀ B) w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {V V′}
+  → allOnly d n p w δ V V′ ⇔ 𝒱 d n (∀⊑ Anv z p) w δ V V′
+𝒱-∀⊑∀ ≺ n Anv z p w = ⇔-id
+𝒱-∀⊑∀ ≻ n Anv z p w = ⇔-id
+
+𝒱-bot : ∀ d n {Φ : Corr Δ Δ′} w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {V V′}
+  → 𝒱 d n (bot-elim {Φ = Φ}) w δ V V′ → ⊥
+𝒱-bot ≺ n w ()
+𝒱-bot ≻ n w ()
+
+-- a left-only bound variable's body is not below a variable or a base type
+nv⊑var : ∀ {Φ : Corr Δ Δ′} {A Y} → Φ ⊢ A ⊑ ＇ Y → NonVar A → ⊥
+nv⊑var (X⊑Y x) ()
+nv⊑var (∀⊑ Anv z p) nv = nv⊑var p Anv
+
+⊑ι-closed : ∀ {Φ : Corr Δ Δ′} {A ι} → Φ ⊢ A ⊑ ‵ ι → ∀ {X} → X ∈ᵗ A → ⊥
+⊑ι-closed ι⊑ι ()
+⊑ι-closed (∀⊑ Anv z p) (∈-all x) = ⊑ι-closed p x
+
+-- into `★`: the lemma at `★`, and the right side's identity step
+revC★ : ∀ d {Δ Δ′} {Φ : Corr Δ Δ′} {A} (p : Φ ⊢ A ⊑ ★) → RevC d p
+revC★ d p {m = m} {δt = δt} h le vl vr r with rconv m (δr δt)
+revC★ d p {m = m} {δt = δt} h le vl vr r | nothing =
+  rev★ d p h le vl vr r
+revC★ ≺ p {m = m} {δt = δt} h {k} le vl vr r | just (α′ , R′) =
+  ℰ-stepR ≺ k p _ (id-reveal vr) (rev★ ≺ p h le vl vr r)
+revC★ ≻ p {m = m} {δt = δt} h {zero} le vl vr r | just (α′ , R′) =
+  ℰ-zero ≻ p _
+revC★ ≻ p {m = m} {δt = δt} h {suc k} le vl vr r | just (α′ , R′) =
+  ℰ-stepR ≻ k p _ (id-reveal vr)
+    (rev★ ≻ p h (≤-trans (n≤1+n k) le) vl vr
+      (𝒱-down ≻ (n≤1+n k) p _ (goodS h) r))
+
+conC★ : ∀ d {Δ Δ′} {Φ : Corr Δ Δ′} {A} (p : Φ ⊢ A ⊑ ★) → ConC d p
+conC★ d p {m = m} {δt = δt} h cb wl wr r with rconv m (δr δt)
+conC★ d p {m = m} {δt = δt} h cb wl wr r | nothing =
+  con★ d p h cb wl wr r
+conC★ ≺ p {m = m} {δt = δt} h {k} cb wl wr r | just (α′ , R′) =
+  ℰ-stepR ≺ k p _ (id-conceal wr) (con★ ≺ p h cb wl wr r)
+conC★ ≻ p {m = m} {δt = δt} h {zero} cb wl wr r | just (α′ , R′) =
+  ℰ-zero ≻ p _
+conC★ ≻ p {m = m} {δt = δt} h {suc k} cb wl wr r | just (α′ , R′) =
+  ℰ-stepR ≻ k p _ (id-conceal wr)
+    (con★ ≻ p h (≤-trans (n≤1+n k) (<⇒≤ cb)) wl wr
+      (𝒱-down ≻ (n≤1+n k) p _ (goodT h) r))
+
+mutual
+  revC : ∀ d {Δ Δ′} {Φ : Corr Δ Δ′} {A B} (p : Φ ⊢ A ⊑ B) → RevC d p
+  revC d ★⊑★ = revC★ d ★⊑★
+  revC d ι⊑ι {m = m} {δt = δt} h {k} le vl vr r =
+    ℰ-steps? d k ι⊑ι _ (goodT h) (step (id-reveal vl))
+      (rstepι (rconv m (δr δt)) vr) vl vr (ιι-δ d k r)
+  revC d (X⊑Y z) h {k} le vl vr r = rev-var d k z _ h le vl vr r
+  revC d (⇒⊑⇒ p q) {N} {rk} {w} {X} {m} {δt = δt} h {k} le vl vr r =
+    ℰ-value d k (⇒⊑⇒ p q) w (vl CT.↑ CT.fun) (revM-fun (rconv m (δr δt)) vr)
+      (to (𝒱-⇒ d k p q w) (fun-rev h le vl vr (from (𝒱-⇒ d k p q w) r)))
+    where
+    open FunConv {X = X} d N rk p q rconv
+      (λ ρL ρR m′ σ → rconv-↑ ρL ρR m′ σ)
+      (λ h′ → revC d p h′) (λ h′ → conC d p h′)
+      (λ h′ → revC d q h′) (λ h′ → conC d q h′)
+  revC d (∀⊑∀ p) {N} {rk} {w} {m = m} {δt = δt} h {k} le vl vr r =
+    ℰ-value d k (∀⊑∀ p) w (vl CT.↑ CT.all) (revM-all (rconv m (δr δt)) vr)
+      (to (𝒱-∀ d k p w)
+        (PairV.revV d N p (λ h′ → revC d p h′) (λ h′ → conC d p h′)
+          w h le vl vr (from (𝒱-∀ d k p w) r)))
+  revC d (⇒⊑★ p q) = revC★ d (⇒⊑★ p q)
+  revC d ι⊑★ = revC★ d ι⊑★
+  revC d (X⊑★ z) = revC★ d (X⊑★ z)
+  revC d (∀⊑ {B = ★} Anv z p) = revC★ d (∀⊑ Anv z p)
+  revC d (∀⊑ {B = ＇ Y} Anv z p) h le vl vr r = ⊥-elim (nv⊑var p Anv)
+  revC d (∀⊑ {B = ‵ ι} Anv z p) h le vl vr r = ⊥-elim (⊑ι-closed p z)
+  revC d (∀⊑ {B = B₁ ⇒ B₂} Anv z p) {N} {rk} {w} {m = m} {δt = δt} h {k}
+      le vl vr r =
+    ℰ-value d k (∀⊑ Anv z p) w (vl CT.↑ CT.all)
+      (revM-fun (rconv m (δr δt)) vr)
+      (to (𝒱-∀⊑⇒ d k Anv z p w)
+        (OnlyV.revV d N p (λ m′ σ → rconv m′ σ)
+          (λ ρL ρR m′ σ → rconv-↑ ρL ρR m′ σ) (λ m′ σ → rconv-only m′ σ)
+          (λ σ → refl) (λ h′ → revC d p h′) (λ h′ → conC d p h′)
+          w h le vl vr (from (𝒱-∀⊑⇒ d k Anv z p w) r)))
+  revC d (∀⊑ {B = `∀ B₁} Anv z p) {N} {rk} {w} {m = m} {δt = δt} h {k}
+      le vl vr r =
+    ℰ-value d k (∀⊑ Anv z p) w (vl CT.↑ CT.all)
+      (revM-all (rconv m (δr δt)) vr)
+      (to (𝒱-∀⊑∀ d k Anv z p w)
+        (OnlyV.revV d N p (λ m′ σ → rconv m′ σ)
+          (λ ρL ρR m′ σ → rconv-↑ ρL ρR m′ σ) (λ m′ σ → rconv-only m′ σ)
+          (λ σ → refl) (λ h′ → revC d p h′) (λ h′ → conC d p h′)
+          w h le vl vr (from (𝒱-∀⊑∀ d k Anv z p w) r)))
+  revC d ∀★⊑★ = revC★ d ∀★⊑★
+  revC d (∀⊑★ ns p) = revC★ d (∀⊑★ ns p)
+  revC d bot-elim h {k} le vl vr r = ⊥-elim (𝒱-bot d k _ r)
+  revC d bot⊑★ = revC★ d bot⊑★
+
+  conC : ∀ d {Δ Δ′} {Φ : Corr Δ Δ′} {A B} (p : Φ ⊢ A ⊑ B) → ConC d p
+  conC d ★⊑★ = conC★ d ★⊑★
+  conC d ι⊑ι {m = m} {δt = δt} h {k} cb wl wr r =
+    ℰ-steps? d k ι⊑ι _ (goodS h) (step (id-conceal wl))
+      (cstepι (rconv m (δr δt)) wr) wl wr (ιι-δ d k r)
+  conC d (X⊑Y z) {m = m} {δt = δt} h {k} cb wl wr r =
+    con-var d k z _ h (ConB-≤ d (rconv m (δr δt)) cb) cb wl wr r
+  conC d (⇒⊑⇒ p q) {N} {rk} {w} {X} {m} {δt = δt} h {k} cb wl wr r =
+    ℰ-value d k (⇒⊑⇒ p q) w (wl CT.↓ CT.fun) (conM-fun (rconv m (δr δt)) wr)
+      (to (𝒱-⇒ d k p q w) (fun-con h cb wl wr (from (𝒱-⇒ d k p q w) r)))
+    where
+    open FunConv {X = X} d N rk p q rconv
+      (λ ρL ρR m′ σ → rconv-↑ ρL ρR m′ σ)
+      (λ h′ → revC d p h′) (λ h′ → conC d p h′)
+      (λ h′ → revC d q h′) (λ h′ → conC d q h′)
+  conC d (∀⊑∀ p) {N} {rk} {w} {m = m} {δt = δt} h {k} cb wl wr r =
+    ℰ-value d k (∀⊑∀ p) w (wl CT.↓ CT.all) (conM-all (rconv m (δr δt)) wr)
+      (to (𝒱-∀ d k p w)
+        (PairV.conV d N p (λ h′ → revC d p h′) (λ h′ → conC d p h′)
+          w h cb wl wr (from (𝒱-∀ d k p w) r)))
+  conC d (⇒⊑★ p q) = conC★ d (⇒⊑★ p q)
+  conC d ι⊑★ = conC★ d ι⊑★
+  conC d (X⊑★ z) = conC★ d (X⊑★ z)
+  conC d (∀⊑ {B = ★} Anv z p) = conC★ d (∀⊑ Anv z p)
+  conC d (∀⊑ {B = ＇ Y} Anv z p) h cb wl wr r = ⊥-elim (nv⊑var p Anv)
+  conC d (∀⊑ {B = ‵ ι} Anv z p) h cb wl wr r = ⊥-elim (⊑ι-closed p z)
+  conC d (∀⊑ {B = B₁ ⇒ B₂} Anv z p) {N} {rk} {w} {m = m} {δt = δt} h {k}
+      cb wl wr r =
+    ℰ-value d k (∀⊑ Anv z p) w (wl CT.↓ CT.all)
+      (conM-fun (rconv m (δr δt)) wr)
+      (to (𝒱-∀⊑⇒ d k Anv z p w)
+        (OnlyV.conV d N p (λ m′ σ → rconv m′ σ)
+          (λ ρL ρR m′ σ → rconv-↑ ρL ρR m′ σ) (λ m′ σ → rconv-only m′ σ)
+          (λ σ → refl) (λ h′ → revC d p h′) (λ h′ → conC d p h′)
+          w h cb wl wr (from (𝒱-∀⊑⇒ d k Anv z p w) r)))
+  conC d (∀⊑ {B = `∀ B₁} Anv z p) {N} {rk} {w} {m = m} {δt = δt} h {k}
+      cb wl wr r =
+    ℰ-value d k (∀⊑ Anv z p) w (wl CT.↓ CT.all)
+      (conM-all (rconv m (δr δt)) wr)
+      (to (𝒱-∀⊑∀ d k Anv z p w)
+        (OnlyV.conV d N p (λ m′ σ → rconv m′ σ)
+          (λ ρL ρR m′ σ → rconv-↑ ρL ρR m′ σ) (λ m′ σ → rconv-only m′ σ)
+          (λ σ → refl) (λ h′ → revC d p h′) (λ h′ → conC d p h′)
+          w h cb wl wr (from (𝒱-∀⊑∀ d k Anv z p w) r)))
+  conC d ∀★⊑★ = conC★ d ∀★⊑★
+  conC d (∀⊑★ ns p) = conC★ d (∀⊑★ ns p)
+  conC d bot-elim h {k} cb wl wr r = ⊥-elim (𝒱-bot d k _ r)
+  conC d bot⊑★ = conC★ d bot⊑★

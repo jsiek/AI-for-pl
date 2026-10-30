@@ -669,6 +669,15 @@ only strengthens the clauses.
       below `n` only.
   * The user chose this over changing `〖_,_↑_〗` to generate
     identities where the variable does not occur (a language change).
+  * Why the closure is not a standalone identity lemma: an identity
+    `∀` proxy is not an identity at run time. By `β-reveal-∀`,
+    `(V ↑ ∀↑ c) ⦂∀ B [ A ]` steps to
+    `((⇑V ⦂∀ C [ ＇0 ]) ↑ c) ↑ 〖 0 , ⇑A ↑ B 〗`: V is instantiated at
+    the new store variable, and that variable is then revealed as A.
+    Relating this to the unproxied `V ⦂∀ C [ A ]` is the `∀⊑∀` reveal
+    in which only the left converts (a sealed descriptor on the left).
+    So the closure needs the conversion lemma itself, at the same
+    stage, and the two are proved together by stage induction.
 * **Sealed descriptors in `∀⊑∀`.** Suppose the left converts and the
   right does not: X left-only or dead, or a fresh conversion with no
   right conversion. The body has a paired binder Y.

@@ -4,6 +4,8 @@ module proof.LR.ConvMain where
 --   * The conversion lemma's value-level `∀` cases: the clauses of
 --     `allPair`, `allOnly` and `allDead` for converted values, from the
 --     per-descriptor cases of `proof.LR.ConvLemma`.
+--   * The lemma at `★` (`rev★`, `con★`), where the right is not
+--     converted, by induction on the precision derivation.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Fin using (zero; suc)
@@ -34,6 +36,8 @@ open import proof.LR.Expression
 open import proof.LR.ConvSyntax
 open import proof.LR.ConvBase
 open import proof.LR.ConvLemma
+open import proof.LR.SubstLemma using (allDeadStar-★; to; from)
+open import Reduction using (id-reveal; id-conceal)
 
 private
   variable
@@ -357,3 +361,180 @@ module DeadV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A}
           (ConB-cast d (ConB-down d nothing le′ cb))
           (renameᵗᵐ-preserves-Value (ρL e) wl)
           (allDead-down d le′ p _ (allDead-mono d n p e r)) T T′)
+
+------------------------------------------------------------------------
+-- The lemma at `★`: the right is not converted
+------------------------------------------------------------------------
+
+Rev★ : Dir → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A} → Φ ⊢ A ⊑ ★ → Set₁
+Rev★ d {Φ = Φ} {A} p =
+  ∀ {N rk w X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt}
+  → ConvI d N rk w m α δs δt → ∀ {k} → k ≤ N
+  → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d k p w δs Vl Vr
+  → ℰ d k p w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) A 〗) Vr
+
+Con★ : Dir → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A} → Φ ⊢ A ⊑ ★ → Set₁
+Con★ d {Φ = Φ} {A} p =
+  ∀ {N rk w X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt}
+  → ConvI d N rk w m α δs δt → ∀ {k} → ConB {ΔR w} d nothing k N
+  → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k p w δt Wl Wr
+  → ℰ d k p w δs
+      (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) A)) Wr
+
+-- `★` itself: an identity step
+rev★★ : ∀ d {Δ Δ′} {Φ : Corr Δ Δ′} → Rev★ d (★⊑★ {Φ = Φ})
+rev★★ d h {k} le vl vr r =
+  ℰ-steps? d k ★⊑★ _ (goodT h) (step (id-reveal vl)) stay vl vr
+    (★★-δ d k r)
+
+con★★ : ∀ d {Δ Δ′} {Φ : Corr Δ Δ′} → Con★ d (★⊑★ {Φ = Φ})
+con★★ d h {k} cb wl wr r =
+  ℰ-steps? d k ★⊑★ _ (goodS h) (step (id-conceal wl)) stay wl wr
+    (★★-δ d k r)
+
+-- a `∀★` value under a map of its dead-variable clause
+allDeadStar-map : ∀ {d n} {Φ : Corr Δ Δ′} {A} {p : dead Φ ⊢ A ⊑ ★}
+    {w} {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vl′ Vr}
+  → (∀ {Wr} → allDead d n p w δ Vl Wr → allDead d n p w δ′ Vl′ Wr)
+  → Value Vr → allDeadStar d n p w δ Vl Vr → allDeadStar d n p w δ′ Vl′ Vr
+allDeadStar-map f (v CT.《 i 》) (inj , r) = inj , f r
+allDeadStar-map f (CT.ƛ N) ()
+allDeadStar-map f (CT.Λ v) ()
+allDeadStar-map f (CT.$ k) ()
+allDeadStar-map f (v CT.↑ rv) ()
+allDeadStar-map f (v CT.↓ cv) ()
+
+-- the right side's conversion when the right is not converted
+noRF : ∀ {Δ₀ Δ′} {Ψ : Corr Δ₀ Δ′} {X′ : TyVar Δ₀} {ΘL ΘR}
+  → CMode Ψ X′ ΘL ΘR → (Δ′ ⇒ˢ ΘR) → RConv ΘR
+noRF m σ = nothing
+
+mutual
+  rev★ : ∀ d {Δ Δ′} {Φ : Corr Δ Δ′} {A} (p : Φ ⊢ A ⊑ ★) → Rev★ d p
+  rev★ d ★⊑★ = rev★★ d
+  rev★ d ι⊑★ h {k} le vl vr r =
+    ℰ-steps? d k ι⊑★ _ (goodT h) (step (id-reveal vl)) stay vl vr
+      (ι★-δ d k r)
+  rev★ d (X⊑★ z) h {k} le vl vr r = rev★-var d k z _ h le vl vr r
+  rev★ ≺ (⇒⊑★ p q) {N} {rk} {w} {X} h {k} le vl vr r =
+    ℰ-value ≺ k (⇒⊑★ p q) w (vl CT.↑ CT.fun) vr
+      (funStar-map (λ v f → fun-rev h le vl v f) vr r)
+    where
+    open FunConv {X = X} ≺ N rk p q noRF (λ ρL ρR m σ → refl)
+      (λ h′ → rev★ ≺ p h′) (λ h′ → con★ ≺ p h′)
+      (λ h′ → rev★ ≺ q h′) (λ h′ → con★ ≺ q h′)
+  rev★ ≻ (⇒⊑★ p q) h {zero} le vl vr r = ℰ-zero ≻ (⇒⊑★ p q) _
+  rev★ ≻ (⇒⊑★ p q) {N} {rk} {w} {X} h {suc k} le vl vr r =
+    ℰ-value ≻ (suc k) (⇒⊑★ p q) w (vl CT.↑ CT.fun) vr
+      (funStar-map (λ v f → fun-rev h (≤-trans (n≤1+n k) le) vl v f) vr r)
+    where
+    open FunConv {X = X} ≻ N rk p q noRF (λ ρL ρR m σ → refl)
+      (λ h′ → rev★ ≻ p h′) (λ h′ → con★ ≻ p h′)
+      (λ h′ → rev★ ≻ q h′) (λ h′ → con★ ≻ q h′)
+  rev★ ≺ (∀⊑ Anv z p) {N} {rk} {w} h {k} le vl vr r =
+    ℰ-value ≺ k (∀⊑ Anv z p) w (vl CT.↑ CT.all) vr
+      (OnlyV.revV ≺ N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
+        (λ σ → refl) (λ h′ → rev★ ≺ p h′) (λ h′ → con★ ≺ p h′)
+        w h le vl vr r)
+  rev★ ≻ (∀⊑ Anv z p) h {zero} le vl vr r = ℰ-zero ≻ (∀⊑ Anv z p) _
+  rev★ ≻ (∀⊑ Anv z p) {N} {rk} {w} h {suc k} le vl vr r =
+    ℰ-value ≻ (suc k) (∀⊑ Anv z p) w (vl CT.↑ CT.all) vr
+      (OnlyV.revV ≻ N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
+        (λ σ → refl) (λ h′ → rev★ ≻ p h′) (λ h′ → con★ ≻ p h′)
+        w h (≤-trans (n≤1+n k) le) vl vr r)
+  rev★ ≺ {Φ = Φ} ∀★⊑★ {N} {rk} {w} {δs = δs} {δt} h {k} le vl vr r =
+    ℰ-value ≺ k ∀★⊑★ w (vl CT.↑ CT.all) vr
+      (to (allDeadStar-★ ≺ k {Ψ = Φ} w {δ = δt})
+        (allDeadStar-map
+          (DeadV.revV ≺ N (★⊑★ {Φ = dead Φ}) (rev★★ ≺) (con★★ ≺)
+            w h le vl)
+          vr (from (allDeadStar-★ ≺ k {Ψ = Φ} w {δ = δs}) r)))
+  rev★ ≻ ∀★⊑★ h {zero} le vl vr r = ℰ-zero ≻ ∀★⊑★ _
+  rev★ ≻ {Φ = Φ} ∀★⊑★ {N} {rk} {w} {δs = δs} {δt} h {suc k} le vl vr r =
+    ℰ-value ≻ (suc k) ∀★⊑★ w (vl CT.↑ CT.all) vr
+      (to (allDeadStar-★ ≻ k {Ψ = Φ} w {δ = δt})
+        (allDeadStar-map
+          (DeadV.revV ≻ N (★⊑★ {Φ = dead Φ}) (rev★★ ≻) (con★★ ≻)
+            w h (≤-trans (n≤1+n k) le) vl)
+          vr (from (allDeadStar-★ ≻ k {Ψ = Φ} w {δ = δs}) r)))
+  rev★ ≺ (∀⊑★ ns p) {N} {rk} {w} h {k} le vl vr r =
+    ℰ-value ≺ k (∀⊑★ ns p) w (vl CT.↑ CT.all) vr
+      (allDeadStar-map
+        (DeadV.revV ≺ N p (λ h′ → rev★ ≺ p h′) (λ h′ → con★ ≺ p h′)
+          w h le vl)
+        vr r)
+  rev★ ≻ (∀⊑★ ns p) h {zero} le vl vr r = ℰ-zero ≻ (∀⊑★ ns p) _
+  rev★ ≻ (∀⊑★ ns p) {N} {rk} {w} h {suc k} le vl vr r =
+    ℰ-value ≻ (suc k) (∀⊑★ ns p) w (vl CT.↑ CT.all) vr
+      (allDeadStar-map
+        (DeadV.revV ≻ N p (λ h′ → rev★ ≻ p h′) (λ h′ → con★ ≻ p h′)
+          w h (≤-trans (n≤1+n k) le) vl)
+        vr r)
+  rev★ ≺ bot⊑★ h le vl vr ()
+  rev★ ≻ bot⊑★ h {zero} le vl vr r = ℰ-zero ≻ bot⊑★ _
+  rev★ ≻ bot⊑★ h {suc k} le vl vr ()
+
+  con★ : ∀ d {Δ Δ′} {Φ : Corr Δ Δ′} {A} (p : Φ ⊢ A ⊑ ★) → Con★ d p
+  con★ d ★⊑★ = con★★ d
+  con★ d ι⊑★ h {k} cb wl wr r =
+    ℰ-steps? d k ι⊑★ _ (goodS h) (step (id-conceal wl)) stay wl wr
+      (ι★-δ d k r)
+  con★ d (X⊑★ z) h {k} cb wl wr r =
+    con★-var d k z _ h (ConB-≤ d nothing cb) cb wl wr r
+  con★ ≺ (⇒⊑★ p q) {N} {rk} {w} {X} h {k} cb wl wr r =
+    ℰ-value ≺ k (⇒⊑★ p q) w (wl CT.↓ CT.fun) wr
+      (funStar-map (λ v f → fun-con h cb wl v f) wr r)
+    where
+    open FunConv {X = X} ≺ N rk p q noRF (λ ρL ρR m σ → refl)
+      (λ h′ → rev★ ≺ p h′) (λ h′ → con★ ≺ p h′)
+      (λ h′ → rev★ ≺ q h′) (λ h′ → con★ ≺ q h′)
+  con★ ≻ (⇒⊑★ p q) h {zero} cb wl wr r = ℰ-zero ≻ (⇒⊑★ p q) _
+  con★ ≻ (⇒⊑★ p q) {N} {rk} {w} {X} h {suc k} cb wl wr r =
+    ℰ-value ≻ (suc k) (⇒⊑★ p q) w (wl CT.↓ CT.fun) wr
+      (funStar-map (λ v f → fun-con h (≤-trans (n≤1+n k) cb) wl v f) wr r)
+    where
+    open FunConv {X = X} ≻ N rk p q noRF (λ ρL ρR m σ → refl)
+      (λ h′ → rev★ ≻ p h′) (λ h′ → con★ ≻ p h′)
+      (λ h′ → rev★ ≻ q h′) (λ h′ → con★ ≻ q h′)
+  con★ ≺ (∀⊑ Anv z p) {N} {rk} {w} h {k} cb wl wr r =
+    ℰ-value ≺ k (∀⊑ Anv z p) w (wl CT.↓ CT.all) wr
+      (OnlyV.conV ≺ N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
+        (λ σ → refl) (λ h′ → rev★ ≺ p h′) (λ h′ → con★ ≺ p h′)
+        w h cb wl wr r)
+  con★ ≻ (∀⊑ Anv z p) h {zero} cb wl wr r = ℰ-zero ≻ (∀⊑ Anv z p) _
+  con★ ≻ (∀⊑ Anv z p) {N} {rk} {w} h {suc k} cb wl wr r =
+    ℰ-value ≻ (suc k) (∀⊑ Anv z p) w (wl CT.↓ CT.all) wr
+      (OnlyV.conV ≻ N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
+        (λ σ → refl) (λ h′ → rev★ ≻ p h′) (λ h′ → con★ ≻ p h′)
+        w h (≤-trans (n≤1+n k) cb) wl wr r)
+  con★ ≺ {Φ = Φ} ∀★⊑★ {N} {rk} {w} {δs = δs} {δt} h {k} cb wl wr r =
+    ℰ-value ≺ k ∀★⊑★ w (wl CT.↓ CT.all) wr
+      (to (allDeadStar-★ ≺ k {Ψ = Φ} w {δ = δs})
+        (allDeadStar-map
+          (DeadV.conV ≺ N (★⊑★ {Φ = dead Φ}) (rev★★ ≺) (con★★ ≺)
+            w h cb wl)
+          wr (from (allDeadStar-★ ≺ k {Ψ = Φ} w {δ = δt}) r)))
+  con★ ≻ ∀★⊑★ h {zero} cb wl wr r = ℰ-zero ≻ ∀★⊑★ _
+  con★ ≻ {Φ = Φ} ∀★⊑★ {N} {rk} {w} {δs = δs} {δt} h {suc k} cb wl wr r =
+    ℰ-value ≻ (suc k) ∀★⊑★ w (wl CT.↓ CT.all) wr
+      (to (allDeadStar-★ ≻ k {Ψ = Φ} w {δ = δs})
+        (allDeadStar-map
+          (DeadV.conV ≻ N (★⊑★ {Φ = dead Φ}) (rev★★ ≻) (con★★ ≻)
+            w h (≤-trans (n≤1+n k) cb) wl)
+          wr (from (allDeadStar-★ ≻ k {Ψ = Φ} w {δ = δt}) r)))
+  con★ ≺ (∀⊑★ ns p) {N} {rk} {w} h {k} cb wl wr r =
+    ℰ-value ≺ k (∀⊑★ ns p) w (wl CT.↓ CT.all) wr
+      (allDeadStar-map
+        (DeadV.conV ≺ N p (λ h′ → rev★ ≺ p h′) (λ h′ → con★ ≺ p h′)
+          w h cb wl)
+        wr r)
+  con★ ≻ (∀⊑★ ns p) h {zero} cb wl wr r = ℰ-zero ≻ (∀⊑★ ns p) _
+  con★ ≻ (∀⊑★ ns p) {N} {rk} {w} h {suc k} cb wl wr r =
+    ℰ-value ≻ (suc k) (∀⊑★ ns p) w (wl CT.↓ CT.all) wr
+      (allDeadStar-map
+        (DeadV.conV ≻ N p (λ h′ → rev★ ≻ p h′) (λ h′ → con★ ≻ p h′)
+          w h (≤-trans (n≤1+n k) cb) wl)
+        wr r)
+  con★ ≺ bot⊑★ h cb wl wr ()
+  con★ ≻ bot⊑★ h {zero} cb wl wr r = ℰ-zero ≻ bot⊑★ _
+  con★ ≻ bot⊑★ h {suc k} cb wl wr ()

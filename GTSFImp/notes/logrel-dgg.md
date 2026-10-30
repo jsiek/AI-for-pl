@@ -700,10 +700,16 @@ only strengthens the clauses.
   * the hypotheses (`ConvI`), their transport (`ConvI-↑`) and their
     extension under binders;
   * the variable cases (`rev★-var`, `con★-var`, `rev-var`, `con-var`);
-  * the function cases (`FunConv`).
+  * the function cases (`FunConv`);
+  * the bound variable's hypotheses (`ConvI-newP`, `-newL`, `-newO`,
+    `-newD`) and seal hypotheses (`SealNewP`);
+  * the `∀⊑∀` reveal, both when the right converts (`PairRev`) and when
+    it does not (`PairRevL`).
+  * `allOnly` now also quantifies over sealed descriptors (left seals
+    only), for the left-only binder's conversion.
 
   To do:
-  * the `∀` cases;
+  * the other `∀` cases: the `∀⊑∀` conceal, `∀⊑`, `∀⊑★` and `∀★⊑★`;
   * the two lemmas' dispatch;
   * the closure oracle by strong induction (`ConvClose`);
   * the instances for the fundamental lemma's `Λ` cases.

@@ -347,7 +347,7 @@ mutual
     → δ ≈ᴵ δ′ → allOnly d n p w δ Vl Vr → allOnly d n p w δ′ Vl Vr
   allOnly-resp d n {A = A} p w {Vl = Vl} h r e le c =
     ℰᵍ-≡
-      (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTy c ])
+      (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
         (substᵗ-cong A (exts-cong (δl≡ (↑ᴵ-resp h e)))))
       refl
       (ℰᵍ-map d _ _

@@ -442,16 +442,24 @@ mutual
         (renameᵗᵐ (ρR e) Vr ⦂∀ substᵗ (extsᵗ (δr (δ ↑ᴵ e))) B
           [ rightTyS c ])
 
+  -- a sealed descriptor's leaf for a left-only variable: peel the left
+  -- seals, then the left-only leaf of the descriptor at the same stage
+  onlyLeafS : Dir → ∀ {n′ n} → n′ ≤′ n → ∀ {ΔL ΔR}
+    → SDesc ΔL ΔR → RelΩ ΔL ΔR
+  onlyLeafS d le (sdesc Xs Ys c) m w τL τR =
+    peelSL (map (renameVar τL) Xs) (renameDesc τL τR c)
+      (onlyLeaf d le c m w τL τR)
+
   -- only the left instantiates
   allOnly : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     → only Φ ⊢ A ⊑ B → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
     → Term (ΔL w) → Term (ΔR w) → Set
   allOnly d n {A = A} p w δ Vl Vr =
-    ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n) (c : Desc (ΔL w′) (ΔR w′))
+    ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n) (c : SDesc (ΔL w′) (ΔR w′))
     → ℰᵍ d n′ w′
         (λ le′ w″ e′ → 𝒱≤ d (≤′-trans le′ le) p w″
-          (extOnlyI (leftTy c) (sem (onlyLeaf d le c)) (δ ↑ᴵ e) ↑ᴵ e′))
-        (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A [ leftTy c ])
+          (extOnlyI (leftTyS c) (sem (onlyLeafS d le c)) (δ ↑ᴵ e) ↑ᴵ e′))
+        (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A [ leftTyS c ])
         (renameᵗᵐ (ρR e) Vr)
 
   -- left `∀`, right `∀★` payload, with a dead variable

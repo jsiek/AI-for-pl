@@ -525,24 +525,24 @@ mutual
   allOnly-ren d n R {A = A} p w h {Vl = Vl} =
     iff (λ r e le c →
            ℰᵍ-≡
-             (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTy c ])
+             (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-ren (rl≡ (RenI-↑ h e)) A))
              refl
              (ℰᵍ-map d _ _
                (λ le′ w″ e′ V V′ →
                  to (𝒱≤-ren d (≤′-trans le′ le) (ext-onlyᴿ R) p w″
-                      (RenI-↑ (RenI-extOnly {T = leftTy c}
+                      (RenI-↑ (RenI-extOnly {T = leftTyS c}
                         (RenI-↑ h e)) e′)))
                (r e le c)))
         (λ r e le c →
            ℰᵍ-≡
-             (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTy c ])
+             (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-ren (rl≡ (RenI-↑ h e)) A)))
              refl
              (ℰᵍ-map d _ _
                (λ le′ w″ e′ V V′ →
                  from (𝒱≤-ren d (≤′-trans le′ le) (ext-onlyᴿ R) p w″
-                        (RenI-↑ (RenI-extOnly {T = leftTy c}
+                        (RenI-↑ (RenI-extOnly {T = leftTyS c}
                           (RenI-↑ h e)) e′)))
                (r e le c)))
 
@@ -926,25 +926,25 @@ mutual
   allOnly-subst d n S {A = A} p w h lt {Vl = Vl} =
     iff (λ r e le c →
            ℰᵍ-≡
-             (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTy c ])
+             (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-subst (sl≡ (SubI-↑ h e)) A))
              refl
              (ℰᵍ-map⁺ d _ _
                (λ le′ pos′ w″ e′ V V′ →
                  to (𝒱≤-subst d (≤′-trans le′ le) (exts-onlyˢ S) p w″
-                      (SubI-↑ (SubI-extOnly (sem (onlyLeaf d le c))
+                      (SubI-↑ (SubI-extOnly (sem (onlyLeafS d le c))
                         (SubI-↑ h e)) e′)
                       pos′ (below (≤′-trans le′ le) lt)))
                (r e le c)))
         (λ r e le c →
            ℰᵍ-≡
-             (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTy c ])
+             (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-subst (sl≡ (SubI-↑ h e)) A)))
              refl
              (ℰᵍ-map⁺ d _ _
                (λ le′ pos′ w″ e′ V V′ →
                  from (𝒱≤-subst d (≤′-trans le′ le) (exts-onlyˢ S) p w″
-                        (SubI-↑ (SubI-extOnly (sem (onlyLeaf d le c))
+                        (SubI-↑ (SubI-extOnly (sem (onlyLeafS d le c))
                           (SubI-↑ h e)) e′)
                         pos′ (below (≤′-trans le′ le) lt)))
                (r e le c)))

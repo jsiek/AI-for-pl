@@ -218,8 +218,8 @@ Oracle : Dir → ℕ → Set
 Oracle d N =
   (∀ {w} {n′ n} (le : n′ ≤′ n) → n′ ≤ N → (c : SDesc (ΔL w) (ΔR w))
      → FreshP d both w (sem (leafBelowS d le c)) (leftTyS c) (rightTyS c))
-  × (∀ {w} {n′ n} (le : n′ ≤′ n) → n′ ≤ N → (c : Desc (ΔL w) (ΔR w))
-     → FreshO d w (sem (onlyLeaf d le c)) (leftTy c))
+  × (∀ {w} {n′ n} (le : n′ ≤′ n) → n′ ≤ N → (c : SDesc (ΔL w) (ΔR w))
+     → FreshO d w (sem (onlyLeafS d le c)) (leftTyS c))
 
 ------------------------------------------------------------------------
 -- A leaf under the conversion at hand

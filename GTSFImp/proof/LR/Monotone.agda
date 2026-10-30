@@ -375,6 +375,18 @@ leafBelowS-≈ d le₁ le₂ s@(sdesc Xs Ys c) | sem≈ to from =
   sem≈ (λ k w τL τR V V′ → peelS-map s (to k w τL τR _ _))
        (λ k w τL τR V V′ → peelS-map s (from k w τL τR _ _))
 
+onlyLeafS-≈ : ∀ d {n′ a b} (le₁ : n′ ≤′ a) (le₂ : n′ ≤′ b)
+    (c : SDesc ΘL ΘR)
+  → sem (onlyLeafS d le₁ c) ≈ˡ sem (onlyLeafS d le₂ c)
+onlyLeafS-≈ d le₁ le₂ (sdesc Xs Ys c) with onlyLeaf-≈ d le₁ le₂ c
+onlyLeafS-≈ d le₁ le₂ (sdesc Xs Ys c) | sem≈ to from =
+  sem≈ (λ k w τL τR V V′ →
+         peelSL-map (map (renameVar τL) Xs) (renameDesc τL τR c)
+           (to k w τL τR _ _))
+       (λ k w τL τR V V′ →
+         peelSL-map (map (renameVar τL) Xs) (renameDesc τL τR c)
+           (from k w τL τR _ _))
+
 ------------------------------------------------------------------------
 -- Monotonicity: the clauses that quantify over futures
 ------------------------------------------------------------------------
@@ -419,7 +431,7 @@ allOnly-mono : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : only Φ ⊢ A ⊑ B)
   → allOnly d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
 allOnly-mono d n {A = A} p e {δ} {Vl} {Vr} f e′ le c =
   ℰᵍ-≡
-    (cong₂ (λ M C → M ⦂∀ C [ leftTy c ])
+    (cong₂ (λ M C → M ⦂∀ C [ leftTyS c ])
       (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl))
       (substᵗ-cong A (exts-cong (λ X → sym (δl≡ (↑ᴵ-trans δ e′ e) X)))))
     (sym (renameᵗᵐ-∘ (ρR e′) (ρR e) Vr))
@@ -841,7 +853,7 @@ allOnly-down d le p w f e le₁ c =
   ℰᵍ-map d _ _
     (λ le′ w″ e′ V V′ r →
       𝒱≤-resp d (≤′-trans le′ le₁) p w″
-        (↑ᴵ-resp (extOnlyI-resp (onlyLeaf-≈ d le₂ le₁ c) ≈ᴵ-refl) e′)
+        (↑ᴵ-resp (extOnlyI-resp (onlyLeafS-≈ d le₂ le₁ c) ≈ᴵ-refl) e′)
         (𝒱≤-cast d (≤′-trans le′ le₂) (≤′-trans le′ le₁) p w″ r))
     (f e le₂ c)
   where le₂ = ≤′-trans le₁ (≤⇒≤′ le)

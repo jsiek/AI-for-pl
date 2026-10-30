@@ -3214,3 +3214,183 @@ module PairCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
         (ℰ-bind₂ d s p p w₁ {δ₁ = δtβ} {δ₂ = δsβ}
           (just (conceal cL)) (just (conceal cR)) clause K₁)
         K₂
+
+------------------------------------------------------------------------
+-- `∀⊑∀`, the conceal, when the right does not convert
+------------------------------------------------------------------------
+
+-- the bound without a right conversion does not depend on the context
+ConB-cast : ∀ {Θ Θ′} d {k N} → ConB {Θ} d nothing k N
+  → ConB {Θ′} d nothing k N
+ConB-cast ≺ cb = cb
+ConB-cast ≻ cb = cb
+
+module PairConL (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
+    (p : pair Φ ⊢ A ⊑ B)
+    (rev : ∀ {N′ rk w X′} {m : CMode (pair Φ) X′ (ΔL w) (ΔR w)}
+       {α δs δt} → ConvI d N′ rk w m α δs δt → ∀ {k} → k ≤ N′
+       → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d k p w δs Vl Vr
+       → ℰ d k p w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) A 〗)
+           (revM (rconv m (δr δt)) (substᵗ (δr δs) B) Vr))
+    (con : ∀ {N′ rk w X′} {m : CMode (pair Φ) X′ (ΔL w) (ΔR w)}
+       {α δs δt} → ConvI d N′ rk w m α δs δt → ∀ {k}
+       → ConB d (rconv m (δr δt)) k N′
+       → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k p w δt Wl Wr
+       → ℰ d k p w δs
+           (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) A))
+           (conM (rconv m (δr δt)) (substᵗ (δr δs) B) Wr))
+    where
+
+  pairConL : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt} {rk}
+      (h : ConvI d N rk w m α δs δt) → ConB d (rconv m (δr δt)) n N
+    → rconv m (δr δt) ≡ nothing
+    → ∀ {Wl Wr} → Value Wl → Value Wr → allPair d n p w δt Wl Wr
+    → ∀ Xs Ys c
+    → ℰ d n p w (extPairI (repL Xs c) (repR Ys c)
+          (sem (leafBelowS d (≤′-refl {n}) (sdesc Xs Ys c))) δs)
+        ((Wl ↓ `∀↓ makeConceal (suc α) (⇑ᵗ (repM m (δl δt)))
+                    (substᵗ (extsᵗ (δl δs)) A))
+           ⦂∀ substᵗ (extsᵗ (δl δs)) A [ repL Xs c ])
+        (Wr ⦂∀ substᵗ (extsᵗ (δr δs)) B [ repR Ys c ])
+  pairConL {n} w {X} {m} {α} {δs} {δt} {rk} h cbn eqn {Wl} {Wr} wl wr r
+      Xs Ys c =
+    antiL₁ d p (ConB-≤ d nothing cbn₀) stepL (tagsL w) (okBindL w Tl) inner
+    where
+    cbn₀ : ConB {ΔR w} d nothing n N
+    cbn₀ = subst (λ rc → ConB d rc n N) eqn cbn
+
+    Tl = repL Xs c
+    Tr = repR Ys c
+    R = repM m (δl δt)
+    BsL = substᵗ (extsᵗ (δl δs)) A
+    BsR = substᵗ (extsᵗ (δr δs)) B
+    cL = makeConceal (suc α) (⇑ᵗ R) BsL
+
+    tgtL : replaceTy (suc α) (⇑ᵗ R) BsL ≡ substᵗ (extsᵗ (δl δt)) A
+    tgtL = tgt-body α R (δl δs) (δl δt) (tyL h) A
+
+    stepL = conInst {T = Tl} cL wl refl
+
+    e₁ = stepExt (bind Tl ∷ []) [] (tagsL w) (okBindL w Tl)
+    w₁ = world (suc (ΔL w)) (ΔR w) (tagsL w)
+    ρL₁ = ρL e₁
+    ρR₁ = ρR e₁
+    Xs₁ = map (renameVar ρL₁) Xs
+    Ys₁ = map (renameVar ρR₁) Ys
+    c₁ = renameDesc ρL₁ ρR₁ c
+    T′ = repR Ys₁ c₁
+    Lt = sem (leafBelowS d (≤′-refl {n}) (sdesc Xs Ys c))
+    m₁ = CMode-pair (CMode-↑ ρL₁ ρR₁ m)
+    α₁ = toRenameᵗ ρL₁ α
+
+    -- the right side is not converted, so δs and δt agree on it
+    sameR : ∀ Y → δr δs Y ≡ δr δt Y
+    sameR Y = subst (λ rc → replaceRC rc (δr δs Y) ≡ δr δt Y) eqn (tyR h Y)
+
+    rc↑ : rconv (CMode-↑ ρL₁ ρR₁ m) (δr (δt ↑ᴵ e₁)) ≡ nothing
+    rc↑ = trans (rconv-↑ ρL₁ ρR₁ m (δr δt)) (cong (renRConv ρR₁) eqn)
+
+    rc₁≡ : rconv m₁ (δr (extPairI (＇ zero) T′ (sem ⊤Ω) (δt ↑ᴵ e₁)))
+      ≡ nothing
+    rc₁≡ = trans (rconv-pair (CMode-↑ ρL₁ ρR₁ m) (δr (δt ↑ᴵ e₁)) T′) rc↑
+
+    inner : ∀ {s} → s ≤′ n → s ≤ N → UpB d s n
+      → ℰ d s p w₁ (extPairI Tl Tr Lt δs ↑ᴵ e₁)
+          ((⇑ᵗᵐ Wl ⦂∀ (bind Tl ▷ᵇ replaceTy (suc α) (⇑ᵗ R) BsL) [ ＇ zero ])
+             ↓ cL ↑ 〖 zero , ⇑ᵗ Tl ↑ BsL 〗)
+          (Wr ⦂∀ BsR [ Tr ])
+    inner {s} le_s s≤N up =
+      ℰ-bind₂ d s p p w₁ {δ₁ = δsβ} {δ₂ = δsg}
+        (just (reveal 〖 zero , ⇑ᵗ Tl ↑ BsL 〗)) nothing
+        (ℰ-bind₂ d s p p w₁ {δ₁ = δtβ} {δ₂ = δsβ}
+          (just (conceal cL)) nothing clause K₁)
+        K₂
+      where
+      c″ = sdesc (zero ∷ Xs₁) Ys₁ c₁
+      Ls = sem (leafBelowS d le_s c″)
+      gLs = leafBelowS-good d le_s c″
+      δsβ = extPairI (＇ zero) T′ Ls (δs ↑ᴵ e₁)
+      δtβ = extPairI (＇ zero) T′ Ls (δt ↑ᴵ e₁)
+      δsg = extPairI Tl Tr Lt δs ↑ᴵ e₁
+
+      hα : ConvI d N left w₁ m₁ α₁ δsβ δtβ
+      hα = ConvI-extPair {β = zero} {l = Ls} gLs
+        (λ e′ → new-bind Tl α (sym e′))
+        (subst (λ rc → replaceRC rc T′ ≡ T′) (sym rc↑) refl)
+        (subst (λ rc → ConvLeafP d N w₁
+                         (repM (CMode-↑ ρL₁ ρR₁ m) (δl (δt ↑ᴵ e₁))) rc α₁
+                         Ls Ls (＇ zero) T′)
+          (sym rc↑)
+          (storeConvPN {N = N} gLs {γ = zero} {T′ = T′}
+            (repM (CMode-↑ ρL₁ ρR₁ m) (δl (δt ↑ᴵ e₁)))
+            (λ e′ → new-bind Tl α (sym e′))))
+        (storeFreshPL {N = N} gLs {γ = zero} {T′ = T′})
+        (ConvI-left rc↑ (ConvI-↑ e₁ h))
+
+      hβ : ConvI d s left w₁ (m-left {Φ = pair Φ} {X = zero}) zero δsβ δsg
+      hβ = ConvI-newL e₁ (new-bind Tl) {Ls = Ls} {Lt = Lt} {Tl = Tl}
+        {Tr = Tr} {T′ = T′} (repR-rename ρL₁ ρR₁ Ys c) s≤N (freshS h) gLs
+        (leafBelowS-good d (≤′-refl {n}) (sdesc Xs Ys c))
+        (proj₁ (oracle h) (≤′-refl {n}) (ConB-≤ d nothing cbn₀)
+          (sdesc Xs Ys c))
+        (SealNewP.sealNewL d le_s (≤′-refl {n}) (≤′⇒≤ le_s) e₁ Xs Ys c zero
+          {Φ = Φ} {δt = δs} {T′ = T′} up)
+
+      clause : ℰ d s p w₁ δtβ
+        (⇑ᵗᵐ Wl ⦂∀ (bind Tl ▷ᵇ replaceTy (suc α) (⇑ᵗ R) BsL) [ ＇ zero ])
+        (Wr ⦂∀ BsR [ Tr ])
+      clause =
+        ℰᵍ-≡
+          (cong₂ (λ M C → M ⦂∀ C [ ＇ zero ]) (shift-term Tl Wl)
+            (trans (annot Tl (δl δt) A)
+              (cong (renameᵗ (extᵗ suc)) (sym tgtL))))
+          (cong₃′ (renameᵗᵐ-id Wr)
+            (substᵗ-cong B (exts-cong (λ Y →
+              trans (renameTy-id (δr δt Y)) (sym (sameR Y)))))
+            (trans (repR-rename ρL₁ ρR₁ Ys c) (renameTy-id Tr)))
+          (ℰᵍ-map d s w₁
+            (λ le′ w″ e″ V V′ → 𝒱≤-cast d (≤′-trans le′ le_s) le′ p w″)
+            (r e₁ le_s c″))
+        where
+        cong₃′ : ∀ {M M′ : Term (ΔR w)} {C C′ T T″}
+          → M ≡ M′ → C ≡ C′ → T ≡ T″ → M ⦂∀ C [ T ] ≡ M′ ⦂∀ C′ [ T″ ]
+        cong₃′ refl refl refl = refl
+
+      R≡ : repM m₁ (δl δtβ) ≡ ⇑ᵗ R
+      R≡ = trans (repM-pair (CMode-↑ ρL₁ ρR₁ m) (δl (δt ↑ᴵ e₁)) (＇ zero))
+        (trans (repM-↑ ρL₁ ρR₁ m (δl δt)) (shift-ty Tl R))
+
+      K₁ : ∀ {w₂} (e₂ : w₂ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
+        → Value Ql → Value Qr → 𝒱 d k p w₂ (δtβ ↑ᴵ e₂) Ql Qr
+        → ℰ d k p w₂ (δsβ ↑ᴵ e₂)
+            (mplug (renameMFrame (ρL e₂) (just (conceal cL))) Ql) Qr
+      K₁ e₂ {k} k≤s {Ql} {Qr} ql qr q =
+        ℰᵍ-≡
+          (trans (conRen e₂ m₁ α₁ δsβ δtβ Ql A)
+            (↓-pk (pk-ren↓ (toRenameᵗ (ρL e₂))
+              (pk-mc (embed-var Tl α) R≡ (open0 Tl (δl δs) A)))))
+          (trans (ccRen e₂ m₁ δsβ δtβ Qr B)
+            (cong (λ rc → mplug (renameMFrame (ρR e₂)
+                            (conFrame rc (substᵗ (δr δsβ) B))) Qr) rc₁≡))
+          (con (ConvI-↑ e₂ hα) cb ql qr q)
+        where
+        cb : ConB d (rconv (CMode-↑ (ρL e₂) (ρR e₂) m₁) (δr (δtβ ↑ᴵ e₂)))
+          k N
+        cb = subst (λ rc → ConB d rc k N)
+          (sym (trans (rconv-↑ (ρL e₂) (ρR e₂) m₁ (δr δtβ))
+            (cong (renRConv (ρR e₂)) rc₁≡)))
+          (ConB-cast d
+            (ConB-down d nothing (≤-trans k≤s (≤′⇒≤ le_s)) cbn₀))
+
+      K₂ : ∀ {w₃} (e₃ : w₃ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
+        → Value Ql → Value Qr → 𝒱 d k p w₃ (δsβ ↑ᴵ e₃) Ql Qr
+        → ℰ d k p w₃ (δsg ↑ᴵ e₃)
+            (mplug (renameMFrame (ρL e₃)
+              (just (reveal 〖 zero , ⇑ᵗ Tl ↑ BsL 〗))) Ql) Qr
+      K₂ e₃ {k} k≤s {Ql} {Qr} ql qr q =
+        ℰᵍ-≡
+          (trans (revRen e₃ (m-left {Φ = pair Φ} {X = zero}) zero δsβ δsg Ql A)
+            (↑-pk (pk-ren↑ (toRenameᵗ (ρL e₃))
+              (pk-〖〗 refl (shift-ty Tl Tl) (open0 Tl (δl δs) A)))))
+          refl
+          (rev (ConvI-↑ e₃ hβ) k≤s ql qr q)

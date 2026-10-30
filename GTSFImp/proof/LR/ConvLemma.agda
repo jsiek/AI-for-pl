@@ -59,6 +59,7 @@ open import proof.LR.Expression
 open import proof.LR.SubstLemma using (ℰᵍ-zero; _⇔_; to; from; 𝒱-XY; 𝒱-X★)
 open import proof.LR.ConvSyntax
 open import proof.LR.ConvBase
+open import proof.LR.PrecisionUnique using (↔-unique)
 
 private
   variable
@@ -1246,3 +1247,163 @@ con★-var d n {Z = Z} z w {X} {m = m-left} h le cb wl wr r | no ne =
   Now.conO h z ne le wl wr (from (𝒱-X★ d n z w) r)
 con★-var d n {Z = .X} z w {X} {m = m-left} h le cb wl wr r | yes refl =
   con★-left d n z w h cb wl wr r
+
+-- X itself, paired, the right converting too
+rev-pairX : ∀ d n {Φ : Corr Δ Δ′} {X Y} (x : Φ ∋ X ↔ Y) w {N rk α α′ δs δt}
+  → ConvI d N rk w (m-pair x α′) α δs δt → n ≤ N
+  → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d n (X⊑Y x) w δs Vl Vr
+  → ℰ d n (X⊑Y x) w δt (Vl ↑ 〖 α , δl δt X ↑ δl δs X 〗)
+      (Vr ↑ 〖 α′ , δr δt Y ↑ δr δs Y 〗)
+rev-pairX d zero x w h le vl vr r = ℰ-zero d (X⊑Y x) w
+rev-pairX d (suc k) {Φ} {X} {Y} x w {N} {α = α} {α′} {δs} {δt} h le vl vr r
+    with sealedL-inv
+      (NowX.pairRev {Φ = Φ} {X = X} {d = d} {N = N} {w = w} {δs = δs}
+        {δt = δt} {α = α} {x = x} {α′ = α′} (sealI h) (s≤s z≤n) le
+        (from (𝒱-XY d (suc k) x w {δ = δs}) r))
+rev-pairX d (suc k) {Φ} {X} {Y} x w {N} {α = α} {α′} {δs} {δt} h le vl vr r
+    | W , refl , s′ with sealedR-inv s′
+rev-pairX ≺ (suc k) {Φ} {X} {Y} x w {N} {α = α} {α′} {δs} {δt} h le vl vr r
+    | W , refl , s′ | W′ , refl , r′ =
+  ℰ-≡ ≺ (suc k) (X⊑Y x) w δt
+    (sym (↑-pk (〖〗-self α (δl δt X) (proj₁ (selfI h)))))
+    (sym (↑-pk (〖〗-self α′ (δr δt Y) (proj₂ (selfI h)))))
+    (ℰ-stepL ≺ k (X⊑Y x) w (conceal-reveal (value-sealed vl))
+      (ℰ-stepR ≺ k (X⊑Y x) w (conceal-reveal (value-sealed vr))
+        (ℰ-value ≺ k (X⊑Y x) w (value-sealed vl) (value-sealed vr)
+          (to (𝒱-XY ≺ k x w {δ = δt}) r′))))
+rev-pairX ≻ (suc k) {Φ} {X} {Y} x w {N} {α = α} {α′} {δs} {δt} h le vl vr r
+    | W , refl , s′ | W′ , refl , r′ =
+  ℰ-≡ ≻ (suc k) (X⊑Y x) w δt
+    (sym (↑-pk (〖〗-self α (δl δt X) (proj₁ (selfI h)))))
+    (sym (↑-pk (〖〗-self α′ (δr δt Y) (proj₂ (selfI h)))))
+    (ℰ-stepL ≻ (suc k) (X⊑Y x) w (conceal-reveal (value-sealed vl))
+      (ℰ-stepR ≻ k (X⊑Y x) w (conceal-reveal (value-sealed vr))
+        (ℰ-value ≻ k (X⊑Y x) w (value-sealed vl) (value-sealed vr)
+          (to (𝒱-XY ≻ k x w {δ = δt}) r′))))
+
+con-pairX : ∀ d n {Φ : Corr Δ Δ′} {X Y} (x : Φ ∋ X ↔ Y) w {N rk α α′ δs δt}
+  → ConvI d N rk w (m-pair x α′) α δs δt → n < N
+  → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d n (X⊑Y x) w δt Wl Wr
+  → ℰ d n (X⊑Y x) w δs (Wl ↓ makeConceal α (δl δt X) (δl δs X))
+      (Wr ↓ makeConceal α′ (δr δt Y) (δr δs Y))
+con-pairX d zero x w h lt wl wr r = ℰ-zero d (X⊑Y x) w
+con-pairX d (suc k) {Φ} {X} {Y} x w {N} {α = α} {α′} {δs} {δt} h lt wl wr r =
+  ℰ-≡ d (suc k) (X⊑Y x) w δs
+    (sym (↓-pk (makeConceal-self α (δl δt X) (proj₁ (selfI h)))))
+    (sym (↓-pk (makeConceal-self α′ (δr δt Y) (proj₂ (selfI h)))))
+    (ℰ-value d (suc k) (X⊑Y x) w (wl CT.↓ CT.seal) (wr CT.↓ CT.seal)
+      (to (𝒱-XY d (suc k) x w {δ = δs})
+        (NowX.pairCon {Φ = Φ} {X = X} {d = d} {N = N} {w = w} {δs = δs}
+          {δt = δt} {α = α} {x = x} {α′ = α′} (sealI h) (s≤s z≤n) lt
+          (from (𝒱-XY d (suc k) x w {δ = δt}) r))))
+
+-- X itself, paired, only the left converting
+rev-leftX : ∀ d n {Φ : Corr Δ Δ′} {X Y} (x : Φ ∋ X ↔ Y) w {N rk α δs δt}
+  → ConvI d N rk w (m-left {Φ = Φ} {X = X}) α δs δt → n ≤ N
+  → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d n (X⊑Y x) w δs Vl Vr
+  → ℰ d n (X⊑Y x) w δt (Vl ↑ 〖 α , δl δt X ↑ δl δs X 〗) Vr
+rev-leftX d zero x w h le vl vr r = ℰ-zero d (X⊑Y x) w
+rev-leftX d (suc k) {Φ} {X} {Y} x w {N} {α = α} {δs} {δt} h le vl vr r
+    with sealedL-inv
+      (NowX.leftRev {Φ = Φ} {X = X} {d = d} {N = N} {w = w} {δs = δs}
+        {δt = δt} {α = α} (sealI h) (s≤s z≤n) le
+        (from (𝒱-XY d (suc k) x w {δ = δs}) r))
+rev-leftX ≺ (suc k) {Φ} {X} {Y} x w {N} {α = α} {δs} {δt} h le vl vr r
+    | W , refl , r′ =
+  ℰ-≡ ≺ (suc k) (X⊑Y x) w δt
+    (sym (↑-pk (〖〗-self α (δl δt X) (selfI h)))) refl
+    (ℰ-stepL ≺ k (X⊑Y x) w (conceal-reveal (value-sealed vl))
+      (ℰ-value ≺ k (X⊑Y x) w (value-sealed vl) vr
+        (to (𝒱-XY ≺ k x w {δ = δt}) r′)))
+rev-leftX ≻ (suc k) {Φ} {X} {Y} x w {N} {α = α} {δs} {δt} h le vl vr r
+    | W , refl , r′ =
+  ℰ-≡ ≻ (suc k) (X⊑Y x) w δt
+    (sym (↑-pk (〖〗-self α (δl δt X) (selfI h)))) refl
+    (ℰ-stepL ≻ (suc k) (X⊑Y x) w (conceal-reveal (value-sealed vl))
+      (ℰ-value ≻ (suc k) (X⊑Y x) w (value-sealed vl) vr
+        (to (𝒱-XY ≻ (suc k) x w {δ = δt}) r′)))
+
+con-leftX : ∀ d n {Φ : Corr Δ Δ′} {X Y} (x : Φ ∋ X ↔ Y) w {N rk α δs δt}
+  → ConvI d N rk w (m-left {Φ = Φ} {X = X}) α δs δt
+  → ConB {ΔR w} d nothing n N
+  → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d n (X⊑Y x) w δt Wl Wr
+  → ℰ d n (X⊑Y x) w δs (Wl ↓ makeConceal α (δl δt X) (δl δs X)) Wr
+con-leftX d zero x w h cb wl wr r = ℰ-zero d (X⊑Y x) w
+con-leftX ≺ (suc k) {Φ} {X} {Y} x w {N} {α = α} {δs} {δt} h cb wl wr r =
+  ℰ-≡ ≺ (suc k) (X⊑Y x) w δs
+    (sym (↓-pk (makeConceal-self α (δl δt X) (selfI h)))) refl
+    (ℰ-value ≺ (suc k) (X⊑Y x) w (wl CT.↓ CT.seal) wr
+      (to (𝒱-XY ≺ (suc k) x w {δ = δs})
+        (NowX.leftCon {Φ = Φ} {X = X} {d = ≺} {N = N} {w = w} {δs = δs}
+          {δt = δt} {α = α} (sealI h) (s≤s z≤n) cb
+          (from (𝒱-XY ≺ (suc k) x w {δ = δt}) r))))
+con-leftX ≻ (suc k) {Φ} {X} {Y} x w {N} {α = α} {δs} {δt} h cb wl wr r =
+  ℰ-≡ ≻ (suc k) (X⊑Y x) w δs
+    (sym (↓-pk (makeConceal-self α (δl δt X) (selfI h)))) refl
+    (ℰ-value ≻ (suc k) (X⊑Y x) w (wl CT.↓ CT.seal) wr
+      (to (𝒱-XY ≻ (suc k) x w {δ = δs})
+        (NowX.leftCon {Φ = Φ} {X = X} {d = ≻} {N = N} {w = w} {δs = δs}
+          {δt = δt} {α = α} (sealI h) (s≤s z≤n) cb
+          (from (𝒱-XY ≻ (suc k) x w {δ = δt}) r))))
+
+-- a paired variable
+rev-var : ∀ d n {Φ : Corr Δ Δ′} {Z Y′} (z : Φ ∋ Z ↔ Y′) w {X} {N rk}
+    {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt}
+  → ConvI d N rk w m α δs δt → n ≤ N
+  → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d n (X⊑Y z) w δs Vl Vr
+  → ℰ d n (X⊑Y z) w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ δl δs Z 〗)
+      (revM (rconv m (δr δt)) (δr δs Y′) Vr)
+rev-var d n z w {m = m-none R rc} h le vl vr r =
+  Now.revP h z tt le vl vr (from (𝒱-XY d n z w) r)
+rev-var d n {Z = Z} z w {X} {m = m-pair x α′} h le vl vr r with Z ≟ X
+rev-var d n {Z = Z} z w {X} {m = m-pair x α′} h le vl vr r | no ne =
+  Now.revP h z ne le vl vr (from (𝒱-XY d n z w) r)
+rev-var d n {Z = .X} z w {X} {m = m-pair x α′} h le vl vr r | yes refl
+    with ↔-functional x z
+rev-var d n {Z = .X} z w {X} {m = m-pair x α′} h le vl vr r | yes refl
+    | refl with ↔-unique x z
+rev-var d n {Z = .X} .x w {X} {m = m-pair x α′} h le vl vr r | yes refl
+    | refl | refl =
+  rev-pairX d n x w h le vl vr r
+rev-var d n {Z = Z} z w {X} {m = m-dead x} h le vl vr r with Z ≟ X
+rev-var d n {Z = Z} z w {X} {m = m-dead x} h le vl vr r | no ne =
+  Now.revP h z ne le vl vr (from (𝒱-XY d n z w) r)
+rev-var d n {Z = .X} z w {X} {m = m-dead x} h le vl vr r | yes refl =
+  ⊥-elim (↔-dead-⊥ z x)
+rev-var d n {Z = Z} z w {X} {m = m-left} h le vl vr r with Z ≟ X
+rev-var d n {Z = Z} z w {X} {m = m-left} h le vl vr r | no ne =
+  Now.revP h z ne le vl vr (from (𝒱-XY d n z w) r)
+rev-var d n {Z = .X} z w {X} {m = m-left} h le vl vr r | yes refl =
+  rev-leftX d n z w h le vl vr r
+
+con-var : ∀ d n {Φ : Corr Δ Δ′} {Z Y′} (z : Φ ∋ Z ↔ Y′) w {X} {N rk}
+    {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt}
+  → ConvI d N rk w m α δs δt → n ≤ N → ConB d (rconv m (δr δt)) n N
+  → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d n (X⊑Y z) w δt Wl Wr
+  → ℰ d n (X⊑Y z) w δs (Wl ↓ makeConceal α (repM m (δl δt)) (δl δs Z))
+      (conM (rconv m (δr δt)) (δr δs Y′) Wr)
+con-var d n z w {m = m-none R rc} h le cb wl wr r =
+  Now.conP h z tt le wl wr (from (𝒱-XY d n z w) r)
+con-var d n {Z = Z} z w {X} {m = m-pair x α′} h le cb wl wr r with Z ≟ X
+con-var d n {Z = Z} z w {X} {m = m-pair x α′} h le cb wl wr r | no ne =
+  Now.conP h z ne le wl wr (from (𝒱-XY d n z w) r)
+con-var d n {Z = .X} z w {X} {m = m-pair x α′} h le cb wl wr r | yes refl
+    with ↔-functional x z
+con-var d n {Z = .X} z w {X} {m = m-pair x α′} h le cb wl wr r | yes refl
+    | refl with ↔-unique x z
+con-var ≺ n {Z = .X} .x w {X} {m = m-pair x α′} h le cb wl wr r
+    | yes refl | refl | refl =
+  con-pairX ≺ n x w h cb wl wr r
+con-var ≻ n {Z = .X} .x w {X} {m = m-pair x α′} h le cb wl wr r
+    | yes refl | refl | refl =
+  con-pairX ≻ n x w h cb wl wr r
+con-var d n {Z = Z} z w {X} {m = m-dead x} h le cb wl wr r with Z ≟ X
+con-var d n {Z = Z} z w {X} {m = m-dead x} h le cb wl wr r | no ne =
+  Now.conP h z ne le wl wr (from (𝒱-XY d n z w) r)
+con-var d n {Z = .X} z w {X} {m = m-dead x} h le cb wl wr r | yes refl =
+  ⊥-elim (↔-dead-⊥ z x)
+con-var d n {Z = Z} z w {X} {m = m-left} h le cb wl wr r with Z ≟ X
+con-var d n {Z = Z} z w {X} {m = m-left} h le cb wl wr r | no ne =
+  Now.conP h z ne le wl wr (from (𝒱-XY d n z w) r)
+con-var d n {Z = .X} z w {X} {m = m-left} h le cb wl wr r | yes refl =
+  con-leftX d n z w h cb wl wr r

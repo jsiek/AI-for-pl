@@ -216,6 +216,48 @@ Oracle d N =
      → FreshO d w (sem (onlyLeaf d le c)) (leftTy c))
 
 ------------------------------------------------------------------------
+-- A leaf under the conversion at hand
+------------------------------------------------------------------------
+
+-- the converted leaf Ls and the target leaf Lt of a variable whose
+-- types are T and T′, under the conversion at α with representation R
+-- and the right side's conversion rc, in every future
+ConvLeafP : Dir → ℕ → (w : World) → Ty (ΔL w) → RConv (ΔR w)
+  → TyVar (ΔL w) → (Ls Lt : Leaf (ΔL w) (ΔR w))
+  → Ty (ΔL w) → Ty (ΔR w) → Set
+ConvLeafP d N w R rc α Ls Lt T T′ =
+  ∀ {w′} (e : w′ ⊒ w) {k} → k ≤ N
+  → (∀ {Vl Vr} → Value Vl → Value Vr
+       → leafRel d k w′ (transportLeaf (ρL e) (ρR e) Ls) Vl Vr
+       → ℰL d k w′ (transportLeaf (ρL e) (ρR e) Lt)
+           (Vl ↑ 〖 toRenameᵗ (ρL e) α , renameᵗ (toRenameᵗ (ρL e)) R
+                 ↑ renameᵗ (toRenameᵗ (ρL e)) T 〗)
+           (revM (renRConv (ρR e) rc) (renameᵗ (toRenameᵗ (ρR e)) T′) Vr))
+    × (∀ {Wl Wr} → Value Wl → Value Wr
+       → leafRel d k w′ (transportLeaf (ρL e) (ρR e) Lt) Wl Wr
+       → ℰL d k w′ (transportLeaf (ρL e) (ρR e) Ls)
+           (Wl ↓ makeConceal (toRenameᵗ (ρL e) α)
+                   (renameᵗ (toRenameᵗ (ρL e)) R)
+                   (renameᵗ (toRenameᵗ (ρL e)) T))
+           (conM (renRConv (ρR e) rc) (renameᵗ (toRenameᵗ (ρR e)) T′) Wr))
+
+ConvLeafO : Dir → ℕ → (w : World) → Ty (ΔL w) → TyVar (ΔL w)
+  → (Ls Lt : Leaf (ΔL w) (ΔR w)) → Ty (ΔL w) → Set
+ConvLeafO d N w R α Ls Lt T =
+  ∀ {w′} (e : w′ ⊒ w) {k} → k ≤ N
+  → (∀ {Vl Vr} → Value Vl → Value Vr
+       → leafRel d k w′ (transportLeaf (ρL e) (ρR e) Ls) Vl Vr
+       → ℰL d k w′ (transportLeaf (ρL e) (ρR e) Lt)
+           (Vl ↑ 〖 toRenameᵗ (ρL e) α , renameᵗ (toRenameᵗ (ρL e)) R
+                 ↑ renameᵗ (toRenameᵗ (ρL e)) T 〗) Vr)
+    × (∀ {Wl Vr} → Value Wl → Value Vr
+       → leafRel d k w′ (transportLeaf (ρL e) (ρR e) Lt) Wl Vr
+       → ℰL d k w′ (transportLeaf (ρL e) (ρR e) Ls)
+           (Wl ↓ makeConceal (toRenameᵗ (ρL e) α)
+                   (renameᵗ (toRenameᵗ (ρL e)) R)
+                   (renameᵗ (toRenameᵗ (ρL e)) T)) Vr)
+
+------------------------------------------------------------------------
 -- The hypotheses
 ------------------------------------------------------------------------
 
@@ -265,40 +307,13 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} where
   ConvP : Dir → ℕ → (w : World) → CMode Φ X (ΔL w) (ΔR w) → TyVar (ΔL w)
     → (δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)) → ∀ {Z Y′} → Φ ∋ Z ↔ Y′ → Set
   ConvP d N w m α δs δt {Z} {Y′} z =
-    ∀ {w′} (e : w′ ⊒ w) {k} → k ≤ N
-    → (∀ {Vl Vr} → Value Vl → Value Vr
-         → leafRel d k w′ (leaf (δs ↑ᴵ e) Z) Vl Vr
-         → ℰ d k (X⊑Y z) w′ (δt ↑ᴵ e)
-             (Vl ↑ 〖 toRenameᵗ (ρL e) α
-                   , renameᵗ (toRenameᵗ (ρL e)) (repM m (δl δt))
-                   ↑ δl (δs ↑ᴵ e) Z 〗)
-             (revM (renRConv (ρR e) (rconv m (δr δt)))
-               (δr (δs ↑ᴵ e) Y′) Vr))
-      × (∀ {Wl Wr} → Value Wl → Value Wr
-         → leafRel d k w′ (leaf (δt ↑ᴵ e) Z) Wl Wr
-         → ℰ d k (X⊑Y z) w′ (δs ↑ᴵ e)
-             (Wl ↓ makeConceal (toRenameᵗ (ρL e) α)
-                     (renameᵗ (toRenameᵗ (ρL e)) (repM m (δl δt)))
-                     (δl (δs ↑ᴵ e) Z))
-             (conM (renRConv (ρR e) (rconv m (δr δt)))
-               (δr (δs ↑ᴵ e) Y′) Wr))
+    ConvLeafP d N w (repM m (δl δt)) (rconv m (δr δt)) α
+      (leaf δs Z) (leaf δt Z) (δl δs Z) (δr δs Y′)
 
   ConvO : Dir → ℕ → (w : World) → CMode Φ X (ΔL w) (ΔR w) → TyVar (ΔL w)
     → (δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)) → ∀ {Z} → Φ ∋ Z only → Set
   ConvO d N w m α δs δt {Z} z =
-    ∀ {w′} (e : w′ ⊒ w) {k} → k ≤ N
-    → (∀ {Vl Vr} → Value Vl → Value Vr
-         → leafRel d k w′ (leaf (δs ↑ᴵ e) Z) Vl Vr
-         → ℰ d k (X⊑★ z) w′ (δt ↑ᴵ e)
-             (Vl ↑ 〖 toRenameᵗ (ρL e) α
-                   , renameᵗ (toRenameᵗ (ρL e)) (repM m (δl δt))
-                   ↑ δl (δs ↑ᴵ e) Z 〗) Vr)
-      × (∀ {Wl Vr} → Value Wl → Value Vr
-         → leafRel d k w′ (leaf (δt ↑ᴵ e) Z) Wl Vr
-         → ℰ d k (X⊑★ z) w′ (δs ↑ᴵ e)
-             (Wl ↓ makeConceal (toRenameᵗ (ρL e) α)
-                     (renameᵗ (toRenameᵗ (ρL e)) (repM m (δl δt)))
-                     (δl (δs ↑ᴵ e) Z)) Vr)
+    ConvLeafO d N w (repM m (δl δt)) α (leaf δs Z) (leaf δt Z) (δl δs Z)
 
   record ConvI (d : Dir) (N : ℕ) (rk : RK) (w : World)
       (m : CMode Φ X (ΔL w) (ΔR w)) (α : TyVar (ΔL w))
@@ -491,16 +506,16 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
     → ConvP d N w′ (CMode-↑ (ρL e) (ρR e) m) (ρl α) (δs ↑ᴵ e) (δt ↑ᴵ e) z
   ConvP-↑ m α {Z} {Y′} z h {w″} e′ {k} k≤N =
     (λ {Vl} {Vr} vl vr r →
-      ℰ-resp d k (X⊑Y z) w″ (≈ᴵ-sym (↑ᴵ-trans δt e′ e))
-        (ℰ-≡ d k (X⊑Y z) w″ (δt ↑ᴵ ⊒-trans e′ e)
+      ℰL-resp d k w″ (≈ˡ-sym (leaf≈ (↑ᴵ-trans δt e′ e) Z))
+        (ℰL-≡ d k w″ (leaf (δt ↑ᴵ ⊒-trans e′ e) Z)
           (↑〖〗-≡ (Comp.α∘ m α e′) (Comp.R∘ m α e′)
             (sym (δl≡ (↑ᴵ-trans δs e′ e) Z)))
           (revM-≡ (Comp.rc∘ m α e′) (sym (δr≡ (↑ᴵ-trans δs e′ e) Y′)))
           (proj₁ g vl vr
             (leafRel-resp d k w″ (leaf≈ (↑ᴵ-trans δs e′ e) Z) r)))) ,
     (λ {Wl} {Wr} wl wr r →
-      ℰ-resp d k (X⊑Y z) w″ (≈ᴵ-sym (↑ᴵ-trans δs e′ e))
-        (ℰ-≡ d k (X⊑Y z) w″ (δs ↑ᴵ ⊒-trans e′ e)
+      ℰL-resp d k w″ (≈ˡ-sym (leaf≈ (↑ᴵ-trans δs e′ e) Z))
+        (ℰL-≡ d k w″ (leaf (δs ↑ᴵ ⊒-trans e′ e) Z)
           (↓mc-≡ (Comp.α∘ m α e′) (Comp.R∘ m α e′)
             (sym (δl≡ (↑ᴵ-trans δs e′ e) Z)))
           (conM-≡ (Comp.rc∘ m α e′) (sym (δr≡ (↑ᴵ-trans δs e′ e) Y′)))
@@ -514,16 +529,16 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
     → ConvO d N w′ (CMode-↑ (ρL e) (ρR e) m) (ρl α) (δs ↑ᴵ e) (δt ↑ᴵ e) z
   ConvO-↑ m α {Z} z h {w″} e′ {k} k≤N =
     (λ {Vl} {Vr} vl vr r →
-      ℰ-resp d k (X⊑★ z) w″ (≈ᴵ-sym (↑ᴵ-trans δt e′ e))
-        (ℰ-≡ d k (X⊑★ z) w″ (δt ↑ᴵ ⊒-trans e′ e)
+      ℰL-resp d k w″ (≈ˡ-sym (leaf≈ (↑ᴵ-trans δt e′ e) Z))
+        (ℰL-≡ d k w″ (leaf (δt ↑ᴵ ⊒-trans e′ e) Z)
           (↑〖〗-≡ (Comp.α∘ m α e′) (Comp.R∘ m α e′)
             (sym (δl≡ (↑ᴵ-trans δs e′ e) Z)))
           refl
           (proj₁ g vl vr
             (leafRel-resp d k w″ (leaf≈ (↑ᴵ-trans δs e′ e) Z) r)))) ,
     (λ {Wl} {Vr} wl vr r →
-      ℰ-resp d k (X⊑★ z) w″ (≈ᴵ-sym (↑ᴵ-trans δs e′ e))
-        (ℰ-≡ d k (X⊑★ z) w″ (δs ↑ᴵ ⊒-trans e′ e)
+      ℰL-resp d k w″ (≈ˡ-sym (leaf≈ (↑ᴵ-trans δs e′ e) Z))
+        (ℰL-≡ d k w″ (leaf (δs ↑ᴵ ⊒-trans e′ e) Z)
           (↓mc-≡ (Comp.α∘ m α e′) (Comp.R∘ m α e′)
             (sym (δl≡ (↑ᴵ-trans δs e′ e) Z)))
           refl
@@ -624,3 +639,377 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
     FreshO-↑ {d = d} e {L = leaf δt Z} {δl δt Z} (genO h z)
   sealI (ConvI-↑ {m = m} {α} h) = SealI-↑ m α (sealI h)
   oracle (ConvI-↑ h) = oracle h
+
+------------------------------------------------------------------------
+-- A leaf's expression closure, at a variable
+------------------------------------------------------------------------
+
+ℰL→XY : ∀ d n {Φ : Corr Δ Δ′} {Z Y′} (z : Φ ∋ Z ↔ Y′) w
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {M M′}
+  → ℰL d n w (leaf δ Z) M M′ → ℰ d n (X⊑Y z) w δ M M′
+ℰL→XY d n z w =
+  ℰᵍ-map d n w (λ le w′ e V V′ r →
+    𝒱≤-cast d ≤′-refl le (X⊑Y z) w′ (to (𝒱-XY d _ z w′) r))
+
+XY→ℰL : ∀ d n {Φ : Corr Δ Δ′} {Z Y′} (z : Φ ∋ Z ↔ Y′) w
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {M M′}
+  → ℰ d n (X⊑Y z) w δ M M′ → ℰL d n w (leaf δ Z) M M′
+XY→ℰL d n z w =
+  ℰᵍ-map d n w (λ le w′ e V V′ r →
+    from (𝒱-XY d _ z w′) (𝒱≤-cast d le ≤′-refl (X⊑Y z) w′ r))
+
+ℰL→X★ : ∀ d n {Φ : Corr Δ Δ′} {Z} (z : Φ ∋ Z only) w
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {M M′}
+  → ℰL d n w (leaf δ Z) M M′ → ℰ d n (X⊑★ z) w δ M M′
+ℰL→X★ d n z w =
+  ℰᵍ-map d n w (λ le w′ e V V′ r →
+    𝒱≤-cast d ≤′-refl le (X⊑★ z) w′ (to (𝒱-X★ d _ z w′) r))
+
+X★→ℰL : ∀ d n {Φ : Corr Δ Δ′} {Z} (z : Φ ∋ Z only) w
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {M M′}
+  → ℰ d n (X⊑★ z) w δ M M′ → ℰL d n w (leaf δ Z) M M′
+X★→ℰL d n z w =
+  ℰᵍ-map d n w (λ le w′ e V V′ r →
+    from (𝒱-X★ d _ z w′) (𝒱≤-cast d le ≤′-refl (X⊑★ z) w′ r))
+
+------------------------------------------------------------------------
+-- Leaves at store variables: a conversion is an identity step
+------------------------------------------------------------------------
+
+-- the right side's conversion is absent, or at another store variable
+RId : ∀ {Θ} → RConv Θ → Ty Θ → Set
+RId {Θ} nothing T′ = ⊤
+RId {Θ} (just (α′ , R′)) T′ = Σ[ γ′ ∈ TyVar Θ ] (T′ ≡ ＇ γ′ × γ′ ≢ α′)
+
+rstep : ∀ {Θ} (rc : RConv Θ) {T′} → RId rc T′ → ∀ {V : Term Θ}
+  → Value V → revM rc T′ V —→? V
+rstep nothing tt v = stay
+rstep (just (α′ , R′)) (γ′ , eq , ne) {V} v =
+  subst (λ M → M —→? V) (sym (↑-pk (〖〗-other R′ eq ne)))
+    (step (id-reveal v))
+
+cstep : ∀ {Θ} (rc : RConv Θ) {T′} → RId rc T′ → ∀ {V : Term Θ}
+  → Value V → conM rc T′ V —→? V
+cstep nothing tt v = stay
+cstep (just (α′ , R′)) (γ′ , eq , ne) {V} v =
+  subst (λ M → M —→? V) (sym (↓-pk (makeConceal-other R′ eq ne)))
+    (step (id-conceal v))
+
+-- the leaf is read as the only variable of an interpretation
+module _ (d : Dir) (k : ℕ) (w : World) (L : Leaf (ΔL w) (ΔR w))
+    (gl : GoodLeaf L) where
+
+  idRevP : ∀ {α γ : TyVar (ΔL w)} {R} → γ ≢ α → (rc : RConv (ΔR w))
+    → ∀ {T′} → RId rc T′ → ∀ {Vl Vr} → Value Vl → Value Vr
+    → leafRel d k w L Vl Vr
+    → ℰL d k w L (Vl ↑ 〖 α , R ↑ ＇ γ 〗) (revM rc T′ Vr)
+  idRevP {α} {γ} {R} ne rc {T′} ri {Vl} vl vr r =
+    XY→ℰL d k (↔-here {Φ = []}) w {δ = extPairI (＇ γ) T′ L closedI}
+      (ℰ-≡ d k (X⊑Y ↔-here) w (extPairI (＇ γ) T′ L closedI)
+        (sym (↑-pk (〖〗-other R refl ne))) refl
+        (ℰ-steps? d k (X⊑Y ↔-here) w
+          (GoodI-extPairI {T = ＇ γ} {T′ = T′} {δ = closedI} gl good-closedI)
+          (step (id-reveal vl)) (rstep rc ri vr) vl vr
+          (to (𝒱-XY d k ↔-here w) r)))
+
+  idConP : ∀ {α γ : TyVar (ΔL w)} {R} → γ ≢ α → (rc : RConv (ΔR w))
+    → ∀ {T′} → RId rc T′ → ∀ {Wl Wr} → Value Wl → Value Wr
+    → leafRel d k w L Wl Wr
+    → ℰL d k w L (Wl ↓ makeConceal α R (＇ γ)) (conM rc T′ Wr)
+  idConP {α} {γ} {R} ne rc {T′} ri {Wl} wl wr r =
+    XY→ℰL d k (↔-here {Φ = []}) w {δ = extPairI (＇ γ) T′ L closedI}
+      (ℰ-≡ d k (X⊑Y ↔-here) w (extPairI (＇ γ) T′ L closedI)
+        (sym (↓-pk (makeConceal-other R refl ne)))
+        refl
+        (ℰ-steps? d k (X⊑Y ↔-here) w
+          (GoodI-extPairI {T = ＇ γ} {T′ = T′} {δ = closedI} gl good-closedI)
+          (step (id-conceal wl)) (cstep rc ri wr) wl wr
+          (to (𝒱-XY d k ↔-here w) r)))
+
+  idRevO : ∀ {α γ : TyVar (ΔL w)} {R} → γ ≢ α → ∀ {Vl Vr}
+    → Value Vl → Value Vr → leafRel d k w L Vl Vr
+    → ℰL d k w L (Vl ↑ 〖 α , R ↑ ＇ γ 〗) Vr
+  idRevO {α} {γ} {R} ne {Vl} vl vr r =
+    X★→ℰL d k (only-here {Φ = []}) w {δ = extOnlyI (＇ γ) L closedI}
+      (ℰ-≡ d k (X⊑★ only-here) w (extOnlyI (＇ γ) L closedI)
+        (sym (↑-pk (〖〗-other R refl ne))) refl
+        (ℰ-steps? d k (X⊑★ only-here) w
+          (GoodI-extOnlyI {T = ＇ γ} {δ = closedI} gl good-closedI)
+          (step (id-reveal vl)) stay vl vr (to (𝒱-X★ d k only-here w) r)))
+
+  idConO : ∀ {α γ : TyVar (ΔL w)} {R} → γ ≢ α → ∀ {Wl Vr}
+    → Value Wl → Value Vr → leafRel d k w L Wl Vr
+    → ℰL d k w L (Wl ↓ makeConceal α R (＇ γ)) Vr
+  idConO {α} {γ} {R} ne {Wl} wl vr r =
+    X★→ℰL d k (only-here {Φ = []}) w {δ = extOnlyI (＇ γ) L closedI}
+      (ℰ-≡ d k (X⊑★ only-here) w (extOnlyI (＇ γ) L closedI)
+        (sym (↓-pk (makeConceal-other R refl ne))) refl
+        (ℰ-steps? d k (X⊑★ only-here) w
+          (GoodI-extOnlyI {T = ＇ γ} {δ = closedI} gl good-closedI)
+          (step (id-conceal wl)) stay wl vr (to (𝒱-X★ d k only-here w) r)))
+
+------------------------------------------------------------------------
+-- Modes under binders
+------------------------------------------------------------------------
+
+module _ {Φ : Corr Δ Δ′} {X : TyVar Δ} where
+
+  repM-pair : ∀ (m : CMode Φ X ΘL ΘR) σ T
+    → repM (CMode-pair m) (T •ˢ σ) ≡ repM m σ
+  repM-pair (m-pair x α′) σ T = refl
+  repM-pair m-left σ T = refl
+  repM-pair (m-dead x) σ T = refl
+  repM-pair (m-none R rc) σ T = refl
+
+  repM-only : ∀ (m : CMode Φ X ΘL ΘR) σ T
+    → repM (CMode-only m) (T •ˢ σ) ≡ repM m σ
+  repM-only (m-pair x α′) σ T = refl
+  repM-only m-left σ T = refl
+  repM-only (m-dead x) σ T = refl
+  repM-only (m-none R rc) σ T = refl
+
+  repM-dead : ∀ (m : CMode Φ X ΘL ΘR) σ T
+    → repM (CMode-dead m) (T •ˢ σ) ≡ repM m σ
+  repM-dead (m-pair x α′) σ T = refl
+  repM-dead m-left σ T = refl
+  repM-dead (m-dead x) σ T = refl
+  repM-dead (m-none R rc) σ T = refl
+
+  rconv-pair : ∀ (m : CMode Φ X ΘL ΘR) σ T′
+    → rconv (CMode-pair m) (T′ •ˢ σ) ≡ rconv m σ
+  rconv-pair (m-pair x α′) σ T′ = refl
+  rconv-pair m-left σ T′ = refl
+  rconv-pair (m-dead x) σ T′ = refl
+  rconv-pair (m-none R rc) σ T′ = refl
+
+  rconv-only : ∀ (m : CMode Φ X ΘL ΘR) σ
+    → rconv (CMode-only m) σ ≡ rconv m σ
+  rconv-only (m-pair x α′) σ = refl
+  rconv-only m-left σ = refl
+  rconv-only (m-dead x) σ = refl
+  rconv-only (m-none R rc) σ = refl
+
+  rconv-dead : ∀ (m : CMode Φ X ΘL ΘR) σ
+    → rconv (CMode-dead m) σ ≡ rconv m σ
+  rconv-dead (m-pair x α′) σ = refl
+  rconv-dead m-left σ = refl
+  rconv-dead (m-dead x) σ = refl
+  rconv-dead (m-none R rc) σ = refl
+
+  Other-pair : ∀ (m : CMode Φ X ΘL ΘR) Z
+    → Other (CMode-pair m) (suc Z) → Other m Z
+  Other-pair (m-pair x α′) Z o = λ eq → o (cong suc eq)
+  Other-pair m-left Z o = λ eq → o (cong suc eq)
+  Other-pair (m-dead x) Z o = λ eq → o (cong suc eq)
+  Other-pair (m-none R rc) Z o = tt
+
+  Other-only : ∀ (m : CMode Φ X ΘL ΘR) Z
+    → Other (CMode-only m) (suc Z) → Other m Z
+  Other-only (m-pair x α′) Z o = λ eq → o (cong suc eq)
+  Other-only m-left Z o = λ eq → o (cong suc eq)
+  Other-only (m-dead x) Z o = λ eq → o (cong suc eq)
+  Other-only (m-none R rc) Z o = tt
+
+  Other-dead : ∀ (m : CMode Φ X ΘL ΘR) Z
+    → Other (CMode-dead m) (suc Z) → Other m Z
+  Other-dead (m-pair x α′) Z o = λ eq → o (cong suc eq)
+  Other-dead m-left Z o = λ eq → o (cong suc eq)
+  Other-dead (m-dead x) Z o = λ eq → o (cong suc eq)
+  Other-dead (m-none R rc) Z o = tt
+
+module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
+    {w : World} {δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)} {α : TyVar (ΔL w)}
+    {T : Ty (ΔL w)} {l : Leaf (ΔL w) (ΔR w)} where
+
+  SealI-pair : ∀ (m : CMode Φ X (ΔL w) (ΔR w)) {T′}
+    → SealI d N w m α δs δt
+    → SealI d N w (CMode-pair m) α (extPairI T T′ l δs) (extPairI T T′ l δt)
+  SealI-pair (m-pair x α′) h = h
+  SealI-pair m-left h = h
+  SealI-pair (m-dead x) h = h
+  SealI-pair (m-none R rc) h = h
+
+  SealI-only : ∀ (m : CMode Φ X (ΔL w) (ΔR w))
+    → SealI d N w m α δs δt
+    → SealI d N w (CMode-only m) α (extOnlyI T l δs) (extOnlyI T l δt)
+  SealI-only (m-pair x α′) h = h
+  SealI-only m-left h = h
+  SealI-only (m-dead x) h = h
+  SealI-only (m-none R rc) h = h
+
+  SealI-dead : ∀ (m : CMode Φ X (ΔL w) (ΔR w))
+    → SealI d N w m α δs δt
+    → SealI d N w (CMode-dead m) α (extDeadI T δs) (extDeadI T δt)
+  SealI-dead (m-pair x α′) h = h
+  SealI-dead m-left h = h
+  SealI-dead (m-dead x) h = h
+  SealI-dead (m-none R rc) h = h
+
+
+SelfI-pair : ∀ {Φ : Corr Δ Δ′} {X} (m : CMode Φ X ΘL ΘR) {α}
+    {δs : Interp Δ Δ′ ΘL ΘR} {T T′ l}
+  → SelfI m α δs → SelfI (CMode-pair m) α (extPairI T T′ l δs)
+SelfI-pair (m-pair x α′) h = h
+SelfI-pair m-left h = h
+SelfI-pair (m-dead x) h = h
+SelfI-pair (m-none R rc) h = h
+
+SelfI-only : ∀ {Φ : Corr Δ Δ′} {X} (m : CMode Φ X ΘL ΘR) {α}
+    {δs : Interp Δ Δ′ ΘL ΘR} {T l}
+  → SelfI m α δs → SelfI (CMode-only m) α (extOnlyI T l δs)
+SelfI-only (m-pair x α′) h = h
+SelfI-only m-left h = h
+SelfI-only (m-dead x) h = h
+SelfI-only (m-none R rc) h = h
+
+SelfI-dead : ∀ {Φ : Corr Δ Δ′} {X} (m : CMode Φ X ΘL ΘR) {α}
+    {δs : Interp Δ Δ′ ΘL ΘR} {T}
+  → SelfI m α δs → SelfI (CMode-dead m) α (extDeadI T δs)
+SelfI-dead (m-pair x α′) h = h
+SelfI-dead m-left h = h
+SelfI-dead (m-dead x) h = h
+SelfI-dead (m-none R rc) h = h
+
+------------------------------------------------------------------------
+-- The hypotheses under binders
+------------------------------------------------------------------------
+
+module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ} {rk : RK}
+    {w : World} {δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)} {β : TyVar (ΔL w)}
+    {l : Leaf (ΔL w) (ΔR w)} where
+
+  -- a paired binder: the new variable is the store variable β on the
+  -- left, of type T′ on the right, with the same leaf on both sides
+  ConvI-extPair : ∀ {m : CMode Φ X (ΔL w) (ΔR w)} {α} {T′ : Ty (ΔR w)}
+    → GoodLeaf l → β ≢ α → replaceRC (rconv m (δr δt)) T′ ≡ T′
+    → ConvLeafP d N w (repM m (δl δt)) (rconv m (δr δt)) α l l (＇ β) T′
+    → FreshP d rk w l (＇ β) T′
+    → ConvI d N rk w m α δs δt
+    → ConvI d N rk w (CMode-pair m) α
+        (extPairI (＇ β) T′ l δs) (extPairI (＇ β) T′ l δt)
+  goodS (ConvI-extPair {T′ = T′} gl ne tr cv fr h) =
+    GoodI-extPairI {T = ＇ β} {T′ = T′} {δ = δs} gl (goodS h)
+  goodT (ConvI-extPair {T′ = T′} gl ne tr cv fr h) =
+    GoodI-extPairI {T = ＇ β} {T′ = T′} {δ = δt} gl (goodT h)
+  selfI (ConvI-extPair {m = m} {T′ = T′} gl ne tr cv fr h) =
+    SelfI-pair m {T = ＇ β} {T′ = T′} {l = l} (selfI h)
+  rcOK (ConvI-extPair {m = m} {T′ = T′} gl ne tr cv fr h) =
+    subst (Allowed rk) (sym (rconv-pair m (δr δt) T′)) (rcOK h)
+  tyL (ConvI-extPair {m = m} {α} gl ne tr cv fr h) zero =
+    subst (λ R → replaceTy α R (＇ β) ≡ ＇ β)
+      (sym (repM-pair m (δl δt) (＇ β))) (replaceTy-other _ ne)
+  tyL (ConvI-extPair {m = m} {α} gl ne tr cv fr h) (suc Z) =
+    subst (λ R → replaceTy α R (δl δs Z) ≡ δl δt Z)
+      (sym (repM-pair m (δl δt) (＇ β))) (tyL h Z)
+  tyR (ConvI-extPair {m = m} {T′ = T′} gl ne tr cv fr h) zero =
+    subst (λ c → replaceRC c T′ ≡ T′) (sym (rconv-pair m (δr δt) T′)) tr
+  tyR (ConvI-extPair {m = m} {T′ = T′} gl ne tr cv fr h) (suc Y′) =
+    subst (λ c → replaceRC c (δr δs Y′) ≡ δr δt Y′)
+      (sym (rconv-pair m (δr δt) T′)) (tyR h Y′)
+  leafO (ConvI-extPair gl ne tr cv fr h) zero o = ≈ˡ-refl
+  leafO (ConvI-extPair {m = m} gl ne tr cv fr h) (suc Z) o =
+    leafO h Z (Other-pair m Z o)
+  convP (ConvI-extPair {m = m} {α} {T′} gl ne tr cv fr h) ↔-here o =
+    subst₂ (λ R c → ConvLeafP d N w R c α l l (＇ β) T′)
+      (sym (repM-pair m (δl δt) (＇ β))) (sym (rconv-pair m (δr δt) T′)) cv
+  convP (ConvI-extPair {m = m} {α} {T′} gl ne tr cv fr h)
+      {suc Z} {suc Y′} (↔-pair z) o =
+    subst₂ (λ R c → ConvLeafP d N w R c α (leaf δs Z) (leaf δt Z)
+                      (δl δs Z) (δr δs Y′))
+      (sym (repM-pair m (δl δt) (＇ β))) (sym (rconv-pair m (δr δt) T′))
+      (convP h z (Other-pair m Z o))
+  convO (ConvI-extPair {m = m} {α} gl ne tr cv fr h)
+      {suc Z} (only-pair z) o =
+    subst (λ R → ConvLeafO d N w R α (leaf δs Z) (leaf δt Z) (δl δs Z))
+      (sym (repM-pair m (δl δt) (＇ β))) (convO h z (Other-pair m Z o))
+  genP (ConvI-extPair gl ne tr cv fr h) ↔-here = fr
+  genP (ConvI-extPair gl ne tr cv fr h) (↔-pair z) = genP h z
+  genO (ConvI-extPair gl ne tr cv fr h) (only-pair z) = genO h z
+  sealI (ConvI-extPair {m = m} gl ne tr cv fr h) = SealI-pair m (sealI h)
+  oracle (ConvI-extPair gl ne tr cv fr h) = oracle h
+
+  -- a left-only binder: the new variable is the store variable β
+  ConvI-extOnly : ∀ {m : CMode Φ X (ΔL w) (ΔR w)} {α}
+    → GoodLeaf l → β ≢ α
+    → ConvLeafO d N w (repM m (δl δt)) α l l (＇ β)
+    → FreshO d w l (＇ β)
+    → ConvI d N rk w m α δs δt
+    → ConvI d N rk w (CMode-only m) α
+        (extOnlyI (＇ β) l δs) (extOnlyI (＇ β) l δt)
+  goodS (ConvI-extOnly gl ne cv fr h) =
+    GoodI-extOnlyI {T = ＇ β} {δ = δs} gl (goodS h)
+  goodT (ConvI-extOnly gl ne cv fr h) =
+    GoodI-extOnlyI {T = ＇ β} {δ = δt} gl (goodT h)
+  selfI (ConvI-extOnly {m = m} gl ne cv fr h) =
+    SelfI-only m {T = ＇ β} {l = l} (selfI h)
+  rcOK (ConvI-extOnly {m = m} gl ne cv fr h) =
+    subst (Allowed rk) (sym (rconv-only m (δr δt))) (rcOK h)
+  tyL (ConvI-extOnly {m = m} {α} gl ne cv fr h) zero =
+    subst (λ R → replaceTy α R (＇ β) ≡ ＇ β)
+      (sym (repM-only m (δl δt) (＇ β))) (replaceTy-other _ ne)
+  tyL (ConvI-extOnly {m = m} {α} gl ne cv fr h) (suc Z) =
+    subst (λ R → replaceTy α R (δl δs Z) ≡ δl δt Z)
+      (sym (repM-only m (δl δt) (＇ β))) (tyL h Z)
+  tyR (ConvI-extOnly {m = m} gl ne cv fr h) Y′ =
+    subst (λ c → replaceRC c (δr δs Y′) ≡ δr δt Y′)
+      (sym (rconv-only m (δr δt))) (tyR h Y′)
+  leafO (ConvI-extOnly gl ne cv fr h) zero o = ≈ˡ-refl
+  leafO (ConvI-extOnly {m = m} gl ne cv fr h) (suc Z) o =
+    leafO h Z (Other-only m Z o)
+  convP (ConvI-extOnly {m = m} {α} gl ne cv fr h)
+      {suc Z} {Y′} (↔-only z) o =
+    subst₂ (λ R c → ConvLeafP d N w R c α (leaf δs Z) (leaf δt Z)
+                      (δl δs Z) (δr δs Y′))
+      (sym (repM-only m (δl δt) (＇ β))) (sym (rconv-only m (δr δt)))
+      (convP h z (Other-only m Z o))
+  convO (ConvI-extOnly {m = m} {α} gl ne cv fr h) only-here o =
+    subst (λ R → ConvLeafO d N w R α l l (＇ β))
+      (sym (repM-only m (δl δt) (＇ β))) cv
+  convO (ConvI-extOnly {m = m} {α} gl ne cv fr h)
+      {suc Z} (only-only z) o =
+    subst (λ R → ConvLeafO d N w R α (leaf δs Z) (leaf δt Z) (δl δs Z))
+      (sym (repM-only m (δl δt) (＇ β))) (convO h z (Other-only m Z o))
+  genP (ConvI-extOnly gl ne cv fr h) (↔-only z) = genP h z
+  genO (ConvI-extOnly gl ne cv fr h) only-here = fr
+  genO (ConvI-extOnly gl ne cv fr h) (only-only z) = genO h z
+  sealI (ConvI-extOnly {m = m} gl ne cv fr h) = SealI-only m (sealI h)
+  oracle (ConvI-extOnly gl ne cv fr h) = oracle h
+
+module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ} {rk : RK}
+    {w : World} {δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)} {β : TyVar (ΔL w)}
+    where
+
+  -- a dead binder: the new variable occurs nowhere
+  ConvI-extDead : ∀ {m : CMode Φ X (ΔL w) (ΔR w)} {α} → β ≢ α
+    → ConvI d N rk w m α δs δt
+    → ConvI d N rk w (CMode-dead m) α (extDeadI (＇ β) δs) (extDeadI (＇ β) δt)
+  goodS (ConvI-extDead ne h) = GoodI-extDeadI {T = ＇ β} {δ = δs} (goodS h)
+  goodT (ConvI-extDead ne h) = GoodI-extDeadI {T = ＇ β} {δ = δt} (goodT h)
+  selfI (ConvI-extDead {m = m} ne h) =
+    SelfI-dead m {T = ＇ β} (selfI h)
+  rcOK (ConvI-extDead {m = m} ne h) =
+    subst (Allowed rk) (sym (rconv-dead m (δr δt))) (rcOK h)
+  tyL (ConvI-extDead {m = m} {α} ne h) zero =
+    subst (λ R → replaceTy α R (＇ β) ≡ ＇ β)
+      (sym (repM-dead m (δl δt) (＇ β))) (replaceTy-other _ ne)
+  tyL (ConvI-extDead {m = m} {α} ne h) (suc Z) =
+    subst (λ R → replaceTy α R (δl δs Z) ≡ δl δt Z)
+      (sym (repM-dead m (δl δt) (＇ β))) (tyL h Z)
+  tyR (ConvI-extDead {m = m} ne h) Y′ =
+    subst (λ c → replaceRC c (δr δs Y′) ≡ δr δt Y′)
+      (sym (rconv-dead m (δr δt))) (tyR h Y′)
+  leafO (ConvI-extDead ne h) zero o = ≈ˡ-refl
+  leafO (ConvI-extDead {m = m} ne h) (suc Z) o = leafO h Z (Other-dead m Z o)
+  convP (ConvI-extDead {m = m} {α} ne h) {suc Z} {Y′} (↔-dead z) o =
+    subst₂ (λ R c → ConvLeafP d N w R c α (leaf δs Z) (leaf δt Z)
+                      (δl δs Z) (δr δs Y′))
+      (sym (repM-dead m (δl δt) (＇ β))) (sym (rconv-dead m (δr δt)))
+      (convP h z (Other-dead m Z o))
+  convO (ConvI-extDead {m = m} {α} ne h) {suc Z} (only-dead z) o =
+    subst (λ R → ConvLeafO d N w R α (leaf δs Z) (leaf δt Z) (δl δs Z))
+      (sym (repM-dead m (δl δt) (＇ β))) (convO h z (Other-dead m Z o))
+  genP (ConvI-extDead ne h) (↔-dead z) = genP h z
+  genO (ConvI-extDead ne h) (only-dead z) = genO h z
+  sealI (ConvI-extDead {m = m} ne h) =
+    SealI-dead {T = ＇ β} {l = sem ⊤Ω} m (sealI h)
+  oracle (ConvI-extDead ne h) = oracle h

@@ -13,7 +13,8 @@ module proof.LR.ConvLemma where
 --       - X's two leaves are tied by `SealI`;
 --       - every other leaf is closed under the conversion at hand
 --         (`convP`, `convO`), and under conversions at store variables
---         created later (`genP`, `genO`, also for X's target leaf);
+--         created later (`genP`, `genO` for the target interpretation,
+--         `genPS`, `genOS` for the source one);
 --       - the clauses' own leaves are closed below the bound (`Oracle`),
 --         which `ConvClose` proves by induction on the stage.
 --   * Two lemmas, each with a reveal and a conceal half, by induction on
@@ -341,10 +342,43 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} where
         → FreshP d rk w (leaf δt Z) (δl δt Z) (δr δt Y′)
       genO : ∀ {Z} (z : Φ ∋ Z only)
         → FreshO d w (leaf δt Z) (δl δt Z)
+      genPS : ∀ {Z Y′} (z : Φ ∋ Z ↔ Y′)
+        → FreshP d rk w (leaf δs Z) (δl δs Z) (δr δs Y′)
+      genOS : ∀ {Z} (z : Φ ∋ Z only)
+        → FreshO d w (leaf δs Z) (δl δs Z)
       sealI : SealI d N w m α δs δt
       oracle : Oracle d N
 
   open ConvI public
+
+-- an interpretation whose leaves are closed under later conversions
+record FreshI {Δ Δ′} (Φ : Corr Δ Δ′) (d : Dir) (N : ℕ) (rk : RK)
+    (w : World) (δ : Interp Δ Δ′ (ΔL w) (ΔR w)) : Set₁ where
+  field
+    fgood : GoodI δ
+    fP : ∀ {Z Y′} (z : Φ ∋ Z ↔ Y′)
+      → FreshP d rk w (leaf δ Z) (δl δ Z) (δr δ Y′)
+    fO : ∀ {Z} (z : Φ ∋ Z only) → FreshO d w (leaf δ Z) (δl δ Z)
+    forc : Oracle d N
+
+open FreshI public
+
+module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d N rk} {w : World}
+    {m : CMode Φ X (ΔL w) (ΔR w)} {α} {δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)}
+    where
+
+  -- the two interpretations of the hypotheses
+  freshT : ConvI d N rk w m α δs δt → FreshI Φ d N rk w δt
+  fgood (freshT h) = goodT h
+  fP (freshT h) = genP h
+  fO (freshT h) = genO h
+  forc (freshT h) = oracle h
+
+  freshS : ConvI d N rk w m α δs δt → FreshI Φ d N rk w δs
+  fgood (freshS h) = goodS h
+  fP (freshS h) = genPS h
+  fO (freshS h) = genOS h
+  forc (freshS h) = oracle h
 
 ------------------------------------------------------------------------
 -- Equations on conversions and right sides
@@ -644,6 +678,11 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
     FreshP-↑ {d = d} e {L = leaf δt Z} {rk} {δl δt Z} {δr δt Y′} (genP h z)
   genO (ConvI-↑ h) {Z} z =
     FreshO-↑ {d = d} e {L = leaf δt Z} {δl δt Z} (genO h z)
+  genPS (ConvI-↑ h) {Z} {Y′} z =
+    FreshP-↑ {d = d} e {L = leaf δs Z} {rk} {δl δs Z} {δr δs Y′}
+      (genPS h z)
+  genOS (ConvI-↑ h) {Z} z =
+    FreshO-↑ {d = d} e {L = leaf δs Z} {δl δs Z} (genOS h z)
   sealI (ConvI-↑ {m = m} {α} h) = SealI-↑ m α (sealI h)
   oracle (ConvI-↑ h) = oracle h
 
@@ -932,6 +971,9 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ} {rk 
   genP (ConvI-extPair gl ne tr cv fr h) ↔-here = fr
   genP (ConvI-extPair gl ne tr cv fr h) (↔-pair z) = genP h z
   genO (ConvI-extPair gl ne tr cv fr h) (only-pair z) = genO h z
+  genPS (ConvI-extPair gl ne tr cv fr h) ↔-here = fr
+  genPS (ConvI-extPair gl ne tr cv fr h) (↔-pair z) = genPS h z
+  genOS (ConvI-extPair gl ne tr cv fr h) (only-pair z) = genOS h z
   sealI (ConvI-extPair {m = m} gl ne tr cv fr h) = SealI-pair m (sealI h)
   oracle (ConvI-extPair gl ne tr cv fr h) = oracle h
 
@@ -979,6 +1021,9 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ} {rk 
   genP (ConvI-extOnly gl ne cv fr h) (↔-only z) = genP h z
   genO (ConvI-extOnly gl ne cv fr h) only-here = fr
   genO (ConvI-extOnly gl ne cv fr h) (only-only z) = genO h z
+  genPS (ConvI-extOnly gl ne cv fr h) (↔-only z) = genPS h z
+  genOS (ConvI-extOnly gl ne cv fr h) only-here = fr
+  genOS (ConvI-extOnly gl ne cv fr h) (only-only z) = genOS h z
   sealI (ConvI-extOnly {m = m} gl ne cv fr h) = SealI-only m (sealI h)
   oracle (ConvI-extOnly gl ne cv fr h) = oracle h
 
@@ -1017,6 +1062,8 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ} {rk 
       (sym (repM-dead m (δl δt) (＇ β))) (convO h z (Other-dead m Z o))
   genP (ConvI-extDead ne h) (↔-dead z) = genP h z
   genO (ConvI-extDead ne h) (only-dead z) = genO h z
+  genPS (ConvI-extDead ne h) (↔-dead z) = genPS h z
+  genOS (ConvI-extDead ne h) (only-dead z) = genOS h z
   sealI (ConvI-extDead {m = m} ne h) =
     SealI-dead {T = ＇ β} {l = sem ⊤Ω} m (sealI h)
   oracle (ConvI-extDead ne h) = oracle h
@@ -1613,6 +1660,10 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ} {rk 
     FreshP-left {d = d} {rk = rk} {w = w} {L = leaf δt Z} {T = δl δt Z}
       {T′ = δr δt Y′} (genP h z)
   genO (ConvI-left eq h) = genO h
+  genPS (ConvI-left eq h) {Z} {Y′} z =
+    FreshP-left {d = d} {rk = rk} {w = w} {L = leaf δs Z} {T = δl δs Z}
+      {T′ = δr δs Y′} (genPS h z)
+  genOS (ConvI-left eq h) = genOS h
   sealI (ConvI-left eq h) = sealI h
   oracle (ConvI-left eq h) = oracle h
 
@@ -1996,6 +2047,97 @@ module _ {d} {w w₁ : World} (e₁ : w₁ ⊒ w) {L : Leaf (ΔL w) (ΔR w)}
     g = f (⊒-trans e′ e₁) (NewL-after e₁ e′ nb) {k}
 
 ------------------------------------------------------------------------
+-- Store-variable leaves under conversions
+------------------------------------------------------------------------
+
+-- the right side's conversion is not at γ′
+RNe : ∀ {Θ} → RConv Θ → TyVar Θ → Set
+RNe nothing γ′ = ⊤
+RNe (just (α′ , R′)) γ′ = γ′ ≢ α′
+
+RNe-ren : ∀ {Θ Θ′} (ρ : Θ ↪ᵗ Θ′) (rc : RConv Θ) {γ′}
+  → RNe rc γ′ → RId (renRConv ρ rc) (＇ toRenameᵗ ρ γ′)
+RNe-ren ρ nothing ne = tt
+RNe-ren ρ (just (α′ , R′)) ne =
+  toRenameᵗ ρ _ , refl , (λ eq → ne (toRenameᵗ-injective ρ eq))
+
+module _ {d : Dir} {N : ℕ} {w : World} {L : Leaf (ΔL w) (ΔR w)}
+    (gl : GoodLeaf L) {γ : TyVar (ΔL w)} {γ′ : TyVar (ΔR w)} where
+
+  -- under the conversion at hand, at another store variable
+  storeConvP : ∀ R (rc : RConv (ΔR w)) {α} → γ ≢ α → RNe rc γ′
+    → ConvLeafP d N w R rc α L L (＇ γ) (＇ γ′)
+  storeConvP R rc ne rn {w′} e {k} k≤N =
+    (λ vl vr r →
+      idRevP d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl)
+        (λ eq → ne (toRenameᵗ-injective (ρL e) eq))
+        (renRConv (ρR e) rc) (RNe-ren (ρR e) rc rn) vl vr r) ,
+    (λ wl wr r →
+      idConP d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl)
+        (λ eq → ne (toRenameᵗ-injective (ρL e) eq))
+        (renRConv (ρR e) rc) (RNe-ren (ρR e) rc rn) wl wr r)
+
+  -- under later conversions
+  storeFreshP : ∀ {rk} → FreshP d rk w L (＇ γ) (＇ γ′)
+  storeFreshP {rk} {w′} e {β} {R} rc ok nb nrc {k} =
+    (λ vl vr r →
+      idRevP d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl) (nb γ) rc (rid rc nrc) vl vr r) ,
+    (λ wl wr r →
+      idConP d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl) (nb γ) rc (rid rc nrc) wl wr r)
+    where
+    rid : (rc′ : RConv (ΔR w′)) → NewRC e rc′
+      → RId rc′ (＇ toRenameᵗ (ρR e) γ′)
+    rid nothing n = tt
+    rid (just (β′ , R′)) n = toRenameᵗ (ρR e) γ′ , refl , n γ′
+
+-- a store-variable leaf whose right side is not converted
+module _ {d : Dir} {N : ℕ} {w : World} {L : Leaf (ΔL w) (ΔR w)}
+    (gl : GoodLeaf L) {γ : TyVar (ΔL w)} {T′ : Ty (ΔR w)} where
+
+  storeConvPN : ∀ R {α} → γ ≢ α
+    → ConvLeafP d N w R nothing α L L (＇ γ) T′
+  storeConvPN R ne {w′} e {k} k≤N =
+    (λ vl vr r →
+      idRevP d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl)
+        (λ eq → ne (toRenameᵗ-injective (ρL e) eq)) nothing
+        {T′ = renameᵗ (toRenameᵗ (ρR e)) T′} tt vl vr r) ,
+    (λ wl wr r →
+      idConP d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl)
+        (λ eq → ne (toRenameᵗ-injective (ρL e) eq)) nothing
+        {T′ = renameᵗ (toRenameᵗ (ρR e)) T′} tt wl wr r)
+
+  storeFreshPL : FreshP d left w L (＇ γ) T′
+  storeFreshPL {w′} e {β} {R} nothing ok nb nrc {k} =
+    (λ vl vr r →
+      idRevP d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl) (nb γ) nothing
+        {T′ = renameᵗ (toRenameᵗ (ρR e)) T′} tt vl vr r) ,
+    (λ wl wr r →
+      idConP d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl) (nb γ) nothing
+        {T′ = renameᵗ (toRenameᵗ (ρR e)) T′} tt wl wr r)
+  storeFreshPL e (just c) () nb nrc
+
+-- a left-only store-variable leaf, under later conversions
+module _ {d : Dir} {w : World} {L : Leaf (ΔL w) (ΔR w)}
+    (gl : GoodLeaf L) {γ : TyVar (ΔL w)} where
+
+  storeFreshO : FreshO d w L (＇ γ)
+  storeFreshO {w′} e {β} {R} nb {k} =
+    (λ vl vr r →
+      idRevO d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl) (nb γ) vl vr r) ,
+    (λ wl vr r →
+      idConO d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl) (nb γ) wl vr r)
+
+------------------------------------------------------------------------
 -- The hypotheses for a type application's bound variable
 ------------------------------------------------------------------------
 
@@ -2003,9 +2145,8 @@ Allowed-nothing : ∀ {Θ} rk → Allowed {Θ} rk nothing
 Allowed-nothing both = tt
 Allowed-nothing left = tt
 
-module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
-    {w : World} {m : CMode Φ X (ΔL w) (ΔR w)} {α : TyVar (ΔL w)}
-    {δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)} {w₁ : World} (e₁ : w₁ ⊒ w)
+module _ {Δ Δ′} {Φ : Corr Δ Δ′} {d : Dir} {N : ℕ}
+    {w : World} {δt : Interp Δ Δ′ (ΔL w) (ΔR w)} {w₁ : World} (e₁ : w₁ ⊒ w)
     {β : TyVar (ΔL w₁)} (nb : ∀ X → toRenameᵗ (ρL e₁) X ≢ β)
     {Ls : Leaf (ΔL w₁) (ΔR w₁)} {Lt : Leaf (ΔL w) (ΔR w)}
     {Tl : Ty (ΔL w)} where
@@ -2016,7 +2157,7 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
 
   -- a paired binder; the right converts its own store variable β′
   ConvI-newP : ∀ {Tr : Ty (ΔR w)} {β′ : TyVar (ΔR w₁)} {Nβ}
-    → (∀ Y → ρr Y ≢ β′) → Nβ ≤ N → ConvI d N both w m α δs δt
+    → (∀ Y → ρr Y ≢ β′) → Nβ ≤ N → FreshI Φ d N both w δt
     → GoodLeaf Ls → GoodLeaf Lt → FreshP d both w Lt Tl Tr
     → SealI d Nβ w₁ (m-pair {Φ = pair Φ} ↔-here β′) β
         (extPairI (＇ β) (＇ β′) Ls (δt ↑ᴵ e₁)) (extPairI Tl Tr Lt δt ↑ᴵ e₁)
@@ -2024,10 +2165,10 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
         (extPairI (＇ β) (＇ β′) Ls (δt ↑ᴵ e₁)) (extPairI Tl Tr Lt δt ↑ᴵ e₁)
   goodS (ConvI-newP {β′ = β′} nb′ le h gs gt ft si) =
     GoodI-extPairI {T = ＇ β} {T′ = ＇ β′} {δ = δt ↑ᴵ e₁} gs
-      (GoodI-↑ {δ = δt} (goodT h) e₁)
+      (GoodI-↑ {δ = δt} (fgood h) e₁)
   goodT (ConvI-newP {Tr = Tr} nb′ le h gs gt ft si) =
     GoodI-↑ {δ = extPairI Tl Tr Lt δt}
-      (GoodI-extPairI {T = Tl} {T′ = Tr} {δ = δt} gt (goodT h)) e₁
+      (GoodI-extPairI {T = Tl} {T′ = Tr} {δ = δt} gt (fgood h)) e₁
   selfI (ConvI-newP nb′ le h gs gt ft si) = refl , refl
   rcOK (ConvI-newP nb′ le h gs gt ft si) = tt
   tyL (ConvI-newP nb′ le h gs gt ft si) zero = replaceTy-self β _
@@ -2043,26 +2184,34 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
       (↔-pair {X = Z} {Y = Y′} z) o =
     fresh→convP {d = d} e₁ {L = leaf δt Z} nb {rk = both}
       (renameᵗ ρl Tl) (just (β′ , renameᵗ ρr Tr)) tt nb′
-      (genP h z)
+      (fP h z)
   convO (ConvI-newP nb′ le h gs gt ft si) (only-pair {X = Z} z) o =
-    fresh→convO {d = d} e₁ {L = leaf δt Z} nb (renameᵗ ρl Tl) (genO h z)
+    fresh→convO {d = d} e₁ {L = leaf δt Z} nb (renameᵗ ρl Tl) (fO h z)
   genP (ConvI-newP nb′ le h gs gt ft si) ↔-here =
     FreshP-↑ {d = d} e₁ {L = Lt} {rk = both} {T = Tl} ft
   genP (ConvI-newP nb′ le h gs gt ft si) (↔-pair {X =
     Z} {Y = Y′} z) = FreshP-↑ {d = d} e₁ {L = leaf δt Z} {rk = both}
       {T = δl δt Z}
-      {T′ = δr δt Y′} (genP h z)
+      {T′ = δr δt Y′} (fP h z)
   genO (ConvI-newP nb′ le h gs gt ft si) (only-pair {X = Z} z) =
     FreshO-↑ {d = d} e₁ {L = leaf δt Z} {T = δl δt Z}
-      (genO h z)
+      (fO h z)
+  genPS (ConvI-newP {β′ = β′} nb′ le h gs gt ft si) ↔-here =
+    storeFreshP {d = d} {N = N} {w = w₁} {L = Ls} gs {γ = β} {γ′ = β′}
+      {rk = both}
+  genPS (ConvI-newP nb′ le h gs gt ft si) (↔-pair {X = Z} {Y = Y′} z) =
+    FreshP-↑ {d = d} e₁ {L = leaf δt Z} {rk = both} {T = δl δt Z}
+      {T′ = δr δt Y′} (fP h z)
+  genOS (ConvI-newP nb′ le h gs gt ft si) (only-pair {X = Z} z) =
+    FreshO-↑ {d = d} e₁ {L = leaf δt Z} {T = δl δt Z} (fO h z)
   sealI (ConvI-newP nb′ le h gs gt ft si) = si
-  oracle (ConvI-newP nb′ le h gs gt ft si) = Oracle-down le (oracle h)
+  oracle (ConvI-newP nb′ le h gs gt ft si) = Oracle-down le (forc h)
 
   -- a paired binder; the right does not convert, and is instantiated at
   -- Tr itself
   ConvI-newL : ∀ {rk} {Tr : Ty (ΔR w)} {T′ : Ty (ΔR w₁)} {Nβ}
     → T′ ≡ renameᵗ ρr Tr → Nβ ≤ N
-    → ConvI d N rk w m α δs δt
+    → FreshI Φ d N rk w δt
     → GoodLeaf Ls → GoodLeaf Lt → FreshP d both w Lt Tl Tr
     → SealI d Nβ w₁ (m-left {Φ = pair Φ} {X = zero}) β
         (extPairI (＇ β) T′ Ls (δt ↑ᴵ e₁))
@@ -2072,10 +2221,10 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
         (extPairI Tl Tr Lt δt ↑ᴵ e₁)
   goodS (ConvI-newL {Tr = Tr} {T′} eqT le h gs gt ft si) =
     GoodI-extPairI {T = ＇ β} {T′ = T′} {δ = δt ↑ᴵ e₁} gs
-      (GoodI-↑ {δ = δt} (goodT h) e₁)
+      (GoodI-↑ {δ = δt} (fgood h) e₁)
   goodT (ConvI-newL {Tr = Tr} {T′} eqT le h gs gt ft si) =
     GoodI-↑ {δ = extPairI Tl Tr Lt δt}
-      (GoodI-extPairI {T = Tl} {T′ = Tr} {δ = δt} gt (goodT h)) e₁
+      (GoodI-extPairI {T = Tl} {T′ = Tr} {δ = δt} gt (fgood h)) e₁
   selfI (ConvI-newL eqT le h gs gt ft si) = refl
   rcOK (ConvI-newL eqT le h gs gt ft si) = tt
   tyL (ConvI-newL eqT le h gs gt ft si) zero = replaceTy-self β _
@@ -2090,9 +2239,9 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
     fresh→convP {d = d} e₁ {L = leaf δt Z} nb {rk = left}
       (renameᵗ ρl Tl) nothing tt tt
       (FreshP-left {rk = rk} {L = leaf δt Z} {T = δl δt Z}
-        {T′ = δr δt Y′} (genP h z))
+        {T′ = δr δt Y′} (fP h z))
   convO (ConvI-newL eqT le h gs gt ft si) (only-pair {X = Z} z) o =
-    fresh→convO {d = d} e₁ {L = leaf δt Z} nb (renameᵗ ρl Tl) (genO h z)
+    fresh→convO {d = d} e₁ {L = leaf δt Z} nb (renameᵗ ρl Tl) (fO h z)
   genP (ConvI-newL {rk} {Tr = Tr} eqT le h gs gt ft si) ↔-here =
     FreshP-left {rk = both}
       {L = transportLeaf (ρL e₁) (ρR e₁) Lt} {T = renameᵗ ρl Tl}
@@ -2103,15 +2252,25 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
       {L = transportLeaf (ρL e₁) (ρR e₁) (leaf δt Z)}
       {T = renameᵗ ρl (δl δt Z)} {T′ = renameᵗ ρr (δr δt Y′)}
       (FreshP-↑ {d = d} e₁ {L = leaf δt Z} {rk = rk} {T = δl δt Z}
-        {T′ = δr δt Y′} (genP h z))
+        {T′ = δr δt Y′} (fP h z))
   genO (ConvI-newL eqT le h gs gt ft si) (only-pair {X = Z} z) =
     FreshO-↑ {d = d} e₁ {L = leaf δt Z} {T = δl δt Z}
-      (genO h z)
+      (fO h z)
+  genPS (ConvI-newL {T′ = T′} eqT le h gs gt ft si) ↔-here =
+    storeFreshPL {d = d} {N = N} {w = w₁} {L = Ls} gs {γ = β} {T′ = T′}
+  genPS (ConvI-newL {rk} eqT le h gs gt ft si) (↔-pair {X = Z} {Y = Y′} z) =
+    FreshP-left {rk = rk}
+      {L = transportLeaf (ρL e₁) (ρR e₁) (leaf δt Z)}
+      {T = renameᵗ ρl (δl δt Z)} {T′ = renameᵗ ρr (δr δt Y′)}
+      (FreshP-↑ {d = d} e₁ {L = leaf δt Z} {rk = rk} {T = δl δt Z}
+        {T′ = δr δt Y′} (fP h z))
+  genOS (ConvI-newL eqT le h gs gt ft si) (only-pair {X = Z} z) =
+    FreshO-↑ {d = d} e₁ {L = leaf δt Z} {T = δl δt Z} (fO h z)
   sealI (ConvI-newL eqT le h gs gt ft si) = si
-  oracle (ConvI-newL eqT le h gs gt ft si) = Oracle-down le (oracle h)
+  oracle (ConvI-newL eqT le h gs gt ft si) = Oracle-down le (forc h)
 
   -- a left-only binder
-  ConvI-newO : ∀ {rk} {Nβ} → Nβ ≤ N → ConvI d N rk w m α δs δt
+  ConvI-newO : ∀ {rk} {Nβ} → Nβ ≤ N → FreshI Φ d N rk w δt
     → GoodLeaf Ls → GoodLeaf Lt → FreshO d w Lt Tl
     → SealI d Nβ w₁ (m-left {Φ = only Φ} {X = zero}) β
         (extOnlyI (＇ β) Ls (δt ↑ᴵ e₁)) (extOnlyI Tl Lt δt ↑ᴵ e₁)
@@ -2119,10 +2278,10 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
         (extOnlyI (＇ β) Ls (δt ↑ᴵ e₁)) (extOnlyI Tl Lt δt ↑ᴵ e₁)
   goodS (ConvI-newO le h gs gt ft si) =
     GoodI-extOnlyI {T = ＇ β} {δ = δt ↑ᴵ e₁} gs
-      (GoodI-↑ {δ = δt} (goodT h) e₁)
+      (GoodI-↑ {δ = δt} (fgood h) e₁)
   goodT (ConvI-newO le h gs gt ft si) =
     GoodI-↑ {δ = extOnlyI Tl Lt δt}
-      (GoodI-extOnlyI {T = Tl} {δ = δt} gt (goodT h)) e₁
+      (GoodI-extOnlyI {T = Tl} {δ = δt} gt (fgood h)) e₁
   selfI (ConvI-newO le h gs gt ft si) = refl
   rcOK (ConvI-newO {rk} le h gs gt ft si) = Allowed-nothing rk
   tyL (ConvI-newO le h gs gt ft si) zero = replaceTy-self β _
@@ -2133,29 +2292,36 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
   convP (ConvI-newO {rk} le h gs gt ft si) (↔-only {X = Z} {Y = Y′} z) o =
     fresh→convP {d = d} e₁ {L = leaf δt Z} nb {rk = rk}
       (renameᵗ ρl Tl) nothing (Allowed-nothing rk) tt
-      (genP h z)
+      (fP h z)
   convO (ConvI-newO le h gs gt ft si) only-here o = ⊥-elim (o refl)
   convO (ConvI-newO le h gs gt ft si) (only-only {X = Z} z) o =
-    fresh→convO {d = d} e₁ {L = leaf δt Z} nb (renameᵗ ρl Tl) (genO h z)
+    fresh→convO {d = d} e₁ {L = leaf δt Z} nb (renameᵗ ρl Tl) (fO h z)
   genP (ConvI-newO {rk} le h gs gt ft si) (↔-only {X =
     Z} {Y = Y′} z) = FreshP-↑ {d = d} e₁ {L = leaf δt Z} {rk = rk} {T = δl δt Z}
-      {T′ = δr δt Y′} (genP h z)
+      {T′ = δr δt Y′} (fP h z)
   genO (ConvI-newO le h gs gt ft si) only-here =
     FreshO-↑ {d = d} e₁ {L = Lt} {T = Tl} ft
   genO (ConvI-newO le h gs gt ft si) (only-only {X =
     Z} z) = FreshO-↑ {d = d} e₁ {L = leaf δt Z} {T = δl δt Z}
-      (genO h z)
+      (fO h z)
+  genPS (ConvI-newO {rk} le h gs gt ft si) (↔-only {X = Z} {Y = Y′} z) =
+    FreshP-↑ {d = d} e₁ {L = leaf δt Z} {rk = rk} {T = δl δt Z}
+      {T′ = δr δt Y′} (fP h z)
+  genOS (ConvI-newO le h gs gt ft si) only-here =
+    storeFreshO {d = d} {w = w₁} {L = Ls} gs {γ = β}
+  genOS (ConvI-newO le h gs gt ft si) (only-only {X = Z} z) =
+    FreshO-↑ {d = d} e₁ {L = leaf δt Z} {T = δl δt Z} (fO h z)
   sealI (ConvI-newO le h gs gt ft si) = si
-  oracle (ConvI-newO le h gs gt ft si) = Oracle-down le (oracle h)
+  oracle (ConvI-newO le h gs gt ft si) = Oracle-down le (forc h)
 
   -- a dead binder, instantiated at Tl
-  ConvI-newD : ∀ {rk} {Nβ} → Nβ ≤ N → ConvI d N rk w m α δs δt
+  ConvI-newD : ∀ {rk} {Nβ} → Nβ ≤ N → FreshI Φ d N rk w δt
     → ConvI d Nβ rk w₁ (m-dead {Φ = dead Φ} dead-here) β
         (extDeadI (＇ β) (δt ↑ᴵ e₁)) (extDeadI Tl δt ↑ᴵ e₁)
   goodS (ConvI-newD le h) =
-    GoodI-extDeadI {T = ＇ β} {δ = δt ↑ᴵ e₁} (GoodI-↑ {δ = δt} (goodT h) e₁)
+    GoodI-extDeadI {T = ＇ β} {δ = δt ↑ᴵ e₁} (GoodI-↑ {δ = δt} (fgood h) e₁)
   goodT (ConvI-newD le h) =
-    GoodI-↑ {δ = extDeadI Tl δt} (GoodI-extDeadI {T = Tl} {δ = δt} (goodT h))
+    GoodI-↑ {δ = extDeadI Tl δt} (GoodI-extDeadI {T = Tl} {δ = δt} (fgood h))
       e₁
   selfI (ConvI-newD le h) = refl
   rcOK (ConvI-newD {rk} le h) = Allowed-nothing rk
@@ -2167,17 +2333,22 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
   convP (ConvI-newD {rk} le h) (↔-dead {X = Z} {Y = Y′} z) o =
     fresh→convP {d = d} e₁ {L = leaf δt Z} nb {rk = rk}
       (renameᵗ ρl Tl) nothing (Allowed-nothing rk) tt
-      (genP h z)
+      (fP h z)
   convO (ConvI-newD le h) (only-dead {X = Z} z) o =
-    fresh→convO {d = d} e₁ {L = leaf δt Z} nb (renameᵗ ρl Tl) (genO h z)
+    fresh→convO {d = d} e₁ {L = leaf δt Z} nb (renameᵗ ρl Tl) (fO h z)
   genP (ConvI-newD {rk} le h) (↔-dead {X =
     Z} {Y = Y′} z) = FreshP-↑ {d = d} e₁ {L = leaf δt Z} {rk = rk} {T = δl δt Z}
-      {T′ = δr δt Y′} (genP h z)
+      {T′ = δr δt Y′} (fP h z)
   genO (ConvI-newD le h) (only-dead {X =
     Z} z) = FreshO-↑ {d = d} e₁ {L = leaf δt Z} {T = δl δt Z}
-      (genO h z)
+      (fO h z)
+  genPS (ConvI-newD {rk} le h) (↔-dead {X = Z} {Y = Y′} z) =
+    FreshP-↑ {d = d} e₁ {L = leaf δt Z} {rk = rk} {T = δl δt Z}
+      {T′ = δr δt Y′} (fP h z)
+  genOS (ConvI-newD le h) (only-dead {X = Z} z) =
+    FreshO-↑ {d = d} e₁ {L = leaf δt Z} {T = δl δt Z} (fO h z)
   sealI (ConvI-newD le h) = tt
-  oracle (ConvI-newD le h) = Oracle-down le (oracle h)
+  oracle (ConvI-newD le h) = Oracle-down le (forc h)
 
 -- a larger bound keeps the leaf
 leafBelow-up : ∀ d {n₁ a₁ n₂ a₂} (le₁ : n₁ ≤′ a₁) (le₂ : n₂ ≤′ a₂)
@@ -2480,54 +2651,6 @@ anti₁₁ ≻ p sl sr tags ok r =
   ℰ-anti-≻ p (↠-step sl ↠-refl) (more sr none) tags ok r
 
 ------------------------------------------------------------------------
--- Store-variable leaves under conversions
-------------------------------------------------------------------------
-
--- the right side's conversion is not at γ′
-RNe : ∀ {Θ} → RConv Θ → TyVar Θ → Set
-RNe nothing γ′ = ⊤
-RNe (just (α′ , R′)) γ′ = γ′ ≢ α′
-
-RNe-ren : ∀ {Θ Θ′} (ρ : Θ ↪ᵗ Θ′) (rc : RConv Θ) {γ′}
-  → RNe rc γ′ → RId (renRConv ρ rc) (＇ toRenameᵗ ρ γ′)
-RNe-ren ρ nothing ne = tt
-RNe-ren ρ (just (α′ , R′)) ne =
-  toRenameᵗ ρ _ , refl , (λ eq → ne (toRenameᵗ-injective ρ eq))
-
-module _ {d : Dir} {N : ℕ} {w : World} {L : Leaf (ΔL w) (ΔR w)}
-    (gl : GoodLeaf L) {γ : TyVar (ΔL w)} {γ′ : TyVar (ΔR w)} where
-
-  -- under the conversion at hand, at another store variable
-  storeConvP : ∀ R (rc : RConv (ΔR w)) {α} → γ ≢ α → RNe rc γ′
-    → ConvLeafP d N w R rc α L L (＇ γ) (＇ γ′)
-  storeConvP R rc ne rn {w′} e {k} k≤N =
-    (λ vl vr r →
-      idRevP d k w′ (transportLeaf (ρL e) (ρR e) L)
-        (GoodLeaf-transport (ρL e) (ρR e) gl)
-        (λ eq → ne (toRenameᵗ-injective (ρL e) eq))
-        (renRConv (ρR e) rc) (RNe-ren (ρR e) rc rn) vl vr r) ,
-    (λ wl wr r →
-      idConP d k w′ (transportLeaf (ρL e) (ρR e) L)
-        (GoodLeaf-transport (ρL e) (ρR e) gl)
-        (λ eq → ne (toRenameᵗ-injective (ρL e) eq))
-        (renRConv (ρR e) rc) (RNe-ren (ρR e) rc rn) wl wr r)
-
-  -- under later conversions
-  storeFreshP : ∀ {rk} → FreshP d rk w L (＇ γ) (＇ γ′)
-  storeFreshP {rk} {w′} e {β} {R} rc ok nb nrc {k} =
-    (λ vl vr r →
-      idRevP d k w′ (transportLeaf (ρL e) (ρR e) L)
-        (GoodLeaf-transport (ρL e) (ρR e) gl) (nb γ) rc (rid rc nrc) vl vr r) ,
-    (λ wl wr r →
-      idConP d k w′ (transportLeaf (ρL e) (ρR e) L)
-        (GoodLeaf-transport (ρL e) (ρR e) gl) (nb γ) rc (rid rc nrc) wl wr r)
-    where
-    rid : (rc′ : RConv (ΔR w′)) → NewRC e rc′
-      → RId rc′ (＇ toRenameᵗ (ρR e) γ′)
-    rid nothing n = tt
-    rid (just (β′ , R′)) n = toRenameᵗ (ρR e) γ′ , refl , n γ′
-
-------------------------------------------------------------------------
 -- Conversions renamed into a future, in the main lemma
 ------------------------------------------------------------------------
 
@@ -2660,7 +2783,7 @@ module PairRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
 
     hβ : ConvI d s both w₁ (m-pair {Φ = pair Φ} ↔-here zero) zero δtβ δtg
     hβ = ConvI-newP e₁ (new-bind Tl) {Ls = Ls} {Lt = Lt} {Tl = Tl}
-      {Tr = Tr} (new-bind Tr) s≤N h gLs
+      {Tr = Tr} (new-bind Tr) s≤N (freshT h) gLs
       (leafBelowS-good d (≤′-refl {suc s}) (sdesc Xs Ys c))
       (proj₁ (oracle h) (≤′-refl {suc s}) le (sdesc Xs Ys c))
       (SealNewP.sealNewP d le_s (≤′-refl {suc s}) (n≤1+n s) e₁ Xs Ys c zero
@@ -2738,36 +2861,6 @@ module PairRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
 ------------------------------------------------------------------------
 -- `∀⊑∀`, the reveal, when the right does not convert
 ------------------------------------------------------------------------
-
--- a store-variable leaf whose right side is not converted
-module _ {d : Dir} {N : ℕ} {w : World} {L : Leaf (ΔL w) (ΔR w)}
-    (gl : GoodLeaf L) {γ : TyVar (ΔL w)} {T′ : Ty (ΔR w)} where
-
-  storeConvPN : ∀ R {α} → γ ≢ α
-    → ConvLeafP d N w R nothing α L L (＇ γ) T′
-  storeConvPN R ne {w′} e {k} k≤N =
-    (λ vl vr r →
-      idRevP d k w′ (transportLeaf (ρL e) (ρR e) L)
-        (GoodLeaf-transport (ρL e) (ρR e) gl)
-        (λ eq → ne (toRenameᵗ-injective (ρL e) eq)) nothing
-        {T′ = renameᵗ (toRenameᵗ (ρR e)) T′} tt vl vr r) ,
-    (λ wl wr r →
-      idConP d k w′ (transportLeaf (ρL e) (ρR e) L)
-        (GoodLeaf-transport (ρL e) (ρR e) gl)
-        (λ eq → ne (toRenameᵗ-injective (ρL e) eq)) nothing
-        {T′ = renameᵗ (toRenameᵗ (ρR e)) T′} tt wl wr r)
-
-  storeFreshPL : FreshP d left w L (＇ γ) T′
-  storeFreshPL {w′} e {β} {R} nothing ok nb nrc {k} =
-    (λ vl vr r →
-      idRevP d k w′ (transportLeaf (ρL e) (ρR e) L)
-        (GoodLeaf-transport (ρL e) (ρR e) gl) (nb γ) nothing
-        {T′ = renameᵗ (toRenameᵗ (ρR e)) T′} tt vl vr r) ,
-    (λ wl wr r →
-      idConP d k w′ (transportLeaf (ρL e) (ρR e) L)
-        (GoodLeaf-transport (ρL e) (ρR e) gl) (nb γ) nothing
-        {T′ = renameᵗ (toRenameᵗ (ρR e)) T′} tt wl wr r)
-  storeFreshPL e (just c) () nb nrc
 
 -- one left store step, counted in `≺` only
 antiL₁ : ∀ d {n N} {Φ : Corr Δ Δ′} {A A′} (p : Φ ⊢ A ⊑ A′) {w : World}
@@ -2877,7 +2970,7 @@ module PairRevL (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
 
       hβ : ConvI d s left w₁ (m-left {Φ = pair Φ} {X = zero}) zero δtβ δtg
       hβ = ConvI-newL e₁ (new-bind Tl) {Ls = Ls} {Lt = Lt} {Tl = Tl}
-        {Tr = Tr} {T′ = T′} (repR-rename ρL₁ ρR₁ Ys c) s≤N h gLs
+        {Tr = Tr} {T′ = T′} (repR-rename ρL₁ ρR₁ Ys c) s≤N (freshT h) gLs
         (leafBelowS-good d (≤′-refl {n}) (sdesc Xs Ys c))
         (proj₁ (oracle h) (≤′-refl {n}) le (sdesc Xs Ys c))
         (SealNewP.sealNewL d le_s (≤′-refl {n}) (≤′⇒≤ le_s) e₁ Xs Ys c zero

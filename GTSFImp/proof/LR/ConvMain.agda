@@ -1,0 +1,235 @@
+module proof.LR.ConvMain where
+
+-- File Charter:
+--   * The conversion lemma's value-level `∀` cases: the clauses of
+--     `allPair`, `allOnly` and `allDead` for converted values, from the
+--     per-descriptor cases of `proof.LR.ConvLemma`.
+
+open import Data.Empty using (⊥; ⊥-elim)
+open import Data.Fin using (zero; suc)
+open import Data.Maybe using (Maybe; just; nothing)
+open import Data.Nat using (ℕ; zero; suc; pred; _≤_; _<_; s≤s; z≤n;
+  _≤′_; ≤′-refl; ≤′-step)
+open import Data.Nat.Properties using (n≤1+n; ≤-refl; ≤⇒≤′; ≤′⇒≤; ≤-trans)
+open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
+open import Data.Unit using (⊤; tt)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; _≢_; refl; sym; trans; cong; cong₂; subst; subst₂)
+
+open import Types
+open import Consistency using (_↪ᵗ_; toRenameᵗ; id↪ᵗ)
+open import proof.TypeInTermSubst using (renameᵗᵐ-preserves-Value)
+open import Conversion
+open import CastTerms using (Term; _⦂∀_[_]; _⟨_⟩; _↑_; _↓_; Value;
+  RevealValue; ConcealValue; renameᵗᵐ)
+import CastTerms as CT
+open import LR.Precision
+open import LR.Desc
+open import LR.World
+open import LR.Relation
+open import proof.LR.WorldProps
+open import proof.LR.InterpProps
+open import proof.LR.Monotone
+open import proof.LR.Expression
+open import proof.LR.ConvSyntax
+open import proof.LR.ConvBase
+open import proof.LR.ConvLemma
+
+private
+  variable
+    Δ Δ′ : TyCtx
+
+------------------------------------------------------------------------
+-- The `∀` clauses from their instances at each stage
+------------------------------------------------------------------------
+
+allPair-from : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : pair Φ ⊢ A ⊑ B) w
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+  → (∀ {w′} (e : w′ ⊒ w) {n′} → n′ ≤ n → (c : SDesc (ΔL w′) (ΔR w′))
+       → ℰ d n′ p w′ (extPairI (leftTyS c) (rightTyS c)
+             (sem (leafBelowS d (≤′-refl {n′}) c)) (δ ↑ᴵ e))
+           (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A
+             [ leftTyS c ])
+           (renameᵗᵐ (ρR e) Vr ⦂∀ substᵗ (extsᵗ (δr (δ ↑ᴵ e))) B
+             [ rightTyS c ]))
+  → allPair d n p w δ Vl Vr
+allPair-from d n p w f e le c =
+  ℰᵍ-map d _ _
+    (λ le′ w″ e′ V V′ r →
+      𝒱≤-resp d (≤′-trans le′ le) p w″
+        (↑ᴵ-resp (extPairI-resp (leafBelowS-≈ d ≤′-refl le c) ≈ᴵ-refl) e′)
+        (𝒱≤-cast d le′ (≤′-trans le′ le) p w″ r))
+    (f e (≤′⇒≤ le) c)
+
+allOnly-from : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : only Φ ⊢ A ⊑ B) w
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+  → (∀ {w′} (e : w′ ⊒ w) {n′} → n′ ≤ n → (c : SDesc (ΔL w′) (ΔR w′))
+       → ℰ d n′ p w′ (extOnlyI (leftTyS c)
+             (sem (onlyLeafS d (≤′-refl {n′}) c)) (δ ↑ᴵ e))
+           (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A
+             [ leftTyS c ])
+           (renameᵗᵐ (ρR e) Vr))
+  → allOnly d n p w δ Vl Vr
+allOnly-from d n p w f e le c =
+  ℰᵍ-map d _ _
+    (λ le′ w″ e′ V V′ r →
+      𝒱≤-resp d (≤′-trans le′ le) p w″
+        (↑ᴵ-resp (extOnlyI-resp (onlyLeafS-≈ d ≤′-refl le c) ≈ᴵ-refl) e′)
+        (𝒱≤-cast d le′ (≤′-trans le′ le) p w″ r))
+    (f e (≤′⇒≤ le) c)
+
+allDead-from : ∀ d n {Φ : Corr Δ Δ′} {A} (p : dead Φ ⊢ A ⊑ ★) w
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Wr}
+  → (∀ {w′} (e : w′ ⊒ w) {n′} → n′ ≤ n
+       → (T : Ty (ΔL w′)) (T′ : Ty (ΔR w′))
+       → ℰ d n′ p w′ (extDeadI T (δ ↑ᴵ e))
+           (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A [ T ])
+           (renameᵗᵐ (ρR e) Wr ⦂∀ ★ [ T′ ]))
+  → allDead d n p w δ Vl Wr
+allDead-from d n p w f e le T T′ =
+  ℰᵍ-map d _ _
+    (λ le′ w″ e′ V V′ → 𝒱≤-cast d le′ (≤′-trans le′ le) p w″)
+    (f e (≤′⇒≤ le) T T′)
+
+-- equal type-applied terms
+inst≡ : ∀ {Θ} {M M′ : Term Θ} {C T} → M ≡ M′ → M ⦂∀ C [ T ] ≡ M′ ⦂∀ C [ T ]
+inst≡ refl = refl
+
+------------------------------------------------------------------------
+-- The bounds and right conversions in a future
+------------------------------------------------------------------------
+
+module _ {Φ : Corr Δ Δ′} {X : TyVar Δ} {w w′ : World} (e : w′ ⊒ w)
+    (m : CMode Φ X (ΔL w) (ΔR w)) (σ : Δ′ ⇒ˢ ΔR w) where
+
+  rconv-↑≡ : ∀ {rc} → rconv m σ ≡ rc
+    → rconv (CMode-↑ (ρL e) (ρR e) m)
+        (λ Y → renameᵗ (toRenameᵗ (ρR e)) (σ Y))
+      ≡ renRConv (ρR e) rc
+  rconv-↑≡ eq = trans (rconv-↑ (ρL e) (ρR e) m σ) (cong (renRConv (ρR e)) eq)
+
+  ConB-↑ : ∀ d {n n′ N} → n′ ≤ n → ConB d (rconv m σ) n N
+    → ConB d (rconv (CMode-↑ (ρL e) (ρR e) m)
+        (λ Y → renameᵗ (toRenameᵗ (ρR e)) (σ Y))) n′ N
+  ConB-↑ d le cb =
+    subst (λ c → ConB d c _ _) (sym (rconv-↑ (ρL e) (ρR e) m σ))
+      (ConB-ren d (ρR e) (rconv m σ) (ConB-down d (rconv m σ) le cb))
+
+------------------------------------------------------------------------
+-- `∀⊑∀`
+------------------------------------------------------------------------
+
+module PairV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
+    (p : pair Φ ⊢ A ⊑ B)
+    (rev : ∀ {N′ rk w X′} {m : CMode (pair Φ) X′ (ΔL w) (ΔR w)}
+       {α δs δt} → ConvI d N′ rk w m α δs δt → ∀ {k} → k ≤ N′
+       → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d k p w δs Vl Vr
+       → ℰ d k p w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) A 〗)
+           (revM (rconv m (δr δt)) (substᵗ (δr δs) B) Vr))
+    (con : ∀ {N′ rk w X′} {m : CMode (pair Φ) X′ (ΔL w) (ΔR w)}
+       {α δs δt} → ConvI d N′ rk w m α δs δt → ∀ {k}
+       → ConB d (rconv m (δr δt)) k N′
+       → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k p w δt Wl Wr
+       → ℰ d k p w δs
+           (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) A))
+           (conM (rconv m (δr δt)) (substᵗ (δr δs) B) Wr))
+    where
+
+  open PairRev d N p rev
+  open PairRevL d N p rev
+  open PairCon d N p rev con
+  open PairConL d N p rev con
+
+  -- the left's converted value, renamed
+  revL≡ : ∀ {w w′} (e : w′ ⊒ w) {X} (m : CMode Φ X (ΔL w) (ΔR w)) α
+      (δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)) (Vl : Term (ΔL w)) {C T}
+    → renameᵗᵐ (ρL e) (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) (`∀ A) 〗)
+        ⦂∀ C [ T ]
+      ≡ (renameᵗᵐ (ρL e) Vl
+          ↑ `∀↑ 〖 suc (toRenameᵗ (ρL e) α)
+                 , ⇑ᵗ (repM (CMode-↑ (ρL e) (ρR e) m) (δl (δt ↑ᴵ e)))
+                 ↑ substᵗ (extsᵗ (δl (δs ↑ᴵ e))) A 〗) ⦂∀ C [ T ]
+  revL≡ e m α δs δt Vl =
+    inst≡
+      (sym (revRen e m α δs δt (renameᵗᵐ (ρL e) Vl) (`∀ A)))
+
+  conL≡ : ∀ {w w′} (e : w′ ⊒ w) {X} (m : CMode Φ X (ΔL w) (ΔR w)) α
+      (δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)) (Wl : Term (ΔL w)) {C T}
+    → renameᵗᵐ (ρL e)
+        (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) (`∀ A)))
+        ⦂∀ C [ T ]
+      ≡ (renameᵗᵐ (ρL e) Wl
+          ↓ `∀↓ makeConceal (suc (toRenameᵗ (ρL e) α))
+                 (⇑ᵗ (repM (CMode-↑ (ρL e) (ρR e) m) (δl (δt ↑ᴵ e))))
+                 (substᵗ (extsᵗ (δl (δs ↑ᴵ e))) A)) ⦂∀ C [ T ]
+  conL≡ e m α δs δt Wl =
+    inst≡
+      (sym (conRen e m α δs δt (renameᵗᵐ (ρL e) Wl) (`∀ A)))
+
+  revV : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt} {rk}
+      (h : ConvI d N rk w m α δs δt) → n ≤ N
+    → ∀ {Vl Vr} → Value Vl → Value Vr → allPair d n p w δs Vl Vr
+    → allPair d n p w δt
+        (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) (`∀ A) 〗)
+        (revM (rconv m (δr δt)) (substᵗ (δr δs) (`∀ B)) Vr)
+  revV {n} w {m = m} {α} {δs} {δt} {rk} h le {Vl} {Vr} vl vr r
+      with rconv m (δr δt) in eq
+  revV {n} w {m = m} {α} {δs} {δt} {both} h le {Vl} {Vr} vl vr r
+      | just (α′ , R′) =
+    allPair-from d n p w {δ = δt} λ e {n′} le′ (sdesc Xs Ys c) →
+      ℰᵍ-≡ (sym (revL≡ e m α δs δt Vl))
+        (inst≡
+          (sym (revM-ren (ρR e) (just (α′ , R′)) (δr δs) (`∀ B) Vr)))
+        (pairRev {n′} _ (ConvI-↑ e h) (≤-trans le′ le)
+          (rconv-↑≡ e m (δr δt) eq)
+          (renameᵗᵐ-preserves-Value (ρL e) vl)
+          (renameᵗᵐ-preserves-Value (ρR e) vr)
+          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c)
+  revV {n} w {m = m} {α} {δs} {δt} {left} h le {Vl} {Vr} vl vr r
+      | just (α′ , R′) =
+    ⊥-elim (subst (Allowed left) eq (rcOK h))
+  revV {n} w {m = m} {α} {δs} {δt} {rk} h le {Vl} {Vr} vl vr r
+      | nothing =
+    allPair-from d n p w {δ = δt} λ e {n′} le′ (sdesc Xs Ys c) →
+      ℰᵍ-≡ (sym (revL≡ e m α δs δt Vl)) refl
+        (pairRevL {n′} _ (ConvI-↑ e h) (≤-trans le′ le)
+          (rconv-↑≡ e m (δr δt) eq)
+          (renameᵗᵐ-preserves-Value (ρL e) vl)
+          (renameᵗᵐ-preserves-Value (ρR e) vr)
+          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c)
+
+  conV : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt} {rk}
+      (h : ConvI d N rk w m α δs δt) → ConB d (rconv m (δr δt)) n N
+    → ∀ {Wl Wr} → Value Wl → Value Wr → allPair d n p w δt Wl Wr
+    → allPair d n p w δs
+        (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) (`∀ A)))
+        (conM (rconv m (δr δt)) (substᵗ (δr δs) (`∀ B)) Wr)
+  conV {n} w {m = m} {α} {δs} {δt} {rk} h cb {Wl} {Wr} wl wr r
+      with rconv m (δr δt) in eq
+  conV {n} w {m = m} {α} {δs} {δt} {both} h cb {Wl} {Wr} wl wr r
+      | just (α′ , R′) =
+    allPair-from d n p w {δ = δs} λ e {n′} le′ (sdesc Xs Ys c) →
+      ℰᵍ-≡ (sym (conL≡ e m α δs δt Wl))
+        (inst≡
+          (sym (conM-ren (ρR e) (just (α′ , R′)) (δr δs) (`∀ B) Wr)))
+        (pairCon {n′} _ (ConvI-↑ e h)
+          (≤-trans le′ (ConB-≤ d (just (α′ , R′)) cb))
+          (rconv-↑≡ e m (δr δt) eq)
+          (renameᵗᵐ-preserves-Value (ρL e) wl)
+          (renameᵗᵐ-preserves-Value (ρR e) wr)
+          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c)
+  conV {n} w {m = m} {α} {δs} {δt} {left} h cb {Wl} {Wr} wl wr r
+      | just (α′ , R′) =
+    ⊥-elim (subst (Allowed left) eq (rcOK h))
+  conV {n} w {m = m} {α} {δs} {δt} {rk} h cb {Wl} {Wr} wl wr r
+      | nothing =
+    allPair-from d n p w {δ = δs} λ e {n′} le′ (sdesc Xs Ys c) →
+      ℰᵍ-≡ (sym (conL≡ e m α δs δt Wl)) refl
+        (pairConL {n′} _ (ConvI-↑ e h)
+          (subst (λ c′ → ConB d c′ n′ N)
+            (sym (rconv-↑≡ e m (δr δt) eq))
+            (ConB-cast d (ConB-down d nothing le′ cb)))
+          (rconv-↑≡ e m (δr δt) eq)
+          (renameᵗᵐ-preserves-Value (ρL e) wl)
+          (renameᵗᵐ-preserves-Value (ρR e) wr)
+          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c)

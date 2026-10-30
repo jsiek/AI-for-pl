@@ -2560,6 +2560,222 @@ module SealNewP (d : Dir) {s n a b} (le_s : s ≤′ a) (le_n : n ≤′ b)
           writeUp d le_s le_n e₁ c₀ e k up lt r)
 
 ------------------------------------------------------------------------
+-- Left-only leaves under other bounds and renamings
+------------------------------------------------------------------------
+
+-- below both bounds, the bound does not matter
+leafG-bound : ∀ {n₁ a₁ n₂ a₂} (le₁ : n₁ ≤′ a₁) (le₂ : n₂ ≤′ a₂)
+    (c : Desc ΘL ΘR) {k} → k ≤ n₂ → ∀ w τL τR {V V′}
+  → leafG le₁ c k w τL τR V V′ → leafG le₂ c k w τL τR V V′
+leafG-bound {n₁ = n₁} {n₂ = n₂} le₁ le₂ c {k} k≤ w τL τR r
+    with k ≤? n₁ | k ≤? n₂
+leafG-bound le₁ le₂ (desc p env envR) {k} k≤ w τL τR r
+    | yes l₁ | yes l₂ =
+  G→G≤ (≤′-trans (≤⇒≤′ l₂) le₂) p w (G≤→G (≤′-trans (≤⇒≤′ l₁) le₁) p w r)
+leafG-bound le₁ le₂ c {k} k≤ w τL τR r | yes l₁ | no ¬l₂ = ⊥-elim (¬l₂ k≤)
+leafG-bound le₁ le₂ c {k} k≤ w τL τR () | no ¬l₁ | _
+
+-- a larger bound keeps the leaf
+leafG-up : ∀ {n₁ a₁ n₂ a₂} (le₁ : n₁ ≤′ a₁) (le₂ : n₂ ≤′ a₂)
+    (c : Desc ΘL ΘR) → n₁ ≤ n₂ → ∀ {k} w τL τR {V V′}
+  → leafG le₁ c k w τL τR V V′ → leafG le₂ c k w τL τR V V′
+leafG-up {n₁ = n₁} {n₂ = n₂} le₁ le₂ c n₁≤n₂ {k} w τL τR r
+    with k ≤? n₁ | k ≤? n₂
+leafG-up le₁ le₂ (desc p env envR) n₁≤n₂ {k} w τL τR r
+    | yes l₁ | yes l₂ =
+  G→G≤ (≤′-trans (≤⇒≤′ l₂) le₂) p w (G≤→G (≤′-trans (≤⇒≤′ l₁) le₁) p w r)
+leafG-up le₁ le₂ c n₁≤n₂ {k} w τL τR r | yes l₁ | no ¬l₂ =
+  ⊥-elim (¬l₂ (≤-trans l₁ n₁≤n₂))
+leafG-up le₁ le₂ c n₁≤n₂ {k} w τL τR () | no ¬l₁ | _
+
+onlyLeaf-up : ∀ d {n₁ a₁ n₂ a₂} (le₁ : n₁ ≤′ a₁) (le₂ : n₂ ≤′ a₂)
+    (c : Desc ΘL ΘR) → n₁ ≤ n₂ → ∀ {k} w τL τR {V V′}
+  → onlyLeaf d le₁ c k w τL τR V V′ → onlyLeaf d le₂ c k w τL τR V V′
+onlyLeaf-up ≺ le₁ le₂ c = leafBelow-up ≺ le₁ le₂ c
+onlyLeaf-up ≻ le₁ le₂ c = leafG-up le₁ le₂ c
+
+-- the target's left-only leaf, read at the stages a conceal needs
+onlyLeaf-write : ∀ d {s n a b} (le_n : n ≤′ b) (le_s : s ≤′ a)
+    (c : Desc ΘL ΘR) → UpB d s n → ∀ {k} → onlyBelow d k s
+  → ∀ w τL τR {V V′}
+  → onlyLeaf d le_n c k w τL τR V V′ → onlyLeaf d le_s c k w τL τR V V′
+onlyLeaf-write ≺ le_n le_s c up {k} lt =
+  leafBelow-bound ≺ le_n le_s c {k} lt
+onlyLeaf-write ≻ le_n le_s c up {k} lt w τL τR =
+  leafG-up le_n le_s c up {k} w τL τR
+
+-- a renamed descriptor's left-only leaf
+leafG-ren : ∀ {n′ n} (le : n′ ≤′ n) {ΘL′ ΘR′}
+    (σL : ΘL ↪ᵗ ΘL′) (σR : ΘR ↪ᵗ ΘR′) (c : Desc ΘL ΘR) k w τL τR {V V′}
+  → leafG le (renameDesc σL σR c) k w τL τR V V′
+    ⇔ leafG le c k w (τL ∘↪ σL) (τR ∘↪ σR) V V′
+leafG-ren {n′ = n′} le σL σR c k w τL τR with k ≤? n′
+leafG-ren {n′ = n′} le σL σR c k w τL τR | yes k≤ =
+  iff (subst (λ c′ → descG _ w c′ _ _) (renameDesc-∘ τL σL τR σR c))
+      (subst (λ c′ → descG _ w c′ _ _) (sym (renameDesc-∘ τL σL τR σR c)))
+leafG-ren {n′ = n′} le σL σR c k w τL τR | no ¬k≤ = iff (λ r → r) (λ r → r)
+
+onlyLeaf-ren : ∀ d {n′ n} (le : n′ ≤′ n) {ΘL′ ΘR′}
+    (σL : ΘL ↪ᵗ ΘL′) (σR : ΘR ↪ᵗ ΘR′) (c : Desc ΘL ΘR) k w τL τR {V V′}
+  → onlyLeaf d le (renameDesc σL σR c) k w τL τR V V′
+    ⇔ onlyLeaf d le c k w (τL ∘↪ σL) (τR ∘↪ σR) V V′
+onlyLeaf-ren ≺ le = leafBelow-ren ≺ le
+onlyLeaf-ren ≻ le = leafG-ren le
+
+onlyLeafS-ren : ∀ d {n′ n} (le : n′ ≤′ n) {ΘL′ ΘR′}
+    (σL : ΘL ↪ᵗ ΘL′) (σR : ΘR ↪ᵗ ΘR′) (c : SDesc ΘL ΘR) k w τL τR {V V′}
+  → onlyLeafS d le (renameSDesc σL σR c) k w τL τR V V′
+    ⇔ onlyLeafS d le c k w (τL ∘↪ σL) (τR ∘↪ σR) V V′
+onlyLeafS-ren d le σL σR (sdesc Xs Ys c) k w τL τR {V} {V′} =
+  iff
+    (λ r → subst (λ c′ → F Xs₂ c′) eqc
+             (subst (λ Xs′ → F Xs′ c₁) eqX
+               (peelSL-map Xs₁ c₁
+                 (to (onlyLeaf-ren d le σL σR c k w τL τR)) r)))
+    (λ r → peelSL-map Xs₁ c₁
+             (from (onlyLeaf-ren d le σL σR c k w τL τR))
+             (subst (λ Xs′ → F Xs′ c₁) (sym eqX)
+               (subst (λ c′ → F Xs₂ c′) (sym eqc) r)))
+  where
+  Xs₁ = map (renameVar τL) (map (renameVar σL) Xs)
+  Xs₂ = map (renameVar (τL ∘↪ σL)) Xs
+  c₁ = renameDesc τL τR (renameDesc σL σR c)
+  eqX = map-renameVar-∘ τL σL Xs
+  eqc = renameDesc-∘ τL σL τR σR c
+  F : List (TyVar (ΔL w)) → Desc (ΔL w) (ΔR w) → Set
+  F Xs′ c′ =
+    peelSL Xs′ c′ (onlyLeaf d le c k w (τL ∘↪ σL) (τR ∘↪ σR)) V V′
+
+-- a map on the core leaf of a sealed descriptor
+onlyS-map : ∀ d {n₁ a₁ n₂ a₂} (le₁ : n₁ ≤′ a₁) (le₂ : n₂ ≤′ a₂)
+    (s : SDesc ΘL ΘR) {k w τL τR}
+  → (∀ {V V′} → onlyLeaf d le₁ (core s) k w τL τR V V′
+       → onlyLeaf d le₂ (core s) k w τL τR V V′)
+  → ∀ {V V′} → onlyLeafS d le₁ s k w τL τR V V′
+  → onlyLeafS d le₂ s k w τL τR V V′
+onlyS-map d le₁ le₂ (sdesc Xs Ys c) {τL = τL} {τR} f =
+  peelSL-map (map (renameVar τL) Xs) (renameDesc τL τR c) f
+
+-- a left prefix of a left-only leaf
+module _ (d : Dir) {n′ n} (le : n′ ≤′ n) {ΘL ΘR}
+    (Xs : List (TyVar ΘL)) (Ys : List (TyVar ΘR)) (c : Desc ΘL ΘR)
+    (β : TyVar ΘL) (k : ℕ) (w : World)
+    (τL : ΘL ↪ᵗ ΔL w) (τR : ΘR ↪ᵗ ΔR w) where
+
+  private
+    c′ = renameDesc τL τR c
+    Xs′ = map (renameVar τL) Xs
+
+  onlyS→ : ∀ {V V′}
+    → onlyLeafS d le (sealSL β (sdesc Xs Ys c)) k w τL τR V V′
+    → sealedL (renameVar τL β) (repL Xs′ c′)
+        (onlyLeafS d le (sdesc Xs Ys c) k w τL τR) V V′
+  onlyS→ {V = V ↓ s} r = r
+  onlyS→ {V = ` x₀} ()
+  onlyS→ {V = ƛ M₀} ()
+  onlyS→ {V = L₀ · M₀} ()
+  onlyS→ {V = Λ M₀} ()
+  onlyS→ {V = L₀ ⦂∀ C₀ [ T₀ ]} ()
+  onlyS→ {V = $ κ₀} ()
+  onlyS→ {V = L₀ ⊕[ op₀ ] M₀} ()
+  onlyS→ {V = W₀ ⟨ c₀ ⟩} ()
+  onlyS→ {V = M₀ ↑ c₀} ()
+  onlyS→ {V = blame} ()
+
+  onlyS← : ∀ {V V′}
+    → sealedL (renameVar τL β) (repL Xs′ c′)
+        (onlyLeafS d le (sdesc Xs Ys c) k w τL τR) V V′
+    → onlyLeafS d le (sealSL β (sdesc Xs Ys c)) k w τL τR V V′
+  onlyS← r with sealedL-inv r
+  onlyS← r | W , refl , q = r
+
+-- a left-only store-variable leaf, under the conversion at hand
+module _ {d : Dir} {w : World} {L : Leaf (ΔL w) (ΔR w)}
+    (gl : GoodLeaf L) {γ : TyVar (ΔL w)} where
+
+  storeConvO : ∀ {N} R {α} → γ ≢ α → ConvLeafO d N w R α L L (＇ γ)
+  storeConvO R ne {w′} e {k} k≤N =
+    (λ vl vr r →
+      idRevO d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl)
+        (λ eq → ne (toRenameᵗ-injective (ρL e) eq)) vl vr r) ,
+    (λ wl vr r →
+      idConO d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl)
+        (λ eq → ne (toRenameᵗ-injective (ρL e) eq)) wl vr r)
+
+-- a left-only binder
+module SealNewO (d : Dir) {s n a b} (le_s : s ≤′ a) (le_n : n ≤′ b)
+    (s≤n : s ≤ n) {w w₁ : World} (e₁ : w₁ ⊒ w)
+    (Xs : List (TyVar (ΔL w))) (Ys : List (TyVar (ΔR w)))
+    (c : Desc (ΔL w) (ΔR w)) (β : TyVar (ΔL w₁)) where
+
+  open SealNew d le_s le_n s≤n e₁ Xs Ys c β using (varβ; repβ)
+
+  private
+    Xs₁ = map (renameVar (ρL e₁)) Xs
+    Ys₁ = map (renameVar (ρR e₁)) Ys
+    c₁ = renameDesc (ρL e₁) (ρR e₁) c
+    c₀ = sdesc Xs Ys c
+    Lt = sem (onlyLeafS d le_n c₀)
+
+  -- the target leaf, read in a future of w₁
+  readO : ∀ {w′} (e : w′ ⊒ w₁) k {V V′}
+    → onlyLeafS d le_s (sdesc Xs₁ Ys₁ c₁) k w′
+        (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e) V V′
+    → leafRel d (onlyStage d k) w′ (transportLeaf (ρL e) (ρR e)
+        (transportLeaf (ρL e₁) (ρR e₁) Lt)) V V′
+  readO {w′} e k r =
+    onlyLeafS-down d le_n c₀ (onlyStage-≤ d k) w′ _ _
+      (onlyS-map d le_s le_n c₀ (onlyLeaf-up d le_s le_n c s≤n _ _ _)
+        (to (onlyLeafS-ren d le_s (ρL e₁) (ρR e₁) c₀ k _ _ _) r))
+
+  writeO : ∀ {w′} (e : w′ ⊒ w₁) k → UpB d s n → onlyBelow d k s
+    → ∀ {V V′}
+    → leafRel d k w′ (transportLeaf (ρL e) (ρR e)
+        (transportLeaf (ρL e₁) (ρR e₁) Lt)) V V′
+    → onlyLeafS d le_s (sdesc Xs₁ Ys₁ c₁) k w′
+        (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e) V V′
+  writeO e k up lt r =
+    from (onlyLeafS-ren d le_s (ρL e₁) (ρR e₁) c₀ k _ _ _)
+      (onlyS-map d le_n le_s c₀ (onlyLeaf-write d le_n le_s c up lt _ _ _)
+        r)
+
+  sealNewO : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {δt : Interp Δ Δ′ (ΔL w) (ΔR w)}
+    → UpB d s n
+    → SealI d s w₁ (m-left {Φ = only Φ} {X = zero}) β
+        (extOnlyI (＇ β)
+          (sem (onlyLeafS d le_s (sdesc (β ∷ Xs₁) Ys₁ c₁)))
+          (δt ↑ᴵ e₁))
+        (extOnlyI (repL Xs c) Lt δt ↑ᴵ e₁)
+  sealNewO up = rev , con
+    where
+    rev : ∀ {w′} (e : w′ ⊒ w₁) {k} → 0 < k → k ≤ s → ∀ {Vl Vr}
+      → onlyLeafS d le_s (sdesc (β ∷ Xs₁) Ys₁ c₁) k w′
+          (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e) Vl Vr
+      → sealedL (toRenameᵗ (ρL e) β)
+          (renameᵗ (toRenameᵗ (ρL e))
+            (renameᵗ (toRenameᵗ (ρL e₁)) (repL Xs c)))
+          (leafRel d (onlyStage d k) w′ (transportLeaf (ρL e) (ρR e)
+            (transportLeaf (ρL e₁) (ρR e₁) Lt))) Vl Vr
+    rev {w′} e {k} pos le r =
+      sealedL-map (varβ e β) (repβ e) (readO e k)
+        (onlyS→ d le_s Xs₁ Ys₁ c₁ β k w′ (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e) r)
+
+    con : ∀ {w′} (e : w′ ⊒ w₁) {k} → 0 < k → onlyBelow d k s
+      → ∀ {Wl Vr}
+      → leafRel d k w′ (transportLeaf (ρL e) (ρR e)
+          (transportLeaf (ρL e₁) (ρR e₁) Lt)) Wl Vr
+      → onlyLeafS d le_s (sdesc (β ∷ Xs₁) Ys₁ c₁) k w′
+          (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e)
+          (Wl ↓ seal (toRenameᵗ (ρL e) β)
+            (renameᵗ (toRenameᵗ (ρL e))
+              (renameᵗ (toRenameᵗ (ρL e₁)) (repL Xs c)))) Vr
+    con {w′} e {k} pos lt r =
+      onlyS← d le_s Xs₁ Ys₁ c₁ β k w′ (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e)
+        ((sym (varβ e β) , sym (repβ e)) , writeO e k up lt r)
+
+------------------------------------------------------------------------
 -- Equations for instantiating a proxy at a new store variable
 ------------------------------------------------------------------------
 

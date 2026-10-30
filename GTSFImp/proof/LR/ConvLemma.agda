@@ -46,8 +46,8 @@ open import CastTerms using (Term; `_; ƛ_; _·_; Λ_; _⦂∀_[_]; $; _⊕[_]_;
 import CastTerms as CT
 open import Reduction using (_—→_; id-reveal; id-conceal; conceal-reveal;
   β-reveal-⇒; β-conceal-⇒; β-reveal-∀; β-conceal-∀; _—→[_]_; bind; keep;
-  StoreChange; StoreChanges; applyBody; []; _∷_)
-open import LR.Steps using (embedᶜˢ)
+  StoreChange; StoreChanges; applyBody; []; _∷_; ↠-refl; ↠-step)
+open import LR.Steps using (embedᶜˢ; more; none)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Vec using () renaming ([] to []ᵛ)
 open import LR.Frame using (Frame; reveal; conceal; app₂; plug;
@@ -2383,3 +2383,94 @@ module SealNewP (d : Dir) {s n a b} (le_s : s ≤′ a) (le_n : n ≤′ b)
       sealSL← d le_s Xs₁ Ys₁ c₁ β k w′ (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e)
         ((sym (varβ e β) , sym (repβ e)) ,
           writeUp d le_s le_n e₁ c₀ e k up lt r)
+
+------------------------------------------------------------------------
+-- Equations for instantiating a proxy at a new store variable
+------------------------------------------------------------------------
+
+module _ {Θ} (T : Ty Θ) where
+
+  private
+    ρ₁ = toRenameᵗ (embedᶜˢ (bind T ∷ []))
+
+  -- the shifted term
+  shift-term : (V : Term Θ) → renameᵗᵐ (embedᶜˢ (bind T ∷ [])) V ≡ ⇑ᵗᵐ V
+  shift-term V = cong (λ σ → renameᵗᵐ σ V) (embed-bind T)
+
+  shift-ty : (C : Ty Θ) → renameᵗ ρ₁ C ≡ ⇑ᵗ C
+  shift-ty C = renameᵗ-cong C (embed-var T)
+
+  -- the annotation of the instantiation after the allocation
+  annot : (σ : Δ ⇒ˢ Θ) (A : Ty (suc Δ))
+    → substᵗ (extsᵗ (λ Z → renameᵗ ρ₁ (σ Z))) A
+      ≡ renameᵗ (extᵗ suc) (substᵗ (extsᵗ σ) A)
+  annot σ A =
+    trans (substᵗ-cong A pw) (sym (renameᵗ-subst (extᵗ suc) (extsᵗ σ) A))
+    where
+    pw : ∀ Z → extsᵗ (λ Z′ → renameᵗ ρ₁ (σ Z′)) Z
+      ≡ renameᵗ (extᵗ suc) (extsᵗ σ Z)
+    pw zero = refl
+    pw (suc Z) =
+      trans (renameᵗ-comp ρ₁ suc (σ Z))
+        (trans (renameᵗ-cong (σ Z) (λ X → cong suc (embed-var T X)))
+          (sym (renameᵗ-comp suc (extᵗ suc) (σ Z))))
+
+  -- the body opened at the new store variable
+  open0 : (σ : Δ ⇒ˢ Θ) (A : Ty (suc Δ))
+    → substᵗ ((＇ zero) •ˢ (λ Z → renameᵗ ρ₁ (σ Z))) A
+      ≡ substᵗ (extsᵗ σ) A
+  open0 σ A = substᵗ-cong A pw
+    where
+    pw : ∀ Z → ((＇ zero) •ˢ (λ Z′ → renameᵗ ρ₁ (σ Z′))) Z ≡ extsᵗ σ Z
+    pw zero = refl
+    pw (suc Z) = shift-ty (σ Z)
+
+-- the target of a converted body
+tgt-body : ∀ {Θ} (α : TyVar Θ) R (σs σt : Δ ⇒ˢ Θ)
+  → (∀ Z → replaceTy α R (σs Z) ≡ σt Z) → (A : Ty (suc Δ))
+  → replaceTy (suc α) (⇑ᵗ R) (substᵗ (extsᵗ σs) A) ≡ substᵗ (extsᵗ σt) A
+tgt-body α R σs σt eq A =
+  trans (replaceTy-subst (suc α) (⇑ᵗ R) (extsᵗ σs) A) (substᵗ-cong A pw)
+  where
+  pw : ∀ Z → replaceTy (suc α) (⇑ᵗ R) (extsᵗ σs Z) ≡ extsᵗ σt Z
+  pw zero = replaceTy-other {X = suc α} (⇑ᵗ R) (λ ())
+  pw (suc Z) =
+    trans (sym (replaceTy-rename suc suc-inj α R (σs Z)))
+      (cong (renameᵗ suc) (eq Z))
+
+-- renaming equal packed conversions
+pk-ren↑ : ∀ {Θ Θ′} (ρ : Θ ⇒ʳ Θ′) {A B C D} {c : Conv↑ Θ A B}
+    {c′ : Conv↑ Θ C D}
+  → ⟪ c ⟫↑ ≡ ⟪ c′ ⟫↑ → ⟪ rename↑ ρ c ⟫↑ ≡ ⟪ rename↑ ρ c′ ⟫↑
+pk-ren↑ ρ refl = refl
+
+pk-ren↓ : ∀ {Θ Θ′} (ρ : Θ ⇒ʳ Θ′) {A B C D} {c : Conv↓ Θ A B}
+    {c′ : Conv↓ Θ C D}
+  → ⟪ c ⟫↓ ≡ ⟪ c′ ⟫↓ → ⟪ rename↓ ρ c ⟫↓ ≡ ⟪ rename↓ ρ c′ ⟫↓
+pk-ren↓ ρ refl = refl
+
+pk-〖〗 : ∀ {Θ} {α α′ : TyVar Θ} {R R′ T T′}
+  → α ≡ α′ → R ≡ R′ → T ≡ T′ → ⟪ 〖 α , R ↑ T 〗 ⟫↑ ≡ ⟪ 〖 α′ , R′ ↑ T′ 〗 ⟫↑
+pk-〖〗 refl refl refl = refl
+
+pk-mc : ∀ {Θ} {α α′ : TyVar Θ} {R R′ T T′}
+  → α ≡ α′ → R ≡ R′ → T ≡ T′
+  → ⟪ makeConceal α R T ⟫↓ ≡ ⟪ makeConceal α′ R′ T′ ⟫↓
+pk-mc refl refl refl = refl
+
+-- one step on each side, the counted one included
+anti₁₁ : ∀ d {s} {Φ : Corr Δ Δ′} {A A′} (p : Φ ⊢ A ⊑ A′) {w : World}
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {ΘL ΘR} {Ml : Term (ΔL w)}
+    {Ml′ : Term ΘL} {Mr : Term (ΔR w)} {Mr′ : Term ΘR}
+    {χL : StoreChange (ΔL w) ΘL} {χR : StoreChange (ΔR w) ΘR}
+  → Ml —→[ χL ] Ml′ → Mr —→[ χR ] Mr′
+  → (tags : TyVar ΘL → Tag ΘL ΘR)
+  → (ok : ∀ X → tags (toRenameᵗ (embedᶜˢ (χL ∷ [])) X)
+            ≡ renameTag (embedᶜˢ (χL ∷ [])) (embedᶜˢ (χR ∷ [])) (tag w X))
+  → ℰ d s p (world ΘL ΘR tags)
+      (δ ↑ᴵ stepExt (χL ∷ []) (χR ∷ []) tags ok) Ml′ Mr′
+  → ℰ d (suc s) p w δ Ml Mr
+anti₁₁ ≺ p sl sr tags ok r =
+  ℰ-anti-≺ p (more sl none) (↠-step sr ↠-refl) tags ok r
+anti₁₁ ≻ p sl sr tags ok r =
+  ℰ-anti-≻ p (↠-step sl ↠-refl) (more sr none) tags ok r

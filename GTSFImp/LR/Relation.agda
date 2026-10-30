@@ -31,7 +31,7 @@ module LR.Relation where
 
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; map)
 open import Data.Maybe using (just; nothing)
 open import Data.Nat using (ℕ; zero; suc; _+_; _≤′_; ≤′-refl; ≤′-step;
   _<_; _≤_; _<?_; _≤?_)
@@ -160,6 +160,22 @@ IsInj∀ c = ⊥
 baseInj : ∀ {ΔL ΔR} → Base → Term ΔL → Term ΔR → Set
 baseInj ι ($ κ) (W ⟨ c ⟩) = IsInjBase ι c × W ≡ $ κ
 baseInj ι Vl Vr = ⊥
+
+------------------------------------------------------------------------
+-- Peeling a list of seals around a semantic relation
+------------------------------------------------------------------------
+
+peelSL : ∀ {ΘL ΘR} → List (TyVar ΘL) → Desc ΘL ΘR
+  → (Term ΘL → Term ΘR → Set) → Term ΘL → Term ΘR → Set
+peelSL [] c P V V′ = P V V′
+peelSL (X ∷ Xs) c P (V ↓ s) V′ = IsSeal X (repL Xs c) s × peelSL Xs c P V V′
+peelSL (X ∷ Xs) c P V V′ = ⊥
+
+peelSR : ∀ {ΘL ΘR} → List (TyVar ΘR) → Desc ΘL ΘR
+  → (Term ΘL → Term ΘR → Set) → Term ΘL → Term ΘR → Set
+peelSR [] c P V V′ = P V V′
+peelSR (Y ∷ Ys) c P V (V′ ↓ s) = IsSeal Y (repR Ys c) s × peelSR Ys c P V V′
+peelSR (Y ∷ Ys) c P V V′ = ⊥
 
 ------------------------------------------------------------------------
 -- The generic expression closure
@@ -403,19 +419,28 @@ mutual
   onlyLeaf ≺ le c = leafBelow ≺ le c
   onlyLeaf ≻ le c = leafG le c
 
-  -- both instantiate, at any descriptor
+  -- a sealed descriptor's leaf: peel the seals, then read the
+  -- descriptor below n′ at the same stage
+  leafBelowS : Dir → ∀ {n′ n} → n′ ≤′ n → ∀ {ΔL ΔR}
+    → SDesc ΔL ΔR → RelΩ ΔL ΔR
+  leafBelowS d le (sdesc Xs Ys c) m w τL τR =
+    peelSL (map (renameVar τL) Xs) (renameDesc τL τR c)
+      (peelSR (map (renameVar τR) Ys) (renameDesc τL τR c)
+        (leafBelow d le c m w τL τR))
+
+  -- both instantiate, at any sealed descriptor
   allPair : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     → pair Φ ⊢ A ⊑ B → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
     → Term (ΔL w) → Term (ΔR w) → Set
   allPair d n {A = A} {B = B} p w δ Vl Vr =
-    ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n) (c : Desc (ΔL w′) (ΔR w′))
+    ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n) (c : SDesc (ΔL w′) (ΔR w′))
     → ℰᵍ d n′ w′
         (λ le′ w″ e′ → 𝒱≤ d (≤′-trans le′ le) p w″
-          (extPairI (leftTy c) (rightTy c) (sem (leafBelow d le c))
+          (extPairI (leftTyS c) (rightTyS c) (sem (leafBelowS d le c))
             (δ ↑ᴵ e) ↑ᴵ e′))
-        (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A [ leftTy c ])
+        (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A [ leftTyS c ])
         (renameᵗᵐ (ρR e) Vr ⦂∀ substᵗ (extsᵗ (δr (δ ↑ᴵ e))) B
-          [ rightTy c ])
+          [ rightTyS c ])
 
   -- only the left instantiates
   allOnly : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A B}

@@ -458,7 +458,8 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d N} {w : World}
     {δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)} {β : TyVar (ΔL w)}
     {l : Leaf (ΔL w) (ΔR w)} where
 
-  ConvI-extPair : ∀ {m : CMode Φ X (ΔR w)} {α β′} → GoodLeaf l → β ≢ α → FreshR m β′
+  ConvI-extPair : ∀ {m : CMode Φ X (ΔR w)} {α β′}
+    → GoodLeaf l → β ≢ α → FreshR m β′
     → ConvI d N w m α δs δt
     → ConvI d N w (CMode-pair m) α
         (extPairI (＇ β) (＇ β′) l δs) (extPairI (＇ β) (＇ β′) l δt)
@@ -562,7 +563,8 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d N} {w : World}
         (cong₂ (λ a R → Wr ↓ seal a R) (toRename-id-eq α′)
           (δr≡ (↑ᴵ-refl {w = w} δt) Y))
         (proj₂ (sealI h) (⊒-refl w) pos lt
-          (leafRel-resp d (pred k) w (≈ˡ-sym (leaf≈ (↑ᴵ-refl {w = w} δt) X)) r)))
+          (leafRel-resp d (pred k) w
+            (≈ˡ-sym (leaf≈ (↑ᴵ-refl {w = w} δt) X)) r)))
 
   onlyRev : ∀ {x : Φ ∋ X only}
     → ConvI d N w (m-only x) α δs δt → ∀ {k} → 0 < k → k ≤ N

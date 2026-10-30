@@ -669,6 +669,41 @@ only strengthens the clauses.
       below `n` only.
   * The user chose this over changing `〖_,_↑_〗` to generate
     identities where the variable does not occur (a language change).
+* **Sealed descriptors in `∀⊑∀`.** Suppose the left converts and the
+  right does not: X left-only or dead, or a fresh conversion with no
+  right conversion. The body has a paired binder Y.
+  * The left proxy instantiates V at a new store variable β and
+    reveals it; the right instantiates `Vr` at the target's `Tr`
+    directly.
+  * So V's clause must be used with left type `＇ β` and right type
+    `Tr`. The only descriptor of that shape has the entry
+    `seals β [] [] c₀`. In `≻` an entry with no right seal reads its
+    contents by `G`, which for a non-`★` derivation is one stage down.
+  * The target leaf (`leafBelow c₀`) reads at the same stage, and the
+    left's steps are not counted. The stage is lost, and the lemma
+    fails for function contents.
+  * The paper design quantified over semantic relations and could pick
+    "sealed by β, contents at the same stage". Descriptors cannot
+    express that: a syntactic entry read at the same stage breaks the
+    definition's termination.
+  * Fix: `allPair` quantifies over *sealed descriptors* `sdesc Xs Ys c`,
+    lists of left and right seals around a descriptor. Their semantic
+    leaf peels the seals and then reads `leafBelow c` at the same
+    stage, which is well-founded because `leafBelow` is stage-bounded.
+    Empty lists give the old clause, so the substitution lemma's
+    instances are unchanged.
+  * The fundamental lemma's `Λ⊑Λ` case already handles prefixes: the
+    bound variable's entry is `seals α Xs (α′ ∷ Ys) c`, since entries
+    carry seal lists.
+* **Seal hypotheses, uniformly.**
+  * Reveal: X's converted leaf at stage k gives sealed values whose
+    contents are related by its target leaf at k − 1 when the counted
+    side unseals (`≺`, or `≻` with the right converting), and at k
+    otherwise.
+  * Conceal: the target leaf at k gives the converted leaf at k, at
+    the stages `ConB` allows.
+  * Modes: pair (the right converts), left (only the left converts; X
+    paired or left-only), dead, and none.
 
 **Next, in order** (items 5–9 of Section 6.9):
 1. conversions;

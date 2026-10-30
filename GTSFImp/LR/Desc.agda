@@ -111,3 +111,33 @@ renameTag : ∀ {ΔL ΔL′ ΔR ΔR′}
   → ΔL ↪ᵗ ΔL′ → ΔR ↪ᵗ ΔR′ → Tag ΔL ΔR → Tag ΔL′ ΔR′
 renameTag σL σR (just Y , e) = just (renameVar σR Y) , renameEntry σL σR e
 renameTag σL σR (nothing , e) = nothing , renameEntry σL σR e
+
+------------------------------------------------------------------------
+-- Sealed descriptors
+------------------------------------------------------------------------
+
+-- a descriptor under seals: the left values are sealed by Xs and the
+-- right values by Ys (outermost first), around values related by the
+-- descriptor at the same stage
+record SDesc (ΔL ΔR : TyCtx) : Set where
+  constructor sdesc
+  field
+    sealsL : List (TyVar ΔL)
+    sealsR : List (TyVar ΔR)
+    core : Desc ΔL ΔR
+
+open SDesc public
+
+plain : ∀ {ΔL ΔR} → Desc ΔL ΔR → SDesc ΔL ΔR
+plain c = sdesc [] [] c
+
+leftTyS : ∀ {ΔL ΔR} → SDesc ΔL ΔR → Ty ΔL
+leftTyS (sdesc Xs Ys c) = repL Xs c
+
+rightTyS : ∀ {ΔL ΔR} → SDesc ΔL ΔR → Ty ΔR
+rightTyS (sdesc Xs Ys c) = repR Ys c
+
+renameSDesc : ∀ {ΔL ΔL′ ΔR ΔR′}
+  → ΔL ↪ᵗ ΔL′ → ΔR ↪ᵗ ΔR′ → SDesc ΔL ΔR → SDesc ΔL′ ΔR′
+renameSDesc σL σR (sdesc Xs Ys c) =
+  sdesc (map (renameVar σL) Xs) (map (renameVar σR) Ys) (renameDesc σL σR c)

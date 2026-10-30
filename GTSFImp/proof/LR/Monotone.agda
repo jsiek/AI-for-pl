@@ -270,6 +270,112 @@ onlyLeaf-≈ ≺ le₁ le₂ c = leafBelow-≈ ≺ le₁ le₂ c
 onlyLeaf-≈ ≻ le₁ le₂ c = leafG-≈ le₁ le₂ c
 
 ------------------------------------------------------------------------
+-- Peeling a list of seals
+------------------------------------------------------------------------
+
+peelSL-map : ∀ (Xs : List (TyVar ΘL)) (c : Desc ΘL ΘR)
+    {P P′ : Term ΘL → Term ΘR → Set}
+  → (∀ {V V′} → P V V′ → P′ V V′)
+  → ∀ {V V′} → peelSL Xs c P V V′ → peelSL Xs c P′ V V′
+peelSL-map [] c f r = f r
+peelSL-map (X ∷ Xs) c f {V = V ↓ s} (is , r) = is , peelSL-map Xs c f r
+peelSL-map (X ∷ Xs) c f {V = ` x₀} ()
+peelSL-map (X ∷ Xs) c f {V = ƛ M₀} ()
+peelSL-map (X ∷ Xs) c f {V = L₀ · M₀} ()
+peelSL-map (X ∷ Xs) c f {V = Λ M₀} ()
+peelSL-map (X ∷ Xs) c f {V = L₀ ⦂∀ C₀ [ T₀ ]} ()
+peelSL-map (X ∷ Xs) c f {V = $ κ₀} ()
+peelSL-map (X ∷ Xs) c f {V = L₀ ⊕[ op₀ ] M₀} ()
+peelSL-map (X ∷ Xs) c f {V = W₀ ⟨ c₀ ⟩} ()
+peelSL-map (X ∷ Xs) c f {V = M₀ ↑ c₀} ()
+peelSL-map (X ∷ Xs) c f {V = blame} ()
+
+peelSR-map : ∀ (Ys : List (TyVar ΘR)) (c : Desc ΘL ΘR)
+    {P P′ : Term ΘL → Term ΘR → Set}
+  → (∀ {V V′} → P V V′ → P′ V V′)
+  → ∀ {V V′} → peelSR Ys c P V V′ → peelSR Ys c P′ V V′
+peelSR-map [] c f r = f r
+peelSR-map (Y ∷ Ys) c f {V′ = V′ ↓ s} (is , r) = is , peelSR-map Ys c f r
+peelSR-map (Y ∷ Ys) c f {V′ = ` x₀} ()
+peelSR-map (Y ∷ Ys) c f {V′ = ƛ M₀} ()
+peelSR-map (Y ∷ Ys) c f {V′ = L₀ · M₀} ()
+peelSR-map (Y ∷ Ys) c f {V′ = Λ M₀} ()
+peelSR-map (Y ∷ Ys) c f {V′ = L₀ ⦂∀ C₀ [ T₀ ]} ()
+peelSR-map (Y ∷ Ys) c f {V′ = $ κ₀} ()
+peelSR-map (Y ∷ Ys) c f {V′ = L₀ ⊕[ op₀ ] M₀} ()
+peelSR-map (Y ∷ Ys) c f {V′ = W₀ ⟨ c₀ ⟩} ()
+peelSR-map (Y ∷ Ys) c f {V′ = M₀ ↑ c₀} ()
+peelSR-map (Y ∷ Ys) c f {V′ = blame} ()
+
+-- renaming the values, the seals and the descriptor
+peelSL-ren : ∀ {ΘL′ ΘR′} (σL : ΘL ↪ᵗ ΘL′) (σR : ΘR ↪ᵗ ΘR′)
+    (Xs : List (TyVar ΘL)) (c : Desc ΘL ΘR)
+    {P : Term ΘL → Term ΘR → Set} {P′ : Term ΘL′ → Term ΘR′ → Set}
+  → (∀ {V V′} → P V V′ → P′ (renameᵗᵐ σL V) (renameᵗᵐ σR V′))
+  → ∀ {V V′} → peelSL Xs c P V V′
+  → peelSL (map (renameVar σL) Xs) (renameDesc σL σR c) P′
+      (renameᵗᵐ σL V) (renameᵗᵐ σR V′)
+peelSL-ren σL σR [] c f r = f r
+peelSL-ren σL σR (X ∷ Xs) c f {V = V ↓ s} (is , r) =
+  IsSeal-rename (toRenameᵗ σL) s (repL-rename σL σR Xs c) is ,
+  peelSL-ren σL σR Xs c f r
+peelSL-ren σL σR (X ∷ Xs) c f {V = ` x₀} ()
+peelSL-ren σL σR (X ∷ Xs) c f {V = ƛ M₀} ()
+peelSL-ren σL σR (X ∷ Xs) c f {V = L₀ · M₀} ()
+peelSL-ren σL σR (X ∷ Xs) c f {V = Λ M₀} ()
+peelSL-ren σL σR (X ∷ Xs) c f {V = L₀ ⦂∀ C₀ [ T₀ ]} ()
+peelSL-ren σL σR (X ∷ Xs) c f {V = $ κ₀} ()
+peelSL-ren σL σR (X ∷ Xs) c f {V = L₀ ⊕[ op₀ ] M₀} ()
+peelSL-ren σL σR (X ∷ Xs) c f {V = W₀ ⟨ c₀ ⟩} ()
+peelSL-ren σL σR (X ∷ Xs) c f {V = M₀ ↑ c₀} ()
+peelSL-ren σL σR (X ∷ Xs) c f {V = blame} ()
+
+peelSR-ren : ∀ {ΘL′ ΘR′} (σL : ΘL ↪ᵗ ΘL′) (σR : ΘR ↪ᵗ ΘR′)
+    (Ys : List (TyVar ΘR)) (c : Desc ΘL ΘR)
+    {P : Term ΘL → Term ΘR → Set} {P′ : Term ΘL′ → Term ΘR′ → Set}
+  → (∀ {V V′} → P V V′ → P′ (renameᵗᵐ σL V) (renameᵗᵐ σR V′))
+  → ∀ {V V′} → peelSR Ys c P V V′
+  → peelSR (map (renameVar σR) Ys) (renameDesc σL σR c) P′
+      (renameᵗᵐ σL V) (renameᵗᵐ σR V′)
+peelSR-ren σL σR [] c f r = f r
+peelSR-ren σL σR (Y ∷ Ys) c f {V′ = V′ ↓ s} (is , r) =
+  IsSeal-rename (toRenameᵗ σR) s (repR-rename σL σR Ys c) is ,
+  peelSR-ren σL σR Ys c f r
+peelSR-ren σL σR (Y ∷ Ys) c f {V′ = ` x₀} ()
+peelSR-ren σL σR (Y ∷ Ys) c f {V′ = ƛ M₀} ()
+peelSR-ren σL σR (Y ∷ Ys) c f {V′ = L₀ · M₀} ()
+peelSR-ren σL σR (Y ∷ Ys) c f {V′ = Λ M₀} ()
+peelSR-ren σL σR (Y ∷ Ys) c f {V′ = L₀ ⦂∀ C₀ [ T₀ ]} ()
+peelSR-ren σL σR (Y ∷ Ys) c f {V′ = $ κ₀} ()
+peelSR-ren σL σR (Y ∷ Ys) c f {V′ = L₀ ⊕[ op₀ ] M₀} ()
+peelSR-ren σL σR (Y ∷ Ys) c f {V′ = W₀ ⟨ c₀ ⟩} ()
+peelSR-ren σL σR (Y ∷ Ys) c f {V′ = M₀ ↑ c₀} ()
+peelSR-ren σL σR (Y ∷ Ys) c f {V′ = blame} ()
+
+-- the sealed descriptor's leaf, with its peeling made explicit
+peelS-map : ∀ (s : SDesc ΘL ΘR) {ΘL′ ΘR′}
+    {τL : ΘL ↪ᵗ ΘL′} {τR : ΘR ↪ᵗ ΘR′} {P P′ : Term ΘL′ → Term ΘR′ → Set}
+  → (∀ {V V′} → P V V′ → P′ V V′)
+  → ∀ {V V′}
+  → peelSL (map (renameVar τL) (sealsL s)) (renameDesc τL τR (core s))
+      (peelSR (map (renameVar τR) (sealsR s)) (renameDesc τL τR (core s)) P)
+      V V′
+  → peelSL (map (renameVar τL) (sealsL s)) (renameDesc τL τR (core s))
+      (peelSR (map (renameVar τR) (sealsR s)) (renameDesc τL τR (core s)) P′)
+      V V′
+peelS-map (sdesc Xs Ys c) {τL = τL} {τR = τR} f =
+  peelSL-map (map (renameVar τL) Xs) (renameDesc τL τR c)
+    (peelSR-map (map (renameVar τR) Ys) (renameDesc τL τR c) f)
+
+leafBelowS-≈ : ∀ d {n′ a b} (le₁ : n′ ≤′ a) (le₂ : n′ ≤′ b)
+    (s : SDesc ΘL ΘR)
+  → sem (leafBelowS d le₁ s) ≈ˡ sem (leafBelowS d le₂ s)
+leafBelowS-≈ d le₁ le₂ s@(sdesc Xs Ys c) with leafBelow-≈ d le₁ le₂ c
+leafBelowS-≈ d le₁ le₂ s@(sdesc Xs Ys c) | sem≈ to from =
+  sem≈ (λ k w τL τR V V′ → peelS-map s (to k w τL τR _ _))
+       (λ k w τL τR V V′ → peelS-map s (from k w τL τR _ _))
+
+------------------------------------------------------------------------
 -- Monotonicity: the clauses that quantify over futures
 ------------------------------------------------------------------------
 
@@ -295,10 +401,10 @@ allPair-mono : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : pair Φ ⊢ A ⊑ B)
   → allPair d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
 allPair-mono d n {A = A} {B = B} p e {δ} {Vl} {Vr} f e′ le c =
   ℰᵍ-≡
-    (cong₂ (λ M C → M ⦂∀ C [ leftTy c ])
+    (cong₂ (λ M C → M ⦂∀ C [ leftTyS c ])
       (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl))
       (substᵗ-cong A (exts-cong (λ X → sym (δl≡ (↑ᴵ-trans δ e′ e) X)))))
-    (cong₂ (λ M C → M ⦂∀ C [ rightTy c ])
+    (cong₂ (λ M C → M ⦂∀ C [ rightTyS c ])
       (sym (renameᵗᵐ-∘ (ρR e′) (ρR e) Vr))
       (substᵗ-cong B (exts-cong (λ Y → sym (δr≡ (↑ᴵ-trans δ e′ e) Y)))))
     (ℰᵍ-map d _ _
@@ -723,7 +829,7 @@ allPair-down d le p w f e le₁ c =
   ℰᵍ-map d _ _
     (λ le′ w″ e′ V V′ r →
       𝒱≤-resp d (≤′-trans le′ le₁) p w″
-        (↑ᴵ-resp (extPairI-resp (leafBelow-≈ d le₂ le₁ c) ≈ᴵ-refl) e′)
+        (↑ᴵ-resp (extPairI-resp (leafBelowS-≈ d le₂ le₁ c) ≈ᴵ-refl) e′)
         (𝒱≤-cast d (≤′-trans le′ le₂) (≤′-trans le′ le₁) p w″ r))
     (f e le₂ c)
   where le₂ = ≤′-trans le₁ (≤⇒≤′ le)

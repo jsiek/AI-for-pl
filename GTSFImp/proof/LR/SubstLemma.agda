@@ -492,27 +492,27 @@ mutual
   allPair-ren d n R {A = A} {B = B} p w h {Vl = Vl} {Vr = Vr} =
     iff (λ r e le c →
            ℰᵍ-≡
-             (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTy c ])
+             (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-ren (rl≡ (RenI-↑ h e)) A))
-             (cong (λ C → renameᵗᵐ (ρR e) Vr ⦂∀ C [ rightTy c ])
+             (cong (λ C → renameᵗᵐ (ρR e) Vr ⦂∀ C [ rightTyS c ])
                (annot-ren (rr≡ (RenI-↑ h e)) B))
              (ℰᵍ-map d _ _
                (λ le′ w″ e′ V V′ →
                  to (𝒱≤-ren d (≤′-trans le′ le) (ext-pairᴿ R) p w″
-                      (RenI-↑ (RenI-extPair {T = leftTy c}
-                        {T′ = rightTy c} (RenI-↑ h e)) e′)))
+                      (RenI-↑ (RenI-extPair {T = leftTyS c}
+                        {T′ = rightTyS c} (RenI-↑ h e)) e′)))
                (r e le c)))
         (λ r e le c →
            ℰᵍ-≡
-             (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTy c ])
+             (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-ren (rl≡ (RenI-↑ h e)) A)))
-             (sym (cong (λ C → renameᵗᵐ (ρR e) Vr ⦂∀ C [ rightTy c ])
+             (sym (cong (λ C → renameᵗᵐ (ρR e) Vr ⦂∀ C [ rightTyS c ])
                (annot-ren (rr≡ (RenI-↑ h e)) B)))
              (ℰᵍ-map d _ _
                (λ le′ w″ e′ V V′ →
                  from (𝒱≤-ren d (≤′-trans le′ le) (ext-pairᴿ R) p w″
-                        (RenI-↑ (RenI-extPair {T = leftTy c}
-                          {T′ = rightTy c} (RenI-↑ h e)) e′)))
+                        (RenI-↑ (RenI-extPair {T = leftTyS c}
+                          {T′ = rightTyS c} (RenI-↑ h e)) e′)))
                (r e le c)))
 
   allOnly-ren : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′}
@@ -891,27 +891,27 @@ mutual
   allPair-subst d n S {A = A} {B = B} p w h lt {Vl = Vl} {Vr = Vr} =
     iff (λ r e le c →
            ℰᵍ-≡
-             (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTy c ])
+             (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-subst (sl≡ (SubI-↑ h e)) A))
-             (cong (λ C → renameᵗᵐ (ρR e) Vr ⦂∀ C [ rightTy c ])
+             (cong (λ C → renameᵗᵐ (ρR e) Vr ⦂∀ C [ rightTyS c ])
                (annot-subst (sr≡ (SubI-↑ h e)) B))
              (ℰᵍ-map⁺ d _ _
                (λ le′ pos′ w″ e′ V V′ →
                  to (𝒱≤-subst d (≤′-trans le′ le) (exts-pairˢ S) p w″
-                      (SubI-↑ (SubI-extPair (sem (leafBelow d le c))
+                      (SubI-↑ (SubI-extPair (sem (leafBelowS d le c))
                         (SubI-↑ h e)) e′)
                       pos′ (below (≤′-trans le′ le) lt)))
                (r e le c)))
         (λ r e le c →
            ℰᵍ-≡
-             (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTy c ])
+             (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-subst (sl≡ (SubI-↑ h e)) A)))
-             (sym (cong (λ C → renameᵗᵐ (ρR e) Vr ⦂∀ C [ rightTy c ])
+             (sym (cong (λ C → renameᵗᵐ (ρR e) Vr ⦂∀ C [ rightTyS c ])
                (annot-subst (sr≡ (SubI-↑ h e)) B)))
              (ℰᵍ-map⁺ d _ _
                (λ le′ pos′ w″ e′ V V′ →
                  from (𝒱≤-subst d (≤′-trans le′ le) (exts-pairˢ S) p w″
-                        (SubI-↑ (SubI-extPair (sem (leafBelow d le c))
+                        (SubI-↑ (SubI-extPair (sem (leafBelowS d le c))
                           (SubI-↑ h e)) e′)
                         pos′ (below (≤′-trans le′ le) lt)))
                (r e le c)))

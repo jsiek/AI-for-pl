@@ -331,9 +331,9 @@ mutual
     → δ ≈ᴵ δ′ → allPair d n p w δ Vl Vr → allPair d n p w δ′ Vl Vr
   allPair-resp d n {A = A} {B = B} p w {Vl = Vl} {Vr = Vr} h r e le c =
     ℰᵍ-≡
-      (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTy c ])
+      (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
         (substᵗ-cong A (exts-cong (δl≡ (↑ᴵ-resp h e)))))
-      (cong (λ C → renameᵗᵐ (ρR e) Vr ⦂∀ C [ rightTy c ])
+      (cong (λ C → renameᵗᵐ (ρR e) Vr ⦂∀ C [ rightTyS c ])
         (substᵗ-cong B (exts-cong (δr≡ (↑ᴵ-resp h e)))))
       (ℰᵍ-map d _ _
         (λ le′ w″ e′ V V′ →

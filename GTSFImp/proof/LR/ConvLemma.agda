@@ -37,6 +37,7 @@ open import Relation.Nullary using (yes; no)
 open import Types
 open import Consistency using (_↪ᵗ_; toRenameᵗ; id↪ᵗ; wk↪ᵗ)
 open import proof.DGG.CenterRename using (toRenameᵗ-∘; _∘↪_)
+open import proof.TermRename using (renameᵗᵐ-id)
 open import proof.TypeInTermSubst using (toRename-id-eq; toRename-wk-eq;
   renameᵗᵐ-preserves-Value)
 open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
@@ -2059,53 +2060,55 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
 
   -- a paired binder; the right does not convert, and is instantiated at
   -- Tr itself
-  ConvI-newL : ∀ {rk} {Tr : Ty (ΔR w)} {Nβ} → Nβ ≤ N
+  ConvI-newL : ∀ {rk} {Tr : Ty (ΔR w)} {T′ : Ty (ΔR w₁)} {Nβ}
+    → T′ ≡ renameᵗ ρr Tr → Nβ ≤ N
     → ConvI d N rk w m α δs δt
     → GoodLeaf Ls → GoodLeaf Lt → FreshP d both w Lt Tl Tr
     → SealI d Nβ w₁ (m-left {Φ = pair Φ} {X = zero}) β
-        (extPairI (＇ β) (renameᵗ ρr Tr) Ls (δt ↑ᴵ e₁))
+        (extPairI (＇ β) T′ Ls (δt ↑ᴵ e₁))
         (extPairI Tl Tr Lt δt ↑ᴵ e₁)
     → ConvI d Nβ left w₁ (m-left {Φ = pair Φ} {X = zero}) β
-        (extPairI (＇ β) (renameᵗ ρr Tr) Ls (δt ↑ᴵ e₁))
+        (extPairI (＇ β) T′ Ls (δt ↑ᴵ e₁))
         (extPairI Tl Tr Lt δt ↑ᴵ e₁)
-  goodS (ConvI-newL {Tr = Tr} le h gs gt ft si) =
-    GoodI-extPairI {T = ＇ β} {T′ = renameᵗ ρr Tr} {δ = δt ↑ᴵ e₁} gs
+  goodS (ConvI-newL {Tr = Tr} {T′} eqT le h gs gt ft si) =
+    GoodI-extPairI {T = ＇ β} {T′ = T′} {δ = δt ↑ᴵ e₁} gs
       (GoodI-↑ {δ = δt} (goodT h) e₁)
-  goodT (ConvI-newL {Tr = Tr} le h gs gt ft si) =
+  goodT (ConvI-newL {Tr = Tr} {T′} eqT le h gs gt ft si) =
     GoodI-↑ {δ = extPairI Tl Tr Lt δt}
       (GoodI-extPairI {T = Tl} {T′ = Tr} {δ = δt} gt (goodT h)) e₁
-  selfI (ConvI-newL le h gs gt ft si) = refl
-  rcOK (ConvI-newL le h gs gt ft si) = tt
-  tyL (ConvI-newL le h gs gt ft si) zero = replaceTy-self β _
-  tyL (ConvI-newL le h gs gt ft si) (suc Z) = replaceTy-new ρl _ nb (δl δt Z)
-  tyR (ConvI-newL le h gs gt ft si) zero = refl
-  tyR (ConvI-newL le h gs gt ft si) (suc Y) = refl
-  leafO (ConvI-newL le h gs gt ft si) zero o = ⊥-elim (o refl)
-  leafO (ConvI-newL le h gs gt ft si) (suc Z) o = ≈ˡ-refl
-  convP (ConvI-newL {rk} le h gs gt ft si) ↔-here o = ⊥-elim (o refl)
-  convP (ConvI-newL {rk} le h gs gt ft si) (↔-pair {X = Z} {Y = Y′} z) o =
+  selfI (ConvI-newL eqT le h gs gt ft si) = refl
+  rcOK (ConvI-newL eqT le h gs gt ft si) = tt
+  tyL (ConvI-newL eqT le h gs gt ft si) zero = replaceTy-self β _
+  tyL (ConvI-newL eqT le h gs gt ft si) (suc Z) =
+    replaceTy-new ρl _ nb (δl δt Z)
+  tyR (ConvI-newL eqT le h gs gt ft si) zero = eqT
+  tyR (ConvI-newL eqT le h gs gt ft si) (suc Y) = refl
+  leafO (ConvI-newL eqT le h gs gt ft si) zero o = ⊥-elim (o refl)
+  leafO (ConvI-newL eqT le h gs gt ft si) (suc Z) o = ≈ˡ-refl
+  convP (ConvI-newL {rk} eqT le h gs gt ft si) ↔-here o = ⊥-elim (o refl)
+  convP (ConvI-newL {rk} eqT le h gs gt ft si) (↔-pair {X = Z} {Y = Y′} z) o =
     fresh→convP {d = d} e₁ {L = leaf δt Z} nb {rk = left}
       (renameᵗ ρl Tl) nothing tt tt
       (FreshP-left {rk = rk} {L = leaf δt Z} {T = δl δt Z}
         {T′ = δr δt Y′} (genP h z))
-  convO (ConvI-newL le h gs gt ft si) (only-pair {X = Z} z) o =
+  convO (ConvI-newL eqT le h gs gt ft si) (only-pair {X = Z} z) o =
     fresh→convO {d = d} e₁ {L = leaf δt Z} nb (renameᵗ ρl Tl) (genO h z)
-  genP (ConvI-newL {rk} {Tr = Tr} le h gs gt ft si) ↔-here =
+  genP (ConvI-newL {rk} {Tr = Tr} eqT le h gs gt ft si) ↔-here =
     FreshP-left {rk = both}
       {L = transportLeaf (ρL e₁) (ρR e₁) Lt} {T = renameᵗ ρl Tl}
       {T′ = renameᵗ ρr Tr}
       (FreshP-↑ {d = d} e₁ {L = Lt} {rk = both} {T = Tl} ft)
-  genP (ConvI-newL {rk} le h gs gt ft si) (↔-pair {X = Z} {Y = Y′} z) =
+  genP (ConvI-newL {rk} eqT le h gs gt ft si) (↔-pair {X = Z} {Y = Y′} z) =
     FreshP-left {rk = rk}
       {L = transportLeaf (ρL e₁) (ρR e₁) (leaf δt Z)}
       {T = renameᵗ ρl (δl δt Z)} {T′ = renameᵗ ρr (δr δt Y′)}
       (FreshP-↑ {d = d} e₁ {L = leaf δt Z} {rk = rk} {T = δl δt Z}
         {T′ = δr δt Y′} (genP h z))
-  genO (ConvI-newL le h gs gt ft si) (only-pair {X = Z} z) =
+  genO (ConvI-newL eqT le h gs gt ft si) (only-pair {X = Z} z) =
     FreshO-↑ {d = d} e₁ {L = leaf δt Z} {T = δl δt Z}
       (genO h z)
-  sealI (ConvI-newL le h gs gt ft si) = si
-  oracle (ConvI-newL le h gs gt ft si) = Oracle-down le (oracle h)
+  sealI (ConvI-newL eqT le h gs gt ft si) = si
+  oracle (ConvI-newL eqT le h gs gt ft si) = Oracle-down le (oracle h)
 
   -- a left-only binder
   ConvI-newO : ∀ {rk} {Nβ} → Nβ ≤ N → ConvI d N rk w m α δs δt
@@ -2348,9 +2351,10 @@ module SealNewP (d : Dir) {s n a b} (le_s : s ≤′ a) (le_n : n ≤′ b)
 
   -- a paired binder whose right does not convert
   sealNewL : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {δt : Interp Δ Δ′ (ΔL w) (ΔR w)}
+      {T′ : Ty (ΔR w₁)}
     → UpB d s n
     → SealI d s w₁ (m-left {Φ = pair Φ} {X = zero}) β
-        (extPairI (＇ β) (renameᵗ (toRenameᵗ (ρR e₁)) (repR Ys c))
+        (extPairI (＇ β) T′
           (sem (leafBelowS d le_s (sdesc (β ∷ Xs₁) Ys₁ c₁)))
           (δt ↑ᴵ e₁))
         (extPairI (repL Xs c) (repR Ys c) Lt δt ↑ᴵ e₁)
@@ -2730,3 +2734,201 @@ module PairRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
         (ℰ-bind₂ d s p p w₁ {δ₁ = δsβ} {δ₂ = δtβ}
           (just (reveal cL)) (just (reveal cR)) clause K₁)
         K₂
+
+------------------------------------------------------------------------
+-- `∀⊑∀`, the reveal, when the right does not convert
+------------------------------------------------------------------------
+
+-- a store-variable leaf whose right side is not converted
+module _ {d : Dir} {N : ℕ} {w : World} {L : Leaf (ΔL w) (ΔR w)}
+    (gl : GoodLeaf L) {γ : TyVar (ΔL w)} {T′ : Ty (ΔR w)} where
+
+  storeConvPN : ∀ R {α} → γ ≢ α
+    → ConvLeafP d N w R nothing α L L (＇ γ) T′
+  storeConvPN R ne {w′} e {k} k≤N =
+    (λ vl vr r →
+      idRevP d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl)
+        (λ eq → ne (toRenameᵗ-injective (ρL e) eq)) nothing
+        {T′ = renameᵗ (toRenameᵗ (ρR e)) T′} tt vl vr r) ,
+    (λ wl wr r →
+      idConP d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl)
+        (λ eq → ne (toRenameᵗ-injective (ρL e) eq)) nothing
+        {T′ = renameᵗ (toRenameᵗ (ρR e)) T′} tt wl wr r)
+
+  storeFreshPL : FreshP d left w L (＇ γ) T′
+  storeFreshPL {w′} e {β} {R} nothing ok nb nrc {k} =
+    (λ vl vr r →
+      idRevP d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl) (nb γ) nothing
+        {T′ = renameᵗ (toRenameᵗ (ρR e)) T′} tt vl vr r) ,
+    (λ wl wr r →
+      idConP d k w′ (transportLeaf (ρL e) (ρR e) L)
+        (GoodLeaf-transport (ρL e) (ρR e) gl) (nb γ) nothing
+        {T′ = renameᵗ (toRenameᵗ (ρR e)) T′} tt wl wr r)
+  storeFreshPL e (just c) () nb nrc
+
+-- one left store step, counted in `≺` only
+antiL₁ : ∀ d {n N} {Φ : Corr Δ Δ′} {A A′} (p : Φ ⊢ A ⊑ A′) {w : World}
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {ΘL} {Ml : Term (ΔL w)}
+    {Ml′ : Term ΘL} {Mr : Term (ΔR w)} {χL : StoreChange (ΔL w) ΘL}
+  → n ≤ N → Ml —→[ χL ] Ml′
+  → (tags : TyVar ΘL → Tag ΘL (ΔR w))
+  → (ok : ∀ X → tags (toRenameᵗ (embedᶜˢ (χL ∷ [])) X)
+            ≡ renameTag (embedᶜˢ (χL ∷ [])) (embedᶜˢ ([] {ΔR w})) (tag w X))
+  → (∀ {s} → s ≤′ n → s ≤ N → UpB d s n
+       → ℰ d s p (world ΘL (ΔR w) tags)
+           (δ ↑ᴵ stepExt (χL ∷ []) [] tags ok) Ml′ Mr)
+  → ℰ d n p w δ Ml Mr
+antiL₁ ≺ {zero} p le sl tags ok k = ℰ-zero ≺ p _
+antiL₁ ≺ {suc s} p le sl tags ok k =
+  ℰ-anti-≺ p (more sl none) ↠-refl tags ok
+    (k (≤′-step ≤′-refl) (≤-trans (n≤1+n s) le) tt)
+antiL₁ ≻ {n} p le sl tags ok k =
+  ℰ-anti-≻ p (↠-step sl ↠-refl) none tags ok (k ≤′-refl le ≤-refl)
+
+module PairRevL (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
+    (p : pair Φ ⊢ A ⊑ B)
+    (rev : ∀ {N′ rk w X′} {m : CMode (pair Φ) X′ (ΔL w) (ΔR w)}
+       {α δs δt} → ConvI d N′ rk w m α δs δt → ∀ {k} → k ≤ N′
+       → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d k p w δs Vl Vr
+       → ℰ d k p w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) A 〗)
+           (revM (rconv m (δr δt)) (substᵗ (δr δs) B) Vr))
+    where
+
+  pairRevL : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt} {rk}
+      (h : ConvI d N rk w m α δs δt) → n ≤ N → rconv m (δr δt) ≡ nothing
+    → ∀ {Vl Vr} → Value Vl → Value Vr → allPair d n p w δs Vl Vr
+    → ∀ Xs Ys c
+    → ℰ d n p w (extPairI (repL Xs c) (repR Ys c)
+          (sem (leafBelowS d (≤′-refl {n}) (sdesc Xs Ys c))) δt)
+        ((Vl ↑ `∀↑ 〖 suc α , ⇑ᵗ (repM m (δl δt))
+                    ↑ substᵗ (extsᵗ (δl δs)) A 〗)
+           ⦂∀ substᵗ (extsᵗ (δl δt)) A [ repL Xs c ])
+        (Vr ⦂∀ substᵗ (extsᵗ (δr δt)) B [ repR Ys c ])
+  pairRevL {n} w {X} {m} {α} {δs} {δt} {rk} h le eqn {Vl} {Vr} vl vr r
+      Xs Ys c =
+    antiL₁ d p le stepL (tagsL w) (okBindL w Tl) inner
+    where
+    Tl = repL Xs c
+    Tr = repR Ys c
+    R = repM m (δl δt)
+    cL = 〖 suc α , ⇑ᵗ R ↑ substᵗ (extsᵗ (δl δs)) A 〗
+    BtL = substᵗ (extsᵗ (δl δt)) A
+    BtR = substᵗ (extsᵗ (δr δt)) B
+    stepL = revInst cL vl (tgt-body α R (δl δs) (δl δt) (tyL h) A)
+
+    e₁ = stepExt (bind Tl ∷ []) [] (tagsL w) (okBindL w Tl)
+    w₁ = world (suc (ΔL w)) (ΔR w) (tagsL w)
+    ρL₁ = ρL e₁
+    ρR₁ = ρR e₁
+    Xs₁ = map (renameVar ρL₁) Xs
+    Ys₁ = map (renameVar ρR₁) Ys
+    c₁ = renameDesc ρL₁ ρR₁ c
+    T′ = repR Ys₁ c₁
+    Lt = sem (leafBelowS d (≤′-refl {n}) (sdesc Xs Ys c))
+    m₁ = CMode-pair (CMode-↑ ρL₁ ρR₁ m)
+    α₁ = toRenameᵗ ρL₁ α
+
+    -- the right side is not converted, so δs and δt agree on it
+    sameR : ∀ Y → δr δs Y ≡ δr δt Y
+    sameR Y = subst (λ rc → replaceRC rc (δr δs Y) ≡ δr δt Y) eqn (tyR h Y)
+
+    rc↑ : rconv (CMode-↑ ρL₁ ρR₁ m) (δr (δt ↑ᴵ e₁)) ≡ nothing
+    rc↑ = trans (rconv-↑ ρL₁ ρR₁ m (δr δt)) (cong (renRConv ρR₁) eqn)
+
+    rc₁≡ : rconv m₁ (δr (extPairI (＇ zero) T′ (sem ⊤Ω) (δt ↑ᴵ e₁)))
+      ≡ nothing
+    rc₁≡ = trans (rconv-pair (CMode-↑ ρL₁ ρR₁ m) (δr (δt ↑ᴵ e₁)) T′) rc↑
+
+    inner : ∀ {s} → s ≤′ n → s ≤ N → UpB d s n
+      → ℰ d s p w₁ (extPairI Tl Tr Lt δt ↑ᴵ e₁)
+          ((⇑ᵗᵐ Vl ⦂∀ (bind Tl ▷ᵇ substᵗ (extsᵗ (δl δs)) A) [ ＇ zero ])
+             ↑ cL ↑ 〖 zero , ⇑ᵗ Tl ↑ BtL 〗)
+          (Vr ⦂∀ BtR [ Tr ])
+    inner {s} le_s s≤N up =
+      ℰ-bind₂ d s p p w₁ {δ₁ = δtβ} {δ₂ = δtg}
+        (just (reveal 〖 zero , ⇑ᵗ Tl ↑ BtL 〗)) nothing
+        (ℰ-bind₂ d s p p w₁ {δ₁ = δsβ} {δ₂ = δtβ}
+          (just (reveal cL)) nothing clause K₁)
+        K₂
+      where
+      c″ = sdesc (zero ∷ Xs₁) Ys₁ c₁
+      Ls = sem (leafBelowS d le_s c″)
+      gLs = leafBelowS-good d le_s c″
+      δsβ = extPairI (＇ zero) T′ Ls (δs ↑ᴵ e₁)
+      δtβ = extPairI (＇ zero) T′ Ls (δt ↑ᴵ e₁)
+      δtg = extPairI Tl Tr Lt δt ↑ᴵ e₁
+
+      hα : ConvI d N left w₁ m₁ α₁ δsβ δtβ
+      hα = ConvI-extPair {β = zero} {l = Ls} gLs
+        (λ e′ → new-bind Tl α (sym e′))
+        (subst (λ rc → replaceRC rc T′ ≡ T′) (sym rc↑) refl)
+        (subst (λ rc → ConvLeafP d N w₁
+                         (repM (CMode-↑ ρL₁ ρR₁ m) (δl (δt ↑ᴵ e₁))) rc α₁
+                         Ls Ls (＇ zero) T′)
+          (sym rc↑)
+          (storeConvPN {N = N} gLs {γ = zero} {T′ = T′}
+            (repM (CMode-↑ ρL₁ ρR₁ m) (δl (δt ↑ᴵ e₁)))
+            (λ e′ → new-bind Tl α (sym e′))))
+        (storeFreshPL {N = N} gLs {γ = zero} {T′ = T′})
+        (ConvI-left rc↑ (ConvI-↑ e₁ h))
+
+      hβ : ConvI d s left w₁ (m-left {Φ = pair Φ} {X = zero}) zero δtβ δtg
+      hβ = ConvI-newL e₁ (new-bind Tl) {Ls = Ls} {Lt = Lt} {Tl = Tl}
+        {Tr = Tr} {T′ = T′} (repR-rename ρL₁ ρR₁ Ys c) s≤N h gLs
+        (leafBelowS-good d (≤′-refl {n}) (sdesc Xs Ys c))
+        (proj₁ (oracle h) (≤′-refl {n}) le (sdesc Xs Ys c))
+        (SealNewP.sealNewL d le_s (≤′-refl {n}) (≤′⇒≤ le_s) e₁ Xs Ys c zero
+          {Φ = Φ} {δt = δt} {T′ = T′} up)
+
+      clause : ℰ d s p w₁ δsβ
+        (⇑ᵗᵐ Vl ⦂∀ (bind Tl ▷ᵇ substᵗ (extsᵗ (δl δs)) A) [ ＇ zero ])
+        (Vr ⦂∀ BtR [ Tr ])
+      clause =
+        ℰᵍ-≡
+          (cong₂ (λ M C → M ⦂∀ C [ ＇ zero ]) (shift-term Tl Vl)
+            (annot Tl (δl δs) A))
+          (cong₃′ (renameᵗᵐ-id Vr)
+            (substᵗ-cong B (exts-cong (λ Y →
+              trans (renameTy-id (δr δs Y)) (sameR Y))))
+            (trans (repR-rename ρL₁ ρR₁ Ys c) (renameTy-id Tr)))
+          (ℰᵍ-map d s w₁
+            (λ le′ w″ e″ V V′ → 𝒱≤-cast d (≤′-trans le′ le_s) le′ p w″)
+            (r e₁ le_s c″))
+        where
+        cong₃′ : ∀ {M M′ : Term (ΔR w)} {C C′ T T″}
+          → M ≡ M′ → C ≡ C′ → T ≡ T″ → M ⦂∀ C [ T ] ≡ M′ ⦂∀ C′ [ T″ ]
+        cong₃′ refl refl refl = refl
+
+      R≡ : repM m₁ (δl δtβ) ≡ ⇑ᵗ R
+      R≡ = trans (repM-pair (CMode-↑ ρL₁ ρR₁ m) (δl (δt ↑ᴵ e₁)) (＇ zero))
+        (trans (repM-↑ ρL₁ ρR₁ m (δl δt)) (shift-ty Tl R))
+
+      K₁ : ∀ {w₂} (e₂ : w₂ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
+        → Value Ql → Value Qr → 𝒱 d k p w₂ (δsβ ↑ᴵ e₂) Ql Qr
+        → ℰ d k p w₂ (δtβ ↑ᴵ e₂)
+            (mplug (renameMFrame (ρL e₂) (just (reveal cL))) Ql) Qr
+      K₁ e₂ {k} k≤s {Ql} {Qr} ql qr q =
+        ℰᵍ-≡
+          (trans (revRen e₂ m₁ α₁ δsβ δtβ Ql A)
+            (↑-pk (pk-ren↑ (toRenameᵗ (ρL e₂))
+              (pk-〖〗 (embed-var Tl α) R≡ (open0 Tl (δl δs) A)))))
+          (trans (rcRen e₂ m₁ δsβ δtβ Qr B)
+            (cong (λ rc → mplug (renameMFrame (ρR e₂)
+                            (revFrame rc (substᵗ (δr δsβ) B))) Qr) rc₁≡))
+          (rev (ConvI-↑ e₂ hα) (≤-trans k≤s s≤N) ql qr q)
+
+      K₂ : ∀ {w₃} (e₃ : w₃ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
+        → Value Ql → Value Qr → 𝒱 d k p w₃ (δtβ ↑ᴵ e₃) Ql Qr
+        → ℰ d k p w₃ (δtg ↑ᴵ e₃)
+            (mplug (renameMFrame (ρL e₃)
+              (just (reveal 〖 zero , ⇑ᵗ Tl ↑ BtL 〗))) Ql) Qr
+      K₂ e₃ {k} k≤s {Ql} {Qr} ql qr q =
+        ℰᵍ-≡
+          (trans (revRen e₃ (m-left {Φ = pair Φ} {X = zero}) zero δtβ δtg Ql A)
+            (↑-pk (pk-ren↑ (toRenameᵗ (ρL e₃))
+              (pk-〖〗 refl (shift-ty Tl Tl) (open0 Tl (δl δt) A)))))
+          refl
+          (rev (ConvI-↑ e₃ hβ) k≤s ql qr q)

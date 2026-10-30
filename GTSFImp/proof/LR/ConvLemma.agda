@@ -48,7 +48,7 @@ open import Reduction using (_—→_; id-reveal; id-conceal; conceal-reveal;
   β-reveal-⇒; β-conceal-⇒; β-reveal-∀; β-conceal-∀; _—→[_]_; bind; keep;
   StoreChange; StoreChanges; applyBody; []; _∷_)
 open import LR.Steps using (embedᶜˢ)
-open import Data.List using (List) renaming ([] to []ˡ)
+open import Data.List using (List; []; _∷_; map)
 open import Data.Vec using () renaming ([] to []ᵛ)
 open import LR.Frame using (Frame; reveal; conceal; app₂; plug;
   renameFrame)
@@ -1628,7 +1628,7 @@ embed-var T X =
 
 -- a tag for a new store variable; it is never read here
 newTag : ∀ {ΘL ΘR} → Tag (suc ΘL) ΘR
-newTag = nothing , seals zero []ˡ []ˡ (desc (★⊑★ {Φ = []}) []ᵛ []ᵛ)
+newTag = nothing , seals zero [] [] (desc (★⊑★ {Φ = []}) []ᵛ []ᵛ)
 
 -- the left allocates
 tagsL : (w : World) → TyVar (suc (ΔL w)) → Tag (suc (ΔL w)) (ΔR w)
@@ -1671,3 +1671,143 @@ conInst : ∀ {Θ} {V : Term Θ} {T} {C B B′ : Ty (suc Θ)}
   → (V ↓ `∀↓ c) ⦂∀ B′ [ T ] —→[ bind T ]
       ((⇑ᵗᵐ V ⦂∀ (bind T ▷ᵇ C) [ ＇ zero ]) ↓ c ↑ 〖 zero , ⇑ᵗ T ↑ B′ 〗)
 conInst c v refl = β-conceal-∀ v
+
+------------------------------------------------------------------------
+-- Prefixing a sealed descriptor with new store variables
+------------------------------------------------------------------------
+
+sealS : ∀ {ΘL ΘR} → TyVar ΘL → TyVar ΘR → SDesc ΘL ΘR → SDesc ΘL ΘR
+sealS β β′ (sdesc Xs Ys c) = sdesc (β ∷ Xs) (β′ ∷ Ys) c
+
+sealSL : ∀ {ΘL ΘR} → TyVar ΘL → SDesc ΘL ΘR → SDesc ΘL ΘR
+sealSL β (sdesc Xs Ys c) = sdesc (β ∷ Xs) Ys c
+
+-- peeling a right seal is a sealed right value
+peelSR→ : ∀ {Y : TyVar ΘR} {Ys} {c : Desc ΘL ΘR} {P V V′}
+  → peelSR (Y ∷ Ys) c P V V′ → sealedR Y (repR Ys c) (peelSR Ys c P) V V′
+peelSR→ {V′ = V′ ↓ s} r = r
+peelSR→ {V′ = ` x₀} ()
+peelSR→ {V′ = ƛ M₀} ()
+peelSR→ {V′ = L₀ · M₀} ()
+peelSR→ {V′ = Λ M₀} ()
+peelSR→ {V′ = L₀ ⦂∀ C₀ [ T₀ ]} ()
+peelSR→ {V′ = $ κ₀} ()
+peelSR→ {V′ = L₀ ⊕[ op₀ ] M₀} ()
+peelSR→ {V′ = W₀ ⟨ c₀ ⟩} ()
+peelSR→ {V′ = M₀ ↑ c₀} ()
+peelSR→ {V′ = blame} ()
+
+peelSR← : ∀ {Y : TyVar ΘR} {Ys} {c : Desc ΘL ΘR} {P V V′}
+  → sealedR Y (repR Ys c) (peelSR Ys c P) V V′ → peelSR (Y ∷ Ys) c P V V′
+peelSR← r with sealedR-inv r
+peelSR← r | W′ , refl , q = r
+
+-- a right seal commutes with peeling left seals
+peelSL-sealedR : ∀ (Xs : List (TyVar ΘL)) (c : Desc ΘL ΘR) {β : TyVar ΘR}
+    {R} {P : Term ΘL → Term ΘR → Set} {V V′}
+  → peelSL Xs c (sealedR β R P) V V′ → sealedR β R (peelSL Xs c P) V V′
+peelSL-sealedR [] c r = r
+peelSL-sealedR (X ∷ Xs) c {V = V ↓ s} (is , r)
+    with sealedR-inv (peelSL-sealedR Xs c r)
+peelSL-sealedR (X ∷ Xs) c {V = V ↓ s} (is , r) | W′ , refl , q =
+  (refl , refl) , is , q
+peelSL-sealedR (X ∷ Xs) c {V = ` x₀} ()
+peelSL-sealedR (X ∷ Xs) c {V = ƛ M₀} ()
+peelSL-sealedR (X ∷ Xs) c {V = L₀ · M₀} ()
+peelSL-sealedR (X ∷ Xs) c {V = Λ M₀} ()
+peelSL-sealedR (X ∷ Xs) c {V = L₀ ⦂∀ C₀ [ T₀ ]} ()
+peelSL-sealedR (X ∷ Xs) c {V = $ κ₀} ()
+peelSL-sealedR (X ∷ Xs) c {V = L₀ ⊕[ op₀ ] M₀} ()
+peelSL-sealedR (X ∷ Xs) c {V = W₀ ⟨ c₀ ⟩} ()
+peelSL-sealedR (X ∷ Xs) c {V = M₀ ↑ c₀} ()
+peelSL-sealedR (X ∷ Xs) c {V = blame} ()
+
+sealedR-peelSL : ∀ (Xs : List (TyVar ΘL)) (c : Desc ΘL ΘR) {β : TyVar ΘR}
+    {R} {P : Term ΘL → Term ΘR → Set} {V V′}
+  → sealedR β R (peelSL Xs c P) V V′ → peelSL Xs c (sealedR β R P) V V′
+sealedR-peelSL [] c r = r
+sealedR-peelSL (X ∷ Xs) c {V = V ↓ s} r with sealedR-inv r
+sealedR-peelSL (X ∷ Xs) c {V = V ↓ s} r | W′ , refl , (is , q) =
+  is , sealedR-peelSL Xs c ((refl , refl) , q)
+sealedR-peelSL (X ∷ Xs) c {V = ` x₀} r with sealedR-inv r
+sealedR-peelSL (X ∷ Xs) c {V = ` x₀} r | W′ , refl , ()
+sealedR-peelSL (X ∷ Xs) c {V = ƛ M₀} r with sealedR-inv r
+sealedR-peelSL (X ∷ Xs) c {V = ƛ M₀} r | W′ , refl , ()
+sealedR-peelSL (X ∷ Xs) c {V = L₀ · M₀} r with sealedR-inv r
+sealedR-peelSL (X ∷ Xs) c {V = L₀ · M₀} r | W′ , refl , ()
+sealedR-peelSL (X ∷ Xs) c {V = Λ M₀} r with sealedR-inv r
+sealedR-peelSL (X ∷ Xs) c {V = Λ M₀} r | W′ , refl , ()
+sealedR-peelSL (X ∷ Xs) c {V = L₀ ⦂∀ C₀ [ T₀ ]} r with sealedR-inv r
+sealedR-peelSL (X ∷ Xs) c {V = L₀ ⦂∀ C₀ [ T₀ ]} r | W′ , refl , ()
+sealedR-peelSL (X ∷ Xs) c {V = $ κ₀} r with sealedR-inv r
+sealedR-peelSL (X ∷ Xs) c {V = $ κ₀} r | W′ , refl , ()
+sealedR-peelSL (X ∷ Xs) c {V = L₀ ⊕[ op₀ ] M₀} r with sealedR-inv r
+sealedR-peelSL (X ∷ Xs) c {V = L₀ ⊕[ op₀ ] M₀} r | W′ , refl , ()
+sealedR-peelSL (X ∷ Xs) c {V = W₀ ⟨ c₀ ⟩} r with sealedR-inv r
+sealedR-peelSL (X ∷ Xs) c {V = W₀ ⟨ c₀ ⟩} r | W′ , refl , ()
+sealedR-peelSL (X ∷ Xs) c {V = M₀ ↑ c₀} r with sealedR-inv r
+sealedR-peelSL (X ∷ Xs) c {V = M₀ ↑ c₀} r | W′ , refl , ()
+sealedR-peelSL (X ∷ Xs) c {V = blame} r with sealedR-inv r
+sealedR-peelSL (X ∷ Xs) c {V = blame} r | W′ , refl , ()
+
+-- the leaf of a prefixed descriptor: the new seals, then the leaf of the
+-- descriptor
+module _ (d : Dir) {n′ n} (le : n′ ≤′ n) {ΘL ΘR}
+    (Xs : List (TyVar ΘL)) (Ys : List (TyVar ΘR)) (c : Desc ΘL ΘR)
+    (β : TyVar ΘL) (β′ : TyVar ΘR) (k : ℕ) (w : World)
+    (τL : ΘL ↪ᵗ ΔL w) (τR : ΘR ↪ᵗ ΔR w) where
+
+  private
+    c′ = renameDesc τL τR c
+    Xs′ = map (renameVar τL) Xs
+    Ys′ = map (renameVar τR) Ys
+
+  sealS→ : ∀ {V V′}
+    → leafBelowS d le (sealS β β′ (sdesc Xs Ys c)) k w τL τR V V′
+    → sealedL (renameVar τL β) (repL Xs′ c′)
+        (sealedR (renameVar τR β′) (repR Ys′ c′)
+          (leafBelowS d le (sdesc Xs Ys c) k w τL τR)) V V′
+  sealS→ {V = V ↓ s} (is , r) =
+    is , peelSL-sealedR Xs′ c′ (peelSL-map Xs′ c′ peelSR→ r)
+  sealS→ {V = ` x₀} ()
+  sealS→ {V = ƛ M₀} ()
+  sealS→ {V = L₀ · M₀} ()
+  sealS→ {V = Λ M₀} ()
+  sealS→ {V = L₀ ⦂∀ C₀ [ T₀ ]} ()
+  sealS→ {V = $ κ₀} ()
+  sealS→ {V = L₀ ⊕[ op₀ ] M₀} ()
+  sealS→ {V = W₀ ⟨ c₀ ⟩} ()
+  sealS→ {V = M₀ ↑ c₀} ()
+  sealS→ {V = blame} ()
+
+  sealS← : ∀ {V V′}
+    → sealedL (renameVar τL β) (repL Xs′ c′)
+        (sealedR (renameVar τR β′) (repR Ys′ c′)
+          (leafBelowS d le (sdesc Xs Ys c) k w τL τR)) V V′
+    → leafBelowS d le (sealS β β′ (sdesc Xs Ys c)) k w τL τR V V′
+  sealS← r with sealedL-inv r
+  sealS← r | W , refl , q =
+    proj₁ r , peelSL-map Xs′ c′ peelSR← (sealedR-peelSL Xs′ c′ q)
+
+  sealSL→ : ∀ {V V′}
+    → leafBelowS d le (sealSL β (sdesc Xs Ys c)) k w τL τR V V′
+    → sealedL (renameVar τL β) (repL Xs′ c′)
+        (leafBelowS d le (sdesc Xs Ys c) k w τL τR) V V′
+  sealSL→ {V = V ↓ s} r = r
+  sealSL→ {V = ` x₀} ()
+  sealSL→ {V = ƛ M₀} ()
+  sealSL→ {V = L₀ · M₀} ()
+  sealSL→ {V = Λ M₀} ()
+  sealSL→ {V = L₀ ⦂∀ C₀ [ T₀ ]} ()
+  sealSL→ {V = $ κ₀} ()
+  sealSL→ {V = L₀ ⊕[ op₀ ] M₀} ()
+  sealSL→ {V = W₀ ⟨ c₀ ⟩} ()
+  sealSL→ {V = M₀ ↑ c₀} ()
+  sealSL→ {V = blame} ()
+
+  sealSL← : ∀ {V V′}
+    → sealedL (renameVar τL β) (repL Xs′ c′)
+        (leafBelowS d le (sdesc Xs Ys c) k w τL τR) V V′
+    → leafBelowS d le (sealSL β (sdesc Xs Ys c)) k w τL τR V V′
+  sealSL← r with sealedL-inv r
+  sealSL← r | W , refl , q = r

@@ -35,17 +35,21 @@ open import Relation.Binary.PropositionalEquality
 open import Relation.Nullary using (yes; no)
 
 open import Types
-open import Consistency using (_↪ᵗ_; toRenameᵗ; id↪ᵗ)
+open import Consistency using (_↪ᵗ_; toRenameᵗ; id↪ᵗ; wk↪ᵗ)
 open import proof.DGG.CenterRename using (toRenameᵗ-∘; _∘↪_)
-open import proof.TypeInTermSubst using (toRename-id-eq;
+open import proof.TypeInTermSubst using (toRename-id-eq; toRename-wk-eq;
   renameᵗᵐ-preserves-Value)
 open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
 open import Conversion
 open import CastTerms using (Term; `_; ƛ_; _·_; Λ_; _⦂∀_[_]; $; _⊕[_]_;
-  _⟨_⟩; _↑_; _↓_; blame; Value; RevealValue; ConcealValue; renameᵗᵐ)
+  _⟨_⟩; _↑_; _↓_; blame; Value; RevealValue; ConcealValue; renameᵗᵐ; ⇑ᵗᵐ)
 import CastTerms as CT
 open import Reduction using (_—→_; id-reveal; id-conceal; conceal-reveal;
-  β-reveal-⇒; β-conceal-⇒)
+  β-reveal-⇒; β-conceal-⇒; β-reveal-∀; β-conceal-∀; _—→[_]_; bind; keep;
+  StoreChange; StoreChanges; applyBody; []; _∷_)
+open import LR.Steps using (embedᶜˢ)
+open import Data.List using (List) renaming ([] to []ˡ)
+open import Data.Vec using () renaming ([] to []ᵛ)
 open import LR.Frame using (Frame; reveal; conceal; app₂; plug;
   renameFrame)
 open import LR.Precision
@@ -1578,3 +1582,92 @@ module FunConv {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} (d : Dir) (N : ℕ
           (renameᵗᵐ-preserves-Value (ρR e) wr)
           (funRel-down d (≤′⇒≤ le′) p q w′ (funRel-mono d n p q e f))
           ul ur (𝒱≤-cast d le′ ≤′-refl p w′ a)))
+
+------------------------------------------------------------------------
+-- When the right does not convert
+------------------------------------------------------------------------
+
+FreshP-left : ∀ {d rk w L T T′} → FreshP d rk w L T T′
+  → FreshP d left w L T T′
+FreshP-left {rk = both} f e rc ok nb nrc = f e rc tt nb nrc
+FreshP-left {rk = left} f = f
+
+module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ} {rk : RK}
+    {w : World} {δs δt : Interp Δ Δ′ (ΔL w) (ΔR w)} where
+
+  ConvI-left : ∀ {m : CMode Φ X (ΔL w) (ΔR w)} {α}
+    → rconv m (δr δt) ≡ nothing
+    → ConvI d N rk w m α δs δt → ConvI d N left w m α δs δt
+  goodS (ConvI-left eq h) = goodS h
+  goodT (ConvI-left eq h) = goodT h
+  selfI (ConvI-left eq h) = selfI h
+  rcOK (ConvI-left eq h) = subst (Allowed left) (sym eq) tt
+  tyL (ConvI-left eq h) = tyL h
+  tyR (ConvI-left eq h) = tyR h
+  leafO (ConvI-left eq h) = leafO h
+  convP (ConvI-left eq h) = convP h
+  convO (ConvI-left eq h) = convO h
+  genP (ConvI-left eq h) {Z} {Y′} z =
+    FreshP-left {d = d} {rk = rk} {w = w} {L = leaf δt Z} {T = δl δt Z}
+      {T′ = δr δt Y′} (genP h z)
+  genO (ConvI-left eq h) = genO h
+  sealI (ConvI-left eq h) = sealI h
+  oracle (ConvI-left eq h) = oracle h
+
+------------------------------------------------------------------------
+-- Allocating a store variable
+------------------------------------------------------------------------
+
+embed-bind : ∀ {Θ} (T : Ty Θ) → embedᶜˢ (bind T ∷ []) ≡ wk↪ᵗ
+embed-bind T = ∘↪-idˡ wk↪ᵗ
+
+embed-var : ∀ {Θ} (T : Ty Θ) X
+  → toRenameᵗ (embedᶜˢ (bind T ∷ [])) X ≡ suc X
+embed-var T X =
+  trans (cong (λ ρ → toRenameᵗ ρ X) (embed-bind T)) (toRename-wk-eq X)
+
+-- a tag for a new store variable; it is never read here
+newTag : ∀ {ΘL ΘR} → Tag (suc ΘL) ΘR
+newTag = nothing , seals zero []ˡ []ˡ (desc (★⊑★ {Φ = []}) []ᵛ []ᵛ)
+
+-- the left allocates
+tagsL : (w : World) → TyVar (suc (ΔL w)) → Tag (suc (ΔL w)) (ΔR w)
+tagsL w zero = newTag
+tagsL w (suc X) = renameTag wk↪ᵗ id↪ᵗ (tag w X)
+
+okBindL : ∀ (w : World) (T : Ty (ΔL w)) X
+  → tagsL w (toRenameᵗ (embedᶜˢ (bind T ∷ [])) X)
+    ≡ renameTag (embedᶜˢ (bind T ∷ [])) (embedᶜˢ ([] {ΔR w})) (tag w X)
+okBindL w T X =
+  trans (cong (tagsL w) (embed-var T X))
+    (sym (cong (λ ρ → renameTag ρ id↪ᵗ (tag w X)) (embed-bind T)))
+
+-- both allocate
+tagsLR : (w : World) → TyVar (suc (ΔL w))
+  → Tag (suc (ΔL w)) (suc (ΔR w))
+tagsLR w zero = newTag
+tagsLR w (suc X) = renameTag wk↪ᵗ wk↪ᵗ (tag w X)
+
+okBindLR : ∀ (w : World) (T : Ty (ΔL w)) (T′ : Ty (ΔR w)) X
+  → tagsLR w (toRenameᵗ (embedᶜˢ (bind T ∷ [])) X)
+    ≡ renameTag (embedᶜˢ (bind T ∷ [])) (embedᶜˢ (bind T′ ∷ [])) (tag w X)
+okBindLR w T T′ X =
+  trans (cong (tagsLR w) (embed-var T X))
+    (sym (cong₂ (λ ρ ρ′ → renameTag ρ ρ′ (tag w X))
+      (embed-bind T) (embed-bind T′)))
+
+------------------------------------------------------------------------
+-- Instantiating a proxy
+------------------------------------------------------------------------
+
+revInst : ∀ {Θ} {V : Term Θ} {T} {C B B′ : Ty (suc Θ)}
+    (c : Conv↑ (suc Θ) C B) → Value V → B ≡ B′
+  → (V ↑ `∀↑ c) ⦂∀ B′ [ T ] —→[ bind T ]
+      ((⇑ᵗᵐ V ⦂∀ (bind T ▷ᵇ C) [ ＇ zero ]) ↑ c ↑ 〖 zero , ⇑ᵗ T ↑ B′ 〗)
+revInst c v refl = β-reveal-∀ v
+
+conInst : ∀ {Θ} {V : Term Θ} {T} {C B B′ : Ty (suc Θ)}
+    (c : Conv↓ (suc Θ) C B) → Value V → B ≡ B′
+  → (V ↓ `∀↓ c) ⦂∀ B′ [ T ] —→[ bind T ]
+      ((⇑ᵗᵐ V ⦂∀ (bind T ▷ᵇ C) [ ＇ zero ]) ↓ c ↑ 〖 zero , ⇑ᵗ T ↑ B′ 〗)
+conInst c v refl = β-conceal-∀ v

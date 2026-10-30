@@ -196,3 +196,18 @@ makeConceal-other : ∀ {X Y : TyVar Δ} R {T} → T ≡ ＇ Y → Y ≢ X
 makeConceal-other {X = X} {Y} R refl ne with X ≟ Y
 makeConceal-other {X = X} {.X} R refl ne | yes refl = ⊥-elim (ne refl)
 makeConceal-other {X = X} {Y} R refl ne | no ne′ = refl
+
+-- a variable outside the renaming's image is not replaced
+replaceTy-new : (ρ : Δ ⇒ʳ Δ′) {β : TyVar Δ′} (R : Ty Δ′)
+  → (∀ X → ρ X ≢ β) → ∀ T → replaceTy β R (renameᵗ ρ T) ≡ renameᵗ ρ T
+replaceTy-new ρ R nb (＇ X) = replaceTy-other R (nb X)
+replaceTy-new ρ R nb (‵ ι) = refl
+replaceTy-new ρ R nb ★ = refl
+replaceTy-new ρ R nb (A ⇒ B) =
+  cong₂ _⇒_ (replaceTy-new ρ R nb A) (replaceTy-new ρ R nb B)
+replaceTy-new ρ {β} R nb (`∀ A) =
+  cong `∀ (replaceTy-new (extᵗ ρ) (⇑ᵗ R) nb′ A)
+  where
+  nb′ : ∀ X → extᵗ ρ X ≢ suc β
+  nb′ zero ()
+  nb′ (suc X) eq = nb X (suc-injective eq)

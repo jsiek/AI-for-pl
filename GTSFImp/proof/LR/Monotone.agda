@@ -1238,6 +1238,40 @@ onlyLeaf-good : ∀ d {n′ n} (le : n′ ≤′ n) (c : Desc ΘL ΘR)
 onlyLeaf-good ≺ le c = leafBelow-good ≺ le c
 onlyLeaf-good ≻ le c = leafG-good le c
 
+leafBelowS-mono : ∀ d {n′ n} (le : n′ ≤′ n) (c : SDesc ΘL ΘR)
+  → MonoΩ (leafBelowS d le c)
+leafBelowS-mono d le (sdesc Xs Ys c) k w τL τR {w′} e {V} {V′} r =
+  subst₂ (λ Xs′ c′ →
+           peelSL Xs′ c′
+             (peelSR (map (renameVar (ρR e ∘↪ τR)) Ys)
+               (renameDesc (ρL e ∘↪ τL) (ρR e ∘↪ τR) c)
+               (leafBelow d le c k w′ (ρL e ∘↪ τL) (ρR e ∘↪ τR)))
+             (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρR e) V′))
+    (map-renameVar-∘ (ρL e) τL Xs)
+    (renameDesc-∘ (ρL e) τL (ρR e) τR c)
+    (peelSL-ren (ρL e) (ρR e) (map (renameVar τL) Xs) (renameDesc τL τR c)
+      (λ {W} {W′} r′ →
+        subst₂ (λ Ys′ c′ →
+                 peelSR Ys′ c′
+                   (leafBelow d le c k w′ (ρL e ∘↪ τL) (ρR e ∘↪ τR))
+                   (renameᵗᵐ (ρL e) W) (renameᵗᵐ (ρR e) W′))
+          (map-renameVar-∘ (ρR e) τR Ys)
+          (renameDesc-∘ (ρL e) τL (ρR e) τR c)
+          (peelSR-ren (ρL e) (ρR e) (map (renameVar τR) Ys)
+            (renameDesc τL τR c)
+            (λ r″ → leafBelow-mono d le c k w τL τR e r″) r′))
+      r)
+
+leafBelowS-down : ∀ d {n′ n} (le : n′ ≤′ n) (c : SDesc ΘL ΘR)
+  → DownΩ (leafBelowS d le c)
+leafBelowS-down d le c k′≤k w τL τR r =
+  peelS-map c (leafBelow-down d le (core c) k′≤k w τL τR) r
+
+leafBelowS-good : ∀ d {n′ n} (le : n′ ≤′ n) (c : SDesc ΘL ΘR)
+  → GoodLeaf (sem (leafBelowS d le c))
+leafBelowS-good d le c =
+  good-sem (leafBelowS-mono d le c) (leafBelowS-down d le c)
+
 ⊤Ω-good : GoodLeaf (sem (⊤Ω {ΘL} {ΘR}))
 ⊤Ω-good = good-sem (λ k w τL τR e r → r) (λ le w τL τR r → r)
 

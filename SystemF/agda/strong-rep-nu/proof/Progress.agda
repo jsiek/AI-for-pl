@@ -101,7 +101,7 @@ module Impl where
     → Value M
     → BoundaryWf Δ Θ Δᵢ Δᶜ
     → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
-    → Δᶜ ∣ Θ ⊢[ ⁺ ] c ∶ Cᵢ ⇝ Cₑ
+    → Δᶜ ∣ Θ ⊢ c ∶ Cᵢ ⇝ Cₑ
     → names Δᵢ ⊢ Bᵢ ~ Cᵢ
     → Value (M ⟪ Θ , c ⟫)
       ⊎ (Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ]

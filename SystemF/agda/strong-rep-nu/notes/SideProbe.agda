@@ -44,6 +44,18 @@ open import strong-rep-nu.TypeCheck using (interior?; conversion?)
 open import strong-rep-nu.Eval using (step)
 open import strong-rep-nu.Show using (ruleName)
 
+-- A position's polarity, tracked by this probe as it walks a
+-- conversion: `⁻` inside an odd number of function domains.  (Since
+-- 2026-10-26d the judgement itself has no polarity index; a domain is
+-- checked under the dual scope, which grants what `⁻` grants here.)
+data Pol : Set where
+  ⁺ ⁻ : Pol
+
+flipᵖ : Pol → Pol
+flipᵖ ⁺ = ⁻
+flipᵖ ⁻ = ⁺
+
+
 ------------------------------------------------------------------------
 -- 1. The three readings of one boundary
 

@@ -54,6 +54,17 @@ open import strong-rep-nu.Show using (ruleName)
 
 data Kind : Set where
   bindK unbindK : Kind
+-- A position's polarity, tracked by this probe as it walks a
+-- conversion: `⁻` inside an odd number of function domains.  (Since
+-- 2026-10-26d the judgement itself has no polarity index; a domain is
+-- checked under the dual scope, which grants what `⁻` grants here.)
+data Pol : Set where
+  ⁺ ⁻ : Pol
+
+flipᵖ : Pol → Pol
+flipᵖ ⁺ = ⁻
+flipᵖ ⁻ = ⁺
+
 
 -- the entry a leaf needs, by its sort and polarity
 sealKind : Pol → Kind
@@ -123,6 +134,7 @@ mutual
 
 -- the interior is needed only to walk on into the boundary's term
 open import strong-rep-nu.TypeCheck using (interior?)
+
 
 termE : Ctxᵗ → Term → Tally
 termE Δ (` x)            = nil

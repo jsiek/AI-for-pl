@@ -58,7 +58,7 @@ nu-read Ξ η R C Rc p =
 nu-type : ∀ {Δ Δᵢ Δᶜ A R C B c Rᵢ Rₑ}
   → Δ ⊢ᶜ A ~ R
   → BoundaryWf (allocate R Δ) TyBetaBoundary Δᵢ Δᶜ
-  → Δᶜ ∣ TyBetaBoundary ⊢[ ⁺ ] c ∶ Rᵢ ⇝ Rₑ
+  → Δᶜ ∣ TyBetaBoundary ⊢ c ∶ Rᵢ ⇝ Rₑ
   → names Δᵢ ⊢ C ~ Rᵢ
   → names (allocate R Δ) ⊢ B ~ Rₑ
   → (substᵗ (extsᵗ (nameσ Δ)) C) [ eraseTy Δ A ]ᵗ ≡ eraseTy Δ B

@@ -18,8 +18,9 @@ module strong-rep-nu.proof.WrapDual where
 --     respects the two name maps (`respects-Wrap`, with (Q)).
 --   * THE TYPES DO NOT MOVE (the Δ ∣ Θ experiment): `s`'s respelling
 --     has `s`'s
---     REPRESENTATION types, and its permissions move by `pm-dual` —
---     checked at `⁻` under `Θ`, it is checked at `⁺` under `dual Θ`.
+--     REPRESENTATION types, and its permissions do not move at all:
+--     as a function domain it was already checked under `dual Θ`, the
+--     scope of the boundary it now becomes (`pm-id`).
 -- Commentary: Commentary.md § proof/WrapDual.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
@@ -113,12 +114,12 @@ leaf-~ eq f d d′ (e , rd , B , q) | refl =
   d′ , subst (λ Ξ → Ξ ∋ʳ _ := bindR _) (sym eq) rd , weaken-ty f q
 
 mutual
-  weakenᵐ-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {Θ Θ′ p p′ g g′ r} {A B : Ty}
+  weakenᵐ-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {Θ Θ′ g g′ r} {A B : Ty}
     → reps Γ′ ≡ reps Γ → Unique (names Γ) → names Γ ⊆ᵃ names Γ′
-    → PermMap Θ p Θ′ p′
+    → PermMap Θ Θ′
     → names Γ ⊩ᵐ g ~ r → names Γ′ ⊩ᵐ g′ ~ r
-    → Γ ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B
-    → Γ′ ∣ Θ′ ⊢ᵐ[ p′ ] g′ ∶ A ⇝ B
+    → Γ ∣ Θ ⊢ᵐ g ∶ A ⇝ B
+    → Γ′ ∣ Θ′ ⊢ᵐ g′ ∶ A ⇝ B
   weakenᵐ-⊢ eq uq f m (sameᶜ-id same-ℕ) (sameᶜ-id same-ℕ) (conv-id base-ℕ) =
     conv-id base-ℕ
   weakenᵐ-⊢ eq uq f m (sameᶜ-id same-𝔹) (sameᶜ-id same-𝔹) (conv-id base-𝔹) =
@@ -127,18 +128,18 @@ mutual
             (conv-idv e) with ∋ˡ-det d e
   ... | refl = conv-idv d′
   weakenᵐ-⊢ eq uq f m (sameᶜ-fun a b) (sameᶜ-fun a′ b′) (conv-fun ⊢x ⊢y) =
-    conv-fun (weaken-⊢ eq uq f (pm-flip m) a a′ ⊢x)
+    conv-fun (weaken-⊢ eq uq f (pm-dual-map m) a a′ ⊢x)
              (weaken-⊢ eq uq f m b b′ ⊢y)
   weakenᵐ-⊢ {Γ = Γ} eq uq f m (sameᶜ-all a) (sameᶜ-all a′) (conv-all ⊢x) =
     conv-all (weaken-⊢ (cong (abstR ∷_) eq) (unique-underΛ {Γ = Γ} uq)
                        (⊆ᵃ-underΛ f) (pm-lift m) a a′ ⊢x)
 
-  weakenᵀ-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {Θ Θ′ p p′ t t′ r} {A B : Ty}
+  weakenᵀ-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {Θ Θ′ t t′ r} {A B : Ty}
     → reps Γ′ ≡ reps Γ → Unique (names Γ) → names Γ ⊆ᵃ names Γ′
-    → PermMap Θ p Θ′ p′
+    → PermMap Θ Θ′
     → names Γ ⊩ᵀ t ~ r → names Γ′ ⊩ᵀ t′ ~ r
-    → Γ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
-    → Γ′ ∣ Θ′ ⊢ᵀ[ p′ ] t′ ∶ A ⇝ B
+    → Γ ∣ Θ ⊢ᵀ t ∶ A ⇝ B
+    → Γ′ ∣ Θ′ ⊢ᵀ t′ ∶ A ⇝ B
   weakenᵀ-⊢ eq uq f m (sameᶜ-mid a) (sameᶜ-mid a′) (conv-mid ⊢g) =
     conv-mid (weakenᵐ-⊢ eq uq f m a a′ ⊢g)
   weakenᵀ-⊢ eq uq f m (sameᶜ-seal d) (sameᶜ-seal d′) (conv-seal dX ok)
@@ -151,13 +152,13 @@ mutual
     conv-seal-seq (weakenᵀ-⊢ eq uq f m a a′ ⊢t) dX′ (pm-seal m ok)
                   (¬isIdᵀ-~ a a′ n)
 
-  weaken-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {Θ Θ′ p p′} {s s′ r : Conv} {A B : Ty}
+  weaken-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {Θ Θ′} {s s′ r : Conv} {A B : Ty}
     → reps Γ′ ≡ reps Γ → Unique (names Γ) → names Γ ⊆ᵃ names Γ′
-    → PermMap Θ p Θ′ p′
+    → PermMap Θ Θ′
     → names Γ ⊩ s ~ r
     → names Γ′ ⊩ s′ ~ r
-    → Γ ∣ Θ ⊢[ p ] s ∶ A ⇝ B
-    → Γ′ ∣ Θ′ ⊢[ p′ ] s′ ∶ A ⇝ B
+    → Γ ∣ Θ ⊢ s ∶ A ⇝ B
+    → Γ′ ∣ Θ′ ⊢ s′ ∶ A ⇝ B
   weaken-⊢ eq uq f m (sameᶜ-tail a) (sameᶜ-tail a′) (conv-tail ⊢t) =
     conv-tail (weakenᵀ-⊢ eq uq f m a a′ ⊢t)
   weaken-⊢ eq uq f m (sameᶜ-unseal d) (sameᶜ-unseal d′) (conv-unseal dX ok)
@@ -188,8 +189,8 @@ same-⇒⁻ (same-⇒ p q) = _ , _ , refl , p , q
 
 -- THE ARGUMENT DOES NOT MOVE, AND NEITHER DO THE TYPES: `⊢W` is reused
 -- verbatim, and the crossed `s` is respelled at the SAME representation
--- types.  Its permissions move by `pm-dual`: checked at `⁻` under `Θ`,
--- it is checked at `⁺` under `dual Θ`.
+-- types.  Its permissions do not move: as a function domain it was
+-- already checked under `dual Θ`, the new boundary's scope (`pm-id`).
 -- Commentary.md § proof/WrapDual.agda / §3
 preserve-Wrap : WrapCase
 preserve-Wrap {Δ = Δ} {V = V} {W = W} {Θ = Θ} {s = s} {t = t} {C = C}
@@ -225,7 +226,7 @@ preserve-Wrap {Δ = Δ} {V = V} {W = W} {Θ = Θ} {s = s} {t = t} {C = C}
                     (trans (interior-reps ri)
                            (sym (conversion-reps rc))))
                  (name-fn (bw-conversion-wf mwΘ))
-                 (Q ri rc rd) pm-dual (proj₂ rd⊢s)
+                 (Q ri rc rd) pm-id (proj₂ rd⊢s)
                  (sameᶜ-respects (respects-Wrap ri rc rd) (proj₂ rd⊢s)) ⊢s
 
   arg : Δᵢ ∣ [] ⊢ (W ⟪ dual Θ , respellᶜ Θ Θ (dual Θ) s ⟫) ⦂ Aᵢ

@@ -3,10 +3,12 @@
 ## The Δ ∣ Θ experiment (2026-10-25, branch `nu-conv-delta`)
 
 A conversion is checked UNDER its boundary's scope:
-`Γ ∣ Θ ⊢[ p ] c ∶ R ⇝ S` (`Conversion.agda` §2).  The scope grants the
-permissions — at polarity `⁺` a `seal` needs an unbind of its
-representation variable and an `unseal` a bind, and `c ↦ d` flips the
-polarity for `c` — and both types are representation types, which
+`Γ ∣ Θ ⊢ c ∶ R ⇝ S` (`Conversion.agda` §2).  The scope grants the
+permissions — a `seal` needs an unbind of its representation variable
+and an `unseal` a bind, and in `c ↦ d` the domain `c` is checked under
+the dual scope `dual Θ` (branch `nu-dual-scope`, 2026-10-26d; until
+then a polarity index did this) — and both types are representation
+types, which
 `boundary` and `⊢ν` relate to the interior and exterior types by `~`.
 Spellings are unchanged.  Rationale, rulings and results:
 `notes/DECISIONS.md`, 2026-10-25.

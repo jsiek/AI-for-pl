@@ -57,8 +57,8 @@ swf→wf {Δ = Δ} eq (swf-∀ wA) =
 
 -- the `ν` case: every premise of `⊢ν` for `ν A · L ⟨ reveal 0 C ⟩`.
 -- The scope `inst []` BINDS the new cell, which is exactly the
--- permission `reveal 0 C` needs: its unseals at `⁺`, its seals in the
--- flipped domains.
+-- permission `reveal 0 C` needs: its unseals under `inst []`, its seals
+-- in function domains, under the dual.
 compile-ν : ∀ {Δ Γ A C L}
   → WfCtx Δ → CtxWf Δ Γ → Δ ⊢ᵗ A
   → Δ ∣ Γ ⊢ L ⦂ `∀ C
@@ -77,7 +77,7 @@ compile-ν {Δ = Δ} {A = A} {C = C} wfΔ h wA ⊢L
   leaf : ΔR ∋ 0 ⊸ 0 := ⇑ᵗ R
   leaf = here , r-here , ⇑ᵗ A , same-weaken p
 
-  conv : ΔR ∣ TyBetaBoundary ⊢[ ⁺ ] reveal 0 C ∶ S ⇝ S [ 0 := ⇑ᵗ R ]ᵗ
+  conv : ΔR ∣ TyBetaBoundary ⊢ reveal 0 C ∶ S ⇝ S [ 0 := ⇑ᵗ R ]ᵗ
   conv = ⊢reveal (unique-underΛ {Γ = Δ} (name-fn wfΔ)) leaf ib-here qC
 
   qB : names (allocate R Δ) ⊢ C [ A ]ᵗ ~ S [ 0 := ⇑ᵗ R ]ᵗ

@@ -5478,3 +5478,47 @@ computed per name from the scopes alone, which the probe of 2026-10-26
 
 Results: `make check` passes (no postulates); every run keeps its
 endpoint and step count.
+
+## 2026-10-26d — the dual-scope variant: a function domain is checked under `dual Θ`, no polarity index (branch `nu-dual-scope`)
+
+Jeremy asked whether applying the dual to the scope, as his sketch's
+`Δ | −δ ⊢ c` reads, would work in place of the polarity bit chosen on
+2026-10-25 (ruling 3 there), which was chosen on a spelling argument
+rather than a failure.  It works.
+
+    conv-fun : Δ ∣ dual Θ ⊢ s ∶ A′ ⇝ A → Δ ∣ Θ ⊢ c ∶ B ⇝ B′
+             → Δ ∣ Θ ⊢ᵐ s ↦ c ∶ (A ⇒ B) ⇝ (A′ ⇒ B′)
+    SealOK Θ α = InUnbinds α Θ        UnsealOK Θ α = InBinds α Θ
+
+* The context `Δ` is UNCHANGED in the domain: names still resolve in the
+  conversion context (the union reading of the boundary's own scope),
+  so every spelling is the old one.  The 2026-10-25 objection was to
+  resolving the domain's names through the DUAL's reading; changing only
+  the source of permissions avoids it.
+* WHAT IT COST.  One new lemma in each direction: `dual→binds`
+  (`Boundary.agda` §3b, the fourth membership lemma between a scope and
+  its dual) and `renᴮᴿ-dual` (a representation renaming commutes with
+  `dual`), needed by `conv-ren`'s `conv-fun` case — with polarity the
+  scope never changed, so that case needed nothing.  No involution
+  lemma (`dual (dual Θ) ≡ Θ`) and no lifting-commutes-with-dual lemma
+  were needed: wherever a domain's domain needs a permission, the
+  membership lemmas carry it (`⊢reveal`/`⊢conceal` in
+  `proof/Preserve.agda`).
+* WHAT IT SAVED.  `Pol`, `flipᵖ`, `flipᵖ-flipᵖ`, the `sealOK-flip²`
+  pair, `sealOK-ren` and the polarity-indexed `sealOK-liftᴮ` family are
+  gone; `PermMap Θ Θ′` lost its two polarities; `pm-flip` became
+  `pm-dual-map`.  `Wrap` needs NO permission map (`pm-id`): the crossed
+  domain was already checked under `dual Θ`, which is exactly the scope
+  of the boundary it becomes.
+* `TypeCheck.agda`'s checker lost its polarity argument (`convTy?`,
+  `checkConv`, `cv!`, `tk`), checking a domain under `dual Θ`.
+* `notes/SideProbe.agda` and `notes/EntryProbe.agda` track a position's
+  polarity themselves while walking a conversion; they now define it
+  locally.
+* `Design.md`'s "no polarity index" passages (2026-09-06) are accurate
+  again.  `paper/main.tex` on this branch still presents the polarity
+  version (its §2 explains it); not updated.
+
+Results: `make check` passes (no postulates); every example run keeps
+its endpoint and step count; RespellProbe's pinned result is unchanged.
+

@@ -1,77 +1,281 @@
-# Verification Blueprint: AI-Driven PCC Pipeline for C Heap Data Structures
+# Ariadne: AI-Driven Proof-Carrying Verification of C Heap Data Structures
 
-## 1. Core Architecture & Verification Goals
-This blueprint details the engineering requirements for an AI-driven, Proof-Carrying Code (PCC) verification workflow. The pipeline validates **absolute memory safety** of pointer-dense C programs.
+## 0. Status and how to read this document
 
-*   **Primary Objective:** Automate verification of intricate heap properties (absence of buffer overflows, invalid pointer dereferences, uninitialized reads, and use-after-free conditions).
-*   **Verification Strategy:** Deductive verification using Weakest Precondition (WP) calculus.
-*   **Target Guarantee:** Emission of a compiled mathematical proof object (Safety Certificate) that can be verified by an independent third-party type checker in deterministic, near-linear time relative to program size.
+Draft plan.  Sections 1–2 state the goals and what the certificate
+actually certifies; sections 3–5 describe the stack and the agent loop;
+section 6 is the case study; section 7 the guardrails; section 8 the
+milestones; section 9 the decisions (made and open); section 10 the
+use-after-free plan; section 11 the agent budget; section 12 the model
+roles and escalation experiments.
 
----
-
-## 2. Technical Stack Configuration
-
-The execution pipeline combines static analysis, interactive theorem proving, and an automation wrapper:
-
-*   **Front-End Specification & Instrumentation:** [Frama-C](https://frama-c.com/) (Version 31.0+ Gallium) equipped with **RTE** (Runtime Error generation) and **Eva** (Evolved Value Analysis) plugins.
-*   **Logical Property Language:** ANSI/ISO C Specification Language (ACSL).
-*   **Back-End Deductive Engine:** Frama-C **WP Plugin** routed through the **Why3 platform**.
-*   **Interactive Target Environment:** [Coq / Rocq](https://coq.inria.fr/) proof assistant.
-*   **Automation Suite:** **CoqHammer** (integrated into the Coq workspace) to resolve minor arithmetic and algebraic sub-goals.
-*   **Agent Automation Interface:** **Python 3.11+** running an asynchronous loop, communicating with Coq via the `coq-lsp` server protocol over JSON-RPC.
+Items marked **[verify]** are facts about external tools that must be
+checked against the pinned versions before being relied on.
 
 ---
 
-## 3. Sandboxed Agent Execution Loop
+## 1. Goals
 
-The implementation script must orchestrate a stateful loop allowing the AI agent to incrementally construct the code specifications and proof scripts.
+### 1.1 Research question
+
+Can an LLM agent, working only through annotation edits and proof
+scripts, produce machine-checked memory-safety proofs for real,
+pointer-dense, macro-generated C (sglib), with a trusted computing base
+that is explicitly stated and does not include the agent?
+
+### 1.2 Primary goals (must have)
+
+*   **G1 — Memory safety of selected sglib operations.**  For each target
+    function, prove absence of the runtime errors in scope (§2.1) under an
+    explicit, human-reviewed precondition.
+*   **G2 — Agent outside the trust base.**  Nothing the agent says or does
+    is trusted; only artifacts checked by the tools listed in §2.2 count.
+*   **G3 — Annotation-only edits.**  The agent may add ACSL annotations,
+    ghost code, and Coq proof scripts; it may not change executable C
+    semantics or the frozen top-level contracts (§7).
+*   **G4 — Reproducible certificate.**  Each verified benchmark ships as a
+    bundle (annotated C, frozen contracts, generated `.v` files, `.vo`
+    files, tool versions) that a third party can re-check with one command.
+
+### 1.3 Secondary goals (should have)
+
+*   **G5 — Functional shape invariants.**  Beyond safety, prove that
+    operations preserve the data-structure invariant (well-formed DL list;
+    BST order + red-black colour/height invariants).  Safety of later
+    operations usually depends on this anyway (§6.3).
+*   **G6 — Measured agent performance.**  Report, per benchmark: goals
+    generated, goals closed by WP's simplifier / SMT / `hammer` / agent
+    tactics, number of refinement iterations, wall-clock and token cost.
+*   **G7 — Reusable library.**  A Coq/ACSL library of heap-shape predicates
+    (linked segments, DL segments, trees) reusable across benchmarks.
+
+### 1.4 Non-goals
+
+*   Total correctness / termination of every loop (track it, but not
+    required for G1).
+*   Memory-leak freedom.
+*   Verifying Frama-C, Why3, or the Coq export themselves.
+*   Concurrency.
+*   "Cryptographic" certification: nothing in this pipeline is
+    cryptographic.  If signed bundles are wanted, that is a separate
+    packaging step (hash + signature over the bundle) and certifies
+    provenance, not safety.
+
+### 1.5 Success criteria
+
+| Level | Criterion |
+|-------|-----------|
+| Minimum | Benchmark 1 (DL list add + iterate) fully certified; every goal accounted for; `Print Assumptions` shows only the WP/Why3 theory axioms listed in §2.2. |
+| Target | Benchmark 1 plus RB-tree `add` and `find_member` certified for safety (G1), with the BST invariant (G5) for `find_member`. |
+| Stretch | RB-tree `delete`, hash container, and G5 for all of them; agent closes ≥ N% of non-trivial goals without human help (N set after M2 baseline). |
+
+---
+
+## 2. What the certificate certifies (trust base)
+
+### 2.1 Properties in scope
+
+The RTE plugin generates the safety obligations.  In scope:
+
+*   `\valid` / `\valid_read` for every memory access (null and dangling
+    dereference, out-of-bounds access);
+*   `\initialized` for reads (enable with `-rte-initialized` **[verify]
+    flag name**);
+*   signed overflow, division by zero, invalid shifts, pointer-arithmetic
+    validity (RTE defaults);
+*   use-after-free, invalid `free`, and double `free` (required): through
+    `\valid`/`\freeable` after `free` if WP supports it, otherwise
+    through the fallbacks in §10.
+
+### 2.2 Honest trust base
+
+The `.vo` files certify that **the verification conditions generated by
+WP are valid**, not directly that the C program is safe.  The chain is:
 
 ```
-       [ Input C Source Code File ]
-                   │
-                   ▼
-    ┌───► [ Frama-C CLI Processing ]
-    │              │
-    │              ▼ (Translates code + ACSL via Why3)
-    │     [ Coq Goal Files (.v) ]
-    │              │
-    │              ▼
-    │     [ Agent Interaction Loop via coq-lsp ] ───► (Applies tactics: hammer, induction...)
-    │              │
-    │              ├─► SUCCESS: Compiles to `.vo` Certificate
-    │              │
-    │              └─► FAILURE: Invariant/Assertion too weak
-    │                      │
-    └──────────────────────┴───► [ Agent rewrites C / ACSL source ]
+ C source ──CIL/Frama-C──► normalized AST ──RTE──► ACSL obligations
+          ──WP──► VCs (memory model) ──Why3──► Coq .v ──coqc──► .vo
+                                                         ▲
+                                                coqchk re-checks
 ```
 
-### Script Operational Steps:
-1.  **Instrument with RTE:** Run `frama-c -rte your_code.c -code-shaping` to generate baseline memory access properties (`alid`, `alid_read`).
-2.  **Run Eva Analysis:** Use abstract interpretation to compute memory intervals and points-to sets, serving as base hypotheses.
-3.  **Generate Coq Export:** Target WP to Coq via `frama-c -wp -wp-prover coq -wp-timeout 20 your_code.c`. This populates the `.v` goals.
-4.  **Execute Proof Tactic Loop:** The Python agent opens the `.v` files via `coq-lsp`, querying goal states. It pushes structural tactics (`induction`, `inversion`, `intros`) and utilizes `hammer.` to finalize leaf goals.
-5.  **Handling Proof Stalls (Dynamic Refinement):** If a sub-goal is unprovable due to a missing invariant, the agent must drop back to the C level, inject a helper assertion (`/*@ assert ... */`) or a generalized `/*@ loop invariant ... */`, and re-trigger step 1.
+Trusted (TCB):
+
+1.  Frama-C front end (CIL normalisation, macro expansion via `cpp`).
+2.  The RTE plugin: if an obligation is not generated, it is not proved.
+3.  WP: VC generation, its memory model (Typed / Typed+ref / Bytes), and
+    **its Qed simplifier, which discharges many goals before export**.
+4.  Why3's Coq driver and the realisations of WP/Why3 theories.
+5.  Coq's kernel, re-checked by `coqchk`.
+6.  The frozen top-level contracts and any ACSL `axiomatic` blocks a human
+    approved.
+7.  Any goal discharged by an SMT solver, *unless* policy says all goals
+    must go to Coq (§9, Q1).
+
+Not trusted: the agent, CoqHammer's search (its reconstructed proofs are
+kernel-checked), Eva (only if its results enter as proved assertions, see
+§5 step 2).
+
+Note on cost: `coqchk` is deterministic but its running time is not
+near-linear in program size in general — conversion checking can be
+arbitrarily expensive.  Report measured check times instead of claiming a
+bound.
 
 ---
 
-## 4. Case Study: Sglib (Simple Generic Library)
+## 3. Technical stack
 
-The target codebase for evaluation is [sglib](https://github.com/Marian-Vittek/sglib), a header-only generic library for handling intrusive C containers.
+Pin every version in a lock file (opam switch export + `pip freeze`);
+CoqHammer, Why3, and coq-lsp each support only specific Coq/Rocq versions,
+so the pin must be chosen jointly **[verify compatibility matrix]**.
 
-### Why Sglib is the Target Testbed:
-*   **Pure Memory Complexity:** It implements complex heap topologies (**Red-Black Trees, Doubly Linked Lists, Hash Containers**) completely detached from system bindings.
-*   **Intrusive Architectures:** Pointers links are stored directly inside user structures. This requires the verification model to constantly handle custom aliasing, boundary layouts, and complex struct typecasting.
-*   **The Mathematical Moat:** Standard automated first-order SMT solvers fail instantly on these recursive pointer configurations. They must be resolved inductively via Coq.
+*   **Front end:** Frama-C 31.0 (Gallium) with RTE, Eva, WP.
+*   **Specification language:** ACSL.
+*   **VC back end:** WP → Why3 → Coq/Rocq.  Note that `-wp-prover coq`
+    goes through Why3 in current Frama-C, and WP stores interactive
+    proofs in its session directory; the agent's proofs must be saved
+    there so that `-wp-interactive update|fix` re-uses them **[verify]**.
+*   **Proof assistant:** Coq/Rocq (version fixed by the joint pin).
+*   **Automation:** CoqHammer (`hammer`, plus `sauto`/`best` which need no
+    external ATPs), external ATPs (Vampire, E, Z3, CVC5) for `hammer`.
+*   **SMT:** Alt-Ergo, Z3, CVC5 via Why3, tried before Coq; goals they
+    close count (decision Q1, §9.1).
+*   **LLMs, two roles (§12):** the *annotator* (Claude Opus 5.5,
+    `claude-opus-5-5`) writes ACSL annotations, ghost code and helper
+    lemmas; the *prover* (a tier of models, starting with GLM 5.3 Flash)
+    writes Coq tactics for goals that SMT and CoqHammer leave open.
+    Anthropic models are run with the owner's subscription and capped by
+    the budget in §11.  The harness talks to models through one
+    provider-neutral interface so models can be swapped per role.
+*   **Agent interface:** Python 3.11+, asyncio.  Talk to Coq through
+    `coq-lsp`; prefer its Pétanque interface (`pet`), which is designed
+    for programmatic proof search (run tactic on a state, get new state)
+    over driving LSP document edits **[verify]**.
+*   **Sandbox:** each run in a container with no network except the LLM
+    endpoint; source tree mounted read-only except the annotation overlay
+    (§7).
 
-### Reference Code Templates for Workflow Development
+---
 
-To bootstrap the evaluation engine, use the official sample files included in the `sglib/samples` distribution directory as verification benchmarks:
+## 4. Specification layer (the part the plan was missing)
 
-#### Benchmark 1: Intrusive Doubly Linked List Validation (`dllist.c`)
-Demonstrates how user structs link dynamically. The AI agent must verify that traversals do not cause null pointer dereferences or unmapped memory indexing.
+Safety of sglib operations cannot be stated without heap-shape
+predicates; this is where most of the human and agent effort goes.
+
+1.  **Shape predicates in ACSL**, as `inductive` or `axiomatic`
+    definitions with explicit `reads` clauses:
+    *   `dll_seg{L}(ilist *from, ilist *prev, ilist *to, ilist *next)` —
+        a well-linked DL segment, every cell `\valid`, pairwise separated.
+    *   `dll(ilist *l)` — whole list (any element; sglib DL lists are
+        accessed from an arbitrary member).
+    *   `tree{L}(node *t)` — finite, acyclic, `\valid` nodes, no sharing.
+    *   `bst(node *t, integer lo, integer hi)`, `rb(node *t, integer bh)`.
+2.  **Footprints.**  ACSL has no separation logic; separation must be
+    expressed with `\separated` over explicit footprint sets
+    (`logic set<ilist*> dll_footprint(...)`).  Frame lemmas
+    ("writing outside the footprint preserves `dll`") are proved once in
+    Coq and reused (G7).
+3.  **Coq realisation.**  Each predicate gets a Coq counterpart with
+    induction principles and lemmas; WP's export must be connected to
+    these definitions rather than to opaque axioms **[verify: how WP
+    exports ACSL inductive predicates through Why3]**.
+4.  **Frozen contracts.**  For each target function, a human writes (or
+    approves) the `requires` / `ensures` / `assigns` contract.  The agent
+    may strengthen *internal* annotations (loop invariants, asserts,
+    ghost code, lemmas it also proves) but never the frozen contract.
+
+---
+
+## 5. Sandboxed agent loop
+
+```
+   [ C source + frozen contracts ]
+                 │
+                 ▼
+  ┌──► [ Frama-C: RTE + WP, VC generation ]
+  │              │
+  │              ├─► goals closed by Qed / SMT (logged, policy Q1)
+  │              ▼
+  │     [ Coq goal files (.v) ]
+  │              │
+  │              ▼
+  │     [ Agent ↔ coq-lsp / Pétanque ] ──► tactics: intros, induction,
+  │              │                          inversion, lemma reuse, hammer
+  │              ├─► SUCCESS: all goals closed → coqc → .vo → coqchk
+  │              │
+  │              └─► STALL: goal unprovable / invariant too weak
+  │                      │
+  └────── [ Agent edits annotation overlay only (§7) ] ◄┘
+```
+
+### Operational steps
+
+1.  **Normalise and instrument.**
+    `frama-c -cpp-extra-args="-I sglib" bench.c -rte -rte-initialized
+    -then -print -ocode bench.rte.c` **[verify flags]**.  The macro-
+    expanded code is what is verified; keep `bench.rte.c` in the bundle.
+    (The original plan's `-code-shaping` is not a Frama-C option, and the
+    RTE predicates are `\valid` / `\valid_read`.)
+2.  **Eva (optional, triage).**  Run Eva to find alarms early and to
+    suggest candidate invariants.  Eva's results may enter the proof only
+    as ACSL `assert`s that WP then proves; Eva itself never becomes a
+    hypothesis, otherwise Eva joins the TCB.
+3.  **Generate VCs.**  `frama-c -wp -wp-rte -wp-model Typed
+    -wp-prover alt-ergo,z3,coq -wp-interactive batch -wp-timeout 20
+    bench.c` **[verify]**.  `-wp-timeout` limits automatic provers only.
+    Log for every goal: id, origin (RTE/contract/invariant), and who
+    closed it.
+4.  **Proof loop (prover role).**  For each open Coq goal: fetch the goal
+    state, try library lemmas and `hammer`/`sauto` first (bounded time),
+    then the prover tier (§12.2) proposes structural tactics; run each
+    tactic in Pétanque, keep a search tree, backtrack on failure.  Cap
+    per-goal budget (tactics, seconds, tokens).  A prover may also
+    return *needs-annotation* with a short reason (e.g. "hypotheses say
+    nothing about `l->next` after the loop"), which hands the goal to
+    step 5 instead of spending more proof attempts.
+5.  **Refinement (annotator role).**  On a stall, or on a
+    *needs-annotation* report, the annotator may (a) add an `assert`, (b)
+    strengthen a loop invariant, (c) add a helper lemma (ACSL `lemma` or
+    Coq lemma, both must be proved), (d) add ghost code.  Then go back to
+    step 3, re-using proofs of unchanged goals (WP session `update`).
+6.  **Close out.**  When no goals remain: `coqc` all `.v`, run
+    `coqchk` on the resulting modules, run `Print Assumptions` on every
+    goal, and diff the reported axioms against the allowed list (§7).
+7.  **Termination of the loop.**  Hard caps on refinement iterations and
+    total cost; on exhaustion emit a failure report listing open goals
+    with their last state, never a partial certificate.
+
+---
+
+## 6. Case study: sglib
+
+Target: [sglib](https://github.com/Marian-Vittek/sglib), single header
+`sglib.h`; samples in `samples/` (`dllist`, `rbtree`, `hash`, list and
+array sorts).
+
+### 6.1 Why sglib
+
+*   Intrusive containers: link fields live in user structs, so the
+    verifier must handle user-defined layouts and aliasing.
+*   Code is generated by macros (`SGLIB_DEFINE_*_FUNCTIONS`), so the
+    verified object is the macro expansion — annotations must be attached
+    to expanded code or injected through wrapper macros (§9, Q4).
+*   Recursive heap shapes are where SMT-only verification typically needs
+    help; this is the hypothesis to measure (G6), not an assumption.
+
+### 6.2 Benchmarks (corrected against `sglib.h`)
+
+The earlier drafts used `SGLIB_DL_LIST_FOR_EACH`, `SGLIB_RBTREE_ADD`, and
+`SGLIB_RBTREE_FIND`, which do not exist in `sglib.h`.  Level-0 DL lists
+have `SGLIB_DL_LIST_ADD` and `SGLIB_DL_LIST_MAP_ON_ELEMENTS`; red-black
+trees exist only at level 1 (`sglib_<type>_add`, `_find_member`,
+`_delete`, iterators).  Use the actual `samples/dllist.c` and
+`samples/rbtree.c` as the benchmarks; the minimal drivers below are for
+bring-up.
+
+**B1 — DL list (level 0).**
 
 ```c
-#include <stdio.h>
 #include <stdlib.h>
 #include "sglib.h"
 
@@ -81,37 +285,34 @@ typedef struct ilist {
     struct ilist *previous;
 } ilist;
 
-/* Define Level 1 interfaces for the Doubly Linked List */
-SGLIB_DEFINE_DL_LIST_PROTOTYPES(ilist, next, previous);
-SGLIB_DEFINE_DL_LIST_FUNCTIONS(ilist, next, previous);
-
-int main() {
-    ilist *list = NULL;
-    ilist *e;
-    
-    // Test fixture allocation
+int main(void) {
+    ilist *list = NULL, *e, *it;
+    long sum = 0;
     for (int i = 0; i < 5; i++) {
         e = malloc(sizeof(ilist));
         if (e == NULL) return 1;
         e->value = i * 10;
-        SGLIB_DL_LIST_ADD(ilist, list, e, next, previous);
+        SGLIB_DL_LIST_ADD(ilist, list, e, previous, next);
     }
-    
-    // The verification target must prove that iteration via macros is memory safe
-    struct ilist *iterator;
-    SGLIB_DL_LIST_FOR_EACH(ilist, list, iterator, next, previous) {
-        printf("Value: %d\n", iterator->value);
-    }
-    
-    return 0;
+    SGLIB_DL_LIST_MAP_ON_ELEMENTS(ilist, list, it, previous, next, {
+        sum += it->value;
+    });
+    return (int)(sum % 2);
 }
 ```
 
-#### Benchmark 2: Complex Heap Logic - Red-Black Tree (`rbtree.c`)
-The absolute stress-test for the agent. Validating an insert or rebalance loop requires advanced functional contracts mapping node coloration and invariant shape balancing.
+Per `sglib.h`, the link arguments come as `previous, next`
+(`SGLIB_DL_LIST_ADD(type, list, elem, previous, next)`); the earlier
+draft had them reversed, and its `SGLIB_DEFINE_DL_LIST_PROTOTYPES` call
+omitted the required `comparator` argument.  `printf` was replaced
+by a sum so the benchmark does not depend on the variadic libc specs.
+
+Obligations: loop invariant `dll(list)` with footprint = allocated cells;
+validity of each `->next`/`->previous` access during add and map.
+
+**B2 — red-black tree (level 1).**
 
 ```c
-#include <stdio.h>
 #include <stdlib.h>
 #include "sglib.h"
 
@@ -122,41 +323,362 @@ typedef struct node {
     struct node *right;
 } node;
 
-// Define comparator function macro required by sglib
-#define CMP_NODES(x, y) ((x)->key - (y)->key)
+/* Subtraction (x->key - y->key) can overflow; RTE would flag it. */
+#define CMP_NODES(x, y) (((x)->key > (y)->key) - ((x)->key < (y)->key))
 
-SGLIB_DEFINE_RBTREE_PROTOTYPES(node, left, right, color, CMP_NODES);
-SGLIB_DEFINE_RBTREE_FUNCTIONS(node, left, right, color, CMP_NODES);
+SGLIB_DEFINE_RBTREE_PROTOTYPES(node, left, right, color, CMP_NODES)
+SGLIB_DEFINE_RBTREE_FUNCTIONS(node, left, right, color, CMP_NODES)
 
-int main() {
+int main(void) {
     node *tree = NULL;
     node *n = malloc(sizeof(node));
     if (n == NULL) return 1;
     n->key = 42;
-    
-    SGLIB_RBTREE_ADD(node, tree, n, left, right, color, CMP_NODES);
-    
+    sglib_node_add(&tree, n);          /* sets left/right, colours node */
+
     node tmp;
     tmp.key = 42;
-    node *found = SGLIB_RBTREE_FIND(node, tree, &tmp, left, right, CMP_NODES);
-    
-    if (found != NULL) {
-        printf("Found key: %d\n", found->key);
-    }
-    return 0;
+    node *found = sglib_node_find_member(tree, &tmp);
+    return found != NULL ? found->key : 0;
 }
 ```
 
+Targets, in order: `find_member` (read-only descent — safety needs only
+`tree`; BST order is needed only to prove it finds the key), `add`
+(recursive insertion + `SGLIB___RBTREE_FIX_INSERTION_DISCREPANCY`
+rotations — needs `tree` preserved across rotations), then `delete`.
+
+**B3 — hash container (stretch).**  Array of buckets + lists: adds
+array-bounds reasoning on top of list shapes.
+
+### 6.3 Expected difficulty
+
+Safety of `add` depends on the shape invariant being preserved by the
+previous `add`s, so G1 for multi-call clients effectively requires G5's
+`tree`/`dll` part (not the RB colour invariant).  The RB colour/height
+invariant is only needed for functional correctness and is stretch work.
+
 ---
 
-## 5. Security Guardrails & Cryptographic Proof Verification
+## 7. Guardrails
 
-Because the AI agent is given permission to write and adjust annotations, the pipeline enforces an absolute validation mechanism:
+1.  **Annotation overlay.**  The agent edits only (a) ACSL comments,
+    (b) ghost code, (c) `.v` proof scripts and lemma files.  After every
+    edit, strip annotations and ghost code and check that the normalised
+    C is byte-identical to the original (compare `frama-c -print` output
+    of both).  Reject otherwise.
+2.  **Frozen contracts.**  Top-level `requires`/`ensures`/`assigns` and
+    the shape predicate definitions are hashed; any change rejects the
+    run.  Reject `requires \false`-style vacuity: run a sanity check that
+    each frozen precondition is satisfiable (e.g. WP on a test driver
+    calling the function, or a Coq witness).
+3.  **No unproved hypotheses.**  Every agent-added `assert`, invariant,
+    and `lemma` produces its own goals and must be proved.  Agent-added
+    ACSL `axiom`s / `axiomatic` blocks without definitions, `admit`
+    clauses, `check`-only annotations used as hypotheses, and Coq
+    `Admitted` / `Axiom` / `Parameter` / `admit` are rejected by a linter
+    *and* caught at the end by `Print Assumptions`.
+4.  **Axiom allow-list.**  `coqchk -o` (prints the axioms/opaque
+    constants the checked modules rely on) is compared against a fixed
+    allow-list (WP/Why3 theory realisations, functional extensionality if
+    used).  Anything else fails the run.
+5.  **Goal accounting.**  The final report lists every RTE/contract goal
+    and its discharger (Qed, SMT, Coq).  A goal that is neither proved
+    nor explicitly marked out of scope fails the run.
+6.  **Sandboxing.**  No network, no writes outside the run directory, no
+    access to Frama-C/Coq configuration that could change provers or
+    load plugins.
 
-1.  **Isolation of Assertions:** Any helper assertion `/*@ assert P; */` injected by the agent generates split sub-goals. The framework explicitly blocks the agent from passing an unproven lemma down the pipeline; it *must* prove that `P` is valid given previous states before using it as a hypothesis.
-2.  **Zero-Trust Engine:** The AI agent's internal operations do not form any part of the trust root. The only asset outputted from the script is the `.vo` object.
-3.  **The Certificate Checker:** The validation environment invokes Coq's micro-kernel type checker:
-    ```bash
-    coqchk -o your_proof_module.vo
-    ```
-    If `coqchk` compiles successfully, the C program is cryptographically certified as safe. The validation runs deterministically without using heuristics or infinite search bounds, achieving near-linear validation latency.
+---
+
+## 8. Milestones
+
+| # | Deliverable | Exit criterion |
+|---|-------------|----------------|
+| M0 | Toolchain pin + container | Frama-C, Why3, Coq, CoqHammer, coq-lsp versions resolved; `frama-c -wp -wp-prover coq` round-trips on a 10-line example; `coqchk` passes. |
+| M1a | WP allocation investigation (§10) | Small `malloc`/`free` test suite run; decision recorded: WP as is, ghost liveness model, or extend WP. |
+| M1 | Manual baseline on B1 | Human writes predicates + contracts + invariants; all goals closed (by any means); goal census recorded.  This tells us where the hard goals are and whether the shape library works. |
+| M2 | Pipeline without LLM | Python harness runs steps 1–7, Pétanque integration, `hammer`-only proof search, guardrail checks, report.  Measure how much of M1 automation alone closes.  Budget ledger built and calibrated with a small Opus 5.5 pilot (§11). |
+| M3 | Agent on B1 | Annotator (Opus 5.5) + prover tier on B1 starting from frozen contracts only (no human invariants).  Minimum success criterion.  First comparison of prover escalation strategies (§12.3). |
+| M4 | RB-tree `find_member`, `add` | Shape library extended to trees; target success criterion. |
+| M5 | Evaluation | G6 metrics across B1, B2 (and B3 if reached); ablations: no refinement, no hammer, no library lemmas; prover escalation strategies and annotator model (§12.3). |
+
+---
+
+## 9. Decisions
+
+### 9.1 Decided
+
+*   **Q1 — SMT in the TCB: allowed.**  Goals closed by WP's Qed
+    simplifier or by SMT solvers (Alt-Ergo, Z3, CVC5) count.  The TCB in
+    §2.2 item 7 therefore applies.  The final report still records which
+    tool closed each goal.  "Every goal in Coq" stays an optional ablation
+    for M5.
+*   **Q3 — Use-after-free is in scope (required for G1).**  Whether WP
+    supports it as is gets settled in M1a (§10).  If WP falls short, we
+    extend it; see §10 for the options and their effect on the TCB.
+*   **Q6 — Ariadne stays in this repository for now.**  It is outside
+    every `*/agda/` `Makefile` and `All.agda`, so repo-level Agda checks
+    are unaffected.  Ariadne gets its own `Makefile` (target `check` =
+    re-check all certificate bundles) once M2 exists.
+*   **Q4 — Annotations go on the preprocessed file first.**  M1
+    annotates the preprocessed file `bench.i` (each macro instance is
+    annotated separately).  At the end of M1, decide whether to move to
+    a patched `sglib.h` with annotation hooks inside the macros (e.g.
+    `SGLIB___DL_LIST_ADD_INV(...)` expanding to an ACSL comment), which
+    is reusable across types and benchmarks; the overlay check (§7.1)
+    would then compare the patched header, hooks stripped, against the
+    original.  The annotations themselves carry over either way.
+*   **Q7 — Models by role (§12); budget at most 25% of the owner's
+    weekly usage limit (§11).**  Annotator: Claude Opus 5.5.  Prover: a
+    tier starting with GLM 5.3 Flash (free, via IU REALLMS), escalation
+    strategy to be chosen by experiment.
+*   **Q8 — Human hints: allowed, as a last resort.**  A hint is requested
+    only after every model tier and the annotator have failed on a goal
+    (or the run is about to stop on budget).  The harness then pauses
+    that goal, shows the owner the goal state and what was tried, and
+    records the hint verbatim with the goal id.  Hinted goals are
+    reported separately from goals closed by the agent alone (G6), and
+    the success criteria in §1.5 count only unhinted goals unless stated
+    otherwise.
+
+*   **Q2 — Memory model: `Typed`** (`-wp-model Typed`; `Typed+ref` may
+    be tried as an optimisation).  It assumes no type-punning, which fits
+    sglib's intrusive structs.  M1 checks the macro-expanded B1/B2 code
+    for pointer casts between struct types; if any appear, revisit.
+*   **Q5 — Coq/Rocq version: the latest one that Frama-C 31 WP and its
+    Why3 version support.**  M0 determines it from the Frama-C/Why3
+    release notes and opam constraints, then pins it.  If CoqHammer or
+    coq-lsp/Pétanque lag behind that version, record the gap and decide
+    in M0 whether to step back one version or work around the missing
+    tool.
+
+*   **Q9 — Prover tiers: GLM 5.3 Flash → Sonnet 5.5 → Opus 5.5.**  This
+    is the starting configuration.  M3 tests it against the alternatives
+    in §12.3, in particular S5 (no paid prover tiers; hand failures to the
+    annotator), which saves Opus budget for annotation.  Other REALLMS
+    models may be added as free tiers once the service's model list is
+    recorded in §12.2.
+
+### 9.2 Still open
+
+None.  New questions go here.
+
+---
+
+## 10. Use-after-free: the M1a investigation and fallbacks
+
+**Question to settle first (M1a, before the M1 baseline):** with Frama-C
+31 + WP + the Frama-C libc specs of `malloc`/`free`, do these small
+programs behave correctly?
+
+```c
+int *p = malloc(sizeof(int));
+if (!p) return 0;
+*p = 1;          /* must PROVE  (fresh, valid)            */
+free(p);
+return *p;       /* must FAIL   (dangling after free)     */
+```
+
+plus variants: `free` of a non-malloc pointer (must fail
+`\freeable`), double `free` (must fail), aliasing (`q = p; free(p);
+*q`, must fail), and a freed node reached through a list link (must
+fail).  For each, record whether WP (i) generates the obligation,
+(ii) proves the good cases, and (iii) refuses the bad ones.  Things to
+check **[verify]**: whether WP's `Typed` model honours `allocates` /
+`frees` clauses and `\fresh`, `\freeable`, `\allocable`; and whether RTE
+alone generates the `\valid` obligation that catches the use after
+`free` (it should, since `free` should end `\valid(p)`).
+
+**If WP passes:** nothing more to do; use-after-free is covered by the
+RTE `\valid` obligations.
+
+**If WP does not, in order of preference:**
+
+1.  **Ghost liveness model (no change to WP).**  Specify our own
+    `malloc`/`free` contracts over a ghost set of live blocks
+    (`live : set<char*>`): `malloc` adds the fresh block, `free` requires
+    `p ∈ live` and removes it.  A small instrumentation pass (Frama-C
+    plugin or script on the normalised code) adds
+    `/*@ assert base_addr(p) ∈ live; */` before every dereference, next to
+    the RTE `\valid` obligation.  TCB grows by the allocator
+    specification and the instrumentation pass, both small and easy to
+    review.
+2.  **Fix or extend WP.**  Add or repair the missing parts in WP's memory
+    model (an allocation table that `free` updates, so `\valid` really
+    ends at `free`).  This is OCaml work inside Frama-C: more effort,
+    and the change joins the TCB until it is merged upstream.  If we do
+    it, upstream it to the Frama-C team rather than keep a fork.
+3.  **Defer** use-after-free to the `delete` benchmarks.  Only acceptable
+    if 1 and 2 both stall, since G1 requires it.
+
+---
+
+## 11. Agent budget: at most 25% of the weekly usage limit
+
+The limit is a share of the owner's Claude subscription, not a dollar
+amount, so the harness needs a way to turn tokens into "% of weekly
+limit".  Plan:
+
+1.  **Run the agent with the owner's subscription.**  Drive Opus 5.5
+    through Claude Code in headless mode (`claude -p --model
+    claude-opus-5-5 --output-format json`) or the Claude Agent SDK
+    logged in with the subscription, so usage counts against the plan
+    limit we are budgeting.  Each call's JSON result includes token
+    usage (and an equivalent cost) **[verify field names]**.
+    (A Claude API key instead would not touch the subscription limit,
+    but costs money separately.  Not planned.)
+2.  **Calibrate once, in M2.**  Note the weekly usage % shown by
+    `/usage` in Claude Code, run a fixed pilot (e.g. 20 goals of B1),
+    note `/usage` again, and divide by the tokens the harness logged.
+    That gives *% of weekly limit per million tokens*.  Repeat if the
+    plan or the limits change.
+3.  **Ledger and hard stop.**  The harness keeps a ledger
+    (`Ariadne/runs/budget.json`, git-ignored) of tokens used since the
+    last weekly reset.  Before each LLM call it estimates the call's cost
+    and refuses if the total would pass the cap.  The cap is **20%**
+    (a margin under 25%, because calibration is approximate and the
+    owner also uses Claude interactively).  At 15% it writes a warning to
+    the run report.
+4.  **Spending within the cap.**  Only Anthropic models count against
+    the cap; GLM 5.3 Flash (IU REALLMS) is free but rate-limited, so it
+    gets its own requests-per-minute limit **[verify REALLMS limits]**.
+    Cheap work first: Qed/SMT, then `hammer`/`sauto` and library lemmas
+    (no LLM), then the free prover tier, and Anthropic models only where
+    those fail (§12).  The ledger keeps the annotator's and the prover's
+    Anthropic usage separate, so the M3/M5 reports can show where the
+    budget went.  Per-goal cap (tactic attempts and tokens) and
+    per-benchmark cap, both set from the M2 pilot.  Cache goal states →
+    proof attempts so a rerun after a refinement step does not pay again
+    for goals that did not change.
+5.  **Never a silent overrun.**  When the cap is hit the run stops
+    cleanly with the usual failure report (open goals + last states) and
+    the ledger total; it resumes after the weekly reset or when the owner
+    raises the cap.
+
+Open item: whether a usage % can be read programmatically
+**[verify]**.  If it can, the harness reads it directly and the
+calibration of step 2 becomes only a cross-check.
+
+---
+
+## 12. Model roles and escalation
+
+### 12.1 Annotator (Claude Opus 5.5)
+
+Writes and repairs loop invariants, asserts, ghost code, shape-predicate
+lemmas, and `assigns`/frame annotations for internal functions.  This is
+where model strength matters most: one good invariant can close dozens
+of goals, and a weak one produces goals nobody can prove.  Input per
+call: the annotated function, the frozen contract, the open goals
+grouped by source location, and any *needs-annotation* reports from the
+prover.  Output: an annotation patch, which goes through the guardrails
+of §7 before Frama-C sees it.
+
+Calls are few but large, so the annotator is the main Anthropic budget
+user; give it the largest share of the cap (initially 75%, revisited
+after the M2 pilot).
+
+### 12.2 Prover (tiered)
+
+Writes Coq tactics for a single goal state, run step by step in
+Pétanque.  Calls are many and small, so cost per call matters.  Tiers,
+cheapest first:
+
+| Tier | Model | Cost to the cap |
+|------|-------|-----------------|
+| 0 | `hammer`, `sauto`, library lemmas (no LLM) | none |
+| 1 | GLM 5.3 Flash (IU REALLMS) | none (free; rate-limited) |
+| 2 | Claude Sonnet 5.5 (`claude-sonnet-5-5`) | moderate |
+| 3 | Claude Opus 5.5 (`claude-opus-5-5`) | large |
+
+Each tier gets a per-goal budget (attempts, tactic steps, seconds).  A
+goal moves up a tier when the current tier runs out of budget, and goes
+to the annotator instead when the prover reports *needs-annotation*.
+
+GLM 5.3 Flash is reached through Indiana University's REALLMS service,
+which is hosted privately by IU, so goal states and code do not go to an
+outside provider.  The owner's REALLMS API key is found the same way as
+in the repo's existing REALLMS scripts (`$REALLMS_API_KEY`, then an
+`export` line in `~/.zshrc`, then `~/.reallms_key`); it is never written
+to the repository, to run logs, or to certificate bundles, and the run
+report redacts request headers.  Service documentation: "About the Research
+and Academic LLM Services (REALLMS) API at IU",
+<https://servicenow.iu.edu/kb?id=kb_article_view&sysparm_article=KB0027272>.
+That page predates GLM 5.3 Flash; per the owner, it is served under the
+REALLMS endpoint name `glm-5.3-flash`.
+
+REALLMS is OpenAI-compatible (LiteLLM router, vLLM backend), base URL
+`https://reallms.rescloud.iu.edu/direct/v1`, with routes `/models`,
+`/chat/completions`, `/completions`, `/embeddings`, `/rerank`, ….
+
+**Reuse the existing REALLMS harness.**  `scripts/REALLMS.md` and
+`scripts/reallms_agent.py` already implement, for Agda, the loop the
+prover role needs: the model gets `grep`, `read_file`, and
+`check_solution` tools, iterates until the checker accepts, and only a
+short JSON report goes back to the orchestrator.  The Ariadne prover
+should reuse its client code (key lookup, streaming, tool-call assembly,
+nudging) and swap the oracle: `check_solution` runs the tactic script
+through Pétanque/`coqc` instead of `agda`, and the annotator's oracle
+re-runs Frama-C/WP.  Factor the shared client into a module both use
+rather than copying it.  Lessons recorded there that carry over:
+
+*   models often leave `content` empty and put the answer in
+    `reasoning_content` — read both;
+*   streaming (SSE) is required for long reasoning replies;
+*   `gemma-4-31B-it` emits malformed tool-call JSON — not usable for the
+    tool-based prover;
+*   on an Agda proof benchmark, `glm-5.2` and `gpt-oss-120b` both solved
+    the target without a hint, and `Qwen3-Coder-Next` was weakest; so
+    `gpt-oss-120b` is the main free alternative to GLM 5.3 Flash;
+*   reasoning models tend to narrate a proof without submitting it; the
+    harness must nudge them to call `check_solution`.
+
+Other models listed by the service that matter here:
+
+*   chat/completions: `gpt-oss-120b`, `qwen3.8-27b` — candidate free
+    prover models alongside GLM 5.3 Flash (§12.3, S1); `gemma-4-31B-it`
+    only for prompts without tool calls;
+*   embeddings: `Qwen3-Embedding-8B`; rerank: `Qwen3-Reranker-8B` —
+    candidates for lemma retrieval (§12.4).
+
+(`granite-docling-258m`, the audio and image models are not relevant.)
+Still to record: rate limits and allowed data classifications
+**[verify]**.
+Keep the base URL and endpoint name in harness configuration, not in
+code, since the KB page shows they change.
+
+### 12.3 Escalation experiments (M3, M5)
+
+Strategies to compare on the same goal set (fixed annotations, so only
+the prover varies):
+
+*   **S1 — single model:** each model alone, as a baseline per tier.
+    Includes the other free REALLMS chat models that handle tool calls
+    (`gpt-oss-120b`, `qwen3.8-27b`); any that beats GLM 5.3 Flash
+    replaces it as tier 1, or joins as a second free tier.
+*   **S2 — linear escalation:** tier 1 → 2 → 3 with fixed per-tier budgets.
+*   **S3 — escalation with hand-off:** as S2, but the lower tier's best
+    partial proof (the deepest state reached) is given to the next tier
+    instead of starting over.
+*   **S4 — many cheap attempts:** k sampled attempts from tier 1 before
+    escalating (k = 1, 4, 16), to see how far a free model goes when
+    sampled many times.
+*   **S5 — early hand-off to the annotator:** escalate to the annotator
+    after tier 1 fails, skipping paid prover tiers, to test whether
+    failures are mostly missing annotations rather than hard proofs.
+
+Metrics per strategy: goals closed, Anthropic tokens per closed goal,
+wall-clock per closed goal, and how often a *needs-annotation* report
+led to an annotation that then closed the goal.  The winner becomes the
+default; the results go into the M5 evaluation (G6).
+
+### 12.4 Lemma retrieval (optional, M3+)
+
+As the shape-predicate library (G7) grows, prompts cannot include every
+lemma.  Index the library's lemma statements with `Qwen3-Embedding-8B`
+(REALLMS, free), retrieve the top candidates for each goal, rerank them
+with `Qwen3-Reranker-8B`, and put the best few in the prover's prompt
+(and in `hammer`'s hint list).  Compare against no retrieval in M5.
+Retrieval only chooses what to show the model; it adds nothing to the
+TCB.

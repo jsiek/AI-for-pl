@@ -1,0 +1,9 @@
+(* Why3's Coq driver plus the tactic libraries the Ariadne prover uses.
+   Why3 regenerates every goal file and keeps only the proof script, so
+   imports must come from the driver's prelude. *)
+
+import "coq.drv"
+
+prelude "From Stdlib Require Import Lia."
+prelude "From Hammer Require Import Tactics."
+prelude "From Hammer Require Import Hammer."

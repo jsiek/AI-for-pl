@@ -1,0 +1,13 @@
+*.log
+*.vo
+*.vok
+*.vos
+*.glob
+*.aux
+.*.aux
+.lia.cache
+.coq-native/
+cert/
+pet/*.v
+session/cache/
+session_bad/cache/

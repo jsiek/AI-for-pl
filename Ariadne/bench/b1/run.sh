@@ -9,7 +9,7 @@
 # not generated, so no termination goals are created.
 set -u
 fcts="sglib_dllist_add,sglib_dllist_it_init_on_equal,sglib_dllist_it_init"
-fcts="$fcts,sglib_dllist_it_next,b1"
+fcts="$fcts,sglib_dllist_it_next,sglib_dllist_get_first,sglib_dllist_get_last,b1"
 extra="$*"
 status=0
 
@@ -37,4 +37,4 @@ wp report_fct.json run_fct.log -wp-rte -wp-fct "$fcts"
 wp report_lemmas.json run_lemmas.log -wp-prop=@lemma
 [ "$status" -eq 0 ] || exit 1
 # Exact goal counts, so a selection that silently shrinks cannot pass.
-python3 -I ../goals.py report_fct.json:177 report_lemmas.json:6
+python3 -I ../goals.py report_fct.json:212 report_lemmas.json:8

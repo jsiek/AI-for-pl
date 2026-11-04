@@ -5,7 +5,8 @@
 #      intended goal(s) unproved, on the intended line, and nothing else:
 #      vacuity  - `assert \false` at the end of b1 (else the spec is
 #                 inconsistent and step 1 means nothing);
-#      uaf      - the forward walk moved after the free loop;
+#      uaf      - the walks (get_first forward, get_last backward)
+#                 moved after the free loop;
 #      nullchk  - the NULL check after allocation removed (as in the
 #                 original sglib sample).
 set -u
@@ -25,18 +26,17 @@ def mutant(name, old, new):
     assert src.count(old) == 1, (name, old)
     open(f"mutants/{name}.c", "w").write(src.replace(old, new))
 
-walk = """  /*@ loop invariant \\exists dllist *p, \\list<dllist *> t; live_dll(p, l, t);
-      loop assigns l, last;
-  */
-  for (l = the_list; l != NULL; l = l->ptr_to_next)
-    last = l->i;
-"""
+# The two walks (from get_first forward, from get_last backward), with
+# the assert in front of them.
+i = src.index("  /*@ assert head_is_node0:")
+tail = "       l = l->ptr_to_previous)\n    last = l->i;\n"
+walks_end = src.index(tail, i) + len(tail)
+walk = src[i:walks_end]
 mutant("vacuity", "  return last;\n}",
        "  //@ assert vacuity: \\false;\n  return last;\n}")
 free_loop_end = "            all_live{before_free}(s) && !mem(l, s) ==> all_live(s); */\n  }\n"
-i = src.index(walk)
 j = src.index(free_loop_end) + len(free_loop_end)
-uaf = src[:i] + src[i + len(walk):j] + walk + src[j:]
+uaf = src[:i] + src[walks_end:j] + walk + src[j:]
 open("mutants/uaf.c", "w").write(uaf)
 mutant("nullchk", "    if (l == NULL)\n      break;\n", "")
 EOF
@@ -47,8 +47,8 @@ expect() {
   case "$1" in
     vacuity) marker='  //@ assert vacuity: \false;'
              goals='_assert_vacuity$' ;;
-    uaf)     marker='  /*@ loop invariant \exists dllist *p, \list<dllist *> t; live_dll(p, l, t);'
-             goals='_loop_invariant(_[0-9]+)?_established$' ;;
+    uaf)     marker='        the_list == \null'  # head_is_node0's first line
+             goals='_assert_head_is_node0$' ;;
     nullchk) marker='    l->i = input[k];'
              goals='_assert_(ariadne_live|rte_mem_access)(_[0-9]+)?$' ;;
   esac

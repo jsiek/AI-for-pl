@@ -79,6 +79,26 @@ struct sglib_dllist_iterator {
            == \at(\nth(s, k)->ptr_to_previous, L2)
         && \valid{L2}(\nth(s, k));
 
+    // Index view of dll: node k's links point to its neighbours in s.
+    // (k is quantified at the top, so SMT instantiates this only for
+    //  indices already present in a goal.)
+    lemma dll_links{L}:
+      \forall dllist *prev, *h, \list<dllist *> s, integer k;
+        dll(prev, h, s) ==> 0 <= k < \length(s) ==>
+            \nth(s, k) != \null
+            && \nth(s, k)->ptr_to_previous
+               == (k == 0 ? prev : \nth(s, k - 1))
+            && \nth(s, k)->ptr_to_next
+               == (k + 1 < \length(s) ? \nth(s, k + 1) : (dllist *)\null);
+
+    // Node 0 is the only node whose ptr_to_previous is NULL in a whole
+    // list.  (That node 0 is the head follows from dll_inv; a separate
+    // lemma `nth(s, 0) == h` made SMT time out on add's goals.)
+    lemma dll_first{L}:
+      \forall dllist *h, \list<dllist *> s, integer k;
+        dll(\null, h, s) ==> 0 <= k < \length(s) ==>
+          \nth(s, k)->ptr_to_previous == \null ==> k == 0;
+
     lemma dll_frame{L1, L2}:
       \forall dllist *prev, *h, \list<dllist *> s;
         dll{L1}(prev, h, s) ==> unchanged{L1, L2}(s) ==> dll{L2}(prev, h, s);
@@ -86,6 +106,11 @@ struct sglib_dllist_iterator {
     // A whole live list, given by any of its nodes' predecessor.
     predicate live_dll{L}(dllist *prev, dllist *h, \list<dllist *> s) =
       dll(prev, h, s) && all_live(s);
+
+    // p is a node of some whole live list (head's predecessor is NULL).
+    predicate in_live_list{L}(dllist *p) =
+      \exists dllist *h, \list<dllist *> s, integer k;
+        live_dll(\null, h, s) && 0 <= k < \length(s) && p == \nth(s, k);
 
     // Iterator state reached by it_init/it_next with no subcomparator:
     // the backward walk is done and nextelem starts a well-formed live rest.
@@ -158,6 +183,11 @@ void sglib_dllist_add(dllist **list, dllist *elem) {
     /*@ assert frame: \forall \list<dllist *> s;
           all_live{Pre}(s) && !mem(elem, s) && !mem(\at(*list, Pre), s)
           ==> unchanged{Pre, Here}(s); */
+    /*@ assert linked: \at(*list, Pre) != \null ==>
+          \forall \list<dllist *> t;
+            dll{Pre}(\at(*list, Pre), \at(\at(*list, Pre)->ptr_to_next, Pre), t)
+            && all_live{Pre}(t) && !mem(\at(*list, Pre), t) && !mem(elem, t)
+            ==> live_dll(\null, elem, \Cons(elem, \Cons(\at(*list, Pre), t))); */
   };
 }
 void sglib_dllist_add_after(dllist **list, dllist *elem) {
@@ -425,25 +455,45 @@ dllist *sglib_dllist_find_member(dllist *list, dllist *elem) {
   };
   return (result);
 }
+/*@ requires list == \null || in_live_list(list);
+    assigns \nothing;
+    ensures \exists \list<dllist *> s; live_dll(\null, \result, s);
+*/
 dllist *sglib_dllist_get_first(dllist *list) {
   dllist *result;
   {
     dllist *_dll_;
     _dll_ = (list);
     if (_dll_ != NULL) {
+      /*@ loop invariant in_live_list(_dll_);
+          loop assigns _dll_;
+      */
       for (; _dll_->ptr_to_previous != NULL; _dll_ = _dll_->ptr_to_previous)
         ;
+      /*@ assert at_head: \exists dllist *h, \list<dllist *> s;
+            live_dll(\null, h, s) && _dll_ == h; */
     }
+    //@ assert empty: _dll_ == \null ==> live_dll(\null, \null, \Nil);
     (result) = _dll_;
   };
   return (result);
 }
+/*@ requires list == \null || in_live_list(list);
+    assigns \nothing;
+    ensures \result == \null
+            || \exists dllist *h, \list<dllist *> s;
+                 live_dll(\null, h, s) && \length(s) > 0
+                 && \result == \nth(s, \length(s) - 1);
+*/
 dllist *sglib_dllist_get_last(dllist *list) {
   dllist *result;
   {
     dllist *_dll_;
     _dll_ = (list);
     if (_dll_ != NULL) {
+      /*@ loop invariant in_live_list(_dll_);
+          loop assigns _dll_;
+      */
       for (; _dll_->ptr_to_next != NULL; _dll_ = _dll_->ptr_to_next)
         ;
     }
@@ -663,8 +713,9 @@ dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it) {
 /* END GENERATED, part 2 */
 
 /* Driver for B1a: build a list from input[0..n-1] with sglib_dllist_add,
-   walk it forward, then free every element while iterating (the sample's
-   last loop).  Returns the last value seen by the walk. */
+   walk it forward from sglib_dllist_get_first and backward from
+   sglib_dllist_get_last (B1b, as the sample does), then free every element
+   while iterating (the sample's last loop).  Returns the last value seen by the walk. */
 /*@ requires 0 <= n && \valid_read(input + (0 .. n - 1));
     requires !dead(__heap, \base_addr(input));
 */
@@ -695,10 +746,21 @@ int b1(const int *input, int n) {
     l->i = input[k];
     sglib_dllist_add(&the_list, l);
   }
+  /*@ assert head_is_node0:
+        the_list == \null
+        || \exists \list<dllist *> s;
+             live_dll(\null, the_list, s) && \length(s) > 0
+             && \nth(s, 0) == the_list; */
   /*@ loop invariant \exists dllist *p, \list<dllist *> t; live_dll(p, l, t);
       loop assigns l, last;
   */
-  for (l = the_list; l != NULL; l = l->ptr_to_next)
+  for (l = sglib_dllist_get_first(the_list); l != NULL; l = l->ptr_to_next)
+    last = l->i;
+  /*@ loop invariant l == \null || in_live_list(l);
+      loop assigns l, last;
+  */
+  for (l = sglib_dllist_get_last(the_list); l != NULL;
+       l = l->ptr_to_previous)
     last = l->i;
   /*@ loop invariant iter_ok(&it, l);
       loop assigns l, it, __heap;

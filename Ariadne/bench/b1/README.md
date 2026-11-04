@@ -1,9 +1,14 @@
-# B1a: sglib doubly linked list, memory safety (M1 baseline)
+# B1a + B1b: sglib doubly linked list, memory safety (M1 baseline)
 
-Benchmark B1 (plan §6.2), first stage: build a list with
-`sglib_dllist_add`, walk it forward, and free every element while
-iterating with `sglib_dllist_it_init` / `sglib_dllist_it_next`, as in
-sglib's `samples/dllist.c`.  **Status: fully verified**: every goal,
+Benchmark B1 (plan §6.2), first two stages, as in sglib's
+`samples/dllist.c`:
+
+- **B1a**: build a list with `sglib_dllist_add`, and free every element
+  while iterating with `sglib_dllist_it_init` / `sglib_dllist_it_next`;
+- **B1b**: walk it forward from `sglib_dllist_get_first` and backward
+  (via `ptr_to_previous`) from `sglib_dllist_get_last`.
+
+**Status: fully verified**: every goal,
 including lemmas, is proved; use-after-free is covered by the ghost
 liveness model (`-ariadne`).
 
@@ -31,22 +36,23 @@ lacks (mutant `nullchk` shows the check is needed).
 
 ## Goal census (M1)
 
-183 goals, all proved:
+220 goals, all proved (212 for the 7 functions, 8 lemmas; B1a alone
+was 183):
 
-| Closed by | Goals |
-|-----------|-------|
-| WP's simplifier (Qed) | 109 |
-| Alt-Ergo 2.6.4 | 65 |
-| CVC5 1.2.1 | 5 |
-| Z3 4.13.4 | 1 |
-| Coq 9.0.1 (hand-written scripts) | 3: `mem_cons`, `all_live_cons`, `dll_frame` |
+| Closed by | B1a + B1b | B1a alone |
+|-----------|-----------|-----------|
+| WP's simplifier (Qed) | 126 | 109 |
+| Alt-Ergo 2.6.4 | 79 | 65 |
+| CVC5 1.2.1 | 7 | 5 |
+| Z3 4.13.4 | 4 | 1 |
+| Coq 9.0.1 (hand-written scripts) | 4: `mem_cons`, `all_live_cons`, `dll_frame`, `dll_links` | 3 |
 
 Mutants (`check.sh`), each rejected:
 
 | Mutant | Rejected by |
 |--------|-------------|
 | `vacuity`: `assert \false` at the end of `b1` | the assert (spec consistent) |
-| `uaf`: forward walk after the free loop | the walk's loop invariant (the list's nodes are dead) |
+| `uaf`: both walks after the free loop | assert `head_is_node0` before the walks (the list's nodes are dead) |
 | `nullchk`: no NULL check after allocation | the `live` assert on `l->i` |
 
 ## The specification (for review: frozen spec, plan §4 and guardrail 3a)
@@ -109,10 +115,35 @@ and `it_next` (lets `dll_frame` apply across the writes).
   image's native compiler fails on Why3's list library.  WP's own check
   (`coqtop -batch`) is unaffected.
 - Not yet done: the overlay check (stripped `b1.c` equals `b1_gen.c` +
-  driver), and a certificate bundle (`coqc` + `coqchk` of the 3 Coq
+  driver), and a certificate bundle (`coqc` + `coqchk` of the Coq
   goals, axiom list).
+
+## B1b: what it added
+
+- **Contracts**: `get_first` and `get_last` accept any node of a whole
+  live list (`in_live_list`); `get_first` returns the head of a live
+  list, `get_last` its last node.  Loop invariant in both:
+  `in_live_list(_dll_)`.
+- **Lemmas**: `dll_links` (index view: node k's previous link is node
+  k-1, or `prev` at k = 0; its next link is node k+1, or NULL at the
+  end; induction, Coq, 50 lines) and `dll_first` (only node 0 has a NULL
+  previous link in a whole list; SMT, from `dll_links`).
+- **Asserts**: `at_head` and `empty` at the end of `get_first`,
+  `head_is_node0` in the driver, and `linked` in `add`.
+- **An SMT side effect worth knowing.**  New lemmas are hypotheses of
+  every goal, not only the goals that need them.  Adding
+  `dll_nth0` (`dll(prev, h, s) && h != NULL ==> nth(s, 0) == h`) made
+  `add`'s postcondition, proved in B1a, time out even at 180 s
+  (`lemma_ablation.sh` found the culprit by removing lemmas one at a
+  time).  The fix was to drop `dll_nth0` (the fact follows from
+  `dll_inv`) and to give `add` one more guiding assert (`linked`);
+  `dll_links` and `dll_first` alone still slow `add` without it.
+- **Lemma order matters**: a lemma can use only the lemmas declared
+  before it (`dll_first` failed until moved below `dll_links`).
+- **Coq detail**: Why3's `Length.length` is a real fixpoint, so `cbn`
+  computes `length nil`; WP writes `-1 + i` as `Z.opp 1 + i`, so match
+  indices from the goal rather than typing the literal.
 
 ## Next
 
-B1b: `get_first` / `get_last` and the reverse walk.  B1c (stretch):
-`sglib_dllist_sort`.
+B1c (stretch): `sglib_dllist_sort`.

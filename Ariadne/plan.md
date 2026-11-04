@@ -474,7 +474,24 @@ invariant is only needed for functional correctness and is stretch work.
 
 ### 9.2 Still open
 
-None.  New questions go here.
+*   **Q10 — Toolchain: Frama-C/WP or VST?**  VST (Verifiable C on
+    CompCert Clight, `vst/README.md`) handles use-after-free natively and
+    keeps shape predicates as checked Rocq definitions, removing the
+    ghost liveness model and guardrail 3a's hole, at the cost of no SMT
+    automation and a trusted CompCert front end.  The prototype
+    (`vst/smoke/`) verifies a malloc/free program and refuses the bad
+    variants.  Decision after B1a is verified in both toolchains and
+    compared (effort, goal/proof size, trust base, agent fit).
+    **To do (owner's request): use SMTCoq to automate some of the Rocq
+    proofs on the VST side.**  VST has no SMT automation, so pure
+    arithmetic and propositional side goals (bounds, `Int.repr`
+    ranges, list-length facts left by `entailer!`) are hand-proved.
+    SMTCoq checks an SMT solver's certificate inside Rocq, so the solver
+    stays outside the trust base, unlike WP's SMT path (§2.2 item 7).
+    To check: an SMTCoq release for Rocq 9.0.x and the solver versions
+    it needs **[verify]**, and which VST goals it can take (it handles
+    first-order goals over integers, booleans and uninterpreted
+    functions, not separation-logic entailments).
 
 ---
 

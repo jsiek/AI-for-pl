@@ -1,7 +1,8 @@
 /* Executable twins of B1's logic definitions (plan section 4 item 5).
-   Prototypes only, in struct form (no typedefs), so this header can be
-   force-included (gcc -include) before the instrumented code, which
-   E-ACSL prints without the prototypes of functions used only in logic.
+   Prototypes only, without typedefs (struct dllist, long handles), so
+   this header can be force-included (gcc -include) before the
+   instrumented code, which E-ACSL prints without the prototypes of
+   functions used only in logic.
 
    Each function here is an E-ACSL builtin (-e-acsl-builtins): ACSL
    annotations call it like a logic function.  Test code only; nothing

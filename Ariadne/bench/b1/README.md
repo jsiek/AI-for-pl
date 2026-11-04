@@ -28,6 +28,8 @@ initialisation checks (see "Initialisation").
 | `session/interactive/*.v` | the Coq proof scripts (WP session) |
 | `run.sh` | `-ariadne` + WP: the five B1a functions, then the lemmas |
 | `check.sh` | `run.sh` plus seven mutants that must be rejected |
+| `mutants.py` | writes the seven mutants (used by `check.sh` and `rac/check.sh`) |
+| `rac/` | runtime checking (plan §5 step 0): sanitizers, E-ACSL with executable twins, the mutants as tests; see `rac/README.md` |
 
 The driver replaces the sample's `main`: an input array instead of
 `argv`/`sscanf`, no `printf` (body-less libc functions are not

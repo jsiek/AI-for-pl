@@ -12,9 +12,12 @@ docker build -t ariadne-m0:dev .     # ~4 min on 24 cores
 cd smoke && ./check.sh               # five PASS lines expected
 ```
 
-`run.sh <command> …` runs a command in the image with the current
-directory mounted at `/work`, as the calling user (so files written in
-the session are owned by you).  `ARIADNE_IMAGE` overrides the image tag.
+`run.sh <command> …` runs a command in the image as the calling user
+(so files written in the session are owned by you), with the current
+directory mounted at `/work` (the working directory) and the whole
+`Ariadne/` directory at `/ariadne` (for shared files such as
+`bench/sglib` and `plugin/share`).  `ARIADNE_IMAGE` overrides the image
+tag.
 
 ## Pinned versions
 
@@ -31,6 +34,7 @@ the session are owned by you).  `ARIADNE_IMAGE` overrides the image tag.
 | CVC5 | 1.2.1 | Why3 1.8.2 accepts 1.0–1.2 |
 | Vampire | 4.9 (CASC 2024) | Vampire 5 dropped `--output_axiom_names`, which CoqHammer uses |
 | Eprover | 2.6 (Debian `2.6+ds-3`, pinned) | CoqHammer ATP |
+| clang-format | 14.0.6 (Debian `1:14.0.6-12`, pinned) | formats macro-expanded benchmarks for annotation (`bench/b1/gen.sh`) |
 
 Base image: `rocq/rocq-prover:9.0.1-native-ocaml-4.14.2`, pinned by
 digest.  Its `ocamlfind 1.9.6` pin is lifted because coq-lsp 0.2.5 needs

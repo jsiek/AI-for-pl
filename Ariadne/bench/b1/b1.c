@@ -457,7 +457,12 @@ dllist *sglib_dllist_find_member(dllist *list, dllist *elem) {
 }
 /*@ requires list == \null || in_live_list(list);
     assigns \nothing;
-    ensures \exists \list<dllist *> s; live_dll(\null, \result, s);
+    ensures list == \null ==> \result == \null;
+    // the result heads the same live list that contains list
+    ensures heads_list: list != \null ==>
+      \exists \list<dllist *> s, integer k;
+        live_dll(\null, \result, s) && 0 <= k < \length(s)
+        && \nth(s, k) == list;
 */
 dllist *sglib_dllist_get_first(dllist *list) {
   dllist *result;
@@ -465,25 +470,31 @@ dllist *sglib_dllist_get_first(dllist *list) {
     dllist *_dll_;
     _dll_ = (list);
     if (_dll_ != NULL) {
-      /*@ loop invariant in_live_list(_dll_);
+      /*@ loop invariant
+            \exists dllist *h, \list<dllist *> s, integer j, k;
+              live_dll(\null, h, s) && 0 <= j < \length(s)
+              && 0 <= k < \length(s) && _dll_ == \nth(s, j)
+              && list == \nth(s, k);
           loop assigns _dll_;
       */
       for (; _dll_->ptr_to_previous != NULL; _dll_ = _dll_->ptr_to_previous)
         ;
-      /*@ assert at_head: \exists dllist *h, \list<dllist *> s;
-            live_dll(\null, h, s) && _dll_ == h; */
+      /*@ assert at_head: \exists \list<dllist *> s, integer k;
+            live_dll(\null, _dll_, s) && 0 <= k < \length(s)
+            && \nth(s, k) == list; */
     }
-    //@ assert empty: _dll_ == \null ==> live_dll(\null, \null, \Nil);
     (result) = _dll_;
   };
   return (result);
 }
 /*@ requires list == \null || in_live_list(list);
     assigns \nothing;
-    ensures \result == \null
-            || \exists dllist *h, \list<dllist *> s;
-                 live_dll(\null, h, s) && \length(s) > 0
-                 && \result == \nth(s, \length(s) - 1);
+    ensures list == \null ==> \result == \null;
+    // the result is the last node of the same live list that contains list
+    ensures last_of_list: list != \null ==>
+      \exists dllist *h, \list<dllist *> s, integer k;
+        live_dll(\null, h, s) && 0 <= k < \length(s)
+        && \nth(s, k) == list && \result == \nth(s, \length(s) - 1);
 */
 dllist *sglib_dllist_get_last(dllist *list) {
   dllist *result;
@@ -491,11 +502,18 @@ dllist *sglib_dllist_get_last(dllist *list) {
     dllist *_dll_;
     _dll_ = (list);
     if (_dll_ != NULL) {
-      /*@ loop invariant in_live_list(_dll_);
+      /*@ loop invariant
+            \exists dllist *h, \list<dllist *> s, integer j, k;
+              live_dll(\null, h, s) && 0 <= j < \length(s)
+              && 0 <= k < \length(s) && _dll_ == \nth(s, j)
+              && list == \nth(s, k);
           loop assigns _dll_;
       */
       for (; _dll_->ptr_to_next != NULL; _dll_ = _dll_->ptr_to_next)
         ;
+      /*@ assert at_last: \exists dllist *h, \list<dllist *> s, integer k;
+            live_dll(\null, h, s) && 0 <= k < \length(s)
+            && \nth(s, k) == list && _dll_ == \nth(s, \length(s) - 1); */
     }
     (result) = _dll_;
   };

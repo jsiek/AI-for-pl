@@ -13,7 +13,7 @@ including lemmas, is proved; use-after-free is covered by the ghost
 liveness model (`-ariadne`).
 
 ```bash
-./check.sh     # needs the M0 image and the plugin built; four PASS lines
+./check.sh     # needs the M0 image and the plugin built; seven PASS lines
 ./run.sh       # just the proof run, with the goal census
 ```
 
@@ -36,15 +36,15 @@ lacks (mutant `nullchk` shows the check is needed).
 
 ## Goal census (M1)
 
-220 goals, all proved (212 for the 7 functions, 8 lemmas; B1a alone
+222 goals, all proved (214 for the 7 functions, 8 lemmas; B1a alone
 was 183):
 
 | Closed by | B1a + B1b | B1a alone |
 |-----------|-----------|-----------|
 | WP's simplifier (Qed) | 126 | 109 |
-| Alt-Ergo 2.6.4 | 79 | 65 |
-| CVC5 1.2.1 | 7 | 5 |
-| Z3 4.13.4 | 4 | 1 |
+| Alt-Ergo 2.6.4 | 82 | 65 |
+| CVC5 1.2.1 | 9 | 5 |
+| Z3 4.13.4 | 1 | 1 |
 | Coq 9.0.1 (hand-written scripts) | 4: `mem_cons`, `all_live_cons`, `dll_frame`, `dll_links` | 3 |
 
 Mutants (`check.sh`), each rejected:
@@ -52,8 +52,11 @@ Mutants (`check.sh`), each rejected:
 | Mutant | Rejected by |
 |--------|-------------|
 | `vacuity`: `assert \false` at the end of `b1` | the assert (spec consistent) |
-| `uaf`: both walks after the free loop | assert `head_is_node0` before the walks (the list's nodes are dead) |
+| `uaf`: forward walk after the free loop | `get_first`'s precondition at the call (the list's nodes are dead) |
+| `uaf_back`: backward walk after the free loop | `get_last`'s precondition at the call |
 | `nullchk`: no NULL check after allocation | the `live` assert on `l->i` |
+| `nullfirst`: `get_first` returns NULL after its traversal | its postcondition `heads_list` |
+| `nulllast`: `get_last` returns NULL after its traversal | its postcondition `last_of_list` |
 
 ## The specification (for review: frozen spec, plan §4 and guardrail 3a)
 
@@ -121,15 +124,20 @@ and `it_next` (lets `dll_frame` apply across the writes).
 ## B1b: what it added
 
 - **Contracts**: `get_first` and `get_last` accept any node of a whole
-  live list (`in_live_list`); `get_first` returns the head of a live
-  list, `get_last` its last node.  Loop invariant in both:
-  `in_live_list(_dll_)`.
+  live list (`in_live_list`).  NULL in gives NULL out; otherwise the
+  result is the head (`heads_list`) or the last node (`last_of_list`)
+  of *the same* live list that contains the argument.  (A first version
+  only said "some live list", which a function returning NULL would
+  meet; mutants `nullfirst`/`nulllast` now check this.)  Loop invariant
+  in both: the current node and the argument are nodes of one live
+  list.
 - **Lemmas**: `dll_links` (index view: node k's previous link is node
   k-1, or `prev` at k = 0; its next link is node k+1, or NULL at the
   end; induction, Coq, 50 lines) and `dll_first` (only node 0 has a NULL
   previous link in a whole list; SMT, from `dll_links`).
-- **Asserts**: `at_head` and `empty` at the end of `get_first`,
-  `head_is_node0` in the driver, and `linked` in `add`.
+- **Asserts**: `at_head` at the end of `get_first`, `at_last` at the
+  end of `get_last`, `head_is_node0` in the driver, and `linked` in
+  `add`.
 - **An SMT side effect worth knowing.**  New lemmas are hypotheses of
   every goal, not only the goals that need them.  Adding
   `dll_nth0` (`dll(prev, h, s) && h != NULL ==> nth(s, 0) == h`) made

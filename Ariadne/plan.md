@@ -79,8 +79,9 @@ The RTE plugin generates the safety obligations.  In scope:
 
 *   `\valid` / `\valid_read` for every memory access (null and dangling
     dereference, out-of-bounds access);
-*   `\initialized` for reads (enable with `-rte-initialized` **[verify]
-    flag name**);
+*   `\initialized` for reads (`-rte-initialized @all`, with WP's
+    `-wp-no-filter-init`; used since M1, `bench/b1/README.md`
+    "Initialisation");
 *   signed overflow, division by zero, invalid shifts, pointer-arithmetic
     validity (RTE defaults);
 *   use-after-free, invalid `free`, and double `free` (required): through
@@ -409,7 +410,7 @@ invariant is only needed for functional correctness and is stretch work.
 |---|-------------|----------------|
 | M0 | Toolchain pin + container | **Done** (`env/`, `env/smoke/check.sh`): versions pinned; WP → Why3 → Coq round trip on a small example (10/10 goals, one by a Coq script); `coqchk` passes and lists the axioms; CoqHammer and Pétanque work on WP goals. |
 | M1a | WP allocation investigation (§10) | **Done** (`m1a/`): WP misses use-after-free in every memory model; the ghost liveness model catches every case.  Decision: fallback 1. |
-| M1 | Manual baseline on B1 | Human writes predicates + contracts + invariants; all goals closed (by any means); goal census recorded.  This tells us where the hard goals are and whether the shape library works.  **B1a done** (`bench/b1/`): add + forward walk + free-while-iterating, 183/183 goals (Qed 109, SMT 71, Coq 3), three mutants rejected.  **B1b done**: + `get_first`/`get_last` and the backward walk, 222/222 (Qed 126, SMT 92, Coq 4), six mutants rejected.  B1c (sort) is stretch. |
+| M1 | Manual baseline on B1 | Human writes predicates + contracts + invariants; all goals closed (by any means); goal census recorded.  This tells us where the hard goals are and whether the shape library works.  **B1a done** (`bench/b1/`): add + forward walk + free-while-iterating, 183/183 goals (Qed 109, SMT 71, Coq 3), three mutants rejected.  **B1b done**: + `get_first`/`get_last` and the backward walk, 222/222 (Qed 126, SMT 92, Coq 4), six mutants rejected.  **Initialisation checks added** (`-rte-initialized @all`): 321/321 (Qed 189, SMT 127, Coq 5), seven mutants rejected (§10).  B1c (sort) is stretch. |
 | M2 | Pipeline without LLM | Python harness runs steps 1–7, Pétanque integration, `hammer`-only proof search, guardrail checks, report.  Measure how much of M1 automation alone closes.  Budget ledger built and calibrated with a small Opus 5.5 pilot (§11). |
 | M3 | Agent on B1 | Annotator (Opus 5.5) + prover tier on B1 starting from frozen contracts only (no human invariants).  Minimum success criterion.  First comparison of prover escalation strategies (§12.3). |
 | M4 | RB-tree `find_member`, `add` | Shape library extended to trees; target success criterion. |
@@ -557,6 +558,21 @@ RTE `\valid` obligations.
     it, upstream it to the Frama-C team rather than keep a fork.
 3.  **Defer** use-after-free to the `delete` benchmarks.  Only acceptable
     if 1 and 2 both stall, since G1 requires it.
+
+**M1 result: reads of uninitialised memory** (a related gap, found by
+comparing B1 with the VST prototype, `vst/`).  RTE adds `\initialized`
+checks only with `-rte-initialized`; B1 had been verified without
+them, and with them 18 goals failed because the spec never stated
+initialisation.  Fix (human-approved spec change, `bench/b1/README.md`
+"Initialisation"): a predicate `all_init` inside `live_dll`,
+`\initialized` pre/postconditions on `*list`, `elem->i`, the iterator
+fields and `input`, and `l = NULL` in the driver (WP gives a call's
+result only the initialisation its target already had).  Two WP
+lessons: the default `-wp-filter-init` silently drops every hypothesis
+that mentions initialisation (use `-wp-no-filter-init`), and `&x` in
+an annotation makes `-ariadne` admit `!heap(&x)`, which moves `x` to
+memory, where call results have unknown initialisation.  B1: 321/321 goals, mutant `noinit` (missing
+`l->i = input[k]`) rejected at `add`'s `elem_init` precondition.
 
 ---
 

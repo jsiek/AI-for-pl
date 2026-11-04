@@ -10,10 +10,11 @@ Benchmark B1 (plan §6.2), first two stages, as in sglib's
 
 **Status: fully verified**: every goal,
 including lemmas, is proved; use-after-free is covered by the ghost
-liveness model (`-ariadne`).
+liveness model (`-ariadne`), and reads of uninitialised memory by RTE's
+initialisation checks (see "Initialisation").
 
 ```bash
-./check.sh     # needs the M0 image and the plugin built; seven PASS lines
+./check.sh     # needs the M0 image and the plugin built; eight PASS lines
 ./run.sh       # just the proof run, with the goal census
 ```
 
@@ -26,26 +27,31 @@ liveness model (`-ariadne`).
 | `b1.c` | `b1_gen.c` between `BEGIN/END GENERATED` markers, code unchanged, with ACSL inserted; plus the spec and our driver `b1` |
 | `session/interactive/*.v` | the Coq proof scripts (WP session) |
 | `run.sh` | `-ariadne` + WP: the five B1a functions, then the lemmas |
-| `check.sh` | `run.sh` plus three mutants that must be rejected |
+| `check.sh` | `run.sh` plus seven mutants that must be rejected |
 
 The driver replaces the sample's `main`: an input array instead of
 `argv`/`sscanf`, no `printf` (body-less libc functions are not
 instrumented, see `plugin/README.md`), ariadne allocators instead of
 `malloc`/`free`, and a NULL check after allocation, which the sample
-lacks (mutant `nullchk` shows the check is needed).
+lacks (mutant `nullchk` shows the check is needed).  `l` is declared
+with `= NULL` (see "Initialisation").
 
 ## Goal census (M1)
 
-222 goals, all proved (214 for the 7 functions, 8 lemmas; B1a alone
-was 183):
+321 goals, all proved (310 for the 7 functions, 11 lemmas).  Earlier
+stages, without initialisation checks: B1a + B1b 222 (214 + 8), B1a
+alone 183.
 
-| Closed by | B1a + B1b | B1a alone |
-|-----------|-----------|-----------|
-| WP's simplifier (Qed) | 126 | 109 |
-| Alt-Ergo 2.6.4 | 82 | 65 |
-| CVC5 1.2.1 | 9 | 5 |
-| Z3 4.13.4 | 1 | 1 |
-| Coq 9.0.1 (hand-written scripts) | 4: `mem_cons`, `all_live_cons`, `dll_frame`, `dll_links` | 3 |
+| Closed by | B1a + B1b + init | B1a + B1b | B1a alone |
+|-----------|------------------|-----------|-----------|
+| WP's simplifier (Qed) | 189 | 126 | 109 |
+| Alt-Ergo 2.6.4 | 115 | 82 | 65 |
+| CVC5 1.2.1 | 9 | 9 | 5 |
+| Z3 4.13.4 | 3 | 1 | 1 |
+| Coq 9.0.1 (hand-written scripts) | 5: `mem_cons`, `all_live_cons`, `all_init_cons`, `dll_frame`, `dll_links` | 4 | 3 |
+
+(The split between the SMT provers moves by a goal or so from run to
+run: all three run in parallel and the first to finish is counted.)
 
 Mutants (`check.sh`), each rejected:
 
@@ -57,13 +63,15 @@ Mutants (`check.sh`), each rejected:
 | `nullchk`: no NULL check after allocation | the `live` assert on `l->i` |
 | `nullfirst`: `get_first` returns NULL after its traversal | its postcondition `heads_list` |
 | `nulllast`: `get_last` returns NULL after its traversal | its postcondition `last_of_list` |
+| `noinit`: the driver does not store `input[k]` into the new node (`l->i = input[k];` removed) | `add`'s precondition `elem_init` at the call |
 
 ## The specification (for review: frozen spec, plan §4 and guardrail 3a)
 
 All in `b1.c`; these are the definitions a human must approve.
 
 - `live(p)`: `p` is valid, at offset 0, a heap block, and not dead.
-- `mem(p, s)`, `all_live(s)`: membership in, and liveness of, a
+- `mem(p, s)`, `all_live(s)`, `all_init(s)`: membership in,
+  liveness of, and initialisation of (every field of every node), a
   sequence of nodes (`\list<dllist *>`).
 - `dll(prev, h, s)` (inductive): following `ptr_to_next` from `h` gives
   exactly `s`; each node is valid, its `ptr_to_previous` is its
@@ -71,25 +79,34 @@ All in `b1.c`; these are the definitions a human must approve.
   liveness is kept apart in `all_live`, so `alloc`/`free` (which change
   only `__heap`) leave `dll` syntactically unchanged.  An earlier
   version with liveness inside `dll` left 6 goals SMT could not close.
-- `live_dll(prev, h, s) = dll(prev, h, s) && all_live(s)`.
+- `live_dll(prev, h, s) = dll(prev, h, s) && all_live(s) && all_init(s)`.
 - `unchanged{L1,L2}(s)`: the nodes' link fields are equal at `L1` and
   `L2` and still valid at `L2`.
 - `iter_ok(it, cur)`: iterator after `it_init`/`it_next` without a
   subcomparator: backward walk done, `nextelem` starts a live list, and
-  `cur` (the element just returned) is live and not in that list.
+  `cur` (the element just returned) is live and not in that list; the
+  fields `it_next` reads (`subcomparator`, `prevelem`, `nextelem`) are
+  initialised.
 
-Lemmas: `mem_cons`, `all_live_cons`, `all_live_nil` (list facts),
-`dll_null`, `dll_inv` (unfolding), `dll_frame` (induction).  SMT proves
-`all_live_nil`, `dll_null`, `dll_inv`; Coq the other three.
+Lemmas: `mem_cons`, `all_live_cons`, `all_live_nil`, `all_init_cons`,
+`all_init_nil` (list facts), `dll_null`, `dll_inv`, `live_dll_inv`
+(unfolding), `dll_frame` (induction), and B1b's `dll_links`,
+`dll_first`.  Coq proves `mem_cons`, `all_live_cons`, `all_init_cons`,
+`dll_frame`, `dll_links`; SMT the rest.
 
 Contracts (restricted to what B1a uses; noted as such):
 
-- `sglib_dllist_add(list, elem)`: `*list` is the **head** of a live
-  list (`live_dll(\null, *list, s)`), `elem` is live and not in it;
-  afterwards `*list` heads a live list.  sglib allows `*list` to be any
+- `sglib_dllist_add(list, elem)`: `*list` is initialised and is the
+  **head** of a live list (`live_dll(\null, *list, s)`), `elem` is live,
+  not in it, and its `i` field is initialised (`elem_init`); afterwards
+  `*list` is initialised and heads a live list.  sglib allows `*list` to be any
   element; the general contract is future work.
 - `it_init`, `it_init_on_equal` (with `subcomparator == \null`),
-  `it_next` (no subcomparator): establish / preserve `iter_ok`.  The
+  `it_next` (no subcomparator, and the three fields it reads
+  initialised): establish / preserve `iter_ok`.
+- The driver `b1(input, n)`: `input[0 .. n-1]` is readable and
+  initialised, and `input` is not a heap block (`!heap`, which implies
+  the old `!dead` precondition).  The
   subcomparator paths (calls through a function pointer) are not
   verified; their branches are unreachable under these preconditions.
 
@@ -98,7 +115,11 @@ frozen spec, all proved): loop invariants and `loop assigns` in `b1`;
 asserts `old_nodes_live`/`old_lists_live` after allocation and
 `others_live`/`other_lists_live` after free (carry liveness across the
 `__heap` change); a `frame` assert at the end of `add`, `it_init_on_equal`,
-and `it_next` (lets `dll_frame` apply across the writes).
+and `it_next` (lets `dll_frame` apply across the writes).  For
+initialisation: `init_frame` next to each `frame`, `old_head_init`,
+`linked_init`, `tail`, `single` in `add`, `it_init`, `live_frame`,
+`rest` in `it_next`, `other_live_dlls` after free, and loop invariants
+for `the_list`, `input`, and (backward walk) `live(l) && \initialized(l)`.
 
 ## What M1 taught (input for M2/M3)
 
@@ -151,6 +172,71 @@ and `it_next` (lets `dll_frame` apply across the writes).
 - **Coq detail**: Why3's `Length.length` is a real fixpoint, so `cbn`
   computes `length nil`; WP writes `-1 + i` as `Z.opp 1 + i`, so match
   indices from the goal rather than typing the literal.
+
+## Initialisation
+
+**Why.**  A comparison with the VST prototype (`../../vst/`) showed a
+gap: in VST a load must produce a defined value (`data_at_` holds
+undefined contents, `data_at` known ones), but RTE does not add
+initialisation checks unless asked, so B1 as first verified would
+also have accepted a driver that reads a node's `i` before writing
+it.  With `-rte-initialized @all` added to the unchanged B1b files,
+WP made 289 function goals and left 18 `rte_initialization` goals open
+(in `add`, `it_init_on_equal`, `it_next`, `get_first`, `get_last`,
+`b1`), plus a few that now timed out.  The cause: the spec never said
+that list nodes, the iterator, `*list`, or `input` are initialised.
+
+**What changed** (human-approved change to the frozen spec):
+
+- `run.sh` and the mutant runs of `check.sh` pass `-rte-initialized
+  @all` (an `\initialized` assert before every read of a scalar
+  lvalue) and `-wp-no-filter-init` (below).
+- New predicate `all_init(s)`: every node of `s` is `\initialized` as a
+  whole struct (all three fields); lemmas `all_init_cons` (Coq, a copy
+  of `all_live_cons`'s script) and `all_init_nil` (SMT), like
+  `all_live`'s.  `live_dll` now includes `all_init(s)`; `dll` and its
+  Coq scripts are unchanged.
+- Contracts: `add` requires `\initialized(list)` and `elem_init:
+  \initialized(&elem->i)` and ensures `\initialized(list)` (`add`
+  assigns `*list`, which also forgets its initialisation); `it_next`
+  requires its three read fields initialised, and `iter_ok` promises
+  them; `b1` requires `\initialized(input + (0 .. n-1))` and
+  `!heap(\base_addr(input))` (without it, `input` could overlap a
+  node's link fields, which `add` assigns, so `input`'s initialisation
+  would not survive the loop).
+- One C change, in our driver: `dllist *l = NULL`.  WP gives a call's
+  result to a local only the initialisation the local already had
+  (hypothesis `Init_l_before ==> Init_l_after`): with `n == 0`, `l =
+  sglib_dllist_get_first(...)` would leave `l` "uninitialised" although
+  every callee returns an initialised value.  Stating
+  `\initialized(&l)` in a loop invariant does not help: taking `&l`
+  makes the plugin admit `!heap(&l)`, WP then keeps `l` in memory, and a
+  call result stored in memory has unknown initialisation.
+- Proof annotations (agent-level, all proved): listed under "The
+  specification" above; `head_is_node0` now states
+  `live_dll(\null, the_list, \Cons(the_list, t))` directly (the old form
+  took 29 s with the new hypotheses, the new one 5 s), and lemma
+  `live_dll_inv` (unfold one node of `live_dll`) keeps the forward walk's
+  invariant provable in mutant `uaf`.
+
+**WP pitfall: `-wp-filter-init`.**  By default WP drops hypotheses that
+mention initialisation ("aggressive filtering").  Once `live_dll`
+mentioned `\initialized`, that removed every `live_dll` hypothesis and
+44 goals failed, including liveness asserts unrelated to
+initialisation.  `-wp-no-filter-init` keeps them.
+
+**Mutant `noinit`** drops `l->i = input[k];`.  It is rejected at
+`add`'s precondition `elem_init` at the call, not at an
+`rte_initialization` goal: the fact "nodes are initialised" enters the
+proof at that precondition, so that is the first annotation that a
+missing write breaks; the later reads of `l->i` are proved from it.
+
+**Counts.**  321 goals (310 functions + 11 lemmas), all proved; Qed
+189, Alt-Ergo 115, CVC5 9, Z3 3, Coq 5.  Slowest goal 14 s (`b1`'s call
+to `add`, `live_dll` precondition).  A fresh `run.sh -wp-cache none`
+takes about 40 s (before this change several goals ran into the 60 s
+timeout; the initial reproduction took about 3 min); `check.sh` takes
+about 8 min, mostly the mutants' 60 s timeouts.
 
 ## Next
 

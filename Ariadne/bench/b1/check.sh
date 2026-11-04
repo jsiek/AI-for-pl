@@ -13,7 +13,10 @@
 #                 original sglib sample);
 #      nullfirst, nulllast - get_first / get_last return NULL after the
 #                 traversal (their contracts must tie the result to the
-#                 input's list, so this must fail).
+#                 input's list, so this must fail);
+#      noinit   - the driver does not store input[k] into the new node
+#                 (`l->i = input[k];` removed), so the walks would read an
+#                 uninitialised field: add's precondition elem_init fails.
 set -u
 status=0
 
@@ -35,14 +38,15 @@ def mutant(name, old, new):
 # in place for the backward walk) and the backward walk, each moved after
 # the free loop in its own mutant.
 assert_start = src.index("  /*@ assert head_is_node0:")
-assert_end = "             && \\nth(s, 0) == the_list; */\n"
+assert_end = "             live_dll(\\null, the_list, \\Cons(the_list, t)); */\n"
 fwd_start = src.index(assert_end, assert_start) + len(assert_end)
 back_start = src.index("  /*@ loop invariant l == \\null || in_live_list(l);")
 tail = "       l = l->ptr_to_previous)\n    last = l->i;\n"
 back_end = src.index(tail, back_start) + len(tail)
 mutant("vacuity", "  return last;\n}",
        "  //@ assert vacuity: \\false;\n  return last;\n}")
-free_loop_end = "            all_live{before_free}(s) && !mem(l, s) ==> all_live(s); */\n  }\n"
+free_loop_end = ("            live_dll{before_free}(p, h, s) && !mem(l, s)"
+                 " ==> live_dll(p, h, s); */\n  }\n")
 j = src.index(free_loop_end) + len(free_loop_end)
 
 def move_after_free(name, a, b):
@@ -61,6 +65,7 @@ def null_result(name, fun):
 
 null_result("nullfirst", "sglib_dllist_get_first")
 null_result("nulllast", "sglib_dllist_get_last")
+mutant("noinit", "    l->i = input[k];\n", "")
 EOF
 
 # The intended failure of each mutant: a unique line of the mutant
@@ -80,10 +85,12 @@ expect() {
              goals='_ensures_heads_list$' fct=sglib_dllist_get_first ;;
     nulllast) marker='    ensures last_of_list: list != \null ==>'
              goals='_ensures_last_of_list$' fct=sglib_dllist_get_last ;;
+    noinit)  marker='    sglib_dllist_add(&the_list, l);'
+             goals='_call_sglib_dllist_add_requires_elem_init$' ;;
   esac
 }
 
-for m in vacuity uaf uaf_back nullchk nullfirst nulllast; do
+for m in vacuity uaf uaf_back nullchk nullfirst nulllast noinit; do
   rm -f "mutants/report_$m.json"
   expect "$m"
   ../../env/run.sh frama-c \
@@ -91,7 +98,8 @@ for m in vacuity uaf uaf_back nullchk nullfirst nulllast; do
     -cpp-extra-args="-I/ariadne/plugin/share" \
     -generated-spec-custom terminates:skip \
     -ariadne "mutants/$m.c" \
-    -then -wp -wp-rte -wp-model Typed -wp-fct "$fct" \
+    -then -wp -wp-rte -rte-initialized @all -wp-no-filter-init \
+    -wp-model Typed -wp-fct "$fct" \
     -wp-prover alt-ergo,z3,cvc5 -wp-timeout 60 \
     -wp-session "/work/mutants/session_$m" \
     -wp-report-json "/work/mutants/report_$m.json" \

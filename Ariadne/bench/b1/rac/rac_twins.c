@@ -35,8 +35,9 @@ static void oom(void) {
 /* ---- Allocation registry (heap, dead) -------------------------------- */
 
 /* Open addressing on block addresses; state 1 = live, 2 = dead. */
-static struct reg { void *b; int state; } *reg;
+static struct reg { void *b; unsigned long size; int state; } *reg;
 static size_t reg_cap, reg_n;
+static unsigned long reg_max_size;  /* largest block registered */
 
 static size_t reg_hash(void *b) {
   return (size_t)(((unsigned long long)(size_t)b >> 4) * 0x9E3779B97F4A7C15ULL);
@@ -63,13 +64,16 @@ static void reg_grow(void) {
   free(old);
 }
 
-void rac_reg_alloc(void *b) {
+void rac_reg_alloc(void *b, unsigned long size) {
   if (2 * (reg_n + 1) > reg_cap)
     reg_grow();
   struct reg *r = reg_find(b);
   if (r->b == NULL)
     reg_n++;
   r->b = b;
+  r->size = size;
+  if (size > reg_max_size)
+    reg_max_size = size;
   r->state = 1;  /* a freed block may be handed out again: live again */
 }
 
@@ -87,6 +91,27 @@ int rac_heap(char *b) {
 int rac_dead(char *b) {
   struct reg *r = reg_find(b);
   return r && r->b == (void *)b && r->state == 2;
+}
+
+/* The registered block containing p, if any: its base is at most
+   reg_max_size bytes below p, and malloc'd blocks are 8-byte aligned. */
+static struct reg *reg_containing(void *p) {
+  unsigned long long a = (unsigned long long)(size_t)p;
+  for (unsigned long long c = a & ~7ULL; c + reg_max_size > a && c; c -= 8) {
+    struct reg *r = reg_find((void *)(size_t)c);
+    if (r && r->b == (void *)(size_t)c && a < c + r->size)
+      return r;
+    if (c < 8)
+      break;
+  }
+  return NULL;
+}
+
+int rac_heap_of(void *p) { return reg_containing(p) != NULL; }
+
+int rac_dead_of(void *p) {
+  struct reg *r = reg_containing(p);
+  return r && r->state == 2;
 }
 
 /* The twins' stand-in for \valid(p) on a node: a live registered block. */
@@ -129,16 +154,16 @@ static struct rac_seq *seq_new(long len, dllist **a) {
    list of length 0 that is not \Nil, so rac_dll is false on it. */
 static struct rac_seq bad = {0, NULL};
 
-long rac_length(struct rac_seq *s) { return s ? s->len : 0; }
+static long seq_length(struct rac_seq *s) { return s ? s->len : 0; }
 
-dllist *rac_nth(struct rac_seq *s, long k) {
+static dllist *seq_nth(struct rac_seq *s, long k) {
   return s && 0 <= k && k < s->len ? s->a[k] : NULL;
 }
 
-struct rac_seq *rac_cons(dllist *h, struct rac_seq *t) {
+static struct rac_seq *seq_cons(dllist *h, struct rac_seq *t) {
   if (t == &bad)
     return &bad;
-  long n = rac_length(t);
+  long n = seq_length(t);
   dllist **a = arena_alloc((size_t)(n + 1) * sizeof *a);
   a[0] = h;
   if (n)
@@ -146,17 +171,17 @@ struct rac_seq *rac_cons(dllist *h, struct rac_seq *t) {
   return seq_new(n + 1, a);
 }
 
-struct rac_seq *rac_tail(struct rac_seq *s) {
+static struct rac_seq *seq_tail(struct rac_seq *s) {
   if (s == &bad)
     return &bad;
-  return rac_length(s) <= 1 ? NULL : seq_new(s->len - 1, s->a + 1);
+  return seq_length(s) <= 1 ? NULL : seq_new(s->len - 1, s->a + 1);
 }
 
 /* \Nil and \Cons(h, t) as patterns: is_nil(s), and is_cons(s, &h, &t). */
-static int is_nil(struct rac_seq *s) { return s != &bad && rac_length(s) == 0; }
+static int is_nil(struct rac_seq *s) { return s != &bad && seq_length(s) == 0; }
 
 static int is_cons(struct rac_seq *s, dllist **h, struct rac_seq **t) {
-  if (rac_length(s) == 0)
+  if (seq_length(s) == 0)
     return 0;
   *h = s->a[0];
   *t = s->len == 1 ? NULL : seq_new(s->len - 1, s->a + 1);
@@ -165,8 +190,8 @@ static int is_cons(struct rac_seq *s, dllist **h, struct rac_seq **t) {
 
 /* Twin of predicate mem(p, s) (a bounded \exists over the indices of s). */
 static int rac_mem(dllist *p, struct rac_seq *s) {
-  for (long k = 0; k < rac_length(s); k++)
-    if (rac_nth(s, k) == p)
+  for (long k = 0; k < seq_length(s); k++)
+    if (seq_nth(s, k) == p)
       return 1;
   return 0;
 }
@@ -201,15 +226,12 @@ static int dll_fuel(dllist *prev, dllist *h, struct rac_seq *s, long fuel) {
   return 0;  /* no case applies */
 }
 
-int rac_dll(dllist *prev, dllist *h, struct rac_seq *s) {
-  return dll_fuel(prev, h, s, RAC_FUEL);
-}
 
 /* ---- Witnesses ------------------------------------------------------ */
 
 /* dll(p, h, s) determines s: the nodes reached from h by ptr_to_next.
    The walk is the dll_cons case read as a function of h. */
-struct rac_seq *rac_reach(dllist *h) {
+static struct rac_seq *seq_reach(dllist *h) {
   long n = 0;
   for (dllist *q = h; q != NULL; q = q->ptr_to_next) {
     if (n == RAC_FUEL || !rac_live_node(q))
@@ -225,14 +247,14 @@ struct rac_seq *rac_reach(dllist *h) {
 
 /* dll(p, h, s) with h != \null determines p: h->ptr_to_previous.
    With h == \null every p works (dll_nil); \null is returned. */
-dllist *rac_prev(dllist *h) {
+static dllist *node_prev(dllist *h) {
   return rac_live_node(h) ? h->ptr_to_previous : NULL;
 }
 
 /* dll(\null, h, s) and mem(x, s) determine h: walk back from x by
    ptr_to_previous to the node whose ptr_to_previous is \null
    (lemma dll_links).  NULL when there is no such walk. */
-dllist *rac_head(dllist *x) {
+static dllist *node_head(dllist *x) {
   long n = 0;
   for (dllist *q = x; rac_live_node(q); q = q->ptr_to_previous) {
     if (q->ptr_to_previous == NULL)
@@ -243,6 +265,31 @@ dllist *rac_head(dllist *x) {
   return NULL;
 }
 
+/* ---- The builtins: list handles and node pointers as long ------------
+
+   E-ACSL 33 rejects a logic function application as an argument of a
+   predicate (or of \valid, \initialized) in an annotation, but accepts
+   integer arithmetic there; so the builtins return integers, and
+   gen_rac.py writes each call as (rac_list)(0 + rac_f(...)), or
+   (dllist *)(0 + rac_f(...)) for a node (README, "E-ACSL workarounds").
+   Node arguments stay pointers: E-ACSL 33 types a logic parameter that
+   is cast to an integer by the values it is called with, and so gave a
+   node parameter called with \null the C type int (truncating every
+   other node passed to it). */
+#define SEQ(s) ((struct rac_seq *)(size_t)(s))
+#define L(x) ((long)(size_t)(x))
+
+long rac_length(long s) { return seq_length(SEQ(s)); }
+long rac_nth(long s, long k) { return L(seq_nth(SEQ(s), k)); }
+long rac_cons(dllist *h, long t) { return L(seq_cons(h, SEQ(t))); }
+long rac_tail(long s) { return L(seq_tail(SEQ(s))); }
+int rac_dll(dllist *prev, dllist *h, long s) {
+  return dll_fuel(prev, h, SEQ(s), RAC_FUEL);
+}
+long rac_reach(dllist *h) { return L(seq_reach(h)); }
+long rac_prev(dllist *h) { return L(node_prev(h)); }
+long rac_head(dllist *x) { return L(node_head(x)); }
+
 void rac_reset(void) {
   for (size_t i = 0; i < arena_n; i++)
     free(arena[i]);
@@ -250,4 +297,5 @@ void rac_reset(void) {
   free(reg);
   reg = NULL;
   reg_cap = reg_n = 0;
+  reg_max_size = 0;
 }

@@ -244,9 +244,16 @@ def elim_binders(t, notes):
             new = " && ".join(first + [f"({ex})"])
         else:
             new = bod
-    for n, term, rule in lets:
+    # E-ACSL 33 has no \\let on pointers: substitute each witness for its
+    # variable (heads first, so a list reached from a head gets it too).
+    terms = [term for _, term, _ in lets]
+    for i, (n, term, rule) in enumerate(lets):
         notes.append(f"{n} := {term} [{rule}]")
-    new = "".join(f"\\let {n} = {term}; " for n, term, _ in lets) + new
+
+        def sub(x, n=n, term=terms[i]):
+            return re.sub(rf"(?<![\\\w>.]){n}\b", lambda _: term, x)
+        new = sub(new)
+        terms = terms[:i + 1] + [sub(x) for x in terms[i + 1:]]
     return t[:m.start()] + "(" + new + ")" + tail
 
 
@@ -267,7 +274,97 @@ def subst_lists(t):
         out += t[i]
         i += 1
     out = out.replace("\\length(", "rac_length(").replace("\\Cons(", "rac_cons(")
-    return out.replace("\\Nil", "(rac_list)\\null")
+    return out.replace("\\Nil", "(rac_list)0")
+
+
+def base_addr(p):
+    """heap(\\base_addr(X)) -> heap_of((void *)(X)), and dead(v,
+    \\base_addr(X)) -> dead_of((void *)(X)): E-ACSL 33 has no \\base_addr."""
+    for pat, name in ((r"heap\(\\base_addr\(", "heap_of"),
+                      (r"dead\(__heap, \\base_addr\(", "dead_of")):
+        while True:
+            m = re.search(pat, p)
+            if not m:
+                break
+            j = match_paren(p, m.end() - 1)   # end of \\base_addr(...)
+            x = p[m.end():j - 1]
+            assert p[j] == ")", p
+            p = p[:m.start()] + f"{name}((void *)({x}))" + p[j + 1:]
+    if "\\base_addr" in p:
+        raise Drop("\\base_addr outside heap/dead (E-ACSL: not supported)")
+    return p
+
+
+def labels(p):
+    """P{L}(args) -> \\at(P(args), L) when every argument has the same
+    value at L as here (E-ACSL 33 has no predicates with labels)."""
+    out, i = "", 0
+    for m in re.finditer(r"\b(\w+)\{(\w+)\}\(", p):
+        if m.start() < i:
+            continue
+        j = match_paren(p, m.end() - 1)
+        args = split_top(p[m.end():j - 1], ",")
+        if not all(stable(a, m.group(2)) for a in args):
+            raise Drop(f"{m.group(1)}{{{m.group(2)}}} with an argument read "
+                       "here (E-ACSL: no predicates with labels)")
+        out += p[i:m.start()] + \
+            f"\\at({m.group(1)}({p[m.end():j - 1]}), {m.group(2)})"
+        i = j
+    return out + p[i:]
+
+
+# Each twin: result type for the wrapper (None: an int used as such) and
+# its parameter kinds (node: a pointer, passed as is; else cast to long).
+TWIN_SIG = {"length": (None, "l"), "dll": (None, "nnl"),
+            "nth": ("dllist *", "ll"), "head": ("dllist *", "n"),
+            "prev": ("dllist *", "n"), "reach": ("rac_list", "n"),
+            "tail": ("rac_list", "l"), "cons": ("rac_list", "nl")}
+
+
+PREDS = ("live_dll", "dll", "mem", "all_live", "all_init", "live",
+         "in_live_list", "iter_ok")
+
+
+def null_args(t):
+    """\\null as an argument of a spec predicate -> rac_null (a C global
+    dllist * equal to NULL): E-ACSL 33 specialises a predicate by the
+    integer range of its arguments and typed a node parameter called with
+    \\null as int, which then truncated the real nodes passed to it."""
+    out, i = "", 0
+    pat = re.compile(r"\b(" + "|".join(PREDS) + r")(\{\w+\})?\(")
+    while True:
+        m = pat.search(t, i)
+        if not m:
+            return out + t[i:]
+        j = match_paren(t, m.end() - 1)
+        args = [null_args(a) for a in split_top(t[m.end():j - 1], ",")]
+        args = ["rac_null" if a == "\\null" else a for a in args]
+        out += t[i:m.end()] + ", ".join(args) + ")"
+        i = j
+
+
+def wrap(t):
+    """Write each twin call rac_f(a, ...) as E-ACSL 33 accepts it: a call
+    whose value is a node or a list is hidden behind integer arithmetic
+    and a cast, (T)(0 + rac_f(...)), because E-ACSL rejects a function
+    application as an argument of a predicate or of \\valid; list and
+    index arguments are cast to long (the builtins' C type)."""
+    t = null_args(t)
+    out, i = "", 0
+    pat = re.compile(r"\brac_(" + "|".join(TWIN_SIG) + r")\(")
+    while True:
+        m = pat.search(t, i)
+        if not m:
+            return out + t[i:]
+        j = match_paren(t, m.end() - 1)
+        ty, kinds = TWIN_SIG[m.group(1)]
+        args = [wrap(a) for a in split_top(t[m.end():j - 1], ",")]
+        assert len(args) == len(kinds), (m.group(0), args)
+        call = f"rac_{m.group(1)}(" + ", ".join(
+            a if k == "n" or a.startswith("(long)") else f"(long)({a})"
+            for a, k in zip(args, kinds)) + ")"
+        out += t[i:m.start()] + (f"({ty})(0 + {call})" if ty else call)
+        i = j
 
 
 def tr_pred(p, notes):
@@ -275,7 +372,7 @@ def tr_pred(p, notes):
     p = elim_binders(p, notes)
     if "\\list" in p:
         raise Drop("list type left after binder elimination")
-    return subst_lists(p)
+    return wrap(labels(base_addr(subst_lists(p))))
 
 
 KEYWORDS = r"(requires|ensures|assigns|assert|check|loop invariant|" \
@@ -362,7 +459,10 @@ def tr_annot(m):
 body = ANNOT.sub(tr_annot, body)
 open(os.path.join(out, "b1_rac.c"), "w").write(
     "/* Generated by gen_rac.py from " + os.path.basename(src_path)
-    + "; do not edit. */\n" + head + '#include "rac_spec.h"' + body
+    + "; do not edit. */\n" + head
+    + "/* rac_spec.h, twin calls written for E-ACSL (gen_rac.py, wrap) */\n"
+    + re.sub(r"/\*@.*?\*/", lambda m: wrap(m.group(0)), rac_spec, flags=re.S)
+    + body
     + "\n/* RAC harness (E-ACSL build): allocators and driver. */\n"
       "#define RAC_IN_B1\n#include \"rac_alloc.c\"\n#include \"rac_main.c\"\n")
 open(os.path.join(out, "annotations.txt"), "w").write("\n".join(report) + "\n")

@@ -1,6 +1,7 @@
 #!/bin/sh
 # B1 runtime checking (plan section 5 step 0, "test first").
-#   From this directory:  ./check.sh [runs [seed [large]]]   (300 1 200)
+#   From this directory:  ./check.sh [runs [seed [large [quick]]]]
+#   (defaults 300 1 200; any 4th argument skips the mutants)
 # Re-runs itself inside the M0 image (../../../env/run.sh), where
 # /ariadne is the Ariadne/ directory.  Steps, each timed:
 #   0. generate: b1_rac.c (gen_rac.py) for b1.c and for the seven mutants
@@ -17,7 +18,7 @@ set -u
 if ! command -v e-acsl-gcc >/dev/null 2>&1; then
   exec ../../../env/run.sh sh ./check.sh "$@"
 fi
-runs=${1:-300} seed=${2:-1} large=${3:-200}
+runs=${1:-300} seed=${2:-1} large=${3:-200} quick=${4:-}
 B1=/ariadne/bench/b1
 B=build
 status=0
@@ -27,7 +28,7 @@ now() { date +%s.%N; }
 lap() { python3 -c "import sys; print('%.1f' % (float(sys.argv[2]) - float(sys.argv[1])))" "$1" "$(now)"; }
 
 MUTANTS="vacuity uaf uaf_back nullchk nullfirst nulllast noinit"
-BUILTINS=rac_heap,rac_dead,rac_length,rac_nth,rac_cons,rac_tail,rac_dll
+BUILTINS=rac_heap,rac_dead,rac_heap_of,rac_dead_of,rac_length,rac_nth,rac_cons,rac_tail,rac_dll
 BUILTINS=$BUILTINS,rac_reach,rac_prev,rac_head
 SAN="-std=c99 -g -O1 -fsanitize=address,undefined -fno-sanitize-recover=all"
 
@@ -47,13 +48,36 @@ san_build() {  # san_build <variant>
   gcc $SAN -I "$B/$1" -I /ariadne/plugin/share "$B/src/$1.c" rac_alloc.c \
     rac_twins.c rac_main.c -o "$B/$1/b1.asan" > "$B/$1/asan.build.log" 2>&1
 }
+# run_log <log> <cmd...>: run with a time limit; the log (truncated) ends
+# with "exit=<code>", and the result is that code.
+run_log() {
+  log=$1; shift
+  ( timeout 120 "$@" 2>&1; echo "$?" > "$log.rc" ) | head -c 200000 > "$log"
+  rc=$(cat "$log.rc")
+  echo "exit=$rc" >> "$log"
+  return "$rc"
+}
+# GCC 12's ASan sometimes fails to start under this kernel's address-space
+# randomisation (an endless "AddressSanitizer:DEADLYSIGNAL" before main;
+# about 1 run in 3 here; the container may not disable ASLR); such a start
+# is retried, up to 10 times.
+asan_retries=0
+san_exec() {  # san_exec <log> <cmd...>
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    run_log "$@" && return 0
+    rc=$?
+    head -1 "$1" | grep -q '^AddressSanitizer:DEADLYSIGNAL' || return $rc
+    asan_retries=$((asan_retries + 1))
+  done
+  return $rc
+}
 san_run() {
-  ASAN_OPTIONS=detect_leaks=1 "./$B/$1/b1.asan" "$runs" "$seed" "$large" \
-    > "$B/$1/asan.log" 2>&1
+  ASAN_OPTIONS=detect_leaks=1 san_exec "$B/$1/asan.log" \
+    "./$B/$1/b1.asan" "$runs" "$seed" "$large"
 }
 t=$(now)
 if san_build orig && san_run orig; then
-  echo "PASS: ASan+UBSan build of b1.c: $(cat "$B/orig/asan.log")"
+  echo "PASS: ASan+UBSan build of b1.c: $(grep "^ok:" "$B/orig/asan.log")"
 else
   echo "FAIL: ASan+UBSan build of b1.c:"; tail -20 "$B/orig/asan.log" \
     "$B/orig/asan.build.log"; status=1
@@ -63,7 +87,7 @@ if clang -fsanitize=memory "$B/msan.c" -o "$B/msan" > "$B/msan.log" 2>&1
 then
   echo "MSan available: not wired in yet"   # not the case in ariadne-m0
 else
-  echo "SKIP: MSan (clang -fsanitize=memory: $(grep -o 'cannot find [^ ]*msan[^ ]*' "$B/msan.log" | head -1 | sed 's|.*/||'))"
+  echo "SKIP: MSan (clang 14 in the image has no MSan runtime)"
 fi
 echo "step 1 (sanitizers, b1.c): $(lap "$t") s"
 
@@ -71,10 +95,12 @@ echo "step 1 (sanitizers, b1.c): $(lap "$t") s"
 t=$(now)
 if gcc $SAN -I "$B/orig" rac_twins_test.c rac_alloc.c rac_twins.c \
      -o "$B/twins_test" > "$B/twins_test.log" 2>&1 &&
-   "./$B/twins_test" >> "$B/twins_test.log" 2>&1; then
-  echo "PASS: $(tail -1 "$B/twins_test.log")"
+   san_exec "$B/twins_test.run.log" "./$B/twins_test"; then
+  cat "$B/twins_test.run.log" >> "$B/twins_test.log"
+  echo "PASS: $(grep 'twin unit tests' "$B/twins_test.log")"
 else
-  echo "FAIL: twin unit tests:"; cat "$B/twins_test.log"; status=1
+  echo "FAIL: twin unit tests:"; cat "$B/twins_test.log" \
+    "$B/twins_test.run.log"; status=1
 fi
 echo "step 2 (twin unit tests): $(lap "$t") s"
 
@@ -87,21 +113,23 @@ eacsl_build() {  # eacsl_build <variant>
     frama-c -e-acsl-builtins="$BUILTINS" -machdep gcc_x86_64 \
       -no-frama-c-stdlib -keep-unused-functions all \
       -cpp-extra-args="-std=c99 -D_DEFAULT_SOURCE -D__NO_CTYPE -D__FC_MACHDEP_X86_64" \
-      b1_rac.c -rte -rte-initialized @all -then -print -ocode b1_rac.rte.c &&
+      -no-warn-unaligned-pointer \
+      b1_rac.c -rte -rte-initialized @all -rte-select=@all,-main,-rng \
+      -then -print -ocode b1_rac.rte.c &&
     gcc -std=c99 -O1 -g -c -I. ../../rac_twins.c -o rac_twins.o &&
-    e-acsl-gcc -c -F "-e-acsl-builtins=$BUILTINS" -l "$PWD/rac_twins.o" \
+    e-acsl-gcc -c -F "-e-acsl-builtins=$BUILTINS -e-acsl-no-assert-print-data" -l "$PWD/rac_twins.o" \
       -e "-include $PWD/rac_twins.h" -o b1_rac.frama.c -O b1_rac \
       b1_rac.rte.c ) > "$d/eacsl.build.log" 2>&1
 }
 eacsl_run() {
-  "./$B/$1/b1_rac.e-acsl" "$runs" "$seed" "$large" > "$B/$1/eacsl.log" 2>&1
+  run_log "$B/$1/eacsl.log" "./$B/$1/b1_rac.e-acsl" "$runs" "$seed" "$large"
 }
 t=$(now)
 if eacsl_build orig; then
   tb=$(lap "$t")
   t=$(now)
   if eacsl_run orig; then
-    echo "PASS: E-ACSL build of b1.c: $(cat "$B/orig/eacsl.log")"
+    echo "PASS: E-ACSL build of b1.c: $(grep "^ok:" "$B/orig/eacsl.log")"
   else
     echo "FAIL: E-ACSL run of b1.c:"; tail -20 "$B/orig/eacsl.log"; status=1
   fi
@@ -128,6 +156,7 @@ expect() {
     noinit)    san='-'; eac='Precondition elem_init in sglib_dllist_add' ;;
   esac
 }
+[ -n "$quick" ] && exit $status   # 4th argument: b1.c only
 t=$(now)
 printf '%-10s %-22s %s\n' mutant "ASan+UBSan" "E-ACSL (first check to fire)"
 for m in $MUTANTS; do
@@ -143,5 +172,6 @@ for m in $MUTANTS; do
   printf '%-10s %-22s %s  [%s]\n' "$m" "$gs" "$ge" "$verdict"
 done
 echo "step 4 (mutants x7, both builds): $(lap "$t") s"
+echo "ASan start-up retries (DEADLYSIGNAL): $asan_retries"
 [ "$status" -eq 0 ] && echo "PASS: runtime checking of B1" || echo "FAIL: runtime checking of B1"
 exit $status

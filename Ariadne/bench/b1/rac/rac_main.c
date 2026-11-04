@@ -36,7 +36,8 @@ static unsigned rng(unsigned bound) {   /* xorshift64*, then mod bound */
 
 int main(int argc, char **argv) {
   long runs = argc > 1 ? atol(argv[1]) : 300;
-  rng_state = argc > 2 ? strtoull(argv[2], NULL, 10) : 1;
+  /* atol, not strtoull: E-ACSL has no memory model for strtoull */
+  rng_state = argc > 2 ? (unsigned long long)atol(argv[2]) : 1;
   int large = argc > 3 ? atoi(argv[3]) : 200;
   long injected = 0, nodes = 0;
   if (rng_state == 0)

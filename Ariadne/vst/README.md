@@ -336,6 +336,11 @@ infrastructure exists.
 **Run both on B1 for M1; plan to make VST the primary pipeline from
 M2 unless the B1 comparison says otherwise.**
 
+Owner's note: use **SMTCoq** to automate some of the Rocq proofs on
+the VST side (pure arithmetic/logic side goals), keeping the SMT solver
+outside the trust base by checking its certificates in Rocq.  See plan
+§9.2 Q10 for what to check first.
+
 For VST:
 * use after free, double free, and freeing a stack object are caught
   by the logic, with no ghost model, no instrumentation pass, no

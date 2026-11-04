@@ -15,7 +15,15 @@ Tools exposed to the model:
   coq_query(command)              run Search / Check / Print / About /
                                   Locate in the goal file's context
   show_goals(script)              the goal state after a partial script
+                                  (--backend coqc)
+  run_tactics(tactics, state?)    run tactics from a saved proof state and
+                                  return the new state's goals
+                                  (--backend petanque)
   check_proof(script)             the whole proof; ok + coqc's errors
+
+Backends: `coqc` reruns the whole goal file for every call; `petanque`
+keeps one Pétanque session (petanque.py) and runs tactics step by step
+from saved states.  Either way the final verdict is coqc's.
 
 Only a compact JSON report goes to stdout; the transcript goes to --log.
 coqc runs in the M0 image (Ariadne/env/run.sh).  Key handling is in
@@ -33,6 +41,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ARIADNE = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(os.path.dirname(ARIADNE), "scripts"))
 from reallms_client import read_key, tool_loop  # noqa: E402
+from petanque import Petanque, PetanqueError, PetanqueTimeout  # noqa: E402
 
 RUN = os.path.join(ARIADNE, "env", "run.sh")
 WORK = os.path.join(HERE, ".work")  # under Ariadne/, so /ariadne/... in the image
@@ -57,6 +66,62 @@ def normalise(script):
     return s
 
 
+def sentences(script):
+    """Split a script into Coq sentences: each ends at a `.` followed by
+    whitespace or the end, outside comments and strings.  Bullets and
+    braces stay attached to the sentence after them."""
+    out, i, start, depth, n = [], 0, 0, 0, len(script)
+    while i < n:
+        if script.startswith("(*", i):
+            depth, i = depth + 1, i + 2
+            continue
+        if depth and script.startswith("*)", i):
+            depth, i = depth - 1, i + 2
+            continue
+        c = script[i]
+        if not depth and c == '"':
+            j = script.find('"', i + 1)
+            i = n if j < 0 else j + 1
+            continue
+        if not depth and c == "." and (i + 1 == n or script[i + 1].isspace()) \
+                and not script.startswith("..", i - 1):
+            out.append(script[start:i + 1].strip())
+            start = i + 1
+        i += 1
+    if script[start:].strip():
+        out.append(script[start:].strip())
+    return [x for x in out if x]
+
+
+def show_goals_json(g, limit=6000):
+    """Pétanque goals as Coq prints them: hypotheses and conclusion of
+    the first goal, conclusions of the others."""
+    goals = g.get("goals") or []
+    if not goals:
+        stack = [x for lr in g.get("stack") or [] for side in lr for x in side]
+        msg = "No goals in focus."
+        if stack:
+            msg += f" {len(stack)} goal(s) remain unfocused"
+        if g.get("bullet"):
+            msg += " (" + g["bullet"] + ")"
+        if g.get("shelf"):
+            msg += f"; {len(g['shelf'])} shelved"
+        return msg
+    lines = [f"{len(goals)} goal(s)"]
+    first = goals[0]
+    for h in first.get("hyps") or []:
+        body = f" := {h['def']}" if h.get("def") else ""
+        lines.append(f"  {', '.join(h['names'])}{body} : {h['ty']}")
+    lines.append("  ============================")
+    lines.append("  " + first["ty"].replace("\n", "\n  "))
+    for k, other in enumerate(goals[1:], 2):
+        lines.append(f"goal {k}: " + other["ty"].replace("\n", "\n  "))
+    if g.get("bullet"):
+        lines.append("(" + g["bullet"] + ")")
+    out = "\n".join(lines)
+    return out if len(out) <= limit else out[:limit] + "\n... (truncated)"
+
+
 def split_goal(text):
     """(prefix through `Proof.`, current script, suffix from `Qed.`) of
     the Why3 goal `wp_goal`."""
@@ -69,9 +134,15 @@ def split_goal(text):
 
 
 class Worker:
-    def __init__(self, path, timeout, fh, blank=False):
+    def __init__(self, path, timeout, fh, blank=False, backend="coqc"):
         self.path = os.path.abspath(path)
         self.blank = blank
+        self.backend = backend
+        self.pet = None
+        self.states = [""]  # state id -> script; 0 = the statement
+        self.pet_states = {}  # state id -> Pétanque state, this session
+        self.cur = 0
+        self.pet_restarts = 0
         self.text = open(self.path).read()
         self.prefix, self.script, self.suffix = split_goal(self.text)
         self.timeout = timeout
@@ -164,6 +235,8 @@ class Worker:
 
     def read_file(self, path, start=None, end=None):
         p = self._safe(path)
+        if "/." in p[len(ARIADNE):]:
+            raise ValueError("hidden directory")
         lines = self._visible(p).split("\n")
         s = max(1, int(start or 1))
         e = min(len(lines), int(end or s + 199))
@@ -193,6 +266,13 @@ class Worker:
         if not c.startswith(QUERIES) or c.count(".") > 1 and \
                 re.search(r"\.\s+\S", c):
             return "(only one Search/Check/Print/About/Locate command)"
+        if self.backend == "petanque":
+            st = self._pet_state(0)
+            r, err = self._pet_run(st, c)
+            if err:
+                return "Error: " + err
+            return "\n".join(m for _, m in r.get("feedback") or []) \
+                or "(no output)"
         ok, out = self._coqc(self.prefix.rsplit("\n(* Why3 goal *)", 1)[0]
                              + "\n" + c + "\n")
         return out or "(no output)"
@@ -225,6 +305,88 @@ class Worker:
                 "goal_state_before_failing_step":
                     self._state_before_error(script.strip("\n"))
                     or "(not available)"}
+
+    # ---- Pétanque backend ----
+    def _pet_open(self):
+        """Start a Pétanque session on a copy of the goal file whose
+        proof is `Admitted.` (so pet never sees the existing proof)."""
+        d = tempfile.mkdtemp(dir=WORK, prefix="pet_")
+        with open(os.path.join(d, "goal.v"), "w") as f:
+            f.write(self.prefix + "\nAdmitted.\n")
+        self.pet = Petanque(d)
+        self.pet_dir = d
+        root = self.pet.start("goal.v", "wp_goal", timeout=300)["st"]
+        self.pet_states = {0: root}
+        if not self.states:
+            self.states = [""]
+
+    def _pet_close(self):
+        if self.pet:
+            self.pet.close()
+            subprocess.run(["rm", "-rf", self.pet_dir])
+            self.pet = None
+
+    def _pet_state(self, sid):
+        """The Pétanque state for our state id, replaying its script
+        after a restart."""
+        if self.pet is None:
+            self._pet_open()
+        if sid not in self.pet_states:
+            r = self.pet.run(self.pet_states[0], self.states[sid],
+                             timeout=self.timeout)
+            self.pet_states[sid] = r["st"]
+        return self.pet_states[sid]
+
+    def _pet_run(self, st, tac):
+        try:
+            return self.pet.run(st, tac, timeout=self.timeout), None
+        except PetanqueTimeout:
+            self._pet_close()  # the session is stuck; replay later
+            self.pet_restarts += 1
+            return None, f"timed out after {self.timeout} s"
+        except PetanqueError as e:
+            msg = str(e)
+            return None, msg[len("Coq: "):] if msg.startswith("Coq: ") else msg
+
+    def run_tactics(self, tactics, state=None):
+        script = normalise(tactics)
+        bad = FORBIDDEN.search(script)
+        if bad:
+            return {"ok": False, "error": f"forbidden: {bad.group(1)}"}
+        sid = self.cur if state is None else int(state)
+        if not 0 <= sid < len(self.states):
+            return {"ok": False, "error": f"no state {sid}; states are "
+                    f"0..{len(self.states) - 1} (0 = the statement)"}
+        st = self._pet_state(sid)
+        done = []
+        for sent in sentences(script):
+            r, err = self._pet_run(st, sent)
+            if err:
+                g = self.pet.goals(st) if self.pet else None
+                return {"ok": False, "failed_sentence": sent, "error": err,
+                        "ran_before_it": " ".join(done) or "(nothing)",
+                        "state": sid,
+                        "goals_before_failing_sentence":
+                            show_goals_json(g) if g else "(session restarted)"}
+            st = r["st"]
+            done.append(sent)
+            if r.get("proof_finished"):
+                break
+        new = (self.states[sid] + "\n" + " ".join(done)).strip("\n")
+        self.states.append(new)
+        nid = len(self.states) - 1
+        self.pet_states[nid] = st
+        self.cur = nid
+        res = {"ok": True, "state": nid}
+        if r.get("proof_finished"):
+            # Pétanque says no goals left: the verdict is still coqc's.
+            check = self.check_proof(new)
+            res["proof_finished"] = True
+            res["coqc"] = "accepted: proof complete" if check["ok"] \
+                else check["errors"]
+        else:
+            res["goals"] = show_goals_json(self.pet.goals(st))
+        return res
 
     def dispatch(self, name, args):
         self.counts[name] = self.counts.get(name, 0) + 1
@@ -266,7 +428,17 @@ TOOLS = [
          "Proof. and Qed.) with coqc. Returns ok and coqc's errors.",
          script="str"),
 ]
-TOOL_NAMES = {t["function"]["name"] for t in TOOLS}
+RUN_TACTICS = tool(
+    "run_tactics", "Run one or more tactics (sentences ending in '.') "
+    "from a saved proof state: `state` (default: the state your last "
+    "successful run_tactics produced; 0 is the goal's statement). "
+    "Returns the new state's number and goals, or the failing sentence, "
+    "Coq's error and the goals before it. States are kept, so you can "
+    "go back to any earlier one. When no goals are left the script is "
+    "checked with coqc and you are done.", tactics="str", state="int?")
+TOOLS_PET = [t for t in TOOLS if t["function"]["name"] != "show_goals"] \
+    + [RUN_TACTICS]
+TOOL_NAMES = {t["function"]["name"] for t in TOOLS_PET + TOOLS}
 
 
 def main():
@@ -277,6 +449,8 @@ def main():
     ap.add_argument("--blank", action="store_true",
                     help="hide the proofs of the target and of the goal "
                          "files next to it (also from read_file and grep)")
+    ap.add_argument("--backend", choices=("coqc", "petanque"),
+                    default="coqc")
     ap.add_argument("--max-steps", type=int, default=30)
     ap.add_argument("--timeout", type=int, default=120,
                     help="seconds per coqc run")
@@ -288,19 +462,27 @@ def main():
 
     key = read_key()
     fh = open(args.log, "w") if args.log else None
-    w = Worker(args.file, args.timeout, fh, args.blank)
+    w = Worker(args.file, args.timeout, fh, args.blank, args.backend)
     current = "" if args.blank else w.script.strip("\n")
     system = (
         "You are a Coq/Rocq 9 proof engineer. You prove one goal generated "
         "by Frama-C/WP through Why3. The goal file defines the memory "
         "model, the ACSL predicates (as Coq definitions or axioms) and "
         "earlier lemmas; Lia and CoqHammer (hammer, sauto) are loaded.\n"
-        "Tools: coq_query looks up names (Print P_mem. Check nth_cons. "
-        "Search Length.length.); show_goals runs a partial script and "
-        "shows the goals; check_proof checks a complete script. When a "
-        "step fails you also get the goal state just before it: read it "
-        "before trying again, and never resend an unchanged script.\n"
-        "The script is the text between Proof. and Qed.; the harness adds "
+        + ("Tools: coq_query looks up names (Print P_mem. Check "
+           "nth_cons. Search Length.length.); run_tactics runs tactics "
+           "from a saved proof state and shows the goals after them, so "
+           "build the proof a few steps at a time, going back to an "
+           "earlier state when a step fails; check_proof checks a "
+           "complete script. A failing step comes with the goals just "
+           "before it: read them before trying again.\n"
+           if args.backend == "petanque" else
+           "Tools: coq_query looks up names (Print P_mem. Check nth_cons. "
+           "Search Length.length.); show_goals runs a partial script and "
+           "shows the goals; check_proof checks a complete script. When a "
+           "step fails you also get the goal state just before it: read it "
+           "before trying again, and never resend an unchanged script.\n")
+        + "The script is the text between Proof. and Qed.; the harness adds "
         "both, so write neither. admit, Admitted, Abort, Defined and new "
         "axioms or definitions are refused.\n"
         "How Why3 encodes goals: integers are Z (`int`); `nth` and "
@@ -323,18 +505,24 @@ def main():
                if current else "")
             + (f"\nHint: {args.hint}\n" if args.hint else "")
             + "\nWrite the proof script and verify it with check_proof.")
-    loop = tool_loop(
-        args.model, key, system, user, TOOLS, w.dispatch,
-        solved=lambda: w.last_ok, check_tool="check_proof",
-        nudge="You did not call a tool. Submit your complete proof script "
-              "now with check_proof(script), then fix what coqc reports.",
-        max_steps=args.max_steps, temperature=args.temperature, fh=fh)
+    tools = TOOLS_PET if args.backend == "petanque" else TOOLS
+    try:
+        loop = tool_loop(
+            args.model, key, system, user, tools, w.dispatch,
+            solved=lambda: w.last_ok, check_tool="check_proof",
+            nudge="You did not call a tool. Continue the proof with a "
+                  "tool call now (check_proof or run_tactics), then fix "
+                  "what Coq reports.",
+            max_steps=args.max_steps, temperature=args.temperature, fh=fh)
+    finally:
+        w._pet_close()
     report = {
         "file": os.path.relpath(w.path, ARIADNE), "model": args.model,
         "status": loop["status"], "solved": w.last_ok,
         "steps": loop["steps"], "seconds": loop["seconds"],
         "usage": loop["usage"], "tool_calls": w.counts,
-        "coqc_runs": w.coqc_runs,
+        "coqc_runs": w.coqc_runs, "backend": args.backend,
+        "pet_restarts": w.pet_restarts,
         "script": w.last_script if w.last_ok else None,
         "short_error": "" if w.last_ok else (w.last_errors or "")[-600:],
     }

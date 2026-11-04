@@ -198,8 +198,10 @@ def tool_loop(model, key, system, user, tools, dispatch, solved,
                         f"{rendered[:400]}")
             messages.append({"role": "tool", "tool_call_id": cid,
                              "name": c["name"], "content": rendered})
-            if c["name"] == check_tool and solved():
-                # A later failing call in the same turn must not overwrite
+            if solved():
+                # Stop at the first call that leaves the goal solved
+                # (check_tool, or another tool that checks with it): a
+                # later failing call in the same turn must not overwrite
                 # the verified solution.
                 status = "solved"
                 break

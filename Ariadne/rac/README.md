@@ -122,8 +122,13 @@ which is the least fixpoint's answer for a cycle.
   bytes lie in a registered, not freed, block" (the registry,
   `rac_rt.c`; plain C cannot query E-ACSL's shadow memory, and must not
   read freed memory).
-- **Every read `p->f` is guarded** by `rac_valid(p, ...)` at the atom
-  that contains it: an atom whose memory is unreadable is false.  When
+- **Every read is guarded** (`p->f`, `*p`, and every index `e[i]`,
+  whatever `e` is, since an index can leave its object) by `rac_valid`
+  at the atom that contains it: an atom whose memory is unreadable is
+  false.  Guards stay where the read is: inside the arm of `?:` that
+  reads, after the left operand of `==>`, `||`, `&&` (C's
+  short-circuit), so `(p == \null ? 0 : p->key) == 0` holds for
+  `\null`.  When
   the spec says `\valid(p)` first (as `dll` and `lseg` do) the guard is
   redundant; when it does not, the twin is stricter than ACSL, whose
   value for an invalid read is unspecified.
@@ -256,6 +261,9 @@ non-inductive definition only weakens the checks (exit 0, reported).
 
 ```
 PASS: shapes twin unit tests: ok  [gen_twins: 3 inductive(s), 7 builtins, 7 ACSL definitions, 0 not translated (see shapes_twins.txt)]
+PASS: guards twin unit tests: ok  [gen_twins: 3 inductive(s), 3 builtins, 10 ACSL definitions, 0 not translated (see guards_twins.txt)]
+ok: rac_cons_node, rac_cons_pair
+PASS: guards_spec.h calls only declared builtins
 PASS: untranslatable.c: 7 definitions refused, as expected
 PASS: gen_twins tests
 ```
@@ -285,7 +293,9 @@ by the step bound), a freed node in a path.
   not in the registry); and bounded (`RAC_FUEL`, `RAC_DEPTH`).
 - **C `integer`** is `long`.
 - **One list element type** gets `rac_cons`; several get
-  `rac_cons_<T>`, but `gen_rac.py`'s `rac_null` handles one node type.
+  `rac_cons_<T>` (all element types are collected before anything is
+  printed), but `gen_rac.py`'s `rac_null` and `rac_nth`'s result type
+  handle one node type.
 - **The twins are not proved** against their predicates.  The contract
   `ensures \result != 0 <==> P(...)` (plan §4 item 5) is not generated:
   the twins work on `struct rac_seq` and the registry, so WP would need
@@ -301,4 +311,5 @@ by the step bound), a freed node in a path.
 | `rac_rt.h`, `rac_rt.c` | runtime: allocation registry, list values, step bound (spec-independent, hand-written) |
 | `tests/check.sh` | generality tests |
 | `tests/shapes.c`, `shapes.h`, `shapes_test.c` | `lseg`, `tree`, `bst`, and the unit test of their twins |
+| `tests/guards.c`, `guards.h`, `guards_test.c` | review regressions: indexed reads, guards under `?:` / `==>` / `\|\|`, two list element types |
 | `tests/untranslatable.c`, `.expected` | refusals |

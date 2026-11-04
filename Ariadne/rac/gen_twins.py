@@ -192,6 +192,11 @@ def cdecl(ty_c, name):
     return ty_c + name if ty_c.endswith("*") else f"{ty_c} {name}"
 
 
+def valid(p):
+    """The twins' \\valid(p) for a read of *p: the registry."""
+    return f"rac_valid({p}, sizeof *({p}))"
+
+
 def ptype(ty):
     """C type at the builtin interface (no typedef names: force-included)."""
     k = ty["k"]
@@ -292,8 +297,10 @@ class Gen:
 
     # ============================================================ C terms
     def cterm(self, t, env, own):
-        """C expression of term t, and the pointers it dereferences (each
-        must be \\valid for the read; see guard())."""
+        """C expression of term t, and the conditions under which its
+        memory reads are allowed (rac_valid of each object read, in
+        evaluation order; see guard()).  A condition for a read under
+        one arm of ?: is that arm's only."""
         n = t.get("n")
         if n == "int":
             return t["v"] + ("L" if abs(int(t["v"])) > 2**31 else ""), []
@@ -311,7 +318,7 @@ class Gen:
             elif h["h"] == "mem":
                 e, derefs = self.cterm(h["t"], env, own)
                 if not t["off"]:
-                    derefs = derefs + [e]
+                    derefs = derefs + [valid(e)]
                     e = f"(*{e})"
             else:
                 raise Untranslatable("\\result in a twin")
@@ -319,16 +326,18 @@ class Gen:
             for o in t["off"]:
                 if o["o"] == "field":
                     if first:
-                        derefs = derefs + [e]
+                        derefs = derefs + [valid(e)]
                         e = f"({e})->{o['f']}"
                     else:
                         e = f"({e}).{o['f']}"
                 elif o["o"] == "index":
+                    # whatever the host (a pointer, an array field of a
+                    # valid object): the index may leave the object
                     i, di = self.cterm(o["t"], env, own)
                     if first:
-                        derefs = derefs + di + [f"({e}) + ({i})"]
+                        derefs = derefs + [valid(e)]
                     e = f"({e})[{i}]"
-                    derefs += di
+                    derefs = derefs + di + [valid(f"&{e}")]
                 else:
                     raise Untranslatable("model field " + o["f"])
                 first = False
@@ -377,7 +386,11 @@ class Gen:
             c = self.cpred(t["c"], env, own)
             a, da = self.cterm(t["a"], env, own)
             b, db = self.cterm(t["b"], env, own)
-            return f"({c} ? {a} : {b})", da + db
+            if not da and not db:
+                return f"({c} ? {a} : {b})", []
+            # each arm's reads guarded in that arm only
+            ga, gb = self.guard(da, None), self.guard(db, None)
+            return f"({c} ? {a} : {b})", [f"({c} ? ({ga}) : ({gb}))"]
         if n == "witness":
             e = t["entry"]
             cs = [self.cterm(a, env, own) for a in t["args"]]
@@ -401,7 +414,7 @@ class Gen:
         for d in derefs:
             if d not in seen:
                 seen.append(d)
-        vs = [f"rac_valid({d}, sizeof *({d}))" for d in seen]
+        vs = seen
         if e is None:
             return " && ".join(vs) or "1"
         if not seen:
@@ -1206,6 +1219,18 @@ class Gen:
     # ============================================================ driver
     def run(self):
         ok = True
+        # every list element type first: the name of the cons builtin
+        # (rac_cons, or rac_cons_<T> for several) depends on all of them
+        def types(x):
+            if isinstance(x, dict):
+                if x.get("k") == "list":
+                    self.note_elem(x)
+                for v in x.values():
+                    types(v)
+            elif isinstance(x, list):
+                for v in x:
+                    types(v)
+        types(self.order)
         # 1. inductives: the decision twin, witness modes, member walk
         for d in self.order:
             if d["kind"] != "inductive":

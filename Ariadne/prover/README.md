@@ -8,7 +8,7 @@ driver) and tools to explore and check, until `coqc` accepts its proof.
 ```bash
 cd Ariadne/prover
 python3 reallms_coq.py --file ../bench/b1/session/interactive/lemma_mem_cons.v \
-  [--model glm-5.3-flash] [--blank] [--hint "..."] [--max-seconds 900] \
+  [--model glm-5.3-flash] [--blank] [--hint "..."] [--max-seconds 120] \
   [--log .work/logs/x.log] [--apply]
 ```
 
@@ -55,14 +55,18 @@ verbatim.  `test_tools.py` checks the tools and the hiding offline (no
 model calls).
 
 **Budget: time, not turns.**  A run stops after `--max-seconds` (default
-900) of working time: wall clock minus the backoffs after HTTP 429, so a
+120) of working time: wall clock minus the backoffs after HTTP 429, so a
 busy service does not eat the budget.  The check comes before each
-reply, so a run can overrun by one reply and its tool calls.
-`--max-steps` (default 100) is only a backstop.  The trials below used
-a 30-turn budget instead.  GLM's successes all came within 666 s, and
-its turns vary in length (7 turns took 361 s, 30 took 1519 s), so time
-bounds a failing run better than a turn count.  `test_budget.py` tests the budget
-offline.
+reply, so a run can overrun by one reply and its tool calls; that is
+deliberate, since the reply in flight may hold the proof.
+`--max-steps` (default 100) is only a backstop.  `test_budget.py` tests
+the budget offline.
+
+Escalation policy: GLM gets 2 minutes, then the lemma goes to Sonnet.
+From the trials below (which used a 30-turn budget), GLM finishes
+`mem_cons` (87-105 s) and `all_init_cons` (57 s) within that; its other
+two successes took 506 s and 666 s, where Sonnet takes 21-28 s and about
+40k tokens.
 
 ## Trial: B1's Coq lemmas, proofs hidden
 

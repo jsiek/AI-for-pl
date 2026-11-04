@@ -460,7 +460,7 @@ def main():
                          "files next to it (also from read_file and grep)")
     ap.add_argument("--backend", choices=("coqc", "petanque"),
                     default="coqc")
-    ap.add_argument("--max-seconds", type=int, default=900,
+    ap.add_argument("--max-seconds", type=int, default=120,
                     help="working-time budget (wall clock minus "
                          "rate-limit waits); 0 for none")
     ap.add_argument("--max-steps", type=int, default=100,

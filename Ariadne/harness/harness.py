@@ -231,8 +231,12 @@ class Run:
         lines = open(os.path.join(self.logs, "step0_rac.log")).read()
         passes = len(re.findall(r"^PASS", lines, re.M))
         fails = re.findall(r"^FAIL.*", lines, re.M)
+        # The mutant table: "<mutant>  <sanitizers>  <E-ACSL>  [ok]".
+        mutants = dict(re.findall(r"^(\w+) .*\[(\w+)\]\s*$", lines, re.M))
         return {"ok": rc == 0 and not fails, "exit": rc, "pass_lines":
-                passes, "fail_lines": fails[:20]}
+                passes, "fail_lines": fails[:20], "mutants": mutants,
+                "mutants_as_expected": sum(v == "ok"
+                                           for v in mutants.values())}
 
     # ---- step 1: normalise and instrument ------------------------------
 
@@ -536,7 +540,8 @@ def markdown(r):
         res = ("skipped: " + v["skipped"]) if "skipped" in v else \
             ", ".join(f"{a}={b}" for a, b in v.items()
                       if a in ("ok", "proved", "tried", "coq_goals",
-                               "coqc_ok", "pass_lines", "runs", "edits"))
+                               "coqc_ok", "pass_lines", "mutants_as_expected",
+                               "runs", "edits"))
         out.append(f"| {k} | {v.get('seconds', '')} | {res} |")
     out += ["", "## Guardrails", "", "| Check | Verdict |", "|---|---|"]
     for k, v in r["guardrails"].items():

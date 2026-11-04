@@ -363,7 +363,12 @@ class Worker:
                     f"0..{len(self.states) - 1} (0 = the statement)"}
         st = self._pet_state(sid)
         done = []
-        for sent in sentences(script):
+        # Bullets and braces are dropped: from a saved state the model
+        # cannot know the bullet level, and without them each tactic acts
+        # on the first goal (still a valid script for coqc).
+        sents = [x for x in (re.sub(r"^(\s*([-+*]+|[{}]))+\s*", "", y)
+                             for y in sentences(script)) if x]
+        for sent in sents:
             r, err = self._pet_run(st, sent)
             if err:
                 g = self.pet.goals(st) if self.pet else None
@@ -477,9 +482,11 @@ def main():
            "nth_cons. Search Length.length.); run_tactics runs tactics "
            "from a saved proof state and shows the goals after them, so "
            "build the proof a few steps at a time, going back to an "
-           "earlier state when a step fails; check_proof checks a "
-           "complete script. A failing step comes with the goals just "
-           "before it: read them before trying again.\n"
+           "earlier state when a step fails. Do not use bullets (- + *) "
+           "or braces with run_tactics: they are dropped, and each tactic "
+           "acts on the first goal of the list it shows. A failing step "
+           "comes with the goals just before it: read them before trying "
+           "again. When no goals are left you are done.\n"
            if args.backend == "petanque" else
            "Tools: coq_query looks up names (Print P_mem. Check nth_cons. "
            "Search Length.length.); show_goals runs a partial script and "

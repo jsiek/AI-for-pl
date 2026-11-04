@@ -95,3 +95,21 @@ GLM's proof (round 3) differs from the session's (another case split,
 `rewrite <- Ha. apply nth_zero`), and its one `read_file` of the goal
 file returned the statement with the proof hidden.  One run per cell:
 no variance estimate yet.
+
+### Backends: coqc vs Pétanque (GLM 5.3 Flash, `mem_cons`, proofs hidden)
+
+Same prompt and 30-turn budget; Pétanque runs after the bullet fix
+(bullets dropped in `run_tactics`).
+
+| Backend | Solved | Turns | Wall clock | Tokens |
+|---|---|---|---|---|
+| coqc (whole script per check) | 2 / 2 | 9, 6 | 105 s, 87 s | 63k, 41k |
+| Pétanque (`run_tactics`) | 2 / 3 | 8, 27, 8 (gave up) | 163 s, 173 s, 386 s | 93k, 375k, 127k |
+
+One Pétanque success never called `run_tactics` (it used `check_proof`,
+i.e. the coqc path); the other used it 22 times and took 9x the tokens
+of a coqc success.  **Decision: GLM stays on the coqc backend.**  Small
+sample, but nothing suggests step-wise interaction helps this model, and
+it costs more turns and tokens.  The Pétanque backend stays (tested by
+`test_petanque.py`) for uses where step-wise state is the point: tier-0
+search with hammer/sauto in M2, and trying the Claude tiers.

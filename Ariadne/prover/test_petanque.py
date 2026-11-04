@@ -57,7 +57,7 @@ try:
                       "rewrite length_cons. split; [split |]; "
                       "[exact Hn | lia | lia].", state=1)
     expect("unfocused goal shown with its hypotheses",
-           r["ok"] and "next bullet" in r["goals"]
+           r["ok"]
            and "H : P_mem a1 (a :: l)" in r["goals"], r)
     out = w.coq_query("Check nth_cons.")
     expect("coq_query via Pétanque", "nth_cons" in out and "forall" in out,

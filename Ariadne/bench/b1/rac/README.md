@@ -185,7 +185,12 @@ records the outcome of each clause.
    predicate of an assert / requires / ensures / invariant into its
    top-level conjuncts, each translated on its own.  A conjunct that
    cannot be translated is dropped (the check gets weaker, never wrong);
-   a premise is never dropped, only a whole implication.
+   a premise is never dropped, only a whole implication.  The split
+   respects ACSL precedence: `==>`, `<==>`, `||`, `^^` and `?:` bind
+   looser than `&&`, so a predicate with one of them at top level is a
+   single conjunct (`a ==> b && c` is `a ==> (b && c)`; dropping `b`
+   must not leave `c` unguarded), and `<==>` is not split at its `==>`.
+   `test_gen_rac.py` (run by `check.sh`) checks these cases.
 3. **Binders over lists or pointers.**  `\exists`: each list or pointer
    variable gets a witness from a `dll` / `live_dll` conjunct that
    determines it (W1-W4), substituted in place; integer variables stay

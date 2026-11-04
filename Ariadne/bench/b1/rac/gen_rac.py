@@ -87,7 +87,8 @@ def split_top(t, sep):
             depth -= 1
         elif depth == 0 and re.match(r"\\(forall|exists|let)\b", t[i:]):
             break  # a binder's body runs to the end of t
-        elif depth == 0 and t.startswith(sep, i):
+        elif depth == 0 and t.startswith(sep, i) \
+                and not (sep == "==>" and t[i - 1:i] == "<"):  # not <==>
             parts.append(t[last:i])
             last = i + len(sep)
             i += len(sep)
@@ -95,6 +96,28 @@ def split_top(t, sep):
         i += 1
     parts.append(t[last:])
     return [p.strip() for p in parts]
+
+
+LOOSER = ("==>", "<==>", "||", "^^", "?")  # bind looser than && in ACSL
+
+
+def conjuncts(t):
+    """The conjuncts of t: split at top-level && only if no operator that
+    binds looser than && occurs at top level; otherwise t is one conjunct
+    (`a ==> b && c` is `a ==> (b && c)`, so dropping b must not leave c)."""
+    depth, i = 0, 0
+    while i < len(t):
+        c = t[i]
+        if c in "({":
+            depth += 1
+        elif c in ")}":
+            depth -= 1
+        elif depth == 0 and re.match(r"\\(forall|exists|let)\b", t[i:]):
+            break  # a binder's body runs to the end of t
+        elif depth == 0 and t.startswith(LOOSER, i):
+            return [t.strip()]
+        i += 1
+    return split_top(t, "&&")
 
 
 def body_end(t, i):
@@ -223,12 +246,12 @@ def elim_binders(t, notes):
         prem = split_top(bod, "==>")
         if len(prem) < 2:
             raise Drop("\\forall over all lists")
-        lets, why = witnesses(kind, binders, split_top(prem[0], "&&"))
+        lets, why = witnesses(kind, binders, conjuncts(prem[0]))
         if lets is None:
             raise Drop("\\forall over lists: " + why)
         new = bod
     else:
-        conjs = split_top(bod, "&&")
+        conjs = conjuncts(bod)
         lets, why = witnesses(kind, binders, conjs)
         if lets is None:
             raise Drop("\\exists: " + why)
@@ -413,7 +436,7 @@ def tr_clause(c, where):
         names += mm.group(1) + ": "
         rest = rest[mm.end():]
     label = f"{kw} {names}".strip().rstrip(":")
-    conjs = split_top(rest, "&&") if kw != "loop variant" else [rest]
+    conjs = conjuncts(rest) if kw != "loop variant" else [rest]
     kept, dropped, notes = [], [], []
     for cj in conjs:
         try:

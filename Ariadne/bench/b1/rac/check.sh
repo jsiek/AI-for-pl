@@ -61,13 +61,12 @@ run_log() {
 # randomisation (an endless "AddressSanitizer:DEADLYSIGNAL" before main;
 # about 1 run in 3 here; the container may not disable ASLR); such a start
 # is retried, up to 10 times.
-asan_retries=0
 san_exec() {  # san_exec <log> <cmd...>
   for _ in 1 2 3 4 5 6 7 8 9 10; do
     run_log "$@" && return 0
     rc=$?
     head -1 "$1" | grep -q '^AddressSanitizer:DEADLYSIGNAL' || return $rc
-    asan_retries=$((asan_retries + 1))
+    echo "$1" >> "$B/asan_retries"
   done
   return $rc
 }
@@ -139,8 +138,8 @@ else
   exit 1
 fi
 python3 -I classify.py warnings "$B/orig/eacsl.build.log" > "$B/eacsl_warnings.txt"
-echo "E-ACSL could not translate: $(wc -l < "$B/eacsl_warnings.txt") annotation(s) (build/eacsl_warnings.txt)"
-sed 's/^/    /' "$B/eacsl_warnings.txt"
+echo "E-ACSL ignored $(grep -c 'Ignoring annotation' "$B/eacsl_warnings.txt") annotation(s) of b1_rac.rte.c (all warnings: build/eacsl_warnings.txt):"
+grep 'Ignoring annotation' "$B/eacsl_warnings.txt" | sed 's/^/    /'
 
 # ---- 4. mutants ------------------------------------------------------
 # expect <mutant>: the sanitizer outcome and the E-ACSL outcome, as
@@ -150,28 +149,31 @@ expect() {
     vacuity)   san='-'; eac='Assertion vacuity in b1' ;;
     uaf)       san='heap-use-after-free'; eac='Precondition in sglib_dllist_get_first' ;;
     uaf_back)  san='heap-use-after-free'; eac='Precondition in sglib_dllist_get_last' ;;
-    nullchk)   san='SEGV'; eac='Assertion rte/mem_access in b1' ;;
+    nullchk)   san="ubsan: member access within null pointer of type 'struct dllist'"
+               eac='Assertion rte/mem_access in b1' ;;
     nullfirst) san='-'; eac='Postcondition heads_list in sglib_dllist_get_first' ;;
     nulllast)  san='oracle'; eac='Postcondition last_of_list in sglib_dllist_get_last' ;;
-    noinit)    san='-'; eac='Precondition elem_init in sglib_dllist_add' ;;
+    noinit)    san='oracle'; eac='Precondition elem_init in sglib_dllist_add' ;;
   esac
 }
 [ -n "$quick" ] && exit $status   # 4th argument: b1.c only
 t=$(now)
+for m in $MUTANTS; do   # the seven mutants in parallel
+  ( if san_build "$m"; then san_run "$m"; else echo "build failed" > "$B/$m/asan.log"; fi
+    if eacsl_build "$m"; then eacsl_run "$m"; else echo "build failed" > "$B/$m/eacsl.log"; fi
+  ) &
+done
+wait
 printf '%-10s %-22s %s\n' mutant "ASan+UBSan" "E-ACSL (first check to fire)"
 for m in $MUTANTS; do
   expect "$m"
-  san_build "$m" || { echo "FAIL: $m: ASan build"; status=1; continue; }
-  san_run "$m"
-  eacsl_build "$m" || { echo "FAIL: $m: E-ACSL build"; status=1; continue; }
-  eacsl_run "$m"
   gs=$(python3 -I classify.py san "$B/$m/asan.log")
   ge=$(python3 -I classify.py eacsl "$B/$m/eacsl.log")
   verdict=ok
   [ "$gs" = "$san" ] && [ "$ge" = "$eac" ] || { verdict="UNEXPECTED (want $san / $eac)"; status=1; }
-  printf '%-10s %-22s %s  [%s]\n' "$m" "$gs" "$ge" "$verdict"
+  printf '%-10s %-22s %s  [%s]\n' "$m" "$gs" "$ge" "$verdict" | sed "s/ubsan: member access within null pointer of type 'struct dllist'/ubsan: null member access/"
 done
 echo "step 4 (mutants x7, both builds): $(lap "$t") s"
-echo "ASan start-up retries (DEADLYSIGNAL): $asan_retries"
+echo "ASan start-up retries (DEADLYSIGNAL): $(cat "$B/asan_retries" 2>/dev/null | wc -l)"
 [ "$status" -eq 0 ] && echo "PASS: runtime checking of B1" || echo "FAIL: runtime checking of B1"
 exit $status

@@ -296,21 +296,17 @@ def base_addr(p):
 
 
 def labels(p):
-    """P{L}(args) -> \\at(P(args), L) when every argument has the same
-    value at L as here (E-ACSL 33 has no predicates with labels)."""
-    out, i = "", 0
-    for m in re.finditer(r"\b(\w+)\{(\w+)\}\(", p):
-        if m.start() < i:
-            continue
-        j = match_paren(p, m.end() - 1)
-        args = split_top(p[m.end():j - 1], ",")
-        if not all(stable(a, m.group(2)) for a in args):
-            raise Drop(f"{m.group(1)}{{{m.group(2)}}} with an argument read "
-                       "here (E-ACSL: no predicates with labels)")
-        out += p[i:m.start()] + \
-            f"\\at({m.group(1)}({p[m.end():j - 1]}), {m.group(2)})"
-        i = j
-    return out + p[i:]
+    """A spec predicate applied at another label, P{L}(args), cannot be
+    executed by E-ACSL 33: neither P{L}(...) nor \\at(P(...), L) is
+    translated ("predicate(s) with labels", annotation ignored).  The
+    conjunct is dropped with that reason.  (Its list witness is computed
+    at L correctly, \\at(rac_reach(h), L), when h is label-stable; a
+    future E-ACSL could take \\at(P(args), L).)"""
+    m = re.search(r"\b(" + "|".join(PREDS) + r")\{(\w+)\}\(", p)
+    if m and m.group(2) != "Here":
+        raise Drop(f"{m.group(1)}{{{m.group(2)}}}: E-ACSL 33 does not "
+                   "translate predicates under a label")
+    return p
 
 
 # Each twin: result type for the wrapper (None: an int used as such) and

@@ -344,6 +344,8 @@ class Gen:
                 raise Untranslatable("operator " + t["op"])
             a, da = self.cterm(t["a"], env, own)
             b, db = self.cterm(t["b"], env, own)
+            if t["ty"]["k"] == "integer":  # mathematical: compute in long
+                a, b = f"(long)({a})", f"(long)({b})"
             return f"({a} {t['op']} {b})", da + db
         if n == "cast":
             a, d = self.cterm(t["a"], env, own)
@@ -514,7 +516,7 @@ class Gen:
             body_c = f"{pre}{loop}    if (!{b}) return 0;\n  return 1;\n"
         proto = (f"static int {q}(" + ", ".join(
             [cdecl(ctype(t), x) for x, t in params] + ["int d"]) + ")")
-        self.add_func(q, proto, f"  /* {p['pp']} */\n" + body_c)
+        self.add_func(q, proto, f"  /* {p['pp']} */\n  (void)d;\n" + body_c)
         return f"{q}({', '.join([env[x][0] for x in free] + ['d'])})"
 
     # ======================================================= twins of defs
@@ -590,7 +592,7 @@ class Gen:
         for v in params:
             self.note_elem(v["type"])
         info = {"name": self.mode_name(P, I, o), "free": False,
-                "exclusive": True, "guards": []}
+                "exclusive": True, "guards": [], "deps": set(), "key": key}
         self.modes[key] = info
         own = d["labels"]
         args = [cdecl(ctype(params[i]["type"]), f"a{i}") for i in I]
@@ -669,24 +671,26 @@ class Gen:
                       f"hd({pth})")
                 match(pat["args"][1], f"rac_seq_tl({e})", ty, f"tl({pth})")
                 return True
-            return False
+            # not a pattern: compared once its variables are known
+            v = f"g{len(later)}"
+            lines.append(f"    {cdecl(ctype(ty), v)} = {e};")
+            later.append((pat, v, ty))
+            return True
+
+        def compare(pat, e, ty):
+            x, ds = self.cterm(pat, env, own)
+            check(self.guard(ds, f"rac_seq_eq({x}, {e})" if ty["k"] == "list"
+                             else f"({x}) == {e}"))
 
         # 1. the given arguments against the conclusion's patterns
-        later = []
+        later = []       # (term, C value, type): compared when known
         for i in I:
-            if not match(cargs[i], f"a{i}", params[i]["type"], f"a{i}"):
-                later.append(i)
-        for i in later:
-            if not fv(cargs[i]) <= set(env):
-                raise Untranslatable(
-                    f"case {cname}: conclusion argument {cargs[i]['pp']} is "
-                    "not a pattern (variables, \\null, constants, \\Nil, "
-                    "\\Cons)")
-            e, ds = self.cterm(cargs[i], env, own)
-            ty = params[i]["type"]
-            check(self.guard(ds, f"rac_seq_eq({e}, a{i})" if ty["k"] == "list"
-                             else f"({e}) == a{i}"))
-            from_in |= fv(cargs[i])
+            match(cargs[i], f"a{i}", params[i]["type"], f"a{i}")
+        for x in list(later):
+            if not fv(x[0]) - set(env):
+                compare(*x)
+                from_in |= fv(x[0])
+                later.remove(x)
 
         # 2. the premises, in order, as soon as their variables are known
         pending = list(prems)
@@ -742,7 +746,17 @@ class Gen:
             if ds:
                 check(self.guard(ds, None))
             for j in outs:
-                m = self.gen_mode(q["f"], K, j)
+                try:
+                    m = self.gen_mode(q["f"], K, j)
+                except Untranslatable as e:
+                    qp = self.defs[q["f"]]["params"]
+                    raise Untranslatable(
+                        f"case {cname}: premise {q['pp']} needs "
+                        f"{var_name(qa[j])}, and {q['f']} has no mode "
+                        f"computing {qp[j]['name']} from "
+                        + (", ".join(qp[i]["name"] for i in K) or "nothing")
+                        + f" ({e})")
+                info["deps"].add(m["key"])
                 v = var_name(qa[j])
                 env[v] = (f"v_{v}", vtypes[v])
                 check(f"{m['name']}(" + ", ".join(
@@ -757,6 +771,12 @@ class Gen:
             if q is None:
                 break
             pending.remove(q)
+        for x in later:
+            if fv(x[0]) - set(env):
+                raise Untranslatable(
+                    f"case {cname}: conclusion argument {x[0]['pp']} has "
+                    "variables no premise determines")
+            compare(*x)
         if pending and o is None:
             q = pending[0]
             raise Untranslatable(
@@ -775,7 +795,8 @@ class Gen:
                     check(self.guard(ds, None))
                 lines.append(f"    *out = {e};")
             elif is_var(t) and all(var_name(t) not in fv(q) for q in prems) \
-                    and all(var_name(t) not in fv(cargs[i]) for i in I):
+                    and all(var_name(t) not in fv(cargs[i])
+                            for i in range(len(cargs)) if i != o):
                 lines.append(f"    *out = {default(params[o]['type'])};"
                              "  /* any value works */")
                 info["free"] = True
@@ -788,8 +809,28 @@ class Gen:
             info["guards"].append(guards)
         decls = "".join(f"    {cdecl(ctype(t), 'v_' + v)};\n" for v, t in vtypes.items())
         unused = "".join(f"    (void)v_{v};\n" for v in vtypes)
+        label = f"  {nxt}:;\n" if any(f"goto {nxt};" in x for x in lines) \
+            else ""
         return (f"  {{ /* case {cname} */\n{decls}{unused}"
-                + "\n".join(lines) + f"\n  }}\n  {nxt}:;\n")
+                + "\n".join(lines) + f"\n  }}\n{label}")
+
+    def exact(self, key):
+        """The mode computes the only possible value: its cases are
+        exclusive, and every witness it uses is exact and not "any
+        value" (a free output is exact only where it is returned)."""
+        if not self.modes[key]["exclusive"]:
+            return False
+        seen, todo = set(), list(self.modes[key]["deps"])
+        while todo:
+            k = todo.pop()
+            if k in seen:
+                continue
+            seen.add(k)
+            m = self.modes[k]
+            if not m["exclusive"] or m["free"]:
+                return False
+            todo += list(m["deps"])
+        return True
 
     def try_mode(self, P, I, o):
         s = self.snapshot()
@@ -1191,7 +1232,7 @@ class Gen:
             self.builtins[name] = {"ret": "int",
                                    "params": [sig_kind(v["type"])
                                               for v in params]}
-            ents = []
+            ents, inexact = [], []
             n = len(params)
             for o in range(n):
                 found = []
@@ -1201,9 +1242,16 @@ class Gen:
                         if any(set(f) <= set(I) for f in found):
                             continue
                         m = self.try_mode(P, I, o)
-                        if m:
-                            found.append(I)
-                            ents.append(self.export_mode(P, I, o, m))
+                        if not m:
+                            continue
+                        if not self.exact(m["key"]):
+                            inexact.append(describe(P, params, {
+                                "kind": "fwd", "in": I, "out": o,
+                                "fn": "", "free": False, "exclusive": True}
+                            ).split(":")[0])
+                            continue
+                        found.append(I)
+                        ents.append(self.export_mode(P, I, o, m))
             self.witness[P] = ents
             mem = self.gen_member(P)
             if mem:
@@ -1213,6 +1261,11 @@ class Gen:
                               f"builtin {name}; witnesses: "
                               + ("; ".join(describe(P, params, e) for e in ents)
                                  or "none")))
+            if inexact:
+                self.diag.append((P, "note", "not exported (not a function "
+                                  "of the inputs: cases not provably "
+                                  "exclusive, or a free value used): "
+                                  + "; ".join(inexact)))
         # 2. every definition of the spec block, in order
         acsl = []
         for d in self.order:
@@ -1405,7 +1458,7 @@ def spec_block(src_text, line):
     """The /*@ ... */ comment that contains `line` (1-based): its text."""
     lines = src_text.split("\n")
     off = sum(len(x) + 1 for x in lines[:line - 1])
-    s0 = src_text.rfind("/*@", 0, off + 1)
+    s0 = src_text.rfind("/*@", 0, off + len(lines[line - 1]))
     s1 = src_text.index("*/", s0) + 2
     if s1 < off:
         sys.exit("gen_twins.py: cannot locate the spec block")
@@ -1456,6 +1509,17 @@ def main():
     for n in ("rac_heap", "rac_dead", "rac_heap_of", "rac_dead_of"):
         g.builtins[n] = {"ret": "int", "params": ["n"]}
     publics = [n for n in g.funcs if n.startswith("rac_")]
+    # only what the builtins use (modes tried but not exported are left out)
+    live, todo = set(), list(publics)
+    while todo:
+        n = todo.pop()
+        if n in live:
+            continue
+        live.add(n)
+        todo += [m for m in re.findall(r"\b\w+\b", g.funcs[n])
+                 if m in g.funcs and m not in live]
+    g.funcs = {n: f for n, f in g.funcs.items() if n in live}
+    g.protos = {n: f for n, f in g.protos.items() if n in live}
     h = [f"/* Generated by gen_twins.py from {base}; do not edit.",
          "   Prototypes of the executable twins (E-ACSL builtins); no typedefs,",
          "   so the header can be force-included (gcc -include). */",

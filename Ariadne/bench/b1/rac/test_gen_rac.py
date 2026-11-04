@@ -1,11 +1,11 @@
 """Regression tests for gen_rac.py's clause splitting: run it on b1.c
 with extra asserts inserted, and check what it keeps.
-Usage: python3 -I test_gen_rac.py <b1.c> <scratch dir>"""
+Usage: python3 -I test_gen_rac.py <b1.c> <scratch dir> <twins dir>"""
 import os
 import subprocess
 import sys
 
-src_path, tmp = sys.argv[1], sys.argv[2]
+src_path, tmp, twins = sys.argv[1], sys.argv[2], sys.argv[3]
 here = os.path.dirname(os.path.abspath(__file__))
 src = open(src_path).read()
 
@@ -29,7 +29,7 @@ fixture = os.path.join(tmp, "b1_prec.c")
 open(fixture, "w").write(src[:i] + extra + src[i:])
 
 subprocess.run([sys.executable, "-I", os.path.join(here, "gen_rac.py"),
-                fixture, tmp], check=True, stdout=subprocess.DEVNULL)
+                fixture, tmp, twins], check=True, stdout=subprocess.DEVNULL)
 report = open(os.path.join(tmp, "annotations.txt")).read()
 out = open(os.path.join(tmp, "b1_rac.c")).read()
 

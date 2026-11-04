@@ -1,5 +1,5 @@
 /* The ariadne allocators for runtime checking: real malloc/free, plus
-   the allocation registry (rac_twins.c) that gives heap / dead their
+   the allocation registry (../../../rac/rac_rt.c) that gives heap / dead their
    meaning, plus fault injection: allocation number rac_fail_at (counting
    from 0 within one b1 run) returns NULL.
 

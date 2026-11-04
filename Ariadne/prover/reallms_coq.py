@@ -40,6 +40,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARIADNE = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(os.path.dirname(ARIADNE), "scripts"))
+sys.path.insert(0, HERE)  # petanque.py (python3 -I drops the script dir)
 from reallms_client import read_key, tool_loop  # noqa: E402
 from petanque import Petanque, PetanqueError, PetanqueTimeout  # noqa: E402
 
@@ -97,17 +98,20 @@ def show_goals_json(g, limit=6000):
     """Pétanque goals as Coq prints them: hypotheses and conclusion of
     the first goal, conclusions of the others."""
     goals = g.get("goals") or []
+    lines = []
     if not goals:
-        stack = [x for lr in g.get("stack") or [] for side in lr for x in side]
-        msg = "No goals in focus."
-        if stack:
-            msg += f" {len(stack)} goal(s) remain unfocused"
-        if g.get("bullet"):
-            msg += " (" + g["bullet"] + ")"
-        if g.get("shelf"):
-            msg += f"; {len(g['shelf'])} shelved"
-        return msg
-    lines = [f"{len(goals)} goal(s)"]
+        # A bullet's branch is done: show the goals waiting under the
+        # enclosing bullets (the model needs their hypotheses too).
+        goals = [x for lr in g.get("stack") or [] for side in lr
+                 for x in side]
+        if not goals:
+            msg = "No goals left."
+            if g.get("shelf"):
+                msg += f" {len(g['shelf'])} shelved goal(s): Unshelve."
+            return msg
+        lines.append("No goals in focus (this bullet's branch is done). "
+                     "Unfocused goals, reached with the next bullet:")
+    lines.append(f"{len(goals)} goal(s)")
     first = goals[0]
     for h in first.get("hyps") or []:
         body = f" := {h['def']}" if h.get("def") else ""

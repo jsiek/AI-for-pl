@@ -41,6 +41,24 @@ try:
     expect("state 0 has no a1 yet", not r["ok"], r)
     r = w.run_tactics("revert a1.", state=1)
     expect("state 1 has a1", r["ok"] and "\n  a1 : addr" not in r["goals"], r)
+    # after a bullet's branch, the unfocused goal is shown in full
+    r = w.run_tactics("split; intro H. - exfalso. admit_me.", state=1)
+    r = w.run_tactics("split; intro H. - left; reflexivity.", state=1)
+    expect("finished-branch run: wrong tactic fails", not r["ok"], r)
+    r = w.run_tactics("split; intro H. - assert (Z : True) by trivial. "
+                      "clear Z. destruct H as [E | M]. + exists 0%Z. "
+                      "rewrite E. split; [split; [apply nth_zero | lia] |]. "
+                      "rewrite length_cons. pose proof (length_pos l). lia. "
+                      "+ destruct M as (i & (Hn & Hi) & Hl). "
+                      "exists (i + 1)%Z. "
+                      "destruct (nth_cons (i + 1)%Z a l) as [_ Hc]; [lia |]. "
+                      "rewrite Hc by lia. "
+                      "replace (i + 1 - 1)%Z with i by lia. "
+                      "rewrite length_cons. split; [split |]; "
+                      "[exact Hn | lia | lia].", state=1)
+    expect("unfocused goal shown with its hypotheses",
+           r["ok"] and "next bullet" in r["goals"]
+           and "H : P_mem a1 (a :: l)" in r["goals"], r)
     out = w.coq_query("Check nth_cons.")
     expect("coq_query via Pétanque", "nth_cons" in out and "forall" in out,
            out)

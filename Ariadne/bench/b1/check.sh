@@ -1,7 +1,8 @@
 #!/bin/sh
 # B1a check.  From this directory:  ./check.sh
 #   1. ./run.sh: every goal of b1.c (functions and lemmas) is proved.
-#   2. Mutants of the driver, each of which must leave a goal unproved:
+#   2. Mutants of the driver, each of which must leave exactly its
+#      intended goal(s) unproved, on the intended line, and nothing else:
 #      vacuity  - `assert \false` at the end of b1 (else the spec is
 #                 inconsistent and step 1 means nothing);
 #      uaf      - the forward walk moved after the free loop;
@@ -40,6 +41,19 @@ open("mutants/uaf.c", "w").write(uaf)
 mutant("nullchk", "    if (l == NULL)\n      break;\n", "")
 EOF
 
+# The intended failure of each mutant: a unique line of the mutant
+# source (found by its text) and a pattern for the open goal names there.
+expect() {
+  case "$1" in
+    vacuity) marker='  //@ assert vacuity: \false;'
+             goals='_assert_vacuity$' ;;
+    uaf)     marker='  /*@ loop invariant \exists dllist *p, \list<dllist *> t; live_dll(p, l, t);'
+             goals='_loop_invariant(_[0-9]+)?_established$' ;;
+    nullchk) marker='    l->i = input[k];'
+             goals='_assert_(ariadne_live|rte_mem_access)(_[0-9]+)?$' ;;
+  esac
+}
+
 for m in vacuity uaf nullchk; do
   rm -f "mutants/report_$m.json"
   ../../env/run.sh frama-c \
@@ -52,14 +66,19 @@ for m in vacuity uaf nullchk; do
     -wp-session "/work/mutants/session_$m" \
     -wp-report-json "/work/mutants/report_$m.json" \
     > "mutants/$m.log" 2>&1
-  if [ ! -s "mutants/report_$m.json" ]; then
+  expect "$m"
+  line=$(grep -nF -- "$marker" "mutants/$m.c" | cut -d: -f1)
+  if [ "$(echo "$line" | wc -w)" -ne 1 ]; then
+    echo "FAIL: mutant $m: marker not found exactly once"; status=1
+  elif [ ! -s "mutants/report_$m.json" ]; then
     echo "FAIL: mutant $m: WP run failed (mutants/$m.log)"; status=1
-  elif python3 -I ../goals.py "mutants/report_$m.json" > "mutants/$m.goals"
-  then
-    echo "FAIL: mutant $m fully proved (should not be)"; status=1
+  elif python3 -I ../goals.py --expect-open "$line" "$goals" \
+         "mutants/report_$m.json" > "mutants/$m.goals"; then
+    echo "PASS: mutant $m rejected, only at line $line: $(sed -n 2p \
+      "mutants/$m.goals" | awk '{print $2}')"
   else
-    echo "PASS: mutant $m rejected: $(sed -n 2p "mutants/$m.goals" \
-      | awk '{print $2}')"
+    echo "FAIL: mutant $m not rejected for the intended reason:"
+    sed 's/^/    /' "mutants/$m.goals"; status=1
   fi
 done
 exit $status

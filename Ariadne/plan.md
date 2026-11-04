@@ -408,7 +408,7 @@ invariant is only needed for functional correctness and is stretch work.
 | # | Deliverable | Exit criterion |
 |---|-------------|----------------|
 | M0 | Toolchain pin + container | **Done** (`env/`, `env/smoke/check.sh`): versions pinned; WP → Why3 → Coq round trip on a small example (10/10 goals, one by a Coq script); `coqchk` passes and lists the axioms; CoqHammer and Pétanque work on WP goals. |
-| M1a | WP allocation investigation (§10) | Small `malloc`/`free` test suite run; decision recorded: WP as is, ghost liveness model, or extend WP. |
+| M1a | WP allocation investigation (§10) | **Done** (`m1a/`): WP misses use-after-free in every memory model; the ghost liveness model catches every case.  Decision: fallback 1. |
 | M1 | Manual baseline on B1 | Human writes predicates + contracts + invariants; all goals closed (by any means); goal census recorded.  This tells us where the hard goals are and whether the shape library works. |
 | M2 | Pipeline without LLM | Python harness runs steps 1–7, Pétanque integration, `hammer`-only proof search, guardrail checks, report.  Measure how much of M1 automation alone closes.  Budget ledger built and calibrated with a small Opus 5.5 pilot (§11). |
 | M3 | Agent on B1 | Annotator (Opus 5.5) + prover tier on B1 starting from frozen contracts only (no human invariants).  Minimum success criterion.  First comparison of prover escalation strategies (§12.3). |
@@ -456,8 +456,10 @@ invariant is only needed for functional correctness and is stretch work.
 
 *   **Q2 — Memory model: `Typed`** (`-wp-model Typed`; `Typed+ref` may
     be tried as an optimisation).  It assumes no type-punning, which fits
-    sglib's intrusive structs.  M1 checks the macro-expanded B1/B2 code
-    for pointer casts between struct types; if any appear, revisit.
+    sglib's intrusive structs.  Checked in M1a: the RB-tree and DL-list
+    code in `sglib.h` contains no pointer casts, and `sglib.h` never
+    allocates.  The only casts left are `malloc` results in our
+    benchmark drivers, which call typed allocators instead (§10).
 *   **Q5 — Coq/Rocq version: the latest one that WP and its Why3
     version support.**  Resolved in M0: Frama-C 33.0 requires Why3 1.8.x,
     whose Coq support stops at Rocq 9.0, so Rocq 9.0.1.  CoqHammer and
@@ -499,6 +501,19 @@ check **[verify]**: whether WP's `Typed` model honours `allocates` /
 `frees` clauses and `\fresh`, `\freeable`, `\allocable`; and whether RTE
 alone generates the `\valid` obligation that catches the use after
 `free` (it should, since `free` should end `\valid(p)`).
+
+**Result (M1a, `m1a/README.md`, reproduced by `m1a/check.sh`).**  WP
+does not pass.  Under `Typed` and `Bytes`, WP drops `\fresh`,
+`\freeable`, and `\allocable` ("not yet implemented"), so correct
+programs cannot be proved (every `free` precondition fails, and new
+blocks are not known to be `\valid`), and worse, `free` does not end
+validity: a read after `free` is *proved* safe.  `Region` and `Eva`
+models are not usable here.  The ghost liveness model (fallback 1
+below), prototyped by hand in `m1a/ghost.c`, scores all 12 test
+functions correctly with WP + SMT alone, including pointers to locals
+and three vacuity checks.  **Decision: fallback 1.**  Remaining work is
+the instrumentation pass, the allocator contracts, and Coq frame lemmas
+(listed in `m1a/README.md`).
 
 **If WP passes:** nothing more to do; use-after-free is covered by the
 RTE `\valid` obligations.

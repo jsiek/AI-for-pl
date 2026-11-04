@@ -1,3 +1,4 @@
 session_*/
 report_*.json
 run_*.log
+verdicts_*.txt

@@ -509,7 +509,7 @@ programs cannot be proved (every `free` precondition fails, and new
 blocks are not known to be `\valid`), and worse, `free` does not end
 validity: a read after `free` is *proved* safe.  `Region` and `Eva`
 models are not usable here.  The ghost liveness model (fallback 1
-below), prototyped by hand in `m1a/ghost.c`, scores all 12 test
+below), prototyped by hand in `m1a/ghost.c`, scores all 13 test
 functions correctly with WP + SMT alone, including pointers to locals
 and three vacuity checks.  **Decision: fallback 1.**  Remaining work is
 the instrumentation pass, the allocator contracts, and Coq frame lemmas

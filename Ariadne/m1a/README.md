@@ -14,8 +14,9 @@ does.
 | `alloc.c` | test cases against the libc `malloc`/`free` specs |
 | `ghost.c` | the same cases under the ghost liveness model, plus stack-pointer and extra vacuity cases |
 | `run_models.sh` | runs WP (RTE on, Alt-Ergo + Z3 + CVC5, 10 s) per memory model, writes `report_*.json` |
-| `summarize.py` | scores each test function against the expectations written in the C file |
-| `check.sh` | both experiments; fails if either result changes |
+| `summarize.py` | scores each test function against the expectations written in the C file; a test function missing from a report is a failure |
+| `expected_libc.txt` | the recorded per-function verdicts for `alloc.c` (same under `Typed` and `Bytes`) |
+| `check.sh` | both experiments; fails if a WP run fails, if the `alloc.c` verdicts differ from `expected_libc.txt` in any way, or if any `ghost.c` case is wrong |
 
 Each test function is `good_*` (every goal must be proved), `bad_*` (the
 goal on the line marked `BAD` must fail, everything else must be
@@ -59,13 +60,13 @@ heap version `__heap` and two abstract predicates:
   dereference of `p`, `assert live: !dead(__heap, \base_addr(p))`, and
   at each address-taken variable `x`, `admit !heap(\base_addr(&x))`.
 
-All 12 test functions are scored correct (61 / 69 goals proved; the 8
-unproved are exactly the 5 `BAD` goals and the 3 vacuity asserts):
+All 13 test functions are scored correct (63 / 72 goals proved; the 9
+unproved are exactly the 6 `BAD` goals and the 3 vacuity asserts):
 
 | Case | Caught by |
 |------|-----------|
 | use after free, write after free through alias, freed node via link | `live` assert |
-| double free, free of a stack object | `freeable` precondition of `free_*` |
+| double free, free of a stack object, free of an interior pointer | `freeable` precondition of `free_*` |
 | pointer to a local, before and after a `free` | proved, thanks to `dead_heap` + the stack `admit` |
 
 WP's own RTE `\valid` goal on a freed read is still (wrongly) proved;

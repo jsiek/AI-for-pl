@@ -147,6 +147,13 @@ int bad_free_stack(void) {
   return x;
 }
 
+int bad_free_interior(void) {
+  int *p = malloc_int();
+  if (!p) return 0;
+  free_int(p + 1);       /* BAD: freeable precondition (not the base) */
+  return 0;
+}
+
 int bad_list_link_after_free(void) {
   struct node *a = malloc_node();
   if (!a) return 0;

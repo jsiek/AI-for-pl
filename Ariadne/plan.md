@@ -511,9 +511,13 @@ validity: a read after `free` is *proved* safe.  `Region` and `Eva`
 models are not usable here.  The ghost liveness model (fallback 1
 below), prototyped by hand in `m1a/ghost.c`, scores all 13 test
 functions correctly with WP + SMT alone, including pointers to locals
-and three vacuity checks.  **Decision: fallback 1.**  Remaining work is
-the instrumentation pass, the allocator contracts, and Coq frame lemmas
-(listed in `m1a/README.md`).
+and three vacuity checks.  **Decision: fallback 1.**  The
+instrumentation pass and allocator contracts are now the `-ariadne`
+Frama-C plugin and `plugin/share/ariadne_alloc.h` (`plugin/README.md`;
+`plugin/tests/check.sh` scores 18 cases correct with no hand-written
+instrumentation).  Remaining: Coq frame lemmas and a consistency model
+for the liveness axiom, and the guardrail checks of `plugin/README.md`
+(known limits).
 
 **If WP passes:** nothing more to do; use-after-free is covered by the
 RTE `\valid` obligations.

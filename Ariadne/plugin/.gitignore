@@ -1,0 +1,4 @@
+_build/
+tests/*.log
+tests/report_*.json
+tests/session_*/

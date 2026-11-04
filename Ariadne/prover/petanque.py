@@ -82,7 +82,15 @@ class Petanque:
         self.buf += chunk
 
     def _recv(self, deadline):
-        while b"\r\n\r\n" not in self.buf:
+        # Tactics that run shell commands write to pet's stdout too:
+        # `hammer` looks for its ATPs with `sh`, which prints "sh: 1:
+        # z3_tptp: not found" before the next message.  Skip any such
+        # text before a header.
+        while True:
+            k = self.buf.find(b"Content-Length:")
+            if k >= 0 and b"\r\n\r\n" in self.buf[k:]:
+                self.buf = self.buf[k:]
+                break
             self._fill(deadline)
         head, _, _ = self.buf.partition(b"\r\n\r\n")
         length = None

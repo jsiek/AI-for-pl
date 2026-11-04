@@ -1,0 +1,13 @@
+  bad_alias_after_free           incomplete
+  bad_double_free                incomplete
+  bad_free_interior              ok
+  bad_free_stack                 ok
+  bad_list_link_after_free       UNSOUND, incomplete
+  bad_use_after_free             UNSOUND, incomplete
+  bad_write_after_free           incomplete
+  good_free_null                 ok
+  good_free_through_alias        incomplete
+  good_malloc_write_free         incomplete
+  good_two_blocks_free_one       incomplete
+  vacuous_after_free             incomplete
+  vacuous_after_malloc           ok

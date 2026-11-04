@@ -149,3 +149,14 @@ version control, vst/ or other lemmas' directories.
 
 Sonnet's proofs: `results/sonnet/`.  Token counts for Sonnet are the
 subagent totals (they include Claude Code's own system prompt).
+
+### GLM rerun of the induction lemmas (32k output limit, told when cut off)
+
+| Lemma | Result | Turns | Wall clock | Tokens | Replies cut off |
+|---|---|---|---|---|---|
+| `dll_frame` | **solved** | 8 | 666 s | 138k | 1 |
+| `dll_links` | not solved (30 turns) | 30 | 1519 s | 594k | 6 |
+
+So GLM proves 4 of the 5 lemmas once cut-off replies are handled;
+`dll_links` (a 50-line induction by hand) is beyond it within 30 turns,
+while Sonnet proves it in 11 calls.  (`results/glm_coqc_induction_rerun.jsonl`)

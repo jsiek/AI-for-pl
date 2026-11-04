@@ -113,3 +113,18 @@ sample, but nothing suggests step-wise interaction helps this model, and
 it costs more turns and tokens.  The Pétanque backend stays (tested by
 `test_petanque.py`) for uses where step-wise state is the point: tier-0
 search with hammer/sauto in M2, and trying the Claude tiers.
+
+### GLM 5.3 Flash on the other four lemmas (coqc, proofs hidden, 1 run each)
+
+| Lemma | Result | Turns | Wall clock | Tokens |
+|---|---|---|---|---|
+| `all_live_cons` | **solved** | 18 | 506 s | 243k |
+| `all_init_cons` | **solved** | 5 | 57 s | 36k |
+| `dll_frame` (induction) | gave up | 11 | 405 s | 165k |
+| `dll_links` (induction, 50 lines by hand) | gave up | 7 | 361 s | 122k |
+
+With `mem_cons`, GLM proves 3 of B1's 5 Coq lemmas.  On both induction
+lemmas the replies that ended the run were cut off at the 16k-token
+output limit while still reasoning (about 50k characters each), so they
+had no tool call and the nudges ran out: the model was never told it was
+cut off.  (`results/glm_coqc_4lemmas.jsonl`)

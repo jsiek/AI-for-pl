@@ -128,3 +128,24 @@ lemmas the replies that ended the run were cut off at the 16k-token
 output limit while still reasoning (about 50k characters each), so they
 had no tool call and the nudges ran out: the model was never told it was
 cut off.  (`results/glm_coqc_4lemmas.jsonl`)
+
+### Sonnet 5.5 (tier 2) on the same five lemmas
+
+Run as Claude Code subagents (no Anthropic API key here; billed to the
+subscription), one per lemma, with the same tools as the REALLMS worker
+through `prover_cli.py` (statement, query, goals, check; same verdict),
+the proofs hidden (stripped copies of the goal files to read), and the
+same budget (30 goals+check calls).  Each proof was rechecked with
+`coqc`, and each transcript audited: no access to the session files,
+version control, vst/ or other lemmas' directories.
+
+| Lemma | Sonnet 5.5 | goals+check calls | Wall clock | Tokens | GLM 5.3 Flash (coqc) |
+|---|---|---|---|---|---|
+| `mem_cons` | solved | 3 | 22 s | 37k | solved (2/2 runs, 41k-63k) |
+| `all_live_cons` | solved | 3 | 21 s | 37k | solved (243k) |
+| `all_init_cons` | solved | 1 | 13 s | 36k | solved (36k) |
+| `dll_frame` (induction) | solved | 2 | 28 s | 40k | gave up |
+| `dll_links` (induction) | solved | 11 | 75 s | 49k | gave up |
+
+Sonnet's proofs: `results/sonnet/`.  Token counts for Sonnet are the
+subagent totals (they include Claude Code's own system prompt).

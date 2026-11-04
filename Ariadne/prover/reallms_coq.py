@@ -461,6 +461,8 @@ def main():
     ap.add_argument("--backend", choices=("coqc", "petanque"),
                     default="coqc")
     ap.add_argument("--max-steps", type=int, default=30)
+    ap.add_argument("--max-tokens", type=int, default=32768,
+                    help="output limit per model reply")
     ap.add_argument("--timeout", type=int, default=120,
                     help="seconds per coqc run")
     ap.add_argument("--temperature", type=float, default=0.2)
@@ -524,13 +526,15 @@ def main():
             nudge="You did not call a tool. Continue the proof with a "
                   "tool call now (check_proof or run_tactics), then fix "
                   "what Coq reports.",
-            max_steps=args.max_steps, temperature=args.temperature, fh=fh)
+            max_steps=args.max_steps, temperature=args.temperature, fh=fh,
+            max_tokens=args.max_tokens)
     finally:
         w._pet_close()
     report = {
         "file": os.path.relpath(w.path, ARIADNE), "model": args.model,
         "status": loop["status"], "solved": w.last_ok,
         "steps": loop["steps"], "seconds": loop["seconds"],
+        "cut_off": loop["cut_off"], "max_tokens": args.max_tokens,
         "usage": loop["usage"], "tool_calls": w.counts,
         "coqc_runs": w.coqc_runs, "backend": args.backend,
         "pet_restarts": w.pet_restarts,

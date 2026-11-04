@@ -136,21 +136,30 @@ def logline(fh, s):
         fh.flush()
 
 
+CUT_OFF = ("Your last reply was cut off at the output limit before you "
+           "made a tool call, so nothing was checked.  Do not reason it all "
+           "out first: submit your current best attempt now with a tool "
+           "call, and let the checker's errors guide the next step.")
+
+
 def tool_loop(model, key, system, user, tools, dispatch, solved,
-              check_tool, nudge, max_steps=24, temperature=0.2, fh=None):
+              check_tool, nudge, max_steps=24, temperature=0.2, fh=None,
+              max_tokens=16384):
     """Run the model with tools until `solved()` after a call to
     `check_tool`, the model gives up, or max_steps.  `dispatch(name, args)`
     runs a tool and returns a str or JSON-able value.  `nudge` is the
     message sent (up to 3 times) when the model answers without a tool
-    call while unsolved.  Returns {status, steps, usage, seconds}."""
+    call while unsolved; a reply cut off at max_tokens gets CUT_OFF
+    instead, and does not count as a nudge.  Returns {status, steps,
+    usage, seconds, cut_off}."""
     messages = [{"role": "system", "content": system},
                 {"role": "user", "content": user}]
-    status, nudges, step = "incomplete", 0, 0
+    status, nudges, step, cut_off = "incomplete", 0, 0, 0
     usage = {"prompt_tokens": 0, "completion_tokens": 0}
     t0 = time.time()
     for step in range(1, max_steps + 1):
         try:
-            r = chat(model, messages, key, tools, temperature)
+            r = chat(model, messages, key, tools, temperature, max_tokens)
         except Exception as e:  # network or HTTP error; never echo headers
             status = f"api_error: {type(e).__name__}: {e}"
             break
@@ -174,6 +183,11 @@ def tool_loop(model, key, system, user, tools, dispatch, solved,
             if solved():
                 status = "solved"
                 break
+            if r["finish"] == "length":
+                cut_off += 1
+                logline(fh, f"[cut off at max_tokens ({cut_off}) -> told so]")
+                messages.append({"role": "user", "content": CUT_OFF})
+                continue
             nudges += 1
             if nudges > 3:
                 logline(fh, "[no tool calls after nudges -> giving up]")
@@ -208,7 +222,7 @@ def tool_loop(model, key, system, user, tools, dispatch, solved,
         if status == "solved":
             break
     return {"status": status, "steps": step, "usage": usage,
-            "seconds": round(time.time() - t0, 1)}
+            "seconds": round(time.time() - t0, 1), "cut_off": cut_off}
 
 
 if __name__ == "__main__":

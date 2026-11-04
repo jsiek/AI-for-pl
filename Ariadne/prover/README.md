@@ -60,4 +60,38 @@ model calls).
 with `--blank` and 30 steps each, and appends one JSON report per lemma
 to `results/trial_<model>.jsonl`.
 
-RESULTS
+### Round 1: first setup, all 5 lemmas (`results/round1_*.jsonl`)
+
+Nothing solved by either model (30 steps or giving up; 150-520 s and
+roughly 100k-350k prompt tokens per lemma).
+
+### Iterating on the easiest lemma, `mem_cons`
+
+`mem_cons` is a 20-line proof with `lia` and the Why3 list lemmas
+`nth_zero`, `nth_cons`, `length_cons`, `length_pos`.  The transcripts
+showed the setup, not only the models, was at fault:
+
+| Problem seen in the transcripts | Fix |
+|---|---|
+| Error line numbers were off by one | script-relative lines fixed |
+| A failing script returned only the error, never the goal it failed on | `show_goals` and `check_proof` add the goal state just before the failing step (one more `coqc` run) |
+| GLM resent the identical `show_goals` call 20 times | a repeated identical call is answered with "same as your previous call", without running it |
+| gpt-oss wrapped the script in `Proof.` … `Qed.`, then tried `Defined.` | a leading `Proof.` and a final `Qed.`/`Defined.` are dropped |
+| `rewrite nth_cons` fails: Why3 lemmas have hypotheses and conjunctions | prompt: use `destruct (L args) as [H1 H2]` / `pose proof` |
+| `lia` fails on `Length.length (a :: l)`, and on `<` unfolded into a `match` by `simpl`/`unfold` | prompt: rewrite with the length lemma, give lia `length_pos`, no `simpl`/`cbn`/`unfold` on Z comparisons |
+| HTTP 429 from REALLMS when two runs went in parallel | `reallms_client.chat` retries with backoff (Retry-After); runs go one at a time |
+
+The prompt additions describe the Why3 encoding in general (opaque
+`nth`/`length` axiomatised by conditional lemmas), not this lemma's
+proof.
+
+| Round | GLM 5.3 Flash | gpt-oss-120b |
+|---|---|---|
+| 1 (first setup) | not solved: 30 steps, 223 s, 345k tokens | not solved: 30 steps, 239 s, 205k tokens |
+| 2 (error state, line numbers, repeats, `Proof.`/`Qed.`) | HTTP 429 after 5 steps | gave up: 27 steps, 320 s, 242k tokens |
+| 3 (+ Why3/lia guidance, backoff) | **solved: 9 steps, 105 s, 63k tokens** (5 `check_proof`, 5 `coq_query`) | gave up: 30 steps, 299 s, 355k tokens |
+
+GLM's proof (round 3) differs from the session's (another case split,
+`rewrite <- Ha. apply nth_zero`), and its one `read_file` of the goal
+file returned the statement with the proof hidden.  One run per cell:
+no variance estimate yet.

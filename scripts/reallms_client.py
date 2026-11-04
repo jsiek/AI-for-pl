@@ -13,6 +13,7 @@ import os
 import re
 import sys
 import time
+import urllib.error
 import urllib.request
 
 BASE_URL = os.environ.get("REALLMS_BASE_URL",
@@ -58,7 +59,26 @@ def list_models(key):
 
 
 def chat(model, messages, key, tools=None, temperature=0.2,
-         max_tokens=16384):
+         max_tokens=16384, retries=6):
+    """chat_once, retried with exponential backoff (honouring
+    Retry-After) on HTTP 429 and 5xx: the service is rate-limited."""
+    for attempt in range(retries + 1):
+        try:
+            return chat_once(model, messages, key, tools, temperature,
+                             max_tokens)
+        except urllib.error.HTTPError as e:
+            if attempt == retries or not (e.code == 429 or e.code >= 500):
+                raise
+            wait = e.headers.get("Retry-After") if e.headers else None
+            try:
+                wait = float(wait)
+            except (TypeError, ValueError):
+                wait = 5 * 2 ** attempt
+            time.sleep(min(wait, 300))
+
+
+def chat_once(model, messages, key, tools=None, temperature=0.2,
+              max_tokens=16384):
     """One streamed chat completion.  Returns content, reasoning (vLLM
     models often put the whole reply in reasoning_content), tool_calls
     assembled from the deltas, finish reason, and usage if reported."""

@@ -27,6 +27,23 @@ r = w.check_proof("intros.")
 expect("incomplete proof refused", not r["ok"] and r["errors"], str(r))
 out = w.show_goals("intros a l a1.")
 expect("show_goals shows the goal", "P_mem" in out and "a1" in out, out)
+# GLM's failing script from the first trial: the error is on line 4,
+# and the state before it (after the bullet) must be shown.
+bad = ("intros a l a1. split.\n- intros [Heq | Hmem].\n"
+       "  + subst a1. exists 0%Z. rewrite length_cons. split.\n"
+       "    * rewrite nth_cons.")
+out = w.show_goals(bad)
+expect("error line is script-relative", "script line 4," in out, out)
+expect("state before failing step shown",
+       "Goal state just before the failing step" in out
+       and "nth (a :: l) 0" in out.replace("%Z", ""), out)
+r = w.check_proof(bad)
+expect("check_proof gives the state too",
+       "nth (a :: l) 0" in r.get("goal_state_before_failing_step",
+                                 "").replace("%Z", ""), str(r))
+w.dispatch("coq_query", {"command": "Check nth_cons."})
+out = w.dispatch("coq_query", {"command": "Check nth_cons."})
+expect("repeated call flagged", out.startswith("(this is the same"), out)
 out = w.coq_query("Print P_mem")
 expect("coq_query Print", "P_mem" in out and "Error" not in out, out)
 out = w.coq_query("Check length_cons. Admitted")

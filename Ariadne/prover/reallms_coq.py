@@ -47,6 +47,16 @@ QUERIES = ("Search", "SearchPattern", "SearchRewrite", "Check", "Print",
            "About", "Locate")
 
 
+def normalise(script):
+    """Models often wrap the script in Proof. ... Qed.; the harness adds
+    those itself, so drop a leading `Proof.` and one final `Qed.` or
+    `Defined.` (anything after them would still be refused)."""
+    s = script.strip("\n")
+    s = re.sub(r"^\s*Proof\.", "", s)
+    s = re.sub(r"\s*\b(Qed|Defined)\.\s*$", "", s)
+    return s
+
+
 def split_goal(text):
     """(prefix through `Proof.`, current script, suffix from `Qed.`) of
     the Why3 goal `wp_goal`."""
@@ -71,6 +81,8 @@ class Worker:
         self.last_errors = ""
         self.counts = {}
         self.coqc_runs = 0
+        self.err_loc = None
+        self.last_call, self.repeats = None, 0
         os.makedirs(WORK, exist_ok=True)
 
     def statement(self):
@@ -97,13 +109,34 @@ class Worker:
             subprocess.run(["rm", "-rf", d])
         if rc == 124:
             out += f"\n(coqc timed out after {self.timeout} s)"
-        # error locations refer to our temp file; give script-relative lines
+        # Error locations refer to our temp file.  The script starts on
+        # the line after the prefix's last line (`Proof.`).
         base = self.prefix.count("\n") + 1
+        self.err_loc = None
+        m = re.search(r'File "[^"]*", line (\d+), characters (\d+)-', out)
+        if m and int(m.group(1)) > base:
+            self.err_loc = (int(m.group(1)) - base, int(m.group(2)))
         out = re.sub(r'File "[^"]*", line (\d+)',
-                     lambda m: f"script line {int(m.group(1)) - base + 1}"
-                     if int(m.group(1)) >= base else f"context line {m.group(1)}",
+                     lambda m: f"script line {int(m.group(1)) - base}"
+                     if int(m.group(1)) > base else f"context line {m.group(1)}",
                      out)
         return rc == 0, out.strip()[-4000:]
+
+    def _state_before_error(self, script):
+        """The goal state just before the step coqc rejected (after a
+        failed run whose error is in the script), or ""."""
+        if not self.err_loc:
+            return ""
+        line, col = self.err_loc
+        lines = script.split("\n")
+        if line > len(lines):
+            return ""
+        before = "\n".join(lines[:line - 1] + [lines[line - 1][:col]])
+        if re.search(r"(^|\s)([-+*]+|\{)\s*$", before):
+            before += " idtac."  # keep the focus a trailing bullet opened
+        ok, out = self._coqc(self.prefix + "\n" + before
+                             + "\nShow.\nAdmitted.\n")
+        return out if ok else ""
 
     # ---- tools ----
     def _safe(self, path):
@@ -165,13 +198,19 @@ class Worker:
         return out or "(no output)"
 
     def show_goals(self, script):
+        script = normalise(script)
         if FORBIDDEN.search(script):
             return "(script uses a forbidden command)"
         ok, out = self._coqc(self.prefix + "\n" + script
                              + "\nShow.\nAdmitted.\n")
+        if not ok:
+            state = self._state_before_error(script)
+            if state:
+                out += "\n\nGoal state just before the failing step:\n" + state
         return out or "(no goals left)"
 
     def check_proof(self, script):
+        script = normalise(script)
         bad = FORBIDDEN.search(script)
         if bad:
             self.last_ok = False
@@ -180,10 +219,22 @@ class Worker:
         ok, out = self._coqc(self.prefix + "\n" + script.strip("\n")
                              + self.suffix)
         self.last_ok, self.last_script, self.last_errors = ok, script, out
-        return {"ok": ok, "errors": "" if ok else out}
+        if ok:
+            return {"ok": True, "errors": ""}
+        return {"ok": False, "errors": out,
+                "goal_state_before_failing_step":
+                    self._state_before_error(script.strip("\n"))
+                    or "(not available)"}
 
     def dispatch(self, name, args):
         self.counts[name] = self.counts.get(name, 0) + 1
+        call = (name, json.dumps(args, sort_keys=True))
+        self.repeats = self.repeats + 1 if call == self.last_call else 0
+        self.last_call = call
+        if self.repeats:
+            return (f"(this is the same {name} call as your previous one; "
+                    "the result would be identical.  Change the script, or "
+                    "look up a lemma with coq_query first.)")
         try:
             return getattr(self, name)(**args) if name in TOOL_NAMES \
                 else f"(unknown tool {name})"
@@ -243,13 +294,29 @@ def main():
         "You are a Coq/Rocq 9 proof engineer. You prove one goal generated "
         "by Frama-C/WP through Why3. The goal file defines the memory "
         "model, the ACSL predicates (as Coq definitions or axioms) and "
-        "earlier lemmas; Lia and CoqHammer (hammer, sauto) are loaded. "
-        "Use coq_query to look up definitions and lemmas (Print P_mem., "
-        "Search nth.) and show_goals to see the state after partial "
-        "scripts. Submit the complete script with check_proof and iterate "
-        "until ok=true. The script must not use admit, Admitted, Abort or "
-        "add axioms, and must not contain Qed. Stop when check_proof "
-        "returns ok=true.")
+        "earlier lemmas; Lia and CoqHammer (hammer, sauto) are loaded.\n"
+        "Tools: coq_query looks up names (Print P_mem. Check nth_cons. "
+        "Search Length.length.); show_goals runs a partial script and "
+        "shows the goals; check_proof checks a complete script. When a "
+        "step fails you also get the goal state just before it: read it "
+        "before trying again, and never resend an unchanged script.\n"
+        "The script is the text between Proof. and Qed.; the harness adds "
+        "both, so write neither. admit, Admitted, Abort, Defined and new "
+        "axioms or definitions are refused.\n"
+        "How Why3 encodes goals: integers are Z (`int`); `nth` and "
+        "`Length.length` are opaque functions axiomatised by lemmas in "
+        "the goal file. Those lemmas usually have hypotheses and "
+        "conjunctions (e.g. `0 <= k <= length w -> (k = 0 -> ...) /\\ "
+        "(k <> 0 -> ...)`), so `rewrite L` alone fails: use "
+        "`destruct (L args) as [H1 H2]` (proving the hypothesis with lia) "
+        "or `pose proof`. lia does not know these functions: rewrite "
+        "`Length.length (x :: w)` with the length lemma before lia, and "
+        "give lia the fact that lengths are nonnegative (pose proof of "
+        "the length_pos lemma). Do not use simpl, cbn, compute or unfold "
+        "on goals with Z comparisons: they turn < into a match that lia "
+        "cannot read. "
+        "Check each lemma's statement with coq_query before using it.\n"
+        "Iterate with check_proof until it returns ok=true, then stop.")
     user = (f"Goal file: {os.path.relpath(w.path, ARIADNE)}\n\n"
             f"```coq\n{w.statement()}\n```\n"
             + (f"\nCurrent (failing or partial) script:\n```coq\n{current}\n```\n"

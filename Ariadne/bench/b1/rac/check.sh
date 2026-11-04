@@ -7,7 +7,8 @@
 #   0. generate: the twins and the executable spec block from b1.c
 #      (../../../rac/gen_twins.py, into build/twins), then b1_rac.c
 #      (gen_rac.py) for b1.c and for the seven mutants (../mutants.py,
-#      shared with ../check.sh);
+#      shared with ../check.sh); test_gen_rac.py checks how gen_rac.py
+#      splits clauses (operator precedence);
 #   1. sanitizers: b1.c with ASan + UBSan (gcc), real malloc/free, driver
 #      rac_main.c; MSan is tried (clang) and skipped if unavailable;
 #   2. twins: unit tests on good and corrupt heaps, under ASan + UBSan;
@@ -50,6 +51,11 @@ for v in orig $MUTANTS; do
 done
 echo "step 0 (generate twins, b1_rac.c x8): $(lap "$t") s; $(cat "$TW.log" | head -1)"
 echo "    $(cat "$B/orig/gen.log")"
+if r=$(python3 -I test_gen_rac.py "$B1/b1.c" "$B/gen_test" "$TW" 2>&1); then
+  echo "PASS: gen_rac.py clause splitting: $r"
+else
+  echo "$r"; echo "FAIL: gen_rac.py clause splitting"; status=1
+fi
 
 # ---- 1. sanitizers ---------------------------------------------------
 san_build() {  # san_build <variant>

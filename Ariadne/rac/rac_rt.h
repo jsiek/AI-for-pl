@@ -25,7 +25,7 @@ int rac_dead_of(void *p);       /* dead(__heap, \base_addr(p)) */
 int rac_valid(const void *p, unsigned long size);
 
 /* ---- \list values -----------------------------------------------------
-   A list is a handle (long); 0 is \Nil.  These three are E-ACSL builtins
+   A list is a handle (long); 0 is \Nil.  These are E-ACSL builtins
    (element type independent); <prefix>_twins.h adds rac_cons for the
    element type of the spec. */
 long rac_length(long s);         /* \length(s) */

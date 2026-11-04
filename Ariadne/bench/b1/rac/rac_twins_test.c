@@ -48,7 +48,7 @@ int main(void) {
     CHECK(dll(NULL, h, s));
     CHECK(!dll(NULL, h, cons(h, s)));        /* wrong list */
     if (n) {
-      CHECK(head(v[n - 1]) == h);                /* W4 */
+      CHECK(head(v[n - 1]) == h);                /* h from a member */
       CHECK(prev(v[n - 1]) == (n > 1 ? v[n - 2] : NULL));
       CHECK(nth(s, n - 1) == v[n - 1]);
       CHECK(dll(v[0], v[0]->ptr_to_next, rac_tail(s)));  /* the rest */
@@ -66,7 +66,7 @@ int main(void) {
   v[3]->ptr_to_next = v[0];
   CHECK(!dll(NULL, h, reach(h)));
   CHECK(rac_length(reach(h)) == 0);
-  /* cycle through the back links: rac_head must stop */
+  /* cycle through the back links: the member walk must stop */
   v[3]->ptr_to_next = NULL;
   v[0]->ptr_to_previous = v[3];
   CHECK(head(v[2]) == NULL);

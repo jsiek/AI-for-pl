@@ -384,7 +384,7 @@ def labels(p):
     executed by E-ACSL 33: neither P{L}(...) nor \\at(P(...), L) is
     translated ("predicate(s) with labels", annotation ignored).  The
     conjunct is dropped with that reason.  (Its list witness is computed
-    at L correctly, \\at(rac_reach(h), L), when h is label-stable; a
+    at L correctly, \\at(rac_dll_s_of_h(h), L), when h is label-stable; a
     future E-ACSL could take \\at(P(args), L).)"""
     m = re.search(r"\b(" + "|".join(PREDS) + r")\{(\w+)\}\(", p)
     if m and m.group(2) != "Here":

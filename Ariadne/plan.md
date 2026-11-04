@@ -474,7 +474,14 @@ invariant is only needed for functional correctness and is stretch work.
 
 ### 9.2 Still open
 
-None.  New questions go here.
+*   **Q10 — Toolchain: Frama-C/WP or VST?**  VST (Verifiable C on
+    CompCert Clight, `vst/README.md`) handles use-after-free natively and
+    keeps shape predicates as checked Rocq definitions, removing the
+    ghost liveness model and guardrail 3a's hole, at the cost of no SMT
+    automation and a trusted CompCert front end.  The prototype
+    (`vst/smoke/`) verifies a malloc/free program and refuses the bad
+    variants.  Decision after B1a is verified in both toolchains and
+    compared (effort, goal/proof size, trust base, agent fit).
 
 ---
 

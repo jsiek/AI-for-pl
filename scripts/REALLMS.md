@@ -29,10 +29,21 @@ file; it's the convenient option on a host without the export (e.g. after
 copying the key file to another machine). The key is never printed. Do **not**
 commit it.
 
-### Live text models (as of 2026-08)
+### Live text models (as of 2026-11)
 
-`glm-5.2`, `gpt-oss-120b`, `Qwen3-Coder-Next`, `gemma-4-31B-it`
+`glm-5.3-flash`, `gpt-oss-120b`, `qwen3.8-27b`, `gemma-4-31B-it`
 (plus embeddings/rerank/audio/image models not used here).
+`python3 scripts/reallms_client.py` lists what your key can use.  (In
+2026-08 the list was `glm-5.2`, `gpt-oss-120b`, `Qwen3-Coder-Next`,
+`gemma-4-31B-it`; the benchmark below is from then.)
+
+### Shared client
+
+`reallms_client.py` holds the key lookup, the streamed chat call (with
+tool-call assembly and token usage) and the tool loop with nudging.
+`reallms_agent.py` (Agda) and `Ariadne/prover/reallms_coq.py` (Coq goals
+from Frama-C/WP) both use it; `$REALLMS_BASE_URL` overrides the base
+URL.
 
 ## Which model?
 

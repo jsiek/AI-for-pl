@@ -1,6 +1,7 @@
-/* Unit tests of the twins on well-formed and corrupt heaps (run under
-   ASan + UBSan by check.sh): every call must return, with the value the
-   ACSL definition gives, and must not read freed memory. */
+/* Unit tests of the generated twins (gen_twins.py on b1.c) on
+   well-formed and corrupt heaps (run under ASan + UBSan by check.sh):
+   every call must return, with the value the ACSL definition gives, and
+   must not read freed memory. */
 #include <stdio.h>
 #include <stdlib.h>
 #include "b1_types.h"
@@ -11,13 +12,14 @@ void ariadne_free_dllist(dllist *p);
 
 /* Typed views of the builtins (which take and return long). */
 typedef long seq;
-static seq reach(dllist *h) { return rac_reach(h); }
+static seq reach(dllist *h) { return rac_dll_s_of_h(h); }
 static seq cons(dllist *h, seq t) { return rac_cons(h, t); }
 static int dll(dllist *p, dllist *h, seq s) {
   return rac_dll(p, h, s);
 }
-static dllist *head(dllist *x) { return (dllist *)rac_head(x); }
-static dllist *prev(dllist *x) { return (dllist *)rac_prev(x); }
+static dllist *head(dllist *x) { return (dllist *)rac_dll_h_of_member(x); }
+static dllist *prev(dllist *x) { return (dllist *)rac_dll_prev_of_h(x); }
+static dllist *first(seq s) { return (dllist *)rac_dll_h_of_s(s); }
 static dllist *nth(seq s, long k) { return (dllist *)rac_nth(s, k); }
 
 static int failures;
@@ -50,6 +52,9 @@ int main(void) {
       CHECK(prev(v[n - 1]) == (n > 1 ? v[n - 2] : NULL));
       CHECK(nth(s, n - 1) == v[n - 1]);
       CHECK(dll(v[0], v[0]->ptr_to_next, rac_tail(s)));  /* the rest */
+      CHECK(first(s) == h);
+      if (n > 1)
+        CHECK((dllist *)rac_dll_prev_of_s(rac_tail(s)) == v[0]);
       CHECK(!dll(v[0], h, s));                   /* wrong prev */
     }
     for (int k = 0; k < n; k++)

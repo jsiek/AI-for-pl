@@ -1,34 +1,40 @@
 """Generate the E-ACSL build input b1_rac.c from b1.c (or a mutant of it).
 
-   usage: python3 -I gen_rac.py <b1.c> <outdir>
+   usage: python3 -I gen_rac.py <b1.c> <outdir> <twins dir>
 
 Writes <outdir>/b1_rac.c, <outdir>/b1_types.h (b1.c's generated part 1,
 for the twins and the allocator), and <outdir>/annotations.txt (what
 happened to every annotation).  The rules are in README.md ("Translation
 rules"); in short:
 
-  * the spec block is replaced by rac_spec.h (hand-written executable
-    version, guarded by a hash of the block), ariadne_alloc.h by rac.h;
+  * the spec block is replaced by rac_spec.h, generated from it by
+    ../../../rac/gen_twins.py into <twins dir> (with rac_twins.json, the
+    manifest read here), and found by its hash; ariadne_alloc.h by rac.h;
   * every annotation is split into clauses, and an assert / requires /
     ensures / invariant whose predicate is a conjunction into conjuncts;
   * a binder over a list or pointer variable is eliminated by a witness
-    taken from a dll / live_dll conjunct that determines the variable
-    (W1-W4 in the README); integer binders stay; a clause or conjunct
-    with a binder that has no witness is dropped, with the reason;
+    taken from a conjunct that determines the variable: an application of
+    a predicate with witness functions in the manifest (gen_twins.py
+    derives them from each inductive's cases); integer binders stay; a
+    clause or conjunct with a binder that has no witness is dropped, with
+    the reason;
   * \\nth, \\length, \\Cons, \\Nil become the twins rac_nth, rac_length,
     rac_cons, and the NULL handle;
+  * a conjunct that uses a spec definition gen_twins.py could not
+    translate (the manifest's "dropped") is dropped;
   * assigns clauses are dropped (E-ACSL does not check them).
 
 Nothing is translated by hand per annotation: a new annotation in b1.c
 goes through the same rules, and one they cannot handle is reported as
 dropped (never silently kept in a non-executable form)."""
 import hashlib
+import json
 import os
 import re
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-src_path, out = sys.argv[1], sys.argv[2]
+src_path, out, twins = sys.argv[1], sys.argv[2], sys.argv[3]
+manifest = json.load(open(os.path.join(twins, "rac_twins.json")))
 os.makedirs(out, exist_ok=True)
 src = open(src_path).read()
 report = []
@@ -44,16 +50,18 @@ open(os.path.join(out, "b1_types.h"), "w").write(
     "#ifndef B1_TYPES_H\n#define B1_TYPES_H\n#include <stddef.h>\n"
     + src[a:b] + "#endif\n")
 
-SPEC_BEGIN = "/*@ // p is a usable list node"
-s0 = src.index(SPEC_BEGIN)
-s1 = src.index("*/", s0) + 2
+# The spec block: the /*@ ... */ comment gen_twins.py generated
+# rac_spec.h from (same SHA-256), so a changed spec needs regenerating.
+for m in re.finditer(r"/\*@.*?\*/", src, re.S):
+    if hashlib.sha256(m.group(0).encode()).hexdigest() == \
+            manifest["spec_sha256"]:
+        s0, s1 = m.start(), m.end()
+        break
+else:
+    sys.exit(f"gen_rac.py: no annotation of {src_path} has the spec block's "
+             f"sha256 {manifest['spec_sha256']}; rerun gen_twins.py on it")
 spec = src[s0:s1]
-digest = hashlib.sha256(spec.encode()).hexdigest()
-rac_spec = open(os.path.join(HERE, "rac_spec.h")).read()
-m = re.search(r"spec-sha256: (\w+)", rac_spec)
-if not m or m.group(1) != digest:
-    sys.exit(f"gen_rac.py: b1.c's spec block changed (sha256 {digest});\n"
-             "review rac_spec.h against it, then update its spec-sha256 line")
+rac_spec = open(os.path.join(twins, manifest["spec_header"])).read()
 assert src.count('#include "ariadne_alloc.h"') == 1
 head = src[:s0].replace('#include "ariadne_alloc.h"', '#include "rac.h"')
 body = src[s1:]
@@ -110,37 +118,39 @@ def body_end(t, i):
     return len(t)
 
 
+INT_TYPES = ("integer", "int", "long", "unsigned", "short", "char",
+             "size_t")
+
+
 def parse_binders(text):
-    """'dllist *p, *h, \\list<dllist *> s, integer k' -> [(type, name)]."""
+    """'dllist *p, *h, \\list<dllist *> s, integer k' -> [(kind, name,
+    type)], kind one of list, ptr, int."""
     out, ty = [], None
-    for item in [x.strip() for x in text.split(",")]:
-        m = re.match(r"(\\list<dllist \*>|dllist|integer|char)\s*(.*)", item)
-        if m:
-            ty, item = m.group(1), m.group(2)
+    for item in split_top(text, ","):
+        m = re.match(r"(\\list<[^>]*>|(?:struct\s+)?\w+)\s+(?=[*\w])", item)
+        if m and not re.fullmatch(r"\**\s*\w+", item):
+            ty, item = m.group(1), item[m.end():]
         star = item.startswith("*")
         name = item.lstrip("*").strip()
-        kind = ("list" if ty.startswith("\\list") else
-                "int" if ty == "integer" else "ptr")
+        kind = ("list" if ty.startswith("\\list") else "ptr" if star else
+                "int" if ty in INT_TYPES else "other")
         out.append((kind, name, ty + (" *" if star else "")))
     return out
 
 
-DLL = re.compile(r"(live_dll|dll)(\{(\w+)\})?\(")
+PRED_APP = re.compile(r"(\w+)(\{(\w+)\})?\(")
 
 
-def dll_args(conj):
-    """If conj is (live_)dll{L}(P, H, S) exactly: (label, P, H, S)."""
-    m = DLL.match(conj)
-    if not m:
+def pred_args(conj):
+    """If conj is P{L}(args) exactly, for a P with witness functions:
+    (P, label, [args])."""
+    m = PRED_APP.match(conj)
+    if not m or m.group(1) not in manifest["preds"]:
         return None
     i = m.end() - 1
-    j = match_paren(conj, i)
-    if j != len(conj):
+    if match_paren(conj, i) != len(conj):
         return None
-    args = split_top(conj[i + 1:j - 1], ",")
-    if len(args) != 3:
-        return None
-    return m.group(3), args[0], args[1], args[2]
+    return m.group(1), m.group(3), split_top(conj[i + 1:-1], ",")
 
 
 def stable(h, label):
@@ -156,50 +166,100 @@ def at(term, label):
     return term if label in (None, "Here") else f"\\at({term}, {label})"
 
 
+def mentions(x, names):
+    return any(re.search(rf"(?<![\\\w>.]){n}\b", x) for n in names)
+
+
+def rule(P, e):
+    """How a witness was found, for annotations.txt."""
+    ps = manifest["preds"][P]["params"]
+    if e["kind"] == "fwd":
+        return f"{P}: {ps[e['out']]} from " + ", ".join(ps[i] for i in e["in"])
+    return f"{P}: {ps[e['node']]} from a member of {ps[e['list']]}"
+
+
 def witnesses(kind, binders, conjs):
     """Witness definitions [(name, term, rule)] for the list/pointer
-    binders, from the determining dll conjuncts; None if some binder has
-    none.  The binders' scope is conjs (a conjunction)."""
+    binders, from the conjuncts that determine them; None if some binder
+    has none.  The binders' scope is conjs (a conjunction).  A witness
+    is an application of a witness function of the manifest (README of
+    ../../../rac, "Witnesses"):
+      fwd     argument `out` of P from the arguments `in` (also gives t
+              when that argument is \\Cons(e, t): rac_tail of it);
+      member  the node argument of P(\\null, node, s), from a known x
+              with x == \\nth(s, k) among the conjuncts.
+    Under \\forall only exact witnesses are used (the cases are exclusive,
+    no "any value"); under \\exists an "any value" witness only when the
+    variable occurs in no other conjunct."""
     names = {n for _, n, _ in binders}
-    lets, todo = {}, [b for b in binders if b[0] != "int"]
-    for conj in conjs:
-        d = dll_args(conj)
-        if not d:
-            continue
-        label, p, h, s = d
-        if not (label is None or stable(h, label)) and \
-           any(n in (p, h, s) or re.search(rf"\b{n}\b", s) for n in names):
-            return None, f"witness would be computed at {label} from a " \
-                         "value read here"
-        for k, n, _ in todo:
-            if n in lets:
+    kinds = {n: k for k, n, _ in binders}
+    lets, why = {}, None
+    progress = True
+    while progress:
+        progress = False
+        unb = names - set(lets)
+        for ci, conj in enumerate(conjs):
+            d = pred_args(conj)
+            if not d:
                 continue
-            if k == "list" and s == n and h not in names:
-                lets[n] = (at(f"rac_reach({h})", label), "W1 reach")
-            elif k == "list" and re.fullmatch(rf"\\Cons\((.+), {n}\)", s) \
-                    and h not in names:
-                lets[n] = (at(f"rac_tail(rac_reach({h}))", label),
-                           "W2 tail of reach")
-            elif k == "ptr" and p == n and h not in names:
-                lets[n] = (at(f"rac_prev({h})", label), "W3 prev")
-            elif k == "ptr" and h == n and p == "\\null" and kind == "exists":
-                # W4: the head of the list that contains some named node x
-                for c in conjs:
-                    mm = re.fullmatch(
-                        rf"(?:(.+) == \\nth\({s}, .+\)|\\nth\({s}, .+\) == (.+))",
-                        c)
-                    x = mm and (mm.group(1) or mm.group(2))
-                    if x and not any(re.search(rf"\b{v}\b", x) for v in names):
-                        lets[n] = (at(f"rac_head({x})", label), "W4 head")
-                        break
-                if n in lets and s in names and s not in lets:
-                    lets[s] = (at(f"rac_reach({n})", label), "W1 reach")
-    missing = [n for k, n, _ in todo if n not in lets]
+            P, label, args = d
+            for e in manifest["preds"][P]["witnesses"]:
+                if e["kind"] == "fwd":
+                    ins = [args[i] for i in e["in"]]
+                    out_a = args[e["out"]]
+                    if any(mentions(x, unb) for x in ins):
+                        continue
+                    if label is not None and \
+                            not all(stable(x, label) for x in ins):
+                        why = (f"witness would be computed at {label} from "
+                               "a value read here")
+                        continue
+                    if kind == "forall" and (e["free"] or not e["exclusive"]):
+                        continue
+                    term = at(f"{e['fn']}({', '.join(ins)})", label)
+                    mm = re.fullmatch(r"\\Cons\((.+), (\w+)\)", out_a)
+                    if out_a in unb and kinds[out_a] == e["out_kind"]:
+                        if e["free"] and any(mentions(c, {out_a})
+                                             for j, c in enumerate(conjs)
+                                             if j != ci):
+                            continue
+                        lets[out_a] = (term, rule(P, e))
+                    elif mm and mm.group(2) in unb and \
+                            kinds[mm.group(2)] == "list" and \
+                            e["out_kind"] == "list" and \
+                            not mentions(mm.group(1), unb):
+                        lets[mm.group(2)] = (at(f"rac_tail({e['fn']}("
+                                                f"{', '.join(ins)}))", label),
+                                             "tail of " + rule(P, e))
+                    else:
+                        continue
+                elif kind == "exists":
+                    n, s = args[e["node"]], args[e["list"]]
+                    if args[e["root"]] != "\\null" or n not in unb:
+                        continue
+                    x = None
+                    for c in conjs:
+                        mm = re.fullmatch(
+                            rf"(?:(.+) == \\nth\({re.escape(s)}, .+\)|"
+                            rf"\\nth\({re.escape(s)}, .+\) == (.+))", c)
+                        x = mm and (mm.group(1) or mm.group(2))
+                        if x and not mentions(x, unb):
+                            break
+                        x = None
+                    if not x:
+                        continue
+                    lets[n] = (at(f"{e['fn']}({x})", label), rule(P, e))
+                else:
+                    continue
+                progress = True
+                break
+            if progress:
+                break
+    missing = [n for k, n, _ in binders if k != "int" and n not in lets]
     if missing:
-        return None, "no witness for " + ", ".join(missing)
-    # order: heads, then the rest (a list may be reached from a head)
-    order = sorted(lets, key=lambda n: 0 if lets[n][1] == "W4 head" else 1)
-    return [(n,) + lets[n] for n in order], None
+        return None, why or "no witness for " + ", ".join(missing)
+    # in the order found: a witness may use an earlier one
+    return [(n,) + lets[n] for n in lets], None
 
 
 def elim_binders(t, notes):
@@ -245,7 +305,8 @@ def elim_binders(t, notes):
         else:
             new = bod
     # E-ACSL 33 has no \\let on pointers: substitute each witness for its
-    # variable (heads first, so a list reached from a head gets it too).
+    # variable (in the order found, so a witness that uses an earlier one
+    # gets it too).
     terms = [term for _, term, _ in lets]
     for i, (n, term, rule) in enumerate(lets):
         notes.append(f"{n} := {term} [{rule}]")
@@ -309,16 +370,17 @@ def labels(p):
     return p
 
 
-# Each twin: result type for the wrapper (None: an int used as such) and
-# its parameter kinds (node: a pointer, passed as is; else cast to long).
-TWIN_SIG = {"length": (None, "l"), "dll": (None, "nnl"),
-            "nth": ("dllist *", "ll"), "head": ("dllist *", "n"),
-            "prev": ("dllist *", "n"), "reach": ("rac_list", "n"),
-            "tail": ("rac_list", "l"), "cons": ("rac_list", "nl")}
+# Each builtin: result type for the wrapper (None: an int used as such)
+# and its parameter kinds (n: a pointer, passed as is; l: cast to long),
+# from the manifest.
+TWIN_SIG = {}
+for _name, _s in manifest["builtins"].items():
+    TWIN_SIG[_name[len("rac_"):]] = (
+        {"int": None, "list": "rac_list"}.get(_s["ret"], _s.get("ret_c")),
+        "".join(_s["params"]))
 
 
-PREDS = ("live_dll", "dll", "mem", "all_live", "all_init", "live",
-         "in_live_list", "iter_ok")
+PREDS = tuple(sorted(manifest["preds"], key=len, reverse=True))
 
 
 def null_args(t):
@@ -368,6 +430,9 @@ def tr_pred(p, notes):
     p = elim_binders(p, notes)
     if "\\list" in p:
         raise Drop("list type left after binder elimination")
+    for name, why in manifest["dropped"].items():
+        if re.search(rf"\b{name}\b", p):
+            raise Drop(f"uses {name}, not executable ({why})")
     return wrap(labels(base_addr(subst_lists(p))))
 
 

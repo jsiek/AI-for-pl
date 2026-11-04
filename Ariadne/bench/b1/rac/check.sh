@@ -4,8 +4,10 @@
 #   (defaults 300 1 200; any 4th argument skips the mutants)
 # Re-runs itself inside the M0 image (../../../env/run.sh), where
 # /ariadne is the Ariadne/ directory.  Steps, each timed:
-#   0. generate: b1_rac.c (gen_rac.py) for b1.c and for the seven mutants
-#      (../mutants.py, shared with ../check.sh);
+#   0. generate: the twins and the executable spec block from b1.c
+#      (../../../rac/gen_twins.py, into build/twins), then b1_rac.c
+#      (gen_rac.py) for b1.c and for the seven mutants (../mutants.py,
+#      shared with ../check.sh);
 #   1. sanitizers: b1.c with ASan + UBSan (gcc), real malloc/free, driver
 #      rac_main.c; MSan is tried (clang) and skipped if unavailable;
 #   2. twins: unit tests on good and corrupt heaps, under ASan + UBSan;
@@ -28,25 +30,32 @@ now() { date +%s.%N; }
 lap() { python3 -c "import sys; print('%.1f' % (float(sys.argv[2]) - float(sys.argv[1])))" "$1" "$(now)"; }
 
 MUTANTS="vacuity uaf uaf_back nullchk nullfirst nulllast noinit"
-BUILTINS=rac_heap,rac_dead,rac_heap_of,rac_dead_of,rac_length,rac_nth,rac_cons,rac_tail,rac_dll
-BUILTINS=$BUILTINS,rac_reach,rac_prev,rac_head
+RAC=/ariadne/rac
+TW=$B/twins
 SAN="-std=c99 -g -O1 -fsanitize=address,undefined -fno-sanitize-recover=all"
 
 # ---- 0. generate -----------------------------------------------------
 t=$(now)
+python3 -I "$RAC/gen_twins.py" "$B1/b1.c" "$TW" --include b1_types.h \
+  --cpp-args="-I/ariadne/plugin/share" > "$TW.log" 2>&1 ||
+  { cat "$TW.log"; echo "FAIL: gen_twins.py on b1.c"; exit 1; }
+BUILTINS=$(python3 -c 'import json, sys
+print(",".join(json.load(open(sys.argv[1]))["builtins"]))' "$TW/rac_twins.json")
 python3 -I "$B1/mutants.py" "$B1/b1.c" "$B/src" > /dev/null
 cp "$B1/b1.c" "$B/src/orig.c"
 for v in orig $MUTANTS; do
   mkdir -p "$B/$v"
-  python3 -I gen_rac.py "$B/src/$v.c" "$B/$v" > "$B/$v/gen.log" ||
+  python3 -I gen_rac.py "$B/src/$v.c" "$B/$v" "$TW" > "$B/$v/gen.log" ||
     { cat "$B/$v/gen.log"; echo "FAIL: gen_rac.py on $v"; exit 1; }
 done
-echo "step 0 (generate b1_rac.c x8): $(lap "$t") s; $(cat "$B/orig/gen.log")"
+echo "step 0 (generate twins, b1_rac.c x8): $(lap "$t") s; $(cat "$TW.log" | head -1)"
+echo "    $(cat "$B/orig/gen.log")"
 
 # ---- 1. sanitizers ---------------------------------------------------
 san_build() {  # san_build <variant>
-  gcc $SAN -I "$B/$1" -I /ariadne/plugin/share "$B/src/$1.c" rac_alloc.c \
-    rac_twins.c rac_main.c -o "$B/$1/b1.asan" > "$B/$1/asan.build.log" 2>&1
+  gcc $SAN -I "$B/$1" -I "$TW" -I "$RAC" -I /ariadne/plugin/share \
+    "$B/src/$1.c" rac_alloc.c "$TW/rac_twins.c" "$RAC/rac_rt.c" rac_main.c \
+    -o "$B/$1/b1.asan" > "$B/$1/asan.build.log" 2>&1
 }
 # run_log <log> <cmd...>: run with a time limit; the log (truncated) ends
 # with "exit=<code>", and the result is that code.
@@ -92,7 +101,8 @@ echo "step 1 (sanitizers, b1.c): $(lap "$t") s"
 
 # ---- 2. twin unit tests ----------------------------------------------
 t=$(now)
-if gcc $SAN -I "$B/orig" rac_twins_test.c rac_alloc.c rac_twins.c \
+if gcc $SAN -I "$B/orig" -I "$TW" -I "$RAC" rac_twins_test.c rac_alloc.c \
+     "$TW/rac_twins.c" "$RAC/rac_rt.c" \
      -o "$B/twins_test" > "$B/twins_test.log" 2>&1 &&
    san_exec "$B/twins_test.run.log" "./$B/twins_test"; then
   cat "$B/twins_test.run.log" >> "$B/twins_test.log"
@@ -107,7 +117,7 @@ echo "step 2 (twin unit tests): $(lap "$t") s"
 eacsl_build() {  # eacsl_build <variant>
   d=$B/$1
   ( cd "$d" &&
-    cp ../../rac.h ../../rac_twins.h ../../rac_spec.h ../../rac_alloc.c \
+    cp ../../rac.h ../twins/rac_twins.h "$RAC/rac_rt.h" ../../rac_alloc.c \
        ../../rac_main.c . &&
     frama-c -e-acsl-builtins="$BUILTINS" -machdep gcc_x86_64 \
       -no-frama-c-stdlib -keep-unused-functions all \
@@ -115,8 +125,10 @@ eacsl_build() {  # eacsl_build <variant>
       -no-warn-unaligned-pointer \
       b1_rac.c -rte -rte-initialized @all -rte-select=@all,-main,-rng \
       -then -print -ocode b1_rac.rte.c &&
-    gcc -std=c99 -O1 -g -c -I. ../../rac_twins.c -o rac_twins.o &&
-    e-acsl-gcc -c -F "-e-acsl-builtins=$BUILTINS -e-acsl-no-assert-print-data" -l "$PWD/rac_twins.o" \
+    gcc -std=c99 -O1 -g -c -I. ../twins/rac_twins.c -o rac_twins.o &&
+    gcc -std=c99 -O1 -g -c -I. "$RAC/rac_rt.c" -o rac_rt.o &&
+    e-acsl-gcc -c -F "-e-acsl-builtins=$BUILTINS -e-acsl-no-assert-print-data" \
+      -l "$PWD/rac_twins.o $PWD/rac_rt.o" \
       -e "-include $PWD/rac_twins.h" -o b1_rac.frama.c -O b1_rac \
       b1_rac.rte.c ) > "$d/eacsl.build.log" 2>&1
 }

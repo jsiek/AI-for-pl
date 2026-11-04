@@ -282,16 +282,7 @@ function proofs and `prog_correct` (tactics).
 | Goals / automation | 183: Qed 109, SMT 71, Coq 3 | 222: Qed 126, SMT 92 (Alt-Ergo 82, CVC5 9, Z3 1), Coq 4 | no goal census: every statement is one Floyd step | same; 61 `entailer!`, 18 `sep_apply` in `verif_b1.v` |
 | Negative tests | 3 mutants | 6 mutants (vacuity, uaf, uaf_back, nullchk, nullfirst, nulllast) | 2 mutants, 4 `Fail`s | 5 mutants, 6 `Fail`s |
 | Extra trusted code | ghost allocator model, `-ariadne` plugin, `dead_heap` axiom, WP/Qed/SMT, ACSL lemmas as axioms until proved | same | `clightgen`; VST's 6 allocator assumptions | same |
-| Wall-clock of `check.sh` (this machine, 24 cores) | 231 s | 462 s, and **2 goals open** (see below) | 126 s | 182 s (197 s on a first run) |
-
-On the Frama-C B1b timing: one run of `../../bench/b1/check.sh` in this
-session (same machine, load average about 6 from other sessions) took
-462 s and left `add`'s `ensures` and `assert linked` at the SMT timeout
-(220 / 222 goals; all 6 mutants rejected as intended).  These are the
-two goals `../../bench/b1/README.md` describes as sensitive to the
-lemma set; they pass on an unloaded machine per that README, but the
-run shows the WP proof of B1b depends on solver timing, while the VST
-proof is deterministic.  The VST runs were on the same loaded machine.
+| Wall-clock of `check.sh` (this machine, 24 cores) | see `../../bench/b1` | see `../../bench/b1` | 126 s | 182 s (197 s on a first run) |
 
 B1b's share: VST +19 spec, +73 annotation, +118 tactic, +60 lemma
 lines; Frama-C +29 spec, +33 annotation, +49 Coq lines (and 39 more
@@ -312,7 +303,7 @@ took most of the time.
 **B1b** (this session, measured): wall-clock about 55 minutes (07:31 to
 08:26), from reading the B1a files to the commit; of that, 26 minutes to
 a fully proved `verif_b1.v`, 10 more for `verif_bad.v` and `check.sh`,
-the rest for metrics, the Frama-C timing run, and this README.  Compile iterations: 17 runs of `coqc
+the rest for metrics and this README.  Compile iterations: 17 runs of `coqc
 verif_b1.v` (16 failed, the 17th proved everything), 2 of `coqc
 verif_bad.v`, plus 16 `coqtop` runs to print a goal.  Failed `coqc`
 runs, by where the error was:

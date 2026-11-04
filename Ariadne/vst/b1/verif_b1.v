@@ -1,4 +1,4 @@
-(* VST proof of benchmark B1a (b1.c): sglib's doubly linked list.
+(* VST proof of benchmarks B1a + B1b (b1.c): sglib's doubly linked list.
    Every function in b1.c is verified (semax_body) and the whole program
    is verified (semax_prog prog_correct).  Memory safety, including the
    absence of use after free and double free, follows from VST's
@@ -7,9 +7,10 @@
 
    Contracts are restricted as in the Frama-C version
    (../../bench/b1/b1.c): the list pointer passed to add / it_init is
-   the head (its predecessor is NULL), and the iterator is used without
-   a subcomparator.  Values are not tracked beyond what the shape needs:
-   no functional correctness. *)
+   the head (its predecessor is NULL), the one passed to get_first /
+   get_last is any node of a whole list (or NULL), and the iterator is
+   used without a subcomparator.  Values are not tracked beyond what
+   the shape needs: no functional correctness. *)
 Require Import VST.floyd.proofauto.
 Require Import VST.floyd.library.
 Require Import B1.b1.
@@ -91,6 +92,73 @@ Lemma dll_local_facts: forall prev s,
 Proof. intros. apply dlseg_local_facts. Qed.
 #[export] Hint Resolve dll_local_facts : saturate_local.
 
+(* B1b: splitting a list at any node, for get_first / get_last and the
+   backward walk. *)
+Lemma hd_or_app_gen: forall a b (t: val),
+  hd_or (a ++ b) t = hd_or a (hd_or b t).
+Proof. intros. destruct a as [| [] ]; reflexivity. Qed.
+
+Lemma dlseg_app_split: forall a b prev t,
+  dlseg prev (a ++ b) t
+  |-- dlseg prev a (hd_or b t) * dlseg (last_or prev a) b t.
+Proof.
+  induction a as [| [q x] a IH]; intros; simpl.
+  - cancel.
+  - rewrite hd_or_app_gen. sep_apply (IH b q t). cancel.
+Qed.
+
+Lemma dlseg_app_join: forall a b prev t,
+  dlseg prev a (hd_or b t) * dlseg (last_or prev a) b t
+  |-- dlseg prev (a ++ b) t.
+Proof.
+  induction a as [| [q x] a IH]; intros; simpl.
+  - cancel.
+  - rewrite hd_or_app_gen. sep_apply (IH b q t). cancel.
+Qed.
+
+(* Taking the last node off a segment (the backward walks). *)
+Lemma dlseg_unsnoc: forall a prev p y t,
+  dlseg prev (a ++ [(p, y)]) t
+  |-- dlseg prev a p
+      * data_at Ews t_dll (Vint y, (t, last_or prev a)) p
+      * malloc_token Ews t_dll p.
+Proof.
+  intros. sep_apply (dlseg_app_split a [(p, y)] prev t).
+  simpl. cancel.
+Qed.
+
+(* The last node of a non-empty segment is a pointer. *)
+Lemma dlseg_last_ptr: forall a prev t, a <> nil ->
+  dlseg prev a t |-- !! isptr (last_or prev a).
+Proof.
+  induction a as [| [q x] a IH]; intros prev t H; [contradiction |].
+  rewrite dlseg_cons.
+  change (last_or prev ((q, x) :: a)) with (last_or q a).
+  destruct a as [| r a].
+  - simpl last_or. entailer!.
+  - sep_apply (IH q t). { discriminate. } entailer!.
+Qed.
+
+Lemma dlseg_last_pn: forall a t,
+  dlseg nullval a t |-- !! is_pointer_or_null (last_or nullval a).
+Proof.
+  intros. destruct a as [| x a].
+  - simpl. entailer!.
+  - eapply derives_trans.
+    { apply (dlseg_last_ptr (x :: a) nullval t). discriminate. }
+    apply prop_derives. intro Hp.
+    destruct (last_or nullval (x :: a)); try contradiction; simpl; auto.
+Qed.
+
+Lemma snoc_cases: forall a: list (val * int),
+  a = nil \/ exists a' p y, a = a' ++ [(p, y)].
+Proof.
+  intros. destruct a as [| x a]; [left; auto | right].
+  destruct (exists_last (l := x :: a)) as (a' & [p y] & E);
+    [discriminate |].
+  exists a', p, y. exact E.
+Qed.
+
 (* ---------- Specification: funspecs ---------- *)
 
 (* add: *list is the head of a list s and elem a separate malloc'd node;
@@ -108,6 +176,37 @@ Definition sglib_dllist_add_spec :=
   POST [ tvoid ]
     PROP () RETURN ()
     SEP (data_at sh (tptr t_dll) elem list; dll nullval ((elem, x) :: s)).
+
+(* get_first / get_last (B1b): the argument is any node of a whole list
+   s1 ++ s2, namely the head of s2, or NULL when s2 is empty.  NULL in
+   gives NULL out; otherwise the result is the head (first_of) or the
+   last node (last_of) of that same list, and the list is unchanged. *)
+Definition first_of (s1 s2: list (val * int)) : val :=
+  match s2 with nil => nullval | _ => hd_ptr (s1 ++ s2) end.
+Definition last_of (s1 s2: list (val * int)) : val :=
+  match s2 with nil => nullval | _ => last_or nullval (s1 ++ s2) end.
+
+Lemma first_of_nil: forall s, first_of [] s = hd_ptr s.
+Proof. destruct s; reflexivity. Qed.
+
+Lemma last_of_nil: forall s, last_of [] s = last_or nullval s.
+Proof. destruct s; reflexivity. Qed.
+
+Definition sglib_dllist_get_first_spec :=
+ DECLARE _sglib_dllist_get_first
+  WITH s1: list (val * int), s2: list (val * int)
+  PRE [ tptr t_dll ]
+    PROP () PARAMS (hd_ptr s2) SEP (dll nullval (s1 ++ s2))
+  POST [ tptr t_dll ]
+    PROP () RETURN (first_of s1 s2) SEP (dll nullval (s1 ++ s2)).
+
+Definition sglib_dllist_get_last_spec :=
+ DECLARE _sglib_dllist_get_last
+  WITH s1: list (val * int), s2: list (val * int)
+  PRE [ tptr t_dll ]
+    PROP () PARAMS (hd_ptr s2) SEP (dll nullval (s1 ++ s2))
+  POST [ tptr t_dll ]
+    PROP () RETURN (last_of s1 s2) SEP (dll nullval (s1 ++ s2)).
 
 (* The iterator fields, in order: currentelem, prevelem, nextelem,
    subcomparator, equalto.  it_next is called in two states, both with
@@ -202,7 +301,8 @@ Definition main_spec :=
 
 Definition Gprog : funspecs :=
   ltac:(with_library prog
-    [sglib_dllist_add_spec; sglib_dllist_it_init_on_equal_spec;
+    [sglib_dllist_add_spec; sglib_dllist_get_first_spec;
+     sglib_dllist_get_last_spec; sglib_dllist_it_init_on_equal_spec;
      sglib_dllist_it_init_spec; sglib_dllist_it_next_spec;
      b1_spec; main_spec]).
 
@@ -235,6 +335,126 @@ Proof.
       * discriminate.
       * forward. Exists p. simpl dlseg. entailer!.
     + Intros v. forward. entailer!.
+Qed.
+
+Lemma body_sglib_dllist_get_first:
+  semax_body Vprog Gprog f_sglib_dllist_get_first
+    sglib_dllist_get_first_spec.
+Proof.
+  start_function.
+  unfold dll.
+  forward.                              (* _dll_ = list; *)
+  destruct s2 as [| [p y] s2]; simpl hd_ptr.
+  - forward_if (PROP () LOCAL (temp __dll_ nullval)
+      SEP (dlseg nullval (s1 ++ []) nullval)).
+    + discriminate.
+    + forward. entailer!.
+    + forward. forward.
+  - sep_apply (dlseg_app_split s1 ((p, y) :: s2) nullval nullval).
+    rewrite dlseg_cons. Intros.
+    forward_if (PROP () LOCAL (temp __dll_ (hd_ptr (s1 ++ (p, y) :: s2)))
+      SEP (dlseg nullval (s1 ++ (p, y) :: s2) nullval)).
+    + (* the walk along ptr_to_previous; a ++ b is the list, the
+         current node is the head of b *)
+      forward_loop
+        (EX a: list (val * int), EX b: list (val * int),
+         PROP (s1 ++ (p, y) :: s2 = a ++ b; b <> nil)
+         LOCAL (temp __dll_ (hd_ptr b))
+         SEP (dlseg nullval a (hd_ptr b);
+              dlseg (last_or nullval a) b nullval))
+      continue:
+        (EX a: list (val * int), EX b: list (val * int),
+         PROP (s1 ++ (p, y) :: s2 = a ++ b; b <> nil; a <> nil)
+         LOCAL (temp __dll_ (hd_ptr b))
+         SEP (dlseg nullval a (hd_ptr b);
+              dlseg (last_or nullval a) b nullval)).
+      * Exists s1 ((p, y) :: s2). rewrite dlseg_cons. entailer!.
+      * Intros a b. destruct b as [| [q x] b]; [contradiction |].
+        rewrite dlseg_cons. Intros. simpl hd_ptr.
+        destruct (snoc_cases a) as [-> | (a' & r & z & ->)].
+        -- simpl last_or.
+           forward.                     (* t = _dll_->ptr_to_previous; *)
+           forward_if.
+           ++ discriminate.
+           ++ forward. rewrite H0. simpl app. rewrite dlseg_cons.
+              entailer!.
+        -- rewrite last_or_snoc.
+           sep_apply (dlseg_unsnoc a' nullval r z q). Intros.
+           forward.                     (* t = _dll_->ptr_to_previous; *)
+           forward_if.
+           ++ forward. Exists (a' ++ [(r, z)]) ((q, x) :: b). simpl hd_ptr.
+              rewrite dlseg_cons, last_or_snoc.
+              sep_apply (dlseg_snoc a' nullval r z q).
+              entailer!. destruct a'; discriminate.
+           ++ assert_PROP (isptr r) by entailer!. subst r. contradiction.
+      * Intros a b. destruct b as [| [q x] b]; [contradiction |].
+        destruct (snoc_cases a) as [-> | (a' & r & z & ->)];
+          [contradiction |].
+        rewrite dlseg_cons. Intros. rewrite last_or_snoc. simpl hd_ptr.
+        sep_apply (dlseg_unsnoc a' nullval r z q). Intros.
+        forward.                        (* _dll_ = _dll_->ptr_to_previous *)
+        Exists a' ((r, z) :: (q, x) :: b). simpl hd_ptr.
+        rewrite !dlseg_cons. entailer!.
+        rewrite H0, <- app_assoc. reflexivity.
+    + assert_PROP (isptr p) by entailer!. subst p. contradiction.
+    + forward. forward.
+Qed.
+
+Lemma body_sglib_dllist_get_last:
+  semax_body Vprog Gprog f_sglib_dllist_get_last
+    sglib_dllist_get_last_spec.
+Proof.
+  start_function.
+  unfold dll.
+  forward.                              (* _dll_ = list; *)
+  destruct s2 as [| [p y] s2]; simpl hd_ptr.
+  - forward_if (PROP () LOCAL (temp __dll_ nullval)
+      SEP (dlseg nullval (s1 ++ []) nullval)).
+    + discriminate.
+    + forward. entailer!.
+    + forward. forward.
+  - sep_apply (dlseg_app_split s1 ((p, y) :: s2) nullval nullval).
+    rewrite dlseg_cons. Intros.
+    forward_if
+      (PROP () LOCAL (temp __dll_ (last_or nullval (s1 ++ (p, y) :: s2)))
+       SEP (dlseg nullval (s1 ++ (p, y) :: s2) nullval)).
+    + (* the walk along ptr_to_next *)
+      forward_loop
+        (EX a: list (val * int), EX b: list (val * int),
+         PROP (s1 ++ (p, y) :: s2 = a ++ b; b <> nil)
+         LOCAL (temp __dll_ (hd_ptr b))
+         SEP (dlseg nullval a (hd_ptr b);
+              dlseg (last_or nullval a) b nullval))
+      continue:
+        (EX a: list (val * int), EX b: list (val * int),
+         PROP (s1 ++ (p, y) :: s2 = a ++ b; tl b <> nil)
+         LOCAL (temp __dll_ (hd_ptr b))
+         SEP (dlseg nullval a (hd_ptr b);
+              dlseg (last_or nullval a) b nullval)).
+      * Exists s1 ((p, y) :: s2). rewrite dlseg_cons. entailer!.
+      * Intros a b. destruct b as [| [q x] b]; [contradiction |].
+        rewrite dlseg_cons. Intros. simpl hd_ptr.
+        forward.                        (* t = _dll_->ptr_to_next; *)
+        destruct b as [| [r z] b].
+        -- simpl hd_or. forward_if.
+           ++ discriminate.
+           ++ forward. rewrite H0, last_or_snoc.
+              sep_apply (dlseg_snoc a nullval q x nullval).
+              simpl dlseg. entailer!.
+        -- simpl hd_or. rewrite dlseg_cons. Intros.
+           forward_if.
+           ++ forward. Exists a ((q, x) :: (r, z) :: b). simpl hd_ptr.
+              rewrite !dlseg_cons. entailer!. discriminate.
+           ++ assert_PROP (isptr r) by entailer!. subst r. contradiction.
+      * Intros a b. destruct b as [| [q x] b]; [contradiction |].
+        rewrite dlseg_cons. Intros. simpl hd_ptr.
+        forward.                        (* _dll_ = _dll_->ptr_to_next *)
+        Exists (a ++ [(q, x)]) b. rewrite last_or_snoc.
+        sep_apply (dlseg_snoc a nullval q x (hd_or b nullval)).
+        entailer!.
+        rewrite H0, <- app_assoc. reflexivity.
+    + assert_PROP (isptr p) by entailer!. subst p. contradiction.
+    + forward. forward.
 Qed.
 
 Lemma body_sglib_dllist_it_next:
@@ -407,8 +627,13 @@ Proof.
       forward_call (Tsh, v_the_list, l, Znth k contents, Vundef, Vundef, s).
       Exists k ((l, Znth k contents) :: s). entailer!.
   - Intros k s. forward. Exists (k + 1) s. entailer!.
-  - (* Loop 2: the forward walk along ptr_to_next. *)
+  - (* Loop 2: the forward walk along ptr_to_next, from get_first. *)
     Intros s.
+    forward.                            (* t = the_list; *)
+    forward_call (@nil (val * int), s). (* t' = get_first(t); *)
+    { simpl app. cancel. }
+    forward.                            (* l = t'; *)
+    rewrite first_of_nil, app_nil_l.
     forward_loop
       (EX s1: list (val * int), EX s2: list (val * int), EX r: int,
        PROP (s = s1 ++ s2)
@@ -440,8 +665,8 @@ Proof.
        SEP (mem_mgr gv; data_at sh (tarray tint n) (map Vint contents) input;
             data_at Tsh (tptr t_dll) (hd_ptr s) v_the_list; dll nullval s;
             data_at_ Tsh t_it v_it)).
-    + forward. Exists (@nil (val * int)) s (Int.repr 0).
-      unfold dll. simpl dlseg. entailer!.
+    + Exists (@nil (val * int)) s (Int.repr 0).
+      unfold dll. simpl dlseg. entailer!. destruct s; reflexivity.
     + Intros s1 s2 r.
       destruct s2 as [| [p y] s2].
       * forward_if.
@@ -462,7 +687,76 @@ Proof.
       change (hd_ptr ((p, y) :: s2)) with p.
       sep_apply (dlseg_snoc s1 nullval p y (hd_ptr s2)).
       entailer!.
-    + (* Loop 3: free every element while iterating. *)
+    + (* Loop 3: the backward walk along ptr_to_previous, from
+         get_last (B1b).  a ++ b is the list, l the last node of a. *)
+      Intros r0.
+      forward.                          (* t = the_list; *)
+      forward_call (@nil (val * int), s). (* t' = get_last(t); *)
+      { simpl app. cancel. }
+      forward.                          (* l = t'; *)
+      rewrite last_of_nil, app_nil_l.
+      unfold dll.
+      forward_loop
+        (EX a: list (val * int), EX b: list (val * int), EX r: int,
+         PROP (s = a ++ b)
+         LOCAL (temp _l (last_or nullval a); temp _last (Vint r);
+                lvar _the_list (tptr t_dll) v_the_list; lvar _it t_it v_it;
+                temp _input__1 input; temp _n (Vint (Int.repr n)); gvars gv)
+         SEP (mem_mgr gv;
+              data_at sh (tarray tint n) (map Vint contents) input;
+              data_at Tsh (tptr t_dll) (hd_ptr s) v_the_list;
+              dlseg nullval a (hd_ptr b);
+              dlseg (last_or nullval a) b nullval;
+              data_at_ Tsh t_it v_it))
+      continue:
+        (EX a: list (val * int), EX b: list (val * int), EX r: int,
+         PROP (s = a ++ b; a <> nil)
+         LOCAL (temp _l (last_or nullval a); temp _last (Vint r);
+                lvar _the_list (tptr t_dll) v_the_list; lvar _it t_it v_it;
+                temp _input__1 input; temp _n (Vint (Int.repr n)); gvars gv)
+         SEP (mem_mgr gv;
+              data_at sh (tarray tint n) (map Vint contents) input;
+              data_at Tsh (tptr t_dll) (hd_ptr s) v_the_list;
+              dlseg nullval a (hd_ptr b);
+              dlseg (last_or nullval a) b nullval;
+              data_at_ Tsh t_it v_it))
+      break:
+        (EX r: int,
+         PROP ()
+         LOCAL (temp _last (Vint r);
+                lvar _the_list (tptr t_dll) v_the_list; lvar _it t_it v_it;
+                temp _input__1 input; temp _n (Vint (Int.repr n)); gvars gv)
+         SEP (mem_mgr gv;
+              data_at sh (tarray tint n) (map Vint contents) input;
+              data_at Tsh (tptr t_dll) (hd_ptr s) v_the_list; dll nullval s;
+              data_at_ Tsh t_it v_it)).
+      { Exists s (@nil (val * int)) r0. simpl dlseg. entailer!.
+        split; [rewrite app_nil_r; auto | destruct s; reflexivity]. }
+      { Intros a b r'.
+        destruct (snoc_cases a) as [-> | (a' & q & x & ->)].
+        - simpl last_or. forward_if.
+          { discriminate. }
+          forward. Exists r'. simpl in H1. subst s.
+          unfold dll. simpl dlseg. entailer!.
+        - rewrite last_or_snoc.
+          sep_apply (dlseg_unsnoc a' nullval q x (hd_ptr b)). Intros.
+          forward_if.
+          2: { assert_PROP (isptr q) by entailer!. subst q. contradiction. }
+          forward.                      (* last = l->i; *)
+          Exists (a' ++ [(q, x)]) b x. rewrite last_or_snoc.
+          sep_apply (dlseg_snoc a' nullval q x (hd_ptr b)).
+          entailer!. destruct a'; discriminate. }
+      { Intros a b r'.
+        destruct (snoc_cases a) as [-> | (a' & q & x & ->)];
+          [contradiction |].
+        rewrite last_or_snoc.
+        sep_apply (dlseg_unsnoc a' nullval q x (hd_ptr b)). Intros.
+        assert_PROP (is_pointer_or_null (last_or nullval a')).
+        { sep_apply (dlseg_last_pn a' q). entailer!. }
+        forward.                        (* l = l->ptr_to_previous; *)
+        Exists a' ((q, x) :: b) r'. rewrite dlseg_cons. simpl hd_ptr.
+        entailer!. rewrite <- app_assoc. reflexivity. }
+      (* Loop 4: free every element while iterating. *)
       Intros r.
       forward.
       forward_call (Tsh, v_it, s). forward.
@@ -534,6 +828,8 @@ Proof.
   semax_func_cons body_malloc. apply semax_func_cons_malloc_aux.
   semax_func_cons body_free.
   semax_func_cons body_sglib_dllist_add.
+  semax_func_cons body_sglib_dllist_get_first.
+  semax_func_cons body_sglib_dllist_get_last.
   semax_func_cons body_sglib_dllist_it_init_on_equal.
   semax_func_cons body_sglib_dllist_it_init.
   semax_func_cons body_sglib_dllist_it_next.

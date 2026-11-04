@@ -15,12 +15,16 @@ struct sglib_dllist_iterator {
   dllist *equalto;
 };
 void sglib_dllist_add(dllist **list, dllist *elem);
+dllist *sglib_dllist_get_first(dllist *list);
+dllist *sglib_dllist_get_last(dllist *list);
 dllist *sglib_dllist_it_init(struct sglib_dllist_iterator *it, dllist *list);
 dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it);
 
-/* Driver for B1a: build a list from input[0..n-1] with sglib_dllist_add,
-   walk it forward, then free every element while iterating (the sample's
-   last loop).  Returns the last value seen by the walk. */
+/* Driver for B1a + B1b: build a list from input[0..n-1] with
+   sglib_dllist_add, walk it forward from sglib_dllist_get_first and
+   backward (ptr_to_previous) from sglib_dllist_get_last, then free every
+   element while iterating (the sample's last loop).  Returns the last
+   value seen by the walks. */
 int b1(const int *input, int n) {
   dllist *l, *the_list = NULL;
   struct sglib_dllist_iterator it;
@@ -30,7 +34,10 @@ int b1(const int *input, int n) {
     l->i = input[k];
     sglib_dllist_add(&the_list, l);
   }
-  for (l = the_list; l != NULL; l = l->ptr_to_next)
+  for (l = sglib_dllist_get_first(the_list); l != NULL; l = l->ptr_to_next)
+    last = l->i;
+  for (l = sglib_dllist_get_last(the_list); l != NULL;
+       l = l->ptr_to_previous)
     last = l->i;
   for (l = sglib_dllist_it_init(&it, the_list); l != NULL;
        l = sglib_dllist_it_next(&it))

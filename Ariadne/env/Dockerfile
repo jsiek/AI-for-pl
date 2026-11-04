@@ -8,11 +8,15 @@
 
 FROM rocq/rocq-prover:9.0.1-native-ocaml-4.14.2@sha256:9cdd1f5e80653c8b527bc841df99ef24d1190d3be1e442f7118103221793b594
 
+# Eprover is a prover, so it is pinned to the exact Debian revision that
+# was tested; if Debian ever drops that revision the build fails instead
+# of silently installing another one.  The other packages are build
+# dependencies only.
 USER root
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       graphviz libgmp-dev pkg-config autoconf m4 unzip curl ca-certificates \
-      eprover clang zlib1g-dev \
+      eprover=2.6+ds-3 clang zlib1g-dev \
  && rm -rf /var/lib/apt/lists/*
 
 # External provers, pinned by checksum.  Vampire stays at 4.9: Vampire 5

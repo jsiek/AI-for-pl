@@ -30,7 +30,7 @@ the session are owned by you).  `ARIADNE_IMAGE` overrides the image tag.
 | Z3 | 4.13.4 | Why3 1.8.2 accepts 4.11–4.13 |
 | CVC5 | 1.2.1 | Why3 1.8.2 accepts 1.0–1.2 |
 | Vampire | 4.9 (CASC 2024) | Vampire 5 dropped `--output_axiom_names`, which CoqHammer uses |
-| Eprover | 2.6 (Debian) | CoqHammer ATP |
+| Eprover | 2.6 (Debian `2.6+ds-3`, pinned) | CoqHammer ATP |
 
 Base image: `rocq/rocq-prover:9.0.1-native-ocaml-4.14.2`, pinned by
 digest.  Its `ocamlfind 1.9.6` pin is lifted because coq-lsp 0.2.5 needs

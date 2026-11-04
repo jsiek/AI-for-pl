@@ -7,6 +7,10 @@
 # Needs the plugin built (../../plugin: ../env/run.sh dune build).
 # Termination is a plan non-goal (section 1.4): terminates clauses are
 # not generated, so no termination goals are created.
+# Initialisation: RTE checks every read for \initialized
+# (-rte-initialized @all, README "Initialisation"); -wp-no-filter-init
+# keeps hypotheses that mention initialisation, which WP's default
+# filter drops (it dropped live_dll once live_dll mentioned \initialized).
 set -u
 fcts="sglib_dllist_add,sglib_dllist_it_init_on_equal,sglib_dllist_it_init"
 fcts="$fcts,sglib_dllist_it_next,sglib_dllist_get_first,sglib_dllist_get_last,b1"
@@ -22,7 +26,7 @@ wp() {  # wp <report> <log> <WP selection options...>
     -cpp-extra-args="-I/ariadne/plugin/share" \
     -generated-spec-custom terminates:skip \
     -ariadne b1.c \
-    -then -wp -wp-model Typed "$@" \
+    -then -wp -wp-model Typed -wp-no-filter-init "$@" \
     -wp-prover alt-ergo,z3,cvc5,coq -wp-interactive batch -wp-timeout 60 \
     -wp-session /work/session -wp-report-json "/work/$report" $extra \
     > "$log" 2>&1
@@ -33,8 +37,9 @@ wp() {  # wp <report> <log> <WP selection options...>
   fi
 }
 
-wp report_fct.json run_fct.log -wp-rte -wp-fct "$fcts"
+wp report_fct.json run_fct.log -wp-rte -rte-initialized @all \
+  -wp-fct "$fcts"
 wp report_lemmas.json run_lemmas.log -wp-prop=@lemma
 [ "$status" -eq 0 ] || exit 1
 # Exact goal counts, so a selection that silently shrinks cannot pass.
-python3 -I ../goals.py report_fct.json:214 report_lemmas.json:8
+python3 -I ../goals.py report_fct.json:310 report_lemmas.json:11

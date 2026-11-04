@@ -1,5 +1,5 @@
 """Build vst/b1/b1.c from bench/b1/b1_gen.c (verbatim functions), and
-the two mutants bad_uaf.c and bad_nonull.c (negative tests) next to it.
+the mutants bad_*.c (negative tests) next to it.
 
 usage: python3 -I make_b1.py ../../bench/b1/b1_gen.c b1.c
 
@@ -40,8 +40,9 @@ def function(name):
 types_end = gen.index("};\n", gen.index("struct sglib_dllist_iterator {")) + 3
 types = gen[:types_end]
 
-HEADER = """/* Benchmark B1a for VST: the same sglib code as ../../bench/b1/b1.c.
-   The type definitions and the four sglib functions B1a uses are
+HEADER = """/* Benchmark B1a + B1b for VST: the same sglib code as
+   ../../bench/b1/b1.c.  The type definitions and the six sglib
+   functions B1a and B1b use are
    copied verbatim from ../../bench/b1/b1_gen.c (sglib's macros expanded
    by ../../bench/b1/gen.sh); the other generated functions are not
    called, so they are left out (VST's whole-program theorem needs every
@@ -55,9 +56,11 @@ HEADER = """/* Benchmark B1a for VST: the same sglib code as ../../bench/b1/b1.c
 """
 
 DRIVER = """
-/* Driver for B1a: build a list from input[0..n-1] with sglib_dllist_add,
-   walk it forward, then free every element while iterating (the sample's
-   last loop).  Returns the last value seen by the walk. */
+/* Driver for B1a + B1b: build a list from input[0..n-1] with
+   sglib_dllist_add, walk it forward from sglib_dllist_get_first and
+   backward (ptr_to_previous) from sglib_dllist_get_last, then free every
+   element while iterating (the sample's last loop).  Returns the last
+   value seen by the walks. */
 int b1(const int *input, int n) {
   dllist *l, *the_list = NULL;
   struct sglib_dllist_iterator it;
@@ -69,7 +72,10 @@ int b1(const int *input, int n) {
     l->i = input[k];
     sglib_dllist_add(&the_list, l);
   }
-  for (l = the_list; l != NULL; l = l->ptr_to_next)
+  for (l = sglib_dllist_get_first(the_list); l != NULL; l = l->ptr_to_next)
+    last = l->i;
+  for (l = sglib_dllist_get_last(the_list); l != NULL;
+       l = l->ptr_to_previous)
     last = l->i;
   for (l = sglib_dllist_it_init(&it, the_list); l != NULL;
        l = sglib_dllist_it_next(&it))
@@ -86,6 +92,8 @@ int main(void) { return b1(input, 4); }
 parts = [
     "dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it);\n",
     function("sglib_dllist_add"),
+    function("sglib_dllist_get_first"),
+    function("sglib_dllist_get_last"),
     function("sglib_dllist_it_init_on_equal"),
     function("sglib_dllist_it_init"),
     function("sglib_dllist_it_next"),
@@ -100,11 +108,16 @@ with open(out, "w") as f:
     f.write(DRIVER)
 
 
-# Mutants of the driver for verif_bad.v.  Each holds the types, the
+# Mutants for verif_bad.v.  A driver mutant holds the types, the
 # prototypes of the sglib functions (their specs are assumed from
 # verif_b1.v) and a mutated driver, still called b1 so that it is checked
-# against the same b1_spec.
-WALK = """  for (l = the_list; l != NULL; l = l->ptr_to_next)
+# against the same b1_spec.  A function mutant holds the types and the
+# mutated sglib function, checked against that function's spec.
+WALK = """  for (l = sglib_dllist_get_first(the_list); l != NULL; l = l->ptr_to_next)
+    last = l->i;
+"""
+BACK = """  for (l = sglib_dllist_get_last(the_list); l != NULL;
+       l = l->ptr_to_previous)
     last = l->i;
 """
 FREE = """  for (l = sglib_dllist_it_init(&it, the_list); l != NULL;
@@ -114,23 +127,50 @@ FREE = """  for (l = sglib_dllist_it_init(&it, the_list); l != NULL;
 NULLCHK = """    if (l == NULL)
       break;
 """
+RESULT = "    (result) = _dll_;\n"
 DRIVER_ONLY = DRIVER[:DRIVER.index("int input[4]")]
-assert DRIVER_ONLY.count(WALK + FREE) == 1
+assert DRIVER_ONLY.count(WALK + BACK + FREE) == 1
 assert DRIVER_ONLY.count(NULLCHK) == 1
-MUTANTS = {
+DRIVER_MUTANTS = {
     # use after free: the forward walk moved after the free loop
-    "bad_uaf.c": DRIVER_ONLY.replace(WALK + FREE, FREE + WALK),
+    "bad_uaf.c": DRIVER_ONLY.replace(WALK + BACK + FREE, BACK + FREE + WALK),
+    # use after free: the backward walk moved after the free loop
+    "bad_uaf_back.c": DRIVER_ONLY.replace(WALK + BACK + FREE,
+                                          WALK + FREE + BACK),
     # no NULL check after malloc
     "bad_nonull.c": DRIVER_ONLY.replace(NULLCHK, ""),
 }
+
+
+def null_result(fun):
+    """fun, copied verbatim, but with `(result) = NULL;` after its
+    traversal (as the Frama-C mutants nullfirst / nulllast)."""
+    text = function(fun)
+    assert text in gen and text.count(RESULT) == 1, fun
+    return text.replace(RESULT, "    (result) = NULL;\n")
+
+
+FUNCTION_MUTANTS = {
+    "bad_nullfirst.c": null_result("sglib_dllist_get_first"),
+    "bad_nulllast.c": null_result("sglib_dllist_get_last"),
+}
 PROTOS = """void sglib_dllist_add(dllist **list, dllist *elem);
+dllist *sglib_dllist_get_first(dllist *list);
+dllist *sglib_dllist_get_last(dllist *list);
 dllist *sglib_dllist_it_init(struct sglib_dllist_iterator *it, dllist *list);
 dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it);
 """
-for name, driver in MUTANTS.items():
+
+
+def write_mutant(name, body):
     with open(os.path.join(os.path.dirname(out) or ".", name), "w") as f:
         f.write("/* Mutant of b1.c for verif_bad.v (generated by make_b1.py). */\n")
         f.write("#include <stddef.h>\n#include <stdlib.h>\n\n")
         f.write(types)
-        f.write(PROTOS)
-        f.write(driver)
+        f.write(body)
+
+
+for name, driver in DRIVER_MUTANTS.items():
+    write_mutant(name, PROTOS + driver)
+for name, fun in FUNCTION_MUTANTS.items():
+    write_mutant(name, fun)

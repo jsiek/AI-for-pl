@@ -8,7 +8,7 @@ driver) and tools to explore and check, until `coqc` accepts its proof.
 ```bash
 cd Ariadne/prover
 python3 reallms_coq.py --file ../bench/b1/session/interactive/lemma_mem_cons.v \
-  [--model glm-5.3-flash] [--blank] [--hint "..."] [--max-steps 30] \
+  [--model glm-5.3-flash] [--blank] [--hint "..."] [--max-seconds 900] \
   [--log .work/logs/x.log] [--apply]
 ```
 
@@ -53,6 +53,16 @@ visible).  Without it the model can simply read the existing proof: in
 the first test run, GLM read the goal file and resubmitted its proof
 verbatim.  `test_tools.py` checks the tools and the hiding offline (no
 model calls).
+
+**Budget: time, not turns.**  A run stops after `--max-seconds` (default
+900) of working time: wall clock minus the backoffs after HTTP 429, so a
+busy service does not eat the budget.  The check comes before each
+reply, so a run can overrun by one reply and its tool calls.
+`--max-steps` (default 100) is only a backstop.  The trials below used
+a 30-turn budget instead.  GLM's successes all came within 666 s, and
+its turns vary in length (7 turns took 361 s, 30 took 1519 s), so time
+bounds a failing run better than a turn count.  `test_budget.py` tests the budget
+offline.
 
 ## Trial: B1's Coq lemmas, proofs hidden
 

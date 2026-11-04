@@ -12,7 +12,7 @@ mkdir -p results .work/logs
 run() {  # run <backend> <lemma> <n>; stops the evaluation on a crash
   tmp=.work/eval_run.json
   python3 -I reallms_coq.py --model "$model" --backend "$1" --blank \
-    --max-steps 30 --file "$dir/lemma_$2.v" \
+    --file "$dir/lemma_$2.v" \
     --log ".work/logs/eval_${model}_$1_$2_$3.log" > "$tmp" ||
     { echo "reallms_coq.py failed ($1 $2 $3)"; exit 1; }
   python3 -I -c 'import json,sys; r=json.load(sys.stdin); r["run"]=int(sys.argv[1]); print(json.dumps(r))' "$3" \

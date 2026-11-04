@@ -61,11 +61,15 @@ def list_models(key):
 def chat(model, messages, key, tools=None, temperature=0.2,
          max_tokens=16384, retries=6):
     """chat_once, retried with exponential backoff (honouring
-    Retry-After) on HTTP 429 and 5xx: the service is rate-limited."""
+    Retry-After) on HTTP 429 and 5xx: the service is rate-limited.
+    The reply's "waited" is the seconds spent in those backoffs."""
+    waited = 0.0
     for attempt in range(retries + 1):
         try:
-            return chat_once(model, messages, key, tools, temperature,
-                             max_tokens)
+            r = chat_once(model, messages, key, tools, temperature,
+                          max_tokens)
+            r["waited"] = waited
+            return r
         except urllib.error.HTTPError as e:
             if attempt == retries or not (e.code == 429 or e.code >= 500):
                 raise
@@ -75,6 +79,7 @@ def chat(model, messages, key, tools=None, temperature=0.2,
             except (TypeError, ValueError):
                 wait = 5 * 2 ** attempt
             time.sleep(min(wait, 300))
+            waited += min(wait, 300)
 
 
 def chat_once(model, messages, key, tools=None, temperature=0.2,
@@ -144,25 +149,32 @@ CUT_OFF = ("Your last reply was cut off at the output limit before you "
 
 def tool_loop(model, key, system, user, tools, dispatch, solved,
               check_tool, nudge, max_steps=24, temperature=0.2, fh=None,
-              max_tokens=16384):
+              max_tokens=16384, max_seconds=None):
     """Run the model with tools until `solved()` after a call to
-    `check_tool`, the model gives up, or max_steps.  `dispatch(name, args)`
+    `check_tool`, the model gives up, max_steps, or max_seconds (if set)
+    of working time: wall clock minus rate-limit backoffs, checked before
+    each reply, so a run can overrun by one reply and its tool calls.  `dispatch(name, args)`
     runs a tool and returns a str or JSON-able value.  `nudge` is the
     message sent (up to 3 times) when the model answers without a tool
     call while unsolved; a reply cut off at max_tokens gets CUT_OFF
     instead, and does not count as a nudge.  Returns {status, steps,
-    usage, seconds, cut_off}."""
+    usage, seconds, waited, cut_off}."""
     messages = [{"role": "system", "content": system},
                 {"role": "user", "content": user}]
     status, nudges, step, cut_off = "incomplete", 0, 0, 0
     usage = {"prompt_tokens": 0, "completion_tokens": 0}
-    t0 = time.time()
+    t0, waited = time.time(), 0.0
     for step in range(1, max_steps + 1):
+        if max_seconds and time.time() - t0 - waited >= max_seconds:
+            logline(fh, f"[time budget of {max_seconds} s used up]")
+            status, step = "time_up", step - 1
+            break
         try:
             r = chat(model, messages, key, tools, temperature, max_tokens)
         except Exception as e:  # network or HTTP error; never echo headers
             status = f"api_error: {type(e).__name__}: {e}"
             break
+        waited += r["waited"]
         for k in usage:
             usage[k] += (r["usage"] or {}).get(k) or 0
         logline(fh, f"\n===== step {step} =====")
@@ -222,7 +234,8 @@ def tool_loop(model, key, system, user, tools, dispatch, solved,
         if status == "solved":
             break
     return {"status": status, "steps": step, "usage": usage,
-            "seconds": round(time.time() - t0, 1), "cut_off": cut_off}
+            "seconds": round(time.time() - t0, 1),
+            "waited": round(waited, 1), "cut_off": cut_off}
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ out=${2:-results/trial_$model.jsonl}
 dir=../bench/b1/session/interactive
 mkdir -p results .work/logs
 for lemma in mem_cons all_live_cons all_init_cons dll_frame dll_links; do
-  python3 -I reallms_coq.py --model "$model" --blank --max-steps 30 \
+  python3 -I reallms_coq.py --model "$model" --blank \
     --file "$dir/lemma_$lemma.v" --log ".work/logs/${model}_$lemma.log" \
     | python3 -I -c 'import json,sys; r=json.load(sys.stdin); print(json.dumps(r))' \
     >> "$out"

@@ -460,7 +460,11 @@ def main():
                          "files next to it (also from read_file and grep)")
     ap.add_argument("--backend", choices=("coqc", "petanque"),
                     default="coqc")
-    ap.add_argument("--max-steps", type=int, default=30)
+    ap.add_argument("--max-seconds", type=int, default=900,
+                    help="working-time budget (wall clock minus "
+                         "rate-limit waits); 0 for none")
+    ap.add_argument("--max-steps", type=int, default=100,
+                    help="turn cap, a backstop behind --max-seconds")
     ap.add_argument("--max-tokens", type=int, default=32768,
                     help="output limit per model reply")
     ap.add_argument("--timeout", type=int, default=120,
@@ -527,13 +531,14 @@ def main():
                   "tool call now (check_proof or run_tactics), then fix "
                   "what Coq reports.",
             max_steps=args.max_steps, temperature=args.temperature, fh=fh,
-            max_tokens=args.max_tokens)
+            max_tokens=args.max_tokens, max_seconds=args.max_seconds)
     finally:
         w._pet_close()
     report = {
         "file": os.path.relpath(w.path, ARIADNE), "model": args.model,
         "status": loop["status"], "solved": w.last_ok,
         "steps": loop["steps"], "seconds": loop["seconds"],
+        "waited": loop["waited"], "max_seconds": args.max_seconds,
         "cut_off": loop["cut_off"], "max_tokens": args.max_tokens,
         "usage": loop["usage"], "tool_calls": w.counts,
         "coqc_runs": w.coqc_runs, "backend": args.backend,

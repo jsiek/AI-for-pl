@@ -125,17 +125,20 @@ bound.
 
 ## 3. Technical stack
 
-Pin every version in a lock file (opam switch export + `pip freeze`);
-CoqHammer, Why3, and coq-lsp each support only specific Coq/Rocq versions,
-so the pin must be chosen jointly **[verify compatibility matrix]**.
+Pinned in M0 as a Docker image (`env/Dockerfile`; versions and reasons
+in `env/README.md`): Frama-C 33.0 (Arsenic), Why3 1.8.2, Rocq 9.0.1,
+CoqHammer 1.3.2, coq-lsp/Pétanque 0.2.5, Alt-Ergo 2.6.4, Z3 4.13.4,
+CVC5 1.2.1, Vampire 4.9, Eprover 2.6.
 
-*   **Front end:** Frama-C 31.0 (Gallium) with RTE, Eva, WP.
+*   **Front end:** Frama-C 33.0 (Arsenic) with RTE, Eva, WP.
 *   **Specification language:** ACSL.
 *   **VC back end:** WP → Why3 → Coq/Rocq.  Note that `-wp-prover coq`
-    goes through Why3 in current Frama-C, and WP stores interactive
-    proofs in its session directory; the agent's proofs must be saved
-    there so that `-wp-interactive update|fix` re-uses them **[verify]**.
-*   **Proof assistant:** Coq/Rocq (version fixed by the joint pin).
+    goes through Why3, and WP stores Coq scripts in
+    `<session>/interactive/<goal>.v`; `-wp-interactive update` creates
+    stubs, `batch` checks them.  Why3 regenerates each file and keeps only
+    the `Proof. … Qed.` text, so tactic imports (`Lia`, CoqHammer) come
+    from the `coq-ariadne` Why3 driver (M0).
+*   **Proof assistant:** Rocq 9.0.1, the newest that Why3 1.8.2 supports.
 *   **Automation:** CoqHammer (`hammer`, plus `sauto`/`best` which need no
     external ATPs), external ATPs (Vampire, E, Z3, CVC5) for `hammer`.
 *   **SMT:** Alt-Ergo, Z3, CVC5 via Why3, tried before Coq; goals they
@@ -378,6 +381,15 @@ invariant is only needed for functional correctness and is stretch work.
     clauses, `check`-only annotations used as hypotheses, and Coq
     `Admitted` / `Axiom` / `Parameter` / `admit` are rejected by a linter
     *and* caught at the end by `Print Assumptions`.
+3a. **ACSL definitions are axioms.**  M0 showed that WP exports an ACSL
+    `logic` definition as `Parameter` + defining `Axiom`, and accepts a
+    non-terminating one: from `logic integer bad(integer n) = bad(n) + 1;`
+    Coq proves `bad(0) == 0` (`env/smoke/bad_def.c`).  So the agent may
+    not add or change `logic`, `predicate`, `inductive`, or `axiomatic`
+    definitions; those belong to the frozen, human-reviewed
+    specification (§4).  If the agent needs a helper definition, it
+    proposes one and a human approves it, or (later) it comes with a
+    Coq realisation checked against the exported axiom.
 4.  **Axiom allow-list.**  `coqchk -o` (prints the axioms/opaque
     constants the checked modules rely on) is compared against a fixed
     allow-list (WP/Why3 theory realisations, functional extensionality if
@@ -395,7 +407,7 @@ invariant is only needed for functional correctness and is stretch work.
 
 | # | Deliverable | Exit criterion |
 |---|-------------|----------------|
-| M0 | Toolchain pin + container | Frama-C, Why3, Coq, CoqHammer, coq-lsp versions resolved; `frama-c -wp -wp-prover coq` round-trips on a 10-line example; `coqchk` passes. |
+| M0 | Toolchain pin + container | **Done** (`env/`, `env/smoke/check.sh`): versions pinned; WP → Why3 → Coq round trip on a small example (10/10 goals, one by a Coq script); `coqchk` passes and lists the axioms; CoqHammer and Pétanque work on WP goals. |
 | M1a | WP allocation investigation (§10) | Small `malloc`/`free` test suite run; decision recorded: WP as is, ghost liveness model, or extend WP. |
 | M1 | Manual baseline on B1 | Human writes predicates + contracts + invariants; all goals closed (by any means); goal census recorded.  This tells us where the hard goals are and whether the shape library works. |
 | M2 | Pipeline without LLM | Python harness runs steps 1–7, Pétanque integration, `hammer`-only proof search, guardrail checks, report.  Measure how much of M1 automation alone closes.  Budget ledger built and calibrated with a small Opus 5.5 pilot (§11). |
@@ -446,12 +458,10 @@ invariant is only needed for functional correctness and is stretch work.
     be tried as an optimisation).  It assumes no type-punning, which fits
     sglib's intrusive structs.  M1 checks the macro-expanded B1/B2 code
     for pointer casts between struct types; if any appear, revisit.
-*   **Q5 — Coq/Rocq version: the latest one that Frama-C 31 WP and its
-    Why3 version support.**  M0 determines it from the Frama-C/Why3
-    release notes and opam constraints, then pins it.  If CoqHammer or
-    coq-lsp/Pétanque lag behind that version, record the gap and decide
-    in M0 whether to step back one version or work around the missing
-    tool.
+*   **Q5 — Coq/Rocq version: the latest one that WP and its Why3
+    version support.**  Resolved in M0: Frama-C 33.0 requires Why3 1.8.x,
+    whose Coq support stops at Rocq 9.0, so Rocq 9.0.1.  CoqHammer and
+    coq-lsp both have Rocq 9.0 releases, so nothing had to step back.
 
 *   **Q9 — Prover tiers: GLM 5.3 Flash → Sonnet 5.5 → Opus 5.5.**  This
     is the starting configuration.  M3 tests it against the alternatives
@@ -469,7 +479,7 @@ None.  New questions go here.
 ## 10. Use-after-free: the M1a investigation and fallbacks
 
 **Question to settle first (M1a, before the M1 baseline):** with Frama-C
-31 + WP + the Frama-C libc specs of `malloc`/`free`, do these small
+33 + WP + the Frama-C libc specs of `malloc`/`free`, do these small
 programs behave correctly?
 
 ```c

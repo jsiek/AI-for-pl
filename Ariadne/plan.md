@@ -187,6 +187,19 @@ predicates; this is where most of the human and agent effort goes.
     approves) the `requires` / `ensures` / `assigns` contract.  The agent
     may strengthen *internal* annotations (loop invariants, asserts,
     ghost code, lemmas it also proves) but never the frozen contract.
+5.  **Executable twins.**  Every logic definition the runtime checks of
+    §5 step 0 need (inductive predicates such as `dll`, and predicates
+    over `\list` such as `mem`, `all_live`, `in_live_list`) gets an
+    executable C twin, generated with the spec: a recursive or looping
+    function that walks the structure, with a step bound so a cyclic or
+    corrupt heap returns false instead of hanging.  Existentials over
+    lists (`\exists \list<dllist *> s; live_dll(\null, h, s)`) are
+    replaced by computing the witness (the list reached from `h`).
+    Generating a twin is mechanical: an inductive predicate's cases
+    become the branches of the function.  The twins are test code only;
+    they never enter a proof.  Optionally a twin gets its own ACSL
+    contract `ensures \result != 0 <==> dll(prev, h, s)`, proved by WP,
+    so a runtime check that passes really means the predicate holds.
 
 ---
 
@@ -214,6 +227,26 @@ predicates; this is where most of the human and agent effort goes.
 
 ### Operational steps
 
+0.  **Test first (runtime checking, seconds).**  Before any proof,
+    and again on every annotation the annotator proposes in step 5:
+    *   sanitizer builds (ASan, UBSan, MSan) of the benchmark driver run
+        on random inputs (property-based or fuzzed), to catch bugs in
+        the code;
+    *   E-ACSL (Frama-C's runtime assertion checker, in the image)
+        builds of the annotated code, which check contracts, asserts
+        and loop invariants on the same runs.  E-ACSL tracks valid,
+        initialised and freeable memory itself, so use after free and
+        uninitialised reads are caught without the ghost liveness model;
+        logic definitions it cannot execute are replaced by their
+        executable twins (§4 item 5);
+    *   the benchmark's mutants run under E-ACSL: a mutant that runs
+        without any check firing points to a spec too weak to reject
+        it, before any proof is attempted.
+    A failed check gives a concrete input, which goes back to the
+    annotator: an annotation that is *false* is dropped or fixed here
+    instead of looking, to WP, like a goal that is merely *hard*
+    (a timeout).  Testing is a filter only; nothing it reports enters
+    the certificate or the trust base.
 1.  **Normalise and instrument.**
     `frama-c -cpp-extra-args="-I sglib" bench.c -rte -rte-initialized
     -then -print -ocode bench.rte.c` **[verify flags]**.  The macro-
@@ -411,7 +444,7 @@ invariant is only needed for functional correctness and is stretch work.
 | M0 | Toolchain pin + container | **Done** (`env/`, `env/smoke/check.sh`): versions pinned; WP → Why3 → Coq round trip on a small example (10/10 goals, one by a Coq script); `coqchk` passes and lists the axioms; CoqHammer and Pétanque work on WP goals. |
 | M1a | WP allocation investigation (§10) | **Done** (`m1a/`): WP misses use-after-free in every memory model; the ghost liveness model catches every case.  Decision: fallback 1. |
 | M1 | Manual baseline on B1 | Human writes predicates + contracts + invariants; all goals closed (by any means); goal census recorded.  This tells us where the hard goals are and whether the shape library works.  **B1a done** (`bench/b1/`): add + forward walk + free-while-iterating, 183/183 goals (Qed 109, SMT 71, Coq 3), three mutants rejected.  **B1b done**: + `get_first`/`get_last` and the backward walk, 222/222 (Qed 126, SMT 92, Coq 4), six mutants rejected.  **Initialisation checks added** (`-rte-initialized @all`): 321/321 (Qed 189, SMT 127, Coq 5), seven mutants rejected (§10).  B1c (sort) is stretch. |
-| M2 | Pipeline without LLM | Python harness runs steps 1–7, Pétanque integration, `hammer`-only proof search, guardrail checks, report.  Measure how much of M1 automation alone closes.  Budget ledger built and calibrated with a small Opus 5.5 pilot (§11). |
+| M2 | Pipeline without LLM | Runtime-checking first pass (§5 step 0): executable twins of the shape predicates, E-ACSL and sanitizer builds of the driver on random inputs, mutants as tests; prototype on B1, then generate twins from the ACSL definitions.  Python harness runs steps 1–7, Pétanque integration, `hammer`-only proof search, guardrail checks, report.  Measure how much of M1 automation alone closes.  Budget ledger built and calibrated with a small Opus 5.5 pilot (§11). |
 | M3 | Agent on B1 | Annotator (Opus 5.5) + prover tier on B1 starting from frozen contracts only (no human invariants).  Minimum success criterion.  First comparison of prover escalation strategies (§12.3). |
 | M4 | RB-tree `find_member`, `add` | Shape library extended to trees; target success criterion. |
 | M5 | Evaluation | G6 metrics across B1, B2 (and B3 if reached); ablations: no refinement, no hammer, no library lemmas; prover escalation strategies and annotator model (§12.3). |
@@ -493,6 +526,16 @@ invariant is only needed for functional correctness and is stretch work.
     it needs **[verify]**, and which VST goals it can take (it handles
     first-order goals over integers, booleans and uninterpreted
     functions, not separation-logic entailments).
+    **To do: time and token experiment**, after the REALLMS prover tier
+    works (M3), so it can be one of the arms.  Same informal spec, a
+    fresh agent with no access to the existing proofs, 3 runs per arm;
+    arms: Frama-C alone, VST alone, and Frama-C first then VST (the
+    Frama-C contracts and invariants given as a starting point).
+    Measure agent wall-clock time, tokens, prove/compile iterations,
+    checker time, and whether the result rejects the mutants.  Start
+    with B1a.  The B1a/B1b numbers recorded so far are not a fair
+    comparison: each was run once, and the VST run had the finished
+    Frama-C spec to work from.
 
 ---
 

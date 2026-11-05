@@ -4,9 +4,11 @@ milestone M2): runtime checks, Frama-C/WP, tier-0 proof search, close
 out with coqc / coqchk / Print Assumptions, guardrails, and a report.
 
     python3 harness.py ../bench/b1 [--config b1.json] [--run-dir DIR]
-        [--blank-coq] [--overlay EDITED.c] [--no-rac] [--no-tier0]
-        [--goal-seconds 300]
-        [--tactic-seconds 60] [--max-iterations 1] [--max-seconds 3600]
+        [--blank-coq] [--overlay EDITED.c] [--no-rac] [--tiers 0,1,2]
+        [--goal-seconds 300] [--tactic-seconds 60] [--glm-seconds 120]
+        [--sonnet-calls 30] [--sonnet-seconds 600] [--sonnet-usd 1]
+        [--ledger ../runs/budget.json]
+        [--max-iterations 1] [--max-seconds 3600]
 
 A run works on a copy of the benchmark in its own directory (default
 Ariadne/runs/<name>-<time>/; it must be under Ariadne/, which the
@@ -25,8 +27,10 @@ Steps (plan section 5):
   2  Eva: skipped (optional in the plan);
   3  WP, one run per pass of the config; `-wp-interactive update`
      writes a Coq goal file for every goal sent to Coq;
-  4  tier-0 search (tier0.py) on each open goal, then step 3 again if it
-     closed any;
+  4  proof search on each open goal: tier 0 (tier0.py, no model), then
+     tier 1 (GLM 5.3 Flash) and tier 2 (Sonnet 5.5, within the budget
+     ledger) (tiers.py); each proof is checked by coqc, then step 3 runs
+     again if any goal was closed, so WP checks it too;
   5  refinement: a stub; it records each open goal as a stall, with its
      statement as the last state (there is no annotator in M2);
   6  close out: Coq lint, coqc, coqchk -o and Print Assumptions on every
@@ -53,7 +57,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ARIADNE = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import guardrails  # noqa: E402
+import budget  # noqa: E402
 import tier0  # noqa: E402
+import tiers  # noqa: E402
 from reallms_coq import split_goal  # noqa: E402  (path set by guardrails)
 
 RUN = os.path.join(ARIADNE, "env", "run.sh")
@@ -130,6 +136,10 @@ class Run:
         self.report = {"benchmark": self.bench, "config": a.config,
                        "run_dir": self.dir, "blank_coq": a.blank_coq,
                        "llm_calls": 0, "steps": {}, "guardrails": {}}
+        self.tiers = {int(x) for x in a.tiers.split(",") if x.strip()}
+        if a.no_tier0:
+            self.tiers.discard(0)
+        self.ledger = budget.Ledger(a.ledger)
         self.wp_prefix = {}  # goal file -> its context as WP wrote it
         self.goals = []
         self.certified = set()
@@ -327,37 +337,131 @@ class Run:
         name = re.sub(r"^typed_", "", goal) + ".v"
         return os.path.join(self.work, "session", "interactive", name)
 
-    # ---- step 4: tier-0 proof search -------------------------------------
+    # ---- step 4: proof search, tiers 0-2 ---------------------------------
+
+    def model_tiers(self):
+        """The tier-1 and tier-2 provers --tiers selects (tier 0 is run by
+        search itself).  Each gets at most the time left."""
+        out = []
+        if 1 in self.tiers:
+            out.append(tiers.Tier1(
+                self.logs, self.a.glm_seconds, ledger=self.ledger,
+                hide=tiers.hidden_paths(), keep=[self.work],
+                left=self.left))
+        if 2 in self.tiers:
+            out.append(tiers.Tier2(
+                os.path.join(self.dir, "tier2"), self.ledger,
+                calls=self.a.sonnet_calls, turns=self.a.sonnet_turns,
+                seconds=self.a.sonnet_seconds, usd=self.a.sonnet_usd,
+                left=self.left))
+        return out
+
+    def tier0(self, g, path, r, log):
+        self.log(f"  tier 0: {g['goal']}")
+        s = tier0.Search(path, min(self.a.goal_seconds, self.left()),
+                         self.a.tactic_seconds)
+        t = s.run()
+        t["goal"] = g["goal"]
+        log.append(t)
+        r["seconds"] = t["seconds"]
+        r["attempts"].append({"tier": 0, "status": t["status"],
+                              "seconds": t["seconds"],
+                              "candidates": len(t["tried"])})
+        if t["status"] == "proved":
+            s.apply(t["script"])
+            r.update(status="proved", tier=0, model="tier0",
+                     script=t["script"])
+        self.log(f"  tier 0: {g['goal']}: {t['status']} ({t['seconds']} s)")
 
     def search(self):
-        results = []
-        for g in [g for g in self.goals if g["discharger"] == "open"]:
+        results, t0_log = [], []
+        model_tiers = self.model_tiers()
+        claude = any(t.tier >= 2 for t in model_tiers)
+        b = self.report.setdefault("budget", {
+            "ledger": self.ledger.path, "tokens_charged": 0,
+            "usd_charged": 0.0,
+            "warnings": [], "refused": []})
+        b.setdefault("start", self.ledger.summary())
+        if claude and "weekly_usage_before" not in b:
+            b["weekly_usage_before"] = budget.weekly_usage()
+            self.ledger.record_reading(b["weekly_usage_before"],
+                                       f"{self.dir}: before step 4")
+        refused = False
+        for g in [g for g in self.goals if g["discharger"] == "open"
+                  and re.search(self.a.goals, g["goal"])]:
             path = self.goal_file(g["goal"])
             if self.left() <= 0:
                 self.report["cap_hit"] = "max_seconds"
                 break
             if not os.path.exists(path):
                 results.append({"goal": g["goal"], "status": "open",
-                                "error": "no Coq goal file"})
+                                "tier": None, "error": "no Coq goal file"})
                 continue
-            self.log(f"  tier 0: {g['goal']}")
-            s = tier0.Search(path, min(self.a.goal_seconds, self.left()),
-                             self.a.tactic_seconds)
-            r = s.run()
-            r["goal"] = g["goal"]
-            if r["status"] == "proved":
-                s.apply(r["script"])
+            r = {"goal": g["goal"], "status": "open", "tier": None,
+                 "model": None, "script": None, "seconds": 0.0,
+                 "tokens": 0, "charged_tokens": 0, "usd": 0.0,
+                 "attempts": []}
+            if 0 in self.tiers:
+                self.tier0(g, path, r, t0_log)
+            todo = [t for t in model_tiers if not (refused and t.tier >= 2)]
+            if r["status"] != "proved" and todo:
+                self.log(f"  tiers {[t.tier for t in todo]}: {g['goal']}")
+                c = tiers.chain(path, g["goal"], todo, tier0.coqc,
+                                stop=lambda: self.left() <= 0)
+                self.report["llm_calls"] += sum(
+                    a["status"] != "refused" for a in c["attempts"])
+                r["attempts"] += c["attempts"]
+                r["seconds"] = round(r["seconds"] + c["seconds"], 1)
+                r["tokens"] = c["tokens"]
+                r["charged_tokens"] = c["charged_tokens"]
+                r["usd"] = c["usd"]
+                b["tokens_charged"] += c["charged_tokens"]
+                b["usd_charged"] = round(b["usd_charged"] + c["usd"], 6)
+                for a in c["attempts"]:
+                    if a.get("warning"):
+                        b["warnings"].append(
+                            f"{g['goal']}: the ledger is at "
+                            f"{a.get('pct_after')}% of the weekly limit "
+                            f"(warning at {budget.WARN_PCT}%)")
+                if c["status"] == "refused":
+                    refused = True
+                    self.report["cap_hit"] = "budget"
+                    b["refused"].append({"goal": g["goal"],
+                                         **c["attempts"][-1]["budget"]})
+                if c["status"] == "proved":
+                    r.update({k: c[k] for k in ("status", "tier", "model",
+                                                "script")})
+                self.log(f"  tiers: {g['goal']}: {r['status']}"
+                         + (f" by tier {r['tier']}" if r["tier"] else "")
+                         + f" ({r['seconds']} s, {r['tokens']} tokens)")
             results.append(r)
-            self.log(f"  tier 0: {g['goal']}: {r['status']} "
-                     f"({r['seconds']} s)")
-        with open(os.path.join(self.logs, "step4_tier0.jsonl"), "w") as f:
-            for r in results:
-                f.write(json.dumps(r) + "\n")
-        return {"tried": len(results),
+        if claude:
+            b["weekly_usage_after"] = budget.weekly_usage()
+            self.ledger.record_reading(b["weekly_usage_after"],
+                                       f"{self.dir}: after step 4")
+        b["end"] = self.ledger.summary()
+        if not b["end"]["calibrated"]:
+            b["note"] = (f"ledger not calibrated: placeholder "
+                         f"{b['end']['pct_per_usd']}% of the weekly limit "
+                         "per API-equivalent USD")
+        for name, rows in (("step4_tier0.jsonl", t0_log),
+                           ("step4_prove.jsonl", results)):
+            with open(os.path.join(self.logs, name), "w") as f:
+                for x in rows:
+                    f.write(json.dumps(x) + "\n")
+        by_tier = collections.Counter(r["tier"] for r in results
+                                      if r["status"] == "proved")
+        return {"tiers": sorted(self.tiers), "tried": len(results),
                 "proved": sum(r["status"] == "proved" for r in results),
-                "goals": [{k: r.get(k) for k in
-                           ("goal", "status", "script", "seconds", "error")}
-                          for r in results]}
+                "by_tier": {str(k): v for k, v in sorted(by_tier.items())},
+                "refused": refused, "goals": results}
+
+    def wp_confirm(self, step):
+        """After step 3 again: did WP accept each proof step 4 found?"""
+        dis = {g["goal"]: g["discharger"] for g in self.goals}
+        for r in step["goals"]:
+            if r["status"] == "proved":
+                r["wp_confirmed"] = dis.get(r["goal"]) == "coq"
 
     # ---- step 5: refinement (stub) ----------------------------------------
 
@@ -483,10 +587,11 @@ class Run:
         self.report["census_after_wp"] = r["census"] if r else None
         iterations = 0
         while r is not None and self.open_goals():
-            if not self.a.no_tier0:
-                s = self.step("4_tier0", self.search)
+            if self.tiers:
+                s = self.step("4_prove", self.search)
                 if s and s["proved"]:
                     r = self.step("3_wp", lambda: self.wp("batch"))
+                    self.wp_confirm(s)
             if r is None or not self.open_goals():
                 break
             f = self.step("5_refine", self.refine)
@@ -548,7 +653,7 @@ def markdown(r):
     out = [f"# Ariadne M2 run: {os.path.basename(r['benchmark'])}"
            f"{' (Coq scripts dropped)' if r['blank_coq'] else ''}", "",
            f"**Verdict: {r['verdict']}.**  {c['proved']} / {c['goals']} "
-           f"goals proved; {r['seconds']} s; LLM calls: {r['llm_calls']}.",
+           f"goals proved; {r['seconds']} s; model runs: {r['llm_calls']}.",
            "", "## Goal census", "",
            "| Discharger | after step 3 | final |", "|---|---|---|"]
     for k in ("qed", "smt", "coq", "open"):
@@ -569,15 +674,41 @@ def markdown(r):
     out += ["", "## Guardrails", "", "| Check | Verdict |", "|---|---|"]
     for k, v in r["guardrails"].items():
         out.append(f"| {k} | {'pass' if v['ok'] else 'FAIL'} |")
-    t0 = r["steps"].get("4_tier0")
-    if t0:
-        out += ["", "## Tier-0 search", "", "| Goal | Result | Seconds | "
-                "Script |", "|---|---|---|---|"]
-        for g in t0["goals"]:
-            out.append(f"| `{g['goal']}` | {g['status']} | "
-                       f"{g.get('seconds', '')} | "
-                       f"{('`' + g['script'] + '`') if g.get('script') else ''}"
-                       " |")
+    pr = r["steps"].get("4_prove")
+    if pr:
+        out += ["", f"## Proof search (tiers {pr['tiers']})", "",
+                "| Goal | Proved by | Seconds | Tokens | USD charged | "
+                "Attempts (tier: result) |", "|---|---|---|---|---|---|"]
+        for g in pr["goals"]:
+            by = (f"tier {g['tier']} ({g['model']})"
+                  if g["status"] == "proved" else g["status"])
+            if g.get("wp_confirmed") is False:
+                by += ", NOT confirmed by WP"
+            att = "; ".join(
+                f"{a['tier']}: {a['status']} {a.get('seconds', '')} s"
+                + (f", {a['tokens']} tok" if a.get("tokens") else "")
+                for a in g.get("attempts", []))
+            out.append(f"| `{g['goal']}` | {by} | {g.get('seconds', '')} | "
+                       f"{g.get('tokens', 0)} | {g.get('usd', 0)} | {att} |")
+    b = r.get("budget")
+    if b:
+        e = b.get("end", {})
+        wb = (b.get("weekly_usage_before") or {}).get("pct")
+        wa = (b.get("weekly_usage_after") or {}).get("pct")
+        out += ["", "## Budget", "",
+                f"Anthropic use charged this run: ${b['usd_charged']} "
+                f"(API-equivalent), {b['tokens_charged']} tokens.  Ledger "
+                f"this week: ${e.get('usd')}, {e.get('pct')}% of the weekly "
+                f"limit (cap {e.get('cap_pct')}%, warning "
+                f"{e.get('warn_pct')}%), "
+                + ("calibrated" if e.get("calibrated") else
+                   f"**uncalibrated** (placeholder {e.get('pct_per_usd')}% "
+                   "per USD)") + "."
+                + (f"  `/usage` weekly (all Claude Code use): {wb}% before, "
+                   f"{wa}% after." if wb is not None else "")]
+        out += [f"- **Warning:** {w}" for w in b.get("warnings", [])]
+        out += [f"- **Refused:** `{x['goal']}`: {x['projected_pct']}% would "
+                f"pass the {x['cap_pct']}% cap" for x in b.get("refused", [])]
     coq = [g for g in r["goals"] if g["discharger"] in ("coq", "open")]
     if coq:
         out += ["", "## Goals not closed by Qed or SMT", ""]
@@ -604,9 +735,29 @@ def main():
                     "source to run instead of it (checked by the "
                     "guardrails against the benchmark's)")
     ap.add_argument("--no-rac", action="store_true")
-    ap.add_argument("--no-tier0", action="store_true")
-    ap.add_argument("--goal-seconds", type=float, default=300)
+    ap.add_argument("--no-tier0", action="store_true",
+                    help="drop tier 0 from --tiers")
+    ap.add_argument("--tiers", default="0,1,2",
+                    help="prover tiers for step 4 (0 tier0.py, 1 GLM, "
+                    "2 Sonnet); empty for none")
+    ap.add_argument("--goal-seconds", type=float, default=300,
+                    help="tier 0: seconds per goal")
     ap.add_argument("--tactic-seconds", type=float, default=60)
+    ap.add_argument("--glm-seconds", type=int, default=120,
+                    help="tier 1: working time per goal")
+    ap.add_argument("--sonnet-calls", type=int, default=30,
+                    help="tier 2: prover_cli goals/check calls per goal")
+    ap.add_argument("--sonnet-turns", type=int, default=60,
+                    help="tier 2: Claude Code turns per goal")
+    ap.add_argument("--sonnet-seconds", type=int, default=600,
+                    help="tier 2: wall clock per goal")
+    ap.add_argument("--sonnet-usd", type=float, default=1.0,
+                    help="tier 2: --max-budget-usd per goal (API-"
+                    "equivalent), also what the ledger reserves")
+    ap.add_argument("--ledger", default=budget.PATH)
+    ap.add_argument("--goals", default="",
+                    help="step 4 only on the open goals whose name "
+                    "matches this regex (default: all)")
     ap.add_argument("--max-iterations", type=int, default=1)
     ap.add_argument("--max-seconds", type=float, default=3600)
     sys.exit(Run(ap.parse_args()).main())

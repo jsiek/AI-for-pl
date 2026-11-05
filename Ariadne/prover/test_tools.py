@@ -77,6 +77,26 @@ expect(f"blank: {len(sibs)} sibling proofs hidden by read_file", not leaks,
        str(leaks))
 out = b.grep(r"^\s*(intros|unfold|induction)\b", os.path.dirname(rel))
 expect("blank: no proof lines from grep", out == "(no matches)", out)
+# --hide / --keep: a hidden path is refused by read_file and skipped by
+# grep, except under a kept path.
+ar = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+h = Worker(sys.argv[1], timeout=120, fh=None, blank=True,
+           hide=[os.path.join(ar, "bench")],
+           keep=[os.path.join(ar, "bench", "b1", "b1.c")])
+try:
+    h.read_file(rel, 1, 3)
+    expect("hide: read_file refuses a hidden path", False, "read it")
+except ValueError:
+    expect("hide: read_file refuses a hidden path", True, "")
+expect("hide: a kept path stays readable",
+       h.read_file("bench/b1/b1.c", 1, 1).startswith("1: "), "")
+out = h.dispatch("grep", {"pattern": "wp_goal", "path": "bench"})
+expect("hide: grep refuses a hidden directory", "hidden" in out, out)
+h2 = Worker(sys.argv[1], timeout=120, fh=None,
+            hide=[os.path.join(ar, "bench", "b1", "session")])
+out = h2.grep(r"wp_goal", "bench/b1")
+expect("hide: grep over a parent skips the hidden files",
+       out == "(no matches)", out)
 # Known answers (results/, e.g. Sonnet's accepted proofs) are refused.
 try:
     b.read_file("prover/results/sonnet/mem_cons.v")

@@ -34,7 +34,7 @@ certify() {
 name="coqchk accepts the certificate (axioms in cert/coqchk.txt)"
 step certify
 
-# 3. CoqHammer with external ATPs (Vampire, Eprover) and sauto.
+# 3. CoqHammer with external ATPs (Vampire, Eprover, z3_tptp, cvc4) and sauto.
 name="CoqHammer (hammer_check.v)"
 step "$run" coqc hammer_check.v
 

@@ -106,6 +106,16 @@ def census(goals):
             "open": c["open"], "smt_by_prover": dict(sorted(smt.items()))}
 
 
+
+def steps_succeeded(report):
+    """Normalisation and WP ran and succeeded, no step failed (a skipped
+    RAC pass has no "ok"), and the time cap was not hit."""
+    steps = report["steps"]
+    return (all(steps.get(k, {}).get("ok") is True
+                for k in ("1_normalise", "3_wp"))
+            and not any(v.get("ok") is False for v in steps.values())
+            and report.get("cap_hit") != "max_seconds")
+
 class Run:
     def __init__(self, a):
         self.a = a
@@ -122,6 +132,7 @@ class Run:
         self.work = os.path.join(self.dir, "bench")
         self.logs = os.path.join(self.dir, "logs")
         self.start = time.time()
+        self.containers = 0
         self.report = {"benchmark": self.bench, "config": a.config,
                        "run_dir": self.dir, "blank_coq": a.blank_coq,
                        "llm_calls": 0, "steps": {}, "guardrails": {}}
@@ -138,26 +149,40 @@ class Run:
     def log(self, msg):
         print(f"[{time.time() - self.start:7.1f}s] {msg}", flush=True)
 
-    def sh(self, cmd, cwd, log, timeout=None):
+    def left(self):
+        """Seconds left under --max-seconds."""
+        return self.a.max_seconds - (time.time() - self.start)
+
+    def sh(self, cmd, cwd, log):
         """Run cmd (via ../env/run.sh when it starts with "image"), log
-        its output; return the exit code (124 on timeout)."""
+        its output; return the exit code (124 on timeout).  The time
+        left under --max-seconds is its timeout; a container still
+        running then is stopped by name."""
+        env, name = None, None
         if cmd[0] == "image":
             cmd = [RUN] + cmd[1:]
+            self.containers += 1
+            name = f"ariadne-h-{os.getpid()}-{self.containers}"
+            env = dict(os.environ, ARIADNE_NAME=name)
         with open(os.path.join(self.logs, log), "a") as fh:
             fh.write("$ " + " ".join(cmd) + "\n")
             fh.flush()
             try:
                 return subprocess.run(cmd, cwd=cwd, stdout=fh,
-                                      stderr=subprocess.STDOUT,
-                                      timeout=timeout).returncode
+                                      stderr=subprocess.STDOUT, env=env,
+                                      timeout=max(1, self.left())
+                                      ).returncode
             except subprocess.TimeoutExpired:
-                fh.write("(timeout)\n")
+                fh.write("(timeout: --max-seconds used up)\n")
+                self.report["cap_hit"] = "max_seconds"
+                if name:
+                    subprocess.run(["docker", "stop", "-t", "2", name],
+                                   capture_output=True)
                 return 124
 
     def step(self, name, fn):
         """Run one step, timed; its result goes into report["steps"]."""
-        left = self.a.max_seconds - (time.time() - self.start)
-        if left <= 0:
+        if self.left() <= 0:
             self.report["steps"][name] = {"skipped": "total time cap"}
             self.report["cap_hit"] = "max_seconds"
             return None
@@ -318,7 +343,7 @@ class Run:
         results = []
         for g in [g for g in self.goals if g["discharger"] == "open"]:
             path = self.goal_file(g["goal"])
-            if self.a.max_seconds - (time.time() - self.start) <= 0:
+            if self.left() <= 0:
                 self.report["cap_hit"] = "max_seconds"
                 break
             if not os.path.exists(path):
@@ -326,7 +351,7 @@ class Run:
                                 "error": "no Coq goal file"})
                 continue
             self.log(f"  tier 0: {g['goal']}")
-            s = tier0.Search(path, self.a.goal_seconds,
+            s = tier0.Search(path, min(self.a.goal_seconds, self.left()),
                              self.a.tactic_seconds)
             r = s.run()
             r["goal"] = g["goal"]
@@ -498,9 +523,7 @@ class Run:
             goals, {p["name"]: p["goals"] for p in self.cfg["passes"]},
             self.cfg.get("out_of_scope", []), self.certified))
         g_ok = all(v["ok"] for v in self.report["guardrails"].values())
-        rac = self.report["steps"].get("0_rac", {})
-        steps_ok = rac.get("ok", True) and \
-            self.report["steps"].get("1_normalise", {}).get("ok", False)
+        steps_ok = steps_succeeded(self.report)
         self.report["census"] = census(goals)
         self.report["goals"] = goals
         self.report["seconds"] = round(time.time() - self.start, 1)

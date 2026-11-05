@@ -48,7 +48,39 @@ try:
                and guard in failed and "0_rac" not in r["steps"]
                and not os.path.exists(os.path.join(run, "cert")),
                {"failed": failed, "steps": list(r["steps"])})
+    # --max-seconds also bounds a command already running: the runtime
+    # checks take about 18 s, so a 6 s cap stops them, the run fails,
+    # and no container is left behind.
+    run = os.path.join(tmp, "run_cap")
+    p = subprocess.run([sys.executable, os.path.join(HERE, "harness.py"),
+                        B1, "--max-seconds", "6", "--run-dir", run],
+                       capture_output=True, text=True)
+    r = json.load(open(os.path.join(run, "report.json")))
+    left = subprocess.run(["docker", "ps", "-q", "--filter",
+                           "name=ariadne-h-"], capture_output=True,
+                          text=True).stdout.strip()
+    expect("max-seconds stops a running step", p.returncode == 1
+           and r["verdict"] == "failed" and r.get("cap_hit") ==
+           "max_seconds" and r["seconds"] < 15 and not left,
+           {"verdict": r["verdict"], "cap": r.get("cap_hit"),
+            "seconds": r["seconds"], "containers": left})
 finally:
     shutil.rmtree(tmp)
+
+# The verdict requires WP to have succeeded, even with every goal valid.
+sys.path.insert(0, HERE)
+from harness import steps_succeeded  # noqa: E402
+good = {"steps": {"0_rac": {"ok": True}, "1_normalise": {"ok": True},
+                  "3_wp": {"ok": True}, "6_close_out": {}}}
+expect("steps: all succeeded", steps_succeeded(good), good)
+for k in ("3_wp", "1_normalise", "0_rac"):
+    bad = json.loads(json.dumps(good))
+    bad["steps"][k]["ok"] = False
+    expect(f"steps: {k} failed -> not certified", not steps_succeeded(bad))
+bad = json.loads(json.dumps(good))
+del bad["steps"]["3_wp"]
+expect("steps: WP never ran -> not certified", not steps_succeeded(bad))
+expect("steps: time cap hit -> not certified",
+       not steps_succeeded(dict(good, cap_hit="max_seconds")))
 print(f"{'FAIL' if fails else 'PASS'}: {len(fails)} failed")
 sys.exit(1 if fails else 0)

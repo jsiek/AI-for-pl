@@ -8,7 +8,10 @@ cd Ariadne/harness
 python3 harness.py ../bench/b1                 # B1 as M1 left it
 python3 harness.py ../bench/b1 --blank-coq     # without the 5 Coq proofs
 python3 harness.py ../bench/b1 --overlay my_b1.c   # an edited b1.c
+python3 harness.py ../bench/b1 --blank-coq --tiers 0,1,2   # with the prover tiers
+python3 budget.py show                         # the Anthropic budget ledger
 python3 test_guardrails.py; python3 test_tier0.py; python3 test_harness.py
+python3 test_budget.py; python3 test_tiers.py  # offline, no model calls
 ```
 
 Needs the M0 image and the plugin built (`../env/run.sh dune build` in
@@ -28,13 +31,14 @@ is hashed before and after; a change fails the run (`benchmark_untouched`).
 | 1 | `-ariadne`, RTE (`-rte-initialized @all`), `-print` into `b1.rte.c` | |
 | 2 | Eva: skipped (optional in the plan) | |
 | 3 | WP, one run per pass of the config (`run.sh`'s flags); `-wp-interactive update` makes WP write a Coq goal file for every goal it sends to Coq | |
-| 4 | tier-0 search on each open goal; if it closes any, step 3 again (`batch`), so WP itself confirms the scripts | `tier0.py` |
+| 4 | proof search on each open goal: tier 0, then tier 1 (GLM), then tier 2 (Sonnet, within the budget ledger); a proof counts once `coqc` accepts it in the real goal file; if any goal closed, step 3 again (`batch`), so WP itself confirms the scripts | `tier0.py`, `tiers.py`, `budget.py` |
 | 5 | refinement: a **stub**; each open goal is recorded as a stall with its statement as the last state, and the loop ends (no annotator in M2) | |
 | 6 | for every goal Coq closed: Coq lint, `coqc`, one `coqchk -o` over all modules, `Print Assumptions wp_goal`, axioms against the allow-list | |
 | 7 | caps (`--max-iterations`, `--max-seconds`); verdict `certified` only if every guardrail passed and every goal is accounted for; otherwise a failure report (open goals with their last state) and the `cert/` directory is deleted | |
 
 Output: `report.json` (census, every goal with its discharger, seconds per
-step, guardrail verdicts, tier-0 attempts, stalls), `report.md` (a short
+step, guardrail verdicts, step 4's attempts per goal and tier with
+seconds, tokens and USD, the budget, stalls), `report.md` (a short
 summary), `logs/`, and on success `cert/` (the Coq goal files with their
 `.vo`).
 
@@ -71,6 +75,89 @@ Why3's list lemmas (`nth_zero`, `nth_cons`, `length_cons`, `length_pos`,
 first three premises, then `sauto` / `hammer` / `sauto use:`.  The first
 script Pétanque finishes is checked by `coqc`; when `hammer` succeeded,
 the tactic it reconstructs is checked first.
+
+## Prover tiers 1 and 2 (`tiers.py`, plan §12.2)
+
+`--tiers` (default `0,1,2`) picks the tiers; `--goals REGEX` limits step
+4 to some goals.  On each goal tier 0 leaves open, `tiers.chain` runs
+the next tier until one's proof is confirmed: no forbidden command
+(`reallms_coq.FORBIDDEN`) and `coqc` accepts the real goal file with it
+(then it is written there and WP reruns).  Every tier gets at most the
+time left under `--max-seconds`.
+
+| Tier | How | Per-goal cap | Charged |
+|---|---|---|---|
+| 1 | `../prover/reallms_coq.py --blank` (GLM 5.3 Flash on REALLMS); `--hide` makes `read_file`/`grep` refuse other runs, `prover/results`, `harness/results` and every benchmark's `session/` (they hold proofs of the same goals), except the run's own copy | `--glm-seconds` 120 of working time | no: tokens logged as free |
+| 2 | headless Claude Code: `claude -p --model claude-sonnet-5-5 --output-format json` in `<run>/tier2/<goal>/`, which holds only `GOAL.v` (the statement, no proof) | `--sonnet-calls` 30 `goals`/`check` calls (`prover_cli.py` refuses more), `--sonnet-turns` 60, `--sonnet-seconds` 600, `--sonnet-usd` 1 (`--max-budget-usd`) | yes, in the ledger |
+
+Tier 2's fence: `--safe-mode` (no CLAUDE.md, skills, plugins, hooks,
+MCP), `--restricted` (user and project settings ignored, file tools
+confined to the working directory), `--tools Bash,Read,Write,Edit`,
+`--allowedTools` with the four `python3 prover_cli.py
+statement|query|goals|check GOAL.v [SCRIPT.v]` forms and Read/Write/Edit
+under the work directory, `--disallowedTools "Bash(git *)"`,
+`--permission-mode dontAsk` (anything else is denied, not asked).  The
+git rule matters: Claude Code otherwise runs read-only git commands
+unasked, and the history holds the benchmark's proofs; `GIT_DIR` and
+`GIT_CEILING_DIRECTORIES` fence git a second time.  A probe with Haiku
+confirmed it: the four commands and Write in the directory ran; `cat
+/etc/hostname`, `ls ..`, a Read of `bench/b1/b1.c`, `git log`, `git -C
+.. show` and a compound command were denied.
+
+The JSON result's fields used: `modelUsage.<model>.{inputTokens,
+outputTokens, cacheCreationInputTokens, cacheReadInputTokens, costUSD}`
+(else `usage.{input_tokens, output_tokens, cache_creation_input_tokens,
+cache_read_input_tokens}` and `total_cost_usd`), `subtype`, `num_turns`,
+`result`, `permission_denials`.
+
+**End to end on `mem_cons`** (`--blank-coq --no-rac --goals mem_cons`,
+one run each): tier 1 alone, GLM used its 120 s (45 steps, 613k tokens,
+free) without a proof; tier 2 alone, Sonnet proved it in 9.6 s (4
+turns, 1 `check` call, 47.6k tokens, $0.080 API-equivalent, no
+permission denials); `coqc` accepted it, the WP rerun counted the goal
+as Coq-proved, and step 6 certified it (coqchk and Print Assumptions on
+the allow-list).
+
+## Budget ledger (`budget.py`, plan §11 item 3)
+
+`../runs/budget.json` (git-ignored; `--ledger` for another) keeps the
+Anthropic spending since the last weekly reset, per role (prover,
+annotator) and per model: calls, the four token counts and the
+API-equivalent USD.  **The unit is USD**: token totals are dominated by
+cache reads, which cost about a tenth of other input, so cost tracks
+the limit better.  Before each tier-2 call `reserve` takes the call's
+cap (`--sonnet-usd`) and refuses if the week would pass the cap; the
+refusal goes into the ledger and the report, the run stops asking
+Claude (`cap_hit: budget`), and the goal stays open.  After the call
+`charge` books its reported cost (or its cap, if it was killed or gave
+no JSON).  GLM's tokens go under `free`, uncharged.
+
+Percent of the weekly limit = USD x `pct_per_usd`.  Cap 20%, warning at
+15% (in the report).  **Until calibrated, `pct_per_usd` is a placeholder
+of 2% per USD** (the cap is then $10, about 100 goals at `mem_cons`'s
+cost), and the report says so.  Calibrate with
+
+```bash
+python3 budget.py calibrate --percent P --since YYYY-MM-DD
+```
+
+where P is `/usage`'s "Current week (all models)" and the date is the
+last weekly reset: it runs `npx -y ccusage@20.0.40 claude daily --since
+YYYYMMDD --breakdown --json`, takes `totals.totalCost` (else the sum of
+`daily[].totalCost`; these names are not yet checked against this version's output), and stores P / cost with both inputs and the
+date.  ccusage covers all Claude Code use on this machine, the owner's
+interactive sessions included, which is what the weekly limit counts;
+it counts by day, so the reset day is counted whole.  The ledger's own
+totals stay separate.
+
+**The weekly % is readable programmatically**: `claude -p /usage
+--output-format json` is a local command (`num_turns` 0, no tokens)
+whose `result` text has "Current week (all models): N% used · resets
+<date> (<zone>)".  `budget.weekly_usage()` parses it; the harness
+records a reading before and after step 4 when tier 2 runs, and its
+reset time becomes the ledger's `resets_at`; at `resets_at` the week's
+totals move to `past_weeks`.  It is an integer % of all use, so it
+cannot see one goal (23% before and after the `mem_cons` run).
 
 ## Results on B1 (`results/`)
 

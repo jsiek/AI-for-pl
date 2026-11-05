@@ -277,6 +277,39 @@ Prompts tightened after the B1 run (`tiers.PROMPT`, `annotator.PROMPT`):
 one command per Bash call, edits with Write/Edit, and a denial does not
 end the task.
 
+**Fence retry.**  An attempt that ends with no proof (tier 2) or no
+patch (the annotator) after the fence refused a command
+(`permission_denials` > 0) is retried once, with the refused commands
+named (`tiers.fence_note`; for the annotator in TASK.md, beyond
+`--annotator-retries`).  An attempt whose proof failed, or that coqc
+rejected, is not retried (`test_tiers.py`, `test_annotator.py`).
+
+**Two attempts at an uninterrupted rerun** (`--annotator-retries 0`,
+then 1; same flags otherwise) each got an Opus patch that WP's oracle
+closed on every function (58 and 59 turns, $2.80 and $2.56), and each
+patch was stopped by step 0, for two reasons in the runtime-check
+tooling rather than in the annotations:
+
+- E-ACSL evaluates `\at(e, Pre)` at function entry on every path, so
+  an assert in `add`'s else branch reading `\at((*list)->ptr_to_next,
+  Pre)` failed its RTE check on runs where `*list` was NULL at entry,
+  though WP proved the assert;
+- `rac/gen_rac.py` drops ghost declarations, so a patch with a ghost
+  variable `gh` did not build under E-ACSL ("unbound logic variable"),
+  and the feedback sent back was empty (the failing check was read
+  after step 0's entry had been restored).
+
+Both are fixed: an E-ACSL or RAC-generation build failure is now
+`inconclusive` (step 0 is a filter only, plan §5.0: the patch goes on
+to WP, with the reason in the report), a fired check stays a rejection,
+the feedback carries the FAIL lines and what follows them, and an
+`RTE failed` message comes with a note on E-ACSL's eager `\at`.  The
+second attempt's retry call was stopped by hand once the empty feedback
+showed; the ledger booked its $4 cap (no JSON result), so the ledger
+shows $9.36 for the two attempts against about $5.40 used.  Within the
+budget for the rerun (about $6), the certified result above stays the
+resumed one.
+
 ## Results on B1 (`results/`)
 
 | Run | Verdict | Qed | SMT | Coq | Open | Wall clock |

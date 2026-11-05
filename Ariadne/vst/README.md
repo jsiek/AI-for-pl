@@ -532,11 +532,11 @@ take without unfolding, `CompDec` instances for CompCert types, or list
 reasoning.  Where it could help is goals mixing uninterpreted functions
 with arithmetic or with propositional structure (smoke z5, b1), which
 `lia` does not do; that may matter for functional-correctness specs
-later (M2), not for B1's shape proofs.  Decisions for the owner:
-(a) keep SMTCoq in the image (cheap: +1.5 min, +0.4 GB) or drop it;
-(b) whether to write `CompDec` instances for `Int.int`/`val` and a
-`rep_lia`-style preprocessing step, which is what SMTCoq would need to
-be useful on VST goals.
+later (M2), not for B1's shape proofs.  **Decision (owner):** SMTCoq
+stays in the image (+1.5 min build, +0.4 GB), unused by the B1 proofs,
+and no more work goes into it for now: no `CompDec` instances for
+`Int.int`/`val` and no `rep_lia`-style preprocessing, which is what
+SMTCoq would need to be useful on VST goals.
 
 ## Sources
 

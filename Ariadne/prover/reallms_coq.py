@@ -160,6 +160,9 @@ class Worker:
         self.fh = fh
         self.last_ok = False
         self.last_script = None
+        # The longest partial script show_goals ran without an error, with
+        # its goals: the hand-off of plan 12.3 S3.
+        self.best_partial, self.best_goals = None, None
         self.last_errors = ""
         self.counts = {}
         self.coqc_runs = 0
@@ -315,6 +318,9 @@ class Worker:
             return "(script uses a forbidden command)"
         self.goals_ok, out = self._coqc(self.prefix + "\n" + script
                                         + "\nShow.\nAdmitted.\n")
+        if self.goals_ok and len(script.strip()) > len(
+                (self.best_partial or "").strip()):
+            self.best_partial, self.best_goals = script, out[-3000:]
         if not self.goals_ok:
             state = self._state_before_error(script)
             if state:
@@ -577,6 +583,9 @@ def main():
         "coqc_runs": w.coqc_runs, "backend": args.backend,
         "pet_restarts": w.pet_restarts,
         "script": w.last_script if w.last_ok else None,
+        "partial": None if w.last_ok else (w.best_partial or w.last_script),
+        "partial_goals": None if w.last_ok or not w.best_partial
+        else w.best_goals,
         "short_error": "" if w.last_ok else (w.last_errors or "")[-600:],
     }
     if args.apply and w.last_ok:

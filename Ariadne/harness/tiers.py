@@ -80,7 +80,9 @@ class Tier1:
                 "end": rep.get("status"),
                 "tokens": sum(v for v in usage.values()
                               if isinstance(v, int)),
-                "usage": usage, "charged": False}
+                "usage": usage, "charged": False,
+                "partial": rep.get("partial"),
+                "partial_goals": rep.get("partial_goals")}
 
 
 PROMPT = """\
@@ -235,6 +237,8 @@ class Tier2:
         res.update(status="proved" if ok and script else "open",
                    script=normalise(script).strip("\n") if script else None,
                    seconds=round(time.time() - t, 1))
+        if res["status"] != "proved":  # the hand-off of plan 12.3 S3
+            res["partial"] = res["script"]
         return res
 
 

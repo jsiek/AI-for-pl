@@ -79,6 +79,7 @@ class Runner:
         self.ledger = budget.Ledger(a.ledger)
         self.rows = [json.loads(x) for x in open(a.out)] \
             if os.path.exists(a.out) else []
+        self.held = 0.0  # the caps of paid attempts still running
 
     def done(self, phase, model, goal, k=1):
         return next((r for r in self.rows if r["phase"] == phase
@@ -104,10 +105,21 @@ class Runner:
         if r:
             return r
         if model not in FREE:
+            # The cap is held under the lock until the attempt's row is
+            # in, so parallel workers cannot all pass the budget check.
             with LOCK:
-                if self.spent() + CAPS[model] > self.a.usd:
+                if self.spent() + self.held + CAPS[model] > self.a.usd:
                     return {"phase": phase, "model": model, "goal": goal,
                             "k": k, "status": "skipped: comparison budget"}
+                self.held += CAPS[model]
+        try:
+            return self._attempt(phase, model, goal, k, handoff)
+        finally:
+            if model not in FREE:
+                with LOCK:
+                    self.held -= CAPS[model]
+
+    def _attempt(self, phase, model, goal, k, handoff):
         root = os.path.join(self.work, f"{phase}-{model}-{goal}-{k}")
         if os.path.exists(root):
             shutil.rmtree(root)

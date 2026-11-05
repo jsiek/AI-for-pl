@@ -190,11 +190,14 @@ def lint_ghost(base_text, edited_text):
                         if re.match(r"\s*ghost\b", b))
         c = {k: len(re.findall(rf"\b{k}\b", code)) for k in GHOST_FORBIDDEN}
         # a call: an identifier followed by `(` that is not a cast or a
-        # keyword (sizeof and the ACSL built-ins start with `\`)
+        # keyword (sizeof and the ACSL built-ins start with `\`), or any
+        # `(` right after `)`, which also covers `(f)(x)` and `(*fp)(x)`
+        # (and so refuses a cast of a parenthesised operand, `(int)(x)`)
         c["call"] = len([m for m in re.finditer(r"\b([A-Za-z_]\w*)\s*\(",
                                                 code)
                          if m.group(1) not in ("sizeof", "if", "switch")
-                         + GHOST_FORBIDDEN])
+                         + GHOST_FORBIDDEN]) \
+            + len(re.findall(r"\)\s*\(", code))
         return c
     base, ed = counts(base_text), counts(edited_text)
     added = {k: ed[k] - base[k] for k in ed if ed[k] > base[k]}

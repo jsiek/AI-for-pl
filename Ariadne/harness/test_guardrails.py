@@ -104,7 +104,11 @@ ANCHOR = "  //@ assert live_dll(\\null, the_list, \\Nil);"
 for name, ghost in (("ghost loop", "//@ ghost while (1) ;"),
                     ("ghost write of __heap", "//@ ghost __heap = 0;"),
                     ("ghost call", "//@ ghost ariadne_free_dllist(l);"),
-                    ("ghost return", "//@ ghost return 0;")):
+                    ("ghost return", "//@ ghost return 0;"),
+                    ("parenthesised ghost call",
+                     "/*@ ghost int x; (sglib_dllist_get_first)(l); */"),
+                    ("ghost call through a pointer",
+                     "/*@ ghost (*sglib_dllist_get_first)(l); */")):
     v = g.lint_ghost(base, edit(base, ANCHOR, ANCHOR + "\n  " + ghost))
     expect(f"lint_ghost: {name} rejected", not v["ok"], v)
 v = g.lint_ghost(base, edit(base, ANCHOR, ANCHOR + "\n  //@ ghost int gk = 0;"

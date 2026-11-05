@@ -29,12 +29,16 @@ RUN opam update -q \
 # `with-trakt-rocq-9.0v1` branch at a fixed commit (2026-06-10).  That
 # branch needs Trakt (goal preprocessing for Z, nat, ...), built at the
 # Trakt commit of the same day, on rocq-elpi 3.4.0 + elpi 3.7.1 (a pair
-# listed in that Trakt commit's flake.nix for Rocq <= 9.2).
+# listed in that Trakt commit's flake.nix for Rocq <= 9.2).  Trakt
+# builds with dune's `(using rocq 0.11)` mode, which calls
+# `rocq --config`; Rocq 9.0 only has `rocq c -config`, so a shim
+# (smtcoq/rocq-config-shim.sh) maps one to the other during that build.
 # Solvers, as SMTCoq's INSTALL.md at that commit asks: the veriT
 # snapshot 9f48a98 (proof production on; built from source; the
 # INSTALL.md URL at lri.fr now redirects, the file moved to
 # usr.lmf.cnrs.fr) and CVC4 1.6 (static Linux binary).  cvc5 1.0.7 is
 # only for SMTCoq's `abduce` tactic and is not installed.
+# veriT is 2016 C: GCC 12 defaults to -fno-common, so it needs -fcommon.
 # These layers come after the VST layer so that layer stays cached.
 USER root
 RUN apt-get update \
@@ -50,13 +54,14 @@ RUN curl -sSL -o veriT9f48a98.tar.gz \
       '15d3adf254febf9ee2c5d2b06f01d80f02d2e27d2f87c964b5470d8596f03813  cvc4' \
     | sha256sum -c - \
  && tar xzf veriT9f48a98.tar.gz \
- && cd veriT9f48a98 && autoconf && ./configure && make \
+ && cd veriT9f48a98 && autoconf && ./configure && make CC="gcc -fcommon" \
  && install -m 755 veriT /usr/local/bin/veriT \
  && cd .. && install -m 755 cvc4 /usr/local/bin/cvc4 \
  && cd / && rm -rf /tmp/solvers
 
 USER rocq
 WORKDIR /home/rocq/src
+COPY --chown=rocq smtcoq/rocq-config-shim.sh /home/rocq/src/shim/rocq
 RUN curl -sSL -o smtcoq.tar.gz \
       https://github.com/smtcoq/smtcoq/archive/3df6204826a06f5025bc7408ab77855680c50367.tar.gz \
  && curl -sSL -o trakt.tar.gz \
@@ -71,8 +76,12 @@ RUN curl -sSL -o smtcoq.tar.gz \
  && mv trakt-c666cad53d794b0facecb7a87a6f74e6c89be088 trakt \
  && rm smtcoq.tar.gz trakt.tar.gz \
  && opam install -y elpi.3.7.1 rocq-elpi.3.4.0 \
- && opam pin add -y -k path rocq-trakt.dev ./trakt \
  && eval $(opam env) \
+ && chmod +x shim/rocq \
+ && (cd trakt \
+     && PATH=/home/rocq/src/shim:$PATH dune build -p rocq-trakt @install \
+     && PATH=/home/rocq/src/shim:$PATH dune install rocq-trakt) \
+ && rm -rf shim trakt \
  && make -C smtcoq -j"$(nproc)" \
  && make -C smtcoq install \
  && opam clean -a -c -s --logs

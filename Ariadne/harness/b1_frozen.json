@@ -1,0 +1,30 @@
+{
+  "name": "b1_frozen",
+  "source": "b1_frozen.c",
+  "cpp_args": "-I/ariadne/plugin/share",
+  "frama_c": ["-load-module", "/ariadne/plugin/_build/default/ariadne.cmxs",
+              "-cpp-extra-args=-I/ariadne/plugin/share",
+              "-generated-spec-custom", "terminates:skip", "-ariadne"],
+  "rte": ["-rte", "-rte-initialized", "@all"],
+  "wp": ["-wp-model", "Typed", "-wp-no-filter-init",
+         "-wp-prover", "alt-ergo,z3,cvc5,coq", "-wp-timeout", "60"],
+  "passes": [
+    {"name": "functions", "goals": {"min": 254},
+     "options": ["-wp-rte", "-rte-initialized", "@all", "-wp-fct",
+                 "sglib_dllist_add,sglib_dllist_it_init_on_equal,sglib_dllist_it_init,sglib_dllist_it_next,sglib_dllist_get_first,sglib_dllist_get_last,b1"]},
+    {"name": "lemmas", "goals": {"min": 0}, "options": ["-wp-prop=@lemma"]}
+  ],
+  "rac": {"dir": "rac", "command": ["sh", "./check.sh", "300", "1", "200", "quick"],
+          "bench_line": "B1=/ariadne/bench/b1",
+          "source_line": "SRC=$B1/b1.c"},
+  "function_goals": {"sglib_dllist_add": 54, "sglib_dllist_get_first": 16,
+                     "sglib_dllist_get_last": 16, "sglib_dllist_it_init": 8,
+                     "sglib_dllist_it_init_on_equal": 32,
+                     "sglib_dllist_it_next": 78, "b1": 50},
+  "out_of_scope": [],
+  "copy_ignore": ["session/cache", "session/interactive/*.v", "mutants",
+                  "rac/build", "*.log", "report*.json", "*.vo", "*.vok",
+                  "*.vos", "*.glob", ".*.aux", ".lia.cache",
+                  "b1.c", "b1_gen.c", "README.md",
+                  "lemma_ablation.sh", "mutants.py", "rac/test_gen_rac.py"]
+}

@@ -99,6 +99,18 @@ v = g.lint_acsl(base, edit(base,
                            "  //@ assert \\true;"))
 expect("lint_acsl: added assert allowed", v["ok"], v)
 
+# ---- 7.3 ghost code ---------------------------------------------------
+ANCHOR = "  //@ assert live_dll(\\null, the_list, \\Nil);"
+for name, ghost in (("ghost loop", "//@ ghost while (1) ;"),
+                    ("ghost write of __heap", "//@ ghost __heap = 0;"),
+                    ("ghost call", "//@ ghost ariadne_free_dllist(l);"),
+                    ("ghost return", "//@ ghost return 0;")):
+    v = g.lint_ghost(base, edit(base, ANCHOR, ANCHOR + "\n  " + ghost))
+    expect(f"lint_ghost: {name} rejected", not v["ok"], v)
+v = g.lint_ghost(base, edit(base, ANCHOR, ANCHOR + "\n  //@ ghost int gk = 0;"
+                            "\n  //@ ghost gk = gk + 1;"))
+expect("lint_ghost: ghost declaration and assignment allowed", v["ok"], v)
+
 # ---- 7.1 overlay (textual part; Frama-C part below) ------------------------
 s = g.strip_annotations("int f(int *p) { /*@ ghost int g = 0; */ //@ assert p;\n"
                         "  return *p; /* plain */ }")

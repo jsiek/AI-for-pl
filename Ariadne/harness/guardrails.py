@@ -6,6 +6,8 @@ inputs.
   spec_items(text) / frozen(base, ed)   7.2  hashes of the frozen spec
   lint_acsl(base, ed)                   7.3, 7.3a  agent-added axioms,
                                         admits and definitions
+  lint_ghost(base, ed)                  7.3  ghost code: no loops, jumps,
+                                        calls, writes of __heap
   lint_coq(path)                        7.3  Admitted, Axiom, admit, ...
                                         in a Coq proof script
   allow_list(axioms, wp_axioms)         7.4  coqchk / Print Assumptions
@@ -169,6 +171,36 @@ def lint_acsl(base_text, edited_text):
     return {"ok": not added, "added": added}
 
 
+GHOST_FORBIDDEN = ("while", "for", "do", "goto", "break", "continue",
+                   "return", "__heap", "ariadne_alloc", "ariadne_free",
+                   "assigns")
+
+
+def lint_ghost(base_text, edited_text):
+    """Ghost code the agent adds may only declare and assign ghost
+    variables.  WP does not prove termination here (terminates:skip), so
+    a ghost loop such as `while (1);` would make every later goal
+    vacuous; ghost jumps and returns could change the control flow; and
+    writing `__heap` (or calling the allocators) would edit the frozen
+    liveness model.  So, in ghost annotations, no more loops, jumps,
+    returns, `__heap`, allocator calls, or ghost function contracts than
+    the baseline has, and no ghost function calls at all beyond it."""
+    def counts(text):
+        code = " ".join(acsl_code(b) for _, _, _, b in annotations(text)
+                        if re.match(r"\s*ghost\b", b))
+        c = {k: len(re.findall(rf"\b{k}\b", code)) for k in GHOST_FORBIDDEN}
+        # a call: an identifier followed by `(` that is not a cast or a
+        # keyword (sizeof and the ACSL built-ins start with `\`)
+        c["call"] = len([m for m in re.finditer(r"\b([A-Za-z_]\w*)\s*\(",
+                                                code)
+                         if m.group(1) not in ("sizeof", "if", "switch")
+                         + GHOST_FORBIDDEN])
+        return c
+    base, ed = counts(base_text), counts(edited_text)
+    added = {k: ed[k] - base[k] for k in ed if ed[k] > base[k]}
+    return {"ok": not added, "added": added}
+
+
 def strip_annotations(text):
     """The C text with every ACSL annotation (and so all ghost code)
     replaced by a space."""
@@ -291,7 +323,8 @@ def allow_list(axioms, module_axioms):
 def accounting(goals, expected, out_of_scope=(), coq_certified=None):
     """Plan 7.5: every goal has a discharger (Qed, an SMT prover, Coq)
     or is explicitly out of scope; each pass has its expected number of
-    goals (a selection that silently shrinks fails); and a goal claimed
+    goals (a selection that silently shrinks fails), or at least
+    `{"min": n}` of them when the annotator adds annotations; and a goal claimed
     by Coq is one whose script step 6 certified (`coq_certified`, a set
     of goal names, when given)."""
     by_pass = {}
@@ -299,8 +332,12 @@ def accounting(goals, expected, out_of_scope=(), coq_certified=None):
         by_pass[g["pass"]] = by_pass.get(g["pass"], 0) + 1
     counts = {p: {"goals": by_pass.get(p, 0), "expected": n}
               for p, n in expected.items()}
-    wrong_counts = sorted(p for p, c in counts.items()
-                          if c["goals"] != c["expected"])
+
+    def wrong(c):  # an exact count, or {"min": n} once annotations vary
+        e = c["expected"]
+        return c["goals"] < e["min"] if isinstance(e, dict) \
+            else c["goals"] != e
+    wrong_counts = sorted(p for p, c in counts.items() if wrong(c))
     oos = set(out_of_scope)
     unproved = [g["goal"] for g in goals
                 if g["discharger"] == "open" and g["goal"] not in oos]

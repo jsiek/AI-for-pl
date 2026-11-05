@@ -60,6 +60,8 @@ import guardrails  # noqa: E402
 import budget  # noqa: E402
 import tier0  # noqa: E402
 import tiers  # noqa: E402
+import annotator  # noqa: E402
+import annotator_cli  # noqa: E402
 from reallms_coq import split_goal  # noqa: E402  (path set by guardrails)
 
 RUN = os.path.join(ARIADNE, "env", "run.sh")
@@ -116,6 +118,43 @@ def steps_succeeded(report):
             and not any(v.get("ok") is False for v in steps.values())
             and report.get("cap_hit") != "max_seconds")
 
+TASK_HEAD = """\
+# Annotate SOURCE.c so that WP proves every goal
+
+SOURCE.c is a C benchmark (sglib's doubly linked list) with its frozen
+specification: shape predicates and function contracts.  The goal is a
+memory-safety certificate: every proof obligation of the functions
+{functions}, and of every ACSL lemma, must be proved.  WP runs as
+`frama-c -ariadne SOURCE.c -then -wp {wp} -wp-rte -rte-initialized @all`
+(RTE: every memory access must be valid and every read initialised; the
+-ariadne plugin adds `assert ariadne,live` before each access, the ghost
+liveness model of ariadne_alloc.h).  Termination is not checked.
+
+This is refinement iteration {iteration} of at most {cap}.
+
+## Rules (checked before Frama-C sees your file; a violation rejects it)
+
+- Change only ACSL annotations (`/*@ ... */`, `//@ ...`) and ghost code.
+  The C code must stay byte-identical.
+- Frozen: every function contract (the annotation just before a function)
+  and every `predicate`, `logic`, `inductive`, `axiomatic` and `type`
+  definition.  Do not change, remove or add any; in particular, give no
+  contract to a function that has none.
+- No `axiom`, `axiomatic`, `admit`, and no new definitions.
+- Ghost code may only declare and assign ghost variables: no ghost loops,
+  jumps, returns or calls, and never `__heap`.
+- Allowed: `loop invariant`, `loop assigns`, `loop variant`, `assert`,
+  statement contracts, ghost variables, and file-scope ACSL `lemma`s.
+  Every annotation you add is itself a goal and must be proved.  A lemma
+  is proved first by the SMT provers; one they cannot prove (induction
+  over an inductive predicate or a list) goes to Coq provers, which
+  usually succeed on small, well-stated lemmas.  Lemmas are available as
+  hypotheses in every later goal.
+- Your `wp` command uses 20 s per prover; the harness gives each goal
+  60 s, so a goal that needs 20-60 s may still be proved.
+"""
+
+
 class Run:
     def __init__(self, a):
         self.a = a
@@ -143,6 +182,29 @@ class Run:
         self.wp_prefix = {}  # goal file -> its context as WP wrote it
         self.goals = []
         self.certified = set()
+        if a.functions:
+            self.restrict(a.functions.split(","))
+        self.annotator = None  # set in prepare (it needs the run dir)
+        self.patches = 0  # accepted annotator patches
+        self.history = []  # one line per refinement iteration, for TASK.md
+        self.tried = {}  # goal -> its goal file's text when step 4 failed
+
+    def restrict(self, fcts):
+        """--functions: WP's selection cut down to these functions; the
+        functions pass then needs at least their frozen-only goal count
+        (config `function_goals`), and the lemma pass is kept."""
+        known = self.cfg.get("function_goals", {})
+        for p in self.cfg["passes"]:
+            o = p["options"]
+            if "-wp-fct" in o:
+                k = o.index("-wp-fct") + 1
+                sel = o[k].split(",")
+                bad = [f for f in fcts if f not in sel]
+                if bad:
+                    sys.exit(f"--functions: not in the selection: {bad}")
+                o[k] = ",".join(fcts)
+                p["goals"] = {"min": sum(known.get(f, 0) for f in fcts)}
+        self.report["functions"] = fcts
 
     # ---- helpers ------------------------------------------------------
 
@@ -219,6 +281,24 @@ class Run:
                         os.path.normpath(os.path.join(rel, n)), p)
                         for p in pats)}
         shutil.copytree(self.bench, self.work, ignore=ignore)
+        # The effective config (after --functions), for annotator_cli.py.
+        self.cfg_path = os.path.join(self.dir, "config.json")
+        with open(self.cfg_path, "w") as f:
+            json.dump(self.cfg, f, indent=1)
+        if self.a.annotator == "opus":
+            self.annotator = annotator.Opus(
+                os.path.join(self.dir, "annotator"), self.ledger,
+                self.cfg_path, os.path.join(self.bench, self.cfg["source"]),
+                calls=self.a.opus_wp_calls, turns=self.a.opus_turns,
+                seconds=self.a.opus_seconds, usd=self.a.opus_usd,
+                left=self.left)
+        elif self.a.annotator.startswith("fake:"):
+            # a JSON list of source files (null: return SOURCE.c unchanged)
+            lst = self.a.annotator[5:]
+            srcs = [open(os.path.join(os.path.dirname(lst), x)).read()
+                    if x else None for x in json.load(open(lst))]
+            self.annotator = annotator.Fake(
+                os.path.join(self.dir, "annotator"), srcs)
         if self.a.overlay:  # an edited source, as the annotator would give
             shutil.copy(self.a.overlay,
                         os.path.join(self.work, self.cfg["source"]))
@@ -233,26 +313,48 @@ class Run:
             self.report["dropped_coq_scripts"] = dropped
         # The RAC script reads the benchmark through an absolute path in
         # the image; point the copy's script at the copy.
+        # With `source_line`, point its source variable at the config's
+        # source (the annotator's patches are written there).
         rac = self.cfg.get("rac")
         if rac:
-            p = os.path.join(self.work, rac["dir"], rac["command"][-1])
+            script = next(c for c in rac["command"] if c.endswith(".sh"))
+            p = os.path.join(self.work, rac["dir"], script)
             text = open(p).read()
             inner = "/ariadne/" + os.path.relpath(self.work, ARIADNE)
-            assert text.count(rac["bench_line"]) == 1, rac["bench_line"]
-            open(p, "w").write(text.replace(
-                rac["bench_line"],
-                rac["bench_line"].split("=")[0] + "=" + inner))
+            lines = [(rac["bench_line"],
+                      rac["bench_line"].split("=")[0] + "=" + inner)]
+            if rac.get("source_line"):
+                lines.append((rac["source_line"],
+                              rac["source_line"].split("=")[0] + "=" + inner
+                              + "/" + self.cfg["source"]))
+            for old, new in lines:
+                assert text.count(old) == 1, old
+                text = text.replace(old, new)
+            open(p, "w").write(text)
 
     def source(self, root):
         return open(os.path.join(root, self.cfg["source"])).read()
 
+    def patch_checks(self, ed):
+        """Guardrails 7.1-7.3a of a source against the benchmark's:
+        {check: verdict}.  The textual checks first; Frama-C (the overlay
+        check) only on a text that passed them."""
+        base = self.source(self.bench)
+        v = {"frozen_spec": guardrails.frozen(base, ed),
+             "lint_acsl": guardrails.lint_acsl(base, ed),
+             "lint_ghost": guardrails.lint_ghost(base, ed)}
+        if all(x["ok"] for x in v.values()):
+            v["overlay"] = guardrails.overlay(
+                self.dir, base, ed, self.cfg["cpp_args"],
+                os.path.join(self.logs, "overlay.log"))
+        else:
+            v["overlay"] = {"ok": False, "skipped": "a textual check failed"}
+        return v
+
     def pre_checks(self):
-        base, ed = self.source(self.bench), self.source(self.work)
-        ok = self.guard("overlay", guardrails.overlay(
-            self.dir, base, ed, self.cfg["cpp_args"],
-            os.path.join(self.logs, "overlay.log")))
-        ok &= self.guard("frozen_spec", guardrails.frozen(base, ed))
-        ok &= self.guard("lint_acsl", guardrails.lint_acsl(base, ed))
+        ok = True
+        for k, v in self.patch_checks(self.source(self.work)).items():
+            ok &= self.guard(k, v)
         return {"ok": ok}
 
     # ---- step 0: runtime checking --------------------------------------
@@ -299,6 +401,8 @@ class Run:
             rc = self.sh(["image", "frama-c"] + self.cfg["frama_c"]
                          + [self.cfg["source"], "-then", "-wp"]
                          + self.cfg["wp"] + p["options"]
+                         # the text of each open goal, for the annotator
+                         + (["-wp-status"] if self.annotator else [])
                          + ["-wp-interactive", mode,
                             "-wp-interactive-timeout",
                             str(int(self.a.tactic_seconds) * 2),
@@ -315,7 +419,12 @@ class Run:
                         "line": g.get("line"), "verdict": g["verdict"],
                         "discharger": discharger(g)})
                     n += 1
-            runs.append({"pass": p["name"], "exit": rc, "goals": n})
+            # WP's cache (session/cache): "found:N" are reused results
+            log = open(os.path.join(self.logs, f"step3_wp_{p['name']}.log")
+                       ).read().rsplit("\n$ ", 1)[-1]
+            cache = re.findall(r"\[Cache\] (.*)", log)
+            runs.append({"pass": p["name"], "exit": rc, "goals": n,
+                         "cache": cache[-1] if cache else None})
         # The context of every Coq goal file, as WP just wrote it.
         inter = os.path.join(self.work, "session", "interactive")
         for f in os.listdir(inter):
@@ -377,10 +486,7 @@ class Run:
         results, t0_log = [], []
         model_tiers = self.model_tiers()
         claude = any(t.tier >= 2 for t in model_tiers)
-        b = self.report.setdefault("budget", {
-            "ledger": self.ledger.path, "tokens_charged": 0,
-            "usd_charged": 0.0,
-            "warnings": [], "refused": []})
+        b = self.budget_report()
         b.setdefault("start", self.ledger.summary())
         if claude and "weekly_usage_before" not in b:
             b["weekly_usage_before"] = budget.weekly_usage()
@@ -388,7 +494,9 @@ class Run:
                                        f"{self.dir}: before step 4")
         refused = False
         for g in [g for g in self.goals if g["discharger"] == "open"
-                  and re.search(self.a.goals, g["goal"])]:
+                  and re.search(self.a.goals, g["goal"])
+                  and (self.a.prove_scope == "all"
+                       or g["pass"] == self.a.prove_scope)]:
             path = self.goal_file(g["goal"])
             if self.left() <= 0:
                 self.report["cap_hit"] = "max_seconds"
@@ -396,6 +504,15 @@ class Run:
             if not os.path.exists(path):
                 results.append({"goal": g["goal"], "status": "open",
                                 "tier": None, "error": "no Coq goal file"})
+                continue
+            text = open(path).read()
+            if self.tried.get(g["goal"]) == text:
+                # the same goal file (context and statement) as a failed
+                # earlier round: the tiers would see the same problem
+                results.append({"goal": g["goal"], "status": "open",
+                                "tier": None, "skipped":
+                                "unchanged since a failed attempt",
+                                "attempts": []})
                 continue
             r = {"goal": g["goal"], "status": "open", "tier": None,
                  "model": None, "script": None, "seconds": 0.0,
@@ -434,6 +551,8 @@ class Run:
                 self.log(f"  tiers: {g['goal']}: {r['status']}"
                          + (f" by tier {r['tier']}" if r["tier"] else "")
                          + f" ({r['seconds']} s, {r['tokens']} tokens)")
+            if r["status"] != "proved" and not refused:
+                self.tried[g["goal"]] = text
             results.append(r)
         if claude:
             b["weekly_usage_after"] = budget.weekly_usage()
@@ -463,21 +582,189 @@ class Run:
             if r["status"] == "proved":
                 r["wp_confirmed"] = dis.get(r["goal"]) == "coq"
 
-    # ---- step 5: refinement (stub) ----------------------------------------
+    # ---- step 5: refinement (the annotator) --------------------------------
 
-    def refine(self):
-        stalls = []
+    def stalls(self):
+        out = []
         for g in [g for g in self.goals if g["discharger"] == "open"]:
             path = self.goal_file(g["goal"])
             state = None
             if os.path.exists(path):
                 prefix = split_goal(open(path).read())[0]
                 state = prefix[prefix.index("(* Why3 goal *)"):]
-            stalls.append({"goal": g["goal"], "function": g["function"],
-                           "line": g["line"], "last_state": state})
-        return {"stub": "no annotator in M2: open goals are reported as "
-                "stalls and the loop ends", "stalls": stalls,
-                "edits": 0}
+            out.append({"goal": g["goal"], "function": g["function"],
+                        "line": g["line"], "property": g.get("property"),
+                        "last_state": state})
+        return out
+
+    def refine(self):
+        """On a stall, ask the annotator for a patch; a patch the
+        guardrails or the runtime checks reject goes back to it with the
+        reason (--annotator-retries times).  An accepted patch replaces
+        the source of the copy: `edits` 1."""
+        stalls = self.stalls()
+        if not self.annotator:
+            return {"stub": "no annotator: open goals are reported as "
+                    "stalls and the loop ends", "stalls": stalls,
+                    "edits": 0}
+        current = self.source(self.work)
+        offered, feedback, calls = current, None, []
+        r = {"stalls": stalls, "edits": 0, "calls": calls}
+        b = self.budget_report()
+        for _ in range(1 + self.a.annotator_retries):
+            if self.left() <= 0:
+                self.report["cap_hit"] = "max_seconds"
+                break
+            task = self.task(stalls, feedback)
+            self.log(f"  annotator ({self.annotator.name}): "
+                     f"{len(stalls)} open goals")
+            c = self.annotator.run(offered, task)
+            new = c.pop("source", None)
+            calls.append(c)
+            if c["status"] != "refused" and self.annotator.name != "fake":
+                self.report["llm_calls"] += 1
+            b["annotator_usd"] = round(b.get("annotator_usd", 0.0)
+                                       + (c.get("usd") or 0.0), 6)
+            b["tokens_charged"] += c.get("tokens") or 0
+            b["usd_charged"] = round(b["usd_charged"] + (c.get("usd") or 0),
+                                     6)
+            if c.get("warning"):
+                b["warnings"].append(f"annotator: the ledger is at "
+                                     f"{c.get('pct_after')}% of the weekly "
+                                     f"limit")
+            if c["status"] == "refused":
+                self.report["cap_hit"] = "budget"
+                b["refused"].append({"goal": "(annotator)", **c["budget"]})
+                break
+            if c["status"] != "answered" or new is None or new == current:
+                c["verdict"] = "no change"
+                break
+            v = self.patch_checks(new)
+            c["guardrails"] = {k: x["ok"] for k, x in v.items()}
+            if not all(x["ok"] for x in v.values()):
+                c["verdict"] = "rejected by the guardrails"
+                feedback = ("The guardrails rejected your patch; Frama-C "
+                            "did not run on it.\n" + "\n".join(
+                                annotator_cli.explain(v)))
+                offered = new
+                self.log("  annotator: patch rejected by the guardrails")
+                continue
+            # Step 0 again, on the patch (plan 5.0): a false annotation
+            # is caught here with a concrete input.
+            src = os.path.join(self.work, self.cfg["source"])
+            open(src, "w").write(new)
+            prev = dict(self.report["steps"].get("0_rac", {}))
+            rac = self.step("0_rac", self.rac)
+            if rac and rac.get("ok") is False:
+                # the copy's source and step 0's verdict go back to the
+                # last accepted state; the failure stays with the call
+                open(src, "w").write(current)
+                c["rac"] = {k: rac.get(k) for k in ("exit", "fail_lines")}
+                if prev:
+                    prev["seconds"] = rac["seconds"]
+                    self.report["steps"]["0_rac"] = prev
+                c["verdict"] = "rejected by the runtime checks"
+                feedback = ("Your patch passed the guardrails, but runtime "
+                            "checking (sanitizers and E-ACSL on random "
+                            "inputs) failed, so an annotation is false:\n"
+                            + self.rac_failure())
+                offered = new
+                self.log("  annotator: patch rejected by runtime checks")
+                continue
+            for k, x in v.items():
+                self.guard(k, x)
+            c["verdict"] = "accepted"
+            r["edits"] = 1
+            self.patches += 1
+            with open(os.path.join(self.dir, f"patch{self.patches}.c"),
+                      "w") as f:
+                f.write(new)
+            self.log("  annotator: patch accepted")
+            break
+        return r
+
+    def rac_failure(self):
+        """The first failing checks of the last RAC run, for feedback."""
+        out = (self.report["steps"].get("0_rac") or {}).get("fail_lines",
+                                                            [])
+        log = os.path.join(self.work, self.cfg["rac"]["dir"], "build",
+                           "orig", "eacsl.log")
+        if os.path.exists(log):
+            out = out + open(log).read().splitlines()[-25:]
+        return "\n".join(out)[-3000:]
+
+    def budget_report(self):
+        return self.report.setdefault("budget", {
+            "ledger": self.ledger.path, "tokens_charged": 0,
+            "usd_charged": 0.0, "warnings": [], "refused": []})
+
+    def goal_texts(self):
+        """WP's text of each open goal, from the last step-3 run's logs
+        (-wp-status), by function: {function: [text]}."""
+        out = collections.defaultdict(list)
+        for p in self.cfg["passes"]:
+            path = os.path.join(self.logs, f"step3_wp_{p['name']}.log")
+            if not os.path.exists(path):
+                continue
+            last = open(path).read().rsplit("\n$ ", 1)[-1]
+            for fct, _, body in annotator_cli.goal_blocks(last):
+                out[fct].append(body)
+        return out
+
+    def task(self, stalls, feedback):
+        """TASK.md for the annotator (plan 12.1)."""
+        texts = self.goal_texts()
+        by_fct = collections.defaultdict(list)
+        for s in stalls:
+            by_fct[s["function"]].append(s)
+        proved = (self.report["steps"].get("4_prove") or {}).get("goals", [])
+        reports = {g["goal"]: g for g in proved}
+        sel = sorted(annotator_cli.selection(self.cfg))
+        out = [TASK_HEAD.format(
+            functions=", ".join(sel), wp=" ".join(self.cfg["wp"]),
+            iteration=self.patches + 1, cap=self.a.max_iterations)]
+        if feedback:
+            out += ["## Your previous patch was rejected", "",
+                    "SOURCE.c is that patch; fix it.", "", "```",
+                    feedback, "```", ""]
+        out += ["## Open goals", "",
+                f"{len(stalls)} goals are open after WP (Alt-Ergo, CVC5, "
+                "Z3, 60 s each) and the prover tiers.  Grouped by function "
+                "(its frozen contract is the annotation just above it in "
+                "SOURCE.c) and source line (line numbers are those of "
+                "SOURCE.c):", ""]
+        for fct in sorted(by_fct):
+            out.append(f"### {fct}")
+            out.append("")
+            for s in sorted(by_fct[fct], key=lambda s: (s["line"] or 0)):
+                out.append(f"- line {s['line']}: `{s['goal']}`")
+                rep = reports.get(s["goal"])
+                if rep and rep.get("attempts"):
+                    out.append("  prover tiers: " + "; ".join(
+                        f"tier {a['tier']} {a['status']}"
+                        + (f" ({a.get('end')})" if a.get("end") else "")
+                        + (f": {a['answer'][-200:]!r}"
+                           if a.get("answer") else "")
+                        for a in rep["attempts"]))
+                elif rep and rep.get("skipped"):
+                    out.append(f"  prover tiers: skipped, {rep['skipped']}")
+            out.append("")
+            shown = texts.get(fct, [])
+            if shown:
+                out.append("WP's text of these goals:")
+                out.append("")
+                for body in shown[:10]:
+                    b = body.splitlines()
+                    if len(b) > 60:
+                        b = b[:40] + ["  (...)"] + b[-15:]
+                    out += ["```"] + b + ["```", ""]
+                if len(shown) > 10:
+                    out.append(f"({len(shown) - 10} more; run the `wp` "
+                               "command to see them)")
+                    out.append("")
+        if self.history:
+            out += ["## Earlier iterations", ""] + self.history + [""]
+        return "\n".join(out)
 
     # ---- step 6: close out -------------------------------------------------
 
@@ -594,14 +881,28 @@ class Run:
                     self.wp_confirm(s)
             if r is None or not self.open_goals():
                 break
-            f = self.step("5_refine", self.refine)
-            iterations += 1
-            if f is None or not f["edits"]:
-                break  # a stall: another round would change nothing
             if iterations >= self.a.max_iterations:
                 self.report["cap_hit"] = "max_iterations"
                 break
+            before = len(self.open_goals())
+            f = self.step("5_refine", self.refine)
+            iterations += 1
+            if f is not None:
+                self.report.setdefault("refinement", []).append(
+                    {"iteration": iterations, "edits": f["edits"],
+                     "open_before": before, "calls": f.get("calls", [])})
+            if f is None or not f["edits"]:
+                break  # a stall: another round would change nothing
+            self.step("1_normalise", self.normalise)
             r = self.step("3_wp", lambda: self.wp("update"))
+            if r is not None:
+                c = r["census"]
+                self.report["refinement"][-1]["census_after"] = c
+                self.history.append(
+                    f"- iteration {iterations}: your patch was accepted; "
+                    f"open goals {before} before it, {c['open']} after WP "
+                    f"({c['goals']} goals in all, {c['qed']} by Qed, "
+                    f"{c['smt']} by SMT, {c['coq']} by Coq).")
         self.report["refinement_iterations"] = iterations
 
     # ---- step 7: verdict and report --------------------------------------
@@ -758,7 +1059,28 @@ def main():
     ap.add_argument("--goals", default="",
                     help="step 4 only on the open goals whose name "
                     "matches this regex (default: all)")
-    ap.add_argument("--max-iterations", type=int, default=1)
+    ap.add_argument("--prove-scope", default="all",
+                    choices=["all", "functions", "lemmas"],
+                    help="step 4 only on the open goals of this pass "
+                    "(lemmas: function goals go straight to the annotator)")
+    ap.add_argument("--functions", default="",
+                    help="WP's selection cut down to these functions "
+                    "(comma-separated)")
+    ap.add_argument("--annotator", default="none",
+                    help="step 5: none, opus, or fake:LIST.json (a JSON "
+                    "list of source files, relative to it, returned in "
+                    "turn; null returns SOURCE.c unchanged)")
+    ap.add_argument("--annotator-retries", type=int, default=2,
+                    help="step 5: rejected patches sent back per iteration")
+    ap.add_argument("--opus-usd", type=float, default=5.0,
+                    help="annotator: --max-budget-usd per call (API-"
+                    "equivalent), also what the ledger reserves")
+    ap.add_argument("--opus-turns", type=int, default=80)
+    ap.add_argument("--opus-seconds", type=int, default=1800)
+    ap.add_argument("--opus-wp-calls", type=int, default=12,
+                    help="annotator: annotator_cli.py wp calls per call")
+    ap.add_argument("--max-iterations", type=int, default=1,
+                    help="refinement iterations (annotator patches)")
     ap.add_argument("--max-seconds", type=float, default=3600)
     sys.exit(Run(ap.parse_args()).main())
 

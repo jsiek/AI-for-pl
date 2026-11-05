@@ -700,7 +700,18 @@ class Run:
         log = os.path.join(self.work, self.cfg["rac"]["dir"], "build",
                            "orig", "eacsl.log")
         if os.path.exists(log):
-            out = out + open(log).read().splitlines()[-25:]
+            text = open(log).read()
+            out = out + text.splitlines()[-25:]
+            if "RTE failed" in text:
+                out.append(
+                    "(An `RTE failed` check is about a term of an annotation "
+                    "being unreadable when E-ACSL evaluates it.  E-ACSL "
+                    "evaluates `\\at(e, Pre)` and `\\at(e, L)` when control "
+                    "is at Pre or L, on every path, so e must be readable "
+                    "there even on paths where the annotation is not "
+                    "reached; e.g. `\\at((*list)->f, Pre)` fails when *list "
+                    "is NULL at entry.  Guard the term, or name the value "
+                    "with a ghost variable assigned on the path.)")
         return "\n".join(out)[-3000:]
 
     def budget_report(self):

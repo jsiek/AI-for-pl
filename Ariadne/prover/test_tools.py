@@ -77,5 +77,31 @@ expect(f"blank: {len(sibs)} sibling proofs hidden by read_file", not leaks,
        str(leaks))
 out = b.grep(r"^\s*(intros|unfold|induction)\b", os.path.dirname(rel))
 expect("blank: no proof lines from grep", out == "(no matches)", out)
+# Known answers (results/, e.g. Sonnet's accepted proofs) are refused.
+try:
+    b.read_file("prover/results/sonnet/mem_cons.v")
+    refused = False
+except ValueError:
+    refused = True
+expect("blank: results/ refused by read_file", refused, "readable")
+out = b.grep(r"lia", "prover")
+expect("blank: results/ skipped by grep", "prover/results" not in out, out)
+# A WP goal file anywhere (e.g. a copy in a run directory) has its proof
+# hidden, not only the files next to the target.
+cpdir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "copy_t")
+os.makedirs(cpdir, exist_ok=True)
+copy2 = os.path.join(cpdir, "copy.v")
+with open(copy2, "w") as f:
+    f.write(open(b.path).read())
+seen = b.read_file("prover/copy_t/copy.v", 1, 100000)
+os.remove(copy2)
+os.rmdir(cpdir)
+expect("blank: copied goal file's proof hidden",
+       "(* proof hidden *)" in seen and first not in seen, seen[-400:])
+# A goals call that fails reports failure, not success.
+w.show_goals("intros. exact I.")
+expect("show_goals failure sets goals_ok False", not w.goals_ok, "")
+w.show_goals("intros a l a1.")
+expect("show_goals success sets goals_ok True", w.goals_ok, "")
 print(f"{w.coqc_runs} coqc runs")
 sys.exit(1 if fails else 0)

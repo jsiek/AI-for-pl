@@ -37,7 +37,7 @@ def main():
         script = open(sys.argv[3]).read()
         if cmd == "goals":
             out = w.show_goals(script)
-            ok = "Error" not in out
+            ok = w.goals_ok
         else:
             r = w.check_proof(script)
             ok = r["ok"]

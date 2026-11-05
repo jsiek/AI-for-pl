@@ -39,6 +39,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARIADNE = os.path.dirname(HERE)
+RESULTS = os.path.join(HERE, "results")
 sys.path.insert(0, os.path.join(os.path.dirname(ARIADNE), "scripts"))
 sys.path.insert(0, HERE)  # petanque.py (python3 -I drops the script dir)
 from reallms_client import read_key, tool_loop  # noqa: E402
@@ -220,16 +221,24 @@ class Worker:
             raise ValueError("path outside Ariadne/")
         return p
 
-    def _hidden(self, p):
-        """With --blank, the target and every goal file next to it (the
-        other session proofs) have their proofs hidden."""
+    def _hidden(self, p, text):
+        """With --blank, the target, every goal file next to it (the other
+        session proofs) and every other WP goal file (copies in run
+        directories) have their proofs hidden."""
         return (self.blank and p.endswith(".v")
-                and os.path.dirname(p) == os.path.dirname(self.path))
+                and (os.path.dirname(p) == os.path.dirname(self.path)
+                     or "Theorem wp_goal" in text))
+
+    def _answers(self, p):
+        """With --blank, known answers (the prover's own results, e.g.
+        Sonnet's accepted proofs) are not readable at all."""
+        return self.blank and (p == RESULTS
+                               or p.startswith(RESULTS + os.sep))
 
     def _visible(self, p):
         """A file's text as the model may see it."""
         text = open(p, errors="replace").read()
-        if self._hidden(p):
+        if self._hidden(p, text):
             try:
                 pre, _, suf = split_goal(text)
                 text = pre + "\n(* proof hidden *)" + suf
@@ -241,6 +250,8 @@ class Worker:
         p = self._safe(path)
         if "/." in p[len(ARIADNE):]:
             raise ValueError("hidden directory")
+        if self._answers(p):
+            raise ValueError("known answers are hidden in this run")
         lines = self._visible(p).split("\n")
         s = max(1, int(start or 1))
         e = min(len(lines), int(end or s + 199))
@@ -254,6 +265,7 @@ class Worker:
             os.path.join(d, n) for d, ds, ns in os.walk(root)
             for n in ns if n.endswith((".v", ".c", ".h", ".md"))
             and "/." not in d[len(ARIADNE):])
+        files = [p for p in files if not self._answers(p)]
         hits = []
         for p in files:
             for i, l in enumerate(self._visible(p).split("\n"), 1):
@@ -284,10 +296,11 @@ class Worker:
     def show_goals(self, script):
         script = normalise(script)
         if FORBIDDEN.search(script):
+            self.goals_ok = False
             return "(script uses a forbidden command)"
-        ok, out = self._coqc(self.prefix + "\n" + script
-                             + "\nShow.\nAdmitted.\n")
-        if not ok:
+        self.goals_ok, out = self._coqc(self.prefix + "\n" + script
+                                        + "\nShow.\nAdmitted.\n")
+        if not self.goals_ok:
             state = self._state_before_error(script)
             if state:
                 out += "\n\nGoal state just before the failing step:\n" + state

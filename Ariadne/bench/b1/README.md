@@ -30,6 +30,7 @@ initialisation checks (see "Initialisation").
 | `check.sh` | `run.sh` plus seven mutants that must be rejected |
 | `mutants.py` | writes the seven mutants (used by `check.sh` and `rac/check.sh`) |
 | `rac/` | runtime checking (plan §5 step 0): sanitizers, E-ACSL with executable twins, the mutants as tests; see `rac/README.md` |
+| `b1_frozen.c` | the frozen-only variant (M3): `b1.c` without the human's internal annotations and lemmas; see "Frozen-only variant" |
 
 The driver replaces the sample's `main`: an input array instead of
 `argv`/`sscanf`, no `printf` (body-less libc functions are not
@@ -239,6 +240,36 @@ to `add`, `live_dll` precondition).  A fresh `run.sh -wp-cache none`
 takes about 40 s (before this change several goals ran into the 60 s
 timeout; the initial reproduction took about 3 min); `check.sh` takes
 about 8 min, mostly the mutants' 60 s timeouts.
+
+## Frozen-only variant (`b1_frozen.c`, M3)
+
+The starting point of milestone M3: what the annotator gets.  Each item
+of `b1.c` is kept or removed by what plan §4 item 4 and §7 (2, 3a) call
+frozen:
+
+| Item of `b1.c` | Decision | Why |
+|---|---|---|
+| predicates `live`, `mem`, `all_live`, `all_init`, `unchanged`, `live_dll`, `in_live_list`, `iter_ok`; inductive `dll` | kept | shape predicates: frozen spec (§4.1, guardrail 3a: the agent may not add or change definitions) |
+| `requires` / `assigns` / `ensures` of `add`, `get_first`, `get_last`, `it_init_on_equal`, `it_init`, `it_next`, `b1` (with their names, e.g. `elem_init`, `heads_list`) | kept | frozen contracts (§4.4, guardrail 2) |
+| `ARIADNE_ALLOC` / `ARIADNE_FREE` contracts and `#include "ariadne_alloc.h"` | kept | the ghost liveness model (`-ariadne`, plan §10 fallback 1) is trusted spec |
+| C code, including the labels `before_alloc:` / `before_free:` | kept | the overlay rule (7.1): only annotations may differ |
+| the 11 lemmas (`mem_cons`, `all_live_cons`, `all_live_nil`, `all_init_cons`, `all_init_nil`, `dll_null`, `dll_inv`, `dll_links`, `dll_first`, `dll_frame`, `live_dll_inv`) and their comments | removed | not frozen: lemmas are proved, so the agent may add them (§5 step 5c); they are the human's proof strategy |
+| loop invariants, `loop assigns`, `loop variant` (in `get_first`, `get_last`, the four loops of `b1`) | removed | internal annotations (§4.4) |
+| the asserts in `add`, `get_first`, `get_last`, `it_init_on_equal`, `it_next`, `b1` | removed | internal annotations |
+
+`guardrails.frozen(b1.c, b1_frozen.c)` passes: 18 frozen items, the same
+hashes (digest `213986017b964d3e`), nothing changed, removed or added.
+
+**Census before any annotation** (`../../harness/b1_frozen.json`, the
+same WP flags as M1; `harness/results/b1-frozen-census.md`): 254 goals
+(the human's annotations add 67), **206 proved: WP's simplifier (Qed)
+158, Alt-Ergo 46, CVC5 2, Z3 0**; 48 open, 0 lemmas.  The open goals,
+by function: `b1` 33 (every access and call after its first loop),
+`get_first` 6 and `get_last` 6 (the loop body's accesses, `assigns`,
+the postcondition), `add` 1 (the postcondition `live_dll`),
+`it_init_on_equal` 1 (a precondition of its call to `it_next`), `it_next`
+1 (its postcondition).  Step 0 (sanitizers and E-ACSL, without the
+mutants, whose anchors are the human's annotations) passes.
 
 ## Next
 

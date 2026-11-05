@@ -1,7 +1,11 @@
 #!/bin/sh
 # B1 runtime checking (plan section 5 step 0, "test first").
 #   From this directory:  ./check.sh [runs [seed [large [quick]]]]
-#   (defaults 300 1 200; any 4th argument skips the mutants)
+#   (defaults 300 1 200; any 4th argument skips the mutants and the
+#   gen_rac.py test, so only $SRC is checked)
+# $SRC is the annotated source checked (default b1.c; the harness points
+# it at the annotator's copy of b1_frozen.c, which the mutants' anchors
+# do not fit).
 # Re-runs itself inside the M0 image (../../../env/run.sh), where
 # /ariadne is the Ariadne/ directory.  Steps, each timed:
 #   0. generate: the twins and the executable spec block from b1.c
@@ -23,6 +27,7 @@ if ! command -v e-acsl-gcc >/dev/null 2>&1; then
 fi
 runs=${1:-300} seed=${2:-1} large=${3:-200} quick=${4:-}
 B1=/ariadne/bench/b1
+SRC=$B1/b1.c
 B=build
 status=0
 rm -rf "$B" && mkdir -p "$B"
@@ -37,13 +42,15 @@ SAN="-std=c99 -g -O1 -fsanitize=address,undefined -fno-sanitize-recover=all"
 
 # ---- 0. generate -----------------------------------------------------
 t=$(now)
-python3 -I "$RAC/gen_twins.py" "$B1/b1.c" "$TW" --include b1_types.h \
+python3 -I "$RAC/gen_twins.py" "$SRC" "$TW" --include b1_types.h \
   --cpp-args="-I/ariadne/plugin/share" > "$TW.log" 2>&1 ||
   { cat "$TW.log"; echo "FAIL: gen_twins.py on b1.c"; exit 1; }
 BUILTINS=$(python3 -c 'import json, sys
 print(",".join(json.load(open(sys.argv[1]))["builtins"]))' "$TW/rac_twins.json")
-python3 -I "$B1/mutants.py" "$B1/b1.c" "$B/src" > /dev/null
-cp "$B1/b1.c" "$B/src/orig.c"
+mkdir -p "$B/src"
+[ -n "$quick" ] && MUTANTS="" ||
+  python3 -I "$B1/mutants.py" "$B1/b1.c" "$B/src" > /dev/null
+cp "$SRC" "$B/src/orig.c"
 for v in orig $MUTANTS; do
   mkdir -p "$B/$v"
   python3 -I gen_rac.py "$B/src/$v.c" "$B/$v" "$TW" > "$B/$v/gen.log" ||
@@ -51,7 +58,9 @@ for v in orig $MUTANTS; do
 done
 echo "step 0 (generate twins, b1_rac.c x8): $(lap "$t") s; $(cat "$TW.log" | head -1)"
 echo "    $(cat "$B/orig/gen.log")"
-if r=$(python3 -I test_gen_rac.py "$B1/b1.c" "$B/gen_test" "$TW" 2>&1); then
+if [ -n "$quick" ]; then
+  echo "SKIP: gen_rac.py clause splitting (quick)"
+elif r=$(python3 -I test_gen_rac.py "$B1/b1.c" "$B/gen_test" "$TW" 2>&1); then
   echo "PASS: gen_rac.py clause splitting: $r"
 else
   echo "$r"; echo "FAIL: gen_rac.py clause splitting"; status=1

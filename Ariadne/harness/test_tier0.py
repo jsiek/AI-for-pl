@@ -63,7 +63,7 @@ if "--quick" not in sys.argv:
         p = goal("easy.v", "  forall (a:addr) (l:Init.Datatypes.list addr),\n"
                  "  ~ (Init.Datatypes.cons a l = Init.Datatypes.nil) /\\\n"
                  "  (P_mem a l -> P_mem a l).")
-        s = tier0.Search(p, 120, 30)
+        s = tier0.Search(p, 30, 10)  # the harness defaults
         r = s.run()
         expect("easy goal proved, coqc accepted",
                r["status"] == "proved" and r["tried"][-1]["coqc"][-1]["ok"],

@@ -449,7 +449,7 @@ invariant is only needed for functional correctness and is stretch work.
 | M1a | WP allocation investigation (§10) | **Done** (`m1a/`): WP misses use-after-free in every memory model; the ghost liveness model catches every case.  Decision: fallback 1. |
 | M1 | Manual baseline on B1 | Human writes predicates + contracts + invariants; all goals closed (by any means); goal census recorded.  This tells us where the hard goals are and whether the shape library works.  **B1a done** (`bench/b1/`): add + forward walk + free-while-iterating, 183/183 goals (Qed 109, SMT 71, Coq 3), three mutants rejected.  **B1b done**: + `get_first`/`get_last` and the backward walk, 222/222 (Qed 126, SMT 92, Coq 4), six mutants rejected.  **Initialisation checks added** (`-rte-initialized @all`): 321/321 (Qed 189, SMT 127, Coq 5), seven mutants rejected (§10).  B1c (sort) is stretch. |
 | M2 | Pipeline without LLM | Runtime-checking first pass (§5 step 0): executable twins of the shape predicates, E-ACSL and sanitizer builds of the driver on random inputs, mutants as tests; prototype on B1, then generate twins from the ACSL definitions.  Python harness runs steps 1–7, Pétanque integration, `hammer`-only proof search, guardrail checks, report.  Measure how much of M1 automation alone closes.  Budget ledger built and calibrated with a small Opus 5.5 pilot (§11). |
-| M3 | Agent on B1 | Annotator (Opus 5.5) + prover tier on B1 starting from frozen contracts only (no human invariants).  Minimum success criterion.  First comparison of prover escalation strategies (§12.3). |
+| M3 | Agent on B1 | Annotator (Opus 5.5) + prover tier on B1 starting from frozen contracts only (no human invariants).  Minimum success criterion.  First comparison of prover escalation strategies (§12.3).  **Agent on B1 done** (`harness/README.md`, "Annotator"): from `bench/b1/b1_frozen.c` (254 goals, 206 closed by Qed/SMT), Opus 5.5 wrote the invariants, asserts and 24 lemmas in two patches; certified 330/330 (Qed 186, SMT 140, Coq 4, all four by Sonnet); Opus $3.40, Sonnet $1.19.  The escalation comparison is still to do. |
 | M4 | RB-tree `find_member`, `add` | Shape library extended to trees; target success criterion. |
 | M5 | Evaluation | G6 metrics across B1, B2 (and B3 if reached); ablations: no refinement, no hammer, no library lemmas; prover escalation strategies and annotator model (§12.3). |
 
@@ -503,12 +503,17 @@ invariant is only needed for functional correctness and is stretch work.
     whose Coq support stops at Rocq 9.0, so Rocq 9.0.1.  CoqHammer and
     coq-lsp both have Rocq 9.0 releases, so nothing had to step back.
 
-*   **Q9 — Prover tiers: GLM 5.3 Flash → Sonnet 5.5 → Opus 5.5.**  This
-    is the starting configuration.  M3 tests it against the alternatives
-    in §12.3, in particular S5 (no paid prover tiers; hand failures to the
-    annotator), which saves Opus budget for annotation.  Other REALLMS
-    models may be added as free tiers once the service's model list is
-    recorded in §12.2.
+*   **Q9 — Prover: Opus 5.5 alone, after tier 0 (owner, 2026-11-05).**
+    The starting configuration was GLM 5.3 Flash → Sonnet 5.5 → Opus
+    5.5.  The M3 comparison (§12.3, `harness/README.md`) on 9 Coq goals:
+    Opus alone and Sonnet alone each proved 9/9 at about $0.18 per goal,
+    Opus in 37 s per goal and Sonnet in 50 s; GLM alone proved 1/9, and
+    gpt-oss-120b and qwen3.8-27b none.  Starting with GLM saved at most
+    about $0.04 per goal and took 8-85 times as long as Opus alone.  So
+    step 4 runs tier 0 and then Opus (`harness.py --tiers 0,2`,
+    `--claude-model`); GLM stays available as `--tiers 0,1,2`.  **Redo the comparison** (the S1-S4
+    runner, `harness/escalation.py`) whenever a new model becomes
+    available, Claude or REALLMS, and at the latest at M5.
 
 ### 9.2 Still open
 
@@ -548,6 +553,159 @@ invariant is only needed for functional correctness and is stretch work.
     with B1a.  The B1a/B1b numbers recorded so far are not a fair
     comparison: each was run once, and the VST run had the finished
     Frama-C spec to work from.
+*   **Q11 — Human interaction and final products.  To do: discuss with
+    the owner.**  M3 shows the pipeline can certify B1 from frozen
+    contracts with no human annotation.  Still to settle:
+    *   *Human interaction:* where a human takes part, what they see and
+        approve at each point, and how they are asked.  Candidates:
+        writing or approving the frozen contracts and shape predicates
+        (§4 item 4, §7 item 3a), reviewing the annotator's patches, the
+        last-resort hints of Q8, and decisions such as admitting an
+        axiom to the allow-list.
+    *   *Final products:* what a run delivers, to whom, and in what
+        form.  Candidates: the certificate bundle (annotated C, Coq
+        proofs, `.vo` files, `coqchk` output, goal accounting), the run
+        report, and a human-readable account of what was proved and
+        what is trusted.
+
+    Decided so far (owner, 2026-11-05):
+
+    *   **Public spec needs human approval; private spec does not.**
+        The rule works like an ABI.  A change that clients of the
+        component can observe changes its specification, so the owner
+        must approve it.  A change to internal annotations needs no
+        approval.
+    *   **Source of truth: the public headers.**  For each benchmark
+        the owner names the headers (or, for sglib, the
+        `SGLIB_DEFINE_*_PROTOTYPES` macros) that declare the public
+        API.  A function is public if one of them declares it.  The
+        macros are expanded before the check, since sglib's API is
+        macro-generated.  Naming conventions are not used: sglib's
+        `sglib___<type>_consistency_check` has the internal-style
+        prefix but is declared in `SGLIB_DEFINE_RBTREE_PROTOTYPES`.
+    *   **Mechanical cross-checks.**  The harness flags, for the owner
+        to resolve:
+        *   a `static` function that a public header declares;
+        *   a function with external linkage that no public header
+            declares;
+        *   a private function whose address escapes the component
+            (passed, stored or returned as a function pointer), since
+            clients can then call it.
+    *   **What the public spec contains.**  Everything a client can
+        observe:
+        *   the `requires`, `ensures`, `assigns` and `exits` clauses of
+            public functions;
+        *   every ACSL predicate, logic function and logic type those
+            clauses reach, followed transitively (in B1: `dll`,
+            `live_dll`, `mem`);
+        *   the ghost state they mention (the liveness model's
+            `__heap`);
+        *   public types, struct layouts and globals (the C code is
+            already frozen by guardrail 1).
+        Everything else is private: contracts of private helpers, loop
+        invariants, assertions, lemmas, and ghost code used only
+        internally.
+    *   **Private changes are free but still checked.**  WP proves
+        every private contract, so a wrong one makes a proof fail and
+        cannot make one pass.  A new private *definition* still goes
+        through guardrail 3a, because WP exports definitions as axioms.
+    *   **Public changes are classified for the owner.**  The harness
+        labels each public change *compatible* or *breaking*, as an
+        ABI checker does.  A change is compatible when the pipeline
+        proves a refinement lemma: the old precondition implies the
+        new one, the new postcondition implies the old one, and the
+        new `assigns` set is contained in the old one.  Every public
+        change still needs approval; the label tells the owner what it
+        means for clients.
+    *   **Guardrail change.**  The frozen-contract hash (guardrail 2)
+        splits in two: a hash of the public spec, whose change requires
+        approval, and no hash on private annotations.  This first
+        matters in M4: every B1 function is public.
+    *   **How a failed proof is presented (the Q8 last-resort ask).**
+        The model that drafts the ask follows these steps:
+        1.  Write an outline first.
+        2.  State the problem: the goal id, the function and program
+            point, and the property that could not be proved.
+        3.  Show the code around the problem: the function's header and
+            contract, and the part of its body that holds the program
+            point (the whole body when it is short), with that point
+            marked.  Include the definitions of the predicates and
+            the contracts of the callees that the goal depends on.
+        4.  Show a concrete example where possible: a small heap or
+            input state on which the obligation is hard, or a
+            counterexample from the SMT solvers or from RAC.
+        5.  Name every specific source of conflict or tension that
+            leads to the problem, for example a precondition too weak
+            for the needed invariant, a frame that `assigns` does not
+            cover, or a predicate whose unfolding the solvers cannot
+            find.
+        6.  List each approach that was tried, which tier or tool tried
+            it, and how it failed (the error, the goal left open, or the
+            time or budget limit reached).
+        7.  Revise the draft twice.  Each round checks that the text is
+            brief, highly specific and grammatical, and that its
+            sentences are simple and direct.
+        The harness keeps the outline and both revisions with the run
+        report.
+    *   **Final products.**  A certified run delivers:
+        1.  *The annotated software:* the original C with the added
+            ACSL assertions, invariants, ghost code and lemmas.
+        2.  *English comments* above each public function that explain
+            its precondition and postcondition in plain words.  The
+            comments are ordinary C comments, and no tool checks them
+            against the ACSL.  So the owner approves every comment, and
+            the run report pairs each comment with the clauses it
+            explains.  Private functions get no English comments:
+            approving them would make the owner a bottleneck.
+        3.  *The proofs of all verification conditions:* the Coq proof
+            scripts, and for each goal the tool that closed it (Qed,
+            Alt-Ergo, CVC5, Z3 or Coq).  SMT stays trusted (Q1), so goals
+            closed by SMT solvers have no Coq proof.  The certification
+            script reruns, on each such goal, the solver recorded for it,
+            at the pinned version, with a timeout well above the
+            recorded time.  A goal that does not reprove fails the
+            check.  WP's result cache is not used, since replaying it
+            would check nothing.
+        4.  *A certification script* that checks everything from the
+            delivered files in the pinned image: it reruns WP, `coqc`,
+            `coqchk` and `Print Assumptions` against the allow-list, runs
+            the regression tests, and diffs the annotated C against the
+            original.  The diff must contain only annotations and
+            comments, plus the bug fixes listed in item 5.
+        5.  *A bug-fix log:* one entry per change to the C code (see the
+            next item).
+        6.  *The regression tests,* including any the pipeline added.
+    *   **Bug fixes.**  Proving memory safety will sometimes find a real
+        bug, so the C code is not always frozen.  Guardrail 1 changes:
+        the agent may change C code only as a recorded bug fix.
+        *   *Report at once.*  When the pipeline first finds a bug, it
+            reports it to the owner immediately, using the presentation
+            steps above (the code, a concrete failing input, and why it
+            is a bug).
+        *   *Keep going.*  If the pipeline finds a fix, it applies the
+            fix and continues the proof on the fixed code without
+            waiting.  The owner can reject the fix later; the affected
+            goals are then reopened.
+        *   *Evidence.*  Each fix comes with a test that fails on the
+            original code (under ASan, UBSan or E-ACSL) and passes on
+            the fixed code.
+        *   *Document.*  Each fix gets an entry in the bug-fix log: the
+            bug, the failing test, the change, and why the change is
+            correct.  The certification script's diff shows exactly
+            these changes and no others.
+        *   *Public behaviour.*  A fix that changes what clients can
+            observe is a public-spec change and needs the owner's
+            approval, as above.
+    *   **Regression tests.**  When the software comes with tests, the
+        pipeline uses them:
+        *   as inputs for runtime checking of candidate annotations
+            (step 1), alongside the generated drivers;
+        *   to check that every bug fix keeps the existing tests
+            passing.
+        The pipeline may add tests: the failing test for each bug fix,
+        and tests that exercise contract cases the existing tests miss.
+        Added tests are kept separate from the original tests, so the
+        owner can see which are new.
 
 ---
 
@@ -708,6 +866,11 @@ cheapest first:
 | 1 | GLM 5.3 Flash (IU REALLMS) | none (free; rate-limited) |
 | 2 | Claude Sonnet 5.5 (`claude-sonnet-5-5`) | moderate |
 | 3 | Claude Opus 5.5 (`claude-opus-5-5`) | large |
+
+Since M3 the default is tier 0 then Opus 5.5 alone (Q9): the M3
+comparison found Opus as cheap per proved goal as the escalation chain
+and much faster.  The tiers below stay available for the periodic
+re-evaluation.
 
 Each tier gets a per-goal budget (attempts, tactic steps, seconds).  A
 goal moves up a tier when the current tier runs out of budget, and goes

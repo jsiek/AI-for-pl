@@ -1,17 +1,21 @@
-# M2 harness: the pipeline without an LLM
+# Ariadne harness: the pipeline, with the prover tiers and the annotator
 
-Plan §5 steps 0-7 on a benchmark directory, with no model calls
-(milestone M2, plan §8).  B1 is the first benchmark (`b1.json`).
+Plan §5 steps 0-7 on a benchmark directory (milestones M2 and M3, plan
+§8).  B1 is the first benchmark: `b1.json` runs it as M1 left it,
+`b1_frozen.json` from its frozen contracts only (M3, "Annotator").
 
 ```bash
 cd Ariadne/harness
 python3 harness.py ../bench/b1                 # B1 as M1 left it
 python3 harness.py ../bench/b1 --blank-coq     # without the 5 Coq proofs
 python3 harness.py ../bench/b1 --overlay my_b1.c   # an edited b1.c
-python3 harness.py ../bench/b1 --blank-coq --tiers 0,1,2   # with the prover tiers
+python3 harness.py ../bench/b1 --blank-coq --tiers 0,2     # with the prover tiers
 python3 budget.py show                         # the Anthropic budget ledger
 python3 test_guardrails.py; python3 test_tier0.py; python3 test_harness.py
 python3 test_budget.py; python3 test_tiers.py  # offline, no model calls
+python3 test_annotator.py                      # offline: fake annotator
+python3 harness.py ../bench/b1 --config b1_frozen.json --annotator opus \
+  --prove-scope lemmas --max-iterations 3      # M3: from frozen contracts
 ```
 
 Needs the M0 image and the plugin built (`../env/run.sh dune build` in
@@ -26,13 +30,13 @@ is hashed before and after; a change fails the run (`benchmark_untouched`).
 
 | Step | What | Code |
 |---|---|---|
-| pre | guardrails 7.1-7.3a on the copy against the benchmark: overlay, frozen spec, ACSL lint; a failure stops the run before any tool sees the edit | `guardrails.py` |
+| pre | guardrails 7.1-7.3a on the copy against the benchmark: frozen spec, ACSL lint, ghost lint, then overlay; a failure stops the run before any tool sees the edit | `guardrails.py` |
 | 0 | runtime checking: the benchmark's `rac/check.sh` (sanitizers, E-ACSL with the twins, the mutants), pointed at the copy | config `rac` |
 | 1 | `-ariadne`, RTE (`-rte-initialized @all`), `-print` into `b1.rte.c` | |
 | 2 | Eva: skipped (optional in the plan) | |
 | 3 | WP, one run per pass of the config (`run.sh`'s flags); `-wp-interactive update` makes WP write a Coq goal file for every goal it sends to Coq | |
 | 4 | proof search on each open goal: tier 0, then tier 1 (GLM), then tier 2 (Sonnet, within the budget ledger); a proof counts once `coqc` accepts it in the real goal file; if any goal closed, step 3 again (`batch`), so WP itself confirms the scripts | `tier0.py`, `tiers.py`, `budget.py` |
-| 5 | refinement: a **stub**; each open goal is recorded as a stall with its statement as the last state, and the loop ends (no annotator in M2) | |
+| 5 | refinement: with `--annotator opus` (or `fake:LIST.json`), the annotator gets the open goals and returns a patch; the guardrails, then step 0, check it; a rejected patch goes back with the reason (`--annotator-retries`); an accepted one replaces the copy's source, and steps 1, 3 (`update`, WP's session cache reuses unchanged goals) and 4 run again, up to `--max-iterations` patches.  Without an annotator each open goal is recorded as a stall and the loop ends | `annotator.py`, `annotator_cli.py` |
 | 6 | for every goal Coq closed: Coq lint, `coqc`, one `coqchk -o` over all modules, `Print Assumptions wp_goal`, axioms against the allow-list | |
 | 7 | caps (`--max-iterations`, `--max-seconds`); verdict `certified` only if every guardrail passed and every goal is accounted for; otherwise a failure report (open goals with their last state) and the `cert/` directory is deleted | |
 
@@ -49,9 +53,10 @@ summary), `logs/`, and on success `cert/` (the Coq goal files with their
 | `overlay` (7.1) | annotations and ghost code stripped (textually, and again by `frama-c -no-annot`), `-print` of the edited file equals the original's | a changed statement, a dropped initialiser; an added assert and ghost code pass |
 | `frozen_spec` (7.2, 7.3a) | each function contract and each `predicate`/`logic`/`inductive`/`axiomatic`/`type` is hashed (comments dropped, whitespace normalised); a changed, removed or added item fails.  Lemmas are not frozen: they are proved | weakened `requires`, dropped `ensures`, `requires \false`, a changed predicate, an added predicate; an added lemma and a changed comment pass |
 | `lint_acsl` (7.3) | no more `axiom`, `axiomatic`, `admit`, `logic`, `predicate`, `inductive`, `type` in the annotations than the baseline | `axiomatic` + `axiom`, `admit`, the non-terminating `logic` of `env/smoke/bad_def.c` |
+| `lint_ghost` (7.3) | ghost code may only declare and assign ghost variables: no more ghost loops, jumps, returns, calls, `__heap` or allocator names than the baseline.  WP does not check termination here, so `//@ ghost while (1);` would make every later goal vacuous; writing `__heap` would edit the frozen liveness model | a ghost loop, `__heap = 0`, a ghost call to `ariadne_free_dllist`, a ghost `return`; a ghost declaration and assignment pass |
 | `lint_coq` (7.3) | the script between `Proof.` and `Qed.` passes `prover/reallms_coq.py`'s `FORBIDDEN` (Admitted, admit, Axiom, Parameter, ...), nothing after `Qed.`, and the context is the one WP wrote | each of those, and an axiom added to the context |
 | `allow_list_coqchk`, `allow_list_print_assumptions` (7.4) | every axiom is one of Rocq's classical axioms (fixed list), a `Why3.*` axiom, or declared in the WP-generated context of its own goal file (Why3 theories and the frozen spec as WP exports it) | an `Axiom cheat : False` in a goal file's context, which coqc accepts and coqchk lists |
-| `goal_accounting` (7.5) | each pass has its expected goal count, every goal has a discharger (Qed, SMT, Coq) or is listed out of scope, and every Coq goal's script was certified in step 6 | an open goal, a shrunken selection, an uncertified Coq goal |
+| `goal_accounting` (7.5) | each pass has its expected goal count (or at least `{"min": n}`, the frozen-only count, once the annotator adds goals), every goal has a discharger (Qed, SMT, Coq) or is listed out of scope, and every Coq goal's script was certified in step 6 | an open goal, a shrunken selection, an uncertified Coq goal |
 | `benchmark_untouched` | the benchmark directory is byte-identical after the run | |
 
 `test_harness.py` runs the harness end to end on three bad overlays (code
@@ -65,8 +70,10 @@ benchmark's `vacuity` mutant covers B1's spec as a whole.  Sandboxing
 
 For one goal file, starting from the statement (any script in the file is
 ignored), try a fixed list of whole scripts through Pétanque, each with
-a time cap (`--tactic-seconds`, default 60), until one finishes or the
-goal's cap (`--goal-seconds`, default 300) runs out.  The list:
+a time cap (`--tactic-seconds`, default 10), until one finishes or the
+goal's cap (`--goal-seconds`, default 30) runs out.  The caps were 60
+and 300 s until tier 0 closed none of B1's 9 Coq goals in 300 s each;
+the owner cut them so tier 0 costs little time before Opus.  The list:
 `sauto`, `hammer`, `firstorder`, `lia`, `intuition`; for `<->` goals
 `split; intros; sauto | hammer`; `unfold` of the definitions the
 statement mentions, then `sauto`, `hammer`, `firstorder`, or `sauto use:`
@@ -78,7 +85,8 @@ the tactic it reconstructs is checked first.
 
 ## Prover tiers 1 and 2 (`tiers.py`, plan §12.2)
 
-`--tiers` (default `0,1,2`) picks the tiers; `--goals REGEX` limits step
+`--tiers` (default `0,2`: tier 0, then Opus 5.5; plan Q9) picks the
+tiers, and `--claude-model` tier 2's model; `--goals REGEX` limits step
 4 to some goals.  On each goal tier 0 leaves open, `tiers.chain` runs
 the next tier until one's proof is confirmed: no forbidden command
 (`reallms_coq.FORBIDDEN`) and `coqc` accepts the real goal file with it
@@ -88,7 +96,7 @@ time left under `--max-seconds`.
 | Tier | How | Per-goal cap | Charged |
 |---|---|---|---|
 | 1 | `../prover/reallms_coq.py --blank` (GLM 5.3 Flash on REALLMS); `--hide` makes `read_file`/`grep` refuse other runs, `prover/results`, `harness/results` and every benchmark's `session/` (they hold proofs of the same goals), except the run's own copy | `--glm-seconds` 120 of working time | no: tokens logged as free |
-| 2 | headless Claude Code: `claude -p --model claude-sonnet-5-5 --output-format json` in `<run>/tier2/<goal>/`, which holds only `GOAL.v` (the statement, no proof) | `--sonnet-calls` 30 `goals`/`check` calls (`prover_cli.py` refuses more), `--sonnet-turns` 60, `--sonnet-seconds` 600, `--sonnet-usd` 1 (`--max-budget-usd`) | yes, in the ledger |
+| 2 | headless Claude Code: `claude -p --model claude-opus-5-5 --output-format json` (`--claude-model`) in `<run>/tier2/<goal>/`, which holds only `GOAL.v` (the statement, no proof) | `--claude-calls` 30 `goals`/`check` calls (`prover_cli.py` refuses more), `--claude-turns` 60, `--claude-seconds` 600, `--claude-usd` 1 (`--max-budget-usd`) | yes, in the ledger |
 
 Tier 2's fence: `--safe-mode` (no CLAUDE.md, skills, plugins, hooks,
 MCP), `--restricted` (user and project settings ignored, file tools
@@ -126,7 +134,7 @@ annotator) and per model: calls, the four token counts and the
 API-equivalent USD.  **The unit is USD**: token totals are dominated by
 cache reads, which cost about a tenth of other input, so cost tracks
 the limit better.  Before each tier-2 call `reserve` takes the call's
-cap (`--sonnet-usd`) and refuses if the week would pass the cap; the
+cap (`--claude-usd`) and refuses if the week would pass the cap; the
 refusal goes into the ledger and the report, the run stops asking
 Claude (`cap_hit: budget`), and the goal stays open.  After the call
 `charge` books its reported cost (or its cap, if it was killed or gave
@@ -162,6 +170,195 @@ records a reading before and after step 4 when tier 2 runs, and its
 reset time becomes the ledger's `resets_at`; at `resets_at` the week's
 totals move to `past_weeks`.  It is an integer % of all use, so it
 cannot see one goal (23% before and after the `mem_cons` run).
+
+## Annotator (step 5; `annotator.py`, `annotator_cli.py`, plan §12.1)
+
+**Starting point.**  `b1_frozen.json` runs `../bench/b1/b1_frozen.c`, B1
+with the frozen spec only (decisions in `../bench/b1/README.md`,
+"Frozen-only variant"): the copy leaves out `b1.c`, `b1_gen.c`, the
+READMEs, `mutants.py` and the human's Coq scripts, so nothing a model
+can read in the run holds the human's annotations.  Step 0 runs `rac/
+check.sh` on the copy's source in quick mode (`SRC`, no mutants: their
+anchors are the human's annotations).  The functions pass must have at
+least the frozen-only 254 goals; `--functions` cuts the selection down
+(the minimum is then the sum of `function_goals`).
+
+**Call.**  `claude -p --model claude-opus-5-5 --output-format json` in
+`<run>/annotator/call<n>/`, which holds `SOURCE.c` (the current source,
+or the rejected patch to fix), `TASK.md` and `ariadne_alloc.h`.
+`TASK.md` (built by `Run.task`): the rules (the guardrails, in words),
+the WP flags, the iteration, then the open goals grouped by function
+(whose frozen contract is in `SOURCE.c`) and line, each with step 4's
+prover reports (tier, result, Sonnet's last words), WP's text of each
+open goal (`-wp-status` in step 3's log, as `Goal ... Prove: ...`), the
+rejection reason if any, and one line per earlier iteration.  The fence
+is tier 2's: `--safe-mode --restricted`, `--tools Bash,Read,Write,Edit`,
+`--allowedTools` only `python3 annotator_cli.py check SOURCE.c`, `...
+wp SOURCE.c *` and Read/Write/Edit in its directory, `Bash(git *)`
+denied, `--permission-mode dontAsk`, `GIT_DIR` and
+`GIT_CEILING_DIRECTORIES` set.  Caps per call: `--opus-usd`
+(`--max-budget-usd`, reserved in the ledger first under the
+`annotator` role and released if the call never runs), `--opus-turns`,
+`--opus-seconds`, `--opus-wp-calls` (`annotator_cli.py` refuses more).
+
+**Its oracle** (`annotator_cli.py`): `check` runs the guardrails against
+the frozen baseline; `wp FUNCTION|lemmas` runs them and, only if they
+pass, WP with Alt-Ergo, CVC5 and Z3 (20 s each, no Coq) on that target,
+and prints the census and WP's text of each open goal.
+
+**The patch** is the `SOURCE.c` the call leaves.  The harness checks it
+again (`patch_checks`: frozen spec, ACSL lint, ghost lint, then the
+overlay), then runs step 0 on it; a rejection goes back with the reason
+(guardrail verdicts with hints, or the failing E-ACSL check) and the
+copy keeps its last accepted source.  The same `SOURCE.c` returned, or
+a budget refusal, ends refinement.  Step 4 skips a goal whose goal file
+is byte-identical to one it already failed on, and `--prove-scope
+lemmas` keeps the prover tiers to lemma goals, so function goals go
+straight to the annotator (plan §12.3 S5).
+
+**Offline tests** (`test_annotator.py`, patches from `fake_patches.py`,
+`get_first` only, no model): a good patch (the human's `get_first`
+annotations and lemmas) is accepted and only the five lemmas M1 proved
+in Coq stay open; a weakened frozen precondition, an added predicate
+and a ghost loop are each rejected by the guardrails before Frama-C,
+and a false loop invariant by step 0 (E-ACSL), each reason reaching the
+next call and WP running once; an annotator adding useless asserts
+stops at `--max-iterations`.  Plus the command's fence and a fake
+`claude` charged to the `annotator` role.
+
+### One function: `get_first` from its frozen contract (`results/b1-frozen-getfirst.md`)
+
+`--functions sglib_dllist_get_first --prove-scope lemmas --tiers 0,1,2
+--annotator opus`: **certified, 23/23 goals** (Qed 13, Alt-Ergo 8, Z3
+1, Coq 1) in 602 s and **one iteration**.  Before the patch 6 of 16
+goals were open (the loop body's accesses, `assigns`, `heads_list`).
+Opus 5.5 took 152 s, 15 turns and 5 `wp` calls, **$0.46**; it wrote
+(`results/b1-frozen-getfirst-patch1.c`) a loop invariant (`_dll_` and
+`list` are both nodes of one live list from NULL), `loop assigns _dll_`,
+and four lemmas: `dll_head`, `dll_prev_head` and `dll_inv`, proved by
+SMT, and `dll_prev_nth` (node j's `ptr_to_previous` is node j-1), which
+needs induction: tier 0 and GLM missed it, **Sonnet proved it for
+$0.14** (`results/b1-frozen-getfirst-lemma_dll_prev_nth.v`), coqc,
+WP's rerun, coqchk and Print Assumptions accepted it.  Opus's one
+attempt outside its fence (a `grep` in `harness/`) was denied.
+
+### All of B1 from its frozen contracts (`results/b1-frozen.md`)
+
+`--prove-scope lemmas --tiers 0,1,2 --goal-seconds 120 --sonnet-usd 0.75
+--annotator opus --opus-usd 5 --opus-turns 150 --opus-wp-calls 25
+--annotator-retries 0 --max-iterations 3`: **certified, 330/330 goals**
+(functions 306, lemmas 24): Qed 186, Alt-Ergo 122, CVC5 15, Z3 3, Coq 4.
+coqc, coqchk (exit 0) and Print Assumptions (32 axioms over the 4
+modules) accepted all four Coq goals, every axiom on the allow-list.
+
+| Iteration | Annotator (Opus 5.5) | After WP and step 4 |
+|---|---|---|
+| 1 | 48 open goals in; 1027 s, 68 turns, all 25 `wp` calls, **$3.00**; patch accepted (guardrails, step 0) | functions 310/310 by Qed/SMT; of 21 lemmas 17 by SMT, `dll_frame`, `dll_last`, `dll_nth_prev` by Sonnet ($0.13-0.16 each), `dll_nth_next` open (Sonnet's compound `sed; check` command was denied and it stopped) |
+| 2 | 1 open goal in; 166 s, 10 turns, 5 `wp` calls, **$0.40**: three helper lemmas for `dll_nth_next` (`dll_cons_tail`, `dll_cons_next`, `dll_nth_next_succ`), accepted | the run stopped in step 4 on a harness bug (tier 2's directory for a second attempt on one goal already existed; fixed) |
+| resume | `--overlay results/b1-frozen-patch2.c` (iteration 2's patch, unchanged), the same flags: guardrails, step 0, WP | all 306 function goals and 20 lemmas by Qed/SMT, **the four induction lemmas by Sonnet**, $0.17 + $0.12 + $0.16 + $0.17 = $0.63; certified in 1412 s |
+
+The resume reran the Coq goals from scratch (the copy drops Coq scripts),
+so every Coq proof in the certificate is from that run.  What Opus wrote
+(`results/b1-frozen-patch1.c`, `-patch2.c`): loop invariants for all six
+loops (for `get_first`/`get_last` that `_dll_` and `list` are nodes of
+one live list from NULL; for the driver's build loop `live_dll` of
+`the_list`, for the walks `live_dll` of the rest and `in_live_list`,
+for the free loop `iter_ok`), 7 `loop assigns`, 25 asserts (frames
+across `add`, `it_next`, allocation and free), and 24 lemmas: list and
+`dll` unfolding, index views (`dll_nth_prev`, `dll_nth_next`,
+`dll_last`), the frame lemma `dll_frame`, and liveness after
+allocation and free.  No ghost code.  Its denied commands: `git log`,
+reading `annotator_cli.py`, and a `sed` edit of SOURCE.c.
+
+**Spending** (ledger, API-equivalent): Opus $3.86 (`get_first` $0.46,
+B1 $3.40), Sonnet $1.33 (`get_first` $0.14, B1 $1.19); 0.46% of the
+weekly limit by the calibration.  Every Coq goal went through tier 0 (120 s)
+and GLM (2 min) first; in all nine attempts both left it open, and
+Sonnet then proved it in eight (the ninth is the denied command above).
+
+Prompts tightened after the B1 run (`tiers.PROMPT`, `annotator.PROMPT`):
+one command per Bash call, edits with Write/Edit, and a denial does not
+end the task.
+
+**Fence retry.**  An attempt that ends with no proof (tier 2) or no
+patch (the annotator) after the fence refused a command
+(`permission_denials` > 0) is retried once, with the refused commands
+named (`tiers.fence_note`; for the annotator in TASK.md, beyond
+`--annotator-retries`).  An attempt whose proof failed, or that coqc
+rejected, is not retried (`test_tiers.py`, `test_annotator.py`).
+
+**Two attempts at an uninterrupted rerun** (`--annotator-retries 0`,
+then 1; same flags otherwise) each got an Opus patch that WP's oracle
+closed on every function (58 and 59 turns, $2.80 and $2.56), and each
+patch was stopped by step 0, for two reasons in the runtime-check
+tooling rather than in the annotations:
+
+- E-ACSL evaluates `\at(e, Pre)` at function entry on every path, so
+  an assert in `add`'s else branch reading `\at((*list)->ptr_to_next,
+  Pre)` failed its RTE check on runs where `*list` was NULL at entry,
+  though WP proved the assert;
+- `rac/gen_rac.py` drops ghost declarations, so a patch with a ghost
+  variable `gh` did not build under E-ACSL ("unbound logic variable"),
+  and the feedback sent back was empty (the failing check was read
+  after step 0's entry had been restored).
+
+Both are fixed: an E-ACSL or RAC-generation build failure is now
+`inconclusive` (step 0 is a filter only, plan §5.0: the patch goes on
+to WP, with the reason in the report), a fired check stays a rejection,
+the feedback carries the FAIL lines and what follows them, and an
+`RTE failed` message comes with a note on E-ACSL's eager `\at`.  The
+second attempt's retry call was stopped by hand once the empty feedback
+showed; the ledger booked its $4 cap (no JSON result), so the ledger
+shows $9.36 for the two attempts against about $5.40 used.  Within the
+budget for the rerun (about $6), the certified result above stays the
+resumed one.
+
+## Escalation strategies (`escalation.py`, plan §12.3)
+
+**Goal set** (`results/escalation/goals/`, proofs removed): the 9 Coq
+goals that fixed annotations leave, the 5 lemmas of the human `b1.c`
+(`human_*`: `mem_cons`, `all_live_cons`, `all_init_cons`, `dll_frame`,
+`dll_links`) and the 4 of the frozen run's final patch (`frozen_*`:
+`dll_frame`, `dll_last`, `dll_nth_next`, `dll_nth_prev`).  Every
+attempt goes through `tiers.chain` on a fresh copy (coqc confirms the
+proof; the fence retry applies, and was never needed) and is logged in
+`results/escalation/attempts.jsonl` (150 attempts).  REALLMS models get
+120 s of working time; Sonnet a $0.75 and Opus a $1.50 cap per attempt.
+
+**S1** is one attempt per model and goal.  **S2** (GLM, then Sonnet,
+then Opus) and **S4** (k GLM attempts, then Sonnet, then Opus) are
+composed from those attempts and GLM's attempts 2-16: a goal's result
+is the first success in that order, its cost and time the sum up to it.
+**S3** ran Sonnet afresh on the 8 goals GLM's first attempt missed,
+with GLM's best partial script in the prompt (the longest prefix
+`show_goals` accepted, else the last script it checked); GLM left one
+for only one goal (`human_mem_cons`), so S3 differs from S2 mostly by a
+second, independent Sonnet sample.  Opus was never reached in S2-S4:
+Sonnet closed every goal it was given.
+
+| Strategy | Goals closed | Anthropic USD | USD per closed goal | Wall clock (s) | s per closed goal | Closed by |
+|---|---|---|---|---|---|---|
+| S1 GLM 5.3 Flash | 1 / 9 | 0 | 0 | 2366 | 2366 | GLM 1 |
+| S1 gpt-oss-120b | 0 / 9 | 0 | - | 1527 | - | |
+| S1 qwen3.8-27b | 0 / 9 | 0 | - | 2085 | - | |
+| S1 Sonnet 5.5 | 9 / 9 | 1.60 | 0.178 | 451 | 50 | Sonnet 9 |
+| S1 Opus 5.5 | 9 / 9 | 1.62 | 0.180 | 336 | 37 | Opus 9 |
+| S2 GLM, Sonnet, Opus | 9 / 9 | 1.53 | 0.170 | 2806 | 312 | Sonnet 8, GLM 1 |
+| S3 S2 with hand-off | 9 / 9 | 1.42 | 0.158 | 2778 | 309 | Sonnet 8, GLM 1 |
+| S4 k=1 (= S2) | 9 / 9 | 1.53 | 0.170 | 2806 | 312 | Sonnet 8, GLM 1 |
+| S4 k=4 | 9 / 9 | 1.41 | 0.157 | 9104 | 1012 | Sonnet 7, GLM 2 |
+| S4 k=16 | 9 / 9 | 1.31 | 0.145 | 28147 | 3127 | Sonnet 6, GLM 3 |
+
+GLM proved `human_all_live_cons` on attempt 1, `human_all_init_cons` on
+attempt 2 and `human_mem_cons` on attempt 7; none of the 6 induction
+lemmas in 16 attempts each.  The REALLMS wall clocks include the
+service's rate-limit waits, with up to 4 attempts running at once.
+
+**Reading.**  On this set Opus as a prover costs the same as Sonnet
+($0.18 per goal) and is 25% faster; both close everything.  Free
+attempts before Sonnet save at most 18% of the Anthropic cost (S4 k=16)
+and multiply the wall clock by 6 to 60.  The comparison used $3.80 of
+its $15 (ledger, role `prover`).  S5 is still to do.
 
 ## Results on B1 (`results/`)
 

@@ -5,7 +5,8 @@ that runs them on a goal tier 0 left open.
   tier 1  GLM 5.3 Flash on REALLMS (`../prover/reallms_coq.py --blank`),
           a working-time budget (default 120 s); free, its tokens are
           logged in the ledger but not charged;
-  tier 2  Claude Sonnet 5.5 as headless Claude Code (`claude -p`, billed
+  tier 2  a Claude model (default Opus 5.5, plan Q9; Sonnet 5.5 in M2)
+          as headless Claude Code (`claude -p`, billed
           to the owner's subscription), with only the `prover_cli.py`
           commands on its own goal copy and script, and Read/Write in its
           own work directory; a per-goal cap on calls, turns, seconds
@@ -33,6 +34,7 @@ from reallms_coq import FORBIDDEN, normalise, split_goal  # noqa: E402
 CLI = os.path.join(PROVER, "prover_cli.py")
 REALLMS = os.path.join(PROVER, "reallms_coq.py")
 SONNET = "claude-sonnet-5-5"
+OPUS = "claude-opus-5-5"
 
 
 class Tier1:
@@ -80,7 +82,9 @@ class Tier1:
                 "end": rep.get("status"),
                 "tokens": sum(v for v in usage.values()
                               if isinstance(v, int)),
-                "usage": usage, "charged": False}
+                "usage": usage, "charged": False,
+                "partial": rep.get("partial"),
+                "partial_goals": rep.get("partial_goals")}
 
 
 PROMPT = """\
@@ -99,7 +103,9 @@ neither), into SCRIPT.v in this directory, and use only these commands:
   python3 {cli} check GOAL.v SCRIPT.v               (the whole proof)
 
 You may Read GOAL.v and Read/Write files in this directory; nothing else
-is allowed.  You have {calls} `goals`/`check` calls in all.  `check`
+is allowed.  Run one command per Bash call (no `&&`, `;` or newlines) and
+change SCRIPT.v with Write or Edit, not sed; any other command is denied,
+and a denial does not end the task: carry on with these.  You have {calls} `goals`/`check` calls in all.  `check`
 prints "OK: proof accepted by coqc" when the proof is accepted: stop
 right after it.  admit, Admitted, Abort, Defined and new axioms or
 definitions are refused.
@@ -151,16 +157,18 @@ def sonnet_env(work, calls_log, calls):
 
 
 class Tier2:
-    """Sonnet 5.5 as headless Claude Code, charged to the ledger."""
-    tier, name = 2, "sonnet"
+    """A Claude model as headless Claude Code, charged to the ledger."""
+    tier, name = 2, "claude"
 
-    def __init__(self, root, ledger, model=SONNET, calls=30, turns=60,
+    def __init__(self, root, ledger, model=OPUS, calls=30, turns=60,
                  seconds=600, usd=1.0, role="prover", left=lambda: 1e9):
         self.root, self.ledger, self.model = root, ledger, model
         self.calls, self.turns, self.seconds = calls, turns, seconds
         self.usd, self.role, self.left = usd, role, left
 
-    def run(self, path, goal):
+    def run(self, path, goal, note=None):
+        """One attempt; `note` (a fence retry: the refused commands) is
+        added to the prompt."""
         t = time.time()
         res = {"tier": 2, "model": self.model}
         # The reservation is the per-goal cap, --max-budget-usd.
@@ -172,21 +180,28 @@ class Tier2:
                        f"the {gate['cap_pct']}% cap")
             return res
         try:
-            return self._run(path, goal, t, res, gate["id"])
+            return self._run(path, goal, t, res, gate["id"], note)
         except BaseException:
             self.ledger.release(gate["id"])
             raise
 
-    def _run(self, path, goal, t, res, reservation):
+    def _run(self, path, goal, t, res, reservation, note=None):
         work = os.path.join(self.root, goal)
+        k = 1
+        while os.path.exists(work):  # a later round on the same goal
+            k += 1
+            work = os.path.join(self.root, f"{goal}-{k}")
         os.makedirs(work)
         prefix, _, suffix = split_goal(open(path).read())
         with open(os.path.join(work, "GOAL.v"), "w") as f:
             f.write(prefix + "\n" + suffix)  # the statement, no proof
         calls_log = os.path.join(work, "calls.jsonl")
         env = sonnet_env(work, calls_log, self.calls)
+        prompt = PROMPT.format(cli=CLI, calls=self.calls)
+        if note:
+            prompt += "\n" + note
         cmd = sonnet_command(work, self.model, self.calls, self.turns,
-                             self.usd)
+                             self.usd, prompt=prompt)
         out = None
         try:
             p = subprocess.run(cmd, cwd=work, env=env, capture_output=True,
@@ -213,7 +228,8 @@ class Tier2:
                        cost_usd=out.get("total_cost_usd"),
                        answer=(out.get("result") or "")[-200:],
                        permission_denials=len(
-                           out.get("permission_denials") or []))
+                           out.get("permission_denials") or []),
+                       denied=denied_commands(out))
         res["cli_calls"] = cli_calls(calls_log)
         sp = os.path.join(work, "SCRIPT.v")
         script = open(sp).read() if os.path.exists(sp) else None
@@ -223,7 +239,28 @@ class Tier2:
         res.update(status="proved" if ok and script else "open",
                    script=normalise(script).strip("\n") if script else None,
                    seconds=round(time.time() - t, 1))
+        if res["status"] != "proved":  # the hand-off of plan 12.3 S3
+            res["partial"] = res["script"]
         return res
+
+
+def denied_commands(out):
+    """What the fence refused in a Claude Code JSON result: the Bash
+    commands (or tool names), each cut to 300 characters."""
+    out = out or {}
+    return [((d.get("tool_input") or {}).get("command")
+             or d.get("tool_name") or "?")[:300]
+            for d in out.get("permission_denials") or []]
+
+
+def fence_note(denied, what="SCRIPT.v"):
+    """The prompt addition of a fence retry."""
+    cmds = "\n".join(f"  {c}" for c in (denied or [])) or "  (not recorded)"
+    return ("A previous attempt stopped after these commands were refused "
+            "by the permission fence:\n" + cmds + "\nOnly the commands "
+            "listed above run, one per Bash call, exactly in that form; "
+            f"edit {what} with Write or Edit.  Do not stop at a refusal: "
+            "carry on with the allowed commands.\n")
 
 
 def cli_calls(path):
@@ -268,6 +305,14 @@ def chain(path, goal, tiers, coqc, stop=lambda: False):
             break
         r = tier.run(path, goal)
         attempts.append(r)
+        if r["status"] == "open" and r.get("permission_denials") \
+                and not stop():
+            # A fence retry: the attempt ended after the fence refused a
+            # command, with no proof; once more, with the refusal named.
+            # An attempt whose proof failed is not retried.
+            r = tier.run(path, goal, note=fence_note(r.get("denied")))
+            r["fence_retry"] = True
+            attempts.append(r)
         if r["status"] == "refused":
             out["status"] = "refused"
             break

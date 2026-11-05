@@ -98,6 +98,54 @@ try:
     expect("the time cap stops the chain",
            a.ran == 0 and r.get("stopped") == "total time cap", r)
 
+    # ---- fence retry ----------------------------------------------------
+    class Fenced:
+        """Open with a refused command on the first attempt, then the
+        given result; records the notes it was given."""
+        tier = 2
+
+        def __init__(self, second, denials=1):
+            self.second, self.denials, self.notes = second, denials, []
+
+        def run(self, path, goal, note=None):
+            self.notes.append(note)
+            if len(self.notes) == 1:
+                return {"tier": 2, "model": "fenced", "status": "open",
+                        "script": None, "seconds": 1.0, "tokens": 5,
+                        "usd": 0.1, "charged": True,
+                        "permission_denials": self.denials,
+                        "denied": ["sed -i s/a/b/ SCRIPT.v\ncheck"]}
+            return {"tier": 2, "model": "fenced", "status": self.second,
+                    "script": "good." if self.second == "proved" else None,
+                    "seconds": 1.0, "tokens": 5, "usd": 0.1,
+                    "charged": True}
+
+    shutil.copy(GOAL, path)
+    f = Fenced("proved")
+    r = tiers.chain(path, "g", [f], coqc)
+    expect("fence retry: an attempt stopped by the fence is retried once, "
+           "with the refused command named, and its proof counts",
+           r["status"] == "proved" and len(f.notes) == 2
+           and f.notes[0] is None and "sed -i s/a/b/" in f.notes[1]
+           and r["attempts"][1].get("fence_retry") and r["usd"] == 0.2, r)
+    f = Fenced("open")
+    r = tiers.chain(path, "g", [f], coqc)
+    expect("fence retry: only once", r["status"] == "open"
+           and len(f.notes) == 2, r)
+    f = Fenced("open", denials=0)
+    r = tiers.chain(path, "g", [f], coqc)
+    expect("fence retry: a failed proof without refusals is not retried",
+           len(f.notes) == 1 and r["status"] == "open", r)
+    a = Fake(2, "proved", "bad.")
+    r = tiers.chain(path, "g", [a], coqc)
+    expect("fence retry: a proof coqc rejects is not retried",
+           a.ran == 1 and r["attempts"][0]["status"] == "rejected", r)
+    out = {"permission_denials": [{"tool_name": "Bash", "tool_input":
+                                   {"command": "git log"}},
+                                  {"tool_name": "Read", "tool_input": {}}]}
+    expect("denied_commands: Bash commands, else the tool name",
+           tiers.denied_commands(out) == ["git log", "Read"])
+
     # ---- Tier2 with a fake claude --------------------------------------
     cmd = tiers.sonnet_command("/w", calls=30)
     flags = " ".join(cmd[2:])

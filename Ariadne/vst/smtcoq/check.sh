@@ -10,19 +10,23 @@ step() {
 }
 
 rm -rf out
-"$run" sh run_tests.sh
+"$run" sh run_tests.sh   # ~25 min; proved.v alone ~11 min
+
+compiled() { grep -q "^$1 coqc exit 0\$" out/status.txt; }
 
 # 1. Small goals over Z, bool, nat, lists: which tactic proves which.
 name="smoke.v: probe results as in expected_smoke.txt"
-step diff -u expected_smoke.txt out/smoke.txt
+smoke() { compiled smoke && diff -u expected_smoke.txt out/smoke.txt; }
+step smoke
 
 # 2. B1 side goals: SMTCoq vs lia / rep_lia / list_solve.
 name="b1_side.v: probe results as in expected_b1_side.txt"
-step diff -u expected_b1_side.txt out/b1_side.txt
+side() { compiled b1_side && diff -u expected_b1_side.txt out/b1_side.txt; }
+step side
 
 # 3. SMTCoq proofs pass Qed; Print Assumptions as recorded.
 assumptions() {
-  grep -q '^proved coqc exit 0$' out/status.txt \
+  compiled proved \
     && grep -vE '^(File |Warning: Bytecode|\[bytecode)' out/proved.log \
          > out/assumptions.txt \
     && diff -u expected_assumptions.txt out/assumptions.txt

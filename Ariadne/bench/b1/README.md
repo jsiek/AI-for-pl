@@ -316,6 +316,47 @@ and annotations stay written out.
   lemmas keep their order among themselves, and the goals and their
   proofs did not change.
 
+## The comparator's overflow (plan Q12)
+
+`DLLIST_COMPARATOR(e1, e2)` is `(e1->i - e2->i)`, which overflows (undefined
+behaviour) on extreme values, e.g. `INT_MAX - (-1)`.  B1's proof does
+not cover it, and does not need to: **no verified function evaluates
+it.**
+
+- sglib inlines the comparator into `add_if_not_member`,
+  `add_before_if_not_member`, `add_after_if_not_member`,
+  `delete_if_member`, `find_member` and `sort` (b1.c lines 136-214,
+  286-291, 346-355, 439).  None is in `run.sh`'s `-wp-fct` selection
+  (`add`, `it_init_on_equal`, `it_init`, `it_next`, `get_first`,
+  `get_last`, `b1`), and the driver `b1` calls none of them, so RTE
+  creates no goal for the subtraction: the only `rte_signed_overflow`
+  goal among the 310 is `typed_b1_assert_rte_signed_overflow`
+  (the driver's `k++`, proved).
+- The iterator's subcomparator calls go through a function pointer
+  (`scp(eq, ce)` in `it_next`), and both contracts require
+  `subcomparator == \null` (`it_init_on_equal`'s precondition,
+  `it_next`'s `requires it->subcomparator == \null`), so those calls are
+  unreachable in every verified context.
+- No precondition bounds the values: `b1` stores arbitrary `input[k]`,
+  and no predicate mentions `i` except `elem_init`'s `\initialized`.
+- Checked by running WP (`-wp-rte`, Alt-Ergo, Z3, CVC5, 10 s) on
+  `find_member` and `sort`, outside the selection: RTE creates
+  `typed_sglib_dllist_find_member_assert_rte_signed_overflow{,_2,_3,_4}`
+  (lines 346 and 355) and
+  `typed_sglib_dllist_sort_assert_rte_signed_overflow_3`, `_4` (line
+  439), and none is proved: nothing in context bounds `i` (the other
+  goals of these functions fail too, since they have no contract).
+
+So a certificate for B1 says nothing about the comparator.  When
+`find_member`, `sort` or the `*_if_not_member` functions join the
+selection, the comparator needs the contract of plan Q12 (no undefined
+behaviour on the values present), which for this comparator means a
+precondition bounding the payloads (e.g. every `i` in `[INT_MIN / 2,
+INT_MAX / 2]`), or a comparator that cannot overflow (`(a > b) - (a <
+b)`), a change to client code.  (sglib's self-test compares `unsigned`
+fields, where the subtraction wraps without undefined behaviour; its
+conversion to `int` is implementation-defined, not undefined.)
+
 ## Next
 
 B1c (stretch): `sglib_dllist_sort`.

@@ -4,9 +4,10 @@ milestone M2): runtime checks, Frama-C/WP, tier-0 proof search, close
 out with coqc / coqchk / Print Assumptions, guardrails, and a report.
 
     python3 harness.py ../bench/b1 [--config b1.json] [--run-dir DIR]
-        [--blank-coq] [--overlay EDITED.c] [--no-rac] [--tiers 0,1,2]
+        [--blank-coq] [--overlay EDITED.c] [--no-rac] [--tiers 0,2]
         [--goal-seconds 300] [--tactic-seconds 60] [--glm-seconds 120]
-        [--sonnet-calls 30] [--sonnet-seconds 600] [--sonnet-usd 1]
+        [--claude-model claude-opus-5-5] [--claude-calls 30]
+        [--claude-seconds 600] [--claude-usd 1]
         [--ledger ../runs/budget.json]
         [--max-iterations 1] [--max-seconds 3600]
 
@@ -28,8 +29,8 @@ Steps (plan section 5):
   3  WP, one run per pass of the config; `-wp-interactive update`
      writes a Coq goal file for every goal sent to Coq;
   4  proof search on each open goal: tier 0 (tier0.py, no model), then
-     tier 1 (GLM 5.3 Flash) and tier 2 (Sonnet 5.5, within the budget
-     ledger) (tiers.py); each proof is checked by coqc, then step 3 runs
+     tier 1 (GLM 5.3 Flash, off by default) and tier 2 (Opus 5.5 by
+     default, within the budget ledger) (tiers.py); each proof is checked by coqc, then step 3 runs
      again if any goal was closed, so WP checks it too;
   5  refinement: a stub; it records each open goal as a stall, with its
      statement as the last state (there is no annotator in M2);
@@ -474,8 +475,9 @@ class Run:
         if 2 in self.tiers:
             out.append(tiers.Tier2(
                 os.path.join(self.dir, "tier2"), self.ledger,
-                calls=self.a.sonnet_calls, turns=self.a.sonnet_turns,
-                seconds=self.a.sonnet_seconds, usd=self.a.sonnet_usd,
+                model=self.a.claude_model,
+                calls=self.a.claude_calls, turns=self.a.claude_turns,
+                seconds=self.a.claude_seconds, usd=self.a.claude_usd,
                 left=self.left))
         return out
 
@@ -1113,21 +1115,23 @@ def main():
     ap.add_argument("--no-rac", action="store_true")
     ap.add_argument("--no-tier0", action="store_true",
                     help="drop tier 0 from --tiers")
-    ap.add_argument("--tiers", default="0,1,2",
+    ap.add_argument("--tiers", default="0,2",
                     help="prover tiers for step 4 (0 tier0.py, 1 GLM, "
-                    "2 Sonnet); empty for none")
+                    "2 --claude-model; plan Q9: 0,2); empty for none")
     ap.add_argument("--goal-seconds", type=float, default=300,
                     help="tier 0: seconds per goal")
     ap.add_argument("--tactic-seconds", type=float, default=60)
     ap.add_argument("--glm-seconds", type=int, default=120,
                     help="tier 1: working time per goal")
-    ap.add_argument("--sonnet-calls", type=int, default=30,
+    ap.add_argument("--claude-model", default=tiers.OPUS,
+                    help="tier 2: the Claude model")
+    ap.add_argument("--claude-calls", type=int, default=30,
                     help="tier 2: prover_cli goals/check calls per goal")
-    ap.add_argument("--sonnet-turns", type=int, default=60,
+    ap.add_argument("--claude-turns", type=int, default=60,
                     help="tier 2: Claude Code turns per goal")
-    ap.add_argument("--sonnet-seconds", type=int, default=600,
+    ap.add_argument("--claude-seconds", type=int, default=600,
                     help="tier 2: wall clock per goal")
-    ap.add_argument("--sonnet-usd", type=float, default=1.0,
+    ap.add_argument("--claude-usd", type=float, default=1.0,
                     help="tier 2: --max-budget-usd per goal (API-"
                     "equivalent), also what the ledger reserves")
     ap.add_argument("--ledger", default=budget.PATH)

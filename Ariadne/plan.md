@@ -503,12 +503,17 @@ invariant is only needed for functional correctness and is stretch work.
     whose Coq support stops at Rocq 9.0, so Rocq 9.0.1.  CoqHammer and
     coq-lsp both have Rocq 9.0 releases, so nothing had to step back.
 
-*   **Q9 — Prover tiers: GLM 5.3 Flash → Sonnet 5.5 → Opus 5.5.**  This
-    is the starting configuration.  M3 tests it against the alternatives
-    in §12.3, in particular S5 (no paid prover tiers; hand failures to the
-    annotator), which saves Opus budget for annotation.  Other REALLMS
-    models may be added as free tiers once the service's model list is
-    recorded in §12.2.
+*   **Q9 — Prover: Opus 5.5 alone, after tier 0 (owner, 2026-11-05).**
+    The starting configuration was GLM 5.3 Flash → Sonnet 5.5 → Opus
+    5.5.  The M3 comparison (§12.3, `harness/README.md`) on 9 Coq goals:
+    Opus alone and Sonnet alone each proved 9/9 at about $0.18 per goal,
+    Opus in 37 s per goal and Sonnet in 50 s; GLM alone proved 1/9, and
+    gpt-oss-120b and qwen3.8-27b none.  Starting with GLM saved at most
+    about $0.04 per goal and took 8-85 times as long as Opus alone.  So
+    step 4 runs tier 0 and then Opus (`harness.py --tiers 0,2`,
+    `--claude-model`); GLM stays available as `--tiers 0,1,2`.  **Redo the comparison** (the S1-S4
+    runner, `harness/escalation.py`) whenever a new model becomes
+    available, Claude or REALLMS, and at the latest at M5.
 
 ### 9.2 Still open
 
@@ -853,6 +858,11 @@ cheapest first:
 | 1 | GLM 5.3 Flash (IU REALLMS) | none (free; rate-limited) |
 | 2 | Claude Sonnet 5.5 (`claude-sonnet-5-5`) | moderate |
 | 3 | Claude Opus 5.5 (`claude-opus-5-5`) | large |
+
+Since M3 the default is tier 0 then Opus 5.5 alone (Q9): the M3
+comparison found Opus as cheap per proved goal as the escalation chain
+and much faster.  The tiers below stay available for the periodic
+re-evaluation.
 
 Each tier gets a per-goal budget (attempts, tactic steps, seconds).  A
 goal moves up a tier when the current tier runs out of budget, and goes

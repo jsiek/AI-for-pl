@@ -9,7 +9,7 @@ cd Ariadne/harness
 python3 harness.py ../bench/b1                 # B1 as M1 left it
 python3 harness.py ../bench/b1 --blank-coq     # without the 5 Coq proofs
 python3 harness.py ../bench/b1 --overlay my_b1.c   # an edited b1.c
-python3 harness.py ../bench/b1 --blank-coq --tiers 0,1,2   # with the prover tiers
+python3 harness.py ../bench/b1 --blank-coq --tiers 0,2     # with the prover tiers
 python3 budget.py show                         # the Anthropic budget ledger
 python3 test_guardrails.py; python3 test_tier0.py; python3 test_harness.py
 python3 test_budget.py; python3 test_tiers.py  # offline, no model calls
@@ -83,7 +83,8 @@ the tactic it reconstructs is checked first.
 
 ## Prover tiers 1 and 2 (`tiers.py`, plan §12.2)
 
-`--tiers` (default `0,1,2`) picks the tiers; `--goals REGEX` limits step
+`--tiers` (default `0,2`: tier 0, then Opus 5.5; plan Q9) picks the
+tiers, and `--claude-model` tier 2's model; `--goals REGEX` limits step
 4 to some goals.  On each goal tier 0 leaves open, `tiers.chain` runs
 the next tier until one's proof is confirmed: no forbidden command
 (`reallms_coq.FORBIDDEN`) and `coqc` accepts the real goal file with it
@@ -93,7 +94,7 @@ time left under `--max-seconds`.
 | Tier | How | Per-goal cap | Charged |
 |---|---|---|---|
 | 1 | `../prover/reallms_coq.py --blank` (GLM 5.3 Flash on REALLMS); `--hide` makes `read_file`/`grep` refuse other runs, `prover/results`, `harness/results` and every benchmark's `session/` (they hold proofs of the same goals), except the run's own copy | `--glm-seconds` 120 of working time | no: tokens logged as free |
-| 2 | headless Claude Code: `claude -p --model claude-sonnet-5-5 --output-format json` in `<run>/tier2/<goal>/`, which holds only `GOAL.v` (the statement, no proof) | `--sonnet-calls` 30 `goals`/`check` calls (`prover_cli.py` refuses more), `--sonnet-turns` 60, `--sonnet-seconds` 600, `--sonnet-usd` 1 (`--max-budget-usd`) | yes, in the ledger |
+| 2 | headless Claude Code: `claude -p --model claude-opus-5-5 --output-format json` (`--claude-model`) in `<run>/tier2/<goal>/`, which holds only `GOAL.v` (the statement, no proof) | `--claude-calls` 30 `goals`/`check` calls (`prover_cli.py` refuses more), `--claude-turns` 60, `--claude-seconds` 600, `--claude-usd` 1 (`--max-budget-usd`) | yes, in the ledger |
 
 Tier 2's fence: `--safe-mode` (no CLAUDE.md, skills, plugins, hooks,
 MCP), `--restricted` (user and project settings ignored, file tools
@@ -131,7 +132,7 @@ annotator) and per model: calls, the four token counts and the
 API-equivalent USD.  **The unit is USD**: token totals are dominated by
 cache reads, which cost about a tenth of other input, so cost tracks
 the limit better.  Before each tier-2 call `reserve` takes the call's
-cap (`--sonnet-usd`) and refuses if the week would pass the cap; the
+cap (`--claude-usd`) and refuses if the week would pass the cap; the
 refusal goes into the ledger and the report, the run stops asking
 Claude (`cap_hit: budget`), and the goal stays open.  After the call
 `charge` books its reported cost (or its cap, if it was killed or gave

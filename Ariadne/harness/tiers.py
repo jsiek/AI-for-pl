@@ -5,7 +5,8 @@ that runs them on a goal tier 0 left open.
   tier 1  GLM 5.3 Flash on REALLMS (`../prover/reallms_coq.py --blank`),
           a working-time budget (default 120 s); free, its tokens are
           logged in the ledger but not charged;
-  tier 2  Claude Sonnet 5.5 as headless Claude Code (`claude -p`, billed
+  tier 2  a Claude model (default Opus 5.5, plan Q9; Sonnet 5.5 in M2)
+          as headless Claude Code (`claude -p`, billed
           to the owner's subscription), with only the `prover_cli.py`
           commands on its own goal copy and script, and Read/Write in its
           own work directory; a per-goal cap on calls, turns, seconds
@@ -33,6 +34,7 @@ from reallms_coq import FORBIDDEN, normalise, split_goal  # noqa: E402
 CLI = os.path.join(PROVER, "prover_cli.py")
 REALLMS = os.path.join(PROVER, "reallms_coq.py")
 SONNET = "claude-sonnet-5-5"
+OPUS = "claude-opus-5-5"
 
 
 class Tier1:
@@ -155,10 +157,10 @@ def sonnet_env(work, calls_log, calls):
 
 
 class Tier2:
-    """Sonnet 5.5 as headless Claude Code, charged to the ledger."""
-    tier, name = 2, "sonnet"
+    """A Claude model as headless Claude Code, charged to the ledger."""
+    tier, name = 2, "claude"
 
-    def __init__(self, root, ledger, model=SONNET, calls=30, turns=60,
+    def __init__(self, root, ledger, model=OPUS, calls=30, turns=60,
                  seconds=600, usd=1.0, role="prover", left=lambda: 1e9):
         self.root, self.ledger, self.model = root, ledger, model
         self.calls, self.turns, self.seconds = calls, turns, seconds

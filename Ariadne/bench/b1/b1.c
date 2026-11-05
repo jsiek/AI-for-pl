@@ -84,16 +84,34 @@ void sglib_dllist_add(dllist **list, dllist *elem) {
       }
     }
     (*list) = (elem);
-    /*@ SGLIB_DL_LIST_ANNOT_ADD_INIT_FRAME(
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_SINGLE(
           dllist, ptr_to_previous, ptr_to_next) */
-    /*@ SGLIB_DL_LIST_ANNOT_ADD_OLD_HEAD_INIT(
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_OLD_PREV(
           dllist, ptr_to_previous, ptr_to_next) */
-    /*@ SGLIB_DL_LIST_ANNOT_ADD_FRAME(dllist, ptr_to_previous, ptr_to_next) */
-    /*@ SGLIB_DL_LIST_ANNOT_ADD_LINKED(dllist, ptr_to_previous, ptr_to_next) */
-    /*@ SGLIB_DL_LIST_ANNOT_ADD_LINKED_INIT(
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_KEEP_PREV(
           dllist, ptr_to_previous, ptr_to_next) */
-    /*@ SGLIB_DL_LIST_ANNOT_ADD_TAIL(dllist, ptr_to_previous, ptr_to_next) */
-    /*@ SGLIB_DL_LIST_ANNOT_ADD_SINGLE(dllist, ptr_to_previous, ptr_to_next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_KEEP_NEXT(
+          dllist, ptr_to_previous, ptr_to_next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_KEEP_INIT(
+          dllist, ptr_to_previous, ptr_to_next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_FRAME_PREV(
+          dllist, ptr_to_previous, ptr_to_next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_FRAME_NEXT(
+          dllist, ptr_to_previous, ptr_to_next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_WRITTEN(
+          dllist, ptr_to_previous, ptr_to_next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_LINKS(
+          dllist, ptr_to_previous, ptr_to_next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_DISTINCT(
+          dllist, ptr_to_previous, ptr_to_next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_NEW_DLL(
+          dllist, ptr_to_previous, ptr_to_next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_NEW_LIVE(
+          dllist, ptr_to_previous, ptr_to_next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_INSERT_LIST(
+          dllist, ptr_to_previous, ptr_to_next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_INSERTED(
+          dllist, ptr_to_previous, ptr_to_next) */
   };
 }
 void sglib_dllist_add_after(dllist **list, dllist *elem) {
@@ -547,6 +565,7 @@ dllist *sglib_dllist_it_init_on_equal(struct sglib_dllist_iterator *it,
   /*@ SGLIB_DL_LIST_ANNOT_IT_FRAME(dllist, ptr_to_previous, ptr_to_next) */
   /*@ SGLIB_DL_LIST_ANNOT_IT_INIT_FRAME(
         dllist, ptr_to_previous, ptr_to_next) */
+  /*@ SGLIB_DL_LIST_ANNOT_IT_START(dllist, ptr_to_previous, ptr_to_next) */
   return (sglib_dllist_it_next(it));
 }
 /*@ SGLIB_DL_LIST_CONTRACT_IT_INIT(dllist, ptr_to_previous, ptr_to_next) */
@@ -588,9 +607,9 @@ dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it) {
         dllist, ptr_to_previous, ptr_to_next) */
   /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_IT_INIT(
         dllist, ptr_to_previous, ptr_to_next) */
-  /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_LIVE_FRAME(
-        dllist, ptr_to_previous, ptr_to_next) */
-  /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_REST(dllist, ptr_to_previous, ptr_to_next) */
+  /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_BACK(dllist, ptr_to_previous, ptr_to_next) */
+  /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_FORWARD(dllist, ptr_to_previous, ptr_to_next) */
+  /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_END(dllist, ptr_to_previous, ptr_to_next) */
   return (ce);
 };
 /* END GENERATED, part 2 */
@@ -620,7 +639,7 @@ int b1(const int *input, int n) {
         \forall dllist *q; live(q) ==> \initialized(&q->i);
       loop assigns k, l, the_list, __heap,
         { q->i | dllist *q; heap(\base_addr(q)) },
-        { q->ptr_to_next | dllist *q; heap(\base_addr(q)) },
+        { q->ptr_to_next | dllist *q },
         { q->ptr_to_previous | dllist *q; heap(\base_addr(q)) };
       loop variant n - k;
   */
@@ -635,9 +654,16 @@ int b1(const int *input, int n) {
           \forall \list<dllist *> s;
             all_live{before_alloc}(s) ==> all_live(s) && !mem(l, s); */
     l->i = input[k];
+    /*@ assert old_head: the_list == \null
+          || the_list->ptr_to_previous == \null; */
+    /*@ assert add_pre: the_list == \null
+          || \exists \list<dllist *> s; live_dll(\null, the_list, s)
+             && the_list == \nth(s, 0) && !mem(l, s); */
     /*@ assert payload_written:
           \forall dllist *q; live(q) ==> \initialized(&q->i); */
     sglib_dllist_add(&the_list, l);
+    /*@ assert head_after_add:
+          \exists \list<dllist *> s; live_dll(\null, the_list, s); */
     /*@ assert payload_kept:
           \forall dllist *q; live(q) ==> \initialized(&q->i); */
   }
@@ -645,7 +671,8 @@ int b1(const int *input, int n) {
         the_list == \null
         || \exists \list<dllist *> t;
              live_dll(\null, the_list, \Cons(the_list, t)); */
-  /*@ loop invariant \exists dllist *p, \list<dllist *> t; live_dll(p, l, t);
+  /*@ loop invariant l == \null || in_live_list(l);
+      loop invariant l != \null ==> live(l);
       loop assigns l, last;
   */
   for (l = sglib_dllist_get_first(the_list); l != NULL; l = l->ptr_to_next)
@@ -657,6 +684,7 @@ int b1(const int *input, int n) {
   for (l = sglib_dllist_get_last(the_list); l != NULL;
        l = l->ptr_to_previous)
     last = l->i;
+  /*@ assert start_node: the_list == \null || in_live_list(the_list); */
   /*@ loop invariant iter_ok(&it, l);
       loop invariant payload_init:
         \forall dllist *q; live(q) ==> \initialized(&q->i);
@@ -668,12 +696,10 @@ int b1(const int *input, int n) {
     ariadne_free_dllist(l);
     /*@ assert others_live:
           \forall dllist *q; live{before_free}(q) && q != l ==> live(q); */
-    /*@ assert other_lists_live:
-          \forall \list<dllist *> s;
-            all_live{before_free}(s) && !mem(l, s) ==> all_live(s); */
-    /*@ assert other_live_dlls:
-          \forall dllist *p, *h, \list<dllist *> s;
-            live_dll{before_free}(p, h, s) && !mem(l, s) ==> live_dll(p, h, s); */
+    /*@ assert iter_after_free:
+          \forall \list<dllist *> s, integer b, f, c;
+            iter_at{before_free}(&it, s, b, f) && b < c < f
+            && l == \nth(s, c) ==> iter_at(&it, s, b, f); */
   }
   return last;
 }

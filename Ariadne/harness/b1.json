@@ -9,10 +9,10 @@
   "wp": ["-wp-model", "Typed", "-wp-no-filter-init",
          "-wp-prover", "alt-ergo,z3,cvc5,coq", "-wp-timeout", "60"],
   "passes": [
-    {"name": "functions", "goals": 315,
+    {"name": "functions", "goals": 326,
      "options": ["-wp-rte", "-rte-initialized", "@all", "-wp-fct",
                  "sglib_dllist_add,sglib_dllist_it_init_on_equal,sglib_dllist_it_init,sglib_dllist_it_next,sglib_dllist_get_first,sglib_dllist_get_last,b1"]},
-    {"name": "lemmas", "goals": 11, "options": ["-wp-prop=@lemma"]}
+    {"name": "lemmas", "goals": 15, "options": ["-wp-prop=@lemma"]}
   ],
   "rac": {"dir": "rac", "command": ["sh", "./check.sh"],
           "bench_line": "B1=/ariadne/bench/b1"},

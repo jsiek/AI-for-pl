@@ -34,6 +34,15 @@
 
 /* ---- public: the shape predicates ---------------------------------- */
 
+/* t is s with e inserted at index k (a macro, not a predicate: a
+   proof device of the private lemmas and asserts). */
+#define SGLIB_DL_LIST__INSERTED(t, s, e, k) \
+  (\length(t) == \length(s) + 1 \
+   && (\forall integer i_; 0 <= i_ < (k) ==> \nth(t, i_) == \nth(s, i_)) \
+   && \nth(t, k) == (e) \
+   && (\forall integer i_; (k) < i_ < \length(t) \
+         ==> \nth(t, i_) == \nth(s, i_ - 1)))
+
 #define SGLIB_DL_LIST_SPEC(type, previous, next) \
   /* p is a usable list node: a live heap block at offset 0. */ \
   predicate live{L}(type *p) = \
@@ -85,16 +94,47 @@
     \exists type *h, \list<type *> s, integer k; \
       live_dll(\null, h, s) && 0 <= k < \length(s) && p == \nth(s, k); \
   \
-  /* Iterator state reached by it_init/it_next with no subcomparator: the \
-     backward walk is done and nextelem starts a well-formed live rest. */ \
-  predicate iter_ok{L}(struct sglib_##type##_iterator *it, type *cur) = \
-    it->subcomparator == \null && it->prevelem == \null \
+  /* p is a heap node, live or freed (freeing changes only __heap). */ \
+  predicate heap_node{L}(type *p) = \valid(p) && heap(\base_addr(p)); \
+  \
+  /* The iterator's position in a whole list s.  sglib's iterator walks \
+     from the start node back to the head (prevelem), then forward from \
+     the start node's successor (nextelem).  prevelem is node b of s \
+     (b == -1: none, the backward walk is done), nextelem node f \
+     (f == \length(s): none), b < f; the nodes still to visit, 0 .. b and \
+     f .. \length(s) - 1, are live.  dll and all_init do not depend on \
+     liveness, so a client may free the nodes already returned. */ \
+  predicate iter_at{L}(struct sglib_##type##_iterator *it, \
+                       \list<type *> s, integer b, integer f) = \
+    (\exists type *h; dll(\null, h, s)) && all_init(s) \
+    && (\forall integer i; 0 <= i < \length(s) ==> \
+          heap_node(\nth(s, i))) \
+    && -1 <= b < f && f <= \length(s) \
+    && it->prevelem == (b >= 0 ? \nth(s, b) : (type *)\null) \
+    && it->nextelem == (f < \length(s) ? \nth(s, f) : (type *)\null) \
+    && \forall integer i; (0 <= i <= b || f <= i < \length(s)) \
+         ==> live(\nth(s, i)); \
+  \
+  /* Iterator fields that it_next reads, initialised; no subcomparator. */ \
+  predicate iter_fields{L}(struct sglib_##type##_iterator *it) = \
+    it->subcomparator == \null \
     && \initialized(&it->subcomparator) && \initialized(&it->prevelem) \
-    && \initialized(&it->nextelem) \
-    && \exists type *p, \list<type *> t; \
-         live_dll(p, it->nextelem, t) \
-         && (cur == \null ==> it->nextelem == \null) \
-         && (cur != \null ==> live(cur) && !mem(cur, t));
+    && \initialized(&it->nextelem); \
+  \
+  /* A state it_next accepts. */ \
+  predicate iter_pre{L}(struct sglib_##type##_iterator *it) = \
+    iter_fields(it) \
+    && \exists \list<type *> s, integer b, f; iter_at(it, s, b, f); \
+  \
+  /* The state after it_init/it_next returned cur: cur is \null at the \
+     end, otherwise a live node between the two walks. */ \
+  predicate iter_ok{L}(struct sglib_##type##_iterator *it, type *cur) = \
+    iter_fields(it) \
+    && \exists \list<type *> s, integer b, f; \
+         iter_at(it, s, b, f) \
+         && (cur == \null ==> b == -1 && f == \length(s)) \
+         && (cur != \null ==> live(cur) \
+             && \exists integer c; b < c < f && cur == \nth(s, c));
 
 /* ---- private: lemmas (each is proved; order matters: a lemma uses
         only the lemmas before it) ------------------------------------ */
@@ -151,61 +191,149 @@
     \forall type *prev, *h, \list<type *> s; \
       dll{L1}(prev, h, s) ==> unchanged{L1, L2}(s) ==> dll{L2}(prev, h, s); \
   \
+  /* The nodes of a list are distinct (induction). */ \
+  lemma dll_distinct{L}: \
+    \forall type *prev, *h, \list<type *> s, integer i, j; \
+      dll(prev, h, s) ==> 0 <= i < \length(s) ==> 0 <= j < \length(s) \
+      ==> \nth(s, i) == \nth(s, j) ==> i == j; \
+  \
+  /* The converse of dll_links: links, validity and distinctness by \
+     index make a list (induction). */ \
+  lemma dll_of_links{L}: \
+    \forall type *prev, *h, \list<type *> s; \
+      (\length(s) == 0 ==> h == \null) \
+      ==> (\length(s) > 0 ==> h == \nth(s, 0)) \
+      ==> (\forall integer i; 0 <= i < \length(s) ==> \
+            \nth(s, i) != \null && \valid(\nth(s, i)) \
+            && \nth(s, i)->previous \
+               == (i == 0 ? prev : \nth(s, i - 1)) \
+            && \nth(s, i)->next \
+               == (i + 1 < \length(s) ? \nth(s, i + 1) : (type *)\null)) \
+      ==> (\forall integer i, j; 0 <= i < \length(s) \
+            ==> 0 <= j < \length(s) ==> \nth(s, i) == \nth(s, j) \
+            ==> i == j) \
+      ==> dll(prev, h, s); \
+  \
+  /* A list with e inserted at index k exists (induction). */ \
+  lemma list_insert: \
+    \forall \list<type *> s, type *e, integer k; 0 <= k <= \length(s) ==> \
+      \exists \list<type *> t; SGLIB_DL_LIST__INSERTED(t, s, e, k); \
+  \
   /* Unfolding live_dll one node (dll_inv with the cons lemmas). */ \
   lemma live_dll_inv{L}: \
     \forall type *prev, *h, \list<type *> s; \
       live_dll(prev, h, s) ==> h != \null ==> \
         \exists \list<type *> t; \
-          s == \Cons(h, t) && live_dll(h, h->next, t);
+          s == \Cons(h, t) && live_dll(h, h->next, t); \
+  \
+  /* A node of a whole live list whose previous is NULL is its head. */ \
+  lemma in_live_list_head{L}: \
+    \forall type *p; in_live_list(p) ==> p->previous == \null ==> \
+      \exists \list<type *> s; live_dll(\null, p, s);
 
 /* ---- sglib_<type>_add ---------------------------------------------- */
 
-/* Public.  Restricted to what B1 uses: *list is the head of a whole
-   list (sglib allows any element). */
+/* Public.  add inserts elem before *list, any node of a whole live
+   list (or NULL), and makes it *list. */
 #define SGLIB_DL_LIST_CONTRACT_ADD(type, previous, next) \
   requires \valid(list) && !heap(\base_addr(list)) && \initialized(list); \
   requires live(elem); \
-  requires \exists \list<type *> s; \
-    live_dll(\null, *list, s) && !mem(elem, s); \
-  assigns *list, elem->next, elem->previous, \
-          (*list)->previous; \
+  requires *list == \null \
+    || \exists type *h, \list<type *> s, integer k; \
+         live_dll(\null, h, s) && 0 <= k < \length(s) \
+         && *list == \nth(s, k) && !mem(elem, s); \
+  assigns *list, elem->next, elem->previous, (*list)->previous, \
+          { p->next | type *p; \at(*list, Pre) != \null \
+                               && p == \at(\at(*list, Pre)->previous, Pre) }; \
   ensures \initialized(list); \
-  ensures \exists \list<type *> s; live_dll(\null, *list, s);
+  ensures *list == elem && in_live_list(elem); \
+  ensures was_head: \at(*list == \null || (*list)->previous == \null, Pre) \
+    ==> elem->previous == \null;
 
-/* Private: the asserts at the end of add's body, in this order. */
-#define SGLIB_DL_LIST_ANNOT_ADD_INIT_FRAME(type, previous, next) \
-  assert init_frame: \initialized(&elem->previous) \
-    && \initialized(&elem->next) && \forall \list<type *> s; \
-    all_init{Pre}(s) ==> all_init(s);
-#define SGLIB_DL_LIST_ANNOT_ADD_OLD_HEAD_INIT(type, previous, next) \
-  assert old_head_init: \
-    \at(*list, Pre) != \null ==> \
-      \initialized(&\at(*list, Pre)->previous) \
-      && \initialized(&\at(*list, Pre)->next);
-#define SGLIB_DL_LIST_ANNOT_ADD_FRAME(type, previous, next) \
-  assert frame: \forall \list<type *> s; \
-    all_live{Pre}(s) && !mem(elem, s) && !mem(\at(*list, Pre), s) \
-    ==> unchanged{Pre, Here}(s);
-#define SGLIB_DL_LIST_ANNOT_ADD_LINKED(type, previous, next) \
-  assert linked: \at(*list, Pre) != \null ==> \
-    \forall \list<type *> t; \
-      dll{Pre}(\at(*list, Pre), \at(\at(*list, Pre)->next, Pre), t) \
-      && all_live{Pre}(t) && !mem(\at(*list, Pre), t) && !mem(elem, t) \
-      ==> dll(\null, elem, \Cons(elem, \Cons(\at(*list, Pre), t))) \
-          && all_live(\Cons(elem, \Cons(\at(*list, Pre), t)));
-#define SGLIB_DL_LIST_ANNOT_ADD_LINKED_INIT(type, previous, next) \
-  assert linked_init: \at(*list, Pre) != \null ==> \
-    \forall \list<type *> t; \
-      all_init(t) ==> all_init(\Cons(elem, \Cons(\at(*list, Pre), t)));
-#define SGLIB_DL_LIST_ANNOT_ADD_TAIL(type, previous, next) \
-  assert tail: \at(*list, Pre) != \null ==> \
-    \exists \list<type *> t; \
-      dll{Pre}(\at(*list, Pre), \at(\at(*list, Pre)->next, Pre), t) \
-      && all_live{Pre}(t) && all_init(t) \
-      && !mem(\at(*list, Pre), t) && !mem(elem, t);
+/* Private: the asserts at the end of add's body, in this order.  The
+   new list is the old one with elem inserted at the old node's index k
+   (lemma list_insert); dll_of_links makes it a list from its links. */
+#define SGLIB_DL_LIST__ADD_PRE(type) \
+  live_dll{Pre}(\null, h, s) && 0 <= k < \length(s) \
+  && \at(*list, Pre) == \nth(s, k) && !mem(elem, s)
+#define SGLIB_DL_LIST__ADD_HYPS(type) \
+  SGLIB_DL_LIST__ADD_PRE(type) && SGLIB_DL_LIST__INSERTED(t, s, elem, k)
 #define SGLIB_DL_LIST_ANNOT_ADD_SINGLE(type, previous, next) \
   assert single: \at(*list, Pre) == \null ==> \
     live_dll(\null, elem, \Cons(elem, \Nil));
+/* The old node's predecessor is NULL or a node (offset 0). */
+#define SGLIB_DL_LIST_ANNOT_ADD_OLD_PREV(type, previous, next) \
+  assert old_prev: \at(*list != \null ==> \
+    (*list)->previous == \null \
+    || (\offset((*list)->previous) == 0 \
+        && heap(\base_addr((*list)->previous))), Pre);
+/* Address-level frame: the links add does not write. */
+#define SGLIB_DL_LIST_ANNOT_ADD_KEEP_PREV(type, previous, next) \
+  assert keep_prev: \forall type *x; \offset(x) == 0 \
+    && heap(\base_addr(x)) && x != elem && x != \at(*list, Pre) \
+    ==> x->previous == \at(x->previous, Pre);
+#define SGLIB_DL_LIST_ANNOT_ADD_KEEP_NEXT(type, previous, next) \
+  assert keep_next: \forall type *x; \offset(x) == 0 \
+    && heap(\base_addr(x)) && x != elem \
+    && x != \at(\at(*list, Pre)->previous, Pre) \
+    ==> x->next == \at(x->next, Pre);
+#define SGLIB_DL_LIST_ANNOT_ADD_KEEP_INIT(type, previous, next) \
+  assert keep_init: \forall type *x; \offset(x) == 0 \
+    && heap(\base_addr(x)) \
+    ==> (\initialized{Pre}(&x->previous) ==> \initialized(&x->previous)) \
+     && (\initialized{Pre}(&x->next) ==> \initialized(&x->next));
+/* The links of the old nodes that add does not write. */
+#define SGLIB_DL_LIST_ANNOT_ADD_FRAME_PREV(type, previous, next) \
+  assert frame_prev: \forall type *h, \list<type *> s, integer k; \
+    SGLIB_DL_LIST__ADD_PRE(type) ==> \
+    \forall integer i; 0 <= i < \length(s) ==> i != k ==> \
+      \nth(s, i)->previous == \at(\nth(s, i)->previous, Pre) \
+      && \initialized(&\nth(s, i)->previous);
+#define SGLIB_DL_LIST_ANNOT_ADD_FRAME_NEXT(type, previous, next) \
+  assert frame_next: \forall type *h, \list<type *> s, integer k; \
+    SGLIB_DL_LIST__ADD_PRE(type) ==> \
+    \forall integer i; 0 <= i < \length(s) ==> i != k - 1 ==> \
+      \nth(s, i)->next == \at(\nth(s, i)->next, Pre) \
+      && \initialized(&\nth(s, i)->next);
+/* The four links add writes. */
+#define SGLIB_DL_LIST_ANNOT_ADD_WRITTEN(type, previous, next) \
+  assert written: \forall type *h, \list<type *> s, integer k; \
+    SGLIB_DL_LIST__ADD_PRE(type) ==> \
+      elem->next == \nth(s, k) \
+      && elem->previous == (k > 0 ? \nth(s, k - 1) : (type *)\null) \
+      && \nth(s, k)->previous == elem \
+      && (k > 0 ==> \nth(s, k - 1)->next == elem) \
+      && \initialized(&elem->next) && \initialized(&elem->previous) \
+      && \initialized(&\nth(s, k)->previous) \
+      && (k > 0 ==> \initialized(&\nth(s, k - 1)->next));
+#define SGLIB_DL_LIST_ANNOT_ADD_LINKS(type, previous, next) \
+  assert links: \forall type *h, \list<type *> s, t, integer k; \
+    SGLIB_DL_LIST__ADD_HYPS(type) ==> \
+    \forall integer i; 0 <= i < \length(t) ==> \
+      \nth(t, i) != \null && \valid(\nth(t, i)) \
+      && \nth(t, i)->previous == (i == 0 ? (type *)\null : \nth(t, i - 1)) \
+      && \nth(t, i)->next \
+         == (i + 1 < \length(t) ? \nth(t, i + 1) : (type *)\null);
+#define SGLIB_DL_LIST_ANNOT_ADD_DISTINCT(type, previous, next) \
+  assert distinct: \forall type *h, \list<type *> s, t, integer k; \
+    SGLIB_DL_LIST__ADD_HYPS(type) ==> \
+    \forall integer i, j; 0 <= i < \length(t) ==> 0 <= j < \length(t) \
+      ==> \nth(t, i) == \nth(t, j) ==> i == j;
+#define SGLIB_DL_LIST_ANNOT_ADD_NEW_DLL(type, previous, next) \
+  assert new_dll: \forall type *h, \list<type *> s, t, integer k; \
+    SGLIB_DL_LIST__ADD_HYPS(type) ==> dll(\null, \nth(t, 0), t);
+#define SGLIB_DL_LIST_ANNOT_ADD_NEW_LIVE(type, previous, next) \
+  assert new_live: \forall type *h, \list<type *> s, t, integer k; \
+    SGLIB_DL_LIST__ADD_HYPS(type) ==> all_live(t) && all_init(t);
+#define SGLIB_DL_LIST_ANNOT_ADD_INSERT_LIST(type, previous, next) \
+  assert insert_list: \forall type *h, \list<type *> s, integer k; \
+    SGLIB_DL_LIST__ADD_PRE(type) ==> \
+    \exists \list<type *> t; SGLIB_DL_LIST__INSERTED(t, s, elem, k);
+#define SGLIB_DL_LIST_ANNOT_ADD_INSERTED(type, previous, next) \
+  assert inserted: \forall type *h, \list<type *> s, integer k; \
+    SGLIB_DL_LIST__ADD_PRE(type) ==> \
+    \exists \list<type *> t; SGLIB_DL_LIST__INSERTED(t, s, elem, k) \
+      && live_dll(\null, \nth(t, 0), t);
 
 /* ---- sglib_<type>_get_first ---------------------------------------- */
 
@@ -253,55 +381,59 @@
 
 /* ---- iterator ------------------------------------------------------ */
 
+/* Public.  The iterator starts at any node of a whole live list. */
 #define SGLIB_DL_LIST_CONTRACT_IT_INIT_ON_EQUAL(type, previous, next) \
   requires \valid(it) && !heap(\base_addr(it)); \
   requires subcomparator == \null; \
-  requires \exists \list<type *> s; live_dll(\null, list, s); \
+  requires list == \null || in_live_list(list); \
   assigns *it; \
   ensures iter_ok(it, \result);
 
 /* The asserts before it_init_on_equal's return, and before it_next's. */
 #define SGLIB_DL_LIST_ANNOT_IT_FRAME(type, previous, next) \
   assert frame: \forall \list<type *> s; \
-    all_live(s) ==> unchanged{Pre, Here}(s);
+    (\forall integer i; 0 <= i < \length(s) ==> heap_node(\nth(s, i))) \
+    ==> unchanged{Pre, Here}(s);
 #define SGLIB_DL_LIST_ANNOT_IT_INIT_FRAME(type, previous, next) \
   assert init_frame: \forall \list<type *> s; \
     all_init{Pre}(s) ==> all_init(s);
+/* it_init_on_equal: the start position (prevelem = list, nextelem its
+   successor). */
+#define SGLIB_DL_LIST_ANNOT_IT_START(type, previous, next) \
+  assert start: (list == \null ==> iter_at(it, \Nil, -1, 0)) \
+    && \forall type *h, \list<type *> s, integer k; \
+         live_dll{Pre}(\null, h, s) && 0 <= k < \length(s) \
+         && list == \nth(s, k) ==> iter_at(it, s, k, k + 1);
 
 #define SGLIB_DL_LIST_CONTRACT_IT_INIT(type, previous, next) \
   requires \valid(it) && !heap(\base_addr(it)); \
-  requires \exists \list<type *> s; live_dll(\null, list, s); \
+  requires list == \null || in_live_list(list); \
   assigns *it; \
   ensures iter_ok(it, \result);
 
 #define SGLIB_DL_LIST_CONTRACT_IT_NEXT(type, previous, next) \
   requires \valid(it) && !heap(\base_addr(it)); \
-  requires it->subcomparator == \null; \
-  requires \initialized(&it->subcomparator) && \initialized(&it->prevelem) \
-           && \initialized(&it->nextelem); \
-  requires \
-    (it->prevelem == \null \
-     && \exists type *p, \list<type *> t; \
-          live_dll(p, it->nextelem, t)) \
-    || (it->prevelem != \null \
-        && \exists \list<type *> t; \
-             live_dll(\null, it->prevelem, \Cons(it->prevelem, t)) \
-             && it->nextelem == it->prevelem->next); \
+  requires iter_pre(it); \
   assigns *it; \
   ensures iter_ok(it, \result);
 
 /* The asserts at the end of it_next's body, after the IT_FRAME and
-   IT_INIT_FRAME ones, in this order. */
+   IT_INIT_FRAME ones, in this order: one step back, one step forward, or
+   the end. */
 #define SGLIB_DL_LIST_ANNOT_IT_NEXT_IT_INIT(type, previous, next) \
   assert it_init: \initialized(&it->subcomparator) \
     && \initialized(&it->prevelem) && \initialized(&it->nextelem);
-#define SGLIB_DL_LIST_ANNOT_IT_NEXT_LIVE_FRAME(type, previous, next) \
-  assert live_frame: \forall type *p, *h, \list<type *> t; \
-    live_dll{Pre}(p, h, t) ==> live_dll(p, h, t);
-#define SGLIB_DL_LIST_ANNOT_IT_NEXT_REST(type, previous, next) \
-  assert rest: \exists type *p, \list<type *> t; \
-    live_dll{Pre}(p, it->nextelem, t) \
-    && (ce == \null ==> it->nextelem == \null) \
-    && (ce != \null ==> live(ce) && !mem(ce, t));
+#define SGLIB_DL_LIST_ANNOT_IT_NEXT_BACK(type, previous, next) \
+  assert back: \forall \list<type *> s, integer b, f; \
+    iter_at{Pre}(it, s, b, f) && b >= 0 \
+    ==> ce == \nth(s, b) && iter_at(it, s, b - 1, f);
+#define SGLIB_DL_LIST_ANNOT_IT_NEXT_FORWARD(type, previous, next) \
+  assert forward: \forall \list<type *> s, integer b, f; \
+    iter_at{Pre}(it, s, b, f) && b < 0 && f < \length(s) \
+    ==> ce == \nth(s, f) && iter_at(it, s, -1, f + 1);
+#define SGLIB_DL_LIST_ANNOT_IT_NEXT_END(type, previous, next) \
+  assert end: \forall \list<type *> s, integer b, f; \
+    iter_at{Pre}(it, s, b, f) && b < 0 && f == \length(s) \
+    ==> ce == \null && iter_at(it, s, -1, f);
 
 #endif

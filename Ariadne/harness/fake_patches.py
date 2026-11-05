@@ -41,9 +41,10 @@ SPEC_LEMMAS = (f"/*@ SGLIB_DL_LIST_SPEC({ARGS})\n"
 assert human.count(SPEC_LEMMAS) == 1 and frozen.count(SPEC) == 1
 
 # The human's lemmas that need Coq (open in a run without the Coq
-# scripts); SMT proves the other six.
+# scripts); SMT proves the others.
 SMT_LEMMAS_DROP = ("mem_cons", "all_live_cons", "all_init_cons",
-                   "dll_links", "dll_frame")
+                   "dll_links", "dll_frame", "dll_distinct", "dll_of_links",
+                   "list_insert")
 
 
 def good():

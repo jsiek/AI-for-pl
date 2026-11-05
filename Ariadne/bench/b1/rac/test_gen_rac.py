@@ -9,9 +9,10 @@ src_path, tmp, twins = sys.argv[1], sys.argv[2], sys.argv[3]
 here = os.path.dirname(os.path.abspath(__file__))
 src = open(src_path).read()
 
-# Inserted after add's `linked` assert.  ACSL: ==> and <==> bind looser
+# Inserted after add's `single` assert.  ACSL: ==> and <==> bind looser
 # than &&, so `a ==> b && c` is `a ==> (b && c)`.
-anchor = "&& all_live(\\Cons(elem, \\Cons(\\at(*list, Pre), t))); */\n"
+k = src.index("assert single:")
+anchor = src[k:src.index("*/\n", k) + 3]
 assert src.count(anchor) == 1
 extra = (
     # dll{Pre} cannot be translated; the whole implication must go, not

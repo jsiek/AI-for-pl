@@ -28,8 +28,8 @@ up to it.  `table` prints the comparison: goals closed, Anthropic USD
 per closed goal, wall clock per closed goal.
 
 The Anthropic spending of the whole comparison is capped by --usd: an
-attempt is not started when the ledger's total since the comparison's
-first attempt, plus the attempt's own cap, would pass it.
+attempt is not started when what the ledger charged the comparison's
+attempts so far, plus the attempt's own cap, would pass it.
 """
 import argparse
 import concurrent.futures as cf
@@ -79,8 +79,6 @@ class Runner:
         self.ledger = budget.Ledger(a.ledger)
         self.rows = [json.loads(x) for x in open(a.out)] \
             if os.path.exists(a.out) else []
-        self.start_usd = (self.rows[0]["ledger_usd_before"] if self.rows
-                          else self.ledger.summary()["usd"])
 
     def done(self, phase, model, goal, k=1):
         return next((r for r in self.rows if r["phase"] == phase
@@ -88,7 +86,9 @@ class Runner:
                      and r["k"] == k), None)
 
     def spent(self):
-        return round(self.ledger.summary()["usd"] - self.start_usd, 6)
+        """The comparison's Anthropic USD so far: the sum of what the
+        ledger charged its attempts (other runs may use the ledger too)."""
+        return round(sum(r.get("usd") or 0 for r in self.rows), 6)
 
     def tier(self, model, root):
         if model in FREE:
@@ -144,6 +144,13 @@ class Runner:
     def s1(self):
         for m in FREE:
             self.pool([("s1", m, g, {}) for g in self.goals])
+        self.s1paid()
+
+    def s1free(self):
+        for m in FREE:
+            self.pool([("s1", m, g, {}) for g in self.goals])
+
+    def s1paid(self):
         for m in (tiers.SONNET, OPUS):
             self.pool([("s1", m, g, {}) for g in self.goals])
 

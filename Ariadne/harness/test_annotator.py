@@ -48,6 +48,17 @@ def expect(name, cond, detail=""):
 
 
 def unit(tmp):
+    import harness
+    expect("rac_outcome: a fired check is `false`, an E-ACSL build "
+           "failure alone `inconclusive`",
+           harness.rac_outcome({"ok": False, "fail_lines": [
+               "FAIL: E-ACSL run of b1.c:"]}) == "false"
+           and harness.rac_outcome({"ok": False, "fail_lines": [
+               "FAIL: E-ACSL build of b1.c:"]}) == "inconclusive"
+           and harness.rac_outcome({"ok": False, "fail_lines": [
+               "FAIL: E-ACSL build of b1.c:",
+               "FAIL: ASan+UBSan build of b1.c:"]}) == "false"
+           and harness.rac_outcome({"ok": True}) == "pass")
     cmd = annotator.opus_command("/w", calls=12)
     flags = " ".join(cmd[2:])
     expect("opus command: Opus 5.5, JSON, restricted tools, no git",

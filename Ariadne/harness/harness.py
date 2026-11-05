@@ -109,6 +109,19 @@ def census(goals):
 
 
 
+def rac_outcome(rac):
+    """Step 0 on a patch: `pass`; `false` (a check fired on a run); or
+    `inconclusive` (only the E-ACSL build or the RAC generation failed:
+    a limit of the tooling, not evidence against the annotations)."""
+    if not rac or rac.get("ok") is not False:
+        return "pass"
+    fails = rac.get("fail_lines") or []
+    if fails and all(re.match(r"FAIL: (E-ACSL build|gen_rac\.py|"
+                              r"gen_twins\.py)", f) for f in fails):
+        return "inconclusive"
+    return "false"
+
+
 def steps_succeeded(report):
     """Normalisation and WP ran and succeeded, no step failed (a skipped
     RAC pass has no "ok"), and the time cap was not hit."""
@@ -665,22 +678,33 @@ class Run:
             open(src, "w").write(new)
             prev = dict(self.report["steps"].get("0_rac", {}))
             rac = self.step("0_rac", self.rac)
-            if rac and rac.get("ok") is False:
-                # the copy's source and step 0's verdict go back to the
-                # last accepted state; the failure stays with the call
-                open(src, "w").write(current)
+            kind = rac_outcome(rac)
+            if kind != "pass":
+                # step 0's verdict goes back to the last accepted state;
+                # the outcome stays with the call
                 c["rac"] = {k: rac.get(k) for k in ("exit", "fail_lines")}
+                c["rac"]["outcome"] = kind
+                detail = self.rac_failure(rac)
                 if prev:
                     prev["seconds"] = rac["seconds"]
                     self.report["steps"]["0_rac"] = prev
+            if kind == "false":
+                open(src, "w").write(current)
                 c["verdict"] = "rejected by the runtime checks"
-                feedback = ("Your patch passed the guardrails, but runtime "
-                            "checking (sanitizers and E-ACSL on random "
-                            "inputs) failed, so an annotation is false:\n"
-                            + self.rac_failure())
+                feedback = ("Your patch passed the guardrails, but a runtime "
+                            "check (sanitizers and E-ACSL on random inputs) "
+                            "fired, so an annotation is false or reads "
+                            "memory it may not:\n" + detail)
                 offered = new
                 self.log("  annotator: patch rejected by runtime checks")
                 continue
+            if kind == "inconclusive":
+                # The runtime-check tooling could not build the patch (as
+                # gen_rac.py with ghost variables): testing is a filter
+                # only (plan 5.0), so WP decides; the reason is reported.
+                c["rac_note"] = ("step 0 inconclusive (" + detail[:300]
+                                 + "); WP decides")
+                self.log("  annotator: step 0 inconclusive (RAC build)")
             for k, x in v.items():
                 self.guard(k, x)
             c["verdict"] = "accepted"
@@ -693,10 +717,17 @@ class Run:
             break
         return r
 
-    def rac_failure(self):
-        """The first failing checks of the last RAC run, for feedback."""
-        out = (self.report["steps"].get("0_rac") or {}).get("fail_lines",
-                                                            [])
+    def rac_failure(self, rac):
+        """The failing checks of a RAC run (its result), for feedback:
+        the FAIL lines with what the script printed after them, and the
+        end of E-ACSL's run log."""
+        out = list(rac.get("fail_lines") or [])
+        lines = open(os.path.join(self.logs, "step0_rac.log")).read() \
+            .rsplit("\n$ ", 1)[-1].splitlines()
+        k = next((i for i, x in enumerate(lines) if x.startswith("FAIL")),
+                 None)
+        if k is not None:
+            out += lines[k + 1:k + 20]
         log = os.path.join(self.work, self.cfg["rac"]["dir"], "build",
                            "orig", "eacsl.log")
         if os.path.exists(log):

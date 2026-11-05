@@ -253,8 +253,17 @@ class Gen:
         self.all = decls
         self.defs = {}           # name -> decl, definitions of the spec
         self.order = []
+        def own(d):
+            return os.path.basename(d.get("file", "")) == \
+                os.path.basename(src_file)
         for d in decls:
             if d["kind"] in ("pred", "func", "inductive", "decl"):
+                # an overload among the libc's own logic (strlen etc.,
+                # when the source includes <string.h>) is not ours to
+                # translate: the first is kept, the spec cannot use it
+                if d["name"] in self.defs and not own(d) \
+                        and not own(self.defs[d["name"]]):
+                    continue
                 if d["name"] in self.defs:
                     raise SystemExit(f"gen_twins.py: overloaded {d['name']}"
                                      " is not supported")

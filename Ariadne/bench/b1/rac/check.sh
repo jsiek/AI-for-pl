@@ -8,7 +8,10 @@
 # do not fit).
 # Re-runs itself inside the M0 image (../../../env/run.sh), where
 # /ariadne is the Ariadne/ directory.  Steps, each timed:
-#   0. generate: the twins and the executable spec block from b1.c
+#   0. generate: b1.c with the macros inside its annotations expanded
+#      (../../../harness/acsl_expand.py: the spec templates of
+#      ../../sglib_spec), which every later step uses; the twins and the
+#      executable spec block from it
 #      (../../../rac/gen_twins.py, into build/twins), then b1_rac.c
 #      (gen_rac.py) for b1.c and for the seven mutants (../mutants.py,
 #      shared with ../check.sh); test_gen_rac.py checks how gen_rac.py
@@ -29,6 +32,7 @@ runs=${1:-300} seed=${2:-1} large=${3:-200} quick=${4:-}
 B1=/ariadne/bench/b1
 SRC=$B1/b1.c
 B=build
+CPP_ARGS="-I/ariadne/plugin/share -I/ariadne/bench/sglib_spec"
 status=0
 rm -rf "$B" && mkdir -p "$B"
 
@@ -42,15 +46,23 @@ SAN="-std=c99 -g -O1 -fsanitize=address,undefined -fno-sanitize-recover=all"
 
 # ---- 0. generate -----------------------------------------------------
 t=$(now)
-python3 -I "$RAC/gen_twins.py" "$SRC" "$TW" --include b1_types.h \
-  --cpp-args="-I/ariadne/plugin/share" > "$TW.log" 2>&1 ||
+mkdir -p "$B/src"
+expand() {  # expand <in.c> <out.c>
+  python3 -I /ariadne/harness/acsl_expand.py "$1" "$2" --cpp-args="$CPP_ARGS" \
+    --keep ARIADNE_ALLOC,ARIADNE_FREE ||
+    { echo "FAIL: acsl_expand.py on $1"; exit 1; }
+}
+expand "$SRC" "$B/src/orig.c"
+# b1.c, for the mutants (not in quick mode: the harness's frozen-only
+# copy has no b1.c)
+[ -n "$quick" ] || expand "$B1/b1.c" "$B/b1.expanded.c"
+python3 -I "$RAC/gen_twins.py" "$B/src/orig.c" "$TW" --include b1_types.h \
+  --cpp-args="$CPP_ARGS" > "$TW.log" 2>&1 ||
   { cat "$TW.log"; echo "FAIL: gen_twins.py on b1.c"; exit 1; }
 BUILTINS=$(python3 -c 'import json, sys
 print(",".join(json.load(open(sys.argv[1]))["builtins"]))' "$TW/rac_twins.json")
-mkdir -p "$B/src"
 [ -n "$quick" ] && MUTANTS="" ||
-  python3 -I "$B1/mutants.py" "$B1/b1.c" "$B/src" > /dev/null
-cp "$SRC" "$B/src/orig.c"
+  python3 -I "$B1/mutants.py" "$B/b1.expanded.c" "$B/src" > /dev/null
 for v in orig $MUTANTS; do
   mkdir -p "$B/$v"
   python3 -I gen_rac.py "$B/src/$v.c" "$B/$v" "$TW" > "$B/$v/gen.log" ||
@@ -60,7 +72,7 @@ echo "step 0 (generate twins, b1_rac.c x8): $(lap "$t") s; $(cat "$TW.log" | hea
 echo "    $(cat "$B/orig/gen.log")"
 if [ -n "$quick" ]; then
   echo "SKIP: gen_rac.py clause splitting (quick)"
-elif r=$(python3 -I test_gen_rac.py "$B1/b1.c" "$B/gen_test" "$TW" 2>&1); then
+elif r=$(python3 -I test_gen_rac.py "$B/b1.expanded.c" "$B/gen_test" "$TW" 2>&1); then
   echo "PASS: gen_rac.py clause splitting: $r"
 else
   echo "$r"; echo "FAIL: gen_rac.py clause splitting"; status=1
@@ -69,6 +81,7 @@ fi
 # ---- 1. sanitizers ---------------------------------------------------
 san_build() {  # san_build <variant>
   gcc $SAN -I "$B/$1" -I "$TW" -I "$RAC" -I /ariadne/plugin/share \
+    -I /ariadne/bench/sglib_spec \
     "$B/src/$1.c" rac_alloc.c "$TW/rac_twins.c" "$RAC/rac_rt.c" rac_main.c \
     -o "$B/$1/b1.asan" > "$B/$1/asan.build.log" 2>&1
 }
@@ -136,7 +149,7 @@ eacsl_build() {  # eacsl_build <variant>
        ../../rac_main.c . &&
     frama-c -e-acsl-builtins="$BUILTINS" -machdep gcc_x86_64 \
       -no-frama-c-stdlib -keep-unused-functions all \
-      -cpp-extra-args="-std=c99 -D_DEFAULT_SOURCE -D__NO_CTYPE -D__FC_MACHDEP_X86_64" \
+      -cpp-extra-args="-std=c99 -D_DEFAULT_SOURCE -D__NO_CTYPE -D__FC_MACHDEP_X86_64 -I/ariadne/bench/sglib_spec" \
       -no-warn-unaligned-pointer \
       b1_rac.c -rte -rte-initialized @all -rte-select=@all,-main,-rng \
       -then -print -ocode b1_rac.rte.c &&

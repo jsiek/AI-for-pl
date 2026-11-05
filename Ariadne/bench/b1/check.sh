@@ -42,9 +42,9 @@ expect() {
              goals='_call_sglib_dllist_get_last_requires(_[0-9]+)?$' ;;
     nullchk) marker='    l->i = input[k];'
              goals='_assert_(ariadne_live|rte_mem_access)(_[0-9]+)?$' ;;
-    nullfirst) marker='    ensures heads_list: list != \null ==>'
+    nullfirst) marker='/*@ SGLIB_DL_LIST_CONTRACT_GET_FIRST(dllist, ptr_to_previous, ptr_to_next) */'
              goals='_ensures_heads_list$' fct=sglib_dllist_get_first ;;
-    nulllast) marker='    ensures last_of_list: list != \null ==>'
+    nulllast) marker='/*@ SGLIB_DL_LIST_CONTRACT_GET_LAST(dllist, ptr_to_previous, ptr_to_next) */'
              goals='_ensures_last_of_list$' fct=sglib_dllist_get_last ;;
     noinit)  marker='    sglib_dllist_add(&the_list, l);'
              goals='_call_sglib_dllist_add_requires_elem_init$' ;;
@@ -56,7 +56,7 @@ for m in vacuity uaf uaf_back nullchk nullfirst nulllast noinit; do
   expect "$m"
   ../../env/run.sh frama-c \
     -load-module /ariadne/plugin/_build/default/ariadne.cmxs \
-    -cpp-extra-args="-I/ariadne/plugin/share" \
+    -cpp-extra-args="-I/ariadne/plugin/share -I/ariadne/bench/sglib_spec" \
     -generated-spec-custom terminates:skip \
     -ariadne "mutants/$m.c" \
     -then -wp -wp-rte -rte-initialized @all -wp-no-filter-init \

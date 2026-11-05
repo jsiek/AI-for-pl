@@ -24,13 +24,13 @@ initialisation checks (see "Initialisation").
 |------|------|
 | `../sglib/` | sglib at commit `cf92b44e` (MIT): `sglib.h`, `LICENSE`, `samples/dllist.c` |
 | `gen_in.c`, `gen.sh` | expand sglib's macros for the sample's instantiation and format them with `clang-format-14` into `b1_gen.c` (plan Q4: annotate the preprocessed code) |
-| `b1.c` | `b1_gen.c` between `BEGIN/END GENERATED` markers, code unchanged, with ACSL inserted; plus the spec and our driver `b1` |
+| `b1.c` | `b1_gen.c` between `BEGIN/END GENERATED` markers, code unchanged, with ACSL inserted; plus the spec and our driver `b1`.  The spec and the annotations of the sglib functions are invocations of the template `../sglib_spec/sglib_dl_list_spec.h` (see "Spec template"); the driver's are written out |
 | `session/interactive/*.v` | the Coq proof scripts (WP session) |
 | `run.sh` | `-ariadne` + WP: the five B1a functions, then the lemmas |
 | `check.sh` | `run.sh` plus seven mutants that must be rejected |
 | `mutants.py` | writes the seven mutants (used by `check.sh` and `rac/check.sh`) |
 | `rac/` | runtime checking (plan §5 step 0): sanitizers, E-ACSL with executable twins, the mutants as tests; see `rac/README.md` |
-| `b1_frozen.c` | the frozen-only variant (M3): `b1.c` without the human's internal annotations and lemmas; see "Frozen-only variant" |
+| `b1_frozen.c` | the frozen-only variant (M3): `b1.c` without the human's internal annotations and lemmas (only the template's public macros); see "Frozen-only variant" |
 
 The driver replaces the sample's `main`: an input array instead of
 `argv`/`sscanf`, no `printf` (body-less libc functions are not
@@ -70,7 +70,10 @@ Mutants (`check.sh`), each rejected:
 
 ## The specification (for review: frozen spec, plan §4 and guardrail 3a)
 
-All in `b1.c`; these are the definitions a human must approve.
+In `b1.c`, written with the template of `../sglib_spec/` (the
+predicates are `SGLIB_DL_LIST_SPEC`, the contracts
+`SGLIB_DL_LIST_CONTRACT_*`, at `dllist`, `ptr_to_previous`,
+`ptr_to_next`); these are the definitions a human must approve.
 
 - `live(p)`: `p` is valid, at offset 0, a heap block, and not dead.
 - `mem(p, s)`, `all_live(s)`, `all_init(s)`: membership in,
@@ -257,8 +260,10 @@ frozen:
 | loop invariants, `loop assigns`, `loop variant` (in `get_first`, `get_last`, the four loops of `b1`) | removed | internal annotations (§4.4) |
 | the asserts in `add`, `get_first`, `get_last`, `it_init_on_equal`, `it_next`, `b1` | removed | internal annotations |
 
-`guardrails.frozen(b1.c, b1_frozen.c)` passes: 18 frozen items, the same
-hashes (digest `213986017b964d3e`), nothing changed, removed or added.
+`guardrails.spec_checks(b1.c, b1_frozen.c)` passes: 18 frozen items, the
+same hashes (digest `d3e4f6fdc9011d48`), nothing changed, removed or
+added.  (Before the spec template the digest was `213986017b964d3e`;
+see "Spec template" for why it changed.)
 
 **Census before any annotation** (`../../harness/b1_frozen.json`, the
 same WP flags as M1; `harness/results/b1-frozen-census.md`): 254 goals
@@ -270,6 +275,46 @@ the postcondition), `add` 1 (the postcondition `live_dll`),
 `it_init_on_equal` 1 (a precondition of its call to `it_next`), `it_next`
 1 (its postcondition).  Step 0 (sanitizers and E-ACSL, without the
 mutants, whose anchors are the human's annotations) passes.
+
+## Spec template (plan Q12)
+
+B1's predicates, lemmas, the contracts of the six sglib functions and
+their in-body annotations are now macros of
+`../sglib_spec/sglib_dl_list_spec.h`, taking sglib's parameters (type,
+previous, next); `b1.c` and `b1_frozen.c` invoke them at `dllist`,
+`ptr_to_previous`, `ptr_to_next` (`../sglib_spec/README.md`: how
+Frama-C expands macros inside annotations, and what is not a sglib
+parameter).  The driver `b1` is B1's own client code, so its contract
+and annotations stay written out.
+
+- **Same proof.**  Expanded, every predicate, lemma, contract and
+  in-body annotation is token for token the hand-written one (compared
+  with `guardrails.spec_items` and the in-body annotation list).
+  `run.sh` proves the same 321 goals with the same names (310 + 11):
+  Qed 189, Alt-Ergo 115, CVC5 9, Z3 3, Coq 5 (the five scripts in
+  `session/interactive` unchanged); WP's cache reused the SMT results of
+  the hand-written spec.  A run with `-wp-cache none` also proves 321 /
+  321 (Qed 189, Alt-Ergo 112, CVC5 8, Z3 7, Coq 5).  `check.sh`: all
+  seven mutants rejected at their intended goal; the markers of
+  `nullfirst` and `nulllast` are now the contract invocations, where WP
+  places the expanded clauses.  `rac/check.sh` passes with the same
+  table (27 dropped, 24 kept, 1 partly kept, 22 rewritten clauses).
+  `../../harness/harness.py ../bench/b1 --tiers 0`: verdict `certified`,
+  321 / 321, every guardrail passed (frozen spec: 18 items, digest
+  `d3e4f6fdc9011d48`).
+- **Hashes.**  The guardrails now hash the spec after expanding the
+  macros inside annotations (`../../harness/acsl_expand.py`, plan Q11:
+  "the macros are expanded before the check"), so the hashes cover the
+  ACSL Frama-C reads.  16 of the 18 frozen items keep their hashes; the
+  two that change are the allocator contracts (`ariadne_alloc_dllist`,
+  `ariadne_free_dllist`), which were hashed as the text `ARIADNE_ALLOC` /
+  `ARIADNE_FREE` and are now hashed as the liveness model's contract
+  those macros expand to.  Digest `213986017b964d3e` becomes
+  `d3e4f6fdc9011d48`.
+- **Order.**  The lemmas follow all the predicates (they were
+  interleaved), so that the public macro holds only predicates.  The
+  lemmas keep their order among themselves, and the goals and their
+  proofs did not change.
 
 ## Next
 

@@ -82,6 +82,23 @@ def tree_hashes(root):
     return out
 
 
+# Shared trusted inputs outside the benchmark directory, hashed with it
+# (benchmark_untouched): the guardrails expand the spec templates and the
+# liveness model's macros from them.
+SHARED = [os.path.join(ARIADNE, "bench", "sglib_spec"),
+          os.path.join(ARIADNE, "plugin", "share")]
+
+
+def input_hashes(bench):
+    """tree_hashes of the benchmark, plus the SHARED directories under
+    their paths relative to Ariadne/ (prefixed `ariadne:`)."""
+    out = tree_hashes(bench)
+    for d in SHARED:
+        for k, v in tree_hashes(d).items():
+            out["ariadne:" + os.path.relpath(os.path.join(d, k), ARIADNE)] = v
+    return out
+
+
 def discharger(goal):
     """Who closed a goal of a WP JSON report: qed, smt:<prover>, coq, or
     open."""
@@ -355,9 +372,7 @@ class Run:
         {check: verdict}.  The textual checks first; Frama-C (the overlay
         check) only on a text that passed them."""
         base = self.source(self.bench)
-        v = {"frozen_spec": guardrails.frozen(base, ed),
-             "lint_acsl": guardrails.lint_acsl(base, ed),
-             "lint_ghost": guardrails.lint_ghost(base, ed)}
+        v = guardrails.spec_checks(base, ed, self.cfg["cpp_args"], self.dir)
         if all(x["ok"] for x in v.values()):
             v["overlay"] = guardrails.overlay(
                 self.dir, base, ed, self.cfg["cpp_args"],
@@ -910,7 +925,7 @@ class Run:
     # ---- the loop -------------------------------------------------------------
 
     def main(self):
-        before = tree_hashes(self.bench)
+        before = input_hashes(self.bench)
         self.prepare()
         pre = self.step("guardrails_pre", self.pre_checks)
         if pre["ok"]:
@@ -973,7 +988,7 @@ class Run:
 
     def verdict(self, before):
         goals = getattr(self, "goals", [])
-        after = tree_hashes(self.bench)
+        after = input_hashes(self.bench)
         changed = sorted(k for k in set(before) | set(after)
                          if before.get(k) != after.get(k))
         self.guard("benchmark_untouched", {"ok": not changed,

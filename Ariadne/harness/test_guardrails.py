@@ -2,7 +2,9 @@
 bad input next to a good one.  No model calls; the overlay and allow-list
 tests run Frama-C and coqc/coqchk in the M0 image.
 
-    python3 test_guardrails.py [--quick]     (--quick: no image)
+    python3 test_guardrails.py [--quick]     (--quick: the image only for
+                                              cpp, to expand b1.c's spec
+                                              templates)
 """
 import os
 import re
@@ -34,16 +36,48 @@ def edit(text, old, new):
     return text.replace(old, new)
 
 
-base = open(B1).read()
+CPP = "-I/ariadne/plugin/share -I/ariadne/bench/sglib_spec"
+raw = open(B1).read()
+# b1.c writes its spec with the templates of bench/sglib_spec; the
+# textual checks below run on the expanded text, as spec_checks does.
+base = g.expand(raw, CPP)
+
+# ---- macro expansion (acsl_expand.py) -------------------------------------
+expect("expand: same line count, C code unchanged",
+       base.count("\n") == raw.count("\n")
+       and g.strip_annotations(base).split() ==
+       g.strip_annotations(raw).split())
+expect("expand: the template's predicates appear",
+       "inductive dll{L}(dllist *prev" in base
+       and "SGLIB_DL_LIST_SPEC" not in base)
+v = g.spec_checks(raw, raw, CPP)
+expect("spec_checks: unchanged b1.c passes",
+       all(x["ok"] for x in v.values()), v)
+v = g.spec_checks(raw, edit(raw, "#include \"sglib_dl_list_spec.h\"\n",
+                            "#include \"sglib_dl_list_spec.h\"\n"
+                            "#define live(p) \\true\n"), CPP)
+expect("spec_checks: a #define that changes a predicate rejected",
+       not v["frozen_spec"]["ok"]
+       and "predicate:live" not in v["frozen_spec"]["changed"]
+       and v["frozen_spec"]["changed"], v)
+v = g.spec_checks(raw, edit(raw, "SGLIB_DL_LIST_CONTRACT_ADD(dllist, "
+                            "ptr_to_previous, ptr_to_next, i)",
+                            "SGLIB_DL_LIST_CONTRACT_ADD(dllist, "
+                            "ptr_to_previous, ptr_to_previous, i)"), CPP)
+expect("spec_checks: a changed template argument rejected",
+       v["frozen_spec"]["changed"] == ["contract:sglib_dllist_add"], v)
+v = g.spec_checks(raw, edit(raw, "SGLIB_DL_LIST_CONTRACT_ADD(", "("), CPP)
+expect("spec_checks: a broken invocation rejected",
+       not v["frozen_spec"]["ok"], v)
 
 # ---- 7.2 frozen spec ----------------------------------------------------
 v = g.frozen(base, base)
 expect("frozen: unchanged file passes", v["ok"] and v["items"] == 18, v)
-v = g.frozen(base, edit(base, "    requires live(elem);",
-                        "    requires live(elem) || elem == \\null;"))
+v = g.frozen(base, edit(base, " requires live(elem);",
+                        " requires live(elem) || elem == \\null;"))
 expect("frozen: weakened requires of add rejected",
        not v["ok"] and v["changed"] == ["contract:sglib_dllist_add"], v)
-v = g.frozen(base, edit(base, "    ensures \\initialized(list);\n", ""))
+v = g.frozen(base, edit(base, " ensures \\initialized(list);", ""))
 expect("frozen: dropped ensures rejected",
        not v["ok"] and v["changed"] == ["contract:sglib_dllist_add"], v)
 v = g.frozen(base, edit(
@@ -52,19 +86,19 @@ v = g.frozen(base, edit(
 expect("frozen: changed predicate mem rejected",
        not v["ok"] and v["changed"] == ["predicate:mem"], v)
 v = g.frozen(base, edit(
-    base, "    lemma all_live_nil{L}: all_live(\\Nil);",
-    "    lemma all_live_nil{L}: all_live(\\Nil);\n"
+    base, " lemma all_live_nil{L}: all_live(\\Nil);",
+    " lemma all_live_nil{L}: all_live(\\Nil);\n"
     "    predicate helper(dllist *p) = p != \\null;"))
 expect("frozen: added predicate rejected",
        not v["ok"] and v["added"] == ["predicate:helper"], v)
 v = g.frozen(base, edit(
-    base, "    lemma all_live_nil{L}: all_live(\\Nil);",
-    "    lemma all_live_nil{L}: all_live(\\Nil);\n"
+    base, " lemma all_live_nil{L}: all_live(\\Nil);",
+    " lemma all_live_nil{L}: all_live(\\Nil);\n"
     "    // a helper lemma\n"
     "    lemma mem_nil: \\forall dllist *x; !mem(x, \\Nil);"))
 expect("frozen: added lemma allowed (lemmas are proved)", v["ok"], v)
-v = g.frozen(base, edit(base, "// p is a usable list node",
-                        "// p is a node we can use"))
+v = g.frozen(base, edit(base, " predicate live{L}(",
+                        " // a node we can use\n predicate live{L}("))
 expect("frozen: changed ACSL comment allowed", v["ok"], v)
 v = g.frozen(base, edit(base, "/*@ requires 0 <= n &&",
                         "/*@ requires \\false;\n    requires 0 <= n &&"))
@@ -74,8 +108,8 @@ expect("frozen: `requires \\false` on b1 rejected",
 # ---- 7.3 / 7.3a ACSL lint -----------------------------------------------
 v = g.lint_acsl(base, base)
 expect("lint_acsl: unchanged file passes", v["ok"], v)
-ax = edit(base, "    lemma all_live_nil{L}: all_live(\\Nil);",
-          "    lemma all_live_nil{L}: all_live(\\Nil);\n"
+ax = edit(base, " lemma all_live_nil{L}: all_live(\\Nil);",
+          " lemma all_live_nil{L}: all_live(\\Nil);\n"
           "    axiomatic Cheat { axiom cheat: \\false; }")
 v = g.lint_acsl(base, ax)
 expect("lint_acsl: added axiomatic + axiom rejected",
@@ -88,7 +122,7 @@ v = g.lint_acsl(base, edit(base,
                            "  //@ admit live_dll(\\null, the_list, \\Nil);"))
 expect("lint_acsl: admit rejected",
        not v["ok"] and v["added"] == {"admit": 1}, v)
-v = g.lint_acsl(base, edit(base, "    lemma all_live_nil{L}:",
+v = g.lint_acsl(base, edit(base, " lemma all_live_nil{L}:",
                            "    logic integer bad(integer n) = bad(n) + 1;\n"
                            "    lemma all_live_nil{L}:"))
 expect("lint_acsl: added logic definition rejected (bad_def)",
@@ -182,7 +216,7 @@ expect("accounting: Coq goal without a certified script rejected",
 # ---- with the image: overlay and coqchk -----------------------------------------
 if "--quick" not in sys.argv:
     log = os.path.join(tmp, "overlay.log")
-    cpp = "-I/ariadne/plugin/share"
+    cpp = CPP
     v = g.overlay(tmp, base, base, cpp, log)
     expect("overlay: unchanged file passes", v["ok"], v)
     ann = edit(base, "    l->i = input[k];",

@@ -1,9 +1,9 @@
 {
   "name": "b1",
   "source": "b1.c",
-  "cpp_args": "-I/ariadne/plugin/share",
+  "cpp_args": "-I/ariadne/plugin/share -I/ariadne/bench/sglib_spec",
   "frama_c": ["-load-module", "/ariadne/plugin/_build/default/ariadne.cmxs",
-              "-cpp-extra-args=-I/ariadne/plugin/share",
+              "-cpp-extra-args=-I/ariadne/plugin/share -I/ariadne/bench/sglib_spec",
               "-generated-spec-custom", "terminates:skip", "-ariadne"],
   "rte": ["-rte", "-rte-initialized", "@all"],
   "wp": ["-wp-model", "Typed", "-wp-no-filter-init",

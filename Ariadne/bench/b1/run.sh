@@ -23,7 +23,7 @@ wp() {  # wp <report> <log> <WP selection options...>
   # shellcheck disable=SC2086
   ../../env/run.sh frama-c \
     -load-module /ariadne/plugin/_build/default/ariadne.cmxs \
-    -cpp-extra-args="-I/ariadne/plugin/share" \
+    -cpp-extra-args="-I/ariadne/plugin/share -I/ariadne/bench/sglib_spec" \
     -generated-spec-custom terminates:skip \
     -ariadne b1.c \
     -then -wp -wp-model Typed -wp-no-filter-init "$@" \

@@ -82,7 +82,7 @@ Notes:
 
 | Step | What | How |
 |------|------|-----|
-| 0 | generate | `../../../rac/gen_twins.py` generates the twins, the executable spec block and the manifest from b1.c into `build/twins/`; `gen_rac.py` turns b1.c (and each mutant from `../mutants.py`, shared with `../check.sh`) into `build/<v>/b1_rac.c` plus `annotations.txt`, the fate of every clause |
+| 0 | generate | `../../../harness/acsl_expand.py` expands the spec template invocations of b1.c (`../../sglib_spec`; `ARIADNE_ALLOC` and `ARIADNE_FREE` are kept, rac.h redefines them), and every later step reads the expanded text; `../../../rac/gen_twins.py` generates the twins, the executable spec block and the manifest from b1.c into `build/twins/`; `gen_rac.py` turns b1.c (and each mutant from `../mutants.py`, shared with `../check.sh`) into `build/<v>/b1_rac.c` plus `annotations.txt`, the fate of every clause |
 | 1 | sanitizers | gcc `-fsanitize=address,undefined`, b1.c unchanged (ACSL is comments), `rac_alloc.c` (malloc/free + registry + fault injection), `rac_main.c` (300 random runs: n = 0..5 always, n = 200 every 25th run, else 0..40; LeakSanitizer on) |
 | 2 | twin unit tests | `rac_twins_test.c` under ASan + UBSan: good lists n = 0..5, a cycle through `ptr_to_next`, a cycle through `ptr_to_previous`, a broken back link, a repeated node, a freed node mid-list: every call returns, with the ACSL value, and reads no freed memory |
 | 3 | E-ACSL | `frama-c -rte -rte-initialized @all` (as for WP, minus alignment, below) and `-print`, then `e-acsl-gcc` with the twins as builtins; twins compiled apart (`build/twins/rac_twins.c` and `../../../rac/rac_rt.c`, not instrumented) and linked |

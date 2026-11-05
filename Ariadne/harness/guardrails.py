@@ -15,10 +15,17 @@ inputs.
   accounting(goals, expected, ...)      7.5  every goal proved or out of
                                         scope
 
+  spec_checks(base, ed, cpp_args)       7.2, 7.3 on the macro-expanded
+                                        texts (frozen, lint_acsl,
+                                        lint_ghost)
+
 The ACSL parsing is textual (comments, strings and C braces are tracked;
 annotations are `/*@ ... */` and `//@ ...`).  It is enough for the
 benchmarks' style; the overlay check, which uses Frama-C's own parser,
-does not depend on it.
+does not depend on it.  The textual checks run on the source with the
+macros inside its annotations expanded (`acsl_expand.py`, plan Q11:
+"the macros are expanded before the check"), so a spec written with the
+templates of `bench/sglib_spec/` is hashed as the ACSL Frama-C reads.
 """
 import hashlib
 import os
@@ -31,6 +38,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ARIADNE = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ARIADNE, "prover"))
 from reallms_coq import FORBIDDEN, split_goal  # noqa: E402
+sys.path.insert(0, HERE)
+from acsl_expand import acsl_code, annotations, expand  # noqa: E402,F401
 
 RUN = os.path.join(ARIADNE, "env", "run.sh")
 
@@ -41,45 +50,6 @@ DECL = ("predicate", "logic", "inductive", "axiomatic", "lemma", "axiom",
 # Definitions the agent may not add or change (plan 7.3a); lemmas it may
 # add (they are proved), axioms never (lint_acsl).
 DEFINITIONS = ("predicate", "logic", "inductive", "axiomatic", "type")
-
-
-def annotations(text):
-    """[(depth, start, end, body)] of the ACSL annotations of C text:
-    `depth` is the C brace depth where the annotation starts (0 = file
-    scope), `body` the text between `/*@` and `*/` (or after `//@`)."""
-    out, i, depth, n = [], 0, 0, len(text)
-    while i < n:
-        if text.startswith("/*@", i):
-            j = text.find("*/", i + 3)
-            j = n if j < 0 else j
-            out.append((depth, i, j + 2, text[i + 3:j]))
-            i = j + 2
-        elif text.startswith("//@", i):
-            j = text.find("\n", i)
-            j = n if j < 0 else j
-            out.append((depth, i, j, text[i + 3:j]))
-            i = j
-        elif text.startswith("/*", i):
-            j = text.find("*/", i + 2)
-            i = n if j < 0 else j + 2
-        elif text.startswith("//", i):
-            j = text.find("\n", i)
-            i = n if j < 0 else j
-        elif text[i] in "\"'":
-            q, i = text[i], i + 1
-            while i < n and text[i] != q:
-                i += 2 if text[i] == "\\" else 1
-            i += 1
-        else:
-            depth += (text[i] == "{") - (text[i] == "}")
-            i += 1
-    return out
-
-
-def acsl_code(body):
-    """An annotation's text without its ACSL `//` comments, whitespace
-    collapsed: what hashing and linting look at."""
-    return " ".join(re.sub(r"//[^\n]*", "", body).split())
 
 
 def _declarations(code):
@@ -202,6 +172,22 @@ def lint_ghost(base_text, edited_text):
     base, ed = counts(base_text), counts(edited_text)
     added = {k: ed[k] - base[k] for k in ed if ed[k] > base[k]}
     return {"ok": not added, "added": added}
+
+
+def spec_checks(base_text, edited_text, cpp_args, work=None):
+    """frozen, lint_acsl and lint_ghost of the edited source against the
+    baseline, both with the macros inside their annotations expanded by
+    cpp (acsl_expand.py): {check: verdict}.  A source cpp cannot expand
+    fails all three."""
+    try:
+        base = expand(base_text, cpp_args, work)
+        ed = expand(edited_text, cpp_args, work)
+    except RuntimeError as e:
+        bad = {"ok": False, "error": str(e)[:2000]}
+        return {"frozen_spec": bad, "lint_acsl": bad, "lint_ghost": bad}
+    return {"frozen_spec": frozen(base, ed),
+            "lint_acsl": lint_acsl(base, ed),
+            "lint_ghost": lint_ghost(base, ed)}
 
 
 def strip_annotations(text):

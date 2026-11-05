@@ -634,6 +634,60 @@ invariant is only needed for functional correctness and is stretch work.
             sentences are simple and direct.
         The harness keeps the outline and both revisions with the run
         report.
+    *   **Final products.**  A certified run delivers:
+        1.  *The annotated software:* the original C with the added
+            ACSL assertions, invariants, ghost code and lemmas.
+        2.  *English comments* above each function that explain its
+            precondition and postcondition in plain words.  The comments
+            are ordinary C comments, and no tool checks them against the
+            ACSL.  So a comment on a public function is part of what the
+            owner approves, and the run report pairs each comment with
+            the clauses it explains.
+        3.  *The proofs of all verification conditions:* the Coq proof
+            scripts, and for each goal the tool that closed it (Qed,
+            Alt-Ergo, CVC5, Z3 or Coq).  Under Q1, goals closed by SMT
+            solvers have no Coq proof; the certification script reruns
+            the pinned solvers on them.
+        4.  *A certification script* that checks everything from the
+            delivered files in the pinned image: it reruns WP, `coqc`,
+            `coqchk` and `Print Assumptions` against the allow-list, runs
+            the regression tests, and diffs the annotated C against the
+            original.  The diff must contain only annotations and
+            comments, plus the bug fixes listed in item 5.
+        5.  *A bug-fix log:* one entry per change to the C code (see the
+            next item).
+        6.  *The regression tests,* including any the pipeline added.
+    *   **Bug fixes.**  Proving memory safety will sometimes find a real
+        bug, so the C code is not always frozen.  Guardrail 1 changes:
+        the agent may change C code only as a recorded bug fix.
+        *   *Report at once.*  When the pipeline first finds a bug, it
+            reports it to the owner immediately, using the presentation
+            steps above (the code, a concrete failing input, and why it
+            is a bug).
+        *   *Keep going.*  If the pipeline finds a fix, it applies the
+            fix and continues the proof on the fixed code without
+            waiting.  The owner can reject the fix later; the affected
+            goals are then reopened.
+        *   *Evidence.*  Each fix comes with a test that fails on the
+            original code (under ASan, UBSan or E-ACSL) and passes on
+            the fixed code.
+        *   *Document.*  Each fix gets an entry in the bug-fix log: the
+            bug, the failing test, the change, and why the change is
+            correct.  The certification script's diff shows exactly
+            these changes and no others.
+        *   *Public behaviour.*  A fix that changes what clients can
+            observe is a public-spec change and needs the owner's
+            approval, as above.
+    *   **Regression tests.**  When the software comes with tests, the
+        pipeline uses them:
+        *   as inputs for runtime checking of candidate annotations
+            (step 1), alongside the generated drivers;
+        *   to check that every bug fix keeps the existing tests
+            passing.
+        The pipeline may add tests: the failing test for each bug fix,
+        and tests that exercise contract cases the existing tests miss.
+        Added tests are kept separate from the original tests, so the
+        owner can see which are new.
 
 ---
 

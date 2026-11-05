@@ -66,7 +66,7 @@ need it).
 | VC generator + memory model | WP, Typed model, Qed simplifier (all trusted) | VST's program logic, **proved sound** in Rocq against Clight |
 | Allocation | no model; ghost-liveness contracts + `dead_heap` axiom + stack admits + an instrumentation pass (all trusted, `../m1a/README.md`) | `malloc_spec'`/`free_spec'` in `floyd/library.v`: `Parameter`s `mem_mgr`, `malloc_token`, `body_malloc`, `body_free`, `create_mem_mgr`, … (standard, small, shared by all VST users).  Could be replaced by the verified allocator `progs/memmgr` (Naumann and Appel, ISMM 2020) **[unverified with 2.17]** |
 | Spec definitions | ACSL `logic`/`inductive` exported as `Parameter` + `Axiom`; non-terminating ones accepted (guardrail 3a) | Rocq `Fixpoint`/`Definition`/`Inductive`: checked by the kernel, so no 3a hole |
-| SMT | Alt-Ergo, Z3, CVC5 in the TCB (decision Q1) | none |
+| SMT | Alt-Ergo, Z3, CVC5 in the TCB (decision Q1) | none in the TCB; optional SMTCoq (section 8) checks veriT certificates in Rocq |
 | Kernel | Rocq kernel, `coqchk` | same |
 | Translation to the binary | not covered (any compiler) | not covered unless compiled with CompCert (then CompCert's correctness theorem composes); with gcc/clang the result is about the Clight semantics only |
 
@@ -338,8 +338,10 @@ M2 unless the B1 comparison says otherwise.**
 
 Owner's note: use **SMTCoq** to automate some of the Rocq proofs on
 the VST side (pure arithmetic/logic side goals), keeping the SMT solver
-outside the trust base by checking its certificates in Rocq.  See plan
-§9.2 Q10 for what to check first.
+outside the trust base by checking its certificates in Rocq.  Tried in
+section 8: SMTCoq is installed in the image and proves the linear
+arithmetic side goals, but VST's own `lia`/`rep_lia`/`list_solve`
+already prove those and more.
 
 For VST:
 * use after free, double free, and freeing a stack object are caught
@@ -378,7 +380,7 @@ Files (all in this directory):
 
 | File | What |
 |---|---|
-| `Dockerfile` | VST 2.17 + CompCert 3.18 + coq-lsp 0.2.5+9.0 + coq-hammer-tactics on the M0 base image |
+| `Dockerfile` | VST 2.17 + CompCert 3.18 + coq-lsp 0.2.5+9.0 + coq-hammer-tactics on the M0 base image, plus SMTCoq + Trakt + veriT + CVC4 (section 8) |
 | `run.sh` | as `../env/run.sh`, image `ariadne-vst:dev` (`ARIADNE_VST_IMAGE` overrides) |
 | `smoke/good.c` | `use_cell`: malloc, null check, two writes, a read, free; `main` calls it |
 | `smoke/bad.c` | `use_after_free`, `write_after_free_alias`, `double_free` |
@@ -387,6 +389,7 @@ Files (all in this directory):
 | `smoke/expected_assumptions.txt` | recorded `Print Assumptions prog_correct` |
 | `smoke/pet_check.py` | Pétanque runs `body_use_cell` sentence by sentence (`proof_finished: True`), then replays `use_after_free` and checks that `forward` after `free` returns VST's error |
 | `smoke/check.sh` | steps: clightgen; good proof + assumptions diff; bad refusals (4 `Fail`s, 2 with the "not obvious how to move forward" message, from a `coqtop` transcript); Pétanque; with `COQCHK=1`, coqchk |
+| `smtcoq/` | SMTCoq tests (section 8): `smoke.v`, `b1_side.v`, `proved.v`, `IntCompDec.v`, `check.sh` |
 
 Status: **all steps PASS** (2026-11-03).  Exact commands:
 
@@ -405,6 +408,135 @@ By hand: `../run.sh clightgen -normalize good.c bad.c`, then
 Not done: B1 itself in VST (that is M1); a combined Frama-C + VST
 image; `coq-hammer` with ATPs in this image; VST-A; the verified
 `memmgr` allocator in place of the axiomatised one.
+
+## 8. SMTCoq on VST side goals (plan §9.2 Q10)
+
+```bash
+cd Ariadne/vst/smtcoq && ./check.sh   # three PASS lines, ~25 min
+```
+
+### 8.1 Versions (all pinned in `Dockerfile`, downloads by sha256)
+
+| Component | Version | Notes |
+|---|---|---|
+| SMTCoq | branch `with-trakt-rocq-9.0v1`, commit `3df62048` (2026-06-10) | no opam release for Rocq 9 (newest is `coq-smtcoq 2.3+8.20`); built from source with `make` |
+| Trakt | `rocq-trakt/trakt` commit `c666cad5` (2026-06-10) | needed by that branch (casts nat etc. to Z); built with dune through a one-line `rocq --config` shim, because dune's `(using rocq 0.11)` calls `rocq --config`, which Rocq 9.0 lacks |
+| rocq-elpi / elpi | 3.4.0 / 3.7.1 | a pair listed in that Trakt commit's `flake.nix` |
+| veriT | snapshot `9f48a98` | the one SMTCoq's `INSTALL.md` names; moved from lri.fr to `usr.lmf.cnrs.fr/~ckeller`; needs `-fcommon` with GCC 12 |
+| CVC4 | 1.6 static binary | as `INSTALL.md` asks; `LFSCSIGS` points at SMTCoq's signatures |
+| ZChaff, cvc5 1.0.7 | not installed | ZChaff only for pure SAT; cvc5 only for `abduce` |
+
+The SMTCoq layers add about 1.5 min to the build and 0.4 GB to the
+image (7.4 GB).  `smoke/check.sh` (4 PASS) and `b1/check.sh` (5 PASS)
+pass unchanged on the new image.
+
+### 8.2 Smoke test (`smoke.v`, 15 goals)
+
+| Goal | lia | verit | smt | cvc4 |
+|---|---|---|---|---|
+| z1–z3: linear Z (`x<y -> x+1<=y`, transitivity, no overflow at 2^31-1) | yes | yes | yes | no |
+| z4: `0<=x -> 0<=y -> 0<=x*y` (nonlinear) | yes | no | no | no |
+| z5: `x = y+1 -> f y = f (x-1)` (uninterpreted `f`) | no | yes | yes | no |
+| b1: propositional bool formula | no | yes (also `verit_bool`) | yes | no |
+| b2: `(x <? y) = true -> (y <=? x) = false` | yes | yes | yes | no |
+| b3: `(if a then x else x) = x` | no | no | no | no |
+| n1, n2: nat `<`, `+` commutes (through Trakt) | yes | yes | yes | no |
+| l1: `l1 = l2 -> length l1 = length l2` | no | no | no | no |
+| l2: `length (x :: l) = S (length l)` | no | no | no | no |
+| l3: `length (l1 ++ l2 ++ l3) = …` | no | yes, given `length_app` | yes, given `length_app` | no |
+| l4: `l ++ [x] <> []` | no | no (also given `app_cons_not_nil`) | no | no |
+
+So veriT (through `verit` or `smt`) proves 8 of 15 alone and a
+ninth when given a lemma; `lia` proves 7.  What SMTCoq adds over `lia`
+is uninterpreted functions (z5) and propositional structure (b1).  It
+does not unfold definitions (l2), does not take equalities between
+lists as hypotheses ("Discarding the following lemma (unsupported):
+(l1 = l2)"), and does not do `if` or nonlinear arithmetic.
+
+**`cvc4` closes nothing here.**  CVC4 1.6's LFSC proof contains a
+`trust_f` step for its arithmetic preprocessing; SMTCoq leaves that step
+as an open goal (e.g. `negb ((x <? y) ---> (x+1 <=? y)) <---> negb
+((y + -1*x >=? 1) ---> …)`) instead of trusting it.  `smt` (veriT,
+then CVC4, then veriT) succeeds wherever veriT does.
+
+### 8.3 B1 side goals (`b1_side.v`, 10 goals)
+
+`../b1/verif_b1.v` has no hand-proved arithmetic: its pure side goals
+are closed inside `entailer!`/`forward`/`forward_if` (which call
+`rep_lia` and `list_solve`) or by `discriminate`/`rewrite`.  The ten
+below are the pure facts those steps need, restated as lemmas (the
+file gives each one's line in `verif_b1.v`).
+
+| Goal | VST tactic | SMTCoq (`verit`/`smt`) |
+|---|---|---|
+| s1 `0<=n<=max_signed -> 0<=0<=n` (loop 1 entry) | `lia` yes | yes |
+| s2 `0<=k<=n -> k<n -> 0<=k<n` | `lia` yes | yes |
+| s3 `0<=k<n -> 0<=k+1<=n` (k++) | `lia` yes | yes |
+| s4 `k+1` in `[min_signed, max_signed]` (no overflow) | `rep_lia` yes | only after `change Int.max_signed with 2147483647` (and min) |
+| s5 `Zlength contents = n -> 0<=k<n -> 0<=k<Zlength contents` | `lia`, `list_solve` yes | only with a `CompDec Int.int` instance (`IntCompDec.v`) |
+| s6 `Zlength (map Vint contents) = n` | `list_solve` yes | no (also with `Zlength_map` and the instance: `val` has no `CompDec`) |
+| s7 `Int.signed (Int.repr k) = k` | `rep_lia` (after `Int.signed_repr`) yes | no |
+| s8 `a ++ [(q,x)] <> []` | `destruct; discriminate` yes, `list_solve` no | no |
+| s9 `s = s1 ++ [] -> s = s1` | `list_solve` yes | no |
+| s10 `s = (a ++ [y]) ++ b -> s = a ++ y :: b` | `list_solve` yes | no |
+
+**SMTCoq proves 3 of 10 as stated (s1–s3), 5 of 10 with help (s4 after
+unfolding the bounds, s5 with a hand-written `CompDec` instance); VST's
+tactics prove all 10** (`list_solve` misses s8, which `destruct;
+discriminate` closes).  The list goals s8–s10 fail with SMTCoq also over
+an abstract element type with a `CompDec` instance and with the needed
+`app_*` lemma passed to `verit`, so the obstacle is list equality, not
+only missing instances.  SMTCoq exports its own `int` and `val`, which
+shadow CompCert's after `Require Import SMTCoq`; the files write
+`Int.int` and `Values.val`.
+
+Every SMTCoq run printed "Bytecode compiler failed, falling back to
+standard conversion": on this Rocq 9.0.1 build the certificate checker
+runs without the VM.  Most goals above still check in under a second,
+but `Qed` of `s4_smt` in `proved.v` takes about 9 minutes (s3 and s5:
+under a second each); the cause was not isolated.  Larger goals may be
+slow.
+
+### 8.4 Trust base (`proved.v`)
+
+`proved.v` proves s3 (`verit`), s4 (`smt`, after unfolding the bounds)
+and s5 (`verit`, with `IntCompDec.v`) with `Qed`, so the kernel
+re-checks SMTCoq's checker run on the solver's certificate.
+`Print Assumptions` (recorded in `smtcoq/expected_assumptions.txt`) is
+the same for all three and **names no solver and no SMTCoq axiom**.
+It lists 52 names:
+
+* 51 from Rocq's primitive 63-bit integers: the primitive type and
+  operations (`int`, `add`, `mul`, `ltb`, `PrimInt63.eqb`, …) and
+  their specification axioms from `Uint63Axioms` (`add_spec`,
+  `eqb_correct`, `of_to_Z`, …).  SMTCoq's checker computes with
+  `Int63`; these axioms are Rocq's statement that the kernel's machine
+  integers match their `Z` model.
+* `ProofIrrelevance.proof_irrelevance`.
+
+None of the 52 is in `b1/expected_assumptions.txt` (B1's `Print
+Assumptions prog_correct`).  If an SMTCoq proof were used inside B1's
+proof, that allow-list would need all 52.  `proof_irrelevance`
+already appears in the smoke test's `coqchk` list (section 1.2); the `Int63` ones
+are part of Rocq itself (the kernel implements the primitives) but are
+still axioms to `coqchk`.  Using `smt`/`cvc4` adds nothing beyond
+`verit`.
+
+### 8.5 Assessment
+
+Not worth adding to the VST workflow for B1-style proofs now.  The
+goals SMTCoq proves are already closed automatically by `entailer!`,
+`lia` and `rep_lia`, and the goals that cost effort on the VST side
+(`Int.repr` ranges, `Zlength`/`map`/`++` facts) are the ones it cannot
+take without unfolding, `CompDec` instances for CompCert types, or list
+reasoning.  Where it could help is goals mixing uninterpreted functions
+with arithmetic or with propositional structure (smoke z5, b1), which
+`lia` does not do; that may matter for functional-correctness specs
+later (M2), not for B1's shape proofs.  **Decision (owner):** SMTCoq
+stays in the image (+1.5 min build, +0.4 GB), unused by the B1 proofs,
+and no more work goes into it for now: no `CompDec` instances for
+`Int.int`/`val` and no `rep_lia`-style preprocessing, which is what
+SMTCoq would need to be useful on VST goals.
 
 ## Sources
 

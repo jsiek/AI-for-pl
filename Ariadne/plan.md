@@ -113,6 +113,10 @@ Trusted (TCB):
 7.  Any goal discharged by an SMT solver, *unless* policy says all goals
     must go to Coq (§9, Q1).
 
+The user accepted Rocq's `ClassicalEpsilon.constructive_indefinite_description`
+into the axiom allow-list (§7.4), because Why3's `BuiltIn` theory, which
+every WP goal file loads, depends on it.
+
 Not trusted: the agent, CoqHammer's search (its reconstructed proofs are
 kernel-checked), Eva (only if its results enter as proved assertions, see
 §5 step 2).

@@ -34,6 +34,8 @@ tag.
 | CVC5 | 1.2.1 | Why3 1.8.2 accepts 1.0–1.2 |
 | Vampire | 4.9 (CASC 2024) | Vampire 5 dropped `--output_axiom_names`, which CoqHammer uses |
 | Eprover | 2.6 (Debian `2.6+ds-3`, pinned) | CoqHammer ATP |
+| `z3_tptp` | Z3 4.13.4's `examples/tptp`, built against the release's `libz3.a` | CoqHammer's Z3 backend calls this TPTP front end, not `z3` |
+| CVC4 | 1.8 (static binary) | CoqHammer's CVC4 backend calls `cvc4`; cvc5 is a different command |
 | clang-format | 14.0.6 (Debian `1:14.0.6-12`, pinned) | formats macro-expanded benchmarks for annotation (`bench/b1/gen.sh`) |
 
 Base image: `rocq/rocq-prover:9.0.1-native-ocaml-4.14.2`, pinned by
@@ -67,7 +69,8 @@ are pinned by SHA-256.
    **the ACSL definition `sum` itself as `Parameter L_sum` + `Axiom
    L_sum_def`.**  This is the starting point for the axiom allow-list of
    plan §7.4.
-3. `hammer_check.v`: `sauto`, and `hammer` via Vampire and Eprover;
+3. `hammer_check.v`: `sauto`, and `hammer` via its four ATPs (Vampire,
+   Eprover, Z3 through `z3_tptp`, CVC4);
    hammer reconstructs `srun eauto use: …`, which then needs no ATP.
 4. `pet_check.py`: Pétanque opens the WP-generated goal file, runs the
    proof tactic by tactic, and reports goal counts and `proof_finished`.

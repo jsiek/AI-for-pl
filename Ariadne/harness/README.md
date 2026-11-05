@@ -77,11 +77,11 @@ the tactic it reconstructs is checked first.
 | Run | Verdict | Qed | SMT | Coq | Open | Wall clock |
 |---|---|---|---|---|---|---|
 | `harness.py ../bench/b1` (`results/b1-full.md`) | certified | 189 | 127 | 5 (human scripts) | 0 | 75 s |
-| `--blank-coq` (`results/b1-blank.md`) | failed (5 open) | 189 | 127 | 0 | 5 | 1397 s |
+| `--blank-coq` (`results/b1-blank.md`) | failed (5 open) | 189 | 127 | 0 | 5 | 1408 s |
 
 Seconds per step, full run / blank run: guardrails 0.9 / 0.9, RAC 18 / 18
 (7 of 7 mutants caught), normalise 0.5 / 0.5, WP 39 / 99 (the five lemmas
-run into the 60 s SMT timeout), tier 0 - / 1278, close out 16 / 0.  In
+run into the 60 s SMT timeout), tier 0 - / 1289, close out 16 / 0.  In
 the full run, step 6 compiles the 5 Coq goals, `coqchk -o` lists 545
 axioms over the 5 modules and `Print Assumptions` 35, all on the
 allow-list.
@@ -91,7 +91,9 @@ With the human's invariants, asserts and lemma statements but none of
 the human's Coq scripts, Qed and SMT close everything except the five
 lemmas that M1 proved in Coq, and **tier 0 closes 0 of those 5** (per-goal
 cap 300 s, 15-20 candidates each; `results/b1-blank-tier0.jsonl` lists
-every attempt).  `hammer` fails in 20-25 s on each (ATPs find no proof);
+every attempt).  `hammer` runs all four of its ATPs (Vampire, Eprover,
+Z3 via `z3_tptp`, CVC4) and returns "ATPs failed to find a proof" in
+22-27 s on each;
 `sauto` fails fast or runs into the 60 s cap.  The three list lemmas
 need the conditional Why3 lemmas `nth_cons` / `length_cons` used with
 `lia` for index arithmetic, and the two induction lemmas need induction

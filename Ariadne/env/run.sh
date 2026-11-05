@@ -7,7 +7,7 @@
 set -eu
 image="${ARIADNE_IMAGE:-ariadne-m0:dev}"
 ariadne="$(cd "$(dirname "$0")/.." && pwd)"
-exec docker run --rm -i \
+exec docker run --rm -i --init ${ARIADNE_NAME:+--name "$ARIADNE_NAME"} \
   --user "$(id -u):$(id -g)" \
   -e HOME=/home/rocq \
   -v "$ariadne:/ariadne" \

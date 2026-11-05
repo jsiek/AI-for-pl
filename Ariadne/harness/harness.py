@@ -951,7 +951,7 @@ class Run:
 def markdown(r):
     c = r["census"]
     w = r.get("census_after_wp") or {}
-    out = [f"# Ariadne M2 run: {os.path.basename(r['benchmark'])}"
+    out = [f"# Ariadne run: {os.path.basename(r['benchmark'])}"
            f"{' (Coq scripts dropped)' if r['blank_coq'] else ''}", "",
            f"**Verdict: {r['verdict']}.**  {c['proved']} / {c['goals']} "
            f"goals proved; {r['seconds']} s; model runs: {r['llm_calls']}.",
@@ -991,6 +991,19 @@ def markdown(r):
                 for a in g.get("attempts", []))
             out.append(f"| `{g['goal']}` | {by} | {g.get('seconds', '')} | "
                        f"{g.get('tokens', 0)} | {g.get('usd', 0)} | {att} |")
+    if r.get("refinement"):
+        out += ["", "## Refinement (step 5)", "",
+                "| Iteration | Call | Verdict | Turns | wp calls | "
+                "Seconds | USD | Open after |", "|---|---|---|---|---|---|---|---|"]
+        for it in r["refinement"]:
+            after = (it.get("census_after") or {}).get("open", "")
+            for c in it["calls"]:
+                out.append(
+                    f"| {it['iteration']} | {c['annotator']} #{c['call']} | "
+                    f"{c.get('verdict', c['status'])} | {c.get('turns', '')} "
+                    f"| {(c.get('cli_calls') or {}).get('wp', '')} | "
+                    f"{c.get('seconds', '')} | {c.get('usd', 0)} | "
+                    f"{after if c.get('verdict') == 'accepted' else ''} |")
     b = r.get("budget")
     if b:
         e = b.get("end", {})

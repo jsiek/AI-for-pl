@@ -47,9 +47,11 @@ the Why3 context are taken from the file and never from the model.
 `--apply` writes the proof into the file; WP's `-wp-interactive batch`
 then rechecks it as part of `../bench/b1/run.sh`.
 
-**`--blank`** hides the proofs of the target and of every goal file next
-to it, from the prompt, `read_file` and `grep` (statements stay
-visible).  Without it the model can simply read the existing proof: in
+**`--blank`** hides the proofs of the target, of every goal file next
+to it, and of any other WP goal file (such as copies in run
+directories), from the prompt, `read_file` and `grep` (statements stay
+visible).  It also makes `results/` unreadable, since it holds accepted
+proofs.  Without it the model can simply read the existing proof: in
 the first test run, GLM read the goal file and resubmitted its proof
 verbatim.  `test_tools.py` checks the tools and the hiding offline (no
 model calls).

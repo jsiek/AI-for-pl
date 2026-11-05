@@ -37,6 +37,19 @@ commit it.
 2026-08 the list was `glm-5.2`, `gpt-oss-120b`, `Qwen3-Coder-Next`,
 `gemma-4-31B-it`; the benchmark below is from then.)
 
+### Rate limits (measured 2026-11-04, `glm-5.3-flash`)
+
+The LiteLLM router reports them in response headers (`x-ratelimit-*`):
+
+- **4 parallel requests per API key**, so at most 4 workers at once.
+- **40 requests per minute per model, shared by every user of that
+  model.**  The counter resets on the minute and fell by 20 in 25 s
+  while we sent one request, so other users' load decides when we get
+  HTTP 429.  A worker sends one request per turn, and turns take 10-60 s.
+
+The client retries 429 and 5xx with backoff, and the time budget
+(`max_seconds`) does not count those waits.
+
 ### Shared client
 
 `reallms_client.py` holds the key lookup, the streamed chat call (with

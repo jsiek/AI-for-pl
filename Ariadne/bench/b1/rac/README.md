@@ -18,17 +18,19 @@ run time, five of them at the same annotation WP rejects them at.
 ## Output of `./check.sh`
 
 ```
-step 0 (generate b1_rac.c x8): 0.2 s; gen_rac: 27 dropped, 24 kept, 1 partly-kept, 22 rewritten clauses
+step 0 (generate twins, b1_rac.c x8): 0.4 s; gen_twins: 1 inductive(s), 6 builtins, 8 ACSL definitions, 1 not translated (see rac_twins.txt)
+    gen_rac: 27 dropped, 24 kept, 1 partly-kept, 22 rewritten clauses
+PASS: gen_rac.py clause splitting: ok: 3 clause-splitting cases
 PASS: ASan+UBSan build of b1.c: ok: 300 runs, 7044 nodes, 74 with an injected allocation failure, largest n = 200
 SKIP: MSan (clang 14 in the image has no MSan runtime)
-step 1 (sanitizers, b1.c): 0.3 s
+step 1 (sanitizers, b1.c): 0.4 s
 PASS: twin unit tests: ok
 step 2 (twin unit tests): 0.2 s
 PASS: E-ACSL build of b1.c: ok: 300 runs, 7044 nodes, 74 with an injected allocation failure, largest n = 200
-step 3 (E-ACSL, b1.c): build 7.2 s, run 0.9 s
+step 3 (E-ACSL, b1.c): build 7.2 s, run 1.2 s
 E-ACSL ignored 2 annotation(s) of b1_rac.rte.c (all warnings: build/eacsl_warnings.txt):
-    b1_rac.rte.c:1915: E-ACSL construct `\valid_function' is not yet supported. Ignoring annotation.
-    b1_rac.rte.c:1955: E-ACSL construct `\valid_function' is not yet supported. Ignoring annotation.
+    b1_rac.rte.c:1947: E-ACSL construct `\valid_function' is not yet supported. Ignoring annotation.
+    b1_rac.rte.c:1987: E-ACSL construct `\valid_function' is not yet supported. Ignoring annotation.
 mutant     ASan+UBSan             E-ACSL (first check to fire)
 vacuity    -                      Assertion vacuity in b1  [ok]
 uaf        heap-use-after-free    Precondition in sglib_dllist_get_first  [ok]
@@ -37,8 +39,8 @@ nullchk    ubsan: null member access Assertion rte/mem_access in b1  [ok]
 nullfirst  -                      Postcondition heads_list in sglib_dllist_get_first  [ok]
 nulllast   oracle                 Postcondition last_of_list in sglib_dllist_get_last  [ok]
 noinit     oracle                 Precondition elem_init in sglib_dllist_add  [ok]
-step 4 (mutants x7, both builds): 8.6 s
-ASan start-up retries (DEADLYSIGNAL): 0
+step 4 (mutants x7, both builds): 8.8 s
+ASan start-up retries (DEADLYSIGNAL): 1
 PASS: runtime checking of B1
 total 17.80 s
 ```
@@ -80,10 +82,10 @@ Notes:
 
 | Step | What | How |
 |------|------|-----|
-| 0 | generate | `gen_rac.py` turns b1.c (and each mutant from `../mutants.py`, shared with `../check.sh`) into `build/<v>/b1_rac.c` plus `annotations.txt`, the fate of every clause |
+| 0 | generate | `../../../rac/gen_twins.py` generates the twins, the executable spec block and the manifest from b1.c into `build/twins/`; `gen_rac.py` turns b1.c (and each mutant from `../mutants.py`, shared with `../check.sh`) into `build/<v>/b1_rac.c` plus `annotations.txt`, the fate of every clause |
 | 1 | sanitizers | gcc `-fsanitize=address,undefined`, b1.c unchanged (ACSL is comments), `rac_alloc.c` (malloc/free + registry + fault injection), `rac_main.c` (300 random runs: n = 0..5 always, n = 200 every 25th run, else 0..40; LeakSanitizer on) |
 | 2 | twin unit tests | `rac_twins_test.c` under ASan + UBSan: good lists n = 0..5, a cycle through `ptr_to_next`, a cycle through `ptr_to_previous`, a broken back link, a repeated node, a freed node mid-list: every call returns, with the ACSL value, and reads no freed memory |
-| 3 | E-ACSL | `frama-c -rte -rte-initialized @all` (as for WP, minus alignment, below) and `-print`, then `e-acsl-gcc` with the twins as builtins; twins compiled apart (`rac_twins.c`, not instrumented) and linked |
+| 3 | E-ACSL | `frama-c -rte -rte-initialized @all` (as for WP, minus alignment, below) and `-print`, then `e-acsl-gcc` with the twins as builtins; twins compiled apart (`build/twins/rac_twins.c` and `../../../rac/rac_rt.c`, not instrumented) and linked |
 | 4 | mutants | steps 1 and 3 on each mutant, in parallel; classified by `classify.py` |
 
 MSan: the image's clang 14 has no compiler-rt runtimes
@@ -93,56 +95,40 @@ same reads, and caught `noinit`.
 
 ## Executable twins
 
-`rac_twins.c`, hand-written for B1 in the style a generator would use:
+Generated from b1.c's spec block by `../../../rac/gen_twins.py` (rules,
+limits: `../../../rac/README.md`) into `build/twins/` at every run:
+`rac_twins.c` / `.h` (twins and builtins), `rac_spec.h` (the executable
+spec block), `rac_twins.json` (manifest read by `gen_rac.py` and this
+`check.sh`), `rac_twins.txt` (diagnostics).  For B1:
 
-- **Inductive predicate → function, one branch per case.**  For `dll`:
-  try `dll_nil` (does `(prev, h, s)` match its conclusion
-  `(_, \null, \Nil)`?), then `dll_cons` (does `s` match `\Cons(h, t)`?
-  then check the premises left to right: `h != \null`, `\valid(h)`,
-  `h->ptr_to_previous == prev`, `!mem(h, t)`, and the inductive premise
-  `dll(h, h->ptr_to_next, t)` by a recursive call); no case → false.
-  This decides the least fixpoint exactly when every recursive premise
-  is on a smaller argument (here `t`, the tail of `s`).
-- **Step bound.**  Every recursive call and every heap walk spends one
-  unit of `RAC_FUEL` (10^6): a cyclic or corrupt heap gives false (no
-  witness), never a hang.  (The price: a list longer than the bound is
-  wrongly rejected.)
-- **`\valid(p)` before a read** is "registered and not freed" in the
-  allocation registry (below): plain C cannot ask E-ACSL, and must not
-  read freed memory.  This makes `rac_dll` stricter than `dll` in two
-  ways, neither visible in B1: a valid node that is not a heap block
-  (e.g. on the stack) is rejected, and so is a dead node, which WP's
-  model (where free only changes `__heap`) still calls `\valid`.  Every
-  B1 use of `dll` is conjoined with `all_live`, so the conjunction has
-  the same value.
-- **Witnesses for existentials** (plan §4 item 5: "computing the
-  witness"): `dll(p, h, s)` is functional, so
-  - W1 `s` from `h`: `rac_reach(h)`, the nodes reached by `ptr_to_next`
-    (bounded walk; a walk that leaves the live heap or runs out of fuel
-    gives a "bad" list on which `rac_dll` is false);
-  - W2 `t` with `s = \Cons(x, t)`: `rac_tail(rac_reach(h))`;
-  - W3 `p` from `h`: `rac_prev(h)`, i.e. `h->ptr_to_previous` (for
-    `h == \null` any `p` works and NULL is returned);
-  - W4 `h` with `dll(\null, h, s)` and a known member `x` of `s`:
-    `rac_head(x)`, walking back by `ptr_to_previous` to the node whose
-    link is NULL (lemma `dll_links`).
+- **`dll` → `m_dll`, builtin `rac_dll`**: one branch per case;
+  `dll_nil` matches `(_, \null, \Nil)`, `dll_cons` matches
+  `\Cons(h, t)` with `h` the second argument, then checks
+  `h != \null`, `\valid(h)` (the registry: "registered, not freed"),
+  `h->ptr_to_previous == prev`, `!mem(h, t)` (C twin `tw_mem`), and
+  `dll(h, h->ptr_to_next, t)` by a recursive call; step bound
+  (`RAC_FUEL` steps, `RAC_DEPTH` levels).  Stricter than `dll` off the
+  B1 path (valid non-heap nodes, dead nodes WP still calls `\valid`);
+  every B1 use of `dll` is conjoined with `all_live`, so the
+  conjunction has the same value.
+- **Witnesses**, derived from `dll`'s cases (exported modes):
+  `rac_dll_s_of_h(h)` (the nodes reached from `h`; was `rac_reach`),
+  `rac_dll_prev_of_h(h)` (was `rac_prev`), `rac_dll_h_of_s`,
+  `rac_dll_prev_of_s`, and the member walk `rac_dll_h_of_member(x)`
+  (back along `ptr_to_previous`; was `rac_head`).  `live_dll` inherits
+  them (it is `dll(...) && ...` of its own parameters).
+- **Kept in ACSL** (E-ACSL runs them): `live`, `mem`, `all_live`,
+  `all_init`, `live_dll`; `in_live_list` and `iter_ok` with their
+  binders replaced by witnesses; `heap` / `dead` as the registry.
+- **Not translated**: `unchanged` (two labels; only dropped annotations
+  use it); the lemmas (proof facts).
 
-  Each witness is the only possible one when the existential holds, and
-  the instantiated body is false when it does not, so the rewritten
-  annotation has exactly the original's truth value (up to the bound).
-- **Lists** (`\list<dllist *>`) are immutable arrays in an arena, passed
-  to ACSL as `long` handles (`rac_list`; 0 is `\Nil`); `rac_length`,
-  `rac_nth`, `rac_cons`, `rac_tail` are the list operations.  The arena
-  is freed after each run.
+The generated files replace the hand-written `rac_twins.c` and
+`rac_spec.h` of the first version, with the same mutant table and the
+same outcome for every annotation (`annotations.txt` differs only in
+the witness names).
 
-`mem`, `all_live`, `all_init`, `live`, `live_dll` stay in ACSL
-(`rac_spec.h`): they quantify over the indices of a list, which E-ACSL
-executes.  `in_live_list` and `iter_ok` have their existentials replaced
-by witnesses.  `unchanged` and the lemmas are not needed (only dropped
-annotations use `unchanged`).
-
-Step 5 of the task (prove a twin against its predicate with WP) was not
-done: the twins work on arena arrays and the registry, so the contract
+Proving a twin against its predicate with WP was not done: the twins work on arena arrays and the registry, so the contract
 `\result != 0 <==> dll(prev, h, s)` needs an abstraction function from
 a `rac_seq` to `\list` and a registry invariant implying `\valid`; that
 is a small verification project of its own (likely with Coq for the
@@ -151,7 +137,7 @@ induction), left for later.
 ## Liveness: registry, not E-ACSL's `\freeable`
 
 `heap(b)` and `dead(v, b)` (ghost model, `ariadne_alloc.h`) become an
-allocation registry in `rac_twins.c`, updated by the ariadne allocators
+allocation registry in `../../../rac/rac_rt.c`, updated by the ariadne allocators
 in `rac_alloc.c` (`rac_heap`, `rac_dead`, and `rac_heap_of(p)` /
 `rac_dead_of(p)` for `heap(\base_addr(p))`, which find the registered
 block containing `p`).  Why not E-ACSL's own `\freeable` / `\valid`:
@@ -170,17 +156,17 @@ E-ACSL's tracking is still used where the spec says `\valid`,
 uninitialised reads in the code are E-ACSL's findings, not the
 registry's.
 
-## Translation rules (`gen_rac.py`, for a future generator)
+## Translation rules (`gen_rac.py`)
 
 `gen_rac.py` never translates an annotation by hand: every annotation of
 b1.c (or a mutant) goes through these rules, and `annotations.txt`
 records the outcome of each clause.
 
 1. **Spec block → `rac_spec.h`.**  The ACSL block of logic definitions
-   is replaced by `rac_spec.h` (hand-written executable version),
-   guarded by the block's SHA-256: if b1.c's spec changes, the generator
-   stops until `rac_spec.h` is reviewed.  `#include "ariadne_alloc.h"`
-   becomes `rac.h` (executable allocator contracts).
+   is replaced by the generated `build/twins/rac_spec.h`, found by its
+   SHA-256 (recorded by `gen_twins.py`), so a mutant may not change the
+   spec.  `#include "ariadne_alloc.h"` becomes `rac.h` (executable
+   allocator contracts).
 2. **Clauses and conjuncts.**  An annotation is split into clauses; the
    predicate of an assert / requires / ensures / invariant into its
    top-level conjuncts, each translated on its own.  A conjunct that
@@ -192,15 +178,18 @@ records the outcome of each clause.
    must not leave `c` unguarded), and `<==>` is not split at its `==>`.
    `test_gen_rac.py` (run by `check.sh`) checks these cases.
 3. **Binders over lists or pointers.**  `\exists`: each list or pointer
-   variable gets a witness from a `dll` / `live_dll` conjunct that
-   determines it (W1-W4), substituted in place; integer variables stay
+   variable gets a witness from a conjunct that determines it (an
+   exported mode of the manifest, or `rac_tail` of one for
+   `\Cons(e, t)`, or the member walk), substituted in place; integer variables stay
    in an `\exists integer` over the remaining conjuncts (E-ACSL runs
    bounded integer quantifiers).  `\forall` over lists with a premise
-   `dll(P, H, s) && ...`: `s` is determined, same substitution.  Dropped:
+   `dll(P, H, s) && ...`: `s` is determined, same substitution (exact
+   witnesses only, no "any value").  A conjunct that uses a definition
+   the manifest lists as dropped is dropped.  Dropped:
    `\forall` over pointers (no finite range) and over all lists with no
    determining premise (frame facts such as `frame`, `old_lists_live`).
 4. **Labels.**  A witness under a label is computed at that label,
-   `\at(rac_reach(H), L)`, only when `H` has the same value there
+   `\at(rac_dll_s_of_h(H), L)`, only when `H` has the same value there
    (`\at(..., L)` or a constant); otherwise dropped (`rest`).  A spec
    predicate applied at a label (`dll{Pre}(...)`) is dropped: E-ACSL 33
    translates neither `P{L}(...)` nor `\at(P(...), L)` (it ignored
@@ -250,10 +239,11 @@ retries such a start up to 10 times and reports the count.
 |------|------|
 | `check.sh` | the steps above, timed |
 | `gen_rac.py` | b1.c (or a mutant) → `b1_rac.c`, `b1_types.h`, `annotations.txt` |
-| `rac_spec.h` | executable spec block (hash-guarded) |
+| `test_gen_rac.py` | clause-splitting regression tests for `gen_rac.py` |
 | `rac.h` | replaces `ariadne_alloc.h`: executable allocator contracts |
-| `rac_twins.h`, `rac_twins.c` | twins, registry, list values |
-| `rac_twins_test.c` | twin unit tests (good and corrupt heaps) |
+| `build/twins/` | generated by `../../../rac/gen_twins.py`: twins, executable spec block, manifest, diagnostics |
+| `../../../rac/rac_rt.{h,c}` | runtime: registry, list values, step bound |
+| `rac_twins_test.c` | unit tests of the generated twins (good and corrupt heaps) |
 | `rac_alloc.c` | ariadne allocators: malloc/free, registry, fault injection, padding |
 | `rac_main.c` | random-input driver with the oracle |
 | `classify.py` | one-line summary of a run log, for the mutant table |
@@ -268,16 +258,17 @@ retries such a start up to 10 times and reports the count.
 - **Sound only up to the inputs**: 300 random runs with n ≤ 200 (seed
   fixed; `./check.sh 1000 7 500` for more); no shrinking of failing
   inputs yet (the failing run's index is in the log).
-- **Twins are trusted test code**: not proved against their predicates
-  (see step 5 above), stricter than `dll` off the B1 path (non-heap or
-  dead nodes), and bounded (`RAC_FUEL`).
-- **`rac_spec.h` is hand-written**; the hash guard only forces a review
-  when the spec changes.  The translation rules are generic, but the
-  witness rules know `dll` / `live_dll` specifically (W1-W4); a
-  generator would derive them per inductive (which arguments are
-  functions of which).
+- **Twins are trusted test code**: generated, but neither the generator
+  nor the twins are proved against the predicates (see above); stricter
+  than `dll` off the B1 path (non-heap or dead nodes), and bounded
+  (`RAC_FUEL`, `RAC_DEPTH`).
+- **`gen_rac.py` still parses annotations as text** (the spec block goes
+  through Frama-C's AST in `gen_twins.py`, the annotations of the code
+  do not); its witness rule is generic (the manifest), its other
+  rewrites (`wrap`, `null_args`, `base_addr`) are E-ACSL 33 specific.
 - **MSan not run** (no runtime in the image); E-ACSL's `\initialized`
   checks play its part.
 - Cost: O(n^3) per run in the worst case (the twin's `!mem` is linear,
-  and loop invariants re-walk the list); fine at n = 200 (0.9 s for 300
-  runs), would need memoising for long lists.
+  and loop invariants re-walk the list); fine at n = 200 (1.2 s for 300
+  runs).  Hash-consed list cells keep repeated witnesses from
+  allocating; time is not memoised.

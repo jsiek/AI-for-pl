@@ -41,7 +41,7 @@ void st_free(void *p);
 /*@ SGLIB_DL_LIST_SPEC(DoubleLinkedList, previous, next)
 */
 
-/*@ SGLIB_DL_LIST_CONTRACT_ADD(DoubleLinkedList, previous, next, n) */
+/*@ SGLIB_DL_LIST_CONTRACT_ADD(DoubleLinkedList, previous, next) */
 void sglib_DoubleLinkedList_add(DoubleLinkedList **list,
                                 DoubleLinkedList *elem);
 

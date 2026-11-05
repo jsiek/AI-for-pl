@@ -66,7 +66,7 @@ sglib_dllist_it_init_on_equal(struct sglib_dllist_iterator *it, dllist *list,
 extern dllist *sglib_dllist_it_current(struct sglib_dllist_iterator *it);
 extern dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it);
 ;
-/*@ SGLIB_DL_LIST_CONTRACT_ADD(dllist, ptr_to_previous, ptr_to_next, i) */
+/*@ SGLIB_DL_LIST_CONTRACT_ADD(dllist, ptr_to_previous, ptr_to_next) */
 void sglib_dllist_add(dllist **list, dllist *elem) {
   {
     {
@@ -602,6 +602,9 @@ dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it) {
 /*@ requires 0 <= n && \valid_read(input + (0 .. n - 1));
     requires \initialized(input + (0 .. n - 1));
     requires !heap(\base_addr(input));
+    // every live node's payload is initialised (the walks read it, and
+    // the list predicates cover only the links)
+    requires payload_init: \forall dllist *q; live(q) ==> \initialized(&q->i);
 */
 int b1(const int *input, int n) {
   dllist *l = NULL, *the_list = NULL;
@@ -613,6 +616,8 @@ int b1(const int *input, int n) {
       loop invariant \initialized(&the_list);
       loop invariant \initialized(input + (0 .. n - 1));
       loop invariant \exists \list<dllist *> s; live_dll(\null, the_list, s);
+      loop invariant payload_init:
+        \forall dllist *q; live(q) ==> \initialized(&q->i);
       loop assigns k, l, the_list, __heap,
         { q->i | dllist *q; heap(\base_addr(q)) },
         { q->ptr_to_next | dllist *q; heap(\base_addr(q)) },
@@ -630,7 +635,11 @@ int b1(const int *input, int n) {
           \forall \list<dllist *> s;
             all_live{before_alloc}(s) ==> all_live(s) && !mem(l, s); */
     l->i = input[k];
+    /*@ assert payload_written:
+          \forall dllist *q; live(q) ==> \initialized(&q->i); */
     sglib_dllist_add(&the_list, l);
+    /*@ assert payload_kept:
+          \forall dllist *q; live(q) ==> \initialized(&q->i); */
   }
   /*@ assert head_is_node0:
         the_list == \null
@@ -642,13 +651,15 @@ int b1(const int *input, int n) {
   for (l = sglib_dllist_get_first(the_list); l != NULL; l = l->ptr_to_next)
     last = l->i;
   /*@ loop invariant l == \null || in_live_list(l);
-      loop invariant l != \null ==> live(l) && \initialized(l);
+      loop invariant l != \null ==> live(l);
       loop assigns l, last;
   */
   for (l = sglib_dllist_get_last(the_list); l != NULL;
        l = l->ptr_to_previous)
     last = l->i;
   /*@ loop invariant iter_ok(&it, l);
+      loop invariant payload_init:
+        \forall dllist *q; live(q) ==> \initialized(&q->i);
       loop assigns l, it, __heap;
   */
   for (l = sglib_dllist_it_init(&it, the_list); l != NULL;

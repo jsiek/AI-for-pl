@@ -16,7 +16,7 @@
 #                 input's list, so this must fail);
 #      noinit   - the driver does not store input[k] into the new node
 #                 (`l->i = input[k];` removed), so the walks would read an
-#                 uninitialised field: add's precondition elem_init fails.
+#                 uninitialised field: the driver's assert payload_written fails.
 set -u
 status=0
 
@@ -32,7 +32,7 @@ python3 -I mutants.py b1.c mutants   # shared with rac/check.sh
 # The intended failure of each mutant: a unique line of the mutant
 # source (found by its text) and a pattern for the open goal names there.
 expect() {
-  fct=b1
+  fct=b1 span=0
   case "$1" in
     vacuity) marker='  //@ assert vacuity: \false;'
              goals='_assert_vacuity$' ;;
@@ -46,8 +46,9 @@ expect() {
              goals='_ensures_heads_list$' fct=sglib_dllist_get_first ;;
     nulllast) marker='/*@ SGLIB_DL_LIST_CONTRACT_GET_LAST(dllist, ptr_to_previous, ptr_to_next) */'
              goals='_ensures_last_of_list$' fct=sglib_dllist_get_last ;;
-    noinit)  marker='    sglib_dllist_add(&the_list, l);'
-             goals='_call_sglib_dllist_add_requires_elem_init$' ;;
+    noinit)  marker='    /*@ assert payload_written:'
+             span=4   # payload_written, and payload_kept after the add
+             goals='_assert_payload_(written|kept)$' ;;
   esac
 }
 
@@ -70,7 +71,7 @@ for m in vacuity uaf uaf_back nullchk nullfirst nulllast noinit; do
     echo "FAIL: mutant $m: marker not found exactly once"; status=1
   elif [ ! -s "mutants/report_$m.json" ]; then
     echo "FAIL: mutant $m: WP run failed (mutants/$m.log)"; status=1
-  elif python3 -I ../goals.py --expect-open "$line" "$goals" \
+  elif python3 -I ../goals.py --expect-open "$line-$((line + span))" "$goals" \
          "mutants/report_$m.json" > "mutants/$m.goals"; then
     echo "PASS: mutant $m rejected, only at line $line: $(sed -n 2p \
       "mutants/$m.goals" | awk '{print $2}')"

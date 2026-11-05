@@ -16,10 +16,9 @@
    Parameters are sglib's: `type` (the node type, a typedef name, also
    used in sglib's function and iterator names), `previous` and `next`
    (the link fields).  The comparator is not a parameter: no annotation
-   mentions it (the verified functions do not call it).  One further
-   parameter, `payload` of SGLIB_DL_LIST_CONTRACT_ADD, names the field
-   the client must initialise before `add`; sglib has no such parameter
-   (README.md, "Not in sglib's parameters").
+   mentions it (the verified functions do not call it).  The list
+   predicates cover only the link fields (all_init), so no parameter
+   names the payload.
 
    Public (Q11: changes need the owner's approval): SGLIB_DL_LIST_SPEC
    and the SGLIB_DL_LIST_CONTRACT_* macros.  Private: SGLIB_DL_LIST_LEMMAS
@@ -47,9 +46,12 @@
   predicate all_live{L}(\list<type *> s) = \
     \forall integer k; 0 <= k < \length(s) ==> live(\nth(s, k)); \
   \
-  /* Every node of s is initialised (all of its fields). */ \
+  /* The links of every node of s are initialised (the list code reads \
+     no other field). */ \
   predicate all_init{L}(\list<type *> s) = \
-    \forall integer k; 0 <= k < \length(s) ==> \initialized(\nth(s, k)); \
+    \forall integer k; 0 <= k < \length(s) ==> \
+      \initialized(&\nth(s, k)->previous) \
+      && \initialized(&\nth(s, k)->next); \
   \
   /* Shape only: the nodes reached from h by next are exactly s; each is \
      valid, its previous is its predecessor (prev for h), and none \
@@ -110,7 +112,9 @@
   \
   lemma all_init_cons{L}: \
     \forall type *h, \list<type *> t; \
-      all_init(\Cons(h, t)) <==> (\initialized(h) && all_init(t)); \
+      all_init(\Cons(h, t)) <==> \
+        (\initialized(&h->previous) && \initialized(&h->next) \
+         && all_init(t)); \
   lemma all_init_nil{L}: all_init(\Nil); \
   \
   /* Unfolding dll (inversion). */ \
@@ -158,10 +162,9 @@
 
 /* Public.  Restricted to what B1 uses: *list is the head of a whole
    list (sglib allows any element). */
-#define SGLIB_DL_LIST_CONTRACT_ADD(type, previous, next, payload) \
+#define SGLIB_DL_LIST_CONTRACT_ADD(type, previous, next) \
   requires \valid(list) && !heap(\base_addr(list)) && \initialized(list); \
   requires live(elem); \
-  requires elem_init: \initialized(&elem->payload); \
   requires \exists \list<type *> s; \
     live_dll(\null, *list, s) && !mem(elem, s); \
   assigns *list, elem->next, elem->previous, \
@@ -171,11 +174,14 @@
 
 /* Private: the asserts at the end of add's body, in this order. */
 #define SGLIB_DL_LIST_ANNOT_ADD_INIT_FRAME(type, previous, next) \
-  assert init_frame: \initialized(elem) && \forall \list<type *> s; \
+  assert init_frame: \initialized(&elem->previous) \
+    && \initialized(&elem->next) && \forall \list<type *> s; \
     all_init{Pre}(s) ==> all_init(s);
 #define SGLIB_DL_LIST_ANNOT_ADD_OLD_HEAD_INIT(type, previous, next) \
   assert old_head_init: \
-    \at(*list, Pre) != \null ==> \initialized(\at(*list, Pre));
+    \at(*list, Pre) != \null ==> \
+      \initialized(&\at(*list, Pre)->previous) \
+      && \initialized(&\at(*list, Pre)->next);
 #define SGLIB_DL_LIST_ANNOT_ADD_FRAME(type, previous, next) \
   assert frame: \forall \list<type *> s; \
     all_live{Pre}(s) && !mem(elem, s) && !mem(\at(*list, Pre), s) \

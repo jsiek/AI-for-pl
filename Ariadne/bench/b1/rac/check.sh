@@ -193,7 +193,7 @@ expect() {
                eac='Assertion rte/mem_access in b1' ;;
     nullfirst) san='-'; eac='Postcondition heads_list in sglib_dllist_get_first' ;;
     nulllast)  san='oracle'; eac='Postcondition last_of_list in sglib_dllist_get_last' ;;
-    noinit)    san='oracle'; eac='Precondition elem_init in sglib_dllist_add' ;;
+    noinit)    san='oracle'; eac='Assertion rte/initialization in b1' ;;
   esac
 }
 [ -n "$quick" ] && exit $status   # 4th argument: b1.c only

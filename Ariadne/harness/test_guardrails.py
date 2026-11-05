@@ -61,9 +61,9 @@ expect("spec_checks: a #define that changes a predicate rejected",
        and "predicate:live" not in v["frozen_spec"]["changed"]
        and v["frozen_spec"]["changed"], v)
 v = g.spec_checks(raw, edit(raw, "SGLIB_DL_LIST_CONTRACT_ADD(dllist, "
-                            "ptr_to_previous, ptr_to_next, i)",
+                            "ptr_to_previous, ptr_to_next)",
                             "SGLIB_DL_LIST_CONTRACT_ADD(dllist, "
-                            "ptr_to_previous, ptr_to_previous, i)"), CPP)
+                            "ptr_to_previous, ptr_to_previous)"), CPP)
 expect("spec_checks: a changed template argument rejected",
        v["frozen_spec"]["changed"] == ["contract:sglib_dllist_add"], v)
 v = g.spec_checks(raw, edit(raw, "SGLIB_DL_LIST_CONTRACT_ADD(", "("), CPP)

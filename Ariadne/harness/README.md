@@ -310,6 +310,53 @@ shows $9.36 for the two attempts against about $5.40 used.  Within the
 budget for the rerun (about $6), the certified result above stays the
 resumed one.
 
+## Escalation strategies (`escalation.py`, plan §12.3)
+
+**Goal set** (`results/escalation/goals/`, proofs removed): the 9 Coq
+goals that fixed annotations leave, the 5 lemmas of the human `b1.c`
+(`human_*`: `mem_cons`, `all_live_cons`, `all_init_cons`, `dll_frame`,
+`dll_links`) and the 4 of the frozen run's final patch (`frozen_*`:
+`dll_frame`, `dll_last`, `dll_nth_next`, `dll_nth_prev`).  Every
+attempt goes through `tiers.chain` on a fresh copy (coqc confirms the
+proof; the fence retry applies, and was never needed) and is logged in
+`results/escalation/attempts.jsonl` (150 attempts).  REALLMS models get
+120 s of working time; Sonnet a $0.75 and Opus a $1.50 cap per attempt.
+
+**S1** is one attempt per model and goal.  **S2** (GLM, then Sonnet,
+then Opus) and **S4** (k GLM attempts, then Sonnet, then Opus) are
+composed from those attempts and GLM's attempts 2-16: a goal's result
+is the first success in that order, its cost and time the sum up to it.
+**S3** ran Sonnet afresh on the 8 goals GLM's first attempt missed,
+with GLM's best partial script in the prompt (the longest prefix
+`show_goals` accepted, else the last script it checked); GLM left one
+for only one goal (`human_mem_cons`), so S3 differs from S2 mostly by a
+second, independent Sonnet sample.  Opus was never reached in S2-S4:
+Sonnet closed every goal it was given.
+
+| Strategy | Goals closed | Anthropic USD | USD per closed goal | Wall clock (s) | s per closed goal | Closed by |
+|---|---|---|---|---|---|---|
+| S1 GLM 5.3 Flash | 1 / 9 | 0 | 0 | 2366 | 2366 | GLM 1 |
+| S1 gpt-oss-120b | 0 / 9 | 0 | - | 1527 | - | |
+| S1 qwen3.8-27b | 0 / 9 | 0 | - | 2085 | - | |
+| S1 Sonnet 5.5 | 9 / 9 | 1.60 | 0.178 | 451 | 50 | Sonnet 9 |
+| S1 Opus 5.5 | 9 / 9 | 1.62 | 0.180 | 336 | 37 | Opus 9 |
+| S2 GLM, Sonnet, Opus | 9 / 9 | 1.53 | 0.170 | 2806 | 312 | Sonnet 8, GLM 1 |
+| S3 S2 with hand-off | 9 / 9 | 1.42 | 0.158 | 2778 | 309 | Sonnet 8, GLM 1 |
+| S4 k=1 (= S2) | 9 / 9 | 1.53 | 0.170 | 2806 | 312 | Sonnet 8, GLM 1 |
+| S4 k=4 | 9 / 9 | 1.41 | 0.157 | 9104 | 1012 | Sonnet 7, GLM 2 |
+| S4 k=16 | 9 / 9 | 1.31 | 0.145 | 28147 | 3127 | Sonnet 6, GLM 3 |
+
+GLM proved `human_all_live_cons` on attempt 1, `human_all_init_cons` on
+attempt 2 and `human_mem_cons` on attempt 7; none of the 6 induction
+lemmas in 16 attempts each.  The REALLMS wall clocks include the
+service's rate-limit waits, with up to 4 attempts running at once.
+
+**Reading.**  On this set Opus as a prover costs the same as Sonnet
+($0.18 per goal) and is 25% faster; both close everything.  Free
+attempts before Sonnet save at most 18% of the Anthropic cost (S4 k=16)
+and multiply the wall clock by 6 to 60.  The comparison used $3.80 of
+its $15 (ledger, role `prover`).  S5 is still to do.
+
 ## Results on B1 (`results/`)
 
 | Run | Verdict | Qed | SMT | Coq | Open | Wall clock |

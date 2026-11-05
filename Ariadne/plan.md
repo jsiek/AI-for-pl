@@ -637,12 +637,13 @@ invariant is only needed for functional correctness and is stretch work.
     *   **Final products.**  A certified run delivers:
         1.  *The annotated software:* the original C with the added
             ACSL assertions, invariants, ghost code and lemmas.
-        2.  *English comments* above each function that explain its
-            precondition and postcondition in plain words.  The comments
-            are ordinary C comments, and no tool checks them against the
-            ACSL.  So the owner approves every comment, on public and
-            private functions alike, and the run report pairs each
-            comment with the clauses it explains.
+        2.  *English comments* above each public function that explain
+            its precondition and postcondition in plain words.  The
+            comments are ordinary C comments, and no tool checks them
+            against the ACSL.  So the owner approves every comment, and
+            the run report pairs each comment with the clauses it
+            explains.  Private functions get no English comments:
+            approving them would make the owner a bottleneck.
         3.  *The proofs of all verification conditions:* the Coq proof
             scripts, and for each goal the tool that closed it (Qed,
             Alt-Ergo, CVC5, Z3 or Coq).  SMT stays trusted (Q1), so goals

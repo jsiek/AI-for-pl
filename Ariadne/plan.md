@@ -555,6 +555,81 @@ invariant is only needed for functional correctness and is stretch work.
         report, and a human-readable account of what was proved and
         what is trusted.
 
+    Decided so far (owner, 2026-11-05):
+
+    *   **Public spec needs human approval; private spec does not.**
+        The rule works like an ABI.  A change that clients of the
+        component can observe changes its specification, so the owner
+        must approve it.  A change to internal annotations needs no
+        approval.
+    *   **Source of truth: the public headers.**  For each benchmark
+        the owner names the headers (or, for sglib, the
+        `SGLIB_DEFINE_*_PROTOTYPES` macros) that declare the public
+        API.  A function is public if one of them declares it.  The
+        macros are expanded before the check, since sglib's API is
+        macro-generated.  Naming conventions are not used: sglib's
+        `sglib___<type>_consistency_check` has the internal-style
+        prefix but is declared in `SGLIB_DEFINE_RBTREE_PROTOTYPES`.
+    *   **Mechanical cross-checks.**  The harness flags, for the owner
+        to resolve:
+        *   a `static` function that a public header declares;
+        *   a function with external linkage that no public header
+            declares;
+        *   a private function whose address escapes the component
+            (passed, stored or returned as a function pointer), since
+            clients can then call it.
+    *   **What the public spec contains.**  Everything a client can
+        observe:
+        *   the `requires`, `ensures`, `assigns` and `exits` clauses of
+            public functions;
+        *   every ACSL predicate, logic function and logic type those
+            clauses reach, followed transitively (in B1: `dll`,
+            `live_dll`, `mem`);
+        *   the ghost state they mention (the liveness model's
+            `__heap`);
+        *   public types, struct layouts and globals (the C code is
+            already frozen by guardrail 1).
+        Everything else is private: contracts of private helpers, loop
+        invariants, assertions, lemmas, and ghost code used only
+        internally.
+    *   **Private changes are free but still checked.**  WP proves
+        every private contract, so a wrong one makes a proof fail and
+        cannot make one pass.  A new private *definition* still goes
+        through guardrail 3a, because WP exports definitions as axioms.
+    *   **Public changes are classified for the owner.**  The harness
+        labels each public change *compatible* or *breaking*, as an
+        ABI checker does.  A change is compatible when the pipeline
+        proves a refinement lemma: the old precondition implies the
+        new one, the new postcondition implies the old one, and the
+        new `assigns` set is contained in the old one.  Every public
+        change still needs approval; the label tells the owner what it
+        means for clients.
+    *   **Guardrail change.**  The frozen-contract hash (guardrail 2)
+        splits in two: a hash of the public spec, whose change requires
+        approval, and no hash on private annotations.  This first
+        matters in M4: every B1 function is public.
+    *   **How a failed proof is presented (the Q8 last-resort ask).**
+        The model that drafts the ask follows these steps:
+        1.  Write an outline first.
+        2.  State the problem: the goal id, the function and program
+            point, and the property that could not be proved.
+        3.  Show a concrete example where possible: a small heap or
+            input state on which the obligation is hard, or a
+            counterexample from the SMT solvers or from RAC.
+        4.  Name every specific source of conflict or tension that
+            leads to the problem, for example a precondition too weak
+            for the needed invariant, a frame that `assigns` does not
+            cover, or a predicate whose unfolding the solvers cannot
+            find.
+        5.  List each approach that was tried, which tier or tool tried
+            it, and how it failed (the error, the goal left open, or the
+            time or budget limit reached).
+        6.  Revise the draft twice.  Each round checks that the text is
+            brief, highly specific and grammatical, and that its
+            sentences are simple and direct.
+        The harness keeps the outline and both revisions with the run
+        report.
+
 ---
 
 ## 10. Use-after-free: the M1a investigation and fallbacks

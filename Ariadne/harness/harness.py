@@ -857,7 +857,14 @@ class Run:
         self.prepare()
         pre = self.step("guardrails_pre", self.pre_checks)
         if pre["ok"]:
-            self.pipeline()
+            try:
+                self.pipeline()
+            except Exception as e:  # still a failure report, never a cert
+                import traceback
+                self.report["error"] = traceback.format_exc()[-3000:]
+                self.report["steps"]["pipeline"] = {"ok": False,
+                                                    "error": repr(e)}
+                self.log(f"ERROR: {e!r}")
         else:  # plan 7.1: reject the edit before any tool sees it
             self.report["stopped"] = "guardrails failed before step 0"
         self.step("6_close_out", self.close_out)

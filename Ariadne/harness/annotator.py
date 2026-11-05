@@ -51,7 +51,9 @@ the goals.  Commands (nothing else is allowed):
                                          `lemmas` for the ACSL lemmas)
 
 You have {calls} `wp` calls in all.  Read/Write/Edit only files in this
-directory.  When done, answer with one line: DONE, or GAVE UP followed
+directory.  Run one command per Bash call (no `&&`, `;`, pipes or
+newlines) and edit SOURCE.c with Edit or Write, not sed; any other
+command is denied, and a denial does not end the task.  When done, answer with one line: DONE, or GAVE UP followed
 by what blocks you.
 """
 

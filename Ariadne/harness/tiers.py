@@ -99,7 +99,9 @@ neither), into SCRIPT.v in this directory, and use only these commands:
   python3 {cli} check GOAL.v SCRIPT.v               (the whole proof)
 
 You may Read GOAL.v and Read/Write files in this directory; nothing else
-is allowed.  You have {calls} `goals`/`check` calls in all.  `check`
+is allowed.  Run one command per Bash call (no `&&`, `;` or newlines) and
+change SCRIPT.v with Write or Edit, not sed; any other command is denied,
+and a denial does not end the task: carry on with these.  You have {calls} `goals`/`check` calls in all.  `check`
 prints "OK: proof accepted by coqc" when the proof is accepted: stop
 right after it.  admit, Admitted, Abort, Defined and new axioms or
 definitions are refused.
@@ -179,6 +181,10 @@ class Tier2:
 
     def _run(self, path, goal, t, res, reservation):
         work = os.path.join(self.root, goal)
+        k = 1
+        while os.path.exists(work):  # a later round on the same goal
+            k += 1
+            work = os.path.join(self.root, f"{goal}-{k}")
         os.makedirs(work)
         prefix, _, suffix = split_goal(open(path).read())
         with open(os.path.join(work, "GOAL.v"), "w") as f:

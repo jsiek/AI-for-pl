@@ -13,11 +13,8 @@ that runs them on a goal tier 0 left open.
 
 A tier's proof counts only once `confirm` (coqc on the real goal file,
 plus the forbidden-command check) accepts it; the harness then reruns
-WP, which checks it again.
-
-    python3 tiers.py GOAL.v [--tiers 1,2] [--work DIR]   (one goal)
+WP, which checks it again.  Used by harness.py (step 4).
 """
-import argparse
 import json
 import os
 import re
@@ -30,7 +27,7 @@ ARIADNE = os.path.dirname(HERE)
 PROVER = os.path.join(ARIADNE, "prover")
 sys.path.insert(0, HERE)
 sys.path.insert(0, PROVER)
-import ledger as ledger_mod  # noqa: E402
+import budget  # noqa: E402
 from reallms_coq import FORBIDDEN, normalise, split_goal  # noqa: E402
 
 CLI = os.path.join(PROVER, "prover_cli.py")
@@ -43,14 +40,16 @@ class Tier1:
     tier, name = 1, "glm"
 
     def __init__(self, logs, seconds=120, model="glm-5.3-flash",
-                 hide=(), keep=(), ledger=None):
+                 hide=(), keep=(), ledger=None, left=lambda: 1e9):
         self.logs, self.seconds, self.model = logs, seconds, model
         self.hide, self.keep, self.ledger = hide, keep, ledger
+        self.left = left  # seconds left of the run
 
     def run(self, path, goal):
         log = os.path.join(self.logs, f"step4_tier1_{goal}.log")
+        work = max(1, int(min(self.seconds, self.left())))
         cmd = [sys.executable, REALLMS, "--file", path, "--blank",
-               "--model", self.model, "--max-seconds", str(self.seconds),
+               "--model", self.model, "--max-seconds", str(work),
                "--log", log]
         for h in self.hide:
             cmd += ["--hide", h]
@@ -59,7 +58,8 @@ class Tier1:
         t = time.time()
         try:
             p = subprocess.run(cmd, capture_output=True, text=True,
-                               timeout=self.seconds * 5 + 600,
+                               timeout=max(1, min(work * 5 + 600,
+                                                  self.left())),
                                stdin=subprocess.DEVNULL)
             rep = json.loads(p.stdout)
         except subprocess.TimeoutExpired:
@@ -155,15 +155,16 @@ class Tier2:
     tier, name = 2, "sonnet"
 
     def __init__(self, root, ledger, model=SONNET, calls=30, turns=60,
-                 seconds=600, usd=2.0, est_tokens=200_000, role="prover"):
+                 seconds=600, usd=1.0, role="prover", left=lambda: 1e9):
         self.root, self.ledger, self.model = root, ledger, model
         self.calls, self.turns, self.seconds = calls, turns, seconds
-        self.usd, self.est_tokens, self.role = usd, est_tokens, role
+        self.usd, self.role, self.left = usd, role, left
 
     def run(self, path, goal):
         t = time.time()
         res = {"tier": 2, "model": self.model}
-        gate = self.ledger.reserve(self.role, self.model, self.est_tokens)
+        # The reservation is the per-goal cap, --max-budget-usd.
+        gate = self.ledger.reserve(self.role, self.model, self.usd)
         res["budget"] = gate
         if not gate["ok"]:
             res.update(status="refused", seconds=0.0,
@@ -182,7 +183,8 @@ class Tier2:
         out = None
         try:
             p = subprocess.run(cmd, cwd=work, env=env, capture_output=True,
-                               text=True, timeout=self.seconds,
+                               text=True, timeout=max(1, min(
+                                   self.seconds, self.left())),
                                stdin=subprocess.DEVNULL)
             with open(os.path.join(work, "result.json"), "w") as f:
                 f.write(p.stdout)
@@ -193,10 +195,10 @@ class Tier2:
             res["end"] = "timeout"
         except ValueError:
             res["end"] = "no JSON result"
-        mu = ledger_mod.by_model(out, self.model) if out else {}
-        c = self.ledger.charge(self.role, mu, est_tokens=self.est_tokens,
-                               note=self.model)
-        res.update(tokens=c["tokens"], pct_after=c["pct"],
+        mu = budget.by_model(out, self.model) if out else {}
+        c = self.ledger.charge(self.role, mu, est_usd=self.usd,
+                               model=self.model)
+        res.update(tokens=c["tokens"], usd=c["usd"], pct_after=c["pct"],
                    warning=c["warning"], charged=True,
                    estimated=not mu, usage=mu)
         if out:
@@ -276,34 +278,9 @@ def chain(path, goal, tiers, coqc, stop=lambda: False):
     out["tokens"] = sum(a.get("tokens") or 0 for a in attempts)
     out["charged_tokens"] = sum(a.get("tokens") or 0 for a in attempts
                                 if a.get("charged"))
+    out["usd"] = round(sum(a.get("usd") or 0 for a in attempts
+                           if a.get("charged")), 6)
     return out
-
-
-def main():
-    import tier0
-    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("goal")
-    ap.add_argument("--tiers", default="1,2")
-    ap.add_argument("--work", default=os.path.join(
-        ARIADNE, "runs", time.strftime("tiers-%Y%m%d-%H%M%S")))
-    ap.add_argument("--glm-seconds", type=int, default=120)
-    ap.add_argument("--sonnet-calls", type=int, default=30)
-    ap.add_argument("--sonnet-seconds", type=int, default=600)
-    a = ap.parse_args()
-    os.makedirs(a.work)
-    L = ledger_mod.Ledger()
-    want = {int(x) for x in a.tiers.split(",")}
-    ts = []
-    if 1 in want:
-        ts.append(Tier1(a.work, a.glm_seconds, ledger=L,
-                        hide=hidden_paths(), keep=[os.path.dirname(
-                            os.path.abspath(a.goal))]))
-    if 2 in want:
-        ts.append(Tier2(os.path.join(a.work, "tier2"), L,
-                        calls=a.sonnet_calls, seconds=a.sonnet_seconds))
-    goal = re.sub(r"\.v$", "", os.path.basename(a.goal))
-    print(json.dumps(chain(os.path.abspath(a.goal), goal, ts, tier0.coqc),
-                     indent=1))
 
 
 def hidden_paths():
@@ -318,6 +295,3 @@ def hidden_paths():
             out.append(os.path.join(bench, b, "session"))
     return out
 
-
-if __name__ == "__main__":
-    main()

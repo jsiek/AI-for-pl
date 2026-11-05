@@ -449,7 +449,7 @@ invariant is only needed for functional correctness and is stretch work.
 | M1a | WP allocation investigation (§10) | **Done** (`m1a/`): WP misses use-after-free in every memory model; the ghost liveness model catches every case.  Decision: fallback 1. |
 | M1 | Manual baseline on B1 | Human writes predicates + contracts + invariants; all goals closed (by any means); goal census recorded.  This tells us where the hard goals are and whether the shape library works.  **B1a done** (`bench/b1/`): add + forward walk + free-while-iterating, 183/183 goals (Qed 109, SMT 71, Coq 3), three mutants rejected.  **B1b done**: + `get_first`/`get_last` and the backward walk, 222/222 (Qed 126, SMT 92, Coq 4), six mutants rejected.  **Initialisation checks added** (`-rte-initialized @all`): 321/321 (Qed 189, SMT 127, Coq 5), seven mutants rejected (§10).  B1c (sort) is stretch. |
 | M2 | Pipeline without LLM | Runtime-checking first pass (§5 step 0): executable twins of the shape predicates, E-ACSL and sanitizer builds of the driver on random inputs, mutants as tests; prototype on B1, then generate twins from the ACSL definitions.  Python harness runs steps 1–7, Pétanque integration, `hammer`-only proof search, guardrail checks, report.  Measure how much of M1 automation alone closes.  Budget ledger built and calibrated with a small Opus 5.5 pilot (§11). |
-| M3 | Agent on B1 | Annotator (Opus 5.5) + prover tier on B1 starting from frozen contracts only (no human invariants).  Minimum success criterion.  First comparison of prover escalation strategies (§12.3).  **Agent on B1 done** (`harness/README.md`, "Annotator"): from `bench/b1/b1_frozen.c` (254 goals, 206 closed by Qed/SMT), Opus 5.5 wrote the invariants, asserts and 24 lemmas in two patches; certified 330/330 (Qed 186, SMT 140, Coq 4, all four by Sonnet); Opus $3.40, Sonnet $1.19.  The escalation comparison is still to do. |
+| M3 | Agent on B1 | Annotator (Opus 5.5) + prover tier on B1 starting from frozen contracts only (no human invariants).  Minimum success criterion.  First comparison of prover escalation strategies (§12.3).  **Agent on B1 done** (`harness/README.md`, "Annotator"): from `bench/b1/b1_frozen.c` (254 goals, 206 closed by Qed/SMT), Opus 5.5 wrote the invariants, asserts and 24 lemmas in two patches; certified 330/330 (Qed 186, SMT 140, Coq 4, all four by Sonnet); Opus $3.40, Sonnet $1.19.  **Escalation comparison done** (S1-S4 on 9 Coq goals, $3.80): Opus alone proved 9/9 at about $0.18 and 37 s per goal, so the prover is now tier 0 then Opus (Q9). |
 | M4 | RB-tree `find_member`, `add` | Shape library extended to trees; target success criterion. |
 | M5 | Evaluation | G6 metrics across B1, B2 (and B3 if reached); ablations: no refinement, no hammer, no library lemmas; prover escalation strategies and annotator model (§12.3). |
 
@@ -699,13 +699,67 @@ invariant is only needed for functional correctness and is stretch work.
     *   **Regression tests.**  When the software comes with tests, the
         pipeline uses them:
         *   as inputs for runtime checking of candidate annotations
-            (step 1), alongside the generated drivers;
+            (step 0), alongside the generated drivers;
         *   to check that every bug fix keeps the existing tests
             passing.
         The pipeline may add tests: the failing test for each bug fix,
         and tests that exercise contract cases the existing tests miss.
         Added tests are kept separate from the original tests, so the
         owner can see which are new.
+*   **Q12 — Polymorphic code: spec templates now, a generic proof
+    later (owner, 2026-11-05).**  sglib is generic through macros: a
+    client writes `SGLIB_DEFINE_DL_LIST_FUNCTIONS(type, comparator,
+    prev, next)`, and the preprocessor expands it for one struct, two
+    link fields and one comparator.  The pipeline works on preprocessed
+    C, so a certificate covers one instantiation.  B1's contracts name
+    `dllist`, `ptr_to_previous`, `ptr_to_next` and `DLLIST_COMPARATOR`;
+    sglib's self-test (`samples/selftest.c` upstream, not yet vendored)
+    instantiates the same macro at `MyIntList`, `previous`, `next` and
+    `myListCmp`, which B1's certificate does not cover.
+    *   **Now: spec templates.**  The predicates, the public contracts
+        and the agent's annotations are written as macros parallel to
+        sglib's, taking the same parameters (for example
+        `SGLIB_DL_LIST_SPEC(type, prev, next)` next to
+        `SGLIB_DEFINE_DL_LIST_FUNCTIONS`).  Each instantiation is still
+        expanded and proved on its own, so soundness is unchanged.  A new
+        instantiation is checked mechanically: expand, run WP, replay
+        the solvers, recheck the Coq proofs; a model is called only if a
+        goal fails.  The certificate lists the instantiations it covers.
+    *   **The comparator is part of the public spec.**  It is client
+        code, a macro expression inlined into sglib's functions or a
+        function.  What sglib's safety relies on is stated as a contract
+        the comparator must meet: it reads only its two arguments,
+        writes nothing, terminates, and has no undefined behaviour on
+        the values present (B1's `e1->i - e2->i` overflows on extreme
+        values; check how B1's proof covers this).  For the RB tree, a
+        consistent order may also be needed if the safety proof relies
+        on a tree invariant that depends on it.  Each instantiation's
+        comparator is checked against this contract.
+    *   **Later: one generic proof.**  A single proof for every
+        instantiation, with the comparator abstract.  The motivating
+        case is C's `qsort`: one compiled function, an element size
+        given at run time, and a comparison function passed by pointer,
+        so there are no instantiations to check one by one.  This needs:
+        *   a contract on a function-pointer parameter, which every
+            function the client passes must meet.  WP handles an
+            indirect call through a finite list of possible targets
+            (`calls`), not a contract on an arbitrary function
+            **[verify]**; VST's function specifications on function
+            pointers are higher-order and handle it directly (Q10);
+        *   byte-level access to elements of a size known only at run
+            time (`char *` arithmetic and byte swaps), which the Typed
+            memory model (Q2) does not allow; WP would need a byte-level
+            model **[verify]**, while VST's Clight memory model is
+            byte-level;
+        *   no unchecked step: an argument that instantiations differ
+            only by renaming is not accepted unless a tool checks it.
+    *   **To do:** vendor `samples/selftest.c` (with `samples/rbtree.c`)
+        as the other sglib files are (upstream path, commit, SHA-256),
+        with a fixed seed, and run its DL-list test in step 0 against
+        B1's public contracts instantiated at `MyIntList`.  A
+        precondition that fails at a self-test call is too strong, since
+        it excludes a real client; a postcondition that fails is wrong
+        or shows a bug.
 
 ---
 

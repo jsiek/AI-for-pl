@@ -640,14 +640,18 @@ invariant is only needed for functional correctness and is stretch work.
         2.  *English comments* above each function that explain its
             precondition and postcondition in plain words.  The comments
             are ordinary C comments, and no tool checks them against the
-            ACSL.  So a comment on a public function is part of what the
-            owner approves, and the run report pairs each comment with
-            the clauses it explains.
+            ACSL.  So the owner approves every comment, on public and
+            private functions alike, and the run report pairs each
+            comment with the clauses it explains.
         3.  *The proofs of all verification conditions:* the Coq proof
             scripts, and for each goal the tool that closed it (Qed,
-            Alt-Ergo, CVC5, Z3 or Coq).  Under Q1, goals closed by SMT
-            solvers have no Coq proof; the certification script reruns
-            the pinned solvers on them.
+            Alt-Ergo, CVC5, Z3 or Coq).  SMT stays trusted (Q1), so goals
+            closed by SMT solvers have no Coq proof.  The certification
+            script reruns, on each such goal, the solver recorded for it,
+            at the pinned version, with a timeout well above the
+            recorded time.  A goal that does not reprove fails the
+            check.  WP's result cache is not used, since replaying it
+            would check nothing.
         4.  *A certification script* that checks everything from the
             delivered files in the pinned image: it reruns WP, `coqc`,
             `coqchk` and `Print Assumptions` against the allow-list, runs

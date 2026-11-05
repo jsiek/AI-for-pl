@@ -533,8 +533,11 @@ invariant is only needed for functional correctness and is stretch work.
     **Tried (`vst/README.md` §8):** SMTCoq (`with-trakt-rocq-9.0v1`
     branch) with veriT and CVC4 is in the VST image.  On 10 B1 side
     goals it proves 3 as stated and 5 with help; `lia`/`rep_lia`/
-    `list_solve` prove all 10.  Not adopted for now; owner to decide
-    whether to keep it in the image.
+    `list_solve` prove 9 and `destruct` + `discriminate` the tenth.
+    **Decision (owner):** SMTCoq stays in the image, unused by the B1
+    proofs, and no more work goes into it for now (no `Int.int`/`val`
+    instances, no `rep_lia`-style preprocessing).  Revisit if a later
+    benchmark has side goals that `lia` and `list_solve` miss.
     **To do: time and token experiment**, after the REALLMS prover tier
     works (M3), so it can be one of the arms.  Same informal spec, a
     fresh agent with no access to the existing proofs, 3 runs per arm;

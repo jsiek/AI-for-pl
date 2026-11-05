@@ -31,6 +31,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ARIADNE = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import budget  # noqa: E402
+import tiers  # noqa: E402
 
 CLI = os.path.join(HERE, "annotator_cli.py")
 OPUS = "claude-opus-5-5"
@@ -160,7 +161,8 @@ class Opus:
             res.update(turns=out.get("num_turns"),
                        answer=(out.get("result") or "")[-600:],
                        permission_denials=len(
-                           out.get("permission_denials") or []))
+                           out.get("permission_denials") or []),
+                       denied=tiers.denied_commands(out))
         res["cli_calls"] = cli_calls(os.path.join(work, "calls.jsonl"))
         res.update(status="answered",
                    source=open(os.path.join(work, "SOURCE.c")).read(),
@@ -179,8 +181,8 @@ def cli_calls(path):
 
 
 class Fake:
-    """Replays `sources` (texts, or None for "return SOURCE.c unchanged")
-    in order, then returns the input unchanged: an annotator that stalls.
+    """Replays `sources` (texts, None for "return SOURCE.c unchanged", or
+    FENCED for "unchanged, after a refused command") in order, then returns the input unchanged: an annotator that stalls.
     Records the tasks it was given."""
     name = "fake"
 
@@ -192,6 +194,12 @@ class Fake:
         work = os.path.join(self.root, f"call{len(self.tasks)}")
         prepare(work, source, task)
         new = self.sources.pop(0) if self.sources else None
-        return {"annotator": "fake", "call": len(self.tasks),
-                "status": "answered", "source": source if new is None
-                else new, "usd": 0.0, "tokens": 0, "seconds": 0.0}
+        r = {"annotator": "fake", "call": len(self.tasks),
+             "status": "answered", "source": source if new in (None, FENCED)
+             else new, "usd": 0.0, "tokens": 0, "seconds": 0.0}
+        if new == FENCED:  # a call the fence stopped before any patch
+            r.update(permission_denials=1, denied=["sed -i x SOURCE.c"])
+        return r
+
+
+FENCED = "FENCED"  # in a Fake's list: a call stopped by the fence

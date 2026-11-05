@@ -15,6 +15,8 @@ model calls.
         before Frama-C; the last by step 0's runtime checks), each
         rejection goes back to the annotator with its reason, and WP
         runs only once;
+     d. a call the fence stopped with no patch is retried once, with the
+        refused command named in TASK.md, and not twice;
      c. an annotator that keeps adding useless asserts runs into
         --max-iterations.
 
@@ -123,7 +125,9 @@ def harness(tmp, name, patches, *extra):
 def e2e(tmp):
     keep = []
     # a. a good patch
-    run, r = harness(tmp, "good", ["good_full"])
+    # (the first call is stopped by the fence: one fence retry)
+    run, r = harness(tmp, "good", ["FENCED", "good_full"],
+                     "--annotator-retries", "0")
     keep.append(run)
     ref = r.get("refinement", [{}])
     calls = ref[0].get("calls", [])
@@ -132,7 +136,7 @@ def e2e(tmp):
     coq5 = sorted(f"typed_lemma_{n}" for n in fake_patches.SMT_LEMMAS_DROP)
     expect("good patch: accepted, WP reran, get_first's goals all proved, "
            "only the five Coq lemmas open",
-           len(calls) == 1 and calls[0].get("verdict") == "accepted"
+           len(calls) == 2 and calls[1].get("verdict") == "accepted"
            and r["steps"]["3_wp"].get("runs") == 2
            and open_goals == coq5
            and r["guardrails"]["frozen_spec"]["ok"]
@@ -140,6 +144,19 @@ def e2e(tmp):
            (calls, open_goals, r["steps"]["3_wp"]))
     expect("good patch: patch saved in the run directory",
            os.path.exists(os.path.join(run, "patch1.c")))
+    t2 = open(os.path.join(run, "annotator", "call2", "TASK.md")).read()
+    expect("fence retry: a call stopped by the fence is retried once "
+           "(beyond --annotator-retries), the refused command named",
+           calls[0].get("verdict") == "no change after a refused command"
+           and "stopped by the fence" in t2 and "sed -i x SOURCE.c" in t2,
+           (calls, t2[:1500]))
+    run, r = harness(tmp, "fenced", ["FENCED", "FENCED", "good_full"],
+                     "--annotator-retries", "0", "--no-rac")
+    keep.append(run)
+    calls = r.get("refinement", [{}])[0].get("calls", [])
+    expect("fence retry: only once; then the stall ends refinement",
+           len(calls) == 2 and r["steps"]["3_wp"].get("runs", 1) == 1
+           and r["verdict"] == "failed", calls)
     # b. four bad patches, each rejected and sent back with the reason
     run, r = harness(tmp, "bad", ["frozen_edit", "new_logic", "ghost_loop",
                                   "false_inv"], "--annotator-retries", "3")

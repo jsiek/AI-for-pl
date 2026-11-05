@@ -118,8 +118,8 @@ def write(d, names):
     os.makedirs(d, exist_ok=True)
     out = []
     for n in names:
-        if n is None:
-            out.append(None)
+        if n is None or n == "FENCED":
+            out.append(n)
             continue
         f = f"{n}.c"
         text = weak(int(n[4:])) if n.startswith("weak") else globals()[n]()

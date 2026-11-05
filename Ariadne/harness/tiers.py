@@ -162,7 +162,9 @@ class Tier2:
         self.calls, self.turns, self.seconds = calls, turns, seconds
         self.usd, self.role, self.left = usd, role, left
 
-    def run(self, path, goal):
+    def run(self, path, goal, note=None):
+        """One attempt; `note` (a fence retry: the refused commands) is
+        added to the prompt."""
         t = time.time()
         res = {"tier": 2, "model": self.model}
         # The reservation is the per-goal cap, --max-budget-usd.
@@ -174,12 +176,12 @@ class Tier2:
                        f"the {gate['cap_pct']}% cap")
             return res
         try:
-            return self._run(path, goal, t, res, gate["id"])
+            return self._run(path, goal, t, res, gate["id"], note)
         except BaseException:
             self.ledger.release(gate["id"])
             raise
 
-    def _run(self, path, goal, t, res, reservation):
+    def _run(self, path, goal, t, res, reservation, note=None):
         work = os.path.join(self.root, goal)
         k = 1
         while os.path.exists(work):  # a later round on the same goal
@@ -191,8 +193,11 @@ class Tier2:
             f.write(prefix + "\n" + suffix)  # the statement, no proof
         calls_log = os.path.join(work, "calls.jsonl")
         env = sonnet_env(work, calls_log, self.calls)
+        prompt = PROMPT.format(cli=CLI, calls=self.calls)
+        if note:
+            prompt += "\n" + note
         cmd = sonnet_command(work, self.model, self.calls, self.turns,
-                             self.usd)
+                             self.usd, prompt=prompt)
         out = None
         try:
             p = subprocess.run(cmd, cwd=work, env=env, capture_output=True,
@@ -219,7 +224,8 @@ class Tier2:
                        cost_usd=out.get("total_cost_usd"),
                        answer=(out.get("result") or "")[-200:],
                        permission_denials=len(
-                           out.get("permission_denials") or []))
+                           out.get("permission_denials") or []),
+                       denied=denied_commands(out))
         res["cli_calls"] = cli_calls(calls_log)
         sp = os.path.join(work, "SCRIPT.v")
         script = open(sp).read() if os.path.exists(sp) else None
@@ -230,6 +236,25 @@ class Tier2:
                    script=normalise(script).strip("\n") if script else None,
                    seconds=round(time.time() - t, 1))
         return res
+
+
+def denied_commands(out):
+    """What the fence refused in a Claude Code JSON result: the Bash
+    commands (or tool names), each cut to 300 characters."""
+    out = out or {}
+    return [((d.get("tool_input") or {}).get("command")
+             or d.get("tool_name") or "?")[:300]
+            for d in out.get("permission_denials") or []]
+
+
+def fence_note(denied, what="SCRIPT.v"):
+    """The prompt addition of a fence retry."""
+    cmds = "\n".join(f"  {c}" for c in (denied or [])) or "  (not recorded)"
+    return ("A previous attempt stopped after these commands were refused "
+            "by the permission fence:\n" + cmds + "\nOnly the commands "
+            "listed above run, one per Bash call, exactly in that form; "
+            f"edit {what} with Write or Edit.  Do not stop at a refusal: "
+            "carry on with the allowed commands.\n")
 
 
 def cli_calls(path):
@@ -274,6 +299,14 @@ def chain(path, goal, tiers, coqc, stop=lambda: False):
             break
         r = tier.run(path, goal)
         attempts.append(r)
+        if r["status"] == "open" and r.get("permission_denials") \
+                and not stop():
+            # A fence retry: the attempt ended after the fence refused a
+            # command, with no proof; once more, with the refusal named.
+            # An attempt whose proof failed is not retried.
+            r = tier.run(path, goal, note=fence_note(r.get("denied")))
+            r["fence_retry"] = True
+            attempts.append(r)
         if r["status"] == "refused":
             out["status"] = "refused"
             break

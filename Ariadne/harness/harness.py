@@ -295,8 +295,9 @@ class Run:
         elif self.a.annotator.startswith("fake:"):
             # a JSON list of source files (null: return SOURCE.c unchanged)
             lst = self.a.annotator[5:]
-            srcs = [open(os.path.join(os.path.dirname(lst), x)).read()
-                    if x else None for x in json.load(open(lst))]
+            srcs = [x if x in (None, annotator.FENCED) else
+                    open(os.path.join(os.path.dirname(lst), x)).read()
+                    for x in json.load(open(lst))]
             self.annotator = annotator.Fake(
                 os.path.join(self.dir, "annotator"), srcs)
         if self.a.overlay:  # an edited source, as the annotator would give
@@ -611,7 +612,8 @@ class Run:
         offered, feedback, calls = current, None, []
         r = {"stalls": stalls, "edits": 0, "calls": calls}
         b = self.budget_report()
-        for _ in range(1 + self.a.annotator_retries):
+        tries, fence_retried = 1 + self.a.annotator_retries, False
+        while len(calls) < tries:
             if self.left() <= 0:
                 self.report["cap_hit"] = "max_seconds"
                 break
@@ -638,6 +640,14 @@ class Run:
                 break
             if c["status"] != "answered" or new is None or new == current:
                 c["verdict"] = "no change"
+                if c.get("permission_denials") and not fence_retried:
+                    # a fence retry: the call ended after the fence refused
+                    # a command, with no patch; once more, refusal named
+                    fence_retried, tries = True, tries + 1
+                    feedback = "FENCE:" + tiers.fence_note(c.get("denied"),
+                                                           "SOURCE.c")
+                    c["verdict"] = "no change after a refused command"
+                    continue
                 break
             v = self.patch_checks(new)
             c["guardrails"] = {k: x["ok"] for k, x in v.items()}
@@ -723,7 +733,10 @@ class Run:
         out = [TASK_HEAD.format(
             functions=", ".join(sel), wp=" ".join(self.cfg["wp"]),
             iteration=self.patches + 1, cap=self.a.max_iterations)]
-        if feedback:
+        if feedback and feedback.startswith("FENCE:"):
+            out += ["## Your previous call was stopped by the fence", "",
+                    feedback[6:], ""]
+        elif feedback:
             out += ["## Your previous patch was rejected", "",
                     "SOURCE.c is that patch; fix it.", "", "```",
                     feedback, "```", ""]

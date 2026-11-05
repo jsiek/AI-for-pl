@@ -540,20 +540,6 @@ invariant is only needed for functional correctness and is stretch work.
     with B1a.  The B1a/B1b numbers recorded so far are not a fair
     comparison: each was run once, and the VST run had the finished
     Frama-C spec to work from.
-*   **Q11 — Human interaction and final products.  To do: discuss with
-    the owner.**  M3 shows the pipeline can certify B1 from frozen
-    contracts with no human annotation.  Still to settle:
-    *   *Human interaction:* where a human takes part, what they see and
-        approve at each point, and how they are asked.  Candidates:
-        writing or approving the frozen contracts and shape predicates
-        (§4 item 4, §7 item 3a), reviewing the annotator's patches, the
-        last-resort hints of Q8, and decisions such as admitting an
-        axiom to the allow-list.
-    *   *Final products:* what a run delivers, to whom, and in what
-        form.  Candidates: the certificate bundle (annotated C, Coq
-        proofs, `.vo` files, `coqchk` output, goal accounting), the run
-        report, and a human-readable account of what was proved and
-        what is trusted.
 
 ---
 

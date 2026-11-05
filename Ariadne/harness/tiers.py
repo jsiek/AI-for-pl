@@ -171,6 +171,13 @@ class Tier2:
                        error=f"budget: {gate['projected_pct']}% would pass "
                        f"the {gate['cap_pct']}% cap")
             return res
+        try:
+            return self._run(path, goal, t, res, gate["id"])
+        except BaseException:
+            self.ledger.release(gate["id"])
+            raise
+
+    def _run(self, path, goal, t, res, reservation):
         work = os.path.join(self.root, goal)
         os.makedirs(work)
         prefix, _, suffix = split_goal(open(path).read())
@@ -197,7 +204,7 @@ class Tier2:
             res["end"] = "no JSON result"
         mu = budget.by_model(out, self.model) if out else {}
         c = self.ledger.charge(self.role, mu, est_usd=self.usd,
-                               model=self.model)
+                               model=self.model, reservation=reservation)
         res.update(tokens=c["tokens"], usd=c["usd"], pct_after=c["pct"],
                    warning=c["warning"], charged=True,
                    estimated=not mu, usage=mu)

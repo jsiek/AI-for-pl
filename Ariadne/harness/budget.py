@@ -42,6 +42,7 @@ import json
 import os
 import re
 import subprocess
+import uuid
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARIADNE = os.path.dirname(HERE)
@@ -54,6 +55,9 @@ WARN_PCT = 15.0
 # an uncalibrated ledger refuses early rather than late.
 PLACEHOLDER_PCT_PER_USD = 2.0
 WEEK = dt.timedelta(days=7)
+# A reservation still pending after this long belongs to a run that
+# died before charging; it stops counting against the cap.
+PENDING_TTL = dt.timedelta(hours=6)
 CCUSAGE = ["npx", "-y", "ccusage@20.0.40", "claude", "daily",
            "--breakdown", "--json"]
 TOKEN_FIELDS = ("input_tokens", "output_tokens",
@@ -84,7 +88,8 @@ def new_ledger(now):
         "resets_at": iso(now + WEEK), "resets_at_source": "guess",
         "week_started": iso(now),
         "week": {r: {} for r in ROLES}, "free": {},
-        "usage_readings": [], "past_weeks": [], "refusals": []}
+        "usage_readings": [], "past_weeks": [], "refusals": [],
+        "pending": {}}
 
 
 def tokens_of(usage):
@@ -131,8 +136,13 @@ class Ledger:
             os.replace(tmp, self.path)
 
     def _roll(self, d):
-        """Apply the weekly reset(s) that are due."""
+        """Apply the weekly reset(s) that are due, and drop reservations
+        older than PENDING_TTL (their run died before charging)."""
         t = self.now()
+        d.setdefault("pending", {})
+        for k, p in list(d["pending"].items()):
+            if t - dt.datetime.fromisoformat(p["at"]) > PENDING_TTL:
+                del d["pending"][k]
         while t >= dt.datetime.fromisoformat(d["resets_at"]):
             end = dt.datetime.fromisoformat(d["resets_at"])
             d["past_weeks"].append({
@@ -158,6 +168,10 @@ class Ledger:
         return Ledger._sum(d, "cost_usd", role)
 
     @staticmethod
+    def _pending(d):
+        return sum(p["est_usd"] for p in d.get("pending", {}).values())
+
+    @staticmethod
     def _pct(d, usd=None):
         u = Ledger._usd(d) if usd is None else usd
         return u * d["calibration"]["pct_per_usd"]
@@ -172,6 +186,7 @@ class Ledger:
                 "usd_by_role": {r: round(self._usd(d, r), 4)
                                 for r in ROLES},
                 "tokens": self._sum(d, "tokens"),
+                "pending_usd": round(self._pending(d), 4),
                 "pct": round(self._pct(d), 3),
                 "cap_pct": d["cap_pct"], "warn_pct": d["warn_pct"],
                 "resets_at": d["resets_at"],
@@ -181,32 +196,48 @@ class Ledger:
     # ---- the hard stop --------------------------------------------------
 
     def reserve(self, role, model, est_usd):
-        """May a call whose cap is `est_usd` go ahead?  {ok, pct,
-        projected_pct, cap_pct, warning, calibrated, ...}.  A refusal is
-        recorded in the ledger."""
+        """May a call whose cap is `est_usd` go ahead?  {ok, id, pct,
+        projected_pct, cap_pct, warning, calibrated, ...}.  The projection
+        counts the reservations of calls still in flight (other runs
+        too), and an accepted call's `est_usd` stays reserved, under the
+        same lock, until `charge(..., reservation=id)` or `release(id)`.
+        A refusal is recorded in the ledger."""
         assert role in ROLES, role
         with self._open() as d:
             pct = self._pct(d)
-            proj = self._pct(d, self._usd(d) + est_usd)
+            proj = self._pct(d, self._usd(d) + self._pending(d) + est_usd)
             r = {"ok": proj <= d["cap_pct"], "pct": round(pct, 3),
                  "projected_pct": round(proj, 3), "cap_pct": d["cap_pct"],
                  "warn_pct": d["warn_pct"], "role": role, "model": model,
                  "est_usd": est_usd,
                  "calibrated": d["calibration"]["calibrated"],
                  "warning": proj >= d["warn_pct"]}
-            if not r["ok"]:
+            if r["ok"]:
+                r["id"] = uuid.uuid4().hex
+                d["pending"][r["id"]] = {"role": role, "model": model,
+                                         "est_usd": est_usd,
+                                         "at": iso(self.now())}
+            else:
                 d["refusals"].append({"at": iso(self.now()), **r})
         return r
 
-    def charge(self, role, model_usage, est_usd=None, model=None):
-        """Book a call's usage, {model: {token fields, cost_usd}}.  A call
-        with no usage reported (killed, or no JSON) is charged its cap,
-        `est_usd`, under `model`.  Returns {usd, tokens, pct, warning}."""
+    def release(self, reservation):
+        """Drop a reservation whose call never ran."""
+        with self._open() as d:
+            d["pending"].pop(reservation, None)
+
+    def charge(self, role, model_usage, est_usd=None, model=None,
+               reservation=None):
+        """Book a call's usage, {model: {token fields, cost_usd}}, and
+        drop its reservation.  A call with no usage reported (killed, or
+        no JSON) is charged its cap, `est_usd`, under `model`.  Returns
+        {usd, tokens, pct, warning}."""
         assert role in ROLES, role
         if not model_usage:
             model_usage = {model or "(unknown)": {
                 "cost_usd": est_usd or 0.0, "estimated": True}}
         with self._open() as d:
+            d["pending"].pop(reservation, None)
             usd = tokens = 0
             for m, u in model_usage.items():
                 e = d["week"][role].setdefault(m, {

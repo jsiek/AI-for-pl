@@ -50,6 +50,7 @@ try:
     # Placeholder 2% per USD: the cap is $10, the warning $7.50.
     r = L.reserve("prover", "claude-sonnet-5-5", 1.0)
     expect("reserve under the cap", r["ok"] and not r["warning"], r)
+    L.release(r["id"])
     for _ in range(7):
         c = L.charge("prover", USE)
     expect("charge books USD and all four token kinds",
@@ -59,16 +60,33 @@ try:
     r = L.reserve("prover", "claude-sonnet-5-5", 1.0)
     expect("warning when the call may reach 15%",
            r["ok"] and r["warning"] and r["projected_pct"] == 16.0, r)
-    c = L.charge("prover", USE)
+    c = L.charge("prover", USE, reservation=r["id"])
     expect("warning at 16% after the charge", c["warning"], c)
     L.charge("annotator", USE)
     r = L.reserve("prover", "claude-sonnet-5-5", 1.0)
     expect("reserve up to exactly the cap (18% + 2%)", r["ok"], r)
+    L.release(r["id"])
     r = L.reserve("prover", "claude-sonnet-5-5", 1.5)
     expect("refused past the cap (18% + 3%)",
            not r["ok"] and r["projected_pct"] == 21.0, r)
+    # Two runs at once: the first run's reservation counts against the
+    # second, so together they cannot pass the cap.
+    r1 = L.reserve("prover", "claude-sonnet-5-5", 0.75)
+    r2 = L.reserve("prover", "claude-sonnet-5-5", 0.75)
+    expect("a concurrent reservation counts against the cap",
+           r1["ok"] and not r2["ok"] and r2["projected_pct"] == 21.0
+           and L.summary()["pending_usd"] == 0.75, (r1, r2))
+    L.charge("prover", {"claude-sonnet-5-5": {"cost_usd": 0.0}},
+             reservation=r1["id"])
+    expect("charging drops the reservation",
+           L.summary()["pending_usd"] == 0, L.summary())
+    r3 = L.reserve("prover", "claude-sonnet-5-5", 0.75)
+    clock.t = T0 + dt.timedelta(hours=7)
+    expect("a reservation older than PENDING_TTL stops counting",
+           r3["ok"] and L.summary()["pending_usd"] == 0, L.summary())
+    clock.t = T0
     snap = L.snapshot()
-    expect("the refusal is recorded", len(snap["refusals"]) == 1,
+    expect("the refusals are recorded", len(snap["refusals"]) == 2,
            snap["refusals"])
     expect("roles kept apart",
            L.summary()["usd_by_role"] == {"prover": 8.0, "annotator": 1.0},

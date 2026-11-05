@@ -130,7 +130,11 @@ cap (`--sonnet-usd`) and refuses if the week would pass the cap; the
 refusal goes into the ledger and the report, the run stops asking
 Claude (`cap_hit: budget`), and the goal stays open.  After the call
 `charge` books its reported cost (or its cap, if it was killed or gave
-no JSON).  GLM's tokens go under `free`, uncharged.
+no JSON).  The reservation is held in the ledger, under its lock, from
+`reserve` until `charge` (or `release`, for a call that never ran), and
+every projection counts the reservations in flight, so concurrent runs
+cannot pass the cap together.  A reservation older than 6 hours belongs
+to a run that died and stops counting.  GLM's tokens go under `free`, uncharged.
 
 Percent of the weekly limit = USD x `pct_per_usd`.  Cap 20%, warning at
 15% (in the report).  **Until calibrated, `pct_per_usd` is a placeholder
@@ -144,7 +148,7 @@ python3 budget.py calibrate --percent P --since YYYY-MM-DD
 where P is `/usage`'s "Current week (all models)" and the date is the
 last weekly reset: it runs `npx -y ccusage@20.0.40 claude daily --since
 YYYYMMDD --breakdown --json`, takes `totals.totalCost` (else the sum of
-`daily[].totalCost`; these names are not yet checked against this version's output), and stores P / cost with both inputs and the
+`daily[].totalCost`; checked against 20.0.40's output), and stores P / cost with both inputs and the
 date.  ccusage covers all Claude Code use on this machine, the owner's
 interactive sessions included, which is what the weekly limit counts;
 it counts by day, so the reset day is counted whole.  The ledger's own

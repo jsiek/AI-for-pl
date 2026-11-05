@@ -613,18 +613,23 @@ invariant is only needed for functional correctness and is stretch work.
         1.  Write an outline first.
         2.  State the problem: the goal id, the function and program
             point, and the property that could not be proved.
-        3.  Show a concrete example where possible: a small heap or
+        3.  Show the code around the problem: the function's header and
+            contract, and the part of its body that holds the program
+            point (the whole body when it is short), with that point
+            marked.  Include the definitions of the predicates and
+            the contracts of the callees that the goal depends on.
+        4.  Show a concrete example where possible: a small heap or
             input state on which the obligation is hard, or a
             counterexample from the SMT solvers or from RAC.
-        4.  Name every specific source of conflict or tension that
+        5.  Name every specific source of conflict or tension that
             leads to the problem, for example a precondition too weak
             for the needed invariant, a frame that `assigns` does not
             cover, or a predicate whose unfolding the solvers cannot
             find.
-        5.  List each approach that was tried, which tier or tool tried
+        6.  List each approach that was tried, which tier or tool tried
             it, and how it failed (the error, the goal left open, or the
             time or budget limit reached).
-        6.  Revise the draft twice.  Each round checks that the text is
+        7.  Revise the draft twice.  Each round checks that the text is
             brief, highly specific and grammatical, and that its
             sentences are simple and direct.
         The harness keeps the outline and both revisions with the run

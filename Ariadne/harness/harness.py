@@ -5,7 +5,7 @@ out with coqc / coqchk / Print Assumptions, guardrails, and a report.
 
     python3 harness.py ../bench/b1 [--config b1.json] [--run-dir DIR]
         [--blank-coq] [--overlay EDITED.c] [--no-rac] [--tiers 0,2]
-        [--goal-seconds 300] [--tactic-seconds 60] [--glm-seconds 120]
+        [--goal-seconds 30] [--tactic-seconds 10] [--glm-seconds 120]
         [--claude-model claude-opus-5-5] [--claude-calls 30]
         [--claude-seconds 600] [--claude-usd 1]
         [--ledger ../runs/budget.json]
@@ -420,7 +420,7 @@ class Run:
                          + (["-wp-status"] if self.annotator else [])
                          + ["-wp-interactive", mode,
                             "-wp-interactive-timeout",
-                            str(int(self.a.tactic_seconds) * 2),
+                            str(max(int(self.a.tactic_seconds) * 2, 120)),
                             "-wp-session", "/work/session",
                             "-wp-report-json", f"/work/{rep}"],
                          self.work, f"step3_wp_{p['name']}.log")
@@ -1118,9 +1118,10 @@ def main():
     ap.add_argument("--tiers", default="0,2",
                     help="prover tiers for step 4 (0 tier0.py, 1 GLM, "
                     "2 --claude-model; plan Q9: 0,2); empty for none")
-    ap.add_argument("--goal-seconds", type=float, default=300,
+    ap.add_argument("--goal-seconds", type=float, default=30,
                     help="tier 0: seconds per goal")
-    ap.add_argument("--tactic-seconds", type=float, default=60)
+    ap.add_argument("--tactic-seconds", type=float, default=10,
+                    help="tier 0: seconds per tactic script")
     ap.add_argument("--glm-seconds", type=int, default=120,
                     help="tier 1: working time per goal")
     ap.add_argument("--claude-model", default=tiers.OPUS,

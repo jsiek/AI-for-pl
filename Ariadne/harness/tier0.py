@@ -5,8 +5,8 @@ combinations, tried one at a time through Pétanque on a WP goal file
 (session/interactive/*.v), with a time cap per tactic and per goal.
 coqc gives the verdict.
 
-    python3 tier0.py GOAL.v [GOAL2.v ...] [--goal-seconds 300]
-        [--tactic-seconds 60] [--apply] [--json out.jsonl]
+    python3 tier0.py GOAL.v [GOAL2.v ...] [--goal-seconds 30]
+        [--tactic-seconds 10] [--apply] [--json out.jsonl]
 
 The search starts from the statement (`wp_goal` right after its
 `Theorem`), so whatever script the file holds is ignored: started on a
@@ -241,8 +241,8 @@ class Search:
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("goals", nargs="+")
-    ap.add_argument("--goal-seconds", type=float, default=300)
-    ap.add_argument("--tactic-seconds", type=float, default=60)
+    ap.add_argument("--goal-seconds", type=float, default=30)
+    ap.add_argument("--tactic-seconds", type=float, default=10)
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--json")
     a = ap.parse_args()

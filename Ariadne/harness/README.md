@@ -70,8 +70,10 @@ benchmark's `vacuity` mutant covers B1's spec as a whole.  Sandboxing
 
 For one goal file, starting from the statement (any script in the file is
 ignored), try a fixed list of whole scripts through Pétanque, each with
-a time cap (`--tactic-seconds`, default 60), until one finishes or the
-goal's cap (`--goal-seconds`, default 300) runs out.  The list:
+a time cap (`--tactic-seconds`, default 10), until one finishes or the
+goal's cap (`--goal-seconds`, default 30) runs out.  The caps were 60
+and 300 s until tier 0 closed none of B1's 9 Coq goals in 300 s each;
+the owner cut them so tier 0 costs little time before Opus.  The list:
 `sauto`, `hammer`, `firstorder`, `lia`, `intuition`; for `<->` goals
 `split; intros; sauto | hammer`; `unfold` of the definitions the
 statement mentions, then `sauto`, `hammer`, `firstorder`, or `sauto use:`

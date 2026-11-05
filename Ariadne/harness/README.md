@@ -239,6 +239,44 @@ $0.14** (`results/b1-frozen-getfirst-lemma_dll_prev_nth.v`), coqc,
 WP's rerun, coqchk and Print Assumptions accepted it.  Opus's one
 attempt outside its fence (a `grep` in `harness/`) was denied.
 
+### All of B1 from its frozen contracts (`results/b1-frozen.md`)
+
+`--prove-scope lemmas --tiers 0,1,2 --goal-seconds 120 --sonnet-usd 0.75
+--annotator opus --opus-usd 5 --opus-turns 150 --opus-wp-calls 25
+--annotator-retries 0 --max-iterations 3`: **certified, 330/330 goals**
+(functions 306, lemmas 24): Qed 186, Alt-Ergo 122, CVC5 15, Z3 3, Coq 4.
+coqc, coqchk (exit 0) and Print Assumptions (32 axioms over the 4
+modules) accepted all four Coq goals, every axiom on the allow-list.
+
+| Iteration | Annotator (Opus 5.5) | After WP and step 4 |
+|---|---|---|
+| 1 | 48 open goals in; 1027 s, 68 turns, all 25 `wp` calls, **$3.00**; patch accepted (guardrails, step 0) | functions 310/310 by Qed/SMT; of 21 lemmas 17 by SMT, `dll_frame`, `dll_last`, `dll_nth_prev` by Sonnet ($0.13-0.16 each), `dll_nth_next` open (Sonnet's compound `sed; check` command was denied and it stopped) |
+| 2 | 1 open goal in; 166 s, 10 turns, 5 `wp` calls, **$0.40**: three helper lemmas for `dll_nth_next` (`dll_cons_tail`, `dll_cons_next`, `dll_nth_next_succ`), accepted | the run stopped in step 4 on a harness bug (tier 2's directory for a second attempt on one goal already existed; fixed) |
+| resume | `--overlay results/b1-frozen-patch2.c` (iteration 2's patch, unchanged), the same flags: guardrails, step 0, WP | all 306 function goals and 20 lemmas by Qed/SMT, **the four induction lemmas by Sonnet**, $0.17 + $0.12 + $0.16 + $0.17 = $0.63; certified in 1412 s |
+
+The resume reran the Coq goals from scratch (the copy drops Coq scripts),
+so every Coq proof in the certificate is from that run.  What Opus wrote
+(`results/b1-frozen-patch1.c`, `-patch2.c`): loop invariants for all six
+loops (for `get_first`/`get_last` that `_dll_` and `list` are nodes of
+one live list from NULL; for the driver's build loop `live_dll` of
+`the_list`, for the walks `live_dll` of the rest and `in_live_list`,
+for the free loop `iter_ok`), 7 `loop assigns`, 25 asserts (frames
+across `add`, `it_next`, allocation and free), and 24 lemmas: list and
+`dll` unfolding, index views (`dll_nth_prev`, `dll_nth_next`,
+`dll_last`), the frame lemma `dll_frame`, and liveness after
+allocation and free.  No ghost code.  Its denied commands: `git log`,
+reading `annotator_cli.py`, and a `sed` edit of SOURCE.c.
+
+**Spending** (ledger, API-equivalent): Opus $3.86 (`get_first` $0.46,
+B1 $3.40), Sonnet $1.33 (`get_first` $0.14, B1 $1.19); 0.46% of the
+weekly limit by the calibration.  Every Coq goal went through tier 0 (120 s)
+and GLM (2 min) first; in all nine attempts both left it open, and
+Sonnet then proved it in eight (the ninth is the denied command above).
+
+Prompts tightened after the B1 run (`tiers.PROMPT`, `annotator.PROMPT`):
+one command per Bash call, edits with Write/Edit, and a denial does not
+end the task.
+
 ## Results on B1 (`results/`)
 
 | Run | Verdict | Qed | SMT | Coq | Open | Wall clock |

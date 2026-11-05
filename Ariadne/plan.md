@@ -700,6 +700,10 @@ cheapest first:
 Each tier gets a per-goal budget (attempts, tactic steps, seconds).  A
 goal moves up a tier when the current tier runs out of budget, and goes
 to the annotator instead when the prover reports *needs-annotation*.
+Tier 1's budget is working time, not turns: 2 minutes (overrun allowed
+by the reply in flight), then tier 2.  On B1's five Coq lemmas GLM's
+successes took 57-666 s and Sonnet's 13-75 s at about 40k tokens, so
+waiting longer on GLM buys little (`prover/README.md`).
 
 GLM 5.3 Flash is reached through Indiana University's REALLMS service,
 which is hosted privately by IU, so goal states and code do not go to an

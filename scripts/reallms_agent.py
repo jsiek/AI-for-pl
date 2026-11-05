@@ -19,7 +19,7 @@ Tools exposed to the model:
                                        run agda, return ok + trimmed errors
                                        (repeatable: this IS the feedback loop)
 
-Key is read only from ~/.reallms_key (a file holding just the key); never printed.
+Key lookup and the chat/tool loop are in reallms_client.py; the key is never printed.
 """
 import argparse
 import json
@@ -27,22 +27,9 @@ import os
 import re
 import subprocess
 import sys
-import urllib.request
-import urllib.error
 
-BASE_URL = "https://reallms.rescloud.iu.edu/direct/v1"
-
-
-def read_key() -> str:
-    # The key is read only from ~/.reallms_key (a file holding just the key).
-    try:
-        with open(os.path.expanduser("~/.reallms_key")) as f:
-            v = f.read().strip()
-    except FileNotFoundError:
-        sys.exit("No REALLMS key: create ~/.reallms_key holding just the key.")
-    if not v:
-        sys.exit("~/.reallms_key is empty.")
-    return v
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from reallms_client import read_key, tool_loop  # noqa: E402
 
 
 def detect_agda_root(file_path: str) -> str:
@@ -58,56 +45,6 @@ def detect_agda_root(file_path: str) -> str:
         for _ in range(mod.count(".")):
             d = os.path.dirname(d)
     return d
-
-
-# ---------- API (streaming, assembles tool_calls from deltas) ----------
-
-def chat(model, messages, key, tools, temperature=0.2):
-    payload = json.dumps({
-        "model": model, "messages": messages, "tools": tools,
-        "tool_choice": "auto", "temperature": temperature,
-        "max_tokens": 16384, "stream": True,
-    }).encode()
-    req = urllib.request.Request(
-        f"{BASE_URL}/chat/completions", data=payload,
-        headers={"Authorization": f"Bearer {key}",
-                 "Content-Type": "application/json"}, method="POST")
-    content, reasoning = [], []
-    tool_calls = {}  # index -> {id, name, args}
-    finish = None
-    with urllib.request.urlopen(req, timeout=1200) as resp:
-        for raw in resp:
-            line = raw.decode("utf-8", errors="replace").strip()
-            if not line.startswith("data:"):
-                continue
-            data = line[len("data:"):].strip()
-            if data == "[DONE]":
-                break
-            try:
-                chunk = json.loads(data)
-            except json.JSONDecodeError:
-                continue
-            ch = (chunk.get("choices") or [{}])[0]
-            delta = ch.get("delta") or {}
-            if ch.get("finish_reason"):
-                finish = ch["finish_reason"]
-            if delta.get("content"):
-                content.append(delta["content"])
-            if delta.get("reasoning_content"):
-                reasoning.append(delta["reasoning_content"])
-            for tc in (delta.get("tool_calls") or []):
-                idx = tc.get("index", 0)
-                slot = tool_calls.setdefault(idx, {"id": None, "name": "", "args": ""})
-                if tc.get("id"):
-                    slot["id"] = tc["id"]
-                fn = tc.get("function") or {}
-                if fn.get("name"):
-                    slot["name"] = fn["name"]
-                if fn.get("arguments"):
-                    slot["args"] += fn["arguments"]
-    calls = [tool_calls[i] for i in sorted(tool_calls)]
-    return {"content": "".join(content), "reasoning": "".join(reasoning),
-            "tool_calls": calls, "finish": finish}
 
 
 # ---------- Tools ----------
@@ -272,12 +209,6 @@ TOOLS = [
 ]
 
 
-def logline(fh, s):
-    if fh:
-        fh.write(s + "\n")
-        fh.flush()
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
@@ -324,78 +255,14 @@ def main():
         + "\nProduce replacement code for exactly that region and verify it with "
           "check_solution."
     )
-    messages = [{"role": "system", "content": system},
-                {"role": "user", "content": user}]
-
-    status = "incomplete"
-    nudges = 0
-    MAX_NUDGES = 3
-    for step in range(1, args.max_steps + 1):
-        try:
-            r = chat(args.model, messages, key, TOOLS, args.temperature)
-        except Exception as e:
-            status = f"api_error: {e}"
-            break
-        logline(fh, f"\n===== step {step} =====")
-        if r["reasoning"]:
-            logline(fh, "[reasoning]\n" + r["reasoning"])
-        if r["content"]:
-            logline(fh, "[content]\n" + r["content"])
-
-        calls = r["tool_calls"]
-        # Build the assistant message to append (with tool_calls if any).
-        assistant_msg = {"role": "assistant", "content": r["content"] or ""}
-        if calls:
-            assistant_msg["tool_calls"] = [
-                {"id": c["id"] or f"call_{step}_{i}", "type": "function",
-                 "function": {"name": c["name"], "arguments": c["args"]}}
-                for i, c in enumerate(calls)]
-        messages.append(assistant_msg)
-
-        if not calls:
-            # No tool call: model thinks it's done or is chatting. Stop if
-            # solved; otherwise nudge it (a few times) to actually submit a
-            # candidate — reasoning models often narrate a proof without
-            # calling check_solution.
-            if w.last_ok:
-                logline(fh, "[no tool calls, solved -> stopping]")
-                status = "solved"
-                break
-            nudges += 1
-            if nudges > MAX_NUDGES:
-                logline(fh, "[no tool calls after nudges -> giving up]")
-                status = "gave_up"
-                break
-            logline(fh, f"[no tool calls -> nudge {nudges}/{MAX_NUDGES}]")
-            messages.append({"role": "user", "content":
-                "You did not call a tool. Reasoning alone does not count: "
-                "submit your complete replacement code for the target region "
-                "NOW via check_solution(code), then fix whatever Agda reports."})
-            continue
-
-        for i, c in enumerate(calls):
-            cid = assistant_msg["tool_calls"][i]["id"]
-            try:
-                cargs = json.loads(c["args"]) if c["args"].strip() else {}
-            except json.JSONDecodeError as e:
-                result = f"(bad tool arguments JSON: {e})"
-                messages.append({"role": "tool", "tool_call_id": cid,
-                                 "name": c["name"], "content": result})
-                logline(fh, f"[tool {c['name']}] BAD ARGS: {c['args'][:200]}")
-                continue
-            result = w.dispatch(c["name"], cargs)
-            rendered = result if isinstance(result, str) else json.dumps(result)
-            logline(fh, f"[tool {c['name']}({json.dumps(cargs)[:200]})] -> "
-                        f"{rendered[:400]}")
-            messages.append({"role": "tool", "tool_call_id": cid,
-                             "name": c["name"], "content": rendered})
-            if c["name"] == "check_solution" and w.last_ok:
-                # Stop immediately: a later failing call in the same turn would
-                # otherwise overwrite the verified solution (last_code/last_ok).
-                status = "solved"
-                break
-        if status == "solved":
-            break
+    loop = tool_loop(
+        args.model, key, system, user, TOOLS, w.dispatch,
+        solved=lambda: w.last_ok, check_tool="check_solution",
+        nudge="You did not call a tool. Reasoning alone does not count: "
+              "submit your complete replacement code for the target region "
+              "NOW via check_solution(code), then fix whatever Agda reports.",
+        max_steps=args.max_steps, temperature=args.temperature, fh=fh)
+    status, step = loop["status"], loop["steps"]
 
     # Compact report to stdout (this is all the orchestrator ingests).
     report = {
@@ -406,6 +273,8 @@ def main():
         "tool_calls": w.counts,
         "final_code": w.last_code,
         "short_error": (w.last_errors or "")[:600] if not w.last_ok else "",
+        "usage": loop["usage"],
+        "seconds": loop["seconds"],
         "log": args.log,
     }
     if args.apply and w.last_ok:
@@ -414,7 +283,7 @@ def main():
         report["applied"] = True
     print(json.dumps(report, indent=2, ensure_ascii=False))
     if fh:
-        logline(fh, "\n===== REPORT =====\n" + json.dumps(report, indent=2, ensure_ascii=False))
+        fh.write("\n===== REPORT =====\n" + json.dumps(report, indent=2, ensure_ascii=False) + "\n")
         fh.close()
 
 

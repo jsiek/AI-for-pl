@@ -138,9 +138,15 @@ def split_goal(text):
 
 
 class Worker:
-    def __init__(self, path, timeout, fh, blank=False, backend="coqc"):
+    def __init__(self, path, timeout, fh, blank=False, backend="coqc",
+                 hide=(), keep=()):
         self.path = os.path.abspath(path)
         self.blank = blank
+        # Paths read_file and grep refuse (other proofs of the same goal:
+        # the benchmark's session, earlier results, other runs), except
+        # under a `keep` path (the run's own copy).
+        self.hide = [os.path.realpath(x) for x in hide]
+        self.keep = [os.path.realpath(x) for x in keep]
         self.backend = backend
         self.pet = None
         self.states = [""]  # state id -> script; 0 = the statement
@@ -218,7 +224,15 @@ class Worker:
         p = os.path.realpath(os.path.join(ARIADNE, path))
         if p != ARIADNE and not p.startswith(ARIADNE + os.sep):
             raise ValueError("path outside Ariadne/")
+        if self._refused(p):
+            raise ValueError("path hidden from the prover")
         return p
+
+    def _refused(self, p):
+        def under(x, d):
+            return x == d or x.startswith(d + os.sep)
+        return (any(under(p, d) for d in self.hide)
+                and not any(under(p, d) for d in self.keep))
 
     def _hidden(self, p):
         """With --blank, the target and every goal file next to it (the
@@ -253,7 +267,8 @@ class Worker:
         files = [root] if os.path.isfile(root) else sorted(
             os.path.join(d, n) for d, ds, ns in os.walk(root)
             for n in ns if n.endswith((".v", ".c", ".h", ".md"))
-            and "/." not in d[len(ARIADNE):])
+            and "/." not in d[len(ARIADNE):]
+            and not self._refused(os.path.join(d, n)))
         hits = []
         for p in files:
             for i, l in enumerate(self._visible(p).split("\n"), 1):
@@ -473,11 +488,16 @@ def main():
     ap.add_argument("--log", default=None)
     ap.add_argument("--apply", action="store_true",
                     help="on success write the proof into the file")
+    ap.add_argument("--hide", action="append", default=[],
+                    help="a path read_file and grep refuse (repeatable)")
+    ap.add_argument("--keep", action="append", default=[],
+                    help="a path under a --hide path that stays visible")
     args = ap.parse_args()
 
     key = read_key()
     fh = open(args.log, "w") if args.log else None
-    w = Worker(args.file, args.timeout, fh, args.blank, args.backend)
+    w = Worker(args.file, args.timeout, fh, args.blank, args.backend,
+               args.hide, args.keep)
     current = "" if args.blank else w.script.strip("\n")
     system = (
         "You are a Coq/Rocq 9 proof engineer. You prove one goal generated "

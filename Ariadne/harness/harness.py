@@ -4,9 +4,11 @@ milestone M2): runtime checks, Frama-C/WP, tier-0 proof search, close
 out with coqc / coqchk / Print Assumptions, guardrails, and a report.
 
     python3 harness.py ../bench/b1 [--config b1.json] [--run-dir DIR]
-        [--blank-coq] [--overlay EDITED.c] [--no-rac] [--no-tier0]
-        [--goal-seconds 300]
-        [--tactic-seconds 60] [--max-iterations 1] [--max-seconds 3600]
+        [--blank-coq] [--overlay EDITED.c] [--no-rac] [--tiers 0,1,2]
+        [--goal-seconds 300] [--tactic-seconds 60] [--glm-seconds 120]
+        [--sonnet-calls 30] [--sonnet-seconds 600] [--sonnet-usd 2]
+        [--sonnet-est-tokens 200000] [--ledger ../runs/budget.json]
+        [--max-iterations 1] [--max-seconds 3600]
 
 A run works on a copy of the benchmark in its own directory (default
 Ariadne/runs/<name>-<time>/; it must be under Ariadne/, which the
@@ -25,8 +27,10 @@ Steps (plan section 5):
   2  Eva: skipped (optional in the plan);
   3  WP, one run per pass of the config; `-wp-interactive update`
      writes a Coq goal file for every goal sent to Coq;
-  4  tier-0 search (tier0.py) on each open goal, then step 3 again if it
-     closed any;
+  4  proof search on each open goal: tier 0 (tier0.py, no model), then
+     tier 1 (GLM 5.3 Flash) and tier 2 (Sonnet 5.5, within the budget
+     ledger) (tiers.py); each proof is checked by coqc, then step 3 runs
+     again if any goal was closed, so WP checks it too;
   5  refinement: a stub; it records each open goal as a stall, with its
      statement as the last state (there is no annotator in M2);
   6  close out: Coq lint, coqc, coqchk -o and Print Assumptions on every
@@ -53,7 +57,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ARIADNE = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import guardrails  # noqa: E402
+import ledger  # noqa: E402
 import tier0  # noqa: E402
+import tiers  # noqa: E402
 from reallms_coq import split_goal  # noqa: E402  (path set by guardrails)
 
 RUN = os.path.join(ARIADNE, "env", "run.sh")
@@ -119,6 +125,10 @@ class Run:
         self.report = {"benchmark": self.bench, "config": a.config,
                        "run_dir": self.dir, "blank_coq": a.blank_coq,
                        "llm_calls": 0, "steps": {}, "guardrails": {}}
+        self.tiers = {int(x) for x in a.tiers.split(",") if x.strip()}
+        if a.no_tier0:
+            self.tiers.discard(0)
+        self.ledger = ledger.Ledger(a.ledger)
         self.wp_prefix = {}  # goal file -> its context as WP wrote it
         self.goals = []
         self.certified = set()
@@ -458,10 +468,11 @@ class Run:
         self.report["census_after_wp"] = r["census"] if r else None
         iterations = 0
         while r is not None and self.open_goals():
-            if not self.a.no_tier0:
-                s = self.step("4_tier0", self.search)
+            if self.tiers:
+                s = self.step("4_prove", self.search)
                 if s and s["proved"]:
                     r = self.step("3_wp", lambda: self.wp("batch"))
+                    self.wp_confirm(s)
             if r is None or not self.open_goals():
                 break
             f = self.step("5_refine", self.refine)
@@ -525,7 +536,7 @@ def markdown(r):
     out = [f"# Ariadne M2 run: {os.path.basename(r['benchmark'])}"
            f"{' (Coq scripts dropped)' if r['blank_coq'] else ''}", "",
            f"**Verdict: {r['verdict']}.**  {c['proved']} / {c['goals']} "
-           f"goals proved; {r['seconds']} s; LLM calls: {r['llm_calls']}.",
+           f"goals proved; {r['seconds']} s; model runs: {r['llm_calls']}.",
            "", "## Goal census", "",
            "| Discharger | after step 3 | final |", "|---|---|---|"]
     for k in ("qed", "smt", "coq", "open"):
@@ -581,9 +592,27 @@ def main():
                     "source to run instead of it (checked by the "
                     "guardrails against the benchmark's)")
     ap.add_argument("--no-rac", action="store_true")
-    ap.add_argument("--no-tier0", action="store_true")
-    ap.add_argument("--goal-seconds", type=float, default=300)
+    ap.add_argument("--no-tier0", action="store_true",
+                    help="drop tier 0 from --tiers")
+    ap.add_argument("--tiers", default="0,1,2",
+                    help="prover tiers for step 4 (0 tier0.py, 1 GLM, "
+                    "2 Sonnet); empty for none")
+    ap.add_argument("--goal-seconds", type=float, default=300,
+                    help="tier 0: seconds per goal")
     ap.add_argument("--tactic-seconds", type=float, default=60)
+    ap.add_argument("--glm-seconds", type=int, default=120,
+                    help="tier 1: working time per goal")
+    ap.add_argument("--sonnet-calls", type=int, default=30,
+                    help="tier 2: prover_cli goals/check calls per goal")
+    ap.add_argument("--sonnet-turns", type=int, default=60,
+                    help="tier 2: Claude Code turns per goal")
+    ap.add_argument("--sonnet-seconds", type=int, default=600,
+                    help="tier 2: wall clock per goal")
+    ap.add_argument("--sonnet-usd", type=float, default=2.0,
+                    help="tier 2: --max-budget-usd per goal (list price)")
+    ap.add_argument("--sonnet-est-tokens", type=int, default=200_000,
+                    help="tier 2: tokens the ledger reserves per goal")
+    ap.add_argument("--ledger", default=ledger.PATH)
     ap.add_argument("--max-iterations", type=int, default=1)
     ap.add_argument("--max-seconds", type=float, default=3600)
     sys.exit(Run(ap.parse_args()).main())

@@ -187,3 +187,24 @@ need the conditional Why3 lemmas `nth_cons` / `length_cons` used with
 on the `P_dll` hypothesis with case-specific reasoning: beyond the fixed
 list.  These are the goals for the prover tiers 1-2 (`../prover/`: GLM
 proves 4, Sonnet 5).
+
+### Pilot: GLM then Sonnet (`--blank-coq --tiers 1,2`, `results/b1-blank-tiers.md`)
+
+**Certified, 321/321**: Qed 189, SMT 127, Coq 5, all five Coq proofs
+written by the prover tiers, rechecked by coqc and counted by WP's rerun.
+Total 939 s, of which the proof step took 734 s.
+
+| Lemma | GLM 5.3 Flash (2 min) | Sonnet 5.5 | Proved by |
+|---|---|---|---|
+| `mem_cons` | proved, 69 s, 8 turns, 47k tokens | - | GLM |
+| `all_live_cons` | proved, 59 s, 4 turns, 37k | - | GLM |
+| `all_init_cons` | stopped at 127 s, 82k | proved, 15 s, $0.10 | Sonnet |
+| `dll_frame` | stopped at 160 s, 54k | proved, 27 s, $0.14 | Sonnet |
+| `dll_links` | stopped at 207 s, 70k | proved, 62 s, $0.17 | Sonnet |
+
+Sonnet's total: $0.41 API-equivalent, 409k tokens, 0.036% of the weekly
+limit by the ledger's calibration (0.089% per USD: `/usage` showed 23%
+against ccusage's $258.54 since the reset).  GLM's 2 minutes overrun by
+up to 87 s because the reply in flight finishes.  GLM is not consistent
+across runs: here it proved `all_live_cons` (506 s in the prover trial)
+and missed `all_init_cons` (57 s there).

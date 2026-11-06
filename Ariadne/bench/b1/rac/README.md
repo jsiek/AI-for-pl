@@ -19,7 +19,7 @@ run time, five of them at the same annotation WP rejects them at.
 
 ```
 step 0 (generate twins, b1_rac.c x8): 0.9 s; gen_twins: 1 inductive(s), 6 builtins, 15 ACSL definitions, 1 not translated (see rac_twins.txt)
-    gen_rac: 45 dropped, 37 kept, 30 rewritten clauses
+    gen_rac: 48 dropped, 37 kept, 27 rewritten clauses
 PASS: gen_rac.py clause splitting: ok: 3 clause-splitting cases
 PASS: ASan+UBSan build of b1.c: ok: 300 runs, 7044 nodes, 74 with an injected allocation failure, largest n = 200
 SKIP: MSan (clang 14 in the image has no MSan runtime)
@@ -27,17 +27,14 @@ step 1 (sanitizers, b1.c): 0.4 s
 PASS: twin unit tests: ok
 step 2 (twin unit tests): 0.3 s
 PASS: E-ACSL build of b1.c: ok: 300 runs, 7044 nodes, 74 with an injected allocation failure, largest n = 200
-step 3 (E-ACSL, b1.c): build 9.1 s, run 2.5 s
-E-ACSL ignored 6 annotation(s) of b1_rac.rte.c (all warnings: build/eacsl_warnings.txt):
+step 3 (E-ACSL, b1.c): build 9.2 s, run 2.5 s
+E-ACSL ignored 3 annotation(s) of b1_rac.rte.c (all warnings: build/eacsl_warnings.txt):
     b1_rac.rte.c:818: E-ACSL construct `labeled \offset' is not yet supported. Ignoring annotation.
-    b1_rac.rte.c:833: E-ACSL construct `\at on purely logic variables that needs to allocate too much memory (bigger than int_max bytes)' is not yet supported. Ignoring annotation.
-    b1_rac.rte.c:847: E-ACSL construct `\at on purely logic variables that needs to allocate too much memory (bigger than int_max bytes)' is not yet supported. Ignoring annotation.
-    b1_rac.rte.c:857: E-ACSL construct `labeled \initialized' is not yet supported. Ignoring annotation.
-    b1_rac.rte.c:2552: E-ACSL construct `\valid_function' is not yet supported. Ignoring annotation.
-    b1_rac.rte.c:2594: E-ACSL construct `\valid_function' is not yet supported. Ignoring annotation.
+    b1_rac.rte.c:2512: E-ACSL construct `\valid_function' is not yet supported. Ignoring annotation.
+    b1_rac.rte.c:2554: E-ACSL construct `\valid_function' is not yet supported. Ignoring annotation.
     checks failed: 0 distinct, 0 total
-coverage: 66 clauses checked at run time, 60 evaluated, 6 never evaluated, 2 side flags, 0 failures; 45 clauses not (or only partly) checked at run time
-step 3b (coverage, b1.c): 15.0 s
+coverage: 63 clauses checked at run time, 60 evaluated, 3 never evaluated, 2 side flags, 0 failures; 48 clauses not (or only partly) checked at run time
+step 3b (coverage, b1.c): 14.9 s
 mutant     ASan+UBSan             E-ACSL (first check to fire)
 vacuity    -                      Assertion vacuity in b1  [ok]
 uaf        heap-use-after-free    Precondition in sglib_dllist_get_first  [ok]
@@ -46,8 +43,8 @@ nullchk    ubsan: null member access Assertion rte/mem_access in b1  [ok]
 nullfirst  -                      Postcondition heads_list in sglib_dllist_get_first  [ok]
 nulllast   oracle                 Postcondition last_of_list in sglib_dllist_get_last  [ok]
 noinit     oracle                 Assertion payload_written in b1  [ok]
-step 4 (mutants x7, both builds): 10.8 s
-ASan start-up retries (DEADLYSIGNAL): 6
+step 4 (mutants x7, both builds): 10.7 s
+ASan start-up retries (DEADLYSIGNAL): 2
 PASS: runtime checking of B1
 ```
 
@@ -245,9 +242,13 @@ records the outcome of each clause.
    `\offset(q) == 0`: `q` ranges over the allocation registry's slots,
    `\forall integer rac_i; 0 <= rac_i < rac_reg_count(0) ==> (P ==> Q)`
    with `q := rac_reg_nth(rac_i)` (the registry holds every block an
-   allocator returned, which is what `heap` means).
+   allocator returned, which is what `heap` means).  Not when `q` occurs
+   under `\at` or a label (`keep_prev`, `keep_next`, `keep_init`):
+   E-ACSL 33 ignores such a clause, and still evaluates its other `\at`
+   terms eagerly at the label, where `\at(*list, Pre)->previous` reads
+   through NULL when the list was empty; dropped.
 
-Outcome for b1.c (2026-11-06): 112 clauses; 37 kept, 30 rewritten, 45
+Outcome for b1.c (2026-11-06): 112 clauses; 37 kept, 27 rewritten, 48
 dropped (57 before the iterator's witnesses and rule 7).  Every
 requires and ensures is executed (32 of 32).  Dropped, with the reason
 `annotations.txt` gives:
@@ -257,16 +258,16 @@ requires and ensures is executed (32 of 32).  Dropped, with the reason
 | 6 `assigns`, 8 `loop assigns` | E-ACSL does not check assigns |
 | asserts `frame` x2, `init_frame` x2, `back`, `forward`, `end`, `found`, `mid_back`, `mid_fwd`, `cmp_frame`, `start_cmp`, `old_lists_live`, `iter_after_free`; 4 loop invariants of `it_next`'s comparator loops | `\forall` over all lists: `s` is determined only by a premise at label `Pre` (`iter_at{Pre}(it, s, b, f)`, `all_init{Pre}(s)`) or by none (frame facts over every list); E-ACSL 33 does not evaluate a predicate under a label, and a witness computed at `Pre` would need the walk at `Pre` |
 | asserts `written`, `start`, `others_live`, `old_nodes_live`, `new_live`, `new_dll`, `links`, `distinct`, `frame_prev`, `frame_next` | `\forall` over pointers whose premise is not `live` / `heap` (rule 7 does not apply) or is at label `Pre` |
+| asserts `keep_prev`, `keep_next`, `keep_init` (in `add`) | `\forall` over pointers with the variable under `\at` / a label: E-ACSL 33 does not evaluate it (rule 7) |
 | asserts `insert_list`, `inserted` | `\exists` over the list after the insertion (`t`): no walk from a known node determines it in the form the assert states |
 | assert `eq_frame` | `iter_fields{Pre}`: a predicate under a label |
 
 All dropped asserts are the prover role's (frame and liveness facts for
 WP); the comparator loops are unreachable in B1 (no subcomparator).
-E-ACSL 33 also ignores, with a warning, six kept clauses (listed by
-`check.sh`: `old_prev`, `keep_prev`, `keep_next` and `keep_init` in
-`add`, which use `\at` on logic values or labelled `\offset` /
-`\initialized`, and two RTE `\valid_function` checks); the coverage
-report shows them as never evaluated.
+E-ACSL 33 also ignores, with a warning, three kept clauses (listed by
+`check.sh`: `old_prev` in `add`, a labelled `\offset`, and two RTE
+`\valid_function` checks); the coverage report shows `old_prev` as
+never evaluated.
 
 ## Coverage (plan Q11 step 0, `build/coverage.md`)
 
@@ -284,11 +285,11 @@ per input, failures, how often each side held; flags for a clause never
 evaluated, an antecedent that never held, a disjunct that was never the
 one that held; and the clauses not checked at run time with the reason.
 
-For B1's driver (300 runs, seed 1, n <= 200): 66 clauses checked at run
+For B1's driver (300 runs, seed 1, n <= 200): 63 clauses checked at run
 time, 60 evaluated, 0 failures.  Flagged:
 
-- never evaluated: `old_prev`, `keep_prev`, `keep_next`, `keep_init`
-  (ignored by E-ACSL 33, above), and the two `assert \true` in
+- never evaluated: `old_prev` (ignored by E-ACSL 33, above), and the
+  two `assert \true` in
   `it_next`'s comparator loops (unreachable in B1);
 - antecedent never held: `it_init_on_equal`'s two requires guarded by
   `subcomparator != \null` (B1 never passes a comparator).
@@ -318,7 +319,6 @@ Found by building and running; each is applied mechanically
 | `\valid_function` (RTE `pointer_call` in `it_next`): not supported | ignored (2 annotations; the subcomparator branch is unreachable in B1) |
 | `\forall i; A \|\| B ==> P`: "missing guard for i"; the definition is ignored, and then every clause using it, silently (no warning at the use) | `gen_twins.py` writes `(\forall i; A ==> P) && (\forall i; B ==> P)` (`iter_at`) |
 | an upper bound `i <= t` in a quantifier over a predicate's parameter: internal error "Interval inference was not performed on construct t + 1" | written `i < t + 1` |
-| `\at(e, Pre)` is evaluated eagerly, also where `e` reads through a NULL pointer guarded elsewhere | the template guards the read inside the `\at` (`keep_next`) |
 
 GCC 12's ASan sometimes fails to start under this kernel's address-space
 randomisation (endless `AddressSanitizer:DEADLYSIGNAL` before `main`,
@@ -348,7 +348,7 @@ retries such a start up to 10 times and reports the count.
 
 - **What is not checked**: assigns clauses; the prover-role asserts
   listed above (frame facts over all lists or all pointers, and
-  predicates at another label); the six clauses E-ACSL ignores;
+  predicates at another label); `old_prev`, which E-ACSL ignores;
   `\valid_function`.  A spec that is wrong only there passes this
   filter.
 - **Sound only up to the inputs**: 300 random runs with n ≤ 200 (seed

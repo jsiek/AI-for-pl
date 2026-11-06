@@ -300,6 +300,19 @@ def witnesses(kind, binders, conjs):
     return [(n,) + lets[n] for n in lets], None
 
 
+def under_label(t, q):
+    """Whether variable q occurs in t inside \\at(...) or a labelled
+    construct (name{L}(...))."""
+    for m in re.finditer(r"\\at\(|[\w\\]+\{\w+(?:,\s*\w+)*\}\(", t):
+        depth, i = 1, m.end()
+        while i < len(t) and depth:
+            depth += {"(": 1, ")": -1}.get(t[i], 0)
+            i += 1
+        if re.search(rf"(?<![\w>.]){q}\b", t[m.end():i]):
+            return True
+    return False
+
+
 def elim_binders(t, notes):
     """Rewrite every \\forall / \\exists over lists or pointers in t; raise
     Drop if one cannot be eliminated."""
@@ -328,6 +341,13 @@ def elim_binders(t, notes):
             re.fullmatch(rf"\\offset\({q}\) == 0", c) for c in cs)
         if not (live_g or heap_g):
             raise Drop("\\forall over pointers (no finite range)")
+        if under_label(bod, q):
+            # E-ACSL 33 ignores such a clause ("\at on purely logic
+            # variables", "labeled \initialized"), and still evaluates
+            # its other \at terms eagerly at the label, where they may
+            # read through NULL
+            raise Drop(f"\\forall over pointers: {q} at a label "
+                       "(E-ACSL 33 does not evaluate it)")
         notes.append(f"{q} ranges over the allocation registry")
         node = f"(({ty})(0 + rac_reg_nth((long)(rac_i))))"
         new = re.sub(rf"(?<![\w>.]){q}\b", node, bod)

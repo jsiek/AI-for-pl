@@ -46,8 +46,8 @@ B1's RAC pipeline then runs unchanged in kind: `acsl_expand.py`,
 `<string.h>` brings in), `gen_rac.py --name selftest_dl --no-harness`
 (24 contract clauses: 13 kept, 11 rewritten with witnesses; 6 dropped,
 all `assigns`), then E-ACSL with RTE (`-rte-initialized @all`).
-`eacsl_collect.c` replaces E-ACSL's assertion function so that every
-failed check is counted and the run goes on.
+`../../rac/rac_collect.c` replaces E-ACSL's assertion function so
+that every failed check is counted and the run goes on.
 
 **First result (seed 1, the contracts before the owner's decisions of 2026-11-05).**  ASan + UBSan: the test passes.  E-ACSL: the test
 runs to the end; no RTE check fails (no undefined behaviour and no read
@@ -142,3 +142,39 @@ new clauses (`subcomparator` in the set, `equalto` readable with `n`
 initialised, `in_cmp_list(list)`) hold at every call.  `iter_ok` and
 `iter_pre` stay unchecked at run time (no witness, as above).  WP proves
 the comparator path on this instantiation in `wp/`.
+
+## Witnesses, operation sequences, coverage (2026-11-06)
+
+**Every contract clause is now checked at run time but `assigns`.**
+`iter_pre` and `iter_ok` get the iterator's witnesses
+(`../sglib_spec/rac_witnesses.json`: the list walked from the
+iterator's nodes, see `../b1/rac/README.md`).  `gen_rac.py`: 30
+clauses checked (21 kept, 9 rewritten), 7 dropped, all `assigns`.
+
+**Operation sequences** (`selftest_dl.c`, mode `ops`; chosen here
+rather than in `../b1/rac`, since this file instantiates the template
+at sglib's own types and has the comparator): a seeded generator over
+three lists of up to 48 nodes; each step picks a list and one of `add`
+before any node of it (or to an empty list), `get_first` / `get_last`
+from any node, `it_init` from any node with a partial or complete walk,
+`it_init_on_equal` from any node with `myListCmp` and a random value or
+without a comparator, `reverse` (no contract: a state change between
+checked calls), or freeing the whole list while iterating over it, as
+B1's driver does; all lists are freed at the end.  Every call meets the
+preconditions by construction.  `./rac.sh` runs seeds 1 to 5 with 400
+operations each (`OPS_SEEDS`, `OPS_N`), under ASan + UBSan and under
+E-ACSL; the two builds print the same checksum per seed.
+
+Result (`./rac.sh`, 2026-11-06): ASan + UBSan pass on the self-test and
+on the five sequences; E-ACSL: **0 failing checks** in the self-test
+(seed 1), the diagnostic run, both probes and the five sequences (under
+a second for all five).
+
+**Coverage** (`build/rac/coverage.md`, `../../rac/coverage.py`): all 30
+checked clauses are evaluated, in the self-test (except `get_last`'s
+three, which the test does not call) and in the sequences; both sides of
+every implication and disjunction held at least once (no flags).  For
+example, `add`'s `requires *list == \null || in_live_list(*list)`: 93
+times the empty list, 3549 times a node; `it_init_on_equal`'s comparator
+clauses: antecedent `subcomparator != \null` 127 times.  The 7 clauses
+not checked are the `assigns`.

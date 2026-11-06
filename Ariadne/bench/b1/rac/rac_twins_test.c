@@ -74,6 +74,9 @@ int main(void) {
   /* broken back link */
   v[2]->ptr_to_previous = v[0];
   CHECK(!dll(NULL, h, reach(h)));
+  /* the iterator's witness from v[2] (member walk, then forward): the
+     walk skips v[1], the list it gives fails dll, so iter_at fails */
+  CHECK(head(v[2]) == h && !dll(NULL, h, reach(head(v[2]))));
   v[2]->ptr_to_previous = v[1];
   /* a repeated node in an explicit list */
   CHECK(!dll(NULL, v[3], cons(v[3], cons(v[3], 0))));
@@ -88,6 +91,38 @@ int main(void) {
   for (int k = 0; k < 4; k++)
     if (k != 2)
       ariadne_free_dllist(v[k]);
+  rac_reset();
+
+  /* rac_index (the iterator's witnesses b and f) */
+  h = build(4, v);
+  seq s4 = reach(h);
+  CHECK(rac_index(s4, v[0]) == 0 && rac_index(s4, v[3]) == 3);
+  CHECK(rac_index(s4, &failures) == -1);
+  CHECK(rac_index(0, v[0]) == -1);
+  /* a back-link cycle not through the head, and a self loop: the member
+     walk stops on the repeated node (not only by fuel) */
+  v[1]->ptr_to_previous = v[3];
+  CHECK(head(v[2]) == NULL);
+  v[1]->ptr_to_previous = v[1];
+  CHECK(head(v[2]) == NULL && head(v[1]) == NULL);
+  v[1]->ptr_to_previous = v[0];
+  CHECK(head(v[3]) == h);
+  /* freed nodes kept (the E-ACSL builds, RAC_KEEP_FREED): as in the
+     ghost model, the shape still holds and the walks go through them
+     (the memory is not released here: the block is only marked dead);
+     liveness is the registry's (rac_dead) */
+  rac_reg_free(v[0]);
+  rac_reg_free(v[1]);
+  CHECK(!dll(NULL, h, reach(h)) && head(v[3]) == NULL);  /* not kept */
+  rac_keep_freed = 1;
+  CHECK(dll(NULL, h, reach(h)) && head(v[3]) == h);
+  CHECK(rac_length(reach(head(v[2]))) == 4);
+  CHECK(rac_dead((char *)v[0]) && !rac_dead((char *)v[2]));
+  rac_keep_freed = 0;
+  free(v[0]);
+  free(v[1]);
+  ariadne_free_dllist(v[2]);
+  ariadne_free_dllist(v[3]);
   rac_reset();
   printf("twin unit tests: %s\n", failures ? "FAIL" : "ok");
   return failures != 0;

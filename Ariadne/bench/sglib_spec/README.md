@@ -144,3 +144,40 @@ preconditions at both calls
 (`typed_sglib_DoubleLinkedList_it_next_call_myListCmp_requires{,_2}`,
 `..._call_myListCmp_2_requires{,_2}_part{1,2}`).
 
+## Textual tools see Frama-C's expansion
+
+The guardrails (spec hashes, ACSL and ghost lints) and the RAC pipeline
+read annotations as text.  They run on the source with each annotation
+replaced by Frama-C's own expansion of it
+(`../../harness/acsl_expand.py`): `frama-c -keep-temp-files` on the
+source keeps the output of Frama-C's annotation preprocessing
+(`cppannot*.c`), which holds every *active* annotation expanded with
+the macro state Frama-C had there (its C preprocessing resolves `#if`,
+`#ifdef`, system headers and pragmas first).  Each expanded annotation
+is one line, padded with the original's newlines, so line numbers do
+not move; an annotation Frama-C never reads (in `#if 0`, or the `#else`
+of a true `#if`) is removed.  So the frozen-spec hashes cover exactly
+the ACSL that Frama-C reads, not the invocation text.
+
+Defence in depth (guardrail `directives`): an edited source must have
+exactly the baseline's preprocessor directives, in order; an added,
+removed or changed `#define`, `#if` or `#pragma`, anywhere in the code,
+fails.  No pipeline step adds directives (the annotator writes
+annotations only; bug fixes and verification refactors change the
+benchmark itself).  The harness also hashes this directory and
+`plugin/share` before and after a run (`benchmark_untouched`).
+
+(An earlier expander forwarded only `#define`, `#undef` and `#include
+"..."` lines to cpp, so a `#define` in a false `#if` branch, a macro of a
+system header or a `push_macro` could make the hashed spec differ from
+what Frama-C reads; Codex's review of PR #234 found it.)
+
+## B1 from the template
+
+The expansion is token for token the ACSL of the hand-written b1.c
+(commit 3ba8421c and before): every predicate, contract, lemma and
+in-body annotation has the same comment-free, whitespace-normalised
+text (`guardrails.spec_items` and the in-body annotation list compared).
+WP produced the same 321 goals with the same names, and its cache
+reused the SMT results.  The owner's decisions of 2026-11-05 then
+changed the spec; `../b1/README.md` has the current numbers.

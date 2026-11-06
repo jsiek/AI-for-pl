@@ -70,6 +70,51 @@ v = g.spec_checks(raw, edit(raw, "SGLIB_DL_LIST_CONTRACT_ADD(", "("), CPP)
 expect("spec_checks: a broken invocation rejected",
        not v["frozen_spec"]["ok"], v)
 
+# ---- the macro state Frama-C sees (Codex review of PR #234) ---------------
+GF = ("/*@ SGLIB_DL_LIST_CONTRACT_GET_FIRST(dllist, ptr_to_previous, "
+      "ptr_to_next) */")
+GF_B = GF.replace("GET_FIRST(", "GET_FIRST_B(")
+APPROVED = ("#define SGLIB_DL_LIST_CONTRACT_GET_FIRST_B(t, p, n) "
+            "SGLIB_DL_LIST_CONTRACT_GET_FIRST(t, p, n)\n")
+WEAK = ("#define SGLIB_DL_LIST_CONTRACT_GET_FIRST_B(t, p, n) "
+        "requires \\false; assigns \\nothing; ensures \\true;\n")
+
+
+def pp_case(name, before, call=GF_B):
+    v = g.spec_checks(raw, edit(raw, GF, before + call), CPP)
+    expect(f"spec_checks: {name}: frozen spec rejected (Frama-C's expansion)",
+           not v["frozen_spec"]["ok"], v["frozen_spec"])
+    expect(f"spec_checks: {name}: directives rejected",
+           not v["directives"]["ok"], v["directives"])
+
+
+pp_case("#if 1 / #else (Codex's example)",
+        "#if 1\n" + WEAK + "#else\n" + APPROVED + "#endif\n")
+pp_case("#ifdef on a system header's macro (NULL, <stddef.h>)",
+        "#ifdef NULL\n" + WEAK + "#else\n" + APPROVED + "#endif\n")
+pp_case("an approved invocation in #if 0, a weakened one active",
+        "#if 0\n" + GF + "\n#endif\n"
+        "/*@ requires \\true; assigns \\nothing; ensures \\true; */\n", "")
+v = g.spec_checks(raw, edit(raw, GF,
+                            WEAK + '#pragma push_macro("SGLIB_DL_LIST_'
+                            'CONTRACT_GET_FIRST_B")\n'
+                            "#undef SGLIB_DL_LIST_CONTRACT_GET_FIRST_B\n"
+                            + APPROVED + '#pragma pop_macro("SGLIB_DL_LIST_'
+                            'CONTRACT_GET_FIRST_B")\n' + GF_B), CPP)
+expect("spec_checks: #pragma push_macro / pop_macro rejected",
+       not all(x["ok"] for x in v.values()) and not v["directives"]["ok"],
+       v)
+v = g.spec_checks(raw, edit(raw, "int b1(const int *input, int n) {",
+                            "#define UNUSED 1\n#if UNUSED\n#endif\n"
+                            "int b1(const int *input, int n) {"), CPP)
+expect("spec_checks: an added #define / #if in the code rejected "
+       "(directives), though the spec is unchanged",
+       not v["directives"]["ok"] and v["frozen_spec"]["ok"], v)
+v = g.spec_checks(raw, raw, CPP)
+expect("spec_checks: unchanged b1.c passes, digest f6cc96e5854dafc5",
+       all(x["ok"] for x in v.values())
+       and v["frozen_spec"]["digest"] == "f6cc96e5854dafc5", v)
+
 # ---- 7.2 frozen spec ----------------------------------------------------
 v = g.frozen(base, base)
 expect("frozen: unchanged file passes", v["ok"] and v["items"] == 25, v)

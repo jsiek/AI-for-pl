@@ -718,6 +718,29 @@ invariant is only needed for functional correctness and is stretch work.
             refactored code.
         *   *Certification.*  The certification diff accepts the change
             only with its log entry, as for bug fixes.
+    *   **Logged changes and the guardrails' baseline.**  The baseline
+        of every guardrail (overlay, `directives`, frozen spec) is the
+        benchmark's source as committed, so it carries the logged
+        changes.  A fix found during a run enters the baseline only by
+        being applied to the benchmark with its change-log entry; the
+        annotator itself can change no code and no preprocessor
+        directive.  That the benchmark's own code differs from the
+        original by exactly the logged changes is the certification
+        diff's check (final product 4).
+    *   **Step 0 checks every clause, or says why not (owner,
+        2026-11-06).**
+        *   Every annotation, public and private, is either checked by
+            E-ACSL in step 0 or appears on an explicit "not checked at
+            runtime" list, with the reason, in the step-0 report.
+        *   Step 0 runs on the target's own test suite and regression
+            tests; on random operation sequences against the public
+            API, starting from any node, not just heads; and on the
+            mutants.
+        *   Step 0 reports coverage per clause: how many times each was
+            evaluated and, for preconditions, implications and
+            disjunctions, whether each side was exercised.  A clause
+            never evaluated on any input is flagged.
+        *   Runtime checking stays a filter, not part of the trust base.
     *   **Regression tests.**  When the software comes with tests, the
         pipeline uses them:
         *   as inputs for runtime checking of candidate annotations

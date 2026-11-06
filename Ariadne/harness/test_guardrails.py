@@ -110,6 +110,20 @@ v = g.spec_checks(raw, edit(raw, "int b1(const int *input, int n) {",
 expect("spec_checks: an added #define / #if in the code rejected "
        "(directives), though the spec is unchanged",
        not v["directives"]["ok"] and v["frozen_spec"]["ok"], v)
+# A logged change (bug fix or verification refactor, CHANGES.md) is made
+# to the benchmark itself, so it is part of the baseline: the baseline
+# carries it, an edit that keeps it passes, one that undoes it or adds
+# an unlogged directive fails.
+logged = edit(raw, "int b1(const int *input, int n) {",
+              "#define LOGGED_FIX 1\nint b1(const int *input, int n) {")
+expect("directives: a logged change in the baseline, kept, passes",
+       g.directives(logged, logged)["ok"])
+expect("directives: a logged change undone in the edit fails",
+       not g.directives(logged, raw)["ok"])
+expect("directives: an unlogged directive next to a logged one fails",
+       not g.directives(logged, edit(logged, "#define LOGGED_FIX 1\n",
+                                     "#define LOGGED_FIX 1\n"
+                                     "#define UNLOGGED 2\n"))["ok"])
 v = g.spec_checks(raw, raw, CPP)
 expect("spec_checks: unchanged b1.c passes, digest f6cc96e5854dafc5",
        all(x["ok"] for x in v.values())

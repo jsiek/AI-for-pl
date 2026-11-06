@@ -217,8 +217,14 @@ def directives(base_text, edited_text):
     overlay check compares code after preprocessing, so an added
     `#define` or `#if` (which can change what Frama-C reads inside
     annotations) would pass it.  No pipeline step adds directives: the
-    annotator writes annotations only, and bug fixes and verification
-    refactors are made to the benchmark itself (plan Q11)."""
+    annotator writes annotations only.  The baseline is the benchmark's
+    source as committed, so it already carries the logged changes (plan
+    Q11's bug fixes and verification refactors, each in the benchmark's
+    CHANGES.md): a fix found in a run enters the baseline by being
+    applied to the benchmark with its log entry, and only then.  So a
+    directive changed in a run, logged or not, fails here; that the
+    benchmark's own changes are exactly the logged ones is the
+    certification diff's check (Q11, final product 4)."""
     a, b = preprocessor_lines(base_text), preprocessor_lines(edited_text)
     if a == b:
         return {"ok": True, "directives": len(a)}

@@ -93,7 +93,7 @@ obligations are the RTE goals at each call site.
   checks it only with `-warn-signed-downcast` (then
   `typed_myListCmp_assert_rte_signed_downcast` stays open).
 - B1's `DLLIST_COMPARATOR` (a macro): its original subtraction
-  overflowed; fixed as bug fix #1 (`../b1/BUGFIXES.md`), after which
+  overflowed; fixed as bug fix #1 (`../b1/CHANGES.md`), after which
   WP's simplifier proves its overflow goals at every call site.
 
 ### Subcomparator: stopped (owner's decision 3, 2026-11-05)

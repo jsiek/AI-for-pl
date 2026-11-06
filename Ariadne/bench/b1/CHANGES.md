@@ -1,9 +1,15 @@
-# B1 bug-fix log (plan Q11, "Bug fixes")
+# B1 change log (plan Q11)
 
-One entry per change to B1's C code.  The certification diff of `b1.c`
+One entry per change to B1's C code, each with a category: *bug fix*
+or *verification refactor* (a behaviour-preserving change made only so
+that a tool can verify the code).  The certification diff of `b1.c`
 against sglib's expansion must show exactly these changes.
 
-## 1. `DLLIST_COMPARATOR` overflows (2026-11-05, owner-approved)
+| # | Category | Change | Approved |
+|---|----------|--------|----------|
+| 1 | bug fix | `DLLIST_COMPARATOR` cannot overflow | owner, 2026-11-05 |
+
+## 1. Bug fix: `DLLIST_COMPARATOR` overflows (2026-11-05, owner-approved)
 
 **The bug.**  sglib's sample `samples/dllist.c` (vendored unmodified as
 `../sglib/dllist.c`) defines

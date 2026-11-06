@@ -1,5 +1,5 @@
 #!/bin/sh
-# Bug fix #1 (../BUGFIXES.md): the test.  sglib's samples/dllist.c, built
+# Change #1, bug fix (../CHANGES.md): the test.  sglib's samples/dllist.c, built
 # with UBSan, on extreme values:
 #   dllist -5 2147483647 -2147483648 3
 #   1. upstream (../../sglib/dllist.c, unmodified): UBSan reports the

@@ -671,9 +671,14 @@ invariant is only needed for functional correctness and is stretch work.
             `coqchk` and `Print Assumptions` against the allow-list, runs
             the regression tests, and diffs the annotated C against the
             original.  The diff must contain only annotations and
-            comments, plus the bug fixes listed in item 5.
-        5.  *A bug-fix log:* one entry per change to the C code (see the
-            next item).
+            comments, plus the changes listed in the change log (item
+            5); a code change without a log entry fails the check.
+        5.  *A change log:* one entry per change to the C code, each with
+            a category: *bug fix* or *verification refactor* (see the
+            next two items).  One log with a category field was chosen
+            over two logs: both kinds need the same fields (the change,
+            the evidence, the approval), and the certification diff
+            reads one list.
         6.  *The regression tests,* including any the pipeline added.
     *   **Bug fixes.**  Proving memory safety will sometimes find a real
         bug, so the C code is not always frozen.  Guardrail 1 changes:
@@ -697,8 +702,22 @@ invariant is only needed for functional correctness and is stretch work.
             observe is a public-spec change and needs the owner's
             approval, as above.
         *   *First entry (owner, 2026-11-05):* B1's comparator overflow,
-            `bench/b1/BUGFIXES.md` with its test `bench/b1/bugfix/`
-            (Q12, decision 5).
+            `bench/b1/CHANGES.md` (bug fix #1) with its test
+            `bench/b1/bugfix/` (Q12, decision 5).
+    *   **Verification refactors (owner, 2026-11-05).**  A verification
+        refactor is a code change that preserves behaviour and is made
+        only so that a tool can verify the code (for example, moving an
+        indirect call out of a loop condition so that WP's `calls`
+        annotation can attach to it, Q12).
+        *   *Log.*  Each one gets an entry in the change log (category
+            *verification refactor*): the change, the tool limitation it
+            works around, and why behaviour is unchanged.
+        *   *Approval.*  The owner approves each one, case by case.
+        *   *Evidence.*  Tests show that behaviour is unchanged: the
+            existing tests give the same results on the original and the
+            refactored code.
+        *   *Certification.*  The certification diff accepts the change
+            only with its log entry, as for bug fixes.
     *   **Regression tests.**  When the software comes with tests, the
         pipeline uses them:
         *   as inputs for runtime checking of candidate annotations
@@ -790,7 +809,22 @@ invariant is only needed for functional correctness and is stretch work.
             (`SGLIB_DL_LIST_CONTRACT_COMPARATOR`).  B1's
             `DLLIST_COMPARATOR` is fixed to
             `((e1->i > e2->i) - (e1->i < e2->i))` as bug fix #1 under
-            Q11 (`bench/b1/BUGFIXES.md`, the first bug-fix log).
+            Q11 (`bench/b1/CHANGES.md`, the first change log).
+    *   **Approved (owner, 2026-11-05), as committed for decisions 1-2,
+        4:** B1's `payload_init` precondition on `b1`; the `!dead`
+        clauses of `SGLIB_DL_LIST_CONTRACT_COMPARATOR` (every read needs
+        them under the `-ariadne` liveness model); `add`'s `assigns` item
+        for the old predecessor's `next` as a set guarded by `*list !=
+        \null`; and `was_head` in the form `\at(*list == \null ||
+        (*list)->previous == \null, Pre) ==> elem->previous == \null`
+        (E-ACSL evaluates `\at` terms eagerly).
+    *   **Decision 3 resumed (owner, 2026-11-05), option B:** a
+        verification refactor (Q11) moves each of `it_next`'s indirect
+        calls out of its `while` condition into its own statement
+        (`while (ce != NULL) { if (scp(eq, ce) == 0) break; ce =
+        ce->previous; }`, and the same forward), in B1's instantiation
+        only (the vendored sglib stays unmodified); then decision 3 as
+        approved originally.
 
 ---
 

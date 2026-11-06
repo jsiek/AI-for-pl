@@ -30,7 +30,7 @@ initialisation checks (see "Initialisation").
 | `check.sh` | `run.sh` plus seven mutants that must be rejected |
 | `mutants.py` | writes the seven mutants (used by `check.sh` and `rac/check.sh`) |
 | `rac/` | runtime checking (plan §5 step 0): sanitizers, E-ACSL with executable twins, the mutants as tests; see `rac/README.md` |
-| `BUGFIXES.md`, `bugfix/` | the bug-fix log (plan Q11) and each fix's failing-then-passing test |
+| `CHANGES.md`, `bugfix/`, `refactor/` | the change log (plan Q11: bug fixes and verification refactors) and the tests behind each entry |
 | `b1_frozen.c` | the frozen-only variant (M3): `b1.c` without the human's internal annotations and lemmas (only the template's public macros); see "Frozen-only variant" |
 
 The driver replaces the sample's `main`: an input array instead of
@@ -333,7 +333,7 @@ unreachable under `subcomparator == \null`.  WP with `-wp-rte` on
 `find_member` and `sort` created the comparator's overflow goals and
 proved none of them (nothing bounds `i`).
 
-**Fixed** (owner's decision, 2026-11-05; `BUGFIXES.md`, entry 1):
+**Fixed** (owner's decision, 2026-11-05; `CHANGES.md`, entry 1):
 B1's comparator is now `((e1->i > e2->i) - (e1->i < e2->i))`, in
 `gen_in.c` and so in `b1_gen.c` (`./gen.sh`) and the generated parts of
 `b1.c` and `b1_frozen.c` (their code, annotations stripped, equals

@@ -520,8 +520,11 @@ dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it) {
   if (it->subcomparator != NULL) {
     eq = it->equalto;
     scp = it->subcomparator;
-    while (ce != NULL && scp(eq, ce) != 0)
+    while (ce != NULL) {
+      if (scp(eq, ce) == 0)
+        break;
       ce = ce->ptr_to_previous;
+    }
   }
   if (ce != NULL) {
     it->prevelem = ce->ptr_to_previous;
@@ -531,8 +534,11 @@ dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it) {
     if (it->subcomparator != NULL) {
       eq = it->equalto;
       scp = it->subcomparator;
-      while (ce != NULL && scp(ce, eq) != 0)
+      while (ce != NULL) {
+        if (scp(ce, eq) == 0)
+          break;
         ce = ce->ptr_to_next;
+      }
     }
     if (ce != NULL)
       it->nextelem = ce->ptr_to_next;

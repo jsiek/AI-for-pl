@@ -8,6 +8,7 @@ against sglib's expansion must show exactly these changes.
 | # | Category | Change | Approved |
 |---|----------|--------|----------|
 | 1 | bug fix | `DLLIST_COMPARATOR` cannot overflow | owner, 2026-11-05 |
+| 2 | verification refactor | `it_next`'s indirect calls in statements of their own | owner, 2026-11-05 |
 
 ## 1. Bug fix: `DLLIST_COMPARATOR` overflows (2026-11-05, owner-approved)
 
@@ -67,3 +68,37 @@ fix.  `sort`'s two other overflow goals (line 445, its run length
 **Public behaviour.**  Clients see a comparator that orders the same
 values as before (when the old one was defined) and is defined on all
 values.  No contract mentions it.
+
+## 2. Verification refactor: `it_next`'s subcomparator calls (2026-11-05, owner-approved)
+
+**Why.**  WP 33 proves an indirect call through a function pointer only
+when a `calls` annotation names its possible targets, and `calls`
+attaches only to a statement.  sglib's `it_next` makes its two calls
+inside `while` conditions, where no annotation can reach them
+(`../sglib_spec/calls_probe`: "Missing 'calls' for default behavior").
+
+**The change**, in `SGLIB_DEFINE_DL_LIST_FUNCTIONS`'s `it_next` only,
+two loops (`refactor/it_next_calls.py`, applied by `gen.sh` to a copy of
+sglib.h; the vendored `../sglib/sglib.h` stays as upstream wrote it):
+
+```c
+while (ce!=NULL && scp(eq, ce)!=0) ce = ce->previous;
+  -> while (ce!=NULL) { if (scp(eq, ce)==0) break; ce = ce->previous; }
+while (ce!=NULL && scp(ce, eq)!=0) ce = ce->next;
+  -> while (ce!=NULL) { if (scp(ce, eq)==0) break; ce = ce->next; }
+```
+
+**Why behaviour is unchanged.**  Both forms do, in order: test `ce`
+against NULL and stop if it is; call the comparator (only then, as `&&`
+short-circuits); stop if it returned 0; otherwise step and repeat.  The
+calls, their arguments and their order, and the final `ce`, are the
+same; no other variable is touched.  The call is now `if (scp(..) ==
+0)`, so WP's `calls` attaches to it (checked in `calls_probe`).
+
+**Tests** (`refactor/check.sh`, in the M0 image): the refactored sglib.h
+differs from the vendored one in exactly these two lines; sglib's
+self-test (vendored, unmodified), built under ASan + UBSan against each
+header, gives the same output (passes, no report) for seeds 1, 7 and
+12345.  Its doubly linked list test iterates with `it_init_on_equal` and
+`myListCmp`, so both loops run.  B1's code (`b1_gen.c`, and the code of
+`b1.c` and `b1_frozen.c`, equal to it token for token) has the change.

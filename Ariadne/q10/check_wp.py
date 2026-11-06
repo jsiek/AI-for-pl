@@ -10,8 +10,9 @@ unchanged) and each mutant of mutants.py, WP runs as in
 ../bench/b1/check.sh (-ariadne, -wp-rte -rte-initialized @all,
 -wp-no-filter-init, Alt-Ergo/Z3/CVC5/Coq, 60 s) on the mutant's
 function, with the run's Coq scripts in the session.  A mutant is
-rejected if WP leaves at least one goal of that function open; the
-control must leave none.  Output: RUN_DIR/q10-mutants/ and
+rejected if WP leaves open a goal of that function that the control
+proves (the control should leave none; for a partial result, its open
+goals do not count).  Output: RUN_DIR/q10-mutants/ and
 RUN_DIR/q10-mutants/summary.json.
 """
 import json
@@ -73,10 +74,15 @@ def main():
                             else "NOT all proved")
         else:
             r = wp(work, mutants.mutant(name, src), mutants.FUNCTION[name])
-            r["verdict"] = ("rejected" if r["ok"] and r["open"]
+            # A result that is not fully proved: only goals the control
+            # proved count (names are per function and per property).
+            base = set(summary["control"].get("open", []))
+            r["new_open"] = [g for g in r.get("open", []) if g not in base]
+            r["verdict"] = ("rejected" if r["ok"] and r["new_open"]
                             else "NOT rejected" if r["ok"] else "error")
         summary[name] = r
-        print(f"{name}: {r['verdict']} {r.get('open', '')[:4]}", flush=True)
+        print(f"{name}: {r['verdict']} {r.get('new_open', r.get('open'))[:4]}",
+              flush=True)
     json.dump(summary, open(os.path.join(out, "summary.json"), "w"),
               indent=1)
 

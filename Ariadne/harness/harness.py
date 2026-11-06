@@ -1111,8 +1111,9 @@ def markdown(r):
                 + (f"  `/usage` weekly (all Claude Code use): {wb}% before, "
                    f"{wa}% after." if wb is not None else "")]
         out += [f"- **Warning:** {w}" for w in b.get("warnings", [])]
-        out += [f"- **Refused:** `{x['goal']}`: {x['projected_pct']}% would "
-                f"pass the {x['cap_pct']}% cap" for x in b.get("refused", [])]
+        out += [f"- **Refused:** `{x['goal']}`: " + (
+                x.get("error") or f"{x['projected_pct']}% would pass the "
+                f"{x['cap_pct']}% cap") for x in b.get("refused", [])]
     coq = [g for g in r["goals"] if g["discharger"] in ("coq", "open")]
     if coq:
         out += ["", "## Goals not closed by Qed or SMT", ""]

@@ -637,6 +637,19 @@ invariant is only needed for functional correctness and is stretch work.
         no private macro.  VST: `clightgen` and `coqc` of `b1a.c` and of
         the smoke example through the tool script; inside it there is
         no `/ariadne`, no network, only the run directory at `/work`.
+    *   **Result (2026-11-06, `q10/README.md`).**  Frama-C pipeline: 253
+        of 263 goals, stopped by the $6 run cap at $5.09 (9 `claude -p`
+        calls, 3.52 M tokens, 2338 s); open: `add`'s `in_live_list`
+        postcondition, 4 goals of `b1`, 5 lemmas.  VST agent: all six
+        functions and `semax_prog` with `Qed` for $4.39 (one call, 162
+        turns, 7.79 M tokens, 2373 s); its funspecs match SPEC.md, in
+        places stronger.  Mutants: WP rejects all six that apply at the
+        intended goal; the VST proof breaks on each C-level mutant and
+        on `nowashead`, but by tactic mismatch, not at a refused
+        obligation.  Not a fair race: the VST agent wrote its own
+        funspecs, the Frama-C spec is the index-based liveness
+        formulation, and the pipeline's per-call caps left $0.91 of its
+        $6 unusable.
 *   **Q11 — Human interaction and final products.  To do: discuss with
     the owner.**  M3 shows the pipeline can certify B1 from frozen
     contracts with no human annotation.  Still to settle:

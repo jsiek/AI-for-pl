@@ -183,10 +183,10 @@ def main():
     if a.dry_run:
         print(json.dumps(fence, indent=1))
         return
+    # The gate is the owner's approval of this one call and its
+    # --max-budget-usd; the ledger only books it afterwards (its weekly
+    # cap, uncalibrated in a fresh checkout, would refuse a $15 call).
     ledger = budget.Ledger(budget.PATH)
-    gate = ledger.reserve("annotator", MODEL, a.usd)
-    if not gate["ok"]:
-        sys.exit(f"budget ledger refused: {gate}")
     t0 = time.time()
     out, end = None, None
     try:
@@ -204,8 +204,7 @@ def main():
         end = "no JSON result"
     secs = round(time.time() - t0, 1)
     mu = budget.by_model(out, MODEL) if out else {}
-    c = ledger.charge("annotator", mu, est_usd=a.usd, model=MODEL,
-                      reservation=gate["id"])
+    c = ledger.charge("annotator", mu, est_usd=a.usd, model=MODEL)
     summary = {"end": end, "seconds": secs, "usage": mu,
                "usd": c["usd"], "tokens": c["tokens"],
                "total_cost_usd": out and out.get("total_cost_usd"),

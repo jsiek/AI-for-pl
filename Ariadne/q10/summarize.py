@@ -61,17 +61,21 @@ def wp(run):
         row["open_functions"] = fo
     log = os.path.join(run, "logs", "step0_rac.log")
     if os.path.exists(log):
-        text = open(log).read().rsplit("\n$ ", 1)[-1]
-        cov = re.findall(r"^coverage: (.*)", text, re.M)
-        caught = len(re.findall(r"\[ok\]\s*$", text, re.M))
-        total = len(re.findall(r"\[(ok|MISSED)\]\s*$", text, re.M))
-        res = ("PASS" if re.search(r"^PASS: runtime checking", text, re.M)
-               else "FAIL")
-        row["step0"] = (f"{res}; mutants caught {caught}/{total}; "
-                        + (cov[-1] if cov else "no coverage line"))
-        row["step0_runs"] = len(re.findall(
-            r"^PASS: runtime checking|^FAIL: runtime checking",
-            open(log).read(), re.M))
+        row["step0"] = []  # one entry per step-0 run (source, then patches)
+        for text in re.split(r"(?m)^\$ ", open(log).read())[1:]:
+            cov = re.findall(r"^coverage: ([^;]*)", text, re.M)
+            caught = len(re.findall(r"\[ok\]\s*$", text, re.M))
+            total = len(re.findall(r"\[(ok|MISSED)\]\s*$", text, re.M))
+            if re.search(r"^PASS: runtime checking", text, re.M):
+                res = "PASS"
+            elif re.search(r"^FAIL: E-ACSL build", text, re.M):
+                res = "E-ACSL build failed (inconclusive)"
+            else:
+                res = "FAIL: " + "; ".join(
+                    re.findall(r"^FAIL: ([^\n]*)", text, re.M))[:120]
+            row["step0"].append(
+                res + (f"; mutants caught {caught}/{total}" if total else "")
+                + (f"; coverage {cov[-1]}" if cov else ""))
     m = os.path.join(run, "q10-mutants", "summary.json")
     if os.path.exists(m):
         s = json.load(open(m))

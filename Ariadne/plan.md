@@ -673,7 +673,21 @@ invariant is only needed for functional correctness and is stretch work.
         Runs `wp-run3`, `wp-run4`, one after the other: `wp-run2`'s
         command with step 0 and `--max-usd 10`.  The ledger is
         calibrated (`budget.py calibrate`: 8% of the week over $73.87,
-        0.108% per USD). and final products.  To do: discuss with
+        0.108% per USD).
+        **Result (`q10/README.md`, "All runs").**  `wp-run4`:
+        **certified, 303 / 303** (Qed 173, SMT 122, Coq 8) for $7.11 in
+        3043 s (3 annotator and 8 prover calls, 5.66 M tokens); WP rejects
+        all six mutants.  `wp-run3`: 234 / 249, 15 function goals open,
+        $7.04 in 2894 s; one annotator call was lost to a step-0 tooling
+        bug (the mutant anchors, fixed during the run), and the retry's
+        patch was rejected by a real E-ACSL check.  Step 0 passed on the
+        frozen source and each first patch with every clause evaluated,
+        caught the four runtime mutants each time, and was inconclusive
+        on `wp-run4`'s last two patches (E-ACSL could not build a ghost
+        variable).  The run cap was not reached in either rerun.  Against
+        VST's $4.39 for all six functions in one run, the Frama-C side
+        needs about $7 when it finishes, on a harder (index-based,
+        liveness-model) spec that the human gave it. and final products.  To do: discuss with
     the owner.**  M3 shows the pipeline can certify B1 from frozen
     contracts with no human annotation.  Still to settle:
     *   *Human interaction:* where a human takes part, what they see and

@@ -1,17 +1,23 @@
-# Plan Q10: Frama-C/WP vs VST on B1a (one run per side)
+# Plan Q10: Frama-C/WP vs VST on B1a
 
-The design is in `../plan.md`, Q10 ("First run: B1a, one run per side").
+The design is in `../plan.md`, Q10 ("First run: B1a, one run per side"
+and "Rerun of the Frama-C side, twice").
 
 ```bash
 cd Ariadne/bench/b1a && python3 -I make_b1a.py      # the shared inputs
 cd Ariadne/harness && python3 harness.py ../bench/b1a --config b1a_frozen.json \
   --annotator opus --prove-scope lemmas --tiers 0,2 --opus-usd 3 \
   --opus-turns 150 --opus-wp-calls 25 --claude-usd 1 --annotator-retries 1 \
-  --max-iterations 3 --max-usd 6 --max-seconds 7200     # Frama-C side
+  --max-iterations 3 --max-usd 10 --max-seconds 7200    # Frama-C side
+                                                    # (wp-run2: --max-usd 6)
 cd Ariadne/q10 && python3 run_vst.py                # VST side (--dry-run first)
 python3 check_wp.py ../runs/q10/<wp run>            # WP mutants
 python3 check_vst.py ../runs/q10/<vst run>          # VST check and mutants
 python3 spec_lines.py ../runs/q10/<vst run>/verif_b1a.v   # spec sizes
+python3 summarize.py ../runs/q10/<run> ...          # the table rows
+cd Ariadne/bench/b1a/rac && ./check.sh              # step 0 on the reference
+cd Ariadne/bench/b1a && ./run_ref.sh                # WP on the reference
+python3 test_mutants.py; python3 test_run_vst.py    # offline tests
 ```
 
 | File | What |
@@ -20,11 +26,74 @@ python3 spec_lines.py ../runs/q10/<vst run>/verif_b1a.v   # spec sizes
 | `../bench/b1a/SPEC.md` | the English spec both sides get |
 | `../harness/b1a_frozen.json` | the harness config for B1a |
 | `run_vst.py` | the VST run: run directory, fence, `claude -p`, `summary.json` |
-| `mutants.py` | B1's mutants as they apply to B1a |
+| `mutants.py` | B1's mutants as they apply to B1a (anchors on C code, annotations allowed between its lines) |
+| `../bench/b1a/rac/check.sh` | step 0 for B1a: B1's runtime-check tools with B1a's oracle, coverage, the runtime mutants |
+| `../bench/b1a/b1a_ref.c`, `run_ref.sh` | the step-0 reference (B1's certified annotations on B1a's driver) and its WP check |
+| `summarize.py` | one table row per run directory |
 | `check_wp.py`, `check_vst.py` | mutant rejection (and, for VST, what was proved) |
 | `spec_lines.py` | public spec size on each side |
 
-## Results (2026-11-06, one run per side)
+## All runs (2026-11-06)
+
+| Run | Wall time | Tokens: input / output / cache write / cache read (total) | USD | Model calls | Proved / open | Mutants rejected | Step 0 (per source checked) |
+|---|---|---|---|---|---|---|---|
+| `wp-run2` (Frama-C, `--max-usd 6`, no step 0) | 2338 s | 204 / 111,826 / 278,286 / 3,126,675 (3.52 M) | 5.09 | 9 (1 annotator, 8 prover), 139 turns | 253 / 263; 10 open (5 function goals, 5 lemmas); stopped by the run cap | 6 / 6 | off |
+| `wp-run3` (Frama-C, `--max-usd 10`; **one annotator call lost to a step-0 tooling bug**) | 2894 s | 210 / 144,464 / 396,272 / 4,880,399 (5.42 M) | 7.04 | 9 (3 annotator, 6 prover), 150 turns | 234 / 249 (Qed 152, SMT 76, Coq 6); 15 open, all function goals | 5 / 6 (`noinit`: its goals already open) | frozen source PASS (26 clauses, all evaluated); patch 1 PASS (38, all evaluated); patch 2 FAIL on the mutant anchor (the bug); patch 3 FAIL: E-ACSL check fired (`\valid_read(&(*list)->ptr_to_previous)` in `add`); mutants 4/4 caught each time |
+| `wp-run4` (Frama-C, `--max-usd 10`, all fixes) | 3043 s | 254 / 144,620 / 399,171 / 5,113,194 (5.66 M) | 7.11 | 11 (3 annotator, 8 prover), 191 turns | **certified 303 / 303** (Qed 173, SMT 122, Coq 8; 16 lemmas) | 6 / 6 | frozen source PASS (26 clauses, all evaluated); patch 1 PASS (46, all evaluated); patches 2-3 inconclusive: E-ACSL build failed (a ghost variable `gp`, which `gen_rac.py` drops); mutants 4/4 caught where run |
+| `vst-run1` (VST agent) | 2373 s | 170 / 84,998 / 146,837 / 7,560,158 (7.79 M) | 4.39 | 1, 162 turns | all 6 functions + `semax_prog`, `Qed` | 4 / 4 tried, by script breakage | not applicable |
+
+USD and tokens: `claude -p`'s JSON (`modelUsage`, API-equivalent),
+summed by `summarize.py`.  Goals: the harness's WP census (Qed, SMT,
+Coq).  Mutants: `check_wp.py` (WP, counting only goals the unmutated
+result proves) and `check_vst.py`.  Step 0: `bench/b1a/rac/check.sh`
+in the harness (ASan + UBSan, E-ACSL with the twins, coverage by
+`rac/coverage.py`, the runtime mutants `vacuity`, `uaf`, `nullchk`,
+`noinit`).  `wp-run3` and `wp-run4` ran one after the other on an
+otherwise idle machine; `wp-run2` and `vst-run1` ran at the same time.
+Rerun spending: $14.15 of the approved $20.
+
+**wp-run4** (`../runs/q10/wp-run4/report.md`).  Three annotator calls,
+all accepted ($2.18, $2.70, $0.54; 47, 54 and 12 turns): after the
+first, 5 goals open; after the second, 8 (new lemmas); after the third,
+0.  The Opus prover proved the 8 Coq lemmas; coqc, coqchk and Print
+Assumptions accepted them, every guardrail passed.  The run did not
+reach its cap.  Step 0 checked the frozen source and the first patch
+fully; on the second and third patches E-ACSL could not build (a ghost
+variable the runtime-check generator drops), so step 0 was inconclusive
+there and only the sanitizers and the twin tests ran.
+
+**wp-run3** (`../runs/q10/wp-run3/report.md`).  The first patch was
+accepted (21 goals open after it).  The second call's patch put an
+assert inside the forward walk's body; `mutants.py` needed the walk's
+two lines adjacent, so step 0 failed on building the `uaf` mutant and
+rejected the patch without checking it.  The anchors were fixed during
+the run (`test_mutants.py`); the retry call's patch was then rejected
+by a real E-ACSL check (an assert in `add` reading
+`(*list)->ptr_to_previous` on a run where `*list` was NULL).  With the
+one retry used, refinement ended at $7.04, 15 function goals open.
+
+**What each fix changed.**
+1.  *Report crash* (`test_report.py`): `wp-run3` and `wp-run4` each
+    ended with their `verdict:` line and a complete `report.md`.
+2.  *`run_vst.py` reserves first* (`test_run_vst.py`): offline only (no
+    VST rerun).  The ledger is now calibrated (0.108% of the week per
+    USD), so its 20% cap is a real limit.
+3.  *Run cap as min(per-call cap, budget left)* (`test_budget.py`,
+    `test_annotator.py`): not exercised by these runs; neither came
+    within one per-call cap of $10 (every call ran at its full $3 or
+    $1 cap).
+4.  *Step 0 for B1a*: on in both reruns.  On the reference
+    `b1a_ref.c` (WP 313 / 313 by `run_ref.sh`) it passes: 300 random
+    runs under ASan + UBSan and E-ACSL, 61 clauses checked at run time
+    (48 evaluated, 13 never evaluated), and catches the four runtime
+    mutants (`vacuity` by its assert, `uaf` by ASan and a loop
+    invariant, `nullchk` by UBSan and an RTE check, `noinit` by the
+    oracle and `payload_written`).  `nowashead` and `noassign` weaken
+    only `add`'s contract and run correctly, so they are WP's to reject.
+    In the runs it rejected one wrong patch (wp-run3's third) and was
+    inconclusive on two (wp-run4).
+
+## First run (2026-11-06, one run per side)
 
 | Side | Wall time | Tokens: input / output / cache write / cache read (total) | USD | Model calls | Proved / open | Mutants rejected | Public spec lines |
 |---|---|---|---|---|---|---|---|
@@ -103,17 +172,25 @@ says no proof can exist (each mutant has a stuck Clight execution); for
     of the same properties.
 *   **Budget shape.**  The VST agent had one $15 call and used $4.39.
     The pipeline had per-call caps ($3 annotator, $1 per prover goal)
-    inside a $6 run cap, so it stopped at $5.09 with $0.91 unusable: a
-    second annotator call could not fit.  With the VST side's budget
-    shape, the Frama-C side might have finished; this run does not say.
+    inside a run cap: at $6 (`wp-run2`) it stopped at $5.09 with $0.91
+    unusable; at $10 one rerun certified for $7.11 and one ended at
+    $7.04 with its retries used.  The VST side has one run, the Frama-C
+    side three with different settings.
 *   **Guidance.**  The annotator gets WP's open goals with their text
     (`TASK.md`) and the prover one goal at a time; the VST agent gets
-    Floyd's error messages from its own `coqc` runs.  Step 0 (runtime
-    checking) was off for B1a (`../plan.md` Q10).
+    Floyd's error messages from its own `coqc` runs.  Step 0 was off in
+    `wp-run2` and on in the reruns, where it also filters patches; the
+    VST side has no runtime checking.
+*   **wp-run3 is affected by a tooling change mid-run**: one annotator
+    call was lost to the step-0 anchor bug, and the anchors were fixed
+    while the run went on.
 *   **Mutants.**  VST's mutant rejections come from script breakage (see
     above); `noassign` has no VST analogue and `vacuity` only a rough one.
-*   **One run per side**, at the same time on one machine, so wall times
-    share the CPU and nothing is known about variance.
+*   **Few runs.**  One VST run; three Frama-C runs, of which two share
+    settings (`wp-run3`, `wp-run4`) and gave certified once and 15 open
+    once.  `wp-run2` and `vst-run1` shared the machine.
+*   **Wall time is not like for like**: the Frama-C runs include WP,
+    step 0, tier 0 (30 s per lemma) and the certification steps.
 
 ## Isolation on the VST side
 
@@ -137,5 +214,8 @@ the run directory except the VST/Rocq installation in the image.
     `report.json`, `patch1.c`, `annotator/`, `tier2/`, `q10-mutants/`).
     `../runs/q10/wp-run1/` is a first start whose WP container was killed
     (exit 137) before any model call ($0).
+*   `../runs/q10/wp-run3/`, `../runs/q10/wp-run4/` (git-ignored): the
+    reruns, with `q10-mutants/`; `../runs/q10/dry-wp3/` is the dry run
+    of step 0 on `wp-run2`'s patch (no model call).
 *   `../runs/q10/vst-run1/` (git-ignored): the VST run (`verif_b1a.v`,
     `result.json`, `summary.json`, `fence.json`, `q10-check/`).

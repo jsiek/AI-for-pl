@@ -49,7 +49,7 @@ all `assigns`), then E-ACSL with RTE (`-rte-initialized @all`).
 `eacsl_collect.c` replaces E-ACSL's assertion function so that every
 failed check is counted and the run goes on.
 
-**Result (seed 1).**  ASan + UBSan: the test passes.  E-ACSL: the test
+**First result (seed 1, the contracts before the owner's decisions of 2026-11-05).**  ASan + UBSan: the test passes.  E-ACSL: the test
 runs to the end; no RTE check fails (no undefined behaviour and no read
 of uninitialised memory in the test or in sglib); 12 distinct contract
 checks fail, 10023 times in all:
@@ -90,7 +90,7 @@ already failed.  The other sglib functions the test calls (`concat`,
 variants) have no contract in B1 and are not checked; `get_last` is
 specified but the test does not call it.
 
-Changes to the public contracts proposed for the owner (Q11; not made):
+Changes to the public contracts proposed then (Q11; all five decided by the owner on 2026-11-05, see below):
 
 1. `all_init` (and so `live_dll`, `in_live_list`, `iter_ok`) should not
    require fields the list code never reads or writes.  Either restrict
@@ -105,3 +105,29 @@ Changes to the public contracts proposed for the owner (Q11; not made):
    (calls through a function pointer: a contract on the comparator,
    plan Q12), and `iter_ok`: describe the backward phase too
    (`prevelem` a node of the same list).
+
+## Against the contracts of 2026-11-05
+
+The owner approved the proposals (plan Q12, "Decided"): `all_init` on
+the links only, any node for `add` and the iterator, `cmp_reads`
+(`st_cmp_reads(p) = \initialized(&p->n)` here) and the comparator
+contract on `myListCmp`; the subcomparator contracts were stopped
+(`../sglib_spec/README.md`).  `./rac.sh`, seed 1: ASan + UBSan pass;
+E-ACSL runs to the end; **one check fails, once**:
+
+| Function | Clause | Fails | Cause |
+|----------|--------|-------|-------|
+| `it_init_on_equal` | requires `subcomparator == \null` | 1 | the test passes `myListCmp`; the subcomparator path is not specified (decision 3 stopped) |
+
+Of the twelve earlier failures, the eleven others are gone: `add`'s
+and `get_first`'s (`all_init` now asks only for the links; `add`
+accepts any node), and the iterator's precondition on its start node
+(any node now).  Two kinds of clause are not checked at run time:
+`iter_ok` and `iter_pre` (`it_next`'s precondition, and the iterator
+postconditions) bind the whole list from the iterator's position,
+for which `gen_twins.py` has no witness, so `gen_rac.py` drops them
+(`build/rac/e/annotations.txt`); `assigns` as before.  The comparator
+contract on `myListCmp` is checked at every call and never fails; WP
+proves `myListCmp` free of runtime errors under it (`./cmp_wp.sh`, 7/7).
+The diagnostic run (`zero`) gives the same single failure, and both
+probes pass.

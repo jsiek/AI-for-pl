@@ -696,6 +696,9 @@ invariant is only needed for functional correctness and is stretch work.
         *   *Public behaviour.*  A fix that changes what clients can
             observe is a public-spec change and needs the owner's
             approval, as above.
+        *   *First entry (owner, 2026-11-05):* B1's comparator overflow,
+            `bench/b1/BUGFIXES.md` with its test `bench/b1/bugfix/`
+            (Q12, decision 5).
     *   **Regression tests.**  When the software comes with tests, the
         pipeline uses them:
         *   as inputs for runtime checking of candidate annotations
@@ -753,13 +756,41 @@ invariant is only needed for functional correctness and is stretch work.
             byte-level;
         *   no unchecked step: an argument that instantiations differ
             only by renaming is not accepted unless a tool checks it.
-    *   **To do:** vendor `samples/selftest.c` (with `samples/rbtree.c`)
-        as the other sglib files are (upstream path, commit, SHA-256),
-        with a fixed seed, and run its DL-list test in step 0 against
-        B1's public contracts instantiated at `MyIntList`.  A
-        precondition that fails at a self-test call is too strong, since
-        it excludes a real client; a postcondition that fails is wrong
-        or shows a bug.
+    *   **Done:** `samples/selftest.c` and `samples/rbtree.c` vendored
+        (`bench/sglib/`), the self-test run with a fixed seed under the
+        sanitizers (`bench/selftest/`), B1's spec written as a template
+        (`bench/sglib_spec/`), and the self-test's DL-list test run in
+        step 0 against B1's public contracts instantiated at its
+        `DoubleLinkedList` (`bench/selftest/rac.sh`).
+    *   **Decided (owner, 2026-11-05), after that run:**
+        1.  `all_init` covers the two links only; `add`'s `elem_init` and
+            the template's payload parameter are dropped.
+        2.  `add`, `it_init` and `it_init_on_equal` accept any node of a
+            whole live list, as sglib does.  `add` ensures `*list ==
+            elem && in_live_list(elem)` and `was_head` (if the old
+            `*list` was NULL or a head, so is `elem`), and assigns the
+            old predecessor's `next`.  The iterator's contracts describe
+            its backward walk (`prevelem` toward the head) and then its
+            forward walk (`nextelem`).
+        3.  The iterator contracts take the finite set of comparators a
+            client may pass, with `calls` at `it_next`'s indirect calls,
+            if WP 33 proves such calls.  **Result: it does for a call
+            statement, but not for a call in a `while` condition, which
+            is where sglib makes them (`bench/sglib_spec/calls_probe`).
+            Stopped as instructed; the iterator still requires
+            `subcomparator == \null`.**  This settles the **[verify]**
+            on `calls` under "Later" for sglib's code shape.
+        4.  The template takes `cmp_reads`, a client predicate naming the
+            fields the comparators read:
+            `SGLIB_DL_LIST_SPEC(type, prev, next, cmp_reads)`.  The
+            guardrail-2 hash stays over the expanded spec.
+        5.  Every comparator, a function or a macro inlined at its call
+            sites, must be proved free of runtime errors (WP with
+            `-wp-rte`) under its contract
+            (`SGLIB_DL_LIST_CONTRACT_COMPARATOR`).  B1's
+            `DLLIST_COMPARATOR` is fixed to
+            `((e1->i > e2->i) - (e1->i < e2->i))` as bug fix #1 under
+            Q11 (`bench/b1/BUGFIXES.md`, the first bug-fix log).
 
 ---
 

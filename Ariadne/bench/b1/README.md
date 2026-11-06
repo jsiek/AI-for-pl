@@ -30,6 +30,7 @@ initialisation checks (see "Initialisation").
 | `check.sh` | `run.sh` plus seven mutants that must be rejected |
 | `mutants.py` | writes the seven mutants (used by `check.sh` and `rac/check.sh`) |
 | `rac/` | runtime checking (plan §5 step 0): sanitizers, E-ACSL with executable twins, the mutants as tests; see `rac/README.md` |
+| `BUGFIXES.md`, `bugfix/` | the bug-fix log (plan Q11) and each fix's failing-then-passing test |
 | `b1_frozen.c` | the frozen-only variant (M3): `b1.c` without the human's internal annotations and lemmas (only the template's public macros); see "Frozen-only variant" |
 
 The driver replaces the sample's `main`: an input array instead of
@@ -260,10 +261,14 @@ frozen:
 | loop invariants, `loop assigns`, `loop variant` (in `get_first`, `get_last`, the four loops of `b1`) | removed | internal annotations (§4.4) |
 | the asserts in `add`, `get_first`, `get_last`, `it_init_on_equal`, `it_next`, `b1` | removed | internal annotations |
 
-`guardrails.spec_checks(b1.c, b1_frozen.c)` passes: 18 frozen items, the
-same hashes (digest `d3e4f6fdc9011d48`), nothing changed, removed or
-added.  (Before the spec template the digest was `213986017b964d3e`;
-see "Spec template" for why it changed.)
+`guardrails.spec_checks(b1.c, b1_frozen.c)` passes: 24 frozen items, the
+same hashes (digest `2565b652bc723f9d`), nothing changed, removed or
+added.  (Before the spec template the digest was `213986017b964d3e`
+over 18 items, and `d3e4f6fdc9011d48` with the template; see "Spec
+template" and "Owner's decisions of 2026-11-05" for why it changed.)
+The lemmas, invariants and asserts of `b1.c` have grown since this
+table (the decisions of 2026-11-05); the frozen-only census below is
+from before them.
 
 **Census before any annotation** (`../../harness/b1_frozen.json`, the
 same WP flags as M1; `harness/results/b1-frozen-census.md`): 254 goals
@@ -316,46 +321,78 @@ and annotations stay written out.
   lemmas keep their order among themselves, and the goals and their
   proofs did not change.
 
-## The comparator's overflow (plan Q12)
+## The comparator's overflow: bug fix #1 (plan Q12)
 
-`DLLIST_COMPARATOR(e1, e2)` is `(e1->i - e2->i)`, which overflows (undefined
-behaviour) on extreme values, e.g. `INT_MAX - (-1)`.  B1's proof does
-not cover it, and does not need to: **no verified function evaluates
-it.**
+sglib's sample defines `DLLIST_COMPARATOR(e1, e2)` as `(e1->i - e2->i)`,
+which overflows (undefined behaviour) on extreme values.  Before the
+fix B1's proof did not reach it: sglib inlines the comparator only into
+`add_if_not_member` (and its `before` / `after` variants),
+`delete_if_member`, `find_member` and `sort`, none of which is verified
+or called by the driver, and the iterator's subcomparator calls are
+unreachable under `subcomparator == \null`.  WP with `-wp-rte` on
+`find_member` and `sort` created the comparator's overflow goals and
+proved none of them (nothing bounds `i`).
 
-- sglib inlines the comparator into `add_if_not_member`,
-  `add_before_if_not_member`, `add_after_if_not_member`,
-  `delete_if_member`, `find_member` and `sort` (b1.c lines 136-214,
-  286-291, 346-355, 439).  None is in `run.sh`'s `-wp-fct` selection
-  (`add`, `it_init_on_equal`, `it_init`, `it_next`, `get_first`,
-  `get_last`, `b1`), and the driver `b1` calls none of them, so RTE
-  creates no goal for the subtraction: the only `rte_signed_overflow`
-  goal among the 310 is `typed_b1_assert_rte_signed_overflow`
-  (the driver's `k++`, proved).
-- The iterator's subcomparator calls go through a function pointer
-  (`scp(eq, ce)` in `it_next`), and both contracts require
-  `subcomparator == \null` (`it_init_on_equal`'s precondition,
-  `it_next`'s `requires it->subcomparator == \null`), so those calls are
-  unreachable in every verified context.
-- No precondition bounds the values: `b1` stores arbitrary `input[k]`,
-  and no predicate mentions `i` except `elem_init`'s `\initialized`.
-- Checked by running WP (`-wp-rte`, Alt-Ergo, Z3, CVC5, 10 s) on
-  `find_member` and `sort`, outside the selection: RTE creates
-  `typed_sglib_dllist_find_member_assert_rte_signed_overflow{,_2,_3,_4}`
-  (lines 346 and 355) and
-  `typed_sglib_dllist_sort_assert_rte_signed_overflow_3`, `_4` (line
-  439), and none is proved: nothing in context bounds `i` (the other
-  goals of these functions fail too, since they have no contract).
+**Fixed** (owner's decision, 2026-11-05; `BUGFIXES.md`, entry 1):
+B1's comparator is now `((e1->i > e2->i) - (e1->i < e2->i))`, in
+`gen_in.c` and so in `b1_gen.c` (`./gen.sh`) and the generated parts of
+`b1.c` and `b1_frozen.c` (their code, annotations stripped, equals
+`b1_gen.c` token for token).  The vendored `../sglib/dllist.c` is
+unmodified.  `bugfix/cmp_overflow.sh` is the test: upstream, under
+UBSan, `dllist -5 2147483647 -2147483648 3` reports `signed integer
+overflow: 3 - -2147483648` and prints `3 2147483647 -2147483648 -5`;
+fixed, it prints `-2147483648 -5 3 2147483647` with no report.
 
-So a certificate for B1 says nothing about the comparator.  When
-`find_member`, `sort` or the `*_if_not_member` functions join the
-selection, the comparator needs the contract of plan Q12 (no undefined
-behaviour on the values present), which for this comparator means a
-precondition bounding the payloads (e.g. every `i` in `[INT_MIN / 2,
-INT_MAX / 2]`), or a comparator that cannot overflow (`(a > b) - (a <
-b)`), a change to client code.  (sglib's self-test compares `unsigned`
-fields, where the subtraction wraps without undefined behaviour; its
-conversion to `int` is implementation-defined, not undefined.)
+WP with `-wp-rte` (Alt-Ergo, Z3, CVC5, 10 s; a check, outside B1's
+verified selection) now proves every comparator overflow goal, all by
+WP's simplifier (Qed): `find_member` 4, `sort` 4 (lines 453-471),
+`add_if_not_member` 4, `delete_if_member` 4.  Two overflow goals of
+`sort` stay open, `typed_sglib_dllist_sort_assert_rte_signed_overflow_5`
+and `_6` (line 445): they are not the comparator but sort's run length
+`_n_ = _n_ + _n_`, which doubles while runs remain and overflows only on
+lists of more than 2^30 nodes.  That is for the verification of `sort`
+(B1c) to settle.
+
+## Owner's decisions of 2026-11-05 (plan Q11, Q12)
+
+1. **`all_init` covers the links only.**  `add`'s `elem_init` and the
+   template's payload parameter are gone.  B1's driver reads the payload
+   (`l->i`) in its walks, so `b1` gains the precondition
+   `payload_init` (every live node's `i` is initialised) and matching
+   loop invariants and asserts (`payload_written`, `payload_kept`).
+2. **Any node.**  `add` accepts `*list` NULL or any node of a whole live
+   list and ensures `*list == elem && in_live_list(elem)` and
+   `was_head`; it assigns the old predecessor's `next` too (written as
+   a set guarded by `*list != NULL`, so a NULL `*list` adds no unknown
+   location).  The iterator starts at any node (`list == \null ||
+   in_live_list(list)`); `iter_at` describes its position in the whole
+   list (backward walk on `prevelem`, then forward from `nextelem`).
+   The proof of `add` builds the new list by insertion (lemma
+   `list_insert`, Coq) and recognises it from its links (lemma
+   `dll_of_links`, Coq); the driver's frees keep the iterator's
+   position by `dll_distinct` (Coq).  The assert `insert_list` of `add`
+   is closed in Coq too.
+3. **Subcomparator: stopped.**  WP 33 handles `calls` only on a call
+   statement; sglib's `it_next` calls the subcomparator inside `while`
+   conditions, where `calls` cannot attach
+   (`../sglib_spec/calls_probe`).  The iterator still requires
+   `subcomparator == \null`.
+4. **`cmp_reads`** is a template parameter: B1's is
+   `dllist_cmp_reads(p) = \initialized(&p->i)`.  The comparator contract
+   is `SGLIB_DL_LIST_CONTRACT_COMPARATOR`.
+5. **The comparator fix** above.
+
+Result (WP with Alt-Ergo, Z3, CVC5 and the Coq scripts): 341 goals
+(326 function goals, 15 lemmas), all proved: Qed 150, Alt-Ergo 168,
+CVC5 10, Z3 4, Coq 9 (`mem_cons`, `all_live_cons`, `all_init_cons`,
+`dll_frame`, `dll_links`, `dll_distinct`, `dll_of_links`,
+`list_insert`, and `add`'s `insert_list`).  `check.sh`: nine mutants,
+each rejected at its intended goal; new ones `nowashead` (add's
+`was_head` dropped: the driver's `head_after_add` fails) and `noassign`
+(`elem->previous` dropped from add's `assigns`: add's assigns goal
+fails).  `rac/check.sh` passes; the iterator's contracts are not
+executable there (`iter_ok` binds the whole list, for which gen_twins
+has no witness), so E-ACSL checks the other contracts.
 
 ## Next
 

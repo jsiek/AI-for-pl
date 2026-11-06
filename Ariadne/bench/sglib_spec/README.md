@@ -36,41 +36,91 @@ invocation.
 #include "ariadne_alloc.h"
 #include "sglib_dl_list_spec.h"      /* -I/ariadne/bench/sglib_spec */
 
-/*@ SGLIB_DL_LIST_SPEC(dllist, ptr_to_previous, ptr_to_next)
+/*@ // the fields the comparator reads (template parameter cmp_reads)
+    predicate dllist_cmp_reads{L}(dllist *p) = \initialized(&p->i);
+    SGLIB_DL_LIST_SPEC(dllist, ptr_to_previous, ptr_to_next,
+                       dllist_cmp_reads)
     SGLIB_DL_LIST_LEMMAS(dllist, ptr_to_previous, ptr_to_next) */
 
-/*@ SGLIB_DL_LIST_CONTRACT_ADD(dllist, ptr_to_previous, ptr_to_next, i) */
+/*@ SGLIB_DL_LIST_CONTRACT_ADD(dllist, ptr_to_previous, ptr_to_next) */
 void sglib_dllist_add(dllist **list, dllist *elem) { ...
-    /*@ SGLIB_DL_LIST_ANNOT_ADD_FRAME(dllist, ptr_to_previous, ptr_to_next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_LINKS(dllist, ptr_to_previous, ptr_to_next) */
 ```
 
 `../b1/b1.c` is the full instantiation (B1: `dllist`, `ptr_to_previous`,
-`ptr_to_next`); `../b1/b1_frozen.c` uses only the public macros.
+`ptr_to_next`); `../b1/b1_frozen.c` uses only the public macros;
+`../selftest/selftest_dl.c` instantiates the public macros at the
+self-test's `DoubleLinkedList`, `previous`, `next`, `st_cmp_reads`.
 
 | Macro | What | Public (Q11)? |
 |-------|------|---------------|
-| `SGLIB_DL_LIST_SPEC` | predicates `live`, `mem`, `all_live`, `all_init`, `dll`, `unchanged`, `live_dll`, `in_live_list`, `iter_ok` | yes |
-| `SGLIB_DL_LIST_CONTRACT_{ADD, GET_FIRST, GET_LAST, IT_INIT_ON_EQUAL, IT_INIT, IT_NEXT}` | the contracts of the seven verified functions (B1's driver `b1` has its own) | yes |
-| `SGLIB_DL_LIST_LEMMAS` | the eleven lemmas, in B1's order | no |
+| `SGLIB_DL_LIST_SPEC(type, previous, next, cmp_reads)` | predicates `live`, `mem`, `all_live`, `all_init` (links only), `dll`, `unchanged`, `all_cmp_reads`, `live_dll`, `in_live_list`, `heap_node`, `iter_at`, `iter_fields`, `iter_pre`, `iter_ok` | yes |
+| `SGLIB_DL_LIST_CONTRACT_{ADD, GET_FIRST, GET_LAST, IT_INIT_ON_EQUAL, IT_INIT, IT_NEXT}` | the contracts of the six verified sglib functions (B1's driver `b1` has its own) | yes |
+| `SGLIB_DL_LIST_CONTRACT_COMPARATOR(type, cmp_reads, a, b)` | the contract every comparator meets | yes |
+| `SGLIB_DL_LIST_LEMMAS` | the fifteen lemmas | no |
 | `SGLIB_DL_LIST_ANNOT_*` | the asserts and loop annotations inside those functions | no |
 
-### Not in sglib's parameters
+### The parameters
 
-- **The payload field.**  `add` requires `elem_init:
-  \initialized(&elem->i)`: the client must initialise the data before
-  adding the node, so that later reads of it are proved.  The field name
-  `i` is B1's, and sglib's macro has no parameter for it, so
-  `SGLIB_DL_LIST_CONTRACT_ADD` takes a fourth argument, `payload`.  (A
-  generic form, "every field but the links", is not expressible in ACSL
-  without naming the fields.)
-- **The comparator** is not a parameter: no annotation mentions it,
-  because none of the verified functions calls it (it is used by
-  `find_member`, `add_if_not_member`, `delete_if_member` and `sort`).
-  When those are verified, its contract (Q12) joins the public spec.
+- sglib's own: `type`, `previous`, `next`.  The comparator itself is not
+  a parameter of the list macros: none of the verified functions calls
+  it.
+- **`cmp_reads`** (owner's decision, 2026-11-05): a client predicate
+  naming the fields the comparators read; `all_cmp_reads(s)` lifts it to
+  a list, for the functions that compare nodes.
+- No payload parameter: `all_init` covers the links only (owner's
+  decision, 2026-11-05), and a client that reads its payload tracks its
+  initialisation itself (B1's driver: `payload_init`).
 - **Names.**  Predicate and lemma names do not depend on the
   parameters, so one translation unit holds one instantiation.  The
   iterator type is `struct sglib_<type>_iterator`, built with `##` as
   sglib does.
+
+### The comparator rule
+
+Every comparator, a function or a macro inlined at its call sites, must
+be proved free of runtime errors (WP with `-wp-rte`) under
+`SGLIB_DL_LIST_CONTRACT_COMPARATOR`: both arguments `\valid_read`, their
+`cmp_reads` fields initialised, `assigns \nothing`, and both blocks not
+freed (`!dead`, which every read needs under the `-ariadne` liveness
+model; a stack or global object is never dead).  For a macro the
+obligations are the RTE goals at each call site.
+
+- The self-test's `myListCmp` (a function): 7/7 goals proved under the
+  contract (`../selftest/cmp_wp.sh`; Qed 3, Alt-Ergo 3, CVC5 1).  Its
+  `e1->n - e2->n` is `unsigned`, so it cannot overflow; converting the
+  difference to `int` is implementation-defined, not undefined, and RTE
+  checks it only with `-warn-signed-downcast` (then
+  `typed_myListCmp_assert_rte_signed_downcast` stays open).
+- B1's `DLLIST_COMPARATOR` (a macro): its original subtraction
+  overflowed; fixed as bug fix #1 (`../b1/BUGFIXES.md`), after which
+  WP's simplifier proves its overflow goals at every call site.
+
+### Subcomparator: stopped (owner's decision 3, 2026-11-05)
+
+The owner asked for iterator contracts over a finite set of comparators,
+with private `calls` annotations at `it_next`'s two indirect calls, and to
+stop if WP 33 does not prove calls through a function pointer with
+`calls`.  `calls_probe/run.sh` checks both shapes (WP with Alt-Ergo, Z3,
+CVC5, `-wp-rte`):
+
+- **A call statement** (`/*@ calls cmp1, cmp2; */ r = f(x, y);`): WP
+  proves the call-point goal (`f` is one of the listed functions) and
+  each listed function's precondition at the call
+  (`typed_use_call_point_cmp1_cmp2_s10`, `typed_use_call_cmp1_requires`,
+  `typed_use_call_cmp2_requires`), and refuses a call whose arguments
+  miss a precondition (`typed_bad_call_cmp1_requires` stays open).
+- **A call inside a `while` condition**, the shape of sglib's `it_next`
+  (`while (ce != NULL && scp(eq, ce) != 0)`): `calls` can only be written
+  before the loop; Frama-C attaches it to the loop statement and WP
+  warns `Missing 'calls' for default behavior`: no call-point goal, the
+  call is treated as unknown, and the goals after it stay open.  A loop
+  annotation cannot sit between the `calls` and the loop either (syntax
+  error).
+
+So `calls` cannot be attached to sglib's indirect calls without changing
+sglib's code; the iterator contracts still require
+`subcomparator == \null`.
 
 ## Textual tools see the expansion
 
@@ -90,5 +140,6 @@ The expansion is token for token the ACSL of the hand-written b1.c
 (commit 3ba8421c and before): every predicate, contract, lemma and
 in-body annotation has the same comment-free, whitespace-normalised
 text (`guardrails.spec_items` and the in-body annotation list compared).
-WP produces the same 321 goals with the same names, and its cache
-reused the SMT results; see `../b1/README.md` for the numbers.
+WP produced the same 321 goals with the same names, and its cache
+reused the SMT results.  The owner's decisions of 2026-11-05 then
+changed the spec; `../b1/README.md` has the current numbers.

@@ -271,8 +271,17 @@ class Run:
                 fh.write("(timeout: --max-seconds used up)\n")
                 self.report["cap_hit"] = "max_seconds"
                 if name:
-                    subprocess.run(["docker", "stop", "-t", "2", name],
-                                   capture_output=True)
+                    # the container may still be starting (the client
+                    # was killed before or while it was created): remove
+                    # it by name for a few seconds, until none is left
+                    for _ in range(6):
+                        subprocess.run(["docker", "rm", "-f", name],
+                                       capture_output=True)
+                        if not subprocess.run(
+                                ["docker", "ps", "-aq", "--filter",
+                                 f"name={name}"], capture_output=True,
+                                text=True).stdout.strip():
+                            time.sleep(1)
                 return 124
 
     def step(self, name, fn):

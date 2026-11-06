@@ -12,26 +12,39 @@ The textual tools (the guardrails' spec hashes and lints, the RAC
 pipeline's clause rewriting) must see the ACSL that Frama-C sees, so
 they work on the expanded text this module produces.
 
-How: one cpp run (`cpp -P -std=c11`, the language mode of Frama-C's own
-annotation preprocessing) over the source's `#include "..."`, `#define`
-and `#undef` lines and the annotation bodies, in source order, each body
-between two marker lines.  An annotation whose expansion differs from
-its own text (comments dropped, whitespace collapsed) is replaced by
-the expansion, on one line followed by as many newlines as the original
-body had, so every later line keeps its number; any other annotation,
-and all C code, is left byte for byte.  System headers (`#include <...>`)
-and conditionals (`#if...`) are not read, so a macro from a system
-header is not expanded inside annotations (none of the benchmarks uses
-one there).  `keep` names annotations left as they are when their whole
-text is one of the names (the RAC pipeline keeps `ARIADNE_ALLOC` and
-`ARIADNE_FREE`, which its rac.h redefines for runtime checking).
+How: Frama-C's own expansion, not an imitation.  Frama-C 33 runs, on
+the whole source, its C preprocessing (`gcc -E -C -dD` with its libc,
+its machdep headers, `-imacros __fc_builtin_macros.h`, `-std=c11`, and
+`-cpp-extra-args`), then its logic preprocessing: every *active*
+annotation, with the `#define` / `#undef` lines active before it, goes
+through `gcc -E -C -std=c11`, and the result (`cppannot*.c`) holds each
+annotation's expansion after a `# LINE "FILE"` marker.  This module runs
+`frama-c -keep-temp-files` on the source with the benchmark's
+`cpp_args`, reads that file, and takes the blocks of the source file
+itself.  So `#if` / `#ifdef` / `#else`, system headers, includes and
+pragmas mean exactly what they mean to Frama-C.
 
-cpp is the image's (gcc 12): this module calls it directly inside the
-M0 image and through ../env/run.sh outside it, so the expansion, and the
+The result: each annotation of the source is matched with its block by
+start line (and order within a line).  One whose expansion differs from
+its own text (comments dropped, whitespace collapsed) is replaced by the
+expansion, on one line followed by as many newlines as the original
+body had, so every later line keeps its number; other annotations and
+all C code are left byte for byte.  An annotation with no block sits in
+an inactive branch (`#if 0`, `#else` of a true `#if`): Frama-C never
+reads it, so it is **removed** (blanked, line count kept).  A block with
+no annotation of the source is an error.  `keep` names annotations left
+as they are when their whole text is one of the names (the RAC pipeline
+keeps `ARIADNE_ALLOC` and `ARIADNE_FREE`, which its rac.h redefines for
+runtime checking).
+
+Frama-C is the image's: this module calls it directly inside the M0
+image and through ../env/run.sh outside it, so the expansion, and the
 hashes over it, do not depend on the host."""
 import argparse
+import glob
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -41,6 +54,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ARIADNE = os.path.dirname(HERE)
 RUN = os.path.join(ARIADNE, "env", "run.sh")
 IN_IMAGE = os.path.isdir("/ariadne") and shutil.which("frama-c") is not None
+SRC = "ariadne_src.c"
 
 
 def annotations(text):
@@ -82,62 +96,78 @@ def acsl_code(body):
     return " ".join(re.sub(r"//[^\n]*", "", body).split())
 
 
-DIRECTIVE = re.compile(r'^[ \t]*#[ \t]*(?:define|undef|include[ \t]*")'
-                       r'(?:[^\n]*\\\n)*[^\n]*', re.M)
-BEGIN, END = "__ariadne_expand_begin_{}__", "__ariadne_expand_end_{}__"
+BLOCK = re.compile(r"/+__ANNOT_BEG__\n#\s*(\d+)\s+\"([^\"]*)\"[^\n]*\n"
+                   r"(.*?)/+__ANNOT_END(?:_NL)?__", re.S)
 
 
-def cpp_input(text, anns):
-    """The cpp input: directives and marked annotation bodies, in order."""
-    parts, last = [], 0
-    for k, (_, s, e, body) in enumerate(anns):
-        parts += [m.group(0) for m in DIRECTIVE.finditer(text, last, s)]
-        parts += [BEGIN.format(k), body, END.format(k)]
-        last = e
-    parts += [m.group(0) for m in DIRECTIVE.finditer(text, last)]
-    return "\n".join(parts) + "\n"
+def _decode(s):
+    """Undo Frama-C's encoding of annotations for cpp (backslashes and
+    non-ASCII bytes)."""
+    s = s.replace("__ANNOT_BACKSLASH__", "\\")
+    return re.sub(r"(?:__FC_UTF8_\d+)+",
+                  lambda m: bytes(int(x) for x in re.findall(
+                      r"__FC_UTF8_(\d+)", m.group(0))).decode(
+                          "utf-8", "replace"), s)
 
 
-def run_cpp(src_text, cpp_args, work=None):
-    """`cpp -P cpp_args` of src_text in the image: (returncode, stdout,
-    stderr)."""
+def frama_c_blocks(text, cpp_args, work):
+    """Frama-C's own expansion of the active annotations of text:
+    {line: [expansion, ...]} for the annotations of the source file."""
+    open(os.path.join(work, SRC), "w").write(text)
+    os.makedirs(os.path.join(work, "tmp"))
+    script = (f"TMPDIR=\"$PWD/tmp\" frama-c "
+              f"-cpp-extra-args={shlex.quote(cpp_args)} {SRC} "
+              "-keep-temp-files")
+    cmd = ["sh", "-c", script] if IN_IMAGE else [RUN, "sh", "-c", script]
+    r = subprocess.run(cmd, cwd=work, capture_output=True, text=True)
+    files = glob.glob(os.path.join(work, "tmp", "cppannot*.c"))
+    if len(files) != 1:
+        raise RuntimeError("acsl_expand: Frama-C's annotation preprocessing "
+                           "did not run:\n" + (r.stdout + r.stderr)[-2000:])
+    blocks = {}
+    for m in BLOCK.finditer(open(files[0]).read()):
+        if os.path.basename(m.group(2)) == SRC:
+            # comments dropped, then one line (as acsl_code does)
+            blocks.setdefault(int(m.group(1)), []).append(
+                acsl_code(_decode(m.group(3))))
+    return blocks
+
+
+def expand(text, cpp_args, work=None, keep=()):
+    """The text with the macros inside its annotations expanded and its
+    inactive annotations removed (see the module comment); raises
+    RuntimeError if Frama-C's preprocessing does not run or does not
+    match the source's annotations."""
+    src_anns = annotations(text)
+    if not src_anns:
+        return text
     if work is None and not IN_IMAGE:
         work = os.path.join(ARIADNE, "runs")  # mounted by env/run.sh
     d = tempfile.mkdtemp(dir=work, prefix="expand_")
     try:
-        with open(os.path.join(d, "in.c"), "w") as f:
-            f.write(src_text)
-        cmd = (["cpp"] if IN_IMAGE else [RUN, "cpp"]) \
-            + ["-P", "-std=c11"] + cpp_args.split() + ["in.c"]
-        r = subprocess.run(cmd, cwd=d, capture_output=True, text=True)
-        return r.returncode, r.stdout, r.stderr
+        blocks = frama_c_blocks(text, cpp_args, d)
     finally:
         shutil.rmtree(d, ignore_errors=True)
-
-
-def expand(text, cpp_args, work=None, keep=()):
-    """The text with the macros inside its annotations expanded (see the
-    module comment); raises RuntimeError if cpp fails."""
-    anns = annotations(text)
-    if not anns:
-        return text
-    rc, out, err = run_cpp(cpp_input(text, anns), cpp_args, work)
-    if rc:
-        raise RuntimeError("acsl_expand: cpp failed:\n" + err[-2000:])
-    found = {int(m.group(1)): " ".join(m.group(2).split())
-             for m in re.finditer(r"__ariadne_expand_begin_(\d+)__(.*?)"
-                                  r"__ariadne_expand_end_\1__", out, re.S)}
-    if len(found) != len(anns):
-        raise RuntimeError("acsl_expand: lost annotation markers")
     pieces, last = [], 0
-    for k, (_, s, e, body) in enumerate(anns):
-        if found[k] == acsl_code(body) or acsl_code(body) in keep:
+    for _, s, e, body in src_anns:
+        line = text.count("\n", 0, s) + 1
+        here = blocks.get(line)
+        if not here:   # inactive branch: Frama-C does not read it
+            pieces += [text[last:s], " ", "\n" * body.count("\n")]
+            last = e
+            continue
+        exp = here.pop(0)
+        if exp == acsl_code(body) or acsl_code(body) in keep:
             continue
         head = text[s:s + 3]
         tail = "" if head == "//@" else "*/"
-        pieces += [text[last:s], head, " ", found[k], " ",
+        pieces += [text[last:s], head, " ", exp, " ",
                    "\n" * body.count("\n"), tail]
         last = e
+    if any(blocks.values()):
+        raise RuntimeError("acsl_expand: Frama-C read an annotation that is "
+                           "not in the source: " + repr(
+                               [k for k, v in blocks.items() if v]))
     pieces.append(text[last:])
     return "".join(pieces)
 

@@ -21,6 +21,9 @@
 #   2. twins: unit tests on good and corrupt heaps, under ASan + UBSan;
 #   3. E-ACSL: RTE (-rte-initialized @all, as for WP), then E-ACSL with the
 #      twins as builtins, linked with the twins compiled apart; run;
+#   3b. coverage: b1.c again under gen_rac.py --cov and
+#      ../../../rac/rac_collect.c; per-clause report build/coverage.md
+#      (../../../rac/coverage.py); fails if a check fails;
 #   4. mutants: steps 1 and 3 on each mutant; a table of what fired.
 # b1.c must pass every step; each mutant must give the outcome recorded
 # in `expect` below (so a change in what is caught shows up as FAIL).
@@ -69,6 +72,12 @@ for v in orig $MUTANTS; do
   python3 -I gen_rac.py "$B/src/$v.c" "$B/$v" "$TW" > "$B/$v/gen.log" ||
     { cat "$B/$v/gen.log"; echo "FAIL: gen_rac.py on $v"; exit 1; }
 done
+# the coverage build of b1.c (step 3b): clauses named rac_cov_<n>, side
+# probes (gen_rac.py --cov)
+mkdir -p "$B/cov"
+cp "$B/src/orig.c" "$B/src/cov.c"
+python3 -I gen_rac.py "$B/src/cov.c" "$B/cov" "$TW" --cov > "$B/cov/gen.log" ||
+  { cat "$B/cov/gen.log"; echo "FAIL: gen_rac.py --cov"; exit 1; }
 echo "step 0 (generate twins, b1_rac.c x8): $(lap "$t") s; $(cat "$TW.log" | head -1)"
 echo "    $(cat "$B/orig/gen.log")"
 if [ -n "$quick" ]; then
@@ -143,8 +152,9 @@ fi
 echo "step 2 (twin unit tests): $(lap "$t") s"
 
 # ---- 3. E-ACSL -------------------------------------------------------
-eacsl_build() {  # eacsl_build <variant>
+eacsl_build() {  # eacsl_build <variant> [extra e-acsl-gcc options]
   d=$B/$1
+  extra=${2:-}
   ( cd "$d" &&
     cp ../../rac.h ../twins/rac_twins.h "$RAC/rac_rt.h" ../../rac_alloc.c \
        ../../rac_main.c . &&
@@ -157,7 +167,7 @@ eacsl_build() {  # eacsl_build <variant>
     gcc -std=c99 -O1 -g -c -I. ../twins/rac_twins.c -o rac_twins.o &&
     gcc -std=c99 -O1 -g -c -I. "$RAC/rac_rt.c" -o rac_rt.o &&
     e-acsl-gcc -c -F "-e-acsl-builtins=$BUILTINS -e-acsl-no-assert-print-data" \
-      -l "$PWD/rac_twins.o $PWD/rac_rt.o" \
+      $extra -l "$PWD/rac_twins.o $PWD/rac_rt.o" \
       -e "-include $PWD/rac_twins.h" -o b1_rac.frama.c -O b1_rac \
       b1_rac.rte.c ) > "$d/eacsl.build.log" 2>&1
 }
@@ -181,6 +191,26 @@ fi
 python3 -I classify.py warnings "$B/orig/eacsl.build.log" > "$B/eacsl_warnings.txt"
 echo "E-ACSL ignored $(grep -c 'Ignoring annotation' "$B/eacsl_warnings.txt") annotation(s) of b1_rac.rte.c (all warnings: build/eacsl_warnings.txt):"
 grep 'Ignoring annotation' "$B/eacsl_warnings.txt" | sed 's/^/    /'
+
+# ---- 3b. coverage (plan Q11 step 0) ----------------------------------
+# b1.c's driver under the coverage build: ../../../rac/rac_collect.c
+# counts every evaluation of every check and lets the run go on; the
+# report (build/coverage.md) gives, per clause, its evaluations, failures
+# and the sides of implications and disjunctions that held, and lists the
+# clauses not checked at run time with the reason.
+t=$(now)
+if eacsl_build cov "--external-assert $RAC/rac_collect.c"; then
+  eacsl_run cov
+  grep '^COV' "$B/cov/eacsl.log" | cut -f2- > "$B/cov.driver.tsv"
+  grep -E '^(FAILED|checks failed)' "$B/cov/eacsl.log" | sed 's/^/    /'
+  grep -q '^checks failed: 0 distinct' "$B/cov/eacsl.log" || status=1
+  python3 -I "$RAC/coverage.py" "$B/cov/coverage_map.json" \
+    "$B/cov/annotations.txt" "$B/coverage.md" driver="$B/cov.driver.tsv"
+else
+  echo "FAIL: E-ACSL coverage build of b1.c:"; tail -30 "$B/cov/eacsl.build.log"
+  status=1
+fi
+echo "step 3b (coverage, b1.c): $(lap "$t") s"
 
 # ---- 4. mutants ------------------------------------------------------
 # expect <mutant>: the sanitizer outcome and the E-ACSL outcome, as

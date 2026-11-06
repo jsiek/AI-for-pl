@@ -332,6 +332,8 @@ by the step bound), a freed node in a path.
 | `gen_twins.py` | the generator |
 | `dump/logic_dump.ml` | Frama-C plugin: logic declarations as JSON (`-logic-dump`) |
 | `rac_rt.h`, `rac_rt.c` | runtime: allocation registry (with `rac_reg_count` / `rac_reg_nth` for `gen_rac.py`'s pointer ranges, and `rac_keep_freed`), list values (`rac_index`), step bound (spec-independent, hand-written) |
+| `rac_collect.c` | E-ACSL assertion function for step 0's coverage builds: counts every evaluation of every check, never stops; prints failures and `COV` lines at exit |
+| `coverage.py` | step 0's per-clause coverage report (plan Q11) from `gen_rac.py --cov`'s map and the `COV` lines |
 | `tests/check.sh` | generality tests |
 | `tests/shapes.c`, `shapes.h`, `shapes_test.c` | `lseg`, `tree`, `bst`, and the unit test of their twins |
 | `tests/guards.c`, `guards.h`, `guards_test.c` | review regressions: indexed reads, guards under `?:` / `==>` / `\|\|`, two list element types |

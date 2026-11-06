@@ -108,15 +108,118 @@ void *st_malloc(size_t n) {
 void st_free(void *p) {
   if (p) {
     rac_reg_free(p);
+#ifdef RAC_KEEP_FREED   /* E-ACSL build: as ../b1/rac/rac_alloc.c */
+    rac_keep_freed = 1;
+#else
     free(p);
+#endif
   }
 }
 
 #endif
 
+/* Random operation sequences over the specified API (rac.sh, mode
+   `ops`): several lists, `add` at any node, get_first / get_last from any
+   node, iteration from any node with and without myListCmp (partial or
+   complete), reverse (no contract: a state change between checked calls)
+   and frees, the whole list at once while iterating (as B1's driver
+   does).  Every call meets the contracts' preconditions by construction;
+   the contracts are what E-ACSL checks.  The lists are kept as arrays of
+   their nodes (membership only: any node is a valid start). */
+#define ST_LISTS 3
+#define ST_MAXN 48
+
+static unsigned long st_rng;
+static unsigned st_rand(unsigned n) {
+  st_rng = st_rng * 6364136223846793005UL + 1442695040888963407UL;
+  return (unsigned)(st_rng >> 33) % n;
+}
+
+static DoubleLinkedList *st_any(DoubleLinkedList **nodes, int len) {
+  return len ? nodes[st_rand(len)] : NULL;
+}
+
+static void st_free_all(DoubleLinkedList **nodes, int *len) {
+  struct sglib_DoubleLinkedList_iterator it;
+  DoubleLinkedList *l;
+  for (l = sglib_DoubleLinkedList_it_init(&it, st_any(nodes, *len));
+       l != NULL; l = sglib_DoubleLinkedList_it_next(&it))
+    st_free(l);
+  *len = 0;
+}
+
+static unsigned long st_ops(unsigned seed, int nops) {
+  static DoubleLinkedList *nodes[ST_LISTS][ST_MAXN];
+  int len[ST_LISTS] = {0};
+  struct sglib_DoubleLinkedList_iterator it;
+  DoubleLinkedList te, *l, *h;
+  unsigned long sum = 0;
+  st_rng = seed;
+  for (int op = 0; op < nops; op++) {
+    int k = (int)st_rand(ST_LISTS);
+    switch (st_rand(9)) {
+    case 0: case 1: case 2:   /* add before any node (or to an empty list) */
+      if (len[k] < ST_MAXN) {
+        DoubleLinkedList *e = st_malloc(sizeof(struct MyIntList));
+        if (!e)
+          break;
+        e->n = st_rand(6);
+        h = st_any(nodes[k], len[k]);
+        sglib_DoubleLinkedList_add(&h, e);
+        nodes[k][len[k]++] = e;
+      }
+      break;
+    case 3:
+      l = sglib_DoubleLinkedList_get_first(st_any(nodes[k], len[k]));
+      sum += l ? l->n : 0;
+      break;
+    case 4:
+      l = sglib_DoubleLinkedList_get_last(st_any(nodes[k], len[k]));
+      sum += l ? l->n : 0;
+      break;
+    case 5: {                 /* iterate from any node, maybe partly */
+      int steps = (int)st_rand(len[k] + 2);
+      for (l = sglib_DoubleLinkedList_it_init(&it, st_any(nodes[k], len[k]));
+           l != NULL && steps-- > 0; l = sglib_DoubleLinkedList_it_next(&it))
+        sum += l->n;
+      break;
+    }
+    case 6: {                 /* iterate over the nodes equal to te */
+      te.n = st_rand(6);
+      int with_cmp = st_rand(2);
+      for (l = sglib_DoubleLinkedList_it_init_on_equal(
+               &it, st_any(nodes[k], len[k]), with_cmp ? myListCmp : NULL,
+               with_cmp ? &te : NULL);
+           l != NULL; l = sglib_DoubleLinkedList_it_next(&it))
+        sum += l->n;
+      break;
+    }
+    case 7:                   /* reverse: a state change, not specified */
+      if (len[k]) {
+        h = st_any(nodes[k], len[k]);
+        sglib_DoubleLinkedList_reverse(&h);
+      }
+      break;
+    case 8:                   /* free the whole list while iterating */
+      if (st_rand(3) == 0)
+        st_free_all(nodes[k], &len[k]);
+      break;
+    }
+  }
+  for (int k = 0; k < ST_LISTS; k++)
+    st_free_all(nodes[k], &len[k]);
+  return sum;
+}
+
 int main(int argc, char **argv) {
   srandom(argc > 1 ? (unsigned)atoi(argv[1]) : 1);
   st_zero_nodes = argc > 2 && strcmp(argv[2], "zero") == 0;
+  if (argc > 2 && strcmp(argv[2], "ops") == 0) {
+    unsigned long sum = st_ops((unsigned)(argc > 1 ? atoi(argv[1]) : 1),
+                               argc > 3 ? atoi(argv[3]) : 400);
+    printf("ops: done (checksum %lu)\n", sum);
+    return 0;
+  }
   /* Probes (rac.sh): one add of a fresh node to an empty list, with only
      n written, as the self-test does (`probe`), or every field
      (`probefull`). */

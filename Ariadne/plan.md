@@ -553,6 +553,141 @@ invariant is only needed for functional correctness and is stretch work.
     with B1a.  The B1a/B1b numbers recorded so far are not a fair
     comparison: each was run once, and the VST run had the finished
     Frama-C spec to work from.
+    **First run: B1a, one run per side (owner, 2026-11-06; `q10/`).**
+    Two arms (Frama-C alone, VST alone), one paid run each, about $21
+    in all; a side that reaches its cap stops and reports what it has,
+    and no paid run is repeated without the owner.
+    *   *Scope.*  B1a is `sglib_dllist_add`,
+        `sglib_dllist_it_init_on_equal`, `sglib_dllist_it_init`,
+        `sglib_dllist_it_next` and the driver `b1`: build a list with
+        `add`, walk it forward from its head, free every node while
+        iterating.  The code is after bug fix #1 and refactor #1
+        (`bench/b1/CHANGES.md`).  `get_first`, `get_last` and the
+        backward walk are B1b and are left out.
+    *   *Same task.*  One English spec of B1a's public contracts as they
+        stand on `ariadne-templates` (`bench/b1a/SPEC.md`), and the same
+        C code, written by `bench/b1a/make_b1a.py` from B1 (sglib code
+        verbatim from `b1_gen.c`, contracts verbatim from
+        `b1_frozen.c`): `b1a.c` for VST (real `malloc`/`free`, a `main`
+        on a 4-element array) and `b1a_frozen.c` for Frama-C (the ghost
+        allocators and their labels, no `main`).
+    *   *Frama-C side: the pipeline.*  `harness.py ../bench/b1a --config
+        b1a_frozen.json --annotator opus --prove-scope lemmas --tiers 0,2
+        --opus-usd 3 --opus-turns 150 --opus-wp-calls 25 --claude-usd 1
+        --annotator-retries 1 --max-iterations 3 --max-usd 6
+        --max-seconds 7200` (turns and `wp` calls as in M3).  No step 0:
+        B1's runtime-check driver (`bench/b1/rac`) has
+        an oracle for B1's return value (the backward walk ends at the
+        head), which B1a's driver does not meet; step 0 is only a
+        filter, WP still decides every patch.  The input
+        is the frozen public ACSL spec (Q11: the human fixes the public
+        spec) with no private annotations, lemmas or Coq proofs.  The
+        annotator gets only the public half of the spec template
+        (`bench/b1a/spec/`, written by `make_b1a.py`): the whole
+        template also holds the human's private lemma and annotation
+        macros, which the annotator could otherwise invoke by name.
+        `--max-usd` (new) caps the run's total spending: a call whose cap
+        would pass it is refused.
+    *   *VST side: a fresh agent.*  `q10/run_vst.py`: one `claude -p
+        --model claude-opus-5-5 --max-budget-usd 15` in
+        `runs/q10/vst-<time>/` (git-ignored), holding `b1a.c`, `SPEC.md`,
+        `TASK.md` and VST's smoke test (`vst/smoke`, not B1) as an
+        example.  Task: a representation predicate and funspecs as
+        general as SPEC.md, `semax_body` for the five functions and
+        `main` ending in `Qed`, and `semax_prog`.  No access to the
+        existing proofs: `vst/b1/` is not copied, and the prompt forbids
+        reading outside the run directory except the VST/Rocq
+        installation.  Fence: cwd the run directory; `--safe-mode
+        --restricted --strict-mcp-config`; tools Bash, Read, Write, Edit;
+        Read/Write/Edit allowed only in the run directory; the only
+        command is a tool script outside the run directory (so the agent
+        cannot edit it) that runs one command in the VST image with only
+        the run directory mounted and no network; `git` and
+        `Ariadne/vst/b1/**` denied; `--permission-mode dontAsk`;
+        `GIT_DIR`, `GIT_CEILING_DIRECTORIES` set.  The fence actually
+        used is recorded in the run's `fence.json`.
+    *   *Measured per side:* wall time; tokens (input, output, cache
+        creation, cache read) and USD from `claude -p`'s JSON result;
+        model calls (`claude -p` invocations and their turns); what was
+        proved and what was left open; mutant rejection; and the size of
+        the human-facing public spec (lines).
+    *   *Mutants* (`q10/mutants.py`): B1's nine, as they apply to B1a.
+        C-level, the same edit on both sides: `uaf` (the forward walk
+        moved after the free loop), `nullchk`, `noinit`.  Spec-level
+        (Frama-C): `vacuity`, `nowashead`, `noassign`; VST analogues:
+        `vacuity` is `semax_prog` (a real call from `main` meets `b1`'s
+        precondition), `nowashead` is the new-head fact removed from
+        `add`'s funspec by hand, and `noassign` has none (VST frames by
+        ownership, there is no `assigns` clause to weaken).  `uaf_back`,
+        `nullfirst` and `nulllast` change B1b code and do not apply.
+        Frama-C (`q10/check_wp.py`): WP on the mutant of the final
+        annotated source with the run's Coq proofs; rejected if a goal of
+        the mutated function stays open.  VST (`q10/check_vst.py`): the
+        mutant C through `clightgen`; rejected if `coqc verif_b1a.v`
+        fails.
+    *   *Dry runs first, no paid calls:* the harness with `--tiers 0` and
+        no annotator (census, guardrails, step 0), and `run_vst.py
+        --dry-run` (the run directory, prompt and command line printed,
+        the tool script exercised by hand).  **Done:** the harness on
+        `b1a_frozen.c` (no annotator): 213 function goals, 185 closed
+        (Qed 135, Alt-Ergo 46, CVC5 2, Z3 2), 28 open (`b1` 23, `add` 3,
+        `it_init_on_equal` 1, `it_next` 1); every guardrail passes; the
+        frozen spec is B1's minus `get_first`/`get_last` (23 items, each
+        with B1's hash).  The annotator's directory gets a template with
+        no private macro.  VST: `clightgen` and `coqc` of `b1a.c` and of
+        the smoke example through the tool script; inside it there is
+        no `/ariadne`, no network, only the run directory at `/work`.
+    *   **Result (2026-11-06, `q10/README.md`).**  Frama-C pipeline: 253
+        of 263 goals, stopped by the $6 run cap at $5.09 (9 `claude -p`
+        calls, 3.52 M tokens, 2338 s); open: `add`'s `in_live_list`
+        postcondition, 4 goals of `b1`, 5 lemmas.  VST agent: all six
+        functions and `semax_prog` with `Qed` for $4.39 (one call, 162
+        turns, 7.79 M tokens, 2373 s); its funspecs match SPEC.md, in
+        places stronger.  Mutants: WP rejects all six that apply at the
+        intended goal; the VST proof breaks on each C-level mutant and
+        on `nowashead`, but by tactic mismatch, not at a refused
+        obligation.  Not a fair race: the VST agent wrote its own
+        funspecs, the Frama-C spec is the index-based liveness
+        formulation, and the pipeline's per-call caps left $0.91 of its
+        $6 unusable.
+    *   **Rerun of the Frama-C side, twice (owner, 2026-11-06).**  No VST
+        rerun.  Fixes first, each with an offline test:
+        1.  The report crash of `wp-run2`: `markdown()` read
+            `projected_pct` from every budget refusal, and a run-cap
+            refusal has `error` instead (`harness/test_report.py`).
+        2.  `run_vst.py` reserves its cap in the ledger before the call
+            (`--ledger`), so a calibrated or explicit limit can refuse it
+            (`q10/test_run_vst.py`).
+        3.  Under `--max-usd`, a call's cap is min(its per-call cap, what
+            the run has left), so a run can spend its whole budget; the
+            per-call caps stay upper bounds (`test_budget.py`,
+            `test_annotator.py`).
+        4.  Step 0 on for B1a: `bench/b1a/rac/check.sh` (B1's runtime-
+            check tools with B1a's oracle: the forward walk ends at
+            `input[0]`), with sanitizers, E-ACSL with the twins,
+            coverage, and B1a's runtime mutants (`vacuity`, `uaf`,
+            `nullchk`, `noinit`, from `q10/mutants.py`, so they fit any
+            annotated source).  Reference: `bench/b1a/b1a_ref.c`, B1's
+            certified annotations on B1a's driver (WP 313/313,
+            `run_ref.sh`).
+        Runs `wp-run3`, `wp-run4`, one after the other: `wp-run2`'s
+        command with step 0 and `--max-usd 10`.  The ledger is
+        calibrated (`budget.py calibrate`: 8% of the week over $73.87,
+        0.108% per USD).
+        **Result (`q10/README.md`, "All runs").**  `wp-run4`:
+        **certified, 303 / 303** (Qed 173, SMT 122, Coq 8) for $7.11 in
+        3043 s (3 annotator and 8 prover calls, 5.66 M tokens); WP rejects
+        all six mutants.  `wp-run3`: 234 / 249, 15 function goals open,
+        $7.04 in 2894 s; one annotator call was lost to a step-0 tooling
+        bug (the mutant anchors, fixed during the run), and the retry's
+        patch was rejected by a real E-ACSL check.  Step 0 passed on the
+        frozen source and each first patch with every clause evaluated,
+        caught the four runtime mutants each time, and was inconclusive
+        on `wp-run4`'s last two patches (E-ACSL could not build a ghost
+        variable).  The run cap was not reached in either rerun.  Against
+        VST's $4.39 for all six functions in one run, the Frama-C side
+        needs about $7 when it finishes, on a harder (index-based,
+        liveness-model) spec that the human gave it.
 *   **Q11 — Human interaction and final products.  To do: discuss with
     the owner.**  M3 shows the pipeline can certify B1 from frozen
     contracts with no human annotation.  Still to settle:

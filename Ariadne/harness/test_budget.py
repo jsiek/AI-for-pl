@@ -165,5 +165,34 @@ expect("ccusage: totals.totalCost",
 expect("ccusage: sum of daily totalCost",
        budget.ccusage_cost({"daily": [{"totalCost": 1.5},
                                       {"totalCost": 2.0}]}) == 3.5)
+# RunCap (--max-usd): a call's cap is min(per-call cap, what is left).
+d = tempfile.mkdtemp()
+try:
+    rc = budget.RunCap(budget.Ledger(os.path.join(d, "l.json")), 6.0)
+    g1 = rc.reserve("annotator", "m", 3.0)
+    g2 = rc.reserve("prover", "m", 3.0)
+    g3 = rc.reserve("prover", "m", 1.0)
+    expect("run cap: two $3 calls take $6; nothing left, a third refused",
+           g1["ok"] and g1["usd"] == 3.0 and g2["ok"] and not g3["ok"]
+           and "run cap" in g3["error"], g3)
+    rc.charge("annotator", {"m": {"cost_usd": 2.5}}, reservation=g1["id"])
+    rc.release(g2["id"])
+    g4 = rc.reserve("annotator", "m", 3.0)  # $3.50 left: the full $3
+    g5 = rc.reserve("prover", "m", 1.0)     # $0.50 left: a $0.50 call
+    expect("run cap: a charge counts what was spent, a release frees",
+           g4["ok"] and g4["usd"] == 3.0 and rc.spent == 2.5, g4)
+    expect("run cap: the last call gets what is left, not a refusal",
+           g5["ok"] and g5["usd"] == 0.5, g5)
+    rc.charge("prover", {"m": {"cost_usd": 0.5}}, reservation=g5["id"])
+    rc.charge("annotator", {"m": {"cost_usd": 2.97}}, reservation=g4["id"])
+    g6 = rc.reserve("prover", "m", 1.0)     # $0.03 left: below the minimum
+    expect("run cap: below $0.05 left, refused",
+           not g6["ok"] and "0.03 left" in g6["error"], g6)
+    big = budget.RunCap(budget.Ledger(os.path.join(d, "l2.json")), 100.0)
+    g7 = big.reserve("prover", "m", 1.0)
+    expect("run cap: the per-call cap stays an upper bound",
+           g7["ok"] and g7["usd"] == 1.0, g7)
+finally:
+    shutil.rmtree(d)
 print(f"{'FAIL' if fails else 'PASS'}: {len(fails)} failed")
 sys.exit(1 if fails else 0)

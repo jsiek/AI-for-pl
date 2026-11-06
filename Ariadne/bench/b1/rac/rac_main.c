@@ -13,7 +13,9 @@
    it returns the last value it stored, input[m - 1] for the m nodes it
    built (m = n, or rac_fail_at under injection), or 0 when m = 0.  The
    oracle is ours, not part of b1.c's spec; check.sh reports its failures
-   separately from sanitizer and E-ACSL failures.
+   separately from sanitizer and E-ACSL failures.  With RAC_ORACLE_B1A
+   (../../b1a/rac/check.sh) the oracle is B1a's: only the forward walk,
+   so input[0], or 0 when m = 0.
 
    In the E-ACSL build this file is #included at the end of b1_rac.c (so
    main's mallocs are tracked too); in the sanitizer builds it is compiled
@@ -59,7 +61,12 @@ int main(int argc, char **argv) {
       injected++;
     }
     int m = rac_fail_at >= 0 ? (int)rac_fail_at : n;
+#ifdef RAC_ORACLE_B1A
+    /* B1a's driver: only the forward walk, ending at input[0] */
+    int expected = m > 0 ? input[0] : 0;
+#else
     int expected = m > 0 ? input[m - 1] : 0;
+#endif
     int got = b1(input, n);
     if (got != expected) {
       fprintf(stderr,

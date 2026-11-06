@@ -831,6 +831,11 @@ invariant is only needed for functional correctness and is stretch work.
         both indirect calls with `calls` (call point and the
         comparator's preconditions) in the self-test's instantiation,
         `bench/selftest/wp/`.
+    *   **Approved (owner, 2026-11-06):** the counted-list notation for
+        the allowed comparators, `(n, f1, ..., fn)` with n from 0 to 4
+        (B1: `(0)`; the self-test: `(1, myListCmp)`).  The count is
+        explicit because Frama-C preprocesses annotations as C11, where
+        an empty macro argument list cannot be detected.
 
 ---
 

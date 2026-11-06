@@ -824,7 +824,13 @@ invariant is only needed for functional correctness and is stretch work.
         (`while (ce != NULL) { if (scp(eq, ce) == 0) break; ce =
         ce->previous; }`, and the same forward), in B1's instantiation
         only (the vendored sglib stays unmodified); then decision 3 as
-        approved originally.
+        approved originally.  **Done:** the refactor is change #2 in
+        `bench/b1/CHANGES.md` (the self-test gives the same output on
+        both versions under ASan+UBSan, seeds 1, 7, 12345); the iterator
+        contracts take the comparator set `(n, f1, ..., fn)`; WP proves
+        both indirect calls with `calls` (call point and the
+        comparator's preconditions) in the self-test's instantiation,
+        `bench/selftest/wp/`.
 
 ---
 

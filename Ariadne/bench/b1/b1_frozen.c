@@ -529,7 +529,7 @@ void sglib_dllist_reverse(dllist **list) {
   };
 }
 /*@ SGLIB_DL_LIST_CONTRACT_IT_INIT_ON_EQUAL(
-      dllist, ptr_to_previous, ptr_to_next) */
+      dllist, ptr_to_previous, ptr_to_next, dllist_cmp_reads, (0)) */
 dllist *sglib_dllist_it_init_on_equal(struct sglib_dllist_iterator *it,
                                       dllist *list,
                                       int (*subcomparator)(dllist *, dllist *),
@@ -549,7 +549,8 @@ dllist *sglib_dllist_it_init(struct sglib_dllist_iterator *it, dllist *list) {
 dllist *sglib_dllist_it_current(struct sglib_dllist_iterator *it) {
   return (it->currentelem);
 }
-/*@ SGLIB_DL_LIST_CONTRACT_IT_NEXT(dllist, ptr_to_previous, ptr_to_next) */
+/*@ SGLIB_DL_LIST_CONTRACT_IT_NEXT(dllist, ptr_to_previous, ptr_to_next,
+                                    (0)) */
 dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it) {
   dllist *ce, *eq;
   int (*scp)(dllist *, dllist *);

@@ -12,7 +12,8 @@ The textual tools (the guardrails' spec hashes and lints, the RAC
 pipeline's clause rewriting) must see the ACSL that Frama-C sees, so
 they work on the expanded text this module produces.
 
-How: one cpp run (`cpp -P`) over the source's `#include "..."`, `#define`
+How: one cpp run (`cpp -P -std=c11`, the language mode of Frama-C's own
+annotation preprocessing) over the source's `#include "..."`, `#define`
 and `#undef` lines and the annotation bodies, in source order, each body
 between two marker lines.  An annotation whose expansion differs from
 its own text (comments dropped, whitespace collapsed) is replaced by
@@ -107,7 +108,7 @@ def run_cpp(src_text, cpp_args, work=None):
         with open(os.path.join(d, "in.c"), "w") as f:
             f.write(src_text)
         cmd = (["cpp"] if IN_IMAGE else [RUN, "cpp"]) \
-            + ["-P"] + cpp_args.split() + ["in.c"]
+            + ["-P", "-std=c11"] + cpp_args.split() + ["in.c"]
         r = subprocess.run(cmd, cwd=d, capture_output=True, text=True)
         return r.returncode, r.stdout, r.stderr
     finally:

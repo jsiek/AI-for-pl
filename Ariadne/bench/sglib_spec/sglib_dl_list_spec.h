@@ -43,6 +43,40 @@
    && (\forall integer i_; (k) < i_ < \length(t) \
          ==> \nth(t, i_) == \nth(s, i_ - 1)))
 
+/* The comparators a client may pass as subcomparator: a template
+   parameter written as a parenthesised list that starts with its
+   length, (0) for none, up to four names, e.g. (1, myListCmp).  (The
+   length is explicit because Frama-C preprocesses annotations as C11,
+   where an empty macro argument list cannot be detected portably.)
+   SGLIB_DL_LIST_SUBCMP_OK(f, cmps) is "f is \null or one of them";
+   SGLIB_DL_LIST_CALLS(cmps) the private `calls` annotation at an
+   indirect call (an always-true assert for an empty set, whose calls are
+   unreachable). */
+#define SGLIB_DL__ID(...) __VA_ARGS__
+#define SGLIB_DL__CAT(a, b) SGLIB_DL__CAT_(a, b)
+#define SGLIB_DL__CAT_(a, b) a##b
+#define SGLIB_DL__N(...) SGLIB_DL__N_(__VA_ARGS__, _)
+#define SGLIB_DL__N_(n, ...) n
+#define SGLIB_DL__IS0(f, ...)
+#define SGLIB_DL__IS1(f, n, a) || f == &a
+#define SGLIB_DL__IS2(f, n, a, b) || f == &a || f == &b
+#define SGLIB_DL__IS3(f, n, a, b, c) || f == &a || f == &b || f == &c
+#define SGLIB_DL__IS4(f, n, a, b, c, d) \
+  || f == &a || f == &b || f == &c || f == &d
+#define SGLIB_DL__ISANY(f, ...) \
+  SGLIB_DL__CAT(SGLIB_DL__IS, SGLIB_DL__N(__VA_ARGS__))(f, __VA_ARGS__)
+#define SGLIB_DL__ISANY_L(f, ...) SGLIB_DL__ISANY(f, __VA_ARGS__)
+#define SGLIB_DL_LIST_SUBCMP_OK(f, cmps) \
+  (f == \null SGLIB_DL__ISANY_L(f, SGLIB_DL__ID cmps))
+#define SGLIB_DL__CALLS0(...) assert \true;
+#define SGLIB_DL__CALLS1(n, a) calls a;
+#define SGLIB_DL__CALLS2(n, a, b) calls a, b;
+#define SGLIB_DL__CALLS3(n, a, b, c) calls a, b, c;
+#define SGLIB_DL__CALLS4(n, a, b, c, d) calls a, b, c, d;
+#define SGLIB_DL__CALLS_L(...) \
+  SGLIB_DL__CAT(SGLIB_DL__CALLS, SGLIB_DL__N(__VA_ARGS__))(__VA_ARGS__)
+#define SGLIB_DL_LIST_CALLS(cmps) SGLIB_DL__CALLS_L(SGLIB_DL__ID cmps)
+
 #define SGLIB_DL_LIST_SPEC(type, previous, next, cmp_reads) \
   /* p is a usable list node: a live heap block at offset 0. */ \
   predicate live{L}(type *p) = \
@@ -99,6 +133,14 @@
     \exists type *h, \list<type *> s, integer k; \
       live_dll(\null, h, s) && 0 <= k < \length(s) && p == \nth(s, k); \
   \
+  /* p is a node of some whole live list whose nodes all have their \
+     cmp_reads fields initialised (an iterator with a subcomparator \
+     compares every node). */ \
+  predicate in_cmp_list{L}(type *p) = \
+    \exists type *h, \list<type *> s, integer k; \
+      live_dll(\null, h, s) && all_cmp_reads(s) && 0 <= k < \length(s) \
+      && p == \nth(s, k); \
+  \
   /* p is a heap node, live or freed (freeing changes only __heap). */ \
   predicate heap_node{L}(type *p) = \valid(p) && heap(\base_addr(p)); \
   \
@@ -117,14 +159,20 @@
     && -1 <= b < f && f <= \length(s) \
     && it->prevelem == (b >= 0 ? \nth(s, b) : (type *)\null) \
     && it->nextelem == (f < \length(s) ? \nth(s, f) : (type *)\null) \
+    && (it->subcomparator != \null ==> all_cmp_reads(s)) \
     && \forall integer i; (0 <= i <= b || f <= i < \length(s)) \
          ==> live(\nth(s, i)); \
   \
-  /* Iterator fields that it_next reads, initialised; no subcomparator. */ \
+  /* Iterator fields that it_next reads, initialised; with a \
+     subcomparator, equalto is readable, not freed, and its cmp_reads \
+     fields are initialised. */ \
   predicate iter_fields{L}(struct sglib_##type##_iterator *it) = \
-    it->subcomparator == \null \
-    && \initialized(&it->subcomparator) && \initialized(&it->prevelem) \
-    && \initialized(&it->nextelem); \
+    \initialized(&it->subcomparator) && \initialized(&it->prevelem) \
+    && \initialized(&it->nextelem) \
+    && (it->subcomparator != \null ==> \
+          \initialized(&it->equalto) && \valid_read(it->equalto) \
+          && !dead(__heap, \base_addr(it->equalto)) \
+          && cmp_reads(it->equalto)); \
   \
   /* A state it_next accepts. */ \
   predicate iter_pre{L}(struct sglib_##type##_iterator *it) = \
@@ -401,13 +449,23 @@
 
 /* ---- iterator ------------------------------------------------------ */
 
-/* Public.  The iterator starts at any node of a whole live list. */
-#define SGLIB_DL_LIST_CONTRACT_IT_INIT_ON_EQUAL(type, previous, next) \
+/* Public.  The iterator starts at any node of a whole live list.  cmps:
+   the comparators a client may pass, e.g. (1, myListCmp) (see
+   SGLIB_DL_LIST_SUBCMP_OK); with
+   one, equalto and every node of the list have their cmp_reads fields
+   initialised. */
+#define SGLIB_DL_LIST_CONTRACT_IT_INIT_ON_EQUAL(type, previous, next, \
+                                                cmp_reads, cmps) \
   requires \valid(it) && !heap(\base_addr(it)); \
-  requires subcomparator == \null; \
+  requires SGLIB_DL_LIST_SUBCMP_OK(subcomparator, cmps); \
+  requires subcomparator != \null ==> \
+    \valid_read(equalto) && !dead(__heap, \base_addr(equalto)) \
+    && cmp_reads(equalto); \
   requires list == \null || in_live_list(list); \
+  requires subcomparator != \null ==> list == \null || in_cmp_list(list); \
   assigns *it; \
-  ensures iter_ok(it, \result);
+  ensures iter_ok(it, \result); \
+  ensures it->subcomparator == subcomparator;
 
 /* The asserts before it_init_on_equal's return, and before it_next's. */
 #define SGLIB_DL_LIST_ANNOT_IT_FRAME(type, previous, next) \
@@ -417,43 +475,104 @@
 #define SGLIB_DL_LIST_ANNOT_IT_INIT_FRAME(type, previous, next) \
   assert init_frame: \forall \list<type *> s; \
     all_init{Pre}(s) ==> all_init(s);
-/* it_init_on_equal: the start position (prevelem = list, nextelem its
-   successor). */
+/* it_init_on_equal: the comparator facts of the list's nodes carried
+   over the writes to *it, and the start position (prevelem = list,
+   nextelem its successor). */
+#define SGLIB_DL_LIST_ANNOT_IT_START_CMP(type, previous, next) \
+  assert start_cmp: \forall \list<type *> s; \
+    (\forall integer i; 0 <= i < \length(s) ==> heap_node(\nth(s, i))) \
+    && all_cmp_reads{Pre}(s) ==> all_cmp_reads(s);
 #define SGLIB_DL_LIST_ANNOT_IT_START(type, previous, next) \
-  assert start: (list == \null ==> iter_at(it, \Nil, -1, 0)) \
-    && \forall type *h, \list<type *> s, integer k; \
+  assert start_null: list == \null ==> iter_at(it, \Nil, -1, 0);
+#define SGLIB_DL_LIST_ANNOT_IT_START_NODE(type, previous, next) \
+  assert start: \forall type *h, \list<type *> s, integer k; \
          live_dll{Pre}(\null, h, s) && 0 <= k < \length(s) \
-         && list == \nth(s, k) ==> iter_at(it, s, k, k + 1);
+         && list == \nth(s, k) \
+         && (subcomparator != \null ==> all_cmp_reads{Pre}(s)) \
+         ==> iter_at(it, s, k, k + 1);
 
 #define SGLIB_DL_LIST_CONTRACT_IT_INIT(type, previous, next) \
   requires \valid(it) && !heap(\base_addr(it)); \
   requires list == \null || in_live_list(list); \
   assigns *it; \
-  ensures iter_ok(it, \result);
+  ensures iter_ok(it, \result); \
+  ensures it->subcomparator == \null;
 
-#define SGLIB_DL_LIST_CONTRACT_IT_NEXT(type, previous, next) \
+#define SGLIB_DL_LIST_CONTRACT_IT_NEXT(type, previous, next, cmps) \
   requires \valid(it) && !heap(\base_addr(it)); \
   requires iter_pre(it); \
+  requires SGLIB_DL_LIST_SUBCMP_OK(it->subcomparator, cmps); \
   assigns *it; \
-  ensures iter_ok(it, \result);
+  ensures iter_ok(it, \result); \
+  ensures it->subcomparator == \old(it->subcomparator);
+
+/* Private: it_next's two search loops (after verification refactor #1,
+   each indirect call is a statement): the calls annotation before the
+   call, and the loop annotations (ce stays a node of the backward rest,
+   resp. the forward rest, or NULL). */
+#define SGLIB_DL_LIST_ANNOT_IT_NEXT_CALLS(cmps) SGLIB_DL_LIST_CALLS(cmps)
+#define SGLIB_DL_LIST_ANNOT_IT_NEXT_BACK_LOOP(type, previous, next) \
+  loop invariant \forall \list<type *> s, integer b, f; \
+    iter_at{Pre}(it, s, b, f) ==> \
+      ce == \null || \exists integer j; 0 <= j <= b && ce == \nth(s, j); \
+  loop invariant \forall \list<type *> s; \
+    (\forall integer i; 0 <= i < \length(s) ==> heap_node(\nth(s, i))) \
+    ==> unchanged{Pre, Here}(s); \
+  loop assigns ce;
+#define SGLIB_DL_LIST_ANNOT_IT_NEXT_FWD_LOOP(type, previous, next) \
+  loop invariant \forall \list<type *> s, integer b, f; \
+    iter_at{Pre}(it, s, b, f) ==> \
+      ce == \null \
+      || \exists integer j; f <= j < \length(s) && ce == \nth(s, j); \
+  loop invariant \forall \list<type *> s; \
+    (\forall integer i; 0 <= i < \length(s) ==> heap_node(\nth(s, i))) \
+    ==> unchanged{Pre, Here}(s); \
+  loop assigns ce;
+/* After the backward part (before `if (ce != NULL)`), and at the end of
+   the forward part (before `if (ce != NULL) it->nextelem = ...`). */
+#define SGLIB_DL_LIST_ANNOT_IT_NEXT_MID_BACK(type, previous, next) \
+  assert mid_back: \forall \list<type *> s, integer b, f; \
+    iter_at{Pre}(it, s, b, f) ==> \
+      (ce == \null || \exists integer j; 0 <= j <= b && ce == \nth(s, j)) \
+      && (b < 0 ==> ce == \null);
+#define SGLIB_DL_LIST_ANNOT_IT_NEXT_MID_FWD(type, previous, next) \
+  assert mid_fwd: \forall \list<type *> s, integer b, f; \
+    iter_at{Pre}(it, s, b, f) ==> \
+      ce == \null \
+      || \exists integer j; f <= j < \length(s) && ce == \nth(s, j);
 
 /* The asserts at the end of it_next's body, after the IT_FRAME and
-   IT_INIT_FRAME ones, in this order: one step back, one step forward, or
-   the end. */
+   IT_INIT_FRAME ones, in this order: where ce was found (backward rest,
+   forward rest, or nowhere), then the new position in each case. */
 #define SGLIB_DL_LIST_ANNOT_IT_NEXT_IT_INIT(type, previous, next) \
   assert it_init: \initialized(&it->subcomparator) \
     && \initialized(&it->prevelem) && \initialized(&it->nextelem);
+/* The comparator facts of iter_fields and iter_at, carried over the
+   writes to *it. */
+#define SGLIB_DL_LIST_ANNOT_IT_NEXT_CMP_FRAME(type, previous, next) \
+  assert cmp_frame: \forall \list<type *> s; \
+    all_cmp_reads{Pre}(s) ==> all_cmp_reads(s);
+#define SGLIB_DL_LIST_ANNOT_IT_NEXT_EQ_FRAME(type, previous, next) \
+  assert eq_frame: iter_fields{Pre}(it) ==> iter_fields(it);
+#define SGLIB_DL_LIST_ANNOT_IT_NEXT_FOUND(type, previous, next) \
+  assert found: \forall \list<type *> s, integer b, f; \
+    iter_at{Pre}(it, s, b, f) ==> \
+      ce == \null \
+      || (\exists integer j; 0 <= j <= b && ce == \nth(s, j)) \
+      || (\exists integer j; f <= j < \length(s) && ce == \nth(s, j));
+#define SGLIB_DL_LIST_ANNOT_IT_NEXT_CE_LIVE(type, previous, next) \
+  assert ce_live: ce == \null || live(ce);
 #define SGLIB_DL_LIST_ANNOT_IT_NEXT_BACK(type, previous, next) \
-  assert back: \forall \list<type *> s, integer b, f; \
-    iter_at{Pre}(it, s, b, f) && b >= 0 \
-    ==> ce == \nth(s, b) && iter_at(it, s, b - 1, f);
+  assert back: \forall \list<type *> s, integer b, f, j; \
+    iter_at{Pre}(it, s, b, f) && 0 <= j <= b && ce == \nth(s, j) \
+    ==> iter_at(it, s, j - 1, f);
 #define SGLIB_DL_LIST_ANNOT_IT_NEXT_FORWARD(type, previous, next) \
-  assert forward: \forall \list<type *> s, integer b, f; \
-    iter_at{Pre}(it, s, b, f) && b < 0 && f < \length(s) \
-    ==> ce == \nth(s, f) && iter_at(it, s, -1, f + 1);
+  assert forward: \forall \list<type *> s, integer b, f, j; \
+    iter_at{Pre}(it, s, b, f) && f <= j < \length(s) && ce == \nth(s, j) \
+    ==> iter_at(it, s, -1, j + 1);
 #define SGLIB_DL_LIST_ANNOT_IT_NEXT_END(type, previous, next) \
   assert end: \forall \list<type *> s, integer b, f; \
-    iter_at{Pre}(it, s, b, f) && b < 0 && f == \length(s) \
-    ==> ce == \null && iter_at(it, s, -1, f);
+    iter_at{Pre}(it, s, b, f) && ce == \null \
+    ==> iter_at(it, s, -1, \length(s));
 
 #endif

@@ -72,7 +72,7 @@ expect("spec_checks: a broken invocation rejected",
 
 # ---- 7.2 frozen spec ----------------------------------------------------
 v = g.frozen(base, base)
-expect("frozen: unchanged file passes", v["ok"] and v["items"] == 24, v)
+expect("frozen: unchanged file passes", v["ok"] and v["items"] == 25, v)
 v = g.frozen(base, edit(base, " requires live(elem);",
                         " requires live(elem) || elem == \\null;"))
 expect("frozen: weakened requires of add rejected",

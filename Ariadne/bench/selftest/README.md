@@ -131,3 +131,14 @@ contract on `myListCmp` is checked at every call and never fails; WP
 proves `myListCmp` free of runtime errors under it (`./cmp_wp.sh`, 7/7).
 The diagnostic run (`zero`) gives the same single failure, and both
 probes pass.
+
+## With the subcomparator contracts (decision 3, option B)
+
+The iterator contracts now take the comparator set; the self-test's is
+`(1, myListCmp)` and `st_cmp_reads` covers `n`.  `./rac.sh` (E-ACSL,
+seeds 1, 7 and 12345): **0 contract checks fail**; the earlier last
+failure (`it_init_on_equal`'s `subcomparator == \null`) is gone, and the
+new clauses (`subcomparator` in the set, `equalto` readable with `n`
+initialised, `in_cmp_list(list)`) hold at every call.  `iter_ok` and
+`iter_pre` stay unchecked at run time (no witness, as above).  WP proves
+the comparator path on this instantiation in `wp/`.

@@ -261,8 +261,8 @@ frozen:
 | loop invariants, `loop assigns`, `loop variant` (in `get_first`, `get_last`, the four loops of `b1`) | removed | internal annotations (§4.4) |
 | the asserts in `add`, `get_first`, `get_last`, `it_init_on_equal`, `it_next`, `b1` | removed | internal annotations |
 
-`guardrails.spec_checks(b1.c, b1_frozen.c)` passes: 24 frozen items, the
-same hashes (digest `2565b652bc723f9d`), nothing changed, removed or
+`guardrails.spec_checks(b1.c, b1_frozen.c)` passes: 25 frozen items, the
+same hashes (digest `f6cc96e5854dafc5`), nothing changed, removed or
 added.  (Before the spec template the digest was `213986017b964d3e`
 over 18 items, and `d3e4f6fdc9011d48` with the template; see "Spec
 template" and "Owner's decisions of 2026-11-05" for why it changed.)
@@ -372,19 +372,23 @@ lists of more than 2^30 nodes.  That is for the verification of `sort`
    `dll_of_links`, Coq); the driver's frees keep the iterator's
    position by `dll_distinct` (Coq).  The assert `insert_list` of `add`
    is closed in Coq too.
-3. **Subcomparator: stopped.**  WP 33 handles `calls` only on a call
-   statement; sglib's `it_next` calls the subcomparator inside `while`
-   conditions, where `calls` cannot attach
-   (`../sglib_spec/calls_probe`).  The iterator still requires
-   `subcomparator == \null`.
+3. **Subcomparator (option B).**  WP 33 handles `calls` only on a call
+   statement, and sglib's `it_next` called the subcomparator inside
+   `while` conditions (`../sglib_spec/calls_probe`).  Verification
+   refactor #1 (`CHANGES.md`, change #2; `refactor/`) moves each call
+   into `if (scp(..) == 0) break;`, and the iterator contracts take the
+   comparator set: B1's is `(0)`, so `it_next`'s calls are unreachable
+   here; the self-test's instantiation (`../selftest/wp`) proves them
+   with `myListCmp`.  B1's driver keeps `it.subcomparator == \null` as
+   a loop invariant.
 4. **`cmp_reads`** is a template parameter: B1's is
    `dllist_cmp_reads(p) = \initialized(&p->i)`.  The comparator contract
    is `SGLIB_DL_LIST_CONTRACT_COMPARATOR`.
 5. **The comparator fix** above.
 
-Result (WP with Alt-Ergo, Z3, CVC5 and the Coq scripts): 341 goals
-(326 function goals, 15 lemmas), all proved: Qed 150, Alt-Ergo 168,
-CVC5 10, Z3 4, Coq 9 (`mem_cons`, `all_live_cons`, `all_init_cons`,
+Result (WP with Alt-Ergo, Z3, CVC5 and the Coq scripts): 370 goals
+(355 function goals, 15 lemmas), all proved: Qed 205, Alt-Ergo 141,
+CVC5 10, Z3 5, Coq 9 (`mem_cons`, `all_live_cons`, `all_init_cons`,
 `dll_frame`, `dll_links`, `dll_distinct`, `dll_of_links`,
 `list_insert`, and `add`'s `insert_list`).  `check.sh`: nine mutants,
 each rejected at its intended goal; new ones `nowashead` (add's

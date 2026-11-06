@@ -565,7 +565,7 @@ void sglib_dllist_reverse(dllist **list) {
   };
 }
 /*@ SGLIB_DL_LIST_CONTRACT_IT_INIT_ON_EQUAL(
-      dllist, ptr_to_previous, ptr_to_next) */
+      dllist, ptr_to_previous, ptr_to_next, dllist_cmp_reads, (0)) */
 dllist *sglib_dllist_it_init_on_equal(struct sglib_dllist_iterator *it,
                                       dllist *list,
                                       int (*subcomparator)(dllist *, dllist *),
@@ -579,7 +579,9 @@ dllist *sglib_dllist_it_init_on_equal(struct sglib_dllist_iterator *it,
   /*@ SGLIB_DL_LIST_ANNOT_IT_FRAME(dllist, ptr_to_previous, ptr_to_next) */
   /*@ SGLIB_DL_LIST_ANNOT_IT_INIT_FRAME(
         dllist, ptr_to_previous, ptr_to_next) */
+  /*@ SGLIB_DL_LIST_ANNOT_IT_START_CMP(dllist, ptr_to_previous, ptr_to_next) */
   /*@ SGLIB_DL_LIST_ANNOT_IT_START(dllist, ptr_to_previous, ptr_to_next) */
+  /*@ SGLIB_DL_LIST_ANNOT_IT_START_NODE(dllist, ptr_to_previous, ptr_to_next) */
   return (sglib_dllist_it_next(it));
 }
 /*@ SGLIB_DL_LIST_CONTRACT_IT_INIT(dllist, ptr_to_previous, ptr_to_next) */
@@ -589,7 +591,8 @@ dllist *sglib_dllist_it_init(struct sglib_dllist_iterator *it, dllist *list) {
 dllist *sglib_dllist_it_current(struct sglib_dllist_iterator *it) {
   return (it->currentelem);
 }
-/*@ SGLIB_DL_LIST_CONTRACT_IT_NEXT(dllist, ptr_to_previous, ptr_to_next) */
+/*@ SGLIB_DL_LIST_CONTRACT_IT_NEXT(dllist, ptr_to_previous, ptr_to_next,
+                                    (0)) */
 dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it) {
   dllist *ce, *eq;
   int (*scp)(dllist *, dllist *);
@@ -598,12 +601,16 @@ dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it) {
   if (it->subcomparator != NULL) {
     eq = it->equalto;
     scp = it->subcomparator;
+    /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_BACK_LOOP(
+          dllist, ptr_to_previous, ptr_to_next) */
     while (ce != NULL) {
+      /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_CALLS((0)) */
       if (scp(eq, ce) == 0)
         break;
       ce = ce->ptr_to_previous;
     }
   }
+  /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_MID_BACK(dllist, ptr_to_previous, ptr_to_next) */
   if (ce != NULL) {
     it->prevelem = ce->ptr_to_previous;
   } else {
@@ -612,12 +619,16 @@ dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it) {
     if (it->subcomparator != NULL) {
       eq = it->equalto;
       scp = it->subcomparator;
+      /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_FWD_LOOP(
+            dllist, ptr_to_previous, ptr_to_next) */
       while (ce != NULL) {
+        /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_CALLS((0)) */
         if (scp(ce, eq) == 0)
           break;
         ce = ce->ptr_to_next;
       }
     }
+    /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_MID_FWD(dllist, ptr_to_previous, ptr_to_next) */
     if (ce != NULL)
       it->nextelem = ce->ptr_to_next;
   }
@@ -627,6 +638,12 @@ dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it) {
         dllist, ptr_to_previous, ptr_to_next) */
   /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_IT_INIT(
         dllist, ptr_to_previous, ptr_to_next) */
+  /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_CMP_FRAME(
+        dllist, ptr_to_previous, ptr_to_next) */
+  /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_EQ_FRAME(
+        dllist, ptr_to_previous, ptr_to_next) */
+  /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_FOUND(dllist, ptr_to_previous, ptr_to_next) */
+  /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_CE_LIVE(dllist, ptr_to_previous, ptr_to_next) */
   /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_BACK(dllist, ptr_to_previous, ptr_to_next) */
   /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_FORWARD(dllist, ptr_to_previous, ptr_to_next) */
   /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_END(dllist, ptr_to_previous, ptr_to_next) */
@@ -705,7 +722,7 @@ int b1(const int *input, int n) {
        l = l->ptr_to_previous)
     last = l->i;
   /*@ assert start_node: the_list == \null || in_live_list(the_list); */
-  /*@ loop invariant iter_ok(&it, l);
+  /*@ loop invariant iter_ok(&it, l) && it.subcomparator == \null;
       loop invariant payload_init:
         \forall dllist *q; live(q) ==> \initialized(&q->i);
       loop assigns l, it, __heap;

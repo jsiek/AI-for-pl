@@ -54,8 +54,8 @@ self-test's `DoubleLinkedList`, `previous`, `next`, `st_cmp_reads`.
 
 | Macro | What | Public (Q11)? |
 |-------|------|---------------|
-| `SGLIB_DL_LIST_SPEC(type, previous, next, cmp_reads)` | predicates `live`, `mem`, `all_live`, `all_init` (links only), `dll`, `unchanged`, `all_cmp_reads`, `live_dll`, `in_live_list`, `heap_node`, `iter_at`, `iter_fields`, `iter_pre`, `iter_ok` | yes |
-| `SGLIB_DL_LIST_CONTRACT_{ADD, GET_FIRST, GET_LAST, IT_INIT_ON_EQUAL, IT_INIT, IT_NEXT}` | the contracts of the six verified sglib functions (B1's driver `b1` has its own) | yes |
+| `SGLIB_DL_LIST_SPEC(type, previous, next, cmp_reads)` | predicates `live`, `mem`, `all_live`, `all_init` (links only), `dll`, `unchanged`, `all_cmp_reads`, `live_dll`, `in_live_list`, `in_cmp_list`, `heap_node`, `iter_at`, `iter_fields`, `iter_pre`, `iter_ok` | yes |
+| `SGLIB_DL_LIST_CONTRACT_{ADD, GET_FIRST, GET_LAST, IT_INIT}(type, previous, next)`, `..._IT_INIT_ON_EQUAL(type, previous, next, cmp_reads, cmps)`, `..._IT_NEXT(type, previous, next, cmps)` | the contracts of the six verified sglib functions (B1's driver `b1` has its own) | yes |
 | `SGLIB_DL_LIST_CONTRACT_COMPARATOR(type, cmp_reads, a, b)` | the contract every comparator meets | yes |
 | `SGLIB_DL_LIST_LEMMAS` | the fifteen lemmas | no |
 | `SGLIB_DL_LIST_ANNOT_*` | the asserts and loop annotations inside those functions | no |
@@ -96,50 +96,51 @@ obligations are the RTE goals at each call site.
   overflowed; fixed as bug fix #1 (`../b1/CHANGES.md`), after which
   WP's simplifier proves its overflow goals at every call site.
 
-### Subcomparator: stopped (owner's decision 3, 2026-11-05)
+### Subcomparator (owner's decision 3, 2026-11-05; option B)
 
-The owner asked for iterator contracts over a finite set of comparators,
-with private `calls` annotations at `it_next`'s two indirect calls, and to
-stop if WP 33 does not prove calls through a function pointer with
-`calls`.  `calls_probe/run.sh` checks both shapes (WP with Alt-Ergo, Z3,
-CVC5, `-wp-rte`):
+**The `calls` check.**  `calls_probe/run.sh` (WP with Alt-Ergo, Z3,
+CVC5, `-wp-rte`): WP 33 proves an indirect call that is a statement and
+carries `calls` (the call-point goal, and each listed function's
+precondition at the call; a call missing a precondition stays open,
+`typed_bad_call_cmp1_requires`), but cannot attach `calls` to a call in
+a `while` condition, sglib's shape (`Missing 'calls' for default
+behavior`; the goals after the call stay open).  A call in an `if`
+condition (`if (f(x, y) == 0) break;`) works like a statement.
 
-- **A call statement** (`/*@ calls cmp1, cmp2; */ r = f(x, y);`): WP
-  proves the call-point goal (`f` is one of the listed functions) and
-  each listed function's precondition at the call
-  (`typed_use_call_point_cmp1_cmp2_s10`, `typed_use_call_cmp1_requires`,
-  `typed_use_call_cmp2_requires`), and refuses a call whose arguments
-  miss a precondition (`typed_bad_call_cmp1_requires` stays open).
-- **A call inside a `while` condition**, the shape of sglib's `it_next`
-  (`while (ce != NULL && scp(eq, ce) != 0)`): `calls` can only be written
-  before the loop; Frama-C attaches it to the loop statement and WP
-  warns `Missing 'calls' for default behavior`: no call-point goal, the
-  call is treated as unknown, and the goals after it stay open.  A loop
-  annotation cannot sit between the `calls` and the loop either (syntax
-  error).
+**The refactor.**  So, by the owner's option B, B1's instantiation
+rewrites `it_next`'s two loops as `while (ce != NULL) { if (scp(eq, ce)
+== 0) break; ce = ce->previous; }` (and forward with `scp(ce, eq)`),
+logged as change #2, a *verification refactor*, in `../b1/CHANGES.md`
+(plan Q11); the vendored sglib is unmodified.
 
-So `calls` cannot be attached to sglib's indirect calls without changing
-sglib's code; the iterator contracts still require
-`subcomparator == \null`.
+**The contracts.**  `it_init_on_equal` and `it_next` take `cmps`, the
+comparators a client may pass, written `(n, f1, ..., fn)` with n from 0
+to 4 (B1: `(0)`; the self-test: `(1, myListCmp)`; the length is explicit
+because Frama-C preprocesses annotations as C11, where an empty macro
+argument cannot be detected).  `it_init_on_equal` requires
+`subcomparator` to be `\null` or one of them and, with one,
+`\valid_read(equalto)`, `!dead` of its block and `cmp_reads(equalto)`,
+and `in_cmp_list(list)` (every node of the whole list has its
+`cmp_reads` fields initialised); it ensures `it->subcomparator ==
+subcomparator`.  `it_next` requires membership again and keeps
+`subcomparator`.  `iter_fields` records the `equalto` facts and
+`iter_at` `all_cmp_reads(s)` when a subcomparator is set.  Private:
+`SGLIB_DL_LIST_ANNOT_IT_NEXT_CALLS(cmps)` puts `calls f1, ..., fn;`
+before each indirect call (for `(0)`, an `assert \true;`: the calls are
+unreachable), with loop annotations for the two search loops and the
+asserts `mid_back`, `mid_fwd`, `found`, `ce_live`, `cmp_frame`,
+`eq_frame`, `start_cmp`.
 
-## Textual tools see the expansion
+**Where it is proved.**  B1 passes no comparator, so its `it_next` has
+the calls but cannot reach them.  `../selftest/wp/` (`gen_wp.py`)
+instantiates B1's annotated functions at the self-test's
+`DoubleLinkedList`, `previous`, `next`, `st_cmp_reads`, `(1,
+myListCmp)`, on sglib's own expansion (with the refactor; the renamed
+code is checked equal to it token for token), plus a driver that
+iterates with `myListCmp`.  WP proves both indirect calls there:
+`typed_sglib_DoubleLinkedList_it_next_call_point_myListCmp_s689` and
+`..._s712_part{1,2}` (the pointer is `myListCmp`), and myListCmp's
+preconditions at both calls
+(`typed_sglib_DoubleLinkedList_it_next_call_myListCmp_requires{,_2}`,
+`..._call_myListCmp_2_requires{,_2}_part{1,2}`).
 
-The guardrails (spec hashes, ACSL and ghost lints) and the RAC pipeline
-read annotations as text.  They now run on the source with the macros
-inside its annotations expanded by the image's cpp
-(`../../harness/acsl_expand.py`): each expanded annotation is one line,
-padded with the original's newlines, so line numbers do not move.  So
-the frozen-spec hashes cover the ACSL that Frama-C reads, not the
-invocation text, and a `#define` added to the C code that changes a
-predicate is caught.  The harness also hashes this directory and
-`plugin/share` before and after a run (`benchmark_untouched`).
-
-## B1 from the template
-
-The expansion is token for token the ACSL of the hand-written b1.c
-(commit 3ba8421c and before): every predicate, contract, lemma and
-in-body annotation has the same comment-free, whitespace-normalised
-text (`guardrails.spec_items` and the in-body annotation list compared).
-WP produced the same 321 goals with the same names, and its cache
-reused the SMT results.  The owner's decisions of 2026-11-05 then
-changed the spec; `../b1/README.md` has the current numbers.

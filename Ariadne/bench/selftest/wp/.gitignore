@@ -1,0 +1,8 @@
+mutants/
+session/
+*.log
+report*.json
+st_gen_in.c
+st_gen.c
+.frama-c/
+.lia.cache

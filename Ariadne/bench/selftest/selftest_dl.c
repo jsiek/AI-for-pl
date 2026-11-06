@@ -58,7 +58,8 @@ DoubleLinkedList *sglib_DoubleLinkedList_get_first(DoubleLinkedList *list);
 DoubleLinkedList *sglib_DoubleLinkedList_get_last(DoubleLinkedList *list);
 
 /*@ SGLIB_DL_LIST_CONTRACT_IT_INIT_ON_EQUAL(DoubleLinkedList, previous,
-                                            next) */
+                                            next, st_cmp_reads,
+                                            (1, myListCmp)) */
 DoubleLinkedList *sglib_DoubleLinkedList_it_init_on_equal(
     struct sglib_DoubleLinkedList_iterator *it, DoubleLinkedList *list,
     int (*subcomparator)(DoubleLinkedList *, DoubleLinkedList *),
@@ -68,7 +69,8 @@ DoubleLinkedList *sglib_DoubleLinkedList_it_init_on_equal(
 DoubleLinkedList *sglib_DoubleLinkedList_it_init(
     struct sglib_DoubleLinkedList_iterator *it, DoubleLinkedList *list);
 
-/*@ SGLIB_DL_LIST_CONTRACT_IT_NEXT(DoubleLinkedList, previous, next) */
+/*@ SGLIB_DL_LIST_CONTRACT_IT_NEXT(DoubleLinkedList, previous, next,
+                                    (1, myListCmp)) */
 DoubleLinkedList *sglib_DoubleLinkedList_it_next(
     struct sglib_DoubleLinkedList_iterator *it);
 

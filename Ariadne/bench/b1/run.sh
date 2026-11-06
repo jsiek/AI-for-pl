@@ -42,4 +42,4 @@ wp report_fct.json run_fct.log -wp-rte -rte-initialized @all \
 wp report_lemmas.json run_lemmas.log -wp-prop=@lemma
 [ "$status" -eq 0 ] || exit 1
 # Exact goal counts, so a selection that silently shrinks cannot pass.
-python3 -I ../goals.py report_fct.json:326 report_lemmas.json:15
+python3 -I ../goals.py report_fct.json:355 report_lemmas.json:15

@@ -5621,3 +5621,22 @@ the sketch.  Entries above use the old names.
 Cancel restricted to a non-empty identity tower.  Sound and color-safe
 because `−X(Δ, X:=α) = Δ`; only this order of the pair can be a redex.
 It saves the identity layers Cancel left (5d: 19 → 17 steps).
+
+## 2026-11-06 — experiment: CancelId in place of Cancel (branch `nu-cancel-id`)
+
+On paper only: `notes/CancelIdSketch.md`, a variant νF₁ᶜ of the
+single-entry sketch.  Jeremy proposed replacing Cancel with
+`[−X^α] ([+X^α] V ⟨id⟩) ⟨id⟩ ⟶ V` (CancelId) and changing the value
+grammar so its left-hand side is not a value; the question was
+progress.  CancelId with Cancel-□ alone is NOT enough: the sketch's 5c
+reaches `[+X^α] [+Y^β] [−X^α] 3 ⟨−X⟩ ⟨id⟩ ⟨+X⟩`, well typed and stuck
+(an `id` layer for another variable between the unseal and its seal).
+The repair is Sink, `[ε] H[V] ⟨id⟩ ⟶ H[[ε] V ⟨id⟩]` for `ε` naming a
+variable other than the seal head `H`'s, a restricted form of D02's
+`Commute`.  With values split into functional and sealed
+(`H ::= [−X^α] □ ⟨−X⟩ | [+X^α] ([−X^α] □ ⟨−X⟩) ⟨id⟩`), progress,
+preservation, color and determinism are proved on paper; an unseal's
+body is its seal or steps, so no tower walk.  Representation runtime
+types are still needed: the second seal head has a type no name in
+scope denotes.  Cost: Sink commutes two entries, so in de Bruijn form
+the moved body needs a swap renaming.

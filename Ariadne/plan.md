@@ -687,7 +687,8 @@ invariant is only needed for functional correctness and is stretch work.
         variable).  The run cap was not reached in either rerun.  Against
         VST's $4.39 for all six functions in one run, the Frama-C side
         needs about $7 when it finishes, on a harder (index-based,
-        liveness-model) spec that the human gave it. and final products.  To do: discuss with
+        liveness-model) spec that the human gave it.
+*   **Q11 — Human interaction and final products.  To do: discuss with
     the owner.**  M3 shows the pipeline can certify B1 from frozen
     contracts with no human annotation.  Still to settle:
     *   *Human interaction:* where a human takes part, what they see and

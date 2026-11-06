@@ -32,9 +32,18 @@ dllist *ariadne_alloc_dllist(void) {
   return p;
 }
 
+/* RAC_KEEP_FREED (the E-ACSL builds): a freed block is marked dead but
+   its memory is kept, as in the ghost liveness model, where free changes
+   only __heap; the twins can then follow freed nodes' links (rac_rt.h,
+   rac_valid).  The sanitizer builds free for real, so ASan sees any use
+   after free. */
 void ariadne_free_dllist(dllist *p) {
   if (p) {
     rac_reg_free(p);
+#ifdef RAC_KEEP_FREED
+    rac_keep_freed = 1;
+#else
     free(p);
+#endif
   }
 }

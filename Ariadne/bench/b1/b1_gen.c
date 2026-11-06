@@ -95,12 +95,14 @@ int sglib_dllist_add_if_not_member(dllist **list, dllist *elem,
   {
     {
       dllist *_dlp_;
-      for (_dlp_ = (*list); _dlp_ != NULL && (_dlp_->i - (elem)->i) != 0;
+      for (_dlp_ = (*list); _dlp_ != NULL && ((_dlp_->i > (elem)->i) -
+                                              (_dlp_->i < (elem)->i)) != 0;
            _dlp_ = _dlp_->ptr_to_previous)
         ;
       if (_dlp_ == NULL && (*list) != NULL) {
         for (_dlp_ = (*list)->ptr_to_next;
-             _dlp_ != NULL && (_dlp_->i - (elem)->i) != 0;
+             _dlp_ != NULL &&
+             ((_dlp_->i > (elem)->i) - (_dlp_->i < (elem)->i)) != 0;
              _dlp_ = _dlp_->ptr_to_next)
           ;
       }
@@ -133,12 +135,14 @@ int sglib_dllist_add_after_if_not_member(dllist **list, dllist *elem,
   {
     {
       dllist *_dlp_;
-      for (_dlp_ = (*list); _dlp_ != NULL && (_dlp_->i - (elem)->i) != 0;
+      for (_dlp_ = (*list); _dlp_ != NULL && ((_dlp_->i > (elem)->i) -
+                                              (_dlp_->i < (elem)->i)) != 0;
            _dlp_ = _dlp_->ptr_to_previous)
         ;
       if (_dlp_ == NULL && (*list) != NULL) {
         for (_dlp_ = (*list)->ptr_to_next;
-             _dlp_ != NULL && (_dlp_->i - (elem)->i) != 0;
+             _dlp_ != NULL &&
+             ((_dlp_->i > (elem)->i) - (_dlp_->i < (elem)->i)) != 0;
              _dlp_ = _dlp_->ptr_to_next)
           ;
       }
@@ -168,12 +172,14 @@ int sglib_dllist_add_before_if_not_member(dllist **list, dllist *elem,
   {
     {
       dllist *_dlp_;
-      for (_dlp_ = (*list); _dlp_ != NULL && (_dlp_->i - (elem)->i) != 0;
+      for (_dlp_ = (*list); _dlp_ != NULL && ((_dlp_->i > (elem)->i) -
+                                              (_dlp_->i < (elem)->i)) != 0;
            _dlp_ = _dlp_->ptr_to_previous)
         ;
       if (_dlp_ == NULL && (*list) != NULL) {
         for (_dlp_ = (*list)->ptr_to_next;
-             _dlp_ != NULL && (_dlp_->i - (elem)->i) != 0;
+             _dlp_ != NULL &&
+             ((_dlp_->i > (elem)->i) - (_dlp_->i < (elem)->i)) != 0;
              _dlp_ = _dlp_->ptr_to_next)
           ;
       }
@@ -245,12 +251,14 @@ int sglib_dllist_delete_if_member(dllist **list, dllist *elem,
                                   dllist **member) {
   {
     dllist *_dlp_;
-    for (_dlp_ = (*list); _dlp_ != NULL && (_dlp_->i - (elem)->i) != 0;
+    for (_dlp_ = (*list); _dlp_ != NULL && ((_dlp_->i > (elem)->i) -
+                                            (_dlp_->i < (elem)->i)) != 0;
          _dlp_ = _dlp_->ptr_to_previous)
       ;
     if (_dlp_ == NULL && (*list) != NULL) {
       for (_dlp_ = (*list)->ptr_to_next;
-           _dlp_ != NULL && (_dlp_->i - (elem)->i) != 0;
+           _dlp_ != NULL &&
+           ((_dlp_->i > (elem)->i) - (_dlp_->i < (elem)->i)) != 0;
            _dlp_ = _dlp_->ptr_to_next)
         ;
     }
@@ -305,7 +313,8 @@ dllist *sglib_dllist_find_member(dllist *list, dllist *elem) {
     dllist *_dlp_;
     {
       dllist *_p_;
-      for (_p_ = (list); _p_ != NULL && (_p_->i - (elem)->i) != 0;
+      for (_p_ = (list);
+           _p_ != NULL && ((_p_->i > (elem)->i) - (_p_->i < (elem)->i)) != 0;
            _p_ = _p_->ptr_to_previous)
         ;
       (result) = _p_;
@@ -314,7 +323,8 @@ dllist *sglib_dllist_find_member(dllist *list, dllist *elem) {
       _dlp_ = (list)->ptr_to_next;
       {
         dllist *_p_;
-        for (_p_ = (_dlp_); _p_ != NULL && (_p_->i - (elem)->i) != 0;
+        for (_p_ = (_dlp_);
+             _p_ != NULL && ((_p_->i > (elem)->i) - (_p_->i < (elem)->i)) != 0;
              _p_ = _p_->ptr_to_next)
           ;
         (result) = _p_;
@@ -388,7 +398,7 @@ void sglib_dllist_sort(dllist **list) {
               _t_->ptr_to_next = NULL;
             }
             while (_a_ != NULL && _b_ != NULL) {
-              if ((_a_->i - _b_->i) < 0) {
+              if (((_a_->i > _b_->i) - (_a_->i < _b_->i)) < 0) {
                 *_restail_ = _a_;
                 _restail_ = &(_a_->ptr_to_next);
                 _a_ = _a_->ptr_to_next;
@@ -510,8 +520,11 @@ dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it) {
   if (it->subcomparator != NULL) {
     eq = it->equalto;
     scp = it->subcomparator;
-    while (ce != NULL && scp(eq, ce) != 0)
+    while (ce != NULL) {
+      if (scp(eq, ce) == 0)
+        break;
       ce = ce->ptr_to_previous;
+    }
   }
   if (ce != NULL) {
     it->prevelem = ce->ptr_to_previous;
@@ -521,8 +534,11 @@ dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it) {
     if (it->subcomparator != NULL) {
       eq = it->equalto;
       scp = it->subcomparator;
-      while (ce != NULL && scp(ce, eq) != 0)
+      while (ce != NULL) {
+        if (scp(ce, eq) == 0)
+          break;
         ce = ce->ptr_to_next;
+      }
     }
     if (ce != NULL)
       it->nextelem = ce->ptr_to_next;

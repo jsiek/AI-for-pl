@@ -23,7 +23,7 @@ wp() {  # wp <report> <log> <WP selection options...>
   # shellcheck disable=SC2086
   ../../env/run.sh frama-c \
     -load-module /ariadne/plugin/_build/default/ariadne.cmxs \
-    -cpp-extra-args="-I/ariadne/plugin/share" \
+    -cpp-extra-args="-I/ariadne/plugin/share -I/ariadne/bench/sglib_spec" \
     -generated-spec-custom terminates:skip \
     -ariadne b1.c \
     -then -wp -wp-model Typed -wp-no-filter-init "$@" \
@@ -42,4 +42,4 @@ wp report_fct.json run_fct.log -wp-rte -rte-initialized @all \
 wp report_lemmas.json run_lemmas.log -wp-prop=@lemma
 [ "$status" -eq 0 ] || exit 1
 # Exact goal counts, so a selection that silently shrinks cannot pass.
-python3 -I ../goals.py report_fct.json:310 report_lemmas.json:11
+python3 -I ../goals.py report_fct.json:355 report_lemmas.json:15

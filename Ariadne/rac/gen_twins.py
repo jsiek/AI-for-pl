@@ -253,8 +253,17 @@ class Gen:
         self.all = decls
         self.defs = {}           # name -> decl, definitions of the spec
         self.order = []
+        def own(d):
+            return os.path.basename(d.get("file", "")) == \
+                os.path.basename(src_file)
         for d in decls:
             if d["kind"] in ("pred", "func", "inductive", "decl"):
+                # an overload among the libc's own logic (strlen etc.,
+                # when the source includes <string.h>) is not ours to
+                # translate: the first is kept, the spec cannot use it
+                if d["name"] in self.defs and not own(d) \
+                        and not own(self.defs[d["name"]]):
+                    continue
                 if d["name"] in self.defs:
                     raise SystemExit(f"gen_twins.py: overloaded {d['name']}"
                                      " is not supported")
@@ -272,6 +281,9 @@ class Gen:
         self.witness = {}        # pred -> [entries]
         self.dropped = {}        # name -> reason
         self.member_fns = {}
+        self.hints = {}          # --witness-hints
+        self.hinted = set()      # definitions translated with them
+        self.hint_fns = {}       # def -> {binder: (type, ACSL term)}
 
     # ---------------------------------------------------------- helpers
     def add_func(self, name, proto, body):
@@ -921,12 +933,17 @@ class Gen:
         body = (f"  /* the {params[H]['name']} with {P}(\\null, "
                 f"{params[H]['name']}, {params[S]['name']}) and x in "
                 f"{params[S]['name']}: walk from x along ->{fld} to the node "
-                f"whose {fld} is \\null */\n"
-                "  long n = 0;\n"
+                f"whose {fld} is \\null; 0 on a repeated node (a cycle) */\n"
+                "  long n = 0, lam = 1, pow = 1;\n"
+                f"  {cdecl(ctype(ty), 'mark')} = x;\n"
                 f"  for ({cdecl(ctype(ty), 'c')} = x; rac_valid(c, sizeof *c); "
                 f"c = c->{fld}) {{\n"
                 f"    if (c->{fld} == NULL)\n      return (long)(size_t)c;\n"
-                "    if (++n > RAC_FUEL_MEMBER)\n      break;\n  }\n"
+                "    if (++n > RAC_FUEL_MEMBER)\n      break;\n"
+                f"    if (c->{fld} == mark)\n      break;  /* a cycle */\n"
+                "    if (lam == pow) {  /* Brent: move the mark */\n"
+                f"      mark = c->{fld};\n      pow *= 2;\n      lam = 0;\n"
+                "    }\n    lam++;\n  }\n"
                 "  return 0;\n")
         self.add_func(name, proto, body)
         self.builtins[name] = {"ret": "ptr", "ret_c": ty["c"],
@@ -969,6 +986,20 @@ class Gen:
         """Replace the list / pointer binders of a \\forall or \\exists by
         witnesses (README, "Witnesses"); integer binders stay."""
         kind = p["p"]
+        hint = self.hints.get(getattr(self, "cur_def", None), {})
+        if kind == "exists" and hint and all(v["name"] in hint
+                                             for v in p["vars"]):
+            # witnesses given for this definition (--witness-hints),
+            # written in place ({x} in a witness is the witness of x);
+            # the body at the witnesses implies the \exists
+            self.hinted.add(self.cur_def)
+            texts = {x: t for x, t in hint.items() if not x.startswith("_")}
+            for _ in texts:      # {x} -> the witness of x, to a fixpoint
+                texts = {v: re.sub(r"\{(\w+)\}", lambda m: "(" + texts[
+                    m.group(1)] + ")", t) for v, t in texts.items()}
+            return subst(p["body"], {v["name"]: {
+                "n": "raw", "pp": texts[v["name"]], "ty": v["type"]}
+                for v in p["vars"]})
         bs = {v["name"]: v["type"] for v in p["vars"]
               if v["type"]["k"] not in ("integer", "cint")}
         ints = [v for v in p["vars"] if v["name"] not in bs]
@@ -1137,6 +1168,8 @@ class Gen:
         if n == "witness":
             return t["entry"]["fn"] + "(" + ", ".join(
                 self.aterm(a, own) for a in t["args"]) + ")"
+        if n == "raw":   # a witness term from --witness-hints
+            return "(" + t["pp"] + ")"
         if n == "tail":
             return f"rac_tail({self.aterm(t['a'], own)})"
         if n == "base_addr":
@@ -1202,11 +1235,44 @@ class Gen:
             return "\\separated(" + ", ".join(
                 self.aterm(t, own) for t in p["ts"]) + ")"
         if k in ("forall", "exists"):
-            if any(v["type"]["k"] not in ("integer", "cint") for v in p["vars"]):
+            hint = self.hints.get(getattr(self, "cur_def", None), {})
+            if any(v["type"]["k"] not in ("integer", "cint")
+                   for v in p["vars"]) or (k == "exists" and hint and all(
+                       v["name"] in hint for v in p["vars"])):
                 return pparen(self.apred(self.elim(p, own), own), {"p": "and"})
             vs = ", ".join(cdecl(self.atype(v["type"]), v["name"])
                            for v in p["vars"])
-            return f"\\{k} {vs}; {self.apred(p['body'], own)}"
+            body = p["body"]
+            if (k == "forall" and body["p"] == "implies"
+                    and body["a"]["p"] == "or"):
+                # \forall i; A || B ==> P as (\forall i; A ==> P) &&
+                # (\forall i; B ==> P): E-ACSL 33 finds no guard for i in
+                # a disjunction and ignores the definition (then, silently,
+                # every clause that uses it).  Same meaning.  An upper
+                # bound i <= t is written i < t + 1: E-ACSL rewrites it so
+                # itself and then aborts ("Interval inference was not
+                # performed on construct t + 1").
+                names = {v["name"] for v in p["vars"]}
+
+                def lt(x):
+                    if x["p"] == "and":
+                        return {**x, "a": lt(x["a"]), "b": lt(x["b"])}
+                    s = strip(x["a"]) if x["p"] == "rel" else {}
+                    if (x["p"] == "rel" and x["op"] == "<="
+                            and s.get("n") == "lval"
+                            and s["host"]["h"] == "var" and not s["off"]
+                            and s["host"]["name"] in names):
+                        t = self.aterm(x["b"], own)
+                        return {**x, "op": "<", "b": {
+                            "n": "raw", "pp": f"{t} + 1", "ty": None}}
+                    return x
+                a, b = lt(body["a"]["a"]), lt(body["a"]["b"])
+                return " && ".join(
+                    pparen(self.apred({"p": "forall", "vars": p["vars"],
+                                       "body": {**body, "a": x},
+                                       "pp": p["pp"]}, own), {"p": "and"})
+                    for x in (a, b))
+            return f"\\{k} {vs}; {self.apred(body, own)}"
         if k == "at":
             return f"\\at({self.apred(p['a'], own)}, {p['label']})"
         raise Untranslatable(f"{p['pp']}")
@@ -1296,6 +1362,7 @@ class Gen:
         for d in self.order:
             name, kind = d["name"], d["kind"]
             own = d["labels"]
+            self.cur_def = name
             if kind in ("lemma", "axiom"):
                 self.diag.append((name, "left out", f"{kind}: a proof fact"))
                 continue
@@ -1330,11 +1397,15 @@ class Gen:
                 self.diag.append((name, "NOT TRANSLATED", str(e)))
                 continue
             elim = "witness" in json.dumps(self.elimed(d), default=str)
-            acsl.append((f"// {name}: binders over lists / pointers replaced"
-                         " by witnesses\n" if elim else "") +
+            how = ("binders over lists / pointers replaced by witnesses"
+                   if elim else "")
+            if name in self.hinted:
+                how = ("binders replaced by the witnesses of "
+                       "--witness-hints (walks from known nodes)")
+            acsl.append((f"// {name}: {how}\n" if how else "") +
                         f"{head} =\n  {body};")
-            self.diag.append((name, "ACSL", "kept, binders replaced by "
-                              "witnesses" if elim else "kept"))
+            self.diag.append((name, "ACSL", "kept, " + how if how
+                              else "kept"))
             if self.entries(name):
                 self.diag.append((name, "witnesses", "via " + self.entries(
                     name)[0]["via"] + ": " + "; ".join(
@@ -1499,6 +1570,9 @@ def main():
                     help="header with the C types (for the twins)")
     ap.add_argument("--cpp-args", default="")
     ap.add_argument("--json", help="use this dump instead of running frama-c")
+    ap.add_argument("--witness-hints", help="JSON {definition: {binder: "
+                    "ACSL term}}: witnesses for an \\exists the rules "
+                    "cannot find (README, \"Witness hints\")")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     pre = a.prefix
@@ -1507,6 +1581,8 @@ def main():
         run_dump(a.src, a.cpp_args, dump)
     decls = json.load(open(dump))["decls"]
     g = Gen(decls, a.src, pre)
+    if a.witness_hints:
+        g.hints = json.load(open(a.witness_hints))
     ok, acsl = g.run()
     src_text = open(a.src).read()
     first = [d for d in g.order if "line" in d]
@@ -1526,6 +1602,9 @@ def main():
                      "  return (long)(size_t)rac_seq_cons((void *)h, "
                      "(struct rac_seq *)(size_t)t);\n"))
         g.builtins[cn] = {"ret": "list", "params": ["n", "l"]}
+    g.builtins["rac_index"] = {"ret": "int", "params": ["l", "n"]}
+    g.builtins["rac_reg_count"] = {"ret": "int", "params": ["l"]}
+    g.builtins["rac_reg_nth"] = {"ret": "int", "params": ["l"]}
     for n in ("rac_length", "rac_tail"):
         g.builtins[n] = {"ret": "int" if n == "rac_length" else "list",
                          "params": ["l"]}

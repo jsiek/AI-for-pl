@@ -1,7 +1,7 @@
 """Print WP JSON reports' census and the goals that are not proved.
 
     python3 goals.py report.json[:N] [report2.json[:N] ...]
-    python3 goals.py --expect-open LINE REGEX report.json
+    python3 goals.py --expect-open LINE[-LAST] REGEX report.json
 
 Census: goals proved by Qed (WP's simplifier), by each SMT prover, by Coq,
 and not proved, as plan milestone M1 asks.
@@ -11,9 +11,9 @@ is a failure (a filter that stops matching must not pass as "all
 proved"), and `report.json:N` also requires exactly N goals in it.
 
 --expect-open (for mutants) exits 0 only if at least one goal is open,
-every open goal is on source line LINE and has a name matching REGEX,
-and every other goal is proved: the mutant fails for the intended reason
-and no other.
+every open goal is on source line LINE (or LINE..LAST) and has a name
+matching REGEX, and every other goal is proved: the mutant fails for the
+intended reason and no other.
 """
 
 import collections
@@ -58,13 +58,17 @@ def census(goals):
 def main():
     args = sys.argv[1:]
     if args[:1] == ["--expect-open"]:
-        line, regex, spec = int(args[1]), re.compile(args[2]), args[3]
+        lo, _, hi = args[1].partition("-")
+        lo, hi = int(lo), int(hi or lo)
+        line = args[1]
+        regex, spec = re.compile(args[2]), args[3]
         goals = load(spec)
         if goals is None:
             return 1
         open_goals = census(goals)
         wrong = [g for g in open_goals
-                 if g["line"] != line or not regex.search(g["goal"])]
+                 if not lo <= (g["line"] or 0) <= hi
+                 or not regex.search(g["goal"])]
         if not open_goals:
             print(f"expected an open goal on line {line}; all proved")
             return 1

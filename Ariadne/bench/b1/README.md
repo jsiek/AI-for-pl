@@ -24,13 +24,14 @@ initialisation checks (see "Initialisation").
 |------|------|
 | `../sglib/` | sglib at commit `cf92b44e` (MIT): `sglib.h`, `LICENSE`, `samples/dllist.c` |
 | `gen_in.c`, `gen.sh` | expand sglib's macros for the sample's instantiation and format them with `clang-format-14` into `b1_gen.c` (plan Q4: annotate the preprocessed code) |
-| `b1.c` | `b1_gen.c` between `BEGIN/END GENERATED` markers, code unchanged, with ACSL inserted; plus the spec and our driver `b1` |
+| `b1.c` | `b1_gen.c` between `BEGIN/END GENERATED` markers, code unchanged, with ACSL inserted; plus the spec and our driver `b1`.  The spec and the annotations of the sglib functions are invocations of the template `../sglib_spec/sglib_dl_list_spec.h` (see "Spec template"); the driver's are written out |
 | `session/interactive/*.v` | the Coq proof scripts (WP session) |
 | `run.sh` | `-ariadne` + WP: the five B1a functions, then the lemmas |
 | `check.sh` | `run.sh` plus seven mutants that must be rejected |
 | `mutants.py` | writes the seven mutants (used by `check.sh` and `rac/check.sh`) |
 | `rac/` | runtime checking (plan §5 step 0): sanitizers, E-ACSL with executable twins, the mutants as tests; see `rac/README.md` |
-| `b1_frozen.c` | the frozen-only variant (M3): `b1.c` without the human's internal annotations and lemmas; see "Frozen-only variant" |
+| `CHANGES.md`, `bugfix/`, `refactor/` | the change log (plan Q11: bug fixes and verification refactors) and the tests behind each entry |
+| `b1_frozen.c` | the frozen-only variant (M3): `b1.c` without the human's internal annotations and lemmas (only the template's public macros); see "Frozen-only variant" |
 
 The driver replaces the sample's `main`: an input array instead of
 `argv`/`sscanf`, no `printf` (body-less libc functions are not
@@ -70,7 +71,10 @@ Mutants (`check.sh`), each rejected:
 
 ## The specification (for review: frozen spec, plan §4 and guardrail 3a)
 
-All in `b1.c`; these are the definitions a human must approve.
+In `b1.c`, written with the template of `../sglib_spec/` (the
+predicates are `SGLIB_DL_LIST_SPEC`, the contracts
+`SGLIB_DL_LIST_CONTRACT_*`, at `dllist`, `ptr_to_previous`,
+`ptr_to_next`); these are the definitions a human must approve.
 
 - `live(p)`: `p` is valid, at offset 0, a heap block, and not dead.
 - `mem(p, s)`, `all_live(s)`, `all_init(s)`: membership in,
@@ -257,8 +261,14 @@ frozen:
 | loop invariants, `loop assigns`, `loop variant` (in `get_first`, `get_last`, the four loops of `b1`) | removed | internal annotations (§4.4) |
 | the asserts in `add`, `get_first`, `get_last`, `it_init_on_equal`, `it_next`, `b1` | removed | internal annotations |
 
-`guardrails.frozen(b1.c, b1_frozen.c)` passes: 18 frozen items, the same
-hashes (digest `213986017b964d3e`), nothing changed, removed or added.
+`guardrails.spec_checks(b1.c, b1_frozen.c)` passes: 25 frozen items, the
+same hashes (digest `f6cc96e5854dafc5`), nothing changed, removed or
+added.  (Before the spec template the digest was `213986017b964d3e`
+over 18 items, and `d3e4f6fdc9011d48` with the template; see "Spec
+template" and "Owner's decisions of 2026-11-05" for why it changed.)
+The lemmas, invariants and asserts of `b1.c` have grown since this
+table (the decisions of 2026-11-05); the frozen-only census below is
+from before them.
 
 **Census before any annotation** (`../../harness/b1_frozen.json`, the
 same WP flags as M1; `harness/results/b1-frozen-census.md`): 254 goals
@@ -270,6 +280,123 @@ the postcondition), `add` 1 (the postcondition `live_dll`),
 `it_init_on_equal` 1 (a precondition of its call to `it_next`), `it_next`
 1 (its postcondition).  Step 0 (sanitizers and E-ACSL, without the
 mutants, whose anchors are the human's annotations) passes.
+
+## Spec template (plan Q12)
+
+B1's predicates, lemmas, the contracts of the six sglib functions and
+their in-body annotations are now macros of
+`../sglib_spec/sglib_dl_list_spec.h`, taking sglib's parameters (type,
+previous, next); `b1.c` and `b1_frozen.c` invoke them at `dllist`,
+`ptr_to_previous`, `ptr_to_next` (`../sglib_spec/README.md`: how
+Frama-C expands macros inside annotations, and what is not a sglib
+parameter).  The driver `b1` is B1's own client code, so its contract
+and annotations stay written out.
+
+- **Same proof.**  Expanded, every predicate, lemma, contract and
+  in-body annotation is token for token the hand-written one (compared
+  with `guardrails.spec_items` and the in-body annotation list).
+  `run.sh` proves the same 321 goals with the same names (310 + 11):
+  Qed 189, Alt-Ergo 115, CVC5 9, Z3 3, Coq 5 (the five scripts in
+  `session/interactive` unchanged); WP's cache reused the SMT results of
+  the hand-written spec.  A run with `-wp-cache none` also proves 321 /
+  321 (Qed 189, Alt-Ergo 112, CVC5 8, Z3 7, Coq 5).  `check.sh`: all
+  seven mutants rejected at their intended goal; the markers of
+  `nullfirst` and `nulllast` are now the contract invocations, where WP
+  places the expanded clauses.  `rac/check.sh` passes with the same
+  table (27 dropped, 24 kept, 1 partly kept, 22 rewritten clauses).
+  `../../harness/harness.py ../bench/b1 --tiers 0`: verdict `certified`,
+  321 / 321, every guardrail passed (frozen spec: 18 items, digest
+  `d3e4f6fdc9011d48`).
+- **Hashes.**  The guardrails now hash the spec after expanding the
+  macros inside annotations (`../../harness/acsl_expand.py`, plan Q11:
+  "the macros are expanded before the check"), so the hashes cover the
+  ACSL Frama-C reads.  16 of the 18 frozen items keep their hashes; the
+  two that change are the allocator contracts (`ariadne_alloc_dllist`,
+  `ariadne_free_dllist`), which were hashed as the text `ARIADNE_ALLOC` /
+  `ARIADNE_FREE` and are now hashed as the liveness model's contract
+  those macros expand to.  Digest `213986017b964d3e` becomes
+  `d3e4f6fdc9011d48`.
+- **Order.**  The lemmas follow all the predicates (they were
+  interleaved), so that the public macro holds only predicates.  The
+  lemmas keep their order among themselves, and the goals and their
+  proofs did not change.
+
+## The comparator's overflow: bug fix #1 (plan Q12)
+
+sglib's sample defines `DLLIST_COMPARATOR(e1, e2)` as `(e1->i - e2->i)`,
+which overflows (undefined behaviour) on extreme values.  Before the
+fix B1's proof did not reach it: sglib inlines the comparator only into
+`add_if_not_member` (and its `before` / `after` variants),
+`delete_if_member`, `find_member` and `sort`, none of which is verified
+or called by the driver, and the iterator's subcomparator calls are
+unreachable under `subcomparator == \null`.  WP with `-wp-rte` on
+`find_member` and `sort` created the comparator's overflow goals and
+proved none of them (nothing bounds `i`).
+
+**Fixed** (owner's decision, 2026-11-05; `CHANGES.md`, entry 1):
+B1's comparator is now `((e1->i > e2->i) - (e1->i < e2->i))`, in
+`gen_in.c` and so in `b1_gen.c` (`./gen.sh`) and the generated parts of
+`b1.c` and `b1_frozen.c` (their code, annotations stripped, equals
+`b1_gen.c` token for token).  The vendored `../sglib/dllist.c` is
+unmodified.  `bugfix/cmp_overflow.sh` is the test: upstream, under
+UBSan, `dllist -5 2147483647 -2147483648 3` reports `signed integer
+overflow: 3 - -2147483648` and prints `3 2147483647 -2147483648 -5`;
+fixed, it prints `-2147483648 -5 3 2147483647` with no report.
+
+WP with `-wp-rte` (Alt-Ergo, Z3, CVC5, 10 s; a check, outside B1's
+verified selection) now proves every comparator overflow goal, all by
+WP's simplifier (Qed): `find_member` 4, `sort` 4 (lines 453-471),
+`add_if_not_member` 4, `delete_if_member` 4.  Two overflow goals of
+`sort` stay open, `typed_sglib_dllist_sort_assert_rte_signed_overflow_5`
+and `_6` (line 445): they are not the comparator but sort's run length
+`_n_ = _n_ + _n_`, which doubles while runs remain and overflows only on
+lists of more than 2^30 nodes.  That is for the verification of `sort`
+(B1c) to settle.
+
+## Owner's decisions of 2026-11-05 (plan Q11, Q12)
+
+1. **`all_init` covers the links only.**  `add`'s `elem_init` and the
+   template's payload parameter are gone.  B1's driver reads the payload
+   (`l->i`) in its walks, so `b1` gains the precondition
+   `payload_init` (every live node's `i` is initialised) and matching
+   loop invariants and asserts (`payload_written`, `payload_kept`).
+2. **Any node.**  `add` accepts `*list` NULL or any node of a whole live
+   list and ensures `*list == elem && in_live_list(elem)` and
+   `was_head`; it assigns the old predecessor's `next` too (written as
+   a set guarded by `*list != NULL`, so a NULL `*list` adds no unknown
+   location).  The iterator starts at any node (`list == \null ||
+   in_live_list(list)`); `iter_at` describes its position in the whole
+   list (backward walk on `prevelem`, then forward from `nextelem`).
+   The proof of `add` builds the new list by insertion (lemma
+   `list_insert`, Coq) and recognises it from its links (lemma
+   `dll_of_links`, Coq); the driver's frees keep the iterator's
+   position by `dll_distinct` (Coq).  The assert `insert_list` of `add`
+   is closed in Coq too.
+3. **Subcomparator (option B).**  WP 33 handles `calls` only on a call
+   statement, and sglib's `it_next` called the subcomparator inside
+   `while` conditions (`../sglib_spec/calls_probe`).  Verification
+   refactor #1 (`CHANGES.md`, change #2; `refactor/`) moves each call
+   into `if (scp(..) == 0) break;`, and the iterator contracts take the
+   comparator set: B1's is `(0)`, so `it_next`'s calls are unreachable
+   here; the self-test's instantiation (`../selftest/wp`) proves them
+   with `myListCmp`.  B1's driver keeps `it.subcomparator == \null` as
+   a loop invariant.
+4. **`cmp_reads`** is a template parameter: B1's is
+   `dllist_cmp_reads(p) = \initialized(&p->i)`.  The comparator contract
+   is `SGLIB_DL_LIST_CONTRACT_COMPARATOR`.
+5. **The comparator fix** above.
+
+Result (WP with Alt-Ergo, Z3, CVC5 and the Coq scripts): 370 goals
+(355 function goals, 15 lemmas), all proved: Qed 205, Alt-Ergo 141,
+CVC5 10, Z3 5, Coq 9 (`mem_cons`, `all_live_cons`, `all_init_cons`,
+`dll_frame`, `dll_links`, `dll_distinct`, `dll_of_links`,
+`list_insert`, and `add`'s `insert_list`).  `check.sh`: nine mutants,
+each rejected at its intended goal; new ones `nowashead` (add's
+`was_head` dropped: the driver's `head_after_add` fails) and `noassign`
+(`elem->previous` dropped from add's `assigns`: add's assigns goal
+fails).  `rac/check.sh` passes; the iterator's contracts are not
+executable there (`iter_ok` binds the whole list, for which gen_twins
+has no witness), so E-ACSL checks the other contracts.
 
 ## Next
 

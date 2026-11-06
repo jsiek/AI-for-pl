@@ -598,108 +598,42 @@ Axiom Q_mem_cons :
   (x = h) \/ P_mem x t <-> P_mem x (Init.Datatypes.cons h t).
 
 (* Why3 assumption *)
-Definition IsInit_S1_dllist (p:addr) (Init:addr -> Init.Datatypes.bool) :
-    Prop :=
-  (((Init (shift p 0%Z)) = Init.Datatypes.true) /\
-   ((Init (shift p 1%Z)) = Init.Datatypes.true)) /\
-  ((Init (shift p 2%Z)) = Init.Datatypes.true).
-
-Parameter sconst: (addr -> Numbers.BinNums.Z) -> Prop.
-
-(* Why3 assumption *)
-Definition framed (m:addr -> addr) : Prop :=
-  forall (p:addr), ((region (base p)) <= 0%Z)%Z ->
-  ((region (base (m p))) <= 0%Z)%Z.
-
-(* Why3 assumption *)
-Definition scinit (m:addr -> Init.Datatypes.bool) : Prop :=
-  forall (b:Numbers.BinNums.Z), binit b -> forall (p:addr), ((base p) = b) ->
-  ((m p) = Init.Datatypes.true).
-
-(* Why3 assumption *)
-Definition eqmem {a:Type} {a_WT:WhyType a} (m1:addr -> a) (m2:addr -> a)
-    (p:addr) (n:Numbers.BinNums.Z) : Prop :=
-  forall (q:addr), included q 1%Z p n -> ((m1 q) = (m2 q)).
-
-Parameter memcpy:
-  forall {a:Type} {a_WT:WhyType a}, (addr -> a) -> addr -> (addr -> a) ->
-  addr -> Numbers.BinNums.Z -> addr -> a.
-
-Axiom memcpy'def :
-  forall {a:Type} {a_WT:WhyType a},
-  forall (m0:addr -> a) (a0:addr) (m1:addr -> a) (a1:addr)
-    (s:Numbers.BinNums.Z) (p:addr),
-  (separated p 1%Z a0 s -> ((memcpy m0 a0 m1 a1 s p) = (m0 p))) /\
-  (~ separated p 1%Z a0 s ->
-   ((memcpy m0 a0 m1 a1 s p) =
-    (let offset1 := (((offset a1) - (offset a0))%Z + (offset p))%Z in
-     m1 (addr'mk (base a1) offset1)))).
-
-Axiom eqmem_single :
-  forall {a:Type} {a_WT:WhyType a},
-  forall (m1:addr -> a) (m2:addr -> a), forall (p:addr),
-  eqmem m1 m2 p 1%Z <-> ((m1 p) = (m2 p)).
-
-Axiom eqmem_included :
-  forall {a:Type} {a_WT:WhyType a},
-  forall (m1:addr -> a) (m2:addr -> a), forall (p:addr) (q:addr),
-  forall (a1:Numbers.BinNums.Z) (b:Numbers.BinNums.Z), included p a1 q b ->
-  eqmem m1 m2 q b -> eqmem m1 m2 p a1.
-
-Axiom eqmem_sym :
-  forall {a:Type} {a_WT:WhyType a},
-  forall (m1:addr -> a) (m2:addr -> a), forall (p:addr),
-  forall (a1:Numbers.BinNums.Z), eqmem m1 m2 p a1 -> eqmem m2 m1 p a1.
-
-Axiom eqmem_update :
-  forall {a:Type} {a_WT:WhyType a},
-  forall (m0:addr -> a), forall (v:a), forall (p:addr) (q:addr),
-  forall (n':Numbers.BinNums.Z), separated p 1%Z q n' ->
-  eqmem m0 (map.Map.set m0 p v) q n'.
-
-Axiom eqmem_memcpy :
-  forall {a:Type} {a_WT:WhyType a},
-  forall (m0:addr -> a) (m1:addr -> a), forall (p:addr) (p':addr) (q:addr),
-  forall (n:Numbers.BinNums.Z) (n':Numbers.BinNums.Z), separated p n p' n' ->
-  eqmem m0 (memcpy m0 p m1 q n) p' n'.
-
-Axiom Q_IsInit_S1_dllist_framed :
-  forall (Init:addr -> Init.Datatypes.bool)
-    (Init1:addr -> Init.Datatypes.bool) (p:addr),
-  eqmem Init Init1 p 3%Z ->
-  IsInit_S1_dllist p Init1 <-> IsInit_S1_dllist p Init.
-
-(* Why3 assumption *)
 Definition P_all_init (Init:addr -> Init.Datatypes.bool)
     (s:Init.Datatypes.list addr) : Prop :=
-  forall (i:Numbers.BinNums.Z), (0%Z <= i)%Z ->
-  (i < (list.Length.length s))%Z -> IsInit_S1_dllist (nth s i) Init.
+  forall (i:Numbers.BinNums.Z),
+  let a := nth s i in
+  (0%Z <= i)%Z -> (i < (list.Length.length s))%Z ->
+  ((Init (shift a 1%Z)) = Init.Datatypes.true) /\
+  ((Init (shift a 2%Z)) = Init.Datatypes.true).
 
 (* Why3 goal *)
 Theorem wp_goal :
   forall (t:addr -> Init.Datatypes.bool) (a:addr)
     (l:Init.Datatypes.list addr),
-  IsInit_S1_dllist a t /\ P_all_init t l <->
+  (P_all_init t l /\ ((t (shift a 1%Z)) = Init.Datatypes.true)) /\
+  ((t (shift a 2%Z)) = Init.Datatypes.true) <->
   P_all_init t (Init.Datatypes.cons a l).
+(* Why3 intros t a l. *)
 Proof.
 intros t a l.
 pose proof (length_pos l) as Hlen.
-unfold P_all_init; split.
-- intros [Ha Hl] k Hk0 Hk.
+unfold P_all_init; cbv zeta; split.
+- intros [[Hl Ha1] Ha2] k Hk0 Hk.
   rewrite length_cons in Hk.
   destruct (Z.eq_dec k 0) as [-> | Hne].
-  + rewrite nth_zero. exact Ha.
+  + rewrite nth_zero. tauto.
   + destruct (nth_cons k a l) as [_ Hn]; [lia |].
     rewrite Hn by exact Hne.
     apply Hl; lia.
-- intros H. split.
-  + specialize (H 0%Z). rewrite nth_zero in H.
-    apply H; [lia | rewrite length_cons; lia].
-  + intros k Hk0 Hk.
-    specialize (H (k + 1)%Z).
-    destruct (nth_cons (k + 1)%Z a l) as [_ Hn]; [lia |].
-    rewrite Hn in H by lia.
-    replace (k + 1 - 1)%Z with k in H by lia.
-    apply H; [lia | rewrite length_cons; lia].
+- intros H.
+  assert (H0 := H 0%Z). rewrite nth_zero in H0.
+  destruct H0 as [H01 H02]; [lia | rewrite length_cons; lia |].
+  split; [split |]; try assumption.
+  intros k Hk0 Hk.
+  specialize (H (k + 1)%Z).
+  destruct (nth_cons (k + 1)%Z a l) as [_ Hn]; [lia |].
+  rewrite Hn in H by lia.
+  replace (k + 1 - 1)%Z with k in H by lia.
+  apply H; [lia | rewrite length_cons; lia].
 Qed.
 

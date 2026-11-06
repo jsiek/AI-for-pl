@@ -130,6 +130,14 @@ import proof.DGG.Catchup.LeftValueCatchupProof
 -- Current frontier (M8: higher-order DGG assembly)
 ------------------------------------------------------------------------
 
+import proof.DGG.TermSubstClosingDef
+import proof.DGG.PairedAllValueRedexClosingDef
+import proof.DGG.PairedAllValueRedexClosingProof
+import proof.DGG.SourceAllValueRedexClosingDef
+import proof.DGG.SourceAllValueRedexClosingProof
+import proof.DGG.SimPairedFunClosingProof
+import proof.DGG.SimPairedAllClosingProof
+import proof.DGG.SimSourceAllClosingProof
 import proof.DGG.SimPrimitiveValuesProof
 import proof.DGG.SimCastLayerInversion
 import proof.DGG.SimSourceCastValuesProof

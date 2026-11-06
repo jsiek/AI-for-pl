@@ -1,69 +1,70 @@
+{-# OPTIONS --safe #-}
+
 module proof.DGG.SimPairedRevealValuesDef where
 
 -- File Charter:
---   * States paired reveal closing after both bodies are related values.
---   * Takes the catchup result as evidence; it does not perform catchup.
---   * Contains no paired-reveal value proof.
+--   * States paired reveal simulation once both reveal bodies are related
+--     values.
+--   * Exposes the target reveal trace, evolved world, and final CTI evidence
+--     directly for every source reveal root.
+--   * Isolates the genuine value/value reveal induction from target catch-up.
 
-open import Data.Fin using (Fin)
 open import Data.List using ([])
-open import Data.Maybe using (just)
 open import Data.Product using (_×_; Σ-syntax)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
-open import Types using (Ty; TyCtx)
-open import Conversion using (Conv↑)
-open import CastTerms using (Term; Value; _↑_)
+open import Types using (Ty; TyCtx; TyVar)
+open import TyStore using (TyStore)
+open import Consistency using (toRenameᵗ)
+open import Conversion using (Conv↑; _⊢↑[_⦂_]_)
+open import CastTerms using (Term; Value; ⟨_,_,_⟩; _↑_)
 open import Reduction using
   ( StoreChange
   ; StoreChanges
+  ; applyStore
   ; applyTy
   ; applyTys
   ; _—→[_]_
   ; _—↠[_]_
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
-import Conversion as Conv
-import proof.DGG.CastTermImprecision as CTI2
-import proof.DGG.CtxImp as CTX
-open import proof.DGG.Parked.ParkedWorldDef
-  using (ParkedWorld; ParkedEvolve)
-open import proof.DGG.CatchupToMorePreciseDef
-  using (ValueCatchupResult; source-reveal-boundary)
-open CTX using
-  (World;
-   ImpEnvMono;
-   RebaseAt;
-   sourceStoreʷ;
-   targetStoreʷ;
-   _⊑ᵂ⟨_⟩_)
-open CTI2 using (_∣_⊢²_⊑_∶_)
+open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
+open import proof.DGG.ConversionPivotAlignment using
+  (revealGeneratorPosition)
+open import proof.DGG.World
+open import proof.DGG.WorldEvolutionSequence using (MultiWorldEvolution)
 
 
-SimPairedRevealValuesᵀ : Set₁
-SimPairedRevealValuesᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴸ′} {W Wᵖ : World Δᴸ Δᴿ Δ}
+SimPairedRevealValuesᵀ : Set
+SimPairedRevealValuesᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
+    {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+    {γ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
     {χᴸ : StoreChange Δᴸ Δᴸ′}
-    {V : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
+    {V : Term Δᴸ} {V′ : Term Δᴿ} {N : Term Δᴸ′}
     {A B : Ty Δᴸ} {A′ B′ : Ty Δᴿ}
-    {Xᴸ : Fin Δᴸ} {Xᴿ : Fin Δᴿ}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+    {Rᴸ : Ty Δᴸ} {Rᴿ : Ty Δᴿ}
     {c : Conv↑ Δᴸ A B} {c′ : Conv↑ Δᴿ A′ B′}
-    {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′}
-  → ParkedWorld W
-  → (mono : ImpEnvMono W Wᵖ)
-  → (rebase : RebaseAt W Wᵖ Xᴸ Xᴿ)
-  → sourceStoreʷ W Conv.⊢↑[ just Xᴸ ] c
-  → targetStoreʷ W Conv.⊢↑[ just Xᴿ ] c′
-  → Wᵖ ∣ [] ⊢² V ⊑ M′ ∶ p
-  → (q : B ⊑ᵂ⟨ W ⟩ B′)
+    {p : A ⊑ᵀ⟨ γ ⟩ A′}
+  → openFramesᶜ γ ≡ []
+  → (c⊢ : Σᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
+  → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
+  → revealGeneratorPosition c⊢ ≡ revealGeneratorPosition c′⊢
+  → toRenameⁱ (ηᴸᶜ γ) Xᴸ ≡ toRenameⁱ (ηᴿᶜ γ) Xᴿ
+  → Rᴸ ⊑ᵀ⟨ γ ⟩ Rᴿ
+  → γ ⊢² V ⊑ V′ ∶ p
+  → (q : B ⊑ᵀ⟨ γ ⟩ B′)
   → Value V
+  → Value V′
   → V ↑ c —→[ χᴸ ] N
-  → ValueCatchupResult
-      {W = W} {Wᵖ = Wᵖ} {kind = source-reveal-boundary}
-      {Xᴸ? = just Xᴸ} {Xᴿ? = just Xᴿ}
-      {V = V} {M′ = M′} {A = A} {B = A′}
-  → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
-    Σ[ N′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ r ∈ applyTy χᴸ B ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ B′ ]
-      (M′ ↑ c′ —↠[ χsᴿ ] N′) ×
-      ParkedEvolve (χᴸ ∷ˢ []ˢ) χsᴿ W W′ ×
-      (W′ ∣ [] ⊢² N ⊑ N′ ∶ r)
+  → Σ[ Δᴿ′ ∈ TyCtx ]
+    Σ[ Σᴿ′ ∈ TyStore Δᴿ′ ]
+    Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
+    Σ[ N′ ∈ Term Δᴿ′ ]
+    Σ[ γ′ ∈
+      ⟨ Δᴸ′ , applyStore χᴸ Σᴸ , [] ⟩ ⊑ᶜ
+      ⟨ Δᴿ′ , Σᴿ′ , [] ⟩ ]
+    Σ[ r ∈ applyTy χᴸ B ⊑ᵀ⟨ γ′ ⟩ applyTys χsᴿ B′ ]
+      (V′ ↑ c′ —↠[ χsᴿ ] N′)
+      × MultiWorldEvolution
+          {W = γ} {W′ = γ′} (χᴸ ∷ˢ []ˢ) χsᴿ
+      × (γ′ ⊢² N ⊑ N′ ∶ r)

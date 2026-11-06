@@ -1097,3 +1097,363 @@ HANDOFF — RECOMMENDED NEXT STEPS (2026-08-20 EOD, in order):
 Probes/notes for all of the above live on #177's branch (world
 invariants) and #180's branch (dispatcher residuals); decision record
 is the D19/D18 comment threads on those PRs.
+
+## D20 WORLD PROVENANCE + CONCEAL MIGRATION (2026-08-20, in flight)
+
+The continuation branch now carries the PR #177 invariants in the live,
+inductively generated `World`.  World construction records allocation/rebase
+provenance rather than accepting raw record snapshots.  The migration keeps
+direct store entries nominal: `α:=★, β:=α` is two ordered representation
+boundaries, not the equation `β=★`.  `resolveVar` is therefore not an
+acceptable replacement for the direct representation invariant or for
+boundary authorization.  The longer-term redesign still planned is a world
+relation indexed by the two endpoint `Ctx`s, with stable direct-representation
+alignment separated from a boundary-scoped one-edge name focus; that surface
+is not live yet.
+
+USER-APPROVED CONCEAL DESIGN: a one-sided source conceal has no occupied
+target pivot.  The live `conceal⊑²` consequently requires
+`TagRebaseAtᴸ W′ W Xᴸ? nothing`.  An occupied boundary is represented by the
+paired conceal rule, which carries both conversions and their rebase.  The
+term-shaped `MatchedConcealPartnerOK`/`Rep★PartnerOK` predicates and the
+`packaged-seal-star²` constructor are deleted; paired simulation uses the
+child relation and explicit boundaries instead.  This retains non-★
+one-sided conceal at genuinely unoccupied pivots, including the compiled
+polymorphic-identity-at-ℕ trace.
+
+The apparent SourceStrip mixed case is closed compositionally under the full
+column boundary.  If the inner target cast exposes
+`R ⊑[W′] ＇Y`, direct inversion gives `R = ＇X₂` with `X₂` aligned to `Y`.
+The outer `RebaseAt W′ W X Y` then forces `X₂ = X`, while direct source-store
+membership for the conceal forbids the self-alias `X:=X`.  The checked
+`source-column-alias-cycle-⊥` proof uses direct membership, store acyclicity,
+and embedding geometry only—no target-term classifier and no `resolveVar`.
+
+Fixture status: every fixture is retained.  Positive fixtures were rebuilt
+with inductive provenance; invalid raw snapshots (SourceStar,
+CenterCrossing, and Terminus instance B) are checked negative invariant
+regressions.  The SourceStar snapshot's two endpoint stores are individually
+operationally possible, but its cross-run alignment is not reachable from the
+compiled empty world.
+
+The proposed two-`Ctx` redesign now has checked direct invariants and an
+exhaustive plan interpreter, not just a constructor sketch.
+The live `WorldInvariants` module proves all four invariants for every raw
+constructor without `resolveVar`, invariant-accepting escape constructors,
+postulates, `NON_COVERING`, funext, or catch-alls.
+The live `SourceRebasePlan` implements the direct-store rebase graph,
+identity and moving base cases, and commutation through every raw skeleton
+constructor.  The plan remains explicit: the next producer obligation is to
+show which operational pivot moves supply one, not to make rebase an
+unrestricted world rewrite.
+The live core also checks `initialWorldᶜ` and `emptyCenterWorldᶜ` recursors
+with constructor-form endpoints and pointwise center, embedding, and mark laws.
+It does not restore homogeneous equations against `id↪ᵗ`: the hidden center is
+only propositionally equal to the endpoint type context, so those old equations
+would require an explicit transport boundary.
+The live `CenterRenamePlan` also reconstructs every raw history constructor
+under a structural center embedding, keeps both endpoint `Ctx` indices fixed,
+proves the embedding and pointwise mark laws, and derives invariants from the
+rebuilt history.  As with source rebase, the remaining obligation is an
+operational plan producer for the explicit rebuilt freshness/type-imprecision
+premises, not another invariant-accepting world constructor.
+
+Administrative aliases are now checked as a scoped mode stack.
+`TwoCtxAliasFocusModeProbe` leaves the stable direct-invariant world unchanged,
+makes the pending fresh target name unavailable in stable mode, and lets only
+an exact direct-store reveal/conceal boundary push a focus.  The
+`β := α`, `α := ★` trace requires two pushes, checks each edge in its parent
+mode, and returns the nested reveal term to stable mode.  Ordinary term rules
+preserve the mode.  `TwoCtxTypedAliasBoundaryProbe` further checks the explicit
+intermediate type judgments `X ⊑ β`, `X ⊑ α`, and `X ⊑ ★` and confirms that
+only exact reveal/conceal boundaries change mode.  Its concrete atom is not
+by itself a real term-context leaf: the fixture contexts are empty.
+`TwoCtxTermEntryProbe` separately checks the real world-indexed entry relation,
+term binding, lookup transport, and variable CTI rule and proves both fixture
+lookups empty.  `TwoCtxScopedTermBoundaryProbe` now joins them concretely: full
+source disalignment builds the right-bound alias world, stable `X ⊑ β` is
+refuted there, and a mode-scoped full-`Ctx` term bind yields a real `Z`/`Z`
+body-variable leaf.  General integration requires mode, scoped type
+imprecision, and scoped full-`Ctx` relation to be parameterized together over
+arbitrary endpoint worlds; it is not a parallel `CtxImp` and must neither
+weaken `representationsImprecise` nor use `resolveVar`.
+
+`TwoCtxGenericScopedWorldProbe` now checks that bounded generalization over an
+arbitrary stable full-`Ctx` world and exact right-bound alias extension.  It
+recovers stable mode, pushes one exact boundary, owns a constructor-form body
+term binding under the focused mode, and yields a genuine variable CTI leaf.
+`TwoCtxScopedTermClosureProbe` closes the same surface under arbitrary repeated
+term bindings and checks here/there/tail entry transport, both endpoint
+lookups, and a variable leaf at depth two.  No mutual-index workaround or
+parallel `CtxImp` is needed for ordinary term-context extension.  Structural
+alias-edge lifting is checked below; the remaining generic work is the complete
+live reveal/conceal constructor family.
+
+`TwoCtxHonestifyEliminationProbe` proves by exhaustive induction that every
+target-unaligned center in a raw two-`Ctx` world is already marked `X⊑★`.
+Honestification is therefore observationally and definitionally the identity:
+delete `honestifyʷ` and reuse the original world plus `directInvariantsᶜ`,
+rather than introducing another transformation plan.
+
+The live `TargetExtend` checks structural target insertion from either a
+fresh direct `★` entry or an exact fresh alias.  It reconstructs skip-center,
+lift-both, lift-left, bind-left, and bind-right history and proves source and
+target embedding, mark, direct target-lookup, and invariant laws.  Paired and
+term heads require transport of their relation-indexed type-imprecision
+premise into the extended world and renamed target type.  That structural
+transport theorem now checks from the embedding and mark laws and closes
+bind-both, bind-both-star, and bind-term.  It uses neither global invariants nor
+representation resolution.
+
+`TwoCtxTargetStripReconstructionProbe` checks the replacement for the live
+`lower-leftʷ` producer.  It lowers the actual `SourceRebasePlan` through a
+left lift, with exactly identity and lifted-child cases, reconstructs the
+lifted output by `refl`, and derives direct invariants.  The live target-strip
+surface must therefore retain or recover that plan provenance; extensional
+world facts cannot determine a unique raw history.
+
+`TwoCtxScopedUniversalLiftProbe` checks why the old head-only alias boundary
+cannot survive universal lifting: the existing `β := α` edge shifts below a
+fresh self cell instead of becoming another head allocation.
+`TwoCtxLiftedExactBoundaryProbe` records that exact one-edge structure with a
+lift-prefix constructor.  `TwoCtxEdgeIndexedModeProbe` then indexes the focus
+mode by the structural edge and checks both head and lifted worlds, scoped type
+imprecision, arbitrary recursive term bindings, endpoint lookup, and a real
+variable leaf.  Universal lifting therefore preserves edge identity without
+mutating the stable world or following an alias chain.
+
+The live `WorldEvolution` checks the endpoint-indexed store-evolution
+shape.  `CtxChange` uses only constructor-form complete `Ctx` endpoints, and
+`WorldEvolution` covers keep, source-only bind, target-only fresh bind,
+paired precise bind, and paired dynamic bind.  Trusted `applyStore` and the
+corresponding term-context action occur only in projection theorems.  The next
+operational obligation is to produce these checked cases from a pair of
+related trusted reduction steps.
+
+The live `WorldEvolutionProducer` checks that producer boundary.  Bare
+trusted `StoreChange` indices determine only keep versus `bind A`; the
+constructor-form request additionally owns right-only `RightBindFreshᶜ`, the
+paired direct type-imprecision derivation, and the precise/dynamic choice with
+its non-`★` source evidence.  From those exact facts it computes both endpoint
+contexts and the result world and returns the checked `WorldEvolution`.
+
+The live `WorldEvolutionSequence` checks the multi-step closure.
+Source-only, target-only, and paired steps each retain their one-step witness
+and explicit intermediate world, so unequal trace lengths need no synthetic
+`keep`.  Induction proves final source/target stores equal trusted
+`applyStores`, final terms equal `applyTerms`, and term contexts equal the
+corresponding structural repeated shift.
+
+The live `SourceRebaseRequest` checks the operational rebase request.  It
+has exactly no-pivot, unmatched-source, and paired-plan constructors.  The
+unmatched case keeps the world and owns the dynamic mark, target disalignment,
+and direct source-entry relation to `★`; the paired case owns both the raw
+history plan and the direct final pivot-entry relation.  This exposes the live
+API defect precisely: `RebaseAt`/`TagRebaseAt` currently retain resolved
+representation evidence and extensional geometry, neither of which can
+recover the checked direct fact or structural plan.
+
+`TwoCtxFreshBehindPlanProbe` checks the structural replacement for the
+fresh-behind smart-comma world.  It lifts the source once and commutes through
+an arbitrary target-star prefix, deriving the center permutation, embeddings,
+marks, type-imprecision transport, freshness, and direct invariants.  A
+following `β := α` is represented by the exact boundary edge; commuting a raw
+alias head would require an additional `RightBindFreshᶜ` noncollision fact and
+is not admitted.
+
+The CTI probes below are historical design experiments, not migrated
+definitions. Their indices and wrapper choices require review against the
+canonical `World` before any part is moved into `CastTermImprecision`.
+
+`TwoCtxEdgeScopedCTIProbe` checks the first compositional term-imprecision
+surface over that edge-indexed mode.  Ordinary variable/lambda/application
+rules preserve the mode; exact target reveal/conceal push and pop it; one-sided
+source conceal requires current-mode pivot unoccupancy and direct membership;
+paired reveal/conceal require only the two direct memberships and indexed type
+relations.  No rule inspects either child term.  The `β := α := ★` reveal trace
+and a real scoped `λx.x` derivation both check.
+The same probe now covers constants, source blame, paired/left/right ordinary
+casts, general pivot-typed target reveal/conceal, and structural function
+reveal/conceal.  Universal abstraction/application is the first genuine
+indexing boundary: recursive premises simultaneously lift both endpoints,
+stable world, focus, exact edge, mode validity, and heterogeneous bindings.
+The next surface must therefore be one global indexed CTI family, together
+with scoped-type substitution preservation, rather than hollow local universal
+constructors.
+
+`TwoCtxGlobalIndexedCTIProbe` checks that global surface.  Full endpoint world,
+focus, exact edge, mode validity, heterogeneous scoped world, and scoped type
+are indices; all of those states lift structurally.  Recursive `scoped-allᵍ`
+and `all⊑allᵍ` use `liftBothᶜ`, and type application checks with an explicit
+substituted-result relation.  Exact target boundaries accept arbitrary trusted
+conversion typing, including the composite strict-`Λ` function conversion.
+The structural prefix plan now inserts behind arbitrary existing type binders
+and transports the full runtime state, mode, central imprecision, recursively
+nested scoped types, heterogeneous term worlds, and deep entries.  The global
+relation also covers paired/left/right ordinary casts, current-mode-unoccupied
+source conceal, and term-independent paired reveal/conceal using direct store
+memberships.  The checked
+`TwoCtxGlobalIndexedCTITypingProbe` proves both endpoint typings for every term
+constructor in the current global fragment.
+
+`TwoCtxStrictLambdaProducerProbe` checks the relation-side strict-`Λ` producer
+through its complete pending spine.  Exact `α := ★` and `β := α` memberships,
+the edge-scoped parameter entry, body relation, both value witnesses, and the
+canonical reveal-first `lambda-ready-child-spine` all construct.  The global
+boundary consumes the generated composite `β` function reveal, the unchanged-
+term `replace-zero-open` transport frame, and the mapped direct `α := ★`
+reveal, ending at `X⇒X ⊑ ★⇒★`.  The next substantive producer is the live
+strict-child package: endpoint evidence, child-target-indexed
+`StructuralTermProvenance`, `TargetFrameAbsorptionChain`, and `SpineTypedʷ`.
+
+`TwoCtxStrictLambdaPackagingProbe` checks that the latter bookkeeping is no
+longer a gap.  From the live child endpoint, child relation, and exact
+child-target-indexed provenance, it assembles the child value, post-plan,
+chain-plan, full frame-absorption chain, spine typing, and
+`StructuralStrictChild`.  The remaining missing producer is the structural
+correspondence from the two-`Ctx` relation endpoint into the live CTI index;
+do not fabricate an old `World` or reintroduce alias resolution.
+
+`TwoCtxSimulationResultProbe` checks the final multi-step result surface.  Its
+final world relates the actual endpoint `Ctx` values, retains both independent
+store-change sequences and `MultiWorldEvolution`, derives both final endpoint
+typings, and exposes executable store/context/term projections.  The complete
+outcome is either that synchronized package or the existing source-blame
+alternative.  It needs no `SameRuntime` or `SameCtx`.  Trusted one-step and
+multi-step preservation now support arbitrary term contexts, and the endpoint
+theorem checks for open simulation states as well as closed programs.
+
+`TwoCtxReductionEvolutionBridgeProbe` checks the exact next producer boundary.
+Trusted reductions determine only `keep` versus `bind`; right-only evolution
+also needs `RightBindFreshᶜ`, and paired evolution needs direct type
+imprecision plus the precise/dynamic mark choice.  These facts must be supplied
+where simulation relates the two typed steps, not recovered from reduction
+indices alone.
+
+CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
+the migrated simulation modules, the core transport modules, and all six
+reworked fixtures check with `agda --safe --no-caching`.  The occupied
+non-star source-seal residual was first closed by a direct alias-cycle
+contradiction and no longer threads as an assumption through inversion.
+
+The apparent DGG-facing SourceStrip call is itself impossible under the new
+one-sided-conceal index.  Its `tag-rebase-onlyᴸ` witness says the source pivot
+has no aligned target, while the requested `＇X ⊑ ＇Y` result says exactly that
+`X` and `Y` are aligned.  RightInj now closes that branch directly instead of
+turning the contradiction into an arbitrary positive rebase.  This disconnects
+the entire SourceStrip/TargetWalk/TargetChain island.  The ten dead modules and
+the non-safe `LegacyAll` lane are deleted under the repository's closed-world
+policy; their three fixtures are retained as safe direct RightInj and
+TargetStrip regressions.  There are now no live `NON_COVERING` pragmas, and the
+safe aggregate imports the closed RightInj proof.  The surviving
+`TargetWalkSupport` module was then pruned to its live RightInj,
+TargetStrip, and TargetDescent consumers; the orphaned `resolveVar` star,
+store-chain, pivot-pedigree, and occupied-residual helpers are deleted.
+
+Backward simulation no longer tries to fabricate a right-only world after the
+source has reached blame.  Its one-step and multi-step results instead return
+either a synchronized world/term relation or a source-blame trace, which the
+DGG already accepts.  This removes the false generic `RightBindFresh`
+obligation for arbitrary target binds such as `bind ℕ`.
+
+The structural replay boundary now consumes the exact
+`StructuralTermProvenance plan rel` certificate for reveal/conceal replay,
+instead of synthesizing it from the false universal
+`TargetInsertProvenanceᵀ`.  A peeled `β-inst`/`bind ★` package does not retain
+the canonical `rightBindTargetInsert` geometry: the checked
+`CanonicalStarInsertProbe` packages an otherwise valid insertion one unused
+center farther out.  The useful local fact is instead `TargetInsertDirectStarOff`:
+every target entry outside the old-center image has direct store entry `★`.
+The `bind ★` store equation establishes this fact, it survives the structural
+lift/rebase operations, and it now supplies the relation-indexed provenance in
+the `β-inst` branch.  The obsolete raw `targetStoreAs` and invalid split-alias
+Λ world are not acceptable implementations.  No Λ-specific term-imprecision
+constructor has been adopted.
+
+The structural instantiation surface no longer accepts the universal
+`TargetInsertProvenanceᵀ` provider.  Its public name/value workers consume
+`StructuralTermProvenance` indexed by the actual target package and relation;
+source cast, plain/smart Λ, reveal, conceal, target keep, and safe-inst peels
+return the exact child certificate.  `StructuralStrictChild` is now indexed by
+its child target and requires producer-owned provenance in all five strict
+cells.  This contract is checked through structural name instantiation,
+descent, inst inversion, and inst catchup.  There is no remaining provenance
+oracle or missing certificate inside that path; the remaining frontier is
+constructing relation-side producers for the five strict cells and the final
+root assembler.
+
+The strict-cell audit has now shown that the current five abstract surfaces
+are not honest producer interfaces.  Their plan and chain-plan inputs are
+sufficient to assemble the bookkeeping half of `StructuralStrictChild`, but
+they discard the relation-side evidence needed for its semantic half.  The
+checked `StructuralStrictAllocationProducerProbe`,
+`StructuralStrictConversionProducerProbe`, and
+`StructuralStrictAllCastProducerProbe` isolate the exact missing outputs:
+the child endpoint, child relation, and child-target-indexed term provenance.
+The universal-cast cell additionally needs the generated intermediate
+imprecision endpoint, opened-cast classification/provenance, and keep-mapped
+tail chain.  These are producer facts, not consequences of the current
+surface arguments.
+
+For the four allocating/conversion heads, the target bind is `bind (＇ X)`.
+Its new cell is a direct nominal alias, so the direct-★-off-image theorem
+used for `β-inst` does not apply.  Commuting that insertion through an arbitrary
+source rebase is precisely the relation-indexed provenance obligation that
+the old surface erased.
+
+The independent Λ child-shape bug is now fixed live.  The target peel keeps
+`V` as the recursively processed value and returns the generated reveal at the
+front of `lambda-ready-child-spine`; the strict surface, spine typing, pending
+mass proof, and rank decrease use those same indices.  Recursion therefore
+uses the existing `vV : Value V` even when `B = ★`, rather than requiring an
+impossible value proof for an identity-reveal wrapper.  The exact structural
+name-instantiation worker and retained Λ-ready probe check under
+`--safe --no-caching`.
+
+NEXT STRICT STEP: implement the Λ relation-side producer against the corrected
+value-ready surface, then replace the other four oracle-like cells by producers
+that consume the parent target package and its exact
+`StructuralTermProvenance`.  Each must return a value-anchored child package
+together with the exact child relation/provenance and generated frame evidence.
+Do not restore a universal insertion provider under a new name.  The Λ alias
+producer also depends on the checked boundary-mode stack from the two-`Ctx`
+world redesign; the current stable direct-invariant `World` deliberately cannot
+represent that focused name alignment as an ordinary world.
+
+The current full `All.agda` check reaches its first remaining failure at the
+obsolete `TargetBindLift.targetStoreAs = CTX.world ...` definition.  This is
+the already-proved-invalid split-world Λ route, not fallout from the conceal,
+RightInj, fixture, or direct-star provenance migrations.  It must be retired in
+favor of the final-world structural instantiation assembler, not patched with
+a new raw-world escape hatch.
+
+SMART-COMMA FIXTURE BLOCKER: there is no positive fixture with the original
+depth-1 role under the current direct invariants and CTI.  The live theorem
+`smartAliasGuard-impossible` already refutes every `SmartAliasMergeGuard`.
+Trusted reduction fixes the target store at `β:=α, α:=★`, while the source
+Λ binder has the direct lifted representation `X:=X`.  Aligning `X` with β
+violates direct `representationsImprecise`; aligning it with α makes β an
+unmatched alias whose referent is occupied; leaving `X` unaligned cannot
+derive the reveal pivots or the variable leaf.  The required redesign must
+separate the surface pivot β, the representation alignment `X↔α`, and the
+one-step allocation edge `β:=α`.  The fixture remains present and blocked;
+weakening it to the positive outer fresh-behind subcase would remove its
+regression purpose.
+
+## D21 TARGET GROUND-CAST SQUARE (2026-08-27, complete)
+
+The target all/gen ground-cast obstruction is discharged without extending
+CTI.  `MorePreciseGenSafeTargetGroundCastSquareLemma` proves the general
+semantic square by a simultaneous injection/projection induction.  The
+recursion is well-founded on `castSize`: only `safe-inst` crosses from the
+injection geometry to the symmetric projection geometry, and the transported
+inner consistency is strictly smaller.  Every other all/gen recursive case
+uses the structurally smaller consistency premise.
+
+`MorePrecisePairedTargetGroundCastSquareLemma` instantiates that induction to
+the four exact target all/gen injection/projection interfaces.  The broad
+arbitrary-inert version remains intentionally absent: source injection
+`ℕ ∼ ★` paired with a target identity at `ℕ` would require the false conclusion
+`★ ⊑ ℕ`.  `MorePreciseTargetCastValueCatchupProof` now checks with the four
+ground-square parameters discharged; its remaining assembly boundaries are
+the separate target-instantiation and source-Λ-closing interfaces.

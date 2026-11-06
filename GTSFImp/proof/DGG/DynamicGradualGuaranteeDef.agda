@@ -1,3 +1,5 @@
+{-# OPTIONS --safe #-}
+
 module proof.DGG.DynamicGradualGuaranteeDef where
 
 -- File Charter:
@@ -24,21 +26,18 @@ open import GradualTermImprecision
     ; gradual-term-imprecision-target-typing
     )
 open import Compile using (compile)
-open import CastTerms using (Term; Value; blame)
+open import CastTerms using (Term; Value; blame; ⟨_,_,_⟩)
 open import Reduction
   using
     ( StoreChange
     ; StoreChanges
+    ; applyStores
     ; applyTys
     ; _—→[_]_
     ; _—↠[_]_
     )
-import proof.DGG.CastTermImprecision as CTI2
-import proof.DGG.CtxImp as CTX
-open CTX using
-  (World;
-   _⊑ᵂ⟨_⟩_)
-open CTI2 using (_∣_⊢²_⊑_∶_)
+open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
+open import proof.DGG.World using (_⊑ᶜ_; _⊑ᵀ⟨_⟩_)
 
 ------------------------------------------------------------------------
 -- Convergence and divergence for compiled cast terms
@@ -96,11 +95,14 @@ GradualDGG =
     → compiled-left M⊑M′ —↠[ χs ] V
     → Value V
     → ∃[ Δᴿ ] (Σ[ χs′ ∈ StoreChanges 0 Δᴿ ]
-      (∃[ V′ ] (∃[ Δ ] (Σ[ W ∈ World Δᴸ Δᴿ Δ ]
-        (Σ[ q ∈ applyTys χs A ⊑ᵂ⟨ W ⟩ applyTys χs′ B ]
+      (∃[ V′ ]
+        (Σ[ γ ∈
+          ⟨ Δᴸ , applyStores χs store-empty , [] ⟩ ⊑ᶜ
+          ⟨ Δᴿ , applyStores χs′ store-empty , [] ⟩ ]
+        (Σ[ q ∈ applyTys χs A ⊑ᵀ⟨ γ ⟩ applyTys χs′ B ]
           ((compiled-right M⊑M′ —↠[ χs′ ] V′) ×
            Value V′ ×
-           (W ∣ [] ⊢² V ⊑ V′ ∶ q))))))))
+           (γ ⊢² V ⊑ V′ ∶ q)))))))
     -- Part 2: if the more precise side diverges, the less precise side
     -- diverges.
   × (Divergesᶜ (compiled-left M⊑M′) →
@@ -111,13 +113,16 @@ GradualDGG =
     → compiled-right M⊑M′ —↠[ χs′ ] V′
     → Value V′
     → (∃[ Δᴸ ] (Σ[ χs ∈ StoreChanges 0 Δᴸ ]
-        (∃[ V ] (∃[ Δ ] (Σ[ W ∈ World Δᴸ Δᴿ Δ ]
-          (Σ[ q ∈ applyTys χs A ⊑ᵂ⟨ W ⟩ applyTys χs′ B ]
+        (∃[ V ]
+          (Σ[ γ ∈
+            ⟨ Δᴸ , applyStores χs store-empty , [] ⟩ ⊑ᶜ
+            ⟨ Δᴿ , applyStores χs′ store-empty , [] ⟩ ]
+          (Σ[ q ∈ applyTys χs A ⊑ᵀ⟨ γ ⟩ applyTys χs′ B ]
             ((compiled-left M⊑M′ —↠[ χs ] V) ×
              Value V ×
-             (W ∣ [] ⊢² V ⊑ V′ ∶ q))))))))
+             (γ ⊢² V ⊑ V′ ∶ q))))))
       ⊎ (∃[ Δᴸ ] (Σ[ χs ∈ StoreChanges 0 Δᴸ ]
-          (compiled-left M⊑M′ —↠[ χs ] blame))))
+          (compiled-left M⊑M′ —↠[ χs ] blame)))))
     -- Part 4: if the less precise side diverges, the more precise side keeps
     -- stepping forever unless it has already reached blame.
   × (Divergesᶜ (compiled-right M⊑M′) →

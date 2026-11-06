@@ -1,3 +1,5 @@
+{-# OPTIONS --safe #-}
+
 module proof.DGG.SimSourceCastValuesDef where
 
 -- File Charter:
@@ -8,41 +10,42 @@ module proof.DGG.SimSourceCastValuesDef where
 
 open import Data.List using ([])
 open import Data.Product using (_×_; Σ-syntax)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types using (Ty; TyCtx)
+open import TyStore using (TyStore)
 open import Consistency using (Env∼; _⊢_∼_)
-open import CastTerms using (Term; Value; _⟨_⟩)
+open import CastTerms using (Term; Value; ⟨_,_,_⟩; _⟨_⟩)
 open import Reduction using
   ( StoreChange
+  ; applyStore
   ; applyTy
   ; _—→[_]_
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
-import proof.DGG.CastTermImprecision as CTI2
-import proof.DGG.CtxImp as CTX
-open import proof.DGG.Parked.ParkedWorldDef
-  using (ParkedWorld; ParkedEvolve)
-open CTX using
-  (World;
-   _⊑ᵂ⟨_⟩_)
-open CTI2 using (_∣_⊢²_⊑_∶_)
+open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
+open import proof.DGG.World
+open import proof.DGG.WorldEvolutionSequence using (MultiWorldEvolution)
 
 
 SimSourceCastValuesᵀ : Set
-SimSourceCastValuesᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴸ′} {world : World Δᴸ Δᴿ Δ}
+SimSourceCastValuesᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
+    {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+    {γ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
     {χᴸ : StoreChange Δᴸ Δᴸ′}
     {V : Term Δᴸ} {V′ : Term Δᴿ} {N : Term Δᴸ′}
     {A B : Ty Δᴸ} {C : Ty Δᴿ}
     {μ : Env∼ Δᴸ} {c : μ ⊢ A ∼ B}
-    {p : A ⊑ᵂ⟨ world ⟩ C}
-  → ParkedWorld world
-  → world ∣ [] ⊢² V ⊑ V′ ∶ p
-  → (q : B ⊑ᵂ⟨ world ⟩ C)
+    {p : A ⊑ᵀ⟨ γ ⟩ C}
+  → openFramesᶜ γ ≡ []
+  → γ ⊢² V ⊑ V′ ∶ p
+  → (q : B ⊑ᵀ⟨ γ ⟩ C)
   → Value V
   → Value V′
   → V ⟨ c ⟩ —→[ χᴸ ] N
-  → Σ[ Δ′ ∈ TyCtx ]
-    Σ[ world′ ∈ World Δᴸ′ Δᴿ Δ′ ]
-    Σ[ r ∈ applyTy χᴸ B ⊑ᵂ⟨ world′ ⟩ C ]
-      ParkedEvolve (χᴸ ∷ˢ []ˢ) []ˢ world world′ ×
-      (world′ ∣ [] ⊢² N ⊑ V′ ∶ r)
+  → Σ[ γ′ ∈
+      ⟨ Δᴸ′ , applyStore χᴸ Σᴸ , [] ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , [] ⟩ ]
+    Σ[ r ∈ applyTy χᴸ B ⊑ᵀ⟨ γ′ ⟩ C ]
+      MultiWorldEvolution
+        {W = γ} {W′ = γ′} (χᴸ ∷ˢ []ˢ) []ˢ
+      × (γ′ ⊢² N ⊑ V′ ∶ r)

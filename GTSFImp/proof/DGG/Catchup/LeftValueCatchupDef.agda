@@ -1,125 +1,108 @@
 module proof.DGG.Catchup.LeftValueCatchupDef where
 
 -- File Charter:
---   * Defines the source-cast fuel bound for left catch-up.
---   * States fuel-indexed source value catch-up, both boundary-general and
---     closed same-boundary.
---   * Charges source-side cast heads only; target cast heads are structural
---     wrappers around the fixed target value.
+--   * Defines the source-cast fuel bound for left value catch-up.
+--   * States fuel-indexed catch-up directly over complete contexts.
+--   * Uses canonical multi-world evolution and no boundary wrapper.
 --   * Contains no catch-up proof.
 
 open import Data.List using ([])
-open import Data.Maybe using (Maybe; nothing)
-open import Data.Nat using (ℕ; _<_)
-open import Data.Product using (_×_)
-open import Data.Unit using (⊤)
+open import Data.Nat using (ℕ; _+_; _<_)
+open import Data.Product using (_×_; Σ-syntax)
+open import Data.Sum using (_⊎_)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
-open import Types using (Ty; TyVar)
-open import CastTerms using (Term; Value)
+open import Types using (Ty; TyCtx)
+open import TyStore using (TyStore)
+open import CastTerms using (Ctx; Δᵉ; Term; Value; blame; ⟨_,_,_⟩)
+open import Reduction using
+  (StoreChanges; applyTys; _—↠[_]_)
+  renaming ([] to []ˢ)
 open import proof.Consistency using (castSize)
-import proof.DGG.CastTermImprecision as CTI2
-import proof.DGG.CtxImp as CTX
-open import proof.DGG.Catchup.LeftBoundaryCatchupDef
-  using (LeftCatchupResult)
-open import proof.DGG.CatchupToMorePreciseDef
-  using (CatchupBoundary; CatchupBoundaryKind; same-boundary)
-open import proof.DGG.Parked.ParkedWorldDef
-  using (ParkedWorld)
-open CTX using
-  (World;
-   CtxImp;
-   _⊑ᵂ⟨_⟩_)
-open CTI2 using (_∣_⊢²_⊑_∶_)
+import proof.DGG.CastTermImprecision as CTI
+open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
+open import proof.DGG.World
+open import proof.DGG.WorldEvolutionSequence using (MultiWorldEvolution)
 
 
-SourceCastBound : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
-    {M : Term Δᴸ} {M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ}
-    {q : A ⊑ᵂ⟨ W ⟩ B}
+sourceCastBudget : ∀ {Γᴸ Γᴿ : Ctx} {γ : Γᴸ ⊑ᶜ Γᴿ}
+    {M : Term (Δᵉ Γᴸ)} {M′ : Term (Δᵉ Γᴿ)}
+    {A : Ty (Δᵉ Γᴸ)} {B : Ty (Δᵉ Γᴿ)}
+    {q : A ⊑ᵀ⟨ γ ⟩ B}
+  → γ ⊢² M ⊑ M′ ∶ q
   → ℕ
-  → W ∣ γ ⊢² M ⊑ M′ ∶ q
+sourceCastBudget (CTI.x⊑x² _ _) = 0
+sourceCastBudget (CTI.ƛ⊑ƛ² rel) = sourceCastBudget rel
+sourceCastBudget (CTI.·⊑·² rel₁ rel₂) =
+  sourceCastBudget rel₁ + sourceCastBudget rel₂
+sourceCastBudget (CTI.Λ⊑Λ² _ _ rel _) = sourceCastBudget rel
+sourceCastBudget (CTI.Λ⊑² _ _ _ _ rel _) = sourceCastBudget rel
+sourceCastBudget (CTI.•⊑•² _ rel _ _) = sourceCastBudget rel
+sourceCastBudget (CTI.•⊑² _ rel _ _) = sourceCastBudget rel
+sourceCastBudget (CTI.κ⊑κ² _ _) = 0
+sourceCastBudget (CTI.cast⊑cast² c _ rel _) =
+  castSize c + sourceCastBudget rel
+sourceCastBudget (CTI.⊑cast² _ rel _) = sourceCastBudget rel
+sourceCastBudget (CTI.⊑reveal-identity _ _ rel _) = sourceCastBudget rel
+sourceCastBudget (CTI.⊑conceal-identity _ _ rel _) = sourceCastBudget rel
+sourceCastBudget (CTI.cast⊑² c rel _) =
+  castSize c + sourceCastBudget rel
+sourceCastBudget (CTI.reveal⊑-identity _ _ rel _) = sourceCastBudget rel
+sourceCastBudget (CTI.reveal⊑-only² _ _ _ _ _ rel _) =
+  sourceCastBudget rel
+sourceCastBudget (CTI.conceal⊑-identity _ _ rel _) = sourceCastBudget rel
+sourceCastBudget (CTI.conceal⊑-only² _ _ _ _ _ rel _) =
+  sourceCastBudget rel
+sourceCastBudget (CTI.reveal⊑reveal² _ _ _ _ _ rel _) =
+  sourceCastBudget rel
+sourceCastBudget (CTI.conceal⊑conceal² _ _ _ _ _ rel _) =
+  sourceCastBudget rel
+sourceCastBudget (CTI.⊑reveal-rebase² _ _ rel _) =
+  sourceCastBudget rel
+sourceCastBudget (CTI.⊑conceal-rebase² _ _ rel _) =
+  sourceCastBudget rel
+sourceCastBudget (CTI.blame⊑² _ _) = 0
+sourceCastBudget (CTI.⊕⊑⊕² _ rel₁ rel₂ _) =
+  sourceCastBudget rel₁ + sourceCastBudget rel₂
+
+
+SourceCastBound : ∀ {Γᴸ Γᴿ : Ctx} {γ : Γᴸ ⊑ᶜ Γᴿ}
+    {M : Term (Δᵉ Γᴸ)} {M′ : Term (Δᵉ Γᴿ)}
+    {A : Ty (Δᵉ Γᴸ)} {B : Ty (Δᵉ Γᴿ)}
+    {q : A ⊑ᵀ⟨ γ ⟩ B}
+  → ℕ
+  → (rel : γ ⊢² M ⊑ M′ ∶ q)
   → Set
-SourceCastBound fuel (CTI2.x⊑x² x∈) = ⊤
-SourceCastBound fuel (CTI2.ƛ⊑ƛ² rel) = SourceCastBound fuel rel
-SourceCastBound fuel (CTI2.·⊑·² rel₁ rel₂) =
-  SourceCastBound fuel rel₁ × SourceCastBound fuel rel₂
-SourceCastBound fuel (CTI2.Λ⊑Λ² liftγ vV vV′ rel q) =
-  SourceCastBound fuel rel
-SourceCastBound fuel (CTI2.Λ⊑² Anv z∈A liftγ vV M⊢ rel q) =
-  SourceCastBound fuel rel
-SourceCastBound fuel
-    (CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vV M⊢ rel q) =
-  SourceCastBound fuel rel
-SourceCastBound fuel (CTI2.•⊑•² p∀ rel q r) =
-  SourceCastBound fuel rel
-SourceCastBound fuel (CTI2.•⊑² p∀ rel q r) =
-  SourceCastBound fuel rel
-SourceCastBound fuel (CTI2.κ⊑κ² κ p) = ⊤
-SourceCastBound fuel (CTI2.cast⊑cast² c c′ rel q) =
-  castSize c < fuel × SourceCastBound fuel rel
-SourceCastBound fuel (CTI2.⊑cast² c′ rel q) =
-  SourceCastBound fuel rel
-SourceCastBound fuel (CTI2.⊑reveal² mono rb sameγ c′⊢ rel q) =
-  SourceCastBound fuel rel
-SourceCastBound fuel (CTI2.⊑conceal² mono rb sameγ c′⊢ rel q) =
-  SourceCastBound fuel rel
-SourceCastBound fuel (CTI2.cast⊑² c rel q) =
-  castSize c < fuel × SourceCastBound fuel rel
-SourceCastBound fuel (CTI2.reveal⊑² mono rb sameγ c⊢ rel q) =
-  SourceCastBound fuel rel
-SourceCastBound fuel
-    (CTI2.conceal⊑²-seal-star-open no-target mono rb sameγ c⊢ rel q) =
-  SourceCastBound fuel rel
-SourceCastBound fuel
-    (CTI2.conceal⊑²-source-ok ok mono rb sameγ c⊢ rel q) =
-  SourceCastBound fuel rel
-SourceCastBound fuel
-    (CTI2.reveal⊑reveal² mono rb sameγ c⊢ c′⊢ rel q) =
-  SourceCastBound fuel rel
-SourceCastBound fuel
-    (CTI2.conceal⊑conceal² partner mono rb sameγ c⊢ c′⊢ rel q) =
-  SourceCastBound fuel rel
-SourceCastBound fuel
-    (CTI2.packaged-seal-star² partner mono rb sameγ c⊢ c′⊢
-      rel pkg-rel q) =
-  SourceCastBound fuel rel × SourceCastBound fuel pkg-rel
-SourceCastBound fuel (CTI2.blame⊑² M′⊢ p) = ⊤
-SourceCastBound fuel (CTI2.⊕⊑⊕² op rel₁ rel₂ r) =
-  SourceCastBound fuel rel₁ × SourceCastBound fuel rel₂
-
-
-LeftValueCatchupBoundaryAt : ℕ → Set
-LeftValueCatchupBoundaryAt fuel =
-  ∀ {Δᴸ Δᴿ Δ} {W Wᵖ : World Δᴸ Δᴿ Δ}
-    {kind : CatchupBoundaryKind}
-    {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
-    {M : Term Δᴸ} {V′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ}
-    {q : A ⊑ᵂ⟨ Wᵖ ⟩ B}
-  → ParkedWorld W
-  → CatchupBoundary kind Xᴸ? Xᴿ? W Wᵖ
-  → (rel : Wᵖ ∣ [] ⊢² M ⊑ V′ ∶ q)
-  → Value V′
-  → SourceCastBound fuel rel
-  → LeftCatchupResult
-      {W = W} {Wᵖ = Wᵖ} {kind = kind}
-      {Xᴸ? = Xᴸ?} {Xᴿ? = Xᴿ?}
-      {M = M} {V′ = V′} {A = A} {B = B}
+SourceCastBound fuel rel = sourceCastBudget rel < fuel
 
 
 LeftValueCatchupAt : ℕ → Set
-LeftValueCatchupAt fuel =
-  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
+LeftValueCatchupAt fuel = ∀ {Δᴸ Δᴿ : TyCtx}
+    {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+    {γ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
     {M : Term Δᴸ} {V′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ}
-    {q : A ⊑ᵂ⟨ W ⟩ B}
-  → ParkedWorld W
-  → (rel : W ∣ [] ⊢² M ⊑ V′ ∶ q)
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵀ⟨ γ ⟩ B}
+  → openFramesᶜ γ ≡ []
+  → (rel : γ ⊢² M ⊑ V′ ∶ p)
   → Value V′
   → SourceCastBound fuel rel
-  → LeftCatchupResult
-      {W = W} {Wᵖ = W}
-      {kind = same-boundary}
-      {Xᴸ? = nothing} {Xᴿ? = nothing}
-      {M = M} {V′ = V′} {A = A} {B = B}
+  → ( Σ[ Δᴸ′ ∈ TyCtx ]
+      Σ[ Σᴸ′ ∈ TyStore Δᴸ′ ]
+      Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
+      Σ[ V ∈ Term Δᴸ′ ]
+      Σ[ γ′ ∈
+        ⟨ Δᴸ′ , Σᴸ′ , [] ⟩ ⊑ᶜ
+        ⟨ Δᴿ , Σᴿ , [] ⟩ ]
+      Σ[ q ∈ applyTys χsᴸ A ⊑ᵀ⟨ γ′ ⟩ B ]
+        (M —↠[ χsᴸ ] V)
+        × Value V
+        × MultiWorldEvolution {W = γ} {W′ = γ′} χsᴸ []ˢ
+        × (γ′ ⊢² V ⊑ V′ ∶ q))
+    ⊎ (Σ[ Δᴸ′ ∈ TyCtx ]
+      Σ[ Σᴸ′ ∈ TyStore Δᴸ′ ]
+      Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
+      Σ[ γ′ ∈
+        ⟨ Δᴸ′ , Σᴸ′ , [] ⟩ ⊑ᶜ
+        ⟨ Δᴿ , Σᴿ , [] ⟩ ]
+        (M —↠[ χsᴸ ] blame)
+        × MultiWorldEvolution {W = γ} {W′ = γ′} χsᴸ []ˢ)

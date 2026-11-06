@@ -179,7 +179,10 @@ position, and a premise `h->F == root`; the other case concluding
 `\null` and `\Nil`), the generator adds `rac_P_<node>_of_member(x)`: the
 node `h` with `P(\null, h, s)` and `x` in `s`, found by walking from `x`
 along `->F` to the node whose `F` is `\null` (`rac_dll_h_of_member`,
-walking `ptr_to_previous`).
+walking `ptr_to_previous`).  The walk detects cycles (Brent's
+algorithm): it stops with "no witness" on a repeated node, so a cycle of
+back links, through the head or not, ends at once rather than at the
+step bound.
 
 **Using witnesses** (in the spec block here, and in annotations by
 `gen_rac.py` from the manifest): in `\exists xs; c1 && ... && cn`, each
@@ -193,6 +196,21 @@ it; `x` at the node position of `P(\null, x, s)` with a conjunct
 over the conjuncts that use them.  `\forall xs; p ==> q` over lists
 likewise from the conjuncts of `p`, but only with exact witnesses (no
 "any value").  `\forall` over pointers is refused.
+
+**Witness hints (`--witness-hints FILE`).**  Some existentials over
+lists are not determined by any mode, but their witness can be computed
+by walking links from a node the context knows: the iterator's
+`iter_pre` / `iter_ok` (`\exists \list s, integer b, f; iter_at(it, s,
+b, f) && ...`) bind the list through the iterator's position.  FILE (JSON)
+maps a definition's name to a term per binder, in ACSL over the twins'
+builtins; `{x}` stands for binder `x`'s own witness (resolved to a
+fixpoint), keys starting with `_` are comments.  In that definition an
+`\exists` whose binders all have a hint has them replaced by the terms
+(integer binders too).  The rule that makes this safe is the same as
+above: the body is checked in full at the witness, so a wrong hint can
+only make a check fail.  Builtins for hints: `rac_index(s, x)` (the
+index of `x` in `s`, -1 if absent).  The hints in use:
+`../bench/sglib_spec/rac_witnesses.json`.
 
 **Why the result is exact.**  The instantiated body is always checked
 in full, so a true result is a real witness.  If the existential is
@@ -232,7 +250,12 @@ all its suffixes.  All values are freed by `rac_reset()`.
 - two labels, no definition, or using a dropped definition: dropped,
   named in the diagnostics and the manifest (`gen_rac.py` then drops
   any annotation conjunct that uses it);
-- lemmas and axioms: left out (proof facts).
+- lemmas and axioms: left out (proof facts);
+- `\forall i; A || B ==> P` over integers is written `(\forall i; A ==>
+  P) && (\forall i; B ==> P)`, and an upper bound `i <= t` as
+  `i < t + 1`: E-ACSL 33 finds no guard in a disjunction and ignores the
+  definition (and then, silently, every clause that uses it), and aborts
+  on `i <= t` with an internal error.
 
 Conjunctions are split only where the AST has `&&` (Frama-C's parser
 applies ACSL precedence, so `a ==> b && c` is one implication); the
@@ -308,7 +331,7 @@ by the step bound), a freed node in a path.
 |------|------|
 | `gen_twins.py` | the generator |
 | `dump/logic_dump.ml` | Frama-C plugin: logic declarations as JSON (`-logic-dump`) |
-| `rac_rt.h`, `rac_rt.c` | runtime: allocation registry, list values, step bound (spec-independent, hand-written) |
+| `rac_rt.h`, `rac_rt.c` | runtime: allocation registry (with `rac_reg_count` / `rac_reg_nth` for `gen_rac.py`'s pointer ranges, and `rac_keep_freed`), list values (`rac_index`), step bound (spec-independent, hand-written) |
 | `tests/check.sh` | generality tests |
 | `tests/shapes.c`, `shapes.h`, `shapes_test.c` | `lseg`, `tree`, `bst`, and the unit test of their twins |
 | `tests/guards.c`, `guards.h`, `guards_test.c` | review regressions: indexed reads, guards under `?:` / `==>` / `\|\|`, two list element types |

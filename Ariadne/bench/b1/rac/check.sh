@@ -57,6 +57,7 @@ expand "$SRC" "$B/src/orig.c"
 # copy has no b1.c)
 [ -n "$quick" ] || expand "$B1/b1.c" "$B/b1.expanded.c"
 python3 -I "$RAC/gen_twins.py" "$B/src/orig.c" "$TW" --include b1_types.h \
+  --witness-hints /ariadne/bench/sglib_spec/rac_witnesses.json \
   --cpp-args="$CPP_ARGS" > "$TW.log" 2>&1 ||
   { cat "$TW.log"; echo "FAIL: gen_twins.py on b1.c"; exit 1; }
 BUILTINS=$(python3 -c 'import json, sys
@@ -149,7 +150,7 @@ eacsl_build() {  # eacsl_build <variant>
        ../../rac_main.c . &&
     frama-c -e-acsl-builtins="$BUILTINS" -machdep gcc_x86_64 \
       -no-frama-c-stdlib -keep-unused-functions all \
-      -cpp-extra-args="-std=c99 -D_DEFAULT_SOURCE -D__NO_CTYPE -D__FC_MACHDEP_X86_64 -I/ariadne/bench/sglib_spec" \
+      -cpp-extra-args="-std=c99 -D_DEFAULT_SOURCE -D__NO_CTYPE -D__FC_MACHDEP_X86_64 -DRAC_KEEP_FREED -I/ariadne/bench/sglib_spec" \
       -no-warn-unaligned-pointer \
       b1_rac.c -rte -rte-initialized @all -rte-select=@all,-main,-rng \
       -then -print -ocode b1_rac.rte.c &&
@@ -193,7 +194,7 @@ expect() {
                eac='Assertion rte/mem_access in b1' ;;
     nullfirst) san='-'; eac='Postcondition heads_list in sglib_dllist_get_first' ;;
     nulllast)  san='oracle'; eac='Postcondition last_of_list in sglib_dllist_get_last' ;;
-    noinit)    san='oracle'; eac='Assertion rte/initialization in b1' ;;
+    noinit)    san='oracle'; eac='Assertion payload_written in b1' ;;
   esac
 }
 [ -n "$quick" ] && exit $status   # 4th argument: b1.c only

@@ -343,7 +343,7 @@
 #define SGLIB_DL_LIST_ANNOT_ADD_KEEP_NEXT(type, previous, next) \
   assert keep_next: \forall type *x; \offset(x) == 0 \
     && heap(\base_addr(x)) && x != elem \
-    && x != \at(\at(*list, Pre)->previous, Pre) \
+    && x != \at(*list != \null ? (*list)->previous : (type *)\null, Pre) \
     ==> x->next == \at(x->next, Pre);
 #define SGLIB_DL_LIST_ANNOT_ADD_KEEP_INIT(type, previous, next) \
   assert keep_init: \forall type *x; \offset(x) == 0 \

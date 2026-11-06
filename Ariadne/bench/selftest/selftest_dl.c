@@ -38,8 +38,14 @@ void st_free(void *p);
 #undef malloc
 #undef free
 
-/*@ SGLIB_DL_LIST_SPEC(DoubleLinkedList, previous, next)
+/*@ // The fields myListCmp reads (template parameter cmp_reads).
+    predicate st_cmp_reads{L}(DoubleLinkedList *p) = \initialized(&p->n);
+    SGLIB_DL_LIST_SPEC(DoubleLinkedList, previous, next, st_cmp_reads)
 */
+
+/*@ SGLIB_DL_LIST_CONTRACT_COMPARATOR(DoubleLinkedList, st_cmp_reads,
+                                      e1, e2) */
+int myListCmp(struct MyIntList *e1, struct MyIntList *e2);
 
 /*@ SGLIB_DL_LIST_CONTRACT_ADD(DoubleLinkedList, previous, next) */
 void sglib_DoubleLinkedList_add(DoubleLinkedList **list,
@@ -74,6 +80,10 @@ DoubleLinkedList *sglib_DoubleLinkedList_it_next(
    holds of every node and the other failures show. */
 static int st_zero_nodes;
 
+/* ST_WP_ONLY: the WP run on the comparator (rac.sh) leaves the allocator
+   bodies out, since -ariadne refuses raw malloc/free calls. */
+#ifndef ST_WP_ONLY
+
 void *st_malloc(size_t n) {
   void *p = malloc(n);
   if (p) {
@@ -99,6 +109,8 @@ void st_free(void *p) {
     free(p);
   }
 }
+
+#endif
 
 int main(int argc, char **argv) {
   srandom(argc > 1 ? (unsigned)atoi(argv[1]) : 1);

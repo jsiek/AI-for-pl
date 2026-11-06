@@ -43,7 +43,7 @@
    && (\forall integer i_; (k) < i_ < \length(t) \
          ==> \nth(t, i_) == \nth(s, i_ - 1)))
 
-#define SGLIB_DL_LIST_SPEC(type, previous, next) \
+#define SGLIB_DL_LIST_SPEC(type, previous, next, cmp_reads) \
   /* p is a usable list node: a live heap block at offset 0. */ \
   predicate live{L}(type *p) = \
     \valid(p) && \offset(p) == 0 && heap(\base_addr(p)) \
@@ -83,6 +83,11 @@
       && \at(\nth(s, k)->previous, L1) \
          == \at(\nth(s, k)->previous, L2) \
       && \valid{L2}(\nth(s, k)); \
+  \
+  /* Every node of s has the fields the comparators read initialised \
+     (cmp_reads: a client predicate, a template parameter). */ \
+  predicate all_cmp_reads{L}(\list<type *> s) = \
+    \forall integer k; 0 <= k < \length(s) ==> cmp_reads(\nth(s, k)); \
   \
   /* A whole live, initialised list, given by any of its nodes' \
      predecessor. */ \
@@ -135,6 +140,21 @@
          && (cur == \null ==> b == -1 && f == \length(s)) \
          && (cur != \null ==> live(cur) \
              && \exists integer c; b < c < f && cur == \nth(s, c));
+
+/* ---- public: the comparator ---------------------------------------- */
+
+/* The contract every comparator meets, a function or a macro inlined at
+   its call sites (owner decision, 2026-11-05).  a and b are the
+   comparator's parameter names.  It reads only the fields cmp_reads names
+   and writes nothing; it must be proved free of runtime errors (WP with
+   -wp-rte) under this contract.  Under the liveness model (-ariadne)
+   every read also needs its block not freed, hence the !dead clause; a
+   stack or global object is never dead. */
+#define SGLIB_DL_LIST_CONTRACT_COMPARATOR(type, cmp_reads, a, b) \
+  requires \valid_read(a) && \valid_read(b) \
+           && cmp_reads(a) && cmp_reads(b); \
+  requires !dead(__heap, \base_addr(a)) && !dead(__heap, \base_addr(b)); \
+  assigns \nothing;
 
 /* ---- private: lemmas (each is proved; order matters: a lemma uses
         only the lemmas before it) ------------------------------------ */

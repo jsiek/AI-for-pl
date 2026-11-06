@@ -29,7 +29,11 @@ struct sglib_dllist_iterator {
 };
 /* END GENERATED, part 1 */
 
-/*@ SGLIB_DL_LIST_SPEC(dllist, ptr_to_previous, ptr_to_next)
+/*@ // The fields DLLIST_COMPARATOR reads (template parameter
+    // cmp_reads).
+    predicate dllist_cmp_reads{L}(dllist *p) = \initialized(&p->i);
+    SGLIB_DL_LIST_SPEC(dllist, ptr_to_previous, ptr_to_next,
+                       dllist_cmp_reads)
     SGLIB_DL_LIST_LEMMAS(dllist, ptr_to_previous, ptr_to_next)
 */
 

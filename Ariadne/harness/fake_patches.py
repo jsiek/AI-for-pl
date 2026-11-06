@@ -35,8 +35,10 @@ def edit(text, old, new):
 # The spec annotation of b1_frozen.c (spec template, no lemmas) and of
 # b1.c (the same with the human's lemmas, SGLIB_DL_LIST_LEMMAS).
 ARGS = "dllist, ptr_to_previous, ptr_to_next"
-SPEC = f"/*@ SGLIB_DL_LIST_SPEC({ARGS})\n*/"
-SPEC_LEMMAS = (f"/*@ SGLIB_DL_LIST_SPEC({ARGS})\n"
+SPEC = (f"    SGLIB_DL_LIST_SPEC({ARGS},\n"
+        "                       dllist_cmp_reads)\n*/")
+SPEC_LEMMAS = (f"    SGLIB_DL_LIST_SPEC({ARGS},\n"
+               "                       dllist_cmp_reads)\n"
                f"    SGLIB_DL_LIST_LEMMAS({ARGS})\n*/")
 assert human.count(SPEC_LEMMAS) == 1 and frozen.count(SPEC) == 1
 

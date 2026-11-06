@@ -204,7 +204,31 @@ for m in re.findall(r"#define (SGLIB_DL_LIST_(?:SPEC|CONTRACT_\w+))\(",
                     TEMPLATE):
     assert f"#define {m}(" in public, m
 
+# The reference for step 0: B1's human-annotated, certified b1.c with
+# its driver cut to B1a's (B1b's two walks replaced by the forward walk
+# from the head, under the annotation of B1's first walk).  Its code
+# differs from b1a_frozen.c only in the sglib functions B1a does not
+# call; the overlay of the run is checked against b1a_frozen.c, not this.
+REF = open(os.path.join(B1, "b1.c")).read()
+B1B_REF = """  for (l = sglib_dllist_get_first(the_list); l != NULL; l = l->ptr_to_next)
+    last = l->i;
+  /*@ loop invariant l == \\null || in_live_list(l);
+      loop invariant l != \\null ==> live(l);
+      loop assigns l, last;
+  */
+  for (l = sglib_dllist_get_last(the_list); l != NULL;
+       l = l->ptr_to_previous)
+    last = l->i;
+"""
+assert REF.count(B1B_REF) == 1
+REF = REF.replace(B1B_REF, B1A_WALK).replace(
+    "/* Benchmark B1", "/* Step-0 reference for B1a (plan Q10), written by "
+    "../b1a/make_b1a.py\n   from ../b1/b1.c: B1's driver cut to B1a's.\n\n"
+    "   Benchmark B1", 1)
+assert REF.count("sglib_dllist_get_first(the_list)") == 0
+
 os.makedirs(os.path.join(HERE, "spec"), exist_ok=True)
 for name, text in [("b1a_frozen.c", WP), ("b1a.c", VST),
+                   ("b1a_ref.c", REF),
                    ("spec/sglib_dl_list_spec.h", public)]:
     open(os.path.join(HERE, name), "w").write(text)

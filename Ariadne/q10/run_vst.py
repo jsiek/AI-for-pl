@@ -21,7 +21,9 @@ VST proofs of B1 (../vst/b1) are denied.  The fence is recorded in
 <run>/fence.json.
 
 After the call: result.json (Claude Code's JSON result), and
-summary.json (wall time, tokens, USD, turns, denials).  check_vst.py
+summary.json (wall time, tokens, USD, turns, denials).  The call's cap
+is reserved in the budget ledger (--ledger) first; a refusal stops the
+run before the call (budget_gate.json).  check_vst.py
 then checks what was proved against a pristine copy of b1a.c.
 """
 import argparse
@@ -161,6 +163,8 @@ def main():
     ap.add_argument("--usd", type=float, default=15.0)
     ap.add_argument("--turns", type=int, default=600)
     ap.add_argument("--seconds", type=int, default=4 * 3600)
+    ap.add_argument("--ledger", default=budget.PATH,
+                    help="the budget ledger the call is reserved in")
     a = ap.parse_args()
     run = os.path.abspath(a.run_dir or os.path.join(
         ARIADNE, "runs", "q10", time.strftime("vst-%Y%m%d-%H%M%S")))
@@ -183,10 +187,18 @@ def main():
     if a.dry_run:
         print(json.dumps(fence, indent=1))
         return
-    # The gate is the owner's approval of this one call and its
-    # --max-budget-usd; the ledger only books it afterwards (its weekly
-    # cap, uncalibrated in a fresh checkout, would refuse a $15 call).
-    ledger = budget.Ledger(budget.PATH)
+    # As the harness does: the call's cap is reserved in the ledger first,
+    # under its weekly cap (--ledger: a calibrated ledger, or one with
+    # an explicit cap); a refusal stops here, before any model call.
+    ledger = budget.Ledger(a.ledger)
+    gate = ledger.reserve("annotator", MODEL, a.usd)
+    json.dump(gate, open(os.path.join(run, "budget_gate.json"), "w"),
+              indent=1)
+    if not gate["ok"]:
+        print(json.dumps({"refused": gate}, indent=1))
+        sys.exit(f"budget ledger refused the call: "
+                 f"{gate['projected_pct']}% would pass the "
+                 f"{gate['cap_pct']}% cap")
     t0 = time.time()
     out, end = None, None
     try:
@@ -202,9 +214,13 @@ def main():
         end = "timeout"
     except ValueError:
         end = "no JSON result"
+    except BaseException:
+        ledger.release(gate["id"])
+        raise
     secs = round(time.time() - t0, 1)
     mu = budget.by_model(out, MODEL) if out else {}
-    c = ledger.charge("annotator", mu, est_usd=a.usd, model=MODEL)
+    c = ledger.charge("annotator", mu, est_usd=a.usd, model=MODEL,
+                      reservation=gate["id"])
     summary = {"end": end, "seconds": secs, "usage": mu,
                "usd": c["usd"], "tokens": c["tokens"],
                "total_cost_usd": out and out.get("total_cost_usd"),

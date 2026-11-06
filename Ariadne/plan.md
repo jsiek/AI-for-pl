@@ -650,7 +650,30 @@ invariant is only needed for functional correctness and is stretch work.
         funspecs, the Frama-C spec is the index-based liveness
         formulation, and the pipeline's per-call caps left $0.91 of its
         $6 unusable.
-*   **Q11 — Human interaction and final products.  To do: discuss with
+    *   **Rerun of the Frama-C side, twice (owner, 2026-11-06).**  No VST
+        rerun.  Fixes first, each with an offline test:
+        1.  The report crash of `wp-run2`: `markdown()` read
+            `projected_pct` from every budget refusal, and a run-cap
+            refusal has `error` instead (`harness/test_report.py`).
+        2.  `run_vst.py` reserves its cap in the ledger before the call
+            (`--ledger`), so a calibrated or explicit limit can refuse it
+            (`q10/test_run_vst.py`).
+        3.  Under `--max-usd`, a call's cap is min(its per-call cap, what
+            the run has left), so a run can spend its whole budget; the
+            per-call caps stay upper bounds (`test_budget.py`,
+            `test_annotator.py`).
+        4.  Step 0 on for B1a: `bench/b1a/rac/check.sh` (B1's runtime-
+            check tools with B1a's oracle: the forward walk ends at
+            `input[0]`), with sanitizers, E-ACSL with the twins,
+            coverage, and B1a's runtime mutants (`vacuity`, `uaf`,
+            `nullchk`, `noinit`, from `q10/mutants.py`, so they fit any
+            annotated source).  Reference: `bench/b1a/b1a_ref.c`, B1's
+            certified annotations on B1a's driver (WP 313/313,
+            `run_ref.sh`).
+        Runs `wp-run3`, `wp-run4`, one after the other: `wp-run2`'s
+        command with step 0 and `--max-usd 10`.  The ledger is
+        calibrated (`budget.py calibrate`: 8% of the week over $73.87,
+        0.108% per USD). and final products.  To do: discuss with
     the owner.**  M3 shows the pipeline can certify B1 from frozen
     contracts with no human annotation.  Still to settle:
     *   *Human interaction:* where a human takes part, what they see and

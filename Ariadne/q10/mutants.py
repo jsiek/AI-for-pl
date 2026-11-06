@@ -107,3 +107,24 @@ def mutant(name, src):
 # The function whose goals each mutant should break.
 FUNCTION = {"uaf": "b1", "nullchk": "b1", "noinit": "b1", "vacuity": "b1",
             "nowashead": "b1", "noassign": "sglib_dllist_add"}
+
+# Mutants step 0 can catch: each makes some run go wrong.  nowashead and
+# noassign only weaken add's contract; the code still runs correctly, so
+# runtime checking cannot see them (WP rejects them, check_wp.py).
+RUNTIME = ["vacuity", "uaf", "nullchk", "noinit"]
+
+
+def main(argv):
+    """python3 mutants.py SRC OUTDIR [NAME ...]: write OUTDIR/NAME.c for
+    each mutant (default: RUNTIME), from SRC (any annotated B1a source,
+    expanded or not: the anchors are C code)."""
+    src_path, out = argv[1], argv[2]
+    os.makedirs(out, exist_ok=True)
+    src = open(src_path).read()
+    for name in argv[3:] or RUNTIME:
+        open(os.path.join(out, name + ".c"), "w").write(mutant(name, src))
+
+
+if __name__ == "__main__":
+    import sys
+    main(sys.argv)

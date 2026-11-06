@@ -152,8 +152,8 @@ class Opus:
         prepare(work, source, task, spec_header(self.cfg_path))
         env = opus_env(work, self.cfg_path, self.baseline, self.calls,
                        self.wp_timeout)
-        cmd = opus_command(work, self.model, self.calls, self.turns,
-                           self.usd)
+        usd = res["budget"].get("usd", self.usd)  # the call's cap
+        cmd = opus_command(work, self.model, self.calls, self.turns, usd)
         out = None
         try:
             p = subprocess.run(cmd, cwd=work, env=env, capture_output=True,
@@ -170,7 +170,7 @@ class Opus:
         except ValueError:
             res["end"] = "no JSON result"
         mu = budget.by_model(out, self.model) if out else {}
-        c = self.ledger.charge("annotator", mu, est_usd=self.usd,
+        c = self.ledger.charge("annotator", mu, est_usd=usd,
                                model=self.model, reservation=reservation)
         res.update(tokens=c["tokens"], usd=c["usd"], pct_after=c["pct"],
                    warning=c["warning"], estimated=not mu, usage=mu)

@@ -171,7 +171,8 @@ class Tier2:
         added to the prompt."""
         t = time.time()
         res = {"tier": 2, "model": self.model}
-        # The reservation is the per-goal cap, --max-budget-usd.
+        # The reservation is the per-goal cap, --max-budget-usd; under a
+        # run cap (budget.RunCap) it may be less: what the run has left.
         gate = self.ledger.reserve(self.role, self.model, self.usd)
         res["budget"] = gate
         if not gate["ok"]:
@@ -201,8 +202,9 @@ class Tier2:
         prompt = PROMPT.format(cli=CLI, calls=self.calls)
         if note:
             prompt += "\n" + note
+        usd = res["budget"].get("usd", self.usd)  # the call's cap
         cmd = sonnet_command(work, self.model, self.calls, self.turns,
-                             self.usd, prompt=prompt)
+                             usd, prompt=prompt)
         out = None
         try:
             p = subprocess.run(cmd, cwd=work, env=env, capture_output=True,
@@ -219,7 +221,7 @@ class Tier2:
         except ValueError:
             res["end"] = "no JSON result"
         mu = budget.by_model(out, self.model) if out else {}
-        c = self.ledger.charge(self.role, mu, est_usd=self.usd,
+        c = self.ledger.charge(self.role, mu, est_usd=usd,
                                model=self.model, reservation=reservation)
         res.update(tokens=c["tokens"], usd=c["usd"], pct_after=c["pct"],
                    warning=c["warning"], charged=True,

@@ -298,31 +298,39 @@ class Ledger:
 
 class RunCap:
     """A ledger with a cap on one run's own spending (harness.py
-    --max-usd): a call is refused when this run's charges, its
-    reservations in flight and the call's cap together would pass
-    `max_usd`.  Everything else goes to the ledger, which still applies
-    the weekly cap."""
+    --max-usd).  A call's cap is min(its per-call cap, what the run has
+    left: `max_usd` minus this run's charges and its reservations in
+    flight), so a run can spend its whole budget and no call can pass it;
+    the per-call caps stay upper bounds.  When less than `min_usd` is
+    left the call is refused.  The accepted reservation carries the
+    call's cap as `usd` (the caller's --max-budget-usd).  Everything else
+    goes to the ledger, which still applies the weekly cap."""
 
-    def __init__(self, ledger, max_usd):
-        self.ledger, self.max_usd = ledger, max_usd
+    def __init__(self, ledger, max_usd, min_usd=0.05):
+        self.ledger, self.max_usd, self.min_usd = ledger, max_usd, min_usd
         self.spent, self.held = 0.0, {}
 
     def __getattr__(self, name):
         return getattr(self.ledger, name)
 
+    def left(self):
+        return self.max_usd - self.spent - sum(self.held.values())
+
     def reserve(self, role, model, est_usd):
-        run = self.spent + sum(self.held.values()) + est_usd
-        if run > self.max_usd + 1e-9:
-            r = {"ok": False, "role": role, "model": model,
-                 "est_usd": est_usd, "run_cap_usd": self.max_usd,
-                 "run_spent_usd": round(self.spent, 4),
-                 "run_projected_usd": round(run, 4),
-                 "error": f"run cap: ${run:.2f} would pass this run's "
-                          f"${self.max_usd:.2f} (--max-usd)"}
-            return r
-        r = self.ledger.reserve(role, model, est_usd)
+        left = self.left()
+        cap = round(min(est_usd, left), 2)
+        if cap < self.min_usd:
+            return {"ok": False, "role": role, "model": model,
+                    "est_usd": est_usd, "run_cap_usd": self.max_usd,
+                    "run_spent_usd": round(self.spent, 4),
+                    "run_left_usd": round(left, 4),
+                    "error": f"run cap: ${max(left, 0):.2f} left of this "
+                             f"run's ${self.max_usd:.2f} (--max-usd)"}
+        r = self.ledger.reserve(role, model, cap)
         if r["ok"]:
-            self.held[r["id"]] = est_usd
+            self.held[r["id"]] = cap
+            r["usd"] = cap
+            r["per_call_cap_usd"] = est_usd
         return r
 
     def release(self, reservation):

@@ -88,7 +88,9 @@ Require Import VST.floyd.library. Require Import B1a.b1a.`.)  The
 example compiles the same way from `example/` with `-Q . Smoke`
 (`{tool} sh -c "cd example && clightgen -normalize good.c && coqc
 -native-compiler no -Q . Smoke good.v && coqc -native-compiler no -Q .
-Smoke verif_good.v"`).  `-native-compiler no` is required.  `coqtop`
+Smoke verif_good.v"`).  `-native-compiler no` is required.  Each call
+starts a container (a few seconds); `coqc` on a large VST file can take
+minutes, so give the Bash call a long timeout.  `coqtop`
 works the same way (pipe a script into it to see a goal).  The VST and
 Rocq sources are in the image under `/home/rocq/.opam/4.14.2/lib/coq/`
 and `/home/rocq/.opam/4.14.2/lib/rocq*/`; you may read them with the

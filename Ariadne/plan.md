@@ -573,8 +573,13 @@ invariant is only needed for functional correctness and is stretch work.
         allocators and their labels, no `main`).
     *   *Frama-C side: the pipeline.*  `harness.py ../bench/b1a --config
         b1a_frozen.json --annotator opus --prove-scope lemmas --tiers 0,2
-        --opus-usd 3 --claude-usd 1 --annotator-retries 1
-        --max-iterations 3 --max-usd 6 --max-seconds 7200`.  The input
+        --opus-usd 3 --opus-turns 150 --opus-wp-calls 25 --claude-usd 1
+        --annotator-retries 1 --max-iterations 3 --max-usd 6
+        --max-seconds 7200` (turns and `wp` calls as in M3).  No step 0:
+        B1's runtime-check driver (`bench/b1/rac`) has
+        an oracle for B1's return value (the backward walk ends at the
+        head), which B1a's driver does not meet; step 0 is only a
+        filter, WP still decides every patch.  The input
         is the frozen public ACSL spec (Q11: the human fixes the public
         spec) with no private annotations, lemmas or Coq proofs.  The
         annotator gets only the public half of the spec template
@@ -623,7 +628,15 @@ invariant is only needed for functional correctness and is stretch work.
     *   *Dry runs first, no paid calls:* the harness with `--tiers 0` and
         no annotator (census, guardrails, step 0), and `run_vst.py
         --dry-run` (the run directory, prompt and command line printed,
-        the tool script exercised by hand).
+        the tool script exercised by hand).  **Done:** the harness on
+        `b1a_frozen.c` (no annotator): 213 function goals, 185 closed
+        (Qed 135, Alt-Ergo 46, CVC5 2, Z3 2), 28 open (`b1` 23, `add` 3,
+        `it_init_on_equal` 1, `it_next` 1); every guardrail passes; the
+        frozen spec is B1's minus `get_first`/`get_last` (23 items, each
+        with B1's hash).  The annotator's directory gets a template with
+        no private macro.  VST: `clightgen` and `coqc` of `b1a.c` and of
+        the smoke example through the tool script; inside it there is
+        no `/ariadne`, no network, only the run directory at `/work`.
 *   **Q11 — Human interaction and final products.  To do: discuss with
     the owner.**  M3 shows the pipeline can certify B1 from frozen
     contracts with no human annotation.  Still to settle:

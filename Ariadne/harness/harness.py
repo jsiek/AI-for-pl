@@ -9,7 +9,7 @@ out with coqc / coqchk / Print Assumptions, guardrails, and a report.
         [--claude-model claude-opus-5-5] [--claude-calls 30]
         [--claude-seconds 600] [--claude-usd 1]
         [--ledger ../runs/budget.json]
-        [--max-iterations 1] [--max-seconds 3600]
+        [--max-iterations 1] [--max-seconds 3600] [--max-usd USD]
 
 A run works on a copy of the benchmark in its own directory (default
 Ariadne/runs/<name>-<time>/; it must be under Ariadne/, which the
@@ -210,6 +210,8 @@ class Run:
         if a.no_tier0:
             self.tiers.discard(0)
         self.ledger = budget.Ledger(a.ledger)
+        if a.max_usd is not None:  # this run's own cap (plan Q10)
+            self.ledger = budget.RunCap(self.ledger, a.max_usd)
         self.wp_prefix = {}  # goal file -> its context as WP wrote it
         self.goals = []
         self.certified = set()
@@ -1177,6 +1179,10 @@ def main():
     ap.add_argument("--max-iterations", type=int, default=1,
                     help="refinement iterations (annotator patches)")
     ap.add_argument("--max-seconds", type=float, default=3600)
+    ap.add_argument("--max-usd", type=float, default=None,
+                    help="cap on this run's Anthropic spending (API-"
+                    "equivalent USD, all calls together): a call whose "
+                    "cap would pass it is refused")
     sys.exit(Run(ap.parse_args()).main())
 
 

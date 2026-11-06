@@ -176,7 +176,8 @@ class Tier2:
         res["budget"] = gate
         if not gate["ok"]:
             res.update(status="refused", seconds=0.0,
-                       error=f"budget: {gate['projected_pct']}% would pass "
+                       error=gate.get("error") or
+                       f"budget: {gate['projected_pct']}% would pass "
                        f"the {gate['cap_pct']}% cap")
             return res
         try:

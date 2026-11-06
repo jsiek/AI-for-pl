@@ -165,5 +165,23 @@ expect("ccusage: totals.totalCost",
 expect("ccusage: sum of daily totalCost",
        budget.ccusage_cost({"daily": [{"totalCost": 1.5},
                                       {"totalCost": 2.0}]}) == 3.5)
+# RunCap (--max-usd): this run's charges and reservations count.
+d = tempfile.mkdtemp()
+try:
+    rc = budget.RunCap(budget.Ledger(os.path.join(d, "l.json")), 6.0)
+    g1 = rc.reserve("annotator", "m", 3.0)
+    g2 = rc.reserve("prover", "m", 3.0)
+    g3 = rc.reserve("prover", "m", 1.0)
+    expect("run cap: two $3 calls fit $6, a third is refused",
+           g1["ok"] and g2["ok"] and not g3["ok"] and "run cap" in
+           g3["error"], g3)
+    rc.charge("annotator", {"m": {"cost_usd": 2.5}}, reservation=g1["id"])
+    rc.release(g2["id"])
+    g4 = rc.reserve("prover", "m", 3.5)
+    g5 = rc.reserve("prover", "m", 0.5)
+    expect("run cap: a charge counts what was spent, a release frees",
+           g4["ok"] and not g5["ok"] and rc.spent == 2.5, (g4, g5))
+finally:
+    shutil.rmtree(d)
 print(f"{'FAIL' if fails else 'PASS'}: {len(fails)} failed")
 sys.exit(1 if fails else 0)

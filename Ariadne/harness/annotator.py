@@ -95,12 +95,23 @@ def opus_env(work, cfg_path, baseline, calls, wp_timeout):
                 GIT_DIR=os.path.join(work, ".no-git"))
 
 
-def prepare(work, source, task):
+def prepare(work, source, task, spec_h=SPEC_H):
     os.makedirs(work)
     open(os.path.join(work, "SOURCE.c"), "w").write(source)
     open(os.path.join(work, "TASK.md"), "w").write(task)
     shutil.copy(ALLOC_H, os.path.join(work, "ariadne_alloc.h"))
-    shutil.copy(SPEC_H, os.path.join(work, "sglib_dl_list_spec.h"))
+    shutil.copy(spec_h, os.path.join(work, "sglib_dl_list_spec.h"))
+
+
+def spec_header(cfg_path):
+    """The spec template the annotator gets: the config's `spec_header`
+    (relative to Ariadne/; for B1a the public part only, plan Q10), else
+    the whole template."""
+    try:
+        h = json.load(open(cfg_path)).get("spec_header")
+    except (OSError, ValueError):
+        h = None
+    return os.path.join(ARIADNE, h) if h else SPEC_H
 
 
 class Opus:
@@ -126,7 +137,8 @@ class Opus:
         res["budget"] = gate
         if not gate["ok"]:
             res.update(status="refused", source=None, seconds=0.0, usd=0.0,
-                       tokens=0, error=f"budget: {gate['projected_pct']}% "
+                       tokens=0, error=gate.get("error") or
+                       f"budget: {gate['projected_pct']}% "
                        f"would pass the {gate['cap_pct']}% cap")
             return res
         try:
@@ -137,7 +149,7 @@ class Opus:
 
     def _run(self, source, task, t, res, reservation):
         work = os.path.join(self.root, f"call{self.n}")
-        prepare(work, source, task)
+        prepare(work, source, task, spec_header(self.cfg_path))
         env = opus_env(work, self.cfg_path, self.baseline, self.calls,
                        self.wp_timeout)
         cmd = opus_command(work, self.model, self.calls, self.turns,
@@ -197,7 +209,7 @@ class Fake:
     def run(self, source, task):
         self.tasks.append(task)
         work = os.path.join(self.root, f"call{len(self.tasks)}")
-        prepare(work, source, task)
+        prepare(work, source, task, spec_header(self.cfg_path))
         new = self.sources.pop(0) if self.sources else None
         r = {"annotator": "fake", "call": len(self.tasks),
              "status": "answered", "source": source if new in (None, FENCED)

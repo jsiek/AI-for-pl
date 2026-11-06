@@ -296,6 +296,48 @@ class Ledger:
             return d["calibration"]
 
 
+class RunCap:
+    """A ledger with a cap on one run's own spending (harness.py
+    --max-usd): a call is refused when this run's charges, its
+    reservations in flight and the call's cap together would pass
+    `max_usd`.  Everything else goes to the ledger, which still applies
+    the weekly cap."""
+
+    def __init__(self, ledger, max_usd):
+        self.ledger, self.max_usd = ledger, max_usd
+        self.spent, self.held = 0.0, {}
+
+    def __getattr__(self, name):
+        return getattr(self.ledger, name)
+
+    def reserve(self, role, model, est_usd):
+        run = self.spent + sum(self.held.values()) + est_usd
+        if run > self.max_usd + 1e-9:
+            r = {"ok": False, "role": role, "model": model,
+                 "est_usd": est_usd, "run_cap_usd": self.max_usd,
+                 "run_spent_usd": round(self.spent, 4),
+                 "run_projected_usd": round(run, 4),
+                 "error": f"run cap: ${run:.2f} would pass this run's "
+                          f"${self.max_usd:.2f} (--max-usd)"}
+            return r
+        r = self.ledger.reserve(role, model, est_usd)
+        if r["ok"]:
+            self.held[r["id"]] = est_usd
+        return r
+
+    def release(self, reservation):
+        self.held.pop(reservation, None)
+        self.ledger.release(reservation)
+
+    def charge(self, role, model_usage, est_usd=None, model=None,
+               reservation=None):
+        self.held.pop(reservation, None)
+        c = self.ledger.charge(role, model_usage, est_usd=est_usd,
+                               model=model, reservation=reservation)
+        self.spent += c["usd"]
+        return c
+
+
 USAGE_RX = re.compile(
     r"Current week \(all models\):\s*(\d+(?:\.\d+)?)% used"
     r"(?:\s*·\s*resets\s+([^(\n]+?)\s*\(([^)]+)\))?")

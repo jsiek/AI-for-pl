@@ -16,6 +16,7 @@ Not applicable to B1a: uaf_back, nullfirst, nulllast (they change B1b
 code: get_first, get_last and the backward walk).
 """
 import os
+import re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HDR = os.path.join(HERE, "..", "bench", "b1a", "spec",
@@ -38,6 +39,21 @@ def once(src, s):
     return src.index(s)
 
 
+# Annotations an annotator may put between the lines of a statement (the
+# overlay guardrail keeps the code, not the line breaks around comments).
+ANNOT = r"(?:[ \t]*(?:/\*@(?:[^*]|\*(?!/))*\*/|//@[^\n]*)[ \t]*\n)*"
+
+
+def span(src, code):
+    """(start, end) of the code lines `code` in src, allowing annotation
+    comments between them; it must occur exactly once."""
+    lines = code.rstrip("\n").split("\n")
+    rx = ANNOT.join(re.escape(x + "\n") for x in lines)
+    ms = list(re.finditer(rx, src))
+    assert len(ms) == 1, (len(ms), code)
+    return ms[0].start(), ms[0].end()
+
+
 def block_end(src, i):
     """The end of the statement starting at i: through the matching `}`
     if its first line opens a block, else through its next `;` line."""
@@ -51,14 +67,14 @@ def block_end(src, i):
 
 
 def uaf(src):
-    i = once(src, WALK)
+    i, j = span(src, WALK)
     start = i
     before = src[:i].rstrip()
     if before.endswith("*/"):  # the walk's loop annotation moves with it
         a = before.rindex("/*@")
         start = src.rindex("\n", 0, a) + 1
-    walk = src[start:i + len(WALK)]
-    rest = src[:start] + src[i + len(WALK):]
+    walk = src[start:j]
+    rest = src[:start] + src[j:]
     f = once(rest, FREE_HEAD)
     h = rest.index("sglib_dllist_it_next(&it))", f)
     eol = rest.index("\n", h)
@@ -83,11 +99,11 @@ def mutant(name, src):
     if name == "uaf":
         return uaf(src)
     if name == "nullchk":
-        once(src, NULLCHK)
-        return src.replace(NULLCHK, "")
+        i, j = span(src, NULLCHK)
+        return src[:i] + src[j:]
     if name == "noinit":
-        once(src, NOINIT)
-        return src.replace(NOINIT, "")
+        i, j = span(src, NOINIT)
+        return src[:i] + src[j:]
     if name == "vacuity":
         once(src, RETURN)
         return src.replace(RETURN, "  //@ assert vacuity: \\false;\n"

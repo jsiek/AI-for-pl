@@ -697,6 +697,25 @@ invariant is only needed for functional correctness and is stretch work.
         iterator returns (its exact links and position), weaker on
         payload values (a predicate instead of the exact values, which
         safety does not need).
+    *   **B1c round (owner, 2026-11-07): a client that reuses the list
+        after iterating** (`bench/b1c/`: B1a's functions, a driver that
+        walks the list without freeing, recording a middle node, adds a
+        node before it, then iterates from the new node freeing every
+        node).  **Stopped before any paid run: the frozen iterator spec
+        cannot verify this driver.**  `it_init`'s and
+        `it_init_on_equal`'s postcondition `iter_ok(it, \result)` binds
+        its list `s` existentially and never mentions the argument
+        `list`, and `it_next`'s does the same for the list of its
+        pre-state.  So a client cannot show that a returned node belongs
+        to *its* list: an implementation that iterates some other whole
+        list (say `[x0, x1]` with `x0` freed, returning `x1`) meets every
+        frozen iterator contract.  Step 3's `add` then needs `*list` (the
+        recorded node) to be a node of a whole *live* list, which
+        `in_live_list(x1)` contradicts.  B1a's driver never needed this,
+        since it only frees what the iterator returns.  A fix is a public
+        spec change (Q11: owner's approval): `it_init`/`it_init_on_equal`
+        ensure that the iterated list contains `list`, and `it_next`
+        ensures it iterates the same list as in its pre-state.
 *   **Q11 — Human interaction and final products.  To do: discuss with
     the owner.**  M3 shows the pipeline can certify B1 from frozen
     contracts with no human annotation.  Still to settle:

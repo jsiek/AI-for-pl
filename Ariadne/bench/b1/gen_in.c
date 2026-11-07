@@ -9,7 +9,7 @@ typedef struct dllist {
   struct dllist *ptr_to_previous;
 } dllist;
 
-#define DLLIST_COMPARATOR(e1, e2) (e1->i - e2->i)
+#define DLLIST_COMPARATOR(e1, e2) ((e1->i > e2->i) - (e1->i < e2->i))
 
 SGLIB_DEFINE_DL_LIST_PROTOTYPES(dllist, DLLIST_COMPARATOR, ptr_to_previous,
                                 ptr_to_next);

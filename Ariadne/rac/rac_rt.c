@@ -65,6 +65,11 @@ void rac_reg_alloc(void *b, unsigned long size) {
   r->state = 1;  /* a freed block may be handed out again: live again */
 }
 
+long rac_reg_count(long unused) { (void)unused; return (long)reg_cap; }
+long rac_reg_nth(long i) {
+  return i >= 0 && (size_t)i < reg_cap ? (long)(size_t)reg[i].b : 0;
+}
+
 void rac_reg_free(void *b) {
   struct reg *r = reg_find(b);
   if (r && r->b == b)
@@ -102,11 +107,13 @@ int rac_dead_of(void *p) {
   return r && r->state == 2;
 }
 
+int rac_keep_freed;
+
 int rac_valid(const void *p, unsigned long size) {
   if (p == NULL)
     return 0;
   struct reg *r = reg_containing(p);
-  return r && r->state == 1 &&
+  return r && (r->state == 1 || (r->state == 2 && rac_keep_freed)) &&
          (unsigned long long)(size_t)p + size
            <= (unsigned long long)(size_t)r->b + r->size;
 }
@@ -295,6 +302,13 @@ static void seq_reset(void) {
 #define L(x) ((long)(size_t)(x))
 
 long rac_length(long s) { return rac_seq_len(SEQ(s)); }
+long rac_index(long s, void *x) {
+  struct rac_seq *q = SEQ(s);
+  for (long k = 0; k < rac_seq_len(q); k++)
+    if (rac_seq_nth(q, k) == x)
+      return k;
+  return -1;
+}
 long rac_nth(long s, long k) { return L(rac_seq_nth(SEQ(s), k)); }
 struct rac_seq *rac_seq_tail(struct rac_seq *s) {
   if (s == RAC_BAD)

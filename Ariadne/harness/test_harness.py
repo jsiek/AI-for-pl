@@ -27,7 +27,8 @@ def expect(name, cond, detail=""):
 src = open(os.path.join(B1, "b1.c")).read()
 BAD = {
     "overlay": ("    l->i = input[k];", "    l->i = input[k] + 1;"),
-    "frozen_spec": ("    requires live(elem);", "    requires \\false;"),
+    "frozen_spec": ("/*@ SGLIB_DL_LIST_CONTRACT_ADD(",
+                    "/*@ requires \\false;\n    SGLIB_DL_LIST_CONTRACT_ADD("),
     "lint_acsl": ("  //@ assert live_dll(\\null, the_list, \\Nil);",
                   "  //@ admit live_dll(\\null, the_list, \\Nil);"),
 }

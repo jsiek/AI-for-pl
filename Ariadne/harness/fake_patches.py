@@ -2,8 +2,7 @@
 (test_annotator.py), made from the human's b1.c so they stay in step
 with it:
 
-  good          get_first's loop annotations and assert from b1.c, with
-                the human's lemmas that SMT proves
+  good          get_first's loop annotations and assert from b1.c
   good_full     the same with all eleven of the human's lemmas
   frozen_edit   good, with get_first's precondition weakened
   new_logic     good, plus a new `predicate` (plan 7.3a)
@@ -12,7 +11,6 @@ with it:
   weak(k)       a different true but useless assert each time (a stall)
 """
 import os
-import re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 B1 = os.path.join(os.path.dirname(HERE), "bench", "b1")
@@ -34,53 +32,46 @@ def edit(text, old, new):
     return text.replace(old, new)
 
 
-SPEC = "/*@ // p is a usable list node"
+# The spec annotation of b1_frozen.c (spec template, no lemmas) and of
+# b1.c (the same with the human's lemmas, SGLIB_DL_LIST_LEMMAS).
+ARGS = "dllist, ptr_to_previous, ptr_to_next"
+SPEC = (f"    SGLIB_DL_LIST_SPEC({ARGS},\n"
+        "                       dllist_cmp_reads)\n*/")
+SPEC_LEMMAS = (f"    SGLIB_DL_LIST_SPEC({ARGS},\n"
+               "                       dllist_cmp_reads)\n"
+               f"    SGLIB_DL_LIST_LEMMAS({ARGS})\n*/")
+assert human.count(SPEC_LEMMAS) == 1 and frozen.count(SPEC) == 1
 
-
-def spec_block(text):
-    i = text.index(SPEC)
-    return i, text.index("*/\n", i) + 3
-
-
-def human_lemmas(drop):
-    """The human's spec block, without the lemmas named in `drop` (each
-    lemma runs to the next declaration, comment or blank line)."""
-    i, j = spec_block(human)
-    block = human[i:j]
-    for n in drop:
-        k = block.index(f"    lemma {n}")
-        m = re.compile(r"^(    (lemma|predicate|inductive|//)|\s*$|\*/)",
-                       re.M).search(block, block.index("\n", k) + 1)
-        block = block[:k] + block[m.start():]
-    return block
-
-
-# The human's lemmas that SMT proves (the other five need Coq).
+# The human's lemmas that need Coq (open in a run without the Coq
+# scripts); SMT proves the others.
 SMT_LEMMAS_DROP = ("mem_cons", "all_live_cons", "all_init_cons",
-                   "dll_links", "dll_frame")
+                   "dll_links", "dll_frame", "dll_distinct", "dll_of_links",
+                   "list_insert")
 
 
-def good(drop=SMT_LEMMAS_DROP):
-    """frozen-only, with get_first's body as the human annotated it and
-    the human's lemmas but those in `drop`."""
+def good():
+    """frozen-only, with get_first's body as the human annotated it (the
+    loop annotations and the assert, as template invocations)."""
     hi, hj = body(human)
     fi, fj = body(frozen)
-    text = frozen[:fi] + human[hi:hj] + frozen[fj:]
-    i, j = spec_block(text)
-    return text[:i] + human_lemmas(drop) + text[j:]
+    return frozen[:fi] + human[hi:hj] + frozen[fj:]
 
 
 def good_full():
-    return good(drop=())
+    """good, plus all eleven of the human's lemmas (the template's)."""
+    return edit(good(), SPEC, SPEC_LEMMAS)
 
 
 def frozen_edit():
-    return edit(good(), "/*@ requires list == \\null || in_live_list(list);"
-                "\n    assigns \\nothing;\n    ensures list == \\null ==> "
-                "\\result == \\null;\n    // the result heads",
+    """good, with get_first's contract written out and its precondition
+    weakened to \\true."""
+    return edit(good(), f"/*@ SGLIB_DL_LIST_CONTRACT_GET_FIRST({ARGS}) */",
                 "/*@ requires \\true;\n    assigns \\nothing;\n    ensures "
-                "list == \\null ==> \\result == \\null;\n    // the result "
-                "heads")
+                "list == \\null ==> \\result == \\null;\n    ensures "
+                "heads_list: list != \\null ==>\n      \\exists "
+                "\\list<dllist *> s, integer k;\n        live_dll(\\null, "
+                "\\result, s) && 0 <= k < \\length(s)\n        && "
+                "\\nth(s, k) == list;\n*/")
 
 
 def new_logic():
@@ -91,10 +82,10 @@ def new_logic():
 
 def ghost_loop():
     return edit(good(), "    (result) = _dll_;\n  };\n  return (result);\n}\n"
-                "/*@ requires list == \\null || in_live_list(list);",
+                "/*@ SGLIB_DL_LIST_CONTRACT_GET_LAST(",
                 "    //@ ghost while (1) ;\n"
                 "    (result) = _dll_;\n  };\n  return (result);\n}\n"
-                "/*@ requires list == \\null || in_live_list(list);")
+                "/*@ SGLIB_DL_LIST_CONTRACT_GET_LAST(")
 
 
 def false_inv():

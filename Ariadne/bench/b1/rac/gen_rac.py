@@ -1,10 +1,15 @@
 """Generate the E-ACSL build input b1_rac.c from b1.c (or a mutant of it).
 
    usage: python3 -I gen_rac.py <b1.c> <outdir> <twins dir>
+                                [--name NAME] [--no-harness]
 
 Writes <outdir>/b1_rac.c, <outdir>/b1_types.h (b1.c's generated part 1,
 for the twins and the allocator), and <outdir>/annotations.txt (what
-happened to every annotation).  The rules are in README.md ("Translation
+happened to every annotation).  With --name NAME (another client of the
+same spec, e.g. sglib's self-test), the output is NAME_rac.c and
+annotations are reported as NAME.c:LINE; a source without the part-1
+markers gets no types header; --no-harness leaves out B1's allocators
+and driver (rac_alloc.c, rac_main.c), for a source with its own.  The rules are in README.md ("Translation
 rules"); in short:
 
   * the spec block is replaced by rac_spec.h, generated from it by
@@ -34,6 +39,15 @@ import re
 import sys
 
 src_path, out, twins = sys.argv[1], sys.argv[2], sys.argv[3]
+NAME = sys.argv[sys.argv.index("--name") + 1] if "--name" in sys.argv \
+    else "b1"
+# --cov (coverage build, plan Q11 step 0): every kept clause gets the name
+# rac_cov_<n>, and each side of a top-level implication or disjunction a
+# probe clause rac_side_<n>_<j> (counted by ../../../rac/rac_collect.c,
+# never failing); coverage_map.json says which is which.
+COV = "--cov" in sys.argv
+cov_map = []
+HARNESS = "--no-harness" not in sys.argv
 manifest = json.load(open(os.path.join(twins, "rac_twins.json")))
 os.makedirs(out, exist_ok=True)
 src = open(src_path).read()
@@ -43,12 +57,13 @@ report = []
 
 P1_BEGIN = "/* BEGIN GENERATED (b1_gen.c), part 1: types */\n"
 P1_END = "/* END GENERATED, part 1 */\n"
-a = src.index(P1_BEGIN) + len(P1_BEGIN)
-b = src.index(P1_END)
-open(os.path.join(out, "b1_types.h"), "w").write(
-    "/* b1.c's generated part 1, written by gen_rac.py */\n"
-    "#ifndef B1_TYPES_H\n#define B1_TYPES_H\n#include <stddef.h>\n"
-    + src[a:b] + "#endif\n")
+if P1_BEGIN in src:
+    a = src.index(P1_BEGIN) + len(P1_BEGIN)
+    b = src.index(P1_END)
+    open(os.path.join(out, "b1_types.h"), "w").write(
+        "/* b1.c's generated part 1, written by gen_rac.py */\n"
+        "#ifndef B1_TYPES_H\n#define B1_TYPES_H\n#include <stddef.h>\n"
+        + src[a:b] + "#endif\n")
 
 # The spec block: the /*@ ... */ comment gen_twins.py generated
 # rac_spec.h from (same SHA-256), so a changed spec needs regenerating.
@@ -285,6 +300,19 @@ def witnesses(kind, binders, conjs):
     return [(n,) + lets[n] for n in lets], None
 
 
+def under_label(t, q):
+    """Whether variable q occurs in t inside \\at(...) or a labelled
+    construct (name{L}(...))."""
+    for m in re.finditer(r"\\at\(|[\w\\]+\{\w+(?:,\s*\w+)*\}\(", t):
+        depth, i = 1, m.end()
+        while i < len(t) and depth:
+            depth += {"(": 1, ")": -1}.get(t[i], 0)
+            i += 1
+        if re.search(rf"(?<![\w>.]){q}\b", t[m.end():i]):
+            return True
+    return False
+
+
 def elim_binders(t, notes):
     """Rewrite every \\forall / \\exists over lists or pointers in t; raise
     Drop if one cannot be eliminated."""
@@ -300,6 +328,31 @@ def elim_binders(t, notes):
     tail = elim_binders(t[end:], notes)
     if all(k == "int" for k, _, _ in binders):
         return t[:start] + " " + bod + tail
+    if kind == "forall" and len(binders) == 1 and binders[0][0] == "ptr":
+        # \forall T *q; live(q) ==> P(q) (or heap(\base_addr(q)) &&
+        # \offset(q) == 0 ==> ...): q is a heap block's base, so q ranges
+        # over the allocation registry's slots (rac_reg_nth)
+        _, q, ty = binders[0]
+        prem = split_top(bod, "==>")
+        cs = conjuncts(prem[0]) if len(prem) > 1 else []
+        live_g = any(re.fullmatch(rf"live\({q}\)", c) for c in cs)
+        heap_g = any(re.fullmatch(rf"heap\(\\base_addr\({q}\)\)", c)
+                     for c in cs) and any(
+            re.fullmatch(rf"\\offset\({q}\) == 0", c) for c in cs)
+        if not (live_g or heap_g):
+            raise Drop("\\forall over pointers (no finite range)")
+        if under_label(bod, q):
+            # E-ACSL 33 ignores such a clause ("\at on purely logic
+            # variables", "labeled \initialized"), and still evaluates
+            # its other \at terms eagerly at the label, where they may
+            # read through NULL
+            raise Drop(f"\\forall over pointers: {q} at a label "
+                       "(E-ACSL 33 does not evaluate it)")
+        notes.append(f"{q} ranges over the allocation registry")
+        node = f"(({ty})(0 + rac_reg_nth((long)(rac_i))))"
+        new = re.sub(rf"(?<![\w>.]){q}\b", node, bod)
+        return (t[:m.start()] + "\\forall integer rac_i; 0 <= rac_i < "
+                f"rac_reg_count(0) ==> ({new})" + tail)
     if kind == "forall":
         if any(k == "ptr" for k, _, _ in binders):
             raise Drop("\\forall over pointers (no finite range)")
@@ -439,7 +492,9 @@ def wrap(t):
             return out + t[i:]
         j = match_paren(t, m.end() - 1)
         ty, kinds = TWIN_SIG[m.group(1)]
-        args = [wrap(a) for a in split_top(t[m.end():j - 1], ",")]
+        inner = t[m.end():j - 1]
+        args = [wrap(a) for a in split_top(inner, ",")] if inner.strip() \
+            else []
         assert len(args) == len(kinds), (m.group(0), args)
         call = f"rac_{m.group(1)}(" + ", ".join(
             a if k == "n" or a.startswith("(long)") else f"(long)({a})"
@@ -513,6 +568,30 @@ def tr_clause(c, where):
         return None
     same = not dropped and kept == conjs
     status = "kept" if same else "partly-kept" if dropped else "rewritten"
+    probes = []
+    if COV and kw != "loop variant":
+        n = len(cov_map)
+        sides = []
+        for cj in kept:
+            imp = split_top(cj, "==>")
+            if len(imp) > 1:
+                sides.append(("antecedent", imp[0]))
+                continue
+            dis = split_top(cj, "||")
+            if len(dis) > 1:
+                for k, d in enumerate(dis):
+                    # the first disjunct that holds (the clause evaluates
+                    # the later ones only when the earlier ones fail)
+                    pre = " && ".join(f"!({x})" for x in dis[:k])
+                    sides.append(("disjunct " + str(k + 1),
+                                  f"{pre} && ({d})" if pre else d))
+        cov_map.append({"n": n, "where": where, "label": label, "kind": kw,
+                        "status": status, "sides": [
+                            {"j": j, "role": r, "pred": x}
+                            for j, (r, x) in enumerate(sides)]})
+        names = f"rac_cov_{n}: " + names
+        probes = [f"{kw} rac_side_{n}_{j}: {x};"
+                  for j, (_, x) in enumerate(sides)]
     detail = []
     if notes:
         detail.append("witnesses " + ", ".join(notes))
@@ -521,7 +600,7 @@ def tr_clause(c, where):
                       + "; ".join(dropped))
     report.append(f"{where}: {label}: {status}"
                   + (f" ({'; '.join(detail)})" if detail else ""))
-    return f"{kw} {names}" + " && ".join(kept) + ";"
+    return [f"{kw} {names}" + " && ".join(kept) + ";"] + probes
 
 
 ANNOT = re.compile(r"/\*@(.*?)\*/|//@([^\n]*)", re.S)
@@ -533,23 +612,30 @@ def tr_annot(m):
     if text.strip() in ("ARIADNE_ALLOC", "ARIADNE_FREE"):
         return m.group(0)
     text = re.sub(r"//[^\n]*", "", text)  # comments inside annotations
-    out = [x for x in (tr_clause(c, f"b1.c:{lineno}") for c in clauses(text))
-           if x]
+    out = [y for x in (tr_clause(c, f"{NAME}.c:{lineno}")
+                       for c in clauses(text)) if x for y in x]
     if not out:
-        return f"/* (annotation at b1.c:{lineno} dropped, see annotations.txt) */"
+        return (f"/* (annotation at {NAME}.c:{lineno} dropped, see "
+                "annotations.txt) */")
+    if re.match(r"(assert|check)\b", out[0]):   # one per comment
+        return " ".join("/*@ " + x + " */" for x in out)
     return "/*@ " + "\n    ".join(out) + " */"
 
 
 body = ANNOT.sub(tr_annot, body)
-open(os.path.join(out, "b1_rac.c"), "w").write(
+open(os.path.join(out, f"{NAME}_rac.c"), "w").write(
     "/* Generated by gen_rac.py from " + os.path.basename(src_path)
     + "; do not edit. */\n" + head
     + "/* rac_spec.h, twin calls written for E-ACSL (gen_rac.py, wrap) */\n"
     + re.sub(r"/\*@.*?\*/", lambda m: wrap(m.group(0)), rac_spec, flags=re.S)
     + body
-    + "\n/* RAC harness (E-ACSL build): allocators and driver. */\n"
-      "#define RAC_IN_B1\n#include \"rac_alloc.c\"\n#include \"rac_main.c\"\n")
+    + ("\n/* RAC harness (E-ACSL build): allocators and driver. */\n"
+       "#define RAC_IN_B1\n#include \"rac_alloc.c\"\n#include \"rac_main.c\"\n"
+       if HARNESS else ""))
 open(os.path.join(out, "annotations.txt"), "w").write("\n".join(report) + "\n")
+if COV:
+    json.dump(cov_map, open(os.path.join(out, "coverage_map.json"), "w"),
+              indent=1)
 counts = {}
 for r in report:
     k = re.search(r": (kept|partly-kept|rewritten|dropped)\b", r).group(1)

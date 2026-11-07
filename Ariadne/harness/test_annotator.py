@@ -146,7 +146,7 @@ def e2e(tmp):
                         if g["discharger"] == "open")
     coq5 = sorted(f"typed_lemma_{n}" for n in fake_patches.SMT_LEMMAS_DROP)
     expect("good patch: accepted, WP reran, get_first's goals all proved, "
-           "only the five Coq lemmas open",
+           "only the Coq lemmas open",
            len(calls) == 2 and calls[1].get("verdict") == "accepted"
            and r["steps"]["3_wp"].get("runs") == 2
            and open_goals == coq5

@@ -38,9 +38,7 @@ RUN = guardrails.RUN
 def check(cfg, baseline, text, scratch):
     """The guardrails, as (ok, report lines)."""
     log = os.path.join(scratch, "overlay.log")
-    v = {"frozen_spec": guardrails.frozen(baseline, text),
-         "lint_acsl": guardrails.lint_acsl(baseline, text),
-         "lint_ghost": guardrails.lint_ghost(baseline, text)}
+    v = guardrails.spec_checks(baseline, text, cfg["cpp_args"], scratch)
     if all(x["ok"] for x in v.values()):  # Frama-C only on a clean file
         v["overlay"] = guardrails.overlay(scratch, baseline, text,
                                           cfg["cpp_args"], log)

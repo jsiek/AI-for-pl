@@ -17,11 +17,22 @@ void rac_reg_alloc(void *b, unsigned long size);  /* b was returned by
                                                      ariadne_alloc_T */
 void rac_reg_free(void *b);     /* b is passed to ariadne_free_T */
 int rac_heap(char *b);          /* heap(b): b ever returned by an allocator */
+/* The registry's slots, for a \forall over the heap's blocks: slot i
+   (0 <= i < rac_reg_count()) holds a block base, or 0 (an empty slot). */
+long rac_reg_count(long unused);  /* (ACSL has no nullary calls) */
+long rac_reg_nth(long i);
 int rac_dead(char *b);          /* dead(__heap, b): b freed since */
 int rac_heap_of(void *p);       /* heap(\base_addr(p)) */
 int rac_dead_of(void *p);       /* dead(__heap, \base_addr(p)) */
 /* The twins' \valid(p) for an object of `size` bytes at p: p lies, with
-   all its bytes, in a registered block that is not freed. */
+   all its bytes, in a registered block that is not freed, or freed but
+   kept (rac_keep_freed).  In the ghost liveness model `free` changes only
+   __heap and \valid stays true, so the shape predicates (dll) hold of
+   freed nodes too; an allocator that keeps freed memory (the E-ACSL
+   builds, RAC_KEEP_FREED) sets rac_keep_freed, and the twins can then
+   follow the links of freed nodes as WP's model does.  Liveness is
+   checked apart (live, dead). */
+extern int rac_keep_freed;
 int rac_valid(const void *p, unsigned long size);
 
 /* ---- \list values -----------------------------------------------------
@@ -31,6 +42,7 @@ int rac_valid(const void *p, unsigned long size);
 long rac_length(long s);         /* \length(s) */
 long rac_nth(long s, long k);    /* \nth(s, k) (0 out of range) */
 long rac_tail(long s);           /* t with s == \Cons(_, t); \Nil for \Nil */
+long rac_index(long s, void *x); /* the least k with \nth(s, k) == x; -1 */
 long rac_concat(long s, long t); /* \concat(s, t) */
 
 /* Test harness: free every list value; empty the registry. */

@@ -449,7 +449,7 @@ invariant is only needed for functional correctness and is stretch work.
 | M1a | WP allocation investigation (§10) | **Done** (`m1a/`): WP misses use-after-free in every memory model; the ghost liveness model catches every case.  Decision: fallback 1. |
 | M1 | Manual baseline on B1 | Human writes predicates + contracts + invariants; all goals closed (by any means); goal census recorded.  This tells us where the hard goals are and whether the shape library works.  **B1a done** (`bench/b1/`): add + forward walk + free-while-iterating, 183/183 goals (Qed 109, SMT 71, Coq 3), three mutants rejected.  **B1b done**: + `get_first`/`get_last` and the backward walk, 222/222 (Qed 126, SMT 92, Coq 4), six mutants rejected.  **Initialisation checks added** (`-rte-initialized @all`): 321/321 (Qed 189, SMT 127, Coq 5), seven mutants rejected (§10).  B1c (sort) is stretch. |
 | M2 | Pipeline without LLM | Runtime-checking first pass (§5 step 0): executable twins of the shape predicates, E-ACSL and sanitizer builds of the driver on random inputs, mutants as tests; prototype on B1, then generate twins from the ACSL definitions.  Python harness runs steps 1–7, Pétanque integration, `hammer`-only proof search, guardrail checks, report.  Measure how much of M1 automation alone closes.  Budget ledger built and calibrated with a small Opus 5.5 pilot (§11). |
-| M3 | Agent on B1 | Annotator (Opus 5.5) + prover tier on B1 starting from frozen contracts only (no human invariants).  Minimum success criterion.  First comparison of prover escalation strategies (§12.3).  **Agent on B1 done** (`harness/README.md`, "Annotator"): from `bench/b1/b1_frozen.c` (254 goals, 206 closed by Qed/SMT), Opus 5.5 wrote the invariants, asserts and 24 lemmas in two patches; certified 330/330 (Qed 186, SMT 140, Coq 4, all four by Sonnet); Opus $3.40, Sonnet $1.19.  The escalation comparison is still to do. |
+| M3 | Agent on B1 | Annotator (Opus 5.5) + prover tier on B1 starting from frozen contracts only (no human invariants).  Minimum success criterion.  First comparison of prover escalation strategies (§12.3).  **Agent on B1 done** (`harness/README.md`, "Annotator"): from `bench/b1/b1_frozen.c` (254 goals, 206 closed by Qed/SMT), Opus 5.5 wrote the invariants, asserts and 24 lemmas in two patches; certified 330/330 (Qed 186, SMT 140, Coq 4, all four by Sonnet); Opus $3.40, Sonnet $1.19.  **Escalation comparison done** (S1-S4 on 9 Coq goals, $3.80): Opus alone proved 9/9 at about $0.18 and 37 s per goal, so the prover is now tier 0 then Opus (Q9). |
 | M4 | RB-tree `find_member`, `add` | Shape library extended to trees; target success criterion. |
 | M5 | Evaluation | G6 metrics across B1, B2 (and B3 if reached); ablations: no refinement, no hammer, no library lemmas; prover escalation strategies and annotator model (§12.3). |
 
@@ -671,9 +671,14 @@ invariant is only needed for functional correctness and is stretch work.
             `coqchk` and `Print Assumptions` against the allow-list, runs
             the regression tests, and diffs the annotated C against the
             original.  The diff must contain only annotations and
-            comments, plus the bug fixes listed in item 5.
-        5.  *A bug-fix log:* one entry per change to the C code (see the
-            next item).
+            comments, plus the changes listed in the change log (item
+            5); a code change without a log entry fails the check.
+        5.  *A change log:* one entry per change to the C code, each with
+            a category: *bug fix* or *verification refactor* (see the
+            next two items).  One log with a category field was chosen
+            over two logs: both kinds need the same fields (the change,
+            the evidence, the approval), and the certification diff
+            reads one list.
         6.  *The regression tests,* including any the pipeline added.
     *   **Bug fixes.**  Proving memory safety will sometimes find a real
         bug, so the C code is not always frozen.  Guardrail 1 changes:
@@ -696,16 +701,164 @@ invariant is only needed for functional correctness and is stretch work.
         *   *Public behaviour.*  A fix that changes what clients can
             observe is a public-spec change and needs the owner's
             approval, as above.
+        *   *First entry (owner, 2026-11-05):* B1's comparator overflow,
+            `bench/b1/CHANGES.md` (bug fix #1) with its test
+            `bench/b1/bugfix/` (Q12, decision 5).
+    *   **Verification refactors (owner, 2026-11-05).**  A verification
+        refactor is a code change that preserves behaviour and is made
+        only so that a tool can verify the code (for example, moving an
+        indirect call out of a loop condition so that WP's `calls`
+        annotation can attach to it, Q12).
+        *   *Log.*  Each one gets an entry in the change log (category
+            *verification refactor*): the change, the tool limitation it
+            works around, and why behaviour is unchanged.
+        *   *Approval.*  The owner approves each one, case by case.
+        *   *Evidence.*  Tests show that behaviour is unchanged: the
+            existing tests give the same results on the original and the
+            refactored code.
+        *   *Certification.*  The certification diff accepts the change
+            only with its log entry, as for bug fixes.
+    *   **Logged changes and the guardrails' baseline.**  The baseline
+        of every guardrail (overlay, `directives`, frozen spec) is the
+        benchmark's source as committed, so it carries the logged
+        changes.  A fix found during a run enters the baseline only by
+        being applied to the benchmark with its change-log entry; the
+        annotator itself can change no code and no preprocessor
+        directive.  That the benchmark's own code differs from the
+        original by exactly the logged changes is the certification
+        diff's check (final product 4).
+    *   **Step 0 checks every clause, or says why not (owner,
+        2026-11-06).**
+        *   Every annotation, public and private, is either checked by
+            E-ACSL in step 0 or appears on an explicit "not checked at
+            runtime" list, with the reason, in the step-0 report.
+        *   Step 0 runs on the target's own test suite and regression
+            tests; on random operation sequences against the public
+            API, starting from any node, not just heads; and on the
+            mutants.
+        *   Step 0 reports coverage per clause: how many times each was
+            evaluated and, for preconditions, implications and
+            disjunctions, whether each side was exercised.  A clause
+            never evaluated on any input is flagged.
+        *   Runtime checking stays a filter, not part of the trust base.
     *   **Regression tests.**  When the software comes with tests, the
         pipeline uses them:
         *   as inputs for runtime checking of candidate annotations
-            (step 1), alongside the generated drivers;
+            (step 0), alongside the generated drivers;
         *   to check that every bug fix keeps the existing tests
             passing.
         The pipeline may add tests: the failing test for each bug fix,
         and tests that exercise contract cases the existing tests miss.
         Added tests are kept separate from the original tests, so the
         owner can see which are new.
+*   **Q12 — Polymorphic code: spec templates now, a generic proof
+    later (owner, 2026-11-05).**  sglib is generic through macros: a
+    client writes `SGLIB_DEFINE_DL_LIST_FUNCTIONS(type, comparator,
+    prev, next)`, and the preprocessor expands it for one struct, two
+    link fields and one comparator.  The pipeline works on preprocessed
+    C, so a certificate covers one instantiation.  B1's contracts name
+    `dllist`, `ptr_to_previous`, `ptr_to_next` and `DLLIST_COMPARATOR`;
+    sglib's self-test (`samples/selftest.c` upstream, not yet vendored)
+    instantiates the same macro at `MyIntList`, `previous`, `next` and
+    `myListCmp`, which B1's certificate does not cover.
+    *   **Now: spec templates.**  The predicates, the public contracts
+        and the agent's annotations are written as macros parallel to
+        sglib's, taking the same parameters (for example
+        `SGLIB_DL_LIST_SPEC(type, prev, next)` next to
+        `SGLIB_DEFINE_DL_LIST_FUNCTIONS`).  Each instantiation is still
+        expanded and proved on its own, so soundness is unchanged.  A new
+        instantiation is checked mechanically: expand, run WP, replay
+        the solvers, recheck the Coq proofs; a model is called only if a
+        goal fails.  The certificate lists the instantiations it covers.
+    *   **The comparator is part of the public spec.**  It is client
+        code, a macro expression inlined into sglib's functions or a
+        function.  What sglib's safety relies on is stated as a contract
+        the comparator must meet: it reads only its two arguments,
+        writes nothing, terminates, and has no undefined behaviour on
+        the values present (B1's `e1->i - e2->i` overflows on extreme
+        values; check how B1's proof covers this).  For the RB tree, a
+        consistent order may also be needed if the safety proof relies
+        on a tree invariant that depends on it.  Each instantiation's
+        comparator is checked against this contract.
+    *   **Later: one generic proof.**  A single proof for every
+        instantiation, with the comparator abstract.  The motivating
+        case is C's `qsort`: one compiled function, an element size
+        given at run time, and a comparison function passed by pointer,
+        so there are no instantiations to check one by one.  This needs:
+        *   a contract on a function-pointer parameter, which every
+            function the client passes must meet.  WP handles an
+            indirect call through a finite list of possible targets
+            (`calls`), not a contract on an arbitrary function
+            **[verify]**; VST's function specifications on function
+            pointers are higher-order and handle it directly (Q10);
+        *   byte-level access to elements of a size known only at run
+            time (`char *` arithmetic and byte swaps), which the Typed
+            memory model (Q2) does not allow; WP would need a byte-level
+            model **[verify]**, while VST's Clight memory model is
+            byte-level;
+        *   no unchecked step: an argument that instantiations differ
+            only by renaming is not accepted unless a tool checks it.
+    *   **Done:** `samples/selftest.c` and `samples/rbtree.c` vendored
+        (`bench/sglib/`), the self-test run with a fixed seed under the
+        sanitizers (`bench/selftest/`), B1's spec written as a template
+        (`bench/sglib_spec/`), and the self-test's DL-list test run in
+        step 0 against B1's public contracts instantiated at its
+        `DoubleLinkedList` (`bench/selftest/rac.sh`).
+    *   **Decided (owner, 2026-11-05), after that run:**
+        1.  `all_init` covers the two links only; `add`'s `elem_init` and
+            the template's payload parameter are dropped.
+        2.  `add`, `it_init` and `it_init_on_equal` accept any node of a
+            whole live list, as sglib does.  `add` ensures `*list ==
+            elem && in_live_list(elem)` and `was_head` (if the old
+            `*list` was NULL or a head, so is `elem`), and assigns the
+            old predecessor's `next`.  The iterator's contracts describe
+            its backward walk (`prevelem` toward the head) and then its
+            forward walk (`nextelem`).
+        3.  The iterator contracts take the finite set of comparators a
+            client may pass, with `calls` at `it_next`'s indirect calls,
+            if WP 33 proves such calls.  **Result: it does for a call
+            statement, but not for a call in a `while` condition, which
+            is where sglib makes them (`bench/sglib_spec/calls_probe`).
+            Stopped as instructed; the iterator still requires
+            `subcomparator == \null`.**  This settles the **[verify]**
+            on `calls` under "Later" for sglib's code shape.
+        4.  The template takes `cmp_reads`, a client predicate naming the
+            fields the comparators read:
+            `SGLIB_DL_LIST_SPEC(type, prev, next, cmp_reads)`.  The
+            guardrail-2 hash stays over the expanded spec.
+        5.  Every comparator, a function or a macro inlined at its call
+            sites, must be proved free of runtime errors (WP with
+            `-wp-rte`) under its contract
+            (`SGLIB_DL_LIST_CONTRACT_COMPARATOR`).  B1's
+            `DLLIST_COMPARATOR` is fixed to
+            `((e1->i > e2->i) - (e1->i < e2->i))` as bug fix #1 under
+            Q11 (`bench/b1/CHANGES.md`, the first change log).
+    *   **Approved (owner, 2026-11-05), as committed for decisions 1-2,
+        4:** B1's `payload_init` precondition on `b1`; the `!dead`
+        clauses of `SGLIB_DL_LIST_CONTRACT_COMPARATOR` (every read needs
+        them under the `-ariadne` liveness model); `add`'s `assigns` item
+        for the old predecessor's `next` as a set guarded by `*list !=
+        \null`; and `was_head` in the form `\at(*list == \null ||
+        (*list)->previous == \null, Pre) ==> elem->previous == \null`
+        (E-ACSL evaluates `\at` terms eagerly).
+    *   **Decision 3 resumed (owner, 2026-11-05), option B:** a
+        verification refactor (Q11) moves each of `it_next`'s indirect
+        calls out of its `while` condition into its own statement
+        (`while (ce != NULL) { if (scp(eq, ce) == 0) break; ce =
+        ce->previous; }`, and the same forward), in B1's instantiation
+        only (the vendored sglib stays unmodified); then decision 3 as
+        approved originally.  **Done:** the refactor is change #2 in
+        `bench/b1/CHANGES.md` (the self-test gives the same output on
+        both versions under ASan+UBSan, seeds 1, 7, 12345); the iterator
+        contracts take the comparator set `(n, f1, ..., fn)`; WP proves
+        both indirect calls with `calls` (call point and the
+        comparator's preconditions) in the self-test's instantiation,
+        `bench/selftest/wp/`.
+    *   **Approved (owner, 2026-11-06):** the counted-list notation for
+        the allowed comparators, `(n, f1, ..., fn)` with n from 0 to 4
+        (B1: `(0)`; the self-test: `(1, myListCmp)`).  The count is
+        explicit because Frama-C preprocesses annotations as C11, where
+        an empty macro argument list cannot be detected.
 
 ---
 

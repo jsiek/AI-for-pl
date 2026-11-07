@@ -10,6 +10,9 @@ One call gets its own directory holding
                     and source line with WP's goal text, step 4's prover
                     reports, and the reason a previous patch was rejected,
   ariadne_alloc.h   the ghost liveness model (frozen, for reference),
+  sglib_dl_list_spec.h  the spec template SOURCE.c's annotations invoke
+                    (bench/sglib_spec/; its SGLIB_DL_LIST_SPEC and
+                    SGLIB_DL_LIST_CONTRACT_* expansions are frozen),
 
 and may run only `annotator_cli.py check|wp SOURCE.c ...` (guardrails,
 then WP with the SMT provers) and Read/Write/Edit in that directory.  No
@@ -36,6 +39,7 @@ import tiers  # noqa: E402
 CLI = os.path.join(HERE, "annotator_cli.py")
 OPUS = "claude-opus-5-5"
 ALLOC_H = os.path.join(ARIADNE, "plugin", "share", "ariadne_alloc.h")
+SPEC_H = os.path.join(ARIADNE, "bench", "sglib_spec", "sglib_dl_list_spec.h")
 
 PROMPT = """\
 You are the annotator of a proof pipeline for memory safety of C code
@@ -96,6 +100,7 @@ def prepare(work, source, task):
     open(os.path.join(work, "SOURCE.c"), "w").write(source)
     open(os.path.join(work, "TASK.md"), "w").write(task)
     shutil.copy(ALLOC_H, os.path.join(work, "ariadne_alloc.h"))
+    shutil.copy(SPEC_H, os.path.join(work, "sglib_dl_list_spec.h"))
 
 
 class Opus:

@@ -349,6 +349,10 @@ The term ends as the value `[−Y^β] 3 ⟨−Y⟩ : β`.
    entries and on the seal's conversion, of the kind TyWrap's `liftᴮ`
    does.  (An earlier draft of this note said `V` needed a swap
    renaming; that would also have broken the positional color law.)
+   The mechanization (`../nu-cancel-id/`) avoids even that: it keeps
+   one named flag per cell instead of a list of name positions (the
+   naming condition makes the two equivalent), so an entry carries only
+   its cell, and Sink re-indexes nothing.
 3. **Tower height.**  Sink and CancelId shorten towers that Cancel left
    behind (5b ends at `false` with no Ids), but every hide and re-reveal
    pair now costs a Sink per seal it crosses.

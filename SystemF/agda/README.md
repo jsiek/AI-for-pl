@@ -47,3 +47,11 @@ A variant of strong-rep-store (2026-09-24) exploring a GTPLC-style `ν`
 term with a Conversion in place of a coercion: type application
 elaborates to `ν`, moving `TyBeta`'s reveal to compile time.  See
 strong-rep-nu/notes/notes.md. Type safety is proved.
+
+# nu-cancel-id
+
+The single-entry variant of strong-rep-nu with CancelId and Sink in place
+of Cancel (2026-11-07; design in
+strong-rep-nu/notes/CancelIdSketch.md).  Names are per-cell flags,
+terms are typed at representation types, and `id` is untyped.  Progress
+is proved; preservation is not yet.  See nu-cancel-id/README.md.

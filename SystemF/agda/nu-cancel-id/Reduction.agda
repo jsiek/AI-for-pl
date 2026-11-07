@@ -2,12 +2,12 @@ module nu-cancel-id.Reduction where
 
 -- File Charter:
 --   * VALUES AND SMALL-STEP REDUCTION of νF₁ᶜ (notes/CancelIdSketch.md
---     §3 in strong-rep-nu).
+--     §8 in strong-rep-nu, the named-type version).
 --   * §1 values, split by the type they can have: `Fun` (arrow or `∀`
---     type), `Sealed` (a seal head over a value: variable type), and
---     constants.  An `idᶜ` layer is a value only over a `Fun`, and never
---     as the outer half of a CancelId pair; over a sealed value only as
---     the second seal head.
+--     type), `Sealed` (a seal under reveal layers carrying `idᶜ`:
+--     variable type), and constants.  An `idᶜ` layer that hides is a
+--     value only over a `Fun`, and never as the outer half of a
+--     CancelId pair.
 --   * §2 shifting for allocation (`renameʳ`, which moves only scope
 --     entries), §3 Beta's substitution of a closed value (a copy that
 --     crosses a `Λ` is wrapped in `[ ⁻ , 0 ] … ⟨ idᶜ ⟩`, the hiding
@@ -56,10 +56,10 @@ data Fun where
   F-id⁻ : Fun F → (∀ {F′} → ¬ (F ≡ [ ⁺ , α ] F′ ⟨ idᶜ ⟩))
     → Fun ([ ⁻ , α ] F ⟨ idᶜ ⟩)
 
--- the two seal heads of cell α, over a value
+-- a seal, under any number of reveal layers carrying `idᶜ`
 data Sealed where
   S-seal : Value W → Sealed ([ ⁻ , α ] W ⟨ seal ⟩)
-  S-hid  : Value W → Sealed ([ ⁺ , α ] ([ ⁻ , α ] W ⟨ seal ⟩) ⟨ idᶜ ⟩)
+  S-rev  : Sealed V → Sealed ([ ⁺ , α ] V ⟨ idᶜ ⟩)
 
 data Value where
   V-$      : Value ($ k)
@@ -163,13 +163,17 @@ data _⊢_⟶_∣_ : Ctx → Term → Term → Alloc → Set where
     → Γ ⊢ [ ⁺ , α ] ([ ⁻ , α ] W ⟨ seal ⟩) ⟨ unseal ⟩ ⟶ W ∣ keep
   cancel-id : Value V
     → Γ ⊢ [ ⁻ , α ] ([ ⁺ , α ] V ⟨ idᶜ ⟩) ⟨ idᶜ ⟩ ⟶ V ∣ keep
-  sink-seal : α ≢ β → Value V
-    → Γ ⊢ [ s , α ] ([ ⁻ , β ] V ⟨ seal ⟩) ⟨ idᶜ ⟩
-          ⟶ [ ⁻ , β ] ([ s , α ] V ⟨ idᶜ ⟩) ⟨ seal ⟩ ∣ keep
-  sink-hid  : α ≢ β → Value V
-    → Γ ⊢ [ s , α ] ([ ⁺ , β ] ([ ⁻ , β ] V ⟨ seal ⟩) ⟨ idᶜ ⟩) ⟨ idᶜ ⟩
-          ⟶ [ ⁺ , β ] ([ ⁻ , β ] ([ s , α ] V ⟨ idᶜ ⟩) ⟨ seal ⟩) ⟨ idᶜ ⟩
-          ∣ keep
+  -- a hide moves inward: below a seal, or below a reveal of another cell
+  sink      : α ≢ β → Value V
+    → Γ ⊢ [ ⁻ , α ] ([ ⁻ , β ] V ⟨ seal ⟩) ⟨ idᶜ ⟩
+          ⟶ [ ⁻ , β ] ([ ⁻ , α ] V ⟨ idᶜ ⟩) ⟨ seal ⟩ ∣ keep
+  swap      : α ≢ β → Sealed V
+    → Γ ⊢ [ ⁻ , α ] ([ ⁺ , β ] V ⟨ idᶜ ⟩) ⟨ idᶜ ⟩
+          ⟶ [ ⁺ , β ] ([ ⁻ , α ] V ⟨ idᶜ ⟩) ⟨ idᶜ ⟩ ∣ keep
+  -- an unseal moves inward through a reveal of another cell
+  push      : Sealed V
+    → Γ ⊢ [ ⁺ , α ] ([ ⁺ , β ] V ⟨ idᶜ ⟩) ⟨ unseal ⟩
+          ⟶ [ ⁺ , β ] ([ ⁺ , α ] V ⟨ unseal ⟩) ⟨ idᶜ ⟩ ∣ keep
   ξ-·₁      : ∀ {a} → Γ ⊢ L ⟶ L′ ∣ a
     → Γ ⊢ L · M ⟶ L′ · ↑ᵃ a M ∣ a
   ξ-·₂      : ∀ {a} → Value V → Γ ⊢ M ⟶ M′ ∣ a

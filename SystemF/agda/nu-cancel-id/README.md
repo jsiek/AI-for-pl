@@ -6,11 +6,14 @@ A mechanization of the design in
 
 * every boundary `[ s , α ] M ⟨ c ⟩` has one scope entry, which reveals
   (`⁺`) or hides (`⁻`) one representation cell `α`;
-* terms are typed at runtime (representation) types, and named types
-  appear only in annotations;
+* terms are typed at NAMED types, each read in its own context; only
+  conversions are typed at runtime (representation) types;
 * `idᶜ` is untyped, and conversions mention no variables;
-* the boundary rules are Id, Cancel-□, CancelId and Sink, with no
-  Cancel.
+* the boundary rules are Id, Cancel-□, CancelId, Sink (a hide moves
+  below a seal), Swap (a hide moves below a reveal of another cell) and
+  Push (an unseal moves through a reveal of another cell), with no
+  Cancel.  This is the second version (the note's §8); the first sank
+  reveals too and needed runtime types.
 
 `make check` type-checks `All.agda` with `--safe` and checks for
 postulates and holes.
@@ -21,10 +24,10 @@ postulates and holes.
 |---|---|
 | `Types.agda` | `Ty`, one syntax for named and runtime types; renaming |
 | `Ctx.agda` | the store, one named flag per cell, name lookup, spelling `Φ ⊢ A ⇝ R`, runtime well-formedness |
-| `Terms.agda` | signs, conversions, terms; conversion and term typing |
+| `Terms.agda` | signs, conversions, terms; conversion typing (runtime types) and term typing (named types) |
 | `Reduction.agda` | values (`Fun`, `Sealed`), allocation shift, substitution, TyBeta's `_•⟶_`, the step relation, runs |
 | `Progress.agda` | the progress theorem (proof in `proof/Progress.agda`) |
-| `Examples.agda` | the sketch's 5c: typed, and run to `3` in 12 steps |
+| `Examples.agda` | the sketch's 5b and 5c: typed, and run (11 and 12 steps) |
 
 ## Representation choices
 
@@ -35,10 +38,15 @@ postulates and holes.
   cell, newest first (`_∋ⁿ_↦_`).  A scope entry sets one flag.  Two
   consequences:
   * well-namedness holds by construction;
-  * entries for different cells commute on the nose, so Sink moves its
-    layer without re-indexing anything.  The positional re-indexing in
-    the sketch's §4 is needed only when entries carry name positions,
-    as in `strong-rep-nu`.
+  * entries for different cells commute on the nose, so Sink, Swap and
+    Push move layers without re-indexing anything.  The positional
+    re-indexing in the sketch's §4 is needed only when entries carry
+    name positions, as in `strong-rep-nu`.
+* **A boundary reads its two types in two contexts.**  `⊢[]` spells the
+  interior type with the interior flags and the exterior type with the
+  exterior flags, and types the conversion between the two spellings,
+  as the paper's `c : ε(Δ)(A) ⇒ Δ(B)`.  Progress needs only that
+  spelling is functional.
 * **Conversions are typed against the store only.**  They read payloads,
   never flags, so a boundary's conversion is typed at its exterior's
   store, and TyBeta's instantiating conversion keeps its derivation.
@@ -54,13 +62,17 @@ postulates and holes.
 
 ## Status
 
-Done: the definitions, progress (`proof/Progress.agda`), and example 5c.
+Done: the definitions, progress (`proof/Progress.agda`), and examples
+5b and 5c (only their initial terms are type-checked; the intermediate
+states are typed by hand in the note).
 
 Next:
 
 1. Preservation: substitution and allocation-weakening lemmas, flag
-   commutation for Sink, and the refinement lemma for TyBeta
-   (abstract `Λ` cell to payload).
+   commutation (Sink, Swap, Push), spelling injectivity (CancelId,
+   Cancel-□), re-reading a named type in a context with more names
+   (Push, Sink, Swap), and the refinement lemma for TyBeta (abstract
+   `Λ` cell to payload).
 2. Determinism.
 3. Color preservation, stated over the named flags.
-4. The rest of the sketch's examples (5a, 5b, 5d, 5e), and an `Eval`.
+4. The rest of the sketch's examples (5a, 5d, 5e), and an `Eval`.

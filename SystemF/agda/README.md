@@ -50,8 +50,8 @@ strong-rep-nu/notes/notes.md. Type safety is proved.
 
 # nu-cancel-id
 
-The single-entry variant of strong-rep-nu with CancelId and Sink in place
-of Cancel (2026-11-07; design in
-strong-rep-nu/notes/CancelIdSketch.md).  Names are per-cell flags,
-terms are typed at representation types, and `id` is untyped.  Progress
-is proved; preservation is not yet.  See nu-cancel-id/README.md.
+The single-entry variant of strong-rep-nu with CancelId, Sink, Swap and
+Push in place of Cancel (2026-11-07; design in
+strong-rep-nu/notes/CancelIdSketch.md §8).  Names are per-cell flags,
+terms are typed at named types, and `id` is untyped.  Progress is
+proved; preservation is not yet.  See nu-cancel-id/README.md.

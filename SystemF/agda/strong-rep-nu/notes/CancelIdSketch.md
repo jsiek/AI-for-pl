@@ -1,6 +1,12 @@
 # CancelId in place of Cancel — an experiment on νF₁ (2026-11-06)
 
-Status: SKETCH, on paper, not mechanized.  It modifies νF₁
+**Second version (2026-11-07), §8: named types.**  §§1–7 are the first
+version, which typed terms at representation types.  §8 changes Sink so
+that only hides move inward, adds Swap and Push, and types terms at
+NAMED types, the paper's.  The mechanization in `../../nu-cancel-id/`
+follows §8, and its progress proof is checked by Agda.
+
+Status of §§1–7: SKETCH, on paper.  It modifies νF₁
 (`notes/SingleEntrySketch.md`, "the sketch" below) and uses its
 notation, its type system (§3 there, unchanged) and its lemmas L1–L6.
 Call the variant **νF₁ᶜ**.
@@ -26,8 +32,9 @@ moves an identity layer for another variable below a seal (§3).  With
 it, a value of variable type is a seal, possibly under one re-reveal of
 its own name, and progress holds (§4).  Preservation, color
 preservation and determinism also hold (§4).  The price is that Sink
-commutes two scope entries, which in de Bruijn form needs a renaming of
-the moved body (§6).
+commutes two scope entries, which in de Bruijn form re-indexes the two
+entries (§4, color).  §8 then shows that a different split of Sink's
+work lets the type system use named types.
 
 ## 2. CancelId alone is not enough
 
@@ -334,7 +341,8 @@ The term ends as the value `[−Y^β] 3 ⟨−Y⟩ : β`.
 
 ## 7. Open points
 
-1. **Named runtime types do not suffice.**  No νF₁ᶜ rule rewrites a
+1. **Named runtime types do not suffice for THESE rules** (§8 changes
+   the rules so that they do).  No νF₁ᶜ rule rewrites a
    type inside a layer that stays, as the sketch's Cancel did.  But the
    second seal head `[+X^α] ([−X^α] W ⟨−X⟩) ⟨id⟩` has type `α` in a
    context where `X`, `α`'s only name, is hidden, so no named type
@@ -349,10 +357,149 @@ The term ends as the value `[−Y^β] 3 ⟨−Y⟩ : β`.
    entries and on the seal's conversion, of the kind TyWrap's `liftᴮ`
    does.  (An earlier draft of this note said `V` needed a swap
    renaming; that would also have broken the positional color law.)
-   The mechanization (`../nu-cancel-id/`) avoids even that: it keeps
+   The mechanization (`../../nu-cancel-id/`) avoids even that: it keeps
    one named flag per cell instead of a list of name positions (the
    naming condition makes the two equivalent), so an entry carries only
    its cell, and Sink re-indexes nothing.
 3. **Tower height.**  Sink and CancelId shorten towers that Cancel left
    behind (5b ends at `false` with no Ids), but every hide and re-reveal
    pair now costs a Sink per seal it crosses.
+
+## 8. Second version: named types
+
+### Why the first version needs runtime types
+
+Sink moves a REVEAL inward too, and that can put a layer where its type
+has no name.  5b's third Wrap builds, at `{Y:β}` with α:=Bool, β:=α,
+
+    [+X^α] ([−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩) ⟨id⟩        : Y
+
+which is fine at named types.  §3's Sink moves the `[+X^α]` layer below
+the `Y` seal:
+
+    [−Y^β] ([+X^α] [−X^α] false ⟨−X⟩ ⟨id⟩) ⟨−Y⟩
+
+The inner layer is at the interior of `[−Y^β]`, the empty context, and
+its type is `α`: no name.  Moving a HIDE inward is safe, because every
+context in between only gains names.
+
+### The rules
+
+Keep Id, CancelId and Cancel-□.  Replace Sink by three rules:
+
+    [−Z^γ] ([−X^α] V ⟨−X⟩) ⟨id⟩  ⟶  [−X^α] ([−Z^γ] V ⟨id⟩) ⟨−X⟩    (Sink, Z ≠ X)
+    [−Z^γ] ([+W^δ] S ⟨id⟩) ⟨id⟩  ⟶  [+W^δ] ([−Z^γ] S ⟨id⟩) ⟨id⟩    (Swap, Z ≠ W)
+    [+X^α] ([+Z^γ] S ⟨id⟩) ⟨+X⟩  ⟶  [+Z^γ] ([+X^α] S ⟨+X⟩) ⟨id⟩    (Push)
+
+with `S` a sealed value.  Hides move inward (Sink, Swap); an unseal
+moves inward through reveals (Push).
+
+### Values
+
+    Values  V  ::=  k | F | S
+    Fun     F  ::=  (as in §3)
+    Sealed  S  ::=  [−X^α] V ⟨−X⟩  |  [+Z^γ] S ⟨id⟩
+
+A sealed value is a seal under any number of reveal layers carrying
+`id`.  §3's second seal head is now ill typed: its type is `α` where `X`
+is hidden.  A hide carrying `id` over a sealed value is never a value:
+over a seal it sinks; over a reveal of the same variable it is a
+CancelId redex, and over a reveal of another one it swaps.
+
+### Types
+
+The paper's named type system, with this sketch's single entries and
+untyped `id`.  A boundary types its body at a named type `A` in the
+interior, its result at a named type `B` in the exterior, and its
+conversion between the two readings:
+
+    Δ ⊢ ε    ε(Δ) ∣ [] ⊢ M : A    c : ε(Δ)(A) ⇒ Δ(B)
+    ─────────────────────────────────────────────── (boundary)
+    Δ ∣ Γ ⊢ [ε] M ⟨c⟩ : B
+
+So a layer carrying `id` reads its two types as the same runtime type.
+
+### Why every step keeps a name for every type
+
+* **Push** changes the `[+Z^γ]` layer's type from `X` to the unseal's
+  result type `B`.  `B` is named at the unseal's exterior `Δ`, and the
+  layer's contexts are `Δ` and `Δ, Z:=γ`: both have every name of `Δ`.
+  This is where the first version's Cancel failed: it walked through
+  HIDE layers, whose contexts lack names of `Δ`.  Push walks only
+  through reveals, because Sink and Swap move the hides out of the way
+  first.
+* **Sink** and **Swap** keep each moved layer's interior type.  The
+  moved hide's exterior is a context with more names than before, so
+  its type still has a name there.  Swap's reveal keeps its exterior
+  type `B`; its interior gains `Z`.
+* **CancelId** and **Cancel-□** delete layers.  The result's type is
+  the body's: both read as the same runtime type at the same context
+  (`+X(−X(Δ)) = Δ`; the seal and the unseal read the same payload).
+  Since spelling is injective at a well-named context, they are the
+  same named type.
+
+### Progress
+
+An unseal `[+X^α] V ⟨+X⟩` has a body `V` whose type reads as `α` with
+`X` named.  Constants and functional values have other types, so `V` is
+sealed.  If `V` is a seal, its variable is `α` (the two readings of
+`V`'s type agree), and Cancel-□ fires.  If `V` is a reveal layer over a
+sealed value, Push fires.  An `id` layer over a value: a constant gives
+Id; a reveal over a functional or sealed value is a value; a hide over
+a functional value is a value unless it is a CancelId redex; a hide
+over a sealed value is a Sink, Swap or CancelId redex (a hide of `X`
+directly over `X`'s seal is incoherent).  **Checked in Agda**:
+`nu-cancel-id/proof/Progress.agda`.
+
+### Color and determinism
+
+* **Color.**  Sink, Swap and Push commute entries for different
+  variables, so the moved body's name map is unchanged; with entries
+  that carry name positions they re-index as in §4.  CancelId and
+  Cancel-□ restore the exterior map exactly.
+* **Determinism.**  The left-hand sides are disjoint: Sink needs a
+  seal under the hide, Swap a reveal of another variable, CancelId a
+  reveal of the same one, and Push a reveal under an unseal, where
+  Cancel-□ needs a seal.  Swap and Push require a SEALED body, so a hide
+  over a reveal over a functional value stays a value.
+
+### The examples
+
+**5b** (11 steps, as in νF; checked in Agda as `run-5b`).  The first
+seven steps are §5's.  The third Wrap's argument is a value here (a
+reveal over a sealed value), so Beta fires next:
+
+    → Beta      [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩ ⟨id⟩ ⟨+Y⟩ ⟨+X⟩
+    → CancelId  [+X^α] [+Y^β] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨+Y⟩ ⟨+X⟩
+    → Cancel-□  [+X^α] [−X^α] false ⟨−X⟩ ⟨+X⟩
+    → Cancel-□  false
+
+**5c** (10 steps; 12 in Agda as `run-5c`, where Beta's copy under `ΛY`
+is wrapped in `crossΛ`'s hide, which sinks below the seal and is removed
+by Id):
+
+    [+X^α] [+Y^β] [−X^α] 3 ⟨−X⟩ ⟨id⟩ ⟨+X⟩
+    → Push      [+Y^β] ([+X^α] [−X^α] 3 ⟨−X⟩ ⟨+X⟩) ⟨id⟩
+    → Cancel-□  [+Y^β] 3 ⟨id⟩
+    → Id        3
+
+**5e**, the term that was stuck in the third version of the single-entry
+sketch:
+
+    [+X^α] [−Y^β] [+W^γ] [+Y^β] [−X^α] V ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
+    → Swap      [+X^α] [+W^γ] [−Y^β] [+Y^β] [−X^α] V ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
+    → CancelId  [+X^α] [+W^γ] [−X^α] V ⟨−X⟩ ⟨id⟩ ⟨+X⟩
+    → Push      [+W^γ] ([+X^α] [−X^α] V ⟨−X⟩ ⟨+X⟩) ⟨id⟩
+    → Cancel-□  [+W^γ] ([−Y^β] 3 ⟨−Y⟩) ⟨id⟩            : Y at {Y:β}
+
+**5a** takes 11 steps (the third Wrap's argument is a value; Beta
+discards it; three Ids), and **5d** is unchanged at 17.
+
+### Against earlier designs
+
+* **Push** is close to D39's `IdPush`, which also moved the unseal
+  inward.  `IdPush` created an identity typed at a looked-up type and
+  needed a lookup premise for it; here `id` is untyped, so Push has no
+  premise.
+* With Push and the hide-only Sink, the sketch's §6.8 abstraction
+  question goes away: every type has a name in its context.

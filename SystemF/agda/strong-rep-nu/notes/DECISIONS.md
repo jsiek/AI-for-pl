@@ -5641,3 +5641,15 @@ types are still needed: the second seal head has a type no name in
 scope denotes.  Cost: Sink commutes two entries, so in de Bruijn form
 the two entries and the seal's conversion are re-indexed; the moved
 body moves verbatim, which the positional color law requires.
+
+**Addendum (2026-11-07): named types.**  Jeremy asked whether runtime
+types could go, now that the old Cancel is gone.  Not with the first
+rule set: Sink moving a REVEAL inward puts 5b's `[+X^α]` layer inside
+`[−Y^β]`, where its type `α` has no name.  The second version
+(`CancelIdSketch.md` §8) sinks only hides (Sink below a seal, Swap below
+a reveal of another variable) and lets the unseal move inward through
+reveals (Push).  A sealed value is a seal under reveal layers carrying
+`id`; every type keeps a name, so terms are typed at the paper's named
+types.  5b runs in 11 steps, as in νF.  The Agda (`nu-cancel-id/`) was
+switched to named types (conversions stay at runtime types); progress
+and typed runs of 5b and 5c are checked.

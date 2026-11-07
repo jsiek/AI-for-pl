@@ -1,17 +1,18 @@
 module nu-cancel-id.Terms where
 
 -- File Charter:
---   * TERMS, CONVERSIONS AND TYPING of νF₁ᶜ (notes/CancelIdSketch.md in
---     strong-rep-nu, on top of notes/SingleEntrySketch.md §§2–3).
+--   * TERMS, CONVERSIONS AND TYPING of νF₁ᶜ, second version
+--     (notes/CancelIdSketch.md §8 in strong-rep-nu): terms are typed at
+--     NAMED types.
 --   * A boundary `[ s , α ] M ⟨ c ⟩` has ONE scope entry: a sign `s`
 --     (`⁺` reveals cell α, `⁻` hides it) and a cell.  Its body is
---     term-closed and typed at the INTERIOR, where α's flag is set.
+--     term-closed and typed at the INTERIOR, where α's flag is set.  Its
+--     interior and exterior types are named types, each read in its own
+--     context (`_⊢_⇝_`), and the conversion relates the two readings.
 --   * Conversions mention no variables at all: `idᶜ` is untyped, and
 --     `seal`/`unseal` act on the boundary's own cell.  So conversions
---     are typed against the store only, and never shift.
---   * Terms are typed at RUNTIME types (representation variables);
---     named types appear only in the annotations of `ƛ` and `ν`, read
---     through the flags (`_⊢_⇝_`).
+--     are typed against the store only, at runtime types, and never
+--     shift.
 --   * `Λ N` is a value for every body (no reduction under `Λ`).
 
 open import Data.Bool using (Bool; true; false)
@@ -76,7 +77,7 @@ private
     Γₜ : List Ty
     s : Sign
     α x : ℕ
-    A P R R′ S S′ : Ty
+    A B C P R R′ S S′ : Ty
     c d : Conv
     L M N : Term
     n : ℕ
@@ -106,32 +107,36 @@ data _∣_,_⊢_⦂_⟹_ : Store → Sign → ℕ → Conv → Ty → Ty → Set
 
 infix 4 _∋ˣ_⦂_
 data _∋ˣ_⦂_ : List Ty → ℕ → Ty → Set where
-  x-here  : ∀ {Γₜ} → (R ∷ Γₜ) ∋ˣ zero ⦂ R
-  x-there : ∀ {Γₜ} → Γₜ ∋ˣ x ⦂ R → (S ∷ Γₜ) ∋ˣ suc x ⦂ R
+  x-here  : ∀ {Γₜ} → (A ∷ Γₜ) ∋ˣ zero ⦂ A
+  x-there : ∀ {Γₜ} → Γₜ ∋ˣ x ⦂ A → (B ∷ Γₜ) ∋ˣ suc x ⦂ A
 
 infix 4 _∣_⊢_⦂_
 data _∣_⊢_⦂_ : Ctx → List Ty → Term → Ty → Set where
-  ⊢`    : Γₜ ∋ˣ x ⦂ R
-    → Γ ∣ Γₜ ⊢ ` x ⦂ R
+  ⊢`    : Γₜ ∋ˣ x ⦂ A
+    → Γ ∣ Γₜ ⊢ ` x ⦂ A
   ⊢nat  : Γ ∣ Γₜ ⊢ $ nat n ⦂ `ℕ
   ⊢bool : Γ ∣ Γₜ ⊢ $ bool b ⦂ `𝔹
   ⊢ƛ    : flags Γ ⊢ A ⇝ R
-    → Γ ∣ R ∷ Γₜ ⊢ N ⦂ S
-    → Γ ∣ Γₜ ⊢ ƛ A ∙ N ⦂ R ⇒ S
-  ⊢·    : Γ ∣ Γₜ ⊢ L ⦂ R ⇒ S
-    → Γ ∣ Γₜ ⊢ M ⦂ R
-    → Γ ∣ Γₜ ⊢ L · M ⦂ S
-  ⊢Λ    : underΛ Γ ∣ map ⇑ᵗ Γₜ ⊢ N ⦂ R
-    → Γ ∣ Γₜ ⊢ Λ N ⦂ `∀ R
+    → Γ ∣ A ∷ Γₜ ⊢ N ⦂ B
+    → Γ ∣ Γₜ ⊢ ƛ A ∙ N ⦂ A ⇒ B
+  ⊢·    : Γ ∣ Γₜ ⊢ L ⦂ A ⇒ B
+    → Γ ∣ Γₜ ⊢ M ⦂ A
+    → Γ ∣ Γₜ ⊢ L · M ⦂ B
+  ⊢Λ    : underΛ Γ ∣ map ⇑ᵗ Γₜ ⊢ N ⦂ C
+    → Γ ∣ Γₜ ⊢ Λ N ⦂ `∀ C
   -- the instantiating conversion is typed where the new cell, with
-  -- payload P, is allocated and named
+  -- payload P, is allocated and named; the result type B is read
+  -- beside the new cell, unnamed, which is TyBeta's exterior
   ⊢ν    : flags Γ ⊢ A ⇝ P
-    → Γ ∣ Γₜ ⊢ L ⦂ `∀ R
-    → (pay P ∷ store Γ) ∣ ⁺ , zero ⊢ c ⦂ R ⟹ ⇑ᵗ S
-    → length (store Γ) ⊢ʳ S
-    → Γ ∣ Γₜ ⊢ ν A · L ⟨ c ⟩ ⦂ S
+    → Γ ∣ Γₜ ⊢ L ⦂ `∀ C
+    → (true ∷ flags Γ) ⊢ C ⇝ R
+    → (false ∷ flags Γ) ⊢ B ⇝ S
+    → (pay P ∷ store Γ) ∣ ⁺ , zero ⊢ c ⦂ R ⟹ S
+    → Γ ∣ Γₜ ⊢ ν A · L ⟨ c ⟩ ⦂ B
   -- coherence: `⁺` needs α unnamed outside, `⁻` needs it named
   ⊢[]   : flags Γ ∋ᶠ α ⦂ outside s
-    → interior s α Γ ∣ [] ⊢ M ⦂ R
+    → interior s α Γ ∣ [] ⊢ M ⦂ A
+    → flags (interior s α Γ) ⊢ A ⇝ R
+    → flags Γ ⊢ B ⇝ S
     → store Γ ∣ s , α ⊢ c ⦂ R ⟹ S
-    → Γ ∣ Γₜ ⊢ [ s , α ] M ⟨ c ⟩ ⦂ S
+    → Γ ∣ Γₜ ⊢ [ s , α ] M ⟨ c ⟩ ⦂ B

@@ -195,6 +195,36 @@ Cancel-□ is the sketch's O3, second part.
   `ε` of the head's interior over `Δ`.  The two scopes touch different
   names, so this is the same map.
 
+The color law in the Agda (`ColorPreservation.agda`) is positional: a
+hole's scope map is the LIST `names Δ`, and it must be equal on the
+nose, with ρ renaming representation variables only.  Sink allocates
+nothing, so ρ is the identity, and the redex's own boundaries are
+consumed; the residual positions are the holes inside `V`.  It is
+enough that `V`'s name list is the same list before and after.  Entries
+are positional (`Boundary.agda`): `bind j α` inserts at position `j`,
+`unbind i α` deletes position `i`.  Let `L = names Δ`; `X` and `Z` sit
+at different positions throughout.
+
+* **`ε = bind j γ` (a `+Z`), first head `unbind i α`.**  Before, `V`
+  is at `delete i (insert j L)`.  The contractum's seal acts first, at
+  `Δ`, with index `i′`, and the moved bind second, with index `j′`.  If
+  `j < i`: `i′ = i − 1`, `j′ = j`, and `insert j (delete (i−1) L) =
+  delete i (insert j L)`.  If `j > i`: `i′ = i`, `j′ = j − 1`, and
+  `insert (j−1) (delete i L) = delete i (insert j L)`.
+* **`ε = unbind j γ` (a `−Z`), first head.**  Both sides delete the same
+  two distinct elements of `L`; each index is read in the list it acts
+  on.
+* **Second head, `bind k α` then `unbind k α`.**  Before, `V` is at
+  `delete k (insert k (ε L)) = ε L`.  After, the head acts at `Δ` with
+  `X`'s position `k′` in `L`, and `ε`, with its index unchanged, acts on
+  `delete k′ (insert k′ L) = L`: `V` is at `ε L` again.
+
+So `V` moves verbatim and keeps its name list.  This fixes what the
+contractum must be: the two entries are RE-INDEXED (`i′`, `j′`, `k′`),
+and the seal's conversion `−X`, which cites `X` by its position in the
+seal's conversion context (`ε(Δ)` before, `Δ` after), is re-indexed
+from `i` to `i′`.  The moved `id` is untyped and cites nothing.
+
 The other rules are as in the sketch's O7, including the Beta-under-`Λ`
 caveat.
 
@@ -313,10 +343,12 @@ The term ends as the value `[−Y^β] 3 ⟨−Y⟩ : β`.
    abstraction question.
 2. **De Bruijn cost of Sink.**  In the sketch, Wrap and Cancel-□ need no
    respelling, because an entry and its inverse cancel at one position.
-   Sink swaps entries for two different names, so the moved body `V`
-   sees its names in a different order: `V` needs a renaming that
-   swaps two positions (L3 made concrete).  This is the cost that the
-   one-entry-per-boundary design avoided until now.
+   Sink swaps entries for two different names.  The moved body `V` does
+   NOT need a renaming: with re-indexed entries its name list is the
+   same list (§4, color).  The cost is index arithmetic on the two
+   entries and on the seal's conversion, of the kind TyWrap's `liftᴮ`
+   does.  (An earlier draft of this note said `V` needed a swap
+   renaming; that would also have broken the positional color law.)
 3. **Tower height.**  Sink and CancelId shorten towers that Cancel left
    behind (5b ends at `false` with no Ids), but every hide and re-reveal
    pair now costs a Sink per seal it crosses.

@@ -5639,4 +5639,5 @@ preservation, color and determinism are proved on paper; an unseal's
 body is its seal or steps, so no tower walk.  Representation runtime
 types are still needed: the second seal head has a type no name in
 scope denotes.  Cost: Sink commutes two entries, so in de Bruijn form
-the moved body needs a swap renaming.
+the two entries and the seal's conversion are re-indexed; the moved
+body moves verbatim, which the positional color law requires.

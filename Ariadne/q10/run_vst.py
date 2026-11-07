@@ -133,6 +133,15 @@ def command(run, tool, usd, turns, prompt):
     denied = ["Bash(git *)", "Bash(git)"] + [
         f"{t}(/{r}/Ariadne/vst/b1/**)" for r in sorted(roots)
         for t in ("Read", "Edit", "Write")]
+    # Every other run next to this one (earlier VST runs hold proofs of
+    # the same task), and their tool scripts.
+    parent = os.path.dirname(run)
+    for name in sorted(os.listdir(parent)) if os.path.isdir(parent) else []:
+        other = os.path.join(parent, name)
+        if other == run or other == run + ".tool":
+            continue
+        pat = f"/{other}/**" if os.path.isdir(other) else f"/{other}"
+        denied += [f"{t}({pat})" for t in ("Read", "Edit", "Write")]
     return ["claude", "-p", prompt, "--model", MODEL,
             "--output-format", "json", "--max-turns", str(turns),
             "--max-budget-usd", str(usd), "--no-session-persistence",

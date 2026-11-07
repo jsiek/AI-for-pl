@@ -688,6 +688,15 @@ invariant is only needed for functional correctness and is stretch work.
         VST's $4.39 for all six functions in one run, the Frama-C side
         needs about $7 when it finishes, on a harder (index-based,
         liveness-model) spec that the human gave it.
+        **Second VST run (owner, 2026-11-07), for variance:** `vst-run2`,
+        the same inputs and settings, the cap reserved in the ledger
+        first, and every other run in `runs/q10/` denied.  All six
+        functions and `semax_prog` with `Qed` again, for $5.91 in 3566 s
+        (one call, 177 turns, 9.45 M tokens).  Its funspecs have the same
+        strength as `vst-run1`'s overall: stronger on the node the
+        iterator returns (its exact links and position), weaker on
+        payload values (a predicate instead of the exact values, which
+        safety does not need).
 *   **Q11 — Human interaction and final products.  To do: discuss with
     the owner.**  M3 shows the pipeline can certify B1 from frozen
     contracts with no human annotation.  Still to settle:

@@ -41,6 +41,7 @@ python3 test_mutants.py; python3 test_run_vst.py    # offline tests
 | `wp-run3` (Frama-C, `--max-usd 10`; **one annotator call lost to a step-0 tooling bug**) | 2894 s | 210 / 144,464 / 396,272 / 4,880,399 (5.42 M) | 7.04 | 9 (3 annotator, 6 prover), 150 turns | 234 / 249 (Qed 152, SMT 76, Coq 6); 15 open, all function goals | 5 / 6 (`noinit`: its goals already open) | frozen source PASS (26 clauses, all evaluated); patch 1 PASS (38, all evaluated); patch 2 FAIL on the mutant anchor (the bug); patch 3 FAIL: E-ACSL check fired (`\valid_read(&(*list)->ptr_to_previous)` in `add`); mutants 4/4 caught each time |
 | `wp-run4` (Frama-C, `--max-usd 10`, all fixes) | 3043 s | 254 / 144,620 / 399,171 / 5,113,194 (5.66 M) | 7.11 | 11 (3 annotator, 8 prover), 191 turns | **certified 303 / 303** (Qed 173, SMT 122, Coq 8; 16 lemmas) | 6 / 6 | frozen source PASS (26 clauses, all evaluated); patch 1 PASS (46, all evaluated); patches 2-3 inconclusive: E-ACSL build failed (a ghost variable `gp`, which `gen_rac.py` drops); mutants 4/4 caught where run |
 | `vst-run1` (VST agent) | 2373 s | 170 / 84,998 / 146,837 / 7,560,158 (7.79 M) | 4.39 | 1, 162 turns | all 6 functions + `semax_prog`, `Qed` | 4 / 4 tried, by script breakage | not applicable |
+| `vst-run2` (VST agent, same inputs and settings, 2026-11-07) | 3566 s | 180 / 128,528 / 188,988 / 9,130,320 (9.45 M) | 5.91 | 1, 177 turns | all 6 functions + `semax_prog`, `Qed` | 4 / 4 tried, by script breakage | not applicable |
 
 USD and tokens: `claude -p`'s JSON (`modelUsage`, API-equivalent),
 summed by `summarize.py`.  Goals: the harness's WP census (Qed, SMT,
@@ -51,6 +52,41 @@ in the harness (ASan + UBSan, E-ACSL with the twins, coverage by
 `noinit`).  `wp-run3` and `wp-run4` ran one after the other on an
 otherwise idle machine; `wp-run2` and `vst-run1` ran at the same time.
 Rerun spending: $14.15 of the approved $20.
+
+**vst-run2** (`../runs/q10/vst-run2/`, 2026-11-07), for variance: the
+same run directory contents, prompt, tool script, flags and $15 cap as
+`vst-run1`, with the fixed `run_vst.py` (the cap reserved in the
+calibrated ledger first) and one more fence: Read/Write/Edit denied on
+every other entry of `runs/q10/` (`vst-run1/`, its tool script and
+logs, the Frama-C runs).  `check_vst.py`: clightgen + coqc pass on a
+pristine `b1a.c` (the run's copy unchanged), no `Admitted`/`admit`/
+`Axiom`, Print Assumptions as the smoke test; `verif_b1a.v` 821 lines
+(vst-run1: 561).  Two permission denials, both a `sed -i` on its own
+file.  The mutants break `body_b1` by tactic mismatch, as in vst-run1;
+`nowashead` (add's post weakened to `EX s1', wlist P (s1' ++ elem ::
+...)`, `body_add` skipped) breaks `body_b1` too.  Its public spec is 104
+lines without boilerplate and proof-only definitions (vst-run1: 94).
+
+*Its funspecs against vst-run1's* (read by hand): **the same strength
+overall, stronger in one place, weaker in one**, all within SPEC.md.
+*   Lists: vst-run2's `wlist P s` is a list of node addresses with a
+    payload predicate `P` (`True` in the sglib specs, "is an int" in
+    `b1`); vst-run1's is a list of (address, payload) pairs.  vst-run1
+    keeps each payload's exact value across calls, vst-run2 only that it
+    satisfies `P` (weaker there, and not needed for memory safety).
+*   `add`: the same.  vst-run2 names the start node by its index `j`
+    (`*list` is `nodeat s j`) and returns `sublist 0 j s ++ elem ::
+    sublist j _ s`; vst-run1 splits the list as `s1 ++ s2` and returns
+    `s1 ++ elem :: s2`.  Both give the new head when the old `*list` was
+    NULL or the head.
+*   Iterator: the same state (vst-run2: positions `b`, `f` and the
+    owned segments `0..b`, `f..k-1`; vst-run1: `sA ++ sM ++ sB`).
+    **vst-run2 is stronger on the returned node**: it is node `c` with
+    `b < c < f`, owned with its exact links in `s`; vst-run1 gave the
+    node with existential fields.
+*   `b1`, `main`: the same (an int returned; `input` unchanged).
+*   Neither states that freed nodes keep their links (separation logic
+    says nothing about freed memory; not needed for safety).
 
 **wp-run4** (`../runs/q10/wp-run4/report.md`).  Three annotator calls,
 all accepted ($2.18, $2.70, $0.54; 47, 54 and 12 turns): after the
@@ -186,7 +222,8 @@ says no proof can exist (each mutant has a stuck Clight execution); for
     while the run went on.
 *   **Mutants.**  VST's mutant rejections come from script breakage (see
     above); `noassign` has no VST analogue and `vacuity` only a rough one.
-*   **Few runs.**  One VST run; three Frama-C runs, of which two share
+*   **Few runs.**  Two VST runs (both proved everything: $4.39 and
+    $5.91, 2373 s and 3566 s); three Frama-C runs, of which two share
     settings (`wp-run3`, `wp-run4`) and gave certified once and 15 open
     once.  `wp-run2` and `vst-run1` shared the machine.
 *   **Wall time is not like for like**: the Frama-C runs include WP,
@@ -217,5 +254,8 @@ the run directory except the VST/Rocq installation in the image.
 *   `../runs/q10/wp-run3/`, `../runs/q10/wp-run4/` (git-ignored): the
     reruns, with `q10-mutants/`; `../runs/q10/dry-wp3/` is the dry run
     of step 0 on `wp-run2`'s patch (no model call).
+*   `../runs/q10/vst-run2/` (git-ignored): the second VST run, with
+    `budget_gate.json` and `q10-check/` (including the hand-made
+    `nowashead`).
 *   `../runs/q10/vst-run1/` (git-ignored): the VST run (`verif_b1a.v`,
     `result.json`, `summary.json`, `fence.json`, `q10-check/`).

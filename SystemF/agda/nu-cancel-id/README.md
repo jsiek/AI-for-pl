@@ -1,7 +1,8 @@
 # νF₁ᶜ — single-entry boundaries with CancelId and Sink
 
-A mechanization of the design in
-`../strong-rep-nu/notes/CancelIdSketch.md`, which modifies νF₁
+A mechanization of the design presented in `Design.md`, with variables
+as names.  Its history is in `../strong-rep-nu/notes/CancelIdSketch.md`
+(§8 is this version), which modifies νF₁
 (`../strong-rep-nu/notes/SingleEntrySketch.md`):
 
 * every boundary `[ s , α ] M ⟨ c ⟩` has one scope entry, which reveals
@@ -22,8 +23,9 @@ postulates and holes.
 
 | file | contents |
 |---|---|
+| `Design.md` | the design on paper, with variables as names: syntax, typing, values, reduction, examples, proof outlines |
 | `Types.agda` | `Ty`, one syntax for named and runtime types; renaming |
-| `Ctx.agda` | the store, one named flag per cell, name lookup, spelling `Φ ⊢ A ⇝ R`, runtime well-formedness |
+| `Ctx.agda` | the store, one named flag per cell, name lookup, spelling `Φ ⊢ A ⇝ R` |
 | `Terms.agda` | signs, conversions, terms; conversion typing (runtime types) and term typing (named types) |
 | `Reduction.agda` | values (`Fun`, `Sealed`), allocation shift, substitution, TyBeta's `_•⟶_`, the step relation, runs |
 | `Progress.agda` | the progress theorem (proof in `proof/Progress.agda`) |

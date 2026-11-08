@@ -5,6 +5,8 @@ version, which typed terms at representation types.  §8 changes Sink so
 that only hides move inward, adds Swap and Push, and types terms at
 NAMED types, the paper's.  The mechanization in `../../nu-cancel-id/`
 follows §8; progress, preservation and type safety are checked by Agda.
+**The current design is presented in one piece, with variables as
+names, in `../../nu-cancel-id/Design.md`;** this note keeps the history.
 
 Status of §§1–7: SKETCH, on paper.  It modifies νF₁
 (`notes/SingleEntrySketch.md`, "the sketch" below) and uses its

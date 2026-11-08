@@ -389,7 +389,7 @@ discarded (11 steps).
 
     ((ΛX. λf:(∀Y. Y → Bool). f [X]) [Bool] (ΛZ. λz:Z. true)) false
                                                                   : Bool
-  ⇒ elaborate
+    ⇒ elaborate
     (ν X:=Bool. ((ΛX. F) X)⟨(∀Y. id → id) → (−X → id)⟩) G false
         where F = λf:(∀Y. Y → Bool). ν Y:=X. (f Y)⟨−Y → id⟩
               G = ΛZ. λz:Z. true
@@ -421,7 +421,7 @@ The same program with `f` returning its argument, so the sealed `false`
 comes back out through every layer (11 steps, as in νF; `run-5b`).
 
     ((ΛX. λf:(∀Y. Y → Y). f [X]) [Bool] (ΛZ. λz:Z. z)) false     : Bool
-  ⇒ elaborate
+    ⇒ elaborate
     (ν X:=Bool. ((ΛX. F) X)⟨(∀Y. id → id) → (−X → +X)⟩) G false
         where F = λf:(∀Y. Y → Y). ν Y:=X. (f Y)⟨−Y → +Y⟩
               G = ΛZ. λz:Z. z
@@ -453,7 +453,7 @@ CancelId removes the pair.
 The program of §1 (12 steps; `run-5c`).
 
     (ΛX. λx:X. (ΛY. λ_:Int. x) [Bool] 0) [Int] 3                 : Int
-  ⇒ elaborate
+    ⇒ elaborate
     (ν X:=Int. ((ΛX. λx:X. B) X)⟨−X → +X⟩) 3
         where B = (ν Y:=Bool. ((ΛY. λ_:Int. x) Y)⟨id → id⟩) 0
     → TyBeta    [+X^α] (λx:X. B) ⟨−X → +X⟩ 3                  ⊣ α^X:=Int
@@ -483,7 +483,7 @@ seal and Id removes it.  In the state after the second Beta, the hide
 
     ((ΛX. λx:X. λg:(Int → X) → Int → Int. g (λn:Int. x)) [Int]
        5 (λh:Int → Int. h)) 0                                    : Int
-  ⇒ elaborate
+    ⇒ elaborate
     (ν X:=Int. ((ΛX. F) X)⟨−X → d⟩) 5 H 0
         where F = λx:X. λg:(Int → X) → Int → Int. g (λn:Int. x)
               H = λh:Int → Int. h
@@ -528,7 +528,7 @@ function's hide `[−X^α]` (21 steps).
 
     ((ΛX. λf:(∀Y. Y → Y). f [X]) [Bool]
        (ΛZ. (ΛW. λz:Z. z) [Bool])) false                         : Bool
-  ⇒ elaborate
+    ⇒ elaborate
     (ν X:=Bool. ((ΛX. F) X)⟨(∀Y. id → id) → (−X → +X)⟩) G false
         where F = λf:(∀Y. Y → Y). ν Y:=X. (f Y)⟨−Y → +Y⟩
               G = ΛZ. ν W:=Bool. ((ΛW. λz:Z. z) W)⟨id → id⟩

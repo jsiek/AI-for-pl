@@ -159,9 +159,13 @@ well formed already.
     ─────────── (const, k : ι)      ───────────────── (var)
     Δ ∣ Γ ⊢ k : ι                   Δ ∣ Γ ⊢ x : Γ(x)
 
-    Δ ⊢ A     Δ ∣ Γ, x:A ⊢ N : B           Δ ∣ Γ ⊢ L : A → B     Δ ∣ Γ ⊢ M : A
-    ───────────────────────── (lam)        ──────────────────────────────── (app)
-    Δ ∣ Γ ⊢ λx:A. N : A → B                Δ ∣ Γ ⊢ L M : B
+    Δ ⊢ A     Δ ∣ Γ, x:A ⊢ N : B
+    ──────────────────────────── (lam)
+    Δ ∣ Γ ⊢ λx:A. N : A → B
+
+    Δ ∣ Γ ⊢ L : A → B     Δ ∣ Γ ⊢ M : A
+    ──────────────────────────────────── (app)
+    Δ ∣ Γ ⊢ L M : B
 
     Δ, α^X, X:=α ∣ Γ ⊢ N : C        X, α ∉ Δ
     ──────────────────────────────────────── (Lam)
@@ -215,27 +219,29 @@ Agda: `Value`, `Fun`, `Sealed` in `Reduction.agda`.
 
 `Δ ⊢ M ⟶ N ⊣ ξ`, where `ξ` is the allocation, if any.
 
-    Δ ⊢ (λx:A. N) V  ⟶  N[x := V]                                      (Beta)
+    Δ ⊢ (λx:A. N) V  ⟶  N[x := V]                                    (Beta)
 
-    Δ ⊢ [ε] V ⟨c → d⟩ W  ⟶  [ε] (V ([−ε] W ⟨c⟩)) ⟨d⟩                   (Wrap)
-    Δ ⊢ [ε] V ⟨id⟩ W     ⟶  [ε] (V ([−ε] W ⟨id⟩)) ⟨id⟩                 (Wrap-id)
+    Δ ⊢ [ε] V ⟨c → d⟩ W  ⟶  [ε] (V ([−ε] W ⟨c⟩)) ⟨d⟩                 (Wrap)
+    Δ ⊢ [ε] V ⟨id⟩ W     ⟶  [ε] (V ([−ε] W ⟨id⟩)) ⟨id⟩               (Wrap-id)
 
-    Δ ⊢ ν X:=A. (V X)⟨d⟩  ⟶  [+X^α] (V • X^α) ⟨d⟩   ⊣ α^X:=Δ(A)        (TyBeta)
+    Δ ⊢ ν X:=A. (V X)⟨d⟩  ⟶  [+X^α] (V • X^α) ⟨d⟩   ⊣ α^X:=Δ(A)      (TyBeta)
         α fresh, where
           (ΛX^β. N) • X^α          =  N[β ↦ α]
           ([ε] V ⟨∀Y. c⟩) • X^α    =  [ε] (V • X^α) ⟨c⟩
           ([ε] V ⟨id⟩) • X^α       =  [ε] (V • X^α) ⟨id⟩
 
-    Δ ⊢ [ε] k ⟨id⟩  ⟶  k                                                (Id)
+    Δ ⊢ [ε] k ⟨id⟩  ⟶  k                                             (Id)
 
-    Δ ⊢ [+X^α] ([−X^α] W ⟨−X⟩) ⟨+X⟩  ⟶  W                              (Cancel-□)
-    Δ ⊢ [−X^α] ([+X^α] V ⟨id⟩) ⟨id⟩  ⟶  V                              (CancelId)
+    Δ ⊢ [+X^α] ([−X^α] W ⟨−X⟩) ⟨+X⟩  ⟶  W                            (Cancel-□)
+    Δ ⊢ [−X^α] ([+X^α] V ⟨id⟩) ⟨id⟩  ⟶  V                            (CancelId)
 
-    Δ ⊢ [−Z^γ] ([−X^α] V ⟨−X⟩) ⟨id⟩  ⟶  [−X^α] ([−Z^γ] V ⟨id⟩) ⟨−X⟩    (Sink, γ ≠ α)
-    Δ ⊢ [−Z^γ] ([+W^δ] S ⟨id⟩) ⟨id⟩  ⟶  [+W^δ] ([−Z^γ] S ⟨id⟩) ⟨id⟩    (Swap, γ ≠ δ)
-    Δ ⊢ [+X^α] ([+Z^γ] S ⟨id⟩) ⟨+X⟩  ⟶  [+Z^γ] ([+X^α] S ⟨+X⟩) ⟨id⟩    (Push)
+    Δ ⊢ [−Z^γ] ([−X^α] V ⟨−X⟩) ⟨id⟩  ⟶  [−X^α] ([−Z^γ] V ⟨id⟩) ⟨−X⟩  (Sink)
+        if γ ≠ α
+    Δ ⊢ [−Z^γ] ([+W^δ] S ⟨id⟩) ⟨id⟩  ⟶  [+W^δ] ([−Z^γ] S ⟨id⟩) ⟨id⟩  (Swap)
+        if γ ≠ δ
+    Δ ⊢ [+X^α] ([+Z^γ] S ⟨id⟩) ⟨+X⟩  ⟶  [+Z^γ] ([+X^α] S ⟨+X⟩) ⟨id⟩  (Push)
 
-    Δ ⊢ E[M]  ⟶  E[M′] ⊣ ξ      if E(Δ) ⊢ M ⟶ M′ ⊣ ξ                  (ξ)
+    Δ ⊢ E[M]  ⟶  E[M′] ⊣ ξ      if E(Δ) ⊢ M ⟶ M′ ⊣ ξ                 (ξ)
     E  ::=  □ M | V □ | ν X:=A. (□ X)⟨c⟩ | [ε] □ ⟨c⟩
 
 with `V, W` values and `S` a sealed value.

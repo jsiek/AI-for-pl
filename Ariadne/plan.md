@@ -716,6 +716,18 @@ invariant is only needed for functional correctness and is stretch work.
         spec change (Q11: owner's approval): `it_init`/`it_init_on_equal`
         ensure that the iterated list contains `list`, and `it_next`
         ensures it iterates the same list as in its pre-state.
+        **Approved and done (owner, 2026-11-08; Q12).**  Reference
+        `b1c_ref.c`: WP 349 / 349 (Coq 12, three of them new), step 0
+        passes and catches its five runtime mutants, WP rejects all
+        eight mutants.  **Runs** (`q10/README.md`, "B1c"): `vst-b1c`
+        proved all six functions and `semax_prog` for $9.94 in 5679 s
+        (one call, 268 turns, 21.9 M tokens); its iterator borrows the
+        list (`it_next` takes and returns only the nodes still to visit),
+        so it supports a second iteration and, with some client work,
+        `add` during an iteration.  `wp-b1c`: 290 / 293 for $9.36 in
+        4123 s (8 calls, 8.25 M tokens), WP rejects all eight mutants;
+        its last patch was rejected by a harness defect (step 0 read the
+        previous patch's log), fixed after the run, not rerun.
 *   **Q11 — Human interaction and final products.  To do: discuss with
     the owner.**  M3 shows the pipeline can certify B1 from frozen
     contracts with no human annotation.  Still to settle:
@@ -925,6 +937,28 @@ invariant is only needed for functional correctness and is stretch work.
         History: `eaa42ed2` (2026-11-03) fixed this class in `get_first`
         / `get_last` (their results belonged to *some* live list); the
         iterator kept it until B1c found it on 2026-11-07.
+        **Sweep (2026-11-08), rule 3 on the iterator finding:** every
+        public contract of `sglib_dl_list_spec.h`, B1's driver and the
+        allocator model, read for a postcondition that loses the link
+        between its result or state and its inputs.  `spec_lint.py`
+        reports 0 unanchored postconditions on `b1_frozen.c`, the
+        self-test's `st_wp.c` and `b1c_frozen.c` (and 3, the iterator's,
+        on B1a's 2026-11-07 snapshot).  By hand: comparator, no
+        postcondition; `get_first`, `get_last`, `it_init`,
+        `it_init_on_equal`, `it_next`, anchored (to `list` or the
+        pre-state); B1's driver, no postcondition; allocator and free,
+        anchored to `\old(__heap)` and `p`.  **`add`: anchored only to
+        `elem`.**  It says `elem` is in *some* whole live list, not that
+        the new list is the caller's old list with `elem` inserted, so a
+        client cannot show that its other nodes are still in a whole
+        live list after `add` (B1 and B1c never need it: they use the
+        new node, or free every node).  Proposed, not applied (a public
+        change): `ensures \forall \list<type *> s, type *h, integer k;
+        \at(live_dll(\null, h, s) && 0 <= k < \length(s) && *list ==
+        \nth(s, k), Pre) ==> \exists \list<type *> t;
+        live_dll(\null, k == 0 ? elem : h, t) &&
+        SGLIB_DL_LIST__INSERTED(t, s, elem, k);` (the proof of `add`
+        already builds this list: assert `insert_list`).
     *   **Regression tests.**  When the software comes with tests, the
         pipeline uses them:
         *   as inputs for runtime checking of candidate annotations

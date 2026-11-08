@@ -41,6 +41,104 @@ new spec.
 | `check_wp.py`, `check_vst.py` | mutant rejection (and, for VST, what was proved) |
 | `spec_lines.py` | public spec size on each side |
 
+## B1c: a client that reuses the list after iterating (2026-11-08)
+
+`bench/b1c/`: B1a's four sglib functions, and a driver that builds a
+list, walks it with the iterator without freeing (summing the payloads,
+recording the node at position m / 2), adds a new node before that
+node, then iterates from the new node freeing every node.  The frozen
+iterator spec of 2026-11-07 could not verify this driver (the iterated
+list was existential); the owner approved the change of plan Q12, and
+B1c uses the new spec.  The driver's contract is B1a's, for an
+`unsigned` result.  (`c`, the walk counter, is `unsigned` so that the
+reference needs no bound on the number of steps.)
+
+**Reference** (`b1c_ref.c`, `run_ref.sh`): WP proves 349 / 349 goals
+(Qed 186, Alt-Ergo 140, CVC5 9, Z3 2, Coq 12: B1's 9 scripts and 3 new
+ones: lemmas `dll_shared` (two whole lists sharing a node are the same,
+by index) and `dll_shared_live`, and the establishment of the first
+walk's invariant, across `it_init`'s write to the iterator).  Step 0
+(`rac/check.sh`, B1's tools with B1c's oracle, the unsigned sum) passes:
+300 random runs under ASan + UBSan and E-ACSL, 61 clauses checked at run
+time (48 evaluated, 13 never evaluated); it catches all five runtime
+mutants.  WP (`check_wp.py --bench b1c --source ../bench/b1c/b1c_ref.c`)
+rejects all eight mutants of `mutants_b1c.py`:
+
+| Mutant | Reference: first goal that fails (WP) | Step 0 (ASan+UBSan / E-ACSL) |
+|---|---|---|
+| `uaf` (payload read through `the_list` after the last iteration) | `ariadne_live` at the read | heap-use-after-free / - |
+| `nullchk` | `ariadne_live`, `rte_mem_access` at `l->i` | null member access / RTE mem_access |
+| `noinit` | `payload_written` | oracle / `payload_written` |
+| `addfreed` (step 3's `add` given a freed node) | `add_pre2b` (the list holding `mid` is live) | heap-use-after-free / `add_pre2` |
+| `vacuity` | `assert \false` | - / `vacuity` |
+| `nowashead` | `head_after_add` (build loop) | not for step 0 |
+| `noassign` | `add`'s `assigns` | not for step 0 |
+| `nextpost` (it_next's postcondition of 2026-11-07) | the first walk's invariant, `preserved` (and `established`, whose Coq script no longer replays) | not for step 0 |
+
+**Runs** (one each, one after the other):
+
+| Run | Wall time | Tokens: input / output / cache write / cache read (total) | USD | Model calls | Proved / open | Mutants rejected | Step 0 (per source checked) |
+|---|---|---|---|---|---|---|---|
+| `vst-b1c` (VST agent, $15 cap) | 5679 s | 278 / 174,498 / 268,822 / 21,499,356 (21.94 M) | 9.94 | 1, 268 turns | all 6 functions + `semax_prog`, `Qed`; assumptions as the smoke test | 4 / 4 C-level, all by script breakage | not applicable |
+| `wp-b1c` (Frama-C pipeline, $10 cap) | 4123 s | 262 / 203,564 / 472,113 / 7,570,971 (8.25 M) | 9.36 | 8 (4 annotator, 4 prover), 205 turns | 290 / 293 (Qed 173, SMT 113, Coq 4); open: the first walk's invariant `established`, `add`'s `in_live_list(elem)` postcondition, `it_next`'s new postcondition | 8 / 8 | frozen source and patches 1-2 PASS (25, 25, 45 clauses, all evaluated; 5/5 mutants caught); patch 3 rejected (an E-ACSL check fired in `add`); patch 4 judged by patch 3's log (a harness defect, fixed after the run) |
+
+USD and tokens: `claude -p`'s JSON (`summarize.py`); goals: the
+harness's WP census; mutants: `check_vst.py --bench b1c`, `check_wp.py
+--bench b1c`; step 0: `bench/b1c/rac/check.sh` in the harness.
+
+*wp-b1c* (`../runs/q10/wp-b1c/report.md`): annotator calls $1.03 (8
+turns), $2.63 (51 turns), then $2.85 and $2.14 for iteration 3, both
+patches rejected by step 0.  The third patch fired a real E-ACSL check
+(an assert in `add` reading `(*list)->ptr_to_previous` when `*list` was
+NULL, E-ACSL's eager `\at`).  The fourth patch's E-ACSL build failed (a
+ghost variable `g_pp`, which `gen_rac.py` drops), which is
+*inconclusive*, but the harness read the FAIL lines of the whole step-0
+log, including the third patch's, and rejected it.  Fixed after the run
+(`harness.last_run`, `test_report.py`); not rerun.  Checked without a
+model (`--overlay` of that patch, `--tiers 0`): 348 / 358 goals, one
+function goal and nine induction lemmas open, which the paid prover
+tier would have had to take.
+
+*vst-b1c* (`../runs/q10/vst-b1c/`): 952 lines, every function `Qed`,
+`check_vst.py` against a pristine `b1c.c`.  Three permission denials:
+a `sed -i` on its own file, `git status`, and an `rm` of its scratch
+files.
+
+**The VST iterator spec, read by hand.**  The iterator *borrows* the
+list; it never takes ownership of it.  A whole list is `cells s ps 0
+(Zlength s)` (each node owned: `data_at` + `malloc_token`); the iterator
+struct is `it_rep it s b f cur`, the struct alone, holding positions `b`
+and `f` of the list `s` as pointers.  `it_init` / `it_init_on_equal` take
+the whole list and give it back whole, with `init_result` (start at node
+`j`: `b = j - 1`, `f = j + 1`, result node `j`).  `it_next` asks only
+for the nodes still to visit, `cells s ps 0 (b+1)` and `cells s ps f
+(Zlength s)`, and gives them back unchanged, with `next_step` saying
+exactly which step it took (backward, forward, or the end with NULL).
+So a client may free each returned node (B1a) or keep the whole list
+and use it again (B1c).  *Interleaving `add`:* supported in principle:
+`add` needs the whole list and returns `ins j e s`; the iterator state is
+only pointers, which the client can re-read as positions in the new list
+(`it_rep_fold`), but the spec says nothing about where the new node falls
+relative to `b`, `f`, so the client must work that out.  *A second
+iteration before the first ends:* supported: the client still owns the
+whole list (the first iterator holds no cells), so `it_init` on a second
+iterator struct goes through, and the two only read.  Against SPEC.md
+it is stronger than the frozen ACSL (`next_step` is exact; `add` gives the
+exact new list) and does not state that freed nodes keep their links
+(separation logic says nothing about freed memory).
+
+**Which mutant rejections are real refused obligations.**  Frama-C: all
+of them, on both the reference and `wp-b1c`'s result: each fails at a
+goal at the mutated code, by WP from the same annotations, and
+`check_wp.py` counts only goals the unmutated source proves (for
+`nextpost`, `established` fails because its Coq script no longer
+replays, but `preserved` is an SMT goal that is genuinely refused).
+VST: none directly: each mutant breaks `body_b1` at a tactic that no
+longer matches the program ("No matching clauses for match", "No
+applicable tactic").  For `uaf`, `nullchk` and `addfreed`, VST's
+soundness theorem rules out any proof (each has a stuck Clight
+execution); for `noinit` it does not settle it.
+
 ## All runs (2026-11-06)
 
 | Run | Wall time | Tokens: input / output / cache write / cache read (total) | USD | Model calls | Proved / open | Mutants rejected | Step 0 (per source checked) |

@@ -1,6 +1,7 @@
 """Offline test of the run report (harness.py write / markdown): a run
 that stops at its --max-usd cap must still end with report.json, a
-complete report.md and the `verdict:` line.  No model calls, no image.
+complete report.md and the `verdict:` line; step 0's appended log is
+judged per run.  No model calls, no image.
 
 wp-run2 (plan Q10) crashed here: markdown() read `projected_pct` from
 every budget refusal, but a run-cap refusal (budget.RunCap) has
@@ -78,6 +79,16 @@ try:
            == "failed")
     expect("the verdict line is logged",
            "verdict: failed;" in out.getvalue(), out.getvalue())
+    # Step 0's log holds one run per patch; only the last one counts.
+    log = ("$ sh ./check.sh\nFAIL: E-ACSL run of the source:\n"
+           "FAIL: runtime checking of B1c\n"
+           "$ sh ./check.sh\nPASS: ASan+UBSan build\n"
+           "FAIL: E-ACSL build of the source:\n")
+    last = harness.last_run(log)
+    fl = [x for x in last.splitlines() if x.startswith("FAIL")]
+    expect("step 0: a patch is judged by its own run (inconclusive)",
+           harness.rac_outcome({"ok": False, "fail_lines": fl})
+           == "inconclusive", fl)
 finally:
     shutil.rmtree(tmp)
 print(f"{'FAIL' if fails else 'PASS'}: {len(fails)} failed")

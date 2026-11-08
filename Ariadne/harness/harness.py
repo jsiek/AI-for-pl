@@ -127,6 +127,14 @@ def census(goals):
 
 
 
+def last_run(log):
+    """The output of the last command of an appended log (sh() writes
+    `$ <command>` before each run): step 0 runs once per patch into the
+    same log, and a patch is judged by its own run only.  (wp-b1c judged
+    a patch by an earlier patch's FAIL lines, before this.)"""
+    return re.split(r"(?m)^\$ ", log)[-1]
+
+
 def rac_outcome(rac):
     """Step 0 on a patch: `pass`; `false` (a check fired on a run); or
     `inconclusive` (only the E-ACSL build or the RAC generation failed:
@@ -406,7 +414,7 @@ class Run:
             return {"skipped": "no RAC configured" if not rac else "--no-rac"}
         cwd = os.path.join(self.work, rac["dir"])
         rc = self.sh(["image"] + rac["command"], cwd, "step0_rac.log")
-        lines = open(os.path.join(self.logs, "step0_rac.log")).read()
+        lines = last_run(open(os.path.join(self.logs, "step0_rac.log")).read())
         passes = len(re.findall(r"^PASS", lines, re.M))
         fails = re.findall(r"^FAIL.*", lines, re.M)
         # The mutant table: "<mutant>  <sanitizers>  <E-ACSL>  [ok]".
@@ -750,8 +758,8 @@ class Run:
         the FAIL lines with what the script printed after them, and the
         end of E-ACSL's run log."""
         out = list(rac.get("fail_lines") or [])
-        lines = open(os.path.join(self.logs, "step0_rac.log")).read() \
-            .rsplit("\n$ ", 1)[-1].splitlines()
+        lines = last_run(open(os.path.join(self.logs, "step0_rac.log"))
+                         .read()).splitlines()
         k = next((i for i, x in enumerate(lines) if x.startswith("FAIL")),
                  None)
         if k is not None:

@@ -12,12 +12,12 @@ module nu-cancel-id.Ctx where
 --     flag (`setFlag`).  Entries for different variables commute on the
 --     nose, which is what Sink needs (notes/CancelIdSketch.md §4).
 --   * §1 cells and contexts; §2 lookups (payload, flag, name); §3 flag
---     update; §4 spelling a named type as a runtime type; §5 runtime
---     well-formedness.  Definitions only.
+--     update; §4 spelling a named type as a runtime type.  Definitions
+--     only.
 
 open import Data.Bool using (Bool; true; false)
 open import Data.List using (List; []; _∷_; length)
-open import Data.Nat using (ℕ; zero; suc; _<_)
+open import Data.Nat using (ℕ; zero; suc)
 
 open import nu-cancel-id.Types
 
@@ -103,15 +103,3 @@ data _⊢_⇝_ : Flags → Ty → Ty → Set where
   s-𝔹   : Φ ⊢ `𝔹 ⇝ `𝔹
   s-⇒   : ∀ {A B} → Φ ⊢ A ⇝ R → Φ ⊢ B ⇝ S → Φ ⊢ A ⇒ B ⇝ R ⇒ S
   s-∀   : ∀ {A} → (true ∷ Φ) ⊢ A ⇝ R → Φ ⊢ `∀ A ⇝ `∀ R
-
-------------------------------------------------------------------------
--- 5. Well-formed runtime types: every free variable is a cell
-------------------------------------------------------------------------
-
-infix 4 _⊢ʳ_
-data _⊢ʳ_ : ℕ → Ty → Set where
-  r-var : α < n → n ⊢ʳ ` α
-  r-ℕ   : n ⊢ʳ `ℕ
-  r-𝔹   : n ⊢ʳ `𝔹
-  r-⇒   : n ⊢ʳ R → n ⊢ʳ S → n ⊢ʳ R ⇒ S
-  r-∀   : suc n ⊢ʳ R → n ⊢ʳ `∀ R

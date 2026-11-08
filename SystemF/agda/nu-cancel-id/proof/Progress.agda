@@ -3,9 +3,10 @@ module nu-cancel-id.proof.Progress where
 -- File Charter:
 --   * THE PROGRESS PROOF of νF₁ᶜ with named types (notes/CancelIdSketch.md
 --     §8 in strong-rep-nu).
---   * §1 flag lemmas: an entry's own flag is set in its interior, so a
---     second coherent entry for the same cell with the same sign is
---     impossible.  §2 spelling is functional.  §3 canonical forms: a
+--   * The flag and spelling lemmas are nu-cancel-id.proof.Flags: an
+--     entry's own flag is set in its interior, so a second coherent entry
+--     for the same cell with the same sign is impossible; spelling is
+--     functional.  §3 canonical forms: a
 --     functional value's type never reads as a cell, a sealed value's
 --     always does, and a `∀`-typed value can be instantiated.  §4 the
 --     boundary cases: an unseal's body is its seal (Cancel-□) or a
@@ -27,6 +28,7 @@ open import nu-cancel-id.Types
 open import nu-cancel-id.Ctx
 open import nu-cancel-id.Terms
 open import nu-cancel-id.Reduction
+open import nu-cancel-id.proof.Flags
 
 private
   variable
@@ -37,44 +39,6 @@ private
     b b′ b″ : Bool
     A R R′ : Ty
     F V : Term
-
-------------------------------------------------------------------------
--- 1. Flags
-------------------------------------------------------------------------
-
-setFlag-hit : Φ ∋ᶠ α ⦂ b → setFlag α b′ Φ ∋ᶠ α ⦂ b′
-setFlag-hit f-here      = f-here
-setFlag-hit (f-there f) = f-there (setFlag-hit f)
-
-∋ᶠ-unique : Φ ∋ᶠ α ⦂ b → Φ ∋ᶠ α ⦂ b′ → b ≡ b′
-∋ᶠ-unique f-here      f-here      = refl
-∋ᶠ-unique (f-there f) (f-there g) = ∋ᶠ-unique f g
-
--- inside a boundary on cell α, α's flag is the one the entry set
-flag-clash : Φ ∋ᶠ α ⦂ b → setFlag α b′ Φ ∋ᶠ α ⦂ b″ → b′ ≡ b″
-flag-clash f g = ∋ᶠ-unique (setFlag-hit f) g
-
-true≢false : true ≡ false → ⊥
-true≢false ()
-
-false≢true : false ≡ true → ⊥
-false≢true ()
-
-------------------------------------------------------------------------
--- 2. Spelling is functional
-------------------------------------------------------------------------
-
-∋ⁿ-unique : Φ ∋ⁿ X ↦ α → Φ ∋ⁿ X ↦ β → α ≡ β
-∋ⁿ-unique n-here       n-here       = refl
-∋ⁿ-unique (n-named x)  (n-named y)  = cong suc (∋ⁿ-unique x y)
-∋ⁿ-unique (n-hidden x) (n-hidden y) = cong suc (∋ⁿ-unique x y)
-
-⇝-unique : Φ ⊢ A ⇝ R → Φ ⊢ A ⇝ R′ → R ≡ R′
-⇝-unique (s-var x) (s-var y) = cong `_ (∋ⁿ-unique x y)
-⇝-unique s-ℕ       s-ℕ       = refl
-⇝-unique s-𝔹       s-𝔹       = refl
-⇝-unique (s-⇒ a b) (s-⇒ c d) = cong₂ _⇒_ (⇝-unique a c) (⇝-unique b d)
-⇝-unique (s-∀ a)   (s-∀ c)   = cong `∀ (⇝-unique a c)
 
 ------------------------------------------------------------------------
 -- 3. Canonical forms
@@ -97,13 +61,13 @@ fun-not-var (F-↦ _)     (⊢[] _ _ _ spB (c-fun _ _)) sp =
   arrow≢var (⇝-unique spB sp)
 fun-not-var (F-∀ _)     (⊢[] _ _ _ spB (c-all _)) sp =
   forall≢var (⇝-unique spB sp)
-fun-not-var (F-id⁺ F)   (⊢[] _ ⊢F spA spB (c-id _)) sp
+fun-not-var (F-id⁺ F)   (⊢[] _ ⊢F spA spB c-id) sp
   with ⇝-unique spB sp
-fun-not-var (F-id⁺ F)   (⊢[] _ ⊢F spA spB (c-id _)) sp | refl =
+fun-not-var (F-id⁺ F)   (⊢[] _ ⊢F spA spB c-id) sp | refl =
   fun-not-var F ⊢F spA
-fun-not-var (F-id⁻ F _) (⊢[] _ ⊢F spA spB (c-id _)) sp
+fun-not-var (F-id⁻ F _) (⊢[] _ ⊢F spA spB c-id) sp
   with ⇝-unique spB sp
-fun-not-var (F-id⁻ F _) (⊢[] _ ⊢F spA spB (c-id _)) sp | refl =
+fun-not-var (F-id⁻ F _) (⊢[] _ ⊢F spA spB c-id) sp | refl =
   fun-not-var F ⊢F spA
 
 -- a sealed value's type reads as a cell
@@ -113,9 +77,9 @@ sealed-var : Sealed V
   → ∃[ α ] R ≡ ` α
 sealed-var (S-seal _) (⊢[] _ _ _ spB (c-seal _)) sp =
   _ , ⇝-unique sp spB
-sealed-var (S-rev v) (⊢[] _ ⊢V spA spB (c-id _)) sp
+sealed-var (S-rev v) (⊢[] _ ⊢V spA spB c-id) sp
   with ⇝-unique spB sp
-sealed-var (S-rev v) (⊢[] _ ⊢V spA spB (c-id _)) sp | refl =
+sealed-var (S-rev v) (⊢[] _ ⊢V spA spB c-id) sp | refl =
   sealed-var v ⊢V spA
 
 -- so its type is never an arrow or a `∀`: read the type where the
@@ -138,9 +102,9 @@ inst (V-fun F-Λ)         (⊢Λ _) = _ , inst-Λ
 inst (V-fun (F-↦ _))     (⊢[] _ _ _ (s-∀ _) ())
 inst (V-fun (F-∀ v))     (⊢[] _ ⊢V (s-∀ _) _ (c-all _)) =
   let (N , i) = inst v ⊢V in _ , inst-∀ i
-inst (V-fun (F-id⁺ F))   (⊢[] _ ⊢V (s-∀ _) (s-∀ _) (c-id _)) =
+inst (V-fun (F-id⁺ F))   (⊢[] _ ⊢V (s-∀ _) (s-∀ _) c-id) =
   let (N , i) = inst (V-fun F) ⊢V in _ , inst-id i
-inst (V-fun (F-id⁻ F _)) (⊢[] _ ⊢V (s-∀ _) (s-∀ _) (c-id _)) =
+inst (V-fun (F-id⁻ F _)) (⊢[] _ ⊢V (s-∀ _) (s-∀ _) c-id) =
   let (N , i) = inst (V-fun F) ⊢V in _ , inst-id i
 inst (V-sealed v)        ⊢V = ⊥-elim (sealed-not-∀ v ⊢V)
 
@@ -220,7 +184,7 @@ boundary : ∀ {Γ s α M A R S c}
   → store Γ ∣ s , α ⊢ c ⦂ R ⟹ S
   → Value ([ s , α ] M ⟨ c ⟩)
     ⊎ Σ[ N ∈ Term ] Σ[ a ∈ Alloc ] (Γ ⊢ [ s , α ] M ⟨ c ⟩ ⟶ N ∣ a)
-boundary coh v ⊢M spA (c-id _)     = id-step coh v ⊢M
+boundary coh v ⊢M spA c-id     = id-step coh v ⊢M
 boundary coh v ⊢M spA (c-fun _ _)  = inj₁ (V-fun (F-↦ v))
 boundary coh v ⊢M spA (c-all _)    = inj₁ (V-fun (F-∀ v))
 boundary coh v ⊢M spA (c-seal _)   = inj₁ (V-sealed (S-seal v))

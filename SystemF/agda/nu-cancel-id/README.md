@@ -27,7 +27,13 @@ postulates and holes.
 | `Terms.agda` | signs, conversions, terms; conversion typing (runtime types) and term typing (named types) |
 | `Reduction.agda` | values (`Fun`, `Sealed`), allocation shift, substitution, TyBeta's `_•⟶_`, the step relation, runs |
 | `Progress.agda` | the progress theorem (proof in `proof/Progress.agda`) |
-| `Examples.agda` | the sketch's 5b and 5c: typed, and run (11 and 12 steps) |
+| `Preservation.agda` | preservation for a step and for a run (proof in `proof/Preservation.agda`) |
+| `TypeSafety.agda` | every term a well-typed term reaches is a value or steps |
+| `Examples.agda` | the sketch's 5b and 5c: typed, run (11 and 12 steps), and their results typed by preservation |
+| `proof/Types.agda` | renaming congruence and fusion |
+| `proof/Flags.agda` | flag update, names, spelling (functional, injective, re-readable with more names), spelling after inserting a cell |
+| `proof/Weaken.agda` | typing after inserting an unnamed cell (allocation, `crossΛ`) and after refining an abstract cell (TyBeta) |
+| `proof/Subst.agda` | Beta's substitution, with `crossΛ` under `Λ` |
 
 ## Representation choices
 
@@ -50,6 +56,8 @@ postulates and holes.
 * **Conversions are typed against the store only.**  They read payloads,
   never flags, so a boundary's conversion is typed at its exterior's
   store, and TyBeta's instantiating conversion keeps its derivation.
+  `idᶜ` has no well-formedness premise: every type at a boundary is a
+  spelling, so it is well formed already.
 * **`Λ N` is a value for every body**, with no reduction under `Λ`.
   The sketch writes `ΛX. V`; this changes nothing in the progress
   argument.
@@ -62,17 +70,30 @@ postulates and holes.
 
 ## Status
 
-Done: the definitions, progress (`proof/Progress.agda`), and examples
-5b and 5c (only their initial terms are type-checked; the intermediate
-states are typed by hand in the note).
+Done:
+* the definitions;
+* progress (`proof/Progress.agda`), preservation
+  (`proof/Preservation.agda`) and type safety, with `--safe` and no
+  postulates;
+* examples 5b and 5c, whose every state is typed by preservation.
+
+How preservation goes for the boundary rules:
+* **CancelId and Cancel-□**: the two entries restore the exterior flags
+  (`setFlag-twice`, `setFlag-idem`), and the body's type and the result
+  type spell the same runtime type there, so they are the same named
+  type (`⇝-inj`).
+* **Sink, Swap and Push**: entries on different cells commute
+  (`setFlag-comm`), so the moved body is typed as before.  The moved
+  layer needs a named type in its new exterior.  That context has every
+  name of the context the type was read in before (`hide-⊆`,
+  `reveal-⊆`), so the type can be re-read there (`reread`).
+* **TyBeta**: the `Λ`'s abstract cell becomes the allocated cell, with
+  its payload (`⊑-⊢`); each layer's entry moves past the new cell.
+* **Allocation inside a frame**: the siblings, a ν's conversion and a
+  boundary's spellings are weakened by an unnamed cell (`ins-⊢`,
+  `ins-conv`, `ins-⇝`); named types do not change.
 
 Next:
-
-1. Preservation: substitution and allocation-weakening lemmas, flag
-   commutation (Sink, Swap, Push), spelling injectivity (CancelId,
-   Cancel-□), re-reading a named type in a context with more names
-   (Push, Sink, Swap), and the refinement lemma for TyBeta (abstract
-   `Λ` cell to payload).
-2. Determinism.
-3. Color preservation, stated over the named flags.
-4. The rest of the sketch's examples (5a, 5d, 5e), and an `Eval`.
+1. Determinism.
+2. Color preservation, stated over the named flags.
+3. The rest of the sketch's examples (5a, 5d, 5e), and an `Eval`.

@@ -5653,3 +5653,14 @@ reveals (Push).  A sealed value is a seal under reveal layers carrying
 types.  5b runs in 11 steps, as in νF.  The Agda (`nu-cancel-id/`) was
 switched to named types (conversions stay at runtime types); progress
 and typed runs of 5b and 5c are checked.
+
+**Addendum (2026-11-07): preservation checked.**  `nu-cancel-id/` now
+proves preservation (one step and runs) and type safety, with `--safe`
+and no postulates.  Two definition changes on the way: `idᶜ` lost its
+runtime well-formedness premise (every type at a boundary is a spelling,
+so it is well formed already, and the premise would have needed a
+store/flags length invariant), and term substitution is `substᵐ`.  The
+boundary cases needed exactly the three facts §8 names: spelling is
+injective (CancelId, Cancel-□), entries on different variables commute
+(Sink, Swap, Push), and a type can be re-read where there are more
+names (the moved layer's new exterior).

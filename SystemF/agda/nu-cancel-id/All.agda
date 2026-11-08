@@ -8,4 +8,6 @@ open import nu-cancel-id.Ctx
 open import nu-cancel-id.Terms
 open import nu-cancel-id.Reduction
 open import nu-cancel-id.Progress
+open import nu-cancel-id.Preservation
+open import nu-cancel-id.TypeSafety
 open import nu-cancel-id.Examples

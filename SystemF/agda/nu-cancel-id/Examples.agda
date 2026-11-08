@@ -13,9 +13,11 @@ module nu-cancel-id.Examples where
 --     program whose run broke named types under the first version's
 --     Sink.  Here the argument stays `[ ⁺ , X ] (Y-sealed) ⟨ idᶜ ⟩`, and
 --     the hide above it cancels with it: 11 steps, as in νF.
+--   * Preservation types every state of both runs; the last section
+--     types their results.
 
 open import Data.List using ([]; _∷_)
-open import Data.Nat using (ℕ; zero; suc; s≤s; z≤n)
+open import Data.Nat using (ℕ; zero; suc)
 open import Data.Bool using (true; false)
 open import Relation.Binary.PropositionalEquality using (_≢_)
 
@@ -23,6 +25,7 @@ open import nu-cancel-id.Types
 open import nu-cancel-id.Ctx
 open import nu-cancel-id.Terms
 open import nu-cancel-id.Reduction
+open import nu-cancel-id.Preservation using (preservation*)
 
 ∅ : Ctx
 ∅ = [] ∣ []
@@ -54,7 +57,7 @@ ex5c = ν `ℕ · (Λ (ƛ ` 0 ∙ B5c)) ⟨ seal ↦ unseal ⟩ · $ nat 3
   ⊢B = ⊢· (⊢ν s-𝔹 (⊢Λ (⊢ƛ s-ℕ (⊢` (x-there x-here))))
               (s-⇒ s-ℕ (s-var (n-named n-here)))
               (s-⇒ s-ℕ (s-var (n-hidden n-here)))
-              (c-fun (c-id r-ℕ) (c-id (r-var (s≤s (s≤s z≤n))))))
+              (c-fun c-id c-id))
           ⊢nat
 
 -- the argument 3, sealed as X, and its copy under ΛY
@@ -131,8 +134,7 @@ ex5b = ν `𝔹 · (Λ F5b) ⟨ ∀ᶜ (idᶜ ↦ idᶜ) ↦ (seal ↦ unseal) �
   c₀ : (pay `𝔹 ∷ []) ∣ ⁺ , zero
          ⊢ ∀ᶜ (idᶜ ↦ idᶜ) ↦ (seal ↦ unseal)
          ⦂ `∀ (` 0 ⇒ ` 0) ⇒ (` 0 ⇒ ` 0) ⟹ `∀ (` 0 ⇒ ` 0) ⇒ (`𝔹 ⇒ `𝔹)
-  c₀ = c-fun (c-all (c-fun (c-id (r-var (s≤s z≤n)))
-                           (c-id (r-var (s≤s z≤n)))))
+  c₀ = c-fun (c-all (c-fun c-id c-id))
              (c-fun (c-seal p-here) (c-unseal p-here))
 
   -- under ΛX, X is name 0; the inner ν reads Y:=X
@@ -199,3 +201,15 @@ run-5b =
   —→⟨ cancel-□ V-$ ⟩
     $ bool false
   ∎
+
+------------------------------------------------------------------------
+-- Every state of both runs is typed, by preservation; the results:
+------------------------------------------------------------------------
+
+⊢result-5c : ((pay `𝔹 ∷ pay `ℕ ∷ []) ∣ (false ∷ false ∷ [])) ∣ []
+             ⊢ $ nat 3 ⦂ `ℕ
+⊢result-5c = preservation* ⊢ex5c run-5c
+
+⊢result-5b : ((pay (` 0) ∷ pay `𝔹 ∷ []) ∣ (false ∷ false ∷ [])) ∣ []
+             ⊢ $ bool false ⦂ `𝔹
+⊢result-5b = preservation* ⊢ex5b run-5b

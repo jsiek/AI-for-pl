@@ -4,7 +4,7 @@
 version, which typed terms at representation types.  §8 changes Sink so
 that only hides move inward, adds Swap and Push, and types terms at
 NAMED types, the paper's.  The mechanization in `../../nu-cancel-id/`
-follows §8, and its progress proof is checked by Agda.
+follows §8; progress, preservation and type safety are checked by Agda.
 
 Status of §§1–7: SKETCH, on paper.  It modifies νF₁
 (`notes/SingleEntrySketch.md`, "the sketch" below) and uses its
@@ -450,6 +450,22 @@ a functional value is a value unless it is a CancelId redex; a hide
 over a sealed value is a Sink, Swap or CancelId redex (a hide of `X`
 directly over `X`'s seal is incoherent).  **Checked in Agda**:
 `nu-cancel-id/proof/Progress.agda`.
+
+### Preservation (checked in Agda: `nu-cancel-id/proof/Preservation.agda`)
+
+The argument above, made precise:
+* CancelId and Cancel-□ restore the exterior flags exactly.  The body's
+  type and the result type spell the same runtime type there (`id`, or
+  the seal and unseal of one payload), and spelling is injective, so
+  they are the same named type.
+* Sink, Swap and Push commute two entries on different variables, so
+  the moved body keeps its context.  The moved layer's new exterior has
+  every name of the context its type was read in (`hide-⊆`,
+  `reveal-⊆`), so the type can be re-read there (`reread`): no step
+  needs a name that is missing.
+* TyBeta refines the `Λ`'s abstract variable to the allocated one; an
+  allocation inside a frame weakens the siblings by an unnamed
+  variable, which moves no name.
 
 ### Color and determinism
 

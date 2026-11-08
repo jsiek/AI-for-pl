@@ -19,7 +19,7 @@ module nu-cancel-id.Reduction where
 
 open import Data.Bool using (false)
 open import Data.List using (_∷_)
-open import Data.Nat using (ℕ; zero; suc; _+_; compare; less; equal; greater)
+open import Data.Nat using (ℕ; zero; suc)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 open import Relation.Nullary using (¬_)
 open import Data.Product using (∃-syntax)
@@ -108,25 +108,38 @@ new P ⨾ Γ = (pay P ∷ store Γ) ∣ (false ∷ flags Γ)
 crossΛ : Term → Term
 crossΛ V = [ ⁻ , zero ] renameʳ suc V ⟨ idᶜ ⟩
 
-substVar : ℕ → ℕ → Term → Term
-substVar x j V with compare x j
-substVar x .(suc (x + k)) V | less .x k    = ` x
-substVar x .x             V | equal .x     = V
-substVar .(suc (j + k)) j V | greater .j k = ` (j + k)
+-- whether term variable x is the substituted j; if not, its index after
+data Hit : Set where
+  hit  : Hit
+  miss : ℕ → Hit
+
+sucHit : Hit → Hit
+sucHit hit      = hit
+sucHit (miss y) = miss (suc y)
+
+hitVar : ℕ → ℕ → Hit
+hitVar zero    zero    = hit
+hitVar zero    (suc j) = miss zero
+hitVar (suc x) zero    = miss x
+hitVar (suc x) (suc j) = sucHit (hitVar x j)
+
+fromHit : Hit → Term → Term
+fromHit hit      V = V
+fromHit (miss y) V = ` y
 
 -- boundary bodies are term-closed, so substitution stops there
-subst : ℕ → Term → Term → Term
-subst j V (` x)               = substVar x j V
-subst j V ($ k)               = $ k
-subst j V (ƛ A ∙ N)           = ƛ A ∙ subst (suc j) V N
-subst j V (L · M)             = subst j V L · subst j V M
-subst j V (Λ N)               = Λ subst j (crossΛ V) N
-subst j V (ν A · L ⟨ c ⟩)     = ν A · subst j V L ⟨ c ⟩
-subst j V ([ s , α ] M ⟨ c ⟩) = [ s , α ] M ⟨ c ⟩
+substᵐ : ℕ → Term → Term → Term
+substᵐ j V (` x)               = fromHit (hitVar x j) V
+substᵐ j V ($ k)               = $ k
+substᵐ j V (ƛ A ∙ N)           = ƛ A ∙ substᵐ (suc j) V N
+substᵐ j V (L · M)             = substᵐ j V L · substᵐ j V M
+substᵐ j V (Λ N)               = Λ substᵐ j (crossΛ V) N
+substᵐ j V (ν A · L ⟨ c ⟩)     = ν A · substᵐ j V L ⟨ c ⟩
+substᵐ j V ([ s , α ] M ⟨ c ⟩) = [ s , α ] M ⟨ c ⟩
 
 infix 8 _[_]
 _[_] : Term → Term → Term
-N [ V ] = subst zero V N
+N [ V ] = substᵐ zero V N
 
 ------------------------------------------------------------------------
 -- 4. TyBeta's instantiation: strip one `∀` from every layer of a

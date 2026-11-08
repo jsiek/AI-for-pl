@@ -89,8 +89,7 @@ private
 
 infix 4 _∣_,_⊢_⦂_⟹_
 data _∣_,_⊢_⦂_⟹_ : Store → Sign → ℕ → Conv → Ty → Ty → Set where
-  c-id     : length Σ ⊢ʳ R
-    → Σ ∣ s , α ⊢ idᶜ ⦂ R ⟹ R
+  c-id     : Σ ∣ s , α ⊢ idᶜ ⦂ R ⟹ R
   c-fun    : Σ ∣ flip s , α ⊢ c ⦂ R′ ⟹ R
     → Σ ∣ s , α ⊢ d ⦂ S ⟹ S′
     → Σ ∣ s , α ⊢ c ↦ d ⦂ R ⇒ S ⟹ R′ ⇒ S′

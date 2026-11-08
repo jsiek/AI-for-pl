@@ -9,8 +9,9 @@ file restates the current design from scratch, with variables as names,
 and says where each part lives in the Agda.
 
 Status: type safety (progress and preservation) is CHECKED in Agda.
-Determinism and color preservation are argued on paper only (§7).
-Examples 5b and 5c are checked; 5a, 5d and 5e are hand-derived.
+Determinism and color preservation are argued on paper only (§8).
+Every example (§7) starts from a System F program and runs to a value;
+5b and 5c are checked in Agda.
 
 ## 1. A first example
 
@@ -19,7 +20,7 @@ instantiates `Y` with `Bool` and returns the outer argument:
 
     (ΛX. λx:X. (ΛY. λ_:Int. x) [Bool] 0) [Int] 3                : Int
 
-After nine steps (§6) it reaches
+After elaboration (§6) and nine steps (§7) it reaches
 
     [+X^α] [+Y^β] [−X^α] 3 ⟨−X⟩ ⟨id⟩ ⟨+X⟩
 
@@ -259,66 +260,177 @@ with `V, W` values and `S` a sealed value.
   `X` around the body, and strips one `∀` from every layer of a
   `∀`-typed tower.  The `Λ`'s abstract variable becomes the allocated
   one.
-* **Cancel-□** is an unseal meeting its seal: both layers go.
-  **CancelId** removes a hide directly over a reveal of the same
-  variable, both carrying `id`.  Both restore the exterior name map
-  exactly, so they need no premise.
-* **Sink and Swap** move a HIDE inward: below a seal of another
-  variable, or below a reveal of another variable over a sealed value.
-  **Push** moves an UNSEAL inward through a reveal of another variable.
-  Between them, every `id` layer between an unseal and its seal is
-  moved out of the way or cancelled.
-* Only hides move inward.  Moving a hide inward is safe for names:
-  every context between its old and new position gains names.  A
-  reveal moving inward could leave a layer whose type no name denotes;
-  that is why the first version needed runtime types
-  (`CancelIdSketch.md` §8).
+### Why each boundary rule
+
+An unseal `[+X^α] V ⟨+X⟩` must reach the seal `[−X^α] W ⟨−X⟩` of its
+own variable.  On the way, a run leaves `id` layers between the two,
+and Id removes an `id` layer only over a constant.  The layers come
+from three places:
+
+* Beta's hide around a copy under `Λ` (5c);
+* TyBeta's reveal `[+Y^β] … ⟨id⟩` when the instantiated body's type
+  does not mention `Y` (5c, 5e);
+* Wrap, which gives the argument the inverse of each layer's entry,
+  with `id` where the layer's domain is `id` (5b, 5e).
+
+Each boundary rule removes or crosses one kind of layer.  Each is
+NEEDED: §7's examples are run with every rule, and removing any one
+of the five rules leaves an example stuck at a well-typed term that is
+not a value.
+
+* **Cancel-□**, `[+X^α] ([−X^α] W ⟨−X⟩) ⟨+X⟩ ⟶ W`: the unseal meets its
+  seal and both layers go.  Every unseal ends this way (5b, 5c, 5d,
+  5e).  Without it, 5d stops after 14 steps at
+  `[+X^α] [−X^α] [+X^α] [−X^α] 5 ⟨−X⟩ ⟨+X⟩ ⟨id⟩ ⟨id⟩`.
+* **CancelId**, `[−X^α] ([+X^α] V ⟨id⟩) ⟨id⟩ ⟶ V`: a hide directly over
+  a reveal of the same variable.  5b creates the pair: the third Wrap
+  puts `[+X^α] … ⟨id⟩` around the argument, and Beta returns it
+  under the function's `[−X^α] … ⟨id⟩`.  Without it, 5b stops after 8
+  steps at
+
+      [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false
+        ⟨−X⟩ ⟨−Y⟩ ⟨id⟩ ⟨id⟩ ⟨+Y⟩ ⟨+X⟩
+
+  where the pair sits between the unseal of `Y` and its seal.  The
+  value grammar excludes this left-hand side (§4), which is the
+  experiment's starting point: the pair is not a value, so it must
+  step.  5e needs it too, once Swap has brought the pair together.
+* **Sink**, a hide moves below a seal of another variable.  5c's Beta
+  copies `x`, the `X`-sealed `3`, under `ΛY`, so the copy is
+  `[−Y^ζ] ([−X^α] 3 ⟨−X⟩) ⟨id⟩`, and after TyBeta it sits under the
+  unseal of `X`.  Without Sink, 5c stops after 7 steps at
+  `[+X^α] [+Y^β] [−Y^β] [−X^α] 3 ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩`.  The reveal of
+  `Y` is ABOVE the hide, the order CancelId does not remove, and the
+  hide blocks the unseal.  Sinking it puts it on the constant, where Id
+  removes it.
+  5e uses it twice to take a hide of `W` down to `false`.
+* **Swap**, a hide moves below a reveal of another variable, over a
+  sealed value.  In 5e the last Wrap gives the argument a hide of `W`
+  over a reveal of `X`.  Without Swap, 5e stops after 9 steps with the
+  argument `[−W^γ] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩ ⟨id⟩`, which
+  is not a value (a hide over a sealed value), so Beta cannot fire.
+  Later, Swap moves the function's `[−X^α]` past `[+W^γ]` onto the
+  `[+X^α]` it cancels with.
+* **Push**, an unseal moves through a reveal of another variable.  5c's
+  inner instantiation leaves `[+Y^β] … ⟨id⟩` between the unseal of `X`
+  and its seal.  Without Push, 5c stops after 9 steps at
+  `[+X^α] [+Y^β] [−X^α] 3 ⟨−X⟩ ⟨id⟩ ⟨+X⟩` (§1).  The reveal cannot be
+  removed: its body may mention `Y`.  5e pushes two unseals through
+  `[+W^γ]`.
+
+**No reveal carrying `id` moves inward.**  Sink and Swap move a hide
+inward; Push moves an unseal inward and the reveal it crosses outward.
+Moving a hide inward is safe for names: every context between its old
+and new position gains names.  The first version also sank reveals
+carrying `id` below seals.  That could leave a layer whose type
+no name denotes, which is why it needed runtime types
+(`CancelIdSketch.md` §8, with 5b).  All five rules restore or keep the
+name map exactly, so none needs a premise.
 
 Agda: `_⊢_⟶_∣_` in `Reduction.agda`; `crossΛ` is the hide around a
 copy, `_•⟶_` is `•`, and `Alloc` is `ξ` (`new P` allocates an unnamed
 variable at the head of the store, and the siblings of the redex
 shift).
 
-## 6. Examples
+## 6. Elaboration from System F
 
-Every run is at the empty context; `⊣` shows an allocation.
+A source program is plain System F over the same named types:
 
-**5c** (12 steps; checked as `run-5c` in `Examples.agda`):
+    L,M,N  ::=  k | x | λx:A. N | L M | ΛX. N | L [A]
 
-    ν X:=Int. ((ΛX. λx:X. B) X)⟨−X → +X⟩ 3
-        where B = ν Y:=Bool. ((ΛY. λ_:Int. x) Y)⟨id → id⟩ 0
-    → TyBeta    [+X^α] (λx:X. B) ⟨−X → +X⟩ 3                     ⊣ α^X:=Int
-    → Wrap      [+X^α] ((λx:X. B) ([−X^α] 3 ⟨−X⟩)) ⟨+X⟩
-    → Beta      [+X^α] (ν Y:=Bool. ((ΛY^γ. λ_:Int. C) Y)⟨id → id⟩ 0) ⟨+X⟩
-                    where C = [−Y^γ] ([−X^α] 3 ⟨−X⟩) ⟨id⟩
-    → TyBeta    [+X^α] ([+Y^β] (λ_:Int. C′) ⟨id → id⟩ 0) ⟨+X⟩     ⊣ β^Y:=Bool
-                    where C′ = [−Y^β] ([−X^α] 3 ⟨−X⟩) ⟨id⟩
-    → Wrap      [+X^α] [+Y^β] ((λ_:Int. C′) ([−Y^β] 0 ⟨id⟩)) ⟨id⟩ ⟨+X⟩
-    → Id        [+X^α] [+Y^β] ((λ_:Int. C′) 0) ⟨id⟩ ⟨+X⟩
-    → Beta      [+X^α] [+Y^β] [−Y^β] [−X^α] 3 ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
-    → Sink      [+X^α] [+Y^β] [−X^α] [−Y^β] 3 ⟨id⟩ ⟨−X⟩ ⟨id⟩ ⟨+X⟩
-    → Id        [+X^α] [+Y^β] [−X^α] 3 ⟨−X⟩ ⟨id⟩ ⟨+X⟩
-    → Push      [+Y^β] ([+X^α] [−X^α] 3 ⟨−X⟩ ⟨+X⟩) ⟨id⟩
-    → Cancel-□  [+Y^β] 3 ⟨id⟩
-    → Id        3
+Elaboration `⟦·⟧` is structural except at type application, which
+becomes an instantiation:
 
-The hide `[−Y^β]` is Beta's wrapper for the copy of `x` under `ΛY`; it
-sinks below the `X` seal and Id removes it.  Typing the state after
-Beta: inside `[+X^α] [+Y^β]` both names are bound, and the hide
-`[−Y^β]` reads its body's type `X` and its own type `X` as `α`.
+    ⟦L [A]⟧  =  ν X:=A. (⟦L⟧ X)⟨reveal_X(C)⟩          where L : ∀X. C
 
-**5b**, `K` returning its argument (11 steps, as in νF; checked as
-`run-5b`):
+The conversion unseals `X` where `C` runs covariantly and seals it where
+`C` runs contravariantly; every other leaf is `id`:
 
-    ν X:=Bool. ((ΛX. F) X)⟨(∀Y. id → id) → (−X → +X)⟩ (ΛZ. λz:Z. z) false
+    reveal_X(X)       =  +X                conceal_X(X)       =  −X
+    reveal_X(Y)       =  id  (Y ≠ X)       conceal_X(Y)       =  id
+    reveal_X(ι)       =  id                conceal_X(ι)       =  id
+    reveal_X(A → B)   =  conceal_X(A) → reveal_X(B)
+    conceal_X(A → B)  =  reveal_X(A) → conceal_X(B)
+    reveal_X(∀Y. A)   =  ∀Y. reveal_X(A)
+    conceal_X(∀Y. A)  =  ∀Y. conceal_X(A)
+
+A compound identity stays structural: `reveal_Y(Int → X)` is
+`id → id`.  A source `ΛX. N` elaborates to `ΛX^ζ. ⟦N⟧` with `ζ` fresh;
+the examples write the variable only where Beta's hide mentions it.
+This is `strong-rep-nu`'s `compile` (`Compile.agda`, `reveal 0 C`);
+`nu-cancel-id` has no compiler yet, and `Examples.agda` writes the
+elaborated terms by hand.
+
+## 7. Examples
+
+Each example gives the System F program, its elaboration, and the run
+to a value.  Every run starts at the empty context; `⊣` shows an
+allocation, and `where` names a subterm that the following lines
+abbreviate.  5b and 5c are checked in Agda (`Examples.agda`); 5a, 5d and
+5e are not.
+
+The boundary rules each example uses, with the number of times (§5,
+"Why each boundary rule", says where each rule is needed):
+
+| rule | 5a | 5b | 5c | 5d | 5e |
+|---|---|---|---|---|---|
+| Cancel-□ | | 2 | 1 | 1 | 2 |
+| CancelId | | 1 | | | 1 |
+| Sink | | | 1 | | 2 |
+| Swap | | | | | 2 |
+| Push | | | 1 | | 2 |
+
+5a uses none: its sealed argument is discarded.
+
+### 5a. `K`
+
+The argument `f` ignores its argument, so the sealed `false` is
+discarded (11 steps).
+
+    ((ΛX. λf:(∀Y. Y → Bool). f [X]) [Bool] (ΛZ. λz:Z. true)) false
+                                                                  : Bool
+  ⇒ elaborate
+    (ν X:=Bool. ((ΛX. F) X)⟨(∀Y. id → id) → (−X → id)⟩) G false
+        where F = λf:(∀Y. Y → Bool). ν Y:=X. (f Y)⟨−Y → id⟩
+              G = ΛZ. λz:Z. true
+    → TyBeta    [+X^α] F ⟨(∀Y. id → id) → (−X → id)⟩ G false   ⊣ α^X:=Bool
+    → Wrap      [+X^α] (F ([−X^α] G ⟨∀Y. id → id⟩)) ⟨−X → id⟩ false
+    → Beta      [+X^α] (ν Y:=X. (([−X^α] G ⟨∀Y. id → id⟩) Y)⟨−Y → id⟩)
+                  ⟨−X → id⟩ false
+    → TyBeta    [+X^α] [+Y^β] [−X^α] (λz:Y. true) ⟨id → id⟩ ⟨−Y → id⟩
+                  ⟨−X → id⟩ false                             ⊣ β^Y:=α
+    → Wrap      [+X^α] ([+Y^β] [−X^α] (λz:Y. true) ⟨id → id⟩ ⟨−Y → id⟩
+                          ([−X^α] false ⟨−X⟩)) ⟨id⟩
+    → Wrap      [+X^α] [+Y^β] ([−X^α] (λz:Y. true) ⟨id → id⟩
+                          ([−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩)) ⟨id⟩ ⟨id⟩
+    → Wrap      [+X^α] [+Y^β] [−X^α] ((λz:Y. true)
+                          ([+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩))
+                  ⟨id⟩ ⟨id⟩ ⟨id⟩
+    → Beta      [+X^α] [+Y^β] [−X^α] true ⟨id⟩ ⟨id⟩ ⟨id⟩
+    → Id        [+X^α] [+Y^β] true ⟨id⟩ ⟨id⟩
+    → Id        [+X^α] true ⟨id⟩
+    → Id        true
+
+The second TyBeta runs inside `[+X^α]`, where `X` names `α`, so `Y:=X`
+allocates `β` with payload `α`.  The third Wrap's argument is a reveal
+over a sealed value, so it is a value.
+
+### 5b. `K` returning its argument
+
+The same program with `f` returning its argument, so the sealed `false`
+comes back out through every layer (11 steps, as in νF; `run-5b`).
+
+    ((ΛX. λf:(∀Y. Y → Y). f [X]) [Bool] (ΛZ. λz:Z. z)) false     : Bool
+  ⇒ elaborate
+    (ν X:=Bool. ((ΛX. F) X)⟨(∀Y. id → id) → (−X → +X)⟩) G false
         where F = λf:(∀Y. Y → Y). ν Y:=X. (f Y)⟨−Y → +Y⟩
-    → TyBeta    [+X^α] F ⟨(∀Y. id → id) → (−X → +X)⟩ G false      ⊣ α^X:=Bool
-                    where G = ΛZ. λz:Z. z
+              G = ΛZ. λz:Z. z
+    → TyBeta    [+X^α] F ⟨(∀Y. id → id) → (−X → +X)⟩ G false   ⊣ α^X:=Bool
     → Wrap      [+X^α] (F ([−X^α] G ⟨∀Y. id → id⟩)) ⟨−X → +X⟩ false
-    → Beta      [+X^α] (ν Y:=X. ([−X^α] G ⟨∀Y. id → id⟩ Y)⟨−Y → +Y⟩)
+    → Beta      [+X^α] (ν Y:=X. (([−X^α] G ⟨∀Y. id → id⟩) Y)⟨−Y → +Y⟩)
                   ⟨−X → +X⟩ false
-    → TyBeta    [+X^α] ([+Y^β] ([−X^α] (λz:Y. z) ⟨id → id⟩) ⟨−Y → +Y⟩)
-                  ⟨−X → +X⟩ false                                  ⊣ β^Y:=α
+    → TyBeta    [+X^α] [+Y^β] [−X^α] (λz:Y. z) ⟨id → id⟩ ⟨−Y → +Y⟩
+                  ⟨−X → +X⟩ false                             ⊣ β^Y:=α
     → Wrap      [+X^α] ([+Y^β] [−X^α] (λz:Y. z) ⟨id → id⟩ ⟨−Y → +Y⟩
                           ([−X^α] false ⟨−X⟩)) ⟨+X⟩
     → Wrap      [+X^α] [+Y^β] ([−X^α] (λz:Y. z) ⟨id → id⟩
@@ -332,26 +444,144 @@ Beta: inside `[+X^α] [+Y^β]` both names are bound, and the hide
     → Cancel-□  [+X^α] [−X^α] false ⟨−X⟩ ⟨+X⟩
     → Cancel-□  false
 
-The third Wrap's argument `[+X^α] (Y-sealed) ⟨id⟩` is a value (a reveal
-over a sealed value), and the hide that Beta puts over it cancels with
-it.
+The hide `[−X^α]` that the function's tower puts over the result meets
+the reveal `[+X^α]` that the third Wrap put around the argument, and
+CancelId removes the pair.
 
-**5e** (hand-derived), at `β^Y:=Int, γ^W:=Int, α^X:=β` with `Y:=β`
-bound, and `V = [−Y^β] 3 ⟨−Y⟩`:
+### 5c. An unseal reaching its seal through a later reveal
 
-    [+X^α] [−Y^β] [+W^γ] [+Y^β] [−X^α] V ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
-    → Swap      [+X^α] [+W^γ] [−Y^β] [+Y^β] [−X^α] V ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
-    → CancelId  [+X^α] [+W^γ] [−X^α] V ⟨−X⟩ ⟨id⟩ ⟨+X⟩
-    → Push      [+W^γ] ([+X^α] [−X^α] V ⟨−X⟩ ⟨+X⟩) ⟨id⟩
-    → Cancel-□  [+W^γ] ([−Y^β] 3 ⟨−Y⟩) ⟨id⟩                     : Y
+The program of §1 (12 steps; `run-5c`).
 
-The result is a sealed value: a reveal over a seal.
+    (ΛX. λx:X. (ΛY. λ_:Int. x) [Bool] 0) [Int] 3                 : Int
+  ⇒ elaborate
+    (ν X:=Int. ((ΛX. λx:X. B) X)⟨−X → +X⟩) 3
+        where B = (ν Y:=Bool. ((ΛY. λ_:Int. x) Y)⟨id → id⟩) 0
+    → TyBeta    [+X^α] (λx:X. B) ⟨−X → +X⟩ 3                  ⊣ α^X:=Int
+    → Wrap      [+X^α] ((λx:X. B) ([−X^α] 3 ⟨−X⟩)) ⟨+X⟩
+    → Beta      [+X^α] ((ν Y:=Bool. ((ΛY^ζ. λ_:Int. C) Y)⟨id → id⟩) 0)
+                  ⟨+X⟩
+                    where C = [−Y^ζ] [−X^α] 3 ⟨−X⟩ ⟨id⟩
+    → TyBeta    [+X^α] ([+Y^β] (λ_:Int. C′) ⟨id → id⟩ 0) ⟨+X⟩  ⊣ β^Y:=Bool
+                    where C′ = [−Y^β] [−X^α] 3 ⟨−X⟩ ⟨id⟩
+    → Wrap      [+X^α] [+Y^β] ((λ_:Int. C′) ([−Y^β] 0 ⟨id⟩)) ⟨id⟩ ⟨+X⟩
+    → Id        [+X^α] [+Y^β] ((λ_:Int. C′) 0) ⟨id⟩ ⟨+X⟩
+    → Beta      [+X^α] [+Y^β] [−Y^β] [−X^α] 3 ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
+    → Sink      [+X^α] [+Y^β] [−X^α] [−Y^β] 3 ⟨id⟩ ⟨−X⟩ ⟨id⟩ ⟨+X⟩
+    → Id        [+X^α] [+Y^β] [−X^α] 3 ⟨−X⟩ ⟨id⟩ ⟨+X⟩
+    → Push      [+Y^β] [+X^α] [−X^α] 3 ⟨−X⟩ ⟨+X⟩ ⟨id⟩
+    → Cancel-□  [+Y^β] 3 ⟨id⟩
+    → Id        3
 
-**5a** (`K`, hand-derived) takes 11 steps: the third Wrap's argument is
-a value, Beta discards it, and three Ids finish.  **5d** (hand-derived)
-takes 17, as in `SingleEntrySketch.md`.
+The hide `[−Y^ζ]` is Beta's wrapper for the copy of `x` under `ΛY`;
+TyBeta turns `ζ` into the allocated `β`.  The hide sinks below the `X`
+seal and Id removes it.  In the state after the second Beta, the hide
+`[−Y^β]` reads its body's type `X` and its own type `X` as `α`.
 
-## 7. Metatheory
+### 5d. An inverse pair whose conversions compose to an unseal
+
+(17 steps.)
+
+    ((ΛX. λx:X. λg:(Int → X) → Int → Int. g (λn:Int. x)) [Int]
+       5 (λh:Int → Int. h)) 0                                    : Int
+  ⇒ elaborate
+    (ν X:=Int. ((ΛX. F) X)⟨−X → d⟩) 5 H 0
+        where F = λx:X. λg:(Int → X) → Int → Int. g (λn:Int. x)
+              H = λh:Int → Int. h
+              d = ((id → +X) → (id → id)) → (id → id)
+    → TyBeta    [+X^α] F ⟨−X → d⟩ 5 H 0                       ⊣ α^X:=Int
+    → Wrap      [+X^α] (F ([−X^α] 5 ⟨−X⟩)) ⟨d⟩ H 0
+    → Beta      [+X^α] (λg:(Int → X) → Int → Int. g (λn:Int. W)) ⟨d⟩ H 0
+                    where W = [−X^α] 5 ⟨−X⟩
+    → Wrap      [+X^α] ((λg:(Int → X) → Int → Int. g (λn:Int. W))
+                          ([−X^α] H ⟨(id → +X) → (id → id)⟩)) ⟨id → id⟩ 0
+    → Beta      [+X^α] (([−X^α] H ⟨(id → +X) → (id → id)⟩) (λn:Int. W))
+                  ⟨id → id⟩ 0
+    → Wrap      [+X^α] [−X^α] (H ([+X^α] (λn:Int. W) ⟨id → +X⟩))
+                  ⟨id → id⟩ ⟨id → id⟩ 0
+    → Beta      [+X^α] [−X^α] [+X^α] (λn:Int. W) ⟨id → +X⟩ ⟨id → id⟩
+                  ⟨id → id⟩ 0
+    → Wrap      [+X^α] ([−X^α] [+X^α] (λn:Int. W) ⟨id → +X⟩ ⟨id → id⟩
+                          ([−X^α] 0 ⟨id⟩)) ⟨id⟩
+    → Id        [+X^α] ([−X^α] [+X^α] (λn:Int. W) ⟨id → +X⟩ ⟨id → id⟩ 0)
+                  ⟨id⟩
+    → Wrap      [+X^α] [−X^α] ([+X^α] (λn:Int. W) ⟨id → +X⟩
+                          ([+X^α] 0 ⟨id⟩)) ⟨id⟩ ⟨id⟩
+    → Id        [+X^α] [−X^α] ([+X^α] (λn:Int. W) ⟨id → +X⟩ 0) ⟨id⟩ ⟨id⟩
+    → Wrap      [+X^α] [−X^α] [+X^α] ((λn:Int. W) ([−X^α] 0 ⟨id⟩))
+                  ⟨+X⟩ ⟨id⟩ ⟨id⟩
+    → Id        [+X^α] [−X^α] [+X^α] ((λn:Int. W) 0) ⟨+X⟩ ⟨id⟩ ⟨id⟩
+    → Beta      [+X^α] [−X^α] [+X^α] [−X^α] 5 ⟨−X⟩ ⟨+X⟩ ⟨id⟩ ⟨id⟩
+    → Cancel-□  [+X^α] [−X^α] 5 ⟨id⟩ ⟨id⟩
+    → Id        [+X^α] 5 ⟨id⟩
+    → Id        5
+
+After the third Beta, the layers `[−X^α] [+X^α]` carry `id → id` and
+`id → +X`, not `id`, so CancelId does not apply.  Their conversions
+compose to an unseal, so removing them would be ill typed.  The tower
+is a functional value, and the three Wraps take `0` through it.
+
+### 5e. A hide and its re-reveal separated by another reveal
+
+5b with an argument that instantiates a type of its own: `G`'s body
+applies `ΛW` to `Bool`, which leaves a reveal `[+W^γ]` beneath the
+function's hide `[−X^α]` (21 steps).
+
+    ((ΛX. λf:(∀Y. Y → Y). f [X]) [Bool]
+       (ΛZ. (ΛW. λz:Z. z) [Bool])) false                         : Bool
+  ⇒ elaborate
+    (ν X:=Bool. ((ΛX. F) X)⟨(∀Y. id → id) → (−X → +X)⟩) G false
+        where F = λf:(∀Y. Y → Y). ν Y:=X. (f Y)⟨−Y → +Y⟩
+              G = ΛZ. ν W:=Bool. ((ΛW. λz:Z. z) W)⟨id → id⟩
+    → TyBeta    [+X^α] F ⟨(∀Y. id → id) → (−X → +X)⟩ G false   ⊣ α^X:=Bool
+    → Wrap      [+X^α] (F ([−X^α] G ⟨∀Y. id → id⟩)) ⟨−X → +X⟩ false
+    → Beta      [+X^α] (ν Y:=X. (([−X^α] G ⟨∀Y. id → id⟩) Y)⟨−Y → +Y⟩)
+                  ⟨−X → +X⟩ false
+    → TyBeta    [+X^α] [+Y^β] [−X^α] (ν W:=Bool. ((ΛW. I) W)⟨id → id⟩)
+                  ⟨id → id⟩ ⟨−Y → +Y⟩ ⟨−X → +X⟩ false         ⊣ β^Y:=α
+                    where I = λz:Y. z
+    → TyBeta    [+X^α] [+Y^β] [−X^α] [+W^γ] I ⟨id → id⟩ ⟨id → id⟩
+                  ⟨−Y → +Y⟩ ⟨−X → +X⟩ false                 ⊣ γ^W:=Bool
+    → Wrap      [+X^α] ([+Y^β] [−X^α] [+W^γ] I ⟨id → id⟩ ⟨id → id⟩
+                          ⟨−Y → +Y⟩ ([−X^α] false ⟨−X⟩)) ⟨+X⟩
+    → Wrap      [+X^α] [+Y^β] ([−X^α] [+W^γ] I ⟨id → id⟩ ⟨id → id⟩
+                          ([−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩)) ⟨+Y⟩ ⟨+X⟩
+    → Wrap      [+X^α] [+Y^β] [−X^α] ([+W^γ] I ⟨id → id⟩
+                          ([+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩))
+                  ⟨id⟩ ⟨+Y⟩ ⟨+X⟩
+    → Wrap      E[[−W^γ] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩ ⟨id⟩]
+                    where E = [+X^α] [+Y^β] [−X^α] [+W^γ] (I □)
+                                ⟨id⟩ ⟨id⟩ ⟨+Y⟩ ⟨+X⟩
+    → Swap      E[[+X^α] [−W^γ] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩ ⟨id⟩]
+    → Sink      E[[+X^α] [−Y^β] [−W^γ] [−X^α] false ⟨−X⟩ ⟨id⟩ ⟨−Y⟩ ⟨id⟩]
+    → Sink      E[[+X^α] [−Y^β] [−X^α] [−W^γ] false ⟨id⟩ ⟨−X⟩ ⟨−Y⟩ ⟨id⟩]
+    → Id        E[[+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩]
+    → Beta      [+X^α] [+Y^β] [−X^α] [+W^γ] [+X^α] [−Y^β] [−X^α] false
+                  ⟨−X⟩ ⟨−Y⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+Y⟩ ⟨+X⟩
+    → Swap      [+X^α] [+Y^β] [+W^γ] [−X^α] [+X^α] [−Y^β] [−X^α] false
+                  ⟨−X⟩ ⟨−Y⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+Y⟩ ⟨+X⟩
+    → CancelId  [+X^α] [+Y^β] [+W^γ] [−Y^β] [−X^α] false
+                  ⟨−X⟩ ⟨−Y⟩ ⟨id⟩ ⟨+Y⟩ ⟨+X⟩
+    → Push      [+X^α] [+W^γ] [+Y^β] [−Y^β] [−X^α] false
+                  ⟨−X⟩ ⟨−Y⟩ ⟨+Y⟩ ⟨id⟩ ⟨+X⟩
+    → Cancel-□  [+X^α] [+W^γ] [−X^α] false ⟨−X⟩ ⟨id⟩ ⟨+X⟩
+    → Push      [+W^γ] [+X^α] [−X^α] false ⟨−X⟩ ⟨+X⟩ ⟨id⟩
+    → Cancel-□  [+W^γ] false ⟨id⟩
+    → Id        false
+
+* **The third TyBeta** fires inside the function's tower.  `Λ` bodies
+  do not reduce, so `G`'s body waits until the second TyBeta strips
+  `ΛZ` and exposes it.
+* **The last Wrap** passes the argument through `[+W^γ]`, which
+  gives it a hide of `W` over a reveal of `X`: not a value.  Swap,
+  two Sinks and Id move that hide down to `false` and remove it.
+* **After the second Beta**, the hide `[−X^α]` and its re-reveal
+  `[+X^α]` are separated by `[+W^γ]`.  This is the shape of the
+  hand-written 5e in `SingleEntrySketch.md`, which was stuck with named
+  types under the old Cancel.  Swap brings the pair together and
+  CancelId removes it.  Push then carries each unseal through
+  `[+W^γ]` to its seal.
+
+## 8. Metatheory
 
 **Progress** (checked: `Progress.agda`, `proof/Progress.agda`).  A
 well-typed closed term is a value or steps.  Canonical forms, at named
@@ -400,7 +630,7 @@ different variables, so a moved body's name map is unchanged; CancelId
 and Cancel-□ restore the exterior map exactly.  Beta's hide under `Λ`
 keeps the copy's map.
 
-## 8. Against earlier designs
+## 9. Against earlier designs
 
 * **νF₁** (`SingleEntrySketch.md`) has the same single-entry
   boundaries, but its Cancel walks an unseal down an identity tower in

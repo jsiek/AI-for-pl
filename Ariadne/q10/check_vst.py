@@ -14,7 +14,9 @@ Assumptions against ../vst/smoke/expected_assumptions.txt (VST's
 allocator assumptions and the classical axioms).  A mutant is rejected
 if coqc fails on verif_b1a.v.  Output: RUN_DIR/q10-check/summary.json.
 """
+import argparse
 import hashlib
+import importlib
 import json
 import os
 import re
@@ -25,9 +27,9 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARIADNE = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
-import mutants  # noqa: E402
 
 RUN = os.path.join(ARIADNE, "vst", "run.sh")
+BENCH = "b1a"   # --bench sets these
 B1A_C = os.path.join(ARIADNE, "bench", "b1a", "b1a.c")
 EXPECTED = os.path.join(ARIADNE, "vst", "smoke", "expected_assumptions.txt")
 COQC = ["coqc", "-native-compiler", "no", "-Q", ".", "B1a"]
@@ -43,14 +45,14 @@ def sh(work, cmd, log):
 def compile_case(work, src, verif):
     shutil.rmtree(work, ignore_errors=True)
     os.makedirs(work)
-    open(os.path.join(work, "b1a.c"), "w").write(src)
+    open(os.path.join(work, f"{BENCH}.c"), "w").write(src)
     shutil.copy(verif, work)
-    r = {"clightgen": sh(work, ["clightgen", "-normalize", "b1a.c"],
+    r = {"clightgen": sh(work, ["clightgen", "-normalize", f"{BENCH}.c"],
                          "clightgen.log")}
-    r["ast"] = sh(work, COQC + ["b1a.v"], "ast.log")
-    r["verif"] = sh(work, COQC + ["verif_b1a.v"], "verif.log")
+    r["ast"] = sh(work, COQC + [f"{BENCH}.v"], "ast.log")
+    r["verif"] = sh(work, COQC + [f"verif_{BENCH}.v"], "verif.log")
     text = open(os.path.join(work, "verif.log")).read()
-    m = re.search(r'File "\./verif_b1a\.v", line (\d+)', text)
+    m = re.search(r'File "\./verif_' + BENCH + r'\.v", line (\d+)', text)
     if r["verif"] and m:
         r["first_error_line"] = int(m.group(1))
         r["first_error_in"] = enclosing(verif, int(m.group(1)))
@@ -84,12 +86,22 @@ def lemmas(verif):
 
 
 def main():
-    run = os.path.abspath(sys.argv[1])
-    verif = os.path.join(run, "verif_b1a.v")
+    global BENCH, B1A_C, COQC
+    ap = argparse.ArgumentParser()
+    ap.add_argument("run")
+    ap.add_argument("--bench", default="b1a", choices=["b1a", "b1c"])
+    a = ap.parse_args()
+    BENCH = a.bench
+    B1A_C = os.path.join(ARIADNE, "bench", BENCH, f"{BENCH}.c")
+    COQC = COQC[:-1] + [BENCH[0].upper() + BENCH[1:]]
+    mutants = importlib.import_module(
+        "mutants" if BENCH == "b1a" else "mutants_b1c")
+    run = os.path.abspath(a.run)
+    verif = os.path.join(run, f"verif_{BENCH}.v")
     out = os.path.join(run, "q10-check")
     os.makedirs(out, exist_ok=True)
     pristine = open(B1A_C).read()
-    run_c = os.path.join(run, "b1a.c")
+    run_c = os.path.join(run, f"{BENCH}.c")
     s = {"b1a_c_unchanged": os.path.exists(run_c) and hashlib.sha256(
         open(run_c, "rb").read()).hexdigest() == hashlib.sha256(
         pristine.encode()).hexdigest()}

@@ -179,11 +179,14 @@
     iter_fields(it) \
     && \exists \list<type *> s, integer b, f; iter_at(it, s, b, f); \
   \
-  /* The state after it_init/it_next returned cur: cur is \null at the \
-     end, otherwise a live node between the two walks. */ \
-  predicate iter_ok{L}(struct sglib_##type##_iterator *it, type *cur) = \
+  /* The state after it_init/it_next returned cur, iterating the whole \
+     list s (owner, 2026-11-08: s is a parameter, so a client knows \
+     which list it iterates): cur is \null at the end, otherwise a live \
+     node of s between the two walks. */ \
+  predicate iter_ok{L}(struct sglib_##type##_iterator *it, \
+                       \list<type *> s, type *cur) = \
     iter_fields(it) \
-    && \exists \list<type *> s, integer b, f; \
+    && \exists integer b, f; \
          iter_at(it, s, b, f) \
          && (cur == \null ==> b == -1 && f == \length(s)) \
          && (cur != \null ==> live(cur) \
@@ -449,7 +452,11 @@
 
 /* ---- iterator ------------------------------------------------------ */
 
-/* Public.  The iterator starts at any node of a whole live list.  cmps:
+/* Public.  The iterator starts at any node of a whole live list, and
+   iterates that list (owner, 2026-11-08): it_init and it_init_on_equal
+   return \null for a \null list and otherwise leave the iterator on a
+   whole list s holding `list`; it_next keeps the iterator on the list it
+   was on.  cmps:
    the comparators a client may pass, e.g. (1, myListCmp) (see
    SGLIB_DL_LIST_SUBCMP_OK); with
    one, equalto and every node of the list have their cmp_reads fields
@@ -464,7 +471,10 @@
   requires list == \null || in_live_list(list); \
   requires subcomparator != \null ==> list == \null || in_cmp_list(list); \
   assigns *it; \
-  ensures iter_ok(it, \result); \
+  ensures list == \null ==> \result == \null; \
+  ensures list != \null ==> \
+    \exists \list<type *> s, integer k; \
+      0 <= k < \length(s) && \nth(s, k) == list && iter_ok(it, s, \result); \
   ensures it->subcomparator == subcomparator;
 
 /* The asserts before it_init_on_equal's return, and before it_next's. */
@@ -495,7 +505,10 @@
   requires \valid(it) && !heap(\base_addr(it)); \
   requires list == \null || in_live_list(list); \
   assigns *it; \
-  ensures iter_ok(it, \result); \
+  ensures list == \null ==> \result == \null; \
+  ensures list != \null ==> \
+    \exists \list<type *> s, integer k; \
+      0 <= k < \length(s) && \nth(s, k) == list && iter_ok(it, s, \result); \
   ensures it->subcomparator == \null;
 
 #define SGLIB_DL_LIST_CONTRACT_IT_NEXT(type, previous, next, cmps) \
@@ -503,7 +516,8 @@
   requires iter_pre(it); \
   requires SGLIB_DL_LIST_SUBCMP_OK(it->subcomparator, cmps); \
   assigns *it; \
-  ensures iter_ok(it, \result); \
+  ensures \forall \list<type *> s, integer b, f; \
+    iter_at{Pre}(it, s, b, f) ==> iter_ok(it, s, \result); \
   ensures it->subcomparator == \old(it->subcomparator);
 
 /* Private: it_next's two search loops (after verification refactor #1,
@@ -574,5 +588,18 @@
   assert end: \forall \list<type *> s, integer b, f; \
     iter_at{Pre}(it, s, b, f) && ce == \null \
     ==> iter_at(it, s, -1, \length(s));
+/* The new postcondition per case (owner, 2026-11-08): the iterator
+   stays on the list s it was on. */
+#define SGLIB_DL_LIST_ANNOT_IT_NEXT_OK_BACK(type, previous, next) \
+  assert ok_back: \forall \list<type *> s, integer b, f, j; \
+    iter_at{Pre}(it, s, b, f) && 0 <= j <= b && ce == \nth(s, j) \
+    ==> iter_ok(it, s, ce);
+#define SGLIB_DL_LIST_ANNOT_IT_NEXT_OK_FORWARD(type, previous, next) \
+  assert ok_forward: \forall \list<type *> s, integer b, f, j; \
+    iter_at{Pre}(it, s, b, f) && f <= j < \length(s) && ce == \nth(s, j) \
+    ==> iter_ok(it, s, ce);
+#define SGLIB_DL_LIST_ANNOT_IT_NEXT_OK_END(type, previous, next) \
+  assert ok_end: \forall \list<type *> s, integer b, f; \
+    iter_at{Pre}(it, s, b, f) && ce == \null ==> iter_ok(it, s, ce);
 
 #endif

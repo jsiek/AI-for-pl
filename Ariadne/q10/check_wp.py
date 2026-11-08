@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Plan Q10, Frama-C side: mutant rejection on a harness run's result.
 
-    python3 check_wp.py RUN_DIR [MUTANT ...]
+    python3 check_wp.py RUN_DIR [MUTANT ...] [--bench b1c]
+        [--source FILE --coq DIR ...]       (e.g. on a reference)
 
 RUN_DIR is a harness run (../runs/q10/wp-<time>): its final source is
 RUN_DIR/bench/b1a_frozen.c (the last accepted patch) and its Coq proofs
@@ -15,6 +16,8 @@ proves (the control should leave none; for a partial result, its open
 goals do not count).  Output: RUN_DIR/q10-mutants/ and
 RUN_DIR/q10-mutants/summary.json.
 """
+import argparse
+import importlib
 import json
 import os
 import shutil
@@ -24,10 +27,14 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARIADNE = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
-import mutants  # noqa: E402
 
 RUN = os.path.join(ARIADNE, "env", "run.sh")
-CPP = "-I/ariadne/plugin/share -I/ariadne/bench/b1a/spec"
+BENCH = {  # source in a harness run, mutants module, include path
+    "b1a": ("b1a_frozen.c", "mutants",
+            "-I/ariadne/plugin/share -I/ariadne/bench/b1a/spec"),
+    "b1c": ("b1c_frozen.c", "mutants_b1c",
+            "-I/ariadne/plugin/share -I/ariadne/bench/sglib_spec")}
+CPP = BENCH["b1a"][2]
 
 
 def wp(work, src, fct):
@@ -53,20 +60,37 @@ def wp(work, src, fct):
 
 
 def main():
-    run = os.path.abspath(sys.argv[1])
-    names = sys.argv[2:] or mutants.C_LEVEL + mutants.SPEC_LEVEL
-    src = open(os.path.join(run, "bench", "b1a_frozen.c")).read()
-    inter = os.path.join(run, "bench", "session", "interactive")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("run", help="a harness run directory (its final "
+                    "source and Coq scripts are checked), or with --source "
+                    "a directory for the output")
+    ap.add_argument("names", nargs="*")
+    ap.add_argument("--bench", default="b1a", choices=sorted(BENCH))
+    ap.add_argument("--source", help="check this source instead of the "
+                    "run's (e.g. a reference)")
+    ap.add_argument("--coq", action="append", default=[],
+                    help="more directories of Coq scripts")
+    a = ap.parse_args()
+    global CPP
+    srcname, modname, CPP = BENCH[a.bench]
+    mutants = importlib.import_module(modname)
+    run = os.path.abspath(a.run)
+    names = a.names or mutants.C_LEVEL + mutants.SPEC_LEVEL
+    src = open(a.source or os.path.join(run, "bench", srcname)).read()
+    coq = [os.path.join(run, "bench", "session", "interactive")] + a.coq
     out = os.path.join(run, "q10-mutants")
     os.makedirs(out, exist_ok=True)
     summary = {}
     for name in ["control"] + names:
         work = os.path.join(out, name)
         shutil.rmtree(work, ignore_errors=True)
-        os.makedirs(os.path.join(work, "session"))
-        if os.path.isdir(inter):
-            shutil.copytree(inter, os.path.join(work, "session",
-                                                "interactive"))
+        inter = os.path.join(work, "session", "interactive")
+        os.makedirs(inter)
+        for d in coq:
+            if os.path.isdir(d):
+                for f in os.listdir(d):
+                    if f.endswith(".v"):
+                        shutil.copy(os.path.join(d, f), inter)
         if name == "control":
             fcts = ",".join(sorted(set(mutants.FUNCTION.values())))
             r = wp(work, src, fcts)

@@ -15,7 +15,9 @@
    oracle is ours, not part of b1.c's spec; check.sh reports its failures
    separately from sanitizer and E-ACSL failures.  With RAC_ORACLE_B1A
    (../../b1a/rac/check.sh) the oracle is B1a's: only the forward walk,
-   so input[0], or 0 when m = 0.
+   so input[0], or 0 when m = 0.  With RAC_ORACLE_B1C
+   (../../b1c/rac/check.sh) it is B1c's: the unsigned sum of the m
+   payloads.
 
    In the E-ACSL build this file is #included at the end of b1_rac.c (so
    main's mallocs are tracked too); in the sanitizer builds it is compiled
@@ -24,7 +26,11 @@
 #include <stdlib.h>
 #include "rac_twins.h"
 
+#ifdef RAC_ORACLE_B1C
+unsigned b1(const int *input, int n);
+#else
 int b1(const int *input, int n);
+#endif
 extern long rac_alloc_count, rac_fail_at;
 
 static unsigned long long rng_state;
@@ -61,17 +67,25 @@ int main(int argc, char **argv) {
       injected++;
     }
     int m = rac_fail_at >= 0 ? (int)rac_fail_at : n;
-#ifdef RAC_ORACLE_B1A
+#if defined(RAC_ORACLE_B1C)
+    /* B1c's driver: the unsigned sum of the m payloads */
+    unsigned expected = 0;
+    for (int k = 0; k < m; k++)
+      expected += (unsigned)input[k];
+    unsigned got = b1(input, n);
+#elif defined(RAC_ORACLE_B1A)
     /* B1a's driver: only the forward walk, ending at input[0] */
     int expected = m > 0 ? input[0] : 0;
+    int got = b1(input, n);
 #else
     int expected = m > 0 ? input[m - 1] : 0;
-#endif
     int got = b1(input, n);
+#endif
     if (got != expected) {
       fprintf(stderr,
-              "ORACLE FAIL: run %ld, n = %d, fail_at = %ld: b1 returned %d,"
-              " expected %d\n", r, n, rac_fail_at, got, expected);
+              "ORACLE FAIL: run %ld, n = %d, fail_at = %ld: b1 returned %lld,"
+              " expected %lld\n", r, n, rac_fail_at, (long long)got,
+              (long long)expected);
       return 2;
     }
     nodes += m;

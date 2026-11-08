@@ -151,11 +151,18 @@ def command(run, tool, usd, turns, prompt):
             "--permission-mode", "dontAsk"]
 
 
-def setup(run):
+def task(bench):
+    """TASK with B1a's names replaced by the benchmark's (b1c: b1c.c,
+    verif_b1c.v, -Q . B1c); the wording is otherwise the same."""
+    return TASK.replace("b1a", bench).replace("B1a", bench.upper()[0]
+                                              + bench[1:])
+
+
+def setup(run, bench="b1a"):
     os.makedirs(os.path.join(run, "example"))
-    b1a = os.path.join(ARIADNE, "bench", "b1a")
-    shutil.copy(os.path.join(b1a, "b1a.c"), run)
-    shutil.copy(os.path.join(b1a, "SPEC.md"), run)
+    d = os.path.join(ARIADNE, "bench", bench)
+    shutil.copy(os.path.join(d, f"{bench}.c"), run)
+    shutil.copy(os.path.join(d, "SPEC.md"), run)
     smoke = os.path.join(ARIADNE, "vst", "smoke")
     for f in ("good.c", "verif_good.v", "_CoqProject"):
         shutil.copy(os.path.join(smoke, f), os.path.join(run, "example"))
@@ -168,6 +175,7 @@ def setup(run):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--bench", default="b1a", choices=["b1a", "b1c"])
     ap.add_argument("--run-dir")
     ap.add_argument("--usd", type=float, default=15.0)
     ap.add_argument("--turns", type=int, default=600)
@@ -179,11 +187,11 @@ def main():
         ARIADNE, "runs", "q10", time.strftime("vst-%Y%m%d-%H%M%S")))
     if os.path.exists(run):
         sys.exit(f"{run} exists")
-    tool = setup(run)
+    tool = setup(run, a.bench)
+    text = task(a.bench).format(tool=tool, usd=a.usd)
     prompt = ("Read TASK.md in this directory and do the task it "
-              "describes.\n\n" + TASK.format(tool=tool, usd=a.usd))
-    open(os.path.join(run, "TASK.md"), "w").write(
-        TASK.format(tool=tool, usd=a.usd))
+              "describes.\n\n" + text)
+    open(os.path.join(run, "TASK.md"), "w").write(text)
     cmd = command(run, tool, a.usd, a.turns, prompt)
     env = dict(os.environ, GIT_CEILING_DIRECTORIES=os.path.dirname(run),
                GIT_DIR=os.path.join(run, ".no-git"))

@@ -101,8 +101,8 @@ dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it) {
 unsigned b1(const int *input, int n) {
   dllist *l = NULL, *the_list = NULL, *mid = NULL, *e = NULL;
   struct sglib_dllist_iterator it;
-  unsigned sum = 0;
-  int m = 0, c = 0;
+  unsigned sum = 0, c = 0;
+  int m = 0;
   for (int k = 0; k < n; k++) {
     l = malloc(sizeof(dllist));
     if (l == NULL)
@@ -114,7 +114,7 @@ unsigned b1(const int *input, int n) {
   for (l = sglib_dllist_it_init(&it, the_list); l != NULL;
        l = sglib_dllist_it_next(&it)) {
     sum += (unsigned)l->i;
-    if (c == m / 2)
+    if (c == (unsigned)m / 2)
       mid = l;
     c++;
   }

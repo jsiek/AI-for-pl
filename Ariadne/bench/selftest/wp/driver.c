@@ -12,7 +12,9 @@ int st_iter_equal(struct sglib_DoubleLinkedList_iterator *it,
                   DoubleLinkedList *list, DoubleLinkedList *te) {
   DoubleLinkedList *ll = NULL;
   int found = 0;
-  /*@ loop invariant iter_ok(it, ll) && it->subcomparator == &myListCmp;
+  /*@ loop invariant ll == \null
+        || \exists \list<DoubleLinkedList *> s; iter_ok(it, s, ll);
+      loop invariant it->subcomparator == &myListCmp;
       loop assigns ll, found, *it;
   */
   for (ll = sglib_DoubleLinkedList_it_init_on_equal(it, list, myListCmp, te);

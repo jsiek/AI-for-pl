@@ -20,6 +20,14 @@ cd Ariadne/bench/b1a && ./run_ref.sh                # WP on the reference
 python3 test_mutants.py; python3 test_run_vst.py    # offline tests
 ```
 
+**B1a's inputs are a snapshot.**  `bench/b1a/` keeps the spec its runs
+(`wp-run2` to `wp-run4`, `vst-run1`, `vst-run2`) used: the iterator spec
+of 2026-11-07, in `bench/b1a/spec/` (public half) and
+`bench/b1a/spec_full/` (the whole template and the witness hints, for
+`b1a_ref.c`, `run_ref.sh` and `rac/check.sh`).  `make_b1a.py` would now
+write the 2026-11-08 spec; it is not rerun.  B1c (`bench/b1c/`) uses the
+new spec.
+
 | File | What |
 |---|---|
 | `../bench/b1a/make_b1a.py` | writes `b1a.c` (VST), `b1a_frozen.c` (Frama-C, public spec only) and `spec/sglib_dl_list_spec.h` (the public half of the template) from B1 |

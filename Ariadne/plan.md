@@ -904,6 +904,27 @@ invariant is only needed for functional correctness and is stretch work.
             disjunctions, whether each side was exercised.  A clause
             never evaluated on any input is flagged.
         *   Runtime checking stays a filter, not part of the trust base.
+    *   **Spec-validation rules (owner, 2026-11-08)**, for a public
+        spec's first freeze and every later change:
+        1.  *Prove clients, not just run them.*  Step 0's runtime checks
+            catch a spec that is too strong; to catch one that is too
+            weak, WP-verify a few realistic clients against the public
+            spec, taken from the target's tests.  B1c (`bench/b1c/`, a
+            client that reuses the list after iterating) is the first.
+        2.  *Unanchored-postcondition lint* (`harness/spec_lint.py`, run
+            by `spec_checks` on the frozen baseline): flag every `ensures`
+            clause, directly or through the public predicates it unfolds
+            to, with an existentially bound variable tied to no
+            parameter, `\result`, `\old`/`Pre` state or global.
+            Severity: a warning.
+        3.  *Sweep on review findings:* when a review finds a spec bug,
+            check every public contract for the same class before closing
+            it.
+        4.  *Read the whole public spec in English at first freeze,* not
+            only the diffs, with the approved English comments above.
+        History: `eaa42ed2` (2026-11-03) fixed this class in `get_first`
+        / `get_last` (their results belonged to *some* live list); the
+        iterator kept it until B1c found it on 2026-11-07.
     *   **Regression tests.**  When the software comes with tests, the
         pipeline uses them:
         *   as inputs for runtime checking of candidate annotations
@@ -1022,6 +1043,31 @@ invariant is only needed for functional correctness and is stretch work.
         (B1: `(0)`; the self-test: `(1, myListCmp)`).  The count is
         explicit because Frama-C preprocesses annotations as C11, where
         an empty macro argument list cannot be detected.
+    *   **Iterator spec anchored to its list (owner, 2026-11-08).**  B1c
+        (plan Q10) found that the iterator's postconditions bound the
+        iterated list existentially, so a client could not show that a
+        returned node is in its own list.  Changed in the public
+        template, as approved: `iter_ok(it, s, cur)` takes the list `s`;
+        `it_init` / `it_init_on_equal` ensure `list == \null ==> \result
+        == \null` and `list != \null ==> \exists s, k; 0 <= k <
+        \length(s) && \nth(s, k) == list && iter_ok(it, s, \result)`;
+        `it_next` ensures `\forall s, b, f; iter_at{Pre}(it, s, b, f)
+        ==> iter_ok(it, s, \result)`.  No wording change was needed.
+        Private changes: three asserts at the end of `it_next`
+        (`ok_back`, `ok_forward`, `ok_end`: the new postcondition per
+        case; without them the self-test's `it_next` timed out), and the
+        clients' loop invariants (`l == \null || \exists s; iter_ok(&it,
+        s, l)`) in B1's and the self-test's drivers.  **Re-certified**:
+        B1 by `harness.py ../bench/b1 --tiers 0`, certified 377 / 377
+        (Qed 205, SMT 163, Coq 9), frozen digest `e37d96c8406e5e89`
+        (was `f6cc96e5854dafc5`); `bench/b1/check.sh`, all nine mutants
+        rejected at their intended goals; the self-test
+        (`selftest/wp/check.sh`) 462 / 462 and both its mutants;
+        `bench/b1/rac/check.sh` and `selftest/rac.sh` pass.  The new
+        iterator postconditions are not checked at run time (E-ACSL has
+        no witness for `\exists` or `\forall` over lists; they are on
+        the step-0 report's "not checked" list).  B1a keeps the spec of
+        2026-11-07 (`bench/b1a/spec`, `spec_full`): its runs used it.
 
 ---
 

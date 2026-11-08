@@ -34,7 +34,7 @@ B1A=/ariadne/bench/b1a
 SRC=$B1A/b1a_ref.c
 R1=/ariadne/bench/b1/rac
 B=build
-CPP_ARGS="-I/ariadne/plugin/share -I/ariadne/bench/sglib_spec"
+CPP_ARGS="-I/ariadne/plugin/share -I/ariadne/bench/b1a/spec_full"
 ORACLE=-DRAC_ORACLE_B1A
 status=0
 rm -rf "$B" && mkdir -p "$B"
@@ -54,7 +54,7 @@ python3 -I /ariadne/harness/acsl_expand.py "$SRC" "$B/src/orig.c" \
   --cpp-args="$CPP_ARGS" --keep ARIADNE_ALLOC,ARIADNE_FREE ||
   { echo "FAIL: acsl_expand.py on $SRC"; exit 1; }
 python3 -I "$RAC/gen_twins.py" "$B/src/orig.c" "$TW" --include b1_types.h \
-  --witness-hints /ariadne/bench/sglib_spec/rac_witnesses.json \
+  --witness-hints /ariadne/bench/b1a/spec_full/rac_witnesses.json \
   --cpp-args="$CPP_ARGS" > "$TW.log" 2>&1 ||
   { cat "$TW.log"; echo "FAIL: gen_twins.py"; exit 1; }
 BUILTINS=$(python3 -c 'import json, sys
@@ -77,7 +77,7 @@ echo "    $(cat "$B/orig/gen.log")"
 # ---- 1. sanitizers ---------------------------------------------------
 san_build() {  # san_build <variant>
   gcc $SAN $ORACLE -I "$B/$1" -I "$TW" -I "$RAC" -I /ariadne/plugin/share \
-    -I /ariadne/bench/sglib_spec -I "$R1" \
+    -I /ariadne/bench/b1a/spec_full -I "$R1" \
     "$B/src/$1.c" "$R1/rac_alloc.c" "$TW/rac_twins.c" "$RAC/rac_rt.c" \
     "$R1/rac_main.c" -o "$B/$1/b1.asan" > "$B/$1/asan.build.log" 2>&1
 }
@@ -133,7 +133,7 @@ eacsl_build() {  # eacsl_build <variant> [extra e-acsl-gcc options]
        "$R1/rac_main.c" . &&
     frama-c -e-acsl-builtins="$BUILTINS" -machdep gcc_x86_64 \
       -no-frama-c-stdlib -keep-unused-functions all \
-      -cpp-extra-args="-std=c99 -D_DEFAULT_SOURCE -D__NO_CTYPE -D__FC_MACHDEP_X86_64 -DRAC_KEEP_FREED $ORACLE -I/ariadne/bench/sglib_spec" \
+      -cpp-extra-args="-std=c99 -D_DEFAULT_SOURCE -D__NO_CTYPE -D__FC_MACHDEP_X86_64 -DRAC_KEEP_FREED $ORACLE -I/ariadne/bench/b1a/spec_full" \
       -no-warn-unaligned-pointer \
       b1_rac.c -rte -rte-initialized @all -rte-select=@all,-main,-rng \
       -then -print -ocode b1_rac.rte.c &&

@@ -401,3 +401,17 @@ has no witness), so E-ACSL checks the other contracts.
 ## Next
 
 B1c (stretch): `sglib_dllist_sort`.
+
+## Iterator spec of 2026-11-08 (plan Q12)
+
+The iterator's postconditions now name the list it iterates
+(`iter_ok(it, s, cur)`; `it_init` keeps `list` in `s`, `it_next` stays
+on the list of its pre-state), after B1c (`../b1c/`) showed that a client
+could not otherwise use the nodes it gets back.  Three private asserts at
+the end of `it_next` (`ok_back`, `ok_forward`, `ok_end`) and the driver's
+free-loop invariant (`l == \null || \exists s; iter_ok(&it, s, l)`)
+changed with it.  `run.sh`: 362 function goals + 15 lemmas, all proved;
+`check.sh`: all nine mutants rejected at their goals; frozen digest
+`e37d96c8406e5e89`; `../../harness/harness.py ../bench/b1 --tiers 0`:
+certified 377 / 377 (Qed 205, SMT 163, Coq 9).
+

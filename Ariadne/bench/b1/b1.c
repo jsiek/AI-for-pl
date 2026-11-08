@@ -647,6 +647,10 @@ dllist *sglib_dllist_it_next(struct sglib_dllist_iterator *it) {
   /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_BACK(dllist, ptr_to_previous, ptr_to_next) */
   /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_FORWARD(dllist, ptr_to_previous, ptr_to_next) */
   /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_END(dllist, ptr_to_previous, ptr_to_next) */
+  /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_OK_BACK(dllist, ptr_to_previous, ptr_to_next) */
+  /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_OK_FORWARD(
+        dllist, ptr_to_previous, ptr_to_next) */
+  /*@ SGLIB_DL_LIST_ANNOT_IT_NEXT_OK_END(dllist, ptr_to_previous, ptr_to_next) */
   return (ce);
 };
 /* END GENERATED, part 2 */
@@ -722,7 +726,9 @@ int b1(const int *input, int n) {
        l = l->ptr_to_previous)
     last = l->i;
   /*@ assert start_node: the_list == \null || in_live_list(the_list); */
-  /*@ loop invariant iter_ok(&it, l) && it.subcomparator == \null;
+  /*@ loop invariant l == \null
+        || \exists \list<dllist *> s; iter_ok(&it, s, l);
+      loop invariant it.subcomparator == \null;
       loop invariant payload_init:
         \forall dllist *q; live(q) ==> \initialized(&q->i);
       loop assigns l, it, __heap;

@@ -15,7 +15,7 @@ wp() {  # wp <report> <log> <WP selection options...>
   rm -f "$report"
   ../../env/run.sh frama-c \
     -load-module /ariadne/plugin/_build/default/ariadne.cmxs \
-    -cpp-extra-args="-I/ariadne/plugin/share -I/ariadne/bench/sglib_spec" \
+    -cpp-extra-args="-I/ariadne/plugin/share -I/ariadne/bench/b1a/spec_full" \
     -generated-spec-custom terminates:skip \
     -ariadne b1a_ref.c \
     -then -wp -wp-model Typed -wp-no-filter-init "$@" \

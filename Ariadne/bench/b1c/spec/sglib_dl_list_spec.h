@@ -37,6 +37,16 @@
 
 /* ---- public: the shape predicates ---------------------------------- */
 
+/* t is s with e inserted at index k (a macro, not a predicate).  Public
+   since 2026-11-10: add's contract uses it (owner); the private lemmas
+   and asserts use it too. */
+#define SGLIB_DL_LIST__INSERTED(t, s, e, k) \
+  (\length(t) == \length(s) + 1 \
+   && (\forall integer i_; 0 <= i_ < (k) ==> \nth(t, i_) == \nth(s, i_)) \
+   && \nth(t, k) == (e) \
+   && (\forall integer i_; (k) < i_ < \length(t) \
+         ==> \nth(t, i_) == \nth(s, i_ - 1)))
+
 /* The comparators a client may pass as subcomparator: a template
    parameter written as a parenthesised list that starts with its
    length, (0) for none, up to four names, e.g. (1, myListCmp).  (The
@@ -204,7 +214,9 @@
 /* ---- sglib_<type>_add ---------------------------------------------- */
 
 /* Public.  add inserts elem before *list, any node of a whole live
-   list (or NULL), and makes it *list. */
+   list (or NULL), and makes it *list.  in_old_list (owner, 2026-11-10):
+   the new list is the caller's old list with elem inserted before the
+   old *list, headed by elem if *list was the head. */
 #define SGLIB_DL_LIST_CONTRACT_ADD(type, previous, next) \
   requires \valid(list) && !heap(\base_addr(list)) && \initialized(list); \
   requires live(elem); \
@@ -218,7 +230,13 @@
   ensures \initialized(list); \
   ensures *list == elem && in_live_list(elem); \
   ensures was_head: \at(*list == \null || (*list)->previous == \null, Pre) \
-    ==> elem->previous == \null;
+    ==> elem->previous == \null; \
+  ensures in_old_list: \forall \list<type *> s, type *h, integer k; \
+    \at(live_dll(\null, h, s) && 0 <= k < \length(s) \
+        && *list == \nth(s, k), Pre) \
+    ==> \exists \list<type *> t; \
+          live_dll(\null, k == 0 ? elem : h, t) \
+          && SGLIB_DL_LIST__INSERTED(t, s, elem, k);
 
 /* ---- sglib_<type>_get_first ---------------------------------------- */
 

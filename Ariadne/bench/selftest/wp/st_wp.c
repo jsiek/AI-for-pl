@@ -108,6 +108,10 @@ void sglib_DoubleLinkedList_add(DoubleLinkedList **list, DoubleLinkedList *elem)
           DoubleLinkedList, previous, next) */
     /*@ SGLIB_DL_LIST_ANNOT_ADD_NEW_LIVE(
           DoubleLinkedList, previous, next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_OLD_FRESH(
+          DoubleLinkedList, previous, next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_OLD_HEAD(
+          DoubleLinkedList, previous, next) */
     /*@ SGLIB_DL_LIST_ANNOT_ADD_INSERT_LIST(
           DoubleLinkedList, previous, next) */
     /*@ SGLIB_DL_LIST_ANNOT_ADD_INSERTED(

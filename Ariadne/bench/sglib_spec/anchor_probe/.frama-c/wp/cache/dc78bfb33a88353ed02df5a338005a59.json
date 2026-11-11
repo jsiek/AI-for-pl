@@ -1,0 +1,2 @@
+{ "prover": "CVC5:1.2.1", "verdict": "valid", "time": 0.0492,
+  "steps": 20619 }

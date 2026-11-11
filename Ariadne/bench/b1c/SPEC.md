@@ -58,6 +58,10 @@ Inserts `elem` just before `*list`.
     list;
   * if the old `*list` was NULL or a head (its `ptr_to_previous` was
     NULL), then `elem->ptr_to_previous == NULL` (`elem` is the new head).
+  * if the old `*list` was node `k` of a whole list `s` (with head `h`),
+    the list now is `s` with `elem` inserted at position `k` (before the
+    old `*list`), headed by `elem` if `k == 0` and by `h` otherwise
+    (owner, 2026-11-10).
 
 ## The iterator
 

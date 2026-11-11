@@ -116,6 +116,10 @@ void sglib_dllist_add(dllist **list, dllist *elem) {
           dllist, ptr_to_previous, ptr_to_next) */
     /*@ SGLIB_DL_LIST_ANNOT_ADD_NEW_LIVE(
           dllist, ptr_to_previous, ptr_to_next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_OLD_FRESH(
+          dllist, ptr_to_previous, ptr_to_next) */
+    /*@ SGLIB_DL_LIST_ANNOT_ADD_OLD_HEAD(
+          dllist, ptr_to_previous, ptr_to_next) */
     /*@ SGLIB_DL_LIST_ANNOT_ADD_INSERT_LIST(
           dllist, ptr_to_previous, ptr_to_next) */
     /*@ SGLIB_DL_LIST_ANNOT_ADD_INSERTED(

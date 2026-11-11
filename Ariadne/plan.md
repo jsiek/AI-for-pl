@@ -952,13 +952,32 @@ invariant is only needed for functional correctness and is stretch work.
         the new list is the caller's old list with `elem` inserted, so a
         client cannot show that its other nodes are still in a whole
         live list after `add` (B1 and B1c never need it: they use the
-        new node, or free every node).  Proposed, not applied (a public
-        change): `ensures \forall \list<type *> s, type *h, integer k;
+        new node, or free every node).
+        **Approved and applied (owner, 2026-11-10):** `add` ensures
+        `in_old_list: \forall \list<type *> s, type *h, integer k;
         \at(live_dll(\null, h, s) && 0 <= k < \length(s) && *list ==
-        \nth(s, k), Pre) ==> \exists \list<type *> t;
-        live_dll(\null, k == 0 ? elem : h, t) &&
-        SGLIB_DL_LIST__INSERTED(t, s, elem, k);` (the proof of `add`
-        already builds this list: assert `insert_list`).
+        \nth(s, k), Pre) ==> \exists \list<type *> t; live_dll(\null,
+        k == 0 ? elem : h, t) && SGLIB_DL_LIST__INSERTED(t, s, elem, k)`,
+        the existing clauses kept; `SGLIB_DL_LIST__INSERTED` becomes
+        public.  Private: asserts `old_fresh` (any whole list holding the
+        old `*list` is the precondition's, so it lacks `elem`; Coq,
+        `bench/b1/session/interactive/sglib_dllist_add_assert_old_fresh.v`:
+        a global lemma of the same fact slowed `add`'s other goals into
+        timeouts) and `old_head`.  Re-certified: B1 by `harness.py
+        ../bench/b1 --tiers 0`, certified 380 / 380 (Qed 205, SMT 165,
+        Coq 10), frozen digest `2febb3fd8ad455cb`; `bench/b1/check.sh`,
+        all nine mutants; the self-test 465 / 465 and both its mutants;
+        B1c's reference 352 / 352 (`run_ref.sh`) and all eight B1c
+        mutants; step 0 for B1, B1c and the self-test (E-ACSL, operation
+        sequences) pass.  `in_old_list` is not checked at run time: E-ACSL
+        has no finite range for its `\forall` over lists and nodes, and
+        `gen_twins` no witness for it (on the step-0 report's "not
+        checked" list).  New mutant `droplist`
+        (`bench/sglib_spec/anchor_probe/`): an `add` that drops the
+        caller's list and makes `elem` a list of its own; WP proves it
+        14 / 14 against `add`'s contract of 2026-11-08 and leaves
+        `in_old_list` open against today's.  `spec_lint.py` still reports
+        0 unanchored postconditions on B1.
     *   **Regression tests.**  When the software comes with tests, the
         pipeline uses them:
         *   as inputs for runtime checking of candidate annotations

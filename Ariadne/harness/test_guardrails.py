@@ -125,9 +125,9 @@ expect("directives: an unlogged directive next to a logged one fails",
                                      "#define LOGGED_FIX 1\n"
                                      "#define UNLOGGED 2\n"))["ok"])
 v = g.spec_checks(raw, raw, CPP)
-expect("spec_checks: unchanged b1.c passes, digest e37d96c8406e5e89",
+expect("spec_checks: unchanged b1.c passes, digest 2febb3fd8ad455cb",
        all(x["ok"] for x in v.values())
-       and v["frozen_spec"]["digest"] == "e37d96c8406e5e89", v)
+       and v["frozen_spec"]["digest"] == "2febb3fd8ad455cb", v)
 
 # ---- 7.2 frozen spec ----------------------------------------------------
 v = g.frozen(base, base)

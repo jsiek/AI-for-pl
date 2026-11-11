@@ -34,8 +34,9 @@
 
 /* ---- public: the shape predicates ---------------------------------- */
 
-/* t is s with e inserted at index k (a macro, not a predicate: a
-   proof device of the private lemmas and asserts). */
+/* t is s with e inserted at index k (a macro, not a predicate).  Public
+   since 2026-11-10: add's contract uses it (owner); the private lemmas
+   and asserts use it too. */
 #define SGLIB_DL_LIST__INSERTED(t, s, e, k) \
   (\length(t) == \length(s) + 1 \
    && (\forall integer i_; 0 <= i_ < (k) ==> \nth(t, i_) == \nth(s, i_)) \
@@ -305,7 +306,9 @@
 /* ---- sglib_<type>_add ---------------------------------------------- */
 
 /* Public.  add inserts elem before *list, any node of a whole live
-   list (or NULL), and makes it *list. */
+   list (or NULL), and makes it *list.  in_old_list (owner, 2026-11-10):
+   the new list is the caller's old list with elem inserted before the
+   old *list, headed by elem if *list was the head. */
 #define SGLIB_DL_LIST_CONTRACT_ADD(type, previous, next) \
   requires \valid(list) && !heap(\base_addr(list)) && \initialized(list); \
   requires live(elem); \
@@ -319,7 +322,13 @@
   ensures \initialized(list); \
   ensures *list == elem && in_live_list(elem); \
   ensures was_head: \at(*list == \null || (*list)->previous == \null, Pre) \
-    ==> elem->previous == \null;
+    ==> elem->previous == \null; \
+  ensures in_old_list: \forall \list<type *> s, type *h, integer k; \
+    \at(live_dll(\null, h, s) && 0 <= k < \length(s) \
+        && *list == \nth(s, k), Pre) \
+    ==> \exists \list<type *> t; \
+          live_dll(\null, k == 0 ? elem : h, t) \
+          && SGLIB_DL_LIST__INSERTED(t, s, elem, k);
 
 /* Private: the asserts at the end of add's body, in this order.  The
    new list is the old one with elem inserted at the old node's index k
@@ -400,6 +409,18 @@
   assert insert_list: \forall type *h, \list<type *> s, integer k; \
     SGLIB_DL_LIST__ADD_PRE(type) ==> \
     \exists \list<type *> t; SGLIB_DL_LIST__INSERTED(t, s, elem, k);
+/* For in_old_list: any whole list holding the old *list lacks elem (it
+   is the precondition's list: dll_links and dll_first, induction in Coq,
+   session/interactive/sglib_dllist_add_assert_old_fresh.v; a global
+   lemma of it slowed add's other goals), and its head is node 0. */
+#define SGLIB_DL_LIST_ANNOT_ADD_OLD_FRESH(type, previous, next) \
+  assert old_fresh: \forall type *h, \list<type *> s, integer k; \
+    \at(live_dll(\null, h, s) && 0 <= k < \length(s) \
+        && *list == \nth(s, k), Pre) ==> !mem(elem, s);
+#define SGLIB_DL_LIST_ANNOT_ADD_OLD_HEAD(type, previous, next) \
+  assert old_head: \forall type *h, \list<type *> s, integer k; \
+    \at(live_dll(\null, h, s) && 0 <= k < \length(s) \
+        && *list == \nth(s, k), Pre) ==> \nth(s, 0) == h;
 #define SGLIB_DL_LIST_ANNOT_ADD_INSERTED(type, previous, next) \
   assert inserted: \forall type *h, \list<type *> s, integer k; \
     SGLIB_DL_LIST__ADD_PRE(type) ==> \

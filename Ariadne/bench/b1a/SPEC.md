@@ -1,5 +1,11 @@
 # B1a: what each function requires and ensures (memory safety)
 
+*Snapshot (plan Q10): this is the spec B1a's runs used, of 2026-11-07.
+The frozen spec has since changed twice (owner, 2026-11-08 and
+2026-11-10): the iterator names the list it iterates, and `add` ensures
+that the new list is the caller's old list with `elem` inserted.  See
+`../b1c/SPEC.md` for the current wording.*
+
 The informal spec of the plan Q10 comparison.  It says in English what
 the public ACSL contracts of `b1a_frozen.c` say (the frozen spec on
 branch `ariadne-templates`, after the owner's decisions of 2026-11-05).

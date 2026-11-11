@@ -1146,17 +1146,17 @@ Axiom Q_mem_cons :
   forall (x:addr) (h:addr) (t:Init.Datatypes.list addr),
   (x = h) \/ P_mem x t <-> P_mem x (Init.Datatypes.cons h t).
 
-Axiom Q_L_the_list_662_region : ((region 663%Z) = 2%Z).
+Axiom Q_L_the_list_674_region : ((region 675%Z) = 2%Z).
 
-Axiom Q_L_the_list_662_linked :
+Axiom Q_L_the_list_674_linked :
   forall (t:Numbers.BinNums.Z -> Numbers.BinNums.Z), linked t ->
-  ((t 663%Z) = 0%Z).
+  ((t 675%Z) = 0%Z).
 
-Axiom Q_L_it_665_region : ((region 666%Z) = 2%Z).
+Axiom Q_L_it_677_region : ((region 678%Z) = 2%Z).
 
-Axiom Q_L_it_665_linked :
+Axiom Q_L_it_677_linked :
   forall (t:Numbers.BinNums.Z -> Numbers.BinNums.Z), linked t ->
-  ((t 666%Z) = 0%Z).
+  ((t 678%Z) = 0%Z).
 
 (* Why3 assumption *)
 Definition is_sint32_chunk (m:addr -> Numbers.BinNums.Z) : Prop :=
@@ -1223,8 +1223,8 @@ Axiom eqmem_memcpy :
 
 (* Why3 goal *)
 Theorem wp_goal :
-  let a := global 663%Z in
-  let a1 := global 666%Z in
+  let a := global 675%Z in
+  let a1 := global 678%Z in
   forall (t:addr -> Init.Datatypes.bool) (t1:addr -> Init.Datatypes.bool)
     (t2:addr -> Init.Datatypes.bool) (t3:addr -> Init.Datatypes.bool)
     (p:Init.Datatypes.bool) (p1:Init.Datatypes.bool)
@@ -1243,7 +1243,7 @@ Theorem wp_goal :
   let x := base a2 in
   let a6 := shift (global x) 0%Z in
   let m := map.Map.set t1 a Init.Datatypes.true in
-  let m1 := map.Map.set (map.Map.set t5 663%Z 1%Z) 666%Z 5%Z in
+  let m1 := map.Map.set (map.Map.set t5 675%Z 1%Z) 678%Z 5%Z in
   let m2 := map.Map.set t9 a a5 in
   let a7 := memcpy m a1 t4 a1 5%Z in
   let a8 := memcpy m2 a1 t11 a1 5%Z in
@@ -1325,15 +1325,18 @@ exists l3. split; [split |].
   + intros k. cbv zeta. intros Hk0 Hk1.
     assert (HL := Hlive k Hk0 Hk1).
     destruct HL as [[[_ Hval] Hheap] _].
-    assert (Hb : ~ (base (nth (Init.Datatypes.cons a5 l2) k) = 666%Z)).
-    { intro E. apply h24. unfold a1. rewrite E in Hheap.
-      unfold shift, global in Hheap. simpl in Hheap.
-      replace (0 + 0)%Z with 0%Z in Hheap by lia. exact Hheap. }
+    (* the iterator's block is not a heap block, the node's is *)
+    assert (Hb : ~ (base (nth (Init.Datatypes.cons a5 l2) k) = base a1)).
+    { intro E. apply h24. rewrite E in Hheap.
+      match goal with |- P_heap ?g =>
+        replace g with (shift (global (base g)) 0%Z)
+          by (unfold a1, shift, global, base; simpl; f_equal; lia) end.
+      exact Hheap. }
     split; [split |].
     * unfold a8. rewrite (proj1 (memcpy'def m2 a1 t11 a1 5%Z _)); [reflexivity |].
-      right; right; left. unfold a1, shift, global, base. simpl. exact Hb.
+      right; right; left. intro E'. apply Hb. rewrite <- E'. reflexivity.
     * unfold a8. rewrite (proj1 (memcpy'def m2 a1 t11 a1 5%Z _)); [reflexivity |].
-      right; right; left. unfold a1, shift, global, base. simpl. exact Hb.
+      right; right; left. intro E'. apply Hb. rewrite <- E'. reflexivity.
     * exact Hval.
   + exact Hdll.
   + rewrite <- h1. split; [split |]; assumption.

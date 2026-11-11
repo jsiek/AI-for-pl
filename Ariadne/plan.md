@@ -452,6 +452,51 @@ invariant is only needed for functional correctness and is stretch work.
 | M3 | Agent on B1 | Annotator (Opus 5.5) + prover tier on B1 starting from frozen contracts only (no human invariants).  Minimum success criterion.  First comparison of prover escalation strategies (§12.3).  **Agent on B1 done** (`harness/README.md`, "Annotator"): from `bench/b1/b1_frozen.c` (254 goals, 206 closed by Qed/SMT), Opus 5.5 wrote the invariants, asserts and 24 lemmas in two patches; certified 330/330 (Qed 186, SMT 140, Coq 4, all four by Sonnet); Opus $3.40, Sonnet $1.19.  **Escalation comparison done** (S1-S4 on 9 Coq goals, $3.80): Opus alone proved 9/9 at about $0.18 and 37 s per goal, so the prover is now tier 0 then Opus (Q9). |
 | M4 | RB-tree `find_member`, `add` | Shape library extended to trees; target success criterion. |
 | M5 | Evaluation | G6 metrics across B1, B2 (and B3 if reached); ablations: no refinement, no hammer, no library lemmas; prover escalation strategies and annotator model (§12.3). |
+| M6 | VST port (Q10, owner 2026-11-10) | VST is the sole backend from the next benchmark on; Frama-C/WP finishes B1/B1c and is retired.  Preconditions for relying on VST alone, below; harness pieces ported, below.  Exit: a benchmark certified by the VST pipeline with all three preconditions met. |
+
+**M6 preconditions for relying on VST alone (owner, 2026-11-10).**
+
+1.  *Public spec = the VST funspecs + the English `SPEC.md`.*  The
+    owner approves the English and reviews each funspec against it.
+2.  *Step 0 without ACSL.*  C checker functions derived from the
+    funspecs' representation predicates (reusing `rac/gen_twins.py`
+    where it applies) run on the target's tests, random operation
+    sequences and mutants, under ASan/UBSan.  They are a private test
+    artifact, checked against the English spec.
+3.  *Spec strength by client diversity (owner's decision): a client
+    survey is part of public-spec approval.*
+    *   For each public function, list the usage patterns its clients
+        need, from the target's own tests and self-test, real
+        open-source users of the library where any exist, and the
+        owner's review.  Examples for sglib's list: `add` at a non-head
+        node, free during iteration, reuse of the list after iteration,
+        iteration with and without a comparator, the empty list.
+    *   Map each pattern to a client program proved with `semax_prog`
+        (Q11 rule 1); a pattern with no client yet is a gap, and becomes
+        a new client.
+    *   The owner approves the survey together with the spec; the survey
+        is frozen with the spec, so a later spec change must keep every
+        surveyed client provable.
+    *   VST mutant "rejections" that come from a broken proof script are
+        not evidence of spec strength (`q10/README.md`): client proofs
+        replace the mutant check as the measure of strength.  Mutants
+        stay as a step-0 runtime filter.
+
+**M6 harness pieces to port.**
+
+*   The frozen-spec digest (guardrail 2), over the funspecs and the
+    representation predicates instead of ACSL contracts.
+*   The `directives` guardrail (preprocessor directives of the C).
+*   `spec_lint.py`: the unanchored-postcondition check becomes a
+    funspec review item (Q11 rule 2), read by the owner with the
+    English spec.
+*   The other guardrails: the overlay rule becomes "the `.v` AST is
+    `clightgen`'s output of the frozen C"; `Admitted`/axiom lint and the
+    `Print Assumptions` / coqchk allow-list carry over.
+*   `q10/run_vst.py` as the main runner (fenced `claude -p`, budget
+    reservation, check against a pristine C file).
+*   The Q12 spec templates as Coq definitions parameterised by the field
+    names (the counterpart of `sglib_dl_list_spec.h`).
 
 ---
 
@@ -517,7 +562,30 @@ invariant is only needed for functional correctness and is stretch work.
 
 ### 9.2 Still open
 
-*   **Q10 — Toolchain: Frama-C/WP or VST?**  VST (Verifiable C on
+*   **Q10 — Toolchain: Frama-C/WP or VST?  Decided (owner,
+    2026-11-10): VST is the sole proof backend from the next benchmark
+    on.**  Frama-C/WP is kept only to finish B1 and B1c, and is then
+    retired.  Reasons:
+    *   *Trust base.*  VST's proofs are checked by the Coq kernel against
+        CompCert Clight's semantics; the WP pipeline trusts WP, its memory
+        model and Qed simplifier, the `-ariadne` plugin and its ghost
+        allocator model, Why3 and the SMT solvers (§2.2, `vst/README.md`
+        §1.2).
+    *   *Liveness as ownership.*  A live node is a `data_at` +
+        `malloc_token` the caller owns: no ghost heap, no `payload_init`
+        precondition, no frame lemmas for `dll` across writes to other
+        objects (the work B1c's WP reference needed: `dll_shared_live`
+        and a Coq proof across `it_init`'s write to the iterator).
+    *   *Anchored specs.*  Both VST agents wrote an `add` funspec that
+        returns the exact new list (`s1 ++ elem :: s2`, `ins j e s`) and
+        an iterator that keeps its list, while the frozen ACSL needed two
+        owner-approved fixes (Q12 2026-11-08, Q11 2026-11-10).
+    *   *Results* (`q10/README.md`): every VST run proved every function
+        and `semax_prog` with `Qed` (B1a: $4.39 and $5.91, B1c: $9.94,
+        one call each); the WP pipeline certified B1a once in three runs
+        ($5.09, $7.04, $7.11: `wp-run4` certified) and left 3 goals open
+        on B1c ($9.36).  Similar cost, all `Qed` on the VST side.
+    The VST port is milestone M6 (§8).  Original question: VST (Verifiable C on
     CompCert Clight, `vst/README.md`) handles use-after-free natively and
     keeps shape predicates as checked Rocq definitions, removing the
     ghost liveness model and guardrail 3a's hole, at the cost of no SMT
@@ -920,9 +988,11 @@ invariant is only needed for functional correctness and is stretch work.
         spec's first freeze and every later change:
         1.  *Prove clients, not just run them.*  Step 0's runtime checks
             catch a spec that is too strong; to catch one that is too
-            weak, WP-verify a few realistic clients against the public
-            spec, taken from the target's tests.  B1c (`bench/b1c/`, a
-            client that reuses the list after iterating) is the first.
+            weak, prove realistic clients against the public spec.  B1c
+            (`bench/b1c/`, a client that reuses the list after iterating)
+            is the first.  From M6 on, the clients are those of the
+            *client survey* (M6, precondition c), approved and frozen with
+            the spec, and proved with VST's `semax_prog`.
         2.  *Unanchored-postcondition lint* (`harness/spec_lint.py`, run
             by `spec_checks` on the frozen baseline): flag every `ensures`
             clause, directly or through the public predicates it unfolds

@@ -1,10 +1,11 @@
 # Client survey: sglib's doubly linked list (plan M6)
 
-**Status: open questions decided by the owner, 2026-11-11.  Ready for
-the owner's final approval; not yet approved.**  Plan M6, precondition
-3: the owner approves this survey together with the public spec, and it
-is then frozen with the spec.  A later spec change must keep every
-surveyed client provable.  It contains no funspecs and no proofs.
+**Approved by the owner on 2026-11-11.**
+- The open questions were decided the same day (below).
+- One change came with the approval: I13 claims only memory safety.
+- The survey is frozen with the M6 spec (plan M6, precondition 3): a
+  later spec change must keep every surveyed client provable.
+- It contains no funspecs and no proofs.
 
 **Functions in scope** (the owner's decision Q1, below).
 - **Stage 1:** the functions the public spec template
@@ -103,7 +104,7 @@ GitHub code search for `SGLIB_DEFINE_DL_LIST_FUNCTIONS` on 2026-11-11.
 | I10 | the iterator visits each node once, in sglib's order, checked against an independent walk | S2 (`assert(ll == _current_element_)`) |
 | I11 | delete (unlink) the current node inside the loop, then free it | U3 |
 | I12 | add a node to the list while an iteration is in progress | R |
-| I13 | `it_next` again after it returned NULL | R |
+| I13 | `it_next` called again after it returned NULL (memory safety of the call only) | R |
 | I14 | the iterator struct lives in heap memory (a field of a malloc'ed struct) | R |
 
 ### Comparator
@@ -173,7 +174,7 @@ Where existing clients are proved today:
 | I10 visits each node once, in order | run time | step 0 with sglib's lockstep check (S2): checked at run time, not proved (Q4) |
 | I11 delete the current node in the loop | stage 2 | client 12 |
 | I12 add during an iteration | out of scope | Q3: no real user or sample does it; can be reopened if a later target needs it |
-| I13 it_next after NULL | stage 1 | client 8 |
+| I13 it_next again after NULL | stage 1 | client 8 |
 | I14 iterator in heap memory | stage 1 | client 4 |
 | C1 pure comparator function | covered | `selftest/wp/driver.c:st_iter_equal` with `myListCmp` (WP only; to be proved against the new comparator funspec) |
 | C2 inlined comparator macro | stage 2 | client 10 (used by `sort`) |
@@ -225,7 +226,9 @@ Where existing clients are proved today:
    - For each node returned by an outer iterator, run an inner iterator over the whole list and count the nodes with the same payload.
    - Then free by iteration.
 8. **it_next after the end (I13).**
-   - After a complete iteration, call `it_next` once more and require NULL.
+   - After a complete iteration, call `it_next` once more.
+   - The client shows only that this call is memory safe. It makes no
+     claim about what the call returns (memory safety only).
 9. **A comparator with its own state (C3).**
    - `it_init_on_equal` with a comparator that compares payloads and increments a counter it owns (a static variable, or a struct the client passes).
    - The client's predicate for the comparator's state is "the counter equals k".

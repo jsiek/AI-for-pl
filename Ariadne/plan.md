@@ -491,7 +491,11 @@ invariant is only needed for functional correctness and is stretch work.
         `sort`); `!heap` conditions dropped; order and coverage checked at
         run time only; sequential clients only.  34 patterns: 14
         covered, 9 stage-1 gaps, 6 stage-2 gaps, 1 checked at run time, 4
-        out of scope.  Ready for the owner's final approval.
+        out of scope.  **Approved by the owner on 2026-11-11** (with I13
+        claiming only that `it_next` after the end is memory safe), and
+        frozen with the M6 spec.  **Next step:** write the stage-1 VST
+        funspecs, with the English `SPEC.md` that goes with them, for the
+        owner to review.
 
 **M6 harness pieces to port.**
 
@@ -1005,8 +1009,8 @@ invariant is only needed for functional correctness and is stretch work.
             *client survey* (M6, precondition c), approved and frozen with
             the spec, and proved with VST's `semax_prog`.  The survey
             for sglib's DL list (`bench/sglib_spec/CLIENT_SURVEY.md`) has
-            its open questions decided (owner, 2026-11-11) and awaits the
-            owner's final approval.
+            its open questions decided and was approved by the owner on
+            2026-11-11; it is frozen with the M6 spec.
         2.  *Unanchored-postcondition lint* (`harness/spec_lint.py`, run
             by `spec_checks` on the frozen baseline): flag every `ensures`
             clause, directly or through the public predicates it unfolds

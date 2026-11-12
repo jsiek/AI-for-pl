@@ -1,33 +1,33 @@
-# Client survey: sglib's doubly linked list (plan M6, draft for approval)
+# Client survey: sglib's doubly linked list (plan M6)
 
-**Status: draft, 2026-11-11.  Not approved.**  Plan M6, precondition 3:
-the owner approves this survey together with the public spec, and it is
-then frozen with the spec.  A later spec change must keep every
-surveyed client provable.  This draft contains no funspecs and no
-proofs.
+**Status: open questions decided by the owner, 2026-11-11.  Ready for
+the owner's final approval; not yet approved.**  Plan M6, precondition
+3: the owner approves this survey together with the public spec, and it
+is then frozen with the spec.  A later spec change must keep every
+surveyed client provable.  It contains no funspecs and no proofs.
 
-**Functions in scope.**  These are the functions the public spec template
-`sglib_dl_list_spec.h` specifies (frozen digest `2febb3fd8ad455cb` on
-B1):
+**Functions in scope** (the owner's decision Q1, below).
+- **Stage 1:** the functions the public spec template
+  `sglib_dl_list_spec.h` specifies today (frozen digest
+  `2febb3fd8ad455cb` on B1):
+  - `add`
+  - `get_first` and `get_last`
+  - `it_init`, `it_init_on_equal` and `it_next`
+  - the comparator
+- **Stage 2:** `delete`, `delete_if_member`, `add_before`, `add_after`
+  and `concat`, then `sort` last.
 
-- `add`
-- `get_first` and `get_last`
-- `it_init`, `it_init_on_equal` and `it_next`
-- the comparator contract (`SGLIB_DL_LIST_CONTRACT_COMPARATOR`)
-
-**Functions out of scope.**  sglib's other DL-list functions have no
-spec yet, but the clients below use them: `sort`, `delete`,
-`delete_if_member`, `add_before`, `add_after`, `add_if_not_member`,
-`concat`, `find_member`, `is_member`, `len`, `reverse`, and the macro
-`SGLIB_DL_LIST_MAP_ON_ELEMENTS`.  Whether they come into scope is open
-question Q1.
+**Functions out of scope.**  sglib's other DL-list functions, which some
+clients use: `find_member`, `is_member`, `len`, `reverse`,
+`add_if_not_member` and the macro `SGLIB_DL_LIST_MAP_ON_ELEMENTS`.
 
 **How to read it.**
 - Each pattern has an id (A = `add`, G = `get_first`/`get_last`,
-  I = iterator, C = comparator) and the sources it comes from.
-- The coverage map says which existing client already proves the
-  pattern (WP today; M6 re-proves it with VST's `semax_prog`), or GAP
-  with a sketch of a new client.
+  I = iterator, C = comparator, X = use from several threads) and the
+  sources it comes from.
+- The coverage map puts each pattern in one category: covered by an
+  existing proved client; a gap at stage 1 or stage 2, with a new
+  client; checked at run time; or out of scope, with the reason.
 
 ## Sources
 
@@ -57,7 +57,7 @@ GitHub code search for `SGLIB_DEFINE_DL_LIST_FUNCTIONS` on 2026-11-11.
   benchmark (H1, about 40 copies; BEEBS's `sglib-dllist` is S1).
 - **Users found:** U1–U7 are the only applications found.
   - **None** uses `it_init_on_equal` or `get_last`.
-  - Six of the seven use `sort` or `delete`, which are out of scope.
+  - Six of the seven use `sort` or `delete` (stage 2).
 - **Not searched:** code outside GitHub (other forges, distribution
   packages).
 
@@ -75,6 +75,7 @@ GitHub code search for `SGLIB_DEFINE_DL_LIST_FUNCTIONS` on 2026-11-11.
 | A6 | add, then `sort`, `delete`, `find_member`, `concat` on the same list | S1, S2, U1, U3, U6, H1, H2 |
 | A7 | several lists alive at once, each built with `add` | S2, S3 |
 | A8 | add to a list whose head variable is a global, or a field of a heap-allocated struct | U1 (global), U3 (field of a global struct), U4 and U7 (fields of heap structs) |
+| A9 | move a node from one list to another (decided 2026-11-11: `delete`, then `add`) | R (Q8) |
 
 ### `get_first` / `get_last`
 
@@ -111,134 +112,193 @@ GitHub code search for `SGLIB_DEFINE_DL_LIST_FUNCTIONS` on 2026-11-11.
 |---|---|---|
 | C1 | a pure function comparing payload fields, passed as `subcomparator` | S2, S3 (`myListCmp`) |
 | C2 | a macro inlined by sglib (`DLLIST_COMPARATOR`), used by `sort` and `find_member` | S1, U1, H1 |
-| C3 | a comparator with side effects (counting, logging) or one that writes nodes | R |
+| C3 | a comparator that updates its own state (a counter, a log), not the nodes | R (Q6) |
+| C4 | a comparator that writes to the nodes, payload included | R (Q6) |
 
-**Count:** 30 patterns: 8 for `add`, 5 for `get_first`/`get_last`, 14 for the iterator and 3 for the comparator. Three of them (A6, G4, G5) mainly concern functions outside the scope.
+### Use from several threads
 
-## Coverage map
-
-Each pattern is mapped to an existing client (file:function, and how it is proved today), or to **GAP** with a sketch of a new client to be proved with `semax_prog` (Q11 rule 1).
-- **Proved by both WP and VST:** B1a and B1c (`vst-run1`, `vst-run2`, `vst-b1c`); the older `../../vst/b1/verif_b1.v` proves B1a + B1b.
-- **WP only:** `../b1/b1.c:b1` (B1 with `get_first`/`get_last`) and `../selftest/wp/driver.c:st_iter_equal`.
-
-| Pattern | Covered by | |
+| Id | Pattern | Sources |
 |---|---|---|
-| A1 add to empty | `b1/b1.c:b1`, `b1a/b1a_ref.c:b1`, `b1c/b1c_ref.c:b1` (first iteration of the build loop) | covered |
-| A2 add at head | the same three drivers' build loops | covered |
-| A3 add before a non-head node | `b1c/b1c_ref.c:b1` step 3 | covered |
-| A4 keep using old nodes after add | **GAP** | sketch 1 |
-| A5 elem's links uninitialised | the three drivers (only `l->i` is written before `add`) | covered |
-| A6 add then sort/delete/find | **GAP** if Q1 brings those functions into scope; otherwise out of scope | sketch 2 |
-| A7 several lists at once | **GAP** | sketch 3 |
-| A8 list head a global or a heap field | global: **GAP** (all three drivers keep the head in a local); heap field: not supported by the current spec (see Notes) | sketch 4 |
-| G1 from the head, walk | `b1/b1.c:b1` (both walks) | covered (WP; VST: `vst/b1/verif_b1.v`) |
-| G2 from a non-head node | **GAP** (B1 calls them only with the head) | sketch 5 |
-| G3 on NULL | `b1/b1.c:b1` with n = 0 (WP proves every path) | covered |
-| G4 pop: get_first + delete | out of scope (delete) | Q1 |
-| G5 after sort | out of scope (sort) | Q1 |
-| I1 iterate, read, no free | `b1c/b1c_ref.c:b1` first walk | covered |
-| I2 iterate and free | `b1/b1.c:b1`, `b1a/b1a_ref.c:b1`, `b1c/b1c_ref.c:b1` | covered |
-| I3 iterate then reuse | `b1c/b1c_ref.c:b1` | covered |
-| I4 start mid-list | `b1c/b1c_ref.c:b1` second iteration (from the new node) | covered |
-| I5 empty list | the three drivers with n = 0 | covered |
-| I6 stop part-way, reuse | **GAP** | sketch 6 |
-| I7 with a comparator | `selftest/wp/driver.c:st_iter_equal` | covered (WP only) |
-| I8 NULL comparator | every `it_init` call (the three drivers) | covered |
-| I9 two iterators | **GAP** | sketch 7 |
-| I10 visits each node once, in order | **GAP**, and not expressible in the current spec (see Notes) | Q4 |
-| I11 delete the current node in the loop | out of scope (delete) | Q2 |
-| I12 add during an iteration | **GAP** | sketch 8, Q3 |
-| I13 it_next after NULL | **GAP** (a one-line extension of any driver) | sketch 9 |
-| I14 iterator in heap memory | not supported by the current spec (see Notes) | Q5 |
-| C1 pure comparator function | `selftest/wp/driver.c:st_iter_equal` with `myListCmp` | covered (WP only) |
-| C2 inlined comparator macro | out of scope (used only by sort/find) | Q1 |
-| C3 comparator with side effects | not supported by the current spec | Q6 |
+| X1 | the list used from several threads, with a lock taken around every call | U3, U4 |
+| X2 | the list shared between threads without a lock | R (Q7) |
 
-**Totals (30 patterns):**
-- **Covered: 14** (A1, A2, A3, A5, G1, G3, I1, I2, I3, I4, I5, I7, I8, C1). I7 and C1 are proved by WP only so far; G1 by WP and by the older VST proof of B1.
-- **Gaps with a sketch: 8** (A4, A7, A8 for a global head, G2, I6, I9, I12, I13). A6 becomes a ninth if Q1 brings `sort`/`delete` into scope.
-- **Out of scope or open questions: 8** (A6, G4, G5, I10, I11, I14, C2, C3). A8 for a head in heap memory is also listed under Notes.
+**Count:** 34 patterns:
+- 9 for `add`;
+- 5 for `get_first`/`get_last`;
+- 14 for the iterator;
+- 4 for the comparator;
+- 2 for use from several threads.
 
-### Sketches of new clients (each a `b1`-style driver plus `main`, proved with `semax_prog`)
+The draft listed 30. A9, C4, X1 and X2 were added with the owner's decisions; the draft's C3 was split into C3 (the comparator's own state) and C4 (writes to nodes).
+
+## Coverage map (scope decided 2026-11-11)
+
+Each pattern is in one of five categories:
+- **covered:** an existing proved client;
+- **stage 1:** a gap to close while porting the current functions to VST;
+- **stage 2:** a gap that needs `delete`, `delete_if_member`, `add_before`, `add_after`, `concat` and `sort`;
+- **run time:** checked by step 0, not proved;
+- **out of scope,** with the reason.
+
+Where existing clients are proved today:
+- **WP and VST:** B1a and B1c (`vst-run1`, `vst-run2`, `vst-b1c`); the older `../../vst/b1/verif_b1.v` proves B1a + B1b with VST.
+- **WP only:** `../b1/b1.c:b1` (B1 with `get_first`/`get_last`) and `../selftest/wp/driver.c:st_iter_equal`.
+- M6 re-proves every covered pattern with VST's `semax_prog`.
+
+| Pattern | Category | Client |
+|---|---|---|
+| A1 add to empty | covered | `b1/b1.c:b1`, `b1a/b1a_ref.c:b1`, `b1c/b1c_ref.c:b1` (first iteration of the build loop) |
+| A2 add at head | covered | the same three drivers' build loops |
+| A3 add before a non-head node | covered | `b1c/b1c_ref.c:b1` step 3 |
+| A4 keep using old nodes after add | stage 1 | client 1 |
+| A5 elem's links uninitialised | covered | the three drivers (only `l->i` is written before `add`) |
+| A6 add then sort/delete/concat | stage 2 | client 10 (`find_member` stays outside both stages; see Q1) |
+| A7 several lists at once | stage 1 | client 2 |
+| A8 list head a global, or in heap memory | stage 1 | client 3 (global), client 4 (heap) |
+| A9 move a node between lists | stage 2 | client 13 |
+| G1 from the head, walk | covered | `b1/b1.c:b1` (both walks; VST: `vst/b1/verif_b1.v`) |
+| G2 from a non-head node | stage 1 | client 5 |
+| G3 on NULL | covered | `b1/b1.c:b1` with n = 0 (WP proves every path) |
+| G4 pop: get_first + delete | stage 2 | client 11 |
+| G5 after sort | stage 2 | client 10 |
+| I1 iterate, read, no free | covered | `b1c/b1c_ref.c:b1` first walk |
+| I2 iterate and free | covered | `b1/b1.c:b1`, `b1a/b1a_ref.c:b1`, `b1c/b1c_ref.c:b1` |
+| I3 iterate then reuse | covered | `b1c/b1c_ref.c:b1` |
+| I4 start mid-list | covered | `b1c/b1c_ref.c:b1` second iteration (from the new node) |
+| I5 empty list | covered | the three drivers with n = 0 |
+| I6 stop part-way, reuse | stage 1 | client 6 |
+| I7 with a comparator | covered | `selftest/wp/driver.c:st_iter_equal` (WP only; to be proved against the new comparator funspec) |
+| I8 NULL comparator | covered | every `it_init` call (the three drivers) |
+| I9 two iterators | stage 1 | client 7 |
+| I10 visits each node once, in order | run time | step 0 with sglib's lockstep check (S2): checked at run time, not proved (Q4) |
+| I11 delete the current node in the loop | stage 2 | client 12 |
+| I12 add during an iteration | out of scope | Q3: no real user or sample does it; can be reopened if a later target needs it |
+| I13 it_next after NULL | stage 1 | client 8 |
+| I14 iterator in heap memory | stage 1 | client 4 |
+| C1 pure comparator function | covered | `selftest/wp/driver.c:st_iter_equal` with `myListCmp` (WP only; to be proved against the new comparator funspec) |
+| C2 inlined comparator macro | stage 2 | client 10 (used by `sort`) |
+| C3 comparator with its own state | stage 1 | client 9 |
+| C4 comparator that writes nodes | out of scope | Q6: comparators may not write to nodes |
+| X1 locked use from several threads | out of scope for M6 | Q7: compatible with the sequential specs, not proved in M6; a possible later benchmark, with no spec change |
+| X2 unlocked sharing between threads | out of scope, permanently | Q7: data races |
+
+**Totals (34 patterns):**
+
+| Category | Count | Patterns |
+|---|---|---|
+| covered | 14 | A1, A2, A3, A5, G1, G3, I1, I2, I3, I4, I5, I7, I8, C1 |
+| stage 1 gap | 9 | A4, A7, A8, G2, I6, I9, I13, I14, C3 |
+| stage 2 gap | 6 | A6, A9, G4, G5, I11, C2 |
+| run time | 1 | I10 |
+| out of scope | 4 | I12, C4, X1 (for M6), X2 (permanently) |
+
+### New clients (each a driver plus `main`, proved with `semax_prog`)
+
+**Stage 1** (the functions specified today):
 
 1. **Old nodes after add (A4).**
    - Build a list of n nodes, keeping the head `h` and a middle node `m`.
    - Add a new node before `m`.
-   - Walk forward from `get_first(h)`, summing payloads, then free everything with an iteration started at `h`.
-   - This proves that `add` leaves the caller's old nodes in one whole list with the new node inserted: the anchoring added on 2026-11-10.
-2. **add, then the out-of-scope functions (A6).** Only if Q1 brings them in.
-   - Build a list, `sort` it, `find_member` a value, `delete` it, then iterate and free.
-   - This is sglib's own sample (S1) plus the self-test's delete loop (S2).
-3. **Several lists (A7).**
+   - Walk forward from `get_first(h)`, summing payloads.
+   - Free everything with an iteration started at `h`.
+   - This proves that `add` leaves the caller's old nodes in one whole list with the new node inserted.
+2. **Several lists (A7).**
    - Build two lists from alternate input values.
    - Iterate the first and add copies of its payloads to the second, so that two lists are alive at once.
    - Free both by iteration.
-   - The proof must keep the two lists separate.
-4. **A global list head (A8).**
-   - As B1a's driver, with `the_list` a global variable (as in U1), and `main` calling the driver twice.
+3. **A global list head (A8).**
+   - As B1a's driver, with `the_list` a global variable (as in U1).
+   - `main` calls the driver twice.
+4. **List head and iterator in heap memory (A8, I14).**
+   - A malloc'ed struct holds the list head and an iterator (as U4 and U7 hold their heads).
+   - Build the list through `&s->head`, iterate with `&s->it`, and free the nodes and then the struct.
+   - Possible because VST's specs drop the "not in a heap block" conditions (Q5).
 5. **get_first/get_last from the middle (G2).**
    - Build a list; take a middle node.
    - `get_first(mid)` and walk forward; `get_last(mid)` and walk backward.
    - Free by iteration from `mid`.
 6. **Partial iteration (I6).**
    - Build a list; iterate from the head and stop after k nodes.
-   - Then start a new iteration with the same iterator struct and free every node.
+   - Start a new iteration with the same iterator struct and free every node.
 7. **Two iterators (I9).**
    - Build a list.
-   - For each node `x` returned by an outer iterator, run an inner iterator over the whole list and count the nodes with the same payload (`it_init_on_equal` with a comparator, or a plain inner loop).
+   - For each node returned by an outer iterator, run an inner iterator over the whole list and count the nodes with the same payload.
    - Then free by iteration.
-   - This shows that two iterators can read the same list at once.
-8. **add during an iteration (I12).**
-   - Iterate from the head. When the current node's payload is even, add a new node before it.
-   - Then free all by a new iteration.
-   - Whether the new node is visited by the running iteration is a spec question (Q3).
-9. **it_next after the end (I13).**
-   - Any driver; after the loop ends, call `it_next` once more and require NULL.
+8. **it_next after the end (I13).**
+   - After a complete iteration, call `it_next` once more and require NULL.
+9. **A comparator with its own state (C3).**
+   - `it_init_on_equal` with a comparator that compares payloads and increments a counter it owns (a static variable, or a struct the client passes).
+   - The client's predicate for the comparator's state is "the counter equals k".
+   - The client reads the count after the iteration.
+   - This exercises the comparator funspec decided under Q6.
 
-## Open questions for the owner
+**Stage 2** (needs `delete`, `delete_if_member`, `add_before`, `add_after`, `concat`, `sort`):
 
-- **Q1 — Functions beyond the current spec.**
-  - Six of the seven open-source users (U1, U3–U7) rely on `sort`, `delete`, `delete_if_member`, `add_before`, `add_after` or `concat`. So does sglib's own sample (`sort`).
-  - Do these come into M6's public spec? If not, patterns A6, G4, G5, I11 and C2 stay out of scope.
-- **Q2 — Delete the current node during an iteration (U3).**
-  - Safe in sglib today: the iterator has already moved past the current node.
-  - It needs `delete` in the spec and an iterator spec that survives an unlink.
-- **Q3 — add during an iteration (I12).**
-  - In scope?
-  - If so, must the spec say whether the new node is visited? That depends on where it lands relative to the iterator's two positions.
-- **Q4 — Order and coverage (I10).**
-  - "Visits every node once, in sglib's order" is a functional property, not memory safety. It was not added on 2026-11-08.
-  - sglib's self-test checks it. In scope for M6, or left to runtime tests?
-- **Q5 — List heads and iterators in heap memory (A8, I14).**
-  - The current spec requires the cell holding `*list` and the iterator struct not to be heap blocks (`!heap(\base_addr(..))`, from the ACSL liveness model).
-  - Real users keep list heads in malloc'ed structs (U4, U7).
-  - Under VST's ownership this restriction may not be needed. Should M6's spec allow it?
+10. **sort and friends (A6, G5, C2).**
+    - Build a list, `sort` it (the comparator is an inlined macro, as in S1), walk from the new head, `delete` one node and free it, `concat` a second list, then iterate and free.
+11. **Pop (G4).**
+    - Use the list as a queue: `get_first` then `delete` and free, until empty (as U4 and U6).
+12. **Iterate and delete (I11).**
+    - During an iteration, `delete` and free the current node (as U3 does, without its double free).
+13. **Delete then add (A9).**
+    - Move every node with an even payload from list 1 to list 2 by `delete` then `add`.
+    - Free both lists.
+
+## The owner's decisions (2026-11-11)
+
+The owner decided all eight open questions of the draft on 2026-11-11.
+
+- **Q1 — Functions beyond the current spec: yes, in two stages.**
+  - **Stage 1** ports the functions specified today to VST: `add`, `get_first`/`get_last`, `it_init`, `it_init_on_equal`, `it_next`, and the comparator.
+  - **Stage 2** adds `delete`, `delete_if_member`, `add_before`, `add_after` and `concat`, then `sort` last.
+  - For memory safety, `sort` only has to promise that its result is a whole list of the same nodes.
+  - `find_member`, `is_member`, `len`, `reverse`, `add_if_not_member` and `MAP_ON_ELEMENTS` are in neither stage.
+- **Q2 — Delete the current node during an iteration: yes, at stage 2.**
+  - A client may delete and free the current node.
+  - The iterator's state constrains only the links it will follow: previous links on the part still to be walked backward, next links on the part still to be walked forward.
+  - Deleting a node not yet visited stays forbidden.
+- **Q3 — Add during an iteration: out of scope.**
+  - No real user or sample does it; the pattern came only from our review of the API.
+  - It can be reopened if a later target needs it.
+- **Q4 — Iterator order and coverage: out of scope for the proofs.**
+  - The project's goal is memory safety, not functional correctness.
+  - Step 0 checks order and coverage at run time with sglib's lockstep check: I10 is checked at run time, not proved.
+- **Q5 — List heads and iterators in heap memory: allowed.**
+  - The VST specs drop every "not in a heap block" condition.
+  - Ownership separates the head cell from the nodes.
 - **Q6 — Comparators.**
-  - The current contract allows only comparators that read the fields `cmp_reads` names and write nothing.
-  - Are comparators with side effects (C3: counting, logging) or ones that write nodes out of scope?
-  - Is the finite set of allowed comparators (the template parameter `cmps`) still wanted under VST, where a funspec on a function pointer could replace it?
-- **Q7 — Concurrency.**
-  - U3 and U4 use the list under a mutex from several threads.
-  - Out of scope for M6 (sequential clients only)?
-- **Q8 — Moving a node between lists.**
-  - `add` with an `elem` that is still a node of another list breaks that other list.
-  - Should the spec forbid it (elem not in any live list), or leave it to the client?
+  - **Dropped:** the fixed comparator set `(n, f1, ..., fn)` and `cmp_reads`.
+  - `subcomparator` is NULL or a function proved against the comparator funspec. That funspec:
+    - takes read access to the two whole nodes and returns them unchanged;
+    - returns an int;
+    - may update its own state, described by a predicate the client chooses (sglib passes it through).
+  - Comparators that write to nodes, payload included, are out of scope.
+- **Q7 — Concurrency: M6 is sequential only.**
+  - M6 has sequential funspecs and sequential clients.
+  - Clients that take a lock around every call (U3, U4) are compatible with these specs but are not proved in M6. A concurrent client could be a later benchmark, with no spec change.
+  - Clients that share the list between threads without a lock are permanently out of scope: they have data races.
+- **Q8 — Moving a node between lists: forbidden by `add`.**
+  - `add`'s `elem` must be a node the client owns on its own, not part of any list. In VST this follows from ownership.
+  - A node moves between lists by `delete` then `add`; client 13 covers that at stage 2.
 
 ## Notes on the current spec (digest `2febb3fd8ad455cb`, not changed here)
 
-1. **Heap-resident list heads and iterators are not supported (A8, I14).**
-   - `add` requires `!heap(\base_addr(list))`; the iterator functions require `!heap(\base_addr(it))`.
-   - So the head stored in a field of a malloc'ed struct (U4, U7), or an iterator inside a heap object, cannot be proved.
-2. **No order or coverage guarantee for the iterator (I10).**
-   - `iter_ok` says each returned node is a live node of the list, between the two walks. It does not say every node is returned exactly once, or in which order.
-   - So sglib's lockstep self-test (S2) cannot be proved; its safety part can.
-3. **Comparators: a declared finite set, read-only (C3).**
-   - The comparator set is a template parameter (`cmps`), and the comparator contract forbids writes.
-   - Comparators with side effects, or any function pointer outside the set, are not supported.
-4. **add over all whole lists holding `*list`.**
-   - `in_old_list` quantifies over every whole list holding the old `*list`. That is the one list (lemma `dll_shared` in B1c).
-   - It is not checked at run time (step 0 lists it).
-5. **No spec for the other DL-list functions (Q1).** Most real clients use `sort` or `delete`.
-6. **ACSL-only parts.**
-   - The driver's `payload_init` precondition and the ghost liveness model (`live`, `dead`, `__heap`) belong to the WP pipeline.
-   - Under VST, liveness is ownership; M6 restates the spec as funspecs plus `SPEC.md`.
+The notes are about the frozen ACSL spec. The decisions above settle each one for the VST spec.
+
+1. **Heap-resident list heads and iterators** (`!heap` preconditions).
+   - Not supported by the ACSL spec.
+   - **Resolved for VST by Q5:** the VST specs drop these conditions, and client 4 covers them.
+2. **No order or coverage guarantee for the iterator.**
+   - **Resolved by Q4:** it stays out of the proofs on purpose, and step 0 checks it at run time. sglib's lockstep self-test (S2) remains provable only for its safety part.
+3. **Comparators: a declared finite set, read-only.**
+   - **Resolved for VST by Q6:**
+     - The set and `cmp_reads` are dropped.
+     - Any function proved against the comparator funspec is allowed, including one with its own state (client 9).
+     - Writes to nodes stay out of scope.
+4. **`in_old_list` quantifies over every whole list holding `*list`.**
+   - In VST, `add`'s funspec names the caller's list directly (both VST runs did). Q8 makes `elem` a separately owned node.
+   - The runtime check (step 0) is a property of the checker functions of M6 precondition 2.
+5. **No spec for the other DL-list functions.**
+   - **Resolved by Q1:** they come into scope at stage 2 (`find_member` and the rest excepted).
+6. **ACSL-only parts** (`payload_init`, the ghost liveness model).
+   - Gone under VST: liveness is ownership.

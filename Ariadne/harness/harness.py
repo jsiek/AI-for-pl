@@ -349,7 +349,7 @@ class Run:
                     open(os.path.join(os.path.dirname(lst), x)).read()
                     for x in json.load(open(lst))]
             self.annotator = annotator.Fake(
-                os.path.join(self.dir, "annotator"), srcs)
+                os.path.join(self.dir, "annotator"), srcs, self.cfg_path)
         if self.a.overlay:  # an edited source, as the annotator would give
             shutil.copy(self.a.overlay,
                         os.path.join(self.work, self.cfg["source"]))

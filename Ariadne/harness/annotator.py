@@ -109,7 +109,7 @@ def spec_header(cfg_path):
     the whole template."""
     try:
         h = json.load(open(cfg_path)).get("spec_header")
-    except (OSError, ValueError):
+    except (OSError, ValueError, TypeError):  # no config (None, missing)
         h = None
     return os.path.join(ARIADNE, h) if h else SPEC_H
 
@@ -203,8 +203,10 @@ class Fake:
     Records the tasks it was given."""
     name = "fake"
 
-    def __init__(self, root, sources):
+    def __init__(self, root, sources, cfg_path=None):
+        # cfg_path as for Opus: the config whose spec_header the call gets
         self.root, self.sources, self.tasks = root, list(sources), []
+        self.cfg_path = cfg_path
 
     def run(self, source, task):
         self.tasks.append(task)

@@ -2,6 +2,12 @@
 
 Experiments in using AI (GPT-5.3-Codex) to do PL metatheory in Agda and Lean.
 
+Subst - A library for renaming and substitution by one traversal with a kit,
+  with its laws derived from two language-specific inductions, and an
+  extension for polymorphic (System F style) languages.  No function
+  extensionality.  Used by `STLC/agda-subst` and
+  `SystemF/agda/intrinsic-subst`.
+
 STLC - Simply Typed Lambda Calculus
 
 STLCRef - Simply Typed Lambda Calculus with mutable references

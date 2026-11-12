@@ -44,6 +44,7 @@ sys.path.insert(0, os.path.join(ARIADNE, "prover"))
 from reallms_coq import FORBIDDEN, split_goal  # noqa: E402
 sys.path.insert(0, HERE)
 from acsl_expand import acsl_code, annotations, expand  # noqa: E402,F401
+import spec_lint  # noqa: E402
 
 RUN = os.path.join(ARIADNE, "env", "run.sh")
 
@@ -237,10 +238,11 @@ def directives(base_text, edited_text):
 
 def spec_checks(base_text, edited_text, cpp_args, work=None):
     """directives, then frozen, lint_acsl and lint_ghost of the edited
-    source against the baseline, both with the macros inside their
-    annotations expanded as Frama-C expands them (acsl_expand.py):
-    {check: verdict}.  A source Frama-C cannot preprocess fails the
-    three expanded checks."""
+    source against the baseline, and the unanchored-postcondition lint
+    of the baseline (spec_lint.py; a warning, always ok), all with the
+    macros inside their annotations expanded as Frama-C expands them
+    (acsl_expand.py): {check: verdict}.  A source Frama-C cannot
+    preprocess fails the three expanded checks."""
     v = {"directives": directives(base_text, edited_text)}
     try:
         base = expand(base_text, cpp_args, work)
@@ -251,7 +253,10 @@ def spec_checks(base_text, edited_text, cpp_args, work=None):
         return v
     v.update({"frozen_spec": frozen(base, ed),
               "lint_acsl": lint_acsl(base, ed),
-              "lint_ghost": lint_ghost(base, ed)})
+              "lint_ghost": lint_ghost(base, ed),
+              # plan Q11 rule 2: a warning on the frozen baseline's spec
+              # (the edit cannot change it: frozen_spec), never a failure
+              "spec_anchors": spec_lint.check(base)})
     return v
 
 

@@ -2,7 +2,7 @@
  "_comment": [
   "Witnesses for gen_twins.py (--witness-hints) of the iterator's \\exists over the whole list: s is the list through the iterator's backward node (or its forward node), walked back to its head and then forward (rac_dll_h_of_member, rac_dll_s_of_h; both stop on a repeated node or after RAC_FUEL steps); b and f are the two nodes' indices in s.  A witness only picks the value to test: the definition's body is still checked at it.",
   "{x} in a witness stands for the witness of binder x (also from an enclosing \\exists); gen_twins writes the witnesses in place.  iter_ok's c is the index of cur in s.",
-  "iter_ok: after the last node is returned both of the iterator's nodes are null, so s is then walked from cur itself."
+  "iter_ok (owner, 2026-11-08): the list s is a parameter, so only b, f and c need witnesses: the indices of the iterator's two nodes and of cur in s."
  ],
  "iter_pre": {
   "s": "it->prevelem != \\null ? rac_dll_s_of_h(rac_dll_h_of_member(it->prevelem)) : it->nextelem != \\null ? rac_dll_s_of_h(rac_dll_h_of_member(it->nextelem)) : (rac_list)0",
@@ -10,9 +10,8 @@
   "f": "it->nextelem == \\null ? rac_length({s}) : rac_index({s}, it->nextelem)"
  },
  "iter_ok": {
-  "s": "it->prevelem != \\null ? rac_dll_s_of_h(rac_dll_h_of_member(it->prevelem)) : it->nextelem != \\null ? rac_dll_s_of_h(rac_dll_h_of_member(it->nextelem)) : cur != \\null ? rac_dll_s_of_h(rac_dll_h_of_member(cur)) : (rac_list)0",
-  "b": "it->prevelem == \\null ? -1 : rac_index({s}, it->prevelem)",
-  "f": "it->nextelem == \\null ? rac_length({s}) : rac_index({s}, it->nextelem)",
-  "c": "rac_index({s}, cur)"
+  "b": "it->prevelem == \\null ? -1 : rac_index(s, it->prevelem)",
+  "f": "it->nextelem == \\null ? rac_length(s) : rac_index(s, it->nextelem)",
+  "c": "rac_index(s, cur)"
  }
 }

@@ -452,6 +452,51 @@ invariant is only needed for functional correctness and is stretch work.
 | M3 | Agent on B1 | Annotator (Opus 5.5) + prover tier on B1 starting from frozen contracts only (no human invariants).  Minimum success criterion.  First comparison of prover escalation strategies (§12.3).  **Agent on B1 done** (`harness/README.md`, "Annotator"): from `bench/b1/b1_frozen.c` (254 goals, 206 closed by Qed/SMT), Opus 5.5 wrote the invariants, asserts and 24 lemmas in two patches; certified 330/330 (Qed 186, SMT 140, Coq 4, all four by Sonnet); Opus $3.40, Sonnet $1.19.  **Escalation comparison done** (S1-S4 on 9 Coq goals, $3.80): Opus alone proved 9/9 at about $0.18 and 37 s per goal, so the prover is now tier 0 then Opus (Q9). |
 | M4 | RB-tree `find_member`, `add` | Shape library extended to trees; target success criterion. |
 | M5 | Evaluation | G6 metrics across B1, B2 (and B3 if reached); ablations: no refinement, no hammer, no library lemmas; prover escalation strategies and annotator model (§12.3). |
+| M6 | VST port (Q10, owner 2026-11-10) | VST is the sole backend from the next benchmark on; Frama-C/WP finishes B1/B1c and is retired.  Preconditions for relying on VST alone, below; harness pieces ported, below.  Exit: a benchmark certified by the VST pipeline with all three preconditions met. |
+
+**M6 preconditions for relying on VST alone (owner, 2026-11-10).**
+
+1.  *Public spec = the VST funspecs + the English `SPEC.md`.*  The
+    owner approves the English and reviews each funspec against it.
+2.  *Step 0 without ACSL.*  C checker functions derived from the
+    funspecs' representation predicates (reusing `rac/gen_twins.py`
+    where it applies) run on the target's tests, random operation
+    sequences and mutants, under ASan/UBSan.  They are a private test
+    artifact, checked against the English spec.
+3.  *Spec strength by client diversity (owner's decision): a client
+    survey is part of public-spec approval.*
+    *   For each public function, list the usage patterns its clients
+        need, from the target's own tests and self-test, real
+        open-source users of the library where any exist, and the
+        owner's review.  Examples for sglib's list: `add` at a non-head
+        node, free during iteration, reuse of the list after iteration,
+        iteration with and without a comparator, the empty list.
+    *   Map each pattern to a client program proved with `semax_prog`
+        (Q11 rule 1); a pattern with no client yet is a gap, and becomes
+        a new client.
+    *   The owner approves the survey together with the spec; the survey
+        is frozen with the spec, so a later spec change must keep every
+        surveyed client provable.
+    *   VST mutant "rejections" that come from a broken proof script are
+        not evidence of spec strength (`q10/README.md`): client proofs
+        replace the mutant check as the measure of strength.  Mutants
+        stay as a step-0 runtime filter.
+
+**M6 harness pieces to port.**
+
+*   The frozen-spec digest (guardrail 2), over the funspecs and the
+    representation predicates instead of ACSL contracts.
+*   The `directives` guardrail (preprocessor directives of the C).
+*   `spec_lint.py`: the unanchored-postcondition check becomes a
+    funspec review item (Q11 rule 2), read by the owner with the
+    English spec.
+*   The other guardrails: the overlay rule becomes "the `.v` AST is
+    `clightgen`'s output of the frozen C"; `Admitted`/axiom lint and the
+    `Print Assumptions` / coqchk allow-list carry over.
+*   `q10/run_vst.py` as the main runner (fenced `claude -p`, budget
+    reservation, check against a pristine C file).
+*   The Q12 spec templates as Coq definitions parameterised by the field
+    names (the counterpart of `sglib_dl_list_spec.h`).
 
 ---
 
@@ -517,7 +562,30 @@ invariant is only needed for functional correctness and is stretch work.
 
 ### 9.2 Still open
 
-*   **Q10 — Toolchain: Frama-C/WP or VST?**  VST (Verifiable C on
+*   **Q10 — Toolchain: Frama-C/WP or VST?  Decided (owner,
+    2026-11-10): VST is the sole proof backend from the next benchmark
+    on.**  Frama-C/WP is kept only to finish B1 and B1c, and is then
+    retired.  Reasons:
+    *   *Trust base.*  VST's proofs are checked by the Coq kernel against
+        CompCert Clight's semantics; the WP pipeline trusts WP, its memory
+        model and Qed simplifier, the `-ariadne` plugin and its ghost
+        allocator model, Why3 and the SMT solvers (§2.2, `vst/README.md`
+        §1.2).
+    *   *Liveness as ownership.*  A live node is a `data_at` +
+        `malloc_token` the caller owns: no ghost heap, no `payload_init`
+        precondition, no frame lemmas for `dll` across writes to other
+        objects (the work B1c's WP reference needed: `dll_shared_live`
+        and a Coq proof across `it_init`'s write to the iterator).
+    *   *Anchored specs.*  Both VST agents wrote an `add` funspec that
+        returns the exact new list (`s1 ++ elem :: s2`, `ins j e s`) and
+        an iterator that keeps its list, while the frozen ACSL needed two
+        owner-approved fixes (Q12 2026-11-08, Q11 2026-11-10).
+    *   *Results* (`q10/README.md`): every VST run proved every function
+        and `semax_prog` with `Qed` (B1a: $4.39 and $5.91, B1c: $9.94,
+        one call each); the WP pipeline certified B1a once in three runs
+        ($5.09, $7.04, $7.11: `wp-run4` certified) and left 3 goals open
+        on B1c ($9.36).  Similar cost, all `Qed` on the VST side.
+    The VST port is milestone M6 (§8).  Original question: VST (Verifiable C on
     CompCert Clight, `vst/README.md`) handles use-after-free natively and
     keeps shape predicates as checked Rocq definitions, removing the
     ghost liveness model and guardrail 3a's hole, at the cost of no SMT
@@ -553,6 +621,181 @@ invariant is only needed for functional correctness and is stretch work.
     with B1a.  The B1a/B1b numbers recorded so far are not a fair
     comparison: each was run once, and the VST run had the finished
     Frama-C spec to work from.
+    **First run: B1a, one run per side (owner, 2026-11-06; `q10/`).**
+    Two arms (Frama-C alone, VST alone), one paid run each, about $21
+    in all; a side that reaches its cap stops and reports what it has,
+    and no paid run is repeated without the owner.
+    *   *Scope.*  B1a is `sglib_dllist_add`,
+        `sglib_dllist_it_init_on_equal`, `sglib_dllist_it_init`,
+        `sglib_dllist_it_next` and the driver `b1`: build a list with
+        `add`, walk it forward from its head, free every node while
+        iterating.  The code is after bug fix #1 and refactor #1
+        (`bench/b1/CHANGES.md`).  `get_first`, `get_last` and the
+        backward walk are B1b and are left out.
+    *   *Same task.*  One English spec of B1a's public contracts as they
+        stand on `ariadne-templates` (`bench/b1a/SPEC.md`), and the same
+        C code, written by `bench/b1a/make_b1a.py` from B1 (sglib code
+        verbatim from `b1_gen.c`, contracts verbatim from
+        `b1_frozen.c`): `b1a.c` for VST (real `malloc`/`free`, a `main`
+        on a 4-element array) and `b1a_frozen.c` for Frama-C (the ghost
+        allocators and their labels, no `main`).
+    *   *Frama-C side: the pipeline.*  `harness.py ../bench/b1a --config
+        b1a_frozen.json --annotator opus --prove-scope lemmas --tiers 0,2
+        --opus-usd 3 --opus-turns 150 --opus-wp-calls 25 --claude-usd 1
+        --annotator-retries 1 --max-iterations 3 --max-usd 6
+        --max-seconds 7200` (turns and `wp` calls as in M3).  No step 0:
+        B1's runtime-check driver (`bench/b1/rac`) has
+        an oracle for B1's return value (the backward walk ends at the
+        head), which B1a's driver does not meet; step 0 is only a
+        filter, WP still decides every patch.  The input
+        is the frozen public ACSL spec (Q11: the human fixes the public
+        spec) with no private annotations, lemmas or Coq proofs.  The
+        annotator gets only the public half of the spec template
+        (`bench/b1a/spec/`, written by `make_b1a.py`): the whole
+        template also holds the human's private lemma and annotation
+        macros, which the annotator could otherwise invoke by name.
+        `--max-usd` (new) caps the run's total spending: a call whose cap
+        would pass it is refused.
+    *   *VST side: a fresh agent.*  `q10/run_vst.py`: one `claude -p
+        --model claude-opus-5-5 --max-budget-usd 15` in
+        `runs/q10/vst-<time>/` (git-ignored), holding `b1a.c`, `SPEC.md`,
+        `TASK.md` and VST's smoke test (`vst/smoke`, not B1) as an
+        example.  Task: a representation predicate and funspecs as
+        general as SPEC.md, `semax_body` for the five functions and
+        `main` ending in `Qed`, and `semax_prog`.  No access to the
+        existing proofs: `vst/b1/` is not copied, and the prompt forbids
+        reading outside the run directory except the VST/Rocq
+        installation.  Fence: cwd the run directory; `--safe-mode
+        --restricted --strict-mcp-config`; tools Bash, Read, Write, Edit;
+        Read/Write/Edit allowed only in the run directory; the only
+        command is a tool script outside the run directory (so the agent
+        cannot edit it) that runs one command in the VST image with only
+        the run directory mounted and no network; `git` and
+        `Ariadne/vst/b1/**` denied; `--permission-mode dontAsk`;
+        `GIT_DIR`, `GIT_CEILING_DIRECTORIES` set.  The fence actually
+        used is recorded in the run's `fence.json`.
+    *   *Measured per side:* wall time; tokens (input, output, cache
+        creation, cache read) and USD from `claude -p`'s JSON result;
+        model calls (`claude -p` invocations and their turns); what was
+        proved and what was left open; mutant rejection; and the size of
+        the human-facing public spec (lines).
+    *   *Mutants* (`q10/mutants.py`): B1's nine, as they apply to B1a.
+        C-level, the same edit on both sides: `uaf` (the forward walk
+        moved after the free loop), `nullchk`, `noinit`.  Spec-level
+        (Frama-C): `vacuity`, `nowashead`, `noassign`; VST analogues:
+        `vacuity` is `semax_prog` (a real call from `main` meets `b1`'s
+        precondition), `nowashead` is the new-head fact removed from
+        `add`'s funspec by hand, and `noassign` has none (VST frames by
+        ownership, there is no `assigns` clause to weaken).  `uaf_back`,
+        `nullfirst` and `nulllast` change B1b code and do not apply.
+        Frama-C (`q10/check_wp.py`): WP on the mutant of the final
+        annotated source with the run's Coq proofs; rejected if a goal of
+        the mutated function stays open.  VST (`q10/check_vst.py`): the
+        mutant C through `clightgen`; rejected if `coqc verif_b1a.v`
+        fails.
+    *   *Dry runs first, no paid calls:* the harness with `--tiers 0` and
+        no annotator (census, guardrails, step 0), and `run_vst.py
+        --dry-run` (the run directory, prompt and command line printed,
+        the tool script exercised by hand).  **Done:** the harness on
+        `b1a_frozen.c` (no annotator): 213 function goals, 185 closed
+        (Qed 135, Alt-Ergo 46, CVC5 2, Z3 2), 28 open (`b1` 23, `add` 3,
+        `it_init_on_equal` 1, `it_next` 1); every guardrail passes; the
+        frozen spec is B1's minus `get_first`/`get_last` (23 items, each
+        with B1's hash).  The annotator's directory gets a template with
+        no private macro.  VST: `clightgen` and `coqc` of `b1a.c` and of
+        the smoke example through the tool script; inside it there is
+        no `/ariadne`, no network, only the run directory at `/work`.
+    *   **Result (2026-11-06, `q10/README.md`).**  Frama-C pipeline: 253
+        of 263 goals, stopped by the $6 run cap at $5.09 (9 `claude -p`
+        calls, 3.52 M tokens, 2338 s); open: `add`'s `in_live_list`
+        postcondition, 4 goals of `b1`, 5 lemmas.  VST agent: all six
+        functions and `semax_prog` with `Qed` for $4.39 (one call, 162
+        turns, 7.79 M tokens, 2373 s); its funspecs match SPEC.md, in
+        places stronger.  Mutants: WP rejects all six that apply at the
+        intended goal; the VST proof breaks on each C-level mutant and
+        on `nowashead`, but by tactic mismatch, not at a refused
+        obligation.  Not a fair race: the VST agent wrote its own
+        funspecs, the Frama-C spec is the index-based liveness
+        formulation, and the pipeline's per-call caps left $0.91 of its
+        $6 unusable.
+    *   **Rerun of the Frama-C side, twice (owner, 2026-11-06).**  No VST
+        rerun.  Fixes first, each with an offline test:
+        1.  The report crash of `wp-run2`: `markdown()` read
+            `projected_pct` from every budget refusal, and a run-cap
+            refusal has `error` instead (`harness/test_report.py`).
+        2.  `run_vst.py` reserves its cap in the ledger before the call
+            (`--ledger`), so a calibrated or explicit limit can refuse it
+            (`q10/test_run_vst.py`).
+        3.  Under `--max-usd`, a call's cap is min(its per-call cap, what
+            the run has left), so a run can spend its whole budget; the
+            per-call caps stay upper bounds (`test_budget.py`,
+            `test_annotator.py`).
+        4.  Step 0 on for B1a: `bench/b1a/rac/check.sh` (B1's runtime-
+            check tools with B1a's oracle: the forward walk ends at
+            `input[0]`), with sanitizers, E-ACSL with the twins,
+            coverage, and B1a's runtime mutants (`vacuity`, `uaf`,
+            `nullchk`, `noinit`, from `q10/mutants.py`, so they fit any
+            annotated source).  Reference: `bench/b1a/b1a_ref.c`, B1's
+            certified annotations on B1a's driver (WP 313/313,
+            `run_ref.sh`).
+        Runs `wp-run3`, `wp-run4`, one after the other: `wp-run2`'s
+        command with step 0 and `--max-usd 10`.  The ledger is
+        calibrated (`budget.py calibrate`: 8% of the week over $73.87,
+        0.108% per USD).
+        **Result (`q10/README.md`, "All runs").**  `wp-run4`:
+        **certified, 303 / 303** (Qed 173, SMT 122, Coq 8) for $7.11 in
+        3043 s (3 annotator and 8 prover calls, 5.66 M tokens); WP rejects
+        all six mutants.  `wp-run3`: 234 / 249, 15 function goals open,
+        $7.04 in 2894 s; one annotator call was lost to a step-0 tooling
+        bug (the mutant anchors, fixed during the run), and the retry's
+        patch was rejected by a real E-ACSL check.  Step 0 passed on the
+        frozen source and each first patch with every clause evaluated,
+        caught the four runtime mutants each time, and was inconclusive
+        on `wp-run4`'s last two patches (E-ACSL could not build a ghost
+        variable).  The run cap was not reached in either rerun.  Against
+        VST's $4.39 for all six functions in one run, the Frama-C side
+        needs about $7 when it finishes, on a harder (index-based,
+        liveness-model) spec that the human gave it.
+        **Second VST run (owner, 2026-11-07), for variance:** `vst-run2`,
+        the same inputs and settings, the cap reserved in the ledger
+        first, and every other run in `runs/q10/` denied.  All six
+        functions and `semax_prog` with `Qed` again, for $5.91 in 3566 s
+        (one call, 177 turns, 9.45 M tokens).  Its funspecs have the same
+        strength as `vst-run1`'s overall: stronger on the node the
+        iterator returns (its exact links and position), weaker on
+        payload values (a predicate instead of the exact values, which
+        safety does not need).
+    *   **B1c round (owner, 2026-11-07): a client that reuses the list
+        after iterating** (`bench/b1c/`: B1a's functions, a driver that
+        walks the list without freeing, recording a middle node, adds a
+        node before it, then iterates from the new node freeing every
+        node).  **Stopped before any paid run: the frozen iterator spec
+        cannot verify this driver.**  `it_init`'s and
+        `it_init_on_equal`'s postcondition `iter_ok(it, \result)` binds
+        its list `s` existentially and never mentions the argument
+        `list`, and `it_next`'s does the same for the list of its
+        pre-state.  So a client cannot show that a returned node belongs
+        to *its* list: an implementation that iterates some other whole
+        list (say `[x0, x1]` with `x0` freed, returning `x1`) meets every
+        frozen iterator contract.  Step 3's `add` then needs `*list` (the
+        recorded node) to be a node of a whole *live* list, which
+        `in_live_list(x1)` contradicts.  B1a's driver never needed this,
+        since it only frees what the iterator returns.  A fix is a public
+        spec change (Q11: owner's approval): `it_init`/`it_init_on_equal`
+        ensure that the iterated list contains `list`, and `it_next`
+        ensures it iterates the same list as in its pre-state.
+        **Approved and done (owner, 2026-11-08; Q12).**  Reference
+        `b1c_ref.c`: WP 349 / 349 (Coq 12, three of them new), step 0
+        passes and catches its five runtime mutants, WP rejects all
+        eight mutants.  **Runs** (`q10/README.md`, "B1c"): `vst-b1c`
+        proved all six functions and `semax_prog` for $9.94 in 5679 s
+        (one call, 268 turns, 21.9 M tokens); its iterator borrows the
+        list (`it_next` takes and returns only the nodes still to visit),
+        so it supports a second iteration and, with some client work,
+        `add` during an iteration.  `wp-b1c`: 290 / 293 for $9.36 in
+        4123 s (8 calls, 8.25 M tokens), WP rejects all eight mutants;
+        its last patch was rejected by a harness defect (step 0 read the
+        previous patch's log), fixed after the run, not rerun.
 *   **Q11 — Human interaction and final products.  To do: discuss with
     the owner.**  M3 shows the pipeline can certify B1 from frozen
     contracts with no human annotation.  Still to settle:
@@ -741,6 +984,70 @@ invariant is only needed for functional correctness and is stretch work.
             disjunctions, whether each side was exercised.  A clause
             never evaluated on any input is flagged.
         *   Runtime checking stays a filter, not part of the trust base.
+    *   **Spec-validation rules (owner, 2026-11-08)**, for a public
+        spec's first freeze and every later change:
+        1.  *Prove clients, not just run them.*  Step 0's runtime checks
+            catch a spec that is too strong; to catch one that is too
+            weak, prove realistic clients against the public spec.  B1c
+            (`bench/b1c/`, a client that reuses the list after iterating)
+            is the first.  From M6 on, the clients are those of the
+            *client survey* (M6, precondition c), approved and frozen with
+            the spec, and proved with VST's `semax_prog`.
+        2.  *Unanchored-postcondition lint* (`harness/spec_lint.py`, run
+            by `spec_checks` on the frozen baseline): flag every `ensures`
+            clause, directly or through the public predicates it unfolds
+            to, with an existentially bound variable tied to no
+            parameter, `\result`, `\old`/`Pre` state or global.
+            Severity: a warning.
+        3.  *Sweep on review findings:* when a review finds a spec bug,
+            check every public contract for the same class before closing
+            it.
+        4.  *Read the whole public spec in English at first freeze,* not
+            only the diffs, with the approved English comments above.
+        History: `eaa42ed2` (2026-11-03) fixed this class in `get_first`
+        / `get_last` (their results belonged to *some* live list); the
+        iterator kept it until B1c found it on 2026-11-07.
+        **Sweep (2026-11-08), rule 3 on the iterator finding:** every
+        public contract of `sglib_dl_list_spec.h`, B1's driver and the
+        allocator model, read for a postcondition that loses the link
+        between its result or state and its inputs.  `spec_lint.py`
+        reports 0 unanchored postconditions on `b1_frozen.c`, the
+        self-test's `st_wp.c` and `b1c_frozen.c` (and 3, the iterator's,
+        on B1a's 2026-11-07 snapshot).  By hand: comparator, no
+        postcondition; `get_first`, `get_last`, `it_init`,
+        `it_init_on_equal`, `it_next`, anchored (to `list` or the
+        pre-state); B1's driver, no postcondition; allocator and free,
+        anchored to `\old(__heap)` and `p`.  **`add`: anchored only to
+        `elem`.**  It says `elem` is in *some* whole live list, not that
+        the new list is the caller's old list with `elem` inserted, so a
+        client cannot show that its other nodes are still in a whole
+        live list after `add` (B1 and B1c never need it: they use the
+        new node, or free every node).
+        **Approved and applied (owner, 2026-11-10):** `add` ensures
+        `in_old_list: \forall \list<type *> s, type *h, integer k;
+        \at(live_dll(\null, h, s) && 0 <= k < \length(s) && *list ==
+        \nth(s, k), Pre) ==> \exists \list<type *> t; live_dll(\null,
+        k == 0 ? elem : h, t) && SGLIB_DL_LIST__INSERTED(t, s, elem, k)`,
+        the existing clauses kept; `SGLIB_DL_LIST__INSERTED` becomes
+        public.  Private: asserts `old_fresh` (any whole list holding the
+        old `*list` is the precondition's, so it lacks `elem`; Coq,
+        `bench/b1/session/interactive/sglib_dllist_add_assert_old_fresh.v`:
+        a global lemma of the same fact slowed `add`'s other goals into
+        timeouts) and `old_head`.  Re-certified: B1 by `harness.py
+        ../bench/b1 --tiers 0`, certified 380 / 380 (Qed 205, SMT 165,
+        Coq 10), frozen digest `2febb3fd8ad455cb`; `bench/b1/check.sh`,
+        all nine mutants; the self-test 465 / 465 and both its mutants;
+        B1c's reference 352 / 352 (`run_ref.sh`) and all eight B1c
+        mutants; step 0 for B1, B1c and the self-test (E-ACSL, operation
+        sequences) pass.  `in_old_list` is not checked at run time: E-ACSL
+        has no finite range for its `\forall` over lists and nodes, and
+        `gen_twins` no witness for it (on the step-0 report's "not
+        checked" list).  New mutant `droplist`
+        (`bench/sglib_spec/anchor_probe/`): an `add` that drops the
+        caller's list and makes `elem` a list of its own; WP proves it
+        14 / 14 against `add`'s contract of 2026-11-08 and leaves
+        `in_old_list` open against today's.  `spec_lint.py` still reports
+        0 unanchored postconditions on B1.
     *   **Regression tests.**  When the software comes with tests, the
         pipeline uses them:
         *   as inputs for runtime checking of candidate annotations
@@ -859,6 +1166,31 @@ invariant is only needed for functional correctness and is stretch work.
         (B1: `(0)`; the self-test: `(1, myListCmp)`).  The count is
         explicit because Frama-C preprocesses annotations as C11, where
         an empty macro argument list cannot be detected.
+    *   **Iterator spec anchored to its list (owner, 2026-11-08).**  B1c
+        (plan Q10) found that the iterator's postconditions bound the
+        iterated list existentially, so a client could not show that a
+        returned node is in its own list.  Changed in the public
+        template, as approved: `iter_ok(it, s, cur)` takes the list `s`;
+        `it_init` / `it_init_on_equal` ensure `list == \null ==> \result
+        == \null` and `list != \null ==> \exists s, k; 0 <= k <
+        \length(s) && \nth(s, k) == list && iter_ok(it, s, \result)`;
+        `it_next` ensures `\forall s, b, f; iter_at{Pre}(it, s, b, f)
+        ==> iter_ok(it, s, \result)`.  No wording change was needed.
+        Private changes: three asserts at the end of `it_next`
+        (`ok_back`, `ok_forward`, `ok_end`: the new postcondition per
+        case; without them the self-test's `it_next` timed out), and the
+        clients' loop invariants (`l == \null || \exists s; iter_ok(&it,
+        s, l)`) in B1's and the self-test's drivers.  **Re-certified**:
+        B1 by `harness.py ../bench/b1 --tiers 0`, certified 377 / 377
+        (Qed 205, SMT 163, Coq 9), frozen digest `e37d96c8406e5e89`
+        (was `f6cc96e5854dafc5`); `bench/b1/check.sh`, all nine mutants
+        rejected at their intended goals; the self-test
+        (`selftest/wp/check.sh`) 462 / 462 and both its mutants;
+        `bench/b1/rac/check.sh` and `selftest/rac.sh` pass.  The new
+        iterator postconditions are not checked at run time (E-ACSL has
+        no witness for `\exists` or `\forall` over lists; they are on
+        the step-0 report's "not checked" list).  B1a keeps the spec of
+        2026-11-07 (`bench/b1a/spec`, `spec_full`): its runs used it.
 
 ---
 

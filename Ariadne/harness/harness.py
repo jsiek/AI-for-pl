@@ -9,7 +9,7 @@ out with coqc / coqchk / Print Assumptions, guardrails, and a report.
         [--claude-model claude-opus-5-5] [--claude-calls 30]
         [--claude-seconds 600] [--claude-usd 1]
         [--ledger ../runs/budget.json]
-        [--max-iterations 1] [--max-seconds 3600]
+        [--max-iterations 1] [--max-seconds 3600] [--max-usd USD]
 
 A run works on a copy of the benchmark in its own directory (default
 Ariadne/runs/<name>-<time>/; it must be under Ariadne/, which the
@@ -127,6 +127,14 @@ def census(goals):
 
 
 
+def last_run(log):
+    """The output of the last command of an appended log (sh() writes
+    `$ <command>` before each run): step 0 runs once per patch into the
+    same log, and a patch is judged by its own run only.  (wp-b1c judged
+    a patch by an earlier patch's FAIL lines, before this.)"""
+    return re.split(r"(?m)^\$ ", log)[-1]
+
+
 def rac_outcome(rac):
     """Step 0 on a patch: `pass`; `false` (a check fired on a run); or
     `inconclusive` (only the E-ACSL build or the RAC generation failed:
@@ -210,6 +218,8 @@ class Run:
         if a.no_tier0:
             self.tiers.discard(0)
         self.ledger = budget.Ledger(a.ledger)
+        if a.max_usd is not None:  # this run's own cap (plan Q10)
+            self.ledger = budget.RunCap(self.ledger, a.max_usd)
         self.wp_prefix = {}  # goal file -> its context as WP wrote it
         self.goals = []
         self.certified = set()
@@ -339,7 +349,7 @@ class Run:
                     open(os.path.join(os.path.dirname(lst), x)).read()
                     for x in json.load(open(lst))]
             self.annotator = annotator.Fake(
-                os.path.join(self.dir, "annotator"), srcs)
+                os.path.join(self.dir, "annotator"), srcs, self.cfg_path)
         if self.a.overlay:  # an edited source, as the annotator would give
             shutil.copy(self.a.overlay,
                         os.path.join(self.work, self.cfg["source"]))
@@ -404,7 +414,7 @@ class Run:
             return {"skipped": "no RAC configured" if not rac else "--no-rac"}
         cwd = os.path.join(self.work, rac["dir"])
         rc = self.sh(["image"] + rac["command"], cwd, "step0_rac.log")
-        lines = open(os.path.join(self.logs, "step0_rac.log")).read()
+        lines = last_run(open(os.path.join(self.logs, "step0_rac.log")).read())
         passes = len(re.findall(r"^PASS", lines, re.M))
         fails = re.findall(r"^FAIL.*", lines, re.M)
         # The mutant table: "<mutant>  <sanitizers>  <E-ACSL>  [ok]".
@@ -748,8 +758,8 @@ class Run:
         the FAIL lines with what the script printed after them, and the
         end of E-ACSL's run log."""
         out = list(rac.get("fail_lines") or [])
-        lines = open(os.path.join(self.logs, "step0_rac.log")).read() \
-            .rsplit("\n$ ", 1)[-1].splitlines()
+        lines = last_run(open(os.path.join(self.logs, "step0_rac.log"))
+                         .read()).splitlines()
         k = next((i for i, x in enumerate(lines) if x.startswith("FAIL")),
                  None)
         if k is not None:
@@ -1109,8 +1119,9 @@ def markdown(r):
                 + (f"  `/usage` weekly (all Claude Code use): {wb}% before, "
                    f"{wa}% after." if wb is not None else "")]
         out += [f"- **Warning:** {w}" for w in b.get("warnings", [])]
-        out += [f"- **Refused:** `{x['goal']}`: {x['projected_pct']}% would "
-                f"pass the {x['cap_pct']}% cap" for x in b.get("refused", [])]
+        out += [f"- **Refused:** `{x['goal']}`: " + (
+                x.get("error") or f"{x['projected_pct']}% would pass the "
+                f"{x['cap_pct']}% cap") for x in b.get("refused", [])]
     coq = [g for g in r["goals"] if g["discharger"] in ("coq", "open")]
     if coq:
         out += ["", "## Goals not closed by Qed or SMT", ""]
@@ -1186,6 +1197,10 @@ def main():
     ap.add_argument("--max-iterations", type=int, default=1,
                     help="refinement iterations (annotator patches)")
     ap.add_argument("--max-seconds", type=float, default=3600)
+    ap.add_argument("--max-usd", type=float, default=None,
+                    help="cap on this run's Anthropic spending (API-"
+                    "equivalent USD, all calls together): a call whose "
+                    "cap would pass it is refused")
     sys.exit(Run(ap.parse_args()).main())
 
 

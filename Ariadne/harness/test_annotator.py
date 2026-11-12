@@ -82,7 +82,8 @@ def unit(tmp):
     fake = os.path.join(bindir, "claude")
     with open(fake, "w") as f:
         f.write(f"""#!{sys.executable}
-import json
+import json, sys
+json.dump(sys.argv, open("argv.json", "w"))
 src = open("SOURCE.c").read()
 open("SOURCE.c", "w").write(src + "/* patched */\\n")
 print(json.dumps({{"subtype": "success", "num_turns": 3, "result": "DONE",
@@ -107,6 +108,38 @@ print(json.dumps({{"subtype": "success", "num_turns": 3, "result": "DONE",
                and s["usd_by_role"]["prover"] == 0
                and open(os.path.join(tmp, "ann", "call1", "TASK.md")).read()
                == "# task\n", (r, s))
+        # Under a run cap with $0.80 left, the $5 call runs capped at $0.80.
+        rc = budget.RunCap(led, 1.3)
+        rc.spent = 0.5
+        o = annotator.Opus(os.path.join(tmp, "ann3"), rc, "cfg.json",
+                           "base.c", usd=5.0)
+        r = o.run("int x;\n", "# task\n")
+        argv = json.load(open(os.path.join(tmp, "ann3", "call1",
+                                           "argv.json")))
+        cap = argv[argv.index("--max-budget-usd") + 1]
+        expect("Opus.run under --max-usd: the call's cap is what the run "
+               "has left ($0.80), not refused",
+               r["status"] == "answered" and cap == "0.8"
+               and r["budget"]["usd"] == 0.8, (cap, r.get("budget")))
+        # Fake gets the config as Opus does: the spec header it names
+        # (a regression test: Fake had no cfg_path, PR #235 review)
+        cfg = os.path.join(tmp, "b1a_cfg.json")
+        json.dump({"spec_header": "bench/b1a/spec/sglib_dl_list_spec.h"},
+                  open(cfg, "w"))
+        fk = annotator.Fake(os.path.join(tmp, "fake"), [None], cfg)
+        r = fk.run("int x;\n", "# task\n")
+        hdr = open(os.path.join(tmp, "fake", "call1",
+                                "sglib_dl_list_spec.h")).read()
+        expect("Fake.run: answered, with the config's spec header",
+               r["status"] == "answered" and hdr == open(os.path.join(
+                   annotator.ARIADNE, "bench", "b1a", "spec",
+                   "sglib_dl_list_spec.h")).read(), r)
+        fk = annotator.Fake(os.path.join(tmp, "fake2"), [None])
+        r = fk.run("int x;\n", "# task\n")
+        expect("Fake.run without a config: the whole template",
+               open(os.path.join(tmp, "fake2", "call1",
+                                 "sglib_dl_list_spec.h")).read()
+               == open(annotator.SPEC_H).read(), r)
         o = annotator.Opus(os.path.join(tmp, "ann2"), led, "cfg.json",
                            "base.c", usd=1e6)
         r = o.run("int x;\n", "# task\n")

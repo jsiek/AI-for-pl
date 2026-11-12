@@ -29,6 +29,7 @@ postulates and holes.
 | `Terms.agda` | signs, conversions, terms; conversion typing (runtime types) and term typing (named types) |
 | `Reduction.agda` | values (`Fun`, `Sealed`), allocation shift, substitution, TyBeta's `_•⟶_`, the step relation, runs |
 | `Progress.agda` | the progress theorem (proof in `proof/Progress.agda`) |
+| `Determinism.agda` | determinism and irreducible values (proof in `proof/Determinism.agda`) |
 | `Preservation.agda` | preservation for a step and for a run (proof in `proof/Preservation.agda`) |
 | `TypeSafety.agda` | every term a well-typed term reaches is a value or steps |
 | `Examples.agda` | Design.md's 5a–5e: typed, run (11, 11, 12, 17 and 21 steps), and their results typed by preservation |
@@ -80,6 +81,9 @@ Done:
 * progress (`proof/Progress.agda`), preservation
   (`proof/Preservation.agda`) and type safety, with `--safe` and no
   postulates;
+* determinism (`proof/Determinism.agda`), without typing: a term has at
+  most one step, with one result and one allocation, and values do not
+  step;
 * examples 5a–5e, whose every state is typed by preservation.
 
 How preservation goes for the boundary rules:
@@ -99,6 +103,5 @@ How preservation goes for the boundary rules:
   `ins-conv`, `ins-⇝`); named types do not change.
 
 Next:
-1. Determinism.
-2. Color preservation, stated over the named flags.
-3. An `Eval`.
+1. Color preservation, stated over the named flags.
+2. An `Eval`.

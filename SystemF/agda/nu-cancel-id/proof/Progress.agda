@@ -141,7 +141,7 @@ id⁻-fun (F-∀ v)      = inj₁ (V-fun (F-id⁻ (F-∀ v) (λ ())))
 id⁻-fun (F-id⁻ F nr) = inj₁ (V-fun (F-id⁻ (F-id⁻ F nr) (λ ())))
 id⁻-fun {α = α} (F-id⁺ {α = β} F) with β ≟ α
 id⁻-fun {α = α} (F-id⁺ {α = β} F) | yes refl =
-  inj₂ (_ , _ , cancel-id (V-fun F))
+  inj₂ (_ , _ , cancel-id (V-fun (F-id⁺ F)))
 id⁻-fun {α = α} (F-id⁺ {α = β} F) | no β≢α =
   inj₁ (V-fun (F-id⁻ (F-id⁺ F) (λ { refl → β≢α refl })))
 
@@ -158,7 +158,7 @@ id⁻-sealed {α = α} coh (S-seal {α = β} w) ⊢V | no α≢β =
   _ , _ , sink α≢β w
 id⁻-sealed {α = α} coh (S-rev {α = β} v) ⊢V with α ≟ β
 id⁻-sealed {α = α} coh (S-rev {α = β} v) ⊢V | yes refl =
-  _ , _ , cancel-id (V-sealed v)
+  _ , _ , cancel-id (V-sealed (S-rev v))
 id⁻-sealed {α = α} coh (S-rev {α = β} v) ⊢V | no α≢β =
   _ , _ , swap α≢β v
 

@@ -174,7 +174,8 @@ data _⊢_⟶_∣_ : Ctx → Term → Term → Alloc → Set where
   id-$      : Γ ⊢ [ s , α ] ($ k) ⟨ idᶜ ⟩ ⟶ $ k ∣ keep
   cancel-□  : Value W
     → Γ ⊢ [ ⁺ , α ] ([ ⁻ , α ] W ⟨ seal ⟩) ⟨ unseal ⟩ ⟶ W ∣ keep
-  cancel-id : Value V
+  -- the reveal is a value, so that over a constant, Id fires first
+  cancel-id : Value ([ ⁺ , α ] V ⟨ idᶜ ⟩)
     → Γ ⊢ [ ⁻ , α ] ([ ⁺ , α ] V ⟨ idᶜ ⟩) ⟨ idᶜ ⟩ ⟶ V ∣ keep
   -- a hide moves inward: below a seal, or below a reveal of another cell
   sink      : α ≢ β → Value V

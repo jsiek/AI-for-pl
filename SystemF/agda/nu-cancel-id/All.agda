@@ -10,4 +10,5 @@ open import nu-cancel-id.Reduction
 open import nu-cancel-id.Progress
 open import nu-cancel-id.Preservation
 open import nu-cancel-id.TypeSafety
+open import nu-cancel-id.Determinism
 open import nu-cancel-id.Examples

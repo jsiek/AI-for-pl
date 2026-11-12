@@ -8,8 +8,8 @@ first version's Sink and why it needed runtime types (§§3–7, §8).  This
 file restates the current design from scratch, with variables as names,
 and says where each part lives in the Agda.
 
-Status: type safety (progress and preservation) is CHECKED in Agda.
-Determinism and color preservation are argued on paper only (§8).
+Status: type safety (progress and preservation) and determinism are
+CHECKED in Agda.  Color preservation is argued on paper only (§8).
 Every example (§7) starts from a System F program and runs to a value,
 and every run is checked in Agda.
 
@@ -235,6 +235,7 @@ Agda: `Value`, `Fun`, `Sealed` in `Reduction.agda`.
 
     Δ ⊢ [+X^α] ([−X^α] W ⟨−X⟩) ⟨+X⟩  ⟶  W                            (Cancel-□)
     Δ ⊢ [−X^α] ([+X^α] V ⟨id⟩) ⟨id⟩  ⟶  V                            (CancelId)
+        if [+X^α] V ⟨id⟩ is a value
 
     Δ ⊢ [−Z^γ] ([−X^α] V ⟨−X⟩) ⟨id⟩  ⟶  [−X^α] ([−Z^γ] V ⟨id⟩) ⟨−X⟩  (Sink)
         if γ ≠ α
@@ -618,12 +619,23 @@ with the new variable unnamed.
 * **Allocation inside a frame.**  The siblings are weakened by an
   unnamed variable, which moves no name.
 
-**Determinism** (on paper).  The left-hand sides are disjoint: Sink
-needs a seal under the hide, Swap a reveal of another variable,
-CancelId a reveal of the same one; Push needs a reveal under an unseal,
-Cancel-□ a seal.  Swap and Push need a SEALED body, so a hide over a
-reveal over a functional value stays a value.  TyBeta's fresh variable
-is unique up to renaming (in the Agda it is always index 0).
+**Determinism** (checked: `Determinism.agda`,
+`proof/Determinism.agda`).  If `Δ ⊢ M ⟶ N₁ ⊣ ξ₁` and
+`Δ ⊢ M ⟶ N₂ ⊣ ξ₂`, then `N₁ = N₂` and `ξ₁ = ξ₂`; no typing is needed.
+Values do not step, and the left-hand sides are disjoint: Sink needs a
+seal under the hide, Swap a reveal of another variable, CancelId a
+reveal of the same one; Push needs a reveal under an unseal, Cancel-□ a
+seal.  Swap and Push need a SEALED body, so a hide over a reveal over a
+functional value stays a value.  TyBeta's payload is the spelling of
+`A`, which is a function, and its fresh variable is unique up to
+renaming (in the Agda it is always index 0).
+
+CancelId's side condition is what makes the left-hand sides disjoint
+from the ξ rule.  Over a constant, `[−X^α] ([+X^α] k ⟨id⟩) ⟨id⟩` would
+otherwise step both by CancelId, to `k`, and by Id under the hide, to
+`[−X^α] k ⟨id⟩`.  With the condition only the second applies, and Id
+then gives `k` as well.  No example needs CancelId over a constant;
+progress applies it only over functional and sealed values.
 
 **Color** (on paper).  Sink, Swap and Push commute entries for
 different variables, so a moved body's name map is unchanged; CancelId

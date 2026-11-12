@@ -257,7 +257,7 @@ def step_pf(flags, M):
         W = V[3] if V[0] == 'bnd' else None
         p = {'Id': lambda: 'id-$',
              'Cancel-□': lambda: ('cancel-□', [value_pf(W)]),
-             'CancelId': lambda: ('cancel-id', [value_pf(W)]),
+             'CancelId': lambda: ('cancel-id', [value_pf(V)]),
              'Sink': lambda: ('sink', ['(λ ())', value_pf(W)]),
              'Swap': lambda: ('swap', ['(λ ())', sealed_pf(W)]),
              'Push': lambda: ('push', [sealed_pf(W)])}[r]()

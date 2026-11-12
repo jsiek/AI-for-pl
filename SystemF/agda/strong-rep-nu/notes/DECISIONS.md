@@ -5664,3 +5664,15 @@ boundary cases needed exactly the three facts §8 names: spelling is
 injective (CancelId, Cancel-□), entries on different variables commute
 (Sink, Swap, Push), and a type can be re-read where there are more
 names (the moved layer's new exterior).
+
+**Addendum (2026-11-11): determinism checked; CancelId needs a value
+reveal.**  `nu-cancel-id/proof/Determinism.agda` proves that a term has
+at most one step, with one result and one allocation, and that values do
+not step; no typing is needed.  The proof found one overlap with the ξ
+rule: CancelId took any value `V`, so `[−X^α] ([+X^α] k ⟨id⟩) ⟨id⟩`
+stepped both to `k` (CancelId) and to `[−X^α] k ⟨id⟩` (Id under the
+hide).  CancelId now requires the reveal `[+X^α] V ⟨id⟩` to be a value,
+the same premise Wrap-id has.  Over a constant, Id fires first and then
+again, so the result is still `k`.  Progress only ever used CancelId over
+functional and sealed values, and preservation does not use the premise,
+so neither proof changed beyond the premise's shape.

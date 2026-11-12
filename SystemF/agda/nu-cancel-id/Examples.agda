@@ -196,8 +196,8 @@ run-5b =
   —→⟨ ξ-[] (ξ-[] (ξ-[] (β-ƛ (V-sealed (S-rev (S-seal (V-sealed
                                                   (S-seal V-$)))))))) ⟩
     [ ⁺ , 1 ] ([ ⁺ , 0 ] ([ ⁻ , 1 ] A5b ⟨ idᶜ ⟩) ⟨ unseal ⟩) ⟨ unseal ⟩
-  —→⟨ ξ-[] (ξ-[] (cancel-id (V-sealed (S-seal (V-sealed
-                                          (S-seal V-$)))))) ⟩
+  —→⟨ ξ-[] (ξ-[] (cancel-id (V-sealed (S-rev (S-seal (V-sealed
+                                                 (S-seal V-$))))))) ⟩
     [ ⁺ , 1 ]
       ([ ⁺ , 0 ] ([ ⁻ , 0 ] ([ ⁻ , 1 ] $ bool false ⟨ seal ⟩) ⟨ seal ⟩)
        ⟨ unseal ⟩)
@@ -684,7 +684,10 @@ run-5e =
        ⟨ unseal ⟩)
     ⟨ unseal ⟩
   —→⟨ ξ-[]
-        (ξ-[] (ξ-[] (cancel-id (V-sealed (S-seal (V-sealed (S-seal V-$))))))) ⟩
+        (ξ-[]
+           (ξ-[]
+              (cancel-id
+                 (V-sealed (S-rev (S-seal (V-sealed (S-seal V-$)))))))) ⟩
     [ ⁺ , 2 ]
       ([ ⁺ , 1 ]
          ([ ⁺ , 0 ]

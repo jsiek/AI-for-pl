@@ -31,7 +31,7 @@ postulates and holes.
 | `Progress.agda` | the progress theorem (proof in `proof/Progress.agda`) |
 | `Preservation.agda` | preservation for a step and for a run (proof in `proof/Preservation.agda`) |
 | `TypeSafety.agda` | every term a well-typed term reaches is a value or steps |
-| `Examples.agda` | the sketch's 5b and 5c: typed, run (11 and 12 steps), and their results typed by preservation |
+| `Examples.agda` | Design.md's 5a–5e: typed, run (11, 11, 12, 17 and 21 steps), and their results typed by preservation |
 | `proof/Types.agda` | renaming congruence and fusion |
 | `proof/Flags.agda` | flag update, names, spelling (functional, injective, re-readable with more names), spelling after inserting a cell |
 | `proof/Weaken.agda` | typing after inserting an unnamed cell (allocation, `crossΛ`) and after refining an abstract cell (TyBeta) |
@@ -77,7 +77,7 @@ Done:
 * progress (`proof/Progress.agda`), preservation
   (`proof/Preservation.agda`) and type safety, with `--safe` and no
   postulates;
-* examples 5b and 5c, whose every state is typed by preservation.
+* examples 5a–5e, whose every state is typed by preservation.
 
 How preservation goes for the boundary rules:
 * **CancelId and Cancel-□**: the two entries restore the exterior flags
@@ -98,4 +98,4 @@ How preservation goes for the boundary rules:
 Next:
 1. Determinism.
 2. Color preservation, stated over the named flags.
-3. The rest of the sketch's examples (5a, 5d, 5e), and an `Eval`.
+3. An `Eval`.

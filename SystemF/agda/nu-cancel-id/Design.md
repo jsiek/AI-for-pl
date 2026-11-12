@@ -10,8 +10,8 @@ and says where each part lives in the Agda.
 
 Status: type safety (progress and preservation) is CHECKED in Agda.
 Determinism and color preservation are argued on paper only (§8).
-Every example (§7) starts from a System F program and runs to a value;
-5b and 5c are checked in Agda.
+Every example (§7) starts from a System F program and runs to a value,
+and every run is checked in Agda.
 
 ## 1. A first example
 
@@ -358,16 +358,16 @@ A compound identity stays structural: `reveal_Y(Int → X)` is
 `id → id`.  A source `ΛX. N` elaborates to `ΛX^ζ. ⟦N⟧` with `ζ` fresh;
 the examples write the variable only where Beta's hide mentions it.
 This is `strong-rep-nu`'s `compile` (`Compile.agda`, `reveal 0 C`);
-`nu-cancel-id` has no compiler yet, and `Examples.agda` writes the
-elaborated terms by hand.
+`nu-cancel-id` has no compiler yet, and `Examples.agda` gives the
+elaborated terms directly.
 
 ## 7. Examples
 
 Each example gives the System F program, its elaboration, and the run
 to a value.  Every run starts at the empty context; `⊣` shows an
 allocation, and `where` names a subterm that the following lines
-abbreviate.  5b and 5c are checked in Agda (`Examples.agda`); 5a, 5d and
-5e are not.
+abbreviate.  Every run is checked in Agda (`Examples.agda`), and
+preservation types each of its states.
 
 The boundary rules each example uses, with the number of times (§5,
 "Why each boundary rule", says where each rule is needed):

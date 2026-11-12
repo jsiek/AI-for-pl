@@ -11,4 +11,6 @@ open import nu-cancel-id.Progress
 open import nu-cancel-id.Preservation
 open import nu-cancel-id.TypeSafety
 open import nu-cancel-id.Determinism
+open import nu-cancel-id.Residual
+open import nu-cancel-id.ColorPreservation
 open import nu-cancel-id.Examples

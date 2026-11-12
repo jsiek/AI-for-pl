@@ -8,10 +8,10 @@ first version's Sink and why it needed runtime types (§§3–7, §8).  This
 file restates the current design from scratch, with variables as names,
 and says where each part lives in the Agda.
 
-Status: type safety (progress and preservation) and determinism are
-CHECKED in Agda.  Color preservation is argued on paper only (§8).
-Every example (§7) starts from a System F program and runs to a value,
-and every run is checked in Agda.
+Status: type safety (progress and preservation), determinism and color
+preservation are all CHECKED in Agda (§8).  Every example (§7) starts
+from a System F program and runs to a value, and every run is checked
+in Agda.
 
 ## 1. A first example
 
@@ -277,7 +277,8 @@ from three places:
 Each boundary rule removes or crosses one kind of layer.  Each is
 NEEDED: §7's examples are run with every rule, and removing any one
 of the five rules leaves an example stuck at a well-typed term that is
-not a value.
+not a value (`tools/ablate.py` reruns the examples without each rule
+and prints where they stop).
 
 * **Cancel-□**, `[+X^α] ([−X^α] W ⟨−X⟩) ⟨+X⟩ ⟶ W`: the unseal meets its
   seal and both layers go.  Every unseal ends this way (5b, 5c, 5d,
@@ -326,7 +327,9 @@ and new position gains names.  The first version also sank reveals
 carrying `id` below seals.  That could leave a layer whose type
 no name denotes, which is why it needed runtime types
 (`CancelIdSketch.md` §8, with 5b).  All five rules restore or keep the
-name map exactly, so none needs a premise.
+name map exactly, so none needs a premise about names.  CancelId's one
+side condition, that the reveal it removes is a value, is there for
+determinism (§8).
 
 Agda: `_⊢_⟶_∣_` in `Reduction.agda`; `crossΛ` is the hide around a
 copy, `_•⟶_` is `•`, and `Alloc` is `ξ` (`new P` allocates an unnamed
@@ -358,9 +361,10 @@ The conversion unseals `X` where `C` runs covariantly and seals it where
 A compound identity stays structural: `reveal_Y(Int → X)` is
 `id → id`.  A source `ΛX. N` elaborates to `ΛX^ζ. ⟦N⟧` with `ζ` fresh;
 the examples write the variable only where Beta's hide mentions it.
-This is `strong-rep-nu`'s `compile` (`Compile.agda`, `reveal 0 C`);
-`nu-cancel-id` has no compiler yet, and `Examples.agda` gives the
-elaborated terms directly.
+This is `strong-rep-nu`'s `compile` (`Compile.agda`, `reveal 0 C`).
+`nu-cancel-id` has no compiler in Agda, and `Examples.agda` gives the
+elaborated terms directly.  `tools/nuc.py` implements this elaboration
+together with the reduction rules of §5.
 
 ## 7. Examples
 
@@ -368,7 +372,10 @@ Each example gives the System F program, its elaboration, and the run
 to a value.  Every run starts at the empty context; `⊣` shows an
 allocation, and `where` names a subterm that the following lines
 abbreviate.  Every run is checked in Agda (`Examples.agda`), and
-preservation types each of its states.
+preservation types each of its states.  The traces below are printed
+by `tools/nuc.py`.  The Agda runs of 5a, 5d and 5e are generated from
+the same interpreter by `tools/gen_examples.py`; 5b and 5c are written
+by hand.
 
 The boundary rules each example uses, with the number of times (§5,
 "Why each boundary rule", says where each rule is needed):
@@ -637,10 +644,41 @@ otherwise step both by CancelId, to `k`, and by Id under the hide, to
 then gives `k` as well.  No example needs CancelId over a constant;
 progress applies it only over functional and sealed values.
 
-**Color** (on paper).  Sink, Swap and Push commute entries for
-different variables, so a moved body's name map is unchanged; CancelId
-and Cancel-□ restore the exterior map exactly.  Beta's hide under `Λ`
-keeps the copy's map.
+**Color** (checked: `ColorPreservation.agda`,
+`proof/ColorPreservation.agda`; residuals in `Residual.agda`).  A
+position is a hole `C` with the node `M` in it.  Its COLOR is its name
+map: under the naming condition that is the list of variables named at
+the hole, newest first, since name `X` denotes the `X`-th of them.  A
+step moves a position to its RESIDUALS.  The nodes the redex consumes
+have none: its own layers, and Id's constant.  The theorem: if
+`Δ ∣ ∅ ⊢ L : A` and a run from `L` to `L′`, ending at `Δ′`, takes
+`(C , M)` to `(D , N)`, then the name map at `D` in `Δ′` is the name
+map at `C` in `Δ` with each variable renamed by the residual's `ρ`.  So
+the number of names in scope is unchanged.  `ρ` is the identity,
+except in two places, where it shifts variables past one that was
+inserted below them:
+
+* a sibling of an allocation (the new variable is unnamed);
+* a copy that Beta's hide carries under a `Λ`.  The hide unnames the
+  `Λ`'s variable, so the copy sees the same names as before, each one
+  shifted past it.
+
+Residuals are real positions: `L = C[M]` and `L′ = D[N]`
+(`residuals-sound`).  Rule by rule:
+
+* **Sink, Swap and Push** commute entries for different variables, so
+  the moved body's map is unchanged.  Push needs no premise: an unseal
+  and a reveal of the same variable set the same flag.
+* **CancelId and Cancel-□** restore the exterior map exactly, and so do
+  Wrap's two entries on the argument.  This is where typing is used:
+  the redex's variable already has, outside, the flag that the second
+  entry sets.  That is coherence.
+* **TyBeta**: the allocated variable, revealed, takes the place of the
+  variable the `Λ` named, so the body's map is unchanged.  Each layer
+  of a `∀`-typed tower moves past it.
+* **Beta**: the body keeps its frames, since substitution stops at
+  boundaries.  A copy under `k` `Λ`s is wrapped in `k` hides.  The
+  map moves past each hidden variable, which is the renaming above.
 
 ## 9. Against earlier designs
 

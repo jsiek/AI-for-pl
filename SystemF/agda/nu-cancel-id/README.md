@@ -30,6 +30,8 @@ postulates and holes.
 | `Reduction.agda` | values (`Fun`, `Sealed`), allocation shift, substitution, TyBeta's `_•⟶_`, the step relation, runs |
 | `Progress.agda` | the progress theorem (proof in `proof/Progress.agda`) |
 | `Determinism.agda` | determinism and irreducible values (proof in `proof/Determinism.agda`) |
+| `Residual.agda` | one-hole contexts, the flags and name map at a hole, residuals of a step and of a run |
+| `ColorPreservation.agda` | color (scope-map) preservation through a run, its length corollary, and residual soundness (proofs in `proof/ColorPreservation.agda`, `proof/Residual.agda`) |
 | `Preservation.agda` | preservation for a step and for a run (proof in `proof/Preservation.agda`) |
 | `TypeSafety.agda` | every term a well-typed term reaches is a value or steps |
 | `Examples.agda` | Design.md's 5a–5e: typed, run (11, 11, 12, 17 and 21 steps), and their results typed by preservation |
@@ -84,6 +86,10 @@ Done:
 * determinism (`proof/Determinism.agda`), without typing: a term has at
   most one step, with one result and one allocation, and values do not
   step;
+* color preservation (`proof/ColorPreservation.agda`): a residual's name
+  map is the original one, renamed past allocated cells and past the
+  cells `crossΛ` hides; residuals are positions of the contractum
+  (`proof/Residual.agda`);
 * examples 5a–5e, whose every state is typed by preservation.
 
 How preservation goes for the boundary rules:
@@ -103,5 +109,4 @@ How preservation goes for the boundary rules:
   `ins-conv`, `ins-⇝`); named types do not change.
 
 Next:
-1. Color preservation, stated over the named flags.
-2. An `Eval`.
+1. An `Eval`.

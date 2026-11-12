@@ -36,6 +36,9 @@ postulates and holes.
 | `proof/Flags.agda` | flag update, names, spelling (functional, injective, re-readable with more names), spelling after inserting a cell |
 | `proof/Weaken.agda` | typing after inserting an unnamed cell (allocation, `crossΛ`) and after refining an abstract cell (TyBeta) |
 | `proof/Subst.agda` | Beta's substitution, with `crossΛ` under `Λ` |
+| `tools/nuc.py` | an interpreter that follows `Reduction.agda` rule by rule, with the elaboration from System F and a printer in Design.md's notation (`python3 nuc.py a` prints 5a) |
+| `tools/agdagen.py`, `tools/gen_examples.py` | print the Agda for an example: abbreviations, elaborated term, typing, run with every step's derivation, typed result (`python3 gen_examples.py 5e`) |
+| `tools/ablate.py` | for each boundary rule, the examples that get stuck without it |
 
 ## Representation choices
 

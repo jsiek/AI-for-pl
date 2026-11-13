@@ -481,6 +481,23 @@ invariant is only needed for functional correctness and is stretch work.
         not evidence of spec strength (`q10/README.md`): client proofs
         replace the mutant check as the measure of strength.  Mutants
         stay as a step-0 runtime filter.
+    *   **sglib's DL list: survey drafted, questions decided**
+        (`bench/sglib_spec/CLIENT_SURVEY.md`).  The draft listed usage
+        patterns from sglib's sample and self-test, our drivers and 7
+        open-source users; the owner decided its 8 open questions on
+        2026-11-11.  Scope: stage 1 (the functions specified today, with
+        the comparator funspec of Q6) and stage 2 (`delete`,
+        `delete_if_member`, `add_before`, `add_after`, `concat`, then
+        `sort`); `!heap` conditions dropped; order and coverage checked at
+        run time only; sequential clients only.  38 patterns: 14
+        covered, 9 stage-1 gaps, 10 stage-2 gaps, 1 checked at run time,
+        4 out of scope (2026-11-13: patterns and a client added for
+        `add_before`, `add_after`, `delete_if_member`, after Codex's
+        review; follows from Q1).  **Approved by the owner on 2026-11-11** (with I13
+        claiming only that `it_next` after the end is memory safe), and
+        frozen with the M6 spec.  **Next step:** write the stage-1 VST
+        funspecs, with the English `SPEC.md` that goes with them, for the
+        owner to review.
 
 **M6 harness pieces to port.**
 
@@ -992,7 +1009,10 @@ invariant is only needed for functional correctness and is stretch work.
             (`bench/b1c/`, a client that reuses the list after iterating)
             is the first.  From M6 on, the clients are those of the
             *client survey* (M6, precondition c), approved and frozen with
-            the spec, and proved with VST's `semax_prog`.
+            the spec, and proved with VST's `semax_prog`.  The survey
+            for sglib's DL list (`bench/sglib_spec/CLIENT_SURVEY.md`) has
+            its open questions decided and was approved by the owner on
+            2026-11-11; it is frozen with the M6 spec.
         2.  *Unanchored-postcondition lint* (`harness/spec_lint.py`, run
             by `spec_checks` on the frozen baseline): flag every `ensures`
             clause, directly or through the public predicates it unfolds

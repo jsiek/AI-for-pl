@@ -6,10 +6,12 @@ module nu-cancel-id.ColorPreservation where
 --     MAP, `names` of the flags at the hole (nu-cancel-id.Residual §2):
 --     the named cells, newest first, so name X denotes the X-th.
 --   * `scope-map-preservation`: through a run, a residual's scope map
---     is the original one with each cell renamed by the residual's ρ
---     (an allocation shifts its siblings past the new cell, and a copy
---     under a `Λ` moves past that `Λ`'s cell).  `color-preservation`,
---     its corollary: the number of names in scope is unchanged.
+--     is the original one with ρ applied to each entry: the same names,
+--     each denoting the same cell.  ρ only re-indexes cells, which are
+--     de Bruijn indices: an allocation puts an unnamed cell below its
+--     siblings' cells, and a copy under a `Λ` sits below that `Λ`'s
+--     cell, which the copy's hide unnames.  `color-preservation`, its
+--     corollary: the number of names in scope is unchanged.
 --   * The source is read at Γ and the target at Γ′, the context the run
 --     ends at.  Residuals are positions of the contractum
 --     (`residuals-sound`).  The proofs are

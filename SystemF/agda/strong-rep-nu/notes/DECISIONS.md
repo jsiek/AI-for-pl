@@ -5679,11 +5679,14 @@ so neither proof changed beyond the premise's shape.
 
 **Addendum (2026-11-11): color preservation checked.**
 `nu-cancel-id/ColorPreservation.agda` states it as in strong-rep-nu: a
-residual's scope map is the original renamed by the residual's ρ, and
-its length is unchanged.  The scope map at a hole is `names` of the
-flags there (the named cells, newest first), which the naming condition
-makes the whole map.  ρ is the identity except for a sibling of an
-allocation and a copy that `crossΛ` moves under a `Λ`: both insert an
-unnamed cell.  Typing is used only for coherence at CancelId, Cancel-□
-and Wrap's argument.  `proof/Residual.agda` proves, as strong-rep-nu's
-does, that residuals are positions of the contractum.
+residual's scope map is the original with the residual's ρ applied to
+each entry, and its length is unchanged.  The scope map at a hole is
+`names` of the flags there (the named cells, newest first), which the
+naming condition makes the whole map.  So a residual has the same type
+variables, each denoting the same cell; ρ only re-indexes cells (de
+Bruijn indices).  It is the identity except for a sibling of an
+allocation and a copy that `crossΛ` moves under a `Λ`: both put an
+unnamed cell below the existing ones.  Typing is used only for
+coherence at CancelId, Cancel-□ and Wrap's argument.
+`proof/Residual.agda` proves, as strong-rep-nu's does, that residuals
+are positions of the contractum.

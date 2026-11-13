@@ -86,9 +86,10 @@ Done:
 * determinism (`proof/Determinism.agda`), without typing: a term has at
   most one step, with one result and one allocation, and values do not
   step;
-* color preservation (`proof/ColorPreservation.agda`): a residual's name
-  map is the original one, renamed past allocated cells and past the
-  cells `crossΛ` hides; residuals are positions of the contractum
+* color preservation (`proof/ColorPreservation.agda`): a residual has
+  the same type variables in scope, each denoting the same cell; only
+  the cells' de Bruijn indices shift, past an allocated cell or a cell
+  `crossΛ` hides; residuals are positions of the contractum
   (`proof/Residual.agda`);
 * examples 5a–5e, whose every state is typed by preservation.
 

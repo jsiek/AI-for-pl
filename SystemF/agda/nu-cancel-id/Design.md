@@ -647,38 +647,45 @@ progress applies it only over functional and sealed values.
 **Color** (checked: `ColorPreservation.agda`,
 `proof/ColorPreservation.agda`; residuals in `Residual.agda`).  A
 position is a hole `C` with the node `M` in it.  Its COLOR is its name
-map: under the naming condition that is the list of variables named at
-the hole, newest first, since name `X` denotes the `X`-th of them.  A
-step moves a position to its RESIDUALS.  The nodes the redex consumes
-have none: its own layers, and Id's constant.  The theorem: if
-`Δ ∣ ∅ ⊢ L : A` and a run from `L` to `L′`, ending at `Δ′`, takes
-`(C , M)` to `(D , N)`, then the name map at `D` in `Δ′` is the name
-map at `C` in `Δ` with each variable renamed by the residual's `ρ`.  So
-the number of names in scope is unchanged.  `ρ` is the identity,
-except in two places, where it shifts variables past one that was
-inserted below them:
+map: under the naming condition that is the list of representation
+variables that carry a type-variable name at the hole, newest first,
+since type variable `X` denotes the `X`-th of them.  A step moves a
+position to its RESIDUALS.  The nodes the redex consumes have none:
+its own layers, and Id's constant.  The theorem: if `Δ ∣ ∅ ⊢ L : A`
+and a run from `L` to `L′`, ending at `Δ′`, takes `(C , M)` to
+`(D , N)`, then the name map at `D` in `Δ′` is the name map at `C` in
+`Δ` with `ρ` applied to each entry.  That is, the same type variables
+are in scope, in the same order, and each denotes the same
+representation variable as before; so the number of names in scope is
+unchanged.  `ρ` only re-indexes representation variables, which are
+de Bruijn indices.  It is the identity, except in two places where an
+unnamed representation variable is inserted below the existing ones,
+so their indices go up by one:
 
-* a sibling of an allocation (the new variable is unnamed);
-* a copy that Beta's hide carries under a `Λ`.  The hide unnames the
-  `Λ`'s variable, so the copy sees the same names as before, each one
-  shifted past it.
+* a sibling of an allocation (allocation creates a representation
+  variable, with no type-variable name);
+* a copy that Beta's hide carries under a `Λ`.  The copy sits under
+  the `Λ`'s representation variable, and the hide leaves it unnamed, so
+  the copy sees the same type variables as before.
 
 Residuals are real positions: `L = C[M]` and `L′ = D[N]`
 (`residuals-sound`).  Rule by rule:
 
-* **Sink, Swap and Push** commute entries for different variables, so
-  the moved body's map is unchanged.  Push needs no premise: an unseal
-  and a reveal of the same variable set the same flag.
+* **Sink, Swap and Push** commute entries for different representation
+  variables, so the moved body's map is unchanged.  Push needs no
+  premise: an unseal and a reveal of the same representation variable
+  set the same flag.
 * **CancelId and Cancel-□** restore the exterior map exactly, and so do
   Wrap's two entries on the argument.  This is where typing is used:
-  the redex's variable already has, outside, the flag that the second
-  entry sets.  That is coherence.
-* **TyBeta**: the allocated variable, revealed, takes the place of the
-  variable the `Λ` named, so the body's map is unchanged.  Each layer
-  of a `∀`-typed tower moves past it.
+  the redex's representation variable already has, outside, the flag
+  that the second entry sets.  That is coherence.
+* **TyBeta**: the allocated representation variable, revealed, takes
+  the place of the one the `Λ` bound, so the body's map is unchanged.
+  Each layer of a `∀`-typed tower moves past it.
 * **Beta**: the body keeps its frames, since substitution stops at
   boundaries.  A copy under `k` `Λ`s is wrapped in `k` hides.  The
-  map moves past each hidden variable, which is the renaming above.
+  indices in its map go up by one per hidden representation variable,
+  which is the re-indexing above.
 
 ## 9. Against earlier designs
 

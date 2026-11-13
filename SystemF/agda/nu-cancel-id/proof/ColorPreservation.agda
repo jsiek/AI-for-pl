@@ -2,9 +2,12 @@ module nu-cancel-id.proof.ColorPreservation where
 
 -- File Charter:
 --   * THE PROOF OF COLOR PRESERVATION: a residual's scope map is the
---     original one, renamed by the residual's ρ (`color`, `color*`).
+--     original one with ρ applied to each entry (`color`, `color*`):
+--     the same names, each denoting the same cell, whose de Bruijn
+--     index ρ may shift.
 --   * §1 list facts.  §2 the scope map after inserting an unnamed cell
---     (`hole-ins`): it is the old map renamed.  This covers a sibling
+--     (`hole-ins`): the same names, with the cell indices shifted past
+--     the new cell.  This covers a sibling
 --     of an allocation and a copy that `crossΛ` moves under a `Λ`.
 --     §3 the flags at a hole, before and after: Beta's substitution
 --     keeps the frames, and TyBeta's instantiation trades the `Λ` for
@@ -53,7 +56,7 @@ map-suc-ext ρ []       = refl
 map-suc-ext ρ (x ∷ xs) = cong (suc (ρ x) ∷_) (map-suc-ext ρ xs)
 
 ------------------------------------------------------------------------
--- 2. Inserting an unnamed cell renames the scope map
+-- 2. Inserting an unnamed cell shifts the cell indices in the scope map
 ------------------------------------------------------------------------
 
 names-ins : ∀ k Φ → names (insᶠ k Φ) ≡ map (extⁿ k suc) (names Φ)

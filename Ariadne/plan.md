@@ -489,9 +489,11 @@ invariant is only needed for functional correctness and is stretch work.
         the comparator funspec of Q6) and stage 2 (`delete`,
         `delete_if_member`, `add_before`, `add_after`, `concat`, then
         `sort`); `!heap` conditions dropped; order and coverage checked at
-        run time only; sequential clients only.  34 patterns: 14
-        covered, 9 stage-1 gaps, 6 stage-2 gaps, 1 checked at run time, 4
-        out of scope.  **Approved by the owner on 2026-11-11** (with I13
+        run time only; sequential clients only.  38 patterns: 14
+        covered, 9 stage-1 gaps, 10 stage-2 gaps, 1 checked at run time,
+        4 out of scope (2026-11-13: patterns and a client added for
+        `add_before`, `add_after`, `delete_if_member`, after Codex's
+        review; follows from Q1).  **Approved by the owner on 2026-11-11** (with I13
         claiming only that `it_next` after the end is memory safe), and
         frozen with the M6 spec.  **Next step:** write the stage-1 VST
         funspecs, with the English `SPEC.md` that goes with them, for the

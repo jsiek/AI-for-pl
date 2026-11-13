@@ -5,6 +5,8 @@
 - One change came with the approval: I13 claims only memory safety.
 - The survey is frozen with the M6 spec (plan M6, precondition 3): a
   later spec change must keep every surveyed client provable.
+- 2026-11-13: clients added for add_before, add_after,
+  delete_if_member (Codex review; follows from Q1).
 - It contains no funspecs and no proofs.
 
 **Functions in scope** (the owner's decision Q1, below).
@@ -116,6 +118,18 @@ GitHub code search for `SGLIB_DEFINE_DL_LIST_FUNCTIONS` on 2026-11-11.
 | C3 | a comparator that updates its own state (a counter, a log), not the nodes | R (Q6) |
 | C4 | a comparator that writes to the nodes, payload included | R (Q6) |
 
+### Stage-2 insertion and conditional deletion (`add_before`, `add_after`, `delete_if_member`)
+
+Added on 2026-11-13: Q1 makes these three functions public at stage 2,
+so each needs a pattern and a client.
+
+| Id | Pattern | Sources |
+|---|---|---|
+| D1 | `add_before` at an end node (the head) and at a middle node; `*place` keeps pointing at the old node | U7 `KeyManager.imp.inl` lines 273 and 922: `sglib_key_node_add_before(&keyManager->keyList.header, node)` puts a recently used key at the head (with `tail` set when the list was empty); S2 (`add_before` from an empty list onward); H2; middle node: R |
+| D2 | `add_after` at an end node (the tail) and at a middle node | U7 `KeyManager.imp.inl` line 282: `sglib_key_node_add_after(&keyManager->keyList.tail, node)` appends at the tail; U4 `event_source_freebsd.c` line 359: `sglib_pending_line_add_after(&esf->pending.last, to_add)`, also the tail; U5 `mm_alloc.c` lines 160, 192, 218, 243, 275, 304: `add_after(&free_blocks_list, ...)`, after the list's node, a middle position once the list has two nodes; S2; H2 |
+| D3 | `delete_if_member` with a key equal to a node of the list: that node is unlinked and returned in `*member`, and the client frees it | U7 `KeyManager.imp.inl` lines 1125 and 1139: `sglib_key_node_delete_if_member(&..., keyNode, &foundKeyNode)`, then branch on `foundKeyNode`; U5 `mm_alloc.c` line 159 (`if (sglib_block_dl_delete_if_member(&free_blocks_list, last_entry, NULL))`). U5 passes NULL for `member`, which sglib writes through (`*member`): a bug in that client, which a funspec requiring a writable `member` rejects. S2 |
+| D4 | `delete_if_member` with a key equal to no node: nothing is unlinked, `*member` is NULL, and the key node stays the client's own (freed by the client, or used elsewhere) | U7 `KeyManager.imp.inl` lines 1125–1133: when `foundKeyNode == NULL`, the key node is still in the other list and is deleted from there; S2 (the self-test's keys are a stack variable `te`) |
+
 ### Use from several threads
 
 | Id | Pattern | Sources |
@@ -123,14 +137,15 @@ GitHub code search for `SGLIB_DEFINE_DL_LIST_FUNCTIONS` on 2026-11-11.
 | X1 | the list used from several threads, with a lock taken around every call | U3, U4 |
 | X2 | the list shared between threads without a lock | R (Q7) |
 
-**Count:** 34 patterns:
+**Count:** 38 patterns:
 - 9 for `add`;
 - 5 for `get_first`/`get_last`;
 - 14 for the iterator;
 - 4 for the comparator;
+- 4 for `add_before`, `add_after` and `delete_if_member` (D1–D4, 2026-11-13);
 - 2 for use from several threads.
 
-The draft listed 30. A9, C4, X1 and X2 were added with the owner's decisions; the draft's C3 was split into C3 (the comparator's own state) and C4 (writes to nodes).
+The draft listed 30. A9, C4, X1 and X2 were added with the owner's decisions; the draft's C3 was split into C3 (the comparator's own state) and C4 (writes to nodes). D1–D4 were added after Codex's review of PR #237.
 
 ## Coverage map (scope decided 2026-11-11)
 
@@ -180,16 +195,20 @@ Where existing clients are proved today:
 | C2 inlined comparator macro | stage 2 | client 10 (used by `sort`) |
 | C3 comparator with its own state | stage 1 | client 9 |
 | C4 comparator that writes nodes | out of scope | Q6: comparators may not write to nodes |
+| D1 add_before at an end and at a middle node | stage 2 | client 14 |
+| D2 add_after at an end and at a middle node | stage 2 | client 14 |
+| D3 delete_if_member, a member | stage 2 | client 14 |
+| D4 delete_if_member, not a member | stage 2 | client 14 |
 | X1 locked use from several threads | out of scope for M6 | Q7: compatible with the sequential specs, not proved in M6; a possible later benchmark, with no spec change |
 | X2 unlocked sharing between threads | out of scope, permanently | Q7: data races |
 
-**Totals (34 patterns):**
+**Totals (38 patterns):**
 
 | Category | Count | Patterns |
 |---|---|---|
 | covered | 14 | A1, A2, A3, A5, G1, G3, I1, I2, I3, I4, I5, I7, I8, C1 |
 | stage 1 gap | 9 | A4, A7, A8, G2, I6, I9, I13, I14, C3 |
-| stage 2 gap | 6 | A6, A9, G4, G5, I11, C2 |
+| stage 2 gap | 10 | A6, A9, G4, G5, I11, C2, D1, D2, D3, D4 |
 | run time | 1 | I10 |
 | out of scope | 4 | I12, C4, X1 (for M6), X2 (permanently) |
 
@@ -235,7 +254,7 @@ Where existing clients are proved today:
    - The client reads the count after the iteration.
    - This exercises the comparator funspec decided under Q6.
 
-**Stage 2** (needs `delete`, `delete_if_member`, `add_before`, `add_after`, `concat`, `sort`):
+**Stage 2** (needs `delete`, `delete_if_member`, `add_before`, `add_after`, `concat`, `sort`; every stage-2 function is called by at least one of clients 10–14):
 
 10. **sort and friends (A6, G5, C2).**
     - Build a list, `sort` it (the comparator is an inlined macro, as in S1), walk from the new head, `delete` one node and free it, `concat` a second list, then iterate and free.
@@ -246,6 +265,24 @@ Where existing clients are proved today:
 13. **Delete then add (A9).**
     - Move every node with an even payload from list 1 to list 2 by `delete` then `add`.
     - Free both lists.
+14. **add_before, add_after, delete_if_member (D1–D4).**
+    - Build a list of at least three nodes with `add`. Take the head `h`
+      (`get_first`), the last node `t` (`get_last`) and a middle node
+      `m`.
+    - `add_before(&h, x1)` and `add_after(&t, x2)`: insertion at the two
+      ends, as U7 does with its header and tail.
+    - `add_before(&m, x3)` and `add_after(&m, x4)`: insertion at a middle
+      node.
+    - `delete_if_member(&h, k1, &memb)`, with `k1` a separately owned key
+      node whose payload equals a payload in the list. Then `delete_if_member(&h,
+      k2, &memb2)`, with `k2` a key equal to no payload.
+    - **Memory safety only:** the client does not claim which node is
+      returned or removed, or that the second call finds nothing. It
+      handles both outcomes of each call: if the returned node is not
+      NULL, it frees it.
+    - It then frees both key nodes, its own throughout (the non-member
+      case leaves `k2` with the client).
+    - Finally it frees the rest of the list by iteration.
 
 ## The owner's decisions (2026-11-11)
 

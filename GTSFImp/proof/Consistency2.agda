@@ -25,7 +25,7 @@ import Consistency as C
 open import Consistency2
 import Imprecision as I
 open import proof.ImprecisionConsistency
-  using (CrossFree; CrossFree∼★; CrossFree★∼; LowerEnv; VarLower;
+  using (CrossFree; CrossFree∼★; CrossFree★∼; LowerEnv; lowerAt; VarLower;
          both-to-star; cf-!; cf-↦; cf-∀ᶜ; cf-？; cf-bot-elim;
          cf-bot-intro; cf-gen; cf-id; cf-inst; cf-X∼★ᵍ; cf-⇒∼★;
          cf-∀∼★; cf-ι∼★; cf-★∼Xᵍ; cf-★∼⇒; cf-★∼∀;
@@ -223,7 +223,7 @@ ground-occurs-to-star : ∀ {Δ} {μ : C.Env∼ Δ}
     {X : TyVar Δ} {G : Ty Δ} {g : C._⊢_∼★ μ G}
   → CrossFree∼★ g
   → X ∈ᵗ G
-  → μ X ≡ C.X∼★
+  → μ C.‼ X ≡ C.X∼★
 ground-occurs-to-star cf-⇒∼★ (∈-fun-left ())
 ground-occurs-to-star cf-⇒∼★ (∈-fun-right X∉A ())
 ground-occurs-to-star cf-ι∼★ ()
@@ -237,7 +237,7 @@ ground-occurs-from-star : ∀ {Δ} {μ : C.Env∼ Δ}
     {X : TyVar Δ} {G : Ty Δ} {g : C._⊢★∼_ μ G}
   → CrossFree★∼ g
   → X ∈ᵗ G
-  → μ X ≡ C.★∼X
+  → μ C.‼ X ≡ C.★∼X
 ground-occurs-from-star cf-★∼⇒ (∈-fun-left ())
 ground-occurs-from-star cf-★∼⇒ (∈-fun-right X∉A ())
 ground-occurs-from-star cf-★∼ι ()
@@ -245,21 +245,21 @@ ground-occurs-from-star (cf-★∼Xᵍ {eq = eq}) var-∈ = eq
 ground-occurs-from-star cf-★∼∀ (∈-all ())
 
 flip-not-from-star : ∀ {Δ} {μ : C.Env∼ Δ} {X : TyVar Δ}
-  → μ X ≢ C.X∼★
-  → C.flipᵐ μ X ≢ C.★∼X
-flip-not-from-star not-star eq =
-  not-star (C.flipVar∼-to-★∼X eq)
+  → μ C.‼ X ≢ C.X∼★
+  → C.flipᵐ μ C.‼ X ≢ C.★∼X
+flip-not-from-star {μ = μ} {X} not-star eq =
+  not-star (C.flipVar∼-to-★∼X (C.flipᵐ-‼⁻ μ X eq))
 
 flip-not-to-star : ∀ {Δ} {μ : C.Env∼ Δ} {X : TyVar Δ}
-  → μ X ≢ C.★∼X
-  → C.flipᵐ μ X ≢ C.X∼★
-flip-not-to-star not-star eq =
-  not-star (C.flipVar∼-to-X∼★ eq)
+  → μ C.‼ X ≢ C.★∼X
+  → C.flipᵐ μ C.‼ X ≢ C.X∼★
+flip-not-to-star {μ = μ} {X} not-star eq =
+  not-star (C.flipVar∼-to-X∼★ (C.flipᵐ-‼⁻ μ X eq))
 
 mutual
   source-occurs-target-safe : ∀ {Δ} {μ : C.Env∼ Δ}
       {X : TyVar Δ} {A B : Ty Δ}
-    → μ X ≢ C.X∼★
+    → μ C.‼ X ≢ C.X∼★
     → (c : C._⊢_∼_ μ A B)
     → CrossFree c
     → X ∈ᵗ A
@@ -307,7 +307,7 @@ mutual
 
   target-occurs-source-safe : ∀ {Δ} {μ : C.Env∼ Δ}
       {X : TyVar Δ} {A B : Ty Δ}
-    → μ X ≢ C.★∼X
+    → μ C.‼ X ≢ C.★∼X
     → (c : C._⊢_∼_ μ A B)
     → CrossFree c
     → X ∈ᵗ B
@@ -385,7 +385,7 @@ right-dynamic : ∀ {Δ} {μ : C.Env∼ Δ} {φ ψ}
   → CrossFree c
   → AllDynamic ψ A
 right-dynamic h c c-free X X∈A =
-  right-dynamic-at (h X)
+  right-dynamic-at (lowerAt h X)
     (λ not-star →
       star-no-occurs
         (source-occurs-target-safe not-star c c-free X∈A))
@@ -397,7 +397,7 @@ left-dynamic : ∀ {Δ} {μ : C.Env∼ Δ} {φ ψ}
   → CrossFree c
   → AllDynamic φ B
 left-dynamic h c c-free X X∈B =
-  left-dynamic-at (h X)
+  left-dynamic-at (lowerAt h X)
     (λ not-star →
       star-no-occurs
         (target-occurs-source-safe not-star c c-free X∈B))

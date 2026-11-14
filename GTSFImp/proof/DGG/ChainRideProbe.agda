@@ -10,6 +10,7 @@ module proof.DGG.ChainRideProbe where
 
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
+import Data.Vec as Vec
 open import Data.List using ([])
 open import Data.Maybe using (just)
 open import Data.Product using (Σ-syntax; _×_; _,_)
@@ -20,7 +21,7 @@ open import Types
 open import TyStore using
   (TyStore; store-empty; store-bind; _∋_⦂_; Z∋; S-bind∋)
 open import Consistency using
-  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; keep; skip; toRenameᵗ; _!; id)
+  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; ε↪ᵗ; keep; skip; toRenameᵗ; _!; id)
 open import Imprecision
 open import Conversion using (seal)
 open import CastTerms
@@ -74,19 +75,19 @@ probe-μ (Fin.suc Fin.zero) = X⊑★
 probe-μ (Fin.suc (Fin.suc Fin.zero)) = X⊑★
 
 ηᴸ-ab : 2 ↪ᵗ 3
-ηᴸ-ab = keep (keep (skip empty))
+ηᴸ-ab = keep (keep (skip ε↪ᵗ))
 
 ηᴸ-ac : 2 ↪ᵗ 3
-ηᴸ-ac = keep (skip (keep empty))
+ηᴸ-ac = keep (skip (keep ε↪ᵗ))
 
 ηᴿ-a : 1 ↪ᵗ 3
-ηᴿ-a = keep (skip (skip empty))
+ηᴿ-a = keep (skip (skip ε↪ᵗ))
 
 ηᴿ-b : 1 ↪ᵗ 3
-ηᴿ-b = skip (keep (skip empty))
+ηᴿ-b = skip (keep (skip ε↪ᵗ))
 
 ηᴿ-c : 1 ↪ᵗ 3
-ηᴿ-c = skip (skip (keep empty))
+ηᴿ-c = skip (skip (keep ε↪ᵗ))
 
 -- Placement table (a = 0, b = 1, c = 2):
 --
@@ -122,11 +123,10 @@ probe-Z₃-seal-⊢ = Conv.⊢↓-sealˣ probe-Z₃∋
 
 private
   probe-source-env : Env∼ 2
-  probe-source-env Fin.zero = X∼★
-  probe-source-env (Fin.suc Fin.zero) = X∼★
+  probe-source-env = X∼★ Vec.∷ X∼★ Vec.∷ Vec.[]
 
   probe-target-env : Env∼ 1
-  probe-target-env Fin.zero = X∼★
+  probe-target-env = X∼★ Vec.∷ Vec.[]
 
   probe-ℕ!ᴸ : probe-source-env ⊢ (‵ `ℕ) ∼ ★
   probe-ℕ!ᴸ = id (‵ `ℕ) !

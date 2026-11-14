@@ -19,7 +19,7 @@ open import Types using
 open import TyStore using (TyStore; store-bind; Z∋)
 open import Imprecision using (X⊑★)
 open import Consistency using
-  (Env∼; X∼X; extᵐ; instᵐ; id; _↦_; ∀ᶜ_; _!; ？_;
+  (Env∼; _‼_; X∼X; extᵐ; instᵐ; id; _↦_; ∀ᶜ_; _!; ？_;
    inst_; gen_; bot-elim; bot-intro; _⊢_∼_; ↑ᶜ_; close-instᶜ;
    _[_]ᶜ; subst-∈ᵗ; renameNonStar; toRenameᵗ; wk↪ᵗ)
 import CastTerms as CT
@@ -216,7 +216,7 @@ cast-frame-class-from-gen-safe-view (safe-gen A≢★ safe)
 opened-all-cast-frame-class : ∀ {fuel : ℕ} {Δ : TyCtx} {μ : Env∼ Δ}
     {B C : Ty (suc Δ)} {X : TyVar Δ}
     {d : extᵐ μ ⊢ B ∼ C}
-  → μ X ≡ X∼X
+  → μ ‼ X ≡ X∼X
   → NonVar C
   → Fin.zero ∈ᵗ C
   → castSize (d [ ＇ X ]ᶜ) < fuel
@@ -422,7 +422,7 @@ spine-typed-all-child : ∀ {fuel Δᴸ Δᴿ Δ}
     {d : extᵐ μ ⊢ B ∼ C}
     {spine : InstantiationSpine (C [ ＇ X ]ᵗ) E}
   → GFG.StructuralAllGeneratedFrameGeometry W Aₛ C X
-  → μ X ≡ X∼X
+  → μ ‼ X ≡ X∼X
   → NonVar C
   → Fin.zero ∈ᵗ C
   → castSize (d [ ＇ X ]ᶜ) < fuel

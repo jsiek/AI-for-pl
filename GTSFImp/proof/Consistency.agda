@@ -111,7 +111,7 @@ castSize-subst-right-∼ refl c = refl
 castSize-rename∼ : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
     {A B : Ty Δ}
   → (ρ : Δ ⇒ʳ Δ′)
-  → (eq : ∀ X → μ′ (ρ X) ≡ μ X)
+  → (eq : ∀ X → μ′ ‼ ρ X ≡ μ ‼ X)
   → (c : μ ⊢ A ∼ B)
   → castSize (rename∼ {μ = μ} {μ′ = μ′} ρ eq c) ≡ castSize c
 castSize-rename∼ ρ eq (id ★) = refl
@@ -154,7 +154,7 @@ castSize-rename∼ ρ eq bot-intro = refl
 castSize-renameEnvᶜ : ∀ {Δ Δ′} {μ : Env∼ Δ} {ν : Env∼ Δ′}
     {A B : Ty Δ}
   → (ρ : Δ ⇒ʳ Δ′)
-  → (eq : ∀ X → ν (ρ X) ≡ μ X)
+  → (eq : ∀ X → ν ‼ ρ X ≡ μ ‼ X)
   → (c : μ ⊢ A ∼ B)
   → castSize (renameEnvᶜ {μ = μ} {ν = ν} ρ eq c) ≡ castSize c
 castSize-renameEnvᶜ {μ = μ} {ν = ν} ρ eq c =
@@ -428,31 +428,31 @@ private
       → castSize (to-★ (flip-SubstEnv∼ s) X eq)
         ≤ suc (suc zero)
     to-★≤′ X eq
-      rewrite castSize-sym∼ (from-★ s X (flipVar∼-to-X∼★ eq)) =
-        from-★≤ bounds X (flipVar∼-to-X∼★ eq)
+      rewrite castSize-sym∼ (from-★ s X (flipVar∼-to-X∼★ (flipᵐ-‼⁻ μ X eq))) =
+        from-★≤ bounds X (flipVar∼-to-X∼★ (flipᵐ-‼⁻ μ X eq))
 
     from-★≤′ : ∀ X eq
       → castSize (from-★ (flip-SubstEnv∼ s) X eq)
         ≤ suc (suc zero)
     from-★≤′ X eq
-      rewrite castSize-sym∼ (to-★ s X (flipVar∼-to-★∼X eq)) =
-        to-★≤ bounds X (flipVar∼-to-★∼X eq)
+      rewrite castSize-sym∼ (to-★ s X (flipVar∼-to-★∼X (flipᵐ-‼⁻ μ X eq))) =
+        to-★≤ bounds X (flipVar∼-to-★∼X (flipᵐ-‼⁻ μ X eq))
 
     cross-to-★≤′ : ∀ X eq
       → castSize (cross-to-★ (flip-SubstEnv∼ s) X eq)
         ≤ suc (suc zero)
     cross-to-★≤′ X eq
       rewrite castSize-sym∼
-        (cross-from-★ s X (flipVar∼-to-★∼X∼★ eq)) =
-          cross-from-★≤ bounds X (flipVar∼-to-★∼X∼★ eq)
+        (cross-from-★ s X (flipVar∼-to-★∼X∼★ (flipᵐ-‼⁻ μ X eq))) =
+          cross-from-★≤ bounds X (flipVar∼-to-★∼X∼★ (flipᵐ-‼⁻ μ X eq))
 
     cross-from-★≤′ : ∀ X eq
       → castSize (cross-from-★ (flip-SubstEnv∼ s) X eq)
         ≤ suc (suc zero)
     cross-from-★≤′ X eq
       rewrite castSize-sym∼
-        (cross-to-★ s X (flipVar∼-to-★∼X∼★ eq)) =
-          cross-to-★≤ bounds X (flipVar∼-to-★∼X∼★ eq)
+        (cross-to-★ s X (flipVar∼-to-★∼X∼★ (flipᵐ-‼⁻ μ X eq))) =
+          cross-to-★≤ bounds X (flipVar∼-to-★∼X∼★ (flipᵐ-‼⁻ μ X eq))
 
   castSize-factor-inst-star-≤ :
       ∀ {Δ} {μ : Env∼ Δ} {A : Ty (suc Δ)}
@@ -528,7 +528,7 @@ private
     → (s : SubstEnv∼ μ ν σ)
     → SubstEnvSize≤ s
     → (c : μ ⊢ A ∼ ＇ X)
-    → (eq : μ X ≡ X∼★)
+    → (eq : μ ‼ X ≡ X∼★)
     → (Ans : NonStar A)
     → castSize (subst-to-star-var s c eq Ans) ≤ suc (castSize c)
   castSize-subst-to-star-var-≤ s bounds (id (＇ X)) eq Ans =
@@ -544,7 +544,7 @@ private
     → (s : SubstEnv∼ μ ν σ)
     → SubstEnvSize≤ s
     → (c : μ ⊢ A ∼ ＇ X)
-    → (eq : μ X ≡ ★∼X∼★)
+    → (eq : μ ‼ X ≡ ★∼X∼★)
     → (Ans : NonStar A)
     → castSize (subst-cross-to-star-var s c eq Ans)
       ≤ suc (castSize c)
@@ -562,7 +562,7 @@ private
     → (s : SubstEnv∼ μ ν σ)
     → SubstEnvSize≤ s
     → (c : μ ⊢ ＇ X ∼ B)
-    → (eq : μ X ≡ ★∼X)
+    → (eq : μ ‼ X ≡ ★∼X)
     → (Bns : NonStar B)
     → castSize (subst-from-star-var s c eq Bns) ≤ suc (castSize c)
   castSize-subst-from-star-var-≤ s bounds (id (＇ X)) eq Bns =
@@ -578,7 +578,7 @@ private
     → (s : SubstEnv∼ μ ν σ)
     → SubstEnvSize≤ s
     → (c : μ ⊢ ＇ X ∼ B)
-    → (eq : μ X ≡ ★∼X∼★)
+    → (eq : μ ‼ X ≡ ★∼X∼★)
     → (Bns : NonStar B)
     → castSize (subst-cross-from-star-var s c eq Bns)
       ≤ suc (castSize c)
@@ -714,9 +714,7 @@ private
 
   close-inst-SubstEnvSize≤ : ∀ {Δ} {μ : Env∼ Δ}
     → SubstEnvSize≤
-        (subst-env∼ (close-inst-self {μ = μ}) close-inst-to-★
-          close-inst-from-★ close-inst-cross-to-★
-          close-inst-cross-from-★)
+        (close-inst-env {μ = μ})
   close-inst-SubstEnvSize≤ =
     subst-env-size≤ self≤′ to-★≤′ from-★≤′ cross-to-★≤′
       cross-from-★≤′
@@ -763,9 +761,7 @@ castSize-close-inst-≤ {B = B} c
             close-inst-cross-from-★)
           c))
       (castSize-subst∼-≤
-        (subst-env∼ close-inst-self close-inst-to-★ close-inst-from-★
-          close-inst-cross-to-★ close-inst-cross-from-★)
-        close-inst-SubstEnvSize≤ c)
+        close-inst-env close-inst-SubstEnvSize≤ c)
 
 castSize-open-fresh-≤ : ∀ {Δ} {μ : Env∼ Δ}
     {A B : Ty (suc (suc Δ))}
@@ -885,7 +881,7 @@ gen-safe : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ} {B : Ty (suc Δ)}
 gen-safe c A≢★ Bnv z∈B = gen-safe′ c refl A≢★ Bnv z∈B
 
 strict-safe : ∀ {Δ} {μ : Env∼ Δ} {X : TyVar Δ} {A B : Ty Δ}
-  → μ X ≡ X∼X
+  → μ ‼ X ≡ X∼X
   → (c : μ ⊢ A ∼ B)
   → NonVar B
   → X ∈ᵗ B
@@ -962,7 +958,7 @@ subst-left-gen-safe refl safe = safe
 renameGenSafe : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
     {A B : Ty Δ} {c : μ ⊢ A ∼ B}
   → (rho : Δ ⇒ʳ Δ′)
-  → (eq : ∀ X → μ′ (rho X) ≡ μ X)
+  → (eq : ∀ X → μ′ ‼ rho X ≡ μ ‼ X)
   → GenSafe c
   → GenSafe (rename∼ {μ = μ} {μ′ = μ′} rho eq c)
 renameGenSafe rho eq safe-⇒ = safe-⇒

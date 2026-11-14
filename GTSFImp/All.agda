@@ -150,6 +150,23 @@ import proof.DGG.CatchupToLessPreciseProof
 import proof.DGG.DynamicGradualGuaranteeProof
 
 ------------------------------------------------------------------------
+-- Logical-relation DGG (notes/logrel-dgg.md): the syntactic layer
+------------------------------------------------------------------------
+
+import LR.Meta
+import LR.Relation
+import LR.Frame
+import proof.LR.WorldProps
+import proof.TermRename
+import proof.LR.InterpProps
+import proof.LR.Monotone
+import proof.LR.FrameProps
+import proof.LR.Expression
+import proof.LR.PrecisionUnique
+import proof.LR.PrecisionSubst
+import proof.LR.SubstLemma
+
+------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked
 ------------------------------------------------------------------------
 

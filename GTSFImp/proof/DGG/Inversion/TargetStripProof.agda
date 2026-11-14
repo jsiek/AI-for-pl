@@ -265,7 +265,6 @@ private
     → TyVar Δᴿ
     → (∀ Y → toRenameᵗ η Y ≢ Fin.zero)
     → Δᴿ ↪ᵗ Δ
-  dropSkip empty ()
   dropSkip (keep η) Y nonzero =
     ⊥-elim (nonzero Fin.zero refl)
   dropSkip (skip η) Y nonzero = η
@@ -275,7 +274,6 @@ private
       (Y : TyVar Δᴿ)
       (nonzero : ∀ Z → toRenameᵗ η Z ≢ Fin.zero)
     → skip (dropSkip η Y nonzero) ≡ η
-  dropSkip-eq empty ()
   dropSkip-eq (keep η) Y nonzero =
     ⊥-elim (nonzero Fin.zero refl)
   dropSkip-eq (skip η) Y nonzero = refl

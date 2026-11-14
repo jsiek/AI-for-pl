@@ -11,6 +11,7 @@ module proof.DGG.CenterCrossingProbe where
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
+import Data.Vec as Vec
 open import Data.List using ([])
 open import Data.Maybe using (just)
 open import Data.Product using (Σ-syntax; _×_; _,_)
@@ -128,12 +129,10 @@ Y₁∈ : target-store ∋ Y₁ ⦂ ★
 Y₁∈ = S-bind∋ (Z∋ refl) refl
 
 source-env : Env∼ 2
-source-env Fin.zero = X∼★
-source-env (Fin.suc Fin.zero) = X∼★
+source-env = X∼★ Vec.∷ X∼★ Vec.∷ Vec.[]
 
 target-env : Env∼ 2
-target-env Fin.zero = X∼★
-target-env (Fin.suc Fin.zero) = X∼★
+target-env = X∼★ Vec.∷ X∼★ Vec.∷ Vec.[]
 
 X₁! : source-env ⊢ (＇ X₁) ∼ ★
 X₁! = id (＇ X₁) !

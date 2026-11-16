@@ -5522,3 +5522,171 @@ rather than a failure.  It works.
 Results: `make check` passes (no postulates); every example run keeps
 its endpoint and step count; RespellProbe's pinned result is unchanged.
 
+
+## 2026-10-28 — sketch: single-entry boundaries, towers, no `Merge` (branch `nu-single-entry`)
+
+On paper only: `notes/SingleEntrySketch.md`.  Jeremy asked whether νF
+needs multi-entry scopes and `Merge` now that a hide removes only `X`
+(no truncation) and a type argument is recorded, never pushed in.  The
+sketch, νF₁, keeps everything else from `paper/main.tex` and lets values
+be towers of one-entry boundaries.  Its rules: Wrap and TyBeta
+generalised to towers (TyBeta absorbs TyWrap), Id, and two new tidying
+rules — Cancel (an adjacent inverse pair `[ε] [−ε]` disappears) and
+Reach (an unseal meets its seal through layers carrying `id(X)`, each of
+whose interiors can spell `X`'s payload).  No `Merge`, no run-time
+composition, no chains: conversions are one sort,
+`id(A) | c → d | ∀X. c | −X | +X`, since only `⨟` ever built a chain.
+
+A first draft also had Hide (a `−Y` layer with an identity conversion
+disappears).  Jeremy objected that it would break color preservation,
+and it does: every hole beneath the layer gains `Y`.  It was deleted and
+Reach generalised to cross `−` layers; the price is a stuck shape (O2):
+an unseal that must cross a hiding layer whose interior cannot spell the
+payload.  Under the color law a single-entry tower can lose a layer only
+by Cancel or Id, which is where νF's never-deleting `Merge` earns its
+keep.
+
+The motivating run is `K` with an argument that returns its input: the
+naive "cancel at a distance" contractum is ill typed there, because an
+intermediate `[−X^α]` layer's interior cannot name the payload of the
+variable being cancelled; Cancel (on the inverse pair beneath it) is
+what gets it through.  Hand traces of three runs, seven open obligations
+(O1–O7), and a table placing νF₁ beside D02, D07, pre-`Merge`
+strong-rep-nu and νF.  Nothing is mechanized; no Agda changed.
+
+**Addendum (same day): the obligations, proved on paper.**
+`notes/SingleEntrySketch.md` §6 now proves O3–O7 by hand, on six
+supporting lemmas (well-named contexts, injective spelling, exchange,
+refinement/renaming, the identity conversion, canonical forms).  O1
+split: an inverse pair with `+X^α` OUTSIDE always composes to an
+identity (by an induction on the pair over the middle type), but with
+`−X^α` outside it can compose to an unseal.  Example 5d,
+`((ΛX. λx:X. λg:(Int→X)→(Int→Int). g (λn:Int. x)) [Int] 5 (λh. h)) 0`,
+reaches `[−X^α] [+X^α] (λn. W) ⟨id(Int) → +X⟩ ⟨id(Int) → id(Int)⟩`
+(νF's run, rendered, has this state; its Merge makes the two-entry scope
+`[−X^α, +X^α]`).  Cancel now requires, in that order, that the pair's
+interior and exterior types agree; a pair that fails it may sit in a
+value.  O2 stays open, with a conjectured invariant: a value inside a
+`[−Y^β]` layer whose type needs `β` still carries the `[+Y^β]` wrapper
+it entered with, beneath layers that cancel.
+
+**Addendum: the minimal rule set.**  Progress needs Cancel only for the
+`[−X^α] [+X^α]` order (5b: layer 3 hides the payload, so only removing
+the pair lets the unseal through), and that is the order that needs the
+types-agree premise.  The `[+X^α] [−X^α]` order, sound with no premise,
+is dropped: an unseal directly over its seal is Reach with `k = 0`, and
+any other such pair is a value.  Runs get longer (5b 11 → 15, 5d
+12 → 19) because identity layers are peeled by Id instead of removed in
+pairs.
+
+**Addendum: progress was false, and the fourth version.**  Progress is
+about every well-typed term, so the open obligation O2 was not a
+reachability question.  A hand-written well-typed term is stuck with
+named runtime types (sketch 5e):
+`[+X^α] [−Y^β] [+Z^β] [−X^α] ([−Z^β] 3 ⟨−Z⟩) ⟨−X⟩ ⟨id(X)⟩ ⟨id(X)⟩ ⟨+X⟩`
+— Reach's premise needs `[−Y^β]`'s interior {X:α} to name `β`.  The
+sketch now types runtime terms at REPRESENTATION types (named types
+survive in annotations) and makes `id` untyped.  Reach loses its
+premise and matches by representation variable, progress holds, and
+Cancel is no longer needed; the rule set is Delta, Beta, Wrap (with an
+`id` clause), TyBeta (on towers), Id and Reach.  §6 proves progress,
+preservation, determinism and color preservation on paper, and an
+embedding of the named type system.  Open: whether types that mention
+unnamed representation variables are acceptable (sketch §6.8, against
+the 2026-09-04 tightness ruling).  Design-space finding: under the
+color law, named runtime types need multi-entry scopes and `Merge`;
+representation runtime types do not.
+
+**Addendum: Reach by an identity-tower grammar; one name per
+representation variable.**  Reach is now stated without ellipses:
+`I ::= □ | [ε] I ⟨id⟩`, and
+`[+X^α] I[[−X^α] V ⟨−X⟩] ⟨+X⟩ ⟶ [+X^α] I[[−X^α] V ⟨id⟩] ⟨id⟩`.  With
+the untyped `id`, `I` is copied unchanged — only the seal and the
+unseal become `id` — and `I`'s hole is at the first non-`id` layer, so
+a redex decomposes one way (determinism).  A naming condition (an
+allocation records its name; an entry `±X^α` must use it) means a
+representation variable is hidden and revealed only under one name, so
+the seal is written `−X`.  The third version's stuck example (hide `β`
+as `Y`, reveal as `Z`) is now ill-formed; a same-name example (sketch
+5e) is still stuck with named runtime types, so representation runtime
+types are still needed.  Restricting `id` to atomic types was
+considered and not taken: Reach would have to rewrite every layer of
+`I`.
+
+**Addendum: renamed.**  The unseal-meets-seal rule Reach is now called
+**Cancel**; the earlier pair-removing Cancel is called **PairCancel** in
+the sketch.  Entries above use the old names.
+
+**Addendum: Cancel-□.**  `[+X^α] ([−X^α] V ⟨−X⟩) ⟨+X⟩ ⟶ V`, with
+Cancel restricted to a non-empty identity tower.  Sound and color-safe
+because `−X(Δ, X:=α) = Δ`; only this order of the pair can be a redex.
+It saves the identity layers Cancel left (5d: 19 → 17 steps).
+
+## 2026-11-06 — experiment: CancelId in place of Cancel (branch `nu-cancel-id`)
+
+On paper only: `notes/CancelIdSketch.md`, a variant νF₁ᶜ of the
+single-entry sketch.  Jeremy proposed replacing Cancel with
+`[−X^α] ([+X^α] V ⟨id⟩) ⟨id⟩ ⟶ V` (CancelId) and changing the value
+grammar so its left-hand side is not a value; the question was
+progress.  CancelId with Cancel-□ alone is NOT enough: the sketch's 5c
+reaches `[+X^α] [+Y^β] [−X^α] 3 ⟨−X⟩ ⟨id⟩ ⟨+X⟩`, well typed and stuck
+(an `id` layer for another variable between the unseal and its seal).
+The repair is Sink, `[ε] H[V] ⟨id⟩ ⟶ H[[ε] V ⟨id⟩]` for `ε` naming a
+variable other than the seal head `H`'s, a restricted form of D02's
+`Commute`.  With values split into functional and sealed
+(`H ::= [−X^α] □ ⟨−X⟩ | [+X^α] ([−X^α] □ ⟨−X⟩) ⟨id⟩`), progress,
+preservation, color and determinism are proved on paper; an unseal's
+body is its seal or steps, so no tower walk.  Representation runtime
+types are still needed: the second seal head has a type no name in
+scope denotes.  Cost: Sink commutes two entries, so in de Bruijn form
+the two entries and the seal's conversion are re-indexed; the moved
+body moves verbatim, which the positional color law requires.
+
+**Addendum (2026-11-07): named types.**  Jeremy asked whether runtime
+types could go, now that the old Cancel is gone.  Not with the first
+rule set: Sink moving a REVEAL inward puts 5b's `[+X^α]` layer inside
+`[−Y^β]`, where its type `α` has no name.  The second version
+(`CancelIdSketch.md` §8) sinks only hides (Sink below a seal, Swap below
+a reveal of another variable) and lets the unseal move inward through
+reveals (Push).  A sealed value is a seal under reveal layers carrying
+`id`; every type keeps a name, so terms are typed at the paper's named
+types.  5b runs in 11 steps, as in νF.  The Agda (`nu-cancel-id/`) was
+switched to named types (conversions stay at runtime types); progress
+and typed runs of 5b and 5c are checked.
+
+**Addendum (2026-11-07): preservation checked.**  `nu-cancel-id/` now
+proves preservation (one step and runs) and type safety, with `--safe`
+and no postulates.  Two definition changes on the way: `idᶜ` lost its
+runtime well-formedness premise (every type at a boundary is a spelling,
+so it is well formed already, and the premise would have needed a
+store/flags length invariant), and term substitution is `substᵐ`.  The
+boundary cases needed exactly the three facts §8 names: spelling is
+injective (CancelId, Cancel-□), entries on different variables commute
+(Sink, Swap, Push), and a type can be re-read where there are more
+names (the moved layer's new exterior).
+
+**Addendum (2026-11-11): determinism checked; CancelId needs a value
+reveal.**  `nu-cancel-id/proof/Determinism.agda` proves that a term has
+at most one step, with one result and one allocation, and that values do
+not step; no typing is needed.  The proof found one overlap with the ξ
+rule: CancelId took any value `V`, so `[−X^α] ([+X^α] k ⟨id⟩) ⟨id⟩`
+stepped both to `k` (CancelId) and to `[−X^α] k ⟨id⟩` (Id under the
+hide).  CancelId now requires the reveal `[+X^α] V ⟨id⟩` to be a value,
+the same premise Wrap-id has.  Over a constant, Id fires first and then
+again, so the result is still `k`.  Progress only ever used CancelId over
+functional and sealed values, and preservation does not use the premise,
+so neither proof changed beyond the premise's shape.
+
+**Addendum (2026-11-11): color preservation checked.**
+`nu-cancel-id/ColorPreservation.agda` states it as in strong-rep-nu: a
+residual's scope map is the original with the residual's ρ applied to
+each entry, and its length is unchanged.  The scope map at a hole is
+`names` of the flags there (the named cells, newest first), which the
+naming condition makes the whole map.  So a residual has the same type
+variables, each denoting the same cell; ρ only re-indexes cells (de
+Bruijn indices).  It is the identity except for a sibling of an
+allocation and a copy that `crossΛ` moves under a `Λ`: both put an
+unnamed cell below the existing ones.  Typing is used only for
+coherence at CancelId, Cancel-□ and Wrap's argument.
+`proof/Residual.agda` proves, as strong-rep-nu's does, that residuals
+are positions of the contractum.

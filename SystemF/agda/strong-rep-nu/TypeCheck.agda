@@ -320,8 +320,8 @@ wfTy? Γ (`∀ A) | nothing = nothing
 
 -- A conversion determines BOTH its types: every rep it mentions is read
 -- by name from the context (strong-rep-nu.Conversion §6).
-ConvResult : Ctxᵗ → Boundary → Pol → Conv → Set
-ConvResult Γ Θ p c = Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Γ ∣ Θ ⊢[ p ] c ∶ A ⇝ B
+ConvResult : Ctxᵗ → Boundary → Conv → Set
+ConvResult Γ Θ c = Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Γ ∣ Θ ⊢ c ∶ A ⇝ B
 
 -- `NoCancel` is decidable: it only compares names.
 noCancelᵀ? : (X : ℕ) (t : Tail) → Maybe (NoCancelᵀ X t)
@@ -361,85 +361,87 @@ inBinds? α (bind X β ∷ χ) | no _ with inBinds? α χ
 inBinds? α (bind X β ∷ χ) | no _ | just ib = just (ib-there ib)
 inBinds? α (bind X β ∷ χ) | no _ | nothing = nothing
 
-sealOK? : (p : Pol) (Θ : Boundary) (α : RVar) → Maybe (SealOK p Θ α)
-sealOK? ⁺ Θ α with inUnbinds? α Θ
-sealOK? ⁺ Θ α | yes iu = just iu
-sealOK? ⁺ Θ α | no _   = nothing
-sealOK? ⁻ Θ α = inBinds? α Θ
+sealOK? : (Θ : Boundary) (α : RVar) → Maybe (SealOK Θ α)
+sealOK? Θ α with inUnbinds? α Θ
+sealOK? Θ α | yes iu = just iu
+sealOK? Θ α | no _   = nothing
+
+unsealOK? : (Θ : Boundary) (α : RVar) → Maybe (UnsealOK Θ α)
+unsealOK? Θ α = inBinds? α Θ
 
 mutual
-  convᵐTy? : (Γ : Ctxᵗ) (Θ : Boundary) (p : Pol) (g : Mid)
-    → Maybe (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Γ ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B)
-  convᵐTy? Γ Θ p (id (` X)) with lookupˡ? (names Γ) X
-  convᵐTy? Γ Θ p (id (` X)) | just (α , d) = just (` α , ` α , conv-idv d)
-  convᵐTy? Γ Θ p (id (` X)) | nothing = nothing
-  convᵐTy? Γ Θ p (id `ℕ) = just (`ℕ , `ℕ , conv-id base-ℕ)
-  convᵐTy? Γ Θ p (id `𝔹) = just (`𝔹 , `𝔹 , conv-id base-𝔹)
-  convᵐTy? Γ Θ p (id (A ⇒ B)) = nothing
-  convᵐTy? Γ Θ p (id (`∀ A)) = nothing
-  convᵐTy? Γ Θ p (s ↦ t) with convTy? Γ Θ (flipᵖ p) s
-  convᵐTy? Γ Θ p (s ↦ t) | nothing = nothing
-  convᵐTy? Γ Θ p (s ↦ t) | just (A′ , A , ⊢s) with convTy? Γ Θ p t
-  convᵐTy? Γ Θ p (s ↦ t) | just (A′ , A , ⊢s) | just (B , B′ , ⊢t) =
+  convᵐTy? : (Γ : Ctxᵗ) (Θ : Boundary) (g : Mid)
+    → Maybe (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Γ ∣ Θ ⊢ᵐ g ∶ A ⇝ B)
+  convᵐTy? Γ Θ (id (` X)) with lookupˡ? (names Γ) X
+  convᵐTy? Γ Θ (id (` X)) | just (α , d) = just (` α , ` α , conv-idv d)
+  convᵐTy? Γ Θ (id (` X)) | nothing = nothing
+  convᵐTy? Γ Θ (id `ℕ) = just (`ℕ , `ℕ , conv-id base-ℕ)
+  convᵐTy? Γ Θ (id `𝔹) = just (`𝔹 , `𝔹 , conv-id base-𝔹)
+  convᵐTy? Γ Θ (id (A ⇒ B)) = nothing
+  convᵐTy? Γ Θ (id (`∀ A)) = nothing
+  convᵐTy? Γ Θ (s ↦ t) with convTy? Γ (dual Θ) s
+  convᵐTy? Γ Θ (s ↦ t) | nothing = nothing
+  convᵐTy? Γ Θ (s ↦ t) | just (A′ , A , ⊢s) with convTy? Γ Θ t
+  convᵐTy? Γ Θ (s ↦ t) | just (A′ , A , ⊢s) | just (B , B′ , ⊢t) =
     just (A ⇒ B , A′ ⇒ B′ , conv-fun ⊢s ⊢t)
-  convᵐTy? Γ Θ p (s ↦ t) | just (A′ , A , ⊢s) | nothing = nothing
-  convᵐTy? Γ Θ p (`∀ s) with convTy? (underΛ Γ) (liftᴮ Θ) p s
-  convᵐTy? Γ Θ p (`∀ s) | just (A , B , ⊢s) =
+  convᵐTy? Γ Θ (s ↦ t) | just (A′ , A , ⊢s) | nothing = nothing
+  convᵐTy? Γ Θ (`∀ s) with convTy? (underΛ Γ) (liftᴮ Θ) s
+  convᵐTy? Γ Θ (`∀ s) | just (A , B , ⊢s) =
     just (`∀ A , `∀ B , conv-all ⊢s)
-  convᵐTy? Γ Θ p (`∀ s) | nothing = nothing
+  convᵐTy? Γ Θ (`∀ s) | nothing = nothing
 
-  convᵀTy? : (Γ : Ctxᵗ) (Θ : Boundary) (p : Pol) (t : Tail)
-    → Maybe (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Γ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B)
-  convᵀTy? Γ Θ p (mid g) with convᵐTy? Γ Θ p g
-  convᵀTy? Γ Θ p (mid g) | just (A , B , ⊢g) = just (A , B , conv-mid ⊢g)
-  convᵀTy? Γ Θ p (mid g) | nothing = nothing
-  convᵀTy? Γ Θ p (seal X) with leaf? Γ X
-  convᵀTy? Γ Θ p (seal X) | nothing = nothing
-  convᵀTy? Γ Θ p (seal X) | just (α , R , d) with sealOK? p Θ α
-  convᵀTy? Γ Θ p (seal X) | just (α , R , d) | just ok =
+  convᵀTy? : (Γ : Ctxᵗ) (Θ : Boundary) (t : Tail)
+    → Maybe (Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] Γ ∣ Θ ⊢ᵀ t ∶ A ⇝ B)
+  convᵀTy? Γ Θ (mid g) with convᵐTy? Γ Θ g
+  convᵀTy? Γ Θ (mid g) | just (A , B , ⊢g) = just (A , B , conv-mid ⊢g)
+  convᵀTy? Γ Θ (mid g) | nothing = nothing
+  convᵀTy? Γ Θ (seal X) with leaf? Γ X
+  convᵀTy? Γ Θ (seal X) | nothing = nothing
+  convᵀTy? Γ Θ (seal X) | just (α , R , d) with sealOK? Θ α
+  convᵀTy? Γ Θ (seal X) | just (α , R , d) | just ok =
     just (R , ` α , conv-seal d ok)
-  convᵀTy? Γ Θ p (seal X) | just (α , R , d) | nothing = nothing
-  convᵀTy? Γ Θ p (t ⨾seal X) with isIdᵀ? t
-  convᵀTy? Γ Θ p (t ⨾seal X) | yes _ = nothing
-  convᵀTy? Γ Θ p (t ⨾seal X) | no n with convᵀTy? Γ Θ p t
-  convᵀTy? Γ Θ p (t ⨾seal X) | no n | nothing = nothing
-  convᵀTy? Γ Θ p (t ⨾seal X) | no n | just (A , R′ , ⊢t) with leaf? Γ X
-  convᵀTy? Γ Θ p (t ⨾seal X) | no n | just (A , R′ , ⊢t) | nothing =
+  convᵀTy? Γ Θ (seal X) | just (α , R , d) | nothing = nothing
+  convᵀTy? Γ Θ (t ⨾seal X) with isIdᵀ? t
+  convᵀTy? Γ Θ (t ⨾seal X) | yes _ = nothing
+  convᵀTy? Γ Θ (t ⨾seal X) | no n with convᵀTy? Γ Θ t
+  convᵀTy? Γ Θ (t ⨾seal X) | no n | nothing = nothing
+  convᵀTy? Γ Θ (t ⨾seal X) | no n | just (A , R′ , ⊢t) with leaf? Γ X
+  convᵀTy? Γ Θ (t ⨾seal X) | no n | just (A , R′ , ⊢t) | nothing =
     nothing
-  convᵀTy? Γ Θ p (t ⨾seal X) | no n | just (A , R′ , ⊢t)
-    | just (α , R , d) with R′ ≟Ty R | sealOK? p Θ α
-  convᵀTy? Γ Θ p (t ⨾seal X) | no n | just (A , R′ , ⊢t)
+  convᵀTy? Γ Θ (t ⨾seal X) | no n | just (A , R′ , ⊢t)
+    | just (α , R , d) with R′ ≟Ty R | sealOK? Θ α
+  convᵀTy? Γ Θ (t ⨾seal X) | no n | just (A , R′ , ⊢t)
     | just (α , R , d) | just refl | just ok =
     just (A , ` α , conv-seal-seq ⊢t d ok n)
-  convᵀTy? Γ Θ p (t ⨾seal X) | no n | just (A , R′ , ⊢t)
+  convᵀTy? Γ Θ (t ⨾seal X) | no n | just (A , R′ , ⊢t)
     | just (α , R , d) | _ | _ = nothing
 
-  convTy? : (Γ : Ctxᵗ) (Θ : Boundary) (p : Pol) (c : Conv)
-    → Maybe (ConvResult Γ Θ p c)
-  convTy? Γ Θ p (tail t) with convᵀTy? Γ Θ p t
-  convTy? Γ Θ p (tail t) | just (A , B , ⊢t) = just (A , B , conv-tail ⊢t)
-  convTy? Γ Θ p (tail t) | nothing = nothing
-  convTy? Γ Θ p (unseal X) with leaf? Γ X
-  convTy? Γ Θ p (unseal X) | nothing = nothing
-  convTy? Γ Θ p (unseal X) | just (α , R , d) with sealOK? (flipᵖ p) Θ α
-  convTy? Γ Θ p (unseal X) | just (α , R , d) | just ok =
+  convTy? : (Γ : Ctxᵗ) (Θ : Boundary) (c : Conv)
+    → Maybe (ConvResult Γ Θ c)
+  convTy? Γ Θ (tail t) with convᵀTy? Γ Θ t
+  convTy? Γ Θ (tail t) | just (A , B , ⊢t) = just (A , B , conv-tail ⊢t)
+  convTy? Γ Θ (tail t) | nothing = nothing
+  convTy? Γ Θ (unseal X) with leaf? Γ X
+  convTy? Γ Θ (unseal X) | nothing = nothing
+  convTy? Γ Θ (unseal X) | just (α , R , d) with unsealOK? Θ α
+  convTy? Γ Θ (unseal X) | just (α , R , d) | just ok =
     just (` α , R , conv-unseal d ok)
-  convTy? Γ Θ p (unseal X) | just (α , R , d) | nothing = nothing
-  convTy? Γ Θ p (unseal X ⨾ c) with isIdᶜ? c | noCancel? X c
-  convTy? Γ Θ p (unseal X ⨾ c) | yes _ | m = nothing
-  convTy? Γ Θ p (unseal X ⨾ c) | no n | nothing = nothing
-  convTy? Γ Θ p (unseal X ⨾ c) | no n | just nc with leaf? Γ X
-  convTy? Γ Θ p (unseal X ⨾ c) | no n | just nc | nothing = nothing
-  convTy? Γ Θ p (unseal X ⨾ c) | no n | just nc | just (α , R , d)
-    with sealOK? (flipᵖ p) Θ α | convTy? Γ Θ p c
-  convTy? Γ Θ p (unseal X ⨾ c) | no n | just nc | just (α , R , d)
+  convTy? Γ Θ (unseal X) | just (α , R , d) | nothing = nothing
+  convTy? Γ Θ (unseal X ⨾ c) with isIdᶜ? c | noCancel? X c
+  convTy? Γ Θ (unseal X ⨾ c) | yes _ | m = nothing
+  convTy? Γ Θ (unseal X ⨾ c) | no n | nothing = nothing
+  convTy? Γ Θ (unseal X ⨾ c) | no n | just nc with leaf? Γ X
+  convTy? Γ Θ (unseal X ⨾ c) | no n | just nc | nothing = nothing
+  convTy? Γ Θ (unseal X ⨾ c) | no n | just nc | just (α , R , d)
+    with unsealOK? Θ α | convTy? Γ Θ c
+  convTy? Γ Θ (unseal X ⨾ c) | no n | just nc | just (α , R , d)
     | just ok | just (R′ , B , ⊢c) with R′ ≟Ty R
-  convTy? Γ Θ p (unseal X ⨾ c) | no n | just nc | just (α , R , d)
+  convTy? Γ Θ (unseal X ⨾ c) | no n | just nc | just (α , R , d)
     | just ok | just (R′ , B , ⊢c) | just refl =
     just (` α , B , conv-unseal-seq d ok ⊢c n nc)
-  convTy? Γ Θ p (unseal X ⨾ c) | no n | just nc | just (α , R , d)
+  convTy? Γ Θ (unseal X ⨾ c) | no n | just nc | just (α , R , d)
     | just ok | just (R′ , B , ⊢c) | nothing = nothing
-  convTy? Γ Θ p (unseal X ⨾ c) | no n | just nc | just (α , R , d)
+  convTy? Γ Θ (unseal X ⨾ c) | no n | just nc | just (α , R , d)
     | _ | _ = nothing
 
 check~ : (η : TyCtx) (A R : Ty) → Maybe (η ⊢ A ~ R)
@@ -572,7 +574,7 @@ infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
   | just (`∀ C , ⊢L) | nothing = nothing
 infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
   | just (`∀ C , ⊢L) | just (Δᵢ , Δᶜ , mwf)
-  with convTy? Δᶜ TyBetaBoundary ⁺ c
+  with convTy? Δᶜ TyBetaBoundary c
 infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
   | just (`∀ C , ⊢L) | just (Δᵢ , Δᶜ , mwf) | nothing = nothing
 infer Δ Γ (ν A · L ⟨ c ⟩) | just wA | just (R , rA)
@@ -599,7 +601,7 @@ infer Δ Γ (M ⟪ Θ , c ⟫) | nothing = nothing
 infer Δ Γ (M ⟪ Θ , c ⟫) | just (Δᵢ , Δᶜ , mwf) with infer Δᵢ [] M
 infer Δ Γ (M ⟪ Θ , c ⟫) | just (Δᵢ , Δᶜ , mwf) | nothing = nothing
 infer Δ Γ (M ⟪ Θ , c ⟫) | just (Δᵢ , Δᶜ , mwf) | just (Bᵢ , ⊢M)
-  with convTy? Δᶜ Θ ⁺ c
+  with convTy? Δᶜ Θ c
 infer Δ Γ (M ⟪ Θ , c ⟫) | just (Δᵢ , Δᶜ , mwf) | just (Bᵢ , ⊢M)
   | nothing = nothing
 infer Δ Γ (M ⟪ Θ , c ⟫) | just (Δᵢ , Δᶜ , mwf) | just (Bᵢ , ⊢M)
@@ -626,16 +628,16 @@ check⊢ Δ Γ M A | just (B , ⊢M) with B ≟Ty A
 check⊢ Δ Γ M A | just (B , ⊢M) | just refl = just ⊢M
 check⊢ Δ Γ M A | just (B , ⊢M) | nothing   = nothing
 
-checkConv : (Γ : Ctxᵗ) (Θ : Boundary) (p : Pol) (c : Conv) (A B : Ty)
-  → Maybe (Γ ∣ Θ ⊢[ p ] c ∶ A ⇝ B)
-checkConv Γ Θ p c A B with convTy? Γ Θ p c
-checkConv Γ Θ p c A B | nothing = nothing
-checkConv Γ Θ p c A B | just (A′ , B′ , ⊢c) with A′ ≟Ty A
-checkConv Γ Θ p c A B | just (A′ , B′ , ⊢c) | nothing = nothing
-checkConv Γ Θ p c A B | just (A′ , B′ , ⊢c) | just refl with B′ ≟Ty B
-checkConv Γ Θ p c A B | just (A′ , B′ , ⊢c) | just refl | just refl =
+checkConv : (Γ : Ctxᵗ) (Θ : Boundary) (c : Conv) (A B : Ty)
+  → Maybe (Γ ∣ Θ ⊢ c ∶ A ⇝ B)
+checkConv Γ Θ c A B with convTy? Γ Θ c
+checkConv Γ Θ c A B | nothing = nothing
+checkConv Γ Θ c A B | just (A′ , B′ , ⊢c) with A′ ≟Ty A
+checkConv Γ Θ c A B | just (A′ , B′ , ⊢c) | nothing = nothing
+checkConv Γ Θ c A B | just (A′ , B′ , ⊢c) | just refl with B′ ≟Ty B
+checkConv Γ Θ c A B | just (A′ , B′ , ⊢c) | just refl | just refl =
   just ⊢c
-checkConv Γ Θ p c A B | just (A′ , B′ , ⊢c) | just refl | nothing =
+checkConv Γ Θ c A B | just (A′ , B′ , ⊢c) | just refl | nothing =
   nothing
 
 ------------------------------------------------------------------------
@@ -659,9 +661,9 @@ tc : ∀ {Δ Γ M A} {w : IsJ (check⊢ Δ Γ M A)} → Δ ∣ Γ ⊢ M ⦂ A
 tc {Δ} {Γ} {M} {A} {w} = force (check⊢ Δ Γ M A) w
 
 -- A conversion's typing derivation, likewise read off the goal.
-tk : ∀ {Γ Θ p c A B} {w : IsJ (checkConv Γ Θ p c A B)}
-  → Γ ∣ Θ ⊢[ p ] c ∶ A ⇝ B
-tk {Γ} {Θ} {p} {c} {A} {B} {w} = force (checkConv Γ Θ p c A B) w
+tk : ∀ {Γ Θ c A B} {w : IsJ (checkConv Γ Θ c A B)}
+  → Γ ∣ Θ ⊢ c ∶ A ⇝ B
+tk {Γ} {Θ} {c} {A} {B} {w} = force (checkConv Γ Θ c A B) w
 
 -- Name-uniqueness of a name map.  No REDUCTION rule carries this any
 -- more, but `WfCtx`'s `name-fn` field still asks for it.
@@ -699,9 +701,9 @@ sq! Γ X = from-just (∋:=? Γ X)
 tv! : (Γ : Ctxᵗ) (X : ℕ) → From-just (∋tv? Γ X)
 tv! Γ X = from-just (∋tv? Γ X)
 
-cv! : (Γ : Ctxᵗ) (Θ : Boundary) (p : Pol) (c : Conv)
-  → From-just (convTy? Γ Θ p c)
-cv! Γ Θ p c = from-just (convTy? Γ Θ p c)
+cv! : (Γ : Ctxᵗ) (Θ : Boundary) (c : Conv)
+  → From-just (convTy? Γ Θ c)
+cv! Γ Θ c = from-just (convTy? Γ Θ c)
 
 ty! : (Δ : Ctxᵗ) (Γ : Ctx) (M : Term) → From-just (infer Δ Γ M)
 ty! Δ Γ M = from-just (infer Δ Γ M)

@@ -66,8 +66,8 @@ same-var-target (same-var d) = _ , refl
 ~-∀ (same-∀ p) = _ , refl
 
 -- Retype a conversion along an equality of its target type.
-conv-tgt≡ : ∀ {Θ p B′} → B ≡ B′
-  → Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B → Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B′
+conv-tgt≡ : ∀ {Θ B′} → B ≡ B′
+  → Δ ∣ Θ ⊢ c ∶ A ⇝ B → Δ ∣ Θ ⊢ c ∶ A ⇝ B′
 conv-tgt≡ refl ⊢c = ⊢c
 
 -- Retype a term along an equality of its type — used to move an
@@ -85,7 +85,7 @@ conv-tgt≡ refl ⊢c = ⊢c
 -- its source is not a variable).  No inert tail has a base target:
 -- `id A` at a base type is ACTIVE (A-idb), so `V-⟪⟫` never builds a
 -- value at a base type.
-inert-¬base : ∀ {t Θ p} → InertTail t → Δ ∣ Θ ⊢[ p ] tail t ∶ A ⇝ B
+inert-¬base : ∀ {t Θ} → InertTail t → Δ ∣ Θ ⊢ tail t ∶ A ⇝ B
   → ¬ Base B
 inert-¬base I-idv (conv-tail (conv-mid (conv-id ())))
 inert-¬base I-idv (conv-tail (conv-mid (conv-idv _))) ()
@@ -95,14 +95,14 @@ inert-¬base I-seal (conv-tail (conv-seal _ _)) ()
 inert-¬base I-seal-seq (conv-tail (conv-seal-seq _ _ _ _)) ()
 
 -- An ARROW target forces a function middle; a ∀ target a ∀ middle.
-inert-fun-conv : ∀ {t Θ p} → InertTail t
-  → Δ ∣ Θ ⊢[ p ] tail t ∶ A ⇝ (B ⇒ C)
+inert-fun-conv : ∀ {t Θ} → InertTail t
+  → Δ ∣ Θ ⊢ tail t ∶ A ⇝ (B ⇒ C)
   → Σ[ s ∈ Conv ] Σ[ u ∈ Conv ] (t ≡ mid (s ↦ u))
 inert-fun-conv I-fun (conv-tail (conv-mid (conv-fun ⊢s ⊢t))) =
   _ , _ , refl
 
-inert-all-conv : ∀ {t Θ p} → InertTail t
-  → Δ ∣ Θ ⊢[ p ] tail t ∶ A ⇝ `∀ B
+inert-all-conv : ∀ {t Θ} → InertTail t
+  → Δ ∣ Θ ⊢ tail t ∶ A ⇝ `∀ B
   → Σ[ s ∈ Conv ] (t ≡ mid (`∀ s))
 inert-all-conv I-all (conv-tail (conv-mid (conv-all ⊢s))) = _ , refl
 

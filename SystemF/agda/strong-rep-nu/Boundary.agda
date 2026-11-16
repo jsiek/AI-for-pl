@@ -27,7 +27,7 @@ open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Empty using (⊥-elim)
 open import Relation.Nullary using (¬_; Dec; yes; no)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; trans; cong; subst)
+  using (_≡_; refl; sym; trans; cong; cong₂; subst)
 
 open import strong-rep-nu.Types using (Ty; `ℕ; Renameᵗ; renameᵗ; extᵗ)
 open import strong-rep-nu.Ctx
@@ -740,6 +740,21 @@ binds→dual (unbind X β ∷ χ) (ib-there ib)
         | map-++ dualChange (reverse χ) (unbind X β ∷ []) =
   in-unbinds-++ˡ (binds→dual χ ib)
 
+dual→binds : (χ : List Change) → InUnbinds α (dual χ) → InBinds α χ
+dual→binds [] ()
+dual→binds (unbind X β ∷ χ) iu
+  rewrite unfold-reverse (unbind X β) χ
+        | map-++ dualChange (reverse χ) (unbind X β ∷ [])
+  with in-unbinds-++-inv (dual χ) iu
+dual→binds (unbind X β ∷ χ) iu | inj₁ a = ib-there (dual→binds χ a)
+dual→binds (unbind X β ∷ χ) iu | inj₂ (iu-there ())
+dual→binds (bind X β ∷ χ) iu
+  rewrite unfold-reverse (bind X β) χ
+        | map-++ dualChange (reverse χ) (bind X β ∷ [])
+  with in-unbinds-++-inv (dual χ) iu
+dual→binds (bind X β ∷ χ) iu | inj₁ a = ib-there (dual→binds χ a)
+dual→binds (bind X β ∷ χ) iu | inj₂ iu-here = ib-here
+
 in-unbinds-ren : (ρ : Renameᵗ) → InUnbinds α χ
   → InUnbinds (ρ α) (renᴮᴿ ρ χ)
 in-unbinds-ren ρ iu-here = iu-here
@@ -780,6 +795,23 @@ liftᴮ-no-bind-zero (unbind X β ∷ χ) (ib-there ib) =
   liftᴮ-no-bind-zero χ ib
 liftᴮ-no-bind-zero (bind X β ∷ χ) (ib-there ib) =
   liftᴮ-no-bind-zero χ ib
+
+-- representation-only renaming commutes with taking the dual (the
+-- dual-scope variant of conversion typing needs this; 2026-10-26d)
+renᶠᴿ-dualChange : (ρ : Renameᵗ) (δ : Change)
+  → renᶠᴿ ρ (dualChange δ) ≡ dualChange (renᶠᴿ ρ δ)
+renᶠᴿ-dualChange ρ (unbind X α) = refl
+renᶠᴿ-dualChange ρ (bind X α) = refl
+
+renᴮᴿ-dual : (ρ : Renameᵗ) (χ : List Change)
+  → renᴮᴿ ρ (dual χ) ≡ dual (renᴮᴿ ρ χ)
+renᴮᴿ-dual ρ [] = refl
+renᴮᴿ-dual ρ (δ ∷ χ) =
+  trans (cong (renᴮᴿ ρ) (dual-∷ δ χ))
+  (trans (map-++ (renᶠᴿ ρ) (dual χ) (dualChange δ ∷ []))
+  (trans (cong₂ _++_ (renᴮᴿ-dual ρ χ)
+                     (cong (_∷ []) (renᶠᴿ-dualChange ρ δ)))
+         (sym (dual-∷ (renᶠᴿ ρ δ) (renᴮᴿ ρ χ)))))
 
 -- representation-only renaming commutes with lifting a scope
 renᴮᴿ-liftᴮ : (ρ : Renameᵗ) (χ : List Change)

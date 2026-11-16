@@ -30,19 +30,19 @@ open import strong-rep-nu.Boundary
 -- 1.  The gate
 ------------------------------------------------------------------------
 
-seal-cites-binder : ∀ {Δ Θ p X A B c}
-  → Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B → c ≡ tail (seal X)
-  → ∃[ α ] ((Δ ∋ X ⊸ α := A) × SealOK p Θ α)
+seal-cites-binder : ∀ {Δ Θ X A B c}
+  → Δ ∣ Θ ⊢ c ∶ A ⇝ B → c ≡ tail (seal X)
+  → ∃[ α ] ((Δ ∋ X ⊸ α := A) × SealOK Θ α)
 seal-cites-binder (conv-tail (conv-seal d ok)) refl = _ , d , ok
 
 -- Spelled out: the cited ordinary name is LIVE, the representation
 -- variable it names is REPRESENTED — and the seal's source type IS that
 -- representation, readable on the conversion context — and the scope
 -- GRANTS the seal.  No other premise exists.
-seal-cites-representation : ∀ {Δ Θ p X A B}
-  → Δ ∣ Θ ⊢[ p ] tail (seal X) ∶ A ⇝ B
+seal-cites-representation : ∀ {Δ Θ X A B}
+  → Δ ∣ Θ ⊢ tail (seal X) ∶ A ⇝ B
   → ∃[ α ] ((Δ ∋ᵗ X := α) × (Δ ∋rep α := A)
-             × (∃[ A′ ] (Δ ⊢ᶜ A′ ~ A)) × SealOK p Θ α)
+             × (∃[ A′ ] (Δ ⊢ᶜ A′ ~ A)) × SealOK Θ α)
 seal-cites-representation (conv-tail (conv-seal (nm , rp , rd) ok)) =
   _ , nm , rp , rd , ok
 
@@ -64,7 +64,7 @@ seal-cites-representation (conv-tail (conv-seal (nm , rp , rd) ok)) =
 ¬know-adv : ∀ {α A} → Δadv ∋ 0 ⊸ α := A → ⊥
 ¬know-adv (here , rep , _) = ¬rep-adv rep
 
-¬seal-adv : ∀ {Θ p A B} → Δadv ∣ Θ ⊢[ p ] tail (seal 0) ∶ A ⇝ B → ⊥
+¬seal-adv : ∀ {Θ A B} → Δadv ∣ Θ ⊢ tail (seal 0) ∶ A ⇝ B → ⊥
 ¬seal-adv (conv-tail (conv-seal d ok)) = ¬know-adv d
 
 -- The boundary scope the adversary used to hide behind: it unbinds the
@@ -95,7 +95,7 @@ conv-Θadv (conversion (conv-unbind valid conv[])) = refl
 ¬name-lk : ∀ {α} → Δlk ∋ᵗ 0 := α → ⊥
 ¬name-lk ()
 
-¬seal-lk : ∀ {Θ p A B} → Δlk ∣ Θ ⊢[ p ] tail (seal 0) ∶ A ⇝ B → ⊥
+¬seal-lk : ∀ {Θ A B} → Δlk ∣ Θ ⊢ tail (seal 0) ∶ A ⇝ B → ⊥
 ¬seal-lk (conv-tail (conv-seal (name , rep , _) ok)) = ¬name-lk name
 
 ------------------------------------------------------------------------
@@ -109,7 +109,7 @@ conv-Θadv (conversion (conv-unbind valid conv[])) = refl
 Δnm : Ctxᵗ
 Δnm = (bindR `ℕ ∷ []) ∣ (zero ∷ [])
 
-¬seal-empty : ∀ {p A B} → Δnm ∣ [] ⊢[ p ] tail (seal 0) ∶ A ⇝ B → ⊥
+¬seal-empty : ∀ {A B} → Δnm ∣ [] ⊢ tail (seal 0) ∶ A ⇝ B → ⊥
 ¬seal-empty {⁺} (conv-tail (conv-seal d ()))
 ¬seal-empty {⁻} (conv-tail (conv-seal d ()))
 
@@ -140,7 +140,7 @@ empty-conv (conversion conv[]) = refl
 bad-lookup : Δbad ∋rep zero := ∀ZZ
 bad-lookup = r-here
 
-seal-bad-conv : ∀ {Θ p A B} → Δbad ∣ Θ ⊢[ p ] tail (seal 0) ∶ A ⇝ B
+seal-bad-conv : ∀ {Θ A B} → Δbad ∣ Θ ⊢ tail (seal 0) ∶ A ⇝ B
   → A ≡ ∀ZZ
 seal-bad-conv (conv-tail (conv-seal (here , rep , _) ok))
   with ∋ʳ-det rep bad-lookup
@@ -168,9 +168,9 @@ seal-bad-conv (conv-tail (conv-seal (here , rep , _) ok))
 -- The inner conceal's SOURCE and the outer reveal's TARGET are the SAME
 -- leaf on the SAME conversion context, hence equal.  With
 -- representation types no `Unique` premise is needed.
-cancel-types-agree : ∀ {Δ Θ Θ′ p p′ X A B A′ B′}
-  → Δ ∣ Θ ⊢[ p ] tail (seal X) ∶ A ⇝ B       -- the inner conceal
-  → Δ ∣ Θ′ ⊢[ p′ ] unseal X ∶ A′ ⇝ B′   -- the binder it names
+cancel-types-agree : ∀ {Δ Θ Θ′ X A B A′ B′}
+  → Δ ∣ Θ ⊢ tail (seal X) ∶ A ⇝ B       -- the inner conceal
+  → Δ ∣ Θ′ ⊢ unseal X ∶ A′ ⇝ B′   -- the binder it names
     ---------------------------
   → A ≡ B′
 cancel-types-agree cs cu with seal-source-is-rep cs | unseal-target-is-rep cu

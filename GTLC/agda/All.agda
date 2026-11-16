@@ -11,4 +11,6 @@ open import Coercions
 open import CastCalculus
 open import Compile
 open import DynamicGradualGuaranteeDefinitions
+open import GraphModel
+open import Denotation
 open import MetaTheory

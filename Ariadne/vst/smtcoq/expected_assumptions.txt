@@ -1,0 +1,219 @@
+Axioms:
+tail0_spec :
+  forall x : int,
+  0 < φ (x)%uint63 ->
+  exists y : Z, 0 <= y /\ φ (x)%uint63 = (2 * y + 1) * 2 ^ to_Z (tail0 x)
+tail0 : int -> int
+subcarryc_def_spec : forall x y : int, subcarryc x y = subcarryc_def x y
+subcarryc : int -> int -> carry int
+subc_def_spec : forall x y : int, (x -c y)%uint63 = subc_def x y
+subc : int -> int -> carry int
+sub_spec :
+  forall x y : int, to_Z (x - y) = (φ (x)%uint63 - φ (y)%uint63) mod wB
+sub : int -> int -> int
+ProofIrrelevance.proof_irrelevance : forall (P : Prop) (p1 p2 : P), p1 = p2
+of_to_Z : forall x : int, of_Z φ (x)%uint63 = x
+mulc_spec :
+  forall x y : int,
+  φ (x)%uint63 * φ (y)%uint63 =
+  to_Z (fst (mulc x y)) * wB + to_Z (snd (mulc x y))
+mulc : int -> int -> int * int
+mul_spec :
+  forall x y : int, to_Z (x * y) = (φ (x)%uint63 * φ (y)%uint63) mod wB
+mul : int -> int -> int
+mod_spec : forall x y : int, to_Z (x mod y) = φ (x)%uint63 mod φ (y)%uint63
+mod : int -> int -> int
+lxor_spec : forall x y i : int, bit (x lxor y) i = xorb (bit x i) (bit y i)
+lxor : int -> int -> int
+ltb_spec :
+  forall x y : int, (x <? y)%uint63 = true <-> φ (x)%uint63 < φ (y)%uint63
+ltb : int -> int -> bool
+lsr_spec : forall x p : int, to_Z (x >> p) = φ (x)%uint63 / 2 ^ φ (p)%uint63
+lsr : int -> int -> int
+lsl_spec :
+  forall x p : int, to_Z (x << p) = (φ (x)%uint63 * 2 ^ φ (p)%uint63) mod wB
+lsl : int -> int -> int
+lor_spec : forall x y i : int, bit (x lor y) i = (bit x i || bit y i)%bool
+lor : int -> int -> int
+leb_spec :
+  forall x y : int, (x ≤? y)%uint63 = true <-> φ (x)%uint63 <= φ (y)%uint63
+leb : int -> int -> bool
+land_spec : forall x y i : int, bit (x land y) i = (bit x i && bit y i)%bool
+land : int -> int -> int
+int : Set
+head0_spec :
+  forall x : int,
+  0 < φ (x)%uint63 -> wB / 2 <= 2 ^ to_Z (head0 x) * φ (x)%uint63 < wB
+head0 : int -> int
+Uint63Axioms.eqb_refl : forall x : int, (x =? x)%uint63 = true
+eqb_correct : forall i j : int, (i =? j)%uint63 = true -> i = j
+PrimInt63.eqb : int -> int -> bool
+diveucl_def_spec : forall x y : int, diveucl x y = diveucl_def x y
+diveucl_21_spec :
+  forall a1 a2 b : int,
+  let (q, r) := diveucl_21 a1 a2 b in
+  let (q', r') :=
+    IntDef.Z.div_eucl (φ (a1)%uint63 * wB + φ (a2)%uint63) φ (b)%uint63 in
+  φ (a1)%uint63 < φ (b)%uint63 -> φ (q)%uint63 = q' /\ φ (r)%uint63 = r'
+diveucl_21 : int -> int -> int -> int * int
+diveucl : int -> int -> int * int
+div_spec : forall x y : int, to_Z (x / y) = φ (x)%uint63 / φ (y)%uint63
+div : int -> int -> int
+compare_def_spec : forall x y : int, (x ?= y)%uint63 = compare_def x y
+PrimInt63.compare : int -> int -> Datatypes.comparison
+addmuldiv_def_spec :
+  forall p x y : int, addmuldiv p x y = addmuldiv_def p x y
+addmuldiv : int -> int -> int -> int
+addcarryc_def_spec : forall x y : int, addcarryc x y = addcarryc_def x y
+addcarryc : int -> int -> carry int
+addc_def_spec : forall x y : int, (x +c y)%uint63 = addc_def x y
+addc : int -> int -> carry int
+add_spec :
+  forall x y : int, to_Z (x + y) = (φ (x)%uint63 + φ (y)%uint63) mod wB
+add : int -> int -> int
+Axioms:
+tail0_spec :
+  forall x : int,
+  0 < φ (x)%uint63 ->
+  exists y : Z, 0 <= y /\ φ (x)%uint63 = (2 * y + 1) * 2 ^ to_Z (tail0 x)
+tail0 : int -> int
+subcarryc_def_spec : forall x y : int, subcarryc x y = subcarryc_def x y
+subcarryc : int -> int -> carry int
+subc_def_spec : forall x y : int, (x -c y)%uint63 = subc_def x y
+subc : int -> int -> carry int
+sub_spec :
+  forall x y : int, to_Z (x - y) = (φ (x)%uint63 - φ (y)%uint63) mod wB
+sub : int -> int -> int
+ProofIrrelevance.proof_irrelevance : forall (P : Prop) (p1 p2 : P), p1 = p2
+of_to_Z : forall x : int, of_Z φ (x)%uint63 = x
+mulc_spec :
+  forall x y : int,
+  φ (x)%uint63 * φ (y)%uint63 =
+  to_Z (fst (mulc x y)) * wB + to_Z (snd (mulc x y))
+mulc : int -> int -> int * int
+mul_spec :
+  forall x y : int, to_Z (x * y) = (φ (x)%uint63 * φ (y)%uint63) mod wB
+mul : int -> int -> int
+mod_spec : forall x y : int, to_Z (x mod y) = φ (x)%uint63 mod φ (y)%uint63
+mod : int -> int -> int
+lxor_spec : forall x y i : int, bit (x lxor y) i = xorb (bit x i) (bit y i)
+lxor : int -> int -> int
+ltb_spec :
+  forall x y : int, (x <? y)%uint63 = true <-> φ (x)%uint63 < φ (y)%uint63
+ltb : int -> int -> bool
+lsr_spec : forall x p : int, to_Z (x >> p) = φ (x)%uint63 / 2 ^ φ (p)%uint63
+lsr : int -> int -> int
+lsl_spec :
+  forall x p : int, to_Z (x << p) = (φ (x)%uint63 * 2 ^ φ (p)%uint63) mod wB
+lsl : int -> int -> int
+lor_spec : forall x y i : int, bit (x lor y) i = (bit x i || bit y i)%bool
+lor : int -> int -> int
+leb_spec :
+  forall x y : int, (x ≤? y)%uint63 = true <-> φ (x)%uint63 <= φ (y)%uint63
+leb : int -> int -> bool
+land_spec : forall x y i : int, bit (x land y) i = (bit x i && bit y i)%bool
+land : int -> int -> int
+int : Set
+head0_spec :
+  forall x : int,
+  0 < φ (x)%uint63 -> wB / 2 <= 2 ^ to_Z (head0 x) * φ (x)%uint63 < wB
+head0 : int -> int
+Uint63Axioms.eqb_refl : forall x : int, (x =? x)%uint63 = true
+eqb_correct : forall i j : int, (i =? j)%uint63 = true -> i = j
+PrimInt63.eqb : int -> int -> bool
+diveucl_def_spec : forall x y : int, diveucl x y = diveucl_def x y
+diveucl_21_spec :
+  forall a1 a2 b : int,
+  let (q, r) := diveucl_21 a1 a2 b in
+  let (q', r') :=
+    IntDef.Z.div_eucl (φ (a1)%uint63 * wB + φ (a2)%uint63) φ (b)%uint63 in
+  φ (a1)%uint63 < φ (b)%uint63 -> φ (q)%uint63 = q' /\ φ (r)%uint63 = r'
+diveucl_21 : int -> int -> int -> int * int
+diveucl : int -> int -> int * int
+div_spec : forall x y : int, to_Z (x / y) = φ (x)%uint63 / φ (y)%uint63
+div : int -> int -> int
+compare_def_spec : forall x y : int, (x ?= y)%uint63 = compare_def x y
+PrimInt63.compare : int -> int -> Datatypes.comparison
+addmuldiv_def_spec :
+  forall p x y : int, addmuldiv p x y = addmuldiv_def p x y
+addmuldiv : int -> int -> int -> int
+addcarryc_def_spec : forall x y : int, addcarryc x y = addcarryc_def x y
+addcarryc : int -> int -> carry int
+addc_def_spec : forall x y : int, (x +c y)%uint63 = addc_def x y
+addc : int -> int -> carry int
+add_spec :
+  forall x y : int, to_Z (x + y) = (φ (x)%uint63 + φ (y)%uint63) mod wB
+add : int -> int -> int
+Axioms:
+tail0_spec :
+  forall x : int,
+  0 < φ (x)%uint63 ->
+  exists y : Z, 0 <= y /\ φ (x)%uint63 = (2 * y + 1) * 2 ^ to_Z (tail0 x)
+tail0 : int -> int
+subcarryc_def_spec : forall x y : int, subcarryc x y = subcarryc_def x y
+subcarryc : int -> int -> carry int
+subc_def_spec : forall x y : int, (x -c y)%uint63 = subc_def x y
+subc : int -> int -> carry int
+sub_spec :
+  forall x y : int, to_Z (x - y) = (φ (x)%uint63 - φ (y)%uint63) mod wB
+sub : int -> int -> int
+ProofIrrelevance.proof_irrelevance : forall (P : Prop) (p1 p2 : P), p1 = p2
+of_to_Z : forall x : int, of_Z φ (x)%uint63 = x
+mulc_spec :
+  forall x y : int,
+  φ (x)%uint63 * φ (y)%uint63 =
+  to_Z (fst (mulc x y)) * wB + to_Z (snd (mulc x y))
+mulc : int -> int -> int * int
+mul_spec :
+  forall x y : int, to_Z (x * y) = (φ (x)%uint63 * φ (y)%uint63) mod wB
+mul : int -> int -> int
+mod_spec : forall x y : int, to_Z (x mod y) = φ (x)%uint63 mod φ (y)%uint63
+mod : int -> int -> int
+lxor_spec : forall x y i : int, bit (x lxor y) i = xorb (bit x i) (bit y i)
+lxor : int -> int -> int
+ltb_spec :
+  forall x y : int, (x <? y)%uint63 = true <-> φ (x)%uint63 < φ (y)%uint63
+ltb : int -> int -> bool
+lsr_spec : forall x p : int, to_Z (x >> p) = φ (x)%uint63 / 2 ^ φ (p)%uint63
+lsr : int -> int -> int
+lsl_spec :
+  forall x p : int, to_Z (x << p) = (φ (x)%uint63 * 2 ^ φ (p)%uint63) mod wB
+lsl : int -> int -> int
+lor_spec : forall x y i : int, bit (x lor y) i = (bit x i || bit y i)%bool
+lor : int -> int -> int
+leb_spec :
+  forall x y : int, (x ≤? y)%uint63 = true <-> φ (x)%uint63 <= φ (y)%uint63
+leb : int -> int -> bool
+land_spec : forall x y i : int, bit (x land y) i = (bit x i && bit y i)%bool
+land : int -> int -> int
+int : Set
+head0_spec :
+  forall x : int,
+  0 < φ (x)%uint63 -> wB / 2 <= 2 ^ to_Z (head0 x) * φ (x)%uint63 < wB
+head0 : int -> int
+Uint63Axioms.eqb_refl : forall x : int, (x =? x)%uint63 = true
+eqb_correct : forall i j : int, (i =? j)%uint63 = true -> i = j
+PrimInt63.eqb : int -> int -> bool
+diveucl_def_spec : forall x y : int, diveucl x y = diveucl_def x y
+diveucl_21_spec :
+  forall a1 a2 b : int,
+  let (q, r) := diveucl_21 a1 a2 b in
+  let (q', r') :=
+    IntDef.Z.div_eucl (φ (a1)%uint63 * wB + φ (a2)%uint63) φ (b)%uint63 in
+  φ (a1)%uint63 < φ (b)%uint63 -> φ (q)%uint63 = q' /\ φ (r)%uint63 = r'
+diveucl_21 : int -> int -> int -> int * int
+diveucl : int -> int -> int * int
+div_spec : forall x y : int, to_Z (x / y) = φ (x)%uint63 / φ (y)%uint63
+div : int -> int -> int
+compare_def_spec : forall x y : int, (x ?= y)%uint63 = compare_def x y
+PrimInt63.compare : int -> int -> Datatypes.comparison
+addmuldiv_def_spec :
+  forall p x y : int, addmuldiv p x y = addmuldiv_def p x y
+addmuldiv : int -> int -> int -> int
+addcarryc_def_spec : forall x y : int, addcarryc x y = addcarryc_def x y
+addcarryc : int -> int -> carry int
+addc_def_spec : forall x y : int, (x +c y)%uint63 = addc_def x y
+addc : int -> int -> carry int
+add_spec :
+  forall x y : int, to_Z (x + y) = (φ (x)%uint63 + φ (y)%uint63) mod wB
+add : int -> int -> int

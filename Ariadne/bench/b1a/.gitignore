@@ -1,0 +1,6 @@
+ref_session/
+ref_*.json
+ref_*.log
+run_ref.out
+rac/build/
+rac/check.out

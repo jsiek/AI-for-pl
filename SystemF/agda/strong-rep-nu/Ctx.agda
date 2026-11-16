@@ -27,7 +27,7 @@ open import strong-rep-nu.Types
 -- 1. The two de Bruijn universes
 ------------------------------------------------------------------------
 
-RVar : Set
+RVar : Set -- α
 RVar = ℕ
 
 data RepBinding : Set where
@@ -35,16 +35,16 @@ data RepBinding : Set where
   bindR : Ty → RepBinding
 
 RepCtx : Set
-RepCtx = List RepBinding
+RepCtx = List RepBinding  -- maps α to rep. type
 
 TyCtx : Set
-TyCtx = List RVar
+TyCtx = List RVar  -- maps X to α
 
 record Ctxᵗ : Set where
   constructor _∣_
   field
-    reps  : RepCtx
-    names : TyCtx
+    reps  : RepCtx -- maps α to rep. type
+    names : TyCtx  -- maps X to α
 open Ctxᵗ public
 
 -- one context's ordinary names read through a representation renaming,

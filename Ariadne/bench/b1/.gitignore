@@ -1,0 +1,13 @@
+*.log
+report*.json
+lemmas.json
+mutants/
+session/cache/
+session/interactive/*.vo
+session/interactive/*.vok
+session/interactive/*.vos
+session/interactive/*.glob
+session/interactive/.*.aux
+session/interactive/.coq-native/
+session/interactive/.lia.cache
+.lia.cache

@@ -5,7 +5,7 @@ AGDA ?= agda
 check: agda postulate-check
 
 agda:
-	$(AGDA) -v0 All.agda
+	$(AGDA) --safe -v0 All.agda
 
 postulate-check:
 	@! rg -n "postulate|\{!!\}" *.agda proof/*.agda

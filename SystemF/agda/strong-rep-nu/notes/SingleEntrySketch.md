@@ -73,6 +73,8 @@ chains:
 
     c,d  ::=  id | c → d | ∀X. c | −X | +X
 
+    Phil: restrict id to X and ι
+
 The paper's three sorts (middle, tail, conversion) and its chains
 `t ; −X` and `+X ; c` exist because `Merge` composes conversions: the
 compiler's `reveal`/`conceal` (`Conversion.agda` §4) write only bare
@@ -147,7 +149,7 @@ variable that no name in scope denotes.
     ──────────────────────────────────────────── (all)
     Δ ∣ ε ⊢ ∀X. c : ∀X. R ⇒ ∀X. S
 
-    α^X:=P ∈ Δ                              α^X:=P ∈ Δ
+    α:=P ∈ Δ                                α:=P ∈ Δ
     ─────────────────────────── (seal)      ─────────────────────────── (unseal)
     Δ ∣ −X^α ⊢ −X : P ⇒ α                   Δ ∣ +X^α ⊢ +X : α ⇒ P
 
@@ -203,7 +205,7 @@ Frames are the paper's, with `[ε] □ ⟨c⟩` in place of `[δ] □ ⟨c⟩`, 
     Δ ⊢ (λx:A. N) V  ⟶  N[x := V]                                   (Beta)
 
     Δ ⊢ [ε] V ⟨c → d⟩ W  ⟶  [ε] (V ([−ε] W ⟨c⟩)) ⟨d⟩                (Wrap)
-    Δ ⊢ [ε] V ⟨id⟩ W     ⟶  [ε] (V ([−ε] W ⟨id⟩)) ⟨id⟩              (Wrap-id)
+    Δ ⊢ [ε] V ⟨id⟩ W     ⟶  [ε] (V ([−ε] W ⟨id⟩)) ⟨id⟩              (Wrap-id) (Phil doesn't like)
 
     Δ ⊢ ν X:=A. (V X)⟨d⟩  ⟶  [+X^α] (V • X) ⟨d⟩   ⊣ α^X:=Δ(A)       (TyBeta)
         where  (ΛX. N) • X          =  N
@@ -218,6 +220,30 @@ Frames are the paper's, with `[ε] □ ⟨c⟩` in place of `[δ] □ ⟨c⟩`, 
     Δ ⊢ [+X^α] ([−X^α] V ⟨−X⟩) ⟨+X⟩  ⟶  V                              (Cancel-□)
 
     Δ ⊢ F[M]  ⟶  F[M′] ⊣ ξ      if F(Δ) ⊢ M ⟶ M′ ⊣ ξ                (ξ)
+
+Alternate rule brainstorm:
+
+     [-X][+X] V ⟨id_Y⟩⟨id_Y⟩   ⟶   V     if Y ≠ X                   (CancelId) replacing (Cancel)
+
+     Can we prove Progress? Type system needs to have the right invariants.
+
+     Or may need to generalize to:
+
+     [-X]([+X] V ⟨Id(A)⟩)⟨Id(A)⟩   ⟶   V     if X ∉ A                   (CancelId) replacing (Cancel)
+
+    X ∉ A is forced by scoping rules, X not in scope for ([+X] V ⟨Id(A)⟩)
+
+
+     [-X]([+X] V ⟨id⟩)⟨id⟩   ⟶   V                   (CancelId) replacing (Cancel)
+
+    V,W ::= U | [+X] V ⟨id_X⟩ | [-X] V ⟨-X⟩ | [ε] V ⟨ c → d ⟩ | [ε] V ⟨ ∀X.c ⟩ 
+
+
+Phil: can we remove the α's (representation variables)
+
+Need to change def. of Values
+
+
 
 What each rule does, against νF:
 
@@ -298,40 +324,55 @@ module; the last Merge produces
 
 νF₁, 16 steps (hand-derived, not machine-checked):
 
-       (ν X:=Bool. ((ΛX. λf:(∀Y. Y→Y). ν Y:=X. (f Y)⟨−Y → +Y⟩) X)
+       ((ν X:=Bool. ((ΛX. λf:(∀Y. Y→Y). ν Y:=X. (f Y)⟨−Y → +Y⟩) X)
             ⟨(∀Y. id → id) → (−X → +X)⟩)
-         (ΛZ. λz:Z. z) false
+        (ΛZ. λz:Z. z)) false
 
     → TyBeta                                                         ⊣ α:=Bool
-       [+X^α] (λf:(∀Y. Y→Y). ν Y:=X. (f Y)⟨−Y → +Y⟩) ⟨(∀Y. id → id) → (−X → +X)⟩
-         (ΛZ. λz:Z. z) false
+       (([+X^α] 
+          (λf:(∀Y. Y→Y). ν Y:=X. (f Y)⟨−Y → +Y⟩)
+         ⟨(∀Y. id → id) → (−X → +X)⟩)
+        (ΛZ. λz:Z. z)) false
 
     → Wrap
-       [+X^α] ((λf:(∀Y. Y→Y). ν Y:=X. (f Y)⟨−Y → +Y⟩)
-                 ([−X^α] (ΛZ. λz:Z. z) ⟨∀Y. id → id⟩))
-         ⟨−X → +X⟩ false
+       ([+X^α] 
+         ((λf:(∀Y. Y→Y). ν Y:=X. (f Y)⟨−Y → +Y⟩)
+          ([−X^α] (ΛZ. λz:Z. z) ⟨∀Y. id → id⟩))
+        ⟨−X → +X⟩) false
 
     → Beta
-       [+X^α] (ν Y:=X. (([−X^α] (ΛZ. λz:Z. z) ⟨∀Y. id → id⟩) Y)⟨−Y → +Y⟩)
-         ⟨−X → +X⟩ false
+       ([+X^α] 
+         (ν Y:=X. (([−X^α] (ΛZ. λz:Z. z) ⟨∀Y. id → id⟩) Y)⟨−Y → +Y⟩)
+        ⟨−X → +X⟩) false
 
     → TyBeta                                                         ⊣ β:=α
-       [+X^α] [+Y^β] [−X^α] (λz:Y. z) ⟨id → id⟩ ⟨−Y → +Y⟩ ⟨−X → +X⟩ false
+       ([+X^α] 
+         [+Y^β] [−X^α] (λz:Y. z) ⟨id → id⟩ ⟨−Y → +Y⟩ 
+        ⟨−X → +X⟩) false
 
     → Wrap   (layer [+X^α]: false enters sealed as X)
-       [+X^α] (([+Y^β] [−X^α] (λz:Y. z) ⟨id → id⟩ ⟨−Y → +Y⟩)
-                 ([−X^α] false ⟨−X⟩))
-         ⟨+X⟩
+       [+X^α]
+         (([+Y^β] [−X^α] (λz:Y. z) ⟨id → id⟩ ⟨−Y → +Y⟩)
+          ([−X^α] false ⟨−X⟩))
+       ⟨+X⟩
 
     → Wrap   (layer [+Y^β]: the argument is sealed again, as Y)
-       [+X^α] [+Y^β] (([−X^α] (λz:Y. z) ⟨id → id⟩)
-                        ([−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩))
-         ⟨+Y⟩ ⟨+X⟩
+       [+X^α] 
+         [+Y^β] 
+           (([−X^α] (λz:Y. z) ⟨id → id⟩)
+            ([−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩))
+         ⟨+Y⟩
+       ⟨+X⟩
 
     → Wrap   (layer [−X^α]: the argument gets the inverse entry, with id)
-       [+X^α] [+Y^β] [−X^α] ((λz:Y. z)
-                               ([+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩))
-         ⟨id⟩ ⟨+Y⟩ ⟨+X⟩
+       [+X^α] 
+         [+Y^β] 
+           [−X^α]
+             ((λz:Y. z)
+              ([+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩))
+           ⟨id⟩ 
+         ⟨+Y⟩
+       ⟨+X⟩
 
     → Beta
        [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩ ⟨id⟩ ⟨+Y⟩ ⟨+X⟩
@@ -343,12 +384,13 @@ module; the last Merge produces
       |      |------------------------------- X -------------------------------|    |
       |----------------------------------- Bool ------------------------------------|
 
+
     → Cancel, |I| = 2   (ξ into layer 1; layer 2's +Y meets layer 5's −Y)
        [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨id⟩ ⟨+X⟩
       |      |      |      |      |      |      |-Bool-|   |    |    |    |    |    |
       |      |      |      |      |      |------- X -------|    |    |    |    |    |
       |      |      |      |      |------------- X -------------|    |    |    |    |
-      |      |      |      |------------------- α -------------------|    |    |    |
+      |      |      |      |------------------- ? -------------------|    |    |    |
       |      |      |------------------------- X -------------------------|    |    |
       |      |------------------------------- X -------------------------------|    |
       |----------------------------------- Bool ------------------------------------|
@@ -369,6 +411,87 @@ module; the last Merge produces
     → Id     [+X^α] [+Y^β] false ⟨id⟩ ⟨id⟩
     → Id     [+X^α] false ⟨id⟩
     → Id     false
+
+
+Alternative with CancelId:
+
+
+       ((ν X:=Bool. ((ΛX. λf:(∀Y. Y→Y). ν Y:=X. (f Y)⟨−Y → +Y⟩) X)
+            ⟨(∀Y. id → id) → (−X → +X)⟩)
+        (ΛZ. λz:Z. z)) false
+
+    → TyBeta                                                         ⊣ α:=Bool
+       (([+X^α] 
+          (λf:(∀Y. Y→Y). ν Y:=X. (f Y)⟨−Y → +Y⟩)
+         ⟨(∀Y. id → id) → (−X → +X)⟩)
+        (ΛZ. λz:Z. z)) false
+
+    → Wrap
+       ([+X^α] 
+         ((λf:(∀Y. Y→Y). ν Y:=X. (f Y)⟨−Y → +Y⟩)
+          ([−X^α] (ΛZ. λz:Z. z) ⟨∀Y. id → id⟩))
+        ⟨−X → +X⟩) false
+
+    → Beta
+       ([+X^α] 
+         (ν Y:=X. (([−X^α] (ΛZ. λz:Z. z) ⟨∀Y. id → id⟩) Y)⟨−Y → +Y⟩)
+        ⟨−X → +X⟩) false
+
+    → TyBeta                                                         ⊣ β:=α
+       ([+X^α] 
+         [+Y^β] [−X^α] (λz:Y. z) ⟨id → id⟩ ⟨−Y → +Y⟩ 
+        ⟨−X → +X⟩) false
+
+    → Wrap   (layer [+X^α]: false enters sealed as X)
+       [+X^α]
+         (([+Y^β] [−X^α] (λz:Y. z) ⟨id → id⟩ ⟨−Y → +Y⟩)
+          ([−X^α] false ⟨−X⟩))
+       ⟨+X⟩
+
+    → Wrap   (layer [+Y^β]: the argument is sealed again, as Y)
+       [+X^α] 
+         [+Y^β] 
+           (([−X^α] (λz:Y. z) ⟨id → id⟩)
+            ([−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩))
+         ⟨+Y⟩
+       ⟨+X⟩
+
+    → Wrap   (layer [−X^α]: the argument gets the inverse entry, with id)
+       [+X^α] 
+         [+Y^β] 
+           [−X^α]
+             ((λz:Y. z)
+              ([+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩))
+           ⟨id⟩ 
+         ⟨+Y⟩
+       ⟨+X⟩
+
+    → Beta
+       [+X^α] [+Y^β] [−X^α] [+X^α] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨id⟩ ⟨id⟩ ⟨+Y⟩ ⟨+X⟩
+      |      |      |      |      |      |      |-Bool-|   |    |    |    |    |    |
+      |      |      |      |      |      |------- X -------|    |    |    |    |    |
+      |      |      |      |      |------------- Y -------------|    |    |    |    |
+      |      |      |      |------------------- Y -------------------|    |    |    |
+      |      |      |------------------------- Y -------------------------|    |    |
+      |      |------------------------------- X -------------------------------|    |
+      |----------------------------------- Bool ------------------------------------|
+
+
+    → CancelID
+
+       [+X^α] [+Y^β] [−Y^β] [−X^α] false ⟨−X⟩ ⟨−Y⟩ ⟨+Y⟩ ⟨+X⟩
+
+    → Cancel-□
+
+       [+X^α] [−X^α] false ⟨−X⟩ ⟨+X⟩
+
+    → Cancel-□
+
+       false
+
+
+
+
 
 Notes on the steps:
 

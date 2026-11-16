@@ -49,8 +49,8 @@ private
 ------------------------------------------------------------------------
 
 data Change : Set where
-  unbind : ℕ → RVar → Change
-  bind   : ℕ → RVar → Change
+  unbind : ℕ → RVar → Change -- -Xᵅ
+  bind   : ℕ → RVar → Change -- +Xᵅ
 
 private
   variable

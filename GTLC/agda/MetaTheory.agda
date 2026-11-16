@@ -3,11 +3,13 @@ module MetaTheory where
 -- File Charter:
 --   * Public metatheory statements/wrappers for GTLC.
 --   * Exposes coercion normalization, type safety (via compilation), and both
---     gradual guarantees.
+--     gradual guarantees; the dynamic one also in observational form, proved
+--     denotationally.
 
 open import Agda.Builtin.List using ([])
 open import Data.Product using (Σ-syntax; ∃; ∃-syntax; _×_)
 open import Data.Sum using (_⊎_)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
 open import Contexts
@@ -28,6 +30,7 @@ import proof.CastSafety as CastSafetyProof
 import proof.TypeSafety as TypeSafetyProof
 import proof.StaticGradualGuarantee as StaticGGProof
 import proof.DynamicGradualGuarantee as DynamicGGProof
+import proof.DenotGradualGuarantee as DenotGGProof
 
 coercion-normalization : ∀ {c A B}
   → ⊢ c ⦂ A ⇨ B
@@ -78,3 +81,22 @@ dynamic-gradual-guarantee : ∀ {M M′} {A A′}
              ⊎ Blames M′)
     × (Diverges M → DivergeOrBlame M′)
 dynamic-gradual-guarantee = DynamicGGProof.dynamic-gradual-guarantee
+
+-- The dynamic gradual guarantee in observational form, proved through the
+-- denotational semantics (Denotation): the final values agree on what they
+-- show (observe), in place of syntactic value precision.
+dynamic-gradual-guarantee-observational : ∀ {M M′} {A A′}
+  → M ⊑ᵀ M′
+  → [] ⊢ M ⦂ A
+  → [] ⊢ M′ ⦂ A′
+  → (∀ V′ (v′ : Valueᶜ V′)
+       → M′ ⇓ V′
+       → ∃[ V ] Σ[ v ∈ Valueᶜ V ] (M ⇓ V × observe v ≡ observe v′))
+    × (Diverges M′ → Diverges M)
+    × (∀ V (v : Valueᶜ V)
+         → M ⇓ V
+         → (∃[ V′ ] Σ[ v′ ∈ Valueᶜ V′ ] (M′ ⇓ V′ × observe v ≡ observe v′))
+           ⊎ Blames M′)
+    × (Diverges M → DivergeOrBlame M′)
+dynamic-gradual-guarantee-observational =
+  DenotGGProof.dynamic-gradual-guarantee-observational

@@ -1,0 +1,28 @@
+{
+  "name": "b1a_frozen",
+  "source": "b1a_frozen.c",
+  "spec_header": "bench/b1a/spec/sglib_dl_list_spec.h",
+  "cpp_args": "-I/ariadne/plugin/share -I/ariadne/bench/b1a/spec",
+  "frama_c": ["-load-module", "/ariadne/plugin/_build/default/ariadne.cmxs",
+              "-cpp-extra-args=-I/ariadne/plugin/share -I/ariadne/bench/b1a/spec",
+              "-generated-spec-custom", "terminates:skip", "-ariadne"],
+  "rte": ["-rte", "-rte-initialized", "@all"],
+  "wp": ["-wp-model", "Typed", "-wp-no-filter-init",
+         "-wp-prover", "alt-ergo,z3,cvc5,coq", "-wp-timeout", "60"],
+  "passes": [
+    {"name": "functions", "goals": {"min": 213},
+     "options": ["-wp-rte", "-rte-initialized", "@all", "-wp-fct",
+                 "sglib_dllist_add,sglib_dllist_it_init_on_equal,sglib_dllist_it_init,sglib_dllist_it_next,b1"]},
+    {"name": "lemmas", "goals": {"min": 0}, "options": ["-wp-prop=@lemma"]}
+  ],
+  "rac": {"dir": "rac", "command": ["sh", "./check.sh", "300", "1", "200", "quick"],
+          "bench_line": "B1A=/ariadne/bench/b1a",
+          "source_line": "SRC=$B1A/b1a_ref.c"},
+  "out_of_scope": [],
+  "copy_ignore": ["session/cache", "mutants", "rac/build", "*.log",
+                  "report*.json", "*.vo", "*.vok", "*.vos", "*.glob",
+                  ".*.aux", ".lia.cache", "b1a.c", "make_b1a.py",
+                  "README.md", "SPEC.md", "spec", "b1a_ref.c",
+                  "run_ref.sh", "run_ref.out", "ref_*", ".gitignore",
+                  "rac/check.out"]
+}

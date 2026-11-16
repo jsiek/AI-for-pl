@@ -1,0 +1,7 @@
+some_path: NOT TRANSLATED: case some_path_any: premise reach{L}(m, a) needs m, and reach has no mode computing a from b (case reach_step does not determine a from b)
+init_list: NOT TRANSLATED: \initialized{L}(h): \initialized needs E-ACSL's shadow memory, which plain C cannot query
+above: NOT TRANSLATED: case above_key: conclusion argument k + 1 has variables no premise determines
+two_states: NOT TRANSLATED: 2 labels: E-ACSL 33 does not execute predicates under labels
+uses_some_path: NOT TRANSLATED: uses some_path (case some_path_any: premise reach{L}(m, a) needs m, and reach has no mode computing a from b (case reach_step does not determine a from b))
+pointed_to: NOT TRANSLATED: \exists node *q; \valid{L}(q) && q->next == p: no witness for q
+weight: NOT TRANSLATED: declared without a definition

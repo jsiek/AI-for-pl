@@ -1,0 +1,26 @@
+Axioms:
+ClassicalDedekindReals.sig_not_dec : forall P : Prop, {~ ~ P} + {~ P}
+ClassicalDedekindReals.sig_forall_dec :
+  forall P : nat -> Prop,
+  (forall n : nat, {P n} + {~ P n}) ->
+  {n : nat | ~ P n} + {forall n : nat, P n}
+prop_ext : ClassicalFacts.prop_extensionality
+mem_mgr : globals -> mpred
+malloc_token_local_facts :
+  forall (cs : compspecs) (sh : share) (t : type) (p : val),
+  malloc_token sh t p |-- !! malloc_compatible (sizeof t) p
+malloc_token : compspecs -> share -> type -> val -> mpred
+functional_extensionality_dep :
+  forall (A : Type) (B : A -> Type) (f g : forall x : A, B x),
+  (forall x : A, f x = g x) -> f = g
+create_mem_mgr : forall gv : globals, emp |-- mem_mgr gv
+Classical_Prop.classic : forall P : Prop, P \/ ~ P
+body_malloc :
+  forall (Espec : OracleKind) (cs : compspecs),
+  body_lemma_of_funspec EF_malloc malloc_spec'
+body_free :
+  forall (Espec : OracleKind) (cs : compspecs),
+  body_lemma_of_funspec EF_free free_spec'
+Ensembles.Extensionality_Ensembles :
+  forall (U : Type) (A B : Ensembles.Ensemble U),
+  Ensembles.Same_set A B -> A = B

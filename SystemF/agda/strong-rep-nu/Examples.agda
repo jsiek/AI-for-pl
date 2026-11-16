@@ -68,7 +68,7 @@ module strong-rep-nu.Examples where
 -- change to the rules that moves a step count or an endpoint is a change
 -- that has to be argued for.  Sections §1–§8 and §10 begin with the empty
 -- store and grow it at each ν rule; §9 begins with the one-cell
--- store `Δ₆`.  The endpoint term is stated independently of that final store.
+-- store `Δ₉`.  The endpoint term is stated independently of that final store.
 --
 --   §1a  P     5 steps   7      : ℕ    the polymorphic identity
 --   §1b  K     9 steps   true   : 𝔹    a polymorphic Boolean use
@@ -738,18 +738,32 @@ S-run = reaches-run S-eval
 ------------------------------------------------------------------------
 
 -- Every run above starts at `empty`.  These three start at an ambient
--- store that already has a representation cell and an ordinary name for it,
--- and their boundaries are WRITTEN DOWN rather than minted.  The ambient is
--- the smallest interesting one: one concrete representation cell, one
--- ordinary name for it.  Every boundary below is changes-only and reads that
--- existing cell from `Δ₆`.
+-- store that already has a representation cell, and their boundaries
+-- are WRITTEN DOWN rather than created by a rule.  The ambient `Δ₉` is the
+-- smallest interesting one: one concrete representation cell with NO
+-- ordinary name; the outer boundary `⟪ bind 0 0 , unseal 0 ⟫` names it
+-- `0` for its interior `Δ₆`, and the inner `⟪ unbind 0 0 , seal 0 ⟫`
+-- hides the name again.
+--
+-- THE Δ ∣ Θ EXPERIMENT (2026-10-25): until then these boundaries were
+-- `⟪ [] , seal 0 ⟫` and `⟪ [] , unseal 0 ⟫` at `Δ₆`.  A seal or unseal
+-- now needs its scope's permission, and the empty scope grants none,
+-- so the scopes are written out.
+
+Δ₉ : Ctxᵗ
+Δ₉ = (bindR `ℕ ∷ []) ∣ []
 
 Δ₆ : Ctxᵗ
 Δ₆ = (bindR `ℕ ∷ []) ∣ (0 ∷ [])
 
--- the concealing layer these three share: 7, sealed at the ambient name
+-- the concealing layer these three share: 7, sealed at the name `Δ₆`
+-- gives the cell, under the unbind that licenses the seal
 Wseal : Term
-Wseal = ($ 7) ⟪ [] , tail (seal 0) ⟫
+Wseal = ($ 7) ⟪ unbind 0 0 ∷ [] , tail (seal 0) ⟫
+
+-- the unseal under the bind that licenses it
+Bunseal : Boundary
+Bunseal = bind 0 0 ∷ []
 
 ------------------------------------------------------------------------
 -- §9a  THE CANCEL PAIR
@@ -763,26 +777,26 @@ Wseal = ($ 7) ⟪ [] , tail (seal 0) ⟫
 -- then walked off a numeral by `Id`.
 
 Tcancel : Term
-Tcancel = Wseal ⟪ [] , unseal 0 ⟫
+Tcancel = Wseal ⟪ Bunseal , unseal 0 ⟫
 
-Tcancel-⊢ : Δ₆ ∣ [] ⊢ Tcancel ⦂ `ℕ
+Tcancel-⊢ : Δ₉ ∣ [] ⊢ Tcancel ⦂ `ℕ
 Tcancel-⊢ = tc
 
 Tcancel-eval : Reaches 2 2 Tcancel-⊢ ($ 7)
 Tcancel-eval = reaches refl (V-simple S-$)
 
-Tcancel-run : Δ₆ ⊢ Tcancel -→* $ 7
+Tcancel-run : Δ₉ ⊢ Tcancel -→* $ 7
 Tcancel-run = reaches-run Tcancel-eval
 
 -- THE ONE EXACT TRANSCRIPT, state by state.  Hand-written states were the
 -- old file's second, independent transcription of the rules; the runs of
 -- §§1–8 gave them up for the per-state type check
 -- (notes/DECISIONS.md), and this is the smallest run where writing them
--- out still costs nothing.  Note that `Θ₁ ++ Θ₂` here is the empty
--- boundary scope: neither frame changes a name.
+-- out still costs nothing.  The merged scope `Θ₁ ++ Θ₂` binds the
+-- name and unbinds it again.
 _ : evalTerms 2 Tcancel-⊢
       ≡ Tcancel
-      ∷ (($ 7) ⟪ [] , ⌞ id `ℕ ⌟ ⟫)
+      ∷ (($ 7) ⟪ unbind 0 0 ∷ bind 0 0 ∷ [] , ⌞ id `ℕ ⌟ ⟫)
       ∷ ($ 7)
       ∷ []
 _ = refl
@@ -798,28 +812,28 @@ _ = refl
 
 Tid : Term
 Tid = (Wseal ⟪ [] , ⌞ id (` 0) ⌟ ⟫)
-        ⟪ [] , unseal 0 ⟫
+        ⟪ Bunseal , unseal 0 ⟫
 
-Tid-⊢ : Δ₆ ∣ [] ⊢ Tid ⦂ `ℕ
+Tid-⊢ : Δ₉ ∣ [] ⊢ Tid ⦂ `ℕ
 Tid-⊢ = tc
 
 Tid-eval : Reaches 3 3 Tid-⊢ ($ 7)
 Tid-eval = reaches refl (V-simple S-$)
 
-Tid-run : Δ₆ ⊢ Tid -→* $ 7
+Tid-run : Δ₉ ⊢ Tid -→* $ 7
 Tid-run = reaches-run Tid-eval
 
 ¬val-Tid : ¬ Value Tid
 ¬val-Tid (V-simple ())
 
 -- STEP 1 is the inner `Merge`: `seal 0 ⨟ id (` 0)` is `seal 0`, on the
--- merged frame `Θ₁ ++ Θ₂` (here the empty scope, because neither frame
--- unbinds).  The contractum IS §9a's redex, so the rest of the run is
--- §9a's.
+-- merged frame `Θ₁ ++ Θ₂` (here `unbind 0 0 ∷ []`, because the
+-- identity layer's scope is empty).  The contractum IS §9a's redex, so
+-- the rest of the run is §9a's.
 _ : evalTerms 3 Tid-⊢
       ≡ Tid
-      ∷ (Wseal ⟪ [] , unseal 0 ⟫)
-      ∷ (($ 7) ⟪ [] , ⌞ id `ℕ ⌟ ⟫)
+      ∷ (Wseal ⟪ Bunseal , unseal 0 ⟫)
+      ∷ (($ 7) ⟪ unbind 0 0 ∷ bind 0 0 ∷ [] , ⌞ id `ℕ ⌟ ⟫)
       ∷ ($ 7)
       ∷ []
 _ = refl
@@ -836,15 +850,15 @@ _ = refl
 Tid₂ : Term
 Tid₂ = ((Wseal ⟪ [] , ⌞ id (` 0) ⌟ ⟫)
           ⟪ [] , ⌞ id (` 0) ⌟ ⟫)
-         ⟪ [] , unseal 0 ⟫
+         ⟪ Bunseal , unseal 0 ⟫
 
-Tid₂-⊢ : Δ₆ ∣ [] ⊢ Tid₂ ⦂ `ℕ
+Tid₂-⊢ : Δ₉ ∣ [] ⊢ Tid₂ ⦂ `ℕ
 Tid₂-⊢ = tc
 
 Tid₂-eval : Reaches 4 4 Tid₂-⊢ ($ 7)
 Tid₂-eval = reaches refl (V-simple S-$)
 
-Tid₂-run : Δ₆ ⊢ Tid₂ -→* $ 7
+Tid₂-run : Δ₉ ⊢ Tid₂ -→* $ 7
 Tid₂-run = reaches-run Tid₂-eval
 
 ------------------------------------------------------------------------

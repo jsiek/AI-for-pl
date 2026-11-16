@@ -6,16 +6,26 @@ module strong-rep-nu.Conversion where
 --     a structural middle `Mid`, a seal chain `Tail` (associates
 --     LEFT), an unseal chain `Conv` (associates RIGHT) — with renaming,
 --     §1b the syntactic identity `IsId` and the `NoCancel` side
---     condition, §2 the three typing judgements with NO polarity
---     index, §2b the weakening relation `SameConv`, §2c weakening
---     across a crossing, §2d representation renaming, §3 `mkId`,
---     §4 `reveal`/`conceal`, §4b COMPOSITION `Δ ⊢ c₁ ⨟ c₂`, §5 the
---     inversions, §6 `conv-types-unique`, §7 concrete checks.
+--     condition, §2 the three typing judgements
+--     `Γ ∣ Θ ⊢[ p ] c ∶ R ⇝ S`, the permissions they read off the
+--     scope, and the permission maps `PermMap`, §2b `SameConv` (two
+--     spellings of one conversion) and RESPELLING (`respellᶜ`, per
+--     name, from the scopes alone), §2c
+--     reading a typed conversion and weakening a type, §2d
+--     representation renaming, §3 `mkId`, §4 `reveal`/`conceal`,
+--     §4b COMPOSITION `Δ ⊢ c₁ ⨟ c₂`, §5 the inversions, §6
+--     `conv-types-unique`, §7 concrete checks.
+--   * THE SCOPE IS A PARAMETER (the Δ ∣ Θ experiment, 2026-10-25).
+--     A boundary's scope `Θ` grants PERMISSIONS: at polarity `⁺` a
+--     `seal` needs an unbind of its representation variable and an
+--     `unseal` a bind; `c ↦ d` flips the polarity for `c`.  The two
+--     types are REPRESENTATION types, so no context spells them.
 --   * CONVERSIONS ARE REP-FREE.  `seal` and `unseal` carry an ordinary
---     type-variable NAME, never a representation spelling; the lookup
---     square `Δ ∋ X := A` follows that name to its representation.
---     Composition reads that square too (`repOf`), which is why it
---     takes the context.
+--     type-variable NAME, never a representation spelling; the leaf
+--     `Γ ∋ X ⊸ α := R` follows that name to its representation, and
+--     `Γ` (the conversion context) is used for nothing else.
+--     Composition reads the lookup square too (`repOf`), which is why
+--     it takes the context.
 --   * TIGHT.  A bare `seal X`/`unseal X` stands for an identity
 --     middle; a chain extends only a NON-identity (`¬ IsId`); and
 --     `NoCancel` forbids `unseal X` directly before a bare `seal X`.
@@ -27,7 +37,7 @@ open import Data.Unit using (⊤; tt)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Maybe using (just; nothing)
 open import Relation.Nullary using (¬_; Dec; yes; no)
-open import Data.List using (List; []; _∷_; map)
+open import Data.List using (List; []; _∷_; _++_; map)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; cong; trans; cong₂; subst)
@@ -45,7 +55,7 @@ private
     η η′ : TyCtx
     A A′ B B′ C R : Ty
     X Y : ℕ
-    α : RVar
+    α α′ : RVar
     ρ : Renameᵗ
 
 ------------------------------------------------------------------------
@@ -159,62 +169,170 @@ mutual
   isIdᶜ? (unseal X ⨾ c) = no (λ ())
 
 ------------------------------------------------------------------------
--- 2.  Typing — one judgement per sort, no polarity index
+-- 2.  Typing — `Γ ∣ Θ ⊢[ p ] c ∶ R ⇝ S`
 ------------------------------------------------------------------------
 
--- Δ ⊢ c ∶ A ⇝ B — c converts the SOURCE type A to the TARGET type B,
--- all read on the CONVERSION CONTEXT Δ.  `conv-fun` is CONTRAVARIANT
--- in its domain.
+-- THE Δ ∣ Θ EXPERIMENT (2026-10-25).  The boundary scope `Θ` is a
+-- PARAMETER of the judgement instead of being applied to the context:
+-- it grants PERMISSIONS.  The context `Γ` only resolves the names a
+-- conversion mentions (it is the union reading of `Θ`, so every
+-- de Bruijn spelling is the old one), and both types are
+-- REPRESENTATION types, so a chain's intermediate type needs no
+-- spelling on either side.
 -- Commentary.md § Conversion.agda / §2
-infix 4 _⊢ᵐ_∶_⇝_ _⊢ᵀ_∶_⇝_ _⊢_∶_⇝_
+
+-- POLARITY of a position: `⁺` where the conversion runs from the
+-- boundary's interior to its exterior, `⁻` in a function domain.
+data Pol : Set where
+  ⁺ ⁻ : Pol
+
+flipᵖ : Pol → Pol
+flipᵖ ⁺ = ⁻
+flipᵖ ⁻ = ⁺
+
+flipᵖ-flipᵖ : (p : Pol) → flipᵖ (flipᵖ p) ≡ p
+flipᵖ-flipᵖ ⁺ = refl
+flipᵖ-flipᵖ ⁻ = refl
+
+-- THE PERMISSIONS (the sketch's `−Xᵅ ∈ δ` and `+Xᵅ ∈ δ`): at `⁺` a
+-- `seal` needs an UNBIND of its representation variable in `Θ` and an
+-- `unseal` a BIND; `⁻` swaps the two.
+SealOK : Pol → Boundary → RVar → Set
+SealOK ⁺ Θ α = InUnbinds α Θ
+SealOK ⁻ Θ α = InBinds α Θ
+
+UnsealOK : Pol → Boundary → RVar → Set
+UnsealOK p = SealOK (flipᵖ p)
+
+-- the leaf lookup (the sketch's `α:=A ∈ Δ`): X names α, α is
+-- represented by R, and R is a type here — the composition of a seal
+-- with its unseal (`Merge`'s cancellation) writes that type down.
+infix 4 _∋_⊸_:=_
+_∋_⊸_:=_ : Ctxᵗ → ℕ → RVar → Ty → Set
+Γ ∋ X ⊸ α := R =
+  (names Γ ∋ˡ X := α) × (Γ ∋rep α := R) × (∃[ A ] (names Γ ⊢ A ~ R))
+
+private
+  variable
+    Θ Θ′ : Boundary
+    p : Pol
+
+infix 4 _∣_⊢ᵐ[_]_∶_⇝_ _∣_⊢ᵀ[_]_∶_⇝_ _∣_⊢[_]_∶_⇝_
 
 mutual
-  data _⊢ᵐ_∶_⇝_ : Ctxᵗ → Mid → Ty → Ty → Set where
+  data _∣_⊢ᵐ[_]_∶_⇝_
+    : Ctxᵗ → Boundary → Pol → Mid → Ty → Ty → Set where
     conv-id : Base A
         --------------------------------
-      → Δ ⊢ᵐ id A ∶ A ⇝ A
+      → Δ ∣ Θ ⊢ᵐ[ p ] id A ∶ A ⇝ A
 
-    conv-idv : Δ ∋tv X
+    conv-idv : names Δ ∋ˡ X := α
         --------------------------------
-      → Δ ⊢ᵐ id (` X) ∶ ` X ⇝ ` X
+      → Δ ∣ Θ ⊢ᵐ[ p ] id (` X) ∶ ` α ⇝ ` α
 
-    conv-fun : Δ ⊢ s ∶ A′ ⇝ A → Δ ⊢ c ∶ B ⇝ B′
+    -- the domain runs the other way: the polarity flips
+    conv-fun : Δ ∣ Θ ⊢[ flipᵖ p ] s ∶ A′ ⇝ A
+      → Δ ∣ Θ ⊢[ p ] c ∶ B ⇝ B′
         ----------------------------------------------
-      → Δ ⊢ᵐ s ↦ c ∶ (A ⇒ B) ⇝ (A′ ⇒ B′)
+      → Δ ∣ Θ ⊢ᵐ[ p ] s ↦ c ∶ (A ⇒ B) ⇝ (A′ ⇒ B′)
 
-    conv-all : underΛ Δ ⊢ s ∶ A ⇝ B
+    conv-all : underΛ Δ ∣ liftᴮ Θ ⊢[ p ] s ∶ A ⇝ B
         --------------------------------------
-      → Δ ⊢ᵐ `∀ s ∶ `∀ A ⇝ `∀ B
+      → Δ ∣ Θ ⊢ᵐ[ p ] `∀ s ∶ `∀ A ⇝ `∀ B
 
-  data _⊢ᵀ_∶_⇝_ : Ctxᵗ → Tail → Ty → Ty → Set where
-    conv-mid : Δ ⊢ᵐ g ∶ A ⇝ B
+  data _∣_⊢ᵀ[_]_∶_⇝_
+    : Ctxᵗ → Boundary → Pol → Tail → Ty → Ty → Set where
+    conv-mid : Δ ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B
         --------------------------------
-      → Δ ⊢ᵀ mid g ∶ A ⇝ B
+      → Δ ∣ Θ ⊢ᵀ[ p ] mid g ∶ A ⇝ B
 
-    -- CONCEAL: the interior sees the rep, the exterior the name.
-    -- THE SOUNDNESS GATE: a seal must cite a LIVE BINDER.
-    conv-seal : Δ ∋ X := A
+    -- CONCEAL: needs `Θ`'s permission (an unbind, at `⁺`)
+    conv-seal : Δ ∋ X ⊸ α := A → SealOK p Θ α
         --------------------------------
-      → Δ ⊢ᵀ seal X ∶ A ⇝ ` X
+      → Δ ∣ Θ ⊢ᵀ[ p ] seal X ∶ A ⇝ ` α
 
-    conv-seal-seq : Δ ⊢ᵀ t ∶ A ⇝ B → Δ ∋ X := B → ¬ IsIdᵀ t
+    conv-seal-seq : Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
+      → Δ ∋ X ⊸ α := B → SealOK p Θ α → ¬ IsIdᵀ t
         --------------------------------
-      → Δ ⊢ᵀ t ⨾seal X ∶ A ⇝ ` X
+      → Δ ∣ Θ ⊢ᵀ[ p ] t ⨾seal X ∶ A ⇝ ` α
 
-  data _⊢_∶_⇝_ : Ctxᵗ → Conv → Ty → Ty → Set where
-    conv-tail : Δ ⊢ᵀ t ∶ A ⇝ B
+  data _∣_⊢[_]_∶_⇝_
+    : Ctxᵗ → Boundary → Pol → Conv → Ty → Ty → Set where
+    conv-tail : Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
         --------------------------------
-      → Δ ⊢ tail t ∶ A ⇝ B
+      → Δ ∣ Θ ⊢[ p ] tail t ∶ A ⇝ B
 
-    -- REVEAL: the interior sees the name, the exterior its rep.
-    conv-unseal : Δ ∋ X := A
+    -- REVEAL: needs `Θ`'s permission (a bind, at `⁺`)
+    conv-unseal : Δ ∋ X ⊸ α := A → UnsealOK p Θ α
         --------------------------------
-      → Δ ⊢ unseal X ∶ ` X ⇝ A
+      → Δ ∣ Θ ⊢[ p ] unseal X ∶ ` α ⇝ A
 
-    conv-unseal-seq : Δ ∋ X := A → Δ ⊢ c ∶ A ⇝ B
+    conv-unseal-seq : Δ ∋ X ⊸ α := A → UnsealOK p Θ α
+      → Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B
       → ¬ IsIdᶜ c → NoCancel X c
         --------------------------------
-      → Δ ⊢ unseal X ⨾ c ∶ ` X ⇝ B
+      → Δ ∣ Θ ⊢[ p ] unseal X ⨾ c ∶ ` α ⇝ B
+
+-- A PERMISSION MAP: everything `(Θ, p)` grants, `(Θ′, p′)` grants too.
+-- It is what a conversion needs to move to another scope (`Wrap`'s
+-- dual, `Merge`'s merged scope); it passes through `_↦_` and `∀`.
+record PermMap (Θ : Boundary) (p : Pol) (Θ′ : Boundary) (p′ : Pol) : Set where
+  constructor permmap
+  field
+    pm-seal   : ∀ {α} → SealOK p Θ α → SealOK p′ Θ′ α
+    pm-unseal : ∀ {α} → UnsealOK p Θ α → UnsealOK p′ Θ′ α
+open PermMap public
+
+sealOK-flip² : (p : Pol) → SealOK (flipᵖ (flipᵖ p)) Θ α → SealOK p Θ α
+sealOK-flip² ⁺ ok = ok
+sealOK-flip² ⁻ ok = ok
+
+sealOK-flip²⁻ : (p : Pol) → SealOK p Θ α → SealOK (flipᵖ (flipᵖ p)) Θ α
+sealOK-flip²⁻ ⁺ ok = ok
+sealOK-flip²⁻ ⁻ ok = ok
+
+pm-flip : ∀ {p p′} → PermMap Θ p Θ′ p′
+  → PermMap Θ (flipᵖ p) Θ′ (flipᵖ p′)
+pm-flip {p = p} {p′ = p′} m =
+  permmap (pm-unseal m)
+          (λ ok → sealOK-flip²⁻ p′ (pm-seal m (sealOK-flip² p ok)))
+
+sealOK-liftᴮ : (p : Pol) → SealOK p Θ α → SealOK p (liftᴮ Θ) (suc α)
+sealOK-liftᴮ ⁺ ok = in-unbinds-liftᴮ ok
+sealOK-liftᴮ ⁻ ok = in-binds-liftᴮ ok
+
+sealOK-liftᴮ⁻ : (p : Pol) → SealOK p (liftᴮ Θ) (suc α) → SealOK p Θ α
+sealOK-liftᴮ⁻ {Θ = Θ} ⁺ ok = in-unbinds-liftᴮ⁻ Θ ok
+sealOK-liftᴮ⁻ {Θ = Θ} ⁻ ok = in-binds-liftᴮ⁻ Θ ok
+
+sealOK-liftᴮ-zero : (p : Pol) → ¬ SealOK p (liftᴮ Θ) zero
+sealOK-liftᴮ-zero {Θ = Θ} ⁺ = liftᴮ-no-unbind-zero Θ
+sealOK-liftᴮ-zero {Θ = Θ} ⁻ = liftᴮ-no-bind-zero Θ
+
+pm-lift : ∀ {p p′} → PermMap Θ p Θ′ p′
+  → PermMap (liftᴮ Θ) p (liftᴮ Θ′) p′
+pm-lift {p = p} {p′ = p′} m = permmap seal′ unseal′
+  where
+  seal′ : ∀ {α} → SealOK p (liftᴮ _) α → SealOK p′ (liftᴮ _) α
+  seal′ {zero} ok = ⊥-elim (sealOK-liftᴮ-zero p ok)
+  seal′ {suc α} ok = sealOK-liftᴮ p′ (pm-seal m (sealOK-liftᴮ⁻ p ok))
+
+  unseal′ : ∀ {α} → UnsealOK p (liftᴮ _) α → UnsealOK p′ (liftᴮ _) α
+  unseal′ {zero} ok = ⊥-elim (sealOK-liftᴮ-zero (flipᵖ p) ok)
+  unseal′ {suc α} ok =
+    sealOK-liftᴮ (flipᵖ p′) (pm-unseal m (sealOK-liftᴮ⁻ (flipᵖ p) ok))
+
+-- the two maps the crossing rules need
+pm-dual : PermMap Θ ⁻ (dual Θ) ⁺
+pm-dual {Θ = Θ} = permmap (binds→dual Θ) (unbinds→dual Θ)
+
+pm-++ˡ : ∀ {p} (Θ₂ : Boundary) → PermMap Θ p (Θ ++ Θ₂) p
+pm-++ˡ {p = ⁺} Θ₂ = permmap in-unbinds-++ˡ in-binds-++ˡ
+pm-++ˡ {p = ⁻} Θ₂ = permmap in-binds-++ˡ in-unbinds-++ˡ
+
+pm-++ʳ : ∀ {p} (Θ₁ : Boundary) → PermMap Θ p (Θ₁ ++ Θ) p
+pm-++ʳ {p = ⁺} Θ₁ = permmap (in-unbinds-++ʳ Θ₁) (in-binds-++ʳ Θ₁)
+pm-++ʳ {p = ⁻} Θ₁ = permmap (in-binds-++ʳ Θ₁) (in-unbinds-++ʳ Θ₁)
 
 ------------------------------------------------------------------------
 -- 2b.  Two spellings of one conversion
@@ -270,81 +388,137 @@ mutual
 SameConv : Ctxᵗ → Conv → Ctxᵗ → Conv → Set
 SameConv Γ s Γ′ s′ = ∃[ r ] ((names Γ ⊩ s ~ r) × (names Γ′ ⊩ s′ ~ r))
 
--- It determines the spelling, so a rule carrying it stays a function.
+-- RESPELLING.  A crossing moves a conversion to another position, where
+-- other scopes overlap; it is RENAMED there, PER NAME and from the
+-- scopes alone: each name is DECODED back through the conversion
+-- reading it was written in, carried along the crossing's PATH (an
+-- interior reading), and ENCODED into the target conversion reading.
+-- A name is traced as a TOKEN: a position, or "the name for α" while α
+-- has none.  Whether a `bind` finds its name already live is read off
+-- the scope too (`Mentions`): a well-formed scope binds a name the
+-- context has only after unbinding it.  A renaming that RESPECTS the
+-- two name maps keeps the reading (`sameᶜ-respects`); that this one
+-- does is strong-rep-nu.proof.Respell.
+-- Commentary.md § Conversion.agda / §2b
+
+data Tok : Set where
+  pos  : ℕ → Tok
+  gone : RVar → Tok
+
+-- inserting a name at Y moves the positions at or above Y up one
+punchIn : ℕ → ℕ → ℕ
+punchIn zero    p       = suc p
+punchIn (suc Y) zero    = zero
+punchIn (suc Y) (suc p) = suc (punchIn Y p)
+
+upTok : Tok → Tok
+upTok (pos p)  = pos (suc p)
+upTok (gone α) = gone α
+
+-- removing the name at Y, which names α: position Y becomes α's token,
+-- the positions above it move down one
+peel : ℕ → RVar → ℕ → Tok
+peel zero    α zero    = gone α
+peel zero    α (suc X) = pos X
+peel (suc Y) α zero    = pos zero
+peel (suc Y) α (suc X) = upTok (peel Y α X)
+
+thenTok : Tok → (ℕ → Tok) → Tok
+thenTok (pos p)  k = k p
+thenTok (gone α) k = gone α
+
+-- one change, forward, as the interior reading performs it
+stepTok : Change → Tok → Tok
+stepTok (unbind Y β) (pos p)  = peel Y β p
+stepTok (unbind Y β) (gone α) = gone α
+stepTok (bind Y β)   (pos p)  = pos (punchIn Y p)
+stepTok (bind Y β)   (gone α) with α ≟ β
+stepTok (bind Y β)   (gone α) | yes eq = pos Y
+stepTok (bind Y β)   (gone α) | no ne  = gone α
+
+-- forward through an interior reading (the tail acts first)
+encodeI : Boundary → Tok → Tok
+encodeI []      t = t
+encodeI (δ ∷ χ) t = stepTok δ (encodeI χ t)
+
+-- forward through a conversion reading: unbinds are skipped, and a bind
+-- whose name an earlier-acting change mentions finds it live
+encodeU : Boundary → Tok → Tok
+encodeU []               t = t
+encodeU (unbind Y β ∷ χ) t = encodeU χ t
+encodeU (bind Y β ∷ χ)   t with mentions? β χ
+encodeU (bind Y β ∷ χ)   t | yes m  = encodeU χ t
+encodeU (bind Y β ∷ χ)   t | no nm = stepTok (bind Y β) (encodeU χ t)
+
+-- backward through a conversion reading, the last-acting change first
+decodeU : Boundary → ℕ → Tok
+decodeU []               X = pos X
+decodeU (unbind Y β ∷ χ) X = decodeU χ X
+decodeU (bind Y β ∷ χ)   X with mentions? β χ
+decodeU (bind Y β ∷ χ)   X | yes m  = decodeU χ X
+decodeU (bind Y β ∷ χ)   X | no nm = thenTok (peel Y β X) (decodeU χ)
+
+-- a token that ends without a position was no name of the source, and
+-- keeps its spelling (a typed conversion has none)
+finish : ℕ → Tok → ℕ
+finish X (pos q)  = q
+finish X (gone α) = X
+
+-- `respell Θₛ Π Θₜ`: from `Θₛ`'s conversion reading back to its
+-- exterior, along the interior reading of `Π`, into `Θₜ`'s conversion
+-- reading.  Wrap's is `respell Θ Θ (dual Θ)`; Merge's are
+-- `respell Θ₁ (dual Θ₂) (Θ₁ ++ Θ₂)` and `respell Θ₂ [] (Θ₁ ++ Θ₂)`.
+respell : Boundary → Boundary → Boundary → Renameᵗ
+respell Θₛ Π Θₜ X = finish X (encodeU Θₜ (encodeI Π (decodeU Θₛ X)))
+
+respellᶜ : Boundary → Boundary → Boundary → Conv → Conv
+respellᶜ Θₛ Π Θₜ = renᶜ (respell Θₛ Π Θₜ)
+
+Respects : Renameᵗ → TyCtx → TyCtx → Set
+Respects ρ η η′ = ∀ {X α} → η ∋ˡ X := α → η′ ∋ˡ ρ X := α
+
+∋ˡ-shift⁻ : ∀ {η : TyCtx} {X α} → shiftReps η ∋ˡ X := α
+  → ∃[ β ] ((α ≡ suc β) × (η ∋ˡ X := β))
+∋ˡ-shift⁻ {η = []} ()
+∋ˡ-shift⁻ {η = β ∷ η} here = β , refl , here
+∋ˡ-shift⁻ {η = β ∷ η} (there d) with ∋ˡ-shift⁻ d
+∋ˡ-shift⁻ {η = β ∷ η} (there d) | γ , eq , d′ = γ , eq , there d′
+
+respects-ext : Respects ρ η η′
+  → Respects (extᵗ ρ) (zero ∷ shiftReps η) (zero ∷ shiftReps η′)
+respects-ext r here = here
+respects-ext r (there d) with ∋ˡ-shift⁻ d
+respects-ext r (there d) | β , refl , d′ = there (∋ˡ-ren suc (r d′))
+
+same-respects : Respects ρ η η′ → η ⊢ A ~ R → η′ ⊢ renameᵗ ρ A ~ R
+same-respects r (same-var d) = same-var (r d)
+same-respects r same-ℕ = same-ℕ
+same-respects r same-𝔹 = same-𝔹
+same-respects r (same-⇒ a b) = same-⇒ (same-respects r a) (same-respects r b)
+same-respects r (same-∀ a) = same-∀ (same-respects (respects-ext r) a)
+
 mutual
-  sameᵐ-rep-unique : ∀ {g₁ g₂} → η ⊩ᵐ g ~ g₁ → η ⊩ᵐ g ~ g₂ → g₁ ≡ g₂
-  sameᵐ-rep-unique (sameᶜ-id a) (sameᶜ-id a′) =
-    cong id (same-rep-unique a a′)
-  sameᵐ-rep-unique (sameᶜ-fun a b) (sameᶜ-fun a′ b′) =
-    cong₂ _↦_ (sameᶜ-rep-unique a a′) (sameᶜ-rep-unique b b′)
-  sameᵐ-rep-unique (sameᶜ-all a) (sameᶜ-all a′) =
-    cong `∀ (sameᶜ-rep-unique a a′)
+  sameᵐ-respects : Respects ρ η η′ → η ⊩ᵐ g ~ g′ → η′ ⊩ᵐ renᵐ ρ g ~ g′
+  sameᵐ-respects r (sameᶜ-id a) = sameᶜ-id (same-respects r a)
+  sameᵐ-respects r (sameᶜ-fun a b) =
+    sameᶜ-fun (sameᶜ-respects r a) (sameᶜ-respects r b)
+  sameᵐ-respects r (sameᶜ-all a) =
+    sameᶜ-all (sameᶜ-respects (respects-ext r) a)
 
-  sameᵀ-rep-unique : ∀ {t₁ t₂} → η ⊩ᵀ t ~ t₁ → η ⊩ᵀ t ~ t₂ → t₁ ≡ t₂
-  sameᵀ-rep-unique (sameᶜ-mid a) (sameᶜ-mid a′) =
-    cong mid (sameᵐ-rep-unique a a′)
-  sameᵀ-rep-unique (sameᶜ-seal d) (sameᶜ-seal d′) =
-    cong seal (∋ˡ-det d d′)
-  sameᵀ-rep-unique (sameᶜ-seal-seq a d) (sameᶜ-seal-seq a′ d′) =
-    cong₂ _⨾seal_ (sameᵀ-rep-unique a a′) (∋ˡ-det d d′)
+  sameᵀ-respects : Respects ρ η η′ → η ⊩ᵀ t ~ t′ → η′ ⊩ᵀ renᵀ ρ t ~ t′
+  sameᵀ-respects r (sameᶜ-mid a) = sameᶜ-mid (sameᵐ-respects r a)
+  sameᵀ-respects r (sameᶜ-seal d) = sameᶜ-seal (r d)
+  sameᵀ-respects r (sameᶜ-seal-seq a d) =
+    sameᶜ-seal-seq (sameᵀ-respects r a) (r d)
 
-  sameᶜ-rep-unique : ∀ {c₁ c₂} → η ⊩ c ~ c₁ → η ⊩ c ~ c₂ → c₁ ≡ c₂
-  sameᶜ-rep-unique (sameᶜ-tail a) (sameᶜ-tail a′) =
-    cong tail (sameᵀ-rep-unique a a′)
-  sameᶜ-rep-unique (sameᶜ-unseal d) (sameᶜ-unseal d′) =
-    cong unseal (∋ˡ-det d d′)
-  sameᶜ-rep-unique (sameᶜ-unseal-seq d a) (sameᶜ-unseal-seq d′ a′) =
-    cong₂ unseal_⨾_ (∋ˡ-det d d′) (sameᶜ-rep-unique a a′)
-
-mutual
-  sameᵐ-target-unique : ∀ {g₁ g₂} → Unique η
-    → η ⊩ᵐ g₁ ~ g → η ⊩ᵐ g₂ ~ g → g₁ ≡ g₂
-  sameᵐ-target-unique uq (sameᶜ-id a) (sameᶜ-id a′) =
-    cong id (same-target-unique uq a a′)
-  sameᵐ-target-unique uq (sameᶜ-fun a b) (sameᶜ-fun a′ b′) =
-    cong₂ _↦_ (sameᶜ-target-unique uq a a′)
-              (sameᶜ-target-unique uq b b′)
-  sameᵐ-target-unique uq (sameᶜ-all a) (sameᶜ-all a′) =
-    cong `∀ (sameᶜ-target-unique
-               (unique∷ fresh-zero-shift (unique-shift uq)) a a′)
-
-  sameᵀ-target-unique : ∀ {t₁ t₂} → Unique η
-    → η ⊩ᵀ t₁ ~ t → η ⊩ᵀ t₂ ~ t → t₁ ≡ t₂
-  sameᵀ-target-unique uq (sameᶜ-mid a) (sameᶜ-mid a′) =
-    cong mid (sameᵐ-target-unique uq a a′)
-  sameᵀ-target-unique uq (sameᶜ-seal d) (sameᶜ-seal d′) =
-    cong seal (unique-lookup uq d d′)
-  sameᵀ-target-unique uq (sameᶜ-seal-seq a d) (sameᶜ-seal-seq a′ d′) =
-    cong₂ _⨾seal_ (sameᵀ-target-unique uq a a′) (unique-lookup uq d d′)
-
-  sameᶜ-target-unique : ∀ {c₁ c₂} → Unique η
-    → η ⊩ c₁ ~ c → η ⊩ c₂ ~ c → c₁ ≡ c₂
-  sameᶜ-target-unique uq (sameᶜ-tail a) (sameᶜ-tail a′) =
-    cong tail (sameᵀ-target-unique uq a a′)
-  sameᶜ-target-unique uq (sameᶜ-unseal d) (sameᶜ-unseal d′) =
-    cong unseal (unique-lookup uq d d′)
-  sameᶜ-target-unique uq (sameᶜ-unseal-seq d a) (sameᶜ-unseal-seq d′ a′) =
-    cong₂ unseal_⨾_ (unique-lookup uq d d′) (sameᶜ-target-unique uq a a′)
-
--- `Wrap`'s determinism case, in the shape `sameTy-src-unique` has.
-sameConv-src-unique : Unique η
-  → ∃[ r ] ((η ⊩ s ~ r) × (η′ ⊩ c ~ r))
-  → ∃[ r ] ((η ⊩ s′ ~ r) × (η′ ⊩ c ~ r))
-  → s ≡ s′
-sameConv-src-unique uq (r , p , q) (r′ , p′ , q′)
-  with sameᶜ-rep-unique q q′
-sameConv-src-unique uq (r , p , q) (r′ , p′ , q′) | refl =
-  sameᶜ-target-unique uq p p′
-
-sameConv-∀ : ∀ {Γ Γ′ : Ctxᵗ}
-  → SameConv (underΛ Γ) s (underΛ Γ′) s′
-  → SameConv Γ ⌞ `∀ s ⌟ Γ′ ⌞ `∀ s′ ⌟
-sameConv-∀ (r , p , q) =
-  ⌞ `∀ r ⌟ , sameᶜ-tail (sameᶜ-mid (sameᶜ-all p))
-           , sameᶜ-tail (sameᶜ-mid (sameᶜ-all q))
+  sameᶜ-respects : Respects ρ η η′ → η ⊩ s ~ s′ → η′ ⊩ renᶜ ρ s ~ s′
+  sameᶜ-respects r (sameᶜ-tail a) = sameᶜ-tail (sameᵀ-respects r a)
+  sameᶜ-respects r (sameᶜ-unseal d) = sameᶜ-unseal (r d)
+  sameᶜ-respects r (sameᶜ-unseal-seq d a) =
+    sameᶜ-unseal-seq (r d) (sameᶜ-respects r a)
 
 ------------------------------------------------------------------------
--- 2c. Weakening a conversion across a boundary scope crossing
+-- 2c. Reading a typed conversion; weakening a type
 ------------------------------------------------------------------------
 
 -- `Q` and `dual-conversion-exists` live with the relational context
@@ -367,39 +541,10 @@ weaken-ty f (same-∀ a) | A′ , a′ = `∀ A′ , same-∀ a′
 
 
 mutual
-  weakenᵐ : ∀ {g₀} → η ⊆ᵃ η′ → η ⊩ᵐ g ~ g₀ → ∃[ g′ ] (η′ ⊩ᵐ g′ ~ g₀)
-  weakenᵐ f (sameᶜ-id a) with weaken-ty f a
-  weakenᵐ f (sameᶜ-id a) | A′ , a′ = id A′ , sameᶜ-id a′
-  weakenᵐ f (sameᶜ-fun a b) with weaken f a
-  weakenᵐ f (sameᶜ-fun a b) | s₁ , a′ with weaken f b
-  weakenᵐ f (sameᶜ-fun a b) | s₁ , a′ | s₂ , b′ =
-    s₁ ↦ s₂ , sameᶜ-fun a′ b′
-  weakenᵐ f (sameᶜ-all a) with weaken (⊆ᵃ-underΛ f) a
-  weakenᵐ f (sameᶜ-all a) | s₁ , a′ = `∀ s₁ , sameᶜ-all a′
-
-  weakenᵀ : ∀ {t₀} → η ⊆ᵃ η′ → η ⊩ᵀ t ~ t₀ → ∃[ t′ ] (η′ ⊩ᵀ t′ ~ t₀)
-  weakenᵀ f (sameᶜ-mid a) with weakenᵐ f a
-  weakenᵀ f (sameᶜ-mid a) | g′ , a′ = mid g′ , sameᶜ-mid a′
-  weakenᵀ f (sameᶜ-seal d) with f (_ , d)
-  weakenᵀ f (sameᶜ-seal d) | X , d′ = seal X , sameᶜ-seal d′
-  weakenᵀ f (sameᶜ-seal-seq a d) with weakenᵀ f a | f (_ , d)
-  weakenᵀ f (sameᶜ-seal-seq a d) | t′ , a′ | X , d′ =
-    t′ ⨾seal X , sameᶜ-seal-seq a′ d′
-
-  weaken : ∀ {c₀} → η ⊆ᵃ η′ → η ⊩ c ~ c₀ → ∃[ c′ ] (η′ ⊩ c′ ~ c₀)
-  weaken f (sameᶜ-tail a) with weakenᵀ f a
-  weaken f (sameᶜ-tail a) | t′ , a′ = tail t′ , sameᶜ-tail a′
-  weaken f (sameᶜ-unseal d) with f (_ , d)
-  weaken f (sameᶜ-unseal d) | X , d′ = unseal X , sameᶜ-unseal d′
-  weaken f (sameᶜ-unseal-seq d a) with f (_ , d) | weaken f a
-  weaken f (sameᶜ-unseal-seq d a) | X , d′ | c′ , a′ =
-    unseal X ⨾ c′ , sameᶜ-unseal-seq d′ a′
-
-mutual
-  readableᵐ : ∀ {Γ : Ctxᵗ} → Γ ⊢ᵐ g ∶ A ⇝ B → ∃[ r ] (names Γ ⊩ᵐ g ~ r)
+  readableᵐ : Δ ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B → ∃[ r ] (names Δ ⊩ᵐ g ~ r)
   readableᵐ (conv-id base-ℕ) = id `ℕ , sameᶜ-id same-ℕ
   readableᵐ (conv-id base-𝔹) = id `𝔹 , sameᶜ-id same-𝔹
-  readableᵐ (conv-idv (α , d)) = id (` α) , sameᶜ-id (same-var d)
+  readableᵐ (conv-idv d) = id (` _) , sameᶜ-id (same-var d)
   readableᵐ (conv-fun a b) with readable a
   readableᵐ (conv-fun a b) | r₁ , a′ with readable b
   readableᵐ (conv-fun a b) | r₁ , a′ | r₂ , b′ =
@@ -407,95 +552,82 @@ mutual
   readableᵐ (conv-all a) with readable a
   readableᵐ (conv-all a) | r₁ , a′ = `∀ r₁ , sameᶜ-all a′
 
-  readableᵀ : ∀ {Γ : Ctxᵗ} → Γ ⊢ᵀ t ∶ A ⇝ B → ∃[ r ] (names Γ ⊩ᵀ t ~ r)
+  readableᵀ : Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B → ∃[ r ] (names Δ ⊩ᵀ t ~ r)
   readableᵀ (conv-mid a) with readableᵐ a
   readableᵀ (conv-mid a) | r , a′ = mid r , sameᶜ-mid a′
-  readableᵀ (conv-seal (α , R , d , rd , sm)) = seal α , sameᶜ-seal d
-  readableᵀ (conv-seal-seq a (α , R , d , rd , sm) ¬id) with readableᵀ a
-  readableᵀ (conv-seal-seq a (α , R , d , rd , sm) ¬id) | r , a′ =
-    r ⨾seal α , sameᶜ-seal-seq a′ d
+  readableᵀ (conv-seal (d , rd , _) ok) = seal _ , sameᶜ-seal d
+  readableᵀ (conv-seal-seq a (d , rd , _) ok ¬id) with readableᵀ a
+  readableᵀ (conv-seal-seq a (d , rd , _) ok ¬id) | r , a′ =
+    r ⨾seal _ , sameᶜ-seal-seq a′ d
 
-  readable : ∀ {Γ : Ctxᵗ} → Γ ⊢ c ∶ A ⇝ B → ∃[ r ] (names Γ ⊩ c ~ r)
+  readable : Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B → ∃[ r ] (names Δ ⊩ c ~ r)
   readable (conv-tail a) with readableᵀ a
   readable (conv-tail a) | r , a′ = tail r , sameᶜ-tail a′
-  readable (conv-unseal (α , R , d , rd , sm)) = unseal α , sameᶜ-unseal d
-  readable (conv-unseal-seq (α , R , d , rd , sm) a ¬id nc)
-    with readable a
-  readable (conv-unseal-seq (α , R , d , rd , sm) a ¬id nc) | r , a′ =
-    unseal α ⨾ r , sameᶜ-unseal-seq d a′
-
-premise-exists : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ : Boundary}
-  → Γ ⊢ⁱ Θ ⇒ Γᵢ
-  → Γ ⊢ᶜ Θ ⇒ Γᶜ
-  → Γᵢ ⊢ᶜ dual Θ ⇒ Γᵈ
-  → Γᶜ ⊢ s ∶ A ⇝ B
-  → ∃[ s′ ] SameConv Γᵈ s′ Γᶜ s
-premise-exists int conv dconv ⊢s with readable ⊢s
-premise-exists int conv dconv ⊢s | r , rd
-  with weaken (Q int conv dconv) rd
-premise-exists int conv dconv ⊢s | r , rd | s′ , rd′ =
-  s′ , (r , rd′ , rd)
-
-wrap-premises : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : Boundary}
-  → Unique (names Γ)
-  → Γ ⊢ⁱ Θ ⇒ Γᵢ
-  → Γ ⊢ᶜ Θ ⇒ Γᶜ
-  → Γᶜ ⊢ s ∶ A ⇝ B
-  → ∃[ Γᵈ ] ∃[ s′ ]
-      ((Γᵢ ⊢ᶜ dual Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
-wrap-premises uq int conv ⊢s with dual-conversion-exists uq int
-wrap-premises uq int conv ⊢s | Γᵈ , dconv
-  with premise-exists int conv dconv ⊢s
-wrap-premises uq int conv ⊢s | Γᵈ , dconv | s′ , sc =
-  Γᵈ , s′ , dconv , sc
-
-wrap-premises-boundary : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : Boundary}
-  → BoundaryWf Γ Θ Γᵢ Γᶜ
-  → Γᶜ ⊢ s ∶ A ⇝ B
-  → ∃[ Γᵈ ] ∃[ s′ ]
-      ((Γᵢ ⊢ᶜ dual Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
-wrap-premises-boundary mwΘ ⊢s =
-  wrap-premises (name-fn (bw-exterior mwΘ)) (bw-interior mwΘ)
-                (bw-conversion mwΘ) ⊢s
+  readable (conv-unseal (d , rd , _) ok) = unseal _ , sameᶜ-unseal d
+  readable (conv-unseal-seq (d , rd , _) ok a ¬id nc) with readable a
+  readable (conv-unseal-seq (d , rd , _) ok a ¬id nc) | r , a′ =
+    unseal _ ⨾ r , sameᶜ-unseal-seq d a′
 
 ------------------------------------------------------------------------
 -- 2d. Renaming the representation universe
 ------------------------------------------------------------------------
 
--- A conversion and both of its types survive a representation-only
--- renaming UNCHANGED; what moves is the context it is read on.
+-- A conversion's SPELLING survives a representation-only renaming
+-- unchanged; its context, its scope and its two REPRESENTATION types
+-- are renamed.
 -- Commentary.md § Conversion.agda / §2d
 
-conv-cast : ∀ {Ξ : RepCtx} → η ≡ η′
-  → (Ξ ∣ η) ⊢ c ∶ A ⇝ B → (Ξ ∣ η′) ⊢ c ∶ A ⇝ B
-conv-cast refl ⊢c = ⊢c
+conv-cast : ∀ {Ξ : RepCtx} → η ≡ η′ → Θ ≡ Θ′
+  → (Ξ ∣ η) ∣ Θ ⊢[ p ] c ∶ A ⇝ B → (Ξ ∣ η′) ∣ Θ′ ⊢[ p ] c ∶ A ⇝ B
+conv-cast refl refl ⊢c = ⊢c
+
+base-ren : Base A → renameᵗ ρ A ≡ A
+base-ren base-ℕ = refl
+base-ren base-𝔹 = refl
+
+sealOK-ren : ∀ (ρ : Renameᵗ) (p : Pol) {α} → SealOK p Θ α
+  → SealOK p (renᴮᴿ ρ Θ) (ρ α)
+sealOK-ren ρ ⁺ ok = in-unbinds-ren ρ ok
+sealOK-ren ρ ⁻ ok = in-binds-ren ρ ok
+
+leaf-ren : ∀ {Ξ Ξ′ : RepCtx} → RepWk ρ Ξ Ξ′
+  → (Ξ ∣ η) ∋ X ⊸ α := A → (Ξ′ ∣ map ρ η) ∋ X ⊸ ρ α := renameᵗ ρ A
+leaf-ren {ρ = ρ} w (d , rd , A , q) =
+  ∋ˡ-ren ρ d , wk-bind w rd , A , same-ren ρ q
 
 mutual
   convᵐ-ren : ∀ {Ξ Ξ′ : RepCtx} → RepWk ρ Ξ Ξ′
-    → (Ξ ∣ η) ⊢ᵐ g ∶ A ⇝ B
-    → (Ξ′ ∣ map ρ η) ⊢ᵐ g ∶ A ⇝ B
-  convᵐ-ren w (conv-id b) = conv-id b
-  convᵐ-ren {ρ = ρ} w (conv-idv tv) = conv-idv (tv-ren ρ tv)
+    → (Ξ ∣ η) ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B
+    → (Ξ′ ∣ map ρ η) ∣ renᴮᴿ ρ Θ ⊢ᵐ[ p ] g
+        ∶ renameᵗ ρ A ⇝ renameᵗ ρ B
+  convᵐ-ren {ρ = ρ} w (conv-id {A = A} b) rewrite base-ren {ρ = ρ} b =
+    conv-id b
+  convᵐ-ren {ρ = ρ} w (conv-idv d) = conv-idv (∋ˡ-ren ρ d)
   convᵐ-ren w (conv-fun p q) = conv-fun (conv-ren w p) (conv-ren w q)
-  convᵐ-ren {ρ = ρ} {η = η} w (conv-all p) =
-    conv-all (conv-cast (names-underΛ-ren ρ η)
-                        (conv-ren (repwk-abst w) p))
+  convᵐ-ren {ρ = ρ} {η = η} {Θ = Θ} w (conv-all q) =
+    conv-all (conv-cast (names-underΛ-ren ρ η) (renᴮᴿ-liftᴮ ρ Θ)
+                        (conv-ren (repwk-abst w) q))
 
   convᵀ-ren : ∀ {Ξ Ξ′ : RepCtx} → RepWk ρ Ξ Ξ′
-    → (Ξ ∣ η) ⊢ᵀ t ∶ A ⇝ B
-    → (Ξ′ ∣ map ρ η) ⊢ᵀ t ∶ A ⇝ B
-  convᵀ-ren w (conv-mid p) = conv-mid (convᵐ-ren w p)
-  convᵀ-ren w (conv-seal d) = conv-seal (∋:=-ren w d)
-  convᵀ-ren w (conv-seal-seq p d ¬id) =
-    conv-seal-seq (convᵀ-ren w p) (∋:=-ren w d) ¬id
+    → (Ξ ∣ η) ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
+    → (Ξ′ ∣ map ρ η) ∣ renᴮᴿ ρ Θ ⊢ᵀ[ p ] t
+        ∶ renameᵗ ρ A ⇝ renameᵗ ρ B
+  convᵀ-ren w (conv-mid q) = conv-mid (convᵐ-ren w q)
+  convᵀ-ren {ρ = ρ} {p = p} w (conv-seal d ok) =
+    conv-seal (leaf-ren w d) (sealOK-ren ρ p ok)
+  convᵀ-ren {ρ = ρ} {p = p} w (conv-seal-seq q d ok ¬id) =
+    conv-seal-seq (convᵀ-ren w q) (leaf-ren w d) (sealOK-ren ρ p ok) ¬id
 
   conv-ren : ∀ {Ξ Ξ′ : RepCtx} → RepWk ρ Ξ Ξ′
-    → (Ξ ∣ η) ⊢ c ∶ A ⇝ B
-    → (Ξ′ ∣ map ρ η) ⊢ c ∶ A ⇝ B
-  conv-ren w (conv-tail p) = conv-tail (convᵀ-ren w p)
-  conv-ren w (conv-unseal d) = conv-unseal (∋:=-ren w d)
-  conv-ren w (conv-unseal-seq d p ¬id nc) =
-    conv-unseal-seq (∋:=-ren w d) (conv-ren w p) ¬id nc
+    → (Ξ ∣ η) ∣ Θ ⊢[ p ] c ∶ A ⇝ B
+    → (Ξ′ ∣ map ρ η) ∣ renᴮᴿ ρ Θ ⊢[ p ] c
+        ∶ renameᵗ ρ A ⇝ renameᵗ ρ B
+  conv-ren w (conv-tail q) = conv-tail (convᵀ-ren w q)
+  conv-ren {ρ = ρ} {p = p} w (conv-unseal d ok) =
+    conv-unseal (leaf-ren w d) (sealOK-ren ρ (flipᵖ p) ok)
+  conv-ren {ρ = ρ} {p = p} w (conv-unseal-seq d ok q ¬id nc) =
+    conv-unseal-seq (leaf-ren w d) (sealOK-ren ρ (flipᵖ p) ok)
+                    (conv-ren w q) ¬id nc
 
 ------------------------------------------------------------------------
 -- 3.  The identity conversion at an arbitrary type
@@ -508,12 +640,14 @@ mkId `𝔹      = ⌞ id `𝔹 ⌟
 mkId (A ⇒ B) = ⌞ mkId A ↦ mkId B ⌟
 mkId (`∀ A)  = ⌞ `∀ (mkId A) ⌟
 
-mkId-⊢ : Δ ⊢ᵗ A → Δ ⊢ mkId A ∶ A ⇝ A
-mkId-⊢ (wf-var tv)  = conv-tail (conv-mid (conv-idv tv))
-mkId-⊢ wf-ℕ         = conv-tail (conv-mid (conv-id base-ℕ))
-mkId-⊢ wf-𝔹         = conv-tail (conv-mid (conv-id base-𝔹))
-mkId-⊢ (wf-⇒ wA wB) = conv-tail (conv-mid (conv-fun (mkId-⊢ wA) (mkId-⊢ wB)))
-mkId-⊢ (wf-∀ wA)    = conv-tail (conv-mid (conv-all (mkId-⊢ wA)))
+-- the identity at a type is typed at the type's representation, at
+-- either polarity and under any scope: an `id` needs no permission
+mkId-⊢ : names Δ ⊢ A ~ R → Δ ∣ Θ ⊢[ p ] mkId A ∶ R ⇝ R
+mkId-⊢ (same-var d)  = conv-tail (conv-mid (conv-idv d))
+mkId-⊢ same-ℕ        = conv-tail (conv-mid (conv-id base-ℕ))
+mkId-⊢ same-𝔹        = conv-tail (conv-mid (conv-id base-𝔹))
+mkId-⊢ (same-⇒ a b)  = conv-tail (conv-mid (conv-fun (mkId-⊢ a) (mkId-⊢ b)))
+mkId-⊢ (same-∀ a)    = conv-tail (conv-mid (conv-all (mkId-⊢ a)))
 
 mkId-isId : (A : Ty) → IsIdᶜ (mkId A)
 mkId-isId (` X)   = tt
@@ -636,115 +770,123 @@ mutual
 
 -- Every rep a conversion mentions IS the binder's rep — there is no
 -- second spelling.
-seal-source-is-rep : Δ ⊢ tail (seal X) ∶ A ⇝ B → Δ ∋ X := A
-seal-source-is-rep (conv-tail (conv-seal d)) = d
+seal-source-is-rep : Δ ∣ Θ ⊢[ p ] tail (seal X) ∶ A ⇝ B
+  → ∃[ α ] ((Δ ∋ X ⊸ α := A) × (B ≡ ` α))
+seal-source-is-rep (conv-tail (conv-seal d ok)) = _ , d , refl
 
-unseal-target-is-rep : Δ ⊢ unseal X ∶ A ⇝ B → Δ ∋ X := B
-unseal-target-is-rep (conv-unseal d) = d
+unseal-target-is-rep : Δ ∣ Θ ⊢[ p ] unseal X ∶ A ⇝ B
+  → ∃[ α ] ((Δ ∋ X ⊸ α := B) × (A ≡ ` α))
+unseal-target-is-rep (conv-unseal d ok) = _ , d , refl
 
-conv-unseal-src : Δ ⊢ unseal X ∶ A ⇝ B → A ≡ ` X
-conv-unseal-src (conv-unseal _) = refl
-
-conv-seal-tgt : Δ ⊢ tail (seal X) ∶ A ⇝ B → B ≡ ` X
-conv-seal-tgt (conv-tail (conv-seal _)) = refl
-
-conv-idv-src : Δ ⊢ ⌞ id (` X) ⌟ ∶ A ⇝ B → A ≡ ` X
-conv-idv-src (conv-tail (conv-mid (conv-idv _))) = refl
-
-conv-idv-tgt : Δ ⊢ ⌞ id (` X) ⌟ ∶ A ⇝ B → B ≡ ` X
-conv-idv-tgt (conv-tail (conv-mid (conv-idv _))) = refl
-
-conv-id-base-src : Base A → Δ ⊢ ⌞ id A ⌟ ∶ B ⇝ C → B ≡ A
+conv-id-base-src : Base A → Δ ∣ Θ ⊢[ p ] ⌞ id A ⌟ ∶ B ⇝ C → B ≡ A
 conv-id-base-src bA (conv-tail (conv-mid (conv-id _)))  = refl
 conv-id-base-src () (conv-tail (conv-mid (conv-idv _)))
 
-conv-id-refl : Δ ⊢ ⌞ id A ⌟ ∶ B ⇝ C → B ≡ C
+conv-id-refl : Δ ∣ Θ ⊢[ p ] ⌞ id A ⌟ ∶ B ⇝ C → B ≡ C
 conv-id-refl (conv-tail (conv-mid (conv-id _)))  = refl
 conv-id-refl (conv-tail (conv-mid (conv-idv _))) = refl
 
 -- A ∀ conversion's body, as an inversion returning the two `∀` shapes
--- AS EQUATIONS: at the use sites `boundary` constrains the conversion's
--- types only relationally, so `conv-all` does not unify directly.
+-- AS EQUATIONS.
 -- Commentary.md § Conversion.agda / §5
-conv-all-inv : Δ ⊢ ⌞ `∀ s ⌟ ∶ A ⇝ B
+conv-all-inv : Δ ∣ Θ ⊢[ p ] ⌞ `∀ s ⌟ ∶ A ⇝ B
   → Σ[ A₀ ∈ Ty ] Σ[ B₀ ∈ Ty ]
       ((A ≡ `∀ A₀) ×
        (B ≡ `∀ B₀) ×
-       (underΛ Δ ⊢ s ∶ A₀ ⇝ B₀))
+       (underΛ Δ ∣ liftᴮ Θ ⊢[ p ] s ∶ A₀ ⇝ B₀))
 conv-all-inv (conv-tail (conv-mid (conv-all ⊢s))) =
   _ , _ , refl , refl , ⊢s
 
-conv-fun-inv : Δ ⊢ ⌞ s ↦ c ⌟ ∶ A ⇝ B
+conv-fun-inv : Δ ∣ Θ ⊢[ p ] ⌞ s ↦ c ⌟ ∶ A ⇝ B
   → Σ[ A₁ ∈ Ty ] Σ[ B₁ ∈ Ty ] Σ[ A₂ ∈ Ty ] Σ[ B₂ ∈ Ty ]
       ((A ≡ A₁ ⇒ B₁) ×
        (B ≡ A₂ ⇒ B₂) ×
-       (Δ ⊢ s ∶ A₂ ⇝ A₁) ×
-       (Δ ⊢ c ∶ B₁ ⇝ B₂))
+       (Δ ∣ Θ ⊢[ flipᵖ p ] s ∶ A₂ ⇝ A₁) ×
+       (Δ ∣ Θ ⊢[ p ] c ∶ B₁ ⇝ B₂))
 conv-fun-inv (conv-tail (conv-mid (conv-fun ⊢s ⊢c))) =
   _ , _ , _ , _ , refl , refl , ⊢s , ⊢c
 
 ------------------------------------------------------------------------
--- 6. Conversion types are unique on a well-formed name map
+-- 6. Conversion types are unique
 ------------------------------------------------------------------------
 
--- The premise is the invariant used at `seal` and `unseal`: one
--- representation variable has at most one ordinary name.
+-- With representation types no `Unique` premise is needed: a name
+-- determines its representation variable, and that its payload.
+leaf-det : Δ ∋ X ⊸ α := A → Δ ∋ X ⊸ α′ := B → (α ≡ α′) × (A ≡ B)
+leaf-det (d , rd , _) (d′ , rd′ , _) with ∋ˡ-det d d′
+leaf-det (d , rd , _) (d′ , rd′ , _) | refl with ∋ʳ-det rd rd′
+leaf-det (d , rd , _) (d′ , rd′ , _) | refl | refl = refl , refl
+
 mutual
-  convᵐ-types-unique : Unique (names Δ)
-    → Δ ⊢ᵐ g ∶ A ⇝ B → Δ ⊢ᵐ g ∶ A′ ⇝ B′ → (A ≡ A′) × (B ≡ B′)
-  convᵐ-types-unique uq (conv-id b) (conv-id b′) = refl , refl
-  convᵐ-types-unique uq (conv-id ()) (conv-idv tv′)
-  convᵐ-types-unique uq (conv-idv tv) (conv-id ())
-  convᵐ-types-unique uq (conv-idv tv) (conv-idv tv′) = refl , refl
-  convᵐ-types-unique uq (conv-fun s t) (conv-fun s′ t′)
-    with conv-types-unique uq s s′ | conv-types-unique uq t t′
+  convᵐ-types-unique : Δ ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B
+    → Δ ∣ Θ ⊢ᵐ[ p ] g ∶ A′ ⇝ B′ → (A ≡ A′) × (B ≡ B′)
+  convᵐ-types-unique (conv-id b) (conv-id b′) = refl , refl
+  convᵐ-types-unique (conv-id ()) (conv-idv d′)
+  convᵐ-types-unique (conv-idv d) (conv-id ())
+  convᵐ-types-unique (conv-idv d) (conv-idv d′) with ∋ˡ-det d d′
+  ... | refl = refl , refl
+  convᵐ-types-unique (conv-fun s t) (conv-fun s′ t′)
+    with conv-types-unique s s′ | conv-types-unique t t′
   ... | refl , refl | refl , refl = refl , refl
-  convᵐ-types-unique {Δ = Δ} uq (conv-all s) (conv-all s′)
-    with conv-types-unique (unique-underΛ {Γ = Δ} uq) s s′
+  convᵐ-types-unique (conv-all s) (conv-all s′)
+    with conv-types-unique s s′
   ... | refl , refl = refl , refl
 
-  convᵀ-types-unique : Unique (names Δ)
-    → Δ ⊢ᵀ t ∶ A ⇝ B → Δ ⊢ᵀ t ∶ A′ ⇝ B′ → (A ≡ A′) × (B ≡ B′)
-  convᵀ-types-unique uq (conv-mid p) (conv-mid p′) =
-    convᵐ-types-unique uq p p′
-  convᵀ-types-unique uq (conv-seal d) (conv-seal d′) =
-    ∋:=-det uq d d′ , refl
-  convᵀ-types-unique uq (conv-seal-seq p d n) (conv-seal-seq p′ d′ n′)
-    with convᵀ-types-unique uq p p′
-  ... | refl , _ = refl , refl
+  convᵀ-types-unique : Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
+    → Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A′ ⇝ B′ → (A ≡ A′) × (B ≡ B′)
+  convᵀ-types-unique (conv-mid q) (conv-mid q′) =
+    convᵐ-types-unique q q′
+  convᵀ-types-unique (conv-seal d ok) (conv-seal d′ ok′)
+    with leaf-det d d′
+  ... | refl , refl = refl , refl
+  convᵀ-types-unique (conv-seal-seq q d ok n) (conv-seal-seq q′ d′ ok′ n′)
+    with convᵀ-types-unique q q′ | leaf-det d d′
+  ... | refl , _ | refl , _ = refl , refl
 
-  conv-types-unique : Unique (names Δ)
-    → Δ ⊢ c ∶ A ⇝ B → Δ ⊢ c ∶ A′ ⇝ B′ → (A ≡ A′) × (B ≡ B′)
-  conv-types-unique uq (conv-tail p) (conv-tail p′) =
-    convᵀ-types-unique uq p p′
-  conv-types-unique uq (conv-unseal d) (conv-unseal d′) =
-    refl , ∋:=-det uq d d′
-  conv-types-unique uq (conv-unseal-seq d p n m)
-                       (conv-unseal-seq d′ p′ n′ m′)
-    with ∋:=-det uq d d′
-  ... | refl with conv-types-unique uq p p′
+  conv-types-unique : Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B
+    → Δ ∣ Θ ⊢[ p ] c ∶ A′ ⇝ B′ → (A ≡ A′) × (B ≡ B′)
+  conv-types-unique (conv-tail q) (conv-tail q′) =
+    convᵀ-types-unique q q′
+  conv-types-unique (conv-unseal d ok) (conv-unseal d′ ok′)
+    with leaf-det d d′
+  ... | refl , refl = refl , refl
+  conv-types-unique (conv-unseal-seq d ok q n m)
+                    (conv-unseal-seq d′ ok′ q′ n′ m′)
+    with leaf-det d d′
+  ... | refl , refl with conv-types-unique q q′
   ...   | _ , refl = refl , refl
 
-conv-src-unique : Unique (names Δ)
-  → Δ ⊢ c ∶ A ⇝ B → Δ ⊢ c ∶ A′ ⇝ B′ → A ≡ A′
-conv-src-unique uq ⊢c ⊢c′ with conv-types-unique uq ⊢c ⊢c′
+conv-src-unique : Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B → Δ ∣ Θ ⊢[ p ] c ∶ A′ ⇝ B′
+  → A ≡ A′
+conv-src-unique ⊢c ⊢c′ with conv-types-unique ⊢c ⊢c′
 ... | eq , _ = eq
 
 ------------------------------------------------------------------------
--- 7. Concrete lookup-square and composition checks
+-- 7. Concrete permission and composition checks
 ------------------------------------------------------------------------
 
+-- `TyBeta`'s context: one cell for ℕ, named 0, bound by the scope
 βCtx : Ctxᵗ
 βCtx = (bindR `ℕ ∷ []) ∣ (zero ∷ [])
 
-β-lookup : βCtx ∋ zero := `ℕ
-β-lookup = zero , `ℕ , here , r-here , same-ℕ
+β-leaf : βCtx ∋ zero ⊸ zero := `ℕ
+β-leaf = here , r-here , `ℕ , same-ℕ
 
-β-unseal : βCtx ⊢ unseal zero ∶ ` zero ⇝ `ℕ
-β-unseal = conv-unseal β-lookup
+-- `bind 0 0` licenses `unseal 0` at `⁺` …
+β-unseal : βCtx ∣ (bind 0 0 ∷ []) ⊢[ ⁺ ] unseal zero ∶ ` zero ⇝ `ℕ
+β-unseal = conv-unseal β-leaf ib-here
 
-β-seal : βCtx ⊢ tail (seal zero) ∶ `ℕ ⇝ ` zero
-β-seal = conv-tail (conv-seal β-lookup)
+-- … and `seal 0` only in a function domain, at `⁻`
+β-seal : βCtx ∣ (bind 0 0 ∷ []) ⊢[ ⁻ ] tail (seal zero) ∶ `ℕ ⇝ ` zero
+β-seal = conv-tail (conv-seal β-leaf ib-here)
+
+β-reveal : βCtx ∣ (bind 0 0 ∷ []) ⊢[ ⁺ ]
+  ⌞ tail (seal zero) ↦ unseal zero ⌟ ∶ (` zero ⇒ ` zero) ⇝ (`ℕ ⇒ `ℕ)
+β-reveal = conv-tail (conv-mid (conv-fun β-seal β-unseal))
+
+-- THE TIGHTENING: a bind does not license a seal at `⁺`
+¬β-seal⁺ : ¬ (βCtx ∣ (bind 0 0 ∷ []) ⊢[ ⁺ ] tail (seal zero) ∶ `ℕ ⇝ ` zero)
+¬β-seal⁺ (conv-tail (conv-seal d (iu-there ())))
 
 -- run P's CancelR, as a composition: the identity at X's rep
 _ : (βCtx ⊢ tail (seal 0) ⨟ unseal 0) ≡ ⌞ id `ℕ ⌟

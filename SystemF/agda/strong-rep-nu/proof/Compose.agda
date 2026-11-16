@@ -2,16 +2,18 @@ module strong-rep-nu.proof.Compose where
 
 -- File Charter:
 --   * COMPOSITION IS WELL TYPED: `⊢⨟` — if `c₁ : A ⇝ B` and
---     `c₂ : B ⇝ C` at one conversion context with unique names, then
---     `Δ ⊢ c₁ ⨟ c₂ : A ⇝ C` (strong-rep-nu.Conversion §4b).  Typing is
+--     `c₂ : B ⇝ C` at one conversion context with unique names, under
+--     one scope and at one polarity, then `Δ ⊢ c₁ ⨟ c₂ : A ⇝ C`
+--     (strong-rep-nu.Conversion §4b).  Typing is
 --     also what makes the result TIGHT: the chain premises `¬ IsId`
 --     and `NoCancel` are rebuilt, never assumed.
 --   * §1 an identity has equal endpoints (`isIdᶜ-types`); §2 the
 --     lookup functions are complete, so `repOf` IS the lookup square
 --     (`repOf-sound`); §3 the smart constructors (`⊢⨾sealˢ`,
 --     `⊢cancelᵀ`, `⊢unseal⨾ˢ`); §4 `⊢⨟`, one lemma per sort.
---   * `Unique (names Δ)` is all it needs: `∋:=-det` at the cancelled
---     seal/unseal pair and at `repOf`.
+--   * `Unique (names Δ)` is all it needs, at `repOf`.  The cancelled
+--     pair agrees on its representation by `leaf-rep`, and the
+--     composite needs no permission its parts did not have.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Properties using (_≟_)
@@ -30,13 +32,17 @@ open import strong-rep-nu.Ctx
 open import strong-rep-nu.proof.Ctx
 open import strong-rep-nu.Lookup
 open import strong-rep-nu.Conversion
+open import strong-rep-nu.Boundary using (Boundary)
 open import strong-rep-nu.proof.Preserve using (same-wf)
 
 private
   variable
     Δ : Ctxᵗ
+    Θ : Boundary
+    p : Pol
     A B C R : Ty
     X Y : ℕ
+    α β : RVar
     g g₂ : Mid
     t t₂ : Tail
     c c₁ c₂ : Conv
@@ -46,31 +52,31 @@ private
 ------------------------------------------------------------------------
 
 mutual
-  isIdᵐ-types : IsIdᵐ g → Δ ⊢ᵐ g ∶ A ⇝ B → A ≡ B
+  isIdᵐ-types : IsIdᵐ g → Δ ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B → A ≡ B
   isIdᵐ-types i (conv-id b) = refl
-  isIdᵐ-types i (conv-idv tv) = refl
+  isIdᵐ-types i (conv-idv d) = refl
   isIdᵐ-types (i , j) (conv-fun p q) =
     cong₂ _⇒_ (sym (isIdᶜ-types i p)) (isIdᶜ-types j q)
   isIdᵐ-types i (conv-all p) = cong `∀ (isIdᶜ-types i p)
 
-  isIdᵀ-types : IsIdᵀ t → Δ ⊢ᵀ t ∶ A ⇝ B → A ≡ B
+  isIdᵀ-types : IsIdᵀ t → Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B → A ≡ B
   isIdᵀ-types i (conv-mid p) = isIdᵐ-types i p
-  isIdᵀ-types () (conv-seal d)
-  isIdᵀ-types () (conv-seal-seq p d n)
+  isIdᵀ-types () (conv-seal d ok)
+  isIdᵀ-types () (conv-seal-seq p d ok n)
 
-  isIdᶜ-types : IsIdᶜ c → Δ ⊢ c ∶ A ⇝ B → A ≡ B
+  isIdᶜ-types : IsIdᶜ c → Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B → A ≡ B
   isIdᶜ-types i (conv-tail p) = isIdᵀ-types i p
-  isIdᶜ-types () (conv-unseal d)
-  isIdᶜ-types () (conv-unseal-seq d p n m)
+  isIdᶜ-types () (conv-unseal d ok)
+  isIdᶜ-types () (conv-unseal-seq d ok p n m)
 
 -- A middle whose source or target is a variable is `id` at it.
-mid-var-tgt : Δ ⊢ᵐ g ∶ A ⇝ ` Y → A ≡ ` Y
+mid-var-tgt : Δ ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ ` β → A ≡ ` β
 mid-var-tgt (conv-id ())
-mid-var-tgt (conv-idv tv) = refl
+mid-var-tgt (conv-idv d) = refl
 
-mid-var-src : Δ ⊢ᵐ g ∶ ` X ⇝ B → B ≡ ` X
+mid-var-src : Δ ∣ Θ ⊢ᵐ[ p ] g ∶ ` α ⇝ B → B ≡ ` α
 mid-var-src (conv-id ())
-mid-var-src (conv-idv tv) = refl
+mid-var-src (conv-idv d) = refl
 
 ------------------------------------------------------------------------
 -- §2  The lookup functions are complete
@@ -147,26 +153,28 @@ unread?-just η (same-∀ {R = R} p) | nothing | r , ()
 ∋:=?-just Γ X (α , R , nm , rp , sm) | just (β , nm′) | d , refl
   | just (b , rp′) | e , refl | nothing | f , ()
 
--- `repOf` is the lookup square read as a function.
-repOf-sound : Unique (names Δ) → Δ ∋ X := A → repOf Δ X ≡ A
-repOf-sound {Δ = Δ} {X = X} uq d with ∋:=? Δ X | ∋:=?-just Δ X d
-repOf-sound {Δ = Δ} {X = X} uq d | just (A′ , d′) | p , refl =
-  ∋:=-det uq d′ d
-repOf-sound {Δ = Δ} {X = X} uq d | nothing | p , ()
-
-lookup-wf : Δ ∋ X := A → Δ ⊢ᵗ A
-lookup-wf {Δ = Δ} (α , R , nm , rp , sm) = same-wf {Δ = Δ} sm
+-- `repOf` is the lookup square read as a function: at a leaf it is
+-- the leaf's type, which reads its representation.
+repOf-sound : Unique (names Δ) → Δ ∋ X ⊸ α := R
+  → names Δ ⊢ repOf Δ X ~ R
+repOf-sound {Δ = Δ} {X = X} uq (nm , rp , A , sm)
+  with ∋:=? Δ X | ∋:=?-just Δ X (_ , _ , nm , rp , sm)
+repOf-sound {Δ = Δ} {X = X} uq (nm , rp , A , sm)
+  | just (A′ , d′) | q , refl
+  rewrite ∋:=-det uq d′ (_ , _ , nm , rp , sm) = sm
+repOf-sound {Δ = Δ} {X = X} uq (nm , rp , A , sm) | nothing | q , ()
 
 ------------------------------------------------------------------------
 -- §3  The smart constructors
 ------------------------------------------------------------------------
 
-⊢⨾sealˢ : Δ ⊢ᵀ t ∶ A ⇝ R → Δ ∋ Y := R → Δ ⊢ᵀ t ⨾sealˢ Y ∶ A ⇝ ` Y
-⊢⨾sealˢ {t = t} ⊢t d with isIdᵀ? t
-⊢⨾sealˢ {t = t} ⊢t d | yes i =
-  subst (λ T → _ ⊢ᵀ seal _ ∶ T ⇝ ` _) (sym (isIdᵀ-types i ⊢t))
-        (conv-seal d)
-⊢⨾sealˢ {t = t} ⊢t d | no n = conv-seal-seq ⊢t d n
+⊢⨾sealˢ : Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ R → Δ ∋ Y ⊸ β := R → SealOK p Θ β
+  → Δ ∣ Θ ⊢ᵀ[ p ] t ⨾sealˢ Y ∶ A ⇝ ` β
+⊢⨾sealˢ {t = t} ⊢t d ok with isIdᵀ? t
+⊢⨾sealˢ {t = t} ⊢t d ok | yes i =
+  subst (λ T → _ ∣ _ ⊢ᵀ[ _ ] seal _ ∶ T ⇝ ` _) (sym (isIdᵀ-types i ⊢t))
+        (conv-seal d ok)
+⊢⨾sealˢ {t = t} ⊢t d ok | no n = conv-seal-seq ⊢t d ok n
 
 -- When `cancelᵀ X t` is not a tail, `unseal X` did not cancel, and
 -- that is exactly `NoCancelᵀ X t`.
@@ -182,97 +190,107 @@ cancel-view X (t ⨾seal Y) | unseal Z | inj₂ nc = inj₂ nc
 cancel-view X (t ⨾seal Y) | unseal Z ⨾ c | inj₁ (t′ , ())
 cancel-view X (t ⨾seal Y) | unseal Z ⨾ c | inj₂ nc = inj₂ nc
 
-conv-tail⁻ : Δ ⊢ tail t ∶ A ⇝ B → Δ ⊢ᵀ t ∶ A ⇝ B
-conv-tail⁻ (conv-tail p) = p
+conv-tail⁻ : Δ ∣ Θ ⊢[ p ] tail t ∶ A ⇝ B → Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
+conv-tail⁻ (conv-tail q) = q
 
-⊢cancelᵀ : Δ ∋ X := R → Δ ⊢ᵀ t ∶ R ⇝ C → ¬ IsIdᵀ t
-  → Δ ⊢ cancelᵀ X t ∶ ` X ⇝ C
-⊢cancelᵀ d (conv-mid p) n = conv-unseal-seq d (conv-tail (conv-mid p)) n tt
-⊢cancelᵀ {X = X} d (conv-seal {X = Y} dY) n with X ≟ Y
-⊢cancelᵀ {X = X} (α , R , nm , rp , sm) (conv-seal {X = Y} dY) n
-  | yes refl = conv-tail (conv-mid (conv-idv (α , nm)))
-⊢cancelᵀ {X = X} d (conv-seal {X = Y} dY) n | no ne =
-  conv-unseal-seq d (conv-tail (conv-seal dY)) (λ ()) ne
-⊢cancelᵀ {X = X} d (conv-seal-seq {t = t} p dY m) n
-  with cancelᵀ X t | ⊢cancelᵀ d p m | cancel-view X t
-⊢cancelᵀ {X = X} d (conv-seal-seq {t = t} p dY m) n
-  | tail t′ | ⊢r | v = conv-tail (⊢⨾sealˢ (conv-tail⁻ ⊢r) dY)
-⊢cancelᵀ {X = X} d (conv-seal-seq {t = t} p dY m) n
+⊢cancelᵀ : Δ ∋ X ⊸ α := R → UnsealOK p Θ α → Δ ∣ Θ ⊢ᵀ[ p ] t ∶ R ⇝ C
+  → ¬ IsIdᵀ t → Δ ∣ Θ ⊢[ p ] cancelᵀ X t ∶ ` α ⇝ C
+⊢cancelᵀ d ok (conv-mid q) n =
+  conv-unseal-seq d ok (conv-tail (conv-mid q)) n tt
+⊢cancelᵀ {X = X} d ok (conv-seal {X = Y} dY okY) n with X ≟ Y
+⊢cancelᵀ {X = X} (nm , rp , sm) ok (conv-seal {X = Y} (nmY , rpY , smY) okY)
+  n | yes refl with ∋ˡ-det nm nmY
+... | refl = conv-tail (conv-mid (conv-idv nm))
+⊢cancelᵀ {X = X} d ok (conv-seal {X = Y} dY okY) n | no ne =
+  conv-unseal-seq d ok (conv-tail (conv-seal dY okY)) (λ ()) ne
+⊢cancelᵀ {X = X} d ok (conv-seal-seq {t = t} q dY okY m) n
+  with cancelᵀ X t | ⊢cancelᵀ d ok q m | cancel-view X t
+⊢cancelᵀ {X = X} d ok (conv-seal-seq {t = t} q dY okY m) n
+  | tail t′ | ⊢r | v = conv-tail (⊢⨾sealˢ (conv-tail⁻ ⊢r) dY okY)
+⊢cancelᵀ {X = X} d ok (conv-seal-seq {t = t} q dY okY m) n
   | unseal Z | ⊢r | inj₁ (t′ , ())
-⊢cancelᵀ {X = X} d (conv-seal-seq {t = t} p dY m) n
+⊢cancelᵀ {X = X} d ok (conv-seal-seq {t = t} q dY okY m) n
   | unseal Z | ⊢r | inj₂ nc =
-  conv-unseal-seq d (conv-tail (conv-seal-seq p dY m)) (λ ()) nc
-⊢cancelᵀ {X = X} d (conv-seal-seq {t = t} p dY m) n
+  conv-unseal-seq d ok (conv-tail (conv-seal-seq q dY okY m)) (λ ()) nc
+⊢cancelᵀ {X = X} d ok (conv-seal-seq {t = t} q dY okY m) n
   | unseal Z ⨾ c | ⊢r | inj₁ (t′ , ())
-⊢cancelᵀ {X = X} d (conv-seal-seq {t = t} p dY m) n
+⊢cancelᵀ {X = X} d ok (conv-seal-seq {t = t} q dY okY m) n
   | unseal Z ⨾ c | ⊢r | inj₂ nc =
-  conv-unseal-seq d (conv-tail (conv-seal-seq p dY m)) (λ ()) nc
+  conv-unseal-seq d ok (conv-tail (conv-seal-seq q dY okY m)) (λ ()) nc
 
-⊢unseal⨾ˢ : Δ ∋ X := R → Δ ⊢ c ∶ R ⇝ C → Δ ⊢ unseal X ⨾ˢ c ∶ ` X ⇝ C
-⊢unseal⨾ˢ d (conv-tail {t = t} p) with isIdᵀ? t
-⊢unseal⨾ˢ d (conv-tail {t = t} p) | yes i =
-  subst (λ T → _ ⊢ unseal _ ∶ ` _ ⇝ T) (isIdᵀ-types i p) (conv-unseal d)
-⊢unseal⨾ˢ d (conv-tail {t = t} p) | no n = ⊢cancelᵀ d p n
-⊢unseal⨾ˢ d (conv-unseal dY) =
-  conv-unseal-seq d (conv-unseal dY) (λ ()) tt
-⊢unseal⨾ˢ d (conv-unseal-seq dY p n m) =
-  conv-unseal-seq d (conv-unseal-seq dY p n m) (λ ()) tt
+⊢unseal⨾ˢ : Δ ∋ X ⊸ α := R → UnsealOK p Θ α → Δ ∣ Θ ⊢[ p ] c ∶ R ⇝ C
+  → Δ ∣ Θ ⊢[ p ] unseal X ⨾ˢ c ∶ ` α ⇝ C
+⊢unseal⨾ˢ d ok (conv-tail {t = t} q) with isIdᵀ? t
+⊢unseal⨾ˢ d ok (conv-tail {t = t} q) | yes i =
+  subst (λ T → _ ∣ _ ⊢[ _ ] unseal _ ∶ ` _ ⇝ T) (isIdᵀ-types i q)
+        (conv-unseal d ok)
+⊢unseal⨾ˢ d ok (conv-tail {t = t} q) | no n = ⊢cancelᵀ d ok q n
+⊢unseal⨾ˢ d ok (conv-unseal dY okY) =
+  conv-unseal-seq d ok (conv-unseal dY okY) (λ ()) tt
+⊢unseal⨾ˢ d ok (conv-unseal-seq dY okY q n m) =
+  conv-unseal-seq d ok (conv-unseal-seq dY okY q n m) (λ ()) tt
 
 ------------------------------------------------------------------------
 -- §4  Composition is well typed
 ------------------------------------------------------------------------
 
--- Jeremy's statement.  Each clause of `Δ ⊢ c₁ ⨟ c₂` is justified by
--- the types; the pairs typing rules out never arise.
-mutual
-  ⊢⨟ : Unique (names Δ) → Δ ⊢ c₁ ∶ A ⇝ B → Δ ⊢ c₂ ∶ B ⇝ C
-    → Δ ⊢ (Δ ⊢ c₁ ⨟ c₂) ∶ A ⇝ C
-  ⊢⨟ uq (conv-tail p) ⊢c₂ = ⊢⨟ᵀ uq p ⊢c₂
-  ⊢⨟ uq (conv-unseal d) ⊢c₂ = ⊢unseal⨾ˢ d ⊢c₂
-  ⊢⨟ uq (conv-unseal-seq d p n m) ⊢c₂ = ⊢unseal⨾ˢ d (⊢⨟ uq p ⊢c₂)
+-- the representation a seal and an unseal of the same variable agree on
+leaf-rep : Δ ∋ X ⊸ α := A → Δ ∋ Y ⊸ α := B → A ≡ B
+leaf-rep (_ , rd , _) (_ , rd′ , _) with ∋ʳ-det rd rd′
+... | refl = refl
 
-  ⊢⨟ᵀ : Unique (names Δ) → Δ ⊢ᵀ t ∶ A ⇝ B → Δ ⊢ c₂ ∶ B ⇝ C
-    → Δ ⊢ (Δ ⊢ t ⨟ᵀ c₂) ∶ A ⇝ C
+-- Jeremy's statement, now at one scope and one polarity.  Each clause
+-- of `Δ ⊢ c₁ ⨟ c₂` is justified by the types; the pairs typing rules
+-- out never arise.  Permissions need no argument: the composite's
+-- seals and unseals are among its parts'.
+mutual
+  ⊢⨟ : Unique (names Δ) → Δ ∣ Θ ⊢[ p ] c₁ ∶ A ⇝ B
+    → Δ ∣ Θ ⊢[ p ] c₂ ∶ B ⇝ C
+    → Δ ∣ Θ ⊢[ p ] (Δ ⊢ c₁ ⨟ c₂) ∶ A ⇝ C
+  ⊢⨟ uq (conv-tail q) ⊢c₂ = ⊢⨟ᵀ uq q ⊢c₂
+  ⊢⨟ uq (conv-unseal d ok) ⊢c₂ = ⊢unseal⨾ˢ d ok ⊢c₂
+  ⊢⨟ uq (conv-unseal-seq d ok q n m) ⊢c₂ =
+    ⊢unseal⨾ˢ d ok (⊢⨟ uq q ⊢c₂)
+
+  ⊢⨟ᵀ : Unique (names Δ) → Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
+    → Δ ∣ Θ ⊢[ p ] c₂ ∶ B ⇝ C
+    → Δ ∣ Θ ⊢[ p ] (Δ ⊢ t ⨟ᵀ c₂) ∶ A ⇝ C
   ⊢⨟ᵀ uq ⊢t (conv-tail q) = conv-tail (⊢⨟ᵀᵀ uq ⊢t q)
   -- the cancelled pair: CancelR
-  ⊢⨟ᵀ {Δ = Δ} uq (conv-seal {X = X} dX) (conv-unseal dY)
-    with ∋:=-det uq dX dY
-  ⊢⨟ᵀ {Δ = Δ} uq (conv-seal {X = X} dX) (conv-unseal dY) | refl =
-    subst (λ T → Δ ⊢ mkId T ∶ _ ⇝ _) (sym (repOf-sound uq dX))
-          (mkId-⊢ (lookup-wf dX))
-  ⊢⨟ᵀ uq (conv-seal dX) (conv-unseal-seq dY q n m)
-    with ∋:=-det uq dX dY
-  ⊢⨟ᵀ uq (conv-seal dX) (conv-unseal-seq dY q n m) | refl = q
-  ⊢⨟ᵀ uq (conv-seal-seq p dX n) (conv-unseal dY)
-    with ∋:=-det uq dX dY
-  ⊢⨟ᵀ uq (conv-seal-seq p dX n) (conv-unseal dY) | refl = conv-tail p
-  ⊢⨟ᵀ uq (conv-seal-seq p dX n) (conv-unseal-seq dY q n′ m)
-    with ∋:=-det uq dX dY
-  ⊢⨟ᵀ uq (conv-seal-seq p dX n) (conv-unseal-seq dY q n′ m) | refl =
-    ⊢⨟ᵀ uq p q
+  ⊢⨟ᵀ uq (conv-seal dX okX) (conv-unseal dY okY)
+    rewrite leaf-rep dY dX = mkId-⊢ (repOf-sound uq dX)
+  ⊢⨟ᵀ uq (conv-seal dX okX) (conv-unseal-seq dY okY q n m)
+    rewrite leaf-rep dY dX = q
+  ⊢⨟ᵀ uq (conv-seal-seq p dX okX n) (conv-unseal dY okY)
+    rewrite leaf-rep dY dX = conv-tail p
+  ⊢⨟ᵀ uq (conv-seal-seq p dX okX n) (conv-unseal-seq dY okY q n′ m)
+    rewrite leaf-rep dY dX = ⊢⨟ᵀ uq p q
   -- a middle whose target is a variable is the identity there
-  ⊢⨟ᵀ uq (conv-mid p) (conv-unseal dY) with mid-var-tgt p
-  ⊢⨟ᵀ uq (conv-mid p) (conv-unseal dY) | refl = conv-unseal dY
-  ⊢⨟ᵀ uq (conv-mid p) (conv-unseal-seq dY q n m) with mid-var-tgt p
-  ⊢⨟ᵀ uq (conv-mid p) (conv-unseal-seq dY q n m) | refl =
-    conv-unseal-seq dY q n m
+  ⊢⨟ᵀ uq (conv-mid p) (conv-unseal dY okY) with mid-var-tgt p
+  ⊢⨟ᵀ uq (conv-mid p) (conv-unseal dY okY) | refl = conv-unseal dY okY
+  ⊢⨟ᵀ uq (conv-mid p) (conv-unseal-seq dY okY q n m) with mid-var-tgt p
+  ⊢⨟ᵀ uq (conv-mid p) (conv-unseal-seq dY okY q n m) | refl =
+    conv-unseal-seq dY okY q n m
 
-  ⊢⨟ᵀᵀ : Unique (names Δ) → Δ ⊢ᵀ t ∶ A ⇝ B → Δ ⊢ᵀ t₂ ∶ B ⇝ C
-    → Δ ⊢ᵀ (Δ ⊢ t ⨟ᵀᵀ t₂) ∶ A ⇝ C
-  ⊢⨟ᵀᵀ uq ⊢t (conv-seal dY) = ⊢⨾sealˢ ⊢t dY
-  ⊢⨟ᵀᵀ uq ⊢t (conv-seal-seq q dY n) = ⊢⨾sealˢ (⊢⨟ᵀᵀ uq ⊢t q) dY
+  ⊢⨟ᵀᵀ : Unique (names Δ) → Δ ∣ Θ ⊢ᵀ[ p ] t ∶ A ⇝ B
+    → Δ ∣ Θ ⊢ᵀ[ p ] t₂ ∶ B ⇝ C
+    → Δ ∣ Θ ⊢ᵀ[ p ] (Δ ⊢ t ⨟ᵀᵀ t₂) ∶ A ⇝ C
+  ⊢⨟ᵀᵀ uq ⊢t (conv-seal dY okY) = ⊢⨾sealˢ ⊢t dY okY
+  ⊢⨟ᵀᵀ uq ⊢t (conv-seal-seq q dY okY n) =
+    ⊢⨾sealˢ (⊢⨟ᵀᵀ uq ⊢t q) dY okY
   ⊢⨟ᵀᵀ uq (conv-mid p) (conv-mid q) = conv-mid (⊢⨟ᵐ uq p q)
   -- a middle whose source is a variable is the identity there
-  ⊢⨟ᵀᵀ uq (conv-seal dX) (conv-mid q) with mid-var-src q
-  ⊢⨟ᵀᵀ uq (conv-seal dX) (conv-mid q) | refl = conv-seal dX
-  ⊢⨟ᵀᵀ uq (conv-seal-seq p dX n) (conv-mid q) with mid-var-src q
-  ⊢⨟ᵀᵀ uq (conv-seal-seq p dX n) (conv-mid q) | refl =
-    conv-seal-seq p dX n
+  ⊢⨟ᵀᵀ uq (conv-seal dX okX) (conv-mid q) with mid-var-src q
+  ⊢⨟ᵀᵀ uq (conv-seal dX okX) (conv-mid q) | refl = conv-seal dX okX
+  ⊢⨟ᵀᵀ uq (conv-seal-seq p dX okX n) (conv-mid q) with mid-var-src q
+  ⊢⨟ᵀᵀ uq (conv-seal-seq p dX okX n) (conv-mid q) | refl =
+    conv-seal-seq p dX okX n
 
-  ⊢⨟ᵐ : Unique (names Δ) → Δ ⊢ᵐ g ∶ A ⇝ B → Δ ⊢ᵐ g₂ ∶ B ⇝ C
-    → Δ ⊢ᵐ (Δ ⊢ g ⨟ᵐ g₂) ∶ A ⇝ C
+  ⊢⨟ᵐ : Unique (names Δ) → Δ ∣ Θ ⊢ᵐ[ p ] g ∶ A ⇝ B
+    → Δ ∣ Θ ⊢ᵐ[ p ] g₂ ∶ B ⇝ C
+    → Δ ∣ Θ ⊢ᵐ[ p ] (Δ ⊢ g ⨟ᵐ g₂) ∶ A ⇝ C
   ⊢⨟ᵐ uq (conv-id b) q = q
-  ⊢⨟ᵐ uq (conv-idv tv) q = q
+  ⊢⨟ᵐ uq (conv-idv d) q = q
   ⊢⨟ᵐ uq (conv-fun p₁ p₂) (conv-id ())
   -- the domain flips
   ⊢⨟ᵐ uq (conv-fun p₁ p₂) (conv-fun q₁ q₂) =

@@ -82,23 +82,25 @@ erasure-stutter : ∀ {Δ M M′ A δ}
   → erase Δ M ≡ erase (apply δ Δ) M′
 erasure-stutter w ⊢M (TyBeta v p) ()
 erasure-stutter w ⊢M (Beta v) ()
-erasure-stutter w ⊢M (TyWrap v rc ⊢s p) ()
-erasure-stutter {Δ} w ⊢M
-    (Wrap {V = V} {W = W} {Θ = Θ} v wv rc ri rd sc) s =
+erasure-stutter w ⊢M (TyWrap v p) ()
+-- the rule reads no context; the interior reading is the typing's
+erasure-stutter {Δ} w (⊢· (boundary mwΘ ⊢V ⊢c sᵢ sₑ wE) ⊢W)
+    (Wrap {V = V} {W = W} {Θ = Θ} v wv) s =
   cong (S._·_ (erase (inside Δ Θ) V))
        (cong (λ D → erase D W) (sym back))
   where
+  ri = bw-interior mwΘ
+
   back : inside (inside Δ Θ) (dual Θ) ≡ Δ
   back = trans (cong (λ D → inside D (dual Θ)) (inside-sound ri))
                (inside-sound (dual-interior ri))
 erasure-stutter {Ξ ∣ η} w ⊢M
-    (Merge {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} u it ri r₁ r₂ r⋉ sc₁ sc₂) s =
+    (Merge {U = U} {Θ₁ = Θ₁} {Θ₂ = Θ₂} u it r⋉) s =
   cong (λ η′ → erase (Ξ ∣ η′) U) (sym (interiorⁿ-++ Θ₁ Θ₂ η))
 erasure-stutter {Δ} w
-    (boundary mw ⊢U (conv-tail (conv-mid (conv-id b′)))
-              (Rᵢ , pᵢ , qᵢ) sₑ wE)
+    (boundary mw ⊢U (conv-tail (conv-mid (conv-id b′))) pᵢ sₑ wE)
     (Id {Θ = Θ} u b) s =
-  literal-erase _ Δ u ⊢U (base-read pᵢ (read-base qᵢ b′))
+  literal-erase _ Δ u ⊢U (base-read pᵢ b′)
 erasure-stutter w
     (boundary mw ⊢U (conv-tail (conv-mid (conv-idv tv))) sᵢ sₑ wE)
     (Id u ()) s
@@ -106,7 +108,7 @@ erasure-stutter {Δ} w (⊢· ⊢L ⊢M) (ξ-·₁ {δ = δ} st) s =
   cong₂ S._·_ (erasure-stutter w ⊢L st s) (sym (erase-↑ δ ⊢M))
 erasure-stutter {Δ} w (⊢· ⊢V ⊢M) (ξ-·₂ {δ = δ} v st) s =
   cong₂ S._·_ (sym (erase-↑ δ ⊢V)) (erasure-stutter w ⊢M st s)
-erasure-stutter {Δ} w (⊢ν {A = A} wA rA ⊢L mw ⊢c same wB)
+erasure-stutter {Δ} w (⊢ν {A = A} wA rA ⊢L mw ⊢c smC same wB)
     (ξ-ν {δ = δ} st) s =
   cong₂ S._[_] (erasure-stutter w ⊢L st s) (sym (eraseTy-apply δ Δ A))
 erasure-stutter {Δ} w (boundary mw ⊢M ⊢c sᵢ sₑ wE)
@@ -131,7 +133,7 @@ erasure-step : ∀ {Δ M M′ A δ}
   → (r : Δ ⊢ M -→ M′ ∣ δ)
   → ¬ Stutter r
   → erase Δ M ⟶ˢ erase (apply δ Δ) M′
-erasure-step {Ξ ∣ η} w (⊢ν {A = A} wA rA (⊢Λ vN ⊢N) mw ⊢c same wB)
+erasure-step {Ξ ∣ η} w (⊢ν {A = A} wA rA (⊢Λ vN ⊢N) mw ⊢c smC same wB)
     (TyBeta {R = R} {N = N} {c = c} v p) ns =
   subst (λ T → erase (Ξ ∣ η) (ν A · Λ N ⟨ c ⟩) ⟶ˢ T)
     (sym (trans (erase-inst R ⊢N)
@@ -142,8 +144,8 @@ erasure-step {Δ} w (⊢· (⊢ƛ {A = A} {N = N} wA ⊢N) ⊢W) (Beta {W = W} v
   subst (λ T → (S.ƛ eraseTy Δ A ∙ erase Δ N) S.· erase Δ W ⟶ˢ T)
     (sym (erase-beta w wA ⊢N ⊢W)) (β-ƛ (value-erase v))
 erasure-step {Ξ ∣ η} w
-    (⊢ν {A = A} wA rA (boundary mw (⊢Λ vN ⊢N) ⊢c′ sᵢ sₑ wE) mw′ ⊢c same wB)
-    (TyWrap {N = N} {Θ = Θ} {R = R} v rc ⊢s p) ns =
+    (⊢ν {A = A} wA rA (boundary mw (⊢Λ vN ⊢N) ⊢c′ sᵢ sₑ wE) mw′ ⊢c smC same wB)
+    (TyWrap {N = N} {Θ = Θ} {R = R} v p) ns =
   subst (λ T → _ ⟶ˢ T)
     (sym (trans (cong (λ η′ → erase ((bindR R ∷ Ξ) ∣ η′) N)
                       (interiorⁿ-lift Θ η))
@@ -155,8 +157,8 @@ erasure-step {Ξ ∣ η} w
   ⊢N′ : underΛ (inside (Ξ ∣ η) Θ) ∣ [] ⊢ N ⦂ _
   ⊢N′ = subst (λ D → underΛ D ∣ [] ⊢ N ⦂ _)
               (sym (inside-sound (bw-interior mw))) ⊢N
-erasure-step w ⊢M (Wrap v wv rc ri rd sc) ns = ⊥-elim (ns tt)
-erasure-step w ⊢M (Merge u it ri r₁ r₂ r⋉ sc₁ sc₂) ns = ⊥-elim (ns tt)
+erasure-step w ⊢M (Wrap v wv) ns = ⊥-elim (ns tt)
+erasure-step w ⊢M (Merge u it r⋉) ns = ⊥-elim (ns tt)
 erasure-step w ⊢M (Id u b) ns = ⊥-elim (ns tt)
 erasure-step {Δ} w (⊢· ⊢L ⊢M) (ξ-·₁ {L′ = L′} {δ = δ} st) ns =
   subst (λ T → _ ⟶ˢ S._·_ (erase (apply δ Δ) L′) T)
@@ -166,7 +168,7 @@ erasure-step {Δ} w (⊢· ⊢V ⊢M) (ξ-·₂ {M′ = M′} {δ = δ} v st) ns
   subst (λ T → _ ⟶ˢ S._·_ T (erase (apply δ Δ) M′))
     (sym (erase-↑ δ ⊢V))
     (ξˢ-·₂ (value-erase v) (erasure-step w ⊢M st ns))
-erasure-step {Δ} w (⊢ν {A = A} wA rA ⊢L mw ⊢c same wB)
+erasure-step {Δ} w (⊢ν {A = A} wA rA ⊢L mw ⊢c smC same wB)
     (ξ-ν {L′ = L′} {δ = δ} st) ns =
   subst (λ T → _ ⟶ˢ S._[_] (erase (apply δ Δ) L′) T)
     (sym (eraseTy-apply δ Δ A))

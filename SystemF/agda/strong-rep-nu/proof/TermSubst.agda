@@ -259,8 +259,8 @@ mutual
 ⊢renⁿ h (⊢ƛ w ⊢N) = ⊢ƛ w (⊢renⁿ (∋-extⁿ h) ⊢N)
 ⊢renⁿ h (⊢· ⊢L ⊢M) = ⊢· (⊢renⁿ h ⊢L) (⊢renⁿ h ⊢M)
 ⊢renⁿ h (⊢Λ vN ⊢N) = ⊢Λ (value-renⁿ vN) (⊢renⁿ (⤊-∋ⁿ h) ⊢N)
-⊢renⁿ h (⊢ν wA rA ⊢L mw ⊢c same wB) =
-  ⊢ν wA rA (⊢renⁿ h ⊢L) mw ⊢c same wB
+⊢renⁿ h (⊢ν wA rA ⊢L mw ⊢c smC same wB) =
+  ⊢ν wA rA (⊢renⁿ h ⊢L) mw ⊢c smC same wB
 ⊢renⁿ h (boundary mwᵥ ⊢M ⊢c sameᵢ sameₑ wE) =
   boundary mwᵥ ⊢M ⊢c sameᵢ sameₑ wE
 

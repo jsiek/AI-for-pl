@@ -5220,3 +5220,261 @@ names.  Entries above this one, and the other files in `notes/`, keep
 the names of their date.  Caution when reading them: before 2026-09-24
 `TyBeta` named strong-rep-store's rule, which minted its reveal at run
 time; today's `TyBeta` carries the compiler-written conversion.
+
+## 2026-10-25 — the Δ ∣ Θ experiment: conversions typed under the boundary scope (Jeremy's sketch; branch `nu-conv-delta`)
+
+Jeremy's sketch made the boundary scope a separate parameter of the
+conversion judgement instead of applying it to the context:
+
+    Δ | δ ⊢ id(ι) : ι ⇒ ι          X:=α ∈ Δ ⟹ Δ | δ ⊢ id(X) : X ⇒ X
+    Δ | -δ ⊢ c : A′ ⇒ A,  Δ | δ ⊢ d : B ⇒ B′ ⟹ Δ | δ ⊢ c → d : A → B ⇒ A′ → B′
+    Δ,α,X:=α | δ ⊢ c : A ⇒ B ⟹ Δ | δ ⊢ ∀X.c : ∀X.A ⇒ ∀X.B
+    -Xᵅ ∈ δ, α:=A ∈ Δ ⟹ Δ | δ ⊢ -X : A ⇒ X
+    +Xᵅ ∈ δ, α:=A ∈ Δ ⟹ Δ | δ ⊢ +X : X ⇒ A
+
+with δ the scope Θ (`+Xᵅ` a `bind`, `−Xᵅ` an `unbind`).  Rulings, in
+the order they were made:
+
+1. **Spellings stay.**  Every de Bruijn index in `id`/`seal`/`unseal`
+   is the old one, so names still resolve through the conversion
+   context (the union reading of Θ).  It is used for NOTHING else.
+   Consequence, accepted: `Wrap`'s `s′`, `Merge`'s `t₁′`/`c₂′`,
+   `SameConv` and (Q) all stay.
+2. **Types are representations.**  A seal chain's intermediate type can
+   be live on NEITHER side of a merged boundary (a `Merge` whose outer
+   scope binds what the inner one unbinds), so no context can spell
+   it; representation types need no spelling.
+3. **`−δ` is the same Θ with the signs flipped**, i.e. a polarity
+   bit `p` on the judgement that `_↦_` flips for its domain.  This is
+   "one polarity per type variable" (2026-09-06), not the single
+   polarity of a conversion that was ruled out then: the counterexample
+   `seal Y ↦ seal X` under `↥Y, ↓X` now types.
+
+Implemented as `Γ ∣ Θ ⊢[ p ] c ∶ R ⇝ S` (Conversion §2):
+
+* `seal X` needs the leaf `Γ ∋ X ⊸ α := R` and `SealOK p Θ α`
+  (an unbind of α at `⁺`, a bind at `⁻`); `unseal X` needs
+  `UnsealOK p Θ α`, the flipped permission.  Permission is
+  MEMBERSHIP of α among Θ's binds or unbinds.
+* The leaf includes a READING `∃ A. names Γ ⊢ A ~ R` (the sketch's
+  `α:=A ∈ Δ`): `Merge`'s cancellation writes `mkId (repOf Δ X)`,
+  which needs R spelled on the merged conversion context.
+* `id (` X)` needs only the name.  I had proposed requiring α live on
+  BOTH sides; I dropped it before implementing because an `id` leaf
+  between an `unseal` and a later `seal` appears in neither endpoint
+  type, so no premise of `boundary` keeps it live on a side, and
+  `Merge`'s composite would have to re-establish liveness it cannot
+  see.  That is an argument, not a machine-checked counterexample;
+  the both-sides rule is the natural next tightening to try.
+* `boundary` and `⊢ν` relate the interior and exterior types to the
+  conversion's representations by `~` directly; `_⊢_≈_⊣_` is gone from
+  both rules.  `⊢ν` gains the premise `names Δᵢ ⊢ C ~ Rᵢ`.
+* `TyWrap` loses its premise `underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ` (and the reading
+  `Δ ⊢ᶜ Θ ⇒ Δᶜ` it needed): no proof used it.
+
+What happened to the metatheory (`make check` passes):
+
+* **Preservation goes through unchanged in shape.**  The crossings move
+  a conversion by a PERMISSION MAP at the SAME representation types:
+  `Wrap` by `pm-dual` (`(Θ, ⁻)` to `(dual Θ, ⁺)`, from
+  `binds→dual`/`unbinds→dual`), `TyWrap` verbatim under `liftᴮ`
+  (`pm-lift`), `Merge` by `pm-++ˡ`/`pm-++ʳ` and then composition at one
+  scope.  The `≈` gluing in `WrapDual`/`MoveScope` disappeared.
+* `conv-types-unique` needs no `Unique` premise any more.
+* The compiler's `reveal 0 C` types under `inst [] = [bind 0 0]`: the
+  bind is exactly the permission it needs (`compile-ν`).
+* **Examples.**  Every run of §§1–8 and §10 keeps its endpoint and step
+  count, and every state still types.  The §9 hand-built boundaries
+  `⟪ [] , seal 0 ⟫` / `⟪ [] , unseal 0 ⟫` were ILL-TYPED under the new
+  rules (the empty scope grants nothing); they now start at the
+  nameless ambient `Δ₉` and carry `unbind 0 0` / `bind 0 0`.
+  `proof/Adversary.agda` §2c records the refusal.
+* Erasure: a conversion is an erasure-identity on representations
+  (`conv-erase`, through the store's `env`).
+
+Not revisited: `paper/draft.md` Decision 4's sub-point "No polarity
+index" and `Commentary.md` beyond § Conversion.agda §2.
+
+## 2026-10-26 — how a conversion names its type variables: four probes (branch `nu-side-probe`)
+
+Follow-up to the Δ ∣ Θ experiment, asking whether the conversion context
+can go and, if not, what the crossings really need.  The probes are
+gated notes modules (`notes/All.agda`); every result below is pinned by
+`refl` on the 21 compiled runs and, where stated, on nine stress
+programs (`notes/EntryStress.agda`, S1–S9: values sent back and forth
+across one type variable's scope).
+
+**The audit (no code).**  Classifying every reduction premise of
+strong-rep-nu (`main` and `nu-conv-delta`) and of GTNF as a guard, as
+building the contractum, or as preservation-only: no OBSERVABLE decision
+reads the type context.  GTNF's blame is decided by syntactic tag
+comparison or by `toExt`/`Fresh`, which read Θ alone.  Every context read
+builds syntax: the store payload (TyBeta/TyWrap's `A ~ R`), a respelling
+on the conversion context (Wrap's `s′`, Merge's `t₁′`/`c₂′`, IdDyn-var's
+`Xᶜ`), or typing data (`repOf`, `exitEnv`).  `main`'s TyWrap carried the
+one preservation-only premise (its evaluator ran `convTy?` to step); the
+experiment had already dropped it.  Correction made along the way:
+composition DOES compare names once, in `cancelᵀ` (`unseal X` against a
+bare `seal Y` cancels only if `X ≟ Y`).
+
+**1. Per-side names (`notes/SideProbe.agda`) — REFUTED.**  Spelling a
+`seal`/`unseal` on the side where the scope names it (`seal` at `⁺`
+outside, `unseal` at `⁺` inside, swapped at `⁻`) fails: 5 of the 21 runs
+(K, J, Eb, V, C) reach a boundary whose seal chain passes through a type
+variable NEITHER side names, each first at a `Merge`.  The witness is
+Examples §1b, typeset from source to the failing state in
+`notes/MergeWitness.tex`: at state 6 the merged scope is
+`+X^α, +Y^β, −X^α`, the domain is `−X ; −Y` (Bool → X → Y), and X has a
+name only between the scope's entries.  All failures need an ALIAS cell
+(`β := α`, from `ν` at a type variable: `f [X]`); only such cells make a
+seal chain type.  No `id` leaf ever failed.
+
+**2. Pointers to scope entries (`notes/EntryProbe.agda`) — REJECTED.**
+Every `seal`/`unseal` has a permission entry of the right kind (the
+typing already demands it), unique in all 21 runs, but NOT unique under
+repeated instantiation at one variable (stress S3, S4, S6, S7: up to four
+unbind entries for one α), so pointers would have to be carried, never
+recomputed.  Jeremy rejected the idea itself: an entry position indexes
+the scope, not a set of type variables, which is a separate de Bruijn
+universe for seals and unseals alone.
+
+**3. `id` leaves (`notes/IdProbe.agda`).**  Every `id (` X)` leaf is
+named on both sides, GTNF's `toExt Θ` (ported) maps its interior name to
+its exterior name, and where the scope has entries for its α (only in
+S8 and S9, whose round trips make `cancelᵀ` create `id X` inside a
+domain) both names are recovered from those entries by Θ alone.
+
+**4. Marking unbinds — REJECTED (Jeremy).**  Making the interior keep
+unbound names, marked, would give the interior and the conversion
+context one list (the "structural option" of the 2026-09-18 entry).
+"We don't want masks/marking of unbinds."
+
+**RULING — what a scope is (Jeremy).**  A scope is a RANGE OF PROGRAM
+POSITIONS in which a variable may occur, not a particular Δ.  δ⁺(Δ) does
+not introduce a scope: at a conversion's position the scopes of several
+variables OVERLAP (the exterior's, and every variable an entry binds),
+and the conversion's de Bruijn indices count exactly those.  So the
+conversion context is the right place for `seal`/`unseal`/`id` names,
+probe 1's restriction was too strict (X's scope covers the conversion's
+position though not either side), and the respellings are ordinary
+renaming: moving a conversion to another boundary's position changes
+which scopes overlap there, like shifting a term under a binder.
+
+**5. Computed respellings (`notes/RespellProbe.agda`).**  Replaying the
+scopes over OPAQUE exterior slots (only the exterior's length is read;
+a slot's representation is learnt only when the scope unbinds it) gives
+a renaming ρ with `renᶜ ρ s ≡ s′` at every Wrap and `renᶜ ρ₁ (tail t₁)
+≡ tail t₁′`, `renᶜ ρ₂ c₂ ≡ c₂′` at every Merge: 318 checks over the 21
+runs and S1–S9, 55 of them a real renaming, no mismatch.
+
+**Next: the prototype (branch `nu-respell`).**  Wrap and Merge compute
+their respellings by `renᶜ ρ` from the scopes instead of carrying them
+under `SameConv`; the lemma owed is that the computed renaming is a
+`SameConv`.  Not pursued, recorded: removing alias cells (`ν` at a type
+variable re-binding the existing cell instead of allocating `β := α`)
+would remove every seal chain probe 1 found.
+
+## 2026-10-26b — computed respellings, stage 1 (branch `nu-respell`)
+
+The prototype planned above.  `Wrap` and `Merge` no longer carry the
+spellings of the conversions they move; they compute them.
+
+    Wrap  : … → Δ ⊢ᶜ Θ ⇒ Δᶜ → Δ ⊢ⁱ Θ ⇒ Δᵢ → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ
+          → Δ ⊢ (V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · W
+              -→ (V · (W ⟪ dual Θ , respellᶜ Δᶜ Δᵈ s ⟫)) ⟪ Θ , t ⟫ ∣ none
+    Merge : … (the four readings)
+          → Δ ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫
+              -→ U ⟪ Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ respellᶜ Δ₁ᶜ Δ⋉ᶜ (tail t₁)
+                                     ⨟ respellᶜ Δ₂ᶜ Δ⋉ᶜ c₂ ⟫ ∣ none
+
+* `respell η η′` (`Lookup.agda`) sends a name of η to η′'s name for the
+  same representation variable; `respellᶜ Γ Γ′ = renᶜ (respell (names Γ)
+  (names Γ′))`.  The crossing is still BY THE REPRESENTATION, as the
+  crossing-spelling law always required; only who produces the spelling
+  changed.
+* The `SameConv` the rules carried is now a lemma, `respell-same`
+  (`Conversion.agda` §2b): a renaming that RESPECTS two name maps keeps
+  a conversion's reading (`sameᶜ-respects`), and `respell` respects any
+  two maps whose second keeps the first's representation variables
+  (`respell-respects`, from `lookupˡ?-complete`/`find?-complete`).
+  `preserve-Wrap` feeds it (Q); `preserve-Merge` feeds it
+  `merged-keeps₁`/`merged-keeps₂`.
+* Determinism of `Wrap` and `Merge` is now `refl` once the readings are
+  identified; it no longer reads the typing derivation.
+* Progress builds `Wrap` from `dual-conversion-exists` and `Merge` from
+  `merged-conversion-exists` alone.
+* DELETED as dead: `sameConv-src-unique`, the `same*-rep-unique` and
+  `same*-target-unique` families, `sameConv-∀`, the proof-level
+  `weaken`/`weakenᵀ`/`weakenᵐ`, `premise-exists`, `wrap-premises`,
+  `wrap-premises-boundary` (`Conversion.agda`); `conversion-unique`,
+  `dual-unique`, `interior-unique` (`Boundary.agda`); the conversion
+  deciders `readᶜ?`/`unreadᶜ?` (all sorts) and `weaken?`/`weakenᵀ?`
+  (`TypeCheck.agda`).  `notes/WrapPremise.agda` now checks the
+  computed spelling (`mixed-respelled`).
+* The evaluator no longer checks that a moved conversion is readable
+  before stepping: on a typed term it always is, and an ill-typed step
+  is still reported by the per-state type check.
+
+Results: `make check` passes; every run keeps its endpoint and step
+count.  `notes/RespellProbe.agda`'s pinned result is UNCHANGED (318
+checks, 55 real renamings, no mismatch), so on every corpus and stress
+run `respell` reproduces exactly the spellings the old rules carried.
+
+Stage 2, not started: replace `respell (names Δᶜ) (names Δᵈ)` by the
+renaming RespellProbe computes from the scopes and the exterior's length
+alone.  The obligation is that it `Respects` the two maps; then `Wrap`
+no longer needs the dual's reading `Δᵈ` to step, and `Merge` needs only
+the readings its composition reads (`Δ⋉ᶜ`, for `repOf`).
+
+## 2026-10-26c — computed respellings, stage 2: per name, from the scopes alone (branch `nu-respell`)
+
+Stage 1's `respell (names Δᶜ) (names Δᵈ)` is replaced by a renaming
+computed per name from the scopes alone, which the probe of 2026-10-26
+(RespellProbe §3b, ddb85d7e) found to agree at every site.
+
+    Wrap  : Simple V → Value W
+          → Δ ⊢ (V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · W
+              -→ (V · (W ⟪ dual Θ , respellᶜ Θ Θ (dual Θ) s ⟫)) ⟪ Θ , t ⟫
+               ∣ none
+    Merge : Simple U → InertTail t₁ → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
+          → Δ ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫
+              -→ U ⟪ Θ₁ ++ Θ₂ ,
+                     Δ⋉ᶜ ⊢ respellᶜ Θ₁ (dual Θ₂) (Θ₁ ++ Θ₂) (tail t₁)
+                         ⨟ respellᶜ Θ₂ [] (Θ₁ ++ Θ₂) c₂ ⟫ ∣ none
+
+* `respell Θₛ Π Θₜ X` decodes X back through `Θₛ`'s conversion reading,
+  carries the token along `Π`'s interior reading, and encodes it into
+  `Θₜ`'s conversion reading (`Conversion.agda` §2b).  A token is a
+  position or `gone α`.  Whether a bind finds its name live is read off
+  the scope (`Mentions`, `Boundary.agda` §3b).
+* WHAT THE RULES READ.  `Wrap` reads no context.  `Merge` reads only
+  the merged conversion reading, for composition's `repOf`.  The other
+  readings (`Δᵢ`, `Δ₁ᶜ`, `Δ₂ᶜ`, `Δᶜ`, `Δᵈ`) are needed only by the
+  preservation proof, which reads them off the redex's typing — the
+  split between reduction and preservation asked for on 2026-10-26.
+* THE PROOF (`proof/Respell.agda`): `respell-respects` — the renaming
+  sends each name to the target's name for the same representation
+  variable whenever the target keeps the source's variables.  It needs
+  the INTERIOR reading of both scopes alongside the conversion reading:
+  that is the well-formedness behind the liveness test (a scope binds a
+  name the context has only after unbinding it).
+* ONE CHANGE FROM THE PROBE.  The probe's Merge inner part decoded back
+  through Θ₂'s interior and then repaired the case where Θ₁ re-binds an
+  α Θ₂ had unbound (`settle`/`exteriorOf`).  The rule instead runs the
+  path as the INTERIOR READING OF `dual Θ₂`, forward — the same
+  `encodeI` Wrap uses — which re-binds α at its exterior position by
+  construction.  RespellProbe confirms it agrees.
+* `respell` and its completeness lemmas left `Lookup.agda` (back to its
+  pre-stage-1 form); `respell-respects`/`respell-same` of stage 1 are
+  replaced by `proof/Respell.agda`.  `int⇒conv-live` (`Boundary.agda`)
+  became public.  `Eval.agda` lost `MergePremises`/`CrossPremises`.
+  The residual `residual-Wrap-arg` now carries the interior reading its
+  frame needs (the rule no longer does); `erasure-stutter`'s `Wrap` case
+  reads it off the typing.
+* `notes/RespellProbe.agda` now checks the RULE's spelling against the
+  slot computation and against stage 1's context-reading respelling,
+  kept there as an oracle (`byLookup`).  The pinned result is unchanged:
+  318 checks, 55 real renamings, no mismatch.
+
+Results: `make check` passes (no postulates); every run keeps its
+endpoint and step count.

@@ -332,14 +332,15 @@ Bg-rows = refl
 Bg-checks : RunChecks 25 E.Bg Bgˢ `ℕ
 Bg-checks = checks refl refl refl
 
--- Examples §9, at the NON-EMPTY ambient Δ₆ = (α := ℕ) ∣ (X ↦ α): the
--- hand-written seal/unseal layers all stutter, and the ambient name X
+-- Examples §9, at the NON-EMPTY ambient Δ₉ = (α := ℕ) ∣ (): the
+-- hand-written seal/unseal layers all stutter; at Δ₆ = (α := ℕ) ∣ (X ↦ α)
+-- the name X
 -- erases to ℕ.
-Tcancel-rows : rows 25 E.Δ₆ E.Tcancel ≡
+Tcancel-rows : rows 25 E.Δ₉ E.Tcancel ≡
   row "Merge" same same ∷ row "Id" same same ∷ []
 Tcancel-rows = refl
 
-Tid₂-rows : rows 25 E.Δ₆ E.Tid₂ ≡
+Tid₂-rows : rows 25 E.Δ₉ E.Tid₂ ≡
     row "Merge" same same ∷ row "Merge" same same ∷ row "Merge" same same
   ∷ row "Id" same same ∷ []
 Tid₂-rows = refl

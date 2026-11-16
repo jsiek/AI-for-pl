@@ -10,11 +10,13 @@ module strong-rep-nu.Reduction where
 --   * THE STORE CHANGE.  A step returns the change `δ : Alloc` it made
 --     to the store, so the contractum lives at `apply δ Δ` and each
 --     congruence shifts the redex's siblings by `↑ᴹ[ δ ]`/`↑ᴮ[ δ ]`.
---   * THE CROSSING-SPELLING LAW.  When a rule MOVES a subterm between
---     two name maps, the moved spelling is CARRIED as a named premise
---     and PINNED by `SameConv` or `_⊢_≈_⊣_`, never computed by a fixed
---     renaming.  Three spellings are carried: Wrap's `s′`, Merge's
---     `t₁′` and `c₂′`.
+--   * THE CROSSING-SPELLING LAW.  When a rule MOVES a conversion to
+--     another boundary's position, it is RESPELLED there by
+--     `respellᶜ` (strong-rep-nu.Conversion §2b): each name to the new
+--     position's name for the same representation variable, computed
+--     PER NAME FROM THE SCOPES ALONE.  Three conversions move: Wrap's
+--     `s`, Merge's `t₁` and `c₂`.  So Wrap reads no context, and Merge
+--     reads only the merged conversion context, for composition.
 -- Commentary: Commentary.md § Reduction.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
@@ -58,17 +60,16 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
     → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ A ]ᵐ ∣ none
 
   -- THE CROSSING: the application is pushed in one layer and the
-  -- argument acquires the DUAL, whose spelling `s′` the rule carries.
+  -- argument acquires the DUAL.  The crossed `s` moves to the dual's
+  -- position, where other scopes overlap, and is RESPELLED there: from
+  -- Θ's conversion reading, through Θ's interior, into the dual's.
   -- The crossed value carries ONE boundary, so its interior is SIMPLE.
   -- Commentary.md § Reduction.agda / Wrap
-  Wrap : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Simple V → Value W
-    → Δ ⊢ᶜ Θ ⇒ Δᶜ
-    → Δ ⊢ⁱ Θ ⇒ Δᵢ
-    → Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ
-    → SameConv Δᵈ s′ Δᶜ s
+  Wrap : ∀ {Δ V W Θ s t} → Simple V → Value W
       -----------------------------------------------
     → Δ ⊢ (V ⟪ Θ , ⌞ s ↦ t ⌟ ⟫) · W
-        -→ (V · (W ⟪ dual Θ , s′ ⟫)) ⟪ Θ , t ⟫ ∣ none
+        -→ (V · (W ⟪ dual Θ , respellᶜ Θ Θ (dual Θ) s ⟫)) ⟪ Θ , t ⟫
+         ∣ none
 
   -- `ν` OVER A BOUNDARY — the ∀-conversion analogue of Wrap.  Under
   -- the one-boundary invariant the interior of a `∀`-value's boundary
@@ -78,31 +79,28 @@ data _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
   -- the new name (`liftᴮ Θ`) with the crossed conversion `s` moved
   -- VERBATIM; `Merge` fuses them on the next step.
   -- Commentary.md § Reduction.agda / TyWrap
-  TyWrap : ∀ {Δ Δᶜ N Θ s c A R Bᵢ Bₑ} → Value N
-    → Δ ⊢ᶜ Θ ⇒ Δᶜ
-    → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
+  TyWrap : ∀ {Δ N Θ s c A R} → Value N
     → Δ ⊢ᶜ A ~ R
       ------------------------------------------------
     → Δ ⊢ ν A · ((Λ N) ⟪ Θ , ⌞ `∀ s ⌟ ⟫) ⟨ c ⟩
         -→ (N ⟪ liftᴮ Θ , s ⟫) ⟪ inst [] , c ⟫ ∣ new R
 
   -- MERGE — a boundary directly over a value's boundary.  Both frames
-  -- are kept, MERGED as `Θ₁ ++ Θ₂`; both conversions are weakened at
-  -- the merged frame's conversion context `Δ⋉ᶜ` (the carried `t₁′`,
-  -- `c₂′`) and COMPOSED there.  Subsumes the retired `CancelR`
-  -- (`seal X` then `unseal X`) and `IdPush` (`id X` then `unseal X`).
+  -- are kept, MERGED as `Θ₁ ++ Θ₂`; both conversions move to the merged
+  -- frame's position, are RESPELLED there (the inner one back through
+  -- the dual of Θ₂ to the exterior first), and are COMPOSED, which
+  -- reads the merged conversion context.  Subsumes the retired
+  -- `CancelR` (`seal X` then `unseal X`) and `IdPush` (`id X` then
+  -- `unseal X`).
   -- Commentary.md § Reduction.agda / Merge
-  Merge : ∀ {Δ Δᵢ Δ₁ᶜ Δ₂ᶜ Δ⋉ᶜ U Θ₁ Θ₂ t₁ t₁′ c₂ c₂′}
+  Merge : ∀ {Δ Δ⋉ᶜ U Θ₁ Θ₂ t₁ c₂}
     → Simple U → InertTail t₁
-    → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
-    → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
-    → Δ ⊢ᶜ Θ₂ ⇒ Δ₂ᶜ
     → Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
-    → SameConv Δ⋉ᶜ (tail t₁′) Δ₁ᶜ (tail t₁)
-    → SameConv Δ⋉ᶜ c₂′ Δ₂ᶜ c₂
       -------------------------------------------------
     → Δ ⊢ (U ⟪ Θ₁ , tail t₁ ⟫) ⟪ Θ₂ , c₂ ⟫
-        -→ U ⟪ Θ₁ ++ Θ₂ , Δ⋉ᶜ ⊢ tail t₁′ ⨟ c₂′ ⟫ ∣ none
+        -→ U ⟪ Θ₁ ++ Θ₂ ,
+               Δ⋉ᶜ ⊢ respellᶜ Θ₁ (dual Θ₂) (Θ₁ ++ Θ₂) (tail t₁)
+                   ⨟ respellᶜ Θ₂ [] (Θ₁ ++ Θ₂) c₂ ⟫ ∣ none
 
   -- an identity boundary at a base type, over a simple value (which
   -- typing makes a literal: a numeral at ℕ, `true`/`false` at 𝔹)
@@ -164,5 +162,5 @@ value-¬step (V-simple S-false) ()
 value-¬step (V-simple S-ƛ) ()
 value-¬step (V-simple (S-Λ v)) ()
 value-¬step (V-⟪⟫ u I-idv) (Id u′ ())
-value-¬step (V-⟪⟫ () it) (Merge u it′ ri r₁ r₂ r⋉ sc₁ sc₂)
+value-¬step (V-⟪⟫ () it) (Merge u it′ r⋉)
 value-¬step (V-⟪⟫ u it) (ξ-⟪⟫ rel st) = value-¬step (V-simple u) st

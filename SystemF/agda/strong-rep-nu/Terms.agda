@@ -10,9 +10,10 @@ module strong-rep-nu.Terms where
 --   * NO OPERATIONS AND NO METATHEORY: see strong-rep-nu.TermSubst,
 --     .Reduction, .TypeCheck and the proof/ tree.
 --   * FOUR LAWS.  (1) `boundary` TAKES `BoundaryWf Δ Θ Δᵢ Δᶜ`; the two
---     induced contexts are its outputs, never computed.  (2) It
---     compares all three sides by the REPRESENTATION each denotes
---     (`_⊢_≈_⊣_`), and a boundary's interior is TERM-CLOSED.
+--     induced contexts are its outputs, never computed.  (2) Its
+--     conversion is checked under the scope `Θ` at polarity `⁺`
+--     between REPRESENTATION types, which the interior and exterior
+--     types read by `_⊢_~_`; a boundary's interior is TERM-CLOSED.
 --     (3) Classification is by the CONVERSION CONSTRUCTOR alone.
 --     (4) THE VALUE RESTRICTION: `⊢Λ` requires `Value N`, and there is
 --     no ξ-Λ.
@@ -100,16 +101,16 @@ data Active : Conv → Set where
 
 -- Totality over TYPED conversions: the payload restriction on `id`
 -- makes classification a match on the TYPING derivation.
-act-or-inert : ∀ {Δ c A B} → Δ ⊢ c ∶ A ⇝ B → Active c ⊎ Inert c
+act-or-inert : ∀ {Δ Θ p c A B} → Δ ∣ Θ ⊢[ p ] c ∶ A ⇝ B → Active c ⊎ Inert c
 act-or-inert (conv-tail (conv-mid (conv-id b)))   = inj₁ (A-idb b)
-act-or-inert (conv-tail (conv-mid (conv-idv tv))) = inj₂ (I-tail I-idv)
+act-or-inert (conv-tail (conv-mid (conv-idv d)))  = inj₂ (I-tail I-idv)
 act-or-inert (conv-tail (conv-mid (conv-fun s t))) = inj₂ (I-tail I-fun)
 act-or-inert (conv-tail (conv-mid (conv-all s)))   = inj₂ (I-tail I-all)
-act-or-inert (conv-tail (conv-seal d))             = inj₂ (I-tail I-seal)
-act-or-inert (conv-tail (conv-seal-seq t d n))     =
+act-or-inert (conv-tail (conv-seal d ok))          = inj₂ (I-tail I-seal)
+act-or-inert (conv-tail (conv-seal-seq t d ok n))  =
   inj₂ (I-tail I-seal-seq)
-act-or-inert (conv-unseal d)             = inj₁ A-unseal
-act-or-inert (conv-unseal-seq d c n m)   = inj₁ A-unseal-seq
+act-or-inert (conv-unseal d ok)             = inj₁ A-unseal
+act-or-inert (conv-unseal-seq d ok c n m)   = inj₁ A-unseal-seq
 
 act-not-inert : ∀ {c} → Active c → Inert c → ⊥
 act-not-inert (A-idb ()) (I-tail I-idv)
@@ -166,31 +167,35 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
     → Δ ∣ Γ ⊢ Λ N ⦂ `∀ C
 
   -- (ν). Instantiate `L : ∀ C` at a fresh cell holding `A`'s
-  -- representation `R` and convert with `c`.  `c` is read on the
-  -- conversion context of `TyBetaBoundary` at `allocate R Δ` — the
-  -- context the ν rules leave — and ANY `c` whose types line up is
-  -- accepted (the compiler writes `reveal 0 C`, strong-rep-nu.Compile).
+  -- representation `R` and convert with `c`.  `c` is checked under
+  -- `TyBetaBoundary` (= `inst []`, one `bind 0 0`) at `allocate R Δ`,
+  -- the scope the ν rules create — so the bind licenses `unseal 0` —
+  -- from `C`'s representation on the interior to `B`'s on the
+  -- exterior.  The compiler writes `reveal 0 C` (strong-rep-nu.Compile).
   -- Commentary.md § Terms.agda / §4 — ⊢ν
-  ⊢ν : ∀ {Δ Δᵢ Δᶜ Γ A R L C Cₑ B c}
+  ⊢ν : ∀ {Δ Δᵢ Δᶜ Γ A R L C B c Rᵢ Rₑ}
      → Δ ⊢ᵗ A
      → Δ ⊢ᶜ A ~ R
      → Δ ∣ Γ ⊢ L ⦂ `∀ C
      → BoundaryWf (allocate R Δ) TyBetaBoundary Δᵢ Δᶜ
-     → Δᶜ ⊢ c ∶ C ⇝ Cₑ
-     → allocate R Δ ⊢ B ≈ Cₑ ⊣ Δᶜ
+     → Δᶜ ∣ TyBetaBoundary ⊢[ ⁺ ] c ∶ Rᵢ ⇝ Rₑ
+     → names Δᵢ ⊢ C ~ Rᵢ
+     → names (allocate R Δ) ⊢ B ~ Rₑ
      → Δ ⊢ᵗ B
        --------------------------------------------
      → Δ ∣ Γ ⊢ ν A · L ⟨ c ⟩ ⦂ B
 
-  -- (boundary). The boundary scope witness supplies both contexts, and the
-  -- three sides are compared by the representation each denotes.
+  -- (boundary).  THE Δ ∣ Θ EXPERIMENT: the conversion is checked
+  -- under the scope `Θ`, which grants its seals and unseals, between
+  -- the REPRESENTATIONS of the interior and exterior types.  `Δᶜ` only
+  -- resolves the names the conversion mentions.
   -- Commentary.md § Terms.agda / §4 — boundary
-  boundary : ∀ {Δ Δᵢ Δᶜ Γ Θ c M Bᵢ Cᵢ Cₑ Bₑ}
+  boundary : ∀ {Δ Δᵢ Δᶜ Γ Θ c M Bᵢ Bₑ Rᵢ Rₑ}
       → BoundaryWf Δ Θ Δᵢ Δᶜ
       → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
-      → Δᶜ ⊢ c ∶ Cᵢ ⇝ Cₑ
-      → Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ
-      → Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ
+      → Δᶜ ∣ Θ ⊢[ ⁺ ] c ∶ Rᵢ ⇝ Rₑ
+      → names Δᵢ ⊢ Bᵢ ~ Rᵢ
+      → names Δ ⊢ Bₑ ~ Rₑ
       → Δ ⊢ᵗ Bₑ
         --------------------------------------------
       → Δ ∣ Γ ⊢ M ⟪ Θ , c ⟫ ⦂ Bₑ
@@ -217,6 +222,4 @@ value-var-visible (V-simple (S-Λ v)) ()
 β-seven-⊢ : allocate `ℕ empty ∣ [] ⊢ β-seven ⦂ `ℕ
 β-seven-⊢ =
   boundary TyBeta-bw ⊢$ (conv-tail (conv-mid (conv-id base-ℕ)))
-      (`ℕ , same-ℕ , same-ℕ)
-      (`ℕ , same-ℕ , same-ℕ)
-      wf-ℕ
+      same-ℕ same-ℕ wf-ℕ

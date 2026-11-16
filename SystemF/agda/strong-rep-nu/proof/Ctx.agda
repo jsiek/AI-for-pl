@@ -552,11 +552,6 @@ wfctx-ren : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → WfCtx (Ξ ∣ Δ)
 wfctx-ren w (wf-ctx wr vn uq) =
   wf-ctx (wk-reps w wr) (validNames-ren w vn) (unique-ren (wk-inj w) uq)
 
-∋:=-ren : ∀ {ρ Ξ Ξ′ A} → RepWk ρ Ξ Ξ′ → (Ξ ∣ Δ) ∋ X := A
-  → (Ξ′ ∣ map ρ Δ) ∋ X := A
-∋:=-ren {ρ = ρ} w (α , R , dn , dr , sm) =
-  ρ α , renameᵗ ρ R , ∋ˡ-ren ρ dn , wk-bind w dr , same-ren ρ sm
-
 del-ren : (ρ : Renameᵗ) → α ⊢- Δ at X ⇒ Δ′
   → ρ α ⊢- map ρ Δ at X ⇒ map ρ Δ′
 del-ren ρ del-here = del-here

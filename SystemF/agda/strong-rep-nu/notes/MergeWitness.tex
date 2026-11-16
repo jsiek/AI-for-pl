@@ -1,0 +1,196 @@
+%% The Merge witness against per-side naming of conversion leaves
+%% (2026-10-26).  Examples §1b, run by strong-rep-nu's evaluator; the
+%% checked version is notes/SideProbe.agda §5 (`flawsAt 5`, `flawsAt 6`,
+%% `rawAt 6`).  Notation follows paper/main.tex: [δ] M ⟨c⟩ is a boundary,
+%% +X^α / -X^α are scope entries (bind / unbind, acting left to right),
+%% and -X / +X are the conversions seal / unseal.
+%%
+%% Build: pdflatex MergeWitness.tex
+\documentclass[11pt]{article}
+\usepackage[margin=0.8in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{stmaryrd}
+\allowdisplaybreaks
+
+\newcommand{\key}[1]{\mathtt{#1}}
+\newcommand{\id}[1]{\key{id}(#1)}
+\newcommand{\seal}[1]{-#1}
+\newcommand{\unseal}[1]{+#1}
+\newcommand{\becomes}{\longrightarrow}
+\newcommand{\of}{{:}}
+\newcommand{\tu}{{\to}}
+\newcommand{\dotspace}{.\,}
+\newcommand{\lam}[1]{\lambda #1 \dotspace}
+\newcommand{\Lam}[1]{\Lambda #1 \dotspace}
+\newcommand{\all}[1]{\forall #1 \dotspace}
+\newcommand{\app}{\;}
+\newcommand{\Bool}{\key{Bool}}
+\newcommand{\True}{\key{true}}
+\newcommand{\False}{\key{false}}
+\newcommand{\by}{{:=}}
+\newcommand{\nuinst}[4]{\nu #1\by #2 \dotspace (#3 \app #1) \langle #4 \rangle}
+\newcommand{\boundry}[3]{\left[#2\right] #1 \langle #3 \rangle}
+\newcommand{\cmp}{\mathbin{\fatsemi}}
+\newcommand{\bnd}[1]{{+#1}}
+\newcommand{\ubnd}[1]{{-#1}}
+\newcommand{\rul}[1]{\textsc{#1}}
+
+\begin{document}
+
+\begin{center}
+  {\Large A \textsc{Merge} that loses a name}\\[4pt]
+  strong-rep-nu, Examples \S1b; checked in
+  \texttt{notes/SideProbe.agda} \S5
+\end{center}
+
+\section*{The question}
+
+In the \emph{per-side} design, a seal or unseal names its type
+variable on the side where the scope gives it a name, instead of in the
+conversion (union) context $\delta^{+}(\Delta)$.  For a conversion at
+polarity $p$ in a boundary $\boundry{M}{\delta}{c}$ with exterior
+$\Delta$ and interior $\delta(\Delta)$:
+\begin{itemize}
+\item $\seal{X}$ at $+$ is named on the exterior, at $-$ on the interior;
+\item $\unseal{X}$ at $+$ is named on the interior, at $-$ on the exterior.
+\end{itemize}
+In a chain, each later link's source is the previous link's target, so
+every type in the middle of a chain must be named on the chain's side.
+The witness below reaches a boundary whose seal chain passes through a
+type variable that \emph{neither} side names.
+
+\section*{The program}
+
+The closed System F source program is
+\[
+  \bigl((\Lam{X} \lam{f \of \all{W} W \tu \Bool} f\,[X])\,[\Bool]
+     \app (\Lam{Z} \lam{z \of Z} \True)\bigr) \app \False
+\]
+Each type application compiles to a $\nu$ whose conversion reveals the
+argument, so the program compiles to state~0 below, writing
+\[
+  U \;=\; \lam{f \of \all{W} W \tu \Bool}
+    \nuinst{Y}{X}{f}{\seal{Y} \tu \id{\Bool}}
+  \qquad
+  P \;=\; \Lam{Z} \lam{z \of Z} \True
+\]
+for the body of the type abstraction over $X$ and for the polymorphic
+argument.
+
+\section*{The run}
+
+The store records representations: two cells are allocated, $\alpha$ for
+$X$ and then $\beta$ for $Y$.  Every step but the first fires under a
+frame ($\xi$); the context at the hole is noted.
+
+\begin{align*}
+&\text{0.}\quad
+  \bigl(\nuinst{X}{\Bool}{(\Lam{X} U)}
+     {(\all{W} \id{W} \tu \id{\Bool}) \tu (\seal{X} \tu \id{\Bool})}
+   \app P\bigr) \app \False
+\\[2pt]
+&\quad\becomes\; \text{\rul{TyBeta}, allocating } \alpha \by \Bool
+\\[2pt]
+&\text{1.}\quad
+  \bigl(\boundry{U}{\bnd{X}^\alpha}
+     {(\all{W} \id{W} \tu \id{\Bool}) \tu (\seal{X} \tu \id{\Bool})}
+   \app P\bigr) \app \False
+\\[2pt]
+&\quad\becomes\; \text{\rul{Wrap}: } P \text{ enters } X\text{'s scope
+  under the dual entry } \ubnd{X}^\alpha
+\\[2pt]
+&\text{2.}\quad
+  \boundry{\bigl(U \app
+     \boundry{P}{\ubnd{X}^\alpha}{\all{W} \id{W} \tu \id{\Bool}}\bigr)}
+   {\bnd{X}^\alpha}{\seal{X} \tu \id{\Bool}} \app \False
+\\[2pt]
+&\quad\becomes\; \text{\rul{Beta}, at } X \by \alpha
+\\[2pt]
+&\text{3.}\quad
+  \boundry{\Bigl(\nuinst{Y}{X}
+     {\boundry{P}{\ubnd{X}^\alpha}{\all{W} \id{W} \tu \id{\Bool}}}
+     {\seal{Y} \tu \id{\Bool}}\Bigr)}
+   {\bnd{X}^\alpha}{\seal{X} \tu \id{\Bool}} \app \False
+\\[2pt]
+&\quad\becomes\; \text{\rul{TyWrap}, at } X \by \alpha,
+  \text{ allocating } \beta \by \alpha
+  \quad (\text{the payload of } Y \text{ is } X\text{'s cell})
+\\[2pt]
+&\text{4.}\quad
+  \boundry{\Bigl(\boundry
+     {\bigl(\boundry{(\lam{z \of Y} \True)}{\ubnd{X}^\alpha}
+        {\id{Y} \tu \id{\Bool}}\bigr)}
+     {\bnd{Y}^\beta}{\seal{Y} \tu \id{\Bool}}\Bigr)}
+   {\bnd{X}^\alpha}{\seal{X} \tu \id{\Bool}} \app \False
+\\[2pt]
+&\quad\becomes\; \text{\rul{Merge}, at } X \by \alpha:\;
+  (\id{Y} \tu \id{\Bool}) \cmp (\seal{Y} \tu \id{\Bool})
+  = \seal{Y} \tu \id{\Bool}
+\\[2pt]
+&\text{5.}\quad
+  \boundry{\bigl(\boundry{(\lam{z \of Y} \True)}
+     {\bnd{Y}^\beta, \ubnd{X}^\alpha}{\seal{Y} \tu \id{\Bool}}\bigr)}
+   {\bnd{X}^\alpha}{\seal{X} \tu \id{\Bool}} \app \False
+\\[2pt]
+&\quad\becomes\; \text{\rul{Merge}:}\;
+  (\seal{Y} \tu \id{\Bool}) \cmp (\seal{X} \tu \id{\Bool})
+  = (\seal{X} \cmp \seal{Y}) \tu \id{\Bool}
+  = (\seal{X} ; \seal{Y}) \tu \id{\Bool}
+\\[2pt]
+&\text{6.}\quad
+  \boundry{(\lam{z \of Y} \True)}
+     {\bnd{X}^\alpha, \bnd{Y}^\beta, \ubnd{X}^\alpha}
+     {(\seal{X} ; \seal{Y}) \tu \id{\Bool}}
+   \app \False
+\end{align*}
+The store is $\alpha \by \Bool,\ \beta \by \alpha$ from state~4 on.
+(The run goes on by \rul{Wrap}, \rul{Beta} and \rul{Id} to $\True$.)
+
+\section*{State 5 passes}
+
+In state~5 the outer boundary has exterior $\emptyset$ and interior
+$X \by \alpha$; its domain $\seal{X}$ sits at polarity $-$, so it is
+named on the interior ($X \by \alpha$), and its source $\Bool$ is
+read on the exterior.  The inner boundary has exterior $X \by \alpha$
+and scope $\bnd{Y}^\beta, \ubnd{X}^\alpha$, so its interior is
+$Y \by \beta$; its domain $\seal{Y}$ at $-$ is named on the interior
+($Y \by \beta$), and its source, $\beta$'s payload $\alpha$, is read on
+the exterior as $X$.  Every leaf has its name on the right side.
+
+\section*{State 6 fails}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{ll}
+  scope $\delta$ & $\bnd{X}^\alpha,\ \bnd{Y}^\beta,\ \ubnd{X}^\alpha$
+    \quad (acting left to right) \\
+  exterior $\Delta$ & $\emptyset$ \\
+  interior $\delta(\Delta)$ & $Y \by \beta$ \\
+  union $\delta^{+}(\Delta)$ & $X \by \alpha,\ Y \by \beta$ \\
+  store & $\alpha \by \Bool,\ \beta \by \alpha$
+\end{tabular}
+\end{center}
+
+The domain is the seal chain $\seal{X} ; \seal{Y}$ at polarity $-$:
+\[
+  \Bool \;\xrightarrow{\;\seal{X}\;}\; X
+        \;\xrightarrow{\;\seal{Y}\;}\; Y
+\]
+Its seals belong on the interior, which names only $Y$.  The middle type
+$X$ (that is, $\alpha$) has a name only in the union: the merged scope
+binds $X$ and then unbinds it.  So $\seal{X}$ has no per-side
+spelling, and neither does $\seal{Y}$'s source.  The two
+\textsc{Merge}s fused three frames, and the one frame that named $X$
+on its own side ($\bnd{X}^\alpha$, state~5's outer boundary) is no longer
+a side of anything.
+
+\section*{Where it comes from}
+
+Five of the twenty-one compiled runs reach such a state (K, J,
+E$^{\mathsf{B}}$, V, C), each first at a \textsc{Merge}.  All five
+instantiate a polymorphic argument at the enclosing type variable
+($f\,[X]$), so one cell's payload is another cell ($\beta \by \alpha$),
+and a seal chain $\seal{X} ; \seal{Y}$ can outlive every frame that named
+$X$ on a side.  No $\id{X}$ leaf failed in any run.
+
+\end{document}

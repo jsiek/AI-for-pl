@@ -11,7 +11,8 @@ and says where each part lives in the Agda.
 Status: type safety (progress and preservation), determinism and color
 preservation are all CHECKED in Agda (§8).  Every example (§7) starts
 from a System F program and runs to a value, and every run is checked
-in Agda.
+in Agda, and the evaluator `Eval.agda` reaches each value in the same
+number of steps.
 
 ## 1. A first example
 

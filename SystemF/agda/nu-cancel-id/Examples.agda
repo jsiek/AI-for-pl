@@ -19,19 +19,23 @@ module nu-cancel-id.Examples where
 --     steps).  5d's inverse pair carries arrow conversions, so CancelId
 --     does not apply and Wraps take the argument through (17 steps).  5e
 --     uses Swap, Sink, CancelId, Push and Cancel-□ (21 steps).
---   * Preservation types every state of every run; the last section
---     types their results.
+--   * Preservation types every state of every run; the next section
+--     types their results.  The last checks that the evaluator
+--     (Eval.agda) reaches each result in the run's number of steps.
 
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Bool using (true; false)
-open import Relation.Binary.PropositionalEquality using (_≢_)
+open import Data.Maybe using (just; nothing)
+open import Data.Product using (_,_)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
 open import nu-cancel-id.Types
 open import nu-cancel-id.Ctx
 open import nu-cancel-id.Terms
 open import nu-cancel-id.Reduction
 open import nu-cancel-id.Preservation using (preservation*)
+open import nu-cancel-id.Eval using (outcome)
 
 ∅ : Ctx
 ∅ = [] ∣ []
@@ -733,3 +737,41 @@ run-5e =
 
 ⊢result-5e : Γ5e ∣ [] ⊢ $ bool false ⦂ `𝔹
 ⊢result-5e = preservation* ⊢ex5e run-5e
+
+------------------------------------------------------------------------
+-- The evaluator follows each run: with one step less fuel it does not
+-- reach a value, and with the run's steps it ends where the run does.
+------------------------------------------------------------------------
+
+eval-5c : outcome 12 ⊢ex5c
+          ≡ just (((pay `𝔹 ∷ pay `ℕ ∷ []) ∣ (false ∷ false ∷ [])) , $ nat 3)
+eval-5c = refl
+
+eval-5c-short : outcome 11 ⊢ex5c ≡ nothing
+eval-5c-short = refl
+
+eval-5b : outcome 11 ⊢ex5b
+          ≡ just (((pay (` 0) ∷ pay `𝔹 ∷ []) ∣ (false ∷ false ∷ []))
+                 , $ bool false)
+eval-5b = refl
+
+eval-5b-short : outcome 10 ⊢ex5b ≡ nothing
+eval-5b-short = refl
+
+eval-5a : outcome 11 ⊢ex5a ≡ just (Γ5a , $ bool true)
+eval-5a = refl
+
+eval-5a-short : outcome 10 ⊢ex5a ≡ nothing
+eval-5a-short = refl
+
+eval-5d : outcome 17 ⊢ex5d ≡ just (Γ5d , $ nat 5)
+eval-5d = refl
+
+eval-5d-short : outcome 16 ⊢ex5d ≡ nothing
+eval-5d-short = refl
+
+eval-5e : outcome 21 ⊢ex5e ≡ just (Γ5e , $ bool false)
+eval-5e = refl
+
+eval-5e-short : outcome 20 ⊢ex5e ≡ nothing
+eval-5e-short = refl

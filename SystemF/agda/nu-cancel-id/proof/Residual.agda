@@ -21,6 +21,7 @@ open import nu-cancel-id.Ctx
 open import nu-cancel-id.Terms
 open import nu-cancel-id.Reduction
 open import nu-cancel-id.Residual
+open import nu-cancel-id.proof.TermSubst using (substᵐ-Λ; substᵐ-hit)
 
 ------------------------------------------------------------------------
 -- 1. Plugging, renaming and substitution
@@ -52,7 +53,7 @@ subst-plug j V (C ·L N)             M =
 subst-plug j V (L ·R C)             M =
   cong (substᵐ j V L ·_) (subst-plug j V C M)
 subst-plug j V (ΛC C)               M =
-  cong Λ_ (subst-plug j (crossΛ V) C M)
+  trans (substᵐ-Λ j V (plug C M)) (cong Λ_ (subst-plug j (crossΛ V) C M))
 subst-plug j V (νC A · C ⟨ c ⟩)     M =
   cong (λ L → ν A · L ⟨ c ⟩) (subst-plug j V C M)
 subst-plug j V ([ s , α ]C C ⟨ c ⟩) M = refl
@@ -72,14 +73,16 @@ image-sound (image-Λ {D = D} {N = N} i) =
 copy-sound : ∀ {k j Q C M ρ D N}
   → CopyResidual k j Q C M ρ D N
   → substᵐ j (cross k (plug C M)) Q ≡ plug D N
-copy-sound {j = j} (copy-var {x = x} h i) with hitVar x j
-copy-sound (copy-var refl i) | .hit = image-sound i
+copy-sound {k = k} {j = j} {C = C} {M = M} (copy-var {x = x} h i) =
+  trans (substᵐ-hit {j = j} {x = x} (cross k (plug C M)) h)
+        (image-sound i)
 copy-sound (copy-ƛ {A = A} c) = cong (ƛ A ∙_) (copy-sound c)
 copy-sound {k = k} {j = j} {C = C} {M = M} (copy-·L {P = P} c) =
   cong (_· substᵐ j (cross k (plug C M)) P) (copy-sound c)
 copy-sound {k = k} {j = j} {C = C} {M = M} (copy-·R {L = L} c) =
   cong (substᵐ j (cross k (plug C M)) L ·_) (copy-sound c)
-copy-sound (copy-Λ c) = cong Λ_ (copy-sound c)
+copy-sound {k = k} {j = j} {C = C} {M = M} (copy-Λ {P = Q} c) =
+  trans (substᵐ-Λ j (cross k (plug C M)) Q) (cong Λ_ (copy-sound c))
 copy-sound (copy-ν {A = A} {c = c} cr) =
   cong (λ L → ν A · L ⟨ c ⟩) (copy-sound cr)
 

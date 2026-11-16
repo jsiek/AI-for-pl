@@ -27,18 +27,20 @@ postulates and holes.
 | `Types.agda` | `Ty`, one syntax for named and runtime types; renaming |
 | `Ctx.agda` | the store, one named flag per cell, name lookup, spelling `Φ ⊢ A ⇝ R` |
 | `Terms.agda` | signs, conversions, terms; conversion typing (runtime types) and term typing (named types) |
-| `Reduction.agda` | values (`Fun`, `Sealed`), allocation shift, substitution, TyBeta's `_•⟶_`, the step relation, runs |
+| `TermSubst.agda` | representation renaming `renameʳ` and `crossΛ`; parallel renaming and substitution of term variables (environments map a variable to a variable or a closed value); Beta's `N [ V ]` as `subst (V • idˢ) N` |
+| `Reduction.agda` | values (`Fun`, `Sealed`), allocation shift, TyBeta's `_•⟶_`, the step relation, runs |
 | `Progress.agda` | the progress theorem (proof in `proof/Progress.agda`) |
 | `Determinism.agda` | determinism and irreducible values (proof in `proof/Determinism.agda`) |
 | `Residual.agda` | one-hole contexts, the flags and name map at a hole, residuals of a step and of a run |
 | `ColorPreservation.agda` | color (scope-map) preservation through a run, its length corollary, and residual soundness (proofs in `proof/ColorPreservation.agda`, `proof/Residual.agda`) |
 | `Preservation.agda` | preservation for a step and for a run (proof in `proof/Preservation.agda`) |
 | `TypeSafety.agda` | every term a well-typed term reaches is a value or steps |
-| `Examples.agda` | Design.md's 5a–5e: typed, run (11, 11, 12, 17 and 21 steps), and their results typed by preservation |
+| `Eval.agda` | a fuel-bounded evaluator, by progress and preservation, returning the run, its final context and the value |
+| `Examples.agda` | Design.md's 5a–5e: typed, run (11, 11, 12, 17 and 21 steps), their results typed by preservation, and evaluated by `eval` in exactly those steps |
 | `proof/Types.agda` | renaming congruence and fusion |
 | `proof/Flags.agda` | flag update, names, spelling (functional, injective, re-readable with more names), spelling after inserting a cell |
 | `proof/Weaken.agda` | typing after inserting an unnamed cell (allocation, `crossΛ`) and after refining an abstract cell (TyBeta) |
-| `proof/Subst.agda` | Beta's substitution, with `crossΛ` under `Λ` |
+| `proof/TermSubst.agda` | congruence, renaming as substitution, identity, composition, single substitution at a variable and under `Λ`; typing of renaming and substitution, with `crossΛ` under `Λ` |
 | `tools/nuc.py` | an interpreter that follows `Reduction.agda` rule by rule, with the elaboration from System F and a printer in Design.md's notation (`python3 nuc.py a` prints 5a) |
 | `tools/agdagen.py`, `tools/gen_examples.py` | print the Agda for an example: abbreviations, elaborated term, typing, run with every step's derivation, typed result (`python3 gen_examples.py 5e`) |
 | `tools/ablate.py` | for each boundary rule, the examples that get stuck without it |
@@ -91,7 +93,9 @@ Done:
   the cells' de Bruijn indices shift, past an allocated cell or a cell
   `crossΛ` hides; residuals are positions of the contractum
   (`proof/Residual.agda`);
-* examples 5a–5e, whose every state is typed by preservation.
+* an evaluator (`Eval.agda`);
+* examples 5a–5e, whose every state is typed by preservation, and which
+  `eval` runs in the same number of steps.
 
 How preservation goes for the boundary rules:
 * **CancelId and Cancel-□**: the two entries restore the exterior flags
@@ -108,6 +112,3 @@ How preservation goes for the boundary rules:
 * **Allocation inside a frame**: the siblings, a ν's conversion and a
   boundary's spellings are weakened by an unnamed cell (`ins-⊢`,
   `ins-conv`, `ins-⇝`); named types do not change.
-
-Next:
-1. An `Eval`.

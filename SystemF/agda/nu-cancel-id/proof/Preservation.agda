@@ -27,7 +27,7 @@ open import nu-cancel-id.Terms
 open import nu-cancel-id.Reduction
 open import nu-cancel-id.proof.Flags
 open import nu-cancel-id.proof.Weaken
-open import nu-cancel-id.proof.Subst
+open import nu-cancel-id.proof.TermSubst using (⊢single)
 
 private
   variable
@@ -116,7 +116,7 @@ preservation : ∀ {Γ M N A a}
   → Γ ∣ [] ⊢ M ⦂ A
   → Γ ⊢ M ⟶ N ∣ a
   → a ⨾ Γ ∣ [] ⊢ N ⦂ A
-preservation (⊢· (⊢ƛ sp ⊢N) ⊢W) (β-ƛ w) = subst-pres [] ⊢N ⊢W sp
+preservation (⊢· (⊢ƛ sp ⊢N) ⊢W) (β-ƛ w) = ⊢single ⊢N ⊢W sp
 preservation (⊢· ⊢L ⊢W) (wrap v w)    = wrap-pres ⊢L ⊢W
 preservation (⊢· ⊢L ⊢W) (wrap-id v w) = wrap-id-pres ⊢L ⊢W
 preservation (⊢ν sp′ ⊢V spC spB ⊢d) (tyβ sp v i) with ⇝-unique sp′ sp

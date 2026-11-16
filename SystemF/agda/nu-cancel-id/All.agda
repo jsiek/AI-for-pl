@@ -13,4 +13,6 @@ open import nu-cancel-id.TypeSafety
 open import nu-cancel-id.Determinism
 open import nu-cancel-id.Residual
 open import nu-cancel-id.ColorPreservation
+open import nu-cancel-id.TermSubst
+open import nu-cancel-id.Eval
 open import nu-cancel-id.Examples

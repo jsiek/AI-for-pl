@@ -50,7 +50,10 @@ module Subst.proof.Poly
   (fuseᵗ : TP.Fuse) (sub-idᵗ : TP.SubId)
   where
 
-open import Subst.Poly 𝒮 ⋆ Typ `ᵗ_ travᵗ travᵗ-var fuseᵗ sub-idᵗ public
+-- the laws of the types, from the language's two inductions on types
+module TL = TP.Lemmas fuseᵗ sub-idᵗ
+
+open import Subst.Poly 𝒮 ⋆ Typ `ᵗ_ travᵗ TL.varL TL.tmL TL.⇑-[] public
 module TPK = Subst.proof.Kit 𝒮 Typ `ᵗ_
 open ≡-Reasoning
 

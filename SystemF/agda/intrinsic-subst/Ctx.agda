@@ -12,14 +12,13 @@ module intrinsic-subst.Ctx where
 --     are used to rename and substitute the types of terms.
 
 open import Data.Unit using (tt)
-open import Relation.Binary.PropositionalEquality using (refl)
 
 open import intrinsic-subst.Types
-open import intrinsic-subst.proof.TypeSubst using (fuseᵗ; sub-idᵗ)
+open import intrinsic-subst.TypeSubst using (varLᵗ; tmLᵗ; ⇑-[]ᵗ)
 
 open import Subst.Scope public using (∅; _,_; _∋_; Z; S_)
-open import Subst.Poly tyScope tt Typ `_ travᵗ (λ _ _ _ → refl) fuseᵗ sub-idᵗ
-  public hiding (⇑ᵗ; _[_]ᵗ; module TL)
+open import Subst.Poly tyScope tt Typ `_ travᵗ varLᵗ tmLᵗ ⇑-[]ᵗ
+  public hiding (⇑ᵗ; _[_]ᵗ)
 
 Ctx : TyCtx → Set
 Ctx = Cx

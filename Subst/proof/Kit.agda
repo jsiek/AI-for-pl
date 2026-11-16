@@ -73,27 +73,8 @@ module Traversal
 
   open Substitution trav public
 
-  {- What a language proves by induction on its terms ---------------------}
-
-  Fuse : Set₁
-  Fuse =
-    ∀ (𝒦₁ 𝒦₂ 𝒦₃ : Kit)
-    (R : ∀ {Γ Δ Θ} → Sub 𝒦₁ Γ Δ → Sub 𝒦₂ Δ Θ → Sub 𝒦₃ Γ Θ → Set)
-    → (∀ {Γ Δ Θ B} {σ₁ : Sub 𝒦₁ Γ Δ} {σ₂ : Sub 𝒦₂ Δ Θ} {σ₃ : Sub 𝒦₃ Γ Θ}
-        → R σ₁ σ₂ σ₃ → R (exts 𝒦₁ {B = B} σ₁) (exts 𝒦₂ σ₂) (exts 𝒦₃ σ₃))
-    → (∀ {Γ Δ Θ} {σ₁ : Sub 𝒦₁ Γ Δ} {σ₂ : Sub 𝒦₂ Δ Θ} {σ₃ : Sub 𝒦₃ Γ Θ}
-        → R σ₁ σ₂ σ₃ → ∀ {A} (x : Var Γ A)
-        → trav 𝒦₂ σ₂ (Kit.tm 𝒦₁ (σ₁ x)) ≡ Kit.tm 𝒦₃ (σ₃ x))
-    → ∀ {Γ Δ Θ} {σ₁ : Sub 𝒦₁ Γ Δ} {σ₂ : Sub 𝒦₂ Δ Θ} {σ₃ : Sub 𝒦₃ Γ Θ}
-      → R σ₁ σ₂ σ₃ → ∀ {A} (M : Tm Γ A)
-      → trav 𝒦₂ σ₂ (trav 𝒦₁ σ₁ M) ≡ trav 𝒦₃ σ₃ M
-
-  SubId : Set
-  SubId =
-    ∀ {Γ A} {σ : Sub tmK Γ Γ}
-    → (∀ {B} (x : Var Γ B) → σ x ≡ ` x)
-    → (M : Tm Γ A)
-    → sub σ M ≡ M
+  {- The statements `Fuse`, `SubId` and `Laws` are in Subst/Kit.agda
+     (module `Substitution`, opened above). -}
 
   {- what the identity needs under a binder -}
   sub-id-exts : ∀ {Γ C} {σ : Sub tmK Γ Γ}
@@ -105,15 +86,6 @@ module Traversal
       (exts-here tmK σ)
       (λ x → trans (exts-there tmK σ x)
                (trans (cong ⇑ (h x)) (trav-var varK there x)))
-
-  {- what both kits satisfy -}
-  record Laws (𝒦 : Kit) : Set where
-    field
-      tm-vr : ∀ {Γ A} (x : Var Γ A) → Kit.tm 𝒦 (Kit.vr 𝒦 x) ≡ ` x
-      tm-wk : ∀ {Γ A B} (k : Kit.K 𝒦 Γ A)
-        → Kit.tm 𝒦 (Kit.wk 𝒦 {B = B} k) ≡ ⇑ (Kit.tm 𝒦 k)
-      exts-ren : ∀ {Γ Δ A B} (τ : Sub 𝒦 Γ Δ) (M : Tm Γ A)
-        → trav 𝒦 (exts 𝒦 {B = B} τ) (⇑ M) ≡ ⇑ (trav 𝒦 τ M)
 
   {- a substitution that acts as the identity on variables still does
      under a binder -}

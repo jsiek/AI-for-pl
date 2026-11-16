@@ -14,6 +14,12 @@ substitutions is pointwise, and all substitution lemmas are proved.
 
 - `Types.agda`: `TyCtx`, `TyVar`, `Type`, and the one traversal of types
   `travᵗ`. `renameᵗ`, `substᵗ`, `extsᵗ`, `⇑ᵗ`, and `_[_]ᵗ` come from the library.
+- `TypeSubst.agda`: thin public statements of the type-substitution laws
+  that the top-level definitions use in casts (`varLᵗ`, `tmLᵗ`, `⇑-[]ᵗ`,
+  `trav-[]ᵗ`, `exts-[]ᵗ`). Their proofs are in `proof/TypeSubst.agda`. So
+  the definitions can be audited from the top level alone: apart from the
+  `All` driver, only `TypeSubst.agda` and `MetaTheory.agda` import from
+  `proof/`, and both are thin wrappers.
 - `Ctx.agda`: `Ctx Δ`, `Γ ∋ A`, and `⇑ᶜ`, plus the library's maps of term
   variables along a map of types (`TyRen`, `extρ`, `⇑ρ`, `instᵛ`).
 - `Terms.agda`: the terms `Δ ∣ Γ ⊢ A` and their two traversals:

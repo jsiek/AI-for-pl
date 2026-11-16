@@ -17,12 +17,16 @@
       `exts`.
     * Exports: `Kit`, `Sub`, `cons`, `exts`, `varK`, `_•_`, `ids`, and,
       given the traversal, `ren`, `tmK`, `sub`, `↑`, `⇑`, `_⨟_`,
-      `_[_]`.
-    * The laws of these operations are in Subst/proof/Kit.agda.
+      `_[_]`, and the statements of the laws: `Fuse` and `SubId` (what a
+      language proves by induction) and `Laws` (what a kit satisfies).
+    * The proofs of the laws are in Subst/proof/Kit.agda.  Only
+      statements are here, so a client's definitions can be audited
+      without reading any proof.
 
 -}
 
 open import Subst.Scope using (Scope)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 module Subst.Kit (𝒮 : Scope) (let open Scope 𝒮)
   (Tm : Sc → Sort → Set) (`_ : ∀ {Γ A} → Var Γ A → Tm Γ A) where
@@ -101,3 +105,38 @@ module Substitution
   infixl 8 _[_]
   _[_] : ∀ {Γ A B} → Tm (Γ ▷ B) A → Tm Γ B → Tm Γ A
   N [ M ] = sub (M • ids) N
+
+  {- The statements of the laws (proofs in Subst/proof/Kit.agda) ---------}
+
+  {- What a language proves by induction on its terms: two traversals fuse
+     into one, for a relation between the two substitutions and the one
+     that is kept under a binder and agrees on variables -}
+  Fuse : Set₁
+  Fuse =
+    ∀ (𝒦₁ 𝒦₂ 𝒦₃ : Kit)
+    (R : ∀ {Γ Δ Θ} → Sub 𝒦₁ Γ Δ → Sub 𝒦₂ Δ Θ → Sub 𝒦₃ Γ Θ → Set)
+    → (∀ {Γ Δ Θ B} {σ₁ : Sub 𝒦₁ Γ Δ} {σ₂ : Sub 𝒦₂ Δ Θ} {σ₃ : Sub 𝒦₃ Γ Θ}
+        → R σ₁ σ₂ σ₃ → R (exts 𝒦₁ {B = B} σ₁) (exts 𝒦₂ σ₂) (exts 𝒦₃ σ₃))
+    → (∀ {Γ Δ Θ} {σ₁ : Sub 𝒦₁ Γ Δ} {σ₂ : Sub 𝒦₂ Δ Θ} {σ₃ : Sub 𝒦₃ Γ Θ}
+        → R σ₁ σ₂ σ₃ → ∀ {A} (x : Var Γ A)
+        → trav 𝒦₂ σ₂ (Kit.tm 𝒦₁ (σ₁ x)) ≡ Kit.tm 𝒦₃ (σ₃ x))
+    → ∀ {Γ Δ Θ} {σ₁ : Sub 𝒦₁ Γ Δ} {σ₂ : Sub 𝒦₂ Δ Θ} {σ₃ : Sub 𝒦₃ Γ Θ}
+      → R σ₁ σ₂ σ₃ → ∀ {A} (M : Tm Γ A)
+      → trav 𝒦₂ σ₂ (trav 𝒦₁ σ₁ M) ≡ trav 𝒦₃ σ₃ M
+
+  {- and substituting variables for themselves is the identity -}
+  SubId : Set
+  SubId =
+    ∀ {Γ A} {σ : Sub tmK Γ Γ}
+    → (∀ {B} (x : Var Γ B) → σ x ≡ ` x)
+    → (M : Tm Γ A)
+    → sub σ M ≡ M
+
+  {- what both kits satisfy -}
+  record Laws (𝒦 : Kit) : Set where
+    field
+      tm-vr : ∀ {Γ A} (x : Var Γ A) → Kit.tm 𝒦 (Kit.vr 𝒦 x) ≡ ` x
+      tm-wk : ∀ {Γ A B} (k : Kit.K 𝒦 Γ A)
+        → Kit.tm 𝒦 (Kit.wk 𝒦 {B = B} k) ≡ ⇑ (Kit.tm 𝒦 k)
+      exts-ren : ∀ {Γ Δ A B} (τ : Sub 𝒦 Γ Δ) (M : Tm Γ A)
+        → trav 𝒦 (exts 𝒦 {B = B} τ) (⇑ M) ≡ ⇑ (trav 𝒦 τ M)

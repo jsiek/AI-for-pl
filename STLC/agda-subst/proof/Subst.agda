@@ -15,8 +15,10 @@ open import Subst.Scope using (ℕScope)
 open import STLC
 open import Subst.proof.Kit ℕScope Tm `_ using (module Traversal)
 
+-- (`Fuse`, `SubId` and `Laws` are stated in Subst/Kit.agda and come from
+-- STLC.agda.)
 open Traversal trav (λ _ _ _ → refl) public
-  using (Fuse; SubId; sub-id-exts; Laws; module Lemmas)
+  using (sub-id-exts; module Lemmas)
 
 ------------------------------------------------------------------------
 -- Fusion of two traversals, by induction on terms

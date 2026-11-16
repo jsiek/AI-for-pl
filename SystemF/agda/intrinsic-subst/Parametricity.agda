@@ -24,7 +24,7 @@ open import intrinsic-subst.Types
 open import intrinsic-subst.Ctx
 open import intrinsic-subst.Terms
 open import intrinsic-subst.Reduction
-open import intrinsic-subst.proof.TypeSubst using (module TL)
+open import intrinsic-subst.TypeSubst using (exts-[]ᵗ)
 
 --------------------------------------------------------------------------------
 -- Relations and relational substitutions
@@ -90,8 +90,8 @@ extendRelSub : ∀ {ℓ Δ}
 𝒱 {ℓ} (`∀ A) ρ _ _ (V-Λ {N = N}) (V-Λ {N = M}) =
   ∀ (A₁ A₂ : Type ∅) (R : Rel ℓ A₁ A₂)
   → ℰ A (extendRelSub ρ A₁ A₂ R)
-      (convᵀ (TL.exts-[] (ρ₁ ρ) A A₁) (N [ A₁ ]ᵀ))
-      (convᵀ (TL.exts-[] (ρ₂ ρ) A A₂) (M [ A₂ ]ᵀ))
+      (convᵀ (exts-[]ᵗ (ρ₁ ρ) A A₁) (N [ A₁ ]ᵀ))
+      (convᵀ (exts-[]ᵗ (ρ₂ ρ) A A₂) (M [ A₂ ]ᵀ))
 
 -- both terms reduce to values related by the value relation
 ℰ A ρ M N =

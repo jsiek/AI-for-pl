@@ -21,7 +21,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
 
 open import intrinsic-subst.Types
 open import intrinsic-subst.Ctx
-open import intrinsic-subst.proof.TypeSubst using (module TL)
+open import intrinsic-subst.TypeSubst using (trav-[]ᵗ)
 
 infix  4 _∣_⊢_
 infix  9 `_
@@ -106,7 +106,7 @@ act-[] : ∀ (𝒯 : TyKit) {Δ Δ'} (θ : TK.Sub (TyKit.kit 𝒯) Δ Δ')
   (A : Type (Δ ,α)) (B : Type Δ)
   → act 𝒯 θ (A [ B ]ᵗ)
     ≡ act 𝒯 (TK.exts (TyKit.kit 𝒯) θ) A [ act 𝒯 θ B ]ᵗ
-act-[] 𝒯 θ A B = TL.trav-[] (TyKit.laws 𝒯) θ A B
+act-[] 𝒯 θ A B = trav-[]ᵗ (TyKit.laws 𝒯) θ A B
 
 travᵀ : ∀ (𝒯 : TyKit) {Δ Δ'} (θ : TK.Sub (TyKit.kit 𝒯) Δ Δ')
   {Γ : Ctx Δ} {Γ' : Ctx Δ'} {A}

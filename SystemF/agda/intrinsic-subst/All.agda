@@ -6,6 +6,7 @@ module intrinsic-subst.All where
 --   * Imports all modules so one check of this file validates the folder.
 
 open import intrinsic-subst.Types
+open import intrinsic-subst.TypeSubst
 open import intrinsic-subst.Ctx
 open import intrinsic-subst.Terms
 open import intrinsic-subst.Reduction

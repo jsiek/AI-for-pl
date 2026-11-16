@@ -53,8 +53,7 @@ trav 𝒦 σ (`∀ A) = `∀ trav 𝒦 (exts 𝒦 σ) A
 open Substitution trav public
 
 open import Subst.proof.Kit (ctxScope Sort) _⊢_ `_ using (module Traversal)
-open Traversal trav (λ _ _ _ → refl)
-  using (Fuse; SubId; sub-id-exts; module Lemmas)
+open Traversal trav (λ _ _ _ → refl) using (sub-id-exts; module Lemmas)
 
 fuse : Fuse
 fuse 𝒦₁ 𝒦₂ 𝒦₃ R R-exts R-var = go

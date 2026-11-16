@@ -27,13 +27,17 @@
       and, in the module `Terms`, `Kit`, `Sub`, `exts`, `⇑s`, `varK`,
       `ids`, `_•_`, given `travᵀ`: `renᵀ`, `subᵀ`, `⇑ᵀ`, `_[_]ᵀ`, and
       given also `trav`: `ren`, `⇑`, `tmK`, `sub`, `_[_]`.
+    * The module takes, as parameters, only the *statements* of the laws
+      of the type-level kits that its casts need (`varLᵗ`, `tmLᵗ`,
+      `⇑-[]ᵗ`), so a client's definitions can be audited without reading
+      any proof.  Subst/proof/Poly.agda instantiates them from the
+      language's two inductions on types.
     * The laws are in Subst/proof/Poly.agda.
 
 -}
 
 open import Subst.Scope using (Scope; Ctx; ∅; _,_; _∋_; Z; S_)
 import Subst.Kit
-import Subst.proof.Kit
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
   renaming (subst to substEq)
 
@@ -44,13 +48,13 @@ module Subst.Poly
   (`ᵗ_ : ∀ {Δ s} → Var Δ s → Typ Δ s)
   (let module TK = Subst.Kit 𝒮 Typ `ᵗ_)
   (travᵗ : (𝒦 : TK.Kit) → ∀ {Δ Δ' s} → TK.Sub 𝒦 Δ Δ' → Typ Δ s → Typ Δ' s)
-  (travᵗ-var : ∀ 𝒦 {Δ Δ' s} (σ : TK.Sub 𝒦 Δ Δ') (α : Var Δ s)
-    → travᵗ 𝒦 σ (`ᵗ α) ≡ TK.Kit.tm 𝒦 (σ α))
-  (let module TP = Subst.proof.Kit.Traversal 𝒮 Typ `ᵗ_ travᵗ travᵗ-var)
-  (fuseᵗ : TP.Fuse) (sub-idᵗ : TP.SubId)
+  (let module TS = TK.Substitution travᵗ)
+  -- the laws of the type-level kits
+  (varLᵗ : TS.Laws TK.varK)
+  (tmLᵗ : TS.Laws TS.tmK)
+  -- substituting into a weakened type
+  (⇑-[]ᵗ : ∀ {Δ s s'} (A : Typ Δ s) (B : Typ Δ s') → TS.⇑ A TS.[ B ] ≡ A)
   where
-
-module TL = TP.Lemmas fuseᵗ sub-idᵗ
 
 {- Types and contexts -------------------------------------------------------}
 
@@ -61,11 +65,11 @@ Ty Δ = Typ Δ ⋆
 {- weakening a type past a type variable, and instantiating the type
    variable bound last -}
 ⇑ᵗ : ∀ {Δ} → Ty Δ → Ty (Δ ▷ ⋆)
-⇑ᵗ = TP.⇑
+⇑ᵗ = TS.⇑
 
 infixl 8 _[_]ᵗ
 _[_]ᵗ : ∀ {Δ} → Ty (Δ ▷ ⋆) → Ty Δ → Ty Δ
-A [ B ]ᵗ = A TP.[ B ]
+A [ B ]ᵗ = A TS.[ B ]
 
 {- term contexts -}
 Cx : Sc → Set
@@ -76,13 +80,13 @@ Cx Δ = Ctx (Ty Δ)
 record TyKit : Set₁ where
   field
     kit : TK.Kit
-    laws : TP.Laws kit
+    laws : TS.Laws kit
 
 renKᵗ : TyKit
-renKᵗ = record { kit = TK.varK ; laws = TL.varL }
+renKᵗ = record { kit = TK.varK ; laws = varLᵗ }
 
 subKᵗ : TyKit
-subKᵗ = record { kit = TP.tmK ; laws = TL.tmL }
+subKᵗ = record { kit = TS.tmK ; laws = tmLᵗ }
 
 {- the action of a type-level kit on types -}
 act : ∀ (𝒯 : TyKit) {Δ Δ'} → TK.Sub (TyKit.kit 𝒯) Δ Δ' → Ty Δ → Ty Δ'
@@ -131,12 +135,12 @@ extρ 𝒯 θ ρ (S x) = S (ρ x)
   → TyRen 𝒯 θ Γ Γ'
   → TyRen 𝒯 (TK.exts (TyKit.kit 𝒯) θ) (⇑ᶜ Γ) (⇑ᶜ Γ')
 ⇑ρ 𝒯 θ {Γ , B} ρ Z =
-  conv∋ (sym (TP.Laws.exts-ren (TyKit.laws 𝒯) θ B)) (⇑ᵛ (ρ Z))
+  conv∋ (sym (TS.Laws.exts-ren (TyKit.laws 𝒯) θ B)) (⇑ᵛ (ρ Z))
 ⇑ρ 𝒯 θ {Γ , B} ρ (S x) = ⇑ρ 𝒯 θ (λ y → ρ (S y)) x
 
 {- instantiating the type variable bound last by B -}
 instᵛ : ∀ {Δ} {Γ : Cx Δ} (B : Ty Δ) → TyRen subKᵗ (B TK.• TK.ids) (⇑ᶜ Γ) Γ
-instᵛ {Γ = Γ , D} B Z = conv∋ (sym (TL.⇑-[] D B)) Z
+instᵛ {Γ = Γ , D} B Z = conv∋ (sym (⇑-[]ᵗ D B)) Z
 instᵛ {Γ = Γ , D} B (S x) = S (instᵛ B x)
 
 {- Terms ---------------------------------------------------------------------}
@@ -204,7 +208,7 @@ module Terms
       → Tm Γ A → Tm (mapᶜ renKᵗ θ Γ) (act renKᵗ θ A)
     renᵀ θ = travᵀ renKᵗ θ (mapᵛ renKᵗ θ)
 
-    subᵀ : ∀ {Δ Δ'} (θ : TK.Sub TP.tmK Δ Δ') {Γ : Cx Δ} {A}
+    subᵀ : ∀ {Δ Δ'} (θ : TK.Sub TS.tmK Δ Δ') {Γ : Cx Δ} {A}
       → Tm Γ A → Tm (mapᶜ subKᵗ θ Γ) (act subKᵗ θ A)
     subᵀ θ = travᵀ subKᵗ θ (mapᵛ subKᵗ θ)
 

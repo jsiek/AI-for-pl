@@ -128,8 +128,16 @@ commutes with type weakening), `trav-travᵀ`, `travᵀ-[]`, and `⇑ᵀ-[]ᵀ`.
 
 - `Scope.agda`: scope structures and the `ℕScope` / `ctxScope` instances.
 - `Kit.agda`: one-level kits, `Sub`, `exts`, `varK`, `_•_`, `ids`, and,
-  given `trav`, `ren`, `tmK`, `sub`, `↑`, `⇑`, `_⨟_`, `_[_]`.
-- `Poly.agda`: the two-level extension for polymorphic languages.
+  given `trav`, `ren`, `tmK`, `sub`, `↑`, `⇑`, `_⨟_`, `_[_]`, and the
+  *statements* of the laws, `Fuse`, `SubId`, and `Laws`.
+- `Poly.agda`: the two-level extension for polymorphic languages. It takes
+  the laws of the type-level kits that its casts need as parameters, so it
+  imports no proofs.
+
+The top-level files import nothing from `proof/`, apart from the `All`
+driver. So a client can keep the repository's audit rule: its definitions
+use only statements, and the proofs come in through thin top-level
+wrappers.
 - `proof/Kit.agda`: one-level laws (`Fuse`, `SubId` → `Lemmas`).
 - `proof/Poly.agda`: two-level laws.
 - `examples/MultiSortedF.agda`: multi-sorted extrinsic System F on the

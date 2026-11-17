@@ -60,8 +60,7 @@ by hand for an existential, or a result, that is tied to no input.
 
 | Funspec | Existentials / results | Anchored to |
 |---|---|---|
-| `add_spec_perm` (M) | `s'`, `vs'`, `l'` | `Permutation` with `e :: s` and the old payloads; `l'` in `s'` |
-| `add_spec` (E) | `vs'` | `whole (ins j e s) vs'`; payloads `ins j ev` of the old ones |
+| `add_spec` | `vs'` | `whole (ins j e s) vs'`; payloads `ins j ev` of the old ones |
 | `get_first_spec`, `get_last_spec` | `r` | `r` NULL or in `s`; the nodes are returned with the same `vs` |
 | `it_init_on_equal_spec`, `it_init_spec` | `b`, `f`, `r`, `st'` | `init_window scp s`; **`st'` is tied to nothing** |
 | `it_next_spec` | `b'`, `f'`, `r`, `st'` | `iter_step scp s b f`; **`st'` is tied to nothing** |
@@ -76,14 +75,25 @@ client's `Rc` constrains `st'`.
 For each, *minimal* is what the rule asks for and *chosen* is the
 draft's form.
 
-1. **`add`'s postcondition (owner's choice, R9).**  Both options are in
-   `spec_dllist.v`, and both type-check.
-   - *Minimal (Option M, `add_spec_perm`; `Gprog` uses it):* a whole
-     list made of exactly the old nodes plus `elem` in some order
-     (`Permutation` over node–payload pairs), with `*list` some node of
-     it.
-   - *Exception (Option E, `add_spec`):* `s` with `elem` inserted at
+1. **`add`'s postcondition: form E (owner, R9, 2026-11-17).**
+   - *Chosen (E, `add_spec`, in `Gprog`):* `s` with `elem` inserted at
      position `j`, and `*list == elem`.
+   - *Recorded alternative (M, the minimal form; it type-checked in the
+     draft of e4edd591 and was removed from `spec_dllist.v` with the
+     decision):* a whole list made of exactly the old nodes plus `elem`
+     in some order, with `*list` some node of it:
+
+     ```coq
+     POST [ tvoid ]
+       EX s': list val, EX vs': list node_v, EX l': val,
+       PROP (whole s' vs';
+             Permutation (combine (e :: s) (ev :: map pay vs))
+                         (combine s' (map pay vs'));
+             In l' s')
+       RETURN ()
+       SEP (data_at shl (tptr t_dl) l' lp;
+            nodes sh s' vs' 0 (Zlength s')).
+     ```
    - Why E is simpler:
      - it has no `Permutation`, no `combine` and no new existential
        sequence;
@@ -97,9 +107,9 @@ draft's form.
    - *Chosen:* the whole list.  It is simpler: every client holds a
      whole list at the call, and the re-linking lemma is proved once,
      inside `add`, rather than in every client.
-   - This strengthens a precondition, which the exception's wording
-     ("a stronger postcondition or a weaker precondition") does not
-     cover.  (R8)
+   - A stronger precondition: allowed by the exception as the owner
+     widened it with R8 (2026-11-17): simpler, and no surveyed client
+     needs the weaker one.  Register entry R8 in the survey.
 3. **The comparator's precondition: the whole node.**
    - *Minimal:* the payload field only.
    - *Chosen:* the whole node at a readable share.  It is simpler:
@@ -168,6 +178,13 @@ Options for the owner (R10):
 
 ## 5. Questions
 
+**Decided by the owner (2026-11-17):**
+- **R8.** `add` requires the whole list; the simplicity exception now
+  also allows a stronger precondition when it is simpler and no
+  surveyed client needs the weaker one (register entry R8).
+- **R9.** `add`'s postcondition is form E (exact position,
+  `*list == elem`); M is recorded in section 3.
+
 **Settled by the rules (no owner action needed unless you disagree):**
 - **R1. Does NULL mean that no node is left?**  Yes: the owner decided
   this on 2026-11-17 (leak freedom).  It is in `step_any` and
@@ -198,10 +215,4 @@ Options for the owner (R10):
 - **R7. Parameterisation (Q12).**  The draft is the `dllist` instance.
   Is that acceptable now, with the generic version later?  `README.md`
   says what the generic version would take.
-- **R8. `add`'s whole-list precondition.**  It is a stronger
-  precondition, which the exception's wording does not name (section 3,
-  item 2).  Keep it, or use the local three-node spec?
-- **R9. `add`'s postcondition.**  Option M, the minimal form (same nodes
-  plus `elem`, in some order), or Option E, the exact position
-  (section 3, item 1)?
 - **R10. How to enforce leak freedom:** (a), (b) or (c) of section 4.

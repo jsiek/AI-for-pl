@@ -16,9 +16,13 @@
 >   (`../sglib_spec/CLIENT_SURVEY.md`), or "leak freedom" with the
 >   pattern.
 > - **Simplicity exception:** a stronger postcondition or a weaker
->   precondition is allowed when it is simpler than the minimal form.
->   Each use is marked **[exception]**, with the minimal alternative and
->   why the chosen form is simpler.
+>   precondition is allowed when it is simpler than the minimal form;
+>   so is a stronger precondition, when it is simpler and no surveyed
+>   client needs the weaker one (owner, 2026-11-17, with R8).  Each use
+>   is marked **[exception]**, with the minimal alternative and why the
+>   chosen form is simpler.  A use that rests on "no surveyed client
+>   needs it" is entered in the survey's revisit register
+>   (`../sglib_spec/CLIENT_SURVEY.md`).
 > - A clause with no citation is removed.
 
 This is the English public spec of stage 1: `add`, `get_first`,
@@ -96,38 +100,24 @@ Inserts `elem` just before `*list`.
 - *Minimal:* own only the old `*list`, its predecessor and `elem`, with
   only `*list`'s prev link given.  The client would then rebuild its
   whole list around the three nodes itself.
-- *Chosen:* the whole list.  It is simpler: every surveyed client holds
-  a whole list when it calls `add` (A1–A5), and the re-linking lemma is
-  proved once, in `add`'s proof, rather than in every client.
-- Strictly this is a stronger precondition, which the exception's
-  wording does not name (question R8).
+- *Chosen (owner, R8, 2026-11-17):* the whole list.  It is simpler:
+  the re-linking lemma is proved once, in `add`'s proof, rather than in
+  every client.  No surveyed client needs the weaker form: every one
+  holds a whole list when it calls `add` (A1–A5).  Register entry R8.
 
-**Owns afterwards and Ensures: two options for the owner**
-
-*Option M (minimal; `add_spec_perm`, used by `Gprog`):*
+**Owns afterwards and Ensures** (form E, owner's decision R9,
+2026-11-17)
 
 | Clause | Needed by |
 |---|---|
-| the pointer variable `*list` | A1–A3, A8: the client adds again through it |
-| a whole list made of exactly the old nodes of `s` plus `elem`, in some order, owned writable | A4: the client's old nodes are still in one whole list; leak freedom of A1–A4 clients: every node is still accounted for, so the client can free it |
-| each node keeps its payload | A4, client 1 (sums payloads after `add`); I1 |
-| `*list` is a node of that list | A2: the next `add` goes through `*list` |
+| the pointer variable `*list`, with `*list == elem` | A1–A3, A8: the client adds again through it.  **[exception]** minimal: `*list` is some node of the new list |
+| the whole list is `s` with `elem` inserted at position `j` (just before the old `*list`), owned writable, each node keeping its payload | A4 (the client's old nodes are still in one whole list); leak freedom of A1–A4 clients (every node is accounted for); payloads: A4 client 1 and I1 read them.  **[exception]** minimal: a whole list of exactly the old nodes plus `elem`, in some order |
 
-*Option E (position-exact; `add_spec`):*
-
-| Clause | Needed by |
-|---|---|
-| the pointer variable, `*list == elem` | **[exception]** (minimal: `*list` is a node of the new list) |
-| the whole list is `s` with `elem` inserted at position `j`, payloads kept | **[exception]** (minimal: Option M's "same nodes plus `elem`, some order") |
-
-Option E is simpler in Coq:
-- it has no `Permutation`, no `combine` of nodes with payloads, and no
-  existential new sequence;
-- `add`'s proof builds exactly this list anyway;
-- a client of Option M must recover the positions it needs from
-  `Permutation_in`.
-
-Option M promises less (no position).  The owner chooses (R9).
+Why the exact form is simpler: it needs no permutation, no pairing of
+nodes with payloads and no existential new sequence; `add`'s proof
+builds exactly this list anyway; and a client of the minimal form would
+recover the positions it needs through permutation lemmas.  The minimal
+form is recorded in `REVIEW.md`, section 3.
 
 ## `dllist *sglib_dllist_get_first(dllist *list)`
 
@@ -146,7 +136,8 @@ Option M promises less (no position).  The owner chooses (R9).
 | the result is NULL or a node of `s` | G1, G2: the client walks from the result through nodes it owns; G3 (NULL) |
 
 The result being the head is a position fact.  Minimal is "a node of
-`s`".  The exact form ("the head") is not used: it is no simpler.
+`s`".  The exact form ("the head") is not used: it is no simpler
+(register entry get-first-head).
 
 ## `dllist *sglib_dllist_get_last(dllist *list)`
 
@@ -213,7 +204,7 @@ struct sglib_dllist_iterator {
   when `f == k`);
 - `subcomparator` and `equalto` are as given at initialisation;
 - `currentelem` is not described: no body reads it and no client needs
-  it.
+  it (register entry currentelem).
 
 The nodes **still to be visited** are `n0..nb` and `nf..nk-1`.  The
 nodes inside the window have been returned, or skipped by the
@@ -281,7 +272,7 @@ comparator, as every surveyed comparator client does (I7, C3).
 | without a comparator: the result is the only node inside the window (NULL only for the empty list) | leak freedom of I2 |
 
 The window is not tied to `j`: no client needs to know where the
-iteration starts.
+iteration starts (register entry it-init-start).
 
 ### `dllist *sglib_dllist_it_init(struct sglib_dllist_iterator *it, dllist *list)`
 

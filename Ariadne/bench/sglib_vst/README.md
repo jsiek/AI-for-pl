@@ -18,7 +18,7 @@ specs.  The name follows `sglib_spec`: the library, then the backend.
 | File | What |
 |---|---|
 | `SPEC.md` | the English spec: words used, then Requires / Owns afterwards / Ensures per function, each clause with its citation |
-| `spec_dllist.v` | the VST funspecs and representation predicates (nodes, link facts, iterator state, comparator contract); both options for `add`; bodies `Admitted` (type check only) |
+| `spec_dllist.v` | the VST funspecs and representation predicates (nodes, link facts, iterator state, comparator contract); `add` in the position-exact form (owner, R9); bodies `Admitted` (type check only) |
 | `REVIEW.md` | Coq vs English, the unanchored-postcondition review, the simplicity exceptions with both options, the VST affinity result and leak-freedom enforcement options, and the questions (settled and open) |
 | `FIT_CHECK.md` | the 14 covered and 9 stage-1 survey patterns, each with the clauses a client relies on |
 | `affine_probe/` | `probe.c`, `verif_probe.v`: VST 2.17 drops owned memory only through `TT` in a postcondition |
@@ -35,9 +35,9 @@ specs.  The name follows `sglib_spec`: the library, then the backend.
 regenerates `dllist.c`, runs CompCert 3.18's `clightgen` and Rocq
 9.0.1's `coqc` with VST 2.17 (docker image `ariadne-vst:dev`, through
 `../../vst/run.sh`), and checks that `spec_dllist.v` compiles with
-exactly seven `Admitted` (the `semax_body` statements, one per
-function and two for `add`'s options, which only check that each
-funspec fits its function's C type), and runs the affinity probe.  No
+exactly six `Admitted` (the `semax_body` statements, one per
+function, which only check that each funspec fits its function's C
+type), and runs the affinity probe.  No
 body is proved yet.
 
 ## Parameterisation (Q12)

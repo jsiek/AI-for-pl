@@ -14,7 +14,6 @@
 
 Require Import VST.floyd.proofauto.
 Require Import VST.floyd.library.
-Require Import Coq.Sorting.Permutation.
 Require Import SglibVST.dllist.
 
 #[export] Instance CompSpecs : compspecs. make_compspecs prog. Defined.
@@ -176,10 +175,9 @@ Definition cmp_payloads (scp: val) (vs: list node_v) (lo hi: Z) : Prop :=
   scp = nullval \/ int_payloads vs lo hi.
 
 (* ================================================================== *)
-(* Funspecs.  add: two options for the owner (SPEC.md, "add"):
-   add_spec_perm ("exactly the old nodes plus elem, in some order": the
-   minimal form; Gprog uses it) and add_spec (position-exact: the
-   simplicity-exception option). *)
+(* Funspecs.  add: the position-exact form (owner, R9, 2026-11-17), a
+   simplicity exception; the minimal form ("the old nodes plus elem, in
+   some order") is recorded in REVIEW.md. *)
 (* ================================================================== *)
 
 Definition add_spec :=
@@ -191,7 +189,7 @@ Definition add_spec :=
           writable_share sh;        (* :27,30-32,34 write links *)
           at_node s j;              (* :24,31 *list NULL or a node *)
           whole s vs)               (* :31,34 prev of *list; rest:
-                                       simplicity exception *)
+                                       simplicity exception, R8 *)
     PARAMS (lp; e)
     SEP (data_at shl (tptr t_dl) (Znth_or_null s j) lp;   (* :24 *)
          data_at sh t_dl (ev, enp) e;                     (* :27,30-31 *)
@@ -203,26 +201,6 @@ Definition add_spec :=
     RETURN ()
     SEP (data_at shl (tptr t_dl) e lp;
          nodes sh (ins j e s) vs' 0 (Zlength s + 1)).
-
-Definition add_spec_perm :=
- DECLARE _sglib_dllist_add
-  WITH shl: share, lp: val, sh: share, e: val, ev: val, enp: val * val,
-       s: list val, vs: list node_v, j: Z
-  PRE [ tptr (tptr t_dl), tptr t_dl ]
-    PROP (writable_share shl; writable_share sh; at_node s j; whole s vs)
-    PARAMS (lp; e)
-    SEP (data_at shl (tptr t_dl) (Znth_or_null s j) lp;
-         data_at sh t_dl (ev, enp) e;
-         nodes sh s vs 0 (Zlength s))
-  POST [ tvoid ]
-    EX s': list val, EX vs': list node_v, EX l': val,
-    PROP (whole s' vs';
-          Permutation (combine (e :: s) (ev :: map pay vs))
-                      (combine s' (map pay vs'));
-          In l' s')
-    RETURN ()
-    SEP (data_at shl (tptr t_dl) l' lp;
-         nodes sh s' vs' 0 (Zlength s')).
 
 Definition get_first_spec :=
  DECLARE _sglib_dllist_get_first
@@ -322,7 +300,7 @@ Definition it_next_spec :=
          cmp_env scp eqp sheq veq st').
 
 Definition Gprog : funspecs :=
-  ltac:(with_library prog [add_spec_perm; get_first_spec; get_last_spec;
+  ltac:(with_library prog [add_spec; get_first_spec; get_last_spec;
                            it_init_on_equal_spec; it_init_spec;
                            it_next_spec]).
 
@@ -332,9 +310,6 @@ Definition Gprog : funspecs :=
 (* ================================================================== *)
 
 Lemma body_add: semax_body Vprog Gprog f_sglib_dllist_add add_spec.
-Admitted.
-Lemma body_add_perm:
-  semax_body Vprog Gprog f_sglib_dllist_add add_spec_perm.
 Admitted.
 Lemma body_get_first:
   semax_body Vprog Gprog f_sglib_dllist_get_first get_first_spec.

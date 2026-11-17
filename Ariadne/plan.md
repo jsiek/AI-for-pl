@@ -512,6 +512,9 @@ invariant is only needed for functional correctness and is stretch work.
         `spec_dllist.v`, `REVIEW.md`, `FIT_CHECK.md`; PR #240), under the
         rules below, for the owner's review.  The funspecs type-check
         against clightgen's output (`check.sh`); no body is proved yet.
+        Owner, 2026-11-17: R9, `add`'s postcondition is the exact form
+        (`elem` inserted before the old `*list`, `*list == elem`); R8,
+        `add` requires the whole list.
 
 **M6 public-spec rules (owner, 2026-11-17).**
 
@@ -526,8 +529,12 @@ invariant is only needed for functional correctness and is stretch work.
     precondition is allowed when it is simpler than the minimal one
     (example: keeping `s1 ++ elem :: s2` for `add` if "the same nodes
     in some order" needs a permutation that makes specs or proofs
-    harder).  Each use records the minimal alternative and why the
-    chosen form is simpler.
+    harder).  Widened by the owner on 2026-11-17 (with R8): a stronger
+    precondition is also allowed when it is simpler and no surveyed
+    client needs the weaker one.  Each use records the minimal
+    alternative and why the chosen form is simpler; a use that rests on
+    "no surveyed client needs it" gets an entry in the revisit register
+    (rule 6).
 4.  *Clause justification:* `SPEC.md` gives every clause a citation: a
     precondition clause cites the body lines that need it; a
     postcondition clause cites the survey patterns whose clients need
@@ -543,6 +550,20 @@ invariant is only needed for functional correctness and is stretch work.
     simplicity exception).  If they fail, that is only a hint, because
     a different proof might not need the clause; the citation stands.
     Output: one line per clause (replayed / failed, and where).
+6.  *Revisit register (owner, 2026-11-17).*  Every decision, simplicity
+    exception or omitted clause that rests on "no surveyed client does
+    X" has an entry in the survey's revisit register
+    (`bench/sglib_spec/CLIENT_SURVEY.md`): the decision, its
+    assumption, and the pattern that would reopen it.  Seeded with Q3,
+    Q4 (order), Q6, R8 and the clauses dropped for lack of a client.
+    *Triggers:* a new benchmark or target library; a survey refresh; a
+    client proof that fails because of a spec clause rather than proof
+    difficulty.  *Resolution:* add the new pattern to the survey (owner
+    approval) and take the spec change to the owner as a public change;
+    where possible prove `funspec_sub new old`, so existing client
+    proofs stay valid and only the function's proof is redone;
+    otherwise list the affected clients and re-prove them (the frozen
+    survey requires every surveyed client to stay provable).
 
 **M6 harness pieces to port.**
 
@@ -1076,8 +1097,12 @@ invariant is only needed for functional correctness and is stretch work.
             positions or values); a stronger postcondition or weaker
             precondition only as a recorded *simplicity exception*
             (the minimal alternative and why the chosen form is
-            simpler); every clause cited in the English spec, uncited
-            clauses removed.  Details: M6 public-spec rules (§8).
+            simpler), and, since R8 (2026-11-17), a stronger
+            precondition when it is simpler and no surveyed client
+            needs the weaker one; every clause cited in the English
+            spec, uncited clauses removed; assumptions of the form "no
+            surveyed client does X" entered in the survey's revisit
+            register.  Details: M6 public-spec rules 1–6 (§8).
         6.  *Mechanical necessity check (owner, 2026-11-17; runs once
             proofs exist):* weaken or drop each clause and replay the
             proofs, with no LLM; a replay that succeeds proves the

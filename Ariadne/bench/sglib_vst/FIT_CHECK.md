@@ -4,7 +4,7 @@ This file lists the funspec clauses of `spec_dllist.v` that a client
 relies on, for each of the 23 patterns in
 `../sglib_spec/CLIENT_SURVEY.md`: the 14 covered and the 9 stage 1.
 - Memory safety plus leak freedom (owner, 2026-11-17).
-- The `add` clauses are those of both options, M and E.
+- `add` is form E (owner, R9, 2026-11-17).
 - This is a reading of the spec, not a proof: the clients are proved in
   the next step of M6.
 
@@ -19,8 +19,8 @@ relies on, for each of the 23 patterns in
 
 | Pattern | Clauses relied on |
 |---|---|
-| A1 add to empty | `add`: `s = []`, `j = 0`; pre `*list == NULL`.  Post: one whole list holding `e` alone (M: a permutation of `[e]`; E: `ins 0 e []`) |
-| A2 add at head | `add`, `j = 0`.  Post: the old nodes plus `e`, and `*list` a node of the new list (M) or `e` itself (E), for the next `add` |
+| A1 add to empty | `add`: `s = []`, `j = 0`; pre `*list == NULL`.  Post: one whole list holding `e` alone (`ins 0 e []`) |
+| A2 add at head | `add`, `j = 0`.  Post: the old nodes plus `e`, and `*list == e`, for the next `add` |
 | A3 add before a non-head node | `add`, `0 < j`: pre `*list == Znth j s`, `whole s vs`, the nodes writable |
 | A5 elem's links uninitialised | `add` pre `data_at sh t_dl (ev, enp) e`, with `ev` and `enp` arbitrary |
 | G1 from the head, walk | `get_first` / `get_last`: the result is NULL or in `s`; the nodes come back with the same `vs`, and the client's pure link facts let it walk |
@@ -38,7 +38,7 @@ relies on, for each of the 23 patterns in
 
 | Pattern | Clauses relied on |
 |---|---|
-| A4 old nodes after add (client 1) | `add` post: exactly the old nodes plus `e`, the payloads kept (M: `Permutation`, then `In h s'`; E: `ins j e s`).  Then `get_first(h)`, the walk, and a freeing iteration from `h` |
+| A4 old nodes after add (client 1) | `add` post: exactly the old nodes plus `e`, the payloads kept (`ins j e s`, so `h` is still a node of the list).  Then `get_first(h)`, the walk, and a freeing iteration from `h` |
 | A7 several lists (client 2) | Each list is its own `nodes` / `whole`; every funspec frames the others |
 | A8 head a global or a heap field (clients 3, 4) | `add` pre `data_at shl (tptr t_dl) _ lp`, any writable `shl`, any `lp` (a global, or `field_at` at a `field_address`); no `!heap` condition (Q5) |
 | G2 get_first/get_last from the middle (client 5) | `get_first` / `get_last` at any `j`: the prefix (or suffix) is lent, and the result is in `s` |

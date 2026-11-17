@@ -11,7 +11,9 @@
 - **2026-11-17 (owner): the goal is memory safety plus leak freedom.**
   Q4 is amended (coverage is proved, order is not), every client must
   free every node it allocates, and the patterns were re-checked for
-  leaks ("Leak freedom", below).
+  leaks ("Leak freedom", below).  The same day the owner added the
+  "Revisit register" (below) for decisions that rest on "no surveyed
+  client does X".
 
 **Functions in scope** (the owner's decision Q1, below).
 - **Stage 1:** the functions the public spec template
@@ -292,6 +294,39 @@ Where existing clients are proved today:
     - It then frees both key nodes, its own throughout (the non-member
       case leaves `k2` with the client).
     - Finally it frees the rest of the list by iteration.
+
+## Revisit register (owner, 2026-11-17)
+
+Decisions and spec clauses that rest on "no surveyed client does X".
+Each entry names the decision, its assumption, and the pattern that
+would reopen it.  Every future simplicity exception or omitted clause
+justified by the absence of a client gets an entry here.
+
+| Entry | Decision | Assumption | Reopened by |
+|---|---|---|---|
+| Q3 | `add` during an iteration is out of scope (I12) | no surveyed client calls `add` while an iteration over the same list is in progress | a client that adds to a list between two `it_next` calls on it |
+| Q6 | comparators may not write to nodes (C4) | no surveyed comparator writes a node, payload included | a comparator that writes a node it is given |
+| Q4 | the iterator's order is not promised (I10's order part is run time only) | no surveyed client's safety or leak freedom depends on the order of the nodes returned | a client that relies on the order, e.g. one that frees a node's neighbour on the assumption that it has already been returned |
+| R8 | `add` requires the whole list (a stronger precondition than the body needs; simplicity exception) | every surveyed client holds a whole list when it calls `add` (A1–A5) | a client that calls `add` holding only part of a list (the nodes around `*list`), e.g. with the rest lent elsewhere |
+| it-init-start | `it_init` / `it_init_on_equal`'s result and window are not tied to the starting node `list` (`init_window`) | no surveyed client needs to know which node an iteration returns first or where its window starts | a client that uses the first result as the node it passed, or needs `prevelem`/`nextelem` around `list` |
+| currentelem | `it->currentelem` is not described (`it_rep`) | no surveyed client reads `currentelem` | a client that reads `it->currentelem` directly |
+| get-first-head | `get_first` / `get_last` return "NULL or a node of the list", not the head / the last node | no surveyed client needs the result to be an end of the list (G1–G3 only walk from it) | a client that relies on the result having a NULL `ptr_to_previous` (resp. `ptr_to_next`), e.g. to pass it where only a head is allowed |
+| cmp-coverage | with a comparator, nodes may be skipped (no coverage) | no surveyed client frees the nodes of a comparator iteration as they are returned and needs all of them freed (I7 and C3 free by a later plain iteration) | a client that frees every node through a comparator iteration |
+
+**Triggers.**  The register is checked:
+- when a new benchmark or target library arrives;
+- when the survey is refreshed;
+- when a client proof fails because of a spec clause rather than proof
+  difficulty.
+
+**Resolution.**
+1. Add the new pattern to the survey, with the owner's approval, and
+   take the spec change to the owner as a public change.
+2. Where possible, prove `funspec_sub new old` for the changed
+   function, so that every existing client proof stays valid and only
+   the function's own proof is redone.
+3. Otherwise, list the affected clients and re-prove them: the frozen
+   survey already requires every surveyed client to stay provable.
 
 ## Leak freedom (owner, 2026-11-17)
 

@@ -32,19 +32,19 @@ clight() {
 name="clightgen + coqc on dllist.c"
 step clight
 
-# 3. The funspecs and the seven semax_body statements elaborate.
+# 3. The funspecs and the six semax_body statements elaborate.
 spec() {
   "$run" $coqc spec_dllist.v
 }
 name="coqc spec_dllist.v (funspecs type-check against dllist.v)"
 step spec
 
-# 4. Exactly the seven body lemmas are Admitted; no other admit or axiom.
+# 4. Exactly the six body lemmas are Admitted; no other admit or axiom.
 lint() {
-  [ "$(grep -c '^Admitted\.$' spec_dllist.v)" -eq 7 ] \
+  [ "$(grep -c '^Admitted\.$' spec_dllist.v)" -eq 6 ] \
     && ! grep -nE '\b(admit|Axiom|Parameter|Conjecture)\b' spec_dllist.v
 }
-name="spec_dllist.v: 7 Admitted body lemmas, no other admit/axiom"
+name="spec_dllist.v: 6 Admitted body lemmas, no other admit/axiom"
 step lint
 
 # 5. The affinity probe: VST does not let a function drop a data_at or a

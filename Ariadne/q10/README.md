@@ -41,6 +41,57 @@ new spec.
 | `check_wp.py`, `check_vst.py` | mutant rejection (and, for VST, what was proved) |
 | `spec_lines.py` | public spec size on each side |
 
+## Plan M6: the frozen stage-1 spec (2026-11-17)
+
+`run_vst.py` and `check_vst.py` also drive the M6 benchmarks
+(`m6.py`): `--bench dllist` (the six library functions of
+`../bench/sglib_vst/`, frozen digest `ee6043a2f971a9f6`) and
+`--bench client1` .. `client9` (the stage-1 survey clients,
+`../bench/sglib_vst/clients/`).
+
+```bash
+python3 run_vst.py --bench dllist [--dry-run]   # cap $25 (m6.CAPS)
+python3 check_vst.py --bench dllist ../runs/m6/<run>
+python3 test_m6_setup.py                        # offline (no image)
+python3 test_m6_check.py                        # no LLM; Coq in the image
+```
+
+* **Task:** prove the given funspecs.  The prover writes only
+  `verif_dllist.v`, which Requires the frozen `spec_dllist.v` and
+  proves the six `semax_body` lemmas under their frozen names and
+  statements (the task lists them).  A client run gets the frozen spec
+  restated over its program (`spec_clientN.v`: only the `Require` line
+  differs) and writes the client's funspecs, its proofs and
+  `semax_prog`.
+* **Fence** (added to Q10's): writes to the frozen files in the run
+  directory are denied; reads of `runs/q10/`, `vst/b1/`, `bench/` and
+  the check fixtures (`m6_fixtures/`, a hand proof) are denied, as are
+  sibling runs under `runs/m6/`.  The tool runs commands in the image
+  with the run directory mounted, so it could still change a frozen
+  file: `summary.json` records `frozen_unchanged` after the run, and the
+  check uses pristine copies and rejects a run whose copies changed.
+* **Check** (`m6.check`): pristine `dllist.c` (or `clientN.c`) and
+  spec, the run's proof file only; clightgen and coqc in the image; the
+  lint (no `admit`, `Axiom`, `Parameter`, `Conjecture`); for each lemma,
+  `Check` against the frozen statement (fully qualified, so nothing the
+  proof file defines can shadow it) and `Print Assumptions` against
+  `../vst/smoke/expected_assumptions.txt` (PROVED, or OPEN if it rests
+  on an `Admitted` lemma); `post_lint.py` on the proof file's module
+  (leak freedom of any funspec it defines).  Output:
+  `<run>/m6-check/summary.json`.
+* **Per-benchmark caps:** `m6.CAPS` (b1a, b1c $15; dllist $25; clients
+  $10), used when `--usd` is not given; the ledger reservation is
+  unchanged.
+* **Dry run with no LLM** (`test_m6_check.py`, 2026-11-17): 4/4.  A
+  hand proof of `it_init` is accepted (PROVED, the other five OPEN);
+  rejected: a proof against an edited funspec plus an edited frozen
+  copy, an `Axiom`, and a helper funspec with `TT` in its
+  postcondition.
+* **Open for client runs:** the check verifies `prog_correct`, its
+  assumptions and the client funspecs' leak freedom; that the client's
+  `Gprog` uses the frozen library funspecs unchanged is required by the
+  task but not yet checked mechanically.
+
 ## B1c: a client that reuses the list after iterating (2026-11-08)
 
 `bench/b1c/`: B1a's four sglib functions, and a driver that builds a

@@ -39,6 +39,8 @@ ARIADNE = os.path.dirname(HERE)
 REPO = os.path.dirname(ARIADNE)
 sys.path.insert(0, os.path.join(ARIADNE, "harness"))
 import budget  # noqa: E402
+sys.path.insert(0, HERE)
+import m6  # noqa: E402
 
 MODEL = "claude-opus-5-5"
 IMAGE = "ariadne-vst:dev"
@@ -122,7 +124,7 @@ exec docker run --rm -i --init --network none \\
 """
 
 
-def command(run, tool, usd, turns, prompt):
+def command(run, tool, usd, turns, prompt, bench="b1a"):
     allowed = [f"Bash({tool} *)", f"Read(/{run}/**)", f"Write(/{run}/**)",
                f"Edit(/{run}/**)"]
     # The existing VST proofs of B1, in this checkout and in the main
@@ -142,6 +144,10 @@ def command(run, tool, usd, turns, prompt):
             continue
         pat = f"/{other}/**" if os.path.isdir(other) else f"/{other}"
         denied += [f"{t}({pat})" for t in ("Read", "Edit", "Write")]
+    if m6.is_m6(bench):
+        # Plan M6: the frozen files are write-protected, and earlier
+        # runs, existing proofs and the check fixtures are unreadable.
+        denied += m6.deny_rules(run, roots)
     return ["claude", "-p", prompt, "--model", MODEL,
             "--output-format", "json", "--max-turns", str(turns),
             "--max-budget-usd", str(usd), "--no-session-persistence",
@@ -159,6 +165,12 @@ def task(bench):
 
 
 def setup(run, bench="b1a"):
+    if m6.is_m6(bench):
+        m6.setup(run, bench)
+        tool = run + ".tool"
+        open(tool, "w").write(tool_script(run))
+        os.chmod(tool, 0o755)
+        return tool
     os.makedirs(os.path.join(run, "example"))
     d = os.path.join(ARIADNE, "bench", bench)
     shutil.copy(os.path.join(d, f"{bench}.c"), run)
@@ -175,24 +187,32 @@ def setup(run, bench="b1a"):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--bench", default="b1a", choices=["b1a", "b1c"])
+    ap.add_argument("--bench", default="b1a", choices=m6.BENCHES)
     ap.add_argument("--run-dir")
-    ap.add_argument("--usd", type=float, default=15.0)
+    ap.add_argument("--usd", type=float, default=None,
+                    help="the call's cap (default: the benchmark's cap, "
+                         "m6.CAPS)")
     ap.add_argument("--turns", type=int, default=600)
     ap.add_argument("--seconds", type=int, default=4 * 3600)
     ap.add_argument("--ledger", default=budget.PATH,
                     help="the budget ledger the call is reserved in")
     a = ap.parse_args()
-    run = os.path.abspath(a.run_dir or os.path.join(
-        ARIADNE, "runs", "q10", time.strftime("vst-%Y%m%d-%H%M%S")))
+    if a.usd is None:
+        a.usd = m6.CAPS[a.bench]
+    run = os.path.abspath(a.run_dir or (
+        os.path.join(ARIADNE, "runs", "m6",
+                     a.bench + time.strftime("-%Y%m%d-%H%M%S"))
+        if m6.is_m6(a.bench) else os.path.join(
+            ARIADNE, "runs", "q10", time.strftime("vst-%Y%m%d-%H%M%S"))))
     if os.path.exists(run):
         sys.exit(f"{run} exists")
     tool = setup(run, a.bench)
-    text = task(a.bench).format(tool=tool, usd=a.usd)
+    text = (m6.task(a.bench, tool, a.usd) if m6.is_m6(a.bench)
+            else task(a.bench).format(tool=tool, usd=a.usd))
     prompt = ("Read TASK.md in this directory and do the task it "
               "describes.\n\n" + text)
     open(os.path.join(run, "TASK.md"), "w").write(text)
-    cmd = command(run, tool, a.usd, a.turns, prompt)
+    cmd = command(run, tool, a.usd, a.turns, prompt, a.bench)
     env = dict(os.environ, GIT_CEILING_DIRECTORIES=os.path.dirname(run),
                GIT_DIR=os.path.join(run, ".no-git"))
     fence = {"cwd": run, "tool": tool, "tool_script": tool_script(run),
@@ -244,6 +264,9 @@ def main():
                "num_turns": out and out.get("num_turns"),
                "permission_denials": out and out.get("permission_denials"),
                "answer": out and (out.get("result") or "")[-3000:]}
+    if m6.is_m6(a.bench):
+        # the frozen files, compared with the pristine ones after the run
+        summary["frozen_unchanged"] = m6.frozen_unchanged(run, a.bench)
     json.dump(summary, open(os.path.join(run, "summary.json"), "w"),
               indent=1)
     print(json.dumps({k: v for k, v in summary.items()

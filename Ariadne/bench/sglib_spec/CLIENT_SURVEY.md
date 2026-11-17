@@ -8,6 +8,10 @@
 - 2026-11-13: clients added for add_before, add_after,
   delete_if_member (Codex review; follows from Q1).
 - It contains no funspecs and no proofs.
+- **2026-11-17 (owner): the goal is memory safety plus leak freedom.**
+  Q4 is amended (coverage is proved, order is not), every client must
+  free every node it allocates, and the patterns were re-checked for
+  leaks ("Leak freedom", below).
 
 **Functions in scope** (the owner's decision Q1, below).
 - **Stage 1:** the functions the public spec template
@@ -186,7 +190,7 @@ Where existing clients are proved today:
 | I7 with a comparator | covered | `selftest/wp/driver.c:st_iter_equal` (WP only; to be proved against the new comparator funspec) |
 | I8 NULL comparator | covered | every `it_init` call (the three drivers) |
 | I9 two iterators | stage 1 | client 7 |
-| I10 visits each node once, in order | run time | step 0 with sglib's lockstep check (S2): checked at run time, not proved (Q4) |
+| I10 visits each node once, in order | run time | step 0 with sglib's lockstep check (S2): order checked at run time, not proved (Q4); "each node once" is proved since 2026-11-17 (Q4 amended) |
 | I11 delete the current node in the loop | stage 2 | client 12 |
 | I12 add during an iteration | out of scope | Q3: no real user or sample does it; can be reopened if a later target needs it |
 | I13 it_next again after NULL | stage 1 | client 8 |
@@ -248,11 +252,16 @@ Where existing clients are proved today:
    - After a complete iteration, call `it_next` once more.
    - The client shows only that this call is memory safe. It makes no
      claim about what the call returns (memory safety only).
+   - It frees every node during the complete iteration (leak freedom,
+     2026-11-17).
 9. **A comparator with its own state (C3).**
    - `it_init_on_equal` with a comparator that compares payloads and increments a counter it owns (a static variable, or a struct the client passes).
    - The client's predicate for the comparator's state is "the counter equals k".
    - The client reads the count after the iteration.
    - This exercises the comparator funspec decided under Q6.
+   - It then frees every node by an iteration without a comparator, and
+     frees the counter's struct if it allocated one (leak freedom,
+     2026-11-17).
 
 **Stage 2** (needs `delete`, `delete_if_member`, `add_before`, `add_after`, `concat`, `sort`; every stage-2 function is called by at least one of clients 10–14):
 
@@ -284,6 +293,35 @@ Where existing clients are proved today:
       case leaves `k2` with the client).
     - Finally it frees the rest of the list by iteration.
 
+## Leak freedom (owner, 2026-11-17)
+
+Every postcondition accounts for all memory the function owns at the
+end, and `main` ends owning no heap memory (plan §2.1).  Re-check of
+the survey:
+
+- **Clients.**  Every stage-1 and stage-2 client (1–14) frees every node
+  it allocates; clients 8 and 9 now say so.  The covered clients free
+  every node: B1, B1a and B1c's drivers end with an iteration that frees
+  every node (their VST driver postconditions own nothing on the heap;
+  VST's `main` postcondition `SEP(TT)` must become leak-free, see
+  `../sglib_vst/REVIEW.md` section 4).  `st_iter_equal` (I7, C1) frees
+  nothing itself; its caller frees the list.
+- **Patterns.**  The patterns are not changed: a pattern that frees
+  nothing (G1, I1, I3, I7, A4) is used by a client that frees the list
+  afterwards.  I2 (iterate and free) is the pattern that needs the
+  iterator's coverage (Q4 as amended).  Out of scope, unchanged: I12,
+  C4, X1, X2.
+- **Open-source users that leak.**
+  - H1 (embench `sglib-combined`): adds 100 nodes and never frees
+    them (a benchmark that exits; a leak by the definition above).
+  - S1 and S2 (sglib's sample and self-test) free their lists
+    (`../sglib/dllist.c` line 49; `../sglib/selftest.c`
+    `double_linked_list_test`, frees at lines 678–710); not re-checked
+    path by path.
+  - U1–U7 were not re-read for leaks: their sources are outside this
+    repository.  U3's double free (above) is a memory-safety bug, not a
+    leak.
+
 ## The owner's decisions (2026-11-11)
 
 The owner decided all eight open questions of the draft on 2026-11-11.
@@ -303,6 +341,7 @@ The owner decided all eight open questions of the draft on 2026-11-11.
 - **Q4 — Iterator order and coverage: out of scope for the proofs.**
   - The project's goal is memory safety, not functional correctness.
   - Step 0 checks order and coverage at run time with sglib's lockstep check: I10 is checked at run time, not proved.
+  - **Amended 2026-11-17 (owner: the goal is now memory safety plus leak freedom).** Coverage comes back: "without a comparator, an iteration returns every node of the list exactly once" is proved, because clients that free every node by iterating (I2) need it to show that they leak nothing. Order is still not promised; I10's order part stays a run-time check.
 - **Q5 — List heads and iterators in heap memory: allowed.**
   - The VST specs drop every "not in a heap block" condition.
   - Ownership separates the head cell from the nodes.

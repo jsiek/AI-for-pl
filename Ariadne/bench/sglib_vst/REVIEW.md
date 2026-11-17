@@ -1,136 +1,207 @@
 # Review notes: funspecs against the English, and open questions
 
-For the owner's review of the stage-1 draft (`SPEC.md`,
-`spec_dllist.v`).  Section 1 lists every place where the Coq says more
-or less than the English.  Section 2 is the unanchored-postcondition
-review (plan Q11, rule 2) done by hand on each funspec.  Section 3
-lists the decisions still open, as questions; the draft takes the
-option marked *(draft)* only so that it compiles.
+These notes are for the owner's review of the stage-1 draft (`SPEC.md`,
+`spec_dllist.v`).  The draft follows the owner's two decisions of
+2026-11-17:
+- the goal is memory safety plus leak freedom;
+- public specs are minimal relative to the client survey, with the
+  simplicity exception.
+
+The sections:
+1. where the Coq says more or less than the English;
+2. the unanchored-postcondition review (Q11, rule 2);
+3. every use of the simplicity exception, with both options;
+4. the VST affinity check and how to enforce leak freedom;
+5. the questions: which ones the rules now settle, and which are open.
 
 ## 1. Where the Coq and the English differ
 
-1. **Payloads.**  The Coq tracks payloads (`ps`): `add` ends with
-   `whole_list (ins j e s) (ins j ev ps)`, and every other function
-   returns the nodes with the same payloads.  The English says "the
-   same contents" and "keeps its payload", so they agree; but this is
-   functional information beyond memory safety (a client may use it,
-   for example to know that a payload it wrote is still there).
-2. **Full ownership at `Ews`.**  A node is `data_at Ews` +
-   `malloc_token Ews`.  The English says "owns"; the Coq fixes the
-   share to `Ews`, so a client with only part of a node (a read share)
-   cannot call any function.  (Question R5.)
-3. **`malloc_token`.**  Every node of a list, and `add`'s `elem`, must
-   come from `malloc` (English: "a node is a block returned by
-   `malloc`").  A list of static or stack nodes is not supported.
-   (Question R3.)
-4. **"Distinct nodes"** in the English is not a separate clause in the
-   Coq: it follows from the separate `cell`s.
-5. **The iterator's `currentelem`.**  The Coq's `it_rep` fixes
-   `currentelem == r` after every call; the English says so too.
-   `it_next`'s precondition leaves it arbitrary (`cur`).
-6. **The comparator writes no node.**  `cmp_spec` quantifies over any
-   readable shares `sha`, `shb`; a comparator proved against it must
-   work for read-only shares, so it cannot write a node, not even
-   temporarily.  The English says "read access", which is the same.
-   The comparator may not free or keep a node either (the postcondition
-   gives both back).
-7. **The comparator state is fixed per program.**  The Coq takes
-   `CS : Type` and `Rc : CS -> mpred` as Section parameters, so every
-   funspec is `... Rc`: one state predicate per program, chosen by the
-   client, with the value `st` varying.  The English says "each program
-   chooses one comparator state".  (Question R2.)
-8. **`equalto` is lent at any readable share**, its fields may be
-   uninitialised, and it must not be a node of the list being iterated:
-   the list's nodes are owned at `Ews` by `cells`, and the client cannot
-   also lend a share of one of them.  The English says "owned by the
-   caller on its own: not a node of the list".  (Question R6.)
-9. **No condition on `equalto` when `subcomparator` is NULL** (`cmp_env
-   nullval ... = emp`), as in the English and in B1c.
-10. **Iteration step and the empty window.**  `iter_step` does not say
-    that NULL means no node is left to visit (Q4: no coverage).  The
-    English says the same.  sglib does in fact return NULL only when
-    `b' = -1` and `f' = Zlength s`.  (Question R1.)
-11. **A node is returned at most once.**  `iter_step` puts the returned
-    node inside the new window, so a later step cannot return it.  This
-    is more than "memory safety only", but a client that frees returned
-    nodes needs it.  The English says it ("a node is returned at most
-    once").
-12. **Termination.**  VST proves partial correctness; the English says
-    termination is not required.  A function that loops forever (for
-    example `get_first` on a cyclic list) is excluded by the
-    precondition, not by the proof.
-13. **Where variables live.**  The Coq has no `!heap` condition; the
-    English says so (Q5).
-14. **What "writable iterator" means.**  `it_init` requires
-    `data_at_ sh t_it it` with `writable_share sh`, and leaves all five
-    fields initialised (`it_rep`); `it_next` requires them initialised.
+1. **Contents.**  The Coq describes a list by its addresses `s` and its
+   contents `vs` (payload and both links per node).
+   - Ownership is `nodes sh s vs lo hi`; the links are pure facts
+     (`prev_links`, `next_links`, `whole`).
+   - "The same contents" in the English is "the same `vs`" in the Coq.
+   - The client keeps the link facts it knows, because they are pure.
+2. **"Distinct nodes"** is not a clause in the Coq: it follows from
+   separation.
+3. **NULL `list`.**  `at_node s j` with `s = []`, `j = 0`.  A caller
+   passing NULL picks the empty sequence and keeps its lists in the
+   frame.  `get_first`'s range is `0 .. min(j+1, k)` so that the empty
+   case owns nothing.
+4. **No `malloc_token`** anywhere: no function frees.  Static or stack
+   nodes may be put in a list; the client keeps the tokens of its heap
+   nodes in order to free them.
+5. **`currentelem`** is existential in `it_rep`: it is neither read nor
+   promised.  The English says "not described".
+6. **The comparator writes no node, not even temporarily.**  `cmp_spec`
+   quantifies over every readable share, so a comparator proved against
+   it must also work at a read-only share.
+7. **The comparator state is fixed per program** (`CS`, `Rc` are Section
+   parameters).  The English says "each program chooses one".  (R2)
+8. **`step_exact` allows either end of the window.**  sglib always takes
+   the backward end first; the Coq does not promise that (no order).
+   The English says "from either end".
+9. **`step_any`'s "NULL means none left"** is stated for both cases,
+   with and without a comparator (R1 as the owner decided).  Only the
+   case without a comparator is needed by a surveyed client.
+10. **The comparator's payload condition is new.**  The first draft gave
+    comparators nodes with arbitrary payloads.  The survey's comparators
+    (C1 `myListCmp`, C3) compute on payloads, so they could not have been
+    proved against it.  `cmp_spec` now requires int payloads, and
+    `it_next` / `it_init_on_equal` ask for them when a comparator is
+    passed (`cmp_payloads`, `cmp_env`).
+11. **Termination** is not proved (VST proves partial correctness).  A
+    cyclic chain is excluded by the link facts, not by the proof.
 
 ## 2. Unanchored-postcondition review (Q11, rule 2), by hand
 
-`harness/spec_lint.py` reads ACSL, so the check was done by reading each
-VST postcondition for an existential, or a returned value, tied to no
-parameter or `WITH` value.
+`harness/spec_lint.py` reads ACSL, so each VST postcondition was read
+by hand for an existential, or a result, that is tied to no input.
 
 | Funspec | Existentials / results | Anchored to |
 |---|---|---|
-| `add_spec` | none | `lp`, `e`, `ev`, `s`, `ps`, `j` (the result list is `ins j e s`) |
-| `get_first_spec` | result | `Znth_or_null s 0` |
-| `get_last_spec` | result | `Znth_or_null s (Zlength s - 1)` |
-| `it_init_on_equal_spec` | `b`, `f`, `r`, `st'` | `b`, `f`, `r` by `init_step s j`; `whole_list s ps` returned. **`st'` is tied to nothing** (see below) |
-| `it_init_spec` | `b`, `f`, `r` | `init_step s j`; `whole_list s ps` |
-| `it_next_spec` | `b'`, `f'`, `r`, `st'` | `b'`, `f'`, `r` by `iter_step s b f`; both segments of `s`, `ps` returned. **`st'` is tied to nothing** |
-| `cmp_spec` | `r`, `st'` | the nodes come back with `va`, `vb`. **`r` and `st'` are tied to nothing** |
+| `add_spec_perm` (M) | `s'`, `vs'`, `l'` | `Permutation` with `e :: s` and the old payloads; `l'` in `s'` |
+| `add_spec` (E) | `vs'` | `whole (ins j e s) vs'`; payloads `ins j ev` of the old ones |
+| `get_first_spec`, `get_last_spec` | `r` | `r` NULL or in `s`; the nodes are returned with the same `vs` |
+| `it_init_on_equal_spec`, `it_init_spec` | `b`, `f`, `r`, `st'` | `init_window scp s`; **`st'` is tied to nothing** |
+| `it_next_spec` | `b'`, `f'`, `r`, `st'` | `iter_step scp s b f`; **`st'` is tied to nothing** |
+| `cmp_spec` | `r`, `st'` | the nodes come back unchanged; **`r` and `st'` are tied to nothing** |
 
-The three unanchored items are the comparator's state and result.  They
-are unanchored by design under Q6 (the spec makes no promise about what
-a comparator computes or how its state changes), and only the client's
-own `Rc` constrains `st'`.  (Question R2 asks whether that is what the
-owner wants.)
+The comparator's result and state are unanchored by design (Q6): the
+spec makes no promise about what a comparator computes.  Only the
+client's `Rc` constrains `st'`.
 
-## 3. Open questions for the owner
+## 3. Uses of the simplicity exception
 
-* **R1. Does NULL from the iterator mean that no node is left to
-  visit?**  The draft says no (Q4 read strictly: no coverage).
-  Consequence: a client that iterates and frees each node (I2) cannot
-  prove that it freed all of them, so its postcondition must allow
-  leftover nodes; B1, B1a and B1c's drivers, whose postconditions own
-  nothing, would not re-verify as stated.  The alternative adds
-  `r = NULL -> b' = -1 /\ f' = Zlength s` to `iter_step` (true of
-  sglib; it says nothing about order or which nodes the comparator
-  skips).
-* **R2. The comparator state: one predicate per program, or per
-  iteration?**  The draft makes `Rc : CS -> mpred` a parameter of the
-  whole spec, so a program with two kinds of comparator state combines
-  them in one `CS`.  The alternative puts the predicate in each
-  iteration's `WITH`.  VST 2.17's `WITH` (`NDmk_funspec`) refuses an
-  `mpred` there (coqc: universe inconsistency, checked with a probe
-  file), so that needs dependent funspecs (`mk_funspec` with an `Mpred`
-  type tree) and hand-written non-expansiveness proofs.
-  Also: should the comparator's postcondition say anything about the
-  new state (for example "the state changes only through the client's
-  own update relation")?
-* **R3. Must every node come from `malloc`?**  The draft requires a
-  `malloc_token` for each node and for `add`'s `elem`.  None of the
-  survey's clients puts a static or stack node in a list; dropping the
-  token would allow it but then no stage-2 client could free a node
-  returned by `delete` without proving where it came from.
-* **R4. Stage 2 compatibility of the iterator.**  Q2 (stage 2) says the
-  iterator state constrains only the links it will follow.  The draft's
-  `it_next` borrows whole segments with both links.  Should stage 1
-  already use the weaker state (only `ptr_to_previous` on `s[0..b+1)`
-  and only `ptr_to_next` on `s[f..k)`), so that stage-1 clients need not
-  be re-proved at stage 2?  If stage 2 changes what `it_next` borrows
-  and gives back, the stage-1 client proofs that use it must be redone;
-  using the weaker state now avoids that, at the price of a more complex
-  stage-1 spec (clients must convert between whole segments and
-  one-link segments).
-* **R5. Shares.**  Should the functions that only read (`get_first`,
-  `get_last`, the iterator) accept a list owned at any readable share,
-  rather than `Ews`?  No survey pattern needs it (sequential use, Q7).
-* **R6. May `equalto` be a node of the iterated list?**  The draft says
-  no (it is lent separately).  The survey's I7 clients pass a stack
-  key, so they fit.  Allowing it needs the list predicate to be split by
-  shares.
-* **R7. Parameterisation (Q12).**  The draft is the `dllist` instance
-  (see `README.md` for what parameterising would take).  Is that
-  acceptable for the review, with the generic version later?
+For each, *minimal* is what the rule asks for and *chosen* is the
+draft's form.
+
+1. **`add`'s postcondition (owner's choice, R9).**  Both options are in
+   `spec_dllist.v`, and both type-check.
+   - *Minimal (Option M, `add_spec_perm`; `Gprog` uses it):* a whole
+     list made of exactly the old nodes plus `elem` in some order
+     (`Permutation` over node–payload pairs), with `*list` some node of
+     it.
+   - *Exception (Option E, `add_spec`):* `s` with `elem` inserted at
+     position `j`, and `*list == elem`.
+   - Why E is simpler:
+     - it has no `Permutation`, no `combine` and no new existential
+       sequence;
+     - the body proof builds this list anyway;
+     - a client of M must recover positions through `Permutation_in`
+       and the `combine` lemmas.
+   - Both account for every node, so both are leak-free.
+2. **`add`'s precondition: the whole list.**
+   - *Minimal:* the old `*list`, its predecessor and `elem`, with only
+     `*list`'s prev link.
+   - *Chosen:* the whole list.  It is simpler: every client holds a
+     whole list at the call, and the re-linking lemma is proved once,
+     inside `add`, rather than in every client.
+   - This strengthens a precondition, which the exception's wording
+     ("a stronger postcondition or a weaker precondition") does not
+     cover.  (R8)
+3. **The comparator's precondition: the whole node.**
+   - *Minimal:* the payload field only.
+   - *Chosen:* the whole node at a readable share.  It is simpler:
+     `it_next` holds whole nodes, so no field splitting is needed.
+   - For a callback the comparator's precondition is the library's
+     promise, so a bigger one is the "stronger postcondition" case.
+4. **"NULL means none left" with a comparator.**
+   - *Minimal:* only without a comparator.
+   - *Chosen:* both cases, as the owner decided R1.  It is simpler: one
+     clause.
+5. **Payloads kept.**
+   - "Each node keeps its payload" is a value fact, but it is the frame
+     of fields that the functions do not write.
+   - *Minimal alternative:* the list predicate owns only the two link
+     fields, and the client keeps the payload fields itself.  Every
+     client would then split nodes into fields.
+   - *Chosen:* whole nodes, with "the same contents".
+
+`get_first` / `get_last` use the minimal result ("NULL or a node of
+`s`"), not "the head" or "the last node": the exact form is no simpler.
+
+## 4. Is VST 2.17 affine?  Enforcing leak freedom
+
+**Result: no.  A proof cannot drop owned memory, except through `TT` in
+a postcondition.**  The evidence is `affine_probe/verif_probe.v`, run by
+`check.sh` step 5 with Rocq 9.0.1 `coqc` and VST 2.17.
+
+- **The probe.**  It has two empty C functions:
+  - `drop_int` takes `data_at Ews tint _ p` and its postcondition owns
+    nothing;
+  - `drop_node` takes `data_at_ Ews t_node p * malloc_token Ews t_node
+    p` and its postcondition owns nothing.
+- **What Floyd leaves.**  After `start_function. forward.` the remaining
+  goals are `data_at Ews tint _ p |-- emp` and
+  `data_at_ Ews t_node p * malloc_token Ews t_node p |-- emp`.
+  `entailer!` and `cancel` do not close them; the probe records this
+  with `Fail`.
+- **Why they are false.**  VST's `emp` (msl/predicates_sl.v line 111)
+  holds only of a world that extends an identity element, and a
+  `data_at` at share `Ews` is not one.
+- **The `TT` variants.**  With `SEP(TT)` as the postcondition, the same
+  two bodies are proved by `start_function. forward.`, through
+  `sepcon_TT : P |-- P * TT` (msl/log_normalize.v line 796).
+
+So leak freedom per function is not free.  It holds exactly when no
+postcondition contains `TT` or another absorbing predicate (for example
+`EX R: mpred, R`, if the universe check allowed it).  VST's usual `main`
+postcondition is `SEP(TT)`, and so is B1c's.  The b1 drivers'
+postconditions in vst-b1c own nothing on the heap (`mem_mgr` and the
+input array), so b1 itself is already leak-free.
+
+Options for the owner (R10):
+- **(a) A postcondition lint.**  No `TT`, and no existential over
+  `mpred`, in any funspec postcondition, public or client.  `main`'s
+  postcondition is fixed to `mem_mgr gv` plus the global variables
+  `main_pre` gave it.  This is cheap and syntactic, and it lives in the
+  guardrails next to the `Admitted` lint; but it relies on the lint
+  recognising every absorbing form.
+- **(b) An allocation counter.**  Library specs for `malloc` and `free`
+  over `mem_mgr_n gv n` count live blocks (`malloc`: `n` to `n+1`;
+  `free`: `n` to `n-1`), and `main`'s postcondition requires
+  `mem_mgr_n gv 0`.  A leak is then caught even if `TT` hides the
+  memory, because the counter is exact.  The cost: two trusted library
+  specs to review, and every client threads `n`.
+- **(c) Both:** (b) as the check, (a) as an early warning.
+
+## 5. Questions
+
+**Settled by the rules (no owner action needed unless you disagree):**
+- **R1. Does NULL mean that no node is left?**  Yes: the owner decided
+  this on 2026-11-17 (leak freedom).  It is in `step_any` and
+  `init_window`.  Coverage without a comparator is in `step_exact`
+  (Q4 amended in the survey).
+- **R3. Must every node come from `malloc`?**  No.  No function needs a
+  `malloc_token`, so the spec has none.  The client keeps its tokens.
+- **R4. Q2's weaker iterator state at stage 1?**  Yes.  `it_next`
+  borrows only the links it follows (prev links on `n0..nb`, next links
+  on `nf..`), as minimality requires, and this is already compatible
+  with stage 2's delete-the-current-node (I11).
+- **R5. Readable shares for the read-only functions?**  Yes.
+  `get_first`, `get_last` and the iterator take any readable share;
+  `add` takes a writable one.
+- **R6. May `equalto` be a node of the list?**  Yes.  With readable
+  shares, the client splits that node's share and lends one part as
+  `equalto`.
+
+**Still open (the owner decides):**
+- **R2. The comparator state: one per program, or chosen per
+  iteration?**
+  - The draft makes `Rc : CS -> mpred` a parameter of the whole spec.
+  - Per iteration needs dependent funspecs: VST 2.17's `WITH`
+    (`NDmk_funspec`) refuses an `mpred` (coqc: universe inconsistency,
+    probed during this draft).
+  - Should the comparator's postcondition say anything about the new
+    state?
+- **R7. Parameterisation (Q12).**  The draft is the `dllist` instance.
+  Is that acceptable now, with the generic version later?  `README.md`
+  says what the generic version would take.
+- **R8. `add`'s whole-list precondition.**  It is a stronger
+  precondition, which the exception's wording does not name (section 3,
+  item 2).  Keep it, or use the local three-node spec?
+- **R9. `add`'s postcondition.**  Option M, the minimal form (same nodes
+  plus `elem`, in some order), or Option E, the exact position
+  (section 3, item 1)?
+- **R10. How to enforce leak freedom:** (a), (b) or (c) of section 4.

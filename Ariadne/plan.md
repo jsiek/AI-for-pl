@@ -25,9 +25,10 @@ that is explicitly stated and does not include the agent?
 
 ### 1.2 Primary goals (must have)
 
-*   **G1 — Memory safety of selected sglib operations.**  For each target
-    function, prove absence of the runtime errors in scope (§2.1) under an
-    explicit, human-reviewed precondition.
+*   **G1 — Memory safety and leak freedom of selected sglib operations.**
+    For each target function, prove absence of the runtime errors in
+    scope (§2.1) under an explicit, human-reviewed precondition, and
+    (owner, 2026-11-17) leak freedom as defined in §2.1.
 *   **G2 — Agent outside the trust base.**  Nothing the agent says or does
     is trusted; only artifacts checked by the tools listed in §2.2 count.
 *   **G3 — Annotation-only edits.**  The agent may add ACSL annotations,
@@ -53,7 +54,8 @@ that is explicitly stated and does not include the agent?
 
 *   Total correctness / termination of every loop (track it, but not
     required for G1).
-*   Memory-leak freedom.
+*   Bounding memory that is still held (leak freedom itself is in scope
+    since 2026-11-17, §2.1).
 *   Verifying Frama-C, Why3, or the Coq export themselves.
 *   Concurrency.
 *   "Cryptographic" certification: nothing in this pipeline is
@@ -87,6 +89,14 @@ The RTE plugin generates the safety obligations.  In scope:
 *   use-after-free, invalid `free`, and double `free` (required): through
     `\valid`/`\freeable` after `free` if WP supports it, otherwise
     through the fallbacks in §10.
+*   **leak freedom (owner, 2026-11-17):** every postcondition accounts
+    for all memory the function owns at the end, and `main` ends owning
+    no heap memory.  Unbounded growth of memory that is still held is
+    out of scope; functional correctness stays out.  In VST 2.17 a proof
+    can drop owned memory only through `TT` (or another absorbing
+    predicate) in a postcondition (`bench/sglib_vst/affine_probe/`), so
+    leak freedom is enforced on the postconditions (options in
+    `bench/sglib_vst/REVIEW.md`, section 4).
 
 ### 2.2 Honest trust base
 
@@ -495,9 +505,44 @@ invariant is only needed for functional correctness and is stretch work.
         `add_before`, `add_after`, `delete_if_member`, after Codex's
         review; follows from Q1).  **Approved by the owner on 2026-11-11** (with I13
         claiming only that `it_next` after the end is memory safe), and
-        frozen with the M6 spec.  **Next step:** write the stage-1 VST
-        funspecs, with the English `SPEC.md` that goes with them, for the
-        owner to review.
+        frozen with the M6 spec.  **2026-11-17:** Q4 amended for leak
+        freedom (coverage is proved, order is not), and every client
+        frees every node.
+    *   **Stage-1 VST spec drafted** (`bench/sglib_vst/`: `SPEC.md`,
+        `spec_dllist.v`, `REVIEW.md`, `FIT_CHECK.md`; PR #240), under the
+        rules below, for the owner's review.  The funspecs type-check
+        against clightgen's output (`check.sh`); no body is proved yet.
+
+**M6 public-spec rules (owner, 2026-11-17).**
+
+1.  *Goal:* memory safety plus leak freedom (§2.1).
+2.  *Minimality, relative to the approved client survey.*  A
+    precondition holds only what the function body needs to run safely.
+    A postcondition holds only what the surveyed clients need to
+    continue safely and leak-free: which nodes the client owns and
+    their shape (whole list, segments, a node it may free), nothing
+    about order, positions or values.
+3.  *Simplicity exception (owner):* a stronger postcondition or a weaker
+    precondition is allowed when it is simpler than the minimal one
+    (example: keeping `s1 ++ elem :: s2` for `add` if "the same nodes
+    in some order" needs a permutation that makes specs or proofs
+    harder).  Each use records the minimal alternative and why the
+    chosen form is simpler.
+4.  *Clause justification:* `SPEC.md` gives every clause a citation: a
+    precondition clause cites the body lines that need it; a
+    postcondition clause cites the survey patterns whose clients need
+    it (leak freedom of a surveyed client counts), or says "simplicity
+    exception" and names the minimal alternative.  A clause with no
+    citation is removed.
+5.  *Mechanical necessity check (planned; runs once the body and client
+    proofs exist):* for each clause, a script weakens it (a
+    postcondition clause) or drops it (a precondition clause) in a copy
+    of the spec and replays every body and client proof with the same
+    scripts, with no LLM.  If the proofs still replay, the clause is
+    unnecessary: conclusive, and it is removed (or kept as a recorded
+    simplicity exception).  If they fail, that is only a hint, because
+    a different proof might not need the clause; the citation stands.
+    Output: one line per clause (replayed / failed, and where).
 
 **M6 harness pieces to port.**
 
@@ -1024,6 +1069,20 @@ invariant is only needed for functional correctness and is stretch work.
             it.
         4.  *Read the whole public spec in English at first freeze,* not
             only the diffs, with the approved English comments above.
+        5.  *Minimal public specs (owner, 2026-11-17),* relative to the
+            approved client survey, for memory safety plus leak freedom:
+            preconditions only what the body needs, postconditions only
+            what surveyed clients need (ownership and shape; not order,
+            positions or values); a stronger postcondition or weaker
+            precondition only as a recorded *simplicity exception*
+            (the minimal alternative and why the chosen form is
+            simpler); every clause cited in the English spec, uncited
+            clauses removed.  Details: M6 public-spec rules (§8).
+        6.  *Mechanical necessity check (owner, 2026-11-17; runs once
+            proofs exist):* weaken or drop each clause and replay the
+            proofs, with no LLM; a replay that succeeds proves the
+            clause unnecessary, a failure is only a hint (§8, M6
+            public-spec rule 5).
         History: `eaa42ed2` (2026-11-03) fixed this class in `get_first`
         / `get_last` (their results belonged to *some* live list); the
         iterator kept it until B1c found it on 2026-11-07.

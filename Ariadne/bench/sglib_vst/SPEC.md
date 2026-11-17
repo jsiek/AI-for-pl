@@ -1,6 +1,12 @@
 # sglib DL list, stage 1: what each function requires and ensures
 
-**R1–R10 decided by the owner on 2026-11-17; full-spec review pending.**  (Plan M6.)
+**Approved by the owner on 2026-11-17 (function-by-function walkthrough); frozen with the client survey.**  (Plan M6.)
+
+Frozen digest: `ee6043a2f971a9f6` (this line excluded; see below)
+
+The digest is computed by `frozen_digest.py` (a SHA-256 prefix over
+this file without the digest line, and `spec_dllist.v`); `check.sh`
+fails if it changes.
 
 > **Goal (owner, 2026-11-17): memory safety plus leak freedom.**  Every
 > postcondition accounts for all memory the function owns at the end,
@@ -176,6 +182,9 @@ A comparator is a function `int cmp(dllist *a, dllist *b)` passed to
   entry cmp-state-globals).  The comparator contract, `it_init_on_equal`
   and `it_next` therefore take the globals (`GLOBALS (gv)`), so that the
   comparator's body can address its state.
+- `it_next` calls the comparator as `scp(eq, ce)` in its backward
+  walk (`dllist.c:90`) and as `scp(ce, eq)` in its forward walk
+  (`:104`), so either argument may be the `equalto` node.
 - For this callback the roles swap: `it_next` must establish the
   comparator's precondition, and relies on its postcondition.
 

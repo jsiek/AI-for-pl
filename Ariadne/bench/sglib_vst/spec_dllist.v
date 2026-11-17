@@ -1,9 +1,11 @@
 (* sglib's doubly linked list, stage 1 of plan M6: the public VST spec
-   (DRAFT for the owner's review).  SPEC.md says the same in English,
-   with a citation for every clause (owner, 2026-11-17: the goal is
-   memory safety plus leak freedom, and public specs are minimal
-   relative to the client survey);
-   REVIEW.md lists where the two differ and what is still open.
+   (approved by the owner on 2026-11-17 after a function-by-function
+   walkthrough; frozen with the client survey: its digest, over this
+   file and SPEC.md, is stated in SPEC.md and checked by check.sh).
+   SPEC.md says the same in English, with a citation for every clause
+   (owner, 2026-11-17: the goal is memory safety plus leak freedom, and
+   public specs are minimal relative to the client survey); REVIEW.md
+   lists where the two differ and the owner's decisions.
 
    Instance: B1's dllist (dllist.c, from make_dllist.py).  The bodies
    are Admitted: this file only checks that the funspecs are well typed

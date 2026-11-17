@@ -82,4 +82,15 @@ lintcheck() {
 name="post_lint: unit tests pass; flags the probe's 2 TT postconditions"
 step lintcheck
 
+# 8. The frozen spec (owner's approval, 2026-11-17): SPEC.md and
+#    spec_dllist.v hash to the recorded digest, which SPEC.md states.
+#    A change to the frozen spec is a public change (owner's approval).
+frozen_digest=ee6043a2f971a9f6
+frozen() {
+  [ "$(python3 -I frozen_digest.py)" = "$frozen_digest" ] \
+    && [ "$(python3 -I frozen_digest.py --stated)" = "$frozen_digest" ]
+}
+name="frozen spec digest $frozen_digest (SPEC.md + spec_dllist.v)"
+step frozen
+
 exit $status

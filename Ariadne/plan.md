@@ -508,10 +508,15 @@ invariant is only needed for functional correctness and is stretch work.
         frozen with the M6 spec.  **2026-11-17:** Q4 amended for leak
         freedom (coverage is proved, order is not), and every client
         frees every node.
-    *   **Stage-1 VST spec drafted** (`bench/sglib_vst/`: `SPEC.md`,
-        `spec_dllist.v`, `REVIEW.md`, `FIT_CHECK.md`; PR #240), under the
-        rules below, for the owner's review.  The funspecs type-check
-        against clightgen's output (`check.sh`); no body is proved yet.
+    *   **Stage-1 VST spec approved and frozen** (`bench/sglib_vst/`:
+        `SPEC.md`, `spec_dllist.v`, `REVIEW.md`, `FIT_CHECK.md`; PR
+        #240), written under the rules below.  **Approved by the owner
+        on 2026-11-17** after a function-by-function walkthrough, and
+        frozen with the client survey: **frozen digest
+        `ee6043a2f971a9f6`** (`frozen_digest.py`, a SHA-256 prefix over
+        `SPEC.md` without its digest line and `spec_dllist.v`;
+        `check.sh` fails if it changes).  The funspecs type-check
+        against clightgen's output; no body is proved yet.
         Owner, 2026-11-17: R9, `add`'s postcondition is the exact form
         (`elem` inserted before the old `*list`, `*list == elem`); R8,
         `add` requires the whole list.
@@ -585,10 +590,47 @@ weaker iterator state (R4); readable shares for the read-only functions
 (R5); `equalto` may be a list node (R6); the `dllist` instance until a
 second instance appears (R7); `add` requires the whole list (R8) and
 ends in the exact form (R9); leak freedom by the postcondition lint
-(R10).  **Next step:** the owner's walkthrough of the full spec,
-function by function; then the stage-1 proofs: the 6 `semax_body`
-proofs, then the 9 stage-1 clients and the existing proved clients,
-ported.
+(R10).  The owner approved the full spec on 2026-11-17 after a
+function-by-function walkthrough (`add`, with R2's adjustment `Rc :
+globals -> val -> mpred` and `GLOBALS (gv)`; `get_first`/`get_last`;
+the comparator contract; `it_next`, `it_init_on_equal`, `it_init`).
+
+**Next step: the stage-1 proofs** against the frozen spec: the 6
+`semax_body` proofs (`add`, `get_first`, `get_last`, `it_init_on_equal`,
+`it_init`, `it_next`); then the 9 stage-1 clients of the survey (each a
+driver plus `main` with `semax_prog`, leak-free), and the existing
+proved clients ported to the frozen spec (B1's driver with
+`get_first`/`get_last`, B1a's and B1c's drivers, `st_iter_equal` with
+`myListCmp`).  Before relying on VST alone, port the harness pieces
+below (and M6 precondition 2, step 0 without ACSL).
+
+**What `q10/run_vst.py` needs to target the frozen spec** (checked
+2026-11-17; it was written for Q10's task, in which the agent wrote its
+own funspecs for B1a/B1c):
+1.  *A task "prove the given funspecs".*  Its `TASK` asks the agent to
+    write funspecs from `SPEC.md`; a new task gives `spec_dllist.v`
+    read-only and asks for the `semax_body` proofs (and, for a client,
+    the client's funspecs, the client proofs and `semax_prog`).
+2.  *Split the spec from the proofs.*  `spec_dllist.v` holds the six
+    `Admitted` type-check lemmas; the agent's proofs go in a separate
+    file that `Require`s the spec (the funspecs take `Rc` after
+    `End Spec`), so that the frozen file is never edited.
+3.  *New benchmarks.*  `--bench` accepts only `b1a`, `b1c`; it needs
+    `dllist` (the library) and one entry per client, with each client's
+    C file (the 9 stage-1 client drivers are not written yet: a
+    generator like `bench/b1c/make_b1c.py`, reusing `make_dllist.py`).
+4.  *Fence.*  Deny writes to the frozen files (and check the digest
+    after the run), and deny reads of earlier runs' proofs in
+    `runs/q10/` (the current rule denies only sibling run directories
+    and `vst/b1/`).
+5.  *`check_vst.py`.*  Check against pristine `dllist.c` and the frozen
+    `spec_dllist.v` (digest), not B1a: the lint (no `Admitted`, axioms),
+    `Print Assumptions` against the allow-list, `post_lint.py` on the
+    client files (leak freedom, `main` ending in `mem_mgr` plus its
+    globals), and the `semax_body` list; the C-level mutants stay a
+    step-0 filter (`q10/README.md`).
+6.  *Budget.*  The ledger reservation carries over; the per-run cap is
+    set per benchmark.
 
 **M6 harness pieces to port.**
 

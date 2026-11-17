@@ -1,8 +1,10 @@
-# sglib DL list: stage-1 VST public spec (plan M6, draft)
+# sglib DL list: stage-1 VST public spec (plan M6, frozen)
 
 The public spec of sglib's doubly linked list for plan M6, stage 1
 (`add`, `get_first`, `get_last`, `it_init`, `it_init_on_equal`,
-`it_next` and the comparator), drafted for the owner's review, under
+`it_next` and the comparator), approved by the owner on 2026-11-17
+(function-by-function walkthrough) and frozen with the client survey
+(digest `ee6043a2f971a9f6`, `frozen_digest.py`), written under
 the owner's rules of 2026-11-17: the goal is memory safety plus leak
 freedom, and public specs are minimal relative to the client survey
 (every clause cited in `SPEC.md`).
@@ -26,6 +28,7 @@ specs.  The name follows `sglib_spec`: the library, then the backend.
 | `make_dllist.py` | writes `dllist.c`: B1's `dllist` instance, the six functions verbatim from `../b1/b1_gen.c` |
 | `dllist.c` | generated; clightgen turns it into `dllist.v` (not committed) |
 | `check.sh` | the compile check (below) |
+| `frozen_digest.py` | the frozen digest over `SPEC.md` and `spec_dllist.v` |
 
 ## Compile check
 

@@ -12,8 +12,11 @@ The sections:
 2. the unanchored-postcondition review (Q11, rule 2);
 3. every use of the simplicity exception, with both options;
 4. the VST affinity check and how to enforce leak freedom;
-5. the owner's decisions R1–R10 (all decided on 2026-11-17; the
-   full-spec review, function by function, is pending).
+5. the owner's decisions R1–R10 (all decided on 2026-11-17).  The
+   owner approved the full spec on 2026-11-17 after a
+   function-by-function walkthrough (`add`, `get_first`/`get_last`, the
+   comparator contract, `it_next`, `it_init_on_equal`, `it_init`); it
+   is frozen with the client survey (digest in `SPEC.md`).
 
 ## 1. Where the Coq and the English differ
 
@@ -200,7 +203,7 @@ The options as presented:
 
 ## 5. The owner's decisions (2026-11-17)
 
-R1–R10 decided by the owner on 2026-11-17; full-spec review pending.
+R1–R10 decided by the owner on 2026-11-17; the full spec approved the same day after the function-by-function walkthrough.
 
 - **R1.** NULL from `it_next` (and from initialisation) means no node is
   left to visit (`step_any`, `init_window`); without a comparator an
@@ -211,7 +214,10 @@ R1–R10 decided by the owner on 2026-11-17; full-spec review pending.
   `cmp_spec f` takes and returns `Rc gv f`,
   with the value hidden inside and no constraint on the new state; the
   client lends `Rc gv scp` to each call with a comparator.  Register entry
-  cmp-state-globals.
+  cmp-state-globals.  **The adjustment** (`Rc : globals -> val -> mpred`,
+  and `GLOBALS (gv)` in `cmp_spec`, `it_init_on_equal` and `it_next`;
+  section 1, item 7) **was approved by the owner in the walkthrough of
+  2026-11-17.**
 - **R3.** No list function needs a `malloc_token`: nodes may live on the
   stack or in globals; the client keeps its tokens and frees with them.
 - **R4.** Stage 1 uses the weaker iterator state: only the links the

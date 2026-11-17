@@ -175,12 +175,24 @@ postconditions in vst-b1c own nothing on the heap (`mem_mgr` and the
 input array), so b1 itself is already leak-free.
 
 **Decided (owner, R10, 2026-11-17): option (a).**  `check.sh` step 6
-runs `lint/post_lint.py` on `spec_dllist.v`; step 7 runs the lint's
-unit tests (`lint/test_post_lint.py`: a postcondition with `TT`, `TT`
-in a helper and in a nested helper, `EX R: mpred`, and `main` without
-`mem_mgr` all fail; `TT` only in a precondition or in an unused helper
-passes) and checks that the lint flags exactly the probe's two `TT`
-postconditions.  No allocation counter, and VST's `malloc`/`free` specs
+runs `lint/post_lint.py` on the compiled module `SglibVST.spec_dllist`.
+Since Codex's review of PR #240 (two spellings that bypassed the first,
+regex-based lint: a parenthesised binder, and `POST` before a line
+break) the check runs in Coq on the elaborated terms: `Print Module`
+lists the funspecs; each is unfolded through the module's own
+definitions; the Ltac2 checker `lint/PostLint.v` walks every
+`NDmk_funspec` / `mk_funspec` postcondition and rejects `TT`, an
+existential whose binder type mentions `mpred` (or is open), `!! P`
+outside a conjunction, and unknown connectives (`wand`, `ewand`,
+`imp`); `_main` must hold `mem_mgr`.  It fails closed: a funspec
+`Parameter`, a funspec with no visible postcondition, or a spec the
+checker gives no result for fails.  Step 7 runs `lint/test_post_lint.py`
+on `lint/tests/cases.v`: 17 bad specs (both Codex spellings, a typed
+binder, `EX` notation, `exp` applied directly, an existential over
+`val -> mpred`, an existential and `TT` behind local definitions,
+`!! True`, two props, a wand, `main` without `mem_mgr` or with `TT`, an
+opaque and an abstract funspec) fail for their reasons, and 3 good
+specs pass.  No allocation counter, and VST's `malloc`/`free` specs
 are unchanged.  A private helper with `TT` in its postcondition cannot
 hide a leak: its caller would hold `TT`, which entails no `TT`-free
 assertion, so the caller could not end in a `TT`-free public

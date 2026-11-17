@@ -574,7 +574,9 @@ invariant is only needed for functional correctness and is stretch work.
     including inside the predicates it uses (definitions in the spec
     file unfolded): `bench/sglib_vst/lint/post_lint.py`, a `check.sh`
     step that fails on violations, with unit tests (a postcondition with
-    `TT` fails).  A client's `main` postcondition is the allocator's
+    `TT` fails).  Since Codex's review of PR #240 the check runs in Coq
+    on the elaborated terms (Ltac2, `lint/PostLint.v`), so no spelling
+    can bypass it, and it fails closed on anything it cannot examine.  A client's `main` postcondition is the allocator's
     state (`mem_mgr gv`) plus its globals.  No allocation counter, and
     VST's `malloc`/`free` specs are unchanged.  A private helper whose
     postcondition contains `TT` cannot hide a leak: its caller would

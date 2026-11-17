@@ -1,88 +1,74 @@
-"""Tests of post_lint.py.   python3 -I test_post_lint.py"""
+"""Tests of post_lint.py on lint/tests/cases.v (compiled first): every
+good_* spec passes, every bad_* spec fails, and nothing else is
+reported.  Runs Coq in the VST image (../../../vst/run.sh).
+
+    python3 -I test_post_lint.py
+"""
 import os
+import re
+import subprocess
 import sys
 import unittest
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import post_lint  # noqa: E402
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+RUN = os.path.join(ROOT, "..", "..", "vst", "run.sh")
+CASES = os.path.join(HERE, "tests", "cases.v")
 
-CLEAN = """
-Definition cell (p: val) : mpred := data_at Ews tint (Vint Int.zero) p.
-(* TT in a comment is ignored. *)
-Definition f_spec :=
- DECLARE _f
-  WITH p: val
-  PRE [ tptr tint ] PROP () PARAMS (p) SEP (cell p)
-  POST [ tvoid ] PROP () RETURN () SEP (cell p).
-"""
+EXPECTED_BAD = {
+    "bad_tt_spec": "TT",
+    "bad_codex_paren_binder_spec": "an existential over mpred",
+    "bad_codex_post_newline_spec": "TT",
+    "bad_typed_binder_spec": "an existential over mpred",
+    "bad_ex_notation_spec": "an existential over mpred",
+    "bad_exp_direct_spec": "an existential over mpred",
+    "bad_ex_function_spec": "an existential over mpred",
+    "bad_hidden_ex_spec": "an existential over mpred",
+    "bad_tt_via_definitions_spec": "TT",
+    "bad_prop_true_spec": "!! P outside a conjunction",
+    "bad_two_props_spec": "a conjunction of two props",
+    "bad_wand_spec": "the connective wand",
+    "bad_tt_pair_spec": "TT",
+    "bad_main_spec": "does not hold mem_mgr",
+    "bad_main_tt_spec": "TT",
+    "bad_opaque_spec": "no body to examine",
+    "bad_foreign_spec": "no postcondition found",
+}
+EXPECTED_GOOD = {"good_spec", "good_pair_spec", "good_main_spec"}
 
 
 class PostLint(unittest.TestCase):
-    def lint(self, text):
-        return post_lint.lint([text])
+    @classmethod
+    def setUpClass(cls):
+        subprocess.run([RUN, "coqc", "-native-compiler", "no", "-Q", ".",
+                        "SglibVST", os.path.relpath(CASES, ROOT)],
+                       cwd=ROOT, check=True, capture_output=True)
+        p = subprocess.run([sys.executable, "-I",
+                            os.path.join(HERE, "post_lint.py"),
+                            "SglibVST.lint.tests.cases"],
+                           capture_output=True, text=True)
+        cls.rc, cls.out = p.returncode, p.stdout
 
-    def test_clean_passes(self):
-        self.assertEqual(self.lint(CLEAN), [])
+    def results(self, kind):
+        found = {}
+        for line in self.out.split("\n"):
+            m = re.match(kind + r": ([\w']+)(.*)", line)
+            if m:
+                found.setdefault(m.group(1), []).append(m.group(2))
+        return found
 
-    def test_tt_in_post_fails(self):
-        r = self.lint(CLEAN.replace("SEP (cell p).", "SEP (cell p; TT)."))
-        self.assertEqual(len(r), 1)
-        self.assertIn("TT", r[0])
+    def test_exit_code(self):
+        self.assertEqual(self.rc, 1)
 
-    def test_tt_in_used_helper_fails(self):
-        text = CLEAN.replace(
-            "Definition cell (p: val) : mpred := data_at",
-            "Definition cell (p: val) : mpred := TT * data_at")
-        r = self.lint(text)
-        self.assertEqual(len(r), 1)
-        self.assertIn("f_spec -> cell", r[0])
+    def test_bad_specs_fail_for_the_right_reason(self):
+        fails = self.results("FAIL")
+        self.assertEqual(set(fails), set(EXPECTED_BAD), self.out)
+        for name, why in EXPECTED_BAD.items():
+            self.assertTrue(any(why in r for r in fails[name]),
+                            (name, fails[name]))
 
-    def test_tt_in_nested_helper_fails(self):
-        text = ("Definition junk : mpred := TT.\n"
-                "Definition wrap (p: val) : mpred := cell p * junk.\n"
-                + CLEAN.replace("SEP (cell p).", "SEP (wrap p)."))
-        r = self.lint(text)
-        self.assertEqual(len(r), 1)
-        self.assertIn("f_spec -> wrap -> junk", r[0])
-
-    def test_ex_mpred_fails(self):
-        r = self.lint(CLEAN.replace(
-            "POST [ tvoid ] PROP ()",
-            "POST [ tvoid ] EX R: mpred, PROP ()").replace(
-            "SEP (cell p).", "SEP (cell p; R)."))
-        self.assertEqual(len(r), 1)
-        self.assertIn("existential over mpred", r[0])
-
-    def test_tt_only_in_pre_passes(self):
-        self.assertEqual(self.lint(CLEAN.replace(
-            "SEP (cell p)\n", "SEP (cell p; TT)\n")), [])
-
-    def test_unused_private_helper_passes(self):
-        self.assertEqual(self.lint(
-            "Definition junk : mpred := TT.\n" + CLEAN), [])
-
-    def test_val_eq_does_not_split(self):
-        text = ("Definition c (p: val) : mpred :=\n"
-                "  if Val.eq p nullval then emp else TT.\n"
-                + CLEAN.replace("SEP (cell p).", "SEP (c p)."))
-        self.assertEqual(len(self.lint(text)), 1)
-
-    def test_main_needs_mem_mgr(self):
-        main = """
-Definition main_spec :=
- DECLARE _main
-  WITH gv: globals
-  PRE [ ] main_pre prog tt gv
-  POST [ tint ] EX r: Z, PROP () RETURN (Vint (Int.repr r)) SEP ().
-"""
-        r = self.lint(main)
-        self.assertEqual(len(r), 1)
-        self.assertIn("mem_mgr", r[0])
-        self.assertEqual(self.lint(main.replace("SEP ()",
-                                                "SEP (mem_mgr gv)")), [])
-        r = self.lint(main.replace("SEP ()", "SEP (mem_mgr gv; TT)"))
-        self.assertEqual(len(r), 1)
-        self.assertIn("TT", r[0])
+    def test_good_specs_pass(self):
+        self.assertEqual(set(self.results("OK")), EXPECTED_GOOD, self.out)
 
 
 if __name__ == "__main__":

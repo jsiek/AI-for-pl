@@ -24,7 +24,7 @@ specs.  The name follows `sglib_spec`: the library, then the backend.
 | `REVIEW.md` | Coq vs English, the unanchored-postcondition review, the simplicity exceptions with both options, the VST affinity result and leak-freedom enforcement options, and the questions (settled and open) |
 | `FIT_CHECK.md` | the 14 covered and 9 stage-1 survey patterns, each with the clauses a client relies on |
 | `affine_probe/` | `probe.c`, `verif_probe.v`: VST 2.17 drops owned memory only through `TT` in a postcondition |
-| `lint/` | `post_lint.py`, the leak-freedom check (owner, R10): no `TT` and no existential over `mpred` in any postcondition, helpers unfolded; `test_post_lint.py`, its tests |
+| `lint/` | the leak-freedom check (owner, R10): `post_lint.py` drives `PostLint.v` (Ltac2), which checks every funspec postcondition of the given compiled modules on Coq's elaborated, unfolded terms (no `TT`, no existential over `mpred`, no bare `!! P`, no unknown connective; `main` holds `mem_mgr`; fails closed); `test_post_lint.py` and `tests/cases.v`, its tests |
 | `make_dllist.py` | writes `dllist.c`: B1's `dllist` instance, the six functions verbatim from `../b1/b1_gen.c` |
 | `dllist.c` | generated; clightgen turns it into `dllist.v` (not committed) |
 | `check.sh` | the compile check (below) |

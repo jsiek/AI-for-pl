@@ -1,6 +1,6 @@
 # sglib DL list, stage 1: what each function requires and ensures
 
-**DRAFT for the owner's review (plan M6).**
+**R1–R10 decided by the owner on 2026-11-17; full-spec review pending.**  (Plan M6.)
 
 > **Goal (owner, 2026-11-17): memory safety plus leak freedom.**  Every
 > postcondition accounts for all memory the function owns at the end,
@@ -24,6 +24,15 @@
 >   needs it" is entered in the survey's revisit register
 >   (`../sglib_spec/CLIENT_SURVEY.md`).
 > - A clause with no citation is removed.
+>
+> **Leak-freedom check (owner, R10, 2026-11-17).**  No public
+> postcondition contains `TT` or an existential over `mpred`, including
+> inside the predicates it uses (definitions unfolded);
+> `lint/post_lint.py` checks this in `check.sh`.  A client's `main`
+> ends with the allocator's state (`mem_mgr gv`) plus its globals.  A
+> private helper whose postcondition contains `TT` cannot hide a leak:
+> its caller would hold `TT`, which entails no `TT`-free assertion, so
+> the caller could not end in a `TT`-free public postcondition.
 
 This is the English public spec of stage 1: `add`, `get_first`,
 `get_last`, `it_init`, `it_init_on_equal`, `it_next` and the comparator.
@@ -151,11 +160,22 @@ The mirror image of `get_first`:
 
 A comparator is a function `int cmp(dllist *a, dllist *b)` passed to
 `it_init_on_equal`.
-- Each program chooses one **comparator state**: memory the comparators
-  own between calls (a counter, a log), described by a predicate on a
-  state value.
-- Every comparator the program passes is proved against the contract
-  below.
+- Each program fixes one **comparator state** per comparator `f`: a
+  predicate `Rc gv f`, over the program's globals `gv`, describing the
+  memory `f` uses between calls (a counter, a log).  The state's value
+  stays hidden inside `Rc gv f` (for example "there is a `k` such that
+  the counter holds `k`"); nothing constrains the new state (owner,
+  R2, 2026-11-17).
+- Every comparator `f` the program passes is proved against the
+  contract below for `f`.
+- Several comparators may each have their own state.  Comparators that
+  share a global have predicates over the same memory; the client
+  converts one into the other by entailment between calls.
+- sglib's comparator type `int (*)(dllist *, dllist *)` passes no
+  context, so a comparator reaches its state through globals (register
+  entry cmp-state-globals).  The comparator contract, `it_init_on_equal`
+  and `it_next` therefore take the globals (`GLOBALS (gv)`), so that the
+  comparator's body can address its state.
 - For this callback the roles swap: `it_next` must establish the
   comparator's precondition, and relies on its postcondition.
 
@@ -165,7 +185,7 @@ A comparator is a function `int cmp(dllist *a, dllist *b)` passed to
 |---|---|
 | `a` and `b` owned at some readable shares, whatever they are | C1, C3: the comparator reads the payloads.  Any readable share, so it cannot write a node (Q6; C4 out of scope) |
 | `a`'s and `b`'s payloads are initialised ints | C1, C3: the comparator computes on them |
-| the comparator state | C3 |
+| its state `Rc gv f`, and the globals `gv` | C3: the comparator updates a counter in a global |
 
 **[exception] the whole node.**
 - *Minimal:* only the payload field.
@@ -177,7 +197,7 @@ A comparator is a function `int cmp(dllist *a, dllist *b)` passed to
 | Clause | Needed by |
 |---|---|
 | `a` and `b`, with the same contents | `:92,106`: `it_next` follows the links after the call; `it_next`'s own postcondition gives the nodes back unchanged |
-| the comparator state, possibly changed | C3 (the client reads the counter afterwards); leak freedom of C3 (the client frees what the state owns) |
+| its state `Rc gv f` (the value hidden inside may have changed) | C3 (the client reads the counter afterwards); leak freedom of C3 (the client keeps owning, and finally frees, what the state owns) |
 | it returns an initialised `int` | `:90,104` compare it with 0 |
 
 ## The iterator
@@ -216,7 +236,10 @@ comparator.
   - `subcomparator` satisfies the comparator contract;
   - the caller lends the `equalto` node at a readable share, with an int
     payload;
-  - the caller lends the comparator state;
+  - the caller passes the globals and lends the comparator's state
+    `Rc gv subcomparator` for the call and gets it back after (the iterator never holds it, so two
+    live iterators, with the same comparator or different ones, can be
+    interleaved);
   - the payloads of the nodes still to be visited are ints.
 
 A node of the list may be lent as `equalto` too, at another share.
@@ -238,7 +261,7 @@ A node of the list may be lent as `equalto` too, at another share.
 |---|---|
 | `*it` in iterator state for `s`, with a window `b'`, `f'`, and the same `subcomparator` and `equalto` | I1, I2, I7, I8, I13: the client calls `it_next` again |
 | the lent nodes, with the same contents | I3, I6 (reuse), I9 (the other iterator); leak freedom |
-| the comparator part, the state possibly changed | I7, C3; leak freedom |
+| the comparator part and the comparator's state | I7, I9, C3; leak freedom |
 | the window only widens (`-1 <= b' <= b`, `f <= f' <= k`) | I2: the next call is lent only nodes the client has not freed |
 | the result is NULL, or a node that was still to be visited and is now inside the window | I1 (the client owns and reads it); I2 (**never returns a node twice**, so the client never frees one twice) |
 | NULL means no node is left to visit (`b' == -1`, `f' == k`) (R1, owner 2026-11-17) | leak freedom of I2: at NULL the client has freed every returned node, and none is still to be visited.  With a comparator, no surveyed client needs it; it is stated for both cases as the owner decided R1 |
@@ -266,7 +289,7 @@ comparator, as every surveyed comparator client does (I7, C3).
 |---|---|
 | `*it` in iterator state for `s` with some window `b`, `f`, `subcomparator` and `equalto` as given | I1, I2, I4, I7, I8: the client calls `it_next` |
 | the nodes, with the same contents | I3, I6; leak freedom |
-| the comparator part, the state possibly changed | I7, C3; leak freedom |
+| the comparator part and the comparator's state | I7, I9, C3; leak freedom |
 | the result is NULL or a node inside the window | I1, I2 (as for `it_next`) |
 | NULL means no node is left to visit | leak freedom of I2, I5 |
 | without a comparator: the result is the only node inside the window (NULL only for the empty list) | leak freedom of I2 |
@@ -290,9 +313,11 @@ As `it_init_on_equal` with `subcomparator` and `equalto` NULL (`:79`).
 | iterator state | `it_rep` |
 | a step | `iter_step` (`step_any`, plus `step_exact` without a comparator) |
 | after initialisation | `init_window` |
-| the comparator contract | `cmp_spec Rc`, with the comparator state `Rc : CS -> mpred` a parameter of the whole spec |
-| the comparator part | `cmp_env`, `cmp_payloads` |
+| the comparator contract for `f` | `cmp_spec f`, with the states `Rc : globals -> val -> mpred` a parameter of the whole spec |
+| the comparator part | `cmp_env`, `cmp_state`, `cmp_payloads` |
 
 "Untouched" is the frame rule.  Leak freedom per function is the absence
-of `TT` in postconditions: `affine_probe/` shows that VST 2.17 lets a
-proof drop memory only through `TT` (`REVIEW.md`, section 4).
+of `TT` (and of existentials over `mpred`) in postconditions:
+`affine_probe/` shows that VST 2.17 lets a proof drop memory only
+through `TT`, and `lint/post_lint.py` enforces the absence (`REVIEW.md`,
+section 4).

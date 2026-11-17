@@ -1,4 +1,4 @@
-# Review notes: funspecs against the English, and open questions
+# Review notes: funspecs against the English, and the owner's decisions
 
 These notes are for the owner's review of the stage-1 draft (`SPEC.md`,
 `spec_dllist.v`).  The draft follows the owner's two decisions of
@@ -12,7 +12,8 @@ The sections:
 2. the unanchored-postcondition review (Q11, rule 2);
 3. every use of the simplicity exception, with both options;
 4. the VST affinity check and how to enforce leak freedom;
-5. the questions: which ones the rules now settle, and which are open.
+5. the owner's decisions R1–R10 (all decided on 2026-11-17; the
+   full-spec review, function by function, is pending).
 
 ## 1. Where the Coq and the English differ
 
@@ -36,8 +37,16 @@ The sections:
 6. **The comparator writes no node, not even temporarily.**  `cmp_spec`
    quantifies over every readable share, so a comparator proved against
    it must also work at a read-only share.
-7. **The comparator state is fixed per program** (`CS`, `Rc` are Section
-   parameters).  The English says "each program chooses one".  (R2)
+7. **The comparator state is one predicate per comparator pointer**
+   (`Rc : globals -> val -> mpred`, a Section parameter; R2).
+   `cmp_spec f` takes and returns `Rc gv f`; `cmp_state gv scp` is lent
+   to each call with a comparator, separately from `cmp_env` and
+   `it_rep`.  The English says the same.  The globals argument, and
+   `GLOBALS (gv)` in `cmp_spec`, `it_init_on_equal` and `it_next`, are
+   an addition to R2 as stated: in VST a global's address is `gv _x`
+   with `gv` quantified per funspec, so a predicate `val -> mpred` fixed
+   per program could not name the counter of C3, and the comparator's
+   body needs `GLOBALS (gv)` to address it.
 8. **`step_exact` allows either end of the window.**  sglib always takes
    the backward end first; the Coq does not promise that (no order).
    The English says "from either end".
@@ -62,13 +71,14 @@ by hand for an existential, or a result, that is tied to no input.
 |---|---|---|
 | `add_spec` | `vs'` | `whole (ins j e s) vs'`; payloads `ins j ev` of the old ones |
 | `get_first_spec`, `get_last_spec` | `r` | `r` NULL or in `s`; the nodes are returned with the same `vs` |
-| `it_init_on_equal_spec`, `it_init_spec` | `b`, `f`, `r`, `st'` | `init_window scp s`; **`st'` is tied to nothing** |
-| `it_next_spec` | `b'`, `f'`, `r`, `st'` | `iter_step scp s b f`; **`st'` is tied to nothing** |
-| `cmp_spec` | `r`, `st'` | the nodes come back unchanged; **`r` and `st'` are tied to nothing** |
+| `it_init_on_equal_spec`, `it_init_spec` | `b`, `f`, `r` | `init_window scp s`; `cmp_state scp` returned as given |
+| `it_next_spec` | `b'`, `f'`, `r` | `iter_step scp s b f`; `cmp_state scp` returned as given |
+| `cmp_spec f` | `r` | the nodes and `Rc gv f` come back as given; **`r` is tied to nothing** |
 
-The comparator's result and state are unanchored by design (Q6): the
-spec makes no promise about what a comparator computes.  Only the
-client's `Rc` constrains `st'`.
+The comparator's result is unanchored by design (Q6): the spec makes no
+promise about what a comparator computes.  Since R2 the state is no
+longer an existential: `Rc gv f` comes back as the same predicate, with
+its value hidden inside it.
 
 ## 3. Uses of the simplicity exception
 
@@ -161,7 +171,19 @@ postcondition is `SEP(TT)`, and so is B1c's.  The b1 drivers'
 postconditions in vst-b1c own nothing on the heap (`mem_mgr` and the
 input array), so b1 itself is already leak-free.
 
-Options for the owner (R10):
+**Decided (owner, R10, 2026-11-17): option (a).**  `check.sh` step 6
+runs `lint/post_lint.py` on `spec_dllist.v`; step 7 runs the lint's
+unit tests (`lint/test_post_lint.py`: a postcondition with `TT`, `TT`
+in a helper and in a nested helper, `EX R: mpred`, and `main` without
+`mem_mgr` all fail; `TT` only in a precondition or in an unused helper
+passes) and checks that the lint flags exactly the probe's two `TT`
+postconditions.  No allocation counter, and VST's `malloc`/`free` specs
+are unchanged.  A private helper with `TT` in its postcondition cannot
+hide a leak: its caller would hold `TT`, which entails no `TT`-free
+assertion, so the caller could not end in a `TT`-free public
+postcondition.
+
+The options as presented:
 - **(a) A postcondition lint.**  No `TT`, and no existential over
   `mpred`, in any funspec postcondition, public or client.  `main`'s
   postcondition is fixed to `mem_mgr gv` plus the global variables
@@ -176,43 +198,37 @@ Options for the owner (R10):
   specs to review, and every client threads `n`.
 - **(c) Both:** (b) as the check, (a) as an early warning.
 
-## 5. Questions
+## 5. The owner's decisions (2026-11-17)
 
-**Decided by the owner (2026-11-17):**
+R1–R10 decided by the owner on 2026-11-17; full-spec review pending.
+
+- **R1.** NULL from `it_next` (and from initialisation) means no node is
+  left to visit (`step_any`, `init_window`); without a comparator an
+  iteration returns every node exactly once (`step_exact`; Q4 amended
+  in the survey).
+- **R2.** One comparator state per comparator pointer, fixed per
+  program (`Rc gv f`, over the globals: section 1, item 7);
+  `cmp_spec f` takes and returns `Rc gv f`,
+  with the value hidden inside and no constraint on the new state; the
+  client lends `Rc gv scp` to each call with a comparator.  Register entry
+  cmp-state-globals.
+- **R3.** No list function needs a `malloc_token`: nodes may live on the
+  stack or in globals; the client keeps its tokens and frees with them.
+- **R4.** Stage 1 uses the weaker iterator state: only the links the
+  iterator follows (prev links on `n0..nb`, next links on `nf..`).
+- **R5.** `get_first`, `get_last` and the iterator functions take any
+  readable share (I9: two live iterators each hold part of the share);
+  `add` takes a writable one.
+- **R6.** `equalto` may be a node of the iterated list, lent at a split
+  share (I9's inner iteration, whose `equalto` is the outer iterator's
+  current node).
+- **R7.** Keep the `dllist` instance; make the spec generic when a
+  second instance first appears (register entry generic-instance;
+  `README.md` says what the generic version takes).
 - **R8.** `add` requires the whole list; the simplicity exception now
   also allows a stronger precondition when it is simpler and no
   surveyed client needs the weaker one (register entry R8).
 - **R9.** `add`'s postcondition is form E (exact position,
   `*list == elem`); M is recorded in section 3.
-
-**Settled by the rules (no owner action needed unless you disagree):**
-- **R1. Does NULL mean that no node is left?**  Yes: the owner decided
-  this on 2026-11-17 (leak freedom).  It is in `step_any` and
-  `init_window`.  Coverage without a comparator is in `step_exact`
-  (Q4 amended in the survey).
-- **R3. Must every node come from `malloc`?**  No.  No function needs a
-  `malloc_token`, so the spec has none.  The client keeps its tokens.
-- **R4. Q2's weaker iterator state at stage 1?**  Yes.  `it_next`
-  borrows only the links it follows (prev links on `n0..nb`, next links
-  on `nf..`), as minimality requires, and this is already compatible
-  with stage 2's delete-the-current-node (I11).
-- **R5. Readable shares for the read-only functions?**  Yes.
-  `get_first`, `get_last` and the iterator take any readable share;
-  `add` takes a writable one.
-- **R6. May `equalto` be a node of the list?**  Yes.  With readable
-  shares, the client splits that node's share and lends one part as
-  `equalto`.
-
-**Still open (the owner decides):**
-- **R2. The comparator state: one per program, or chosen per
-  iteration?**
-  - The draft makes `Rc : CS -> mpred` a parameter of the whole spec.
-  - Per iteration needs dependent funspecs: VST 2.17's `WITH`
-    (`NDmk_funspec`) refuses an `mpred` (coqc: universe inconsistency,
-    probed during this draft).
-  - Should the comparator's postcondition say anything about the new
-    state?
-- **R7. Parameterisation (Q12).**  The draft is the `dllist` instance.
-  Is that acceptable now, with the generic version later?  `README.md`
-  says what the generic version would take.
-- **R10. How to enforce leak freedom:** (a), (b) or (c) of section 4.
+- **R10.** Leak freedom is enforced by option (a), the postcondition
+  lint (section 4), with `main` ending in `mem_mgr gv` plus its globals.

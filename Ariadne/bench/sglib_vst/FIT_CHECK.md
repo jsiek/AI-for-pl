@@ -30,9 +30,9 @@ relies on, for each of the 23 patterns in
 | I3 iterate, then reuse | The nodes come back with the same `vs`; the client still holds `whole s vs` |
 | I4 start mid-list | `it_init` at any `j`; `init_window` is not tied to `j` |
 | I5 empty list | `init_window` with `s = []`: the result is NULL |
-| I7 with a comparator | `cmp_env` (`func_ptr' (cmp_spec Rc)`, `equalto` at a readable share with an int payload, `Rc st`) and `cmp_payloads`; the comparator is proved against `cmp_spec Rc`.  Skipped nodes stay the client's; it frees them by a later plain iteration |
+| I7 with a comparator | `cmp_env` (`func_ptr' (cmp_spec scp) scp`, `equalto` at a readable share with an int payload), `cmp_state gv scp = Rc gv scp` lent to each `it_init_on_equal` / `it_next` call and given back, and `cmp_payloads`; the comparator is proved against `cmp_spec f`.  Skipped nodes stay the client's; it frees them by a later plain iteration |
 | I8 NULL comparator | `cmp_env nullval .. = emp`; `iter_step nullval` includes `step_exact` |
-| C1 pure comparator | `cmp_spec` with `Rc := fun _ => emp`; the int payloads in its precondition let it compute |
+| C1 pure comparator | `cmp_spec f` with `Rc gv f := emp`; the int payloads in its precondition let it compute |
 
 ## Stage 1 (9)
 
@@ -43,10 +43,10 @@ relies on, for each of the 23 patterns in
 | A8 head a global or a heap field (clients 3, 4) | `add` pre `data_at shl (tptr t_dl) _ lp`, any writable `shl`, any `lp` (a global, or `field_at` at a `field_address`); no `!heap` condition (Q5) |
 | G2 get_first/get_last from the middle (client 5) | `get_first` / `get_last` at any `j`: the prefix (or suffix) is lent, and the result is in `s` |
 | I6 stop part-way, reuse (client 6) | Borrowing as in I3; the iterator struct is reused through `it_rep .. |-- data_at_ sh t_it it` |
-| I9 two iterators (client 7) | Two `it_rep`s; between calls the client owns every node and lends each call its iterator's ranges.  With readable shares, both iterators may also hold shares at once |
+| I9 two iterators (client 7) | Two `it_rep`s; between calls the client owns every node and lends each call its iterator's ranges at a readable share (R5: both iterators may hold parts of the share at once).  The inner iteration's `equalto` may be the outer iterator's current node, lent at a split share (R6).  With comparators: the state is lent per call (`cmp_state`), never held by an iterator, so two live iterators with different comparators (`Rc gv f1`, `Rc gv f2`) or with the same one (`Rc gv f`, lent to whichever call comes next) interleave freely |
 | I13 it_next after NULL (client 8) | After NULL, the window is `(-1, k)`; the next call borrows nothing and returns NULL (`step_exact`) or something in an empty set, that is NULL.  Memory safe; the client freed every node during the iteration (I2) |
 | I14 iterator in heap memory (client 4) | `it_init` takes `data_at_ sh t_it it` at any writable `sh` and any address (Q5) |
-| C3 comparator with its own state (client 9) | `cmp_spec Rc` with, for example, `CS := globals * Z` and `Rc (gv, k) := data_at Ews tint (Vint (Int.repr k)) (gv _counter)`; `cmp_env` lends `Rc st` and gives back `Rc st'`, so the client reads the counter and, if it is in a heap struct, frees it |
+| C3 comparator with its own state (client 9) | `cmp_spec f` with `Rc gv f := EX k: int, data_at Ews tint (Vint k) (gv _counter)` (the counter's value hidden; the state is reached through the globals `gv`, which the calls pass, since sglib's comparator type passes no context: register entry cmp-state-globals).  The client lends `Rc gv f` per call and gets it back, so it reads the counter afterwards.  Two comparators with their own states: `Rc gv f` is `if f = gv _cmp1 then (counter 1) else (counter 2)`.  Comparators sharing one global: their predicates describe the same counter, and the client converts `Rc gv f1` into `Rc gv f2` by entailment between calls |
 
 ## Not part of this check
 

@@ -139,36 +139,50 @@ Definition init_window (scp: val) (s: list val) (b f: Z) (r: val)
               b = c - 1 /\ f = c + 1)).
 
 (* ================================================================== *)
-(* Comparators (Q6).  A program fixes a state type CS and a predicate
-   Rc on it (a Section parameter); every comparator it passes to
-   it_init_on_equal is proved against cmp_spec. *)
+(* Comparators (Q6; owner, R2, 2026-11-17).  A program fixes one state
+   predicate per comparator function pointer, Rc gv f (a Section
+   parameter).  sglib's comparator type passes no context, so the state
+   is reached through globals: Rc takes the program's globals gv, and
+   cmp_spec, it_init_on_equal and it_next carry GLOBALS (gv) so that the
+   comparator's body can address them.  The comparator f is proved
+   against cmp_spec f: it takes Rc gv f and gives Rc gv f back; the
+   state's value stays hidden inside (e.g. EX k, data_at .. (Vint k)
+   (gv _count_f)), with no constraint on the new state.  The iterator never holds the state: the
+   client lends Rc gv scp to each it_init_on_equal / it_next call that has
+   a comparator ([cmp_state]) and gets it back after.  Comparators that
+   share a global: the client converts between their predicates by
+   entailment between calls. *)
 (* ================================================================== *)
 
 Section Spec.
-Context {CS: Type} (Rc: CS -> mpred).
+Context (Rc: globals -> val -> mpred).
 
-Definition cmp_spec : funspec :=
-  WITH sha: share, shb: share, a: val, b: val,
-       va: node_v, vb: node_v, st: CS
+Definition cmp_spec (f: val) : funspec :=
+  WITH gv: globals, sha: share, shb: share, a: val, b: val,
+       va: node_v, vb: node_v
   PRE [ tptr t_dl, tptr t_dl ]
     PROP (readable_share sha; readable_share shb;
           int_val (pay va); int_val (pay vb))
-    PARAMS (a; b)
-    SEP (data_at sha t_dl va a; data_at shb t_dl vb b; Rc st)
+    PARAMS (a; b) GLOBALS (gv)
+    SEP (data_at sha t_dl va a; data_at shb t_dl vb b; Rc gv f)
   POST [ tint ]
-    EX r: int, EX st': CS,
+    EX r: int,
     PROP ()
     RETURN (Vint r)
-    SEP (data_at sha t_dl va a; data_at shb t_dl vb b; Rc st').
+    SEP (data_at sha t_dl va a; data_at shb t_dl vb b; Rc gv f).
 
-(* What a call that may compare needs: nothing when scp is NULL;
-   otherwise scp satisfies cmp_spec, the client lends the equalto node
-   (any readable share, payload an int) and the comparator state. *)
-Definition cmp_env (scp eqp: val) (sheq: share) (veq: node_v) (st: CS)
-    : mpred :=
+(* What a call that may compare needs besides the state: nothing when
+   scp is NULL; otherwise scp satisfies cmp_spec scp, and the client
+   lends the equalto node (any readable share, payload an int). *)
+Definition cmp_env (scp eqp: val) (sheq: share) (veq: node_v) : mpred :=
   if Val.eq scp nullval then emp
   else !! (readable_share sheq /\ int_val (pay veq)) &&
-       (func_ptr' cmp_spec scp * data_at sheq t_dl veq eqp * Rc st).
+       (func_ptr' (cmp_spec scp) scp * data_at sheq t_dl veq eqp).
+
+(* The comparator state the client lends for the call: none without a
+   comparator. *)
+Definition cmp_state (gv: globals) (scp: val) : mpred :=
+  if Val.eq scp nullval then emp else Rc gv scp.
 
 (* with a comparator, the payloads it will be shown are ints *)
 Definition cmp_payloads (scp: val) (vs: list node_v) (lo hi: Z) : Prop :=
@@ -234,8 +248,8 @@ Definition get_last_spec :=
 
 Definition it_init_on_equal_spec :=
  DECLARE _sglib_dllist_it_init_on_equal
-  WITH sh: share, it: val, shl: share, s: list val, vs: list node_v,
-       j: Z, scp: val, eqp: val, sheq: share, veq: node_v, st: CS
+  WITH gv: globals, sh: share, it: val, shl: share, s: list val,
+       vs: list node_v, j: Z, scp: val, eqp: val, sheq: share, veq: node_v
   PRE [ tptr t_it, tptr t_dl, t_cmp, tptr t_dl ]
     PROP (writable_share sh;                 (* dllist.c:70-75 *)
           readable_share shl;                (* :75; it_next *)
@@ -243,17 +257,18 @@ Definition it_init_on_equal_spec :=
           prev_links s vs 0 (Z.min (j+1) (Zlength s));    (* :76 *)
           next_links s vs j (Zlength s);                  (* :75-76 *)
           cmp_payloads scp vs 0 (Zlength s))              (* :76 *)
-    PARAMS (it; Znth_or_null s j; scp; eqp)
+    PARAMS (it; Znth_or_null s j; scp; eqp) GLOBALS (gv)
     SEP (data_at_ sh t_it it;                             (* :70-73 *)
          nodes shl s vs 0 (Zlength s);                    (* :75-76 *)
-         cmp_env scp eqp sheq veq st)                     (* :76 *)
+         cmp_env scp eqp sheq veq;                        (* :76 *)
+         cmp_state gv scp)                                   (* :76 *)
   POST [ tptr t_dl ]
-    EX b: Z, EX f: Z, EX r: val, EX st': CS,
+    EX b: Z, EX f: Z, EX r: val,
     PROP (init_window scp s b f r)
     RETURN (r)
     SEP (it_rep sh it s b f scp eqp;
          nodes shl s vs 0 (Zlength s);
-         cmp_env scp eqp sheq veq st').
+         cmp_env scp eqp sheq veq; cmp_state gv scp).
 
 Definition it_init_spec :=
  DECLARE _sglib_dllist_it_init
@@ -274,9 +289,9 @@ Definition it_init_spec :=
 
 Definition it_next_spec :=
  DECLARE _sglib_dllist_it_next
-  WITH sh: share, it: val, shl: share, s: list val, vs: list node_v,
-       b: Z, f: Z, scp: val, eqp: val,
-       sheq: share, veq: node_v, st: CS
+  WITH gv: globals, sh: share, it: val, shl: share, s: list val,
+       vs: list node_v, b: Z, f: Z, scp: val, eqp: val,
+       sheq: share, veq: node_v
   PRE [ tptr t_it ]
     PROP (writable_share sh;            (* dllist.c:85,96,99,110,112 *)
           readable_share shl;           (* :90,92,104,106 *)
@@ -286,18 +301,19 @@ Definition it_next_spec :=
           next_links s vs f (Zlength s);   (* :106,110 *)
           cmp_payloads scp vs 0 (b+1);     (* :90 *)
           cmp_payloads scp vs f (Zlength s))  (* :104 *)
-    PARAMS (it)
+    PARAMS (it) GLOBALS (gv)
     SEP (it_rep sh it s b f scp eqp;    (* :84,86-88,98,100-102 *)
          nodes shl s vs 0 (b+1);        (* :90,92,96 *)
          nodes shl s vs f (Zlength s);  (* :104,106,110 *)
-         cmp_env scp eqp sheq veq st)   (* :90,104 *)
+         cmp_env scp eqp sheq veq;      (* :90,104 *)
+         cmp_state gv scp)                 (* :90,104 *)
   POST [ tptr t_dl ]
-    EX b': Z, EX f': Z, EX r: val, EX st': CS,
+    EX b': Z, EX f': Z, EX r: val,
     PROP (iter_step scp s b f b' f' r)
     RETURN (r)
     SEP (it_rep sh it s b' f' scp eqp;
          nodes shl s vs 0 (b+1); nodes shl s vs f (Zlength s);
-         cmp_env scp eqp sheq veq st').
+         cmp_env scp eqp sheq veq; cmp_state gv scp).
 
 Definition Gprog : funspecs :=
   ltac:(with_library prog [add_spec; get_first_spec; get_last_spec;

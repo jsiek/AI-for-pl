@@ -22,6 +22,7 @@ specs.  The name follows `sglib_spec`: the library, then the backend.
 | `REVIEW.md` | Coq vs English, the unanchored-postcondition review, the simplicity exceptions with both options, the VST affinity result and leak-freedom enforcement options, and the questions (settled and open) |
 | `FIT_CHECK.md` | the 14 covered and 9 stage-1 survey patterns, each with the clauses a client relies on |
 | `affine_probe/` | `probe.c`, `verif_probe.v`: VST 2.17 drops owned memory only through `TT` in a postcondition |
+| `lint/` | `post_lint.py`, the leak-freedom check (owner, R10): no `TT` and no existential over `mpred` in any postcondition, helpers unfolded; `test_post_lint.py`, its tests |
 | `make_dllist.py` | writes `dllist.c`: B1's `dllist` instance, the six functions verbatim from `../b1/b1_gen.c` |
 | `dllist.c` | generated; clightgen turns it into `dllist.v` (not committed) |
 | `check.sh` | the compile check (below) |
@@ -37,13 +38,15 @@ regenerates `dllist.c`, runs CompCert 3.18's `clightgen` and Rocq
 `../../vst/run.sh`), and checks that `spec_dllist.v` compiles with
 exactly six `Admitted` (the `semax_body` statements, one per
 function, which only check that each funspec fits its function's C
-type), and runs the affinity probe.  No
-body is proved yet.
+type), runs the affinity probe, and runs the leak-freedom lint and
+its tests.  No body is proved yet.
 
 ## Parameterisation (Q12)
 
-The draft is the `dllist` instance.  Making it generic over the
-struct and field names is not cheap enough for a draft:
+The spec is the `dllist` instance (owner, R7, 2026-11-17: make it
+generic when a second instance first appears; survey register entry
+generic-instance).  Making it generic over the struct and field names
+takes:
 
 * a Section over the `compspecs`, the struct's identifier and the two
   link fields' identifiers, with hypotheses that the struct has those

@@ -564,6 +564,31 @@ invariant is only needed for functional correctness and is stretch work.
     proofs stay valid and only the function's proof is redone;
     otherwise list the affected clients and re-prove them (the frozen
     survey requires every surveyed client to stay provable).
+7.  *Leak-freedom check (owner, R10, 2026-11-17).*  No public
+    postcondition contains `TT` or an existential over `mpred`,
+    including inside the predicates it uses (definitions in the spec
+    file unfolded): `bench/sglib_vst/lint/post_lint.py`, a `check.sh`
+    step that fails on violations, with unit tests (a postcondition with
+    `TT` fails).  A client's `main` postcondition is the allocator's
+    state (`mem_mgr gv`) plus its globals.  No allocation counter, and
+    VST's `malloc`/`free` specs are unchanged.  A private helper whose
+    postcondition contains `TT` cannot hide a leak: its caller would
+    hold `TT`, which entails no `TT`-free assertion, so the caller could
+    not end in a `TT`-free public postcondition.
+
+**Stage-1 decisions (owner, 2026-11-17).**  R1–R10 are decided
+(`bench/sglib_vst/REVIEW.md`, section 5): NULL from the iterator means
+no node is left, and without a comparator every node is returned once
+(R1); one comparator state per comparator pointer over the globals,
+lent per call (R2); no `malloc_token` in list predicates (R3); the
+weaker iterator state (R4); readable shares for the read-only functions
+(R5); `equalto` may be a list node (R6); the `dllist` instance until a
+second instance appears (R7); `add` requires the whole list (R8) and
+ends in the exact form (R9); leak freedom by the postcondition lint
+(R10).  **Next step:** the owner's walkthrough of the full spec,
+function by function; then the stage-1 proofs: the 6 `semax_body`
+proofs, then the 9 stage-1 clients and the existing proved clients,
+ported.
 
 **M6 harness pieces to port.**
 
@@ -1108,6 +1133,13 @@ invariant is only needed for functional correctness and is stretch work.
             proofs, with no LLM; a replay that succeeds proves the
             clause unnecessary, a failure is only a hint (§8, M6
             public-spec rule 5).
+        7.  *Leak-freedom check (owner, R10, 2026-11-17):* no `TT` and
+            no existential over `mpred` in any public postcondition,
+            helpers unfolded (`post_lint.py`, in `check.sh`); `main`
+            ends with `mem_mgr gv` plus its globals.  A private helper
+            with `TT` cannot hide a leak: its caller would hold `TT`
+            and could not end in a `TT`-free public postcondition (§8,
+            M6 public-spec rule 7).
         History: `eaa42ed2` (2026-11-03) fixed this class in `get_first`
         / `get_last` (their results belonged to *some* live list); the
         iterator kept it until B1c found it on 2026-11-07.

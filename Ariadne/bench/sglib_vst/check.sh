@@ -61,4 +61,25 @@ affine() {
 name="affine_probe: memory is dropped only through TT"
 step affine
 
+# 6. Leak freedom (owner, R10): no TT and no existential over mpred in
+#    any postcondition of the public spec, helpers unfolded.
+postlint() {
+  python3 -I lint/post_lint.py spec_dllist.v
+}
+name="post_lint: spec_dllist.v's postconditions are leak-free"
+step postlint
+
+# 7. The lint's own tests, and the lint on a real file with TT: it must
+#    flag exactly the probe's two TT postconditions.
+lintcheck() {
+  python3 -I lint/test_post_lint.py 2> /dev/null || return 1
+  out=$(python3 -I lint/post_lint.py affine_probe/verif_probe.v)
+  rc=$?
+  [ "$rc" -eq 1 ] \
+    && [ "$(printf '%s\n' "$out" | grep -c '^FAIL: drop_.*_TT_spec: TT')" \
+         -eq 2 ]
+}
+name="post_lint: unit tests pass; flags the probe's 2 TT postconditions"
+step lintcheck
+
 exit $status

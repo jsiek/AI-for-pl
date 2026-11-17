@@ -25,9 +25,10 @@ that is explicitly stated and does not include the agent?
 
 ### 1.2 Primary goals (must have)
 
-*   **G1 — Memory safety of selected sglib operations.**  For each target
-    function, prove absence of the runtime errors in scope (§2.1) under an
-    explicit, human-reviewed precondition.
+*   **G1 — Memory safety and leak freedom of selected sglib operations.**
+    For each target function, prove absence of the runtime errors in
+    scope (§2.1) under an explicit, human-reviewed precondition, and
+    (owner, 2026-11-17) leak freedom as defined in §2.1.
 *   **G2 — Agent outside the trust base.**  Nothing the agent says or does
     is trusted; only artifacts checked by the tools listed in §2.2 count.
 *   **G3 — Annotation-only edits.**  The agent may add ACSL annotations,
@@ -53,7 +54,8 @@ that is explicitly stated and does not include the agent?
 
 *   Total correctness / termination of every loop (track it, but not
     required for G1).
-*   Memory-leak freedom.
+*   Bounding memory that is still held (leak freedom itself is in scope
+    since 2026-11-17, §2.1).
 *   Verifying Frama-C, Why3, or the Coq export themselves.
 *   Concurrency.
 *   "Cryptographic" certification: nothing in this pipeline is
@@ -87,6 +89,14 @@ The RTE plugin generates the safety obligations.  In scope:
 *   use-after-free, invalid `free`, and double `free` (required): through
     `\valid`/`\freeable` after `free` if WP supports it, otherwise
     through the fallbacks in §10.
+*   **leak freedom (owner, 2026-11-17):** every postcondition accounts
+    for all memory the function owns at the end, and `main` ends owning
+    no heap memory.  Unbounded growth of memory that is still held is
+    out of scope; functional correctness stays out.  In VST 2.17 a proof
+    can drop owned memory only through `TT` (or another absorbing
+    predicate) in a postcondition (`bench/sglib_vst/affine_probe/`), so
+    leak freedom is enforced on the postconditions (options in
+    `bench/sglib_vst/REVIEW.md`, section 4).
 
 ### 2.2 Honest trust base
 
@@ -495,9 +505,134 @@ invariant is only needed for functional correctness and is stretch work.
         `add_before`, `add_after`, `delete_if_member`, after Codex's
         review; follows from Q1).  **Approved by the owner on 2026-11-11** (with I13
         claiming only that `it_next` after the end is memory safe), and
-        frozen with the M6 spec.  **Next step:** write the stage-1 VST
-        funspecs, with the English `SPEC.md` that goes with them, for the
-        owner to review.
+        frozen with the M6 spec.  **2026-11-17:** Q4 amended for leak
+        freedom (coverage is proved, order is not), and every client
+        frees every node.
+    *   **Stage-1 VST spec approved and frozen** (`bench/sglib_vst/`:
+        `SPEC.md`, `spec_dllist.v`, `REVIEW.md`, `FIT_CHECK.md`; PR
+        #240), written under the rules below.  **Approved by the owner
+        on 2026-11-17** after a function-by-function walkthrough, and
+        frozen with the client survey: **frozen digest
+        `ee6043a2f971a9f6`** (`frozen_digest.py`, a SHA-256 prefix over
+        `SPEC.md` without its digest line and `spec_dllist.v`;
+        `check.sh` fails if it changes).  The funspecs type-check
+        against clightgen's output; no body is proved yet.
+        Owner, 2026-11-17: R9, `add`'s postcondition is the exact form
+        (`elem` inserted before the old `*list`, `*list == elem`); R8,
+        `add` requires the whole list.
+
+**M6 public-spec rules (owner, 2026-11-17).**
+
+1.  *Goal:* memory safety plus leak freedom (§2.1).
+2.  *Minimality, relative to the approved client survey.*  A
+    precondition holds only what the function body needs to run safely.
+    A postcondition holds only what the surveyed clients need to
+    continue safely and leak-free: which nodes the client owns and
+    their shape (whole list, segments, a node it may free), nothing
+    about order, positions or values.
+3.  *Simplicity exception (owner):* a stronger postcondition or a weaker
+    precondition is allowed when it is simpler than the minimal one
+    (example: keeping `s1 ++ elem :: s2` for `add` if "the same nodes
+    in some order" needs a permutation that makes specs or proofs
+    harder).  Widened by the owner on 2026-11-17 (with R8): a stronger
+    precondition is also allowed when it is simpler and no surveyed
+    client needs the weaker one.  Each use records the minimal
+    alternative and why the chosen form is simpler; a use that rests on
+    "no surveyed client needs it" gets an entry in the revisit register
+    (rule 6).
+4.  *Clause justification:* `SPEC.md` gives every clause a citation: a
+    precondition clause cites the body lines that need it; a
+    postcondition clause cites the survey patterns whose clients need
+    it (leak freedom of a surveyed client counts), or says "simplicity
+    exception" and names the minimal alternative.  A clause with no
+    citation is removed.
+5.  *Mechanical necessity check (planned; runs once the body and client
+    proofs exist):* for each clause, a script weakens it (a
+    postcondition clause) or drops it (a precondition clause) in a copy
+    of the spec and replays every body and client proof with the same
+    scripts, with no LLM.  If the proofs still replay, the clause is
+    unnecessary: conclusive, and it is removed (or kept as a recorded
+    simplicity exception).  If they fail, that is only a hint, because
+    a different proof might not need the clause; the citation stands.
+    Output: one line per clause (replayed / failed, and where).
+6.  *Revisit register (owner, 2026-11-17).*  Every decision, simplicity
+    exception or omitted clause that rests on "no surveyed client does
+    X" has an entry in the survey's revisit register
+    (`bench/sglib_spec/CLIENT_SURVEY.md`): the decision, its
+    assumption, and the pattern that would reopen it.  Seeded with Q3,
+    Q4 (order), Q6, R8 and the clauses dropped for lack of a client.
+    *Triggers:* a new benchmark or target library; a survey refresh; a
+    client proof that fails because of a spec clause rather than proof
+    difficulty.  *Resolution:* add the new pattern to the survey (owner
+    approval) and take the spec change to the owner as a public change;
+    where possible prove `funspec_sub new old`, so existing client
+    proofs stay valid and only the function's proof is redone;
+    otherwise list the affected clients and re-prove them (the frozen
+    survey requires every surveyed client to stay provable).
+7.  *Leak-freedom check (owner, R10, 2026-11-17).*  No public
+    postcondition contains `TT` or an existential over `mpred`,
+    including inside the predicates it uses (definitions in the spec
+    file unfolded): `bench/sglib_vst/lint/post_lint.py`, a `check.sh`
+    step that fails on violations, with unit tests (a postcondition with
+    `TT` fails).  Since Codex's review of PR #240 the check runs in Coq
+    on the elaborated terms (Ltac2, `lint/PostLint.v`), so no spelling
+    can bypass it, and it fails closed on anything it cannot examine.  A client's `main` postcondition is the allocator's
+    state (`mem_mgr gv`) plus its globals.  No allocation counter, and
+    VST's `malloc`/`free` specs are unchanged.  A private helper whose
+    postcondition contains `TT` cannot hide a leak: its caller would
+    hold `TT`, which entails no `TT`-free assertion, so the caller could
+    not end in a `TT`-free public postcondition.
+
+**Stage-1 decisions (owner, 2026-11-17).**  R1–R10 are decided
+(`bench/sglib_vst/REVIEW.md`, section 5): NULL from the iterator means
+no node is left, and without a comparator every node is returned once
+(R1); one comparator state per comparator pointer over the globals,
+lent per call (R2); no `malloc_token` in list predicates (R3); the
+weaker iterator state (R4); readable shares for the read-only functions
+(R5); `equalto` may be a list node (R6); the `dllist` instance until a
+second instance appears (R7); `add` requires the whole list (R8) and
+ends in the exact form (R9); leak freedom by the postcondition lint
+(R10).  The owner approved the full spec on 2026-11-17 after a
+function-by-function walkthrough (`add`, with R2's adjustment `Rc :
+globals -> val -> mpred` and `GLOBALS (gv)`; `get_first`/`get_last`;
+the comparator contract; `it_next`, `it_init_on_equal`, `it_init`).
+
+**Next step: the stage-1 proofs** against the frozen spec: the 6
+`semax_body` proofs (`add`, `get_first`, `get_last`, `it_init_on_equal`,
+`it_init`, `it_next`); then the 9 stage-1 clients of the survey (each a
+driver plus `main` with `semax_prog`, leak-free), and the existing
+proved clients ported to the frozen spec (B1's driver with
+`get_first`/`get_last`, B1a's and B1c's drivers, `st_iter_equal` with
+`myListCmp`).  Before relying on VST alone, port the harness pieces
+below (and M6 precondition 2, step 0 without ACSL).
+
+**What `q10/run_vst.py` needs to target the frozen spec** (checked
+2026-11-17; it was written for Q10's task, in which the agent wrote its
+own funspecs for B1a/B1c):
+1.  *A task "prove the given funspecs".*  Its `TASK` asks the agent to
+    write funspecs from `SPEC.md`; a new task gives `spec_dllist.v`
+    read-only and asks for the `semax_body` proofs (and, for a client,
+    the client's funspecs, the client proofs and `semax_prog`).
+2.  *Split the spec from the proofs.*  `spec_dllist.v` holds the six
+    `Admitted` type-check lemmas; the agent's proofs go in a separate
+    file that `Require`s the spec (the funspecs take `Rc` after
+    `End Spec`), so that the frozen file is never edited.
+3.  *New benchmarks.*  `--bench` accepts only `b1a`, `b1c`; it needs
+    `dllist` (the library) and one entry per client, with each client's
+    C file (the 9 stage-1 client drivers are not written yet: a
+    generator like `bench/b1c/make_b1c.py`, reusing `make_dllist.py`).
+4.  *Fence.*  Deny writes to the frozen files (and check the digest
+    after the run), and deny reads of earlier runs' proofs in
+    `runs/q10/` (the current rule denies only sibling run directories
+    and `vst/b1/`).
+5.  *`check_vst.py`.*  Check against pristine `dllist.c` and the frozen
+    `spec_dllist.v` (digest), not B1a: the lint (no `Admitted`, axioms),
+    `Print Assumptions` against the allow-list, `post_lint.py` on the
+    client files (leak freedom, `main` ending in `mem_mgr` plus its
+    globals), and the `semax_body` list; the C-level mutants stay a
+    step-0 filter (`q10/README.md`).
+6.  *Budget.*  The ledger reservation carries over; the per-run cap is
+    set per benchmark.
 
 **M6 harness pieces to port.**
 
@@ -1024,6 +1159,31 @@ invariant is only needed for functional correctness and is stretch work.
             it.
         4.  *Read the whole public spec in English at first freeze,* not
             only the diffs, with the approved English comments above.
+        5.  *Minimal public specs (owner, 2026-11-17),* relative to the
+            approved client survey, for memory safety plus leak freedom:
+            preconditions only what the body needs, postconditions only
+            what surveyed clients need (ownership and shape; not order,
+            positions or values); a stronger postcondition or weaker
+            precondition only as a recorded *simplicity exception*
+            (the minimal alternative and why the chosen form is
+            simpler), and, since R8 (2026-11-17), a stronger
+            precondition when it is simpler and no surveyed client
+            needs the weaker one; every clause cited in the English
+            spec, uncited clauses removed; assumptions of the form "no
+            surveyed client does X" entered in the survey's revisit
+            register.  Details: M6 public-spec rules 1–6 (§8).
+        6.  *Mechanical necessity check (owner, 2026-11-17; runs once
+            proofs exist):* weaken or drop each clause and replay the
+            proofs, with no LLM; a replay that succeeds proves the
+            clause unnecessary, a failure is only a hint (§8, M6
+            public-spec rule 5).
+        7.  *Leak-freedom check (owner, R10, 2026-11-17):* no `TT` and
+            no existential over `mpred` in any public postcondition,
+            helpers unfolded (`post_lint.py`, in `check.sh`); `main`
+            ends with `mem_mgr gv` plus its globals.  A private helper
+            with `TT` cannot hide a leak: its caller would hold `TT`
+            and could not end in a `TT`-free public postcondition (§8,
+            M6 public-spec rule 7).
         History: `eaa42ed2` (2026-11-03) fixed this class in `get_first`
         / `get_last` (their results belonged to *some* live list); the
         iterator kept it until B1c found it on 2026-11-07.

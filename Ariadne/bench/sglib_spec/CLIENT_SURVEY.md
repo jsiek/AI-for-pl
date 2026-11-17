@@ -8,6 +8,12 @@
 - 2026-11-13: clients added for add_before, add_after,
   delete_if_member (Codex review; follows from Q1).
 - It contains no funspecs and no proofs.
+- **2026-11-17 (owner): the goal is memory safety plus leak freedom.**
+  Q4 is amended (coverage is proved, order is not), every client must
+  free every node it allocates, and the patterns were re-checked for
+  leaks ("Leak freedom", below).  The same day the owner added the
+  "Revisit register" (below) for decisions that rest on "no surveyed
+  client does X".
 
 **Functions in scope** (the owner's decision Q1, below).
 - **Stage 1:** the functions the public spec template
@@ -186,7 +192,7 @@ Where existing clients are proved today:
 | I7 with a comparator | covered | `selftest/wp/driver.c:st_iter_equal` (WP only; to be proved against the new comparator funspec) |
 | I8 NULL comparator | covered | every `it_init` call (the three drivers) |
 | I9 two iterators | stage 1 | client 7 |
-| I10 visits each node once, in order | run time | step 0 with sglib's lockstep check (S2): checked at run time, not proved (Q4) |
+| I10 visits each node once, in order | run time | step 0 with sglib's lockstep check (S2): order checked at run time, not proved (Q4); "each node once" is proved since 2026-11-17 (Q4 amended) |
 | I11 delete the current node in the loop | stage 2 | client 12 |
 | I12 add during an iteration | out of scope | Q3: no real user or sample does it; can be reopened if a later target needs it |
 | I13 it_next again after NULL | stage 1 | client 8 |
@@ -248,11 +254,16 @@ Where existing clients are proved today:
    - After a complete iteration, call `it_next` once more.
    - The client shows only that this call is memory safe. It makes no
      claim about what the call returns (memory safety only).
+   - It frees every node during the complete iteration (leak freedom,
+     2026-11-17).
 9. **A comparator with its own state (C3).**
    - `it_init_on_equal` with a comparator that compares payloads and increments a counter it owns (a static variable, or a struct the client passes).
    - The client's predicate for the comparator's state is "the counter equals k".
    - The client reads the count after the iteration.
    - This exercises the comparator funspec decided under Q6.
+   - It then frees every node by an iteration without a comparator, and
+     frees the counter's struct if it allocated one (leak freedom,
+     2026-11-17).
 
 **Stage 2** (needs `delete`, `delete_if_member`, `add_before`, `add_after`, `concat`, `sort`; every stage-2 function is called by at least one of clients 10–14):
 
@@ -284,6 +295,70 @@ Where existing clients are proved today:
       case leaves `k2` with the client).
     - Finally it frees the rest of the list by iteration.
 
+## Revisit register (owner, 2026-11-17)
+
+Decisions and spec clauses that rest on "no surveyed client does X".
+Each entry names the decision, its assumption, and the pattern that
+would reopen it.  Every future simplicity exception or omitted clause
+justified by the absence of a client gets an entry here.
+
+| Entry | Decision | Assumption | Reopened by |
+|---|---|---|---|
+| Q3 | `add` during an iteration is out of scope (I12) | no surveyed client calls `add` while an iteration over the same list is in progress | a client that adds to a list between two `it_next` calls on it |
+| Q6 | comparators may not write to nodes (C4) | no surveyed comparator writes a node, payload included | a comparator that writes a node it is given |
+| Q4 | the iterator's order is not promised (I10's order part is run time only) | no surveyed client's safety or leak freedom depends on the order of the nodes returned | a client that relies on the order, e.g. one that frees a node's neighbour on the assumption that it has already been returned |
+| R8 | `add` requires the whole list (a stronger precondition than the body needs; simplicity exception) | every surveyed client holds a whole list when it calls `add` (A1–A5) | a client that calls `add` holding only part of a list (the nodes around `*list`), e.g. with the rest lent elsewhere |
+| it-init-start | `it_init` / `it_init_on_equal`'s result and window are not tied to the starting node `list` (`init_window`) | no surveyed client needs to know which node an iteration returns first or where its window starts | a client that uses the first result as the node it passed, or needs `prevelem`/`nextelem` around `list` |
+| currentelem | `it->currentelem` is not described (`it_rep`) | no surveyed client reads `currentelem` | a client that reads `it->currentelem` directly |
+| get-first-head | `get_first` / `get_last` return "NULL or a node of the list", not the head / the last node | no surveyed client needs the result to be an end of the list (G1–G3 only walk from it) | a client that relies on the result having a NULL `ptr_to_previous` (resp. `ptr_to_next`), e.g. to pass it where only a head is allowed |
+| cmp-state-globals | a comparator's state is `Rc gv f`, one predicate per comparator over the program's globals (R2); `cmp_spec`, `it_init_on_equal` and `it_next` pass `GLOBALS (gv)` | every surveyed comparator reaches its state through globals (sglib's comparator type `int (*)(type *, type *)` passes no context) | a client whose comparator state is not reachable from globals (e.g. per-iteration state in a heap block that only the client knows) |
+| generic-instance | the stage-1 spec is the `dllist` instance, not generic in the struct and field names (R7) | no second instance of sglib's DL list is used | a second instance appears (a new benchmark or target with another struct): make the spec generic then, as `../sglib_vst/README.md` ("Parameterisation") describes |
+| cmp-coverage | with a comparator, nodes may be skipped (no coverage) | no surveyed client frees the nodes of a comparator iteration as they are returned and needs all of them freed (I7 and C3 free by a later plain iteration) | a client that frees every node through a comparator iteration |
+
+**Triggers.**  The register is checked:
+- when a new benchmark or target library arrives;
+- when the survey is refreshed;
+- when a client proof fails because of a spec clause rather than proof
+  difficulty.
+
+**Resolution.**
+1. Add the new pattern to the survey, with the owner's approval, and
+   take the spec change to the owner as a public change.
+2. Where possible, prove `funspec_sub new old` for the changed
+   function, so that every existing client proof stays valid and only
+   the function's own proof is redone.
+3. Otherwise, list the affected clients and re-prove them: the frozen
+   survey already requires every surveyed client to stay provable.
+
+## Leak freedom (owner, 2026-11-17)
+
+Every postcondition accounts for all memory the function owns at the
+end, and `main` ends owning no heap memory (plan §2.1).  Re-check of
+the survey:
+
+- **Clients.**  Every stage-1 and stage-2 client (1–14) frees every node
+  it allocates; clients 8 and 9 now say so.  The covered clients free
+  every node: B1, B1a and B1c's drivers end with an iteration that frees
+  every node (their VST driver postconditions own nothing on the heap;
+  VST's `main` postcondition `SEP(TT)` must become leak-free, see
+  `../sglib_vst/REVIEW.md` section 4).  `st_iter_equal` (I7, C1) frees
+  nothing itself; its caller frees the list.
+- **Patterns.**  The patterns are not changed: a pattern that frees
+  nothing (G1, I1, I3, I7, A4) is used by a client that frees the list
+  afterwards.  I2 (iterate and free) is the pattern that needs the
+  iterator's coverage (Q4 as amended).  Out of scope, unchanged: I12,
+  C4, X1, X2.
+- **Open-source users that leak.**
+  - H1 (embench `sglib-combined`): adds 100 nodes and never frees
+    them (a benchmark that exits; a leak by the definition above).
+  - S1 and S2 (sglib's sample and self-test) free their lists
+    (`../sglib/dllist.c` line 49; `../sglib/selftest.c`
+    `double_linked_list_test`, frees at lines 678–710); not re-checked
+    path by path.
+  - U1–U7 were not re-read for leaks: their sources are outside this
+    repository.  U3's double free (above) is a memory-safety bug, not a
+    leak.
+
 ## The owner's decisions (2026-11-11)
 
 The owner decided all eight open questions of the draft on 2026-11-11.
@@ -303,6 +378,7 @@ The owner decided all eight open questions of the draft on 2026-11-11.
 - **Q4 — Iterator order and coverage: out of scope for the proofs.**
   - The project's goal is memory safety, not functional correctness.
   - Step 0 checks order and coverage at run time with sglib's lockstep check: I10 is checked at run time, not proved.
+  - **Amended 2026-11-17 (owner: the goal is now memory safety plus leak freedom).** Coverage comes back: "without a comparator, an iteration returns every node of the list exactly once" is proved, because clients that free every node by iterating (I2) need it to show that they leak nothing. Order is still not promised; I10's order part stays a run-time check.
 - **Q5 — List heads and iterators in heap memory: allowed.**
   - The VST specs drop every "not in a heap block" condition.
   - Ownership separates the head cell from the nodes.

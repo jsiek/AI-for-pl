@@ -114,13 +114,22 @@ tool (`{tool} grep -rn ... /home/rocq/.opam/4.14.2/lib/coq/user-contrib/VST/floy
 """
 
 
+# Per-command limits for the agent's tool (2026-11-18: a coqc run
+# exhausted the host's memory and wedged it).
+MEM = os.environ.get("ARIADNE_MEM", "16g")
+TIMEOUT = int(os.environ.get("ARIADNE_TIMEOUT", "1800"))
+
+
 def tool_script(run):
     return f"""#!/bin/sh
 # Plan Q10: the VST agent's only command.  Runs one command in the VST
-# image with {run} (only) mounted at /work, no network.
+# image with {run} (only) mounted at /work, no network.  Each command
+# is limited to {MEM} of memory (no extra swap) and {TIMEOUT} s.
 exec docker run --rm -i --init --network none \\
+  --memory {MEM} --memory-swap {MEM} --pids-limit 1024 \\
   --user "$(id -u):$(id -g)" -e HOME=/home/rocq \\
-  -v {run}:/work -w /work {IMAGE} bash -lc 'exec "$@"' bash "$@"
+  -v {run}:/work -w /work {IMAGE} timeout -s KILL {TIMEOUT} \\
+  bash -lc 'exec "$@"' bash "$@"
 """
 
 

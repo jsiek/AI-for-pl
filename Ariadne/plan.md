@@ -606,6 +606,16 @@ proved clients ported to the frozen spec (B1's driver with
 `myListCmp`).  Before relying on VST alone, port the harness pieces
 below (and M6 precondition 2, step 0 without ACSL).
 
+**Stage-1 library proofs: done (2026-11-18).**  Pilot 2 (`run_vst.py
+--bench dllist`, Opus 5.5, $6.04, 26 min, 141 turns) proved all six
+`semax_body` against the frozen spec (`ee6043a2f971a9f6`); `check_vst.py`
+re-checked it independently (coqc, Rocq 9.0.1 / VST 2.17: accepted, no
+`Admitted`, frozen files unchanged).  The proof is
+`bench/sglib_vst/verif_dllist.v`.  Pilot 1 (2026-11-17) proved nothing:
+a helper lemma's statement exhausted the host's memory and the run hit
+its 4-hour limit; every Docker run now has memory and time limits
+(`ARIADNE_MEM`, `ARIADNE_TIMEOUT`).  Next: the 13 client programs.
+
 **What `q10/run_vst.py` needs to target the frozen spec** (checked
 2026-11-17; it was written for Q10's task, in which the agent wrote its
 own funspecs for B1a/B1c):

@@ -616,6 +616,23 @@ a helper lemma's statement exhausted the host's memory and the run hit
 its 4-hour limit; every Docker run now has memory and time limits
 (`ARIADNE_MEM`, `ARIADNE_TIMEOUT`).  Next: the 13 client programs.
 
+**Stage-1 survey clients 1–8: done; client 9 re-running (2026-11-20).**
+Each client run gets `lib_clientN.v`, the library proof restated over its
+program (only the `Require` line changes; it re-checks for all nine), and
+proves only the client's own functions, `main` and `semax_prog`;
+`m6.check` proves by `reflexivity` that the client's `Gprog` gives the six
+library functions their frozen funspecs at the client's `Rc_client`, and
+lints the client's funspecs with the frozen spec's definitions unfolded.
+`run_clients.py` ran clients 1–9 one at a time (Opus 5.5, $10 cap each):
+1–8 proved and accepted by `check_vst.py` ($38.01 in all, 15–30 min
+each).  Client 9 (C3, counter comparator) was open: its signed `counter++`
+has undefined behaviour after `INT_MAX` calls, which `cmp_spec` allows, so
+no `Rc` survives every call.  The owner's "Callbacks" rule
+(`bench/sglib_spec/CLIENT_SURVEY.md`) classifies it as a defective
+callback; the counter is now `unsigned` and client 9 is being re-run.
+The proofs are `bench/sglib_vst/clients/verif_clientN.v`.  Remaining:
+B1, B1a, B1c and sglib's self-test client, ported to the frozen spec.
+
 **What `q10/run_vst.py` needs to target the frozen spec** (checked
 2026-11-17; it was written for Q10's task, in which the agent wrote its
 own funspecs for B1a/B1c):

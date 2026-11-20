@@ -70,6 +70,18 @@ def client_spec(n):
     return t.replace(SPEC_REQUIRE, "Require Import SglibVST.client%d." % n)
 
 
+LIB_REQUIRE = "Require Import SglibVST.dllist SglibVST.spec_dllist."
+
+
+def client_lib(n):
+    """lib_clientN.v: the checked library proof (verif_dllist.v, pilot 2)
+    over client N's program; it re-checks with only its Require changed."""
+    t = open(os.path.join(SGV, "verif_dllist.v")).read()
+    assert t.count(LIB_REQUIRE) == 1
+    return t.replace(LIB_REQUIRE, "Require Import SglibVST.client%d "
+                     "SglibVST.spec_client%d." % (n, n))
+
+
 def frozen_files(bench):
     """{name in the run directory: pristine text}."""
     files = {"spec_dllist.v": open(os.path.join(SGV, "spec_dllist.v")).read(),
@@ -80,6 +92,7 @@ def frozen_files(bench):
         files["client%d.c" % n] = open(os.path.join(
             SGV, "clients", "client%d.c" % n)).read()
         files["spec_client%d.v" % n] = client_spec(n)
+        files["lib_client%d.v" % n] = client_lib(n)
         files["CLIENT_SURVEY.md"] = open(os.path.join(
             ARIADNE, "bench", "sglib_spec", "CLIENT_SURVEY.md")).read()
     return files
@@ -132,16 +145,17 @@ semax_pre with (EX gv: globals, PROP () LOCAL (gvars gv; ...) SEP
 (globals_of_env rho)` (`gvars_denote gv rho` is `gv = globals_of_env
 rho`).
 
+"""
+
+# shared by both tasks: {compile} is the list of compile commands
+TOOLS = """\
 ## How to run the tools
 
 Your only command is `{tool}`: it runs one command inside the VST image,
 with this directory mounted at `/work` (the current directory there).
 For example:
 
-    {tool} clightgen -normalize dllist.c
-    {tool} coqc -native-compiler no -Q . SglibVST dllist.v
-    {tool} coqc -native-compiler no -Q . SglibVST spec_dllist.v
-    {tool} coqc -native-compiler no -Q . SglibVST verif_dllist.v
+{compile}
 
 The example compiles the same way from `example/` with `-Q . Smoke`.
 `-native-compiler no` is required.  Each call starts a container (a few
@@ -159,7 +173,7 @@ to see a goal).  The VST and Rocq sources are in the image under
   the tool's own argument), and write files with Write or Edit.  Any
   other command is denied; a denial does not end the task.
 * You have a budget of about ${usd} for this task.  Work toward a
-  complete `verif_dllist.v`; when you are done (or out of budget),
+  complete `{verif}`; when you are done (or out of budget),
   answer with one line per function: its name and PROVED or OPEN.
 """
 
@@ -176,33 +190,51 @@ clightgen, Rocq 9.0.1).  Files in this directory:
   `Require Import` line differs from `spec_dllist.v`).  Do not change it.
 * `SPEC.md`, `CLIENT_SURVEY.md`: the spec in English and the client
   survey (this client is "client {n}" under "New clients").
+* `lib_client{n}.v`: the **finished** proofs of the six library
+  functions over this program: `body_add`, `body_get_first`,
+  `body_get_last`, `body_it_init_on_equal`, `body_it_init`,
+  `body_it_next`, each `forall Rc, semax_body Vprog (Gprog Rc) f spec`
+  with `Vprog`, `Gprog` and the specs from `spec_client{n}.v`.  Use
+  them; do not prove the library functions again.  Do not change it.
 * `example/`: a small complete VST proof that is not this benchmark.
 
 ## What to produce
 
-One file, `verif_client{n}.v`, that Requires `SglibVST.client{n}` and
-`SglibVST.spec_client{n}`, uses the frozen funspecs for the six library
-functions unchanged, writes funspecs for the client's own functions and
-`main`, proves `semax_body` for every function of `client{n}.c` and
-`prog_correct : semax_prog prog tt Vprog Gprog`, each ending in `Qed.`.
+One file, `verif_client{n}.v`, that starts with
+
+    Require Import VST.floyd.proofauto.
+    Require Import VST.floyd.library.
+    Require Import SglibVST.client{n} SglibVST.spec_client{n}.
+    Require SglibVST.lib_client{n}.
+
+and that
+
+* defines `Rc_client : globals -> val -> mpred` (the comparator
+  resource this program uses; any value if it uses no comparator);
+* defines its own `Gprog`, in which each of the six library functions
+  has exactly its frozen funspec instantiated at `Rc_client`.  The
+  check proves, by `reflexivity`, `find_id i Gprog = find_id i
+  (SglibVST.spec_client{n}.Gprog Rc_client)` for each library function
+  `i`;
+* declares `#[export] Existing Instance NullExtension.Espec.` (the
+  check states `semax_prog` with it);
+* writes funspecs for the client's own functions and `main`;
+* proves `semax_body` for each of the client's own functions and
+  `main`, and `prog_correct : semax_prog prog tt Vprog Gprog`, each
+  ending in `Qed.`.  For a library function, derive its `semax_body`
+  under your `Gprog` from the `lib_client{n}` lemma (e.g. with
+  `semax_body_subsumption`).
 
 Leak freedom (owner, 2026-11-17): no postcondition may contain `TT` or
 an existential over `mpred` (also inside the predicates it uses), and
-`main`'s postcondition is `mem_mgr gv` plus the program's globals.
+`main`'s postcondition is `mem_mgr gv` plus the program's globals (and
+`has_ext tt`, which `main_pre` provides: VST's external-state token,
+not memory).
 
 No `Axiom`, `Parameter`, `admit` or `Conjecture`.  If you cannot finish
-a proof, end it with `Admitted.` and say which ones are open.
+a proof, end it with `Admitted.` so that the file still compiles, and
+say which ones are open in your last answer.
 
-## How to run the tools
-
-As for the library: `{tool} clightgen -normalize client{n}.c`, then
-`{tool} coqc -native-compiler no -Q . SglibVST client{n}.v`,
-`spec_client{n}.v`, `verif_client{n}.v`.
-
-## Rules
-
-As for the library (only this directory and the VST image; one command
-per Bash call; budget about ${usd}).
 """
 
 
@@ -211,12 +243,22 @@ def task(bench, tool, usd):
         lemmas = "\n".join("    Lemma body_%s :\n      %s."
                            % (f, statement(f, s, r, False))
                            for f, s, r in FUNCS)
-        return (TASK_DLLIST.replace("{lemmas}", lemmas)
-                .replace("{digest}", DIGEST).replace("{tool}", tool)
-                .replace("{usd}", str(usd)))
-    n = bench[len("client"):]
-    return (TASK_CLIENT.replace("{n}", n).replace("{digest}", DIGEST)
-            .replace("{tool}", tool).replace("{usd}", str(usd)))
+        text = TASK_DLLIST.replace("{lemmas}", lemmas)
+        files = ["dllist.c", "dllist.v", "spec_dllist.v", "verif_dllist.v"]
+    else:
+        n = bench[len("client"):]
+        text = TASK_CLIENT.replace("{n}", n)
+        files = ["client%s.%s" % (n, e) for e in ("c", "v")] + [
+            f % n for f in ("spec_client%s.v", "lib_client%s.v",
+                            "verif_client%s.v")]
+    compile = "\n".join(
+        "    {tool} " + ("clightgen -normalize " if f.endswith(".c") else
+                         "coqc -native-compiler no -Q . SglibVST ") + f
+        for f in files)
+    return ((text + TOOLS).replace("{compile}", compile)
+            .replace("{verif}", proof_file(bench))
+            .replace("{digest}", DIGEST).replace("{tool}", tool)
+            .replace("{usd}", str(usd)))
 
 
 def setup(run, bench):
@@ -315,11 +357,14 @@ def check(run, bench, out_dir=None):
     s = {"bench": bench, "digest": DIGEST,
          "frozen_unchanged": frozen_unchanged(run, bench),
          "violations": []}
-    if not all(s["frozen_unchanged"].values()):
+    # a changed .c/.v file is a violation; a changed document (SPEC.md,
+    # CLIENT_SURVEY.md) is only recorded: the check compiles pristine
+    # copies, and the documents may be updated after a run (e.g. the
+    # survey's Callbacks section, 2026-11-20)
+    changed = sorted(k for k, v in s["frozen_unchanged"].items() if not v)
+    if any(k.endswith((".c", ".v")) for k in changed):
         s["violations"].append("a frozen file in the run directory was "
-                               "changed: %s" % sorted(
-                                   k for k, v in s["frozen_unchanged"].items()
-                                   if not v))
+                               "changed: %s" % changed)
     if not os.path.exists(verif):
         s["violations"].append("%s missing" % verif_name)
         return finish(out, s)
@@ -341,6 +386,8 @@ def check(run, bench, out_dir=None):
     c["ast"] = coqc(work, prog + ".v", "ast.log")
     spec = "spec_dllist.v" if bench == "dllist" else "spec_%s.v" % bench
     c["spec"] = coqc(work, spec, "spec.log")
+    if bench != "dllist":
+        c["lib"] = coqc(work, "lib_%s.v" % bench, "lib.log")
     c["verif"] = coqc(work, verif_name, "verif.log")
     s["compile"] = c
     if any(c.values()):
@@ -362,16 +409,31 @@ def check(run, bench, out_dir=None):
             lines += ["Require Import SglibVST.dllist SglibVST.spec_dllist.",
                       "Check (%s.%s : %s)." % (mod, name, stmt)]
         else:
-            lines += ["Check (%s.%s : @semax_prog _ %s.%s.prog tt %s.Vprog "
-                      "%s.Gprog)." % (mod, name, LIB, bench, mod, mod)]
+            lines += ["Require Import %s.%s %s.spec_%s." % (LIB, bench, LIB,
+                                                           bench),
+                      "#[local] Existing Instance NullExtension.Espec.",
+                      "Check (%s.%s : semax_prog %s.%s.prog tt "
+                      "%s.spec_%s.Vprog %s.Gprog)."
+                      % (mod, name, LIB, bench, LIB, bench, mod)]
+            # the six library entries of the client's Gprog are the
+            # frozen funspecs at the client's Rc
+            fid = "VST.veric.initial_world.find_id %s.%s._sglib_dllist_" % (
+                LIB, bench)
+            lines += ["Goal %s%s %s.Gprog = %s%s (%s.spec_%s.Gprog "
+                      "%s.Rc_client). Proof. reflexivity. Qed."
+                      % (fid, f, mod, fid, f, LIB, bench, mod)
+                      for f, _, _ in FUNCS]
         lines += ["Print Assumptions %s.%s." % (mod, name)]
         open(os.path.join(work, chk), "w").write("\n".join(lines) + "\n")
         rc = coqc(work, chk, chk + ".log")
         log = open(os.path.join(work, chk + ".log")).read()
         if rc:
             s["lemmas"][name] = "MISSING OR WRONG STATEMENT"
-            s["violations"].append("%s: not the frozen statement (or "
-                                   "missing)" % name)
+            s["violations"].append(
+                "%s: missing or not the frozen statement%s" % (name, (
+                    "" if bench == "dllist" else
+                    ", or Gprog's library entries are not the frozen "
+                    "funspecs at Rc_client")))
             continue
         # The lint forbids Axiom/Parameter in the proof file, and only the
         # proof file and pristine files are compiled here, so an
@@ -380,9 +442,13 @@ def check(run, bench, out_dir=None):
         extra = sorted(set(ax) - allowed) if ax is not None else ["?"]
         s["lemmas"][name] = ("PROVED" if not extra else
                              "OPEN (assumes %s)" % ", ".join(extra))
+    # with the frozen spec module, so that a funspec the proof builds from
+    # the spec's definitions (e.g. `cmp_spec Rc f` for a comparator) is
+    # unfolded and checked rather than failing closed
     pl = subprocess.run(["python3", "-I", os.path.join(SGV, "lint",
                                                        "post_lint.py"),
-                         "--root", work, "--allow-none", mod],
+                         "--root", work, "--allow-none",
+                         "%s.%s" % (LIB, spec[:-2]), mod],
                         capture_output=True, text=True)
     s["post_lint"] = {"rc": pl.returncode, "out": pl.stdout[-2000:]}
     if pl.returncode:

@@ -14,6 +14,8 @@
   leaks ("Leak freedom", below).  The same day the owner added the
   "Revisit register" (below) for decisions that rest on "no surveyed
   client does X".
+- **2026-11-20 (owner):** the "Callbacks" rule (below), and client 9's
+  counter made `unsigned` under it.
 
 **Functions in scope** (the owner's decision Q1, below).
 - **Stage 1:** the functions the public spec template
@@ -259,6 +261,9 @@ Where existing clients are proved today:
 9. **A comparator with its own state (C3).**
    - `it_init_on_equal` with a comparator that compares payloads and increments a counter it owns (a static variable, or a struct the client passes).
    - The client's predicate for the comparator's state is "the counter equals k".
+   - The counter is `unsigned` (owner, 2026-11-20; "Callbacks", case 1):
+     a signed counter has undefined behaviour after `INT_MAX` calls, which
+     the comparator's contract allows.
    - The client reads the count after the iteration.
    - This exercises the comparator funspec decided under Q6.
    - It then frees every node by an iteration without a comparator, and
@@ -329,6 +334,34 @@ justified by the absence of a client gets an entry here.
    the function's own proof is redone.
 3. Otherwise, list the affected clients and re-prove them: the frozen
    survey already requires every surveyed client to stay provable.
+
+## Callbacks (owner, 2026-11-20)
+
+A client's callback (today: the comparator) must satisfy the library's
+funspec for it on **every** call sequence the library's contract allows,
+not only on the calls this program happens to make.  When a callback
+cannot be proved against its funspec, ask: is there a call sequence the
+contract allows on which the callback has undefined behaviour?
+
+1. **Yes: the callback is defective; change the client.**  Make the
+   callback safe for every allowed call sequence, and record the change
+   and the reason at the client's entry.  The spec does not change.
+2. **No: the funspec is too weak to show the callback safe.**  The
+   callback is safe on every allowed sequence, but the funspec does not
+   say so (e.g. the library documents "at most one comparison per
+   element" and the funspec does not express it).  This is a spec gap:
+   it goes through the revisit register's resolution (above), with a
+   public spec change approved by the owner.
+
+The contract is sglib's documented behaviour.  A bound that only the
+library's code gives, and that sglib does not document, is not part of
+the contract, so a callback that depends on it falls under case 1.
+The run-time checks (ASan, UBSan) cannot tell the two cases apart: they
+see only the calls one run makes.
+
+| Client | Callback | Allowed sequence with undefined behaviour | Case | Change |
+|---|---|---|---|---|
+| 9 (C3) | `counting_cmp`: `counter++` on a signed `int` | `INT_MAX + 1` comparisons (`cmp_spec` does not bound the number of calls) | 1 | `counter` (and the client's result) made `unsigned`, which wraps without undefined behaviour |
 
 ## Leak freedom (owner, 2026-11-17)
 

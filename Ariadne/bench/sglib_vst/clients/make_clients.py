@@ -281,19 +281,20 @@ int main(void) {
 """),
     9: ("A comparator with its own state (C3): it_init_on_equal with a "
         "comparator that compares payloads and increments a global "
-        "counter; the client reads the count, then frees every node by "
+        "unsigned counter (wraps, so any number of calls is defined: "
+        "owner, 2026-11-20); the client reads the count, then frees every node by "
         "an iteration without a comparator.", """\
-int counter = 0;
+unsigned counter = 0;
 
 int counting_cmp(dllist *a, dllist *b) {
   counter++;
   return a->i == b->i ? 0 : 1;
 }
 
-int client(const int *input, int n) {
+unsigned client(const int *input, int n) {
   dllist *list = NULL, *l, key;
   struct sglib_dllist_iterator it;
-  int found = 0;
+  unsigned found = 0;
   key.i = input[0];
   key.ptr_to_next = NULL;
   key.ptr_to_previous = NULL;

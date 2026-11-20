@@ -616,7 +616,7 @@ a helper lemma's statement exhausted the host's memory and the run hit
 its 4-hour limit; every Docker run now has memory and time limits
 (`ARIADNE_MEM`, `ARIADNE_TIMEOUT`).  Next: the 13 client programs.
 
-**Stage-1 survey clients 1–8: done; client 9 re-running (2026-11-20).**
+**Stage-1 survey clients 1–9: done (2026-11-20).**
 Each client run gets `lib_clientN.v`, the library proof restated over its
 program (only the `Require` line changes; it re-checks for all nine), and
 proves only the client's own functions, `main` and `semax_prog`;
@@ -629,7 +629,9 @@ each).  Client 9 (C3, counter comparator) was open: its signed `counter++`
 has undefined behaviour after `INT_MAX` calls, which `cmp_spec` allows, so
 no `Rc` survives every call.  The owner's "Callbacks" rule
 (`bench/sglib_spec/CLIENT_SURVEY.md`) classifies it as a defective
-callback; the counter is now `unsigned` and client 9 is being re-run.
+callback; with the counter `unsigned`, the re-run proved client 9
+($5.01, 25 min; accepted).  Stage-1 clients in all: $43.03 for the
+accepted runs, $48.98 with client 9's first run.
 The proofs are `bench/sglib_vst/clients/verif_clientN.v`.  Remaining:
 B1, B1a, B1c and sglib's self-test client, ported to the frozen spec.
 

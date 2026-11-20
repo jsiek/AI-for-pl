@@ -44,8 +44,14 @@ FUNCS = [("add", "add_spec", False),
 
 # per-benchmark budget caps (USD), used when --usd is not given
 CAPS = {"b1a": 15.0, "b1c": 15.0, "dllist": 25.0}
-CAPS.update({"client%d" % i: 10.0 for i in range(1, 10)})
+CLIENT_IDS = [str(i) for i in range(1, 10)] + ["b1", "b1a", "b1c", "st"]
+CAPS.update({"client" + i: 10.0 for i in CLIENT_IDS})
 BENCHES = sorted(CAPS)
+# the covered clients ported to the frozen spec (survey, "Covered
+# clients ported")
+PORTS = {"b1": "B1 (b1/b1.c:b1)", "b1a": "B1a (b1a/b1a_ref.c:b1)",
+         "b1c": "B1c (b1c/b1c_ref.c:b1)",
+         "st": "the self-test driver st_iter_equal (selftest/wp/driver.c)"}
 FORBIDDEN = r"\b(admit|Axiom|Parameter|Conjecture)\b"
 
 
@@ -67,7 +73,7 @@ def client_spec(n):
     """spec_clientN.v: the frozen spec over client N's program."""
     t = open(os.path.join(SGV, "spec_dllist.v")).read()
     assert t.count(SPEC_REQUIRE) == 1
-    return t.replace(SPEC_REQUIRE, "Require Import SglibVST.client%d." % n)
+    return t.replace(SPEC_REQUIRE, "Require Import SglibVST.client%s." % n)
 
 
 LIB_REQUIRE = "Require Import SglibVST.dllist SglibVST.spec_dllist."
@@ -78,8 +84,8 @@ def client_lib(n):
     over client N's program; it re-checks with only its Require changed."""
     t = open(os.path.join(SGV, "verif_dllist.v")).read()
     assert t.count(LIB_REQUIRE) == 1
-    return t.replace(LIB_REQUIRE, "Require Import SglibVST.client%d "
-                     "SglibVST.spec_client%d." % (n, n))
+    return t.replace(LIB_REQUIRE, "Require Import SglibVST.client%s "
+                     "SglibVST.spec_client%s." % (n, n))
 
 
 def frozen_files(bench):
@@ -88,11 +94,11 @@ def frozen_files(bench):
              "SPEC.md": open(os.path.join(SGV, "SPEC.md")).read(),
              "dllist.c": open(os.path.join(SGV, "dllist.c")).read()}
     if bench.startswith("client"):
-        n = int(bench[len("client"):])
-        files["client%d.c" % n] = open(os.path.join(
-            SGV, "clients", "client%d.c" % n)).read()
-        files["spec_client%d.v" % n] = client_spec(n)
-        files["lib_client%d.v" % n] = client_lib(n)
+        n = bench[len("client"):]
+        files["client%s.c" % n] = open(os.path.join(
+            SGV, "clients", "client%s.c" % n)).read()
+        files["spec_client%s.v" % n] = client_spec(n)
+        files["lib_client%s.v" % n] = client_lib(n)
         files["CLIENT_SURVEY.md"] = open(os.path.join(
             ARIADNE, "bench", "sglib_spec", "CLIENT_SURVEY.md")).read()
     return files
@@ -189,7 +195,7 @@ clightgen, Rocq 9.0.1).  Files in this directory:
   functions (digest {digest}), restated over this program (only its
   `Require Import` line differs from `spec_dllist.v`).  Do not change it.
 * `SPEC.md`, `CLIENT_SURVEY.md`: the spec in English and the client
-  survey (this client is "client {n}" under "New clients").
+  survey ({where}).
 * `lib_client{n}.v`: the **finished** proofs of the six library
   functions over this program: `body_add`, `body_get_first`,
   `body_get_last`, `body_it_init_on_equal`, `body_it_init`,
@@ -247,7 +253,11 @@ def task(bench, tool, usd):
         files = ["dllist.c", "dllist.v", "spec_dllist.v", "verif_dllist.v"]
     else:
         n = bench[len("client"):]
-        text = TASK_CLIENT.replace("{n}", n)
+        where = ('this client is "client %s" under "New clients"' % n
+                 if n.isdigit() else
+                 'this client is %s, ported under "Covered clients '
+                 'ported"' % PORTS[n])
+        text = TASK_CLIENT.replace("{where}", where).replace("{n}", n)
         files = ["client%s.%s" % (n, e) for e in ("c", "v")] + [
             f % n for f in ("spec_client%s.v", "lib_client%s.v",
                             "verif_client%s.v")]

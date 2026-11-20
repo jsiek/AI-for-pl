@@ -632,8 +632,17 @@ no `Rc` survives every call.  The owner's "Callbacks" rule
 callback; with the counter `unsigned`, the re-run proved client 9
 ($5.01, 25 min; accepted).  Stage-1 clients in all: $43.03 for the
 accepted runs, $48.98 with client 9's first run.
-The proofs are `bench/sglib_vst/clients/verif_clientN.v`.  Remaining:
-B1, B1a, B1c and sglib's self-test client, ported to the frozen spec.
+The proofs are `bench/sglib_vst/clients/verif_clientN.v`.
+
+**Covered clients ported: done (2026-11-20).**  B1, B1a, B1c and the
+self-test driver `st_iter_equal`, without their ACSL, with a `main`
+(`clientb1.c`, `clientb1a.c`, `clientb1c.c`, `clientst.c`; survey,
+"Covered clients ported").  The self-test's `myListCmp` (`e1->n - e2->n`)
+overflows on payloads `cmp_spec` allows; under the Callbacks rule (case 1)
+the port compares without overflow.  Opus 5.5 proved all four ($18.66,
+19–23 min each), and `check_vst.py` accepted each.  All 13 stage-1 client
+programs are proved against the frozen spec: $61.69 for the accepted
+runs, $67.64 with client 9's first run.
 
 **What `q10/run_vst.py` needs to target the frozen spec** (checked
 2026-11-17; it was written for Q10's task, in which the agent wrote its

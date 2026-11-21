@@ -181,8 +181,9 @@ Trusted (TCB):
     else.
 6.  `main`'s spec, fixed by the method (leak freedom, §2.1), and the
     `semax_prog` statement.
-7.  The specs of the external functions the program calls (libc, I/O),
-    and the assumption that the real library meets them.  These are
+7.  The specs of the external functions the program calls (libc, I/O)
+    that are not verified from source (§4), and the assumption that the
+    real library meets them.  These are
     the human-reviewed part (G9), each reviewed once and shared across
     programs.  For a library target (sglib), the public spec too.
 
@@ -226,6 +227,26 @@ bound.
     The external functions the program calls get specs from a shared
     library (G8), reviewed by the owner once each (G9).  Every other
     funspec is written by the agent and is not trusted (§2.2).
+*   **The C standard library (owner, 2026-11-21): verify where feasible
+    and affordable, otherwise a trusted spec the owner approves.**  A
+    libc function whose source is plain C (musl, pinned, in a
+    configuration clightgen accepts and VST can prove, e.g. musl's
+    byte-at-a-time `strlen` rather than its word-at-a-time path, which
+    reads past the end of the string) is compiled into the program and
+    proved with it, so its spec is an untrusted lemma.  If verification
+    is not feasible (system calls: `fopen`, `fgets`, `printf`, `exit`;
+    the allocator, whose specs are VST's axioms) or too costly (for
+    example musl's `strtod` and `snprintf`, which go through its float
+    scanner and `vfprintf`), the function gets a trusted spec written
+    for memory safety (buffer ownership, abstract `FILE*` handles) and
+    approved by the owner.  *Too costly* is mechanical (owner,
+    2026-11-21): each function whose source is feasible gets one prover
+    run with a $10 cap (the client cap); if `check_vst.py` does not
+    accept that run, the function falls back to a trusted spec for the
+    owner's approval.  The choice per function, and its reason
+    (infeasible, or the cost of the attempt), is recorded in the
+    shared library, and the proved functions are shared across
+    programs (G8).
 *   **A library target (sglib):** the public spec, written under the M6
     public-spec rules and approved by the owner (§8).
 *   **Shape predicates** are Rocq definitions over VST's `mpred`

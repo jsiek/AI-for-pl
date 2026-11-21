@@ -204,10 +204,10 @@ FreshR d w L T′ =
 OracleR : Dir → ℕ → Set
 OracleR d N =
   ∀ {w} {n′ n} (le : n′ ≤′ n) → n′ ≤ N → (c : SDesc (ΔL w) (ΔR w))
-  → FreshR d w (sem (leafBelowS d le c)) (rightTyS c)
+  → WFS c → FreshR d w (sem (leafBelowS d le c)) (rightTyS c)
 
 OracleR-down : ∀ {d N N′} → N′ ≤ N → OracleR d N → OracleR d N′
-OracleR-down le o l b c = o l (≤-trans b le) c
+OracleR-down le o l b c wf = o l (≤-trans b le) c wf
 
 -- an other variable's leaf under the conversion at hand, in every
 -- future
@@ -1320,14 +1320,14 @@ module PairR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
   pairRevR : ∀ {n} w {X} {m : RMode Φ X (ΔR w)} {δs δt}
       (h : RConvI d N w m δs δt) → n ≤ N
     → ∀ {Vl Vr} → Value Vl → Value Vr → allPair d n p w δs Vl Vr
-    → ∀ Xs Ys c
+    → ∀ Xs Ys c → WFDesc c
     → ℰ d n p w (extPairI (repL Xs c) (repR Ys c)
           (sem (leafBelowS d (≤′-refl {n}) (sdesc Xs Ys c))) δt)
         (Vl ⦂∀ substᵗ (extsᵗ (δl δt)) A [ repL Xs c ])
         ((Vr ↑ `∀↑ 〖 suc (rα m) , ⇑ᵗ (rR m (δr δt))
                     ↑ substᵗ (extsᵗ (δr δs)) B 〗)
            ⦂∀ substᵗ (extsᵗ (δr δt)) B [ repR Ys c ])
-  pairRevR {n} w {X} {m} {δs} {δt} h le {Vl} {Vr} vl vr r Xs Ys c =
+  pairRevR {n} w {X} {m} {δs} {δt} h le {Vl} {Vr} vl vr r Xs Ys c wf =
     antiR₁ d p le stepR (tagsR w) (okBindR w Tr) inner
     where
     Tl = repL Xs c
@@ -1392,7 +1392,7 @@ module PairR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       hβ = RConvI-newR e₁ (new-bind Tr) {Ls = Ls} {Lt = Lt} {Tr = Tr}
         {Tl = Tl} {T = T₁} (repL-rename ρL₁ ρR₁ Xs c) s≤N (freshTR h) gLs
         (leafBelowS-good d (≤′-refl {n}) (sdesc Xs Ys c))
-        (oracleR h (≤′-refl {n}) le (sdesc Xs Ys c))
+        (oracleR h (≤′-refl {n}) le (sdesc Xs Ys c) wf)
         (SealNewR.sealNewR d le_s (≤′-refl {n}) (≤′⇒≤ le_s) e₁ Xs Ys c
           {Φ = Φ} {δt = δt} {T = T₁} zero up)
 
@@ -1408,7 +1408,7 @@ module PairR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
             (annot Tr (δr δs) B))
           (ℰᵍ-map d s w₁
             (λ le′ w″ e″ V V′ → 𝒱≤-cast d (≤′-trans le′ le_s) le′ p w″)
-            (r e₁ le_s c″))
+            (r e₁ le_s c″ (WFDesc-rename ρL₁ ρR₁ c wf)))
 
       K₁ : ∀ {w₂} (e₂ : w₂ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
         → Value Ql → Value Qr → 𝒱 d k p w₂ (δsβ ↑ᴵ e₂) Ql Qr
@@ -1437,14 +1437,14 @@ module PairR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
   pairConR : ∀ {n} w {X} {m : RMode Φ X (ΔR w)} {δs δt}
       (h : RConvI d N w m δs δt) → ConBR d n N
     → ∀ {Wl Wr} → Value Wl → Value Wr → allPair d n p w δt Wl Wr
-    → ∀ Xs Ys c
+    → ∀ Xs Ys c → WFDesc c
     → ℰ d n p w (extPairI (repL Xs c) (repR Ys c)
           (sem (leafBelowS d (≤′-refl {n}) (sdesc Xs Ys c))) δs)
         (Wl ⦂∀ substᵗ (extsᵗ (δl δs)) A [ repL Xs c ])
         ((Wr ↓ `∀↓ makeConceal (suc (rα m)) (⇑ᵗ (rR m (δr δt)))
                     (substᵗ (extsᵗ (δr δs)) B))
            ⦂∀ substᵗ (extsᵗ (δr δs)) B [ repR Ys c ])
-  pairConR {n} w {X} {m} {δs} {δt} h cb {Wl} {Wr} wl wr r Xs Ys c =
+  pairConR {n} w {X} {m} {δs} {δt} h cb {Wl} {Wr} wl wr r Xs Ys c wf =
     antiR₁ d p (ConBR-≤ d cb) stepR (tagsR w) (okBindR w Tr) inner
     where
     Tl = repL Xs c
@@ -1513,7 +1513,7 @@ module PairR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       hβ = RConvI-newR e₁ (new-bind Tr) {Ls = Ls} {Lt = Lt} {Tr = Tr}
         {Tl = Tl} {T = T₁} (repL-rename ρL₁ ρR₁ Xs c) s≤N (freshSR h) gLs
         (leafBelowS-good d (≤′-refl {n}) (sdesc Xs Ys c))
-        (oracleR h (≤′-refl {n}) (ConBR-≤ d cb) (sdesc Xs Ys c))
+        (oracleR h (≤′-refl {n}) (ConBR-≤ d cb) (sdesc Xs Ys c) wf)
         (SealNewR.sealNewR d le_s (≤′-refl {n}) (≤′⇒≤ le_s) e₁ Xs Ys c
           {Φ = Φ} {δt = δs} {T = T₁} zero up)
 
@@ -1530,7 +1530,7 @@ module PairR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
               (cong (renameᵗ (extᵗ suc)) (sym tgtR))))
           (ℰᵍ-map d s w₁
             (λ le′ w″ e″ V V′ → 𝒱≤-cast d (≤′-trans le′ le_s) le′ p w″)
-            (r e₁ le_s c″))
+            (r e₁ le_s c″ (WFDesc-rename ρL₁ ρR₁ c wf)))
 
       K₁ : ∀ {w₂} (e₂ : w₂ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
         → Value Ql → Value Qr → 𝒱 d k p w₂ (δtβ ↑ᴵ e₂) Ql Qr
@@ -1564,12 +1564,12 @@ module PairR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     → allPair d n p w δt Vl
         (revM (rcR m (δr δt)) (substᵗ (δr δs) (`∀ B)) Vr)
   revV {n} w {m = m} {δs} {δt} h le {Vl} {Vr} vl vr r =
-    allPair-from d n p w {δ = δt} λ e {n′} le′ (sdesc Xs Ys c) →
+    allPair-from d n p w {δ = δt} λ e {n′} le′ (sdesc Xs Ys c) wf →
       ℰᵍ-≡ refl (inst≡ (sym (revVR e m δs δt Vr (`∀ B))))
         (pairRevR {n′} _ (RConvI-↑ e h) (≤-trans le′ le)
           (renameᵗᵐ-preserves-Value (ρL e) vl)
           (renameᵗᵐ-preserves-Value (ρR e) vr)
-          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c)
+          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c wf)
 
   conV : ∀ {n} w {X} {m : RMode Φ X (ΔR w)} {δs δt}
       (h : RConvI d N w m δs δt) → ConBR d n N
@@ -1577,12 +1577,12 @@ module PairR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     → allPair d n p w δs Wl
         (conM (rcR m (δr δt)) (substᵗ (δr δs) (`∀ B)) Wr)
   conV {n} w {m = m} {δs} {δt} h cb {Wl} {Wr} wl wr r =
-    allPair-from d n p w {δ = δs} λ e {n′} le′ (sdesc Xs Ys c) →
+    allPair-from d n p w {δ = δs} λ e {n′} le′ (sdesc Xs Ys c) wf →
       ℰᵍ-≡ refl (inst≡ (sym (conVR e m δs δt Wr (`∀ B))))
         (pairConR {n′} _ (RConvI-↑ e h) (ConBR-down d le′ cb)
           (renameᵗᵐ-preserves-Value (ρL e) wl)
           (renameᵗᵐ-preserves-Value (ρR e) wr)
-          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c)
+          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c wf)
 
 ------------------------------------------------------------------------
 -- The lemma

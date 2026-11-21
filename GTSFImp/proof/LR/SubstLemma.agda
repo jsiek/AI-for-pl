@@ -490,7 +490,7 @@ mutual
     → ∀ {Vl Vr} → allPair d n p w δ₁ Vl Vr
         ⇔ allPair d n (renᵖ (ext-pairᴿ R) p) w δ₂ Vl Vr
   allPair-ren d n R {A = A} {B = B} p w h {Vl = Vl} {Vr = Vr} =
-    iff (λ r e le c →
+    iff (λ r e le c wf →
            ℰᵍ-≡
              (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-ren (rl≡ (RenI-↑ h e)) A))
@@ -501,8 +501,8 @@ mutual
                  to (𝒱≤-ren d (≤′-trans le′ le) (ext-pairᴿ R) p w″
                       (RenI-↑ (RenI-extPair {T = leftTyS c}
                         {T′ = rightTyS c} (RenI-↑ h e)) e′)))
-               (r e le c)))
-        (λ r e le c →
+               (r e le c wf)))
+        (λ r e le c wf →
            ℰᵍ-≡
              (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-ren (rl≡ (RenI-↑ h e)) A)))
@@ -513,7 +513,7 @@ mutual
                  from (𝒱≤-ren d (≤′-trans le′ le) (ext-pairᴿ R) p w″
                         (RenI-↑ (RenI-extPair {T = leftTyS c}
                           {T′ = rightTyS c} (RenI-↑ h e)) e′)))
-               (r e le c)))
+               (r e le c wf)))
 
   allOnly-ren : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′}
       (R : CRen Ψ Ψ′) {A B} (p : only Ψ ⊢ A ⊑ B) w
@@ -889,7 +889,7 @@ mutual
     → ∀ {Vl Vr} → allPair d n p w δ₁ Vl Vr
         ⇔ allPair d n (substᵖ (exts-pairˢ S) p) w δ₂ Vl Vr
   allPair-subst d n S {A = A} {B = B} p w h lt {Vl = Vl} {Vr = Vr} =
-    iff (λ r e le c →
+    iff (λ r e le c wf →
            ℰᵍ-≡
              (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-subst (sl≡ (SubI-↑ h e)) A))
@@ -901,8 +901,8 @@ mutual
                       (SubI-↑ (SubI-extPair (sem (leafBelowS d le c))
                         (SubI-↑ h e)) e′)
                       pos′ (below (≤′-trans le′ le) lt)))
-               (r e le c)))
-        (λ r e le c →
+               (r e le c wf)))
+        (λ r e le c wf →
            ℰᵍ-≡
              (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-subst (sl≡ (SubI-↑ h e)) A)))
@@ -914,7 +914,7 @@ mutual
                         (SubI-↑ (SubI-extPair (sem (leafBelowS d le c))
                           (SubI-↑ h e)) e′)
                         pos′ (below (≤′-trans le′ le) lt)))
-               (r e le c)))
+               (r e le c wf)))
 
   allOnly-subst : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′}
       (S : PSub Ψ Ψ′) {A B} (p : only Ψ ⊢ A ⊑ B) {N} w

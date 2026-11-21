@@ -219,6 +219,7 @@ FreshO d w L T =
 Oracle : Dir → ℕ → Set
 Oracle d N =
   (∀ {w} {n′ n} (le : n′ ≤′ n) → n′ ≤ N → (c : SDesc (ΔL w) (ΔR w))
+     → WFS c
      → FreshP d both w (sem (leafBelowS d le c)) (leftTyS c) (rightTyS c))
   × (∀ {w} {n′ n} (le : n′ ≤′ n) → n′ ≤ N → (c : SDesc (ΔL w) (ΔR w))
      → FreshO d w (sem (onlyLeafS d le c)) (leftTyS c))
@@ -1947,7 +1948,8 @@ leafBelowS-ren d le σL σR (sdesc Xs Ys c) k w τL τR {V} {V′} =
 -- the oracle at a lower bound
 Oracle-down : ∀ {d N N′} → N′ ≤ N → Oracle d N → Oracle d N′
 Oracle-down le (op , oo) =
-  (λ l b c → op l (≤-trans b le) c) , (λ l b c → oo l (≤-trans b le) c)
+  (λ l b c wf → op l (≤-trans b le) c wf) ,
+  (λ l b c → oo l (≤-trans b le) c)
 
 ------------------------------------------------------------------------
 -- The store variable an allocation creates
@@ -2928,7 +2930,7 @@ module PairRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       (h : ConvI d N both w m α δs δt) → n ≤ N
     → ∀ {α′ R′} → rconv m (δr δt) ≡ just (α′ , R′)
     → ∀ {Vl Vr} → Value Vl → Value Vr → allPair d n p w δs Vl Vr
-    → ∀ Xs Ys c
+    → ∀ Xs Ys c → WFDesc c
     → ℰ d n p w (extPairI (repL Xs c) (repR Ys c)
           (sem (leafBelowS d (≤′-refl {n}) (sdesc Xs Ys c))) δt)
         ((Vl ↑ `∀↑ 〖 suc α , ⇑ᵗ (repM m (δl δt))
@@ -2936,9 +2938,9 @@ module PairRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
            ⦂∀ substᵗ (extsᵗ (δl δt)) A [ repL Xs c ])
         ((Vr ↑ `∀↑ 〖 suc α′ , ⇑ᵗ R′ ↑ substᵗ (extsᵗ (δr δs)) B 〗)
            ⦂∀ substᵗ (extsᵗ (δr δt)) B [ repR Ys c ])
-  pairRev {zero} w h le eq vl vr r Xs Ys c = ℰ-zero d p w
+  pairRev {zero} w h le eq vl vr r Xs Ys c wf = ℰ-zero d p w
   pairRev {suc s} w {X} {m} {α} {δs} {δt} h le {α′} {R′} eq {Vl} {Vr}
-      vl vr r Xs Ys c =
+      vl vr r Xs Ys c wf =
     anti₁₁ d p stepL stepR (tagsLR w) (okBindLR w Tl Tr) inner
     where
     Tl = repL Xs c
@@ -3001,7 +3003,7 @@ module PairRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     hβ = ConvI-newP e₁ (new-bind Tl) {Ls = Ls} {Lt = Lt} {Tl = Tl}
       {Tr = Tr} (new-bind Tr) s≤N (freshT h) gLs
       (leafBelowS-good d (≤′-refl {suc s}) (sdesc Xs Ys c))
-      (proj₁ (oracle h) (≤′-refl {suc s}) le (sdesc Xs Ys c))
+      (proj₁ (oracle h) (≤′-refl {suc s}) le (sdesc Xs Ys c) wf)
       (SealNewP.sealNewP d le_s (≤′-refl {suc s}) (n≤1+n s) e₁ Xs Ys c zero
         {Φ = Φ} {δt = δt} zero)
 
@@ -3016,7 +3018,7 @@ module PairRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (annot Tr (δr δs) B))
         (ℰᵍ-map d s w₁
           (λ le′ w″ e″ V V′ → 𝒱≤-cast d (≤′-trans le′ le_s) le′ p w″)
-          (r e₁ le_s c″))
+          (r e₁ le_s c″ (WFDesc-rename ρL₁ ρR₁ c wf)))
 
     R≡ : repM m₁ (δl δtβ) ≡ ⇑ᵗ R
     R≡ = trans (repM-pair (CMode-↑ ρL₁ ρR₁ m) (δl (δt ↑ᴵ e₁)) (＇ zero))
@@ -3109,7 +3111,7 @@ module PairRevL (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
   pairRevL : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt} {rk}
       (h : ConvI d N rk w m α δs δt) → n ≤ N → rconv m (δr δt) ≡ nothing
     → ∀ {Vl Vr} → Value Vl → Value Vr → allPair d n p w δs Vl Vr
-    → ∀ Xs Ys c
+    → ∀ Xs Ys c → WFDesc c
     → ℰ d n p w (extPairI (repL Xs c) (repR Ys c)
           (sem (leafBelowS d (≤′-refl {n}) (sdesc Xs Ys c))) δt)
         ((Vl ↑ `∀↑ 〖 suc α , ⇑ᵗ (repM m (δl δt))
@@ -3117,7 +3119,7 @@ module PairRevL (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
            ⦂∀ substᵗ (extsᵗ (δl δt)) A [ repL Xs c ])
         (Vr ⦂∀ substᵗ (extsᵗ (δr δt)) B [ repR Ys c ])
   pairRevL {n} w {X} {m} {α} {δs} {δt} {rk} h le eqn {Vl} {Vr} vl vr r
-      Xs Ys c =
+      Xs Ys c wf =
     antiL₁ d p le stepL (tagsL w) (okBindL w Tl) inner
     where
     Tl = repL Xs c
@@ -3188,7 +3190,7 @@ module PairRevL (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       hβ = ConvI-newL e₁ (new-bind Tl) {Ls = Ls} {Lt = Lt} {Tl = Tl}
         {Tr = Tr} {T′ = T′} (repR-rename ρL₁ ρR₁ Ys c) s≤N (freshT h) gLs
         (leafBelowS-good d (≤′-refl {n}) (sdesc Xs Ys c))
-        (proj₁ (oracle h) (≤′-refl {n}) le (sdesc Xs Ys c))
+        (proj₁ (oracle h) (≤′-refl {n}) le (sdesc Xs Ys c) wf)
         (SealNewP.sealNewL d le_s (≤′-refl {n}) (≤′⇒≤ le_s) e₁ Xs Ys c zero
           {Φ = Φ} {δt = δt} {T′ = T′} up)
 
@@ -3205,7 +3207,7 @@ module PairRevL (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
             (trans (repR-rename ρL₁ ρR₁ Ys c) (renameTy-id Tr)))
           (ℰᵍ-map d s w₁
             (λ le′ w″ e″ V V′ → 𝒱≤-cast d (≤′-trans le′ le_s) le′ p w″)
-            (r e₁ le_s c″))
+            (r e₁ le_s c″ (WFDesc-rename ρL₁ ρR₁ c wf)))
         where
         cong₃′ : ∀ {M M′ : Term (ΔR w)} {C C′ T T″}
           → M ≡ M′ → C ≡ C′ → T ≡ T″ → M ⦂∀ C [ T ] ≡ M′ ⦂∀ C′ [ T″ ]
@@ -3270,7 +3272,7 @@ module PairCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       (h : ConvI d N both w m α δs δt) → n ≤ N
     → ∀ {α′ R′} → rconv m (δr δt) ≡ just (α′ , R′)
     → ∀ {Wl Wr} → Value Wl → Value Wr → allPair d n p w δt Wl Wr
-    → ∀ Xs Ys c
+    → ∀ Xs Ys c → WFDesc c
     → ℰ d n p w (extPairI (repL Xs c) (repR Ys c)
           (sem (leafBelowS d (≤′-refl {n}) (sdesc Xs Ys c))) δs)
         ((Wl ↓ `∀↓ makeConceal (suc α) (⇑ᵗ (repM m (δl δt)))
@@ -3279,9 +3281,9 @@ module PairCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
         ((Wr ↓ `∀↓ makeConceal (suc α′) (⇑ᵗ R′)
                     (substᵗ (extsᵗ (δr δs)) B))
            ⦂∀ substᵗ (extsᵗ (δr δs)) B [ repR Ys c ])
-  pairCon {zero} w h le eq wl wr r Xs Ys c = ℰ-zero d p w
+  pairCon {zero} w h le eq wl wr r Xs Ys c wf = ℰ-zero d p w
   pairCon {suc s} w {X} {m} {α} {δs} {δt} h le {α′} {R′} eq {Wl} {Wr}
-      wl wr r Xs Ys c =
+      wl wr r Xs Ys c wf =
     anti₁₁ d p stepL stepR (tagsLR w) (okBindLR w Tl Tr) inner
     where
     Tl = repL Xs c
@@ -3350,7 +3352,7 @@ module PairCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     hβ = ConvI-newP e₁ (new-bind Tl) {Ls = Ls} {Lt = Lt} {Tl = Tl}
       {Tr = Tr} (new-bind Tr) s≤N (freshS h) gLs
       (leafBelowS-good d (≤′-refl {suc s}) (sdesc Xs Ys c))
-      (proj₁ (oracle h) (≤′-refl {suc s}) le (sdesc Xs Ys c))
+      (proj₁ (oracle h) (≤′-refl {suc s}) le (sdesc Xs Ys c) wf)
       (SealNewP.sealNewP d le_s (≤′-refl {suc s}) (n≤1+n s) e₁ Xs Ys c zero
         {Φ = Φ} {δt = δs} zero)
 
@@ -3367,7 +3369,7 @@ module PairCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
             (cong (renameᵗ (extᵗ suc)) (sym tgtR))))
         (ℰᵍ-map d s w₁
           (λ le′ w″ e″ V V′ → 𝒱≤-cast d (≤′-trans le′ le_s) le′ p w″)
-          (r e₁ le_s c″))
+          (r e₁ le_s c″ (WFDesc-rename ρL₁ ρR₁ c wf)))
 
     R≡ : repM m₁ (δl δtβ) ≡ ⇑ᵗ R
     R≡ = trans (repM-pair (CMode-↑ ρL₁ ρR₁ m) (δl (δt ↑ᴵ e₁)) (＇ zero))
@@ -3461,7 +3463,7 @@ module PairConL (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       (h : ConvI d N rk w m α δs δt) → ConB d (rconv m (δr δt)) n N
     → rconv m (δr δt) ≡ nothing
     → ∀ {Wl Wr} → Value Wl → Value Wr → allPair d n p w δt Wl Wr
-    → ∀ Xs Ys c
+    → ∀ Xs Ys c → WFDesc c
     → ℰ d n p w (extPairI (repL Xs c) (repR Ys c)
           (sem (leafBelowS d (≤′-refl {n}) (sdesc Xs Ys c))) δs)
         ((Wl ↓ `∀↓ makeConceal (suc α) (⇑ᵗ (repM m (δl δt)))
@@ -3469,7 +3471,7 @@ module PairConL (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
            ⦂∀ substᵗ (extsᵗ (δl δs)) A [ repL Xs c ])
         (Wr ⦂∀ substᵗ (extsᵗ (δr δs)) B [ repR Ys c ])
   pairConL {n} w {X} {m} {α} {δs} {δt} {rk} h cbn eqn {Wl} {Wr} wl wr r
-      Xs Ys c =
+      Xs Ys c wf =
     antiL₁ d p (ConB-≤ d nothing cbn₀) stepL (tagsL w) (okBindL w Tl) inner
     where
     cbn₀ : ConB {ΔR w} d nothing n N
@@ -3548,7 +3550,7 @@ module PairConL (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
         {Tr = Tr} {T′ = T′} (repR-rename ρL₁ ρR₁ Ys c) s≤N (freshS h) gLs
         (leafBelowS-good d (≤′-refl {n}) (sdesc Xs Ys c))
         (proj₁ (oracle h) (≤′-refl {n}) (ConB-≤ d nothing cbn₀)
-          (sdesc Xs Ys c))
+          (sdesc Xs Ys c) wf)
         (SealNewP.sealNewL d le_s (≤′-refl {n}) (≤′⇒≤ le_s) e₁ Xs Ys c zero
           {Φ = Φ} {δt = δs} {T′ = T′} up)
 
@@ -3566,7 +3568,7 @@ module PairConL (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
             (trans (repR-rename ρL₁ ρR₁ Ys c) (renameTy-id Tr)))
           (ℰᵍ-map d s w₁
             (λ le′ w″ e″ V V′ → 𝒱≤-cast d (≤′-trans le′ le_s) le′ p w″)
-            (r e₁ le_s c″))
+            (r e₁ le_s c″ (WFDesc-rename ρL₁ ρR₁ c wf)))
         where
         cong₃′ : ∀ {M M′ : Term (ΔR w)} {C C′ T T″}
           → M ≡ M′ → C ≡ C′ → T ≡ T″ → M ⦂∀ C [ T ] ≡ M′ ⦂∀ C′ [ T″ ]

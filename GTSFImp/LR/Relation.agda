@@ -428,12 +428,13 @@ mutual
       (peelSR (map (renameVar τR) Ys) (renameDesc τL τR c)
         (leafBelow d le c m w τL τR))
 
-  -- both instantiate, at any sealed descriptor
+  -- both instantiate, at any well-formed sealed descriptor
   allPair : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     → pair Φ ⊢ A ⊑ B → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
     → Term (ΔL w) → Term (ΔR w) → Set
   allPair d n {A = A} {B = B} p w δ Vl Vr =
     ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n) (c : SDesc (ΔL w′) (ΔR w′))
+    → WFS c
     → ℰᵍ d n′ w′
         (λ le′ w″ e′ → 𝒱≤ d (≤′-trans le′ le) p w″
           (extPairI (leftTyS c) (rightTyS c) (sem (leafBelowS d le c))

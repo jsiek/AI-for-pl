@@ -411,7 +411,7 @@ allPair-mono : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : pair Φ ⊢ A ⊑ B)
     {w w′} (e : w′ ⊒ w) {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → allPair d n p w δ Vl Vr
   → allPair d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
-allPair-mono d n {A = A} {B = B} p e {δ} {Vl} {Vr} f e′ le c =
+allPair-mono d n {A = A} {B = B} p e {δ} {Vl} {Vr} f e′ le c wf =
   ℰᵍ-≡
     (cong₂ (λ M C → M ⦂∀ C [ leftTyS c ])
       (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl))
@@ -423,7 +423,7 @@ allPair-mono d n {A = A} {B = B} p e {δ} {Vl} {Vr} f e′ le c =
       (λ le′ w″ e″ V V′ →
         𝒱≤-resp d (≤′-trans le′ le) p w″
           (↑ᴵ-resp (extPairI-resp ≈ˡ-refl (≈ᴵ-sym (↑ᴵ-trans δ e′ e))) e″))
-      (f (⊒-trans e′ e) le c))
+      (f (⊒-trans e′ e) le c wf))
 
 allOnly-mono : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : only Φ ⊢ A ⊑ B)
     {w w′} (e : w′ ⊒ w) {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
@@ -837,13 +837,13 @@ funRel-down d le p q w f e le₁ Wl Wr vl vr a =
 allPair-down : ∀ d {n n′} (le : n′ ≤ n) {Φ : Corr Δ Δ′} {A B}
     (p : pair Φ ⊢ A ⊑ B) w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → allPair d n p w δ Vl Vr → allPair d n′ p w δ Vl Vr
-allPair-down d le p w f e le₁ c =
+allPair-down d le p w f e le₁ c wf =
   ℰᵍ-map d _ _
     (λ le′ w″ e′ V V′ r →
       𝒱≤-resp d (≤′-trans le′ le₁) p w″
         (↑ᴵ-resp (extPairI-resp (leafBelowS-≈ d le₂ le₁ c) ≈ᴵ-refl) e′)
         (𝒱≤-cast d (≤′-trans le′ le₂) (≤′-trans le′ le₁) p w″ r))
-    (f e le₂ c)
+    (f e le₂ c wf)
   where le₂ = ≤′-trans le₁ (≤⇒≤′ le)
 
 allOnly-down : ∀ d {n n′} (le : n′ ≤ n) {Φ : Corr Δ Δ′} {A B}

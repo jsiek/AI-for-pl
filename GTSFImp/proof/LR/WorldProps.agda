@@ -17,7 +17,7 @@ open import Data.Vec using (Vec) renaming ([] to []ᵛ; _∷_ to _∷ᵛ_)
 import Data.Vec as Vec
 open import Data.Vec.Properties using (lookup-map)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; trans; cong; cong₂)
+  using (_≡_; refl; sym; trans; cong; cong₂; subst₂)
 
 open import Types
 open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ; id↪ᵗ)
@@ -205,6 +205,18 @@ repR-rename : ∀ {ΔL ΔL′ ΔR ΔR′} (σL : ΔL ↪ᵗ ΔL′) (σR : ΔR �
     ≡ renameᵗ (toRenameᵗ σR) (repR Ys c)
 repR-rename σL σR [] c = rightTy-rename σL σR c
 repR-rename σL σR (Y ∷ Ys) c = refl
+
+-- well-formedness is kept by renaming
+WFDesc-rename : ∀ {ΔL ΔL′ ΔR ΔR′} (σL : ΔL ↪ᵗ ΔL′) (σR : ΔR ↪ᵗ ΔR′)
+    (c : Desc ΔL ΔR) → WFDesc c → WFDesc (renameDesc σL σR c)
+WFDesc-rename σL σR (desc p env envR) wf {Z} {Y′} z =
+  subst₂ RSealed (sym (lookup-renameEntries σL σR env Z))
+    (sym (lookup-map Y′ (renameᵗ (toRenameᵗ σR)) envR))
+    (ren (wf z))
+  where
+  ren : ∀ {e T} → RSealed e T
+    → RSealed (renameEntry σL σR e) (renameᵗ (toRenameᵗ σR) T)
+  ren rsealed = rsealed
 
 renameTag-id : ∀ {ΔL ΔR} (t : Tag ΔL ΔR) → renameTag id↪ᵗ id↪ᵗ t ≡ t
 renameTag-id (just Y , e)

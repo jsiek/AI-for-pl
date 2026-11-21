@@ -141,3 +141,22 @@ renameSDesc : ∀ {ΔL ΔL′ ΔR ΔR′}
   → ΔL ↪ᵗ ΔL′ → ΔR ↪ᵗ ΔR′ → SDesc ΔL ΔR → SDesc ΔL′ ΔR′
 renameSDesc σL σR (sdesc Xs Ys c) =
   sdesc (map (renameVar σL) Xs) (map (renameVar σR) Ys) (renameDesc σL σR c)
+
+------------------------------------------------------------------------
+-- Well-formed descriptors
+------------------------------------------------------------------------
+
+-- the entry of a paired variable is sealed on the right too, outermost
+-- by the store variable its right type names
+data RSealed {ΔL ΔR} : Entry ΔL ΔR → Ty ΔR → Set where
+  rsealed : ∀ {X Xs Y Ys c} → RSealed (seals X Xs (Y ∷ Ys) c) (＇ Y)
+
+-- every paired variable is right-sealed: the descriptor's types are
+-- store variables on both sides, so a conversion at a fresh store
+-- variable passes over them
+WFDesc : ∀ {ΔL ΔR} → Desc ΔL ΔR → Set
+WFDesc (desc {Φ = Φ} p env envR) =
+  ∀ {Z Y′} → Φ ∋ Z ↔ Y′ → RSealed (lookup env Z) (lookup envR Y′)
+
+WFS : ∀ {ΔL ΔR} → SDesc ΔL ΔR → Set
+WFS c = WFDesc (core c)

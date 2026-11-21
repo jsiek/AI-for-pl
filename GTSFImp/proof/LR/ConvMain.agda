@@ -54,7 +54,7 @@ private
 
 allPair-from : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : pair Φ ⊢ A ⊑ B) w
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
-  → (∀ {w′} (e : w′ ⊒ w) {n′} → n′ ≤ n → (c : SDesc (ΔL w′) (ΔR w′))
+  → (∀ {w′} (e : w′ ⊒ w) {n′} → n′ ≤ n → (c : SDesc (ΔL w′) (ΔR w′)) → WFS c
        → ℰ d n′ p w′ (extPairI (leftTyS c) (rightTyS c)
              (sem (leafBelowS d (≤′-refl {n′}) c)) (δ ↑ᴵ e))
            (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A
@@ -62,13 +62,13 @@ allPair-from : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : pair Φ ⊢ A ⊑ B) w
            (renameᵗᵐ (ρR e) Vr ⦂∀ substᵗ (extsᵗ (δr (δ ↑ᴵ e))) B
              [ rightTyS c ]))
   → allPair d n p w δ Vl Vr
-allPair-from d n p w f e le c =
+allPair-from d n p w f e le c wf =
   ℰᵍ-map d _ _
     (λ le′ w″ e′ V V′ r →
       𝒱≤-resp d (≤′-trans le′ le) p w″
         (↑ᴵ-resp (extPairI-resp (leafBelowS-≈ d ≤′-refl le c) ≈ᴵ-refl) e′)
         (𝒱≤-cast d le′ (≤′-trans le′ le) p w″ r))
-    (f e (≤′⇒≤ le) c)
+    (f e (≤′⇒≤ le) c wf)
 
 allOnly-from : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : only Φ ⊢ A ⊑ B) w
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
@@ -188,7 +188,7 @@ module PairV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       with rconv m (δr δt) in eq
   revV {n} w {m = m} {α} {δs} {δt} {both} h le {Vl} {Vr} vl vr r
       | just (α′ , R′) =
-    allPair-from d n p w {δ = δt} λ e {n′} le′ (sdesc Xs Ys c) →
+    allPair-from d n p w {δ = δt} λ e {n′} le′ (sdesc Xs Ys c) wf →
       ℰᵍ-≡ (sym (revL≡ e m α δs δt Vl A))
         (inst≡
           (sym (revM-ren (ρR e) (just (α′ , R′)) (δr δs) (`∀ B) Vr)))
@@ -196,19 +196,19 @@ module PairV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (rconv-↑≡ e m (δr δt) eq)
           (renameᵗᵐ-preserves-Value (ρL e) vl)
           (renameᵗᵐ-preserves-Value (ρR e) vr)
-          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c)
+          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c wf)
   revV {n} w {m = m} {α} {δs} {δt} {left} h le {Vl} {Vr} vl vr r
       | just (α′ , R′) =
     ⊥-elim (subst (Allowed left) eq (rcOK h))
   revV {n} w {m = m} {α} {δs} {δt} {rk} h le {Vl} {Vr} vl vr r
       | nothing =
-    allPair-from d n p w {δ = δt} λ e {n′} le′ (sdesc Xs Ys c) →
+    allPair-from d n p w {δ = δt} λ e {n′} le′ (sdesc Xs Ys c) wf →
       ℰᵍ-≡ (sym (revL≡ e m α δs δt Vl A)) refl
         (pairRevL {n′} _ (ConvI-↑ e h) (≤-trans le′ le)
           (rconv-↑≡ e m (δr δt) eq)
           (renameᵗᵐ-preserves-Value (ρL e) vl)
           (renameᵗᵐ-preserves-Value (ρR e) vr)
-          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c)
+          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c wf)
 
   conV : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt} {rk}
       (h : ConvI d N rk w m α δs δt) → ConB d (rconv m (δr δt)) n N
@@ -220,7 +220,7 @@ module PairV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       with rconv m (δr δt) in eq
   conV {n} w {m = m} {α} {δs} {δt} {both} h cb {Wl} {Wr} wl wr r
       | just (α′ , R′) =
-    allPair-from d n p w {δ = δs} λ e {n′} le′ (sdesc Xs Ys c) →
+    allPair-from d n p w {δ = δs} λ e {n′} le′ (sdesc Xs Ys c) wf →
       ℰᵍ-≡ (sym (conL≡ e m α δs δt Wl A))
         (inst≡
           (sym (conM-ren (ρR e) (just (α′ , R′)) (δr δs) (`∀ B) Wr)))
@@ -229,13 +229,13 @@ module PairV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (rconv-↑≡ e m (δr δt) eq)
           (renameᵗᵐ-preserves-Value (ρL e) wl)
           (renameᵗᵐ-preserves-Value (ρR e) wr)
-          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c)
+          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c wf)
   conV {n} w {m = m} {α} {δs} {δt} {left} h cb {Wl} {Wr} wl wr r
       | just (α′ , R′) =
     ⊥-elim (subst (Allowed left) eq (rcOK h))
   conV {n} w {m = m} {α} {δs} {δt} {rk} h cb {Wl} {Wr} wl wr r
       | nothing =
-    allPair-from d n p w {δ = δs} λ e {n′} le′ (sdesc Xs Ys c) →
+    allPair-from d n p w {δ = δs} λ e {n′} le′ (sdesc Xs Ys c) wf →
       ℰᵍ-≡ (sym (conL≡ e m α δs δt Wl A)) refl
         (pairConL {n′} _ (ConvI-↑ e h)
           (subst (λ c′ → ConB d c′ n′ N)
@@ -244,7 +244,7 @@ module PairV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (rconv-↑≡ e m (δr δt) eq)
           (renameᵗᵐ-preserves-Value (ρL e) wl)
           (renameᵗᵐ-preserves-Value (ρR e) wr)
-          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c)
+          (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c wf)
 
 ------------------------------------------------------------------------
 -- `∀⊑`

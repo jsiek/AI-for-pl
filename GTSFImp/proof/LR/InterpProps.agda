@@ -329,7 +329,7 @@ mutual
       (p : pair Φ ⊢ A ⊑ B) w
       {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
     → δ ≈ᴵ δ′ → allPair d n p w δ Vl Vr → allPair d n p w δ′ Vl Vr
-  allPair-resp d n {A = A} {B = B} p w {Vl = Vl} {Vr = Vr} h r e le c =
+  allPair-resp d n {A = A} {B = B} p w {Vl = Vl} {Vr = Vr} h r e le c wf =
     ℰᵍ-≡
       (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
         (substᵗ-cong A (exts-cong (δl≡ (↑ᴵ-resp h e)))))
@@ -339,7 +339,7 @@ mutual
         (λ le′ w″ e′ V V′ →
           𝒱≤-resp d (≤′-trans le′ le) p w″
             (↑ᴵ-resp (extPairI-resp ≈ˡ-refl (↑ᴵ-resp h e)) e′))
-        (r e le c))
+        (r e le c wf))
 
   allOnly-resp : ∀ d n {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       (p : only Φ ⊢ A ⊑ B) w

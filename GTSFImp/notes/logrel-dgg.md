@@ -726,7 +726,7 @@ only strengthens the clauses.
     right's identity step). Both pass the termination checker.
 
   To do:
-  * the closure oracle (`ConvClose`), see the gap below;
+  * the closure oracle (`ConvClose`), with the right-only lemma below;
   * the instances for the fundamental lemma's `Λ` cases.
 * **Gap in the oracle: right-only closure.** The oracle must close every
   descriptor leaf `leafBelowS d le (sdesc Xs Ys c)` under fresh
@@ -739,16 +739,38 @@ only strengthens the clauses.
   * With left seals only (from `PairRevL`'s instantiation, `sealSL`),
     the left takes an identity step at its store variable and the
     right converts the core's right type. This needs the core relation
-    closed under a conversion of the right alone. Neither lemma
-    provides that: both always convert the left.
+    closed under a conversion of the right alone, which neither lemma
+    above gives: both always convert the left.
   * It is needed: in `ConvI-newP`, every other paired leaf meets the new
     pair conversion (`fresh→convP` from `genP`), and a left-sealed leaf
     there has a structural right type.
-  * Ways out: a third lemma where only the right converts (the mirror
-    of the main lemma's cases); or making the left conversion optional
-    in the main lemma, like the right one; or the language change
-    (identity conversions where the variable does not occur), which
-    removes the closure hypotheses altogether.
+* **The right-only lemma** (`proof/LR/ConvRight.agda`, with
+  `proof/LR/StarAgree.agda`; typechecks, not yet in `All.agda`). The
+  right converts and the left does not move.
+  * Why a separate lemma and not an optional left conversion in the main
+    one: a proof where the left does not convert only ever creates
+    right-only conversions, and the main lemma never creates any. So
+    the two never mix, and the main lemma keeps its left side as a
+    reveal, `Vl ↑ 〖 α , … 〗`, at every mode.
+  * Modes: `r-pair` (X paired with Y, the right converts Y's store
+    variable) and `r-none` (a fresh store variable, the closure case).
+    The hypotheses `RConvI` mirror `ConvI` with the sides swapped; the
+    other leaves are closed under later right conversions (`FreshR`),
+    and the clauses' leaves through `OracleR`.
+  * Into `★` the right takes an identity step, and the relation at a
+    derivation into `★` reads only the left types and the left-only
+    leaves (`𝒱★-agree`), on which the two interpretations agree.
+  * At `∀⊑∀` the right instantiates its proxy (one right store step,
+    `antiR₁`) and the left's instantiation is read from the clause at
+    the right-sealed descriptor `sdesc Xs (zero ∷ Ys) c`: the mirror of
+    `PairRevL`. The closing conversion at the new variable is paired
+    and right-only (`r-pair`, `RConvI-newR`, `SealNewR`).
+  * At `∀⊑` the left instantiates and the clause relates the
+    instantiation to the right value itself, so the right's conversion
+    is one more frame (`OnlyVR`).
+  * The oracle then has a third part: `FreshR` for clause leaves, from
+    `revR` on the core when the right is not sealed, and from the right's
+    identity step when it is.
 * **Plan for a `∀` case** (`∀⊑∀`, reveal; the others are alike).
   * Work at the function's world with an instantiating sealed descriptor
     `c₀`, then move to the clause's futures with `ConvI-↑`,

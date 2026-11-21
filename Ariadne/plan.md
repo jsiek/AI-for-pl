@@ -1468,9 +1468,10 @@ What it tests and builds:
     specs the owner reviews (G9);
 *   decomposition: the order in which functions are proved (bottom-up
     over the call graph), and how a large proof is split across runs;
-*   a defect protocol.  Reading the code found a likely use-after-free
+*   a defect protocol.  Reading the code found a use-after-free
     (`proc f {} { proc f {} {}; puts after }`, `bench/CANDIDATES.md`),
-    to be confirmed under ASan before any proof.  If a proof is
+    confirmed under ASan and fixed by evaluating a copy of the body per
+    call (owner, 2026-11-21; `bench/picol/README.md`).  If a proof is
     blocked by a defect, the workflow should produce a concrete input
     that fails under the sanitizers, so the owner decides on evidence
     (G9), as with the Callbacks rule in M6.

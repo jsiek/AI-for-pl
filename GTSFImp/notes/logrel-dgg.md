@@ -705,7 +705,8 @@ only strengthens the clauses.
     bound variable's entry is `seals α Xs (α′ ∷ Ys) c`, since entries
     carry seal lists.
 * **Status** (`proof/LR/ConvBase.agda`, `proof/LR/ConvLemma.agda`,
-  `proof/LR/ConvMain.agda`, not yet in `All.agda`). Done:
+  `proof/LR/ConvMain.agda`, `proof/LR/ConvRight.agda`,
+  `proof/LR/ConvClose.agda`; all in `All.agda`). Done:
   * the hypotheses (`ConvI`), their transport (`ConvI-↑`) and their
     extension under binders. The hypotheses carry fresh-conversion
     closure for both interpretations (`genP`/`genO` for the target,
@@ -723,11 +724,12 @@ only strengthens the clauses.
   * the two lemmas, by induction on the precision derivation: at `★`
     (`rev★`, `con★`, the right not converted) and the main one
     (`revC`, `conC`; into `★` it is the lemma at `★` followed by the
-    right's identity step). Both pass the termination checker.
+    right's identity step). Both pass the termination checker;
+  * the right-only lemma (below);
+  * the closure oracle at every bound (`oracle-all`, `oracleR-all`,
+    below).
 
-  To do:
-  * the closure oracle (`ConvClose`), with the right-only lemma below;
-  * the instances for the fundamental lemma's `Λ` cases.
+  To do: the instances for the fundamental lemma's `Λ` cases.
 * **Gap in the oracle: right-only closure.** The oracle must close every
   descriptor leaf `leafBelowS d le (sdesc Xs Ys c)` under fresh
   conversions on both sides (`FreshP d both`).
@@ -745,8 +747,8 @@ only strengthens the clauses.
     pair conversion (`fresh→convP` from `genP`), and a left-sealed leaf
     there has a structural right type.
 * **The right-only lemma** (`proof/LR/ConvRight.agda`, with
-  `proof/LR/StarAgree.agda`; typechecks, not yet in `All.agda`). The
-  right converts and the left does not move.
+  `proof/LR/StarAgree.agda`). The right converts and the left does not
+  move.
   * Why a separate lemma and not an optional left conversion in the main
     one: a proof where the left does not convert only ever creates
     right-only conversions, and the main lemma never creates any. So
@@ -771,6 +773,45 @@ only strengthens the clauses.
   * The oracle then has a third part: `FreshR` for clause leaves, from
     `revR` on the core when the right is not sealed, and from the right's
     identity step when it is.
+* **Two fixes to the definitions, found while proving the oracle.**
+  * Well-formed descriptors. As first stated, the oracle was false. Take
+    `c = desc (X⊑Y ↔-here) [ seals γ [] [] (desc ι⊑ι [] []) ] [ ι ⇒ ι ]`.
+    Its leaf relates `$3 ↓ seal γ ι` to `$3`, but a fresh right
+    conversion at the right type `ι ⇒ ι` turns `$3` into the proxy
+    `$3 ↑ (id ↦ id)`, which the contents `ι⊑ι` do not relate. So
+    `allPair` now quantifies over well-formed descriptors only
+    (`WFDesc` in `LR.Desc`): each paired variable's entry is sealed on
+    the right, outermost by the store variable its right type names.
+    Entries never have an unsealed paired right side, so this is no
+    loss: the fundamental lemma's `Λ⊑Λ` entries are
+    `seals α Xs (α′ ∷ Ys) c` at right type `＇ α′`. `allOnly` needs no
+    such condition, because its leaves are only converted on the left.
+  * The conceal's bound by mode (`ConM`, `ConRm`). The conceal lemmas
+    asked for a strict bound, `k < N`, whenever the counted side
+    converts. Only the converted variable's seal hypothesis needs that;
+    in mode none no variable is converted, and the bound is now `k ≤ N`.
+    With the strict bound, closing a clause leaf at stage `k` needed
+    the lemma at bound `k + 1`, whose oracle covers that same leaf.
+* **The closure oracle** (`proof/LR/ConvClose.agda`).
+  * A descriptor's own leaves are entries at store variables, so both
+    lemmas apply to its derivation in mode none, and every hypothesis is
+    an identity step (`Core`). The lemmas need a converted variable, so
+    the derivation is first weakened by a dead one (`wk-deadᴿ`,
+    `𝒱-ren`); a closed descriptor has no variable to convert.
+  * A sealed side takes an identity step (`idL-rev`, `idR-rev`); seals
+    on the other side are peeled one at a time around the descriptor's
+    relation, by binding a seal frame (`wrapL`, `wrapR`).
+  * In every future: a transported clause leaf is the clause leaf of the
+    renamed descriptor (`leafS-tr`), whose seals and entries are fresh
+    for the new store variables (`FreshFor`).
+  * The left-only leaf in `≻` is `G` up to the clause's own stage
+    (`GClose`). At stage `k + 1`, `G` at a derivation into `★` reads the
+    clauses at stage `k`, which the lemmas' clauses convert at bound `k`
+    (`StarG`); elsewhere `G` is the value relation at stage `k`, read by
+    the main lemma at bound `k` (`shiftG`, using that the right, a
+    value, takes no step), and stage 1 is a direct argument.
+  * Induction on the bound (`oracle-all`): the leaf at stage `k` uses
+    the lemmas at bound `k`, whose oracle covers the stages below `k`.
 * **Plan for a `∀` case** (`∀⊑∀`, reveal; the others are alike).
   * Work at the function's world with an instantiating sealed descriptor
     `c₀`, then move to the clause's futures with `ConvI-↑`,

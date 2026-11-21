@@ -165,6 +165,13 @@ import proof.LR.Expression
 import proof.LR.PrecisionUnique
 import proof.LR.PrecisionSubst
 import proof.LR.SubstLemma
+import proof.LR.ConvSyntax
+import proof.LR.ConvBase
+import proof.LR.ConvLemma
+import proof.LR.ConvMain
+import proof.LR.StarAgree
+import proof.LR.ConvRight
+import proof.LR.ConvClose
 
 ------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked

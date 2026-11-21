@@ -1,13 +1,22 @@
-# Ariadne: AI-Driven Proof-Carrying Verification of C Heap Data Structures
+# Ariadne: AI-Driven Proof-Carrying Verification of Memory Safety in C Programs
 
 ## 0. Status and how to read this document
 
 Draft plan.  Sections 1–2 state the goals and what the certificate
 actually certifies; sections 3–5 describe the stack and the agent loop;
-section 6 is the case study; section 7 the guardrails; section 8 the
-milestones; section 9 the decisions (made and open); section 10 the
-use-after-free plan; section 11 the agent budget; section 12 the model
-roles and escalation experiments.
+section 6 is the first case study (sglib); section 7 the guardrails;
+section 8 the milestones; section 9 the decisions (made and open);
+section 10 the use-after-free plan; section 11 the agent budget;
+section 12 the model roles and escalation experiments; section 13 the
+sequence of programs after sglib; section 14 the deprecated Frama-C/WP
+pipeline.
+
+**VST is the sole backend (owner, 2026-11-10), and the Frama-C/WP
+pipeline is deprecated and not continued (owner, 2026-11-21).**  Its
+material (the M0–M5 stack, ACSL specification layer, agent loop,
+guardrails, use-after-free investigation, model tiers and WP-only
+decisions) is in §14, kept as the record.  Since 2026-11-21 the targets
+are complete C programs rather than libraries (§13).
 
 Items marked **[verify]** are facts about external tools that must be
 checked against the pinned versions before being relied on.
@@ -18,37 +27,73 @@ checked against the pinned versions before being relied on.
 
 ### 1.1 Research question
 
-Can an LLM agent, working only through annotation edits and proof
-scripts, produce machine-checked memory-safety proofs for real,
-pointer-dense, macro-generated C (sglib), with a trusted computing base
-that is explicitly stated and does not include the agent?
+Can an LLM agent produce machine-checked proofs of memory safety and
+leak freedom for complete, real C programs, choosing every internal
+spec itself, with a trust base that is explicitly stated, does not
+include the agent, and consists of the C semantics, VST, Rocq,
+`main`'s fixed spec and human-reviewed specs of the external functions
+the program calls (§2.2)?  And how far can the workflow be made
+reusable and free of human steps, so that each larger program costs
+less effort per line than the one before (G8, G9)?
+
+(Until 2026-11-21 the question named sglib, a macro-generated
+library; sglib was the first test case, §6.)
 
 ### 1.2 Primary goals (must have)
 
-*   **G1 — Memory safety and leak freedom of selected sglib operations.**
-    For each target function, prove absence of the runtime errors in
-    scope (§2.1) under an explicit, human-reviewed precondition, and
-    (owner, 2026-11-17) leak freedom as defined in §2.1.
+*   **G1 — Memory safety and leak freedom of each target program.**
+    `semax_prog` for the whole program: every function, including
+    `main`, satisfies its funspec, so no run of the program has the
+    runtime errors in scope (§2.1), and `main` ends owning no heap
+    memory (owner, 2026-11-17).  The only claim is `main`'s spec, which
+    is fixed by the method; for a library target (sglib), the claim is
+    the human-reviewed public spec instead.
 *   **G2 — Agent outside the trust base.**  Nothing the agent says or does
     is trusted; only artifacts checked by the tools listed in §2.2 count.
-*   **G3 — Annotation-only edits.**  The agent may add ACSL annotations,
-    ghost code, and Coq proof scripts; it may not change executable C
-    semantics or the frozen top-level contracts (§7).
-*   **G4 — Reproducible certificate.**  Each verified benchmark ships as a
-    bundle (annotated C, frozen contracts, generated `.v` files, `.vo`
-    files, tool versions) that a third party can re-check with one command.
+*   **G3 — Proof-only edits.**  The agent writes proof files (funspecs of
+    the program's own functions, lemmas, `semax_body` and `semax_prog`
+    proofs); it may not change the C source, `main`'s spec or the
+    external function specs.  A change to the C (a bug fix, as for
+    sglib's client 9) is a human decision, recorded with its reason.
+*   **G4 — Reproducible certificate.**  Each verified program ships as a
+    bundle (C source, external specs, proof files, tool versions and
+    the Docker image) that a third party can re-check with one command:
+    clightgen, coqc, coqchk, `Print Assumptions` against the allow-list,
+    and the leak lint.
+*   **G8 — Reusable workflows and infrastructure (owner, 2026-11-21).**
+    Discover and develop the workflows and tools that make an LLM
+    faster and cheaper at proving memory safety of C programs with VST,
+    and that carry over from one program to the next: the runner and
+    checker, task decomposition (which functions to prove in which
+    order, how to split a large program among runs), the library of
+    external function specs, the library of shape predicates and VST
+    lemmas (G7), test-first filters (§5 step 0), and recorded lessons
+    (such as the Callbacks rule).  Each program in the sequence (§13)
+    is chosen to exercise and improve these.
+*   **G9 — Minimal human interaction (owner, 2026-11-21).**  The less
+    human interaction a workflow needs, the better.  The target is that
+    a human reviews only what must be trusted (the external function
+    specs, each once and shared across programs) and decides only what
+    a machine cannot (whether a defect found in the C is fixed, and
+    how).  Every human step is logged per program (what was asked, why
+    a machine could not decide it), and removing a kind of human step
+    is a workflow improvement under G8.
 
 ### 1.3 Secondary goals (should have)
 
-*   **G5 — Functional shape invariants.**  Beyond safety, prove that
-    operations preserve the data-structure invariant (well-formed DL list;
-    BST order + red-black colour/height invariants).  Safety of later
-    operations usually depends on this anyway (§6.3).
-*   **G6 — Measured agent performance.**  Report, per benchmark: goals
-    generated, goals closed by WP's simplifier / SMT / `hammer` / agent
-    tactics, number of refinement iterations, wall-clock and token cost.
-*   **G7 — Reusable library.**  A Coq/ACSL library of heap-shape predicates
-    (linked segments, DL segments, trees) reusable across benchmarks.
+*   **G5 — Shape invariants, where safety needs them.**  Data-structure
+    invariants (a well-formed list, a tree, a hash table's buckets) are
+    proved to the extent that memory safety and leak freedom of later
+    operations depend on them, and no further (minimality, M6
+    public-spec rule 2).
+*   **G6 — Measured agent performance.**  Report, per program: cost,
+    wall-clock time and turns of every run (accepted or not), cost per
+    line of C, the number of functions proved, and the human steps of
+    G9.  (In M0–M5: goals closed by WP's simplifier / SMT / `hammer` /
+    agent tactics.)
+*   **G7 — Reusable library.**  A Rocq/VST library of heap-shape
+    predicates (linked segments, DL segments, trees, growable arrays)
+    and their lemmas, reusable across programs; part of G8.
 
 ### 1.4 Non-goals
 
@@ -56,7 +101,10 @@ that is explicitly stated and does not include the agent?
     required for G1).
 *   Bounding memory that is still held (leak freedom itself is in scope
     since 2026-11-17, §2.1).
-*   Verifying Frama-C, Why3, or the Coq export themselves.
+*   Functional correctness, except where safety or leak freedom needs
+    it.
+*   Verifying the toolchain itself (clightgen, VST, Rocq; in M0–M5
+    Frama-C, Why3 and the Coq export).
 *   Concurrency.
 *   "Cryptographic" certification: nothing in this pipeline is
     cryptographic.  If signed bundles are wanted, that is a separate
@@ -65,11 +113,14 @@ that is explicitly stated and does not include the agent?
 
 ### 1.5 Success criteria
 
+Revised by the owner on 2026-11-21, when sglib closed at stage 1.
+
 | Level | Criterion |
 |-------|-----------|
-| Minimum | Benchmark 1 (DL list add + iterate) fully certified; every goal accounted for; `Print Assumptions` shows only the WP/Why3 theory axioms listed in §2.2. |
-| Target | Benchmark 1 plus RB-tree `add` and `find_member` certified for safety (G1), with the BST invariant (G5) for `find_member`. |
-| Stretch | RB-tree `delete`, hash container, and G5 for all of them; agent closes ≥ N% of non-trivial goals without human help (N set after M2 baseline). |
+| Reached | sglib's DL list: B1 certified with WP (M1, M3), and the six stage-1 functions plus 13 client programs proved with VST against the frozen spec (M6). |
+| Minimum | picol (§13, step 1) proved by `semax_prog`, leak-free, with the agent choosing every internal funspec; a human reviewed only the external function specs and decided only on defects found in the C (G9); the certificate re-checks with one command (G4). |
+| Target | The minimum, plus clox (§13, step 2) proved with the workflow and libraries carried over from picol, at a lower cost per line and with fewer human steps per program than picol (G6, G8, G9). |
+| Stretch | A program of about 10k lines (§13, step 3), split among runs by the workflow without a human choosing the split. |
 
 ---
 
@@ -77,18 +128,14 @@ that is explicitly stated and does not include the agent?
 
 ### 2.1 Properties in scope
 
-The RTE plugin generates the safety obligations.  In scope:
+The properties are those of Verifiable C's `semax`: no run of the
+Clight program gets stuck, which covers null, dangling and
+out-of-bounds accesses, use after free, invalid and double `free`, and
+signed overflow (VST's type-checking conditions; sglib's client 9 could
+not be proved until its signed counter became `unsigned`).
+Uninitialised reads, division by zero and shifts: **[verify]** which of
+VST 2.17's conditions cover them.  In addition:
 
-*   `\valid` / `\valid_read` for every memory access (null and dangling
-    dereference, out-of-bounds access);
-*   `\initialized` for reads (`-rte-initialized @all`, with WP's
-    `-wp-no-filter-init`; used since M1, `bench/b1/README.md`
-    "Initialisation");
-*   signed overflow, division by zero, invalid shifts, pointer-arithmetic
-    validity (RTE defaults);
-*   use-after-free, invalid `free`, and double `free` (required): through
-    `\valid`/`\freeable` after `free` if WP supports it, otherwise
-    through the fallbacks in §10.
 *   **leak freedom (owner, 2026-11-17):** every postcondition accounts
     for all memory the function owns at the end, and `main` ends owning
     no heap memory.  Unbounded growth of memory that is still held is
@@ -98,207 +145,127 @@ The RTE plugin generates the safety obligations.  In scope:
     leak freedom is enforced on the postconditions (options in
     `bench/sglib_vst/REVIEW.md`, section 4).
 
+    Under VST, `main`'s postcondition holds only the allocator state
+    (`mem_mgr`) and the globals, and the postcondition lint (M6
+    public-spec rule 7) rejects `TT` and existentials over `mpred` in
+    every postcondition.
+
+(The properties of the deprecated Frama-C/WP pipeline: §14.1.)
+
 ### 2.2 Honest trust base
 
-The `.vo` files certify that **the verification conditions generated by
-WP are valid**, not directly that the C program is safe.  The chain is:
+**Under VST (M6 on).**  The chain is:
 
 ```
- C source ──CIL/Frama-C──► normalized AST ──RTE──► ACSL obligations
-          ──WP──► VCs (memory model) ──Why3──► Coq .v ──coqc──► .vo
-                                                         ▲
-                                                coqchk re-checks
+ C source ──clightgen──► Clight AST (.v) ──VST: semax_prog──► .vo
+                               ▲                    ▲
+                  CompCert's Clight semantics   main's spec + external specs
 ```
 
 Trusted (TCB):
 
-1.  Frama-C front end (CIL normalisation, macro expansion via `cpp`).
-2.  The RTE plugin: if an obligation is not generated, it is not proved.
-3.  WP: VC generation, its memory model (Typed / Typed+ref / Bytes), and
-    **its Qed simplifier, which discharges many goals before export**.
-4.  Why3's Coq driver and the realisations of WP/Why3 theories.
-5.  Coq's kernel, re-checked by `coqchk`.
-6.  The frozen top-level contracts and any ACSL `axiomatic` blocks a human
-    approved.
-7.  Any goal discharged by an SMT solver, *unless* policy says all goals
-    must go to Coq (§9, Q1).
+1.  clightgen (CompCert's front end: preprocessing, parsing,
+    elaboration to Clight).  It is not itself verified; the proof is
+    about the Clight it outputs.
+2.  CompCert's Clight semantics as the meaning of the program.  Some
+    behaviour that ISO C leaves undefined is defined there; the claim
+    is safety under that semantics.  The proof does not cover the
+    binary gcc produces; it covers a binary CompCert produces.
+3.  VST's soundness, which is proved in Rocq, so it rests on items 4
+    and 5.
+4.  The Rocq kernel, re-checked by coqchk (G4).
+5.  The axioms in `vst/smoke/expected_assumptions.txt`: classical
+    logic, propositional and functional extensionality, and VST's
+    specs of `malloc` and `free` (`body_malloc`, `body_free`,
+    `mem_mgr`, `malloc_token`).  `Print Assumptions` must list nothing
+    else.
+6.  `main`'s spec, fixed by the method (leak freedom, §2.1), and the
+    `semax_prog` statement.
+7.  The specs of the external functions the program calls (libc, I/O),
+    and the assumption that the real library meets them.  These are
+    the human-reviewed part (G9), each reviewed once and shared across
+    programs.  For a library target (sglib), the public spec too.
 
-The user accepted Rocq's `ClassicalEpsilon.constructive_indefinite_description`
-into the axiom allow-list (§7.4), because Why3's `BuiltIn` theory, which
-every WP goal file loads, depends on it.
-
-Not trusted: the agent, CoqHammer's search (its reconstructed proofs are
-kernel-checked), Eva (only if its results enter as proved assertions, see
-§5 step 2).
+Not trusted: the agent; every funspec of the program's own functions
+(each is a lemma: one that is too weak fails its own `semax_body`, one
+that is too strong fails its caller's proof, so `semax_prog` fails);
+the sanitizer runs and other test-first filters.
 
 Note on cost: `coqchk` is deterministic but its running time is not
 near-linear in program size in general — conversion checking can be
 arbitrarily expensive.  Report measured check times instead of claiming a
 bound.
 
+(The trust base of the deprecated Frama-C/WP pipeline: §14.1.)
+
 ---
 
 ## 3. Technical stack
 
-Pinned in M0 as a Docker image (`env/Dockerfile`; versions and reasons
-in `env/README.md`): Frama-C 33.0 (Arsenic), Why3 1.8.2, Rocq 9.0.1,
-CoqHammer 1.3.2, coq-lsp/Pétanque 0.2.5, Alt-Ergo 2.6.4, Z3 4.13.4,
-CVC5 1.2.1, Vampire 4.9, Eprover 2.6.
+*   **Image:** `ariadne-vst:dev` (`vst/`): VST 2.17, Rocq 9.0.1,
+    CompCert 3.18.  Every Docker run has memory, pids and time limits
+    (`ARIADNE_MEM`, `ARIADNE_TIMEOUT`).
+*   **Front end:** CompCert's `clightgen -normalize`, C to a Clight AST
+    in Rocq.
+*   **Specifications and proofs:** VST funspecs (separation logic in
+    Rocq), `semax_body` per function, `semax_prog` per program.
+*   **Agent:** one Claude Opus 5.5 (`claude-opus-5-5`) agent per run,
+    through `claude -p` on the owner's subscription (Q9, Q10; §12),
+    under the budget of §11.
+*   **Runner and checker:** `q10/run_vst.py` and `q10/check_vst.py`
+    (`q10/m6.py`, `q10/README.md`).
+*   **Test-first filters:** gcc builds with ASan, UBSan and LSan.
 
-*   **Front end:** Frama-C 33.0 (Arsenic) with RTE, Eva, WP.
-*   **Specification language:** ACSL.
-*   **VC back end:** WP → Why3 → Coq/Rocq.  Note that `-wp-prover coq`
-    goes through Why3, and WP stores Coq scripts in
-    `<session>/interactive/<goal>.v`; `-wp-interactive update` creates
-    stubs, `batch` checks them.  Why3 regenerates each file and keeps only
-    the `Proof. … Qed.` text, so tactic imports (`Lia`, CoqHammer) come
-    from the `coq-ariadne` Why3 driver (M0).
-*   **Proof assistant:** Rocq 9.0.1, the newest that Why3 1.8.2 supports.
-*   **Automation:** CoqHammer (`hammer`, plus `sauto`/`best` which need no
-    external ATPs), external ATPs (Vampire, E, Z3, CVC5) for `hammer`.
-*   **SMT:** Alt-Ergo, Z3, CVC5 via Why3, tried before Coq; goals they
-    close count (decision Q1, §9.1).
-*   **LLMs, two roles (§12):** the *annotator* (Claude Opus 5.5,
-    `claude-opus-5-5`) writes ACSL annotations, ghost code and helper
-    lemmas; the *prover* (a tier of models, starting with GLM 5.3 Flash)
-    writes Coq tactics for goals that SMT and CoqHammer leave open.
-    Anthropic models are run with the owner's subscription and capped by
-    the budget in §11.  The harness talks to models through one
-    provider-neutral interface so models can be swapped per role.
-*   **Agent interface:** Python 3.11+, asyncio.  Talk to Coq through
-    `coq-lsp`; prefer its Pétanque interface (`pet`), which is designed
-    for programmatic proof search (run tactic on a state, get new state)
-    over driving LSP document edits **[verify]**.
-*   **Sandbox:** each run in a container with no network except the LLM
-    endpoint; source tree mounted read-only except the annotation overlay
-    (§7).
+(The Frama-C/WP stack of M0–M5: §14.2.)
 
 ---
 
-## 4. Specification layer (the part the plan was missing)
+## 4. Specification layer
 
-Safety of sglib operations cannot be stated without heap-shape
-predicates; this is where most of the human and agent effort goes.
+*   **A complete program:** `main`'s spec is fixed by the method (§2.1).
+    The external functions the program calls get specs from a shared
+    library (G8), reviewed by the owner once each (G9).  Every other
+    funspec is written by the agent and is not trusted (§2.2).
+*   **A library target (sglib):** the public spec, written under the M6
+    public-spec rules and approved by the owner (§8).
+*   **Shape predicates** are Rocq definitions over VST's `mpred`
+    (sglib's list: `bench/sglib_vst/spec_dllist.v`); the reusable ones
+    go into the G7 library.
+*   **Leak freedom** is checked on every funspec by the postcondition
+    lint (M6 public-spec rule 7).
 
-1.  **Shape predicates in ACSL**, as `inductive` or `axiomatic`
-    definitions with explicit `reads` clauses:
-    *   `dll_seg{L}(ilist *from, ilist *prev, ilist *to, ilist *next)` —
-        a well-linked DL segment, every cell `\valid`, pairwise separated.
-    *   `dll(ilist *l)` — whole list (any element; sglib DL lists are
-        accessed from an arbitrary member).
-    *   `tree{L}(node *t)` — finite, acyclic, `\valid` nodes, no sharing.
-    *   `bst(node *t, integer lo, integer hi)`, `rb(node *t, integer bh)`.
-2.  **Footprints.**  ACSL has no separation logic; separation must be
-    expressed with `\separated` over explicit footprint sets
-    (`logic set<ilist*> dll_footprint(...)`).  Frame lemmas
-    ("writing outside the footprint preserves `dll`") are proved once in
-    Coq and reused (G7).
-3.  **Coq realisation.**  Each predicate gets a Coq counterpart with
-    induction principles and lemmas; WP's export must be connected to
-    these definitions rather than to opaque axioms **[verify: how WP
-    exports ACSL inductive predicates through Why3]**.
-4.  **Frozen contracts.**  For each target function, a human writes (or
-    approves) the `requires` / `ensures` / `assigns` contract.  The agent
-    may strengthen *internal* annotations (loop invariants, asserts,
-    ghost code, lemmas it also proves) but never the frozen contract.
-5.  **Executable twins.**  Every logic definition the runtime checks of
-    §5 step 0 need (inductive predicates such as `dll`, and predicates
-    over `\list` such as `mem`, `all_live`, `in_live_list`) gets an
-    executable C twin, generated with the spec: a recursive or looping
-    function that walks the structure, with a step bound so a cyclic or
-    corrupt heap returns false instead of hanging.  Existentials over
-    lists (`\exists \list<dllist *> s; live_dll(\null, h, s)`) are
-    replaced by computing the witness (the list reached from `h`).
-    Generating a twin is mechanical: an inductive predicate's cases
-    become the branches of the function.  The twins are test code only;
-    they never enter a proof.  Optionally a twin gets its own ACSL
-    contract `ensures \result != 0 <==> dll(prev, h, s)`, proved by WP,
-    so a runtime check that passes really means the predicate holds.
+(The ACSL specification layer of M0–M5: §14.3.)
 
 ---
 
 ## 5. Sandboxed agent loop
 
-```
-   [ C source + frozen contracts ]
-                 │
-                 ▼
-  ┌──► [ Frama-C: RTE + WP, VC generation ]
-  │              │
-  │              ├─► goals closed by Qed / SMT (logged, policy Q1)
-  │              ▼
-  │     [ Coq goal files (.v) ]
-  │              │
-  │              ▼
-  │     [ Agent ↔ coq-lsp / Pétanque ] ──► tactics: intros, induction,
-  │              │                          inversion, lemma reuse, hammer
-  │              ├─► SUCCESS: all goals closed → coqc → .vo → coqchk
-  │              │
-  │              └─► STALL: goal unprovable / invariant too weak
-  │                      │
-  └────── [ Agent edits annotation overlay only (§7) ] ◄┘
-```
+0.  **Test first.**  Sanitizer builds (ASan, UBSan, LSan) run on the
+    program's tests and on random inputs before any proof.  A failure
+    is a concrete input: for a defect in the C, the owner decides on it
+    (G9, the defect protocol of §13); nothing a test reports enters the
+    certificate.
+1.  **Run** (`run_vst.py`).  A run directory holds the pristine C, its
+    clightgen output, the frozen spec files and the task.  One fenced
+    `claude -p` agent (§7) writes the proof files, running coqc in the
+    image as it goes, under a per-benchmark cost cap and a time limit.
+2.  **Check** (`check_vst.py`).  An independent re-check from pristine
+    files (§7).  A run counts only if the check accepts it.
+3.  **Record.**  Each run's cost, time and turns go to its
+    `summary.json` and the ledger (G6); accepted proofs are copied into
+    `bench/`.
 
-### Operational steps
+Planned under G8: splitting a program among runs (§13).
 
-0.  **Test first (runtime checking, seconds).**  Before any proof,
-    and again on every annotation the annotator proposes in step 5:
-    *   sanitizer builds (ASan, UBSan, MSan) of the benchmark driver run
-        on random inputs (property-based or fuzzed), to catch bugs in
-        the code;
-    *   E-ACSL (Frama-C's runtime assertion checker, in the image)
-        builds of the annotated code, which check contracts, asserts
-        and loop invariants on the same runs.  E-ACSL tracks valid,
-        initialised and freeable memory itself, so use after free and
-        uninitialised reads are caught without the ghost liveness model;
-        logic definitions it cannot execute are replaced by their
-        executable twins (§4 item 5);
-    *   the benchmark's mutants run under E-ACSL: a mutant that runs
-        without any check firing points to a spec too weak to reject
-        it, before any proof is attempted.
-    A failed check gives a concrete input, which goes back to the
-    annotator: an annotation that is *false* is dropped or fixed here
-    instead of looking, to WP, like a goal that is merely *hard*
-    (a timeout).  Testing is a filter only; nothing it reports enters
-    the certificate or the trust base.
-1.  **Normalise and instrument.**
-    `frama-c -cpp-extra-args="-I sglib" bench.c -rte -rte-initialized
-    -then -print -ocode bench.rte.c` **[verify flags]**.  The macro-
-    expanded code is what is verified; keep `bench.rte.c` in the bundle.
-    (The original plan's `-code-shaping` is not a Frama-C option, and the
-    RTE predicates are `\valid` / `\valid_read`.)
-2.  **Eva (optional, triage).**  Run Eva to find alarms early and to
-    suggest candidate invariants.  Eva's results may enter the proof only
-    as ACSL `assert`s that WP then proves; Eva itself never becomes a
-    hypothesis, otherwise Eva joins the TCB.
-3.  **Generate VCs.**  `frama-c -wp -wp-rte -wp-model Typed
-    -wp-prover alt-ergo,z3,coq -wp-interactive batch -wp-timeout 20
-    bench.c` **[verify]**.  `-wp-timeout` limits automatic provers only.
-    Log for every goal: id, origin (RTE/contract/invariant), and who
-    closed it.
-4.  **Proof loop (prover role).**  For each open Coq goal: fetch the goal
-    state, try library lemmas and `hammer`/`sauto` first (bounded time),
-    then the prover tier (§12.2) proposes structural tactics; run each
-    tactic in Pétanque, keep a search tree, backtrack on failure.  Cap
-    per-goal budget (tactics, seconds, tokens).  A prover may also
-    return *needs-annotation* with a short reason (e.g. "hypotheses say
-    nothing about `l->next` after the loop"), which hands the goal to
-    step 5 instead of spending more proof attempts.
-5.  **Refinement (annotator role).**  On a stall, or on a
-    *needs-annotation* report, the annotator may (a) add an `assert`, (b)
-    strengthen a loop invariant, (c) add a helper lemma (ACSL `lemma` or
-    Coq lemma, both must be proved), (d) add ghost code.  Then go back to
-    step 3, re-using proofs of unchanged goals (WP session `update`).
-6.  **Close out.**  When no goals remain: `coqc` all `.v`, run
-    `coqchk` on the resulting modules, run `Print Assumptions` on every
-    goal, and diff the reported axioms against the allowed list (§7).
-7.  **Termination of the loop.**  Hard caps on refinement iterations and
-    total cost; on exhaustion emit a failure report listing open goals
-    with their last state, never a partial certificate.
+(The WP agent loop of M0–M5: §14.4.)
 
 ---
 
 ## 6. Case study: sglib
+
+**Closed at stage 1 (owner, 2026-11-21; §8, M6).**  §6.1–6.3 were
+written for the Frama-C/WP pipeline (§14); the VST results are in §8,
+M6.
 
 Target: [sglib](https://github.com/Marian-Vittek/sglib), single header
 `sglib.h`; samples in `samples/` (`dllist`, `rbtree`, `hash`, list and
@@ -413,41 +380,25 @@ invariant is only needed for functional correctness and is stretch work.
 
 ## 7. Guardrails
 
-1.  **Annotation overlay.**  The agent edits only (a) ACSL comments,
-    (b) ghost code, (c) `.v` proof scripts and lemma files.  After every
-    edit, strip annotations and ghost code and check that the normalised
-    C is byte-identical to the original (compare `frama-c -print` output
-    of both).  Reject otherwise.
-2.  **Frozen contracts.**  Top-level `requires`/`ensures`/`assigns` and
-    the shape predicate definitions are hashed; any change rejects the
-    run.  Reject `requires \false`-style vacuity: run a sanity check that
-    each frozen precondition is satisfiable (e.g. WP on a test driver
-    calling the function, or a Coq witness).
-3.  **No unproved hypotheses.**  Every agent-added `assert`, invariant,
-    and `lemma` produces its own goals and must be proved.  Agent-added
-    ACSL `axiom`s / `axiomatic` blocks without definitions, `admit`
-    clauses, `check`-only annotations used as hypotheses, and Coq
-    `Admitted` / `Axiom` / `Parameter` / `admit` are rejected by a linter
-    *and* caught at the end by `Print Assumptions`.
-3a. **ACSL definitions are axioms.**  M0 showed that WP exports an ACSL
-    `logic` definition as `Parameter` + defining `Axiom`, and accepts a
-    non-terminating one: from `logic integer bad(integer n) = bad(n) + 1;`
-    Coq proves `bad(0) == 0` (`env/smoke/bad_def.c`).  So the agent may
-    not add or change `logic`, `predicate`, `inductive`, or `axiomatic`
-    definitions; those belong to the frozen, human-reviewed
-    specification (§4).  If the agent needs a helper definition, it
-    proposes one and a human approves it, or (later) it comes with a
-    Coq realisation checked against the exported axiom.
-4.  **Axiom allow-list.**  `coqchk -o` (prints the axioms/opaque
-    constants the checked modules rely on) is compared against a fixed
-    allow-list (WP/Why3 theory realisations, functional extensionality if
-    used).  Anything else fails the run.
-5.  **Goal accounting.**  The final report lists every RTE/contract goal
-    and its discharger (Qed, SMT, Coq).  A goal that is neither proved
-    nor explicitly marked out of scope fails the run.
-6.  **Sandboxing.**  No network, no writes outside the run directory, no
-    access to Frama-C/Coq configuration that could change provers or
-    load plugins.
+1.  **Pristine C.**  The check runs clightgen on a pristine copy of the
+    C; nothing the agent changed in its copy is used.
+2.  **Frozen files.**  Writes to the frozen spec files are denied by the
+    fence; their digest is checked after the run, and the check uses
+    pristine copies.
+3.  **No unproved hypotheses.**  A lint rejects `admit`, `Admitted`,
+    `Axiom`, `Parameter` and `Conjecture`; each required statement is
+    `Check`ed fully qualified, and `Print Assumptions` must match the
+    allow-list (`vst/smoke/expected_assumptions.txt`).
+4.  **Leak freedom.**  The postcondition lint on every funspec (M6
+    public-spec rule 7).
+5.  **Library targets:** the client's `Gprog` gives the library
+    functions their frozen funspecs (proved by `reflexivity` in the
+    check).
+6.  **Sandbox.**  Docker with `--network none` and only the run
+    directory mounted; memory, pids and time limits; reads of other
+    runs and of `bench/` denied.
+
+(The WP guardrails of M0–M5: §14.5.)
 
 ---
 
@@ -455,14 +406,18 @@ invariant is only needed for functional correctness and is stretch work.
 
 | # | Deliverable | Exit criterion |
 |---|-------------|----------------|
-| M0 | Toolchain pin + container | **Done** (`env/`, `env/smoke/check.sh`): versions pinned; WP → Why3 → Coq round trip on a small example (10/10 goals, one by a Coq script); `coqchk` passes and lists the axioms; CoqHammer and Pétanque work on WP goals. |
-| M1a | WP allocation investigation (§10) | **Done** (`m1a/`): WP misses use-after-free in every memory model; the ghost liveness model catches every case.  Decision: fallback 1. |
-| M1 | Manual baseline on B1 | Human writes predicates + contracts + invariants; all goals closed (by any means); goal census recorded.  This tells us where the hard goals are and whether the shape library works.  **B1a done** (`bench/b1/`): add + forward walk + free-while-iterating, 183/183 goals (Qed 109, SMT 71, Coq 3), three mutants rejected.  **B1b done**: + `get_first`/`get_last` and the backward walk, 222/222 (Qed 126, SMT 92, Coq 4), six mutants rejected.  **Initialisation checks added** (`-rte-initialized @all`): 321/321 (Qed 189, SMT 127, Coq 5), seven mutants rejected (§10).  B1c (sort) is stretch. |
-| M2 | Pipeline without LLM | Runtime-checking first pass (§5 step 0): executable twins of the shape predicates, E-ACSL and sanitizer builds of the driver on random inputs, mutants as tests; prototype on B1, then generate twins from the ACSL definitions.  Python harness runs steps 1–7, Pétanque integration, `hammer`-only proof search, guardrail checks, report.  Measure how much of M1 automation alone closes.  Budget ledger built and calibrated with a small Opus 5.5 pilot (§11). |
-| M3 | Agent on B1 | Annotator (Opus 5.5) + prover tier on B1 starting from frozen contracts only (no human invariants).  Minimum success criterion.  First comparison of prover escalation strategies (§12.3).  **Agent on B1 done** (`harness/README.md`, "Annotator"): from `bench/b1/b1_frozen.c` (254 goals, 206 closed by Qed/SMT), Opus 5.5 wrote the invariants, asserts and 24 lemmas in two patches; certified 330/330 (Qed 186, SMT 140, Coq 4, all four by Sonnet); Opus $3.40, Sonnet $1.19.  **Escalation comparison done** (S1-S4 on 9 Coq goals, $3.80): Opus alone proved 9/9 at about $0.18 and 37 s per goal, so the prover is now tier 0 then Opus (Q9). |
-| M4 | RB-tree `find_member`, `add` | Shape library extended to trees; target success criterion. |
-| M5 | Evaluation | G6 metrics across B1, B2 (and B3 if reached); ablations: no refinement, no hammer, no library lemmas; prover escalation strategies and annotator model (§12.3). |
+| M0 | Toolchain pin + container (WP) | **Done** (`env/`, `env/smoke/check.sh`): versions pinned; WP → Why3 → Coq round trip on a small example (10/10 goals, one by a Coq script); `coqchk` passes and lists the axioms; CoqHammer and Pétanque work on WP goals. |
+| M1a | WP allocation investigation (§14.6) | **Done** (`m1a/`): WP misses use-after-free in every memory model; the ghost liveness model catches every case.  Decision: fallback 1. |
+| M1 | Manual baseline on B1 (WP) | Human writes predicates + contracts + invariants; all goals closed (by any means); goal census recorded.  This tells us where the hard goals are and whether the shape library works.  **B1a done** (`bench/b1/`): add + forward walk + free-while-iterating, 183/183 goals (Qed 109, SMT 71, Coq 3), three mutants rejected.  **B1b done**: + `get_first`/`get_last` and the backward walk, 222/222 (Qed 126, SMT 92, Coq 4), six mutants rejected.  **Initialisation checks added** (`-rte-initialized @all`): 321/321 (Qed 189, SMT 127, Coq 5), seven mutants rejected (§10).  B1c (sort) is stretch. |
+| M2 | Pipeline without LLM (WP) | **Dropped** with the WP pipeline (owner, 2026-11-21); the budget ledger carries over to the VST runner.  Was: Runtime-checking first pass (§5 step 0): executable twins of the shape predicates, E-ACSL and sanitizer builds of the driver on random inputs, mutants as tests; prototype on B1, then generate twins from the ACSL definitions.  Python harness runs steps 1–7, Pétanque integration, `hammer`-only proof search, guardrail checks, report.  Measure how much of M1 automation alone closes.  Budget ledger built and calibrated with a small Opus 5.5 pilot (§11). |
+| M3 | Agent on B1 (WP) | Annotator (Opus 5.5) + prover tier on B1 starting from frozen contracts only (no human invariants).  Minimum success criterion.  First comparison of prover escalation strategies (§12.3).  **Agent on B1 done** (`harness/README.md`, "Annotator"): from `bench/b1/b1_frozen.c` (254 goals, 206 closed by Qed/SMT), Opus 5.5 wrote the invariants, asserts and 24 lemmas in two patches; certified 330/330 (Qed 186, SMT 140, Coq 4, all four by Sonnet); Opus $3.40, Sonnet $1.19.  **Escalation comparison done** (S1-S4 on 9 Coq goals, $3.80): Opus alone proved 9/9 at about $0.18 and 37 s per goal, so the prover is now tier 0 then Opus (Q9). |
+| M4 | RB-tree `find_member`, `add` | **Dropped** (owner, 2026-11-21): sglib closed at stage 1; trees come with the programs of §13. |
+| M5 | Evaluation (WP) | **Dropped** with the WP pipeline (owner, 2026-11-21); per-program measurement continues under G6 (§13).  Was: G6 metrics across B1, B2 (and B3 if reached); ablations: no refinement, no hammer, no library lemmas; prover escalation strategies and annotator model (§12.3). |
 | M6 | VST port (Q10, owner 2026-11-10) | VST is the sole backend from the next benchmark on; Frama-C/WP finishes B1/B1c and is retired.  Preconditions for relying on VST alone, below; harness pieces ported, below.  Exit: a benchmark certified by the VST pipeline with all three preconditions met. |
+| M7 | sglib certificate (§13, step 0) | One command re-checks the M6 library and client proofs (clightgen, coqc, coqchk, `Print Assumptions`, leak lint); G4. |
+| M8 | picol (§13, step 1) | `semax_prog` for picol, leak-free, with agent-chosen internal funspecs; external specs reviewed by the owner; human-step log; §1.5 minimum. |
+| M9 | clox (§13, step 2) | `semax_prog` for clox with the picol workflow and libraries; lower cost per line and fewer human steps than M8; §1.5 target. |
+| M10 | About 10k lines (§13, step 3) | Proved with the split among runs chosen by the workflow; §1.5 stretch. |
 
 **M6 preconditions for relying on VST alone (owner, 2026-11-10).**
 
@@ -660,7 +615,7 @@ wrong one is caught by Rocq (too weak a precondition: the function's
 proof fails; too strong: its caller's proof fails, so `semax_prog`
 fails).  The owner's review then shrinks to the specs of the external
 functions the program calls (libc, I/O), reviewed once and shared across
-programs.  Next: a survey of candidate programs.
+programs.  The program sequence that follows is §13.
 
 **What `q10/run_vst.py` needs to target the frozen spec** (checked
 2026-11-17; it was written for Q10's task, in which the agent wrote its
@@ -712,11 +667,8 @@ own funspecs for B1a/B1c):
 
 ### 9.1 Decided
 
-*   **Q1 — SMT in the TCB: allowed.**  Goals closed by WP's Qed
-    simplifier or by SMT solvers (Alt-Ergo, Z3, CVC5) count.  The TCB in
-    §2.2 item 7 therefore applies.  The final report still records which
-    tool closed each goal.  "Every goal in Coq" stays an optional ablation
-    for M5.
+The decisions that applied only to the Frama-C/WP pipeline (Q1, Q2, Q4, Q5, Q9) are in §14.8.
+
 *   **Q3 — Use-after-free is in scope (required for G1).**  Whether WP
     supports it as is gets settled in M1a (§10).  If WP falls short, we
     extend it; see §10 for the options and their effect on the TCB.
@@ -724,14 +676,6 @@ own funspecs for B1a/B1c):
     every `*/agda/` `Makefile` and `All.agda`, so repo-level Agda checks
     are unaffected.  Ariadne gets its own `Makefile` (target `check` =
     re-check all certificate bundles) once M2 exists.
-*   **Q4 — Annotations go on the preprocessed file first.**  M1
-    annotates the preprocessed file `bench.i` (each macro instance is
-    annotated separately).  At the end of M1, decide whether to move to
-    a patched `sglib.h` with annotation hooks inside the macros (e.g.
-    `SGLIB___DL_LIST_ADD_INV(...)` expanding to an ACSL comment), which
-    is reusable across types and benchmarks; the overlay check (§7.1)
-    would then compare the patched header, hooks stripped, against the
-    original.  The annotations themselves carry over either way.
 *   **Q7 — Models by role (§12); budget at most 25% of the owner's
     weekly usage limit (§11).**  Annotator: Claude Opus 5.5.  Prover: a
     tier starting with GLM 5.3 Flash (free, via IU REALLMS), escalation
@@ -744,29 +688,6 @@ own funspecs for B1a/B1c):
     reported separately from goals closed by the agent alone (G6), and
     the success criteria in §1.5 count only unhinted goals unless stated
     otherwise.
-
-*   **Q2 — Memory model: `Typed`** (`-wp-model Typed`; `Typed+ref` may
-    be tried as an optimisation).  It assumes no type-punning, which fits
-    sglib's intrusive structs.  Checked in M1a: the RB-tree and DL-list
-    code in `sglib.h` contains no pointer casts, and `sglib.h` never
-    allocates.  The only casts left are `malloc` results in our
-    benchmark drivers, which call typed allocators instead (§10).
-*   **Q5 — Coq/Rocq version: the latest one that WP and its Why3
-    version support.**  Resolved in M0: Frama-C 33.0 requires Why3 1.8.x,
-    whose Coq support stops at Rocq 9.0, so Rocq 9.0.1.  CoqHammer and
-    coq-lsp both have Rocq 9.0 releases, so nothing had to step back.
-
-*   **Q9 — Prover: Opus 5.5 alone, after tier 0 (owner, 2026-11-05).**
-    The starting configuration was GLM 5.3 Flash → Sonnet 5.5 → Opus
-    5.5.  The M3 comparison (§12.3, `harness/README.md`) on 9 Coq goals:
-    Opus alone and Sonnet alone each proved 9/9 at about $0.18 per goal,
-    Opus in 37 s per goal and Sonnet in 50 s; GLM alone proved 1/9, and
-    gpt-oss-120b and qwen3.8-27b none.  Starting with GLM saved at most
-    about $0.04 per goal and took 8-85 times as long as Opus alone.  So
-    step 4 runs tier 0 and then Opus (`harness.py --tiers 0,2`,
-    `--claude-model`); GLM stays available as `--tiers 0,1,2`.  **Redo the comparison** (the S1-S4
-    runner, `harness/escalation.py`) whenever a new model becomes
-    available, Claude or REALLMS, and at the latest at M5.
 
 ### 9.2 Still open
 
@@ -1430,7 +1351,384 @@ own funspecs for B1a/B1c):
 
 ---
 
-## 10. Use-after-free: the M1a investigation and fallbacks
+## 10. Use-after-free
+
+Under VST, use after free, invalid and double `free` are covered by
+`semax` (§2.1).  The M1a investigation of WP: §14.6.
+
+---
+
+## 11. Agent budget: at most 25% of the weekly usage limit
+
+The limit is a share of the owner's Claude subscription, not a dollar
+amount, so the harness needs a way to turn tokens into "% of weekly
+limit".  Plan:
+
+1.  **Run the agent with the owner's subscription.**  Drive Opus 5.5
+    through Claude Code in headless mode (`claude -p --model
+    claude-opus-5-5 --output-format json`) or the Claude Agent SDK
+    logged in with the subscription, so usage counts against the plan
+    limit we are budgeting.  Each call's JSON result includes token
+    usage (and an equivalent cost) **[verify field names]**.
+    (A Claude API key instead would not touch the subscription limit,
+    but costs money separately.  Not planned.)
+2.  **Calibrate once, in M2.**  Note the weekly usage % shown by
+    `/usage` in Claude Code, run a fixed pilot (e.g. 20 goals of B1),
+    note `/usage` again, and divide by the tokens the harness logged.
+    That gives *% of weekly limit per million tokens*.  Repeat if the
+    plan or the limits change.
+3.  **Ledger and hard stop.**  The harness keeps a ledger
+    (`Ariadne/runs/budget.json`, git-ignored) of tokens used since the
+    last weekly reset.  Before each LLM call it estimates the call's cost
+    and refuses if the total would pass the cap.  The cap is **20%**
+    (a margin under 25%, because calibration is approximate and the
+    owner also uses Claude interactively).  At 15% it writes a warning to
+    the run report.
+4.  **Spending within the cap.**  Only Anthropic models count against
+    the cap; GLM 5.3 Flash (IU REALLMS) is free but rate-limited, so it
+    gets its own requests-per-minute limit **[verify REALLMS limits]**.
+    Cheap work first: Qed/SMT, then `hammer`/`sauto` and library lemmas
+    (no LLM), then the free prover tier, and Anthropic models only where
+    those fail (§12).  The ledger keeps the annotator's and the prover's
+    Anthropic usage separate, so the M3/M5 reports can show where the
+    budget went.  Per-goal cap (tactic attempts and tokens) and
+    per-benchmark cap, both set from the M2 pilot.  Cache goal states →
+    proof attempts so a rerun after a refinement step does not pay again
+    for goals that did not change.
+5.  **Never a silent overrun.**  When the cap is hit the run stops
+    cleanly with the usual failure report (open goals + last states) and
+    the ledger total; it resumes after the weekly reset or when the owner
+    raises the cap.
+
+Open item: whether a usage % can be read programmatically
+**[verify]**.  If it can, the harness reads it directly and the
+calibration of step 2 becomes only a cross-check.
+
+---
+
+## 12. Model roles
+
+Since Q10 one agent, Claude Opus 5.5 (`claude-opus-5-5`), writes all the
+proof files of a run through `claude -p`; there is no separate annotator
+or prover tier.  The model comparison is redone when a new model becomes
+available (Q9, §14.8).  The WP-era roles, the REALLMS prover tiers and
+the escalation experiments: §14.7.
+
+---
+
+## 13. Program sequence after sglib (owner, 2026-11-21)
+
+sglib was the first test case and closed at stage 1 (M6).  From here
+the targets are complete C programs of increasing size, chosen from the
+candidate survey (`bench/CANDIDATES.md`) and refreshed as we go.  Each
+program has two jobs: be proved (G1), and drive the workflows and
+infrastructure forward (G8) with fewer human steps (G9).  A step starts
+when the previous program is proved and its lessons are recorded as
+changes to the workflow or tools, not only as notes.  Paid runs still
+need the owner's approval.
+
+Measured at every step (G6, G9): cost and time of every run, cost per
+line of C, and the human-step log (`bench/<program>/HUMAN_STEPS.md`: each
+question asked of the owner, and why a machine could not decide it).
+
+**Step 0: the sglib certificate (M7).**  A one-command re-check of
+everything M6 proved (G4): clightgen, coqc on the library and the 13
+client proofs, coqchk, `Print Assumptions` against the allow-list, the
+leak lint.  Built as the reusable bundle format for the later steps.
+
+**Step 1: picol (M8).**  antirez's Tcl interpreter, 669 lines, BSD-2;
+clightgen accepts it unchanged.  Heap: linked lists of variables and
+commands, a call-frame stack, a growable `argv`, commands called
+through function pointers.  18 external functions (stdio and string).
+What it tests and builds:
+*   the whole-program workflow: the agent chooses every internal
+    funspec, and only `main`'s spec is claimed;
+*   the first entries of the external-spec library (G8), the only
+    specs the owner reviews (G9);
+*   decomposition: the order in which functions are proved (bottom-up
+    over the call graph), and how a large proof is split across runs;
+*   a defect protocol.  Reading the code found a likely use-after-free
+    (`proc f {} { proc f {} {}; puts after }`, `bench/CANDIDATES.md`),
+    to be confirmed under ASan before any proof.  If a proof is
+    blocked by a defect, the workflow should produce a concrete input
+    that fails under the sanitizers, so the owner decides on evidence
+    (G9), as with the Callbacks rule in M6.
+
+**Step 2: clox (M9).**  The bytecode interpreter of *Crafting
+Interpreters*, 2.6k lines in 10 files, MIT, 265 test programs.  Heap:
+hash tables, growable arrays, closures, a mark-sweep collector.  It
+tests reuse: the external-spec and shape libraries and the workflow
+from picol, at a lower cost per line and with fewer human steps per
+program (§1.5 target).  It needs preparation that is itself a G9
+question: clightgen rejects `Token` passed by value in two files, and
+`runtimeError` is variadic.  A mechanical rewrite checked by
+differential testing on the 265 programs, rather than a human edit, is
+the workflow to aim for.  The collector is verified or turned off
+(owner's decision at this step).
+
+**Step 3: about 10k lines (M10).**  Chosen by a survey refresh after
+step 2 (md4c with md2html, 8.8k lines, is the current candidate).  It
+tests whether the workflow splits a program among runs without a human
+choosing the split (§1.5 stretch).
+
+---
+
+## 14. Deprecated: the Frama-C/WP pipeline (M0–M5)
+
+**Deprecated (owner, 2026-11-21): the Frama-C/WP pipeline is not
+continued.**  It certified B1 (M1, M3) and was compared with VST in Q10;
+VST has been the sole backend since M6.  This section keeps the record.
+Its code (`env/`, `harness/`, `prover/`, `rac/`, `m1a/`, `bench/b1*`)
+stays in the repository but is not maintained; reuse of a piece (such as
+`rac/gen_twins.py`) is noted where it happens.  Section numbers inside
+this section are those of the plan before 2026-11-21: §2.1 and §2.2 are
+now §14.1, §3 is §14.2, §4 is §14.3, §5 is §14.4, §7 is §14.5, §10 is
+§14.6, §12 is §14.7, and Q1, Q2, Q4, Q5, Q9 are §14.8.
+
+### 14.1 Properties and trust base (old §2.1, §2.2)
+
+The RTE plugin generates the safety obligations.  In scope:
+
+*   `\valid` / `\valid_read` for every memory access (null and dangling
+    dereference, out-of-bounds access);
+*   `\initialized` for reads (`-rte-initialized @all`, with WP's
+    `-wp-no-filter-init`; used since M1, `bench/b1/README.md`
+    "Initialisation");
+*   signed overflow, division by zero, invalid shifts, pointer-arithmetic
+    validity (RTE defaults);
+*   use-after-free, invalid `free`, and double `free` (required): through
+    `\valid`/`\freeable` after `free` if WP supports it, otherwise
+    through the fallbacks in §10.
+The `.vo` files certify that **the
+verification conditions generated by WP are valid**, not directly that
+the C program is safe.  The chain is:
+
+```
+ C source ──CIL/Frama-C──► normalized AST ──RTE──► ACSL obligations
+          ──WP──► VCs (memory model) ──Why3──► Coq .v ──coqc──► .vo
+                                                         ▲
+                                                coqchk re-checks
+```
+
+Trusted (TCB):
+
+1.  Frama-C front end (CIL normalisation, macro expansion via `cpp`).
+2.  The RTE plugin: if an obligation is not generated, it is not proved.
+3.  WP: VC generation, its memory model (Typed / Typed+ref / Bytes), and
+    **its Qed simplifier, which discharges many goals before export**.
+4.  Why3's Coq driver and the realisations of WP/Why3 theories.
+5.  Coq's kernel, re-checked by `coqchk`.
+6.  The frozen top-level contracts and any ACSL `axiomatic` blocks a human
+    approved.
+7.  Any goal discharged by an SMT solver, *unless* policy says all goals
+    must go to Coq (§9, Q1).
+
+The user accepted Rocq's `ClassicalEpsilon.constructive_indefinite_description`
+into the axiom allow-list (§7.4), because Why3's `BuiltIn` theory, which
+every WP goal file loads, depends on it.
+
+Not trusted: the agent, CoqHammer's search (its reconstructed proofs are
+kernel-checked), Eva (only if its results enter as proved assertions, see
+§5 step 2).
+
+
+### 14.2 Technical stack (old §3)
+
+Pinned in M0 as a Docker image (`env/Dockerfile`; versions and reasons
+in `env/README.md`): Frama-C 33.0 (Arsenic), Why3 1.8.2, Rocq 9.0.1,
+CoqHammer 1.3.2, coq-lsp/Pétanque 0.2.5, Alt-Ergo 2.6.4, Z3 4.13.4,
+CVC5 1.2.1, Vampire 4.9, Eprover 2.6.
+
+*   **Front end:** Frama-C 33.0 (Arsenic) with RTE, Eva, WP.
+*   **Specification language:** ACSL.
+*   **VC back end:** WP → Why3 → Coq/Rocq.  Note that `-wp-prover coq`
+    goes through Why3, and WP stores Coq scripts in
+    `<session>/interactive/<goal>.v`; `-wp-interactive update` creates
+    stubs, `batch` checks them.  Why3 regenerates each file and keeps only
+    the `Proof. … Qed.` text, so tactic imports (`Lia`, CoqHammer) come
+    from the `coq-ariadne` Why3 driver (M0).
+*   **Proof assistant:** Rocq 9.0.1, the newest that Why3 1.8.2 supports.
+*   **Automation:** CoqHammer (`hammer`, plus `sauto`/`best` which need no
+    external ATPs), external ATPs (Vampire, E, Z3, CVC5) for `hammer`.
+*   **SMT:** Alt-Ergo, Z3, CVC5 via Why3, tried before Coq; goals they
+    close count (decision Q1, §9.1).
+*   **LLMs, two roles (§12):** the *annotator* (Claude Opus 5.5,
+    `claude-opus-5-5`) writes ACSL annotations, ghost code and helper
+    lemmas; the *prover* (a tier of models, starting with GLM 5.3 Flash)
+    writes Coq tactics for goals that SMT and CoqHammer leave open.
+    Anthropic models are run with the owner's subscription and capped by
+    the budget in §11.  The harness talks to models through one
+    provider-neutral interface so models can be swapped per role.
+*   **Agent interface:** Python 3.11+, asyncio.  Talk to Coq through
+    `coq-lsp`; prefer its Pétanque interface (`pet`), which is designed
+    for programmatic proof search (run tactic on a state, get new state)
+    over driving LSP document edits **[verify]**.
+*   **Sandbox:** each run in a container with no network except the LLM
+    endpoint; source tree mounted read-only except the annotation overlay
+    (§7).
+
+
+### 14.3 Specification layer (the part the plan was missing) (old §4)
+
+Safety of sglib operations cannot be stated without heap-shape
+predicates; this is where most of the human and agent effort goes.
+
+1.  **Shape predicates in ACSL**, as `inductive` or `axiomatic`
+    definitions with explicit `reads` clauses:
+    *   `dll_seg{L}(ilist *from, ilist *prev, ilist *to, ilist *next)` —
+        a well-linked DL segment, every cell `\valid`, pairwise separated.
+    *   `dll(ilist *l)` — whole list (any element; sglib DL lists are
+        accessed from an arbitrary member).
+    *   `tree{L}(node *t)` — finite, acyclic, `\valid` nodes, no sharing.
+    *   `bst(node *t, integer lo, integer hi)`, `rb(node *t, integer bh)`.
+2.  **Footprints.**  ACSL has no separation logic; separation must be
+    expressed with `\separated` over explicit footprint sets
+    (`logic set<ilist*> dll_footprint(...)`).  Frame lemmas
+    ("writing outside the footprint preserves `dll`") are proved once in
+    Coq and reused (G7).
+3.  **Coq realisation.**  Each predicate gets a Coq counterpart with
+    induction principles and lemmas; WP's export must be connected to
+    these definitions rather than to opaque axioms **[verify: how WP
+    exports ACSL inductive predicates through Why3]**.
+4.  **Frozen contracts.**  For each target function, a human writes (or
+    approves) the `requires` / `ensures` / `assigns` contract.  The agent
+    may strengthen *internal* annotations (loop invariants, asserts,
+    ghost code, lemmas it also proves) but never the frozen contract.
+5.  **Executable twins.**  Every logic definition the runtime checks of
+    §5 step 0 need (inductive predicates such as `dll`, and predicates
+    over `\list` such as `mem`, `all_live`, `in_live_list`) gets an
+    executable C twin, generated with the spec: a recursive or looping
+    function that walks the structure, with a step bound so a cyclic or
+    corrupt heap returns false instead of hanging.  Existentials over
+    lists (`\exists \list<dllist *> s; live_dll(\null, h, s)`) are
+    replaced by computing the witness (the list reached from `h`).
+    Generating a twin is mechanical: an inductive predicate's cases
+    become the branches of the function.  The twins are test code only;
+    they never enter a proof.  Optionally a twin gets its own ACSL
+    contract `ensures \result != 0 <==> dll(prev, h, s)`, proved by WP,
+    so a runtime check that passes really means the predicate holds.
+
+
+### 14.4 Sandboxed agent loop (old §5)
+
+```
+   [ C source + frozen contracts ]
+                 │
+                 ▼
+  ┌──► [ Frama-C: RTE + WP, VC generation ]
+  │              │
+  │              ├─► goals closed by Qed / SMT (logged, policy Q1)
+  │              ▼
+  │     [ Coq goal files (.v) ]
+  │              │
+  │              ▼
+  │     [ Agent ↔ coq-lsp / Pétanque ] ──► tactics: intros, induction,
+  │              │                          inversion, lemma reuse, hammer
+  │              ├─► SUCCESS: all goals closed → coqc → .vo → coqchk
+  │              │
+  │              └─► STALL: goal unprovable / invariant too weak
+  │                      │
+  └────── [ Agent edits annotation overlay only (§7) ] ◄┘
+```
+
+#### Operational steps
+
+0.  **Test first (runtime checking, seconds).**  Before any proof,
+    and again on every annotation the annotator proposes in step 5:
+    *   sanitizer builds (ASan, UBSan, MSan) of the benchmark driver run
+        on random inputs (property-based or fuzzed), to catch bugs in
+        the code;
+    *   E-ACSL (Frama-C's runtime assertion checker, in the image)
+        builds of the annotated code, which check contracts, asserts
+        and loop invariants on the same runs.  E-ACSL tracks valid,
+        initialised and freeable memory itself, so use after free and
+        uninitialised reads are caught without the ghost liveness model;
+        logic definitions it cannot execute are replaced by their
+        executable twins (§4 item 5);
+    *   the benchmark's mutants run under E-ACSL: a mutant that runs
+        without any check firing points to a spec too weak to reject
+        it, before any proof is attempted.
+    A failed check gives a concrete input, which goes back to the
+    annotator: an annotation that is *false* is dropped or fixed here
+    instead of looking, to WP, like a goal that is merely *hard*
+    (a timeout).  Testing is a filter only; nothing it reports enters
+    the certificate or the trust base.
+1.  **Normalise and instrument.**
+    `frama-c -cpp-extra-args="-I sglib" bench.c -rte -rte-initialized
+    -then -print -ocode bench.rte.c` **[verify flags]**.  The macro-
+    expanded code is what is verified; keep `bench.rte.c` in the bundle.
+    (The original plan's `-code-shaping` is not a Frama-C option, and the
+    RTE predicates are `\valid` / `\valid_read`.)
+2.  **Eva (optional, triage).**  Run Eva to find alarms early and to
+    suggest candidate invariants.  Eva's results may enter the proof only
+    as ACSL `assert`s that WP then proves; Eva itself never becomes a
+    hypothesis, otherwise Eva joins the TCB.
+3.  **Generate VCs.**  `frama-c -wp -wp-rte -wp-model Typed
+    -wp-prover alt-ergo,z3,coq -wp-interactive batch -wp-timeout 20
+    bench.c` **[verify]**.  `-wp-timeout` limits automatic provers only.
+    Log for every goal: id, origin (RTE/contract/invariant), and who
+    closed it.
+4.  **Proof loop (prover role).**  For each open Coq goal: fetch the goal
+    state, try library lemmas and `hammer`/`sauto` first (bounded time),
+    then the prover tier (§12.2) proposes structural tactics; run each
+    tactic in Pétanque, keep a search tree, backtrack on failure.  Cap
+    per-goal budget (tactics, seconds, tokens).  A prover may also
+    return *needs-annotation* with a short reason (e.g. "hypotheses say
+    nothing about `l->next` after the loop"), which hands the goal to
+    step 5 instead of spending more proof attempts.
+5.  **Refinement (annotator role).**  On a stall, or on a
+    *needs-annotation* report, the annotator may (a) add an `assert`, (b)
+    strengthen a loop invariant, (c) add a helper lemma (ACSL `lemma` or
+    Coq lemma, both must be proved), (d) add ghost code.  Then go back to
+    step 3, re-using proofs of unchanged goals (WP session `update`).
+6.  **Close out.**  When no goals remain: `coqc` all `.v`, run
+    `coqchk` on the resulting modules, run `Print Assumptions` on every
+    goal, and diff the reported axioms against the allowed list (§7).
+7.  **Termination of the loop.**  Hard caps on refinement iterations and
+    total cost; on exhaustion emit a failure report listing open goals
+    with their last state, never a partial certificate.
+
+
+### 14.5 Guardrails (old §7)
+
+1.  **Annotation overlay.**  The agent edits only (a) ACSL comments,
+    (b) ghost code, (c) `.v` proof scripts and lemma files.  After every
+    edit, strip annotations and ghost code and check that the normalised
+    C is byte-identical to the original (compare `frama-c -print` output
+    of both).  Reject otherwise.
+2.  **Frozen contracts.**  Top-level `requires`/`ensures`/`assigns` and
+    the shape predicate definitions are hashed; any change rejects the
+    run.  Reject `requires \false`-style vacuity: run a sanity check that
+    each frozen precondition is satisfiable (e.g. WP on a test driver
+    calling the function, or a Coq witness).
+3.  **No unproved hypotheses.**  Every agent-added `assert`, invariant,
+    and `lemma` produces its own goals and must be proved.  Agent-added
+    ACSL `axiom`s / `axiomatic` blocks without definitions, `admit`
+    clauses, `check`-only annotations used as hypotheses, and Coq
+    `Admitted` / `Axiom` / `Parameter` / `admit` are rejected by a linter
+    *and* caught at the end by `Print Assumptions`.
+3a. **ACSL definitions are axioms.**  M0 showed that WP exports an ACSL
+    `logic` definition as `Parameter` + defining `Axiom`, and accepts a
+    non-terminating one: from `logic integer bad(integer n) = bad(n) + 1;`
+    Coq proves `bad(0) == 0` (`env/smoke/bad_def.c`).  So the agent may
+    not add or change `logic`, `predicate`, `inductive`, or `axiomatic`
+    definitions; those belong to the frozen, human-reviewed
+    specification (§4).  If the agent needs a helper definition, it
+    proposes one and a human approves it, or (later) it comes with a
+    Coq realisation checked against the exported axiom.
+4.  **Axiom allow-list.**  `coqchk -o` (prints the axioms/opaque
+    constants the checked modules rely on) is compared against a fixed
+    allow-list (WP/Why3 theory realisations, functional extensionality if
+    used).  Anything else fails the run.
+5.  **Goal accounting.**  The final report lists every RTE/contract goal
+    and its discharger (Qed, SMT, Coq).  A goal that is neither proved
+    nor explicitly marked out of scope fails the run.
+6.  **Sandboxing.**  No network, no writes outside the run directory, no
+    access to Frama-C/Coq configuration that could change provers or
+    load plugins.
+
+
+### 14.6 Use-after-free: the M1a investigation and fallbacks (old §10)
 
 **Question to settle first (M1a, before the M1 baseline):** with Frama-C
 33 + WP + the Frama-C libc specs of `malloc`/`free`, do these small
@@ -1508,59 +1806,10 @@ an annotation makes `-ariadne` admit `!heap(&x)`, which moves `x` to
 memory, where call results have unknown initialisation.  B1: 321/321 goals, mutant `noinit` (missing
 `l->i = input[k]`) rejected at `add`'s `elem_init` precondition.
 
----
 
-## 11. Agent budget: at most 25% of the weekly usage limit
+### 14.7 Model roles and escalation (old §12)
 
-The limit is a share of the owner's Claude subscription, not a dollar
-amount, so the harness needs a way to turn tokens into "% of weekly
-limit".  Plan:
-
-1.  **Run the agent with the owner's subscription.**  Drive Opus 5.5
-    through Claude Code in headless mode (`claude -p --model
-    claude-opus-5-5 --output-format json`) or the Claude Agent SDK
-    logged in with the subscription, so usage counts against the plan
-    limit we are budgeting.  Each call's JSON result includes token
-    usage (and an equivalent cost) **[verify field names]**.
-    (A Claude API key instead would not touch the subscription limit,
-    but costs money separately.  Not planned.)
-2.  **Calibrate once, in M2.**  Note the weekly usage % shown by
-    `/usage` in Claude Code, run a fixed pilot (e.g. 20 goals of B1),
-    note `/usage` again, and divide by the tokens the harness logged.
-    That gives *% of weekly limit per million tokens*.  Repeat if the
-    plan or the limits change.
-3.  **Ledger and hard stop.**  The harness keeps a ledger
-    (`Ariadne/runs/budget.json`, git-ignored) of tokens used since the
-    last weekly reset.  Before each LLM call it estimates the call's cost
-    and refuses if the total would pass the cap.  The cap is **20%**
-    (a margin under 25%, because calibration is approximate and the
-    owner also uses Claude interactively).  At 15% it writes a warning to
-    the run report.
-4.  **Spending within the cap.**  Only Anthropic models count against
-    the cap; GLM 5.3 Flash (IU REALLMS) is free but rate-limited, so it
-    gets its own requests-per-minute limit **[verify REALLMS limits]**.
-    Cheap work first: Qed/SMT, then `hammer`/`sauto` and library lemmas
-    (no LLM), then the free prover tier, and Anthropic models only where
-    those fail (§12).  The ledger keeps the annotator's and the prover's
-    Anthropic usage separate, so the M3/M5 reports can show where the
-    budget went.  Per-goal cap (tactic attempts and tokens) and
-    per-benchmark cap, both set from the M2 pilot.  Cache goal states →
-    proof attempts so a rerun after a refinement step does not pay again
-    for goals that did not change.
-5.  **Never a silent overrun.**  When the cap is hit the run stops
-    cleanly with the usual failure report (open goals + last states) and
-    the ledger total; it resumes after the weekly reset or when the owner
-    raises the cap.
-
-Open item: whether a usage % can be read programmatically
-**[verify]**.  If it can, the harness reads it directly and the
-calibration of step 2 becomes only a cross-check.
-
----
-
-## 12. Model roles and escalation
-
-### 12.1 Annotator (Claude Opus 5.5)
+#### 12.1 Annotator (Claude Opus 5.5)
 
 Writes and repairs loop invariants, asserts, ghost code, shape-predicate
 lemmas, and `assigns`/frame annotations for internal functions.  This is
@@ -1575,7 +1824,7 @@ Calls are few but large, so the annotator is the main Anthropic budget
 user; give it the largest share of the cap (initially 75%, revisited
 after the M2 pilot).
 
-### 12.2 Prover (tiered)
+#### 12.2 Prover (tiered)
 
 Writes Coq tactics for a single goal state, run step by step in
 Pétanque.  Calls are many and small, so cost per call matters.  Tiers,
@@ -1653,7 +1902,7 @@ Still to record: rate limits and allowed data classifications
 Keep the base URL and endpoint name in harness configuration, not in
 code, since the KB page shows they change.
 
-### 12.3 Escalation experiments (M3, M5)
+#### 12.3 Escalation experiments (M3, M5)
 
 Strategies to compare on the same goal set (fixed annotations, so only
 the prover varies):
@@ -1678,7 +1927,7 @@ wall-clock per closed goal, and how often a *needs-annotation* report
 led to an annotation that then closed the goal.  The winner becomes the
 default; the results go into the M5 evaluation (G6).
 
-### 12.4 Lemma retrieval (optional, M3+)
+#### 12.4 Lemma retrieval (optional, M3+)
 
 As the shape-predicate library (G7) grows, prompts cannot include every
 lemma.  Index the library's lemma statements with `Qwen3-Embedding-8B`
@@ -1687,3 +1936,41 @@ with `Qwen3-Reranker-8B`, and put the best few in the prover's prompt
 (and in `hammer`'s hint list).  Compare against no retrieval in M5.
 Retrieval only chooses what to show the model; it adds nothing to the
 TCB.
+
+
+### 14.8 Decisions that applied only to WP (old §9.1)
+
+*   **Q1 — SMT in the TCB: allowed.**  Goals closed by WP's Qed
+    simplifier or by SMT solvers (Alt-Ergo, Z3, CVC5) count.  The TCB in
+    §2.2 item 7 therefore applies.  The final report still records which
+    tool closed each goal.  "Every goal in Coq" stays an optional ablation
+    for M5.
+*   **Q4 — Annotations go on the preprocessed file first.**  M1
+    annotates the preprocessed file `bench.i` (each macro instance is
+    annotated separately).  At the end of M1, decide whether to move to
+    a patched `sglib.h` with annotation hooks inside the macros (e.g.
+    `SGLIB___DL_LIST_ADD_INV(...)` expanding to an ACSL comment), which
+    is reusable across types and benchmarks; the overlay check (§7.1)
+    would then compare the patched header, hooks stripped, against the
+    original.  The annotations themselves carry over either way.
+*   **Q2 — Memory model: `Typed`** (`-wp-model Typed`; `Typed+ref` may
+    be tried as an optimisation).  It assumes no type-punning, which fits
+    sglib's intrusive structs.  Checked in M1a: the RB-tree and DL-list
+    code in `sglib.h` contains no pointer casts, and `sglib.h` never
+    allocates.  The only casts left are `malloc` results in our
+    benchmark drivers, which call typed allocators instead (§10).
+*   **Q5 — Coq/Rocq version: the latest one that WP and its Why3
+    version support.**  Resolved in M0: Frama-C 33.0 requires Why3 1.8.x,
+    whose Coq support stops at Rocq 9.0, so Rocq 9.0.1.  CoqHammer and
+    coq-lsp both have Rocq 9.0 releases, so nothing had to step back.
+*   **Q9 — Prover: Opus 5.5 alone, after tier 0 (owner, 2026-11-05).**
+    The starting configuration was GLM 5.3 Flash → Sonnet 5.5 → Opus
+    5.5.  The M3 comparison (§12.3, `harness/README.md`) on 9 Coq goals:
+    Opus alone and Sonnet alone each proved 9/9 at about $0.18 per goal,
+    Opus in 37 s per goal and Sonnet in 50 s; GLM alone proved 1/9, and
+    gpt-oss-120b and qwen3.8-27b none.  Starting with GLM saved at most
+    about $0.04 per goal and took 8-85 times as long as Opus alone.  So
+    step 4 runs tier 0 and then Opus (`harness.py --tiers 0,2`,
+    `--claude-model`); GLM stays available as `--tiers 0,1,2`.  **Redo the comparison** (the S1-S4
+    runner, `harness/escalation.py`) whenever a new model becomes
+    available, Claude or REALLMS, and at the latest at M5.

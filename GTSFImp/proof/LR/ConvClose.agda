@@ -23,10 +23,12 @@ open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc; pred; _≤_; _<_; s≤s; z≤n;
   _≤′_; ≤′-refl; ≤′-step; _≤?_)
 open import Data.Nat.Properties using (n≤1+n; ≤-refl; ≤⇒≤′; ≤′⇒≤; ≤-trans;
-  ≤-<-trans; <⇒≤)
+  ≤-<-trans; <⇒≤; s≤′s; +-suc)
 open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
+open import Data.Sum using (inj₁; inj₂)
 open import Data.Unit using (⊤; tt)
 open import Data.Vec using (Vec; lookup)
+open import Data.Vec.Properties using (lookup-map)
 import Data.Vec as Vec
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; trans; cong; cong₂; subst; subst₂)
@@ -39,6 +41,8 @@ open import Conversion
 open import CastTerms using (Term; _↑_; _↓_; Value)
 import CastTerms as CT
 open import Reduction using (_—→_; id-reveal; id-conceal)
+open import LR.Steps using (more)
+open import proof.Reduction.ValueIrreducibleProof using (value-no-step)
 open import LR.Frame using (conceal)
 open import proof.TypeInTermSubst using (toRename-id-eq)
 open import proof.DGG.CenterRename using (toRenameᵗ-∘)
@@ -824,3 +828,559 @@ module StarG {w : World} {Δ Δ′} {Φ : Corr Δ Δ′}
             w h le wl)
           vr r)
     conG★ bot⊑★ le wl vr ()
+
+-- the guarded relation as the left-only leaf
+module LeafG {n′ n} (le : n′ ≤′ n) {w : World} {Δ Δ′} {Φ : Corr Δ Δ′}
+    {A B} (p : Φ ⊢ A ⊑ B) (env : Vec (Entry (ΔL w) (ΔR w)) Δ)
+    (envR : Vec (Ty (ΔR w)) Δ′) where
+
+  open LeafCore ≻ le {w = w} p env envR using (c₀; δ; envI-id)
+
+  L : Leaf (ΔL w) (ΔR w)
+  L = sem (leafG le c₀)
+
+  gL : GoodLeaf L
+  gL = onlyLeafS-good ≻ le (sdesc [] [] c₀)
+
+  belowG : ∀ {k w′ τL τR V V′} → leafG le c₀ k w′ τL τR V V′ → k ≤ n′
+  belowG {k} r with k ≤? n′
+  belowG {k} r | yes le′ = le′
+  belowG {k} () | no ¬le
+
+  leafInG : ∀ {k Vl Vr} (r : leafRel ≻ k w L Vl Vr) → G k p w δ Vl Vr
+  leafInG {k} {Vl} {Vr} r =
+    G-resp k p w envI-id
+      (to (leafG-⇔ le p env envR
+            (belowG {k} {w} {id↪ᵗ} {id↪ᵗ} {Vl} {Vr} r) w id↪ᵗ id↪ᵗ) r)
+
+  leafOutG : ∀ {w′} (e : w′ ⊒ w) {k} → k ≤ n′ → ∀ {V V′}
+    → G k p w′ (δ ↑ᴵ e) V V′
+    → leafRel ≻ k w′ (transportLeaf (ρL e) (ρR e) L) V V′
+  leafOutG {w′} e {k} le′ r =
+    from (leafG-⇔ le p env envR le′ w′ (id↪ᵗ ∘↪ ρL e) (id↪ᵗ ∘↪ ρR e))
+      (G-resp k p w′ (≈ᴵ-sym (envI-↑ e {env} {envR} ≈ᴵ-refl)) r)
+
+  leafBackG : ∀ {k} → k ≤ n′ → ∀ {V V′} → G k p w δ V V′
+    → leafRel ≻ k w L V V′
+  leafBackG {k} le′ r =
+    from (leafG-⇔ le p env envR le′ w id↪ᵗ id↪ᵗ)
+      (G-resp k p w (≈ᴵ-sym envI-id) r)
+
+  -- the expression closure of `G`
+  ℰG : ℕ → Term (ΔL w) → Term (ΔR w) → Set
+  ℰG k = ℰᵍ ≻ k w (λ le₁ w′ e → G≤ le₁ p w′ (δ ↑ᴵ e))
+
+  toLeafG : ∀ {k M M′} → k ≤ n′ → ℰG k M M′ → ℰL ≻ k w L M M′
+  toLeafG {k} lt =
+    ℰᵍ-map ≻ k w {VR = λ le₁ w′ e → G≤ le₁ p w′ (δ ↑ᴵ e)}
+      {VR′ = λ {n₁} le₁ w′ e →
+        leafRel ≻ n₁ w′ (transportLeaf (ρL e) (ρR e) L)}
+      (λ le₁ w′ e V V′ r →
+      leafOutG e (≤-trans (≤′⇒≤ le₁) lt) (G≤→G le₁ p w′ r))
+
+  -- at a derivation into `★`, `G` is the value relation
+  fromStar : (∀ n₁ {w′} {δ₀ : Interp Δ Δ′ (ΔL w′) (ΔR w′)} {V V′}
+                → 𝒱 ≻ n₁ p w′ δ₀ V V′ → G n₁ p w′ δ₀ V V′)
+    → ∀ {k M M′} → ℰ ≻ k p w δ M M′ → ℰG k M M′
+  fromStar f {k} =
+    ℰᵍ-map ≻ k w {VR = λ le₁ w′ e → 𝒱≤ ≻ le₁ p w′ (δ ↑ᴵ e)}
+      {VR′ = λ le₁ w′ e → G≤ le₁ p w′ (δ ↑ᴵ e)}
+      (λ {n₁} le₁ w′ e V V′ r →
+      G→G≤ le₁ p w′ (f n₁ (𝒱≤-cast ≻ le₁ ≤′-refl p w′ r)))
+
+  -- elsewhere, `G` reads the value relation one stage down; the right
+  -- is a value, so it takes no step
+  shiftG : (∀ n₁ {w′} {δ₀ : Interp Δ Δ′ (ΔL w′) (ΔR w′)} {V V′}
+              → 𝒱 ≻ n₁ p w′ δ₀ V V′ → G (suc n₁) p w′ δ₀ V V′)
+    → ∀ {j Ml Mr} → 0 < j → Value Mr → ℰ ≻ j p w δ Ml Mr
+    → ℰG (suc j) Ml Mr
+  shiftG f {zero} () vr r
+  shiftG f {suc j} lt vr (inj₁ (Δ₁ , χs , N , more s ss)) =
+    ⊥-elim (value-no-step vr s)
+  shiftG f {suc j} lt vr (inj₂ (inj₁ b)) = inj₂ (inj₁ b)
+  shiftG f {suc j} lt vr
+      (inj₂ (inj₂ (k′ , n₁ , le₁ , ΔL′ , χsL , Vl′ , ΔR′ , χsR , Vr′ ,
+        eq , sl , sr , vl′ , vr′ , tags , ok , r))) =
+    inj₂ (inj₂ (k′ , suc n₁ , s≤′s le₁ , ΔL′ , χsL , Vl′ , ΔR′ , χsR , Vr′ ,
+      trans (+-suc k′ n₁) (cong suc eq) , sl , sr , vl′ , vr′ , tags , ok ,
+      G→G≤ (s≤′s le₁) p _ (f n₁ (𝒱≤-cast ≻ le₁ ≤′-refl p _ r))))
+
+  -- related values at a stage up to the bound
+  valL : ∀ {k} → k ≤ n′ → ∀ {V V′} → Value V → Value V′ → G k p w δ V V′
+    → ℰL ≻ k w L V V′
+  valL lt v v′ g = close-id ≻ gL v v′ (leafBackG lt g)
+
+  -- one left step, then related values
+  stepValL : ∀ {k} → k ≤ n′ → ∀ {Ml V V′} → Ml —→ V → Value V → Value V′
+    → G k p w δ V V′ → ℰL ≻ k w L Ml V′
+  stepValL lt s v v′ g =
+    stepL-ℰL ≻ L s
+      (λ le′ → close-id ≻ gL v v′ (leafRel-down ≻ le′ w gL (leafBackG lt g)))
+
+-- every clause is trivial at stage 0
+fun0 : ∀ d {Δ Δ′} {Φ : Corr Δ Δ′} {A A′ B B′} {p : Φ ⊢ A ⊑ A′}
+    {q : Φ ⊢ B ⊑ B′} {w} {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {V V′}
+  → funRel d 0 p q w δ V V′
+fun0 d e ≤′-refl Wl Wr wl wr a = ℰᵍ-zero d _
+
+all0 : ∀ d {Δ Δ′} {Φ : Corr Δ Δ′} {A B} {p : pair Φ ⊢ A ⊑ B} {w}
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {V V′}
+  → allPair d 0 p w δ V V′
+all0 d e ≤′-refl c wf = ℰᵍ-zero d _
+
+only0 : ∀ d {Δ Δ′} {Φ : Corr Δ Δ′} {A B} {p : only Φ ⊢ A ⊑ B} {w}
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {V V′}
+  → allOnly d 0 p w δ V V′
+only0 d e ≤′-refl c = ℰᵍ-zero d _
+
+module GClose {n′ n} (le : n′ ≤′ n) {w : World}
+    (orc : ∀ {k} → suc k ≤ n′ → Oracle ≻ k) {β : TyVar (ΔL w)}
+    (R : Ty (ΔL w)) where
+
+  private
+    LG = λ {Δ Δ′} {Φ : Corr Δ Δ′} {A B} (p : Φ ⊢ A ⊑ B)
+           (env : Vec (Entry (ΔL w) (ΔR w)) Δ) (envR : Vec (Ty (ΔR w)) Δ′)
+         → sem (leafG le (desc p env envR))
+
+  module _ {Δ Δ′} {Φ : Corr Δ Δ′} (env : Vec (Entry (ΔL w) (ΔR w)) Δ)
+      (envR : Vec (Ty (ΔR w)) Δ′) (nβ : ∀ Z → SealNe β (lookup env Z)) where
+
+    δ : Interp Δ Δ′ (ΔL w) (ΔR w)
+    δ = envI env envR
+
+    -- into `★`: the lemma's clauses at the stage below
+    starRev : ∀ {A} (p : Φ ⊢ A ⊑ ★) j → suc j ≤ n′
+      → (∀ n₁ {w′} {δ₀ : Interp Δ Δ′ (ΔL w′) (ΔR w′)} {V V′}
+           → 𝒱 ≻ n₁ p w′ δ₀ V V′ → G n₁ p w′ δ₀ V V′)
+      → ∀ {Vl Vr} → Value Vl → Value Vr → G (suc j) p w δ Vl Vr
+      → ℰL ≻ (suc j) w (LG p env envR)
+          (Vl ↑ 〖 β , R ↑ leftTy (desc p env envR) 〗) Vr
+    starRev {A} p j lt f {Vl} vl vr q =
+      toLeafG lt
+        (fromStar f
+          (back
+            (ℰ-≡ ≻ (suc j) (renᵖ wk-deadᴿ p) w _
+              (cong (λ T → Vl ↑ 〖 β , R ↑ T 〗) tyA) refl
+              (revG★ (hyp (orc lt) nβ R rc-none) (renᵖ wk-deadᴿ p) ≤-refl
+                vl vr (to (G-ren (suc j) wk-deadᴿ p w renI) q)))))
+      where
+      open LeafG le {w = w} p env envR using (toLeafG; fromStar)
+      open Core ≻ {w = w} p env envR using (back; tyA; hyp; renI)
+      open StarG {w = w} env envR nβ using (revG★)
+
+    starCon : ∀ {A} (p : Φ ⊢ A ⊑ ★) j → suc j ≤ n′
+      → (∀ n₁ {w′} {δ₀ : Interp Δ Δ′ (ΔL w′) (ΔR w′)} {V V′}
+           → 𝒱 ≻ n₁ p w′ δ₀ V V′ → G n₁ p w′ δ₀ V V′)
+      → ∀ {Wl Vr} → Value Wl → Value Vr → G (suc j) p w δ Wl Vr
+      → ℰL ≻ (suc j) w (LG p env envR)
+          (Wl ↓ makeConceal β R (leftTy (desc p env envR))) Vr
+    starCon {A} p j lt f {Wl} wl vr q =
+      toLeafG lt
+        (fromStar f
+          (back
+            (ℰ-≡ ≻ (suc j) (renᵖ wk-deadᴿ p) w _
+              (cong (λ T → Wl ↓ makeConceal β R T) tyA) refl
+              (conG★ (hyp (orc lt) nβ R rc-none) (renᵖ wk-deadᴿ p) ≤-refl
+                wl vr (to (G-ren (suc j) wk-deadᴿ p w renI) q)))))
+      where
+      open LeafG le {w = w} p env envR using (toLeafG; fromStar)
+      open Core ≻ {w = w} p env envR using (back; tyA; hyp; renI)
+      open StarG {w = w} env envR nβ using (conG★)
+
+    -- elsewhere, above stage 1: the lemma at the stage below
+    shiftRev : ∀ {A B} (p : Φ ⊢ A ⊑ B) j → suc (suc j) ≤ n′
+      → (∀ n₁ {w′} {δ₀ : Interp Δ Δ′ (ΔL w′) (ΔR w′)} {V V′}
+           → 𝒱 ≻ n₁ p w′ δ₀ V V′ → G (suc n₁) p w′ δ₀ V V′)
+      → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 ≻ (suc j) p w δ Vl Vr
+      → ℰL ≻ (suc (suc j)) w (LG p env envR)
+          (Vl ↑ 〖 β , R ↑ leftTy (desc p env envR) 〗) Vr
+    shiftRev p j lt f vl vr q =
+      toLeafG lt
+        (shiftG f (s≤s z≤n) vr
+          (coreRev (orc lt) nβ R rc-none ≤-refl vl vr q))
+      where
+      open LeafG le {w = w} p env envR using (toLeafG; shiftG)
+      open Core ≻ {w = w} p env envR using (coreRev)
+
+    shiftCon : ∀ {A B} (p : Φ ⊢ A ⊑ B) j → suc (suc j) ≤ n′
+      → (∀ n₁ {w′} {δ₀ : Interp Δ Δ′ (ΔL w′) (ΔR w′)} {V V′}
+           → 𝒱 ≻ n₁ p w′ δ₀ V V′ → G (suc n₁) p w′ δ₀ V V′)
+      → ∀ {Wl Vr} → Value Wl → Value Vr → 𝒱 ≻ (suc j) p w δ Wl Vr
+      → ℰL ≻ (suc (suc j)) w (LG p env envR)
+          (Wl ↓ makeConceal β R (leftTy (desc p env envR))) Vr
+    shiftCon p j lt f wl vr q =
+      toLeafG lt
+        (shiftG f (s≤s z≤n) vr
+          (coreCon (orc lt) nβ R rc-none ≤-refl wl vr q))
+      where
+      open LeafG le {w = w} p env envR using (toLeafG; shiftG)
+      open Core ≻ {w = w} p env envR using (coreCon)
+
+    -- the guarded relation at stage k + 1, by the derivation
+    revS : ∀ {A B} (p : Φ ⊢ A ⊑ B) j → suc j ≤ n′ → ∀ {Vl Vr}
+      → Value Vl → Value Vr → G (suc j) p w δ Vl Vr
+      → ℰL ≻ (suc j) w (LG p env envR)
+          (Vl ↑ 〖 β , R ↑ leftTy (desc p env envR) 〗) Vr
+    revS ★⊑★ j lt = starRev ★⊑★ j lt (λ n₁ r → r)
+    revS ι⊑★ j lt = starRev ι⊑★ j lt (λ n₁ r → r)
+    revS (X⊑★ x) j lt = starRev (X⊑★ x) j lt fX
+      where
+      fX : ∀ n₁ {w′} {δ₀ : Interp Δ Δ′ (ΔL w′) (ΔR w′)} {V V′}
+        → 𝒱 ≻ n₁ (X⊑★ x) w′ δ₀ V V′ → G n₁ (X⊑★ x) w′ δ₀ V V′
+      fX zero r = tt
+      fX (suc n₁) r = r
+    revS (⇒⊑★ p q) j lt = starRev (⇒⊑★ p q) j lt (λ n₁ r → r)
+    revS (∀⊑ {B = ★} a z p) j lt = starRev (∀⊑ a z p) j lt (λ n₁ r → r)
+    revS ∀★⊑★ j lt = starRev ∀★⊑★ j lt (λ n₁ r → r)
+    revS (∀⊑★ ns p) j lt = starRev (∀⊑★ ns p) j lt (λ n₁ r → r)
+    revS bot⊑★ j lt vl vr ()
+    revS ι⊑ι zero lt vl vr q =
+      LeafG.stepValL le {w = w} ι⊑ι env envR lt (id-reveal vl) vl vr q
+    revS ι⊑ι (suc j) lt = shiftRev ι⊑ι j lt (λ n₁ r → r)
+    revS (X⊑Y {X = Z} x) zero lt vl vr q =
+      LeafG.stepValL le {w = w} (X⊑Y x) env envR lt
+        (entryRevStep {w = w} R (lookup env Z) (nβ Z) vl) vl vr q
+    revS (X⊑Y x) (suc j) lt = shiftRev (X⊑Y x) j lt (λ n₁ r → r)
+    revS (⇒⊑⇒ p q) zero lt vl vr g =
+      LeafG.valL le {w = w} (⇒⊑⇒ p q) env envR lt (vl CT.↑ CT.fun) vr
+        (fun0 ≻)
+    revS (⇒⊑⇒ p q) (suc j) lt = shiftRev (⇒⊑⇒ p q) j lt (λ n₁ r → r)
+    revS (∀⊑∀ p) zero lt vl vr g =
+      LeafG.valL le {w = w} (∀⊑∀ p) env envR lt (vl CT.↑ CT.all) vr (all0 ≻)
+    revS (∀⊑∀ p) (suc j) lt = shiftRev (∀⊑∀ p) j lt (λ n₁ r → r)
+    revS (∀⊑ {B = ＇ Y} a z p) zero lt vl vr g =
+      LeafG.valL le {w = w} (∀⊑ a z p) env envR lt (vl CT.↑ CT.all) vr
+        (only0 ≻)
+    revS (∀⊑ {B = ＇ Y} a z p) (suc j) lt =
+      shiftRev (∀⊑ a z p) j lt (λ n₁ r → r)
+    revS (∀⊑ {B = ‵ ι} a z p) zero lt vl vr g =
+      LeafG.valL le {w = w} (∀⊑ a z p) env envR lt (vl CT.↑ CT.all) vr
+        (only0 ≻)
+    revS (∀⊑ {B = ‵ ι} a z p) (suc j) lt =
+      shiftRev (∀⊑ a z p) j lt (λ n₁ r → r)
+    revS (∀⊑ {B = B₁ ⇒ B₂} a z p) zero lt vl vr g =
+      LeafG.valL le {w = w} (∀⊑ a z p) env envR lt (vl CT.↑ CT.all) vr
+        (only0 ≻)
+    revS (∀⊑ {B = B₁ ⇒ B₂} a z p) (suc j) lt =
+      shiftRev (∀⊑ a z p) j lt (λ n₁ r → r)
+    revS (∀⊑ {B = `∀ B₁} a z p) zero lt vl vr g =
+      LeafG.valL le {w = w} (∀⊑ a z p) env envR lt (vl CT.↑ CT.all) vr
+        (only0 ≻)
+    revS (∀⊑ {B = `∀ B₁} a z p) (suc j) lt =
+      shiftRev (∀⊑ a z p) j lt (λ n₁ r → r)
+    revS bot-elim j lt vl vr ()
+
+    conS : ∀ {A B} (p : Φ ⊢ A ⊑ B) j → suc j ≤ n′ → ∀ {Wl Vr}
+      → Value Wl → Value Vr → G (suc j) p w δ Wl Vr
+      → ℰL ≻ (suc j) w (LG p env envR)
+          (Wl ↓ makeConceal β R (leftTy (desc p env envR))) Vr
+    conS ★⊑★ j lt = starCon ★⊑★ j lt (λ n₁ r → r)
+    conS ι⊑★ j lt = starCon ι⊑★ j lt (λ n₁ r → r)
+    conS (X⊑★ x) j lt = starCon (X⊑★ x) j lt fX
+      where
+      fX : ∀ n₁ {w′} {δ₀ : Interp Δ Δ′ (ΔL w′) (ΔR w′)} {V V′}
+        → 𝒱 ≻ n₁ (X⊑★ x) w′ δ₀ V V′ → G n₁ (X⊑★ x) w′ δ₀ V V′
+      fX zero r = tt
+      fX (suc n₁) r = r
+    conS (⇒⊑★ p q) j lt = starCon (⇒⊑★ p q) j lt (λ n₁ r → r)
+    conS (∀⊑ {B = ★} a z p) j lt = starCon (∀⊑ a z p) j lt (λ n₁ r → r)
+    conS ∀★⊑★ j lt = starCon ∀★⊑★ j lt (λ n₁ r → r)
+    conS (∀⊑★ ns p) j lt = starCon (∀⊑★ ns p) j lt (λ n₁ r → r)
+    conS bot⊑★ j lt wl vr ()
+    conS ι⊑ι zero lt wl vr q =
+      LeafG.stepValL le {w = w} ι⊑ι env envR lt (id-conceal wl) wl vr q
+    conS ι⊑ι (suc j) lt = shiftCon ι⊑ι j lt (λ n₁ r → r)
+    conS (X⊑Y {X = Z} x) zero lt wl vr q =
+      LeafG.stepValL le {w = w} (X⊑Y x) env envR lt
+        (entryConStep {w = w} R (lookup env Z) (nβ Z) wl) wl vr q
+    conS (X⊑Y x) (suc j) lt = shiftCon (X⊑Y x) j lt (λ n₁ r → r)
+    conS (⇒⊑⇒ p q) zero lt wl vr g =
+      LeafG.valL le {w = w} (⇒⊑⇒ p q) env envR lt (wl CT.↓ CT.fun) vr
+        (fun0 ≻)
+    conS (⇒⊑⇒ p q) (suc j) lt = shiftCon (⇒⊑⇒ p q) j lt (λ n₁ r → r)
+    conS (∀⊑∀ p) zero lt wl vr g =
+      LeafG.valL le {w = w} (∀⊑∀ p) env envR lt (wl CT.↓ CT.all) vr (all0 ≻)
+    conS (∀⊑∀ p) (suc j) lt = shiftCon (∀⊑∀ p) j lt (λ n₁ r → r)
+    conS (∀⊑ {B = ＇ Y} a z p) zero lt wl vr g =
+      LeafG.valL le {w = w} (∀⊑ a z p) env envR lt (wl CT.↓ CT.all) vr
+        (only0 ≻)
+    conS (∀⊑ {B = ＇ Y} a z p) (suc j) lt =
+      shiftCon (∀⊑ a z p) j lt (λ n₁ r → r)
+    conS (∀⊑ {B = ‵ ι} a z p) zero lt wl vr g =
+      LeafG.valL le {w = w} (∀⊑ a z p) env envR lt (wl CT.↓ CT.all) vr
+        (only0 ≻)
+    conS (∀⊑ {B = ‵ ι} a z p) (suc j) lt =
+      shiftCon (∀⊑ a z p) j lt (λ n₁ r → r)
+    conS (∀⊑ {B = B₁ ⇒ B₂} a z p) zero lt wl vr g =
+      LeafG.valL le {w = w} (∀⊑ a z p) env envR lt (wl CT.↓ CT.all) vr
+        (only0 ≻)
+    conS (∀⊑ {B = B₁ ⇒ B₂} a z p) (suc j) lt =
+      shiftCon (∀⊑ a z p) j lt (λ n₁ r → r)
+    conS (∀⊑ {B = `∀ B₁} a z p) zero lt wl vr g =
+      LeafG.valL le {w = w} (∀⊑ a z p) env envR lt (wl CT.↓ CT.all) vr
+        (only0 ≻)
+    conS (∀⊑ {B = `∀ B₁} a z p) (suc j) lt =
+      shiftCon (∀⊑ a z p) j lt (λ n₁ r → r)
+    conS bot-elim j lt wl vr ()
+
+    -- the left-only leaf in `≻`
+    gRev : ∀ {A B} (p : Φ ⊢ A ⊑ B)
+      → Close ≻ w (LG p env envR)
+          (λ V → V ↑ 〖 β , R ↑ leftTy (desc p env envR) 〗) (λ V → V)
+    gRev p {zero} vl vr r = ℰL-zero ≻ w (LG p env envR)
+    gRev p {suc j} {Vl} {Vr} vl vr r =
+      revS p j
+        (LeafG.belowG le {w = w} p env envR {suc j} {w} {id↪ᵗ} {id↪ᵗ}
+          {Vl} {Vr} r)
+        vl vr (LeafG.leafInG le {w = w} p env envR {suc j} r)
+
+    gCon : ∀ {A B} (p : Φ ⊢ A ⊑ B)
+      → Close ≻ w (LG p env envR)
+          (λ V → V ↓ makeConceal β R (leftTy (desc p env envR))) (λ V → V)
+    gCon p {zero} wl vr r = ℰL-zero ≻ w (LG p env envR)
+    gCon p {suc j} {Wl} {Vr} wl vr r =
+      conS p j
+        (LeafG.belowG le {w = w} p env envR {suc j} {w} {id↪ᵗ} {id↪ᵗ}
+          {Wl} {Vr} r)
+        wl vr (LeafG.leafInG le {w = w} p env envR {suc j} r)
+
+------------------------------------------------------------------------
+-- The clauses' leaves, in every future
+------------------------------------------------------------------------
+
+-- a transported clause leaf is the clause leaf of the renamed
+-- descriptor
+module _ (d : Dir) {n′ n} (le : n′ ≤′ n) {ΘL ΘR ΘL′ ΘR′}
+    (σL : ΘL ↪ᵗ ΘL′) (σR : ΘR ↪ᵗ ΘR′) (c : SDesc ΘL ΘR) where
+
+  leafS-tr : transportLeaf σL σR (sem (leafBelowS d le c))
+    ≈ˡ sem (leafBelowS d le (renameSDesc σL σR c))
+  leafS-tr =
+    sem≈ (λ k w τL τR V V′ → from (leafBelowS-ren d le σL σR c k w τL τR))
+      (λ k w τL τR V V′ → to (leafBelowS-ren d le σL σR c k w τL τR))
+
+  onlyS-tr : transportLeaf σL σR (sem (onlyLeafS d le c))
+    ≈ˡ sem (onlyLeafS d le (renameSDesc σL σR c))
+  onlyS-tr =
+    sem≈ (λ k w τL τR V V′ → from (onlyLeafS-ren d le σL σR c k w τL τR))
+      (λ k w τL τR V V′ → to (onlyLeafS-ren d le σL σR c k w τL τR))
+
+-- the renamed descriptor's entries are fresh for new store variables
+module _ {w w′ : World} (e : w′ ⊒ w) where
+
+  sealNe-new : ∀ {β} → NewL e β → (en : Entry (ΔL w) (ΔR w))
+    → SealNe β (renameEntry (ρL e) (ρR e) en)
+  sealNe-new nb (seals X Xs Ys c) = nb X
+
+  rfresh-new : ∀ {β′} → (∀ Y → toRenameᵗ (ρR e) Y ≢ β′)
+    → ∀ {en : Entry (ΔL w) (ΔR w)} {T} → RSealed en T
+    → RFresh β′ (renameEntry (ρL e) (ρR e) en) (renameᵗ (toRenameᵗ (ρR e)) T)
+  rfresh-new nb (rsealed {Y = Y}) = rfresh (nb Y)
+
+  module _ {Δ Δ′} {Φ : Corr Δ Δ′} {A B} (p : Φ ⊢ A ⊑ B)
+      (env : Vec (Entry (ΔL w) (ΔR w)) Δ) (envR : Vec (Ty (ΔR w)) Δ′)
+      where
+
+    env′ : Vec (Entry (ΔL w′) (ΔR w′)) Δ
+    env′ = renameEntries (ρL e) (ρR e) env
+
+    envR′ : Vec (Ty (ΔR w′)) Δ′
+    envR′ = Vec.map (renameᵗ (toRenameᵗ (ρR e))) envR
+
+    entL-new : ∀ {β} → NewL e β → ∀ Z → SealNe β (lookup env′ Z)
+    entL-new nb Z =
+      subst (SealNe _) (sym (lookup-renameEntries (ρL e) (ρR e) env Z))
+        (sealNe-new nb (lookup env Z))
+
+    entR-new : ∀ {β′} → (∀ Y → toRenameᵗ (ρR e) Y ≢ β′)
+      → WFDesc (desc p env envR)
+      → ∀ {Z Y′} → Φ ∋ Z ↔ Y′ → RFresh β′ (lookup env′ Z) (lookup envR′ Y′)
+    entR-new nb wf {Z} {Y′} z =
+      subst₂ (RFresh _) (sym (lookup-renameEntries (ρL e) (ρR e) env Z))
+        (sym (lookup-map Y′ (renameᵗ (toRenameᵗ (ρR e))) envR))
+        (rfresh-new nb (wf z))
+
+    rcOk-new : ∀ (rc : RConv (ΔR w′)) → NewRC e rc
+      → WFDesc (desc p env envR) → RCOk Φ env′ envR′ rc
+    rcOk-new nothing nrc wf = rc-none
+    rcOk-new (just (β′ , R′)) nrc wf = rc-just (entR-new nrc wf)
+
+  headL-new : ∀ {β} → NewL e β → (Xs : List (TyVar (ΔL w)))
+    → HeadNe β (map (renameVar (ρL e)) Xs)
+  headL-new nb [] = tt
+  headL-new nb (X ∷ Xs) = nb X
+
+  headR-new : ∀ (rc : RConv (ΔR w′)) → NewRC e rc
+    → (Ys : List (TyVar (ΔR w))) → HeadNeR rc (map (renameVar (ρR e)) Ys)
+  headR-new nothing nrc Ys = tt
+  headR-new (just c) nrc [] = tt
+  headR-new (just c) nrc (Y ∷ Ys) = nrc Y
+
+module Fresh (d : Dir) {n′ n} (le : n′ ≤′ n)
+    (orc : ∀ {k} → suc k ≤ n′ → Oracle d k)
+    (orcR : ∀ {k} → suc k ≤ n′ → OracleR d k) where
+
+  -- closure under both sides' conversions
+  freshP : ∀ {w} (c : SDesc (ΔL w) (ΔR w)) → WFS c
+    → FreshP d both w (sem (leafBelowS d le c)) (leftTyS c) (rightTyS c)
+  freshP {w} (sdesc Xs Ys (desc p env envR)) wf {w′} e {β} {R} rc ok nb nrc
+      {k} =
+    (λ {Vl} {Vr} vl vr r →
+      ℰL-resp d k w′ (≈ˡ-sym tr)
+        (ℰL-≡ d k w′ (LS Xs′ Ys′)
+          (cong (λ T → Vl ↑ 〖 β , R ↑ T 〗) (repL-rename ρL₁ ρR₁ Xs c₀))
+          (cong (λ T → revM rc T Vr) (repR-rename ρL₁ ρR₁ Ys c₀))
+          (revPS orc orcR R Xs′ Ys′ ff vl vr (leafRel-resp d k w′ tr r)))) ,
+    (λ {Wl} {Wr} wl wr r →
+      ℰL-resp d k w′ (≈ˡ-sym tr)
+        (ℰL-≡ d k w′ (LS Xs′ Ys′)
+          (cong (λ T → Wl ↓ makeConceal β R T) (repL-rename ρL₁ ρR₁ Xs c₀))
+          (cong (λ T → conM rc T Wr) (repR-rename ρL₁ ρR₁ Ys c₀))
+          (conPS orc orcR R Xs′ Ys′ ff wl wr (leafRel-resp d k w′ tr r))))
+    where
+    ρL₁ = ρL e
+    ρR₁ = ρR e
+    c₀ = desc p env envR
+    Xs′ = map (renameVar ρL₁) Xs
+    Ys′ = map (renameVar ρR₁) Ys
+    tr = leafS-tr d le ρL₁ ρR₁ (sdesc Xs Ys c₀)
+    open SealedNow d le {w = w′} p (env′ e p env envR) (envR′ e p env envR)
+    ff : FreshFor β rc Xs′ Ys′
+    headL ff = headL-new e nb Xs
+    headR ff = headR-new e rc nrc Ys
+    entL ff = entL-new e p env envR nb
+    entR ff = rcOk-new e p env envR rc nrc wf
+
+  -- closure under the right side's conversions
+  freshR : ∀ {w} (c : SDesc (ΔL w) (ΔR w)) → WFS c
+    → FreshR d w (sem (leafBelowS d le c)) (rightTyS c)
+  freshR {w} (sdesc Xs Ys (desc p env envR)) wf {w′} e {β′} {R′} nb {k} =
+    (λ {Vl} {Vr} vl vr r →
+      ℰL-resp d k w′ (≈ˡ-sym tr)
+        (ℰL-≡ d k w′ (LS Xs′ (map (renameVar ρR₁) Ys)) refl
+          (cong (λ T → Vr ↑ 〖 β′ , R′ ↑ T 〗) (repR-rename ρL₁ ρR₁ Ys c₀))
+          (rev Ys vl vr (leafRel-resp d k w′ tr r)))) ,
+    (λ {Vl} {Wr} vl wr r →
+      ℰL-resp d k w′ (≈ˡ-sym tr)
+        (ℰL-≡ d k w′ (LS Xs′ (map (renameVar ρR₁) Ys)) refl
+          (cong (λ T → Wr ↓ makeConceal β′ R′ T) (repR-rename ρL₁ ρR₁ Ys c₀))
+          (con Ys vl wr (leafRel-resp d k w′ tr r))))
+    where
+    ρL₁ = ρL e
+    ρR₁ = ρR e
+    c₀ = desc p env envR
+    Xs′ = map (renameVar ρL₁) Xs
+    tr = leafS-tr d le ρL₁ ρR₁ (sdesc Xs Ys c₀)
+    open SealedNow d le {w = w′} p (env′ e p env envR) (envR′ e p env envR)
+    f = entR-new e p env envR nb wf
+
+    rev : ∀ Ys → Close d w′ (LS Xs′ (map (renameVar ρR₁) Ys)) (λ V → V)
+      (λ V → V ↑ 〖 β′ , R′ ↑ repR (map (renameVar ρR₁) Ys)
+                               (renameDesc ρL₁ ρR₁ c₀) 〗)
+    rev [] = revRS orcR R′ f Xs′
+    rev (Y ∷ Ys) =
+      idR-rev d (gLS Xs′ (map (renameVar ρR₁) (Y ∷ Ys))) R′ (nb Y)
+        (close-id d (gLS Xs′ (map (renameVar ρR₁) (Y ∷ Ys))))
+
+    con : ∀ Ys → Close d w′ (LS Xs′ (map (renameVar ρR₁) Ys)) (λ V → V)
+      (λ V → V ↓ makeConceal β′ R′ (repR (map (renameVar ρR₁) Ys)
+                                     (renameDesc ρL₁ ρR₁ c₀)))
+    con [] = conRS orcR R′ f Xs′
+    con (Y ∷ Ys) =
+      idR-con d (gLS Xs′ (map (renameVar ρR₁) (Y ∷ Ys))) R′ (nb Y)
+        (close-id d (gLS Xs′ (map (renameVar ρR₁) (Y ∷ Ys))))
+
+-- closure of the left-only leaf; the right does not move
+module FreshO′ {n′ n} (le : n′ ≤′ n) where
+
+  freshO : ∀ d → (∀ {k} → suc k ≤ n′ → Oracle d k) → ∀ {w}
+    (c : SDesc (ΔL w) (ΔR w))
+    → FreshO d w (sem (onlyLeafS d le c)) (leftTyS c)
+  freshO d orc {w} (sdesc Xs Ys (desc p env envR)) {w′} e {β} {R} nb {k} =
+    (λ {Vl} {Vr} vl vr r →
+      ℰL-resp d k w′ (≈ˡ-sym tr)
+        (ℰL-≡ d k w′ (OL d Xs)
+          (cong (λ T → Vl ↑ 〖 β , R ↑ T 〗) (repL-rename ρL₁ ρR₁ Xs c₀))
+          refl
+          (rev d orc Xs vl vr (leafRel-resp d k w′ tr r)))) ,
+    (λ {Wl} {Vr} wl vr r →
+      ℰL-resp d k w′ (≈ˡ-sym tr)
+        (ℰL-≡ d k w′ (OL d Xs)
+          (cong (λ T → Wl ↓ makeConceal β R T) (repL-rename ρL₁ ρR₁ Xs c₀))
+          refl
+          (con d orc Xs wl vr (leafRel-resp d k w′ tr r))))
+    where
+    ρL₁ = ρL e
+    ρR₁ = ρR e
+    c₀ = desc p env envR
+    c₁ = renameDesc ρL₁ ρR₁ c₀
+    Ys′ = map (renameVar ρR₁) Ys
+    tr = onlyS-tr d le ρL₁ ρR₁ (sdesc Xs Ys c₀)
+    nβ = entL-new e p env envR nb
+
+    OL : Dir → List (TyVar (ΔL w)) → Leaf (ΔL w′) (ΔR w′)
+    OL d₀ Xs₀ = sem (onlyLeafS d₀ le (sdesc (map (renameVar ρL₁) Xs₀) Ys′ c₁))
+
+    gOL : ∀ d₀ Xs₀ → GoodLeaf (OL d₀ Xs₀)
+    gOL d₀ Xs₀ = onlyLeafS-good d₀ le (sdesc (map (renameVar ρL₁) Xs₀) Ys′ c₁)
+
+    rev : ∀ d₀ → (∀ {k} → suc k ≤ n′ → Oracle d₀ k) → ∀ Xs₀
+      → Close d₀ w′ (OL d₀ Xs₀)
+          (λ V → V ↑ 〖 β , R ↑ repL (map (renameVar ρL₁) Xs₀) c₁ 〗)
+          (λ V → V)
+    rev d₀ orc₀ (X ∷ Xs₀) =
+      idL-rev d₀ (gOL d₀ (X ∷ Xs₀)) R (nb X)
+        (close-id d₀ (gOL d₀ (X ∷ Xs₀)))
+    rev ≺ orc₀ [] =
+      LeafCore.closeRev ≺ le {w = w′} p (env′ e p env envR)
+        (envR′ e p env envR) orc₀ nβ R rc-none
+    rev ≻ orc₀ [] =
+      GClose.gRev le {w = w′} orc₀ R (env′ e p env envR) (envR′ e p env envR)
+        nβ p
+
+    con : ∀ d₀ → (∀ {k} → suc k ≤ n′ → Oracle d₀ k) → ∀ Xs₀
+      → Close d₀ w′ (OL d₀ Xs₀)
+          (λ V → V ↓ makeConceal β R (repL (map (renameVar ρL₁) Xs₀) c₁))
+          (λ V → V)
+    con d₀ orc₀ (X ∷ Xs₀) =
+      idL-con d₀ (gOL d₀ (X ∷ Xs₀)) R (nb X)
+        (close-id d₀ (gOL d₀ (X ∷ Xs₀)))
+    con ≺ orc₀ [] =
+      LeafCore.closeCon ≺ le {w = w′} p (env′ e p env envR)
+        (envR′ e p env envR) orc₀ nβ R rc-none
+    con ≻ orc₀ [] =
+      GClose.gCon le {w = w′} orc₀ R (env′ e p env envR) (envR′ e p env envR)
+        nβ p
+
+------------------------------------------------------------------------
+-- The oracle, by induction on the bound
+------------------------------------------------------------------------
+
+private
+  Both : Dir → ℕ → Set
+  Both d N = Oracle d N × OracleR d N
+
+  both-down : ∀ {d N N′} → N′ ≤ N → Both d N → Both d N′
+  both-down le (o , oR) = Oracle-down le o , OracleR-down le oR
+
+  -- the bound N, from every bound below it
+  stepO : ∀ d N → (∀ {k} → k < N → Both d k) → Both d N
+  stepO d N ih =
+    (  (λ le b c wf → Fresh.freshP d le (orc b) (orcR b) c wf)
+     , (λ le b c → FreshO′.freshO le d (orc b) c))
+    , (λ le b c wf → Fresh.freshR d le (orc b) (orcR b) c wf)
+    where
+    orc : ∀ {n′} → n′ ≤ N → ∀ {k} → suc k ≤ n′ → Oracle d k
+    orc b lt = proj₁ (ih (≤-trans lt b))
+    orcR : ∀ {n′} → n′ ≤ N → ∀ {k} → suc k ≤ n′ → OracleR d k
+    orcR b lt = proj₂ (ih (≤-trans lt b))
+
+  below : ∀ d N {k} → k < N → Both d k
+  below d (suc N) (s≤s k≤N) = both-down k≤N (stepO d N (below d N))
+
+-- the clauses' leaves are closed at every bound
+oracle-all : ∀ d N → Oracle d N
+oracle-all d N = proj₁ (stepO d N (below d N))
+
+oracleR-all : ∀ d N → OracleR d N
+oracleR-all d N = proj₂ (stepO d N (below d N))

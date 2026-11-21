@@ -117,12 +117,6 @@ module _ {Φ : Corr Δ Δ′} {X : TyVar Δ} {w w′ : World} (e : w′ ⊒ w)
       ≡ renRConv (ρR e) rc
   rconv-↑≡ eq = trans (rconv-↑ (ρL e) (ρR e) m σ) (cong (renRConv (ρR e)) eq)
 
-  ConB-↑ : ∀ d {n n′ N} → n′ ≤ n → ConB d (rconv m σ) n N
-    → ConB d (rconv (CMode-↑ (ρL e) (ρR e) m)
-        (λ Y → renameᵗ (toRenameᵗ (ρR e)) (σ Y))) n′ N
-  ConB-↑ d le cb =
-    subst (λ c → ConB d c _ _) (sym (rconv-↑ (ρL e) (ρR e) m σ))
-      (ConB-ren d (ρR e) (rconv m σ) (ConB-down d (rconv m σ) le cb))
 
 ------------------------------------------------------------------------
 -- A converted value at a `∀` type, renamed
@@ -166,7 +160,7 @@ module PairV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
            (revM (rconv m (δr δt)) (substᵗ (δr δs) B) Vr))
     (con : ∀ {N′ rk w X′} {m : CMode (pair Φ) X′ (ΔL w) (ΔR w)}
        {α δs δt} → ConvI d N′ rk w m α δs δt → ∀ {k}
-       → ConB d (rconv m (δr δt)) k N′
+       → ConM d m (rconv m (δr δt)) k N′
        → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k p w δt Wl Wr
        → ℰ d k p w δs
            (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) A))
@@ -211,7 +205,7 @@ module PairV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c wf)
 
   conV : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt} {rk}
-      (h : ConvI d N rk w m α δs δt) → ConB d (rconv m (δr δt)) n N
+      (h : ConvI d N rk w m α δs δt) → ConM d m (rconv m (δr δt)) n N
     → ∀ {Wl Wr} → Value Wl → Value Wr → allPair d n p w δt Wl Wr
     → allPair d n p w δs
         (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) (`∀ A)))
@@ -225,7 +219,7 @@ module PairV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
         (inst≡
           (sym (conM-ren (ρR e) (just (α′ , R′)) (δr δs) (`∀ B) Wr)))
         (pairCon {n′} _ (ConvI-↑ e h)
-          (≤-trans le′ (ConB-≤ d (just (α′ , R′)) cb))
+          (≤-trans le′ (ConMb-≤ d (isNone m) (just (α′ , R′)) cb))
           (rconv-↑≡ e m (δr δt) eq)
           (renameᵗᵐ-preserves-Value (ρL e) wl)
           (renameᵗᵐ-preserves-Value (ρR e) wr)
@@ -238,9 +232,7 @@ module PairV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     allPair-from d n p w {δ = δs} λ e {n′} le′ (sdesc Xs Ys c) wf →
       ℰᵍ-≡ (sym (conL≡ e m α δs δt Wl A)) refl
         (pairConL {n′} _ (ConvI-↑ e h)
-          (subst (λ c′ → ConB d c′ n′ N)
-            (sym (rconv-↑≡ e m (δr δt) eq))
-            (ConB-cast d (ConB-down d nothing le′ cb)))
+          (ConM-↑ d (ρL e) (ρR e) m (rconv-↑≡ e m (δr δt) eq) le′ cb)
           (rconv-↑≡ e m (δr δt) eq)
           (renameᵗᵐ-preserves-Value (ρL e) wl)
           (renameᵗᵐ-preserves-Value (ρR e) wr)
@@ -269,7 +261,7 @@ module OnlyV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
            (revM (RF m (δr δt)) (substᵗ (δr δs) B) Vr))
     (con : ∀ {N′ rk w X′} {m : CMode (only Φ) X′ (ΔL w) (ΔR w)}
        {α δs δt} → ConvI d N′ rk w m α δs δt → ∀ {k}
-       → ConB d (RF m (δr δt)) k N′
+       → ConM d m (RF m (δr δt)) k N′
        → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k p w δt Wl Wr
        → ℰ d k p w δs
            (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) A))
@@ -299,7 +291,7 @@ module OnlyV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (allOnly-down d le′ p _ (allOnly-mono d n p e r)) Xs Ys c)
 
   conV : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt} {rk}
-      (h : ConvI d N rk w m α δs δt) → ConB d (RF m (δr δt)) n N
+      (h : ConvI d N rk w m α δs δt) → ConM d m (RF m (δr δt)) n N
     → ∀ {Wl Wr} → Value Wl → Value Wr → allOnly d n p w δt Wl Wr
     → allOnly d n p w δs
         (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) (`∀ A)))
@@ -313,10 +305,7 @@ module OnlyV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
             (RF-↑ (ρL e) (ρR e) m (δr δt)))
           (sym (conM-ren (ρR e) (RF m (δr δt)) (δr δs) B Wr)))
         (onlyCon {n′} _ (ConvI-↑ e h)
-          (subst (λ c′ → ConB d c′ n′ N)
-            (sym (RF-↑ (ρL e) (ρR e) m (δr δt)))
-            (ConB-ren d (ρR e) (RF m (δr δt))
-              (ConB-down d (RF m (δr δt)) le′ cb)))
+          (ConM-↑ d (ρL e) (ρR e) m (RF-↑ (ρL e) (ρR e) m (δr δt)) le′ cb)
           (renameᵗᵐ-preserves-Value (ρL e) wl)
           (renameᵗᵐ-preserves-Value (ρR e) wr)
           (allOnly-down d le′ p _ (allOnly-mono d n p e r)) Xs Ys c)
@@ -334,7 +323,7 @@ module DeadV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A}
            Vr)
     (con : ∀ {N′ rk w X′} {m : CMode (dead Φ) X′ (ΔL w) (ΔR w)}
        {α δs δt} → ConvI d N′ rk w m α δs δt → ∀ {k}
-       → ConB {ΔR w} d nothing k N′
+       → ConM d m nothing k N′
        → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k p w δt Wl Wr
        → ℰ d k p w δs
            (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) A)) Wr)
@@ -355,7 +344,7 @@ module DeadV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A}
           (allDead-down d le′ p _ (allDead-mono d n p e r)) T T′)
 
   conV : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt} {rk}
-      (h : ConvI d N rk w m α δs δt) → ConB {ΔR w} d nothing n N
+      (h : ConvI d N rk w m α δs δt) → ConM d m nothing n N
     → ∀ {Wl Wr} → Value Wl → allDead d n p w δt Wl Wr
     → allDead d n p w δs
         (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) (`∀ A))) Wr
@@ -363,7 +352,7 @@ module DeadV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A}
     allDead-from d n p w {δ = δs} λ e {n′} le′ T T′ →
       ℰᵍ-≡ (sym (conL≡ e m α δs δt Wl A)) refl
         (deadCon {n′} _ (ConvI-↑ e h)
-          (ConB-cast d (ConB-down d nothing le′ cb))
+          (ConM-↑ d (ρL e) (ρR e) m refl le′ cb)
           (renameᵗᵐ-preserves-Value (ρL e) wl)
           (allDead-down d le′ p _ (allDead-mono d n p e r)) T T′)
 
@@ -381,7 +370,7 @@ Rev★ d {Φ = Φ} {A} p =
 Con★ : Dir → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A} → Φ ⊢ A ⊑ ★ → Set₁
 Con★ d {Φ = Φ} {A} p =
   ∀ {N rk w X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt}
-  → ConvI d N rk w m α δs δt → ∀ {k} → ConB {ΔR w} d nothing k N
+  → ConvI d N rk w m α δs δt → ∀ {k} → ConM d m nothing k N
   → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k p w δt Wl Wr
   → ℰ d k p w δs
       (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) A)) Wr
@@ -484,8 +473,8 @@ mutual
   con★ d ι⊑★ h {k} cb wl wr r =
     ℰ-steps? d k ι⊑★ _ (goodS h) (step (id-conceal wl)) stay wl wr
       (ι★-δ d k r)
-  con★ d (X⊑★ z) h {k} cb wl wr r =
-    con★-var d k z _ h (ConB-≤ d nothing cb) cb wl wr r
+  con★ d (X⊑★ z) {m = m} h {k} cb wl wr r =
+    con★-var d k z _ h (ConMb-≤ d (isNone m) nothing cb) cb wl wr r
   con★ ≺ (⇒⊑★ p q) {N} {rk} {w} {X} h {k} cb wl wr r =
     ℰ-value ≺ k (⇒⊑★ p q) w (wl CT.↓ CT.fun) wr
       (funStar-map (λ v f → fun-con h cb wl v f) wr r)
@@ -494,9 +483,11 @@ mutual
       (λ h′ → rev★ ≺ p h′) (λ h′ → con★ ≺ p h′)
       (λ h′ → rev★ ≺ q h′) (λ h′ → con★ ≺ q h′)
   con★ ≻ (⇒⊑★ p q) h {zero} cb wl wr r = ℰ-zero ≻ (⇒⊑★ p q) _
-  con★ ≻ (⇒⊑★ p q) {N} {rk} {w} {X} h {suc k} cb wl wr r =
+  con★ ≻ (⇒⊑★ p q) {N} {rk} {w} {X} {m} h {suc k} cb wl wr r =
     ℰ-value ≻ (suc k) (⇒⊑★ p q) w (wl CT.↓ CT.fun) wr
-      (funStar-map (λ v f → fun-con h (≤-trans (n≤1+n k) cb) wl v f) wr r)
+      (funStar-map
+        (λ v f → fun-con h (ConMb-down ≻ (isNone m) nothing (n≤1+n k) cb)
+          wl v f) wr r)
     where
     open FunConv {X = X} ≻ N rk p q noRF (λ ρL ρR m σ → refl)
       (λ h′ → rev★ ≻ p h′) (λ h′ → con★ ≻ p h′)
@@ -507,11 +498,11 @@ mutual
         (λ σ → refl) (λ h′ → rev★ ≺ p h′) (λ h′ → con★ ≺ p h′)
         w h cb wl wr r)
   con★ ≻ (∀⊑ Anv z p) h {zero} cb wl wr r = ℰ-zero ≻ (∀⊑ Anv z p) _
-  con★ ≻ (∀⊑ Anv z p) {N} {rk} {w} h {suc k} cb wl wr r =
+  con★ ≻ (∀⊑ Anv z p) {N} {rk} {w} {m = m} h {suc k} cb wl wr r =
     ℰ-value ≻ (suc k) (∀⊑ Anv z p) w (wl CT.↓ CT.all) wr
       (OnlyV.conV ≻ N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
         (λ σ → refl) (λ h′ → rev★ ≻ p h′) (λ h′ → con★ ≻ p h′)
-        w h (≤-trans (n≤1+n k) cb) wl wr r)
+        w h (ConMb-down ≻ (isNone m) nothing (n≤1+n k) cb) wl wr r)
   con★ ≺ {Φ = Φ} ∀★⊑★ {N} {rk} {w} {δs = δs} {δt} h {k} cb wl wr r =
     ℰ-value ≺ k ∀★⊑★ w (wl CT.↓ CT.all) wr
       (to (allDeadStar-★ ≺ k {Ψ = Φ} w {δ = δs})
@@ -520,12 +511,12 @@ mutual
             w h cb wl)
           wr (from (allDeadStar-★ ≺ k {Ψ = Φ} w {δ = δt}) r)))
   con★ ≻ ∀★⊑★ h {zero} cb wl wr r = ℰ-zero ≻ ∀★⊑★ _
-  con★ ≻ {Φ = Φ} ∀★⊑★ {N} {rk} {w} {δs = δs} {δt} h {suc k} cb wl wr r =
+  con★ ≻ {Φ = Φ} ∀★⊑★ {N} {rk} {w} {m = m} {δs = δs} {δt} h {suc k} cb wl wr r =
     ℰ-value ≻ (suc k) ∀★⊑★ w (wl CT.↓ CT.all) wr
       (to (allDeadStar-★ ≻ k {Ψ = Φ} w {δ = δs})
         (allDeadStar-map
           (DeadV.conV ≻ N (★⊑★ {Φ = dead Φ}) (rev★★ ≻) (con★★ ≻)
-            w h (≤-trans (n≤1+n k) cb) wl)
+            w h (ConMb-down ≻ (isNone m) nothing (n≤1+n k) cb) wl)
           wr (from (allDeadStar-★ ≻ k {Ψ = Φ} w {δ = δt}) r)))
   con★ ≺ (∀⊑★ ns p) {N} {rk} {w} h {k} cb wl wr r =
     ℰ-value ≺ k (∀⊑★ ns p) w (wl CT.↓ CT.all) wr
@@ -534,11 +525,11 @@ mutual
           w h cb wl)
         wr r)
   con★ ≻ (∀⊑★ ns p) h {zero} cb wl wr r = ℰ-zero ≻ (∀⊑★ ns p) _
-  con★ ≻ (∀⊑★ ns p) {N} {rk} {w} h {suc k} cb wl wr r =
+  con★ ≻ (∀⊑★ ns p) {N} {rk} {w} {m = m} h {suc k} cb wl wr r =
     ℰ-value ≻ (suc k) (∀⊑★ ns p) w (wl CT.↓ CT.all) wr
       (allDeadStar-map
         (DeadV.conV ≻ N p (λ h′ → rev★ ≻ p h′) (λ h′ → con★ ≻ p h′)
-          w h (≤-trans (n≤1+n k) cb) wl)
+          w h (ConMb-down ≻ (isNone m) nothing (n≤1+n k) cb) wl)
         wr r)
   con★ ≺ bot⊑★ h cb wl wr ()
   con★ ≻ bot⊑★ h {zero} cb wl wr r = ℰ-zero ≻ bot⊑★ _
@@ -559,7 +550,7 @@ RevC d {Φ = Φ} {A} {B} p =
 ConC : Dir → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A B} → Φ ⊢ A ⊑ B → Set₁
 ConC d {Φ = Φ} {A} {B} p =
   ∀ {N rk w X} {m : CMode Φ X (ΔL w) (ΔR w)} {α δs δt}
-  → ConvI d N rk w m α δs δt → ∀ {k} → ConB d (rconv m (δr δt)) k N
+  → ConvI d N rk w m α δs δt → ∀ {k} → ConM d m (rconv m (δr δt)) k N
   → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k p w δt Wl Wr
   → ℰ d k p w δs
       (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) A))
@@ -655,12 +646,13 @@ conC★ d p {m = m} {δt = δt} h cb wl wr r with rconv m (δr δt)
 conC★ d p {m = m} {δt = δt} h cb wl wr r | nothing =
   con★ d p h cb wl wr r
 conC★ ≺ p {m = m} {δt = δt} h {k} cb wl wr r | just (α′ , R′) =
-  ℰ-stepR ≺ k p _ (id-conceal wr) (con★ ≺ p h cb wl wr r)
+  ℰ-stepR ≺ k p _ (id-conceal wr)
+    (con★ ≺ p h (ConMb-≺ (isNone m) (just (α′ , R′)) nothing cb) wl wr r)
 conC★ ≻ p {m = m} {δt = δt} h {zero} cb wl wr r | just (α′ , R′) =
   ℰ-zero ≻ p _
 conC★ ≻ p {m = m} {δt = δt} h {suc k} cb wl wr r | just (α′ , R′) =
   ℰ-stepR ≻ k p _ (id-conceal wr)
-    (con★ ≻ p h (≤-trans (n≤1+n k) (<⇒≤ cb)) wl wr
+    (con★ ≻ p h (ConMb-pred ≻ (isNone m) (just (α′ , R′)) nothing cb) wl wr
       (𝒱-down ≻ (n≤1+n k) p _ (goodT h) r))
 
 mutual
@@ -718,7 +710,7 @@ mutual
     ℰ-steps? d k ι⊑ι _ (goodS h) (step (id-conceal wl))
       (cstepι (rconv m (δr δt)) wr) wl wr (ιι-δ d k r)
   conC d (X⊑Y z) {m = m} {δt = δt} h {k} cb wl wr r =
-    con-var d k z _ h (ConB-≤ d (rconv m (δr δt)) cb) cb wl wr r
+    con-var d k z _ h (ConMb-≤ d (isNone m) (rconv m (δr δt)) cb) cb wl wr r
   conC d (⇒⊑⇒ p q) {N} {rk} {w} {X} {m} {δt = δt} h {k} cb wl wr r =
     ℰ-value d k (⇒⊑⇒ p q) w (wl CT.↓ CT.fun) (conM-fun (rconv m (δr δt)) wr)
       (to (𝒱-⇒ d k p q w) (fun-con h cb wl wr (from (𝒱-⇒ d k p q w) r)))

@@ -22,6 +22,7 @@ module proof.LR.ConvRight where
 --     instantiation is read from the clause, the mirror of
 --     `PairRevL`/`PairConL` in `proof.LR.ConvLemma`.
 
+open import Data.Bool using (Bool; true; false)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Fin using (zero; suc)
 open import Data.Fin.Properties using (_≟_)
@@ -254,6 +255,54 @@ ConBR-≤ ≻ cb = <⇒≤ cb
 ConBR-down : ∀ d {k n N} → k ≤ n → ConBR d n N → ConBR d k N
 ConBR-down ≺ le cb = ≤-trans le cb
 ConBR-down ≻ le cb = ≤-<-trans le cb
+
+-- The conceal's bound by mode: `ConBR` for the converted variable's
+-- seal hypothesis, and up to the bound in mode none, where no variable
+-- is converted.
+isNoneR : ∀ {Φ : Corr Δ Δ′} {X} → RMode Φ X ΘR → Bool
+isNoneR (r-pair x α′) = false
+isNoneR (r-none α′ R′) = true
+
+ConRb : Dir → Bool → ℕ → ℕ → Set
+ConRb d false k N = ConBR d k N
+ConRb d true k N = k ≤ N
+
+ConRm : ∀ {Φ : Corr Δ Δ′} {X} → Dir → RMode Φ X ΘR → ℕ → ℕ → Set
+ConRm d m k N = ConRb d (isNoneR m) k N
+
+ConRb-≤ : ∀ d b {k N} → ConRb d b k N → k ≤ N
+ConRb-≤ d false cb = ConBR-≤ d cb
+ConRb-≤ d true cb = cb
+
+ConRb-down : ∀ d b {k n N} → k ≤ n → ConRb d b n N → ConRb d b k N
+ConRb-down d false le cb = ConBR-down d le cb
+ConRb-down d true le cb = ≤-trans le cb
+
+ConBR→ConRb : ∀ d b {k N} → ConBR d k N → ConRb d b k N
+ConBR→ConRb d false cb = cb
+ConBR→ConRb d true cb = ConBR-≤ d cb
+
+module _ {Φ : Corr Δ Δ′} {X : TyVar Δ} where
+
+  isNoneR-↑ : ∀ {ΘR′} (ρ : ΘR ↪ᵗ ΘR′) (m : RMode Φ X ΘR)
+    → isNoneR (RMode-↑ ρ m) ≡ isNoneR m
+  isNoneR-↑ ρ (r-pair x α′) = refl
+  isNoneR-↑ ρ (r-none α′ R′) = refl
+
+  isNoneR-pair : (m : RMode Φ X ΘR) → isNoneR (RMode-pair m) ≡ isNoneR m
+  isNoneR-pair (r-pair x α′) = refl
+  isNoneR-pair (r-none α′ R′) = refl
+
+  isNoneR-only : (m : RMode Φ X ΘR) → isNoneR (RMode-only m) ≡ isNoneR m
+  isNoneR-only (r-pair x α′) = refl
+  isNoneR-only (r-none α′ R′) = refl
+
+  -- the bound of a mode moved to a future, at a lower stage
+  ConRm-↑ : ∀ d {ΘR′} (ρ : ΘR ↪ᵗ ΘR′) (m : RMode Φ X ΘR) {k n N} → k ≤ n
+    → ConRm d m n N → ConRm d (RMode-↑ ρ m) k N
+  ConRm-↑ d ρ m le cb =
+    subst (λ b → ConRb d b _ _) (sym (isNoneR-↑ ρ m))
+      (ConRb-down d (isNoneR m) le cb)
 
 module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} where
 
@@ -728,7 +777,7 @@ RevR d {Φ = Φ} {A} {B} p =
 ConR : Dir → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A B} → Φ ⊢ A ⊑ B → Set₁
 ConR d {Φ = Φ} {A} {B} p =
   ∀ {N w X} {m : RMode Φ X (ΔR w)} {δs δt}
-  → RConvI d N w m δs δt → ∀ {k} → ConBR d k N
+  → RConvI d N w m δs δt → ∀ {k} → ConRm d m k N
   → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k p w δt Wl Wr
   → ℰ d k p w δs Wl (conM (rcR m (δr δt)) (substᵗ (δr δs) B) Wr)
 
@@ -802,7 +851,7 @@ rev-varR d {Z = .X} .x {X = X} {m = r-pair x α′} h {k} le vl vr r
 
 con-varR : ∀ d {Φ : Corr Δ Δ′} {Z Y′} (z : Φ ∋ Z ↔ Y′) → ConR d (X⊑Y z)
 con-varR d z {m = r-none α′ R′} h {k} cb wl wr r =
-  NowR.conP h z tt (ConBR-≤ d cb) wl wr (from (𝒱-XY d k z _) r)
+  NowR.conP h z tt cb wl wr (from (𝒱-XY d k z _) r)
 con-varR d {Z = Z} z {X = X} {m = r-pair x α′} h cb wl wr r with Z ≟ X
 con-varR d {Z = Z} z {X = X} {m = r-pair x α′} h {k} cb wl wr r
     | no ne =
@@ -923,7 +972,8 @@ module FunConvR {Δ Δ′} {Φ : Corr Δ Δ′} (d : Dir) (N : ℕ)
       (λ {s} s≤n cb →
         app-core d s p q w vl vr nothing
           (revFrame (rcR m (δr δt)) (substᵗ (δr δs) B′))
-          (conp h cb ul ur (𝒱-down d s≤n p w (goodT h) a))
+          (conp h (ConBR→ConRb d (isNoneR m) cb) ul ur
+            (𝒱-down d s≤n p w (goodT h) a))
           (funRel-down d s≤n p q w f)
           (λ e₂ {k} k≤s {Ql} {Qr} ql qr r →
             ℰᵍ-≡ refl (rcRenR e₂ m δs δt Qr B′)
@@ -931,22 +981,26 @@ module FunConvR {Δ Δ′} {Φ : Corr Δ Δ′} (d : Dir) (N : ℕ)
                 ql qr r)))
 
   con-at : ∀ {n} w {X} {m : RMode Φ X (ΔR w)} {δs δt}
-      (h : RConvI d N w m δs δt) → ConBR d n N
+      (h : RConvI d N w m δs δt) → ConRm d m n N
     → ∀ {Wl Wr} → Value Wl → Value Wr → funRel d n p q w δt Wl Wr
     → ∀ {Ul Ur} → Value Ul → Value Ur → 𝒱 d n p w δs Ul Ur
     → ℰ d n q w δs (Wl · Ul)
         (conM (rcR m (δr δt)) (substᵗ (δr δs) (A′ ⇒ B′)) Wr · Ur)
   con-at w {m = m} {δs} {δt} h cb {Wl} {Wr} wl wr f {Ul} {Ur} ul ur a =
-    ℰ-app-stepsR d q w (ConBR-≤ d cb) (rightAppC (rcR m (δr δt)) wr ur)
+    ℰ-app-stepsR d q w (ConRb-≤ d (isNoneR m) cb)
+      (rightAppC (rcR m (δr δt)) wr ur)
       (λ {s} s≤n cb′ →
         app-core d s p q w wl wr nothing
           (conFrame (rcR m (δr δt)) (substᵗ (δr δs) B′))
-          (revp h (≤-trans s≤n (ConBR-≤ d cb)) ul ur
+          (revp h (≤-trans s≤n (ConRb-≤ d (isNoneR m) cb)) ul ur
             (𝒱-down d s≤n p w (goodS h) a))
           (funRel-down d s≤n p q w f)
           (λ e₂ {k} k≤s {Ql} {Qr} ql qr r →
             ℰᵍ-≡ refl (ccRenR e₂ m δs δt Qr B′)
-              (conq (RConvI-↑ e₂ h) (ConBR-down d k≤s cb′) ql qr r)))
+              (conq (RConvI-↑ e₂ h)
+                (subst (λ b → ConRb d b k N) (sym (isNoneR-↑ (ρR e₂) m))
+                  (ConBR→ConRb d (isNoneR m) (ConBR-down d k≤s cb′)))
+                ql qr r)))
 
   fun-rev : ∀ {n w X} {m : RMode Φ X (ΔR w)} {δs δt}
       (h : RConvI d N w m δs δt) → n ≤ N
@@ -964,7 +1018,7 @@ module FunConvR {Δ Δ′} {Φ : Corr Δ Δ′} (d : Dir) (N : ℕ)
           ul ur (𝒱≤-cast d le′ ≤′-refl p w′ a)))
 
   fun-con : ∀ {n w X} {m : RMode Φ X (ΔR w)} {δs δt}
-      (h : RConvI d N w m δs δt) → ConBR d n N
+      (h : RConvI d N w m δs δt) → ConRm d m n N
     → ∀ {Wl Wr} → Value Wl → Value Wr → funRel d n p q w δt Wl Wr
     → funRel d n p q w δs Wl
         (conM (rcR m (δr δt)) (substᵗ (δr δs) (A′ ⇒ B′)) Wr)
@@ -972,7 +1026,7 @@ module FunConvR {Δ Δ′} {Φ : Corr Δ Δ′} (d : Dir) (N : ℕ)
       {w′} e {n′} le′ Ul Ur ul ur a =
     ℰᵍ-map d n′ w′ (λ le″ w″ e″ V V′ → 𝒱≤-cast d le″ (≤′-trans le″ le′) q w″)
       (ℰᵍ-≡ refl (cong (_· Ur) (sym (conVR e m δs δt Wr (A′ ⇒ B′))))
-        (con-at w′ (RConvI-↑ e h) (ConBR-down d (≤′⇒≤ le′) cb)
+        (con-at w′ (RConvI-↑ e h) (ConRm-↑ d (ρR e) m (≤′⇒≤ le′) cb)
           (renameᵗᵐ-preserves-Value (ρL e) wl)
           (renameᵗᵐ-preserves-Value (ρR e) wr)
           (funRel-down d (≤′⇒≤ le′) p q w′ (funRel-mono d n p q e f))
@@ -1046,7 +1100,7 @@ module OnlyVR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     L w′ n′ c = sem (onlyLeafS d (≤′-refl {n′}) c)
 
   conV : ∀ {n} w {X} {m : RMode Φ X (ΔR w)} {δs δt}
-      (h : RConvI d N w m δs δt) → ConBR d n N
+      (h : RConvI d N w m δs δt) → ConRm d m n N
     → ∀ {Wl Wr} → Value Wl → Value Wr → allOnly d n p w δt Wl Wr
     → allOnly d n p w δs Wl (conM (rcR m (δr δt)) (substᵗ (δr δs) B) Wr)
   conV {n} w {m = m} {δs} {δt} h cb {Wl} {Wr} wl wr r =
@@ -1072,7 +1126,13 @@ module OnlyVR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
               (con (RConvI-↑ e₂
                      (RConvI-extOnly {T = leftTyS c} {l = L w′ n′ c}
                        (onlyLeafS-good d (≤′-refl {n′}) c) (RConvI-↑ e h)))
-                (ConBR-down d (≤-trans k≤ le′) cb) ql qr q)))
+                (subst (λ b → ConRb d b k _)
+                  (sym (trans
+                    (isNoneR-↑ (ρR e₂) (RMode-only (RMode-↑ (ρR e) m)))
+                    (trans (isNoneR-only (RMode-↑ (ρR e) m))
+                      (isNoneR-↑ (ρR e) m))))
+                  (ConRb-down d (isNoneR m) (≤-trans k≤ le′) cb))
+                ql qr q)))
     where
     L : ∀ w′ n′ (c : SDesc (ΔL w′) (ΔR w′)) → Leaf (ΔL w′) (ΔR w′)
     L w′ n′ c = sem (onlyLeafS d (≤′-refl {n′}) c)
@@ -1435,7 +1495,7 @@ module PairR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (rev (RConvI-↑ e₃ hβ) k≤s ql qr q)
 
   pairConR : ∀ {n} w {X} {m : RMode Φ X (ΔR w)} {δs δt}
-      (h : RConvI d N w m δs δt) → ConBR d n N
+      (h : RConvI d N w m δs δt) → ConRm d m n N
     → ∀ {Wl Wr} → Value Wl → Value Wr → allPair d n p w δt Wl Wr
     → ∀ Xs Ys c → WFDesc c
     → ℰ d n p w (extPairI (repL Xs c) (repR Ys c)
@@ -1445,7 +1505,8 @@ module PairR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
                     (substᵗ (extsᵗ (δr δs)) B))
            ⦂∀ substᵗ (extsᵗ (δr δs)) B [ repR Ys c ])
   pairConR {n} w {X} {m} {δs} {δt} h cb {Wl} {Wr} wl wr r Xs Ys c wf =
-    antiR₁ d p (ConBR-≤ d cb) stepR (tagsR w) (okBindR w Tr) inner
+    antiR₁ d p (ConRb-≤ d (isNoneR m) cb) stepR (tagsR w) (okBindR w Tr)
+      inner
     where
     Tl = repL Xs c
     Tr = repR Ys c
@@ -1513,7 +1574,8 @@ module PairR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       hβ = RConvI-newR e₁ (new-bind Tr) {Ls = Ls} {Lt = Lt} {Tr = Tr}
         {Tl = Tl} {T = T₁} (repL-rename ρL₁ ρR₁ Xs c) s≤N (freshSR h) gLs
         (leafBelowS-good d (≤′-refl {n}) (sdesc Xs Ys c))
-        (oracleR h (≤′-refl {n}) (ConBR-≤ d cb) (sdesc Xs Ys c) wf)
+        (oracleR h (≤′-refl {n}) (ConRb-≤ d (isNoneR m) cb)
+          (sdesc Xs Ys c) wf)
         (SealNewR.sealNewR d le_s (≤′-refl {n}) (≤′⇒≤ le_s) e₁ Xs Ys c
           {Φ = Φ} {δt = δs} {T = T₁} zero up)
 
@@ -1542,7 +1604,11 @@ module PairR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
             (↓-pk (pk-ren↓ (toRenameᵗ (ρR e₂))
               (pk-mc α₁≡ R₁≡ (open0 Tr (δr δs) B)))))
           (con (RConvI-↑ e₂ hα)
-            (ConBR-down d (≤-trans k≤s (≤′⇒≤ le_s)) cb) ql qr q)
+            (subst (λ b → ConRb d b k _)
+              (sym (trans (isNoneR-↑ (ρR e₂) m₁)
+                (trans (isNoneR-pair m₀) (isNoneR-↑ ρR₁ m))))
+              (ConRb-down d (isNoneR m) (≤-trans k≤s (≤′⇒≤ le_s)) cb))
+            ql qr q)
 
       K₂ : ∀ {w₃} (e₃ : w₃ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
         → Value Ql → Value Qr → 𝒱 d k p w₃ (δsβ ↑ᴵ e₃) Ql Qr
@@ -1572,14 +1638,14 @@ module PairR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c wf)
 
   conV : ∀ {n} w {X} {m : RMode Φ X (ΔR w)} {δs δt}
-      (h : RConvI d N w m δs δt) → ConBR d n N
+      (h : RConvI d N w m δs δt) → ConRm d m n N
     → ∀ {Wl Wr} → Value Wl → Value Wr → allPair d n p w δt Wl Wr
     → allPair d n p w δs Wl
         (conM (rcR m (δr δt)) (substᵗ (δr δs) (`∀ B)) Wr)
   conV {n} w {m = m} {δs} {δt} h cb {Wl} {Wr} wl wr r =
     allPair-from d n p w {δ = δs} λ e {n′} le′ (sdesc Xs Ys c) wf →
       ℰᵍ-≡ refl (inst≡ (sym (conVR e m δs δt Wr (`∀ B))))
-        (pairConR {n′} _ (RConvI-↑ e h) (ConBR-down d le′ cb)
+        (pairConR {n′} _ (RConvI-↑ e h) (ConRm-↑ d (ρR e) m le′ cb)
           (renameᵗᵐ-preserves-Value (ρL e) wl)
           (renameᵗᵐ-preserves-Value (ρR e) wr)
           (allPair-down d le′ p _ (allPair-mono d n p e r)) Xs Ys c wf)

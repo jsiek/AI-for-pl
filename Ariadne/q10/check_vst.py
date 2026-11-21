@@ -27,6 +27,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARIADNE = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
+import m6  # noqa: E402
 
 RUN = os.path.join(ARIADNE, "vst", "run.sh")
 BENCH = "b1a"   # --bench sets these
@@ -89,8 +90,18 @@ def main():
     global BENCH, B1A_C, COQC
     ap = argparse.ArgumentParser()
     ap.add_argument("run")
-    ap.add_argument("--bench", default="b1a", choices=["b1a", "b1c"])
+    ap.add_argument("--bench", default="b1a",
+                    choices=["b1a", "b1c"] + [b for b in m6.BENCHES
+                                              if m6.is_m6(b)])
     a = ap.parse_args()
+    if m6.is_m6(a.bench):
+        # Plan M6: pristine dllist.c / clientN.c and the frozen spec, the
+        # run's proof file only; see m6.check.
+        s = m6.check(a.run, a.bench)
+        print(json.dumps({k: v for k, v in s.items()
+                          if k not in ("post_lint", "verif_error")},
+                         indent=1))
+        return
     BENCH = a.bench
     B1A_C = os.path.join(ARIADNE, "bench", BENCH, f"{BENCH}.c")
     COQC = COQC[:-1] + [BENCH[0].upper() + BENCH[1:]]

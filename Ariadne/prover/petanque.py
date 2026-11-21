@@ -45,8 +45,11 @@ class Petanque:
         Petanque.count += 1
         self.name = f"ariadne-pet-{os.getpid()}-{Petanque.count}"
         image = os.environ.get("ARIADNE_IMAGE", "ariadne-m0:dev")
+        # memory limit, as ../env/run.sh (2026-11-18)
+        MEM = os.environ.get("ARIADNE_MEM", "16g")
         self.proc = subprocess.Popen(
             ["docker", "run", "--rm", "-i", "--init", "--name", self.name,
+             "--memory", MEM, "--memory-swap", MEM, "--pids-limit", "1024",
              "--user", f"{os.getuid()}:{os.getgid()}",
              "-e", "HOME=/home/rocq", "-v", f"{ARIADNE}:/ariadne",
              "-w", self.inner, image, "pet", f"--root={self.inner}"],

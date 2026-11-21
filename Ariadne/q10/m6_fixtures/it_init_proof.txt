@@ -1,0 +1,19 @@
+Proof.
+  start_function.
+  apply semax_pre with (EX gv: globals,
+    PROP () LOCAL (gvars gv; temp _it it; temp _list (Znth_or_null s j))
+    SEP (data_at_ sh t_it it; nodes shl s vs 0 (Zlength s))).
+  { go_lowerx. apply exp_right with (globals_of_env rho).
+    unfold PROPx, LOCALx, SEPx, local, lift1; simpl. normalize.
+    apply andp_right; [apply prop_right | apply derives_refl].
+    split; [reflexivity | auto]. }
+  Intros gv.
+  forward_call (gv, sh, it, shl, s, vs, j, nullval,
+                nullval, Ews, (Vundef, (Vundef, Vundef))).
+  { unfold cmp_env, cmp_state; rewrite !if_true by reflexivity; cancel. }
+  { left; reflexivity. }
+  Intros vret. destruct vret as [[b f] r]; simpl fst in *; simpl snd in *.
+  unfold cmp_env, cmp_state; rewrite !if_true by reflexivity.
+  forward.
+  Exists b f r. entailer!.
+Qed.

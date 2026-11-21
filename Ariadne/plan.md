@@ -644,6 +644,24 @@ the port compares without overflow.  Opus 5.5 proved all four ($18.66,
 programs are proved against the frozen spec: $61.69 for the accepted
 runs, $67.64 with client 9's first run.
 
+**sglib closes at stage 1 (owner, 2026-11-21).**  Stage 2 (`delete`,
+`delete_if_member`, `add_before`, `add_after`, `concat`, `sort`) is
+dropped.  It would cost six public-spec walkthroughs, and except for
+`sort` its functions reshape the same list as stage 1, so it would add
+data points but no new method.  sglib is a dormant library, and a
+library's public surface is large relative to its code; the stage-1
+lessons (the Callbacks rule, library proofs reused over each client's
+program, the frozen-spec check, the leak lint) are recorded above and in
+the survey.  The next target is a complete program, not a library.  In a
+whole program the only claim is `main`'s spec, which is fixed (leak
+freedom: its postcondition holds only the allocator state and globals);
+every other funspec is an internal lemma that the prover chooses, and a
+wrong one is caught by Rocq (too weak a precondition: the function's
+proof fails; too strong: its caller's proof fails, so `semax_prog`
+fails).  The owner's review then shrinks to the specs of the external
+functions the program calls (libc, I/O), reviewed once and shared across
+programs.  Next: a survey of candidate programs.
+
 **What `q10/run_vst.py` needs to target the frozen spec** (checked
 2026-11-17; it was written for Q10's task, in which the agent wrote its
 own funspecs for B1a/B1c):

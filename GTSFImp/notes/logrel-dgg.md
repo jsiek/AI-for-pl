@@ -729,7 +729,7 @@ only strengthens the clauses.
   * the closure oracle at every bound (`oracle-all`, `oracleR-all`,
     below).
 
-  To do: the instances for the fundamental lemma's `Λ` cases.
+  * the instances for the fundamental lemma's `Λ` cases (below).
 * **Gap in the oracle: right-only closure.** The oracle must close every
   descriptor leaf `leafBelowS d le (sdesc Xs Ys c)` under fresh
   conversions on both sides (`FreshP d both`).
@@ -812,6 +812,22 @@ only strengthens the clauses.
     value, takes no step), and stage 1 is a direct argument.
   * Induction on the bound (`oracle-all`): the leaf at stage `k` uses
     the lemmas at bound `k`, whose oracle covers the stages below `k`.
+* **The `Λ` instances** (`proof/LR/ConvLambda.agda`).
+  * `(Λ V) ⦂∀ B [ T ]` allocates β and steps to `V ↑ 〖 β , T ↑ B 〗`.
+    The fundamental lemma relates the bodies with the bound variable
+    the store variable β, whose leaf is its store entry: for `Λ⊑Λ` the
+    entry `seals β Xs (β′ ∷ Ys) c`, for a left-only `Λ` the entry
+    `seals β Xs [] c`, where `sdesc Xs Ys c` is the clause's descriptor.
+  * `lamPair` and `lamOnly` turn that relation into the clause's: the
+    main lemma's reveal at β (mode pair or left), with the hypotheses
+    `ConvI-newP` and `ConvI-newO`. The world's new tags are parameters,
+    for the fundamental lemma to choose.
+  * The entry is the clause's leaf with the new seals in front, read
+    one stage up when its contents are read later (`entryP⇔`,
+    `entryO⇔`). So its seal hypotheses (`SealEntryP`, `SealEntryO`) need
+    no downward step, unlike the clause leaves of `SealNewP`.
+  * The fundamental lemma's interpretations, whose types are store
+    variables, are closed under conversions (`FreshI-store`).
 * **Plan for a `∀` case** (`∀⊑∀`, reveal; the others are alike).
   * Work at the function's world with an instantiating sealed descriptor
     `c₀`, then move to the clause's futures with `ConvI-↑`,
@@ -842,6 +858,133 @@ only strengthens the clauses.
   * Modes: pair (the right converts), left (only the left converts; X
     paired or left-only), dead, and none.
 
+**The cast lemma's world-change cases (paper sketch).** The cases of
+the old note's Section 8a in which a side creates store variables, in
+the terms of the descriptors.
+
+* **Run-time facts.**
+  * `∀ᶜ c` creates nothing: `(V ⟨∀ᶜ c⟩) ⦂∀ B [ T ]` steps to
+    `(V ⦂∀ A [ T ]) ⟨ c [ T ]ᶜ ⟩`. `V ⟨∀ᶜ c⟩` is a value.
+  * `inst c` acts at the cast: `V ⟨inst c⟩` allocates `α := ★`,
+    instantiates `V` at `＇ α`, reveals α as `★`, and continues with
+    `c [★/0]ᶜ`.
+  * `gen c` acts at the type application: `(V ⟨gen c⟩) ⦂∀ B [ T ]`
+    allocates `α := T`, applies the body cast `c`, in which α has mode
+    `★∼X` (`α!` and `?α` at its positions), and reveals α as `T`.
+    `V ⟨gen c⟩` is a value.
+* **Case 4: left `inst`, X left-only, any right cast.** No world
+  change.
+  * At the cast, use the hypothesis's `∀⊑` clause at
+    `sdesc [ α ] [] (desc ★⊑★ [] [])`.
+  * The main lemma, mode left, reveals α as `★`. The substitution lemma
+    turns `X ⊑ ★` at X's leaf into `★ ⊑ ★`.
+  * Then the induction hypothesis for `c [★/0]ᶜ` against the right cast.
+  * In `≻` the left's termination comes from the clause, since the right
+    is a value and takes no steps.
+* **Case 5: left `gen` against a right non-`∀`, through `∀⊑`.** No new
+  lemma.
+  * The left allocates α with the tag `(nothing , seals α Xs [] c)`.
+  * The body cast's `?α` reads that tag: a tag without a right variable
+    is its entry, which is X's leaf.
+  * Then `lamOnly` reveals α.
+  * `gen` against `gen` (case 1) is the same with the tag
+    `(just α′ , seals α Xs (α′ ∷ Ys) c)` and `lamPair`.
+* **Case 7: left `∀ᶜ`, right `gen`.** Both sides act at the type
+  application, so there is no timing problem, but one definition is
+  missing.
+  * The hypothesis is the `∀⊑` clause, with X left-only. The right
+    values at X's positions are `(Wr ↓ seal α′) ⟨ ＇ α′ ! ⟩`, so its
+    leaf must be "tagged α′, sealed α′, then the goal's descriptor".
+  * **Gap D2: no descriptor peels a right tag.** Entries peel right
+    seals. A right tag is read only through a world tag, and only when
+    the left value is tagged too. Here the left value is not tagged.
+  * Fix: the right list of a sealed descriptor holds *wrappers*, a seal
+    or a tag at a store variable. The hypothesis's descriptor is then
+    `sdesc Xs (tag α′ ∷ seal α′ ∷ Ys) c`, at right type `★`.
+  * The cast lemma takes two interpretations, for its source and its
+    target. They differ at the variables that `gen` binds on the right.
+  * Its leaf case at such a variable: `?α′` takes the tagged leaf to
+    `sdesc Xs (α′ ∷ Ys) c`. The right-only lemma, in mode `r-pair`, then
+    reveals α′ as `Tr` and gives the goal's leaf.
+* **Case 6: left `∀ᶜ`, right `inst`.** The right instantiates at the
+  cast, and the left only at each later type application.
+  * **Obstacle O1: the right creates its variables before the left.**
+    * It arises from related source programs
+      (`proof/LR/TimingProbe.agda`, which checks the source precision
+      derivation and runs the elaborated programs):
+
+          G     = (λg:∀X.X→X. g) (λy:★. y)
+          left  = (λf:∀X.X→X. (λn:ℕ. f [𝔹] true) (f [ℕ] 3)) G
+          right = (λf:★→★.    (λn:★. f true)     (f 3))     G
+
+    * `G` is `(λy:★. y) ⟨gen c⟩`. Each instantiation of it creates a
+      variable, and its body cast `c` tags the argument with that
+      variable (`X!`) and projects the result at it (`?X`).
+    * Right: the argument cast is `inst`. Before `f` is used, it
+      allocates α′ and instantiates `G` at α′, which allocates β′. The
+      run allocates two variables, both while evaluating the argument.
+      Both uses of `f` then run the one value W′.
+    * Left: the argument is a value, and nothing is allocated. `f [ℕ]`
+      allocates σ₁ and `f [𝔹]` allocates σ₂.
+    * Inside `λy:★. y`, the left's `3 ⦂ σ₁` tagged `σ₁!` meets the
+      right's argument tagged `β′!`, and later `true ⦂ σ₂` tagged `σ₂!`
+      meets the right's argument tagged `β′!` again. The `★⊑★` clause
+      reads the left's tag, so the world must give both σ₁ and σ₂ the
+      tag `(just β′ , …)`.
+    * The hypothesis's `∀⊑∀` clause (for `G` against `G`) compares each
+      left instantiation with a new right instantiation `G ⦂∀ [＇ α′]`,
+      run in the same later world. That run allocates a new variable β″,
+      not β′, so it describes a different right value from W′.
+    * Renaming β″ to β′ does not help: β′ is already σ₁'s partner, so
+      this would merge two variables.
+    * A `Λ` does not show the problem: its variable is never tagged,
+      because `★` is not consistent with a `Λ`-bound variable. Only
+      variables created by `gen` are tagged.
+  * **Chains make it worse.** A right cast `inst (inst c″)` instantiates
+    two binders at the cast. The left instantiates the inner one only
+    after the outer one.
+  * **Gap D1** (needed once O1 is solved).
+    * The hypothesis's descriptor is `sdesc Xs [ α′ ] c`, at right type
+      `＇ α′`. The pair clause needs it well formed.
+    * α′'s representation is `★`, so `rightTy c ≡ ★`.
+    * But `allOnly` quantifies over every sealed descriptor. Fix:
+      `allOnly` quantifies over well-formed descriptors whose core has
+      right type `★`. Every descriptor that the proofs pass to it already
+      has that form (`•⊑`, the conversions, `lamOnly`).
+  * **The rest of case 6.**
+    * The right-only lemma, mode `r-pair`, reveals α′ as `★`, which
+      leaves `sdesc Xs [] c`.
+    * An instance of the substitution lemma reads "X paired with right
+      type `★`" as "X left-only", at the same leaf.
+    * In `≺` that leaf is the goal's `onlyLeafS`. In `≻`, `leafBelow`
+      and `leafG` agree below the bound at derivations into `★`, where
+      `𝒱≻ = G`. So the hypothesis is used at bound `n + 1`, which the
+      right's counted steps at the cast allow.
+    * Then the induction hypothesis for `c [ T ]ᶜ` against `c′ [★/0]ᶜ`.
+  * **Options for O1.**
+    * **(W) Replay.** Worlds whose tags may name right variables not yet
+      in the right store, and a `∀⊑∀` clause usable at a world with the
+      left store of now and the right store of the cast.
+      * The right's instantiation is then replayed from the same right
+        store, so it allocates β′ itself.
+      * This is the old note's "W′'s left list and right counter
+        β′ = n′ + 1". It needs determinism of reduction, and it reworks
+        `LR.World`, the extensions and monotonicity.
+    * **(R) Relocation.** A lemma: `ℰ` is unchanged when the right's own
+      allocations happen earlier.
+      * In the example it must merge β″ into β′, which σ₁ already uses.
+      * A merge is not invertible, so the induction fails at function
+        arguments, which the merged world can supply but the original
+        world cannot.
+    * **(F) Right first.** The `∀⊑∀` clause lets the right instantiate
+      in an earlier world than the left.
+      * This handles the example: σ₁ and σ₂ both meet the one W′.
+      * It does not handle chains: the inner clause is reached only
+        after the left's outer instantiation, later than the right's
+        inner one.
+    * Recommendation: (W). It is the mechanism the paper design used,
+      and the only one of the three that handles chains without a merge.
+
 **Next, in order** (items 5–9 of Section 6.9):
 1. conversions;
 2. identity casts;
@@ -852,7 +995,8 @@ only strengthens the clauses.
 
 **Not yet checked against the definitions** (they were checked on paper
 against Section 6.5, before the switch to descriptors):
-* the fundamental lemma's `Λ` cases;
+* the fundamental lemma's `Λ` cases, beyond their conversion
+  instances (`ConvLambda`);
 * the shared type application;
 * the cast lemma's cases 4–8.
 

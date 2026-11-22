@@ -172,6 +172,7 @@ import proof.LR.ConvMain
 import proof.LR.StarAgree
 import proof.LR.ConvRight
 import proof.LR.ConvClose
+import proof.LR.ConvLambda
 
 ------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked
@@ -201,6 +202,7 @@ import proof.DGG.LambdaImpProbe
 import proof.DGG.MovedLinkProbe
 import proof.DGG.ChainRideProbe
 import proof.DGG.TagBoundaryProbe
+import proof.LR.TimingProbe
 
 -- Checked libraries currently without consumers (candidates for M7+)
 import proof.DGG.CenterRename

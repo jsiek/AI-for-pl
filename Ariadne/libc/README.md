@@ -10,7 +10,21 @@ below.
 ```
 python3 -I fetch_musl.py                 # musl 1.2.6, SHA-256 pinned; git-ignored
 python3 -I musl_clight.py strlen ...     # closure of the given functions + clightgen
+python3 run_libc.py strlen [--dry-run]   # the $10 prover run, then the check
+python3 run_libc.py isupper --check proofs   # re-check a kept proof (likewise
+                                             # strlen, strcmp, strchr, memcpy)
 ```
+
+`run_libc.py` preprocesses a function's musl files into one C file and
+has an agent prove `semax_body` for each function in it against the
+frozen specs in `specs/` (VST's own `progs64/verif_strlib.v` specs for
+`strlen`, `strcmp`, `strchr`; `memcpy` and `isupper` written here).
+These specs are not trusted: the musl proof and picol's proof both use
+them.  The check recompiles from pristine copies and requires each body
+lemma's statement, Qed, and `Print Assumptions` within
+`../vst/smoke/expected_assumptions.txt`; it rejects an `Admitted` proof
+and a proof of a weaker spec the proof file defines itself (both
+tried).
 
 `musl_clight.py` uses CompCert's preprocessor defines (`-U__GNUC__
 -U__SIZEOF_INT128__`, from `compcert.ini`), which also select musl's
@@ -27,7 +41,11 @@ has no `__typeof`, so musl's `weak_alias` macro is defined as nothing.
 
 | Function | clightgen | Reason | Choice |
 |---|---|---|---|
-| `strlen`, `strcmp`, `strchr` (+ `strchrnul`), `memcpy`, `isupper` | accepted | | verify ($10 run each) |
+| `isupper` | accepted | | **verified** (`proofs/verif_isupper.v`, written in-session, $0) |
+| `strlen` | accepted | | **verified** (`proofs/verif_strlen.v`, 71 lines; run 2026-11-22: $0.63, 174 s, 45 turns) |
+| `strcmp` | accepted | | **verified** (`proofs/verif_strcmp.v`, 150 lines; $1.77, 468 s, 79 turns) |
+| `strchr` (+ `__strchrnul`, `strlen`) | accepted | | **verified** (`proofs/verif_strchr.v`, 260 lines; $1.53, 455 s, 80 turns) |
+| `memcpy` | accepted | | **verified** (`proofs/verif_memcpy.v`, 65 lines; $0.95, 226 s, 54 turns) |
 | `snprintf` | rejected | `vsnprintf`/`vfprintf` include musl's stdio internals, which reach `arch/x86_64/syscall_arch.h` (inline-asm register variables); `vfprintf`'s float formatting uses `long double` | picol calls it only through `fmt_double` (`bench/picol/trusted.c`), which gets the trusted spec |
 | `strtod` | rejected | the same stdio internals (`shgetc`, `floatscan`); `floatscan` uses `long double`, which CompCert does not support | trusted spec |
 | `fopen`, `fgets`, `fputs`, `fread`, `fclose`, `fflush`, `perror`, `exit` | not tried | system calls | trusted spec |

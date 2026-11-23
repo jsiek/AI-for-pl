@@ -39,7 +39,7 @@
 void *xrealloc(void *ptr, size_t size) {
     void *mem = realloc(ptr,size);
     if (!mem) {
-        fprintf(stderr,"Out of memory realloc(%p,%zu)\n", ptr, size);
+        fputs("Out of memory\n",stderr);
         exit(1);
     }
     return mem;
@@ -53,6 +53,39 @@ char *xstrdup(const char *s) {
     memcpy(dup,s,l+1);
     return dup;
 }
+
+/* =============================================================================
+ * Ariadne (owner, 2026-11-22): fixed-argument replacements for the variadic
+ * snprintf/printf calls, which VST cannot verify.  Like snprintf, each writes
+ * at most n-1 characters plus '\0' into buf (n >= 1).
+ * ========================================================================== */
+
+/* Append s to the string buf[0..k), truncating; return the new length. */
+size_t fmt_append(char *buf, size_t n, size_t k, const char *s) {
+    while (*s && k+1 < n) buf[k++] = *s++;
+    buf[k] = '\0';
+    return k;
+}
+
+/* snprintf(buf,n,"%s%s%s",a,b,c) */
+void fmt_str3(char *buf, size_t n, const char *a, const char *b, const char *c) {
+    size_t k = fmt_append(buf,n,0,a);
+    k = fmt_append(buf,n,k,b);
+    fmt_append(buf,n,k,c);
+}
+
+/* snprintf(buf,n,"%d",v) */
+void fmt_int(char *buf, size_t n, int v) {
+    char d[12]; int k = 11;
+    unsigned u = v < 0 ? 0u - (unsigned)v : (unsigned)v;
+    d[k] = '\0';
+    do { d[--k] = '0' + u % 10; u /= 10; } while (u);
+    if (v < 0) d[--k] = '-';
+    fmt_append(buf,n,0,d+k);
+}
+
+/* snprintf(buf,n,"%.12g",v): defined in trusted.c, not verified. */
+void fmt_double(char *buf, size_t n, double v);
 
 /* =============================================================================
  * Data structures
@@ -406,7 +439,7 @@ int picolEval(struct picolInterp *i, char *t) {
         if (p.type == PT_VAR) {
             struct picolVar *v = picolGetVar(i,t);
             if (!v) {
-                snprintf(errbuf,sizeof(errbuf),"No such variable '%s'",t);
+                fmt_str3(errbuf,sizeof(errbuf),"No such variable '",t,"'");
                 free(t);
                 picolSetResult(i,errbuf);
                 retcode = PICOL_ERR;
@@ -449,7 +482,7 @@ int picolEval(struct picolInterp *i, char *t) {
             prevtype = p.type;
             if (argc) {
                 if ((c = picolGetCommand(i,argv[0])) == NULL) {
-                    snprintf(errbuf,sizeof(errbuf),"No such command '%s'",argv[0]);
+                    fmt_str3(errbuf,sizeof(errbuf),"No such command '",argv[0],"'");
                     picolSetResult(i,errbuf);
                     retcode = PICOL_ERR;
                     goto err;
@@ -573,7 +606,7 @@ int picolExprExpansion(struct picolInterp *i, char *s) {
 
 int picolArityErr(struct picolInterp *i, char *name) {
     char buf[1024];
-    snprintf(buf,sizeof(buf),"Wrong number of args for %s",name);
+    fmt_str3(buf,sizeof(buf),"Wrong number of args for ",name,"");
     picolSetResult(i,buf);
     return PICOL_ERR;
 }
@@ -595,7 +628,7 @@ int picolCommandExpr(struct picolInterp *i, int argc, char **argv, struct picolC
     if (*p != '\0') err = 1;
     free(expr);
     if (err) { picolSetResult(i,"Error in expression"); return PICOL_ERR; }
-    snprintf(buf,sizeof(buf),"%.12g",v);
+    fmt_double(buf,sizeof(buf),v);
     picolSetResult(i,buf); return PICOL_OK;
 }
 
@@ -608,8 +641,7 @@ int picolCommandSet(struct picolInterp *i, int argc, char **argv, struct picolCm
         struct picolVar *v = picolGetVar(i,argv[1]);
         if (v == NULL) {
             char buf[1024];
-            snprintf(buf,sizeof(buf),
-                "Can't read \"%s\": no such variable",argv[1]);
+            fmt_str3(buf,sizeof(buf),"Can't read \"",argv[1],"\": no such variable");
             picolSetResult(i,buf);
             return PICOL_ERR;
         } else {
@@ -625,7 +657,8 @@ int picolCommandSet(struct picolInterp *i, int argc, char **argv, struct picolCm
 int picolCommandPuts(struct picolInterp *i, int argc, char **argv, struct picolCmd *cmd) {
     int nonl = (argc == 3 && !strcmp(argv[1],"-nonewline"));
     if (argc != 2 && !nonl) return picolArityErr(i,argv[0]);
-    printf("%s%s", argv[nonl?2:1], nonl ? "" : "\n");
+    fputs(argv[nonl?2:1],stdout);
+    if (!nonl) fputs("\n",stdout);
     return PICOL_OK;
 }
 
@@ -723,7 +756,7 @@ int picolCommandCallProc(struct picolInterp *i, int argc, char **argv, struct pi
         if (*p == '\0') done=1; else *p = '\0';
         if (++arity > argc-1) goto arityerr;
         if (isupper(start[0])) {
-            snprintf(errbuf,sizeof(errbuf),"Procedure parameter '%s' can't be a global (upcase first character)", start);
+            fmt_str3(errbuf,sizeof(errbuf),"Procedure parameter '",start,"' can't be a global (upcase first character)");
             goto err;
         }
         picolSetVar(i,start,argv[arity]);
@@ -743,7 +776,7 @@ int picolCommandCallProc(struct picolInterp *i, int argc, char **argv, struct pi
     picolDropCallFrame(i); /* remove the called proc callframe */
     return errcode;
 arityerr:
-    snprintf(errbuf,sizeof(errbuf),"Proc '%s' called with wrong arg num",argv[0]);
+    fmt_str3(errbuf,sizeof(errbuf),"Proc '",argv[0],"' called with wrong arg num");
 err:
     picolSetResult(i,errbuf);
     free(tofree);
@@ -791,13 +824,17 @@ int main(int argc, char **argv) {
         while(1) {
             char clibuf[1024];
             int retcode;
-            printf("picol> "); fflush(stdout);
+            fputs("picol> ",stdout); fflush(stdout);
             /* Ariadne (owner, 2026-11-21): free the interpreter at end of
              * input, so that main ends owning no heap memory. */
             if (fgets(clibuf,1024,stdin) == NULL) break;
             retcode = picolEval(interp,clibuf);
-            if (interp->result[0] != '\0')
-                printf("[%d] %s\n", retcode, interp->result);
+            if (interp->result[0] != '\0') {
+                char num[12];
+                fmt_int(num,sizeof(num),retcode);
+                fputs("[",stdout); fputs(num,stdout); fputs("] ",stdout);
+                fputs(interp->result,stdout); fputs("\n",stdout);
+            }
         }
     } else if (argc == 2) {
         char buf[1024*16];
@@ -808,7 +845,9 @@ int main(int argc, char **argv) {
         size_t bytesRead = fread(buf,1,1024*16-1,fp);
         buf[bytesRead] = '\0';
         fclose(fp);
-        if (picolEval(interp,buf) != PICOL_OK) printf("%s\n", interp->result);
+        if (picolEval(interp,buf) != PICOL_OK) {
+            fputs(interp->result,stdout); fputs("\n",stdout);
+        }
     }
     picolFreeInterp(interp);
     return 0;

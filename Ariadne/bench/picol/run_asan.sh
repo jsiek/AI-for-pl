@@ -20,7 +20,9 @@ check() {  # name, expected stdout ("-": any), command...
   fi
 }
 
-$cc -o "$tmp/picol" picol.c && $cc -o "$tmp/picol_test" picol_test.c \
+$cc -o "$tmp/picol" picol.c trusted.c \
+  && $cc -o "$tmp/picol_test" picol_test.c trusted.c \
+  && gcc -std=c99 -o "$tmp/upstream" upstream/picol.c \
   || { echo "FAIL: build"; exit 1; }
 if "$tmp/picol_test" > "$tmp/out" 2>&1; then
   echo "PASS: picol_test ($(tail -1 "$tmp/out"))"
@@ -37,5 +39,14 @@ check "tests/proc_redefine_self.tcl" "after" \
 # interpreter (LSan: leaks); fixed by leaving the loop instead.
 repl() { printf 'set a 1\nproc f {x} {return $x}\n' | "$tmp/$1"; }
 check "REPL frees the interpreter at end of input" - repl picol
+# The fixed-argument replacements for snprintf/printf (fix 3) print what
+# upstream prints: the examples, and a REPL session that reaches every
+# replaced message.
+check "same output as upstream: fib.tcl" \
+  "$("$tmp/upstream" upstream/fib.tcl)" "$tmp/picol" upstream/fib.tcl
+check "same output as upstream: mandelbrot.tcl" \
+  "$("$tmp/upstream" upstream/mandelbrot.tcl)" "$tmp/picol" upstream/mandelbrot.tcl
+check "same output as upstream: REPL on tests/messages.tcl" \
+  "$("$tmp/upstream" < tests/messages.tcl)" sh -c "\"$tmp/picol\" < tests/messages.tcl"
 rm -r "$tmp"
 exit $status

@@ -150,6 +150,13 @@ VST 2.17's conditions cover them.  In addition:
     public-spec rule 7) rejects `TT` and existentials over `mpred` in
     every postcondition.
 
+    **`exit` (owner, 2026-11-22):** leak freedom covers `main`'s
+    return.  A call to `exit` is an error exit and may hold memory
+    (`exit`'s postcondition is `FF`, and VST's frame rule lets the
+    caller keep anything it owns); the operating system reclaims it.
+    Example: picol's `perror("open"); exit(1);` with the interpreter
+    still allocated.
+
 (The properties of the deprecated Frama-C/WP pipeline: §14.1.)
 
 ### 2.2 Honest trust base

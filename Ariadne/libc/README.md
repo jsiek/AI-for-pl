@@ -28,7 +28,22 @@ has no `__typeof`, so musl's `weak_alias` macro is defined as nothing.
 | Function | clightgen | Reason | Choice |
 |---|---|---|---|
 | `strlen`, `strcmp`, `strchr` (+ `strchrnul`), `memcpy`, `isupper` | accepted | | verify ($10 run each) |
-| `snprintf` | rejected | `vsnprintf`/`vfprintf` include musl's stdio internals, which reach `arch/x86_64/syscall_arch.h` (inline-asm register variables); `vfprintf`'s float formatting uses `long double` | trusted spec |
+| `snprintf` | rejected | `vsnprintf`/`vfprintf` include musl's stdio internals, which reach `arch/x86_64/syscall_arch.h` (inline-asm register variables); `vfprintf`'s float formatting uses `long double` | picol calls it only through `fmt_double` (`bench/picol/trusted.c`), which gets the trusted spec |
 | `strtod` | rejected | the same stdio internals (`shgetc`, `floatscan`); `floatscan` uses `long double`, which CompCert does not support | trusted spec |
-| `fopen`, `fgets`, `fread`, `fclose`, `fflush`, `printf`, `fprintf`, `perror`, `exit` | not tried | system calls | trusted spec |
-| `malloc`, `free`, `realloc` | not tried | allocator: VST's `malloc`/`free` specs are axioms on the allow-list | trusted (`realloc`: spec to write) |
+| `fopen`, `fgets`, `fputs`, `fread`, `fclose`, `fflush`, `perror`, `exit` | not tried | system calls | trusted spec |
+
+Variadic calls (owner, 2026-11-22): VST cannot verify a call to a
+variadic function (its `printf`/`fprintf` support is experimental and
+outside its soundness proof), so a program's variadic calls are
+replaced by fixed-argument functions: plain C where possible (verified
+with the program), a trusted wrapper otherwise.
+
+libc globals (owner, 2026-11-22): VST verifies one translation unit, in
+which a libc global such as `stdout` is an extern without initializer,
+so `main` gets no permission to read it.  The verified unit is
+`<program>_vst.c`: the program plus musl's definitions of the globals
+it reads (`bench/picol/picol_vst.c`).
+| `malloc`, `free`, `realloc` | not tried | allocator: VST's `malloc`/`free` specs are axioms on the allow-list | trusted (`realloc`: spec approved 2026-11-22) |
+
+The trusted specs picol uses, all approved by the owner on 2026-11-22:
+`bench/picol/TRUSTED_SPECS.md`.

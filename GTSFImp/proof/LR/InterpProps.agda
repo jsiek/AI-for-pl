@@ -192,13 +192,14 @@ exts-cong h (Fin.suc X) = cong (renameᵗ Fin.suc) (h X)
 ------------------------------------------------------------------------
 
 Arrive-map : ∀ {ΔL′ ΔR′} {n n′ : ℕ} {w : World}
-    {χsL : StoreChanges (ΔL w) ΔL′} {χsR : StoreChanges (ΔR w) ΔR′}
+    {χsL : StoreChanges (ΔL w) ΔL′} {χsR : StoreChanges (storeR w) ΔR′}
     {VR VR′ : VRel n w} {le : n′ ≤′ n} {Vl Vr}
   → (∀ {n″} (le′ : n″ ≤′ n) w′ (e : w′ ⊒ w) V V′
        → VR le′ w′ e V V′ → VR′ le′ w′ e V V′)
   → Arrive n n′ w χsL χsR VR le Vl Vr
   → Arrive n n′ w χsL χsR VR′ le Vl Vr
-Arrive-map f (tags , ok , v) = tags , ok , f _ _ _ _ _ v
+Arrive-map f (Δ′ , p′ , ρ , st , tags , ok , v) =
+  Δ′ , p′ , ρ , st , tags , ok , f _ _ _ _ _ v
 
 ℰᵍ-map : ∀ d n w {VR VR′ : VRel n w}
   → (∀ {n′} (le : n′ ≤′ n) w′ (e : w′ ⊒ w) V V′
@@ -329,17 +330,18 @@ mutual
       (p : pair Φ ⊢ A ⊑ B) w
       {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
     → δ ≈ᴵ δ′ → allPair d n p w δ Vl Vr → allPair d n p w δ′ Vl Vr
-  allPair-resp d n {A = A} {B = B} p w {Vl = Vl} {Vr = Vr} h r e le c wf =
+  allPair-resp d n {A = A} {B = B} p w {Vl = Vl} {Vr = Vr} h r e le c wf
+      T₀ eqT B₀ eqB =
     ℰᵍ-≡
       (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
         (substᵗ-cong A (exts-cong (δl≡ (↑ᴵ-resp h e)))))
-      (cong (λ C → renameᵗᵐ (ρR e) Vr ⦂∀ C [ rightTyS c ])
-        (substᵗ-cong B (exts-cong (δr≡ (↑ᴵ-resp h e)))))
+      refl
       (ℰᵍ-map d _ _
         (λ le′ w″ e′ V V′ →
           𝒱≤-resp d (≤′-trans le′ le) p w″
             (↑ᴵ-resp (extPairI-resp ≈ˡ-refl (↑ᴵ-resp h e)) e′))
-        (r e le c wf))
+        (r e le c wf T₀ eqT B₀
+          (trans (substᵗ-cong B (exts-cong (δr≡ (↑ᴵ-resp h e)))) eqB)))
 
   allOnly-resp : ∀ d n {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       (p : only Φ ⊢ A ⊑ B) w

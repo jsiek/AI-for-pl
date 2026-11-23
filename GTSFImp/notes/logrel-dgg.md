@@ -985,6 +985,207 @@ the terms of the descriptors.
     * Recommendation: (W). It is the mechanism the paper design used,
       and the only one of the three that handles chains without a merge.
 
+**Design (W): replaying the right's early instantiations.**
+
+* **Worlds reserve right variables.** A world has:
+  * the left store `ΔL`;
+  * the right *scope* `ΔR`;
+  * the right *store* `ΘR`, embedded in the scope as its oldest
+    variables (`ι : ΘR ↪ ΔR`);
+  * tags over `ΔL` and the scope.
+
+  The scope's variables outside the store are *reserved*: the right
+  program has not allocated them yet, but tags may already name them.
+  Ordinary worlds reserve nothing (`ΘR = ΔR`).
+* **Right terms are store terms; everything else is in the scope.**
+  * `𝒱` and `ℰ` relate a left term with a right term over the right
+    store `ΘR`. Tags, descriptors, leaves and interpretations are over
+    the scope, as before.
+  * A right seal or tag is read through `ι` (`IsSealᴿ`, `IsInjVarᴿ`):
+    the store conversion's variable, embedded, is the scope variable
+    the descriptor names.
+  * So no lemma inverts a renaming of terms: a right term never has to
+    be recognized as the image of a store term.
+* **ℰ runs the right program in its store.**
+  * An allocation takes the oldest reserved variable when there is one,
+    and extends the scope otherwise (`Step1`, `Steps`). Both are
+    order-preserving embeddings of the new store into the scope.
+  * `Steps` is a relation, functional in the run; `Arrive` names the
+    run's steps. So the right's allocations are fixed by the world; ℰ
+    has no choice to make that could merge variables. Runs compose by
+    composing their steps, with no rewriting of world scopes.
+* **The `∀` clauses read store preimages (`PreTy`).**
+  * The pair clause quantifies over the store preimages of its type
+    argument `rightTyS c` and of the right annotation
+    `substᵗ (extsᵗ δr) B`, and runs the right instantiation on them.
+  * It is vacuous where either names a reserved variable. Such an
+    instantiation cannot be the right program's yet.
+  * The dead and `∀★` clauses take their right type argument in the
+    store directly.
+  * Monotonicity is unaffected: the preimages are read at the future the
+    clause quantifies over, the same world for the hypothesis and the
+    goal.
+  * Contents of descriptors are *not* read through preimages. Example: a
+    replay world reserves β′ while σ₁'s tag names β′. If the contents of
+    that tag were vacuous at the replay world, releasing β′ would make
+    them real, with nothing to support them, and monotonicity of `𝒱`
+    would fail.
+* **Extension** embeds the left store, the scope and the right store,
+  compatibly with `ι` (`Coh`), and keeps the old tags.
+  * A future may *release* reserved variables into the store. This is
+    what happens when the program allocated them in the meantime.
+  * The left store is never reserved: the left's allocations are always
+    new.
+* **Case 6 with replay.**
+  * The right's cast-time run went from the world w₁ (right store `Θ₁`)
+    to its value W′, allocating β′ (for a chain, more).
+  * At a later world w′ the goal asks about a left instantiation
+    against W′. Form the *replay world*: w′'s left store, scope and
+    tags, with right store `Θ₁`. Everything allocated on the right
+    since w₁, β′ first, is reserved there.
+  * The replay world is a future of the hypothesis's world, so its
+    `∀⊑∀` clause applies there.
+  * The clause's right run `G ⦂∀ [＇ α′]` takes β′ itself. By
+    determinism of reduction, it ends at the image of W′.
+  * Releasing the remaining reserved variables gives back w′'s right
+    store, and monotonicity of `𝒱` moves the result there.
+  * For a chain, the inner clause is used the same way, inside the
+    outer one's replay.
+* **Where the proofs change.**
+  * `LR.World`, `_⊒_`, `Arrive`, `ℰᵍ` and the right term argument of
+    every relation (done).
+  * `proof.LR.Monotone`: right seals and tags through `Coh`.
+  * `proof.LR.Expression`: backward reduction and the bind lemma, with
+    `Steps`.
+  * The conversion lemmas: the store invariant below.
+  * New: determinism of reduction, and the replay world with its
+    release.
+* **Risk R1: newness of the right's allocated variable.** The conversion
+  lemmas assume that a converted right variable is new for the leaves
+  it passes over (`NewRC`, and `nb′` in `ConvI-newP`).
+  * Newness relative to the *leaf's own world* still holds after a
+    replay. The leaves of the interpretation come from the hypothesis's
+    world, older than every reserved variable. `ConvI-newP` uses only
+    those, and the clause leaf's closure under *later* conversions.
+  * It can fail for a leaf created in a replay world, which may name a
+    reserved variable. That happens in a chain: the goal's descriptor
+    for the outer binder, chosen at w′, may name the variable that the
+    inner replay then allocates.
+  * Expected way out: such a leaf is passed over at the variable's
+    right type, which is a store variable (`＇ α′`), where a conversion
+    is an identity step. Checked below.
+* **R1 on paper: the chain `inst (inst c″)`.**
+  * At the cast the right allocates α₁′, β₁′ (outer binder), then α₂′,
+    γ, β₂′ (inner binder: `inst`, the reveal proxy's instantiation,
+    `gen`). Later the left instantiates the outer binder at w′, with the
+    goal's descriptor c₁, and the inner one at a later w″.
+  * Outer replay (store of the cast, everything since reserved): the
+    hypothesis's clause runs both instantiations; the right takes β₁′.
+    The right's whole cast-time continuation (reveal α₁′, the inner
+    `inst`) then runs in the same replay world and takes α₂′, γ, β₂′ in
+    order. The right's store stays in the past for all of its pending
+    work, so the chain needs nothing more.
+  * The left's inner instantiation, at w″, uses the inner hypothesis at
+    a second replay world: w″'s left store, scope and tags, with the
+    right store after the outer replay. It is a future of the world
+    where the inner hypothesis holds.
+  * The conversions at reserved variables (α₂′, γ, β₂′) pass over X's
+    leaf, built from c₁, which may name them. X's right type there is
+    `＇ α₁′` (a store variable), and `★` after the reveal of α₁′. A right
+    conversion at another variable is an identity step at both, so the
+    leaf needs no freshness. The left's part of the closure is the
+    oracle at `rc = nothing`; the left never converts at a reserved
+    variable.
+  * So R1 holds, with two rules that keep reserved variables out of the
+    types the right program runs at.
+* **Rule 1: the clauses' right types are in the right store.** The
+  `∀⊑∀` clause's `rightTyS c` and the dead clause's `T′` must name no
+  reserved variable. In the definitions: `PreTy` and `T′ : Ty ΘR`.
+  * Why: a right conversion at a reserved γ over a leaf whose right type
+    contains γ is not an identity. It would reveal γ inside the leaf's
+    values, and the clause could be false.
+  * Then every leaf's right type is in the store of the world where it
+    was created, so it is older than every reserved variable of a later
+    world.
+  * The uses comply: case 6 uses `＇ α′`, `•⊑•` uses the program's types,
+    and the conversion lemmas use the store variables they allocate.
+* **Rule 2: a type application at a type that names a reserved variable
+  is vacuous.** In the definitions: `PreTy` in the pair clause.
+  * Such a term cannot be the right program's yet. It arises only inside
+    a leaf built from a descriptor that names a reserved variable.
+* **Store invariant for the conversion lemmas.** When the right
+  allocates, the new store variable is the oldest reserved scope
+  variable γ. The conversion lemmas assume it is new for the
+  interpretation's right types (`nb′`, and the right types unchanged by
+  the conversion, in `ConvI-newP`).
+  * Example: a scope of one variable γ, an empty store. The right
+    allocates γ. If an interpretation's right type is `＇ γ`, then "γ is
+    not an old scope variable" is false, and a conversion at γ changes
+    that type.
+  * Fix: the hypothesis that the interpretation's right types are in
+    the store (each has a store preimage). It holds where the lemmas
+    are used: the right types come from `rightTyS c` (Rule 1) and the
+    program's types, both in the store of an older world.
+
+* **Done: determinism and replay** (`proof/Reduction/Determinism.agda`,
+  `proof/LR/Replay.agda`).
+  * Determinism: a step's store change and result are unique (`det`);
+    so are a counted run's (`det-steps`); a run stops at the first
+    value (`value-run-stops`); two runs to values agree, in length too
+    (`det-value-run`, and against an uncounted run `det-value-↠`).
+  * Prefixes are unique; `Steps` is functional (`Steps-func`); with
+    room for its allocations a run takes reserved variables only and
+    keeps the scope (`replaySteps`, `replay-arrive`).
+  * `replayW w p`: w's left store, scope and tags over an earlier
+    store. `replay-⊒ e : replayW w′ (replayPre e) ⊒ w` for any
+    `e : w′ ⊒ w`, with the store unchanged. `release`, `release-coh`:
+    the later world is a future of the replay's arrival, along the
+    extension's own store embedding. `𝒱-release`: the value relation
+    moves across.
+  * The expression relation across a replay (`ℰ-replay≻ᵛ`,
+    `ℰ-replay≺ᵛ`): if the right ran `Mr` to `W` from the store Θ₁ in
+    k₀ steps, then `ℰ` at the replay world over Θ₁ against `Mr` (at
+    stage `k₀ + n` in `≻`, n in `≺`) gives `ℰ` at the later world
+    against `renameᵗᵐ σ W` at stage n, where σ is the release's store
+    embedding. By determinism the replay takes the run's steps, takes
+    exactly the reserved variables the run allocated, and its arrival
+    releases into the later world's arrival.
+* **Gap G1 (resolved): extensions inserted scope variables below the
+  newest.** `_⊒_` now has a field `grows : Grows ρR`: e's scope
+  embedding is a prefix's (`LR.World`), so the scope only grows at its
+  new end. Every extension the proofs build grows (`Steps-grows` in
+  `Arrive` and `stepExt`, `Grows-id` in `⊒-refl`, `Grows-∘` in
+  `⊒-trans`), so no proof changed beyond those three places.
+  * Why (`NoGrowth` in `proof/LR/Replay.agda`): w₂ has scope and store
+    `[α′ β′]`, the cast-time run from the store `[α′]` having allocated
+    β′. Without the field, w′ with scope and store `[α′ γ β′]` and
+    `ρR = ρS = keep (skip (keep empty))` (β′ ↦ 0, α′ ↦ 2) was a future
+    of w₂; its `Coh` holds. Over the store `[α′]`, the reserved
+    variables are γ and β′, and the replay of `bind ★` takes the oldest,
+    γ. The replayed value names γ where `renameᵗᵐ (ρS e) W′` names β′,
+    and the release along `ρS e` is not coherent (`no-release`).
+* **Case 6, what remains.** The world bookkeeping is done
+  (`ℰ-replay≻ᵛ`, `ℰ-replay≺ᵛ`, with `replay-⊒ (⊒-trans e e₂)` for the
+  hypothesis, `replayPre e` for `room`, `ρS e` for σ and
+  `release-coh e` for the coherence). Still to do, all inside the
+  replay world:
+  * the cast lemma's statement itself (nothing states it yet), so that
+    case 6 has an induction hypothesis for `c [ T ]ᶜ` against
+    `c′ [★/0]ᶜ`;
+  * moving the `∀⊑∀` hypothesis from the cast's world to w₁, the world
+    after the right's `bind ★` (monotonicity), and reading its clause
+    at the replay world with the descriptor `sdesc Xs [ α′ ] c`
+    (Gap D1: `allOnly` over well-formed descriptors with core right
+    type `★`);
+  * the right-only lemma, mode `r-pair`, revealing α′ as `★` at the
+    replay world (an origin variant of `RConvI-newR` for this single
+    level), then the substitution instance reading "X paired at right
+    type `★`" as "X left-only";
+  * the right's term at the replay world is the cast-time continuation
+    `(⇑Vr ⦂∀ A [＇0]) ↑ 〖0 , ★ ↑ A〗 ⟨ c′ [★/0]ᶜ ⟩` itself (`ρS` of
+    `replay-⊒` is the identity, `renameᵗᵐ-id`), so its run is the
+    cast-time run and `ℰ-replay≻ᵛ` applies directly.
+
 **Next, in order** (items 5–9 of Section 6.9):
 1. conversions;
 2. identity casts;

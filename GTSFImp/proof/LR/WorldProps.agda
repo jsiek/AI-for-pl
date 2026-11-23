@@ -6,7 +6,10 @@ module proof.LR.WorldProps where
 --     the identity at the identity embedding and respects composition,
 --     so world extension is reflexive and transitive.
 --   * Composition of embeddings is associative with the identity as
---     unit; this holds on the nose because embeddings are canonical.
+--     unit; this holds on the nose because embeddings are canonical
+--     (the left unit law, `∘↪-idˡ`, is in `LR.World`).
+--   * The right run's steps (`Steps`) compose, a pure step keeps the
+--     prefix, and an ordinary world's run extends its scope.
 
 open import Data.List using (List; []; _∷_; map)
 import Data.Fin as Fin
@@ -23,7 +26,10 @@ open import Types
 open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ; id↪ᵗ)
 open import proof.DGG.CenterRename using (_∘↪_; toRenameᵗ-∘)
 open import proof.TypeInTermSubst using (toRename-id-eq; renameᵗ-id)
+open import Reduction using (StoreChanges; keep; []; _∷_)
+open import proof.Reduction using (_++χ_)
 open import LR.Desc
+open import LR.Steps using (embedᶜˢ)
 open import LR.World
 
 ------------------------------------------------------------------------
@@ -35,11 +41,6 @@ open import LR.World
 ∘↪-idʳ (keep π) = cong keep (∘↪-idʳ π)
 ∘↪-idʳ {Δ = zero} (skip π) = refl
 ∘↪-idʳ {Δ = suc Δ} (skip π) = cong skip (∘↪-idʳ π)
-
-∘↪-idˡ : ∀ {Δ Δ′} (η : Δ ↪ᵗ Δ′) → id↪ᵗ ∘↪ η ≡ η
-∘↪-idˡ empty = refl
-∘↪-idˡ (keep η) = cong keep (∘↪-idˡ η)
-∘↪-idˡ (skip η) = cong skip (∘↪-idˡ η)
 
 ∘↪-assoc : ∀ {Δ₁ Δ₂ Δ₃ Δ₄}
     (π : Δ₃ ↪ᵗ Δ₄) (η : Δ₂ ↪ᵗ Δ₃) (θ : Δ₁ ↪ᵗ Δ₂)
@@ -238,7 +239,7 @@ renameTag-∘ πL ηL πR ηR (nothing , e)
 ------------------------------------------------------------------------
 
 ⊒-refl : ∀ (w : World) → w ⊒ w
-⊒-refl w = ext id↪ᵗ id↪ᵗ tags≡′
+⊒-refl w = ext id↪ᵗ id↪ᵗ id↪ᵗ (coh-id (pre w)) Grows-id tags≡′
   where
   tags≡′ : ∀ X → tag w (toRenameᵗ id↪ᵗ X) ≡ renameTag id↪ᵗ id↪ᵗ (tag w X)
   tags≡′ X = trans (cong (tag w) (toRename-id-eq X))
@@ -246,7 +247,9 @@ renameTag-∘ πL ηL πR ηR (nothing , e)
 
 ⊒-trans : ∀ {w w′ w″ : World} → w″ ⊒ w′ → w′ ⊒ w → w″ ⊒ w
 ⊒-trans {w} {w′} {w″} e′ e =
-  ext (ρL e′ ∘↪ ρL e) (ρR e′ ∘↪ ρR e) tags≡′
+  ext (ρL e′ ∘↪ ρL e) (ρR e′ ∘↪ ρR e) (ρS e′ ∘↪ ρS e)
+    (coh-∘ {p₁ = pre w} {p₂ = pre w′} {p₃ = pre w″} (coh e) (coh e′))
+    (Grows-∘ (grows e′) (grows e)) tags≡′
   where
   tags≡′ : ∀ X → tag w″ (toRenameᵗ (ρL e′ ∘↪ ρL e) X)
     ≡ renameTag (ρL e′ ∘↪ ρL e) (ρR e′ ∘↪ ρR e) (tag w X)
@@ -255,3 +258,36 @@ renameTag-∘ πL ηL πR ηR (nothing , e)
       (trans (tags≡ e′ (toRenameᵗ (ρL e) X))
         (trans (cong (renameTag (ρL e′) (ρR e′)) (tags≡ e X))
           (renameTag-∘ (ρL e′) (ρL e) (ρR e′) (ρR e) (tag w X))))
+
+------------------------------------------------------------------------
+-- The right run's steps
+------------------------------------------------------------------------
+
+Steps-≡ : ∀ {Θ Θ′ Δ Δ′} {p : Prefix Θ Δ} {χs : StoreChanges Θ Θ′}
+    {p′ : Prefix Θ′ Δ′} {ρ ρ′ : Δ ↪ᵗ Δ′}
+  → ρ ≡ ρ′ → Steps p χs p′ ρ → Steps p χs p′ ρ′
+Steps-≡ refl st = st
+
+-- runs compose
+Steps-++ : ∀ {Θ₀ Θ₁ Θ₂ Δ₀ Δ₁ Δ₂} {p₀ : Prefix Θ₀ Δ₀}
+    {χs : StoreChanges Θ₀ Θ₁} {ψs : StoreChanges Θ₁ Θ₂}
+    {p₁ : Prefix Θ₁ Δ₁} {p₂ : Prefix Θ₂ Δ₂} {ρ ρ′}
+  → Steps p₀ χs p₁ ρ → Steps p₁ ψs p₂ ρ′
+  → Steps p₀ (χs ++χ ψs) p₂ (ρ′ ∘↪ ρ)
+Steps-++ {ρ′ = ρ′} (done refl) st′ = Steps-≡ (sym (∘↪-idʳ ρ′)) st′
+Steps-++ {ρ′ = ρ′} (more {ρ₁ = ρ₁} {ρ₂ = ρ₂} s ss refl) st′ =
+  more s (Steps-++ ss st′) (sym (∘↪-assoc ρ′ ρ₂ ρ₁))
+
+-- a pure step keeps the prefix
+step1-keep : ∀ {Θ Δ} (p : Prefix Θ Δ) → Step1 p keep p id↪ᵗ
+step1-keep pid = fresh
+step1-keep (pres p) = stay
+
+Steps-keep : ∀ {Θ Δ} (p : Prefix Θ Δ) → Steps p (keep ∷ []) p id↪ᵗ
+Steps-keep p = more (step1-keep p) (done refl) (sym (∘↪-idʳ id↪ᵗ))
+
+-- an ordinary world's run: the scope is the store
+Steps-pid : ∀ {Θ Θ′} (χs : StoreChanges Θ Θ′)
+  → Steps pid χs pid (embedᶜˢ χs)
+Steps-pid [] = done refl
+Steps-pid (χ ∷ χs) = more fresh (Steps-pid χs) refl

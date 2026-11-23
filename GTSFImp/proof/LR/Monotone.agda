@@ -65,21 +65,51 @@ IsSeal-rename σ (c ↦↓ d) eq ()
 IsSeal-rename σ (`∀↓ c) eq ()
 IsSeal-rename σ (id↓ A) eq ()
 
-IsInjVar-rename : ∀ {μ : Env∼ Δ} {μ′ : Env∼ Δ′} {A B : Ty Δ}
-    (ρ : Δ ⇒ʳ Δ′) (eq : ∀ X → μ′ ‼ (ρ X) ≡ μ ‼ X) {X} (c : μ ⊢ A ∼ B)
-  → IsInjVar X c → IsInjVar (ρ X) (rename∼ {μ′ = μ′} ρ eq c)
-IsInjVar-rename ρ eq (_! ⦃ Gᵍ = ＇ Y ⦄ c) refl = refl
-IsInjVar-rename ρ eq (id a₀) ()
-IsInjVar-rename ρ eq (c₀ ↦ d₀) ()
-IsInjVar-rename ρ eq (∀ᶜ c₀) ()
-IsInjVar-rename ρ eq (？ c₀) ()
-IsInjVar-rename ρ eq (inst_ c₀ h₀) ()
-IsInjVar-rename ρ eq (gen_ c₀ h₀) ()
-IsInjVar-rename ρ eq (bot-elim) ()
-IsInjVar-rename ρ eq (bot-intro) ()
-IsInjVar-rename ρ eq (_! ⦃ Gᵍ = ‵ ι₀ ⦄ c₀) ()
-IsInjVar-rename ρ eq (_! ⦃ Gᵍ = ★⇒★ ⦄ c₀) ()
-IsInjVar-rename ρ eq (_! ⦃ Gᵍ = ∀★ ⦄ c₀) ()
+-- a store embedding and a scope embedding commute with two others (the
+-- shape of `Coh`, for arbitrary store embeddings)
+CohE : ∀ {Θ Θ′} → Θ ↪ᵗ Δ → Θ′ ↪ᵗ Δ′ → Θ ↪ᵗ Θ′ → Δ ↪ᵗ Δ′ → Set
+CohE ι ι′ σS σR =
+  ∀ X → toRenameᵗ σR (toRenameᵗ ι X) ≡ toRenameᵗ ι′ (toRenameᵗ σS X)
+
+CohE-ty : ∀ {Θ Θ′} {ι : Θ ↪ᵗ Δ} {ι′ : Θ′ ↪ᵗ Δ′} {σS σR}
+  → CohE ι ι′ σS σR → ∀ (T : Ty Θ)
+  → renameᵗ (toRenameᵗ σR) (renameᵗ (toRenameᵗ ι) T)
+    ≡ renameᵗ (toRenameᵗ ι′) (renameᵗ (toRenameᵗ σS) T)
+CohE-ty {ι = ι} {ι′} {σS} {σR} h T =
+  trans (renameᵗ-comp (toRenameᵗ ι) (toRenameᵗ σR) T)
+    (trans (renameᵗ-cong T h)
+      (sym (renameᵗ-comp (toRenameᵗ σS) (toRenameᵗ ι′) T)))
+
+IsSealᴿ-rename : ∀ {Θ Θ′} {ι : Θ ↪ᵗ Δ} {ι′ : Θ′ ↪ᵗ Δ′} {σS σR}
+    {A B : Ty Θ} → CohE ι ι′ σS σR → ∀ {Y : TyVar Δ} {R R′}
+    (s : Conv↓ Θ A B)
+  → R′ ≡ renameᵗ (toRenameᵗ σR) R → IsSealᴿ ι Y R s
+  → IsSealᴿ ι′ (toRenameᵗ σR Y) R′ (rename↓ (toRenameᵗ σS) s)
+IsSealᴿ-rename {σR = σR} h (seal Y′ R₀) eq (refl , refl) =
+  sym (h Y′) , trans (sym (CohE-ty h R₀)) (sym eq)
+IsSealᴿ-rename h (c ↦↓ d) eq ()
+IsSealᴿ-rename h (`∀↓ c) eq ()
+IsSealᴿ-rename h (id↓ A) eq ()
+
+IsInjVarᴿ-rename : ∀ {Θ Θ′} {ι : Θ ↪ᵗ Δ} {ι′ : Θ′ ↪ᵗ Δ′} {σS σR}
+    → CohE ι ι′ σS σR
+    → ∀ {μ : Env∼ Θ} {μ′ : Env∼ Θ′} {A B : Ty Θ}
+    (eq : ∀ X → μ′ ‼ (toRenameᵗ σS X) ≡ μ ‼ X) {Y} (c : μ ⊢ A ∼ B)
+  → IsInjVarᴿ ι Y c
+  → IsInjVarᴿ ι′ (toRenameᵗ σR Y)
+      (rename∼ {μ′ = μ′} (toRenameᵗ σS) eq c)
+IsInjVarᴿ-rename h eq (_! ⦃ Gᵍ = ＇ Y′ ⦄ c) refl = sym (h Y′)
+IsInjVarᴿ-rename h eq (id a₀) ()
+IsInjVarᴿ-rename h eq (c₀ ↦ d₀) ()
+IsInjVarᴿ-rename h eq (∀ᶜ c₀) ()
+IsInjVarᴿ-rename h eq (？ c₀) ()
+IsInjVarᴿ-rename h eq (inst_ c₀ h₀) ()
+IsInjVarᴿ-rename h eq (gen_ c₀ h₀) ()
+IsInjVarᴿ-rename h eq (bot-elim) ()
+IsInjVarᴿ-rename h eq (bot-intro) ()
+IsInjVarᴿ-rename h eq (_! ⦃ Gᵍ = ‵ ι₀ ⦄ c₀) ()
+IsInjVarᴿ-rename h eq (_! ⦃ Gᵍ = ★⇒★ ⦄ c₀) ()
+IsInjVarᴿ-rename h eq (_! ⦃ Gᵍ = ∀★ ⦄ c₀) ()
 
 IsInjBase-rename : ∀ {μ : Env∼ Δ} {μ′ : Env∼ Δ′} {A B : Ty Δ}
     (ρ : Δ ⇒ʳ Δ′) (eq : ∀ X → μ′ ‼ (ρ X) ≡ μ ‼ X) {ι} (c : μ ⊢ A ∼ B)
@@ -166,7 +196,7 @@ MonoΩ : RelΩ ΘL ΘR → Set
 MonoΩ R = ∀ k w τL τR {w′} (e : w′ ⊒ w) {V V′}
   → R k w τL τR V V′
   → R k w′ (ρL e ∘↪ τL) (ρR e ∘↪ τR)
-      (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρR e) V′)
+      (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρS e) V′)
 
 DownΩ : RelΩ ΘL ΘR → Set
 DownΩ R = ∀ {k k′} → k′ ≤ k → ∀ w τL τR {V V′}
@@ -273,8 +303,8 @@ onlyLeaf-≈ ≻ le₁ le₂ c = leafG-≈ le₁ le₂ c
 -- Peeling a list of seals
 ------------------------------------------------------------------------
 
-peelSL-map : ∀ (Xs : List (TyVar ΘL)) (c : Desc ΘL ΘR)
-    {P P′ : Term ΘL → Term ΘR → Set}
+peelSL-map : ∀ {Θ} (Xs : List (TyVar ΘL)) (c : Desc ΘL ΘR)
+    {P P′ : Term ΘL → Term Θ → Set}
   → (∀ {V V′} → P V V′ → P′ V V′)
   → ∀ {V V′} → peelSL Xs c P V V′ → peelSL Xs c P′ V V′
 peelSL-map [] c f r = f r
@@ -290,82 +320,87 @@ peelSL-map (X ∷ Xs) c f {V = W₀ ⟨ c₀ ⟩} ()
 peelSL-map (X ∷ Xs) c f {V = M₀ ↑ c₀} ()
 peelSL-map (X ∷ Xs) c f {V = blame} ()
 
-peelSR-map : ∀ (Ys : List (TyVar ΘR)) (c : Desc ΘL ΘR)
-    {P P′ : Term ΘL → Term ΘR → Set}
+peelSR-map : ∀ {Θ} (ι : Θ ↪ᵗ ΘR) (Ys : List (TyVar ΘR)) (c : Desc ΘL ΘR)
+    {P P′ : Term ΘL → Term Θ → Set}
   → (∀ {V V′} → P V V′ → P′ V V′)
-  → ∀ {V V′} → peelSR Ys c P V V′ → peelSR Ys c P′ V V′
-peelSR-map [] c f r = f r
-peelSR-map (Y ∷ Ys) c f {V′ = V′ ↓ s} (is , r) = is , peelSR-map Ys c f r
-peelSR-map (Y ∷ Ys) c f {V′ = ` x₀} ()
-peelSR-map (Y ∷ Ys) c f {V′ = ƛ M₀} ()
-peelSR-map (Y ∷ Ys) c f {V′ = L₀ · M₀} ()
-peelSR-map (Y ∷ Ys) c f {V′ = Λ M₀} ()
-peelSR-map (Y ∷ Ys) c f {V′ = L₀ ⦂∀ C₀ [ T₀ ]} ()
-peelSR-map (Y ∷ Ys) c f {V′ = $ κ₀} ()
-peelSR-map (Y ∷ Ys) c f {V′ = L₀ ⊕[ op₀ ] M₀} ()
-peelSR-map (Y ∷ Ys) c f {V′ = W₀ ⟨ c₀ ⟩} ()
-peelSR-map (Y ∷ Ys) c f {V′ = M₀ ↑ c₀} ()
-peelSR-map (Y ∷ Ys) c f {V′ = blame} ()
+  → ∀ {V V′} → peelSR ι Ys c P V V′ → peelSR ι Ys c P′ V V′
+peelSR-map ι [] c f r = f r
+peelSR-map ι (Y ∷ Ys) c f {V′ = V′ ↓ s} (is , r) =
+  is , peelSR-map ι Ys c f r
+peelSR-map ι (Y ∷ Ys) c f {V′ = ` x₀} ()
+peelSR-map ι (Y ∷ Ys) c f {V′ = ƛ M₀} ()
+peelSR-map ι (Y ∷ Ys) c f {V′ = L₀ · M₀} ()
+peelSR-map ι (Y ∷ Ys) c f {V′ = Λ M₀} ()
+peelSR-map ι (Y ∷ Ys) c f {V′ = L₀ ⦂∀ C₀ [ T₀ ]} ()
+peelSR-map ι (Y ∷ Ys) c f {V′ = $ κ₀} ()
+peelSR-map ι (Y ∷ Ys) c f {V′ = L₀ ⊕[ op₀ ] M₀} ()
+peelSR-map ι (Y ∷ Ys) c f {V′ = W₀ ⟨ c₀ ⟩} ()
+peelSR-map ι (Y ∷ Ys) c f {V′ = M₀ ↑ c₀} ()
+peelSR-map ι (Y ∷ Ys) c f {V′ = blame} ()
 
 -- renaming the values, the seals and the descriptor
-peelSL-ren : ∀ {ΘL′ ΘR′} (σL : ΘL ↪ᵗ ΘL′) (σR : ΘR ↪ᵗ ΘR′)
-    (Xs : List (TyVar ΘL)) (c : Desc ΘL ΘR)
-    {P : Term ΘL → Term ΘR → Set} {P′ : Term ΘL′ → Term ΘR′ → Set}
-  → (∀ {V V′} → P V V′ → P′ (renameᵗᵐ σL V) (renameᵗᵐ σR V′))
+peelSL-ren : ∀ {ΘL′ ΘR′ Θ Θ′} (σL : ΘL ↪ᵗ ΘL′) (σR : ΘR ↪ᵗ ΘR′)
+    (σS : Θ ↪ᵗ Θ′) (Xs : List (TyVar ΘL)) (c : Desc ΘL ΘR)
+    {P : Term ΘL → Term Θ → Set} {P′ : Term ΘL′ → Term Θ′ → Set}
+  → (∀ {V V′} → P V V′ → P′ (renameᵗᵐ σL V) (renameᵗᵐ σS V′))
   → ∀ {V V′} → peelSL Xs c P V V′
   → peelSL (map (renameVar σL) Xs) (renameDesc σL σR c) P′
-      (renameᵗᵐ σL V) (renameᵗᵐ σR V′)
-peelSL-ren σL σR [] c f r = f r
-peelSL-ren σL σR (X ∷ Xs) c f {V = V ↓ s} (is , r) =
+      (renameᵗᵐ σL V) (renameᵗᵐ σS V′)
+peelSL-ren σL σR σS [] c f r = f r
+peelSL-ren σL σR σS (X ∷ Xs) c f {V = V ↓ s} (is , r) =
   IsSeal-rename (toRenameᵗ σL) s (repL-rename σL σR Xs c) is ,
-  peelSL-ren σL σR Xs c f r
-peelSL-ren σL σR (X ∷ Xs) c f {V = ` x₀} ()
-peelSL-ren σL σR (X ∷ Xs) c f {V = ƛ M₀} ()
-peelSL-ren σL σR (X ∷ Xs) c f {V = L₀ · M₀} ()
-peelSL-ren σL σR (X ∷ Xs) c f {V = Λ M₀} ()
-peelSL-ren σL σR (X ∷ Xs) c f {V = L₀ ⦂∀ C₀ [ T₀ ]} ()
-peelSL-ren σL σR (X ∷ Xs) c f {V = $ κ₀} ()
-peelSL-ren σL σR (X ∷ Xs) c f {V = L₀ ⊕[ op₀ ] M₀} ()
-peelSL-ren σL σR (X ∷ Xs) c f {V = W₀ ⟨ c₀ ⟩} ()
-peelSL-ren σL σR (X ∷ Xs) c f {V = M₀ ↑ c₀} ()
-peelSL-ren σL σR (X ∷ Xs) c f {V = blame} ()
+  peelSL-ren σL σR σS Xs c f r
+peelSL-ren σL σR σS (X ∷ Xs) c f {V = ` x₀} ()
+peelSL-ren σL σR σS (X ∷ Xs) c f {V = ƛ M₀} ()
+peelSL-ren σL σR σS (X ∷ Xs) c f {V = L₀ · M₀} ()
+peelSL-ren σL σR σS (X ∷ Xs) c f {V = Λ M₀} ()
+peelSL-ren σL σR σS (X ∷ Xs) c f {V = L₀ ⦂∀ C₀ [ T₀ ]} ()
+peelSL-ren σL σR σS (X ∷ Xs) c f {V = $ κ₀} ()
+peelSL-ren σL σR σS (X ∷ Xs) c f {V = L₀ ⊕[ op₀ ] M₀} ()
+peelSL-ren σL σR σS (X ∷ Xs) c f {V = W₀ ⟨ c₀ ⟩} ()
+peelSL-ren σL σR σS (X ∷ Xs) c f {V = M₀ ↑ c₀} ()
+peelSL-ren σL σR σS (X ∷ Xs) c f {V = blame} ()
 
-peelSR-ren : ∀ {ΘL′ ΘR′} (σL : ΘL ↪ᵗ ΘL′) (σR : ΘR ↪ᵗ ΘR′)
-    (Ys : List (TyVar ΘR)) (c : Desc ΘL ΘR)
-    {P : Term ΘL → Term ΘR → Set} {P′ : Term ΘL′ → Term ΘR′ → Set}
-  → (∀ {V V′} → P V V′ → P′ (renameᵗᵐ σL V) (renameᵗᵐ σR V′))
-  → ∀ {V V′} → peelSR Ys c P V V′
-  → peelSR (map (renameVar σR) Ys) (renameDesc σL σR c) P′
-      (renameᵗᵐ σL V) (renameᵗᵐ σR V′)
-peelSR-ren σL σR [] c f r = f r
-peelSR-ren σL σR (Y ∷ Ys) c f {V′ = V′ ↓ s} (is , r) =
-  IsSeal-rename (toRenameᵗ σR) s (repR-rename σL σR Ys c) is ,
-  peelSR-ren σL σR Ys c f r
-peelSR-ren σL σR (Y ∷ Ys) c f {V′ = ` x₀} ()
-peelSR-ren σL σR (Y ∷ Ys) c f {V′ = ƛ M₀} ()
-peelSR-ren σL σR (Y ∷ Ys) c f {V′ = L₀ · M₀} ()
-peelSR-ren σL σR (Y ∷ Ys) c f {V′ = Λ M₀} ()
-peelSR-ren σL σR (Y ∷ Ys) c f {V′ = L₀ ⦂∀ C₀ [ T₀ ]} ()
-peelSR-ren σL σR (Y ∷ Ys) c f {V′ = $ κ₀} ()
-peelSR-ren σL σR (Y ∷ Ys) c f {V′ = L₀ ⊕[ op₀ ] M₀} ()
-peelSR-ren σL σR (Y ∷ Ys) c f {V′ = W₀ ⟨ c₀ ⟩} ()
-peelSR-ren σL σR (Y ∷ Ys) c f {V′ = M₀ ↑ c₀} ()
-peelSR-ren σL σR (Y ∷ Ys) c f {V′ = blame} ()
+peelSR-ren : ∀ {ΘL′ ΘR′ Θ Θ′} {ι : Θ ↪ᵗ ΘR} {ι′ : Θ′ ↪ᵗ ΘR′}
+    (σL : ΘL ↪ᵗ ΘL′) (σR : ΘR ↪ᵗ ΘR′) (σS : Θ ↪ᵗ Θ′)
+  → CohE ι ι′ σS σR
+  → (Ys : List (TyVar ΘR)) (c : Desc ΘL ΘR)
+    {P : Term ΘL → Term Θ → Set} {P′ : Term ΘL′ → Term Θ′ → Set}
+  → (∀ {V V′} → P V V′ → P′ (renameᵗᵐ σL V) (renameᵗᵐ σS V′))
+  → ∀ {V V′} → peelSR ι Ys c P V V′
+  → peelSR ι′ (map (renameVar σR) Ys) (renameDesc σL σR c) P′
+      (renameᵗᵐ σL V) (renameᵗᵐ σS V′)
+peelSR-ren σL σR σS h [] c f r = f r
+peelSR-ren σL σR σS h (Y ∷ Ys) c f {V′ = V′ ↓ s} (is , r) =
+  IsSealᴿ-rename h s (repR-rename σL σR Ys c) is ,
+  peelSR-ren σL σR σS h Ys c f r
+peelSR-ren σL σR σS h (Y ∷ Ys) c f {V′ = ` x₀} ()
+peelSR-ren σL σR σS h (Y ∷ Ys) c f {V′ = ƛ M₀} ()
+peelSR-ren σL σR σS h (Y ∷ Ys) c f {V′ = L₀ · M₀} ()
+peelSR-ren σL σR σS h (Y ∷ Ys) c f {V′ = Λ M₀} ()
+peelSR-ren σL σR σS h (Y ∷ Ys) c f {V′ = L₀ ⦂∀ C₀ [ T₀ ]} ()
+peelSR-ren σL σR σS h (Y ∷ Ys) c f {V′ = $ κ₀} ()
+peelSR-ren σL σR σS h (Y ∷ Ys) c f {V′ = L₀ ⊕[ op₀ ] M₀} ()
+peelSR-ren σL σR σS h (Y ∷ Ys) c f {V′ = W₀ ⟨ c₀ ⟩} ()
+peelSR-ren σL σR σS h (Y ∷ Ys) c f {V′ = M₀ ↑ c₀} ()
+peelSR-ren σL σR σS h (Y ∷ Ys) c f {V′ = blame} ()
 
 -- the sealed descriptor's leaf, with its peeling made explicit
-peelS-map : ∀ (s : SDesc ΘL ΘR) {ΘL′ ΘR′}
-    {τL : ΘL ↪ᵗ ΘL′} {τR : ΘR ↪ᵗ ΘR′} {P P′ : Term ΘL′ → Term ΘR′ → Set}
+peelS-map : ∀ (s : SDesc ΘL ΘR) {ΘL′ ΘR′ Θ} {ι : Θ ↪ᵗ ΘR′}
+    {τL : ΘL ↪ᵗ ΘL′} {τR : ΘR ↪ᵗ ΘR′} {P P′ : Term ΘL′ → Term Θ → Set}
   → (∀ {V V′} → P V V′ → P′ V V′)
   → ∀ {V V′}
   → peelSL (map (renameVar τL) (sealsL s)) (renameDesc τL τR (core s))
-      (peelSR (map (renameVar τR) (sealsR s)) (renameDesc τL τR (core s)) P)
+      (peelSR ι (map (renameVar τR) (sealsR s))
+        (renameDesc τL τR (core s)) P)
       V V′
   → peelSL (map (renameVar τL) (sealsL s)) (renameDesc τL τR (core s))
-      (peelSR (map (renameVar τR) (sealsR s)) (renameDesc τL τR (core s)) P′)
+      (peelSR ι (map (renameVar τR) (sealsR s))
+        (renameDesc τL τR (core s)) P′)
       V V′
-peelS-map (sdesc Xs Ys c) {τL = τL} {τR = τR} f =
+peelS-map (sdesc Xs Ys c) {ι = ι} {τL = τL} {τR = τR} f =
   peelSL-map (map (renameVar τL) Xs) (renameDesc τL τR c)
-    (peelSR-map (map (renameVar τR) Ys) (renameDesc τL τR c) f)
+    (peelSR-map ι (map (renameVar τR) Ys) (renameDesc τL τR c) f)
 
 leafBelowS-≈ : ∀ d {n′ a b} (le₁ : n′ ≤′ a) (le₂ : n′ ≤′ b)
     (s : SDesc ΘL ΘR)
@@ -396,10 +431,10 @@ funRel-mono : ∀ d n {Φ : Corr Δ Δ′} {A A′ B B′}
     (p : Φ ⊢ A ⊑ A′) (q : Φ ⊢ B ⊑ B′) {w w′} (e : w′ ⊒ w)
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → funRel d n p q w δ Vl Vr
-  → funRel d n p q w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
+  → funRel d n p q w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
 funRel-mono d n p q e {δ} {Vl} {Vr} f e′ le Wl Wr vl vr a =
   ℰᵍ-≡ (cong (_· Wl) (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl)))
-    (cong (_· Wr) (sym (renameᵗᵐ-∘ (ρR e′) (ρR e) Vr)))
+    (cong (_· Wr) (sym (renameᵗᵐ-∘ (ρS e′) (ρS e) Vr)))
     (ℰᵍ-map d _ _
       (λ le′ w″ e″ V V′ →
         𝒱≤-resp d (≤′-trans le′ le) q w″
@@ -410,31 +445,34 @@ funRel-mono d n p q e {δ} {Vl} {Vr} f e′ le Wl Wr vl vr a =
 allPair-mono : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : pair Φ ⊢ A ⊑ B)
     {w w′} (e : w′ ⊒ w) {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → allPair d n p w δ Vl Vr
-  → allPair d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
-allPair-mono d n {A = A} {B = B} p e {δ} {Vl} {Vr} f e′ le c wf =
+  → allPair d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
+allPair-mono d n {A = A} {B = B} p e {δ} {Vl} {Vr} f e′ le c wf
+    T₀ eqT B₀ eqB =
   ℰᵍ-≡
     (cong₂ (λ M C → M ⦂∀ C [ leftTyS c ])
       (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl))
       (substᵗ-cong A (exts-cong (λ X → sym (δl≡ (↑ᴵ-trans δ e′ e) X)))))
-    (cong₂ (λ M C → M ⦂∀ C [ rightTyS c ])
-      (sym (renameᵗᵐ-∘ (ρR e′) (ρR e) Vr))
-      (substᵗ-cong B (exts-cong (λ Y → sym (δr≡ (↑ᴵ-trans δ e′ e) Y)))))
+    (cong (λ M → M ⦂∀ B₀ [ T₀ ]) (sym (renameᵗᵐ-∘ (ρS e′) (ρS e) Vr)))
     (ℰᵍ-map d _ _
       (λ le′ w″ e″ V V′ →
         𝒱≤-resp d (≤′-trans le′ le) p w″
           (↑ᴵ-resp (extPairI-resp ≈ˡ-refl (≈ᴵ-sym (↑ᴵ-trans δ e′ e))) e″))
-      (f (⊒-trans e′ e) le c wf))
+      (f (⊒-trans e′ e) le c wf T₀ eqT B₀
+        (trans
+          (substᵗ-cong B
+            (exts-cong (λ Y → sym (δr≡ (↑ᴵ-trans δ e′ e) Y))))
+          eqB)))
 
 allOnly-mono : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : only Φ ⊢ A ⊑ B)
     {w w′} (e : w′ ⊒ w) {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → allOnly d n p w δ Vl Vr
-  → allOnly d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
+  → allOnly d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
 allOnly-mono d n {A = A} p e {δ} {Vl} {Vr} f e′ le c =
   ℰᵍ-≡
     (cong₂ (λ M C → M ⦂∀ C [ leftTyS c ])
       (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl))
       (substᵗ-cong A (exts-cong (λ X → sym (δl≡ (↑ᴵ-trans δ e′ e) X)))))
-    (sym (renameᵗᵐ-∘ (ρR e′) (ρR e) Vr))
+    (sym (renameᵗᵐ-∘ (ρS e′) (ρS e) Vr))
     (ℰᵍ-map d _ _
       (λ le′ w″ e″ V V′ →
         𝒱≤-resp d (≤′-trans le′ le) p w″
@@ -444,13 +482,13 @@ allOnly-mono d n {A = A} p e {δ} {Vl} {Vr} f e′ le c =
 allDead-mono : ∀ d n {Φ : Corr Δ Δ′} {A} (p : dead Φ ⊢ A ⊑ ★)
     {w w′} (e : w′ ⊒ w) {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → allDead d n p w δ Vl Vr
-  → allDead d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
+  → allDead d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
 allDead-mono d n {A = A} p e {δ} {Vl} {Vr} f e′ le T T′ =
   ℰᵍ-≡
     (cong₂ (λ M C → M ⦂∀ C [ T ])
       (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl))
       (substᵗ-cong A (exts-cong (λ X → sym (δl≡ (↑ᴵ-trans δ e′ e) X)))))
-    (cong (λ M → M ⦂∀ ★ [ T′ ]) (sym (renameᵗᵐ-∘ (ρR e′) (ρR e) Vr)))
+    (cong (λ M → M ⦂∀ ★ [ T′ ]) (sym (renameᵗᵐ-∘ (ρS e′) (ρS e) Vr)))
     (ℰᵍ-map d _ _
       (λ le′ w″ e″ V V′ →
         𝒱≤-resp d (≤′-trans le′ le) p w″
@@ -459,12 +497,12 @@ allDead-mono d n {A = A} p e {δ} {Vl} {Vr} f e′ le T T′ =
 
 allStar-mono : ∀ d n {w w′} (e : w′ ⊒ w) {Vl Vr}
   → allStar d n w Vl Vr
-  → allStar d n w′ (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
+  → allStar d n w′ (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
 allStar-mono d n e {Vl} {Vr = Wr ⟨ c ⟩} (inj , f) =
   IsInj∀-rename _ _ c inj ,
   λ e′ le T T′ →
     ℰᵍ-≡ (cong (λ M → M ⦂∀ ★ [ T ]) (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl)))
-      (cong (λ M → M ⦂∀ ★ [ T′ ]) (sym (renameᵗᵐ-∘ (ρR e′) (ρR e) Wr)))
+      (cong (λ M → M ⦂∀ ★ [ T′ ]) (sym (renameᵗᵐ-∘ (ρS e′) (ρS e) Wr)))
       (f (⊒-trans e′ e) le T T′)
 allStar-mono d n e {Vr = ` x₀} ()
 allStar-mono d n e {Vr = ƛ M₀} ()
@@ -481,7 +519,7 @@ funStar-mono : ∀ d n {Φ : Corr Δ Δ′} {A B}
     (p : Φ ⊢ A ⊑ ★) (q : Φ ⊢ B ⊑ ★) {w w′} (e : w′ ⊒ w)
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → funStar d n p q w δ Vl Vr
-  → funStar d n p q w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
+  → funStar d n p q w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
 funStar-mono d n p q e {Vr = Wr ⟨ c ⟩} (inj , f) =
   IsInj⇒-rename _ _ c inj , funRel-mono d n p q e f
 funStar-mono d n p q e {Vr = ` x₀} ()
@@ -499,7 +537,7 @@ allDeadStar-mono : ∀ d n {Φ : Corr Δ Δ′} {A} (p : dead Φ ⊢ A ⊑ ★)
     {w w′} (e : w′ ⊒ w) {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → allDeadStar d n p w δ Vl Vr
   → allDeadStar d n p w′ (δ ↑ᴵ e)
-      (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
+      (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
 allDeadStar-mono d n p e {Vr = Wr ⟨ c ⟩} (inj , f) =
   IsInj∀-rename _ _ c inj , allDead-mono d n p e f
 allDeadStar-mono d n p e {Vr = ` x₀} ()
@@ -541,7 +579,7 @@ baseInj-mono ι σL σR {Vl = blame} ()
 
 starFun-mono : ∀ d k {w w′} (e : w′ ⊒ w) {W Vr}
   → starFun d k w W Vr
-  → starFun d k w′ (renameᵗᵐ (ρL e) W) (renameᵗᵐ (ρR e) Vr)
+  → starFun d k w′ (renameᵗᵐ (ρL e) W) (renameᵗᵐ (ρS e) Vr)
 starFun-mono ≺ k e {Vr = Wr ⟨ c ⟩} (inj , r) =
   IsInj⇒-rename _ _ c inj ,
   funRel-resp ≺ k ★⊑★ ★⊑★ _ (closedI-transport (ρL e) (ρR e))
@@ -573,7 +611,7 @@ starFun-mono ≻ k e {Vr = blame} ()
 
 starAll-mono : ∀ d k {w w′} (e : w′ ⊒ w) {W Vr}
   → starAll d k w W Vr
-  → starAll d k w′ (renameᵗᵐ (ρL e) W) (renameᵗᵐ (ρR e) Vr)
+  → starAll d k w′ (renameᵗᵐ (ρL e) W) (renameᵗᵐ (ρS e) Vr)
 starAll-mono ≺ k e {Vr = Wr ⟨ c ⟩} (inj , r) =
   IsInj∀-rename _ _ c inj ,
   allPair-resp ≺ k ★⊑★ _ (closedI-transport (ρL e) (ρR e))
@@ -611,7 +649,7 @@ mutual
   𝒱-mono : ∀ d n {Φ : Corr Δ Δ′} {A A′} (p : Φ ⊢ A ⊑ A′)
       {w w′} (e : w′ ⊒ w) {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
     → GoodI δ → 𝒱 d n p w δ Vl Vr
-    → 𝒱 d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
+    → 𝒱 d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
   𝒱-mono ≺ n ★⊑★ e {Vl = Vl} {Vr} g r = star-mono ≺ n e {Vl} {Vr} r
   𝒱-mono ≻ n ★⊑★ e g r = G-mono n ★⊑★ e g r
   𝒱-mono ≺ n ι⊑ι e g (κ , refl , refl) = κ , refl , refl
@@ -624,7 +662,7 @@ mutual
   𝒱-mono ≻ n (∀⊑∀ p) e g r = allPair-mono ≻ n p e r
   𝒱-mono ≺ n (⇒⊑★ p q) e g r = funStar-mono ≺ n p q e r
   𝒱-mono ≻ n (⇒⊑★ p q) e g r = G-mono n (⇒⊑★ p q) e g r
-  𝒱-mono ≺ n (ι⊑★ {ι = ι}) e g r = baseInj-mono ι (ρL e) (ρR e) r
+  𝒱-mono ≺ n (ι⊑★ {ι = ι}) e g r = baseInj-mono ι (ρL e) (ρS e) r
   𝒱-mono ≻ n ι⊑★ e g r = G-mono n ι⊑★ e g r
   𝒱-mono ≺ n (X⊑★ {X = X} x) e g r = leafRel-mono ≺ n e (g X) r
   𝒱-mono ≻ n (X⊑★ {X = X} x) e g r = leafRel-mono ≻ n e (g X) r
@@ -646,7 +684,7 @@ mutual
   G-mono : ∀ n {Φ : Corr Δ Δ′} {A A′} (p : Φ ⊢ A ⊑ A′)
       {w w′} (e : w′ ⊒ w) {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
     → GoodI δ → G n p w δ Vl Vr
-    → G n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
+    → G n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
   G-mono zero p e g r = r
   G-mono (suc k) ★⊑★ e {Vl = Vl} {Vr} g r =
     star-mono ≻ (suc k) e {Vl} {Vr} r
@@ -655,7 +693,7 @@ mutual
   G-mono (suc k) (⇒⊑⇒ p q) e g r = funRel-mono ≻ k p q e r
   G-mono (suc k) (∀⊑∀ p) e g r = allPair-mono ≻ k p e r
   G-mono (suc k) (⇒⊑★ p q) e g r = funStar-mono ≻ k p q e r
-  G-mono (suc k) (ι⊑★ {ι = ι}) e g r = baseInj-mono ι (ρL e) (ρR e) r
+  G-mono (suc k) (ι⊑★ {ι = ι}) e g r = baseInj-mono ι (ρL e) (ρS e) r
   G-mono (suc k) (X⊑★ {X = X} x) e g r =
     leafRel-mono ≻ (suc k) e (g X) r
   G-mono (suc k) (∀⊑ {B = ★} Anv z p) e g r = allOnly-mono ≻ k p e r
@@ -676,10 +714,10 @@ mutual
       {Vl Vr}
     → GoodLeaf l → leafRel d n w l Vl Vr
     → leafRel d n w′ (transportLeaf (ρL e) (ρR e) l)
-        (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
+        (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
   leafRel-mono d n e (good-syn {en = en}) r = entry-mono d n e en r
   leafRel-mono d n {w′ = w′} e {Vl = Vl} {Vr} (good-sem {R = R} mono down) r =
-    subst₂ (λ a b → R n w′ a b (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr))
+    subst₂ (λ a b → R n w′ a b (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr))
       (trans (∘↪-idʳ (ρL e)) (sym (∘↪-idˡ (ρL e))))
       (trans (∘↪-idʳ (ρR e)) (sym (∘↪-idˡ (ρR e))))
       (mono n _ id↪ᵗ id↪ᵗ e r)
@@ -688,12 +726,12 @@ mutual
       {Vl Vr}
     → entry d n w en Vl Vr
     → entry d n w′ (renameEntry (ρL e) (ρR e) en)
-        (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
+        (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
   entry-mono d n {w′ = w′} e (seals X Xs Ys c) {Vl = V ↓ s} {Vr} (is , r) =
     IsSeal-rename (toRenameᵗ (ρL e)) s (repL-rename (ρL e) (ρR e) Xs c) is ,
     subst (λ m → peelL d n w′ m (map (renameVar (ρL e)) Xs)
                    (map (renameVar (ρR e)) Ys) (renameDesc (ρL e) (ρR e) c)
-                   (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρR e) Vr))
+                   (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρS e) Vr))
       (sym (modeOf-map d (renameVar (ρR e)) Ys))
       (peelL-mono d n e (modeOf d Ys) Xs Ys c r)
   entry-mono d n e (seals X Xs Ys c) {Vl = ` x₀} ()
@@ -712,7 +750,7 @@ mutual
     → peelL d n w m Xs Ys c Vl Vr
     → peelL d n w′ m (map (renameVar (ρL e)) Xs)
         (map (renameVar (ρR e)) Ys) (renameDesc (ρL e) (ρR e) c)
-        (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
+        (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
   peelL-mono d n e m [] Ys c r = peelR-mono d n e m Ys c r
   peelL-mono d n e m (X ∷ Xs) Ys c {Vl = V ↓ s} (is , r) =
     IsSeal-rename (toRenameᵗ (ρL e)) s (repL-rename (ρL e) (ρR e) Xs c) is ,
@@ -733,10 +771,10 @@ mutual
     → peelR d n w m Ys c Vl Vr
     → peelR d n w′ m (map (renameVar (ρR e)) Ys)
         (renameDesc (ρL e) (ρR e) c)
-        (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
+        (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
   peelR-mono d n e m [] c r = contents-mono d n e m c r
   peelR-mono d n e m (Y ∷ Ys) c {Vr = V′ ↓ s} (is , r) =
-    IsSeal-rename (toRenameᵗ (ρR e)) s (repR-rename (ρL e) (ρR e) Ys c) is ,
+    IsSealᴿ-rename (coh e) s (repR-rename (ρL e) (ρR e) Ys c) is ,
     peelR-mono d n e m Ys c r
   peelR-mono d n e m (Y ∷ Ys) c {Vr = ` x₀} ()
   peelR-mono d n e m (Y ∷ Ys) c {Vr = ƛ M₀} ()
@@ -753,7 +791,7 @@ mutual
       (c : Desc (ΔL w) (ΔR w)) {Vl Vr}
     → contents d n w m c Vl Vr
     → contents d n w′ m (renameDesc (ρL e) (ρR e) c)
-        (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
+        (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
   contents-mono d zero e later c r = r
   contents-mono d (suc k) e later (desc p env envR) r =
     𝒱-resp d k p _ (envI-transport (ρL e) (ρR e) env envR)
@@ -765,7 +803,7 @@ mutual
 
   star-mono : ∀ d n {w w′} (e : w′ ⊒ w) {Vl Vr}
     → star d n w Vl Vr
-    → star d n w′ (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρR e) Vr)
+    → star d n w′ (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
   star-mono d n e {Vl = W ⟨ _! ⦃ Gᵍ = g ⦄ c ⟩} r =
     starGround-mono d n e g r
   star-mono d n e {Vl = ` x₀} ()
@@ -790,12 +828,12 @@ mutual
   starGround-mono : ∀ d n {w w′} (e : w′ ⊒ w) {G} (g : Ground G) {W Vr}
     → starGround d n w g W Vr
     → starGround d n w′ (renameGround (toRenameᵗ (ρL e)) g)
-        (renameᵗᵐ (ρL e) W) (renameᵗᵐ (ρR e) Vr)
+        (renameᵗᵐ (ρL e) W) (renameᵗᵐ (ρS e) Vr)
   starGround-mono d n {w} {w′} e (＇ X) {W} {Vr} r =
-    subst (λ t → tagRel d n w′ t (renameᵗᵐ (ρL e) W) (renameᵗᵐ (ρR e) Vr))
+    subst (λ t → tagRel d n w′ t (renameᵗᵐ (ρL e) W) (renameᵗᵐ (ρS e) Vr))
       (sym (tags≡ e X))
       (tagRel-mono d n e (tag w X) r)
-  starGround-mono d n e (‵ ι) r = baseInj-mono ι (ρL e) (ρR e) r
+  starGround-mono d n e (‵ ι) r = baseInj-mono ι (ρL e) (ρS e) r
   starGround-mono d zero e ★⇒★ r = r
   starGround-mono d (suc k) e ★⇒★ r = starFun-mono d k e r
   starGround-mono d zero e ∀★ r = r
@@ -804,9 +842,9 @@ mutual
   tagRel-mono : ∀ d n {w w′} (e : w′ ⊒ w) (t : Tag (ΔL w) (ΔR w)) {W Vr}
     → tagRel d n w t W Vr
     → tagRel d n w′ (renameTag (ρL e) (ρR e) t)
-        (renameᵗᵐ (ρL e) W) (renameᵗᵐ (ρR e) Vr)
+        (renameᵗᵐ (ρL e) W) (renameᵗᵐ (ρS e) Vr)
   tagRel-mono d n e (just Y , en) {Vr = Wr ⟨ c ⟩} (inj , r) =
-    IsInjVar-rename _ _ c inj , entry-mono d n e en r
+    IsInjVarᴿ-rename (coh e) _ c inj , entry-mono d n e en r
   tagRel-mono d n e (just Y , en) {Vr = ` x₀} ()
   tagRel-mono d n e (just Y , en) {Vr = ƛ M₀} ()
   tagRel-mono d n e (just Y , en) {Vr = L₀ · M₀} ()
@@ -837,13 +875,13 @@ funRel-down d le p q w f e le₁ Wl Wr vl vr a =
 allPair-down : ∀ d {n n′} (le : n′ ≤ n) {Φ : Corr Δ Δ′} {A B}
     (p : pair Φ ⊢ A ⊑ B) w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → allPair d n p w δ Vl Vr → allPair d n′ p w δ Vl Vr
-allPair-down d le p w f e le₁ c wf =
+allPair-down d le p w f e le₁ c wf T₀ eqT B₀ eqB =
   ℰᵍ-map d _ _
     (λ le′ w″ e′ V V′ r →
       𝒱≤-resp d (≤′-trans le′ le₁) p w″
         (↑ᴵ-resp (extPairI-resp (leafBelowS-≈ d le₂ le₁ c) ≈ᴵ-refl) e′)
         (𝒱≤-cast d (≤′-trans le′ le₂) (≤′-trans le′ le₁) p w″ r))
-    (f e le₂ c wf)
+    (f e le₂ c wf T₀ eqT B₀ eqB)
   where le₂ = ≤′-trans le₁ (≤⇒≤′ le)
 
 allOnly-down : ∀ d {n n′} (le : n′ ≤ n) {Φ : Corr Δ Δ′} {A B}
@@ -1167,7 +1205,7 @@ descBelow-mono : ∀ d {m n} (lt : suc m ≤′ n) {w w′} (e : w′ ⊒ w)
     (c : Desc (ΔL w) (ΔR w)) {V V′}
   → descBelow d lt w c V V′
   → descBelow d lt w′ (renameDesc (ρL e) (ρR e) c)
-      (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρR e) V′)
+      (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρS e) V′)
 descBelow-mono d {m} lt e (desc p env envR) r =
   𝒱→𝒱< d lt p _
     (𝒱-resp d m p _ (envI-transport (ρL e) (ρR e) env envR)
@@ -1186,7 +1224,7 @@ leafBelow-mono : ∀ d {n′ n} (le : n′ ≤′ n) (c : Desc ΘL ΘR)
 leafBelow-mono d {n′} le c k w τL τR {w′} e {V} {V′} r with suc k ≤? n′
 ... | yes lt =
   subst (λ c′ → descBelow d (≤′-trans (≤⇒≤′ lt) le) w′ c′
-                  (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρR e) V′))
+                  (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρS e) V′))
     (renameDesc-∘ (ρL e) τL (ρR e) τR c)
     (descBelow-mono d _ e (renameDesc τL τR c) r)
 ... | no _ = r
@@ -1204,7 +1242,7 @@ descG-mono : ∀ {m n} (le : m ≤′ n) {w w′} (e : w′ ⊒ w)
     (c : Desc (ΔL w) (ΔR w)) {V V′}
   → descG le w c V V′
   → descG le w′ (renameDesc (ρL e) (ρR e) c)
-      (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρR e) V′)
+      (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρS e) V′)
 descG-mono {m} le e (desc p env envR) r =
   G→G≤ le p _
     (G-resp m p _ (envI-transport (ρL e) (ρR e) env envR)
@@ -1223,7 +1261,7 @@ leafG-mono : ∀ {n′ n} (le : n′ ≤′ n) (c : Desc ΘL ΘR)
 leafG-mono {n′ = n′} le c k w τL τR {w′} e {V} {V′} r with k ≤? n′
 ... | yes k≤n′ =
   subst (λ c′ → descG (≤′-trans (≤⇒≤′ k≤n′) le) w′ c′
-                  (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρR e) V′))
+                  (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρS e) V′))
     (renameDesc-∘ (ρL e) τL (ρR e) τR c)
     (descG-mono _ e (renameDesc τL τR c) r)
 ... | no _ = r
@@ -1255,21 +1293,22 @@ leafBelowS-mono : ∀ d {n′ n} (le : n′ ≤′ n) (c : SDesc ΘL ΘR)
 leafBelowS-mono d le (sdesc Xs Ys c) k w τL τR {w′} e {V} {V′} r =
   subst₂ (λ Xs′ c′ →
            peelSL Xs′ c′
-             (peelSR (map (renameVar (ρR e ∘↪ τR)) Ys)
+             (peelSR (ιʷ w′) (map (renameVar (ρR e ∘↪ τR)) Ys)
                (renameDesc (ρL e ∘↪ τL) (ρR e ∘↪ τR) c)
                (leafBelow d le c k w′ (ρL e ∘↪ τL) (ρR e ∘↪ τR)))
-             (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρR e) V′))
+             (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρS e) V′))
     (map-renameVar-∘ (ρL e) τL Xs)
     (renameDesc-∘ (ρL e) τL (ρR e) τR c)
-    (peelSL-ren (ρL e) (ρR e) (map (renameVar τL) Xs) (renameDesc τL τR c)
+    (peelSL-ren (ρL e) (ρR e) (ρS e) (map (renameVar τL) Xs)
+      (renameDesc τL τR c)
       (λ {W} {W′} r′ →
         subst₂ (λ Ys′ c′ →
-                 peelSR Ys′ c′
+                 peelSR (ιʷ w′) Ys′ c′
                    (leafBelow d le c k w′ (ρL e ∘↪ τL) (ρR e ∘↪ τR))
-                   (renameᵗᵐ (ρL e) W) (renameᵗᵐ (ρR e) W′))
+                   (renameᵗᵐ (ρL e) W) (renameᵗᵐ (ρS e) W′))
           (map-renameVar-∘ (ρR e) τR Ys)
           (renameDesc-∘ (ρL e) τL (ρR e) τR c)
-          (peelSR-ren (ρL e) (ρR e) (map (renameVar τR) Ys)
+          (peelSR-ren (ρL e) (ρR e) (ρS e) (coh e) (map (renameVar τR) Ys)
             (renameDesc τL τR c)
             (λ r″ → leafBelow-mono d le c k w τL τR e r″) r′))
       r)
@@ -1299,10 +1338,11 @@ onlyLeafS-mono : ∀ d {n′ n} (le : n′ ≤′ n) (c : SDesc ΘL ΘR)
 onlyLeafS-mono d le (sdesc Xs Ys c) k w τL τR {w′} e {V} {V′} r =
   subst₂ (λ Xs′ c′ →
            peelSL Xs′ c′ (onlyLeaf d le c k w′ (ρL e ∘↪ τL) (ρR e ∘↪ τR))
-             (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρR e) V′))
+             (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρS e) V′))
     (map-renameVar-∘ (ρL e) τL Xs)
     (renameDesc-∘ (ρL e) τL (ρR e) τR c)
-    (peelSL-ren (ρL e) (ρR e) (map (renameVar τL) Xs) (renameDesc τL τR c)
+    (peelSL-ren (ρL e) (ρR e) (ρS e) (map (renameVar τL) Xs)
+      (renameDesc τL τR c)
       (λ r′ → onlyLeaf-mono d le c k w τL τR e r′) r)
 
 onlyLeafS-down : ∀ d {n′ n} (le : n′ ≤′ n) (c : SDesc ΘL ΘR)
@@ -1330,7 +1370,7 @@ GoodLeaf-transport σL σR good-syn = good-syn
 GoodLeaf-transport σL σR (good-sem {R = R} mono down) =
   good-sem
     (λ k w τL τR {w′} e {V} {V′} r →
-      subst₂ (λ a b → R k w′ a b (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρR e) V′))
+      subst₂ (λ a b → R k w′ a b (renameᵗᵐ (ρL e) V) (renameᵗᵐ (ρS e) V′))
         (sym (∘↪-assoc (ρL e) τL σL)) (sym (∘↪-assoc (ρR e) τR σR))
         (mono k w (τL ∘↪ σL) (τR ∘↪ σR) e r))
     (λ le w τL τR r → down le w (τL ∘↪ σL) (τR ∘↪ σR) r)

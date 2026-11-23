@@ -175,9 +175,10 @@ pred< {k} lt = <-trans (n<1+n k) lt
   inj₁ (ΔL′ , χsL , Vl ,
     subst (λ j → _ —→^ j [ χsL ] Vl) (trans (sym (+-identityʳ k)) eq) sl)
 ℰᵍ-map⁺ ≺ n w f (inj₂ (inj₂ (k , suc m , le , ΔL′ , χsL , Vl , ΔR′ ,
-    χsR , Vr , eq , sl , sr , vl , vr , tags , ok , v))) =
+    χsR , Vr , eq , sl , sr , vl , vr , Δ₁ , p₁ , ρ , st , tags , ok , v))) =
   inj₂ (inj₂ (k , suc m , le , ΔL′ , χsL , Vl , ΔR′ , χsR , Vr ,
-    eq , sl , sr , vl , vr , tags , ok , f le (s≤s z≤n) _ _ _ _ v))
+    eq , sl , sr , vl , vr , Δ₁ , p₁ , ρ , st , tags , ok ,
+    f le (s≤s z≤n) _ _ _ _ v))
 ℰᵍ-map⁺ ≻ n w f (inj₁ r) = inj₁ r
 ℰᵍ-map⁺ ≻ n w f (inj₂ (inj₁ b)) = inj₂ (inj₁ b)
 ℰᵍ-map⁺ ≻ n w f (inj₂ (inj₂ (k , zero , le , ΔL′ , χsL , Vl , ΔR′ , χsR ,
@@ -185,9 +186,10 @@ pred< {k} lt = <-trans (n<1+n k) lt
   inj₁ (ΔR′ , χsR , Vr ,
     subst (λ j → _ —→^ j [ χsR ] Vr) (trans (sym (+-identityʳ k)) eq) sr)
 ℰᵍ-map⁺ ≻ n w f (inj₂ (inj₂ (k , suc m , le , ΔL′ , χsL , Vl , ΔR′ ,
-    χsR , Vr , eq , sl , sr , vl , vr , tags , ok , v))) =
+    χsR , Vr , eq , sl , sr , vl , vr , Δ₁ , p₁ , ρ , st , tags , ok , v))) =
   inj₂ (inj₂ (k , suc m , le , ΔL′ , χsL , Vl , ΔR′ , χsR , Vr ,
-    eq , sl , sr , vl , vr , tags , ok , f le (s≤s z≤n) _ _ _ _ v))
+    eq , sl , sr , vl , vr , Δ₁ , p₁ , ρ , st , tags , ok ,
+    f le (s≤s z≤n) _ _ _ _ v))
 
 ------------------------------------------------------------------------
 -- Derivations moved along an equation of types
@@ -219,7 +221,7 @@ pred< {k} lt = <-trans (n<1+n k) lt
 -- the relation at `∀⊑★` with body p, without the non-`★` premise
 deadStarRel : Dir → ℕ → ∀ {Ψ : Corr Δ Δ′} {A} → dead Ψ ⊢ A ⊑ ★
   → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
-  → Term (ΔL w) → Term (ΔR w) → Set
+  → Term (ΔL w) → Term (storeR w) → Set
 deadStarRel ≺ n p w δ Vl Vr = allDeadStar ≺ n p w δ Vl Vr
 deadStarRel ≻ zero p w δ Vl Vr = ⊤
 deadStarRel ≻ (suc k) p w δ Vl Vr = allDeadStar ≻ k p w δ Vl Vr
@@ -490,30 +492,32 @@ mutual
     → ∀ {Vl Vr} → allPair d n p w δ₁ Vl Vr
         ⇔ allPair d n (renᵖ (ext-pairᴿ R) p) w δ₂ Vl Vr
   allPair-ren d n R {A = A} {B = B} p w h {Vl = Vl} {Vr = Vr} =
-    iff (λ r e le c wf →
+    iff (λ r e le c wf T₀ eqT B₀ eqB →
            ℰᵍ-≡
              (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-ren (rl≡ (RenI-↑ h e)) A))
-             (cong (λ C → renameᵗᵐ (ρR e) Vr ⦂∀ C [ rightTyS c ])
-               (annot-ren (rr≡ (RenI-↑ h e)) B))
+             refl
              (ℰᵍ-map d _ _
                (λ le′ w″ e′ V V′ →
                  to (𝒱≤-ren d (≤′-trans le′ le) (ext-pairᴿ R) p w″
                       (RenI-↑ (RenI-extPair {T = leftTyS c}
                         {T′ = rightTyS c} (RenI-↑ h e)) e′)))
-               (r e le c wf)))
-        (λ r e le c wf →
+               (r e le c wf T₀ eqT B₀
+                 (trans (annot-ren (rr≡ (RenI-↑ h e)) B)
+                   eqB))))
+        (λ r e le c wf T₀ eqT B₀ eqB →
            ℰᵍ-≡
              (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-ren (rl≡ (RenI-↑ h e)) A)))
-             (sym (cong (λ C → renameᵗᵐ (ρR e) Vr ⦂∀ C [ rightTyS c ])
-               (annot-ren (rr≡ (RenI-↑ h e)) B)))
+             refl
              (ℰᵍ-map d _ _
                (λ le′ w″ e′ V V′ →
                  from (𝒱≤-ren d (≤′-trans le′ le) (ext-pairᴿ R) p w″
                         (RenI-↑ (RenI-extPair {T = leftTyS c}
                           {T′ = rightTyS c} (RenI-↑ h e)) e′)))
-               (r e le c wf)))
+               (r e le c wf T₀ eqT B₀
+                 (trans (sym (annot-ren (rr≡ (RenI-↑ h e)) B))
+                   eqB))))
 
   allOnly-ren : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′}
       (R : CRen Ψ Ψ′) {A B} (p : only Ψ ⊢ A ⊑ B) w
@@ -889,32 +893,34 @@ mutual
     → ∀ {Vl Vr} → allPair d n p w δ₁ Vl Vr
         ⇔ allPair d n (substᵖ (exts-pairˢ S) p) w δ₂ Vl Vr
   allPair-subst d n S {A = A} {B = B} p w h lt {Vl = Vl} {Vr = Vr} =
-    iff (λ r e le c wf →
+    iff (λ r e le c wf T₀ eqT B₀ eqB →
            ℰᵍ-≡
              (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-subst (sl≡ (SubI-↑ h e)) A))
-             (cong (λ C → renameᵗᵐ (ρR e) Vr ⦂∀ C [ rightTyS c ])
-               (annot-subst (sr≡ (SubI-↑ h e)) B))
+             refl
              (ℰᵍ-map⁺ d _ _
                (λ le′ pos′ w″ e′ V V′ →
                  to (𝒱≤-subst d (≤′-trans le′ le) (exts-pairˢ S) p w″
                       (SubI-↑ (SubI-extPair (sem (leafBelowS d le c))
                         (SubI-↑ h e)) e′)
                       pos′ (below (≤′-trans le′ le) lt)))
-               (r e le c wf)))
-        (λ r e le c wf →
+               (r e le c wf T₀ eqT B₀
+                 (trans (annot-subst (sr≡ (SubI-↑ h e)) B)
+                   eqB))))
+        (λ r e le c wf T₀ eqT B₀ eqB →
            ℰᵍ-≡
              (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-subst (sl≡ (SubI-↑ h e)) A)))
-             (sym (cong (λ C → renameᵗᵐ (ρR e) Vr ⦂∀ C [ rightTyS c ])
-               (annot-subst (sr≡ (SubI-↑ h e)) B)))
+             refl
              (ℰᵍ-map⁺ d _ _
                (λ le′ pos′ w″ e′ V V′ →
                  from (𝒱≤-subst d (≤′-trans le′ le) (exts-pairˢ S) p w″
                         (SubI-↑ (SubI-extPair (sem (leafBelowS d le c))
                           (SubI-↑ h e)) e′)
                         pos′ (below (≤′-trans le′ le) lt)))
-               (r e le c wf)))
+               (r e le c wf T₀ eqT B₀
+                 (trans (sym (annot-subst (sr≡ (SubI-↑ h e)) B))
+                   eqB))))
 
   allOnly-subst : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′}
       (S : PSub Ψ Ψ′) {A B} (p : only Ψ ⊢ A ⊑ B) {N} w

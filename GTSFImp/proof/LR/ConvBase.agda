@@ -324,13 +324,13 @@ module _ {Θ Θ′ : TyCtx} (ρ : Θ ↪ᵗ Θ′) where
 app-core : ∀ d s {Φ : Corr Δ Δ′} {A A′ B B′} (p : Φ ⊢ A ⊑ A′)
     (q : Φ ⊢ B ⊑ B′) w {δ₁ δ₂ : Interp Δ Δ′ (ΔL w) (ΔR w)}
     {Vl Vr Ul Ur} (vl : Value Vl) (vr : Value Vr)
-    (FL : MFrame (ΔL w)) (FR : MFrame (ΔR w))
+    (FL : MFrame (ΔL w)) (FR : MFrame (storeR w))
   → ℰ d s p w δ₁ Ul Ur
   → funRel d s p q w δ₁ Vl Vr
   → (∀ {w′} (e : w′ ⊒ w) {k} → k ≤ s → ∀ {Ql Qr} → Value Ql → Value Qr
        → 𝒱 d k q w′ (δ₁ ↑ᴵ e) Ql Qr
        → ℰ d k q w′ (δ₂ ↑ᴵ e) (mplug (renameMFrame (ρL e) FL) Ql)
-           (mplug (renameMFrame (ρR e) FR) Qr))
+           (mplug (renameMFrame (ρS e) FR) Qr))
   → ℰ d s q w δ₂ (mplug FL (Vl · Ul)) (mplug FR (Vr · Ur))
 app-core d s p q w {δ₁} {δ₂} vl vr FL FR inner f K =
   ℰ-bind₂ d s q q w {δ₁ = δ₁} {δ₂ = δ₂} FL FR
@@ -353,7 +353,7 @@ RStep (just c) M M′ = M —→ M′
 -- the stages of an application's step: the counted side steps, unless
 -- in `≻` the right does not convert
 ℰ-app-steps : ∀ d {n N} {Φ : Corr Δ Δ′} {B B′} (q : Φ ⊢ B ⊑ B′) w
-    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} (rc : RConv (ΔR w))
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} (rc : RConv (storeR w))
     {Ml Ml′ Mr Mr′}
   → n ≤ N → Ml —→ Ml′ → RStep rc Mr Mr′
   → (∀ {s} → s ≤ n → ConB d rc s N → ℰ d s q w δ Ml′ Mr′)

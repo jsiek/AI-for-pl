@@ -24,6 +24,7 @@ import ImprecisionComposition
 import proof.Consistency
 import proof.Consistency2
 import proof.Reduction
+import proof.Reduction.Determinism
 
 ------------------------------------------------------------------------
 -- Major lemmas (finished)
@@ -173,6 +174,7 @@ import proof.LR.StarAgree
 import proof.LR.ConvRight
 import proof.LR.ConvClose
 import proof.LR.ConvLambda
+import proof.LR.Replay
 
 ------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked

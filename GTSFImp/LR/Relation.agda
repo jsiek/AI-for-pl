@@ -28,6 +28,11 @@ module LR.Relation where
 --   * The guard convention for `≻` (Section 6.6): a relation whose
 --     right type is `★` is `G`, whose stage-n content reads stage n − 1
 --     (or the same stage on a smaller left term).
+--   * Right terms are in the world's right store; tags, descriptors and
+--     interpretations are in its right scope (`LR.World`, Design (W)).
+--     A `∀` clause gives the right program the store preimages of its
+--     type argument and annotation (`PreTy`), at the future it is read
+--     in, so it holds vacuously where they name a reserved variable.
 
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
@@ -44,7 +49,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 open import Relation.Nullary using (yes; no)
 
 open import Types
-open import Consistency using (_⊢_∼_; _!; _↪ᵗ_; toRenameᵗ; id↪ᵗ)
+open import Consistency using (_⊢_∼_; _!; _↪ᵗ_; toRenameᵗ; id↪ᵗ; keep)
 open import Conversion using (Conv↓; seal; _↦↓_; `∀↓_; id↓)
 open import CastTerms using (Term; $; _·_; _⦂∀_[_]; _⟨_⟩; _↓_; blame;
   Value; renameᵗᵐ)
@@ -139,10 +144,23 @@ IsSeal X R (c ↦↓ d) = ⊥
 IsSeal X R (`∀↓ c) = ⊥
 IsSeal X R (id↓ A) = ⊥
 
--- the cast injects at a given ground
-IsInjVar : ∀ {Δ} {μ} {A B : Ty Δ} → TyVar Δ → μ ⊢ A ∼ B → Set
-IsInjVar X (_! ⦃ Gᵍ = ＇ Y ⦄ c) = Y ≡ X
-IsInjVar X c = ⊥
+-- a right store conversion seals with the scope variable Y, at R
+IsSealᴿ : ∀ {Θ Δ A B} → Θ ↪ᵗ Δ → TyVar Δ → Ty Δ → Conv↓ Θ A B → Set
+IsSealᴿ ι Y R (seal Y′ R′) =
+  toRenameᵗ ι Y′ ≡ Y × renameᵗ (toRenameᵗ ι) R′ ≡ R
+IsSealᴿ ι Y R (c ↦↓ d) = ⊥
+IsSealᴿ ι Y R (`∀↓ c) = ⊥
+IsSealᴿ ι Y R (id↓ A) = ⊥
+
+-- a right store cast injects at the scope variable Y
+IsInjVarᴿ : ∀ {Θ Δ} {μ} {A B : Ty Θ} → Θ ↪ᵗ Δ → TyVar Δ → μ ⊢ A ∼ B → Set
+IsInjVarᴿ ι Y (_! ⦃ Gᵍ = ＇ Y′ ⦄ c) = toRenameᵗ ι Y′ ≡ Y
+IsInjVarᴿ ι Y c = ⊥
+
+-- a property of the store preimages of a scope type: vacuous when the
+-- type names a reserved variable
+PreTy : ∀ {Θ Δ} → Θ ↪ᵗ Δ → Ty Δ → (Ty Θ → Set) → Set
+PreTy ι T P = ∀ T₀ → T ≡ renameᵗ (toRenameᵗ ι) T₀ → P T₀
 
 IsInjBase : ∀ {Δ} {μ} {A B : Ty Δ} → Base → μ ⊢ A ∼ B → Set
 IsInjBase ι (_! ⦃ Gᵍ = ‵ ι′ ⦄ c) = ι′ ≡ ι
@@ -165,17 +183,18 @@ baseInj ι Vl Vr = ⊥
 -- Peeling a list of seals around a semantic relation
 ------------------------------------------------------------------------
 
-peelSL : ∀ {ΘL ΘR} → List (TyVar ΘL) → Desc ΘL ΘR
-  → (Term ΘL → Term ΘR → Set) → Term ΘL → Term ΘR → Set
+peelSL : ∀ {ΘL ΘR Θ} → List (TyVar ΘL) → Desc ΘL ΘR
+  → (Term ΘL → Term Θ → Set) → Term ΘL → Term Θ → Set
 peelSL [] c P V V′ = P V V′
 peelSL (X ∷ Xs) c P (V ↓ s) V′ = IsSeal X (repL Xs c) s × peelSL Xs c P V V′
 peelSL (X ∷ Xs) c P V V′ = ⊥
 
-peelSR : ∀ {ΘL ΘR} → List (TyVar ΘR) → Desc ΘL ΘR
-  → (Term ΘL → Term ΘR → Set) → Term ΘL → Term ΘR → Set
-peelSR [] c P V V′ = P V V′
-peelSR (Y ∷ Ys) c P V (V′ ↓ s) = IsSeal Y (repR Ys c) s × peelSR Ys c P V V′
-peelSR (Y ∷ Ys) c P V V′ = ⊥
+peelSR : ∀ {ΘL ΘR Θ} → Θ ↪ᵗ ΘR → List (TyVar ΘR) → Desc ΘL ΘR
+  → (Term ΘL → Term Θ → Set) → Term ΘL → Term Θ → Set
+peelSR ι [] c P V V′ = P V V′
+peelSR ι (Y ∷ Ys) c P V (V′ ↓ s) =
+  IsSealᴿ ι Y (repR Ys c) s × peelSR ι Ys c P V V′
+peelSR ι (Y ∷ Ys) c P V V′ = ⊥
 
 ------------------------------------------------------------------------
 -- The generic expression closure
@@ -184,21 +203,26 @@ peelSR (Y ∷ Ys) c P V V′ = ⊥
 -- a value relation at the futures of w, at every stage up to n
 VRel : ℕ → World → Set₁
 VRel n w = ∀ {n′} → n′ ≤′ n → (w′ : World) → w′ ⊒ w
-  → Term (ΔL w′) → Term (ΔR w′) → Set
+  → Term (ΔL w′) → Term (storeR w′) → Set
 
 -- the world after two reductions, with chosen tags for the new left
--- store variables
-Arrive : ∀ {ΔL′ ΔR′} (n n′ : ℕ) (w : World)
-  → StoreChanges (ΔL w) ΔL′ → StoreChanges (ΔR w) ΔR′
-  → VRel n w → n′ ≤′ n → Term ΔL′ → Term ΔR′ → Set
-Arrive {ΔL′} {ΔR′} n n′ w χsL χsR VR le Vl Vr =
-  Σ[ tags ∈ (TyVar ΔL′ → Tag ΔL′ ΔR′) ]
+-- store variables; the right ran in its store, taking reserved scope
+-- variables first
+Arrive : ∀ {ΔL′ ΘR′} (n n′ : ℕ) (w : World)
+  → StoreChanges (ΔL w) ΔL′ → StoreChanges (storeR w) ΘR′
+  → VRel n w → n′ ≤′ n → Term ΔL′ → Term ΘR′ → Set
+Arrive {ΔL′} {ΘR′} n n′ w χsL χsR VR le Vl Vr =
+  Σ[ Δ′ ∈ TyCtx ] Σ[ p′ ∈ Prefix ΘR′ Δ′ ] Σ[ ρ ∈ ΔR w ↪ᵗ Δ′ ]
+  Σ[ st ∈ Steps (pre w) χsR p′ ρ ]
+  Σ[ tags ∈ (TyVar ΔL′ → Tag ΔL′ Δ′) ]
   Σ[ ok ∈ (∀ X → tags (toRenameᵗ (embedᶜˢ χsL) X)
-                   ≡ renameTag (embedᶜˢ χsL) (embedᶜˢ χsR) (tag w X)) ]
-    VR le (world ΔL′ ΔR′ tags) (ext (embedᶜˢ χsL) (embedᶜˢ χsR) ok) Vl Vr
+                   ≡ renameTag (embedᶜˢ χsL) ρ (tag w X)) ]
+    VR le (mkWorld ΔL′ Δ′ tags ΘR′ p′)
+      (ext (embedᶜˢ χsL) ρ (embedᶜˢ χsR) (coh-steps st)
+        (Steps-grows st) ok) Vl Vr
 
 ℰᵍ : Dir → (n : ℕ) (w : World) → VRel n w
-  → Term (ΔL w) → Term (ΔR w) → Set
+  → Term (ΔL w) → Term (storeR w) → Set
 -- the left runs out, blames within the steps, or reaches a value in k
 -- steps while the right reaches a related value
 ℰᵍ ≺ n w VR Ml Mr =
@@ -207,7 +231,8 @@ Arrive {ΔL′} {ΔR′} n n′ w χsL χsR VR le Vl Vr =
        (k < n × (Ml —→^ k [ χs ] blame)))
   ⊎ (Σ[ k ∈ ℕ ] Σ[ n′ ∈ ℕ ] Σ[ le ∈ n′ ≤′ n ]
      Σ[ ΔL′ ∈ TyCtx ] Σ[ χsL ∈ StoreChanges (ΔL w) ΔL′ ] Σ[ Vl ∈ Term ΔL′ ]
-     Σ[ ΔR′ ∈ TyCtx ] Σ[ χsR ∈ StoreChanges (ΔR w) ΔR′ ] Σ[ Vr ∈ Term ΔR′ ]
+     Σ[ ΘR′ ∈ TyCtx ] Σ[ χsR ∈ StoreChanges (storeR w) ΘR′ ]
+     Σ[ Vr ∈ Term ΘR′ ]
        (k + n′ ≡ n × (Ml —→^ k [ χsL ] Vl) × (Mr —↠[ χsR ] Vr)
         × Value Vl × Value Vr × Arrive n n′ w χsL χsR VR le Vl Vr))
 -- the right runs out, the left blames, or the right reaches a value in k
@@ -218,7 +243,8 @@ Arrive {ΔL′} {ΔR′} n n′ w χsL χsR VR le Vl Vr =
        (Ml —↠[ χs ] blame))
   ⊎ (Σ[ k ∈ ℕ ] Σ[ n′ ∈ ℕ ] Σ[ le ∈ n′ ≤′ n ]
      Σ[ ΔL′ ∈ TyCtx ] Σ[ χsL ∈ StoreChanges (ΔL w) ΔL′ ] Σ[ Vl ∈ Term ΔL′ ]
-     Σ[ ΔR′ ∈ TyCtx ] Σ[ χsR ∈ StoreChanges (ΔR w) ΔR′ ] Σ[ Vr ∈ Term ΔR′ ]
+     Σ[ ΘR′ ∈ TyCtx ] Σ[ χsR ∈ StoreChanges (storeR w) ΘR′ ]
+     Σ[ Vr ∈ Term ΘR′ ]
        (k + n′ ≡ n × (Ml —↠[ χsL ] Vl) × (Mr —→^ k [ χsR ] Vr)
         × Value Vl × Value Vr × Arrive n n′ w χsL χsR VR le Vl Vr))
 
@@ -247,7 +273,7 @@ modeOf ≺ Ys = later
 mutual
   𝒱 : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A A′}
     → Φ ⊢ A ⊑ A′ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   𝒱 ≺ n ★⊑★ w δ Vl Vr = star ≺ n w Vl Vr
   𝒱 ≻ n p@★⊑★ w δ Vl Vr = G n p w δ Vl Vr
   𝒱 d n ι⊑ι w δ Vl Vr = Σ[ κ ∈ Const ] (Vl ≡ $ κ × Vr ≡ $ κ)
@@ -272,14 +298,14 @@ mutual
   -- the value relation at a lower stage
   𝒱≤ : Dir → ∀ {n′ n} → n′ ≤′ n → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A A′}
     → Φ ⊢ A ⊑ A′ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   𝒱≤ d {n′} ≤′-refl p = 𝒱 d n′ p
   𝒱≤ d (≤′-step le) p = 𝒱≤ d le p
 
   -- the value relation strictly below n
   𝒱< : Dir → ∀ {m n} → suc m ≤′ n → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A A′}
     → Φ ⊢ A ⊑ A′ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   𝒱< d {m} ≤′-refl p = 𝒱 d m p
   𝒱< d (≤′-step lt) p = 𝒱< d lt p
 
@@ -288,7 +314,7 @@ mutual
   -- smaller left term
   G : ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A A′}
     → Φ ⊢ A ⊑ A′ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   G zero p w δ Vl Vr = ⊤
   G (suc k) ★⊑★ w δ Vl Vr = star ≻ (suc k) w Vl Vr
   G (suc k) (ι⊑★ {ι = ι}) w δ Vl Vr = baseInj ι Vl Vr
@@ -302,26 +328,26 @@ mutual
 
   G≤ : ∀ {m n} → m ≤′ n → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A A′}
     → Φ ⊢ A ⊑ A′ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   G≤ {m} ≤′-refl p = G m p
   G≤ (≤′-step le) p = G≤ le p
 
   -- a leaf: a syntactic entry, or a semantic relation
   leafRel : Dir → ℕ → (w : World) → Leaf (ΔL w) (ΔR w)
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   leafRel d n w (syn e) Vl Vr = entry d n w e Vl Vr
   leafRel d n w (sem R) Vl Vr = R n w id↪ᵗ id↪ᵗ Vl Vr
 
   -- an entry: peel the seals, then read the contents
   entry : Dir → ℕ → (w : World) → Entry (ΔL w) (ΔR w)
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   entry d n w (seals X Xs Ys c) (V ↓ s) Vr =
     IsSeal X (repL Xs c) s × peelL d n w (modeOf d Ys) Xs Ys c V Vr
   entry d n w (seals X Xs Ys c) Vl Vr = ⊥
 
   peelL : Dir → ℕ → (w : World) → Mode → List (TyVar (ΔL w))
     → List (TyVar (ΔR w)) → Desc (ΔL w) (ΔR w)
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   peelL d n w g [] Ys c V Vr = peelR d n w g Ys c V Vr
   peelL d n w g (X ∷ Xs) Ys c (V ↓ s) Vr =
     IsSeal X (repL Xs c) s × peelL d n w g Xs Ys c V Vr
@@ -329,14 +355,14 @@ mutual
 
   peelR : Dir → ℕ → (w : World) → Mode
     → List (TyVar (ΔR w)) → Desc (ΔL w) (ΔR w)
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   peelR d n w g [] c V V′ = contents d n w g c V V′
   peelR d n w g (Y ∷ Ys) c V (V′ ↓ s) =
-    IsSeal Y (repR Ys c) s × peelR d n w g Ys c V V′
+    IsSealᴿ (ιʷ w) Y (repR Ys c) s × peelR d n w g Ys c V V′
   peelR d n w g (Y ∷ Ys) c V V′ = ⊥
 
   contents : Dir → ℕ → (w : World) → Mode → Desc (ΔL w) (ΔR w)
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   contents d zero w later c V V′ = ⊤
   contents d (suc k) w later (desc p env envR) V V′ =
     𝒱 d k p w (envI env envR) V V′
@@ -344,12 +370,12 @@ mutual
     G n p w (envI env envR) V V′
 
   -- `★`: both are injections, compared by the left ground
-  star : Dir → ℕ → (w : World) → Term (ΔL w) → Term (ΔR w) → Set
+  star : Dir → ℕ → (w : World) → Term (ΔL w) → Term (storeR w) → Set
   star d n w (W ⟨ _! ⦃ Gᵍ = g ⦄ c ⟩) Vr = starGround d n w g W Vr
   star d n w Vl Vr = ⊥
 
   starGround : Dir → ℕ → (w : World) → ∀ {G} → Ground G
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   starGround d n w (＇ X) W Vr = tagRel d n w (tag w X) W Vr
   starGround d n w (‵ ι) W Vr = baseInj ι W Vr
   starGround d zero w ★⇒★ W Vr = ⊤
@@ -358,17 +384,18 @@ mutual
   starGround d (suc k) w ∀★ W Vr = starAll d k w W Vr
 
   tagRel : Dir → ℕ → (w : World) → Tag (ΔL w) (ΔR w)
-    → Term (ΔL w) → Term (ΔR w) → Set
-  tagRel d n w (just Y , e) W (Wr ⟨ c ⟩) = IsInjVar Y c × entry d n w e W Wr
+    → Term (ΔL w) → Term (storeR w) → Set
+  tagRel d n w (just Y , e) W (Wr ⟨ c ⟩) =
+    IsInjVarᴿ (ιʷ w) Y c × entry d n w e W Wr
   tagRel d n w (just Y , e) W Vr = ⊥
   tagRel d n w (nothing , e) W Vr = entry d n w e W Vr
 
-  starFun : Dir → ℕ → (w : World) → Term (ΔL w) → Term (ΔR w) → Set
+  starFun : Dir → ℕ → (w : World) → Term (ΔL w) → Term (storeR w) → Set
   starFun d k w W (Wr ⟨ c ⟩) =
     IsInj⇒ c × 𝒱 d k (⇒⊑⇒ {Φ = []} ★⊑★ ★⊑★) w closedI W Wr
   starFun d k w W Vr = ⊥
 
-  starAll : Dir → ℕ → (w : World) → Term (ΔL w) → Term (ΔR w) → Set
+  starAll : Dir → ℕ → (w : World) → Term (ΔL w) → Term (storeR w) → Set
   starAll d k w W (Wr ⟨ c ⟩) =
     IsInj∀ c × 𝒱 d k (∀⊑∀ {Φ = []} ★⊑★) w closedI W Wr
   starAll d k w W Vr = ⊥
@@ -377,17 +404,17 @@ mutual
   -- results
   funRel : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A A′ B B′}
     → Φ ⊢ A ⊑ A′ → Φ ⊢ B ⊑ B′ → (w : World)
-    → Interp Δ Δ′ (ΔL w) (ΔR w) → Term (ΔL w) → Term (ΔR w) → Set
+    → Interp Δ Δ′ (ΔL w) (ΔR w) → Term (ΔL w) → Term (storeR w) → Set
   funRel d n p q w δ Vl Vr =
     ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n) Wl Wr → Value Wl → Value Wr
     → 𝒱≤ d le p w′ (δ ↑ᴵ e) Wl Wr
     → ℰᵍ d n′ w′
         (λ le′ w″ e′ → 𝒱≤ d (≤′-trans le′ le) q w″ ((δ ↑ᴵ e) ↑ᴵ e′))
-        (renameᵗᵐ (ρL e) Vl · Wl) (renameᵗᵐ (ρR e) Vr · Wr)
+        (renameᵗᵐ (ρL e) Vl · Wl) (renameᵗᵐ (ρS e) Vr · Wr)
 
   funStar : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     → Φ ⊢ A ⊑ ★ → Φ ⊢ B ⊑ ★ → (w : World)
-    → Interp Δ Δ′ (ΔL w) (ΔR w) → Term (ΔL w) → Term (ΔR w) → Set
+    → Interp Δ Δ′ (ΔL w) (ΔR w) → Term (ΔL w) → Term (storeR w) → Set
   funStar d n p q w δ Vl (Wr ⟨ c ⟩) = IsInj⇒ c × funRel d n p q w δ Vl Wr
   funStar d n p q w δ Vl Vr = ⊥
 
@@ -400,7 +427,7 @@ mutual
   ... | no _ = ⊥
 
   descBelow : Dir → ∀ {m n} → suc m ≤′ n → (w : World)
-    → Desc (ΔL w) (ΔR w) → Term (ΔL w) → Term (ΔR w) → Set
+    → Desc (ΔL w) (ΔR w) → Term (ΔL w) → Term (storeR w) → Set
   descBelow d lt w (desc p env envR) V V′ = 𝒱< d lt p w (envI env envR) V V′
 
   -- `≻`, left-only: the leaf is `G` itself, at stages up to n′ ≤ n
@@ -410,7 +437,7 @@ mutual
   ... | no _ = ⊥
 
   descG : ∀ {m n} → m ≤′ n → (w : World)
-    → Desc (ΔL w) (ΔR w) → Term (ΔL w) → Term (ΔR w) → Set
+    → Desc (ΔL w) (ΔR w) → Term (ΔL w) → Term (storeR w) → Set
   descG le w (desc p env envR) V V′ = G≤ le p w (envI env envR) V V′
 
   -- the leaf for a left-only variable
@@ -425,23 +452,24 @@ mutual
     → SDesc ΔL ΔR → RelΩ ΔL ΔR
   leafBelowS d le (sdesc Xs Ys c) m w τL τR =
     peelSL (map (renameVar τL) Xs) (renameDesc τL τR c)
-      (peelSR (map (renameVar τR) Ys) (renameDesc τL τR c)
+      (peelSR (ιʷ w) (map (renameVar τR) Ys) (renameDesc τL τR c)
         (leafBelow d le c m w τL τR))
 
   -- both instantiate, at any well-formed sealed descriptor
   allPair : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     → pair Φ ⊢ A ⊑ B → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   allPair d n {A = A} {B = B} p w δ Vl Vr =
     ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n) (c : SDesc (ΔL w′) (ΔR w′))
     → WFS c
-    → ℰᵍ d n′ w′
+    → PreTy (ιʷ w′) (rightTyS c) λ T₀ →
+      PreTy (keep (ιʷ w′)) (substᵗ (extsᵗ (δr (δ ↑ᴵ e))) B) λ B₀ →
+      ℰᵍ d n′ w′
         (λ le′ w″ e′ → 𝒱≤ d (≤′-trans le′ le) p w″
           (extPairI (leftTyS c) (rightTyS c) (sem (leafBelowS d le c))
             (δ ↑ᴵ e) ↑ᴵ e′))
         (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A [ leftTyS c ])
-        (renameᵗᵐ (ρR e) Vr ⦂∀ substᵗ (extsᵗ (δr (δ ↑ᴵ e))) B
-          [ rightTyS c ])
+        (renameᵗᵐ (ρS e) Vr ⦂∀ B₀ [ T₀ ])
 
   -- a sealed descriptor's leaf for a left-only variable: peel the left
   -- seals, then the left-only leaf of the descriptor at the same stage
@@ -454,50 +482,50 @@ mutual
   -- only the left instantiates
   allOnly : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     → only Φ ⊢ A ⊑ B → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   allOnly d n {A = A} p w δ Vl Vr =
     ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n) (c : SDesc (ΔL w′) (ΔR w′))
     → ℰᵍ d n′ w′
         (λ le′ w″ e′ → 𝒱≤ d (≤′-trans le′ le) p w″
           (extOnlyI (leftTyS c) (sem (onlyLeafS d le c)) (δ ↑ᴵ e) ↑ᴵ e′))
         (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A [ leftTyS c ])
-        (renameᵗᵐ (ρR e) Vr)
+        (renameᵗᵐ (ρS e) Vr)
 
   -- left `∀`, right `∀★` payload, with a dead variable
   allDead : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A}
     → dead Φ ⊢ A ⊑ ★ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   allDead d n {A = A} p w δ Vl Wr =
     ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n)
-      (T : Ty (ΔL w′)) (T′ : Ty (ΔR w′))
+      (T : Ty (ΔL w′)) (T′ : Ty (storeR w′))
     → ℰᵍ d n′ w′
         (λ le′ w″ e′ → 𝒱≤ d (≤′-trans le′ le) p w″
           (extDeadI T (δ ↑ᴵ e) ↑ᴵ e′))
         (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A [ T ])
-        (renameᵗᵐ (ρR e) Wr ⦂∀ ★ [ T′ ])
+        (renameᵗᵐ (ρS e) Wr ⦂∀ ★ [ T′ ])
 
   allDeadStar : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A}
     → dead Φ ⊢ A ⊑ ★ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   allDeadStar d n p w δ Vl (Wr ⟨ c ⟩) = IsInj∀ c × allDead d n p w δ Vl Wr
   allDeadStar d n p w δ Vl Vr = ⊥
 
   -- left `∀★` against the right's `∀★` payload: both instantiate, and
   -- the bodies are related at `★`
-  allStar : Dir → ℕ → (w : World) → Term (ΔL w) → Term (ΔR w) → Set
+  allStar : Dir → ℕ → (w : World) → Term (ΔL w) → Term (storeR w) → Set
   allStar d n w Vl (Wr ⟨ c ⟩) =
     IsInj∀ c
     × (∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n)
-         (T : Ty (ΔL w′)) (T′ : Ty (ΔR w′))
+         (T : Ty (ΔL w′)) (T′ : Ty (storeR w′))
        → ℰᵍ d n′ w′
            (λ le′ w″ e′ → starAt d (≤′-trans le′ le) w″)
            (renameᵗᵐ (ρL e) Vl ⦂∀ ★ [ T ])
-           (renameᵗᵐ (ρR e) Wr ⦂∀ ★ [ T′ ]))
+           (renameᵗᵐ (ρS e) Wr ⦂∀ ★ [ T′ ]))
   allStar d n w Vl Vr = ⊥
 
   -- `★` at a stage up to n
   starAt : Dir → ∀ {m n} → m ≤′ n → (w : World)
-    → Term (ΔL w) → Term (ΔR w) → Set
+    → Term (ΔL w) → Term (storeR w) → Set
   starAt ≺ {m} ≤′-refl w = star ≺ m w
   starAt ≻ {m} ≤′-refl w = G m (★⊑★ {Φ = []}) w closedI
   starAt d (≤′-step le) w = starAt d le w
@@ -508,5 +536,5 @@ mutual
 
 ℰ : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A A′}
   → Φ ⊢ A ⊑ A′ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
-  → Term (ΔL w) → Term (ΔR w) → Set
+  → Term (ΔL w) → Term (storeR w) → Set
 ℰ d n p w δ = ℰᵍ d n w (λ le w′ e → 𝒱≤ d le p w′ (δ ↑ᴵ e))

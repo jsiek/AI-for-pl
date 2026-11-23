@@ -59,6 +59,13 @@ musl's definitions, VST's own `main_pre` gives read permission on each
 `FILE` structs stay with libc.  gcc builds (`run_asan.sh`) use
 `picol.c` and the host libc.
 
+It also includes musl's sources of `strlen`, `__strchrnul`, `strchr`,
+`strcmp`, `memcpy` and `isupper`, so one `semax_prog` covers them; the
+only externals left are the trusted functions (`TRUSTED_SPECS.md`).
+The proofs in `../../libc/proofs/` replay unchanged against this
+program (2026-11-22: all five, `Print Assumptions` within the
+allow-list), so picol's proof reuses them.
+
 ## Trusted functions
 
 `trusted.c` holds the functions picol calls that are not verified; their

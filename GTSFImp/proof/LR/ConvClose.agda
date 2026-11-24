@@ -208,10 +208,10 @@ module _ {d : Dir} {w : World} where
 
   entryFreshPJ : ∀ (e : Entry (ΔL w) (ΔR w)) {T′ β′} → RFresh★ β′ T′
     → FreshP d both w (syn e) (entryTy e) T′
-  entryFreshPJ (seals X Xs Ys c) (inj₂ (γ′ , refl , ne)) e rc ok nb nrc =
-    storeFreshP {N = zero} good-syn {rk = both} e rc ok nb nrc
+  entryFreshPJ (seals X Xs Ys c) (inj₂ (γ′ , refl , ne)) e rc ok nb nrc rs =
+    storeFreshP {N = zero} good-syn {rk = both} e rc ok nb nrc rs
   entryFreshPJ (seals X Xs Ys c) (inj₁ refl) {w′} e {β} {R} rc ok nb nrc
-      {k} =
+      rs {k} =
     (λ vl vr r →
       idRevP d k w′ (transportLeaf (ρL e) (ρR e) (syn (seals X Xs Ys c)))
         good-syn (nb X) rc (rid★ rc) vl vr r) ,
@@ -233,9 +233,9 @@ module _ {d : Dir} {w : World} where
 
   entryFreshR : ∀ {e : Entry (ΔL w) (ΔR w)} {T′ β′} → RFresh★ β′ T′
     → FreshR d w (syn e) T′
-  entryFreshR (inj₂ (γ′ , refl , ne)) e′ nb =
-    storeFreshR {N = zero} good-syn e′ nb
-  entryFreshR (inj₁ refl) {w′} e′ nb {k} =
+  entryFreshR (inj₂ (γ′ , refl , ne)) e′ nb bs =
+    storeFreshR {N = zero} good-syn e′ nb bs
+  entryFreshR (inj₁ refl) {w′} e′ nb bs {k} =
     (λ vl vr r → idR★ k good-syn vl vr r) ,
     (λ vl wr r → idC★ k good-syn vl wr r)
 
@@ -318,7 +318,8 @@ module Core (d : Dir) {w : World} {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
   -- the main lemma, with no converted variable
   module _ {N} (orc : Oracle d N) {β : TyVar (ΔL w)}
       (nβ : ∀ Z → SealNe β (lookup env Z)) (R : Ty (ΔL w))
-      {σ : Δ′ ⇒ˢ storeR w} {rc : RConv (storeR w)} (ok : RCOk σ rc) where
+      {σ : Δ′ ⇒ˢ storeR w} {rc : RConv (storeR w)} (ok : RCOk σ rc)
+      (rs : RCΣ w rc) where
 
     hyp : ConvI d N (rkOf ok) w (m-none {Φ = dead Φ} {X = zero} R rc) β
       δ′ δ′ σ σ
@@ -329,6 +330,7 @@ module Core (d : Dir) {w : World} {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     tyL hyp zero = refl
     tyL hyp (suc Z) = tyL-entry R (lookup env Z) (nβ Z)
     tyR hyp = tyR-ok ok
+    rcΣ hyp = rs
     leafO hyp Z tt = ≈ˡ-refl
     convP hyp (↔-dead z) tt = convP-ok R ok nβ z
     convO hyp (only-dead {X = Z} z) tt = entryConvO R (lookup env Z) (nβ Z)
@@ -371,7 +373,7 @@ module Core (d : Dir) {w : World} {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
   module _ {N} (orc : OracleR d N) {β′ : TyVar (storeR w)}
       (R′ : Ty (storeR w)) {σ : Δ′ ⇒ˢ storeR w}
       (pre : PreB w (lookup envR) σ B) (f : ∀ Y′ → RFresh★ β′ (σ Y′))
-      where
+      (bs : RCΣ w (just (β′ , R′))) where
 
     hypR : RConvI d N w (r-none {Φ = dead Φ} {X = zero} β′ R′) δ′ δ′ σ σ
     goodS hypR = goodδ′
@@ -379,6 +381,7 @@ module Core (d : Dir) {w : World} {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     selfR hypR = tt
     tyL hypR Z = refl
     tyR hypR Y′ = tyR-fresh R′ (f Y′)
+    rcΣ hypR = bs
     leafO hypR Z tt = ≈ˡ-refl
     convP hypR (↔-dead {Y = Y′} z) tt = entryConvR R′ (f Y′)
     genR hypR (↔-dead {Y = Y′} z) = entryFreshR (f Y′)
@@ -687,7 +690,8 @@ module LeafCore (d : Dir) {n′ n} (le : n′ ≤′ n) {w : World} {Δ Δ′}
         (nβ : ∀ Z → SealNe β (lookup env Z)) (R : Ty (ΔL w))
         {rc : RConv (storeR w)}
         (pre : ∀ {c} → rc ≡ just c → PreB w (lookup envR) σ B)
-        (ok : RCOk σ rc) {T′ : Ty (storeR w)} (eq : substᵗ σ B ≡ T′) where
+        (ok : RCOk σ rc) (rs : RCΣ w rc) {T′ : Ty (storeR w)}
+        (eq : substᵗ σ B ≡ T′) where
 
       open Core d {w = w} p env envR using (coreRev; coreCon)
 
@@ -695,21 +699,21 @@ module LeafCore (d : Dir) {n′ n} (le : n′ ≤′ n) {w : World} {Δ Δ′}
       closeRev {Vr = Vr} vl vr r =
         ℰL-≡ d _ w L refl (cong (λ T → revM rc T Vr) eq)
           (toLeaf (below r)
-            (coreRev (orc (below r)) nβ R ok pre ≤-refl vl vr (leafIn r)))
+            (coreRev (orc (below r)) nβ R ok rs pre ≤-refl vl vr (leafIn r)))
 
       closeCon : Close d w L (λ V → V ↓ makeConceal β R (leftTy c₀))
         (conM rc T′)
       closeCon {Vr = Wr} wl wr r =
         ℰL-≡ d _ w L refl (cong (λ T → conM rc T Wr) eq)
           (toLeaf (below r)
-            (coreCon (orc (below r)) nβ R ok pre ≤-refl wl wr (leafIn r)))
+            (coreCon (orc (below r)) nβ R ok rs pre ≤-refl wl wr (leafIn r)))
 
     -- the right-only lemma, at the leaf
     module _ (orc : ∀ {k} → suc k ≤ n′ → OracleR d k)
         {β′ : TyVar (storeR w)} (R′ : Ty (storeR w))
         (pre : PreB w (lookup envR) σ B)
-        (f : ∀ Y′ → RFresh★ β′ (σ Y′)) {T′ : Ty (storeR w)}
-        (eq : rightTy c₀ ≡ ιT w T′) where
+        (f : ∀ Y′ → RFresh★ β′ (σ Y′)) (bs : RCΣ w (just (β′ , R′)))
+        {T′ : Ty (storeR w)} (eq : rightTy c₀ ≡ ιT w T′) where
 
       open Core d {w = w} p env envR using (coreRevR; coreConR)
 
@@ -718,7 +722,7 @@ module LeafCore (d : Dir) {n′ n} (le : n′ ≤′ n) {w : World} {Δ Δ′}
         ℰL-≡ d _ w L refl
           (cong (λ T → Vr ↑ 〖 β′ , R′ ↑ T 〗) (rpre≡ pre eq))
           (toLeaf (below r)
-            (coreRevR (orc (below r)) R′ pre f ≤-refl vl vr (leafIn r)))
+            (coreRevR (orc (below r)) R′ pre f bs ≤-refl vl vr (leafIn r)))
 
       closeConR : Close d w L (λ V → V)
         (λ V → V ↓ makeConceal β′ R′ T′)
@@ -726,7 +730,7 @@ module LeafCore (d : Dir) {n′ n} (le : n′ ≤′ n) {w : World} {Δ Δ′}
         ℰL-≡ d _ w L refl
           (cong (λ T → Wr ↓ makeConceal β′ R′ T) (rpre≡ pre eq))
           (toLeaf (below r)
-            (coreConR (orc (below r)) R′ pre f ≤-refl vl wr (leafIn r)))
+            (coreConR (orc (below r)) R′ pre f bs ≤-refl vl wr (leafIn r)))
 
 ------------------------------------------------------------------------
 -- A sealed descriptor's leaf, at the current world
@@ -762,12 +766,12 @@ module SealedNow (d : Dir) {n′ n} (le : n′ ≤′ n) {w : World} {Δ Δ′}
   module _ (orc : ∀ {k} → suc k ≤ n′ → OracleR d k)
       {β′ : TyVar (storeR w)} (R′ : Ty (storeR w))
       (pre : PreB w (lookup envR) σ B)
-      (f : ∀ Y′ → RFresh★ β′ (σ Y′)) {T′ : Ty (storeR w)}
-      (eq : rightTy c₀ ≡ ιT w T′) where
+      (f : ∀ Y′ → RFresh★ β′ (σ Y′)) (bs : RCΣ w (just (β′ , R′)))
+      {T′ : Ty (storeR w)} (eq : rightTy c₀ ≡ ιT w T′) where
 
     revRS : ∀ Xs
       → Close d w (LS Xs []) (λ V → V) (λ V → V ↑ 〖 β′ , R′ ↑ T′ 〗)
-    revRS [] = closeRevR orc R′ pre f eq
+    revRS [] = closeRevR orc R′ pre f bs eq
     revRS (X ∷ Xs) =
       Close-resp d (≈ˡ-sym (leafSL≈ d le Xs [] c₀ X))
         (wrapL d {w = w} (leafBelowS d le (sdesc Xs [] c₀)) X (repL Xs c₀)
@@ -776,7 +780,7 @@ module SealedNow (d : Dir) {n′ n} (le : n′ ≤′ n) {w : World} {Δ Δ′}
     conRS : ∀ Xs
       → Close d w (LS Xs []) (λ V → V)
           (λ V → V ↓ makeConceal β′ R′ T′)
-    conRS [] = closeConR orc R′ pre f eq
+    conRS [] = closeConR orc R′ pre f bs eq
     conRS (X ∷ Xs) =
       Close-resp d (≈ˡ-sym (leafSL≈ d le Xs [] c₀ X))
         (wrapL d {w = w} (leafBelowS d le (sdesc Xs [] c₀)) X (repL Xs c₀)
@@ -788,7 +792,7 @@ module SealedNow (d : Dir) {n′ n} (le : n′ ≤′ n) {w : World} {Δ Δ′}
 
     revLS : ∀ Ys
       → Close d w (LS [] Ys) (λ V → V ↑ 〖 β , R ↑ leftTy c₀ 〗) (λ V → V)
-    revLS [] = closeRev {σ = σ} orc nβ R (λ ()) rc-none refl
+    revLS [] = closeRev {σ = σ} orc nβ R (λ ()) rc-none tt refl
     revLS (Y ∷ Ys) =
       Close-resp d (≈ˡ-sym (leafSR≈ d le [] Ys c₀ Y))
         (wrapR d {w = w} (leafBelowS d le (sdesc [] Ys c₀)) Y (repR Ys c₀)
@@ -797,7 +801,7 @@ module SealedNow (d : Dir) {n′ n} (le : n′ ≤′ n) {w : World} {Δ Δ′}
     conLS : ∀ Ys
       → Close d w (LS [] Ys) (λ V → V ↓ makeConceal β R (leftTy c₀))
           (λ V → V)
-    conLS [] = closeCon {σ = σ} orc nβ R (λ ()) rc-none refl
+    conLS [] = closeCon {σ = σ} orc nβ R (λ ()) rc-none tt refl
     conLS (Y ∷ Ys) =
       Close-resp d (≈ˡ-sym (leafSR≈ d le [] Ys c₀ Y))
         (wrapR d {w = w} (leafBelowS d le (sdesc [] Ys c₀)) Y (repR Ys c₀)
@@ -818,6 +822,7 @@ module SealedNow (d : Dir) {n′ n} (le : n′ ≤′ n) {w : World} {Δ Δ′}
       headR : HeadNeR rc Ys T′
       entL : ∀ Z → SealNe β (lookup env Z)
       entR : RCOk σ rc
+      entΣ : RCΣ w rc
       preF : PreIf Ys
 
   open FreshFor public
@@ -841,7 +846,7 @@ module SealedNow (d : Dir) {n′ n} (le : n′ ≤′ n) {w : World} {Δ Δ′}
     revPS {just (β′ , R′)} (X ∷ Xs) [] eq fr with entR fr
     revPS {just (β′ , R′)} (X ∷ Xs) [] eq fr | rc-just f =
       idL-rev d (gLS (X ∷ Xs) []) R (headL fr)
-        (revRS orcR R′ (preF fr) f eq (X ∷ Xs))
+        (revRS orcR R′ (preF fr) f (entΣ fr) eq (X ∷ Xs))
     revPS {nothing} [] Ys eq fr = revLS orc (entL fr) R Ys
     revPS {just (β′ , R′)} [] (Y ∷ Ys) eq fr with headR fr
     revPS {just (β′ , R′)} [] (Y ∷ Ys) eq fr | γ′ , refl , ne =
@@ -849,6 +854,7 @@ module SealedNow (d : Dir) {n′ n} (le : n′ ≤′ n) {w : World} {Δ Δ′}
         (revLS orc (entL fr) R (Y ∷ Ys))
     revPS {just (β′ , R′)} [] [] eq fr =
       closeRev orc (entL fr) R (λ _ → preF fr) (entR fr)
+        (entΣ fr)
         (rpre≡ (preF fr) eq)
 
     conPS : ∀ {rc} Xs Ys {T′} → repR Ys c₀ ≡ ιT w T′
@@ -865,7 +871,7 @@ module SealedNow (d : Dir) {n′ n} (le : n′ ≤′ n) {w : World} {Δ Δ′}
     conPS {just (β′ , R′)} (X ∷ Xs) [] eq fr with entR fr
     conPS {just (β′ , R′)} (X ∷ Xs) [] eq fr | rc-just f =
       idL-con d (gLS (X ∷ Xs) []) R (headL fr)
-        (conRS orcR R′ (preF fr) f eq (X ∷ Xs))
+        (conRS orcR R′ (preF fr) f (entΣ fr) eq (X ∷ Xs))
     conPS {nothing} [] Ys eq fr = conLS orc (entL fr) R Ys
     conPS {just (β′ , R′)} [] (Y ∷ Ys) eq fr with headR fr
     conPS {just (β′ , R′)} [] (Y ∷ Ys) eq fr | γ′ , refl , ne =
@@ -873,6 +879,7 @@ module SealedNow (d : Dir) {n′ n} (le : n′ ≤′ n) {w : World} {Δ Δ′}
         (conLS orc (entL fr) R (Y ∷ Ys))
     conPS {just (β′ , R′)} [] [] eq fr =
       closeCon orc (entL fr) R (λ _ → preF fr) (entR fr)
+        (entΣ fr)
         (rpre≡ (preF fr) eq)
 
 ------------------------------------------------------------------------
@@ -935,6 +942,7 @@ module StarG {w : World} {Δ Δ′} {Φ : Corr Δ Δ′}
       open FunConv {X = zero} ≻ N rk p q noRF (λ ρL ρR m σ → refl)
         (λ h′ _ → rev★ ≻ p h′) (λ h′ _ → con★ ≻ p h′)
         (λ h′ _ → rev★ ≻ q h′) (λ h′ _ → con★ ≻ q h′)
+        (λ h′ pm t → noTypedR _ pm t) (λ h′ pm t → noTypedC _ pm t)
     revG★ (∀⊑ Anv z p) {j} le vl vr r =
       ℰ-value ≻ (suc j) (∀⊑ Anv z p) w (vl CT.↑ CT.all) vr
         (OnlyV.revV ≻ N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
@@ -972,6 +980,7 @@ module StarG {w : World} {Δ Δ′} {Φ : Corr Δ Δ′}
       open FunConv {X = zero} ≻ N rk p q noRF (λ ρL ρR m σ → refl)
         (λ h′ _ → rev★ ≻ p h′) (λ h′ _ → con★ ≻ p h′)
         (λ h′ _ → rev★ ≻ q h′) (λ h′ _ → con★ ≻ q h′)
+        (λ h′ pm t → noTypedR _ pm t) (λ h′ pm t → noTypedC _ pm t)
     conG★ (∀⊑ Anv z p) {j} le wl vr r =
       ℰ-value ≻ (suc j) (∀⊑ Anv z p) w (wl CT.↓ CT.all) vr
         (OnlyV.conV ≻ N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
@@ -1085,7 +1094,7 @@ module LeafG {n′ n} (le : n′ ≤′ n) {w : World} {Δ Δ′} {Φ : Corr Δ 
 fun0 : ∀ d {Δ Δ′} {Φ : Corr Δ Δ′} {A A′ B B′} {p : Φ ⊢ A ⊑ A′}
     {q : Φ ⊢ B ⊑ B′} {w} {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {V V′}
   → funRel d 0 p q w δ V V′
-fun0 d e ≤′-refl Wl Wr wl wr a = ℰᵍ-zero d _
+fun0 d e ≤′-refl Wl Wr wl wr a t = ℰᵍ-zero d _
 
 all0 : ∀ d {Δ Δ′} {Φ : Corr Δ Δ′} {A B} {p : pair Φ ⊢ A ⊑ B} {w}
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {V V′}
@@ -1131,7 +1140,7 @@ module GClose {n′ n} (le : n′ ≤′ n) {w : World}
           (back
             (ℰ-≡ ≻ (suc j) (renᵖ wk-deadᴿ p) w _
               (cong (λ T → Vl ↑ 〖 β , R ↑ T 〗) tyA) refl
-              (revG★ (hyp (orc lt) nβ R {σ = σ★} rc-none) (renᵖ wk-deadᴿ p)
+              (revG★ (hyp (orc lt) nβ R {σ = σ★} rc-none tt) (renᵖ wk-deadᴿ p)
                 ≤-refl
                 vl vr (to (G-ren (suc j) wk-deadᴿ p w renI) q)))))
       where
@@ -1151,7 +1160,7 @@ module GClose {n′ n} (le : n′ ≤′ n) {w : World}
           (back
             (ℰ-≡ ≻ (suc j) (renᵖ wk-deadᴿ p) w _
               (cong (λ T → Wl ↓ makeConceal β R T) tyA) refl
-              (conG★ (hyp (orc lt) nβ R {σ = σ★} rc-none) (renᵖ wk-deadᴿ p)
+              (conG★ (hyp (orc lt) nβ R {σ = σ★} rc-none tt) (renᵖ wk-deadᴿ p)
                 ≤-refl
                 wl vr (to (G-ren (suc j) wk-deadᴿ p w renI) q)))))
       where
@@ -1169,7 +1178,7 @@ module GClose {n′ n} (le : n′ ≤′ n) {w : World}
     shiftRev p j lt f vl vr q =
       toLeafG lt
         (shiftG f (s≤s z≤n) vr
-          (coreRev (orc lt) nβ R {σ = σ★} rc-none (λ ()) ≤-refl vl vr q))
+          (coreRev (orc lt) nβ R {σ = σ★} rc-none tt (λ ()) ≤-refl vl vr q))
       where
       open LeafG le {w = w} p env envR using (toLeafG; shiftG)
       open Core ≻ {w = w} p env envR using (coreRev)
@@ -1183,7 +1192,7 @@ module GClose {n′ n} (le : n′ ≤′ n) {w : World}
     shiftCon p j lt f wl vr q =
       toLeafG lt
         (shiftG f (s≤s z≤n) vr
-          (coreCon (orc lt) nβ R {σ = σ★} rc-none (λ ()) ≤-refl wl vr q))
+          (coreCon (orc lt) nβ R {σ = σ★} rc-none tt (λ ()) ≤-refl wl vr q))
       where
       open LeafG le {w = w} p env envR using (toLeafG; shiftG)
       open Core ≻ {w = w} p env envR using (coreCon)
@@ -1584,7 +1593,7 @@ module Fresh (d : Dir) {n′ n} (le : n′ ≤′ n)
     → PreTy (ιʷ w) (rightTyS c) λ T₀
     → FreshP d both w (sem (leafBelowS d le c)) (leftTyS c) T₀
   freshP {w} (sdesc Xs Ys (desc p env envR)) wf T₀ eq {w′} e
-      {β} {R} rc ok nb nrc {k} =
+      {β} {R} rc ok nb nrc rs {k} =
     (λ {Vl} {Vr} vl vr r →
       ℰL-resp d k w′ (≈ˡ-sym tr)
         (ℰL-≡ d k w′ (LS Xs′ Ys′)
@@ -1617,6 +1626,7 @@ module Fresh (d : Dir) {n′ n} (le : n′ ≤′ n)
     headR ff = headR-new e rc nrc Ys T₀ eq
     entL ff = entL-new e p env envR nb
     entR ff = rcOk-new e p env envR rc nrc wf
+    entΣ ff = rs
     preF ff = pf Ys eq
 
   -- closure under the right side's conversions
@@ -1624,7 +1634,7 @@ module Fresh (d : Dir) {n′ n} (le : n′ ≤′ n)
     → PreTy (ιʷ w) (rightTyS c) λ T₀
     → FreshR d w (sem (leafBelowS d le c)) T₀
   freshR {w} (sdesc Xs Ys (desc p env envR)) wf T₀ eq {w′} e
-      {β′} {R′} nb {k} =
+      {β′} {R′} nb bs {k} =
     (λ {Vl} {Vr} vl vr r →
       ℰL-resp d k w′ (≈ˡ-sym tr)
         (rev Ys T₀ eq vl vr (leafRel-resp d k w′ tr r))) ,
@@ -1645,7 +1655,8 @@ module Fresh (d : Dir) {n′ n} (le : n′ ≤′ n)
       → Close d w′ (LS Xs′ (map (renameVar ρR₁) Ys₁)) (λ V → V)
           (λ V → V ↑ 〖 β′ , R′ ↑ renameᵗ (toRenameᵗ (ρS e)) T₁ 〗)
     rev [] T₁ eq₁ =
-      revRS orcR R′ (pre-new e p env envR eq₁) f (rep-new e [] c₀ eq₁) Xs′
+      revRS orcR R′ (pre-new e p env envR eq₁) f bs
+        (rep-new e [] c₀ eq₁) Xs′
     rev (Y ∷ Ys₁) T₁ eq₁ with var-pre (ιʷ w) T₁ eq₁
     rev (Y ∷ Ys₁) _ eq₁ | γ , refl =
       idR-rev d (gLS Xs′ (map (renameVar ρR₁) (Y ∷ Ys₁))) R′ (nb γ)
@@ -1655,7 +1666,8 @@ module Fresh (d : Dir) {n′ n} (le : n′ ≤′ n)
       → Close d w′ (LS Xs′ (map (renameVar ρR₁) Ys₁)) (λ V → V)
           (λ V → V ↓ makeConceal β′ R′ (renameᵗ (toRenameᵗ (ρS e)) T₁))
     con [] T₁ eq₁ =
-      conRS orcR R′ (pre-new e p env envR eq₁) f (rep-new e [] c₀ eq₁) Xs′
+      conRS orcR R′ (pre-new e p env envR eq₁) f bs
+        (rep-new e [] c₀ eq₁) Xs′
     con (Y ∷ Ys₁) T₁ eq₁ with var-pre (ιʷ w) T₁ eq₁
     con (Y ∷ Ys₁) _ eq₁ | γ , refl =
       idR-con d (gLS Xs′ (map (renameVar ρR₁) (Y ∷ Ys₁))) R′ (nb γ)
@@ -1706,7 +1718,8 @@ module FreshO′ {n′ n} (le : n′ ≤′ n) where
     rev d₀ orc₀ (X ∷ Xs₀) =
       idL-rev d₀ (gOL d₀ (X ∷ Xs₀)) R (nb X)
         (close-id d₀ (gOL d₀ (X ∷ Xs₀)))
-    rev ≺ orc₀ [] = LC.closeRev {σ = σ★} orc₀ nβ R (λ ()) rc-none refl
+    rev ≺ orc₀ [] = LC.closeRev {σ = σ★} orc₀ nβ R (λ ()) rc-none tt
+      refl
     rev ≻ orc₀ [] = GClose.gRev le {w = w′} orc₀ R env₁ envR₁ nβ p
 
     con : ∀ d₀ → (∀ {k} → suc k ≤ n′ → Oracle d₀ k) → ∀ Xs₀
@@ -1716,7 +1729,8 @@ module FreshO′ {n′ n} (le : n′ ≤′ n) where
     con d₀ orc₀ (X ∷ Xs₀) =
       idL-con d₀ (gOL d₀ (X ∷ Xs₀)) R (nb X)
         (close-id d₀ (gOL d₀ (X ∷ Xs₀)))
-    con ≺ orc₀ [] = LC.closeCon {σ = σ★} orc₀ nβ R (λ ()) rc-none refl
+    con ≺ orc₀ [] = LC.closeCon {σ = σ★} orc₀ nβ R (λ ()) rc-none tt
+      refl
     con ≻ orc₀ [] = GClose.gCon le {w = w′} orc₀ R env₁ envR₁ nβ p
 
 ------------------------------------------------------------------------

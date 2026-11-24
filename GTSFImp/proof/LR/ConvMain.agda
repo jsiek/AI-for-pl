@@ -476,6 +476,7 @@ mutual
     open FunConv {X = X} ≺ N rk p q noRF (λ ρL ρR m σ → refl)
       (λ h′ _ → rev★ ≺ p h′) (λ h′ _ → con★ ≺ p h′)
       (λ h′ _ → rev★ ≺ q h′) (λ h′ _ → con★ ≺ q h′)
+      (λ h′ pm t → noTypedR _ pm t) (λ h′ pm t → noTypedC _ pm t)
   rev★ ≻ (⇒⊑★ p q) h {zero} le vl vr r = ℰ-zero ≻ (⇒⊑★ p q) _
   rev★ ≻ (⇒⊑★ p q) {N} {rk} {w} {X} h {suc k} le vl vr r =
     ℰ-value ≻ (suc k) (⇒⊑★ p q) w (vl CT.↑ CT.fun) vr
@@ -485,6 +486,7 @@ mutual
     open FunConv {X = X} ≻ N rk p q noRF (λ ρL ρR m σ → refl)
       (λ h′ _ → rev★ ≻ p h′) (λ h′ _ → con★ ≻ p h′)
       (λ h′ _ → rev★ ≻ q h′) (λ h′ _ → con★ ≻ q h′)
+      (λ h′ pm t → noTypedR _ pm t) (λ h′ pm t → noTypedC _ pm t)
   rev★ ≺ (∀⊑ Anv z p) {N} {rk} {w} h {k} le vl vr r =
     ℰ-value ≺ k (∀⊑ Anv z p) w (vl CT.↑ CT.all) vr
       (OnlyV.revV ≺ N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
@@ -542,6 +544,7 @@ mutual
     open FunConv {X = X} ≺ N rk p q noRF (λ ρL ρR m σ → refl)
       (λ h′ _ → rev★ ≺ p h′) (λ h′ _ → con★ ≺ p h′)
       (λ h′ _ → rev★ ≺ q h′) (λ h′ _ → con★ ≺ q h′)
+      (λ h′ pm t → noTypedR _ pm t) (λ h′ pm t → noTypedC _ pm t)
   con★ ≻ (⇒⊑★ p q) h {zero} cb wl wr r = ℰ-zero ≻ (⇒⊑★ p q) _
   con★ ≻ (⇒⊑★ p q) {N} {rk} {w} {X} {m} h {suc k} cb wl wr r =
     ℰ-value ≻ (suc k) (⇒⊑★ p q) w (wl CT.↓ CT.fun) wr
@@ -552,6 +555,7 @@ mutual
     open FunConv {X = X} ≻ N rk p q noRF (λ ρL ρR m σ → refl)
       (λ h′ _ → rev★ ≻ p h′) (λ h′ _ → con★ ≻ p h′)
       (λ h′ _ → rev★ ≻ q h′) (λ h′ _ → con★ ≻ q h′)
+      (λ h′ pm t → noTypedR _ pm t) (λ h′ pm t → noTypedC _ pm t)
   con★ ≺ (∀⊑ Anv z p) {N} {rk} {w} h {k} cb wl wr r =
     ℰ-value ≺ k (∀⊑ Anv z p) w (wl CT.↓ CT.all) wr
       (OnlyV.conV ≺ N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
@@ -734,6 +738,8 @@ mutual
       (λ ρL ρR m′ σ → rconv-↑ ρL ρR m′ σ)
       (λ h′ → revC d p h′) (λ h′ → conC d p h′)
       (λ h′ → revC d q h′) (λ h′ → conC d q h′)
+      (λ h′ pm t → revTyped _ _ (rcΣ h′) (tyR h′) pm t)
+      (λ h′ pm t → conTyped _ _ (rcΣ h′) (tyR h′) pm t)
   revC d (∀⊑∀ p) {N} {rk} {w} {m = m} {σt = σt} h ps {k} le vl vr r =
     ℰ-value d k (∀⊑∀ p) w (vl CT.↑ CT.all) (revM-all (rconv m σt) vr)
       (to (𝒱-∀ d k p w)
@@ -784,6 +790,8 @@ mutual
       (λ ρL ρR m′ σ → rconv-↑ ρL ρR m′ σ)
       (λ h′ → revC d p h′) (λ h′ → conC d p h′)
       (λ h′ → revC d q h′) (λ h′ → conC d q h′)
+      (λ h′ pm t → revTyped _ _ (rcΣ h′) (tyR h′) pm t)
+      (λ h′ pm t → conTyped _ _ (rcΣ h′) (tyR h′) pm t)
   conC d (∀⊑∀ p) {N} {rk} {w} {m = m} {σt = σt} h ps {k} cb wl wr r =
     ℰ-value d k (∀⊑∀ p) w (wl CT.↓ CT.all) (conM-all (rconv m σt) wr)
       (to (𝒱-∀ d k p w)

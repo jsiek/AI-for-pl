@@ -19,6 +19,11 @@ module LR.World where
 --     grows at its new end (`Grows`), as every run's does
 --     (`Steps-grows`); a replay world needs this (notes/logrel-dgg.md,
 --     Gap G1).
+--   * A world also records the right store's contents `ΣR` (the types
+--     the right program's allocations bound), so that right terms can be
+--     typed in it; an extension keeps every entry, renamed
+--     (`StoreRen`), and a run's arrival store is the run's store
+--     changes applied to it (`StoreRen-steps`).
 --   * Relations relative to a store: a relation at each stage, applied
 --     at any world together with embeddings of the store into the
 --     world's left store and right scope (`RelΩ`).  This is how a leaf
@@ -29,15 +34,17 @@ open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
 open import Data.Unit using (⊤)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym;
-  trans; cong)
+  trans; cong; subst₂)
 
 open import Types
+open import TyStore using (TyStore; _∋_⦂_)
 open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ; id↪ᵗ)
 open import CastTerms using (Term)
 open import Reduction using (StoreChange; StoreChanges; keep; bind;
-  []; _∷_)
+  []; _∷_; applyStore; applyStores)
 open import proof.DGG.CenterRename using (_∘↪_; toRenameᵗ-∘)
-open import proof.TypeInTermSubst using (toRename-id-eq)
+open import proof.TypeInTermSubst using (toRename-id-eq; StoreRename;
+  StoreRename-wk-bind; renameᵗ-pointwise-id)
 open import LR.Desc
 open import LR.Steps using (embedᶜ; embedᶜˢ)
 
@@ -192,9 +199,44 @@ Steps-grows (done refl) = Grows-id
 Steps-grows (more s ss refl) = Grows-∘ (Steps-grows ss) (Step1-grows s)
 
 ------------------------------------------------------------------------
+-- Store contents along embeddings
+------------------------------------------------------------------------
+
+-- every entry of Σ is in Σ′, renamed along ρ
+StoreRen : ∀ {Θ Θ′} → Θ ↪ᵗ Θ′ → TyStore Θ → TyStore Θ′ → Set
+StoreRen ρ Σ Σ′ = StoreRename (toRenameᵗ ρ) Σ Σ′
+
+StoreRen-id : ∀ {Θ} {Σ : TyStore Θ} → StoreRen id↪ᵗ Σ Σ
+StoreRen-id {Σ = Σ} {X} {A} X∈ =
+  subst₂ (λ Y B → Σ ∋ Y ⦂ B) (sym (toRename-id-eq X))
+    (sym (renameᵗ-pointwise-id (toRenameᵗ id↪ᵗ) A toRename-id-eq)) X∈
+
+StoreRen-∘ : ∀ {Θ₁ Θ₂ Θ₃} {π : Θ₂ ↪ᵗ Θ₃} {η : Θ₁ ↪ᵗ Θ₂}
+    {Σ₁ : TyStore Θ₁} {Σ₂ : TyStore Θ₂} {Σ₃ : TyStore Θ₃}
+  → StoreRen η Σ₁ Σ₂ → StoreRen π Σ₂ Σ₃ → StoreRen (π ∘↪ η) Σ₁ Σ₃
+StoreRen-∘ {π = π} {η} {Σ₃ = Σ₃} hη hπ {X} {A} X∈ =
+  subst₂ (λ Y B → Σ₃ ∋ Y ⦂ B) (sym (toRenameᵗ-∘ π η X))
+    (trans (renameᵗ-comp (toRenameᵗ η) (toRenameᵗ π) A)
+      (renameᵗ-cong A (λ Y → sym (toRenameᵗ-∘ π η Y))))
+    (hπ (hη X∈))
+
+-- a store change keeps the old entries
+StoreRen-step : ∀ {Θ Θ′} (χ : StoreChange Θ Θ′) {Σ : TyStore Θ}
+  → StoreRen (embedᶜ χ) Σ (applyStore χ Σ)
+StoreRen-step keep = StoreRen-id
+StoreRen-step (bind A) = StoreRename-wk-bind
+
+StoreRen-steps : ∀ {Θ Θ′} (χs : StoreChanges Θ Θ′) {Σ : TyStore Θ}
+  → StoreRen (embedᶜˢ χs) Σ (applyStores χs Σ)
+StoreRen-steps [] = StoreRen-id
+StoreRen-steps (χ ∷ χs) = StoreRen-∘ (StoreRen-step χ) (StoreRen-steps χs)
+
+------------------------------------------------------------------------
 -- Worlds
 ------------------------------------------------------------------------
 
+-- the right store's contents `ΣR` are those the right program's
+-- allocations gave it, so that right terms can be typed in it
 record World : Set where
   constructor mkWorld
   field
@@ -203,11 +245,12 @@ record World : Set where
     tag : TyVar ΔL → Tag ΔL ΔR
     storeR : TyCtx
     pre : Prefix storeR ΔR
+    ΣR : TyStore storeR
 
 open World public
 
 -- an ordinary world: the right store is the whole scope
-pattern world ΔL ΔR tag = mkWorld ΔL ΔR tag _ pid
+pattern world ΔL ΔR tag Σ = mkWorld ΔL ΔR tag _ pid Σ
 
 -- the right store's embedding in the scope
 ιʷ : (w : World) → storeR w ↪ᵗ ΔR w
@@ -225,6 +268,7 @@ record _⊒_ (w′ w : World) : Set where
     coh : Coh (pre w) (pre w′) ρS ρR
     grows : Grows ρR
     tags≡ : ∀ X → tag w′ (toRenameᵗ ρL X) ≡ renameTag ρL ρR (tag w X)
+    ΣR⊒ : StoreRen ρS (ΣR w) (ΣR w′)
 
 open _⊒_ public
 

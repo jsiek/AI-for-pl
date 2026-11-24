@@ -522,6 +522,7 @@ module LamPair (d : Dir) (s : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
         (sdesc Xs Ys c) wf Tr hTr)
       (SealEntryP.sealEntryP d s e₁ Xs Ys c zero zero {Φ = Φ} {δt = δ}
         {σt = σ} hTr)
+      (bind-Σ (ΣR w) Tr)
 
     psβ : PreS w₁ δβ δg σβ σg B
     psβ = PreB-ext B (PreB-↑ pre e₁) (＇ zero) ,ᵖ

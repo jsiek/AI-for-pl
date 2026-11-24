@@ -226,6 +226,17 @@ Arrive-map f (Δ′ , p′ , ρ , st , tags , ok , v) =
 -- The value relation respects equivalent interpretations
 ------------------------------------------------------------------------
 
+Typedᴿ-≡ : ∀ {w : World} {T T′ : Ty (ΔR w)} {V}
+  → T ≡ T′ → Typedᴿ w T V → Typedᴿ w T′ V
+Typedᴿ-≡ refl t = t
+
+-- typing at a right type under equivalent interpretations
+Typedᴿ-resp : ∀ {w : World} {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} (A′ : Ty Δ′)
+    {V} → δ ≈ᴵ δ′
+  → Typedᴿ w (substᵗ (δr δ) A′) V → Typedᴿ w (substᵗ (δr δ′) A′) V
+Typedᴿ-resp A′ h (typedᴿ T₀ eq t) =
+  typedᴿ T₀ (trans (sym (substᵗ-cong A′ (δr≡ h))) eq) t
+
 leafRel-resp : ∀ d n w {l l′ : Leaf (ΔL w) (ΔR w)} {Vl Vr}
   → l ≈ˡ l′ → leafRel d n w l Vl Vr → leafRel d n w l′ Vl Vr
 leafRel-resp d n w (syn≈ refl) r = r
@@ -303,11 +314,12 @@ mutual
       (p : Φ ⊢ A ⊑ A′) (q : Φ ⊢ B ⊑ B′) w
       {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
     → δ ≈ᴵ δ′ → funRel d n p q w δ Vl Vr → funRel d n p q w δ′ Vl Vr
-  funRel-resp d n p q w h r e le Wl Wr vl vr a =
+  funRel-resp d n {A′ = A′} p q w h r e le Wl Wr vl vr a t =
     ℰᵍ-map d _ _
       (λ le′ w″ e′ V V′ →
         𝒱≤-resp d (≤′-trans le′ le) q w″ (↑ᴵ-resp (↑ᴵ-resp h e) e′))
-      (r e le Wl Wr vl vr (𝒱≤-resp d le p _ (↑ᴵ-resp (≈ᴵ-sym h) e) a))
+      (r e le Wl Wr vl vr (𝒱≤-resp d le p _ (↑ᴵ-resp (≈ᴵ-sym h) e) a)
+        (Typedᴿ-resp A′ (↑ᴵ-resp (≈ᴵ-sym h) e) t))
 
   funStar-resp : ∀ d n {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       (p : Φ ⊢ A ⊑ ★) (q : Φ ⊢ B ⊑ ★) w

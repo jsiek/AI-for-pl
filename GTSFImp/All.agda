@@ -17,6 +17,7 @@ module All where
 
 import proof.TypeSafety.Progress
 import proof.TypeSafety.Preservation
+import proof.TypeSafety.InstValue
 import GradualTypeCheck
 import proof.ImprecisionConsistency
 import proof.Imprecision
@@ -205,6 +206,7 @@ import proof.DGG.MovedLinkProbe
 import proof.DGG.ChainRideProbe
 import proof.DGG.TagBoundaryProbe
 import proof.LR.TimingProbe
+import proof.LR.Case6Probe
 
 -- Checked libraries currently without consumers (candidates for M7+)
 import proof.DGG.CenterRename

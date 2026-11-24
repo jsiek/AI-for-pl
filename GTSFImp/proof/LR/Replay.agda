@@ -22,6 +22,10 @@ module proof.LR.Replay where
 --     that term ran to, given that the arrival's values move across the
 --     release (`mv`); for `ℰ` at a derivation that is `𝒱-release`
 --     (`ℰ-replay≻ᵛ`, `ℰ-replay≺ᵛ`).
+--   * A replay world carries the earlier store's contents; the release
+--     needs the later world's store to contain the replay's arrival
+--     store (`StoreRen`), which holds when the later world is a future
+--     of the original run's arrival.
 --   * Why extensions must grow (`NoGrowth`): a scope embedding that
 --     inserts a variable below the newest one makes the replay take
 --     that variable.
@@ -40,8 +44,9 @@ open import Relation.Binary.PropositionalEquality
 open import Types
 open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ; id↪ᵗ)
 open import CastTerms using (Term; Value; renameᵗᵐ)
+open import TyStore using (TyStore)
 open import Reduction using (StoreChange; StoreChanges; keep; bind; [];
-  _∷_; ↠-refl)
+  _∷_; ↠-refl; applyStores)
 open import LR.Desc using (Tag; renameTag)
 open import LR.Steps using (_—→^_[_]_; none; embedᶜˢ)
 open import proof.TypeInTermSubst using (renameᵗᵐ-preserves-Value)
@@ -152,8 +157,8 @@ replay-arrive {p = p} {χs} st room | p₀ , st₀ | refl
 ------------------------------------------------------------------------
 
 -- w's left store, scope and tags, with an earlier right store
-replayW : (w : World) {Θ : TyCtx} → Prefix Θ (ΔR w) → World
-replayW w {Θ} p = mkWorld (ΔL w) (ΔR w) (tag w) Θ p
+replayW : (w : World) {Θ : TyCtx} → Prefix Θ (ΔR w) → TyStore Θ → World
+replayW w {Θ} p Σ = mkWorld (ΔL w) (ΔR w) (tag w) Θ p Σ
 
 -- the prefix of w's store in a future's scope
 replayPre : ∀ {w w′ : World} → w′ ⊒ w → Prefix (storeR w) (ΔR w′)
@@ -161,16 +166,18 @@ replayPre {w} e = pre w ++ᴾ proj₁ (grows e)
 
 -- the replay world over w's store is a future of w, with the store
 -- unchanged and everything allocated since reserved
-replay-⊒ : ∀ {w w′ : World} (e : w′ ⊒ w) → replayW w′ (replayPre e) ⊒ w
+replay-⊒ : ∀ {w w′ : World} (e : w′ ⊒ w)
+  → replayW w′ (replayPre e) (ΣR w) ⊒ w
 replay-⊒ {w} e =
   ext (ρL e) (ρR e) id↪ᵗ
     (coh-grows {p = pre w} {p′ = replayPre e} Grows-id (grows e))
-    (grows e) (tags≡ e)
+    (grows e) (tags≡ e) StoreRen-id
 
 -- releasing the reserved variables gives the world back
-release : ∀ (w : World) {Θ} (p : Prefix Θ (ΔR w)) (σ : Θ ↪ᵗ storeR w)
-  → Coh p (pre w) σ id↪ᵗ → w ⊒ replayW w p
-release w p σ c = ext id↪ᵗ id↪ᵗ σ c Grows-id (tags≡ (⊒-refl w))
+release : ∀ (w : World) {Θ} (p : Prefix Θ (ΔR w)) {Σ : TyStore Θ}
+    (σ : Θ ↪ᵗ storeR w)
+  → Coh p (pre w) σ id↪ᵗ → StoreRen σ Σ (ΣR w) → w ⊒ replayW w p Σ
+release w p σ c h = ext id↪ᵗ id↪ᵗ σ c Grows-id (tags≡ (⊒-refl w)) h
 
 -- the release's coherence, for the store of a world w₂ with
 -- w′ ⊒ w₂: every prefix of w₂'s store in w′'s scope sits where w₂'s
@@ -183,14 +190,16 @@ release-coh {w₂} {w′} e p X =
 
 -- the value relation moves across a release
 𝒱-release : ∀ d n {Δ Δ′} {Φ : Corr Δ Δ′} {A A′} (q : Φ ⊢ A ⊑ A′)
-    (w : World) {Θ} (p : Prefix Θ (ΔR w)) (σ : Θ ↪ᵗ storeR w)
-    (c : Coh p (pre w) σ id↪ᵗ)
+    (w : World) {Θ} (p : Prefix Θ (ΔR w)) {Σ : TyStore Θ}
+    (σ : Θ ↪ᵗ storeR w)
+    (c : Coh p (pre w) σ id↪ᵗ) (h : StoreRen σ Σ (ΣR w))
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
-  → GoodI δ → 𝒱 d n q (replayW w p) δ Vl Vr
+  → GoodI δ → 𝒱 d n q (replayW w p Σ) δ Vl Vr
   → 𝒱 d n q w δ Vl (renameᵗᵐ σ Vr)
-𝒱-release d n q w p σ c {δ} {Vl} g r =
+𝒱-release d n q w p σ c h {δ} {Vl} g r =
   subst (λ V → 𝒱 d n q w δ V _) (renameᵗᵐ-id Vl)
-    (𝒱-resp d n q w (transportI-id δ) (𝒱-mono d n q (release w p σ c) g r))
+    (𝒱-resp d n q w (transportI-id δ)
+      (𝒱-mono d n q (release w p σ c h) g r))
 
 ------------------------------------------------------------------------
 -- The expression relation across a replay
@@ -214,12 +223,13 @@ private
 
 -- the replay's arrival world, and the world it releases into
 replayArr : ∀ (w′ : World) {ΔL′ Θ₂} (room : Prefix Θ₂ (ΔR w′))
-  → (TyVar ΔL′ → Tag ΔL′ (ΔR w′)) → World
-replayArr w′ {ΔL′} {Θ₂} room tags = mkWorld ΔL′ (ΔR w′) tags Θ₂ room
+  → (TyVar ΔL′ → Tag ΔL′ (ΔR w′)) → TyStore Θ₂ → World
+replayArr w′ {ΔL′} {Θ₂} room tags Σ = mkWorld ΔL′ (ΔR w′) tags Θ₂ room Σ
 
 releaseArr : ∀ (w′ : World) {ΔL′} → (TyVar ΔL′ → Tag ΔL′ (ΔR w′))
   → World
-releaseArr w′ {ΔL′} tags = mkWorld ΔL′ (ΔR w′) tags (storeR w′) (pre w′)
+releaseArr w′ {ΔL′} tags =
+  mkWorld ΔL′ (ΔR w′) tags (storeR w′) (pre w′) (ΣR w′)
 
 -- the ok condition of an arrival whose right scope does not change
 OkL : ∀ (w′ : World) {ΔL′} (χsL : StoreChanges (ΔL w′) ΔL′)
@@ -230,36 +240,38 @@ OkL w′ χsL tags = ∀ X → tags (toRenameᵗ (embedᶜˢ χsL) X)
 -- the arrival's extensions: in the replay, and in w′
 replayExt : ∀ {w′ : World} {Θ₁ Θ₂ ΔL′} {p₀ : Prefix Θ₁ (ΔR w′)}
     {room : Prefix Θ₂ (ΔR w′)} {χsL : StoreChanges (ΔL w′) ΔL′}
-    {χs₀ : StoreChanges Θ₁ Θ₂} (st : Steps p₀ χs₀ room id↪ᵗ)
-    {tags} (ok : OkL w′ χsL tags)
-  → replayArr w′ room tags ⊒ replayW w′ p₀
+    {χs₀ : StoreChanges Θ₁ Θ₂} {Σ₁ : TyStore Θ₁}
+    (st : Steps p₀ χs₀ room id↪ᵗ) {tags} (ok : OkL w′ χsL tags)
+  → replayArr w′ room tags (applyStores χs₀ Σ₁) ⊒ replayW w′ p₀ Σ₁
 replayExt {χsL = χsL} {χs₀} st ok =
   ext (embedᶜˢ χsL) id↪ᵗ (embedᶜˢ χs₀) (coh-steps st) (Steps-grows st) ok
+    (StoreRen-steps χs₀)
 
 releaseExt : ∀ {w′ : World} {ΔL′} {χsL : StoreChanges (ΔL w′) ΔL′}
     {tags} (ok : OkL w′ χsL tags)
   → releaseArr w′ tags ⊒ w′
 releaseExt {w′} {χsL = χsL} ok =
   ext (embedᶜˢ χsL) id↪ᵗ id↪ᵗ (coh-steps (done {p = pre w′} refl))
-    Grows-id ok
+    Grows-id ok (StoreRen-steps [])
 
 -- `≻`: the replay counts the right's k₀ steps again
 ℰ-replay≻ : ∀ {w′ : World} {Θ₁ Θ₂} (p₀ : Prefix Θ₁ (ΔR w′))
     (room : Prefix Θ₂ (ΔR w′)) {k₀ n} {χs₀ : StoreChanges Θ₁ Θ₂}
+    {Σ₁ : TyStore Θ₁}
     {Mr : Term Θ₁} {W : Term Θ₂} (σ : Θ₂ ↪ᵗ storeR w′)
-    {VR : VRel (k₀ + n) (replayW w′ p₀)} {VR′ : VRel n w′}
+    {VR : VRel (k₀ + n) (replayW w′ p₀ Σ₁)} {VR′ : VRel n w′}
     {Ml : Term (ΔL w′)}
   → Mr —→^ k₀ [ χs₀ ] W → Value W
   → (∀ {ΔL′} {χsL : StoreChanges (ΔL w′) ΔL′}
        (st : Steps p₀ χs₀ room id↪ᵗ) {tags} (ok : OkL w′ χsL tags)
        (le : n ≤′ k₀ + n) Vl
-     → VR le (replayArr w′ room tags)
+     → VR le (replayArr w′ room tags (applyStores χs₀ Σ₁))
          (replayExt {w′ = w′} {p₀ = p₀} {room = room}
-         {χsL = χsL} {χs₀} st {tags} ok) Vl W
+         {χsL = χsL} {χs₀} {Σ₁} st {tags} ok) Vl W
      → VR′ ≤′-refl (releaseArr w′ tags) (releaseExt {w′ = w′} {χsL = χsL}
           {tags = tags} ok) Vl
          (renameᵗᵐ σ W))
-  → ℰᵍ ≻ (k₀ + n) (replayW w′ p₀) VR Ml Mr
+  → ℰᵍ ≻ (k₀ + n) (replayW w′ p₀ Σ₁) VR Ml Mr
   → ℰᵍ ≻ n w′ VR′ Ml (renameᵗᵐ σ W)
 ℰ-replay≻ p₀ room {n = zero} σ r v mv h =
   inj₁ (_ , [] , _ , none)
@@ -291,19 +303,20 @@ releaseExt {w′} {χsL = χsL} ok =
 -- `≺`: the stage is the left's, and the replay changes nothing in it
 ℰ-replay≺ : ∀ {w′ : World} {Θ₁ Θ₂} (p₀ : Prefix Θ₁ (ΔR w′))
     (room : Prefix Θ₂ (ΔR w′)) {k₀ n} {χs₀ : StoreChanges Θ₁ Θ₂}
+    {Σ₁ : TyStore Θ₁}
     {Mr : Term Θ₁} {W : Term Θ₂} (σ : Θ₂ ↪ᵗ storeR w′)
-    {VR : VRel n (replayW w′ p₀)} {VR′ : VRel n w′}
+    {VR : VRel n (replayW w′ p₀ Σ₁)} {VR′ : VRel n w′}
     {Ml : Term (ΔL w′)}
   → Mr —→^ k₀ [ χs₀ ] W → Value W
   → (∀ {ΔL′} {χsL : StoreChanges (ΔL w′) ΔL′}
        (st : Steps p₀ χs₀ room id↪ᵗ) {tags} (ok : OkL w′ χsL tags)
        {n′} (le : n′ ≤′ n) Vl
-     → VR le (replayArr w′ room tags)
+     → VR le (replayArr w′ room tags (applyStores χs₀ Σ₁))
          (replayExt {w′ = w′} {p₀ = p₀} {room = room}
-         {χsL = χsL} {χs₀} st {tags} ok) Vl W
+         {χsL = χsL} {χs₀} {Σ₁} st {tags} ok) Vl W
      → VR′ le (releaseArr w′ tags) (releaseExt {w′ = w′} {χsL = χsL}
           {tags = tags} ok) Vl (renameᵗᵐ σ W))
-  → ℰᵍ ≺ n (replayW w′ p₀) VR Ml Mr
+  → ℰᵍ ≺ n (replayW w′ p₀ Σ₁) VR Ml Mr
   → ℰᵍ ≺ n w′ VR′ Ml (renameᵗᵐ σ W)
 ℰ-replay≺ p₀ room σ r v mv (inj₁ ru) = inj₁ ru
 ℰ-replay≺ p₀ room σ r v mv (inj₂ (inj₁ b)) = inj₂ (inj₁ b)
@@ -327,14 +340,16 @@ releaseExt {w′} {χsL = χsL} ok =
 -- the release by `𝒱-release`, given where the replayed store sits
 ℰ-replay≻ᵛ : ∀ {w′ : World} {Θ₁ Θ₂} (p₀ : Prefix Θ₁ (ΔR w′))
     (room : Prefix Θ₂ (ΔR w′)) {k₀ n} {χs₀ : StoreChanges Θ₁ Θ₂}
+    {Σ₁ : TyStore Θ₁}
     {Mr : Term Θ₁} {W : Term Θ₂} (σ : Θ₂ ↪ᵗ storeR w′)
     {Δ Δ′} {Φ : Corr Δ Δ′} {A A′} (q : Φ ⊢ A ⊑ A′)
     {δ : Interp Δ Δ′ (ΔL w′) (ΔR w′)} {Ml : Term (ΔL w′)}
-  → Coh room (pre w′) σ id↪ᵗ → GoodI δ
+  → Coh room (pre w′) σ id↪ᵗ → StoreRen σ (applyStores χs₀ Σ₁) (ΣR w′)
+  → GoodI δ
   → Mr —→^ k₀ [ χs₀ ] W → Value W
-  → ℰ ≻ (k₀ + n) q (replayW w′ p₀) δ Ml Mr
+  → ℰ ≻ (k₀ + n) q (replayW w′ p₀ Σ₁) δ Ml Mr
   → ℰ ≻ n q w′ δ Ml (renameᵗᵐ σ W)
-ℰ-replay≻ᵛ {w′} p₀ room {k₀} {n} {χs₀} {W = W} σ q {δ} c g r v =
+ℰ-replay≻ᵛ {w′} p₀ room {k₀} {n} {χs₀} {Σ₁} {W = W} σ q {δ} c hR g r v =
   ℰ-replay≻ p₀ room σ
     {VR = λ le w e → 𝒱≤ ≻ le q w (δ ↑ᴵ e)}
     {VR′ = λ le w e → 𝒱≤ ≻ le q w (δ ↑ᴵ e)} r v
@@ -343,29 +358,33 @@ releaseExt {w′} {χsL = χsL} ok =
   mv : ∀ {ΔL′} {χsL : StoreChanges (ΔL w′) ΔL′}
        (st : Steps p₀ χs₀ room id↪ᵗ) {tags} (ok : OkL w′ χsL tags)
        (le : n ≤′ k₀ + n) Vl
-    → 𝒱≤ ≻ le q (replayArr w′ room tags)
+    → 𝒱≤ ≻ le q (replayArr w′ room tags (applyStores χs₀ Σ₁))
         (δ ↑ᴵ replayExt {w′ = w′} {p₀ = p₀} {room = room} {χsL = χsL}
-          {χs₀} st {tags} ok) Vl W
+          {χs₀} {Σ₁} st {tags} ok) Vl W
     → 𝒱≤ ≻ ≤′-refl q (releaseArr w′ tags)
         (δ ↑ᴵ releaseExt {w′ = w′} {χsL = χsL}
           {tags = tags} ok) Vl (renameᵗᵐ σ W)
   mv {χsL = χsL} st {tags} ok le Vl rel =
-    𝒱-release ≻ _ q (releaseArr w′ tags) room σ c {δ = δ ↑ᴵ e′}
+    𝒱-release ≻ _ q (releaseArr w′ tags) room σ c hR
+      {δ = δ ↑ᴵ e′}
       (GoodI-↑ {δ = δ} g e′)
-      (𝒱≤-cast ≻ le ≤′-refl q (replayArr w′ room tags) {δ = δ ↑ᴵ e′} rel)
+      (𝒱≤-cast ≻ le ≤′-refl q (replayArr w′ room tags (applyStores χs₀ Σ₁))
+        {δ = δ ↑ᴵ e′} rel)
     where
     e′ = releaseExt {w′ = w′} {χsL = χsL} {tags = tags} ok
 
 ℰ-replay≺ᵛ : ∀ {w′ : World} {Θ₁ Θ₂} (p₀ : Prefix Θ₁ (ΔR w′))
     (room : Prefix Θ₂ (ΔR w′)) {k₀ n} {χs₀ : StoreChanges Θ₁ Θ₂}
+    {Σ₁ : TyStore Θ₁}
     {Mr : Term Θ₁} {W : Term Θ₂} (σ : Θ₂ ↪ᵗ storeR w′)
     {Δ Δ′} {Φ : Corr Δ Δ′} {A A′} (q : Φ ⊢ A ⊑ A′)
     {δ : Interp Δ Δ′ (ΔL w′) (ΔR w′)} {Ml : Term (ΔL w′)}
-  → Coh room (pre w′) σ id↪ᵗ → GoodI δ
+  → Coh room (pre w′) σ id↪ᵗ → StoreRen σ (applyStores χs₀ Σ₁) (ΣR w′)
+  → GoodI δ
   → Mr —→^ k₀ [ χs₀ ] W → Value W
-  → ℰ ≺ n q (replayW w′ p₀) δ Ml Mr
+  → ℰ ≺ n q (replayW w′ p₀ Σ₁) δ Ml Mr
   → ℰ ≺ n q w′ δ Ml (renameᵗᵐ σ W)
-ℰ-replay≺ᵛ {w′} p₀ room {k₀} {n} {χs₀} {W = W} σ q {δ} c g r v =
+ℰ-replay≺ᵛ {w′} p₀ room {k₀} {n} {χs₀} {Σ₁} {W = W} σ q {δ} c hR g r v =
   ℰ-replay≺ p₀ room σ
     {VR = λ le w e → 𝒱≤ ≺ le q w (δ ↑ᴵ e)}
     {VR′ = λ le w e → 𝒱≤ ≺ le q w (δ ↑ᴵ e)} r v
@@ -374,17 +393,18 @@ releaseExt {w′} {χsL = χsL} ok =
   mv : ∀ {ΔL′} {χsL : StoreChanges (ΔL w′) ΔL′}
        (st : Steps p₀ χs₀ room id↪ᵗ) {tags} (ok : OkL w′ χsL tags)
        {n′} (le : n′ ≤′ n) Vl
-    → 𝒱≤ ≺ le q (replayArr w′ room tags)
+    → 𝒱≤ ≺ le q (replayArr w′ room tags (applyStores χs₀ Σ₁))
         (δ ↑ᴵ replayExt {w′ = w′} {p₀ = p₀} {room = room} {χsL = χsL}
-          {χs₀} st {tags} ok) Vl W
+          {χs₀} {Σ₁} st {tags} ok) Vl W
     → 𝒱≤ ≺ le q (releaseArr w′ tags)
         (δ ↑ᴵ releaseExt {w′ = w′} {χsL = χsL}
           {tags = tags} ok) Vl (renameᵗᵐ σ W)
   mv {χsL = χsL} st {tags} ok {n′} le Vl rel =
     𝒱≤-cast ≺ ≤′-refl le q (releaseArr w′ tags) {δ = δ ↑ᴵ e′}
-      (𝒱-release ≺ n′ q (releaseArr w′ tags) room σ c {δ = δ ↑ᴵ e′}
+      (𝒱-release ≺ n′ q (releaseArr w′ tags) room σ c hR
+      {δ = δ ↑ᴵ e′}
         (GoodI-↑ {δ = δ} g e′)
-        (𝒱≤-cast ≺ le ≤′-refl q (replayArr w′ room tags)
+        (𝒱≤-cast ≺ le ≤′-refl q (replayArr w′ room tags (applyStores χs₀ Σ₁))
           {δ = δ ↑ᴵ e′} rel))
     where
     e′ = releaseExt {w′ = w′} {χsL = χsL} {tags = tags} ok

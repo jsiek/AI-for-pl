@@ -1185,6 +1185,100 @@ the terms of the descriptors.
     `(⇑Vr ⦂∀ A [＇0]) ↑ 〖0 , ★ ↑ A〗 ⟨ c′ [★/0]ᶜ ⟩` itself (`ρS` of
     `replay-⊒` is the identity, `renameᵗᵐ-id`), so its run is the
     cast-time run and `ℰ-replay≻ᵛ` applies directly.
+* **Case 6: a counterexample in ≺** (`proof/LR/Case6Probe.agda`). The
+  cast lemma cannot be stated over `𝒱` alone: case 6 is false.
+  * Types: `∀X.X→★ ⊑ ∀X.X→★` (`∀⊑∀`, X paired) to
+    `∀X.X→★ ⊑ ★→★` (`∀⊑`). Casts, eager, at those types: left
+    `∀ᶜ (id ↦ id)`, right `inst (？X ↦ id)`. Empty world, `closedI`.
+  * Values: left `Λ ƛ x`, right `$ 0`. They are related by `𝒱 ≺ 1`:
+    the `∀⊑∀` clause at stages `n′ ≤ 1` holds because the left's
+    instantiation runs its one counted step (`Runs`), whatever the
+    right does (`related`).
+  * The casts are not related by `ℰ ≺ 1` (`unrelated`): the left cast
+    gives a value in 0 steps, so the right must reach a value; it
+    allocates α′ and then instantiates `$ 0`, which is stuck.
+  * Cause: in case 6 only the right runs the value's instantiation, and
+    in `≺` nothing bounds the right's run. The hypothesis's clause is
+    also satisfied when the left runs out or blames, and then says
+    nothing about the right.
+  * `≻` has the same gap, with a left value whose every instantiation
+    blames (not checked in Agda): the clause then holds against a stuck
+    right, and the goal fails once the right is stuck within the stage.
+  * What is missing is that the right value's instantiation reaches a
+    value. Two ways to get it:
+    * a hypothesis of the cast lemma at a right `inst`, discharged in
+      the fundamental lemma by typing (preservation for the right
+      program, and a lemma that instantiating a well-typed value of a
+      `∀` type reaches a value; neither is in the repository);
+    * or a conjunct of the `∀⊑∀` clause, a syntactic predicate on the
+      right value whose instantiations reach values. Syntactic, so that
+      renaming keeps it (world monotonicity of runs is not available).
+
+**Typing the right** (done; `LR.World`, `LR.Relation`,
+`proof/LR/Expression.agda`, `proof/TypeSafety/InstValue.agda`).
+
+* **Why.** The counterexample above: `Λ ƛ x` against `$ 0` is in
+  `𝒱 ≺ 1` at `∀X.X→★ ⊑ ∀X.X→★`, but under `∀ᶜ (id ↦ id)` against
+  `inst (？X ↦ id)` the right is stuck. `$ 0` is not typed at
+  `∀X.X→★`; a typed right value's instantiation reaches a value
+  (`inst-value`, `inst-cast-value`). So the cast lemma assumes the
+  right value typed.
+* **Worlds record the right store's contents.** The typing judgement
+  needs a `TyStore`: a conversion `V ↑ unseal α R` is typed only where
+  the store binds α to R. A world now has `ΣR : TyStore storeR`.
+  * Extension keeps every entry, renamed along `ρS` (`ΣR⊒`,
+    `StoreRen`).
+  * A run's arrival store is the run applied to the store
+    (`applyStores χsR (ΣR w)` in `Arrive`, `StoreRen-steps`), so
+    preservation types the run's results in exactly that store.
+  * A replay world carries the earlier store's contents; its release
+    needs the later world's store to contain the replay's arrival
+    store, which holds when the later world is a future of the
+    original run's arrival (the new hypothesis of `ℰ-replay≻ᵛ`,
+    `ℰ-replay≺ᵛ`).
+* **The conjunct.** `Typedᴿ w T M`: a store type T₀ with
+  `T ≡ ι T₀` and `⟨ storeR w , ΣR w , [] ⟩ ⊢ M ⦂ T₀`. An existential,
+  not `PreTy`: `PreTy` is not monotone, because a future may release a
+  reserved variable that T names, and then demand typing that the
+  earlier world never supplied. The existential moves along every
+  extension (`Typedᴿ-mono`, by `Coh` and `typing-renameᵗ`).
+* **Where it goes.**
+  * In the function clause, on the argument: `funRel` quantifies over
+    typed right arguments. This is the only place values enter a clause
+    from outside; the fundamental lemma's `ƛ` case needs it to type
+    the substituted body.
+  * As a wrapper for the hypothesis of the cast lemma and the
+    fundamental lemma's environments: `𝒱ᵀ = Typedᴿ × 𝒱`.
+  * Not in every clause of `𝒱`, and not in `ℰ`. Results of runs are
+    typed by preservation (`ℰᵍ-typed`, `ℰ-bind₂ᵀ`), payloads of
+    injections by inversion of typing, and the instantiation clauses
+    run typed terms when the value is typed. Putting it in every clause
+    would make every producer of `𝒱` (all conversion cases,
+    monotonicity, the substitution lemma, the oracle) prove typing,
+    for nothing that the cast lemma or the fundamental lemma reads.
+  * The left is not typed. Nothing found needs it: in case 6 the left
+    is a value at the cast, and its instantiations are the clause's.
+* **Cost in the conversion lemmas.** A converted function must convert
+  its typed argument back: the argument of `Vr ↑ (c ↦↑ d)` is
+  `Ur ↓ c`, typed only if the store binds the right's converted
+  variable α′ to its representation R. So `ConvI` and `RConvI` carry
+  `rcΣ : ΣR w ∋ α′ ⦂ R`, and `FreshP`, `FreshR` and the oracles take it
+  as a hypothesis of their later conversions. Every real conversion
+  has it: the right allocated α′ by `bind R` (`bind-Σ`).
+* **The termination lemma** (`proof/TypeSafety/InstValue.agda`):
+  for a typed value V : `∀ A` with A not a variable and `0 ∈ A`,
+  `V ⦂∀ A [ ＇ X ]` and `V ⟨ inst c ⟩` reach values in k counted steps,
+  without blame. Instantiation is only ever at variables, so the cast
+  mass never grows; blame is ruled out because every cast applied in
+  the run has `↦`, `∀ᶜ`, `inst` or safe `gen` at its top (`Top`).
+  * This is what case 6 needs on the right in both directions: in `≺`
+    the right must reach a value (the left is a value at the cast), in
+    `≻` it must not be stuck or blame within the stage.
+* **Still open for case 6:** the cast lemma's statement. Casts in
+  `LR.CastPrecision` are over the type context Δ; the lemma needs them
+  at the world, through the interpretation (left: `subst∼` with a
+  `SubstEnv∼` for the cast's modes at `δl`; right: through store
+  preimages of `δr`, since right terms live in the store).
 
 **Next, in order** (items 5–9 of Section 6.9):
 1. conversions;

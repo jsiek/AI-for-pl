@@ -116,12 +116,12 @@ mutual
       (p : Φ ⊢ A ⊑ ★) (q : Φ ⊢ B ⊑ ★) w
       {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
     → Φ ⊢ δ ≈ᴸ δ′ → funRel d n p q w δ Vl Vr → funRel d n p q w δ′ Vl Vr
-  funRel★-agree d n p q w h r e le Wl Wr vl vr a =
+  funRel★-agree d n p q w h r e le Wl Wr vl vr a t =
     ℰᵍ-map d _ _
       (λ le′ w″ e′ V V′ →
         𝒱≤★-agree d (≤′-trans le′ le) q w″ (↑ᴵ-respᴸ (↑ᴵ-respᴸ h e) e′))
       (r e le Wl Wr vl vr
-        (𝒱≤★-agree d le p _ (↑ᴵ-respᴸ (≈ᴸ-sym h) e) a))
+        (𝒱≤★-agree d le p _ (↑ᴵ-respᴸ (≈ᴸ-sym h) e) a) t)
 
   funStar-agree : ∀ d n {Φ : Corr Δ Δ′} {A B}
       (p : Φ ⊢ A ⊑ ★) (q : Φ ⊢ B ⊑ ★) w

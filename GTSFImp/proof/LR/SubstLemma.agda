@@ -314,6 +314,15 @@ record RenI {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} (R : CRen �
 
 open RenI public
 
+-- the right types agree along the renaming
+ren-ty : ∀ {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} (R : CRen Ψ Ψ′) A′
+    {δ₁ : Interp Δ₁ Δ₁′ ΘL ΘR} {δ₂ : Interp Δ₂ Δ₂′ ΘL ΘR}
+  → RenI R δ₁ δ₂
+  → substᵗ (δr δ₂) (renameᵗ (ρr R) A′) ≡ substᵗ (δr δ₁) A′
+ren-ty R A′ {δ₂ = δ₂} h =
+  trans (substᵗ-rename (δr δ₂) (ρr R) A′)
+    (substᵗ-cong A′ (λ Y → sym (rr≡ h Y)))
+
 module _ {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} {R : CRen Ψ Ψ′}
     {δ₁ : Interp Δ₁ Δ₁′ ΘL ΘR} {δ₂ : Interp Δ₂ Δ₂′ ΘL ΘR} where
 
@@ -449,19 +458,21 @@ mutual
     → RenI R δ₁ δ₂
     → ∀ {Vl Vr} → funRel d n p q w δ₁ Vl Vr
         ⇔ funRel d n (renᵖ R p) (renᵖ R q) w δ₂ Vl Vr
-  funRel-ren d n R p q w h =
-    iff (λ r e le Wl Wr vl vr a →
+  funRel-ren d n R {A′ = A′} p q w h =
+    iff (λ r e le Wl Wr vl vr a t →
            ℰᵍ-map d _ _
              (λ le′ w″ e′ V V′ →
                to (𝒱≤-ren d (≤′-trans le′ le) R q w″
                     (RenI-↑ (RenI-↑ h e) e′)))
-             (r e le Wl Wr vl vr (from (𝒱≤-ren d le R p _ (RenI-↑ h e)) a)))
-        (λ r e le Wl Wr vl vr a →
+             (r e le Wl Wr vl vr (from (𝒱≤-ren d le R p _ (RenI-↑ h e)) a)
+               (Typedᴿ-≡ (ren-ty R A′ (RenI-↑ h e)) t)))
+        (λ r e le Wl Wr vl vr a t →
            ℰᵍ-map d _ _
              (λ le′ w″ e′ V V′ →
                from (𝒱≤-ren d (≤′-trans le′ le) R q w″
                       (RenI-↑ (RenI-↑ h e) e′)))
-             (r e le Wl Wr vl vr (to (𝒱≤-ren d le R p _ (RenI-↑ h e)) a)))
+             (r e le Wl Wr vl vr (to (𝒱≤-ren d le R p _ (RenI-↑ h e)) a)
+               (Typedᴿ-≡ (sym (ren-ty R A′ (RenI-↑ h e))) t)))
 
   funStar-ren : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′}
       (R : CRen Ψ Ψ′) {A B} (p : Ψ ⊢ A ⊑ ★) (q : Ψ ⊢ B ⊑ ★) w
@@ -619,6 +630,16 @@ record SubI {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} (S : PSub �
           ⇔ 𝒱 d k (σ↔ S x) w′ (δ₂ ↑ᴵ e) Vl Vr
 
 open SubI public
+
+-- the right types agree along the substitution
+subst-ty : ∀ {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} (S : PSub Ψ Ψ′) A′
+    {d N w} {δ₁ : Interp Δ₁ Δ₁′ (ΔL w) (ΔR w)}
+    {δ₂ : Interp Δ₂ Δ₂′ (ΔL w) (ΔR w)}
+  → SubI S d N w δ₁ δ₂
+  → substᵗ (δr δ₂) (substᵗ (σr S) A′) ≡ substᵗ (δr δ₁) A′
+subst-ty S A′ {δ₂ = δ₂} h =
+  trans (substᵗ-∘ (δr δ₂) (σr S) A′)
+    (substᵗ-cong A′ (λ Y → sym (sr≡ h Y)))
 
 module _ {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} {S : PSub Ψ Ψ′} {d N}
     {w : World} {δ₁ : Interp Δ₁ Δ₁′ (ΔL w) (ΔR w)}
@@ -842,8 +863,8 @@ mutual
     → SubI S d N w δ₁ δ₂ → n < N
     → ∀ {Vl Vr} → funRel d n p q w δ₁ Vl Vr
         ⇔ funRel d n (substᵖ S p) (substᵖ S q) w δ₂ Vl Vr
-  funRel-subst d n S p q w h lt =
-    iff (λ r e le Wl Wr vl vr a →
+  funRel-subst d n S {A′ = A′} p q w h lt =
+    iff (λ r e le Wl Wr vl vr a t →
            ℰᵍ-pos d _ _ λ pos →
              ℰᵍ-map⁺ d _ _
                (λ le′ pos′ w″ e′ V V′ →
@@ -852,8 +873,9 @@ mutual
                       (below (≤′-trans le′ le) lt)))
                (r e le Wl Wr vl vr
                  (from (𝒱≤-subst d le S p _ (SubI-↑ h e) pos
-                         (below le lt)) a)))
-        (λ r e le Wl Wr vl vr a →
+                         (below le lt)) a)
+                 (Typedᴿ-≡ (subst-ty S A′ (SubI-↑ h e)) t)))
+        (λ r e le Wl Wr vl vr a t →
            ℰᵍ-pos d _ _ λ pos →
              ℰᵍ-map⁺ d _ _
                (λ le′ pos′ w″ e′ V V′ →
@@ -862,7 +884,8 @@ mutual
                         (below (≤′-trans le′ le) lt)))
                (r e le Wl Wr vl vr
                  (to (𝒱≤-subst d le S p _ (SubI-↑ h e) pos
-                       (below le lt)) a)))
+                       (below le lt)) a)
+                 (Typedᴿ-≡ (sym (subst-ty S A′ (SubI-↑ h e))) t)))
 
   funStar-subst : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′}
       (S : PSub Ψ Ψ′) {A B} (p : Ψ ⊢ A ⊑ ★) (q : Ψ ⊢ B ⊑ ★) {N} w

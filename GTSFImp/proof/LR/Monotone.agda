@@ -432,7 +432,7 @@ funRel-mono : ∀ d n {Φ : Corr Δ Δ′} {A A′ B B′}
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → funRel d n p q w δ Vl Vr
   → funRel d n p q w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
-funRel-mono d n p q e {δ} {Vl} {Vr} f e′ le Wl Wr vl vr a =
+funRel-mono d n {A′ = A′} p q e {δ} {Vl} {Vr} f e′ le Wl Wr vl vr a t =
   ℰᵍ-≡ (cong (_· Wl) (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl)))
     (cong (_· Wr) (sym (renameᵗᵐ-∘ (ρS e′) (ρS e) Vr)))
     (ℰᵍ-map d _ _
@@ -440,7 +440,8 @@ funRel-mono d n p q e {δ} {Vl} {Vr} f e′ le Wl Wr vl vr a =
         𝒱≤-resp d (≤′-trans le′ le) q w″
           (↑ᴵ-resp (≈ᴵ-sym (↑ᴵ-trans δ e′ e)) e″))
       (f (⊒-trans e′ e) le Wl Wr vl vr
-        (𝒱≤-resp d le p _ (↑ᴵ-trans δ e′ e) a)))
+        (𝒱≤-resp d le p _ (↑ᴵ-trans δ e′ e) a)
+        (Typedᴿ-resp A′ (↑ᴵ-trans δ e′ e) t)))
 
 allPair-mono : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : pair Φ ⊢ A ⊑ B)
     {w w′} (e : w′ ⊒ w) {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
@@ -865,11 +866,11 @@ funRel-down : ∀ d {n n′} (le : n′ ≤ n) {Φ : Corr Δ Δ′} {A A′ B B�
     (p : Φ ⊢ A ⊑ A′) (q : Φ ⊢ B ⊑ B′) w
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → funRel d n p q w δ Vl Vr → funRel d n′ p q w δ Vl Vr
-funRel-down d le p q w f e le₁ Wl Wr vl vr a =
+funRel-down d le p q w f e le₁ Wl Wr vl vr a t =
   ℰᵍ-map d _ _
     (λ le′ w″ e′ V V′ →
       𝒱≤-cast d (≤′-trans le′ le₂) (≤′-trans le′ le₁) q w″)
-    (f e le₂ Wl Wr vl vr (𝒱≤-cast d le₁ le₂ p _ a))
+    (f e le₂ Wl Wr vl vr (𝒱≤-cast d le₁ le₂ p _ a) t)
   where le₂ = ≤′-trans le₁ (≤⇒≤′ le)
 
 allPair-down : ∀ d {n n′} (le : n′ ≤ n) {Φ : Corr Δ Δ′} {A B}

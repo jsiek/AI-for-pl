@@ -26,7 +26,9 @@ open import Types
 open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ; id↪ᵗ)
 open import proof.DGG.CenterRename using (_∘↪_; toRenameᵗ-∘)
 open import proof.TypeInTermSubst using (toRename-id-eq; renameᵗ-id)
-open import Reduction using (StoreChanges; keep; []; _∷_)
+open import TyStore using (TyStore)
+open import Reduction using (StoreChanges; keep; []; _∷_; applyStore;
+  applyStores)
 open import proof.Reduction using (_++χ_)
 open import LR.Desc
 open import LR.Steps using (embedᶜˢ)
@@ -239,7 +241,8 @@ renameTag-∘ πL ηL πR ηR (nothing , e)
 ------------------------------------------------------------------------
 
 ⊒-refl : ∀ (w : World) → w ⊒ w
-⊒-refl w = ext id↪ᵗ id↪ᵗ id↪ᵗ (coh-id (pre w)) Grows-id tags≡′
+⊒-refl w =
+  ext id↪ᵗ id↪ᵗ id↪ᵗ (coh-id (pre w)) Grows-id tags≡′ StoreRen-id
   where
   tags≡′ : ∀ X → tag w (toRenameᵗ id↪ᵗ X) ≡ renameTag id↪ᵗ id↪ᵗ (tag w X)
   tags≡′ X = trans (cong (tag w) (toRename-id-eq X))
@@ -249,7 +252,7 @@ renameTag-∘ πL ηL πR ηR (nothing , e)
 ⊒-trans {w} {w′} {w″} e′ e =
   ext (ρL e′ ∘↪ ρL e) (ρR e′ ∘↪ ρR e) (ρS e′ ∘↪ ρS e)
     (coh-∘ {p₁ = pre w} {p₂ = pre w′} {p₃ = pre w″} (coh e) (coh e′))
-    (Grows-∘ (grows e′) (grows e)) tags≡′
+    (Grows-∘ (grows e′) (grows e)) tags≡′ (StoreRen-∘ (ΣR⊒ e) (ΣR⊒ e′))
   where
   tags≡′ : ∀ X → tag w″ (toRenameᵗ (ρL e′ ∘↪ ρL e) X)
     ≡ renameTag (ρL e′ ∘↪ ρL e) (ρR e′ ∘↪ ρR e) (tag w X)
@@ -277,6 +280,13 @@ Steps-++ : ∀ {Θ₀ Θ₁ Θ₂ Δ₀ Δ₁ Δ₂} {p₀ : Prefix Θ₀ Δ₀}
 Steps-++ {ρ′ = ρ′} (done refl) st′ = Steps-≡ (sym (∘↪-idʳ ρ′)) st′
 Steps-++ {ρ′ = ρ′} (more {ρ₁ = ρ₁} {ρ₂ = ρ₂} s ss refl) st′ =
   more s (Steps-++ ss st′) (sym (∘↪-assoc ρ′ ρ₂ ρ₁))
+
+-- the store after two runs
+applyStores-++ : ∀ {Θ₀ Θ₁ Θ₂} (χs : StoreChanges Θ₀ Θ₁)
+    (ψs : StoreChanges Θ₁ Θ₂) (Σ : TyStore Θ₀)
+  → applyStores (χs ++χ ψs) Σ ≡ applyStores ψs (applyStores χs Σ)
+applyStores-++ [] ψs Σ = refl
+applyStores-++ (χ ∷ χs) ψs Σ = applyStores-++ χs ψs (applyStore χ Σ)
 
 -- a pure step keeps the prefix
 step1-keep : ∀ {Θ Δ} (p : Prefix Θ Δ) → Step1 p keep p id↪ᵗ

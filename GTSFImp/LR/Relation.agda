@@ -28,6 +28,12 @@ module LR.Relation where
 --   * The guard convention for `≻` (Section 6.6): a relation whose
 --     right type is `★` is `G`, whose stage-n content reads stage n − 1
 --     (or the same stage on a smaller left term).
+--   * Typing the right (notes/logrel-dgg.md, Section 7, "Typing the
+--     right"): `Typedᴿ w T M` types M in the world's right store at a
+--     store preimage of T.  A function clause takes typed right
+--     arguments only; `𝒱ᵀ` is the value relation with the right value
+--     typed, the hypothesis of the cast lemma.  Results of runs are
+--     typed by preservation (`proof.LR.Expression`, `ℰᵍ-typed`).
 --   * Right terms are in the world's right store; tags, descriptors and
 --     interpretations are in its right scope (`LR.World`, Design (W)).
 --     A `∀` clause gives the right program the store preimages of its
@@ -52,9 +58,9 @@ open import Types
 open import Consistency using (_⊢_∼_; _!; _↪ᵗ_; toRenameᵗ; id↪ᵗ; keep)
 open import Conversion using (Conv↓; seal; _↦↓_; `∀↓_; id↓)
 open import CastTerms using (Term; $; _·_; _⦂∀_[_]; _⟨_⟩; _↓_; blame;
-  Value; renameᵗᵐ)
+  Value; renameᵗᵐ; ⟨_,_,_⟩; _⊢_⦂_)
 open import Primitives using (Const)
-open import Reduction using (StoreChanges; _—↠[_]_)
+open import Reduction using (StoreChanges; _—↠[_]_; applyStores)
 open import LR.Precision
 open import LR.Desc
 open import LR.World
@@ -127,7 +133,8 @@ extDeadI T δ = extOnlyI T (sem ⊤Ω) δ
 envI : ∀ {Δ Δ′ ΔL ΔR}
   → Vec (Entry ΔL ΔR) Δ → Vec (Ty ΔR) Δ′ → Interp Δ Δ′ ΔL ΔR
 envI env envR =
-  interp (λ X → entryTy (lookup env X)) (lookup envR) (λ X → syn (lookup env X))
+  interp (λ X → entryTy (lookup env X)) (lookup envR)
+    (λ X → syn (lookup env X))
 
 -- the empty interpretation, for closed precision derivations
 closedI : ∀ {ΔL ΔR} → Interp zero zero ΔL ΔR
@@ -161,6 +168,15 @@ IsInjVarᴿ ι Y c = ⊥
 -- type names a reserved variable
 PreTy : ∀ {Θ Δ} → Θ ↪ᵗ Δ → Ty Δ → (Ty Θ → Set) → Set
 PreTy ι T P = ∀ T₀ → T ≡ renameᵗ (toRenameᵗ ι) T₀ → P T₀
+
+-- a right term is typed in the world's right store, at a store
+-- preimage of the scope type T
+record Typedᴿ (w : World) (T : Ty (ΔR w)) (M : Term (storeR w)) : Set where
+  constructor typedᴿ
+  field
+    preTy : Ty (storeR w)
+    preTy≡ : T ≡ renameᵗ (toRenameᵗ (ιʷ w)) preTy
+    typed : ⟨ storeR w , ΣR w , [] ⟩ ⊢ M ⦂ preTy
 
 IsInjBase : ∀ {Δ} {μ} {A B : Ty Δ} → Base → μ ⊢ A ∼ B → Set
 IsInjBase ι (_! ⦃ Gᵍ = ‵ ι′ ⦄ c) = ι′ ≡ ι
@@ -217,9 +233,9 @@ Arrive {ΔL′} {ΘR′} n n′ w χsL χsR VR le Vl Vr =
   Σ[ tags ∈ (TyVar ΔL′ → Tag ΔL′ Δ′) ]
   Σ[ ok ∈ (∀ X → tags (toRenameᵗ (embedᶜˢ χsL) X)
                    ≡ renameTag (embedᶜˢ χsL) ρ (tag w X)) ]
-    VR le (mkWorld ΔL′ Δ′ tags ΘR′ p′)
+    VR le (mkWorld ΔL′ Δ′ tags ΘR′ p′ (applyStores χsR (ΣR w)))
       (ext (embedᶜˢ χsL) ρ (embedᶜˢ χsR) (coh-steps st)
-        (Steps-grows st) ok) Vl Vr
+        (Steps-grows st) ok (StoreRen-steps χsR)) Vl Vr
 
 ℰᵍ : Dir → (n : ℕ) (w : World) → VRel n w
   → Term (ΔL w) → Term (storeR w) → Set
@@ -400,14 +416,15 @@ mutual
     IsInj∀ c × 𝒱 d k (∀⊑∀ {Φ = []} ★⊑★) w closedI W Wr
   starAll d k w W Vr = ⊥
 
-  -- functions: related argument values in any future give related
-  -- results
+  -- functions: related argument values in any future, the right one
+  -- typed, give related results
   funRel : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A A′ B B′}
     → Φ ⊢ A ⊑ A′ → Φ ⊢ B ⊑ B′ → (w : World)
     → Interp Δ Δ′ (ΔL w) (ΔR w) → Term (ΔL w) → Term (storeR w) → Set
-  funRel d n p q w δ Vl Vr =
+  funRel d n {A′ = A′} p q w δ Vl Vr =
     ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n) Wl Wr → Value Wl → Value Wr
     → 𝒱≤ d le p w′ (δ ↑ᴵ e) Wl Wr
+    → Typedᴿ w′ (substᵗ (δr (δ ↑ᴵ e)) A′) Wr
     → ℰᵍ d n′ w′
         (λ le′ w″ e′ → 𝒱≤ d (≤′-trans le′ le) q w″ ((δ ↑ᴵ e) ↑ᴵ e′))
         (renameᵗᵐ (ρL e) Vl · Wl) (renameᵗᵐ (ρS e) Vr · Wr)
@@ -538,3 +555,16 @@ mutual
   → Φ ⊢ A ⊑ A′ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
   → Term (ΔL w) → Term (storeR w) → Set
 ℰ d n p w δ = ℰᵍ d n w (λ le w′ e → 𝒱≤ d le p w′ (δ ↑ᴵ e))
+
+------------------------------------------------------------------------
+-- Typed values
+------------------------------------------------------------------------
+
+-- related values whose right value is typed at its right type: the
+-- hypothesis of the cast lemma and the fundamental lemma's
+-- environments (notes/logrel-dgg.md, Section 7, "Typing the right")
+𝒱ᵀ : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A A′}
+  → Φ ⊢ A ⊑ A′ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
+  → Term (ΔL w) → Term (storeR w) → Set
+𝒱ᵀ d n {A′ = A′} p w δ Vl Vr =
+  Typedᴿ w (substᵗ (δr δ) A′) Vr × 𝒱 d n p w δ Vl Vr

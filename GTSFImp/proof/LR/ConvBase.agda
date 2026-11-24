@@ -325,6 +325,7 @@ app-core : ∀ d s {Φ : Corr Δ Δ′} {A A′ B B′} (p : Φ ⊢ A ⊑ A′)
     (q : Φ ⊢ B ⊑ B′) w {δ₁ δ₂ : Interp Δ Δ′ (ΔL w) (ΔR w)}
     {Vl Vr Ul Ur} (vl : Value Vl) (vr : Value Vr)
     (FL : MFrame (ΔL w)) (FR : MFrame (storeR w))
+  → Typedᴿ w (substᵗ (δr δ₁) A′) Ur
   → ℰ d s p w δ₁ Ul Ur
   → funRel d s p q w δ₁ Vl Vr
   → (∀ {w′} (e : w′ ⊒ w) {k} → k ≤ s → ∀ {Ql Qr} → Value Ql → Value Qr
@@ -332,18 +333,20 @@ app-core : ∀ d s {Φ : Corr Δ Δ′} {A A′ B B′} (p : Φ ⊢ A ⊑ A′)
        → ℰ d k q w′ (δ₂ ↑ᴵ e) (mplug (renameMFrame (ρL e) FL) Ql)
            (mplug (renameMFrame (ρS e) FR) Qr))
   → ℰ d s q w δ₂ (mplug FL (Vl · Ul)) (mplug FR (Vr · Ur))
-app-core d s p q w {δ₁} {δ₂} vl vr FL FR inner f K =
+app-core d s {A′ = A′} p q w {δ₁} {δ₂} vl vr FL FR tU inner f K =
   ℰ-bind₂ d s q q w {δ₁ = δ₁} {δ₂ = δ₂} FL FR
-    (ℰ-bind₂ d s p q w {δ₁ = δ₁} {δ₂ = δ₁}
-      (just (app₂ _ vl)) (just (app₂ _ vr)) inner K₁)
+    (ℰ-bind₂ᵀ d s p q w {δ₁ = δ₁} {δ₂ = δ₁}
+      (just (app₂ _ vl)) (just (app₂ _ vr)) tU inner K₁)
     K
   where
   K₁ : ∀ {w′} (e : w′ ⊒ w) {k} → k ≤ s → ∀ {Pl Pr} → Value Pl → Value Pr
-    → 𝒱 d k p w′ (δ₁ ↑ᴵ e) Pl Pr → _
-  K₁ e {k} k≤s {Pl} {Pr} pl pr r =
+    → 𝒱 d k p w′ (δ₁ ↑ᴵ e) Pl Pr
+    → Typedᴿ w′ (substᵗ (δr (δ₁ ↑ᴵ e)) A′) Pr → _
+  K₁ e {k} k≤s {Pl} {Pr} pl pr r tP =
     ℰᵍ-map d k _
       (λ le′ w″ e′ V V′ → 𝒱≤-cast d (≤′-trans le′ (≤⇒≤′ k≤s)) le′ q w″)
-      (f e (≤⇒≤′ k≤s) Pl Pr pl pr (𝒱≤-cast d ≤′-refl (≤⇒≤′ k≤s) p _ r))
+      (f e (≤⇒≤′ k≤s) Pl Pr pl pr (𝒱≤-cast d ≤′-refl (≤⇒≤′ k≤s) p _ r)
+        tP)
 
 -- a right step exactly when the right converts
 RStep : ∀ {Θ} → RConv Θ → Term Θ → Term Θ → Set

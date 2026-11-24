@@ -18,6 +18,9 @@ module proof.LR.ConvRight where
 --     σs, σt are store types for the interpretations' right types, the
 --     store preimages of the right type at hand (`PreS`), and a type
 --     application allocates in the store (`worldR`, `extR`).
+--   * The right store binds the converted variable to its
+--     representation (`rcΣ`, and a hypothesis of `FreshR`), so that
+--     function clauses' typed arguments stay typed.
 --   * The lemma, with a reveal and a conceal half, by induction on the
 --     precision derivation.  Into `★` the right takes an identity step
 --     and the relation reads only the left (`proof.LR.StarAgree`).  At
@@ -53,7 +56,8 @@ open import CastTerms using (Term; `_; ƛ_; _·_; Λ_; _⦂∀_[_]; $; _⊕[_]_;
 import CastTerms as CT
 open import Reduction using (_—→_; id-reveal; id-conceal; conceal-reveal;
   β-reveal-⇒; β-conceal-⇒; β-reveal-∀; β-conceal-∀; _—→[_]_; bind; keep;
-  StoreChange; StoreChanges; applyBody; []; _∷_; ↠-refl; ↠-step)
+  StoreChange; StoreChanges; applyBody; []; _∷_; ↠-refl; ↠-step;
+  applyStores)
 open import LR.Steps using (embedᶜˢ; more; none)
 open import Data.List using (List; []; _∷_; map)
 open import LR.Frame using (Frame; reveal; conceal; app₂; plug;
@@ -194,7 +198,8 @@ NewR e β′ = ∀ Y → toRenameᵗ (ρS e) Y ≢ β′
 -- conversions
 FreshR : Dir → (w : World) → Leaf (ΔL w) (ΔR w) → Ty (storeR w) → Set
 FreshR d w L T′ =
-  ∀ {w′} (e : w′ ⊒ w) {β′ R′} → NewR e β′ → ∀ {k}
+  ∀ {w′} (e : w′ ⊒ w) {β′ R′} → NewR e β′ → RCΣ w′ (just (β′ , R′))
+  → ∀ {k}
   → (∀ {Vl Vr} → Value Vl → Value Vr
        → leafRel d k w′ (transportLeaf (ρL e) (ρR e) L) Vl Vr
        → ℰL d k w′ (transportLeaf (ρL e) (ρR e) L) Vl
@@ -342,6 +347,7 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} where
       selfR : SelfR m σs
       tyL : ∀ Z → δl δs Z ≡ δl δt Z
       tyR : ∀ Y′ → replaceTy (rα m) (rR m σt) (σs Y′) ≡ σt Y′
+      rcΣ : RCΣ w (rcR m σt)
       leafO : ∀ Z → OtherR m Z → leaf δs Z ≈ˡ leaf δt Z
       convP : ∀ {Z Y′} (z : Φ ∋ Z ↔ Y′) → OtherR m Z
         → ConvLeafR d N w (rα m) (rR m σt) (leaf δs Z) (leaf δt Z) (σs Y′)
@@ -399,7 +405,7 @@ module _ {d} {w w′ : World} (e : w′ ⊒ w) {L : Leaf (ΔL w) (ΔR w)} where
 
   FreshR-↑ : ∀ {T′} → FreshR d w L T′
     → FreshR d w′ L′ (renameᵗ (toRenameᵗ (ρS e)) T′)
-  FreshR-↑ {T′} f {w″} e′ {β′} {R′} nb {k} =
+  FreshR-↑ {T′} f {w″} e′ {β′} {R′} nb bs {k} =
     (λ {Vl} {Vr} vl vr r →
       ℰL-resp d k w″ (≈ˡ-sym L∘)
         (ℰL-≡ d k w″ L₂ refl
@@ -415,7 +421,7 @@ module _ {d} {w w′ : World} (e : w′ ⊒ w) {L : Leaf (ΔL w) (ΔR w)} where
     where
     L∘ = transportLeaf-∘ (ρL e′) (ρL e) (ρR e′) (ρR e) L
     L₂ = transportLeaf (ρL e′ ∘↪ ρL e) (ρR e′ ∘↪ ρR e) L
-    g = f (⊒-trans e′ e) (NewR-∘ e′ e nb) {k}
+    g = f (⊒-trans e′ e) (NewR-∘ e′ e nb) bs {k}
 
 ------------------------------------------------------------------------
 -- The hypotheses move to future worlds
@@ -511,6 +517,9 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
       (trans (sym (replaceTy-rename ρs (toRenameᵗ-injective (ρS e)) (rα m)
                (rR m σt) (σs Y′)))
         (cong (renameᵗ ρs) (tyR h Y′)))
+  rcΣ (RConvI-↑ {m = m} h) =
+    subst (RCΣ w′) (sym (rcR-↑ (ρS e) m σt))
+      (RCΣ-ren e (rcR m σt) (rcΣ h))
   leafO (RConvI-↑ {m = m} h) Z o =
     transportLeaf-resp (ρL e) (ρR e) (leafO h Z (OtherR-↑ (ρS e) m Z o))
   convP (RConvI-↑ {m = m} h) {Z} z o =
@@ -581,6 +590,9 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
   tyR (RConvI-extPair {m = m} {β′} gl ne cv fr h) (suc Y′) =
     subst₂ (λ a R → replaceTy a R (σs Y′) ≡ σt Y′)
       (sym (rα-pair m)) (sym (rR-pair m σt (＇ β′))) (tyR h Y′)
+  rcΣ (RConvI-extPair {m = m} {β′} gl ne cv fr h) =
+    subst₂ (λ a R → RCΣ w (just (a , R)))
+      (sym (rα-pair m)) (sym (rR-pair m σt (＇ β′))) (rcΣ h)
   leafO (RConvI-extPair gl ne cv fr h) zero o = ≈ˡ-refl
   leafO (RConvI-extPair {m = m} gl ne cv fr h) (suc Z) o =
     leafO h Z (OtherR-pair m Z o)
@@ -613,6 +625,9 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {X : TyVar Δ} {d : Dir} {N : ℕ}
   tyR (RConvI-extOnly {m = m} gl h) Y′ =
     subst₂ (λ a R → replaceTy a R (σs Y′) ≡ σt Y′)
       (sym (rα-only m)) (sym (rR-only m σt)) (tyR h Y′)
+  rcΣ (RConvI-extOnly {m = m} gl h) =
+    subst₂ (λ a R → RCΣ w (just (a , R)))
+      (sym (rα-only m)) (sym (rR-only m σt)) (rcΣ h)
   leafO (RConvI-extOnly gl h) zero o = ≈ˡ-refl
   leafO (RConvI-extOnly {m = m} gl h) (suc Z) o =
     leafO h Z (OtherR-only′ m Z o)
@@ -676,7 +691,7 @@ module _ {d : Dir} {N : ℕ} {w : World} {L : Leaf (ΔL w) (ΔR w)}
 
   -- under later conversions
   storeFreshR : FreshR d w L (＇ γ′)
-  storeFreshR {w′} e {β′} {R′} nb {k} =
+  storeFreshR {w′} e {β′} {R′} nb bs {k} =
     (λ vl vr r →
       idRevR d k w′ (transportLeaf (ρL e) (ρR e) L)
         (GoodLeaf-transport (ρL e) (ρR e) gl) (nb γ′) vl vr r) ,
@@ -694,9 +709,10 @@ module _ {d} {w w₁ : World} (e₁ : w₁ ⊒ w) {L : Leaf (ΔL w) (ΔR w)}
   private
     L₁ = transportLeaf (ρL e₁) (ρR e₁) L
 
-  fresh→convR : ∀ {T′ N} (R′ : Ty (storeR w₁)) → FreshR d w L T′
+  fresh→convR : ∀ {T′ N} (R′ : Ty (storeR w₁)) → RCΣ w₁ (just (β′ , R′))
+    → FreshR d w L T′
     → ConvLeafR d N w₁ β′ R′ L₁ L₁ (renameᵗ (toRenameᵗ (ρS e₁)) T′)
-  fresh→convR {T′} R′ f {w′} e′ {k} k≤N =
+  fresh→convR {T′} R′ bs f {w′} e′ {k} k≤N =
     (λ {Vl} {Vr} vl vr r →
       ℰL-resp d k w′ (≈ˡ-sym L∘)
         (ℰL-≡ d k w′ L₂ refl
@@ -714,7 +730,8 @@ module _ {d} {w w₁ : World} (e₁ : w₁ ⊒ w) {L : Leaf (ΔL w) (ΔR w)}
     where
     L∘ = transportLeaf-∘ (ρL e′) (ρL e₁) (ρR e′) (ρR e₁) L
     L₂ = transportLeaf (ρL e′ ∘↪ ρL e₁) (ρR e′ ∘↪ ρR e₁) L
-    g = f (⊒-trans e′ e₁) (NewR-after e₁ e′ nb) {k}
+    g = f (⊒-trans e′ e₁) (NewR-after e₁ e′ nb)
+          (RCΣ-ren e′ (just (β′ , R′)) bs) {k}
 
 ------------------------------------------------------------------------
 -- The hypotheses, in the current world
@@ -990,14 +1007,17 @@ module FunConvR {Δ Δ′} {Φ : Corr Δ Δ′} (d : Dir) (N : ℕ)
     → n ≤ N
     → ∀ {Vl Vr} → Value Vl → Value Vr → funRel d n p q w δs Vl Vr
     → ∀ {Ul Ur} → Value Ul → Value Ur → 𝒱 d n p w δt Ul Ur
+    → Typedᴿ w (substᵗ (δr δt) A′) Ur
     → ℰ d n q w δt (Vl · Ul)
         (revM (rcR m σt) (substᵗ σs (A′ ⇒ B′)) Vr · Ur)
   rev-at w {m = m} {δs} {δt} {σs} {σt} h ps le {Vl} {Vr} vl vr f
-      {Ul} {Ur} ul ur a =
+      {Ul} {Ur} ul ur a tU =
     ℰ-app-stepsR d q w le (rightApp (rcR m σt) vr ur)
       (λ {s} s≤n cb →
         app-core d s p q w vl vr nothing
           (revFrame (rcR m σt) (substᵗ σs B′))
+          (conTyped (rcR m σt) A′ (rcΣ h) (tyR h)
+            (PreM-just refl (PreS-⇒₁ ps)) tU)
           (conp h (PreS-⇒₁ ps) (ConBR→ConRb d (isNoneR m) cb) ul ur
             (𝒱-down d s≤n p w (goodT h) a))
           (funRel-down d s≤n p q w f)
@@ -1012,15 +1032,18 @@ module FunConvR {Δ Δ′} {Φ : Corr Δ Δ′} (d : Dir) (N : ℕ)
     → ConRm d m n N
     → ∀ {Wl Wr} → Value Wl → Value Wr → funRel d n p q w δt Wl Wr
     → ∀ {Ul Ur} → Value Ul → Value Ur → 𝒱 d n p w δs Ul Ur
+    → Typedᴿ w (substᵗ (δr δs) A′) Ur
     → ℰ d n q w δs (Wl · Ul)
         (conM (rcR m σt) (substᵗ σs (A′ ⇒ B′)) Wr · Ur)
   con-at w {m = m} {δs} {δt} {σs} {σt} h ps cb {Wl} {Wr} wl wr f
-      {Ul} {Ur} ul ur a =
+      {Ul} {Ur} ul ur a tU =
     ℰ-app-stepsR d q w (ConRb-≤ d (isNoneR m) cb)
       (rightAppC (rcR m σt) wr ur)
       (λ {s} s≤n cb′ →
         app-core d s p q w wl wr nothing
           (conFrame (rcR m σt) (substᵗ σs B′))
+          (revTyped (rcR m σt) A′ (rcΣ h) (tyR h)
+            (PreM-just refl (PreS-⇒₁ ps)) tU)
           (revp h (PreS-⇒₁ ps) (≤-trans s≤n (ConRb-≤ d (isNoneR m) cb))
             ul ur
             (𝒱-down d s≤n p w (goodS h) a))
@@ -1039,14 +1062,14 @@ module FunConvR {Δ Δ′} {Φ : Corr Δ Δ′} (d : Dir) (N : ℕ)
     → funRel d n p q w δt Vl
         (revM (rcR m σt) (substᵗ σs (A′ ⇒ B′)) Vr)
   fun-rev {n} {w} {m = m} {δs} {δt} {σs} {σt} h ps le {Vl} {Vr} vl vr f
-      {w′} e {n′} le′ Ul Ur ul ur a =
+      {w′} e {n′} le′ Ul Ur ul ur a tU =
     ℰᵍ-map d n′ w′ (λ le″ w″ e″ V V′ → 𝒱≤-cast d le″ (≤′-trans le″ le′) q w″)
       (ℰᵍ-≡ refl (cong (_· Ur) (sym (revVR e m σs σt Vr (A′ ⇒ B′))))
         (rev-at w′ (RConvI-↑ e h) (PreS-↑ ps e) (≤-trans (≤′⇒≤ le′) le)
           (renameᵗᵐ-preserves-Value (ρL e) vl)
           (renameᵗᵐ-preserves-Value (ρS e) vr)
           (funRel-down d (≤′⇒≤ le′) p q w′ (funRel-mono d n p q e f))
-          ul ur (𝒱≤-cast d le′ ≤′-refl p w′ a)))
+          ul ur (𝒱≤-cast d le′ ≤′-refl p w′ a) tU))
 
   fun-con : ∀ {n w X} {m : RMode Φ X (storeR w)} {δs δt σs σt}
       (h : RConvI d N w m δs δt σs σt) → PreS w δs δt σs σt (A′ ⇒ B′)
@@ -1055,7 +1078,7 @@ module FunConvR {Δ Δ′} {Φ : Corr Δ Δ′} (d : Dir) (N : ℕ)
     → funRel d n p q w δs Wl
         (conM (rcR m σt) (substᵗ σs (A′ ⇒ B′)) Wr)
   fun-con {n} {w} {m = m} {δs} {δt} {σs} {σt} h ps cb {Wl} {Wr} wl wr f
-      {w′} e {n′} le′ Ul Ur ul ur a =
+      {w′} e {n′} le′ Ul Ur ul ur a tU =
     ℰᵍ-map d n′ w′ (λ le″ w″ e″ V V′ → 𝒱≤-cast d le″ (≤′-trans le″ le′) q w″)
       (ℰᵍ-≡ refl (cong (_· Ur) (sym (conVR e m σs σt Wr (A′ ⇒ B′))))
         (con-at w′ (RConvI-↑ e h) (PreS-↑ ps e)
@@ -1063,7 +1086,7 @@ module FunConvR {Δ Δ′} {Φ : Corr Δ Δ′} (d : Dir) (N : ℕ)
           (renameᵗᵐ-preserves-Value (ρL e) wl)
           (renameᵗᵐ-preserves-Value (ρS e) wr)
           (funRel-down d (≤′⇒≤ le′) p q w′ (funRel-mono d n p q e f))
-          ul ur (𝒱≤-cast d le′ ≤′-refl p w′ a)))
+          ul ur (𝒱≤-cast d le′ ≤′-refl p w′ a) tU))
 
 ------------------------------------------------------------------------
 -- `∀⊑`: only the left instantiates, and its instantiation is read
@@ -1187,9 +1210,11 @@ okBindR w A X = cong (tagsR w A) (toRename-id-eq X)
 
 worldR : (w : World) → Ty (storeR w) → World
 worldR w A = mkWorld (ΔL w) (ΔRᴬ w A) (tagsR w A) (suc (storeR w)) (preᴬ w A)
+  (applyStores (bind A ∷ []) (ΣR w))
 
 extR : ∀ (w : World) (A : Ty (storeR w)) → worldR w A ⊒ w
-extR w A = stepExt [] (bind A ∷ []) (stᴬ w A) (tagsR w A) (okBindR w A)
+extR w A =
+  stepExt {w = w} [] (bind A ∷ []) (stᴬ w A) (tagsR w A) (okBindR w A)
 
 -- whether a right-only conversion's stage may stay at the target's
 -- bound
@@ -1209,8 +1234,9 @@ antiR₁ : ∀ d {n N} {Φ : Corr Δ Δ′} {A A′} (p : Φ ⊢ A ⊑ A′) {w 
   → (ok : ∀ X → tags (toRenameᵗ (embedᶜˢ ([] {ΔL w})) X)
             ≡ renameTag (embedᶜˢ ([] {ΔL w})) ρ (tag w X))
   → (∀ {s} → s ≤′ n → s ≤ N → UpBR d s n
-       → ℰ d s p (mkWorld (ΔL w) Δ₁ tags ΘR p₁)
-           (δ ↑ᴵ stepExt [] (χR ∷ []) st tags ok) Ml Mr′)
+       → ℰ d s p
+           (mkWorld (ΔL w) Δ₁ tags ΘR p₁ (applyStores (χR ∷ []) (ΣR w)))
+           (δ ↑ᴵ stepExt {w = w} [] (χR ∷ []) st tags ok) Ml Mr′)
   → ℰ d n p w δ Ml Mr
 antiR₁ ≺ {n} p le sr st tags ok k =
   ℰ-anti-≺ p none (↠-step sr ↠-refl) st tags ok (k ≤′-refl le ≤-refl)
@@ -1401,37 +1427,40 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} {d : Dir} {N : ℕ}
     → SealR d Nβ w₁ (r-pair {Φ = pair Φ} {X = zero} ↔-here β′)
         (extPairI T (ιT w₁ (＇ β′)) Ls (δt ↑ᴵ e₁))
         (extPairI Tl (ιT w Tr) Lt δt ↑ᴵ e₁) ((Tr •ˢ σt) ↑ˢ e₁)
+    → RCΣ w₁ (just (β′ , renameᵗ ρs Tr))
     → RConvI d Nβ w₁ (r-pair {Φ = pair Φ} {X = zero} ↔-here β′)
         (extPairI T (ιT w₁ (＇ β′)) Ls (δt ↑ᴵ e₁))
         (extPairI Tl (ιT w Tr) Lt δt ↑ᴵ e₁)
         (＇ β′ •ˢ (σt ↑ˢ e₁)) ((Tr •ˢ σt) ↑ˢ e₁)
-  goodS (RConvI-newR {T = T} eqT le h gs gt ft si) =
+  goodS (RConvI-newR {T = T} eqT le h gs gt ft si bs) =
     GoodI-extPairI {T = T} {T′ = ιT w₁ (＇ β′)} {δ = δt ↑ᴵ e₁} gs
       (GoodI-↑ {δ = δt} (fgoodR h) e₁)
-  goodT (RConvI-newR {Tl = Tl} eqT le h gs gt ft si) =
+  goodT (RConvI-newR {Tl = Tl} eqT le h gs gt ft si bs) =
     GoodI-↑ {δ = extPairI Tl (ιT w Tr) Lt δt}
       (GoodI-extPairI {T = Tl} {T′ = ιT w Tr} {δ = δt} gt (fgoodR h)) e₁
-  selfR (RConvI-newR eqT le h gs gt ft si) = refl
-  tyL (RConvI-newR eqT le h gs gt ft si) zero = eqT
-  tyL (RConvI-newR eqT le h gs gt ft si) (suc Z) = refl
-  tyR (RConvI-newR eqT le h gs gt ft si) zero = replaceTy-self β′ _
-  tyR (RConvI-newR eqT le h gs gt ft si) (suc Y) =
+  selfR (RConvI-newR eqT le h gs gt ft si bs) = refl
+  tyL (RConvI-newR eqT le h gs gt ft si bs) zero = eqT
+  tyL (RConvI-newR eqT le h gs gt ft si bs) (suc Z) = refl
+  tyR (RConvI-newR eqT le h gs gt ft si bs) zero = replaceTy-self β′ _
+  tyR (RConvI-newR eqT le h gs gt ft si bs) (suc Y) =
     replaceTy-new ρs _ nb (σt Y)
-  leafO (RConvI-newR eqT le h gs gt ft si) zero o = ⊥-elim (o refl)
-  leafO (RConvI-newR eqT le h gs gt ft si) (suc Z) o = ≈ˡ-refl
-  convP (RConvI-newR eqT le h gs gt ft si) ↔-here o = ⊥-elim (o refl)
-  convP (RConvI-newR eqT le h gs gt ft si) (↔-pair {X = Z} {Y = Y′} z) o =
-    fresh→convR {d = d} e₁ {L = leaf δt Z} nb (renameᵗ ρs Tr) (fR h z)
-  genR (RConvI-newR eqT le h gs gt ft si) ↔-here =
+  rcΣ (RConvI-newR eqT le h gs gt ft si bs) = bs
+  leafO (RConvI-newR eqT le h gs gt ft si bs) zero o = ⊥-elim (o refl)
+  leafO (RConvI-newR eqT le h gs gt ft si bs) (suc Z) o = ≈ˡ-refl
+  convP (RConvI-newR eqT le h gs gt ft si bs) ↔-here o = ⊥-elim (o refl)
+  convP (RConvI-newR eqT le h gs gt ft si bs) (↔-pair {X = Z} {Y = Y′} z) o =
+    fresh→convR {d = d} e₁ {L = leaf δt Z} nb (renameᵗ ρs Tr) bs
+      (fR h z)
+  genR (RConvI-newR eqT le h gs gt ft si bs) ↔-here =
     FreshR-↑ {d = d} e₁ {L = Lt} {Tr} ft
-  genR (RConvI-newR eqT le h gs gt ft si) (↔-pair {X = Z} {Y = Y′} z) =
+  genR (RConvI-newR eqT le h gs gt ft si bs) (↔-pair {X = Z} {Y = Y′} z) =
     FreshR-↑ {d = d} e₁ {L = leaf δt Z} {σt Y′} (fR h z)
-  genRS (RConvI-newR eqT le h gs gt ft si) ↔-here =
+  genRS (RConvI-newR eqT le h gs gt ft si bs) ↔-here =
     storeFreshR {d = d} {N = N} {w = w₁} {L = Ls} gs {γ′ = β′}
-  genRS (RConvI-newR eqT le h gs gt ft si) (↔-pair {X = Z} {Y = Y′} z) =
+  genRS (RConvI-newR eqT le h gs gt ft si bs) (↔-pair {X = Z} {Y = Y′} z) =
     FreshR-↑ {d = d} e₁ {L = leaf δt Z} {σt Y′} (fR h z)
-  sealR (RConvI-newR eqT le h gs gt ft si) = si
-  oracleR (RConvI-newR eqT le h gs gt ft si) = OracleR-down le (forcR h)
+  sealR (RConvI-newR eqT le h gs gt ft si bs) = si
+  oracleR (RConvI-newR eqT le h gs gt ft si bs) = OracleR-down le (forcR h)
 
 ------------------------------------------------------------------------
 -- `∀⊑∀`: the right instantiates its proxy; the left's instantiation is
@@ -1537,6 +1566,7 @@ module PairR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
         (oracleR h (≤′-refl {n}) le (sdesc Xs Ys c) wf Tr hTr)
         (SealNewR.sealNewR d le_s (≤′-refl {n}) (≤′⇒≤ le_s) e₁ Xs Ys c
           {Φ = Φ} {δt = δt} {σt = σt} {T = T₁} zero hTr up)
+        (bind-Σ (ΣR w) Tr)
 
       clause : ℰ d s p w₁ δsβ (Vl ⦂∀ BtL [ Tl ])
         (⇑ᵗᵐ Vr ⦂∀ (bind Tr ▷ᵇ substᵗ (extsᵗ σs) B) [ ＇ zero ])
@@ -1676,6 +1706,7 @@ module PairR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (sdesc Xs Ys c) wf Tr hTr)
         (SealNewR.sealNewR d le_s (≤′-refl {n}) (≤′⇒≤ le_s) e₁ Xs Ys c
           {Φ = Φ} {δt = δs} {σt = σs} {T = T₁} zero hTr up)
+        (bind-Σ (ΣR w) Tr)
 
       clause : ℰ d s p w₁ δtβ (Wl ⦂∀ BsL [ Tl ])
         (⇑ᵗᵐ Wr ⦂∀ (bind Tr ▷ᵇ replaceTy (suc α′) (⇑ᵗ R′) BsR)

@@ -9,23 +9,33 @@ module proof.LR.Expression where
 --     the right run's `Steps`), then the originals are related, at a
 --     stage larger by the counted side's steps.
 --   * The bind lemma: related expressions under evaluation frames whose
---     plugs are related at every related pair of values.
+--     plugs are related at every related pair of values (`ℰᵍ-bind₂` for
+--     any value relation).
+--   * Typed right terms: typing moves to futures (`Typedᴿ-mono`); the
+--     values a typed right term runs to are typed at the arrival
+--     (`ℰᵍ-typed`, by preservation); the bind lemma with typed plugs
+--     (`ℰ-bind₂ᵀ`).
 
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; s≤s; z≤n; _≤′_;
   ≤′-refl; ≤′-step)
 open import Data.Nat.Properties using (≤⇒≤′; ≤′⇒≤; +-assoc; m≤n+m;
   +-monoʳ-<)
-open import Data.Product using (_,_)
+open import Data.Product using (_,_; _×_)
 open import Data.Sum using (inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; trans; cong; subst; subst₂)
 
 open import Types
 open import Consistency using (_↪ᵗ_; toRenameᵗ; id↪ᵗ)
-open import CastTerms using (Term; Value; blame)
-open import Reduction using (StoreChanges; []; _∷_; keep; _—↠[_]_;
-  ↠-refl; ↠-step; _—→_; pure-step)
+open import CastTerms using (Term; Value; blame; renameᵗᵐ; _⊢_⦂_;
+  ⟨_,_,_⟩)
+open import TyStore using (TyStore)
+open import Reduction using (StoreChange; StoreChanges; []; _∷_; keep;
+  bind; _—↠[_]_; ↠-refl; ↠-step; _—→_; pure-step; applyStores; applyTy;
+  applyTys)
+open import proof.TypeInTermSubst using (typing-renameᵗ; renameᵗ-wk-eq)
+open import proof.TypeSafety.Preservation using (multi-preservation)
 open import proof.Reduction using (_++χ_; composeReduction)
 open import proof.DGG.CenterRename using (_∘↪_)
 open import LR.Precision
@@ -36,7 +46,7 @@ open import LR.Relation
 open import LR.Frame
 open import proof.LR.WorldProps
 open import proof.LR.InterpProps
-open import proof.LR.Monotone using (𝒱≤-cast)
+open import proof.LR.Monotone using (𝒱≤-cast; CohE-ty)
 open import proof.LR.FrameProps
 
 ------------------------------------------------------------------------
@@ -51,9 +61,10 @@ stepExt : ∀ {w : World} {ΔL₁ ΘR₁ Δ₁}
   → (tags : TyVar ΔL₁ → Tag ΔL₁ Δ₁)
   → (∀ X → tags (toRenameᵗ (embedᶜˢ χsL) X)
          ≡ renameTag (embedᶜˢ χsL) ρ (tag w X))
-  → mkWorld ΔL₁ Δ₁ tags ΘR₁ p₁ ⊒ w
+  → mkWorld ΔL₁ Δ₁ tags ΘR₁ p₁ (applyStores χsR (ΣR w)) ⊒ w
 stepExt χsL χsR {ρ = ρ} st tags ok =
   ext (embedᶜˢ χsL) ρ (embedᶜˢ χsR) (coh-steps st) (Steps-grows st) ok
+    (StoreRen-steps χsR)
 
 ------------------------------------------------------------------------
 -- Values and blame
@@ -82,6 +93,15 @@ stepExt χsL χsR {ρ = ρ} st tags ok =
 -- Backward reduction
 ------------------------------------------------------------------------
 
+-- the value relation at a world with an equal right store
+𝒱≤-Σ : ∀ d {n′ n} (le : n′ ≤′ n) {Δ Δ′} {Φ : Corr Δ Δ′} {A A′}
+    (p : Φ ⊢ A ⊑ A′) {ΔL ΔR Θ} {tags : TyVar ΔL → Tag ΔL ΔR}
+    {pr : Prefix Θ ΔR} {Σ Σ′ : TyStore Θ} → Σ ≡ Σ′
+  → {δ : Interp Δ Δ′ ΔL ΔR} {Vl : Term ΔL} {Vr : Term Θ}
+  → 𝒱≤ d le p (mkWorld ΔL ΔR tags Θ pr Σ) δ Vl Vr
+  → 𝒱≤ d le p (mkWorld ΔL ΔR tags Θ pr Σ′) δ Vl Vr
+𝒱≤-Σ d le p refl r = r
+
 private
   -- an arrival after the second reductions is an arrival after both
   arrive-back : ∀ d {n₁ n n′} (le₁ : n₁ ≤′ n) {Δ Δ′} {Φ : Corr Δ Δ′}
@@ -95,21 +115,27 @@ private
       (ok : ∀ X → tags (toRenameᵗ (embedᶜˢ χsL) X)
                 ≡ renameTag (embedᶜˢ χsL) ρ (tag w X))
       {le : n′ ≤′ n₁} {Vl Vr}
-    → Arrive n₁ n′ (mkWorld ΔL₁ Δ₁ tags ΘR₁ p₁) χsL′ χsR′
+    → Arrive n₁ n′ (mkWorld ΔL₁ Δ₁ tags ΘR₁ p₁ (applyStores χsR (ΣR w)))
+        χsL′ χsR′
         (λ le′ w′ e′ → 𝒱≤ d le′ p w′
-          ((δ ↑ᴵ stepExt χsL χsR st tags ok) ↑ᴵ e′))
+          ((δ ↑ᴵ stepExt {w = w} χsL χsR st tags ok) ↑ᴵ e′))
         le Vl Vr
     → Arrive n n′ w (χsL ++χ χsL′) (χsR ++χ χsR′)
         (λ le′ w′ e′ → 𝒱≤ d le′ p w′ (δ ↑ᴵ e′))
         (≤′-trans le le₁) Vl Vr
-  arrive-back d le₁ p {w} {δ} {χsL = χsL} {χsR} {χsL′} {χsR′} {ρ = ρ}
-      st tags ok {le} (Δ₂ , p₂ , ρ′ , st′ , tags′ , ok′ , r) =
+  arrive-back d le₁ p {w} {δ} {ΔL₁} {ΘR₁} {Δ₁} {χsL = χsL} {χsR} {χsL′}
+      {χsR′} {p₁} {ρ = ρ} st tags ok {le}
+      (Δ₂ , p₂ , ρ′ , st′ , tags′ , ok′ , r) =
     Δ₂ , p₂ , ρ′ ∘↪ ρ , st₂ , tags′ , ok₂ ,
-    𝒱≤-cast d le (≤′-trans le le₁) p _ (𝒱≤-resp d le p _ h r)
+    𝒱≤-cast d le (≤′-trans le le₁) p _
+      (𝒱≤-Σ d le p (sym (applyStores-++ χsR χsR′ (ΣR w)))
+        (𝒱≤-resp d le p _ h r))
     where
     st₂ = Steps-++ st st′
-    e₁ = stepExt χsL χsR st tags ok
-    e′ = stepExt χsL′ χsR′ st′ tags′ ok′
+    e₁ = stepExt {w = w} χsL χsR st tags ok
+    e′ = stepExt
+      {w = mkWorld ΔL₁ Δ₁ tags ΘR₁ p₁ (applyStores χsR (ΣR w))}
+      χsL′ χsR′ st′ tags′ ok′
 
     ok₂ : ∀ X → tags′ (toRenameᵗ (embedᶜˢ (χsL ++χ χsL′)) X)
       ≡ renameTag (embedᶜˢ (χsL ++χ χsL′)) (ρ′ ∘↪ ρ) (tag w X)
@@ -119,7 +145,7 @@ private
         (tags≡ (⊒-trans e′ e₁) X)
 
     h : (δ ↑ᴵ e₁) ↑ᴵ e′
-      ≈ᴵ δ ↑ᴵ stepExt (χsL ++χ χsL′) (χsR ++χ χsR′) st₂ tags′ ok₂
+      ≈ᴵ δ ↑ᴵ stepExt {w = w} (χsL ++χ χsL′) (χsR ++χ χsR′) st₂ tags′ ok₂
     h = ≈ᴵ-trans (↑ᴵ-trans δ e′ e₁)
           (transportI-≡ (sym (embedᶜˢ-++ χsL χsL′)) refl δ)
 
@@ -136,8 +162,8 @@ private
   → (tags : TyVar ΔL₁ → Tag ΔL₁ Δ₁)
   → (ok : ∀ X → tags (toRenameᵗ (embedᶜˢ χsL) X)
             ≡ renameTag (embedᶜˢ χsL) ρ (tag w X))
-  → ℰ ≺ n₁ p (mkWorld ΔL₁ Δ₁ tags ΘR₁ p₁)
-      (δ ↑ᴵ stepExt χsL χsR st tags ok) Ml′ Mr′
+  → ℰ ≺ n₁ p (mkWorld ΔL₁ Δ₁ tags ΘR₁ p₁ (applyStores χsR (ΣR w)))
+      (δ ↑ᴵ stepExt {w = w} χsL χsR st tags ok) Ml′ Mr′
   → ℰ ≺ (j + n₁) p w δ Ml Mr
 ℰ-anti-≺ p sl sr st tags ok (inj₁ (Δ″ , χs , N , ss)) =
   inj₁ (Δ″ , _ , N , steps-++ sl ss)
@@ -166,8 +192,8 @@ private
   → (tags : TyVar ΔL₁ → Tag ΔL₁ Δ₁)
   → (ok : ∀ X → tags (toRenameᵗ (embedᶜˢ χsL) X)
             ≡ renameTag (embedᶜˢ χsL) ρ (tag w X))
-  → ℰ ≻ n₁ p (mkWorld ΔL₁ Δ₁ tags ΘR₁ p₁)
-      (δ ↑ᴵ stepExt χsL χsR st tags ok) Ml′ Mr′
+  → ℰ ≻ n₁ p (mkWorld ΔL₁ Δ₁ tags ΘR₁ p₁ (applyStores χsR (ΣR w)))
+      (δ ↑ᴵ stepExt {w = w} χsL χsR st tags ok) Ml′ Mr′
   → ℰ ≻ (j + n₁) p w δ Ml Mr
 ℰ-anti-≻ p sl sr st tags ok (inj₁ (Δ″ , χs , N , ss)) =
   inj₁ (Δ″ , _ , N , steps-++ sr ss)
@@ -198,7 +224,7 @@ keep≈ : ∀ {w : World} {χsL : StoreChanges (ΔL w) (ΔL w)}
     {χsR : StoreChanges (storeR w) (storeR w)}
     (eL : embedᶜˢ χsL ≡ id↪ᵗ) (st : Steps (pre w) χsR (pre w) id↪ᵗ)
     {Δ Δ′} (δ : Interp Δ Δ′ (ΔL w) (ΔR w))
-  → δ ↑ᴵ stepExt χsL χsR st (tag w) (keepOk w {χsL} eL) ≈ᴵ δ
+  → δ ↑ᴵ stepExt {w = w} χsL χsR st (tag w) (keepOk w {χsL} eL) ≈ᴵ δ
 keep≈ eL st δ = ≈ᴵ-trans (transportI-≡ eL refl δ) (transportI-id δ)
 
 keep₁ : ∀ {Δ} → embedᶜˢ (keep {Δ} ∷ []) ≡ id↪ᵗ
@@ -283,6 +309,50 @@ mframe-↠ : ∀ {Δ Δ′} {M : Term Δ} {N : Term Δ′} {χs : StoreChanges �
 mframe-↠ nothing ss = ss
 mframe-↠ (just F) ss = frame-↠ F ss
 
+-- the inside is related by VR, and the plugs at q under δ₂
+ℰᵍ-bind₂ : ∀ d n w {VR : VRel n w} {Δ₂ Δ₂′} {Φ₂ : Corr Δ₂ Δ₂′}
+    {B B′} (q : Φ₂ ⊢ B ⊑ B′) {δ₂ : Interp Δ₂ Δ₂′ (ΔL w) (ΔR w)}
+    (Fl : MFrame (ΔL w)) (Fr : MFrame (storeR w)) {Ml Mr}
+  → ℰᵍ d n w VR Ml Mr
+  → (∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n) → ∀ {Vl Vr}
+       → Value Vl → Value Vr → VR le w′ e Vl Vr
+       → ℰ d n′ q w′ (δ₂ ↑ᴵ e)
+           (mplug (renameMFrame (ρL e) Fl) Vl)
+           (mplug (renameMFrame (ρS e) Fr) Vr))
+  → ℰ d n q w δ₂ (mplug Fl Ml) (mplug Fr Mr)
+ℰᵍ-bind₂ ≺ n w q Fl Fr (inj₁ (Δ″ , χs , N , ss)) K =
+  inj₁ (Δ″ , χs , _ , mframe-steps Fl ss)
+ℰᵍ-bind₂ ≺ n w q nothing Fr (inj₂ (inj₁ (k , Δ″ , χs , k<n , ss))) K =
+  inj₂ (inj₁ (k , Δ″ , χs , k<n , ss))
+ℰᵍ-bind₂ ≺ n w q (just Fl) Fr (inj₂ (inj₁ (k , Δ″ , χs , k<n , ss))) K
+    with ≤⇒≤′ k<n
+ℰᵍ-bind₂ ≺ n w q (just Fl) Fr (inj₂ (inj₁ (k , Δ″ , χs , k<n , ss))) K
+    | ≤′-refl =
+  inj₁ (Δ″ , _ , blame , steps-snoc (frame-steps Fl ss) (frame-blame _))
+ℰᵍ-bind₂ ≺ n w q (just Fl) Fr (inj₂ (inj₁ (k , Δ″ , χs , k<n , ss))) K
+    | ≤′-step lt =
+  inj₂ (inj₁ (suc k , Δ″ , _ , s≤s (≤′⇒≤ lt) ,
+    steps-snoc (frame-steps Fl ss) (frame-blame _)))
+ℰᵍ-bind₂ ≺ n w q {δ₂} Fl Fr {Ml} {Mr}
+    (inj₂ (inj₂ (k , n′ , le , ΔL₁ , χsL , Vl , ΘR₁ , χsR , Vr ,
+      eq , sl , sr , vl , vr , Δ₁ , p₁ , ρ , st , tags , ok , r))) K =
+  subst (λ m → ℰ ≺ m q w δ₂ (mplug Fl Ml) (mplug Fr Mr)) eq
+    (ℰ-anti-≺ q (mframe-steps Fl sl) (mframe-↠ Fr sr) st tags ok
+      (K (stepExt {w = w} χsL χsR st tags ok) le vl vr r))
+ℰᵍ-bind₂ ≻ n w q Fl Fr (inj₁ (Δ″ , χs , N , ss)) K =
+  inj₁ (Δ″ , χs , _ , mframe-steps Fr ss)
+ℰᵍ-bind₂ ≻ n w q nothing Fr (inj₂ (inj₁ (Δ″ , χs , b))) K =
+  inj₂ (inj₁ (Δ″ , χs , b))
+ℰᵍ-bind₂ ≻ n w q (just Fl) Fr (inj₂ (inj₁ (Δ″ , χs , b))) K =
+  inj₂ (inj₁ (Δ″ , _ ,
+    composeReduction (frame-↠ Fl b) (↠-step (frame-blame _) ↠-refl)))
+ℰᵍ-bind₂ ≻ n w q {δ₂} Fl Fr {Ml} {Mr}
+    (inj₂ (inj₂ (k , n′ , le , ΔL₁ , χsL , Vl , ΘR₁ , χsR , Vr ,
+      eq , sl , sr , vl , vr , Δ₁ , p₁ , ρ , st , tags , ok , r))) K =
+  subst (λ m → ℰ ≻ m q w δ₂ (mplug Fl Ml) (mplug Fr Mr)) eq
+    (ℰ-anti-≻ q (mframe-↠ Fl sl) (mframe-steps Fr sr) st tags ok
+      (K (stepExt {w = w} χsL χsR st tags ok) le vl vr r))
+
 -- the inside is related at p under δ₁, and the plugs at q under δ₂
 ℰ-bind₂ : ∀ d n {Δ₁ Δ₁′ Δ₂ Δ₂′} {Φ₁ : Corr Δ₁ Δ₁′} {Φ₂ : Corr Δ₂ Δ₂′}
     {A A′ B B′} (p : Φ₁ ⊢ A ⊑ A′) (q : Φ₂ ⊢ B ⊑ B′) w
@@ -295,42 +365,92 @@ mframe-↠ (just F) ss = frame-↠ F ss
            (mplug (renameMFrame (ρL e) Fl) Vl)
            (mplug (renameMFrame (ρS e) Fr) Vr))
   → ℰ d n q w δ₂ (mplug Fl Ml) (mplug Fr Mr)
-ℰ-bind₂ ≺ n p q w Fl Fr (inj₁ (Δ″ , χs , N , ss)) K =
-  inj₁ (Δ″ , χs , _ , mframe-steps Fl ss)
-ℰ-bind₂ ≺ n p q w nothing Fr (inj₂ (inj₁ (k , Δ″ , χs , k<n , ss))) K =
-  inj₂ (inj₁ (k , Δ″ , χs , k<n , ss))
-ℰ-bind₂ ≺ n p q w (just Fl) Fr (inj₂ (inj₁ (k , Δ″ , χs , k<n , ss))) K
-    with ≤⇒≤′ k<n
-ℰ-bind₂ ≺ n p q w (just Fl) Fr (inj₂ (inj₁ (k , Δ″ , χs , k<n , ss))) K
-    | ≤′-refl =
-  inj₁ (Δ″ , _ , blame , steps-snoc (frame-steps Fl ss) (frame-blame _))
-ℰ-bind₂ ≺ n p q w (just Fl) Fr (inj₂ (inj₁ (k , Δ″ , χs , k<n , ss))) K
-    | ≤′-step lt =
-  inj₂ (inj₁ (suc k , Δ″ , _ , s≤s (≤′⇒≤ lt) ,
-    steps-snoc (frame-steps Fl ss) (frame-blame _)))
-ℰ-bind₂ ≺ n p q w {δ₂ = δ₂} Fl Fr {Ml} {Mr}
+ℰ-bind₂ d n p q w Fl Fr r K =
+  ℰᵍ-bind₂ d n w q Fl Fr r
+    (λ e le vl vr a → K e (≤′⇒≤ le) vl vr (𝒱≤-cast d le ≤′-refl p _ a))
+
+------------------------------------------------------------------------
+-- Typed right terms
+------------------------------------------------------------------------
+
+-- the type of a run's result is the type, renamed along the run
+applyTy-ren : ∀ {Θ Θ′} (χ : StoreChange Θ Θ′) (A : Ty Θ)
+  → applyTy χ A ≡ renameᵗ (toRenameᵗ (LR.Steps.embedᶜ χ)) A
+applyTy-ren keep A = sym (renameTy-id A)
+applyTy-ren (bind B) A = sym (renameᵗ-wk-eq A)
+
+applyTys-ren : ∀ {Θ Θ′} (χs : StoreChanges Θ Θ′) (A : Ty Θ)
+  → applyTys χs A ≡ renameᵗ (toRenameᵗ (embedᶜˢ χs)) A
+applyTys-ren [] A = sym (renameTy-id A)
+applyTys-ren (χ ∷ χs) A =
+  trans (applyTys-ren χs (applyTy χ A))
+    (trans (cong (renameᵗ (toRenameᵗ (embedᶜˢ χs))) (applyTy-ren χ A))
+      (renameTy-∘ (embedᶜˢ χs) (LR.Steps.embedᶜ χ) A))
+
+-- a typed right term stays typed in a future
+Typedᴿ-mono : ∀ {w w′ : World} (e : w′ ⊒ w) {T M}
+  → Typedᴿ w T M
+  → Typedᴿ w′ (renameᵗ (toRenameᵗ (ρR e)) T) (renameᵗᵐ (ρS e) M)
+Typedᴿ-mono e (typedᴿ T₀ refl t) =
+  typedᴿ (renameᵗ (toRenameᵗ (ρS e)) T₀) (CohE-ty (coh e) T₀)
+    (typing-renameᵗ (ΣR⊒ e) t)
+
+-- the right's result is typed at the arrival (preservation)
+arriveTyped : ∀ (w : World) (T : Ty (ΔR w)) {ΔL′ Δ′ ΘR′}
+    {tags : TyVar ΔL′ → Tag ΔL′ Δ′}
+    {χsR : StoreChanges (storeR w) ΘR′} {p′ : Prefix ΘR′ Δ′} {ρ}
+    {Mr Vr}
+  → Typedᴿ w T Mr → Mr —↠[ χsR ] Vr → Steps (pre w) χsR p′ ρ
+  → Typedᴿ (mkWorld ΔL′ Δ′ tags ΘR′ p′ (applyStores χsR (ΣR w)))
+      (renameᵗ (toRenameᵗ ρ) T) Vr
+arriveTyped w T {χsR = χsR} {Vr = Vr} (typedᴿ T₀ refl t) sr st =
+  typedᴿ (renameᵗ (toRenameᵗ (embedᶜˢ χsR)) T₀)
+    (CohE-ty (coh-steps st) T₀)
+    (subst (λ A → ⟨ _ , applyStores χsR (ΣR w) , _ ⟩ ⊢ Vr ⦂ A)
+      (applyTys-ren χsR T₀) (multi-preservation t sr))
+
+-- the values a typed right term reaches are typed
+ℰᵍ-typed : ∀ d n w {VR : VRel n w} (T : Ty (ΔR w)) {Ml Mr}
+  → Typedᴿ w T Mr → ℰᵍ d n w VR Ml Mr
+  → ℰᵍ d n w (λ le w′ e V V′ → VR le w′ e V V′
+       × Typedᴿ w′ (renameᵗ (toRenameᵗ (ρR e)) T) V′) Ml Mr
+ℰᵍ-typed ≺ n w T t (inj₁ r) = inj₁ r
+ℰᵍ-typed ≺ n w T t (inj₂ (inj₁ b)) = inj₂ (inj₁ b)
+ℰᵍ-typed ≺ n w T t
     (inj₂ (inj₂ (k , n′ , le , ΔL₁ , χsL , Vl , ΘR₁ , χsR , Vr ,
-      eq , sl , sr , vl , vr , Δ₁ , p₁ , ρ , st , tags , ok , r))) K =
-  subst (λ m → ℰ ≺ m q w δ₂ (mplug Fl Ml) (mplug Fr Mr)) eq
-    (ℰ-anti-≺ q (mframe-steps Fl sl) (mframe-↠ Fr sr) st tags ok
-      (K (stepExt χsL χsR st tags ok)
-        (subst (n′ ≤_) eq (m≤n+m n′ k)) vl vr
-        (𝒱≤-cast ≺ le ≤′-refl p _ r)))
-ℰ-bind₂ ≻ n p q w Fl Fr (inj₁ (Δ″ , χs , N , ss)) K =
-  inj₁ (Δ″ , χs , _ , mframe-steps Fr ss)
-ℰ-bind₂ ≻ n p q w nothing Fr (inj₂ (inj₁ (Δ″ , χs , b))) K =
-  inj₂ (inj₁ (Δ″ , χs , b))
-ℰ-bind₂ ≻ n p q w (just Fl) Fr (inj₂ (inj₁ (Δ″ , χs , b))) K =
-  inj₂ (inj₁ (Δ″ , _ ,
-    composeReduction (frame-↠ Fl b) (↠-step (frame-blame _) ↠-refl)))
-ℰ-bind₂ ≻ n p q w {δ₂ = δ₂} Fl Fr {Ml} {Mr}
+      eq , sl , sr , vl , vr , Δ₁ , p₁ , ρ , st , tags , ok , r))) =
+  inj₂ (inj₂ (k , n′ , le , ΔL₁ , χsL , Vl , ΘR₁ , χsR , Vr ,
+    eq , sl , sr , vl , vr , Δ₁ , p₁ , ρ , st , tags , ok , r ,
+    arriveTyped w T t sr st))
+ℰᵍ-typed ≻ n w T t (inj₁ r) = inj₁ r
+ℰᵍ-typed ≻ n w T t (inj₂ (inj₁ b)) = inj₂ (inj₁ b)
+ℰᵍ-typed ≻ n w T t
     (inj₂ (inj₂ (k , n′ , le , ΔL₁ , χsL , Vl , ΘR₁ , χsR , Vr ,
-      eq , sl , sr , vl , vr , Δ₁ , p₁ , ρ , st , tags , ok , r))) K =
-  subst (λ m → ℰ ≻ m q w δ₂ (mplug Fl Ml) (mplug Fr Mr)) eq
-    (ℰ-anti-≻ q (mframe-↠ Fl sl) (mframe-steps Fr sr) st tags ok
-      (K (stepExt χsL χsR st tags ok)
-        (subst (n′ ≤_) eq (m≤n+m n′ k)) vl vr
-        (𝒱≤-cast ≻ le ≤′-refl p _ r)))
+      eq , sl , sr , vl , vr , Δ₁ , p₁ , ρ , st , tags , ok , r))) =
+  inj₂ (inj₂ (k , n′ , le , ΔL₁ , χsL , Vl , ΘR₁ , χsR , Vr ,
+    eq , sl , sr , vl , vr , Δ₁ , p₁ , ρ , st , tags , ok , r ,
+    arriveTyped w T t (steps→↠ sr) st))
+
+-- the bind lemma, with the inside's right term typed: the plugs see
+-- typed values
+ℰ-bind₂ᵀ : ∀ d n {Δ₁ Δ₁′ Δ₂ Δ₂′} {Φ₁ : Corr Δ₁ Δ₁′} {Φ₂ : Corr Δ₂ Δ₂′}
+    {A A′ B B′} (p : Φ₁ ⊢ A ⊑ A′) (q : Φ₂ ⊢ B ⊑ B′) w
+    {δ₁ : Interp Δ₁ Δ₁′ (ΔL w) (ΔR w)} {δ₂ : Interp Δ₂ Δ₂′ (ΔL w) (ΔR w)}
+    (Fl : MFrame (ΔL w)) (Fr : MFrame (storeR w)) {Ml Mr}
+  → Typedᴿ w (substᵗ (δr δ₁) A′) Mr
+  → ℰ d n p w δ₁ Ml Mr
+  → (∀ {w′} (e : w′ ⊒ w) {n′} → n′ ≤ n → ∀ {Vl Vr}
+       → Value Vl → Value Vr → 𝒱 d n′ p w′ (δ₁ ↑ᴵ e) Vl Vr
+       → Typedᴿ w′ (substᵗ (δr (δ₁ ↑ᴵ e)) A′) Vr
+       → ℰ d n′ q w′ (δ₂ ↑ᴵ e)
+           (mplug (renameMFrame (ρL e) Fl) Vl)
+           (mplug (renameMFrame (ρS e) Fr) Vr))
+  → ℰ d n q w δ₂ (mplug Fl Ml) (mplug Fr Mr)
+ℰ-bind₂ᵀ d n {A′ = A′} p q w {δ₁} Fl Fr t r K =
+  ℰᵍ-bind₂ d n w q Fl Fr (ℰᵍ-typed d n w (substᵗ (δr δ₁) A′) t r)
+    (λ e le vl vr (a , tv) →
+      K e (≤′⇒≤ le) vl vr (𝒱≤-cast d le ≤′-refl p _ a)
+        (Typedᴿ-≡ (renameᵗ-subst (toRenameᵗ (ρR e)) (δr δ₁) A′) tv))
 
 ℰ-bind : ∀ d n {Δ Δ′} {Φ : Corr Δ Δ′} {A A′ B B′}
     (p : Φ ⊢ A ⊑ A′) (q : Φ ⊢ B ⊑ B′) w

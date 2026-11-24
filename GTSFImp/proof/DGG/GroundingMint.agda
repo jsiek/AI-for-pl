@@ -1,127 +1,110 @@
+{-# OPTIONS --safe #-}
+
 module proof.DGG.GroundingMint where
 
 -- File Charter:
---   * Documents the LG-2 minting surface for compile-preserves-imprecision².
---   * Records which compile-recursion worlds are target-occupied: initial
---     identity worlds occupy every center, matched type binders occupy the
---     fresh center, and source-only binders leave only their dynamic fresh
---     source center unoccupied.
---   * Reuses CompilePreservesImprecision2 for the compiled term-imprecision
---     theorem; this file only surfaces the occupancy facts around it.
+--   * Records target occupancy throughout canonical compilation worlds.
+--   * Uses the source-rebase count as the direct history invariant; there is
+--     no wrapper that restates the permitted world constructors.
+--   * Connects precise source marks to target occupants through the canonical
+--     direct world invariants.
 
 open import Data.Empty using (⊥)
-open import Data.Fin using (zero; suc)
-open import Data.Product using (_,_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
+import Data.Fin as Fin
+open import Data.Product using (Σ-syntax; _,_)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; _≢_; refl; sym; cong)
 
 open import Types
-open import TyStore using (TyStore)
-open import Consistency using (toRenameᵗ)
-open import Imprecision using (ImpEnv; X⊑X; X⊑★)
-import proof.DGG.CtxImp as CTI2
-import proof.DGG.CompilePreservesImprecision2 as CPI2
-open import proof.TypeInTermSubst using (toRename-id-eq)
+open import Imprecision using (ImpEnv; X⊑X)
+open import CastTerms using (Ctx; Δᵉ)
+open import proof.DGG.World
+open import proof.DGG.WorldInvariants
+import GradualTermImprecision as GTI
+import proof.DGG.CompilePreservesImprecision as Compile
+
 
 ------------------------------------------------------------------------
--- Initial compile world occupancy
+-- Initial compile-world occupancy
 ------------------------------------------------------------------------
 
-initialWorld-occupied : ∀ {Δ}
-    {μ : ImpEnv Δ} {Σ : TyStore Δ}
-  → (Z : TyVar Δ)
-  → CTI2.Occupied (CPI2.initialWorld μ Σ) Z
-initialWorld-occupied Z = Z , toRename-id-eq Z
-
-initialWorld-no-see-through-empty : ∀ {Δ}
-    {μ : ImpEnv Δ} {Σ : TyStore Δ}
+initialWorld-occupied : ∀ {Δ} {μ : ImpEnv Δ}
   → (X : TyVar Δ)
-  → CTI2.NoTargetOccupantAtSource (CPI2.initialWorld μ Σ) X
+  → Σ[ Y ∈ TyVar Δ ]
+      toRenameⁱ (ηᴿᶜ (initialWorldᶜ μ)) Y
+        ≡ toRenameⁱ (ηᴸᶜ (initialWorldᶜ μ)) X
+initialWorld-occupied {μ = μ} X =
+  X , cong (λ eta → toRenameⁱ eta X)
+    (sym (initialWorld-embeddingsᶜ μ))
+
+
+initialWorld-no-see-through-empty : ∀ {Δ} {μ : ImpEnv Δ}
+  → (X : TyVar Δ)
+  → (∀ Y → toRenameⁱ (ηᴿᶜ (initialWorldᶜ μ)) Y
+      ≢ toRenameⁱ (ηᴸᶜ (initialWorldᶜ μ)) X)
   → ⊥
-initialWorld-no-see-through-empty {μ = μ} {Σ = Σ} X no-target =
-  no-target
-    (initialWorld-occupied {μ = μ} {Σ = Σ}
-      (toRenameᵗ (CTI2.ηᴸʷ (CPI2.initialWorld μ Σ)) X))
+initialWorld-no-see-through-empty {μ = μ} X no-target
+    with initialWorld-occupied {μ = μ} X
+initialWorld-no-see-through-empty X no-target | Y , aligned =
+  no-target Y aligned
+
 
 ------------------------------------------------------------------------
--- Compile-recursion world image
+-- Compile-recursion occupancy
 ------------------------------------------------------------------------
 
-data CompileImageWorld : ∀ {Δᴸ Δᴿ Δ}
-    → CTI2.World Δᴸ Δᴿ Δ
-    → Set where
-  compile-image-initial : ∀ {Δ}
-      {μ : ImpEnv Δ} {Σ : TyStore Δ}
-      -------------------------------------------------
-    → CompileImageWorld (CPI2.initialWorld μ Σ)
+target-endpoint-occupied : ∀ {Γᴸ Γᴿ} {γ : Γᴸ ⊑ᶜ Γᴿ}
+  → (Y : TyVar (Δᵉ Γᴿ))
+  → Σ[ Y′ ∈ TyVar (Δᵉ Γᴿ) ]
+      toRenameⁱ (ηᴿᶜ γ) Y′ ≡ toRenameⁱ (ηᴿᶜ γ) Y
+target-endpoint-occupied Y = Y , refl
 
-  compile-image-liftBoth : ∀ {Δᴸ Δᴿ Δ}
-      {W : CTI2.World Δᴸ Δᴿ Δ}
-    → CompileImageWorld W
-      ---------------------------------------------------------
-    → CompileImageWorld (CTI2.liftWorldBoth X⊑X W)
 
-  compile-image-liftLeft : ∀ {Δᴸ Δᴿ Δ}
-      {W : CTI2.World Δᴸ Δᴿ Δ}
-    → CompileImageWorld W
-      ---------------------------------------------------------
-    → CompileImageWorld (CTI2.liftWorldLeft X⊑★ W)
+no-rebase-precise-source-occupied : ∀ {Γᴸ Γᴿ}
+    {γ : Γᴸ ⊑ᶜ Γᴿ}
+  → sourceRebaseCountᶜ γ ≡ 0
+  → (X : TyVar (Δᵉ Γᴸ))
+  → marksᶜ γ (toRenameⁱ (ηᴸᶜ γ) X) ≡ X⊑X
+  → Σ[ Y ∈ TyVar (Δᵉ Γᴿ) ]
+      toRenameⁱ (ηᴿᶜ γ) Y ≡ toRenameⁱ (ηᴸᶜ γ) X
+no-rebase-precise-source-occupied {γ = γ} no-rebase X precise =
+  preciseMarksAlignedᶜ (directInvariantsᶜ γ no-rebase) X precise
 
-compile-image-target-occupied : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-  → CompileImageWorld W
-  → (Y : TyVar Δᴿ)
-  → CTI2.Occupied W (toRenameᵗ (CTI2.ηᴿʷ W) Y)
-compile-image-target-occupied img Y = Y , refl
 
-compile-image-precise-source-occupied : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-  → CompileImageWorld W
-  → (X : TyVar Δᴸ)
-  → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) X) ≡ X⊑X
-  → CTI2.Occupied W (toRenameᵗ (CTI2.ηᴸʷ W) X)
-compile-image-precise-source-occupied
-    (compile-image-initial {μ = μ} {Σ = Σ}) X precise =
-  initialWorld-occupied {μ = μ} {Σ = Σ}
-    (toRenameᵗ (CTI2.ηᴸʷ (CPI2.initialWorld μ Σ)) X)
-compile-image-precise-source-occupied (compile-image-liftBoth img)
-    zero precise =
-  zero , refl
-compile-image-precise-source-occupied (compile-image-liftBoth img)
-    (suc X) precise
-    with compile-image-precise-source-occupied img X precise
-compile-image-precise-source-occupied (compile-image-liftBoth img)
-    (suc X) precise | Y , target-eq =
-  suc Y , cong suc target-eq
-compile-image-precise-source-occupied (compile-image-liftLeft img)
-    zero ()
-compile-image-precise-source-occupied (compile-image-liftLeft img)
-    (suc X) precise
-    with compile-image-precise-source-occupied img X precise
-compile-image-precise-source-occupied (compile-image-liftLeft img)
-    (suc X) precise | Y , target-eq =
-  Y , cong suc target-eq
+initialContext-precise-source-occupied : ∀ {Δ} {μ : ImpEnv Δ}
+    (δ : GTI.CtxImp μ)
+  → (X : TyVar Δ)
+  → marksᶜ (Compile.initialContextWorld δ)
+      (toRenameⁱ (ηᴸᶜ (Compile.initialContextWorld δ)) X) ≡ X⊑X
+  → Σ[ Y ∈ TyVar Δ ]
+      toRenameⁱ (ηᴿᶜ (Compile.initialContextWorld δ)) Y
+        ≡ toRenameⁱ (ηᴸᶜ (Compile.initialContextWorld δ)) X
+initialContext-precise-source-occupied δ =
+  no-rebase-precise-source-occupied
+    {γ = Compile.initialContextWorld δ}
+    (Compile.initialContext-no-source-rebase δ)
 
-compile-image-source-only-fresh-no-target : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-  → CompileImageWorld W
-  → CTI2.NoTargetOccupantAtSource (CTI2.liftWorldLeft X⊑★ W) zero
-compile-image-source-only-fresh-no-target img (Y , ())
 
-compile-image-precise-see-through-empty : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-  → CompileImageWorld W
-  → (X : TyVar Δᴸ)
-  → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) X) ≡ X⊑X
-  → CTI2.NoTargetOccupantAtSource W X
+source-only-fresh-no-target : ∀ {Γᴸ Γᴿ}
+    {γ : Γᴸ ⊑ᶜ Γᴿ}
+  → ∀ Y → toRenameⁱ (ηᴿᶜ (liftLeftᶜ γ)) Y
+      ≢ toRenameⁱ (ηᴸᶜ (liftLeftᶜ γ)) Fin.zero
+source-only-fresh-no-target Y ()
+
+
+no-rebase-precise-see-through-empty : ∀ {Γᴸ Γᴿ}
+    {γ : Γᴸ ⊑ᶜ Γᴿ}
+  → (no-rebase : sourceRebaseCountᶜ γ ≡ 0)
+  → (X : TyVar (Δᵉ Γᴸ))
+  → marksᶜ γ (toRenameⁱ (ηᴸᶜ γ) X) ≡ X⊑X
+  → (∀ Y → toRenameⁱ (ηᴿᶜ γ) Y
+      ≢ toRenameⁱ (ηᴸᶜ γ) X)
   → ⊥
-compile-image-precise-see-through-empty img X precise no-target =
-  no-target (compile-image-precise-source-occupied img X precise)
-
-------------------------------------------------------------------------
--- Canonical minting connection
-------------------------------------------------------------------------
-
--- The minting connection is the canonical
--- CPI2.compile-preserves-imprecision² theorem. Its image-side occupancy facts
--- are the theorems in this file: initialWorld-occupied, the CompileImageWorld
--- invariant, and the see-through emptiness theorems above.
+no-rebase-precise-see-through-empty {γ = γ}
+    no-rebase X precise no-target
+    with no-rebase-precise-source-occupied
+      {γ = γ} no-rebase X precise
+no-rebase-precise-see-through-empty
+    no-rebase X precise no-target
+    | Y , aligned =
+  no-target Y aligned

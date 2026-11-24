@@ -600,6 +600,51 @@ imprecision-no-star-to-bot {Y = Y} Y★
     rewrite ∉ᵗ-unique X∉A X∉A′ =
   refl
 
+------------------------------------------------------------------------
+-- Environment monotonicity
+------------------------------------------------------------------------
+
+⊑-env-mono : ∀ {Δ} {μ μ′ : I.ImpEnv Δ} {A B : Ty Δ}
+  → (∀ X → μ X ≡ I.X⊑★ → μ′ X ≡ I.X⊑★)
+  → I._⊢_⊑_ μ A B
+  → I._⊢_⊑_ μ′ A B
+⊑-env-mono cond I.★⊑★ = I.★⊑★
+⊑-env-mono cond I.ι⊑ι = I.ι⊑ι
+⊑-env-mono cond I.X⊑X = I.X⊑X
+⊑-env-mono cond (I.⇒⊑⇒ A⊑A′ B⊑B′) =
+  I.⇒⊑⇒ (⊑-env-mono cond A⊑A′) (⊑-env-mono cond B⊑B′)
+⊑-env-mono cond (I.∀⊑∀ A⊑B) =
+  I.∀⊑∀ (⊑-env-mono lift-cond A⊑B)
+  where
+  lift-cond : ∀ X
+    → I.extᵐ _ X ≡ I.X⊑★
+    → I.extᵐ _ X ≡ I.X⊑★
+  lift-cond zero eq = eq
+  lift-cond (suc X) eq = cond X eq
+⊑-env-mono cond (I.⇒⊑★ A⊑★ B⊑★) =
+  I.⇒⊑★ (⊑-env-mono cond A⊑★) (⊑-env-mono cond B⊑★)
+⊑-env-mono cond I.ι⊑★ = I.ι⊑★
+⊑-env-mono cond (I.X⊑★ eq) = I.X⊑★ (cond _ eq)
+⊑-env-mono cond (I.∀⊑ Anv zero∈A A⊑B) =
+  I.∀⊑ Anv zero∈A (⊑-env-mono lift-cond A⊑B)
+  where
+  lift-cond : ∀ X
+    → I.instᵐ _ X ≡ I.X⊑★
+    → I.instᵐ _ X ≡ I.X⊑★
+  lift-cond zero eq = eq
+  lift-cond (suc X) eq = cond X eq
+⊑-env-mono cond I.∀★⊑★ = I.∀★⊑★
+⊑-env-mono cond (I.∀⊑★ Ans A⊑★) =
+  I.∀⊑★ Ans (⊑-env-mono lift-cond A⊑★)
+  where
+  lift-cond : ∀ X
+    → I.extᵐ _ X ≡ I.X⊑★
+    → I.extᵐ _ X ≡ I.X⊑★
+  lift-cond zero eq = eq
+  lift-cond (suc X) eq = cond X eq
+⊑-env-mono cond I.bot-elim = I.bot-elim
+⊑-env-mono cond I.bot⊑★ = I.bot⊑★
+
 ∈ᵗ-unique : ∀ {Δ} {X : TyVar Δ} {A : Ty Δ}
   → (p q : X ∈ᵗ A)
   → p ≡ q

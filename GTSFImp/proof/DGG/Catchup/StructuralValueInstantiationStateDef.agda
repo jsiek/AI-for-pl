@@ -10,14 +10,15 @@ open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; cong; refl; trans; subst)
 
-open import Types using (Ty; TyVar; ＇_; `∀; _[_]ᵗ)
+open import Types using (Ty; TyVar; ＇_; `∀; _[_]ᵗ; ⇑ᵗ)
 open import Consistency using (Env∼; _⊢_∼_)
-open import Conversion using (Conv↑; Conv↓; rename↑; rename↓)
+open import Conversion using (Conv↑; Conv↓; rename↑; rename↓; 〖_,_↑_〗)
 open import CastTerms using (Term; _⟨_⟩; _⦂∀_[_]; _↑_; _↓_)
 open import Reduction using
   (StoreChange; keep; bind; applyTy; applyBody; applyConsistency; applyVar)
 open import proof.TypeInTermSubst using
   (rename-openᵗ; renameᵗ-pointwise-id)
+open import proof.TypeSafety.Preservation using (replace-zero-open)
 
 
 data InstantiationFrame {Δ} : Ty Δ → Ty Δ → Set where
@@ -129,3 +130,13 @@ mapInstantiationSpine : ∀ {Δ Δ′ A B}
 mapInstantiationSpine χ []ⁱ = []ⁱ
 mapInstantiationSpine χ (frame ▻ⁱ spine) =
   mapInstantiationFrame χ frame ▻ⁱ mapInstantiationSpine χ spine
+
+
+lambda-ready-child-spine : ∀ {Δ} {B : Ty (suc Δ)} {E : Ty Δ}
+    {X : TyVar Δ}
+  → InstantiationSpine (B [ ＇ X ]ᵗ) E
+  → InstantiationSpine B (applyTy (bind (＇ X)) E)
+lambda-ready-child-spine {B = B} {X = X} spine =
+  reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
+  type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
+  mapInstantiationSpine (bind (＇ X)) spine

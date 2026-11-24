@@ -142,12 +142,12 @@ canonical-∀ (vW 《 genᵥ A≠★ safe 》) (⊢⟨⟩ W⊢ c) =
   av-gen vW A≠★ safe refl
 canonical-∀ (vW ↑ fun) ()
 canonical-∀ (vW ↑ all)
-    (⊢reveal (⊢↑-∀ {A = A} c⊢) W⊢) =
+    (⊢reveal (⊢↑-∀ {A = A} eq c⊢) W⊢) =
   av-reveal vW refl
 canonical-∀ (vW ↓ seal) ()
 canonical-∀ (vW ↓ fun) ()
 canonical-∀ (vW ↓ all)
-    (⊢conceal (⊢↓-∀ {A = A} c⊢) W⊢) =
+    (⊢conceal (⊢↓-∀ {A = A} eq c⊢) W⊢) =
   av-conceal vW refl
 
 canonical-ℕ : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ}
@@ -286,20 +286,20 @@ no-fresh-representation (S-lift∋ {A = A} X∈ eq) =
   fresh-not-shift A eq
 
 reveal-to-fresh : ∀ {Δ} {Σ : TyStore Δ} {A : Ty (suc Δ)}
-    {c : Conv↑ (suc Δ) A (＇ Fin.zero)}
-  → store-lift Σ ⊢↑ c
+    {X R} {c : Conv↑ (suc Δ) A (＇ Fin.zero)}
+  → store-lift Σ ⊢↑[ X ⦂ R ] c
   → A ≡ ＇ Fin.zero
 reveal-to-fresh (⊢↑-unseal X∈) =
   ⊥-elim (no-fresh-representation X∈)
-reveal-to-fresh ⊢↑-id = refl
+reveal-to-fresh (⊢↑-id-var X∈ X≢Y) = refl
 
 conceal-to-fresh : ∀ {Δ} {Σ : TyStore Δ} {A : Ty (suc Δ)}
-    {c : Conv↓ (suc Δ) A (＇ Fin.zero)}
-  → store-lift Σ ⊢↓ c
+    {X R} {c : Conv↓ (suc Δ) A (＇ Fin.zero)}
+  → store-lift Σ ⊢↓[ X ⦂ R ] c
   → A ≡ ＇ Fin.zero
 conceal-to-fresh (⊢↓-seal X∈) =
   ⊥-elim (no-zero-store-lift X∈)
-conceal-to-fresh ⊢↓-id = refl
+conceal-to-fresh (⊢↓-id-var X∈ X≢Y) = refl
 
 no-fresh-value : ∀ {Δ} {Σ : TyStore Δ}
     {Γ : TermCtx (suc Δ)} {V : Term (suc Δ)}
@@ -333,13 +333,13 @@ no-bot-value (vW 《 all 》) (⊢⟨⟩ W⊢ (∀ᶜ c))
     with consistency-to-fresh c
 no-bot-value (vW 《 all 》) (⊢⟨⟩ W⊢ (∀ᶜ c)) | refl =
   no-bot-value vW W⊢
-no-bot-value (vW ↑ all) (⊢reveal (⊢↑-∀ c⊢) W⊢)
+no-bot-value (vW ↑ all) (⊢reveal (⊢↑-∀ eq c⊢) W⊢)
     with reveal-to-fresh c⊢
-no-bot-value (vW ↑ all) (⊢reveal (⊢↑-∀ c⊢) W⊢) | refl =
+no-bot-value (vW ↑ all) (⊢reveal (⊢↑-∀ eq c⊢) W⊢) | refl =
   no-bot-value vW W⊢
-no-bot-value (vW ↓ all) (⊢conceal (⊢↓-∀ c⊢) W⊢)
+no-bot-value (vW ↓ all) (⊢conceal (⊢↓-∀ eq c⊢) W⊢)
     with conceal-to-fresh c⊢
-no-bot-value (vW ↓ all) (⊢conceal (⊢↓-∀ c⊢) W⊢) | refl =
+no-bot-value (vW ↓ all) (⊢conceal (⊢↓-∀ eq c⊢) W⊢) | refl =
   no-bot-value vW W⊢
 
 ------------------------------------------------------------------------
@@ -550,8 +550,8 @@ cast-value-progress V⊢ vV bot-intro =
   step (pure-step (blame-bot-intro vV))
 
 reveal-value-progress : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ}
-    {A B : Ty Δ} {c : Conv↑ Δ A B}
-  → Σ ⊢↑ c
+    {X : TyVar Δ} {R A B : Ty Δ} {c : Conv↑ Δ A B}
+  → Σ ⊢↑[ X ⦂ R ] c
   → ⟨ Δ , Σ , [] ⟩ ⊢ V ⦂ A
   → Value V
   → Progress {Σ = Σ} (V ↑ c)
@@ -562,18 +562,28 @@ reveal-value-progress (⊢↑-unseal X∈) V⊢ vV
     rewrite lookup-unique X∈′ X∈ =
   step (pure-step (conceal-reveal vW))
 reveal-value-progress (⊢↑-⇒ c⊢ d⊢) V⊢ vV = done (vV ↑ fun)
-reveal-value-progress (⊢↑-∀ c⊢) V⊢ vV = done (vV ↑ all)
-reveal-value-progress ⊢↑-id V⊢ vV = step (pure-step (id-reveal vV))
+reveal-value-progress (⊢↑-∀ eq c⊢) V⊢ vV = done (vV ↑ all)
+reveal-value-progress (⊢↑-id-var X∈ X≢Y) V⊢ vV =
+  step (pure-step (id-reveal vV))
+reveal-value-progress (⊢↑-id-base X∈) V⊢ vV =
+  step (pure-step (id-reveal vV))
+reveal-value-progress (⊢↑-id-star X∈) V⊢ vV =
+  step (pure-step (id-reveal vV))
 
 conceal-value-progress : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ}
-    {A B : Ty Δ} {c : Conv↓ Δ A B}
-  → Σ ⊢↓ c
+    {X : TyVar Δ} {R A B : Ty Δ} {c : Conv↓ Δ A B}
+  → Σ ⊢↓[ X ⦂ R ] c
   → Value V
   → Progress {Σ = Σ} (V ↓ c)
 conceal-value-progress (⊢↓-seal X∈) vV = done (vV ↓ seal)
 conceal-value-progress (⊢↓-⇒ c⊢ d⊢) vV = done (vV ↓ fun)
-conceal-value-progress (⊢↓-∀ c⊢) vV = done (vV ↓ all)
-conceal-value-progress ⊢↓-id vV = step (pure-step (id-conceal vV))
+conceal-value-progress (⊢↓-∀ eq c⊢) vV = done (vV ↓ all)
+conceal-value-progress (⊢↓-id-var X∈ X≢Y) vV =
+  step (pure-step (id-conceal vV))
+conceal-value-progress (⊢↓-id-base X∈) vV =
+  step (pure-step (id-conceal vV))
+conceal-value-progress (⊢↓-id-star X∈) vV =
+  step (pure-step (id-conceal vV))
 
 ------------------------------------------------------------------------
 -- Progress

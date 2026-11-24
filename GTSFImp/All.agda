@@ -17,6 +17,7 @@ module All where
 
 import proof.TypeSafety.Progress
 import proof.TypeSafety.Preservation
+import proof.TypeSafety.InstValue
 import GradualTypeCheck
 import proof.ImprecisionConsistency
 import proof.Imprecision
@@ -24,6 +25,7 @@ import ImprecisionComposition
 import proof.Consistency
 import proof.Consistency2
 import proof.Reduction
+import proof.Reduction.Determinism
 
 ------------------------------------------------------------------------
 -- Major lemmas (finished)
@@ -150,6 +152,32 @@ import proof.DGG.CatchupToLessPreciseProof
 import proof.DGG.DynamicGradualGuaranteeProof
 
 ------------------------------------------------------------------------
+-- Logical-relation DGG (notes/logrel-dgg.md): the syntactic layer
+------------------------------------------------------------------------
+
+import LR.Meta
+import LR.Relation
+import LR.Frame
+import proof.LR.WorldProps
+import proof.TermRename
+import proof.LR.InterpProps
+import proof.LR.Monotone
+import proof.LR.FrameProps
+import proof.LR.Expression
+import proof.LR.PrecisionUnique
+import proof.LR.PrecisionSubst
+import proof.LR.SubstLemma
+import proof.LR.ConvSyntax
+import proof.LR.ConvBase
+import proof.LR.ConvLemma
+import proof.LR.ConvMain
+import proof.LR.StarAgree
+import proof.LR.ConvRight
+import proof.LR.ConvClose
+import proof.LR.ConvLambda
+import proof.LR.Replay
+
+------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked
 ------------------------------------------------------------------------
 
@@ -177,6 +205,8 @@ import proof.DGG.LambdaImpProbe
 import proof.DGG.MovedLinkProbe
 import proof.DGG.ChainRideProbe
 import proof.DGG.TagBoundaryProbe
+import proof.LR.TimingProbe
+import proof.LR.Case6Probe
 
 -- Checked libraries currently without consumers (candidates for M7+)
 import proof.DGG.CenterRename

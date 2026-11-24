@@ -18,6 +18,7 @@ module proof.DGG.TerminusRebuildProbe where
 --     at the target-chain terminus instead of against a right variable.
 
 import Data.Fin as Fin
+import Data.Vec as Vec
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([])
 open import Data.Maybe using (just)
@@ -29,7 +30,7 @@ open import TyStore using
   (TyStore; store-empty; store-bind; _∋_⦂_; Z∋; S-bind∋)
 open import TermCtx using (Z)
 open import Consistency using
-  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; keep; skip; id; _↦_; _!)
+  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; ε↪ᵗ; keep; skip; id; _↦_; _!)
 open import Conversion using (seal; _⊢↓_; ⊢↓-seal)
 open import CastTerms
 open import Imprecision
@@ -52,7 +53,7 @@ open CTI2 using (_∣_⊢²_⊑_∶_)
 ------------------------------------------------------------------------
 
 dyn-env : ∀ {Δ} → Env∼ Δ
-dyn-env _ = X∼★
+dyn-env = Vec.replicate _ X∼★
 
 fun! : ∀ {Δ} → dyn-env {Δ} ⊢ ★ ⇒ ★ ∼ ★
 fun! = (id ★ ↦ id ★) !
@@ -105,7 +106,7 @@ module InstanceA where
   env Fin.zero = X⊑★
 
   η-id : 1 ↪ᵗ 1
-  η-id = keep empty
+  η-id = keep ε↪ᵗ
 
   -- Placement table:
   --
@@ -122,7 +123,7 @@ module InstanceA where
   Y∈ = Z∋ refl
 
   target-env : Env∼ 1
-  target-env Fin.zero = X∼★
+  target-env = X∼★ Vec.∷ Vec.[]
 
   Y! : target-env ⊢ ＇ Y ∼ ★
   Y! = id (＇ Y) !
@@ -241,13 +242,13 @@ module InstanceB where
   env (Fin.suc Fin.zero) = X⊑★
 
   η-X-Y : 1 ↪ᵗ 2
-  η-X-Y = keep (skip empty)
+  η-X-Y = keep (skip ε↪ᵗ)
 
   η-X-Y₂ : 1 ↪ᵗ 2
-  η-X-Y₂ = skip (keep empty)
+  η-X-Y₂ = skip (keep ε↪ᵗ)
 
   η-target : 2 ↪ᵗ 2
-  η-target = keep (keep empty)
+  η-target = keep (keep ε↪ᵗ)
 
   -- Placement table:
   --
@@ -271,11 +272,10 @@ module InstanceB where
   Y₂∈ = S-bind∋ (Z∋ refl) refl
 
   source-env : Env∼ 1
-  source-env Fin.zero = X∼★
+  source-env = X∼★ Vec.∷ Vec.[]
 
   target-env : Env∼ 2
-  target-env Fin.zero = X∼★
-  target-env (Fin.suc Fin.zero) = X∼★
+  target-env = X∼★ Vec.∷ X∼★ Vec.∷ Vec.[]
 
   X! : source-env ⊢ ＇ X ∼ ★
   X! = id (＇ X) !

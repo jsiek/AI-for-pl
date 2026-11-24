@@ -10,6 +10,7 @@ module proof.DGG.TagBoundaryProbe where
 
 open import Data.Empty using (⊥-elim)
 import Data.Fin as Fin
+import Data.Vec as Vec
 open import Data.List using ([])
 open import Data.Maybe using (just)
 open import Relation.Binary.PropositionalEquality
@@ -20,7 +21,7 @@ open import Types
 open import TyStore using
   (TyStore; store-empty; store-bind; _∋_⦂_; Z∋; S-bind∋)
 open import Consistency using
-  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; keep; skip; _!; id)
+  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; ε↪ᵗ; keep; skip; _!; id)
 open import Imprecision
 open import Conversion using (seal)
 open import CastTerms
@@ -63,13 +64,13 @@ probe-μ Fin.zero = X⊑★
 probe-μ (Fin.suc Fin.zero) = X⊑★
 
 η-X-a : 1 ↪ᵗ 2
-η-X-a = keep (skip empty)
+η-X-a = keep (skip ε↪ᵗ)
 
 η-X-b : 1 ↪ᵗ 2
-η-X-b = skip (keep empty)
+η-X-b = skip (keep ε↪ᵗ)
 
 η-YY′-ab : 2 ↪ᵗ 2
-η-YY′-ab = keep (keep empty)
+η-YY′-ab = keep (keep ε↪ᵗ)
 
 -- Final placement table (a = 0, b = 1):
 --
@@ -125,11 +126,10 @@ probe-Y′-seal-⊢ = Conv.⊢↓-sealˣ probe-tgt-Y′∋
 
 private
   probe-src-env : Env∼ 1
-  probe-src-env Fin.zero = X∼★
+  probe-src-env = X∼★ Vec.∷ Vec.[]
 
   probe-tgt-env : Env∼ 2
-  probe-tgt-env Fin.zero = X∼★
-  probe-tgt-env (Fin.suc Fin.zero) = X∼★
+  probe-tgt-env = X∼★ Vec.∷ X∼★ Vec.∷ Vec.[]
 
   probe-ℕ!ᴸ : probe-src-env ⊢ (‵ `ℕ) ∼ ★
   probe-ℕ!ᴸ = id (‵ `ℕ) !

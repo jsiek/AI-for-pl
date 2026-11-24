@@ -20,7 +20,7 @@ open import Relation.Binary.PropositionalEquality
 
 open import Types
 open import Consistency using
-  (_↪ᵗ_; empty; keep; skip; toRenameᵗ; id↪ᵗ; wk↪ᵗ)
+  (_↪ᵗ_; empty; keep; skip; toRenameᵗ; id↪ᵗ; wk↪ᵗ; ε↪ᵗ)
 open import Conversion using (Conv↓)
 open import Imprecision
 open import CastTerms using (Term; ⟨_,_,_⟩; _⊢_⦂_)
@@ -41,7 +41,7 @@ _∘↪_ : ∀ {Δ₁ Δ₂ Δ₃}
   → Δ₂ ↪ᵗ Δ₃
   → Δ₁ ↪ᵗ Δ₂
   → Δ₁ ↪ᵗ Δ₃
-π ∘↪ empty = empty
+π ∘↪ empty = π
 (skip π) ∘↪ η = skip (π ∘↪ η)
 (keep π) ∘↪ (keep η) = keep (π ∘↪ η)
 (keep π) ∘↪ (skip η) = skip (π ∘↪ η)
@@ -98,7 +98,7 @@ record EmbeddingPair (Δ₁ Δ₂ : TyCtx) : Set where
     right : Δ₂ ↪ᵗ ΔΣ
 
 embeddingPair : ∀ Δ₁ Δ₂ → EmbeddingPair Δ₁ Δ₂
-embeddingPair Nat.zero Δ₂ = pair empty id↪ᵗ
+embeddingPair Nat.zero Δ₂ = pair ε↪ᵗ id↪ᵗ
 embeddingPair (Nat.suc Δ₁) Δ₂
     with embeddingPair Δ₁ Δ₂
 embeddingPair (Nat.suc Δ₁) Δ₂

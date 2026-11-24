@@ -10,6 +10,7 @@ module proof.DGG.SealPeelProbe where
 
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
+import Data.Vec as Vec
 open import Data.List using ([])
 open import Data.Maybe using (just)
 open import Data.Product using (_,_)
@@ -20,7 +21,7 @@ open import Types
 open import TyStore using
   (TyStore; store-empty; store-bind; _∋_⦂_; Z∋; S-bind∋)
 open import Consistency using
-  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; keep; skip; _!; id)
+  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; ε↪ᵗ; keep; skip; _!; id)
 open import Imprecision
 open import Conversion using (seal)
 open import CastTerms
@@ -73,19 +74,19 @@ probe-μ (Fin.suc Fin.zero) = X⊑★
 probe-μ (Fin.suc (Fin.suc Fin.zero)) = X⊑★
 
 ηᴸ-main : 2 ↪ᵗ 3
-ηᴸ-main = keep (keep (skip empty))
+ηᴸ-main = keep (keep (skip ε↪ᵗ))
 
 ηᴸ-moved : 2 ↪ᵗ 3
-ηᴸ-moved = keep (skip (keep empty))
+ηᴸ-moved = keep (skip (keep ε↪ᵗ))
 
 ηᴿ-c0 : 1 ↪ᵗ 3
-ηᴿ-c0 = keep (skip (skip empty))
+ηᴿ-c0 = keep (skip (skip ε↪ᵗ))
 
 ηᴿ-c1 : 1 ↪ᵗ 3
-ηᴿ-c1 = skip (keep (skip empty))
+ηᴿ-c1 = skip (keep (skip ε↪ᵗ))
 
 ηᴿ-c2 : 1 ↪ᵗ 3
-ηᴿ-c2 = skip (skip (keep empty))
+ηᴿ-c2 = skip (skip (keep ε↪ᵗ))
 
 probe-W : World 2 1 3
 probe-W =
@@ -143,11 +144,10 @@ probe-Y-seal-⊢ = Conv.⊢↓-sealˣ probe-tgt-Y∋
 
 private
   probe-src-env : Env∼ 2
-  probe-src-env Fin.zero = X∼★
-  probe-src-env (Fin.suc Fin.zero) = X∼★
+  probe-src-env = X∼★ Vec.∷ X∼★ Vec.∷ Vec.[]
 
   probe-tgt-env : Env∼ 1
-  probe-tgt-env Fin.zero = X∼★
+  probe-tgt-env = X∼★ Vec.∷ Vec.[]
 
   probe-ℕ!ᴸ : probe-src-env ⊢ (‵ `ℕ) ∼ ★
   probe-ℕ!ᴸ = id (‵ `ℕ) !

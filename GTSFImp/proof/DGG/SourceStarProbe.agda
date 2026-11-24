@@ -15,6 +15,7 @@ module proof.DGG.SourceStarProbe where
 
 open import Data.Empty using (⊥-elim)
 import Data.Fin as Fin
+import Data.Vec as Vec
 open import Data.List using ([])
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Relation.Binary.PropositionalEquality
@@ -113,12 +114,10 @@ link₁ : RebaseAt W₀ W₀ X₁ Y₁
 link₁ = CTX.sameWorldRebaseAt refl X₁-Y₁-rep
 
 source-env : Env∼ 2
-source-env Fin.zero = X∼★
-source-env (Fin.suc Fin.zero) = X∼★
+source-env = X∼★ Vec.∷ X∼★ Vec.∷ Vec.[]
 
 target-env : Env∼ 2
-target-env Fin.zero = X∼★
-target-env (Fin.suc Fin.zero) = X∼★
+target-env = X∼★ Vec.∷ X∼★ Vec.∷ Vec.[]
 
 X₁! : source-env ⊢ (＇ X₁) ∼ ★
 X₁! = id (＇ X₁) !

@@ -538,7 +538,7 @@ mutual
     → ∀ {Vl Vr} → allOnly d n p w δ₁ Vl Vr
         ⇔ allOnly d n (renᵖ (ext-onlyᴿ R) p) w δ₂ Vl Vr
   allOnly-ren d n R {A = A} p w h {Vl = Vl} =
-    iff (λ r e le c →
+    iff (λ r e le c oc →
            ℰᵍ-≡
              (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-ren (rl≡ (RenI-↑ h e)) A))
@@ -548,8 +548,8 @@ mutual
                  to (𝒱≤-ren d (≤′-trans le′ le) (ext-onlyᴿ R) p w″
                       (RenI-↑ (RenI-extOnly {T = leftTyS c}
                         (RenI-↑ h e)) e′)))
-               (r e le c)))
-        (λ r e le c →
+               (r e le c oc)))
+        (λ r e le c oc →
            ℰᵍ-≡
              (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-ren (rl≡ (RenI-↑ h e)) A)))
@@ -559,7 +559,7 @@ mutual
                  from (𝒱≤-ren d (≤′-trans le′ le) (ext-onlyᴿ R) p w″
                         (RenI-↑ (RenI-extOnly {T = leftTyS c}
                           (RenI-↑ h e)) e′)))
-               (r e le c)))
+               (r e le c oc)))
 
   allDead-ren : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′}
       (R : CRen Ψ Ψ′) {A} (p : dead Ψ ⊢ A ⊑ ★) w
@@ -953,7 +953,7 @@ mutual
     → ∀ {Vl Vr} → allOnly d n p w δ₁ Vl Vr
         ⇔ allOnly d n (substᵖ (exts-onlyˢ S) p) w δ₂ Vl Vr
   allOnly-subst d n S {A = A} p w h lt {Vl = Vl} =
-    iff (λ r e le c →
+    iff (λ r e le c oc →
            ℰᵍ-≡
              (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-subst (sl≡ (SubI-↑ h e)) A))
@@ -964,8 +964,8 @@ mutual
                       (SubI-↑ (SubI-extOnly (sem (onlyLeafS d le c))
                         (SubI-↑ h e)) e′)
                       pos′ (below (≤′-trans le′ le) lt)))
-               (r e le c)))
-        (λ r e le c →
+               (r e le c oc)))
+        (λ r e le c oc →
            ℰᵍ-≡
              (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-subst (sl≡ (SubI-↑ h e)) A)))
@@ -976,7 +976,7 @@ mutual
                         (SubI-↑ (SubI-extOnly (sem (onlyLeafS d le c))
                           (SubI-↑ h e)) e′)
                         pos′ (below (≤′-trans le′ le) lt)))
-               (r e le c)))
+               (r e le c oc)))
 
   allDead-subst : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′}
       (S : PSub Ψ Ψ′) {A} (p : dead Ψ ⊢ A ⊑ ★) {N} w

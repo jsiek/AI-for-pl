@@ -1103,12 +1103,13 @@ module OnlyVR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       → (∀ Z → δl δ Z ≡ δl δ′ Z)
       → ∀ {Vl Vr} → allOnly d n p w δ Vl Vr
       → ∀ {w′} (e : w′ ⊒ w) {n′} → n′ ≤ n → (c : SDesc (ΔL w′) (ΔR w′))
+      → OnlyS c
       → ℰ d n′ p w′ (extOnlyI (leftTyS c)
             (sem (onlyLeafS d (≤′-refl {n′}) c)) (δ ↑ᴵ e))
           (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ′ ↑ᴵ e))) A
             [ leftTyS c ])
           (renameᵗᵐ (ρS e) Vr)
-    clauseAt w {δ} {δ′} eqL {Vl} {Vr} r e {n′} le c =
+    clauseAt w {δ} {δ′} eqL {Vl} {Vr} r e {n′} le c oc =
       ℰᵍ-≡
         (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
           (substᵗ-cong A (exts-cong (λ Z →
@@ -1121,14 +1122,14 @@ module OnlyVR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
                 (extOnlyI-resp (onlyLeafS-≈ d (≤⇒≤′ le) ≤′-refl c) ≈ᴵ-refl)
                 e′)
               (𝒱≤-cast d (≤′-trans le′ (≤⇒≤′ le)) le′ p w″ r′))
-          (r e (≤⇒≤′ le) c))
+          (r e (≤⇒≤′ le) c oc))
 
   revV : ∀ {n} w {X} {m : RMode Φ X (storeR w)} {δs δt σs σt}
       (h : RConvI d N w m δs δt σs σt) → PreS w δs δt σs σt B → n ≤ N
     → ∀ {Vl Vr} → Value Vl → Value Vr → allOnly d n p w δs Vl Vr
     → allOnly d n p w δt Vl (revM (rcR m σt) (substᵗ σs B) Vr)
   revV {n} w {m = m} {δs} {δt} {σs} {σt} h ps le {Vl} {Vr} vl vr r =
-    allOnly-from d n p w {δ = δt} λ {w′} e {n′} le′ c →
+    allOnly-from d n p w {δ = δt} λ {w′} e {n′} le′ c oc →
       ℰᵍ-≡ refl (sym (revVR e m σs σt Vr B))
         (ℰ-bind₂ d n′ p p _
           {δ₁ = extOnlyI (leftTyS c) (L w′ n′ c) (δs ↑ᴵ e)}
@@ -1136,7 +1137,7 @@ module OnlyVR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           nothing
           (revFrame (rcR (RMode-↑ (ρS e) m) (σt ↑ˢ e))
             (substᵗ (σs ↑ˢ e) B))
-          (clauseAt w {δ = δs} {δ′ = δt} (tyL h) r e le′ c)
+          (clauseAt w {δ = δs} {δ′ = δt} (tyL h) r e le′ c oc)
           (λ e₂ {k} k≤ {Ql} {Qr} ql qr q →
             ℰᵍ-≡ refl
               (trans (rcRenR e₂ (RMode-only (RMode-↑ (ρS e) m))
@@ -1161,7 +1162,7 @@ module OnlyVR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     → ∀ {Wl Wr} → Value Wl → Value Wr → allOnly d n p w δt Wl Wr
     → allOnly d n p w δs Wl (conM (rcR m σt) (substᵗ σs B) Wr)
   conV {n} w {m = m} {δs} {δt} {σs} {σt} h ps cb {Wl} {Wr} wl wr r =
-    allOnly-from d n p w {δ = δs} λ {w′} e {n′} le′ c →
+    allOnly-from d n p w {δ = δs} λ {w′} e {n′} le′ c oc →
       ℰᵍ-≡ refl (sym (conVR e m σs σt Wr B))
         (ℰ-bind₂ d n′ p p _
           {δ₁ = extOnlyI (leftTyS c) (L w′ n′ c) (δt ↑ᴵ e)}
@@ -1169,7 +1170,7 @@ module OnlyVR (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           nothing
           (conFrame (rcR (RMode-↑ (ρS e) m) (σt ↑ˢ e))
             (substᵗ (σs ↑ˢ e) B))
-          (clauseAt w {δ = δt} {δ′ = δs} (λ Z → sym (tyL h Z)) r e le′ c)
+          (clauseAt w {δ = δt} {δ′ = δs} (λ Z → sym (tyL h Z)) r e le′ c oc)
           (λ e₂ {k} k≤ {Ql} {Qr} ql qr q →
             ℰᵍ-≡ refl
               (trans (ccRenR e₂ (RMode-only (RMode-↑ (ρS e) m))

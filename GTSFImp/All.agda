@@ -176,6 +176,10 @@ import proof.LR.ConvRight
 import proof.LR.ConvClose
 import proof.LR.ConvLambda
 import proof.LR.Replay
+import proof.LR.CastLemma
+import proof.LR.IdentityCast
+import proof.LR.CastSubst
+import proof.LR.Case6
 
 ------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked

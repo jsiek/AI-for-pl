@@ -144,7 +144,7 @@ mutual
       (p : only Φ ⊢ A ⊑ ★) w
       {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
     → Φ ⊢ δ ≈ᴸ δ′ → allOnly d n p w δ Vl Vr → allOnly d n p w δ′ Vl Vr
-  allOnly★-agree d n {A = A} p w {Vl = Vl} h r e le c =
+  allOnly★-agree d n {A = A} p w {Vl = Vl} h r e le c oc =
     ℰᵍ-≡
       (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
         (substᵗ-cong A (exts-cong (δl≡ᴸ (↑ᴵ-respᴸ h e)))))
@@ -153,7 +153,7 @@ mutual
         (λ le′ w″ e′ V V′ →
           𝒱≤★-agree d (≤′-trans le′ le) p w″
             (↑ᴵ-respᴸ (extOnlyI-respᴸ ≈ˡ-refl (↑ᴵ-respᴸ h e)) e′))
-        (r e le c))
+        (r e le c oc))
 
   allDead-agree : ∀ d n {Φ : Corr Δ Δ′} {A}
       (p : dead Φ ⊢ A ⊑ ★) w

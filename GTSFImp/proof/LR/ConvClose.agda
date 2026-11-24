@@ -11,7 +11,9 @@ module proof.LR.ConvClose where
 --     The lemmas need a converted variable, so the derivation is first
 --     weakened by a dead one.
 --   * A sealed side takes an identity step; the seals are peeled one at
---     a time around the descriptor's relation.
+--     a time around the descriptor's relation.  At right store type ★
+--     every good leaf is closed under right conversions
+--     (`leafFreshR★`).
 --   * The descriptor's store types (`σᵘ`) are the store preimages of
 --     its right variables, or ★ where a variable names a reserved scope
 --     variable.  They are preimages wherever the descriptor's right
@@ -238,6 +240,12 @@ module _ {d : Dir} {w : World} where
   entryFreshR (inj₁ refl) {w′} e′ nb bs {k} =
     (λ vl vr r → idR★ k good-syn vl vr r) ,
     (λ vl wr r → idC★ k good-syn vl wr r)
+
+  -- any good leaf, at the right store type ★
+  leafFreshR★ : ∀ {L : Leaf (ΔL w) (ΔR w)} → GoodLeaf L → FreshR d w L ★
+  leafFreshR★ gl e′ nb bs {k} =
+    (λ vl vr r → idR★ k (GoodLeaf-transport (ρL e′) (ρR e′) gl) vl vr r) ,
+    (λ vl wr r → idC★ k (GoodLeaf-transport (ρL e′) (ρR e′) gl) vl wr r)
 
 ------------------------------------------------------------------------
 -- The lemmas at a descriptor's own interpretation
@@ -1104,7 +1112,7 @@ all0 d e ≤′-refl c wf T₀ eqT B₀ eqB = ℰᵍ-zero d _
 only0 : ∀ d {Δ Δ′} {Φ : Corr Δ Δ′} {A B} {p : only Φ ⊢ A ⊑ B} {w}
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {V V′}
   → allOnly d 0 p w δ V V′
-only0 d e ≤′-refl c = ℰᵍ-zero d _
+only0 d e ≤′-refl c oc = ℰᵍ-zero d _
 
 -- the store types of a left-only leaf's right variables, which the
 -- right side never reads

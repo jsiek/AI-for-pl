@@ -10,12 +10,14 @@ module proof.LR.WorldProps where
 --     (the left unit law, `∘↪-idˡ`, is in `LR.World`).
 --   * The right run's steps (`Steps`) compose, a pure step keeps the
 --     prefix, and an ordinary world's run extends its scope.
+--   * Renaming keeps well-formed descriptors well formed, and a core
+--     into `★` into `★` (`WFDesc-rename`, `OnlyS-rename`).
 
 open import Data.List using (List; []; _∷_; map)
 import Data.Fin as Fin
 open import Data.Maybe using (just; nothing)
 open import Data.Nat using (zero; suc)
-open import Data.Product using (_,_)
+open import Data.Product using (_,_; _×_)
 open import Data.Vec using (Vec) renaming ([] to []ᵛ; _∷_ to _∷ᵛ_)
 import Data.Vec as Vec
 open import Data.Vec.Properties using (lookup-map)
@@ -220,6 +222,19 @@ WFDesc-rename σL σR (desc p env envR) wf {Z} {Y′} z =
   ren : ∀ {e T} → RSealed e T
     → RSealed (renameEntry σL σR e) (renameᵗ (toRenameᵗ σR) T)
   ren rsealed = rsealed
+
+-- so is a core into `★`, whatever the seals around it
+CoreStar-rename : ∀ {ΔL ΔL′ ΔR ΔR′} (σL : ΔL ↪ᵗ ΔL′) (σR : ΔR ↪ᵗ ΔR′)
+    (c : Desc ΔL ΔR) → CoreStar c → CoreStar (renameDesc σL σR c)
+CoreStar-rename σL σR (desc p env envR) h = h
+
+-- `OnlyS` reads the core only, whatever the seals
+OnlyS-rename : ∀ {ΔL ΔL′ ΔR ΔR′} (σL : ΔL ↪ᵗ ΔL′) (σR : ΔR ↪ᵗ ΔR′)
+    (c : Desc ΔL ΔR)
+  → WFDesc c × CoreStar c
+  → WFDesc (renameDesc σL σR c) × CoreStar (renameDesc σL σR c)
+OnlyS-rename σL σR c (wf , cs) =
+  WFDesc-rename σL σR c wf , CoreStar-rename σL σR c cs
 
 renameTag-id : ∀ {ΔL ΔR} (t : Tag ΔL ΔR) → renameTag id↪ᵗ id↪ᵗ t ≡ t
 renameTag-id (just Y , e)

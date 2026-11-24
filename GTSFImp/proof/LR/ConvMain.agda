@@ -77,19 +77,19 @@ allPair-from d n p w f e le c wf T₀ eqT B₀ eqB =
 allOnly-from : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : only Φ ⊢ A ⊑ B) w
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → (∀ {w′} (e : w′ ⊒ w) {n′} → n′ ≤ n → (c : SDesc (ΔL w′) (ΔR w′))
-       → ℰ d n′ p w′ (extOnlyI (leftTyS c)
+       → OnlyS c → ℰ d n′ p w′ (extOnlyI (leftTyS c)
              (sem (onlyLeafS d (≤′-refl {n′}) c)) (δ ↑ᴵ e))
            (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A
              [ leftTyS c ])
            (renameᵗᵐ (ρS e) Vr))
   → allOnly d n p w δ Vl Vr
-allOnly-from d n p w f e le c =
+allOnly-from d n p w f e le c oc =
   ℰᵍ-map d _ _
     (λ le′ w″ e′ V V′ r →
       𝒱≤-resp d (≤′-trans le′ le) p w″
         (↑ᴵ-resp (extOnlyI-resp (onlyLeafS-≈ d ≤′-refl le c) ≈ᴵ-refl) e′)
         (𝒱≤-cast d le′ (≤′-trans le′ le) p w″ r))
-    (f e (≤′⇒≤ le) c)
+    (f e (≤′⇒≤ le) c oc)
 
 allDead-from : ∀ d n {Φ : Corr Δ Δ′} {A} (p : dead Φ ⊢ A ⊑ ★) w
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Wr}
@@ -335,7 +335,7 @@ module OnlyV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
         (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) (`∀ A) 〗)
         (revM (RF m σt) (substᵗ σs B) Vr)
   revV {n} w {m = m} {α} {δs} {δt} {σs} {σt} h ps le {Vl} {Vr} vl vr r =
-    allOnly-from d n p w {δ = δt} λ e {n′} le′ (sdesc Xs Ys c) →
+    allOnly-from d n p w {δ = δt} λ e {n′} le′ (sdesc Xs Ys c) oc →
       ℰᵍ-≡ (sym (revL≡ e m α δs δt Vl A))
         (trans
           (cong (λ c′ → revM c′ (substᵗ (σs ↑ˢ e) B)
@@ -346,7 +346,7 @@ module OnlyV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (≤-trans le′ le)
           (renameᵗᵐ-preserves-Value (ρL e) vl)
           (renameᵗᵐ-preserves-Value (ρS e) vr)
-          (allOnly-down d le′ p _ (allOnly-mono d n p e r)) Xs Ys c)
+          (allOnly-down d le′ p _ (allOnly-mono d n p e r)) Xs Ys c oc)
 
   conV : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (storeR w)} {α δs δt σs σt}
       {rk} (h : ConvI d N rk w m α δs δt σs σt)
@@ -356,7 +356,7 @@ module OnlyV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
         (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) (`∀ A)))
         (conM (RF m σt) (substᵗ σs B) Wr)
   conV {n} w {m = m} {α} {δs} {δt} {σs} {σt} h ps cb {Wl} {Wr} wl wr r =
-    allOnly-from d n p w {δ = δs} λ e {n′} le′ (sdesc Xs Ys c) →
+    allOnly-from d n p w {δ = δs} λ e {n′} le′ (sdesc Xs Ys c) oc →
       ℰᵍ-≡ (sym (conL≡ e m α δs δt Wl A))
         (trans
           (cong (λ c′ → conM c′ (substᵗ (σs ↑ˢ e) B)
@@ -367,7 +367,7 @@ module OnlyV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (ConM-↑ d (ρL e) (ρS e) m (RF-↑ (ρL e) (ρS e) m σt) le′ cb)
           (renameᵗᵐ-preserves-Value (ρL e) wl)
           (renameᵗᵐ-preserves-Value (ρS e) wr)
-          (allOnly-down d le′ p _ (allOnly-mono d n p e r)) Xs Ys c)
+          (allOnly-down d le′ p _ (allOnly-mono d n p e r)) Xs Ys c oc)
 
 ------------------------------------------------------------------------
 -- `∀⊑★`, in the `★` lemma

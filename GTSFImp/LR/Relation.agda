@@ -39,6 +39,12 @@ module LR.Relation where
 --     A `∀` clause gives the right program the store preimages of its
 --     type argument and annotation (`PreTy`), at the future it is read
 --     in, so it holds vacuously where they name a reserved variable.
+--   * The pair clause quantifies over well-formed sealed descriptors
+--     (`WFS`); the left-only clause over well-formed ones whose core
+--     relates into `★` (`OnlyS`, notes/logrel-dgg.md, Gap D1), the
+--     only ones the proofs give it, so that the cast lemma's case 6 can
+--     read a left-only clause through a pair clause at a right seal
+--     whose representation is `★`.
 
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
@@ -496,12 +502,14 @@ mutual
     peelSL (map (renameVar τL) Xs) (renameDesc τL τR c)
       (onlyLeaf d le c m w τL τR)
 
-  -- only the left instantiates
+  -- only the left instantiates, at any well-formed sealed descriptor
+  -- whose core relates into `★`
   allOnly : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     → only Φ ⊢ A ⊑ B → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
     → Term (ΔL w) → Term (storeR w) → Set
   allOnly d n {A = A} p w δ Vl Vr =
     ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n) (c : SDesc (ΔL w′) (ΔR w′))
+    → OnlyS c
     → ℰᵍ d n′ w′
         (λ le′ w″ e′ → 𝒱≤ d (≤′-trans le′ le) p w″
           (extOnlyI (leftTyS c) (sem (onlyLeafS d le c)) (δ ↑ᴵ e) ↑ᴵ e′))

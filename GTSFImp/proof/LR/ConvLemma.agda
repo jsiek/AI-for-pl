@@ -4389,7 +4389,7 @@ module OnlyRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       {α δs δt σs σt} {rk} (h : ConvI d N rk w m α δs δt σs σt)
     → PreM w (RF m σt) δs δt σs σt B → n ≤ N
     → ∀ {Vl Vr} → Value Vl → Value Vr → allOnly d n p w δs Vl Vr
-    → ∀ Xs Ys c
+    → ∀ Xs Ys c → OnlyS (sdesc Xs Ys c)
     → ℰ d n p w (extOnlyI (repL Xs c)
           (sem (onlyLeafS d (≤′-refl {n}) (sdesc Xs Ys c))) δt)
         ((Vl ↑ `∀↑ 〖 suc α , ⇑ᵗ (repM m (δl δt))
@@ -4397,7 +4397,7 @@ module OnlyRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
            ⦂∀ substᵗ (extsᵗ (δl δt)) A [ repL Xs c ])
         (revM (RF m σt) (substᵗ σs B) Vr)
   onlyRev {n} w {X} {m} {α} {δs} {δt} {σs} {σt} {rk} h ps le {Vl} {Vr} vl vr r
-      Xs Ys c =
+      Xs Ys c oc =
     antiL₁ d p le stepL (tagsL w) (okBindL w Tl) inner
     where
     Tl = repL Xs c
@@ -4486,7 +4486,7 @@ module OnlyRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (renameᵗᵐ-id Vr)
           (ℰᵍ-map d s w₁
             (λ le′ w″ e″ V V′ → 𝒱≤-cast d (≤′-trans le′ le_s) le′ p w″)
-            (r e₁ le_s c″))
+            (r e₁ le_s c″ (OnlyS-rename ρL₁ ρR₁ c oc)))
 
       K₁ : ∀ {w₂} (e₂ : w₂ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
         → Value Ql → Value Qr → 𝒱 d k p w₂ (δsβ ↑ᴵ e₂) Ql Qr
@@ -4574,7 +4574,7 @@ module OnlyCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
       {α δs δt σs σt} {rk} (h : ConvI d N rk w m α δs δt σs σt)
     → PreM w (RF m σt) δs δt σs σt B → ConM d m (RF m σt) n N
     → ∀ {Wl Wr} → Value Wl → Value Wr → allOnly d n p w δt Wl Wr
-    → ∀ Xs Ys c
+    → ∀ Xs Ys c → OnlyS (sdesc Xs Ys c)
     → ℰ d n p w (extOnlyI (repL Xs c)
           (sem (onlyLeafS d (≤′-refl {n}) (sdesc Xs Ys c))) δs)
         ((Wl ↓ `∀↓ makeConceal (suc α) (⇑ᵗ (repM m (δl δt)))
@@ -4582,7 +4582,7 @@ module OnlyCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
            ⦂∀ substᵗ (extsᵗ (δl δs)) A [ repL Xs c ])
         (conM (RF m σt) (substᵗ σs B) Wr)
   onlyCon {n} w {X} {m} {α} {δs} {δt} {σs} {σt} {rk} h ps cbn {Wl} {Wr}
-      wl wr r Xs Ys c =
+      wl wr r Xs Ys c oc =
     antiL₁ d p n≤N stepL (tagsL w) (okBindL w Tl) inner
     where
     rc = RF m σt
@@ -4678,7 +4678,7 @@ module OnlyCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (renameᵗᵐ-id Wr)
           (ℰᵍ-map d s w₁
             (λ le′ w″ e″ V V′ → 𝒱≤-cast d (≤′-trans le′ le_s) le′ p w″)
-            (r e₁ le_s c″))
+            (r e₁ le_s c″ (OnlyS-rename ρL₁ ρR₁ c oc)))
 
       K₁ : ∀ {w₂} (e₂ : w₂ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
         → Value Ql → Value Qr → 𝒱 d k p w₂ (δtβ ↑ᴵ e₂) Ql Qr

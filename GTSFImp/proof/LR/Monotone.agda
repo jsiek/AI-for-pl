@@ -468,7 +468,7 @@ allOnly-mono : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : only Φ ⊢ A ⊑ B)
     {w w′} (e : w′ ⊒ w) {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → allOnly d n p w δ Vl Vr
   → allOnly d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
-allOnly-mono d n {A = A} p e {δ} {Vl} {Vr} f e′ le c =
+allOnly-mono d n {A = A} p e {δ} {Vl} {Vr} f e′ le c oc =
   ℰᵍ-≡
     (cong₂ (λ M C → M ⦂∀ C [ leftTyS c ])
       (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl))
@@ -478,7 +478,7 @@ allOnly-mono d n {A = A} p e {δ} {Vl} {Vr} f e′ le c =
       (λ le′ w″ e″ V V′ →
         𝒱≤-resp d (≤′-trans le′ le) p w″
           (↑ᴵ-resp (extOnlyI-resp ≈ˡ-refl (≈ᴵ-sym (↑ᴵ-trans δ e′ e))) e″))
-      (f (⊒-trans e′ e) le c))
+      (f (⊒-trans e′ e) le c oc))
 
 allDead-mono : ∀ d n {Φ : Corr Δ Δ′} {A} (p : dead Φ ⊢ A ⊑ ★)
     {w w′} (e : w′ ⊒ w) {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
@@ -888,13 +888,13 @@ allPair-down d le p w f e le₁ c wf T₀ eqT B₀ eqB =
 allOnly-down : ∀ d {n n′} (le : n′ ≤ n) {Φ : Corr Δ Δ′} {A B}
     (p : only Φ ⊢ A ⊑ B) w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → allOnly d n p w δ Vl Vr → allOnly d n′ p w δ Vl Vr
-allOnly-down d le p w f e le₁ c =
+allOnly-down d le p w f e le₁ c oc =
   ℰᵍ-map d _ _
     (λ le′ w″ e′ V V′ r →
       𝒱≤-resp d (≤′-trans le′ le₁) p w″
         (↑ᴵ-resp (extOnlyI-resp (onlyLeafS-≈ d le₂ le₁ c) ≈ᴵ-refl) e′)
         (𝒱≤-cast d (≤′-trans le′ le₂) (≤′-trans le′ le₁) p w″ r))
-    (f e le₂ c)
+    (f e le₂ c oc)
   where le₂ = ≤′-trans le₁ (≤⇒≤′ le)
 
 allDead-down : ∀ d {n n′} (le : n′ ≤ n) {Φ : Corr Δ Δ′} {A}

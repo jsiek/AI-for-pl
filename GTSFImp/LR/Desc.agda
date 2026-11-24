@@ -25,12 +25,17 @@ module LR.Desc where
 --   * Environments are vectors, so equal descriptors are equal as data
 --     (no function extensionality).
 --   * Renaming along order-preserving embeddings of the stores.
+--   * Well-formedness (`WFDesc`): paired variables are right-sealed.
+--     `OnlyS` adds that the core relates into `★`: the descriptors a
+--     left-only `∀` clause quantifies over (notes/logrel-dgg.md, Gap
+--     D1).
 
 open import Data.List using (List; []; _∷_; map)
 open import Data.Vec using (Vec; lookup) renaming ([] to []ᵛ; _∷_ to _∷ᵛ_)
 import Data.Vec as Vec
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (_×_; _,_)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
 open import Consistency using (_↪ᵗ_; toRenameᵗ)
@@ -160,3 +165,12 @@ WFDesc (desc {Φ = Φ} p env envR) =
 
 WFS : ∀ {ΔL ΔR} → SDesc ΔL ΔR → Set
 WFS c = WFDesc (core c)
+
+-- the core's derivation relates into `★`
+CoreStar : ∀ {ΔL ΔR} → Desc ΔL ΔR → Set
+CoreStar (desc {A′ = A′} p env envR) = A′ ≡ ★
+
+-- the descriptors a left-only clause quantifies over: well formed, with
+-- a core into `★` (notes/logrel-dgg.md, Gap D1)
+OnlyS : ∀ {ΔL ΔR} → SDesc ΔL ΔR → Set
+OnlyS c = WFS c × CoreStar (core c)

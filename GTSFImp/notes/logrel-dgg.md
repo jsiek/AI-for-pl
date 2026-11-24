@@ -480,6 +480,8 @@ only strengthens the clauses.
 | `proof/LR/PrecisionUnique.agda` | two-context precision derivations are unique |
 | `proof/LR/PrecisionSubst.agda` | renaming and substitution of precision derivations |
 | `proof/LR/SubstLemma.agda` | the renaming and substitution lemmas for `𝒱`; the instances `𝒱-tyapp` (`•⊑•`) and `𝒱-tyappO` (`•⊑`) |
+| `proof/LR/CastLemma.agda` | the cast lemma's statement; case 6 from its induction hypothesis and the obligations `Case6Ob`; the `id` cases |
+| `proof/LR/Case6.agda` | the obligations `Case6Ob`, including the right-only reveal of α′ (`revealK`): case 6 from its induction hypothesis alone (`case6R`) |
 
 **Renaming terms: how it is done.**
 * Mode environments are vectors, `Env∼ Δ = Vec Var∼ Δ`, read with
@@ -943,7 +945,8 @@ the terms of the descriptors.
   * **Chains make it worse.** A right cast `inst (inst c″)` instantiates
     two binders at the cast. The left instantiates the inner one only
     after the outer one.
-  * **Gap D1** (needed once O1 is solved).
+  * **Gap D1** (needed once O1 is solved; resolved, see "The cast
+    lemma: statement and case 6" below).
     * The hypothesis's descriptor is `sdesc Xs [ α′ ] c`, at right type
       `＇ α′`. The pair clause needs it well formed.
     * α′'s representation is `★`, so `rightTy c ≡ ★`.
@@ -1274,11 +1277,177 @@ the terms of the descriptors.
   * This is what case 6 needs on the right in both directions: in `≺`
     the right must reach a value (the left is a value at the cast), in
     `≻` it must not be stuck or blame within the stage.
-* **Still open for case 6:** the cast lemma's statement. Casts in
-  `LR.CastPrecision` are over the type context Δ; the lemma needs them
-  at the world, through the interpretation (left: `subst∼` with a
-  `SubstEnv∼` for the cast's modes at `δl`; right: through store
-  preimages of `δr`, since right terms live in the store).
+* **Was open for case 6:** the cast lemma's statement; done below.
+
+**The cast lemma: statement and case 6** (`proof/LR/CastLemma.agda`).
+
+* **Statement** (`CastLemma`, and `CastCase c c′` at two given casts):
+  for eager casts `c : ν ⊢ C ∼ A` and `c′ : ν′ ⊢ C′ ∼ A′`, derivations
+  `p : Φ ⊢ C ⊑ C′` and `r : Φ ⊢ A ⊑ A′`, a world w, an interpretation δ
+  with hypotheses `h : CastHyp Φ d w δ ν ν′`, `PreB` for C′ and A′, and
+  values with `𝒱ᵀ d n p w δ Vl Vr`:
+
+      ℰ d n r w δ (Vl ⟨ subst∼ (sL h) c ⟩) (Vr ⟨ subst∼ (sR h) c′ ⟩)
+
+  * `sL h : SubstEnv∼ ν νL (δl δ)`; `sR h : SubstEnv∼ ν′ νR (σR h)`
+    with σR a store substitution, tied to δr only at C′ and A′.
+  * `CastHyp` also carries what the cases need of δ, found by checking
+    each case: GoodI (monotonicity, replay); closure of the leaves under
+    later conversions, left and both (`FreshP`, `FreshO`; the `∀` cases
+    through the conversion lemmas) and right alone (`FreshR`; case 6's
+    right-only reveal); and `VarI`, the lemma at the variables, in every
+    future w″ of w (`CastHyp.var : ∀ e″ → VarI` at `δ ↑ᴵ e″`, with the
+    environments renamed into w″ by `renAfter`, `renSE`).
+  * Why in every future.  `VarI` at w alone quantifies over values
+    related at w, and a leaf may relate values that exist only later:
+    a pair clause's leaf whose descriptor seals with a left store
+    variable β allocated after w relates `V ↑ 〖 β , … 〗` at w″ and
+    nothing of that form at w.  Case 6 needs `VarI` at the old variables
+    in the futures of its replay world, which is past such allocations.
+    This changes the cast lemma's hypothesis, not the relation.
+  * Why `VarI` is a hypothesis: at `id X` the world casts are
+    `self sL X` and `self sR Y`, which only the caller knows.  The
+    fundamental lemma's δ has store variables (identity casts, one
+    `β-id` step); a `∀` case's induction hypothesis extends δ with an
+    instantiated binder, whose `self` is `refl∼ T`: that is the
+    identity-cast lemma (6.9, item 6) for the clause leaf.
+  * Induction measure for the assembly (not done): case 6's hypothesis
+    is at `c₁` against `c₁′ [★/0]ᶜ`, so the measure is the sum of the
+    two casts' sizes (`castSize-close-inst-≤`).
+* **Gap D1, resolved.** `allOnly` quantifies over `OnlyS c`: `WFS c`
+  and the core's derivation into `★` (`CoreStar`).
+  * Example of the need.  Case 6 at the probe's types (left
+    `∀ᶜ (id ↦ id)`, right `inst (？X ↦ id)`, `∀X.X→★ ⊑ ∀X.X→★` to
+    `∀X.X→★ ⊑ ★→★`).  The goal's left-only clause is read at the goal's
+    descriptor `sdesc Xs Ys c`, and the proof uses the hypothesis's pair
+    clause at `sdesc Xs [ α′ ] c`, where α′ is the right's `bind ★`.
+    The pair clause needs `WFS`, and α′'s seal has representation
+    `rightTy c`, while the store binds α′ to `★`.  With
+    `c = desc ι⊑ι [] []` (contents `$ 1` against `$ 1`), the clause
+    would ask the right's values at α′ to be sealed at representation
+    ι, but the right's reveal `〖 α′ , ★ ↑ _ 〗` unseals them only at
+    `★`: no hypothesis gives that clause.
+  * Every proof that passes a descriptor to the clause already passes
+    one of that form (the conversions rename the core, `OnlyS-rename`);
+    the change touched only the clause's producers and consumers.
+* **Case 6** (module `Case6`): proved from the induction hypothesis and
+  `Case6Ob`.  Proved here:
+  * the right's world cast is `inst` (its target is not `★`:
+    `only≢★`); its first step allocates α′ := `★` (`antiR₁`), and
+    `inst-cast-value` with determinism gives the rest of its run to W′;
+  * the arrival's `∀⊑` value is read clause by clause (`ℰ-runR`,
+    `only→𝒱`, `allOnly-from`); in each, the left steps `β-∀` and the
+    right's run is replayed from the store after α′ (`ℰ-stepReplay`);
+  * inside the replay, the two casts are bound (`coreFrom`) and related
+    by the induction hypothesis.
+* **Two stage facts found while assembling it.**
+  * `≻`: the replay is read at stage `s = k₀ + n′` (the right's k₀
+    steps counted), above the clause's n′.  The new variable's leaf must
+    then be bounded by `s + 1`, not n′: at stages in `(n′, s]` the
+    leaf with bound n′ is empty, and a function in the body returning
+    X-values would not be related.  The bound is lowered back to n′
+    after the replay, at the stages up to n′ (`lowOnly`, the
+    substitution lemma at an identity substitution).  The hypothesis is
+    used at `s + 1 ≤ n`, which the right's allocation step allows.
+  * `≺`: the left's `β-∀` step is counted, so the replay is at
+    `s = n′ − 1` while the leaf's bound is n′.  The right-only lemma's
+    seal hypotheses need the source clause's bound at least the
+    target's (`UpBR ≺`), so the hypothesis's clause is used at n′ and
+    its expression relation brought down to `n′ − 1` (`ℰ-down`, done;
+    its use is in the obligation `inner`, below).
+* **Obligations** (`AtReplay.Ob`, at the replay world):
+  * `inner`: the instantiations inside the casts, at
+    `p₂ = pairStarᵖ p₁` (X paired at right type `★` read as X
+    left-only): the hypothesis moved to the world after α′, its clause
+    at `sdesc Xs [ α′ ] c`, then a bind around the right's reveal of α′,
+    whose frame is the right-only lemma (`revR`, mode `r-pair`, its
+    hypotheses from `RConvI-newR` at the replay world over the cast's
+    store, with `SealNewR`), followed by the substitution lemma at
+    `pairStarˢ` (leaves: `leafBelowS (sdesc Xs [] c)` against the goal's
+    `onlyLeafS`, equal in `≺`, `𝒱≻★-G` in `≻`);
+  * `typed`: the right's instantiation is typed at `C₁′ [ ★ ]` (the
+    store binds α′ to `★`);
+  * `hyp₂`, `preC₂`, `preA₂`, `castL₂`, `castR₂`: the reduced casts are
+    the casts `c₁` and `c₁′ [★/0]ᶜ` read through the extended
+    interpretation.  This needs cast substitution to compose (the left
+    is `(subst∼ (ext sL) c₁) [ T ]ᶜ` renamed, the right
+    `↑ᶜ ((subst∼ (inst sR) c₁′) [★/0]ᶜ)`), and `VarI` for the new
+    variable, whose `self` is `refl∼ T` (the identity-cast lemma).
+* **Discharged in `proof/LR/Case6.agda`** (`Replay.Assemble.ob`,
+  `case6R`; case 6 now holds from its induction hypothesis alone):
+  * `hyp₂`: `sL = CastL.envL`, `sR = CastR.envR`, `σR = CastR.σC`;
+    `good`; `FreshP`/`FreshO`/`FreshR` at the old variables moved along
+    the composite extension `E e″ : w″ ⊒ w` (through the replay,
+    `replay-⊒`) and transported to δ₃'s leaves (`FreshP-resp` etc.,
+    the leaves equivalent by `↑ᴵ-trans`); `FreshO` at the new variable
+    from `oracle-all`; `VarI` in every future of every future of the
+    replay world (`Var.var₂`, by `VarI-ext`): at the old variables from
+    `CastHyp.var` along the composite extension, the casts equal through
+    `CastL.envL-old`/`CastR.envR-old` (`subst-⇑`: substitution after
+    the shift at an environment that renames is the renaming, from
+    `subst-id`) and `agree-ren`, the leaves equivalent along `D`; at the
+    new variable from `selfO-only` (with `refl-rename`; its `to`/`from`
+    fields are vacuous, the new variable has mode `X∼X`);
+  * `preC₂`, `preA₂` (`PreB-↑` along `E e″`, opened at `★`:
+    `PreB-open`); `castL₂`, `castR₂`;
+  * `typed`: as in preservation's `β-inst` case (`reveal-zero-typing`),
+    at the store preimage `⇑ (A₀ [ ★ ])`.
+* **`inner`, split** (`proof/LR/Case6.agda`, `innerFrom`): a bind around
+  the right's reveal frame `□ ↑ 〖 0 , ★ ↑ A₀ 〗`, then the substitution
+  instance.
+  * The replay's stage s has `s + 1 ≤ n` (`rstage-<`): in `≺` the left's
+    `β-∀` step is counted, in `≻` the right's allocation (`antiR₁⁺`,
+    `AllocB ≻ s n = s < n`; `antiR₁` keeps no count in `≻`).
+  * `clauseP` (done): the hypothesis's clause at the replay world
+    (`E₀ : wR ⊒ w`), descriptor `cP = sdesc Xs [ α′ ] (core c)` (WFS
+    from `OnlyS`), right type `＇ α′` (store variable 0), annotation the
+    preimage `substᵗ (extsᵗ (σR ↑ˢ E₀)) C₁′`, read at stage s + 1 and
+    brought down to s (`ℰ-down`).  Interpretation `δP`: X paired at α′,
+    leaf `leafBelowS d (s+1 ≤′ n) cP`.
+  * `starOnly` (done): after the reveal the interpretation is `δQ`: X
+    paired at `★` with the goal's own leaf `onlyLeafS d (suc s) c`.  The
+    substitution lemma at `pairStarˢ` then holds with identical leaves
+    (`subI`), at every stage below s + 1.  Choosing the goal's leaf here
+    (rather than `leafBelowS (sdesc Xs [] (core c))`) matters at stage 0
+    in `≻`: with core `bot⊑★` the latter is `⊥` while `onlyLeafS`'s is
+    `G 0 = ⊤`, and `SubI.spair` asks for the equivalence at stage 0.
+    The two agree at positive stages (`𝒱≻★-G`), which is all the seal
+    hypotheses of the reveal ask for.
+* **`RevealK`, proved** (`Replay.revealK`): the right-only reveal of
+  α′ as `★`, from `δP` to `δQ`, in every future of wR, at stages up to
+  s.
+  * A world W₀ over the cast-time store: `replayW w′ (replayPre E″)
+    (ΣR w)` with `E″ = ⊒-trans (⊒-trans e (arrE w₁ st)) e₁` (this
+    association makes `δ ↑ replay-⊒ E″` the same term as `δ ↑ E₀`, so
+    `D₀` serves at W₀), and `E₁ : wR ⊒ W₀` with `ρL = ρR = id` and
+    `ρS = ρS e₁` (the right's `bind ★`): `Coh` between the two replay
+    prefixes by `grows-unique` and `coh e₁`, `StoreRen` is `ΣR⊒ e₁`.
+  * `RConvI-newR E₁ (new-bind ★)` at Tl = T, Tr = `★`, bound s + 1:
+    `FreshIR` at W₀ from `CastHyp.freshR` moved along `replay-⊒ E″`
+    and `oracleR-all`.
+  * The target leaf `onlyLeafS d (s+1) c` at right store type `★`:
+    every good leaf is closed under right conversions there, since the
+    conversion at `★` is an identity step (`leafFreshR★`,
+    `proof/LR/ConvClose.agda`).  The oracle would give this only for
+    `leafBelowS (sdesc Xs [] (core c))`, which differs from the goal's
+    leaf at stage 0 in `≻`.
+  * `SealR` from `SealNewR.sealNewR` (source bound s + 1, target
+    `leafBelowS ≤′-refl (sdesc Xs [] (core c))` at s + 1; `UpBR` is
+    `≤-refl`/`tt`, `hTr` from `CoreStar`), moved to the goal's leaf
+    (`SealR-tgt`).  The reveal reads the target at stage `rStage d k`,
+    the conceal at `0 < k`, `rBelow d k (s+1)`: in `≺` the leaves are
+    the same term; in `≻` they agree at positive stages up to s
+    (`leafBelow-⇔`, `𝒱≻★-G`, `leafG-⇔`), and at the reveal's stage 0
+    the goal's leaf is `G 0 = ⊤` (`leafRev`, `leafCon`).
+  * The source leaf as `SealNewR` writes it (seals renamed along
+    `id↪ᵗ`) equals `cP`'s (`map-renameVar-id`, `renameDesc-id`).
+  * `revR` at p₁ (mode `r-pair ↔-here 0`), interpretations moved to
+    `δP ↑ e₂`, `δQ ↑ e₂` (`transportI-id`, `𝒱-resp`, `ℰ-resp`), the
+    term by `rcRenR`, the annotation `A₀` by `open0`.
+* **Other cases proved:** `id` against `id` at `★` and at base types,
+  and at variables from `VarI` at `⊒-refl` (`↑ᴵ-refl`, `cast-id`).
+  Not stated yet: the one-sided rule
+  `⊑⟨⟩` (right cast only).
 
 **Next, in order** (items 5–9 of Section 6.9):
 1. conversions;

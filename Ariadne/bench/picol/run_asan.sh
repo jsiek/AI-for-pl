@@ -21,6 +21,7 @@ check() {  # name, expected stdout ("-": any), command...
 }
 
 $cc -o "$tmp/picol" picol.c trusted.c \
+  && $cc -DPICOL_MAX_ARGS_SIZE=40 -o "$tmp/picol_small" picol.c trusted.c \
   && $cc -o "$tmp/picol_test" picol_test.c trusted.c \
   && gcc -std=c99 -o "$tmp/upstream" upstream/picol.c \
   || { echo "FAIL: build"; exit 1; }
@@ -48,5 +49,10 @@ check "same output as upstream: mandelbrot.tcl" \
   "$("$tmp/upstream" upstream/mandelbrot.tcl)" "$tmp/picol" upstream/mandelbrot.tcl
 check "same output as upstream: REPL on tests/messages.tcl" \
   "$("$tmp/upstream" < tests/messages.tcl)" sh -c "\"$tmp/picol\" < tests/messages.tcl"
+# The bound on a command's argument size (fix 6), lowered to 40 bytes:
+# 4+2+31 bytes pass, 4+2+41 fail instead of overflowing.
+check "tests/args_limit.tcl (bound 40)" \
+  "$(printf '012345678901234567890123456789\nCommand too long')" \
+  "$tmp/picol_small" tests/args_limit.tcl
 rm -r "$tmp"
 exit $status

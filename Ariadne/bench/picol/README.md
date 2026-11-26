@@ -47,6 +47,57 @@ regression script in `tests/` (fix 1) and a REPL session on stdin
     upstream", on the examples and on `tests/messages.tcl`, which
     reaches every replaced message), except the out-of-memory message
     in `xrealloc`, now `Out of memory` without the pointer and size.
+4.  **No reachable `goto`** (2026-11-23).  VST's only rule for `goto`
+    (`semax_goto`) has precondition `FF`, so a function with a reachable
+    `goto` has no proof.  `picolEval`'s four `goto err` jumped to the
+    code right after its `while(1)` loop; they are now `break`.
+    `picolCommandCallProc`'s error exits are now calls to a new
+    function:
+    ```c
+    if (++arity > argc-1) goto arityerr;                     /* before */
+    if (++arity > argc-1) {                                  /* after  */
+        fmt_str3(errbuf,sizeof(errbuf),"Proc '",argv[0],"' called with wrong arg num");
+        return picolCallProcFail(i,errbuf,tofree);
+    }
+    ```
+    The output is unchanged (`run_asan.sh`; `tests/messages.tcl` reaches
+    each of these exits).
+5.  **`default: break;` in `picolParseString`'s `switch`** (2026-11-24).
+    VST's `switch` rule gives falling off the end of a `switch` the
+    postcondition `FF`; with no `default`, an ordinary character such
+    as `a` does that.  Same behaviour.
+6.  **Bound on a command's argument size** (2026-11-24).  Upstream
+    overflows `int` lengths (undefined behaviour) on long arguments:
+    ```tcl
+    set a xxxxxxxx
+    set a $a$a      ;# 28 times: 2^31 bytes; oldlen+tlen+1 overflows
+    ```
+    `picolEval` now counts the current command's argument size (each
+    length + 1) and fails with `Command too long` before it would
+    exceed `PICOL_MAX_ARGS_SIZE` (`INT_MAX - 10`).  `run_asan.sh` checks
+    it with the bound lowered to 40 bytes (`tests/args_limit.tcl`).
+7.  **`default: break;` in `picolExpr`'s operator `switch`**
+    (2026-11-25).  Unreached (`op` is always one of the cases), but
+    without it the proof must carry that fact to the `switch`.  Same
+    behaviour.
+
+## Proof runs (`run_picol.py`)
+
+| Run | Budget | Spent | Time | Result |
+|---|---|---|---|---|
+| 2026-11-22 | $50 | $36.95 | 5.6 h | 26 of 45 functions proved and `prog_correct` (`Qed`), 19 bodies `Admitted`; two of those had reachable `goto`s (fix 4). |
+| 2026-11-23, from the first | $50 | $35.81 | 3.3 h | 40 of 46 functions proved and `prog_correct` (`Qed`); open: `picolEval` (no bound on argument sizes), `picolParseString` (`switch` without `default`), `picolExpr`, `picolCommandExpr`, `picolCommandCallProc`, `picol_main`.  Leak lint passes; `Print Assumptions` within the allow-list except the 6 open bodies. |
+| 2026-11-24, from the second (after fixes 5, 6) | $50 | $38.37 | 2.5 h | 44 of 46 proved and `prog_correct` (`Qed`); open: `picolEval` (draft started), `picolExpr` (budget).  Leak lint passes. |
+| 2026-11-25, from the third (after fix 7), with the spend meter | $50 | $35.55 | 4.9 h, one session | **All 46 functions and `prog_correct` proved (`Qed`), verdict PROVED.**  `Print Assumptions` within the allow-list; leak lint passes.  Spec change by the agent, approved by the owner (2026-11-26): `picolEval`'s script length bound `Zlength s <= Int.max_signed` became `<` (with `INT_MAX` bytes, `tlen+1` overflows), and likewise the procedure-body bound in `cmd_ok` and `proc_extra`.  The meter showed $28.90 at the end, 19% below the exact cost. |
+
+The fourth run's proof is kept in `proofs/` (`proof_files.txt` gives
+the build order); re-check it with
+
+    python3 run_picol.py --check proofs
+
+Total cost of picol: $146.68 for the four runs, plus $4.88 for the musl
+`libc` runs (`../../libc/README.md`).  Drafts of issues for upstream
+(the bugs behind fixes 1, 2 and 6): `UPSTREAM_ISSUES.md`.
 
 ## The verified unit: `picol_vst.c`
 

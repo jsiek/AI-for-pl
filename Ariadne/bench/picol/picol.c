@@ -92,6 +92,12 @@ void fmt_double(char *buf, size_t n, double v);
  * ========================================================================== */
 
 #define PICOL_MAX_RECURSION_LEVEL 128
+/* Ariadne (owner, 2026-11-24): bound on a command's total argument size
+ * (each argument's length + 1), so that the int lengths cannot overflow.
+ * run_asan.sh tests it with a smaller value. */
+#ifndef PICOL_MAX_ARGS_SIZE
+#define PICOL_MAX_ARGS_SIZE (2147483647 - 10)
+#endif
 
 enum {PICOL_OK, PICOL_ERR, PICOL_RETURN, PICOL_BREAK, PICOL_CONTINUE};
 enum {
@@ -286,6 +292,8 @@ int picolParseString(struct picolParser *p) {
                 return PICOL_OK;
             }
             break;
+        default: /* Ariadne (owner, 2026-11-24): VST needs an explicit default */
+            break;
         }
         p->p++; p->len--;
     }
@@ -416,6 +424,7 @@ int picolEval(struct picolInterp *i, char *t) {
     struct picolParser p;
     int argc = 0, j;
     char **argv = NULL;
+    size_t argsize = 0; /* Ariadne: total size of argv's arguments */
     char errbuf[1024];
     int retcode = PICOL_OK;
     picolSetResult(i,"");
@@ -443,14 +452,14 @@ int picolEval(struct picolInterp *i, char *t) {
                 free(t);
                 picolSetResult(i,errbuf);
                 retcode = PICOL_ERR;
-                goto err;
+                break;
             }
             free(t);
             t = xstrdup(v->val);
         } else if (p.type == PT_CMD) {
             retcode = picolEval(i,t);
             free(t);
-            if (retcode != PICOL_OK) goto err;
+            if (retcode != PICOL_OK) break;
             t = xstrdup(i->result);
         } else if (p.type == PT_ESC) {
             /* Process escapes turning \<something> into
@@ -485,17 +494,30 @@ int picolEval(struct picolInterp *i, char *t) {
                     fmt_str3(errbuf,sizeof(errbuf),"No such command '",argv[0],"'");
                     picolSetResult(i,errbuf);
                     retcode = PICOL_ERR;
-                    goto err;
+                    break;
                 }
                 retcode = c->func(i,argc,argv,c);
-                if (retcode != PICOL_OK) goto err;
+                if (retcode != PICOL_OK) break;
             }
             /* Prepare for the next command */
             for (j = 0; j < argc; j++) free(argv[j]);
             free(argv);
             argv = NULL;
             argc = 0;
+            argsize = 0;
             continue;
+        }
+        /* Ariadne (owner, 2026-11-24): fail instead of overflowing the int
+         * lengths below (and in picolCommandExpr). */
+        {
+            size_t tl = strlen(t);
+            if (tl + 1 > PICOL_MAX_ARGS_SIZE - argsize) {
+                free(t);
+                picolSetResult(i,"Command too long");
+                retcode = PICOL_ERR;
+                break;
+            }
+            argsize += tl + 1;
         }
         /* We have a new token, append to the previous or as new arg? */
         if (prevtype == PT_SEP || prevtype == PT_EOL) {
@@ -513,7 +535,9 @@ int picolEval(struct picolInterp *i, char *t) {
         }
         prevtype = p.type;
     }
-err:
+    /* Ariadne (owner, 2026-11-23): the error exits were "goto err" to this
+     * point, right after the loop; they are now "break" (VST has no rule
+     * for a reachable goto). */
     for (j = 0; j < argc; j++) free(argv[j]);
     free(argv);
     i->level--;
@@ -580,6 +604,7 @@ double picolExpr(struct picolInterp *i, char **p, int *err, int prec) {
         case 'L': a = a <= b; break; case 'G': a = a >= b; break;
         case 'E': a = a == b; break; case 'N': a = a != b; break;
         case 'o': a = a || b; break; case 'a': a = a && b; break;
+        default: break; /* Ariadne (owner, 2026-11-25): unreached; for VST */
         }
         while (**p && strchr(" \t\r\n", **p)) (*p)++;
     }
@@ -736,6 +761,15 @@ void picolFreeInterp(struct picolInterp *i) {
     free(i);
 }
 
+/* Ariadne (owner, 2026-11-23): the error exit of picolCommandCallProc,
+ * which was reached by "goto err" (VST has no rule for a reachable goto). */
+int picolCallProcFail(struct picolInterp *i, char *errbuf, char *tofree) {
+    picolSetResult(i,errbuf);
+    free(tofree);
+    picolDropCallFrame(i); /* remove the called proc callframe */
+    return PICOL_ERR;
+}
+
 /* The callback used for user defined procedures. */
 int picolCommandCallProc(struct picolInterp *i, int argc, char **argv, struct picolCmd *cmd) {
     char *alist=cmd->arglist, *body, *p=xstrdup(alist), *tofree;
@@ -754,10 +788,13 @@ int picolCommandCallProc(struct picolInterp *i, int argc, char **argv, struct pi
         }
         if (p == start) break;
         if (*p == '\0') done=1; else *p = '\0';
-        if (++arity > argc-1) goto arityerr;
+        if (++arity > argc-1) {
+            fmt_str3(errbuf,sizeof(errbuf),"Proc '",argv[0],"' called with wrong arg num");
+            return picolCallProcFail(i,errbuf,tofree);
+        }
         if (isupper(start[0])) {
             fmt_str3(errbuf,sizeof(errbuf),"Procedure parameter '",start,"' can't be a global (upcase first character)");
-            goto err;
+            return picolCallProcFail(i,errbuf,tofree);
         }
         picolSetVar(i,start,argv[arity]);
         p++;
@@ -765,7 +802,10 @@ int picolCommandCallProc(struct picolInterp *i, int argc, char **argv, struct pi
     }
     free(tofree);
     tofree = NULL;
-    if (arity != argc-1) goto arityerr;
+    if (arity != argc-1) {
+        fmt_str3(errbuf,sizeof(errbuf),"Proc '",argv[0],"' called with wrong arg num");
+        return picolCallProcFail(i,errbuf,tofree);
+    }
     /* Ariadne (owner, 2026-11-21): evaluate a private copy of the body.
      * The body may redefine this proc ("proc f {} { proc f {} {}; ... }"),
      * which frees cmd->body while picolEval is still reading it. */
@@ -775,13 +815,6 @@ int picolCommandCallProc(struct picolInterp *i, int argc, char **argv, struct pi
     if (errcode == PICOL_RETURN) errcode = PICOL_OK;
     picolDropCallFrame(i); /* remove the called proc callframe */
     return errcode;
-arityerr:
-    fmt_str3(errbuf,sizeof(errbuf),"Proc '",argv[0],"' called with wrong arg num");
-err:
-    picolSetResult(i,errbuf);
-    free(tofree);
-    picolDropCallFrame(i); /* remove the called proc callframe */
-    return PICOL_ERR;
 }
 
 int picolCommandProc(struct picolInterp *i, int argc, char **argv, struct picolCmd *cmd) {

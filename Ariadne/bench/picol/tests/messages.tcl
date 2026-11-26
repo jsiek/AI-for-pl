@@ -4,6 +4,7 @@ expr 10 / 4
 set nope
 puts $nope
 nocmd 1 2
+set b [nocmd 3]
 set
 proc f {X} {return 1}
 f 1

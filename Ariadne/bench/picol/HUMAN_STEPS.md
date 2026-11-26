@@ -19,3 +19,16 @@ Each question put to the owner, and why a machine could not decide it.
 | 2026-11-22 | Trusted spec of `fgets` (`TRUSTED_SPECS.md`). | Enters the trust base. | Owner asked for the zero-byte case to be checked against references (C11, POSIX, musl source, a test run); then approved as drafted. |
 | 2026-11-22 | Trusted spec of `fread` (`TRUSTED_SPECS.md`). | Enters the trust base. | Approved as drafted. |
 | 2026-11-22 | Trusted specs of `perror` and `exit` (`TRUSTED_SPECS.md`); does leak freedom cover memory held at `exit`? | Enters the trust base; defines the property (plan §2.1). | Specs approved as drafted; leak freedom covers `main`'s return only, `exit` may hold memory (picol's C unchanged). |
+| 2026-11-22 | Linking the verified musl functions: include their sources in `picol_vst.c`, or keep them as externals with their proved specs? | Changes the verified unit. | Include the sources (one `semax_prog` covers them). |
+| 2026-11-22 | CompCert starts only `main(void)`: prove picol's `main(argc,argv)` for every `argv` as `picol_main`, plus a `main(void)` that calls it, or fix one `argv`? | Changes the verified unit and the theorem. | `picol_main` for every `argv` plus the `main(void)` wrapper (`picol_vst.c`). |
+| 2026-11-22 | First prover run: budget. | Paid run. | $50 (spent $36.95; 26 of 45 functions and `prog_correct` proved, `README.md`). |
+| 2026-11-23 | Fix for the reachable `goto`s VST cannot verify (`README.md`, fix 4): `break` / a helper function? | A change to the program's C (G3). | Yes. |
+| 2026-11-23 | The first run's own spec choices: `picolEval`'s input length fits in an `int` (and a bound on the command arguments' total size); each command's function pointer is one of the known command functions. | Assumptions the proof rests on. | Approved. |
+| 2026-11-23 | Follow-up run from the first run's proofs: budget. | Paid run. | $50. |
+| 2026-11-24 | Fixes 5 (`default: break;` in `picolParseString`) and 6 (a bound on a command's argument size in `picolEval`) (`README.md`). | A change to the program's C (G3). | Yes. |
+| 2026-11-24 | Third run from the second run's proofs, only the 6 open functions: budget. | Paid run. | $50 cap. |
+| 2026-11-25 | Fix 7 (`default: break;` in `picolExpr`'s operator `switch`, unreached) (`README.md`). | A change to the program's C (G3). | Yes. |
+| 2026-11-25 | The runs' agents stopped at 72–77% of the cap, unable to see their spend: show it to them? | Changes how paid runs spend. | Yes: a spend meter printed after each tool call (`run_picol.py`); if the agent stops early with the proof unfinished, start it again ("prod it to keep going"). |
+| 2026-11-25 | Fourth run (`picolEval`, `picolExpr`): budget. | Paid run. | $50 (spent $35.55; all 46 bodies and `prog_correct` proved, `README.md`). |
+| 2026-11-26 | The fourth run's spec change: `picolEval`'s script length `Zlength s <= Int.max_signed` becomes `<` (with `INT_MAX` bytes, `tlen+1` overflows), and likewise the procedure-body bound in `cmd_ok` and `proc_extra`. | Assumptions the proof rests on. | Approved. |
+| 2026-11-23 | VST's allocator axiom `malloc_token_valid_pointer` (`floyd/library.v:72`: a `malloc_token` for a zero-size object gives `valid_pointer p`), used by the first run's proofs: allow it in `Print Assumptions`? | Enters the trust base. | Yes (`run_picol.py`, `TRUSTED_AXIOMS`). |

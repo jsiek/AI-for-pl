@@ -74,13 +74,17 @@ def main(argv):
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=ROOT)
     ap.add_argument("--lib", default="SglibVST")
+    ap.add_argument("--allow-none", action="store_true",
+                    help="a module with no funspec passes (a proof file)")
     ap.add_argument("modules", nargs="+")
     a = ap.parse_args(argv[1:])
     root = os.path.abspath(a.root)
     work = os.path.join(root, "postlint_tmp.v")
     fails = []
     try:
-        rc, out = coqc(root, a.lib, os.path.join(HERE, "PostLint.v"))
+        # the checker must lie under --root (it is compiled there, as
+        # <lib>.lint.PostLint); a check directory gets a copy
+        rc, out = coqc(root, a.lib, os.path.join(root, "lint", "PostLint.v"))
         if rc:
             print(out)
             print("FAIL: PostLint.v does not compile (fail closed)")
@@ -103,7 +107,7 @@ def main(argv):
             full = [m for m in a.modules if m.split(".")[-1] == mod]
             decls += [(k, n, t, full[0] if full else mod)
                       for k, n, t in declarations(chunk)]
-        if not decls:
+        if not decls and not a.allow_none:
             print("FAIL: no declarations found in %s (fail closed)"
                   % " ".join(a.modules))
             return 1
@@ -118,6 +122,9 @@ def main(argv):
                 else:
                     specs.append((n, m))
         if not specs:
+            if a.allow_none:
+                print("OK: no funspec defined in %s" % " ".join(a.modules))
+                return 1 if fails else 0
             fails.append("no funspec found (fail closed)")
         refs = "; ".join("reference:(%s.%s)" % (m, n) for n, m in locals_)
         lines = head + ["Require Import %s.lint.PostLint." % a.lib,

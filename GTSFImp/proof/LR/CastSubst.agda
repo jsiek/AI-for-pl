@@ -35,6 +35,10 @@ module proof.LR.CastSubst where
 --     `subst-⇑` (after the shift).
 --   * `Agree ρ s s′`: s′ at ρ X has the casts of s at X; `agree-ren`
 --     moves an agreement along a further renaming.
+--   * Flipping: `sym-sym` (`sym∼` is involutive), `sym-refl`;
+--     `agree-flip` (an agreement, flipped), `agree-FL` (flipping
+--     commutes with renaming), `agree-FF` (flipping twice around a
+--     renaming); `⟨⟩-inj`, `irr` (casts indexed by equations).
 --   * Environments built from others: `seqE` (composite, `seq-fuse`),
 --     `preRen` (read before a renaming, `pre-rel`), `renAfter` (followed
 --     by a renaming, `ren-after`), `openE` (the opening `_[_]ᶜ`).
@@ -1779,6 +1783,132 @@ acto (agree-ren {ν₂ = ν₂} {s = s} π₁ π₂ π₃ e₁ e₂ e₃ eq h a)
 acfrom (agree-ren {ν₂ = ν₂} {s = s} π₁ π₂ π₃ e₁ e₂ e₃ eq h a) X e e′ =
   ren-≅ {μ′ = ν₂} e₂ e₂ (acfrom a X e e′)
   ⟫ ren-ren′ e₁ e₂ e₃ eq h (cross-from-★ s X e′)
+
+------------------------------------------------------------------------
+-- Flipping: `sym∼` is involutive; `flip-SubstEnv∼` commutes with
+-- renaming and keeps agreements
+------------------------------------------------------------------------
+
+flip-flip : ∀ {Δ} (μ : Env∼ Δ) → flipᵐ (flipᵐ μ) ≡ μ
+flip-flip [] = refl
+flip-flip (v ∷ μ) = cong₂ _∷_ (flipVar∼-involutive v) (flip-flip μ)
+
+renameEnv-flip : ∀ {Δ Δ′} (ρ : Δ ↪ᵗ Δ′) (μ : Env∼ Δ)
+  → renameEnv∼ ρ (flipᵐ μ) ≡ flipᵐ (renameEnv∼ ρ μ)
+renameEnv-flip empty [] = refl
+renameEnv-flip (keep ρ) (v ∷ μ) = cong (flipVar∼ v ∷_) (renameEnv-flip ρ μ)
+renameEnv-flip (skip ρ) μ = cong (X∼X ∷_) (renameEnv-flip ρ μ)
+
+-- equal cast terms have equal casts
+⟨⟩-inj : ∀ {Δ} {Q : Term Δ} {μ μ′ : Env∼ Δ} {A B A′ B′}
+    {c : μ ⊢ A ∼ B} {c′ : μ′ ⊢ A′ ∼ B′}
+  → Q ⟨ c ⟩ ≡ Q ⟨ c′ ⟩ → c ≅ᶜ c′
+⟨⟩-inj refl = hrefl
+
+-- a cast whose index is an equation does not depend on its proof
+irr : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty Δ} {a b : Var∼}
+    (f : a ≡ b → μ ⊢ A ∼ B) (p q : a ≡ b) → f p ≅ᶜ f q
+irr f p q = subst (λ r → f p ≅ᶜ f r) (uip p q) hrefl
+
+refl-env-≅ : ∀ {Δ} {μ μ′ : Env∼ Δ} (A : Ty Δ) → μ ≡ μ′
+  → refl∼ {μ = μ} A ≅ᶜ refl∼ {μ = μ′} A
+refl-env-≅ A refl = hrefl
+
+sym-sym : ∀ {Δ} {μ : Env∼ Δ} {A B} (c : μ ⊢ A ∼ B) → sym∼ (sym∼ c) ≅ᶜ c
+sym-sym {μ = μ} (id a) = id-≅ (flip-flip μ) refl atom-unique
+sym-sym (c ↦ d) = ↦-≅ (sym-sym d) (sym-sym c)
+sym-sym (∀ᶜ c) =
+  ∀-≅ (transport-≅ flip-extᵐ _
+    ⟫ sym-≅ (transport-≅ flip-extᵐ (sym∼ c)) ⟫ sym-sym c)
+sym-sym (_! c) = !-≅ (sym-sym c)
+sym-sym (？_ c) = ？-≅ (sym-sym c)
+sym-sym (inst_ c n) =
+  inst-≅ refl (transport-≅ flip-genᵐ _
+    ⟫ sym-≅ (transport-≅ flip-instᵐ (sym∼ c)) ⟫ sym-sym c)
+sym-sym (gen_ c n) =
+  gen-≅ refl (transport-≅ flip-instᵐ _
+    ⟫ sym-≅ (transport-≅ flip-genᵐ (sym∼ c)) ⟫ sym-sym c)
+sym-sym {μ = μ} bot-elim = bot-elim-≅ (flip-flip μ)
+sym-sym {μ = μ} bot-intro = bot-intro-≅ (flip-flip μ)
+
+sym-refl : ∀ {Δ} {μ : Env∼ Δ} (A : Ty Δ)
+  → sym∼ (refl∼ {μ = μ} A) ≅ᶜ refl∼ {μ = flipᵐ μ} A
+sym-refl (＇ X) = hrefl
+sym-refl (‵ ι) = hrefl
+sym-refl ★ = hrefl
+sym-refl (A ⇒ B) = ↦-≅ (sym-refl B) (sym-refl A)
+sym-refl {μ = μ} (`∀ A) =
+  ∀-≅ (transport-≅ flip-extᵐ _ ⟫ sym-refl {μ = extᵐ μ} A
+    ⟫ refl-env-≅ A (env-≡ flip-extᵐ))
+
+-- renaming at equal target environments
+ren-tgt : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ₁ μ₂ : Env∼ Δ′} {A B} {ρ : Δ ⇒ʳ Δ′}
+    (e₁ : ∀ X → μ₁ ‼ ρ X ≡ μ ‼ X) (e₂ : ∀ X → μ₂ ‼ ρ X ≡ μ ‼ X)
+  → μ₁ ≡ μ₂ → (c : μ ⊢ A ∼ B)
+  → rename∼ {μ = μ} {μ₁} ρ e₁ c ≅ᶜ rename∼ {μ = μ} {μ₂} ρ e₂ c
+ren-tgt e₁ e₂ refl c = ren-≅ e₁ e₂ hrefl
+
+module _ {Δ Θ Θ′} {μ : Env∼ Δ} {ν : Env∼ Θ} {σ : Δ ⇒ˢ Θ}
+    (ρ : Θ ↪ᵗ Θ′) (s : SubstEnv∼ μ ν σ) where
+
+  private
+    eν = renameEnv∼-preserves ρ ν
+    eν′ = flip-rename-env {μ = ν} {renameEnv∼ ρ ν} (toRenameᵗ ρ) eν
+
+    R : ∀ {μ₀} {ν₀ : Env∼ Θ} → SubstEnv∼ μ₀ ν₀ σ
+      → SubstEnv∼ μ₀ (renameEnv∼ ρ ν₀) (λ X → renameᵗ (toRenameᵗ ρ) (σ X))
+    R {ν₀ = ν₀} =
+      renAfter {ν′ = renameEnv∼ ρ ν₀} (toRenameᵗ ρ)
+        (renameEnv∼-preserves ρ ν₀)
+
+    -- renaming after `sym∼`
+    rf : ∀ {A B} (c : ν ⊢ A ∼ B)
+      → rename∼ {μ = flipᵐ ν} {renameEnv∼ ρ (flipᵐ ν)} (toRenameᵗ ρ)
+          (renameEnv∼-preserves ρ (flipᵐ ν)) (sym∼ c)
+        ≅ᶜ sym∼ (rename∼ {μ = ν} {renameEnv∼ ρ ν} (toRenameᵗ ρ) eν c)
+    rf c = ren-tgt _ eν′ (renameEnv-flip ρ ν) (sym∼ c)
+      ⟫ ren-sym (toRenameᵗ ρ) eν eν′ c
+
+  -- flipping, then renaming, is renaming, then flipping
+  agree-FL : Agree (λ X → X) (flip-SubstEnv∼ (R s)) (R (flip-SubstEnv∼ s))
+  aself agree-FL X = rf (self s X)
+  ato agree-FL X e e′ =
+    rf (from-★ s X _) ⟫ sym-≅ (ren-≅ eν eν (irr (from-★ s X) _ _))
+  afrom agree-FL X e e′ =
+    rf (to-★ s X _) ⟫ sym-≅ (ren-≅ eν eν (irr (to-★ s X) _ _))
+  acto agree-FL X e e′ =
+    rf (cross-from-★ s X _)
+    ⟫ sym-≅ (ren-≅ eν eν (irr (cross-from-★ s X) _ _))
+  acfrom agree-FL X e e′ =
+    rf (cross-to-★ s X _)
+    ⟫ sym-≅ (ren-≅ eν eν (irr (cross-to-★ s X) _ _))
+
+  -- flipping twice around a renaming is the renaming
+  agree-FF : Agree (λ X → X) (R s) (flip-SubstEnv∼ (R (flip-SubstEnv∼ s)))
+  aself agree-FF X = sym-≅ (rf (self s X)) ⟫ sym-sym _
+  ato agree-FF X e e′ =
+    sym-≅ (rf (to-★ s X _)) ⟫ sym-sym _
+    ⟫ ren-≅ eν eν (irr (to-★ s X) _ _)
+  afrom agree-FF X e e′ =
+    sym-≅ (rf (from-★ s X _)) ⟫ sym-sym _
+    ⟫ ren-≅ eν eν (irr (from-★ s X) _ _)
+  acto agree-FF X e e′ =
+    sym-≅ (rf (cross-to-★ s X _)) ⟫ sym-sym _
+    ⟫ ren-≅ eν eν (irr (cross-to-★ s X) _ _)
+  acfrom agree-FF X e e′ =
+    sym-≅ (rf (cross-from-★ s X _)) ⟫ sym-sym _
+    ⟫ ren-≅ eν eν (irr (cross-from-★ s X) _ _)
+
+-- an agreement, flipped
+agree-flip : ∀ {Δ Δ′ Θ} {μ : Env∼ Δ} {μ′ : Env∼ Δ′} {ν ν′ : Env∼ Θ}
+    {ρ : Δ ⇒ʳ Δ′} {σ : Δ ⇒ˢ Θ} {σ′ : Δ′ ⇒ˢ Θ}
+    {s : SubstEnv∼ μ ν σ} {s′ : SubstEnv∼ μ′ ν′ σ′}
+  → Agree ρ s s′ → Agree ρ (flip-SubstEnv∼ s) (flip-SubstEnv∼ s′)
+aself (agree-flip a) X = sym-≅ (aself a X)
+ato (agree-flip a) X e e′ = sym-≅ (afrom a X _ _)
+afrom (agree-flip a) X e e′ = sym-≅ (ato a X _ _)
+acto (agree-flip a) X e e′ = sym-≅ (acfrom a X _ _)
+acfrom (agree-flip a) X e e′ = sym-≅ (acto a X _ _)
 
 ------------------------------------------------------------------------
 -- Composite environments

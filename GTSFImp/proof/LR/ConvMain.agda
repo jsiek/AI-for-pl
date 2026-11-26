@@ -9,14 +9,19 @@ module proof.LR.ConvMain where
 --   * The main lemma (`revC`, `conC`), where the right converts as the
 --     mode says, by induction on the precision derivation; into `★` it
 --     is the lemma at `★` followed by the right's identity step.
+--   * The guarded clause (`allOnlyG`) is the clause with slack 1 read by
+--     `𝒱` (`allOnlyG→Cl`, `Cl→allOnlyG`).  In `≻` at a body into `★`
+--     (not a variable) the lemma at stage k + 1 needs the bound k only
+--     (`rev★G`, `con★G`): `G` there reads its leaves at stage k.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Fin using (zero; suc)
+open import Data.Bool using (true; false)
 open import Data.Maybe using (Maybe; just; nothing)
-open import Data.Nat using (ℕ; zero; suc; pred; _≤_; _<_; s≤s; z≤n;
+open import Data.Nat using (ℕ; zero; suc; pred; _≤_; _<_; s≤s; z≤n; _+_;
   _≤′_; ≤′-refl; ≤′-step)
 open import Data.Nat.Properties using (n≤1+n; ≤-refl; ≤⇒≤′; ≤′⇒≤; ≤-trans;
-  <⇒≤)
+  <⇒≤; ≤-pred)
 open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
 open import Data.Unit using (⊤; tt)
 open import Relation.Binary.PropositionalEquality
@@ -26,6 +31,7 @@ open import Types
 open import Consistency using (_↪ᵗ_; toRenameᵗ; id↪ᵗ)
   renaming (keep to keepᵗ)
 open import proof.TypeInTermSubst using (renameᵗᵐ-preserves-Value)
+open import proof.TermRename using (renameᵗᵐ-∘)
 open import proof.ImprecisionConsistency using (toRenameᵗ-injective;
   renameᵗ-injective)
 open import Conversion
@@ -44,7 +50,7 @@ open import proof.LR.ConvSyntax
 open import proof.LR.ConvBase
 open import proof.LR.ConvLemma
 open import proof.LR.SubstLemma using (allDeadStar-★; _⇔_; ⇔-id; to;
-  from)
+  from; iff; ℰᵍ-map⁺)
 open import Reduction using (id-reveal; id-conceal)
 
 private
@@ -74,6 +80,24 @@ allPair-from d n p w f e le c wf T₀ eqT B₀ eqB =
         (𝒱≤-cast d le′ (≤′-trans le′ le) p w″ r))
     (f e (≤′⇒≤ le) c wf T₀ eqT B₀ eqB)
 
+OnlyCl-from : ∀ d g n {Φ : Corr Δ Δ′} {A B} (p : only Φ ⊢ A ⊑ B) w
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+  → (∀ {w′} (e : w′ ⊒ w) {n′} → n′ ≤ n → (c : SDesc (ΔL w′) (ΔR w′))
+       → OnlyS c → ℰ d n′ p w′ (extOnlyI (leftTyS c)
+             (sem (onlyLeafS d (leafLe g (≤′-refl {n′})) c)) (δ ↑ᴵ e))
+           (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A
+             [ leftTyS c ])
+           (renameᵗᵐ (ρS e) Vr))
+  → OnlyCl d g n p w δ Vl Vr
+OnlyCl-from d g n p w f e le c oc =
+  ℰᵍ-map d _ _
+    (λ le′ w″ e′ V V′ r →
+      𝒱≤-resp d (≤′-trans le′ le) p w″
+        (↑ᴵ-resp (extOnlyI-resp
+          (onlyLeafS-≈ d (leafLe g ≤′-refl) (leafLe g le) c) ≈ᴵ-refl) e′)
+        (𝒱≤-cast d le′ (≤′-trans le′ le) p w″ r))
+    (f e (≤′⇒≤ le) c oc)
+
 allOnly-from : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : only Φ ⊢ A ⊑ B) w
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → (∀ {w′} (e : w′ ⊒ w) {n′} → n′ ≤ n → (c : SDesc (ΔL w′) (ΔR w′))
@@ -83,26 +107,123 @@ allOnly-from : ∀ d n {Φ : Corr Δ Δ′} {A B} (p : only Φ ⊢ A ⊑ B) w
              [ leftTyS c ])
            (renameᵗᵐ (ρS e) Vr))
   → allOnly d n p w δ Vl Vr
-allOnly-from d n p w f e le c oc =
+allOnly-from d n = OnlyCl-from d 0 n
+
+-- the clause with slack, in a future and at a lower stage
+OnlyCl-mono : ∀ d g n {Φ : Corr Δ Δ′} {A B} (p : only Φ ⊢ A ⊑ B)
+    {w w′} (e : w′ ⊒ w) {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+  → OnlyCl d g n p w δ Vl Vr
+  → OnlyCl d g n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
+OnlyCl-mono d g n {A = A} p e {δ} {Vl} {Vr} f e′ le c oc =
+  ℰᵍ-≡
+    (cong₂ (λ M C → M ⦂∀ C [ leftTyS c ])
+      (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl))
+      (substᵗ-cong A (exts-cong (λ X → sym (δl≡ (↑ᴵ-trans δ e′ e) X)))))
+    (sym (renameᵗᵐ-∘ (ρS e′) (ρS e) Vr))
+    (ℰᵍ-map d _ _
+      (λ le′ w″ e″ V V′ →
+        𝒱≤-resp d (≤′-trans le′ le) p w″
+          (↑ᴵ-resp (extOnlyI-resp ≈ˡ-refl (≈ᴵ-sym (↑ᴵ-trans δ e′ e))) e″))
+      (f (⊒-trans e′ e) le c oc))
+
+OnlyCl-down : ∀ d g {n n′} (le : n′ ≤ n) {Φ : Corr Δ Δ′} {A B}
+    (p : only Φ ⊢ A ⊑ B) w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+  → OnlyCl d g n p w δ Vl Vr → OnlyCl d g n′ p w δ Vl Vr
+OnlyCl-down d g le p w f e le₁ c oc =
   ℰᵍ-map d _ _
     (λ le′ w″ e′ V V′ r →
-      𝒱≤-resp d (≤′-trans le′ le) p w″
-        (↑ᴵ-resp (extOnlyI-resp (onlyLeafS-≈ d ≤′-refl le c) ≈ᴵ-refl) e′)
-        (𝒱≤-cast d le′ (≤′-trans le′ le) p w″ r))
-    (f e (≤′⇒≤ le) c oc)
+      𝒱≤-resp d (≤′-trans le′ le₁) p w″
+        (↑ᴵ-resp (extOnlyI-resp
+          (onlyLeafS-≈ d (leafLe g le₂) (leafLe g le₁) c) ≈ᴵ-refl) e′)
+        (𝒱≤-cast d (≤′-trans le′ le₂) (≤′-trans le′ le₁) p w″ r))
+    (f e le₂ c oc)
+  where le₂ = ≤′-trans le₁ (≤⇒≤′ le)
+
+------------------------------------------------------------------------
+-- The guarded clause (`allOnlyG`) and the clause with slack 1
+------------------------------------------------------------------------
+
+-- at a positive stage, `Gᵇ` is `𝒱` at a body: not a variable, and with
+-- a variable occurring in it
+Gᵇ⇔𝒱 : ∀ k {Φ : Corr Δ Δ′} {A} (p : Φ ⊢ A ⊑ ★) {X} → X ∈ᵗ A → NonVar A
+  → ∀ w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+  → Gᵇ ≻ (suc k) p w δ Vl Vr ⇔ 𝒱 ≻ (suc k) p w δ Vl Vr
+Gᵇ⇔𝒱 k ★⊑★ () nv w
+Gᵇ⇔𝒱 k ι⊑★ () nv w
+Gᵇ⇔𝒱 k (X⊑★ x) i () w
+Gᵇ⇔𝒱 k (⇒⊑★ p q) i nv w = ⇔-id
+Gᵇ⇔𝒱 k (∀⊑ a z p) i nv w = ⇔-id
+Gᵇ⇔𝒱 k ∀★⊑★ i nv w = ⇔-id
+Gᵇ⇔𝒱 k (∀⊑★ ns p) i nv w = ⇔-id
+Gᵇ⇔𝒱 k bot⊑★ i nv w = iff (λ ()) (λ ())
+
+module _ {Φ : Corr Δ Δ′} {A} (a : NonVar A) (z : zero ∈ᵗ A)
+    (p : only Φ ⊢ A ⊑ ★) where
+
+  private
+    toV : ∀ {m n} (le : m ≤′ n) → 0 < m → ∀ w
+      {δ : Interp (suc Δ) Δ′ (ΔL w) (ΔR w)} {V V′}
+      → Gᵇ≤ ≻ le p w δ V V′ → 𝒱≤ ≻ le p w δ V V′
+    toV {suc j} le (s≤s z≤n) w r =
+      𝒱≤-cast ≻ ≤′-refl le p w
+        (to (Gᵇ⇔𝒱 j p z a w) (Gᵇ≤→Gᵇ ≻ le p w r))
+
+    fromV : ∀ {m n} (le : m ≤′ n) → 0 < m → ∀ w
+      {δ : Interp (suc Δ) Δ′ (ΔL w) (ΔR w)} {V V′}
+      → 𝒱≤ ≻ le p w δ V V′ → Gᵇ≤ ≻ le p w δ V V′
+    fromV {suc j} le (s≤s z≤n) w r =
+      Gᵇ→Gᵇ≤ ≻ le p w
+        (from (Gᵇ⇔𝒱 j p z a w) (𝒱≤-cast ≻ le ≤′-refl p w r))
+
+  -- the guarded clause is the clause with slack 1, read by `𝒱`
+  allOnlyG→Cl : ∀ k w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+    → allOnlyG ≻ (suc k) p w δ Vl Vr → OnlyCl ≻ 1 (suc k) p w δ Vl Vr
+  allOnlyG→Cl k w {δ} f e {n′} le c oc =
+    ℰᵍ-map⁺ ≻ n′ _
+      {VR = λ le′ w″ e′ → Gᵇ≤ ≻ (≤′-trans le′ le) p w″
+        (extOnlyI (leftTyS c) (sem (onlyLeafS ≻ (∸1-≤′ le) c)) (δ ↑ᴵ e)
+          ↑ᴵ e′)}
+      {VR′ = λ le′ w″ e′ → 𝒱≤ ≻ (≤′-trans le′ le) p w″
+        (extOnlyI (leftTyS c) (sem (onlyLeafS ≻ (leafLe 1 le) c)) (δ ↑ᴵ e)
+          ↑ᴵ e′)}
+      (λ le′ pos w″ e′ V V′ r →
+        𝒱≤-resp ≻ (≤′-trans le′ le) p w″
+          (↑ᴵ-resp (extOnlyI-resp
+            (onlyLeafS-≈ ≻ (∸1-≤′ le) (leafLe 1 le) c) ≈ᴵ-refl) e′)
+          (toV (≤′-trans le′ le) pos w″ r))
+      (f e le c oc)
+
+  Cl→allOnlyG : ∀ k w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+    → OnlyCl ≻ 1 (suc k) p w δ Vl Vr → allOnlyG ≻ (suc k) p w δ Vl Vr
+  Cl→allOnlyG k w {δ} f e {n′} le c oc =
+    ℰᵍ-map⁺ ≻ n′ _
+      {VR = λ le′ w″ e′ → 𝒱≤ ≻ (≤′-trans le′ le) p w″
+        (extOnlyI (leftTyS c) (sem (onlyLeafS ≻ (leafLe 1 le) c)) (δ ↑ᴵ e)
+          ↑ᴵ e′)}
+      {VR′ = λ le′ w″ e′ → Gᵇ≤ ≻ (≤′-trans le′ le) p w″
+        (extOnlyI (leftTyS c) (sem (onlyLeafS ≻ (∸1-≤′ le) c)) (δ ↑ᴵ e)
+          ↑ᴵ e′)}
+      (λ le′ pos w″ e′ V V′ r →
+        fromV (≤′-trans le′ le) pos w″
+          (𝒱≤-resp ≻ (≤′-trans le′ le) p w″
+            (↑ᴵ-resp (extOnlyI-resp
+              (onlyLeafS-≈ ≻ (leafLe 1 le) (∸1-≤′ le) c) ≈ᴵ-refl) e′) r))
+      (f e le c oc)
 
 allDead-from : ∀ d n {Φ : Corr Δ Δ′} {A} (p : dead Φ ⊢ A ⊑ ★) w
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Wr}
   → (∀ {w′} (e : w′ ⊒ w) {n′} → n′ ≤ n
-       → (T : Ty (ΔL w′)) (T′ : Ty (storeR w′))
-       → ℰ d n′ p w′ (extDeadI T (δ ↑ᴵ e))
-           (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A [ T ])
-           (renameᵗᵐ (ρS e) Wr ⦂∀ ★ [ T′ ]))
+       → (c : SDesc (ΔL w′) (ΔR w′)) → WFS c
+       → PreTy (ιʷ w′) (rightTyS c) λ T₀ →
+         ℰ d n′ p w′ (extDeadI (leftTyS c) (δ ↑ᴵ e))
+           (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A
+             [ leftTyS c ])
+           (renameᵗᵐ (ρS e) Wr ⦂∀ ★ [ T₀ ]))
   → allDead d n p w δ Vl Wr
-allDead-from d n p w f e le T T′ =
+allDead-from d n p w f e le c wf T₀ eqT =
   ℰᵍ-map d _ _
     (λ le′ w″ e′ V V′ → 𝒱≤-cast d le′ (≤′-trans le′ le) p w″)
-    (f e (≤′⇒≤ le) T T′)
+    (f e (≤′⇒≤ le) c wf T₀ eqT)
 
 -- equal type-applied terms
 inst≡ : ∀ {Θ} {M M′ : Term Θ} {C T} → M ≡ M′ → M ⦂∀ C [ T ] ≡ M′ ⦂∀ C [ T ]
@@ -297,7 +418,7 @@ module PairV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
 -- `∀⊑`
 ------------------------------------------------------------------------
 
-module OnlyV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
+module OnlyV (d : Dir) (g : ℕ) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     (p : only Φ ⊢ A ⊑ B)
     (RF : ∀ {Δ₀} {Ψ : Corr Δ₀ Δ′} {X′ : TyVar Δ₀} {ΘL ΘR}
        → CMode Ψ X′ ΘL ΘR → (Δ′ ⇒ˢ ΘR) → RConv ΘR)
@@ -311,31 +432,32 @@ module OnlyV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
        (σ : Δ′ ⇒ˢ ΘR) → RF (m-left {Φ = Ψ} {X = X′} {ΘL = ΘL}) σ ≡ nothing)
     (rev : ∀ {N′ rk w X′} {m : CMode (only Φ) X′ (ΔL w) (storeR w)}
        {α δs δt σs σt} → ConvI d N′ rk w m α δs δt σs σt
-       → PreM w (RF m σt) δs δt σs σt B → ∀ {k} → k ≤ N′
+       → PreM w (RF m σt) δs δt σs σt B → ∀ {k} → k ≤ g + N′
        → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d k p w δs Vl Vr
        → ℰ d k p w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) A 〗)
            (revM (RF m σt) (substᵗ σs B) Vr))
     (con : ∀ {N′ rk w X′} {m : CMode (only Φ) X′ (ΔL w) (storeR w)}
        {α δs δt σs σt} → ConvI d N′ rk w m α δs δt σs σt
-       → PreM w (RF m σt) δs δt σs σt B → ∀ {k} → ConM d m (RF m σt) k N′
+       → PreM w (RF m σt) δs δt σs σt B → ∀ {k}
+       → ConM d m (RF m σt) k (g + N′)
        → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k p w δt Wl Wr
        → ℰ d k p w δs
            (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) A))
            (conM (RF m σt) (substᵗ σs B) Wr))
     where
 
-  open OnlyRev d N p RF RF-↑ RF-only RF-left rev
-  open OnlyCon d N p RF RF-↑ RF-only RF-left rev con
+  open OnlyRev d g N p RF RF-↑ RF-only RF-left rev
+  open OnlyCon d g N p RF RF-↑ RF-only RF-left rev con
 
   revV : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (storeR w)} {α δs δt σs σt}
       {rk} (h : ConvI d N rk w m α δs δt σs σt)
-    → PreM w (RF m σt) δs δt σs σt B → n ≤ N
-    → ∀ {Vl Vr} → Value Vl → Value Vr → allOnly d n p w δs Vl Vr
-    → allOnly d n p w δt
+    → PreM w (RF m σt) δs δt σs σt B → n ≤ g + N
+    → ∀ {Vl Vr} → Value Vl → Value Vr → OnlyCl d g n p w δs Vl Vr
+    → OnlyCl d g n p w δt
         (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) (`∀ A) 〗)
         (revM (RF m σt) (substᵗ σs B) Vr)
   revV {n} w {m = m} {α} {δs} {δt} {σs} {σt} h ps le {Vl} {Vr} vl vr r =
-    allOnly-from d n p w {δ = δt} λ e {n′} le′ (sdesc Xs Ys c) oc →
+    OnlyCl-from d g n p w {δ = δt} λ e {n′} le′ (sdesc Xs Ys c) oc →
       ℰᵍ-≡ (sym (revL≡ e m α δs δt Vl A))
         (trans
           (cong (λ c′ → revM c′ (substᵗ (σs ↑ˢ e) B)
@@ -346,17 +468,17 @@ module OnlyV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (≤-trans le′ le)
           (renameᵗᵐ-preserves-Value (ρL e) vl)
           (renameᵗᵐ-preserves-Value (ρS e) vr)
-          (allOnly-down d le′ p _ (allOnly-mono d n p e r)) Xs Ys c oc)
+          (OnlyCl-down d g le′ p _ (OnlyCl-mono d g n p e r)) Xs Ys c oc)
 
   conV : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (storeR w)} {α δs δt σs σt}
       {rk} (h : ConvI d N rk w m α δs δt σs σt)
-    → PreM w (RF m σt) δs δt σs σt B → ConM d m (RF m σt) n N
-    → ∀ {Wl Wr} → Value Wl → Value Wr → allOnly d n p w δt Wl Wr
-    → allOnly d n p w δs
+    → PreM w (RF m σt) δs δt σs σt B → ConM d m (RF m σt) n (g + N)
+    → ∀ {Wl Wr} → Value Wl → Value Wr → OnlyCl d g n p w δt Wl Wr
+    → OnlyCl d g n p w δs
         (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) (`∀ A)))
         (conM (RF m σt) (substᵗ σs B) Wr)
   conV {n} w {m = m} {α} {δs} {δt} {σs} {σt} h ps cb {Wl} {Wr} wl wr r =
-    allOnly-from d n p w {δ = δs} λ e {n′} le′ (sdesc Xs Ys c) oc →
+    OnlyCl-from d g n p w {δ = δs} λ e {n′} le′ (sdesc Xs Ys c) oc →
       ℰᵍ-≡ (sym (conL≡ e m α δs δt Wl A))
         (trans
           (cong (λ c′ → conM c′ (substᵗ (σs ↑ˢ e) B)
@@ -367,7 +489,7 @@ module OnlyV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
           (ConM-↑ d (ρL e) (ρS e) m (RF-↑ (ρL e) (ρS e) m σt) le′ cb)
           (renameᵗᵐ-preserves-Value (ρL e) wl)
           (renameᵗᵐ-preserves-Value (ρS e) wr)
-          (allOnly-down d le′ p _ (allOnly-mono d n p e r)) Xs Ys c oc)
+          (OnlyCl-down d g le′ p _ (OnlyCl-mono d g n p e r)) Xs Ys c oc)
 
 ------------------------------------------------------------------------
 -- `∀⊑★`, in the `★` lemma
@@ -396,11 +518,13 @@ module DeadV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A}
     → allDead d n p w δt
         (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) (`∀ A) 〗) Wr
   revV {n} w {m = m} {α} {δs} {δt} {σs} {σt} h le {Vl} {Wr} vl r =
-    allDead-from d n p w {δ = δt} λ e {n′} le′ T T′ →
+    allDead-from d n p w {δ = δt}
+      λ e {n′} le′ (sdesc Xs Ys c) wf T₀ eqT →
       ℰᵍ-≡ (sym (revL≡ e m α δs δt Vl A)) refl
         (deadRev {n′} _ (ConvI-↑ e h) (≤-trans le′ le)
           (renameᵗᵐ-preserves-Value (ρL e) vl)
-          (allDead-down d le′ p _ (allDead-mono d n p e r)) T T′)
+          (allDead-down d le′ p _ (allDead-mono d n p e r))
+          Xs Ys c wf eqT)
 
   conV : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (storeR w)} {α δs δt σs σt}
       {rk} (h : ConvI d N rk w m α δs δt σs σt) → ConM d m nothing n N
@@ -408,12 +532,14 @@ module DeadV (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A}
     → allDead d n p w δs
         (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) (`∀ A))) Wr
   conV {n} w {m = m} {α} {δs} {δt} {σs} {σt} h cb {Wl} {Wr} wl r =
-    allDead-from d n p w {δ = δs} λ e {n′} le′ T T′ →
+    allDead-from d n p w {δ = δs}
+      λ e {n′} le′ (sdesc Xs Ys c) wf T₀ eqT →
       ℰᵍ-≡ (sym (conL≡ e m α δs δt Wl A)) refl
         (deadCon {n′} _ (ConvI-↑ e h)
           (ConM-↑ d (ρL e) (ρS e) m refl le′ cb)
           (renameᵗᵐ-preserves-Value (ρL e) wl)
-          (allDead-down d le′ p _ (allDead-mono d n p e r)) T T′)
+          (allDead-down d le′ p _ (allDead-mono d n p e r))
+          Xs Ys c wf eqT)
 
 ------------------------------------------------------------------------
 -- The lemma at `★`: the right is not converted
@@ -462,6 +588,17 @@ noRF : ∀ {Δ₀ Δ′} {Ψ : Corr Δ₀ Δ′} {X′ : TyVar Δ₀} {ΘL ΘR}
   → CMode Ψ X′ ΘL ΘR → (Δ′ ⇒ˢ ΘR) → RConv ΘR
 noRF m σ = nothing
 
+-- a conceal's bound in `≻` with the right not converted, with slack 1
+ConMb-slack : ∀ {Θ} b {k N} → ConMb {Θ} ≻ b nothing (suc k) (suc N)
+  → ConMb {Θ} ≻ b nothing k N
+ConMb-slack true le = ≤-pred le
+ConMb-slack false le = ≤-pred le
+
+ConMb-up : ∀ {Θ} b {k N} → ConMb {Θ} ≻ b nothing k N
+  → ConMb {Θ} ≻ b nothing k (suc N)
+ConMb-up true le = ≤-trans le (n≤1+n _)
+ConMb-up false le = ≤-trans le (n≤1+n _)
+
 mutual
   rev★ : ∀ d {Δ Δ′} {Φ : Corr Δ Δ′} {A} (p : Φ ⊢ A ⊑ ★) → Rev★ d p
   rev★ d ★⊑★ = rev★★ d
@@ -487,17 +624,13 @@ mutual
       (λ h′ _ → rev★ ≻ p h′) (λ h′ _ → con★ ≻ p h′)
       (λ h′ _ → rev★ ≻ q h′) (λ h′ _ → con★ ≻ q h′)
       (λ h′ pm t → noTypedR _ pm t) (λ h′ pm t → noTypedC _ pm t)
-  rev★ ≺ (∀⊑ Anv z p) {N} {rk} {w} h {k} le vl vr r =
+  rev★ ≺ (∀⊑ Anv z p) {N} {rk} {w} h {k} le vl vr (i , r) =
     ℰ-value ≺ k (∀⊑ Anv z p) w (vl CT.↑ CT.all) vr
-      (OnlyV.revV ≺ N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
+      (i , OnlyV.revV ≺ 0 N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
         (λ σ → refl) (λ h′ _ → rev★ ≺ p h′) (λ h′ _ → con★ ≺ p h′)
         w h pre★ le vl vr r)
-  rev★ ≻ (∀⊑ Anv z p) h {zero} le vl vr r = ℰ-zero ≻ (∀⊑ Anv z p) _
-  rev★ ≻ (∀⊑ Anv z p) {N} {rk} {w} h {suc k} le vl vr r =
-    ℰ-value ≻ (suc k) (∀⊑ Anv z p) w (vl CT.↑ CT.all) vr
-      (OnlyV.revV ≻ N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
-        (λ σ → refl) (λ h′ _ → rev★ ≻ p h′) (λ h′ _ → con★ ≻ p h′)
-        w h pre★ (≤-trans (n≤1+n k) le) vl vr r)
+  rev★ ≻ (∀⊑ Anv z p) h le vl vr r =
+    rev★G (∀⊑ Anv z p) nonvar-all h (≤-trans le (n≤1+n _)) vl vr r
   rev★ ≺ {Φ = Φ} ∀★⊑★ {N} {rk} {w} {δs = δs} {δt} h {k} le vl vr r =
     ℰ-value ≺ k ∀★⊑★ w (vl CT.↑ CT.all) vr
       (to (allDeadStar-★ ≺ k {Ψ = Φ} w {δ = δt})
@@ -556,17 +689,13 @@ mutual
       (λ h′ _ → rev★ ≻ p h′) (λ h′ _ → con★ ≻ p h′)
       (λ h′ _ → rev★ ≻ q h′) (λ h′ _ → con★ ≻ q h′)
       (λ h′ pm t → noTypedR _ pm t) (λ h′ pm t → noTypedC _ pm t)
-  con★ ≺ (∀⊑ Anv z p) {N} {rk} {w} h {k} cb wl wr r =
+  con★ ≺ (∀⊑ Anv z p) {N} {rk} {w} h {k} cb wl wr (i , r) =
     ℰ-value ≺ k (∀⊑ Anv z p) w (wl CT.↓ CT.all) wr
-      (OnlyV.conV ≺ N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
+      (i , OnlyV.conV ≺ 0 N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
         (λ σ → refl) (λ h′ _ → rev★ ≺ p h′) (λ h′ _ → con★ ≺ p h′)
         w h pre★ cb wl wr r)
-  con★ ≻ (∀⊑ Anv z p) h {zero} cb wl wr r = ℰ-zero ≻ (∀⊑ Anv z p) _
-  con★ ≻ (∀⊑ Anv z p) {N} {rk} {w} {m = m} h {suc k} cb wl wr r =
-    ℰ-value ≻ (suc k) (∀⊑ Anv z p) w (wl CT.↓ CT.all) wr
-      (OnlyV.conV ≻ N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
-        (λ σ → refl) (λ h′ _ → rev★ ≻ p h′) (λ h′ _ → con★ ≻ p h′)
-        w h pre★ (ConMb-down ≻ (isNone m) nothing (n≤1+n k) cb) wl wr r)
+  con★ ≻ (∀⊑ Anv z p) {m = m} h cb wl wr r =
+    con★G (∀⊑ Anv z p) nonvar-all h (ConMb-up (isNone m) cb) wl wr r
   con★ ≺ {Φ = Φ} ∀★⊑★ {N} {rk} {w} {δs = δs} {δt} h {k} cb wl wr r =
     ℰ-value ≺ k ∀★⊑★ w (wl CT.↓ CT.all) wr
       (to (allDeadStar-★ ≺ k {Ψ = Φ} w {δ = δs})
@@ -599,6 +728,98 @@ mutual
   con★ ≺ bot⊑★ h cb wl wr ()
   con★ ≻ bot⊑★ h {zero} cb wl wr r = ℰ-zero ≻ bot⊑★ _
   con★ ≻ bot⊑★ h {suc k} cb wl wr ()
+
+  -- `≻` at a body into `★` (not a variable): `G` at stage k + 1 reads
+  -- the leaves at stage k only, so the bound k suffices (slack 1,
+  -- notes/logrel-dgg.md, F2)
+  rev★G : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A} (p : Φ ⊢ A ⊑ ★) → NonVar A
+    → ∀ {N rk w X} {m : CMode Φ X (ΔL w) (storeR w)} {α δs δt σs σt}
+    → ConvI ≻ N rk w m α δs δt σs σt → ∀ {k} → k ≤ suc N
+    → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 ≻ k p w δs Vl Vr
+    → ℰ ≻ k p w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) A 〗) Vr
+  rev★G p nv h {zero} le vl vr r = ℰ-zero ≻ p _
+  rev★G ★⊑★ nv h {suc k} le vl vr r =
+    ℰ-steps? ≻ (suc k) ★⊑★ _ (goodT h) (step (id-reveal vl)) stay vl vr
+      r
+  rev★G ι⊑★ nv h {suc k} le vl vr r =
+    ℰ-steps? ≻ (suc k) ι⊑★ _ (goodT h) (step (id-reveal vl)) stay vl vr
+      r
+  rev★G (X⊑★ x) () h {suc k} le vl vr r
+  rev★G (⇒⊑★ p q) nv {N} {rk} {w} {X} h {suc k} le vl vr r =
+    ℰ-value ≻ (suc k) (⇒⊑★ p q) w (vl CT.↑ CT.fun) vr
+      (funStar-map (λ v f → fun-rev h pre★⇒ (≤-pred le) vl v f) vr r)
+    where
+    open FunConv {X = X} ≻ N rk p q noRF (λ ρL ρR m σ → refl)
+      (λ h′ _ → rev★ ≻ p h′) (λ h′ _ → con★ ≻ p h′)
+      (λ h′ _ → rev★ ≻ q h′) (λ h′ _ → con★ ≻ q h′)
+      (λ h′ pm t → noTypedR _ pm t) (λ h′ pm t → noTypedC _ pm t)
+  rev★G (∀⊑ Anv z p) nv {N} {rk} {w} h {suc k} le vl vr (i , r) =
+    ℰ-value ≻ (suc k) (∀⊑ Anv z p) w (vl CT.↑ CT.all) vr
+      (i , Cl→allOnlyG Anv z p k w
+        (OnlyV.revV ≻ 1 N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
+          (λ σ → refl) (λ h′ _ → rev★G p Anv h′)
+          (λ h′ _ → con★G p Anv h′)
+          w h pre★ le vl vr (allOnlyG→Cl Anv z p k w r)))
+  rev★G {Φ = Φ} ∀★⊑★ nv {N} {rk} {w} {δs = δs} {δt} h {suc k} le vl vr r =
+    ℰ-value ≻ (suc k) ∀★⊑★ w (vl CT.↑ CT.all) vr
+      (to (allDeadStar-★ ≻ k {Ψ = Φ} w {δ = δt})
+        (allDeadStar-map
+          (DeadV.revV ≻ N (★⊑★ {Φ = dead Φ}) (rev★★ ≻) (con★★ ≻)
+            w h (≤-pred le) vl)
+          vr (from (allDeadStar-★ ≻ k {Ψ = Φ} w {δ = δs}) r)))
+  rev★G (∀⊑★ ns p) nv {N} {rk} {w} h {suc k} le vl vr r =
+    ℰ-value ≻ (suc k) (∀⊑★ ns p) w (vl CT.↑ CT.all) vr
+      (allDeadStar-map
+        (DeadV.revV ≻ N p (λ h′ → rev★ ≻ p h′) (λ h′ → con★ ≻ p h′)
+          w h (≤-pred le) vl)
+        vr r)
+  rev★G bot⊑★ nv h {suc k} le vl vr ()
+
+  con★G : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A} (p : Φ ⊢ A ⊑ ★) → NonVar A
+    → ∀ {N rk w X} {m : CMode Φ X (ΔL w) (storeR w)} {α δs δt σs σt}
+    → ConvI ≻ N rk w m α δs δt σs σt → ∀ {k} → ConM ≻ m nothing k (suc N)
+    → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 ≻ k p w δt Wl Wr
+    → ℰ ≻ k p w δs
+        (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) A)) Wr
+  con★G p nv h {zero} cb wl wr r = ℰ-zero ≻ p _
+  con★G ★⊑★ nv h {suc k} cb wl wr r =
+    ℰ-steps? ≻ (suc k) ★⊑★ _ (goodS h) (step (id-conceal wl)) stay wl wr
+      r
+  con★G ι⊑★ nv h {suc k} cb wl wr r =
+    ℰ-steps? ≻ (suc k) ι⊑★ _ (goodS h) (step (id-conceal wl)) stay wl wr
+      r
+  con★G (X⊑★ x) () h {suc k} cb wl wr r
+  con★G (⇒⊑★ p q) nv {N} {rk} {w} {X} {m} h {suc k} cb wl wr r =
+    ℰ-value ≻ (suc k) (⇒⊑★ p q) w (wl CT.↓ CT.fun) wr
+      (funStar-map
+        (λ v f → fun-con h pre★⇒ (ConMb-slack (isNone m) cb) wl v f) wr r)
+    where
+    open FunConv {X = X} ≻ N rk p q noRF (λ ρL ρR m σ → refl)
+      (λ h′ _ → rev★ ≻ p h′) (λ h′ _ → con★ ≻ p h′)
+      (λ h′ _ → rev★ ≻ q h′) (λ h′ _ → con★ ≻ q h′)
+      (λ h′ pm t → noTypedR _ pm t) (λ h′ pm t → noTypedC _ pm t)
+  con★G (∀⊑ Anv z p) nv {N} {rk} {w} h {suc k} cb wl wr (i , r) =
+    ℰ-value ≻ (suc k) (∀⊑ Anv z p) w (wl CT.↓ CT.all) wr
+      (i , Cl→allOnlyG Anv z p k w
+        (OnlyV.conV ≻ 1 N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
+          (λ σ → refl) (λ h′ _ → rev★G p Anv h′)
+          (λ h′ _ → con★G p Anv h′)
+          w h pre★ cb wl wr (allOnlyG→Cl Anv z p k w r)))
+  con★G {Φ = Φ} ∀★⊑★ nv {N} {rk} {w} {m = m} {δs = δs} {δt} h {suc k} cb wl
+      wr r =
+    ℰ-value ≻ (suc k) ∀★⊑★ w (wl CT.↓ CT.all) wr
+      (to (allDeadStar-★ ≻ k {Ψ = Φ} w {δ = δs})
+        (allDeadStar-map
+          (DeadV.conV ≻ N (★⊑★ {Φ = dead Φ}) (rev★★ ≻) (con★★ ≻)
+            w h (ConMb-slack (isNone m) cb) wl)
+          wr (from (allDeadStar-★ ≻ k {Ψ = Φ} w {δ = δt}) r)))
+  con★G (∀⊑★ ns p) nv {N} {rk} {w} {m = m} h {suc k} cb wl wr r =
+    ℰ-value ≻ (suc k) (∀⊑★ ns p) w (wl CT.↓ CT.all) wr
+      (allDeadStar-map
+        (DeadV.conV ≻ N p (λ h′ → rev★ ≻ p h′) (λ h′ → con★ ≻ p h′)
+          w h (ConMb-slack (isNone m) cb) wl)
+        wr r)
+  con★G bot⊑★ nv h {suc k} cb wl wr ()
 
 ------------------------------------------------------------------------
 -- The main lemma: the right converts as the mode says
@@ -756,7 +977,7 @@ mutual
     ℰ-value d k (∀⊑ Anv z p) w (vl CT.↑ CT.all)
       (revM-fun (rconv m σt) vr)
       (to (𝒱-∀⊑⇒ d k Anv z p w)
-        (OnlyV.revV d N p (λ m′ σ → rconv m′ σ)
+        (OnlyV.revV d 0 N p (λ m′ σ → rconv m′ σ)
           (λ ρL ρR m′ σ → rconv-↑ ρL ρR m′ σ) (λ m′ σ → rconv-only m′ σ)
           (λ σ → refl) (λ h′ → revC d p h′) (λ h′ → conC d p h′)
           w h ps le vl vr (from (𝒱-∀⊑⇒ d k Anv z p w) r)))
@@ -765,7 +986,7 @@ mutual
     ℰ-value d k (∀⊑ Anv z p) w (vl CT.↑ CT.all)
       (revM-all (rconv m σt) vr)
       (to (𝒱-∀⊑∀ d k Anv z p w)
-        (OnlyV.revV d N p (λ m′ σ → rconv m′ σ)
+        (OnlyV.revV d 0 N p (λ m′ σ → rconv m′ σ)
           (λ ρL ρR m′ σ → rconv-↑ ρL ρR m′ σ) (λ m′ σ → rconv-only m′ σ)
           (λ σ → refl) (λ h′ → revC d p h′) (λ h′ → conC d p h′)
           w h ps le vl vr (from (𝒱-∀⊑∀ d k Anv z p w) r)))
@@ -808,7 +1029,7 @@ mutual
     ℰ-value d k (∀⊑ Anv z p) w (wl CT.↓ CT.all)
       (conM-fun (rconv m σt) wr)
       (to (𝒱-∀⊑⇒ d k Anv z p w)
-        (OnlyV.conV d N p (λ m′ σ → rconv m′ σ)
+        (OnlyV.conV d 0 N p (λ m′ σ → rconv m′ σ)
           (λ ρL ρR m′ σ → rconv-↑ ρL ρR m′ σ) (λ m′ σ → rconv-only m′ σ)
           (λ σ → refl) (λ h′ → revC d p h′) (λ h′ → conC d p h′)
           w h ps cb wl wr (from (𝒱-∀⊑⇒ d k Anv z p w) r)))
@@ -817,7 +1038,7 @@ mutual
     ℰ-value d k (∀⊑ Anv z p) w (wl CT.↓ CT.all)
       (conM-all (rconv m σt) wr)
       (to (𝒱-∀⊑∀ d k Anv z p w)
-        (OnlyV.conV d N p (λ m′ σ → rconv m′ σ)
+        (OnlyV.conV d 0 N p (λ m′ σ → rconv m′ σ)
           (λ ρL ρR m′ σ → rconv-↑ ρL ρR m′ σ) (λ m′ σ → rconv-only m′ σ)
           (λ σ → refl) (λ h′ → revC d p h′) (λ h′ → conC d p h′)
           w h ps cb wl wr (from (𝒱-∀⊑∀ d k Anv z p w) r)))

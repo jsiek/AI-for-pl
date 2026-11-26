@@ -17,7 +17,9 @@ module proof.LR.Case6 where
 --         at the old variables from `CastHyp.var` at `E`, through
 --         agreeing environments (`CastL.envL-old`, `CastR.envR-old`,
 --         `agree-ren`) and equivalent leaves; at the new variable from
---         `selfO-only` (`VarI-ext`);
+--         `selfO-only` (`VarI-ext`); the same at the flipped
+--         environments (`varF₂`: `agree-flip`, and `sym∼` of the new
+--         variable's `refl∼` is `refl∼`, `sym-refl`);
 --       - `preC₂`, `preA₂` (`PreB` moved, and opened at `★`);
 --       - `castL₂`, `castR₂` (`CastL.castL`, `CastR.castR`);
 --       - `typed` (`typedI`, as in preservation's `β-inst` case);
@@ -103,7 +105,7 @@ open import proof.LR.Replay using (replay-⊒; replayW; replayPre;
   grows-unique)
 open import proof.LR.CastLemma
 open import proof.LR.CastSubst using (module CastL; module CastR; Agree;
-  agree-ren)
+  agree-ren; agree-flip; ≅ᶜ-⟨⟩; sym-≅; ⟨⟩-inj; sym-refl; _⟫_)
 open import proof.LR.IdentityCast using (selfO-only; refl-rename)
 
 ------------------------------------------------------------------------
@@ -492,6 +494,35 @@ module _ {Δ Δ′} {ν : Env∼ Δ} {ν′ : Env∼ Δ′} {C₁ A₁ : Ty (suc
         (renSE (ρL e‴) (sL₂ e″)) (renSE (ρS e‴) (sR₂ e″))
       var₂ = VarI-ext d w‴ lv aL aR (sym envR≡) (CastHyp.var h E′) new
 
+      -- at the flipped environments: the new variable's world cast is
+      -- `sym∼` of `refl∼`, which is `refl∼`
+      selfZF : ∀ (Wl : Term (ΔL w‴))
+        → Wl ⟨ SubstEnv∼.self
+                 (flip-SubstEnv∼ (renSE (ρL e‴) (sL₂ e″))) zero ⟩
+          ≡ Wl ⟨ refl∼ {μ = flipᵐ νL‴}
+                   (renameᵗ (toRenameᵗ (ρL (⊒-trans e‴ e″))) T) ⟩
+      selfZF Wl = ≅ᶜ-⟨⟩ Wl (sym-≅ (⟨⟩-inj (selfZ Wl)) ⟫ sym-refl _)
+
+      newF : ∀ k → CastRel d k (X⊑★ (only-here {Φ = Φ})) (X⊑★ only-here) w‴
+        ((δ₃ ↑ᴵ e″) ↑ᴵ e‴)
+        (λ V → V ⟨ SubstEnv∼.self
+                     (flip-SubstEnv∼ (renSE (ρL e‴) (sL₂ e″))) zero ⟩)
+        (λ V → V ⟨ id {μ = flipᵐ (renameEnv∼ (ρS e‴) (νR₂ e″))} ★ ⟩)
+      newF k {Wl} {Wr} wl wr r =
+        subst (λ M → ℰ d k (X⊑★ (only-here {Φ = Φ})) w‴ ((δ₃ ↑ᴵ e″) ↑ᴵ e‴) M
+                (Wr ⟨ id {μ = flipᵐ (renameEnv∼ (ρS e‴) (νR₂ e″))} ★ ⟩))
+          (sym (selfZF Wl))
+          (CastRel-resp d k (X⊑★ only-here) (X⊑★ only-here) w‴
+            (≈ᴵ-sym (↑ᴵ-trans δ₃ e‴ e″))
+            (selfO-only d k (≤′-refl {suc s}) {wR} c δ₀ g₀ (⊒-trans e‴ e″))
+            wl wr r)
+
+      varF₂ : VarI (only Φ) d w‴ ((δ₃ ↑ᴵ e″) ↑ᴵ e‴)
+        (flip-SubstEnv∼ (renSE (ρL e‴) (sL₂ e″)))
+        (flip-SubstEnv∼ (renSE (ρS e‴) (sR₂ e″)))
+      varF₂ = VarI-ext d w‴ lv (agree-flip aL) (agree-flip aR)
+        (cong flipᵐ (sym envR≡)) (CastHyp.varF h E′) newF
+
     ------------------------------------------------------------------
     -- `inner`: the hypothesis's clause, the reveal of α′, and the
     -- substitution instance (notes/logrel-dgg.md, "Case 6")
@@ -767,7 +798,15 @@ module _ {Δ Δ′} {ν : Env∼ Δ} {ν′ : Env∼ Δ′} {C₁ A₁ : Ty (suc
         ; freshP = fP e″
         ; freshO = fO e″
         ; freshR = fR e″
+        ; starFree = λ
+            { zero ne eq → ne refl
+            ; (suc Z) ne eq → starFree h Z ne
+                (ren≡★ (toRenameᵗ (ρL (E e″)))
+                  (trans (sym (δl≡ (D e″) Z)) eq)) }
+        ; starFreeR = λ Y ne eq → starFreeR h Y ne
+            (ren≡★ (toRenameᵗ (ρS (E e″))) (trans (σeq e″ Y) eq))
         ; var = Var.var₂ e″
+        ; varF = Var.varF₂ e″
         }
 
       ob : Ob

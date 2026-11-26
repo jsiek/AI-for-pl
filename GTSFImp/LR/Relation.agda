@@ -21,13 +21,21 @@ module LR.Relation where
 --         (`≺`, or `≻` with a right seal), or by the guarded relation
 --         `G` at the same stage after peeling a seal (`≻`, left-only);
 --       - `G` reads the same stage only through tags and entries, each
---         of which peels the left term, and every other call drops the
---         stage;
+--         of which peels the left term, or through the guarded left-only
+--         clause (`allOnlyG`), whose body `Gᵇ` reads the same stage only
+--         at a smaller body and whose leaf is bounded one stage down;
+--         every other call drops the stage;
 --       - the semantic leaves and the stage-bounded helpers recurse on
 --         `≤′` proofs.
 --   * The guard convention for `≻` (Section 6.6): a relation whose
 --     right type is `★` is `G`, whose stage-n content reads stage n − 1
---     (or the same stage on a smaller left term).
+--     (or the same stage on a smaller left term).  The `∀⊑`-into-`★`
+--     clause is read at the same stage, its new variable's leaf one
+--     stage down (notes/logrel-dgg.md, F2): the left's instantiation
+--     is not counted, so reading it one stage down paid the guard twice.
+--   * The `∀⊑`-into-`★` clause also says, at every stage in `≺` and at
+--     positive stages in `≻`, that the right value is injected at the
+--     ground its body predicts (`injOf`; F1).
 --   * Typing the right (notes/logrel-dgg.md, Section 7, "Typing the
 --     right"): `Typedᴿ w T M` types M in the world's right store at a
 --     store preimage of T.  A function clause takes typed right
@@ -45,13 +53,18 @@ module LR.Relation where
 --     only ones the proofs give it, so that the cast lemma's case 6 can
 --     read a left-only clause through a pair clause at a right seal
 --     whose representation is `★`.
+--   * `∀★ ⊑ ★` is the pair clause at `★ ⊑ ★` (`starAll`), the same
+--     relation as `★`'s `∀★` payload, and the dead-variable clause
+--     instantiates at a descriptor's two types too: instantiations at
+--     unrelated types (ℕ against 𝔹) are not given by the fundamental
+--     lemma's `Λ⊑Λ` (notes/logrel-dgg.md, "`？` at ground `∀★`").
 
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
 open import Data.List using (List; []; _∷_; map)
 open import Data.Maybe using (just; nothing)
 open import Data.Nat using (ℕ; zero; suc; _+_; _≤′_; ≤′-refl; ≤′-step;
-  _<_; _≤_; _<?_; _≤?_)
+  _<_; _≤_; _<?_; _≤?_; _∸_)
 open import Data.Nat.Properties using (≤⇒≤′)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Data.Sum using (_⊎_)
@@ -201,6 +214,24 @@ baseInj : ∀ {ΔL ΔR} → Base → Term ΔL → Term ΔR → Set
 baseInj ι ($ κ) (W ⟨ c ⟩) = IsInjBase ι c × W ≡ $ κ
 baseInj ι Vl Vr = ⊥
 
+-- a value injected at `★ → ★`, or at `∀★`
+injFun injAll : ∀ {Θ} → Term Θ → Set
+injFun (W ⟨ c ⟩) = IsInj⇒ c
+injFun V = ⊥
+injAll (W ⟨ c ⟩) = IsInj∀ c
+injAll V = ⊥
+
+-- the ground at which a left-only `∀`'s body into `★` says the right
+-- value is injected (notes/logrel-dgg.md, F1): `★ → ★` for a function,
+-- `∀★` for a `∀` over a dead variable, and the inner body's ground for
+-- a `∀` over a left-only one.  The other derivations are not bodies.
+injOf : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A B} → Φ ⊢ A ⊑ B → ∀ {Θ} → Term Θ → Set
+injOf (⇒⊑★ p q) V = injFun V
+injOf (∀⊑ Anv z p) V = injOf p V
+injOf ∀★⊑★ V = injAll V
+injOf (∀⊑★ ns p) V = injAll V
+injOf p V = ⊤
+
 ------------------------------------------------------------------------
 -- Peeling a list of seals around a semantic relation
 ------------------------------------------------------------------------
@@ -278,6 +309,12 @@ Arrive {ΔL′} {ΘR′} n n′ w χsL χsR VR le Vl Vr =
 ≤′-trans ab ≤′-refl = ab
 ≤′-trans ab (≤′-step bc) = ≤′-step (≤′-trans ab bc)
 
+-- the bound of the guarded left-only clause's leaf (F2)
+∸1-≤′ : ∀ {n′ k} → n′ ≤′ suc k → n′ ∸ 1 ≤′ k
+∸1-≤′ ≤′-refl = ≤′-refl
+∸1-≤′ {zero} (≤′-step le) = le
+∸1-≤′ {suc n′} (≤′-step le) = ≤′-trans (≤′-step ≤′-refl) le
+
 ------------------------------------------------------------------------
 -- The value relation
 ------------------------------------------------------------------------
@@ -307,10 +344,12 @@ mutual
   𝒱 ≺ n (ι⊑★ {ι = ι}) w δ Vl Vr = baseInj ι Vl Vr
   𝒱 ≻ n p@ι⊑★ w δ Vl Vr = G n p w δ Vl Vr
   𝒱 d n (X⊑★ {X = X} x) w δ Vl Vr = leafRel d n w (leaf δ X) Vl Vr
+  𝒱 ≺ n {A′ = ★} (∀⊑ Anv z p) w δ Vl Vr =
+    injOf p Vr × allOnly ≺ n p w δ Vl Vr
   𝒱 ≺ n (∀⊑ Anv z p) w δ Vl Vr = allOnly ≺ n p w δ Vl Vr
   𝒱 ≻ n {A′ = ★} r@(∀⊑ Anv z p) w δ Vl Vr = G n r w δ Vl Vr
   𝒱 ≻ n (∀⊑ Anv z p) w δ Vl Vr = allOnly ≻ n p w δ Vl Vr
-  𝒱 ≺ n ∀★⊑★ w δ Vl Vr = allStar ≺ n w Vl Vr
+  𝒱 ≺ n ∀★⊑★ w δ Vl Vr = starAll ≺ n w Vl Vr
   𝒱 ≻ n p@∀★⊑★ w δ Vl Vr = G n p w δ Vl Vr
   𝒱 ≺ n (∀⊑★ ns p) w δ Vl Vr = allDeadStar ≺ n p w δ Vl Vr
   𝒱 ≻ n r@(∀⊑★ ns p) w δ Vl Vr = G n r w δ Vl Vr
@@ -342,11 +381,38 @@ mutual
   G (suc k) (ι⊑★ {ι = ι}) w δ Vl Vr = baseInj ι Vl Vr
   G (suc k) (⇒⊑★ p q) w δ Vl Vr = funStar ≻ k p q w δ Vl Vr
   G (suc k) (X⊑★ {X = X} x) w δ Vl Vr = leafRel ≻ (suc k) w (leaf δ X) Vl Vr
-  G (suc k) {A′ = ★} (∀⊑ Anv z p) w δ Vl Vr = allOnly ≻ k p w δ Vl Vr
-  G (suc k) ∀★⊑★ w δ Vl Vr = allStar ≻ k w Vl Vr
+  G (suc k) {A′ = ★} (∀⊑ Anv z p) w δ Vl Vr =
+    injOf p Vr × allOnlyG ≻ (suc k) p w δ Vl Vr
+  G (suc k) ∀★⊑★ w δ Vl Vr = starAll ≻ k w Vl Vr
   G (suc k) (∀⊑★ ns p) w δ Vl Vr = allDeadStar ≻ k p w δ Vl Vr
   G (suc k) bot⊑★ w δ Vl Vr = ⊥
   G (suc k) p w δ Vl Vr = 𝒱 ≻ k p w δ Vl Vr
+
+  -- `G` at the body of a left-only `∀` into `★` (notes/logrel-dgg.md,
+  -- F2), used at `≻` only (the direction is a parameter so that `ℰᵍ`
+  -- does not compute in the lemmas).  A body is not a variable and its
+  -- bound variable occurs in it, so `★`, a base type and a variable are
+  -- not bodies, and `Gᵇ` is empty there.  It reads the same stage only
+  -- at a smaller body.
+  Gᵇ : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A}
+    → Φ ⊢ A ⊑ ★ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
+    → Term (ΔL w) → Term (storeR w) → Set
+  Gᵇ d zero p w δ Vl Vr = ⊤
+  Gᵇ d (suc k) (⇒⊑★ p q) w δ Vl Vr = funStar d k p q w δ Vl Vr
+  Gᵇ d (suc k) (∀⊑ Anv z p) w δ Vl Vr =
+    injOf p Vr × allOnlyG d (suc k) p w δ Vl Vr
+  Gᵇ d (suc k) ∀★⊑★ w δ Vl Vr = starAll d k w Vl Vr
+  Gᵇ d (suc k) (∀⊑★ ns p) w δ Vl Vr = allDeadStar d k p w δ Vl Vr
+  Gᵇ d (suc k) ★⊑★ w δ Vl Vr = ⊥
+  Gᵇ d (suc k) ι⊑★ w δ Vl Vr = ⊥
+  Gᵇ d (suc k) (X⊑★ x) w δ Vl Vr = ⊥
+  Gᵇ d (suc k) bot⊑★ w δ Vl Vr = ⊥
+
+  Gᵇ≤ : Dir → ∀ {m n} → m ≤′ n → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A}
+    → Φ ⊢ A ⊑ ★ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
+    → Term (ΔL w) → Term (storeR w) → Set
+  Gᵇ≤ d {m} ≤′-refl p = Gᵇ d m p
+  Gᵇ≤ d (≤′-step le) p = Gᵇ≤ d le p
 
   G≤ : ∀ {m n} → m ≤′ n → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A A′}
     → Φ ⊢ A ⊑ A′ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
@@ -416,11 +482,6 @@ mutual
   starFun d k w W (Wr ⟨ c ⟩) =
     IsInj⇒ c × 𝒱 d k (⇒⊑⇒ {Φ = []} ★⊑★ ★⊑★) w closedI W Wr
   starFun d k w W Vr = ⊥
-
-  starAll : Dir → ℕ → (w : World) → Term (ΔL w) → Term (storeR w) → Set
-  starAll d k w W (Wr ⟨ c ⟩) =
-    IsInj∀ c × 𝒱 d k (∀⊑∀ {Φ = []} ★⊑★) w closedI W Wr
-  starAll d k w W Vr = ⊥
 
   -- functions: related argument values in any future, the right one
   -- typed, give related results
@@ -516,18 +577,40 @@ mutual
         (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A [ leftTyS c ])
         (renameᵗᵐ (ρS e) Vr)
 
-  -- left `∀`, right `∀★` payload, with a dead variable
+  -- the same in `≻` into `★`, guarded (notes/logrel-dgg.md, F2), read
+  -- at positive stages only: at stage k + 1 the body is read at every
+  -- stage n′ ≤ k + 1, by `Gᵇ` (which is `𝒱` there at positive stages),
+  -- and the new variable's leaf is bounded by n′ − 1 ≤ k
+  allOnlyG : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A}
+    → only Φ ⊢ A ⊑ ★ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
+    → Term (ΔL w) → Term (storeR w) → Set
+  allOnlyG d zero p w δ Vl Vr = ⊤
+  allOnlyG d (suc k) {A = A} p w δ Vl Vr =
+    ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ suc k)
+      (c : SDesc (ΔL w′) (ΔR w′))
+    → OnlyS c
+    → ℰᵍ d n′ w′
+        (λ le′ w″ e′ → Gᵇ≤ d (≤′-trans le′ le) p w″
+          (extOnlyI (leftTyS c) (sem (onlyLeafS d (∸1-≤′ le) c))
+            (δ ↑ᴵ e) ↑ᴵ e′))
+        (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A [ leftTyS c ])
+        (renameᵗᵐ (ρS e) Vr)
+
+  -- left `∀`, right `∀★` payload, with a dead variable: both
+  -- instantiate, at a well-formed sealed descriptor's two types, as in
+  -- the pair clause (so that `∀X.★` with X dead is `∀★⊑★`)
   allDead : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A}
     → dead Φ ⊢ A ⊑ ★ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
     → Term (ΔL w) → Term (storeR w) → Set
   allDead d n {A = A} p w δ Vl Wr =
-    ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n)
-      (T : Ty (ΔL w′)) (T′ : Ty (storeR w′))
-    → ℰᵍ d n′ w′
+    ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n) (c : SDesc (ΔL w′) (ΔR w′))
+    → WFS c
+    → PreTy (ιʷ w′) (rightTyS c) λ T₀ →
+      ℰᵍ d n′ w′
         (λ le′ w″ e′ → 𝒱≤ d (≤′-trans le′ le) p w″
-          (extDeadI T (δ ↑ᴵ e) ↑ᴵ e′))
-        (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A [ T ])
-        (renameᵗᵐ (ρS e) Wr ⦂∀ ★ [ T′ ])
+          (extDeadI (leftTyS c) (δ ↑ᴵ e) ↑ᴵ e′))
+        (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A [ leftTyS c ])
+        (renameᵗᵐ (ρS e) Wr ⦂∀ ★ [ T₀ ])
 
   allDeadStar : Dir → ℕ → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A}
     → dead Φ ⊢ A ⊑ ★ → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
@@ -535,18 +618,23 @@ mutual
   allDeadStar d n p w δ Vl (Wr ⟨ c ⟩) = IsInj∀ c × allDead d n p w δ Vl Wr
   allDeadStar d n p w δ Vl Vr = ⊥
 
-  -- left `∀★` against the right's `∀★` payload: both instantiate, and
-  -- the bodies are related at `★`
-  allStar : Dir → ℕ → (w : World) → Term (ΔL w) → Term (storeR w) → Set
-  allStar d n w Vl (Wr ⟨ c ⟩) =
+  -- `∀★` against an injection at `∀★`: the pair clause at `★⊑★`
+  -- (Section 6.5), both instantiate at a well-formed sealed
+  -- descriptor's two types and the bodies are related at `★`.  It is
+  -- `★`'s `∀★` payload too.  The bodies are read by `starAt`, not `𝒱`,
+  -- so that the clause at `∀★⊑★` does not call `𝒱` at the same stage.
+  starAll : Dir → ℕ → (w : World) → Term (ΔL w) → Term (storeR w) → Set
+  starAll d n w Vl (Wr ⟨ c ⟩) =
     IsInj∀ c
     × (∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n)
-         (T : Ty (ΔL w′)) (T′ : Ty (storeR w′))
-       → ℰᵍ d n′ w′
+         (c₀ : SDesc (ΔL w′) (ΔR w′))
+       → WFS c₀
+       → PreTy (ιʷ w′) (rightTyS c₀) λ T₀ →
+         ℰᵍ d n′ w′
            (λ le′ w″ e′ → starAt d (≤′-trans le′ le) w″)
-           (renameᵗᵐ (ρL e) Vl ⦂∀ ★ [ T ])
-           (renameᵗᵐ (ρS e) Wr ⦂∀ ★ [ T′ ]))
-  allStar d n w Vl Vr = ⊥
+           (renameᵗᵐ (ρL e) Vl ⦂∀ ★ [ leftTyS c₀ ])
+           (renameᵗᵐ (ρS e) Wr ⦂∀ ★ [ T₀ ]))
+  starAll d n w Vl Vr = ⊥
 
   -- `★` at a stage up to n
   starAt : Dir → ∀ {m n} → m ≤′ n → (w : World)

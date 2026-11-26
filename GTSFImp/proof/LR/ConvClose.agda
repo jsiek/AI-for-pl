@@ -73,7 +73,7 @@ open import proof.LR.ConvSyntax
 open import proof.LR.ConvBase
 open import proof.LR.ConvLemma
 open import proof.LR.ConvMain using (revC; conC; rev★; con★; rev★★;
-  con★★; noRF; pre★; pre★⇒; allDeadStar-map; module OnlyV; module DeadV)
+  con★★; rev★G; con★G; noRF; pre★; pre★⇒; allDeadStar-map; module DeadV)
 open import proof.LR.ConvRight
 
 private
@@ -952,10 +952,7 @@ module StarG {w : World} {Δ Δ′} {Φ : Corr Δ Δ′}
         (λ h′ _ → rev★ ≻ q h′) (λ h′ _ → con★ ≻ q h′)
         (λ h′ pm t → noTypedR _ pm t) (λ h′ pm t → noTypedC _ pm t)
     revG★ (∀⊑ Anv z p) {j} le vl vr r =
-      ℰ-value ≻ (suc j) (∀⊑ Anv z p) w (vl CT.↑ CT.all) vr
-        (OnlyV.revV ≻ N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
-          (λ σ → refl) (λ h′ _ → rev★ ≻ p h′) (λ h′ _ → con★ ≻ p h′)
-          w h pre★ le vl vr r)
+      rev★G (∀⊑ Anv z p) nonvar-all h (s≤s le) vl vr r
     revG★ ∀★⊑★ {j} le vl vr r =
       ℰ-value ≻ (suc j) ∀★⊑★ w (vl CT.↑ CT.all) vr
         (to (allDeadStar-★ ≻ j {Ψ = dead Φ} w {δ = δ′})
@@ -990,10 +987,7 @@ module StarG {w : World} {Δ Δ′} {Φ : Corr Δ Δ′}
         (λ h′ _ → rev★ ≻ q h′) (λ h′ _ → con★ ≻ q h′)
         (λ h′ pm t → noTypedR _ pm t) (λ h′ pm t → noTypedC _ pm t)
     conG★ (∀⊑ Anv z p) {j} le wl vr r =
-      ℰ-value ≻ (suc j) (∀⊑ Anv z p) w (wl CT.↓ CT.all) vr
-        (OnlyV.conV ≻ N p noRF (λ ρL ρR m σ → refl) (λ m σ → refl)
-          (λ σ → refl) (λ h′ _ → rev★ ≻ p h′) (λ h′ _ → con★ ≻ p h′)
-          w h pre★ le wl vr r)
+      con★G (∀⊑ Anv z p) nonvar-all h (s≤s le) wl vr r
     conG★ ∀★⊑★ {j} le wl vr r =
       ℰ-value ≻ (suc j) ∀★⊑★ w (wl CT.↓ CT.all) vr
         (to (allDeadStar-★ ≻ j {Ψ = dead Φ} w {δ = δ′})

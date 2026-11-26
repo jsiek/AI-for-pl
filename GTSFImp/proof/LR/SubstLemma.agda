@@ -34,8 +34,8 @@ import Data.Fin as Fin
 open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; _≤′_; ≤′-refl;
   ≤′-step; _≤?_; s≤s; z≤n)
 open import Data.Nat.Properties using (≤′⇒≤; ≤⇒≤′; ≤-<-trans; <-trans;
-  n<1+n; ≤-pred; +-identityʳ)
-open import Data.Product using (_,_; proj₁; proj₂)
+  n<1+n; ≤-pred; +-identityʳ; ≤-trans; <⇒≤)
+open import Data.Product using (_×_; _,_; proj₁; proj₂)
 open import Data.Sum using (inj₁; inj₂)
 open import Data.Unit using (⊤)
 open import Data.Vec using (Vec)
@@ -89,6 +89,10 @@ open _⇔_ public
 
 ⇔-sym : ∀ {P Q} → P ⇔ Q → Q ⇔ P
 ⇔-sym f = iff (from f) (to f)
+
+×-⇔ : ∀ {P P′ Q Q′} → P ⇔ P′ → Q ⇔ Q′ → (P × Q) ⇔ (P′ × Q′)
+×-⇔ f g = iff (λ r → to f (proj₁ r) , to g (proj₂ r))
+  (λ r → from f (proj₁ r) , from g (proj₂ r))
 
 leafRel-⇔ : ∀ d n w {l l′ : Leaf (ΔL w) (ΔR w)} → l ≈ˡ l′
   → ∀ {Vl Vr} → leafRel d n w l Vl Vr ⇔ leafRel d n w l′ Vl Vr
@@ -246,7 +250,7 @@ deadStarRel ≻ (suc k) p w δ Vl Vr = allDeadStar ≻ k p w δ Vl Vr
 -- `∀X.★` with a dead X is `∀★`
 allDeadStar-★ : ∀ d n {Ψ : Corr Δ Δ′} w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)}
     {Vl Vr}
-  → allDeadStar d n (★⊑★ {Φ = dead Ψ}) w δ Vl Vr ⇔ allStar d n w Vl Vr
+  → allDeadStar d n (★⊑★ {Φ = dead Ψ}) w δ Vl Vr ⇔ starAll d n w Vl Vr
 allDeadStar-★ d n w {Vr = ` x} = iff (λ ()) (λ ())
 allDeadStar-★ d n w {Vr = ƛ M} = iff (λ ()) (λ ())
 allDeadStar-★ d n w {Vr = L · M} = iff (λ ()) (λ ())
@@ -255,14 +259,14 @@ allDeadStar-★ d n w {Vr = L ⦂∀ C [ T ]} = iff (λ ()) (λ ())
 allDeadStar-★ d n w {Vr = $ κ} = iff (λ ()) (λ ())
 allDeadStar-★ d n w {Vr = L ⊕[ op ] M} = iff (λ ()) (λ ())
 allDeadStar-★ d n w {Vr = Wr ⟨ c ⟩} =
-  iff (λ r → proj₁ r , λ e le T T′ →
+  iff (λ r → proj₁ r , λ e le c wf T₀ eqT →
          ℰᵍ-map d _ _
            (λ le′ w″ e′ V V′ → to (𝒱≤-★ d (≤′-trans le′ le) w″))
-           (proj₂ r e le T T′))
-      (λ r → proj₁ r , λ e le T T′ →
+           (proj₂ r e le c wf T₀ eqT))
+      (λ r → proj₁ r , λ e le c wf T₀ eqT →
          ℰᵍ-map d _ _
            (λ le′ w″ e′ V V′ → from (𝒱≤-★ d (≤′-trans le′ le) w″))
-           (proj₂ r e le T T′))
+           (proj₂ r e le c wf T₀ eqT))
 allDeadStar-★ d n w {Vr = M ↑ c} = iff (λ ()) (λ ())
 allDeadStar-★ d n w {Vr = M ↓ c} = iff (λ ()) (λ ())
 allDeadStar-★ d n w {Vr = blame} = iff (λ ()) (λ ())
@@ -390,6 +394,24 @@ module _ {Ψ : Corr Δ Δ′} {ΘL′ ΘR′} (σL : ΘL ↪ᵗ ΘL′) (σR : �
   rr≡ RenI-wkDead Y = refl
   rleaf RenI-wkDead X = ≈ˡ-refl
 
+-- the ground a left-only `∀`'s body predicts, under renaming
+injOf-ren : ∀ {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} (R : CRen Ψ Ψ′) {A B}
+    (p : Ψ ⊢ A ⊑ B) {Θ} {V : Term Θ}
+  → injOf p V ⇔ injOf (renᵖ R p) V
+injOf-ren R ★⊑★ = ⇔-id
+injOf-ren R ι⊑ι = ⇔-id
+injOf-ren R (X⊑Y x) = ⇔-id
+injOf-ren R (⇒⊑⇒ p q) = ⇔-id
+injOf-ren R (∀⊑∀ p) = ⇔-id
+injOf-ren R (⇒⊑★ p q) = ⇔-id
+injOf-ren R ι⊑★ = ⇔-id
+injOf-ren R (X⊑★ x) = ⇔-id
+injOf-ren R (∀⊑ a z p) {V = V} = injOf-ren (ext-onlyᴿ R) p {V = V}
+injOf-ren R ∀★⊑★ = ⇔-id
+injOf-ren R (∀⊑★ ns p) = ⇔-id
+injOf-ren R bot-elim = ⇔-id
+injOf-ren R bot⊑★ = ⇔-id
+
 mutual
   𝒱-ren : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} (R : CRen Ψ Ψ′)
       {A B} (p : Ψ ⊢ A ⊑ B) w {δ₁ : Interp Δ₁ Δ₁′ (ΔL w) (ΔR w)}
@@ -412,7 +434,12 @@ mutual
   𝒱-ren ≻ n R ι⊑★ w h = G-ren n R ι⊑★ w h
   𝒱-ren ≺ n R (X⊑★ {X = X} x) w h = leafRel-⇔ ≺ n w (rleaf h X)
   𝒱-ren ≻ n R (X⊑★ {X = X} x) w h = leafRel-⇔ ≻ n w (rleaf h X)
-  𝒱-ren ≺ n R (∀⊑ a z p) w h = allOnly-ren ≺ n R p w h
+  𝒱-ren ≺ n R (∀⊑ {B = ★} a z p) w h =
+    ×-⇔ (injOf-ren (ext-onlyᴿ R) p) (allOnly-ren ≺ n R p w h)
+  𝒱-ren ≺ n R (∀⊑ {B = ＇ Y} a z p) w h = allOnly-ren ≺ n R p w h
+  𝒱-ren ≺ n R (∀⊑ {B = ‵ ι} a z p) w h = allOnly-ren ≺ n R p w h
+  𝒱-ren ≺ n R (∀⊑ {B = B ⇒ C} a z p) w h = allOnly-ren ≺ n R p w h
+  𝒱-ren ≺ n R (∀⊑ {B = `∀ B} a z p) w h = allOnly-ren ≺ n R p w h
   𝒱-ren ≻ n R (∀⊑ {B = ★} a z p) w h = G-ren n R (∀⊑ a z p) w h
   𝒱-ren ≻ n R (∀⊑ {B = ＇ Y} a z p) w h = allOnly-ren ≻ n R p w h
   𝒱-ren ≻ n R (∀⊑ {B = ‵ ι} a z p) w h = allOnly-ren ≻ n R p w h
@@ -446,10 +473,68 @@ mutual
   G-ren (suc k) R (⇒⊑★ p q) w h = funStar-ren ≻ k R p q w h
   G-ren (suc k) R ι⊑★ w h = ⇔-id
   G-ren (suc k) R (X⊑★ {X = X} x) w h = leafRel-⇔ ≻ (suc k) w (rleaf h X)
-  G-ren (suc k) R (∀⊑ a z p) w h = allOnly-ren ≻ k R p w h
+  G-ren (suc k) R (∀⊑ a z p) w h =
+    ×-⇔ (injOf-ren (ext-onlyᴿ R) p) (allOnlyG-ren ≻ (suc k) R p w h)
   G-ren (suc k) R ∀★⊑★ w h = ⇔-id
   G-ren (suc k) R (∀⊑★ ns p) w h = allDeadStar-ren ≻ k R p w h
   G-ren (suc k) R bot⊑★ w h = iff (λ ()) (λ ())
+
+  Gᵇ-ren : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} (R : CRen Ψ Ψ′)
+      {A} (p : Ψ ⊢ A ⊑ ★) w {δ₁ : Interp Δ₁ Δ₁′ (ΔL w) (ΔR w)}
+      {δ₂ : Interp Δ₂ Δ₂′ (ΔL w) (ΔR w)}
+    → RenI R δ₁ δ₂
+    → ∀ {Vl Vr} → Gᵇ d n p w δ₁ Vl Vr ⇔ Gᵇ d n (renᵖ R p) w δ₂ Vl Vr
+  Gᵇ-ren d zero R p w h = ⇔-id
+  Gᵇ-ren d (suc k) R (⇒⊑★ p q) w h = funStar-ren d k R p q w h
+  Gᵇ-ren d (suc k) R (∀⊑ a z p) w h =
+    ×-⇔ (injOf-ren (ext-onlyᴿ R) p) (allOnlyG-ren d (suc k) R p w h)
+  Gᵇ-ren d (suc k) R ∀★⊑★ w h = ⇔-id
+  Gᵇ-ren d (suc k) R (∀⊑★ ns p) w h = allDeadStar-ren d k R p w h
+  Gᵇ-ren d (suc k) R ★⊑★ w h = iff (λ ()) (λ ())
+  Gᵇ-ren d (suc k) R ι⊑★ w h = iff (λ ()) (λ ())
+  Gᵇ-ren d (suc k) R (X⊑★ x) w h = iff (λ ()) (λ ())
+  Gᵇ-ren d (suc k) R bot⊑★ w h = iff (λ ()) (λ ())
+
+  Gᵇ≤-ren : ∀ d {n′ n} (le : n′ ≤′ n) {Ψ : Corr Δ₁ Δ₁′}
+      {Ψ′ : Corr Δ₂ Δ₂′} (R : CRen Ψ Ψ′) {A} (p : Ψ ⊢ A ⊑ ★) w
+      {δ₁ : Interp Δ₁ Δ₁′ (ΔL w) (ΔR w)}
+      {δ₂ : Interp Δ₂ Δ₂′ (ΔL w) (ΔR w)}
+    → RenI R δ₁ δ₂
+    → ∀ {Vl Vr} → Gᵇ≤ d le p w δ₁ Vl Vr ⇔ Gᵇ≤ d le (renᵖ R p) w δ₂ Vl Vr
+  Gᵇ≤-ren d {n′} ≤′-refl R p w h = Gᵇ-ren d n′ R p w h
+  Gᵇ≤-ren d (≤′-step le) R p w h = Gᵇ≤-ren d le R p w h
+
+  allOnlyG-ren : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′}
+      (R : CRen Ψ Ψ′) {A} (p : only Ψ ⊢ A ⊑ ★) w
+      {δ₁ : Interp Δ₁ Δ₁′ (ΔL w) (ΔR w)}
+      {δ₂ : Interp Δ₂ Δ₂′ (ΔL w) (ΔR w)}
+    → RenI R δ₁ δ₂
+    → ∀ {Vl Vr} → allOnlyG d n p w δ₁ Vl Vr
+        ⇔ allOnlyG d n (renᵖ (ext-onlyᴿ R) p) w δ₂ Vl Vr
+  allOnlyG-ren d zero R p w h = ⇔-id
+  allOnlyG-ren d (suc k) R {A = A} p w h {Vl = Vl} =
+    iff (λ r e le c oc →
+           ℰᵍ-≡
+             (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
+               (annot-ren (rl≡ (RenI-↑ h e)) A))
+             refl
+             (ℰᵍ-map d _ _
+               (λ le′ w″ e′ V V′ →
+                 to (Gᵇ≤-ren d (≤′-trans le′ le) (ext-onlyᴿ R) p w″
+                      (RenI-↑ (RenI-extOnly {T = leftTyS c}
+                        (RenI-↑ h e)) e′)))
+               (r e le c oc)))
+        (λ r e le c oc →
+           ℰᵍ-≡
+             (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
+               (annot-ren (rl≡ (RenI-↑ h e)) A)))
+             refl
+             (ℰᵍ-map d _ _
+               (λ le′ w″ e′ V V′ →
+                 from (Gᵇ≤-ren d (≤′-trans le′ le) (ext-onlyᴿ R) p w″
+                        (RenI-↑ (RenI-extOnly {T = leftTyS c}
+                          (RenI-↑ h e)) e′)))
+               (r e le c oc)))
 
   funRel-ren : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} (R : CRen Ψ Ψ′)
       {A A′ B B′} (p : Ψ ⊢ A ⊑ A′) (q : Ψ ⊢ B ⊑ B′) w
@@ -569,26 +654,27 @@ mutual
     → ∀ {Vl Vr} → allDead d n p w δ₁ Vl Vr
         ⇔ allDead d n (renᵖ (ext-deadᴿ R) p) w δ₂ Vl Vr
   allDead-ren d n R {A = A} p w h {Vl = Vl} =
-    iff (λ r e le T T′ →
+    iff (λ r e le c wf T₀ eqT →
            ℰᵍ-≡
-             (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ T ])
+             (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-ren (rl≡ (RenI-↑ h e)) A))
              refl
              (ℰᵍ-map d _ _
                (λ le′ w″ e′ V V′ →
                  to (𝒱≤-ren d (≤′-trans le′ le) (ext-deadᴿ R) p w″
-                      (RenI-↑ (RenI-extDead {T = T} (RenI-↑ h e)) e′)))
-               (r e le T T′)))
-        (λ r e le T T′ →
+                      (RenI-↑ (RenI-extDead {T = leftTyS c} (RenI-↑ h e)) e′)))
+               (r e le c wf T₀ eqT)))
+        (λ r e le c wf T₀ eqT →
            ℰᵍ-≡
-             (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ T ])
+             (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-ren (rl≡ (RenI-↑ h e)) A)))
              refl
              (ℰᵍ-map d _ _
                (λ le′ w″ e′ V V′ →
                  from (𝒱≤-ren d (≤′-trans le′ le) (ext-deadᴿ R) p w″
-                        (RenI-↑ (RenI-extDead {T = T} (RenI-↑ h e)) e′)))
-               (r e le T T′)))
+                        (RenI-↑ (RenI-extDead {T = leftTyS c}
+                          (RenI-↑ h e)) e′)))
+               (r e le c wf T₀ eqT)))
 
   allDeadStar-ren : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′}
       (R : CRen Ψ Ψ′) {A} (p : dead Ψ ⊢ A ⊑ ★) w
@@ -748,6 +834,54 @@ module _ {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} {S : PSub Ψ �
              (from (sonly h x (⊒-refl w) pos lt)
                (𝒱-resp d n (σo S x) w (≈ᴵ-sym (↑ᴵ-refl {w = w} δ₂)) r)))
 
+-- the ground a left-only `∀`'s body predicts, under substitution: a
+-- body is not a variable, and over a left-only variable sent to `★` a
+-- dead body becomes `∀★⊑★`
+injAll-∀★ᵖ : ∀ {Ψ : Corr Δ Δ′} {C} (q : Ψ ⊢ C ⊑ ★) {Θ} {V : Term Θ}
+  → injAll V ⇔ injOf (∀★ᵖ q) V
+injAll-∀★ᵖ ★⊑★ = ⇔-id
+injAll-∀★ᵖ (⇒⊑★ p₁ p₂) = ⇔-id
+injAll-∀★ᵖ ι⊑★ = ⇔-id
+injAll-∀★ᵖ (X⊑★ x) = ⇔-id
+injAll-∀★ᵖ (∀⊑ a z p) = ⇔-id
+injAll-∀★ᵖ ∀★⊑★ = ⇔-id
+injAll-∀★ᵖ (∀⊑★ ns p) = ⇔-id
+injAll-∀★ᵖ bot⊑★ = ⇔-id
+
+injOf-subst : ∀ {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} (S : PSub Ψ Ψ′) {A B}
+    → NonVar A → (p : Ψ ⊢ A ⊑ B) → ∀ {Θ} {V : Term Θ}
+  → injOf p V ⇔ injOf (substᵖ S p) V
+injOf-subst S nv ★⊑★ = ⇔-id
+injOf-subst S nv ι⊑ι = ⇔-id
+injOf-subst S () (X⊑Y x)
+injOf-subst S nv (⇒⊑⇒ p q) = ⇔-id
+injOf-subst S nv (∀⊑∀ p) = ⇔-id
+injOf-subst S nv (⇒⊑★ p q) = ⇔-id
+injOf-subst S nv ι⊑★ = ⇔-id
+injOf-subst S () (X⊑★ x)
+injOf-subst S nv (∀⊑ a z p) {V = V} = injOf-subst (exts-onlyˢ S) a p {V = V}
+injOf-subst S nv ∀★⊑★ = ⇔-id
+injOf-subst S nv (∀⊑★ nonstar-X (X⊑★ (only-dead x))) {V = V} =
+  injAll-∀★ᵖ (σo S x) {V = V}
+injOf-subst S nv (∀⊑★ nonstar-ι p) = ⇔-id
+injOf-subst S nv (∀⊑★ nonstar-⇒ p) = ⇔-id
+injOf-subst S nv (∀⊑★ nonstar-∀ p) = ⇔-id
+injOf-subst S nv bot-elim = ⇔-id
+injOf-subst S nv bot⊑★ = ⇔-id
+
+-- the body of a left-only `∀` at `∀★ᵖ q`
+Gᵇ-∀★ᵖ : ∀ d k {Ψ : Corr Δ Δ′} {C} (q : Ψ ⊢ C ⊑ ★) w
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+  → allDeadStar d k (wk-deadᵖ q) w δ Vl Vr ⇔ Gᵇ d (suc k) (∀★ᵖ q) w δ Vl Vr
+Gᵇ-∀★ᵖ d k ★⊑★ w = allDeadStar-★ d k w
+Gᵇ-∀★ᵖ d k (⇒⊑★ p₁ p₂) w = ⇔-id
+Gᵇ-∀★ᵖ d k ι⊑★ w = ⇔-id
+Gᵇ-∀★ᵖ d k (X⊑★ x) w = ⇔-id
+Gᵇ-∀★ᵖ d k (∀⊑ a z p) w = ⇔-id
+Gᵇ-∀★ᵖ d k ∀★⊑★ w = ⇔-id
+Gᵇ-∀★ᵖ d k (∀⊑★ ns p) w = ⇔-id
+Gᵇ-∀★ᵖ d k bot⊑★ w = ⇔-id
+
 mutual
   𝒱-subst : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} (S : PSub Ψ Ψ′)
       {A B} (p : Ψ ⊢ A ⊑ B) {N} w {δ₁ : Interp Δ₁ Δ₁′ (ΔL w) (ΔR w)}
@@ -770,7 +904,15 @@ mutual
   𝒱-subst ≻ n S ι⊑★ w h pos lt = G-subst n S ι⊑★ w h lt
   𝒱-subst ≺ n S (X⊑★ x) w h pos lt = only-⇔ x h pos lt
   𝒱-subst ≻ n S (X⊑★ x) w h pos lt = only-⇔ x h pos lt
-  𝒱-subst ≺ n S (∀⊑ a z p) w h pos lt = allOnly-subst ≺ n S p w h lt
+  𝒱-subst ≺ n S (∀⊑ {B = ★} a z p) w h pos lt =
+    ×-⇔ (injOf-subst (exts-onlyˢ S) a p) (allOnly-subst ≺ n S p w h lt)
+  𝒱-subst ≺ n S (∀⊑ {B = ＇ Y} a z p) w h pos lt = ⊥-elim (∀⊑-var⊥ a z p)
+  𝒱-subst ≺ n S (∀⊑ {B = ‵ ι} a z p) w h pos lt =
+    allOnly-subst ≺ n S p w h lt
+  𝒱-subst ≺ n S (∀⊑ {B = B ⇒ C} a z p) w h pos lt =
+    allOnly-subst ≺ n S p w h lt
+  𝒱-subst ≺ n S (∀⊑ {B = `∀ B} a z p) w h pos lt =
+    allOnly-subst ≺ n S p w h lt
   𝒱-subst ≻ n S (∀⊑ {B = ★} a z p) w h pos lt = G-subst n S (∀⊑ a z p) w h lt
   𝒱-subst ≻ n S (∀⊑ {B = ＇ Y} a z p) w h pos lt = ⊥-elim (∀⊑-var⊥ a z p)
   𝒱-subst ≻ n S (∀⊑ {B = ‵ ι} a z p) w h pos lt =
@@ -849,12 +991,88 @@ mutual
   G-subst (suc k) S ι⊑★ w h lt = ⇔-id
   G-subst (suc k) S (X⊑★ x) w h lt =
     ⇔-trans (only-⇔ x h (s≤s z≤n) lt) (𝒱≻★-G k (σo S x) w)
-  G-subst (suc k) S (∀⊑ a z p) w h lt = allOnly-subst ≻ k S p w h (pred< lt)
+  G-subst (suc k) S (∀⊑ a z p) w h lt =
+    ×-⇔ (injOf-subst (exts-onlyˢ S) a p)
+      (allOnlyG-subst ≻ (suc k) S a p w h (<⇒≤ lt))
   G-subst (suc k) S ∀★⊑★ w h lt = ⇔-id
   G-subst (suc k) S (∀⊑★ ns p) w h lt =
     ⇔-trans (deadStar-subst ≻ (suc k) S ns p w h lt)
       (𝒱≻★-G k (substᵖ S (∀⊑★ ns p)) w)
   G-subst (suc k) S bot⊑★ w h lt = iff (λ ()) (λ ())
+
+  -- the body of a left-only `∀`, which is not a variable: at stage
+  -- k + 1 it reads the leaves at stage k only, so the substitution needs
+  -- to hold up to k + 1 only (notes/logrel-dgg.md, F2)
+  Gᵇ-subst : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′} (S : PSub Ψ Ψ′)
+      {A} → NonVar A → (p : Ψ ⊢ A ⊑ ★) → ∀ {N} w
+      {δ₁ : Interp Δ₁ Δ₁′ (ΔL w) (ΔR w)} {δ₂ : Interp Δ₂ Δ₂′ (ΔL w) (ΔR w)}
+    → SubI S d N w δ₁ δ₂ → n ≤ N
+    → ∀ {Vl Vr} → Gᵇ d n p w δ₁ Vl Vr ⇔ Gᵇ d n (substᵖ S p) w δ₂ Vl Vr
+  Gᵇ-subst d zero S nv p w h lt = ⇔-id
+  Gᵇ-subst d (suc k) S nv (⇒⊑★ p q) w h lt =
+    funStar-subst d k S p q w h lt
+  Gᵇ-subst d (suc k) S nv (∀⊑ a z p) w h lt =
+    ×-⇔ (injOf-subst (exts-onlyˢ S) a p)
+      (allOnlyG-subst d (suc k) S a p w h lt)
+  Gᵇ-subst d (suc k) S nv ∀★⊑★ w h lt = ⇔-id
+  Gᵇ-subst d (suc k) S nv (∀⊑★ nonstar-X p@(X⊑★ (only-dead x))) w h lt =
+    ⇔-trans (allDeadStar-subst d k S p w h lt)
+      (Gᵇ-∀★ᵖ d k (σo S x) w)
+  Gᵇ-subst d (suc k) S nv (∀⊑★ nonstar-ι p) w h lt =
+    allDeadStar-subst d k S p w h lt
+  Gᵇ-subst d (suc k) S nv (∀⊑★ nonstar-⇒ p) w h lt =
+    allDeadStar-subst d k S p w h lt
+  Gᵇ-subst d (suc k) S nv (∀⊑★ nonstar-∀ p) w h lt =
+    allDeadStar-subst d k S p w h lt
+  Gᵇ-subst d (suc k) S nv ★⊑★ w h lt = iff (λ ()) (λ ())
+  Gᵇ-subst d (suc k) S nv ι⊑★ w h lt = iff (λ ()) (λ ())
+  Gᵇ-subst d (suc k) S () (X⊑★ x) w h lt
+  Gᵇ-subst d (suc k) S nv bot⊑★ w h lt = iff (λ ()) (λ ())
+
+  Gᵇ≤-subst : ∀ d {n′ n} (le : n′ ≤′ n) {Ψ : Corr Δ₁ Δ₁′}
+      {Ψ′ : Corr Δ₂ Δ₂′} (S : PSub Ψ Ψ′) {A} → NonVar A
+    → (p : Ψ ⊢ A ⊑ ★) → ∀ {N} w
+      {δ₁ : Interp Δ₁ Δ₁′ (ΔL w) (ΔR w)}
+      {δ₂ : Interp Δ₂ Δ₂′ (ΔL w) (ΔR w)}
+    → SubI S d N w δ₁ δ₂ → n′ ≤ N
+    → ∀ {Vl Vr} → Gᵇ≤ d le p w δ₁ Vl Vr ⇔ Gᵇ≤ d le (substᵖ S p) w δ₂ Vl Vr
+  Gᵇ≤-subst d {n′} ≤′-refl S nv p w h lt = Gᵇ-subst d n′ S nv p w h lt
+  Gᵇ≤-subst d (≤′-step le) S nv p w h lt = Gᵇ≤-subst d le S nv p w h lt
+
+  allOnlyG-subst : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′}
+      (S : PSub Ψ Ψ′) {A} → NonVar A → (p : only Ψ ⊢ A ⊑ ★) → ∀ {N} w
+      {δ₁ : Interp Δ₁ Δ₁′ (ΔL w) (ΔR w)}
+      {δ₂ : Interp Δ₂ Δ₂′ (ΔL w) (ΔR w)}
+    → SubI S d N w δ₁ δ₂ → n ≤ N
+    → ∀ {Vl Vr} → allOnlyG d n p w δ₁ Vl Vr
+        ⇔ allOnlyG d n (substᵖ (exts-onlyˢ S) p) w δ₂ Vl Vr
+  allOnlyG-subst d zero S nv p w h lt = ⇔-id
+  allOnlyG-subst d (suc k) S {A = A} nv p w h lt {Vl = Vl} =
+    iff (λ r e le c oc →
+           ℰᵍ-≡
+             (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
+               (annot-subst (sl≡ (SubI-↑ h e)) A))
+             refl
+             (ℰᵍ-map d _ _
+               (λ le′ w″ e′ V V′ →
+                 to (Gᵇ≤-subst d (≤′-trans le′ le) (exts-onlyˢ S) nv p w″
+                      (SubI-↑ (SubI-extOnly
+                        (sem (onlyLeafS d (∸1-≤′ le) c)) (SubI-↑ h e)) e′)
+                      (≤-trans (≤′⇒≤ (≤′-trans le′ le)) lt)))
+               (r e le c oc)))
+        (λ r e le c oc →
+           ℰᵍ-≡
+             (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
+               (annot-subst (sl≡ (SubI-↑ h e)) A)))
+             refl
+             (ℰᵍ-map d _ _
+               (λ le′ w″ e′ V V′ →
+                 from (Gᵇ≤-subst d (≤′-trans le′ le) (exts-onlyˢ S) nv p w″
+                        (SubI-↑ (SubI-extOnly
+                          (sem (onlyLeafS d (∸1-≤′ le) c)) (SubI-↑ h e))
+                          e′)
+                        (≤-trans (≤′⇒≤ (≤′-trans le′ le)) lt)))
+               (r e le c oc)))
 
   funRel-subst : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′}
       (S : PSub Ψ Ψ′) {A A′ B B′} (p : Ψ ⊢ A ⊑ A′) (q : Ψ ⊢ B ⊑ B′) {N} w
@@ -986,28 +1204,28 @@ mutual
     → ∀ {Vl Vr} → allDead d n p w δ₁ Vl Vr
         ⇔ allDead d n (substᵖ (exts-deadˢ S) p) w δ₂ Vl Vr
   allDead-subst d n S {A = A} p w h lt {Vl = Vl} =
-    iff (λ r e le T T′ →
+    iff (λ r e le c wf T₀ eqT →
            ℰᵍ-≡
-             (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ T ])
+             (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-subst (sl≡ (SubI-↑ h e)) A))
              refl
              (ℰᵍ-map⁺ d _ _
                (λ le′ pos′ w″ e′ V V′ →
                  to (𝒱≤-subst d (≤′-trans le′ le) (exts-deadˢ S) p w″
-                      (SubI-↑ (SubI-extDead {T = T} (SubI-↑ h e)) e′)
+                      (SubI-↑ (SubI-extDead {T = leftTyS c} (SubI-↑ h e)) e′)
                       pos′ (below (≤′-trans le′ le) lt)))
-               (r e le T T′)))
-        (λ r e le T T′ →
+               (r e le c wf T₀ eqT)))
+        (λ r e le c wf T₀ eqT →
            ℰᵍ-≡
-             (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ T ])
+             (sym (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
                (annot-subst (sl≡ (SubI-↑ h e)) A)))
              refl
              (ℰᵍ-map⁺ d _ _
                (λ le′ pos′ w″ e′ V V′ →
                  from (𝒱≤-subst d (≤′-trans le′ le) (exts-deadˢ S) p w″
-                        (SubI-↑ (SubI-extDead {T = T} (SubI-↑ h e)) e′)
+                        (SubI-↑ (SubI-extDead {T = leftTyS c} (SubI-↑ h e)) e′)
                         pos′ (below (≤′-trans le′ le) lt)))
-               (r e le T T′)))
+               (r e le c wf T₀ eqT)))
 
   allDeadStar-subst : ∀ d n {Ψ : Corr Δ₁ Δ₁′} {Ψ′ : Corr Δ₂ Δ₂′}
       (S : PSub Ψ Ψ′) {A} (p : dead Ψ ⊢ A ⊑ ★) {N} w

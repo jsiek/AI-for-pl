@@ -159,6 +159,52 @@ IsInj∀-rename ρ eq (_! ⦃ Gᵍ = ＇ Y₀ ⦄ c₀) ()
 IsInj∀-rename ρ eq (_! ⦃ Gᵍ = ‵ ι₀ ⦄ c₀) ()
 IsInj∀-rename ρ eq (_! ⦃ Gᵍ = ★⇒★ ⦄ c₀) ()
 
+-- the ground a left-only `∀`'s body predicts, under renaming
+injFun-rename : ∀ (σ : Δ ↪ᵗ Δ′) {V : Term Δ}
+  → injFun V → injFun (renameᵗᵐ σ V)
+injFun-rename σ {V = W ⟨ c ⟩} i = IsInj⇒-rename _ _ c i
+injFun-rename σ {V = ` x₀} ()
+injFun-rename σ {V = ƛ M₀} ()
+injFun-rename σ {V = L₀ · M₀} ()
+injFun-rename σ {V = Λ M₀} ()
+injFun-rename σ {V = L₀ ⦂∀ C₀ [ T₀ ]} ()
+injFun-rename σ {V = $ κ₀} ()
+injFun-rename σ {V = L₀ ⊕[ op₀ ] M₀} ()
+injFun-rename σ {V = M₀ ↑ c₀} ()
+injFun-rename σ {V = M₀ ↓ c₀} ()
+injFun-rename σ {V = blame} ()
+
+injAll-rename : ∀ (σ : Δ ↪ᵗ Δ′) {V : Term Δ}
+  → injAll V → injAll (renameᵗᵐ σ V)
+injAll-rename σ {V = W ⟨ c ⟩} i = IsInj∀-rename _ _ c i
+injAll-rename σ {V = ` x₀} ()
+injAll-rename σ {V = ƛ M₀} ()
+injAll-rename σ {V = L₀ · M₀} ()
+injAll-rename σ {V = Λ M₀} ()
+injAll-rename σ {V = L₀ ⦂∀ C₀ [ T₀ ]} ()
+injAll-rename σ {V = $ κ₀} ()
+injAll-rename σ {V = L₀ ⊕[ op₀ ] M₀} ()
+injAll-rename σ {V = M₀ ↑ c₀} ()
+injAll-rename σ {V = M₀ ↓ c₀} ()
+injAll-rename σ {V = blame} ()
+
+injOf-rename : ∀ {Δ₀ Δ₀′} {Φ : Corr Δ₀ Δ₀′} {A B} (p : Φ ⊢ A ⊑ B)
+    (σ : Δ ↪ᵗ Δ′) {V : Term Δ}
+  → injOf p V → injOf p (renameᵗᵐ σ V)
+injOf-rename (⇒⊑★ p q) σ {V} i = injFun-rename σ {V} i
+injOf-rename (∀⊑ Anv z p) σ {V} i = injOf-rename p σ {V} i
+injOf-rename ∀★⊑★ σ {V} i = injAll-rename σ {V} i
+injOf-rename (∀⊑★ ns p) σ {V} i = injAll-rename σ {V} i
+injOf-rename ★⊑★ σ i = i
+injOf-rename ι⊑ι σ i = i
+injOf-rename (X⊑Y x) σ i = i
+injOf-rename (⇒⊑⇒ p q) σ i = i
+injOf-rename (∀⊑∀ p) σ i = i
+injOf-rename ι⊑★ σ i = i
+injOf-rename (X⊑★ x) σ i = i
+injOf-rename bot-elim σ i = i
+injOf-rename bot⊑★ σ i = i
+
 modeOf-map : ∀ {ΘR ΘR′} d (f : TyVar ΘR → TyVar ΘR′) (Ys : List (TyVar ΘR))
   → modeOf d (map f Ys) ≡ modeOf d Ys
 modeOf-map ≺ f Ys = refl
@@ -250,6 +296,23 @@ G→G≤ : ∀ {m n} (le : m ≤′ n) {Φ : Corr Δ Δ′} {A A′}
   → G m p w δ V V′ → G≤ le p w δ V V′
 G→G≤ ≤′-refl p w r = r
 G→G≤ (≤′-step le) p w r = G→G≤ le p w r
+
+Gᵇ≤→Gᵇ : ∀ d {m n} (le : m ≤′ n) {Φ : Corr Δ Δ′} {A}
+    (p : Φ ⊢ A ⊑ ★) w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {V V′}
+  → Gᵇ≤ d le p w δ V V′ → Gᵇ d m p w δ V V′
+Gᵇ≤→Gᵇ d ≤′-refl p w r = r
+Gᵇ≤→Gᵇ d (≤′-step le) p w r = Gᵇ≤→Gᵇ d le p w r
+
+Gᵇ→Gᵇ≤ : ∀ d {m n} (le : m ≤′ n) {Φ : Corr Δ Δ′} {A}
+    (p : Φ ⊢ A ⊑ ★) w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {V V′}
+  → Gᵇ d m p w δ V V′ → Gᵇ≤ d le p w δ V V′
+Gᵇ→Gᵇ≤ d ≤′-refl p w r = r
+Gᵇ→Gᵇ≤ d (≤′-step le) p w r = Gᵇ→Gᵇ≤ d le p w r
+
+Gᵇ≤-cast : ∀ d {m a b} (le₁ : m ≤′ a) (le₂ : m ≤′ b) {Φ : Corr Δ Δ′}
+    {A} (p : Φ ⊢ A ⊑ ★) w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {V V′}
+  → Gᵇ≤ d le₁ p w δ V V′ → Gᵇ≤ d le₂ p w δ V V′
+Gᵇ≤-cast d le₁ le₂ p w r = Gᵇ→Gᵇ≤ d le₂ p w (Gᵇ≤→Gᵇ d le₁ p w r)
 
 starAt-cast : ∀ d {m a b} (le₁ : m ≤′ a) (le₂ : m ≤′ b) w {V V′}
   → starAt d le₁ w V V′ → starAt d le₂ w V V′
@@ -426,7 +489,6 @@ onlyLeafS-≈ d le₁ le₂ (sdesc Xs Ys c) | sem≈ to from =
 -- Monotonicity: the clauses that quantify over futures
 ------------------------------------------------------------------------
 
-
 funRel-mono : ∀ d n {Φ : Corr Δ Δ′} {A A′ B B′}
     (p : Φ ⊢ A ⊑ A′) (q : Φ ⊢ B ⊑ B′) {w w′} (e : w′ ⊒ w)
     {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
@@ -480,41 +542,60 @@ allOnly-mono d n {A = A} p e {δ} {Vl} {Vr} f e′ le c oc =
           (↑ᴵ-resp (extOnlyI-resp ≈ˡ-refl (≈ᴵ-sym (↑ᴵ-trans δ e′ e))) e″))
       (f (⊒-trans e′ e) le c oc))
 
+allOnlyG-mono : ∀ d n {Φ : Corr Δ Δ′} {A} (p : only Φ ⊢ A ⊑ ★)
+    {w w′} (e : w′ ⊒ w) {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+  → allOnlyG d n p w δ Vl Vr
+  → allOnlyG d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
+allOnlyG-mono d zero p e f = f
+allOnlyG-mono d (suc k) {A = A} p e {δ} {Vl} {Vr} f e′ le c oc =
+  ℰᵍ-≡
+    (cong₂ (λ M C → M ⦂∀ C [ leftTyS c ])
+      (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl))
+      (substᵗ-cong A (exts-cong (λ X → sym (δl≡ (↑ᴵ-trans δ e′ e) X)))))
+    (sym (renameᵗᵐ-∘ (ρS e′) (ρS e) Vr))
+    (ℰᵍ-map d _ _
+      (λ le′ w″ e″ V V′ →
+        Gᵇ≤-resp d (≤′-trans le′ le) p w″
+          (↑ᴵ-resp (extOnlyI-resp ≈ˡ-refl (≈ᴵ-sym (↑ᴵ-trans δ e′ e))) e″))
+      (f (⊒-trans e′ e) le c oc))
+
 allDead-mono : ∀ d n {Φ : Corr Δ Δ′} {A} (p : dead Φ ⊢ A ⊑ ★)
     {w w′} (e : w′ ⊒ w) {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → allDead d n p w δ Vl Vr
   → allDead d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
-allDead-mono d n {A = A} p e {δ} {Vl} {Vr} f e′ le T T′ =
+allDead-mono d n {A = A} p e {δ} {Vl} {Vr} f e′ le c wf T₀ eqT =
   ℰᵍ-≡
-    (cong₂ (λ M C → M ⦂∀ C [ T ])
+    (cong₂ (λ M C → M ⦂∀ C [ leftTyS c ])
       (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl))
       (substᵗ-cong A (exts-cong (λ X → sym (δl≡ (↑ᴵ-trans δ e′ e) X)))))
-    (cong (λ M → M ⦂∀ ★ [ T′ ]) (sym (renameᵗᵐ-∘ (ρS e′) (ρS e) Vr)))
+    (cong (λ M → M ⦂∀ ★ [ T₀ ]) (sym (renameᵗᵐ-∘ (ρS e′) (ρS e) Vr)))
     (ℰᵍ-map d _ _
       (λ le′ w″ e″ V V′ →
         𝒱≤-resp d (≤′-trans le′ le) p w″
           (↑ᴵ-resp (extOnlyI-resp ≈ˡ-refl (≈ᴵ-sym (↑ᴵ-trans δ e′ e))) e″))
-      (f (⊒-trans e′ e) le T T′))
+      (f (⊒-trans e′ e) le c wf T₀ eqT))
 
-allStar-mono : ∀ d n {w w′} (e : w′ ⊒ w) {Vl Vr}
-  → allStar d n w Vl Vr
-  → allStar d n w′ (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
-allStar-mono d n e {Vl} {Vr = Wr ⟨ c ⟩} (inj , f) =
+starAll-mono : ∀ d n {w w′} (e : w′ ⊒ w) {Vl Vr}
+  → starAll d n w Vl Vr
+  → starAll d n w′ (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
+starAll-mono d n e {Vl} {Vr = Wr ⟨ c ⟩} (inj , f) =
   IsInj∀-rename _ _ c inj ,
-  λ e′ le T T′ →
-    ℰᵍ-≡ (cong (λ M → M ⦂∀ ★ [ T ]) (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl)))
-      (cong (λ M → M ⦂∀ ★ [ T′ ]) (sym (renameᵗᵐ-∘ (ρS e′) (ρS e) Wr)))
-      (f (⊒-trans e′ e) le T T′)
-allStar-mono d n e {Vr = ` x₀} ()
-allStar-mono d n e {Vr = ƛ M₀} ()
-allStar-mono d n e {Vr = L₀ · M₀} ()
-allStar-mono d n e {Vr = Λ M₀} ()
-allStar-mono d n e {Vr = L₀ ⦂∀ C₀ [ T₀ ]} ()
-allStar-mono d n e {Vr = $ κ₀} ()
-allStar-mono d n e {Vr = L₀ ⊕[ op₀ ] M₀} ()
-allStar-mono d n e {Vr = M₀ ↑ c₀} ()
-allStar-mono d n e {Vr = M₀ ↓ c₀} ()
-allStar-mono d n e {Vr = blame} ()
+  λ e′ le c₀ wf T₀ eqT →
+    ℰᵍ-≡
+      (cong (λ M → M ⦂∀ ★ [ leftTyS c₀ ])
+        (sym (renameᵗᵐ-∘ (ρL e′) (ρL e) Vl)))
+      (cong (λ M → M ⦂∀ ★ [ T₀ ]) (sym (renameᵗᵐ-∘ (ρS e′) (ρS e) Wr)))
+      (f (⊒-trans e′ e) le c₀ wf T₀ eqT)
+starAll-mono d n e {Vr = ` x₀} ()
+starAll-mono d n e {Vr = ƛ M₀} ()
+starAll-mono d n e {Vr = L₀ · M₀} ()
+starAll-mono d n e {Vr = Λ M₀} ()
+starAll-mono d n e {Vr = L₀ ⦂∀ C₀ [ T₀ ]} ()
+starAll-mono d n e {Vr = $ κ₀} ()
+starAll-mono d n e {Vr = L₀ ⊕[ op₀ ] M₀} ()
+starAll-mono d n e {Vr = M₀ ↑ c₀} ()
+starAll-mono d n e {Vr = M₀ ↓ c₀} ()
+starAll-mono d n e {Vr = blame} ()
 
 funStar-mono : ∀ d n {Φ : Corr Δ Δ′} {A B}
     (p : Φ ⊢ A ⊑ ★) (q : Φ ⊢ B ⊑ ★) {w w′} (e : w′ ⊒ w)
@@ -610,37 +691,21 @@ starFun-mono ≻ k e {Vr = M₀ ↑ c₀} ()
 starFun-mono ≻ k e {Vr = M₀ ↓ c₀} ()
 starFun-mono ≻ k e {Vr = blame} ()
 
-starAll-mono : ∀ d k {w w′} (e : w′ ⊒ w) {W Vr}
-  → starAll d k w W Vr
-  → starAll d k w′ (renameᵗᵐ (ρL e) W) (renameᵗᵐ (ρS e) Vr)
-starAll-mono ≺ k e {Vr = Wr ⟨ c ⟩} (inj , r) =
-  IsInj∀-rename _ _ c inj ,
-  allPair-resp ≺ k ★⊑★ _ (closedI-transport (ρL e) (ρR e))
-    (allPair-mono ≺ k ★⊑★ e r)
-starAll-mono ≻ k e {Vr = Wr ⟨ c ⟩} (inj , r) =
-  IsInj∀-rename _ _ c inj ,
-  allPair-resp ≻ k ★⊑★ _ (closedI-transport (ρL e) (ρR e))
-    (allPair-mono ≻ k ★⊑★ e r)
-starAll-mono ≺ k e {Vr = ` x₀} ()
-starAll-mono ≺ k e {Vr = ƛ M₀} ()
-starAll-mono ≺ k e {Vr = L₀ · M₀} ()
-starAll-mono ≺ k e {Vr = Λ M₀} ()
-starAll-mono ≺ k e {Vr = L₀ ⦂∀ C₀ [ T₀ ]} ()
-starAll-mono ≺ k e {Vr = $ κ₀} ()
-starAll-mono ≺ k e {Vr = L₀ ⊕[ op₀ ] M₀} ()
-starAll-mono ≺ k e {Vr = M₀ ↑ c₀} ()
-starAll-mono ≺ k e {Vr = M₀ ↓ c₀} ()
-starAll-mono ≺ k e {Vr = blame} ()
-starAll-mono ≻ k e {Vr = ` x₀} ()
-starAll-mono ≻ k e {Vr = ƛ M₀} ()
-starAll-mono ≻ k e {Vr = L₀ · M₀} ()
-starAll-mono ≻ k e {Vr = Λ M₀} ()
-starAll-mono ≻ k e {Vr = L₀ ⦂∀ C₀ [ T₀ ]} ()
-starAll-mono ≻ k e {Vr = $ κ₀} ()
-starAll-mono ≻ k e {Vr = L₀ ⊕[ op₀ ] M₀} ()
-starAll-mono ≻ k e {Vr = M₀ ↑ c₀} ()
-starAll-mono ≻ k e {Vr = M₀ ↓ c₀} ()
-starAll-mono ≻ k e {Vr = blame} ()
+-- the body of a left-only `∀` into `★`
+Gᵇ-mono : ∀ d n {Φ : Corr Δ Δ′} {A} (p : Φ ⊢ A ⊑ ★)
+    {w w′} (e : w′ ⊒ w) {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+  → Gᵇ d n p w δ Vl Vr
+  → Gᵇ d n p w′ (δ ↑ᴵ e) (renameᵗᵐ (ρL e) Vl) (renameᵗᵐ (ρS e) Vr)
+Gᵇ-mono d zero p e r = r
+Gᵇ-mono d (suc k) (⇒⊑★ p q) e r = funStar-mono d k p q e r
+Gᵇ-mono d (suc k) (∀⊑ Anv z p) e (i , r) =
+  injOf-rename p (ρS e) i , allOnlyG-mono d (suc k) p e r
+Gᵇ-mono d (suc k) ∀★⊑★ e r = starAll-mono d k e r
+Gᵇ-mono d (suc k) (∀⊑★ ns p) e r = allDeadStar-mono d k p e r
+Gᵇ-mono d (suc k) ★⊑★ e ()
+Gᵇ-mono d (suc k) ι⊑★ e ()
+Gᵇ-mono d (suc k) (X⊑★ x) e ()
+Gᵇ-mono d (suc k) bot⊑★ e ()
 
 ------------------------------------------------------------------------
 -- Monotonicity: induction on the stage and the left term
@@ -667,13 +732,18 @@ mutual
   𝒱-mono ≻ n ι⊑★ e g r = G-mono n ι⊑★ e g r
   𝒱-mono ≺ n (X⊑★ {X = X} x) e g r = leafRel-mono ≺ n e (g X) r
   𝒱-mono ≻ n (X⊑★ {X = X} x) e g r = leafRel-mono ≻ n e (g X) r
-  𝒱-mono ≺ n (∀⊑ Anv z p) e g r = allOnly-mono ≺ n p e r
+  𝒱-mono ≺ n (∀⊑ {B = ★} Anv z p) e g (i , r) =
+    injOf-rename p (ρS e) i , allOnly-mono ≺ n p e r
+  𝒱-mono ≺ n (∀⊑ {B = ＇ Y} Anv z p) e g r = allOnly-mono ≺ n p e r
+  𝒱-mono ≺ n (∀⊑ {B = ‵ ι} Anv z p) e g r = allOnly-mono ≺ n p e r
+  𝒱-mono ≺ n (∀⊑ {B = B ⇒ C} Anv z p) e g r = allOnly-mono ≺ n p e r
+  𝒱-mono ≺ n (∀⊑ {B = `∀ B} Anv z p) e g r = allOnly-mono ≺ n p e r
   𝒱-mono ≻ n (∀⊑ {B = ★} Anv z p) e g r = G-mono n (∀⊑ Anv z p) e g r
   𝒱-mono ≻ n (∀⊑ {B = ＇ Y} Anv z p) e g r = allOnly-mono ≻ n p e r
   𝒱-mono ≻ n (∀⊑ {B = ‵ ι} Anv z p) e g r = allOnly-mono ≻ n p e r
   𝒱-mono ≻ n (∀⊑ {B = B ⇒ C} Anv z p) e g r = allOnly-mono ≻ n p e r
   𝒱-mono ≻ n (∀⊑ {B = `∀ B} Anv z p) e g r = allOnly-mono ≻ n p e r
-  𝒱-mono ≺ n ∀★⊑★ e g r = allStar-mono ≺ n e r
+  𝒱-mono ≺ n ∀★⊑★ e g r = starAll-mono ≺ n e r
   𝒱-mono ≻ n ∀★⊑★ e g r = G-mono n ∀★⊑★ e g r
   𝒱-mono ≺ n (∀⊑★ ns p) e g r = allDeadStar-mono ≺ n p e r
   𝒱-mono ≻ n (∀⊑★ ns p) e g r = G-mono n (∀⊑★ ns p) e g r
@@ -697,7 +767,8 @@ mutual
   G-mono (suc k) (ι⊑★ {ι = ι}) e g r = baseInj-mono ι (ρL e) (ρS e) r
   G-mono (suc k) (X⊑★ {X = X} x) e g r =
     leafRel-mono ≻ (suc k) e (g X) r
-  G-mono (suc k) (∀⊑ {B = ★} Anv z p) e g r = allOnly-mono ≻ k p e r
+  G-mono (suc k) (∀⊑ {B = ★} Anv z p) e g (i , r) =
+    injOf-rename p (ρS e) i , allOnlyG-mono ≻ (suc k) p e r
   G-mono (suc k) (∀⊑ {B = ＇ Y} Anv z p) e {Vl = Vl} {Vr} g r =
     𝒱-mono ≻ k (∀⊑ Anv z p) e {Vl = Vl} {Vr} g r
   G-mono (suc k) (∀⊑ {B = ‵ ι} Anv z p) e {Vl = Vl} {Vr} g r =
@@ -706,7 +777,7 @@ mutual
     𝒱-mono ≻ k (∀⊑ Anv z p) e {Vl = Vl} {Vr} g r
   G-mono (suc k) (∀⊑ {B = `∀ B} Anv z p) e {Vl = Vl} {Vr} g r =
     𝒱-mono ≻ k (∀⊑ Anv z p) e {Vl = Vl} {Vr} g r
-  G-mono (suc k) ∀★⊑★ e g r = allStar-mono ≻ k e r
+  G-mono (suc k) ∀★⊑★ e g r = starAll-mono ≻ k e r
   G-mono (suc k) (∀⊑★ ns p) e g r = allDeadStar-mono ≻ k p e r
   G-mono (suc k) bot-elim e g ()
   G-mono (suc k) bot⊑★ e g ()
@@ -897,36 +968,50 @@ allOnly-down d le p w f e le₁ c oc =
     (f e le₂ c oc)
   where le₂ = ≤′-trans le₁ (≤⇒≤′ le)
 
+allOnlyG-down : ∀ d {n n′} (le : n′ ≤ n) {Φ : Corr Δ Δ′} {A}
+    (p : only Φ ⊢ A ⊑ ★) w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+  → allOnlyG d n p w δ Vl Vr → allOnlyG d n′ p w δ Vl Vr
+allOnlyG-down d z≤n p w f = tt
+allOnlyG-down d (s≤s le) p w f e le₁ c oc =
+  ℰᵍ-map d _ _
+    (λ le′ w″ e′ V V′ r →
+      Gᵇ≤-resp d (≤′-trans le′ le₁) p w″
+        (↑ᴵ-resp (extOnlyI-resp
+          (onlyLeafS-≈ d (∸1-≤′ le₂) (∸1-≤′ le₁) c) ≈ᴵ-refl) e′)
+        (Gᵇ≤-cast d (≤′-trans le′ le₂) (≤′-trans le′ le₁) p w″ r))
+    (f e le₂ c oc)
+  where le₂ = ≤′-trans le₁ (≤⇒≤′ (s≤s le))
+
 allDead-down : ∀ d {n n′} (le : n′ ≤ n) {Φ : Corr Δ Δ′} {A}
     (p : dead Φ ⊢ A ⊑ ★) w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
   → allDead d n p w δ Vl Vr → allDead d n′ p w δ Vl Vr
-allDead-down d le p w f e le₁ T T′ =
+allDead-down d le p w f e le₁ c wf T₀ eqT =
   ℰᵍ-map d _ _
     (λ le′ w″ e′ V V′ →
       𝒱≤-cast d (≤′-trans le′ le₂) (≤′-trans le′ le₁) p w″)
-    (f e le₂ T T′)
+    (f e le₂ c wf T₀ eqT)
   where le₂ = ≤′-trans le₁ (≤⇒≤′ le)
 
-allStar-down : ∀ d {n n′} (le : n′ ≤ n) w {Vl Vr}
-  → allStar d n w Vl Vr → allStar d n′ w Vl Vr
-allStar-down d le w {Vr = Wr ⟨ c ⟩} (inj , f) =
+starAll-down : ∀ d {n n′} (le : n′ ≤ n) w {Vl Vr}
+  → starAll d n w Vl Vr → starAll d n′ w Vl Vr
+starAll-down d le w {Vr = Wr ⟨ c ⟩} (inj , f) =
   inj ,
-  λ e le₁ T T′ →
+  λ e le₁ c₀ wf T₀ eqT →
     ℰᵍ-map d _ _
       (λ le′ w″ e′ V V′ →
         starAt-cast d (≤′-trans le′ (≤′-trans le₁ (≤⇒≤′ le)))
           (≤′-trans le′ le₁) w″)
-      (f e (≤′-trans le₁ (≤⇒≤′ le)) T T′)
-allStar-down d le w {Vr = ` x₀} ()
-allStar-down d le w {Vr = ƛ M₀} ()
-allStar-down d le w {Vr = L₀ · M₀} ()
-allStar-down d le w {Vr = Λ M₀} ()
-allStar-down d le w {Vr = L₀ ⦂∀ C₀ [ T₀ ]} ()
-allStar-down d le w {Vr = $ κ₀} ()
-allStar-down d le w {Vr = L₀ ⊕[ op₀ ] M₀} ()
-allStar-down d le w {Vr = M₀ ↑ c₀} ()
-allStar-down d le w {Vr = M₀ ↓ c₀} ()
-allStar-down d le w {Vr = blame} ()
+      (f e (≤′-trans le₁ (≤⇒≤′ le)) c₀ wf T₀ eqT)
+starAll-down d le w {Vr = ` x₀} ()
+starAll-down d le w {Vr = ƛ M₀} ()
+starAll-down d le w {Vr = L₀ · M₀} ()
+starAll-down d le w {Vr = Λ M₀} ()
+starAll-down d le w {Vr = L₀ ⦂∀ C₀ [ T₀ ]} ()
+starAll-down d le w {Vr = $ κ₀} ()
+starAll-down d le w {Vr = L₀ ⊕[ op₀ ] M₀} ()
+starAll-down d le w {Vr = M₀ ↑ c₀} ()
+starAll-down d le w {Vr = M₀ ↓ c₀} ()
+starAll-down d le w {Vr = blame} ()
 
 funStar-down : ∀ d {n n′} (le : n′ ≤ n) {Φ : Corr Δ Δ′} {A B}
     (p : Φ ⊢ A ⊑ ★) (q : Φ ⊢ B ⊑ ★) w
@@ -988,32 +1073,19 @@ starFun-down ≻ le w {Vr = M₀ ↑ c₀} ()
 starFun-down ≻ le w {Vr = M₀ ↓ c₀} ()
 starFun-down ≻ le w {Vr = blame} ()
 
-starAll-down : ∀ d {k k′} (le : k′ ≤ k) w {W Vr}
-  → starAll d k w W Vr → starAll d k′ w W Vr
-starAll-down ≺ le w {Vr = Wr ⟨ c ⟩} (inj , r) =
-  inj , allPair-down ≺ le ★⊑★ w r
-starAll-down ≻ le w {Vr = Wr ⟨ c ⟩} (inj , r) =
-  inj , allPair-down ≻ le ★⊑★ w r
-starAll-down ≺ le w {Vr = ` x₀} ()
-starAll-down ≺ le w {Vr = ƛ M₀} ()
-starAll-down ≺ le w {Vr = L₀ · M₀} ()
-starAll-down ≺ le w {Vr = Λ M₀} ()
-starAll-down ≺ le w {Vr = L₀ ⦂∀ C₀ [ T₀ ]} ()
-starAll-down ≺ le w {Vr = $ κ₀} ()
-starAll-down ≺ le w {Vr = L₀ ⊕[ op₀ ] M₀} ()
-starAll-down ≺ le w {Vr = M₀ ↑ c₀} ()
-starAll-down ≺ le w {Vr = M₀ ↓ c₀} ()
-starAll-down ≺ le w {Vr = blame} ()
-starAll-down ≻ le w {Vr = ` x₀} ()
-starAll-down ≻ le w {Vr = ƛ M₀} ()
-starAll-down ≻ le w {Vr = L₀ · M₀} ()
-starAll-down ≻ le w {Vr = Λ M₀} ()
-starAll-down ≻ le w {Vr = L₀ ⦂∀ C₀ [ T₀ ]} ()
-starAll-down ≻ le w {Vr = $ κ₀} ()
-starAll-down ≻ le w {Vr = L₀ ⊕[ op₀ ] M₀} ()
-starAll-down ≻ le w {Vr = M₀ ↑ c₀} ()
-starAll-down ≻ le w {Vr = M₀ ↓ c₀} ()
-starAll-down ≻ le w {Vr = blame} ()
+Gᵇ-down : ∀ d {n n′} (le : n′ ≤ n) {Φ : Corr Δ Δ′} {A}
+    (p : Φ ⊢ A ⊑ ★) w {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+  → Gᵇ d n p w δ Vl Vr → Gᵇ d n′ p w δ Vl Vr
+Gᵇ-down d z≤n p w r = tt
+Gᵇ-down d (s≤s le) (⇒⊑★ p q) w r = funStar-down d le p q w r
+Gᵇ-down d (s≤s le) (∀⊑ Anv z p) w (i , r) =
+  i , allOnlyG-down d (s≤s le) p w r
+Gᵇ-down d (s≤s le) ∀★⊑★ w r = starAll-down d le w r
+Gᵇ-down d (s≤s le) (∀⊑★ ns p) w r = allDeadStar-down d le p w r
+Gᵇ-down d (s≤s le) ★⊑★ w ()
+Gᵇ-down d (s≤s le) ι⊑★ w ()
+Gᵇ-down d (s≤s le) (X⊑★ x) w ()
+Gᵇ-down d (s≤s le) bot⊑★ w ()
 
 ------------------------------------------------------------------------
 -- Downward closure: induction on the stage and the left term
@@ -1039,13 +1111,18 @@ mutual
   𝒱-down ≻ le ι⊑★ w g r = G-down le ι⊑★ w g r
   𝒱-down ≺ le (X⊑★ {X = X} x) w g r = leafRel-down ≺ le w (g X) r
   𝒱-down ≻ le (X⊑★ {X = X} x) w g r = leafRel-down ≻ le w (g X) r
-  𝒱-down ≺ le (∀⊑ Anv z p) w g r = allOnly-down ≺ le p w r
+  𝒱-down ≺ le (∀⊑ {B = ★} Anv z p) w g (i , r) =
+    i , allOnly-down ≺ le p w r
+  𝒱-down ≺ le (∀⊑ {B = ＇ Y} Anv z p) w g r = allOnly-down ≺ le p w r
+  𝒱-down ≺ le (∀⊑ {B = ‵ ι} Anv z p) w g r = allOnly-down ≺ le p w r
+  𝒱-down ≺ le (∀⊑ {B = B ⇒ C} Anv z p) w g r = allOnly-down ≺ le p w r
+  𝒱-down ≺ le (∀⊑ {B = `∀ B} Anv z p) w g r = allOnly-down ≺ le p w r
   𝒱-down ≻ le (∀⊑ {B = ★} Anv z p) w g r = G-down le (∀⊑ Anv z p) w g r
   𝒱-down ≻ le (∀⊑ {B = ＇ Y} Anv z p) w g r = allOnly-down ≻ le p w r
   𝒱-down ≻ le (∀⊑ {B = ‵ ι} Anv z p) w g r = allOnly-down ≻ le p w r
   𝒱-down ≻ le (∀⊑ {B = B ⇒ C} Anv z p) w g r = allOnly-down ≻ le p w r
   𝒱-down ≻ le (∀⊑ {B = `∀ B} Anv z p) w g r = allOnly-down ≻ le p w r
-  𝒱-down ≺ le ∀★⊑★ w g r = allStar-down ≺ le w r
+  𝒱-down ≺ le ∀★⊑★ w g r = starAll-down ≺ le w r
   𝒱-down ≻ le ∀★⊑★ w g r = G-down le ∀★⊑★ w g r
   𝒱-down ≺ le (∀⊑★ ns p) w g r = allDeadStar-down ≺ le p w r
   𝒱-down ≻ le (∀⊑★ ns p) w g r = G-down le (∀⊑★ ns p) w g r
@@ -1068,7 +1145,8 @@ mutual
   G-down (s≤s le) ι⊑★ w g r = r
   G-down (s≤s le) (X⊑★ {X = X} x) w g r =
     leafRel-down ≻ (s≤s le) w (g X) r
-  G-down (s≤s le) (∀⊑ {B = ★} Anv z p) w g r = allOnly-down ≻ le p w r
+  G-down (s≤s le) (∀⊑ {B = ★} Anv z p) w g (i , r) =
+    i , allOnlyG-down ≻ (s≤s le) p w r
   G-down (s≤s le) (∀⊑ {B = ＇ Y} Anv z p) w {Vl = Vl} {Vr} g r =
     𝒱-down ≻ le (∀⊑ Anv z p) w {Vl = Vl} {Vr} g r
   G-down (s≤s le) (∀⊑ {B = ‵ ι} Anv z p) w {Vl = Vl} {Vr} g r =
@@ -1077,7 +1155,7 @@ mutual
     𝒱-down ≻ le (∀⊑ Anv z p) w {Vl = Vl} {Vr} g r
   G-down (s≤s le) (∀⊑ {B = `∀ B} Anv z p) w {Vl = Vl} {Vr} g r =
     𝒱-down ≻ le (∀⊑ Anv z p) w {Vl = Vl} {Vr} g r
-  G-down (s≤s le) ∀★⊑★ w g r = allStar-down ≻ le w r
+  G-down (s≤s le) ∀★⊑★ w g r = starAll-down ≻ le w r
   G-down (s≤s le) (∀⊑★ ns p) w g r = allDeadStar-down ≻ le p w r
   G-down (s≤s le) bot-elim w g ()
   G-down (s≤s le) bot⊑★ w g ()

@@ -262,7 +262,12 @@ mutual
   𝒱-resp ≻ n ι⊑★ w h r = G-resp n ι⊑★ w h r
   𝒱-resp ≺ n (X⊑★ {X = X} x) w h r = leafRel-resp ≺ n w (leaf≈ h X) r
   𝒱-resp ≻ n (X⊑★ {X = X} x) w h r = leafRel-resp ≻ n w (leaf≈ h X) r
-  𝒱-resp ≺ n (∀⊑ Anv z p) w h r = allOnly-resp ≺ n p w h r
+  𝒱-resp ≺ n (∀⊑ {B = ★} Anv z p) w h (i , r) =
+    i , allOnly-resp ≺ n p w h r
+  𝒱-resp ≺ n (∀⊑ {B = ＇ Y} Anv z p) w h r = allOnly-resp ≺ n p w h r
+  𝒱-resp ≺ n (∀⊑ {B = ‵ ι} Anv z p) w h r = allOnly-resp ≺ n p w h r
+  𝒱-resp ≺ n (∀⊑ {B = B ⇒ C} Anv z p) w h r = allOnly-resp ≺ n p w h r
+  𝒱-resp ≺ n (∀⊑ {B = `∀ B} Anv z p) w h r = allOnly-resp ≺ n p w h r
   𝒱-resp ≻ n (∀⊑ {B = ★} Anv z p) w h r = G-resp n (∀⊑ Anv z p) w h r
   𝒱-resp ≻ n (∀⊑ {B = ＇ Y} Anv z p) w h r = allOnly-resp ≻ n p w h r
   𝒱-resp ≻ n (∀⊑ {B = ‵ ι} Anv z p) w h r = allOnly-resp ≻ n p w h r
@@ -296,7 +301,8 @@ mutual
   G-resp (suc k) ι⊑★ w h r = r
   G-resp (suc k) (X⊑★ {X = X} x) w h r =
     leafRel-resp ≻ (suc k) w (leaf≈ h X) r
-  G-resp (suc k) (∀⊑ {B = ★} Anv z p) w h r = allOnly-resp ≻ k p w h r
+  G-resp (suc k) (∀⊑ {B = ★} Anv z p) w h (i , r) =
+    i , allOnlyG-resp ≻ (suc k) p w h r
   G-resp (suc k) (∀⊑ {B = ＇ Y} Anv z p) w h r =
     𝒱-resp ≻ k (∀⊑ Anv z p) w h r
   G-resp (suc k) (∀⊑ {B = ‵ ι} Anv z p) w h r =
@@ -309,6 +315,43 @@ mutual
   G-resp (suc k) (∀⊑★ ns p) w h r = allDeadStar-resp ≻ k p w h r
   G-resp (suc k) bot-elim w h ()
   G-resp (suc k) bot⊑★ w h ()
+
+  Gᵇ-resp : ∀ d n {Δ Δ′} {Φ : Corr Δ Δ′} {A} (p : Φ ⊢ A ⊑ ★) w
+      {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+    → δ ≈ᴵ δ′ → Gᵇ d n p w δ Vl Vr → Gᵇ d n p w δ′ Vl Vr
+  Gᵇ-resp d zero p w h r = r
+  Gᵇ-resp d (suc k) (⇒⊑★ p q) w h r = funStar-resp d k p q w h r
+  Gᵇ-resp d (suc k) (∀⊑ Anv z p) w h (i , r) =
+    i , allOnlyG-resp d (suc k) p w h r
+  Gᵇ-resp ≺ (suc k) ∀★⊑★ w h r = r
+  Gᵇ-resp ≻ (suc k) ∀★⊑★ w h r = r
+  Gᵇ-resp d (suc k) (∀⊑★ ns p) w h r = allDeadStar-resp d k p w h r
+  Gᵇ-resp d (suc k) ★⊑★ w h ()
+  Gᵇ-resp d (suc k) ι⊑★ w h ()
+  Gᵇ-resp d (suc k) (X⊑★ x) w h ()
+  Gᵇ-resp d (suc k) bot⊑★ w h ()
+
+  Gᵇ≤-resp : ∀ d {m n} (le : m ≤′ n) {Δ Δ′} {Φ : Corr Δ Δ′} {A}
+      (p : Φ ⊢ A ⊑ ★) w {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+    → δ ≈ᴵ δ′ → Gᵇ≤ d le p w δ Vl Vr → Gᵇ≤ d le p w δ′ Vl Vr
+  Gᵇ≤-resp d {m} ≤′-refl p w h r = Gᵇ-resp d m p w h r
+  Gᵇ≤-resp d (≤′-step le) p w h r = Gᵇ≤-resp d le p w h r
+
+  allOnlyG-resp : ∀ d n {Δ Δ′} {Φ : Corr Δ Δ′} {A}
+      (p : only Φ ⊢ A ⊑ ★) w
+      {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+    → δ ≈ᴵ δ′ → allOnlyG d n p w δ Vl Vr → allOnlyG d n p w δ′ Vl Vr
+  allOnlyG-resp d zero p w h r = r
+  allOnlyG-resp d (suc k) {A = A} p w {Vl = Vl} h r e le c oc =
+    ℰᵍ-≡
+      (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
+        (substᵗ-cong A (exts-cong (δl≡ (↑ᴵ-resp h e)))))
+      refl
+      (ℰᵍ-map d _ _
+        (λ le′ w″ e′ V V′ →
+          Gᵇ≤-resp d (≤′-trans le′ le) p w″
+            (↑ᴵ-resp (extOnlyI-resp ≈ˡ-refl (↑ᴵ-resp h e)) e′))
+        (r e le c oc))
 
   funRel-resp : ∀ d n {Δ Δ′} {Φ : Corr Δ Δ′} {A A′ B B′}
       (p : Φ ⊢ A ⊑ A′) (q : Φ ⊢ B ⊑ B′) w
@@ -374,16 +417,16 @@ mutual
       (p : dead Φ ⊢ A ⊑ ★) w
       {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
     → δ ≈ᴵ δ′ → allDead d n p w δ Vl Vr → allDead d n p w δ′ Vl Vr
-  allDead-resp d n {A = A} p w {Vl = Vl} h r e le T T′ =
+  allDead-resp d n {A = A} p w {Vl = Vl} h r e le c wf T₀ eqT =
     ℰᵍ-≡
-      (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ T ])
+      (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
         (substᵗ-cong A (exts-cong (δl≡ (↑ᴵ-resp h e)))))
       refl
       (ℰᵍ-map d _ _
         (λ le′ w″ e′ V V′ →
           𝒱≤-resp d (≤′-trans le′ le) p w″
             (↑ᴵ-resp (extOnlyI-resp ≈ˡ-refl (↑ᴵ-resp h e)) e′))
-        (r e le T T′))
+        (r e le c wf T₀ eqT))
 
   allDeadStar-resp : ∀ d n {Δ Δ′} {Φ : Corr Δ Δ′} {A}
       (p : dead Φ ⊢ A ⊑ ★) w

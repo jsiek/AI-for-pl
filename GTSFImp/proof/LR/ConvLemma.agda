@@ -35,6 +35,11 @@ module proof.LR.ConvLemma where
 --   * Two lemmas, each with a reveal and a conceal half, by induction on
 --     the precision derivation: at derivations into `★` the right is
 --     not converted; at the others it converts as the mode says.
+--   * The left-only clause's cases (`OnlyRev`, `OnlyCon`) take a slack
+--     g: the clause's stage may exceed the bound by g, and its new
+--     variable's leaf is bounded by the stage minus g (`OnlyCl`).  g = 0
+--     is `allOnly`; g = 1 is the guarded clause `allOnlyG`, whose body
+--     at stage k + 1 reads its leaves at stage k only.
 
 open import Data.Bool using (Bool; true; false)
 open import Data.Empty using (⊥; ⊥-elim)
@@ -42,9 +47,9 @@ open import Data.Fin using (zero; suc)
 open import Data.Fin.Properties using (_≟_)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc; pred; _≤_; _<_; s≤s; z≤n;
-  _≤′_; ≤′-refl; ≤′-step; _≤?_)
+  _≤′_; ≤′-refl; ≤′-step; _≤?_; _+_; _∸_)
 open import Data.Nat.Properties using (n≤1+n; ≤-refl; ≤⇒≤′; ≤′⇒≤; ≤-trans;
-  ≤-<-trans; <⇒≤)
+  ≤-<-trans; <⇒≤; m∸n≤m; ∸-monoˡ-≤)
 open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Unit using (⊤; tt)
@@ -4351,9 +4356,49 @@ module PairConL (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
 -- `∀⊑`, the reveal: only the left instantiates
 ------------------------------------------------------------------------
 
+-- the leaf bound of a left-only clause whose body is read at stage n′:
+-- n′ ∸ g, where g is 0, or 1 for the guarded clause (`allOnlyG`,
+-- notes/logrel-dgg.md, F2)
+leafLe : ∀ g {n′ n} → n′ ≤′ n → n′ ∸ g ≤′ n
+leafLe zero le = le
+leafLe (suc g) {n′} le = ≤′-trans (≤⇒≤′ (m∸n≤m n′ (suc g))) le
+
+-- the left-only clause with that leaf bound; at g = 0 it is `allOnly`
+OnlyCl : Dir → ℕ → ℕ → ∀ {Φ : Corr Δ Δ′} {A B} → only Φ ⊢ A ⊑ B
+  → (w : World) → Interp Δ Δ′ (ΔL w) (ΔR w)
+  → Term (ΔL w) → Term (storeR w) → Set
+OnlyCl d g n {A = A} p w δ Vl Vr =
+  ∀ {w′} (e : w′ ⊒ w) {n′} (le : n′ ≤′ n) (c : SDesc (ΔL w′) (ΔR w′))
+  → OnlyS c
+  → ℰᵍ d n′ w′
+      (λ le′ w″ e′ → 𝒱≤ d (≤′-trans le′ le) p w″
+        (extOnlyI (leftTyS c) (sem (onlyLeafS d (leafLe g le) c))
+          (δ ↑ᴵ e) ↑ᴵ e′))
+      (renameᵗᵐ (ρL e) Vl ⦂∀ substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A [ leftTyS c ])
+      (renameᵗᵐ (ρS e) Vr)
+
+-- the arithmetic of the slack g: the clause's stage may exceed the bound
+-- by g, and the new variable's leaf is bounded by the stage minus g
+∸-slack : ∀ {s} g {N} → s ≤ g + N → s ∸ g ≤ N
+∸-slack {s} zero le = le
+∸-slack {zero} (suc g) le = z≤n
+∸-slack {suc s} (suc g) (s≤s le) = ∸-slack g le
+
+slack-∸ : ∀ s g → s ≤ g + (s ∸ g)
+slack-∸ s zero = ≤-refl
+slack-∸ zero (suc g) = z≤n
+slack-∸ (suc s) (suc g) = s≤s (slack-∸ s g)
+
+∸-mono : ∀ {s n} g → s ≤ n → s ∸ g ≤ n ∸ g
+∸-mono g le = ∸-monoˡ-≤ g le
+
+UpB-∸ : ∀ d {s n} g → UpB d s n → UpB d (s ∸ g) (n ∸ g)
+UpB-∸ ≺ g up = tt
+UpB-∸ ≻ g up = ∸-mono g up
+
 -- the right side's conversion is `RF`: `rconv` in the main lemma,
--- nothing in the `★` lemma
-module OnlyRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
+-- nothing in the `★` lemma; g is the slack (`leafLe`)
+module OnlyRev (d : Dir) (g : ℕ) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     (p : only Φ ⊢ A ⊑ B)
     (RF : ∀ {Δ₀} {Ψ : Corr Δ₀ Δ′} {X′ : TyVar Δ₀} {ΘL ΘR}
        → CMode Ψ X′ ΘL ΘR → (Δ′ ⇒ˢ ΘR) → RConv ΘR)
@@ -4367,7 +4412,7 @@ module OnlyRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
        (σ : Δ′ ⇒ˢ ΘR) → RF (m-left {Φ = Ψ} {X = X′} {ΘL = ΘL}) σ ≡ nothing)
     (rev : ∀ {N′ rk w X′} {m : CMode (only Φ) X′ (ΔL w) (storeR w)}
        {α δs δt σs σt} → ConvI d N′ rk w m α δs δt σs σt
-       → PreM w (RF m σt) δs δt σs σt B → ∀ {k} → k ≤ N′
+       → PreM w (RF m σt) δs δt σs σt B → ∀ {k} → k ≤ g + N′
        → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d k p w δs Vl Vr
        → ℰ d k p w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) A 〗)
            (revM (RF m σt) (substᵗ σs B) Vr))
@@ -4387,11 +4432,11 @@ module OnlyRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
 
   onlyRev : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (storeR w)}
       {α δs δt σs σt} {rk} (h : ConvI d N rk w m α δs δt σs σt)
-    → PreM w (RF m σt) δs δt σs σt B → n ≤ N
-    → ∀ {Vl Vr} → Value Vl → Value Vr → allOnly d n p w δs Vl Vr
+    → PreM w (RF m σt) δs δt σs σt B → n ≤ g + N
+    → ∀ {Vl Vr} → Value Vl → Value Vr → OnlyCl d g n p w δs Vl Vr
     → ∀ Xs Ys c → OnlyS (sdesc Xs Ys c)
     → ℰ d n p w (extOnlyI (repL Xs c)
-          (sem (onlyLeafS d (≤′-refl {n}) (sdesc Xs Ys c))) δt)
+          (sem (onlyLeafS d (leafLe g (≤′-refl {n})) (sdesc Xs Ys c))) δt)
         ((Vl ↑ `∀↑ 〖 suc α , ⇑ᵗ (repM m (δl δt))
                     ↑ substᵗ (extsᵗ (δl δs)) A 〗)
            ⦂∀ substᵗ (extsᵗ (δl δt)) A [ repL Xs c ])
@@ -4416,7 +4461,7 @@ module OnlyRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     Xs₁ = map (renameVar ρL₁) Xs
     Ys₁ = map (renameVar ρR₁) Ys
     c₁ = renameDesc ρL₁ ρR₁ c
-    Lt = sem (onlyLeafS d (≤′-refl {n}) (sdesc Xs Ys c))
+    Lt = sem (onlyLeafS d (leafLe g (≤′-refl {n})) (sdesc Xs Ys c))
     m₁ = CMode-only (CMode-↑ ρL₁ ρS₁ m)
     α₁ = toRenameᵗ ρL₁ α
 
@@ -4431,7 +4476,7 @@ module OnlyRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     R≡ : repM (CMode-↑ ρL₁ ρS₁ m) (δl (δt ↑ᴵ e₁)) ≡ ⇑ᵗ R
     R≡ = trans (repM-↑ ρL₁ ρS₁ m (δl δt)) (shift-ty Tl R)
 
-    inner : ∀ {s} → s ≤′ n → s ≤ N → UpB d s n
+    inner : ∀ {s} → s ≤′ n → s ≤ g + N → UpB d s n
       → ℰ d s p w₁ (extOnlyI Tl Lt δt ↑ᴵ e₁)
           ((⇑ᵗᵐ Vl ⦂∀ (bind Tl ▷ᵇ substᵗ (extsᵗ (δl δs)) A) [ ＇ zero ])
              ↑ cL ↑ 〖 zero , ⇑ᵗ Tl ↑ BtL 〗)
@@ -4444,8 +4489,8 @@ module OnlyRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
         K₂
       where
       c″ = sdesc (zero ∷ Xs₁) Ys₁ c₁
-      Ls = sem (onlyLeafS d le_s c″)
-      gLs = onlyLeafS-good d le_s c″
+      Ls = sem (onlyLeafS d (leafLe g le_s) c″)
+      gLs = onlyLeafS-good d (leafLe g le_s) c″
       δsβ = extOnlyI (＇ zero) Ls (δs ↑ᴵ e₁)
       δtβ = extOnlyI (＇ zero) Ls (δt ↑ᴵ e₁)
       δtg = extOnlyI Tl Lt δt ↑ᴵ e₁
@@ -4468,14 +4513,17 @@ module OnlyRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
         (storeFreshO {d = d} {w = w₁} {L = Ls} gLs {γ = zero})
         (ConvI-↑ e₁ h)
 
-      hβ : ConvI d s rk w₁ (m-left {Φ = only Φ} {X = zero}) zero δtβ δtg
-        (σt ↑ˢ e₁) (σt ↑ˢ e₁)
-      hβ = ConvI-newO e₁ (new-bind Tl) {Ls = Ls} {Lt = Lt} {Tl = Tl} s≤N
+      hβ : ConvI d (s ∸ g) rk w₁ (m-left {Φ = only Φ} {X = zero}) zero δtβ
+        δtg (σt ↑ˢ e₁) (σt ↑ˢ e₁)
+      hβ = ConvI-newO e₁ (new-bind Tl) {Ls = Ls} {Lt = Lt} {Tl = Tl}
+        (∸-slack g s≤N)
         (freshT h) gLs
-        (onlyLeafS-good d (≤′-refl {n}) (sdesc Xs Ys c))
-        (proj₂ (oracle h) (≤′-refl {n}) le (sdesc Xs Ys c))
-        (SealNewO.sealNewO d le_s (≤′-refl {n}) (≤′⇒≤ le_s) e₁ Xs Ys c zero
-          {Φ = Φ} {δt = δt} {σt = σt} up)
+        (onlyLeafS-good d (leafLe g (≤′-refl {n})) (sdesc Xs Ys c))
+        (proj₂ (oracle h) (leafLe g (≤′-refl {n})) (∸-slack g le)
+          (sdesc Xs Ys c))
+        (SealNewO.sealNewO d (leafLe g le_s) (leafLe g (≤′-refl {n}))
+          (∸-mono g (≤′⇒≤ le_s)) e₁ Xs Ys c zero
+          {Φ = Φ} {δt = δt} {σt = σt} (UpB-∸ d g up))
 
       clause : ℰ d s p w₁ δsβ
         (⇑ᵗᵐ Vl ⦂∀ (bind Tl ▷ᵇ substᵗ (extsᵗ (δl δs)) A) [ ＇ zero ]) Vr
@@ -4524,13 +4572,13 @@ module OnlyRev (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
             (PreM-↑ pmβ e₃
               (RF-↑ (ρL e₃) (ρS e₃) (m-left {Φ = only Φ} {X = zero})
                 (σt ↑ˢ e₁)))
-            k≤s ql qr q)
+            (≤-trans k≤s (slack-∸ s g)) ql qr q)
 
 ------------------------------------------------------------------------
 -- `∀⊑`, the conceal
 ------------------------------------------------------------------------
 
-module OnlyCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
+module OnlyCon (d : Dir) (g : ℕ) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     (p : only Φ ⊢ A ⊑ B)
     (RF : ∀ {Δ₀} {Ψ : Corr Δ₀ Δ′} {X′ : TyVar Δ₀} {ΘL ΘR}
        → CMode Ψ X′ ΘL ΘR → (Δ′ ⇒ˢ ΘR) → RConv ΘR)
@@ -4544,14 +4592,14 @@ module OnlyCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
        (σ : Δ′ ⇒ˢ ΘR) → RF (m-left {Φ = Ψ} {X = X′} {ΘL = ΘL}) σ ≡ nothing)
     (rev : ∀ {N′ rk w X′} {m : CMode (only Φ) X′ (ΔL w) (storeR w)}
        {α δs δt σs σt} → ConvI d N′ rk w m α δs δt σs σt
-       → PreM w (RF m σt) δs δt σs σt B → ∀ {k} → k ≤ N′
+       → PreM w (RF m σt) δs δt σs σt B → ∀ {k} → k ≤ g + N′
        → ∀ {Vl Vr} → Value Vl → Value Vr → 𝒱 d k p w δs Vl Vr
        → ℰ d k p w δt (Vl ↑ 〖 α , repM m (δl δt) ↑ substᵗ (δl δs) A 〗)
            (revM (RF m σt) (substᵗ σs B) Vr))
     (con : ∀ {N′ rk w X′} {m : CMode (only Φ) X′ (ΔL w) (storeR w)}
        {α δs δt σs σt} → ConvI d N′ rk w m α δs δt σs σt
        → PreM w (RF m σt) δs δt σs σt B → ∀ {k}
-       → ConM d m (RF m σt) k N′
+       → ConM d m (RF m σt) k (g + N′)
        → ∀ {Wl Wr} → Value Wl → Value Wr → 𝒱 d k p w δt Wl Wr
        → ℰ d k p w δs
            (Wl ↓ makeConceal α (repM m (δl δt)) (substᵗ (δl δs) A))
@@ -4572,11 +4620,11 @@ module OnlyCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
 
   onlyCon : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (storeR w)}
       {α δs δt σs σt} {rk} (h : ConvI d N rk w m α δs δt σs σt)
-    → PreM w (RF m σt) δs δt σs σt B → ConM d m (RF m σt) n N
-    → ∀ {Wl Wr} → Value Wl → Value Wr → allOnly d n p w δt Wl Wr
+    → PreM w (RF m σt) δs δt σs σt B → ConM d m (RF m σt) n (g + N)
+    → ∀ {Wl Wr} → Value Wl → Value Wr → OnlyCl d g n p w δt Wl Wr
     → ∀ Xs Ys c → OnlyS (sdesc Xs Ys c)
     → ℰ d n p w (extOnlyI (repL Xs c)
-          (sem (onlyLeafS d (≤′-refl {n}) (sdesc Xs Ys c))) δs)
+          (sem (onlyLeafS d (leafLe g (≤′-refl {n})) (sdesc Xs Ys c))) δs)
         ((Wl ↓ `∀↓ makeConceal (suc α) (⇑ᵗ (repM m (δl δt)))
                     (substᵗ (extsᵗ (δl δs)) A))
            ⦂∀ substᵗ (extsᵗ (δl δs)) A [ repL Xs c ])
@@ -4586,7 +4634,7 @@ module OnlyCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     antiL₁ d p n≤N stepL (tagsL w) (okBindL w Tl) inner
     where
     rc = RF m σt
-    n≤N : n ≤ N
+    n≤N : n ≤ g + N
     n≤N = ConMb-≤ d (isNone m) rc cbn
     Tl = repL Xs c
     R = repM m (δl δt)
@@ -4608,7 +4656,7 @@ module OnlyCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     Xs₁ = map (renameVar ρL₁) Xs
     Ys₁ = map (renameVar ρR₁) Ys
     c₁ = renameDesc ρL₁ ρR₁ c
-    Lt = sem (onlyLeafS d (≤′-refl {n}) (sdesc Xs Ys c))
+    Lt = sem (onlyLeafS d (leafLe g (≤′-refl {n})) (sdesc Xs Ys c))
     m₁ = CMode-only (CMode-↑ ρL₁ ρS₁ m)
     α₁ = toRenameᵗ ρL₁ α
 
@@ -4622,7 +4670,7 @@ module OnlyCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
     R≡ : repM (CMode-↑ ρL₁ ρS₁ m) (δl (δt ↑ᴵ e₁)) ≡ ⇑ᵗ R
     R≡ = trans (repM-↑ ρL₁ ρS₁ m (δl δt)) (shift-ty Tl R)
 
-    inner : ∀ {s} → s ≤′ n → s ≤ N → UpB d s n
+    inner : ∀ {s} → s ≤′ n → s ≤ g + N → UpB d s n
       → ℰ d s p w₁ (extOnlyI Tl Lt δs ↑ᴵ e₁)
           ((⇑ᵗᵐ Wl ⦂∀ (bind Tl ▷ᵇ replaceTy (suc α) (⇑ᵗ R) BsL) [ ＇ zero ])
              ↓ cL ↑ 〖 zero , ⇑ᵗ Tl ↑ BsL 〗)
@@ -4635,8 +4683,8 @@ module OnlyCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
         K₂
       where
       c″ = sdesc (zero ∷ Xs₁) Ys₁ c₁
-      Ls = sem (onlyLeafS d le_s c″)
-      gLs = onlyLeafS-good d le_s c″
+      Ls = sem (onlyLeafS d (leafLe g le_s) c″)
+      gLs = onlyLeafS-good d (leafLe g le_s) c″
       δsβ = extOnlyI (＇ zero) Ls (δs ↑ᴵ e₁)
       δtβ = extOnlyI (＇ zero) Ls (δt ↑ᴵ e₁)
       δsg = extOnlyI Tl Lt δs ↑ᴵ e₁
@@ -4659,14 +4707,17 @@ module OnlyCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
         (storeFreshO {d = d} {w = w₁} {L = Ls} gLs {γ = zero})
         (ConvI-↑ e₁ h)
 
-      hβ : ConvI d s rk w₁ (m-left {Φ = only Φ} {X = zero}) zero δsβ δsg
-        (σs ↑ˢ e₁) (σs ↑ˢ e₁)
-      hβ = ConvI-newO e₁ (new-bind Tl) {Ls = Ls} {Lt = Lt} {Tl = Tl} s≤N
+      hβ : ConvI d (s ∸ g) rk w₁ (m-left {Φ = only Φ} {X = zero}) zero δsβ
+        δsg (σs ↑ˢ e₁) (σs ↑ˢ e₁)
+      hβ = ConvI-newO e₁ (new-bind Tl) {Ls = Ls} {Lt = Lt} {Tl = Tl}
+        (∸-slack g s≤N)
         (freshS h) gLs
-        (onlyLeafS-good d (≤′-refl {n}) (sdesc Xs Ys c))
-        (proj₂ (oracle h) (≤′-refl {n}) n≤N (sdesc Xs Ys c))
-        (SealNewO.sealNewO d le_s (≤′-refl {n}) (≤′⇒≤ le_s) e₁ Xs Ys c zero
-          {Φ = Φ} {δt = δs} {σt = σs} up)
+        (onlyLeafS-good d (leafLe g (≤′-refl {n})) (sdesc Xs Ys c))
+        (proj₂ (oracle h) (leafLe g (≤′-refl {n})) (∸-slack g n≤N)
+          (sdesc Xs Ys c))
+        (SealNewO.sealNewO d (leafLe g le_s) (leafLe g (≤′-refl {n}))
+          (∸-mono g (≤′⇒≤ le_s)) e₁ Xs Ys c zero
+          {Φ = Φ} {δt = δs} {σt = σs} (UpB-∸ d g up))
 
       clause : ℰ d s p w₁ δtβ
         (⇑ᵗᵐ Wl ⦂∀ (bind Tl ▷ᵇ replaceTy (suc α) (⇑ᵗ R) BsL) [ ＇ zero ]) Wr
@@ -4701,12 +4752,13 @@ module OnlyCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
             cb ql qr q)
         where
         cb : ConM d (CMode-↑ (ρL e₂) (ρS e₂) m₁)
-          (RF (CMode-↑ (ρL e₂) (ρS e₂) m₁) ((σt ↑ˢ e₁) ↑ˢ e₂)) k N
+          (RF (CMode-↑ (ρL e₂) (ρS e₂) m₁) ((σt ↑ˢ e₁) ↑ˢ e₂)) k (g + N)
         cb = subst
-          (λ rc′ → ConMb d (isNone (CMode-↑ (ρL e₂) (ρS e₂) m₁)) rc′ k N)
+          (λ rc′ →
+            ConMb d (isNone (CMode-↑ (ρL e₂) (ρS e₂) m₁)) rc′ k (g + N))
           (sym (trans (RF-↑ (ρL e₂) (ρS e₂) m₁ (σt ↑ˢ e₁))
             (cong (renRConv (ρS e₂)) rf₁)))
-          (subst (λ b → ConMb d b (renRConv (ρS e₂) rc) k N)
+          (subst (λ b → ConMb d b (renRConv (ρS e₂) rc) k (g + N))
             (sym (trans (isNone-↑ (ρL e₂) (ρS e₂) m₁)
               (trans (isNone-only (CMode-↑ ρL₁ ρS₁ m))
                 (isNone-↑ ρL₁ ρS₁ m))))
@@ -4729,7 +4781,7 @@ module OnlyCon (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A B}
             (PreM-↑ pmβ e₃
               (RF-↑ (ρL e₃) (ρS e₃) (m-left {Φ = only Φ} {X = zero})
                 (σs ↑ˢ e₁)))
-            k≤s ql qr q)
+            (≤-trans k≤s (slack-∸ s g)) ql qr q)
 
 ------------------------------------------------------------------------
 -- `∀⊑★`, in the `★` lemma: the left instantiates, the bound variable is
@@ -4761,16 +4813,22 @@ module DeadConv (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A}
   deadRev : ∀ {n} w {X} {m : CMode Φ X (ΔL w) (storeR w)}
       {α δs δt σs σt} {rk} (h : ConvI d N rk w m α δs δt σs σt) → n ≤ N
     → ∀ {Vl Wr} → Value Vl → allDead d n p w δs Vl Wr
-    → ∀ (T : Ty (ΔL w)) (T′ : Ty (storeR w))
-    → ℰ d n p w (extDeadI T δt)
+    → ∀ Xs Ys c → WFDesc c → ∀ {T′} → repR Ys c ≡ ιT w T′
+    → ℰ d n p w (extDeadI (repL Xs c) δt)
         ((Vl ↑ `∀↑ 〖 suc α , ⇑ᵗ (repM m (δl δt))
                     ↑ substᵗ (extsᵗ (δl δs)) A 〗)
-           ⦂∀ substᵗ (extsᵗ (δl δt)) A [ T ])
+           ⦂∀ substᵗ (extsᵗ (δl δt)) A [ repL Xs c ])
         (Wr ⦂∀ ★ [ T′ ])
-  deadRev {n} w {X} {m} {α} {δs} {δt} {σs} {σt} {rk} h le {Vl} {Wr} vl r T T′ =
+  deadRev {n} w {X} {m} {α} {δs} {δt} {σs} {σt} {rk} h le {Vl} {Wr} vl r
+    Xs Ys c wf {T′} hTr =
     antiL₁ d p le stepL (tagsL w) (okBindL w T) inner
     where
+    T = repL Xs c
     open Step w T
+    c″ = sdesc (zero ∷ map (renameVar ρL₁) Xs) (map (renameVar ρR₁) Ys)
+      (renameDesc ρL₁ ρR₁ c)
+    hTr₁ : rightTyS c″ ≡ ιT w₁ T′
+    hTr₁ = trans (repR-rename ρL₁ ρR₁ Ys c) (trans (renameTy-id _) hTr)
     R = repM m (δl δt)
     cL = 〖 suc α , ⇑ᵗ R ↑ substᵗ (extsᵗ (δl δs)) A 〗
     BtL = substᵗ (extsᵗ (δl δt)) A
@@ -4816,7 +4874,7 @@ module DeadConv (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A}
           (cong (λ M → M ⦂∀ ★ [ T′ ]) (renameᵗᵐ-id Wr))
           (ℰᵍ-map d s w₁
             (λ le′ w″ e″ V V′ → 𝒱≤-cast d (≤′-trans le′ le_s) le′ p w″)
-            (r e₁ le_s (＇ zero) T′))
+            (r e₁ le_s c″ (WFDesc-rename ρL₁ ρR₁ c wf) T′ hTr₁))
 
       K₁ : ∀ {w₂} (e₂ : w₂ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
         → Value Ql → Value Qr → 𝒱 d k p w₂ (δsβ ↑ᴵ e₂) Ql Qr
@@ -4847,17 +4905,22 @@ module DeadConv (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A}
       {α δs δt σs σt} {rk} (h : ConvI d N rk w m α δs δt σs σt)
     → ConM d m nothing n N
     → ∀ {Wl Wr} → Value Wl → allDead d n p w δt Wl Wr
-    → ∀ (T : Ty (ΔL w)) (T′ : Ty (storeR w))
-    → ℰ d n p w (extDeadI T δs)
+    → ∀ Xs Ys c → WFDesc c → ∀ {T′} → repR Ys c ≡ ιT w T′
+    → ℰ d n p w (extDeadI (repL Xs c) δs)
         ((Wl ↓ `∀↓ makeConceal (suc α) (⇑ᵗ (repM m (δl δt)))
                     (substᵗ (extsᵗ (δl δs)) A))
-           ⦂∀ substᵗ (extsᵗ (δl δs)) A [ T ])
+           ⦂∀ substᵗ (extsᵗ (δl δs)) A [ repL Xs c ])
         (Wr ⦂∀ ★ [ T′ ])
   deadCon {n} w {X} {m} {α} {δs} {δt} {σs} {σt} {rk} h cbn {Wl} {Wr} wl r
-    T T′ =
+    Xs Ys c wf {T′} hTr =
     antiL₁ d p n≤N stepL (tagsL w) (okBindL w T) inner
     where
+    T = repL Xs c
     open Step w T
+    c″ = sdesc (zero ∷ map (renameVar ρL₁) Xs) (map (renameVar ρR₁) Ys)
+      (renameDesc ρL₁ ρR₁ c)
+    hTr₁ : rightTyS c″ ≡ ιT w₁ T′
+    hTr₁ = trans (repR-rename ρL₁ ρR₁ Ys c) (trans (renameTy-id _) hTr)
     n≤N : n ≤ N
     n≤N = ConMb-≤ d (isNone m) nothing cbn
     R = repM m (δl δt)
@@ -4908,7 +4971,7 @@ module DeadConv (d : Dir) (N : ℕ) {Δ Δ′} {Φ : Corr Δ Δ′} {A}
           (cong (λ M → M ⦂∀ ★ [ T′ ]) (renameᵗᵐ-id Wr))
           (ℰᵍ-map d s w₁
             (λ le′ w″ e″ V V′ → 𝒱≤-cast d (≤′-trans le′ le_s) le′ p w″)
-            (r e₁ le_s (＇ zero) T′))
+            (r e₁ le_s c″ (WFDesc-rename ρL₁ ρR₁ c wf) T′ hTr₁))
 
       K₁ : ∀ {w₂} (e₂ : w₂ ⊒ w₁) {k} → k ≤ s → ∀ {Ql Qr}
         → Value Ql → Value Qr → 𝒱 d k p w₂ (δtβ ↑ᴵ e₂) Ql Qr

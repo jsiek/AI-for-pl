@@ -241,10 +241,15 @@ extension; `δ[0 ↦ e]` extends the interpretation.
 * **`∀⊑ p`** (`∀A ⊑ B`): for every `w′ ⊒ w`, type `T` and relation `R`:
   `ℰ⟦ p ⟧ δ↑[0 ↦ (T , R)] w′ (Vl↑ ⦂∀ _ [ T ]) Vr↑`.  In `≻`:
   * `R` ranges over guarded relations `▷ R′`;
-  * when `B = ★`, the extension is strict.
+  * when `B = ★`, the extension is strict.  (Superseded as
+    mechanized: the clause is read at the same stage and the new
+    variable's leaf one stage down; and it says which ground the right
+    is injected at.  Section 7, "F1 and F2".)
 * **`∀★⊑★` and `∀⊑★ p`:** `Vr = Wr ⟨ ∀★ ! ⟩`, and the `∀⊑∀` clause
   (with a `dead` variable for `∀⊑★`) relates `(Vl , Wr)`.  In `≻`,
-  under `▷`.
+  under `▷`.  As mechanized (Section 7, "`？` at ground `∀★`"), both
+  instantiate at a descriptor's two types, the dead clause too, and
+  `∀★⊑★` is exactly `★`'s `∀★` payload (`starAll`).
 * **`bot-elim`, `bot⊑★`:** empty, because no closed value has type
   `∀X.X`.
 
@@ -297,7 +302,8 @@ related pair at stage `n`.
 * `★⊑★`: every ground reads stage `n − 1`; constants have no content;
 * `ι⊑★`, `⇒⊑★`, `∀★⊑★`, `∀⊑★`: guarded by Section 6.5;
 * `X⊑★`: the leaf is guarded by validity, or quantified guarded;
-* `∀⊑` into `★`: strict extension, by Section 6.5;
+* `∀⊑` into `★`: the new variable's leaf is read one stage down
+  (Section 7, "F1 and F2");
 * `bot⊑★`: empty.
 
 **In `≺`** nothing extra is needed.  Left-only operations are counted
@@ -482,6 +488,11 @@ only strengthens the clauses.
 | `proof/LR/SubstLemma.agda` | the renaming and substitution lemmas for `𝒱`; the instances `𝒱-tyapp` (`•⊑•`) and `𝒱-tyappO` (`•⊑`) |
 | `proof/LR/CastLemma.agda` | the cast lemma's statement; case 6 from its induction hypothesis and the obligations `Case6Ob`; the `id` cases |
 | `proof/LR/Case6.agda` | the obligations `Case6Ob`, including the right-only reveal of α′ (`revealK`): case 6 from its induction hypothesis alone (`case6R`) |
+| `proof/LR/CastCases.agda` | the cases without world change or induction hypothesis: source `∀X.X`, left `bot-intro`, the row of a left `id`; the one-sided rule's statement (`CastLemmaR`) and its `id` row |
+| `proof/LR/CastInduction.agda` | the induction on the casts' sizes: `CastLemma` from the open cases, stated as the fields of `Rows` |
+| `proof/LR/GroundAgree.agda` | ground agreement: casts keep a type's shape, precision relates shapes (`groundAgree`); grounds, the right's predicted ground (`injOf-fun`, `injOf-all`), `B ⊑ ★→★` |
+| `proof/LR/CastCases4.agda` | the rows `!` against `!` (`case!!`, but for `RowIdR`) and `inst` against `(inst)!` at `★⇒★` into `⇒⊑★` (`caseInst!⇒`) |
+| `proof/LR/HardRowsProbe.agda` | probes of the hard rows: `inst` against `(inst)!` (A), F2 (B, `goalB`), F1 (C, `noHypC`, `noHypG`, `goalC`, `goalG`) |
 
 **Renaming terms: how it is done.**
 * Mode environments are vectors, `Env∼ Δ = Vec Var∼ Δ`, read with
@@ -1446,8 +1457,674 @@ the terms of the descriptors.
     term by `rcRenR`, the annotation `A₀` by `open0`.
 * **Other cases proved:** `id` against `id` at `★` and at base types,
   and at variables from `VarI` at `⊒-refl` (`↑ᴵ-refl`, `cast-id`).
-  Not stated yet: the one-sided rule
-  `⊑⟨⟩` (right cast only).
+  The rest of the table is below.
+
+**The cast lemma: the case table** (`proof/LR/CastCases.agda`,
+`proof/LR/CastInduction.agda`).
+
+* **The statement is indexed by type precision only, and that is
+  right.** There is no precision relation between casts: the rule
+  `⟨⟩⊑⟨⟩` of `LR.CastPrecision` takes any two eager casts at related
+  types, and elaboration produces exactly that (it compares casts only
+  through their types).  A relation `c ⊑ c′` would make the lemma
+  weaker than the rule it must make sound.  So `CastLemma` quantifies
+  over every pair of eager casts with `p : C ⊑ C′` and `r : A ⊑ A′`,
+  unchanged.
+* **The induction is assembled** (`castLemma : Rows → CastLemma`):
+  well-founded recursion on `castSize c + castSize c′` (`below`), a
+  dispatch on the left head (`step`), and on the right head and the
+  shapes for a left `∀ᶜ` (`step∀`; for a left `↦`, `step↦`).  The
+  open cases are the fields of `Rows`; each gets the hypothesis below
+  its casts' sizes (`Below`).  `Open↦`, `Open∀` and `Open!?` list the right
+  heads still open against a left `↦`, a left `∀ᶜ`, and a left `!` or
+  `？` (`step!`, `step？`).
+  Case 6 is used there, its hypothesis at `c₁` against
+  `c₁′ [★/0]ᶜ` (`eager-close`, `castSize-case6`).
+* **Facts that prune the table.**
+  * `★` on the left is below `★` only; a left `∀` is below a right
+    non-`∀` only by `∀⊑` (X left-only), or below `★`.
+  * A source `∀X.X` on either side makes the hypothesis empty
+    (`caseBotL`, `caseBotR`): at `bot-elim` and `bot⊑★` by `𝒱`, at
+    `∀X.X ⊑ ∀Y.Y` because the right value is typed and no value has
+    type `∀X.X` (`no-bot-value`).  Example: left `∀ᶜ (id X)`, right
+    `bot-elim`, at `∀X.X ⊑ ∀Y.Y` to `∀X.X ⊑ ∀★`.
+  * A left-only variable does not occur below a right variable
+    (`onlyNotIn`).
+
+Rows are the left cast's head; columns the right's.  "done" is proved;
+"open" is a field of `Rows` (or, for `⊑⟨⟩`, not yet stated per case).
+
+| left | right | precision shape | status, what it needs |
+|---|---|---|---|
+| `id ★` | `id ★` | `★⊑★` | done |
+| `id ι` | `id ι`, `id ★`, `ι!`, `？ι` | `ι⊑ι`/`ι⊑★` | done (`rowId`) |
+| `id X` | `id Y`, `id ★` | `X⊑Y`, `X⊑★` | done, from `VarI` |
+| `↦` | `↦` | `⇒⊑⇒` to `⇒⊑⇒` | done (`case↦↦`, `proof/LR/CastCases2.agda`): both wrappers are values; applied, both take `β-⇒`, then the hypothesis at the domains (at `flipHyp`), `app-core`, and the hypothesis at the codomains, in the application's future (`CastHyp-↑`) |
+| `↦` | `id ★` | `⇒⊑★` to `⇒⊑★` | open, medium: the domain's hypothesis is at `c` against `id ★`, but the right applies its function to the argument itself, so the right's `β-id` must be dropped (below) |
+| `↦` | `(c₁′ ↦ c₂′) !` | `⇒⊑⇒` to `⇒⊑★` | open, medium: the right's `ground` step, then as above |
+| `↦` | `？ (c₁′ ↦ c₂′)` | `⇒⊑★` to `⇒⊑⇒` | open, medium: the right's `expand` and `tag-untag` |
+| `∀ᶜ` | `inst` | `∀⊑∀` to `∀⊑` | done (case 6, `case6R`) |
+| `∀ᶜ` | `inst` | `∀⊑∀` to `∀⊑∀` | open (`∀inst∀`), hard: case 6 with the target paired |
+| `∀ᶜ` | `inst` | `∀⊑∀` to `bot-elim` | done (`caseAllVar`): a cast into a variable is `id`, or a projection from `★` at mode `★∼X` (`castVar`); at `X∼X` it is `id X`, so the source is `∀X.X` (empty) |
+| `∀ᶜ` | `inst` | `∀⊑` (X left-only) | open (`∀instOnly`), hard: left-only clause and the right's reveal of its own binder |
+| `∀ᶜ` | `∀ᶜ` | `∀⊑∀` to `∀⊑∀` | open, medium-hard: the pair clause, `β-∀` on both sides, the hypothesis at `c₁`, `c₁′` read through the extended interpretation (cast substitution composes, `VarI-ext` for a paired variable with the identity-cast lemma), as in case 6 without the world change |
+| `∀ᶜ` | `∀ᶜ` | `∀⊑` to `∀⊑` | open, medium-hard: the left-only clause, the hypothesis at `c₁` against the whole right cast |
+| `∀ᶜ` | `∀ᶜ` | `∀⊑∀` to `∀⊑` (or back) | open: needs a timing lemma or an impossibility proof |
+| `∀ᶜ` | `↦`, `id ★`, `!`, `？` | `∀⊑` or into `★` | open, medium-hard: a left-only or dead clause, the hypothesis at `c₁` against the right cast; `inst` under the right's `!` is case 6 then the injection |
+| `∀ᶜ` | `gen` | `∀⊑` to `∀⊑∀` | open, hard: case 7, Gap D2 (no descriptor peels a right tag); may need a source and a target interpretation |
+| `∀ᶜ` | `bot-elim` | — | done: right source `∀Y.Y` (`caseBotR`) |
+| `∀ᶜ` | `bot-intro` | target `∀X.X ⊑ ∀Y.Y` | done (`caseAllBotIntro`): `caseAllVar`, or X left-only, where no variable occurs below `∀Y.Y` (`belowBot`) |
+| `∀ᶜ` | `id ι`, `id Y` | `∀⊑` | impossible: X would occur below `ι` or `Y` (`onlyNotIn`) |
+| `!` | `id ★` | `C ⊑ ★` to `★⊑★` | done (`case!★`, `proof/LR/CastCases3.agda`): at a ground variable `VarI.toO`; at a closed ground, the left's `ground` step, the hypothesis at `c` against `id ★` at `G ⊑ ★`, and the injection (`injι`, `inj⇒`, `inj∀`); if `c` is `idᵍ G` the left is already an injection; if `c` is not `idᵍ G` but its source equals `G` after δl, `CastHyp.starFree` refutes it (below) |
+| `!` | `!` | `C ⊑ C′` to `★⊑★` | done (`case!!`, `proof/LR/CastCases4.agda`) but for `RowIdR`: left not the identity at `★⇒★` or `∀★`, right `(idᵍ G)!` (below, "Ground agreement") |
+| `？` | `id ★` | `★⊑★` to `B ⊑ ★` | done (`case？★`): at a ground variable `VarI.fromO`; at `ι`, `★⇒★` and `∀★`, the left's `expand` step, the projection (a mismatched tag blames; `projι`, `proj⇒`, `proj∀`), then the hypothesis at `c` against `id ★` in the projection's future; the collapse is refuted by `starFree` |
+| `？` | `？` | `★⊑★` to `B ⊑ B′` | open, medium: both project; a right blame only after a left blame |
+| `inst` | `inst` | `∀⊑∀` | open, hard: both allocate `★` at the cast; pair the new variables |
+| `inst` | not `inst` | `∀⊑∀` | impossible by the timing lemma (eager casts), which is not mechanized |
+| `inst` | `(inst c′)!` at `★⇒★` | into `⇒⊑★` | done (`caseInst!⇒`): the right's `ground` step, the hypothesis at `inst` against `inst`, the right's injection |
+| `inst` | other `!` | into `★` | open (`rowInst!`): ground `∀★`, or target `∀⊑` (below, "Ground agreement") |
+| `inst` | any but `!` | `∀⊑` or into `★` | open (`rowInst`), hard: case 4, the left's reveal (main conversion lemma, mode left), the hypothesis at `c₀ [★/0]ᶜ` against the right cast |
+| `gen` | `gen` | to `∀⊑∀` | open, hard: case 1 at the shared type application |
+| `gen` | `c′ !` at `∀★` | to `∀⊑★` | open, hard: case 5, the `∀⊑★` clause |
+| `gen` | other | to `∀⊑` | open, hard: case 5, the tag `(nothing , …)` and `lamOnly` |
+| `bot-elim` | any | — | done: source `∀X.X` |
+| `bot-intro` | any | — | done: the left blames |
+| any | `bot-elim`, `∀ᶜ (id Y)` | — | empty (`caseBotR`); used for a right `bot-elim` in the `∀ᶜ` row, available to the open rows |
+
+* **Statement change for the `↦` rows** (made: `CastHyp.varF`,
+  `flipHyp`; `Case6`'s `hyp₂` gives it by `varF₂`).  The
+  hypothesis at a function's domain casts is at the flipped
+  environments: `subst∼ s (c ↦ d) = subst∼ (flip-SubstEnv∼ s) c ↦ …`.
+  Its `CastHyp` needs `VarI` there, and `VarI` at the original
+  environments does not give it.  Example: ν = ν′ = `[★∼X]`,
+  `c = (X !) ↦ id ★ : ★ ⇒ ★ ∼ X ⇒ ★` (the domain `X !` is at
+  `flipᵐ ν`, where X has mode `X∼★`), the same on the right, at
+  `★⇒★ ⊑ ★⇒★` to `X⇒★ ⊑ Y⇒★`.  The domain's world cast is
+  `to-★ (flip-SubstEnv∼ sL) X = sym∼ (from-★ sL X)`, so the hypothesis
+  needs `VarI.toP` for `sym∼ (from-★ sL X)` against
+  `sym∼ (from-★ sR Y)`.  `VarI` gives only `fromP`, for
+  `from-★ sL X`, the opposite direction.  Fix: `CastHyp` also carries
+  `VarI` at `flip-SubstEnv∼ sL`, `flip-SubstEnv∼ sR` (the fundamental
+  lemma's store-variable δ discharges it the same way: its world casts
+  are `X!`, `?X` and `id`), and the flipped `CastHyp` swaps the two,
+  through `sym∼` being involutive up to `≅ᶜ` (`sym-sym`, `agree-FF`).
+  Case 6's `hyp₂` gives the flipped `VarI` by `VarI-ext` at the
+  flipped agreements (`agree-flip`); the new variable's flipped world
+  cast is `sym∼ (refl∼ T) ≅ᶜ refl∼ T` (`sym-refl`).
+* **A right `id ★` against a left `↦`: the right's step must be
+  dropped.**  The domain's hypothesis at `c` against `id ★` relates
+  `Wl ⟨ c ⟩` to `Wr ⟨ id ★ ⟩`, while the right's application uses `Wr`
+  itself.  Removing the right's `β-id` is free in `≺` but costs a
+  stage in `≻` (`ℰ ≻ (suc k)` at `Wr ⟨ id ★ ⟩` gives `ℰ ≻ k` at `Wr`),
+  and in `≻` the left's `β-⇒` is not counted, so the stage must come
+  from the `≻` guard of `⇒⊑★` (`G (suc k)` reads `funStar` at k).
+  Needed: that drop lemma, and the guard's shift at the domain's
+  precision `A′ ⊑ ★`.
+* **A cast that is the identity at its ground only after δl
+  (`!★collapse`, `？★collapse`) needs more than `VarI`.**  Example:
+  ν = `[X∼★]`, X left-only, `δl X = ★` (a left-only clause instantiated
+  at a descriptor whose left type is `★`, e.g. core `★⊑★`).  Left
+  `((？X) ↦ id ★) !` from `X ⇒ ★` to `★`, right `id ★`, at
+  `X⇒★ ⊑ ★` (`⇒⊑★ (X⊑★) ★⊑★`) to `★⊑★`.  Read through `sL`, the domain
+  cast is `from-★ (flip sL) X : ★ ∼ ★`, i.e. `id ★`, so the left is
+  `Vl ⟨ (id ★ ↦ id ★) ! ⟩`, an injection: no step.  The goal is then
+  `★`'s `★⇒★` payload, `Vl`'s domain at `★⊑★`, while the hypothesis
+  gives it at X's leaf.  `VarI.fromO` relates `V ⟨ id ★ ⟩` to
+  `V ⟨ id ★ ⟩` from `★⊑★` to X's leaf: an expression with one step on
+  each side, which loses a stage that the real run does not take.  The
+  leaf the clause builds there is `★⊑★` at the same stage, but
+  `CastHyp` does not say so.  Candidate fix (a `VarI` field, in
+  `CastLemma.agda`): at a variable with `δl δ Z ≡ ★`, the leaf and
+  `★⊑★` relate the same values at every stage.
+* **The ★ field of VarI: not dischargeable as stated**
+  (`proof/LR/VarStarProbe.agda`).
+  * Where the example arises: case 4 (left `inst c`) with the induction
+    hypothesis at `c` itself, X of mode `X∼★` mapped to `★` after the
+    reveal; `subst∼` then turns `？X` and `X!` into `id ★`, and the
+    subcast `((？X) ↦ id ★) !` is the collapse.
+  * Counterexample to the field at every variable: case 6's induction
+    hypothesis δ₃ maps its new variable X, of mode `X∼X`, to the goal
+    clause's descriptor.  Take `sdesc [] [] (desc ★⊑★ [] [])` (it is
+    `OnlyS`) and s = 0, so `δl X = ★` and the leaf has bound 1.  At
+    stage 1, `★⊑★` relates `$1 ⟨ℕ!⟩` to itself (`star1`) and the leaf
+    relates nothing (`leaf1`).  `VarI` quantifies over every stage, so
+    case 6 cannot give the field.  With Gap D2's wrappers it fails below
+    the bound too: at `sdesc [] [tag α′ , seal α′] (desc ★⊑★ [] [])`
+    the leaf relates `$1 ⟨ℕ!⟩` to `($1 ⟨ℕ!⟩ ↓ seal α′ ★) ⟨α′!⟩`, which
+    `★⊑★` does not.
+  * A form that is dischargeable: the field only at variables whose
+    mode is not `X∼X`, the only ones at which `？Z` or `Z!` occur, so the
+    only ones the collapse reads.  If X has mode `X∼X` then the field
+    is not asked.  Every such variable is a left store variable (the
+    fundamental lemma, a left `gen`), where `δl Z ≡ ★` is false, or the
+    variable of case 4 kept unsubstituted, whose leaf can be chosen as
+    `★⊑★` itself (the substitution lemma at `X ↦ ★`), where the field
+    holds at every stage.
+  * **Chosen (mechanized): `CastHyp.starFree`.**  Case 4 is planned
+    with its hypothesis at `c [★/0]ᶜ`, so the kept variable does not
+    occur, and every variable whose mode is not `X∼X` is a store
+    variable.  The field is then the smaller statement
+    `ν ‼ Z ≢ X∼X → δl δ Z ≢ ★`, and the collapse rows are impossible
+    rather than proved from leaves: a cast `c : A ∼ G` with `A ≢ G`
+    but `A` and `G` equal after δl injects or projects at a variable
+    read as `★` (`collapse!ι`, `collapse!⇒`, `collapse!∀` and the `？`
+    mirrors, `proof/LR/CastCases3.agda`).  Example: in
+    `((？X) ↦ id ★) !` from `X ⇒ ★`, `？X` is a projection at X, so X's
+    mode is `X∼★` (or `★∼X∼★`) and `starFree` refutes `δl X = ★`.
+  * Discharged: in the fundamental lemma δl is a store-variable
+    embedding (never `★`); a left `gen` maps its variable to `＇α`; a
+    `∀ᶜ` binder (cases 6, 7, `∀ᶜ` against `∀ᶜ`) has mode `X∼X`, so the
+    field is not asked; it moves along extensions (`ren≡★`) and to the
+    flipped environments (`flipVar∼ X∼X = X∼X`).  Case 6's `hyp₂`
+    gives it (`proof/LR/Case6.agda`).
+* **`？` at ground `∀★` against `id ★` needs a relation change.**
+  Example: left `？ (∀ᶜ (id ★))` from `★` to `∀★`, right `id ★`, at
+  `★⊑★` to `∀★ ⊑ ★`.  Left `W ⟨ (∀ᶜ id ★) ! ⟩`, right
+  `Wr ⟨ (∀ᶜ id ★) ! ⟩`, related at `★`: the payload is the pair clause
+  `∀⊑∀ ★⊑★` (`starAll`, instantiations at a descriptor's two types).
+  After `tag-untag` the left is `W`, and the goal `∀★⊑★` is `allStar`:
+  instantiations at every pair `T`, `T′`, e.g. `T = ℕ`, `T′ = 𝔹`,
+  while the pair clause offers only a descriptor's two types, which its
+  core relates by precision.  The injection
+  direction holds (`star∀`: `allStar` gives `allPair`); the
+  projection needs the two to agree.  Candidate fixes (in
+  `LR/Relation.agda`): read `∀★⊑★` by the pair clause at `★⊑★`, as
+  Section 6.5 states, or read `★`'s `∀★` payload by `allStar`.
+  * **Done:** `∀★⊑★` is now read by `starAll`, the pair clause at
+    `★⊑★` with the bodies read by `starAt` (calling `𝒱` at `★⊑★` from
+    the clause would not pass the termination checker, since `★⊑★` is
+    not a subterm of `∀★⊑★`; `starAt` is kept for this).  `allStar` is
+    deleted.  The `？` case at `∀★` is proved (`proj∀`, `case？★`), and
+    `inj∀` is the identity.  The dead-variable clause (`allDead`) also
+    instantiates at a well-formed descriptor's two types, for the same
+    reason: otherwise `∀X.★` with X dead (`∀⊑★` at `★⊑★`) and
+    `∀★⊑★` differ, and the substitution lemma (`∀★ᵖ`, `allDeadStar-★`)
+    and the conversion lemmas at `∀★⊑★`, which go through
+    `allDeadStar-★`, fail.  The conversion lemma's dead case
+    instantiates the hypothesis at the descriptor with the new left
+    store variable prepended (`deadRev`, `deadCon`), as `pairRevL`
+    does.
+  * Checked on paper: the pair clause.  With the payload read by
+    `allStar`, the fundamental lemma cannot give it.  Example: on both
+    sides `Λ ($1 ⟨ℕ!⟩) ⟨ (∀ᶜ (id ★)) ! ⟩`.  `Λ⊑Λ` gives only the pair
+    clause at `∀⊑∀ ★⊑★`, instantiations at a descriptor's two types,
+    while `allStar` asks for instantiations at ℕ on the left and 𝔹 on
+    the right.  No descriptor has those types: a descriptor's left type
+    is a seal variable or the left type of a precision derivation, and
+    no derivation relates ℕ to 𝔹.  The current `∀★⊑★` clause has the
+    same problem at the one-sided rule: left `Λ ($1 ⟨ℕ!⟩)`, right
+    `Λ ($1 ⟨ℕ!⟩) ⟨ (∀ᶜ (id ★)) ! ⟩`, from `∀⊑∀ ★⊑★` to `∀★⊑★`.
+* **The `!` against `!` case needs ground agreement** (now
+  `proof/LR/GroundAgree.agda`; see "F1 and F2" below).  The
+  hypothesis at `c : A ∼ G` against `c′ : C′ ∼ G′` needs `G ⊑ G′`,
+  and the case is given only `A ⊑ C′`.  Example: left
+  `(inst ((？ X) ↦ (X !))) !` from `∀X.X⇒X`, at ground `★⇒★`; for the
+  right ground to differ, the right would be `(∀ᶜ c₀′) !` at `∀★`
+  from `∀Y.Y⇒Y`, and `c₀′ : Y⇒Y ∼ ★` does not exist at mode `X∼X`
+  (Y occurs, since X is paired).  So the grounds agree in the
+  examples checked; the general lemma is of the timing lemma's kind
+  (eager casts at related types reach related grounds) and is not
+  mechanized.
+* **The one-sided rule `⊑⟨⟩`** (`CastLemmaR`, `CastCaseR`, with
+  `CastHypR`: `CastHyp` without the left environment; its base case
+  `VarIR.selfR` is the right's `self` at a paired variable against the
+  left value itself).  The right's `!` and `？` at a variable need no
+  base case: the left would be `X ⊑ Y′` and `X ⊑ ★` at once.
+  | right | status |
+  |---|---|
+  | `id` | done (`rowIdR`) |
+  | `bot-elim` | done (`caseBotElimR`): right source `∀Y.Y` |
+  | `bot-intro` | done (`caseBotIntroR`): `A ⊑ ∀Y.Y` forces `A = ∀X.X` (`belowBot`), below `∀★` only by `bot-elim` |
+  | `↦`, `!`, `？` | open, medium: as the two-sided rows with the left's cast absent; `↦` needs a flipped `VarIR` in `CastHypR` (as `varF`), and a left `∀` below `C ⇒ D` by `∀⊑` |
+  | `∀ᶜ` | open, medium-hard: pair or left-only clause, `β-∀` on the right only |
+  | `inst` | open, hard: case 6 with the left unchanged (the right allocates first) |
+  | `gen` | open, hard: case 7 with the left unchanged |
+
+**Case 7 probe** (`proof/LR/Case7Probe.agda`, a leaf gate of
+`All.agda`).  Left `∀ᶜ`, right `gen`, from `∀⊑` to `∀⊑∀`.
+
+* **The example** (checked: eager casts, precisions, runs by `Eval`).
+  * Casts: left `cl = ∀ᶜ (id X ↦ id X) : ∀X.X→X ∼ ∀X.X→X`; right
+    `cr = gen ((Y!) ↦ (？Y)) : ★→★ ∼ ∀Y.Y→Y`, Y of mode `★∼X`.
+  * Source `p : ∀X.X→X ⊑ ★→★` (`∀⊑`, X left-only); target
+    `r : ∀X.X→X ⊑ ∀Y.Y→Y` (`∀⊑∀`, X paired with Y).
+  * Values `Vl = Λ ƛ x`, `Vr = ƛ y` (typed at `★→★`).
+  * Run at `[ℕ] · 3`.  Both return 3.  The right's `β-gen` allocates
+    α′ := ℕ; after three steps it is
+    `((ƛ y) · (($3 ↓ seal α′ ℕ) ⟨α′!⟩)) ⟨？α′⟩ ↑ unseal α′ ℕ`
+    (`right3`).  So `ƛ y` receives `($3 ↓ seal α′ ℕ) ⟨α′!⟩`
+    (`rightArg`), and the left's function receives `$3 ↓ seal β ℕ` from
+    its own `Λ` (`leftArg`).
+  * The hypothesis must therefore relate the left's argument `$3` to
+    the right's `($3 ↓ seal α′ ℕ) ⟨α′!⟩` at X (left-only).  The goal
+    relates `$3` to `$3` at X (paired), descriptor `ι⊑ι`, no seals.
+* **Verdict.** No counterexample: the statement looks true here.  The
+  left only ever sees its arguments under its own seal β, so it cannot
+  tell the case-7 pair from a pair the hypothesis covers.  But case 7
+  is not provable from the current statement, for two independent
+  reasons, both checked.
+  * **Obstruction 1: the body's induction hypothesis is vacuous**
+    (`no-body-source`).  The body casts are `id X ↦ id X` and
+    `(Y!) ↦ (？Y)`.  `CastCase` at them needs one `Ψ : Corr 1 1` with
+    `Ψ ⊢ X→X ⊑ ★→★` and `Ψ ⊢ X→X ⊑ Y→Y`.  The first needs X left-only,
+    the second X paired.  No Ψ derives the first.
+  * **Obstruction 2: Gap D2** (`noLeaf`, `noExample`).  In `≺`, at every
+    positive stage, no left-only clause leaf (`onlyLeafS` of an `OnlyS`
+    descriptor) relates a constant to a right value injected at a store
+    variable.  A constant is unsealed and untagged; every core into `★`
+    needs a left seal, a left tag, or a right injection at a base type,
+    a function or `∀★` (`noCore`), except `∀⊑`, whose instantiation of a
+    constant is stuck (`stuck≺`).  So the hypothesis's clause says
+    nothing about `($3 , ($3 ↓ seal α′ ℕ) ⟨α′!⟩)`.
+* **Proposed change.**
+  * **Statement: two correspondences.** `Φs ≼ Φt`: `≼gen` makes a
+    variable left-only in the source and paired in the target
+    (`only Φs ≼ pair Φt`); the other constructors keep it.  `ρ≼`
+    embeds the source's right context into the target's.  The lemma
+    takes `p : Φs ⊢ C ⊑ C′s`, `r : Φt ⊢ A ⊑ A′`, the right cast at
+    source `renameᵗ ρ≼ C′s`, and interpretations δs, δt that agree
+    except at the `≼gen` variables.  The current statement is
+    `≼-refl`.  On the example: `≼gen ≼[] : only [] ≼ pair []`, with
+    `bodyP : X→X ⊑ ★→★` and `bodyR : X→X ⊑ Y→Y` (`bodySrc`).
+  * **Both polarities.** A function's domain flips the cast's
+    direction, so the domain's hypothesis has source Φt and target Φs.
+    In the example the domain cast `α′! : α′ ∼ ★` takes the target's
+    pair `($3 , $3 ↓ seal α′ ℕ)` to the source's
+    `($3 , ($3 ↓ seal α′ ℕ) ⟨α′!⟩)`.  So the lemma is stated for both
+    orientations of `≼` (all gen-bound variables flip together), and
+    `flipHyp` swaps them.
+  * **Leaves.** At a `≼gen` variable X with δt's right type `＇ α′`,
+    δs's leaf is δt's leaf under a right tag:
+    `tagΩ α′ (leaf δt X)`, which relates `(V , W ⟨α′!⟩)` when δt's leaf
+    relates `(V , W)`.  On the example it relates
+    `($3 , ($3 ↓ seal α′ ℕ) ⟨α′!⟩)` at every stage below the clause's
+    (`leafS-ex`).  In `≻` it should read δt's leaf one stage down
+    (guarded, as entries with right seals are, `modeOf`): a left `gen`
+    (case 5) projects `?β` without a counted step.
+  * **Base cases** (new `VarI` fields at `≼gen` variables): left
+    `self` (`refl∼ T`, the identity-cast lemma); right `？α′` from
+    `tagΩ` to δt's leaf (one counted right step, `tag-untag`, which
+    pays for the `≻` guard), and `α′!` from δt's leaf to `tagΩ` (a
+    value at once; downward closure in `≻`).
+  * **Relation: Gap D2's wrappers.** The right list of a sealed
+    descriptor holds wrappers, `seal Y` or `tag Y` (`repR` after a
+    tag is `★`, `peelSR` peels a tag by `IsInjVarᴿ`).  `OnlyS` becomes
+    "well formed with right type `★`", which is `CoreStar` when there
+    are no wrappers (Gap D1 is that case).  `onlyLeafS` peels the right
+    wrappers too.  The hypothesis's clause is then read at
+    `sdesc Xs (tag α′ ∷ seal α′ ∷ Ys) c`, whose leaf is δs's.
+* **Proof plan for case 7 with the change** (no replay: both sides act
+  at the type application).
+  1. Left `β-∀` to `(Vl ⦂∀ [Tl]) ⟨c₁ [Tl]ᶜ⟩`; right `β-gen`
+     (`bind Tr`, counted in `≻`) to `(⇑Vr ⟨c₁′⟩) ↑ 〖α′ , Tr ↑ B′〗`.
+     The world gains α′ on the right and no left tag.
+  2. Bind around the right's reveal frame: `revR`, mode `r-pair` at
+     α′, from `leafBelowS (sdesc Xs (α′ ∷ Ys) c)` to the goal's
+     `leafBelowS c`, as in case 6's `innerFrom` (`RConvI-newR`,
+     `SealNewR`).
+  3. Inside, the hypothesis's `allOnly` clause at the wrapper
+     descriptor, in the world after α′.
+  4. Bind with the induction hypothesis at `c₁` against `c₁′`, at
+     `≼gen` (forward polarity).  The right needs no cast substitution:
+     `gen-SubstEnv∼` already puts `？(id α′)` at Y.  The left is case 6's
+     `castL₂`.
+  5. `VarI` at the old variables by `VarI-ext`'s pattern; at X the new
+     base cases above.
+  6. Backward reduction (`ℰ-anti-≺`, `ℰ-anti-≻`).
+* **Not covered:** a right `gen` over a `∀` source (`gen (∀ᶜ …)`),
+  where the source precision may be `∀⊑∀` with X paired with the
+  source's own binder; and a target by `∀⊑`.  Neither was examined.
+* **Status: not yet applied.**  Refinements found while planning it:
+  * Entries need the wrappers too, not only sealed descriptors.  The
+    fundamental lemma's left-only `Λ` (`lamOnly`) gives its variable
+    the entry `seals β Xs Ys c` built from the clause's descriptor
+    `sdesc Xs Ys c`; once `allOnly` quantifies over descriptors with a
+    right tag, that entry must hold the tag.
+  * With right wrappers, `onlyLeafS` should read the core by
+    `leafBelow` (as the pair clause does), not by `leafG`.  Then the
+    source leaf at the example's descriptor
+    `sdesc Xs (tag α′ ∷ seal α′ ∷ Ys) c` is exactly `tagΩ α′` of the
+    target leaf `leafBelowS (sdesc Xs (seal α′ ∷ Ys) c)`, at the same
+    stage, in both directions.  The base case `α′!` (no right step)
+    then needs no downward step, and `？α′` costs the right one counted
+    step (`tag-untag`).
+  * Size of the port: the statement change touches every proved case
+    (`CastCases`, `CastCases2`, `CastCases3`, `Case6`, `CastInduction`,
+    `CastLemma`), since case 7's body casts reach the `↦` case under
+    `≼gen`; the wrappers touch `LR.Desc`, `LR.Relation`, `Monotone`,
+    `InterpProps`, `WorldProps`, `SubstLemma`, and the conversion
+    lemmas and oracle (`ConvLemma`, `ConvMain`, `ConvRight`,
+    `ConvClose`, `ConvLambda`).
+* **Dischargeability of the change (checked on paper).**  No
+  counterexample; the stop rule did not fire.
+  * The fundamental lemma's `⟨⟩⊑⟨⟩` case uses `≼-refl`: `Φs = Φt = Φ`,
+    `δs = δt = δ`, no `≼gen` variable.
+    * The new `VarI` fields (`？α′`, `α′!`) quantify over `≼gen`
+      variables, so they are vacuous there.
+    * "δs and δt agree except at the `≼gen` variables" is reflexivity.
+    * `flipHyp` sends `≼-refl` to `≼-refl`, `CastHyp-↑` keeps it.
+  * The wrappers widen `allOnly` (it quantifies over more
+    descriptors), so the fundamental lemma must establish the clause at
+    `sdesc Xs (tag α′ ∷ seal α′ ∷ Ys) c` too.  Its producer is `lamOnly`
+    (left-only `Λ V` against `Vr`): the right does not move, and β's
+    store entry `seals β Xs (tag α′ ∷ seal α′ ∷ Ys) c` peels the same
+    right wrappers as the clause leaf, then reads the core one stage
+    down (a nonempty right list is `later` in `modeOf`), as `leafBelow`
+    does.  So the reveal of β (mode left) relates entry and clause leaf
+    as now, with one more peeling step on the right (`IsInjVarᴿ` for
+    `tag`).  The other producer, `•⊑`, instantiates at `desc q env envR`
+    (no wrappers), unchanged.
+  * Forcing example of the wrappers (repeated from above): case 7 at
+    `[ℕ]·3`, the right's argument `($3 ↓ seal α′ ℕ) ⟨α′!⟩` against the
+    left's `$3`; no wrapper-free `OnlyS` leaf relates them (`noLeaf`).
+  * Forcing example of the two correspondences: the body casts
+    `id X ↦ id X` and `(Y!) ↦ (？Y)` need X left-only at the source and
+    paired at the target (`no-body-source`).
+  * One adjustment found while checking: if `onlyLeafS` reads its core by
+    `leafBelow` (strictly below its bound), then the guarded clause
+    `allOnlyG` must bound its leaf by n′, not n′ − 1.  With `leafG`, the
+    bound n′ − 1 gives the leaf at every stage ≤ n′ − 1; with
+    `leafBelow`, the bound n′ − 1 loses stage n′ − 1, which a body at
+    stage n′ reads (`funStar` at n′ − 1).  With the bound n′ the two
+    agree at positive stages up to n′ − 1 (`𝒱≻ = G` into `★`); they
+    differ only at stage 0 (`G 0 = ⊤`), where the substitution lemma
+    is not used.
+* **Status of the port: not started** (this session did Part A).  The
+  definitions are unchanged.  Order planned: `LR.Desc` (wrappers in
+  `SDesc` and `Entry` right lists, `repR` after a tag is `★`), then
+  `LR.Relation` (`peelSR`/`peelR` peel tags, `onlyLeafS` by
+  `leafBelow`, `allOnlyG`'s bound), then `WorldProps`, `Monotone`,
+  `InterpProps`, `SubstLemma`, the conversion lemmas and the oracle,
+  `IdentityCast`, then the cast lemma's statement with `Φs ≼ Φt`
+  (`CastLemma`, `CastCases`–`CastCases4`, `Case6`, `CastInduction`), then
+  case 7 itself.  No intermediate point between the first two steps
+  type-checks: changing `SDesc` breaks every file that peels a right
+  seal.
+
+**Part B: stopped before the port.**  The definitions are unchanged.
+The refinement "`onlyLeafS` reads its core by `leafBelow`" (above)
+breaks the proved lemma `lamOnly` in `≻`, so the stop rule fired.
+
+* **The crux, checked in Agda** (a temporary probe, not kept).  Take
+  the function core `q = ℕ→ℕ ⊑ ℕ→ℕ` with `f = λx.x` and `g = λy.7`.
+  * `𝒱 ≻ 1 q` relates f and g, because every right application runs
+    its one counted step.
+  * `𝒱 ≻ 2 q` does not: the argument 3 gives 3 against 7 at stage 1.
+* **Counterexample: `lamOnly` (`proof/LR/ConvLambda.agda`) with
+  wrappers.**
+  * Setting: `≻`, stage 2.  Left store `[β := ℕ→ℕ]`, right store
+    `[α′ := ℕ→ℕ]`.  Descriptor `c = sdesc [] [tag α′ , seal α′]
+    (desc q [] [])`.  It is `OnlyS`, since its right type is `★`.
+    Body precision `X⊑★`, with X left-only.
+  * Body terms: left `Ml = f ↓ seal β (ℕ→ℕ)`, right
+    `Mr = (g ↓ seal α′ (ℕ→ℕ)) ⟨α′!⟩`.
+  * Hypothesis: β's store entry is `seals β [] [tag α′ , seal α′]
+    (desc q [] [])`.  Its right list is not empty, so it is read
+    `later`: at stage 2 its contents are `𝒱 ≻ 1 q`, which holds.
+  * Conclusion: the left's reveal of β, which `≻` does not count,
+    gives f, and the right is a value.  The clause leaf at stage 2
+    reads `𝒱 ≻ 2 q` by `leafBelow`, which fails.
+  * No entry can do better.  An entry reads its core one stage down
+    (Section 6.11), and in `≻` a left-only reveal does not pay for
+    that stage.
+  * Case 5 (a left `gen`, open) fails the same way, with no way out.
+    Its world tag `(nothing , seals α Xs Ys c)` must be syntactic,
+    and its `？α` is not counted in `≻`.
+  * The paper check above says that an entry "reads the core one stage
+    down ..., as `leafBelow` does".  That is wrong, because `leafBelow`
+    reads the core at the same stage.  The check holds only where the
+    reveal is counted: in `≺`, and for `Λ⊑Λ`.
+* **Also found.**  In `≻`, the unguarded `allOnly` would need its
+  `leafBelow` bound at n′ + 1, not n′.  At the bound the leaf is
+  empty, and `•⊑` reads it there: a function argument at the clause's
+  own stage.
+* **Proposed fix (not applied): guard the wrapped leaves in `≻`.**
+  This is what Section 6.6 asks of every relation into `★`.
+  `onlyLeafS` peels the left seals and the right wrappers, then reads
+  the core as follows:
+  * in `≺`, by `leafBelow`, as now;
+  * in `≻` with no right wrapper, by `leafG`, as now;
+  * in `≻` with a right wrapper, one stage down: `⊤` at stage 0, and
+    `leafBelow` at k at stage k + 1.  This is exactly how an entry with
+    the same wrappers reads it (`modeOf`).
+
+  `allOnlyG` keeps its bound n′ − 1.
+  * Paper check for the fundamental lemma.  In `lamOnly` with the entry
+    `seals β Xs Ys c`, the entry and the leaf both read the core at
+    stage k − 1 when used at stage k in `≻`.  Case 5's tag entry is the
+    same.  Nothing changes in `≺`.
+  * Cost 1, case 6 (proved).  Take a goal descriptor with a right tag.
+    In the reveal's conceal direction, the goal's leaf (core at k − 1)
+    must give the hypothesis's pair leaf (core at k).  This is `SealR`
+    in `proof/LR/ConvRight.agda`, from target at k to source at k.  On
+    the crux pair at k = 2 it fails.  In `≻`, however, the conceal only
+    has to give the source at k − 1: the right's argument reaches the
+    unconverted function only after the proxy's counted `β` step.  So
+    `SealR`'s conceal in `≻` should be weakened to stage k − 1, and
+    `revR` re-proved with that slack.
+  * Cost 2, case 7.  In `≻` the source leaf is the tag wrapper around
+    δt's leaf one stage down.  `？α′` takes it to δt's leaf with the
+    right's counted `tag-untag` step; `α′!` uses downward closure.  In
+    `≺` the wrapper is at the same stage, as planned.
+* **Decision needed** before the port: whether to adopt this fix,
+  together with the weakening of `SealR`.
+
+**F1 and F2: the `∀⊑`-into-`★` clause** (done;
+`LR/Relation.agda`, `proof/LR/HardRowsProbe.agda`).
+
+* **F2: in `≻` the guard was paid twice** (probe B).
+  * Casts: left `inst (？X ↦ X!) : ∀X.X→X ∼ ★→★`, right `？(★→★)`.
+    Source `∀X.X→X ⊑ ★` (X left-only), target `★→★ ⊑ ★→★`.  Values:
+    left `Λ ƛ x`, right `(ƛ (0!)) ⟨(★→★)!⟩`.
+  * Old relation, stage 3: `G 3` read the clause at stage 2, and its
+    body `X→X ⊑ ★` is `G` again, read at stage 1 (`funStar 1`): the
+    right's applications only had to run 1 step, which they do, so the
+    hypothesis held.  The goal fails at 3 (`goalB`): the right projects
+    in 1 counted step, leaving stage 2 for `★→★ ⊑ ★→★`, and the
+    arguments `5!`, `5!` give `5!` against `0!` at stage 1.
+  * The same data refuted the fundamental lemma's `•⊑` at `B = ★` in
+    `≻`: the clause at 2 gives `funStar 1`, `funStar 2` is needed.
+  * New clause (`allOnlyG`, `Gᵇ`):
+
+        G (suc k) {A′ = ★} (∀⊑ Anv z p) w δ Vl Vr =
+          injOf p Vr × allOnlyG ≻ (suc k) p w δ Vl Vr
+        allOnlyG d (suc k) p w δ Vl Vr =
+          ∀ e {n′} (le : n′ ≤′ suc k) c → OnlyS c
+          → ℰᵍ d n′ w′
+              (λ le′ w″ e′ → Gᵇ≤ d (≤′-trans le′ le) p w″
+                (extOnlyI (leftTyS c) (sem (onlyLeafS d (∸1-≤′ le) c))
+                  (δ ↑ᴵ e) ↑ᴵ e′))
+              (Vl ⦂∀ … [ leftTyS c ]) Vr
+
+    The body is read at every stage n′ ≤ k + 1; the new variable's leaf
+    is bounded by n′ − 1 ≤ k.  The bound loses nothing: a body is not a
+    variable, so at stage n′ it reads its leaves below n′ only.
+  * Why `Gᵇ`, not `𝒱` or `G`, reads the body: with either, the
+    termination checker rejects the cycle "`𝒱 n` at a `∀⊑` not into
+    `★`, its leaf at n, `G n` at the leaf descriptor's derivation (any
+    derivation), this clause at n, the body at n", in which no argument
+    decreases.  `Gᵇ` is `G` at bodies only (it is `⊥` at `★`, a base
+    type and a variable, which are not bodies), so at a given stage it
+    calls itself only on a smaller body.  At positive stages it is `𝒱`
+    at a body (`Gᵇ⇔𝒱`).  The leaf's upper bound k must also be visible:
+    `allOnlyG` matches the clause stage `suc k`.
+* **The matching guardedness refinement** (done).
+  * Conversion lemmas: in `≻`, at a body into `★`, the lemma at stage
+    k + 1 needs the bound k only (`rev★G`, `con★G`).  The left-only
+    cases take a slack g (`OnlyRev`, `OnlyCon` over `OnlyCl d g`: the
+    stage may exceed the bound by g, the new variable's leaf is bounded
+    by the stage minus g, its conversion hypotheses are at bound
+    s ∸ g).  g = 0 is the old `allOnly`, g = 1 the guarded clause.  The
+    closure oracle uses it: `StarG` closes `G (k + 1)` at bound k.
+  * Substitution lemma: `Gᵇ-subst` at stage n needs the substitution
+    hypotheses up to n only (`n ≤ N`).
+  * Identity casts: `idB`, `idG` on the guarded clause.
+* **F1: the clause said nothing about the right's tag** (probe C).
+  * C1.  Casts: left `∀ᶜ (id ↦ id) : ∀X.X→X ∼ ∀X.X→X`, right
+    `？(★→★)`.  Source `∀X.X→X ⊑ ★`, target `∀X.X→X ⊑ ★→★`.  Values:
+    left `Λ ƛ x`, right `0!` (injected at ℕ).  Old relation, `≺`,
+    stage 1: the clause held because the left's instantiation takes the
+    one counted step, whatever the right is.  The goal fails
+    (`goalC`): the left is a value and the right's projection blames.
+  * C2.  Left `gen (∀ᶜ (id Z ↦ ？X)) : ∀Z.Z→★ ∼ ∀X.∀Z.Z→X`, values
+    `Λ ƛ (0!)` against `0!`; the same failure (`goalG`).
+  * New conjunct `injOf p Vr`, stage-free: at every stage in `≺`, and
+    in `G (suc k)` in `≻` (`G 0 = ⊤` is kept, so that every leaf is
+    `⊤` at stage 0).  The body predicts the ground:
+
+        injOf (⇒⊑★ p q) V = injFun V      -- V = W ⟨ c ⟩, c injects at ★→★
+        injOf (∀⊑ Anv z p) V = injOf p V
+        injOf ∀★⊑★ V = injAll V          -- c injects at ∀★
+        injOf (∀⊑★ ns p) V = injAll V
+        injOf p V = ⊤                     -- not bodies
+
+    Examples: `∀X.X→X ⊑ ★` predicts `★→★`; `∀X.∀Y.X→Y ⊑ ★` predicts
+    `★→★`; `∀X.∀Y.X→X ⊑ ★` (Y dead) predicts `∀★`.
+  * The probe's hypotheses are now refuted (`noHypC`, `noHypG`: `0!` is
+    injected at ℕ).  Probe B's hypothesis (the old `hypB`) was deleted:
+    its refutation needs the left's runs under the new clause, which is
+    `goalB`'s argument again.
+  * Preserved by world monotonicity (`injOf-rename`), equivalent
+    interpretations, the conversion lemmas (the right is not converted
+    at `★`, or takes an identity step), identity casts, renaming
+    (`injOf-ren`) and substitution (`injOf-subst`: a body is not a
+    variable; a dead body over a left-only variable sent to `★` becomes
+    `∀★⊑★`, with the same prediction).
+* **Dischargeability (checked on paper).**  No counterexample was
+  found; the stop rule did not fire.
+  * F1 by `lamOnly` (left-only `Λ V` against `Vr`): the right does not
+    move, and V is a value.  The fundamental lemma's hypothesis for V,
+    at stage 1, gives a pair of values at the body's derivation, in
+    `≺` (the left takes 0 steps) and in `≻` (the right takes 0
+    steps).  At a positive stage the body's clause carries the tag:
+    `funStar`'s `IsInj⇒`, `allDeadStar`'s `IsInj∀`, or the nested
+    `injOf`.  So `injOf p Vr` holds, at every stage of the goal, from
+    the hypothesis at stage 1.
+  * F1 by the cast lemma's producers (a goal target `∀⊑` into `★`):
+    with a right `c′ !` the right value is injected at the ground of
+    `c′`, and `groundAgree` with `injOf-fun`/`injOf-all` gives the
+    conjunct; with a right `id ★` the right value is the hypothesis's,
+    and the source `∀⊑` into `★` has the same shape as the target
+    (`shape-cast`), so its conjunct carries over (the converse of
+    `injOf-sf`, not yet stated).
+  * F2 by `lamOnly` in `≻`: the left steps without a count; the body's
+    store entry `seals β Xs [] c` is read by `G` at the same stage,
+    while the clause's leaf is bounded one stage down.  So `lamOnly`'s
+    conversion takes slack 1: β's conversion hypotheses at bound
+    s − 1 (entry and clause leaf agree there), the body converted at
+    stage s by `rev★G`, the leaf's oracle at s − 1.  All pieces exist;
+    `LamOnly` itself is still stated for `allOnly` (g = 0).
+  * F2 by `•⊑` in `≻` at `B = ★`: the clause at the value's stage n′
+    gives the body at n′ (probe B needs `funStar 2` at 3, and gets it);
+    `Gᵇ-subst` needs the substitution up to n′, which the leaf bounded
+    by n′ − 1 gives in `≻` (`onlyBound`).
+  * F2 by case 4 (left `inst`) and case 5 (left `gen`): the hypothesis's
+    clause is read at the goal's stage, its body at that stage after
+    the left's reveal (slack 1) and the substitution `X ↦ ★` (up to
+    that stage).  On probe B this is exactly the `funRel ≻ 2` at
+    `★→★ ⊑ ★→★` that `goalB` asks for.
+  * Case 7 (two correspondences, wrappers) is not affected: the slack
+    and `Gᵇ` concern the stage and the derivation, not the descriptors.
+
+**Ground agreement** (`proof/LR/GroundAgree.agda`, done).
+
+* **Shapes.**  `shapeOf : Ty Δ → Shape Δ`: a base type, a variable, a
+  function `sf`, `★` `sn`, and `sa` for a `∀` whose ground is `∀★` (its
+  variable does not occur, or `∀X.X`); a `∀` whose variable occurs has
+  its body's shape (`down`).
+* **Casts keep the shape** (`shape-cast`): for `c : μ ⊢ A ∼ B` with
+  A, B not `★`, `shapeOf A ≡ shapeOf B`.  The one nontrivial case is
+  `∀ᶜ`, whose binder has mode `X∼X`: a variable of mode `X∼X` occurs in
+  a cast's target exactly when it occurs in its source (`occ→`,
+  `occ←`).  Example: no cast `Y→Y ∼ ★` exists at Y of mode `X∼X`
+  (Y would occur in `★`), so `∀Y.Y→Y` is never cast to `∀★`.
+* **Precision relates the shapes** (`shape-prec`): for `C ⊑ C′` with
+  `C′ ≢ ★`, `ShapeRel Φ (shapeOf C) (shapeOf C′)` (equal, variables
+  paired by Φ).
+* **Statement:**
+
+      groundAgree : Φ ⊢ C ⊑ C′ → C′ ≢ ★
+        → ν ⊢ C ∼ B → B ≢ ★ → ν′ ⊢ C′ ∼ B′ → B′ ≢ ★
+        → ShapeRel Φ (shapeOf B) (shapeOf B′)
+
+  No eagerness and no mode hypothesis is needed.
+* **Uses.**
+  * `ground⊑`: two grounds with related shapes are related by
+    precision, the hypothesis the `!` against `!` row needs at the
+    grounds.  Example: left `(inst ((？X) ↦ (X!)))!` from `∀X.X→X`,
+    right `(c₀′)!` from `∀Y.Y→Y`: both grounds are `★→★`.
+  * `injOf-fun`, `injOf-all`: a left type `B ⊑ ★` whose shape is
+    related to the right's ground predicts it (F1's producers).
+  * `⊑★⇒★`: at function shape, `B ⊑ ★→★`, the target of the
+    hypothesis in the row `inst` against `(inst)!`.  Example (probe A):
+    left `inst (？X ↦ X!)`, right `(inst (？Y ↦ Y!))!`, target
+    `★→★ ⊑ ★`: the hypothesis at `inst` against `inst` is at
+    `★→★ ⊑ ★→★`.
+* **Right starFree** (`CastHyp.starFreeR`, `proof/LR/CastLemma.agda`).
+  * Forcing example: ν′ = `[X∼★]`, the right `((？Y) ↦ id ★)!` from
+    `Y ⇒ ★` with `σR Y = ★`.  After σR it is `(id ★ ↦ id ★)!`, an
+    injection that takes no `ground` step, while the left's
+    `(c !)` (c not the identity) does: the `!` against `!` row has no
+    proof there.
+  * The field: `starFreeR : ∀ Y → ν′ ‼ Y ≢ X∼X → σR Y ≢ ★`, the mirror
+    of `starFree`.  With it the right's collapse is refuted by the same
+    lemmas (`collapse!ι`, `collapse!⇒`, `collapse!∀` are generic in the
+    substitution).
+  * Dischargeability, checked on paper:
+    * fundamental lemma: σR sends every right type variable to the
+      store variable of its `Λ` (`＇ α′`), never `★`;
+    * `CastHyp-↑` (renaming keeps non-`★`, `ren≡★`) and `flipHyp`
+      (`flipVar∼ X∼X = X∼X`): mechanized;
+    * case 6's `hyp₂`: the right environment is still ν′, since the
+      hypothesis is at `c₁′ [★/0]ᶜ` (the right's bound variable is
+      substituted away, not kept at `★`); σ₂ is σR renamed
+      (`σeq`): mechanized;
+    * a right-only `inst` in the open rows (`∀inst∀`, `∀instOnly`, and
+      `inst` against `inst`) uses its hypothesis at `c′ [★/0]ᶜ` as
+      case 6 does, so no right variable is sent to `★`;
+    * a right `gen` (cases 1, 7): its variable has mode `★∼X` and σR
+      sends it to the store variable `α′` that `β-gen` allocates;
+    * a right `∀ᶜ`: its binder has mode `X∼X`, so the field is not
+      asked even when the type argument is `★`.
+* **Rows wired** (`proof/LR/CastCases4.agda`, `CastInduction`).
+  * `!` against `!` (`case!!`): the grounds are related by `ground⊑`
+    (`gpair`).  Ground variable: `VarI.toP`.  Closed ground: both casts
+    the identity: both sides are injections (`injPairι`, `injPair⇒`,
+    `injPair∀`; the pair clause at `★⊑★` is `★`'s `∀★` payload one
+    stage down, `pair→starAll`); neither the identity: both `ground`
+    steps (`ℰ-step2`), the hypothesis at the grounds, both injections;
+    a collapse is refuted by `starFree` (left) or `starFreeR` (right);
+    only the left the identity: then the right is too (`aboveι`,
+    `above⇒`, `above∀`); only the right the identity at ι: refuted
+    (`belowι`).
+  * **Left open (`RowIdR`): only the right the identity, at `★⇒★` or
+    `∀★`.**  Example: left `((？ℕ) ↦ (ℕ!))!` from `ℕ→ℕ`, right
+    `(id ★ ↦ id ★)!` from `★→★`, at `ℕ→ℕ ⊑ ★→★` to `★⊑★`.  In `≻` at
+    stage k + 1 the goal is `★`'s `★⇒★` payload, `funRel ≻ k` between
+    `Vl ⟨c⟩` and `Vr`.  The hypothesis at c against `id ★ ↦ id ★`
+    relates `Vl ⟨c⟩` to the proxy `Vr ⟨id ★ ↦ id ★⟩`, whose every
+    application takes three counted right steps that `Vr`'s does not
+    (`β-⇒` of the proxy, `β-id` on the argument and on the result), so
+    an argument at stage k needs the hypothesis at k + 3 > k + 1.  Not a
+    counterexample: on the example the goal holds (the left's
+    applications blame on an argument not tagged ℕ and otherwise tag
+    `Vl`'s result, which the hypothesis relates to `Vr`'s, at the
+    argument's own stage).  It needs a
+    lemma dropping the right's identity proxy, the same as the open
+    `↦` against `id ★` row.
+  * `inst` against `(inst)!` (`caseInst!⇒`): at ground `★⇒★` into
+    `⇒⊑★`: the right's `ground` step (counted in `≻`), the hypothesis
+    at `inst c` against `inst c′` at `⇒⊑⇒`, and the right's injection
+    alone (`injR⇒`).  The left `inst` field of `Rows` is split by the
+    right's head (`rowInst` for non-injections, `rowInst!` for
+    injections with `OpenInst!`).
+  * **Left open in `rowInst!`:** the right's ground `∀★`, and target
+    `∀⊑` into `★` (left `inst` whose target is a `∀` over a left-only
+    variable, e.g. `∀X.★→X`).  For the latter the hypothesis is at
+    `⊑★⇒★ r`, and the right-only injection must turn the left-only
+    clause into `★` (`allOnly`, leaf bound n′) into the guarded one
+    (`allOnlyG`, `Gᵇ`, leaf bound n′ − 1) in `≻`: a leaf-bound lowering
+    like case 6's `lowOnly`.
 
 **Next, in order** (items 5–9 of Section 6.9):
 1. conversions;

@@ -180,6 +180,11 @@ import proof.LR.CastLemma
 import proof.LR.IdentityCast
 import proof.LR.CastSubst
 import proof.LR.Case6
+import proof.LR.CastCases
+import proof.LR.CastCases2
+import proof.LR.CastCases3
+import proof.LR.CastInduction
+import proof.LR.GroundAgree
 
 ------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked
@@ -211,6 +216,9 @@ import proof.DGG.ChainRideProbe
 import proof.DGG.TagBoundaryProbe
 import proof.LR.TimingProbe
 import proof.LR.Case6Probe
+import proof.LR.Case7Probe
+import proof.LR.VarStarProbe
+import proof.LR.HardRowsProbe
 
 -- Checked libraries currently without consumers (candidates for M7+)
 import proof.DGG.CenterRename

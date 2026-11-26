@@ -84,7 +84,7 @@ mutual
   𝒱★-agree ≻ n ι⊑★ w h r = G★-agree n ι⊑★ w h r
   𝒱★-agree ≺ n (X⊑★ x) w h r = leafRel-resp ≺ n w (leaf≈ᴸ h x) r
   𝒱★-agree ≻ n (X⊑★ x) w h r = leafRel-resp ≻ n w (leaf≈ᴸ h x) r
-  𝒱★-agree ≺ n (∀⊑ Anv z p) w h r = allOnly★-agree ≺ n p w h r
+  𝒱★-agree ≺ n (∀⊑ Anv z p) w h (i , r) = i , allOnly★-agree ≺ n p w h r
   𝒱★-agree ≻ n (∀⊑ Anv z p) w h r = G★-agree n (∀⊑ Anv z p) w h r
   𝒱★-agree ≺ n ∀★⊑★ w h r = r
   𝒱★-agree ≻ n ∀★⊑★ w h r = G★-agree n ∀★⊑★ w h r
@@ -107,10 +107,48 @@ mutual
   G★-agree (suc k) ι⊑★ w h r = r
   G★-agree (suc k) (⇒⊑★ p q) w h r = funStar-agree ≻ k p q w h r
   G★-agree (suc k) (X⊑★ x) w h r = leafRel-resp ≻ (suc k) w (leaf≈ᴸ h x) r
-  G★-agree (suc k) (∀⊑ Anv z p) w h r = allOnly★-agree ≻ k p w h r
+  G★-agree (suc k) (∀⊑ Anv z p) w h (i , r) =
+    i , allOnlyG★-agree ≻ (suc k) p w h r
   G★-agree (suc k) ∀★⊑★ w h r = r
   G★-agree (suc k) (∀⊑★ ns p) w h r = allDeadStar-agree ≻ k p w h r
   G★-agree (suc k) bot⊑★ w h ()
+
+  Gᵇ★-agree : ∀ d n {Φ : Corr Δ Δ′} {A} (p : Φ ⊢ A ⊑ ★) w
+      {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+    → Φ ⊢ δ ≈ᴸ δ′ → Gᵇ d n p w δ Vl Vr → Gᵇ d n p w δ′ Vl Vr
+  Gᵇ★-agree d zero p w h r = r
+  Gᵇ★-agree d (suc k) (⇒⊑★ p q) w h r = funStar-agree d k p q w h r
+  Gᵇ★-agree d (suc k) (∀⊑ Anv z p) w h (i , r) =
+    i , allOnlyG★-agree d (suc k) p w h r
+  Gᵇ★-agree ≺ (suc k) ∀★⊑★ w h r = r
+  Gᵇ★-agree ≻ (suc k) ∀★⊑★ w h r = r
+  Gᵇ★-agree d (suc k) (∀⊑★ ns p) w h r = allDeadStar-agree d k p w h r
+  Gᵇ★-agree d (suc k) ★⊑★ w h ()
+  Gᵇ★-agree d (suc k) ι⊑★ w h ()
+  Gᵇ★-agree d (suc k) (X⊑★ x) w h ()
+  Gᵇ★-agree d (suc k) bot⊑★ w h ()
+
+  Gᵇ≤★-agree : ∀ d {m n} (le : m ≤′ n) {Φ : Corr Δ Δ′} {A}
+      (p : Φ ⊢ A ⊑ ★) w {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+    → Φ ⊢ δ ≈ᴸ δ′ → Gᵇ≤ d le p w δ Vl Vr → Gᵇ≤ d le p w δ′ Vl Vr
+  Gᵇ≤★-agree d {m} ≤′-refl p w h r = Gᵇ★-agree d m p w h r
+  Gᵇ≤★-agree d (≤′-step le) p w h r = Gᵇ≤★-agree d le p w h r
+
+  allOnlyG★-agree : ∀ d n {Φ : Corr Δ Δ′} {A}
+      (p : only Φ ⊢ A ⊑ ★) w
+      {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
+    → Φ ⊢ δ ≈ᴸ δ′ → allOnlyG d n p w δ Vl Vr → allOnlyG d n p w δ′ Vl Vr
+  allOnlyG★-agree d zero p w h r = r
+  allOnlyG★-agree d (suc k) {A = A} p w {Vl = Vl} h r e le c oc =
+    ℰᵍ-≡
+      (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
+        (substᵗ-cong A (exts-cong (δl≡ᴸ (↑ᴵ-respᴸ h e)))))
+      refl
+      (ℰᵍ-map d _ _
+        (λ le′ w″ e′ V V′ →
+          Gᵇ≤★-agree d (≤′-trans le′ le) p w″
+            (↑ᴵ-respᴸ (extOnlyI-respᴸ ≈ˡ-refl (↑ᴵ-respᴸ h e)) e′))
+        (r e le c oc))
 
   funRel★-agree : ∀ d n {Φ : Corr Δ Δ′} {A B}
       (p : Φ ⊢ A ⊑ ★) (q : Φ ⊢ B ⊑ ★) w
@@ -159,16 +197,16 @@ mutual
       (p : dead Φ ⊢ A ⊑ ★) w
       {δ δ′ : Interp Δ Δ′ (ΔL w) (ΔR w)} {Vl Vr}
     → Φ ⊢ δ ≈ᴸ δ′ → allDead d n p w δ Vl Vr → allDead d n p w δ′ Vl Vr
-  allDead-agree d n {A = A} p w {Vl = Vl} h r e le T T′ =
+  allDead-agree d n {A = A} p w {Vl = Vl} h r e le c wf T₀ eqT =
     ℰᵍ-≡
-      (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ T ])
+      (cong (λ C → renameᵗᵐ (ρL e) Vl ⦂∀ C [ leftTyS c ])
         (substᵗ-cong A (exts-cong (δl≡ᴸ (↑ᴵ-respᴸ h e)))))
       refl
       (ℰᵍ-map d _ _
         (λ le′ w″ e′ V V′ →
           𝒱≤★-agree d (≤′-trans le′ le) p w″
             (↑ᴵ-respᴸ (extDeadI-respᴸ (↑ᴵ-respᴸ h e)) e′))
-        (r e le T T′))
+        (r e le c wf T₀ eqT))
 
   allDeadStar-agree : ∀ d n {Φ : Corr Δ Δ′} {A}
       (p : dead Φ ⊢ A ⊑ ★) w

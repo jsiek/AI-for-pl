@@ -20,7 +20,18 @@ module proof.LR.CastLemma where
 --     holds at its variables (`VarI`, the base cases, which only the
 --     caller can discharge), in every future of w with the casts
 --     renamed into it (`renSE`): a leaf may relate values that exist
---     only in the future.
+--     only in the future.  It also holds at the flipped environments
+--     (`varF`), which a function's domain cast reads.  A variable at
+--     which `Z!` or `？Z` can occur (mode not `X∼X`) is not read as
+--     `★` (`starFree`), so a cast is the identity at its ground after
+--     δl only if it is before (`proof.LR.CastCases3`, `collapse!ι`);
+--     the same on the right with σR (`starFreeR`, for the row `!`
+--     against `!`).
+--   * `flipHyp`: the hypotheses at the flipped environments (for a
+--     function's domain; `sym∼` is involutive up to `≅ᶜ`,
+--     `agree-FF`); `CastHyp-↑`: the hypotheses in a future, the casts
+--     renamed into it (`agree-renSE`).  Both move `VarI` by `VarI-≅`
+--     (equivalent interpretations, environments that agree).
 --   * Moving `VarI` between interpretations: `ℰ-conv`, `CastRel-map`,
 --     `CastRel-resp`; `VarI-ext`, `VarI` under one more left-only
 --     variable (case 6), from `VarI` before it and agreeing
@@ -28,7 +39,10 @@ module proof.LR.CastLemma where
 --   * The statement is `CastLemma`; `CastCase c c′` is its instance at
 --     two given casts, the shape of an induction hypothesis.
 --   * Cases proved: `id` against `id` at `★` and at base types, and at
---     variables (from `VarI` at the reflexive extension).
+--     variables (from `VarI` at the reflexive extension).  The other
+--     cases without world change are in `proof.LR.CastCases`, and the
+--     induction, with the open cases as its hypotheses, in
+--     `proof.LR.CastInduction`.
 --   * `ℰ-down`: the expression relation is downward closed in the stage,
 --     in both directions (for `inner` below, in `≺`).
 --   * Case 6 (left `∀ᶜ`, right `inst`, from `∀⊑∀` to `∀⊑`; module
@@ -87,11 +101,14 @@ open import proof.Reduction.Determinism using (det)
 open import proof.TypeSafety.InstValue using (inst-cast-value)
 open import proof.LR.WorldProps using (renameTy-id; ⊒-refl; ⊒-trans)
 open import proof.LR.InterpProps using (exts-cong; ℰᵍ-≡; ℰᵍ-map; _≈ᴵ_; _≈ˡ_;
-  ≈ˡ-sym; ≈ᴵ-sym; ↑ᴵ-refl; transportLeaf-resp; leafRel-resp; 𝒱-resp;
-  ℰ-resp)
-open import proof.TermRename using (cast-id; renameEnv∼-id)
+  ≈ˡ-sym; ≈ᴵ-sym; ≈ᴵ-refl; ↑ᴵ-refl; ↑ᴵ-trans; transportLeaf-resp;
+  leafRel-resp; 𝒱-resp; ℰ-resp)
+open import proof.TermRename using (cast-id; renameEnv∼-id; renameEnv∼-∘;
+  toRenameᵗ-∘′)
+open import proof.DGG.CenterRename using (_∘↪_)
 open import proof.LR.CastSubst using (renAfter; Agree; aself; ato; afrom;
-  acto; acfrom; _≅ᶜ_; ≅ᶜ-⟨⟩; ≅-sym)
+  acto; acfrom; _≅ᶜ_; hrefl; ≅ᶜ-⟨⟩; ≅-sym; agree-FL; agree-FF; flip-flip;
+  renameEnv-flip; agree-ren; agree-flip; irr)
 open import proof.LR.Monotone using (GoodI; GoodI-↑; GoodI-extOnlyI; 𝒱≤-cast;
   onlyLeafS-good; G≤→G; G→G≤; peelSL-map; 𝒱-down)
 open import proof.LR.Expression using (stepExt; ℰ-value; ℰ-anti-≺;
@@ -99,14 +116,14 @@ open import proof.LR.Expression using (stepExt; ℰ-value; ℰ-anti-≺;
 open import LR.Frame using (cast)
 open import proof.LR.ConvBase using (ℰ-zero)
 open import proof.LR.ConvLemma using (FreshP; FreshO; both; ℰL; PreB;
-  pre-typed; ∀-inj; stᴬ)
+  pre-typed; ∀-inj; stᴬ; _↑ˢ_; FreshP-↑; FreshO-↑)
 open import proof.LR.ConvMain using (allOnly-from; 𝒱-∀⊑⇒; 𝒱-∀⊑∀;
   nv⊑var; ⊑ι-closed)
 open import proof.LR.SubstLemma using (to; from; iff; 𝒱-XY; 𝒱-X★;
   ℰᵍ-map⁺; SubI; sl≡; sr≡; sonly; spair; SubI-↑; 𝒱-subst)
 open import proof.LR.PrecisionUnique using (⊑-unique; ↔-unique; only-unique)
-open import proof.LR.ConvRight using (FreshR; worldR; extR; tagsR;
-  okBindR)
+open import proof.LR.ConvRight using (FreshR; FreshR-↑; worldR; extR;
+  tagsR; okBindR)
 open import proof.LR.Replay using (replayW; replayPre; release-coh;
   ℰ-replay≻ᵛ; ℰ-replay≺ᵛ)
 
@@ -203,10 +220,20 @@ module _ {Δ Δ′} (Φ : Corr Δ Δ′) (d : Dir) (w : World)
         → FreshP d both w (leaf δ Z) (δl δ Z) (σR Y′)
       freshO : ∀ {Z} → Φ ∋ Z only → FreshO d w (leaf δ Z) (δl δ Z)
       freshR : ∀ {Z Y′} → Φ ∋ Z ↔ Y′ → FreshR d w (leaf δ Z) (σR Y′)
+      -- a variable at which `Z!` or `？Z` can occur is not read as `★`
+      -- (notes/logrel-dgg.md, "The ★ field of VarI")
+      starFree : ∀ Z → ν ‼ Z ≢ X∼X → δl δ Z ≢ ★
+      -- the same on the right (notes/logrel-dgg.md, "Right starFree")
+      starFreeR : ∀ Y → ν′ ‼ Y ≢ X∼X → σR Y ≢ ★
       -- the lemma at the variables, in every future (the casts renamed
       -- into it): a leaf may relate values that exist only there
       var : ∀ {w″} (e″ : w″ ⊒ w)
         → VarI Φ d w″ (δ ↑ᴵ e″) (renSE (ρL e″) sL) (renSE (ρS e″) sR)
+      -- the same at the flipped environments, for a function's domain
+      -- (notes/logrel-dgg.md, "The cast lemma: the case table")
+      varF : ∀ {w″} (e″ : w″ ⊒ w)
+        → VarI Φ d w″ (δ ↑ᴵ e″) (flip-SubstEnv∼ (renSE (ρL e″) sL))
+            (flip-SubstEnv∼ (renSE (ρS e″) sR))
 
   open CastHyp public
 
@@ -374,6 +401,155 @@ module _ {Δ Δ′} {Φ : Corr Δ Δ′} (d : Dir) (w : World)
       (uO o)
       (λ V → ≅ᶜ-⟨⟩ V (≅-sym (fromW-≅ aL Z eq eq t))) id★
       (VarI.fromO v o eq t k)
+
+-- VarI at equivalent interpretations and environments with the same
+-- modes and the same casts
+module _ {Δ Δ′} {Φ : Corr Δ Δ′} (d : Dir) (w : World)
+    {δ₁ δ₂ : Interp Δ Δ′ (ΔL w) (ΔR w)} {ν₁ ν₂ : Env∼ Δ}
+    {ν₁′ ν₂′ : Env∼ Δ′} {νL₁ νL₂ : Env∼ (ΔL w)}
+    {νR₁ νR₂ : Env∼ (storeR w)} {σR₁ σR₂ : Δ′ ⇒ˢ storeR w}
+    {sL₁ : SubstEnv∼ ν₁ νL₁ (δl δ₁)} {sR₁ : SubstEnv∼ ν₁′ νR₁ σR₁}
+    {sL₂ : SubstEnv∼ ν₂ νL₂ (δl δ₂)} {sR₂ : SubstEnv∼ ν₂′ νR₂ σR₂}
+    (hδ : δ₁ ≈ᴵ δ₂)
+    (eL : ∀ Z → ν₂ ‼ Z ≡ ν₁ ‼ Z) (eR : ∀ Y → ν₂′ ‼ Y ≡ ν₁′ ‼ Y)
+    (aL : Agree (λ X → X) sL₁ sL₂) (aR : Agree (λ Y → Y) sR₁ sR₂)
+    (eνR : νR₁ ≡ νR₂)
+  where
+
+  private
+    id★ : ∀ V → V ⟨ id {μ = νR₁} ★ ⟩ ≡ V ⟨ id {μ = νR₂} ★ ⟩
+    id★ V = cong (λ μ → V ⟨ id {μ = μ} ★ ⟩) eνR
+
+    e₁ : ∀ Z {v} → ν₂ ‼ Z ≡ v → ν₁ ‼ Z ≡ v
+    e₁ Z eq = trans (sym (eL Z)) eq
+
+    e₁′ : ∀ Y {v} → ν₂′ ‼ Y ≡ v → ν₁′ ‼ Y ≡ v
+    e₁′ Y eq = trans (sym (eR Y)) eq
+
+    mv : ∀ {k} {A A′ B B′} (p : Φ ⊢ A ⊑ A′) (r : Φ ⊢ B ⊑ B′)
+        {fl₁ fl₂ : Term (ΔL w) → Term (ΔL w)}
+        {fr₁ fr₂ : Term (storeR w) → Term (storeR w)}
+      → (∀ V → fl₁ V ≡ fl₂ V) → (∀ V → fr₁ V ≡ fr₂ V)
+      → CastRel d k p r w δ₁ fl₁ fr₁ → CastRel d k p r w δ₂ fl₂ fr₂
+    mv {k} p r el er c =
+      CastRel-resp d k p r w hδ
+        (CastRel-map d k w (λ a → a) (λ w′ e a → a) el er c)
+
+  VarI-≅ : VarI Φ d w δ₁ sL₁ sR₁ → VarI Φ d w δ₂ sL₂ sR₂
+  VarI.selfP (VarI-≅ v) {Z} {Y′} x k =
+    mv (X⊑Y x) (X⊑Y x)
+      (λ V → ≅ᶜ-⟨⟩ V (≅-sym (aself aL Z)))
+      (λ V → ≅ᶜ-⟨⟩ V (≅-sym (aself aR Y′)))
+      (VarI.selfP v x k)
+  VarI.selfO (VarI-≅ v) {Z} o k =
+    mv (X⊑★ o) (X⊑★ o)
+      (λ V → ≅ᶜ-⟨⟩ V (≅-sym (aself aL Z))) id★
+      (VarI.selfO v o k)
+  VarI.toP (VarI-≅ v) {Z} {Y′} x eq t eq′ t′ k =
+    mv (X⊑Y x) ★⊑★
+      (λ V → ≅ᶜ-⟨⟩ V (≅-sym (toW-≅ aL Z eq (e₁ Z eq) t)))
+      (λ V → ≅ᶜ-⟨⟩ V (≅-sym (toW-≅ aR Y′ eq′ (e₁′ Y′ eq′) t′)))
+      (VarI.toP v x (e₁ Z eq) t (e₁′ Y′ eq′) t′ k)
+  VarI.toO (VarI-≅ v) {Z} o eq t k =
+    mv (X⊑★ o) ★⊑★
+      (λ V → ≅ᶜ-⟨⟩ V (≅-sym (toW-≅ aL Z eq (e₁ Z eq) t))) id★
+      (VarI.toO v o (e₁ Z eq) t k)
+  VarI.fromP (VarI-≅ v) {Z} {Y′} x eq t eq′ t′ k =
+    mv ★⊑★ (X⊑Y x)
+      (λ V → ≅ᶜ-⟨⟩ V (≅-sym (fromW-≅ aL Z eq (e₁ Z eq) t)))
+      (λ V → ≅ᶜ-⟨⟩ V (≅-sym (fromW-≅ aR Y′ eq′ (e₁′ Y′ eq′) t′)))
+      (VarI.fromP v x (e₁ Z eq) t (e₁′ Y′ eq′) t′ k)
+  VarI.fromO (VarI-≅ v) {Z} o eq t k =
+    mv ★⊑★ (X⊑★ o)
+      (λ V → ≅ᶜ-⟨⟩ V (≅-sym (fromW-≅ aL Z eq (e₁ Z eq) t))) id★
+      (VarI.fromO v o (e₁ Z eq) t k)
+
+-- an environment agrees with itself
+agree-refl : ∀ {Δ Θ} {μ : Env∼ Δ} {ν : Env∼ Θ} {σ : Δ ⇒ˢ Θ}
+    (s : SubstEnv∼ μ ν σ) → Agree (λ X → X) s s
+aself (agree-refl s) X = hrefl
+ato (agree-refl s) X e e′ = irr (SubstEnv∼.to-★ s X) e e′
+afrom (agree-refl s) X e e′ = irr (SubstEnv∼.from-★ s X) e e′
+acto (agree-refl s) X e e′ = irr (SubstEnv∼.cross-to-★ s X) e e′
+acfrom (agree-refl s) X e e′ = irr (SubstEnv∼.cross-from-★ s X) e e′
+
+-- renaming twice is renaming along the composite
+agree-renSE : ∀ {Δ Θ₀ Θ₁ Θ₂} {μ : Env∼ Δ} {ν : Env∼ Θ₀} {σ : Δ ⇒ˢ Θ₀}
+    (π : Θ₁ ↪ᵗ Θ₂) (η : Θ₀ ↪ᵗ Θ₁) (s : SubstEnv∼ μ ν σ)
+  → Agree (λ X → X) (renSE (π ∘↪ η) s) (renSE π (renSE η s))
+agree-renSE {ν = ν} π η s =
+  agree-ren (toRenameᵗ η) (toRenameᵗ π) (toRenameᵗ (π ∘↪ η))
+    (renameEnv∼-preserves η ν)
+    (renameEnv∼-preserves π (renameEnv∼ η ν))
+    (renameEnv∼-preserves (π ∘↪ η) ν)
+    (renameEnv∼-∘ π η ν) (toRenameᵗ-∘′ π η) (agree-refl (renSE η s))
+
+-- a renamed type is `★` only if it was
+ren≡★ : ∀ {Θ Θ′} (ρ : Θ ⇒ʳ Θ′) {T : Ty Θ} → renameᵗ ρ T ≡ ★ → T ≡ ★
+ren≡★ ρ {★} eq = refl
+ren≡★ ρ {＇ X} ()
+ren≡★ ρ {‵ ι} ()
+ren≡★ ρ {A ⇒ B} ()
+ren≡★ ρ {`∀ A} ()
+
+-- the hypotheses at a function's domain: the environments flipped
+flipHyp : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {d w} {δ : Interp Δ Δ′ (ΔL w) (ΔR w)}
+    {ν : Env∼ Δ} {ν′ : Env∼ Δ′}
+  → CastHyp Φ d w δ ν ν′ → CastHyp Φ d w δ (flipᵐ ν) (flipᵐ ν′)
+flipHyp {d = d} {ν = ν} {ν′} h = record
+  { sL = flip-SubstEnv∼ (sL h)
+  ; σR = σR h
+  ; sR = flip-SubstEnv∼ (sR h)
+  ; good = good h
+  ; freshP = freshP h
+  ; freshO = freshO h
+  ; freshR = freshR h
+  ; starFree = λ Z ne → starFree h Z (λ eq →
+      ne (trans (flipᵐ-‼ ν Z) (cong flipVar∼ eq)))
+  ; starFreeR = λ Y ne → starFreeR h Y (λ eq →
+      ne (trans (flipᵐ-‼ ν′ Y) (cong flipVar∼ eq)))
+  ; var = λ {w″} e″ → VarI-≅ d w″ ≈ᴵ-refl (λ Z → refl) (λ Y → refl)
+      (agree-FL (ρL e″) (sL h)) (agree-FL (ρS e″) (sR h))
+      (sym (renameEnv-flip (ρS e″) (νR h))) (varF h e″)
+  ; varF = λ {w″} e″ → VarI-≅ d w″ ≈ᴵ-refl
+      (λ Z → cong (_‼ Z) (flip-flip ν))
+      (λ Y → cong (_‼ Y) (flip-flip ν′))
+      (agree-FF (ρL e″) (sL h)) (agree-FF (ρS e″) (sR h))
+      (trans (cong (renameEnv∼ (ρS e″)) (sym (flip-flip (νR h))))
+        (renameEnv-flip (ρS e″) (flipᵐ (νR h))))
+      (var h e″)
+  }
+
+-- the hypotheses in a future, the casts renamed into it
+CastHyp-↑ : ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {d w w′}
+    {δ : Interp Δ Δ′ (ΔL w) (ΔR w)} {ν : Env∼ Δ} {ν′ : Env∼ Δ′}
+  → CastHyp Φ d w δ ν ν′ → (e : w′ ⊒ w)
+  → CastHyp Φ d w′ (δ ↑ᴵ e) ν ν′
+CastHyp-↑ {d = d} {δ = δ} h e = record
+  { sL = renSE (ρL e) (sL h)
+  ; σR = σR h ↑ˢ e
+  ; sR = renSE (ρS e) (sR h)
+  ; good = GoodI-↑ {δ = δ} (good h) e
+  ; freshP = λ {Z} x →
+      FreshP-↑ {d = d} e {L = leaf δ Z} {rk = both} (freshP h x)
+  ; freshO = λ {Z} o → FreshO-↑ {d = d} e {L = leaf δ Z} (freshO h o)
+  ; freshR = λ {Z} x → FreshR-↑ {d = d} e {L = leaf δ Z} (freshR h x)
+  ; starFree = λ Z ne eq → starFree h Z ne (ren≡★ (toRenameᵗ (ρL e)) eq)
+  ; starFreeR = λ Y ne eq →
+      starFreeR h Y ne (ren≡★ (toRenameᵗ (ρS e)) eq)
+  ; var = λ {w″} e″ → VarI-≅ d w″ (≈ᴵ-sym (↑ᴵ-trans δ e″ e))
+      (λ Z → refl) (λ Y → refl)
+      (agree-renSE (ρL e″) (ρL e) (sL h))
+      (agree-renSE (ρS e″) (ρS e) (sR h))
+      (sym (renameEnv∼-∘ (ρS e″) (ρS e) (νR h)))
+      (var h (⊒-trans e″ e))
+  ; varF = λ {w″} e″ → VarI-≅ d w″ (≈ᴵ-sym (↑ᴵ-trans δ e″ e))
+      (λ Z → refl) (λ Y → refl)
+      (agree-flip (agree-renSE (ρL e″) (ρL e) (sL h)))
+      (agree-flip (agree-renSE (ρS e″) (ρS e) (sR h)))
+      (cong flipᵐ (sym (renameEnv∼-∘ (ρS e″) (ρS e) (νR h))))
+      (varF h (⊒-trans e″ e))
+  }
 
 ------------------------------------------------------------------------
 -- The statement

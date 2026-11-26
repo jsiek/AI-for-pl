@@ -20,7 +20,9 @@ module proof.LR.IdentityCast where
 --     casts are not inert.  The leaves the `∀` clauses build satisfy it
 --     by the lemma on the descriptor's derivation, at lower stages
 --     (`Below`), or in `≻` at the same stage through `G`, whose content
---     is one stage down (`idG`, `BelowG`).
+--     is one stage down (`idG`, `BelowG`).  The guarded left-only clause
+--     reads its body at the same stage, through `Gᵇ`, which reads the
+--     same stage only at a smaller body (`idB`).
 --   * `ora`: the lemma at every stage, by induction on the stage; so the
 --     clause leaves are closed at every bound (`leafBelowS-closed`,
 --     `onlyLeafS-closed`).
@@ -34,7 +36,7 @@ open import Data.Fin using (zero; suc)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Maybe using (just; nothing)
 open import Data.Nat using (ℕ; zero; suc; _≤_; _<_; s≤s; z≤n; _≤′_;
-  ≤′-refl; _≤?_)
+  ≤′-refl; _≤?_; _∸_)
 open import Data.Nat.Properties using (≤-refl; ≤-trans; ≤⇒≤′; ≤′⇒≤;
   n≤1+n)
 open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
@@ -72,6 +74,8 @@ open import proof.LR.ConvBase using (ℰ-zero; ℰ-steps?; stay; step;
   app-core; ℰ-app-steps; funStar-map; ★★-δ)
 open import proof.LR.SubstLemma using (substᵗ-∘)
 open import proof.LR.CastLemma using (CastRel; ℰ-down)
+open import proof.LR.ConvLemma using (leafLe; OnlyCl; ∸-mono)
+open import proof.LR.ConvMain using (allOnlyG→Cl; Cl→allOnlyG)
 
 private
   variable
@@ -598,13 +602,16 @@ allPairId d n {A = A} p rp bv w δ g h {μ} {Vl} {Vr} vl vr f
   δ₁ = extPairI (leftTyS c) (rightTyS c) (sem (leafBelowS d le c))
     (δ ↑ᴵ e)
 
-allOnlyId : ∀ d n {Δ Δ′} {Φ : Corr Δ Δ′} {A B} (p : only Φ ⊢ A ⊑ B)
-  → (∀ {m} → m ≤ n → IdVp d m p) → Below d n → UpD d n
+-- the left-only clause, with the leaf bound n′ ∸ g′ (`OnlyCl`; g′ = 1
+-- for the guarded clause)
+allOnlyId : ∀ d g′ n {Δ Δ′} {Φ : Corr Δ Δ′} {A B} (p : only Φ ⊢ A ⊑ B)
+  → (∀ {m} → m ≤ n → IdVp d m p) → Below d (n ∸ g′) → UpD d (n ∸ g′)
   → ∀ w (δ : Interp Δ Δ′ (ΔL w) (ΔR w)) → GoodI δ → IdI d w δ
   → ∀ {μ : Env∼ (ΔL w)} {Vl Vr} → Value Vl → Value Vr
-  → allOnly d n p w δ Vl Vr
-  → allOnly d n p w δ (Vl ⟨ refl∼ {μ = μ} (substᵗ (δl δ) (`∀ A)) ⟩) Vr
-allOnlyId d n {A = A} p rp bv ud w δ g h {μ} {Vl} {Vr} vl vr f
+  → OnlyCl d g′ n p w δ Vl Vr
+  → OnlyCl d g′ n p w δ
+      (Vl ⟨ refl∼ {μ = μ} (substᵗ (δl δ) (`∀ A)) ⟩) Vr
+allOnlyId d g′ n {A = A} p rp bv ud w δ g h {μ} {Vl} {Vr} vl vr f
     {w′} e {n′} le c oc =
   ℰᵍ-≡
     (sym (cong (λ M → M ⦂∀ A₁ [ leftTyS c ])
@@ -613,18 +620,20 @@ allOnlyId d n {A = A} p rp bv ud w δ g h {μ} {Vl} {Vr} vl vr f
     refl
     (fromℰ d le p w′
       (tyAppId d n′ p (λ m≤ → rp (≤-trans m≤ (≤′⇒≤ le))) w′ δ₁
-        (GoodI-extOnlyI {T = leftTyS c} {δ = δ ↑ᴵ e} (onlyLeafS-good d le c)
+        (GoodI-extOnlyI {T = leftTyS c} {δ = δ ↑ᴵ e}
+          (onlyLeafS-good d (leafLe g′ le) c)
           (GoodI-↑ {δ = δ} g e))
-        (IdI-only d {R = onlyLeafS d le c} {δ = δ ↑ᴵ e}
-          (onlyLeafS-id d le c (Below-≤ d (≤′⇒≤ le) bv)
-            (UpD-≤ d (≤′⇒≤ le) ud))
+        (IdI-only d {R = onlyLeafS d (leafLe g′ le) c} {δ = δ ↑ᴵ e}
+          (onlyLeafS-id d (leafLe g′ le) c
+            (Below-≤ d (∸-mono g′ (≤′⇒≤ le)) bv)
+            (UpD-≤ d (∸-mono g′ (≤′⇒≤ le)) ud))
           (IdI-↑ d δ h e))
         A₁ (leftTyS c) (open-• (δl (δ ↑ᴵ e)) (leftTyS c) A)
         (renameᵗᵐ-preserves-Value (ρL e) vl)
         (toℰ d le p w′ (f e le c oc))))
   where
   A₁ = substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A
-  δ₁ = extOnlyI (leftTyS c) (sem (onlyLeafS d le c)) (δ ↑ᴵ e)
+  δ₁ = extOnlyI (leftTyS c) (sem (onlyLeafS d (leafLe g′ le) c)) (δ ↑ᴵ e)
 
 allDeadId : ∀ d n {Δ Δ′} {Φ : Corr Δ Δ′} {A} (p : dead Φ ⊢ A ⊑ ★)
   → (∀ {m} → m ≤ n → IdVp d m p)
@@ -633,20 +642,20 @@ allDeadId : ∀ d n {Δ Δ′} {Φ : Corr Δ Δ′} {A} (p : dead Φ ⊢ A ⊑ �
   → allDead d n p w δ Vl Wr
   → allDead d n p w δ (Vl ⟨ refl∼ {μ = μ} (substᵗ (δl δ) (`∀ A)) ⟩) Wr
 allDeadId d n {A = A} p rp w δ g h {μ} {Vl} {Wr} vl f
-    {w′} e {n′} le T T′ =
+    {w′} e {n′} le c wf T₀ eqT =
   ℰᵍ-≡
-    (sym (cong (λ M → M ⦂∀ A₁ [ T ])
+    (sym (cong (λ M → M ⦂∀ A₁ [ leftTyS c ])
       (ren-refl (ρL e) (renameᵗᵐ (ρL e) Vl) (substᵗ (δl δ) (`∀ A))
         (δ↑-ty δ e (`∀ A)))))
     refl
     (fromℰ d le p w′
       (tyAppId d n′ p (λ m≤ → rp (≤-trans m≤ (≤′⇒≤ le))) w′
-        (extDeadI T (δ ↑ᴵ e))
-        (GoodI-extDeadI {T = T} {δ = δ ↑ᴵ e} (GoodI-↑ {δ = δ} g e))
-        (IdI-dead d {T = T} {δ = δ ↑ᴵ e} (IdI-↑ d δ h e))
-        A₁ T (open-• (δl (δ ↑ᴵ e)) T A)
+        (extDeadI (leftTyS c) (δ ↑ᴵ e))
+        (GoodI-extDeadI {T = leftTyS c} {δ = δ ↑ᴵ e} (GoodI-↑ {δ = δ} g e))
+        (IdI-dead d {T = leftTyS c} {δ = δ ↑ᴵ e} (IdI-↑ d δ h e))
+        A₁ (leftTyS c) (open-• (δl (δ ↑ᴵ e)) (leftTyS c) A)
         (renameᵗᵐ-preserves-Value (ρL e) vl)
-        (toℰ d le p w′ (f e le T T′))))
+        (toℰ d le p w′ (f e le c wf T₀ eqT))))
   where
   A₁ = substᵗ (extsᵗ (δl (δ ↑ᴵ e))) A
 
@@ -666,11 +675,11 @@ allDeadStarId d n p rp w δ g h vl (v CT.↑ rv) ()
 allDeadStarId d n p rp w δ g h vl (v CT.↓ cv) ()
 
 -- `∀★` against the right's `∀★` payload
-allStarId : ∀ d n w {μ : Env∼ (ΔL w)} {Vl Vr} → Value Vl → Value Vr
-  → allStar d n w Vl Vr
-  → allStar d n w (Vl ⟨ ∀ᶜ (id {μ = extᵐ μ} ★) ⟩) Vr
-allStarId d n w {μ} {Vl} vl (v CT.《 i 》) (inj , f) =
-  inj , λ {w′} e {n′} le T T′ →
+starAllId : ∀ d n w {μ : Env∼ (ΔL w)} {Vl Vr} → Value Vl → Value Vr
+  → starAll d n w Vl Vr
+  → starAll d n w (Vl ⟨ ∀ᶜ (id {μ = extᵐ μ} ★) ⟩) Vr
+starAllId d n w {μ} {Vl} vl (v CT.《 i 》) (inj , f) =
+  inj , λ {w′} e {n′} le c₀ wf T₀ eqT →
     starFrom d le w′
       (ℰ-stepL≤ d n′ ★⊑★ w′
         (β-∀ (renameᵗᵐ-preserves-Value (ρL e) vl) refl)
@@ -678,21 +687,65 @@ allStarId d n w {μ} {Vl} vl (v CT.《 i 》) (inj , f) =
           ℰ-bind₂ d s ★⊑★ ★⊑★ w′ {δ₁ = closedI} {δ₂ = closedI}
             (just (cast (id {μ = renameEnv∼ (ρL e) μ} ★))) nothing
             (ℰ-down d s≤ ★⊑★ w′ good-closedI
-              (starTo d le w′ (f e le T T′)))
+              (starTo d le w′ (f e le c₀ wf T₀ eqT)))
             (λ e″ k≤s ql qr r →
               ℰ-steps? d _ ★⊑★ _ (GoodI-↑ {δ = closedI} good-closedI e″)
                 (step (β-id ql)) stay ql qr r)))
-allStarId d n w vl (CT.ƛ N) ()
-allStarId d n w vl (CT.Λ v) ()
-allStarId d n w vl (CT.$ k) ()
-allStarId d n w vl (v CT.↑ rv) ()
-allStarId d n w vl (v CT.↓ cv) ()
+starAllId d n w vl (CT.ƛ N) ()
+starAllId d n w vl (CT.Λ v) ()
+starAllId d n w vl (CT.$ k) ()
+starAllId d n w vl (v CT.↑ rv) ()
+starAllId d n w vl (v CT.↓ cv) ()
 
 ------------------------------------------------------------------------
 -- The lemma, by induction on the derivation within a stage
 ------------------------------------------------------------------------
 
--- `G` at stage N: its content is read below N, or is a leaf
+-- a stage up to N is below N or is N
+≤-split : ∀ {k N} → k ≤ N → k < N ⊎ k ≡ N
+≤-split {zero} {zero} z≤n = inj₂ refl
+≤-split {zero} {suc N} z≤n = inj₁ (s≤s z≤n)
+≤-split {suc k} {suc N} (s≤s le) with ≤-split le
+≤-split {suc k} {suc N} (s≤s le) | inj₁ lt = inj₁ (s≤s lt)
+≤-split {suc k} {suc N} (s≤s le) | inj₂ refl = inj₂ refl
+
+-- `G` at the body of a left-only `∀` into `★` (not a variable, `Gᵇ`):
+-- as `idG`, but it reads the same stage only at a smaller body, so the
+-- guarded clause's body at its own stage N needs no leaf at N
+idB : ∀ N → Below ≻ N → BelowG N → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A}
+  (p : Φ ⊢ A ⊑ ★) → NonVar A → IdVp ≻ N p
+idB zero bv bg ★⊑★ nv w δ g h vl vr i r = tt
+idB zero bv bg ι⊑★ nv w δ g h vl vr i r = tt
+idB zero bv bg (X⊑★ x) () w δ g h vl vr i r
+idB zero bv bg (⇒⊑★ p q) nv w δ g h vl vr i r = tt
+idB zero bv bg (∀⊑ Anv z p) nv w δ g h vl vr i r = tt
+idB zero bv bg ∀★⊑★ nv w δ g h vl vr i r = tt
+idB zero bv bg (∀⊑★ ns p) nv w δ g h vl vr i r = tt
+idB zero bv bg bot⊑★ nv w δ g h vl vr i ()
+idB (suc k) bv bg ★⊑★ nv w δ g h vl vr () r
+idB (suc k) bv bg ι⊑★ nv w δ g h vl vr () r
+idB (suc k) bv bg (X⊑★ x) () w δ g h vl vr i r
+idB (suc k) bv bg (⇒⊑★ p q) nv w δ g h {μ} vl vr i r =
+  funStarId ≻ k p q (λ m≤ → bv (s≤s m≤) p) (λ m≤ → bv (s≤s m≤) q)
+    w δ g h {μ = μ} vl vr r
+idB (suc k) bv bg (∀⊑ Anv z p) nv w δ g h {μ} vl vr i (j , r) =
+  j , Cl→allOnlyG Anv z p k w
+    (allOnlyId ≻ 1 (suc k) p rp (Below-≤ ≻ (n≤1+n k) bv)
+      (λ m≤ → bg (s≤s m≤)) w δ g h {μ = μ} vl vr
+      (allOnlyG→Cl Anv z p k w r))
+  where
+  rp : ∀ {m} → m ≤ suc k → IdVp ≻ m p
+  rp m≤ with ≤-split m≤
+  rp m≤ | inj₁ lt = bv lt p
+  rp m≤ | inj₂ refl = idB (suc k) bv bg p Anv
+idB (suc k) bv bg ∀★⊑★ nv w δ g h {μ} vl vr i r =
+  starAllId ≻ k w {μ = μ} vl vr r
+idB (suc k) bv bg (∀⊑★ ns p) nv w δ g h {μ} vl vr i r =
+  allDeadStarId ≻ k p (λ m≤ → bv (s≤s m≤) p) w δ g h {μ = μ} vl vr r
+idB (suc k) bv bg bot⊑★ nv w δ g h vl vr i ()
+
+-- `G` at stage N: its content is read below N, or is a leaf, or is the
+-- guarded left-only clause (`idB`)
 idG : ∀ N → Below ≻ N → BelowG N → ∀ {Δ Δ′} {Φ : Corr Δ Δ′} {A A′}
   (p : Φ ⊢ A ⊑ A′) → IdGp N p
 idG zero bv bg p w δ g h vl vr i r = tt
@@ -711,8 +764,7 @@ idG (suc k) bv bg ι⊑★ w δ g h vl vr () r
 idG (suc k) bv bg (X⊑★ {X = X} o) w δ g h {μ} vl vr i r =
   IdI-now ≻ δ h X (suc k) {μ = μ} vl vr i r
 idG (suc k) bv bg (∀⊑ {B = ★} Anv z p) w δ g h {μ} vl vr i r =
-  allOnlyId ≻ k p (λ m≤ → bv (s≤s m≤) p) (Below-≤ ≻ (n≤1+n k) bv)
-    (λ m≤ → bg (s≤s m≤)) w δ g h {μ = μ} vl vr r
+  idB (suc k) bv bg (∀⊑ Anv z p) nonvar-all w δ g h {μ = μ} vl vr i r
 idG (suc k) bv bg (∀⊑ {B = ＇ Y} Anv z p) w δ g h {μ} vl vr i r =
   bv ≤-refl (∀⊑ Anv z p) w δ g h {μ = μ} vl vr i r
 idG (suc k) bv bg (∀⊑ {B = ‵ ι} Anv z p) w δ g h {μ} vl vr i r =
@@ -722,19 +774,11 @@ idG (suc k) bv bg (∀⊑ {B = B ⇒ C} Anv z p) w δ g h {μ} vl vr i r =
 idG (suc k) bv bg (∀⊑ {B = `∀ B} Anv z p) w δ g h {μ} vl vr i r =
   bv ≤-refl (∀⊑ Anv z p) w δ g h {μ = μ} vl vr i r
 idG (suc k) bv bg ∀★⊑★ w δ g h {μ} vl vr i r =
-  allStarId ≻ k w {μ = μ} vl vr r
+  starAllId ≻ k w {μ = μ} vl vr r
 idG (suc k) bv bg (∀⊑★ ns p) w δ g h {μ} vl vr i r =
   allDeadStarId ≻ k p (λ m≤ → bv (s≤s m≤) p) w δ g h {μ = μ} vl vr r
 idG (suc k) bv bg bot-elim w δ g h vl vr i ()
 idG (suc k) bv bg bot⊑★ w δ g h vl vr i ()
-
--- a stage up to N is below N or is N
-≤-split : ∀ {k N} → k ≤ N → k < N ⊎ k ≡ N
-≤-split {zero} {zero} z≤n = inj₂ refl
-≤-split {zero} {suc N} z≤n = inj₁ (s≤s z≤n)
-≤-split {suc k} {suc N} (s≤s le) with ≤-split le
-≤-split {suc k} {suc N} (s≤s le) | inj₁ lt = inj₁ (s≤s lt)
-≤-split {suc k} {suc N} (s≤s le) | inj₂ refl = inj₂ refl
 
 upG : ∀ N → Below ≻ N → BelowG N → UpG N
 upG N bv bg k≤N p with ≤-split k≤N
@@ -782,25 +826,37 @@ idV ≺ n bv bg (X⊑★ {X = X} o) w δ g h {μ} vl vr i r =
   IdI-now ≺ δ h X n {μ = μ} vl vr i r
 idV ≻ n bv bg (X⊑★ {X = X} o) w δ g h {μ} vl vr i r =
   IdI-now ≻ δ h X n {μ = μ} vl vr i r
-idV ≺ n bv bg (∀⊑ Anv z p) w δ g h {μ} vl vr i r =
-  allOnlyId ≺ n p (λ m≤ → idV ≺ _ (Below-≤ ≺ m≤ bv) tt₁ p) bv tt₁
+idV ≺ n bv bg (∀⊑ {B = ★} Anv z p) w δ g h {μ} vl vr i (j , r) =
+  j , allOnlyId ≺ 0 n p (λ m≤ → idV ≺ _ (Below-≤ ≺ m≤ bv) tt₁ p) bv tt₁
+    w δ g h {μ = μ} vl vr r
+idV ≺ n bv bg (∀⊑ {B = ＇ Y} Anv z p) w δ g h {μ} vl vr i r =
+  allOnlyId ≺ 0 n p (λ m≤ → idV ≺ _ (Below-≤ ≺ m≤ bv) tt₁ p) bv tt₁
+    w δ g h {μ = μ} vl vr r
+idV ≺ n bv bg (∀⊑ {B = ‵ ι} Anv z p) w δ g h {μ} vl vr i r =
+  allOnlyId ≺ 0 n p (λ m≤ → idV ≺ _ (Below-≤ ≺ m≤ bv) tt₁ p) bv tt₁
+    w δ g h {μ = μ} vl vr r
+idV ≺ n bv bg (∀⊑ {B = B ⇒ C} Anv z p) w δ g h {μ} vl vr i r =
+  allOnlyId ≺ 0 n p (λ m≤ → idV ≺ _ (Below-≤ ≺ m≤ bv) tt₁ p) bv tt₁
+    w δ g h {μ = μ} vl vr r
+idV ≺ n bv bg (∀⊑ {B = `∀ B} Anv z p) w δ g h {μ} vl vr i r =
+  allOnlyId ≺ 0 n p (λ m≤ → idV ≺ _ (Below-≤ ≺ m≤ bv) tt₁ p) bv tt₁
     w δ g h {μ = μ} vl vr r
 idV ≻ n bv bg (∀⊑ {B = ★} Anv z p) w δ g h {μ} vl vr i r =
   idG n bv bg (∀⊑ Anv z p) w δ g h {μ = μ} vl vr i r
 idV ≻ n bv bg (∀⊑ {B = ＇ Y} Anv z p) w δ g h {μ} vl vr i r =
-  allOnlyId ≻ n p (λ m≤ → idV ≻ _ (Below-≤ ≻ m≤ bv) (BG-≤ ≻ m≤ bg) p)
+  allOnlyId ≻ 0 n p (λ m≤ → idV ≻ _ (Below-≤ ≻ m≤ bv) (BG-≤ ≻ m≤ bg) p)
     bv (upG n bv bg) w δ g h {μ = μ} vl vr r
 idV ≻ n bv bg (∀⊑ {B = ‵ ι} Anv z p) w δ g h {μ} vl vr i r =
-  allOnlyId ≻ n p (λ m≤ → idV ≻ _ (Below-≤ ≻ m≤ bv) (BG-≤ ≻ m≤ bg) p)
+  allOnlyId ≻ 0 n p (λ m≤ → idV ≻ _ (Below-≤ ≻ m≤ bv) (BG-≤ ≻ m≤ bg) p)
     bv (upG n bv bg) w δ g h {μ = μ} vl vr r
 idV ≻ n bv bg (∀⊑ {B = B ⇒ C} Anv z p) w δ g h {μ} vl vr i r =
-  allOnlyId ≻ n p (λ m≤ → idV ≻ _ (Below-≤ ≻ m≤ bv) (BG-≤ ≻ m≤ bg) p)
+  allOnlyId ≻ 0 n p (λ m≤ → idV ≻ _ (Below-≤ ≻ m≤ bv) (BG-≤ ≻ m≤ bg) p)
     bv (upG n bv bg) w δ g h {μ = μ} vl vr r
 idV ≻ n bv bg (∀⊑ {B = `∀ B} Anv z p) w δ g h {μ} vl vr i r =
-  allOnlyId ≻ n p (λ m≤ → idV ≻ _ (Below-≤ ≻ m≤ bv) (BG-≤ ≻ m≤ bg) p)
+  allOnlyId ≻ 0 n p (λ m≤ → idV ≻ _ (Below-≤ ≻ m≤ bv) (BG-≤ ≻ m≤ bg) p)
     bv (upG n bv bg) w δ g h {μ = μ} vl vr r
 idV ≺ n bv bg ∀★⊑★ w δ g h {μ} vl vr i r =
-  allStarId ≺ n w {μ = μ} vl vr r
+  starAllId ≺ n w {μ = μ} vl vr r
 idV ≻ n bv bg ∀★⊑★ w δ g h {μ} vl vr i r =
   idG n bv bg ∀★⊑★ w δ g h {μ = μ} vl vr i r
 idV ≺ n bv bg (∀⊑★ ns p) w δ g h {μ} vl vr i r =

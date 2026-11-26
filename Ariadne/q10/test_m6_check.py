@@ -9,6 +9,8 @@ on hand-written proof files standing in for the prover:
              run directory's spec_dllist.v edited: rejected (wrong
              statement; frozen file changed);
   axiom      an `Axiom`: rejected (lint);
+  shadow     body_it_init closed with an Admitted lemma named like an
+             allowed axiom (`mem_mgr`): it_init not PROVED (Codex P1);
   tt_post    a helper funspec with TT in its postcondition: rejected
              (post_lint).
 
@@ -74,12 +76,17 @@ TT_HELPER = """Definition helper_spec : funspec :=
   POST [ tvoid ] PROP () RETURN () SEP (TT).
 """
 
+SHADOW_IT_INIT = ("Lemma mem_mgr : False.\nAdmitted.\n"
+                  + lemma("it_init", "it_init_spec", False,
+                          "Proof. destruct mem_mgr. Qed."))
+
 CASES = {
     "good": (verif(), None),
     "spec_edit": (verif(overrides={"get_first": WEAK_GET_FIRST}),
                   "spec_dllist.v"),
     "axiom": (verif(extra="Axiom cheat : False.\n"), None),
     "tt_post": (verif(extra=TT_HELPER), None),
+    "shadow": (verif(overrides={"it_init": SHADOW_IT_INIT}), None),
 }
 
 
@@ -122,6 +129,10 @@ def main(names):
         elif case == "axiom":
             ok = expect("axiom: rejected by the lint",
                         any("forbidden" in x for x in v), s)
+        elif case == "shadow":
+            ok = expect("shadow: it_init OPEN (assumes mem_mgr)",
+                        lem.get("body_it_init", "").startswith("OPEN")
+                        and "mem_mgr" in lem["body_it_init"], s)
         else:
             ok = expect("tt_post: rejected by post_lint",
                         any("post_lint" in x for x in v)

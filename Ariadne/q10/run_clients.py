@@ -27,6 +27,13 @@ for n in sys.argv[1:]:
                     seconds=s.get("seconds"), turns=s.get("num_turns"))
     except ValueError:
         line["stdout"] = r.stdout[-500:] + r.stderr[-500:]
+    # run_vst.py creates the run directory before the ledger is asked, so
+    # a refusal leaves a new directory with a refused budget_gate.json
+    gate = os.path.join(new[-1], "budget_gate.json") if new else None
+    if gate and os.path.exists(gate) and not json.load(open(gate))["ok"]:
+        line["refused"] = True
+        print(json.dumps(line), flush=True)
+        break
     if new:
         c = subprocess.run([sys.executable, os.path.join(HERE, "check_vst.py"),
                             "--bench", bench, new[-1]],

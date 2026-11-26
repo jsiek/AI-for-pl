@@ -156,7 +156,7 @@ def command(run, tool, usd, turns, prompt, bench="b1a"):
     if m6.is_m6(bench):
         # Plan M6: the frozen files are write-protected, and earlier
         # runs, existing proofs and the check fixtures are unreadable.
-        denied += m6.deny_rules(run, roots)
+        denied += m6.deny_rules(run, bench, roots)
     return ["claude", "-p", prompt, "--model", MODEL,
             "--output-format", "json", "--max-turns", str(turns),
             "--max-budget-usd", str(usd), "--no-session-persistence",

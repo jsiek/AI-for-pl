@@ -280,13 +280,12 @@ def setup(run, bench):
         shutil.copy(os.path.join(smoke, f), os.path.join(run, "example"))
 
 
-def deny_rules(run, roots):
-    """Fence additions: no writes to the frozen files; no reads of
+def deny_rules(run, bench, roots):
+    """Fence additions: no writes to `bench`'s frozen files; no reads of
     earlier runs' proofs, of the existing VST proofs, or of the check
     fixtures (which hold a hand proof)."""
-    bench = os.path.basename(run).split("-")[0]
     rules = []
-    for name in frozen_files(bench if is_m6(bench) else "dllist"):
+    for name in frozen_files(bench):
         rules += ["%s(/%s/%s)" % (t, run, name) for t in ("Edit", "Write")]
     for r in sorted(roots):
         # (other runs under runs/m6 are denied by run_vst.py's sibling
@@ -343,6 +342,16 @@ def assumptions(text):
         if m:
             names.append(m.group(1).split(".")[-1])
     return names
+
+
+DECL = (r"\b(?:Lemma|Theorem|Corollary|Fact|Remark|Proposition|Example|"
+        r"Definition|Fixpoint|Instance|Hypothesis|Hypotheses|Variable|"
+        r"Variables|Context)\s+([A-Za-z_][\w']*)")
+
+
+def declared(text):
+    """Names the proof file declares (short names, as assumptions())."""
+    return set(re.findall(DECL, text))
 
 
 def lint_text(text):
@@ -448,8 +457,11 @@ def check(run, bench, out_dir=None):
         # The lint forbids Axiom/Parameter in the proof file, and only the
         # proof file and pristine files are compiled here, so an
         # assumption outside the allow-list is an Admitted lemma: open.
+        # So is one named in the proof file, even with an allowed name
+        # (`Module Evil. Lemma mem_mgr : False. Admitted. End Evil.`).
         ax = assumptions(log)
-        extra = sorted(set(ax) - allowed) if ax is not None else ["?"]
+        extra = (sorted((set(ax) - allowed) | (set(ax) & declared(text)))
+                 if ax is not None else ["?"])
         s["lemmas"][name] = ("PROVED" if not extra else
                              "OPEN (assumes %s)" % ", ".join(extra))
     # with the frozen spec module, so that a funspec the proof builds from

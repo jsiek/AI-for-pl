@@ -81,6 +81,15 @@ try:
     cmd = f["command"]
     expect("client3: cap is the benchmark's ($10)",
            cmd[cmd.index("--max-budget-usd") + 1] == "10.0", cmd)
+    # the fence follows --bench, not the directory's name (Codex P2)
+    run = os.path.join(tmp, "pilot-x")
+    cmd = dry("client3", run)["command"]
+    denied = cmd[cmd.index("--disallowedTools") + 1:
+                 cmd.index("--permission-mode")]
+    for name in ("client3.c", "spec_client3.v", "lib_client3.v"):
+        expect("client3 in pilot-x: writes to %s denied" % name,
+               all("%s(/%s/%s)" % (t, run, name) in denied
+                   for t in ("Edit", "Write")), denied)
 finally:
     shutil.rmtree(tmp)
 print(f"{'FAIL' if fails else 'PASS'}: {len(fails)} failed")

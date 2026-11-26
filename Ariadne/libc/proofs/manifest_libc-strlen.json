@@ -1,0 +1,18 @@
+{
+ "target": "libc-strlen",
+ "verdict": "PROVED",
+ "recheck": "python3 Ariadne/ariadne/cli.py check libc-strlen Ariadne/libc/proofs",
+ "inputs_sha256": {
+  "spec_strlen.v": "c337ea05704415dfd46da72e32661a42d21402116a29cc1242242cdaf08fa5d1",
+  "strlen.c": "0d0f2a859937752ade96d0389e87ad142d84a635f5f52bf3ca0e12037aff8c9d",
+  "verif_strlen.v": "236d2b001da84181ec7e6c22bbec199112fc51155690b31d2ed14360750a267d"
+ },
+ "trusted": [],
+ "axioms_beyond_vst": [],
+ "tools": {
+  "coqc": "The Rocq Prover, version 9.0.1",
+  "clightgen": "The CompCert CompCert AST generator, version 3.17",
+  "coqchk": "The Rocq Proof Checker, version 9.0.1",
+  "image": "ariadne-vst:dev sha256:5f1898b5f3f95e4fc067a0c1a6d3bb8286580b1ecbaec1f14ebd10596be82d3d"
+ }
+}

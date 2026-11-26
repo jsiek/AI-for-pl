@@ -1,0 +1,80 @@
+# The 13 survey clients of sglib's DL list (plan M6): semax_prog for each,
+# the six library entries of Gprog equal to the frozen funspecs at
+# Rc_client.  See ../../../ariadne/targets.py.
+
+[defaults]
+name = "client{n}"
+lib = "SglibVST"
+c = "client{n}.c"
+proof = "verif_client{n}.v"
+task = "bench/sglib_vst/TASK_client.md"
+cap_usd = 10.0
+lint = ["spec_client{n}"]
+lint_allow_none = true
+preamble = ["#[local] Existing Instance NullExtension.Espec."]
+goals.prog_correct = "semax_prog SglibVST.client{n}.prog tt SglibVST.spec_client{n}.Vprog Gprog"
+extra = [
+  "Goal VST.veric.initial_world.find_id SglibVST.client{n}._sglib_dllist_add Gprog = VST.veric.initial_world.find_id SglibVST.client{n}._sglib_dllist_add (SglibVST.spec_client{n}.Gprog Rc_client). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id SglibVST.client{n}._sglib_dllist_get_first Gprog = VST.veric.initial_world.find_id SglibVST.client{n}._sglib_dllist_get_first (SglibVST.spec_client{n}.Gprog Rc_client). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id SglibVST.client{n}._sglib_dllist_get_last Gprog = VST.veric.initial_world.find_id SglibVST.client{n}._sglib_dllist_get_last (SglibVST.spec_client{n}.Gprog Rc_client). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id SglibVST.client{n}._sglib_dllist_it_init_on_equal Gprog = VST.veric.initial_world.find_id SglibVST.client{n}._sglib_dllist_it_init_on_equal (SglibVST.spec_client{n}.Gprog Rc_client). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id SglibVST.client{n}._sglib_dllist_it_init Gprog = VST.veric.initial_world.find_id SglibVST.client{n}._sglib_dllist_it_init (SglibVST.spec_client{n}.Gprog Rc_client). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id SglibVST.client{n}._sglib_dllist_it_next Gprog = VST.veric.initial_world.find_id SglibVST.client{n}._sglib_dllist_it_next (SglibVST.spec_client{n}.Gprog Rc_client). Proof. reflexivity. Qed.",
+]
+files."client{n}.c" = { copy = "bench/sglib_vst/clients/client{n}.c" }
+files."spec_client{n}.v" = { copy = "bench/sglib_vst/spec_dllist.v", replace = [["Require Import SglibVST.dllist.", "Require Import SglibVST.client{n}."]] }
+files."lib_client{n}.v" = { copy = "bench/sglib_vst/verif_dllist.v", replace = [["Require Import SglibVST.dllist SglibVST.spec_dllist.", "Require Import SglibVST.client{n} SglibVST.spec_client{n}."]] }
+files."SPEC.md" = { copy = "bench/sglib_vst/SPEC.md", check = false }
+files."CLIENT_SURVEY.md" = { copy = "bench/sglib_spec/CLIENT_SURVEY.md", check = false }
+
+[[target]]
+n = "1"
+where = "this client is \"client 1\" under \"New clients\""
+
+[[target]]
+n = "2"
+where = "this client is \"client 2\" under \"New clients\""
+
+[[target]]
+n = "3"
+where = "this client is \"client 3\" under \"New clients\""
+
+[[target]]
+n = "4"
+where = "this client is \"client 4\" under \"New clients\""
+
+[[target]]
+n = "5"
+where = "this client is \"client 5\" under \"New clients\""
+
+[[target]]
+n = "6"
+where = "this client is \"client 6\" under \"New clients\""
+
+[[target]]
+n = "7"
+where = "this client is \"client 7\" under \"New clients\""
+
+[[target]]
+n = "8"
+where = "this client is \"client 8\" under \"New clients\""
+
+[[target]]
+n = "9"
+where = "this client is \"client 9\" under \"New clients\""
+
+[[target]]
+n = "b1"
+where = "this client is B1 (b1/b1.c:b1), ported under \"Covered clients ported\""
+
+[[target]]
+n = "b1a"
+where = "this client is B1a (b1a/b1a_ref.c:b1), ported under \"Covered clients ported\""
+
+[[target]]
+n = "b1c"
+where = "this client is B1c (b1c/b1c_ref.c:b1), ported under \"Covered clients ported\""
+
+[[target]]
+n = "st"
+where = "this client is the self-test driver st_iter_equal (selftest/wp/driver.c), ported under \"Covered clients ported\""

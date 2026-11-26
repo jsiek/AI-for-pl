@@ -1,0 +1,18 @@
+{
+ "target": "libc-memcpy",
+ "verdict": "PROVED",
+ "recheck": "python3 Ariadne/ariadne/cli.py check libc-memcpy Ariadne/libc/proofs",
+ "inputs_sha256": {
+  "memcpy.c": "806dc064788aabddd3c78a1a0581f9f485328859d5e92ae8fb2574c173796418",
+  "spec_memcpy.v": "064de0338ac3b09a5d9d45695598a43ab80632dd64c252bedcd206720a063d6a",
+  "verif_memcpy.v": "7c5b413d9079624c83227d45e38992dfdf8c32f679b1351b6aa241cf7974be45"
+ },
+ "trusted": [],
+ "axioms_beyond_vst": [],
+ "tools": {
+  "coqc": "The Rocq Prover, version 9.0.1",
+  "clightgen": "The CompCert CompCert AST generator, version 3.17",
+  "coqchk": "The Rocq Proof Checker, version 9.0.1",
+  "image": "ariadne-vst:dev sha256:5f1898b5f3f95e4fc067a0c1a6d3bb8286580b1ecbaec1f14ebd10596be82d3d"
+ }
+}

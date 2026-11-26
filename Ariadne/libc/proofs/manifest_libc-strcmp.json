@@ -1,0 +1,18 @@
+{
+ "target": "libc-strcmp",
+ "verdict": "PROVED",
+ "recheck": "python3 Ariadne/ariadne/cli.py check libc-strcmp Ariadne/libc/proofs",
+ "inputs_sha256": {
+  "spec_strcmp.v": "48a82c5a58ee1dbac9289656195efc5fe347548abde04260a2b3bfa49e61317b",
+  "strcmp.c": "1ae2e0fd20ac856dcc79126c1fb65f374495715699ef74902974ab0bfffc7f0e",
+  "verif_strcmp.v": "10a79ebc327811093c5ead1d338ef726386fae83282967e3f5f58cf150b1d3b0"
+ },
+ "trusted": [],
+ "axioms_beyond_vst": [],
+ "tools": {
+  "coqc": "The Rocq Prover, version 9.0.1",
+  "clightgen": "The CompCert CompCert AST generator, version 3.17",
+  "coqchk": "The Rocq Proof Checker, version 9.0.1",
+  "image": "ariadne-vst:dev sha256:5f1898b5f3f95e4fc067a0c1a6d3bb8286580b1ecbaec1f14ebd10596be82d3d"
+ }
+}

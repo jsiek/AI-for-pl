@@ -1,0 +1,53 @@
+# picol (plan M8): semax_prog for picol_vst.c, every internal funspec
+# the agent's; the frozen specs pinned in Gprog.  See ../../ariadne/targets.py.
+
+[[target]]
+name = "picol"
+lib = "Picol"
+c = "picol_full.c"
+proof = "verif_picol.v"
+task = "bench/picol/TASK.md"
+cap_usd = 50.0
+lint = ["spec_picol"]
+preamble = ["#[local] Existing Instance NullExtension.Espec."]
+goals = { prog_correct = "semax_prog Picol.picol_full.prog tt Picol.spec_picol.Vprog Gprog" }
+extra = [
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._realloc Gprog = Some (snd Picol.spec_picol.realloc_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._fmt_double Gprog = Some (snd Picol.spec_picol.fmt_double_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._strtod Gprog = Some (snd Picol.spec_picol.strtod_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._fopen Gprog = Some (snd Picol.spec_picol.fopen_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._fclose Gprog = Some (snd Picol.spec_picol.fclose_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._fputs Gprog = Some (snd Picol.spec_picol.fputs_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._fflush Gprog = Some (snd Picol.spec_picol.fflush_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._fgets Gprog = Some (snd Picol.spec_picol.fgets_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._fread Gprog = Some (snd Picol.spec_picol.fread_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._perror Gprog = Some (snd Picol.spec_picol.perror_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._strlen Gprog = Some (snd Picol.spec_picol.strlen_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._strcmp Gprog = Some (snd Picol.spec_picol.strcmp_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._strchr Gprog = Some (snd Picol.spec_picol.strchr_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._memcpy Gprog = Some (snd Picol.spec_picol.memcpy_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._isupper Gprog = Some (snd Picol.spec_picol.isupper_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._picol_main Gprog = Some (snd Picol.spec_picol.picol_main_spec). Proof. reflexivity. Qed.",
+  "Goal VST.veric.initial_world.find_id Picol.picol_full._main Gprog = Some (snd Picol.spec_picol.main_spec). Proof. reflexivity. Qed.",
+]
+
+[target.files."picol_full.c"]
+preprocess = ["bench/picol/picol_vst.c"]
+includes = ["libc/musl-1.2.6/obj/shim", "libc/musl-1.2.6/arch/x86_64",
+            "libc/musl-1.2.6/arch/generic", "libc/musl-1.2.6/obj/include",
+            "libc/musl-1.2.6/include"]
+
+[target.files."spec_picol.v"]
+copy = "bench/picol/spec_picol.v"
+libc = true
+
+[target.files."picol.c"]
+copy = "bench/picol/picol.c"
+check = false
+
+[target.files."picol_vst.c"]
+copy = "bench/picol/picol_vst.c"
+check = false
+
+[target.dirs]
+libc_proofs = ["libc/proofs/*.v"]

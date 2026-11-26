@@ -1,0 +1,18 @@
+{
+ "target": "libc-strchr",
+ "verdict": "PROVED",
+ "recheck": "python3 Ariadne/ariadne/cli.py check libc-strchr Ariadne/libc/proofs",
+ "inputs_sha256": {
+  "spec_strchr.v": "516451d3e52a1ebb3fade0fcaf92826d6d6bea37b47582ab2c6a148f02e79234",
+  "strchr.c": "a3dc95f44397adb6200712b858fb296c8e9572bc2e1578ea7786656a6908175d",
+  "verif_strchr.v": "16d3983601f6948e2fd0e7f4fb6b60b4805a89f7d425d3c67fac3ede0bb3ea4b"
+ },
+ "trusted": [],
+ "axioms_beyond_vst": [],
+ "tools": {
+  "coqc": "The Rocq Prover, version 9.0.1",
+  "clightgen": "The CompCert CompCert AST generator, version 3.17",
+  "coqchk": "The Rocq Proof Checker, version 9.0.1",
+  "image": "ariadne-vst:dev sha256:5f1898b5f3f95e4fc067a0c1a6d3bb8286580b1ecbaec1f14ebd10596be82d3d"
+ }
+}

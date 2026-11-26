@@ -43,18 +43,13 @@ new spec.
 
 ## Plan M6: the frozen stage-1 spec (2026-11-17)
 
-`run_vst.py` and `check_vst.py` also drive the M6 benchmarks
-(`m6.py`): `--bench dllist` (the six library functions of
-`../bench/sglib_vst/`, frozen digest `ee6043a2f971a9f6`) and
-`--bench client1` .. `client9` (the stage-1 survey clients,
-`../bench/sglib_vst/clients/`).
-
-```bash
-python3 run_vst.py --bench dllist [--dry-run]   # cap $25 (m6.CAPS)
-python3 check_vst.py --bench dllist ../runs/m6/<run>
-python3 test_m6_setup.py                        # offline (no image)
-python3 test_m6_check.py                        # no LLM; Coq in the image
-```
+The M6 benchmarks (`dllist`, the six library functions of
+`../bench/sglib_vst/`, frozen digest `ee6043a2f971a9f6`, and the 13
+clients) were run by `run_vst.py`/`m6.py` and are now targets of
+`../ariadne/` (`../bench/sglib_vst/targets.toml`,
+`../bench/sglib_vst/clients/targets.toml`); its `test_check.py` carries
+the M6 check's test cases.  The notes below record how the runs were
+done.
 
 * **Task:** prove the given funspecs.  The prover writes only
   `verif_dllist.v`, which Requires the frozen `spec_dllist.v` and

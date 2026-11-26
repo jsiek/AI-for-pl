@@ -81,7 +81,10 @@ regression script in `tests/` (fix 1) and a REPL session on stdin
     without it the proof must carry that fact to the `switch`.  Same
     behaviour.
 
-## Proof runs (`run_picol.py`)
+## Proof runs
+
+Runs 1–4 used `run_picol.py`, now `../../ariadne/` (target `picol`,
+`targets.toml`; task `TASK.md`).
 
 | Run | Budget | Spent | Time | Result |
 |---|---|---|---|---|
@@ -93,7 +96,7 @@ regression script in `tests/` (fix 1) and a REPL session on stdin
 The fourth run's proof is kept in `proofs/` (`proof_files.txt` gives
 the build order); re-check it with
 
-    python3 run_picol.py --check proofs
+    python3 Ariadne/ariadne/cli.py check picol Ariadne/bench/picol/proofs
 
 Total cost of picol: $146.68 for the four runs, plus $4.88 for the musl
 `libc` runs (`../../libc/README.md`).  Drafts of issues for upstream
@@ -112,7 +115,8 @@ musl's definitions, VST's own `main_pre` gives read permission on each
 
 It also includes musl's sources of `strlen`, `__strchrnul`, `strchr`,
 `strcmp`, `memcpy` and `isupper`, so one `semax_prog` covers them; the
-only externals left are the trusted functions (`TRUSTED_SPECS.md`).
+only externals left are the trusted functions
+(`../../libc/TRUSTED_SPECS.md`).
 The proofs in `../../libc/proofs/` replay unchanged against this
 program (2026-11-22: all five, `Print Assumptions` within the
 allow-list), so picol's proof reuses them.
@@ -122,7 +126,8 @@ allow-list), so picol's proof reuses them.
 `trusted.c` holds the functions picol calls that are not verified; their
 specs, and those of the libc functions with trusted specs
 (`../../libc/README.md`), are approved by the owner one at a time and
-recorded in `TRUSTED_SPECS.md`.
+recorded in `../../libc/TRUSTED_SPECS.md`; their texts are in
+`../../libc/specs/`, and `spec_picol.v` names them on its `@libc` lines.
 
 ## libc
 

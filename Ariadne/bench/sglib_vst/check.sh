@@ -66,7 +66,7 @@ step affine
 #    public spec, checked by Coq on the elaborated, unfolded terms
 #    (lint/PostLint.v, driven by lint/post_lint.py; fails closed).
 postlint() {
-  python3 -I lint/post_lint.py SglibVST.spec_dllist
+  python3 -I ../../ariadne/lint/post_lint.py --root . --lib SglibVST SglibVST.spec_dllist
 }
 name="post_lint: spec_dllist's postconditions are leak-free"
 step postlint
@@ -76,7 +76,7 @@ step postlint
 #    parenthesised binder; POST before a line break), and every good_*
 #    spec passes.
 lintcheck() {
-  python3 -I lint/test_post_lint.py > /dev/null 2>&1
+  python3 -I ../../ariadne/lint/test_post_lint.py > /dev/null 2>&1
 }
 name="post_lint: tests (17 bad specs fail, 3 good pass)"
 step lintcheck

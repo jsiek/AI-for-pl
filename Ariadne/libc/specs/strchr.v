@@ -1,17 +1,6 @@
 (* VST 2.17, progs64/verif_strlib.v, verbatim (strchr calls musl's
-   __strchrnul, which calls strlen). *)
-Definition strlen_spec :=
- DECLARE _strlen
-  WITH sh: share, s : list byte, str: val
-  PRE [ tptr tschar ]
-    PROP (readable_share sh)
-    PARAMS (str)
-    SEP (cstring sh s str)
-  POST [ size_t ]
-    PROP ()
-    RETURN (Vptrofs (Ptrofs.repr (Zlength s)))
-    SEP (cstring sh s str).
-
+   __strchrnul, which calls strlen: a unit with strchr also needs
+   strlen.v). *)
 Definition strchr_spec :=
  DECLARE _strchr
   WITH sh: share, str : val, s : list byte, c : byte

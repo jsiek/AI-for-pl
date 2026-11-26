@@ -12,7 +12,7 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-RUN = os.path.join(ROOT, "..", "..", "vst", "run.sh")
+RUN = os.path.join(ROOT, "..", "vst", "run.sh")
 CASES = os.path.join(HERE, "tests", "cases.v")
 
 EXPECTED_BAD = {
@@ -41,11 +41,11 @@ class PostLint(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         subprocess.run([RUN, "coqc", "-native-compiler", "no", "-Q", ".",
-                        "SglibVST", os.path.relpath(CASES, ROOT)],
+                        "Lint", os.path.relpath(CASES, ROOT)],
                        cwd=ROOT, check=True, capture_output=True)
         p = subprocess.run([sys.executable, "-I",
                             os.path.join(HERE, "post_lint.py"),
-                            "SglibVST.lint.tests.cases"],
+                            "--root", ROOT, "--lib", "Lint", "Lint.lint.tests.cases"],
                            capture_output=True, text=True)
         cls.rc, cls.out = p.returncode, p.stdout
 

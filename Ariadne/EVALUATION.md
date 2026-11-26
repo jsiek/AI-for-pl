@@ -204,6 +204,19 @@ verdict, delete the old scripts: `run_libc.py`, `run_picol.py`, and the
 M6 parts of `q10/`.  The test is free: `--check bench/picol/proofs`
 and the sglib proofs, with no model calls.
 
+**Status (2026-11-26).**
+- Done in `ariadne/` (`ariadne/README.md`): one runner (`session.py`)
+  and one checker (`check.py`) with coqchk and a bundle manifest; the
+  pre-pass (`vst_ready.py`); the shared libc specs (`libc/specs/`,
+  `libc/TRUSTED_SPECS.md`).
+- All 20 kept proofs re-check through it: picol, 5 libc units, sglib's
+  library and its 13 clients.
+- `run_picol.py`, `run_libc.py`, `m6.py` and `run_clients.py` are
+  deleted.
+- The policy file is not yet written.
+- The meter's gap is explained: the output tokens arrive only in each
+  response's `message_delta`. The new meter reads them there.
+
 ## 6. Next steps
 
 ### Tool and process, in order
@@ -247,11 +260,11 @@ and the sglib proofs, with no model calls.
 3. **md4c** (M10 candidate, 8.8k lines): only after clox shows the
    split works.
 
-## 7. Questions for the owner
+## 7. Owner's decisions (2026-11-26)
 
-1. Approve the policy "internal funspec choices are reported, not
-   asked" (§3)?
-2. Consolidate before clox (§5, step 1, no model cost), or start clox
-   with the current scripts?
-3. huffman as the first program on the consolidated tool, or go
-   straight to clox?
+1. Internal funspec choices are reported in the run's answer, not
+   asked (§3).  Questions go to the owner only for trusted specs and
+   changes to the C.
+2. Consolidate the runner and checker (§5) before clox.
+3. huffman (github.com/drichardson/huffman, `bench/CANDIDATES.md` §3)
+   is the first program on the consolidated tool, then clox.

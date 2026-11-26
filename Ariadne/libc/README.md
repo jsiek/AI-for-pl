@@ -2,7 +2,7 @@
 
 Plan §4 (owner, 2026-11-21): a libc function is verified from musl's
 source if clightgen accepts it and one prover run with a $10 cap proves
-it (`check_vst.py` accepts); otherwise it gets a trusted spec, written
+it (the check accepts); otherwise it gets a trusted spec, written
 for memory safety and approved by the owner.  This directory holds the
 pinned source and the checks; the per-function choices go in the table
 below.
@@ -10,12 +10,12 @@ below.
 ```
 python3 -I fetch_musl.py                 # musl 1.2.6, SHA-256 pinned; git-ignored
 python3 -I musl_clight.py strlen ...     # closure of the given functions + clightgen
-python3 run_libc.py strlen [--dry-run]   # the $10 prover run, then the check
-python3 run_libc.py isupper --check proofs   # re-check a kept proof (likewise
-                                             # strlen, strcmp, strchr, memcpy)
+python3 ../ariadne/cli.py run libc-strlen [--dry-run]   # the $10 prover run
+python3 ../ariadne/cli.py check libc-isupper proofs    # re-check a kept proof
+                                       # (likewise strlen, strcmp, strchr, memcpy)
 ```
 
-`run_libc.py` preprocesses a function's musl files into one C file and
+The target (`targets.toml`) preprocesses a function's musl files into one C file and
 has an agent prove `semax_body` for each function in it against the
 frozen specs in `specs/` (VST's own `progs64/verif_strlib.v` specs for
 `strlen`, `strcmp`, `strchr`; `memcpy` and `isupper` written here).
@@ -64,4 +64,6 @@ it reads (`bench/picol/picol_vst.c`).
 | `malloc`, `free`, `realloc` | not tried | allocator: VST's `malloc`/`free` specs are axioms on the allow-list | trusted (`realloc`: spec approved 2026-11-22) |
 
 The trusted specs picol uses, all approved by the owner on 2026-11-22:
-`bench/picol/TRUSTED_SPECS.md`.
+`TRUSTED_SPECS.md`; each spec's text, with its body axiom, is in
+`specs/` (one file per function), which a program's spec file names on
+an `(* @libc ... *)` line.

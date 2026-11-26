@@ -1,0 +1,23 @@
+# sglib's DL list (plan M6): the six library functions against the
+# frozen stage-1 spec (digest ee6043a2f971a9f6), (the clients: clients/targets.toml).
+# See ../../ariadne/targets.py.
+
+[[target]]
+name = "dllist"
+lib = "SglibVST"
+c = "dllist.c"
+proof = "verif_dllist.v"
+task = "bench/sglib_vst/TASK_dllist.md"
+cap_usd = 25.0
+lint = ["spec_dllist"]
+lint_allow_none = true
+goals.body_add = "forall Rc : globals -> val -> mpred, semax_body SglibVST.spec_dllist.Vprog (SglibVST.spec_dllist.Gprog Rc) SglibVST.dllist.f_sglib_dllist_add SglibVST.spec_dllist.add_spec"
+goals.body_get_first = "forall Rc : globals -> val -> mpred, semax_body SglibVST.spec_dllist.Vprog (SglibVST.spec_dllist.Gprog Rc) SglibVST.dllist.f_sglib_dllist_get_first SglibVST.spec_dllist.get_first_spec"
+goals.body_get_last = "forall Rc : globals -> val -> mpred, semax_body SglibVST.spec_dllist.Vprog (SglibVST.spec_dllist.Gprog Rc) SglibVST.dllist.f_sglib_dllist_get_last SglibVST.spec_dllist.get_last_spec"
+goals.body_it_init_on_equal = "forall Rc : globals -> val -> mpred, semax_body SglibVST.spec_dllist.Vprog (SglibVST.spec_dllist.Gprog Rc) SglibVST.dllist.f_sglib_dllist_it_init_on_equal (SglibVST.spec_dllist.it_init_on_equal_spec Rc)"
+goals.body_it_init = "forall Rc : globals -> val -> mpred, semax_body SglibVST.spec_dllist.Vprog (SglibVST.spec_dllist.Gprog Rc) SglibVST.dllist.f_sglib_dllist_it_init SglibVST.spec_dllist.it_init_spec"
+goals.body_it_next = "forall Rc : globals -> val -> mpred, semax_body SglibVST.spec_dllist.Vprog (SglibVST.spec_dllist.Gprog Rc) SglibVST.dllist.f_sglib_dllist_it_next (SglibVST.spec_dllist.it_next_spec Rc)"
+files."dllist.c" = { copy = "bench/sglib_vst/dllist.c" }
+files."spec_dllist.v" = { copy = "bench/sglib_vst/spec_dllist.v" }
+files."SPEC.md" = { copy = "bench/sglib_vst/SPEC.md", check = false }
+

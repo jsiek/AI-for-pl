@@ -1,0 +1,26 @@
+{
+ "target": "dllist",
+ "verdict": "PROVED",
+ "recheck": "python3 Ariadne/ariadne/cli.py check dllist Ariadne/bench/sglib_vst",
+ "inputs_sha256": {
+  "SPEC.md": "16e0bb54c1665f52888bb0ba88f3809e6e07832b7d870880c9cbc9990f1e6d10",
+  "dllist.c": "8f2634ec485443a2a666420e04f3be8ead6f37b5b5cbf0e181ff49630bd7b7de",
+  "spec_dllist.v": "e0a7ba9601b65d1e6f0cb9da22fcc3eccd987174bf9e7753beb5973f9196a5a4",
+  "verif_dllist.v": "f01014093bddede4266b8e25ea5a8d60c640cda5cc752341151145fa0c95bfc9"
+ },
+ "trusted": [],
+ "axioms_beyond_vst": [
+  "SglibVST.spec_dllist.body_add",
+  "SglibVST.spec_dllist.body_get_first",
+  "SglibVST.spec_dllist.body_get_last",
+  "SglibVST.spec_dllist.body_it_init",
+  "SglibVST.spec_dllist.body_it_init_on_equal",
+  "SglibVST.spec_dllist.body_it_next"
+ ],
+ "tools": {
+  "coqc": "The Rocq Prover, version 9.0.1",
+  "clightgen": "The CompCert CompCert AST generator, version 3.17",
+  "coqchk": "The Rocq Proof Checker, version 9.0.1",
+  "image": "ariadne-vst:dev sha256:5f1898b5f3f95e4fc067a0c1a6d3bb8286580b1ecbaec1f14ebd10596be82d3d"
+ }
+}

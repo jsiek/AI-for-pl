@@ -28,19 +28,21 @@ so the caller could not end in a `TT`-free public postcondition.
     python3 -I post_lint.py [--root DIR] [--lib LIB] MODULE [MODULE ...]
 
 MODULE is a logical name (e.g. SglibVST.spec_dllist), already compiled
-under `-Q DIR LIB` (default: this lint's parent directory, SglibVST).
+under `-Q DIR LIB` (--root DIR, --lib LIB); the lint copies PostLint.v
+to DIR/lint/ and compiles it there.
 Coq runs in the VST image through ../../../vst/run.sh.  Prints one line
 per spec and exits 1 on any failure.
 """
 import argparse
 import os
 import re
+import shutil
 import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-RUN = os.path.join(ROOT, "..", "..", "vst", "run.sh")
+RUN = os.path.join(ROOT, "..", "vst", "run.sh")
 KEYWORDS = r"(?:Definition|Parameter|Axiom|Inductive|CoInductive|Record|" \
            r"Structure|Variant|Class|Instance|Fixpoint|CoFixpoint|Module|" \
            r"Module Type|End|Notation|Ltac|Ltac2|Theorem|Lemma|Scheme)"
@@ -72,8 +74,8 @@ def declarations(text):
 
 def main(argv):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", default=ROOT)
-    ap.add_argument("--lib", default="SglibVST")
+    ap.add_argument("--root", required=True)
+    ap.add_argument("--lib", required=True)
     ap.add_argument("--allow-none", action="store_true",
                     help="a module with no funspec passes (a proof file)")
     ap.add_argument("modules", nargs="+")
@@ -82,8 +84,12 @@ def main(argv):
     work = os.path.join(root, "postlint_tmp.v")
     fails = []
     try:
-        # the checker must lie under --root (it is compiled there, as
-        # <lib>.lint.PostLint); a check directory gets a copy
+        # the checker is compiled under --root, as <lib>.lint.PostLint
+        own = os.path.join(HERE, "PostLint.v")
+        copy = os.path.join(root, "lint", "PostLint.v")
+        if os.path.abspath(own) != os.path.abspath(copy):
+            os.makedirs(os.path.dirname(copy), exist_ok=True)
+            shutil.copy(own, copy)
         rc, out = coqc(root, a.lib, os.path.join(root, "lint", "PostLint.v"))
         if rc:
             print(out)

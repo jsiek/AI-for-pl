@@ -1,0 +1,18 @@
+{
+ "target": "libc-isupper",
+ "verdict": "PROVED",
+ "recheck": "python3 Ariadne/ariadne/cli.py check libc-isupper Ariadne/libc/proofs",
+ "inputs_sha256": {
+  "isupper.c": "3f4d1c4923195f84ca05dc11eeedccda61f2778471b31b7a498ebd71f28ffc80",
+  "spec_isupper.v": "0bc132b1eb17f08030348b734e11f540407d8d461de7a0d3cc4e09fcbb665fa4",
+  "verif_isupper.v": "d2ec6d77c99c79531e74ebe387afff23732caf15ee251c6c1bc40b26b8b43842"
+ },
+ "trusted": [],
+ "axioms_beyond_vst": [],
+ "tools": {
+  "coqc": "The Rocq Prover, version 9.0.1",
+  "clightgen": "The CompCert CompCert AST generator, version 3.17",
+  "coqchk": "The Rocq Proof Checker, version 9.0.1",
+  "image": "ariadne-vst:dev sha256:5f1898b5f3f95e4fc067a0c1a6d3bb8286580b1ecbaec1f14ebd10596be82d3d"
+ }
+}

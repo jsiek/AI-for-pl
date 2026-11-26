@@ -1,0 +1,67 @@
+# musl functions verified from source (plan §4): one target per unit,
+# semax_body for each function against libc/specs/ (frozen) and, for
+# internal helpers, specs the agent writes.  See ../ariadne/targets.py.
+
+[defaults]
+name = "libc-{unit}"
+lib = "Libc"
+c = "{unit}.c"
+proof = "verif_{unit}.v"
+task = "libc/TASK.md"
+cap_usd = 10.0
+lint = ["spec_{unit}"]
+
+[defaults.files."spec_{unit}.v"]
+text = """(* Frozen specs for musl's {unit} (Ariadne/libc/specs/).  Do not edit. *)
+Require Import VST.floyd.proofauto.
+Require Import Libc.{unit}.
+#[export] Instance CompSpecs : compspecs. make_compspecs prog. Defined.
+Definition Vprog : varspecs. mk_varspecs prog. Defined.
+
+(* @libc {specs} *)
+"""
+libc = true
+
+[[target]]
+unit = "strlen"
+specs = "strlen"
+functions = "`strlen`"
+files."strlen.c" = { preprocess = ["src/string/strlen.c"], root = "libc/musl-1.2.6", includes = ["obj/shim", "arch/x86_64", "arch/generic", "obj/src/internal", "src/include", "src/internal", "obj/include", "include"] }
+goals.body_strlen = "semax_body Libc.spec_strlen.Vprog Gprog Libc.strlen.f_strlen Libc.spec_strlen.strlen_spec"
+extra = ["Goal VST.veric.initial_world.find_id Libc.strlen._strlen Gprog = Some (snd Libc.spec_strlen.strlen_spec). Proof. reflexivity. Qed."]
+
+[[target]]
+unit = "strcmp"
+specs = "strcmp"
+functions = "`strcmp`"
+files."strcmp.c" = { preprocess = ["src/string/strcmp.c"], root = "libc/musl-1.2.6", includes = ["obj/shim", "arch/x86_64", "arch/generic", "obj/src/internal", "src/include", "src/internal", "obj/include", "include"] }
+goals.body_strcmp = "semax_body Libc.spec_strcmp.Vprog Gprog Libc.strcmp.f_strcmp Libc.spec_strcmp.strcmp_spec"
+extra = ["Goal VST.veric.initial_world.find_id Libc.strcmp._strcmp Gprog = Some (snd Libc.spec_strcmp.strcmp_spec). Proof. reflexivity. Qed."]
+
+[[target]]
+unit = "strchr"
+specs = "strlen strchr"
+functions = "`strlen`, `strchr` and the internal `__strchrnul` (its spec is yours: what the proof of `strchr` needs)"
+files."strchr.c" = { preprocess = ["src/string/strlen.c", "src/string/strchrnul.c", "src/string/strchr.c"], root = "libc/musl-1.2.6", includes = ["obj/shim", "arch/x86_64", "arch/generic", "obj/src/internal", "src/include", "src/internal", "obj/include", "include"] }
+goals.body_strlen = "semax_body Libc.spec_strchr.Vprog Gprog Libc.strchr.f_strlen Libc.spec_strchr.strlen_spec"
+goals.body_strchr = "semax_body Libc.spec_strchr.Vprog Gprog Libc.strchr.f_strchr Libc.spec_strchr.strchr_spec"
+goals.body___strchrnul = "semax_body Libc.spec_strchr.Vprog Gprog Libc.strchr.f___strchrnul __strchrnul_spec"
+extra = ["Goal VST.veric.initial_world.find_id Libc.strchr._strlen Gprog = Some (snd Libc.spec_strchr.strlen_spec). Proof. reflexivity. Qed.",
+         "Goal VST.veric.initial_world.find_id Libc.strchr._strchr Gprog = Some (snd Libc.spec_strchr.strchr_spec). Proof. reflexivity. Qed.",
+         "Goal VST.veric.initial_world.find_id Libc.strchr.___strchrnul Gprog = Some (snd __strchrnul_spec). Proof. reflexivity. Qed."]
+
+[[target]]
+unit = "memcpy"
+specs = "memcpy"
+functions = "`memcpy`"
+files."memcpy.c" = { preprocess = ["src/string/memcpy.c"], root = "libc/musl-1.2.6", includes = ["obj/shim", "arch/x86_64", "arch/generic", "obj/src/internal", "src/include", "src/internal", "obj/include", "include"] }
+goals.body_memcpy = "semax_body Libc.spec_memcpy.Vprog Gprog Libc.memcpy.f_memcpy Libc.spec_memcpy.memcpy_spec"
+extra = ["Goal VST.veric.initial_world.find_id Libc.memcpy._memcpy Gprog = Some (snd Libc.spec_memcpy.memcpy_spec). Proof. reflexivity. Qed."]
+
+[[target]]
+unit = "isupper"
+specs = "isupper"
+functions = "`isupper`"
+files."isupper.c" = { preprocess = ["src/ctype/isupper.c"], root = "libc/musl-1.2.6", includes = ["obj/shim", "arch/x86_64", "arch/generic", "obj/src/internal", "src/include", "src/internal", "obj/include", "include"] }
+goals.body_isupper = "semax_body Libc.spec_isupper.Vprog Gprog Libc.isupper.f_isupper Libc.spec_isupper.isupper_spec"
+extra = ["Goal VST.veric.initial_world.find_id Libc.isupper._isupper Gprog = Some (snd Libc.spec_isupper.isupper_spec). Proof. reflexivity. Qed."]

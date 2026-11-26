@@ -1,0 +1,28 @@
+{
+ "target": "client3",
+ "verdict": "PROVED",
+ "recheck": "python3 Ariadne/ariadne/cli.py check client3 Ariadne/bench/sglib_vst/clients",
+ "inputs_sha256": {
+  "CLIENT_SURVEY.md": "2be3a28ee22febe319a0f9c0fb86a3a8b3d9decb592e0189130ea9b927e291d4",
+  "SPEC.md": "16e0bb54c1665f52888bb0ba88f3809e6e07832b7d870880c9cbc9990f1e6d10",
+  "client3.c": "062dc1923feb3dbf6df9ab4ce6c1100a9ca8d6949abc99f7450f66277e81e1fb",
+  "lib_client3.v": "4415eecc2218f926da39b31855bc2b62d54ad29a3c5a7da411d6b0b355cd6796",
+  "spec_client3.v": "f8f71d8a36fcc3253ecfb8d03352178806951cd0a4eafd30806a53f468c54dc6",
+  "verif_client3.v": "6e46650ecccd79a31af102f1832df55cf089a3a238fd04a41a5a2aa2203ca29c"
+ },
+ "trusted": [],
+ "axioms_beyond_vst": [
+  "SglibVST.spec_client3.body_add",
+  "SglibVST.spec_client3.body_get_first",
+  "SglibVST.spec_client3.body_get_last",
+  "SglibVST.spec_client3.body_it_init",
+  "SglibVST.spec_client3.body_it_init_on_equal",
+  "SglibVST.spec_client3.body_it_next"
+ ],
+ "tools": {
+  "coqc": "The Rocq Prover, version 9.0.1",
+  "clightgen": "The CompCert CompCert AST generator, version 3.17",
+  "coqchk": "The Rocq Proof Checker, version 9.0.1",
+  "image": "ariadne-vst:dev sha256:5f1898b5f3f95e4fc067a0c1a6d3bb8286580b1ecbaec1f14ebd10596be82d3d"
+ }
+}

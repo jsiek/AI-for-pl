@@ -7,6 +7,18 @@
   "spec_isupper.v": "0bc132b1eb17f08030348b734e11f540407d8d461de7a0d3cc4e09fcbb665fa4",
   "verif_isupper.v": "d2ec6d77c99c79531e74ebe387afff23732caf15ee251c6c1bc40b26b8b43842"
  },
+ "proof_files": [
+  "verif_isupper.v"
+ ],
+ "target_sha256": "4a81ad35261eb4f763992ad3d46701b2e078a13eb4ae26db48ef9046abbf78db",
+ "policy_sha256": {
+  "libc/targets.toml": "5d51d7dd85b80cbe39a49b0323ba52f4ead99e24903a628c02de736af5496ef8",
+  "vst/smoke/coqchk_axioms.txt": "0238653531ad5e705c56d8b16d54a92910bc880b2747235c8f965ad3ebfa8c81",
+  "ariadne/check.py": "670738c8df4246592fd9f3c3499c724cf61fa9f83bca2a31440d143f63341b85",
+  "ariadne/targets.py": "1ded1b33bd225a0c3368b86ddc41168715cdd43ae87e530c0fc413d20eee3c4e",
+  "ariadne/lint/post_lint.py": "f5a91de24d709bf5f566060d53bc9eb521f01489eedfdaafb99689d893dc3be5",
+  "ariadne/lint/PostLint.v": "58630ac8bf57e9180af17d78a42e932179988edd4284cfe384abcfe709245a63"
+ },
  "trusted": [],
  "axioms_beyond_vst": [],
  "tools": {

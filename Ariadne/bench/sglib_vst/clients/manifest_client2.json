@@ -10,6 +10,18 @@
   "spec_client2.v": "2dd0c38b5d01c048945d4d111166ced8bc0be5068154f57f33b163d25a4b77c5",
   "verif_client2.v": "5ad83fa138b3d827da2170020c3ee6472ece926aae8d3797d4c229738e225448"
  },
+ "proof_files": [
+  "verif_client2.v"
+ ],
+ "target_sha256": "09493113f3f1780ea182d99053fbb29f5e146156c1f7bc957fc8655a92b2a3a5",
+ "policy_sha256": {
+  "bench/sglib_vst/clients/targets.toml": "1ff9fb8d72e86635db52ca7c1b2e332ae9de15d566fbfb3619ae130537658fea",
+  "vst/smoke/coqchk_axioms.txt": "0238653531ad5e705c56d8b16d54a92910bc880b2747235c8f965ad3ebfa8c81",
+  "ariadne/check.py": "670738c8df4246592fd9f3c3499c724cf61fa9f83bca2a31440d143f63341b85",
+  "ariadne/targets.py": "1ded1b33bd225a0c3368b86ddc41168715cdd43ae87e530c0fc413d20eee3c4e",
+  "ariadne/lint/post_lint.py": "f5a91de24d709bf5f566060d53bc9eb521f01489eedfdaafb99689d893dc3be5",
+  "ariadne/lint/PostLint.v": "58630ac8bf57e9180af17d78a42e932179988edd4284cfe384abcfe709245a63"
+ },
  "trusted": [],
  "axioms_beyond_vst": [
   "SglibVST.spec_client2.body_add",

@@ -23,8 +23,10 @@ the target's `proof`; or just `proof`):
     named in `lint` and every proof module.
 
 Verdict PROVED: all goals PROVED and no violation.  Writes
-PROOF_DIR/check_NAME.json and PROOF_DIR/manifest_NAME.json (hashes of every input,
-tool versions, the image, the verdict and the command that re-checks).
+PROOF_DIR/check_NAME.json and PROOF_DIR/manifest_NAME.json: the hashes
+of every input, of proof_files.txt, of the target as read and its TOML,
+of VST's axiom baseline and of the checker's sources; the tool versions,
+the image, the verdict and the command that re-checks.
 """
 import hashlib
 import json
@@ -166,7 +168,7 @@ def check(name, proof_dir, coqchk=True):
     s["proof_files"] = files
     bad = [f for f in files if not re.fullmatch(r"\w+\.v", f)
            or f in t["files"] or not os.path.exists(os.path.join(d, f))]
-    if bad or files[-1] != t["proof"]:
+    if bad or not files or files[-1] != t["proof"]:
         s["violations"].append("proof files: bad or missing %s, or the last "
                                "is not %s" % (bad, t["proof"]))
         return finish(d, s, t, files)
@@ -320,6 +322,18 @@ def finish(d, s, t, files):
          "recheck": "python3 Ariadne/ariadne/cli.py check %s %s" % (
              t["name"], os.path.relpath(d, os.path.dirname(ARIADNE))),
          "inputs_sha256": inputs,
+         "proof_files": files,
+         # what decides the verdict besides the inputs: the target as the
+         # checker read it, its TOML, VST's axiom baseline, the checker
+         "target_sha256": hashlib.sha256(json.dumps(
+             t, sort_keys=True).encode()).hexdigest(),
+         "policy_sha256": {os.path.relpath(p, ARIADNE): sha(p) for p in [
+             os.path.join(ARIADNE, t["toml"]), BASELINE,
+             os.path.join(HERE, "check.py"), os.path.join(HERE, "targets.py"),
+             os.path.join(LINT, "post_lint.py"),
+             os.path.join(LINT, "PostLint.v")]
+             + ([os.path.join(d, "proof_files.txt")] if os.path.exists(
+                 os.path.join(d, "proof_files.txt")) else [])},
          "trusted": s.get("trusted", []),
          "axioms_beyond_vst": (s.get("coqchk") or {}).get("axioms_beyond_vst")
          if isinstance(s.get("coqchk"), dict) else None,

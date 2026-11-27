@@ -15,7 +15,9 @@ prover (needs the VST image; several minutes per case):
              the leak lint;
   client     client 1 with a stub Gprog: the library entries at
              Rc_client pass (prog_correct is Admitted: OPEN);
-  client_rc  the same with it_next at another Rc: the Gprog line fails.
+  client_rc  the same with it_next at another Rc: the Gprog line fails;
+  empty_list an empty proof_files.txt: NOT PROVED with a diagnostic, and
+             a manifest (Codex on PR #242), without compiling.
 
     python3 test_check.py [case ...]
 """
@@ -106,6 +108,7 @@ CASES = {
     "tt_post": ("dllist", verif(extra=TT_HELPER), False),
     "client": ("client1", CLIENT.replace("RC", "Rc_client"), False),
     "client_rc": ("client1", CLIENT.replace("RC", "(fun _ _ => FF)"), False),
+    "empty_list": ("dllist", verif(), False),
 }
 
 
@@ -124,6 +127,8 @@ def main(names):
         shutil.rmtree(d, ignore_errors=True)
         os.makedirs(d)
         open(os.path.join(d, targets.load(target)["proof"]), "w").write(text)
+        if case == "empty_list":
+            open(os.path.join(d, "proof_files.txt"), "w").write("")
         s = check.check(target, d, coqchk=coqchk)
         v, g = s["violations"], s.get("goals", {})
         if case == "good":
@@ -149,6 +154,12 @@ def main(names):
             ok = expect("tt_post: rejected by the leak lint",
                         any("post_lint" in x for x in v)
                         and "helper_spec" in s["post_lint"]["out"], s)
+        elif case == "empty_list":
+            ok = expect("empty_list: NOT PROVED (proof files), manifest written",
+                        s["verdict"] == "NOT PROVED"
+                        and any("proof files" in x for x in v)
+                        and os.path.exists(os.path.join(
+                            d, "manifest_dllist.json")), s)
         elif case == "client":
             ok = expect("client: library entries at Rc_client pass; "
                         "prog_correct OPEN",
